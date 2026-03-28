@@ -38,14 +38,18 @@ Current toggle groups in `zen_ui_config`:
 
 - `features.navbar`
 - `features.quick_settings`
+- `features.disable_default_koreader_menu_sections`
 - `features.titlebar`
 - `features.hide_pagination`
-- `features.disable_top_menu_zones`
-- `features.browser_folder_cover`
-- `features.browser_hide_underline`
-- `features.browser_up_folder`
+- `features.disable_top_menu_swipe_zones`
+- `features.browser_hide_up_folder`
 - `features.reader_header_clock`
 - `zen.safe_mode`
+
+Always-on (not user-toggleable in Zen settings):
+
+- `features.browser_folder_cover`
+- `features.browser_hide_underline`
 
 ## Legacy migration
 
@@ -54,8 +58,8 @@ The plugin currently maps legacy keys into the new feature namespace on load:
 - `bottom_navbar` -> `features.navbar`
 - `quick_settings_panel` -> `features.quick_settings`
 - `custom_status_bar` -> `features.titlebar`
-- `filemanager_hide_up_folder` -> `features.browser_up_folder`
-- `filemanager_hide_empty_folder` -> `features.browser_up_folder`
+- `filemanager_hide_up_folder` -> `features.browser_hide_up_folder`
+- `filemanager_hide_empty_folder` -> `features.browser_hide_up_folder`
 - `folder_hide_underline` -> `features.browser_hide_underline`
 
 This is the first migration step and will be expanded to full nested setting import.

@@ -30,6 +30,241 @@ end
 function M.build(plugin)
     local config = plugin.config
 
+    local function first_non_empty(...)
+        for i = 1, select("#", ...) do
+            local v = select(i, ...)
+            if type(v) == "string" and v ~= "" then
+                return v
+            end
+        end
+        return nil
+    end
+
+    local function get_plugin_version()
+        local value = first_non_empty(
+            plugin and plugin.version,
+            plugin and plugin._meta and plugin._meta.version,
+            config and config._meta and config._meta.version
+        )
+        if value then
+            return value
+        end
+
+        local ok_meta, meta = pcall(require, "_meta")
+        if ok_meta and type(meta) == "table" then
+            value = first_non_empty(meta.version)
+            if value then
+                return value
+            end
+        end
+
+        -- Reliable fallback: load _meta.lua directly from this plugin's root.
+        local src = debug.getinfo(1, "S").source or ""
+        if src:sub(1, 1) == "@" then
+            local this_file = src:sub(2)
+            local plugin_root = this_file:match("^(.*)/settings/zen_settings_build%.lua$")
+            if plugin_root then
+                local ok_file, file_meta = pcall(dofile, plugin_root .. "/_meta.lua")
+                if ok_file and type(file_meta) == "table" then
+                    value = first_non_empty(file_meta.version)
+                    if value then
+                        return value
+                    end
+                end
+            end
+        end
+
+        return "dev"
+    end
+
+    local function get_koreader_version()
+        local ok_version, version_mod = pcall(require, "version")
+        if ok_version then
+            if type(version_mod) == "string" and version_mod ~= "" then
+                return version_mod
+            end
+            if type(version_mod) == "table" then
+                local value = first_non_empty(
+                    version_mod.version,
+                    version_mod.short,
+                    version_mod.git,
+                    version_mod.git_rev,
+                    version_mod.build,
+                    version_mod.tag
+                )
+                if value then
+                    return value
+                end
+            end
+        end
+
+        local value = first_non_empty(
+            rawget(_G, "KOREADER_VERSION"),
+            rawget(_G, "KO_VERSION"),
+            rawget(_G, "GIT_REV")
+        )
+        return value or "unknown"
+    end
+
+    local function normalize_value(v)
+        if type(v) == "number" then
+            v = tostring(v)
+        end
+        if type(v) ~= "string" then
+            return nil
+        end
+        v = v:match("^%s*(.-)%s*$")
+        if v == "" then
+            return nil
+        end
+        return v
+    end
+
+    local function get_device_model_name()
+        local function call_device_method(name)
+            if not (Device and type(Device[name]) == "function") then
+                return nil
+            end
+            local ok, value = pcall(Device[name], Device)
+            value = ok and normalize_value(value) or nil
+            if value then
+                return value
+            end
+            ok, value = pcall(Device[name])
+            return ok and normalize_value(value) or nil
+        end
+
+        local value = normalize_value(first_non_empty(
+            Device and Device.model,
+            Device and Device.model_name,
+            Device and Device.device_model,
+            Device and Device.product,
+            Device and Device.name,
+            Device and Device.friendly_name,
+            Device and Device.id,
+            rawget(_G, "DEVICE_MODEL")
+        ))
+        if value then
+            return value
+        end
+
+        value = call_device_method("getModel")
+            or call_device_method("getModelName")
+            or call_device_method("getDeviceModel")
+            or call_device_method("getFriendlyName")
+            or call_device_method("getDeviceName")
+        if value then
+            return value
+        end
+
+        if Device and Device.isAndroid and Device:isAndroid() then
+            local ok_model, model = pcall(function()
+                local pipe = io.popen("getprop ro.product.model 2>/dev/null")
+                if not pipe then return nil end
+                local out = pipe:read("*l")
+                pipe:close()
+                return normalize_value(out)
+            end)
+            local ok_mfr, mfr = pcall(function()
+                local pipe = io.popen("getprop ro.product.manufacturer 2>/dev/null")
+                if not pipe then return nil end
+                local out = pipe:read("*l")
+                pipe:close()
+                return normalize_value(out)
+            end)
+            if ok_model and model then
+                if ok_mfr and mfr and not model:lower():find(mfr:lower(), 1, true) then
+                    return mfr .. " " .. model
+                end
+                return model
+            end
+        end
+
+        return "Device"
+    end
+
+    local function get_kindle_firmware_info()
+        if not (Device and Device.isKindle and Device:isKindle()) then
+            return "n/a", nil, nil
+        end
+
+        local function normalize_fw_value(v)
+            return normalize_value(v)
+        end
+
+        local function read_first_line(path)
+            local f = io.open(path, "r")
+            if not f then
+                return nil
+            end
+            local line = f:read("*l")
+            f:close()
+            return normalize_fw_value(line)
+        end
+
+        if type(Device.getFirmwareVersion) == "function" then
+            local calls = {
+                function() return Device:getFirmwareVersion() end,
+                function() return Device.getFirmwareVersion(Device) end,
+                function() return Device.getFirmwareVersion() end,
+            }
+            for _, get_fw in ipairs(calls) do
+                local ok, value = pcall(get_fw)
+                value = ok and normalize_fw_value(value) or nil
+                if value then
+                    return value, "Device FW", "Device FW"
+                end
+            end
+        end
+
+        local value = first_non_empty(
+            Device.firmware,
+            Device.firmware_version,
+            Device.firmware_rev,
+            Device.fw_version,
+            Device.fw,
+            Device.softwareVersion,
+            rawget(_G, "KINDLE_FIRMWARE_VERSION"),
+            rawget(_G, "KINDLE_FW_VERSION")
+        )
+
+        value = normalize_fw_value(value)
+        if value then
+            return value, "Device FW", "Device FW"
+        end
+
+        -- Last-resort probes used by Kindle Linux images.
+        value = read_first_line("/etc/prettyversion.txt")
+        if value then
+            return value, "prettyversion", "prettyversion"
+        end
+
+        value = read_first_line("/etc/version.txt")
+        if value then
+            return value, "version", "version"
+        end
+
+        value = read_first_line("/etc/otaversion")
+        if value then
+            return value, "otaVersion", "otaversion"
+        end
+
+        return "unknown", "Device FW", "Device FW"
+    end
+
+    local function get_kindle_firmware_version()
+        local fw, _source_label = get_kindle_firmware_info()
+        return fw
+    end
+
+    local function get_kindle_firmware_display()
+        local fw = get_kindle_firmware_version()
+        if fw == "n/a" then
+            return fw
+        end
+        return fw
+    end
+
     local function apply_feature(feature, label)
         local enabled = get_path(config, { "features", feature }) == true
         settings_apply.apply_feature_toggle(plugin, feature, enabled, label)
@@ -93,34 +328,69 @@ function M.build(plugin)
         save_and_apply("titlebar", _("Custom status bar"))
     end
 
-    local feature_items = {
-        { text = _("Bottom navbar"), path = { "features", "navbar" } },
-        { text = _("Quick settings panel"), path = { "features", "quick_settings" } },
-        { text = _("Custom status bar"), path = { "features", "titlebar" } },
-        { text = _("Hide pagination footer"), path = { "features", "hide_pagination" } },
-        { text = _("Disable top menu zones"), path = { "features", "disable_top_menu_zones" } },
-        { text = _("Browser folder covers"), path = { "features", "browser_folder_cover" } },
-        { text = _("Browser hide underline"), path = { "features", "browser_hide_underline" } },
-        { text = _("Browser up-folder behavior"), path = { "features", "browser_up_folder" } },
-        { text = _("Reader header clock"), path = { "features", "reader_header_clock" } },
-    }
-
-    local items = {}
-    for _, item in ipairs(feature_items) do
-        table.insert(items, {
-            text = item.text,
+    local function make_enable_feature_item(feature, feature_label, enable_text)
+        return {
+            text = enable_text,
             checked_func = function()
-                return get_path(config, item.path)
+                return config.features[feature] == true
             end,
             callback = function()
-                local current = get_path(config, item.path)
-                local enabled = not current
-                set_path(config, item.path, enabled)
-                plugin:saveConfig()
-                settings_apply.apply_feature_toggle(plugin, item.path[2], enabled, item.text)
+                config.features[feature] = not (config.features[feature] == true)
+                save_and_apply(feature, feature_label)
             end,
-        })
+        }
     end
+
+    local function order_items_by_text(item_table, preferred_order)
+        local by_text = {}
+        local ordered = {}
+        local used = {}
+
+        for _, item in ipairs(item_table) do
+            if type(item.text) == "string" and item.text ~= "" then
+                if by_text[item.text] == nil then
+                    by_text[item.text] = item
+                end
+            end
+        end
+
+        for _, text in ipairs(preferred_order) do
+            local item = by_text[text]
+            if item then
+                table.insert(ordered, item)
+                used[item] = true
+            end
+        end
+
+        for _, item in ipairs(item_table) do
+            if not used[item] then
+                table.insert(ordered, item)
+            end
+        end
+
+        return ordered
+    end
+
+    local function reorder_nested_items_by_text(item_table, target_text, preferred_order)
+        for _, item in ipairs(item_table) do
+            if item.text == target_text and type(item.sub_item_table) == "table" then
+                item.sub_item_table = order_items_by_text(item.sub_item_table, preferred_order)
+                return true
+            end
+            if type(item.sub_item_table) == "table" then
+                local found = reorder_nested_items_by_text(item.sub_item_table, target_text, preferred_order)
+                if found then
+                    return true
+                end
+            end
+        end
+        return false
+    end
+
+    local filebrowser_items = {}
+    local menu_items = {}
+    local reader_items = {}
+    local general_items = {}
 
     local navbar_tab_items = {
         { id = "books", text = _("Books") },
@@ -152,12 +422,10 @@ function M.build(plugin)
         end
     end
 
-    table.insert(items, {
+    table.insert(filebrowser_items, {
         text = _("Bottom navbar settings"),
-        enabled_func = function()
-            return config.features.navbar == true
-        end,
         sub_item_table = {
+            make_enable_feature_item("navbar", _("Bottom navbar"), _("Enable bottom nav bar")),
             {
                 text = _("Show labels"),
                 checked_func = function() return config.navbar.show_labels == true end,
@@ -692,12 +960,10 @@ function M.build(plugin)
         })
     end
 
-    table.insert(items, {
+    table.insert(menu_items, {
         text = _("Quick settings panel settings"),
-        enabled_func = function()
-            return config.features.quick_settings == true
-        end,
         sub_item_table = {
+            make_enable_feature_item("quick_settings", _("Quick settings panel"), _("Enable quick settings panel")),
             {
                 text = _("Show frontlight slider"),
                 checked_func = function() return config.quick_settings.show_frontlight == true end,
@@ -729,12 +995,10 @@ function M.build(plugin)
         },
     })
 
-    table.insert(items, {
+    table.insert(filebrowser_items, {
         text = _("Custom status bar settings"),
-        enabled_func = function()
-            return config.features.titlebar == true
-        end,
         sub_item_table = {
+            make_enable_feature_item("titlebar", _("Custom status bar"), _("Enable custom status bar")),
             {
                 text = _("Hide browser bar"),
                 checked_func = function() return config.titlebar.hide_topbar == true end,
@@ -1018,32 +1282,54 @@ function M.build(plugin)
         },
     })
 
-    table.insert(items, {
-        text = _("Browser up-folder settings"),
-        enabled_func = function()
-            return config.features.browser_up_folder == true
-        end,
+    table.insert(filebrowser_items, make_enable_feature_item(
+        "hide_pagination",
+        _("Hide pagination footer"),
+        _("Hide pagination footer")
+    ))
+
+    table.insert(menu_items, make_enable_feature_item(
+        "disable_default_koreader_menu_sections",
+        _("Disable default KOReader menu sections"),
+        _("Disable default KOReader menu sections")
+    ))
+
+    table.insert(menu_items, make_enable_feature_item(
+        "disable_top_menu_swipe_zones",
+        _("Disable top menu swipe zones"),
+        _("Disable top menu swipe zone (always show quick settings first)")
+    ))
+
+    table.insert(filebrowser_items, {
+        text = _("Browser hide up-folder settings"),
         sub_item_table = {
+            make_enable_feature_item("browser_hide_up_folder", _("Browser hide up-folder behavior"), _("Enable browser hide up-folder behavior")),
             {
                 text = _("Hide up folders"),
-                checked_func = function() return config.browser_up_folder.hide_up_folder == true end,
+                checked_func = function() return config.browser_hide_up_folder.hide_up_folder == true end,
                 callback = function()
-                    config.browser_up_folder.hide_up_folder = not (config.browser_up_folder.hide_up_folder == true)
-                    save_and_apply("browser_up_folder", _("Browser up-folder behavior"))
+                    config.browser_hide_up_folder.hide_up_folder = not (config.browser_hide_up_folder.hide_up_folder == true)
+                    save_and_apply("browser_hide_up_folder", _("Browser hide up-folder behavior"))
                 end,
             },
             {
                 text = _("Hide empty folders"),
-                checked_func = function() return config.browser_up_folder.hide_empty_folder == true end,
+                checked_func = function() return config.browser_hide_up_folder.hide_empty_folder == true end,
                 callback = function()
-                    config.browser_up_folder.hide_empty_folder = not (config.browser_up_folder.hide_empty_folder == true)
-                    save_and_apply("browser_up_folder", _("Browser up-folder behavior"))
+                    config.browser_hide_up_folder.hide_empty_folder = not (config.browser_hide_up_folder.hide_empty_folder == true)
+                    save_and_apply("browser_hide_up_folder", _("Browser hide up-folder behavior"))
                 end,
             },
         },
     })
 
-    table.insert(items, {
+    table.insert(reader_items, make_enable_feature_item(
+        "reader_header_clock",
+        _("Reader header clock"),
+        _("Enable reader header clock")
+    ))
+
+    table.insert(general_items, {
         text = _("Enable updater actions"),
         checked_func = function()
             return config.zen.updater_enabled == true
@@ -1054,11 +1340,147 @@ function M.build(plugin)
         end,
     })
 
-    table.insert(items, updater.build_update_now_item(plugin))
+    table.insert(general_items, updater.build_update_now_item(plugin))
+
+    table.insert(general_items, {
+        text = _("Exit KOReader"),
+        callback = function()
+            local Event = require("ui/event")
+            local ConfirmBox = require("ui/widget/confirmbox")
+            UIManager:show(ConfirmBox:new{
+                text = _("Are you sure you want to exit KOReader?"),
+                ok_text = _("Exit"),
+                ok_callback = function()
+                    UIManager:broadcastEvent(Event:new("Exit"))
+                end,
+            })
+        end,
+    })
+
+    filebrowser_items = order_items_by_text(filebrowser_items, {
+        _("Bottom navbar settings"),
+        _("Custom status bar settings"),
+        _("Browser hide up-folder settings"),
+        _("Hide pagination footer"),
+    })
+
+    menu_items = order_items_by_text(menu_items, {
+        _("Quick settings panel settings"),
+        _("Disable default KOReader menu sections"),
+        _("Disable top menu swipe zone (always show quick settings first)"),
+    })
+
+    reorder_nested_items_by_text(filebrowser_items, _("Bottom navbar settings"), {
+        _("Enable bottom nav bar"),
+        _("Show labels"),
+        _("Show top border"),
+        _("Show in standalone views"),
+        _("Show top gap"),
+        _("Tabs"),
+        _("Active tab styling"),
+        _("Bold active tab"),
+        _("Active tab underline"),
+        _("Underline above icon"),
+        _("Colored active tab"),
+        _("Refresh navbar"),
+    })
+
+    reorder_nested_items_by_text(filebrowser_items, _("Tabs"), {
+        _("Visibility"),
+        _("Arrange tabs"),
+    })
+
+    reorder_nested_items_by_text(menu_items, _("Quick settings panel settings"), {
+        _("Enable quick settings panel"),
+        _("Show frontlight slider"),
+        _("Show warmth slider"),
+        _("Always open on this tab"),
+        _("Buttons"),
+    })
+
+    reorder_nested_items_by_text(filebrowser_items, _("Custom status bar settings"), {
+        _("Enable custom status bar"),
+        _("Hide browser bar"),
+        _("Show time"),
+        _("12-hour time"),
+        _("Show bottom border"),
+        _("Bold text"),
+        _("Colored status icons"),
+        _("Items"),
+    })
+
+    reorder_nested_items_by_text(filebrowser_items, _("Browser hide up-folder settings"), {
+        _("Enable browser hide up-folder behavior"),
+        _("Hide up folders"),
+        _("Hide empty folders"),
+    })
+
+    local function build_root_spacer_items()
+        local screen_h = Device and Device.screen and Device.screen:getHeight() or 0
+        local scale = Device and Device.screen and Device.screen.scaleBySize and Device.screen.scaleBySize or function(_, v) return v end
+        local est_row_h = scale(Device.screen, 56)
+        local fixed_rows = 9 -- 4 top sections + 1 separator + 4 version rows
+        local max_rows = est_row_h > 0 and math.floor(screen_h / est_row_h) or fixed_rows
+        local spacer_rows = math.max(2, max_rows - fixed_rows + 1)
+
+        local items = {}
+        for _ = 1, spacer_rows do
+            table.insert(items, { text = " " })
+        end
+        return items
+    end
+
+    local root_items = {
+        {
+            text = _("File browser"),
+            sub_item_table = filebrowser_items,
+        },
+        {
+            text = _("Menu"),
+            sub_item_table = menu_items,
+        },
+        {
+            text = _("Reader"),
+            sub_item_table = reader_items,
+        },
+        {
+            text = _("General"),
+            sub_item_table = general_items,
+        },
+    }
+
+    for _, spacer in ipairs(build_root_spacer_items()) do
+        table.insert(root_items, spacer)
+    end
+
+    table.insert(root_items, {
+        separator = true,
+        text = "",
+    })
+    table.insert(root_items, {
+        text_func = function()
+            return _("Zen UI version: ") .. get_plugin_version()
+        end,
+    })
+    table.insert(root_items, {
+        text_func = function()
+            return _("KOReader version: ") .. get_koreader_version()
+        end,
+    })
+    table.insert(root_items, {
+        text_func = function()
+            return _("Device FW: ") .. get_kindle_firmware_display()
+        end,
+    })
+    table.insert(root_items, {
+        text_func = function()
+            return _("Device model: ") .. get_device_model_name()
+        end,
+    })
 
     return {
         text = _("Zen UI"),
-        sub_item_table = items,
+        sub_item_table = root_items,
     }
 end
 

@@ -7,7 +7,7 @@ local FEATURES = {
     "hide_pagination",
     "browser_folder_cover",
     "browser_hide_underline",
-    "browser_up_folder",
+    "browser_hide_up_folder",
 }
 
 local PATCH_MODULES = {
@@ -16,7 +16,7 @@ local PATCH_MODULES = {
     hide_pagination = "modules/filebrowser/patches/hide_pagination",
     browser_folder_cover = "modules/filebrowser/patches/browser_folder_cover",
     browser_hide_underline = "modules/filebrowser/patches/browser_hide_underline",
-    browser_up_folder = "modules/filebrowser/patches/browser_up_folder",
+    browser_hide_up_folder = "modules/filebrowser/patches/browser_hide_up_folder",
 }
 
 local function is_feature_enabled(plugin, key)

@@ -3,12 +3,14 @@ local initialized = false
 
 local FEATURES = {
     "quick_settings",
-    "disable_top_menu_zones",
+    "disable_default_koreader_menu_sections",
+    "disable_top_menu_swipe_zones",
 }
 
 local PATCH_MODULES = {
     quick_settings = "modules/menu/patches/quick_settings",
-    disable_top_menu_zones = "modules/menu/patches/disable_top_menu_zones",
+    disable_default_koreader_menu_sections = "modules/menu/patches/disable_default_koreader_menu_sections",
+    disable_top_menu_swipe_zones = "modules/menu/patches/disable_top_menu_swipe_zones",
 }
 
 local function is_feature_enabled(plugin, key)

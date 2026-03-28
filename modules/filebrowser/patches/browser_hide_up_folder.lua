@@ -1,4 +1,4 @@
-local function apply_browser_up_folder()
+local function apply_browser_hide_up_folder()
     local BD = require("ui/bidi")
     local FileChooser = require("ui/widget/filechooser")
 
@@ -9,7 +9,7 @@ local function apply_browser_up_folder()
 
     local function is_enabled()
         local features = zen_plugin.config and zen_plugin.config.features
-        return type(features) == "table" and features.browser_up_folder == true
+        return type(features) == "table" and features.browser_hide_up_folder == true
     end
 
     local config_default = {
@@ -18,13 +18,13 @@ local function apply_browser_up_folder()
     }
 
     local function loadConfig()
-        local config = zen_plugin.config.browser_up_folder or {}
+        local config = zen_plugin.config.browser_hide_up_folder or {}
         for k, v in pairs(config_default) do
             if config[k] == nil then
                 config[k] = v
             end
         end
-        zen_plugin.config.browser_up_folder = config
+        zen_plugin.config.browser_hide_up_folder = config
         return config
     end
 
@@ -101,4 +101,4 @@ local function apply_browser_up_folder()
 end
 
 
-return apply_browser_up_folder
+return apply_browser_hide_up_folder

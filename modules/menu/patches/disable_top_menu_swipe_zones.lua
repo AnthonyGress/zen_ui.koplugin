@@ -1,10 +1,10 @@
-local function apply_disable_top_menu_zones()
+local function apply_disable_top_menu_swipe_zones()
     local ReaderMenu = require("apps/reader/modules/readermenu")
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
     local function is_enabled()
         local features = zen_plugin and zen_plugin.config and zen_plugin.config.features
-        return type(features) == "table" and features.disable_top_menu_zones == true
+        return type(features) == "table" and features.disable_top_menu_swipe_zones == true
     end
 
     local _reader_getTabIndexFromLocation_orig = ReaderMenu._getTabIndexFromLocation
@@ -26,4 +26,4 @@ local function apply_disable_top_menu_zones()
     end
 end
 
-return apply_disable_top_menu_zones
+return apply_disable_top_menu_swipe_zones

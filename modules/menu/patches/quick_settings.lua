@@ -178,7 +178,7 @@ local function apply_quick_settings()
             end,
         },
         settings = {
-            icon = "quicksettings",
+            icon = "appbar.settings",
             label = "Settings",
             callback = function(touch_menu)
                 local zen_settings = require("settings/zen_settings")

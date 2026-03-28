@@ -9,12 +9,13 @@ local M = {}
 local PATCH_MODULES = {
     navbar = "modules/filebrowser/patches/navbar",
     quick_settings = "modules/menu/patches/quick_settings",
+    disable_default_koreader_menu_sections = "modules/menu/patches/disable_default_koreader_menu_sections",
     titlebar = "modules/filebrowser/patches/titlebar",
     hide_pagination = "modules/filebrowser/patches/hide_pagination",
-    disable_top_menu_zones = "modules/menu/patches/disable_top_menu_zones",
+    disable_top_menu_swipe_zones = "modules/menu/patches/disable_top_menu_swipe_zones",
     browser_folder_cover = "modules/filebrowser/patches/browser_folder_cover",
     browser_hide_underline = "modules/filebrowser/patches/browser_hide_underline",
-    browser_up_folder = "modules/filebrowser/patches/browser_up_folder",
+    browser_hide_up_folder = "modules/filebrowser/patches/browser_hide_up_folder",
     reader_header_clock = "modules/reader/patches/reader_header_clock",
 }
 
@@ -26,10 +27,11 @@ local RESTART_REQUIRED = {
 local APPLY_MODE = {
     navbar = "filemanager_layout",
     quick_settings = "menu_refresh",
+    disable_default_koreader_menu_sections = "menu_refresh",
     titlebar = "filemanager_reinit",
     hide_pagination = "filemanager_reinit",
-    disable_top_menu_zones = "menu_refresh",
-    browser_up_folder = "filemanager_refresh",
+    disable_top_menu_swipe_zones = "menu_refresh",
+    browser_hide_up_folder = "filemanager_refresh",
     reader_header_clock = "reader_refresh",
 }
 

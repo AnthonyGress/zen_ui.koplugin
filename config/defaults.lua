@@ -21,12 +21,13 @@ local defaults = {
     features = {
         navbar = true,
         quick_settings = true,
+        disable_default_koreader_menu_sections = false,
         titlebar = true,
         hide_pagination = true,
-        disable_top_menu_zones = true,
+        disable_top_menu_swipe_zones = true,
         browser_folder_cover = true,
         browser_hide_underline = true,
-        browser_up_folder = true,
+        browser_hide_up_folder = true,
         reader_header_clock = true,
     },
     navbar = {
@@ -105,7 +106,7 @@ local defaults = {
         bold_text = false,
         hide_topbar = false,
     },
-    browser_up_folder = {
+    browser_hide_up_folder = {
         hide_empty_folder = false,
         hide_up_folder = true,
     },

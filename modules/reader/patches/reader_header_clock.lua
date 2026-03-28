@@ -46,9 +46,10 @@ local function apply_reader_header_clock()
     local _ReaderView_paintTo_orig = ReaderView.paintTo
     local header_settings = G_reader_settings:readSetting("footer")
     local screen_width = Screen:getWidth()
+    local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
     local function is_enabled()
-        local plugin = rawget(_G, "__ZEN_UI_PLUGIN")
+        local plugin = zen_plugin or rawget(_G, "__ZEN_UI_PLUGIN")
         local features = plugin and plugin.config and plugin.config.features
         return type(features) == "table" and features.reader_header_clock == true
     end

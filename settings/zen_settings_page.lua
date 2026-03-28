@@ -19,6 +19,21 @@ local function safe_call(fn, fallback)
     return fallback
 end
 
+local function refresh_page(page)
+    if not (page and page.updateItems) then
+        return
+    end
+
+    -- Try to preserve current anchor when refreshing, if Menu exposes it.
+    local target_page = page.page or page.cur_page or page.current_page
+    local target_item = page.selected or page.selected_item or page.itemnumber or page.cur_idx
+
+    local ok = pcall(page.updateItems, page, target_page, target_item)
+    if not ok then
+        pcall(page.updateItems, page)
+    end
+end
+
 local function wrap_items(item_table, get_page)
     local wrapped = {}
 
@@ -33,6 +48,10 @@ local function wrap_items(item_table, get_page)
         local base_text_func = item.text_func
 
         if is_checkable then
+            -- We render checkbox state in text ourselves; remove native checkable
+            -- metadata so Menu doesn't switch to checkbox-padding layout.
+            entry.checked = nil
+            entry.checked_func = nil
             entry.text = nil
             entry.text_func = function()
                 local label = base_text
@@ -43,7 +62,8 @@ local function wrap_items(item_table, get_page)
                 if item.checked_func then
                     checked = safe_call(item.checked_func, false) == true
                 end
-                return string.format("[%s] %s", checked and "x" or " ", label or "")
+                -- Keep a visible marker in both states to avoid first-toggle reflow/jump.
+                return string.format("%s %s", checked and "☑" or "☐", label or "")
             end
         end
 
@@ -61,9 +81,7 @@ local function wrap_items(item_table, get_page)
             entry.callback = function(...)
                 original_callback(...)
                 local page = get_page()
-                if page and page.updateItems then
-                    page:updateItems(1, true)
-                end
+                refresh_page(page)
             end
         end
 
@@ -91,6 +109,8 @@ function M.show_page(plugin, show_parent)
         show_parent = show_parent,
     }
     UIManager:show(page)
+    -- Ensure initial layout matches subsequent refresh layout.
+    refresh_page(page)
     return page
 end
 
