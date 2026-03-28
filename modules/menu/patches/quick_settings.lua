@@ -181,10 +181,14 @@ local function apply_quick_settings()
             icon = "appbar.settings",
             label = "Settings",
             callback = function(touch_menu)
-                local zen_settings = require("settings/zen_settings")
                 touch_menu:closeMenu()
                 UIManager:nextTick(function()
-                    zen_settings.show_page(zen_plugin)
+                    -- Open the KOReader main menu; Zen UI settings are in there.
+                    local ok, FileManager = pcall(require, "apps/filemanager/filemanager")
+                    local fm = ok and FileManager and FileManager.instance
+                    if fm and fm.menu and fm.menu.toggleMenu then
+                        fm.menu:toggleMenu()
+                    end
                 end)
             end,
         },

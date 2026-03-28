@@ -43,10 +43,7 @@ end
 
 function M.build_update_now_item(plugin)
     return {
-        text = _("Update plugin now"),
-        enabled_func = function()
-            return plugin.config.zen.updater_enabled == true
-        end,
+        text = _("Update Zen UI"),
         callback = function()
             M.run_update(plugin)
         end,

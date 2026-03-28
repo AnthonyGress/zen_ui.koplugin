@@ -244,11 +244,6 @@ function M.build(plugin)
             return value, "version", "version"
         end
 
-        value = read_first_line("/etc/otaversion")
-        if value then
-            return value, "otaVersion", "otaversion"
-        end
-
         return "unknown", "Device FW", "Device FW"
     end
 
@@ -1329,32 +1324,38 @@ function M.build(plugin)
         _("Enable reader header clock")
     ))
 
-    table.insert(general_items, {
-        text = _("Enable updater actions"),
-        checked_func = function()
-            return config.zen.updater_enabled == true
-        end,
-        callback = function()
-            config.zen.updater_enabled = not (config.zen.updater_enabled == true)
-            plugin:saveConfig()
-        end,
-    })
-
     table.insert(general_items, updater.build_update_now_item(plugin))
+    table.insert(general_items, { text = "", separator = true })
 
     table.insert(general_items, {
-        text = _("Exit KOReader"),
-        callback = function()
-            local Event = require("ui/event")
-            local ConfirmBox = require("ui/widget/confirmbox")
-            UIManager:show(ConfirmBox:new{
-                text = _("Are you sure you want to exit KOReader?"),
-                ok_text = _("Exit"),
-                ok_callback = function()
-                    UIManager:broadcastEvent(Event:new("Exit"))
-                end,
-            })
+        text_func = function()
+            return _("Zen UI: ") .. get_plugin_version()
         end,
+        keep_menu_open = true,
+    })
+    table.insert(general_items, {
+        text_func = function()
+            return _("KOReader: ") .. get_koreader_version()
+        end,
+        keep_menu_open = true,
+    })
+    table.insert(general_items, {
+        text_func = function()
+            return _("Device: ") .. get_device_model_name()
+        end,
+        keep_menu_open = true,
+    })
+    table.insert(general_items, {
+        text_func = function()
+            local fw = get_kindle_firmware_display()
+            if fw == "n/a" then return nil end
+            return _("Firmware: ") .. fw
+        end,
+        enabled_func = function()
+            local fw = get_kindle_firmware_display()
+            return fw ~= "n/a"
+        end,
+        keep_menu_open = true,
     })
 
     filebrowser_items = order_items_by_text(filebrowser_items, {
@@ -1415,21 +1416,6 @@ function M.build(plugin)
         _("Hide empty folders"),
     })
 
-    local function build_root_spacer_items()
-        local screen_h = Device and Device.screen and Device.screen:getHeight() or 0
-        local scale = Device and Device.screen and Device.screen.scaleBySize and Device.screen.scaleBySize or function(_, v) return v end
-        local est_row_h = scale(Device.screen, 56)
-        local fixed_rows = 9 -- 4 top sections + 1 separator + 4 version rows
-        local max_rows = est_row_h > 0 and math.floor(screen_h / est_row_h) or fixed_rows
-        local spacer_rows = math.max(2, max_rows - fixed_rows + 1)
-
-        local items = {}
-        for _ = 1, spacer_rows do
-            table.insert(items, { text = " " })
-        end
-        return items
-    end
-
     local root_items = {
         {
             text = _("File browser"),
@@ -1444,39 +1430,25 @@ function M.build(plugin)
             sub_item_table = reader_items,
         },
         {
-            text = _("General"),
+            text = _("About"),
             sub_item_table = general_items,
+            separator = true,
+        },
+        {
+            text = _("Exit KOReader"),
+            callback = function()
+                local Event = require("ui/event")
+                local ConfirmBox = require("ui/widget/confirmbox")
+                UIManager:show(ConfirmBox:new{
+                    text = _("Are you sure you want to exit KOReader?"),
+                    ok_text = _("Exit"),
+                    ok_callback = function()
+                        UIManager:broadcastEvent(Event:new("Exit"))
+                    end,
+                })
+            end,
         },
     }
-
-    for _, spacer in ipairs(build_root_spacer_items()) do
-        table.insert(root_items, spacer)
-    end
-
-    table.insert(root_items, {
-        separator = true,
-        text = "",
-    })
-    table.insert(root_items, {
-        text_func = function()
-            return _("Zen UI version: ") .. get_plugin_version()
-        end,
-    })
-    table.insert(root_items, {
-        text_func = function()
-            return _("KOReader version: ") .. get_koreader_version()
-        end,
-    })
-    table.insert(root_items, {
-        text_func = function()
-            return _("Device FW: ") .. get_kindle_firmware_display()
-        end,
-    })
-    table.insert(root_items, {
-        text_func = function()
-            return _("Device model: ") .. get_device_model_name()
-        end,
-    })
 
     return {
         text = _("Zen UI"),

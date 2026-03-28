@@ -22,6 +22,7 @@ local PATCH_MODULES = {
 local RESTART_REQUIRED = {
     browser_folder_cover = true,
     browser_hide_underline = true,
+    disable_default_koreader_menu_sections = true,
 }
 
 local APPLY_MODE = {
@@ -123,7 +124,26 @@ local function apply_reader_refresh()
     end
 end
 
-local function run_apply_mode(mode)
+-- Modes that reinitialise or re-layout the FileManager; must not run while the
+-- menu is still open or they will reset the menu back to page 1.
+local DISRUPTIVE_MODES = {
+    filemanager_layout  = true,
+    filemanager_reinit  = true,
+    filemanager_refresh = true,
+}
+
+local deferred_applies    = {}
+local deferred_poll_active = false
+
+-- True when the FileManager's TouchMenu overlay is visible.
+local function is_filemanager_menu_open()
+    local ok, FileManager = pcall(require, "apps/filemanager/filemanager")
+    if not ok or not FileManager or not FileManager.instance then return false end
+    local fm = FileManager.instance
+    return fm.menu ~= nil and fm.menu.menu_container ~= nil
+end
+
+local function run_apply_mode_now(mode)
     if mode == "filemanager_layout" then
         apply_filemanager_layout()
     elseif mode == "filemanager_reinit" then
@@ -135,6 +155,34 @@ local function run_apply_mode(mode)
     elseif mode == "reader_refresh" then
         apply_reader_refresh()
     end
+end
+
+-- Called on a 0.25 s interval; applies pending disruptive changes once the
+-- menu has been closed.
+local function flush_deferred()
+    deferred_poll_active = false
+    if is_filemanager_menu_open() then
+        deferred_poll_active = true
+        UIManager:scheduleIn(0.25, flush_deferred)
+        return
+    end
+    local pending = deferred_applies
+    deferred_applies = {}
+    for mode, _ in pairs(pending) do
+        run_apply_mode_now(mode)
+    end
+end
+
+local function run_apply_mode(mode)
+    if DISRUPTIVE_MODES[mode] and is_filemanager_menu_open() then
+        deferred_applies[mode] = true
+        if not deferred_poll_active then
+            deferred_poll_active = true
+            UIManager:scheduleIn(0.25, flush_deferred)
+        end
+        return
+    end
+    run_apply_mode_now(mode)
 end
 
 function M.apply_feature_toggle(plugin, feature, enabled, feature_label)
