@@ -147,7 +147,7 @@ local function apply_navbar()
         {
             id = "favorites",
             label = _("Favorites"),
-            icon = "tab_favorites",
+            icon = "star.empty",
         },
         {
             id = "collections",

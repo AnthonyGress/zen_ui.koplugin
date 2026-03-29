@@ -75,33 +75,51 @@ function ZenUI:init()
     end
 
     -- KOReader's TouchMenuBar packs icons 1..N-1 left and pushes icon N to the
-    -- far right via a stretch spacer.  With only 2 tabs (QS + zenui) after filtering,
-    -- zenui is icon N and lands far right.  Passing pad_to_three=true appends a
-    -- silent dummy entry so QS and zenui stay packed together on the left.
-    local function inject_zen_tab(menu_class, pad_to_three)
+    -- far right via a stretch spacer.  We always append a home tab last so it
+    -- occupies the far-right slot in both FileManager (QS, ZenUI, Home) and
+    -- Reader (QS, ZenUI, [KO section], Home).
+    local function inject_zen_tab(menu_class)
         if not menu_class or menu_class.__zen_ui_tab_patched then return end
         menu_class.__zen_ui_tab_patched = true
         local orig_sut = menu_class.setUpdateItemTable
         menu_class.setUpdateItemTable = function(m_self)
             orig_sut(m_self)
             if type(m_self.tab_item_table) ~= "table" or not _zen_plugin_ref then return end
+            -- Insert Zen UI tab right after the quicksettings tab.
             local zen_items = zen_settings.build(_zen_plugin_ref).sub_item_table
-            zen_items.icon = "settings"
+            zen_items.icon = "appbar.settings"
             local qs_pos = find_quicksettings_pos(m_self.tab_item_table)
             local insert_pos = qs_pos and (qs_pos + 1) or 1
             table.insert(m_self.tab_item_table, insert_pos, zen_items)
-            -- Pad to at least 3 tabs so the stretch gap falls after our real tabs,
-            -- keeping zenui adjacent to quicksettings rather than stranded far right.
-            -- icon = false makes the dummy render as a blank (no image loaded) but
-            -- still occupies the fixed-width slot in the bar.
-            if pad_to_three and #m_self.tab_item_table < 3 then
-                table.insert(m_self.tab_item_table, { icon = "tab_spacer", remember = false })
+            -- Append a Home tab at the far right (last = stretched position).
+            -- Captures m_self so the callback can close the menu before navigating.
+            local home_tab = { icon = "home", remember = false }
+            home_tab.callback = function()
+                require("ui/uimanager"):scheduleIn(0, function()
+                    if m_self.menu_container then
+                        require("ui/uimanager"):close(m_self.menu_container)
+                        m_self.menu_container = nil
+                    end
+                    local ui = m_self.ui
+                    if not ui then return end
+                    if ui.document then
+                        local file = ui.document.file
+                        ui:handleEvent(require("ui/event"):new("CloseConfigMenu"))
+                        ui:onClose()
+                        if type(ui.showFileManager) == "function" then
+                            ui:showFileManager(file)
+                        end
+                    elseif type(ui.onHome) == "function" then
+                        ui:onHome()
+                    end
+                end)
             end
+            table.insert(m_self.tab_item_table, home_tab)
         end
     end
 
     local ok_fm, FileManagerMenu = pcall(require, "apps/filemanager/filemanagermenu")
-    if ok_fm then inject_zen_tab(FileManagerMenu, true) end
+    if ok_fm then inject_zen_tab(FileManagerMenu) end
 
     local ok_rm, ReaderMenu = pcall(require, "apps/reader/modules/readermenu")
     if ok_rm then inject_zen_tab(ReaderMenu) end

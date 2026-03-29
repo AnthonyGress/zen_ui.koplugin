@@ -47,12 +47,11 @@ local function apply_quick_settings()
     -- ============================================================
 
     local config_default = {
-        button_order = { "wifi", "night", "rotate", "settings", "usb", "home", "search", "quickrss", "cloud", "zlibrary", "calibre", "notion", "streak", "opds", "filebrowser", "browserbar", "restart", "exit", "sleep" },
+        button_order = { "wifi", "night", "rotate", "usb", "search", "quickrss", "cloud", "zlibrary", "calibre", "notion", "streak", "opds", "filebrowser", "browserbar", "restart", "exit", "sleep" },
         show_buttons = {
             wifi = true,
             night = true,
             rotate = true,
-            settings = true,
             usb = false,
             search = false,
             quickrss = false,
@@ -62,7 +61,6 @@ local function apply_quick_settings()
             restart = true,
             exit = true,
             sleep = true,
-            home = true,
             browserbar = false,
             -- External plugin buttons (disabled by default; enable if plugin is installed)
             notion = false,
@@ -175,21 +173,6 @@ local function apply_quick_settings()
             label = "Rotate",
             callback = function()
                 UIManager:broadcastEvent(Event:new("SwapRotation"))
-            end,
-        },
-        settings = {
-            icon = "appbar.settings",
-            label = "Settings",
-            callback = function(touch_menu)
-                touch_menu:closeMenu()
-                UIManager:nextTick(function()
-                    -- Open the KOReader main menu; Zen UI settings are in there.
-                    local ok, FileManager = pcall(require, "apps/filemanager/filemanager")
-                    local fm = ok and FileManager and FileManager.instance
-                    if fm and fm.menu and fm.menu.toggleMenu then
-                        fm.menu:toggleMenu()
-                    end
-                end)
             end,
         },
         usb = {
@@ -370,28 +353,7 @@ local function apply_quick_settings()
                 touch_menu:updateItems(1)
             end,
         },
-        home = {
-            icon = "quick_calibre",
-            label = "Home",
-            callback = function(touch_menu)
-                    touch_menu:closeMenu()
-                    UIManager:nextTick(function()
-                        local ok_r, ReaderUI = pcall(require, "apps/reader/readerui")
-                        if ok_r and ReaderUI.instance then
-                            local reader = ReaderUI.instance
-                            local file = reader.document.file
-                            reader:handleEvent(Event:new("CloseConfigMenu"))
-                            reader:onClose()
-                            reader:showFileManager(file)
-                        else
-                            local ok_f, FileManager = pcall(require, "apps/filemanager/filemanager")
-                            if ok_f and FileManager.instance then
-                                FileManager.instance:onHome()
-                            end
-                        end
-                    end)
-            end,
-        },
+
     }
 
     -- ============================================================

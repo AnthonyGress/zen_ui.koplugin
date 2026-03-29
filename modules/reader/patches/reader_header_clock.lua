@@ -116,7 +116,9 @@ local function apply_reader_header_clock()
         pages_done = pages_done + 1 -- This +1 is to include the page you're looking at
         local chapter_progress = pages_done .. " ⁄⁄ " .. pages_chapter
         -- Clock:
-        local time = datetime.secondsToHour(os.time(), G_reader_settings:isTrue("twelve_hour_clock")) or ""
+        local zen_clock_config = zen_plugin and zen_plugin.config and zen_plugin.config.reader_header_clock
+        local use_24h = type(zen_clock_config) == "table" and zen_clock_config.use_24h == true
+        local time = datetime.secondsToHour(os.time(), not use_24h) or ""
         -- Battery:
         local battery = ""
         if Device:hasBattery() then
@@ -193,7 +195,16 @@ local function apply_reader_header_clock()
             local view = self
             local function autoRefresh()
                 if view.ui and view.ui.document then
-                    UIManager:setDirty(view.ui.show_parent or view.ui, "ui")
+                    -- Only dirty the reader when it's the topmost widget; prevents
+                    -- the clock from bleeding over fullscreen modals like BookStatusWidget
+                    local stack = UIManager._window_stack
+                    local top = stack and stack[#stack]
+                    if top then
+                        local w = top.widget
+                        if w == view.ui or w == view.ui.show_parent then
+                            UIManager:setDirty(view.ui.show_parent or view.ui, "ui")
+                        end
+                    end
                     UIManager:scheduleIn(60, autoRefresh)
                 end
             end

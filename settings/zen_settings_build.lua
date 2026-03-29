@@ -885,7 +885,6 @@ function M.build(plugin)
         { key = "wifi", text = _("Wi-Fi") },
         { key = "night", text = _("Night mode") },
         { key = "rotate", text = _("Rotate") },
-        { key = "settings", text = _("Settings") },
         { key = "usb", text = _("USB") },
         { key = "search", text = _("File search") },
         { key = "quickrss", text = _("QuickRSS") },
@@ -900,7 +899,6 @@ function M.build(plugin)
         { key = "restart", text = _("Restart") },
         { key = "exit", text = _("Exit") },
         { key = "sleep", text = _("Sleep") },
-        { key = "home", text = _("Home") },
     }
 
     local quick_button_label_by_id = {}
@@ -1284,12 +1282,6 @@ function M.build(plugin)
     ))
 
     table.insert(menu_items, make_enable_feature_item(
-        "disable_default_koreader_menu_sections",
-        _("Disable default KOReader menu sections"),
-        _("Disable default KOReader menu sections")
-    ))
-
-    table.insert(menu_items, make_enable_feature_item(
         "disable_top_menu_swipe_zones",
         _("Disable top menu swipe zones"),
         _("Disable top menu swipe zone (always show quick settings first)")
@@ -1318,14 +1310,25 @@ function M.build(plugin)
         },
     })
 
-    table.insert(reader_items, make_enable_feature_item(
-        "reader_header_clock",
-        _("Reader header clock"),
-        _("Enable reader header clock")
-    ))
+    table.insert(reader_items, {
+        text = _("Reader header clock settings"),
+        sub_item_table = {
+            make_enable_feature_item("reader_header_clock", _("Reader header clock"), _("Enable reader header clock")),
+            {
+                text = _("Use 24-hour time"),
+                checked_func = function()
+                    return config.reader_header_clock and config.reader_header_clock.use_24h == true
+                end,
+                callback = function()
+                    if type(config.reader_header_clock) ~= "table" then config.reader_header_clock = {} end
+                    config.reader_header_clock.use_24h = not (config.reader_header_clock.use_24h == true)
+                    save_and_apply("reader_header_clock", _("Reader header clock"))
+                end,
+            },
+        },
+    })
 
     table.insert(general_items, updater.build_update_now_item(plugin))
-    table.insert(general_items, { text = "", separator = true })
 
     table.insert(general_items, {
         text_func = function()
@@ -1367,7 +1370,6 @@ function M.build(plugin)
 
     menu_items = order_items_by_text(menu_items, {
         _("Quick settings panel settings"),
-        _("Disable default KOReader menu sections"),
         _("Disable top menu swipe zone (always show quick settings first)"),
     })
 
@@ -1418,6 +1420,22 @@ function M.build(plugin)
 
     local root_items = {
         {
+            text = _("Zen UI Settings"),
+            keep_menu_open = true,
+            separator = true,
+            callback = function() end,
+        },
+        {
+            text = _("Zen Mode"),
+            checked_func = function()
+                return config.features["zen_mode"] == true
+            end,
+            callback = function()
+                config.features["zen_mode"] = not (config.features["zen_mode"] == true)
+                save_and_apply("zen_mode", _("Zen Mode"))
+            end,
+        },
+        {
             text = _("File browser"),
             sub_item_table = filebrowser_items,
         },
@@ -1435,13 +1453,13 @@ function M.build(plugin)
             separator = true,
         },
         {
-            text = _("Exit KOReader"),
+            text = _("Quit KOReader"),
             callback = function()
                 local Event = require("ui/event")
                 local ConfirmBox = require("ui/widget/confirmbox")
                 UIManager:show(ConfirmBox:new{
-                    text = _("Are you sure you want to exit KOReader?"),
-                    ok_text = _("Exit"),
+                    text = _("Are you sure you want to quit KOReader?"),
+                    ok_text = _("Quit"),
                     ok_callback = function()
                         UIManager:broadcastEvent(Event:new("Exit"))
                     end,

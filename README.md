@@ -38,7 +38,7 @@ Current toggle groups in `zen_ui_config`:
 
 - `features.navbar`
 - `features.quick_settings`
-- `features.disable_default_koreader_menu_sections`
+- `features.zen_mode`
 - `features.titlebar`
 - `features.hide_pagination`
 - `features.disable_top_menu_swipe_zones`

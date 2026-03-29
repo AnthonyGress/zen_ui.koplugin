@@ -44,6 +44,7 @@ end
 function M.build_update_now_item(plugin)
     return {
         text = _("Update Zen UI"),
+        separator = true,
         callback = function()
             M.run_update(plugin)
         end,

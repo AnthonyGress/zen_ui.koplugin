@@ -21,7 +21,7 @@ local defaults = {
     features = {
         navbar = true,
         quick_settings = true,
-        disable_default_koreader_menu_sections = false,
+        zen_mode = false,
         titlebar = true,
         hide_pagination = true,
         disable_top_menu_swipe_zones = true,
@@ -109,6 +109,9 @@ local defaults = {
     browser_hide_up_folder = {
         hide_empty_folder = false,
         hide_up_folder = true,
+    },
+    reader_header_clock = {
+        use_24h = false,
     },
     zen = {
         context_menu_override = false,
