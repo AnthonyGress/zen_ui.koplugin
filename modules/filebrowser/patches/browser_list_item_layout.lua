@@ -190,7 +190,7 @@ local function apply_browser_list_item_layout()
                 status_label = "Finished"
                 progress_str = "✓"
             elseif status == "abandoned" then
-                status_label = "Abandoned"
+                status_label = "On hold"
                 progress_str = "⏸"
             elseif status == "reading" or percent_finished then
                 if percent_finished then
