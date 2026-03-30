@@ -1360,17 +1360,185 @@ function M.build(plugin)
 
     table.insert(filebrowser_items, {
         text = _("Display mode"),
-        text_func = function()
-            local mode = get_display_mode()
-            for _i, entry in ipairs(display_modes) do
-                if entry.mode == mode then
-                    return _("Display mode: ") .. entry.text
-                end
-            end
-            return _("Display mode")
-        end,
         sub_item_table = display_mode_sub_items,
     })
+
+    -- Items per page (mosaic portrait / landscape, list mode)
+    do
+        local function get_bim()
+            local ok, bim = pcall(require, "bookinfomanager")
+            return ok and bim or nil
+        end
+        local function get_fc_class()
+            local ok, fc_cls = pcall(require, "ui/widget/filechooser")
+            return ok and fc_cls or nil
+        end
+        local function get_fc()
+            local ok, FM = pcall(require, "apps/filemanager/filemanager")
+            local fm = ok and FM and FM.instance
+            return fm and fm.file_chooser or nil
+        end
+
+        table.insert(filebrowser_items, {
+            text = _("Items per page"),
+            sub_item_table = {
+                {
+                    text_func = function()
+                        local bim = get_bim()
+                        local fc = get_fc()
+                        local c = (fc and fc.nb_cols_portrait) or (bim and bim:getSetting("nb_cols_portrait")) or 3
+                        local r = (fc and fc.nb_rows_portrait) or (bim and bim:getSetting("nb_rows_portrait")) or 3
+                        return _("Portrait mosaic: ") .. c .. "×" .. r
+                    end,
+                    keep_menu_open = true,
+                    callback = function(touchmenu_instance)
+                        local bim = get_bim()
+                        if not bim then return end
+                        local fc = get_fc()
+                        local c = (fc and fc.nb_cols_portrait) or bim:getSetting("nb_cols_portrait") or 3
+                        local r = (fc and fc.nb_rows_portrait) or bim:getSetting("nb_rows_portrait") or 3
+                        UIManager:show(require("ui/widget/doublespinwidget"):new{
+                            title_text = _("Portrait mosaic mode"),
+                            width_factor = 0.6,
+                            left_text = _("Columns"),
+                            left_value = c,
+                            left_min = 2, left_max = 8, left_default = 3, left_precision = "%01d",
+                            right_text = _("Rows"),
+                            right_value = r,
+                            right_min = 2, right_max = 8, right_default = 3, right_precision = "%01d",
+                            keep_shown_on_apply = true,
+                            callback = function(left_value, right_value)
+                                if fc then
+                                    fc.nb_cols_portrait = left_value
+                                    fc.nb_rows_portrait = right_value
+                                    if fc.display_mode_type == "mosaic" and fc.portrait_mode then
+                                        fc.no_refresh_covers = true
+                                        pcall(fc.updateItems, fc)
+                                    end
+                                end
+                            end,
+                            close_callback = function()
+                                if fc then
+                                    bim:saveSetting("nb_cols_portrait", fc.nb_cols_portrait)
+                                    bim:saveSetting("nb_rows_portrait", fc.nb_rows_portrait)
+                                    local fc_class = get_fc_class()
+                                    if fc_class then
+                                        fc_class.nb_cols_portrait = fc.nb_cols_portrait
+                                        fc_class.nb_rows_portrait = fc.nb_rows_portrait
+                                    end
+                                    if fc.display_mode_type == "mosaic" and fc.portrait_mode then
+                                        fc.no_refresh_covers = nil
+                                        pcall(fc.updateItems, fc)
+                                    end
+                                end
+                                if touchmenu_instance then touchmenu_instance:updateItems() end
+                            end,
+                        })
+                    end,
+                },
+                {
+                    text_func = function()
+                        local bim = get_bim()
+                        local fc = get_fc()
+                        local c = (fc and fc.nb_cols_landscape) or (bim and bim:getSetting("nb_cols_landscape")) or 4
+                        local r = (fc and fc.nb_rows_landscape) or (bim and bim:getSetting("nb_rows_landscape")) or 2
+                        return _("Landscape mosaic: ") .. c .. "×" .. r
+                    end,
+                    keep_menu_open = true,
+                    callback = function(touchmenu_instance)
+                        local bim = get_bim()
+                        if not bim then return end
+                        local fc = get_fc()
+                        local c = (fc and fc.nb_cols_landscape) or bim:getSetting("nb_cols_landscape") or 4
+                        local r = (fc and fc.nb_rows_landscape) or bim:getSetting("nb_rows_landscape") or 2
+                        UIManager:show(require("ui/widget/doublespinwidget"):new{
+                            title_text = _("Landscape mosaic mode"),
+                            width_factor = 0.6,
+                            left_text = _("Columns"),
+                            left_value = c,
+                            left_min = 2, left_max = 8, left_default = 4, left_precision = "%01d",
+                            right_text = _("Rows"),
+                            right_value = r,
+                            right_min = 2, right_max = 8, right_default = 2, right_precision = "%01d",
+                            keep_shown_on_apply = true,
+                            callback = function(left_value, right_value)
+                                if fc then
+                                    fc.nb_cols_landscape = left_value
+                                    fc.nb_rows_landscape = right_value
+                                    if fc.display_mode_type == "mosaic" and not fc.portrait_mode then
+                                        fc.no_refresh_covers = true
+                                        pcall(fc.updateItems, fc)
+                                    end
+                                end
+                            end,
+                            close_callback = function()
+                                if fc then
+                                    bim:saveSetting("nb_cols_landscape", fc.nb_cols_landscape)
+                                    bim:saveSetting("nb_rows_landscape", fc.nb_rows_landscape)
+                                    local fc_class = get_fc_class()
+                                    if fc_class then
+                                        fc_class.nb_cols_landscape = fc.nb_cols_landscape
+                                        fc_class.nb_rows_landscape = fc.nb_rows_landscape
+                                    end
+                                    if fc.display_mode_type == "mosaic" and not fc.portrait_mode then
+                                        fc.no_refresh_covers = nil
+                                        pcall(fc.updateItems, fc)
+                                    end
+                                end
+                                if touchmenu_instance then touchmenu_instance:updateItems() end
+                            end,
+                        })
+                    end,
+                },
+                {
+                    text_func = function()
+                        local bim = get_bim()
+                        local fc = get_fc()
+                        local fpp = (fc and fc.files_per_page) or (bim and bim:getSetting("files_per_page")) or 10
+                        return _("List: ") .. tostring(fpp) .. " " .. _("items per page")
+                    end,
+                    keep_menu_open = true,
+                    callback = function(touchmenu_instance)
+                        local bim = get_bim()
+                        if not bim then return end
+                        local fc = get_fc()
+                        local fpp = (fc and fc.files_per_page) or bim:getSetting("files_per_page") or 10
+                        UIManager:show(require("ui/widget/spinwidget"):new{
+                            title_text = _("Portrait list mode"),
+                            value = fpp,
+                            value_min = 4,
+                            value_max = 20,
+                            default_value = 10,
+                            keep_shown_on_apply = true,
+                            callback = function(spin)
+                                if fc then
+                                    fc.files_per_page = spin.value
+                                    if fc.display_mode_type == "list" then
+                                        fc.no_refresh_covers = true
+                                        pcall(fc.updateItems, fc)
+                                    end
+                                end
+                            end,
+                            close_callback = function()
+                                if fc then
+                                    bim:saveSetting("files_per_page", fc.files_per_page)
+                                    local fc_class = get_fc_class()
+                                    if fc_class then
+                                        fc_class.files_per_page = fc.files_per_page
+                                    end
+                                    if fc.display_mode_type == "list" then
+                                        fc.no_refresh_covers = nil
+                                        pcall(fc.updateItems, fc)
+                                    end
+                                end
+                                if touchmenu_instance then touchmenu_instance:updateItems() end
+                            end,
+                        })
+                    end,
+                },
+            },
+        })
+    end
 
     -- Sort by
     local collate_options = {
@@ -1563,6 +1731,7 @@ function M.build(plugin)
 
     filebrowser_items = order_items_by_text(filebrowser_items, {
         _("Display mode"),
+        _("Items per page"),
         _("Sort by"),
         _("Status bar"),
         _("Navbar"),

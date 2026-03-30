@@ -1,6 +1,7 @@
 local defaults = {
     _meta = {
         schema_version = 1,
+        files_per_page_defaulted = false,
     },
     localization = {
         default_locale = "en",

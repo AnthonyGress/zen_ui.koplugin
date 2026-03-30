@@ -49,6 +49,23 @@ end
 function ZenUI:init()
     self.config = ConfigManager.load()
     _zen_plugin_ref = self
+
+    -- First-run: default portrait list mode to 5 items per page.
+    -- We use a plugin-config flag so this fires exactly once (when the plugin is
+    -- first installed), regardless of what BookInfoManager already has saved.
+    if not self.config._meta.files_per_page_defaulted then
+        local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
+        if ok_bim then
+            BookInfoManager:saveSetting("files_per_page", 5)
+            local ok_fc, FileChooser = pcall(require, "ui/widget/filechooser")
+            if ok_fc then
+                FileChooser.files_per_page = 5
+            end
+        end
+        self.config._meta.files_per_page_defaulted = true
+        self:saveConfig()
+    end
+
     self:_initModules()
 
     -- Inject Zen UI as a dedicated second tab in both FileManager and Reader menus.
