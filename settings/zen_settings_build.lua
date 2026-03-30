@@ -1313,6 +1313,159 @@ function M.build(plugin)
         end,
     })
 
+    -- Display mode
+    local display_modes = {
+        { text = _("Classic (filename only)"),                          mode = "classic"            },
+        { text = _("Mosaic with cover images"),                         mode = "mosaic_image"       },
+        { text = _("Mosaic with text"),                                 mode = "mosaic_text"        },
+        { text = _("Detailed list with cover images and metadata"),     mode = "list_image_meta"    },
+        { text = _("Detailed list with metadata, no images"),           mode = "list_only_meta"     },
+        { text = _("Detailed list with cover images and filenames"),    mode = "list_image_filename"},
+    }
+
+    local function get_display_mode()
+        local ok, BookInfoManager = pcall(require, "bookinfomanager")
+        if not ok then return "classic" end
+        local ok2, mode = pcall(function() return BookInfoManager:getSetting("filemanager_display_mode") end)
+        return (ok2 and mode) or "classic"
+    end
+
+    local function apply_display_mode(mode)
+        local ok, FileManager = pcall(require, "apps/filemanager/filemanager")
+        local fm = ok and FileManager and FileManager.instance
+        if fm and type(fm.onSetDisplayMode) == "function" then
+            pcall(fm.onSetDisplayMode, fm, mode ~= "classic" and mode or nil)
+        else
+            local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
+            if ok_bim then
+                pcall(BookInfoManager.saveSetting, BookInfoManager,
+                    "filemanager_display_mode", mode ~= "classic" and mode or nil)
+            end
+        end
+    end
+
+    local display_mode_sub_items = {}
+    for _, entry in ipairs(display_modes) do
+        table.insert(display_mode_sub_items, {
+            text = entry.text,
+            checked_func = function()
+                return get_display_mode() == entry.mode
+            end,
+            radio = true,
+            callback = function()
+                apply_display_mode(entry.mode)
+            end,
+        })
+    end
+
+    table.insert(filebrowser_items, {
+        text = _("Display mode"),
+        text_func = function()
+            local mode = get_display_mode()
+            for _i, entry in ipairs(display_modes) do
+                if entry.mode == mode then
+                    return _("Display mode: ") .. entry.text
+                end
+            end
+            return _("Display mode")
+        end,
+        sub_item_table = display_mode_sub_items,
+    })
+
+    -- Sort by
+    local collate_options = {
+        { key = "strcoll",                text = _("name")                              },
+        { key = "natural",                text = _("name (natural sorting)")            },
+        { key = "access",                 text = _("last read date")                    },
+        { key = "date",                   text = _("date modified")                     },
+        { key = "size",                   text = _("size")                              },
+        { key = "type",                   text = _("type")                              },
+        { key = "percent_unopened_first", text = _("percent - unopened first")          },
+        { key = "percent_unopened_last",  text = _("percent - unopened last")           },
+        { key = "percent_natural",        text = _("percent - unopened - finished last")                    },
+        { key = "title",                  text = _("Title")                             },
+        { key = "authors",                text = _("Authors")                           },
+        { key = "series",                 text = _("Series")                            },
+        { key = "keywords",               text = _("Keywords"),        separator = true },
+    }
+
+    local function get_current_collate()
+        return G_reader_settings:readSetting("collate") or "strcoll"
+    end
+
+    local function apply_sort_by(collate_id)
+        local ok, FileManager = pcall(require, "apps/filemanager/filemanager")
+        local fm = ok and FileManager and FileManager.instance
+        if fm then
+            if type(fm.onSetSortBy) == "function" then
+                pcall(fm.onSetSortBy, fm, collate_id)
+            elseif fm.file_chooser and type(fm.file_chooser.refreshPath) == "function" then
+                G_reader_settings:saveSetting("collate", collate_id)
+                pcall(fm.file_chooser.refreshPath, fm.file_chooser)
+            else
+                G_reader_settings:saveSetting("collate", collate_id)
+            end
+        else
+            G_reader_settings:saveSetting("collate", collate_id)
+        end
+    end
+
+    local function refresh_filechooser()
+        local ok, FileManager = pcall(require, "apps/filemanager/filemanager")
+        local fm = ok and FileManager and FileManager.instance
+        if fm and fm.file_chooser and type(fm.file_chooser.refreshPath) == "function" then
+            pcall(fm.file_chooser.refreshPath, fm.file_chooser)
+        end
+    end
+
+    local collate_sub_items = {}
+    for _, option in ipairs(collate_options) do
+        table.insert(collate_sub_items, {
+            text = option.text,
+            checked_func = function()
+                return get_current_collate() == option.key
+            end,
+            radio = true,
+            callback = function()
+                apply_sort_by(option.key)
+            end,
+        })
+    end
+    table.insert(collate_sub_items, {
+        text = _("Reverse sorting"),
+        checked_func = function()
+            return G_reader_settings:isTrue("reverse_collate")
+        end,
+        callback = function()
+            G_reader_settings:flipNilOrFalse("reverse_collate")
+            refresh_filechooser()
+        end,
+    })
+    table.insert(collate_sub_items, {
+        text = _("Folders and files mixed"),
+        checked_func = function()
+            return G_reader_settings:isTrue("collate_mixed")
+        end,
+        callback = function()
+            G_reader_settings:flipNilOrFalse("collate_mixed")
+            refresh_filechooser()
+        end,
+    })
+
+    table.insert(filebrowser_items, {
+        text = _("Sort by"),
+        text_func = function()
+            local collate = get_current_collate()
+            for _i, option in ipairs(collate_options) do
+                if option.key == collate then
+                    return _("Sort by: ") .. option.text
+                end
+            end
+            return _("Sort by")
+        end,
+        sub_item_table = collate_sub_items,
+    })
+
     table.insert(reader_items, {
         text = _("Reader clock"),
         sub_item_table = {
@@ -1406,6 +1559,8 @@ function M.build(plugin)
     })
 
     filebrowser_items = order_items_by_text(filebrowser_items, {
+        _("Display mode"),
+        _("Sort by"),
         _("Status bar"),
         _("Navbar"),
         _("Browser hide up-folder settings"),
