@@ -18,6 +18,7 @@ local function apply_browser_list_item_layout()
     local VerticalSpan = require("ui/widget/verticalspan")
     local filemanagerutil = require("apps/filemanager/filemanagerutil")
     local util = require("util")
+    local _ = require("gettext")
 
     local Screen = Device.screen
     local scale_by_size = Screen:scaleBySize(1000000) * (1 / 1000000)
@@ -187,19 +188,19 @@ local function apply_browser_list_item_layout()
 
             local status_label, progress_str
             if status == "complete" then
-                status_label = "Finished"
+                status_label = _("Finished")
                 progress_str = "✓"
             elseif status == "abandoned" then
-                status_label = "On hold"
+                status_label = _("On hold")
                 progress_str = "⏸"
             elseif status == "reading" or percent_finished then
                 if percent_finished then
-                    status_label = string.format("%d%% Read", math.floor(100 * percent_finished))
+                    status_label = string.format(_("%d%% Read"), math.floor(100 * percent_finished))
                 else
-                    status_label = "Reading"
+                    status_label = _("Reading")
                 end
             else
-                status_label = "Unread"
+                status_label = _("Unread")
             end
 
             -- ── Layout constants ─────────────────────────────────────────────

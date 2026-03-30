@@ -1,7 +1,774 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: zen-ui 0.1.0\\n"
-"MIME-Version: 1.0\\n"
-"Content-Type: text/plain; charset=UTF-8\\n"
-"Content-Transfer-Encoding: 8bit\\n"
-"Language: ru\\n"
+"Project-Id-Version: zen-ui 0.1.0\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: ru\n"
+
+msgid "⬆ Update available: "
+msgstr "⬆ Доступно обновление: "
+
+msgid "%1 et al."
+msgstr "%1 и др."
+
+msgid "%d%% Read"
+msgstr "%d%% прочитано"
+
+msgid "1 book"
+msgstr "1 книга"
+
+msgid "12-hour time"
+msgstr "12-часовой формат"
+
+msgid "About"
+msgstr "О программе"
+
+msgid "Active tab color: "
+msgstr "Цвет активной вкладки: "
+
+msgid "Active tab RGB"
+msgstr "RGB активной вкладки"
+
+msgid "Active tab styling"
+msgstr "Стиль активной вкладки"
+
+msgid "Active tab underline"
+msgstr "Подчёркивание активной вкладки"
+
+msgid "Add to favorites"
+msgstr "Добавить в избранное"
+
+msgid "Allow delete in context menu"
+msgstr "Разрешить удаление в контекстном меню"
+
+msgid "Always open on this tab"
+msgstr "Всегда открывать на этой вкладке"
+
+msgid "Amber"
+msgstr "Янтарный"
+
+msgid "An item with that name already exists."
+msgstr "Элемент с таким именем уже существует."
+
+msgid "Are you sure you want to exit KOReader?"
+msgstr "Вы уверены, что хотите выйти из KOReader?"
+
+msgid "Are you sure you want to quit KOReader?"
+msgstr "Вы уверены, что хотите закрыть KOReader?"
+
+msgid "Are you sure you want to restart KOReader?"
+msgstr "Вы уверены, что хотите перезапустить KOReader?"
+
+msgid "Arrange buttons"
+msgstr "Упорядочить кнопки"
+
+msgid "Arrange items"
+msgstr "Упорядочить элементы"
+
+msgid "Arrange navbar tabs"
+msgstr "Упорядочить вкладки панели навигации"
+
+msgid "Arrange quick settings buttons"
+msgstr "Упорядочить кнопки быстрых настроек"
+
+msgid "Arrange status bar items"
+msgstr "Упорядочить элементы строки состояния"
+
+msgid "Arrange tabs"
+msgstr "Упорядочить вкладки"
+
+msgid "Authors"
+msgstr "Авторы"
+
+msgid "Battery"
+msgstr "Батарея"
+
+msgid "Blue"
+msgstr "Синий"
+
+msgid "Bold active tab"
+msgstr "Активная вкладка жирным"
+
+msgid "Bold text"
+msgstr "Жирный текст"
+
+msgid "Book"
+msgstr "Книга"
+
+msgid "Book Status"
+msgstr "Статус книги"
+
+msgid "books"
+msgstr "книги"
+
+msgid "Books"
+msgstr "Книги"
+
+msgid "Books tab label"
+msgstr "Метка вкладки Книги"
+
+msgid "Books tab label: "
+msgstr "Метка вкладки Книги: "
+
+msgid "Bottom menu"
+msgstr "Нижнее меню"
+
+msgid "Bottom navbar"
+msgstr "Нижняя панель навигации"
+
+msgid "Browser hide up-folder behavior"
+msgstr "Скрыть родительскую папку в браузере"
+
+msgid "Bullet"
+msgstr "Маркер"
+
+msgid "Buttons"
+msgstr "Кнопки"
+
+msgid "Calibre"
+msgstr "Calibre"
+
+msgid "Cancel"
+msgstr "Отмена"
+
+msgid "Cannot determine the plugin installation path."
+msgstr "Не удаётся определить путь установки плагина."
+
+msgid "Cannot open last document"
+msgstr "Не удаётся открыть последний документ"
+
+msgid "Center"
+msgstr "Центр"
+
+msgid "Check for updates"
+msgstr "Проверить обновления"
+
+msgid "Classic (filename only)"
+msgstr "Классический (только имя файла)"
+
+msgid "Cloud"
+msgstr "Облако"
+
+msgid "Cloud storage"
+msgstr "Облачное хранилище"
+
+msgid "Collections"
+msgstr "Коллекции"
+
+msgid "Colored active tab"
+msgstr "Цветная активная вкладка"
+
+msgid "Colored status icons"
+msgstr "Цветные значки состояния"
+
+msgid "Columns"
+msgstr "Столбцы"
+
+msgid "Continue"
+msgstr "Продолжить"
+
+msgid "Crop folder custom image"
+msgstr "Обрезать пользовательское изображение папки"
+
+msgid "Custom"
+msgstr "Настраиваемый"
+
+msgid "Custom RGB"
+msgstr "Настраиваемый RGB"
+
+msgid "Custom separator"
+msgstr "Настраиваемый разделитель"
+
+msgid "Custom status bar"
+msgstr "Настраиваемая строка состояния"
+
+msgid "Custom text"
+msgstr "Настраиваемый текст"
+
+msgid "Custom text: "
+msgstr "Настраиваемый текст: "
+
+msgid "Custom: "
+msgstr "Настраиваемый: "
+
+msgid "Cut"
+msgstr "Вырезать"
+
+msgid "Dash"
+msgstr "Тире"
+
+msgid "date modified"
+msgstr "дата изменения"
+
+msgid "Delete"
+msgstr "Удалить"
+
+msgid "Detailed list with cover images and filenames"
+msgstr "Подробный список с обложками и именами файлов"
+
+msgid "Detailed list with cover images and metadata"
+msgstr "Подробный список с обложками и метаданными"
+
+msgid "Detailed list with metadata, no images"
+msgstr "Подробный список с метаданными, без изображений"
+
+msgid "Device: "
+msgstr "Устройство: "
+
+msgid "Disk space"
+msgstr "Место на диске"
+
+msgid "Display mode"
+msgstr "Режим отображения"
+
+msgid "Download failed: "
+msgstr "Ошибка загрузки: "
+
+msgid "Downloading Zen UI update…"
+msgstr "Загрузка обновления Zen UI…"
+
+msgid "Edit  ▶"
+msgstr "Изменить  ▶"
+
+msgid "Enable bottom menu"
+msgstr "Включить нижнее меню"
+
+msgid "Enable bottom nav bar"
+msgstr "Включить нижнюю панель навигации"
+
+msgid "Enable custom status bar"
+msgstr "Включить настраиваемую строку состояния"
+
+msgid "Enable quick settings panel"
+msgstr "Включить панель быстрых настроек"
+
+msgid "Enable reader clock"
+msgstr "Включить часы читателя"
+
+msgid "Exit"
+msgstr "Выход"
+
+msgid "Failed to unpack the update. You can install it manually."
+msgstr "Не удалось распаковать обновление. Вы можете установить его вручную."
+
+msgid "Favorites"
+msgstr "Избранное"
+
+msgid "File browser"
+msgstr "Файловый браузер"
+
+msgid "File search"
+msgstr "Поиск файлов"
+
+msgid "Filebrowser"
+msgstr "Менеджер файлов"
+
+msgid "FileBrowser"
+msgstr "Менеджер файлов"
+
+msgid "Filebrowser plugin is not installed."
+msgstr "Плагин Filebrowser не установлен."
+
+msgid "Finished"
+msgstr "Прочитано"
+
+msgid "Firmware: "
+msgstr "Прошивка: "
+
+msgid "Folder"
+msgstr "Папка"
+
+msgid "Folder name centered"
+msgstr "Имя папки по центру"
+
+msgid "Folder presets"
+msgstr "Предустановки папки"
+
+msgid "Folders and files mixed"
+msgstr "Папки и файлы вперемешку"
+
+msgid "Format: R,G,B (0-255)"
+msgstr "Формат: R,G,B (0-255)"
+
+msgid "Frontlight"
+msgstr "Подсветка"
+
+msgid "Green"
+msgstr "Зелёный"
+
+msgid "Hide up folders"
+msgstr "Скрыть родительскую папку"
+
+msgid "History"
+msgstr "История"
+
+msgid "Home"
+msgstr "Главная"
+
+msgid "Items"
+msgstr "Элементы"
+
+msgid "items per page"
+msgstr "элементов на странице"
+
+msgid "Items per page"
+msgstr "Элементов на странице"
+
+msgid "Keywords"
+msgstr "Ключевые слова"
+
+msgid "KOReader: "
+msgstr "KOReader: "
+
+msgid "Landscape mosaic mode"
+msgstr "Мозаика в альбомном режиме"
+
+msgid "Landscape mosaic: "
+msgstr "Альбомная мозаика: "
+
+msgid "last read date"
+msgstr "дата последнего чтения"
+
+msgid "Later"
+msgstr "Позже"
+
+msgid "latest"
+msgstr "последняя"
+
+msgid "Left"
+msgstr "Влево"
+
+msgid "Library"
+msgstr "Библиотека"
+
+msgid "List: "
+msgstr "Список: "
+
+msgid "Manga"
+msgstr "Манга"
+
+msgid "Manga folder not found: "
+msgstr "Папка манги не найдена: "
+
+msgid "Manga tab action: "
+msgstr "Действие вкладки Манга: "
+
+msgid "Max"
+msgstr "Макс"
+
+msgid "Menu"
+msgstr "Меню"
+
+msgid "Middle dot"
+msgstr "Средняя точка"
+
+msgid "Mosaic and detailed list settings"
+msgstr "Настройки мозаики и подробного списка"
+
+msgid "Mosaic with cover images"
+msgstr "Мозаика с обложками"
+
+msgid "Mosaic with text"
+msgstr "Мозаика с текстом"
+
+msgid "Move"
+msgstr "Переместить"
+
+msgid "Move failed."
+msgstr "Ошибка перемещения."
+
+msgid "Move to…"
+msgstr "Переместить в…"
+
+msgid "name"
+msgstr "имя"
+
+msgid "name (natural sorting)"
+msgstr "имя (естественная сортировка)"
+
+msgid "Navbar"
+msgstr "Панель навигации"
+
+msgid "New folder"
+msgstr "Новая папка"
+
+msgid "News"
+msgstr "Новости"
+
+msgid "News folder not found: "
+msgstr "Папка новостей не найдена: "
+
+msgid "News tab action: "
+msgstr "Действие вкладки Новости: "
+
+msgid "Next"
+msgstr "Далее"
+
+msgid "Next page"
+msgstr "Следующая страница"
+
+msgid "Night"
+msgstr "Ночь"
+
+msgid "Night mode"
+msgstr "Ночной режим"
+
+msgid "No download URL found. Check your network connection and try again."
+msgstr "URL загрузки не найден. Проверьте подключение к сети и повторите попытку."
+
+msgid "No git checkout detected for Zen UI. Use your normal plugin installation/update workflow."
+msgstr "Checkout git для Zen UI не обнаружен. Используйте стандартный рабочий процесс установки/обновления."
+
+msgid "No reader engine for this file or invalid file."
+msgstr "Нет движка чтения для этого файла или файл недействителен."
+
+msgid "No separator"
+msgstr "Без разделителя"
+
+msgid "Notion"
+msgstr "Notion"
+
+msgid "NotionSync"
+msgstr "NotionSync"
+
+msgid "Off"
+msgstr "Выкл"
+
+msgid "On hold"
+msgstr "Отложено"
+
+msgid "OPDS"
+msgstr "OPDS"
+
+msgid "Open folder"
+msgstr "Открыть папку"
+
+msgid "Open folder: "
+msgstr "Открыть папку: "
+
+msgid "Open QuickRSS"
+msgstr "Открыть QuickRSS"
+
+msgid "Open Rakuyomi"
+msgstr "Открыть Rakuyomi"
+
+msgid "Opening"
+msgstr "Открывается"
+
+msgid "percent - unopened - finished last"
+msgstr "процент - не открыто - завершённое последним"
+
+msgid "percent - unopened first"
+msgstr "процент - не открыто первым"
+
+msgid "percent - unopened last"
+msgstr "процент - не открыто последним"
+
+msgid "Portrait list mode"
+msgstr "Список в портретном режиме"
+
+msgid "Portrait mosaic mode"
+msgstr "Мозаика в портретном режиме"
+
+msgid "Portrait mosaic: "
+msgstr "Портретная мозаика: "
+
+msgid "Position"
+msgstr "Позиция"
+
+msgid "Prev"
+msgstr "Назад"
+
+msgid "Previous page"
+msgstr "Предыдущая страница"
+
+msgid "Quick settings"
+msgstr "Быстрые настройки"
+
+msgid "Quick settings panel"
+msgstr "Панель быстрых настроек"
+
+msgid "QuickRSS"
+msgstr "QuickRSS"
+
+msgid "QuickRSS plugin is not installed."
+msgstr "Плагин QuickRSS не установлен."
+
+msgid "Quit"
+msgstr "Закрыть"
+
+msgid "Quit KOReader"
+msgstr "Закрыть KOReader"
+
+msgid "Rakuyomi"
+msgstr "Rakuyomi"
+
+msgid "Rakuyomi plugin is not installed."
+msgstr "Плагин Rakuyomi не установлен."
+
+msgid "RAM usage"
+msgstr "Использование ОЗУ"
+
+msgid "Read status"
+msgstr "Статус чтения"
+
+msgid "Read status  ▶"
+msgstr "Статус чтения  ▶"
+
+msgid "Reader"
+msgstr "Читалка"
+
+msgid "Reader clock"
+msgstr "Часы читателя"
+
+msgid "Reading"
+msgstr "Читается"
+
+msgid "Red"
+msgstr "Красный"
+
+msgid "Refresh navbar"
+msgstr "Обновить панель навигации"
+
+msgid "Remove from favorites"
+msgstr "Удалить из избранного"
+
+msgid "Rename"
+msgstr "Переименовать"
+
+msgid "Restart"
+msgstr "Перезапустить"
+
+msgid "Restart Book"
+msgstr "Начать книгу заново"
+
+msgid "Restart now"
+msgstr "Перезапустить сейчас"
+
+msgid "Restart now?"
+msgstr "Перезапустить сейчас?"
+
+msgid "Reverse sorting"
+msgstr "Обратная сортировка"
+
+msgid "Review"
+msgstr "Рецензия"
+
+msgid "Right"
+msgstr "Вправо"
+
+msgid "Rotate"
+msgstr "Повернуть"
+
+msgid "Rows"
+msgstr "Строки"
+
+msgid "Run Zen UI update now?\n\nIf this plugin is a git checkout, Zen UI will run a fast-forward pull and then ask for restart."
+msgstr "Запустить обновление Zen UI сейчас?\n\nЕсли этот плагин является git-checkout, Zen UI выполнит fast-forward pull и запросит перезапуск."
+
+msgid "Search"
+msgstr "Поиск"
+
+msgid "Select"
+msgstr "Выбрать"
+
+msgid "Separator: "
+msgstr "Разделитель: "
+
+msgid "Series"
+msgstr "Серия"
+
+msgid "Set"
+msgstr "Установить"
+
+msgid "Show battery"
+msgstr "Показать батарею"
+
+msgid "Show bottom border"
+msgstr "Показать нижнюю границу"
+
+msgid "Show disk space"
+msgstr "Показать место на диске"
+
+msgid "Show folder name"
+msgstr "Показать имя папки"
+
+msgid "Show frontlight"
+msgstr "Показать подсветку"
+
+msgid "Show frontlight slider"
+msgstr "Показать ползунок подсветки"
+
+msgid "Show in standalone views"
+msgstr "Показать в отдельных представлениях"
+
+msgid "Show labels"
+msgstr "Показать метки"
+
+msgid "Show progress % on mosaic covers"
+msgstr "Показать % прогресса на обложках мозаики"
+
+msgid "Show RAM usage"
+msgstr "Показать использование ОЗУ"
+
+msgid "Show time"
+msgstr "Показать время"
+
+msgid "Show top border"
+msgstr "Показать верхнюю границу"
+
+msgid "Show top gap"
+msgstr "Показать верхний отступ"
+
+msgid "Show warmth slider"
+msgstr "Показать ползунок тепла"
+
+msgid "Show WiFi"
+msgstr "Показать WiFi"
+
+msgid "size"
+msgstr "размер"
+
+msgid "Sleep"
+msgstr "Спящий режим"
+
+msgid "Sort by"
+msgstr "Сортировать по"
+
+msgid "Sort by: "
+msgstr "Сортировать по: "
+
+msgid "Space only"
+msgstr "Только пробел"
+
+msgid "Space only (small)"
+msgstr "Только пробел (маленький)"
+
+msgid "Statistics"
+msgstr "Статистика"
+
+msgid "Status bar"
+msgstr "Строка состояния"
+
+msgid "Streak"
+msgstr "Серия"
+
+msgid "Tabs"
+msgstr "Вкладки"
+
+msgid "The update will be downloaded and installed. KOReader will then restart."
+msgstr "Обновление будет загружено и установлено. KOReader перезапустится."
+
+msgid "This setting requires a KOReader restart to fully apply."
+msgstr "Для применения этого параметра требуется перезапуск KOReader."
+
+msgid "Title"
+msgstr "Название"
+
+msgid "Toggle"
+msgstr "Переключить"
+
+msgid "type"
+msgstr "тип"
+
+msgid "Underline above icon"
+msgstr "Подчёркивание над значком"
+
+msgid "unknown error"
+msgstr "неизвестная ошибка"
+
+msgid "Unread"
+msgstr "Не прочитано"
+
+msgid "Update"
+msgstr "Обновить"
+
+msgid "Update available — install "
+msgstr "Доступно обновление — установить "
+
+msgid "Update Status"
+msgstr "Статус обновления"
+
+msgid "Update Zen UI"
+msgstr "Обновить Zen UI"
+
+msgid "Update Zen UI now?"
+msgstr "Обновить Zen UI сейчас?"
+
+msgid "Update Zen UI to "
+msgstr "Обновить Zen UI до "
+
+msgid "USB"
+msgstr "USB"
+
+msgid "Use 24-hour time"
+msgstr "Использовать 24-часовой формат"
+
+msgid "Use current folder"
+msgstr "Использовать текущую папку"
+
+msgid "Use home folder"
+msgstr "Использовать домашнюю папку"
+
+msgid "Use last folder"
+msgstr "Использовать последнюю папку"
+
+msgid "Vertical bar"
+msgstr "Вертикальная черта"
+
+msgid "Visibility"
+msgstr "Видимость"
+
+msgid "Warmth"
+msgstr "Тепло"
+
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
+
+msgid "WiFi"
+msgstr "WiFi"
+
+msgid "Z-Lib"
+msgstr "Z-Lib"
+
+msgid "Z-Library"
+msgstr "Z-Library"
+
+msgid "Zen"
+msgstr "Zen"
+
+msgid "Zen Mode"
+msgstr "Режим Zen"
+
+msgid "Zen pagination bar"
+msgstr "Панель пагинации Zen"
+
+msgid "Zen UI"
+msgstr "Zen UI"
+
+msgid "Zen UI is up to date."
+msgstr "Zen UI обновлён."
+
+msgid "Zen UI Settings"
+msgstr "Настройки Zen UI"
+
+msgid "Zen UI update completed. Restart KOReader now?"
+msgstr "Обновление Zen UI завершено. Перезапустить KOReader сейчас?"
+
+msgid "Zen UI update failed. Check logs and retry."
+msgstr "Ошибка обновления Zen UI. Проверьте журналы и повторите попытку."
+
+msgid "Zen UI updated successfully. Restart KOReader now?"
+msgstr "Zen UI успешно обновлён. Перезапустить KOReader сейчас?"
+
+msgid "Zen UI: "
+msgstr "Zen UI: "
+
+msgctxt "File"
+msgid "Copy"
+msgstr "Копировать"
+
+msgctxt "File"
+msgid "Paste"
+msgstr "Вставить"

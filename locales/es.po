@@ -1,7 +1,774 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: zen-ui 0.1.0\\n"
-"MIME-Version: 1.0\\n"
-"Content-Type: text/plain; charset=UTF-8\\n"
-"Content-Transfer-Encoding: 8bit\\n"
-"Language: es\\n"
+"Project-Id-Version: zen-ui 0.1.0\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: es\n"
+
+msgid "⬆ Update available: "
+msgstr "⬆ Actualización disponible: "
+
+msgid "%1 et al."
+msgstr "%1 et al."
+
+msgid "%d%% Read"
+msgstr "%d%% leído"
+
+msgid "1 book"
+msgstr "1 libro"
+
+msgid "12-hour time"
+msgstr "Formato de 12 horas"
+
+msgid "About"
+msgstr "Acerca de"
+
+msgid "Active tab color: "
+msgstr "Color de pestaña activa: "
+
+msgid "Active tab RGB"
+msgstr "RGB de pestaña activa"
+
+msgid "Active tab styling"
+msgstr "Estilo de pestaña activa"
+
+msgid "Active tab underline"
+msgstr "Subrayado de pestaña activa"
+
+msgid "Add to favorites"
+msgstr "Añadir a favoritos"
+
+msgid "Allow delete in context menu"
+msgstr "Permitir eliminar en el menú contextual"
+
+msgid "Always open on this tab"
+msgstr "Abrir siempre en esta pestaña"
+
+msgid "Amber"
+msgstr "Ámbar"
+
+msgid "An item with that name already exists."
+msgstr "Ya existe un elemento con ese nombre."
+
+msgid "Are you sure you want to exit KOReader?"
+msgstr "¿Seguro que quieres salir de KOReader?"
+
+msgid "Are you sure you want to quit KOReader?"
+msgstr "¿Seguro que quieres cerrar KOReader?"
+
+msgid "Are you sure you want to restart KOReader?"
+msgstr "¿Seguro que quieres reiniciar KOReader?"
+
+msgid "Arrange buttons"
+msgstr "Organizar botones"
+
+msgid "Arrange items"
+msgstr "Organizar elementos"
+
+msgid "Arrange navbar tabs"
+msgstr "Organizar pestañas de la barra de navegación"
+
+msgid "Arrange quick settings buttons"
+msgstr "Organizar botones de ajustes rápidos"
+
+msgid "Arrange status bar items"
+msgstr "Organizar elementos de la barra de estado"
+
+msgid "Arrange tabs"
+msgstr "Organizar pestañas"
+
+msgid "Authors"
+msgstr "Autores"
+
+msgid "Battery"
+msgstr "Batería"
+
+msgid "Blue"
+msgstr "Azul"
+
+msgid "Bold active tab"
+msgstr "Pestaña activa en negrita"
+
+msgid "Bold text"
+msgstr "Texto en negrita"
+
+msgid "Book"
+msgstr "Libro"
+
+msgid "Book Status"
+msgstr "Estado del libro"
+
+msgid "books"
+msgstr "libros"
+
+msgid "Books"
+msgstr "Libros"
+
+msgid "Books tab label"
+msgstr "Etiqueta de la pestaña Libros"
+
+msgid "Books tab label: "
+msgstr "Etiqueta de la pestaña Libros: "
+
+msgid "Bottom menu"
+msgstr "Menú inferior"
+
+msgid "Bottom navbar"
+msgstr "Barra de navegación inferior"
+
+msgid "Browser hide up-folder behavior"
+msgstr "Ocultar carpeta superior en el explorador"
+
+msgid "Bullet"
+msgstr "Viñeta"
+
+msgid "Buttons"
+msgstr "Botones"
+
+msgid "Calibre"
+msgstr "Calibre"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Cannot determine the plugin installation path."
+msgstr "No se puede determinar la ruta de instalación del plugin."
+
+msgid "Cannot open last document"
+msgstr "No se puede abrir el último documento"
+
+msgid "Center"
+msgstr "Centro"
+
+msgid "Check for updates"
+msgstr "Buscar actualizaciones"
+
+msgid "Classic (filename only)"
+msgstr "Clásico (solo nombre de archivo)"
+
+msgid "Cloud"
+msgstr "Nube"
+
+msgid "Cloud storage"
+msgstr "Almacenamiento en la nube"
+
+msgid "Collections"
+msgstr "Colecciones"
+
+msgid "Colored active tab"
+msgstr "Pestaña activa con color"
+
+msgid "Colored status icons"
+msgstr "Iconos de estado con color"
+
+msgid "Columns"
+msgstr "Columnas"
+
+msgid "Continue"
+msgstr "Continuar"
+
+msgid "Crop folder custom image"
+msgstr "Recortar imagen personalizada de carpeta"
+
+msgid "Custom"
+msgstr "Personalizado"
+
+msgid "Custom RGB"
+msgstr "RGB personalizado"
+
+msgid "Custom separator"
+msgstr "Separador personalizado"
+
+msgid "Custom status bar"
+msgstr "Barra de estado personalizada"
+
+msgid "Custom text"
+msgstr "Texto personalizado"
+
+msgid "Custom text: "
+msgstr "Texto personalizado: "
+
+msgid "Custom: "
+msgstr "Personalizado: "
+
+msgid "Cut"
+msgstr "Cortar"
+
+msgid "Dash"
+msgstr "Guión"
+
+msgid "date modified"
+msgstr "fecha de modificación"
+
+msgid "Delete"
+msgstr "Eliminar"
+
+msgid "Detailed list with cover images and filenames"
+msgstr "Lista detallada con portadas y nombres de archivo"
+
+msgid "Detailed list with cover images and metadata"
+msgstr "Lista detallada con portadas y metadatos"
+
+msgid "Detailed list with metadata, no images"
+msgstr "Lista detallada con metadatos, sin imágenes"
+
+msgid "Device: "
+msgstr "Dispositivo: "
+
+msgid "Disk space"
+msgstr "Espacio en disco"
+
+msgid "Display mode"
+msgstr "Modo de visualización"
+
+msgid "Download failed: "
+msgstr "Descarga fallida: "
+
+msgid "Downloading Zen UI update…"
+msgstr "Descargando actualización de Zen UI…"
+
+msgid "Edit  ▶"
+msgstr "Editar  ▶"
+
+msgid "Enable bottom menu"
+msgstr "Activar menú inferior"
+
+msgid "Enable bottom nav bar"
+msgstr "Activar barra de navegación inferior"
+
+msgid "Enable custom status bar"
+msgstr "Activar barra de estado personalizada"
+
+msgid "Enable quick settings panel"
+msgstr "Activar panel de ajustes rápidos"
+
+msgid "Enable reader clock"
+msgstr "Activar reloj del lector"
+
+msgid "Exit"
+msgstr "Salir"
+
+msgid "Failed to unpack the update. You can install it manually."
+msgstr "No se pudo descomprimir la actualización. Puedes instalarla manualmente."
+
+msgid "Favorites"
+msgstr "Favoritos"
+
+msgid "File browser"
+msgstr "Explorador de archivos"
+
+msgid "File search"
+msgstr "Buscar archivos"
+
+msgid "Filebrowser"
+msgstr "Explorador de archivos"
+
+msgid "FileBrowser"
+msgstr "Explorador de archivos"
+
+msgid "Filebrowser plugin is not installed."
+msgstr "El plugin Filebrowser no está instalado."
+
+msgid "Finished"
+msgstr "Terminado"
+
+msgid "Firmware: "
+msgstr "Firmware: "
+
+msgid "Folder"
+msgstr "Carpeta"
+
+msgid "Folder name centered"
+msgstr "Nombre de carpeta centrado"
+
+msgid "Folder presets"
+msgstr "Preajustes de carpeta"
+
+msgid "Folders and files mixed"
+msgstr "Carpetas y archivos mezclados"
+
+msgid "Format: R,G,B (0-255)"
+msgstr "Formato: R,G,B (0-255)"
+
+msgid "Frontlight"
+msgstr "Luz frontal"
+
+msgid "Green"
+msgstr "Verde"
+
+msgid "Hide up folders"
+msgstr "Ocultar carpeta superior"
+
+msgid "History"
+msgstr "Historial"
+
+msgid "Home"
+msgstr "Inicio"
+
+msgid "Items"
+msgstr "Elementos"
+
+msgid "items per page"
+msgstr "elementos por página"
+
+msgid "Items per page"
+msgstr "Elementos por página"
+
+msgid "Keywords"
+msgstr "Palabras clave"
+
+msgid "KOReader: "
+msgstr "KOReader: "
+
+msgid "Landscape mosaic mode"
+msgstr "Modo mosaico horizontal"
+
+msgid "Landscape mosaic: "
+msgstr "Mosaico horizontal: "
+
+msgid "last read date"
+msgstr "fecha de última lectura"
+
+msgid "Later"
+msgstr "Más tarde"
+
+msgid "latest"
+msgstr "más reciente"
+
+msgid "Left"
+msgstr "Izquierda"
+
+msgid "Library"
+msgstr "Biblioteca"
+
+msgid "List: "
+msgstr "Lista: "
+
+msgid "Manga"
+msgstr "Manga"
+
+msgid "Manga folder not found: "
+msgstr "Carpeta de manga no encontrada: "
+
+msgid "Manga tab action: "
+msgstr "Acción de pestaña manga: "
+
+msgid "Max"
+msgstr "Máx"
+
+msgid "Menu"
+msgstr "Menú"
+
+msgid "Middle dot"
+msgstr "Punto central"
+
+msgid "Mosaic and detailed list settings"
+msgstr "Ajustes de mosaico y lista detallada"
+
+msgid "Mosaic with cover images"
+msgstr "Mosaico con portadas"
+
+msgid "Mosaic with text"
+msgstr "Mosaico con texto"
+
+msgid "Move"
+msgstr "Mover"
+
+msgid "Move failed."
+msgstr "Error al mover."
+
+msgid "Move to…"
+msgstr "Mover a…"
+
+msgid "name"
+msgstr "nombre"
+
+msgid "name (natural sorting)"
+msgstr "nombre (orden natural)"
+
+msgid "Navbar"
+msgstr "Barra de navegación"
+
+msgid "New folder"
+msgstr "Nueva carpeta"
+
+msgid "News"
+msgstr "Noticias"
+
+msgid "News folder not found: "
+msgstr "Carpeta de noticias no encontrada: "
+
+msgid "News tab action: "
+msgstr "Acción de pestaña noticias: "
+
+msgid "Next"
+msgstr "Siguiente"
+
+msgid "Next page"
+msgstr "Página siguiente"
+
+msgid "Night"
+msgstr "Noche"
+
+msgid "Night mode"
+msgstr "Modo nocturno"
+
+msgid "No download URL found. Check your network connection and try again."
+msgstr "No se encontró URL de descarga. Comprueba tu conexión de red e inténtalo de nuevo."
+
+msgid "No git checkout detected for Zen UI. Use your normal plugin installation/update workflow."
+msgstr "No se detectó un checkout de git para Zen UI. Usa el flujo habitual de instalación/actualización del plugin."
+
+msgid "No reader engine for this file or invalid file."
+msgstr "No hay motor de lectura para este archivo o el archivo no es válido."
+
+msgid "No separator"
+msgstr "Sin separador"
+
+msgid "Notion"
+msgstr "Notion"
+
+msgid "NotionSync"
+msgstr "NotionSync"
+
+msgid "Off"
+msgstr "Apagado"
+
+msgid "On hold"
+msgstr "En pausa"
+
+msgid "OPDS"
+msgstr "OPDS"
+
+msgid "Open folder"
+msgstr "Abrir carpeta"
+
+msgid "Open folder: "
+msgstr "Abrir carpeta: "
+
+msgid "Open QuickRSS"
+msgstr "Abrir QuickRSS"
+
+msgid "Open Rakuyomi"
+msgstr "Abrir Rakuyomi"
+
+msgid "Opening"
+msgstr "Abriendo"
+
+msgid "percent - unopened - finished last"
+msgstr "porcentaje - no abierto - terminado al final"
+
+msgid "percent - unopened first"
+msgstr "porcentaje - no abierto primero"
+
+msgid "percent - unopened last"
+msgstr "porcentaje - no abierto al final"
+
+msgid "Portrait list mode"
+msgstr "Modo lista vertical"
+
+msgid "Portrait mosaic mode"
+msgstr "Modo mosaico vertical"
+
+msgid "Portrait mosaic: "
+msgstr "Mosaico vertical: "
+
+msgid "Position"
+msgstr "Posición"
+
+msgid "Prev"
+msgstr "Anterior"
+
+msgid "Previous page"
+msgstr "Página anterior"
+
+msgid "Quick settings"
+msgstr "Ajustes rápidos"
+
+msgid "Quick settings panel"
+msgstr "Panel de ajustes rápidos"
+
+msgid "QuickRSS"
+msgstr "QuickRSS"
+
+msgid "QuickRSS plugin is not installed."
+msgstr "El plugin QuickRSS no está instalado."
+
+msgid "Quit"
+msgstr "Salir"
+
+msgid "Quit KOReader"
+msgstr "Cerrar KOReader"
+
+msgid "Rakuyomi"
+msgstr "Rakuyomi"
+
+msgid "Rakuyomi plugin is not installed."
+msgstr "El plugin Rakuyomi no está instalado."
+
+msgid "RAM usage"
+msgstr "Uso de RAM"
+
+msgid "Read status"
+msgstr "Estado de lectura"
+
+msgid "Read status  ▶"
+msgstr "Estado de lectura  ▶"
+
+msgid "Reader"
+msgstr "Lector"
+
+msgid "Reader clock"
+msgstr "Reloj del lector"
+
+msgid "Reading"
+msgstr "Leyendo"
+
+msgid "Red"
+msgstr "Rojo"
+
+msgid "Refresh navbar"
+msgstr "Actualizar barra de navegación"
+
+msgid "Remove from favorites"
+msgstr "Eliminar de favoritos"
+
+msgid "Rename"
+msgstr "Renombrar"
+
+msgid "Restart"
+msgstr "Reiniciar"
+
+msgid "Restart Book"
+msgstr "Reiniciar libro"
+
+msgid "Restart now"
+msgstr "Reiniciar ahora"
+
+msgid "Restart now?"
+msgstr "¿Reiniciar ahora?"
+
+msgid "Reverse sorting"
+msgstr "Orden inverso"
+
+msgid "Review"
+msgstr "Reseña"
+
+msgid "Right"
+msgstr "Derecha"
+
+msgid "Rotate"
+msgstr "Girar"
+
+msgid "Rows"
+msgstr "Filas"
+
+msgid "Run Zen UI update now?\n\nIf this plugin is a git checkout, Zen UI will run a fast-forward pull and then ask for restart."
+msgstr "¿Ejecutar actualización de Zen UI ahora?\n\nSi este plugin es un checkout de git, Zen UI ejecutará un pull fast-forward y luego pedirá reinicio."
+
+msgid "Search"
+msgstr "Buscar"
+
+msgid "Select"
+msgstr "Seleccionar"
+
+msgid "Separator: "
+msgstr "Separador: "
+
+msgid "Series"
+msgstr "Serie"
+
+msgid "Set"
+msgstr "Establecer"
+
+msgid "Show battery"
+msgstr "Mostrar batería"
+
+msgid "Show bottom border"
+msgstr "Mostrar borde inferior"
+
+msgid "Show disk space"
+msgstr "Mostrar espacio en disco"
+
+msgid "Show folder name"
+msgstr "Mostrar nombre de carpeta"
+
+msgid "Show frontlight"
+msgstr "Mostrar luz frontal"
+
+msgid "Show frontlight slider"
+msgstr "Mostrar control de luz frontal"
+
+msgid "Show in standalone views"
+msgstr "Mostrar en vistas independientes"
+
+msgid "Show labels"
+msgstr "Mostrar etiquetas"
+
+msgid "Show progress % on mosaic covers"
+msgstr "Mostrar % de progreso en portadas mosaico"
+
+msgid "Show RAM usage"
+msgstr "Mostrar uso de RAM"
+
+msgid "Show time"
+msgstr "Mostrar hora"
+
+msgid "Show top border"
+msgstr "Mostrar borde superior"
+
+msgid "Show top gap"
+msgstr "Mostrar espacio superior"
+
+msgid "Show warmth slider"
+msgstr "Mostrar control de calidez"
+
+msgid "Show WiFi"
+msgstr "Mostrar WiFi"
+
+msgid "size"
+msgstr "tamaño"
+
+msgid "Sleep"
+msgstr "Suspender"
+
+msgid "Sort by"
+msgstr "Ordenar por"
+
+msgid "Sort by: "
+msgstr "Ordenar por: "
+
+msgid "Space only"
+msgstr "Solo espacio"
+
+msgid "Space only (small)"
+msgstr "Solo espacio (pequeño)"
+
+msgid "Statistics"
+msgstr "Estadísticas"
+
+msgid "Status bar"
+msgstr "Barra de estado"
+
+msgid "Streak"
+msgstr "Racha"
+
+msgid "Tabs"
+msgstr "Pestañas"
+
+msgid "The update will be downloaded and installed. KOReader will then restart."
+msgstr "La actualización se descargará e instalará. KOReader se reiniciará."
+
+msgid "This setting requires a KOReader restart to fully apply."
+msgstr "Este ajuste requiere reiniciar KOReader para aplicarse completamente."
+
+msgid "Title"
+msgstr "Título"
+
+msgid "Toggle"
+msgstr "Alternar"
+
+msgid "type"
+msgstr "tipo"
+
+msgid "Underline above icon"
+msgstr "Subrayado sobre el icono"
+
+msgid "unknown error"
+msgstr "error desconocido"
+
+msgid "Unread"
+msgstr "No leído"
+
+msgid "Update"
+msgstr "Actualizar"
+
+msgid "Update available — install "
+msgstr "Actualización disponible — instalar "
+
+msgid "Update Status"
+msgstr "Actualizar estado"
+
+msgid "Update Zen UI"
+msgstr "Actualizar Zen UI"
+
+msgid "Update Zen UI now?"
+msgstr "¿Actualizar Zen UI ahora?"
+
+msgid "Update Zen UI to "
+msgstr "Actualizar Zen UI a "
+
+msgid "USB"
+msgstr "USB"
+
+msgid "Use 24-hour time"
+msgstr "Usar formato de 24 horas"
+
+msgid "Use current folder"
+msgstr "Usar carpeta actual"
+
+msgid "Use home folder"
+msgstr "Usar carpeta de inicio"
+
+msgid "Use last folder"
+msgstr "Usar última carpeta"
+
+msgid "Vertical bar"
+msgstr "Barra vertical"
+
+msgid "Visibility"
+msgstr "Visibilidad"
+
+msgid "Warmth"
+msgstr "Calidez"
+
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
+
+msgid "WiFi"
+msgstr "WiFi"
+
+msgid "Z-Lib"
+msgstr "Z-Lib"
+
+msgid "Z-Library"
+msgstr "Z-Library"
+
+msgid "Zen"
+msgstr "Zen"
+
+msgid "Zen Mode"
+msgstr "Modo Zen"
+
+msgid "Zen pagination bar"
+msgstr "Barra de paginación Zen"
+
+msgid "Zen UI"
+msgstr "Zen UI"
+
+msgid "Zen UI is up to date."
+msgstr "Zen UI está actualizado."
+
+msgid "Zen UI Settings"
+msgstr "Ajustes de Zen UI"
+
+msgid "Zen UI update completed. Restart KOReader now?"
+msgstr "Actualización de Zen UI completada. ¿Reiniciar KOReader ahora?"
+
+msgid "Zen UI update failed. Check logs and retry."
+msgstr "La actualización de Zen UI falló. Revisa los registros y vuelve a intentarlo."
+
+msgid "Zen UI updated successfully. Restart KOReader now?"
+msgstr "Zen UI actualizado correctamente. ¿Reiniciar KOReader ahora?"
+
+msgid "Zen UI: "
+msgstr "Zen UI: "
+
+msgctxt "File"
+msgid "Copy"
+msgstr "Copiar"
+
+msgctxt "File"
+msgid "Paste"
+msgstr "Pegar"

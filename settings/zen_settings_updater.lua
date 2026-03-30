@@ -10,7 +10,7 @@ function M.run_update(plugin)
     local lfs = require("libs/libkoreader-lfs")
 
     UIManager:show(ConfirmBox:new{
-        text = _("Run Zen UI update now?\n\nIf this plugin is a git checkout, Zen UI will run a fast-forward pull and then ask for restart."),
+        text = _("Update Zen UI now?"),
         ok_text = _("Update"),
         ok_callback = function()
             local plugin_path = plugin.path or ""

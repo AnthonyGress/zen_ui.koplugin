@@ -1738,18 +1738,14 @@ function M.build(plugin)
         _("Sort by"),
         _("Status bar"),
         _("Navbar"),
-        _("Browser hide up-folder settings"),
-        _("Hide pagination footer"),
     })
 
     menu_items = order_items_by_text(menu_items, {
         _("Quick settings"),
-        _("Disable top menu swipe zone (always show quick settings first)"),
     })
 
     reorder_nested_items_by_text(filebrowser_items, _("Status bar"), {
         _("Enable custom status bar"),
-        _("Hide browser bar"),
         _("Show time"),
         _("12-hour time"),
         _("Show bottom border"),
@@ -1786,11 +1782,6 @@ function M.build(plugin)
         _("Buttons"),
     })
 
-    reorder_nested_items_by_text(filebrowser_items, _("Browser hide up-folder settings"), {
-        _("Enable browser hide up-folder behavior"),
-        _("Hide up folders"),
-        _("Hide empty folders"),
-    })
 
     local root_items = {
         {

@@ -248,7 +248,7 @@ local function apply_status_bar()
         if powerd:isFrontlightOn() then
             return "☼", string.format(" %d%%", powerd:frontlightIntensity()), colors.frontlight
         else
-            return "☼", " Off", colors.frontlight
+            return "☼", " " .. _("Off"), colors.frontlight
         end
     end
 

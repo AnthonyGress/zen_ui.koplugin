@@ -1,7 +1,774 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: zen-ui 0.1.0\\n"
-"MIME-Version: 1.0\\n"
-"Content-Type: text/plain; charset=UTF-8\\n"
-"Content-Transfer-Encoding: 8bit\\n"
-"Language: ro\\n"
+"Project-Id-Version: zen-ui 0.1.0\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: ro\n"
+
+msgid "⬆ Update available: "
+msgstr "⬆ Actualizare disponibilă: "
+
+msgid "%1 et al."
+msgstr "%1 et al."
+
+msgid "%d%% Read"
+msgstr "%d%% citit"
+
+msgid "1 book"
+msgstr "1 carte"
+
+msgid "12-hour time"
+msgstr "Format 12 ore"
+
+msgid "About"
+msgstr "Despre"
+
+msgid "Active tab color: "
+msgstr "Culoare filă activă: "
+
+msgid "Active tab RGB"
+msgstr "RGB filă activă"
+
+msgid "Active tab styling"
+msgstr "Stil filă activă"
+
+msgid "Active tab underline"
+msgstr "Subliniere filă activă"
+
+msgid "Add to favorites"
+msgstr "Adaugă la favorite"
+
+msgid "Allow delete in context menu"
+msgstr "Permite ștergerea din meniul contextual"
+
+msgid "Always open on this tab"
+msgstr "Deschide întotdeauna pe această filă"
+
+msgid "Amber"
+msgstr "Chihlimbar"
+
+msgid "An item with that name already exists."
+msgstr "Există deja un element cu acest nume."
+
+msgid "Are you sure you want to exit KOReader?"
+msgstr "Sigur vrei să ieși din KOReader?"
+
+msgid "Are you sure you want to quit KOReader?"
+msgstr "Sigur vrei să închizi KOReader?"
+
+msgid "Are you sure you want to restart KOReader?"
+msgstr "Sigur vrei să repornești KOReader?"
+
+msgid "Arrange buttons"
+msgstr "Aranjează butoane"
+
+msgid "Arrange items"
+msgstr "Aranjează elemente"
+
+msgid "Arrange navbar tabs"
+msgstr "Aranjează filele barei de navigare"
+
+msgid "Arrange quick settings buttons"
+msgstr "Aranjează butoanele setărilor rapide"
+
+msgid "Arrange status bar items"
+msgstr "Aranjează elementele barei de stare"
+
+msgid "Arrange tabs"
+msgstr "Aranjează filele"
+
+msgid "Authors"
+msgstr "Autori"
+
+msgid "Battery"
+msgstr "Baterie"
+
+msgid "Blue"
+msgstr "Albastru"
+
+msgid "Bold active tab"
+msgstr "Filă activă îngroșată"
+
+msgid "Bold text"
+msgstr "Text îngroșat"
+
+msgid "Book"
+msgstr "Carte"
+
+msgid "Book Status"
+msgstr "Stare carte"
+
+msgid "books"
+msgstr "cărți"
+
+msgid "Books"
+msgstr "Cărți"
+
+msgid "Books tab label"
+msgstr "Etichetă filă Cărți"
+
+msgid "Books tab label: "
+msgstr "Etichetă filă Cărți: "
+
+msgid "Bottom menu"
+msgstr "Meniu inferior"
+
+msgid "Bottom navbar"
+msgstr "Bară de navigare inferioară"
+
+msgid "Browser hide up-folder behavior"
+msgstr "Ascunde dosarul superior în browser"
+
+msgid "Bullet"
+msgstr "Punct"
+
+msgid "Buttons"
+msgstr "Butoane"
+
+msgid "Calibre"
+msgstr "Calibre"
+
+msgid "Cancel"
+msgstr "Anulare"
+
+msgid "Cannot determine the plugin installation path."
+msgstr "Nu se poate determina calea de instalare a pluginului."
+
+msgid "Cannot open last document"
+msgstr "Nu se poate deschide ultimul document"
+
+msgid "Center"
+msgstr "Centru"
+
+msgid "Check for updates"
+msgstr "Verifică actualizări"
+
+msgid "Classic (filename only)"
+msgstr "Clasic (doar numele fișierului)"
+
+msgid "Cloud"
+msgstr "Nor"
+
+msgid "Cloud storage"
+msgstr "Stocare în nor"
+
+msgid "Collections"
+msgstr "Colecții"
+
+msgid "Colored active tab"
+msgstr "Filă activă colorată"
+
+msgid "Colored status icons"
+msgstr "Pictograme de stare colorate"
+
+msgid "Columns"
+msgstr "Coloane"
+
+msgid "Continue"
+msgstr "Continuă"
+
+msgid "Crop folder custom image"
+msgstr "Decupează imaginea personalizată a dosarului"
+
+msgid "Custom"
+msgstr "Personalizat"
+
+msgid "Custom RGB"
+msgstr "RGB personalizat"
+
+msgid "Custom separator"
+msgstr "Separator personalizat"
+
+msgid "Custom status bar"
+msgstr "Bară de stare personalizată"
+
+msgid "Custom text"
+msgstr "Text personalizat"
+
+msgid "Custom text: "
+msgstr "Text personalizat: "
+
+msgid "Custom: "
+msgstr "Personalizat: "
+
+msgid "Cut"
+msgstr "Taie"
+
+msgid "Dash"
+msgstr "Liniuță"
+
+msgid "date modified"
+msgstr "dată modificare"
+
+msgid "Delete"
+msgstr "Șterge"
+
+msgid "Detailed list with cover images and filenames"
+msgstr "Listă detaliată cu coperte și nume de fișier"
+
+msgid "Detailed list with cover images and metadata"
+msgstr "Listă detaliată cu coperte și metadate"
+
+msgid "Detailed list with metadata, no images"
+msgstr "Listă detaliată cu metadate, fără imagini"
+
+msgid "Device: "
+msgstr "Dispozitiv: "
+
+msgid "Disk space"
+msgstr "Spațiu pe disc"
+
+msgid "Display mode"
+msgstr "Mod afișare"
+
+msgid "Download failed: "
+msgstr "Descărcare eșuată: "
+
+msgid "Downloading Zen UI update…"
+msgstr "Se descarcă actualizarea Zen UI…"
+
+msgid "Edit  ▶"
+msgstr "Editează  ▶"
+
+msgid "Enable bottom menu"
+msgstr "Activează meniu inferior"
+
+msgid "Enable bottom nav bar"
+msgstr "Activează bara de navigare inferioară"
+
+msgid "Enable custom status bar"
+msgstr "Activează bara de stare personalizată"
+
+msgid "Enable quick settings panel"
+msgstr "Activează panoul de setări rapide"
+
+msgid "Enable reader clock"
+msgstr "Activează ceasul cititorului"
+
+msgid "Exit"
+msgstr "Ieșire"
+
+msgid "Failed to unpack the update. You can install it manually."
+msgstr "Eroare la dezarhivarea actualizării. O poți instala manual."
+
+msgid "Favorites"
+msgstr "Favorite"
+
+msgid "File browser"
+msgstr "Explorator fișiere"
+
+msgid "File search"
+msgstr "Căutare fișiere"
+
+msgid "Filebrowser"
+msgstr "Manager fișiere"
+
+msgid "FileBrowser"
+msgstr "Manager fișiere"
+
+msgid "Filebrowser plugin is not installed."
+msgstr "Pluginul Filebrowser nu este instalat."
+
+msgid "Finished"
+msgstr "Terminat"
+
+msgid "Firmware: "
+msgstr "Firmware: "
+
+msgid "Folder"
+msgstr "Dosar"
+
+msgid "Folder name centered"
+msgstr "Nume dosar centrat"
+
+msgid "Folder presets"
+msgstr "Setări predefinite dosar"
+
+msgid "Folders and files mixed"
+msgstr "Dosare și fișiere amestecate"
+
+msgid "Format: R,G,B (0-255)"
+msgstr "Format: R,G,B (0-255)"
+
+msgid "Frontlight"
+msgstr "Lumină frontală"
+
+msgid "Green"
+msgstr "Verde"
+
+msgid "Hide up folders"
+msgstr "Ascunde dosarul superior"
+
+msgid "History"
+msgstr "Istoric"
+
+msgid "Home"
+msgstr "Acasă"
+
+msgid "Items"
+msgstr "Elemente"
+
+msgid "items per page"
+msgstr "elemente pe pagină"
+
+msgid "Items per page"
+msgstr "Elemente pe pagină"
+
+msgid "Keywords"
+msgstr "Cuvinte cheie"
+
+msgid "KOReader: "
+msgstr "KOReader: "
+
+msgid "Landscape mosaic mode"
+msgstr "Mod mozaic peisaj"
+
+msgid "Landscape mosaic: "
+msgstr "Mozaic peisaj: "
+
+msgid "last read date"
+msgstr "ultima dată citit"
+
+msgid "Later"
+msgstr "Mai târziu"
+
+msgid "latest"
+msgstr "cea mai recentă"
+
+msgid "Left"
+msgstr "Stânga"
+
+msgid "Library"
+msgstr "Bibliotecă"
+
+msgid "List: "
+msgstr "Listă: "
+
+msgid "Manga"
+msgstr "Manga"
+
+msgid "Manga folder not found: "
+msgstr "Dosarul manga nu a fost găsit: "
+
+msgid "Manga tab action: "
+msgstr "Acțiune filă Manga: "
+
+msgid "Max"
+msgstr "Max"
+
+msgid "Menu"
+msgstr "Meniu"
+
+msgid "Middle dot"
+msgstr "Punct median"
+
+msgid "Mosaic and detailed list settings"
+msgstr "Setări mozaic și listă detaliată"
+
+msgid "Mosaic with cover images"
+msgstr "Mozaic cu coperte"
+
+msgid "Mosaic with text"
+msgstr "Mozaic cu text"
+
+msgid "Move"
+msgstr "Mută"
+
+msgid "Move failed."
+msgstr "Mutare eșuată."
+
+msgid "Move to…"
+msgstr "Mută în…"
+
+msgid "name"
+msgstr "nume"
+
+msgid "name (natural sorting)"
+msgstr "nume (sortare naturală)"
+
+msgid "Navbar"
+msgstr "Bară de navigare"
+
+msgid "New folder"
+msgstr "Dosar nou"
+
+msgid "News"
+msgstr "Știri"
+
+msgid "News folder not found: "
+msgstr "Dosarul de știri nu a fost găsit: "
+
+msgid "News tab action: "
+msgstr "Acțiune filă Știri: "
+
+msgid "Next"
+msgstr "Următor"
+
+msgid "Next page"
+msgstr "Pagina următoare"
+
+msgid "Night"
+msgstr "Noapte"
+
+msgid "Night mode"
+msgstr "Mod noapte"
+
+msgid "No download URL found. Check your network connection and try again."
+msgstr "Nu s-a găsit URL de descărcare. Verifică conexiunea și încearcă din nou."
+
+msgid "No git checkout detected for Zen UI. Use your normal plugin installation/update workflow."
+msgstr "Nu s-a detectat niciun checkout git pentru Zen UI. Folosiți fluxul normal de instalare/actualizare."
+
+msgid "No reader engine for this file or invalid file."
+msgstr "Niciun motor de citire pentru acest fișier sau fișier invalid."
+
+msgid "No separator"
+msgstr "Fără separator"
+
+msgid "Notion"
+msgstr "Notion"
+
+msgid "NotionSync"
+msgstr "NotionSync"
+
+msgid "Off"
+msgstr "Oprit"
+
+msgid "On hold"
+msgstr "În așteptare"
+
+msgid "OPDS"
+msgstr "OPDS"
+
+msgid "Open folder"
+msgstr "Deschide dosar"
+
+msgid "Open folder: "
+msgstr "Deschide dosar: "
+
+msgid "Open QuickRSS"
+msgstr "Deschide QuickRSS"
+
+msgid "Open Rakuyomi"
+msgstr "Deschide Rakuyomi"
+
+msgid "Opening"
+msgstr "Se deschide"
+
+msgid "percent - unopened - finished last"
+msgstr "procent - nedeschis - terminat ultimul"
+
+msgid "percent - unopened first"
+msgstr "procent - nedeschis primul"
+
+msgid "percent - unopened last"
+msgstr "procent - nedeschis ultimul"
+
+msgid "Portrait list mode"
+msgstr "Mod listă portret"
+
+msgid "Portrait mosaic mode"
+msgstr "Mod mozaic portret"
+
+msgid "Portrait mosaic: "
+msgstr "Mozaic portret: "
+
+msgid "Position"
+msgstr "Poziție"
+
+msgid "Prev"
+msgstr "Anterior"
+
+msgid "Previous page"
+msgstr "Pagina anterioară"
+
+msgid "Quick settings"
+msgstr "Setări rapide"
+
+msgid "Quick settings panel"
+msgstr "Panou setări rapide"
+
+msgid "QuickRSS"
+msgstr "QuickRSS"
+
+msgid "QuickRSS plugin is not installed."
+msgstr "Pluginul QuickRSS nu este instalat."
+
+msgid "Quit"
+msgstr "Închide"
+
+msgid "Quit KOReader"
+msgstr "Închide KOReader"
+
+msgid "Rakuyomi"
+msgstr "Rakuyomi"
+
+msgid "Rakuyomi plugin is not installed."
+msgstr "Pluginul Rakuyomi nu este instalat."
+
+msgid "RAM usage"
+msgstr "Utilizare RAM"
+
+msgid "Read status"
+msgstr "Stare citire"
+
+msgid "Read status  ▶"
+msgstr "Stare citire  ▶"
+
+msgid "Reader"
+msgstr "Cititor"
+
+msgid "Reader clock"
+msgstr "Ceas cititor"
+
+msgid "Reading"
+msgstr "Se citește"
+
+msgid "Red"
+msgstr "Roșu"
+
+msgid "Refresh navbar"
+msgstr "Reîncarcă bara de navigare"
+
+msgid "Remove from favorites"
+msgstr "Elimină din favorite"
+
+msgid "Rename"
+msgstr "Redenumește"
+
+msgid "Restart"
+msgstr "Repornește"
+
+msgid "Restart Book"
+msgstr "Repornește cartea"
+
+msgid "Restart now"
+msgstr "Repornește acum"
+
+msgid "Restart now?"
+msgstr "Repornești acum?"
+
+msgid "Reverse sorting"
+msgstr "Sortare inversă"
+
+msgid "Review"
+msgstr "Recenzie"
+
+msgid "Right"
+msgstr "Dreapta"
+
+msgid "Rotate"
+msgstr "Rotire"
+
+msgid "Rows"
+msgstr "Rânduri"
+
+msgid "Run Zen UI update now?\n\nIf this plugin is a git checkout, Zen UI will run a fast-forward pull and then ask for restart."
+msgstr "Rulați actualizarea Zen UI acum?\n\nDacă acest plugin este un checkout git, Zen UI va rula un pull fast-forward și va solicita repornirea."
+
+msgid "Search"
+msgstr "Caută"
+
+msgid "Select"
+msgstr "Selectează"
+
+msgid "Separator: "
+msgstr "Separator: "
+
+msgid "Series"
+msgstr "Serie"
+
+msgid "Set"
+msgstr "Setează"
+
+msgid "Show battery"
+msgstr "Afișează bateria"
+
+msgid "Show bottom border"
+msgstr "Afișează chenarul inferior"
+
+msgid "Show disk space"
+msgstr "Afișează spațiul pe disc"
+
+msgid "Show folder name"
+msgstr "Afișează numele dosarului"
+
+msgid "Show frontlight"
+msgstr "Afișează lumina frontală"
+
+msgid "Show frontlight slider"
+msgstr "Afișează cursorul luminii frontale"
+
+msgid "Show in standalone views"
+msgstr "Afișează în vederi independente"
+
+msgid "Show labels"
+msgstr "Afișează etichete"
+
+msgid "Show progress % on mosaic covers"
+msgstr "Afișează % progres pe copertele mozaicului"
+
+msgid "Show RAM usage"
+msgstr "Afișează utilizarea RAM"
+
+msgid "Show time"
+msgstr "Afișează ora"
+
+msgid "Show top border"
+msgstr "Afișează chenarul superior"
+
+msgid "Show top gap"
+msgstr "Afișează spațiul superior"
+
+msgid "Show warmth slider"
+msgstr "Afișează cursorul de căldură"
+
+msgid "Show WiFi"
+msgstr "Afișează WiFi"
+
+msgid "size"
+msgstr "dimensiune"
+
+msgid "Sleep"
+msgstr "Repaus"
+
+msgid "Sort by"
+msgstr "Sortează după"
+
+msgid "Sort by: "
+msgstr "Sortează după: "
+
+msgid "Space only"
+msgstr "Doar spațiu"
+
+msgid "Space only (small)"
+msgstr "Doar spațiu (mic)"
+
+msgid "Statistics"
+msgstr "Statistici"
+
+msgid "Status bar"
+msgstr "Bară de stare"
+
+msgid "Streak"
+msgstr "Serie"
+
+msgid "Tabs"
+msgstr "File"
+
+msgid "The update will be downloaded and installed. KOReader will then restart."
+msgstr "Actualizarea va fi descărcată și instalată. KOReader se va reporni."
+
+msgid "This setting requires a KOReader restart to fully apply."
+msgstr "Această setare necesită repornirea KOReader pentru a fi aplicată complet."
+
+msgid "Title"
+msgstr "Titlu"
+
+msgid "Toggle"
+msgstr "Comutare"
+
+msgid "type"
+msgstr "tip"
+
+msgid "Underline above icon"
+msgstr "Subliniere deasupra pictogramei"
+
+msgid "unknown error"
+msgstr "eroare necunoscută"
+
+msgid "Unread"
+msgstr "Necitit"
+
+msgid "Update"
+msgstr "Actualizare"
+
+msgid "Update available — install "
+msgstr "Actualizare disponibilă — instalează "
+
+msgid "Update Status"
+msgstr "Stare actualizare"
+
+msgid "Update Zen UI"
+msgstr "Actualizează Zen UI"
+
+msgid "Update Zen UI now?"
+msgstr "Actualizați Zen UI acum?"
+
+msgid "Update Zen UI to "
+msgstr "Actualizează Zen UI la "
+
+msgid "USB"
+msgstr "USB"
+
+msgid "Use 24-hour time"
+msgstr "Folosește formatul de 24 de ore"
+
+msgid "Use current folder"
+msgstr "Folosește dosarul curent"
+
+msgid "Use home folder"
+msgstr "Folosește dosarul principal"
+
+msgid "Use last folder"
+msgstr "Folosește ultimul dosar"
+
+msgid "Vertical bar"
+msgstr "Bară verticală"
+
+msgid "Visibility"
+msgstr "Vizibilitate"
+
+msgid "Warmth"
+msgstr "Căldură"
+
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
+
+msgid "WiFi"
+msgstr "WiFi"
+
+msgid "Z-Lib"
+msgstr "Z-Lib"
+
+msgid "Z-Library"
+msgstr "Z-Library"
+
+msgid "Zen"
+msgstr "Zen"
+
+msgid "Zen Mode"
+msgstr "Mod Zen"
+
+msgid "Zen pagination bar"
+msgstr "Bară de paginare Zen"
+
+msgid "Zen UI"
+msgstr "Zen UI"
+
+msgid "Zen UI is up to date."
+msgstr "Zen UI este actualizat."
+
+msgid "Zen UI Settings"
+msgstr "Setări Zen UI"
+
+msgid "Zen UI update completed. Restart KOReader now?"
+msgstr "Actualizare Zen UI finalizată. Repornești KOReader acum?"
+
+msgid "Zen UI update failed. Check logs and retry."
+msgstr "Actualizarea Zen UI a eșuat. Verificați jurnalele și reîncercați."
+
+msgid "Zen UI updated successfully. Restart KOReader now?"
+msgstr "Zen UI actualizat cu succes. Repornești KOReader acum?"
+
+msgid "Zen UI: "
+msgstr "Zen UI: "
+
+msgctxt "File"
+msgid "Copy"
+msgstr "Copiază"
+
+msgctxt "File"
+msgid "Paste"
+msgstr "Lipește"

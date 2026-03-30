@@ -1,7 +1,774 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: zen-ui 0.1.0\\n"
-"MIME-Version: 1.0\\n"
-"Content-Type: text/plain; charset=UTF-8\\n"
-"Content-Transfer-Encoding: 8bit\\n"
-"Language: zh_CN\\n"
+"Project-Id-Version: zen-ui 0.1.0\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: zh_CN\n"
+
+msgid "⬆ Update available: "
+msgstr "⬆ 有可用更新: "
+
+msgid "%1 et al."
+msgstr "%1 等"
+
+msgid "%d%% Read"
+msgstr "已读 %d%%"
+
+msgid "1 book"
+msgstr "1 本书"
+
+msgid "12-hour time"
+msgstr "12 小时制"
+
+msgid "About"
+msgstr "关于"
+
+msgid "Active tab color: "
+msgstr "活动标签颜色: "
+
+msgid "Active tab RGB"
+msgstr "活动标签 RGB"
+
+msgid "Active tab styling"
+msgstr "活动标签样式"
+
+msgid "Active tab underline"
+msgstr "活动标签下划线"
+
+msgid "Add to favorites"
+msgstr "添加到收藏夹"
+
+msgid "Allow delete in context menu"
+msgstr "允许在上下文菜单中删除"
+
+msgid "Always open on this tab"
+msgstr "始终在此标签页打开"
+
+msgid "Amber"
+msgstr "琥珀色"
+
+msgid "An item with that name already exists."
+msgstr "已存在同名项目。"
+
+msgid "Are you sure you want to exit KOReader?"
+msgstr "确定要退出 KOReader 吗？"
+
+msgid "Are you sure you want to quit KOReader?"
+msgstr "确定要关闭 KOReader 吗？"
+
+msgid "Are you sure you want to restart KOReader?"
+msgstr "确定要重启 KOReader 吗？"
+
+msgid "Arrange buttons"
+msgstr "排列按钮"
+
+msgid "Arrange items"
+msgstr "排列项目"
+
+msgid "Arrange navbar tabs"
+msgstr "排列导航栏标签"
+
+msgid "Arrange quick settings buttons"
+msgstr "排列快速设置按钮"
+
+msgid "Arrange status bar items"
+msgstr "排列状态栏项目"
+
+msgid "Arrange tabs"
+msgstr "排列标签"
+
+msgid "Authors"
+msgstr "作者"
+
+msgid "Battery"
+msgstr "电池"
+
+msgid "Blue"
+msgstr "蓝色"
+
+msgid "Bold active tab"
+msgstr "活动标签加粗"
+
+msgid "Bold text"
+msgstr "粗体文本"
+
+msgid "Book"
+msgstr "书籍"
+
+msgid "Book Status"
+msgstr "书籍状态"
+
+msgid "books"
+msgstr "本书"
+
+msgid "Books"
+msgstr "书库"
+
+msgid "Books tab label"
+msgstr "书库标签名称"
+
+msgid "Books tab label: "
+msgstr "书库标签名称: "
+
+msgid "Bottom menu"
+msgstr "底部菜单"
+
+msgid "Bottom navbar"
+msgstr "底部导航栏"
+
+msgid "Browser hide up-folder behavior"
+msgstr "浏览器隐藏上级文件夹"
+
+msgid "Bullet"
+msgstr "圆点"
+
+msgid "Buttons"
+msgstr "按钮"
+
+msgid "Calibre"
+msgstr "Calibre"
+
+msgid "Cancel"
+msgstr "取消"
+
+msgid "Cannot determine the plugin installation path."
+msgstr "无法确定插件安装路径。"
+
+msgid "Cannot open last document"
+msgstr "无法打开上次的文档"
+
+msgid "Center"
+msgstr "居中"
+
+msgid "Check for updates"
+msgstr "检查更新"
+
+msgid "Classic (filename only)"
+msgstr "经典模式（仅文件名）"
+
+msgid "Cloud"
+msgstr "云端"
+
+msgid "Cloud storage"
+msgstr "云存储"
+
+msgid "Collections"
+msgstr "收藏集"
+
+msgid "Colored active tab"
+msgstr "彩色活动标签"
+
+msgid "Colored status icons"
+msgstr "彩色状态图标"
+
+msgid "Columns"
+msgstr "列数"
+
+msgid "Continue"
+msgstr "继续"
+
+msgid "Crop folder custom image"
+msgstr "裁剪文件夹自定义图片"
+
+msgid "Custom"
+msgstr "自定义"
+
+msgid "Custom RGB"
+msgstr "自定义 RGB"
+
+msgid "Custom separator"
+msgstr "自定义分隔符"
+
+msgid "Custom status bar"
+msgstr "自定义状态栏"
+
+msgid "Custom text"
+msgstr "自定义文本"
+
+msgid "Custom text: "
+msgstr "自定义文本: "
+
+msgid "Custom: "
+msgstr "自定义: "
+
+msgid "Cut"
+msgstr "剪切"
+
+msgid "Dash"
+msgstr "破折号"
+
+msgid "date modified"
+msgstr "修改日期"
+
+msgid "Delete"
+msgstr "删除"
+
+msgid "Detailed list with cover images and filenames"
+msgstr "带封面和文件名的详细列表"
+
+msgid "Detailed list with cover images and metadata"
+msgstr "带封面和元数据的详细列表"
+
+msgid "Detailed list with metadata, no images"
+msgstr "带元数据的详细列表（无图片）"
+
+msgid "Device: "
+msgstr "设备: "
+
+msgid "Disk space"
+msgstr "磁盘空间"
+
+msgid "Display mode"
+msgstr "显示模式"
+
+msgid "Download failed: "
+msgstr "下载失败: "
+
+msgid "Downloading Zen UI update…"
+msgstr "正在下载 Zen UI 更新…"
+
+msgid "Edit  ▶"
+msgstr "编辑  ▶"
+
+msgid "Enable bottom menu"
+msgstr "启用底部菜单"
+
+msgid "Enable bottom nav bar"
+msgstr "启用底部导航栏"
+
+msgid "Enable custom status bar"
+msgstr "启用自定义状态栏"
+
+msgid "Enable quick settings panel"
+msgstr "启用快速设置面板"
+
+msgid "Enable reader clock"
+msgstr "启用阅读器时钟"
+
+msgid "Exit"
+msgstr "退出"
+
+msgid "Failed to unpack the update. You can install it manually."
+msgstr "解压更新失败。您可以手动安装。"
+
+msgid "Favorites"
+msgstr "收藏夹"
+
+msgid "File browser"
+msgstr "文件浏览器"
+
+msgid "File search"
+msgstr "文件搜索"
+
+msgid "Filebrowser"
+msgstr "文件管理器"
+
+msgid "FileBrowser"
+msgstr "文件管理器"
+
+msgid "Filebrowser plugin is not installed."
+msgstr "Filebrowser 插件未安装。"
+
+msgid "Finished"
+msgstr "已读完"
+
+msgid "Firmware: "
+msgstr "固件: "
+
+msgid "Folder"
+msgstr "文件夹"
+
+msgid "Folder name centered"
+msgstr "文件夹名称居中"
+
+msgid "Folder presets"
+msgstr "文件夹预设"
+
+msgid "Folders and files mixed"
+msgstr "文件夹与文件混合"
+
+msgid "Format: R,G,B (0-255)"
+msgstr "格式: R,G,B (0-255)"
+
+msgid "Frontlight"
+msgstr "前灯"
+
+msgid "Green"
+msgstr "绿色"
+
+msgid "Hide up folders"
+msgstr "隐藏上级文件夹"
+
+msgid "History"
+msgstr "历史记录"
+
+msgid "Home"
+msgstr "主页"
+
+msgid "Items"
+msgstr "项目"
+
+msgid "items per page"
+msgstr "每页项目数"
+
+msgid "Items per page"
+msgstr "每页项目数"
+
+msgid "Keywords"
+msgstr "关键词"
+
+msgid "KOReader: "
+msgstr "KOReader: "
+
+msgid "Landscape mosaic mode"
+msgstr "横向马赛克模式"
+
+msgid "Landscape mosaic: "
+msgstr "横向马赛克: "
+
+msgid "last read date"
+msgstr "上次阅读日期"
+
+msgid "Later"
+msgstr "稍后"
+
+msgid "latest"
+msgstr "最新版本"
+
+msgid "Left"
+msgstr "左"
+
+msgid "Library"
+msgstr "书库"
+
+msgid "List: "
+msgstr "列表: "
+
+msgid "Manga"
+msgstr "漫画"
+
+msgid "Manga folder not found: "
+msgstr "未找到漫画文件夹: "
+
+msgid "Manga tab action: "
+msgstr "漫画标签动作: "
+
+msgid "Max"
+msgstr "最大"
+
+msgid "Menu"
+msgstr "菜单"
+
+msgid "Middle dot"
+msgstr "中间点"
+
+msgid "Mosaic and detailed list settings"
+msgstr "马赛克和详细列表设置"
+
+msgid "Mosaic with cover images"
+msgstr "封面马赛克"
+
+msgid "Mosaic with text"
+msgstr "文字马赛克"
+
+msgid "Move"
+msgstr "移动"
+
+msgid "Move failed."
+msgstr "移动失败。"
+
+msgid "Move to…"
+msgstr "移动到…"
+
+msgid "name"
+msgstr "名称"
+
+msgid "name (natural sorting)"
+msgstr "名称（自然排序）"
+
+msgid "Navbar"
+msgstr "导航栏"
+
+msgid "New folder"
+msgstr "新建文件夹"
+
+msgid "News"
+msgstr "新闻"
+
+msgid "News folder not found: "
+msgstr "未找到新闻文件夹: "
+
+msgid "News tab action: "
+msgstr "新闻标签动作: "
+
+msgid "Next"
+msgstr "下一个"
+
+msgid "Next page"
+msgstr "下一页"
+
+msgid "Night"
+msgstr "夜间"
+
+msgid "Night mode"
+msgstr "夜间模式"
+
+msgid "No download URL found. Check your network connection and try again."
+msgstr "未找到下载链接。请检查网络连接后重试。"
+
+msgid "No git checkout detected for Zen UI. Use your normal plugin installation/update workflow."
+msgstr "未检测到 Zen UI 的 git checkout。请使用常规插件安装/更新流程。"
+
+msgid "No reader engine for this file or invalid file."
+msgstr "此文件没有可用的阅读引擎或文件无效。"
+
+msgid "No separator"
+msgstr "无分隔符"
+
+msgid "Notion"
+msgstr "Notion"
+
+msgid "NotionSync"
+msgstr "NotionSync"
+
+msgid "Off"
+msgstr "关闭"
+
+msgid "On hold"
+msgstr "搁置"
+
+msgid "OPDS"
+msgstr "OPDS"
+
+msgid "Open folder"
+msgstr "打开文件夹"
+
+msgid "Open folder: "
+msgstr "打开文件夹: "
+
+msgid "Open QuickRSS"
+msgstr "打开 QuickRSS"
+
+msgid "Open Rakuyomi"
+msgstr "打开 Rakuyomi"
+
+msgid "Opening"
+msgstr "正在打开"
+
+msgid "percent - unopened - finished last"
+msgstr "进度 - 未打开 - 已完成排最后"
+
+msgid "percent - unopened first"
+msgstr "进度 - 未打开排最前"
+
+msgid "percent - unopened last"
+msgstr "进度 - 未打开排最后"
+
+msgid "Portrait list mode"
+msgstr "竖向列表模式"
+
+msgid "Portrait mosaic mode"
+msgstr "竖向马赛克模式"
+
+msgid "Portrait mosaic: "
+msgstr "竖向马赛克: "
+
+msgid "Position"
+msgstr "位置"
+
+msgid "Prev"
+msgstr "上一个"
+
+msgid "Previous page"
+msgstr "上一页"
+
+msgid "Quick settings"
+msgstr "快速设置"
+
+msgid "Quick settings panel"
+msgstr "快速设置面板"
+
+msgid "QuickRSS"
+msgstr "QuickRSS"
+
+msgid "QuickRSS plugin is not installed."
+msgstr "QuickRSS 插件未安装。"
+
+msgid "Quit"
+msgstr "退出"
+
+msgid "Quit KOReader"
+msgstr "退出 KOReader"
+
+msgid "Rakuyomi"
+msgstr "Rakuyomi"
+
+msgid "Rakuyomi plugin is not installed."
+msgstr "Rakuyomi 插件未安装。"
+
+msgid "RAM usage"
+msgstr "内存使用"
+
+msgid "Read status"
+msgstr "阅读状态"
+
+msgid "Read status  ▶"
+msgstr "阅读状态  ▶"
+
+msgid "Reader"
+msgstr "阅读器"
+
+msgid "Reader clock"
+msgstr "阅读器时钟"
+
+msgid "Reading"
+msgstr "阅读中"
+
+msgid "Red"
+msgstr "红色"
+
+msgid "Refresh navbar"
+msgstr "刷新导航栏"
+
+msgid "Remove from favorites"
+msgstr "从收藏夹移除"
+
+msgid "Rename"
+msgstr "重命名"
+
+msgid "Restart"
+msgstr "重启"
+
+msgid "Restart Book"
+msgstr "重新开始阅读"
+
+msgid "Restart now"
+msgstr "立即重启"
+
+msgid "Restart now?"
+msgstr "立即重启？"
+
+msgid "Reverse sorting"
+msgstr "反向排序"
+
+msgid "Review"
+msgstr "书评"
+
+msgid "Right"
+msgstr "右"
+
+msgid "Rotate"
+msgstr "旋转"
+
+msgid "Rows"
+msgstr "行数"
+
+msgid "Run Zen UI update now?\n\nIf this plugin is a git checkout, Zen UI will run a fast-forward pull and then ask for restart."
+msgstr "现在运行 Zen UI 更新？\n\n如果此插件是 git checkout，Zen UI 将执行 fast-forward pull 并请求重启。"
+
+msgid "Search"
+msgstr "搜索"
+
+msgid "Select"
+msgstr "选择"
+
+msgid "Separator: "
+msgstr "分隔符: "
+
+msgid "Series"
+msgstr "系列"
+
+msgid "Set"
+msgstr "设置"
+
+msgid "Show battery"
+msgstr "显示电池"
+
+msgid "Show bottom border"
+msgstr "显示底部边框"
+
+msgid "Show disk space"
+msgstr "显示磁盘空间"
+
+msgid "Show folder name"
+msgstr "显示文件夹名称"
+
+msgid "Show frontlight"
+msgstr "显示前灯"
+
+msgid "Show frontlight slider"
+msgstr "显示前灯滑块"
+
+msgid "Show in standalone views"
+msgstr "在独立视图中显示"
+
+msgid "Show labels"
+msgstr "显示标签"
+
+msgid "Show progress % on mosaic covers"
+msgstr "在封面马赛克上显示进度%"
+
+msgid "Show RAM usage"
+msgstr "显示内存使用"
+
+msgid "Show time"
+msgstr "显示时间"
+
+msgid "Show top border"
+msgstr "显示顶部边框"
+
+msgid "Show top gap"
+msgstr "显示顶部间距"
+
+msgid "Show warmth slider"
+msgstr "显示色温滑块"
+
+msgid "Show WiFi"
+msgstr "显示 WiFi"
+
+msgid "size"
+msgstr "大小"
+
+msgid "Sleep"
+msgstr "睡眠"
+
+msgid "Sort by"
+msgstr "排序方式"
+
+msgid "Sort by: "
+msgstr "排序方式: "
+
+msgid "Space only"
+msgstr "仅空格"
+
+msgid "Space only (small)"
+msgstr "仅空格（小）"
+
+msgid "Statistics"
+msgstr "统计"
+
+msgid "Status bar"
+msgstr "状态栏"
+
+msgid "Streak"
+msgstr "连续阅读"
+
+msgid "Tabs"
+msgstr "标签"
+
+msgid "The update will be downloaded and installed. KOReader will then restart."
+msgstr "更新将被下载并安装。KOReader 随后将重启。"
+
+msgid "This setting requires a KOReader restart to fully apply."
+msgstr "此设置需要重启 KOReader 才能完全生效。"
+
+msgid "Title"
+msgstr "标题"
+
+msgid "Toggle"
+msgstr "切换"
+
+msgid "type"
+msgstr "类型"
+
+msgid "Underline above icon"
+msgstr "图标上方下划线"
+
+msgid "unknown error"
+msgstr "未知错误"
+
+msgid "Unread"
+msgstr "未读"
+
+msgid "Update"
+msgstr "更新"
+
+msgid "Update available — install "
+msgstr "有可用更新 — 安装 "
+
+msgid "Update Status"
+msgstr "更新状态"
+
+msgid "Update Zen UI"
+msgstr "更新 Zen UI"
+
+msgid "Update Zen UI now?"
+msgstr "现在更新 Zen UI？"
+
+msgid "Update Zen UI to "
+msgstr "将 Zen UI 更新至 "
+
+msgid "USB"
+msgstr "USB"
+
+msgid "Use 24-hour time"
+msgstr "使用 24 小时制"
+
+msgid "Use current folder"
+msgstr "使用当前文件夹"
+
+msgid "Use home folder"
+msgstr "使用主文件夹"
+
+msgid "Use last folder"
+msgstr "使用上次文件夹"
+
+msgid "Vertical bar"
+msgstr "竖线"
+
+msgid "Visibility"
+msgstr "可见性"
+
+msgid "Warmth"
+msgstr "色温"
+
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
+
+msgid "WiFi"
+msgstr "WiFi"
+
+msgid "Z-Lib"
+msgstr "Z-Lib"
+
+msgid "Z-Library"
+msgstr "Z-Library"
+
+msgid "Zen"
+msgstr "Zen"
+
+msgid "Zen Mode"
+msgstr "禅模式"
+
+msgid "Zen pagination bar"
+msgstr "Zen 分页栏"
+
+msgid "Zen UI"
+msgstr "Zen UI"
+
+msgid "Zen UI is up to date."
+msgstr "Zen UI 已是最新版本。"
+
+msgid "Zen UI Settings"
+msgstr "Zen UI 设置"
+
+msgid "Zen UI update completed. Restart KOReader now?"
+msgstr "Zen UI 更新完成。立即重启 KOReader？"
+
+msgid "Zen UI update failed. Check logs and retry."
+msgstr "Zen UI 更新失败。请检查日志并重试。"
+
+msgid "Zen UI updated successfully. Restart KOReader now?"
+msgstr "Zen UI 更新成功。立即重启 KOReader？"
+
+msgid "Zen UI: "
+msgstr "Zen UI: "
+
+msgctxt "File"
+msgid "Copy"
+msgstr "复制"
+
+msgctxt "File"
+msgid "Paste"
+msgstr "粘贴"

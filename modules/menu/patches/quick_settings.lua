@@ -207,7 +207,7 @@ local function apply_quick_settings()
     local button_defs = {
         wifi = {
             icon = "quick_wifi",
-            label = "Wi-Fi",
+            label = _("Wi-Fi"),
             label_func = function()
                 if NetworkMgr:isWifiOn() then
                     local net = NetworkMgr:getCurrentNetwork()
@@ -215,7 +215,7 @@ local function apply_quick_settings()
                         return net.ssid
                     end
                 end
-                return "Wi-Fi"
+                return _("Wi-Fi")
             end,
             active_func = function() return NetworkMgr:isWifiOn() end,
             callback = function(touch_menu)
@@ -255,7 +255,7 @@ local function apply_quick_settings()
         },
         night = {
             icon = "quick_nightmode",
-            label = "Night",
+            label = _("Night"),
             active_func = function() return G_reader_settings:isTrue("night_mode") end,
             callback = function(touch_menu)
                 local night_mode = G_reader_settings:isTrue("night_mode")
@@ -268,14 +268,14 @@ local function apply_quick_settings()
         },
         rotate = {
             icon = "quick_rotate",
-            label = "Rotate",
+            label = _("Rotate"),
             callback = function()
                 UIManager:broadcastEvent(Event:new("SwapRotation"))
             end,
         },
         usb = {
             icon = "quick_usb",
-            label = "USB",
+            label = _("USB"),
             callback = function()
                 if Device:canToggleMassStorage() then
                     UIManager:broadcastEvent(Event:new("RequestUSBMS"))
@@ -284,7 +284,7 @@ local function apply_quick_settings()
         },
         restart = {
             icon = "quick_restart",
-            label = "Restart",
+            label = _("Restart"),
             callback = function()
                 UIManager:show(ConfirmBox:new{
                     text = _("Are you sure you want to restart KOReader?"),
@@ -297,7 +297,7 @@ local function apply_quick_settings()
         },
         exit = {
             icon = "quick_exit",
-            label = "Exit",
+            label = _("Exit"),
             callback = function()
                 UIManager:show(ConfirmBox:new{
                     text = _("Are you sure you want to exit KOReader?"),
@@ -310,7 +310,7 @@ local function apply_quick_settings()
         },
         sleep = {
             icon = "quick_sleep",
-            label = "Sleep",
+            label = _("Sleep"),
             callback = function()
                 if Device:canSuspend() then
                     UIManager:broadcastEvent(Event:new("RequestSuspend"))
@@ -321,14 +321,14 @@ local function apply_quick_settings()
         },
         search = {
             icon = "quick_search",
-            label = "Search",
+            label = _("Search"),
             callback = function()
                 UIManager:broadcastEvent(Event:new("ShowFileSearch"))
             end,
         },
         quickrss = {
             icon = "quick_quickrss",
-            label = "QuickRSS",
+            label = _("QuickRSS"),
             callback = function()
                 local ok, QuickRSSUI = pcall(require, "modules/ui/feed_view")
                 if ok and QuickRSSUI then
@@ -345,21 +345,21 @@ local function apply_quick_settings()
         },
         cloud = {
             icon = "quick_cloud",
-            label = "Cloud",
+            label = _("Cloud"),
             callback = function()
                 UIManager:broadcastEvent(Event:new("ShowCloudStorage"))
             end,
         },
         zlibrary = {
             icon = "quick_zlib",
-            label = "Z-Lib",
+            label = _("Z-Lib"),
             callback = function()
                 UIManager:broadcastEvent(Event:new("ZlibrarySearch"))
             end,
         },
         calibre = {
             icon = "quick_calibre",
-            label = "Calibre",
+            label = _("Calibre"),
             active_func = function()
                 local CW = package.loaded["wireless"]
                 return CW ~= nil and CW.calibre_socket ~= nil
@@ -378,7 +378,7 @@ local function apply_quick_settings()
         },
     	notion = {
             icon = "quick_notion",
-            label = "NotionSync",
+            label = _("NotionSync"),
             callback = function()
                 local ok_r, ReaderUI = pcall(require, "apps/reader/readerui")
                 local ok_f, FileManager = pcall(require, "apps/filemanager/filemanager")
@@ -390,21 +390,21 @@ local function apply_quick_settings()
         },
         streak = {
             icon = "quick_streak",
-            label = "Streak",
+            label = _("Streak"),
             callback = function()
                 UIManager:broadcastEvent(Event:new("ShowReadingStreakCalendar"))
             end,
         },
         opds = {
             icon = "quick_opds",
-            label = "OPDS",
+            label = _("OPDS"),
             callback = function()
                 UIManager:broadcastEvent(Event:new("ShowOPDSCatalog"))
             end,
         },
         zen = {
             icon = "quick_zen",
-            label = "Zen",
+            label = _("Zen"),
             active_func = function()
                 local features = zen_plugin.config and zen_plugin.config.features
                 return type(features) == "table" and features.zen_mode == true
@@ -432,7 +432,7 @@ local function apply_quick_settings()
         },
         filebrowser = {
             icon = "quick_opds",
-            label = "FileBrowser",
+            label = _("FileBrowser"),
             active_func = function()
                 -- Fast check: just test if the pidfile exists
                 local pid_path = "/tmp/filebrowser_koreader.pid"
