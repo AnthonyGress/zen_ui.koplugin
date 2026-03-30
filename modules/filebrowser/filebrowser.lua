@@ -12,7 +12,6 @@ local FEATURES = {
 
 local PATCH_MODULES = {
     context_menu = "modules/filebrowser/patches/context_menu",
-    subfolder_padding = "modules/filebrowser/patches/subfolder_padding",
     partial_page_repaint = "modules/filebrowser/patches/partial_page_repaint",
     navbar = "modules/filebrowser/patches/navbar",
     status_bar = "modules/filebrowser/patches/status_bar",
@@ -69,13 +68,6 @@ function M.init(logger, plugin)
     local context_menu_fn = load_patch("context_menu")
     if context_menu_fn then
         run_feature(logger, plugin, "context_menu", context_menu_fn)
-    end
-
-    -- Always apply: pads item list when inside a subfolder so items don't
-    -- overlap the folder-title row drawn by the titlebar patch.
-    local subfolder_padding_fn = load_patch("subfolder_padding")
-    if subfolder_padding_fn then
-        run_feature(logger, plugin, "subfolder_padding", subfolder_padding_fn)
     end
 
     -- Always apply: full repaint when landing on a partial page to clear
