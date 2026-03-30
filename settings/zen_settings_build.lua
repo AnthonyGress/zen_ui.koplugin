@@ -1268,9 +1268,9 @@ function M.build(plugin)
     })
 
     table.insert(filebrowser_items, make_enable_feature_item(
-        "hide_pagination",
-        _("Hide pagination footer"),
-        _("Hide pagination footer")
+        "zen_pagination_bar",
+        _("Zen pagination bar"),
+        _("Zen pagination bar")
     ))
 
     table.insert(menu_items, make_enable_feature_item(

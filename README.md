@@ -40,7 +40,7 @@ Current toggle groups in `zen_ui_config`:
 - `features.quick_settings`
 - `features.zen_mode`
 - `features.titlebar`
-- `features.hide_pagination`
+- `features.zen_pagination_bar`
 - `features.disable_top_menu_swipe_zones`
 - `features.browser_hide_up_folder`
 - `features.reader_header_clock`

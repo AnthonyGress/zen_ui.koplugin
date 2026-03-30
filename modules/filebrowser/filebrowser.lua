@@ -4,7 +4,7 @@ local initialized = false
 local FEATURES = {
     "navbar",
     "titlebar",
-    "hide_pagination",
+    "zen_pagination_bar",
     "browser_folder_cover",
     "browser_hide_underline",
     "browser_hide_up_folder",
@@ -13,9 +13,10 @@ local FEATURES = {
 local PATCH_MODULES = {
     context_menu = "modules/filebrowser/patches/context_menu",
     subfolder_padding = "modules/filebrowser/patches/subfolder_padding",
+    partial_page_repaint = "modules/filebrowser/patches/partial_page_repaint",
     navbar = "modules/filebrowser/patches/navbar",
     titlebar = "modules/filebrowser/patches/titlebar",
-    hide_pagination = "modules/filebrowser/patches/hide_pagination",
+    zen_pagination_bar = "modules/filebrowser/patches/zen_pagination_bar",
     browser_folder_cover = "modules/filebrowser/patches/browser_folder_cover",
     browser_hide_underline = "modules/filebrowser/patches/browser_hide_underline",
     browser_hide_up_folder = "modules/filebrowser/patches/browser_hide_up_folder",
@@ -73,6 +74,13 @@ function M.init(logger, plugin)
     local subfolder_padding_fn = load_patch("subfolder_padding")
     if subfolder_padding_fn then
         run_feature(logger, plugin, "subfolder_padding", subfolder_padding_fn)
+    end
+
+    -- Always apply: full repaint when landing on a partial page to clear
+    -- e-ink ghost images left by the previous page's items.
+    local partial_page_repaint_fn = load_patch("partial_page_repaint")
+    if partial_page_repaint_fn then
+        run_feature(logger, plugin, "partial_page_repaint", partial_page_repaint_fn)
     end
 
     for _, feature in ipairs(FEATURES) do
