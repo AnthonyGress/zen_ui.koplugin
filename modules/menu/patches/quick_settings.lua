@@ -230,6 +230,28 @@ local function apply_quick_settings()
                     end
                 end)
             end,
+            hold_callback = function(touch_menu)
+                -- Long-hold: (re)connect and show the AP picker.
+                -- If Wi-Fi is currently on, turn it off first, then bring it
+                -- back up with long_press=true so the network list appears.
+                -- If already off, go straight to the long-press connect flow.
+                local function do_connect()
+                    NetworkMgr:toggleWifiOn(function()
+                        UIManager:scheduleIn(0.5, function()
+                            if touch_menu.item_table and touch_menu.item_table.panel then
+                                touch_menu:updateItems(1)
+                            end
+                        end)
+                    end, true, true)
+                end
+                if NetworkMgr:isWifiOn() then
+                    NetworkMgr:toggleWifiOff(function()
+                        do_connect()
+                    end, true)
+                else
+                    do_connect()
+                end
+            end,
         },
         night = {
             icon = "quick_nightmode",
@@ -529,6 +551,9 @@ local function apply_quick_settings()
                     callback = function()
                         def.callback(touch_menu)
                     end,
+                    hold_callback = def.hold_callback and function()
+                        def.hold_callback(touch_menu)
+                    end or nil,
                 })
 
                 table.insert(top_row, btn_widget)
@@ -849,12 +874,12 @@ local function apply_quick_settings()
     -- Gesture handler for panel taps/pans
     -- ============================================================
 
-    local function handlePanelGesture(touch_menu, ges)
+    local function handlePanelGesture(touch_menu, ges, is_hold)
         local refs = touch_menu._qs_refs
         if not refs then return false end
 
         -- Check frontlight progress bar (ProgressWidget doesn't handle its own taps)
-        if refs.fl_progress and refs.fl_progress.dimen
+        if not is_hold and refs.fl_progress and refs.fl_progress.dimen
            and ges.pos:intersectWith(refs.fl_progress.dimen) then
             local perc = refs.fl_progress:getPercentageFromPosition(ges.pos)
             if perc and refs.setBrightness then
@@ -868,8 +893,15 @@ local function apply_quick_settings()
         -- Check buttons
         for _, btn_ref in ipairs(refs.buttons) do
             if btn_ref.widget.dimen and ges.pos:intersectWith(btn_ref.widget.dimen) then
-                btn_ref.callback()
-                return true
+                if is_hold and btn_ref.hold_callback then
+                    btn_ref.hold_callback()
+                    return true
+                elseif not is_hold then
+                    btn_ref.callback()
+                    return true
+                end
+                -- hold with no hold_callback: don't consume, let it fall through
+                return false
             end
         end
 
@@ -886,12 +918,22 @@ local function apply_quick_settings()
     local BD = require("ui/bidi")
 
     -- Hook init to force tab 1 before bar:switchToTab runs when open_on_start
+    local GestureRange = require("ui/gesturerange")
     local orig_init = TouchMenu.init
     function TouchMenu:init()
         if is_enabled() and config.open_on_start then
             self.last_index = 1
         end
         orig_init(self)
+        -- Register a screen-wide hold gesture for panel button hold_callbacks
+        if is_enabled() then
+            self.ges_events.HoldCloseAllMenus = {
+                GestureRange:new{
+                    ges = "hold",
+                    range = Geom:new{ x = 0, y = 0, w = self.screen_size.w, h = self.screen_size.h },
+                }
+            }
+        end
     end
 
     -- Hook updateItems for panel rendering
@@ -963,11 +1005,22 @@ local function apply_quick_settings()
         end
 
         if self._qs_refs and self.item_table and self.item_table.panel then
-            if handlePanelGesture(self, ges_ev) then
+            if handlePanelGesture(self, ges_ev, false) then
                 return true
             end
         end
         return orig_onTapCloseAllMenus(self, arg, ges_ev)
+    end
+
+    -- Hook onHoldCloseAllMenus to intercept holds on panel buttons
+    function TouchMenu:onHoldCloseAllMenus(arg, ges_ev)
+        if not is_enabled() then return end
+
+        if self._qs_refs and self.item_table and self.item_table.panel then
+            handlePanelGesture(self, ges_ev, true)
+        end
+        -- Holds outside the menu do nothing (don't close it)
+        return true
     end
 
     -- Hook switchMenuTab to force quick settings tab on menu open
