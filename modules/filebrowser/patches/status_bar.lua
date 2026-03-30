@@ -391,7 +391,18 @@ local function apply_status_bar()
             },
         }
 
-        if config.show_time then
+        -- Center slot: folder name (bold) when in a subfolder, otherwise the time
+        if in_subfolder and folder_name then
+            local center_text = TextWidget:new{
+                text = folder_name,
+                face = getBarFont(),
+                bold = true,
+            }
+            table.insert(row, 2, CenterContainer:new{
+                dimen = Geom:new{ w = screen_w, h = row_height },
+                center_text,
+            })
+        elseif config.show_time then
             local fmt = config.time_12h and "%I:%M %p" or "%H:%M"
             local time_str = os.date(fmt)
             -- Strip leading zero from 12h hours (e.g. "09:30 AM" -> "9:30 AM")
@@ -408,30 +419,7 @@ local function apply_status_bar()
             })
         end
 
-        -- Folder title row shown centered below the time row when in a subfolder
-        local folder_row
-        if in_subfolder and folder_name then
-            local folder_face = Font:getFace("NotoSans-Bold.ttf", Font.sizemap["x_smallinfofont"])
-            local folder_text = TextWidget:new{
-                text = folder_name,
-                face = folder_face,
-                bold = true,
-            }
-            local folder_h = folder_text:getSize().h
-            folder_row = CenterContainer:new{
-                dimen = Geom:new{ w = screen_w, h = folder_h },
-                folder_text,
-            }
-        end
-
         if not config.show_bottom_border then
-            if folder_row then
-                return VerticalGroup:new{
-                    align = "center",
-                    row,
-                    folder_row,
-                }
-            end
             return row
         end
 
@@ -441,9 +429,6 @@ local function apply_status_bar()
         }
 
         local vg = VerticalGroup:new{ align = "center", row }
-        if folder_row then
-            table.insert(vg, folder_row)
-        end
         table.insert(vg, CenterContainer:new{
             dimen = Geom:new{ w = screen_w, h = Size.line.medium },
             border,
@@ -514,17 +499,6 @@ local function apply_status_bar()
         end
 
         UIManager:setDirty(self.show_parent or self, "ui", tb.dimen)
-
-        -- Also repaint the region just below the titlebar to clear any
-        -- overflow from the folder-title row (which paints outside tb.dimen).
-        local extra_h = Screen:scaleBySize(40)
-        local overflow_dimen = Geom:new{
-            x = tb.dimen.x,
-            y = tb.dimen.y + tb.dimen.h,
-            w = tb.dimen.w,
-            h = extra_h,
-        }
-        UIManager:setDirty(self.show_parent or self, "ui", overflow_dimen)
     end
 
     -- === Hooks ===
@@ -630,14 +604,19 @@ local function apply_status_bar()
         if orig_onResume then orig_onResume(self) end
         if is_enabled() then
             local fm = self
-            UIManager:scheduleIn(0, function()
+            -- Schedule two attempts: the screensaver may still be the topmost
+            -- widget immediately after resume and will block the guard below.
+            -- A second attempt at 1.5s reliably fires after it has dismissed.
+            local function doResumeRefresh()
                 if FileManager.instance ~= fm then return end
                 local stack = UIManager._window_stack
                 local top = stack and stack[#stack]
                 if top and (top.widget == fm or top.widget == fm.show_parent) then
                     fm:_updateStatusBar()
                 end
-            end)
+            end
+            UIManager:scheduleIn(0.5, doResumeRefresh)
+            UIManager:scheduleIn(1.5, doResumeRefresh)
         end
     end
 end

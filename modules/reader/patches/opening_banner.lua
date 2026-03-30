@@ -53,27 +53,78 @@ local function apply_opening_banner()
 
         local orig_tap = MosaicMenuItem.onTapSelect
         MosaicMenuItem.onTapSelect = function(self_item, ...)
-            -- self[1][1][1] is the FrameContainer holding the actual cover
-            -- image (UnderlineContainer → CenterContainer → FrameContainer).
-            -- Its dimen has the exact absolute screen coordinates of the cover
-            -- art, which is narrower/shorter than the full cell (self.dimen).
-            local cover_frame = self_item[1] and self_item[1][1] and self_item[1][1][1]
-            local d = cover_frame and cover_frame.dimen
-            if d and d.x and d.w then
-                _last_cover_dimen = { x = d.x, y = d.y, w = d.w, h = d.h }
-            elseif self_item.dimen then
+            -- Only capture dimen for book files, not directories.
+            -- Tapping a folder navigates the browser (no reader opens), so
+            -- storing the dimen here would leave a stale value that gets
+            -- incorrectly consumed when the user later opens a book from inside
+            -- that folder (e.g. when a folder profile forces list mode).
+            if not self_item.is_directory then
+                -- self[1][1][1] is the FrameContainer holding the actual cover
+                -- image (UnderlineContainer → CenterContainer → FrameContainer).
+                -- Its dimen has the exact absolute screen coordinates of the cover
+                -- art, which is narrower/shorter than the full cell (self.dimen).
+                local cover_frame = self_item[1] and self_item[1][1] and self_item[1][1][1]
+                local d = cover_frame and cover_frame.dimen
+                if d and d.x and d.w then
+                    _last_cover_dimen = { x = d.x, y = d.y, w = d.w, h = d.h }
+                elseif self_item.dimen then
+                    _last_cover_dimen = {
+                        x = self_item.dimen.x,
+                        y = self_item.dimen.y,
+                        w = self_item.dimen.w,
+                        h = self_item.dimen.h,
+                    }
+                end
+            else
+                -- Navigating into a folder: discard any previously stored dimen
+                -- so it cannot bleed into a subsequent book open in list mode.
+                _last_cover_dimen = nil
+            end
+            return orig_tap(self_item, ...)
+        end
+    end
+
+    -- ── Hook ListMenuItem.onTapSelect to capture list-item geometry ──────────
+    -- When a folder profile forces list mode inside a globally-mosaic browser,
+    -- MosaicMenuItem is not used.  Capture the list item's dimen so the banner
+    -- can be pinned to the right-hand edge of the tapped row.
+    local function try_hook_list()
+        local ok, ListMenu = pcall(require, "listmenu")
+        if not ok or type(ListMenu) ~= "table" then return end
+
+        local function get_upvalue(fn, name)
+            if type(fn) ~= "function" then return nil end
+            for i = 1, 64 do
+                local n, v = debug.getupvalue(fn, i)
+                if not n then break end
+                if n == name then return v end
+            end
+        end
+
+        local ListMenuItem = get_upvalue(ListMenu._updateItemsBuildUI, "ListMenuItem")
+        if not ListMenuItem then return end
+        if type(ListMenuItem.onTapSelect) ~= "function" then return end
+
+        local orig_tap = ListMenuItem.onTapSelect
+        ListMenuItem.onTapSelect = function(self_item, ...)
+            if not self_item.is_directory and self_item.dimen then
+                -- Pin the banner to the bottom edge of the tapped list row.
+                -- Use full row width so it spans the item cleanly.
                 _last_cover_dimen = {
                     x = self_item.dimen.x,
                     y = self_item.dimen.y,
                     w = self_item.dimen.w,
                     h = self_item.dimen.h,
                 }
+            else
+                _last_cover_dimen = nil
             end
             return orig_tap(self_item, ...)
         end
     end
 
     pcall(try_hook_mosaic)
+    pcall(try_hook_list)
 
     -- ── Tiny inline widget: black rect + centred "Opening" text ─────────────
     local OpeningBanner = Widget:extend{}
