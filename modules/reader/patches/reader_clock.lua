@@ -45,7 +45,6 @@ local function apply_reader_clock()
     local ReaderView = require("apps/reader/modules/readerview")
     local _ReaderView_paintTo_orig = ReaderView.paintTo
     local header_settings = G_reader_settings:readSetting("footer")
-    local screen_width = Screen:getWidth()
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
     local function is_enabled()
@@ -58,16 +57,17 @@ local function apply_reader_clock()
         _ReaderView_paintTo_orig(self, bb, x, y)
         if not is_enabled() then return end
         if self.render_mode ~= nil then return end -- Show only for epub-likes and never on pdf-likes
+        if not self.document then return end -- document not yet loaded or being torn down
         -- Guard: don't paint when reader is not the topmost widget (prevents clock bleed on close)
         local _stack = UIManager._window_stack
-        if _stack then
-            local _top = _stack[#_stack]
-            local _w = _top and _top.widget
-            if _w ~= self.ui and _w ~= (self.ui and self.ui.show_parent) then
-                return
-            end
+        if not _stack then return end -- UIManager reinitialising (e.g. restart); skip to be safe
+        local _top = _stack[#_stack]
+        local _w = _top and _top.widget
+        if _w ~= self.ui and _w ~= (self.ui and self.ui.show_parent) then
+            return
         end
         -- don't change anything above this line
+        local screen_width = Screen:getWidth() -- always fresh (handles rotation and early-init edge cases)
 
 
 

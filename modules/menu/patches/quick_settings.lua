@@ -123,11 +123,12 @@ local function apply_quick_settings()
     -- ============================================================
 
     local config_default = {
-        button_order = { "wifi", "night", "rotate", "usb", "search", "quickrss", "cloud", "zlibrary", "calibre", "notion", "streak", "opds", "filebrowser", "restart", "exit", "sleep" },
+        button_order = { "wifi", "night", "rotate", "zen", "usb", "search", "quickrss", "cloud", "zlibrary", "calibre", "notion", "streak", "opds", "filebrowser", "restart", "exit", "sleep" },
         show_buttons = {
             wifi = true,
             night = true,
             rotate = true,
+            zen = true,
             usb = false,
             search = false,
             quickrss = false,
@@ -377,6 +378,34 @@ local function apply_quick_settings()
             label = "OPDS",
             callback = function()
                 UIManager:broadcastEvent(Event:new("ShowOPDSCatalog"))
+            end,
+        },
+        zen = {
+            icon = "quick_zen",
+            label = "Zen",
+            active_func = function()
+                local features = zen_plugin.config and zen_plugin.config.features
+                return type(features) == "table" and features.zen_mode == true
+            end,
+            callback = function(touch_menu)
+                local features = zen_plugin.config and zen_plugin.config.features
+                if type(features) == "table" then
+                    features.zen_mode = not features.zen_mode
+                    if zen_plugin.saveConfig then
+                        zen_plugin:saveConfig()
+                    end
+                end
+                UIManager:close(touch_menu.show_parent or touch_menu)
+                UIManager:show(ConfirmBox:new{
+                    text = _("This setting requires a KOReader restart to fully apply.") .. "\n\n"
+                        .. _("Zen Mode") .. "\n\n"
+                        .. _("Restart now?"),
+                    ok_text = _("Restart now"),
+                    cancel_text = _("Later"),
+                    ok_callback = function()
+                        UIManager:broadcastEvent(Event:new("Restart"))
+                    end,
+                })
             end,
         },
         filebrowser = {

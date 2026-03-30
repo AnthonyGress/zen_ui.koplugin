@@ -16,6 +16,10 @@ local function apply_book_status()
         local Device = require("device")
         local Screen = Device.screen
         local IconButton = require("ui/widget/iconbutton")
+        local Button = require("ui/widget/button")
+        local CenterContainer = require("ui/widget/container/centercontainer")
+        local Event = require("ui/event")
+        local Geom = require("ui/geometry")
         local HorizontalGroup = require("ui/widget/horizontalgroup")
         local HorizontalSpan = require("ui/widget/horizontalspan")
         local VerticalGroup = require("ui/widget/verticalgroup")
@@ -79,6 +83,43 @@ local function apply_book_status()
             stats_header[1].width = Size.span.vertical_default
         end
 
+        -- Inject "Restart Book" button between the title/author block and the 5-star
+        -- row by overriding generateRateGroup on this instance.  genBookInfoGroup calls
+        -- self:generateRateGroup() internally, so the override is picked up through
+        -- normal Lua method dispatch without duplicating genBookInfoGroup.
+        -- genBookInfoGroup already has a large top gap (height * 0.2 ≈ 55px+) so the
+        -- slightly taller content just shifts title/author up slightly — no overflow.
+        local restart_book_btn = Button:new{
+            text = _("Restart Book"),
+            width = math.floor(width * 0.55),
+            show_parent = self,
+            callback = function()
+                local ui = self.ui
+                if self.updated then
+                    ui.doc_settings:flush()
+                end
+                UIManager:close(self)
+                UIManager:scheduleIn(0, function()
+                    UIManager:broadcastEvent(Event:new("GotoPage", 1))
+                end)
+            end,
+        }
+        local orig_generateRateGroup = BookStatusWidget.generateRateGroup
+        self.generateRateGroup = function(s, w, h, rating)
+            local stars = orig_generateRateGroup(s, w, h, rating)
+            local btn_h = restart_book_btn:getSize().h
+            return VerticalGroup:new{
+                CenterContainer:new{
+                    dimen = Geom:new{ w = w, h = btn_h },
+                    restart_book_btn,
+                },
+                VerticalSpan:new{ width = Screen:scaleBySize(6) },
+                stars,
+            }
+        end
+        local book_info_group = self:genBookInfoGroup()
+        self.generateRateGroup = nil -- remove instance override
+
         local summary_group = self:genSummaryGroup(width)
         -- Only open review dialog when the tap is within the note frame bounds
         if self.note_frame then
@@ -93,7 +134,7 @@ local function apply_book_status()
         return VerticalGroup:new{
             align = "left",
             title_bar,
-            self:genBookInfoGroup(),
+            book_info_group,
             stats_header,
             self:genStatisticsGroup(width),
             self:genHeader(_("Review")),
