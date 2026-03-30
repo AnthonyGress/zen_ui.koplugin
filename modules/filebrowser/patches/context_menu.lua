@@ -6,7 +6,7 @@ local function apply_context_menu()
             New folder
             Move          (opens PathChooser to pick destination, then moves immediately)
             Add/Remove from favorites
-            Book status ▶ (files only: Reading · On hold · Finished · Unread)
+            Book status ▶ (files only: Unread · Reading · On hold · Finished)
             Edit ▶        (anchored submenu at right edge: Select · Rename · Delete · Cut · Copy · Paste)
 
         Everything else (book info, collections, open with, reset, status rows,
@@ -23,6 +23,7 @@ local function apply_context_menu()
     local UIManager    = require("ui/uimanager")
     local _            = require("gettext")
     local C_           = _.pgettext
+    local zen_plugin   = rawget(_G, "__ZEN_UI_PLUGIN")
 
     -- ── MoveChooser ──────────────────────────────────────────────────────────
     -- PathChooser subclass for picking a move destination.
@@ -105,35 +106,137 @@ local function apply_context_menu()
                 self_fc:refreshPath()
             end
 
-            -- Build the dialog title.
-            -- Files: prefer book title + author from the cover cache; fall back to filename.
-            -- Folders: folder name with book count on a second line.
-            local function buildDialogTitle()
+            -- Build dialog header: cover left / text right (OverlapGroup) when a cover is
+            -- available; text-only otherwise.  dialog_title is always set (used by the
+            -- status sub-dialog and the text-only fallback).
+            local dialog_title, dialog_cover_widget
+            do
+                local Screen   = Device.screen
+                local SizeR    = require("ui/size")
+                local border   = SizeR.border.thin
+                local gap      = Screen:scaleBySize(8)
+                local dlg_w    = math.floor(math.min(Screen:getWidth(), Screen:getHeight()) * 0.9)
+                -- inner width available to _added_widgets inside ButtonDialog
+                local avail_w  = dlg_w - 2 * (SizeR.border.window + SizeR.padding.button)
+                                       - 2 * (SizeR.padding.default + SizeR.margin.default)
+                local cover_max_w = Screen:scaleBySize(80)
+                local cover_max_h = Screen:scaleBySize(120)
+
+                -- Build an OverlapGroup with cover at left edge, text at right edge.
+                local function makeSideBySide(cover_bb, src_w, src_h, sf, text_str)
+                    local rendered_w  = math.floor(src_w * sf)
+                    local rendered_h  = math.floor(src_h * sf)
+                    local framed_h    = rendered_h + 2 * border
+                    local text_col_w  = math.max(avail_w - rendered_w - 2 * border - gap,
+                                                 Screen:scaleBySize(60))
+                    local ImageWidget    = require("ui/widget/imagewidget")
+                    local FrameContainer = require("ui/widget/container/framecontainer")
+                    local OverlapGroup   = require("ui/widget/overlapgroup")
+                    local LeftContainer  = require("ui/widget/container/leftcontainer")
+                    local RightContainer = require("ui/widget/container/rightcontainer")
+                    local TextBoxWidget  = require("ui/widget/textboxwidget")
+                    local Font           = require("ui/font")
+                    local Geom           = require("ui/geometry")
+                    local row_dimen      = Geom:new{ w = avail_w, h = framed_h }
+                    return OverlapGroup:new{
+                        dimen         = row_dimen,
+                        not_focusable = true,
+                        LeftContainer:new{
+                            dimen = row_dimen,
+                            FrameContainer:new{
+                                padding    = 0,
+                                bordersize = border,
+                                ImageWidget:new{
+                                    image            = cover_bb,
+                                    image_disposable = true,
+                                    scale_factor     = sf,
+                                },
+                            },
+                        },
+                        RightContainer:new{
+                            dimen = row_dimen,
+                            TextBoxWidget:new{
+                                text      = text_str,
+                                face      = Font:getFace("infofont"),
+                                width     = text_col_w,
+                                alignment = "left",
+                            },
+                        },
+                    }
+                end
+
                 if is_file then
                     local ok, BookInfoManager = pcall(require, "bookinfomanager")
+                    local text_str
                     if ok then
-                        local bookinfo = BookInfoManager:getBookInfo(file, false)
-                        if bookinfo and not bookinfo.ignore_meta and bookinfo.title then
-                            local t = BD.auto(bookinfo.title)
-                            if bookinfo.authors then
-                                t = t .. "\n" .. BD.auto(bookinfo.authors)
+                        local bookinfo = BookInfoManager:getBookInfo(file, true)
+                        if bookinfo then
+                            if not bookinfo.ignore_meta and bookinfo.title then
+                                text_str = BD.auto(bookinfo.title)
+                                if bookinfo.authors then
+                                    text_str = text_str .. "\n" .. BD.auto(bookinfo.authors)
+                                end
                             end
-                            return t
+                            if bookinfo.cover_bb and bookinfo.has_cover
+                                and not bookinfo.ignore_cover then
+                                local _, _, sf = BookInfoManager.getCachedCoverSize(
+                                    bookinfo.cover_w, bookinfo.cover_h,
+                                    cover_max_w, cover_max_h)
+                                dialog_cover_widget = makeSideBySide(
+                                    bookinfo.cover_bb,
+                                    bookinfo.cover_w, bookinfo.cover_h,
+                                    sf,
+                                    text_str or BD.filename(file:match("([^/]+)$")))
+                            end
                         end
                     end
-                    return BD.filename(file:match("([^/]+)$"))
+                    dialog_title = text_str or BD.filename(file:match("([^/]+)$"))
                 else
+                    -- folder
                     local name = (file:match("([^/]+)/?$") or file):gsub("/$", "")
-                    local title_str = BD.directory(name)
+                    local text_str = BD.directory(name)
                     local count = item.mandatory and tostring(item.mandatory):match("^%s*(%d+)")
                     if count then
                         local n = tonumber(count) or 0
-                        title_str = title_str .. "\n" .. (n == 1 and _("1 book") or (n .. " " .. _("books")))
+                        text_str = text_str .. "\n"
+                            .. (n == 1 and _("1 book") or (n .. " " .. _("books")))
                     end
-                    return title_str
+                    dialog_title = text_str
+                    -- Try to show cover of first book inside the folder.
+                    local ok, BookInfoManager = pcall(require, "bookinfomanager")
+                    if ok then
+                        local lfs         = require("libs/libkoreader-lfs")
+                        local DocRegistry = require("document/documentregistry")
+                        local dir_files   = {}
+                        local ok_dir, iter, dir_obj = pcall(lfs.dir, file)
+                        if ok_dir then
+                            for fname in iter, dir_obj do
+                                if fname ~= "." and fname ~= ".." and not fname:match("^%.") then
+                                    local fpath = file .. "/" .. fname
+                                    if lfs.attributes(fpath, "mode") == "file"
+                                        and DocRegistry:hasProvider(fpath) then
+                                        table.insert(dir_files, fpath)
+                                    end
+                                end
+                            end
+                            if #dir_files > 0 then
+                                table.sort(dir_files)
+                                local bookinfo = BookInfoManager:getBookInfo(dir_files[1], true)
+                                if bookinfo and bookinfo.has_cover
+                                    and bookinfo.cover_bb and not bookinfo.ignore_cover then
+                                    local _, _, sf = BookInfoManager.getCachedCoverSize(
+                                        bookinfo.cover_w, bookinfo.cover_h,
+                                        cover_max_w, cover_max_h)
+                                    dialog_cover_widget = makeSideBySide(
+                                        bookinfo.cover_bb,
+                                        bookinfo.cover_w, bookinfo.cover_h,
+                                        sf, text_str)
+                                end
+                            end
+                        end
+                    end
                 end
             end
-            local dialog_title = buildDialogTitle()
 
             -- ── Edit submenu ──────────────────────────────────────────────────────────
             local function showEditSubmenu()
@@ -153,17 +256,6 @@ local function apply_context_menu()
                                     item.dim = true
                                     self_fc:updateItems(1, true)
                                 end
-                            end,
-                        },
-                    },
-                    {
-                        {
-                            text     = _("Delete"),
-                            align    = "left",
-                            enabled  = is_not_parent_folder,
-                            callback = function()
-                                UIManager:close(edit_dialog)
-                                file_manager:showDeleteFileDialog(file, refresh)
                             end,
                         },
                     },
@@ -201,6 +293,23 @@ local function apply_context_menu()
                         },
                     },
                 }
+                local allow_delete = zen_plugin
+                    and type(zen_plugin.config) == "table"
+                    and type(zen_plugin.config.context_menu) == "table"
+                    and zen_plugin.config.context_menu.allow_delete == true
+                if allow_delete then
+                    table.insert(edit_buttons, {
+                        {
+                            text     = _("Delete"),
+                            align    = "left",
+                            enabled  = is_not_parent_folder,
+                            callback = function()
+                                UIManager:close(edit_dialog)
+                                file_manager:showDeleteFileDialog(file, refresh)
+                            end,
+                        },
+                    })
+                end
 
                 edit_dialog = ButtonDialog:new{
                     buttons = edit_buttons,
@@ -340,10 +449,10 @@ local function apply_context_menu()
             end
 
             if is_file and is_not_parent_folder then
-                -- Book status submenu
+                -- Read status submenu
                 table.insert(buttons, {
                     {
-                        text     = _("Book status  ▶"),
+                        text     = _("Read status  ▶"),
                         align    = "left",
                         callback = function()
                             close_dialog()
@@ -360,18 +469,22 @@ local function apply_context_menu()
                             end
                             local status_row = filemanagerutil.genStatusButtonsRow(doc_settings, caller_cb)
                             local is_unread = not current_status or current_status == ""
-                            table.insert(status_row, {
+                            table.insert(status_row, 1, {
                                 text     = _("Unread") .. (is_unread and "  ✓" or ""),
                                 enabled  = not is_unread,
                                 callback = function()
                                     summary.status = nil
+                                    doc_settings:delSetting("percent_finished")
+                                    doc_settings:delSetting("last_page")
+                                    doc_settings:delSetting("last_xpointer")
                                     filemanagerutil.saveSummary(doc_settings, summary)
                                     BookList.setBookInfoCacheProperty(file, "status", nil)
+                                    BookList.setBookInfoCacheProperty(file, "percent_finished", nil)
                                     caller_cb()
                                 end,
                             })
                             status_dialog = ButtonDialog:new{
-                                title        = dialog_title,
+                                title        = _("Read status"),
                                 title_align  = "center",
                                 buttons      = { status_row },
                             }
@@ -389,10 +502,14 @@ local function apply_context_menu()
                 },
             })
 
+            -- NOTE: using an explicit local avoids the Lua `A and nil or B` gotcha
+            -- where `nil` is falsy so the expression always returns B.
+            local dlg_title = dialog_cover_widget and "" or dialog_title
             self_fc.file_dialog = ButtonDialog:new{
-                title       = dialog_title,
-                title_align = "center",
-                buttons     = buttons,
+                title          = dlg_title ~= "" and dlg_title or nil,
+                title_align    = "center",
+                buttons        = buttons,
+                _added_widgets = dialog_cover_widget and { dialog_cover_widget } or nil,
             }
             UIManager:show(self_fc.file_dialog)
             return true

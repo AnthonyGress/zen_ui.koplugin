@@ -110,6 +110,9 @@ local defaults = {
     browser_cover_badges = {
         show_mosaic_progress = true,
     },
+    context_menu = {
+        allow_delete = false,
+    },
     reader_clock = {
         use_24h = false,
         position = "center",

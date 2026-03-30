@@ -1298,6 +1298,21 @@ function M.build(plugin)
         end,
     })
 
+    table.insert(filebrowser_items, {
+        text = _("Allow delete in context menu"),
+        checked_func = function()
+            return type(config.context_menu) == "table"
+                and config.context_menu.allow_delete == true
+        end,
+        callback = function()
+            if type(config.context_menu) ~= "table" then
+                config.context_menu = {}
+            end
+            config.context_menu.allow_delete = not (config.context_menu.allow_delete == true)
+            plugin:saveConfig()
+        end,
+    })
+
     table.insert(reader_items, {
         text = _("Reader clock"),
         sub_item_table = {
