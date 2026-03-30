@@ -29,6 +29,7 @@ local defaults = {
         browser_hide_underline = true,
         browser_hide_up_folder = true,
         reader_clock = true,
+        reader_bottom_menu = false,
     },
     navbar = {
         show_tabs = {

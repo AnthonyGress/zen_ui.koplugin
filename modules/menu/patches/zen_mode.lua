@@ -147,7 +147,12 @@ local function apply_zen_mode()
 
     local orig_onShowConfigMenu = ReaderConfig.onShowConfigMenu
     ReaderConfig.onShowConfigMenu = function(self)
-        if is_enabled() then return end
+        if is_enabled() then
+            local features = zen_plugin and zen_plugin.config and zen_plugin.config.features
+            if not (type(features) == "table" and features.reader_bottom_menu == true) then
+                return
+            end
+        end
         return orig_onShowConfigMenu(self)
     end
 end

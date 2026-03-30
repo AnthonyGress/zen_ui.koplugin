@@ -1466,6 +1466,9 @@ function M.build(plugin)
         sub_item_table = collate_sub_items,
     })
 
+    table.insert(reader_items, make_enable_feature_item(
+        "reader_bottom_menu", _("Bottom menu"), _("Enable bottom menu")))
+
     table.insert(reader_items, {
         text = _("Reader clock"),
         sub_item_table = {
