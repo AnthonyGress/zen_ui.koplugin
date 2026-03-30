@@ -37,6 +37,82 @@ local function apply_quick_settings()
         return
     end
 
+    -- Resolve plugin icons/ dir from this file's path at apply-time.
+    local _icons_dir
+    do
+        local src = debug.getinfo(1, "S").source or ""
+        if src:sub(1,1) == "@" then
+            local root = src:sub(2):match("^(.*)/modules/")
+            if root then _icons_dir = root .. "/icons/" end
+        end
+    end
+
+    -- ============================================================
+    -- Copy plugin icons into KOReader's user icons directory
+    -- ============================================================
+    -- TouchMenuBar only accepts icon *names* (no file= path support).
+    -- KOReader's IconWidget checks DataStorage:getDataDir()..'/icons' first.
+    -- We copy our two SVGs there once on startup (skip if already present)
+    -- so names like 'zen_ui' resolve to our local files after a restart.
+    if _icons_dir then
+        pcall(function()
+            local DataStorage = require("datastorage")
+            local lfs = require("libs/libkoreader-lfs")
+            local ffiutil = require("ffi/util")
+            local user_icons_dir = DataStorage:getDataDir() .. "/icons"
+            if lfs.attributes(user_icons_dir, "mode") ~= "directory" then
+                lfs.mkdir(user_icons_dir)
+            end
+            for _, name in ipairs({ "zen_ui.svg", "zen_ui_light.svg" }) do
+                local dst = user_icons_dir .. "/" .. name
+                if lfs.attributes(dst, "mode") ~= "file" then
+                    local src = _icons_dir .. name
+                    if lfs.attributes(src, "mode") == "file" then
+                        ffiutil.copyFile(src, dst)
+                    end
+                end
+            end
+        end)
+    end
+
+    -- ============================================================
+    -- Inject icon paths into IconWidget's runtime name→path cache
+    -- ============================================================
+    -- The file copy above only helps after a restart (KOReader scans dirs
+    -- at first use of each name and caches the result in the module-local
+    -- ICONS_PATH table).  To make the icon work immediately on first install
+    -- we pre-populate that cache directly via debug.getupvalue.
+    -- This is wrapped in pcall so any failure is silent.
+    if _icons_dir then
+        pcall(function()
+            local lfs = require("libs/libkoreader-lfs")
+            local iw = require("ui/widget/iconwidget")
+            local iw_init = rawget(iw, "init")
+            if type(iw_init) ~= "function" then return end
+            local icons_path
+            for i = 1, 64 do
+                local uname, uval = debug.getupvalue(iw_init, i)
+                if uname == nil then break end
+                if uname == "ICONS_PATH" and type(uval) == "table" then
+                    icons_path = uval
+                    break
+                end
+            end
+            if not icons_path then return end
+            for _, stem in ipairs({ "zen_ui", "zen_ui_light" }) do
+                if not icons_path[stem] then
+                    for _, ext in ipairs({ ".svg", ".png" }) do
+                        local p = _icons_dir .. stem .. ext
+                        if lfs.attributes(p, "mode") == "file" then
+                            icons_path[stem] = p
+                            break
+                        end
+                    end
+                end
+            end
+        end)
+    end
+
     local function is_enabled()
         local features = zen_plugin.config and zen_plugin.config.features
         return type(features) == "table" and features.quick_settings == true
@@ -367,8 +443,10 @@ local function apply_quick_settings()
         local normal_border = Screen:scaleBySize(2)
 
         local function makeActionButton(icon_name, label_text, active)
+            local icon_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, icon_name)
             local icon = IconWidget:new{
-                icon = icon_name,
+                file = icon_path or nil,
+                icon = icon_path and nil or icon_name,
                 width = icon_size,
                 height = icon_size,
                 alpha = true,
@@ -894,7 +972,8 @@ local function apply_quick_settings()
     -- ============================================================
 
     local quick_settings_tab = {
-        icon = "quicksettings",
+        id = "quicksettings",
+        icon = "zen_ui",
         remember = false,
         panel = createQuickSettingsPanel,
     }

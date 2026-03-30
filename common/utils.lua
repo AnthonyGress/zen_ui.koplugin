@@ -40,4 +40,20 @@ function M.set_at_path(tbl, path, value)
     node[path[#path]] = value
 end
 
+--- Resolve an icon name to an absolute file path within a plugin icons directory.
+--- Checks for <name>.svg then <name>.png. Returns the path string or nil.
+--- Pass the result as `file =` to IconWidget/ColorIconWidget instead of `icon =`.
+--- @param icons_dir string  absolute path to the icons dir, ending with "/"
+--- @param name      string  icon name without extension
+--- @return          string|nil
+function M.resolveLocalIcon(icons_dir, name)
+    if not icons_dir or not name then return nil end
+    local lfs = require("libs/libkoreader-lfs")
+    for _, ext in ipairs({ ".svg", ".png" }) do
+        local p = icons_dir .. name .. ext
+        if lfs.attributes(p, "mode") == "file" then return p end
+    end
+    return nil
+end
+
 return M

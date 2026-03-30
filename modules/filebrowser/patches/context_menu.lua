@@ -6,6 +6,7 @@ local function apply_context_menu()
             New folder
             Move          (opens PathChooser to pick destination, then moves immediately)
             Add/Remove from favorites
+            Book status ▶ (files only: Reading · On hold · Finished · Unread)
             Edit ▶        (anchored submenu at right edge: Select · Rename · Delete · Cut · Copy · Paste)
 
         Everything else (book info, collections, open with, reset, status rows,
@@ -303,6 +304,36 @@ local function apply_context_menu()
                                 ReadCollection:addItem(file, default_coll)
                             end
                             ReadCollection:write({ [default_coll] = true })
+                        end,
+                    },
+                })
+            end
+
+            if is_file and is_not_parent_folder then
+                -- Book status submenu
+                table.insert(buttons, {
+                    {
+                        text     = _("Book status  ▶"),
+                        align    = "left",
+                        callback = function()
+                            close_dialog()
+                            local filemanagerutil = require("apps/filemanager/filemanagerutil")
+                            local DocSettings     = require("docsettings")
+                            local doc_settings    = DocSettings:open(file)
+                            local status_dialog
+                            local status_row = filemanagerutil.genStatusButtonsRow(
+                                doc_settings,
+                                function()
+                                    UIManager:close(status_dialog)
+                                    refresh()
+                                end
+                            )
+                            status_dialog = ButtonDialog:new{
+                                title        = BD.filename(file:match("([^/]+)$")),
+                                title_align  = "center",
+                                buttons      = { status_row },
+                            }
+                            UIManager:show(status_dialog)
                         end,
                     },
                 })

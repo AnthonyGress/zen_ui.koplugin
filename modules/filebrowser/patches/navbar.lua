@@ -29,6 +29,15 @@ local function apply_navbar()
         return
     end
 
+    local _icons_dir
+    do
+        local src = debug.getinfo(1, "S").source or ""
+        if src:sub(1,1) == "@" then
+            local root = src:sub(2):match("^(.*)/modules/")
+            if root then _icons_dir = root .. "/icons/" end
+        end
+    end
+
     local function is_navbar_enabled()
         local features = zen_plugin.config and zen_plugin.config.features
         return type(features) == "table" and features.navbar == true
@@ -426,17 +435,20 @@ local function apply_navbar()
         local use_bold = styled and config.active_tab_bold
 
         local icon
+        local icon_path = utils.resolveLocalIcon(_icons_dir, tab.icon)
         if active_color then
             icon = ColorIconWidget:new{
-                icon = tab.icon,
-                width = navbar_icon_size,
+                icon   = icon_path and nil or tab.icon,
+                file   = icon_path or nil,
+                width  = navbar_icon_size,
                 height = navbar_icon_size,
                 _tint_color = active_color,
             }
         else
             icon = IconWidget:new{
-                icon = tab.icon,
-                width = navbar_icon_size,
+                icon   = icon_path and nil or tab.icon,
+                file   = icon_path or nil,
+                width  = navbar_icon_size,
                 height = navbar_icon_size,
             }
         end
