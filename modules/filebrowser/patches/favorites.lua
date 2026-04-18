@@ -177,6 +177,22 @@ local function apply_favorites()
 
     local orig_onShowColl = FileManagerCollection.onShowColl
     function FileManagerCollection:onShowColl(collection_name)
+        -- Sync the collection display mode to match the filemanager (library)
+        -- display mode BEFORE orig_onShowColl runs, because that call creates
+        -- booklist_menu and immediately calls updateItemTable — which is when
+        -- CoverBrowser patches the instance with mosaic/list overrides.
+        -- We must set the correct mode before that first patching happens.
+        if is_enabled() and self.ui then
+            local coverbrowser = self.ui.coverbrowser
+            if coverbrowser and type(coverbrowser.setupWidgetDisplayMode) == "function" then
+                local BookInfoManager = require("bookinfomanager")
+                local fm_mode   = BookInfoManager:getSetting("filemanager_display_mode")
+                local coll_mode = BookInfoManager:getSetting("collection_display_mode")
+                if fm_mode ~= coll_mode then
+                    coverbrowser.setupWidgetDisplayMode("collections", fm_mode)
+                end
+            end
+        end
         orig_onShowColl(self, collection_name)
         if not is_enabled() then return end
         clean_nav(self.booklist_menu)

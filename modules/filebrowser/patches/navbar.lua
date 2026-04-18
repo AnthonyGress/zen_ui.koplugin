@@ -144,7 +144,7 @@ local function apply_navbar()
         {
             id = "continue",
             label = _("Continue"),
-            icon = "tab_continue",
+            icon = "book.opened",
         },
         {
             id = "history",
