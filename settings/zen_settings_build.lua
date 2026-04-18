@@ -400,6 +400,7 @@ function M.build(plugin)
         { id = "history", text = _("History") },
         { id = "favorites", text = _("Favorites") },
         { id = "collections", text = _("Collections") },
+        { id = "search", text = _("Search") },
         { id = "exit", text = _("Exit") },
         { id = "page_left", text = _("Previous page") },
         { id = "page_right", text = _("Next page") },

@@ -64,12 +64,13 @@ local function apply_navbar()
             history = false,
             favorites = false,
             collections = false,
+            search = false,
             exit = false,
             page_left = false,
             page_right = false,
             menu = false,
         },
-        tab_order = { "page_left", "books", "manga", "news", "continue", "history", "favorites", "collections", "exit", "page_right", "menu" },
+        tab_order = { "page_left", "books", "manga", "news", "continue", "history", "favorites", "collections", "search", "exit", "page_right", "menu" },
         show_labels = true,
         books_label = "Books",
         manga_action = "rakuyomi",
@@ -159,6 +160,11 @@ local function apply_navbar()
             id = "collections",
             label = _("Collections"),
             icon = "tab_collections",
+        },
+        {
+            id = "search",
+            label = _("Search"),
+            icon = "appbar.search",
         },
         {
             id = "exit",
@@ -308,6 +314,13 @@ local function apply_navbar()
         end
     end
 
+    local function onTabSearch()
+        local fm = FileManager.instance
+        if fm and fm.filesearcher then
+            fm.filesearcher:onShowFileSearch()
+        end
+    end
+
     local function onTabExit()
         local fm = FileManager.instance
         if fm then
@@ -358,6 +371,7 @@ local function apply_navbar()
         history = onTabHistory,
         favorites = onTabFavorites,
         collections = onTabCollections,
+        search = onTabSearch,
         exit = onTabExit,
         page_left = onTabPageLeft,
         page_right = onTabPageRight,
@@ -927,6 +941,17 @@ local function apply_navbar()
         local result = orig_onShowHist(self, search_info)
         if self.booklist_menu then
             injectStandaloneNavbar(self.booklist_menu, "history")
+        end
+        return result
+    end
+
+    local FileManagerFileSearcher = require("apps/filemanager/filemanagerfilesearcher")
+    local orig_onShowSearchResults = FileManagerFileSearcher.onShowSearchResults
+
+    function FileManagerFileSearcher:onShowSearchResults(not_cached)
+        local result = orig_onShowSearchResults(self, not_cached)
+        if self.booklist_menu then
+            injectStandaloneNavbar(self.booklist_menu, "search")
         end
         return result
     end

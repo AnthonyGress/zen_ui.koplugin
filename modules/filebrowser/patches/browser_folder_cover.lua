@@ -298,9 +298,12 @@ local function apply_browser_folder_cover()
             end
 
             original_update(self, ...)
-            if self._foldercover_processed or self.menu.no_refresh_covers or not self.do_cover_image then return end
-
-            if not self.mandatory then return end
+            if self._foldercover_processed or self.menu.no_refresh_covers then return end
+            -- For file items CoverBrowser must have enabled cover rendering and set mandatory.
+            -- For folder items (incl. search results) we always attempt it regardless.
+            if (self.entry.is_file or self.entry.file) then
+                if not self.do_cover_image or not self.mandatory then return end
+            end
 
             -- File items: if the book is not yet in the DB at its current path
             -- (freshly moved), immediately render its cover from ancestor bookinfo
@@ -484,9 +487,15 @@ local function apply_browser_folder_cover()
                 end
             end
 
-            self.menu._dummy = true
-            local entries = self.menu:genItemTableFromPath(dir_path) -- sorted
-            self.menu._dummy = false
+            local _chooser = self.menu.genItemTableFromPath and self.menu
+                or (require("apps/filemanager/filemanager").instance or {}).file_chooser
+            if not _chooser then
+                self._foldercover_processed = true
+                return
+            end
+            _chooser._dummy = true
+            local entries = _chooser:genItemTableFromPath(dir_path) -- sorted
+            _chooser._dummy = false
             if not entries then
                 self._foldercover_processed = true
                 return
@@ -827,7 +836,7 @@ local function apply_browser_folder_cover()
 
         function MosaicMenuItem:_getTextBoxes(dimen)
             local nbitems = TextWidget:new {
-                text = self.mandatory:match("(%d+) \u{F016}") or "", -- nb books
+                text = (self.mandatory and self.mandatory:match("(%d+) \u{F016}")) or "", -- nb books
                 face = Font:getFace("cfont", Folder.face.nb_items_font_size),
                 bold = true,
                 padding = 0,
@@ -917,8 +926,10 @@ local function apply_browser_folder_cover()
 
                 function ListMenuItem:update(...)
                     original_list_update(self, ...)
-                    if self._foldercover_processed or self.menu.no_refresh_covers or not self.do_cover_image then return end
-                    if self.entry.is_file or self.entry.file or not self.mandatory then return end
+                    if self._foldercover_processed or self.menu.no_refresh_covers then return end
+                    -- Only handle folder items; file items are handled by CoverBrowser directly.
+                    -- Do not gate on mandatory: search results don't set it on directory items.
+                    if self.entry.is_file or self.entry.file then return end
                     local dir_path = self.entry and self.entry.path
                     if not dir_path then return end
 
@@ -939,9 +950,15 @@ local function apply_browser_folder_cover()
                         end
                     end
 
-                    self.menu._dummy = true
-                    local entries = self.menu:genItemTableFromPath(dir_path)
-                    self.menu._dummy = false
+                    local _chooser = self.menu.genItemTableFromPath and self.menu
+                        or (require("apps/filemanager/filemanager").instance or {}).file_chooser
+                    if not _chooser then
+                        self._foldercover_processed = true
+                        return
+                    end
+                    _chooser._dummy = true
+                    local entries = _chooser:genItemTableFromPath(dir_path)
+                    _chooser._dummy = false
                     if not entries then
                         self._foldercover_processed = true
                         return
@@ -976,7 +993,8 @@ local function apply_browser_folder_cover()
                                     and bookinfo.has_cover
                                     and bookinfo.cover_fetched
                                     and not bookinfo.ignore_cover
-                                    and not BookInfoManager.isCachedCoverInvalid(bookinfo, self.menu.cover_specs)
+                                    and not (self.menu.cover_specs and BookInfoManager.isCachedCoverInvalid
+                                             and BookInfoManager.isCachedCoverInvalid(bookinfo, self.menu.cover_specs))
                                 then
                                     self:_setListFolderCover { data = bookinfo.cover_bb, w = bookinfo.cover_w, h = bookinfo.cover_h }
                                     found_cover = true
