@@ -33,42 +33,72 @@ local function apply_context_menu()
     --   • genItemTable strips hidden folders (.sdr, .thumbnails, etc.) and the
     --     go-up row — the list is intentionally flat.
     --   • onMenuSelect fires immediately on single tap (no navigate-into behaviour).
-    local _orig_fc_genItemTable = FileChooser.genItemTable
     -- _zen_no_forced_repaint: opt out of the partial_page_repaint forced flush.
     -- MoveChooser is a transient overlay — the full-page E-ink flash it causes
     -- when folder count < perpage is visually jarring and unnecessary.
     local MoveChooser = PathChooser:extend{ _zen_no_forced_repaint = true }
 
-    function MoveChooser:genItemTable(dirs, files, path)
+    -- Build a flat, depth-first folder list from root up to 2 levels deep.
+    -- Each folder is immediately followed by its own children so the list reads:
+    --   Home/
+    --   FolderA               ← child of root
+    --   FolderA/Sub1          ← child of FolderA (level 2)
+    --   FolderA/Sub2
+    --   FolderB               ← next child of root
+    --   FolderB/Sub1
+    --   …
+    function MoveChooser:genItemTableFromPath(path)
         local ffiUtil3 = require("ffi/util")
-        local items = _orig_fc_genItemTable(self, dirs, files, path)
-        local filtered = {}
-        for _, item in ipairs(items) do
-            -- drop the ".." go-up row
-            if item.is_go_up then goto continue end
-            -- drop PathChooser's "Long-press to choose current folder" hint row
-            -- (its path ends in "/." regardless of translated text)
-            if item.path and item.path:sub(-2) == "/." then goto continue end
-            -- drop hidden entries (.sdr, .thumbnails, etc.)
-            local fname = item.text or ""
-            if fname:sub(1, 1) == "." then goto continue end
-            table.insert(filtered, item)
-            ::continue::
-        end
-        -- Prepend a Home item so the user can move directly into home_dir.
-        -- Skip it when the item being moved is already a direct child of home_dir
-        -- (moving it there would be a no-op).
-        local real_path = ffiUtil3.realpath(path)
-        if not self.src_dir or self.src_dir ~= real_path then
-            table.insert(filtered, 1, {
-                text           = ffiUtil3.basename(path),
-                path           = path,
+        local lfs3     = require("libs/libkoreader-lfs")
+        local BD3      = require("ui/bidi")
+        local root     = ffiUtil3.realpath(path) or path
+        local MAX_DEPTH = 3
+        local items    = {}
+
+        -- Root / Home entry — omitted only when the book already lives there
+        -- (moving it would be a no-op).
+        if not self.src_dir or self.src_dir ~= root then
+            table.insert(items, {
+                text           = ffiUtil3.basename(root),
+                path           = root,
                 is_file        = false,
-                bidi_wrap_func = BD.directory,
-                mandatory      = self:getMenuItemMandatory({ path = path }),
+                bidi_wrap_func = BD3.directory,
+                mandatory      = self:getMenuItemMandatory({ path = root }),
             })
         end
-        return filtered
+
+        local function scan(dir_path, depth)
+            local ok3, iter3, dir_obj3 = pcall(lfs3.dir, dir_path)
+            if not ok3 then return end
+            local subdirs = {}
+            for fname in iter3, dir_obj3 do
+                if fname ~= "." and fname ~= ".."
+                        and not fname:match("^%.")
+                        and self:show_dir(fname) then
+                    local fpath = dir_path .. "/" .. fname
+                    if lfs3.attributes(fpath, "mode") == "directory" then
+                        table.insert(subdirs, { name = fname, path = fpath })
+                    end
+                end
+            end
+            table.sort(subdirs, function(a, b) return a.name < b.name end)
+            for _, sub in ipairs(subdirs) do
+                local rel = sub.path:sub(#root + 2)  -- e.g. "Fantasy/Pratchett"
+                table.insert(items, {
+                    text           = rel,
+                    path           = sub.path,
+                    is_file        = false,
+                    bidi_wrap_func = BD3.directory,
+                    mandatory      = self:getMenuItemMandatory({ path = sub.path }),
+                })
+                if depth < MAX_DEPTH then
+                    scan(sub.path, depth + 1)
+                end
+            end
+        end
+
+        scan(root, 1)
+        return items
     end
 
     function MoveChooser:onMenuSelect(item)
