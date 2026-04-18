@@ -8,6 +8,7 @@ local FEATURES = {
     "browser_hide_underline",
     "browser_hide_up_folder",
     "favorites",
+    "history",
     "partial_page_repaint",
 }
 
@@ -25,6 +26,7 @@ local PATCH_MODULES = {
     browser_hide_underline = "modules/filebrowser/patches/browser_hide_underline",
     browser_hide_up_folder = "modules/filebrowser/patches/browser_hide_up_folder",
     favorites = "modules/filebrowser/patches/favorites",
+    history = "modules/filebrowser/patches/history",
     browser_cover_badges = "modules/filebrowser/patches/browser_cover_badges",
     browser_cover_mosaic_uniform = "modules/filebrowser/patches/browser_cover_mosaic_uniform",
     browser_cover_rounded_corners = "modules/filebrowser/patches/browser_cover_rounded_corners",

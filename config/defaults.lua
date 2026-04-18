@@ -29,6 +29,7 @@ local defaults = {
         browser_hide_underline = true,
         browser_hide_up_folder = true,
         favorites = true,
+        history = true,
         browser_cover_rounded_corners = false,
         partial_page_repaint = false,
         reader_clock = true,

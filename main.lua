@@ -30,6 +30,7 @@ if _plugin_root then
         ["zen_ui_light"]        = "zen_ui_light.svg",
         ["library"]             = "library.svg",
         ["zen_favorites"]       = "tab_favorites.svg",
+        ["zen_history"]         = "tab_history.svg",
     }, true)
 end
 

@@ -1,5 +1,5 @@
-local function apply_favorites()
-    local FileManagerCollection = require("apps/filemanager/filemanagercollection")
+local function apply_history()
+    local FileManagerHistory = require("apps/filemanager/filemanagerhistory")
     local Menu = require("ui/widget/menu")
 
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
@@ -9,13 +9,13 @@ local function apply_favorites()
 
     local function is_enabled()
         local features = zen_plugin.config and zen_plugin.config.features
-        return type(features) == "table" and features.favorites == true
+        return type(features) == "table" and features.history == true
     end
 
     -- Returns true when status_bar is enabled AND hide_browser_bar is true
     -- (matching what status_bar.lua does when creating the filebrowser titlebar).
     -- In that mode the filebrowser has a minimal-height TitleBar, and we must
-    -- give favorites the exact same height so covers line up.
+    -- give history the exact same height so covers line up.
     local function should_match_statusbar_height()
         local features = zen_plugin.config and zen_plugin.config.features
         if type(features) ~= "table" or features.status_bar ~= true then
@@ -28,17 +28,13 @@ local function apply_favorites()
         return hide == true or hide == nil
     end
 
-    -- Hook Menu:init() so the favorites BookList TitleBar is created with the
+    -- Hook Menu:init() so the history BookList TitleBar is created with the
     -- same minimal height as the filebrowser TitleBar (status_bar + hide_browser_bar
     -- case).  This makes others_height equal in both views so the first cover
     -- row appears at the same Y position — covers "line up" when switching tabs.
-    --
-    -- favorites is applied after navbar in FEATURES, so our wrapper
-    -- is the outermost hook.  We temporarily patch TitleBar.new exactly the
-    -- same way status_bar.lua does for FileManager.setupLayout.
     local orig_menu_init = Menu.init
     function Menu:init()
-        if self.name == "collections" and is_enabled() and should_match_statusbar_height() then
+        if self.name == "history" and is_enabled() and should_match_statusbar_height() then
             local TitleBar   = require("ui/widget/titlebar")
             local orig_tb_new = TitleBar.new
             TitleBar.new = function(cls, t)
@@ -51,11 +47,11 @@ local function apply_favorites()
                     t.right_icon              = nil
                     t.right_icon_tap_callback  = nil
                     t.right_icon_hold_callback = nil
-                    t.close_callback          = nil   -- prevents TitleBar:init re-adding right "close" icon
+                    t.close_callback          = nil
                     t.title_tap_callback      = nil
                     t.title_hold_callback     = nil
                     t.bottom_v_padding        = 0
-                    t.title                   = " "  -- same placeholder used by status_bar
+                    t.title                   = " "
                 end
                 return orig_tb_new(cls, t)
             end
@@ -70,35 +66,21 @@ local function apply_favorites()
         if not menu then return end
 
         -- === Fix partial-row left-alignment ===
-        -- CoverBrowser sets _do_center_partial_rows = true on the FIRST call to
-        -- updateItemTable (inside its _coverbrowser_overridden setup block), which
-        -- runs before this function.  Setting the flag false here and rebuilding
-        -- items ensures the first *painted* frame is left-aligned.  Subsequent
-        -- renders are handled by the updateItemTable hook below.
         menu._do_center_partial_rows = false
         local UIManager = require("ui/uimanager")
         menu:updateItems(1, true)
 
         -- === Permanently suppress the back-arrow button ===
-        -- Must come AFTER updateItems() — updatePageInfo() (called by updateItems)
-        -- runs page_return_arrow:showHide(onReturn ~= nil) which would re-show the
-        -- arrow on every scroll if we only called hide().
-        -- Fix: override show/showHide on the instance so it can never be made
-        -- visible again, and zero its dimen so taps pass through it.
         local arrow = menu.page_return_arrow
         if arrow then
             local Geom = require("ui/geometry")
             arrow:hide()
-            arrow.show     = function() end  -- neutered: show() is a permanent no-op
-            arrow.showHide = function() end  -- neutered: showHide() is a permanent no-op
+            arrow.show     = function() end
+            arrow.showHide = function() end
             arrow.dimen    = Geom:new{ w = 0, h = 0 }
         end
 
         -- === Swipe south from top → open KOReader menu (mirrors library behavior) ===
-        -- The BookList is a standalone overlay so FileManager's FileManagerMenu
-        -- event handlers are never reached from here.  Intercept south swipes
-        -- that start in the top eighth of the screen and delegate to
-        -- FileManagerMenu:onShowMenu(), same as the library does.
         local Device     = require("device")
         local Menu_class = require("ui/widget/menu")
         local orig_onSwipe = Menu_class.onSwipe
@@ -114,7 +96,7 @@ local function apply_favorites()
                         end
                     end
                 end
-                -- Swallow all other south swipes — do not close favorites.
+                -- Swallow all other south swipes — do not close history.
                 return true
             end
             return orig_onSwipe(self_m, arg, ges_ev)
@@ -130,17 +112,11 @@ local function apply_favorites()
         if createStatusRow and tb.title_group and #tb.title_group >= 2 then
             local FileManager = require("apps/filemanager/filemanager")
 
-            -- Build the status row (nil path → no back-chevron / folder name).
             local status_row = createStatusRow(nil, FileManager.instance)
 
-            -- Replace the title widget with the status row in-place, same as
-            -- FileManager:_updateStatusBar() does for the library view.
             tb.title_group[2] = status_row
             tb.title_group:resetLayout()
 
-            -- Remove icon buttons from the TitleBar OverlapGroup so they no
-            -- longer paint or intercept touches (they may be nil when the
-            -- titlebar was created with the minimal wrapper above).
             local function remove_from_overlap(group, widget)
                 if not widget then return end
                 for i = #group, 1, -1 do
@@ -156,57 +132,49 @@ local function apply_favorites()
             tb.has_right_icon = false
 
             UIManager:setDirty(menu, "ui", tb.dimen)
-            -- Clock refresh is handled centrally by status_bar.lua's autoRefresh.
         else
-            -- Fallback when status_bar is not active: swap hamburger → star icon.
-            if tb.setLeftIcon then tb:setLeftIcon("zen_favorites") end
+            -- Fallback when status_bar is not active: swap hamburger → history icon.
+            if tb.setLeftIcon then tb:setLeftIcon("zen_history") end
         end
     end
 
     -- Prevent centering on *subsequent* updateItemTable calls (refreshes, page
-    -- turns).  On the first call CoverBrowser's setup block always runs after
-    -- this wrapper and re-sets the flag to true; clean_nav() corrects that via
-    -- a manual updateItems() call after the initial build.
-    local orig_updateItemTable = FileManagerCollection.updateItemTable
-    function FileManagerCollection:updateItemTable(...)
+    -- turns).
+    local orig_updateItemTable = FileManagerHistory.updateItemTable
+    function FileManagerHistory:updateItemTable(...)
         if is_enabled() and self.booklist_menu then
             self.booklist_menu._do_center_partial_rows = false
         end
         return orig_updateItemTable(self, ...)
     end
 
-    local orig_onShowColl = FileManagerCollection.onShowColl
-    function FileManagerCollection:onShowColl(collection_name)
-        -- Sync the collection display mode to match the filemanager (library)
-        -- display mode BEFORE orig_onShowColl runs, because that call creates
+    local orig_onShowHist = FileManagerHistory.onShowHist
+    function FileManagerHistory:onShowHist(search_info)
+        -- Sync the history display mode to match the filemanager (library)
+        -- display mode BEFORE orig_onShowHist runs, because that call creates
         -- booklist_menu and immediately calls updateItemTable — which is when
         -- CoverBrowser patches the instance with mosaic/list overrides.
-        -- We must set the correct mode before that first patching happens.
         if is_enabled() and self.ui then
             local coverbrowser = self.ui.coverbrowser
             if coverbrowser and type(coverbrowser.setupWidgetDisplayMode) == "function" then
                 local BookInfoManager = require("bookinfomanager")
                 local fm_mode   = BookInfoManager:getSetting("filemanager_display_mode")
-                local coll_mode = BookInfoManager:getSetting("collection_display_mode")
-                if fm_mode ~= coll_mode then
-                    coverbrowser.setupWidgetDisplayMode("collections", fm_mode)
+                local hist_mode = BookInfoManager:getSetting("history_display_mode")
+                if fm_mode ~= hist_mode then
+                    coverbrowser.setupWidgetDisplayMode("history", fm_mode)
                 end
             end
         end
-        orig_onShowColl(self, collection_name)
+        orig_onShowHist(self, search_info)
         if not is_enabled() then return end
         clean_nav(self.booklist_menu)
     end
 
     -- Replace the default hold dialog with the zen context menu.
-    -- onMenuHold is called with `self` = booklist_menu, `self._manager` = FileManagerCollection.
-    local orig_onMenuHold = FileManagerCollection.onMenuHold
-    function FileManagerCollection:onMenuHold(item)
+    -- onMenuHold is called with `self` = booklist_menu, `self._manager` = FileManagerHistory.
+    local orig_onMenuHold = FileManagerHistory.onMenuHold
+    function FileManagerHistory:onMenuHold(item)
         if not is_enabled() then
-            return orig_onMenuHold(self, item)
-        end
-        -- Preserve select-mode behavior.
-        if self._manager and self._manager.selected_files then
             return orig_onMenuHold(self, item)
         end
         local fm = require("apps/filemanager/filemanager").instance
@@ -224,4 +192,4 @@ local function apply_favorites()
 
 end
 
-return apply_favorites
+return apply_history
