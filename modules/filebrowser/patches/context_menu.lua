@@ -269,7 +269,7 @@ local function apply_context_menu()
                 local edit_buttons = {
                     {
                         {
-                            text     = _("Select"),
+                            text     = "\u{F14A}  " .. _("Select"),
                             align    = "left",
                             callback = function()
                                 UIManager:close(edit_dialog)
@@ -284,7 +284,7 @@ local function apply_context_menu()
                     },
                     {
                         {
-                            text     = _("Cut"),
+                            text     = "\u{F0C4}  " .. _("Cut"),
                             align    = "left",
                             enabled  = is_not_parent_folder,
                             callback = function()
@@ -295,7 +295,7 @@ local function apply_context_menu()
                     },
                     {
                         {
-                            text     = C_("File", "Copy"),
+                            text     = "\u{F0C5}  " .. C_("File", "Copy"),
                             align    = "left",
                             enabled  = is_not_parent_folder,
                             callback = function()
@@ -306,7 +306,7 @@ local function apply_context_menu()
                     },
                     {
                         {
-                            text     = C_("File", "Paste"),
+                            text     = "\u{F0EA}  " .. C_("File", "Paste"),
                             align    = "left",
                             enabled  = file_manager.clipboard and true or false,
                             callback = function()
@@ -323,7 +323,7 @@ local function apply_context_menu()
                 if allow_delete then
                     table.insert(edit_buttons, {
                         {
-                            text     = _("Delete"),
+                            text     = "\u{F1F8}  " .. _("Delete"),
                             align    = "left",
                             enabled  = is_not_parent_folder,
                             callback = function()
@@ -346,7 +346,7 @@ local function apply_context_menu()
             if is_not_parent_folder then
                 table.insert(buttons, {
                     {
-                        text     = _("Rename"),
+                        text     = "\u{F031}  " .. _("Rename"),
                         align    = "left",
                         callback = function()
                             close_dialog()
@@ -358,7 +358,7 @@ local function apply_context_menu()
 
             table.insert(buttons, {
                 {
-                    text     = _("New folder"),
+                    text     = "\u{F07B}  " .. _("New folder"),
                     align    = "left",
                     callback = function()
                         close_dialog()
@@ -371,7 +371,7 @@ local function apply_context_menu()
                 -- Move: open a folder picker then immediately execute the move
                 table.insert(buttons, {
                     {
-                        text     = _("Move"),
+                        text     = "\u{F047}  " .. _("Move"),
                         align    = "left",
                         callback = function()
                             close_dialog()
@@ -456,7 +456,7 @@ local function apply_context_menu()
 
                 table.insert(buttons, {
                     {
-                        text = is_fav and _("Remove from favorites") or _("Add to favorites"),
+                        text = is_fav and ("\u{F005}  " .. _("Remove from favorites")) or ("\u{F006}  " .. _("Add to favorites")),
                         align    = "left",
                         callback = function()
                             close_dialog()
@@ -474,7 +474,7 @@ local function apply_context_menu()
             if is_file and is_not_parent_folder and book_description then
                 table.insert(buttons, {
                     {
-                        text     = _("Description"),
+                        text     = "\u{F129}  " .. _("Description"),
                         align    = "left",
                         callback = function()
                             close_dialog()
@@ -494,7 +494,7 @@ local function apply_context_menu()
                 -- Read status submenu
                 table.insert(buttons, {
                     {
-                        text     = _("Read status  ▶"),
+                        text     = "\u{F02D}  " .. _("Read status  ▶"),
                         align    = "left",
                         callback = function()
                             close_dialog()
@@ -504,31 +504,45 @@ local function apply_context_menu()
                             local doc_settings    = DocSettings:open(file)
                             local summary         = doc_settings:readSetting("summary") or {}
                             local current_status  = summary.status
+                            local is_unread       = not current_status or current_status == ""
                             local status_dialog
-                            local caller_cb = function()
-                                UIManager:close(status_dialog)
-                                refresh()
-                            end
-                            local status_row = filemanagerutil.genStatusButtonsRow(doc_settings, caller_cb)
-                            local is_unread = not current_status or current_status == ""
-                            table.insert(status_row, 1, {
-                                text     = _("Unread") .. (is_unread and "  ✓" or ""),
-                                enabled  = not is_unread,
-                                callback = function()
+
+                            local function setStatus(to_status)
+                                if to_status == nil then
                                     summary.status = nil
                                     doc_settings:delSetting("percent_finished")
                                     doc_settings:delSetting("last_page")
                                     doc_settings:delSetting("last_xpointer")
-                                    filemanagerutil.saveSummary(doc_settings, summary)
-                                    BookList.setBookInfoCacheProperty(file, "status", nil)
                                     BookList.setBookInfoCacheProperty(file, "percent_finished", nil)
-                                    caller_cb()
-                                end,
-                            })
+                                else
+                                    summary.status = to_status
+                                end
+                                filemanagerutil.saveSummary(doc_settings, summary)
+                                BookList.setBookInfoCacheProperty(file, "status", to_status)
+                                UIManager:close(status_dialog)
+                                refresh()
+                            end
+
+                            local function statusBtn(icon, label, to_status)
+                                local is_cur = (to_status == nil and is_unread)
+                                    or (to_status ~= nil and current_status == to_status)
+                                return {{
+                                    text     = icon .. "  " .. label .. (is_cur and "  \u{2713}" or ""),
+                                    align    = "left",
+                                    enabled  = not is_cur,
+                                    callback = function() setStatus(to_status) end,
+                                }}
+                            end
+
                             status_dialog = ButtonDialog:new{
-                                title        = _("Read status"),
-                                title_align  = "center",
-                                buttons      = { status_row },
+                                title       = _("Read status"),
+                                title_align = "center",
+                                buttons     = {
+                                    statusBtn("\u{F02D}", _("Unread"),   nil),
+                                    statusBtn("\u{F02E}", _("Reading"),  "reading"),
+                                    statusBtn("\u{F04C}", _("On hold"),  "abandoned"),
+                                    statusBtn("\u{F00C}", _("Finished"), "complete"),
+                                },
                             }
                             UIManager:show(status_dialog)
                         end,
@@ -538,7 +552,7 @@ local function apply_context_menu()
 
             table.insert(buttons, {
                 {
-                    text     = _("Edit  ▶"),
+                    text     = "\u{F040}  " .. _("Edit  ▶"),
                     align    = "left",
                     callback = showEditSubmenu,
                 },
