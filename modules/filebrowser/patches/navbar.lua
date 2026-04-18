@@ -48,7 +48,7 @@ local function apply_navbar()
     local navbar_font_bold = Font:getFace("smallinfofontbold", 20)
     local navbar_v_padding = Screen:scaleBySize(4)
     -- Dead zone at left/right edges to avoid stealing corner gesture taps
-    local corner_dead_zone = math.floor(Screen:getWidth() / 12)
+    local corner_dead_zone = math.floor(Screen:getWidth() / 20)
     local underline_thickness = Screen:scaleBySize(2)
 
     -- === Persistent config ===
