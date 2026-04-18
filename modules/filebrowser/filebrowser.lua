@@ -37,6 +37,7 @@ local PATCH_MODULES = {
     browser_preload_bookinfo = "modules/filebrowser/patches/browser_preload_bookinfo",
     browser_page_count = "modules/filebrowser/patches/browser_page_count",
     browser_series_badge = "modules/filebrowser/patches/browser_series_badge",
+    browser_display_mode_by_path = "modules/filebrowser/patches/browser_display_mode_by_path",
     search = "modules/filebrowser/patches/search",
     authors_series = "modules/filebrowser/patches/authors_series",
 }
@@ -106,6 +107,11 @@ function M.init(logger, plugin)
     local browser_list_item_layout_fn = load_patch("browser_list_item_layout")
     if browser_list_item_layout_fn then
         run_feature(logger, plugin, "browser_list_item_layout", browser_list_item_layout_fn)
+    end
+
+    local browser_display_mode_by_path_fn = load_patch("browser_display_mode_by_path")
+    if browser_display_mode_by_path_fn then
+        run_feature(logger, plugin, "browser_display_mode_by_path", browser_display_mode_by_path_fn)
     end
 
     local browser_cover_badges_fn = load_patch("browser_cover_badges")

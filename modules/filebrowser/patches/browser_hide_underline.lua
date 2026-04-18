@@ -103,12 +103,16 @@ local function apply_browser_hide_underline()
     -- (classic mode, collections, history, favorites, etc.) get underlines hidden.
     -- CoverMenu.updateItems (mosaic/list) is a separate override and is patched
     -- inside patchCoverBrowser above; this catches everything else.
+    -- Exception: classic file browser (name=="filemanager", no display_mode_type)
+    -- keeps its natural separators so items are visually distinct.
     local Menu = require("ui/widget/menu")
     if not Menu._zen_hide_underline_patched then
         Menu._zen_hide_underline_patched = true
         local orig_menu_updateItems = Menu.updateItems
         function Menu:updateItems(...)
             orig_menu_updateItems(self, ...)
+            -- Classic file browser: leave underlines visible as row separators.
+            if self.name == "filemanager" then return end
             if self.layout then
                 for _, row in ipairs(self.layout) do
                     for _, item in ipairs(row) do

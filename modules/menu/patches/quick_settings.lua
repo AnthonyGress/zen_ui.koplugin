@@ -358,7 +358,7 @@ local function apply_quick_settings()
             end,
         },
         filebrowser = {
-            icon = "quick_opds",
+            icon = "quick_filebrowser",
             label = _("FileBrowser"),
             active_func = function()
                 -- Fast check: just test if the pidfile exists
