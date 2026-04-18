@@ -133,7 +133,7 @@ local function apply_navbar()
         {
             id = "books",
             label = getBooksLabel(),
-            icon = "tab_books",
+            icon = "library",
         },
         {
             id = "manga",

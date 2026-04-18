@@ -28,6 +28,7 @@ if _plugin_root then
         ["quicksettings"]       = "quicksettings.svg",
         ["zen_ui"]       = "zen_ui.svg",
         ["zen_ui_light"]       = "zen_ui_light.svg",
+        ["library"]       = "library.svg",
     }, true)
 end
 
@@ -142,7 +143,7 @@ function ZenUI:init()
             table.insert(m_self.tab_item_table, insert_pos, zen_items)
             -- Append a Home tab at the far right (last = stretched position).
             -- Captures m_self so the callback can close the menu before navigating.
-            local home_tab = { icon = "home", remember = false }
+            local home_tab = { icon = "library", remember = false }
             home_tab.callback = function()
                 require("ui/uimanager"):scheduleIn(0, function()
                     if m_self.menu_container then
