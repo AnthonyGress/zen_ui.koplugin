@@ -7,6 +7,7 @@ local PATCH_MODULES = {
     reader_clock = "modules/reader/patches/reader_clock",
     screensaver_cover = "modules/reader/patches/screensaver_cover",
     reader_footer_time_format = "modules/reader/patches/reader_footer_time_format",
+    page_browser = "modules/global/patches/page_browser",
 }
 
 local function is_feature_enabled(plugin, key)
@@ -42,6 +43,12 @@ end
 function M.init(logger, plugin)
     if initialized then
         return true
+    end
+
+    -- Always apply: page browser (self-disables when feature is off).
+    local page_browser_fn = load_patch("page_browser")
+    if page_browser_fn then
+        run_feature(logger, plugin, "page_browser", page_browser_fn)
     end
 
     -- Always apply: replaces the "Opening file..." popup with a bottom banner
