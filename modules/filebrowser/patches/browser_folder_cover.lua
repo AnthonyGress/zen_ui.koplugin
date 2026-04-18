@@ -889,8 +889,6 @@ local function apply_browser_folder_cover()
                     local dir_path = self.entry and self.entry.path
                     if not dir_path then return end
 
-                    self._foldercover_processed = true
-
                     local cover_file = findCover(dir_path)
                     if cover_file then
                         local success, w, h = pcall(function()
@@ -902,6 +900,7 @@ local function apply_browser_folder_cover()
                             return orig_w, orig_h
                         end)
                         if success then
+                            self._foldercover_processed = true
                             self:_setListFolderCover { file = cover_file, w = w, h = h, scale_to_fit = settings.crop_to_fit.get() }
                             return
                         end
@@ -910,28 +909,51 @@ local function apply_browser_folder_cover()
                     self.menu._dummy = true
                     local entries = self.menu:genItemTableFromPath(dir_path)
                     self.menu._dummy = false
-                    if not entries then return end
+                    if not entries then
+                        self._foldercover_processed = true
+                        return
+                    end
 
-                    local found_cover = false
-                    for _, entry in ipairs(entries) do
-                        if entry.is_file or entry.file then
-                            local bookinfo = BookInfoManager:getBookInfo(entry.path, true)
-                            if
-                                bookinfo
-                                and bookinfo.cover_bb
-                                and bookinfo.has_cover
-                                and bookinfo.cover_fetched
-                                and not bookinfo.ignore_cover
-                                and not BookInfoManager.isCachedCoverInvalid(bookinfo, self.menu.cover_specs)
-                            then
-                                self:_setListFolderCover { data = bookinfo.cover_bb, w = bookinfo.cover_w, h = bookinfo.cover_h }
-                                found_cover = true
-                                break
+                    if settings.gallery_mode.get() then
+                        local covers = {}
+                        for _, entry in ipairs(entries) do
+                            if entry.is_file or entry.file then
+                                local bookinfo, found_at = getBookInfoWithFallback(entry.path)
+                                if bookinfo and bookinfo.cover_bb and bookinfo.has_cover
+                                        and bookinfo.cover_fetched and not bookinfo.ignore_cover then
+                                    if found_at ~= entry.path then
+                                        tryMigrateBookInfoPath(found_at, entry.path)
+                                    end
+                                    table.insert(covers, { data = bookinfo.cover_bb:copy(), w = bookinfo.cover_w, h = bookinfo.cover_h })
+                                    if #covers >= 4 then break end
+                                end
                             end
                         end
-                    end
-                    if not found_cover then
-                        self:_setListFolderCover { no_image = true }
+                        if #covers > 0 then self._foldercover_processed = true end
+                        self:_setListFolderCover { gallery = covers }
+                    else
+                        self._foldercover_processed = true
+                        local found_cover = false
+                        for _, entry in ipairs(entries) do
+                            if entry.is_file or entry.file then
+                                local bookinfo = BookInfoManager:getBookInfo(entry.path, true)
+                                if
+                                    bookinfo
+                                    and bookinfo.cover_bb
+                                    and bookinfo.has_cover
+                                    and bookinfo.cover_fetched
+                                    and not bookinfo.ignore_cover
+                                    and not BookInfoManager.isCachedCoverInvalid(bookinfo, self.menu.cover_specs)
+                                then
+                                    self:_setListFolderCover { data = bookinfo.cover_bb, w = bookinfo.cover_w, h = bookinfo.cover_h }
+                                    found_cover = true
+                                    break
+                                end
+                            end
+                        end
+                        if not found_cover then
+                            self:_setListFolderCover { no_image = true }
+                        end
                     end
                 end
 
@@ -954,9 +976,87 @@ local function apply_browser_folder_cover()
                     -- spine_x = left edge of the cover image within the cover zone (for spine line placement).
                     local wleft
                     local spine_x
-                    if img.no_image then
-                        local fake_w = math.floor(max_img * 0.6)
-                        local cover_w = fake_w + 2 * border_size
+                    if img.gallery then
+                        local covers = img.gallery
+                        local gall_h = max_img
+                        local gall_w = math.floor(max_img * 2 / 3)  -- 2:3 portrait, matches book covers in list mode
+                        local cover_w = gall_w + 2 * border_size
+                        local cover_h = gall_h + 2 * border_size
+                        spine_x = math.max(0, math.floor((cover_zone_w - cover_w) / 2))
+                        if #covers == 0 then
+                            -- No covers extracted yet; show placeholder and keep retrying.
+                            wleft = CenterContainer:new {
+                                dimen = { w = cover_zone_w, h = dimen_h },
+                                FrameContainer:new {
+                                    width = cover_w, height = cover_h,
+                                    margin = 0, padding = 0, bordersize = border_size,
+                                    background = Blitbuffer.COLOR_LIGHT_GRAY,
+                                    CenterContainer:new {
+                                        dimen = { w = gall_w, h = gall_h },
+                                        VerticalSpan:new { width = 1 },
+                                    },
+                                },
+                            }
+                        else
+                            local sep = 1
+                            local half_w  = math.floor((gall_w - sep) / 2)
+                            local half_w2 = gall_w - sep - half_w
+                            local half_h  = math.floor((gall_h - sep) / 2)
+                            local half_h2 = gall_h - sep - half_h
+                            local cell_dims = {
+                                { w = half_w,  h = half_h  },
+                                { w = half_w2, h = half_h  },
+                                { w = half_w,  h = half_h2 },
+                                { w = half_w2, h = half_h2 },
+                            }
+                            local cells = {}
+                            for i = 1, 4 do
+                                local c = covers[i]
+                                local cd = cell_dims[i]
+                                if c then
+                                    cells[i] = CenterContainer:new {
+                                        dimen = { w = cd.w, h = cd.h },
+                                        ImageWidget:new {
+                                            image  = c.data,
+                                            width  = cd.w,
+                                            height = cd.h,
+                                        },
+                                    }
+                                else
+                                    cells[i] = CenterContainer:new {
+                                        dimen = { w = cd.w, h = cd.h },
+                                        VerticalSpan:new { width = 1 },
+                                    }
+                                end
+                            end
+                            wleft = CenterContainer:new {
+                                dimen = { w = cover_zone_w, h = dimen_h },
+                                FrameContainer:new {
+                                    width = cover_w, height = cover_h,
+                                    margin = 0, padding = 0, bordersize = border_size,
+                                    background = Blitbuffer.COLOR_LIGHT_GRAY,
+                                    CenterContainer:new {
+                                        dimen = { w = gall_w, h = gall_h },
+                                        VerticalGroup:new {
+                                            HorizontalGroup:new {
+                                                cells[1],
+                                                LineWidget:new { background = Blitbuffer.COLOR_WHITE, dimen = { w = sep, h = half_h } },
+                                                cells[2],
+                                            },
+                                            LineWidget:new { background = Blitbuffer.COLOR_WHITE, dimen = { w = gall_w, h = sep } },
+                                            HorizontalGroup:new {
+                                                cells[3],
+                                                LineWidget:new { background = Blitbuffer.COLOR_WHITE, dimen = { w = sep, h = half_h2 } },
+                                                cells[4],
+                                            },
+                                        },
+                                    },
+                                },
+                            }
+                        end
+                    elseif img.no_image then
+                        local portrait_w = math.floor(max_img * 2 / 3)  -- 2:3, matches gallery and book covers
+                        local cover_w = portrait_w + 2 * border_size
                         spine_x = math.max(0, math.floor((cover_zone_w - cover_w) / 2))
                         wleft = CenterContainer:new {
                             dimen = { w = cover_zone_w, h = dimen_h },
@@ -964,8 +1064,9 @@ local function apply_browser_folder_cover()
                                 width = cover_w,
                                 height = max_img + 2 * border_size,
                                 margin = 0, padding = 0, bordersize = border_size,
+                                background = Blitbuffer.COLOR_LIGHT_GRAY,
                                 CenterContainer:new {
-                                    dimen = { w = fake_w, h = max_img },
+                                    dimen = { w = portrait_w, h = max_img },
                                     VerticalSpan:new { width = 1 },
                                 },
                             },
