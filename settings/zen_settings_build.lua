@@ -1271,20 +1271,80 @@ function M.build(plugin)
         },
     })
 
+    table.insert(filebrowser_items, {
+        text = _("Folders"),
+        sub_item_table = {
+            {
+                text = _("Hide up folder"),
+                checked_func = function() return config.browser_hide_up_folder.hide_up_folder == true end,
+                callback = function()
+                    config.browser_hide_up_folder.hide_up_folder = not (config.browser_hide_up_folder.hide_up_folder == true)
+                    save_and_apply("browser_hide_up_folder", _("Browser hide up-folder behavior"))
+                end,
+            },
+            {
+                text = _("Show folder name on cover"),
+                checked_func = function()
+                    local ok, bim = pcall(require, "bookinfomanager")
+                    if not ok then return true end
+                    return not bim:getSetting("folder_name_show")
+                end,
+                callback = function()
+                    local ok, bim = pcall(require, "bookinfomanager")
+                    if not ok then return end
+                    bim:toggleSetting("folder_name_show")
+                    UIManager:setDirty(nil, "full")
+                end,
+            },
+            {
+                text = _("Folder name position"),
+                sub_item_table = {
+                    {
+                        text = _("Center"),
+                        radio = true,
+                        checked_func = function()
+                            local ok, bim = pcall(require, "bookinfomanager")
+                            if not ok then return true end
+                            return not bim:getSetting("folder_name_centered")
+                        end,
+                        callback = function()
+                            local ok, bim = pcall(require, "bookinfomanager")
+                            if not ok then return end
+                            -- "centered" is the default (nil); only toggle if currently set to true
+                            if bim:getSetting("folder_name_centered") then
+                                bim:toggleSetting("folder_name_centered")
+                            end
+                            UIManager:setDirty(nil, "full")
+                        end,
+                    },
+                    {
+                        text = _("Bottom"),
+                        radio = true,
+                        checked_func = function()
+                            local ok, bim = pcall(require, "bookinfomanager")
+                            if not ok then return false end
+                            return bim:getSetting("folder_name_centered") ~= nil
+                        end,
+                        callback = function()
+                            local ok, bim = pcall(require, "bookinfomanager")
+                            if not ok then return end
+                            -- "bottom" is stored as true; only toggle if currently nil
+                            if not bim:getSetting("folder_name_centered") then
+                                bim:toggleSetting("folder_name_centered")
+                            end
+                            UIManager:setDirty(nil, "full")
+                        end,
+                    },
+                },
+            },
+        },
+    })
+
     table.insert(filebrowser_items, make_enable_feature_item(
         "zen_pagination_bar",
         _("Zen pagination bar"),
         _("Zen pagination bar")
     ))
-
-    table.insert(filebrowser_items, {
-        text = _("Hide up folders"),
-        checked_func = function() return config.browser_hide_up_folder.hide_up_folder == true end,
-        callback = function()
-            config.browser_hide_up_folder.hide_up_folder = not (config.browser_hide_up_folder.hide_up_folder == true)
-            save_and_apply("browser_hide_up_folder", _("Browser hide up-folder behavior"))
-        end,
-    })
 
     table.insert(filebrowser_items, {
         text = _("Show progress % on mosaic covers"),

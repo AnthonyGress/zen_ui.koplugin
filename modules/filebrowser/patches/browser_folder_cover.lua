@@ -311,7 +311,8 @@ local function apply_browser_folder_cover()
 
             local folder_name_widget
             if settings.show_folder_name.get() then
-                folder_name_widget = BottomContainer:new {
+                local NameContainer = settings.name_centered.get() and CenterContainer or BottomContainer
+                folder_name_widget = NameContainer:new {
                     dimen = dimen,
                     FrameContainer:new {
                         padding = 0,
