@@ -163,6 +163,28 @@ local function apply_favorites()
             tb.has_left_icon  = false
             tb.has_right_icon = false
 
+            -- Periodic refresh callback so autoRefresh preserves the back button.
+            if show_back and createStatusRowCustomBack then
+                local back_cb = menu.onReturn and function() menu.onReturn() end
+                            or function() end
+                menu._zen_status_refresh = function()
+                    if tb.title_group and #tb.title_group >= 2 then
+                        tb.title_group[2] = createStatusRowCustomBack(back_cb)
+                        tb.title_group:resetLayout()
+                        UIManager:setDirty(menu, "ui", tb.dimen)
+                    end
+                end
+            else
+                menu._zen_status_refresh = function()
+                    if tb.title_group and #tb.title_group >= 2 then
+                        local FileManager = require("apps/filemanager/filemanager")
+                        tb.title_group[2] = createStatusRow(nil, FileManager.instance)
+                        tb.title_group:resetLayout()
+                        UIManager:setDirty(menu, "ui", tb.dimen)
+                    end
+                end
+            end
+
             UIManager:setDirty(menu, "ui", tb.dimen)
             -- Clock refresh is handled centrally by status_bar.lua's autoRefresh.
         else

@@ -336,6 +336,62 @@ local function apply_browser_folder_cover()
             end)
         end
 
+        --- Recursively collect book covers from dir_path and its subdirectories.
+        --- @return table covers     List of {data=bb, w=number, h=number}
+        --- @return number book_count Total book files found (recursive)
+        local function collectCoversFromDir(dir_path, chooser, max_covers, max_depth, copy_bb, entries)
+            local covers = {}
+            local book_count = 0
+            local subdirs = {}
+
+            if not entries then
+                chooser._dummy = true
+                entries = chooser:genItemTableFromPath(dir_path)
+                chooser._dummy = false
+            end
+            if not entries then return covers, book_count end
+
+            for _, entry in ipairs(entries) do
+                if entry.is_file or entry.file then
+                    book_count = book_count + 1
+                    if #covers < max_covers then
+                        local bookinfo, found_at = getBookInfoWithFallback(entry.path)
+                        if bookinfo and bookinfo.cover_bb
+                                and bookinfo.has_cover and bookinfo.cover_fetched
+                                and not bookinfo.ignore_cover then
+                            if found_at ~= entry.path then
+                                tryMigrateBookInfoPath(found_at, entry.path)
+                            end
+                            local bb = copy_bb and bookinfo.cover_bb:copy() or bookinfo.cover_bb
+                            table.insert(covers, { data = bb, w = bookinfo.cover_w, h = bookinfo.cover_h })
+                        end
+                    end
+                elseif entry.path and not entry.is_go_up and not entry.path:match("/%.$") then
+                    table.insert(subdirs, entry.path)
+                end
+            end
+
+            if max_depth > 0 then
+                for _, sub_path in ipairs(subdirs) do
+                    local remaining = max_covers - #covers
+                    local sub_covers, sub_count = collectCoversFromDir(
+                        sub_path, chooser,
+                        remaining > 0 and remaining or 0,
+                        max_depth - 1, copy_bb)
+                    book_count = book_count + sub_count
+                    for _, c in ipairs(sub_covers) do
+                        if #covers < max_covers then
+                            table.insert(covers, c)
+                        elseif copy_bb and c.data and c.data.free then
+                            c.data:free()
+                        end
+                    end
+                end
+            end
+
+            return covers, book_count
+        end
+
         -- setting
         function BooleanSetting(text, name, default)
             local self = { text = text }
@@ -593,72 +649,21 @@ local function apply_browser_folder_cover()
                 return
             end
 
-            -- Count actual books for the badge (works in search results and
-            -- move-dialog where mandatory has a different/absent glyph format).
-            local book_count = 0
-            for _, entry in ipairs(entries) do
-                if entry.is_file or entry.file then
-                    book_count = book_count + 1
-                end
-            end
+            -- Collect covers recursively (bubbles up from child folders).
+            local is_gallery = settings.gallery_mode.get()
+            local max_covers = is_gallery and 4 or 1
+            local covers, book_count = collectCoversFromDir(dir_path, _chooser, max_covers, 2, is_gallery, entries)
 
-            if settings.gallery_mode.get() then
-                local covers = {}
-                for _, entry in ipairs(entries) do
-                    if entry.is_file or entry.file then
-                        local bookinfo, found_at = getBookInfoWithFallback(entry.path)
-                        if bookinfo and bookinfo.cover_bb
-                                and bookinfo.has_cover and bookinfo.cover_fetched
-                                and not bookinfo.ignore_cover then
-                            logger.dbg("[zen-ui] gallery: found cover for", entry.path,
-                                found_at ~= entry.path and ("(via " .. found_at .. ")") or "")
-                            if found_at ~= entry.path then
-                                tryMigrateBookInfoPath(found_at, entry.path)
-                            end
-                            -- Copy the blitbuffer: BookInfoManager may free its cached copy
-                            -- when background extraction completes for other files.
-                            local cover_bb_copy = bookinfo.cover_bb:copy()
-                            table.insert(covers, { data = cover_bb_copy, w = bookinfo.cover_w, h = bookinfo.cover_h })
-                            if #covers >= 4 then break end
-                        end
-                        -- No cover (not in DB, no cover art, non-book file): empty gallery
-                        -- slot — the outer FrameContainer's LIGHT_GRAY background shows through.
-                    end
-                end
-                -- Only lock in the result once we have at least one real cover.
-                -- If every book in the folder is still being extracted, leave
-                -- _foldercover_processed nil so the next updateItems() re-scans
-                -- and fills the mosaic once extraction has completed.
+            if is_gallery then
                 if #covers > 0 then self._foldercover_processed = true end
                 self:_setFolderCover { gallery = covers, book_count = book_count }
             else
-                local found_cover = false
-                for _, entry in ipairs(entries) do
-                    if entry.is_file or entry.file then
-                        -- Use ancestor-path fallback so a book moved into this folder can
-                        -- still show its cover even if the DB row uses the old path.
-                        local bookinfo, found_at = getBookInfoWithFallback(entry.path)
-                        if bookinfo and bookinfo.cover_bb
-                                and bookinfo.has_cover and bookinfo.cover_fetched
-                                and not bookinfo.ignore_cover then
-                            logger.dbg("[zen-ui] single: found cover for", dir_path, "via", entry.path,
-                                found_at ~= entry.path and ("(ancestor: " .. found_at .. ")") or "")
-                            if found_at ~= entry.path then
-                                tryMigrateBookInfoPath(found_at, entry.path)
-                            end
-                            self._foldercover_processed = true
-                            self:_setFolderCover { data = bookinfo.cover_bb, w = bookinfo.cover_w, h = bookinfo.cover_h, book_count = book_count }
-                            found_cover = true
-                            break
-                        end
-                    end
-                end
-                if not found_cover then
-                    -- No cover found yet.  Do NOT set _foldercover_processed here:
-                    -- leave it nil so the next updateItems() (e.g. after the user
-                    -- navigates into the folder, extracts covers, and returns) will
-                    -- re-scan and find the newly available covers.  The directory
-                    -- scan is cheap because getListItem results are cached.
+                if #covers > 0 then
+                    self._foldercover_processed = true
+                    self:_setFolderCover { data = covers[1].data, w = covers[1].w, h = covers[1].h, book_count = book_count }
+                else
+                    -- Do NOT set _foldercover_processed here: leave it nil so the
+                    -- next updateItems() re-scans once cover extraction completes.
                     self:_setFolderCover { no_image = true, book_count = book_count }
                 end
             end
@@ -1044,52 +1049,19 @@ local function apply_browser_folder_cover()
                         return
                     end
 
-                    local book_count_l = 0
-                    for _, entry in ipairs(entries) do
-                        if entry.is_file or entry.file then
-                            book_count_l = book_count_l + 1
-                        end
-                    end
+                    -- Collect covers recursively (bubbles up from child folders).
+                    local is_gallery = settings.gallery_mode.get()
+                    local max_covers = is_gallery and 4 or 1
+                    local covers, book_count_l = collectCoversFromDir(dir_path, _chooser, max_covers, 2, is_gallery, entries)
 
-                    if settings.gallery_mode.get() then
-                        local covers = {}
-                        for _, entry in ipairs(entries) do
-                            if entry.is_file or entry.file then
-                                local bookinfo, found_at = getBookInfoWithFallback(entry.path)
-                                if bookinfo and bookinfo.cover_bb and bookinfo.has_cover
-                                        and bookinfo.cover_fetched and not bookinfo.ignore_cover then
-                                    if found_at ~= entry.path then
-                                        tryMigrateBookInfoPath(found_at, entry.path)
-                                    end
-                                    table.insert(covers, { data = bookinfo.cover_bb:copy(), w = bookinfo.cover_w, h = bookinfo.cover_h })
-                                    if #covers >= 4 then break end
-                                end
-                            end
-                        end
+                    if is_gallery then
                         if #covers > 0 then self._foldercover_processed = true end
                         self:_setListFolderCover { gallery = covers, book_count = book_count_l }
                     else
                         self._foldercover_processed = true
-                        local found_cover = false
-                        for _, entry in ipairs(entries) do
-                            if entry.is_file or entry.file then
-                                local bookinfo = BookInfoManager:getBookInfo(entry.path, true)
-                                if
-                                    bookinfo
-                                    and bookinfo.cover_bb
-                                    and bookinfo.has_cover
-                                    and bookinfo.cover_fetched
-                                    and not bookinfo.ignore_cover
-                                    and not (self.menu.cover_specs and BookInfoManager.isCachedCoverInvalid
-                                             and BookInfoManager.isCachedCoverInvalid(bookinfo, self.menu.cover_specs))
-                                then
-                                    self:_setListFolderCover { data = bookinfo.cover_bb, w = bookinfo.cover_w, h = bookinfo.cover_h, book_count = book_count_l }
-                                    found_cover = true
-                                    break
-                                end
-                            end
-                        end
-                        if not found_cover then
+                        if #covers > 0 then
+                            self:_setListFolderCover { data = covers[1].data, w = covers[1].w, h = covers[1].h, book_count = book_count_l }
+                        else
                             self:_setListFolderCover { no_image = true, book_count = book_count_l }
                         end
                     end

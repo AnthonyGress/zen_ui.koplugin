@@ -849,8 +849,6 @@ local function apply_status_bar()
             local fav_menu = fm.collections and fm.collections.booklist_menu
             if fav_menu then
                 if fav_menu._zen_status_refresh then
-                    -- Named collection patched by collections.lua — delegate to
-                    -- its own refresh function (which includes the back button).
                     fav_menu._zen_status_refresh()
                 else
                     -- Favorites (or any booklist_menu without a custom refresh).
@@ -861,6 +859,12 @@ local function apply_status_bar()
                         UIManager:setDirty(fav_menu, "ui", fav_tb.dimen)
                     end
                 end
+            end
+
+            -- Refresh collections list titlebar when it is open.
+            local coll_list = fm.collections and fm.collections.coll_list
+            if coll_list and coll_list._zen_status_refresh then
+                coll_list._zen_status_refresh()
             end
 
             -- Schedule next tick at the top of the following minute.
