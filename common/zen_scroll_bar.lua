@@ -12,6 +12,7 @@ local function apply_zen_scroll_bar()
         filemanager = true,
         history = true,
         collections = true,
+        library_view = true, -- Rakuyomi
     }
 
     -- Visual dimensions (scaled to device DPI).

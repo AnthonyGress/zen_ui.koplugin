@@ -712,6 +712,27 @@ local function apply_navbar()
         return orig_fc_onMenuHold and orig_fc_onMenuHold(self, item)
     end
 
+    -- Height of the status bar row that gets injected above Rakuyomi's content.
+    -- Computed once and cached so Menu:init can reserve space before layout.
+    local _cached_status_row_h = nil
+
+    local function getStatusRowHeight()
+        if _cached_status_row_h ~= nil then
+            return _cached_status_row_h
+        end
+        local shared = zen_plugin and zen_plugin._zen_shared
+        if shared and shared.buildStatusRow then
+            local row = shared.buildStatusRow(Screen:getWidth())
+            if row then
+                _cached_status_row_h = row:getSize().h
+                row:free()
+                return _cached_status_row_h
+            end
+        end
+        _cached_status_row_h = 0
+        return 0
+    end
+
     local orig_menu_init = Menu.init
 
     function Menu:init()
@@ -719,7 +740,12 @@ local function apply_navbar()
             self.height = Screen:getHeight() - getNavbarHeight()
         elseif not _skip_standalone_navbar and isStandaloneNavbarView(self) then
             -- Override height even if already set (e.g. Rakuyomi sets height = screen_h)
-            self.height = Screen:getHeight() - getNavbarHeight()
+            local reserve = getNavbarHeight()
+            -- Rakuyomi also gets the status bar above its content
+            if self.name == "library_view" then
+                reserve = reserve + getStatusRowHeight()
+            end
+            self.height = Screen:getHeight() - reserve
             -- Force borderless for plugin views that forgot to set it (e.g. Rakuyomi)
             if not self.is_borderless then
                 self.is_borderless = true
@@ -903,19 +929,55 @@ local function apply_navbar()
         -- after updateItems on initial load — the UIManager:show() paint already covers it.
         menu._zen_no_forced_repaint = true
 
-        -- Wrap with navbar below, opaque background to prevent FM navbar bleed-through
+        -- Rakuyomi-specific: build status bar widget (height already reserved in Menu:init)
+        local status_row_widget = nil
+        if menu.name == "library_view" and not menu._zen_status_injected then
+            menu._zen_status_injected = true
+            local shared = zen_plugin and zen_plugin._zen_shared
+            if shared and shared.buildStatusRow then
+                status_row_widget = shared.buildStatusRow(Screen:getWidth())
+            end
+        end
+
+        -- Wrap with navbar below (and optional status bar above for Rakuyomi),
+        -- opaque background to prevent FM navbar bleed-through
         local FrameContainer = require("ui/widget/container/framecontainer")
+        local vg_children = { align = "left" }
+        if status_row_widget then
+            table.insert(vg_children, status_row_widget)
+        end
+        table.insert(vg_children, menu[1])
+        table.insert(vg_children, navbar)
+
         menu[1] = FrameContainer:new{
             background = Blitbuffer.COLOR_WHITE,
             bordersize = 0,
             padding = 0,
             margin = 0,
-            VerticalGroup:new{
-                align = "left",
-                menu[1],
-                navbar,
-            },
+            VerticalGroup:new(vg_children),
         }
+
+        -- Rakuyomi-specific: override swipe-down to show KOReader menu
+        if menu.name == "library_view" then
+            local orig_onSwipe = menu.onSwipe
+            menu.onSwipe = function(self_menu, arg, ges_ev)
+                local BD = require("ui/bidi")
+                local direction = BD.flipDirectionIfMirroredUILayout(ges_ev.direction)
+                if direction == "south" then
+                    -- Only trigger from the top ~14% of the screen, matching KOReader's default
+                    if ges_ev.pos.y < Screen:getHeight() * 0.14 then
+                        local fm = FileManager.instance
+                        if fm and fm.menu then
+                            fm.menu:onShowMenu()
+                        end
+                        return true
+                    end
+                end
+                if orig_onSwipe then
+                    return orig_onSwipe(self_menu, arg, ges_ev)
+                end
+            end
+        end
     end
 
     local orig_setupLayout = FileManager.setupLayout
