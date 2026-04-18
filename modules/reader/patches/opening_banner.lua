@@ -315,6 +315,14 @@ local function apply_opening_banner()
         UIManager:forceRePaint()
 
         UIManager:nextTick(function()
+            -- Close the banner before opening the reader so it does not persist
+            -- in the UIManager window stack.  An orphaned banner prevents
+            -- _gated_quit from firing (stack is never empty) which causes
+            -- KOReader to hang indefinitely when the user quits from any menu.
+            -- KOReader's own InfoMessage{timeout=0.0} auto-schedules its own
+            -- close on the same tick; this reproduces that behaviour.
+            UIManager:close(banner)
+
             logger.dbg("zen-ui: creating coroutine for showing reader")
             local co = coroutine.create(function()
                 self:doShowReader(file, provider, seamless)

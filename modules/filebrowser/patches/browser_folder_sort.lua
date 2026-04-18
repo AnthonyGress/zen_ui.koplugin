@@ -90,6 +90,17 @@ local function apply_browser_folder_sort()
     FileChooser.genItemTableFromPath = function(self, path, ...)
         local ffiUtil = require("ffi/util")
         local real_path = ffiUtil and ffiUtil.realpath and ffiUtil.realpath(path) or path
+
+        -- Never apply a per-folder sort override to the home directory.
+        local g = rawget(_G, "G_reader_settings")
+        local home_dir = g and g:readSetting("home_dir")
+        if home_dir then
+            local home_real = ffiUtil and ffiUtil.realpath and ffiUtil.realpath(home_dir) or home_dir
+            if real_path == home_real or path == home_dir then
+                return orig_genItemTableFromPath(self, path, ...)
+            end
+        end
+
         local override = (real_path and M.get(real_path))
             or (path ~= real_path and M.get(path))
 
