@@ -509,7 +509,7 @@ local function apply_context_menu()
 
                 table.insert(buttons, {
                     {
-                        text = is_fav and ("\u{F005}  " .. _("Remove from favorites")) or ("\u{F006}  " .. _("Add to favorites")),
+                        text = is_fav and ("\u{F006}  " .. _("Remove from favorites")) or ("\u{F005}  " .. _("Add to favorites")),
                         align    = "left",
                         callback = function()
                             close_dialog()
