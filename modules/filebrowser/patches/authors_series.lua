@@ -11,8 +11,8 @@ local _authors_menu = nil
 local _series_menu  = nil
 
 -- Set during apply (called at init while __ZEN_UI_PLUGIN is set)
-local _zen_shared  = nil
-local _zen_plugin  = nil  -- captured at init; __ZEN_UI_PLUGIN is cleared after init
+local _zen_shared    = nil
+local _zen_plugin    = nil  -- captured at init; __ZEN_UI_PLUGIN is cleared after init
 
 -------------------------------------------------------------------------------
 -- Utility: walk upvalue chain to find a named upvalue
@@ -658,6 +658,9 @@ local function build_group_item_table(groups, data_type)
     return items
 end
 
+-- Forward declaration so showDisplayModeDialog can reference showGroupView.
+local showGroupView
+
 -------------------------------------------------------------------------------
 -- showDisplayModeDialog: show display mode selection dialog
 -- menu: optional Menu instance to refresh after mode change
@@ -679,46 +682,33 @@ local function showDisplayModeDialog(menu)
     end
 
     local function apply_mode(mode)
+        -- Use FM:onSetDisplayMode to update CoverBrowser state and save to BIM.
+        -- Falls back to direct BIM save if FM/coverbrowser not available.
+        local via_fm = false
         if fm and type(fm.onSetDisplayMode) == "function" then
-            pcall(fm.onSetDisplayMode, fm, mode)
-        elseif ok_bim and bim then
+            via_fm = pcall(fm.onSetDisplayMode, fm, mode)
+        end
+        if not via_fm and ok_bim and bim then
             pcall(bim.saveSetting, bim, "filemanager_display_mode", mode)
         end
 
-        -- Refresh the menu to apply new display mode
+        -- Rebuild in-place: swap methods for the new mode, then redraw once.
         if menu then
-            UIManager:close(menu)
-            UIManager:nextTick(function()
-                -- Trigger a rebuild based on menu type
-                if menu._zen_group_view and menu.name == "authors" then
-                    if _authors_menu then
-                        UIManager:close(_authors_menu)
-                        _authors_menu = nil
-                    end
-                    local ok_db, db = pcall(require, "common/db_bookinfo")
-                    if ok_db then
-                        local groups = db.getGroupedByAuthor()
-                        local injectNav = _zen_shared and _zen_shared.navbar and _zen_shared.navbar.injectStandaloneNavbar
-                        showGroupView("authors", injectNav, groups)
-                    end
-                elseif menu._zen_group_view and menu.name == "series" then
-                    if _series_menu then
-                        UIManager:close(_series_menu)
-                        _series_menu = nil
-                    end
-                    local ok_db, db = pcall(require, "common/db_bookinfo")
-                    if ok_db then
-                        local groups = db.getGroupedBySeries()
-                        local injectNav = _zen_shared and _zen_shared.navbar and _zen_shared.navbar.injectStandaloneNavbar
-                        showGroupView("series", injectNav, groups)
-                    end
-                else
-                    -- Detail view: just reopen with current settings
-                    setup_display_mode(menu, false)
-                    menu:updateItems()
-                    UIManager:show(menu)
-                end
-            end)
+            local is_group = menu._zen_group_view or false
+            local new_mode_type = setup_display_mode(menu, is_group)
+            if new_mode_type == "mosaic" then
+                patch_mosaic_item()
+            elseif new_mode_type == "list" then
+                patch_list_item()
+            else
+                -- Classic mode: restore base Menu methods
+                local Menu_class = require("ui/widget/menu")
+                menu.updateItems         = Menu_class.updateItems
+                menu._updateItemsBuildUI = nil
+                menu._recalculateDimen   = nil
+                menu.display_mode_type   = nil
+            end
+            menu:updateItems()
         end
     end
 
@@ -1137,7 +1127,7 @@ end
 -- injectNavbar: the injectStandaloneNavbar function from navbar.lua
 -- groups: pre-loaded data from db_bookinfo
 -------------------------------------------------------------------------------
-local function showGroupView(tab_id, injectNavbar, groups)
+showGroupView = function(tab_id, injectNavbar, groups)
     local _ = require("gettext")
     local Menu      = require("ui/widget/menu")
     local TitleBar  = require("ui/widget/titlebar")
