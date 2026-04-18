@@ -1728,8 +1728,7 @@ function M.build(plugin)
             if type(config.reader_footer) ~= "table" then
                 config.reader_footer = {}
             end
-            local currently_on = not (config.reader_footer.verbose_chapter_time == false)
-            config.reader_footer.verbose_chapter_time = not currently_on
+            config.reader_footer.verbose_chapter_time = not (config.reader_footer.verbose_chapter_time == true)
             plugin:saveConfig()
         end,
     })

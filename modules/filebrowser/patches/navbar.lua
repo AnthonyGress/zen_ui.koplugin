@@ -662,7 +662,10 @@ local function apply_navbar()
             return 0
         end
         local nb = createNavBar()
-        return nb and nb:getSize().h or 0
+        if not nb then return 0 end
+        local h = nb:getSize().h
+        nb:free()
+        return h
     end
 
     -- Standalone views (History, Favorites, Collections, Rakuyomi) that should get navbar

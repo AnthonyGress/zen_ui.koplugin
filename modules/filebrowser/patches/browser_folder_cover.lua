@@ -120,14 +120,17 @@ local function apply_browser_folder_cover()
         return cached_list[key]
     end
 
-    -- local orig_FileChooser_genItemTableFromPath = FileChooser.genItemTableFromPath
+    -- Invalidate the list-item cache whenever the file chooser rescans a directory
+    -- (non-dummy call).  Without this the cache grows unbounded across all
+    -- directories visited during a session.
+    local orig_FileChooser_genItemTableFromPath = FileChooser.genItemTableFromPath
 
-    -- function FileChooser:genItemTableFromPath(path)
-    --     local start = os.clock()
-    --     local item_table = orig_FileChooser_genItemTableFromPath(self, path)
-    --     logger.info("!!!!!!! GEN", path, (os.clock() - start) * 1000)
-    --     return item_table
-    -- end
+    function FileChooser:genItemTableFromPath(path)
+        if not self._dummy then
+            cached_list = {}
+        end
+        return orig_FileChooser_genItemTableFromPath(self, path)
+    end
 
     local function capitalize(sentence)
         local words = {}
@@ -178,7 +181,7 @@ local function apply_browser_folder_cover()
 
         -- setting
         function BooleanSetting(text, name, default)
-            self = { text = text }
+            local self = { text = text }
             self.get = function()
                 local setting = BookInfoManager:getSetting(name)
                 if default then return not setting end -- false is stored as nil, so we need or own logic for boolean default

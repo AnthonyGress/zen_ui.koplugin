@@ -132,8 +132,10 @@ local DISRUPTIVE_MODES = {
     filemanager_refresh = true,
 }
 
-local deferred_applies    = {}
-local deferred_poll_active = false
+local deferred_applies      = {}
+local deferred_poll_active  = false
+local deferred_poll_retries = 0
+local DEFERRED_MAX_RETRIES  = 40 -- 10 s at 0.25 s intervals
 
 -- True when the FileManager's TouchMenu overlay is visible.
 local function is_filemanager_menu_open()
@@ -158,14 +160,17 @@ local function run_apply_mode_now(mode)
 end
 
 -- Called on a 0.25 s interval; applies pending disruptive changes once the
--- menu has been closed.
+-- menu has been closed.  Caps at DEFERRED_MAX_RETRIES to prevent runaway
+-- scheduling if the menu container reference is never cleared.
 local function flush_deferred()
     deferred_poll_active = false
-    if is_filemanager_menu_open() then
+    if is_filemanager_menu_open() and deferred_poll_retries < DEFERRED_MAX_RETRIES then
+        deferred_poll_retries = deferred_poll_retries + 1
         deferred_poll_active = true
         UIManager:scheduleIn(0.25, flush_deferred)
         return
     end
+    deferred_poll_retries = 0
     local pending = deferred_applies
     deferred_applies = {}
     for mode, _ in pairs(pending) do
@@ -177,7 +182,8 @@ local function run_apply_mode(mode)
     if DISRUPTIVE_MODES[mode] and is_filemanager_menu_open() then
         deferred_applies[mode] = true
         if not deferred_poll_active then
-            deferred_poll_active = true
+            deferred_poll_active  = true
+            deferred_poll_retries = 0
             UIManager:scheduleIn(0.25, flush_deferred)
         end
         return
