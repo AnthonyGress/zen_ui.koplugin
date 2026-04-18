@@ -127,10 +127,39 @@ local function apply_browser_list_item_layout()
                 return original_update(self)
             end
 
+            -- Set cover_specs early so that when we fall through to original_update
+            -- (below), extraction is queued with our portrait specs rather than the
+            -- stock square ones.
+            local cover_specs
+            if self.do_cover_image then
+                cover_specs = {
+                    max_cover_w = cover_w,
+                    max_cover_h = max_img,
+                }
+                self.menu.cover_specs = cover_specs
+            end
+
+            -- Mirror stock CoverBrowser: if cover hasn't been fetched yet, defer so
+            -- the item is added to items_to_update and extraction is queued.
+            if self.do_cover_image and not bookinfo.cover_fetched then
+                return original_update(self)
+            end
+
             -- Re-fetch with cover only when in cover-image mode and cover exists.
             if self.do_cover_image and bookinfo.has_cover and not bookinfo.ignore_cover
                and not self.menu.no_refresh_covers then
                 bookinfo = BookInfoManager:getBookInfo(filepath, true) or bookinfo
+            end
+
+            -- Mirror stock: if the cached thumbnail is too small for our specs
+            -- (e.g. first extracted in mosaic mode at a smaller size), fall through
+            -- so KOReader queues a re-extraction at the correct cover_specs.
+            if self.do_cover_image and bookinfo.has_cover and not bookinfo.ignore_cover
+               and not self.menu.no_refresh_covers
+               and bookinfo.cover_bb
+               and BookInfoManager.isCachedCoverInvalid(bookinfo, cover_specs) then
+                bookinfo.cover_bb:free()
+                return original_update(self)
             end
 
             local file_deleted = self.entry.dim
@@ -141,15 +170,8 @@ local function apply_browser_list_item_layout()
             local wleft
 
             if self.do_cover_image then
-                local cover_specs = {
-                    max_cover_w = cover_w,
-                    max_cover_h = max_img,
-                }
-                self.menu.cover_specs = cover_specs
-
                 if bookinfo.has_cover and not bookinfo.ignore_cover
                    and bookinfo.cover_bb and not self.menu.no_refresh_covers
-                   and not BookInfoManager.isCachedCoverInvalid(bookinfo, cover_specs)
                 then
                     cover_bb_used = true
                     -- Uniform fill: scale from the actual cached-bb dimensions so
