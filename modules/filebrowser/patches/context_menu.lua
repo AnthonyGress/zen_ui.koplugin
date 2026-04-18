@@ -132,6 +132,25 @@ local function apply_context_menu()
             -- available; text-only otherwise.  dialog_title is always set (used by the
             -- status sub-dialog and the text-only fallback).
             local dialog_title, dialog_cover_widget, book_description
+
+            -- Open the full-resolution cover art in a fullscreen ImageViewer.
+            local function showCoverFullscreen(cover_path)
+                local ok2, bim2 = pcall(require, "bookinfomanager")
+                if not ok2 then return end
+                local bi2 = bim2:getBookInfo(cover_path, true)
+                if not bi2 or not bi2.cover_bb or not bi2.has_cover
+                    or bi2.ignore_cover then return end
+                local ImageViewer = require("ui/widget/imageviewer")
+                local iv = ImageViewer:new{
+                    image            = bi2.cover_bb,
+                    image_disposable = false,
+                    fullscreen       = true,
+                    with_title_bar   = false,
+                }
+                function iv:onTap() self:onClose() return true end
+                UIManager:show(iv)
+            end
+
             do
                 local Screen   = Device.screen
                 local SizeR    = require("ui/size")
@@ -145,7 +164,7 @@ local function apply_context_menu()
                 local cover_max_h = Screen:scaleBySize(120)
 
                 -- Build an OverlapGroup with cover at left edge, text stack at right edge.
-                local function makeSideBySide(cover_bb, src_w, src_h, sf, title_str, authors_str, tags_str_arg)
+                local function makeSideBySide(cover_bb, src_w, src_h, sf, title_str, authors_str, tags_str_arg, on_cover_tap)
                     local rendered_w  = math.floor(src_w * sf)
                     local rendered_h  = math.floor(src_h * sf)
                     local framed_h    = rendered_h + 2 * border
@@ -192,19 +211,55 @@ local function apply_context_menu()
                             max_width = text_col_w,
                         })
                     end
+                    local cover_frame = FrameContainer:new{
+                        padding    = 0,
+                        bordersize = border,
+                        ImageWidget:new{
+                            image            = cover_bb,
+                            image_disposable = true,
+                            scale_factor     = sf,
+                        },
+                    }
+                    local cover_component
+                    if on_cover_tap then
+                        local InputContainer2 = require("ui/widget/container/inputcontainer")
+                        local GestureRange2   = require("ui/gesturerange")
+                        local cw = rendered_w + 2 * border
+                        local wrapper = InputContainer2:new{
+                            dimen = Geom:new{ w = cw, h = framed_h },
+                            ges_events = {
+                                TapCover = {
+                                    GestureRange2:new{
+                                        ges   = "tap",
+                                        range = Geom:new{
+                                            x = 0, y = 0,
+                                            w = Screen:getWidth(),
+                                            h = Screen:getHeight(),
+                                        },
+                                    },
+                                },
+                            },
+                        }
+                        function wrapper:onTapCover(_, ges)
+                            if not self.dimen or not ges or not ges.pos then
+                                return false
+                            end
+                            if not self.dimen:contains(ges.pos) then
+                                return false
+                            end
+                            on_cover_tap()
+                            return true
+                        end
+                        wrapper[1] = cover_frame
+                        cover_component = wrapper
+                    else
+                        cover_component = cover_frame
+                    end
                     return LeftContainer:new{
                         dimen = Geom:new{ w = avail_w, h = framed_h },
                         HorizontalGroup:new{
                             align = "top",
-                            FrameContainer:new{
-                                padding    = 0,
-                                bordersize = border,
-                                ImageWidget:new{
-                                    image            = cover_bb,
-                                    image_disposable = true,
-                                    scale_factor     = sf,
-                                },
-                            },
+                            cover_component,
                             HorizontalSpan:new{ width = gap },
                             vstack,
                         },
@@ -244,7 +299,8 @@ local function apply_context_menu()
                                     sf,
                                     title_str or BD.filename(file:match("([^/]+)$")),
                                     authors_str,
-                                    tags_str_local)
+                                    tags_str_local,
+                                    function() showCoverFullscreen(file) end)
                             end
                         end
                     end
@@ -295,10 +351,12 @@ local function apply_context_menu()
                                     local _, _, sf = BookInfoManager.getCachedCoverSize(
                                         bookinfo.cover_w, bookinfo.cover_h,
                                         cover_max_w, cover_max_h)
+                                    local first_book = dir_files[1]
                                     dialog_cover_widget = makeSideBySide(
                                         bookinfo.cover_bb,
                                         bookinfo.cover_w, bookinfo.cover_h,
-                                        sf, folder_name_str, folder_count_str, nil)
+                                        sf, folder_name_str, folder_count_str, nil,
+                                        function() showCoverFullscreen(first_book) end)
                                 end
                             end
                         end
