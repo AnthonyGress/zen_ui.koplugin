@@ -781,3 +781,19 @@ msgstr "Copy"
 msgctxt "File"
 msgid "Paste"
 msgstr "Paste"
+
+msgid "< 1 min left in chapter"
+msgstr "< 1 min left in chapter"
+
+msgid "1 min left in chapter"
+msgstr "1 min left in chapter"
+
+msgid "%1 mins left in chapter"
+msgstr "%1 mins left in chapter"
+
+msgid "Verbose time to chapter end"
+msgstr "Verbose time to chapter end"
+
+msgid "Reader footer settings"
+msgstr "Reader footer settings"
+

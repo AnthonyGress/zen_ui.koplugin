@@ -782,3 +782,18 @@ msgstr "複製"
 msgctxt "File"
 msgid "Paste"
 msgstr "貼上"
+
+msgid "< 1 min left in chapter"
+msgstr "本章剩餘 < 1 分鐘"
+
+msgid "1 min left in chapter"
+msgstr "本章剩餘 1 分鐘"
+
+msgid "%1 mins left in chapter"
+msgstr "本章剩餘 %1 分鐘"
+
+msgid "Verbose time to chapter end"
+msgstr "詳細的本章剩餘時間"
+
+msgid "Reader footer settings"
+msgstr "閱讀器頁腳設定"

@@ -782,3 +782,18 @@ msgstr "复制"
 msgctxt "File"
 msgid "Paste"
 msgstr "粘贴"
+
+msgid "< 1 min left in chapter"
+msgstr "本章剩余 < 1 分钟"
+
+msgid "1 min left in chapter"
+msgstr "本章剩余 1 分钟"
+
+msgid "%1 mins left in chapter"
+msgstr "本章剩余 %1 分钟"
+
+msgid "Verbose time to chapter end"
+msgstr "详细的章节剩余时间"
+
+msgid "Reader footer settings"
+msgstr "阅读器页脚设置"

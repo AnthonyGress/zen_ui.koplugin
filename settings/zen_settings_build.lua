@@ -1701,6 +1701,22 @@ function M.build(plugin)
         },
     })
 
+    table.insert(reader_items, {
+        text = _("Verbose time to chapter end"),
+        checked_func = function()
+            return type(config.reader_footer) == "table"
+                and config.reader_footer.verbose_chapter_time == true
+        end,
+        callback = function()
+            if type(config.reader_footer) ~= "table" then
+                config.reader_footer = {}
+            end
+            local currently_on = not (config.reader_footer.verbose_chapter_time == false)
+            config.reader_footer.verbose_chapter_time = not currently_on
+            plugin:saveConfig()
+        end,
+    })
+
     table.insert(general_items, updater.build_update_now_item(plugin))
 
     table.insert(general_items, {

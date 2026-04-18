@@ -784,3 +784,18 @@ msgstr "Copia"
 msgctxt "File"
 msgid "Paste"
 msgstr "Incolla"
+
+msgid "< 1 min left in chapter"
+msgstr "< 1 min al termine del capitolo"
+
+msgid "1 min left in chapter"
+msgstr "1 min al termine del capitolo"
+
+msgid "%1 mins left in chapter"
+msgstr "%1 min al termine del capitolo"
+
+msgid "Verbose time to chapter end"
+msgstr "Tempo dettagliato alla fine del capitolo"
+
+msgid "Reader footer settings"
+msgstr "Impostazioni piè di pagina"

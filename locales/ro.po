@@ -784,3 +784,18 @@ msgstr "Copiază"
 msgctxt "File"
 msgid "Paste"
 msgstr "Lipește"
+
+msgid "< 1 min left in chapter"
+msgstr "< 1 min rămas în capitol"
+
+msgid "1 min left in chapter"
+msgstr "1 min rămas în capitol"
+
+msgid "%1 mins left in chapter"
+msgstr "%1 min rămase în capitol"
+
+msgid "Verbose time to chapter end"
+msgstr "Timp detaliat până la sfârșitul capitolului"
+
+msgid "Reader footer settings"
+msgstr "Setări subsol cititor"

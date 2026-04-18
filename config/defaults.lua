@@ -119,7 +119,10 @@ local defaults = {
     reader_clock = {
         use_24h = false,
         position = "center",
-    }
+    },
+    reader_footer = {
+        verbose_chapter_time = false,
+    },
 }
 
 return defaults

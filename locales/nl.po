@@ -784,3 +784,18 @@ msgstr "Kopiëren"
 msgctxt "File"
 msgid "Paste"
 msgstr "Plakken"
+
+msgid "< 1 min left in chapter"
+msgstr "< 1 min resterend in hoofdstuk"
+
+msgid "1 min left in chapter"
+msgstr "1 min resterend in hoofdstuk"
+
+msgid "%1 mins left in chapter"
+msgstr "%1 min resterend in hoofdstuk"
+
+msgid "Verbose time to chapter end"
+msgstr "Gedetailleerde tijd tot einde hoofdstuk"
+
+msgid "Reader footer settings"
+msgstr "Lezer voettekst instellingen"
