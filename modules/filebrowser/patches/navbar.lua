@@ -46,8 +46,8 @@ local function apply_navbar()
     -- === Layout constants ===
 
     local navbar_icon_size = Screen:scaleBySize(34)
-    local navbar_font = Font:getFace("smallinfofont")
-    local navbar_font_bold = Font:getFace("smallinfofontbold")
+    local navbar_font = Font:getFace("smallinfofont", 20)
+    local navbar_font_bold = Font:getFace("smallinfofontbold", 20)
     local navbar_v_padding = Screen:scaleBySize(4)
     -- Dead zone at left/right edges to avoid stealing corner gesture taps
     local corner_dead_zone = math.floor(Screen:getWidth() / 12)
@@ -82,7 +82,7 @@ local function apply_navbar()
         active_tab_styling = true,
         active_tab_bold = true,
         active_tab_underline = true,
-        underline_above = true,
+        underline_above = false,
     }
 
     local function loadConfig()
@@ -460,7 +460,7 @@ local function apply_navbar()
 
     -- === Build a single tab (visual only) ===
 
-    local function createTabWidget(tab, tab_w, is_active)
+    local function createTabWidget(tab, label_max_w, is_active)
         local styled = is_active and config.active_tab_styling
         local use_color = styled and config.colored and Screen:isColorScreen()
         local active_color
@@ -497,32 +497,21 @@ local function apply_navbar()
             label = ColorTextWidget:new{
                 text = tab.label,
                 face = use_bold and navbar_font_bold or navbar_font,
+                max_width = label_max_w,
                 fgcolor = active_color,
             }
         else
             label = TextWidget:new{
                 text = tab.label,
                 face = use_bold and navbar_font_bold or navbar_font,
-            }
-        end
-
-        local icon_label_group
-        if config.show_labels then
-            icon_label_group = VerticalGroup:new{
-                align = "center",
-                icon,
-                label,
-            }
-        else
-            icon_label_group = VerticalGroup:new{
-                align = "center",
-                icon,
+                max_width = label_max_w,
             }
         end
 
         local show_underline = styled and config.active_tab_underline
         local underline
         if show_underline then
+            local underline_w = config.show_labels and label:getSize().w or icon:getSize().w
             local underline_color = Blitbuffer.COLOR_BLACK
             if config.colored then
                 local c = config.active_tab_color
@@ -533,7 +522,7 @@ local function apply_navbar()
             if config.colored and Screen:isColorScreen() then
                 local Widget = require("ui/widget/widget")
                 local color_line = Widget:new{
-                    dimen = Geom:new{ w = tab_w, h = underline_thickness },
+                    dimen = Geom:new{ w = underline_w, h = underline_thickness },
                 }
                 function color_line:paintTo(bb, x, y)
                     bb:paintRectRGB32(x, y, self.dimen.w, self.dimen.h, underline_color)
@@ -541,7 +530,7 @@ local function apply_navbar()
                 underline = color_line
             else
                 underline = LineWidget:new{
-                    dimen = Geom:new{ w = tab_w, h = underline_thickness },
+                    dimen = Geom:new{ w = underline_w, h = underline_thickness },
                     background = underline_color,
                 }
             end
@@ -549,31 +538,49 @@ local function apply_navbar()
             underline = VerticalSpan:new{ width = underline_thickness }
         end
 
-        local v_pad = config.show_labels and navbar_v_padding or navbar_v_padding * 2
-
-        local children
-        if config.underline_above then
-            children = {
-                align = "center",
-                underline,
-                VerticalSpan:new{ width = v_pad },
-                icon_label_group,
-                VerticalSpan:new{ width = v_pad },
-            }
+        local icon_label_group
+        if config.show_labels then
+            if config.underline_above then
+                icon_label_group = VerticalGroup:new{
+                    align = "center",
+                    underline,
+                    icon,
+                    label,
+                }
+            else
+                icon_label_group = VerticalGroup:new{
+                    align = "center",
+                    icon,
+                    label,
+                    underline,
+                }
+            end
         else
-            children = {
-                align = "center",
-                VerticalSpan:new{ width = v_pad },
-                icon_label_group,
-                VerticalSpan:new{ width = v_pad },
-                underline,
-            }
+            if config.underline_above then
+                icon_label_group = VerticalGroup:new{
+                    align = "center",
+                    underline,
+                    icon,
+                }
+            else
+                icon_label_group = VerticalGroup:new{
+                    align = "center",
+                    icon,
+                    underline,
+                }
+            end
         end
 
-        return CenterContainer:new{
-            dimen = Geom:new{ w = tab_w, h = icon_label_group:getSize().h + v_pad * 2 + underline_thickness },
-            VerticalGroup:new(children),
+        local v_pad = config.show_labels and navbar_v_padding or navbar_v_padding * 2
+
+        local children = {
+            align = "center",
+            VerticalSpan:new{ width = v_pad },
+            icon_label_group,
+            VerticalSpan:new{ width = v_pad },
         }
+
+        return VerticalGroup:new(children)
     end
 
     -- === Build the full navbar ===
@@ -591,6 +598,16 @@ local function apply_navbar()
         return visible
     end
 
+    local function getTabWidth(num_tabs)
+        local inner_w = Screen:getWidth() - navbar_h_padding * 2
+        return math.floor(inner_w / num_tabs)
+    end
+
+    local function tapIndexForTab(tap_x, tab_w, count)
+        local idx = math.floor(tap_x / tab_w) + 1
+        return math.max(1, math.min(count, idx))
+    end
+
     local function createNavBar()
         if not is_navbar_enabled() then
             return nil
@@ -604,12 +621,38 @@ local function apply_navbar()
 
         local screen_w = Screen:getWidth()
         local inner_w = screen_w - navbar_h_padding * 2
-        local tab_w = math.floor(inner_w / #visible_tabs)
+        local num_tabs = #visible_tabs
+        local label_max_w = math.floor(inner_w / num_tabs) - Screen:scaleBySize(4)
 
-        local row = HorizontalGroup:new{}
-        for _, tab in ipairs(visible_tabs) do
-            table.insert(row, createTabWidget(tab, tab_w, tab.id == active_tab))
+        -- Build tab content widgets and measure their natural widths
+        local tab_widgets = {}
+        local total_content_w = 0
+        for i, tab in ipairs(visible_tabs) do
+            local widget = createTabWidget(tab, label_max_w, tab.id == active_tab)
+            tab_widgets[i] = widget
+            total_content_w = total_content_w + widget:getSize().w
         end
+
+        -- Space-evenly: distribute remaining width as equal gaps around and between tabs
+        local remaining = inner_w - total_content_w
+        local gap_count = num_tabs + 1
+        local base_gap = math.max(0, math.floor(remaining / gap_count))
+        local extra_pixels = remaining - base_gap * gap_count
+
+        -- Build row with even spacing and track tab center positions for tap detection
+        local row = HorizontalGroup:new{}
+        local tab_centers = {}
+        local x_pos = 0
+        for i, widget in ipairs(tab_widgets) do
+            local gap = base_gap + (i <= extra_pixels and 1 or 0)
+            table.insert(row, HorizontalSpan:new{ width = gap })
+            x_pos = x_pos + gap
+            local w = widget:getSize().w
+            tab_centers[i] = x_pos + w / 2
+            table.insert(row, widget)
+            x_pos = x_pos + w
+        end
+        table.insert(row, HorizontalSpan:new{ width = base_gap })
 
         local row_with_padding = HorizontalGroup:new{
             HorizontalSpan:new{ width = navbar_h_padding },
@@ -643,10 +686,17 @@ local function apply_navbar()
             if ges.pos.x < corner_dead_zone or ges.pos.x > screen_w - corner_dead_zone then
                 return false
             end
-            -- Determine which tab was tapped based on x position
+            -- Find nearest tab by comparing tap position to midpoints between tab centers
             local tap_x = ges.pos.x - navbar_h_padding
-            local idx = math.floor(tap_x / tab_w) + 1
-            idx = math.max(1, math.min(#visible_tabs, idx))
+            local idx = 1
+            for i = 1, num_tabs - 1 do
+                local boundary = (tab_centers[i] + tab_centers[i + 1]) / 2
+                if tap_x >= boundary then
+                    idx = i + 1
+                else
+                    break
+                end
+            end
             local tapped_id = visible_tabs[idx].id
             local cb = tab_callbacks[tapped_id]
             if cb then cb() end
@@ -867,11 +917,9 @@ local function apply_navbar()
             end
             local vis_tabs = getVisibleTabs()
             if #vis_tabs == 0 then return false end
-            local inner_w = screen_w - navbar_h_padding * 2
-            local tab_w_local = math.floor(inner_w / #vis_tabs)
+            local tab_w_local = getTabWidth(#vis_tabs)
             local tap_x = ges.pos.x - navbar_h_padding
-            local idx = math.floor(tap_x / tab_w_local) + 1
-            idx = math.max(1, math.min(#vis_tabs, idx))
+            local idx = tapIndexForTab(tap_x, tab_w_local, #vis_tabs)
             local tapped_id = vis_tabs[idx].id
 
             -- Already in this view, do nothing
@@ -1041,11 +1089,9 @@ local function apply_navbar()
                 end
                 local vis_tabs = getVisibleTabs()
                 if #vis_tabs == 0 then return false end
-                local inner_w = screen_w - navbar_h_padding * 2
-                local tab_w_local = math.floor(inner_w / #vis_tabs)
+                local tab_w_local = getTabWidth(#vis_tabs)
                 local tap_x = ges.pos.x - navbar_h_padding
-                local idx = math.floor(tap_x / tab_w_local) + 1
-                idx = math.max(1, math.min(#vis_tabs, idx))
+                local idx = tapIndexForTab(tap_x, tab_w_local, #vis_tabs)
                 local tapped_id = vis_tabs[idx].id
                 if tapped_id == "news" then return true end
                 self:onClose()

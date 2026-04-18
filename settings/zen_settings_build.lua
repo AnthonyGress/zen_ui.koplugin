@@ -445,6 +445,7 @@ function M.build(plugin)
                     save_and_apply("navbar")
                 end,
             },
+
             {
                 text = _("Bold active tab"),
                 checked_func = function() return config.navbar.active_tab_bold == true end,
@@ -464,7 +465,7 @@ function M.build(plugin)
                 end,
             },
             {
-                text = _("Underline above icon"),
+                text = _("Underline above"),
                 checked_func = function() return config.navbar.underline_above == true end,
                 enabled_func = function() return config.navbar.active_tab_styling == true and config.navbar.active_tab_underline == true end,
                 callback = function()

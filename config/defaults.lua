@@ -65,8 +65,8 @@ local defaults = {
         active_tab_color = { 0x33, 0x99, 0xFF },
         active_tab_styling = true,
         active_tab_bold = true,
-        active_tab_underline = false,
-        underline_above = true,
+        active_tab_underline = true,
+        underline_above = false,
     },
     quick_settings = {
         button_order = { "wifi", "night", "rotate", "zen", "settings", "usb", "search", "quickrss", "cloud", "zlibrary", "calibre", "notion", "streak", "opds", "filebrowser", "restart", "exit", "sleep" },

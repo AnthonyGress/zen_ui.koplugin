@@ -70,6 +70,26 @@ local function apply_browser_hide_underline()
                 end
             end
         end
+
+        -- Patch CoverMenu.updateItems so ALL coverbrowser-enabled views
+        -- (including collections) get underlines hidden after items are built.
+        local ok_cm, CoverMenu = pcall(require, "covermenu")
+        if ok_cm and CoverMenu and not CoverMenu._zen_hide_underline_patched then
+            CoverMenu._zen_hide_underline_patched = true
+            local orig_cover_updateItems = CoverMenu.updateItems
+            function CoverMenu:updateItems(...)
+                orig_cover_updateItems(self, ...)
+                if self.layout then
+                    for _, row in ipairs(self.layout) do
+                        for _, item in ipairs(row) do
+                            if item._underline_container then
+                                item._underline_container.color = Blitbuffer.COLOR_WHITE
+                            end
+                        end
+                    end
+                end
+            end
+        end
     end
 
     -- Export shared utilities for other patches (e.g. collections classic mode)
@@ -77,15 +97,23 @@ local function apply_browser_hide_underline()
     if zen_plugin then
         if not zen_plugin._zen_shared then zen_plugin._zen_shared = {} end
         zen_plugin._zen_shared.hide_underline_active = true
-        zen_plugin._zen_shared.patchMenuHideUnderline = function(menu)
-            local Menu_class = require("ui/widget/menu")
-            local base_updateItems = menu.updateItems or Menu_class.updateItems
-            menu.updateItems = function(self_m, ...)
-                base_updateItems(self_m, ...)
-                if self_m.item_group then
-                    for _, w in ipairs(self_m.item_group) do
-                        if w._underline_container then
-                            w._underline_container.color = Blitbuffer.COLOR_WHITE
+    end
+
+    -- Patch Menu.updateItems at the class level so ALL menu views
+    -- (classic mode, collections, history, favorites, etc.) get underlines hidden.
+    -- CoverMenu.updateItems (mosaic/list) is a separate override and is patched
+    -- inside patchCoverBrowser above; this catches everything else.
+    local Menu = require("ui/widget/menu")
+    if not Menu._zen_hide_underline_patched then
+        Menu._zen_hide_underline_patched = true
+        local orig_menu_updateItems = Menu.updateItems
+        function Menu:updateItems(...)
+            orig_menu_updateItems(self, ...)
+            if self.layout then
+                for _, row in ipairs(self.layout) do
+                    for _, item in ipairs(row) do
+                        if item._underline_container then
+                            item._underline_container.color = Blitbuffer.COLOR_WHITE
                         end
                     end
                 end

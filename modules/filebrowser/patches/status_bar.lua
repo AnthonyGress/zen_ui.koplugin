@@ -604,7 +604,7 @@ local function apply_status_bar()
     -- button that always shows and calls back_callback when tapped.  Used by
     -- collections.lua for named-collection views so the chevron goes back to
     -- the collections list rather than navigating the filesystem.
-    local function createStatusRowCustomBack(back_callback)
+    local function createStatusRowCustomBack(back_callback, title)
         local CenterContainer = require("ui/widget/container/centercontainer")
         local Button = require("ui/widget/button")
         local icon_size = Screen:scaleBySize(28)
@@ -618,7 +618,16 @@ local function apply_status_bar()
         }
         local left_content   = _buildGroup(config.left_order   or {})
         local right_content  = _buildGroup(config.right_order  or {})
-        local center_content = _buildGroup(config.center_order or {})
+        local center_content
+        if title then
+            center_content = TextWidget:new{
+                text = title,
+                face = getBarFont(),
+                bold = true,
+            }
+        else
+            center_content = _buildGroup(config.center_order or {})
+        end
         local row_height = Screen:scaleBySize(18)
         local function updateRowHeight(w)
             if w then

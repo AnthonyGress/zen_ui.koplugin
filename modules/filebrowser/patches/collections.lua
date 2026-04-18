@@ -114,6 +114,22 @@ local function apply_collections()
         local BookInfoManager = require("bookinfomanager")
         local util            = require("util")
 
+        -- Ensure onFocus keeps underlines hidden for all mosaic items.
+        -- browser_hide_underline patches this via userpatch, but if the
+        -- userpatch callback hasn't fired yet (or silently failed), the
+        -- original onFocus sets COLOR_BLACK on the focused item — which
+        -- is the exact symptom when navigating back to collections list.
+        local Blitbuffer_uc = require("ffi/blitbuffer")
+        if not MosaicMenuItem._zen_coll_focus_patched then
+            MosaicMenuItem._zen_coll_focus_patched = true
+            function MosaicMenuItem:onFocus()
+                if self._underline_container then
+                    self._underline_container.color = Blitbuffer_uc.COLOR_WHITE
+                end
+                return true
+            end
+        end
+
         local orig_update = MosaicMenuItem.update
         function MosaicMenuItem:update(...)
             if not (self.menu and self.menu._zen_coll_list
@@ -157,10 +173,6 @@ local function apply_collections()
                     gallery    = covers,
                     book_count = book_count,
                 }
-                if self._underline_container and zen_plugin._zen_shared
-                        and zen_plugin._zen_shared.hide_underline_active then
-                    self._underline_container.color = require("ffi/blitbuffer").COLOR_WHITE
-                end
                 return
             end
 
@@ -262,10 +274,6 @@ local function apply_collections()
                 self._underline_container[1]:free()
             end
             self._underline_container[1] = widget
-            if self._underline_container and zen_plugin._zen_shared
-                    and zen_plugin._zen_shared.hide_underline_active then
-                self._underline_container.color = Blitbuffer.COLOR_WHITE
-            end
         end
     end
 
@@ -322,6 +330,11 @@ local function apply_collections()
             local coll_name  = self.entry.name
             local coll       = ReadCollection.coll[coll_name]
             local book_count = coll and util.tableSize(coll) or 0
+            local display_name = coll_name
+            if coll_name == ReadCollection.default_collection_name then
+                local _ = require("gettext")
+                display_name = _("Favorites")
+            end
 
             local underline_h  = 1
             local dimen_h      = self.height - 2 * underline_h
@@ -521,7 +534,7 @@ local function apply_collections()
                 self.width - left_offset - wright_w - 2 * pad_right)
 
             local wtitle = TextBoxWidget:new{
-                text      = BD.auto(coll_name),
+                text      = BD.auto(display_name),
                 face      = Font:getFace("cfont", fs_title),
                 width     = main_w,
                 height    = dimen_h,
@@ -567,10 +580,6 @@ local function apply_collections()
                 VerticalSpan:new{ width = underline_h },
                 widget,
             }
-            if zen_plugin._zen_shared
-                    and zen_plugin._zen_shared.hide_underline_active then
-                self._underline_container.color = Blitbuffer.COLOR_WHITE
-            end
 
             self.bookinfo_found = true
             self.init_done = true
@@ -969,6 +978,11 @@ local function apply_collections()
                     callback = function()
                         UIManager_bm:close(view_dialog)
                         apply_mode(mode)
+                        if fm_coll.coll_list then
+                            UIManager_bm:close(fm_coll.coll_list)
+                            fm_coll.coll_list = nil
+                            fm_coll:onShowCollList()
+                        end
                     end,
                 }}
             end
@@ -1091,7 +1105,7 @@ local function apply_collections()
     ---------------------------------------------------------------------------
     -- clean_nav: customises a NAMED collection's booklist_menu
     ---------------------------------------------------------------------------
-    local function clean_nav(menu)
+    local function clean_nav(menu, collection_name)
         if not menu then return end
 
         local UIManager_mod = require("ui/uimanager")
@@ -1118,7 +1132,7 @@ local function apply_collections()
             local back_callback = menu.onReturn and function() menu.onReturn() end
                                or function() end
 
-            local status_row = createStatusRowCustomBack(back_callback)
+            local status_row = createStatusRowCustomBack(back_callback, collection_name)
             tb.title_group[2] = status_row
             tb.title_group:resetLayout()
 
@@ -1129,7 +1143,7 @@ local function apply_collections()
 
             menu._zen_status_refresh = function()
                 if tb.title_group and #tb.title_group >= 2 then
-                    tb.title_group[2] = createStatusRowCustomBack(back_callback)
+                    tb.title_group[2] = createStatusRowCustomBack(back_callback, collection_name)
                     tb.title_group:resetLayout()
                     UIManager_mod:setDirty(menu, "ui", tb.dimen)
                 end
@@ -1151,13 +1165,6 @@ local function apply_collections()
 
         local UIManager_mod = require("ui/uimanager")
         local Device        = require("device")
-
-        -- ── Hide underlines if the feature is active ─────────────────────────
-        local patchMenuHideUnderline = zen_plugin._zen_shared
-            and zen_plugin._zen_shared.patchMenuHideUnderline
-        if patchMenuHideUnderline then
-            patchMenuHideUnderline(menu)
-        end
 
         -- ── Replace onMenuHold with our context menu ────────────────────────
         menu.onMenuHold = function(menu_self, item)
@@ -1231,7 +1238,7 @@ local function apply_collections()
             or resolved_name == nil
             or (ok and resolved_name == ReadCollection.default_collection_name)
 
-        if is_enabled() and not is_favorites and self.ui then
+        if is_enabled() and self.ui then
             local coverbrowser = self.ui.coverbrowser
             if coverbrowser and type(coverbrowser.setupWidgetDisplayMode) == "function" then
                 local BookInfoManager = require("bookinfomanager")
@@ -1246,9 +1253,18 @@ local function apply_collections()
         orig_onShowColl(self, collection_name)
 
         if not is_enabled() then return end
-        if is_favorites then return end
 
-        clean_nav(self.booklist_menu)
+        if is_favorites and collection_name == nil then
+            return
+        end
+
+        local display_name = resolved_name
+        if is_favorites then
+            local _ = require("gettext")
+            display_name = _("Favorites")
+        end
+
+        clean_nav(self.booklist_menu, display_name)
     end
 
     ---------------------------------------------------------------------------
