@@ -141,27 +141,58 @@ local function apply_context_menu()
                 local cover_max_w = Screen:scaleBySize(80)
                 local cover_max_h = Screen:scaleBySize(120)
 
-                -- Build an OverlapGroup with cover at left edge, text at right edge.
-                local function makeSideBySide(cover_bb, src_w, src_h, sf, text_str)
+                -- Build an OverlapGroup with cover at left edge, text stack at right edge.
+                local function makeSideBySide(cover_bb, src_w, src_h, sf, title_str, authors_str, tags_str_arg)
                     local rendered_w  = math.floor(src_w * sf)
                     local rendered_h  = math.floor(src_h * sf)
                     local framed_h    = rendered_h + 2 * border
                     local text_col_w  = math.max(avail_w - rendered_w - 2 * border - gap,
                                                  Screen:scaleBySize(60))
-                    local ImageWidget    = require("ui/widget/imagewidget")
-                    local FrameContainer = require("ui/widget/container/framecontainer")
-                    local OverlapGroup   = require("ui/widget/overlapgroup")
-                    local LeftContainer  = require("ui/widget/container/leftcontainer")
-                    local RightContainer = require("ui/widget/container/rightcontainer")
-                    local TextBoxWidget  = require("ui/widget/textboxwidget")
-                    local Font           = require("ui/font")
-                    local Geom           = require("ui/geometry")
-                    local row_dimen      = Geom:new{ w = avail_w, h = framed_h }
-                    return OverlapGroup:new{
-                        dimen         = row_dimen,
-                        not_focusable = true,
-                        LeftContainer:new{
-                            dimen = row_dimen,
+                    local ImageWidget     = require("ui/widget/imagewidget")
+                    local FrameContainer  = require("ui/widget/container/framecontainer")
+                    local LeftContainer   = require("ui/widget/container/leftcontainer")
+                    local HorizontalGroup = require("ui/widget/horizontalgroup")
+                    local HorizontalSpan  = require("ui/widget/horizontalspan")
+                    local TextWidget      = require("ui/widget/textwidget")
+                    local VerticalGroup   = require("ui/widget/verticalgroup")
+                    local VerticalSpan    = require("ui/widget/verticalspan")
+                    local Font            = require("ui/font")
+                    local Blitbuffer      = require("ffi/blitbuffer")
+                    local Geom            = require("ui/geometry")
+                    -- Raw point sizes (not pre-scaled) to match KOReader dialog conventions.
+                    local fs_title   = 20
+                    local fs_authors = 17
+                    local fs_tags    = 14
+                    local vstack = VerticalGroup:new{ align = "left" }
+                    if title_str then
+                        table.insert(vstack, TextWidget:new{
+                            text      = title_str,
+                            face      = Font:getFace("cfont", fs_title),
+                            bold      = true,
+                            max_width = text_col_w,
+                        })
+                    end
+                    if authors_str then
+                        table.insert(vstack, VerticalSpan:new{ width = Screen:scaleBySize(2) })
+                        table.insert(vstack, TextWidget:new{
+                            text      = authors_str,
+                            face      = Font:getFace("cfont", fs_authors),
+                            max_width = text_col_w,
+                        })
+                    end
+                    if tags_str_arg and tags_str_arg ~= "" then
+                        table.insert(vstack, VerticalSpan:new{ width = Screen:scaleBySize(3) })
+                        table.insert(vstack, TextWidget:new{
+                            text      = tags_str_arg,
+                            face      = Font:getFace("cfont", fs_tags),
+                            fgcolor   = Blitbuffer.COLOR_GRAY_3,
+                            max_width = text_col_w,
+                        })
+                    end
+                    return LeftContainer:new{
+                        dimen = Geom:new{ w = avail_w, h = framed_h },
+                        HorizontalGroup:new{
+                            align = "top",
                             FrameContainer:new{
                                 padding    = 0,
                                 bordersize = border,
@@ -171,29 +202,28 @@ local function apply_context_menu()
                                     scale_factor     = sf,
                                 },
                             },
-                        },
-                        RightContainer:new{
-                            dimen = row_dimen,
-                            TextBoxWidget:new{
-                                text      = text_str,
-                                face      = Font:getFace("infofont"),
-                                width     = text_col_w,
-                                alignment = "left",
-                            },
+                            HorizontalSpan:new{ width = gap },
+                            vstack,
                         },
                     }
                 end
 
                 if is_file then
                     local ok, BookInfoManager = pcall(require, "bookinfomanager")
-                    local text_str
+                    local title_str, authors_str, tags_str_local
                     if ok then
                         local bookinfo = BookInfoManager:getBookInfo(file, true)
                         if bookinfo then
-                            if not bookinfo.ignore_meta and bookinfo.title then
-                                text_str = BD.auto(bookinfo.title)
-                                if bookinfo.authors then
-                                    text_str = text_str .. "\n" .. BD.auto(bookinfo.authors)
+                            if not bookinfo.ignore_meta then
+                                if bookinfo.title then
+                                    title_str   = BD.auto(bookinfo.title)
+                                    authors_str = bookinfo.authors and BD.auto(bookinfo.authors) or nil
+                                end
+                                if bookinfo.keywords and bookinfo.keywords ~= "" then
+                                    tags_str_local = bookinfo.keywords
+                                        :gsub("%s*[\n;]%s*", ", ")
+                                        :gsub("%s+\xC2\xB7%s+", ", ")
+                                        :gsub("^,%s*", ""):gsub(",%s*$", "")
                                 end
                             end
                             if not bookinfo.ignore_meta and bookinfo.description
@@ -209,9 +239,18 @@ local function apply_context_menu()
                                     bookinfo.cover_bb,
                                     bookinfo.cover_w, bookinfo.cover_h,
                                     sf,
-                                    text_str or BD.filename(file:match("([^/]+)$")))
+                                    title_str or BD.filename(file:match("([^/]+)$")),
+                                    authors_str,
+                                    tags_str_local)
                             end
                         end
+                    end
+                    -- dialog_title is the plain text fallback used by the text-only header
+                    -- and the status sub-dialog: keep it as "title\nauthors"
+                    local text_str
+                    if title_str then
+                        text_str = title_str
+                        if authors_str then text_str = text_str .. "\n" .. authors_str end
                     end
                     dialog_title = text_str or BD.filename(file:match("([^/]+)$"))
                 else
@@ -253,7 +292,7 @@ local function apply_context_menu()
                                     dialog_cover_widget = makeSideBySide(
                                         bookinfo.cover_bb,
                                         bookinfo.cover_w, bookinfo.cover_h,
-                                        sf, text_str)
+                                        sf, text_str, nil, nil)
                                 end
                             end
                         end
