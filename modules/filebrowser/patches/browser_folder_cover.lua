@@ -136,14 +136,6 @@ local function apply_browser_folder_cover()
         return orig_FileChooser_genItemTableFromPath(self, path)
     end
 
-    local function capitalize(sentence)
-        local words = {}
-        for word in sentence:gmatch("%S+") do
-            table.insert(words, word:sub(1, 1):upper() .. word:sub(2))
-        end
-        return table.concat(words, " ")
-    end
-
     local Folder = {
         edge = {
             thick = Screen:scaleBySize(2.5),
@@ -280,7 +272,7 @@ local function apply_browser_folder_cover()
         -- in a parent directory.  Stops at the reader home_dir boundary or after
         -- MAX_LEVELS ancestor directories, whichever comes first.
         local ffiUtil = require("ffi/util")
-        local MAX_ANCESTOR_LEVELS = 8
+        local MAX_ANCESTOR_LEVELS = 3
 
         local function getBookInfoWithFallback(path)
             -- Exact match first.  Pass true (get_cover=true) so cover_bb is
@@ -290,6 +282,11 @@ local function apply_browser_folder_cover()
 
             local basename = ffiUtil.basename(path)
             local home_dir = G_reader_settings and G_reader_settings:readSetting("home_dir") or nil
+
+            -- Only search within the reader home directory.
+            if not home_dir or path:sub(1, #home_dir) ~= home_dir then
+                return nil, nil
+            end
 
             -- Walk: at each step move one level up from the current dir and
             -- probe  <ancestor>/<basename>.  This finds the old DB entry when
@@ -311,7 +308,7 @@ local function apply_browser_folder_cover()
                         return candidate_bi, candidate
                     end
                 end
-                if home_dir and parent == home_dir then break end
+                if parent == home_dir then break end  -- don't walk above home
                 dir = parent
             end
             return nil, nil
@@ -516,12 +513,48 @@ local function apply_browser_folder_cover()
                         return
                     end
                     -- No ancestor cover found (genuinely new/unindexed file).
-                    -- KOReader's coverbrowser already fires onBookInfoUpdated → item:update()
-                    -- when extraction for this specific item finishes.  Using our own
-                    -- schedule_folder_refresh here is redundant and harmful: it fires once
-                    -- per unindexed book, each calling menu:updateItems() (which re-renders
-                    -- ALL items), up to 14 s after the page opens.  Just return and let
-                    -- KOReader's native mechanism handle the targeted per-item refresh.
+                    -- Replace KOReader's FakeCover with a clean portrait-sized
+                    -- placeholder so there is never a size mismatch between what
+                    -- sits on the e-ink panel and the real cover that will replace
+                    -- it.  Using the same portrait dimensions as the real cover
+                    -- means the repaint region when bookinfo arrives covers every
+                    -- pixel that our placeholder occupied — no ghost border remains.
+                    -- This also survives navigate-away-and-back: widget instances
+                    -- are recreated on return, so a flag on the old instance would
+                    -- be lost; overwriting _underline_container[1] here works on
+                    -- every render regardless of prior state.
+                    do
+                        local border = Folder.face.border_size
+                        local max_w  = self.width  - 2 * border
+                        local bh     = self.height - 2 * border
+                        local portrait_w, portrait_h
+                        if bh * 2 <= max_w * 3 then
+                            portrait_h = bh
+                            portrait_w = math.floor(bh * 2 / 3)
+                        else
+                            portrait_w = max_w
+                            portrait_h = math.min(math.floor(max_w * 3 / 2), bh)
+                        end
+                        local placeholder = FrameContainer:new {
+                            padding       = 0,
+                            bordersize    = border,
+                            width         = portrait_w + 2 * border,
+                            height        = portrait_h + 2 * border,
+                            background    = Blitbuffer.COLOR_LIGHT_GRAY,
+                            overlap_align = "center",
+                            CenterContainer:new {
+                                dimen = { w = portrait_w, h = portrait_h },
+                                VerticalSpan:new { width = 1 },
+                            },
+                        }
+                        if self._underline_container[1] then
+                            self._underline_container[1]:free()
+                        end
+                        self._underline_container[1] = OverlapGroup:new {
+                            dimen = { w = self.width, h = self.height },
+                            placeholder,
+                        }
+                    end
                     return
                 end
                 if bookinfo and bookinfo.cover_fetched
@@ -938,7 +971,7 @@ local function apply_browser_folder_cover()
 
             local text = self.text
             if text:match("/$") then text = text:sub(1, -2) end -- remove "/"
-            text = BD.directory(capitalize(text))
+            text = BD.directory(text)
             local available_height = dimen.h - 2 * badge_h
             local dir_font_size = Folder.face.dir_max_font_size
             local min_font_size = 14  -- shrink to this before allowing wrap/overflow
@@ -1265,7 +1298,7 @@ local function apply_browser_folder_cover()
                     -- Folder name widget (middle area).
                     local text = self.text
                     if text:match("/$") then text = text:sub(1, -2) end
-                    text = BD.directory(capitalize(text))
+                    text = BD.directory(text)
                     local wmain_w = self.width - cover_zone_w - wmain_left_pad - pad - wright_w - wright_right_pad
                     local wname = TextBoxWidget:new {
                         text = text,

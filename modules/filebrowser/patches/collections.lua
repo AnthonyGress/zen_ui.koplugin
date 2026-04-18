@@ -309,14 +309,6 @@ local function apply_collections()
         local Screen = Device.screen
         local scale_by_size = Screen:scaleBySize(1000000) * (1 / 1000000)
 
-        local function capitalize(sentence)
-            local words = {}
-            for word in sentence:gmatch("%S+") do
-                table.insert(words, word:sub(1, 1):upper() .. word:sub(2))
-            end
-            return table.concat(words, " ")
-        end
-
         local orig_list_update = ListMenuItem.update
 
         function ListMenuItem:update(...)
@@ -529,7 +521,7 @@ local function apply_collections()
                 self.width - left_offset - wright_w - 2 * pad_right)
 
             local wtitle = TextBoxWidget:new{
-                text      = BD.auto(capitalize(coll_name)),
+                text      = BD.auto(coll_name),
                 face      = Font:getFace("cfont", fs_title),
                 width     = main_w,
                 height    = dimen_h,
@@ -798,15 +790,8 @@ local function apply_collections()
         local text_col_w = math.max(avail_w - cover_max_w - 2 * border - gap,
                                     Screen:scaleBySize(60))
         local vstack = VerticalGroup:new{ align = "left" }
-        local function capitalize_name(s)
-            local words = {}
-            for word in s:gmatch("%S+") do
-                table.insert(words, word:sub(1, 1):upper() .. word:sub(2))
-            end
-            return table.concat(words, " ")
-        end
         table.insert(vstack, TextWidget:new{
-            text      = capitalize_name(coll_name),
+            text      = coll_name,
             face      = Font:getFace("cfont", 20),
             bold      = true,
             max_width = text_col_w,
