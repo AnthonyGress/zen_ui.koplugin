@@ -620,6 +620,7 @@ local function apply_page_browser()
             -- re-enable scrubbing and reschedule.
             self._zen_deferred_update = function()
                 self._zen_scrubbing = false
+                self._zen_placeholders_painted = false
                 self._zen_last_scrub_dirty = nil
                 self._zen_post_scrub = true
                 UIManager:unschedule(self._zen_post_scrub_clear)
@@ -634,13 +635,173 @@ local function apply_page_browser()
                 UIManager:setDirty(self, "ui", self._zen_scrub_dimen or self.dimen)
             end
 
+            -- Paint the slider (and optionally chapter label) directly to
+            -- Screen.bb, bypassing the widget tree.  Then queue an
+            -- A2-waveform hardware refresh of just the slider area via
+            -- setDirty(nil, ...) — nil means "don't repaint any widgets."
+            -- A2 completes in ~60ms so frames can't pile up.
+            local function directPaintSlider(sl, label, label_text)
+                if not sl or not sl.dimen or not sl.dimen.x then return end
+                sl:paintTo(Screen.bb, sl.dimen.x, sl.dimen.y)
+                if label and label_text then
+                    -- TextWidget doesn't set self.dimen in paintTo, so we
+                    -- compute label position from the slider (which does).
+                    -- Layout order: chapter label → pad_v → slider.
+                    local lh = label:getSize().h
+                    local label_y = sl.dimen.y - pad_v - lh
+                    -- Erase the full slider_w row, then paint centred text.
+                    Screen.bb:paintRect(sl.dimen.x, label_y, slider_w, lh,
+                                        Blitbuffer.COLOR_WHITE)
+                    label:setText(label_text)
+                    local new_w = label:getSize().w
+                    local label_x = sl.dimen.x + math.floor((slider_w - new_w) / 2)
+                    label:paintTo(Screen.bb, label_x, label_y)
+                end
+                -- A2 refresh scoped to slider + chapter label so the grid's
+                -- large area A2 doesn't flash the thin track ends.
+                local sl_dimen = sl.dimen
+                if label then
+                    local lh = label:getSize().h
+                    sl_dimen = Geom:new{
+                        x = sl.dimen.x,
+                        y = sl.dimen.y - pad_v - lh,
+                        w = math.max(sl.dimen.w, slider_w),
+                        h = sl.dimen.h + pad_v + lh,
+                    }
+                end
+                UIManager:setDirty(nil, "fast", sl_dimen)
+            end
+
+            -- Paint blank placeholders with page-number badges directly to
+            -- Screen.bb for all grid cells, then push one A2 refresh over
+            -- the combined grid + slider region.
+            --
+            -- On the FIRST call after scrubbing starts, erase thumbnails and
+            -- draw the static borders (they never move).  On subsequent calls,
+            -- only erase + repaint the small badge area at the bottom of each
+            -- cell — the borders stay untouched in the framebuffer.
+            local badge_face_s = Font:getFace("cfont", 11)
+            local ph_s         = Screen:scaleBySize(4)
+            local pv_s         = Screen:scaleBySize(2)
+            local bg_color_s   = Blitbuffer.gray(0x33)
+            local fg_color_s   = Blitbuffer.gray(0xFF)
+            local gap_bot_s    = Screen:scaleBySize(6)
+            local bs_s         = Size.border.thin
+
+            -- Pre-measure the maximum badge height (constant for all cells).
+            local _badge_h_sample = TextWidget:new{
+                text = "0", face = badge_face_s, padding = 0,
+            }
+            local badge_max_h = _badge_h_sample:getSize().h + 2 * pv_s
+            _badge_h_sample:free()
+
+            local function directPaintScrub(focus_pg, chap_text)
+                local pbw  = self
+                local bb   = Screen.bb
+                local sl   = pbw._zen_slider
+                local clbl = pbw._zen_chap_label
+                local grid = pbw.grid
+                if not grid then return end
+
+                local fp    = focus_pg or pbw.focus_page or 1
+                local shift = pbw.focus_page_shift or 0
+                local np    = pbw.nb_pages or 1
+                local n     = pbw.nb_grid_items or 0
+
+                -- Grid top-left in blitbuffer space
+                local title_h = (pbw.title_bar and pbw.title_bar:getSize().h) or 0
+                local gx = pbw.dimen.x or 0
+                local gy = (pbw.dimen.y or 0) + title_h + Screen:scaleBySize(6)
+
+                local first_frame = not pbw._zen_placeholders_painted
+
+                for i = 1, n do
+                    local item = grid[i]
+                    if item and item.overlap_offset then
+                        local page_num = fp - shift + (i - 1)
+                        local ox = item.overlap_offset[1]
+                        local oy = item.overlap_offset[2]
+                        local sz = item:getSize()
+
+                        if first_frame then
+                            -- Erase cell + draw static border (once)
+                            bb:paintRect(gx + ox - bs_s, gy + oy - bs_s,
+                                         sz.w + 2 * bs_s, sz.h + 2 * bs_s,
+                                         Blitbuffer.COLOR_WHITE)
+                            local tw = (pbw._zen_tile_size and pbw._zen_tile_size.w) or sz.w
+                            local th = (pbw._zen_tile_size and pbw._zen_tile_size.h) or sz.h
+                            local pdx = math.floor((sz.w - tw) / 2)
+                            local pdy = math.floor((sz.h - th) / 2)
+                            bb:paintBorder(gx + ox + pdx - bs_s, gy + oy + pdy - bs_s,
+                                           tw + 2 * bs_s, th + 2 * bs_s,
+                                           bs_s, Blitbuffer.COLOR_BLACK, 0)
+                        end
+
+                        -- Badge area: erase + repaint (every frame)
+                        -- Clip to the interior of the border so we never
+                        -- overwrite the bottom line or corner pixels.
+                        local tw = (pbw._zen_tile_size and pbw._zen_tile_size.w) or sz.w
+                        local th = (pbw._zen_tile_size and pbw._zen_tile_size.h) or sz.h
+                        local pdx = math.floor((sz.w - tw) / 2)
+                        local pdy = math.floor((sz.h - th) / 2)
+                        local inner_x = gx + ox + pdx
+                        local inner_bottom = gy + oy + pdy + th
+                        local badge_y = gy + oy + sz.h - badge_max_h - gap_bot_s
+                        local erase_h = math.max(0, inner_bottom - badge_y)
+                        if erase_h > 0 then
+                            bb:paintRect(inner_x, badge_y, tw, erase_h,
+                                     Blitbuffer.COLOR_WHITE)
+                        end
+
+                        if page_num >= 1 and page_num <= np then
+                            local lbl = TextWidget:new{
+                                text    = tostring(page_num),
+                                face    = badge_face_s,
+                                fgcolor = fg_color_s,
+                                padding = 0,
+                            }
+                            local lsz = lbl:getSize()
+                            local bh  = lsz.h + 2 * pv_s
+                            local bw  = math.max(lsz.w + 2 * ph_s, bh)
+                            local bx  = gx + ox + math.floor((sz.w - bw) / 2)
+                            local by  = gy + oy + sz.h - bh - gap_bot_s
+
+                            local r_p = bh / 2
+                            for row = 0, bh - 1 do
+                                local dy = math.abs(row + 0.5 - r_p)
+                                local dx = math.sqrt(math.max(0, r_p * r_p - dy * dy))
+                                local x0 = math.ceil(bx + r_p - dx)
+                                local x1 = math.floor(bx + bw - r_p + dx)
+                                local w  = x1 - x0
+                                if w > 0 then bb:paintRect(x0, by + row, w, 1, bg_color_s) end
+                            end
+
+                            lbl:paintTo(bb,
+                                bx + math.floor((bw - lsz.w) / 2),
+                                by + math.floor((bh - lsz.h) / 2))
+                            lbl:free()
+                        end
+                    end
+                end
+
+                pbw._zen_placeholders_painted = true
+
+                -- Paint slider + chapter label
+                directPaintSlider(sl, clbl, chap_text)
+
+                -- A2 refresh on grid only — slider has its own A2 call
+                -- inside directPaintSlider (scoped to sl.dimen, matching
+                -- the brightness/warmth slider pattern).
+                UIManager:setDirty(nil, "fast", pbw._zen_grid_dimen or pbw.dimen)
+            end
+
             -- Deferred scrub dirty: fires the throttled setDirty at the end
             -- of the throttle window so the most recent state is displayed.
             self._zen_scrub_dirty_func = function()
                 if not self._zen_scrubbing then return end
                 self._zen_last_scrub_dirty = os.clock()
-                UIManager:setDirty(self, "ui",
-                    self._zen_scrub_dimen or self.dimen)
+                directPaintScrub(self.focus_page or self.cur_page or 1,
+                    chapter_title(self.focus_page or self.cur_page or 1))
             end
 
             -- Only create slider if there's more than 1 page
@@ -664,31 +825,16 @@ local function apply_page_browser()
                         end
                         if self:updateFocusPage(v, false) then
                             if dragging then
-                                -- Update chapter label in real-time while dragging.
-                                if self._zen_chap_label then
-                                    self._zen_chap_label:setText(chapter_title(v))
-                                end
                                 UIManager:unschedule(self._zen_deferred_update)
                                 UIManager:scheduleIn(0.25, self._zen_deferred_update)
-                                -- Throttle setDirty: only fire if enough time
-                                -- has passed since the last one; schedule a
-                                -- trailing call so the final state always shows.
-                                local now = os.clock()
-                                local last = self._zen_last_scrub_dirty
-                                UIManager:unschedule(self._zen_scrub_dirty_func)
-                                if not last or (now - last) >= SCRUB_DIRTY_INTERVAL then
-                                    self._zen_last_scrub_dirty = now
-                                    UIManager:setDirty(self, "ui",
-                                        self._zen_scrub_dimen or self.dimen)
-                                else
-                                    -- Schedule trailing update at end of throttle window
-                                    local remaining = SCRUB_DIRTY_INTERVAL - (now - last)
-                                    UIManager:scheduleIn(remaining, self._zen_scrub_dirty_func)
-                                end
+                                -- Paint grid placeholders + slider + label
+                                -- directly to Screen.bb and push one A2 refresh.
+                                directPaintScrub(v, chapter_title(v))
                             else
                                 UIManager:unschedule(self._zen_deferred_update)
                                 UIManager:unschedule(self._zen_scrub_dirty_func)
                                 self._zen_scrubbing = false
+                                self._zen_placeholders_painted = false
                                 self._zen_last_scrub_dirty = nil
                                 self._zen_post_scrub = true
                                 UIManager:unschedule(self._zen_post_scrub_clear)
@@ -883,6 +1029,11 @@ local function apply_page_browser()
 
             -- Store panel height for onHold suppression.
             self._zen_panel_h = zen_panel_h
+
+            -- Tighten the scrub dirty region so that the button row below
+            -- the slider is never included in the A2/GL16 refresh during
+            -- drag.  btn_zone_y is the top of the button group.
+            self._zen_scrub_dimen.h = math.max(1, btn_zone_y - self._zen_scrub_dimen.y)
 
             -- Panel spans full grid width, pinned to the absolute bottom of
             -- the screen via OverlapGroup offset (set below).  Height is the
@@ -1182,6 +1333,7 @@ local function apply_page_browser()
                 if self._zen_scrubbing then
                     UIManager:unschedule(self._zen_deferred_update)
                     self._zen_scrubbing = false
+                    self._zen_placeholders_painted = false
                     self._zen_post_scrub = true
                     UIManager:unschedule(self._zen_post_scrub_clear)
                     UIManager:scheduleIn(0.4, self._zen_post_scrub_clear)
@@ -1218,6 +1370,7 @@ local function apply_page_browser()
                     if self._zen_scrubbing then
                         UIManager:unschedule(self._zen_deferred_update)
                         self._zen_scrubbing = false
+                        self._zen_placeholders_painted = false
                         self._zen_post_scrub = true
                         UIManager:scheduleIn(0.4, self._zen_post_scrub_clear)
                         self:update()
@@ -1226,6 +1379,7 @@ local function apply_page_browser()
                 end
                 -- handleSwipe didn't claim the gesture; undo the pre-set.
                 self._zen_scrubbing = false
+                self._zen_placeholders_painted = false
             end
             local direction = ges.direction
             if direction == "west" then
@@ -1260,6 +1414,7 @@ local function apply_page_browser()
             if self._zen_scrubbing then
                 UIManager:unschedule(self._zen_deferred_update)
                 self._zen_scrubbing = false
+                self._zen_placeholders_painted = false
                 self._zen_post_scrub = true
                 UIManager:unschedule(self._zen_post_scrub_clear)
                 UIManager:scheduleIn(0.4, self._zen_post_scrub_clear)
