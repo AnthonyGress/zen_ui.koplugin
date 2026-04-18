@@ -109,9 +109,9 @@ local function apply_reader_clock()
         pages_done = pages_done + 1 -- include current page
         local chapter_progress = pages_done .. " ⁄⁄ " .. pages_chapter
         -- Clock:
-        local use_24h = type(zen_clock_config) == "table" and zen_clock_config.use_24h == true
+        local use_12h = G_reader_settings:isTrue("twelve_hour_clock")
         local clock_position = (type(zen_clock_config) == "table" and zen_clock_config.position) or "center"
-        local time = datetime.secondsToHour(os.time(), not use_24h) or ""
+        local time = datetime.secondsToHour(os.time(), use_12h) or ""
         -- Battery:
         local battery = ""
         if Device:hasBattery() then

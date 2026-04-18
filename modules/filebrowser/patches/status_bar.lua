@@ -57,7 +57,6 @@ local function apply_status_bar()
         left_order   = { "time" },
         center_order = {},
         right_order  = { "wifi", "battery" },
-        time_12h = false,
         show_bottom_border = true,
         colored = false,
         bold_text = false,
@@ -306,9 +305,10 @@ local function apply_status_bar()
     end
 
     local function getTimeInfo()
-        local fmt = config.time_12h and "%I:%M %p" or "%H:%M"
+        local twelve_hour = G_reader_settings:isTrue("twelve_hour_clock")
+        local fmt = twelve_hour and "%I:%M %p" or "%H:%M"
         local time_str = os.date(fmt)
-        if config.time_12h then
+        if twelve_hour then
             time_str = time_str:gsub("^0(%d:)", "%1")
         end
         return time_str, nil, nil

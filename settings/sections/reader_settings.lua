@@ -29,17 +29,6 @@ function M.build(ctx)
         sub_item_table = {
             make_enable_feature_item("reader_clock", _("Enable reader clock")),
             {
-                text = _("Use 24-hour time"),
-                checked_func = function()
-                    return config.reader_clock and config.reader_clock.use_24h == true
-                end,
-                callback = function()
-                    if type(config.reader_clock) ~= "table" then config.reader_clock = {} end
-                    config.reader_clock.use_24h = not (config.reader_clock.use_24h == true)
-                    save_and_apply("reader_clock")
-                end,
-            },
-            {
                 text = _("Position"),
                 sub_item_table = {
                     {

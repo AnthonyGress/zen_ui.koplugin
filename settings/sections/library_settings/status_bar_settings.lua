@@ -160,19 +160,6 @@ function M.build(ctx)
                 end,
             },
             {
-                text = _("12-hour time"),
-                checked_func = function() return config.status_bar.time_12h == true end,
-                enabled_func = function()
-                    for _, k in ipairs(config.status_bar.left_order  or {}) do if k == "time" then return true end end
-                    for _, k in ipairs(config.status_bar.right_order or {}) do if k == "time" then return true end end
-                    return false
-                end,
-                callback = function()
-                    config.status_bar.time_12h = not (config.status_bar.time_12h == true)
-                    save_and_apply_status_bar()
-                end,
-            },
-            {
                 text = _("Show bottom border"),
                 checked_func = function() return config.status_bar.show_bottom_border == true end,
                 callback = function()
