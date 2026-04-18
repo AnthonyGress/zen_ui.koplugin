@@ -580,10 +580,7 @@ local function apply_quick_settings()
         -- Check sliders for taps (not holds)
         if not is_hold then
             for _, sr in ipairs(refs.sliders or {}) do
-                if sr.slider.dimen and ges.pos:intersectWith(sr.slider.dimen) then
-                    sr.slider:applyPosition(ges.pos.x)
-                    return true
-                end
+                if sr.slider:handleTap(ges) then return true end
             end
         end
 
@@ -612,25 +609,6 @@ local function apply_quick_settings()
             end
         end
 
-        return false
-    end
-
-    -- Gesture handler for slider pan/pan_release (called from TouchMenu hooks).
-    local function handleSliderPan(touch_menu, ges, is_release)
-        local refs = touch_menu._qs_refs
-        if not refs then return false end
-        if touch_menu._qs_slider_locked then return false end
-        for _, sr in ipairs(refs.sliders or {}) do
-            if sr.dragging or (sr.slider.dimen and ges.pos:intersectWith(sr.slider.dimen)) then
-                sr.dragging = not is_release
-                sr.slider.hide_knob = sr.dragging
-                sr.slider:applyPosition(ges.pos.x)
-                if is_release then
-                    UIManager:setDirty(touch_menu.show_parent, "ui", touch_menu.dimen)
-                end
-                return true
-            end
-        end
         return false
     end
 
@@ -776,21 +754,27 @@ local function apply_quick_settings()
         return true
     end
 
-    -- Pan on slider: update value while dragging
-    function TouchMenu:onPanCloseAllMenus(arg, ges_ev)
-        if not is_enabled() then return end
-        if self._qs_refs and self.item_table and self.item_table.panel then
-            return handleSliderPan(self, ges_ev, false)
-        end
-    end
-
-    -- Pan release: commit final slider value
-    function TouchMenu:onPanReleaseCloseAllMenus(arg, ges_ev)
-        if not is_enabled() then return end
-        if self._qs_refs and self.item_table and self.item_table.panel then
-            return handleSliderPan(self, ges_ev, true)
-        end
-    end
+    -- Delegate all slider gesture types to ZenSlider, which owns the logic.
+    ZenSlider.installTouchMenuHooks(TouchMenu, {
+        in_panel_mode = function(tm)
+            return is_enabled()
+                and tm._qs_refs ~= nil
+                and tm.item_table ~= nil
+                and tm.item_table.panel ~= nil
+        end,
+        get_sliders = function(tm)
+            local refs = tm._qs_refs
+            if not refs then return {} end
+            local sliders = {}
+            for _, sr in ipairs(refs.sliders or {}) do
+                table.insert(sliders, sr.slider)
+            end
+            return sliders
+        end,
+        is_locked           = function(tm) return tm._qs_slider_locked end,
+        swipe_fallback      = function(tm, ges) handlePanelGesture(tm, ges, false) end,
+        multiswipe_fallback = function(tm, ges) handlePanelGesture(tm, ges, false) end,
+    })
 
     -- Hook switchMenuTab to force quick settings tab on menu open
     local orig_switchMenuTab = TouchMenu.switchMenuTab
@@ -803,86 +787,6 @@ local function apply_quick_settings()
         -- When "open on start" is enabled, always reset last_index to quick settings tab
         if config.open_on_start then
             self.last_index = 1
-        end
-    end
-
-    -- Hook onSwipe to intercept pan/swipe on sliders
-    local orig_onSwipe = TouchMenu.onSwipe
-
-    function TouchMenu:onSwipe(arg, ges_ev)
-        if not is_enabled() then
-            if orig_onSwipe then
-                return orig_onSwipe(self, arg, ges_ev)
-            end
-            return
-        end
-
-        if self._qs_refs and self.item_table and self.item_table.panel then
-            -- A fast drag is recognized as a swipe rather than pan+pan_release.
-            -- ges_ev.pos is the START position, so we must NOT pass it to
-            -- applyPosition() — that would snap the slider back to origin.
-            local refs = self._qs_refs
-            if not self._qs_slider_locked then
-                for _, sr in ipairs(refs.sliders or {}) do
-                    if sr.dragging or (sr.slider.dimen and ges_ev.pos:intersectWith(sr.slider.dimen)) then
-                        local was_dragging = sr.dragging
-                        sr.dragging = false
-                        sr.slider.hide_knob = false
-                        if not was_dragging then
-                            -- Pure quick-swipe (no preceding pan events): apply end position.
-                            local dist = ges_ev.distance or 0
-                            local end_x = ges_ev.pos.x
-                            if ges_ev.direction == "east" then
-                                end_x = end_x + dist
-                            elseif ges_ev.direction == "west" then
-                                end_x = end_x - dist
-                            end
-                            sr.slider:applyPosition(end_x)
-                        else
-                            -- Was dragging: pan events placed the knob, just repaint.
-                            UIManager:setDirty(self.show_parent, "ui", self.dimen)
-                        end
-                        -- If was_dragging: pan events already placed the knob correctly.
-                        return true
-                    end
-                end
-            end
-            -- Not on a slider: handle as button tap (consume to prevent page-nav crash).
-            handlePanelGesture(self, ges_ev, false)
-            return true
-        end
-        if orig_onSwipe then
-            return orig_onSwipe(self, arg, ges_ev)
-        end
-    end
-
-    -- Hook onMultiSwipe: fast back-and-forth drag is classified as a multiswipe
-    -- gesture. Clear dragging/hide_knob state and repaint so the knob reappears.
-    local orig_onMultiSwipe = TouchMenu.onMultiSwipe
-
-    function TouchMenu:onMultiSwipe(arg, ges_ev)
-        if not is_enabled() then
-            if orig_onMultiSwipe then
-                return orig_onMultiSwipe(self, arg, ges_ev)
-            end
-            return
-        end
-
-        if self._qs_refs and self.item_table and self.item_table.panel then
-            local refs = self._qs_refs
-            for _, sr in ipairs(refs.sliders or {}) do
-                if sr.dragging or (sr.slider.dimen and ges_ev.pos:intersectWith(sr.slider.dimen)) then
-                    sr.dragging = false
-                    sr.slider.hide_knob = false
-                    UIManager:setDirty(self.show_parent, "ui", self.dimen)
-                    return true
-                end
-            end
-            handlePanelGesture(self, ges_ev, false)
-            return true
-        end
-        if orig_onMultiSwipe then
-            return orig_onMultiSwipe(self, arg, ges_ev)
         end
     end
 
