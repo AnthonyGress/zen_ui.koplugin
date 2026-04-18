@@ -1510,13 +1510,19 @@ function M.build(plugin)
     })
 
     table.insert(filebrowser_items, {
-        text = _("Show item underline"),
+        text = _("Rounded cover corners"),
         checked_func = function()
-            return config.features.browser_hide_underline ~= true
+            return type(config.features) == "table"
+                and config.features.browser_cover_rounded_corners == true
         end,
         callback = function()
-            config.features.browser_hide_underline = not (config.features.browser_hide_underline == true)
-            save_and_apply("browser_hide_underline")
+            if type(config.features) ~= "table" then
+                config.features = {}
+            end
+            config.features.browser_cover_rounded_corners =
+                not (config.features.browser_cover_rounded_corners == true)
+            plugin:saveConfig()
+            UIManager:setDirty(nil, "full")
         end,
     })
 
@@ -1572,19 +1578,13 @@ function M.build(plugin)
     })
 
     table.insert(filebrowser_items, {
-        text = _("Rounded cover corners"),
+        text = _("Show item underline"),
         checked_func = function()
-            return type(config.features) == "table"
-                and config.features.browser_cover_rounded_corners == true
+            return config.features.browser_hide_underline ~= true
         end,
         callback = function()
-            if type(config.features) ~= "table" then
-                config.features = {}
-            end
-            config.features.browser_cover_rounded_corners =
-                not (config.features.browser_cover_rounded_corners == true)
-            plugin:saveConfig()
-            UIManager:setDirty(nil, "full")
+            config.features.browser_hide_underline = not (config.features.browser_hide_underline == true)
+            save_and_apply("browser_hide_underline")
         end,
     })
 
