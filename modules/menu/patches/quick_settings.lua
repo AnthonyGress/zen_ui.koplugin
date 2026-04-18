@@ -540,12 +540,27 @@ local function apply_quick_settings()
             warmth_group = build_warmth_slider(touch_menu, slider_opts)
         end
 
+        -- ----- Status bar row (reuses status_bar component when that feature is active) -----
+
+        local _zen_shared = zen_plugin._zen_shared
+        local status_row  = _zen_shared
+            and type(_zen_shared.buildStatusRow) == "function"
+            and _zen_shared.buildStatusRow(panel_width, {
+                padding   = Screen:scaleBySize(6),
+                font_name = "x_smallinfofont",
+            })
+
         -- ----- Assemble panel -----
 
         local panel = VerticalGroup:new{
             align = "center",
-            VerticalSpan:new{ width = Screen:scaleBySize(12) },
+            VerticalSpan:new{ width = Screen:scaleBySize(8) },
         }
+
+        if status_row then
+            table.insert(panel, status_row)
+            table.insert(panel, VerticalSpan:new{ width = Screen:scaleBySize(8) })
+        end
 
         if num_buttons > 0 then
             table.insert(panel, CenterContainer:new{
@@ -668,6 +683,10 @@ local function apply_quick_settings()
         end
 
         if not self.item_table or not self.item_table.panel then
+            local _shared = zen_plugin._zen_shared
+            if _shared and type(_shared.cancelPanelRefresh) == "function" then
+                _shared.cancelPanelRefresh(self)
+            end
             self._qs_refs = nil -- clear refs when switching away from panel tab
             return orig_updateItems(self, target_page, target_item_id)
         end
@@ -692,22 +711,18 @@ local function apply_quick_settings()
         local panel = type(panel_fn) == "function" and panel_fn(self) or panel_fn
         table.insert(self.item_group, panel)
 
-        -- Footer (no pagination, just time/battery)
+        -- Footer (no pagination)
         table.insert(self.item_group, self.footer_top_margin)
         table.insert(self.item_group, self.footer)
         self.page_info_text:setText("")
         self.page_info_left_chev:showHide(false)
         self.page_info_right_chev:showHide(false)
 
-        -- Update time/battery in footer
-        local time_info_txt = datetime.secondsToHour(os.time(), G_reader_settings:isTrue("twelve_hour_clock"))
-        local powerd = Device:getPowerDevice()
-        if Device:hasBattery() then
-            local batt_lvl = powerd:getCapacity()
-            local batt_symbol = powerd:getBatterySymbol(powerd:isCharged(), powerd:isCharging(), batt_lvl)
-            time_info_txt = BD.wrap(time_info_txt) .. " " .. BD.wrap("⌁") .. BD.wrap(batt_symbol) ..  BD.wrap(batt_lvl .. "%")
+        -- Schedule 60-second status row refresh (status_bar component owns the clock)
+        local _shared = zen_plugin._zen_shared
+        if _shared and type(_shared.schedulePanelRefresh) == "function" then
+            _shared.schedulePanelRefresh(self)
         end
-        self.time_info:setText(time_info_txt)
 
         -- Recalculate dimen
         local old_dimen = self.dimen:copy()
@@ -788,6 +803,16 @@ local function apply_quick_settings()
         if config.open_on_start then
             self.last_index = 1
         end
+    end
+
+    -- Cancel status bar refresh timer when the menu is closed
+    local orig_onCloseWidget = TouchMenu.onCloseWidget
+    function TouchMenu:onCloseWidget()
+        local _shared = zen_plugin._zen_shared
+        if _shared and type(_shared.cancelPanelRefresh) == "function" then
+            _shared.cancelPanelRefresh(self)
+        end
+        if orig_onCloseWidget then orig_onCloseWidget(self) end
     end
 
     -- Safety guards: onPrevPage / onNextPage crash when self.page is nil in

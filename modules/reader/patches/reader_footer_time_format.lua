@@ -64,12 +64,18 @@ local function apply_reader_footer_time_format()
                 -- them. This preserves the true text width for dynamic filler
                 -- layout calculation.
                 local nbsp = "\u{00A0}"
+                -- A leading hair-space (\u{200A}) provides minimal visual
+                -- separation from the preceding item (e.g. page numbers)
+                -- without doubling the visible gap the separator already
+                -- supplies. It is narrower than \u{00A0} and is not an
+                -- ASCII space, so the compact_items gsub leaves it alone.
+                local hair = "\u{200A}"
                 if total_minutes < 1 then
-                    return _("< 1 min left in chapter"):gsub(" ", nbsp)
+                    return hair .. _("< 1 min left in chapter"):gsub(" ", nbsp)
                 elseif total_minutes == 1 then
-                    return _("1 min left in chapter"):gsub(" ", nbsp)
+                    return hair .. _("1 min left in chapter"):gsub(" ", nbsp)
                 else
-                    return T(_("%1 mins left in chapter"), total_minutes):gsub(" ", nbsp)
+                    return hair .. T(_("%1 mins left in chapter"), total_minutes):gsub(" ", nbsp)
                 end
             end
         end

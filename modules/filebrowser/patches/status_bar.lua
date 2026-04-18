@@ -338,6 +338,41 @@ local function apply_status_bar()
 
     -- === Build the status row ===
 
+    -- Converts an ordered list of item keys into a HorizontalGroup widget.
+    -- Module-level so it can be used by both createStatusRow and buildStatusRow.
+    -- face: optional Font face override; falls back to getBarFont().
+    local function _buildGroup(order, face)
+        local group     = HorizontalGroup:new{}
+        local sep       = getSeparator()
+        local use_color = config.colored
+        local first     = true
+        local function f() return face or getBarFont() end
+        for _, key in ipairs(order) do
+            local fn = item_fetchers[key]
+            if fn then
+                local icon, label, color = fn()
+                if icon ~= nil then
+                    if not first and sep ~= "" then
+                        table.insert(group, TextWidget:new{ text = sep, face = f() })
+                    end
+                    if use_color and color then
+                        table.insert(group, ColorTextWidget:new{
+                            text = icon, face = f(), fgcolor = color,
+                        })
+                        if label and label ~= "" then
+                            table.insert(group, TextWidget:new{ text = label, face = f() })
+                        end
+                    else
+                        local text = label and (icon .. label) or icon
+                        table.insert(group, TextWidget:new{ text = text, face = f() })
+                    end
+                    first = false
+                end
+            end
+        end
+        return #group > 0 and group or nil
+    end
+
     local function createStatusRow(path, file_manager)
         local CenterContainer = require("ui/widget/container/centercontainer")
 
@@ -394,41 +429,8 @@ local function apply_status_bar()
             }
         end
 
-        -- Build a HorizontalGroup from an ordered list of item keys.
-        -- Returns nil when the group has no visible items.
-        local sep = getSeparator()
-        local use_color = config.colored
-        local function buildGroup(order)
-            local group = HorizontalGroup:new{}
-            local first = true
-            for _, key in ipairs(order) do
-                local fn = item_fetchers[key]
-                if fn then
-                    local icon, label, color = fn()
-                    if icon ~= nil then
-                        if not first and sep ~= "" then
-                            table.insert(group, TextWidget:new{ text = sep, face = getBarFont() })
-                        end
-                        if use_color and color then
-                            table.insert(group, ColorTextWidget:new{
-                                text = icon, face = getBarFont(), fgcolor = color,
-                            })
-                            if label and label ~= "" then
-                                table.insert(group, TextWidget:new{ text = label, face = getBarFont() })
-                            end
-                        else
-                            local text = label and (icon .. label) or icon
-                            table.insert(group, TextWidget:new{ text = text, face = getBarFont() })
-                        end
-                        first = false
-                    end
-                end
-            end
-            return #group > 0 and group or nil
-        end
-
-        local left_content  = buildGroup(config.left_order   or {})
-        local right_content = buildGroup(config.right_order  or {})
+        local left_content  = _buildGroup(config.left_order   or {})
+        local right_content = _buildGroup(config.right_order  or {})
 
         -- Center: folder name when in subfolder takes priority over configured center items
         local center_content = nil
@@ -439,7 +441,7 @@ local function apply_status_bar()
                 bold = true,
             }
         else
-            center_content = buildGroup(config.center_order or {})
+            center_content = _buildGroup(config.center_order or {})
         end
 
         -- Row height = max of all present widgets
@@ -514,12 +516,97 @@ local function apply_status_bar()
         return vg
     end
 
-    -- Expose createStatusRow for cross-patch use (e.g. favorites).
-    -- Stored on the plugin table so it is naturally scoped to when this feature
-    -- is active and is cleaned up if the plugin is reloaded.
+    -- Builds a pure item row (no file-browser navigation) suitable for embedding in other panels.
+    -- width: desired row width in pixels (e.g. the panel's inner_width).
+    -- opts:  optional table with:
+    --   padding   (number)  edge inset in pixels; defaults to h_padding
+    --   font_name (string)  Font sizemap key, e.g. "x_smallinfofont"; defaults to "xx_smallinfofont"
+    local function buildStatusRow(width, opts)
+        opts = opts or {}
+        local edge_pad = opts.padding ~= nil and opts.padding or h_padding
+        local face
+        if opts.font_name then
+            if config.bold_text then
+                face = Font:getFace("NotoSans-Bold.ttf", Font.sizemap[opts.font_name])
+            else
+                face = Font:getFace(opts.font_name)
+            end
+        end
+
+        local left_content   = _buildGroup(config.left_order   or {}, face)
+        local center_content = _buildGroup(config.center_order or {}, face)
+        local right_content  = _buildGroup(config.right_order  or {}, face)
+
+        local row_height = Screen:scaleBySize(18)
+        local function upd(w)
+            if w then local s = w:getSize(); if s and s.h > row_height then row_height = s.h end end
+        end
+        upd(left_content); upd(center_content); upd(right_content)
+
+        local left_group = HorizontalGroup:new{}
+        table.insert(left_group, HorizontalSpan:new{ width = edge_pad })
+        if left_content then table.insert(left_group, left_content) end
+
+        local row = OverlapGroup:new{
+            dimen = Geom:new{ w = width, h = row_height },
+            LeftContainer:new{
+                dimen = Geom:new{ w = width, h = row_height },
+                left_group,
+            },
+        }
+        if center_content then
+            local CenterContainer = require("ui/widget/container/centercontainer")
+            table.insert(row, CenterContainer:new{
+                dimen = Geom:new{ w = width, h = row_height },
+                center_content,
+            })
+        end
+        if right_content then
+            table.insert(row, RightContainer:new{
+                dimen = Geom:new{ w = width, h = row_height },
+                HorizontalGroup:new{
+                    right_content,
+                    HorizontalSpan:new{ width = edge_pad },
+                },
+            })
+        end
+        return row
+    end
+
+    -- Schedules a 60-second periodic refresh of a TouchMenu panel that contains a
+    -- status row.  The timer function is stored on the menu so it can be unscheduled
+    -- and self-cancels when the menu is no longer in panel mode.
+    local function schedulePanelRefresh(menu)
+        if menu._zen_status_timer then
+            UIManager:unschedule(menu._zen_status_timer)
+        end
+        local function tick()
+            if menu.item_table and menu.item_table.panel then
+                menu:updateItems()
+                UIManager:scheduleIn(60, tick)
+            else
+                menu._zen_status_timer = nil
+            end
+        end
+        menu._zen_status_timer = tick
+        UIManager:scheduleIn(60, tick)
+    end
+
+    local function cancelPanelRefresh(menu)
+        if menu._zen_status_timer then
+            UIManager:unschedule(menu._zen_status_timer)
+            menu._zen_status_timer = nil
+        end
+    end
+
+    -- Expose for cross-patch use. Stored on the plugin table so it is naturally
+    -- scoped to when this feature is active and cleaned up on plugin reload.
     if type(zen_plugin) == "table" then
         if not zen_plugin._zen_shared then zen_plugin._zen_shared = {} end
-        zen_plugin._zen_shared.createStatusRow = createStatusRow
+        zen_plugin._zen_shared.createStatusRow    = createStatusRow
+        zen_plugin._zen_shared.buildStatusRow     = buildStatusRow
+        zen_plugin._zen_shared.schedulePanelRefresh = schedulePanelRefresh
+        zen_plugin._zen_shared.cancelPanelRefresh   = cancelPanelRefresh
     end
 
     -- === Replace title content and reposition buttons ===
@@ -725,6 +812,42 @@ local function apply_status_bar()
     chainHook("onNetworkDisconnected")
     chainHook("onCharging")
     chainHook("onNotCharging")
+
+    -- Refresh the filebrowser status bar whenever any TouchMenu closes
+    -- (e.g. after changing settings, toggling night mode, etc.)
+    local TouchMenu = require("ui/widget/touchmenu")
+    local orig_tm_close = TouchMenu.onCloseWidget
+    TouchMenu.onCloseWidget = function(self_tm)
+        if orig_tm_close then orig_tm_close(self_tm) end
+        local fm = FileManager.instance
+        if fm and is_enabled() then
+            UIManager:nextTick(function()
+                if FileManager.instance == fm then
+                    fm:_updateStatusBar()
+                end
+            end)
+        end
+    end
+
+    -- Refresh on filebrowser page turns (paging through the file list)
+    local FileChooser = require("ui/widget/filechooser")
+    local function wrapFCPage(method_name)
+        local orig = FileChooser[method_name]
+        FileChooser[method_name] = function(fc, ...)
+            local result = orig and orig(fc, ...) or true
+            local fm = FileManager.instance
+            if fm and is_enabled() then
+                UIManager:nextTick(function()
+                    if FileManager.instance == fm then
+                        fm:_updateStatusBar()
+                    end
+                end)
+            end
+            return result
+        end
+    end
+    wrapFCPage("onNextPage")
+    wrapFCPage("onPrevPage")
 
     -- onResume: defer long enough for the screensaver to finish its full-screen
     -- repaint and for the titlebar layout to be fully established.  nextTick

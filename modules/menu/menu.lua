@@ -10,6 +10,7 @@ local PATCH_MODULES = {
     quick_settings = "modules/menu/patches/quick_settings",
     zen_mode = "modules/menu/patches/zen_mode",
     disable_top_menu_swipe_zones = "modules/menu/patches/disable_top_menu_swipe_zones",
+    touch_menu_close_footer = "modules/menu/patches/touch_menu_close_footer",
 }
 
 local function is_feature_enabled(plugin, key)
@@ -74,6 +75,15 @@ function M.init(logger, plugin)
         local ok = run_feature(logger, plugin, "disable_top_menu_swipe_zones", swipe_fn)
         if ok then
             runtime_patches["disable_top_menu_swipe_zones"] = true
+        end
+    end
+
+    -- Always apply: move close chevron from left footer to wide center button
+    local footer_fn = load_patch("touch_menu_close_footer")
+    if footer_fn then
+        local ok = run_feature(logger, plugin, "touch_menu_close_footer", footer_fn)
+        if ok then
+            runtime_patches["touch_menu_close_footer"] = true
         end
     end
 
