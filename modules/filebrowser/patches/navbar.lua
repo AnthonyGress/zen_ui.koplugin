@@ -899,6 +899,9 @@ local function apply_navbar()
 
         -- Expand dimen to full screen so gestures and repaints cover the navbar area
         menu.dimen.h = Screen:getHeight()
+        -- Suppress the spurious partial_page_repaint nextTick forceRePaint that fires
+        -- after updateItems on initial load — the UIManager:show() paint already covers it.
+        menu._zen_no_forced_repaint = true
 
         -- Wrap with navbar below, opaque background to prevent FM navbar bleed-through
         local FrameContainer = require("ui/widget/container/framecontainer")

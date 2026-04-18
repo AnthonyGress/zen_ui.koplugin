@@ -30,8 +30,10 @@ local function apply_partial_page_repaint()
         local items_on_page = math.max(0, math.min(perpage, total - (page - 1) * perpage))
         if items_on_page > 0 and items_on_page < perpage and not pending then
             pending = true
+            local widget = self
             UIManager:nextTick(function()
                 pending = false
+                if widget._zen_no_forced_repaint then return end
                 UIManager:setDirty(nil, "full")
                 UIManager:forceRePaint()
             end)
