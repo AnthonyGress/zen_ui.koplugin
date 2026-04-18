@@ -290,7 +290,7 @@ local function apply_browser_list_item_layout()
             -- ── Step 1: build status widget at its natural width ─────────────
             local wright_status, status_nat_w = nil, 0
             if status_label then
-                local display_str = progress_str and (status_label .. " " .. progress_str) or status_label
+                local display_str = progress_str and (progress_str .. " " .. status_label) or status_label
                 wright_status = TextWidget:new{
                     text    = display_str,
                     face    = Font:getFace("cfont", fs_right),
