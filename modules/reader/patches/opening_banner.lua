@@ -109,12 +109,13 @@ local function apply_opening_banner()
         ListMenuItem.onTapSelect = function(self_item, ...)
             if not self_item.is_directory and self_item.dimen then
                 -- Pin the banner to the bottom edge of the tapped list row.
-                -- Use full row width so it spans the item cleanly.
+                -- Flag as list mode so the banner can be offset past the cover art.
                 _last_cover_dimen = {
                     x = self_item.dimen.x,
                     y = self_item.dimen.y,
                     w = self_item.dimen.w,
                     h = self_item.dimen.h,
+                    is_list = true,
                 }
             else
                 _last_cover_dimen = nil
@@ -161,10 +162,18 @@ local function apply_opening_banner()
 
         local bx, by, bw
         if cover then
-            -- Pin banner to the bottom edge of the tapped cover cell
-            bx = cover.x
             by = cover.y + cover.h - banner_h
-            bw = cover.w
+            if cover.is_list then
+                -- In list mode the cover art is a square thumbnail whose width
+                -- equals the row height.  Start the banner just to the right of
+                -- it so it never draws over the cover image.
+                bx = cover.x + cover.h
+                bw = cover.w - cover.h
+            else
+                -- Mosaic mode: banner spans the full cover cell width
+                bx = cover.x
+                bw = cover.w
+            end
         else
             -- Fallback: full-width strip at the bottom of the screen
             bx = 0
