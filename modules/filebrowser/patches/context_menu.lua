@@ -6,6 +6,7 @@ local function apply_context_menu()
             New folder
             Move          (opens PathChooser to pick destination, then moves immediately)
             Add/Remove from favorites
+            Description   (files only: shows book description if one exists)
             Book status ▶ (files only: Unread · Reading · On hold · Finished)
             Edit ▶        (anchored submenu at right edge: Select · Rename · Delete · Cut · Copy · Paste)
 
@@ -109,7 +110,7 @@ local function apply_context_menu()
             -- Build dialog header: cover left / text right (OverlapGroup) when a cover is
             -- available; text-only otherwise.  dialog_title is always set (used by the
             -- status sub-dialog and the text-only fallback).
-            local dialog_title, dialog_cover_widget
+            local dialog_title, dialog_cover_widget, book_description
             do
                 local Screen   = Device.screen
                 local SizeR    = require("ui/size")
@@ -176,6 +177,10 @@ local function apply_context_menu()
                                 if bookinfo.authors then
                                     text_str = text_str .. "\n" .. BD.auto(bookinfo.authors)
                                 end
+                            end
+                            if not bookinfo.ignore_meta and bookinfo.description
+                                and bookinfo.description ~= "" then
+                                book_description = bookinfo.description
                             end
                             if bookinfo.cover_bb and bookinfo.has_cover
                                 and not bookinfo.ignore_cover then
@@ -443,6 +448,25 @@ local function apply_context_menu()
                                 ReadCollection:addItem(file, default_coll)
                             end
                             ReadCollection:write({ [default_coll] = true })
+                        end,
+                    },
+                })
+            end
+
+            if is_file and is_not_parent_folder and book_description then
+                table.insert(buttons, {
+                    {
+                        text     = _("Description"),
+                        align    = "left",
+                        callback = function()
+                            close_dialog()
+                            local util       = require("util")
+                            local TextViewer = require("ui/widget/textviewer")
+                            UIManager:show(TextViewer:new{
+                                title     = _("Description:"),
+                                text      = util.htmlToPlainTextIfHtml(book_description),
+                                text_type = "book_info",
+                            })
                         end,
                     },
                 })

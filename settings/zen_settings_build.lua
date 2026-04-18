@@ -1785,7 +1785,7 @@ function M.build(plugin)
 
     local root_items = {
         {
-            text = _("Zen UI Settings"),
+            text = _("Zen UI"),
             keep_menu_open = true,
             separator = true,
             callback = function() end,
@@ -1834,7 +1834,7 @@ function M.build(plugin)
     }
 
     -- Insert an "Update available" banner at position 2 (right after the
-    -- "Zen UI Settings" header) when a newer release has been detected.
+    -- "Zen UI" header) when a newer release has been detected.
     local update_banner = updater.build_update_available_item(plugin)
     if update_banner then
         table.insert(root_items, 2, update_banner)

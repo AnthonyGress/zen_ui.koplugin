@@ -12,6 +12,7 @@ local FEATURES = {
 
 local PATCH_MODULES = {
     context_menu = "modules/filebrowser/patches/context_menu",
+    disable_modal_drag = "modules/filebrowser/patches/disable_modal_drag",
     partial_page_repaint = "modules/filebrowser/patches/partial_page_repaint",
     navbar = "modules/filebrowser/patches/navbar",
     status_bar = "modules/filebrowser/patches/status_bar",
@@ -62,6 +63,13 @@ end
 function M.init(logger, plugin)
     if initialized then
         return true
+    end
+
+    -- Always apply: disable all MovableContainer drag gestures so no modal
+    -- can be dragged around the screen.
+    local disable_modal_drag_fn = load_patch("disable_modal_drag")
+    if disable_modal_drag_fn then
+        run_feature(logger, plugin, "disable_modal_drag", disable_modal_drag_fn)
     end
 
     -- Always apply: replaces the long-hold context menu with a minimal layout

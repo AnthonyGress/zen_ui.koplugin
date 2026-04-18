@@ -63,7 +63,7 @@ local function apply_quick_settings()
             if lfs.attributes(user_icons_dir, "mode") ~= "directory" then
                 lfs.mkdir(user_icons_dir)
             end
-            for _, name in ipairs({ "zen_ui.svg", "zen_ui_light.svg" }) do
+            for _, name in ipairs({ "zen_ui.svg", "quicksettings.svg" }) do
                 local dst = user_icons_dir .. "/" .. name
                 if lfs.attributes(dst, "mode") ~= "file" then
                     local src = _icons_dir .. name
@@ -99,7 +99,7 @@ local function apply_quick_settings()
                 end
             end
             if not icons_path then return end
-            for _, stem in ipairs({ "zen_ui", "zen_ui_light" }) do
+            for _, stem in ipairs({ "zen_ui", "quicksettings" }) do
                 if not icons_path[stem] then
                     for _, ext in ipairs({ ".svg", ".png" }) do
                         local p = _icons_dir .. stem .. ext
@@ -1064,7 +1064,7 @@ local function apply_quick_settings()
 
     local quick_settings_tab = {
         id = "quicksettings",
-        icon = "zen_ui",
+        icon = "quicksettings",
         remember = false,
         panel = createQuickSettingsPanel,
     }

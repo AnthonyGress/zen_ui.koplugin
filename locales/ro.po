@@ -204,6 +204,9 @@ msgstr "dată modificare"
 msgid "Delete"
 msgstr "Șterge"
 
+msgid "Description"
+msgstr "Descriere"
+
 msgid "Detailed list with cover images and filenames"
 msgstr "Listă detaliată cu coperte și nume de fișier"
 

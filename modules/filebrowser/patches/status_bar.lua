@@ -287,23 +287,36 @@ local function apply_status_bar()
     local function createStatusRow(path, file_manager)
         local CenterContainer = require("ui/widget/container/centercontainer")
 
-        -- Detect whether we are inside a subfolder of the home directory
+        -- Detect whether we are inside a subfolder of, or at, the home directory
         local in_subfolder = false
+        local at_home = false
         local folder_name = nil
         local g_settings = rawget(_G, "G_reader_settings")
         local home_dir = g_settings and g_settings:readSetting("home_dir")
         if home_dir and path then
             local norm_home = home_dir:gsub("/$", "")
             local norm_path = path:gsub("/$", "")
-            if norm_path ~= norm_home and norm_path:sub(1, #norm_home + 1) == norm_home .. "/" then
+            if norm_path == norm_home then
+                at_home = true
+            elseif norm_path:sub(1, #norm_home + 1) == norm_home .. "/" then
                 in_subfolder = true
                 folder_name = path:match("([^/]+)/?$") or path
             end
         end
 
-        -- Left widget: tappable chevron.left button when in a subfolder, device name otherwise
+        -- Respect KOReader's "Lock home folder" setting; zen mode always treats home as locked
+        local is_zen_mode = zen_plugin.config
+            and type(zen_plugin.config.features) == "table"
+            and zen_plugin.config.features.zen_mode == true
+        local home_locked = is_zen_mode
+            or (g_settings ~= nil and g_settings:isTrue("lock_home_folder"))
+
+        -- Show back chevron in subfolders always; at home root only when home is not locked
+        local show_back = in_subfolder or (at_home and not home_locked)
+
+        -- Left widget: tappable chevron.left when back navigation is available, device name otherwise
         local left_widget
-        if in_subfolder then
+        if show_back then
             local Button = require("ui/widget/button")
             local ffiUtil = require("ffi/util")
             local icon_size = Screen:scaleBySize(28)

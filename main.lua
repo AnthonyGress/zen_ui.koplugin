@@ -18,6 +18,39 @@ local _plugin_root = (function()
     return (src:sub(1, 1) == "@") and src:sub(2):match("^(.*)/[^/]+$") or nil
 end)()
 
+-- Register local SVGs in IconWidget's ICONS_PATH cache so short names resolve
+-- to our files immediately (without requiring a restart or a user-icons copy).
+if _plugin_root then
+    pcall(function()
+        local lfs = require("libs/libkoreader-lfs")
+        local iw = require("ui/widget/iconwidget")
+        local iw_init = rawget(iw, "init")
+        if type(iw_init) ~= "function" then return end
+        local icons_path
+        for i = 1, 64 do
+            local uname, uval = debug.getupvalue(iw_init, i)
+            if uname == nil then break end
+            if uname == "ICONS_PATH" and type(uval) == "table" then
+                icons_path = uval
+                break
+            end
+        end
+        if not icons_path then return end
+        local to_register = {
+            ["zen_settings"]             = "settings.svg",
+            ["zen_settings_update"]      = "appbar.settings.update.svg",
+        }
+        for name, file in pairs(to_register) do
+            if not icons_path[name] then
+                local p = _plugin_root .. "/icons/" .. file
+                if lfs.attributes(p, "mode") == "file" then
+                    icons_path[name] = p
+                end
+            end
+        end
+    end)
+end
+
 -- Holds the single plugin instance so the FileManagerMenu patch can reach it
 -- without needing the __ZEN_UI_PLUGIN global (which is only set transiently).
 local _zen_plugin_ref = nil
@@ -119,10 +152,10 @@ function ZenUI:init()
             -- Use the badge icon when an update is available.  Absolute paths are
             -- accepted by KOReader's icon resolution (checked before the icon name
             -- lookup) so the custom SVG in the plugin's icons/ dir will be used.
-            if zen_updater.has_update() and _plugin_root then
-                zen_items.icon = _plugin_root .. "/icons/appbar.settings.update.svg"
+            if zen_updater.has_update() then
+                zen_items.icon = "zen_settings_update"
             else
-                zen_items.icon = "appbar.settings"
+                zen_items.icon = "zen_settings"
             end
             local qs_pos = find_quicksettings_pos(m_self.tab_item_table)
             local insert_pos = qs_pos and (qs_pos + 1) or 1

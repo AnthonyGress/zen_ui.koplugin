@@ -204,6 +204,9 @@ msgstr "дата изменения"
 msgid "Delete"
 msgstr "Удалить"
 
+msgid "Description"
+msgstr "Описание"
+
 msgid "Detailed list with cover images and filenames"
 msgstr "Подробный список с обложками и именами файлов"
 

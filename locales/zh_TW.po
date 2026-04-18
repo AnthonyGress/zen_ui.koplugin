@@ -204,6 +204,9 @@ msgstr "修改日期"
 msgid "Delete"
 msgstr "刪除"
 
+msgid "Description"
+msgstr "簡介"
+
 msgid "Detailed list with cover images and filenames"
 msgstr "含封面與檔名的詳細清單"
 
