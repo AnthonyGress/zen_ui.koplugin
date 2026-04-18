@@ -3,15 +3,6 @@ local function apply_zen_pagination_bar()
     -- showing current page position in the file browser.
     --
     -- The bar is purely visual – no touch handling is installed on it.
-    -- When the feature is disabled the unmodified default footer (page number
-    -- text + chevron buttons) is shown and fully interactive.
-    --
-    -- Approach: override getSize on page_info_text, page_return_arrow, and
-    -- page_info itself so _recalculateDimen reserves exactly FOOTER_H at the
-    -- bottom.  Then override page_info.paintTo to draw the pill bar.  The
-    -- original chevron Button children are left in the widget tree but their
-    -- paintTo is never reached because the parent's paintTo is replaced.
-
     local Blitbuffer = require("ffi/blitbuffer")
     local Device     = require("device")
     local Geom       = require("ui/geometry")

@@ -289,8 +289,8 @@ msgstr "Carpetas y archivos mezclados"
 msgid "Format: R,G,B (0-255)"
 msgstr "Formato: R,G,B (0-255)"
 
-msgid "Frontlight"
-msgstr "Luz frontal"
+msgid "Brightness"
+msgstr "Brillo"
 
 msgid "Green"
 msgstr "Verde"
@@ -674,11 +674,11 @@ msgstr "Mostrar espacio en disco"
 msgid "Show folder name"
 msgstr "Mostrar nombre de carpeta"
 
-msgid "Show frontlight"
-msgstr "Mostrar luz frontal"
+msgid "Show brightness"
+msgstr "Mostrar brillo"
 
-msgid "Show frontlight slider"
-msgstr "Mostrar control de luz frontal"
+msgid "Show brightness slider"
+msgstr "Mostrar control deslizante de brillo"
 
 msgid "Show hidden files outside home folder"
 msgstr "Mostrar archivos ocultos fuera de la carpeta de inicio"

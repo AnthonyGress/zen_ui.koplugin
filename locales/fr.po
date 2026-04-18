@@ -289,8 +289,8 @@ msgstr "Dossiers et fichiers mélangés"
 msgid "Format: R,G,B (0-255)"
 msgstr "Format : R,V,B (0-255)"
 
-msgid "Frontlight"
-msgstr "Éclairage avant"
+msgid "Brightness"
+msgstr "Luminosité"
 
 msgid "Green"
 msgstr "Vert"
@@ -674,11 +674,11 @@ msgstr "Afficher l'espace disque"
 msgid "Show folder name"
 msgstr "Afficher le nom du dossier"
 
-msgid "Show frontlight"
-msgstr "Afficher l'éclairage avant"
+msgid "Show brightness"
+msgstr "Afficher la luminosité"
 
-msgid "Show frontlight slider"
-msgstr "Afficher le curseur d'éclairage avant"
+msgid "Show brightness slider"
+msgstr "Afficher le curseur de luminosité"
 
 msgid "Show hidden files outside home folder"
 msgstr "Afficher les fichiers cachés en dehors du dossier personnel"

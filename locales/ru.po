@@ -289,8 +289,8 @@ msgstr "Папки и файлы вперемешку"
 msgid "Format: R,G,B (0-255)"
 msgstr "Формат: R,G,B (0-255)"
 
-msgid "Frontlight"
-msgstr "Подсветка"
+msgid "Brightness"
+msgstr "Яркость"
 
 msgid "Green"
 msgstr "Зелёный"
@@ -674,11 +674,11 @@ msgstr "Показать место на диске"
 msgid "Show folder name"
 msgstr "Показать имя папки"
 
-msgid "Show frontlight"
-msgstr "Показать подсветку"
+msgid "Show brightness"
+msgstr "Показать яркость"
 
-msgid "Show frontlight slider"
-msgstr "Показать ползунок подсветки"
+msgid "Show brightness slider"
+msgstr "Показать ползунок яркости"
 
 msgid "Show hidden files outside home folder"
 msgstr "Показывать скрытые файлы вне домашней папки"

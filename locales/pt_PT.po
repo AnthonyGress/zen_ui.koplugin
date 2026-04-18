@@ -289,8 +289,8 @@ msgstr "Pastas e ficheiros misturados"
 msgid "Format: R,G,B (0-255)"
 msgstr "Formato: R,G,B (0-255)"
 
-msgid "Frontlight"
-msgstr "Luz frontal"
+msgid "Brightness"
+msgstr "Brilho"
 
 msgid "Green"
 msgstr "Verde"
@@ -674,11 +674,11 @@ msgstr "Mostrar espaço em disco"
 msgid "Show folder name"
 msgstr "Mostrar nome da pasta"
 
-msgid "Show frontlight"
-msgstr "Mostrar luz frontal"
+msgid "Show brightness"
+msgstr "Mostrar brilho"
 
-msgid "Show frontlight slider"
-msgstr "Mostrar controlo deslizante de luz frontal"
+msgid "Show brightness slider"
+msgstr "Mostrar controlo deslizante de brilho"
 
 msgid "Show hidden files outside home folder"
 msgstr "Mostrar ficheiros ocultos fora da pasta pessoal"

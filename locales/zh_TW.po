@@ -287,8 +287,8 @@ msgstr "資料夾與檔案混合"
 msgid "Format: R,G,B (0-255)"
 msgstr "格式: R,G,B (0-255)"
 
-msgid "Frontlight"
-msgstr "前燈"
+msgid "Brightness"
+msgstr "亮度"
 
 msgid "Green"
 msgstr "綠色"
@@ -672,11 +672,11 @@ msgstr "顯示磁碟空間"
 msgid "Show folder name"
 msgstr "顯示資料夾名稱"
 
-msgid "Show frontlight"
-msgstr "顯示前燈"
+msgid "Show brightness"
+msgstr "顯示亮度"
 
-msgid "Show frontlight slider"
-msgstr "顯示前燈滑桿"
+msgid "Show brightness slider"
+msgstr "顯示亮度滑桿"
 
 msgid "Show hidden files outside home folder"
 msgstr "在主資料夾外顯示隱藏檔案"

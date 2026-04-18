@@ -289,8 +289,8 @@ msgstr "Dosare și fișiere amestecate"
 msgid "Format: R,G,B (0-255)"
 msgstr "Format: R,G,B (0-255)"
 
-msgid "Frontlight"
-msgstr "Lumină frontală"
+msgid "Brightness"
+msgstr "Luminozitate"
 
 msgid "Green"
 msgstr "Verde"
@@ -674,11 +674,11 @@ msgstr "Afișează spațiul pe disc"
 msgid "Show folder name"
 msgstr "Afișează numele dosarului"
 
-msgid "Show frontlight"
-msgstr "Afișează lumina frontală"
+msgid "Show brightness"
+msgstr "Afișează luminozitatea"
 
-msgid "Show frontlight slider"
-msgstr "Afișează cursorul luminii frontale"
+msgid "Show brightness slider"
+msgstr "Afișează cursorul luminozității"
 
 msgid "Show hidden files outside home folder"
 msgstr "Afișează fișierele ascunse în afara folderului de acasă"

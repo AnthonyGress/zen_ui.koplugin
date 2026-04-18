@@ -963,7 +963,7 @@ function M.build(plugin)
         sub_item_table = {
             make_enable_feature_item("quick_settings", _("Enable quick settings panel")),
             {
-                text = _("Show frontlight slider"),
+                text = _("Show brightness slider"),
                 checked_func = function() return config.quick_settings.show_frontlight == true end,
                 callback = function()
                     config.quick_settings.show_frontlight = not (config.quick_settings.show_frontlight == true)
@@ -1091,7 +1091,7 @@ function M.build(plugin)
                                 wifi = _("WiFi"),
                                 disk = _("Disk space"),
                                 ram = _("RAM usage"),
-                                frontlight = _("Frontlight"),
+                                frontlight = _("Brightness"),
                                 battery = _("Battery"),
                             }
                             local sort_items = {}
@@ -1142,7 +1142,7 @@ function M.build(plugin)
                         end,
                     },
                     {
-                        text = _("Show frontlight"),
+                        text = _("Show brightness"),
                         checked_func = function() return config.status_bar.show.frontlight == true end,
                         callback = function()
                             config.status_bar.show.frontlight = not (config.status_bar.show.frontlight == true)
@@ -2365,7 +2365,7 @@ function M.build(plugin)
 
     reorder_nested_items_by_text(menu_items, _("Quick settings"), {
         _("Enable quick settings panel"),
-        _("Show frontlight slider"),
+        _("Show brightness slider"),
         _("Show warmth slider"),
         _("Always open on this tab"),
         _("Buttons"),

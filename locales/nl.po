@@ -289,8 +289,8 @@ msgstr "Mappen en bestanden gemengd"
 msgid "Format: R,G,B (0-255)"
 msgstr "Formaat: R,G,B (0-255)"
 
-msgid "Frontlight"
-msgstr "Voorlicht"
+msgid "Brightness"
+msgstr "Helderheid"
 
 msgid "Green"
 msgstr "Groen"
@@ -674,11 +674,11 @@ msgstr "Schijfruimte weergeven"
 msgid "Show folder name"
 msgstr "Mapnaam weergeven"
 
-msgid "Show frontlight"
-msgstr "Voorlicht weergeven"
+msgid "Show brightness"
+msgstr "Helderheid weergeven"
 
-msgid "Show frontlight slider"
-msgstr "Voorlicht-schuifregelaar weergeven"
+msgid "Show brightness slider"
+msgstr "Schuifregelaar helderheid weergeven"
 
 msgid "Show hidden files outside home folder"
 msgstr "Verborgen bestanden buiten thuismap weergeven"

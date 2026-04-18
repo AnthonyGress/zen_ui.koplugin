@@ -18,14 +18,12 @@ local function apply_quick_settings()
     local HorizontalGroup = require("ui/widget/horizontalgroup")
     local HorizontalSpan = require("ui/widget/horizontalspan")
     local IconWidget = require("ui/widget/iconwidget")
-    local Math = require("optmath")
     local NetworkMgr = require("ui/network/manager")
     local Button = require("ui/widget/button")
     local ConfirmBox = require("ui/widget/confirmbox")
-    local ButtonProgressWidget = require("ui/widget/buttonprogresswidget")
-    local ProgressWidget = require("ui/widget/progresswidget")
     local TextWidget = require("ui/widget/textwidget")
     local UIManager = require("ui/uimanager")
+    local ZenSlider = require("common/zen_slider")
     local VerticalGroup = require("ui/widget/verticalgroup")
     local VerticalSpan = require("ui/widget/verticalspan")
     local utils = require("common/utils")
@@ -404,7 +402,7 @@ local function apply_quick_settings()
         local powerd = Device:getPowerDevice()
 
         -- Refs table: stored on touch_menu for gesture handling
-        local refs = { buttons = {} }
+        local refs = { buttons = {}, sliders = {} }
 
         -- ----- Top row: action buttons -----
 
@@ -512,69 +510,68 @@ local function apply_quick_settings()
                 max = powerd.fl_max,
                 cur = powerd:frontlightIntensity(),
             }
-            local fl_steps = fl.max - fl.min + 1
-            local fl_stride = math.ceil(fl_steps * (1/25))
-
-            -- Ticks for the progress bar
-            local fl_ticks = {}
-            local fl_num_ticks = math.ceil(fl_steps / fl_stride)
-            if (fl_num_ticks - 1) * fl_stride < fl.max - fl.min then
-                fl_num_ticks = fl_num_ticks + 1
-            end
-            fl_num_ticks = math.min(fl_num_ticks, fl_steps)
-            for i = 1, fl_num_ticks - 2 do
-                table.insert(fl_ticks, i * fl_stride)
-            end
-
             local fl_label = TextWidget:new{
-                text = _("Frontlight") .. ": " .. tostring(fl.cur),
+                text = _("Brightness") .. ": " .. tostring(fl.cur),
                 face = medium_font,
                 max_width = inner_width,
             }
 
-            -- Create buttons first to measure height
+            local fl_progress = ZenSlider:new{
+                width = slider_width,
+                value = fl.cur,
+                value_min = fl.min,
+                value_max = fl.max,
+                show_parent = touch_menu.show_parent,
+            }
+
             local fl_minus = Button:new{
                 text = "−",
                 width = small_btn_width,
+                bordersize = 0,
                 show_parent = touch_menu.show_parent,
                 callback = function() end, -- placeholder, set below
             }
-            local btn_height = fl_minus:getSize().h
 
-            local fl_progress = ProgressWidget:new{
-                width = slider_width,
-                height = btn_height,
-                percentage = fl.cur / fl.max,
-                ticks = fl_ticks,
-                tick_width = Screen:scaleBySize(0.5),
-                last = fl.max,
-                margin_h = 0,
-            }
-
-            local function updateBrightnessWidgets()
-                fl_progress:setPercentage(fl.cur / fl.max)
-                fl_label:setText(_("Frontlight") .. ": " .. tostring(fl.cur))
-                UIManager:setDirty(touch_menu.show_parent, "ui")
-            end
+            local fl_label_fn = nil
 
             local function setBrightness(intensity)
                 if intensity ~= fl.min and intensity == fl.cur then return end
                 intensity = math.max(fl.min, math.min(fl.max, intensity))
                 powerd:setIntensity(intensity)
-                fl.cur = powerd:frontlightIntensity()
+                fl.cur = intensity  -- use set value directly; no hardware readback
                 if fl.cur > fl.min then
                     fl.prev_non_min = fl.cur
                 end
-                updateBrightnessWidgets()
+                -- Cancel any pending label debounce and update immediately
+                if fl_label_fn then UIManager:unschedule(fl_label_fn) ; fl_label_fn = nil end
+                fl_progress:setValue(fl.cur)
+                fl_label:setText(_("Brightness") .. ": " .. tostring(fl.cur))
+                UIManager:setDirty(touch_menu.show_parent, "ui")
             end
 
             fl.prev_non_min = fl.cur > fl.min and fl.cur or math.min(fl.max, fl.min + 1)
+
+            -- Wire slider: hardware updates every frame; label debounces 100ms
+            fl_progress.on_change = function(v)
+                powerd:setIntensity(v)
+                fl.cur = v
+                if fl.cur > fl.min then fl.prev_non_min = fl.cur end
+                UIManager:setDirty(touch_menu.show_parent, "ui")
+                if fl_label_fn then UIManager:unschedule(fl_label_fn) end
+                fl_label_fn = function()
+                    fl_label_fn = nil
+                    fl_label:setText(_("Brightness") .. ": " .. tostring(fl.cur))
+                    UIManager:setDirty(touch_menu.show_parent, "ui")
+                end
+                UIManager:scheduleIn(0.1, fl_label_fn)
+            end
 
             -- Now wire up the real callback
             fl_minus.callback = function() setBrightness(fl.cur - 1) end
             local fl_plus = Button:new{
                 text = "＋",
                 width = small_btn_width,
+                bordersize = 0,
                 show_parent = touch_menu.show_parent,
                 callback = function() setBrightness(fl.cur + 1) end,
             }
@@ -623,10 +620,11 @@ local function apply_quick_settings()
                 fl_plus,
             }
 
-            -- Store progress ref for tap/pan handling
+            -- Store ref so external code can call setValue if needed
             refs.fl_progress = fl_progress
             refs.fl_state = fl
             refs.setBrightness = setBrightness
+            table.insert(refs.sliders, { slider = fl_progress })
 
             local section_pad = VerticalSpan:new{ width = Screen:scaleBySize(10) }
 
@@ -641,27 +639,11 @@ local function apply_quick_settings()
 
         local warmth_group = VerticalGroup:new{ align = "center" }
         if config.show_warmth and Device:hasNaturalLight() then
-            local btn_height_warmth
-            if not config.show_frontlight then
-                local tmp = Button:new{ text = "−", width = small_btn_width, show_parent = touch_menu.show_parent, callback = function() end }
-                btn_height_warmth = tmp:getSize().h
-            else
-                btn_height_warmth = Button:new{ text = "−", width = small_btn_width, show_parent = touch_menu.show_parent, callback = function() end }:getSize().h
-            end
-
             local nl = {
                 min = powerd.fl_warmth_min,
                 max = powerd.fl_warmth_max,
                 cur = powerd:toNativeWarmth(powerd:frontlightWarmth()),
             }
-            local nl_steps = nl.max - nl.min + 1
-            local nl_stride = math.ceil(nl_steps * (1/25))
-            local nl_num_buttons = math.ceil(nl_steps / nl_stride)
-            if (nl_num_buttons - 1) * nl_stride < nl.max - nl.min then
-                nl_num_buttons = nl_num_buttons + 1
-            end
-            nl_num_buttons = math.min(nl_num_buttons, nl_steps)
-
             local warmth_slider_width = inner_width - 2 * small_btn_width - 2 * slider_gap
 
             local nl_label = TextWidget:new{
@@ -670,54 +652,59 @@ local function apply_quick_settings()
                 max_width = inner_width,
             }
 
-            local nl_progress = ButtonProgressWidget:new{
+            local nl_progress = ZenSlider:new{
                 width = warmth_slider_width,
-                height = btn_height_warmth,
-                font_size = 20,
-                padding = 0,
-                thin_grey_style = false,
-                num_buttons = nl_num_buttons - 1,
-                position = math.floor(nl.cur / nl_stride),
-                default_position = math.floor(nl.cur / nl_stride),
-                callback = function(i)
-                    local new_native = Math.round(i * nl_stride)
-                    new_native = math.min(new_native, nl.max)
-                    powerd:setWarmth(powerd:fromNativeWarmth(new_native))
-                    nl.cur = powerd:toNativeWarmth(powerd:frontlightWarmth())
-                    if nl.cur > nl.min then
-                        nl.prev_non_min = nl.cur
-                    end
-                    nl_label:setText(_("Warmth") .. ": " .. tostring(nl.cur))
-                    UIManager:setDirty(touch_menu.show_parent, "ui")
-                end,
+                value = nl.cur,
+                value_min = nl.min,
+                value_max = nl.max,
                 show_parent = touch_menu.show_parent,
-                enabled = true,
             }
+
+            local nl_label_fn = nil
 
             local function setWarmth(warmth)
                 if warmth == nl.cur then return end
                 warmth = math.max(nl.min, math.min(nl.max, warmth))
                 powerd:setWarmth(powerd:fromNativeWarmth(warmth))
-                nl.cur = powerd:toNativeWarmth(powerd:frontlightWarmth())
+                nl.cur = warmth  -- use set value directly; no hardware readback
                 if nl.cur > nl.min then
                     nl.prev_non_min = nl.cur
                 end
-                nl_progress:setPosition(math.floor(nl.cur / nl_stride), nl_progress.default_position)
+                -- Cancel any pending label debounce and update immediately
+                if nl_label_fn then UIManager:unschedule(nl_label_fn) ; nl_label_fn = nil end
+                nl_progress:setValue(nl.cur)
                 nl_label:setText(_("Warmth") .. ": " .. tostring(nl.cur))
                 UIManager:setDirty(touch_menu.show_parent, "ui")
             end
 
             nl.prev_non_min = nl.cur > nl.min and nl.cur or math.min(nl.max, nl.min + 1)
 
+            -- Wire slider: hardware updates every frame; label debounces 100ms
+            nl_progress.on_change = function(v)
+                powerd:setWarmth(powerd:fromNativeWarmth(v))
+                nl.cur = v
+                if nl.cur > nl.min then nl.prev_non_min = nl.cur end
+                UIManager:setDirty(touch_menu.show_parent, "ui")
+                if nl_label_fn then UIManager:unschedule(nl_label_fn) end
+                nl_label_fn = function()
+                    nl_label_fn = nil
+                    nl_label:setText(_("Warmth") .. ": " .. tostring(nl.cur))
+                    UIManager:setDirty(touch_menu.show_parent, "ui")
+                end
+                UIManager:scheduleIn(0.1, nl_label_fn)
+            end
+
             local nl_minus = Button:new{
                 text = "−",
                 width = small_btn_width,
+                bordersize = 0,
                 show_parent = touch_menu.show_parent,
                 callback = function() setWarmth(nl.cur - 1) end,
             }
             local nl_plus = Button:new{
                 text = "＋",
                 width = small_btn_width,
+                bordersize = 0,
                 show_parent = touch_menu.show_parent,
                 callback = function() setWarmth(nl.cur + 1) end,
             }
@@ -770,6 +757,7 @@ local function apply_quick_settings()
             table.insert(warmth_group, nl_cap_row)
             table.insert(warmth_group, nl_row_gap)
             table.insert(warmth_group, nl_row)
+            table.insert(refs.sliders, { slider = nl_progress })
         end
 
         -- ----- Assemble panel -----
@@ -809,15 +797,13 @@ local function apply_quick_settings()
         local refs = touch_menu._qs_refs
         if not refs then return false end
 
-        -- Check frontlight progress bar (ProgressWidget doesn't handle its own taps)
-        if not is_hold and refs.fl_progress and refs.fl_progress.dimen
-           and ges.pos:intersectWith(refs.fl_progress.dimen) then
-            local perc = refs.fl_progress:getPercentageFromPosition(ges.pos)
-            if perc and refs.setBrightness then
-                local fl = refs.fl_state
-                local new_val = Math.round(perc * fl.max)
-                refs.setBrightness(new_val)
-                return true
+        -- Check sliders for taps (not holds)
+        if not is_hold then
+            for _, sr in ipairs(refs.sliders or {}) do
+                if sr.slider.dimen and ges.pos:intersectWith(sr.slider.dimen) then
+                    sr.slider:applyPosition(ges.pos.x)
+                    return true
+                end
             end
         end
 
@@ -836,6 +822,20 @@ local function apply_quick_settings()
             end
         end
 
+        return false
+    end
+
+    -- Gesture handler for slider pan/pan_release (called from TouchMenu hooks).
+    local function handleSliderPan(touch_menu, ges, is_release)
+        local refs = touch_menu._qs_refs
+        if not refs then return false end
+        for _, sr in ipairs(refs.sliders or {}) do
+            if sr.dragging or (sr.slider.dimen and ges.pos:intersectWith(sr.slider.dimen)) then
+                sr.dragging = not is_release
+                sr.slider:applyPosition(ges.pos.x)
+                return true
+            end
+        end
         return false
     end
 
@@ -861,6 +861,18 @@ local function apply_quick_settings()
             self.ges_events.HoldCloseAllMenus = {
                 GestureRange:new{
                     ges = "hold",
+                    range = Geom:new{ x = 0, y = 0, w = self.screen_size.w, h = self.screen_size.h },
+                }
+            }
+            self.ges_events.PanCloseAllMenus = {
+                GestureRange:new{
+                    ges = "pan",
+                    range = Geom:new{ x = 0, y = 0, w = self.screen_size.w, h = self.screen_size.h },
+                }
+            }
+            self.ges_events.PanReleaseCloseAllMenus = {
+                GestureRange:new{
+                    ges = "pan_release",
                     range = Geom:new{ x = 0, y = 0, w = self.screen_size.w, h = self.screen_size.h },
                 }
             }
@@ -954,6 +966,22 @@ local function apply_quick_settings()
         return true
     end
 
+    -- Pan on slider: update value while dragging
+    function TouchMenu:onPanCloseAllMenus(arg, ges_ev)
+        if not is_enabled() then return end
+        if self._qs_refs and self.item_table and self.item_table.panel then
+            return handleSliderPan(self, ges_ev, false)
+        end
+    end
+
+    -- Pan release: commit final slider value
+    function TouchMenu:onPanReleaseCloseAllMenus(arg, ges_ev)
+        if not is_enabled() then return end
+        if self._qs_refs and self.item_table and self.item_table.panel then
+            return handleSliderPan(self, ges_ev, true)
+        end
+    end
+
     -- Hook switchMenuTab to force quick settings tab on menu open
     local orig_switchMenuTab = TouchMenu.switchMenuTab
 
@@ -980,12 +1008,57 @@ local function apply_quick_settings()
         end
 
         if self._qs_refs and self.item_table and self.item_table.panel then
-            if handlePanelGesture(self, ges_ev) then
-                return true
+            -- A fast drag is recognized as a swipe rather than pan+pan_release.
+            -- ges_ev.pos is the START position, so we must NOT pass it to
+            -- applyPosition() — that would snap the slider back to origin.
+            local refs = self._qs_refs
+            for _, sr in ipairs(refs.sliders or {}) do
+                if sr.dragging or (sr.slider.dimen and ges_ev.pos:intersectWith(sr.slider.dimen)) then
+                    local was_dragging = sr.dragging
+                    sr.dragging = false
+                    if not was_dragging then
+                        -- Pure quick-swipe (no preceding pan events): apply end position.
+                        local dist = ges_ev.distance or 0
+                        local end_x = ges_ev.pos.x
+                        if ges_ev.direction == "east" then
+                            end_x = end_x + dist
+                        elseif ges_ev.direction == "west" then
+                            end_x = end_x - dist
+                        end
+                        sr.slider:applyPosition(end_x)
+                    end
+                    -- If was_dragging: pan events already placed the knob correctly.
+                    return true
+                end
             end
+            -- Not on a slider: handle as button tap (consume to prevent page-nav crash).
+            handlePanelGesture(self, ges_ev, false)
+            return true
         end
         if orig_onSwipe then
             return orig_onSwipe(self, arg, ges_ev)
+        end
+    end
+
+    -- Safety guards: onPrevPage / onNextPage crash when self.page is nil in
+    -- panel mode (no pagination).  Consume silently.
+    local orig_onPrevPage = TouchMenu.onPrevPage
+    if orig_onPrevPage then
+        function TouchMenu:onPrevPage()
+            if is_enabled() and self.item_table and self.item_table.panel then
+                return true
+            end
+            return orig_onPrevPage(self)
+        end
+    end
+
+    local orig_onNextPage = TouchMenu.onNextPage
+    if orig_onNextPage then
+        function TouchMenu:onNextPage()
+            if is_enabled() and self.item_table and self.item_table.panel then
+                return true
+            end
+            return orig_onNextPage(self)
         end
     end
 
