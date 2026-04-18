@@ -193,6 +193,9 @@ msgstr "Streepje"
 msgid "date modified"
 msgstr "datum gewijzigd"
 
+msgid "default"
+msgstr "standaard"
+
 msgid "Delete"
 msgstr "Verwijderen"
 
@@ -285,6 +288,15 @@ msgstr "Mapvoorinstellingen"
 
 msgid "Folders and files mixed"
 msgstr "Mappen en bestanden gemengd"
+
+msgid "Font size"
+msgstr "Lettergrootte"
+
+msgid "Font size:"
+msgstr "Lettergrootte:"
+
+msgid "Font:"
+msgstr "Lettertype:"
 
 msgid "Format: R,G,B (0-255)"
 msgstr "Formaat: R,G,B (0-255)"
@@ -608,6 +620,9 @@ msgstr "Lezer"
 msgid "Reader clock"
 msgstr "Lezerklok"
 
+msgid "Reader clock font"
+msgstr "Lettertype lezerklok"
+
 msgid "Reading"
 msgstr "Aan het lezen"
 
@@ -809,6 +824,9 @@ msgstr "USB"
 
 msgid "Use 24-hour time"
 msgstr "24-uurs notatie gebruiken"
+
+msgid "Use default font"
+msgstr "Standaard lettertype gebruiken"
 
 msgid "Use current folder"
 msgstr "Huidige map gebruiken"

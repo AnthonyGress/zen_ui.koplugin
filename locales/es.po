@@ -193,6 +193,9 @@ msgstr "Guión"
 msgid "date modified"
 msgstr "fecha de modificación"
 
+msgid "default"
+msgstr "predeterminado"
+
 msgid "Delete"
 msgstr "Eliminar"
 
@@ -285,6 +288,15 @@ msgstr "Preajustes de carpeta"
 
 msgid "Folders and files mixed"
 msgstr "Carpetas y archivos mezclados"
+
+msgid "Font size"
+msgstr "Tamaño de fuente"
+
+msgid "Font size:"
+msgstr "Tamaño de fuente:"
+
+msgid "Font:"
+msgstr "Fuente:"
 
 msgid "Format: R,G,B (0-255)"
 msgstr "Formato: R,G,B (0-255)"
@@ -608,6 +620,9 @@ msgstr "Lector"
 msgid "Reader clock"
 msgstr "Reloj del lector"
 
+msgid "Reader clock font"
+msgstr "Fuente del reloj del lector"
+
 msgid "Reading"
 msgstr "Leyendo"
 
@@ -809,6 +824,9 @@ msgstr "USB"
 
 msgid "Use 24-hour time"
 msgstr "Usar formato de 24 horas"
+
+msgid "Use default font"
+msgstr "Usar fuente predeterminada"
 
 msgid "Use current folder"
 msgstr "Usar carpeta actual"

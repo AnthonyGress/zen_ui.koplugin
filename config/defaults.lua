@@ -128,6 +128,8 @@ local defaults = {
     reader_clock = {
         use_24h = false,
         position = "center",
+        font_face = "NotoSans-Bold.ttf",
+        font_size = 14,
     },
     reader_footer = {
         verbose_chapter_time = false,

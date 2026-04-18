@@ -193,6 +193,9 @@ msgstr "破折號"
 msgid "date modified"
 msgstr "修改日期"
 
+msgid "default"
+msgstr "預設"
+
 msgid "Delete"
 msgstr "刪除"
 
@@ -283,6 +286,15 @@ msgstr "資料夾預設"
 
 msgid "Folders and files mixed"
 msgstr "資料夾與檔案混合"
+
+msgid "Font size"
+msgstr "字型大小"
+
+msgid "Font size:"
+msgstr "字型大小："
+
+msgid "Font:"
+msgstr "字型："
 
 msgid "Format: R,G,B (0-255)"
 msgstr "格式: R,G,B (0-255)"
@@ -606,6 +618,9 @@ msgstr "閱讀器"
 msgid "Reader clock"
 msgstr "閱讀器時鐘"
 
+msgid "Reader clock font"
+msgstr "閱讀器時鐘字型"
+
 msgid "Reading"
 msgstr "閱讀中"
 
@@ -807,6 +822,9 @@ msgstr "USB"
 
 msgid "Use 24-hour time"
 msgstr "使用 24 小時制"
+
+msgid "Use default font"
+msgstr "使用預設字型"
 
 msgid "Use current folder"
 msgstr "使用目前資料夾"

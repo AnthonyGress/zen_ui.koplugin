@@ -193,6 +193,9 @@ msgstr "Traço"
 msgid "date modified"
 msgstr "data de modificação"
 
+msgid "default"
+msgstr "predefinido"
+
 msgid "Delete"
 msgstr "Apagar"
 
@@ -285,6 +288,15 @@ msgstr "Predefinições de pasta"
 
 msgid "Folders and files mixed"
 msgstr "Pastas e ficheiros misturados"
+
+msgid "Font size"
+msgstr "Tamanho do tipo de letra"
+
+msgid "Font size:"
+msgstr "Tamanho do tipo de letra:"
+
+msgid "Font:"
+msgstr "Tipo de letra:"
 
 msgid "Format: R,G,B (0-255)"
 msgstr "Formato: R,G,B (0-255)"
@@ -608,6 +620,9 @@ msgstr "Leitor"
 msgid "Reader clock"
 msgstr "Relógio do leitor"
 
+msgid "Reader clock font"
+msgstr "Tipo de letra do relógio do leitor"
+
 msgid "Reading"
 msgstr "A ler"
 
@@ -809,6 +824,9 @@ msgstr "USB"
 
 msgid "Use 24-hour time"
 msgstr "Usar formato de 24 horas"
+
+msgid "Use default font"
+msgstr "Usar tipo de letra predefinido"
 
 msgid "Use current folder"
 msgstr "Usar pasta atual"

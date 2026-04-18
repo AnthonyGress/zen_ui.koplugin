@@ -193,6 +193,9 @@ msgstr "Tiret"
 msgid "date modified"
 msgstr "date de modification"
 
+msgid "default"
+msgstr "par défaut"
+
 msgid "Delete"
 msgstr "Supprimer"
 
@@ -285,6 +288,15 @@ msgstr "Préréglages de dossier"
 
 msgid "Folders and files mixed"
 msgstr "Dossiers et fichiers mélangés"
+
+msgid "Font size"
+msgstr "Taille de police"
+
+msgid "Font size:"
+msgstr "Taille de police :"
+
+msgid "Font:"
+msgstr "Police :"
 
 msgid "Format: R,G,B (0-255)"
 msgstr "Format : R,V,B (0-255)"
@@ -608,6 +620,9 @@ msgstr "Lecteur"
 msgid "Reader clock"
 msgstr "Horloge du lecteur"
 
+msgid "Reader clock font"
+msgstr "Police de l'horloge du lecteur"
+
 msgid "Reading"
 msgstr "En lecture"
 
@@ -809,6 +824,9 @@ msgstr "USB"
 
 msgid "Use 24-hour time"
 msgstr "Utiliser le format 24 heures"
+
+msgid "Use default font"
+msgstr "Utiliser la police par défaut"
 
 msgid "Use current folder"
 msgstr "Utiliser le dossier actuel"

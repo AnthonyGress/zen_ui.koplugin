@@ -193,6 +193,9 @@ msgstr "Dash"
 msgid "date modified"
 msgstr "date modified"
 
+msgid "default"
+msgstr "default"
+
 msgid "Delete"
 msgstr "Delete"
 
@@ -287,6 +290,15 @@ msgstr "Folder presets"
 
 msgid "Folders and files mixed"
 msgstr "Folders and files mixed"
+
+msgid "Font size"
+msgstr "Font size"
+
+msgid "Font size:"
+msgstr "Font size:"
+
+msgid "Font:"
+msgstr "Font:"
 
 msgid "Format: R,G,B (0-255)"
 msgstr "Format: R,G,B (0-255)"
@@ -619,6 +631,9 @@ msgstr "Reader"
 msgid "Reader clock"
 msgstr "Reader clock"
 
+msgid "Reader clock font"
+msgstr "Reader clock font"
+
 msgid "Reading"
 msgstr "Reading"
 
@@ -823,6 +838,9 @@ msgstr "USB"
 
 msgid "Use 24-hour time"
 msgstr "Use 24-hour time"
+
+msgid "Use default font"
+msgstr "Use default font"
 
 msgid "Use current folder"
 msgstr "Use current folder"

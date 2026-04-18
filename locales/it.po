@@ -193,6 +193,9 @@ msgstr "Trattino"
 msgid "date modified"
 msgstr "data modifica"
 
+msgid "default"
+msgstr "predefinito"
+
 msgid "Delete"
 msgstr "Elimina"
 
@@ -285,6 +288,15 @@ msgstr "Preset cartelle"
 
 msgid "Folders and files mixed"
 msgstr "Cartelle e file misti"
+
+msgid "Font size"
+msgstr "Dimensione font"
+
+msgid "Font size:"
+msgstr "Dimensione font:"
+
+msgid "Font:"
+msgstr "Font:"
 
 msgid "Format: R,G,B (0-255)"
 msgstr "Formato: R,G,B (0-255)"
@@ -608,6 +620,9 @@ msgstr "Lettore"
 msgid "Reader clock"
 msgstr "Orologio lettore"
 
+msgid "Reader clock font"
+msgstr "Font orologio lettore"
+
 msgid "Reading"
 msgstr "In lettura"
 
@@ -809,6 +824,9 @@ msgstr "USB"
 
 msgid "Use 24-hour time"
 msgstr "Usa formato 24 ore"
+
+msgid "Use default font"
+msgstr "Usa font predefinito"
 
 msgid "Use current folder"
 msgstr "Usa cartella corrente"

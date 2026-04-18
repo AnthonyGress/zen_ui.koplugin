@@ -68,15 +68,14 @@ local function apply_reader_clock()
         end
         -- don't change anything above this line
         local screen_width = Screen:getWidth() -- always fresh (handles rotation and early-init edge cases)
+        local zen_clock_config = zen_plugin and zen_plugin.config and zen_plugin.config.reader_clock
 
 
 
         -- ===========================!!!!!!!!!!!!!!!=========================== -
         -- Configure formatting options for header here, if desired
-        local header_font_face = "NotoSans-Bold.ttf" -- bold variant of the default footer font
-        -- local header_font_face = "ffont" -- this is the same font the footer uses
-        -- header_font_face = "source/SourceSerif4-Regular.ttf" -- this is the serif font from Project: Title
-        local header_font_size = header_settings.text_font_size or 14 -- Will use your footer setting if available
+        local header_font_face = (type(zen_clock_config) == "table" and zen_clock_config.font_face) or "NotoSans-Bold.ttf"
+        local header_font_size = (type(zen_clock_config) == "table" and zen_clock_config.font_size) or 14
         local header_font_bold = header_settings.text_font_bold or false -- Will use your footer setting if available
         local header_font_color = Blitbuffer.COLOR_BLACK -- black is the default, but there's 15 other shades to try
         local header_top_padding = Size.padding.small -- replace small with default or large for more space at the top
@@ -125,7 +124,6 @@ local function apply_reader_clock()
         pages_done = pages_done + 1 -- This +1 is to include the page you're looking at
         local chapter_progress = pages_done .. " ⁄⁄ " .. pages_chapter
         -- Clock:
-        local zen_clock_config = zen_plugin and zen_plugin.config and zen_plugin.config.reader_clock
         local use_24h = type(zen_clock_config) == "table" and zen_clock_config.use_24h == true
         local clock_position = (type(zen_clock_config) == "table" and zen_clock_config.position) or "center"
         local time = datetime.secondsToHour(os.time(), not use_24h) or ""

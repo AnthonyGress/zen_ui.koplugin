@@ -1999,6 +1999,84 @@ function M.build(plugin)
                     },
                 },
             },
+            {
+                text_func = function()
+                    local FontChooser = require("ui/widget/fontchooser")
+                    local face = config.reader_clock and config.reader_clock.font_face
+                    local text = (not face or face == "NotoSans-Bold.ttf")
+                        and _("default") or FontChooser.getFontNameText(face)
+                    local size = config.reader_clock and config.reader_clock.font_size or 14
+                    return string.format("%s %s, %s", _("Font:"), text, size)
+                end,
+                sub_item_table = {
+                    {
+                        text_func = function()
+                            local size = config.reader_clock and config.reader_clock.font_size or 14
+                            return string.format("%s %s", _("Font size:"), size)
+                        end,
+                        keep_menu_open = true,
+                        callback = function(touchmenu_instance)
+                            local SpinWidget = require("ui/widget/spinwidget")
+                            UIManager:show(SpinWidget:new{
+                                title_text = _("Font size"),
+                                value = config.reader_clock and config.reader_clock.font_size or 14,
+                                value_min = 8,
+                                value_max = 36,
+                                default_value = 14,
+                                callback = function(spin)
+                                    if type(config.reader_clock) ~= "table" then config.reader_clock = {} end
+                                    config.reader_clock.font_size = spin.value
+                                    save_and_apply("reader_clock")
+                                    if touchmenu_instance then touchmenu_instance:updateItems() end
+                                end,
+                            })
+                        end,
+                    },
+                    {
+                        text_func = function()
+                            local FontChooser = require("ui/widget/fontchooser")
+                            local face = config.reader_clock and config.reader_clock.font_face
+                            local text = (not face or face == "NotoSans-Bold.ttf")
+                                and _("default") or FontChooser.getFontNameText(face)
+                            return string.format("%s %s", _("Font:"), text)
+                        end,
+                        keep_menu_open = true,
+                        callback = function(touchmenu_instance)
+                            local FontChooser = require("ui/widget/fontchooser")
+                            UIManager:show(FontChooser:new{
+                                title = _("Reader clock font"),
+                                font_file = config.reader_clock and config.reader_clock.font_face or "NotoSans-Bold.ttf",
+                                default_font_file = "NotoSans-Bold.ttf",
+                                callback = function(file)
+                                    if type(config.reader_clock) ~= "table" then config.reader_clock = {} end
+                                    if config.reader_clock.font_face ~= file then
+                                        config.reader_clock.font_face = file
+                                        save_and_apply("reader_clock")
+                                        if touchmenu_instance then touchmenu_instance:updateItems() end
+                                    end
+                                end,
+                            })
+                        end,
+                        hold_callback = function(touchmenu_instance)
+                            if type(config.reader_clock) ~= "table" then config.reader_clock = {} end
+                            if config.reader_clock.font_face ~= "NotoSans-Bold.ttf" then
+                                config.reader_clock.font_face = "NotoSans-Bold.ttf"
+                                save_and_apply("reader_clock")
+                                if touchmenu_instance then touchmenu_instance:updateItems() end
+                            end
+                        end,
+                    },
+                    {
+                        text = _("Use default font"),
+                        callback = function(touchmenu_instance)
+                            if type(config.reader_clock) ~= "table" then config.reader_clock = {} end
+                            config.reader_clock.font_face = "NotoSans-Bold.ttf"
+                            save_and_apply("reader_clock")
+                            if touchmenu_instance then touchmenu_instance:updateItems() end
+                        end,
+                    },
+                },
+            },
         },
     })
 

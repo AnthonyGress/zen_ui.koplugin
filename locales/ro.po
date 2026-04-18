@@ -193,6 +193,9 @@ msgstr "Liniuță"
 msgid "date modified"
 msgstr "dată modificare"
 
+msgid "default"
+msgstr "implicit"
+
 msgid "Delete"
 msgstr "Șterge"
 
@@ -285,6 +288,15 @@ msgstr "Setări predefinite dosar"
 
 msgid "Folders and files mixed"
 msgstr "Dosare și fișiere amestecate"
+
+msgid "Font size"
+msgstr "Dimensiune font"
+
+msgid "Font size:"
+msgstr "Dimensiune font:"
+
+msgid "Font:"
+msgstr "Font:"
 
 msgid "Format: R,G,B (0-255)"
 msgstr "Format: R,G,B (0-255)"
@@ -608,6 +620,9 @@ msgstr "Cititor"
 msgid "Reader clock"
 msgstr "Ceas cititor"
 
+msgid "Reader clock font"
+msgstr "Font ceas cititor"
+
 msgid "Reading"
 msgstr "Se citește"
 
@@ -809,6 +824,9 @@ msgstr "USB"
 
 msgid "Use 24-hour time"
 msgstr "Folosește formatul de 24 de ore"
+
+msgid "Use default font"
+msgstr "Folosește fontul implicit"
 
 msgid "Use current folder"
 msgstr "Folosește dosarul curent"

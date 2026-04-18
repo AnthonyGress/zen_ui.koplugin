@@ -193,6 +193,9 @@ msgstr "Тире"
 msgid "date modified"
 msgstr "дата изменения"
 
+msgid "default"
+msgstr "по умолчанию"
+
 msgid "Delete"
 msgstr "Удалить"
 
@@ -285,6 +288,15 @@ msgstr "Предустановки папки"
 
 msgid "Folders and files mixed"
 msgstr "Папки и файлы вперемешку"
+
+msgid "Font size"
+msgstr "Размер шрифта"
+
+msgid "Font size:"
+msgstr "Размер шрифта:"
+
+msgid "Font:"
+msgstr "Шрифт:"
 
 msgid "Format: R,G,B (0-255)"
 msgstr "Формат: R,G,B (0-255)"
@@ -608,6 +620,9 @@ msgstr "Читалка"
 msgid "Reader clock"
 msgstr "Часы читателя"
 
+msgid "Reader clock font"
+msgstr "Шрифт часов читалки"
+
 msgid "Reading"
 msgstr "Читается"
 
@@ -809,6 +824,9 @@ msgstr "USB"
 
 msgid "Use 24-hour time"
 msgstr "Использовать 24-часовой формат"
+
+msgid "Use default font"
+msgstr "Использовать шрифт по умолчанию"
 
 msgid "Use current folder"
 msgstr "Использовать текущую папку"
