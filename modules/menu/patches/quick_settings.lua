@@ -24,6 +24,7 @@ local function apply_quick_settings()
     local TextWidget = require("ui/widget/textwidget")
     local UIManager = require("ui/uimanager")
     local ZenSlider = require("common/zen_slider")
+    local ZenToggle = require("common/zen_toggle")
     local VerticalGroup = require("ui/widget/verticalgroup")
     local VerticalSpan = require("ui/widget/verticalspan")
     local utils = require("common/utils")
@@ -402,7 +403,7 @@ local function apply_quick_settings()
         local powerd = Device:getPowerDevice()
 
         -- Refs table: stored on touch_menu for gesture handling
-        local refs = { buttons = {}, sliders = {} }
+        local refs = { buttons = {}, sliders = {}, toggles = {} }
 
         -- ----- Top row: action buttons -----
 
@@ -497,6 +498,7 @@ local function apply_quick_settings()
         local medium_font = Font:getFace("ffont")
         local small_btn_width = Screen:scaleBySize(40)
         local max_btn_width = Screen:scaleBySize(85)
+        local toggle_width = Screen:scaleBySize(56)
         local slider_gap = Screen:scaleBySize(4)
         local slider_width = inner_width - 2 * small_btn_width - 2 * slider_gap
         local section_span = VerticalSpan:new{ width = Screen:scaleBySize(8) }
@@ -575,11 +577,12 @@ local function apply_quick_settings()
                 show_parent = touch_menu.show_parent,
                 callback = function() setBrightness(fl.cur + 1) end,
             }
-            local fl_off_btn = Button:new{
-                text = _("Toggle"),
-                width = max_btn_width,
-                face = medium_font,
-                show_parent = touch_menu.show_parent,
+            local fl_toggle = ZenToggle:new{
+                width = toggle_width,
+                value_func = function() return fl.cur > fl.min end,
+            }
+            table.insert(refs.toggles, {
+                toggle = fl_toggle,
                 callback = function()
                     if fl.cur > fl.min then
                         fl.prev_non_min = fl.cur
@@ -588,7 +591,7 @@ local function apply_quick_settings()
                         setBrightness(fl.prev_non_min or math.min(fl.max, fl.min + 1))
                     end
                 end,
-            }
+            })
             local fl_max_btn = Button:new{
                 text = _("Max"),
                 width = max_btn_width,
@@ -598,14 +601,14 @@ local function apply_quick_settings()
             }
 
             local row_gap = VerticalSpan:new{ width = Screen:scaleBySize(10) }
-            local label_width = inner_width - 2 * max_btn_width
+            local label_width = inner_width - toggle_width - max_btn_width
 
-            -- Cap row: [Off]  [Frontlight: N]  [Max]
+            -- Cap row: [Toggle]  [Frontlight: N]  [Max]
             local fl_cap_row = HorizontalGroup:new{
                 align = "center",
-                fl_off_btn,
+                fl_toggle,
                 CenterContainer:new{
-                    dimen = Geom:new{ w = label_width, h = fl_off_btn:getSize().h },
+                    dimen = Geom:new{ w = label_width, h = fl_max_btn:getSize().h },
                     fl_label,
                 },
                 fl_max_btn,
@@ -708,11 +711,12 @@ local function apply_quick_settings()
                 show_parent = touch_menu.show_parent,
                 callback = function() setWarmth(nl.cur + 1) end,
             }
-            local nl_off_btn = Button:new{
-                text = _("Toggle"),
-                width = max_btn_width,
-                face = medium_font,
-                show_parent = touch_menu.show_parent,
+            local nl_toggle = ZenToggle:new{
+                width = toggle_width,
+                value_func = function() return nl.cur > nl.min end,
+            }
+            table.insert(refs.toggles, {
+                toggle = nl_toggle,
                 callback = function()
                     if nl.cur > nl.min then
                         nl.prev_non_min = nl.cur
@@ -721,7 +725,7 @@ local function apply_quick_settings()
                         setWarmth(nl.prev_non_min or math.min(nl.max, nl.min + 1))
                     end
                 end,
-            }
+            })
             local nl_max_btn = Button:new{
                 text = _("Max"),
                 width = max_btn_width,
@@ -731,14 +735,14 @@ local function apply_quick_settings()
             }
 
             local nl_row_gap = VerticalSpan:new{ width = Screen:scaleBySize(10) }
-            local nl_label_width = inner_width - 2 * max_btn_width
+            local nl_label_width = inner_width - toggle_width - max_btn_width
 
-            -- Cap row: [Off]  [Warmth: N]  [Max]
+            -- Cap row: [Toggle]  [Warmth: N]  [Max]
             local nl_cap_row = HorizontalGroup:new{
                 align = "center",
-                nl_off_btn,
+                nl_toggle,
                 CenterContainer:new{
-                    dimen = Geom:new{ w = nl_label_width, h = nl_off_btn:getSize().h },
+                    dimen = Geom:new{ w = nl_label_width, h = nl_max_btn:getSize().h },
                     nl_label,
                 },
                 nl_max_btn,
@@ -802,6 +806,16 @@ local function apply_quick_settings()
             for _, sr in ipairs(refs.sliders or {}) do
                 if sr.slider.dimen and ges.pos:intersectWith(sr.slider.dimen) then
                     sr.slider:applyPosition(ges.pos.x)
+                    return true
+                end
+            end
+        end
+
+        -- Check toggles (tap only)
+        if not is_hold then
+            for _, tr in ipairs(refs.toggles or {}) do
+                if tr.toggle.dimen and ges.pos:intersectWith(tr.toggle.dimen) then
+                    tr.callback()
                     return true
                 end
             end
