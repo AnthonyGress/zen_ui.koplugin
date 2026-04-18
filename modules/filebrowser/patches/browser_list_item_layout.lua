@@ -150,11 +150,25 @@ local function apply_browser_list_item_layout()
                    and not BookInfoManager.isCachedCoverInvalid(bookinfo, cover_specs)
                 then
                     cover_bb_used = true
-                    local _, _, scale_factor = BookInfoManager.getCachedCoverSize(
-                        bookinfo.cover_w, bookinfo.cover_h, cover_w, max_img)
+                    -- Uniform fill: scale from the actual cached-bb dimensions so
+                    -- the image covers the entire 2:3 frame, then centre-crop to
+                    -- exactly cover_w × max_img.  Always applied regardless of
+                    -- whether sf is > or < 1 so small and large covers both fill.
+                    local bb_w     = bookinfo.cover_bb:getWidth()
+                    local bb_h     = bookinfo.cover_bb:getHeight()
+                    local sf       = math.max(cover_w / bb_w, max_img / bb_h)
+                    local scaled_w = math.max(cover_w,  math.ceil(bb_w * sf))
+                    local scaled_h = math.max(max_img,  math.ceil(bb_h * sf))
+                    local x_off    = math.floor((scaled_w - cover_w) / 2)
+                    local y_off    = math.floor((scaled_h - max_img) / 2)
+                    local scaled_bb = bookinfo.cover_bb:scale(scaled_w, scaled_h)
+                    local fill_bb   = Blitbuffer.new(cover_w, max_img, scaled_bb:getType())
+                    fill_bb:blitFrom(scaled_bb, 0, 0, x_off, y_off, cover_w, max_img)
+                    scaled_bb:free()
                     local wimage = ImageWidget:new{
-                        image = bookinfo.cover_bb,
-                        scale_factor = scale_factor,
+                        image        = fill_bb,
+                        scale_factor = 1,
+                        _free_image  = true,
                     }
                     wimage:_render()
                     local cover_frame = FrameContainer:new{
@@ -469,21 +483,15 @@ local function apply_browser_list_item_layout()
             self.init_done = true
         end
 
-        -- ── Rounded-corner paintTo ─────────────────────────────────────────────
-        -- Applies corner masks + arc borders after base paint when the
-        -- browser_cover_rounded_corners feature is enabled.
+        -- ── Cover-frame paintTo ───────────────────────────────────────────────
+        -- Fill-scaled images overflow their ImageWidget bounds and can paint
+        -- over the FrameContainer border (which KOReader draws *before* child
+        -- content).  We always redraw the border on top after the base paint so
+        -- it is never obscured.  Rounded corners build on top of that.
         local orig_paintTo = ListMenuItem.paintTo
         if orig_paintTo then
             function ListMenuItem:paintTo(bb, x, y)
                 orig_paintTo(self, bb, x, y)
-                local plug = _plugin_ref or rawget(_G, "__ZEN_UI_PLUGIN")
-                if not (plug
-                    and type(plug.config) == "table"
-                    and type(plug.config.features) == "table"
-                    and plug.config.features.browser_cover_rounded_corners == true)
-                then
-                    return
-                end
                 if not self._cover_frame then return end
                 local target = self._cover_frame
                 if not (target.dimen
@@ -496,8 +504,25 @@ local function apply_browser_list_item_layout()
                 local tx, ty = target.dimen.x, target.dimen.y
                 local tw, th = target.dimen.w, target.dimen.h
                 local bsz    = math.max(1, target.bordersize or 0)
-                paintCornerMasks(bb, tx, ty, tw, th, corner_radius)
-                paintCornerBorderArcs(bb, tx, ty, tw, th, corner_radius, bsz, Blitbuffer.COLOR_BLACK)
+
+                -- Always redraw straight border on top (fixes fill-overflow masking).
+                local bc = Blitbuffer.COLOR_BLACK
+                bb:paintRect(tx,            ty,            tw,  bsz, bc)
+                bb:paintRect(tx,            ty + th - bsz, tw,  bsz, bc)
+                bb:paintRect(tx,            ty,            bsz, th,  bc)
+                bb:paintRect(tx + tw - bsz, ty,            bsz, th,  bc)
+
+                local plug = _plugin_ref or rawget(_G, "__ZEN_UI_PLUGIN")
+                if plug
+                    and type(plug.config) == "table"
+                    and type(plug.config.features) == "table"
+                    and plug.config.features.browser_cover_rounded_corners == true
+                then
+                    -- Corner masks white-out the sharp corners (content + redrawn border).
+                    paintCornerMasks(bb, tx, ty, tw, th, corner_radius)
+                    -- Then draw the rounded arc border over the masked area.
+                    paintCornerBorderArcs(bb, tx, ty, tw, th, corner_radius, bsz, Blitbuffer.COLOR_BLACK)
+                end
             end
         end
     end

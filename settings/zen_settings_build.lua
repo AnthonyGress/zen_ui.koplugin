@@ -2590,16 +2590,16 @@ function M.build(plugin)
             end,
         },
         {
-            text = _("File browser"),
+            text = _("Library"),
             sub_item_table = filebrowser_items,
-        },
-        {
-            text = _("Menu"),
-            sub_item_table = menu_items,
         },
         {
             text = _("Reader"),
             sub_item_table = reader_items,
+        },
+        {
+            text = _("Menu"),
+            sub_item_table = menu_items,
         },
         {
             text = _("Global"),
