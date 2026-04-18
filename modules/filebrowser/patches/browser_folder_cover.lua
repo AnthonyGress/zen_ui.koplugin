@@ -1,4 +1,8 @@
 local function apply_browser_folder_cover()
+    -- Capture plugin reference at apply-time (same pattern as browser_cover_rounded_corners).
+    -- __ZEN_UI_PLUGIN is only set transiently so rawget at runtime returns nil.
+    local _plugin = rawget(_G, "__ZEN_UI_PLUGIN")
+
     local AlphaContainer = require("ui/widget/container/alphacontainer")
     local BD = require("ui/bidi")
     local Blitbuffer = require("ffi/blitbuffer")
@@ -239,7 +243,12 @@ local function apply_browser_folder_cover()
                         and bookinfo.has_cover
                         and bookinfo.cover_fetched
                         and not bookinfo.ignore_cover
-                        and not BookInfoManager.isCachedCoverInvalid(bookinfo, self.menu.cover_specs)
+                        -- Do NOT check isCachedCoverInvalid here. That check uses the
+                        -- full-cell cover_specs and rejects any thumbnail that was
+                        -- cached at a smaller layout (e.g. 3x3 covers in 2x2 mode).
+                        -- Showing a slightly upscaled thumbnail is far better than a
+                        -- blank folder.  Book file-items still get re-extracted at the
+                        -- new size in the background via the normal KOReader flow.
                     then
                         self:_setFolderCover { data = bookinfo.cover_bb, w = bookinfo.cover_w, h = bookinfo.cover_h }
                         found_cover = true
@@ -255,14 +264,26 @@ local function apply_browser_folder_cover()
         function MosaicMenuItem:_setFolderCover(img)
             local top_h = 2 * (Folder.edge.thick + Folder.edge.margin)
 
-            -- ── Portrait box: matches browser_cover_mosaic_uniform.lua exactly ──
-            -- Book covers: portrait_w = floor((self.height - 2*border.thin) * 2/3)
-            -- Folder frames use the same border.thin so widths are identical.
-            -- portrait_h = available space below the tab lines.
-            local border     = Folder.face.border_size  -- Size.border.thin
-            local bh         = self.height - 2 * border
-            local portrait_w = math.floor(bh * (2 / 3))
-            local portrait_h = bh - top_h               -- space below the tab
+            -- Compute the largest 2:3 portrait box that fits within the cell.
+            -- Uses both self.width and self.height so the cover scales correctly
+            -- for any grid layout (2×2, 4×3, etc.), matching the dual-constraint
+            -- approach used in browser_cover_mosaic_uniform.lua.
+            local border      = Folder.face.border_size  -- Size.border.thin
+            local max_w       = self.width  - 2 * border
+            local bh          = self.height - 2 * border
+            -- Tab lines now float on top of the cover (rendered last), so the image
+            -- can use the full cell height — same as browser_cover_mosaic_uniform.lua.
+            local available_h = bh
+            local portrait_w, portrait_h
+            if available_h * 2 <= max_w * 3 then
+                -- Height-constrained: cell is wide enough for a 2:3 portrait box.
+                portrait_h = available_h
+                portrait_w = math.floor(available_h * 2 / 3)
+            else
+                -- Width-constrained: cell is narrower than portrait; clamp to width.
+                portrait_w = max_w
+                portrait_h = math.min(math.floor(max_w * 3 / 2), available_h)
+            end
 
             local size  = { w = portrait_w, h = portrait_h }
             local dimen = { w = portrait_w + 2 * border, h = portrait_h + 2 * border }
@@ -352,25 +373,69 @@ local function apply_browser_folder_cover()
                 nbitems_widget = VerticalSpan:new { width = 0 }
             end
 
-            local widget = CenterContainer:new {
+            -- Place the image box using the same CenterContainer geometry as a book cover
+            -- (dimen.h centered in self.height), so their bottoms align.  Tab lines are
+            -- drawn AFTER (on top of) the image so they are always visible — in compact
+            -- grids like 3×3 the image top edge overlaps the tab area; drawing the lines
+            -- last keeps both lines visible regardless of cell height.
+            -- Push the image down just enough so the tab lines always have clear space
+            -- above it.  In loose grids (e.g. 3×2) the natural centered position already
+            -- satisfies image_top >= top_h, so no adjustment is made and alignment is
+            -- identical to a book cover.  In tight grids (e.g. 3×3) the image is shifted
+            -- down by the minimum needed amount (a few px), giving the lines unobstructed
+            -- space without visibly affecting the layout.
+            local centered_top = math.floor((self.height - dimen.h) / 2)
+            local image_top    = math.max(top_h, centered_top)
+            local tab_top      = image_top - top_h   -- always >= 0, no clamping needed
+
+            -- When rounded corners are active, trim the tab lines inward so they
+            -- don't visually overhang the rounded cover edge on each side.
+            local plug = _plugin or rawget(_G, "__ZEN_UI_PLUGIN")
+            local rounded = plug
+                and type(plug.config) == "table"
+                and type(plug.config.features) == "table"
+                and plug.config.features.browser_cover_rounded_corners == true
+            local line_inset = rounded and Screen:scaleBySize(4) or 0
+            local line1_w = math.max(0, math.floor(dimen.w * (Folder.edge.width ^ 2)) - 2 * line_inset)
+            local line2_w = math.max(0, math.floor(dimen.w * Folder.edge.width)       - 2 * line_inset)
+
+            local widget = OverlapGroup:new {
                 dimen = { w = self.width, h = self.height },
+                -- Layer 1: image cover + overlays.  Positioned by explicit VerticalSpan so
+                -- that image_top (which may be > centered_top in tight grids) is respected
+                -- while the image remains horizontally centered.
                 VerticalGroup:new {
-                    VerticalSpan:new { width = math.max(0, math.ceil((self.height - (top_h + dimen.h)) * 0.5)) },
-                    LineWidget:new {
-                        background = Folder.edge.color,
-                        dimen = { w = math.floor(dimen.w * (Folder.edge.width ^ 2)), h = Folder.edge.thick },
+                    VerticalSpan:new { width = image_top },
+                    CenterContainer:new {
+                        dimen = { w = self.width, h = dimen.h },
+                        OverlapGroup:new {
+                            dimen = dimen,
+                            image_widget,
+                            folder_name_widget,
+                            nbitems_widget,
+                        },
                     },
-                    VerticalSpan:new { width = Folder.edge.margin },
-                    LineWidget:new {
-                        background = Folder.edge.color,
-                        dimen = { w = math.floor(dimen.w * Folder.edge.width), h = Folder.edge.thick },
-                    },
-                    VerticalSpan:new { width = Folder.edge.margin },
-                    OverlapGroup:new {
-                        dimen = { w = self.width, h = self.height - top_h },
-                        image_widget,
-                        folder_name_widget,
-                        nbitems_widget,
+                },
+                -- Layer 2: tab lines drawn on top, horizontally centered over the cover,
+                -- positioned to hover just above (or overlap) the top edge of the image.
+                TopContainer:new {
+                    dimen = { w = self.width, h = self.height },
+                    VerticalGroup:new {
+                        VerticalSpan:new { width = tab_top },
+                        CenterContainer:new {
+                            dimen = { w = self.width, h = top_h },
+                            VerticalGroup:new {
+                                LineWidget:new {
+                                    background = Folder.edge.color,
+                                    dimen = { w = line1_w, h = Folder.edge.thick },
+                                },
+                                VerticalSpan:new { width = Folder.edge.margin },
+                                LineWidget:new {
+                                    background = Folder.edge.color,
+                                    dimen = { w = line2_w, h = Folder.edge.thick },
+                                },
+                            },
+                        },
                     },
                 },
             }

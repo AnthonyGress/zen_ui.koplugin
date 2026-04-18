@@ -98,14 +98,15 @@ local function apply_browser_cover_rounded_corners()
         --   self[1][1][1] = cover FrameContainer  ← target
         --
         -- Folder cover (browser_folder_cover.lua):
-        --   self[1]             = _underline_container
-        --   self[1][1]          = CenterContainer  (widget from _setFolderCover)
-        --   self[1][1][1]       = VerticalGroup
-        --   self[1][1][1][6]    = OverlapGroup
-        --   self[1][1][1][6][1] = image_widget FrameContainer  ← target
+        --   self[1]                = _underline_container
+        --   self[1][1]             = OverlapGroup (widget from _setFolderCover)
+        --   self[1][1][1]          = CenterContainer (image layer)   ← Layer 1
+        --   self[1][1][1][1]       = inner OverlapGroup (dimen = dimen)
+        --   self[1][1][1][1][1]    = image_widget FrameContainer  ← target
+        --   self[1][1][2]          = TopContainer (tab lines layer)  ← Layer 2
         --
         -- Discriminator: FrameContainers always carry a `bordersize` field;
-        -- VerticalGroups do not.
+        -- other containers do not.
         local function find_cover_frame(item)
             local t = item[1] and item[1][1] and item[1][1][1]
             if not t then return nil end
@@ -113,10 +114,12 @@ local function apply_browser_cover_rounded_corners()
             if t.bordersize ~= nil then
                 return t
             end
-            -- browser_folder_cover path: VerticalGroup → OverlapGroup → image_widget
-            local img = t[6] and t[6][1]
-            if img and img.dimen then
-                return img
+            -- browser_folder_cover path: Layer 1 is now a VerticalGroup.
+            -- VerticalGroup[1] = VerticalSpan, VerticalGroup[2] = CenterContainer
+            -- → [1] = inner OverlapGroup{dimen} → [1] = image_widget FrameContainer
+            local inner = t[2] and t[2][1] and t[2][1][1]
+            if inner and inner.bordersize ~= nil then
+                return inner
             end
             return nil
         end
