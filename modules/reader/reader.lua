@@ -68,10 +68,20 @@ function M.init(logger, plugin)
         run_feature(logger, plugin, "reader_footer_time_format", reader_footer_time_format_fn)
     end
 
+    -- Ensure the runtime-patches registry exists.
+    local runtime_patches = rawget(_G, "__ZEN_UI_RUNTIME_PATCHES")
+    if type(runtime_patches) ~= "table" then
+        runtime_patches = {}
+        _G.__ZEN_UI_RUNTIME_PATCHES = runtime_patches
+    end
+
     if is_feature_enabled(plugin, "reader_clock") then
         local fn = load_patch("reader_clock")
         if fn then
-            run_feature(logger, plugin, "reader_clock", fn)
+            local ok = run_feature(logger, plugin, "reader_clock", fn)
+            if ok then
+                runtime_patches["reader_clock"] = true
+            end
         elseif logger then
             logger.warn("zen-ui: reader patch module missing", "reader_clock")
         end

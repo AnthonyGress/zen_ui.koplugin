@@ -246,7 +246,7 @@ local function apply_status_bar()
         if not config.show.frontlight then return nil end
         local powerd = Device:getPowerDevice()
         if powerd:isFrontlightOn() then
-            return "☼", string.format(" %d%%", powerd:frontlightIntensity()), colors.frontlight
+            return "☼", string.format(" %d", powerd:frontlightIntensity()), colors.frontlight
         else
             return "☼", " " .. _("Off"), colors.frontlight
         end

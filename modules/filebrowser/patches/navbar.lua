@@ -7,6 +7,7 @@ local function apply_navbar()
     local CenterContainer = require("ui/widget/container/centercontainer")
     local Device = require("device")
     local FileManager = require("apps/filemanager/filemanager")
+    local FileChooser = require("ui/widget/filechooser")
     local Font = require("ui/font")
     local Geom = require("ui/geometry")
     local GestureRange = require("ui/gesturerange")
@@ -68,8 +69,9 @@ local function apply_navbar()
             exit = false,
             page_left = false,
             page_right = false,
+            menu = false,
         },
-        tab_order = { "page_left", "books", "manga", "news", "continue", "history", "favorites", "collections", "exit", "page_right" },
+        tab_order = { "page_left", "books", "manga", "news", "continue", "history", "favorites", "collections", "exit", "page_right", "menu" },
         show_labels = true,
         show_top_border = true,
         books_label = "Books",
@@ -178,6 +180,11 @@ local function apply_navbar()
             label = _("Next"),
             icon = "tab_right",
         },
+        {
+            id = "menu",
+            label = _("Menu"),
+            icon = "appbar.menu",
+        },
     }
 
     local tabs_by_id = {}
@@ -188,6 +195,7 @@ local function apply_navbar()
     -- === Active tab tracking ===
 
     local active_tab = "books"
+    local _last_menu_item = nil  -- tracks last long-held item for the menu tab
 
     -- Forward declarations; defined later
     local injectNavbar
@@ -326,6 +334,27 @@ local function apply_navbar()
         end
     end
 
+    local function onTabMenu()
+        local fm = FileManager.instance
+        if not fm or not fm.file_chooser then return end
+        local fc = fm.file_chooser
+        -- Prefer the last touch-held item, then the d-pad focused item,
+        -- then fall back to the current directory.
+        local item = _last_menu_item
+        if not item and fc.itemnumber and fc.itemnumber > 0 then
+            item = fc.item_table and fc.item_table[fc.itemnumber]
+        end
+        if not item then
+            item = {
+                path = fc.path,
+                is_file = false,
+                is_go_up = false,
+                text = fc.path:match("([^/]+)/?$") or fc.path,
+            }
+        end
+        fc:showFileDialog(item)
+    end
+
     local tab_callbacks = {
         books = onTabBooks,
         manga = onTabManga,
@@ -337,6 +366,7 @@ local function apply_navbar()
         exit = onTabExit,
         page_left = onTabPageLeft,
         page_right = onTabPageRight,
+        menu = onTabMenu,
     }
 
     -- === Color text support ===
@@ -693,6 +723,13 @@ local function apply_navbar()
     -- Flag to skip navbar for nested views (e.g. collection opened from collections list)
     -- or selection-mode dialogs (e.g. "add to collection")
     local _skip_standalone_navbar = false
+
+    -- Track the last long-held item so the menu tab can show its context dialog.
+    local orig_fc_onMenuHold = FileChooser.onMenuHold
+    FileChooser.onMenuHold = function(self, item)
+        _last_menu_item = item
+        return orig_fc_onMenuHold and orig_fc_onMenuHold(self, item)
+    end
 
     local orig_menu_init = Menu.init
 

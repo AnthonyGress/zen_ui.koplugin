@@ -403,6 +403,7 @@ function M.build(plugin)
         { id = "exit", text = _("Exit") },
         { id = "page_left", text = _("Previous page") },
         { id = "page_right", text = _("Next page") },
+        { id = "menu", text = _("Menu") },
     }
 
     local navbar_tab_toggle_items = {}

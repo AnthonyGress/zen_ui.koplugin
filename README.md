@@ -52,9 +52,6 @@ A minimal status bar in the reader and a more extensive one in the Filebrowser. 
 ### Built-in Updater
 Check for and install new Zen UI releases directly from the settings menu, without leaving KOReader.
 
-### Safe Mode
-If a patch causes a crash or conflict, Zen UI's safe mode disables all hooks so you can get back into KOReader and fix the issue.
-
 ## Installation
 
 1. Go to the [Releases](https://github.com/AnthonyGress/zen_ui.koplugin/releases) page and download `zen_ui.koplugin.zip` from the latest release.

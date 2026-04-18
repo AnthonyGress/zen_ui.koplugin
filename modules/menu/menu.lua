@@ -47,11 +47,21 @@ function M.init(logger, plugin)
         return true
     end
 
+    -- Ensure the runtime-patches registry exists.
+    local runtime_patches = rawget(_G, "__ZEN_UI_RUNTIME_PATCHES")
+    if type(runtime_patches) ~= "table" then
+        runtime_patches = {}
+        _G.__ZEN_UI_RUNTIME_PATCHES = runtime_patches
+    end
+
     for _, feature in ipairs(FEATURES) do
         if is_feature_enabled(plugin, feature) then
             local fn = load_patch(feature)
             if fn then
-                run_feature(logger, plugin, feature, fn)
+                local ok = run_feature(logger, plugin, feature, fn)
+                if ok then
+                    runtime_patches[feature] = true
+                end
             elseif logger then
                 logger.warn("zen-ui: menu patch module missing", feature)
             end
@@ -61,7 +71,10 @@ function M.init(logger, plugin)
     -- Always apply: disable swipe zones so quick settings tab is always shown first
     local swipe_fn = load_patch("disable_top_menu_swipe_zones")
     if swipe_fn then
-        run_feature(logger, plugin, "disable_top_menu_swipe_zones", swipe_fn)
+        local ok = run_feature(logger, plugin, "disable_top_menu_swipe_zones", swipe_fn)
+        if ok then
+            runtime_patches["disable_top_menu_swipe_zones"] = true
+        end
     end
 
     initialized = true

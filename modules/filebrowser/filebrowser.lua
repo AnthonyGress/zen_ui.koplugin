@@ -123,11 +123,25 @@ function M.init(logger, plugin)
         run_feature(logger, plugin, "browser_show_hidden", browser_show_hidden_fn)
     end
 
+    -- Ensure the runtime-patches registry exists (zen_settings_apply.lua creates
+    -- it, but initialise defensively here in case load order ever changes).
+    local runtime_patches = rawget(_G, "__ZEN_UI_RUNTIME_PATCHES")
+    if type(runtime_patches) ~= "table" then
+        runtime_patches = {}
+        _G.__ZEN_UI_RUNTIME_PATCHES = runtime_patches
+    end
+
     for _, feature in ipairs(FEATURES) do
         if is_feature_enabled(plugin, feature) then
             local fn, err = load_patch(feature)
             if fn then
-                run_feature(logger, plugin, feature, fn)
+                local ok = run_feature(logger, plugin, feature, fn)
+                -- Mark as applied so zen_settings_apply.lua's ensure_patch_loaded()
+                -- does not re-run the patch (which would double-wrap all hooks and
+                -- corrupt the widget tree, causing a crash on the next reinit).
+                if ok then
+                    runtime_patches[feature] = true
+                end
             elseif logger then
                 logger.warn("zen-ui: grouped filebrowser patch load failed", feature, err)
             end
