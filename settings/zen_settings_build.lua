@@ -1341,6 +1341,17 @@ function M.build(plugin)
         },
     })
 
+    table.insert(filebrowser_items, {
+        text = _("Show item underline"),
+        checked_func = function()
+            return config.features.browser_hide_underline ~= true
+        end,
+        callback = function()
+            config.features.browser_hide_underline = not (config.features.browser_hide_underline == true)
+            save_and_apply("browser_hide_underline", _("Browser hide underline"))
+        end,
+    })
+
     table.insert(filebrowser_items, make_enable_feature_item(
         "zen_pagination_bar",
         _("Zen pagination bar"),

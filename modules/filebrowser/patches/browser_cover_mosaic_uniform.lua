@@ -17,6 +17,7 @@
 
 local function apply_browser_cover_mosaic_uniform()
     local Size = require("ui/size")
+    local OverlapGroup = require("ui/widget/overlapgroup")
 
     local MosaicMenu = require("mosaicmenu")
 
@@ -51,15 +52,37 @@ local function apply_browser_cover_mosaic_uniform()
 
     -- Capture cell inner dimensions per-init so the subclass can reference them.
     -- All cells in a grid share the same size, so a module-level pair is fine.
+    local UNDERLINE_RESERVE = 6  -- px reserved so the focus underline is not obscured by the cover image
     local max_img_w, max_img_h
     local orig_init = MosaicMenuItem.init
     function MosaicMenuItem:init()
         if self.width and self.height then
             local border = Size.border.thin
             max_img_w = self.width  - 2 * border
-            max_img_h = self.height - 2 * border
+            max_img_h = self.height - 2 * border - UNDERLINE_RESERVE
         end
         if orig_init then orig_init(self) end
+
+        -- Per-instance paintTo override: draw the focus underline at the same
+        -- width as the constrained cover art, centered within the cell.
+        local uc = self._underline_container
+        if uc and not uc._zen_underline_sized then
+            uc._zen_underline_sized = true
+            uc.paintTo = function(this, bb, x, y)
+                OverlapGroup.paintTo(this, bb, x, y)
+                if this.color == require("ffi/blitbuffer").COLOR_WHITE then return end
+                local uw = this.dimen.w
+                if max_img_w and max_img_h and max_img_h > 0 then
+                    if max_img_w / max_img_h > aspect_ratio then
+                        uw = math.floor(max_img_h * aspect_ratio)
+                    else
+                        uw = max_img_w
+                    end
+                end
+                local x_off = math.floor((this.dimen.w - uw) / 2)
+                bb:paintRect(x + x_off, y + this.dimen.h - this.linesize, uw, this.linesize, this.color)
+            end
+        end
     end
 
     -- StretchingImageWidget: constrain every cover to a portrait 2:3 box.

@@ -37,7 +37,6 @@ local function normalize_renamed_keys(cfg)
 
     -- Always-on features: no user toggle in Zen settings.
     cfg.features.browser_folder_cover = true
-    cfg.features.browser_hide_underline = true
 
     return cfg
 end
