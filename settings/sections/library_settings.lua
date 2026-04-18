@@ -607,6 +607,42 @@ function M.build(ctx)
     })
 
     table.insert(items, {
+        text = _("Home folder"),
+        sub_item_table = {
+            {
+                text = _("Set home folder"),
+                callback = function()
+                    local filemanagerutil = require("apps/filemanager/filemanagerutil")
+                    local title_header = _("Current home folder:")
+                    local current_path = G_reader_settings:readSetting("home_dir")
+                    local default_path = filemanagerutil.getDefaultDir()
+                    filemanagerutil.showChooseDialog(title_header, function(path)
+                        G_reader_settings:saveSetting("home_dir", path)
+                        local ok, FM = pcall(require, "apps/filemanager/filemanager")
+                        local fm = ok and FM and FM.instance
+                        if fm and type(fm.updateTitleBarPath) == "function" then
+                            pcall(fm.updateTitleBarPath, fm)
+                        end
+                    end, current_path, default_path)
+                end,
+            },
+            {
+                text = _("Lock home folder"),
+                enabled_func = function()
+                    return G_reader_settings:has("home_dir")
+                end,
+                checked_func = function()
+                    return G_reader_settings:isTrue("lock_home_folder")
+                end,
+                callback = function()
+                    G_reader_settings:flipNilOrFalse("lock_home_folder")
+                    refresh_filechooser()
+                end,
+            },
+        },
+    })
+
+    table.insert(items, {
         text = _("Allow delete in context menu"),
         checked_func = function()
             return type(config.context_menu) == "table"

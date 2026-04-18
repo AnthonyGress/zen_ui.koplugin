@@ -85,6 +85,10 @@ local function apply_browser_folder_cover()
     local cached_list = {}
 
     function FileChooser:getListItem(dirpath, f, fullpath, attributes, collate)
+        -- Skip all extras for PathChooser/dialog instances (name is not 'filemanager').
+        if self.name ~= "filemanager" then
+            return orig_FileChooser_getListItem(self, dirpath, f, fullpath, attributes, collate)
+        end
         -- For time-based collate on directories, compute sort key from children's
         -- max atime/mtime (folder's own atime is not updated when books are read).
         if attributes.mode == "directory" and collate
@@ -124,7 +128,8 @@ local function apply_browser_folder_cover()
     local orig_FileChooser_genItemTableFromPath = FileChooser.genItemTableFromPath
 
     function FileChooser:genItemTableFromPath(path)
-        if not self._dummy then
+        -- Only clear the main browser's cache; don't thrash it from PathChooser.
+        if not self._dummy and self.name == "filemanager" then
             cached_list = {}
         end
         return orig_FileChooser_genItemTableFromPath(self, path)

@@ -85,6 +85,36 @@ function M.build(ctx)
     })
 
     table.insert(items, {
+        text = _("Clear all gestures"),
+        callback = function()
+            local ConfirmBox = require("ui/widget/confirmbox")
+            UIManager:show(ConfirmBox:new{
+                text = _("Set all gestures to pass-through? Top-right corner in reader will be kept as Toggle bookmark."),
+                ok_text = _("Clear"),
+                ok_callback = function()
+                    local ok_ds, DataStorage = pcall(require, "datastorage")
+                    local ok_ls, LuaSettings = pcall(require, "luasettings")
+                    if not ok_ds or not ok_ls then return end
+                    local gestures_path = DataStorage:getSettingsDir() .. "/gestures.lua"
+                    local settings = LuaSettings:open(gestures_path)
+                    for _, section in ipairs({ "gesture_fm", "gesture_reader" }) do
+                        if type(settings.data[section]) == "table" then
+                            for k in pairs(settings.data[section]) do
+                                settings.data[section][k] = nil
+                            end
+                        else
+                            settings.data[section] = {}
+                        end
+                    end
+                    settings.data.gesture_reader.tap_top_right_corner = { toggle_bookmark = true }
+                    settings:flush()
+                    settings_apply.prompt_restart()
+                end,
+            })
+        end,
+    })
+
+    table.insert(items, {
         text = _("Plugin management"),
         sub_item_table_func = function()
             local ok, PluginLoader = pcall(require, "pluginloader")

@@ -174,6 +174,9 @@ local defaults = {
         presets = {},           -- { { name=…, screensaver_type=…, … }, … }
         active_preset = nil,   -- name of currently active preset, or nil
     },
+    stats_page = {
+        rows = { "today", "this_month", "this_year", "all_time", "library" },
+    },
 }
 
 return defaults

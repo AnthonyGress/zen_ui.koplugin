@@ -39,6 +39,15 @@ function StatsDB.queryStats()
         peak_week_ts        = nil,
         peak_month_duration = 0,
         peak_month_ts       = nil,
+        -- this-month and this-year aggregates
+        month_pages         = 0,
+        month_duration      = 0,
+        year_pages          = 0,
+        year_duration       = 0,
+        -- distinct books with any session in each period
+        books_this_week     = 0,
+        books_this_month    = 0,
+        books_this_year     = 0,
     }
 
     local db_path = DBConn.getStatsDbPath()
@@ -240,6 +249,66 @@ function StatsDB.queryStats()
         logger.info("zen-ui db_stats: peak_day=", stats.peak_day_duration,
                     "peak_week=", stats.peak_week_duration,
                     "peak_month=", stats.peak_month_duration)
+
+        -- ── Month and Year aggregates ─────────────────────────────────────────
+        local now_t_my = os.date("*t")
+        local start_month = os.time({
+            year = now_t_my.year, month = now_t_my.month, day = 1,
+            hour = 0, min = 0, sec = 0,
+        })
+        local start_year = os.time({
+            year = now_t_my.year, month = 1, day = 1,
+            hour = 0, min = 0, sec = 0,
+        })
+
+        local sql_month_agg = [[
+            SELECT count(*), sum(sum_duration)
+            FROM (
+                SELECT sum(duration) AS sum_duration
+                FROM page_stat
+                WHERE start_time >= %d
+                GROUP BY id_book, page
+            );
+        ]]
+        local ok_mo, mo_p, mo_d = pcall(conn.rowexec, conn,
+            string.format(sql_month_agg, start_month))
+        stats.month_pages    = ok_mo and (tonumber(mo_p) or 0) or 0
+        stats.month_duration = ok_mo and (tonumber(mo_d) or 0) or 0
+
+        local sql_year_agg = [[
+            SELECT count(*), sum(sum_duration)
+            FROM (
+                SELECT sum(duration) AS sum_duration
+                FROM page_stat
+                WHERE start_time >= %d
+                GROUP BY id_book, page
+            );
+        ]]
+        local ok_yr, yr_p, yr_d = pcall(conn.rowexec, conn,
+            string.format(sql_year_agg, start_year))
+        stats.year_pages    = ok_yr and (tonumber(yr_p) or 0) or 0
+        stats.year_duration = ok_yr and (tonumber(yr_d) or 0) or 0
+
+        -- Distinct books with reading sessions in each period
+        local ok_bw, bw_v = pcall(conn.rowexec, conn, string.format(
+            "SELECT count(DISTINCT id_book) FROM page_stat_data WHERE start_time >= %d;",
+            period_begin))
+        stats.books_this_week = ok_bw and (tonumber(bw_v) or 0) or 0
+
+        local ok_bm, bm_v = pcall(conn.rowexec, conn, string.format(
+            "SELECT count(DISTINCT id_book) FROM page_stat_data WHERE start_time >= %d;",
+            start_month))
+        stats.books_this_month = ok_bm and (tonumber(bm_v) or 0) or 0
+
+        local ok_by, by_v = pcall(conn.rowexec, conn, string.format(
+            "SELECT count(DISTINCT id_book) FROM page_stat_data WHERE start_time >= %d;",
+            start_year))
+        stats.books_this_year = ok_by and (tonumber(by_v) or 0) or 0
+        logger.info("zen-ui db_stats: month_pages=", stats.month_pages,
+                    "year_pages=", stats.year_pages,
+                    "books_this_week=", stats.books_this_week,
+                    "books_this_month=", stats.books_this_month,
+                    "books_this_year=", stats.books_this_year)
     end)
 
     if not ok then

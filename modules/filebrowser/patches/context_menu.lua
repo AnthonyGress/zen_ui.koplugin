@@ -129,7 +129,7 @@ local function apply_context_menu()
                 title_align = "center",
                 buttons     = {
                     {{
-                        text     = "\u{F04BC}  " .. _sod("Ascending") .. (not cur_rev and "  \u{2713}" or ""),
+                        text     = "\u{F15D}  " .. _sod("Ascending") .. (not cur_rev and "  \u{2713}" or ""),
                         align    = "left",
                         enabled  = cur_rev,
                         callback = function()
@@ -138,7 +138,7 @@ local function apply_context_menu()
                         end,
                     }},
                     {{
-                        text     = "\u{F04BD}  " .. _sod("Descending") .. (cur_rev and "  \u{2713}" or ""),
+                        text     = "\u{F15E}  " .. _sod("Descending") .. (cur_rev and "  \u{2713}" or ""),
                         align    = "left",
                         enabled  = not cur_rev,
                         callback = function()
@@ -963,7 +963,7 @@ local function apply_context_menu()
                 local edit_buttons = {
                     {
                         {
-                            text     = "\u{F0486}  " .. _("Select"),
+                            text     = "\u{F0489}  " .. _("Select"),
                             align    = "left",
                             callback = function()
                                 UIManager:close(edit_dialog)
@@ -1017,7 +1017,7 @@ local function apply_context_menu()
                 if allow_delete then
                     table.insert(edit_buttons, {
                         {
-                            text     = "\u{F0B89}  " .. _("Delete"),
+                            text     = "\u{F0156}  " .. _("Delete"),
                             align    = "left",
                             enabled  = is_not_parent_folder,
                             callback = function()
@@ -1090,7 +1090,7 @@ local function apply_context_menu()
                 -- Move: open a folder picker then immediately execute the move
                 table.insert(buttons, {
                     {
-                        text     = "\u{F1031}  " .. _("Move"),
+                        text     = "\u{F01BE}  " .. _("Move"),
                         align    = "left",
                         callback = function()
                             close_dialog()
@@ -1185,7 +1185,7 @@ local function apply_context_menu()
 
                 table.insert(buttons, {
                     {
-                        text = is_fav and ("\u{F04D2}  " .. _("Remove from favorites")) or ("\u{F04D2}  " .. _("Add to favorites")),
+                        text = is_fav and ("\u{F04D2}  " .. _("Remove from favorites")) or ("\u{F04CE}  " .. _("Add to favorites")),
                         align    = "left",
                         callback = function()
                             close_dialog()
