@@ -582,7 +582,8 @@ local function apply_status_bar()
             end
         end)
 
-        -- Periodic refresh for time/battery/disk
+        -- Periodic refresh for time/battery/disk.
+        -- Always fires at the top of the next minute so the clock stays aligned.
         local function autoRefresh()
             if FileManager.instance ~= fm then return end
             -- Only update when FM is the topmost widget; prevents the titlebar
@@ -592,9 +593,14 @@ local function apply_status_bar()
             if top and (top.widget == fm or top.widget == fm.show_parent) then
                 fm:_updateStatusBar()
             end
-            UIManager:scheduleIn(60, autoRefresh)
+            -- Schedule next tick at the top of the following minute.
+            local t = os.date("*t")
+            local secs_until_next_minute = 60 - t.sec
+            UIManager:scheduleIn(secs_until_next_minute, autoRefresh)
         end
-        UIManager:scheduleIn(60, autoRefresh)
+        -- First tick: align to the top of the next minute.
+        local t = os.date("*t")
+        UIManager:scheduleIn(60 - t.sec, autoRefresh)
     end
 
     local orig_onPathChanged = FileManager.onPathChanged
@@ -652,6 +658,18 @@ local function apply_status_bar()
             end
             UIManager:scheduleIn(0.5, doResumeRefresh)
             UIManager:scheduleIn(1.5, doResumeRefresh)
+            -- Re-align to the top of the next minute after resume,
+            -- since the device clock may have advanced arbitrarily during sleep.
+            UIManager:scheduleIn(2, function()
+                if FileManager.instance ~= fm then return end
+                local t = os.date("*t")
+                local secs = 60 - t.sec
+                UIManager:scheduleIn(secs, function()
+                    if FileManager.instance == fm then
+                        fm:_updateStatusBar()
+                    end
+                end)
+            end)
         end
     end
 end
