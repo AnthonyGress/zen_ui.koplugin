@@ -74,9 +74,15 @@ local function apply_reader_clock()
 
         -- ===========================!!!!!!!!!!!!!!!=========================== -
         -- Configure formatting options for header here, if desired
-        local header_font_face = (type(zen_clock_config) == "table" and zen_clock_config.font_face) or "NotoSans-Bold.ttf"
+        local clock_face_cfg = type(zen_clock_config) == "table" and zen_clock_config.font_face or "default"
+        local header_font_face
+        if clock_face_cfg == "default" then
+            header_font_face = (header_settings and header_settings.text_font_face) or "NotoSans-Regular.ttf"
+        else
+            header_font_face = clock_face_cfg
+        end
         local header_font_size = (type(zen_clock_config) == "table" and zen_clock_config.font_size) or 14
-        local header_font_bold = header_settings.text_font_bold or false -- Will use your footer setting if available
+        local header_font_bold = header_settings and header_settings.text_font_bold or false -- Will use your footer setting if available
         local header_font_color = Blitbuffer.COLOR_BLACK -- black is the default, but there's 15 other shades to try
         local header_top_padding = Size.padding.small -- replace small with default or large for more space at the top
         local header_use_book_margins = true -- Use same margins as book for header

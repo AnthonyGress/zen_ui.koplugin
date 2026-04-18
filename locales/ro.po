@@ -87,6 +87,9 @@ msgstr "Baterie"
 msgid "Blue"
 msgstr "Albastru"
 
+msgid "Bold"
+msgstr "Îngroșat"
+
 msgid "Bold active tab"
 msgstr "Filă activă îngroșată"
 
@@ -111,8 +114,8 @@ msgstr "Etichetă filă Cărți"
 msgid "Books tab label: "
 msgstr "Etichetă filă Cărți: "
 
-
-
+msgid "Bottom status bar"
+msgstr "Bara de stare inferioară"
 
 msgid "Bullet"
 msgstr "Punct"
@@ -288,6 +291,9 @@ msgstr "Setări predefinite dosar"
 
 msgid "Folders and files mixed"
 msgstr "Dosare și fișiere amestecate"
+
+msgid "Font"
+msgstr "Font"
 
 msgid "Font size"
 msgstr "Dimensiune font"

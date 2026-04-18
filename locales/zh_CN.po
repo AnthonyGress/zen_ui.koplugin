@@ -87,6 +87,9 @@ msgstr "电池"
 msgid "Blue"
 msgstr "蓝色"
 
+msgid "Bold"
+msgstr "粗体"
+
 msgid "Bold active tab"
 msgstr "活动标签加粗"
 
@@ -111,8 +114,8 @@ msgstr "书库标签名称"
 msgid "Books tab label: "
 msgstr "书库标签名称: "
 
-
-
+msgid "Bottom status bar"
+msgstr "底部状态栏"
 
 msgid "Bullet"
 msgstr "圆点"
@@ -286,6 +289,9 @@ msgstr "文件夹预设"
 
 msgid "Folders and files mixed"
 msgstr "文件夹与文件混合"
+
+msgid "Font"
+msgstr "字体"
 
 msgid "Font size"
 msgstr "字体大小"

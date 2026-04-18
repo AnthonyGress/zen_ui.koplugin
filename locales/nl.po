@@ -87,6 +87,9 @@ msgstr "Batterij"
 msgid "Blue"
 msgstr "Blauw"
 
+msgid "Bold"
+msgstr "Vet"
+
 msgid "Bold active tab"
 msgstr "Actief tabblad vet"
 
@@ -111,8 +114,8 @@ msgstr "Label tabblad Boeken"
 msgid "Books tab label: "
 msgstr "Label tabblad Boeken: "
 
-
-
+msgid "Bottom status bar"
+msgstr "Onderste statusbalk"
 
 msgid "Bullet"
 msgstr "Opsommingsteken"
@@ -288,6 +291,9 @@ msgstr "Mapvoorinstellingen"
 
 msgid "Folders and files mixed"
 msgstr "Mappen en bestanden gemengd"
+
+msgid "Font"
+msgstr "Lettertype"
 
 msgid "Font size"
 msgstr "Lettergrootte"

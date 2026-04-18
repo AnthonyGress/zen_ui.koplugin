@@ -87,6 +87,9 @@ msgstr "Battery"
 msgid "Blue"
 msgstr "Blue"
 
+msgid "Bold"
+msgstr "Bold"
+
 msgid "Bold active tab"
 msgstr "Bold active tab"
 
@@ -111,8 +114,8 @@ msgstr "Books tab label"
 msgid "Books tab label: "
 msgstr "Books tab label: "
 
-
-
+msgid "Bottom status bar"
+msgstr "Bottom status bar"
 
 msgid "Bullet"
 msgstr "Bullet"
@@ -290,6 +293,9 @@ msgstr "Folder presets"
 
 msgid "Folders and files mixed"
 msgstr "Folders and files mixed"
+
+msgid "Font"
+msgstr "Font"
 
 msgid "Font size"
 msgstr "Font size"

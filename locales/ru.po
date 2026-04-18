@@ -87,6 +87,9 @@ msgstr "Батарея"
 msgid "Blue"
 msgstr "Синий"
 
+msgid "Bold"
+msgstr "Жирный"
+
 msgid "Bold active tab"
 msgstr "Активная вкладка жирным"
 
@@ -111,8 +114,8 @@ msgstr "Метка вкладки Книги"
 msgid "Books tab label: "
 msgstr "Метка вкладки Книги: "
 
-
-
+msgid "Bottom status bar"
+msgstr "Нижняя строка состояния"
 
 msgid "Bullet"
 msgstr "Маркер"
@@ -288,6 +291,9 @@ msgstr "Предустановки папки"
 
 msgid "Folders and files mixed"
 msgstr "Папки и файлы вперемешку"
+
+msgid "Font"
+msgstr "Шрифт"
 
 msgid "Font size"
 msgstr "Размер шрифта"

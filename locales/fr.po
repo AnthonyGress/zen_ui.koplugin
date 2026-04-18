@@ -87,6 +87,9 @@ msgstr "Batterie"
 msgid "Blue"
 msgstr "Bleu"
 
+msgid "Bold"
+msgstr "Gras"
+
 msgid "Bold active tab"
 msgstr "Onglet actif en gras"
 
@@ -111,8 +114,8 @@ msgstr "Étiquette de l'onglet Livres"
 msgid "Books tab label: "
 msgstr "Étiquette de l'onglet Livres : "
 
-
-
+msgid "Bottom status bar"
+msgstr "Barre d'état inférieure"
 
 msgid "Bullet"
 msgstr "Puce"
@@ -288,6 +291,9 @@ msgstr "Préréglages de dossier"
 
 msgid "Folders and files mixed"
 msgstr "Dossiers et fichiers mélangés"
+
+msgid "Font"
+msgstr "Police"
 
 msgid "Font size"
 msgstr "Taille de police"

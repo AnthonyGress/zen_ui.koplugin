@@ -87,6 +87,9 @@ msgstr "Batería"
 msgid "Blue"
 msgstr "Azul"
 
+msgid "Bold"
+msgstr "Negrita"
+
 msgid "Bold active tab"
 msgstr "Pestaña activa en negrita"
 
@@ -111,8 +114,8 @@ msgstr "Etiqueta de la pestaña Libros"
 msgid "Books tab label: "
 msgstr "Etiqueta de la pestaña Libros: "
 
-
-
+msgid "Bottom status bar"
+msgstr "Barra de estado inferior"
 
 msgid "Bullet"
 msgstr "Viñeta"
@@ -288,6 +291,9 @@ msgstr "Preajustes de carpeta"
 
 msgid "Folders and files mixed"
 msgstr "Carpetas y archivos mezclados"
+
+msgid "Font"
+msgstr "Fuente"
 
 msgid "Font size"
 msgstr "Tamaño de fuente"

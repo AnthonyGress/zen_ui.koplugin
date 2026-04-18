@@ -87,6 +87,9 @@ msgstr "Bateria"
 msgid "Blue"
 msgstr "Azul"
 
+msgid "Bold"
+msgstr "Negrito"
+
 msgid "Bold active tab"
 msgstr "Aba ativa em negrito"
 
@@ -111,8 +114,8 @@ msgstr "Rótulo da aba Livros"
 msgid "Books tab label: "
 msgstr "Rótulo da aba Livros: "
 
-
-
+msgid "Bottom status bar"
+msgstr "Barra de status inferior"
 
 msgid "Bullet"
 msgstr "Marcador"
@@ -288,6 +291,9 @@ msgstr "Predefinições de pasta"
 
 msgid "Folders and files mixed"
 msgstr "Pastas e arquivos misturados"
+
+msgid "Font"
+msgstr "Fonte"
 
 msgid "Font size"
 msgstr "Tamanho da fonte"

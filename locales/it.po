@@ -87,6 +87,9 @@ msgstr "Batteria"
 msgid "Blue"
 msgstr "Blu"
 
+msgid "Bold"
+msgstr "Grassetto"
+
 msgid "Bold active tab"
 msgstr "Scheda attiva in grassetto"
 
@@ -111,8 +114,8 @@ msgstr "Etichetta scheda libri"
 msgid "Books tab label: "
 msgstr "Etichetta scheda libri: "
 
-
-
+msgid "Bottom status bar"
+msgstr "Barra di stato inferiore"
 
 msgid "Bullet"
 msgstr "Punto elenco"
@@ -288,6 +291,9 @@ msgstr "Preset cartelle"
 
 msgid "Folders and files mixed"
 msgstr "Cartelle e file misti"
+
+msgid "Font"
+msgstr "Carattere"
 
 msgid "Font size"
 msgstr "Dimensione font"
