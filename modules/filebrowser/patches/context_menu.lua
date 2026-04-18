@@ -248,7 +248,7 @@ local function apply_context_menu()
                 end
 
                 -- Build an OverlapGroup with cover at left edge, text stack at right edge.
-                local function makeSideBySide(cover_bb, src_w, src_h, sf, title_str, authors_str, tags_str_arg, on_cover_tap)
+                local function makeSideBySide(cover_bb, src_w, src_h, sf, title_str, authors_str, tags_str_arg, pages_str_arg, on_cover_tap)
                     local rendered_w  = math.floor(src_w * sf)
                     local rendered_h  = math.floor(src_h * sf)
                     local framed_h    = rendered_h + 2 * border
@@ -290,6 +290,15 @@ local function apply_context_menu()
                         table.insert(vstack, VerticalSpan:new{ width = Screen:scaleBySize(3) })
                         table.insert(vstack, TextWidget:new{
                             text      = tags_str_arg,
+                            face      = Font:getFace("cfont", fs_tags),
+                            fgcolor   = Blitbuffer.COLOR_GRAY_3,
+                            max_width = text_col_w,
+                        })
+                    end
+                    if pages_str_arg then
+                        table.insert(vstack, VerticalSpan:new{ width = Screen:scaleBySize(3) })
+                        table.insert(vstack, TextWidget:new{
+                            text      = pages_str_arg,
                             face      = Font:getFace("cfont", fs_tags),
                             fgcolor   = Blitbuffer.COLOR_GRAY_3,
                             max_width = text_col_w,
@@ -351,6 +360,7 @@ local function apply_context_menu()
                     }
                 end
 
+                local pages_str
                 if is_file then
                     local ok, BookInfoManager = pcall(require, "bookinfomanager")
                     local title_str, authors_str, tags_str_local
@@ -367,6 +377,22 @@ local function apply_context_menu()
                                         :gsub("%s*[\n;]%s*", ", ")
                                         :gsub("%s+\xC2\xB7%s+", ", ")
                                         :gsub("^,%s*", ""):gsub(",%s*$", "")
+                                end
+                                local n_pages = tonumber(bookinfo.pages)
+                                if not (n_pages and n_pages > 0) then
+                                    -- CRE docs (EPUB/FB2) don't store pages in the
+                                    -- cover-browser cache; fall back to the sidecar.
+                                    local ok_ds, DocSettings = pcall(require, "docsettings")
+                                    if ok_ds then
+                                        pcall(function()
+                                            local ds = DocSettings:open(file)
+                                            local p = tonumber(ds:readSetting("doc_pages"))
+                                            if p and p > 0 then n_pages = p end
+                                        end)
+                                    end
+                                end
+                                if n_pages and n_pages > 0 then
+                                    pages_str = n_pages .. " " .. _("pages")
                                 end
                             end
                             if not bookinfo.ignore_meta and bookinfo.description
@@ -385,6 +411,7 @@ local function apply_context_menu()
                                     title_str or BD.filename(file:match("([^/]+)$")),
                                     authors_str,
                                     tags_str_local,
+                                    pages_str,
                                     function() showCoverFullscreen(file) end)
                             end
                         end
@@ -433,7 +460,7 @@ local function apply_context_menu()
                                 local src_h = cover_bb:getHeight()
                                 dialog_cover_widget = makeSideBySide(
                                     cover_bb, src_w, src_h, 1.0,
-                                    folder_name_str, folder_count_str, nil, nil)
+                                    folder_name_str, folder_count_str, nil, nil, nil)
                             end
                         end
                     end
@@ -635,6 +662,15 @@ local function apply_context_menu()
                         table.insert(vstack, TextWidget2:new{
                             text      = sub_line,
                             face      = Font2:getFace("cfont", 17),
+                            max_width = text_col_w,
+                        })
+                    end
+                    if pages_str then
+                        table.insert(vstack, VerticalSpan2:new{ width = Screen:scaleBySize(3) })
+                        table.insert(vstack, TextWidget2:new{
+                            text      = pages_str,
+                            face      = Font2:getFace("cfont", 14),
+                            fgcolor   = Blitbuffer2.COLOR_GRAY_3,
                             max_width = text_col_w,
                         })
                     end
