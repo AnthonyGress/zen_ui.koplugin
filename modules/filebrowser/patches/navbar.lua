@@ -64,6 +64,7 @@ local function apply_navbar()
             collections = false,
             authors = false,
             series = false,
+            to_be_read = false,
             search = false,
             stats = false,
             exit = false,
@@ -71,7 +72,7 @@ local function apply_navbar()
             page_right = false,
             menu = false,
         },
-        tab_order = { "page_left", "books", "manga", "news", "continue", "authors", "series", "history", "favorites", "collections", "stats", "search", "exit", "page_right", "menu" },
+        tab_order = { "page_left", "books", "manga", "news", "continue", "authors", "series", "to_be_read", "history", "favorites", "collections", "stats", "search", "exit", "page_right", "menu" },
         show_labels = true,
         books_label = "Library",
         manga_action = "rakuyomi",
@@ -172,6 +173,11 @@ local function apply_navbar()
             id = "series",
             label = _("Series"),
             icon = "tab_series",
+        },
+        {
+            id = "to_be_read",
+            label = _("To Be Read"),
+            icon = "tab_to_be_read",
         },
         {
             id = "search",
@@ -342,6 +348,11 @@ local function apply_navbar()
         if GroupView then GroupView.showSeriesView(injectStandaloneNavbar) end
     end
 
+    local function onTabTBR()
+        local GroupView = zen_plugin._zen_shared and zen_plugin._zen_shared.group_view
+        if GroupView then GroupView.showTBRView(injectStandaloneNavbar) end
+    end
+
     local function onTabSearch()
         local fm = FileManager.instance
         if fm and fm.filesearcher then
@@ -412,6 +423,7 @@ local function apply_navbar()
         collections = onTabCollections,
         authors = onTabAuthors,
         series = onTabSeries,
+        to_be_read = onTabTBR,
         search = onTabSearch,
         stats = onTabStats,
         exit = onTabExit,
@@ -783,6 +795,7 @@ local function apply_navbar()
         collections = true,
         authors = true,
         series = true,
+        to_be_read = true,
         authors_detail = true,
         series_detail = true,
         stats = true,

@@ -9,6 +9,7 @@ local _list_item_patched   = false
 -- Active group view menus (so we can refresh them)
 local _authors_menu = nil
 local _series_menu  = nil
+local _tbr_menu     = nil
 
 -- Set during apply (called at init while __ZEN_UI_PLUGIN is set)
 local _zen_shared    = nil
@@ -1312,6 +1313,179 @@ function M.showSeriesView(injectNavbar)
     if not ok then return end
     local groups = db.getGroupedBySeries()
     showGroupView("series", injectNavbar, groups)
+end
+
+-------------------------------------------------------------------------------
+-- M.showTBRView: flat book list filtered to "To Be Read" (abandoned) status
+-------------------------------------------------------------------------------
+function M.showTBRView(injectNavbar)
+    local _          = require("gettext")
+    local Menu       = require("ui/widget/menu")
+    local TitleBar   = require("ui/widget/titlebar")
+    local UIManager  = require("ui/uimanager")
+    local ReaderUI   = require("apps/reader/readerui")
+
+    local ok, db = pcall(require, "common/db_bookinfo")
+    if not ok then return end
+    local files = db.getTBRBooks()
+
+    local tab_id     = "to_be_read"
+    local SORT_GROUP = "to_be_read"
+    local group_name = _("To Be Read")
+
+    local collate_key = "zen_" .. tab_id .. "_detail_collate_" .. SORT_GROUP
+    local reverse_key = "zen_" .. tab_id .. "_detail_reverse_" .. SORT_GROUP
+    local g_settings  = rawget(_G, "G_reader_settings")
+    local cur_collate = g_settings and g_settings:readSetting(collate_key) or "title"
+    local cur_reverse = g_settings and g_settings:isTrue(reverse_key) or false
+
+    local sorted_files = sortDetailFiles(files, cur_collate, cur_reverse)
+
+    local function buildItems(flist)
+        local items = {}
+        for _, fpath in ipairs(flist) do
+            local fname   = fpath:match("([^/]+)$") or fpath
+            local display = fname:gsub("%.[^%.]+$", "")
+            table.insert(items, {
+                text     = display,
+                path     = fpath,
+                filepath = fpath,
+                is_file  = true,
+            })
+        end
+        if #items == 0 then
+            table.insert(items, {
+                text     = _("No books found"),
+                dim      = true,
+                callback = function() end,
+            })
+        end
+        return items
+    end
+
+    local orig_tb_new = TitleBar.new
+    TitleBar.new = function(cls, t)
+        if type(t) == "table" then
+            t.subtitle                 = nil
+            t.subtitle_fullwidth       = nil
+            t.left_icon                = nil
+            t.left_icon_tap_callback   = nil
+            t.left_icon_hold_callback  = nil
+            t.right_icon               = nil
+            t.right_icon_tap_callback  = nil
+            t.right_icon_hold_callback = nil
+            t.close_callback           = nil
+            t.title_tap_callback       = nil
+            t.title_hold_callback      = nil
+            t.bottom_v_padding         = 0
+            t.title                    = " "
+        end
+        return orig_tb_new(cls, t)
+    end
+
+    local menu = Menu:new{
+        name               = "to_be_read",
+        title              = group_name,
+        covers_fullscreen  = true,
+        is_borderless      = true,
+        is_popout          = false,
+        title_bar_fm_style = true,
+        item_table         = buildItems(sorted_files),
+        onMenuSelect       = function(menu_self, item)
+            if item.path then
+                ReaderUI:showReader(item.path)
+            end
+        end,
+        onMenuHold         = function(menu_self, item)
+            if not item.path then return end
+            local FileManager = require("apps/filemanager/filemanager")
+            local fm = FileManager.instance
+            if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
+                fm.file_chooser:showFileDialog({
+                    path    = item.path,
+                    is_file = true,
+                    text    = item.text,
+                })
+            end
+        end,
+        updateItems        = function(menu_self, ...) end,
+    }
+    TitleBar.new = orig_tb_new
+
+    local mode_type = setup_display_mode(menu, false, tab_id)
+    if mode_type == "mosaic" then
+        patch_mosaic_item()
+    elseif mode_type == "list" then
+        patch_list_item()
+    elseif mode_type == "classic" or not mode_type then
+        local Menu_class = require("ui/widget/menu")
+        menu.updateItems = Menu_class.updateItems
+    end
+
+    menu.close_callback = function()
+        UIManager:close(menu)
+        _tbr_menu = nil
+    end
+
+    clean_nav(menu, group_name)
+
+    if injectNavbar then
+        injectNavbar(menu, tab_id)
+    end
+
+    _tbr_menu = menu
+
+    local Device_tbr = require("device")
+    if Device_tbr:isTouchDevice() then
+        local GestureRange_tbr = require("ui/gesturerange")
+        local Geom_tbr         = require("ui/geometry")
+        if not menu.ges_events then
+            menu.ges_events = {}
+        end
+        menu.ges_events.ZenTBRBlankHold = {
+            GestureRange_tbr:new{
+                ges   = "hold",
+                range = Geom_tbr:new{
+                    x = 0, y = 0,
+                    w = Device_tbr.screen:getWidth(),
+                    h = Device_tbr.screen:getHeight(),
+                },
+            },
+        }
+        function menu:onZenTBRBlankHold(arg, ges)
+            local FileManager = require("apps/filemanager/filemanager")
+            local fm = FileManager.instance
+            if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
+                local n = self.item_table and #self.item_table or 0
+                fm.file_chooser:showFileDialog({
+                    _zen_group_files    = files,
+                    _zen_group_name     = group_name,
+                    _zen_group_subtitle = n == 1 and _("1 book") or (tostring(n) .. " " .. _("books")),
+                    _zen_sort_cb        = function()
+                        showDetailSortDialog(SORT_GROUP, tab_id, self, files)
+                    end,
+                    _zen_display_cb     = function()
+                        showDisplayModeDialog(self, tab_id)
+                    end,
+                })
+            end
+            return true
+        end
+    end
+
+    UIManager:show(menu)
+    UIManager:nextTick(function()
+        menu:updateItems()
+        local createSR2  = _zen_shared and _zen_shared.createStatusRow
+        local repaintTB2 = _zen_shared and _zen_shared.repaintTitleBar
+        local tb2 = menu.title_bar
+        if tb2 and createSR2 and tb2.title_group and #tb2.title_group >= 2 then
+            local FileManager2 = require("apps/filemanager/filemanager")
+            tb2.title_group[2] = createSR2(nil, FileManager2.instance)
+            tb2.title_group:resetLayout()
+            if repaintTB2 then repaintTB2(tb2) end
+        end
+    end)
 end
 
 return function()

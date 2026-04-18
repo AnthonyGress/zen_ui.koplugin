@@ -221,4 +221,79 @@ function M.getGroupedBySeries()
     return groups
 end
 
+-- Returns a flat list of file paths whose sidecar summary.status == "abandoned"
+-- (displayed in the UI as "To Be Read").
+function M.getTBRBooks()
+    local db_path = getDbPath()
+    if not db_path then
+        logger.warn("zen-ui db_bookinfo: getTBRBooks: bookinfo_cache.sqlite3 not found")
+        return {}
+    end
+
+    local home_dir = getHomeDir()
+    local ok, conn = pcall(SQ3.open, db_path)
+    if not ok then
+        logger.warn("zen-ui db_bookinfo: getTBRBooks: failed to open DB:", conn)
+        return {}
+    end
+    conn:set_busy_timeout(3000)
+
+    local candidates = {}
+
+    local ok2, err = pcall(function()
+        local sql = [[
+            SELECT directory, filename
+            FROM bookinfo
+            WHERE in_progress = 0
+            ORDER BY filename
+        ]]
+        local res = conn:exec(sql)
+        if not res then return end
+
+        local dirs      = res[1] or {}
+        local filenames = res[2] or {}
+
+        for i = 1, #dirs do
+            local dir   = dirs[i]
+            local fname = filenames[i]
+            if not dir or not fname then goto continue end
+            local filepath = dir .. fname
+            if home_dir and filepath:sub(1, #home_dir) ~= home_dir then
+                goto continue
+            end
+            if lfs.attributes(filepath, "mode") ~= "file" then
+                goto continue
+            end
+            table.insert(candidates, filepath)
+            ::continue::
+        end
+    end)
+
+    conn:close()
+
+    if not ok2 then
+        logger.warn("zen-ui db_bookinfo: getTBRBooks query error:", err)
+        return {}
+    end
+
+    local ok_ds, DocSettings = pcall(require, "docsettings")
+    if not ok_ds then return {} end
+
+    local result = {}
+    for _, filepath in ipairs(candidates) do
+        if DocSettings:hasSidecarFile(filepath) then
+            local ok3, doc = pcall(DocSettings.open, DocSettings, filepath)
+            if ok3 and doc then
+                local summary = doc:readSetting("summary")
+                if summary and summary.status == "abandoned" then
+                    table.insert(result, filepath)
+                end
+            end
+        end
+    end
+
+    logger.warn("zen-ui db_bookinfo: getTBRBooks result:", #result, "books")
+    return result
+end
+
 return M

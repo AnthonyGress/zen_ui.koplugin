@@ -61,6 +61,7 @@ function M.build(ctx)
         { id = "collections", text = _("Collections")   },
         { id = "authors",     text = _("Authors")       },
         { id = "series",      text = _("Series")        },
+        { id = "to_be_read",  text = _("To Be Read")    },
         { id = "search",      text = _("Search")        },
         { id = "stats",       text = _("Stats")         },
         { id = "exit",        text = _("Exit")          },
