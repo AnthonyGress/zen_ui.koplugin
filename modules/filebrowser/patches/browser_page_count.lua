@@ -29,6 +29,23 @@ local function apply_browser_page_count()
     local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
     if not ok_bim or not BookInfoManager then return end
 
+    -- Resolve pgettext once at apply time so paintTo doesn't depend on the
+    -- C_ global being present (some KOReader builds don't expose it globally).
+    local _C_
+    do
+        local _cg = rawget(_G, "C_")
+        if type(_cg) == "function" then
+            _C_ = _cg
+        else
+            local ok_gt, gt = pcall(require, "gettext")
+            if ok_gt and gt and type(gt.pgettext) == "function" then
+                _C_ = function(ctx, msgid) return gt.pgettext(ctx, msgid) end
+            else
+                _C_ = function(_, msgid) return msgid end
+            end
+        end
+    end
+
     -- Capture plugin reference while __ZEN_UI_PLUGIN is still set (run_feature
     -- sets it only during pcall of this function).
     -- Also fall back to the global at paint time so toggling the setting without
@@ -158,7 +175,7 @@ local function apply_browser_page_count()
             -- 6. Measure text — font, height, padding all scale with corner_mark_size
             --    matching the cover badge proportions exactly.
             local font_size = math.max(7, math.floor(corner_mark_size * 0.24))
-            local page_str  = tostring(pages) .. " p."
+            local page_str  = tostring(pages) .. " " .. _C_("page_count", "p.")
             local tw = TextWidget:new{
                 text    = page_str,
                 face    = Font:getFace("cfont", font_size),

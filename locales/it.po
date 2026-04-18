@@ -898,3 +898,7 @@ msgstr "Ordina cartella per"
 
 msgid "Clear"
 msgstr "Cancella"
+
+msgctxt "page_count"
+msgid "p."
+msgstr "p."

@@ -896,3 +896,7 @@ msgstr "Sort folder by"
 
 msgid "Clear"
 msgstr "Clear"
+
+msgctxt "page_count"
+msgid "p."
+msgstr "p."

@@ -898,3 +898,7 @@ msgstr "Сортировать папку по"
 
 msgid "Clear"
 msgstr "Очистить"
+
+msgctxt "page_count"
+msgid "p."
+msgstr "с."

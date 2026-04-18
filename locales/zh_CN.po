@@ -896,3 +896,7 @@ msgstr "文件夹排序方式"
 
 msgid "Clear"
 msgstr "清除"
+
+msgctxt "page_count"
+msgid "p."
+msgstr "页"
