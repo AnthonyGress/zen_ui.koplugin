@@ -22,6 +22,7 @@ local PATCH_MODULES = {
     browser_hide_underline = "modules/filebrowser/patches/browser_hide_underline",
     browser_hide_up_folder = "modules/filebrowser/patches/browser_hide_up_folder",
     browser_cover_badges = "modules/filebrowser/patches/browser_cover_badges",
+    browser_cover_rounded_corners = "modules/filebrowser/patches/browser_cover_rounded_corners",
     browser_show_hidden = "modules/filebrowser/patches/browser_show_hidden",
 }
 
@@ -98,6 +99,13 @@ function M.init(logger, plugin)
     local browser_cover_badges_fn = load_patch("browser_cover_badges")
     if browser_cover_badges_fn then
         run_feature(logger, plugin, "browser_cover_badges", browser_cover_badges_fn)
+    end
+
+    -- Always apply: rounded corner masks on mosaic covers (book + folder).
+    -- The per-paint guard reads the live config, so no restart is needed.
+    local browser_cover_rounded_corners_fn = load_patch("browser_cover_rounded_corners")
+    if browser_cover_rounded_corners_fn then
+        run_feature(logger, plugin, "browser_cover_rounded_corners", browser_cover_rounded_corners_fn)
     end
 
     -- Always apply: dynamically enforce show_hidden based on home dir boundary

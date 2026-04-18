@@ -621,6 +621,9 @@ msgstr "Mostra etichette"
 msgid "Show progress % on mosaic covers"
 msgstr "Mostra % avanzamento sulle copertine mosaico"
 
+msgid "Rounded corners on mosaic covers"
+msgstr "Angoli arrotondati sulle copertine mosaico"
+
 msgid "Show RAM usage"
 msgstr "Mostra utilizzo RAM"
 

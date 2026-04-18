@@ -621,6 +621,9 @@ msgstr "Labels weergeven"
 msgid "Show progress % on mosaic covers"
 msgstr "Voortgang % op mozaïekomslagen weergeven"
 
+msgid "Rounded corners on mosaic covers"
+msgstr "Afgeronde hoeken op mozaïekomslagen"
+
 msgid "Show RAM usage"
 msgstr "RAM-gebruik weergeven"
 

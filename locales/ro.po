@@ -621,6 +621,9 @@ msgstr "Afișează etichete"
 msgid "Show progress % on mosaic covers"
 msgstr "Afișează % progres pe copertele mozaicului"
 
+msgid "Rounded corners on mosaic covers"
+msgstr "Colțuri rotunjite pe copertele mozaicului"
+
 msgid "Show RAM usage"
 msgstr "Afișează utilizarea RAM"
 

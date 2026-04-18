@@ -1304,6 +1304,23 @@ function M.build(plugin)
     })
 
     table.insert(filebrowser_items, {
+        text = _("Rounded corners on mosaic covers"),
+        checked_func = function()
+            return type(config.features) == "table"
+                and config.features.browser_cover_rounded_corners == true
+        end,
+        callback = function()
+            if type(config.features) ~= "table" then
+                config.features = {}
+            end
+            config.features.browser_cover_rounded_corners =
+                not (config.features.browser_cover_rounded_corners == true)
+            plugin:saveConfig()
+            UIManager:setDirty(nil, "full")
+        end,
+    })
+
+    table.insert(filebrowser_items, {
         text = _("Allow delete in context menu"),
         checked_func = function()
             return type(config.context_menu) == "table"

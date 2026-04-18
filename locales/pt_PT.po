@@ -621,6 +621,9 @@ msgstr "Mostrar rótulos"
 msgid "Show progress % on mosaic covers"
 msgstr "Mostrar % de progresso nas capas do mosaico"
 
+msgid "Rounded corners on mosaic covers"
+msgstr "Cantos arredondados nas capas do mosaico"
+
 msgid "Show RAM usage"
 msgstr "Mostrar utilização de RAM"
 

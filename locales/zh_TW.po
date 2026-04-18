@@ -619,6 +619,9 @@ msgstr "顯示標籤"
 msgid "Show progress % on mosaic covers"
 msgstr "在封面馬賽克上顯示進度%"
 
+msgid "Rounded corners on mosaic covers"
+msgstr "馬賽克封面圓角"
+
 msgid "Show RAM usage"
 msgstr "顯示記憶體使用量"
 

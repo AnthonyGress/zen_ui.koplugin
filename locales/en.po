@@ -621,6 +621,9 @@ msgstr "Show labels"
 msgid "Show progress % on mosaic covers"
 msgstr "Show progress % on mosaic covers"
 
+msgid "Rounded corners on mosaic covers"
+msgstr "Rounded corners on mosaic covers"
+
 msgid "Show RAM usage"
 msgstr "Show RAM usage"
 

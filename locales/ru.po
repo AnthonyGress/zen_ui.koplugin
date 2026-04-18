@@ -621,6 +621,9 @@ msgstr "Показать метки"
 msgid "Show progress % on mosaic covers"
 msgstr "Показать % прогресса на обложках мозаики"
 
+msgid "Rounded corners on mosaic covers"
+msgstr "Закруглённые углы на обложках мозаики"
+
 msgid "Show RAM usage"
 msgstr "Показать использование ОЗУ"
 
