@@ -5,6 +5,7 @@ local PATCH_MODULES = {
     opening_banner = "modules/reader/patches/opening_banner",
     book_status = "modules/reader/patches/book_status",
     reader_clock = "modules/reader/patches/reader_clock",
+    screensaver_cover = "modules/reader/patches/screensaver_cover",
 }
 
 local function is_feature_enabled(plugin, key)
@@ -52,6 +53,12 @@ function M.init(logger, plugin)
     local book_status_fn = load_patch("book_status")
     if book_status_fn then
         run_feature(logger, plugin, "book_status", book_status_fn)
+    end
+
+    -- Always apply: replace koreader.png fallback screensaver with zen_ui.svg
+    local screensaver_cover_fn = load_patch("screensaver_cover")
+    if screensaver_cover_fn then
+        run_feature(logger, plugin, "screensaver_cover", screensaver_cover_fn)
     end
 
     if is_feature_enabled(plugin, "reader_clock") then

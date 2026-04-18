@@ -21,34 +21,14 @@ end)()
 -- Register local SVGs in IconWidget's ICONS_PATH cache so short names resolve
 -- to our files immediately (without requiring a restart or a user-icons copy).
 if _plugin_root then
-    pcall(function()
-        local lfs = require("libs/libkoreader-lfs")
-        local iw = require("ui/widget/iconwidget")
-        local iw_init = rawget(iw, "init")
-        if type(iw_init) ~= "function" then return end
-        local icons_path
-        for i = 1, 64 do
-            local uname, uval = debug.getupvalue(iw_init, i)
-            if uname == nil then break end
-            if uname == "ICONS_PATH" and type(uval) == "table" then
-                icons_path = uval
-                break
-            end
-        end
-        if not icons_path then return end
-        local to_register = {
-            ["zen_settings"]             = "settings.svg",
-            ["zen_settings_update"]      = "appbar.settings.update.svg",
-        }
-        for name, file in pairs(to_register) do
-            if not icons_path[name] then
-                local p = _plugin_root .. "/icons/" .. file
-                if lfs.attributes(p, "mode") == "file" then
-                    icons_path[name] = p
-                end
-            end
-        end
-    end)
+    local utils = require("common/utils")
+    utils.registerPluginIcons(_plugin_root .. "/icons/", {
+        ["zen_settings"]        = "settings.svg",
+        ["zen_settings_update"] = "settings_update.svg",
+        ["quicksettings"]       = "quicksettings.svg",
+        ["zen_ui"]       = "zen_ui.svg",
+        ["zen_ui_light"]       = "zen_ui_light.svg",
+    }, true)
 end
 
 -- Holds the single plugin instance so the FileManagerMenu patch can reach it
