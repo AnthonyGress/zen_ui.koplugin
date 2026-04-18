@@ -3,11 +3,9 @@
 -- there is no classic-mode flash.
 --
 -- changeToPath() calls refreshPath() (which renders items) BEFORE it fires
--- the PathChanged event.  That means hooking onPathChanged is too late.
--- Instead we wrap FileChooser.changeToPath: when entering home_dir with a
--- saved preferred mode we silently restore the CoverBrowser state on the
--- class-level FileChooser (no intermediate rebuild), then let changeToPath
--- call refreshPath() which immediately renders in the preferred mode.
+-- the PathChanged event.  Both the enter-home and leave-home mode switches are
+-- handled inside the changeToPath wrapper so the mode is correct BEFORE
+-- refreshPath() renders anything, avoiding a double-render flash/lag.
 local function apply_browser_display_mode_by_path()
     local FileManager = require("apps/filemanager/filemanager")
     local FileChooser  = require("ui/widget/filechooser")
@@ -18,63 +16,62 @@ local function apply_browser_display_mode_by_path()
         return path == home_dir or path:sub(1, #home_dir + 1) == home_dir .. "/"
     end
 
-    -- ── Entering home_dir: restore mode BEFORE refreshPath() renders items ──
     local orig_changeToPath = FileChooser.changeToPath
-    local _restoring = false
+    local _switching = false
+
+    -- ── Suppress refreshFileManagerInstance, call setDisplayMode, restore ──
+    local function apply_mode(cb, mode)
+        local orig_refresh = cb.refreshFileManagerInstance
+        cb.refreshFileManagerInstance = function() end
+        _switching = true
+        pcall(cb.setDisplayMode, cb, mode)
+        _switching = false
+        cb.refreshFileManagerInstance = orig_refresh
+    end
 
     FileChooser.changeToPath = function(self, path, ...)
-        if not _restoring and self.name == "filemanager" then
+        if not _switching and self.name == "filemanager" then
+            local in_home = is_in_home(path)
             local saved = rawget(_G, "__ZEN_PREFERRED_DISPLAY_MODE")
-            if saved and is_in_home(path) then
+            local fm = FileManager.instance
+            local cb = fm and fm.coverbrowser
+
+            if saved and in_home then
+                -- ── Entering home_dir: restore preferred mode BEFORE refreshPath ──
                 _G.__ZEN_PREFERRED_DISPLAY_MODE = nil
-                local fm = FileManager.instance
-                local cb = fm and fm.coverbrowser
                 if cb and type(cb.setDisplayMode) == "function" then
-                    -- Suppress refreshFileManagerInstance: refreshPath() is
-                    -- about to render the correct path in the restored mode.
-                    local orig_refresh = cb.refreshFileManagerInstance
-                    cb.refreshFileManagerInstance = function() end
-                    _restoring = true
-                    pcall(cb.setDisplayMode, cb, saved)
-                    _restoring = false
-                    cb.refreshFileManagerInstance = orig_refresh
+                    apply_mode(cb, saved)
+                end
+
+            elseif not in_home then
+                -- ── Leaving home_dir: switch to classic BEFORE refreshPath ──
+                local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
+                if ok_bim then
+                    local current_mode = BookInfoManager:getSetting("filemanager_display_mode")
+                    if current_mode ~= nil then  -- non-nil means a cover mode is active
+                        if not saved then
+                            _G.__ZEN_PREFERRED_DISPLAY_MODE = current_mode
+                        end
+                        if cb and type(cb.setDisplayMode) == "function" then
+                            apply_mode(cb, nil)  -- nil = classic
+                            -- setDisplayMode(nil) persisted nil; write back preferred so
+                            -- CoverBrowser reads the correct mode on next restart.
+                            pcall(BookInfoManager.saveSetting, BookInfoManager,
+                                "filemanager_display_mode", current_mode)
+                        end
+                    end
                 end
             end
         end
         return orig_changeToPath(self, path, ...)
     end
 
-    -- ── Leaving home_dir: switch to classic in onPathChanged ────────────────
+    -- ── onPathChanged: only needed for the title-bar update (no mode logic) ──
     local orig_onPathChanged = FileManager.onPathChanged
-    local _switching = false
 
     function FileManager:onPathChanged(path)
         if orig_onPathChanged then
             orig_onPathChanged(self, path)
-        end
-        if _switching then return end
-        if is_in_home(path) then return end  -- handled by changeToPath hook
-
-        local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
-        if not ok_bim then return end
-
-        local current_mode = BookInfoManager:getSetting("filemanager_display_mode")
-        if current_mode == nil then return end  -- already classic
-
-        -- Persist preferred mode for when we return to home_dir.
-        if not rawget(_G, "__ZEN_PREFERRED_DISPLAY_MODE") then
-            _G.__ZEN_PREFERRED_DISPLAY_MODE = current_mode
-        end
-
-        local cb = self.coverbrowser
-        if cb and type(cb.setDisplayMode) == "function" then
-            _switching = true
-            pcall(cb.setDisplayMode, cb, nil)  -- nil = classic
-            _switching = false
-            -- setDisplayMode(nil) saved nil to DB; restore the preferred value
-            -- so CoverBrowser reads the right mode on next restart.
-            pcall(BookInfoManager.saveSetting, BookInfoManager,
-                "filemanager_display_mode", current_mode)
         end
     end
 end
