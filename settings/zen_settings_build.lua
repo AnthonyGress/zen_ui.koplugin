@@ -265,18 +265,18 @@ function M.build(plugin)
         return fw
     end
 
-    local function apply_feature(feature, label)
+    local function apply_feature(feature)
         local enabled = get_path(config, { "features", feature }) == true
-        settings_apply.apply_feature_toggle(plugin, feature, enabled, label)
+        settings_apply.apply_feature_toggle(plugin, feature, enabled)
     end
 
-    local function save_and_apply(feature, label)
+    local function save_and_apply(feature)
         plugin:saveConfig()
-        apply_feature(feature, label)
+        apply_feature(feature)
     end
 
     local function save_and_apply_navbar()
-        save_and_apply("navbar", _("Bottom navbar"))
+        save_and_apply("navbar")
     end
 
     local function ensure_navbar_color()
@@ -321,14 +321,14 @@ function M.build(plugin)
     end
 
     local function save_and_apply_quick_settings()
-        save_and_apply("quick_settings", _("Quick settings panel"))
+        save_and_apply("quick_settings")
     end
 
     local function save_and_apply_status_bar()
-        save_and_apply("status_bar", _("Custom status bar"))
+        save_and_apply("status_bar")
     end
 
-    local function make_enable_feature_item(feature, feature_label, enable_text)
+    local function make_enable_feature_item(feature, enable_text)
         return {
             text = enable_text,
             checked_func = function()
@@ -336,7 +336,7 @@ function M.build(plugin)
             end,
             callback = function()
                 config.features[feature] = not (config.features[feature] == true)
-                save_and_apply(feature, feature_label)
+                save_and_apply(feature)
             end,
         }
     end
@@ -426,13 +426,13 @@ function M.build(plugin)
     table.insert(filebrowser_items, {
         text = _("Navbar"),
         sub_item_table = {
-            make_enable_feature_item("navbar", _("Bottom navbar"), _("Enable bottom nav bar")),
+            make_enable_feature_item("navbar", _("Enable bottom nav bar")),
             {
                 text = _("Show labels"),
                 checked_func = function() return config.navbar.show_labels == true end,
                 callback = function()
                     config.navbar.show_labels = not (config.navbar.show_labels == true)
-                    save_and_apply("navbar", _("Bottom navbar"))
+                    save_and_apply("navbar")
                 end,
             },
             {
@@ -440,7 +440,7 @@ function M.build(plugin)
                 checked_func = function() return config.navbar.show_top_border == true end,
                 callback = function()
                     config.navbar.show_top_border = not (config.navbar.show_top_border == true)
-                    save_and_apply("navbar", _("Bottom navbar"))
+                    save_and_apply("navbar")
                 end,
             },
             {
@@ -448,7 +448,7 @@ function M.build(plugin)
                 checked_func = function() return config.navbar.show_in_standalone == true end,
                 callback = function()
                     config.navbar.show_in_standalone = not (config.navbar.show_in_standalone == true)
-                    save_and_apply("navbar", _("Bottom navbar"))
+                    save_and_apply("navbar")
                 end,
             },
             {
@@ -456,7 +456,7 @@ function M.build(plugin)
                 checked_func = function() return config.navbar.show_top_gap == true end,
                 callback = function()
                     config.navbar.show_top_gap = not (config.navbar.show_top_gap == true)
-                    save_and_apply("navbar", _("Bottom navbar"))
+                    save_and_apply("navbar")
                 end,
             },
             {
@@ -464,7 +464,7 @@ function M.build(plugin)
                 checked_func = function() return config.navbar.active_tab_styling == true end,
                 callback = function()
                     config.navbar.active_tab_styling = not (config.navbar.active_tab_styling == true)
-                    save_and_apply("navbar", _("Bottom navbar"))
+                    save_and_apply("navbar")
                 end,
             },
             {
@@ -473,7 +473,7 @@ function M.build(plugin)
                 enabled_func = function() return config.navbar.active_tab_styling == true end,
                 callback = function()
                     config.navbar.active_tab_bold = not (config.navbar.active_tab_bold == true)
-                    save_and_apply("navbar", _("Bottom navbar"))
+                    save_and_apply("navbar")
                 end,
             },
             {
@@ -482,7 +482,7 @@ function M.build(plugin)
                 enabled_func = function() return config.navbar.active_tab_styling == true end,
                 callback = function()
                     config.navbar.active_tab_underline = not (config.navbar.active_tab_underline == true)
-                    save_and_apply("navbar", _("Bottom navbar"))
+                    save_and_apply("navbar")
                 end,
             },
             {
@@ -491,7 +491,7 @@ function M.build(plugin)
                 enabled_func = function() return config.navbar.active_tab_styling == true and config.navbar.active_tab_underline == true end,
                 callback = function()
                     config.navbar.underline_above = not (config.navbar.underline_above == true)
-                    save_and_apply("navbar", _("Bottom navbar"))
+                    save_and_apply("navbar")
                 end,
             },
             {
@@ -881,7 +881,7 @@ function M.build(plugin)
                 text = _("Refresh navbar"),
                 keep_menu_open = true,
                 callback = function()
-                    apply_feature("navbar", _("Bottom navbar"))
+                    apply_feature("navbar")
                 end,
             },
         },
@@ -961,7 +961,7 @@ function M.build(plugin)
     table.insert(menu_items, {
         text = _("Quick settings"),
         sub_item_table = {
-            make_enable_feature_item("quick_settings", _("Quick settings panel"), _("Enable quick settings panel")),
+            make_enable_feature_item("quick_settings", _("Enable quick settings panel")),
             {
                 text = _("Show frontlight slider"),
                 checked_func = function() return config.quick_settings.show_frontlight == true end,
@@ -996,7 +996,7 @@ function M.build(plugin)
     table.insert(filebrowser_items, {
         text = _("Status bar"),
         sub_item_table = {
-            make_enable_feature_item("status_bar", _("Custom status bar"), _("Enable custom status bar")),
+            make_enable_feature_item("status_bar", _("Enable custom status bar")),
             {
                 text_func = function()
                     local name = config.status_bar.custom_text
@@ -1280,7 +1280,7 @@ function M.build(plugin)
                 checked_func = function() return config.browser_hide_up_folder.hide_up_folder == true end,
                 callback = function()
                     config.browser_hide_up_folder.hide_up_folder = not (config.browser_hide_up_folder.hide_up_folder == true)
-                    save_and_apply("browser_hide_up_folder", _("Browser hide up-folder behavior"))
+                    save_and_apply("browser_hide_up_folder")
                 end,
             },
             {
@@ -1348,13 +1348,12 @@ function M.build(plugin)
         end,
         callback = function()
             config.features.browser_hide_underline = not (config.features.browser_hide_underline == true)
-            save_and_apply("browser_hide_underline", _("Browser hide underline"))
+            save_and_apply("browser_hide_underline")
         end,
     })
 
     table.insert(filebrowser_items, make_enable_feature_item(
         "zen_pagination_bar",
-        _("Zen pagination bar"),
         _("Zen pagination bar")
     ))
 
@@ -1728,13 +1727,10 @@ function M.build(plugin)
         sub_item_table = collate_sub_items,
     })
 
-    table.insert(reader_items, make_enable_feature_item(
-        "reader_bottom_menu", _("Bottom menu"), _("Enable bottom menu")))
-
     table.insert(reader_items, {
         text = _("Reader clock"),
         sub_item_table = {
-            make_enable_feature_item("reader_clock", _("Reader clock"), _("Enable reader clock")),
+            make_enable_feature_item("reader_clock", _("Enable reader clock")),
             {
                 text = _("Use 24-hour time"),
                 checked_func = function()
@@ -1743,7 +1739,7 @@ function M.build(plugin)
                 callback = function()
                     if type(config.reader_clock) ~= "table" then config.reader_clock = {} end
                     config.reader_clock.use_24h = not (config.reader_clock.use_24h == true)
-                    save_and_apply("reader_clock", _("Reader clock"))
+                    save_and_apply("reader_clock")
                 end,
             },
             {
@@ -1758,7 +1754,7 @@ function M.build(plugin)
                         callback = function()
                             if type(config.reader_clock) ~= "table" then config.reader_clock = {} end
                             config.reader_clock.position = "left"
-                            save_and_apply("reader_clock", _("Reader clock"))
+                            save_and_apply("reader_clock")
                         end,
                     },
                     {
@@ -1770,7 +1766,7 @@ function M.build(plugin)
                         callback = function()
                             if type(config.reader_clock) ~= "table" then config.reader_clock = {} end
                             config.reader_clock.position = "center"
-                            save_and_apply("reader_clock", _("Reader clock"))
+                            save_and_apply("reader_clock")
                         end,
                     },
                     {
@@ -1782,13 +1778,16 @@ function M.build(plugin)
                         callback = function()
                             if type(config.reader_clock) ~= "table" then config.reader_clock = {} end
                             config.reader_clock.position = "right"
-                            save_and_apply("reader_clock", _("Reader clock"))
+                            save_and_apply("reader_clock")
                         end,
                     },
                 },
             },
         },
     })
+
+    table.insert(reader_items, make_enable_feature_item(
+        "reader_bottom_menu", _("Enable bottom menu")))
 
     table.insert(reader_items, {
         text = _("Verbose time to chapter end"),
@@ -2255,16 +2254,7 @@ function M.build(plugin)
 
                     -- Defer ConfirmBox to avoid button dimension race condition
                     UIManager:nextTick(function()
-                        UIManager:show(ConfirmBox:new{
-                            text = _("This setting requires a KOReader restart to fully apply.") .. "\n\n"
-                                .. _("Show hidden files outside home folder") .. "\n\n"
-                                .. _("Restart now?"),
-                            ok_text = _("Restart now"),
-                            cancel_text = _("Later"),
-                            ok_callback = function()
-                                UIManager:broadcastEvent(Event:new("Restart"))
-                            end,
-                        })
+                        settings_apply.prompt_restart()
                     end)
                 end,
                 keep_menu_open = true,
@@ -2368,7 +2358,7 @@ function M.build(plugin)
             end,
             callback = function()
                 config.features["zen_mode"] = not (config.features["zen_mode"] == true)
-                save_and_apply("zen_mode", _("Zen Mode"))
+                save_and_apply("zen_mode")
             end,
         },
         {

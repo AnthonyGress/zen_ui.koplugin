@@ -343,7 +343,7 @@ local function apply_quick_settings()
                 local features = zen_plugin.config and zen_plugin.config.features
                 return type(features) == "table" and features.zen_mode == true
             end,
-            callback = function(touch_menu)
+            callback = function()
                 local features = zen_plugin.config and zen_plugin.config.features
                 if type(features) == "table" then
                     features.zen_mode = not features.zen_mode
@@ -351,11 +351,8 @@ local function apply_quick_settings()
                         zen_plugin:saveConfig()
                     end
                 end
-                UIManager:close(touch_menu.show_parent or touch_menu)
                 UIManager:show(ConfirmBox:new{
-                    text = _("This setting requires a KOReader restart to fully apply.") .. "\n\n"
-                        .. _("Zen Mode") .. "\n\n"
-                        .. _("Restart now?"),
+                    text = _("This change requires a restart to take effect."),
                     ok_text = _("Restart now"),
                     cancel_text = _("Later"),
                     ok_callback = function()

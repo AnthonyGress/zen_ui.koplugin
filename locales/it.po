@@ -111,14 +111,8 @@ msgstr "Etichetta scheda libri"
 msgid "Books tab label: "
 msgstr "Etichetta scheda libri: "
 
-msgid "Bottom menu"
-msgstr "Menu in basso"
 
-msgid "Bottom navbar"
-msgstr "Barra di navigazione inferiore"
 
-msgid "Browser hide up-folder behavior"
-msgstr "Nascondi cartella superiore nel browser"
 
 msgid "Bullet"
 msgstr "Punto elenco"
@@ -180,8 +174,6 @@ msgstr "RGB personalizzato"
 msgid "Custom separator"
 msgstr "Separatore personalizzato"
 
-msgid "Custom status bar"
-msgstr "Barra di stato personalizzata"
 
 msgid "Custom text"
 msgstr "Testo personalizzato"
@@ -579,8 +571,6 @@ msgstr "Pagina precedente"
 msgid "Quick settings"
 msgstr "Impostazioni rapide"
 
-msgid "Quick settings panel"
-msgstr "Pannello impostazioni rapide"
 
 msgid "QuickRSS"
 msgstr "QuickRSS"
@@ -638,9 +628,6 @@ msgstr "Ricomincia libro"
 
 msgid "Restart now"
 msgstr "Riavvia ora"
-
-msgid "Restart now?"
-msgstr "Riavviare ora?"
 
 msgid "Reverse sorting"
 msgstr "Ordinamento inverso"
@@ -762,8 +749,9 @@ msgstr "Schede"
 msgid "The update will be downloaded and installed. KOReader will then restart."
 msgstr "L'aggiornamento verrà scaricato e installato. KOReader verrà poi riavviato."
 
-msgid "This setting requires a KOReader restart to fully apply."
-msgstr "Questa impostazione richiede un riavvio di KOReader per essere applicata."
+msgid "This change requires a restart to take effect."
+msgstr "Questa modifica richiede un riavvio per avere effetto."
+
 
 msgid "Title"
 msgstr "Titolo"

@@ -54,6 +54,7 @@ local function apply_browser_cover_mosaic_uniform()
     -- All cells in a grid share the same size, so a module-level pair is fine.
     local UNDERLINE_RESERVE = 6  -- px reserved so the focus underline is not obscured by the cover image
     local max_img_w, max_img_h
+    local aspect_ratio = 2 / 3  -- width / height (portrait)
     local orig_init = MosaicMenuItem.init
     function MosaicMenuItem:init()
         if self.width and self.height then
@@ -86,7 +87,6 @@ local function apply_browser_cover_mosaic_uniform()
     end
 
     -- StretchingImageWidget: constrain every cover to a portrait 2:3 box.
-    local aspect_ratio = 2 / 3   -- width / height
     local StretchingImageWidget = local_ImageWidget:extend({})
 
     StretchingImageWidget.init = function(self)

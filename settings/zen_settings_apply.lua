@@ -73,11 +73,9 @@ local function ensure_patch_loaded(plugin, feature)
     return ok_apply
 end
 
-local function maybe_prompt_restart(feature_label)
+local function prompt_restart()
     UIManager:show(ConfirmBox:new{
-        text = _("This setting requires a KOReader restart to fully apply.") .. "\n\n"
-            .. feature_label .. "\n\n"
-            .. _("Restart now?"),
+        text = _("This change requires a restart to take effect."),
         ok_text = _("Restart now"),
         cancel_text = _("Later"),
         ok_callback = function()
@@ -191,14 +189,14 @@ local function run_apply_mode(mode)
     run_apply_mode_now(mode)
 end
 
-function M.apply_feature_toggle(plugin, feature, enabled, feature_label)
+function M.apply_feature_toggle(plugin, feature, enabled)
     if RESTART_REQUIRED[feature] then
-        maybe_prompt_restart(feature_label)
+        prompt_restart()
         return
     end
 
     if enabled and not ensure_patch_loaded(plugin, feature) then
-        maybe_prompt_restart(feature_label)
+        prompt_restart()
         return
     end
 
@@ -207,5 +205,7 @@ function M.apply_feature_toggle(plugin, feature, enabled, feature_label)
         run_apply_mode(mode)
     end
 end
+
+M.prompt_restart = prompt_restart
 
 return M

@@ -111,14 +111,8 @@ msgstr "Etichetă filă Cărți"
 msgid "Books tab label: "
 msgstr "Etichetă filă Cărți: "
 
-msgid "Bottom menu"
-msgstr "Meniu inferior"
 
-msgid "Bottom navbar"
-msgstr "Bară de navigare inferioară"
 
-msgid "Browser hide up-folder behavior"
-msgstr "Ascunde dosarul superior în browser"
 
 msgid "Bullet"
 msgstr "Punct"
@@ -180,8 +174,6 @@ msgstr "RGB personalizat"
 msgid "Custom separator"
 msgstr "Separator personalizat"
 
-msgid "Custom status bar"
-msgstr "Bară de stare personalizată"
 
 msgid "Custom text"
 msgstr "Text personalizat"
@@ -579,8 +571,6 @@ msgstr "Pagina anterioară"
 msgid "Quick settings"
 msgstr "Setări rapide"
 
-msgid "Quick settings panel"
-msgstr "Panou setări rapide"
 
 msgid "QuickRSS"
 msgstr "QuickRSS"
@@ -638,9 +628,6 @@ msgstr "Repornește cartea"
 
 msgid "Restart now"
 msgstr "Repornește acum"
-
-msgid "Restart now?"
-msgstr "Repornești acum?"
 
 msgid "Reverse sorting"
 msgstr "Sortare inversă"
@@ -762,8 +749,9 @@ msgstr "File"
 msgid "The update will be downloaded and installed. KOReader will then restart."
 msgstr "Actualizarea va fi descărcată și instalată. KOReader se va reporni."
 
-msgid "This setting requires a KOReader restart to fully apply."
-msgstr "Această setare necesită repornirea KOReader pentru a fi aplicată complet."
+msgid "This change requires a restart to take effect."
+msgstr "Această modificare necesită o repornire pentru a intra în vigoare."
+
 
 msgid "Title"
 msgstr "Titlu"

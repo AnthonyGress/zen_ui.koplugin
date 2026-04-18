@@ -111,14 +111,8 @@ msgstr "Метка вкладки Книги"
 msgid "Books tab label: "
 msgstr "Метка вкладки Книги: "
 
-msgid "Bottom menu"
-msgstr "Нижнее меню"
 
-msgid "Bottom navbar"
-msgstr "Нижняя панель навигации"
 
-msgid "Browser hide up-folder behavior"
-msgstr "Скрыть родительскую папку в браузере"
 
 msgid "Bullet"
 msgstr "Маркер"
@@ -180,8 +174,6 @@ msgstr "Настраиваемый RGB"
 msgid "Custom separator"
 msgstr "Настраиваемый разделитель"
 
-msgid "Custom status bar"
-msgstr "Настраиваемая строка состояния"
 
 msgid "Custom text"
 msgstr "Настраиваемый текст"
@@ -579,8 +571,6 @@ msgstr "Предыдущая страница"
 msgid "Quick settings"
 msgstr "Быстрые настройки"
 
-msgid "Quick settings panel"
-msgstr "Панель быстрых настроек"
 
 msgid "QuickRSS"
 msgstr "QuickRSS"
@@ -638,9 +628,6 @@ msgstr "Начать книгу заново"
 
 msgid "Restart now"
 msgstr "Перезапустить сейчас"
-
-msgid "Restart now?"
-msgstr "Перезапустить сейчас?"
 
 msgid "Reverse sorting"
 msgstr "Обратная сортировка"
@@ -762,8 +749,9 @@ msgstr "Вкладки"
 msgid "The update will be downloaded and installed. KOReader will then restart."
 msgstr "Обновление будет загружено и установлено. KOReader перезапустится."
 
-msgid "This setting requires a KOReader restart to fully apply."
-msgstr "Для применения этого параметра требуется перезапуск KOReader."
+msgid "This change requires a restart to take effect."
+msgstr "Для применения этого изменения необходим перезапуск."
+
 
 msgid "Title"
 msgstr "Название"

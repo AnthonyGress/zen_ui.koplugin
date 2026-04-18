@@ -111,14 +111,8 @@ msgstr "Label tabblad Boeken"
 msgid "Books tab label: "
 msgstr "Label tabblad Boeken: "
 
-msgid "Bottom menu"
-msgstr "Ondermenu"
 
-msgid "Bottom navbar"
-msgstr "Onderste navigatiebalk"
 
-msgid "Browser hide up-folder behavior"
-msgstr "Bovenliggende map verbergen in browser"
 
 msgid "Bullet"
 msgstr "Opsommingsteken"
@@ -180,8 +174,6 @@ msgstr "Aangepaste RGB"
 msgid "Custom separator"
 msgstr "Aangepast scheidingsteken"
 
-msgid "Custom status bar"
-msgstr "Aangepaste statusbalk"
 
 msgid "Custom text"
 msgstr "Aangepaste tekst"
@@ -579,8 +571,6 @@ msgstr "Vorige pagina"
 msgid "Quick settings"
 msgstr "Snelle instellingen"
 
-msgid "Quick settings panel"
-msgstr "Snelle instellingen-paneel"
 
 msgid "QuickRSS"
 msgstr "QuickRSS"
@@ -638,9 +628,6 @@ msgstr "Boek herstarten"
 
 msgid "Restart now"
 msgstr "Nu herstarten"
-
-msgid "Restart now?"
-msgstr "Nu herstarten?"
 
 msgid "Reverse sorting"
 msgstr "Omgekeerde sortering"
@@ -762,8 +749,9 @@ msgstr "Tabbladen"
 msgid "The update will be downloaded and installed. KOReader will then restart."
 msgstr "De update wordt gedownload en geïnstalleerd. KOReader herstart daarna."
 
-msgid "This setting requires a KOReader restart to fully apply."
-msgstr "Deze instelling vereist een herstart van KOReader om volledig toe te passen."
+msgid "This change requires a restart to take effect."
+msgstr "Deze wijziging vereist een herstart om van kracht te worden."
+
 
 msgid "Title"
 msgstr "Titel"

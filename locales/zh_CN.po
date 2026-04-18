@@ -111,14 +111,8 @@ msgstr "书库标签名称"
 msgid "Books tab label: "
 msgstr "书库标签名称: "
 
-msgid "Bottom menu"
-msgstr "底部菜单"
 
-msgid "Bottom navbar"
-msgstr "底部导航栏"
 
-msgid "Browser hide up-folder behavior"
-msgstr "浏览器隐藏上级文件夹"
 
 msgid "Bullet"
 msgstr "圆点"
@@ -180,8 +174,6 @@ msgstr "自定义 RGB"
 msgid "Custom separator"
 msgstr "自定义分隔符"
 
-msgid "Custom status bar"
-msgstr "自定义状态栏"
 
 msgid "Custom text"
 msgstr "自定义文本"
@@ -577,8 +569,6 @@ msgstr "上一页"
 msgid "Quick settings"
 msgstr "快速设置"
 
-msgid "Quick settings panel"
-msgstr "快速设置面板"
 
 msgid "QuickRSS"
 msgstr "QuickRSS"
@@ -636,9 +626,6 @@ msgstr "重新开始阅读"
 
 msgid "Restart now"
 msgstr "立即重启"
-
-msgid "Restart now?"
-msgstr "立即重启？"
 
 msgid "Reverse sorting"
 msgstr "反向排序"
@@ -760,8 +747,9 @@ msgstr "标签"
 msgid "The update will be downloaded and installed. KOReader will then restart."
 msgstr "更新将被下载并安装。KOReader 随后将重启。"
 
-msgid "This setting requires a KOReader restart to fully apply."
-msgstr "此设置需要重启 KOReader 才能完全生效。"
+msgid "This change requires a restart to take effect."
+msgstr "此更改需要重启才能生效。"
+
 
 msgid "Title"
 msgstr "标题"
