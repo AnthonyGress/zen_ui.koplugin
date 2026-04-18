@@ -8,6 +8,7 @@ local function apply_context_menu()
             Add/Remove from favorites
             Description   (files only: shows book description if one exists)
             Book status ▶ (files only: Unread · Reading · On hold · Finished)
+            View ▶        (current dir only: Mosaic · List (detailed) · List (basic))
             Edit ▶        (anchored submenu at right edge: Select · Rename · Delete · Cut · Copy · Paste)
 
         Everything else (book info, collections, open with, reset, status rows,
@@ -1073,6 +1074,61 @@ local function apply_context_menu()
                         })
                     end
                 end
+            end
+
+            -- ── Display mode (current dir only) ──────────────────────────────────────
+            if item._is_current_dir then
+                local function showViewSubmenu()
+                    close_dialog()
+                    local ok_fm, FM = pcall(require, "apps/filemanager/filemanager")
+                    local fm          = ok_fm and FM and FM.instance
+                    local ok_bim, bim = pcall(require, "bookinfomanager")
+                    local cur_mode
+                    if ok_bim and bim then
+                        local ok3, m = pcall(function()
+                            return bim:getSetting("filemanager_display_mode")
+                        end)
+                        if ok3 then cur_mode = m end
+                    end
+                    local function apply_mode(mode)
+                        if fm and type(fm.onSetDisplayMode) == "function" then
+                            pcall(fm.onSetDisplayMode, fm, mode)
+                        elseif ok_bim and bim then
+                            pcall(bim.saveSetting, bim, "filemanager_display_mode", mode)
+                        end
+                    end
+                    local view_dialog
+                    local function viewBtn(label, icon, mode)
+                        local active = cur_mode == mode
+                        return {{
+                            text     = icon .. "  " .. label .. (active and "  \u{2713}" or ""),
+                            align    = "left",
+                            enabled  = not active,
+                            callback = function()
+                                UIManager:close(view_dialog)
+                                apply_mode(mode)
+                            end,
+                        }}
+                    end
+                    view_dialog = ButtonDialog:new{
+                        title       = _("Display mode"),
+                        title_align = "center",
+                        buttons     = {
+                            viewBtn(_("Mosaic"),          "\u{F00A}", "mosaic_image"),
+                            viewBtn(_("List (detailed)"), "\u{F03A}", "list_image_meta"),
+                            viewBtn(_("List (basic)"),    "\u{F0CA}", "list_image_filename"),
+                        },
+                    }
+                    UIManager:show(view_dialog)
+                end
+
+                table.insert(buttons, {
+                    {
+                        text     = "\u{F06E}  " .. _("Display  ▶"),
+                        align    = "left",
+                        callback = showViewSubmenu,
+                    },
+                })
             end
 
             table.insert(buttons, {

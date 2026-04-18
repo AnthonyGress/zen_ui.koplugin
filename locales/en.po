@@ -217,8 +217,10 @@ msgstr "Device: "
 msgid "Disk space"
 msgstr "Disk space"
 
-msgid "Display mode"
-msgstr "Display mode"
+THIS_WONT_MATCH
+
+msgid "Display  ▶"
+msgstr "Display  ▶"
 
 msgid "Download failed: "
 msgstr "Download failed: "
@@ -343,6 +345,12 @@ msgstr "Library"
 msgid "List: "
 msgstr "List: "
 
+msgid "List (basic)"
+msgstr "List (basic)"
+
+msgid "List (detailed)"
+msgstr "List (detailed)"
+
 msgid "Manga"
 msgstr "Manga"
 
@@ -369,6 +377,9 @@ msgstr "Mosaic with cover images"
 
 msgid "Mosaic with text"
 msgstr "Mosaic with text"
+
+msgid "Mosaic"
+msgstr "Mosaic"
 
 msgid "Move"
 msgstr "Move"
