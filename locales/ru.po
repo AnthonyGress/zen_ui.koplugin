@@ -583,6 +583,9 @@ msgstr "Портретная мозаика: "
 msgid "Position"
 msgstr "Позиция"
 
+msgid "Presets"
+msgstr "Предустановки"
+
 msgid "Prev"
 msgstr "Назад"
 
@@ -875,6 +878,12 @@ msgstr "Zen UI"
 
 msgid "Zen UI is up to date."
 msgstr "Zen UI обновлён."
+
+msgid "Zen UI Pages + %"
+msgstr ""
+
+msgid "Zen UI Pages + Time + %"
+msgstr ""
 
 msgid "Zen UI Settings"
 msgstr "Настройки Zen UI"

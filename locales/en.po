@@ -594,6 +594,9 @@ msgstr "Portrait mosaic: "
 msgid "Position"
 msgstr "Position"
 
+msgid "Presets"
+msgstr "Presets"
+
 msgid "Prev"
 msgstr "Prev"
 
@@ -889,6 +892,12 @@ msgstr "Zen UI"
 
 msgid "Zen UI is up to date."
 msgstr "Zen UI is up to date."
+
+msgid "Zen UI Pages + %"
+msgstr ""
+
+msgid "Zen UI Pages + Time + %"
+msgstr ""
 
 msgid "Zen UI Settings"
 msgstr "Zen UI Settings"

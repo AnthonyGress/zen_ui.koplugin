@@ -583,6 +583,9 @@ msgstr "Mosaico vertical: "
 msgid "Position"
 msgstr "Posição"
 
+msgid "Presets"
+msgstr "Predefinições"
+
 msgid "Prev"
 msgstr "Anterior"
 
@@ -875,6 +878,12 @@ msgstr "Zen UI"
 
 msgid "Zen UI is up to date."
 msgstr "O Zen UI está atualizado."
+
+msgid "Zen UI Pages + %"
+msgstr ""
+
+msgid "Zen UI Pages + Time + %"
+msgstr ""
 
 msgid "Zen UI Settings"
 msgstr "Definições do Zen UI"

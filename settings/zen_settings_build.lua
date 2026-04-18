@@ -2084,6 +2084,57 @@ function M.build(plugin)
         },
     })
 
+    table.insert(reader_items, {
+        text = _("Presets"),
+        enabled_func = function()
+            local ReaderUI = require("apps/reader/readerui")
+            return ReaderUI.instance ~= nil
+        end,
+        sub_item_table_func = function()
+            local ReaderUI = require("apps/reader/readerui")
+            local ui = ReaderUI.instance
+            if not (ui and ui.view and ui.view.footer) then
+                return {}
+            end
+            local footer_presets = require("modules/reader/patches/reader-footer-presets")
+            local items = {}
+            for _i, preset in ipairs(footer_presets) do
+                table.insert(items, {
+                    text = _(preset.name),
+                    callback = function()
+                        -- Preserve current font settings across preset load
+                        local saved_face = ui.view.footer.settings.text_font_face
+                        local saved_size = ui.view.footer.settings.text_font_size
+                        local saved_bold = ui.view.footer.settings.text_font_bold
+                        ui.view.footer:loadPreset(preset)
+                        ui.view.footer.settings.text_font_face = saved_face
+                        ui.view.footer.settings.text_font_size = saved_size
+                        ui.view.footer.settings.text_font_bold = saved_bold
+                        ui.view.footer:updateFooterFont()
+                        ui.view.footer:refreshFooter(true, true)
+                        -- Enable reader clock
+                        config.features["reader_clock"] = true
+                        save_and_apply("reader_clock")
+                        -- Disable CRE alt status bar (epub/cre documents)
+                        if ui.rolling then
+                            ui.document.configurable.status_line = 1
+                            ui:handleEvent(Event:new("SetStatusLine", 1))
+                        end
+                        -- Apply zen extras
+                        if preset.zen then
+                            if type(config.reader_footer) ~= "table" then config.reader_footer = {} end
+                            if preset.zen.verbose_chapter_time ~= nil then
+                                config.reader_footer.verbose_chapter_time = preset.zen.verbose_chapter_time
+                            end
+                            plugin:saveConfig()
+                        end
+                    end,
+                })
+            end
+            return items
+        end,
+    })
+
     table.insert(reader_items, make_enable_feature_item(
         "reader_bottom_menu", _("Enable bottom menu")))
 
@@ -2115,10 +2166,7 @@ function M.build(plugin)
             local ReaderUI = require("apps/reader/readerui")
             local ui = ReaderUI.instance
             if not (ui and ui.view and ui.view.footer) then
-                return {{
-                    text = _("Open a book to access status bar settings"),
-                    enabled_func = function() return false end,
-                }}
+                return {}
             end
 
             local font_submenu = {

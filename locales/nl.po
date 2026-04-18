@@ -583,6 +583,9 @@ msgstr "Staand mozaïek: "
 msgid "Position"
 msgstr "Positie"
 
+msgid "Presets"
+msgstr "Voorinstellingen"
+
 msgid "Prev"
 msgstr "Vorige"
 
@@ -875,6 +878,12 @@ msgstr "Zen UI"
 
 msgid "Zen UI is up to date."
 msgstr "Zen UI is up-to-date."
+
+msgid "Zen UI Pages + %"
+msgstr ""
+
+msgid "Zen UI Pages + Time + %"
+msgstr ""
 
 msgid "Zen UI Settings"
 msgstr "Zen UI-instellingen"

@@ -581,6 +581,9 @@ msgstr "竖向马赛克: "
 msgid "Position"
 msgstr "位置"
 
+msgid "Presets"
+msgstr "预设"
+
 msgid "Prev"
 msgstr "上一个"
 
@@ -873,6 +876,12 @@ msgstr "Zen UI"
 
 msgid "Zen UI is up to date."
 msgstr "Zen UI 已是最新版本。"
+
+msgid "Zen UI Pages + %"
+msgstr ""
+
+msgid "Zen UI Pages + Time + %"
+msgstr ""
 
 msgid "Zen UI Settings"
 msgstr "Zen UI 设置"
