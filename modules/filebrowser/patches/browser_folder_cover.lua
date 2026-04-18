@@ -21,6 +21,7 @@ local function apply_browser_folder_cover()
     local TopContainer = require("ui/widget/container/topcontainer")
     local VerticalGroup = require("ui/widget/verticalgroup")
     local VerticalSpan = require("ui/widget/verticalspan")
+    local lfs = require("libs/libkoreader-lfs")
     local util = require("util")
 
     local _ = require("gettext")
@@ -81,6 +82,39 @@ local function apply_browser_folder_cover()
     local cached_list = {}
 
     function FileChooser:getListItem(dirpath, f, fullpath, attributes, collate)
+        -- For directory items under a time-based collate ("last read date" / "date modified"),
+        -- skip the cache and compute the sort key as the maximum access/modification time
+        -- among files directly inside the folder.  A folder's own filesystem atime is NOT
+        -- updated when a book inside it is read, so without this the folder would never move
+        -- to the front of a "most recently read" list.
+        if attributes.mode == "directory" and collate
+                and collate.can_collate_mixed and collate.mandatory_func and not collate.item_func then
+            local item = orig_FileChooser_getListItem(self, dirpath, f, fullpath, attributes, collate)
+            local ok, iter, dir_obj = pcall(lfs.dir, fullpath)
+            if ok then
+                local max_access = attributes.access or 0
+                local max_modification = attributes.modification or 0
+                for fname in iter, dir_obj do
+                    if fname ~= "." and fname ~= ".." then
+                        local fattr = lfs.attributes(fullpath .. "/" .. fname)
+                        if fattr and fattr.mode == "file" then
+                            if fattr.access > max_access then
+                                max_access = fattr.access
+                            end
+                            if fattr.modification > max_modification then
+                                max_modification = fattr.modification
+                            end
+                        end
+                    end
+                end
+                local new_attr = {}
+                for k, v in pairs(attributes) do new_attr[k] = v end
+                new_attr.access = max_access
+                new_attr.modification = max_modification
+                item.attr = new_attr
+            end
+            return item
+        end
         local key = toKey(dirpath, f, fullpath, attributes, collate, self.show_filter.status)
         cached_list[key] = cached_list[key] or orig_FileChooser_getListItem(self, dirpath, f, fullpath, attributes, collate)
         return cached_list[key]
