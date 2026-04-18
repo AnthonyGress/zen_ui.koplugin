@@ -616,6 +616,20 @@ local function apply_browser_list_item_layout()
             orig_cm_updateItems(self, ...)
             stripListBorders(self)
         end
+
+        -- CoverBrowser (loaded before us) may have already captured the old
+        -- CoverMenu.updateItems and assigned it to FileChooser.updateItems.
+        -- Wrap the class-level FileChooser.updateItems too so that every
+        -- new file_chooser instance inherits the border strip — including
+        -- the very first updateItems() call inside FileChooser:new().
+        local FileChooser = require("ui/widget/filechooser")
+        local fc_class_fn = rawget(FileChooser, "updateItems")
+        if fc_class_fn and fc_class_fn ~= CoverMenu.updateItems then
+            FileChooser.updateItems = function(self, ...)
+                fc_class_fn(self, ...)
+                stripListBorders(self)
+            end
+        end
     end
 
     -- Hook FileManager:setupLayout so we run after coverbrowser has been
@@ -630,11 +644,12 @@ local function apply_browser_list_item_layout()
             patchListMenu()
             patched = true
         end
-        -- Wrap the file_chooser instance's updateItems so the library view
-        -- also gets borders stripped.  CoverBrowser assigns
-        -- CoverMenu.updateItems to FileChooser during its init() (before our
-        -- CoverMenu prototype patch), so the class-level patch doesn't reach
-        -- the library.  We fix it per-instance here, after everything is wired.
+        -- Ensure every file_chooser instance has its own border-strip
+        -- wrapper.  The class-level FileChooser.updateItems patch covers
+        -- the initial updateItems() call during FileChooser:new(), but
+        -- CoverBrowser may later overwrite the instance's updateItems
+        -- (e.g. via setupFileManagerDisplayMode).  Re-wrap here so the
+        -- strip survives regardless of what CoverBrowser does.
         local fc = self.file_chooser
         if fc and fc.updateItems and not fc._zen_strip_list_borders then
             fc._zen_strip_list_borders = true
