@@ -10,6 +10,7 @@ local FEATURES = {
     "favorites",
     "collections",
     "history",
+    "search",
     "partial_page_repaint",
 }
 
@@ -36,6 +37,7 @@ local PATCH_MODULES = {
     browser_preload_bookinfo = "modules/filebrowser/patches/browser_preload_bookinfo",
     browser_page_count = "modules/filebrowser/patches/browser_page_count",
     browser_series_badge = "modules/filebrowser/patches/browser_series_badge",
+    search = "modules/filebrowser/patches/search",
 }
 
 local function is_feature_enabled(plugin, key)

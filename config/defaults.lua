@@ -31,6 +31,7 @@ local defaults = {
         favorites = true,
         collections = true,
         history = true,
+        search = true,
         browser_cover_rounded_corners = false,
         partial_page_repaint = false,
         reader_clock = true,
@@ -120,7 +121,7 @@ local defaults = {
         show_series_badge = false,
     },
     browser_preload_bookinfo = {
-        preload_bookinfo = true,
+        preload_bookinfo = false,
     },
     context_menu = {
         allow_delete = false,

@@ -1499,45 +1499,27 @@ local function apply_page_browser()
         local logger_rs   = require("logger")
 
         local _orig_onShowFulltextSearchInput = ReaderSearch.onShowFulltextSearchInput
+        local _orig_InputDialog_onTap = InputDialog.onTap
+
+        local SEARCH_ICON = "\u{F002}"
 
         ReaderSearch.onShowFulltextSearchInput = function(self, search_string)
-            local backward_text = "◁"
-            local forward_text  = "▷"
-            if BD.mirroredUILayout() then
-                backward_text, forward_text = forward_text, backward_text
-            end
             self.input_dialog = InputDialog:new{
-                title = _("Enter text to search for"),
+                title = _("Search Book"),
                 width = math.floor(math.min(Screen_s:getWidth(), Screen_s:getHeight()) * 0.9),
                 input = search_string
                     or self.last_search_text
                     or (self.ui.doc_settings
                         and self.ui.doc_settings:readSetting("fulltext_search_last_search_text")),
-                -- X in the title bar replaces the Cancel button
+                -- X in the title bar (top left)
                 title_bar_left_icon = "close",
                 title_bar_left_icon_tap_callback = function()
                     UIManager:close(self.input_dialog)
                 end,
                 buttons = {
-                    -- Row 1: directional arrows
                     {
                         {
-                            text     = backward_text,
-                            callback = function()
-                                self:searchCallback(1)
-                            end,
-                        },
-                        {
-                            text     = forward_text,
-                            callback = function()
-                                self:searchCallback(0)
-                            end,
-                        },
-                    },
-                    -- Row 2: Search (formerly "All" / find-all)
-                    {
-                        {
-                            text             = _("Search"),
+                            text             = SEARCH_ICON .. " " .. _("Search"),
                             is_enter_default = true,
                             callback         = function()
                                 self:searchCallback()
@@ -1546,18 +1528,63 @@ local function apply_page_browser()
                     },
                 },
             }
-            self.check_button_case = CheckButton:new{
-                text     = _("Case sensitive"),
-                checked  = not self.case_insensitive,
-                parent   = self.input_dialog,
-            }
-            self.input_dialog:addWidget(self.check_button_case)
-            -- Regex option intentionally omitted, but searchCallback reads
-            -- self.check_button_regex.checked unconditionally, so provide a
-            -- stub that always returns false (no regex).
+            -- Always case insensitive, whole-word via regex
+            self.case_insensitive = true
+            self._zen_whole_word = true
+            self.check_button_case = { checked = false }
             self.check_button_regex = { checked = false }
+
+            -- Tap outside = close keyboard + dialog together
+            function self.input_dialog:onTap(arg, ges)
+                if self.deny_keyboard_hiding then return end
+                if self:isKeyboardVisible() then
+                    local kb = self._input_widget and self._input_widget.keyboard
+                    if kb and kb.dimen
+                       and ges.pos:notIntersectWith(kb.dimen)
+                       and ges.pos:notIntersectWith(self.dialog_frame.dimen) then
+                        self:onCloseKeyboard()
+                        UIManager:close(self)
+                        return true
+                    end
+                    return _orig_InputDialog_onTap(self, arg, ges)
+                else
+                    if ges.pos:notIntersectWith(self.dialog_frame.dimen) then
+                        UIManager:close(self)
+                        return true
+                    end
+                end
+            end
+
             UIManager:show(self.input_dialog)
             self.input_dialog:onShowKeyboard()
+        end
+
+        -- Whole-word matching via \b word-boundary assertions.
+        -- Note: \b is ASCII-only in ECMAScript/SRELL (matches [A-Za-z0-9_] boundaries),
+        -- so it correctly handles the Latin-script case (e.g. "red" does not match "tired").
+        -- Lookbehind/lookahead (?<!...) require SRELL 4+; older embedded SRELL versions
+        -- silently ignore them, causing every pattern to match as a substring.
+        local function make_whole_word_regex(text)
+            local escaped = text:gsub("[%^%$%.%*%+%?%(%)%[%]%{%}%|\\]", "\\%0")
+            return "\\b" .. escaped .. "\\b"
+        end
+
+        local _orig_rs_search = ReaderSearch.search
+        function ReaderSearch:search(pattern, origin, regex, case_insensitive)
+            if self._zen_whole_word then
+                pattern = make_whole_word_regex(pattern)
+                regex = true
+            end
+            return _orig_rs_search(self, pattern, origin, regex, case_insensitive)
+        end
+
+        local _orig_rs_findAllText = ReaderSearch.findAllText
+        function ReaderSearch:findAllText(search_text)
+            if self._zen_whole_word then
+                search_text = make_whole_word_regex(search_text)
+                self.use_regex = true
+            end
+            return _orig_rs_findAllText(self, search_text)
         end
 
         -- Patch onShowFindAllResults: fix reader-content ghosting at the bottom
@@ -1576,10 +1603,27 @@ local function apply_page_browser()
         -- the keyboard has been dismissed and Screen:getHeight() is back to the
         -- real value. We patch menu.dimen.h (gesture hit range) and set an
         -- explicit menu[1].height (FrameContainer) so its background fill covers
-        -- the full screen.  Then forceRePaint() paints the full white background
-        -- synchronously before the flashui refresh fires.
+        -- the full screen.  A flashui setDirty then schedules a full e-ink refresh.
         local _orig_onShowFindAllResults = ReaderSearch.onShowFindAllResults
         ReaderSearch.onShowFindAllResults = function(self, not_cached)
+            -- Whole-word post-filter: crengine populates matched_word_prefix /
+            -- matched_word_suffix with the word characters that sit inside the
+            -- same "word" as the match but before/after it.  Both being empty
+            -- means the match sits exactly at a word boundary.  We use this
+            -- rather than \b regex because the embedded SRELL version does not
+            -- reliably honour \b.
+            if self._zen_whole_word and not_cached and self.findall_results then
+                local filtered = {}
+                for _, item in ipairs(self.findall_results) do
+                    local pre = item.matched_word_prefix or ""
+                    local suf = item.matched_word_suffix or ""
+                    if pre == "" and suf == "" then
+                        table.insert(filtered, item)
+                    end
+                end
+                self.findall_results = filtered
+            end
+
             _orig_onShowFindAllResults(self, not_cached)
             local menu = self.result_menu
             if not menu or not UIManager:isWidgetShown(menu) then return end
@@ -1602,7 +1646,21 @@ local function apply_page_browser()
             end
 
             UIManager:setDirty(menu, "flashui")
-            UIManager:forceRePaint()
+
+            -- Extend close_callback to mark the reader view dirty after the
+            -- results menu is dismissed.  Without this the clock overlay drawn
+            -- by ReaderView.paintTo may not be repainted because the guard in
+            -- that patch skips drawing while a non-reader widget is on top, and
+            -- the subsequent UIManager repaint cycle can miss re-invoking paintTo.
+            if menu.close_callback then
+                local orig_close_cb = menu.close_callback
+                menu.close_callback = function()
+                    orig_close_cb()
+                    if self.view then
+                        UIManager:setDirty(self.view, "partial")
+                    end
+                end
+            end
         end
     end
 

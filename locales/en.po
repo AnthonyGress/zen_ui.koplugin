@@ -691,6 +691,12 @@ msgstr "Update Zen UI now?"
 msgid "Search"
 msgstr "Search"
 
+msgid "Search Book"
+msgstr "Search Book"
+
+msgid "Search Library"
+msgstr "Search Library"
+
 msgid "Select"
 msgstr "Select"
 

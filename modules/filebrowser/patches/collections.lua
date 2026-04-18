@@ -1301,6 +1301,80 @@ local function apply_collections()
         return result
     end
 
+    ---------------------------------------------------------------------------
+    -- Collections search: whole-word matching, skip description field.
+    -- Uses the same find_whole_word algorithm as filebrowser/search.lua
+    -- (byte-level boundary check, handles multi-byte UTF-8 gracefully).
+    -- findInProps is temporarily swapped so the Trapper subprocess fork
+    -- (which copies parent memory) inherits the patched behaviour.
+    ---------------------------------------------------------------------------
+    local _orig_searchCollections = FileManagerCollection.searchCollections
+    if _orig_searchCollections then
+        local util_lower = require("util").stringLower
+
+        -- Word char: ASCII alnum/_ OR leading byte of any UTF-8 multi-byte
+        -- sequence (≥ 0x80), identical to is_word_byte in search.lua.
+        local function is_word_byte(b)
+            return (b >= 48 and b <= 57)
+                or (b >= 65 and b <= 90)
+                or (b >= 97 and b <= 122)
+                or b == 95
+                or b >= 128
+        end
+
+        -- Whole-word substring search (identical logic to search.lua).
+        local function find_whole_word(text, pattern)
+            if #pattern == 0 then return false end
+            local i = 1
+            while true do
+                local s, e = string.find(text, pattern, i, true)
+                if not s then return false end
+                local before_ok = (s == 1) or not is_word_byte(text:byte(s - 1))
+                local after_ok  = (e == #text) or not is_word_byte(text:byte(e + 1))
+                if before_ok and after_ok then return true end
+                i = s + 1
+            end
+        end
+
+        function FileManagerCollection:searchCollections(coll_name)
+            local bookinfo = self.ui and self.ui.bookinfo
+            if not bookinfo then
+                return _orig_searchCollections(self, coll_name)
+            end
+
+            local orig_findInProps = bookinfo.findInProps
+            -- Replace findInProps for the duration of this search:
+            -- • skip "description"
+            -- • whole-word matching on all other props
+            -- • case folding: lowercase both sides when not case-sensitive
+            --   (case_sensitive is a boolean from CheckButton.checked)
+            bookinfo.findInProps = function(info, book_props, search_str, case_sensitive)
+                local fold = not case_sensitive  -- true = case-insensitive mode
+                local needle = fold and util_lower(search_str) or search_str
+                for _, key in ipairs(info.props) do
+                    if key ~= "description" then
+                        local prop = book_props[key]
+                        if prop then
+                            if key == "series_index" then
+                                prop = tostring(prop)
+                            end
+                            local haystack = fold and util_lower(prop) or prop
+                            if find_whole_word(haystack, needle) then
+                                return true
+                            end
+                        end
+                    end
+                end
+            end
+
+            local ok, err = pcall(_orig_searchCollections, self, coll_name)
+            bookinfo.findInProps = orig_findInProps
+            if not ok then
+                logger.warn("zen-coll: searchCollections error:", err)
+            end
+        end
+    end
+
     logger.warn("zen-coll: all hooks installed")
 end
 
