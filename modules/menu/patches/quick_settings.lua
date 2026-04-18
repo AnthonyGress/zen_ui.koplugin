@@ -549,7 +549,7 @@ local function apply_quick_settings()
                 if fl_label_fn then UIManager:unschedule(fl_label_fn) ; fl_label_fn = nil end
                 fl_progress:setValue(fl.cur)
                 fl_label:setText(_("Brightness") .. ": " .. tostring(fl.cur))
-                UIManager:setDirty(touch_menu.show_parent, "ui")
+                UIManager:setDirty(touch_menu.show_parent, "ui", touch_menu.dimen)
             end
 
             fl.prev_non_min = fl.cur > fl.min and fl.cur or math.min(fl.max, fl.min + 1)
@@ -559,20 +559,13 @@ local function apply_quick_settings()
                 powerd:setIntensity(v)
                 fl.cur = v
                 if fl.cur > fl.min then fl.prev_non_min = fl.cur end
-                -- During drag limit repaint to the slider's own rect to prevent
-                -- rapid full-parent dirty regions from bloating into far-away
-                -- screen areas and causing e-ink artifacts.
-                UIManager:setDirty(touch_menu.show_parent, function()
-                    if fl_progress.hide_knob and fl_progress.dimen then
-                        return "ui", fl_progress.dimen
-                    end
-                    return "ui"
-                end)
+                UIManager:setDirty(touch_menu.show_parent, "ui", touch_menu.dimen)
                 if fl_label_fn then UIManager:unschedule(fl_label_fn) end
                 fl_label_fn = function()
                     fl_label_fn = nil
+                    fl_progress.hide_knob = false
                     fl_label:setText(_("Brightness") .. ": " .. tostring(fl.cur))
-                    UIManager:setDirty(touch_menu.show_parent, "ui")
+                    UIManager:setDirty(touch_menu.show_parent, "ui", touch_menu.dimen)
                 end
                 UIManager:scheduleIn(0.1, fl_label_fn)
             end
@@ -679,7 +672,7 @@ local function apply_quick_settings()
                 if nl_label_fn then UIManager:unschedule(nl_label_fn) ; nl_label_fn = nil end
                 nl_progress:setValue(nl.cur)
                 nl_label:setText(_("Warmth") .. ": " .. tostring(nl.cur))
-                UIManager:setDirty(touch_menu.show_parent, "ui")
+                UIManager:setDirty(touch_menu.show_parent, "ui", touch_menu.dimen)
             end
 
             nl.prev_non_min = nl.cur > nl.min and nl.cur or math.min(nl.max, nl.min + 1)
@@ -689,17 +682,13 @@ local function apply_quick_settings()
                 powerd:setWarmth(powerd:fromNativeWarmth(v))
                 nl.cur = v
                 if nl.cur > nl.min then nl.prev_non_min = nl.cur end
-                UIManager:setDirty(touch_menu.show_parent, function()
-                    if nl_progress.hide_knob and nl_progress.dimen then
-                        return "ui", nl_progress.dimen
-                    end
-                    return "ui"
-                end)
+                UIManager:setDirty(touch_menu.show_parent, "ui", touch_menu.dimen)
                 if nl_label_fn then UIManager:unschedule(nl_label_fn) end
                 nl_label_fn = function()
                     nl_label_fn = nil
+                    nl_progress.hide_knob = false
                     nl_label:setText(_("Warmth") .. ": " .. tostring(nl.cur))
-                    UIManager:setDirty(touch_menu.show_parent, "ui")
+                    UIManager:setDirty(touch_menu.show_parent, "ui", touch_menu.dimen)
                 end
                 UIManager:scheduleIn(0.1, nl_label_fn)
             end
@@ -849,10 +838,8 @@ local function apply_quick_settings()
                 sr.dragging = not is_release
                 sr.slider.hide_knob = sr.dragging
                 sr.slider:applyPosition(ges.pos.x)
-                -- On release, always repaint so the knob reappears even if the
-                -- value didn't change (applyPosition only calls on_change on delta).
                 if is_release then
-                    UIManager:setDirty(touch_menu.show_parent, "ui")
+                    UIManager:setDirty(touch_menu.show_parent, "ui", touch_menu.dimen)
                 end
                 return true
             end
@@ -894,6 +881,12 @@ local function apply_quick_settings()
             self.ges_events.PanReleaseCloseAllMenus = {
                 GestureRange:new{
                     ges = "pan_release",
+                    range = Geom:new{ x = 0, y = 0, w = self.screen_size.w, h = self.screen_size.h },
+                }
+            }
+            self.ges_events.MultiSwipe = {
+                GestureRange:new{
+                    ges = "multiswipe",
                     range = Geom:new{ x = 0, y = 0, w = self.screen_size.w, h = self.screen_size.h },
                 }
             }
@@ -1049,8 +1042,8 @@ local function apply_quick_settings()
                         end
                         sr.slider:applyPosition(end_x)
                     else
-                        -- Was dragging: pan events placed the knob, just repaint to show it.
-                        UIManager:setDirty(self.show_parent, "ui")
+                        -- Was dragging: pan events placed the knob, just repaint.
+                        UIManager:setDirty(self.show_parent, "ui", self.dimen)
                     end
                     -- If was_dragging: pan events already placed the knob correctly.
                     return true
@@ -1062,6 +1055,36 @@ local function apply_quick_settings()
         end
         if orig_onSwipe then
             return orig_onSwipe(self, arg, ges_ev)
+        end
+    end
+
+    -- Hook onMultiSwipe: fast back-and-forth drag is classified as a multiswipe
+    -- gesture. Clear dragging/hide_knob state and repaint so the knob reappears.
+    local orig_onMultiSwipe = TouchMenu.onMultiSwipe
+
+    function TouchMenu:onMultiSwipe(arg, ges_ev)
+        if not is_enabled() then
+            if orig_onMultiSwipe then
+                return orig_onMultiSwipe(self, arg, ges_ev)
+            end
+            return
+        end
+
+        if self._qs_refs and self.item_table and self.item_table.panel then
+            local refs = self._qs_refs
+            for _, sr in ipairs(refs.sliders or {}) do
+                if sr.dragging or (sr.slider.dimen and ges_ev.pos:intersectWith(sr.slider.dimen)) then
+                    sr.dragging = false
+                    sr.slider.hide_knob = false
+                    UIManager:setDirty(self.show_parent, "ui", self.dimen)
+                    return true
+                end
+            end
+            handlePanelGesture(self, ges_ev, false)
+            return true
+        end
+        if orig_onMultiSwipe then
+            return orig_onMultiSwipe(self, arg, ges_ev)
         end
     end
 
