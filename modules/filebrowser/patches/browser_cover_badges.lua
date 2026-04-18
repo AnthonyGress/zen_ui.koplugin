@@ -204,7 +204,7 @@ local function apply_browser_cover_badges()
                 local do_pct   = not do_check and not do_pause and self.percent_finished ~= nil
 
                 if do_check or do_pause or do_pct then
-                    local bw = math.floor(corner_mark_size * 1.4)
+                    local bw = math.floor(corner_mark_size * 1.2)
                     local bh = math.floor(corner_mark_size * 1.1)
 
                     -- Align to top-right edge of cover frame, inset slightly
@@ -237,7 +237,7 @@ local function apply_browser_cover_badges()
                     else
                         local pct     = math.floor(100 * self.percent_finished)
                         local pct_str = pct .. "%"
-                        local font_sz = math.max(7, math.floor(corner_mark_size * 0.28))
+                        local font_sz = math.max(7, math.floor(corner_mark_size * 0.24))
                         local tw = TextWidget:new{
                             text    = pct_str,
                             face    = Font:getFace("cfont", font_sz),
