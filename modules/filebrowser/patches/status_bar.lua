@@ -559,6 +559,10 @@ local function apply_status_bar()
                     t.title_tap_callback  = nil
                     t.title_hold_callback = nil
                     t.bottom_v_padding    = 0
+                    -- Replace title text with a space so the slot has correct
+                    -- height but shows nothing before _updateStatusBar paints
+                    -- our custom row over it.
+                    t.title               = " "
                 end
                 return orig_new(cls, t)
             end
@@ -568,7 +572,12 @@ local function apply_status_bar()
             orig_setupLayout(self)
         end
 
-        -- Defer to run after all plugins (coverbrowser etc.) finish init
+        -- Apply immediately so the first paint shows our custom row rather
+        -- than the placeholder title.  _updateStatusBar is a no-op when the
+        -- titlebar isn't ready yet, so this is always safe to call early.
+        self:_updateStatusBar()
+
+        -- Defer again after all plugins (coverbrowser etc.) finish init
         local fm = self
         UIManager:nextTick(function()
             fm:_updateStatusBar()
