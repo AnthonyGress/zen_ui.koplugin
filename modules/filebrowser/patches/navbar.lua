@@ -905,12 +905,11 @@ local function apply_navbar()
         -- On reinit, re-inject (preserve active tab)
         self._navbar_injected = false
 
-        -- Defer injection to after all init processing completes
-        local fm = self
-        UIManager:nextTick(function()
-            injectNavbar(fm)
-            UIManager:setDirty(fm, "ui")
-        end)
+        -- Inject synchronously so the navbar is part of the widget tree on the
+        -- first paint.  Deferring via nextTick caused a two-phase repaint where
+        -- the file browser was visible for one frame before the navbar appeared.
+        injectNavbar(self)
+        UIManager:setDirty(self, "ui")
     end
 
     -- === Hook standalone views to inject navbar after creation ===
