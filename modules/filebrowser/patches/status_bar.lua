@@ -791,10 +791,12 @@ local function apply_status_bar()
             orig_onPathChanged(self, path)
         end
         if is_enabled() then
-            local fm = self
-            UIManager:nextTick(function()
-                fm:_updateStatusBar()
-            end)
+            -- Run synchronously so the titlebar update is included in the same
+            -- paint cycle as updateItems' refresh.  Deferring to nextTick caused
+            -- a second e-ink refresh (visible flash) and could leave ghost
+            -- artifacts on the right edge when the two partial "ui" repaints
+            -- didn't fully overlap.
+            self:_updateStatusBar()
         end
     end
 

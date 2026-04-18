@@ -36,12 +36,11 @@ local function apply_browser_hide_up_folder()
 
     function FileChooser:_changeLeftIcon(icon, func)
         local titlebar = self.title_bar
+        if not titlebar or not titlebar.left_button then return end
         titlebar.left_icon = icon
         titlebar.left_icon_tap_callback = func
-        if titlebar.left_button then
-            titlebar.left_button:setIcon(icon)
-            titlebar.left_button.callback = func
-        end
+        titlebar.left_button:setIcon(icon)
+        titlebar.left_button.callback = func
     end
 
     local orig_FileChooser_genItemTable = FileChooser.genItemTable
