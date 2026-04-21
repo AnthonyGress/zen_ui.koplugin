@@ -205,10 +205,11 @@ function M.build_install_pages(ctx)
 
         -- 7. Navbar Tabs (INTERACTIVE — checkbox)
         {
-            title       = "Navbar Tabs",
-            description = "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings.",
-            choice_type = "checkbox",
-            choices     = {
+            title          = "Navbar Tabs",
+            description    = "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings.",
+            choice_type    = "checkbox",
+            max_selections = 7,
+            choices        = {
                 { id = "continue",    text = "Continue",    checked = show_tabs["continue"]    == true },
                 { id = "history",     text = "History",     checked = show_tabs["history"]     == true },
                 { id = "favorites",   text = "Favorites",   checked = show_tabs["favorites"]   == true },
@@ -258,10 +259,10 @@ function M.build_install_pages(ctx)
             description = "What should your device show when it goes to sleep?",
             choice_type = "radio",
             choices     = {
-                { id = "cover_black",   text = "Book cover — black background", checked = true  },
+                { id = "keep",          text = "Keep existing settings",         checked = true  },
+                { id = "cover_black",   text = "Book cover — black background", checked = false },
                 { id = "zen_white",     text = "Zen icon — white background",   checked = false },
                 { id = "zen_minimal",   text = "Zen icon — minimal background", checked = false },
-                { id = "keep",          text = "Keep existing settings",         checked = false },
             },
             on_apply = function(sel)
                 if sel["keep"] then return end
@@ -312,11 +313,11 @@ function M.build_install_pages(ctx)
             description = "Choose a preset for your reading progress bar.",
             choice_type = "radio",
             choices     = {
-                { id = "kindle",   text = "Chapter Time + %",      image = img("onboarding/kindle_like.png"),        checked = true  },
+                { id = "keep",     text = "Keep existing settings",                                                       checked = true  },
+                { id = "kindle",   text = "Chapter Time + %",      image = img("onboarding/kindle_like.png"),        checked = false },
                 { id = "pages",    text = "Pages and %",      image = img("onboarding/pages_percent.png"),      checked = false },
                 { id = "full",     text = "Pages + Time + %", image = img("onboarding/pages_time_percent.png"), checked = false },
                 { id = "centered", text = "Centered Pages",   image = img("onboarding/centered_pages.png"),     checked = false },
-                { id = "keep",     text = "Keep existing settings",                                                       checked = false },
             },
             on_apply = function(sel)
                 if sel["keep"] then return end

@@ -38,9 +38,9 @@ function M.build(plugin)
         settings_apply = settings_apply,
     }
 
-    local filebrowser_items = lib_section.build(ctx)
-    local menu_items        = menu_section.build(ctx)
-    local reader_items      = reader_section.build(ctx)
+    local filebrowser_items    = lib_section.build(ctx)
+    local quick_settings_item  = menu_section.build(ctx)
+    local reader_items         = reader_section.build(ctx)
     local global_items      = global_section.build(ctx)
     local advanced_items    = advanced_section.build(ctx)
     local general_items     = about_section.build(ctx)
@@ -72,10 +72,6 @@ function M.build(plugin)
         _("Navbar"),
     })
 
-    menu_items = utils.order_items_by_text(menu_items, {
-        _("Quick settings"),
-    })
-
     utils.reorder_nested_items_by_text(filebrowser_items, _("Status bar"), {
         _("Enable custom status bar"),
         _("12-hour time"),
@@ -104,14 +100,6 @@ function M.build(plugin)
         _("Arrange tabs"),
     })
 
-    utils.reorder_nested_items_by_text(menu_items, _("Quick settings"), {
-        _("Enable quick settings panel"),
-        _("Show brightness slider"),
-        _("Show warmth slider"),
-        _("Always open on this tab"),
-        _("Buttons"),
-    })
-
     -- -------------------------------------------------------------------------
     -- Root menu assembly
     -- -------------------------------------------------------------------------
@@ -127,9 +115,9 @@ function M.build(plugin)
                 save_and_apply("zen_mode")
             end,
         },
+        quick_settings_item,
         { text = _("Library"),  sub_item_table = filebrowser_items },
         { text = _("Reader"),   sub_item_table = reader_items      },
-        { text = _("Menu"),     sub_item_table = menu_items        },
         { text = _("Global"),   sub_item_table = global_items      },
         { text = _("Advanced"), sub_item_table = advanced_items    },
         {

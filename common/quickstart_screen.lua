@@ -65,8 +65,8 @@ function QuickstartScreen:init()
     local SEP_H   = 1
     local DOT_H   = Screen:scaleBySize(36)
     local NAV_H   = Screen:scaleBySize(64)
-    -- Reserve 25% of screen height for description + dots + nav; image fills the rest.
-    local BOTTOM_H = math.floor(sh * 0.25)
+    -- Reserve 40% of screen height for description + dots + nav; image fills at most 60%.
+    local BOTTOM_H = math.floor(sh * 0.40)
     local IMG_H    = sh - TITLE_H - SEP_H - BOTTOM_H
     local DESC_H   = BOTTOM_H - DOT_H - NAV_H
 
@@ -567,6 +567,11 @@ function QuickstartScreen:_onTap(ges)
                 if page.choice_type == "radio" then
                     sel = { [choice.id] = true }
                 else
+                    if not (sel[choice.id] == true) and page.max_selections then
+                        local count = 0
+                        for _, v in pairs(sel) do if v == true then count = count + 1 end end
+                        if count >= page.max_selections then return true end
+                    end
                     sel[choice.id] = not (sel[choice.id] == true)
                 end
                 self._selections[self._page_idx] = sel

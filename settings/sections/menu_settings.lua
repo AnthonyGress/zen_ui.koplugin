@@ -21,6 +21,7 @@ function M.build(ctx)
     local quick_button_items = {
         { key = "wifi",        text = _("Wi-Fi")          },
         { key = "night",       text = _("Night mode")     },
+        { key = "zen",         text = _("Zen mode")       },
         { key = "rotate",      text = _("Rotate")         },
         { key = "usb",         text = _("USB")            },
         { key = "search",      text = _("File search")    },
@@ -40,6 +41,22 @@ function M.build(ctx)
     local quick_button_label_by_id = {}
     for _, quick_item in ipairs(quick_button_items) do
         quick_button_label_by_id[quick_item.key] = quick_item.text
+    end
+
+    local quick_buttons_max = 9
+
+    -- only count buttons that are actually toggleable in the UI
+    local quick_button_key_set = {}
+    for _, item in ipairs(quick_button_items) do
+        quick_button_key_set[item.key] = true
+    end
+
+    local function countEnabledButtons()
+        local count = 0
+        for key, v in pairs(config.quick_settings.show_buttons) do
+            if v == true and quick_button_key_set[key] then count = count + 1 end
+        end
+        return count
     end
 
     local quick_button_sub_items = {}
@@ -75,22 +92,24 @@ function M.build(ctx)
     })
 
     for _, quick_item in ipairs(quick_button_items) do
+        local key = quick_item.key
         table.insert(quick_button_sub_items, {
             text = quick_item.text,
             checked_func = function()
-                return config.quick_settings.show_buttons[quick_item.key] == true
+                return config.quick_settings.show_buttons[key] == true
+            end,
+            enabled_func = function()
+                return config.quick_settings.show_buttons[key] == true
+                    or countEnabledButtons() < quick_buttons_max
             end,
             callback = function()
-                local current = config.quick_settings.show_buttons[quick_item.key] == true
-                config.quick_settings.show_buttons[quick_item.key] = not current
+                config.quick_settings.show_buttons[key] = not (config.quick_settings.show_buttons[key] == true)
                 save_and_apply_quick_settings()
             end,
         })
     end
 
-    local items = {}
-
-    table.insert(items, {
+    return {
         text = _("Quick settings"),
         sub_item_table = {
             {
@@ -114,9 +133,7 @@ function M.build(ctx)
                 end,
             },
         },
-    })
-
-    return items
+    }
 end
 
 return M
