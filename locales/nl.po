@@ -415,6 +415,9 @@ msgstr "naam (natuurlijke sortering)"
 msgid "Navbar"
 msgstr "Navigatiebalk"
 
+msgid "New"
+msgstr "New"
+
 msgid "New folder"
 msgstr "Nieuwe map"
 
@@ -739,6 +742,9 @@ msgstr "Labels weergeven"
 
 msgid "Show progress % on mosaic covers"
 msgstr "Voortgang % op mozaïekomslagen weergeven"
+
+msgid "Show new banner"
+msgstr "Show new banner"
 
 msgid "Show page count"
 msgstr "Paginatelling weergeven"

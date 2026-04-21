@@ -43,6 +43,7 @@ local defaults = {
         warmth_schedule     = false,
         brightness_schedule = false,
         page_browser        = true,
+        restore_library_view = false,
         highlight_lookup     = true,
         dict_quick_lookup    = true,
         custom_icons_enabled = false,
@@ -126,15 +127,13 @@ local defaults = {
     browser_cover_badges = {
         show_mosaic_progress = true,
         show_native_progress_bar = false,
+        show_new_banner = true,
     },
     browser_page_count = {
         show_page_count = false,
     },
     browser_series_badge = {
         show_series_badge = false,
-    },
-    browser_preload_bookinfo = {
-        preload_bookinfo = false,
     },
     zen_scroll_bar = {
         style = "dots",   -- "bar" | "dots"

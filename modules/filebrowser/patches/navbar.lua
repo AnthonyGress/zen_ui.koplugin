@@ -791,12 +791,22 @@ local function apply_navbar()
             local tapped_id = visible_tabs[idx].id
             local cb = tab_callbacks[tapped_id]
             if cb then cb() end
-            -- Only update active tab for tabs that stay in the file browser
-            local stays_in_browser = tapped_id == "books"
-                or (tapped_id == "manga" and config.manga_action == "folder" and config.manga_folder ~= "")
-                or (tapped_id == "news" and config.news_action == "folder" and config.news_folder ~= "")
-            if stays_in_browser and tapped_id ~= active_tab then
-                setActiveTab(tapped_id)
+            -- Track active tab for all persistent views (not transient: search/stats/exit/continue/menu/page_*)
+            local track_tab = tapped_id == "books" or tapped_id == "manga"
+                or tapped_id == "news"      or tapped_id == "authors"
+                or tapped_id == "series"    or tapped_id == "to_be_read"
+                or tapped_id == "history"   or tapped_id == "favorites"
+                or tapped_id == "collections"
+            if track_tab and tapped_id ~= active_tab then
+                active_tab = tapped_id
+                -- Only repaint the FM navbar for tabs that render inside it (not overlay views)
+                local stays_in_browser = tapped_id == "books"
+                    or (tapped_id == "manga" and config.manga_action == "folder" and config.manga_folder ~= "")
+                    or (tapped_id == "news" and config.news_action == "folder" and config.news_folder ~= "")
+                if stays_in_browser then
+                    local fm = FileManager.instance
+                    if fm then injectNavbar(fm); UIManager:setDirty(fm, "full") end
+                end
             end
             return true
         end
@@ -1084,19 +1094,117 @@ local function apply_navbar()
         -- menu_top_swipe (class-level patch on Menu.onSwipe).
     end
 
+    local function is_restore_enabled()
+        local features = zen_plugin.config and zen_plugin.config.features
+        return type(features) == "table" and features.restore_library_view == true
+    end
+
+    -- Save current library view state just before the reader takes over.
+    -- The FM is about to be destroyed; we persist {tab, page} so that when
+    -- showFileManager() recreates it we can scroll back to the right place.
+    local skip_tabs_for_state = {
+        books = true, manga = true, news = true,
+        continue = true, search = true, stats = true, exit = true,
+    }
+    local orig_fm_onShowingReader = FileManager.onShowingReader
+    function FileManager:onShowingReader()
+        local gv = zen_plugin._zen_shared and zen_plugin._zen_shared.group_view
+        if is_restore_enabled() and not skip_tabs_for_state[active_tab] then
+            local page = 1
+            -- Group views expose page via M.getActivePage
+            if gv and gv.getActivePage then
+                page = gv.getActivePage(active_tab) or 1
+            end
+            -- Standalone views: history / favorites / collections
+            local fm = FileManager.instance
+            if fm and active_tab == "history"
+                    and fm.history and fm.history.booklist_menu then
+                page = fm.history.booklist_menu.page or 1
+            elseif fm and (active_tab == "favorites" or active_tab == "collections")
+                    and fm.collections and fm.collections.booklist_menu then
+                page = fm.collections.booklist_menu.page or 1
+            end
+            -- If a detail view (author/series book list) was open, save which one
+            local detail_group, detail_page
+            if gv and gv.getActiveDetail then
+                local detail = gv.getActiveDetail()
+                if detail then
+                    detail_group = detail.group_name
+                    detail_page  = detail.page
+                end
+            end
+            _G.__ZEN_UI_LIBRARY_STATE = {
+                tab          = active_tab,
+                page         = page,
+                detail_group = detail_group,
+                detail_page  = detail_page,
+            }
+        else
+            _G.__ZEN_UI_LIBRARY_STATE = nil
+        end
+        -- Close orphaned overlay menus to keep UIManager's stack clean
+        if gv and gv.closeAll then gv.closeAll() end
+        local fm = FileManager.instance
+        if fm then
+            if fm.history and fm.history.booklist_menu then
+                UIManager:close(fm.history.booklist_menu)
+                fm.history.booklist_menu = nil
+            end
+            if fm.collections then
+                if fm.collections.booklist_menu then
+                    UIManager:close(fm.collections.booklist_menu)
+                    fm.collections.booklist_menu = nil
+                end
+                if fm.collections.coll_list then
+                    UIManager:close(fm.collections.coll_list)
+                    fm.collections.coll_list = nil
+                end
+            end
+        end
+        if orig_fm_onShowingReader then orig_fm_onShowingReader(self) end
+    end
+
     local orig_setupLayout = FileManager.setupLayout
 
     function FileManager:setupLayout()
         orig_setupLayout(self)
-
-        -- On reinit, re-inject (preserve active tab)
         self._navbar_injected = false
-
-        -- Inject synchronously so the navbar is part of the widget tree on the
-        -- first paint.  Deferring via nextTick caused a two-phase repaint where
-        -- the file browser was visible for one frame before the navbar appeared.
         injectNavbar(self)
-        UIManager:setDirty(self, "ui")
+        -- On reinit (FM already in the window stack), dirty-mark so the updated navbar
+        -- is painted. On fresh init, UIManager:show(fm) inside showFiles handles it.
+        if FileManager.instance == self then
+            UIManager:setDirty(self, "ui")
+        end
+    end
+
+    -- Restore the view state (group tab + optional detail) when returning from the reader.
+    -- Patching showFiles (rather than setupLayout) is critical: UIManager:show(fm) is called
+    -- inside showFiles *after* setupLayout returns.  Any overlay we show here therefore lands
+    -- *above* fm in the window stack, so _repaint starts from the overlay (topmost
+    -- covers_fullscreen) and never paints the FM books view at all -- no flash, no artifacts.
+    local orig_showFiles = FileManager.showFiles
+    function FileManager:showFiles(path, focused_file, selected_files)
+        -- When restore is disabled, drop focused_file so KOReader doesn't scroll
+        -- the file browser to the page containing the last-opened book.
+        local effective_focused = is_restore_enabled() and focused_file or nil
+        orig_showFiles(self, path, effective_focused, selected_files)
+        local state = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
+        if not is_restore_enabled() then
+            _G.__ZEN_UI_LIBRARY_STATE = nil
+            return
+        end
+        if not state or not state.tab or not tab_callbacks[state.tab] then return end
+        local gv = zen_plugin._zen_shared and zen_plugin._zen_shared.group_view
+        -- onPathChanged inside orig_setupLayout may have reset active_tab to "books";
+        -- restore it now so onShowingReader saves the right tab on the next book open.
+        active_tab = state.tab
+        -- Open group/standalone view synchronously (stack: [fm, group_menu])
+        tab_callbacks[state.tab]()
+        -- If a detail view was open, open it synchronously too (stack: [fm, group_menu, detail_menu]).
+        -- _repaint will then start from detail_menu and never show the intermediate views.
+        if state.detail_group and gv and gv.restoreDetail then
+            gv.restoreDetail(state.detail_group, state.tab, injectStandaloneNavbar)
+        end
     end
 
     -- === Hook standalone views to inject navbar after creation ===
@@ -1110,6 +1218,14 @@ local function apply_navbar()
         local result = orig_onShowHist(self, search_info)
         if self.booklist_menu then
             injectStandaloneNavbar(self.booklist_menu, "history")
+            local state = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
+            if state and state.tab == "history" and state.page and state.page > 1 then
+                local menu = self.booklist_menu
+                _G.__ZEN_UI_LIBRARY_STATE = nil
+                UIManager:nextTick(function()
+                    if menu.onGotoPage then menu:onGotoPage(state.page) end
+                end)
+            end
         end
         return result
     end
@@ -1132,7 +1248,16 @@ local function apply_navbar()
         local from_coll_list = self.coll_list ~= nil
         local result = orig_onShowColl(self, collection_name)
         if self.booklist_menu then
-            injectStandaloneNavbar(self.booklist_menu, from_coll_list and "collections" or "favorites")
+            local inferred_tab = from_coll_list and "collections" or "favorites"
+            injectStandaloneNavbar(self.booklist_menu, inferred_tab)
+            local state = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
+            if state and state.tab == inferred_tab and state.page and state.page > 1 then
+                local menu = self.booklist_menu
+                _G.__ZEN_UI_LIBRARY_STATE = nil
+                UIManager:nextTick(function()
+                    if menu.onGotoPage then menu:onGotoPage(state.page) end
+                end)
+            end
         end
         return result
     end
@@ -1149,6 +1274,14 @@ local function apply_navbar()
         -- Only inject navbar in browse mode, not selection mode
         if self.coll_list and file_or_selected_collections == nil then
             injectStandaloneNavbar(self.coll_list, "collections")
+            local state = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
+            if state and state.tab == "collections" and state.page and state.page > 1 then
+                local menu = self.coll_list
+                _G.__ZEN_UI_LIBRARY_STATE = nil
+                UIManager:nextTick(function()
+                    if menu.onGotoPage then menu:onGotoPage(state.page) end
+                end)
+            end
         end
         return result
     end

@@ -106,13 +106,12 @@ local function apply_opening_banner()
                         h = self_item.dimen.h,
                     }
                 end
-                -- Determine banner contrast color from the cover's bottom strip.
-                -- Bright cover (lum > 128) → dark banner; dark cover → light banner.
+                -- Determine banner contrast: bright cover (lum >= 128) -> dark banner.
                 if _last_cover_dimen then
                     local cover_bb = _find_cover_bb(cover_frame or self_item, 0)
                     if cover_bb then
                         local lum = _sample_bottom_luminance(cover_bb)
-                        _last_cover_dimen.light_banner = lum ~= nil and lum >= 128
+                        _last_cover_dimen.dark_banner = lum ~= nil and lum >= 128
                     end
                 end
             else
@@ -218,8 +217,8 @@ local function apply_opening_banner()
     function OpeningBanner:paintTo(bb, x, y)
         self.dimen.x = x
         self.dimen.y = y
-        local bg = self.light_banner and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK
-        local fg = self.light_banner and Blitbuffer.COLOR_BLACK or Blitbuffer.COLOR_WHITE
+        local bg = self.dark_banner and Blitbuffer.COLOR_BLACK or Blitbuffer.COLOR_WHITE
+        local fg = self.dark_banner and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK
         local w, h = self.dimen.w, self.dimen.h
         local r    = self.round_bottom_corners and Screen:scaleBySize(8) or 0
 
@@ -287,7 +286,7 @@ local function apply_opening_banner()
 
         local banner = OpeningBanner:new{
             dimen                = Geom:new{ x = bx, y = by, w = bw, h = banner_h },
-            light_banner         = cover and cover.light_banner or false,
+            dark_banner          = cover and cover.dark_banner or false,
             round_bottom_corners = round_bottom and true or false,
         }
 

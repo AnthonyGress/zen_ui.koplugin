@@ -1764,6 +1764,14 @@ local function apply_page_browser()
     -- More reliable than zone-override ordering since it does not depend on
     -- the dep-graph re-serialisation happening in the right order.
     -- -----------------------------------------------------------------------
+    local function is_bottom_swipe_enabled()
+        local features = _plugin_ref
+            and _plugin_ref.config
+            and _plugin_ref.config.features
+        return type(features) == "table"
+            and (features.page_browser == true or features.reader_bottom_menu == true)
+    end
+
     local ok_rc, ReaderConfig = pcall(require, "apps/reader/modules/readerconfig")
     if ok_rc and ReaderConfig then
         local _orig_onSwipeShowConfigMenu = ReaderConfig.onSwipeShowConfigMenu
@@ -1773,6 +1781,8 @@ local function apply_page_browser()
                 self_rc.ui:handleEvent(Event:new("HandledAsSwipe"))
                 return true
             end
+            -- suppress native config menu swipe when bottom swipe is disabled
+            if not is_bottom_swipe_enabled() then return end
             if _orig_onSwipeShowConfigMenu then
                 return _orig_onSwipeShowConfigMenu(self_rc, ges)
             end

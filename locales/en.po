@@ -438,6 +438,9 @@ msgstr "name (natural sorting)"
 msgid "Navbar"
 msgstr "Navbar"
 
+msgid "New"
+msgstr "New"
+
 msgid "New folder"
 msgstr "New folder"
 
@@ -777,6 +780,9 @@ msgstr "Show labels"
 
 msgid "Show progress % on mosaic covers"
 msgstr "Show progress % on mosaic covers"
+
+msgid "Show new banner"
+msgstr "Show new banner"
 
 msgid "Show page count"
 msgstr "Show page count"

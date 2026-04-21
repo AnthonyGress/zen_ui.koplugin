@@ -415,6 +415,9 @@ msgstr "nume (sortare naturală)"
 msgid "Navbar"
 msgstr "Bară de navigare"
 
+msgid "New"
+msgstr "New"
+
 msgid "New folder"
 msgstr "Dosar nou"
 
@@ -739,6 +742,9 @@ msgstr "Afișează etichete"
 
 msgid "Show progress % on mosaic covers"
 msgstr "Afișează % progres pe copertele mozaicului"
+
+msgid "Show new banner"
+msgstr "Show new banner"
 
 msgid "Show page count"
 msgstr "Afișează numărul de pagini"

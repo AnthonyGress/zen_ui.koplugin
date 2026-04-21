@@ -315,8 +315,46 @@ function M.build(ctx)
     -- Feature toggles
     -- -------------------------------------------------------------------------
 
-    table.insert(items, make_enable_feature_item("reader_bottom_menu", _("Enable bottom menu")))
-    table.insert(items, make_enable_feature_item("page_browser", _("Enable page browser")))
+    -- bottom swipe is forced on when page browser is active
+    table.insert(items, {
+        text = _("Enable bottom swipe"),
+        checked_func = function()
+            return config.features["reader_bottom_menu"] == true
+                or config.features["page_browser"] == true
+        end,
+        enabled_func = function()
+            return config.features["page_browser"] ~= true
+        end,
+        callback = function()
+            config.features["reader_bottom_menu"] = not (config.features["reader_bottom_menu"] == true)
+            save_and_apply("reader_bottom_menu")
+        end,
+    })
+    -- page browser requires bottom swipe; disabling bottom swipe unchecks this too
+    table.insert(items, {
+        text = _("Enable page browser"),
+        checked_func = function()
+            return config.features["page_browser"] == true
+        end,
+        enabled_func = function()
+            return config.features["reader_bottom_menu"] == true
+                or config.features["page_browser"] == true
+        end,
+        callback = function()
+            config.features["page_browser"] = not (config.features["page_browser"] == true)
+            save_and_apply("page_browser")
+        end,
+    })
+    table.insert(items, {
+        text = _("Restore library view on return"),
+        checked_func = function()
+            return config.features["restore_library_view"] == true
+        end,
+        callback = function()
+            config.features["restore_library_view"] = not (config.features["restore_library_view"] == true)
+            save_and_apply("restore_library_view")
+        end,
+    })
 
     -- -------------------------------------------------------------------------
     -- Bottom status bar (passthrough to KOReader's footer menu)

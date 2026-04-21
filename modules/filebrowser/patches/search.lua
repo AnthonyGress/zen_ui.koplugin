@@ -163,6 +163,15 @@ local function apply_search()
         end
     end
 
+    -- Prevent CoverBrowser from re-centering partial rows on every updateItemTable call.
+    local orig_updateItemTable = FileManagerFileSearcher.updateItemTable
+    function FileManagerFileSearcher:updateItemTable(...)
+        if is_enabled() and self.booklist_menu then
+            self.booklist_menu._do_center_partial_rows = false
+        end
+        return orig_updateItemTable(self, ...)
+    end
+
     -- Remove hamburger / select-mode icon from search results title bar,
     -- and route tap-and-hold to the Zen context menu (FileManager only).
     local orig_onMenuHold = FileManagerFileSearcher.onMenuHold
@@ -202,6 +211,24 @@ local function apply_search()
                     return orig_onMenuHold(menu_self, item)
                 end
             end
+
+            -- Navigate INTO folders on tap instead of to their parent
+            local orig_menu_select = menu.onMenuSelect
+            menu.onMenuSelect = function(menu_self, item)
+                if not item.is_file and not menu_self._manager.selected_files then
+                    if menu_self.ui and menu_self.ui.file_chooser then
+                        menu_self._manager.update_files = nil
+                        menu_self.close_callback()
+                        menu_self.ui.file_chooser:changeToPath(item.path)
+                        return true
+                    end
+                end
+                return orig_menu_select(menu_self, item)
+            end
+
+            -- Left-align partial rows (undo CoverBrowser's centering)
+            menu._do_center_partial_rows = false
+            menu:updateItems(1, true)
         end
 
         return result

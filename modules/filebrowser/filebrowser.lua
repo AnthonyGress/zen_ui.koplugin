@@ -35,7 +35,6 @@ local PATCH_MODULES = {
     browser_cover_mosaic_uniform = "modules/filebrowser/patches/browser_cover_mosaic_uniform",
     browser_cover_rounded_corners = "modules/filebrowser/patches/browser_cover_rounded_corners",
     browser_show_hidden = "modules/filebrowser/patches/browser_show_hidden",
-    browser_preload_bookinfo = "modules/filebrowser/patches/browser_preload_bookinfo",
     browser_page_count = "modules/filebrowser/patches/browser_page_count",
     browser_series_badge = "modules/filebrowser/patches/browser_series_badge",
     browser_display_mode_by_path = "modules/filebrowser/patches/browser_display_mode_by_path",
@@ -147,16 +146,6 @@ function M.init(logger, plugin)
     local browser_hide_finished_fn = load_patch("browser_hide_finished")
     if browser_hide_finished_fn then
         run_feature(logger, plugin, "browser_hide_finished", browser_hide_finished_fn)
-    end
-
-    -- Requires CoverBrowser plugin.
-    local _preload_cfg = type(plugin.config.browser_preload_bookinfo) == "table"
-        and plugin.config.browser_preload_bookinfo or {}
-    if _preload_cfg.preload_bookinfo ~= false then
-        local browser_preload_bookinfo_fn = load_patch("browser_preload_bookinfo")
-        if browser_preload_bookinfo_fn then
-            run_feature(logger, plugin, "browser_preload_bookinfo", browser_preload_bookinfo_fn)
-        end
     end
 
     local browser_page_count_fn = load_patch("browser_page_count")

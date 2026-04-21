@@ -415,6 +415,9 @@ msgstr "имя (естественная сортировка)"
 msgid "Navbar"
 msgstr "Панель навигации"
 
+msgid "New"
+msgstr "New"
+
 msgid "New folder"
 msgstr "Новая папка"
 
@@ -739,6 +742,9 @@ msgstr "Показать метки"
 
 msgid "Show progress % on mosaic covers"
 msgstr "Показать % прогресса на обложках мозаики"
+
+msgid "Show new banner"
+msgstr "Show new banner"
 
 msgid "Show page count"
 msgstr "Показывать количество страниц"

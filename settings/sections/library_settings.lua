@@ -248,6 +248,22 @@ function M.build(ctx)
                     UIManager:setDirty(nil, "full")
                 end,
             },
+            {
+                text = _("Show new banner"),
+                checked_func = function()
+                    return type(config.browser_cover_badges) == "table"
+                        and config.browser_cover_badges.show_new_banner == true
+                end,
+                callback = function()
+                    if type(config.browser_cover_badges) ~= "table" then
+                        config.browser_cover_badges = {}
+                    end
+                    config.browser_cover_badges.show_new_banner =
+                        not (config.browser_cover_badges.show_new_banner == true)
+                    plugin:saveConfig()
+                    UIManager:setDirty(nil, "full")
+                end,
+            },
         },
     })
 

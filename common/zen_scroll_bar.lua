@@ -106,7 +106,7 @@ local function apply_zen_scroll_bar()
             -- Nothing to show if the list fits on one page.
             if nb <= 1 then return end
 
-            if get_style() == "dots" then
+            if get_style() == "dots" and nb <= 75 then
                 -- Dots style
                 -- One circle per page; the active page is filled black.
                 local diam = DOT_DIAM

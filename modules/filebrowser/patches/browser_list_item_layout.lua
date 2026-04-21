@@ -289,7 +289,7 @@ local function apply_browser_list_item_layout()
                     status_label = _("Reading")
                 end
             else
-                status_label = _("Unread")
+                status_label = _("New")
             end
 
             -- ── Book tags (Calibre keywords field from bookinfo DB) ──────────

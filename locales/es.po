@@ -415,6 +415,9 @@ msgstr "nombre (orden natural)"
 msgid "Navbar"
 msgstr "Barra de navegación"
 
+msgid "New"
+msgstr "New"
+
 msgid "New folder"
 msgstr "Nueva carpeta"
 
@@ -739,6 +742,9 @@ msgstr "Mostrar etiquetas"
 
 msgid "Show progress % on mosaic covers"
 msgstr "Mostrar % de progreso en portadas mosaico"
+
+msgid "Show new banner"
+msgstr "Show new banner"
 
 msgid "Show page count"
 msgstr "Mostrar número de páginas"

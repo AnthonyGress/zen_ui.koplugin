@@ -413,6 +413,9 @@ msgstr "名稱（自然排序）"
 msgid "Navbar"
 msgstr "導覽列"
 
+msgid "New"
+msgstr "New"
+
 msgid "New folder"
 msgstr "新增資料夾"
 
@@ -737,6 +740,9 @@ msgstr "顯示標籤"
 
 msgid "Show progress % on mosaic covers"
 msgstr "在封面馬賽克上顯示進度%"
+
+msgid "Show new banner"
+msgstr "Show new banner"
 
 msgid "Show page count"
 msgstr "顯示頁數"

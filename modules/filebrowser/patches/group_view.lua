@@ -10,6 +10,8 @@ local _list_item_patched   = false
 local _authors_menu = nil
 local _series_menu  = nil
 local _tbr_menu     = nil
+-- Detail view menus layered on top of the group menu
+local _detail_menus = {}
 
 -- Set during apply (called at init while __ZEN_UI_PLUGIN is set)
 local _zen_shared    = nil
@@ -1105,10 +1107,14 @@ local function showDetailView(group_item, injectNavbar, tab_id)
         detail_menu.updateItems = Menu_class.updateItems
     end
 
-    install_gesture_passthrough(detail_menu)
-
+    table.insert(_detail_menus, detail_menu)
+    detail_menu._zen_group_name = group_name
+    detail_menu._zen_tab_id     = tab_id
     detail_menu.close_callback = function()
         UIManager:close(detail_menu)
+        for i, m in ipairs(_detail_menus) do
+            if m == detail_menu then table.remove(_detail_menus, i); break end
+        end
     end
 
     -- Close the parent group menu too (used by navbar tap to unwind the full stack)
@@ -1165,6 +1171,12 @@ local function showDetailView(group_item, injectNavbar, tab_id)
     end
     UIManager:show(detail_menu)
     UIManager:nextTick(function()
+        -- Restore page if returning from reader (detail view was open)
+        local dstate = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
+        if dstate and dstate.detail_group == group_name then
+            detail_menu.page = dstate.detail_page or 1
+            _G.__ZEN_UI_LIBRARY_STATE = nil
+        end
         detail_menu:updateItems()
         -- Re-inject status row after updateItems (it may reset title_group).
         local createSR2   = _zen_shared and _zen_shared.createStatusRowCustomBack
@@ -1325,6 +1337,15 @@ showGroupView = function(tab_id, injectNavbar, groups)
     -- updateItems was stubbed during Menu:new to skip the premature init-time call.
     -- Trigger the real render now via nextTick, after the menu has been dimensioned.
     UIManager:nextTick(function()
+        -- Restore page if returning from reader
+        local state = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
+        local restore_detail = state and state.tab == tab_id and state.detail_group
+        if state and state.tab == tab_id then
+            menu.page = state.page or 1
+        end
+        if not restore_detail then
+            _G.__ZEN_UI_LIBRARY_STATE = nil
+        end
         menu:updateItems()
         -- Re-inject status row after updateItems (it may reset title_group).
         local createSR2 = _zen_shared and _zen_shared.createStatusRow
@@ -1335,6 +1356,25 @@ showGroupView = function(tab_id, injectNavbar, groups)
             tb2.title_group[2] = createSR2(nil, FileManager2.instance)
             tb2.title_group:resetLayout()
             if repaintTB2 then repaintTB2(tb2) end
+        end
+        -- Re-open the specific author/series folder that was open before reader.
+        -- Guard: showFiles post-hook may have already opened it synchronously.
+        if restore_detail then
+            local detail_name = state.detail_group
+            local already_open = false
+            for _, dm in ipairs(_detail_menus) do
+                if dm._zen_group_name == detail_name then already_open = true; break end
+            end
+            if not already_open then
+                UIManager:nextTick(function()
+                    for _, item in ipairs(item_table) do
+                        if item.text == detail_name and item._zen_files then
+                            showDetailView(item, injectNavbar, tab_id)
+                            break
+                        end
+                    end
+                end)
+            end
         end
     end)
 end
@@ -1518,6 +1558,12 @@ function M.showTBRView(injectNavbar)
 
     UIManager:show(menu)
     UIManager:nextTick(function()
+        -- Restore page if returning from reader
+        local state = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
+        if state and state.tab == "to_be_read" and state.page and state.page > 1 then
+            menu.page = state.page
+            _G.__ZEN_UI_LIBRARY_STATE = nil
+        end
         menu:updateItems()
         local createSR2  = _zen_shared and _zen_shared.createStatusRow
         local repaintTB2 = _zen_shared and _zen_shared.repaintTitleBar
@@ -1529,6 +1575,50 @@ function M.showTBRView(injectNavbar)
             if repaintTB2 then repaintTB2(tb2) end
         end
     end)
+end
+
+-- Open a detail view synchronously by group name (used by navbar.showFiles post-hook).
+-- Called after showGroupView so _authors_menu/_series_menu is already set.
+function M.restoreDetail(group_name, tab_id, injectNavbar_fn)
+    local menu = tab_id == "authors" and _authors_menu or _series_menu
+    if not menu or not menu.item_table then return end
+    for _, item in ipairs(menu.item_table) do
+        if item.text == group_name and item._zen_files then
+            showDetailView(item, injectNavbar_fn, tab_id)
+            return
+        end
+    end
+end
+
+-- Return the top-most open detail view info (group name, tab, page)
+function M.getActiveDetail()
+    if #_detail_menus > 0 then
+        local m = _detail_menus[#_detail_menus]
+        return { group_name = m._zen_group_name, tab_id = m._zen_tab_id, page = m.page or 1 }
+    end
+end
+
+-- Return the current page of a group menu (for state save on reader open)
+function M.getActivePage(tab_id)
+    if tab_id == "authors" and _authors_menu then
+        return _authors_menu.page
+    elseif tab_id == "series" and _series_menu then
+        return _series_menu.page
+    elseif tab_id == "to_be_read" and _tbr_menu then
+        return _tbr_menu.page
+    end
+end
+
+-- Close all open group/detail menus to prevent UIManager stack pollution
+function M.closeAll()
+    local UIManager2 = require("ui/uimanager")
+    for _, m in ipairs(_detail_menus) do
+        UIManager2:close(m)
+    end
+    _detail_menus = {}
+    if _authors_menu then UIManager2:close(_authors_menu); _authors_menu = nil end
+    if _series_menu  then UIManager2:close(_series_menu);  _series_menu  = nil end
+    if _tbr_menu     then UIManager2:close(_tbr_menu);     _tbr_menu     = nil end
 end
 
 return function()

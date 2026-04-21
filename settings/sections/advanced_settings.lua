@@ -17,19 +17,21 @@ function M.build(ctx)
     local items = {}
 
     table.insert(items, {
-        text = _("Preload book metadata"),
-        checked_func = function()
-            return not (type(config.browser_preload_bookinfo) == "table"
-                and config.browser_preload_bookinfo.preload_bookinfo == false)
-        end,
+        text = _("Extract metadata"),
+        help_text = _("Extract and cache book metadata and cover images for books in the current directory. Requires CoverBrowser plugin."),
         callback = function()
-            if type(config.browser_preload_bookinfo) ~= "table" then
-                config.browser_preload_bookinfo = {}
-            end
-            local cur = not (config.browser_preload_bookinfo.preload_bookinfo == false)
-            config.browser_preload_bookinfo.preload_bookinfo = not cur
-            plugin:saveConfig()
+            local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
+            if not ok_bim or not BookInfoManager then return end
+            local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
+            local fc = ok_fm and FileManager and FileManager.instance
+                and FileManager.instance.file_chooser
+            if not fc then return end
+            local Trapper = require("ui/trapper")
+            Trapper:wrap(function()
+                BookInfoManager:extractBooksInDirectory(fc.path, fc.cover_specs)
+            end)
         end,
+        keep_menu_open = true,
     })
 
     table.insert(items, {
