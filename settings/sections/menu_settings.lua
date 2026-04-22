@@ -111,7 +111,7 @@ function M.build(ctx)
     end
 
     return {
-        text = _("Quick settings"),
+        text = _("Quick Settings"),
         sub_item_table = {
             {
                 text = _("Buttons"),

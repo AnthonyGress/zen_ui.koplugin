@@ -174,6 +174,43 @@ local function apply_browser_folder_cover()
         local BookInfoManager = get_upvalue(MosaicMenuItem.update, "BookInfoManager")
         local original_update = MosaicMenuItem.update
         local logger = require("logger")
+        local UIManager = require("ui/uimanager")
+
+        -- Per-menu list of folder items whose cover hasn't been finalized yet.
+        -- Keyed by menu table reference; each value is a list of item references.
+        -- Weak keys so entries GC along with the menu when a page is left.
+        local pending_folders_by_menu = setmetatable({}, { __mode = "k" })
+
+        -- Schedule a single deferred pass after book-item repaints complete.
+        -- Calls update() on each pending folder item and triggers per-item setDirty.
+        local function scheduleFolderRefresh(menu)
+            if not menu._zen_folder_refresh_scheduled then
+                menu._zen_folder_refresh_scheduled = true
+                UIManager:scheduleIn(0.05, function()
+                    menu._zen_folder_refresh_scheduled = nil  -- clear before update() calls
+                    local pending = pending_folders_by_menu[menu]
+                    if not pending then return end
+                    local show_parent = menu.show_parent
+                    for i = #pending, 1, -1 do
+                        local item = pending[i]
+                        if item and not item._foldercover_processed then
+                            item:update()
+                            if item._foldercover_processed then
+                                table.remove(pending, i)
+                                if show_parent then
+                                    UIManager:setDirty(show_parent, function()
+                                        return "ui", item[1] and item[1].dimen or item.dimen,
+                                            show_parent.dithered
+                                    end)
+                                end
+                            end
+                        else
+                            table.remove(pending, i)
+                        end
+                    end
+                end)
+            end
+        end
 
         -- Folder book-count badge drawn directly at paint time.
         local _BlitBadge = require("ffi/blitbuffer")
@@ -403,12 +440,18 @@ local function apply_browser_folder_cover()
                 self.refresh_dimen = nil  -- force full-cell repaint to clear ancestor ghost
             end
 
+            local was_found = self.bookinfo_found
             original_update(self, ...)
             if self._foldercover_processed or self.menu.no_refresh_covers then return end
             -- For file items CoverBrowser must have enabled cover rendering and set mandatory.
             -- For folder items (incl. search results) we always attempt it regardless.
             if (self.entry.is_file or self.entry.file) then
                 if not self.do_cover_image or not self.mandatory then return end
+                -- When a book item's bookinfo just became available, schedule
+                -- a refresh pass for any pending folder items on the same page.
+                if not was_found and self.bookinfo_found and self.menu then
+                    scheduleFolderRefresh(self.menu)
+                end
             end
 
             -- For moved books: render cover from ancestor bookinfo instead of FakeCover
@@ -647,6 +690,14 @@ local function apply_browser_folder_cover()
             if is_gallery then
                 if #covers > 0 then self._foldercover_processed = true end
                 self:_setFolderCover { gallery = covers, book_count = book_count }
+                if not self._foldercover_processed and self.menu then
+                    local pending = pending_folders_by_menu[self.menu]
+                    if not pending then
+                        pending = {}
+                        pending_folders_by_menu[self.menu] = pending
+                    end
+                    pending[#pending + 1] = self
+                end
             else
                 if #covers > 0 then
                     self._foldercover_processed = true
@@ -655,6 +706,16 @@ local function apply_browser_folder_cover()
                     -- Do NOT set _foldercover_processed here: leave it nil so the
                     -- next updateItems() re-scans once cover extraction completes.
                     self:_setFolderCover { no_image = true, book_count = book_count }
+                    -- Register this folder item for deferred refresh so that when
+                    -- child book covers finish extracting, this folder gets repainted.
+                    if self.menu then
+                        local pending = pending_folders_by_menu[self.menu]
+                        if not pending then
+                            pending = {}
+                            pending_folders_by_menu[self.menu] = pending
+                        end
+                        pending[#pending + 1] = self
+                    end
                 end
             end
         end
@@ -1318,6 +1379,12 @@ local function apply_browser_folder_cover()
                 -- but always let orig_biu run so the item gets its real cover.
                 zen_migrated_paths[filepath] = nil
                 orig_biu(self, filepath, bookinfo)
+                -- Trigger deferred refresh for any folder items awaiting child covers.
+                local fm = require("apps/filemanager/filemanager").instance
+                local fc = fm and fm.file_chooser
+                if fc and pending_folders_by_menu[fc] then
+                    scheduleFolderRefresh(fc)
+                end
             end
         end
 

@@ -59,6 +59,9 @@ local function apply_browser_cover_mosaic_uniform()
         if uc and not uc._zen_underline_sized then
             uc._zen_underline_sized = true
             uc.paintTo = function(this, bb, x, y)
+                -- Keep dimen in sync so setDirty uses the correct screen position.
+                this.dimen.x = x
+                this.dimen.y = y
                 OverlapGroup.paintTo(this, bb, x, y)
                 if this.color == require("ffi/blitbuffer").COLOR_WHITE then return end
                 local uw = this.dimen.w

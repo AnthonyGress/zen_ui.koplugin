@@ -209,6 +209,13 @@ local function apply_browser_cover_badges()
         end
 
         function MosaicMenuItem:paintTo(bb, x, y)
+            -- Clear the full cell to white before painting so that portrait
+            -- covers (which are narrower than the cell) don't leave ghost pixels
+            -- from a previously painted full-width placeholder in the margins.
+            if self.width and self.height then
+                bb:paintRect(x, y, self.width, self.height, Blitbuffer.COLOR_WHITE)
+            end
+
             -- 1. Base widget painting (cover image / FakeCover / folder tree)
             InputContainer.paintTo(self, bb, x, y)
 
