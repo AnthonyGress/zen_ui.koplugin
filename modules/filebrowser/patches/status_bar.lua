@@ -146,9 +146,6 @@ local function apply_status_bar()
     local function getBarFont()
         local base = Font.sizemap and Font.sizemap["xx_smallinfofont"] or 18
         local size = isUIMagnified() and math.floor(base * 1.25 + 0.5) or nil
-        if config.bold_text then
-            return Font:getFace("NotoSans-Bold.ttf", size or base)
-        end
         if size then
             return Font:getFace("xx_smallinfofont", size)
         end
@@ -348,6 +345,7 @@ local function apply_status_bar()
         local group     = HorizontalGroup:new{}
         local sep       = getSeparator()
         local use_color = config.colored
+        local bold      = config.bold_text or false
         local first     = true
         local function f() return face or getBarFont() end
         for _, key in ipairs(order) do
@@ -356,18 +354,18 @@ local function apply_status_bar()
                 local icon, label, color = fn()
                 if icon ~= nil then
                     if not first and sep ~= "" then
-                        table.insert(group, TextWidget:new{ text = sep, face = f() })
+                        table.insert(group, TextWidget:new{ text = sep, face = f(), bold = bold })
                     end
                     if use_color and color then
                         table.insert(group, ColorTextWidget:new{
-                            text = icon, face = f(), fgcolor = color,
+                            text = icon, face = f(), fgcolor = color, bold = bold,
                         })
                         if label and label ~= "" then
-                            table.insert(group, TextWidget:new{ text = label, face = f() })
+                            table.insert(group, TextWidget:new{ text = label, face = f(), bold = bold })
                         end
                     else
                         local text = label and (icon .. label) or icon
-                        table.insert(group, TextWidget:new{ text = text, face = f() })
+                        table.insert(group, TextWidget:new{ text = text, face = f(), bold = bold })
                     end
                     first = false
                 end
