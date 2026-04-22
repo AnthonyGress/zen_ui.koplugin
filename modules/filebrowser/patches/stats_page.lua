@@ -613,6 +613,11 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
         UIManager:close(menu)
     end
 
+    -- Flash-refresh once after the widget is painted for the first time.
+    UIManager:scheduleIn(0, function()
+        UIManager:setDirty(menu, "flashui")
+    end)
+
     return menu
 end
 

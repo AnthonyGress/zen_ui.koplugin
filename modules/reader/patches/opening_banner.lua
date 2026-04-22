@@ -106,12 +106,15 @@ local function apply_opening_banner()
                         h = self_item.dimen.h,
                     }
                 end
-                -- Determine banner contrast: bright cover (lum >= 128) -> dark banner.
+                -- Bright covers have low lum values on eink (0=white), so dark banner when lum < 128.
+                -- Default to dark when no cover bb is available (placeholder cell).
                 if _last_cover_dimen then
                     local cover_bb = _find_cover_bb(cover_frame or self_item, 0)
                     if cover_bb then
                         local lum = _sample_bottom_luminance(cover_bb)
-                        _last_cover_dimen.dark_banner = lum ~= nil and lum >= 128
+                        _last_cover_dimen.dark_banner = lum == nil or lum < 128
+                    else
+                        _last_cover_dimen.dark_banner = true
                     end
                 end
             else
@@ -152,7 +155,8 @@ local function apply_opening_banner()
                     y = self_item.dimen.y,
                     w = self_item.dimen.w,
                     h = self_item.dimen.h,
-                    is_list = true,
+                    is_list    = true,
+                    dark_banner = true,  -- list mode always dark
                 }
             else
                 _last_cover_dimen = nil

@@ -151,6 +151,33 @@ local function apply_status_bar()
         end
         return Font:getFace("xx_smallinfofont")
     end
+
+    -- Returns a bold TextWidget that shrinks font size before truncating.
+    -- Tries each step in `shrink_steps` pt below the base face; applies
+    -- max_width (with ellipsis) only when even the smallest size is still too wide.
+    local function fitTextWidget(text, max_width)
+        local base_face = getBarFont()
+        local base_size = base_face.orig_size or base_face.size or 14
+        local min_size  = math.max(10, base_size - 4)
+        local size = base_size
+        while size >= min_size do
+            local face  = Font:getFace("xx_smallinfofont", size)
+            local probe = TextWidget:new{ text = text, face = face, bold = true }
+            local w = probe:getSize().w
+            probe:free()
+            if w <= max_width then
+                return TextWidget:new{ text = text, face = face, bold = true }
+            end
+            size = size - 1
+        end
+        -- Still too wide at minimum size: truncate.
+        return TextWidget:new{
+            text = text,
+            face = Font:getFace("xx_smallinfofont", min_size),
+            bold = true,
+            max_width = max_width,
+        }
+    end
     local h_padding = Screen:scaleBySize(10)
 
     -- Disk free space cache
@@ -434,24 +461,6 @@ local function apply_status_bar()
         local left_content  = _buildGroup(config.left_order   or {})
         local right_content = _buildGroup(config.right_order  or {})
 
-        -- Center: nav_title override > folder name when in subfolder > configured center items
-        local center_content = nil
-        if nav_title then
-            center_content = TextWidget:new{
-                text = nav_title,
-                face = getBarFont(),
-                bold = true,
-            }
-        elseif in_subfolder and folder_name then
-            center_content = TextWidget:new{
-                text = folder_name,
-                face = getBarFont(),
-                bold = true,
-            }
-        else
-            center_content = _buildGroup(config.center_order or {})
-        end
-
         -- Row height = max of all present widgets
         local row_height = Screen:scaleBySize(18)
         local function updateRowHeight(w)
@@ -462,7 +471,6 @@ local function apply_status_bar()
         end
         updateRowHeight(back_widget)
         updateRowHeight(left_content)
-        updateRowHeight(center_content)
         updateRowHeight(right_content)
 
         local screen_w    = Screen:getWidth()
@@ -481,6 +489,30 @@ local function apply_status_bar()
         if left_content then
             table.insert(left_group, left_content)
         end
+
+        -- Right zone width: right_content + h_padding
+        local right_w = h_padding
+            + (right_content and right_content:getSize().w or 0)
+
+        -- Center max_width: ensure the centered text never overlaps left or right.
+        -- The text is centered on screen, so it can extend at most
+        -- (screen_w/2 - side_w) on each side. Take the tighter of the two sides,
+        -- then double it for the full available span.
+        local left_w = left_group:getSize().w
+        local half_avail = math.floor(screen_w / 2) - math.max(left_w, right_w)
+        local center_max_w = math.max(0, half_avail * 2)
+
+        -- Center: nav_title override > folder name when in subfolder > configured center items
+        local center_content = nil
+        if nav_title then
+            center_content = fitTextWidget(nav_title, center_max_w)
+        elseif in_subfolder and folder_name then
+            center_content = fitTextWidget(folder_name, center_max_w)
+        else
+            center_content = _buildGroup(config.center_order or {})
+        end
+
+        updateRowHeight(center_content)
 
         local row = OverlapGroup:new{
             dimen = Geom:new{ w = screen_w, h = row_height },
@@ -625,16 +657,7 @@ local function apply_status_bar()
         }
         local left_content   = _buildGroup(config.left_order   or {})
         local right_content  = _buildGroup(config.right_order  or {})
-        local center_content
-        if title then
-            center_content = TextWidget:new{
-                text = title,
-                face = getBarFont(),
-                bold = true,
-            }
-        else
-            center_content = _buildGroup(config.center_order or {})
-        end
+
         local row_height = Screen:scaleBySize(18)
         local function updateRowHeight(w)
             if w then
@@ -644,12 +667,13 @@ local function apply_status_bar()
         end
         updateRowHeight(back_widget)
         updateRowHeight(left_content)
-        updateRowHeight(center_content)
         updateRowHeight(right_content)
 
         local chevron_gap = Screen:scaleBySize(6)
         local screen_w    = Screen:getWidth()
         local inner_w     = screen_w - h_padding * 2
+
+        -- Build left_group first so we can measure it for center_max_w.
         local left_group  = HorizontalGroup:new{}
         table.insert(left_group, HorizontalSpan:new{ width = h_padding })
         table.insert(left_group, back_widget)
@@ -657,6 +681,19 @@ local function apply_status_bar()
             table.insert(left_group, HorizontalSpan:new{ width = chevron_gap })
             table.insert(left_group, left_content)
         end
+
+        local left_w  = left_group:getSize().w
+        local right_w = h_padding + (right_content and right_content:getSize().w or 0)
+        local half_avail = math.floor(screen_w / 2) - math.max(left_w, right_w)
+        local center_max_w = math.max(0, half_avail * 2)
+
+        local center_content
+        if title then
+            center_content = fitTextWidget(title, center_max_w)
+        else
+            center_content = _buildGroup(config.center_order or {})
+        end
+        updateRowHeight(center_content)
 
         local row = OverlapGroup:new{
             dimen = Geom:new{ w = screen_w, h = row_height },

@@ -340,6 +340,11 @@ local function apply_quick_settings()
                 local features = zen_plugin.config and zen_plugin.config.features
                 return type(features) == "table" and features.zen_mode == true
             end,
+            -- Grayed out and inert while lockdown is active (lockdown requires zen mode).
+            disabled_func = function()
+                local features = zen_plugin.config and zen_plugin.config.features
+                return type(features) == "table" and features.lockdown_mode == true
+            end,
             callback = function()
                 local features = zen_plugin.config and zen_plugin.config.features
                 if type(features) == "table" then
@@ -443,7 +448,7 @@ local function apply_quick_settings()
 
         local normal_border = Screen:scaleBySize(2)
 
-        local function makeActionButton(icon_name, label_text, active)
+        local function makeActionButton(icon_name, label_text, active, dim)
             local icon_path = _icons_dir and utils.resolveIcon(_icons_dir, icon_name)
             local icon = IconWidget:new{
                 file   = icon_path or nil,
@@ -466,12 +471,15 @@ local function apply_quick_settings()
                 end
             end
             local border = active and 0 or normal_border
+            local bg = active and Blitbuffer.COLOR_BLACK
+                or dim  and Blitbuffer.COLOR_LIGHT_GRAY
+                or       Blitbuffer.COLOR_WHITE
             local circle = FrameContainer:new{
                 width      = action_btn_size,
                 height     = action_btn_size,
                 radius     = math.floor(action_btn_size / 2),
                 bordersize = border,
-                background = active and Blitbuffer.COLOR_BLACK or Blitbuffer.COLOR_WHITE,
+                background = bg,
                 padding    = 0,
                 CenterContainer:new{
                     dimen = Geom:new{
@@ -506,14 +514,16 @@ local function apply_quick_settings()
                 if def.label_func then
                     label_text = def.label_func()
                 end
-                local active = def.active_func and def.active_func() or false
-                local btn_widget, btn_circle = makeActionButton(def.icon, label_text, active)
+                local active   = def.active_func   and def.active_func()   or false
+                local disabled = def.disabled_func and def.disabled_func() or false
+                -- Disabled takes priority: don't show active styling on a greyed-out button.
+                local btn_widget, btn_circle = makeActionButton(def.icon, label_text, active and not disabled, disabled)
 
                 table.insert(refs.buttons, {
                     widget = btn_circle,
-                    callback = function()
+                    callback = not disabled and function()
                         def.callback(touch_menu)
-                    end,
+                    end or nil,
                     hold_callback = def.hold_callback and function()
                         def.hold_callback(touch_menu)
                     end or nil,
@@ -637,19 +647,21 @@ local function apply_quick_settings()
             if btn_ref.widget.dimen and ges.pos:intersectWith(btn_ref.widget.dimen) then
                 if is_qs_hold_required() then
                     -- Hold fires the callback; tap is swallowed.
-                    if is_hold then
+                    if is_hold and btn_ref.callback then
                         btn_ref.callback(touch_menu)
                         return true
                     else
-                        return true -- swallow tap
+                        return true -- swallow tap (or disabled button)
                     end
                 end
                 if is_hold and btn_ref.hold_callback then
                     btn_ref.hold_callback()
                     return true
-                elseif not is_hold then
+                elseif not is_hold and btn_ref.callback then
                     btn_ref.callback(touch_menu)
                     return true
+                elseif not is_hold then
+                    return true -- disabled button: swallow tap, do nothing
                 end
                 -- hold with no hold_callback: don't consume, let it fall through
                 return false

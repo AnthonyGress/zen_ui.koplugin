@@ -219,8 +219,14 @@ local function apply_browser_folder_cover()
 
     function FileChooser:genItemTableFromPath(path)
         if not self._dummy and self.name == "filemanager" then
+            -- Access-time collate: file atimes change when books are opened, but
+            -- directory mtime does not, so the cache key never changes. Skip
+            -- caching entirely so the list is always re-sorted after reading.
+            local collate_mode = G_reader_settings:readSetting("collate", "strcoll")
+            local use_cache = collate_mode ~= "access"
+
             local key = _item_table_key(path)
-            if _item_table_cache and _item_table_cache.key == key then
+            if use_cache and _item_table_cache and _item_table_cache.key == key then
                 -- cache hit: directory unchanged and same settings; skip full rescan
                 return _item_table_cache.table
             end
@@ -231,7 +237,11 @@ local function apply_browser_folder_cover()
             local _t0_gen = os.clock()
             local result = orig_FileChooser_genItemTableFromPath(self, path)
             _perf.gen_item_time = _perf.gen_item_time + (os.clock() - _t0_gen)
-            _item_table_cache = { key = key, table = result }
+            if use_cache then
+                _item_table_cache = { key = key, table = result }
+            else
+                _item_table_cache = nil
+            end
             return result
         end
         return orig_FileChooser_genItemTableFromPath(self, path)
@@ -253,6 +263,11 @@ local function apply_browser_folder_cover()
             dir_max_font_size = 25,
         },
     }
+
+    -- Light gray in light mode; white in night mode (avoids ghosting from mid-gray inversion).
+    local function placeholderBg()
+        return Screen.night_mode and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_LIGHT_GRAY
+    end
 
     local function get_upvalue(fn, name)
         if type(fn) ~= "function" then
@@ -600,7 +615,7 @@ local function apply_browser_folder_cover()
                             bordersize  = border,
                             width       = portrait_w + 2 * border,
                             height      = portrait_h + 2 * border,
-                            background  = Blitbuffer.COLOR_LIGHT_GRAY,
+                            background  = placeholderBg(),
                             CenterContainer:new {
                                 dimen = { w = portrait_w, h = portrait_h },
                                 ImageWidget:new {
@@ -658,7 +673,7 @@ local function apply_browser_folder_cover()
                             bordersize    = border,
                             width         = portrait_w + 2 * border,
                             height        = portrait_h + 2 * border,
-                            background    = Blitbuffer.COLOR_LIGHT_GRAY,
+                            background    = placeholderBg(),
                             overlap_align = "center",
                             CenterContainer:new {
                                 dimen = { w = portrait_w, h = portrait_h },
@@ -690,13 +705,13 @@ local function apply_browser_folder_cover()
                     end
                     local dimen        = { w = portrait_w + 2 * border, h = portrait_h + 2 * border }
                     local centered_top = math.floor((self.height - dimen.h) / 2)
-                    -- Plain gray square — text goes in the overlay below, not inside.
+                    -- Placeholder square — text goes in the overlay below, not inside.
                     local gray_frame = FrameContainer:new {
                         padding       = 0,
                         bordersize    = border,
                         width         = dimen.w,
                         height        = dimen.h,
-                        background    = Blitbuffer.COLOR_LIGHT_GRAY,
+                        background    = placeholderBg(),
                         overlap_align = "center",
                         CenterContainer:new {
                             dimen = { w = portrait_w, h = portrait_h },
@@ -902,7 +917,7 @@ local function apply_browser_folder_cover()
                     else
                         -- Empty slot: transparent widget with correct dimensions so the
                         -- layout engine sizes the row/column correctly.  The outer
-                        -- FrameContainer's LIGHT_GRAY background shows through.
+                        -- FrameContainer's background shows through.
                         cells[i] = CenterContainer:new {
                             dimen = { w = cd.w, h = cd.h },
                             VerticalSpan:new { width = 1 },
@@ -913,7 +928,7 @@ local function apply_browser_folder_cover()
                     padding = 0,
                     bordersize = border,
                     width = dimen.w, height = dimen.h,
-                    background = Blitbuffer.COLOR_LIGHT_GRAY,
+                    background = placeholderBg(),
                     CenterContainer:new {
                         dimen = { w = portrait_w, h = portrait_h },
                         VerticalGroup:new {
@@ -937,7 +952,7 @@ local function apply_browser_folder_cover()
                     padding = 0,
                     bordersize = border,
                     width = dimen.w, height = dimen.h,
-                    background = Blitbuffer.COLOR_LIGHT_GRAY,
+                    background = placeholderBg(),
                     CenterContainer:new {
                         dimen = { w = portrait_w, h = portrait_h },
                         VerticalSpan:new { width = 1 },
