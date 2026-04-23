@@ -1,5 +1,8 @@
 title: "Zen UI - A minimal interface for e-readers"
 
+include:
+  - CONTRIBUTING.md
+
 defaults:
   - scope:
       path: ""

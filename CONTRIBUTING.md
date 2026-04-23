@@ -1,3 +1,5 @@
+---
+---
 # Contributing to Zen UI
 
 Thank you for your interest in contributing. Zen UI is a small, focused plugin — contributions that keep it clean, minimal, and well-behaved are most welcome.
