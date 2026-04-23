@@ -294,7 +294,7 @@ function M.run_update(plugin)
     local plugins_dir = plugin_root:match("^(.*)/[^/]+$") or plugin_root
 
     UIManager:show(ConfirmBox:new{
-        text = _("Zen UI ") .. ver_label,
+        text = _("Update to Zen UI ") .. ver_label .. "?",
         ok_text     = _("Update"),
         cancel_text = _("Cancel"),
         ok_callback = function()
