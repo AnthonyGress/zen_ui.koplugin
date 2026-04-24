@@ -434,27 +434,29 @@ local function apply_status_bar()
 
         -- Back chevron is always pinned to the far-left when navigation is available
         local back_widget = nil
+        local back_callback = nil
+        local icon_size = Screen:scaleBySize(isUIMagnified() and 35 or 28)  -- 28 * 1.25 = 35
         if show_back then
             local Button = require("ui/widget/button")
             local ffiUtil = require("ffi/util")
-            local icon_size = Screen:scaleBySize(isUIMagnified() and 35 or 28)  -- 28 * 1.25 = 35
+            back_callback = function()
+                local parent = ffiUtil.dirname(path)
+                if file_manager and file_manager.file_chooser and parent then
+                    -- Defer the path change to avoid button dimen crash during feedback highlight
+                    UIManager:scheduleIn(0.1, function()
+                        if file_manager.file_chooser then
+                            file_manager.file_chooser:changeToPath(parent)
+                        end
+                    end)
+                end
+            end
             back_widget = Button:new{
                 icon = "chevron.left",
                 icon_width = icon_size,
                 icon_height = icon_size,
                 bordersize = 0,
                 padding = 0,
-                callback = function()
-                    local parent = ffiUtil.dirname(path)
-                    if file_manager and file_manager.file_chooser and parent then
-                        -- Defer the path change to avoid button dimen crash during feedback highlight
-                        UIManager:scheduleIn(0.1, function()
-                            if file_manager.file_chooser then
-                                file_manager.file_chooser:changeToPath(parent)
-                            end
-                        end)
-                    end
-                end,
+                callback = back_callback,
             }
         end
 
@@ -537,6 +539,29 @@ local function apply_status_bar()
                     HorizontalSpan:new{ width = h_padding },
                 },
             })
+        end
+
+        -- Invisible overlay extending the back button's tap area below the status bar.
+        if show_back and back_callback then
+            local InputContainer = require("ui/widget/container/inputcontainer")
+            local GestureRange = require("ui/gesturerange")
+            local hitbox_extra = Screen:scaleBySize(30)
+            local hitbox_w = Screen:scaleBySize(60)
+            local hb_dimen = Geom:new{ w = hitbox_w, h = row_height + hitbox_extra }
+            local back_hitbox = InputContainer:new{
+                dimen = hb_dimen,
+                ges_events = {
+                    TapBack = { GestureRange:new{ ges = "tap", range = hb_dimen } },
+                },
+            }
+            function back_hitbox:onTapBack() back_callback(); return true end
+            table.insert(row, back_hitbox)
+            -- Store zone so FileManager.handleEvent can intercept taps from below the title bar.
+            if file_manager then
+                file_manager._zen_back_tap_zone = { w = hitbox_w, h = row_height + hitbox_extra, callback = back_callback }
+            end
+        else
+            if file_manager then file_manager._zen_back_tap_zone = nil end
         end
 
         if not config.show_bottom_border then
@@ -718,6 +743,23 @@ local function apply_status_bar()
             })
         end
 
+        -- Invisible overlay extending the back button's tap area below the status bar.
+        if back_callback then
+            local InputContainer = require("ui/widget/container/inputcontainer")
+            local GestureRange = require("ui/gesturerange")
+            local hitbox_extra = Screen:scaleBySize(30)
+            local hitbox_w = Screen:scaleBySize(60)
+            local hb_dimen = Geom:new{ w = hitbox_w, h = row_height + hitbox_extra }
+            local back_hitbox = InputContainer:new{
+                dimen = hb_dimen,
+                ges_events = {
+                    TapBack = { GestureRange:new{ ges = "tap", range = hb_dimen } },
+                },
+            }
+            function back_hitbox:onTapBack() back_callback(); return true end
+            table.insert(row, back_hitbox)
+        end
+
         if not config.show_bottom_border then
             return row
         end
@@ -761,6 +803,28 @@ local function apply_status_bar()
     end
 
     -- === Replace title content and reposition buttons ===
+
+    -- Intercept taps in the back button zone before FileChooser consumes them.
+    -- The hitbox in the OverlapGroup only works within the title bar's gesture area;
+    -- taps in the extended zone (into the file list) are eaten by FileChooser first.
+    do
+        local orig_fm_handleEvent = FileManager.handleEvent
+        FileManager.handleEvent = function(self_fm, event)
+            if event.name == "Gesture" and is_enabled() and self_fm._zen_back_tap_zone then
+                local ges_ev = event.args and event.args[1]
+                if ges_ev and ges_ev.ges == "tap" then
+                    local zone = self_fm._zen_back_tap_zone
+                    local pos  = ges_ev.pos
+                    if pos and pos.x >= 0 and pos.x < zone.w
+                            and pos.y >= 0 and pos.y < zone.h then
+                        zone.callback()
+                        return true
+                    end
+                end
+            end
+            return orig_fm_handleEvent(self_fm, event)
+        end
+    end
 
     function FileManager:_updateStatusBar()
         if not is_enabled() then

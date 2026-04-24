@@ -154,6 +154,48 @@ local function paintCoverBadge(canvas, Blitbuffer, Font, TextWidget, Screen,
     end
 end
 
+-- Render the library icon (circle border + library icon) centered on a white canvas.
+-- Mirrors buildZenButtonBB sizing so the Home Folder page looks consistent.
+local function buildHomeIconBB(avail_w)
+    local ok_bb,  Blitbuffer = pcall(require, "ffi/blitbuffer")
+    local ok_iw,  IconWidget = pcall(require, "ui/widget/iconwidget")
+    local ok_dev, Device     = pcall(require, "device")
+    if not (ok_bb and ok_iw and ok_dev) then return nil end
+    local ok_u, utils = pcall(require, "common/utils")
+    local Screen   = Device.screen
+    local BTN_SZ   = Screen:scaleBySize(160)
+    local BORDER   = Screen:scaleBySize(3)
+    local ICO_SZ   = math.floor(BTN_SZ * 0.52)
+    local canvas_h = BTN_SZ + Screen:scaleBySize(40)
+    local canvas   = Blitbuffer.new(avail_w, canvas_h, Blitbuffer.TYPE_BB8)
+    canvas:fill(Blitbuffer.COLOR_WHITE)
+    local r  = math.floor(BTN_SZ / 2)
+    local cx = math.floor(avail_w / 2)
+    local cy = math.floor(canvas_h / 2)
+    for dy = -r, r do
+        local hw = math.floor(math.sqrt(r*r - dy*dy) + 0.5)
+        if hw > 0 then canvas:paintRect(cx - hw, cy + dy, hw*2, 1, Blitbuffer.COLOR_BLACK) end
+    end
+    local ir = r - BORDER
+    for dy = -ir, ir do
+        local hw = math.floor(math.sqrt(ir*ir - dy*dy) + 0.5)
+        if hw > 0 then canvas:paintRect(cx - hw, cy + dy, hw*2, 1, Blitbuffer.COLOR_WHITE) end
+    end
+    local icon_path = ok_u and utils.resolveIcon(_plugin_root .. "/icons/", "library")
+    pcall(function()
+        local ico = IconWidget:new{
+            file   = icon_path or nil,
+            icon   = icon_path and nil or "library",
+            width  = ICO_SZ,
+            height = ICO_SZ,
+        }
+        local isz = ico:getSize()
+        ico:paintTo(canvas, cx - math.floor(isz.w / 2), cy - math.floor(isz.h / 2))
+        ico:free()
+    end)
+    return canvas
+end
+
 -- Render the zen-mode quicksettings button (circle border + quick_zen icon) centered
 -- on a white canvas. Returns a Blitbuffer (caller owns) or nil on error.
 local function buildZenButtonBB(avail_w)
@@ -683,6 +725,64 @@ function M.build_install_pages(ctx)
         },
     }
 
+    -- Insert home folder page before finale if home_dir has not been customized.
+    do
+        local current_home = G_reader_settings and G_reader_settings:readSetting("home_dir")
+        if not current_home or current_home == "" then
+            -- Detect the device's primary storage root for path suggestions.
+            local base_storage = "/"
+            pcall(function()
+                local Dev = require("device")
+                if     Dev.isKobo       and Dev:isKobo()       then base_storage = "/mnt/onboard"
+                elseif Dev.isKindle     and Dev:isKindle()     then base_storage = "/mnt/base-us"
+                elseif Dev.isPocketBook and Dev:isPocketBook() then base_storage = "/mnt/ext1"
+                elseif Dev.isAndroid    and Dev:isAndroid()    then base_storage = "/sdcard"
+                end
+            end)
+            local books_dir = base_storage .. "/books"
+            -- Insert at second-to-last position (before finale).
+            table.insert(pages, #pages, {
+                title       = "Home Folder",
+                description = "The place for all your books " .. books_dir,
+                choice_type = "radio",
+                choices     = {
+                    { id = "books",  text = "Create this folder and use as home", checked = true  },
+                    { id = "choose", text = "Choose a different folder",           checked = false },
+                    { id = "skip",   text = "Skip",                                checked = false },
+                },
+                on_apply = function(sel)
+                    if sel["skip"] then return end
+                    if sel["books"] then
+                        local ok_lfs, lfs = pcall(require, "libs/libkoreader-lfs")
+                        if not ok_lfs then return end
+                        if lfs.attributes(books_dir, "mode") ~= "directory" then
+                            lfs.mkdir(books_dir)
+                        end
+                        if lfs.attributes(books_dir, "mode") == "directory" then
+                            G_reader_settings:saveSetting("home_dir", books_dir)
+                        end
+                    elseif sel["choose"] then
+                        local ok_ui, UIMan = pcall(require, "ui/uimanager")
+                        if not ok_ui then return end
+                        UIMan:scheduleIn(0.3, function()
+                            local ok_pc, PathChooser = pcall(require, "ui/widget/pathchooser")
+                            if not ok_pc then return end
+                            UIMan:show(PathChooser:new{
+                                select_directory = true,
+                                path             = base_storage,
+                                onConfirm        = function(chosen_path)
+                                    if chosen_path and chosen_path ~= "" then
+                                        G_reader_settings:saveSetting("home_dir", chosen_path)
+                                    end
+                                end,
+                            })
+                        end)
+                    end
+                end,
+            })
+        end
+    end
+
     -- Inject real cover art and rendered icons into preview pages.
     local ok_inject, err_inject = pcall(function()
         local covers  = loadQuickstartCovers(3)
@@ -692,12 +792,15 @@ function M.build_install_pages(ctx)
         local list_bb    = #covers > 0 and buildListBB(covers, avail_w) or nil
         local browser_bb = #covers > 0 and buildMosaicBB(covers, avail_w) or nil
         local zen_bb     = buildZenButtonBB(avail_w)
+        local home_bb    = buildHomeIconBB(avail_w)
         for _, c in ipairs(covers) do c.bb:free() end
         for _, page in ipairs(pages) do
             if page.title == "File Browser" and browser_bb then
                 page.image_bb, page.image = browser_bb, nil
             elseif page.title == "Zen Mode" and zen_bb then
                 page.image_bb, page.image = zen_bb, nil
+            elseif page.title == "Home Folder" and home_bb then
+                page.image_bb, page.image = home_bb, nil
             end
             if page.choices then
                 for _, choice in ipairs(page.choices) do

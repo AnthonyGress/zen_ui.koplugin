@@ -127,6 +127,13 @@ function ZenUI:init()
         end
     end
 
+    -- First-run: default to swipe-only menu activation (KOReader default is tap+swipe).
+    if not self.config._meta.menu_activation_defaulted then
+        G_reader_settings:saveSetting("activation_menu", "swipe")
+        self.config._meta.menu_activation_defaulted = true
+        self:saveConfig()
+    end
+
     -- First-run: default portrait list mode to 5 items per page.
     if not self.config._meta.files_per_page_defaulted then
         local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
@@ -207,6 +214,16 @@ function ZenUI:init()
                                 local ok, FileManager = pcall(require, "apps/filemanager/filemanager")
                                 local fm = ok and FileManager and FileManager.instance
                                 if fm and type(fm.onHome) == "function" then fm:onHome() end
+                            end
+                            -- Navigate to new home_dir if it was set during quickstart
+                            -- (reinject only repaints; it doesn't change the FM path).
+                            local ok_fm3, FM3 = pcall(require, "apps/filemanager/filemanager")
+                            local fm3 = ok_fm3 and FM3 and FM3.instance
+                            if fm3 and fm3.file_chooser then
+                                local new_home = G_reader_settings:readSetting("home_dir")
+                                if new_home and new_home ~= "" and new_home ~= fm3.file_chooser.path then
+                                    fm3.file_chooser:changeToPath(new_home)
+                                end
                             end
                         end)
                     end,
