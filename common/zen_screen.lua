@@ -19,6 +19,7 @@ local Font           = require("ui/font")
 local Geom           = require("ui/geometry")
 local TextWidget     = require("ui/widget/textwidget")
 local UIManager      = require("ui/uimanager")
+local ZenButton      = require("common/zen_button")
 local Screen         = Device.screen
 local _              = require("gettext")
 
@@ -32,26 +33,11 @@ local _plugin_root = (function()
     return src:sub(2):match("^(.*)/common/[^/]+%.lua$") or ""
 end)()
 
--- Filled rounded rectangle with corner cutouts (bg_color fills corner pixels).
-local function paintRoundedRect(bb, rx, ry, rw, rh, color, radius, bg_color)
-    bb:paintRect(rx, ry, rw, rh, color)
-    local r = radius
-    for dy = 0, r - 1 do
-        local t   = r - dy
-        local cut = math.ceil(r - math.sqrt(math.max(0, r * r - t * t)))
-        if cut > 0 then
-            bb:paintRect(rx,            ry + dy,          cut, 1, bg_color)
-            bb:paintRect(rx + rw - cut, ry + dy,          cut, 1, bg_color)
-            bb:paintRect(rx,            ry + rh - 1 - dy, cut, 1, bg_color)
-            bb:paintRect(rx + rw - cut, ry + rh - 1 - dy, cut, 1, bg_color)
-        end
-    end
-end
-
 local ZenScreen = InputContainer:extend{
     title             = nil,   -- string shown in top bar; nil hides the title bar entirely
     subtitle          = nil,   -- string rendered above the icon (e.g. "Updated to v1.2.3")
     button            = nil,   -- button label string; nil -> "Get Started"; false -> no button
+    later_button      = nil,   -- optional outlined secondary button to the left; tapping closes
     on_close          = nil,
     dismissable       = true,  -- when false, swipe/tap-outside won't close the screen
     _on_button_action = nil,   -- if set, button tap calls this instead of onClose
@@ -64,7 +50,7 @@ function ZenScreen:_computeLayout()
     local TITLE_H    = self.title and Screen:scaleBySize(60) or 0
     local SEP_H      = self.title and 1 or 0
     local SUBTITLE_H = self.subtitle and Screen:scaleBySize(72) or 0
-    local BTN_H      = (self.button ~= false) and Screen:scaleBySize(80) or 0
+    local BTN_H      = Screen:scaleBySize(80)  -- always reserved so logo position is stable
     self._L = {
         sw         = sw,
         sh         = sh,
@@ -146,14 +132,18 @@ function ZenScreen:paintTo(bb, x, y)
     if ImageWidget and _plugin_root ~= "" then
         local logo  = _plugin_root .. "/icons/zen_ui.svg"
         local max_sz = math.min(L.sw - L.pad * 4, L.logo_h - L.pad * 4) * 0.75
+        -- Snap to an integer pixel size so SVG rasterizes exactly at this size
+        -- without any post-render scaling (scale_factor omitted).
+        -- scale_factor=0 was causing scaleBlitBuffer to upscale the rendered
+        -- bitmap by ~1.006x on Kobo, which triggered a segfault.
+        max_sz = math.floor(max_sz)
         if max_sz > 0 then
             pcall(function()
                 local iw = ImageWidget:new{
-                    file         = logo,
-                    width        = max_sz,
-                    height       = max_sz,
-                    scale_factor = 0,
-                    alpha        = true,
+                    file   = logo,
+                    width  = max_sz,
+                    height = max_sz,
+                    alpha  = true,
                 }
                 local isz = iw:getSize()
                 iw:paintTo(bb,
@@ -164,34 +154,43 @@ function ZenScreen:paintTo(bb, x, y)
         end
     end
 
-    -- Button
-    self._btn_rect = nil
+    -- Button(s)
+    self._btn_rect       = nil
+    self._later_btn_rect = nil
     if self.button ~= false and L.btn_h > 0 then
-        local lbl = (type(self.button) == "string" and self.button ~= "")
-            and self.button or _("Get Started")
-        local btn_w    = Screen:scaleBySize(240)
         local btn_h    = Screen:scaleBySize(54)
         local corner_r = Screen:scaleBySize(10)
-        local btn_x    = x + math.floor((L.sw - btn_w) / 2)
         local btn_y    = y + L.btn_y + math.floor((L.btn_h - btn_h) / 2)
 
-        paintRoundedRect(bb, btn_x, btn_y, btn_w, btn_h,
-            Blitbuffer.COLOR_BLACK, corner_r, Blitbuffer.COLOR_WHITE)
+        if self.later_button then
+            -- Two buttons: outlined "Later" left, filled primary right.
+            local gap    = Screen:scaleBySize(16)
+            local btn_w  = Screen:scaleBySize(200)
+            local base_x = x + math.floor((L.sw - btn_w * 2 - gap) / 2)
+            local bw     = Screen:scaleBySize(2)  -- outline border thickness
 
-        local btw = TextWidget:new{
-            text    = lbl,
-            face    = Font:getFace("cfont", 22),
-            bold    = true,
-            fgcolor = Blitbuffer.COLOR_WHITE,
-            padding = 0,
-        }
-        local bsz = btw:getSize()
-        btw:paintTo(bb,
-            btn_x + math.floor((btn_w - bsz.w) / 2),
-            btn_y + math.floor((btn_h - bsz.h) / 2))
-        btw:free()
+            -- Outlined Later button
+            local lbx       = base_x
+            local later_lbl = (type(self.later_button) == "string" and self.later_button ~= "")
+                and self.later_button or _("Later")
+            self._later_btn_rect = ZenButton.paintOutlined(
+                bb, lbx, btn_y, btn_w, btn_h, later_lbl, 22, corner_r, bw)
 
-        self._btn_rect = { x = btn_x, y = btn_y, w = btn_w, h = btn_h }
+            -- Filled primary button
+            local pbx      = base_x + btn_w + gap
+            local prim_lbl = (type(self.button) == "string" and self.button ~= "")
+                and self.button or _("Get Started")
+            self._btn_rect = ZenButton.paintFilled(
+                bb, pbx, btn_y, btn_w, btn_h, prim_lbl, 22, corner_r)
+        else
+            -- Single centered filled button.
+            local lbl   = (type(self.button) == "string" and self.button ~= "")
+                and self.button or _("Get Started")
+            local btn_w = Screen:scaleBySize(240)
+            local btn_x = x + math.floor((L.sw - btn_w) / 2)
+            self._btn_rect = ZenButton.paintFilled(
+                bb, btn_x, btn_y, btn_w, btn_h, lbl, 22, corner_r)
+        end
     end
 end
 
@@ -199,8 +198,16 @@ function ZenScreen:_onTap(ges)
     local p  = ges.pos
     local L  = self._L
     local br = self._btn_rect
+    local lr = self._later_btn_rect
 
-    -- Button tap: call action override if set, otherwise close
+    -- Later button: always dismisses
+    if lr and p.x >= lr.x and p.x < lr.x + lr.w
+           and p.y >= lr.y and p.y < lr.y + lr.h then
+        self:onClose()
+        return true
+    end
+
+    -- Primary button: call action override if set, otherwise close
     if br and p.x >= br.x and p.x < br.x + br.w
            and p.y >= br.y and p.y < br.y + br.h then
         if self._on_button_action then
@@ -220,10 +227,11 @@ function ZenScreen:_onTap(ges)
     return true
 end
 
---- Mutate subtitle/button/dismissable and repaint without closing/reopening.
+--- Mutate subtitle/button/later_button/dismissable and repaint without closing/reopening.
 function ZenScreen:update(opts)
     if opts.subtitle ~= nil then self.subtitle = opts.subtitle end
     if opts.button ~= nil then self.button = opts.button end
+    if opts.later_button ~= nil then self.later_button = opts.later_button end
     if opts.dismissable ~= nil then self.dismissable = opts.dismissable end
     if opts.on_button ~= nil then self._on_button_action = opts.on_button end
     self:_computeLayout()
@@ -235,7 +243,7 @@ end
 function ZenScreen:onShow()
     logger.info("ZenScreen:onShow dimen=", self.dimen)
     UIManager:setDirty(self, function()
-        return "partial", self.dimen
+        return "flashui", self.dimen
     end)
 end
 

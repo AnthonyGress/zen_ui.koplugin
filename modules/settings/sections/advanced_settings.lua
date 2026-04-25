@@ -113,6 +113,26 @@ function M.build(ctx)
     })
 
     table.insert(items, {
+        text = _("Debug logging"),
+        help_text = _("Enable KOReader verbose debug logging. Logs are written to koreader.log. Takes effect immediately."),
+        checked_func = function()
+            return G_reader_settings:isTrue("debug_verbose")
+        end,
+        callback = function()
+            local enabling = not G_reader_settings:isTrue("debug_verbose")
+            if enabling then
+                G_reader_settings:makeTrue("debug")
+                G_reader_settings:makeTrue("debug_verbose")
+            else
+                G_reader_settings:makeFalse("debug")
+                G_reader_settings:makeFalse("debug_verbose")
+            end
+            settings_apply.prompt_restart()
+        end,
+        keep_menu_open = true,
+    })
+
+    table.insert(items, {
         text = _("Clear all gestures"),
         callback = function()
             local ConfirmBox = require("ui/widget/confirmbox")

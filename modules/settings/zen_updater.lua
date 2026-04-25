@@ -391,111 +391,39 @@ local function _do_install(screen, plugin_root, plugins_dir)
     end)
 end
 
---- Download the latest release.zip, unpack it over the plugin directory, and
---- prompt the user to restart KOReader.
-function M.run_update(plugin)
-    local UIManager   = require("ui/uimanager")
-    local InfoMessage = require("ui/widget/infomessage")
-    local ConfirmBox  = require("ui/widget/confirmbox")
+--- Show the ZenScreen update UI for a known-available update and run the install.
+--- Called from both the settings banner and the About > Check for updates item.
+local function _show_update_screen_and_install(plugin)
+    local UIManager = require("ui/uimanager")
+    local ZenScreen = require("common/zen_screen")
 
     local plugin_root = PLUGIN_ROOT
         or (plugin and type(plugin.path) == "string" and plugin.path ~= "" and plugin.path)
         or ""
-
-    if plugin_root == "" then
-        UIManager:show(InfoMessage:new{
-            text = _("Cannot determine the plugin installation path."),
-        })
-        return
-    end
-
-    local ver_label = M._latest_ver and ("v" .. M._latest_ver) or _("latest")
-    -- The zip contains zen_ui.koplugin/ at root; unzip to the plugins dir.
     local plugins_dir = plugin_root:match("^(.*)/[^/]+$") or plugin_root
+    local ver_label   = M._latest_ver and ("v" .. M._latest_ver) or _("latest")
 
-    UIManager:show(ConfirmBox:new{
-        text = _("Update to Zen UI ") .. ver_label .. "?",
-        ok_text     = _("Update"),
-        cancel_text = _("Cancel"),
-        ok_callback = function()
-            local progress = InfoMessage:new{ text = _("Updating Zen UI…") }
-            UIManager:show(progress)
-            UIManager:forceRePaint()
+    local screen
+    screen = ZenScreen:new{
+        subtitle     = _("Update available: ") .. ver_label,
+        button       = _("Update now"),
+        later_button = _("Later"),
+        dismissable  = true,
+    }
+    screen._on_button_action = function()
+        screen:update{ subtitle = _("Updating…"), button = false, later_button = false, dismissable = false }
+        UIManager:forceRePaint()
+        UIManager:scheduleIn(0.1, function()
+            _do_install(screen, plugin_root, plugins_dir)
+        end)
+    end
+    UIManager:show(screen)
+end
 
-            UIManager:scheduleIn(0.1, function()
-                -- Fetch the asset URL if not cached; deferred so the progress
-                -- dialog is visible before any blocking network call.
-                if not is_valid_asset_url(M._dl_url) then
-                    do_network_check()
-                end
-
-                if not is_valid_asset_url(M._dl_url) then
-                    UIManager:close(progress)
-                    UIManager:show(InfoMessage:new{
-                        text = _("No zen_ui.koplugin.zip asset found for this release. Check the GitHub release page."),
-                    })
-                    return
-                end
-
-                -- Download outside the plugin dir (we will delete it next).
-                local zip_path = plugins_dir .. "/zen_ui_update.zip"
-
-                local ok, err = https_download(M._dl_url, zip_path)
-
-                if not ok then
-                    UIManager:close(progress)
-                    UIManager:show(InfoMessage:new{
-                        text = _("Download failed: ") .. (err or _("unknown error")),
-                    })
-                    return
-                end
-
-                -- Remove the old plugin dir entirely so renamed/moved files
-                -- from previous versions don't persist. Lua modules are already
-                -- loaded in memory so this is safe at runtime.
-                local rm_rc = os.execute(string.format("rm -rf %q", plugin_root))
-                if rm_rc ~= 0 and rm_rc ~= true then
-                    os.remove(zip_path)
-                    UIManager:close(progress)
-                    UIManager:show(InfoMessage:new{
-                        text = _("Failed to remove the existing plugin. Update aborted."),
-                    })
-                    return
-                end
-
-                -- Unzip into the plugins dir; creates a fresh zen_ui.koplugin/.
-                local unzip_rc = os.execute(string.format("unzip -q %q -d %q", zip_path, plugins_dir))
-                os.remove(zip_path)
-
-                if unzip_rc ~= 0 and unzip_rc ~= true then
-                    UIManager:close(progress)
-                    UIManager:show(InfoMessage:new{
-                        text = _("Failed to unpack the update. You may need to reinstall manually."),
-                    })
-                    return
-                end
-
-                -- Clear the notification so it doesn't re-appear after restart.
-                clear_update_state()
-
-                -- Signal to ZenUI:init() that it should show the update splash.
-                local gs2 = get_gs()
-                if gs2 then
-                    gs2:saveSetting("zen_ui_just_updated", M._latest_ver or "")
-                    pcall(gs2.flush, gs2)
-                end
-
-                UIManager:close(progress)
-                UIManager:show(InfoMessage:new{
-                    text = _("Zen UI updated. Restarting…"),
-                })
-                UIManager:forceRePaint()
-                UIManager:scheduleIn(1, function()
-                    UIManager:broadcastEvent(require("ui/event"):new("Restart"))
-                end)
-            end)
-        end,
-    })
+--- Download the latest release.zip, unpack it over the plugin directory, and
+--- prompt the user to restart KOReader.
+function M.run_update(plugin)
+    _show_update_screen_and_install(plugin)
 end
 
 --- Returns a menu item for the top of the Zen UI settings page when an update
@@ -554,20 +482,9 @@ function M.build_update_now_item(plugin)
                 M.check_for_update()
 
                 if M._has_update then
-                    local ver_label = M._latest_ver and ("v" .. M._latest_ver) or _("latest")
-                    local plugin_root = PLUGIN_ROOT or ""
-                    local plugins_dir = plugin_root:match("^(.*)/[^/]+$") or plugin_root
-                    screen:update{
-                        subtitle  = _("Update available: ") .. ver_label,
-                        button    = _("Update now"),
-                        on_button = function()
-                            screen:update{ subtitle = _("Updating…"), button = false }
-                            UIManager:forceRePaint()
-                            UIManager:scheduleIn(0.1, function()
-                                _do_install(screen, plugin_root, plugins_dir)
-                            end)
-                        end,
-                    }
+                    screen:update{ dismissable = true }
+                    UIManager:close(screen)
+                    _show_update_screen_and_install(plugin)
                 else
                     screen:update{
                         subtitle    = _("Zen UI is up to date."),

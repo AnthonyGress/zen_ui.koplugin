@@ -159,6 +159,10 @@ function M.build(ctx)
         if preset.screensaver_document_cover ~= nil then
             G_reader_settings:saveSetting("screensaver_document_cover", preset.screensaver_document_cover)
         end
+        -- "cover" type uses the last book; stale document_cover paths are irrelevant.
+        if preset.screensaver_type == "cover" then
+            G_reader_settings:delSetting("screensaver_document_cover")
+        end
         if preset.screensaver_stretch_images ~= nil then
             if preset.screensaver_stretch_images then
                 G_reader_settings:makeTrue("screensaver_stretch_images")

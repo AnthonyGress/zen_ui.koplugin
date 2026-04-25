@@ -712,6 +712,18 @@ local function apply_quick_settings()
             self.last_index = 1
         end
         orig_init(self)
+        -- Pre-set image.dimen on bar icon buttons so widgetInvert doesn't crash
+        -- if a tap arrives before the first paint (nil dimen on IconWidget).
+        if self.bar and type(self.bar.icon_widgets) == "table" then
+            for _, btn in ipairs(self.bar.icon_widgets) do
+                if btn and btn.image and not btn.image.dimen then
+                    local ok_sz, sz = pcall(function() return btn.image:getSize() end)
+                    if ok_sz and sz then
+                        btn.image.dimen = Geom:new{ w = sz.w, h = sz.h }
+                    end
+                end
+            end
+        end
         -- Register a screen-wide hold gesture for panel button hold_callbacks
         if is_enabled() then
             self.ges_events.HoldCloseAllMenus = {

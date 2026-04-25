@@ -9,7 +9,6 @@ local function get(icons_dir)
             name = "Book cover - Black Fill",
             builtin = true,
             screensaver_type = "cover",
-            screensaver_document_cover = zen_svg,
             screensaver_img_background = "black",
             screensaver_show_message = false,
             screensaver_stretch_images = false,

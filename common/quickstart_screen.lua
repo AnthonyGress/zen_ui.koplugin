@@ -20,6 +20,7 @@ local Geom           = require("ui/geometry")
 local TextBoxWidget  = require("ui/widget/textboxwidget")
 local TextWidget     = require("ui/widget/textwidget")
 local UIManager      = require("ui/uimanager")
+local ZenButton      = require("common/zen_button")
 local Screen         = Device.screen
 local _              = require("gettext")
 
@@ -28,23 +29,6 @@ if not ok_iw then ImageWidget = nil end
 
 local ok_ico, IconWidget = pcall(require, "ui/widget/iconwidget")
 if not ok_ico then IconWidget = nil end
-
--- Paint a filled rounded rectangle by drawing the solid rect then masking the
--- four corners with quarter-circle cutouts using bg_color (typically white).
-local function paintRoundedRect(bb, rx, ry, rw, rh, color, radius, bg_color)
-    bb:paintRect(rx, ry, rw, rh, color)
-    local r = radius
-    for dy = 0, r - 1 do
-        local t   = r - dy
-        local cut = math.ceil(r - math.sqrt(math.max(0, r * r - t * t)))
-        if cut > 0 then
-            bb:paintRect(rx,            ry + dy,           cut, 1, bg_color)
-            bb:paintRect(rx + rw - cut, ry + dy,           cut, 1, bg_color)
-            bb:paintRect(rx,            ry + rh - 1 - dy,  cut, 1, bg_color)
-            bb:paintRect(rx + rw - cut, ry + rh - 1 - dy,  cut, 1, bg_color)
-        end
-    end
-end
 
 local QuickstartScreen = InputContainer:extend{
     pages    = nil,
@@ -485,27 +469,11 @@ function QuickstartScreen:_paintFinaleButton(bb, x, y, desc_paint_y, desc_h)
 
     local avail_top = desc_paint_y + desc_h + PAD
     local avail_bot = y + L.dot_y - PAD
-    local btn_x = x + math.floor((L.sw - btn_w) / 2)
-    local btn_y = avail_top + math.floor((avail_bot - avail_top - btn_h) / 2)
+    local btn_x     = x + math.floor((L.sw - btn_w) / 2)
+    local btn_y     = avail_top + math.floor((avail_bot - avail_top - btn_h) / 2)
 
-    local corner_r = Screen:scaleBySize(10)
-    paintRoundedRect(bb, btn_x, btn_y, btn_w, btn_h,
-        Blitbuffer.COLOR_BLACK, corner_r, Blitbuffer.COLOR_WHITE)
-
-    local lbl = TextWidget:new{
-        text    = _("Get Started"),
-        face    = Font:getFace("cfont", 22),
-        bold    = true,
-        fgcolor = Blitbuffer.COLOR_WHITE,
-        padding = 0,
-    }
-    local lsz = lbl:getSize()
-    lbl:paintTo(bb,
-        btn_x + math.floor((btn_w - lsz.w) / 2),
-        btn_y + math.floor((btn_h - lsz.h) / 2))
-    lbl:free()
-
-    self._finale_btn = { x = btn_x, y = btn_y, w = btn_w, h = btn_h }
+    self._finale_btn = ZenButton.paintFilled(
+        bb, btn_x, btn_y, btn_w, btn_h, _("Get Started"), 22)
 end
 
 function QuickstartScreen:setPage(n)

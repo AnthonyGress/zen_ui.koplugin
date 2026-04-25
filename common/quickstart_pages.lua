@@ -436,6 +436,11 @@ function M.build_install_pages(ctx)
                 G_reader_settings:saveSetting(k, preset[k])
             end
         end
+        -- "cover" uses the last book's cover; stale document_cover paths are irrelevant
+        -- and confusing, so clear the setting when switching to this type.
+        if preset.screensaver_type == "cover" then
+            G_reader_settings:delSetting("screensaver_document_cover")
+        end
         if preset.screensaver_show_message ~= nil then
             if preset.screensaver_show_message then
                 G_reader_settings:makeTrue("screensaver_show_message")
