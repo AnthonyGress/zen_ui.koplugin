@@ -1,0 +1,95 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #0d1117;
+    color: #e6edf3;
+  }
+
+  .markdown-body {
+    color: #e6edf3;
+    background-color: #0d1117;
+  }
+
+  .markdown-body a {
+    color: #58a6ff;
+  }
+
+  .markdown-body a:hover {
+    color: #79c0ff;
+  }
+
+  .markdown-body h1,
+  .markdown-body h2,
+  .markdown-body h3,
+  .markdown-body h4,
+  .markdown-body h5,
+  .markdown-body h6 {
+    color: #e6edf3;
+    border-bottom-color: #30363d;
+  }
+
+  .markdown-body hr {
+    background-color: #30363d;
+  }
+
+  .markdown-body blockquote {
+    color: #8b949e;
+    border-left-color: #30363d;
+  }
+
+  .markdown-body code,
+  .markdown-body tt {
+    background-color: #161b22;
+    color: #e6edf3;
+  }
+
+  .markdown-body pre {
+    background-color: #161b22;
+  }
+
+  .markdown-body pre code {
+    background-color: transparent;
+    color: #e6edf3;
+  }
+
+  .markdown-body table tr {
+    background-color: #0d1117;
+    border-top-color: #30363d;
+  }
+
+  .markdown-body table tr:nth-child(2n) {
+    background-color: #161b22;
+  }
+
+  .markdown-body table th,
+  .markdown-body table td {
+    border-color: #30363d;
+  }
+
+  .markdown-body img {
+    background-color: transparent;
+  }
+
+  .markdown-body .highlight pre,
+  .markdown-body pre {
+    border: 1px solid #30363d;
+  }
+
+  /* site header link */
+  .container-lg h1 a {
+    color: #e6edf3;
+  }
+
+  /* footer */
+  .border-top {
+    border-top-color: #30363d !important;
+  }
+
+  .text-gray {
+    color: #8b949e !important;
+  }
+}
