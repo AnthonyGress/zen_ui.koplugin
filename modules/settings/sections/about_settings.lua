@@ -33,11 +33,11 @@ function M.build(ctx)
         keep_menu_open = true,
     })
 
-    local fw = utils.get_kindle_firmware_display()
+    local fw = utils.get_device_firmware_display()
     if fw ~= "n/a" then
         table.insert(items, {
             text_func = function()
-                return _("Firmware: ") .. utils.get_kindle_firmware_display()
+                return _("Firmware: ") .. utils.get_device_firmware_display()
             end,
             keep_menu_open = true,
             separator = true

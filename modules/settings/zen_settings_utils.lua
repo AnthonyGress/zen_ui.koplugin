@@ -190,10 +190,8 @@ function M.get_device_model_name()
     return "Device"
 end
 
-function M.get_kindle_firmware_info()
-    if not (Device and Device.isKindle and Device:isKindle()) then
-        return "n/a", nil, nil
-    end
+function M.get_device_firmware_info()
+    if not Device then return "n/a", nil, nil end
 
     local function normalize_fw_value(v)
         return M.normalize_value(v)
@@ -201,14 +199,13 @@ function M.get_kindle_firmware_info()
 
     local function read_first_line(path)
         local f = io.open(path, "r")
-        if not f then
-            return nil
-        end
+        if not f then return nil end
         local line = f:read("*l")
         f:close()
         return normalize_fw_value(line)
     end
 
+    -- Try the generic KOReader API first (works on Kobo, Kindle, etc.)
     if type(Device.getFirmwareVersion) == "function" then
         local calls = {
             function() return Device:getFirmwareVersion() end,
@@ -224,6 +221,7 @@ function M.get_kindle_firmware_info()
         end
     end
 
+    -- Common device fields
     local value = M.first_non_empty(
         Device.firmware,
         Device.firmware_version,
@@ -239,26 +237,34 @@ function M.get_kindle_firmware_info()
         return value, "Device FW", "Device FW"
     end
 
-    value = read_first_line("/etc/prettyversion.txt")
-    if value then
-        return value, "prettyversion", "prettyversion"
+    -- Kindle-specific files
+    if Device.isKindle and Device:isKindle() then
+        value = read_first_line("/etc/prettyversion.txt")
+        if value then return value, "prettyversion", "prettyversion" end
+        value = read_first_line("/etc/version.txt")
+        if value then return value, "version", "version" end
     end
 
-    value = read_first_line("/etc/version.txt")
-    if value then
-        return value, "version", "version"
+    -- Kobo-specific file: "N/A,N/A,4.38.21908" -> last field is FW version
+    if Device.isKobo and Device:isKobo() then
+        local raw = read_first_line("/mnt/onboard/.kobo/version")
+        if raw then
+            value = raw:match("([^,]+)$") or raw
+            value = normalize_fw_value(value)
+            if value then return value, "version", "version" end
+        end
     end
 
-    return "unknown", "Device FW", "Device FW"
+    return "n/a", nil, nil
 end
 
-function M.get_kindle_firmware_version()
-    local fw = M.get_kindle_firmware_info()
+function M.get_device_firmware_version()
+    local fw = M.get_device_firmware_info()
     return fw
 end
 
-function M.get_kindle_firmware_display()
-    local fw = M.get_kindle_firmware_version()
+function M.get_device_firmware_display()
+    local fw = M.get_device_firmware_version()
     if fw == "n/a" then
         return fw
     end

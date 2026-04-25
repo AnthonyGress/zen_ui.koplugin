@@ -3,6 +3,7 @@
 -- release.zip asset, unpacks it in-place, and prompts for a KOReader restart.
 
 local _ = require("gettext")
+local logger = require("logger")
 
 local GITHUB_API_URL      = "https://api.github.com/repos/AnthonyGress/zen_ui.koplugin/releases/latest"
 local GITHUB_RELEASES_URL = "https://api.github.com/repos/AnthonyGress/zen_ui.koplugin/releases"
@@ -73,8 +74,12 @@ end
 local function https_get(url)
     local ok_ssl, https = pcall(require, "ssl.https")
     local ok_ltn, ltn12 = pcall(require, "ltn12")
-    if not ok_ssl or not ok_ltn then return nil end
+    if not ok_ssl or not ok_ltn then
+        logger.warn("ZenUpdater: ssl.https or ltn12 not available")
+        return nil
+    end
 
+    logger.dbg("ZenUpdater: GET", url)
     local body = {}
     local ok_req, req_err = pcall(function()
         local _, code = https.request{
@@ -82,11 +87,16 @@ local function https_get(url)
             headers = { ["User-Agent"] = "zen_ui.koplugin" },
             sink    = ltn12.sink.table(body),
         }
+        logger.dbg("ZenUpdater: HTTP response code", code)
         if code ~= 200 then
             body = nil
         end
     end)
-    if not ok_req or not body then return nil end
+    if not ok_req then
+        logger.warn("ZenUpdater: https_get failed:", req_err)
+        return nil
+    end
+    if not body then return nil end
     return table.concat(body)
 end
 
@@ -227,6 +237,8 @@ end
 --- Perform an actual network check; returns true on success.
 local function do_network_check()
     local channel = get_channel()
+    local current = get_current_version()
+    logger.dbg("ZenUpdater: do_network_check channel=", channel, "current=", current)
     local tag, dl_url
 
     if channel == "beta" then
@@ -238,6 +250,7 @@ local function do_network_check()
             stable_tag = json_str(stable_body, "tag_name")
             stable_url = extract_asset_url(stable_body)
         end
+        logger.dbg("ZenUpdater: stable_tag=", stable_tag, "asset_url=", stable_url)
 
         local beta_tag, beta_url
         local list_body = https_get(GITHUB_RELEASES_URL .. "?per_page=10")
@@ -252,50 +265,68 @@ local function do_network_check()
                 end
             end
         end
+        logger.dbg("ZenUpdater: beta_tag=", beta_tag, "asset_url=", beta_url)
 
         -- Prefer beta only when strictly newer than stable.
         if beta_tag and semver_gt(beta_tag, stable_tag or "0.0.0") then
+            logger.dbg("ZenUpdater: using beta (newer than stable)")
             tag    = beta_tag
             dl_url = beta_url
         elseif stable_tag then
+            logger.dbg("ZenUpdater: using stable (beta not strictly newer)")
             tag    = stable_tag
             dl_url = stable_url
         else
+            logger.dbg("ZenUpdater: no stable found, falling back to beta")
             tag    = beta_tag
             dl_url = beta_url
         end
     else
         local body = https_get(GITHUB_API_URL)
-        if not body then return false end
+        if not body then
+            logger.warn("ZenUpdater: no response from releases/latest")
+            return false
+        end
         tag    = json_str(body, "tag_name")
         dl_url = extract_asset_url(body)
+        logger.dbg("ZenUpdater: stable tag=", tag, "asset_url=", dl_url)
     end
 
-    if not tag then return false end
+    if not tag then
+        logger.warn("ZenUpdater: no tag found in API response")
+        return false
+    end
     M._latest_ver = tag:match("^v?(.+)$") or tag
     M._dl_url     = dl_url
-    M._has_update = semver_gt(tag, get_current_version())
+    M._has_update = semver_gt(tag, current)
+    logger.dbg("ZenUpdater: latest=", M._latest_ver, "has_update=", tostring(M._has_update))
     return true
 end
 
 --- Check for updates at most once every 24 h (throttled via G_reader_settings).
 --- Silently falls back to the last cached result when offline or throttled.
 function M.check_for_update()
-    if M._checked then return end
+    if M._checked then
+        logger.dbg("ZenUpdater: already checked this session, skipping")
+        return
+    end
     M._checked = true
 
     local gs  = get_gs()
     local now = os.time()
     local last = gs and gs:readSetting(GS_KEY_TIME) or 0
+    logger.dbg("ZenUpdater: check_for_update now=", now, "last=", last, "interval=", CHECK_INTERVAL)
 
     if type(last) == "number" and (now - last) < CHECK_INTERVAL then
-        -- Still within the 24-hour window: use the persisted result.
+        logger.dbg("ZenUpdater: within throttle window, loading cached state")
         load_cached_state()
+        logger.dbg("ZenUpdater: cached has_update=", tostring(M._has_update), "latest=", tostring(M._latest_ver))
         return
     end
 
     -- Attempt a live check; if it fails, fall back to cached state.
     if not do_network_check() then
+        logger.warn("ZenUpdater: live check failed, loading cached state")
         load_cached_state()
         return
     end
@@ -331,18 +362,6 @@ function M.run_update(plugin)
         return
     end
 
-    if not is_valid_asset_url(M._dl_url) then
-        -- Cached URL missing or invalid (e.g. old zipball URL); try a fresh fetch.
-        do_network_check()
-    end
-
-    if not is_valid_asset_url(M._dl_url) then
-        UIManager:show(InfoMessage:new{
-            text = _("No zen_ui.koplugin.zip asset found for this release. Check the GitHub release page."),
-        })
-        return
-    end
-
     local ver_label = M._latest_ver and ("v" .. M._latest_ver) or _("latest")
     -- The zip contains zen_ui.koplugin/ at root; unzip to the plugins dir.
     local plugins_dir = plugin_root:match("^(.*)/[^/]+$") or plugin_root
@@ -357,6 +376,20 @@ function M.run_update(plugin)
             UIManager:forceRePaint()
 
             UIManager:scheduleIn(0.1, function()
+                -- Fetch the asset URL if not cached; deferred so the progress
+                -- dialog is visible before any blocking network call.
+                if not is_valid_asset_url(M._dl_url) then
+                    do_network_check()
+                end
+
+                if not is_valid_asset_url(M._dl_url) then
+                    UIManager:close(progress)
+                    UIManager:show(InfoMessage:new{
+                        text = _("No zen_ui.koplugin.zip asset found for this release. Check the GitHub release page."),
+                    })
+                    return
+                end
+
                 -- Download outside the plugin dir (we will delete it next).
                 local zip_path = plugins_dir .. "/zen_ui_update.zip"
 
@@ -438,8 +471,11 @@ function M.build_update_now_item(plugin)
         end,
         keep_menu_open = true,
         callback = function()
-            -- Reset all in-memory state and clear the throttle timestamp so the
-            -- next check_for_update() call goes straight to the network.
+            local UIManager   = require("ui/uimanager")
+            local InfoMessage = require("ui/widget/infomessage")
+
+            -- Reset all in-memory state and clear the throttle timestamp so
+            -- the next check_for_update() call goes straight to the network.
             M._checked    = false
             M._has_update = false
             M._latest_ver = nil
@@ -449,18 +485,26 @@ function M.build_update_now_item(plugin)
                 gs:saveSetting(GS_KEY_TIME, 0)
                 pcall(gs.flush, gs)
             end
-            M.check_for_update()
 
-            if M._has_update then
-                M.run_update(plugin)
-            else
-                local UIManager   = require("ui/uimanager")
-                local InfoMessage = require("ui/widget/infomessage")
-                UIManager:show(InfoMessage:new{
-                    text    = _("Zen UI is up to date."),
-                    timeout = 3,
-                })
-            end
+            -- Show feedback immediately so there are no artifacts while the
+            -- blocking network call runs on Kobo's slower SSL stack.
+            local checking = InfoMessage:new{ text = _("Checking for updates…") }
+            UIManager:show(checking)
+            UIManager:forceRePaint()
+
+            UIManager:scheduleIn(0.1, function()
+                M.check_for_update()
+                UIManager:close(checking)
+
+                if M._has_update then
+                    M.run_update(plugin)
+                else
+                    UIManager:show(InfoMessage:new{
+                        text    = _("Zen UI is up to date."),
+                        timeout = 3,
+                    })
+                end
+            end)
         end,
     }
 end
