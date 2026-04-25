@@ -394,7 +394,7 @@ local function apply_quick_settings()
         },
         filebrowser = {
             icon = "quick_filebrowser",
-            label = _("FileBrowser"),
+            label = _("Filebrowser"),
             active_func = function()
                 -- Fast check: just test if the pidfile exists
                 local pid_path = "/tmp/filebrowser_koreader.pid"

@@ -188,8 +188,13 @@ function ZenSlider:paintTo(bb, x, y)
     local fh     = self.fill_height
     local fill_y = track_cy - math.floor(fh / 2)
     local knob_x = math.floor(x + self:_valueToX(self._value))
-    if knob_x > x then
-        paintPill(bb, x, fill_y, knob_x - x, fh, self.fill_color)
+    -- Scale fill 0..w proportionally so it's empty at min and full at max,
+    -- regardless of knob radius. Knob circle covers the overhang at mid-values.
+    local range  = self.value_max - self.value_min
+    local frac   = range > 0 and (self._value - self.value_min) / range or 0
+    local fill_w = Math.round(frac * w)
+    if fill_w > 0 then
+        paintPill(bb, x, fill_y, fill_w, fh, self.fill_color)
     end
 
     -- Knob: white outer circle, then black inner circle (hidden while dragging)
