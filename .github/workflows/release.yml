@@ -51,8 +51,9 @@ jobs:
         run: |
           TAG="v${{ steps.meta.outputs.version }}"
           gh release create "$TAG" \
+            -- prerelease \
             dist/zen_ui.koplugin.zip \
             --repo "$GITHUB_REPOSITORY" \
             --title "Zen UI $TAG" \
-            --generate-notes \
-            -- prerelease
+            --generate-notes
+
