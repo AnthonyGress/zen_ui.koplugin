@@ -4,7 +4,8 @@
 
 local _ = require("gettext")
 
-local GITHUB_API_URL = "https://api.github.com/repos/AnthonyGress/zen_ui.koplugin/releases/latest"
+local GITHUB_API_URL      = "https://api.github.com/repos/AnthonyGress/zen_ui.koplugin/releases/latest"
+local GITHUB_RELEASES_URL = "https://api.github.com/repos/AnthonyGress/zen_ui.koplugin/releases"
 
 -- Resolve the plugin root directory from this file's own path so the module
 -- works regardless of where KOReader is installed.
@@ -163,11 +164,21 @@ local GS_KEY_TIME    = "zen_ui_last_update_check"
 local GS_KEY_AVAIL   = "zen_ui_update_available"
 local GS_KEY_VER     = "zen_ui_latest_version"
 local GS_KEY_URL     = "zen_ui_update_dl_url"
+local GS_KEY_CHANNEL = "zen_ui_update_channel"
 
 --- Load or write persisted update state via G_reader_settings.
 local function get_gs()
     local ok, gs = pcall(function() return G_reader_settings end)
     return (ok and gs) or nil
+end
+
+local function get_channel()
+    local gs = get_gs()
+    if gs then
+        local ch = gs:readSetting(GS_KEY_CHANNEL)
+        if ch == "beta" then return "beta" end
+    end
+    return "stable"
 end
 
 local function persist_state(now)
@@ -212,14 +223,32 @@ end
 
 --- Perform an actual network check; returns true on success.
 local function do_network_check()
-    local body = https_get(GITHUB_API_URL)
-    if not body then return false end
+    local channel = get_channel()
+    local tag, dl_url
 
-    local tag = json_str(body, "tag_name")
+    if channel == "beta" then
+        local body = https_get(GITHUB_RELEASES_URL .. "?per_page=10")
+        if not body then return false end
+        -- Find the first entry marked as a pre-release.
+        for obj in body:gmatch('%b{}') do
+            if obj:find('"prerelease"%s*:%s*true') then
+                tag = json_str(obj, "tag_name")
+                if tag then
+                    dl_url = extract_asset_url(obj)
+                    break
+                end
+            end
+        end
+    else
+        local body = https_get(GITHUB_API_URL)
+        if not body then return false end
+        tag    = json_str(body, "tag_name")
+        dl_url = extract_asset_url(body)
+    end
+
     if not tag then return false end
-
     M._latest_ver = tag:match("^v?(.+)$") or tag
-    M._dl_url     = extract_asset_url(body)
+    M._dl_url     = dl_url
     M._has_update = semver_gt(tag, get_current_version())
     return true
 end
@@ -408,6 +437,45 @@ function M.build_update_now_item(plugin)
                 })
             end
         end,
+    }
+end
+
+--- Returns the active update channel: "stable" (default) or "beta".
+function M.get_channel()
+    return get_channel()
+end
+
+--- Set the update channel and reset cached state so the next check uses it.
+function M.set_channel(ch)
+    local gs = get_gs()
+    if not gs then return end
+    gs:saveSetting(GS_KEY_CHANNEL, ch == "beta" and "beta" or "stable")
+    pcall(gs.flush, gs)
+    -- Invalidate cache so next check_for_update() goes to the network.
+    M._checked    = false
+    M._has_update = false
+    M._latest_ver = nil
+    M._dl_url     = nil
+    gs:saveSetting(GS_KEY_TIME, 0)
+    pcall(gs.flush, gs)
+end
+
+--- Returns a radio-style "Update channel" sub-menu item for the About section.
+function M.build_channel_item()
+    return {
+        text = _("Update channel"),
+        sub_item_table = {
+            {
+                text = _("Stable"),
+                checked_func = function() return get_channel() == "stable" end,
+                callback = function() M.set_channel("stable") end,
+            },
+            {
+                text = _("Beta"),
+                checked_func = function() return get_channel() == "beta" end,
+                callback = function() M.set_channel("beta") end,
+            },
+        },
     }
 end
 
