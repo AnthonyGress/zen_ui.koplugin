@@ -8,6 +8,7 @@ on:
       - '*.md'
       - 'images/**'
       - 'icons/**'
+  workflow_dispatch:
 
 permissions:
   contents: read
