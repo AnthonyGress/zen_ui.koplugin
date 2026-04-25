@@ -1,5 +1,8 @@
 <div align="center">
-      <img width="300" src="./icons/zen_ui.svg" />
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./icons/zen_ui.svg">
+    <img width="300" src="./icons/zen_ui_light.svg" alt="Zen UI Logo">
+  </picture>
 </div>
 
 <br>
@@ -27,10 +30,10 @@ A swipe-down menu accessible anywhere containing all the controls you frequently
 <img src="./images/quickstart/onboarding/quicksettings.png" width="500" alt="Quick Settings">
 
 ### Library
-<div style="display: flex; gap: 10px; justify-content: center;">
-      <img src="./images/quickstart/onboarding/library_covers_full.png" width="350" height="auto" alt="Library Covers">
-      <img src="./images/quickstart/onboarding/library_list_full.png" width="350" height="auto" alt="Library List">
-</div>
+
+<img src="./images/quickstart/onboarding/library_covers_full.png" width="350" height="auto" alt="Library Covers">
+      
+<img src="./images/quickstart/onboarding/library_list_full.png" width="350" height="auto" alt="Library List">
 
 - Clean mosaic and list view options maximizing the size of your book covers with many options
 - Book cover gallery for folder thumbnails
@@ -38,10 +41,9 @@ A swipe-down menu accessible anywhere containing all the controls you frequently
 - Zen pagination bar: A subtle, minimal page progress indicator
 - A streamlined context menu in the file browser. Tap and hold to quickly access details, fullscreen cover art, read status and more.
 
-<div style="display: flex; gap: 10px; justify-content: center;">
+
 <img src="./images/quickstart/onboarding/context_menu.png" width="350" height="auto" alt="Context Menu">
 <img src="./images/quickstart/onboarding/library_context.png" width="350" height="auto" alt="Library Context">
-</div>
 
 ### Bottom Navigation Bar
 A clean, tab-based navigation bar at the bottom of the file browser. Configurable tabs (Library, Manga, Favorites, Authors, History, Collections, and more), with optional labels, custom icons, and sortable layout.
@@ -122,7 +124,7 @@ To contribute a translation or fix an existing one, see [locales/README.md](loca
 
 Zen UI is original work, but it wouldn't exist without the broader KOReader community. Several open source projects provided components, inspiration, reference implementations, or code that was adapted and built upon:
 
-- **[joshuacant/ProjectTitle](https://github.com/joshuacant/ProjectTitle)** — The OG plugin that started it all for me. This was my first experience with KOReader plugins and an alternative UI.
+- **[joshuacant/ProjectTitle](https://github.com/joshuacant/ProjectTitle)** — The plugin that started it all for me. This was my first experience with KOReader plugins and an alternative UI.
 - **[qewer33/koreader-patches](https://github.com/qewer33/koreader-patches)** — The bottom navbar and quicksettings components. Additional patch approaches and ideas, particularly around UI customization.
 - **[sebdelsol/KOReader.patches](https://github.com/sebdelsol/KOReader.patches)** — Patches and UI techniques that informed several of Zen UI's features.
 - **[doctorhetfield-cmd/simpleui.koplugin](https://github.com/doctorhetfield-cmd/simpleui.koplugin)** — A fellow KOReader UI plugin that served as an inspiration as well as a model for how to apply language translations throughout the plugin.
