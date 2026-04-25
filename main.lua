@@ -313,7 +313,7 @@ function ZenUI:init()
                         end
                     else
                         local fm = require("apps/filemanager/filemanager").instance
-                        if fm then utils.closeWidgetsAbove(fm) end
+                        if fm then require("common/utils").closeWidgetsAbove(fm) end
                         if type(ui.onHome) == "function" then
                             ui:onHome()
                         end

@@ -360,7 +360,69 @@ local function apply_opds()
     end
 
     -- Cover-aware updateItems; supports mosaic grid and list layouts matched to library mode.
+    -- The root catalog list (paths empty) always uses a fixed list with placeholder covers.
     function OPDSBrowser:updateItems(select_number, no_recalculate_dimen)
+        -- Root screen: always list, 10 per page, grey placeholder covers.
+        if #(self.paths or {}) == 0 then
+            if self._zen_halt then self._zen_halt(); self._zen_halt = nil end
+            local old_dimen = self.dimen and self.dimen:copy()
+            self.layout = {}
+            self.item_group:clear()
+            self.page_info:resetLayout()
+            self.return_button:resetLayout()
+            self.content_group:resetLayout()
+
+            local avail_h = self.inner_dimen.h
+            if not self.no_title and self.title_bar then
+                avail_h = avail_h - self.title_bar:getHeight()
+            end
+            if self.page_return_arrow and self.page_info_text then
+                avail_h = avail_h
+                    - math.max(self.page_return_arrow:getSize().h,
+                               self.page_info_text:getSize().h)
+                    - Size.padding.button
+            end
+            local list_perpage = 8
+            self.item_height = math.floor(avail_h / list_perpage)
+            local cover_h = math.max(1, self.item_height - PAD_V * 2)
+            local cover_w = math.floor(cover_h * 2 / 3)
+            self.perpage    = list_perpage
+            self.page_num   = math.max(1, math.ceil(#self.item_table / self.perpage))
+            if self.page > self.page_num then self.page = self.page_num end
+            self.item_width = self.inner_dimen.w
+            self.item_dimen = Geom:new{ x = 0, y = 0, w = self.item_width, h = self.item_height }
+
+            local idx_s = (self.page - 1) * self.perpage + 1
+            local idx_e = math.min(self.page * self.perpage, #self.item_table)
+            for idx = idx_s, idx_e do
+                local entry = self.item_table[idx]
+                if not entry then break end
+                entry.idx = idx
+                local w = OPDSItem:new{
+                    entry = entry, cover_w = cover_w, cover_h = cover_h,
+                    item_w = self.item_width, item_h = self.item_height,
+                    show_parent = self.show_parent, menu = self,
+                }
+                table.insert(self.item_group, w)
+                table.insert(self.layout, { w })
+                if idx < idx_e then
+                    table.insert(self.item_group, LineWidget:new{
+                        dimen = Geom:new{ w = self.item_width, h = 1 },
+                        background = Blitbuffer.COLOR_LIGHT_GRAY,
+                    })
+                end
+            end
+
+            self:updatePageInfo(select_number)
+            self:mergeTitleBarIntoLayout()
+            UIManager:setDirty(self.show_parent, function()
+                local rd = old_dimen and old_dimen:combine(self.dimen) or self.dimen
+                return "ui", rd
+            end)
+            return
+        end
+
+        -- Deeper catalog pages: original cover-aware logic below.
         local has_covers = false
         for _, item in ipairs(self.item_table or {}) do
             if item.cover_url then has_covers = true; break end
@@ -410,7 +472,6 @@ local function apply_opds()
                            self.page_info_text:getSize().h)
                 - Size.padding.button
         end
-
         local pending_covers = {}
 
         if mosaic_mode then
@@ -588,6 +649,10 @@ local function apply_opds()
 
     local orig_init = OPDSBrowser.init
     function OPDSBrowser:init()
+        -- Suppress the empty subtitle Menu.init inserts when title_bar_fm_style=true;
+        -- it renders as a blank line adding ~20px of dead space below the title.
+        -- false is non-nil (so Menu:init skips overriding it) but falsy (so TitleBar skips it).
+        self.subtitle = false
         orig_init(self)
         fix_buttons(self)
         -- Auto-navigate to default catalog (skip when returning to root via onReturn).
@@ -757,17 +822,67 @@ local function apply_opds()
     -- Hold on a root-list catalog entry: vertical single-column menu.
     function OPDSBrowser:onMenuHold(item)
         if #self.paths > 0 or item.idx == 1 then return true end
-        local ButtonDialog = require("ui/widget/buttondialog")
-        local ConfirmBox   = require("ui/widget/confirmbox")
-        local NetworkMgr   = require("ui/network/manager")
-        local _            = require("gettext")
-        local default_url  = G_reader_settings:readSetting("opds_default_url")
-        local is_default   = default_url == item.url
+        local ButtonDialog   = require("ui/widget/buttondialog")
+        local ConfirmBox     = require("ui/widget/confirmbox")
+        local LeftContainer  = require("ui/widget/container/leftcontainer")
+        local NetworkMgr     = require("ui/network/manager")
+        local _              = require("gettext")
+        local default_url    = G_reader_settings:readSetting("opds_default_url")
+        local is_default     = default_url == item.url
+
+        -- Build the same cover+title header as showDownloads.
+        local border      = Size.border.thin or 1
+        local gap         = Screen:scaleBySize(8)
+        local dlg_w       = math.floor(math.min(Screen:getWidth(), Screen:getHeight()) * 0.9)
+        local avail_w     = dlg_w - 2 * (Size.border.window + Size.padding.button)
+                                  - 2 * (Size.padding.default + Size.margin.default)
+        local cover_h     = Screen:scaleBySize(120)
+        local cover_w     = math.floor(cover_h * 2 / 3)
+        local text_w      = math.max(avail_w - cover_w - 2 * border - gap, Screen:scaleBySize(60))
+        local framed_h    = cover_h
+        local CoverPlaceholder = InputContainer:extend{}
+        function CoverPlaceholder:init()
+            self.dimen = Geom:new{ w = cover_w, h = cover_h }
+            self[1] = FrameContainer:new{
+                bordersize = 0, padding = 0,
+                LineWidget:new{
+                    dimen = Geom:new{ w = cover_w, h = cover_h },
+                    background = Blitbuffer.COLOR_LIGHT_GRAY,
+                },
+            }
+        end
+        function CoverPlaceholder:paintTo(bb, x, y)
+            InputContainer.paintTo(self, bb, x, y)
+            if not rounded_corners_enabled() then return end
+            paintCornerMasks(bb, x, y, cover_w, cover_h, _corner_radius)
+            paintCornerBorderArcs(bb, x, y, cover_w, cover_h, _corner_radius, Blitbuffer.COLOR_BLACK)
+        end
+        local framed_cover = CoverPlaceholder:new{}
+        local vstack = VGroup:new{ align = "left" }
+        table.insert(vstack, TextWidget:new{
+            text = item.text or "", face = Font:getFace("cfont", 20),
+            bold = true, max_width = text_w,
+        })
+        if item.mandatory and tostring(item.mandatory) ~= "" then
+            table.insert(vstack, VSpan:new{ width = Screen:scaleBySize(3) })
+            table.insert(vstack, TextWidget:new{
+                text = tostring(item.mandatory), face = Font:getFace("cfont", 14),
+                fgcolor = Blitbuffer.COLOR_DARK_GRAY, max_width = text_w,
+            })
+        end
+        local header = LeftContainer:new{
+            dimen = Geom:new{ w = avail_w, h = framed_h },
+            HGroup:new{
+                align = "center",
+                framed_cover,
+                HSpan:new{ width = gap },
+                vstack,
+            },
+        }
+
         local dialog
         dialog = ButtonDialog:new{
-            title        = item.text,
-            title_align  = "center",
-            shrink_unneeded_width = true,
+            _added_widgets = { header },
             buttons = {
                 {{ text = "\u{F04E6}  " .. _("Sync"), align = "left",
                     callback = function()
