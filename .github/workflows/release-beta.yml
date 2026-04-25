@@ -1,9 +1,9 @@
-name: Release Beta
+name: Release
 
 on:
   push:
     branches:
-      - dev
+      - main
   workflow_dispatch:
 
 jobs:
@@ -45,7 +45,7 @@ jobs:
         if: steps.version_check.outputs.skip == 'false'
         run: bash build.sh
 
-      - name: Create draft release
+      - name: Create release
         if: steps.version_check.outputs.skip == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -57,3 +57,4 @@ jobs:
             --title "Zen UI $TAG" \
             --generate-notes \
             --prerelease
+

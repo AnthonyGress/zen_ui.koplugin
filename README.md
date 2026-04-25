@@ -1,8 +1,5 @@
 <div align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./icons/zen_ui.svg">
-    <img width="300" src="./icons/zen_ui_light.svg" alt="Zen UI Logo">
-  </picture>
+      <img width="300" src="./icons/zen_ui.svg" />
 </div>
 
 <br>
@@ -14,7 +11,7 @@
 
 ## Philosophy
 
-Zen UI is built around a simple idea: less is more. Everything in Zen UI was meticulously designed either to remove clutter or add clear value. The interface stays fast, light, and focused on making reading more enjoyable.
+Zen UI is built around a simple idea: **less is more.** Everything in Zen UI was meticulously designed either to remove clutter or add clear value. The interface stays fast, light, and focused on making reading more enjoyable.
 
 Throughout development, three things were non-negotiable: **performance**, **stability**, and **ease of use**. Every feature was tuned for battery efficiency and fluid responsiveness.
 
@@ -82,8 +79,12 @@ A minimal status bar in the reader and a more simple yet more detailed one in th
 
 1. Go to the [Releases](https://github.com/AnthonyGress/zen_ui.koplugin/releases) page and download `zen_ui.koplugin.zip` from the latest release.
 2. Unzip the archive. You should have a **folder** named `zen_ui.koplugin`.
-3. Copy the `zen_ui.koplugin` **folder** into the KOReader plugins directory for your device:
+3. Copy the `zen_ui.koplugin` **folder** into the KOReader plugins directory for your device: See table below
 > Make sure you are copying the unzipped **folder** and **not the .zip** file itself
+4. Restart KOReader. Zen UI will load automatically.
+5. Open **Zen UI Settings** from the file browser menu or the top menu to configure features.
+> The final path should look like: `.../plugins/zen_ui.koplugin/main.lua`  
+
 
 | Device | Plugins directory |
 |--------|-------------------|
@@ -92,11 +93,6 @@ A minimal status bar in the reader and a more simple yet more detailed one in th
 | **PocketBook** | `/mnt/ext1/applications/koreader/plugins/` |
 | **Android** | `sdcard/koreader/plugins/` |
 | **Desktop (Linux/macOS)** | `/koreader/plugins/` |
-
-4. Restart KOReader. Zen UI will load automatically.
-5. Open **Zen UI Settings** from the file browser menu or the top menu to configure features.
-
-> The final path should look like: `.../plugins/zen_ui.koplugin/main.lua`  
 
 ## Localization
 
@@ -139,6 +135,7 @@ Bug reports, feature requests, translations, and code contributions are all welc
 Please follow these guidelines:
 
 - **One feature per PR** - Keep pull requests focused on a single feature or fix
+- **PR to dev branch** - Submit PRs to the `dev` branch for testing/review.
 - **Review AI-generated code** - If using AI tools, all code must be thoroughly reviewed and tested before submitting (this should happen anyway but even moreso for AI generated code)
 - **Maintain consistency** - New code must align with the project's existing style, theme, and overall user experience
 

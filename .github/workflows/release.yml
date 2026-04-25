@@ -45,7 +45,7 @@ jobs:
         if: steps.version_check.outputs.skip == 'false'
         run: bash build.sh
 
-      - name: Create draft release
+      - name: Create release
         if: steps.version_check.outputs.skip == 'false'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -55,6 +55,5 @@ jobs:
             dist/zen_ui.koplugin.zip \
             --repo "$GITHUB_REPOSITORY" \
             --title "Zen UI $TAG" \
-            --generate-notes \
-            --prerelease
+            --generate-notes
 
