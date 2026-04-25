@@ -371,7 +371,7 @@ function M.run_update(plugin)
         ok_text     = _("Update"),
         cancel_text = _("Cancel"),
         ok_callback = function()
-            local progress = InfoMessage:new{ text = _("Downloading Zen UI update…") }
+            local progress = InfoMessage:new{ text = _("Updating Zen UI…") }
             UIManager:show(progress)
             UIManager:forceRePaint()
 
@@ -394,9 +394,9 @@ function M.run_update(plugin)
                 local zip_path = plugins_dir .. "/zen_ui_update.zip"
 
                 local ok, err = https_download(M._dl_url, zip_path)
-                UIManager:close(progress)
 
                 if not ok then
+                    UIManager:close(progress)
                     UIManager:show(InfoMessage:new{
                         text = _("Download failed: ") .. (err or _("unknown error")),
                     })
@@ -409,6 +409,7 @@ function M.run_update(plugin)
                 local rm_rc = os.execute(string.format("rm -rf %q", plugin_root))
                 if rm_rc ~= 0 and rm_rc ~= true then
                     os.remove(zip_path)
+                    UIManager:close(progress)
                     UIManager:show(InfoMessage:new{
                         text = _("Failed to remove the existing plugin. Update aborted."),
                     })
@@ -420,6 +421,7 @@ function M.run_update(plugin)
                 os.remove(zip_path)
 
                 if unzip_rc ~= 0 and unzip_rc ~= true then
+                    UIManager:close(progress)
                     UIManager:show(InfoMessage:new{
                         text = _("Failed to unpack the update. You may need to reinstall manually."),
                     })
@@ -429,14 +431,14 @@ function M.run_update(plugin)
                 -- Clear the notification so it doesn't re-appear after restart.
                 clear_update_state()
 
-                UIManager:show(ConfirmBox:new{
-                    text        = _("Zen UI updated successfully. Restart KOReader now?"),
-                    ok_text     = _("Restart"),
-                    cancel_text = _("Later"),
-                    ok_callback = function()
-                        UIManager:broadcastEvent(require("ui/event"):new("Restart"))
-                    end,
+                UIManager:close(progress)
+                UIManager:show(InfoMessage:new{
+                    text = _("Zen UI updated. Restarting…"),
                 })
+                UIManager:forceRePaint()
+                UIManager:scheduleIn(1, function()
+                    UIManager:broadcastEvent(require("ui/event"):new("Restart"))
+                end)
             end)
         end,
     })
