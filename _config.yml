@@ -1,4 +1,5 @@
 title: "Zen UI - A minimal interface for e-readers"
+theme: jekyll-theme-primer
 
 include:
   - CONTRIBUTING.md
