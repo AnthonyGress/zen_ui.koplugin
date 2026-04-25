@@ -1,1 +1,14 @@
 <link rel="icon" type="image/svg+xml" href="{{ site.baseurl }}/icons/zen_ui.svg">
+<script>
+  (function () {
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    function applyMode(dark) {
+      var mode = dark ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-color-mode', mode);
+      document.documentElement.setAttribute('data-dark-theme', 'dark');
+      document.documentElement.setAttribute('data-light-theme', 'light');
+    }
+    applyMode(mq.matches);
+    mq.addEventListener('change', function (e) { applyMode(e.matches); });
+  })();
+</script>
