@@ -29,15 +29,15 @@ jobs:
 
       - name: Create deploy directory
         run: |
-          mkdir -p deploy
+          mkdir -p _deploy
           cp *.md _deploy/ 2>/dev/null || true
-          cp -r images deploy/ 2>/dev/null || true
-          cp -r icons deploy/ 2>/dev/null || true
+          cp -r images _deploy/ 2>/dev/null || true
+          cp -r icons _deploy/ 2>/dev/null || true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'deploy'
+          path: '_deploy'
 
       - name: Deploy to GitHub Pages
         id: deployment
