@@ -1,9 +1,9 @@
-name: Release
+name: Release Beta
 
 on:
   push:
     branches:
-      - main
+      - dev
 
 jobs:
   release:
@@ -55,4 +55,4 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --title "Zen UI $TAG" \
             --generate-notes \
-            -- prerelease
+            --prerelease
