@@ -581,9 +581,9 @@ function M.build(ctx)
         },
     })
 
-    -- Sleep screen
+    -- Sleep
     table.insert(items, {
-        text = _("Sleep screen"),
+        text = _("Sleep"),
         enabled_func = function()
             local ok, Dev = pcall(require, "device")
             return ok and Dev and type(Dev.supportsScreensaver) == "function"
@@ -596,6 +596,31 @@ function M.build(ctx)
                 text = _("Presets"),
                 sub_item_table_func = build_preset_items,
             })
+            -- find current UI instance to access plugin instances
+            local ok_r, ReaderUI = pcall(require, "apps/reader/readerui")
+            local ok_f, FileManager = pcall(require, "apps/filemanager/filemanager")
+            local ui = (ok_r and ReaderUI and ReaderUI.instance)
+                     or (ok_f and FileManager and FileManager.instance)
+            -- Automatic dimmer (autodim.koplugin)
+            if ui and ui.autodim and type(ui.autodim.getAutoDimMenu) == "function" then
+                local autodim_item = ui.autodim:getAutoDimMenu()
+                if autodim_item then table.insert(sub, autodim_item) end
+            end
+            -- Automatic suspend (autosuspend.koplugin)
+            if ui and ui.autosuspend and type(ui.autosuspend.addToMainMenu) == "function" then
+                local menu_items = {}
+                ui.autosuspend:addToMainMenu(menu_items)
+                local suspend_sub = {}
+                for _, key in ipairs({ "autosuspend", "autoshutdown", "autostandby" }) do
+                    if menu_items[key] then table.insert(suspend_sub, menu_items[key]) end
+                end
+                if #suspend_sub > 0 then
+                    table.insert(sub, {
+                        text = _("Automatic suspend"),
+                        sub_item_table = suspend_sub,
+                    })
+                end
+            end
             return sub
         end,
     })
