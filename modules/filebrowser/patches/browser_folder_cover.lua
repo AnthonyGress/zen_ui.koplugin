@@ -288,7 +288,13 @@ local function apply_browser_folder_cover()
         local MosaicMenu = require("mosaicmenu")
         local MosaicMenuItem = get_upvalue(MosaicMenu._updateItemsBuildUI, "MosaicMenuItem")
         if not MosaicMenuItem then return end -- Protect against remnants of project title
+        -- upvalue name may differ across KOReader versions; fall back to direct require
         local BookInfoManager = get_upvalue(MosaicMenuItem.update, "BookInfoManager")
+        if not BookInfoManager then
+            local ok, bim = pcall(require, "bookinfomanager")
+            if ok then BookInfoManager = bim end
+        end
+        if not BookInfoManager then return end
         local original_update = MosaicMenuItem.update
         local logger = require("logger")
         local UIManager = require("ui/uimanager")

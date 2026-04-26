@@ -24,7 +24,6 @@ if _plugin_root then
     local utils = require("common/utils")
     -- Override KOReader's default dialog icons with the Zen UI logo.
     local zen_icon = _plugin_root .. "/icons/zen_ui.svg"
-
     utils.overrideIcons({
         ["notice-info"]     = zen_icon,
         ["notice-question"] = zen_icon,
@@ -35,9 +34,13 @@ if _plugin_root then
     local ok_font, Font = pcall(require, "ui/font")
     local ok_fl, FontList = pcall(require, "fontlist")
     if ok_font and Font and Font.fallbacks and ok_fl and FontList then
-        FontList:getFontList()
-        table.insert(FontList.fontlist, _plugin_root .. "/fonts/SymbolsNerdFont-Regular.ttf")
-        table.insert(Font.fallbacks, "SymbolsNerdFont-Regular.ttf")
+        pcall(function()
+            FontList:getFontList()
+            if type(FontList.fontlist) == "table" then
+                table.insert(FontList.fontlist, _plugin_root .. "/fonts/SymbolsNerdFont-Regular.ttf")
+            end
+            table.insert(Font.fallbacks, "SymbolsNerdFont-Regular.ttf")
+        end)
     end
 end
 
