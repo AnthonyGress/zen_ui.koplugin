@@ -353,7 +353,8 @@ local function apply_quick_settings()
         opds = {
             icon = "quick_opds",
             label = _("OPDS"),
-            callback = function()
+            callback = function(touch_menu)
+                touch_menu:closeMenu()
                 UIManager:broadcastEvent(Event:new("ShowOPDSCatalog"))
             end,
         },

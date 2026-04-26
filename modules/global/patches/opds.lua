@@ -289,7 +289,12 @@ local function apply_opds()
 
     function OPDSItem:onHoldSelect()
         if not self[1].dimen then return end
-        self.menu:onMenuHold(self.entry); return true
+        if self.is_root then
+            self.menu:onMenuHold(self.entry)
+        else
+            self.menu:onMenuSelect(self.entry)
+        end
+        return true
     end
 
     -- Mosaic grid cell: portrait cover centered, truncated title below.
@@ -356,7 +361,7 @@ local function apply_opds()
 
     function OPDSMosaicItem:onHoldSelect()
         if not self[1].dimen then return end
-        self.menu:onMenuHold(self.entry); return true
+        self.menu:onMenuSelect(self.entry); return true
     end
 
     -- Cover-aware updateItems; supports mosaic grid and list layouts matched to library mode.
@@ -402,6 +407,7 @@ local function apply_opds()
                     entry = entry, cover_w = cover_w, cover_h = cover_h,
                     item_w = self.item_width, item_h = self.item_height,
                     show_parent = self.show_parent, menu = self,
+                    is_root = true,
                 }
                 table.insert(self.item_group, w)
                 table.insert(self.layout, { w })
