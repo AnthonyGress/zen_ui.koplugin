@@ -163,7 +163,7 @@ local defaults = {
     dict_quick_lookup = {},
 
     night_mode_schedule = {
-        night_on_h  = 22,
+        night_on_h  = 20,
         night_on_m  = 0,
         night_off_h = 7,
         night_off_m = 0,
