@@ -18,6 +18,8 @@ if _plugin_root then
         ["library"]             = "library.svg",
         -- Highlight / lookup popup (shared by highlight_menu + dict_quick_lookup)
         ["lookup.highlight"]    = "lookup_highlight.svg",
+        ["lookup.vocab"]        = "lookup_vocab.svg",
+        ["lookup.vocab_remove"] = "lookup_vocab_remove.svg",
         ["lookup.dictionary"]   = "lookup_dictionary.svg",
         ["lookup.search"]       = "lookup_search.svg",
         ["lookup.translate"]    = "lookup_translate.svg",
