@@ -8,6 +8,48 @@ local Device = require("device")
 local ConfirmBox = require("ui/widget/confirmbox")
 local utils = require("modules/settings/zen_settings_utils")
 
+-- Disables the built-in autowarmth plugin if it's running, then prompts restart.
+-- Uses the same dialog style as incompatible_plugins_check.
+local function disable_autowarmth()
+    if not package.loaded["suntime"] then return end
+    if not G_reader_settings then return end
+    local disabled_list = G_reader_settings:readSetting("plugins_disabled")
+    if type(disabled_list) ~= "table" then disabled_list = {} end
+    if disabled_list["autowarmth"] ~= nil then return end  -- already disabled
+    -- Resolve plugin dir from the sentinel module's source path.
+    local dir
+    local mod = package.loaded["suntime"]
+    if type(mod) == "table" then
+        for _, v in pairs(mod) do
+            if type(v) == "function" then
+                local info = debug.getinfo(v, "S")
+                local src = info and info.source
+                if src and src:sub(1, 1) == "@" then
+                    local d = src:sub(2):match("^(.*)/[^/]+%.lua$")
+                    if d then dir = d .. "/" end
+                end
+                break
+            end
+        end
+    end
+    disabled_list["autowarmth"] = dir or "autowarmth"
+    G_reader_settings:saveSetting("plugins_disabled", disabled_list)
+    G_reader_settings:flush()
+    UIManager:scheduleIn(0.5, function()
+        local ConfirmBox = require("ui/widget/confirmbox")
+        local Event = require("ui/event")
+        UIManager:show(ConfirmBox:new{
+            text         = _("Incompatible plugins have been disabled:") .. "\nAuto warmth and night mode",
+            dismissable  = false,
+            no_ok_button = true,
+            cancel_text  = _("Restart now"),
+            cancel_callback = function()
+                UIManager:broadcastEvent(Event:new("Restart"))
+            end,
+        })
+    end)
+end
+
 local M = {}
 
 function M.build(ctx)
@@ -300,6 +342,9 @@ function M.build(ctx)
                         not (config.features.night_mode_schedule == true)
                     plugin:saveConfig()
                     trigger_night_schedule_reschedule()
+                    if config.features.night_mode_schedule then
+                        disable_autowarmth()
+                    end
                 end,
             },
             {
@@ -369,6 +414,9 @@ function M.build(ctx)
                         not (config.features.brightness_schedule == true)
                     plugin:saveConfig()
                     trigger_brightness_schedule_reschedule()
+                    if config.features.brightness_schedule then
+                        disable_autowarmth()
+                    end
                 end,
             },
             {
@@ -482,6 +530,9 @@ function M.build(ctx)
                     config.features.warmth_schedule = not (config.features.warmth_schedule == true)
                     plugin:saveConfig()
                     trigger_warmth_schedule_reschedule()
+                    if config.features.warmth_schedule then
+                        disable_autowarmth()
+                    end
                 end,
             },
             {
