@@ -920,6 +920,8 @@ local function apply_navbar()
             orig_onPathChanged(self, path)
         end
 
+        if not path then return end
+
         local function startsWith(str, prefix)
             return str:sub(1, #prefix) == prefix
         end
@@ -941,7 +943,7 @@ local function apply_navbar()
         if not new_tab then
             local home_dir = G_reader_settings:readSetting("home_dir")
                              or require("apps/filemanager/filemanagerutil").getDefaultDir()
-            if path == home_dir or startsWith(path, home_dir .. "/") then
+            if home_dir and (path == home_dir or startsWith(path, home_dir .. "/")) then
                 new_tab = "books"
             end
         end
@@ -962,6 +964,9 @@ local function apply_navbar()
         if file_chooser.height == target_height then
             return
         end
+        if not file_chooser.inner_dimen then
+            return  -- not a resizable FileChooser; skip to avoid crash
+        end
 
         local chrome = file_chooser.dimen.h - file_chooser.inner_dimen.h
         file_chooser.height = target_height
@@ -974,6 +979,21 @@ local function apply_navbar()
         local fm_ui = fm[1]            -- FrameContainer wrapping file_chooser
         if not fm_ui then return end
 
+        -- Another plugin (e.g. SimpleUI) may have wrapped fm[1] during orig_setupLayout,
+        -- displacing the FrameContainer one level deeper. Use fm.file_chooser as an anchor
+        -- to find the correct container before injecting.
+        local real_fc = fm.file_chooser
+        if real_fc and fm_ui[1] then
+            local child1 = fm_ui[1]
+            -- child1 should be real_fc (not injected) or VG{real_fc,...} (already injected).
+            -- If neither, fm[1] was wrapped; check one level deeper.
+            if child1 ~= real_fc and not (child1[1] and child1[1] == real_fc) then
+                if child1[1] == real_fc or (child1[1] and child1[1][1] == real_fc) then
+                    fm_ui = child1
+                end
+            end
+        end
+
         local file_chooser
         if fm._navbar_injected then
             -- Already injected: fm_ui[1] is VerticalGroup{file_chooser, navbar}
@@ -985,7 +1005,7 @@ local function apply_navbar()
                 file_chooser = maybe_group
             end
         else
-            file_chooser = fm_ui[1]    -- the actual FileChooser/MosaicMenu widget
+            file_chooser = real_fc or fm_ui[1]
         end
         if not file_chooser then return end
 
