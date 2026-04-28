@@ -864,4 +864,8 @@ M.UPDATE_PAGES = {
     -- },
 }
 
+-- Bullet list shown on the post-update splash screen (ZenScreen).
+local ok_cl, changelog = pcall(require, "config/changelog")
+M.CHANGELOGS = ok_cl and type(changelog) == "table" and changelog or {}
+
 return M

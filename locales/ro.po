@@ -242,8 +242,17 @@ msgstr "Punct"
 msgid "Buttons"
 msgstr "Butoane"
 
+msgid "Cal. Search"
+msgstr "Căut. Cal."
+
+msgid "Calendar"
+msgstr "Calendar"
+
 msgid "Calibre"
 msgstr "Calibre"
+
+msgid "Calibre Search"
+msgstr "Căutare Calibre"
 
 msgid "Cancel"
 msgstr "Anulare"
@@ -630,6 +639,9 @@ msgstr "Dosar principal"
 msgid "Hour"
 msgstr "Oră"
 
+msgid "Incompatible plugins have been disabled:"
+msgstr "Pluginurile incompatibile au fost dezactivate:"
+
 msgid "Install dictionary"
 msgstr "Instalează dicționar"
 
@@ -876,6 +888,9 @@ msgstr "Deschide QuickRSS"
 msgid "Open Rakuyomi"
 msgstr "Deschide Rakuyomi"
 
+msgid "Open RSS Reader"
+msgstr "Deschide cititorul RSS"
+
 msgid "Opening"
 msgstr "Se deschide"
 
@@ -953,6 +968,12 @@ msgstr "Anterior"
 
 msgid "Previous page"
 msgstr "Pagina anterioară"
+
+msgid "Progress"
+msgstr "Progres"
+
+msgid "Puzzle"
+msgstr "Puzzle"
 
 msgid "Quick Settings"
 msgstr "Setări rapide"
@@ -1073,6 +1094,12 @@ msgstr "Colțuri rotunjite ale copertelor"
 
 msgid "Rows"
 msgstr "Rânduri"
+
+msgid "RSS Reader"
+msgstr "Cititor RSS"
+
+msgid "RSS Reader plugin is not installed."
+msgstr "Pluginul RSS Reader nu este instalat."
 
 msgid "Run Zen UI update now?\n\nIf this plugin is a git checkout, Zen UI will run a fast-forward pull and then ask for restart."
 msgstr "Rulați actualizarea Zen UI acum?\n\nDacă acest plugin este un checkout git, Zen UI va rula un pull fast-forward și va solicita repornirea."
@@ -1218,6 +1245,9 @@ msgstr "Repaus"
 msgid "Sleep Screen"
 msgstr "Ecran de repaus"
 
+msgid "Slide Puzzle"
+msgstr "Puzzle glisant"
+
 msgid "Sort"
 msgstr "Sortare"
 
@@ -1268,6 +1298,12 @@ msgstr "Statistici"
 
 msgid "Stats"
 msgstr "Statistici"
+
+msgid "Stats: Calendar"
+msgstr "Statistici: Calendar"
+
+msgid "Stats: Progress"
+msgstr "Statistici: Progres"
 
 msgid "Status bar"
 msgstr "Bară de stare"
@@ -1424,6 +1460,9 @@ msgstr "Bun venit în Zen UI"
 
 msgid "What should your device show when it goes to sleep?"
 msgstr "Ce ar trebui să afișeze dispozitivul dvs. când intră în repaus?"
+
+msgid "What's New"
+msgstr "Noutăți"
 
 msgid "When enabled, icons placed in KOReader's user icons folder override the bundled Zen UI icons. Falls back to Zen UI icons, then KOReader built-ins."
 msgstr "Când este activat, pictogramele din dosarul de pictograme al utilizatorului KOReader suprascriu pictogramele Zen UI incluse. Se revine la pictogramele Zen UI, apoi la cele din KOReader."

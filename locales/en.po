@@ -238,8 +238,17 @@ msgstr "Bullet"
 msgid "Buttons"
 msgstr "Buttons"
 
+msgid "Cal. Search"
+msgstr "Cal. Search"
+
+msgid "Calendar"
+msgstr "Calendar"
+
 msgid "Calibre"
 msgstr "Calibre"
+
+msgid "Calibre Search"
+msgstr "Calibre Search"
 
 msgid "Cancel"
 msgstr "Cancel"
@@ -626,6 +635,9 @@ msgstr "Home folder"
 msgid "Hour"
 msgstr "Hour"
 
+msgid "Incompatible plugins have been disabled:"
+msgstr "Incompatible plugins have been disabled:"
+
 msgid "Install dictionary"
 msgstr "Install dictionary"
 
@@ -866,6 +878,9 @@ msgstr "Open QuickRSS"
 msgid "Open Rakuyomi"
 msgstr "Open Rakuyomi"
 
+msgid "Open RSS Reader"
+msgstr "Open RSS Reader"
+
 msgid "Opening"
 msgstr "Opening"
 
@@ -943,6 +958,12 @@ msgstr "Prev"
 
 msgid "Previous page"
 msgstr "Previous page"
+
+msgid "Progress"
+msgstr "Progress"
+
+msgid "Puzzle"
+msgstr "Puzzle"
 
 msgid "Quick Settings"
 msgstr "Quick Settings"
@@ -1063,6 +1084,12 @@ msgstr "Rounded cover corners"
 
 msgid "Rows"
 msgstr "Rows"
+
+msgid "RSS Reader"
+msgstr "RSS Reader"
+
+msgid "RSS Reader plugin is not installed."
+msgstr "RSS Reader plugin is not installed."
 
 msgid "Save"
 msgstr "Save"
@@ -1205,6 +1232,9 @@ msgstr "Sleep"
 msgid "Sleep Screen"
 msgstr "Sleep Screen"
 
+msgid "Slide Puzzle"
+msgstr "Slide Puzzle"
+
 msgid "Sort"
 msgstr "Sort"
 
@@ -1255,6 +1285,12 @@ msgstr "Statistics"
 
 msgid "Stats"
 msgstr "Stats"
+
+msgid "Stats: Calendar"
+msgstr "Stats: Calendar"
+
+msgid "Stats: Progress"
+msgstr "Stats: Progress"
 
 msgid "Status bar"
 msgstr "Status bar"
@@ -1411,6 +1447,9 @@ msgstr "Welcome to Zen UI"
 
 msgid "What should your device show when it goes to sleep?"
 msgstr "What should your device show when it goes to sleep?"
+
+msgid "What's New"
+msgstr "What's New"
 
 msgid "When enabled, icons placed in KOReader's user icons folder override the bundled Zen UI icons. Falls back to Zen UI icons, then KOReader built-ins."
 msgstr "When enabled, icons placed in KOReader's user icons folder override the bundled Zen UI icons. Falls back to Zen UI icons, then KOReader built-ins."

@@ -55,6 +55,7 @@ function M.build(ctx)
         { key = "puzzle",         text = _("Slide Puzzle"),    detect = function() return hasPlugin("slidepuzzle") end },
         { key = "stats_progress", text = _("Stats: Progress"), detect = function() return hasPlugin("statistics") end },
         { key = "stats_calendar", text = _("Stats: Calendar"), detect = function() return hasPlugin("statistics") end },
+        { key = "kosync",         text = _("Sync") },
     }
 
     -- Remove any button whose plugin/feature is not detected.

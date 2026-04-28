@@ -53,7 +53,7 @@ local function apply_quick_settings()
     -- ============================================================
 
     local config_default = {
-        button_order = { "wifi", "night", "rotate", "zen", "lockdown", "usb", "search", "quickrss", "cloud", "zlibrary", "calibre", "calibre_search", "notion", "streak", "opds", "filebrowser", "puzzle", "stats_progress", "stats_calendar", "restart", "exit", "sleep" },
+        button_order = { "wifi", "night", "rotate", "zen", "lockdown", "usb", "search", "quickrss", "cloud", "zlibrary", "calibre", "calibre_search", "notion", "streak", "opds", "filebrowser", "puzzle", "stats_progress", "stats_calendar", "kosync", "restart", "exit", "sleep" },
         show_buttons = {
             wifi = true,
             night = true,
@@ -78,6 +78,7 @@ local function apply_quick_settings()
             puzzle = false,
             stats_progress = false,
             stats_calendar = false,
+            kosync = false,
         },
         show_frontlight = true,
         show_warmth = true,
@@ -466,6 +467,19 @@ local function apply_quick_settings()
             callback = function(touch_menu)
                 touch_menu:closeMenu()
                 UIManager:broadcastEvent(Event:new("ShowCalendarView"))
+            end,
+        },
+        kosync = {
+            icon = "quick_sync",
+            label = _("Sync"),
+            visible_func = function() return hasPlugin("kosync") end,
+            callback = function(touch_menu)
+                touch_menu:closeMenu()
+                UIManager:broadcastEvent(Event:new("KOSyncPushProgress"))
+                -- Pull after a short delay to let the push complete first.
+                UIManager:scheduleIn(1, function()
+                    UIManager:broadcastEvent(Event:new("KOSyncPullProgress"))
+                end)
             end,
         },
         filebrowser = {

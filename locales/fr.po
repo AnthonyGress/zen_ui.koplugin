@@ -242,8 +242,17 @@ msgstr "Puce"
 msgid "Buttons"
 msgstr "Boutons"
 
+msgid "Cal. Search"
+msgstr "Rech. Cal."
+
+msgid "Calendar"
+msgstr "Calendrier"
+
 msgid "Calibre"
 msgstr "Calibre"
+
+msgid "Calibre Search"
+msgstr "Recherche Calibre"
 
 msgid "Cancel"
 msgstr "Annuler"
@@ -630,6 +639,9 @@ msgstr "Dossier personnel"
 msgid "Hour"
 msgstr "Heure"
 
+msgid "Incompatible plugins have been disabled:"
+msgstr "Des plugins incompatibles ont été désactivés :"
+
 msgid "Install dictionary"
 msgstr "Installer le dictionnaire"
 
@@ -876,6 +888,9 @@ msgstr "Ouvrir QuickRSS"
 msgid "Open Rakuyomi"
 msgstr "Ouvrir Rakuyomi"
 
+msgid "Open RSS Reader"
+msgstr "Ouvrir le lecteur RSS"
+
 msgid "Opening"
 msgstr "Ouverture"
 
@@ -953,6 +968,12 @@ msgstr "Précédent"
 
 msgid "Previous page"
 msgstr "Page précédente"
+
+msgid "Progress"
+msgstr "Progression"
+
+msgid "Puzzle"
+msgstr "Puzzle"
 
 msgid "Quick Settings"
 msgstr "Réglages rapides"
@@ -1073,6 +1094,12 @@ msgstr "Coins arrondis des couvertures"
 
 msgid "Rows"
 msgstr "Lignes"
+
+msgid "RSS Reader"
+msgstr "Lecteur RSS"
+
+msgid "RSS Reader plugin is not installed."
+msgstr "Le plugin RSS Reader n'est pas installé."
 
 msgid "Run Zen UI update now?\n\nIf this plugin is a git checkout, Zen UI will run a fast-forward pull and then ask for restart."
 msgstr "Lancer la mise à jour de Zen UI maintenant ?\n\nSi ce plugin est un checkout git, Zen UI effectuera un pull fast-forward puis demandera un redémarrage."
@@ -1218,6 +1245,9 @@ msgstr "Veille"
 msgid "Sleep Screen"
 msgstr "Écran de veille"
 
+msgid "Slide Puzzle"
+msgstr "Puzzle coulissant"
+
 msgid "Sort"
 msgstr "Trier"
 
@@ -1268,6 +1298,12 @@ msgstr "Statistiques"
 
 msgid "Stats"
 msgstr "Stats"
+
+msgid "Stats: Calendar"
+msgstr "Stats : Calendrier"
+
+msgid "Stats: Progress"
+msgstr "Stats : Progression"
 
 msgid "Status bar"
 msgstr "Barre d'état"
@@ -1424,6 +1460,9 @@ msgstr "Bienvenue dans Zen UI"
 
 msgid "What should your device show when it goes to sleep?"
 msgstr "Que doit afficher votre appareil en mode veille ?"
+
+msgid "What's New"
+msgstr "Nouveautés"
 
 msgid "When enabled, icons placed in KOReader's user icons folder override the bundled Zen UI icons. Falls back to Zen UI icons, then KOReader built-ins."
 msgstr "Lorsque cette option est activée, les icônes placées dans le dossier d'icônes utilisateur de KOReader remplacent les icônes Zen UI intégrées. Retour aux icônes Zen UI, puis aux icônes intégrées de KOReader."

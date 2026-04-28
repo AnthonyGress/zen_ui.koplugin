@@ -205,6 +205,7 @@ function ZenUI:init()
         end
 
         local pages_to_show
+        local changelog_to_show
         local is_update = from_updater
             or (type(shown_ver) == "string" and shown_ver ~= current_ver)
 
@@ -224,7 +225,8 @@ function ZenUI:init()
         elseif is_update then
             local ok_pages, pages_mod = pcall(require, "common/quickstart_pages")
             if ok_pages then
-                pages_to_show = pages_mod.UPDATE_PAGES[current_ver]
+                pages_to_show     = pages_mod.UPDATE_PAGES[current_ver]
+                changelog_to_show = pages_mod.CHANGELOGS and pages_mod.CHANGELOGS[current_ver]
             end
         end
 
@@ -296,9 +298,10 @@ function ZenUI:init()
                 logger.info("ZenUI update splash: showing ZenScreen")
                 local T = require("ffi/util").template
                 require("ui/uimanager"):show(ZenScreen:new{
-                    title    = _("Zen UI"),
-                    subtitle = T(_("Updated to %1"), "v" .. current_ver),
-                    on_close = function()
+                    title     = _("Zen UI"),
+                    subtitle  = T(_("Updated to %1"), "v" .. current_ver),
+                    changelog = changelog_to_show,
+                    on_close  = function()
                         logger.info("ZenUI update splash: closed, pages_to_show=", pages_to_show and #pages_to_show or 0)
                         if pages_to_show and #pages_to_show > 0 then
                             local ok_qs, QuickstartScreen = pcall(require, "common/quickstart_screen")

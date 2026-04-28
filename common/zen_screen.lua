@@ -17,6 +17,7 @@ local Blitbuffer     = require("ffi/blitbuffer")
 local Device         = require("device")
 local Font           = require("ui/font")
 local Geom           = require("ui/geometry")
+local TextBoxWidget  = require("ui/widget/textboxwidget")
 local TextWidget     = require("ui/widget/textwidget")
 local UIManager      = require("ui/uimanager")
 local ZenButton      = require("common/zen_button")
@@ -36,6 +37,7 @@ end)()
 local ZenScreen = InputContainer:extend{
     title             = nil,   -- string shown in top bar; nil hides the title bar entirely
     subtitle          = nil,   -- string rendered above the icon (e.g. "Updated to v1.2.3")
+    changelog         = nil,   -- array of strings; when set, logo shrinks to make room for a bullet list
     button            = nil,   -- button label string; nil -> "Get Started"; false -> no button
     later_button      = nil,   -- optional outlined secondary button to the left; tapping closes
     on_close          = nil,
@@ -49,8 +51,9 @@ function ZenScreen:_computeLayout()
     local PAD        = Screen:scaleBySize(20)
     local TITLE_H    = self.title and Screen:scaleBySize(60) or 0
     local SEP_H      = self.title and 1 or 0
-    local SUBTITLE_H = self.subtitle and Screen:scaleBySize(72) or 0
-    local BTN_H      = Screen:scaleBySize(80)  -- always reserved so logo position is stable
+    -- Tight subtitle band: just enough for one line + small breathing room.
+    local SUBTITLE_H = self.subtitle and Screen:scaleBySize(44) or 0
+    local BTN_H      = Screen:scaleBySize(80)
     self._L = {
         sw         = sw,
         sh         = sh,
@@ -59,8 +62,9 @@ function ZenScreen:_computeLayout()
         sep_h      = SEP_H,
         subtitle_h = SUBTITLE_H,
         btn_h      = BTN_H,
-        logo_y     = TITLE_H + SEP_H + SUBTITLE_H,
-        logo_h     = sh - TITLE_H - SEP_H - SUBTITLE_H - BTN_H,
+        -- Content area starts below subtitle, ends above button bar.
+        content_y  = TITLE_H + SEP_H + SUBTITLE_H,
+        content_h  = sh - TITLE_H - SEP_H - SUBTITLE_H - BTN_H,
         btn_y      = sh - BTN_H,
     }
 end
@@ -128,30 +132,91 @@ function ZenScreen:paintTo(bb, x, y)
         sw2:free()
     end
 
-    -- Centered logo
+    -- Logo + optional changelog.
+    -- Changelog is measured first so the logo can fill the exact remaining space.
+    local content_y = y + L.content_y
+    local content_h = L.content_h
+    local cl_x      = x + L.pad
+    local cl_w      = L.sw - L.pad * 2
+    local SEP_PX    = Screen:scaleBySize(8)   -- gap above/below separator line
+    local HDR_GAP   = Screen:scaleBySize(6)   -- gap between header and first bullet
+    local ITEM_GAP  = Screen:scaleBySize(4)   -- gap between bullets
+
+    local logo_h = content_h  -- default: logo fills everything
+    local item_widgets = {}
+    local hdr_tw, hdr_h
+
+    if self.changelog and #self.changelog > 0 then
+        -- Measure header
+        hdr_tw = TextWidget:new{
+            text    = _("What's New"),
+            face    = Font:getFace("cfont", 18),
+            bold    = true,
+            padding = 0,
+        }
+        hdr_h = hdr_tw:getSize().h
+
+        -- Measure each bullet item, store widgets for later painting.
+        local items_h = 0
+        for _, item in ipairs(self.changelog) do
+            local b_tw = TextBoxWidget:new{
+                text      = "\u{2022} " .. item,
+                face      = Font:getFace("cfont", 17),
+                width     = cl_w,
+                alignment = "left",
+            }
+            local bh = b_tw:getSize().h
+            table.insert(item_widgets, { widget = b_tw, h = bh })
+            items_h = items_h + bh + ITEM_GAP
+        end
+
+        -- Total changelog block: sep line + padding + header + gap + items + bottom padding.
+        local cl_total = 1 + SEP_PX + hdr_h + HDR_GAP + items_h + SEP_PX
+        logo_h = math.max(0, content_h - cl_total)
+    end
+
+    -- Paint logo. Without a changelog use the original conservative sizing (pad*4, *0.75).
+    -- With a changelog the logo_h is already measured to fit, so fill it tightly.
     if ImageWidget and _plugin_root ~= "" then
-        local logo  = _plugin_root .. "/icons/zen_ui.svg"
-        local max_sz = math.min(L.sw - L.pad * 4, L.logo_h - L.pad * 4) * 0.75
-        -- Snap to an integer pixel size so SVG rasterizes exactly at this size
-        -- without any post-render scaling (scale_factor omitted).
-        -- scale_factor=0 was causing scaleBlitBuffer to upscale the rendered
-        -- bitmap by ~1.006x on Kobo, which triggered a segfault.
-        max_sz = math.floor(max_sz)
-        if max_sz > 0 then
+        local logo    = _plugin_root .. "/icons/zen_ui.svg"
+        local has_cl  = hdr_tw ~= nil
+        -- Snap to integer: avoids post-render scaling that caused segfaults on Kobo.
+        local logo_sz = has_cl
+            and math.floor(math.min(L.sw - L.pad * 2, logo_h - L.pad * 2))
+            or  math.floor(math.min(L.sw - L.pad * 4, logo_h - L.pad * 4) * 0.75)
+        if logo_sz > 0 then
             pcall(function()
                 local iw = ImageWidget:new{
                     file   = logo,
-                    width  = max_sz,
-                    height = max_sz,
+                    width  = logo_sz,
+                    height = logo_sz,
                     alpha  = true,
                 }
                 local isz = iw:getSize()
                 iw:paintTo(bb,
-                    x + math.floor((L.sw  - isz.w) / 2),
-                    y + L.logo_y + math.floor((L.logo_h - isz.h) / 2))
+                    x + math.floor((L.sw - isz.w) / 2),
+                    content_y + math.floor((logo_h - isz.h) / 2))
                 iw:free()
             end)
         end
+    end
+
+    -- Paint changelog below the logo region.
+    if hdr_tw then
+        local cl_y = content_y + logo_h
+        bb:paintRect(x + L.pad, cl_y, cl_w, 1, Blitbuffer.COLOR_LIGHT_GRAY)
+        cl_y = cl_y + 1 + SEP_PX
+        hdr_tw:paintTo(bb, cl_x, cl_y)
+        hdr_tw:free()
+        cl_y = cl_y + hdr_h + HDR_GAP
+        for _, entry in ipairs(item_widgets) do
+            entry.widget:paintTo(bb, cl_x, cl_y)
+            entry.widget:free()
+            cl_y = cl_y + entry.h + ITEM_GAP
+        end
+    else
+        -- Free any measured widgets (shouldn't happen, but guard)
+        for _, entry in ipairs(item_widgets) do entry.widget:free() end
     end
 
     -- Button(s)

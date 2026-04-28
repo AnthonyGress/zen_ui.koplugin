@@ -242,8 +242,17 @@ msgstr "Маркер"
 msgid "Buttons"
 msgstr "Кнопки"
 
+msgid "Cal. Search"
+msgstr "Cal. Поиск"
+
+msgid "Calendar"
+msgstr "Календарь"
+
 msgid "Calibre"
 msgstr "Calibre"
+
+msgid "Calibre Search"
+msgstr "Поиск в Calibre"
 
 msgid "Cancel"
 msgstr "Отмена"
@@ -630,6 +639,9 @@ msgstr "Домашняя папка"
 msgid "Hour"
 msgstr "Час"
 
+msgid "Incompatible plugins have been disabled:"
+msgstr "Несовместимые плагины отключены:"
+
 msgid "Install dictionary"
 msgstr "Установить словарь"
 
@@ -876,6 +888,9 @@ msgstr "Открыть QuickRSS"
 msgid "Open Rakuyomi"
 msgstr "Открыть Rakuyomi"
 
+msgid "Open RSS Reader"
+msgstr "Открыть RSS-читалку"
+
 msgid "Opening"
 msgstr "Открывается"
 
@@ -953,6 +968,12 @@ msgstr "Назад"
 
 msgid "Previous page"
 msgstr "Предыдущая страница"
+
+msgid "Progress"
+msgstr "Прогресс"
+
+msgid "Puzzle"
+msgstr "Пазл"
 
 msgid "Quick Settings"
 msgstr "Быстрые настройки"
@@ -1073,6 +1094,12 @@ msgstr "Закруглённые углы обложек"
 
 msgid "Rows"
 msgstr "Строки"
+
+msgid "RSS Reader"
+msgstr "RSS-читалка"
+
+msgid "RSS Reader plugin is not installed."
+msgstr "Плагин RSS Reader не установлен."
 
 msgid "Run Zen UI update now?\n\nIf this plugin is a git checkout, Zen UI will run a fast-forward pull and then ask for restart."
 msgstr "Запустить обновление Zen UI сейчас?\n\nЕсли этот плагин является git-checkout, Zen UI выполнит fast-forward pull и запросит перезапуск."
@@ -1218,6 +1245,9 @@ msgstr "Спящий режим"
 msgid "Sleep Screen"
 msgstr "Экран сна"
 
+msgid "Slide Puzzle"
+msgstr "Пятнашки"
+
 msgid "Sort"
 msgstr "Сортировка"
 
@@ -1268,6 +1298,12 @@ msgstr "Статистика"
 
 msgid "Stats"
 msgstr "Статистика"
+
+msgid "Stats: Calendar"
+msgstr "Статистика: Календарь"
+
+msgid "Stats: Progress"
+msgstr "Статистика: Прогресс"
 
 msgid "Status bar"
 msgstr "Строка состояния"
@@ -1424,6 +1460,9 @@ msgstr "Добро пожаловать в Zen UI"
 
 msgid "What should your device show when it goes to sleep?"
 msgstr "Что должно отображаться на устройстве в режиме сна?"
+
+msgid "What's New"
+msgstr "Что нового"
 
 msgid "When enabled, icons placed in KOReader's user icons folder override the bundled Zen UI icons. Falls back to Zen UI icons, then KOReader built-ins."
 msgstr "Если включено, значки из пользовательской папки значков KOReader заменяют встроенные значки Zen UI. Используются значки Zen UI, затем встроенные значки KOReader."

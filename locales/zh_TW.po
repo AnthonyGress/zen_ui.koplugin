@@ -242,8 +242,17 @@ msgstr "圓點"
 msgid "Buttons"
 msgstr "按鈕"
 
+msgid "Cal. Search"
+msgstr "Cal.搜尋"
+
+msgid "Calendar"
+msgstr "日曆"
+
 msgid "Calibre"
 msgstr "Calibre"
+
+msgid "Calibre Search"
+msgstr "Calibre搜尋"
 
 msgid "Cancel"
 msgstr "取消"
@@ -630,6 +639,9 @@ msgstr "主資料夾"
 msgid "Hour"
 msgstr "時"
 
+msgid "Incompatible plugins have been disabled:"
+msgstr "不相容的外掛程式已被停用："
+
 msgid "Install dictionary"
 msgstr "安裝字典"
 
@@ -876,6 +888,9 @@ msgstr "開啟 QuickRSS"
 msgid "Open Rakuyomi"
 msgstr "開啟 Rakuyomi"
 
+msgid "Open RSS Reader"
+msgstr "開啟RSS閱讀器"
+
 msgid "Opening"
 msgstr "正在開啟"
 
@@ -953,6 +968,12 @@ msgstr "上一個"
 
 msgid "Previous page"
 msgstr "上一頁"
+
+msgid "Progress"
+msgstr "進度"
+
+msgid "Puzzle"
+msgstr "拼圖"
 
 msgid "Quick Settings"
 msgstr "快速設定"
@@ -1073,6 +1094,12 @@ msgstr "封面圓角"
 
 msgid "Rows"
 msgstr "列數"
+
+msgid "RSS Reader"
+msgstr "RSS閱讀器"
+
+msgid "RSS Reader plugin is not installed."
+msgstr "RSS Reader外掛程式未安裝。"
 
 msgid "Run Zen UI update now?\n\nIf this plugin is a git checkout, Zen UI will run a fast-forward pull and then ask for restart."
 msgstr "現在執行 Zen UI 更新？\n\n若此外掛為 git checkout，Zen UI 將執行 fast-forward pull 並請求重新啟動。"
@@ -1218,6 +1245,9 @@ msgstr "睡眠"
 msgid "Sleep Screen"
 msgstr "休眠畫面"
 
+msgid "Slide Puzzle"
+msgstr "滑動拼圖"
+
 msgid "Sort"
 msgstr "排序"
 
@@ -1268,6 +1298,12 @@ msgstr "統計"
 
 msgid "Stats"
 msgstr "統計"
+
+msgid "Stats: Calendar"
+msgstr "統計：日曆"
+
+msgid "Stats: Progress"
+msgstr "統計：進度"
 
 msgid "Status bar"
 msgstr "狀態列"
@@ -1424,6 +1460,9 @@ msgstr "歡迎使用 Zen UI"
 
 msgid "What should your device show when it goes to sleep?"
 msgstr "裝置休眠時應顯示什麼？"
+
+msgid "What's New"
+msgstr "新功能"
 
 msgid "When enabled, icons placed in KOReader's user icons folder override the bundled Zen UI icons. Falls back to Zen UI icons, then KOReader built-ins."
 msgstr "啟用後，放置在 KOReader 使用者圖示資料夾中的圖示將覆寫內建的 Zen UI 圖示。回退順序為 Zen UI 圖示，再到 KOReader 內建圖示。"
