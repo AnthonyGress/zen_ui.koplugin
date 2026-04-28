@@ -112,8 +112,10 @@ function M.registerPluginIcons(icons_dir, icons, copy_to_user_dir)
                 if lfs.attributes(user_icons_dir, "mode") ~= "directory" then
                     lfs.mkdir(user_icons_dir)
                 end
-                for _, filename in pairs(icons) do
-                    local dst = user_icons_dir .. "/" .. filename
+                for name, filename in pairs(icons) do
+                    -- Use icon short-name as dest so ICONS_DIRS lookup finds it by name
+                    local ext = filename:match("%.[^%.]+$") or ".svg"
+                    local dst = user_icons_dir .. "/" .. name .. ext
                     if lfs.attributes(dst, "mode") ~= "file" then
                         local src = icons_dir .. filename
                         if lfs.attributes(src, "mode") == "file" then
@@ -124,18 +126,32 @@ function M.registerPluginIcons(icons_dir, icons, copy_to_user_dir)
             end)
         end
 
-        -- Inject into IconWidget's runtime ICONS_PATH upvalue cache
+        -- Inject into IconWidget's runtime upvalue caches
         local iw = require("ui/widget/iconwidget")
         local iw_init = rawget(iw, "init")
         if type(iw_init) ~= "function" then return end
-        local icons_path
+        local icons_path, icons_dirs
         for i = 1, 64 do
             local uname, uval = debug.getupvalue(iw_init, i)
             if uname == nil then break end
             if uname == "ICONS_PATH" and type(uval) == "table" then
                 icons_path = uval
-                break
+            elseif uname == "ICONS_DIRS" and type(uval) == "table" then
+                icons_dirs = uval
             end
+            if icons_path and icons_dirs then break end
+        end
+        -- Ensure user icons dir is in ICONS_DIRS (may have been absent at widget load time)
+        if icons_dirs and copy_to_user_dir then
+            pcall(function()
+                local DataStorage = require("datastorage")
+                local user_dir = DataStorage:getDataDir() .. "/icons"
+                local found = false
+                for _, d in ipairs(icons_dirs) do
+                    if d == user_dir then found = true; break end
+                end
+                if not found then table.insert(icons_dirs, 1, user_dir) end
+            end)
         end
         if not icons_path then return end
         for name, filename in pairs(icons) do

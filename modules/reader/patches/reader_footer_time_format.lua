@@ -26,7 +26,9 @@ local function apply_reader_footer_time_format()
     -- causing TextWidget to truncate adjacent items with "...". By removing 6
     -- extra spaces (approx 30px), we guarantee it fits safely without truncation.
     -- Only trim when verbose mode is active.
-    ReaderFooter.textGeneratorMap.dynamic_filler = function(footer)
+    --
+    -- Named local so we can reference it in the genAllFooterText patch below.
+    local zen_filler_wrapper = function(footer)
         local text, merge = orig_filler(footer)
         if is_verbose() and type(text) == "string" and #text > 0 then
             local ct = ReaderFooter.textGeneratorMap.chapter_time_to_read(footer)
@@ -40,6 +42,24 @@ local function apply_reader_footer_time_format()
         end
         return text, merge
     end
+
+    -- On cold/restart start, footerTextGenerators may hold orig_filler while
+    -- footerTextGeneratorMap.dynamic_filler is already zen_filler_wrapper.
+    -- The skip-by-reference check in genAllFooterText then fails, causing
+    -- infinite recursion. Lazily fix up the stale entry on first call.
+    local orig_genAllFooterText = ReaderFooter.genAllFooterText
+    ReaderFooter.genAllFooterText = function(self, skip_gen)
+        if skip_gen == zen_filler_wrapper and self.footerTextGenerators then
+            for i, gen in ipairs(self.footerTextGenerators) do
+                if gen == orig_filler then
+                    self.footerTextGenerators[i] = zen_filler_wrapper
+                end
+            end
+        end
+        return orig_genAllFooterText(self, skip_gen)
+    end
+
+    ReaderFooter.textGeneratorMap.dynamic_filler = zen_filler_wrapper
 
     ReaderFooter.textGeneratorMap.chapter_time_to_read = function(footer)
         -- Only show verbose text when the setting is explicitly enabled.
