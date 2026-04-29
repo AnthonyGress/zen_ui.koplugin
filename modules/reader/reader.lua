@@ -99,10 +99,10 @@ function M.init(logger, plugin)
 
     -- Always apply: custom highlight/lookup popup (self-disables when feature is off).
     local highlight_menu_fn = load_patch("highlight_menu")
-    logger.warn("zen-ui[reader]: load_patch(highlight_menu)=", tostring(highlight_menu_fn))
+    logger.dbg("zen-ui[reader]: load_patch(highlight_menu)=", tostring(highlight_menu_fn))
     if highlight_menu_fn then
         local ok = run_feature(logger, plugin, "highlight_menu", highlight_menu_fn)
-        logger.warn("zen-ui[reader]: run_feature(highlight_menu) ok=", tostring(ok))
+        logger.dbg("zen-ui[reader]: run_feature(highlight_menu) ok=", tostring(ok))
     end
 
     -- Ensure the runtime-patches registry exists.

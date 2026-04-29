@@ -977,8 +977,8 @@ local function apply_navbar()
         if file_chooser.height == target_height then
             return
         end
-        if not file_chooser.inner_dimen then
-            return  -- not a resizable FileChooser; skip to avoid crash
+        if not file_chooser.dimen or not file_chooser.inner_dimen then
+            return  -- not yet laid out; skip to avoid crash
         end
 
         local chrome = file_chooser.dimen.h - file_chooser.inner_dimen.h

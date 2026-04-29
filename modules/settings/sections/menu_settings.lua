@@ -53,6 +53,8 @@ function M.build(ctx)
         { key = "opds",           text = _("OPDS"),            detect = function() return hasPlugin("opds") end },
         { key = "filebrowser",    text = _("Filebrowser"),     detect = function() return hasPlugin("filebrowser") end },
         { key = "puzzle",         text = _("Slide Puzzle"),    detect = function() return hasPlugin("slidepuzzle") end },
+        { key = "crossword",      text = _("Crossword"),       detect = function() return hasPlugin("crossword") end },
+        { key = "connections",    text = _("Connections"),      detect = function() return hasPlugin("nytconnections") end },
         { key = "stats_progress", text = _("Stats: Progress"), detect = function() return hasPlugin("statistics") end },
         { key = "stats_calendar", text = _("Stats: Calendar"), detect = function() return hasPlugin("statistics") end },
         { key = "kosync",         text = _("Sync") },

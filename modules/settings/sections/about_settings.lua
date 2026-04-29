@@ -5,6 +5,7 @@
 local _ = require("gettext")
 local UIManager = require("ui/uimanager")
 local utils = require("modules/settings/zen_settings_utils")
+local bugreporter = require("modules/settings/zen_bugreporter")
 
 local M = {}
 
@@ -70,6 +71,15 @@ function M.build(ctx)
                 end,
             })
         end,
+    })
+
+    table.insert(items, {
+        text      = _("Report a Bug"),
+        separator = true,
+        callback  = function()
+            bugreporter.show_dialog(ctx)
+        end,
+        keep_menu_open = true,
     })
 
     return items

@@ -53,7 +53,7 @@ local function apply_quick_settings()
     -- ============================================================
 
     local config_default = {
-        button_order = { "wifi", "night", "rotate", "zen", "lockdown", "usb", "search", "quickrss", "cloud", "zlibrary", "calibre", "calibre_search", "notion", "streak", "opds", "filebrowser", "puzzle", "stats_progress", "stats_calendar", "kosync", "restart", "exit", "sleep" },
+        button_order = { "wifi", "night", "rotate", "zen", "lockdown", "usb", "search", "quickrss", "cloud", "zlibrary", "calibre", "calibre_search", "notion", "streak", "opds", "filebrowser", "puzzle", "crossword", "connections", "stats_progress", "stats_calendar", "kosync", "restart", "exit", "sleep" },
         show_buttons = {
             wifi = true,
             night = true,
@@ -76,6 +76,8 @@ local function apply_quick_settings()
             opds = false,
             filebrowser = false,
             puzzle = false,
+            crossword = false,
+            connections = false,
             stats_progress = false,
             stats_calendar = false,
             kosync = false,
@@ -440,6 +442,39 @@ local function apply_quick_settings()
                     touch_menu:updateItems(1)
                 end
                 require("modules/settings/zen_settings_apply").prompt_restart()
+            end,
+        },
+        connections = {
+            icon = "quick_connections",
+            label = _("Connections"),
+            visible_func = function() return hasPlugin("nytconnections") end,
+            callback = function(touch_menu)
+                touch_menu:closeMenu()
+                local ok_f, FileManager = pcall(require, "apps/filemanager/filemanager")
+                local ok_r, ReaderUI = pcall(require, "apps/reader/readerui")
+                local ui = (ok_f and FileManager.instance) or (ok_r and ReaderUI.instance)
+                if ui and ui.nytconnections then
+                    -- Extract the callback the plugin registered so we stay in sync with its implementation.
+                    local items = {}
+                    ui.nytconnections:addToMainMenu(items)
+                    if items.nytconnections and items.nytconnections.callback then
+                        items.nytconnections.callback()
+                    end
+                end
+            end,
+        },
+        crossword = {
+            icon = "quick_crossword",
+            label = _("Crossword"),
+            visible_func = function() return hasPlugin("crossword") end,
+            callback = function(touch_menu)
+                touch_menu:closeMenu()
+                local ok_f, FileManager = pcall(require, "apps/filemanager/filemanager")
+                local ok_r, ReaderUI = pcall(require, "apps/reader/readerui")
+                local ui = (ok_f and FileManager.instance) or (ok_r and ReaderUI.instance)
+                if ui and ui.crossword then
+                    ui.crossword:showLibraryView()
+                end
             end,
         },
         puzzle = {

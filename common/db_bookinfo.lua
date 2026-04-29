@@ -72,7 +72,7 @@ function M.getGroupedByAuthor()
         local dirs      = res[1] or {}
         local filenames = res[2] or {}
         local authors_col = res[3] or {}
-        logger.warn("zen-ui db_bookinfo: getGroupedByAuthor rows from SQL:", #dirs)
+        logger.info("zen-ui db_bookinfo: getGroupedByAuthor rows from SQL:", #dirs)
 
         for i = 1, #dirs do
             local dir    = dirs[i]
@@ -121,7 +121,7 @@ function M.getGroupedByAuthor()
         return a.author:lower() < b.author:lower()
     end)
 
-    logger.warn("zen-ui db_bookinfo: getGroupedByAuthor result:", #groups, "authors")
+    logger.dbg("zen-ui db_bookinfo: getGroupedByAuthor result:", #groups, "authors")
     return groups
 end
 
@@ -162,7 +162,7 @@ function M.getGroupedBySeries()
         local filenames    = res[2] or {}
         local series_col   = res[3] or {}
         local idx_col      = res[4] or {}
-        logger.warn("zen-ui db_bookinfo: getGroupedBySeries rows from SQL:", #dirs)
+        logger.dbg("zen-ui db_bookinfo: getGroupedBySeries rows from SQL:", #dirs)
 
         for i = 1, #dirs do
             local dir    = dirs[i]
@@ -217,7 +217,7 @@ function M.getGroupedBySeries()
         return a.series:lower() < b.series:lower()
     end)
 
-    logger.warn("zen-ui db_bookinfo: getGroupedBySeries result:", #groups, "series")
+    logger.dbg("zen-ui db_bookinfo: getGroupedBySeries result:", #groups, "series")
     return groups
 end
 
@@ -292,7 +292,7 @@ function M.getTBRBooks()
         end
     end
 
-    logger.warn("zen-ui db_bookinfo: getTBRBooks result:", #result, "books")
+    logger.dbg("zen-ui db_bookinfo: getTBRBooks result:", #result, "books")
     return result
 end
 

@@ -1,8 +1,8 @@
 local logger = require("logger")
-logger.warn("zen-coll: module loaded")
+logger.dbg("zen-coll: module loaded")
 
 local function apply_collections()
-    logger.warn("zen-coll: apply_collections() called")
+    logger.dbg("zen-coll: apply_collections() called")
 
     local FileManagerCollection = require("apps/filemanager/filemanagercollection")
     local Menu = require("ui/widget/menu")
@@ -1191,12 +1191,12 @@ local function apply_collections()
             local ok, err = pcall(_orig_searchCollections, self, coll_name)
             bookinfo.findInProps = orig_findInProps
             if not ok then
-                logger.warn("zen-coll: searchCollections error:", err)
+                logger.dbg("zen-coll: searchCollections error:", err)
             end
         end
     end
 
-    logger.warn("zen-coll: all hooks installed")
+    logger.dbg("zen-coll: all hooks installed")
 end
 
 return apply_collections
