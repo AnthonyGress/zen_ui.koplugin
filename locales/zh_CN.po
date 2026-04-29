@@ -47,6 +47,9 @@ msgstr "本章剩余 < 1 分钟"
 msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "为您的电子阅读器打造的极简、整洁界面。\n\n向左滑动或点击「下一步」继续。"
 
+msgid "A short summary of what went wrong"
+msgstr "简要描述出错的原因"
+
 msgid "A simple tab-based bar at the bottom of your library.\nFully customizable to make it your own"
 msgstr "图书馆底部的简洁标签栏。\n完全可自定义，随您所好。"
 
@@ -227,6 +230,9 @@ msgstr "底部"
 msgid "Bottom status bar"
 msgstr "底部状态栏"
 
+msgid "Brief description of the bug"
+msgstr "问题的简要描述"
+
 msgid "Brightness"
 msgstr "亮度"
 
@@ -235,6 +241,15 @@ msgstr "亮度定时"
 
 msgid "Browse your entire library organized by author or series.\nAccess these views anytime from the navigation bar."
 msgstr "按作者或系列浏览整个图书馆。\n随时从导航栏访问这些视图。"
+
+msgid "Bug description (optional)"
+msgstr "问题描述（可选）"
+
+msgid "Bug report submitted!"
+msgstr "报告已提交！"
+
+msgid "Bug report title"
+msgstr "问题报告标题"
 
 msgid "Bullet"
 msgstr "圆点"
@@ -345,6 +360,9 @@ msgstr "CoverBrowser 插件未启用，部分功能无法正常工作。"
 msgid "Covers"
 msgstr "封面"
 
+msgid "crash.log will be embedded in a public GitHub issue. It may contain file paths and book titles."
+msgstr "crash.log 将被嵌入到 GitHub 的公开 issue 中。可能包含文件路径和书籍标题。"
+
 msgid "Create this folder and use as home"
 msgstr "创建此文件夹并设为主目录"
 
@@ -410,6 +428,9 @@ msgstr "白天色温: "
 
 msgid "Debug logging"
 msgstr "调试日志"
+
+msgid "Debug logging must be enabled to submit bug reports."
+msgstr "提交问题报告前必须启用调试日志。"
 
 msgid "default"
 msgstr "默认"
@@ -519,6 +540,12 @@ msgstr "启用色温定时"
 msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "启用 Zen UI 对 OPDS 浏览器的增强：封面图、列表视图、长按菜单及导航改进。"
 
+msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
+msgstr "正在启用调试日志，需要重启。请重现问题后再提交报告。"
+
+msgid "Enter your GitHub username to be tagged in the issue"
+msgstr "输入您的 GitHub 用户名以在 issue 中被提及"
+
 msgid "Exit"
 msgstr "退出"
 
@@ -530,6 +557,9 @@ msgstr "提取元数据"
 
 msgid "Failed to remove existing plugin."
 msgstr "删除现有插件失败。"
+
+msgid "Failed to submit report: "
+msgstr "提交报告失败："
 
 msgid "Failed to unpack update."
 msgstr "解压更新包失败。"
@@ -605,6 +635,9 @@ msgstr "画廊视图"
 
 msgid "Get Started"
 msgstr "开始使用"
+
+msgid "GitHub username (optional)"
+msgstr "GitHub 用户名（可选）"
 
 msgid "Global"
 msgstr "全局"
@@ -852,6 +885,9 @@ msgstr "夜间色温: "
 msgid "No books found"
 msgstr "未找到书籍"
 
+msgid "No network connection. Please connect to Wi-Fi and try again."
+msgstr "无网络连接。请连接 Wi-Fi 后重试。"
+
 msgid "No reader engine for this file or invalid file."
 msgstr "此文件没有可用的阅读引擎或文件无效。"
 
@@ -1055,6 +1091,9 @@ msgstr "从收藏夹移除"
 
 msgid "Rename"
 msgstr "重命名"
+
+msgid "Report a Bug"
+msgstr "报告问题"
 
 msgid "Require hold to toggle buttons"
 msgstr "需要长按才能切换按钮"
@@ -1320,6 +1359,12 @@ msgstr "从页面串流"
 msgid "Styling"
 msgstr "样式"
 
+msgid "Submit"
+msgstr "提交"
+
+msgid "Submitting report…"
+msgstr "正在提交报告…"
+
 msgid "Swipe down to reach quick settings like brightness, Wi-Fi, night mode, zen mode and more."
 msgstr "向下滑动可访问快速设置，如亮度、Wi-Fi、夜间模式、禅模式等。"
 
@@ -1377,6 +1422,9 @@ msgstr "待读"
 msgid "Today"
 msgstr "今天"
 
+msgid "Too many requests. Please try again later."
+msgstr "请求过多，请稍后重试。"
+
 msgid "total books"
 msgstr "总书籍数"
 
@@ -1425,6 +1473,9 @@ msgstr "已更新至 %1"
 msgid "Updating…"
 msgstr "正在更新…"
 
+msgid "Updates"
+msgstr "更新"
+
 msgid "USB"
 msgstr "USB"
 
@@ -1439,6 +1490,9 @@ msgstr "使用主文件夹"
 
 msgid "Use last folder"
 msgstr "使用上次文件夹"
+
+msgid "username"
+msgstr "用户名"
 
 msgid "Verbose time to chapter end"
 msgstr "详细的章节剩余时间"

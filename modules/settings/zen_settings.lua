@@ -60,8 +60,6 @@ function M.build(plugin)
             })
         end,
     })
-    table.insert(general_items, updater.build_channel_item())
-    table.insert(general_items, updater.build_update_now_item(plugin))
 
     -- -------------------------------------------------------------------------
     -- Item ordering

@@ -47,6 +47,9 @@ msgstr "< 1 мин до конца главы"
 msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "Минималистичный, чистый и простой интерфейс для вашей электронной книги.\n\nПроведите пальцем или нажмите «Далее», чтобы продолжить."
 
+msgid "A short summary of what went wrong"
+msgstr "Краткое описание проблемы"
+
 msgid "A simple tab-based bar at the bottom of your library.\nFully customizable to make it your own"
 msgstr "Простая панель с вкладками внизу библиотеки.\nПолностью настраивается под вас."
 
@@ -227,6 +230,9 @@ msgstr "Снизу"
 msgid "Bottom status bar"
 msgstr "Нижняя строка состояния"
 
+msgid "Brief description of the bug"
+msgstr "Краткое описание ошибки"
+
 msgid "Brightness"
 msgstr "Яркость"
 
@@ -235,6 +241,15 @@ msgstr "Расписание яркости"
 
 msgid "Browse your entire library organized by author or series.\nAccess these views anytime from the navigation bar."
 msgstr "Просматривайте всю библиотеку, организованную по авторам или сериям.\nПерейти к этим представлениям можно в любое время из панели навигации."
+
+msgid "Bug description (optional)"
+msgstr "Описание ошибки (необязательно)"
+
+msgid "Bug report submitted!"
+msgstr "Отчёт отправлен!"
+
+msgid "Bug report title"
+msgstr "Заголовок отчёта об ошибке"
 
 msgid "Bullet"
 msgstr "Маркер"
@@ -345,6 +360,9 @@ msgstr "Плагин CoverBrowser не включён, некоторые фун
 msgid "Covers"
 msgstr "Обложки"
 
+msgid "crash.log will be embedded in a public GitHub issue. It may contain file paths and book titles."
+msgstr "Файл crash.log будет добавлен в публичную задачу на GitHub. Он может содержать пути к файлам и названия книг."
+
 msgid "Create this folder and use as home"
 msgstr "Создать папку и использовать как домашнюю"
 
@@ -410,6 +428,9 @@ msgstr "Тёплый свет (день): "
 
 msgid "Debug logging"
 msgstr "Журнал отладки"
+
+msgid "Debug logging must be enabled to submit bug reports."
+msgstr "Для отправки отчётов необходимо включить журналирование отладки."
 
 msgid "default"
 msgstr "по умолчанию"
@@ -519,6 +540,12 @@ msgstr "Включить расписание тёплого света"
 msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "Включить улучшения Zen UI для браузера OPDS: обложки, вид списка, меню удержания и улучшения навигации."
 
+msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
+msgstr "Включение журналирования отладки, требуется перезапуск. Воспроизведите проблему, затем отправьте отчёт."
+
+msgid "Enter your GitHub username to be tagged in the issue"
+msgstr "Введите имя пользователя GitHub, чтобы быть упомянутым в задаче"
+
 msgid "Exit"
 msgstr "Выход"
 
@@ -530,6 +557,9 @@ msgstr "Извлечь метаданные"
 
 msgid "Failed to remove existing plugin."
 msgstr "Не удалось удалить существующий плагин."
+
+msgid "Failed to submit report: "
+msgstr "Не удалось отправить отчёт: "
 
 msgid "Failed to unpack update."
 msgstr "Не удалось распаковать обновление."
@@ -605,6 +635,9 @@ msgstr "Вид галереи"
 
 msgid "Get Started"
 msgstr "Начать"
+
+msgid "GitHub username (optional)"
+msgstr "Имя пользователя GitHub (необязательно)"
 
 msgid "Global"
 msgstr "Глобальные"
@@ -852,6 +885,9 @@ msgstr "Тёплый свет (ночь): "
 msgid "No books found"
 msgstr "Книги не найдены"
 
+msgid "No network connection. Please connect to Wi-Fi and try again."
+msgstr "Нет подключения к сети. Подключитесь к Wi-Fi и повторите попытку."
+
 msgid "No reader engine for this file or invalid file."
 msgstr "Нет движка чтения для этого файла или файл недействителен."
 
@@ -1055,6 +1091,9 @@ msgstr "Удалить из избранного"
 
 msgid "Rename"
 msgstr "Переименовать"
+
+msgid "Report a Bug"
+msgstr "Сообщить об ошибке"
 
 msgid "Require hold to toggle buttons"
 msgstr "Требовать удержание для переключения кнопок"
@@ -1320,6 +1359,12 @@ msgstr "Поток со страницы"
 msgid "Styling"
 msgstr "Стиль"
 
+msgid "Submit"
+msgstr "Отправить"
+
+msgid "Submitting report…"
+msgstr "Отправка отчёта…"
+
 msgid "Swipe down to reach quick settings like brightness, Wi-Fi, night mode, zen mode and more."
 msgstr "Проведите вниз, чтобы открыть быстрые настройки: яркость, Wi-Fi, ночной режим, режим Zen и другое."
 
@@ -1377,6 +1422,9 @@ msgstr "Для чтения"
 msgid "Today"
 msgstr "Сегодня"
 
+msgid "Too many requests. Please try again later."
+msgstr "Слишком много запросов. Повторите попытку позже."
+
 msgid "total books"
 msgstr "всего книг"
 
@@ -1425,6 +1473,9 @@ msgstr "Обновлено до %1"
 msgid "Updating…"
 msgstr "Обновление…"
 
+msgid "Updates"
+msgstr "Обновления"
+
 msgid "USB"
 msgstr "USB"
 
@@ -1439,6 +1490,9 @@ msgstr "Использовать домашнюю папку"
 
 msgid "Use last folder"
 msgstr "Использовать последнюю папку"
+
+msgid "username"
+msgstr "имя пользователя"
 
 msgid "Verbose time to chapter end"
 msgstr "Подробное время до конца главы"

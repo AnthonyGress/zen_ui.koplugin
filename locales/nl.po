@@ -47,6 +47,9 @@ msgstr "< 1 min resterend in hoofdstuk"
 msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "Een minimale, strakke en eenvoudige interface voor je e-reader.\n\nVeeg of tik op Volgende om door te gaan."
 
+msgid "A short summary of what went wrong"
+msgstr "Een korte samenvatting van wat er mis is gegaan"
+
 msgid "A simple tab-based bar at the bottom of your library.\nFully customizable to make it your own"
 msgstr "Een eenvoudige tabbladenbalk onderaan je bibliotheek.\nVolledig aanpasbaar naar jouw wens."
 
@@ -227,6 +230,9 @@ msgstr "Onderkant"
 msgid "Bottom status bar"
 msgstr "Onderste statusbalk"
 
+msgid "Brief description of the bug"
+msgstr "Korte beschrijving van de fout"
+
 msgid "Brightness"
 msgstr "Helderheid"
 
@@ -235,6 +241,15 @@ msgstr "Helderheidsplanning"
 
 msgid "Browse your entire library organized by author or series.\nAccess these views anytime from the navigation bar."
 msgstr "Blader door je bibliotheek georganiseerd op auteur of reeks.\nToegang tot deze weergaven op elk moment via de navigatiebalk."
+
+msgid "Bug description (optional)"
+msgstr "Beschrijving van de fout (optioneel)"
+
+msgid "Bug report submitted!"
+msgstr "Foutrapport ingediend!"
+
+msgid "Bug report title"
+msgstr "Titel van het foutrapport"
 
 msgid "Bullet"
 msgstr "Opsommingsteken"
@@ -345,6 +360,9 @@ msgstr "De CoverBrowser-plugin is niet ingeschakeld, sommige functies werken nie
 msgid "Covers"
 msgstr "Omslagen"
 
+msgid "crash.log will be embedded in a public GitHub issue. It may contain file paths and book titles."
+msgstr "Het bestand crash.log wordt toegevoegd aan een openbare GitHub-issue. Het kan bestandspaden en boektitels bevatten."
+
 msgid "Create this folder and use as home"
 msgstr "Maak map aan en gebruik als startmap"
 
@@ -410,6 +428,9 @@ msgstr "Dagwarmte: "
 
 msgid "Debug logging"
 msgstr "Debug-logboek"
+
+msgid "Debug logging must be enabled to submit bug reports."
+msgstr "Foutopsporing moet ingeschakeld zijn om foutrapporten te versturen."
 
 msgid "default"
 msgstr "standaard"
@@ -519,6 +540,12 @@ msgstr "Warmteplanning inschakelen"
 msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "Zen UI-verbeteringen voor de OPDS-browser inschakelen: omslagafbeeldingen, lijstweergave, houdmenu en navigatieverbeteringen."
 
+msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
+msgstr "Foutopsporing wordt ingeschakeld, herstart vereist. Reproduceer het probleem en dien daarna het rapport in."
+
+msgid "Enter your GitHub username to be tagged in the issue"
+msgstr "Voer je GitHub-gebruikersnaam in om vermeld te worden in de issue"
+
 msgid "Exit"
 msgstr "Afsluiten"
 
@@ -530,6 +557,9 @@ msgstr "Metagegevens extraheren"
 
 msgid "Failed to remove existing plugin."
 msgstr "Verwijderen van bestaande plugin mislukt."
+
+msgid "Failed to submit report: "
+msgstr "Indienen van rapport mislukt: "
 
 msgid "Failed to unpack update."
 msgstr "Uitpakken van update mislukt."
@@ -605,6 +635,9 @@ msgstr "Galerieweergave"
 
 msgid "Get Started"
 msgstr "Aan de slag"
+
+msgid "GitHub username (optional)"
+msgstr "GitHub-gebruikersnaam (optioneel)"
 
 msgid "Global"
 msgstr "Globaal"
@@ -852,6 +885,9 @@ msgstr "Nachtwarmte: "
 msgid "No books found"
 msgstr "Geen boeken gevonden"
 
+msgid "No network connection. Please connect to Wi-Fi and try again."
+msgstr "Geen netwerkverbinding. Maak verbinding met Wi-Fi en probeer opnieuw."
+
 msgid "No reader engine for this file or invalid file."
 msgstr "Geen leesmotor voor dit bestand of ongeldig bestand."
 
@@ -1055,6 +1091,9 @@ msgstr "Verwijderen uit favorieten"
 
 msgid "Rename"
 msgstr "Hernoemen"
+
+msgid "Report a Bug"
+msgstr "Een fout melden"
 
 msgid "Require hold to toggle buttons"
 msgstr "Lang indrukken vereist om knoppen te schakelen"
@@ -1320,6 +1359,12 @@ msgstr "Streamen vanaf pagina"
 msgid "Styling"
 msgstr "Stijl"
 
+msgid "Submit"
+msgstr "Indienen"
+
+msgid "Submitting report…"
+msgstr "Rapport indienen…"
+
 msgid "Swipe down to reach quick settings like brightness, Wi-Fi, night mode, zen mode and more."
 msgstr "Veeg naar beneden voor snelle instellingen zoals helderheid, Wi-Fi, nachtmodus, zen-modus en meer."
 
@@ -1377,6 +1422,9 @@ msgstr "Te lezen"
 msgid "Today"
 msgstr "Vandaag"
 
+msgid "Too many requests. Please try again later."
+msgstr "Te veel verzoeken. Probeer het later opnieuw."
+
 msgid "total books"
 msgstr "totaal boeken"
 
@@ -1425,6 +1473,9 @@ msgstr "Bijgewerkt naar %1"
 msgid "Updating…"
 msgstr "Bijwerken…"
 
+msgid "Updates"
+msgstr "Updates"
+
 msgid "USB"
 msgstr "USB"
 
@@ -1439,6 +1490,9 @@ msgstr "Startmap gebruiken"
 
 msgid "Use last folder"
 msgstr "Laatste map gebruiken"
+
+msgid "username"
+msgstr "gebruikersnaam"
 
 msgid "Verbose time to chapter end"
 msgstr "Gedetailleerde tijd tot einde hoofdstuk"

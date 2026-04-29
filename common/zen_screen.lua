@@ -193,10 +193,14 @@ function ZenScreen:paintTo(bb, x, y)
                     alpha  = true,
                 }
                 local isz = iw:getSize()
-                iw:paintTo(bb,
-                    x + math.floor((L.sw - isz.w) / 2),
-                    content_y + math.floor((logo_h - isz.h) / 2))
+                local lx = x + math.floor((L.sw - isz.w) / 2)
+                local ly = content_y + math.floor((logo_h - isz.h) / 2)
+                iw:paintTo(bb, lx, ly)
                 iw:free()
+                -- Invert the logo region so it reads correctly on dark background.
+                if Screen.night_mode then
+                    bb:invertRect(lx, ly, isz.w, isz.h)
+                end
             end)
         end
     end

@@ -47,6 +47,9 @@ msgstr "< 1 min rămas în capitol"
 msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "O interfață minimală, curată și simplă pentru e-reader-ul tău.\n\nGlisați sau atingeți Înainte pentru a continua."
 
+msgid "A short summary of what went wrong"
+msgstr "Un scurt rezumat al problemei"
+
 msgid "A simple tab-based bar at the bottom of your library.\nFully customizable to make it your own"
 msgstr "O bară simplă cu file în partea de jos a bibliotecii dvs.\nComplet personalizabilă după cum doriți."
 
@@ -227,6 +230,9 @@ msgstr "Jos"
 msgid "Bottom status bar"
 msgstr "Bara de stare inferioară"
 
+msgid "Brief description of the bug"
+msgstr "Descriere scurtă a erorii"
+
 msgid "Brightness"
 msgstr "Luminozitate"
 
@@ -235,6 +241,15 @@ msgstr "Planificare luminozitate"
 
 msgid "Browse your entire library organized by author or series.\nAccess these views anytime from the navigation bar."
 msgstr "Răsfoiți întreaga bibliotecă organizată pe autori sau serii.\nAccesați aceste vizualizări oricând din bara de navigare."
+
+msgid "Bug description (optional)"
+msgstr "Descrierea erorii (opțional)"
+
+msgid "Bug report submitted!"
+msgstr "Raport trimis!"
+
+msgid "Bug report title"
+msgstr "Titlul raportului de eroare"
 
 msgid "Bullet"
 msgstr "Punct"
@@ -345,6 +360,9 @@ msgstr "Pluginul CoverBrowser nu este activat, unele funcții nu vor funcționa 
 msgid "Covers"
 msgstr "Coperte"
 
+msgid "crash.log will be embedded in a public GitHub issue. It may contain file paths and book titles."
+msgstr "Fișierul crash.log va fi inclus într-o problemă publică pe GitHub. Poate conține căi de fișiere și titluri de cărți."
+
 msgid "Create this folder and use as home"
 msgstr "Creați acest dosar și utilizați-l ca dosar principal"
 
@@ -410,6 +428,9 @@ msgstr "Căldură zi: "
 
 msgid "Debug logging"
 msgstr "Jurnal de depanare"
+
+msgid "Debug logging must be enabled to submit bug reports."
+msgstr "Jurnalizarea de depanare trebuie activată pentru a trimite rapoarte."
 
 msgid "default"
 msgstr "implicit"
@@ -519,6 +540,12 @@ msgstr "Activare planificare căldură"
 msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "Activați îmbunătățirile Zen UI pentru browserul OPDS: coperte, vizualizare listă, meniu la apăsare lungă și îmbunătățiri de navigare."
 
+msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
+msgstr "Se activează jurnalizarea de depanare, este necesar un repornire. Reproduceți problema, apoi trimiteți raportul."
+
+msgid "Enter your GitHub username to be tagged in the issue"
+msgstr "Introduceți numele dvs. de utilizator GitHub pentru a fi menționat în problemă"
+
 msgid "Exit"
 msgstr "Ieșire"
 
@@ -530,6 +557,9 @@ msgstr "Extrage metadate"
 
 msgid "Failed to remove existing plugin."
 msgstr "Nu s-a putut elimina pluginul existent."
+
+msgid "Failed to submit report: "
+msgstr "Trimiterea raportului a eșuat: "
 
 msgid "Failed to unpack update."
 msgstr "Nu s-a putut dezarhiva actualizarea."
@@ -605,6 +635,9 @@ msgstr "Vizualizare galerie"
 
 msgid "Get Started"
 msgstr "Începeți"
+
+msgid "GitHub username (optional)"
+msgstr "Nume utilizator GitHub (opțional)"
 
 msgid "Global"
 msgstr "Global"
@@ -852,6 +885,9 @@ msgstr "Căldură noapte: "
 msgid "No books found"
 msgstr "Nu s-au găsit cărți"
 
+msgid "No network connection. Please connect to Wi-Fi and try again."
+msgstr "Fără conexiune la rețea. Conectați-vă la Wi-Fi și încercați din nou."
+
 msgid "No reader engine for this file or invalid file."
 msgstr "Niciun motor de citire pentru acest fișier sau fișier invalid."
 
@@ -1055,6 +1091,9 @@ msgstr "Elimină din favorite"
 
 msgid "Rename"
 msgstr "Redenumește"
+
+msgid "Report a Bug"
+msgstr "Raportează o eroare"
 
 msgid "Require hold to toggle buttons"
 msgstr "Necesită apăsare lungă pentru a comuta butoanele"
@@ -1320,6 +1359,12 @@ msgstr "Flux de la pagina"
 msgid "Styling"
 msgstr "Stil"
 
+msgid "Submit"
+msgstr "Trimite"
+
+msgid "Submitting report…"
+msgstr "Se trimite raportul…"
+
 msgid "Swipe down to reach quick settings like brightness, Wi-Fi, night mode, zen mode and more."
 msgstr "Glisați în jos pentru a accesa setările rapide: luminozitate, Wi-Fi, mod noapte, mod zen și altele."
 
@@ -1377,6 +1422,9 @@ msgstr "De citit"
 msgid "Today"
 msgstr "Azi"
 
+msgid "Too many requests. Please try again later."
+msgstr "Prea multe cereri. Încercați din nou mai târziu."
+
 msgid "total books"
 msgstr "total cărți"
 
@@ -1425,6 +1473,9 @@ msgstr "Actualizat la %1"
 msgid "Updating…"
 msgstr "Se actualizează…"
 
+msgid "Updates"
+msgstr "Actualizări"
+
 msgid "USB"
 msgstr "USB"
 
@@ -1439,6 +1490,9 @@ msgstr "Folosește dosarul principal"
 
 msgid "Use last folder"
 msgstr "Folosește ultimul dosar"
+
+msgid "username"
+msgstr "nume utilizator"
 
 msgid "Verbose time to chapter end"
 msgstr "Timp detaliat până la sfârșitul capitolului"

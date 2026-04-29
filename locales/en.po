@@ -46,6 +46,9 @@ msgstr "< 1 min left in chapter"
 msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
 
+msgid "A short summary of what went wrong"
+msgstr "A short summary of what went wrong"
+
 msgid "A simple tab-based bar at the bottom of your library.\nFully customizable to make it your own"
 msgstr "A simple tab-based bar at the bottom of your library.\nFully customizable to make it your own"
 
@@ -223,6 +226,9 @@ msgstr "Bottom"
 msgid "Bottom status bar"
 msgstr "Bottom status bar"
 
+msgid "Brief description of the bug"
+msgstr "Brief description of the bug"
+
 msgid "Brightness"
 msgstr "Brightness"
 
@@ -231,6 +237,15 @@ msgstr "Brightness schedule"
 
 msgid "Browse your entire library organized by author or series.\nAccess these views anytime from the navigation bar."
 msgstr "Browse your entire library organized by author or series.\nAccess these views anytime from the navigation bar."
+
+msgid "Bug description (optional)"
+msgstr "Bug description (optional)"
+
+msgid "Bug report submitted!"
+msgstr "Bug report submitted!"
+
+msgid "Bug report title"
+msgstr "Bug report title"
 
 msgid "Bullet"
 msgstr "Bullet"
@@ -341,6 +356,9 @@ msgstr "CoverBrowser plugin is not enabled, some features will not work correctl
 msgid "Covers"
 msgstr "Covers"
 
+msgid "crash.log will be embedded in a public GitHub issue. It may contain file paths and book titles."
+msgstr "crash.log will be embedded in a public GitHub issue. It may contain file paths and book titles."
+
 msgid "Create this folder and use as home"
 msgstr "Create this folder and use as home"
 
@@ -406,6 +424,9 @@ msgstr "Day warmth: "
 
 msgid "Debug logging"
 msgstr "Debug logging"
+
+msgid "Debug logging must be enabled to submit bug reports."
+msgstr "Debug logging must be enabled to submit bug reports."
 
 msgid "default"
 msgstr "default"
@@ -515,6 +536,12 @@ msgstr "Enable warmth schedule"
 msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 
+msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
+msgstr "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
+
+msgid "Enter your GitHub username to be tagged in the issue"
+msgstr "Enter your GitHub username to be tagged in the issue"
+
 msgid "Exit"
 msgstr "Exit"
 
@@ -526,6 +553,9 @@ msgstr "Extract metadata"
 
 msgid "Failed to remove existing plugin."
 msgstr "Failed to remove existing plugin."
+
+msgid "Failed to submit report: "
+msgstr "Failed to submit report: "
 
 msgid "Failed to unpack update."
 msgstr "Failed to unpack update."
@@ -601,6 +631,9 @@ msgstr "Gallery view"
 
 msgid "Get Started"
 msgstr "Get Started"
+
+msgid "GitHub username (optional)"
+msgstr "GitHub username (optional)"
 
 msgid "Global"
 msgstr "Global"
@@ -842,6 +875,9 @@ msgstr "Night warmth: "
 msgid "No books found"
 msgstr "No books found"
 
+msgid "No network connection. Please connect to Wi-Fi and try again."
+msgstr "No network connection. Please connect to Wi-Fi and try again."
+
 msgid "No reader engine for this file or invalid file."
 msgstr "No reader engine for this file or invalid file."
 
@@ -1045,6 +1081,9 @@ msgstr "Remove from favorites"
 
 msgid "Rename"
 msgstr "Rename"
+
+msgid "Report a Bug"
+msgstr "Report a Bug"
 
 msgid "Require hold to toggle buttons"
 msgstr "Require hold to toggle buttons"
@@ -1307,6 +1346,12 @@ msgstr "Stream from page"
 msgid "Styling"
 msgstr "Styling"
 
+msgid "Submit"
+msgstr "Submit"
+
+msgid "Submitting report…"
+msgstr "Submitting report…"
+
 msgid "Swipe down to reach quick settings like brightness, Wi-Fi, night mode, zen mode and more."
 msgstr "Swipe down to reach quick settings like brightness, Wi-Fi, night mode, zen mode and more."
 
@@ -1364,6 +1409,9 @@ msgstr "To Be Read"
 msgid "Today"
 msgstr "Today"
 
+msgid "Too many requests. Please try again later."
+msgstr "Too many requests. Please try again later."
+
 msgid "total books"
 msgstr "total books"
 
@@ -1412,6 +1460,9 @@ msgstr "Updated to %1"
 msgid "Updating…"
 msgstr "Updating…"
 
+msgid "Updates"
+msgstr "Updates"
+
 msgid "USB"
 msgstr "USB"
 
@@ -1426,6 +1477,9 @@ msgstr "Use home folder"
 
 msgid "Use last folder"
 msgstr "Use last folder"
+
+msgid "username"
+msgstr "username"
 
 msgid "Verbose time to chapter end"
 msgstr "Verbose time to chapter end"

@@ -47,6 +47,9 @@ msgstr "< 1 min restante no capítulo"
 msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "Uma interface mínima, limpa e simples para o seu e-reader.\n\nDeslize ou toque em Próximo para continuar."
 
+msgid "A short summary of what went wrong"
+msgstr "Um breve resumo do que deu errado"
+
 msgid "A simple tab-based bar at the bottom of your library.\nFully customizable to make it your own"
 msgstr "Uma barra simples com abas na parte inferior da sua biblioteca.\nTotalmente personalizável do seu jeito."
 
@@ -227,6 +230,9 @@ msgstr "Inferior"
 msgid "Bottom status bar"
 msgstr "Barra de status inferior"
 
+msgid "Brief description of the bug"
+msgstr "Descrição breve do bug"
+
 msgid "Brightness"
 msgstr "Brilho"
 
@@ -235,6 +241,15 @@ msgstr "Programação de brilho"
 
 msgid "Browse your entire library organized by author or series.\nAccess these views anytime from the navigation bar."
 msgstr "Explore sua biblioteca organizada por autor ou série.\nAcesse essas visualizações a qualquer momento pela barra de navegação."
+
+msgid "Bug description (optional)"
+msgstr "Descrição do bug (opcional)"
+
+msgid "Bug report submitted!"
+msgstr "Relatório enviado!"
+
+msgid "Bug report title"
+msgstr "Título do relatório de bug"
 
 msgid "Bullet"
 msgstr "Marcador"
@@ -345,6 +360,9 @@ msgstr "O plugin CoverBrowser não está ativado; alguns recursos podem não fun
 msgid "Covers"
 msgstr "Capas"
 
+msgid "crash.log will be embedded in a public GitHub issue. It may contain file paths and book titles."
+msgstr "O arquivo crash.log será anexado a uma issue pública no GitHub. Pode conter caminhos de arquivos e títulos de livros."
+
 msgid "Create this folder and use as home"
 msgstr "Criar esta pasta e usar como inicial"
 
@@ -410,6 +428,9 @@ msgstr "Tonalidade quente diurna: "
 
 msgid "Debug logging"
 msgstr "Registro de depuração"
+
+msgid "Debug logging must be enabled to submit bug reports."
+msgstr "O registro de depuração deve estar ativado para enviar relatórios."
 
 msgid "default"
 msgstr "padrão"
@@ -519,6 +540,12 @@ msgstr "Ativar programação de tonalidade quente"
 msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "Ativar melhorias do Zen UI no navegador OPDS: arte de capa, visualização em lista, menu de pressão e melhorias de navegação."
 
+msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
+msgstr "Ativando o registro de depuração, reinicialização necessária. Reproduza o problema e envie o relatório."
+
+msgid "Enter your GitHub username to be tagged in the issue"
+msgstr "Digite seu nome de usuário do GitHub para ser mencionado na issue"
+
 msgid "Exit"
 msgstr "Sair"
 
@@ -530,6 +557,9 @@ msgstr "Extrair metadados"
 
 msgid "Failed to remove existing plugin."
 msgstr "Falha ao remover o plugin existente."
+
+msgid "Failed to submit report: "
+msgstr "Falha ao enviar o relatório: "
 
 msgid "Failed to unpack update."
 msgstr "Falha ao descompactar a atualização."
@@ -605,6 +635,9 @@ msgstr "Visualização em galeria"
 
 msgid "Get Started"
 msgstr "Começar"
+
+msgid "GitHub username (optional)"
+msgstr "Nome de usuário do GitHub (opcional)"
 
 msgid "Global"
 msgstr "Global"
@@ -852,6 +885,9 @@ msgstr "Tonalidade quente noturna: "
 msgid "No books found"
 msgstr "Nenhum livro encontrado"
 
+msgid "No network connection. Please connect to Wi-Fi and try again."
+msgstr "Sem conexão de rede. Conecte-se ao Wi-Fi e tente novamente."
+
 msgid "No reader engine for this file or invalid file."
 msgstr "Nenhum mecanismo de leitura para este arquivo ou arquivo inválido."
 
@@ -1055,6 +1091,9 @@ msgstr "Remover dos favoritos"
 
 msgid "Rename"
 msgstr "Renomear"
+
+msgid "Report a Bug"
+msgstr "Reportar um bug"
 
 msgid "Require hold to toggle buttons"
 msgstr "Requer pressão longa para alternar botões"
@@ -1320,6 +1359,12 @@ msgstr "Transmitir da página"
 msgid "Styling"
 msgstr "Estilo"
 
+msgid "Submit"
+msgstr "Enviar"
+
+msgid "Submitting report…"
+msgstr "Enviando relatório…"
+
 msgid "Swipe down to reach quick settings like brightness, Wi-Fi, night mode, zen mode and more."
 msgstr "Deslize para baixo para acessar configurações rápidas como brilho, Wi-Fi, modo noturno, modo zen e mais."
 
@@ -1377,6 +1422,9 @@ msgstr "Para ler"
 msgid "Today"
 msgstr "Hoje"
 
+msgid "Too many requests. Please try again later."
+msgstr "Muitas solicitações. Tente novamente mais tarde."
+
 msgid "total books"
 msgstr "total de livros"
 
@@ -1425,6 +1473,9 @@ msgstr "Atualizado para %1"
 msgid "Updating…"
 msgstr "Atualizando…"
 
+msgid "Updates"
+msgstr "Atualizações"
+
 msgid "USB"
 msgstr "USB"
 
@@ -1439,6 +1490,9 @@ msgstr "Usar pasta inicial"
 
 msgid "Use last folder"
 msgstr "Usar última pasta"
+
+msgid "username"
+msgstr "nome de usuário"
 
 msgid "Verbose time to chapter end"
 msgstr "Tempo detalhado até o final do capítulo"
