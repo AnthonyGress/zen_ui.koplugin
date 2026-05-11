@@ -1022,6 +1022,12 @@ local function apply_quick_settings()
                 self._qs_slider_locked = false
             end)
         end
+        -- Preserve keyboard focus position before clearing layout so toggle
+        -- callbacks can rebuild without jumping focus back to the tab bar.
+        local old_selected
+        if self.selected then
+            old_selected = { x = self.selected.x, y = self.selected.y }
+        end
         self.item_group:clear()
         self.layout = {}
         table.insert(self.item_group, self.bar)
@@ -1054,7 +1060,18 @@ local function apply_quick_settings()
         local old_dimen = self.dimen:copy()
         self.dimen.w = self.width
         self.dimen.h = self.item_group:getSize().h + self.bordersize * 2 + self.padding
-        self:moveFocusTo(self.cur_tab, 1, FocusManager.NOT_FOCUS)
+        -- Restore keyboard focus to the same position after rebuild; fall
+        -- back to the tab bar only if the old slot no longer exists.
+        if old_selected then
+            local row = self.layout[old_selected.y]
+            if row and row[old_selected.x] then
+                self:moveFocusTo(old_selected.x, old_selected.y, 0)
+            else
+                self:moveFocusTo(self.cur_tab, 1, FocusManager.NOT_FOCUS)
+            end
+        else
+            self:moveFocusTo(self.cur_tab, 1, FocusManager.NOT_FOCUS)
+        end
 
         local keep_bg = old_dimen and self.dimen.h >= old_dimen.h
         UIManager:setDirty((self.is_fresh or keep_bg) and self.show_parent or "all", function()
