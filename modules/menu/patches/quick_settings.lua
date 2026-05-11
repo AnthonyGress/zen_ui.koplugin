@@ -738,6 +738,20 @@ local function apply_quick_settings()
                     icon,
                 },
             }
+            circle.onFocus = function(self)
+                self.invert = true
+                if self.dimen then
+                    UIManager:setDirty(nil, "ui", self.dimen)
+                end
+                return true
+            end
+            circle.onUnfocus = function(self)
+                self.invert = false
+                if self.dimen then
+                    UIManager:setDirty(nil, "ui", self.dimen)
+                end
+                return true
+            end
             local label = TextWidget:new{
                 text = label_text,
                 face = label_font,
@@ -753,6 +767,7 @@ local function apply_quick_settings()
         end
 
         local top_row = HorizontalGroup:new{ align = "center" }
+        refs.button_layout_row = {}
 
         if num_buttons > 0 then
             local btn_gap = math.floor((inner_width - num_buttons * action_btn_size) / math.max(num_buttons - 1, 1))
@@ -777,6 +792,7 @@ local function apply_quick_settings()
                         def.hold_callback(touch_menu)
                     end or nil,
                 })
+                table.insert(refs.button_layout_row, btn_circle)
 
                 table.insert(top_row, btn_widget)
                 if i < num_buttons then
@@ -1015,6 +1031,11 @@ local function apply_quick_settings()
         local panel_fn = self.item_table.panel
         local panel = type(panel_fn) == "function" and panel_fn(self) or panel_fn
         table.insert(self.item_group, panel)
+
+        local qs_refs = self._qs_refs
+        if qs_refs and qs_refs.button_layout_row and #qs_refs.button_layout_row > 0 then
+            table.insert(self.layout, qs_refs.button_layout_row)
+        end
 
         -- Footer (no pagination)
         table.insert(self.item_group, self.footer_top_margin)
