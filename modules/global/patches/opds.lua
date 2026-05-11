@@ -131,6 +131,35 @@ local function apply_opds()
     local PAD   = Size.padding.small
     local PAD_V = 6
 
+    local function set_focus_visual(widget, focused)
+        if not widget or not widget[1] then return end
+        local frame = widget[1]
+        frame.invert = focused and true or false
+        if frame.dimen then
+            UIManager:setDirty(nil, "ui", frame.dimen)
+        elseif widget.dimen then
+            UIManager:setDirty(nil, "ui", widget.dimen)
+        end
+    end
+
+    local function snapshot_focus(menu)
+        if menu and menu.selected then
+            return { x = menu.selected.x, y = menu.selected.y }
+        end
+    end
+
+    local function restore_focus(menu, old_selected)
+        if not menu then return end
+        if old_selected then
+            local row = menu.layout and menu.layout[old_selected.y]
+            if row and row[old_selected.x] then
+                menu:moveFocusTo(old_selected.x, old_selected.y, 0)
+                return
+            end
+        end
+        menu:moveFocusTo(1, 1, 0)
+    end
+
     local _corner_radius = Screen:scaleBySize(8)
     local _plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
@@ -268,6 +297,7 @@ local function apply_opds()
             width = self.item_w, height = self.item_h,
             bordersize = 0, padding = 0,
             background = Blitbuffer.COLOR_WHITE,
+            focusable = false,
             VGroup:new{
                 align = "left",
                 VSpan:new{ width = PAD_V },
@@ -308,6 +338,16 @@ local function apply_opds()
         self:init()
         local dimen = Geom:new{ x = x, y = y, w = self.item_w, h = self.item_h }
         UIManager:setDirty(self.show_parent, function() return "ui", dimen end)
+    end
+
+    function OPDSItem:onFocus()
+        set_focus_visual(self, true)
+        return true
+    end
+
+    function OPDSItem:onUnfocus()
+        set_focus_visual(self, false)
+        return true
     end
 
     function OPDSItem:onTapSelect()
@@ -395,8 +435,19 @@ local function apply_opds()
             width = self.cell_w, height = self.cell_h,
             bordersize = 0, padding = 0,
             background = Blitbuffer.COLOR_WHITE,
+            focusable = false,
             inner,
         }
+    end
+
+    function OPDSMosaicItem:onFocus()
+        set_focus_visual(self, true)
+        return true
+    end
+
+    function OPDSMosaicItem:onUnfocus()
+        set_focus_visual(self, false)
+        return true
     end
 
     function OPDSMosaicItem:paintTo(bb, x, y)
@@ -437,6 +488,7 @@ local function apply_opds()
         if #(self.paths or {}) == 0 then
             if self._zen_halt then self._zen_halt(); self._zen_halt = nil end
             local old_dimen = self.dimen and self.dimen:copy()
+            local old_selected = snapshot_focus(self)
             self.layout = {}
             self.item_group:clear()
             self.page_info:resetLayout()
@@ -487,6 +539,7 @@ local function apply_opds()
 
             self:updatePageInfo(select_number)
             self:mergeTitleBarIntoLayout()
+            restore_focus(self, old_selected)
             UIManager:setDirty(self.show_parent, function()
                 local rd = old_dimen and old_dimen:combine(self.dimen) or self.dimen
                 return "ui", rd
@@ -528,6 +581,7 @@ local function apply_opds()
         logger.dbg("OPDS updateItems: display_mode=", display_mode, "mosaic=", mosaic_mode)
 
         local old_dimen = self.dimen and self.dimen:copy()
+        local old_selected = snapshot_focus(self)
         self.layout = {}
         self.item_group:clear()
         self.page_info:resetLayout()
@@ -672,6 +726,7 @@ local function apply_opds()
 
         self:updatePageInfo(select_number)
         self:mergeTitleBarIntoLayout()
+        restore_focus(self, old_selected)
         UIManager:setDirty(self.show_parent, function()
             local rd = old_dimen and old_dimen:combine(self.dimen) or self.dimen
             return "ui", rd
