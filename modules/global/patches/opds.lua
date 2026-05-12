@@ -33,7 +33,8 @@ local function apply_opds()
     local VGroup          = require("ui/widget/verticalgroup")
     local VSpan           = require("ui/widget/verticalspan")
     local logger          = require("logger")
-    local Screen          = require("device").screen
+    local Device          = require("device")
+    local Screen          = Device.screen
 
     -- Cover cache: [url] → { bb } | { failed = true }  (session-scoped)
     local _cover_cache = {}
@@ -753,6 +754,17 @@ local function apply_opds()
 
     -- ── Navigation buttons ───────────────────────────────────────────────────
 
+    local function activate_right_button(browser)
+        local in_catalog = #browser.paths > 0
+        if in_catalog and browser.search_url then
+            browser:searchCatalog(browser.search_url)
+        elseif browser.facet_groups then
+            browser:showFacetMenu()
+        else
+            browser:showOPDSMenu()
+        end
+    end
+
     local function fix_buttons(browser)
         if browser.title_bar then
             browser.title_bar:setLeftIcon("chevron.left")
@@ -771,15 +783,29 @@ local function apply_opds()
             local right_icon = (in_catalog and has_search) and "appbar.search" or "appbar.menu"
             browser.title_bar:setRightIcon(right_icon)
             browser.title_bar.right_button.callback = function()
-                if in_catalog and browser.search_url then
-                    browser:searchCatalog(browser.search_url)
-                elseif browser.facet_groups then
-                    browser:showFacetMenu()
-                else
-                    browser:showOPDSMenu()
-                end
+                activate_right_button(browser)
             end
         end
+
+        if Device:hasKeys() then
+            browser.key_events = browser.key_events or {}
+            -- Stock Menu binds the physical Menu key to LeftButtonTap.  Zen UI
+            -- moves OPDS navigation/back to the left button and the OPDS menu
+            -- to the right button, so override that inherited binding here.
+            browser.key_events.LeftButtonTap = {
+                { "Menu" },
+                event = "ZenOPDSMenu",
+            }
+            browser.key_events.ZenOPDSMenu = {
+                { "Menu" },
+                event = "ZenOPDSMenu",
+            }
+        end
+    end
+
+    function OPDSBrowser:onZenOPDSMenu()
+        activate_right_button(self)
+        return true
     end
 
     local orig_init = OPDSBrowser.init
