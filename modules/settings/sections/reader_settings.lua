@@ -390,6 +390,185 @@ function M.build(ctx)
     })
 
     -- -------------------------------------------------------------------------
+    -- Cover Mode
+    -- -------------------------------------------------------------------------
+    
+    -- Helper function: get coverable drawer types
+    local function getCoveredDrawers()
+        return G_reader_settings:readSetting("cover_mode_drawers", {lighten = true})
+    end
+    
+    -- Helper function: save coverable drawer types and refresh
+    local function saveCoveredDrawers(drawers)
+        G_reader_settings:saveSetting("cover_mode_drawers", drawers)
+        local ReaderUI = require("apps/reader/readerui")
+        if ReaderUI and ReaderUI.instance and ReaderUI.instance.view then
+            if ReaderUI.instance.view.recalculate then
+                ReaderUI.instance.view:recalculate()
+            end
+            ReaderUI.instance:handleEvent(Event:new("RedrawCurrentView"))
+            UIManager:setDirty(nil, "full")
+        end
+    end
+    
+    -- Build coverable drawer types submenu
+    local function buildDrawerSettingsSubMenu()
+        local sub_items = {}
+        local drawer_names = {
+            lighten = _("Highlight"),
+            underscore = _("Underline"),
+            strikeout = _("Strikethrough"),
+            invert = _("Invert"),
+        }
+        
+        for drawer, name in pairs(drawer_names) do
+            table.insert(sub_items, {
+                text = name,
+                checked_func = function()
+                    local covered = getCoveredDrawers()
+                    return covered[drawer] == true
+                end,
+                callback = function(touchmenu_instance)
+                    local covered = getCoveredDrawers()
+                    covered[drawer] = not covered[drawer]
+                    saveCoveredDrawers(covered)
+                    if touchmenu_instance then
+                        touchmenu_instance:updateItems()
+                    end
+                end,
+            })
+        end
+        return sub_items
+    end
+    
+    table.insert(items, {
+        text = _("Cover Mode"),
+        sub_item_table = {
+            -- Enable Cover - directly uses original setting
+            {
+                text = _("Enable Cover"),
+                checked_func = function()
+                    return G_reader_settings:readSetting("cover_mode_enabled", true)
+                end,
+                callback = function(touchmenu_instance)
+                    local new_value = not G_reader_settings:readSetting("cover_mode_enabled", true)
+                    G_reader_settings:saveSetting("cover_mode_enabled", new_value)
+                    local Notification = require("ui/widget/notification")
+                    if new_value then
+                        Notification:notify(_("Cover mode enabled"))
+                    else
+                        Notification:notify(_("Cover mode disabled"))
+                    end
+                    local ReaderUI = require("apps/reader/readerui")
+                    if ReaderUI and ReaderUI.instance then
+                        if ReaderUI.instance.view and ReaderUI.instance.view.recalculate then
+                            ReaderUI.instance.view:recalculate()
+                        end
+                        ReaderUI.instance:handleEvent(Event:new("RedrawCurrentView"))
+                        UIManager:setDirty(nil, "full")
+                    end
+                    if touchmenu_instance then
+                        touchmenu_instance:updateItems()
+                    end
+                end,
+            },
+            
+            -- Cover all / Uncover all
+            {
+                text = _("Cover All / Uncover All"),
+                enabled_func = function()
+                    return G_reader_settings:readSetting("cover_mode_enabled", true)
+                end,
+                checked_func = function()
+                    local ReaderUI = require("apps/reader/readerui")
+                    if not ReaderUI or not ReaderUI.instance then return false end
+                    local highlight = ReaderUI.instance.highlight
+                    if not highlight or not highlight._temp_covered then return false end
+                    local annotations = highlight.ui.annotation.annotations
+                    for idx, item in ipairs(annotations) do
+                        if item.drawer and highlight._temp_covered[idx] then
+                            return true
+                        end
+                    end
+                    return false
+                end,
+                callback = function()
+                    local ReaderUI = require("apps/reader/readerui")
+                    if ReaderUI and ReaderUI.instance then
+                        ReaderUI.instance:onToggleCoverMode()
+                    end
+                end,
+            },
+            
+            -- Toggle mode - displays current selection in menu text
+            {
+                text_func = function()
+                    local mode = G_reader_settings:readSetting("cover_mode_toggle_mode", 1)
+                    local mode_text = ""
+                    if mode == 1 then
+                        mode_text = _("Double-tap to toggle")
+                    elseif mode == 2 then
+                        mode_text = _("Single-tap to toggle (block menu)")
+                    else
+                        mode_text = _("Single-tap to toggle (show menu)")
+                    end
+                    return _("Single Cover - ") .. mode_text
+                end,
+                enabled_func = function()
+                    return G_reader_settings:readSetting("cover_mode_enabled", true)
+                end,
+                sub_item_table = {
+                    {
+                        text = _("Double-tap to toggle"),
+                        checked_func = function()
+                            return G_reader_settings:readSetting("cover_mode_toggle_mode", 1) == 1
+                        end,
+                        callback = function(touchmenu_instance)
+                            G_reader_settings:saveSetting("cover_mode_toggle_mode", 1)
+                            if touchmenu_instance then
+                                touchmenu_instance:updateItems()
+                            end
+                        end,
+                    },
+                    {
+                        text = _("Single-tap to toggle (block menu)"),
+                        checked_func = function()
+                            return G_reader_settings:readSetting("cover_mode_toggle_mode", 1) == 2
+                        end,
+                        callback = function(touchmenu_instance)
+                            G_reader_settings:saveSetting("cover_mode_toggle_mode", 2)
+                            if touchmenu_instance then
+                                touchmenu_instance:updateItems()
+                            end
+                        end,
+                    },
+                    {
+                        text = _("Single-tap to toggle (show menu)"),
+                        checked_func = function()
+                            return G_reader_settings:readSetting("cover_mode_toggle_mode", 1) == 3
+                        end,
+                        callback = function(touchmenu_instance)
+                            G_reader_settings:saveSetting("cover_mode_toggle_mode", 3)
+                            if touchmenu_instance then
+                                touchmenu_instance:updateItems()
+                            end
+                        end,
+                    },
+                },
+            },
+            
+            -- Coverable drawer types
+            {
+                text = _("Coverable Drawer Types"),
+                enabled_func = function()
+                    return G_reader_settings:readSetting("cover_mode_enabled", true)
+                end,
+                sub_item_table = buildDrawerSettingsSubMenu(),
+            },
+        },
+    })
+    
+    -- -------------------------------------------------------------------------
     -- Highlight / Lookup
     -- -------------------------------------------------------------------------
 
