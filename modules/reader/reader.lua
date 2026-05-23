@@ -15,6 +15,7 @@ local PATCH_MODULES = {
     highlight_menu = "modules/reader/patches/highlight_menu",
     dict_quick_lookup = "modules/reader/patches/dict_quick_lookup",
     status_on_open = "modules/reader/patches/status_on_open",
+    cover_mode = "modules/reader/patches/reader_covermode",
 }
 
 local function is_feature_enabled(plugin, key)
@@ -112,6 +113,12 @@ function M.init(logger, plugin)
         run_feature(logger, plugin, "dict_quick_lookup", dict_quick_lookup_fn)
     end
 
+    -- Always apply: cover mode
+    local cover_mode_fn = load_patch("cover_mode")
+    if cover_mode_fn then
+        run_feature(logger, plugin, "cover_mode", cover_mode_fn)
+    end
+    
     -- Always apply: custom highlight/lookup popup (self-disables when feature is off).
     local highlight_menu_fn = load_patch("highlight_menu")
     logger.dbg("zen-ui[reader]: load_patch(highlight_menu)=", tostring(highlight_menu_fn))
