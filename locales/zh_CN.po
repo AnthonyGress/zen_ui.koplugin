@@ -1721,3 +1721,90 @@ msgstr "禅 UI 已是最新版本。"
 
 msgid "Zen UI: "
 msgstr "禅 UI: "
+
+msgid "Match whole words"
+msgstr "整词匹配"
+
+msgid "Folder name"
+msgstr "文件夹名称"
+
+msgid "Badge color: "
+msgstr "徽章颜色："
+
+msgid "Show new banner"
+msgstr "显示新书徽章"
+
+msgid "Show title below cover (mosaic)"
+msgstr "封面下方显示标题（马赛克）"
+
+msgid "Show author below cover (mosaic)"
+msgstr "封面下方显示作者（马赛克）"
+
+msgid "Opaque background"
+msgstr "不透明背景"
+
+msgid "Gallery"
+msgstr "画廊视图"
+
+msgid "First cover image"
+msgstr "第一个封面图片"
+
+msgid "Stack"
+msgstr "堆叠视图"
+
+msgid "Show spine lines"
+msgstr "显示书脊线"
+
+msgid "Show item count"
+msgstr "显示文件数量"
+
+msgid "(standard)"
+msgstr "（标准）"
+
+msgid "(Kindle)"
+msgstr "（Kindle）"
+
+msgid "Top status bar"
+msgstr "顶部状态栏"
+
+msgid "Enable top status bar"
+msgstr "开启顶部状态栏"
+
+msgid "Cover Mode"
+msgstr "遮盖模式"
+
+msgid "Enable Cover"
+msgstr "开启遮盖"
+
+msgid "Cover All / Uncover All"
+msgstr "全部遮盖 / 揭开全部"
+
+msgid "Single Cover - "
+msgstr "单个遮盖 - "
+
+msgid "Double-tap to toggle"
+msgstr "双击切换"
+
+msgid "Single-tap to toggle"
+msgstr "单击切换"
+
+msgid "Single-tap to toggle (block menu)"
+msgstr "单击切换（阻止菜单）"
+
+msgid "Single-tap to toggle (show menu)"
+msgstr "单击切换（弹出菜单）"
+
+msgid "Coverable Drawer Types"
+msgstr "可遮盖样式"
+
+msgid "Highlight"
+msgstr "高亮"
+
+msgid "Underline"
+msgstr "下划线"
+
+msgid "Strikethrough"
+msgstr "删除线"
+
+msgid "Invert"
+msgstr "反色"
