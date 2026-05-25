@@ -47,7 +47,7 @@ function ZenScreen:_computeLayout()
     local sh = Screen:getHeight()
     local PAD        = Screen:scaleBySize(20)
     local TITLE_H    = self.title and Screen:scaleBySize(60) or 0
-    local SEP_H      = self.title and 1 or 0
+    local SEP_H      = 0
     -- Tight subtitle band: just enough for one line + small breathing room.
     local SUBTITLE_H = self.subtitle and Screen:scaleBySize(44) or 0
     local BTN_H      = Screen:scaleBySize(80)
@@ -135,9 +135,61 @@ end
 
 function ZenScreen:paintTo(bb, x, y)
     local L = self._L
+
+    -- Measure changelog first so we know if the title bar needs an inline icon.
+    local content_y = y + L.content_y
+    local content_h = L.content_h
+    local cl_x      = x + L.pad
+    local cl_w      = L.sw - L.pad * 2
+    local SEP_PX    = Screen:scaleBySize(8)
+    local HDR_GAP   = Screen:scaleBySize(6)
+    local ITEM_GAP  = Screen:scaleBySize(4)
+
+    local logo_h = content_h
+    local item_widgets = {}
+    local hdr_tw, hdr_h
+
+    if self.changelog and #self.changelog > 0 then
+        hdr_tw = TextWidget:new{
+            text    = _("What's New"),
+            face    = Font:getFace("cfont", 18),
+            bold    = true,
+            padding = 0,
+        }
+        hdr_h = hdr_tw:getSize().h
+
+        local items_h = 0
+        for _i, item in ipairs(self.changelog) do
+            local b_tw = TextBoxWidget:new{
+                text      = "\u{2022} " .. item,
+                face      = Font:getFace("cfont", 17),
+                width     = cl_w,
+                alignment = "left",
+            }
+            local bh = b_tw:getSize().h
+            table.insert(item_widgets, { widget = b_tw, h = bh })
+            items_h = items_h + bh + ITEM_GAP
+        end
+
+        local cl_total = 1 + SEP_PX + hdr_h + HDR_GAP + items_h + SEP_PX
+        logo_h = math.max(0, content_h - cl_total)
+    end
+
+    local has_cl = hdr_tw ~= nil
+    self._show_title_icon = false
+    if has_cl then
+        local min_logo_with_changelog = Screen:scaleBySize(140)
+        local logo_candidate = math.floor(math.min(L.sw - L.pad * 2, logo_h - L.pad * 2))
+        if logo_candidate < min_logo_with_changelog then
+            logo_h = 0
+            self._show_title_icon = true
+        end
+    end
+
     bb:paintRect(x, y, L.sw, L.sh, Blitbuffer.COLOR_WHITE)
 
-    -- Title bar
+    -- Title bar. When the logo is hidden by a long changelog, render a small
+    -- inline icon to the left of the title at text-height so it adds no height.
     if self.title and L.title_h > 0 then
         local tw = TextWidget:new{
             text    = self.title,
@@ -146,11 +198,30 @@ function ZenScreen:paintTo(bb, x, y)
             padding = 0,
         }
         local tsz = tw:getSize()
-        tw:paintTo(bb,
-            x + math.floor((L.sw - tsz.w) / 2),
-            y + math.floor((L.title_h - tsz.h) / 2))
+        local icon_gap = Screen:scaleBySize(8)
+        local icon_sz  = self._show_title_icon and tsz.h or 0
+        local total_w  = tsz.w + (self._show_title_icon and (icon_sz + icon_gap) or 0)
+        local base_x   = x + math.floor((L.sw - total_w) / 2)
+        local text_y   = y + math.floor((L.title_h - tsz.h) / 2)
+
+        if self._show_title_icon and ImageWidget and _plugin_root ~= "" then
+            pcall(function()
+                local iw = ImageWidget:new{
+                    file   = _plugin_root .. "/icons/zen_ui.svg",
+                    width  = icon_sz,
+                    height = icon_sz,
+                    alpha  = true,
+                }
+                iw:paintTo(bb, base_x, text_y)
+                iw:free()
+                if Screen.night_mode then
+                    bb:invertRect(base_x, text_y, icon_sz, icon_sz)
+                end
+            end)
+        end
+
+        tw:paintTo(bb, base_x + (self._show_title_icon and (icon_sz + icon_gap) or 0), text_y)
         tw:free()
-        bb:paintRect(x, y + L.title_h, L.sw, L.sep_h, Blitbuffer.COLOR_LIGHT_GRAY)
     end
 
     -- Subtitle above icon
@@ -169,65 +240,9 @@ function ZenScreen:paintTo(bb, x, y)
         sw2:free()
     end
 
-    -- Logo + optional changelog.
-    -- Changelog is measured first so the logo can fill the exact remaining space.
-    local content_y = y + L.content_y
-    local content_h = L.content_h
-    local cl_x      = x + L.pad
-    local cl_w      = L.sw - L.pad * 2
-    local SEP_PX    = Screen:scaleBySize(8)   -- gap above/below separator line
-    local HDR_GAP   = Screen:scaleBySize(6)   -- gap between header and first bullet
-    local ITEM_GAP  = Screen:scaleBySize(4)   -- gap between bullets
-
-    local logo_h = content_h  -- default: logo fills everything
-    local item_widgets = {}
-    local hdr_tw, hdr_h
-
-    if self.changelog and #self.changelog > 0 then
-        -- Measure header
-        hdr_tw = TextWidget:new{
-            text    = _("What's New"),
-            face    = Font:getFace("cfont", 18),
-            bold    = true,
-            padding = 0,
-        }
-        hdr_h = hdr_tw:getSize().h
-
-        -- Measure each bullet item, store widgets for later painting.
-        local items_h = 0
-        for _, item in ipairs(self.changelog) do
-            local b_tw = TextBoxWidget:new{
-                text      = "\u{2022} " .. item,
-                face      = Font:getFace("cfont", 17),
-                width     = cl_w,
-                alignment = "left",
-            }
-            local bh = b_tw:getSize().h
-            table.insert(item_widgets, { widget = b_tw, h = bh })
-            items_h = items_h + bh + ITEM_GAP
-        end
-
-        -- Total changelog block: sep line + padding + header + gap + items + bottom padding.
-        local cl_total = 1 + SEP_PX + hdr_h + HDR_GAP + items_h + SEP_PX
-        logo_h = math.max(0, content_h - cl_total)
-    end
-
-    -- Paint logo. Without a changelog use the original conservative sizing (pad*4, *0.75).
-    -- With a changelog the logo_h is already measured to fit, so fill it tightly.
-    local has_cl = hdr_tw ~= nil
-    if has_cl then
-        -- If changelog is long enough that the logo would become tiny,
-        -- hide the logo entirely and give all room to text.
-        local min_logo_with_changelog = Screen:scaleBySize(140)
-        local logo_candidate = math.floor(math.min(L.sw - L.pad * 2, logo_h - L.pad * 2))
-        if logo_candidate < min_logo_with_changelog then
-            logo_h = 0
-        end
-    end
-
+    -- Logo (hidden when changelog consumes too much space).
     if ImageWidget and _plugin_root ~= "" then
         local logo    = _plugin_root .. "/icons/zen_ui.svg"
-        -- Snap to integer: avoids post-render scaling that caused segfaults on Kobo.
         local logo_sz = has_cl
             and math.floor(math.min(L.sw - L.pad * 2, logo_h - L.pad * 2))
             or  math.floor(math.min(L.sw - L.pad * 4, logo_h - L.pad * 4) * 0.75)
@@ -244,7 +259,6 @@ function ZenScreen:paintTo(bb, x, y)
                 local ly = content_y + math.floor((logo_h - isz.h) / 2)
                 iw:paintTo(bb, lx, ly)
                 iw:free()
-                -- Invert the logo region so it reads correctly on dark background.
                 if Screen.night_mode then
                     bb:invertRect(lx, ly, isz.w, isz.h)
                 end
@@ -260,14 +274,13 @@ function ZenScreen:paintTo(bb, x, y)
         hdr_tw:paintTo(bb, cl_x, cl_y)
         hdr_tw:free()
         cl_y = cl_y + hdr_h + HDR_GAP
-        for _, entry in ipairs(item_widgets) do
+        for _i, entry in ipairs(item_widgets) do
             entry.widget:paintTo(bb, cl_x, cl_y)
             entry.widget:free()
             cl_y = cl_y + entry.h + ITEM_GAP
         end
     else
-        -- Free any measured widgets (shouldn't happen, but guard)
-        for _, entry in ipairs(item_widgets) do entry.widget:free() end
+        for _i, entry in ipairs(item_widgets) do entry.widget:free() end
     end
 
     -- Button(s)

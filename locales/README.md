@@ -1,3 +1,6 @@
+---
+---
+
 # Zen UI Locales
 
 This folder contains gettext `.po` files for Zen UI plugin labels.

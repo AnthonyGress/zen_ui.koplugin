@@ -24,11 +24,12 @@ jobs:
       - uses: actions/checkout@v4
       - name: Stage site files
         run: |
-          mkdir -p _stage/_includes
+          mkdir -p _stage/_includes _stage/locales
           cp *.md _stage/
           cp _config.yml _stage/
           cp _includes/head-custom.html _stage/_includes/
           cp _includes/dark-mode.css _stage/_includes/
+          cp locales/README.md _stage/locales/
           cp -r images _stage/
           cp -r icons _stage/
       - uses: actions/jekyll-build-pages@v1

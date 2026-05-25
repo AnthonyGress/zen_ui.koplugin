@@ -127,8 +127,21 @@ local function apply_zen_mode()
         return filtered
     end
 
+    -- Ensure menu_items has the required top-level key before the original
+    -- setUpdateItemTable runs, otherwise MenuSorter:sort crashes at
+    -- ipairs(menu_table["KOMenu:menu_buttons"]) when it is nil.
+    local function ensure_menu_items(self)
+        if type(self.menu_items) ~= "table" then
+            self.menu_items = {}
+        end
+        if not self.menu_items["KOMenu:menu_buttons"] then
+            self.menu_items["KOMenu:menu_buttons"] = {}
+        end
+    end
+
     local orig_fm_setUpdateItemTable = FileManagerMenu.setUpdateItemTable
     FileManagerMenu.setUpdateItemTable = function(self)
+        ensure_menu_items(self)
         orig_fm_setUpdateItemTable(self)
         if self.tab_item_table then
             self.tab_item_table = filter_tab_item_table(self.tab_item_table)
@@ -137,6 +150,7 @@ local function apply_zen_mode()
 
     local orig_reader_setUpdateItemTable = ReaderMenu.setUpdateItemTable
     ReaderMenu.setUpdateItemTable = function(self)
+        ensure_menu_items(self)
         orig_reader_setUpdateItemTable(self)
         if self.tab_item_table then
             self.tab_item_table = filter_tab_item_table(self.tab_item_table)

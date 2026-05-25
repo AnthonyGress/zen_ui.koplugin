@@ -9,6 +9,7 @@ local PATCH_MODULES = {
     menu_top_swipe         = "modules/global/patches/menu_top_swipe",
     opds                   = "modules/global/patches/opds",
     lockdown_mode          = "modules/global/patches/lockdown_mode",
+    menu_font              = "modules/global/patches/menu_font",
 }
 
 local function run_patch(logger, plugin, feature, fn)
@@ -72,6 +73,11 @@ function M.init(logger, plugin)
     local lockdown_mode_fn = load_patch("lockdown_mode")
     if lockdown_mode_fn then
         run_patch(logger, plugin, "lockdown_mode", lockdown_mode_fn)
+    end
+
+    local menu_font_fn = load_patch("menu_font")
+    if menu_font_fn then
+        run_patch(logger, plugin, "menu_font", menu_font_fn)
     end
 
     -- Hook Device._afterResume / _beforeSuspend directly so schedules always

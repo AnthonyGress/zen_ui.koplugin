@@ -78,6 +78,7 @@ return {
         "Fix KOReader behavior/bug - set status to reading on opening book",
         "Fix bug in search results always showing mosaic view",
         "Fixed bugs in OPDS & respect new 3:4 cover ratio",
+        "Add Czech translation",
         "Bug fixes and performance improvements",
     },
 }
