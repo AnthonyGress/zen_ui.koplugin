@@ -543,6 +543,28 @@ local function apply_browser_folder_cover()
             },
         }
 
+        local function getCoverFromSeriesItems(series_items, menu_cover_specs)
+            if type(series_items) ~= "table" then return nil end
+            for _, book_entry in ipairs(series_items) do
+                if book_entry and book_entry.path then
+                    local bookinfo = BookInfoManager:getBookInfo(book_entry.path, true)
+                    if bookinfo
+                            and bookinfo.cover_bb
+                            and bookinfo.has_cover
+                            and bookinfo.cover_fetched
+                            and not bookinfo.ignore_cover
+                            and not BookInfoManager.isCachedCoverInvalid(bookinfo, menu_cover_specs) then
+                        return {
+                            data = bookinfo.cover_bb,
+                            w = bookinfo.cover_w,
+                            h = bookinfo.cover_h,
+                        }
+                    end
+                end
+            end
+            return nil
+        end
+
         -- Main update implementation
         local function _zen_update_impl(self, ...)
 
@@ -796,6 +818,20 @@ local function apply_browser_folder_cover()
                 self._foldercover_processed = true
                 self._zen_render_night = Device.screen.night_mode
                 self:_setFolderCover { no_image = true }
+                return
+            end
+
+            -- Virtual folders (e.g. automatic-series) may expose a synthetic path
+            -- that cannot be scanned from disk; pull covers directly from series_items.
+            if self.entry.is_series_group then
+                local series_cover = getCoverFromSeriesItems(self.entry.series_items, self.menu and self.menu.cover_specs)
+                self._foldercover_processed = true
+                self._zen_render_night = Device.screen.night_mode
+                if series_cover then
+                    self:_setFolderCover(series_cover)
+                else
+                    self:_setFolderCover { no_image = true }
+                end
                 return
             end
 
@@ -1097,6 +1133,18 @@ local function apply_browser_folder_cover()
                     local _main_ch = _fm_inst and _fm_inst.file_chooser
                     local _chooser = _main_ch
                         or (self.menu.genItemTableFromPath and self.menu)
+
+                    if self.entry.is_series_group then
+                        local series_cover = getCoverFromSeriesItems(self.entry.series_items, self.menu and self.menu.cover_specs)
+                        self._foldercover_processed = true
+                        self._zen_render_night = Device.screen.night_mode
+                        if series_cover then
+                            self:_setListFolderCover(series_cover)
+                        else
+                            self:_setListFolderCover { no_image = true }
+                        end
+                        return
+                    end
 
                     -- Use unified makeCover - auto-detects cover files and collects book covers
                     local folder_name = dir_path:match("([^/]+)/?$") or dir_path
