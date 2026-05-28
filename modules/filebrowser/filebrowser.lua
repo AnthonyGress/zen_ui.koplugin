@@ -38,6 +38,7 @@ local PATCH_MODULES = {
     browser_show_hidden = "modules/filebrowser/patches/browser_show_hidden",
     browser_page_count = "modules/filebrowser/patches/browser_page_count",
     browser_series_badge = "modules/filebrowser/patches/browser_series_badge",
+    automatic_series_grouping = "modules/filebrowser/patches/automatic_series_grouping",
     browser_display_mode_by_path = "modules/filebrowser/patches/browser_display_mode_by_path",
     search = "modules/filebrowser/patches/search",
     group_view = "modules/filebrowser/patches/group_view",
@@ -171,6 +172,11 @@ function M.init(logger, plugin)
     local browser_series_badge_fn = load_patch("browser_series_badge")
     if browser_series_badge_fn then
         run_feature(logger, plugin, "browser_series_badge", browser_series_badge_fn)
+    end
+
+    local automatic_series_grouping_fn = load_patch("automatic_series_grouping")
+    if automatic_series_grouping_fn then
+        run_feature(logger, plugin, "automatic_series_grouping", automatic_series_grouping_fn)
     end
 
     local group_view_fn = load_patch("group_view")

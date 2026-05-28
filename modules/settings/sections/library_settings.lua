@@ -144,6 +144,33 @@ function M.build(ctx)
                     save_and_apply("browser_hide_up_folder")
                 end,
             },
+            {
+                text = _("Group book series into folders"),
+                checked_func = function()
+                    if config.features.automatic_series_grouping == nil then
+                        return true
+                    end
+                    return config.features.automatic_series_grouping == true
+                end,
+                callback = function()
+                    if config.features.automatic_series_grouping == nil then
+                        config.features.automatic_series_grouping = true
+                    end
+                    config.features.automatic_series_grouping =
+                        not (config.features.automatic_series_grouping == true)
+                    plugin:saveConfig()
+                    local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
+                    local fc = ok_fm and FileManager and FileManager.instance and FileManager.instance.file_chooser
+                    if fc and fc._zen_clear_item_table_cache then
+                        fc:_zen_clear_item_table_cache()
+                    end
+                    if fc and fc.path then
+                        fc:changeToPath(fc.path)
+                    else
+                        save_and_apply("automatic_series_grouping")
+                    end
+                end,
+            },
             -- Cover mode subsection
             {
                 text = _("Covers"),

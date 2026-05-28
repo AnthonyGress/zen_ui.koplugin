@@ -195,16 +195,32 @@ local function apply_browser_folder_cover()
         return cached_list[key]
     end
 
+    local function _automatic_series_grouping_enabled()
+        -- Keep using the apply-time plugin reference once __ZEN_UI_PLUGIN is cleared.
+        local plugin = _plugin or rawget(_G, "__ZEN_UI_PLUGIN")
+        local features = plugin and plugin.config and plugin.config.features
+        if type(features) ~= "table" or features.automatic_series_grouping == nil then
+            return true
+        end
+        return features.automatic_series_grouping == true
+    end
+
     local function _item_table_key(path)
         local mtime = lfs.attributes(path, "modification") or 0
         local filter = FileChooser.show_filter and FileChooser.show_filter.status
-        return string.format("%s|%d|%s|%s|%s|%s|%s",
+        return string.format("%s|%d|%s|%s|%s|%s|%s|%s",
             path, mtime,
             G_reader_settings:readSetting("collate", "strcoll"),
             tostring(G_reader_settings:isTrue("collate_mixed")),
             tostring(G_reader_settings:isTrue("reverse_collate")),
             tostring(FileChooser.show_hidden),
-            tostring(filter))
+            tostring(filter),
+            tostring(_automatic_series_grouping_enabled()))
+    end
+
+    function FileChooser:_zen_clear_item_table_cache()
+        _item_table_cache = nil
+        cached_list = {}
     end
 
     local orig_FileChooser_genItemTableFromPath = FileChooser.genItemTableFromPath
