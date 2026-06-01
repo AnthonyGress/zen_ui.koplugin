@@ -36,21 +36,21 @@ local function apply_status_bar()
 
     -- === Persistent config ===
 
-    local separator_presets = {
-        { key = "dot",    label = "Middle dot",    value = "  ·  " },
-        { key = "bar",    label = "Vertical bar",  value = "  |  " },
-        { key = "dash",   label = "Dash",          value = "  -  " },
-        { key = "bullet", label = "Bullet",        value = "  •  " },
-        { key = "space",  label = "Space only",    value = "   " },
-        { key = "small-space",  label = "Space only (small)",    value = " " },
-        { key = "none",   label = "No separator",  value = "" },
-        { key = "custom", label = "Custom",        value = nil }, -- uses custom_separator
+    -- Separator values (bar-specific spacing; labels live in common/constants.lua)
+    local SEP_VALUES = {
+        dot             = "  \xC2\xB7  ",
+        bar             = "  |  ",
+        dash            = "  -  ",
+        bullet          = "  \xE2\x80\xA2  ",
+        space           = "   ",
+        ["small-space"] = " ",
+        none            = "",
     }
 
     -- Known item keys; determines what can be placed on either side
     local known_item_keys = { "wifi", "disk", "ram", "frontlight", "battery", "time", "custom_text" }
     local known_item_set = {}
-    for _, k in ipairs(known_item_keys) do known_item_set[k] = true end
+    for _i, k in ipairs(known_item_keys) do known_item_set[k] = true end
 
     local config_default = {
         custom_text = "",  -- shown by the "custom_text" item; empty = device model name
@@ -74,17 +74,18 @@ local function apply_status_bar()
 
     local function loadConfig()
         local config = zen_plugin.config.status_bar or {}
-        logger.info("ZenUI [status_bar] loadConfig raw: left_order=",
+        logger.dbg("ZenUI [status_bar] loadConfig raw: left_order=",
             _serializeOrder(config.left_order),
             "center_order=", _serializeOrder(config.center_order),
             "right_order=",  _serializeOrder(config.right_order))
         -- Migration: convert old show/order/show_time format to left_order/right_order
         if config.left_order == nil and config.right_order == nil then
+            logger.info("ZenUI [status_bar] migrating legacy status bar config to left/center/right order")
             local old_order = type(config.order) == "table" and config.order
                               or { "wifi", "disk", "ram", "frontlight", "battery" }
             local old_show  = type(config.show) == "table" and config.show or {}
             local migrated_right = {}
-            for _, key in ipairs(old_order) do
+            for _i, key in ipairs(old_order) do
                 if old_show[key] ~= false then
                     table.insert(migrated_right, key)
                 end
@@ -114,31 +115,35 @@ local function apply_status_bar()
         -- Merge scalar defaults
         for k, v in pairs(config_default) do
             if config[k] == nil then
-                logger.info("ZenUI [status_bar] merging default for nil key:", k,
+                logger.dbg("ZenUI [status_bar] merging default for nil key:", k,
                     "->", type(v) == "table" and _serializeOrder(v) or tostring(v))
                 config[k] = utils.deepcopy(v)
             end
         end
-        logger.info("ZenUI [status_bar] post-defaults: left_order=",
+        logger.dbg("ZenUI [status_bar] post-defaults: left_order=",
             _serializeOrder(config.left_order),
             "center_order=", _serializeOrder(config.center_order),
             "right_order=",  _serializeOrder(config.right_order))
         -- Validate: only known keys, no cross-side duplicates
         local seen = {}
-        local function clean_order(list)
+        local function clean_order(list, side_name)
             local out = {}
-            for _, v in ipairs(type(list) == "table" and list or {}) do
-                if known_item_set[v] and not seen[v] then
+            for _i, v in ipairs(type(list) == "table" and list or {}) do
+                if not known_item_set[v] then
+                    logger.warn("ZenUI [status_bar] dropping unknown item on", side_name, ":", tostring(v))
+                elseif seen[v] then
+                    logger.warn("ZenUI [status_bar] dropping duplicate item across sides:", tostring(v), "on", side_name)
+                else
                     seen[v] = true
                     table.insert(out, v)
                 end
             end
             return out
         end
-        config.left_order   = clean_order(config.left_order)
-        config.center_order = clean_order(config.center_order)
-        config.right_order  = clean_order(config.right_order)
-        logger.info("ZenUI [status_bar] final: left_order=",
+        config.left_order   = clean_order(config.left_order, "left_order")
+        config.center_order = clean_order(config.center_order, "center_order")
+        config.right_order  = clean_order(config.right_order, "right_order")
+        logger.dbg("ZenUI [status_bar] final: left_order=",
             _serializeOrder(config.left_order),
             "center_order=", _serializeOrder(config.center_order),
             "right_order=",  _serializeOrder(config.right_order))
@@ -149,12 +154,10 @@ local function apply_status_bar()
     local config = loadConfig()
 
     local function getSeparator()
-        for _, preset in ipairs(separator_presets) do
-            if preset.key == config.separator_key then
-                return preset.value or config.custom_separator
-            end
+        if config.separator_key == "custom" then
+            return config.custom_separator or "  "
         end
-        return "  ·  "
+        return SEP_VALUES[config.separator_key] or "  \xC2\xB7  "
     end
 
     -- === Layout constants ===
@@ -438,15 +441,12 @@ local function apply_status_bar()
 
         -- Detect whether we are inside a subfolder of, or at, the home directory
         local in_subfolder = false
-        local at_home = false
         local folder_name = nil
         local g_settings = rawget(_G, "G_reader_settings")
         local home_dir = paths.getHomeDir()
         if home_dir and path then
             local norm_path = paths.normPath(path:gsub("/$", ""))
-            if norm_path == home_dir then
-                at_home = true
-            elseif norm_path:sub(1, #home_dir + 1) == home_dir .. "/" then
+            if norm_path ~= home_dir and norm_path:sub(1, #home_dir + 1) == home_dir .. "/" then
                 in_subfolder = true
                 folder_name = path:match("([^/]+)/?$") or path
             end
@@ -536,7 +536,7 @@ local function apply_status_bar()
         local center_max_w = math.max(0, half_avail * 2)
 
         -- Center: nav_title override > folder name when in subfolder > configured center items
-        local center_content = nil
+        local center_content
         if nav_title then
             center_content = fitTextWidget(nav_title, center_max_w)
         elseif in_subfolder and folder_name then
@@ -869,7 +869,7 @@ local function apply_status_bar()
         if #title_group < 2 then return end
 
         local current_path = self.file_chooser and self.file_chooser.path
-        logger.info("ZenUI [status_bar] _updateStatusBar: left=",
+        logger.dbg("ZenUI [status_bar] _updateStatusBar: left=",
             _serializeOrder(config.left_order),
             "center=", _serializeOrder(config.center_order),
             "right=",  _serializeOrder(config.right_order))

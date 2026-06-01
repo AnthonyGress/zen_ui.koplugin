@@ -203,24 +203,6 @@ local function apply_reader_footer()
         end
     end
 
-    -- Scan mode_index for filler positions among enabled items; returns
-    -- (filler1_gi, filler2_gi) 1-based generator indices, or nil.
-    local function filler_generator_indices(self)
-        local filler1_gi, filler2_gi, gi = nil, nil, 0
-        for mi = 0, self.mode_nb - 1 do
-            local m = self.mode_index[mi]
-            if m and self.settings[m] then
-                gi = gi + 1
-                if m == "dynamic_filler" then filler1_gi = gi
-                elseif m == "dynamic_filler_2" then filler2_gi = gi end
-            end
-        end
-        if filler1_gi and filler2_gi then
-            return math.min(filler1_gi, filler2_gi),
-                   math.max(filler1_gi, filler2_gi)
-        end
-    end
-
     -- Build concatenated text for a range of generators (shared by multiple callers).
     local function gen_section(self, gens, from_i, to_i)
         if from_i > to_i then return "" end
@@ -478,4 +460,3 @@ local function apply_reader_footer()
 end
 
 return apply_reader_footer
-

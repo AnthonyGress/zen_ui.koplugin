@@ -6,7 +6,6 @@
 ]]
 
 local function apply_browser_cover_mosaic_uniform()
-    local logger = require("logger")
     local Size = require("ui/size")
     local OverlapGroup = require("ui/widget/overlapgroup")
 

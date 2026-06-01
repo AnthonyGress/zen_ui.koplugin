@@ -24,6 +24,7 @@ local UIManager      = require("ui/uimanager")
 local ZenButton      = require("common/zen_button")
 local Screen         = Device.screen
 local _              = require("gettext")
+local ok_stw, ScrollTextWidget = pcall(require, "ui/widget/scrolltextwidget")
 
 local logger           = require("logger")
 local ok_iw, ImageWidget = pcall(require, "ui/widget/imagewidget")
@@ -33,8 +34,10 @@ local _plugin_root = require("common/plugin_root") or ""
 
 local ZenScreen = InputContainer:extend{
     title             = nil,   -- string shown in top bar; nil hides the title bar entirely
+    title_icon        = false, -- force inline Zen icon to the left of title text
     subtitle          = nil,   -- string rendered above the icon (e.g. "Updated to v1.2.3")
     changelog         = nil,   -- array of strings; when set, logo shrinks to make room for a bullet list
+    scroll_text       = nil,   -- long-form changelog text rendered in a scrollable view
     button            = nil,   -- button label string; nil -> "Get Started"; false -> no button
     later_button      = nil,   -- optional outlined secondary button to the left; tapping closes
     on_close          = nil,
@@ -73,16 +76,19 @@ function ZenScreen:init()
     self.dimen = Geom:new{ x = 0, y = 0, w = sw, h = sh }
     self:_computeLayout()
     self._btn_rect = nil
+    self._scroll_text_w = nil
+    self._scroll_rect = nil
+    self._scroll_text_cache = nil
+    self._scroll_w = nil
+    self._scroll_h = nil
+    self._scroll_top_line_num = nil
 
     self:registerTouchZones({
         {
             id          = "zs_swipe",
             ges         = "swipe",
             screen_zone = { ratio_x = 0, ratio_y = 0, ratio_w = 1, ratio_h = 1 },
-            handler     = function()
-                if self.dismissable then self:onClose() end
-                return true
-            end,
+            handler     = function(ges) return self:_onSwipe(ges) end,
         },
         {
             id          = "zs_tap",
@@ -111,6 +117,52 @@ function ZenScreen:init()
     end
 end
 
+function ZenScreen:_free_scroll_widget()
+    if self._scroll_text_w and type(self._scroll_text_w.free) == "function" then
+        pcall(self._scroll_text_w.free, self._scroll_text_w, false)
+    end
+    self._scroll_text_w = nil
+    self._scroll_text_cache = nil
+    self._scroll_w = nil
+    self._scroll_h = nil
+end
+
+function ZenScreen:_ensure_scroll_widget(width, height)
+    if not ok_stw then return end
+    local text = type(self.scroll_text) == "string" and self.scroll_text or ""
+    if text == "" then
+        self:_free_scroll_widget()
+        return
+    end
+    local needs_new = self._scroll_text_w == nil
+        or self._scroll_text_cache ~= text
+        or self._scroll_w ~= width
+        or self._scroll_h ~= height
+    if not needs_new then return end
+    self:_free_scroll_widget()
+    self._scroll_text_cache = text
+    self._scroll_w = width
+    self._scroll_h = height
+    self._scroll_text_w = ScrollTextWidget:new{
+        text      = text,
+        top_line_num = self._scroll_top_line_num,
+        face      = Font:getFace("cfont", 17),
+        fgcolor   = Blitbuffer.COLOR_BLACK,
+        width     = width,
+        height    = height,
+        dialog    = self,
+        alignment = "left",
+        justified = false,
+    }
+    self._scroll_top_line_num = nil
+end
+
+function ZenScreen:_point_in_rect(point, rect)
+    return rect
+        and point.x >= rect.x and point.x < rect.x + rect.w
+        and point.y >= rect.y and point.y < rect.y + rect.h
+end
+
 -- Enter/PgFwd: activate primary button (or dismiss if no button)
 function ZenScreen:onZsConfirm()
     if self.button ~= false then
@@ -135,6 +187,7 @@ end
 
 function ZenScreen:paintTo(bb, x, y)
     local L = self._L
+    local use_scroll_text = type(self.scroll_text) == "string" and self.scroll_text ~= ""
 
     -- Measure changelog first so we know if the title bar needs an inline icon.
     local content_y = y + L.content_y
@@ -145,11 +198,11 @@ function ZenScreen:paintTo(bb, x, y)
     local HDR_GAP   = Screen:scaleBySize(6)
     local ITEM_GAP  = Screen:scaleBySize(4)
 
-    local logo_h = content_h
+    local logo_h = use_scroll_text and 0 or content_h
     local item_widgets = {}
     local hdr_tw, hdr_h
 
-    if self.changelog and #self.changelog > 0 then
+    if not use_scroll_text and self.changelog and #self.changelog > 0 then
         hdr_tw = TextWidget:new{
             text    = _("What's New"),
             face    = Font:getFace("cfont", 18),
@@ -193,18 +246,19 @@ function ZenScreen:paintTo(bb, x, y)
     if self.title and L.title_h > 0 then
         local tw = TextWidget:new{
             text    = self.title,
-            face    = Font:getFace("cfont", 24),
+            face    = Font:getFace("cfont", 26),
             bold    = true,
             padding = 0,
         }
         local tsz = tw:getSize()
+        local show_inline_icon = self.title_icon == true or self._show_title_icon
         local icon_gap = Screen:scaleBySize(8)
-        local icon_sz  = self._show_title_icon and tsz.h or 0
-        local total_w  = tsz.w + (self._show_title_icon and (icon_sz + icon_gap) or 0)
+        local icon_sz  = show_inline_icon and tsz.h or 0
+        local total_w  = tsz.w + (show_inline_icon and (icon_sz + icon_gap) or 0)
         local base_x   = x + math.floor((L.sw - total_w) / 2)
         local text_y   = y + math.floor((L.title_h - tsz.h) / 2)
 
-        if self._show_title_icon and ImageWidget and _plugin_root ~= "" then
+        if show_inline_icon and ImageWidget and _plugin_root ~= "" then
             pcall(function()
                 local iw = ImageWidget:new{
                     file   = _plugin_root .. "/icons/zen_ui.svg",
@@ -220,7 +274,7 @@ function ZenScreen:paintTo(bb, x, y)
             end)
         end
 
-        tw:paintTo(bb, base_x + (self._show_title_icon and (icon_sz + icon_gap) or 0), text_y)
+        tw:paintTo(bb, base_x + (show_inline_icon and (icon_sz + icon_gap) or 0), text_y)
         tw:free()
     end
 
@@ -229,7 +283,7 @@ function ZenScreen:paintTo(bb, x, y)
         local sub_y = y + L.title_h + L.sep_h
         local sw2 = TextWidget:new{
             text    = self.subtitle,
-            face    = Font:getFace("cfont", 26),
+            face    = Font:getFace("cfont", 22),
             bold    = false,
             padding = 0,
         }
@@ -241,7 +295,7 @@ function ZenScreen:paintTo(bb, x, y)
     end
 
     -- Logo (hidden when changelog consumes too much space).
-    if ImageWidget and _plugin_root ~= "" then
+    if not use_scroll_text and ImageWidget and _plugin_root ~= "" then
         local logo    = _plugin_root .. "/icons/zen_ui.svg"
         local logo_sz = has_cl
             and math.floor(math.min(L.sw - L.pad * 2, logo_h - L.pad * 2))
@@ -281,6 +335,25 @@ function ZenScreen:paintTo(bb, x, y)
         end
     else
         for _i, entry in ipairs(item_widgets) do entry.widget:free() end
+    end
+
+    self._scroll_rect = nil
+    if use_scroll_text then
+        local scroll_pad = Screen:scaleBySize(4)
+        local scroll_x = x + L.pad
+        local scroll_y = content_y + scroll_pad
+        local scroll_w = cl_w
+        local scroll_h = math.max(Screen:scaleBySize(40), content_h - scroll_pad * 2)
+        self:_ensure_scroll_widget(scroll_w, scroll_h)
+        if self._scroll_text_w then
+            self._scroll_text_w:paintTo(bb, scroll_x, scroll_y)
+            self._scroll_rect = {
+                x = scroll_x,
+                y = scroll_y,
+                w = scroll_w,
+                h = scroll_h,
+            }
+        end
     end
 
     -- Button(s)
@@ -323,6 +396,15 @@ function ZenScreen:paintTo(bb, x, y)
     end
 end
 
+function ZenScreen:_onSwipe(ges)
+    if self._scroll_text_w and self:_point_in_rect(ges.pos, self._scroll_rect) then
+        self._scroll_text_w:onScrollText(nil, ges)
+        return true
+    end
+    if self.dismissable then self:onClose() end
+    return true
+end
+
 function ZenScreen:_onTap(ges)
     local p  = ges.pos
     local L  = self._L
@@ -347,6 +429,11 @@ function ZenScreen:_onTap(ges)
         return true
     end
 
+    if self._scroll_text_w and self:_point_in_rect(p, self._scroll_rect) then
+        self._scroll_text_w:onTapScrollText(nil, ges)
+        return true
+    end
+
     -- Bottom nav area: only close if dismissable
     if L.btn_h > 0 and p.y >= L.btn_y then
         if self.dismissable then self:onClose() end
@@ -358,11 +445,28 @@ end
 
 --- Mutate subtitle/button/later_button/dismissable and repaint without closing/reopening.
 function ZenScreen:update(opts)
+    local text_changed = false
     if opts.subtitle ~= nil then self.subtitle = opts.subtitle end
+    if opts.title ~= nil then self.title = opts.title end
+    if opts.changelog ~= nil then self.changelog = opts.changelog end
+    if opts.scroll_text ~= nil then
+        self.scroll_text = opts.scroll_text
+        text_changed = true
+    end
     if opts.button ~= nil then self.button = opts.button end
     if opts.later_button ~= nil then self.later_button = opts.later_button end
     if opts.dismissable ~= nil then self.dismissable = opts.dismissable end
     if opts.on_button ~= nil then self._on_button_action = opts.on_button end
+    if text_changed then
+        if opts.preserve_scroll and self._scroll_text_w
+            and self._scroll_text_w.text_widget
+            and self._scroll_text_w.text_widget.virtual_line_num then
+            self._scroll_top_line_num = self._scroll_text_w.text_widget.virtual_line_num
+        else
+            self._scroll_top_line_num = nil
+        end
+        self:_free_scroll_widget()
+    end
     self:_computeLayout()
     UIManager:setDirty(self, function()
         return "partial", self.dimen
@@ -377,6 +481,7 @@ function ZenScreen:onShow()
 end
 
 function ZenScreen:onClose()
+    self:_free_scroll_widget()
     UIManager:setDirty(nil, "full")
     UIManager:close(self)
     -- Block filebrowser taps briefly so the dismiss gesture doesn't open a file.

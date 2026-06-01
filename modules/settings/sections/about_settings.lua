@@ -1,5 +1,5 @@
 -- settings/sections/about.lua
--- "About" info items: plugin version, KOReader version, device, firmware.
+-- "About" info items: plugin version plus a grouped device subsection.
 -- Receives ctx: { plugin }
 
 local _ = require("gettext")
@@ -22,33 +22,31 @@ function M.build(ctx)
     })
 
     table.insert(items, {
-        text_func = function()
-            return _("KOReader: ") .. utils.get_koreader_version()
-        end,
-        keep_menu_open = true,
+        text = _("Device"),
+        sub_item_table = {
+            {
+                text_func = function()
+                    return _("KOReader: ") .. utils.get_koreader_version()
+                end,
+                keep_menu_open = true,
+            },
+            {
+                text_func = function()
+                    return _("Device: ") .. utils.get_device_model_name()
+                end,
+                keep_menu_open = true,
+            },
+            {
+                text_func = function()
+                    return _("Firmware: ") .. utils.get_device_firmware_display()
+                end,
+                keep_menu_open = true,
+            },
+        },
     })
-
-    table.insert(items, {
-        text_func = function()
-            return _("Device: ") .. utils.get_device_model_name()
-        end,
-        keep_menu_open = true,
-    })
-
-    local fw = utils.get_device_firmware_display()
-    if fw ~= "n/a" then
-        table.insert(items, {
-            text_func = function()
-                return _("Firmware: ") .. utils.get_device_firmware_display()
-            end,
-            keep_menu_open = true,
-            separator = true
-        })
-    end
 
     table.insert(items, {
         text = _("Setup Guide"),
-        separator = true,
         callback = function()
             local ok_qs, QuickstartScreen = pcall(require, "common/quickstart_screen")
             if not ok_qs then return end
@@ -87,7 +85,9 @@ function M.build(ctx)
         separator = true,
         sub_item_table = {
             updater.build_update_now_item(plugin),
+            updater.build_changelog_item(),
             updater.build_channel_item(),
+            updater.build_auto_check_item(),
         },
     })
 

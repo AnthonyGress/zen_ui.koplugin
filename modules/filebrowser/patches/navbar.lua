@@ -2,11 +2,9 @@ local function apply_navbar()
     -- Bottom nav bar for the KOReader File Manager.
 
     local Blitbuffer = require("ffi/blitbuffer")
-    local CenterContainer = require("ui/widget/container/centercontainer")
     local Device = require("device")
     local FileManager = require("apps/filemanager/filemanager")
     local FileChooser = require("ui/widget/filechooser")
-    local Font = require("ui/font")
     local Geom = require("ui/geometry")
     local GestureRange = require("ui/gesturerange")
     local HorizontalGroup = require("ui/widget/horizontalgroup")
@@ -1543,10 +1541,10 @@ local function apply_navbar()
             }
 
             local function repaintStandaloneNavbar()
-                local saved_active = active_tab
+                local saved_active_local = active_tab
                 active_tab = view_tab_id
                 local new_nb = createNavBar()
-                active_tab = saved_active
+                active_tab = saved_active_local
                 if not new_nb then return end
                 vg[2] = new_nb  -- replace embedded navbar in VerticalGroup
                 UIManager:setDirty(menu, "ui")

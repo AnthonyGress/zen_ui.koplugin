@@ -1,7 +1,8 @@
 -- Zen UI: Icon-only DictQuickLookup buttons
 -- Replaces the dictionary popup's text button row with a compact icon row.
--- Hooks via DictButtonsReady event on ReaderHighlight (fired by DictQuickLookup).
--- When "show other items" is enabled, unknown buttons are preserved as a text row.
+-- Supports both old KOReader (DictButtonsReady event) and new KOReader
+-- (buildButtonLayout override). When "show other items" is enabled,
+-- unknown buttons are preserved as a text row.
 
 local function apply()
     local ReaderHighlight = require("apps/reader/modules/readerhighlight")
@@ -10,6 +11,7 @@ local function apply()
     local Event = require("ui/event")
     local UIManager = require("ui/uimanager")
     local logger = require("logger")
+    local _ = require("gettext")
 
     local _plugin_ref = rawget(_G, "__ZEN_UI_PLUGIN")
 
@@ -37,8 +39,19 @@ local function apply()
     -- IDs we handle explicitly; everything else is "unknown".
     local KNOWN_IDS = {
         highlight = true, search = true, wikipedia = true,
-        translate = true, close = true,
+        translate = true, close = true, save = true,
         vocabulary = true, prev_dict = true, next_dict = true,
+    }
+
+    -- Icon mapping for pool button ids.
+    local ICON_MAP = {
+        highlight = "lookup.highlight",
+        search    = "lookup.search",
+        wikipedia = "lookup.wikipedia",
+        translate = "lookup.translate",
+        close     = "close",
+        prev_dict = "prev_dict",
+        next_dict = "next_dict",
     }
 
     -- Build a minimal icon-only spec from an original button.
@@ -63,18 +76,14 @@ local function apply()
             and highlight_module.ui.annotation
             and highlight_module.ui.annotation.annotations
         if not annotations then return nil end
-        -- For rolling (epub) docs, pos0/pos1 are xpointer strings.
-        -- For paging (pdf) docs, they are {page, x, y} tables.
         local is_rolling = highlight_module.ui.rolling ~= nil
         for i, item in ipairs(annotations) do
-            if item.drawer then -- it's a saved highlight (not just a bookmark)
+            if item.drawer then
                 if is_rolling then
-                    -- xpointer string comparison
                     if item.pos0 == sel.pos0 and item.pos1 == sel.pos1 then
                         return i
                     end
                 else
-                    -- paging: compare page+coords (approximate)
                     local p0, p1 = item.pos0, item.pos1
                     if p0 and p1
                         and p0.page == sel.pos0.page
@@ -90,9 +99,164 @@ local function apply()
         return nil
     end
 
-    -- Called by DictQuickLookup just before it builds its ButtonTable.
-    -- Mutates `buttons` in-place; only sees buttons added before VocabBuilder runs.
-    -- VocabBuilder appends after this, so we post-process via DictQuickLookup:init wrap below.
+    -- =========================================================================
+    -- New KOReader API (buildButtonLayout exists)
+    -- =========================================================================
+    if DictQuickLookup.buildButtonLayout then
+        local orig_buildButtonLayout = DictQuickLookup.buildButtonLayout
+
+        DictQuickLookup.buildButtonLayout = function(self_dql)
+            if not is_enabled() or self_dql.is_wiki_fullpage then
+                return orig_buildButtonLayout(self_dql)
+            end
+
+            local buttons = orig_buildButtonLayout(self_dql)
+
+            if self_dql.is_wiki then
+                return buttons -- Wiki has its own layout, leave unchanged
+            end
+
+            -- Flatten all rows and index by id.
+            local by_id = {}
+            local unknown = {}
+            for _, row in ipairs(buttons) do
+                for _, btn in ipairs(row) do
+                    if btn.id and KNOWN_IDS[btn.id] then
+                        by_id[btn.id] = btn
+                    elseif btn.id then
+                        table.insert(unknown, btn)
+                    end
+                end
+            end
+
+            -- Build Zen icon row: highlight, [vocab], [wikipedia], translate, search.
+            local icon_row = {}
+
+            -- Highlight button with toggle behavior.
+            local h = by_id["highlight"]
+            if h then
+                local orig_cb = h.callback
+                h.callback = function()
+                    local idx = find_existing_highlight_index(self_dql.highlight)
+                    if idx then
+                        self_dql.highlight:deleteHighlight(idx)
+                    else
+                        orig_cb()
+                    end
+                    self_dql:onClose()
+                end
+                table.insert(icon_row, icon_btn(h, ICON_MAP.highlight))
+            end
+
+            -- Vocab button: handled below after we check for VocabBuilder output.
+            -- Look for vocabulary in flattened buttons or in unknown.
+            local vocab_btn = by_id["vocabulary"]
+            if not vocab_btn then
+                for _, btn in ipairs(unknown) do
+                    local t = type(btn.text) == "string" and btn.text
+                        or (type(btn.text_func) == "function" and btn.text_func())
+                    if type(t) == "string" and t:lower():find("vocabulary") then
+                        vocab_btn = btn
+                        break
+                    end
+                end
+            end
+            if vocab_btn then
+                -- Toggle-aware vocab icon: on first tap, VocabBuilder's
+                -- WordLookedUp event fires and toggles state.
+                -- We use a simple add-then-remove cycle via DB.
+                local DB = package.loaded["db"]
+                local vocab_word = self_dql.lookupword or self_dql.word
+                local is_in_vocab = false
+
+                local function get_book_title()
+                    local dui = self_dql.ui
+                    return (dui and dui.doc_props and dui.doc_props.display_title)
+                        or _("Dictionary lookup")
+                end
+
+                local v = icon_btn(vocab_btn, "lookup.vocab")
+                v.callback = function()
+                    if not is_in_vocab then
+                        self_dql.ui:handleEvent(
+                            Event:new("WordLookedUp", vocab_word, get_book_title(), true)
+                        )
+                        is_in_vocab = true
+                        local btn_w = self_dql.button_table
+                            and self_dql.button_table:getButtonById("vocabulary")
+                        if btn_w then
+                            btn_w:setIcon("lookup.vocab_remove", btn_w.width)
+                        end
+                    else
+                        if DB and DB.remove then
+                            DB:remove({ word = vocab_word })
+                        end
+                        is_in_vocab = false
+                        local btn_w = self_dql.button_table
+                            and self_dql.button_table:getButtonById("vocabulary")
+                        if btn_w then
+                            btn_w:setIcon("lookup.vocab", btn_w.width)
+                        end
+                    end
+                    UIManager:setDirty(self_dql, "ui")
+                end
+                table.insert(icon_row, v)
+            end
+
+            -- Wikipedia (conditional).
+            if show_wikipedia() and by_id["wikipedia"] then
+                table.insert(icon_row, icon_btn(by_id["wikipedia"], ICON_MAP.wikipedia))
+            end
+
+            -- Translate.
+            if by_id["translate"] then
+                table.insert(icon_row, icon_btn(by_id["translate"], ICON_MAP.translate))
+            end
+
+            -- Search.
+            if by_id["search"] then
+                table.insert(icon_row, icon_btn(by_id["search"], ICON_MAP.search))
+            end
+
+            -- Reconstruct button layout.
+            local result = {}
+            if #icon_row > 0 then
+                table.insert(result, icon_row)
+            end
+
+            -- Preserve unknown buttons as text rows when enabled.
+            if allow_unknown() then
+                for _, btn in ipairs(unknown) do
+                    if btn.id ~= "vocabulary" then
+                        -- Put each unknown in its own row.
+                        local found = false
+                        for _, row in ipairs(result) do
+                            for _, rb in ipairs(row) do
+                                if rb.id == btn.id then found = true; break end
+                            end
+                            if found then break end
+                        end
+                        if not found then
+                            table.insert(result, { btn })
+                        end
+                    end
+                end
+            end
+
+            logger.dbg("zen-ui[dict_quick_lookup]: new-api icon_row=",
+                #icon_row, "unknown=", #unknown)
+            return #result > 0 and result or buttons
+        end
+
+        logger.dbg("zen-ui[dict_quick_lookup]: installed new-API buildButtonLayout override")
+        return
+    end
+
+    -- =========================================================================
+    -- Old KOReader API (DictButtonsReady event)
+    -- =========================================================================
+    logger.dbg("zen-ui[dict_quick_lookup]: using legacy DictButtonsReady API")
+
     ReaderHighlight.onDictButtonsReady = function(self, dict_widget, buttons)
         logger.dbg("zen-ui[dict_quick_lookup]: onDictButtonsReady, is_enabled=",
             tostring(is_enabled()), "is_wiki=", tostring(dict_widget.is_wiki),

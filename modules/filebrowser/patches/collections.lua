@@ -36,6 +36,20 @@ local function apply_collections()
         return hide == true or hide == nil
     end
 
+    local function get_coll_display_mode()
+        local gv = type(zen_plugin.config.group_view) == "table" and zen_plugin.config.group_view or {}
+        local dm = type(gv.display_mode) == "table" and gv.display_mode or {}
+        return dm.collections
+    end
+
+    local function set_coll_display_mode(mode)
+        if type(zen_plugin.config.group_view) ~= "table" then zen_plugin.config.group_view = {} end
+        local gv = zen_plugin.config.group_view
+        if type(gv.display_mode) ~= "table" then gv.display_mode = {} end
+        gv.display_mode.collections = mode
+        if type(zen_plugin.saveConfig) == "function" then zen_plugin:saveConfig() end
+    end
+
     local function apply_button_group_font(button_rows, nominal_size)
         if type(button_rows) ~= "table" then return button_rows end
         local size = library_font.scaleValue(nominal_size or 20)
@@ -65,11 +79,11 @@ local function apply_collections()
     local function setup_display_mode(menu)
         local BookInfoManager = require("bookinfomanager")
         local display_mode = _coll_display_mode_override
-            or BookInfoManager:getSetting("collection_display_mode")
+            or get_coll_display_mode()
         menu._zen_coll_list = true
 
         if not display_mode then
-            return "classic"
+            display_mode = "mosaic"
         end
 
         local ok_cm, CoverMenu = pcall(require, "covermenu")
@@ -220,7 +234,7 @@ local function apply_collections()
             local bh = self.height - 2 * border
 
             -- Use unified makeCover - it handles everything: mode detection, cover collection, drawing
-            local cover_widget, mode, scenario = Cover.makeCover(coll_name, fake_chooser, {
+            local cover_widget, cover_mode, scenario = Cover.makeCover(coll_name, fake_chooser, {
                 is_folder = true,
                 max_w = max_w,
                 max_h = bh,
@@ -228,7 +242,7 @@ local function apply_collections()
             })
 
             if self._setFolderCover then
-                if scenario == "empty_folder" then
+                if scenario == "empty_folder" or cover_mode == "none" then
                     self:_setFolderCover { no_image = true, book_count = book_count }
                 else
                     -- makeCover already returned the appropriate widget based on mode
@@ -272,25 +286,15 @@ local function apply_collections()
 
         local BD              = require("ui/bidi")
         local Blitbuffer      = require("ffi/blitbuffer")
-        local BookInfoManager = require("bookinfomanager")
-        local CenterContainer = require("ui/widget/container/centercontainer")
         local Device          = require("device")
-        local Font            = require("ui/font")
-        local library_font    = require("common/library_font")
-        local FrameContainer  = require("ui/widget/container/framecontainer")
         local HorizontalGroup = require("ui/widget/horizontalgroup")
         local HorizontalSpan  = require("ui/widget/horizontalspan")
-        local ImageWidget     = require("ui/widget/imagewidget")
         local LeftContainer   = require("ui/widget/container/leftcontainer")
-        local LineWidget      = require("ui/widget/linewidget")
-        local OverlapGroup    = require("ui/widget/overlapgroup")
         local ReadCollection  = require("readcollection")
         local RightContainer  = require("ui/widget/container/rightcontainer")
         local Size            = require("ui/size")
         local TextBoxWidget   = require("ui/widget/textboxwidget")
         local TextWidget      = require("ui/widget/textwidget")
-        local VerticalGroup   = require("ui/widget/verticalgroup")
-        local VerticalSpan    = require("ui/widget/verticalspan")
 
         local Screen = Device.screen
         local scale_by_size = Screen:scaleBySize(1000000) * (1 / 1000000)
@@ -338,7 +342,7 @@ local function apply_collections()
             local fake_chooser = build_fake_chooser_from_files(files)
 
             -- Use unified makeCover
-            local cover_widget, mode, scenario = Cover.makeCover(coll_name, fake_chooser, {
+            local cover_widget = Cover.makeCover(coll_name, fake_chooser, {
                 is_folder = true,
                 max_w = cover_w + 2 * border_size,
                 max_h = max_img + 2 * border_size,
@@ -611,19 +615,9 @@ local function apply_collections()
         end
 
         local function showDisplaySubmenu()
-            local ok_bim, bim = pcall(require, "bookinfomanager")
-            local cur_mode
-            if ok_bim and bim then
-                local ok3, m = pcall(bim.getSetting, bim, "collection_display_mode")
-                if ok3 then cur_mode = m end
-            end
+            local cur_mode = get_coll_display_mode()
             local function apply_mode(mode)
-                local cb = fm_coll.ui and fm_coll.ui.coverbrowser
-                if cb and type(cb.setupWidgetDisplayMode) == "function" then
-                    pcall(cb.setupWidgetDisplayMode, "collections", mode)
-                elseif ok_bim and bim then
-                    pcall(bim.saveSetting, bim, "collection_display_mode", mode)
-                end
+                set_coll_display_mode(mode)
             end
             local view_dialog
             local function viewBtn(label, icon, mode)
@@ -710,21 +704,9 @@ local function apply_collections()
 
         local function showDisplaySubmenu()
             UIManager_bm:close(button_dialog)
-            local ok_bim, bim = pcall(require, "bookinfomanager")
-            local cur_mode
-            if ok_bim and bim then
-                local ok3, m = pcall(function()
-                    return bim:getSetting("collection_display_mode")
-                end)
-                if ok3 then cur_mode = m end
-            end
+            local cur_mode = get_coll_display_mode()
             local function apply_mode(mode)
-                local cb = fm_coll.ui and fm_coll.ui.coverbrowser
-                if cb and type(cb.setupWidgetDisplayMode) == "function" then
-                    pcall(cb.setupWidgetDisplayMode, "collections", mode)
-                elseif ok_bim and bim then
-                    pcall(bim.saveSetting, bim, "collection_display_mode", mode)
-                end
+                set_coll_display_mode(mode)
             end
             local view_dialog
             local function viewBtn(label, icon, mode)
@@ -1070,10 +1052,7 @@ local function apply_collections()
             or (ok and resolved_name == ReadCollection.default_collection_name)
 
         if is_enabled() then
-            local ok_bim, bim = pcall(require, "bookinfomanager")
-            if ok_bim then
-                _coll_display_mode_override = bim:getSetting("collection_display_mode")
-            end
+            _coll_display_mode_override = get_coll_display_mode()
             _patching_named_coll = true
         end
         orig_onShowColl(self, collection_name)

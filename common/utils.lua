@@ -121,14 +121,14 @@ function M.registerPluginIcons(icons_dir, icons, copy_to_user_dir)
             pcall(function()
                 local DataStorage = require("datastorage")
                 local ffiutil = require("ffi/util")
-                local user_icons_dir = DataStorage:getDataDir() .. "/icons"
-                if lfs.attributes(user_icons_dir, "mode") ~= "directory" then
-                    lfs.mkdir(user_icons_dir)
+                local dest_icons_dir = DataStorage:getDataDir() .. "/icons"
+                if lfs.attributes(dest_icons_dir, "mode") ~= "directory" then
+                    lfs.mkdir(dest_icons_dir)
                 end
                 for name, filename in pairs(icons) do
                     -- Use icon short-name as dest so ICONS_DIRS lookup finds it by name
                     local ext = filename:match("%.[^%.]+$") or ".svg"
-                    local dst = user_icons_dir .. "/" .. name .. ext
+                    local dst = dest_icons_dir .. "/" .. name .. ext
                     if lfs.attributes(dst, "mode") ~= "file" then
                         local src = icons_dir .. filename
                         if lfs.attributes(src, "mode") == "file" then
@@ -267,12 +267,12 @@ function M.getBadgeColor(config)
         and type(config.browser_cover_badges) == "table"
         and config.browser_cover_badges.badge_color
     if type(c) == "table" then
-        local r = math.max(0, math.min(255, tonumber(c[1]) or 204))
-        local g = math.max(0, math.min(255, tonumber(c[2]) or 204))
-        local b = math.max(0, math.min(255, tonumber(c[3]) or 204))
+        local r = math.max(0, math.min(255, tonumber(c[1]) or 0))
+        local g = math.max(0, math.min(255, tonumber(c[2]) or 0))
+        local b = math.max(0, math.min(255, tonumber(c[3]) or 0))
         return Blitbuffer.ColorRGB32(r, g, b, 255)
     end
-    return Blitbuffer.COLOR_LIGHT_GRAY
+    return Blitbuffer.COLOR_BLACK
 end
 
 --- Returns the foreground color for text/icons drawn inside a badge.
@@ -282,7 +282,8 @@ function M.getBadgeTextColor(config)
     local c = type(config) == "table"
         and type(config.browser_cover_badges) == "table"
         and config.browser_cover_badges.badge_color
-    if type(c) == "table" and c[1] == 0 and c[2] == 0 and c[3] == 0 then
+    -- nil means default (black), so text is white; explicit non-black gets black text.
+    if c == nil or (type(c) == "table" and c[1] == 0 and c[2] == 0 and c[3] == 0) then
         return Blitbuffer.COLOR_WHITE
     end
     return Blitbuffer.COLOR_BLACK

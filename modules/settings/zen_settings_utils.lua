@@ -5,7 +5,6 @@
 local _ = require("gettext")
 local UIManager = require("ui/uimanager")
 local Device = require("device")
-local paths = require("common/paths")
 
 local M = {}
 
@@ -363,7 +362,7 @@ function M.make_enable_feature_item(feature, enable_text, config, save_and_apply
             return config.features[feature] == true
         end,
         callback = function()
-            config.features[feature] = not (config.features[feature] == true)
+            config.features[feature] = config.features[feature] ~= true
             save_and_apply(feature)
         end,
     }

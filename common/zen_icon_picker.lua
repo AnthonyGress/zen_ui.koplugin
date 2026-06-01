@@ -90,16 +90,16 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
             local short     = name:gsub("^quick_", ""):gsub("^tab_", ""):gsub("^lookup_", "")
             -- bordersize is added on top of content by FC.getSize(), so subtract it
             -- from the CC inner dimen so each FC reports exactly cell_w to HG.
-            local brd = is_sel and Screen:scaleBySize(2) or Screen:scaleBySize(1)
+            local cell_brd = is_sel and Screen:scaleBySize(2) or Screen:scaleBySize(1)
             table.insert(row_g, FC:new{
                 width      = cell_w,
                 height     = cell_h,
-                bordersize = brd,
+                bordersize = cell_brd,
                 color      = is_sel and Blitbuffer.COLOR_BLACK or Blitbuffer.COLOR_LIGHT_GRAY,
                 background = is_sel and Blitbuffer.COLOR_LIGHT_GRAY or Blitbuffer.COLOR_WHITE,
                 padding    = cell_pad,
                 CC:new{
-                    dimen = Geom:new{ w = cell_w - cell_pad*2 - 2*brd, h = cell_h - cell_pad*2 - 2*brd },
+                    dimen = Geom:new{ w = cell_w - cell_pad*2 - 2*cell_brd, h = cell_h - cell_pad*2 - 2*cell_brd },
                     VG:new{
                         align = "center",
                         IW:new{ file = item.file or nil, icon = item.file and nil or name, width = icon_sz, height = icon_sz, alpha = true },

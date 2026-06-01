@@ -33,7 +33,6 @@ local function apply_context_menu()
 
     local function apply_button_group_font(button_rows, nominal_size)
         if type(button_rows) ~= "table" then return button_rows end
-        local size = library_font.scaleValue(nominal_size or 20)
         for _i, row in ipairs(button_rows) do
             if type(row) == "table" then
                 for _j, btn in ipairs(row) do
@@ -439,20 +438,6 @@ local function apply_context_menu()
                 local cover_max_h = Screen:scaleBySize(140)
                 local cover_max_w = math.floor(cover_max_h * ratio)
 
-                local Blitbuffer      = require("ffi/blitbuffer")
-                local CenterContainer = require("ui/widget/container/centercontainer")
-                local Font            = require("ui/font")
-                local FrameContainer  = require("ui/widget/container/framecontainer")
-                local Geom            = require("ui/geometry")
-                local HorizontalGroup = require("ui/widget/horizontalgroup")
-                local HorizontalSpan  = require("ui/widget/horizontalspan")
-                local ImageWidget     = require("ui/widget/imagewidget")
-                local LeftContainer   = require("ui/widget/container/leftcontainer")
-                local LineWidget      = require("ui/widget/linewidget")
-                local TextWidget      = require("ui/widget/textwidget")
-                local VerticalGroup   = require("ui/widget/verticalgroup")
-                local VerticalSpan    = require("ui/widget/verticalspan")
-
                 -- Build fake chooser for group files
                 local fake_chooser = {
                     genItemTableFromPath = function()
@@ -465,17 +450,12 @@ local function apply_context_menu()
                 }
 
                 -- Use unified makeCover for folder (gallery mode)
-                local cover_widget, mode, scenario = Cover.makeCover(group_name, fake_chooser, {
+                local cover_widget = Cover.makeCover(group_name, fake_chooser, {
                     is_folder = true,
                     max_w = cover_max_w,
                     max_h = cover_max_h,
                     folder_name = group_name,
                 })
-
-                -- Apply rounded corners
-                if cover_widget and _zen_apply_rounded_cover then
-                    _zen_apply_rounded_cover(cover_widget, border)
-                end
 
                 local framed_gallery = cover_widget or FrameContainer:new{
                     padding    = 0,
@@ -497,11 +477,11 @@ local function apply_context_menu()
                     local r = Screen:scaleBySize(6)
                     local r_inner = r - border
                     local orig_pt = framed_gallery.paintTo
-                    framed_gallery.paintTo = function(self, bb, x, y)
-                        orig_pt(self, bb, x, y)
-                        if not (self.dimen and self.dimen.x) then return end
-                        local tx, ty = self.dimen.x, self.dimen.y
-                        local tw, th = self.dimen.w, self.dimen.h
+                    framed_gallery.paintTo = function(frame_self, bb, x, y)
+                        orig_pt(frame_self, bb, x, y)
+                        if not (frame_self.dimen and frame_self.dimen.x) then return end
+                        local tx, ty = frame_self.dimen.x, frame_self.dimen.y
+                        local tw, th = frame_self.dimen.w, frame_self.dimen.h
                         local wh = Blitbuffer.COLOR_WHITE
                         local blk = Blitbuffer.COLOR_BLACK
                         for j = 0, r - 1 do
@@ -717,7 +697,10 @@ local function apply_context_menu()
                     fullscreen = true,
                     with_title_bar = false,
                 }
-                function iv:onTap() self:onClose() return true end
+                iv.onTap = function(iv_self)
+                    iv_self:onClose()
+                    return true
+                end
                 UIManager:show(iv)
             end
 
@@ -747,11 +730,11 @@ local function apply_context_menu()
                     local r = Screen:scaleBySize(6)
                     local r_inner = r - bsz
                     local orig_pt = frame_widget.paintTo
-                    frame_widget.paintTo = function(self, bb, x, y)
-                        orig_pt(self, bb, x, y)
-                        if not (self.dimen and self.dimen.x) then return end
-                        local tx, ty = self.dimen.x, self.dimen.y
-                        local tw, th = self.dimen.w, self.dimen.h
+                    frame_widget.paintTo = function(frame_self, bb, x, y)
+                        orig_pt(frame_self, bb, x, y)
+                        if not (frame_self.dimen and frame_self.dimen.x) then return end
+                        local tx, ty = frame_self.dimen.x, frame_self.dimen.y
+                        local tw, th = frame_self.dimen.w, frame_self.dimen.h
                         local Blitbuffer_rc = require("ffi/blitbuffer")
                         local wh = Blitbuffer_rc.COLOR_WHITE
                         local blk = Blitbuffer_rc.COLOR_BLACK
@@ -788,15 +771,6 @@ local function apply_context_menu()
                     local text_col_w = math.max(avail_w - rendered_w - 2 * border - gap,
                                                  Screen:scaleBySize(60))
                     local ImageWidget = require("ui/widget/imagewidget")
-                    local FrameContainer = require("ui/widget/container/framecontainer")
-                    local LeftContainer = require("ui/widget/container/leftcontainer")
-                    local HorizontalGroup = require("ui/widget/horizontalgroup")
-                    local HorizontalSpan = require("ui/widget/horizontalspan")
-                    local TextWidget = require("ui/widget/textwidget")
-                    local VerticalGroup = require("ui/widget/verticalgroup")
-                    local VerticalSpan = require("ui/widget/verticalspan")
-                    local Blitbuffer = require("ffi/blitbuffer")
-                    local Geom = require("ui/geometry")
                     local fs_title = 20
                     local fs_authors = 17
                     local fs_tags = 14
@@ -874,11 +848,11 @@ local function apply_context_menu()
                                 },
                             },
                         }
-                        function wrapper:onTapCover(_, ges)
-                            if not self.dimen or not ges or not ges.pos then
+                        wrapper.onTapCover = function(wrapper_self, _arg, ges)
+                            if not wrapper_self.dimen or not ges or not ges.pos then
                                 return false
                             end
-                            if not self.dimen:contains(ges.pos) then
+                            if not wrapper_self.dimen:contains(ges.pos) then
                                 return false
                             end
                             on_cover_tap()
@@ -910,7 +884,7 @@ local function apply_context_menu()
                             if not bookinfo.ignore_meta then
                                 if bookinfo.title then
                                     title_str = BD.auto(bookinfo.title)
-                                    authors_str = bookinfo.authors and BD.auto(bookinfo.authors) or nil
+                                    authors_str = bookinfo.authors and BD.auto(bookinfo.authors:gsub("\n", ", ")) or nil
                                 end
                                 if bookinfo.series then
                                     local s = BD.auto(bookinfo.series)
@@ -947,7 +921,7 @@ local function apply_context_menu()
                             end
 
                             -- Use unified makeCover for single book (with proper scaling)
-                            local cover_bb, w, h, mode, scenario = Cover.makeCover(file, nil, {
+                            local cover_bb, w, h = Cover.makeCover(file, nil, {
                                 is_folder = false,
                                 width = cover_max_w,
                                 height = cover_max_h,
@@ -1007,7 +981,7 @@ local function apply_context_menu()
                     end
 
                     -- Use unified makeCover for folder
-                    local cover_widget, mode, scenario = Cover.makeCover(file, _cover_chooser, {
+                    local cover_widget = Cover.makeCover(file, _cover_chooser, {
                         is_folder = true,
                         max_w = cover_max_w,
                         max_h = cover_max_h,
@@ -1080,7 +1054,6 @@ local function apply_context_menu()
                 if not dialog_cover_widget then
                     local Blitbuffer2 = require("ffi/blitbuffer")
                     local CenterContainer2 = require("ui/widget/container/centercontainer")
-                    local Font2 = require("ui/font")
                     local FrameContainer2 = require("ui/widget/container/framecontainer")
                     local Geom2 = require("ui/geometry")
                     local HorizontalGroup2 = require("ui/widget/horizontalgroup")
@@ -1126,11 +1099,11 @@ local function apply_context_menu()
                         local r = Screen:scaleBySize(6)
                         local r_inner = r - bsz
                         local orig_pt = widget.paintTo
-                        widget.paintTo = function(self, bb, x, y)
-                            orig_pt(self, bb, x, y)
-                            if not (self.dimen and self.dimen.x) then return end
-                            local tx, ty = self.dimen.x, self.dimen.y
-                            local tw, th = self.dimen.w, self.dimen.h
+                        widget.paintTo = function(widget_self, bb, x, y)
+                            orig_pt(widget_self, bb, x, y)
+                            if not (widget_self.dimen and widget_self.dimen.x) then return end
+                            local tx, ty = widget_self.dimen.x, widget_self.dimen.y
+                            local tw, th = widget_self.dimen.w, widget_self.dimen.h
                             local wh = Blitbuffer2.COLOR_WHITE
                             local blk = Blitbuffer2.COLOR_BLACK
                             for j = 0, r - 1 do
@@ -1408,9 +1381,9 @@ local function apply_context_menu()
                             local lfs = require("libs/libkoreader-lfs")
                             local src = ffiUtil.realpath(file)
                             if not src then return end
-                            local home_dir = paths.getHomeDir()
+                            local move_home_dir = paths.getHomeDir()
                                 or file_chooser.path
-                            if not home_dir then return end
+                            if not move_home_dir then return end
                             local src_dir = ffiUtil.realpath(ffiUtil.dirname(src))
                             local _g = rawget(_G, "G_reader_settings")
                             local _zen_cfg = _g and _g:readSetting("zen_ui_config")
@@ -1422,7 +1395,7 @@ local function apply_context_menu()
                                 select_file = false,
                                 show_files = true,
                                 title = _("Move to…"),
-                                path = home_dir,
+                                path = move_home_dir,
                                 src_dir = src_dir,
                                 extra_roots = _extra,
                                 onConfirm = function(dest_dir_real)
@@ -1945,15 +1918,15 @@ local function apply_context_menu()
                     },
                 },
             }
-            function file_chooser:onZenBlankHold(arg, ges)
+            file_chooser.onZenBlankHold = function(fc, arg, ges)
                 local home_dir_bh = paths.getHomeDir()
-                local cur_path_bh = self.path or ""
+                local cur_path_bh = fc.path or ""
                 if home_dir_bh then
                     if not paths.isInHomeDir(cur_path_bh) then return false end
                 end
                 local ffiUtil_bh = require("ffi/util")
                 local cur_real = ffiUtil_bh.realpath(cur_path_bh) or cur_path_bh
-                self:showFileDialog({
+                fc:showFileDialog({
                     path = cur_real,
                     is_file = false,
                     is_go_up = false,

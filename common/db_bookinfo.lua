@@ -236,10 +236,14 @@ function M.getTBRBooks()
     local candidates = {}
 
     local ok2, err = pcall(function()
+        -- Query all books, not just in_progress=0.  Bookshelf (and other
+        -- plugins) can set DocSettings status to "abandoned" without
+        -- updating the CoverBrowser cache, so a previously-in-progress
+        -- book may still have in_progress=1 here.  The authoritative
+        -- filter is the sidecar check below.
         local sql = [[
             SELECT directory, filename
             FROM bookinfo
-            WHERE in_progress = 0
             ORDER BY filename
         ]]
         local res = conn:exec(sql)

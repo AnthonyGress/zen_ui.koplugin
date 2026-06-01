@@ -7,8 +7,23 @@ on:
   workflow_dispatch:
 
 jobs:
+  luacheck:
+    name: LuaCheck
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run LuaCheck gate
+        uses: ./.github/actions/luacheck-gate
+        with:
+          lua-version: "5.1"
+          targets: "_meta.lua main.lua common config modules"
+
   release:
     name: Build & Release
+    needs: luacheck
     runs-on: ubuntu-latest
     permissions:
       contents: write

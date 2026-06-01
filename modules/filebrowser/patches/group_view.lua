@@ -99,6 +99,121 @@ local function set_detail_collate(tab_id, group_name, collate)
     save_zen_config(cfg)
 end
 
+local function get_group_reverse(tab_id)
+    local cfg = load_zen_config()
+    local group_view = cfg and cfg.group_view
+    local group_reverse = group_view and group_view.group_reverse
+    local stored = group_reverse and group_reverse[tab_id]
+    if stored ~= nil then
+        return stored == true
+    end
+    local g_settings = rawget(_G, "G_reader_settings")
+    local legacy_key = tab_id == "authors" and "zen_authors_reverse"
+        or (tab_id == "series" and "zen_series_reverse" or nil)
+    if legacy_key and g_settings then
+        return g_settings:isTrue(legacy_key)
+    end
+    return false
+end
+
+local function set_group_reverse(tab_id, reverse)
+    if tab_id ~= "authors" and tab_id ~= "series" then return end
+    local cfg = load_zen_config()
+    if type(cfg) ~= "table" then return end
+    if type(cfg.group_view) ~= "table" then cfg.group_view = {} end
+    if type(cfg.group_view.group_reverse) ~= "table" then
+        cfg.group_view.group_reverse = {}
+    end
+    cfg.group_view.group_reverse[tab_id] = reverse == true
+    save_zen_config(cfg)
+end
+
+local function get_tags_global_collate()
+    local cfg = load_zen_config()
+    local group_view = cfg and cfg.group_view
+    local tags_global = group_view and group_view.tags_global
+    local stored = tags_global and tags_global.collate
+    if type(stored) == "string" and stored ~= "" then
+        return stored
+    end
+    local g_settings = rawget(_G, "G_reader_settings")
+    local legacy = g_settings and g_settings:readSetting("zen_tags_global_collate")
+    if type(legacy) == "string" and legacy ~= "" then
+        return legacy
+    end
+    return "title"
+end
+
+local function set_tags_global_collate(collate)
+    if type(collate) ~= "string" or collate == "" then return end
+    local cfg = load_zen_config()
+    if type(cfg) ~= "table" then return end
+    if type(cfg.group_view) ~= "table" then cfg.group_view = {} end
+    if type(cfg.group_view.tags_global) ~= "table" then
+        cfg.group_view.tags_global = {}
+    end
+    cfg.group_view.tags_global.collate = collate
+    save_zen_config(cfg)
+end
+
+local function is_tags_global_reverse()
+    local cfg = load_zen_config()
+    local group_view = cfg and cfg.group_view
+    local tags_global = group_view and group_view.tags_global
+    if tags_global and tags_global.reverse ~= nil then
+        return tags_global.reverse == true
+    end
+    local g_settings = rawget(_G, "G_reader_settings")
+    return g_settings and g_settings:isTrue("zen_tags_global_reverse") or false
+end
+
+local function set_tags_global_reverse(reverse)
+    local cfg = load_zen_config()
+    if type(cfg) ~= "table" then return end
+    if type(cfg.group_view) ~= "table" then cfg.group_view = {} end
+    if type(cfg.group_view.tags_global) ~= "table" then
+        cfg.group_view.tags_global = {}
+    end
+    cfg.group_view.tags_global.reverse = reverse == true
+    save_zen_config(cfg)
+end
+
+local function get_detail_reverse(tab_id, group_name, fallback)
+    local cfg = load_zen_config()
+    local group_view = cfg and cfg.group_view
+    local detail_reverse = group_view and group_view.detail_reverse
+    local tab_reverse = detail_reverse and detail_reverse[tab_id]
+    local stored = tab_reverse and tab_reverse[group_name]
+    if stored ~= nil then
+        return stored == true
+    end
+    local g_settings = rawget(_G, "G_reader_settings")
+    local legacy_key = "zen_" .. tab_id .. "_detail_reverse_" .. group_name
+    local legacy = g_settings and g_settings:readSetting(legacy_key)
+    if legacy ~= nil then
+        return legacy == true
+    end
+    return fallback == true
+end
+
+local function set_detail_reverse(tab_id, group_name, reverse)
+    local cfg = load_zen_config()
+    if type(cfg) ~= "table" then return end
+    if type(cfg.group_view) ~= "table" then cfg.group_view = {} end
+    if type(cfg.group_view.detail_reverse) ~= "table" then
+        cfg.group_view.detail_reverse = {}
+    end
+    if type(cfg.group_view.detail_reverse[tab_id]) ~= "table" then
+        cfg.group_view.detail_reverse[tab_id] = {}
+    end
+    if reverse then
+        cfg.group_view.detail_reverse[tab_id][group_name] = true
+    else
+        cfg.group_view.detail_reverse[tab_id][group_name] = nil
+    end
+    save_zen_config(cfg)
+end
+
 -- True when up-folder items should be shown (mirrors browser_hide_up_folder config).
 local function should_show_up_folder()
     local p = _zen_plugin or rawget(_G, "__ZEN_UI_PLUGIN")
@@ -411,7 +526,6 @@ local function patch_mosaic_item()
         local dimen = { w = portrait_w + 2 * border, h = portrait_h + 2 * border }
         local image_widget
         if is_stack then
-            local CoverUtils = require("common/cover_utils")
             image_widget = CoverUtils.drawStack(covers, portrait_w, portrait_h, border)
         else
             image_widget = FrameContainer:new{
@@ -482,7 +596,6 @@ local function patch_list_item()
     local CoverUtils      = require("common/cover_utils")
     local CenterContainer = require("ui/widget/container/centercontainer")
     local Device          = require("device")
-    local Font            = require("ui/font")
     local library_font    = require("common/library_font")
     local FrameContainer  = require("ui/widget/container/framecontainer")
     local HorizontalGroup = require("ui/widget/horizontalgroup")
@@ -636,7 +749,6 @@ local function patch_list_item()
                     }
                 end
             elseif stack_mode then
-                local CoverUtils = require("common/cover_utils")
                 cover_frame = CoverUtils.drawStack(covers, cover_w, max_img, border_size)
                 if #covers > 0 then
                     self.menu._has_cover_images = true
@@ -803,8 +915,6 @@ end
 local function clean_nav(menu, tab_label, back_callback)
     if not menu then return end
 
-    local UIManager_mod = require("ui/uimanager")
-
     menu._do_center_partial_rows = false
 
     local arrow = menu.page_return_arrow
@@ -869,18 +979,18 @@ end
 local function build_group_item_table(groups, data_type)
     local _ = require("gettext")
     local items = {}
-    for _, group in ipairs(groups) do
+    for _i, group in ipairs(groups) do
         local files
         if data_type == "authors" or data_type == "tags" then
             files = group.files
         else
             -- series items: extract file paths in order
             files = {}
-            for _, item in ipairs(group.items) do
+            for _j, item in ipairs(group.items) do
                 table.insert(files, item.file)
             end
         end
-        local display = group.author or group.series or group.tag or "?"
+        local display = (group.author or group.series or group.tag or "?"):gsub("\n", ", ")
         table.insert(items, {
             text        = display,
             _zen_files  = files,
@@ -897,14 +1007,7 @@ local function build_group_item_table(groups, data_type)
     end
 
     -- Apply reverse sort if enabled (authors / series only; tags use per-group or global book sort)
-    local settings_key
-    if data_type == "authors" then
-        settings_key = "zen_authors_reverse"
-    elseif data_type == "series" then
-        settings_key = "zen_series_reverse"
-    end
-    local g_settings = rawget(_G, "G_reader_settings")
-    if settings_key and g_settings and g_settings:isTrue(settings_key) and #items > 0 then
+    if (data_type == "authors" or data_type == "series") and get_group_reverse(data_type) and #items > 0 then
         -- Reverse the array (skip the placeholder)
         if items[1].text ~= _("No books found") then
             local reversed = {}
@@ -1011,17 +1114,15 @@ end
 -------------------------------------------------------------------------------
 local function showGroupSortDialog(tab_id, menu)
     local _ = require("gettext")
-    local g_settings = rawget(_G, "G_reader_settings")
-    if not g_settings then return end
 
     -- Tags: show the same rich sort dialog as the detail view;
-    -- settings are stored as globals and used as the default for all tag detail views.
+    -- settings are stored in zen_ui_config and used as defaults for tag detail views.
     if tab_id == "tags" then
         local ButtonDialog = require("ui/widget/buttondialog")
         local UIManager    = require("ui/uimanager")
 
-        local cur_collate = g_settings:readSetting("zen_tags_global_collate") or "title"
-        local cur_reverse = g_settings:isTrue("zen_tags_global_reverse")
+        local cur_collate = get_tags_global_collate()
+        local cur_reverse = is_tags_global_reverse()
 
         local SORT_OPTIONS = {
             { key = "series_index", text = "\u{F0CB}  " .. _("Series number") },
@@ -1031,14 +1132,14 @@ local function showGroupSortDialog(tab_id, menu)
 
         local sort_dialog
         local sort_buttons = {}
-        for _, opt in ipairs(SORT_OPTIONS) do
+        for _i, opt in ipairs(SORT_OPTIONS) do
             local is_active = cur_collate == opt.key
             table.insert(sort_buttons, {{
                 text     = opt.text .. (is_active and "  \u{2713}" or ""),
                 align    = "left",
                 enabled  = not is_active,
                 callback = function()
-                    g_settings:saveSetting("zen_tags_global_collate", opt.key)
+                    set_tags_global_collate(opt.key)
                     UIManager:close(sort_dialog)
                 end,
             }})
@@ -1058,7 +1159,7 @@ local function showGroupSortDialog(tab_id, menu)
                             align    = "left",
                             enabled  = cur_reverse,
                             callback = function()
-                                g_settings:delSetting("zen_tags_global_reverse")
+                                set_tags_global_reverse(false)
                                 UIManager:close(order_dialog)
                             end,
                         }},
@@ -1067,7 +1168,7 @@ local function showGroupSortDialog(tab_id, menu)
                             align    = "left",
                             enabled  = not cur_reverse,
                             callback = function()
-                                g_settings:saveSetting("zen_tags_global_reverse", true)
+                                set_tags_global_reverse(true)
                                 UIManager:close(order_dialog)
                             end,
                         }},
@@ -1089,18 +1190,13 @@ local function showGroupSortDialog(tab_id, menu)
     local fm = ok_fm and FM and FM.instance
     if not fm then return end
 
-    local settings_key = tab_id == "authors" and "zen_authors_reverse" or "zen_series_reverse"
     local title        = tab_id == "authors" and _("Sort authors") or _("Sort series")
 
     fm.file_chooser:showSortOrderDialog({
         title           = title,
-        current_reverse = g_settings:isTrue(settings_key),
+        current_reverse = get_group_reverse(tab_id),
         on_select       = function(reverse)
-            if reverse then
-                g_settings:saveSetting(settings_key, true)
-            else
-                g_settings:delSetting(settings_key)
-            end
+            set_group_reverse(tab_id, reverse)
             if menu then
                 local ok, db = pcall(require, "common/db_bookinfo")
                 if ok then
@@ -1211,29 +1307,17 @@ local function showDetailSortDialog(group_name, tab_id, menu, files)
     local ButtonDialog = require("ui/widget/buttondialog")
     local UIManager = require("ui/uimanager")
 
-    local reverse_key = "zen_" .. tab_id .. "_detail_reverse_" .. group_name
-    local g_settings = rawget(_G, "G_reader_settings")
-    if not g_settings then return end
-
     local default_collate
     if tab_id == "series" then
         default_collate = "series_index"
     elseif tab_id == "tags" then
-        default_collate = g_settings:readSetting("zen_tags_global_collate") or "title"
+        default_collate = get_tags_global_collate()
     else
         default_collate = "title"
     end
     local cur_collate = get_detail_collate(tab_id, group_name, default_collate)
-    -- Tags: if no per-group reverse is set, fall back to the global reverse setting.
-    local per_group_reverse = g_settings:readSetting(reverse_key)
-    local cur_reverse
-    if per_group_reverse ~= nil then
-        cur_reverse = per_group_reverse == true
-    elseif tab_id == "tags" then
-        cur_reverse = g_settings:isTrue("zen_tags_global_reverse")
-    else
-        cur_reverse = false
-    end
+    local reverse_fallback = tab_id == "tags" and is_tags_global_reverse() or false
+    local cur_reverse = get_detail_reverse(tab_id, group_name, reverse_fallback)
 
     local SORT_OPTIONS = {
         { key = "series_index", text = "\u{F0CB}  " .. _("Series number") },
@@ -1271,7 +1355,7 @@ local function showDetailSortDialog(group_name, tab_id, menu, files)
     local sort_buttons = {}
 
     -- Add collate field options
-    for _, opt in ipairs(SORT_OPTIONS) do
+    for _i, opt in ipairs(SORT_OPTIONS) do
         local is_active = cur_collate == opt.key
         table.insert(sort_buttons, {{
             text     = opt.text .. (is_active and "  \u{2713}" or ""),
@@ -1298,7 +1382,7 @@ local function showDetailSortDialog(group_name, tab_id, menu, files)
                     align    = "left",
                     enabled  = cur_reverse,
                     callback = function()
-                        g_settings:delSetting(reverse_key)
+                        set_detail_reverse(tab_id, group_name, false)
                         UIManager:close(order_dialog)
                         rebuildMenu(cur_collate, false)
                     end,
@@ -1308,7 +1392,7 @@ local function showDetailSortDialog(group_name, tab_id, menu, files)
                     align    = "left",
                     enabled  = not cur_reverse,
                     callback = function()
-                        g_settings:saveSetting(reverse_key, true)
+                        set_detail_reverse(tab_id, group_name, true)
                         UIManager:close(order_dialog)
                         rebuildMenu(cur_collate, true)
                     end,
@@ -1370,7 +1454,6 @@ local function showDetailView(group_item, injectNavbar, tab_id)
     local Menu      = require("ui/widget/menu")
     local TitleBar  = require("ui/widget/titlebar")
     local UIManager = require("ui/uimanager")
-    local ReaderUI  = require("apps/reader/readerui")
 
     local files      = group_item._zen_files or {}
     local group_name = group_item.text or ""
@@ -1384,29 +1467,19 @@ local function showDetailView(group_item, injectNavbar, tab_id)
     end
 
     -- Get sort settings for this group
-    local reverse_key = "zen_" .. tab_id .. "_detail_reverse_" .. group_name
-    local g_settings = rawget(_G, "G_reader_settings")
     -- Series defaults to series_index; tags fall back to the global tags sort setting;
     -- authors default to title.
     local default_collate
     if tab_id == "series" then
         default_collate = "series_index"
     elseif tab_id == "tags" then
-        default_collate = (g_settings and g_settings:readSetting("zen_tags_global_collate")) or "title"
+        default_collate = get_tags_global_collate()
     else
         default_collate = "title"
     end
     local cur_collate = get_detail_collate(tab_id, group_name, default_collate)
-    -- For reverse: per-group key takes priority; tags fall back to global setting.
-    local per_group_reverse = g_settings and g_settings:readSetting(reverse_key)
-    local cur_reverse
-    if per_group_reverse ~= nil then
-        cur_reverse = per_group_reverse == true
-    elseif tab_id == "tags" then
-        cur_reverse = g_settings and g_settings:isTrue("zen_tags_global_reverse") or false
-    else
-        cur_reverse = false
-    end
+    local reverse_fallback = tab_id == "tags" and is_tags_global_reverse() or false
+    local cur_reverse = get_detail_reverse(tab_id, group_name, reverse_fallback)
 
     -- Sort files based on current settings
     local sorted_files = sortDetailFiles(files, cur_collate, cur_reverse)
@@ -1416,7 +1489,7 @@ local function showDetailView(group_item, injectNavbar, tab_id)
     local lfs_mod  = require("libs/libkoreader-lfs")
     local util_mod = require("util")
     local book_items = {}
-    for _, fpath in ipairs(sorted_files) do
+    for _i, fpath in ipairs(sorted_files) do
         local fname = fpath:match("([^/]+)$") or fpath
         local display = fname:gsub("%.[^%.]+$", "")
         local attr = lfs_mod.attributes(fpath)
@@ -1876,7 +1949,6 @@ function M.showTBRView(injectNavbar)
     local Menu       = require("ui/widget/menu")
     local TitleBar   = require("ui/widget/titlebar")
     local UIManager  = require("ui/uimanager")
-    local ReaderUI   = require("apps/reader/readerui")
 
     local ok, db = pcall(require, "common/db_bookinfo")
     if not ok then return end
@@ -1886,10 +1958,8 @@ function M.showTBRView(injectNavbar)
     local SORT_GROUP = "to_be_read"
     local group_name = _("To Be Read")
 
-    local reverse_key = "zen_" .. tab_id .. "_detail_reverse_" .. SORT_GROUP
-    local g_settings  = rawget(_G, "G_reader_settings")
     local cur_collate = get_detail_collate(tab_id, SORT_GROUP, "title")
-    local cur_reverse = g_settings and g_settings:isTrue(reverse_key) or false
+    local cur_reverse = get_detail_reverse(tab_id, SORT_GROUP, false)
 
     local sorted_files = sortDetailFiles(files, cur_collate, cur_reverse)
     sorted_files = apply_status_filter(sorted_files)
@@ -1898,7 +1968,7 @@ function M.showTBRView(injectNavbar)
         local lfs_mod  = require("libs/libkoreader-lfs")
         local util_mod = require("util")
         local items = {}
-        for _, fpath in ipairs(flist) do
+        for _i, fpath in ipairs(flist) do
             local fname   = fpath:match("([^/]+)$") or fpath
             local display = fname:gsub("%.[^%.]+$", "")
             local attr = lfs_mod.attributes(fpath)

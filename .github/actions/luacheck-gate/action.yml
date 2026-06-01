@@ -1,0 +1,31 @@
+name: LuaCheck Gate
+description: Run LuaCheck and fail on any non-zero LuaCheck exit.
+
+inputs:
+  lua-version:
+    description: Lua runtime version used for LuaCheck.
+    required: false
+    default: "5.1"
+  targets:
+    description: Space-separated files/directories to lint.
+    required: false
+    default: "_meta.lua main.lua common config modules"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Lua
+      uses: leafo/gh-actions-lua@v11
+      with:
+        luaVersion: ${{ inputs.lua-version }}
+
+    - name: Set up LuaRocks
+      uses: leafo/gh-actions-luarocks@v4
+
+    - name: Install LuaCheck
+      shell: bash
+      run: luarocks install luacheck
+
+    - name: Run LuaCheck
+      shell: bash
+      run: luacheck -q ${{ inputs.targets }}

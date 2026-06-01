@@ -12,7 +12,6 @@ local M = {}
 function M.build(ctx)
     local config = ctx.config
     local plugin = ctx.plugin
-    local save_and_apply = ctx.save_and_apply
     local settings_apply = ctx.settings_apply
 
     local items = {}
@@ -42,7 +41,7 @@ function M.build(ctx)
             return config.features.zen_opds ~= false
         end,
         callback = function()
-            config.features.zen_opds = not (config.features.zen_opds ~= false)
+            config.features.zen_opds = config.features.zen_opds == false
             plugin:saveConfig()
             settings_apply.prompt_restart()
         end,
@@ -54,7 +53,7 @@ function M.build(ctx)
             return config.features.partial_page_repaint == true
         end,
         callback = function()
-            config.features.partial_page_repaint = not (config.features.partial_page_repaint == true)
+            config.features.partial_page_repaint = config.features.partial_page_repaint ~= true
             plugin:saveConfig()
             settings_apply.prompt_restart()
         end,
@@ -67,7 +66,7 @@ function M.build(ctx)
             return config.features.custom_icons_enabled == true
         end,
         callback = function()
-            config.features.custom_icons_enabled = not (config.features.custom_icons_enabled == true)
+            config.features.custom_icons_enabled = config.features.custom_icons_enabled ~= true
             plugin:saveConfig()
             settings_apply.prompt_restart()
         end,
@@ -83,7 +82,7 @@ function M.build(ctx)
             if type(config.developer) ~= "table" then
                 config.developer = {}
             end
-            local enabling = not (config.developer.show_hidden_outside_home == true)
+            local enabling = config.developer.show_hidden_outside_home ~= true
             config.developer.show_hidden_outside_home = enabling
             plugin:saveConfig()
 

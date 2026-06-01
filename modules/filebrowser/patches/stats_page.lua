@@ -320,7 +320,6 @@ local function buildContent(sc, rows_config, stats, page_w, h_padding)
         this_year = function()
             local yp    = stats.year_pages    or 0
             local yd    = stats.year_duration or 0
-            local avg_p = math.floor(yp / days_this_year)
             local avg_t = math.floor(yd / days_this_year)
             return makeRow{
                 card{ width=c4_w, height=c4_h, value_size=24,

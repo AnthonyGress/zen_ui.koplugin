@@ -10,7 +10,6 @@ local function apply_browser_folder_cover()
     local CenterContainer = require("ui/widget/container/centercontainer")
     local Device = require("device")
     local FileChooser = require("ui/widget/filechooser")
-    local Font = require("ui/font")
     local FrameContainer = require("ui/widget/container/framecontainer")
     local HorizontalGroup = require("ui/widget/horizontalgroup")
     local HorizontalSpan = require("ui/widget/horizontalspan")
@@ -18,7 +17,6 @@ local function apply_browser_folder_cover()
     local LeftContainer = require("ui/widget/container/leftcontainer")
     local LineWidget = require("ui/widget/linewidget")
     local OverlapGroup = require("ui/widget/overlapgroup")
-    local RenderText = require("ui/rendertext")
     local RightContainer = require("ui/widget/container/rightcontainer")
     local Size = require("ui/size")
     local TextBoxWidget = require("ui/widget/textboxwidget")
@@ -27,11 +25,9 @@ local function apply_browser_folder_cover()
     local VerticalGroup = require("ui/widget/verticalgroup")
     local VerticalSpan = require("ui/widget/verticalspan")
     local lfs = require("libs/libkoreader-lfs")
-    local util = require("util")
     local paths = require("common/paths")
     local library_font = require("common/library_font")
     local utils = require("common/utils")
-    local IconWidget = require("ui/widget/iconwidget")
 
     local _ = require("gettext")
     local Screen = Device.screen
@@ -39,8 +35,8 @@ local function apply_browser_folder_cover()
     local function getMenuItem(menu, ...)
         local function findItem(sub_items, texts)
             local find = {}
-            local texts = type(texts) == "table" and texts or { texts }
-            for _, text in ipairs(texts) do find[text] = true end
+            local text_list = type(texts) == "table" and texts or { texts }
+            for _, text in ipairs(text_list) do find[text] = true end
             for _, item in ipairs(sub_items) do
                 local text = item.text or (item.text_func and item.text_func())
                 if text and find[text] then return item end
@@ -259,12 +255,6 @@ local function apply_browser_folder_cover()
         return Blitbuffer.COLOR_LIGHT_GRAY
     end
 
-    local function getCornerRadius()
-        local cfg = _plugin and _plugin.config
-        local r = cfg and cfg.corner_radius or 12
-        return Screen:scaleBySize(r)
-    end
-
     local function patchCoverBrowser(plugin)
         local MosaicMenu = require("mosaicmenu")
         local MosaicMenuItem = Cover.getUpvalue(MosaicMenu._updateItemsBuildUI, "MosaicMenuItem")
@@ -392,7 +382,7 @@ local function apply_browser_folder_cover()
             local _bcc = _fc and type(_fc.config) == "table"
                 and type(_fc.config.browser_cover_badges) == "table"
                 and _fc.config.browser_cover_badges.badge_color
-            local badge_is_dark = type(_bcc) == "table" and _bcc[1] == 0 and _bcc[2] == 0 and _bcc[3] == 0
+            local badge_is_dark = _bcc == nil or (type(_bcc) == "table" and _bcc[1] == 0 and _bcc[2] == 0 and _bcc[3] == 0)
             local badge_fg = badge_is_dark and _BlitBadge.COLOR_WHITE or _BlitBadge.COLOR_BLACK
             if tw then
                 if rawget(self, "_zen_badge_str") ~= count_str or rawget(self, "_zen_badge_fs") ~= font_size or rawget(self, "_zen_badge_dark") ~= badge_is_dark then
@@ -491,55 +481,67 @@ local function apply_browser_folder_cover()
             end)
         end
 
-        -- Settings
-        function BooleanSetting(text, name, default)
-            local self = { text = text }
-            self.get = function()
-                if not BookInfoManager then return default and false or nil end
-                local setting = BookInfoManager:getSetting(name)
-                if default then return not setting end
-                return setting
-            end
-            self.toggle = function()
-                if not BookInfoManager then return end
-                return BookInfoManager:toggleSetting(name)
-            end
-            return self
+        -- Config accessors for browser_folder_cover settings.
+        local function get_fbc()
+            local p = _plugin or rawget(_G, "__ZEN_UI_PLUGIN")
+            local c = type(p) == "table" and type(p.config) == "table" and p.config.browser_folder_cover
+            return type(c) == "table" and c or {}
+        end
+        local function save_fbc()
+            local p = _plugin or rawget(_G, "__ZEN_UI_PLUGIN")
+            if type(p) == "table" and type(p.saveConfig) == "function" then p:saveConfig() end
+        end
+        local function set_cover_mode(mode)
+            local c = get_fbc(); c.cover_mode = mode; save_fbc()
+            local ui = require("apps/filemanager/filemanager").instance
+            if ui and ui.file_chooser then ui.file_chooser:updateItems() end
         end
 
         local settings = {
-            crop_to_fit = BooleanSetting(_("Crop folder custom image"), "folder_crop_custom_image", true),
-            name_centered = BooleanSetting(_("Folder name centered"), "folder_name_centered", true),
-            show_folder_name = BooleanSetting(_("Show folder name"), "folder_name_show", true),
-            show_item_count = BooleanSetting(_("Show item count on folder covers"), "folder_item_count_show", true),
-            name_opaque = BooleanSetting(_("Folder name opaque background"), "folder_name_opaque", true),
+            crop_to_fit = {
+                get = function() return get_fbc().crop_to_fit ~= false end,
+                toggle = function()
+                    local c = get_fbc(); c.crop_to_fit = c.crop_to_fit == false; save_fbc()
+                end,
+            },
+            name_centered = {
+                get = function() return get_fbc().name_centered == true end,
+                toggle = function()
+                    local c = get_fbc(); c.name_centered = c.name_centered ~= true; save_fbc()
+                end,
+            },
+            show_folder_name = {
+                get = function() return get_fbc().show_folder_name ~= false end,
+                toggle = function()
+                    local c = get_fbc(); c.show_folder_name = c.show_folder_name == false; save_fbc()
+                end,
+            },
+            show_item_count = {
+                get = function() return get_fbc().show_item_count ~= false end,
+                toggle = function()
+                    local c = get_fbc(); c.show_item_count = c.show_item_count == false; save_fbc()
+                end,
+            },
+            name_opaque = {
+                get = function() return get_fbc().name_opaque == true end,
+                toggle = function()
+                    local c = get_fbc(); c.name_opaque = c.name_opaque ~= true; save_fbc()
+                end,
+            },
             gallery_mode = {
                 text = _("Gallery view (4-grid)"),
-                get = function() return G_reader_settings:isTrue("folder_gallery_mode") end,
-                toggle = function()
-                    G_reader_settings:flipNilOrFalse("folder_gallery_mode")
-                    if G_reader_settings:isTrue("folder_gallery_mode") then
-                        G_reader_settings:saveSetting("folder_stack_mode", false)
-                    end
-                    local ui = require("apps/filemanager/filemanager").instance
-                    if ui and ui.file_chooser then
-                        ui.file_chooser:updateItems()
-                    end
-                end,
+                get = function() return get_fbc().cover_mode == "gallery" end,
+                toggle = function() set_cover_mode(get_fbc().cover_mode == "gallery" and "normal" or "gallery") end,
             },
             stack_mode = {
                 text = _("Stack effect (overlapping covers)"),
-                get = function() return G_reader_settings:isTrue("folder_stack_mode") end,
-                toggle = function()
-                    G_reader_settings:flipNilOrFalse("folder_stack_mode")
-                    if G_reader_settings:isTrue("folder_stack_mode") then
-                        G_reader_settings:saveSetting("folder_gallery_mode", false)
-                    end
-                    local ui = require("apps/filemanager/filemanager").instance
-                    if ui and ui.file_chooser then
-                        ui.file_chooser:updateItems()
-                    end
-                end,
+                get = function() return get_fbc().cover_mode == "stack" end,
+                toggle = function() set_cover_mode(get_fbc().cover_mode == "stack" and "normal" or "stack") end,
+            },
+            none_mode = {
+                text = _("None (folder name only)"),
+                get = function() return get_fbc().cover_mode == "none" end,
+                toggle = function() set_cover_mode(get_fbc().cover_mode == "none" and "normal" or "none") end,
             },
         }
 
@@ -614,7 +616,10 @@ local function apply_browser_folder_cover()
                         local cover_bb_copy = ancestor_bi.cover_bb:copy()
                         local border = Folder.face.border_size
                         local max_w = self.width - 2 * border
-                        local bh = self.height - 2 * border
+                        local strip_h = (not MosaicMenuItem._zen_in_init)
+                            and (rawget(MosaicMenuItem, "_zen_strip_h") or 0) or 0
+                        local eff_h = self.height - strip_h
+                        local bh = eff_h - 2 * border
                         local portrait_w, portrait_h = Cover.calcDims(max_w, bh)
                         local cover_frame = FrameContainer:new {
                             padding     = 0,
@@ -634,7 +639,7 @@ local function apply_browser_folder_cover()
                             overlap_align = "center",
                         }
                         local overlap = OverlapGroup:new {
-                            dimen = { w = self.width, h = self.height },
+                            dimen = { w = self.width, h = eff_h },
                             cover_frame,
                         }
                         if self._underline_container[1] then
@@ -648,45 +653,22 @@ local function apply_browser_folder_cover()
                         end
                         return
                     end
-                    -- No ancestor cover - show placeholder
-                    do
-                        local border = Folder.face.border_size
-                        local max_w = self.width - 2 * border
-                        local bh = self.height - 2 * border
-                        local portrait_w, portrait_h = Cover.calcDims(max_w, bh)
-                        local placeholder = FrameContainer:new {
-                            padding       = 0,
-                            bordersize    = border,
-                            width         = portrait_w + 2 * border,
-                            height        = portrait_h + 2 * border,
-                            background    = placeholderBg(),
-                            overlap_align = "center",
-                            CenterContainer:new {
-                                dimen = { w = portrait_w, h = portrait_h },
-                                VerticalSpan:new { width = 1 },
-                            },
-                        }
-                        if self._underline_container[1] then
-                            self._underline_container[1]:free()
-                        end
-                        self._underline_container[1] = OverlapGroup:new {
-                            dimen = { w = self.width, h = self.height },
-                            placeholder,
-                        }
-                    end
-                    return
+                    -- no ancestor cover: fall through to unified placeholder below
                 end
-                if bookinfo and bookinfo.cover_fetched
-                        and (bookinfo.ignore_cover or not bookinfo.has_cover) then
+                -- Unified: not yet in DB, or confirmed no cover art
+                if (not bookinfo) or (bookinfo.cover_fetched
+                        and (bookinfo.ignore_cover or not bookinfo.has_cover)) then
                     local border = Folder.face.border_size
                     local max_w = self.width - 2 * border
-                    local bh = self.height - 2 * border
+                    local strip_h = (not MosaicMenuItem._zen_in_init)
+                        and (rawget(MosaicMenuItem, "_zen_strip_h") or 0) or 0
+                    local eff_h = self.height - strip_h
+                    local bh = eff_h - 2 * border
                     local portrait_w, portrait_h = Cover.calcDims(max_w, bh)
                     local dimen = { w = portrait_w + 2 * border, h = portrait_h + 2 * border }
-                    local centered_top = math.floor((self.height - dimen.h) / 2)
+                    local centered_top = math.floor((eff_h - dimen.h) / 2)
 
-                    -- Use unified cover generator for placeholder
-                    local final_bb = Cover.genCover(path, portrait_w, portrait_h)
+                    local final_bb = Cover.genCover(path, portrait_w, portrait_h, true)
 
                     local gray_frame = FrameContainer:new {
                         padding       = 0,
@@ -711,7 +693,7 @@ local function apply_browser_folder_cover()
 
                     self._cover_frame = gray_frame
                     local widget = OverlapGroup:new {
-                        dimen = { w = self.width, h = self.height },
+                        dimen = { w = self.width, h = eff_h },
                         VerticalGroup:new {
                             VerticalSpan:new { width = centered_top },
                             CenterContainer:new {
@@ -728,6 +710,17 @@ local function apply_browser_folder_cover()
                     end
                     self._underline_container[1] = widget
                 end
+                -- Clear stale placeholder frame when real cover is now available.
+                if bookinfo and bookinfo.cover_fetched and bookinfo.has_cover then
+                    self._cover_frame = nil
+                end
+                -- Extend refresh_dimen to cover the title strip.
+                -- CoverMenu defaults to item[1].dimen (h = H-STRIP_H), missing the strip.
+                local _strip_h = rawget(MosaicMenuItem, "_zen_strip_h") or 0
+                if _strip_h > 0 and self[1] and self[1].dimen and self[1].dimen.x then
+                    self.refresh_dimen = self[1].dimen:copy()
+                    self.refresh_dimen.h = self.refresh_dimen.h + _strip_h
+                end
                 return
             end
 
@@ -740,10 +733,13 @@ local function apply_browser_folder_cover()
                 self._zen_render_night = Device.screen.night_mode
                 local border = Folder.face.border_size
                 local max_w = self.width - 2 * border
-                local bh = self.height - 2 * border
+                local strip_h = (not MosaicMenuItem._zen_in_init)
+                    and (rawget(MosaicMenuItem, "_zen_strip_h") or 0) or 0
+                local eff_h = self.height - strip_h
+                local bh = eff_h - 2 * border
                 local portrait_w, portrait_h = Cover.calcDims(max_w, bh)
                 local dimen = { w = portrait_w + 2 * border, h = portrait_h + 2 * border }
-                local centered_top = math.floor((self.height - dimen.h) / 2)
+                local centered_top = math.floor((eff_h - dimen.h) / 2)
 
                 local arrow_size = math.min(portrait_w, portrait_h) * 0.25
                 local arrow_text = TextWidget:new{
@@ -770,7 +766,7 @@ local function apply_browser_folder_cover()
                 self._cover_frame = gray_frame
 
                 local widget = OverlapGroup:new {
-                    dimen = { w = self.width, h = self.height },
+                    dimen = { w = self.width, h = eff_h },
                     VerticalGroup:new {
                         VerticalSpan:new { width = centered_top },
                         CenterContainer:new {
@@ -811,7 +807,7 @@ local function apply_browser_folder_cover()
             local folder_name = dir_path:match("([^/]+)/?$") or dir_path
             folder_name = BD.directory(folder_name)
 
-            local cover_widget, mode, scenario = Cover.makeCover(dir_path, _chooser, {
+            local cover_widget = Cover.makeCover(dir_path, _chooser, {
                 is_folder = true,
                 max_w = max_w,
                 max_h = bh,
@@ -926,7 +922,7 @@ local function apply_browser_folder_cover()
             local line_inset = rounded and Screen:scaleBySize(4) or 0
 
             local decoration_layer
-            if not BookInfoManager:getSetting("folder_spine_lines_show") then
+            if get_fbc().show_spine_lines ~= false then
                 if use_top_lines then
                     local line1_w = math.max(0, math.floor(dimen.w * (Folder.edge.width ^ 2)) - 2 * line_inset)
                     local line2_w = math.max(0, math.floor(dimen.w * Folder.edge.width) - 2 * line_inset)
@@ -1111,7 +1107,7 @@ local function apply_browser_folder_cover()
                     local ratio = Cover.getRatio()
                     local cover_w = math.floor(max_img * ratio)
 
-                    local cover_widget, mode, scenario = Cover.makeCover(dir_path, _chooser, {
+                    local cover_widget = Cover.makeCover(dir_path, _chooser, {
                         is_folder = true,
                         max_w = cover_w + 2 * border_size,
                         max_h = max_img + 2 * border_size,
@@ -1197,7 +1193,7 @@ local function apply_browser_folder_cover()
                     local line2_h = math.max(0, math.floor(dimen_h * Folder.edge.width) - 2 * line_inset)
                     local spine_gap = Screen:scaleBySize(8)
                     self._cover_frame = wleft[1]
-                    if not BookInfoManager:getSetting("folder_spine_lines_show") then
+                    if get_fbc().show_spine_lines ~= false then
                         wleft = OverlapGroup:new {
                             dimen = { w = cover_zone_w, h = dimen_h },
                             wleft,

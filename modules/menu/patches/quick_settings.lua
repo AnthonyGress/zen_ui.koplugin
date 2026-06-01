@@ -14,12 +14,10 @@ local function apply_quick_settings()
     local HorizontalSpan = require("ui/widget/horizontalspan")
     local IconWidget = require("ui/widget/iconwidget")
     local NetworkMgr = require("ui/network/manager")
-    local Button = require("ui/widget/button")
     local ConfirmBox = require("ui/widget/confirmbox")
     local TextWidget = require("ui/widget/textwidget")
     local UIManager = require("ui/uimanager")
     local ZenSlider = require("common/zen_slider")
-    local ZenToggle = require("common/zen_toggle")
     local library_font = require("common/library_font")
     local VerticalGroup = require("ui/widget/verticalgroup")
     local VerticalSpan = require("ui/widget/verticalspan")
@@ -187,20 +185,6 @@ local function apply_quick_settings()
             end
         end
         zen_plugin.config.quick_settings = config
-    end
-
-    local function saveConfig()
-        zen_plugin.config.quick_settings = config
-        if zen_plugin.saveConfig then
-            zen_plugin:saveConfig()
-        end
-    end
-
-    local function getStatusBarConfig()
-        if type(zen_plugin.config.status_bar) ~= "table" then
-            zen_plugin.config.status_bar = {}
-        end
-        return zen_plugin.config.status_bar
     end
 
     loadConfig()
@@ -401,7 +385,7 @@ local function apply_quick_settings()
                 end)
             end,
         },
-    	notion = {
+        notion = {
             icon = "quick_notion",
             label = _("NotionSync"),
             visible_func = function() return hasPlugin("NotionSync") end,
@@ -945,8 +929,6 @@ local function apply_quick_settings()
 
     local TouchMenu = require("ui/widget/touchmenu")
     local FocusManager = require("ui/widget/focusmanager")
-    local datetime = require("datetime")
-    local BD = require("ui/bidi")
 
     -- Always open to tab 1 (quick settings) regardless of last-used tab.
     local GestureRange = require("ui/gesturerange")

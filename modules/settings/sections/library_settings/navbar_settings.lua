@@ -28,10 +28,6 @@ function M.build(ctx)
         end
     end
 
-    local function make_enable_feature_item(feature, text)
-        return utils.make_enable_feature_item(feature, text, config, save_and_apply)
-    end
-
     -- -------------------------------------------------------------------------
     -- Color helpers
     -- -------------------------------------------------------------------------
@@ -110,7 +106,7 @@ function M.build(ctx)
                         or countEnabledTabs() < navbar_max_tabs
                 end,
                 callback = function()
-                    config.navbar.show_tabs[tab_id] = not (config.navbar.show_tabs[tab_id] == true)
+                    config.navbar.show_tabs[tab_id] = config.navbar.show_tabs[tab_id] ~= true
                     save_and_apply_navbar()
                 end,
             })
@@ -135,10 +131,10 @@ function M.build(ctx)
     local CUSTOM_TAB_ICONS
     local function getCustomTabIcons()
         if CUSTOM_TAB_ICONS then return CUSTOM_TAB_ICONS end
-        local utils = require("common/utils")
+        local icon_utils = require("common/utils")
         local ok_root, root = pcall(require, "common/plugin_root")
         local excluded = { zen_ui_light = true, zen_ui_update = true }
-        CUSTOM_TAB_ICONS = utils.getIconPickerList(ok_root and root or nil, excluded)
+        CUSTOM_TAB_ICONS = icon_utils.getIconPickerList(ok_root and root or nil, excluded)
         return CUSTOM_TAB_ICONS
     end
 
@@ -358,7 +354,7 @@ function M.build(ctx)
                                     table.insert(sort_items, {
                                         text = get_ct_label(ct),
                                         orig_item = ct.id,
-                                        dim = not (config.navbar.show_tabs[ct.id] == true),
+                                        dim = config.navbar.show_tabs[ct.id] ~= true,
                                     })
                                 end
                             end
@@ -486,7 +482,7 @@ function M.build(ctx)
                                 text_func = function()
                                     if config.navbar.manga_action == "folder" and config.navbar.manga_folder ~= "" then
                                         local util = require("util")
-                                        local _dir, folder_name = util.splitFilePathName(config.navbar.manga_folder)
+                                        local folder_name = select(2, util.splitFilePathName(config.navbar.manga_folder))
                                         return _("Open folder: ") .. folder_name
                                     end
                                     return _("Open folder")
@@ -578,7 +574,7 @@ function M.build(ctx)
                                 text_func = function()
                                     if config.navbar.news_action == "folder" and config.navbar.news_folder ~= "" then
                                         local util = require("util")
-                                        local _dir, folder_name = util.splitFilePathName(config.navbar.news_folder)
+                                        local folder_name = select(2, util.splitFilePathName(config.navbar.news_folder))
                                         return _("Open folder: ") .. folder_name
                                     end
                                     return _("Open folder")
@@ -645,7 +641,7 @@ function M.build(ctx)
                         text = _("Show top border"),
                         checked_func = function() return config.navbar.show_top_border == true end,
                         callback = function()
-                            config.navbar.show_top_border = not (config.navbar.show_top_border == true)
+                            config.navbar.show_top_border = config.navbar.show_top_border ~= true
                             save_and_apply("navbar")
                         end,
                     },
@@ -653,7 +649,7 @@ function M.build(ctx)
                         text = _("Active tab styling"),
                         checked_func = function() return config.navbar.active_tab_styling == true end,
                         callback = function()
-                            config.navbar.active_tab_styling = not (config.navbar.active_tab_styling == true)
+                            config.navbar.active_tab_styling = config.navbar.active_tab_styling ~= true
                             save_and_apply("navbar")
                         end,
                     },
@@ -662,7 +658,7 @@ function M.build(ctx)
                         checked_func = function() return config.navbar.active_tab_bold == true end,
                         enabled_func = function() return config.navbar.active_tab_styling == true end,
                         callback = function()
-                            config.navbar.active_tab_bold = not (config.navbar.active_tab_bold == true)
+                            config.navbar.active_tab_bold = config.navbar.active_tab_bold ~= true
                             save_and_apply("navbar")
                         end,
                     },
@@ -671,7 +667,7 @@ function M.build(ctx)
                         checked_func = function() return config.navbar.active_tab_underline == true end,
                         enabled_func = function() return config.navbar.active_tab_styling == true end,
                         callback = function()
-                            config.navbar.active_tab_underline = not (config.navbar.active_tab_underline == true)
+                            config.navbar.active_tab_underline = config.navbar.active_tab_underline ~= true
                             save_and_apply("navbar")
                         end,
                     },
@@ -683,7 +679,7 @@ function M.build(ctx)
                                 and config.navbar.active_tab_underline == true
                         end,
                         callback = function()
-                            config.navbar.underline_above = not (config.navbar.underline_above == true)
+                            config.navbar.underline_above = config.navbar.underline_above ~= true
                             save_and_apply("navbar")
                         end,
                     },
@@ -692,7 +688,7 @@ function M.build(ctx)
                         checked_func = function() return config.navbar.colored == true end,
                         enabled_func = function() return config.navbar.active_tab_styling == true end,
                         callback = function()
-                            config.navbar.colored = not (config.navbar.colored == true)
+                            config.navbar.colored = config.navbar.colored ~= true
                             save_and_apply_navbar()
                         end,
                     },
@@ -728,7 +724,7 @@ function M.build(ctx)
                 text = _("Show labels"),
                 checked_func = function() return config.navbar.show_labels == true end,
                 callback = function()
-                    config.navbar.show_labels = not (config.navbar.show_labels == true)
+                    config.navbar.show_labels = config.navbar.show_labels ~= true
                     save_and_apply("navbar")
                 end,
             },

@@ -265,13 +265,14 @@ local function apply_opening_banner()
             if not self_item.is_directory and self_item.dimen then
                 -- Pin the banner to the bottom edge of the tapped list row.
                 -- Flag as list mode so the banner can be offset past the cover art.
+                local _nm = G_reader_settings and G_reader_settings:isTrue("night_mode") or false
                 _last_cover_dimen = {
                     x = self_item.dimen.x,
                     y = self_item.dimen.y,
                     w = self_item.dimen.w,
                     h = self_item.dimen.h,
-                    is_list    = true,
-                    dark_banner = true,  -- list mode always dark
+                    is_list     = true,
+                    dark_banner = not _nm,  -- XOR in paintTo needs not(night_mode) to always draw black
                 }
             else
                 _last_cover_dimen = nil
@@ -460,9 +461,14 @@ local function apply_opening_banner()
             and type(plug.config.features) == "table"
             and plug.config.features.browser_cover_rounded_corners == true
 
+        local _nm = G_reader_settings and G_reader_settings:isTrue("night_mode") or false
+        local dark_banner = not _nm
+        if cover and cover.dark_banner ~= nil then
+            dark_banner = cover.dark_banner
+        end
         local banner = OpeningBanner:new{
             dimen                = Geom:new{ x = bx, y = by, w = bw, h = banner_h },
-            dark_banner          = cover and cover.dark_banner or false,
+            dark_banner          = dark_banner,
             round_bottom_corners = round_bottom and true or false,
         }
 

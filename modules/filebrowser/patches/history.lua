@@ -29,6 +29,20 @@ local function apply_history()
         return hide == true or hide == nil
     end
 
+    local function get_hist_display_mode()
+        local gv = type(zen_plugin.config.group_view) == "table" and zen_plugin.config.group_view or {}
+        local dm = type(gv.display_mode) == "table" and gv.display_mode or {}
+        return dm.history
+    end
+
+    local function set_hist_display_mode(mode)
+        if type(zen_plugin.config.group_view) ~= "table" then zen_plugin.config.group_view = {} end
+        local gv = zen_plugin.config.group_view
+        if type(gv.display_mode) ~= "table" then gv.display_mode = {} end
+        gv.display_mode.history = mode
+        if type(zen_plugin.saveConfig) == "function" then zen_plugin:saveConfig() end
+    end
+
     -- Hook Menu:init() so the history BookList TitleBar is created with the
     -- same minimal height as the filebrowser TitleBar (status_bar + hide_browser_bar
     -- case).  This makes others_height equal in both views so the first cover
@@ -73,21 +87,13 @@ local function apply_history()
         local ButtonDialog_hm = require("ui/widget/buttondialog")
         local UIManager_hm    = require("ui/uimanager")
         local _hm             = require("gettext")
-        local ok_bim, bim     = pcall(require, "bookinfomanager")
-        local cur_mode
-        if ok_bim and bim then
-            local ok3, m = pcall(function()
-                return bim:getSetting("history_display_mode")
-            end)
-            if ok3 then cur_mode = m end
-        end
+        local cur_mode = get_hist_display_mode()
         local function apply_mode(mode)
-            -- Use CoverBrowser to apply new mode (saves to DB + repatches updateItemTable)
+            set_hist_display_mode(mode)
+            -- Sync to BIM via KOReader's CoverBrowser API so the history view re-opens correctly
             local cb = hist_mgr.ui and hist_mgr.ui.coverbrowser
             if cb and type(cb.setupWidgetDisplayMode) == "function" then
                 pcall(cb.setupWidgetDisplayMode, "history", mode)
-            elseif ok_bim and bim then
-                pcall(bim.saveSetting, bim, "history_display_mode", mode)
             end
             if hist_menu then UIManager_hm:close(hist_menu) end
             UIManager_hm:nextTick(function()
@@ -125,7 +131,6 @@ local function apply_history()
 
         -- === Fix partial-row left-alignment ===
         menu._do_center_partial_rows = false
-        local UIManager = require("ui/uimanager")
         menu:updateItems(1, true)
 
         -- Blank-space hold: open history display mode menu
@@ -219,6 +224,16 @@ local function apply_history()
 
     local orig_onShowHist = FileManagerHistory.onShowHist
     function FileManagerHistory:onShowHist(search_info)
+        if is_enabled() then
+            -- Sync display mode from zen_ui_config to BIM before CoverBrowser reads it
+            local mode = get_hist_display_mode()
+            if mode then
+                local cb = self.ui and self.ui.coverbrowser
+                if cb and type(cb.setupWidgetDisplayMode) == "function" then
+                    pcall(cb.setupWidgetDisplayMode, "history", mode)
+                end
+            end
+        end
         orig_onShowHist(self, search_info)
         if not is_enabled() then return end
         clean_nav(self.booklist_menu, self)

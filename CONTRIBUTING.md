@@ -80,6 +80,24 @@ To test changes:
 
 The [KOReader emulator](https://github.com/koreader/koreader/blob/master/doc/Building.md) is the fastest way to iterate without a physical device.
 
+### Static linting (LuaCheck)
+
+Zen UI uses [LuaCheck](https://github.com/mpeterv/luacheck) for static analysis.
+
+Install it locally (one-time):
+
+```sh
+luarocks install luacheck
+```
+
+Run lint checks from the plugin root:
+
+```sh
+luacheck -q _meta.lua main.lua common config modules
+```
+
+The project config is in `.luacheckrc` and is aligned with KOReader's baseline (for globals like `G_reader_settings` and `G_defaults`).
+
 ### Making a change
 
 1. Fork this repository (click the Fork button at the top right of the GitHub page).

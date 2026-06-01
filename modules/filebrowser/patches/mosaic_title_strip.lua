@@ -59,7 +59,6 @@ local function apply_mosaic_title_strip()
     logger.dbg("zen-ui:mosaic_title_strip: patching MosaicMenuItem")
 
     local Blitbuffer = require("ffi/blitbuffer")
-    local Font       = require("ui/font")
     local TextWidget = require("ui/widget/textwidget")
     local BD         = require("ui/bidi")
     local library_font = require("common/library_font")
@@ -198,6 +197,12 @@ local function apply_mosaic_title_strip()
                 local authors = info and not info.ignore_meta and info.authors or nil
                 if authors and authors:find("\n") then
                     authors = authors:match("^([^\n]+)")
+                end
+                -- Filename fallback for title once metadata is confirmed loaded.
+                if not title and self.filepath then
+                    local fname = self.filepath:match("([^/]+)$") or ""
+                    fname = fname:gsub("%.[^%.]+$", "")
+                    if fname ~= "" then title = fname end
                 end
                 if title or authors then
                     self._zen_strip_data = { title = title, authors = authors }

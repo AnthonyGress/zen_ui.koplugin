@@ -107,6 +107,8 @@ Browse your favorite OPDS sources with the same clean, consistent interface you'
 ## Prerequistes
 
 - KOReader must be installed first in order to use Zen UI. [Install KOReader](https://github.com/koreader/koreader#installation)
+- Disable or uninstall any **other plugins/patches** that modify the UI such as Simple UI, Project: Title, VOS as they may conflict and cause instability.
+
 
 ## Installation
 

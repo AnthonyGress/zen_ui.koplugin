@@ -6,6 +6,7 @@ local _ = require("gettext")
 local UIManager = require("ui/uimanager")
 local Event = require("ui/event")
 local utils = require("modules/settings/zen_settings_utils")
+local constants = require("common/constants")
 
 local M = {}
 
@@ -26,13 +27,16 @@ function M.build(ctx)
 
     -- Items available in each slot (excludes dynamic fillers / external content)
     local header_all_items = {
-        { key = "time",        text = _("Time")        },
-        { key = "battery",     text = _("Battery")     },
-        { key = "wifi",        text = _("Wi-Fi")       },
-        { key = "frontlight",  text = _("Brightness")  },
-        { key = "ram",         text = _("RAM usage")   },
-        { key = "disk",        text = _("Disk space")  },
-        { key = "custom_text", text = _("Custom text") },
+        { key = "time",        text = _("Time")          },
+        { key = "battery",     text = _("Battery")       },
+        { key = "wifi",        text = _("Wi-Fi")         },
+        { key = "frontlight",  text = _("Brightness")    },
+        { key = "ram",         text = _("RAM usage")     },
+        { key = "disk",        text = _("Disk space")    },
+        { key = "custom_text", text = _("Custom text")   },
+        { key = "book_title",  text = _("Book title")    },
+        { key = "author",      text = _("Author")        },
+        { key = "chapter",     text = _("Chapter")       },
     }
 
     local HEADER_CANONICAL = {
@@ -54,6 +58,21 @@ function M.build(ctx)
         end
 
         local t = {
+            {
+                text = _("Show separator"),
+                keep_menu_open = true,
+                checked_func = function()
+                    if type(config.reader_top_status_bar) ~= "table" then return false end
+                    return config.reader_top_status_bar[slot_name .. "_show_separator"] == true
+                end,
+                callback = function(touchmenu_instance)
+                    if type(config.reader_top_status_bar) ~= "table" then config.reader_top_status_bar = {} end
+                    local key = slot_name .. "_show_separator"
+                    config.reader_top_status_bar[key] = config.reader_top_status_bar[key] ~= true
+                    save_clock()
+                    if touchmenu_instance then touchmenu_instance:updateItems() end
+                end,
+            },
             {
                 text = _("Arrange"),
                 keep_menu_open = true,
@@ -288,6 +307,41 @@ function M.build(ctx)
                     },
                 },
             },
+            (function()
+                local function cur_sep_key()
+                    return type(config.reader_top_status_bar) == "table"
+                        and config.reader_top_status_bar.separator_key or "small-space"
+                end
+                local function cur_sep_label()
+                    local key = cur_sep_key()
+                    for _i, s in ipairs(constants.SEPARATOR_PRESETS) do
+                        if s.key == key then return _(s.label) end
+                    end
+                    return key
+                end
+                local sub = {}
+                for _i, sep in ipairs(constants.SEPARATOR_PRESETS) do
+                    if sep.key ~= "custom" then  -- custom not yet wired to reader top bar
+                        local key = sep.key
+                        table.insert(sub, {
+                            text = _(sep.label),
+                            checked_func = function() return cur_sep_key() == key end,
+                            callback = function(touchmenu_instance)
+                                if type(config.reader_top_status_bar) ~= "table" then config.reader_top_status_bar = {} end
+                                config.reader_top_status_bar.separator_key = key
+                                save_clock()
+                                if touchmenu_instance then touchmenu_instance:updateItems() end
+                            end,
+                        })
+                    end
+                end
+                return {
+                    text_func = function()
+                        return string.format("%s: %s", _("Separator"), cur_sep_label())
+                    end,
+                    sub_item_table = sub,
+                }
+            end)(),
         },
     })
 
@@ -588,7 +642,7 @@ function M.build(ctx)
                         config.highlight_lookup = {}
                     end
                     config.highlight_lookup.show_wikipedia =
-                        not (config.highlight_lookup.show_wikipedia == true)
+                        config.highlight_lookup.show_wikipedia ~= true
                     plugin:saveConfig()
                 end,
             },
@@ -604,7 +658,7 @@ function M.build(ctx)
                         config.highlight_lookup = {}
                     end
                     config.highlight_lookup.allow_unknown_items =
-                        not (config.highlight_lookup.allow_unknown_items == true)
+                        config.highlight_lookup.allow_unknown_items ~= true
                     plugin:saveConfig()
                 end,
             },
@@ -622,7 +676,7 @@ function M.build(ctx)
                 config.reader_footer = {}
             end
             config.reader_footer.verbose_chapter_time =
-                not (config.reader_footer.verbose_chapter_time == true)
+                config.reader_footer.verbose_chapter_time ~= true
             plugin:saveConfig()
         end,
     })
@@ -642,7 +696,7 @@ function M.build(ctx)
             return config.features["page_browser"] ~= true
         end,
         callback = function()
-            config.features["reader_bottom_menu"] = not (config.features["reader_bottom_menu"] == true)
+            config.features["reader_bottom_menu"] = config.features["reader_bottom_menu"] ~= true
             save_and_apply("reader_bottom_menu")
         end,
     })
@@ -657,7 +711,7 @@ function M.build(ctx)
                 or config.features["page_browser"] == true
         end,
         callback = function()
-            config.features["page_browser"] = not (config.features["page_browser"] == true)
+            config.features["page_browser"] = config.features["page_browser"] ~= true
             save_and_apply("page_browser")
         end,
     })
@@ -667,7 +721,7 @@ function M.build(ctx)
             return config.features["restore_library_view"] == true
         end,
         callback = function()
-            config.features["restore_library_view"] = not (config.features["restore_library_view"] == true)
+            config.features["restore_library_view"] = config.features["restore_library_view"] ~= true
             save_and_apply("restore_library_view")
         end,
     })
@@ -791,7 +845,7 @@ function M.build(ctx)
                         config.reader_footer = {}
                     end
                     config.reader_footer.hide_in_cbz =
-                        not (config.reader_footer.hide_in_cbz == true)
+                        config.reader_footer.hide_in_cbz ~= true
                     plugin:saveConfig()
                     -- Apply immediately to the current open document.
                     local footer = ui and ui.view and ui.view.footer

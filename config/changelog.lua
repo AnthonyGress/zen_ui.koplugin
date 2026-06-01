@@ -81,4 +81,17 @@ return {
         "Add Czech translation",
         "Bug fixes and performance improvements",
     },
+    ["1.4.0"] = {
+        "Add book info to reader top status bar (Reader > Top status bar)",
+        "Refresh visuals for update checking",
+        "Enhance Zen UI update security + method",
+        "Add option to disable automatic update checking (About > Updates)",
+        "Add changelog for previous versions",
+        "Add Japanese translation",
+        "Add Vietnamese translation",
+        "Update quick lookup for next KOReader release",
+        "Fix rare crash on background update check",
+        "Fix uncached placeholder cover rendering",
+        "Bug fixes and performance improvements",
+    },
 }

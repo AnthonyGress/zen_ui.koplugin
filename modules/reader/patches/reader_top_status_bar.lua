@@ -2,7 +2,8 @@ local function apply_reader_top_status_bar()
     --[[
         Paints a configurable three-zone header at the top of the reader screen (reflowable docs).
         Left / center / right slots each hold an ordered list of item keys.
-        Items: time, battery, wifi, frontlight, ram, disk, custom_text
+        Items: time, battery, wifi, frontlight, ram, disk, custom_text,
+               book_title, author, chapter
         Wraps ReaderView.paintTo. Config via config.reader_top_status_bar.
     --]]
 
@@ -11,7 +12,7 @@ local function apply_reader_top_status_bar()
     local CenterContainer = require("ui/widget/container/centercontainer")
     local LeftContainer   = require("ui/widget/container/leftcontainer")
     local RightContainer  = require("ui/widget/container/rightcontainer")
-    local OverlapGroup  = require("ui/widget/overlapgroup")
+
     local VerticalGroup = require("ui/widget/verticalgroup")
     local VerticalSpan  = require("ui/widget/verticalspan")
     local HorizontalGroup = require("ui/widget/horizontalgroup")
@@ -29,25 +30,41 @@ local function apply_reader_top_status_bar()
     local _ReaderView_paintTo_orig = ReaderView.paintTo
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
+    local logger = require("logger")
+    local DBG = function(...) logger.dbg("ZenHeader:", ...) end
+
     local function is_enabled()
         local plugin = zen_plugin or rawget(_G, "__ZEN_UI_PLUGIN")
         local features = plugin and plugin.config and plugin.config.features
         return type(features) == "table" and features.reader_top_status_bar == true
     end
 
+    local function is_view_active_top(view)
+        if not (view and view.ui) then return false end
+        local stack = UIManager._window_stack
+        local top = stack and stack[#stack]
+        local top_widget = top and top.widget
+        if not top_widget then return false end
+        if top_widget == view.ui or top_widget == view.ui.show_parent then
+            return true
+        end
+        local parent = top_widget.show_parent
+        return parent == view.ui or parent == view.ui.show_parent
+    end
+
     -- Stable reference so suspend/resume can cancel/restart the timer.
     local _autoRefresh
 
-    -- === Separator lookup ===
+    -- === Separator value map (bar-specific spacing; labels live in common/constants.lua) ===
 
-    local separator_presets = {
-        { key = "dot",         value = "  \xC2\xB7  " }, -- middle dot (UTF-8)
-        { key = "bar",         value = "  |  "  },
-        { key = "dash",        value = "  -  "  },
-        { key = "bullet",      value = "  \xE2\x80\xA2  " }, -- bullet (UTF-8)
-        { key = "space",       value = "   "    },
-        { key = "small-space", value = " "      },
-        { key = "none",        value = ""       },
+    local SEP_VALUES = {
+        dot             = " \xC2\xB7 ", -- middle dot
+        bar             = " | ",
+        dash            = " - ",
+        bullet          = " \xE2\x80\xA2 ", -- bullet
+        space           = "  ",
+        ["small-space"] = " ",
+        none            = "",
     }
 
     -- === Caches for slow item fetchers ===
@@ -70,7 +87,7 @@ local function apply_reader_top_status_bar()
         end
         local statm = io.open("/proc/self/statm", "r")
         if statm then
-            local pages, rss_pages = statm:read("*number", "*number")
+            local rss_pages = select(2, statm:read("*number", "*number"))
             statm:close()
             if rss_pages then
                 cached_ram_text = string.format("%dM", math.floor(rss_pages / 256))
@@ -141,6 +158,35 @@ local function apply_reader_top_status_bar()
         return text ~= "" and text or nil, nil
     end
 
+    -- doc_ctx is the ReaderView; its .ui.doc_props has title/authors, .ui.toc has chapter.
+    local function getBookTitleItem(doc_ctx)
+        if not doc_ctx or not doc_ctx.ui then return nil end
+        local props = doc_ctx.ui.doc_props
+        local title = props and props.title
+        if not title or title == "" then return nil end
+        if #title > 40 then title = title:sub(1, 37) .. "..." end
+        return title, nil
+    end
+
+    local function getAuthorItem(doc_ctx)
+        if not doc_ctx or not doc_ctx.ui then return nil end
+        local props = doc_ctx.ui.doc_props
+        local authors = props and props.authors
+        if not authors or authors == "" then return nil end
+        if #authors > 30 then authors = authors:sub(1, 27) .. "..." end
+        return authors, nil
+    end
+
+    local function getChapterItem(doc_ctx)
+        if not doc_ctx or not doc_ctx.ui then return nil end
+        local toc = doc_ctx.ui.toc
+        if not toc then return nil end
+        local chapter = toc:getTocTitleOfCurrentPage()
+        if not chapter or chapter == "" then return nil end
+        if #chapter > 35 then chapter = chapter:sub(1, 32) .. "..." end
+        return chapter, nil
+    end
+
     local item_fetchers = {
         wifi        = getWifiItem,
         disk        = getDiskItem,
@@ -149,45 +195,101 @@ local function apply_reader_top_status_bar()
         battery     = getBatteryItem,
         time        = getTimeItem,
         custom_text = getCustomTextItem,
+        book_title  = getBookTitleItem,
+        author      = getAuthorItem,
+        chapter     = getChapterItem,
     }
 
-    -- Builds a HorizontalGroup from an ordered item list.
-    -- Returns (group_or_nil, widgets_list) where widgets_list holds all TextWidgets for free().
-    local function buildGroup(order, face, sep)
-        if type(order) ~= "table" or #order == 0 then return nil, {} end
-        local group   = HorizontalGroup:new{}
-        local widgets = {}
-        local first   = true
+    local function collectItemTexts(order, doc_ctx)
+        if type(order) ~= "table" or #order == 0 then return {} end
+        local texts = {}
         for _i, key in ipairs(order) do
             local fn = item_fetchers[key]
             if fn then
-                local icon, label = fn()
+                local icon, label = fn(doc_ctx)
                 if icon ~= nil then
-                    if not first and sep ~= "" then
-                        local sep_w = TextWidget:new{ text = sep, face = face, padding = 0 }
-                        table.insert(group, sep_w)
-                        table.insert(widgets, sep_w)
-                    end
                     local text = label and (icon .. label) or icon
-                    local tw = TextWidget:new{
-                        text    = text,
-                        face    = face,
-                        fgcolor = Blitbuffer.COLOR_BLACK,
-                        padding = 0,
-                    }
-                    table.insert(group, tw)
-                    table.insert(widgets, tw)
-                    first = false
+                    table.insert(texts, text)
                 end
             end
         end
-        if #group == 0 then return nil, {} end
-        return group, widgets
+        return texts
+    end
+
+    local function measureTextsWidth(texts, face, sep)
+        if type(texts) ~= "table" or #texts == 0 then return 0 end
+        local total = 0
+        for i = 1, #texts do
+            if i > 1 and sep ~= "" then
+                local sep_w = TextWidget:new{
+                    text = sep,
+                    face = face,
+                    padding = 0,
+                }
+                total = total + sep_w:getSize().w
+                sep_w:free()
+            end
+            local tw = TextWidget:new{
+                text = texts[i],
+                face = face,
+                fgcolor = Blitbuffer.COLOR_BLACK,
+                padding = 0,
+            }
+            total = total + tw:getSize().w
+            tw:free()
+        end
+        return total
+    end
+
+    -- Builds a HorizontalGroup from pre-collected texts.
+    -- If max_width is set and content overflows, rebuilds as a single ellipsis-truncated TextWidget.
+    -- Returns (group_or_nil, widgets_list, natural_width).
+    local function buildGroupFromTexts(texts, face, sep, max_width)
+        if type(texts) ~= "table" or #texts == 0 then return nil, {}, 0 end
+        if max_width and max_width <= 0 then return nil, {}, measureTextsWidth(texts, face, sep) end
+        local group = HorizontalGroup:new{}
+        local widgets = {}
+        local natural_w = measureTextsWidth(texts, face, sep)
+        for i = 1, #texts do
+            if i > 1 and sep ~= "" then
+                local sep_w = TextWidget:new{
+                    text = sep,
+                    face = face,
+                    padding = 0,
+                }
+                table.insert(group, sep_w)
+                table.insert(widgets, sep_w)
+            end
+            local tw = TextWidget:new{
+                text = texts[i],
+                face = face,
+                fgcolor = Blitbuffer.COLOR_BLACK,
+                padding = 0,
+            }
+            table.insert(group, tw)
+            table.insert(widgets, tw)
+        end
+
+        if max_width and natural_w > max_width then
+            for _i, w in ipairs(widgets) do if w.free then w:free() end end
+            local joined = texts[1] or ""
+            for i = 2, #texts do joined = joined .. sep .. texts[i] end
+            local tw = TextWidget:new{
+                text      = joined,
+                face      = face,
+                fgcolor   = Blitbuffer.COLOR_BLACK,
+                padding   = 0,
+                max_width = max_width,
+            }
+            return HorizontalGroup:new{ tw }, { tw }, natural_w
+        end
+        return group, widgets, natural_w
     end
 
     -- Builds the header widget from current config.
+    -- doc_ctx: ReaderView (or nil); needed for book_title, author, chapter items.
     -- Returns header, all_widgets, header_h, screen_width; or nil if nothing to paint.
-    local function buildHeader()
+    local function buildHeader(doc_ctx)
         local screen_width = Screen:getWidth()
         local cfg = zen_plugin and zen_plugin.config and zen_plugin.config.reader_top_status_bar
         local footer_settings = G_reader_settings:readSetting("footer")
@@ -221,26 +323,91 @@ local function apply_reader_top_status_bar()
         end
 
         local sep_key = (type(cfg) == "table" and cfg.separator_key) or "small-space"
-        local sep_val = " "
-        for _i, preset in ipairs(separator_presets) do
-            if preset.key == sep_key then
-                sep_val = preset.value
-                break
+        local sep_val = sep_key == "custom"
+            and ((type(cfg) == "table" and cfg.custom_separator) or "  ")
+            or (SEP_VALUES[sep_key] or " ")
+
+        -- Per-slot separator: only active when *_show_separator == true (default off).
+        local function slot_sep(slot)
+            if type(cfg) == "table" and cfg[slot .. "_show_separator"] == true then
+                return sep_val
             end
-        end
-        if sep_key == "custom" then
-            sep_val = (type(cfg) == "table" and cfg.custom_separator) or "  "
+            return SEP_VALUES["small-space"]
         end
 
         local all_widgets = {}
-        local left_grp,   left_ws   = buildGroup(left_order,   face, sep_val)
-        local center_grp, center_ws = buildGroup(center_order, face, sep_val)
-        local right_grp,  right_ws  = buildGroup(right_order,  face, sep_val)
+
+        local left_sep = slot_sep("left")
+        local center_sep = slot_sep("center")
+        local right_sep = slot_sep("right")
+
+        local left_texts = collectItemTexts(left_order, doc_ctx)
+        local center_texts = collectItemTexts(center_order, doc_ctx)
+        local right_texts = collectItemTexts(right_order, doc_ctx)
+
+        local left_has = #left_texts > 0
+        local center_has = #center_texts > 0
+        local right_has = #right_texts > 0
+
+        local left_nat = measureTextsWidth(left_texts, face, left_sep)
+        local center_nat = measureTextsWidth(center_texts, face, center_sep)
+        local right_nat = measureTextsWidth(right_texts, face, right_sep)
+
+        local left_pad = left_has and h_pad or 0
+        local right_pad = right_has and h_pad or 0
+
+        local left_cap = 0
+        local center_cap = 0
+        local right_cap = 0
+        local left_w = 0
+        local center_w = 0
+        local right_w = 0
+        local middle_w = 0
+
+        if center_has then
+            local max_center = math.max(0, screen_width - left_pad - right_pad)
+            center_cap = math.min(center_nat, max_center)
+            center_w = center_cap
+
+            local side_total = screen_width - center_w
+            left_w = math.floor(side_total / 2)
+            right_w = side_total - left_w
+
+            left_cap = left_has and math.max(0, left_w - left_pad) or 0
+            right_cap = right_has and math.max(0, right_w - right_pad) or 0
+        else
+            local side_content_space = math.max(0, screen_width - left_pad - right_pad)
+            if left_has and right_has then
+                if left_nat + right_nat <= side_content_space then
+                    left_cap = left_nat
+                    right_cap = right_nat
+                else
+                    left_cap = math.floor(side_content_space / 2)
+                    right_cap = side_content_space - left_cap
+                end
+                left_w = left_pad + left_cap
+                right_w = right_pad + right_cap
+                middle_w = math.max(0, screen_width - left_w - right_w)
+            elseif left_has then
+                left_cap = math.max(0, screen_width - left_pad)
+                left_w = screen_width
+            elseif right_has then
+                right_cap = math.max(0, screen_width - right_pad)
+                right_w = screen_width
+            end
+        end
+
+        local left_grp, left_ws = buildGroupFromTexts(left_texts, face, left_sep, left_cap)
+        local center_grp, center_ws = buildGroupFromTexts(center_texts, face, center_sep, center_cap)
+        local right_grp, right_ws = buildGroupFromTexts(right_texts, face, right_sep, right_cap)
+
         for _i, w in ipairs(left_ws)   do table.insert(all_widgets, w) end
         for _i, w in ipairs(center_ws) do table.insert(all_widgets, w) end
         for _i, w in ipairs(right_ws)  do table.insert(all_widgets, w) end
 
         if not left_grp and not center_grp and not right_grp then
+            DBG("buildHeader: all groups nil, doc_ctx=", doc_ctx and "present" or "nil",
+                "left_order=", #left_order, "center_order=", #(center_order or {}), "right_order=", #right_order)
             return nil, {}, 0, screen_width
         end
 
@@ -259,30 +426,63 @@ local function apply_reader_top_status_bar()
             return vg
         end
 
-        local header = OverlapGroup:new{ dimen = Geom:new{ w = screen_width, h = header_h } }
-        if left_grp then
-            table.insert(header, LeftContainer:new{
-                dimen = Geom:new{ w = screen_width, h = header_h },
-                HorizontalGroup:new{
-                    HorizontalSpan:new{ width = h_pad },
-                    padded(left_grp),
-                },
-            })
-        end
+        local header = HorizontalGroup:new{}
+
         if center_grp then
+            -- 3-zone layout: left | center | right
+            if left_grp then
+                table.insert(header, LeftContainer:new{
+                    dimen = Geom:new{ w = left_w, h = header_h },
+                    HorizontalGroup:new{
+                        HorizontalSpan:new{ width = h_pad },
+                        padded(left_grp),
+                    },
+                })
+            else
+                table.insert(header, HorizontalSpan:new{ width = left_w })
+            end
             table.insert(header, CenterContainer:new{
-                dimen = Geom:new{ w = screen_width, h = header_h },
+                dimen = Geom:new{ w = center_w, h = header_h },
                 padded(center_grp),
             })
-        end
-        if right_grp then
-            table.insert(header, RightContainer:new{
-                dimen = Geom:new{ w = screen_width, h = header_h },
-                HorizontalGroup:new{
-                    padded(right_grp),
-                    HorizontalSpan:new{ width = h_pad },
-                },
-            })
+            if right_grp then
+                table.insert(header, RightContainer:new{
+                    dimen = Geom:new{ w = right_w, h = header_h },
+                    HorizontalGroup:new{
+                        padded(right_grp),
+                        HorizontalSpan:new{ width = h_pad },
+                    },
+                })
+            else
+                table.insert(header, HorizontalSpan:new{ width = right_w })
+            end
+        else
+            -- 2-zone layout: left | right with adaptive middle gap.
+            if left_grp then
+                table.insert(header, LeftContainer:new{
+                    dimen = Geom:new{ w = left_w, h = header_h },
+                    HorizontalGroup:new{
+                        HorizontalSpan:new{ width = h_pad },
+                        padded(left_grp),
+                    },
+                })
+            else
+                table.insert(header, HorizontalSpan:new{ width = left_w })
+            end
+            if middle_w > 0 then
+                table.insert(header, HorizontalSpan:new{ width = middle_w })
+            end
+            if right_grp then
+                table.insert(header, RightContainer:new{
+                    dimen = Geom:new{ w = right_w, h = header_h },
+                    HorizontalGroup:new{
+                        padded(right_grp),
+                        HorizontalSpan:new{ width = h_pad },
+                    },
+                })
+            else
+                table.insert(header, HorizontalSpan:new{ width = right_w })
+            end
         end
 
         return header, all_widgets, header_h, screen_width
@@ -293,9 +493,30 @@ local function apply_reader_top_status_bar()
     -- ReaderView:paintTo (full page repaint) on every clock tick -- critical on
     -- color e-ink devices (e.g. Kobo Libre Color).
     local function repaintHeader(view)
-        if not view._zen_header_dimen then return end
-        local header, all_widgets, header_h, screen_width = buildHeader()
-        if not header then return end
+        -- Strict guard: only repaint if the reader itself is the top window.
+        -- is_view_active_top() allows child overlays (e.g. quick settings), which
+        -- would cause repaintHeader to paint over them. Check the stack directly.
+        do
+            local stack = UIManager._window_stack
+            local top = stack and stack[#stack]
+            local top_widget = top and top.widget
+            if not (top_widget == view.ui or top_widget == (view.ui and view.ui.show_parent)) then
+                return
+            end
+        end
+        if not view._zen_header_dimen then
+            DBG("repaintHeader SKIP: no _zen_header_dimen (paintTo never ran?)")
+            return
+        end
+        if not view.ui then
+            DBG("repaintHeader SKIP: view.ui is nil")
+            return
+        end
+        local header, all_widgets, header_h, screen_width = buildHeader(view)
+        if not header then
+            DBG("repaintHeader SKIP: buildHeader returned nil")
+            return
+        end
         local dimen = view._zen_header_dimen
         dimen.h = header_h
         dimen.w = screen_width
@@ -315,17 +536,17 @@ local function apply_reader_top_status_bar()
         if not is_enabled() then return end
         if self.render_mode ~= nil then return end -- pdf-like; skip
         if not self.document then return end
-        -- Guard: don't paint when reader is not the topmost widget.
-        local _stack = UIManager._window_stack
-        if not _stack then return end
-        local _top = _stack[#_stack]
-        local _w = _top and _top.widget
-        if _w ~= self.ui and _w ~= (self.ui and self.ui.show_parent) then
+        -- Guard: don't paint when reader is not active (allow overlays that
+        -- belong to this ReaderUI via show_parent, e.g., AutoDim on resume).
+        if not is_view_active_top(self) then
             return
         end
 
-        local header, all_widgets, header_h, screen_width = buildHeader()
-        if not header then return end
+        local header, all_widgets, header_h, screen_width = buildHeader(self)
+        if not header then
+            DBG("paintTo: buildHeader returned nil, skipping header paint")
+            return
+        end
 
         header:paintTo(bb, x, y)
         -- Store geometry so repaintHeader can flush only this strip on clock ticks.
@@ -347,13 +568,8 @@ local function apply_reader_top_status_bar()
                     _autoRefresh = nil
                     return
                 end
-                local stack = UIManager._window_stack
-                local top   = stack and stack[#stack]
-                if top then
-                    local w = top.widget
-                    if w == view.ui or w == view.ui.show_parent then
-                        repaintHeader(view)
-                    end
+                if is_view_active_top(view) then
+                    repaintHeader(view)
                 end
                 local t = os.date("*t")
                 UIManager:scheduleIn(60 - t.sec, _autoRefreshFn)
@@ -366,6 +582,8 @@ local function apply_reader_top_status_bar()
             local ReaderUI = require("apps/reader/readerui")
             -- Shared upvalue between onSuspend and the charging hooks below.
             local _charging_refresh_timer = nil
+            local _resume_refresh_timer_1 = nil
+            local _resume_refresh_timer_2 = nil
             local orig_onSuspend = ReaderUI.onSuspend
             ReaderUI.onSuspend = function(rui, ...)
                 if orig_onSuspend then orig_onSuspend(rui, ...) end
@@ -376,14 +594,47 @@ local function apply_reader_top_status_bar()
                     UIManager:unschedule(_charging_refresh_timer)
                     _charging_refresh_timer = nil
                 end
+                if _resume_refresh_timer_1 then
+                    UIManager:unschedule(_resume_refresh_timer_1)
+                    _resume_refresh_timer_1 = nil
+                end
+                if _resume_refresh_timer_2 then
+                    UIManager:unschedule(_resume_refresh_timer_2)
+                    _resume_refresh_timer_2 = nil
+                end
             end
             local orig_onResume = ReaderUI.onResume
             ReaderUI.onResume = function(rui, ...)
                 if orig_onResume then orig_onResume(rui, ...) end
+                DBG("onResume fired, _autoRefresh=", _autoRefresh and "armed" or "nil",
+                    "view._zen_header_dimen=", view._zen_header_dimen and "present" or "nil",
+                    "view.ui=", view.ui and "present" or "nil")
                 if _autoRefresh then
                     UIManager:unschedule(_autoRefresh)
-                    local t = os.date("*t")
-                    UIManager:scheduleIn(60 - t.sec, _autoRefresh)
+                    -- Repaint immediately on wakeup only if no overlay is active.
+                    if is_view_active_top(view) then
+                        repaintHeader(view)
+                    end
+                    -- Retry after wake overlays settle; first repaint can race
+                    -- with screensaver/AutoDim transitions.
+                    if _resume_refresh_timer_1 then UIManager:unschedule(_resume_refresh_timer_1) end
+                    if _resume_refresh_timer_2 then UIManager:unschedule(_resume_refresh_timer_2) end
+                    _resume_refresh_timer_1 = function()
+                        _resume_refresh_timer_1 = nil
+                        if is_view_active_top(view) then
+                            repaintHeader(view)
+                        end
+                    end
+                    _resume_refresh_timer_2 = function()
+                        _resume_refresh_timer_2 = nil
+                        if is_view_active_top(view) then
+                            repaintHeader(view)
+                        end
+                    end
+                    UIManager:scheduleIn(0.6, _resume_refresh_timer_1)
+                    UIManager:scheduleIn(1.8, _resume_refresh_timer_2)
+                    local now_t = os.date("*t")
+                    UIManager:scheduleIn(60 - now_t.sec, _autoRefresh)
                 end
             end
 
@@ -396,13 +647,8 @@ local function apply_reader_top_status_bar()
                 _charging_refresh_timer = function()
                     _charging_refresh_timer = nil
                     if not (view.ui and view.ui.document) then return end
-                    local stack = UIManager._window_stack
-                    local top   = stack and stack[#stack]
-                    if top then
-                        local w = top.widget
-                        if w == view.ui or w == view.ui.show_parent then
-                            repaintHeader(view)
-                        end
+                    if is_view_active_top(view) then
+                        repaintHeader(view)
                     end
                 end
                 UIManager:scheduleIn(1.5, _charging_refresh_timer)

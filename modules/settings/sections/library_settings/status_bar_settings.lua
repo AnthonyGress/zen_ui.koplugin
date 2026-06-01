@@ -6,6 +6,7 @@
 local _ = require("gettext")
 local UIManager = require("ui/uimanager")
 local utils = require("modules/settings/zen_settings_utils")
+local constants = require("common/constants")
 
 local M = {}
 
@@ -199,7 +200,7 @@ function M.build(ctx)
                 text = _("Show bottom border"),
                 checked_func = function() return config.status_bar.show_bottom_border == true end,
                 callback = function()
-                    config.status_bar.show_bottom_border = not (config.status_bar.show_bottom_border == true)
+                    config.status_bar.show_bottom_border = config.status_bar.show_bottom_border ~= true
                     save_and_apply_status_bar()
                 end,
             },
@@ -207,7 +208,7 @@ function M.build(ctx)
                 text = _("Bold text"),
                 checked_func = function() return config.status_bar.bold_text == true end,
                 callback = function()
-                    config.status_bar.bold_text = not (config.status_bar.bold_text == true)
+                    config.status_bar.bold_text = config.status_bar.bold_text ~= true
                     save_and_apply_status_bar()
                 end,
             },
@@ -215,7 +216,7 @@ function M.build(ctx)
                 text = _("Colored status icons"),
                 checked_func = function() return config.status_bar.colored == true end,
                 callback = function()
-                    config.status_bar.colored = not (config.status_bar.colored == true)
+                    config.status_bar.colored = config.status_bar.colored ~= true
                     save_and_apply_status_bar()
                 end,
             },
@@ -233,113 +234,79 @@ function M.build(ctx)
             },
             {
                 text_func = function()
-                    local separator_label = {
-                        dot             = _("Middle dot"),
-                        bar             = _("Vertical bar"),
-                        dash            = _("Dash"),
-                        bullet          = _("Bullet"),
-                        space           = _("Space only"),
-                        ["small-space"] = _("Space only (small)"),
-                        none            = _("No separator"),
-                        custom          = _("Custom"),
-                    }
                     local key = config.status_bar.separator_key or "dot"
-                    return _("Separator: ") .. (separator_label[key] or key)
+                    for _i, s in ipairs(constants.SEPARATOR_PRESETS) do
+                        if s.key == key then
+                            return _("Separator: ") .. _(s.label)
+                        end
+                    end
+                    return _("Separator: ") .. key
                 end,
-                sub_item_table = {
-                    {
-                        text = _("Middle dot") .. "  '  ·  '",
-                        checked_func = function() return config.status_bar.separator_key == "dot" end,
-                        callback = function()
-                            config.status_bar.separator_key = "dot"
-                            save_and_apply_status_bar()
-                        end,
-                    },
-                    {
-                        text = _("Vertical bar") .. "  '  |  '",
-                        checked_func = function() return config.status_bar.separator_key == "bar" end,
-                        callback = function()
-                            config.status_bar.separator_key = "bar"
-                            save_and_apply_status_bar()
-                        end,
-                    },
-                    {
-                        text = _("Dash") .. "  '  -  '",
-                        checked_func = function() return config.status_bar.separator_key == "dash" end,
-                        callback = function()
-                            config.status_bar.separator_key = "dash"
-                            save_and_apply_status_bar()
-                        end,
-                    },
-                    {
-                        text = _("Bullet") .. "  '  •  '",
-                        checked_func = function() return config.status_bar.separator_key == "bullet" end,
-                        callback = function()
-                            config.status_bar.separator_key = "bullet"
-                            save_and_apply_status_bar()
-                        end,
-                    },
-                    {
-                        text = _("Space only") .. "  '   '",
-                        checked_func = function() return config.status_bar.separator_key == "space" end,
-                        callback = function()
-                            config.status_bar.separator_key = "space"
-                            save_and_apply_status_bar()
-                        end,
-                    },
-                    {
-                        text = _("Space only (small)") .. "  ' '",
-                        checked_func = function() return config.status_bar.separator_key == "small-space" end,
-                        callback = function()
-                            config.status_bar.separator_key = "small-space"
-                            save_and_apply_status_bar()
-                        end,
-                    },
-                    {
-                        text = _("No separator"),
-                        checked_func = function() return config.status_bar.separator_key == "none" end,
-                        callback = function()
-                            config.status_bar.separator_key = "none"
-                            save_and_apply_status_bar()
-                        end,
-                    },
-                    {
-                        text_func = function()
-                            return _("Custom") .. "  '" .. (config.status_bar.custom_separator or "") .. "'"
-                        end,
-                        checked_func = function() return config.status_bar.separator_key == "custom" end,
-                        callback = function(touchmenu_instance)
-                            local InputDialog = require("ui/widget/inputdialog")
-                            local dlg
-                            dlg = InputDialog:new{
-                                title = _("Custom separator"),
-                                input = config.status_bar.custom_separator or "",
-                                buttons = {{
-                                    {
-                                        text = _("Cancel"),
-                                        id = "close",
-                                        callback = function() UIManager:close(dlg) end,
-                                    },
-                                    {
-                                        text = _("Set"),
-                                        is_enter_default = true,
-                                        callback = function()
-                                            config.status_bar.custom_separator = dlg:getInputText()
-                                            config.status_bar.separator_key = "custom"
-                                            UIManager:close(dlg)
-                                            save_and_apply_status_bar()
-                                            if touchmenu_instance then
-                                                touchmenu_instance:updateItems()
-                                            end
-                                        end,
-                                    },
-                                }},
-                            }
-                            UIManager:show(dlg)
-                            dlg:onShowKeyboard()
-                        end,
-                    },
-                },
+                sub_item_table = (function()
+                    -- Preview strings per key (bar-specific spacing).
+                    local preview = {
+                        dot             = "  \xC2\xB7  ",
+                        bar             = "  |  ",
+                        dash            = "  -  ",
+                        bullet          = "  \xE2\x80\xA2  ",
+                        space           = "   ",
+                        ["small-space"] = " ",
+                        none            = "",
+                    }
+                    local sub = {}
+                    for _i, sep in ipairs(constants.SEPARATOR_PRESETS) do
+                        local key = sep.key
+                        if key == "custom" then
+                            table.insert(sub, {
+                                text_func = function()
+                                    return _("Custom") .. "  '" .. (config.status_bar.custom_separator or "") .. "'"
+                                end,
+                                checked_func = function() return config.status_bar.separator_key == "custom" end,
+                                callback = function(touchmenu_instance)
+                                    local InputDialog = require("ui/widget/inputdialog")
+                                    local dlg
+                                    dlg = InputDialog:new{
+                                        title = _("Custom separator"),
+                                        input = config.status_bar.custom_separator or "",
+                                        buttons = {{
+                                            {
+                                                text = _("Cancel"),
+                                                id = "close",
+                                                callback = function() UIManager:close(dlg) end,
+                                            },
+                                            {
+                                                text = _("Set"),
+                                                is_enter_default = true,
+                                                callback = function()
+                                                    config.status_bar.custom_separator = dlg:getInputText()
+                                                    config.status_bar.separator_key = "custom"
+                                                    UIManager:close(dlg)
+                                                    save_and_apply_status_bar()
+                                                    if touchmenu_instance then
+                                                        touchmenu_instance:updateItems()
+                                                    end
+                                                end,
+                                            },
+                                        }},
+                                    }
+                                    UIManager:show(dlg)
+                                    dlg:onShowKeyboard()
+                                end,
+                            })
+                        else
+                            local pv = preview[key]
+                            table.insert(sub, {
+                                text = _(sep.label) .. (pv and pv ~= "" and ("  '" .. pv .. "'") or ""),
+                                checked_func = function() return config.status_bar.separator_key == key end,
+                                callback = function()
+                                    config.status_bar.separator_key = key
+                                    save_and_apply_status_bar()
+                                end,
+                            })
+                        end
+                    end
+                    return sub
+                end)(),
             },
         },
     }

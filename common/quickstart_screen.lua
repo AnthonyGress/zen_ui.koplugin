@@ -605,12 +605,12 @@ function QuickstartScreen:onQsConfirm()
             if page.choice_type == "radio" then
                 sel = { [choice.id] = true }
             else
-                if not (sel[choice.id] == true) and page.max_selections then
+                if sel[choice.id] ~= true and page.max_selections then
                     local count = 0
                     for _k, v in pairs(sel) do if v == true then count = count + 1 end end
                     if count >= page.max_selections then return true end
                 end
-                sel[choice.id] = not (sel[choice.id] == true)
+                sel[choice.id] = sel[choice.id] ~= true
             end
             self._selections[self._page_idx] = sel
             UIManager:setDirty(self, function() return "ui", self.dimen end)
@@ -702,12 +702,12 @@ function QuickstartScreen:_onTap(ges)
                 if page.choice_type == "radio" then
                     sel = { [choice.id] = true }
                 else
-                    if not (sel[choice.id] == true) and page.max_selections then
+                    if sel[choice.id] ~= true and page.max_selections then
                         local count = 0
                         for _, v in pairs(sel) do if v == true then count = count + 1 end end
                         if count >= page.max_selections then return true end
                     end
-                    sel[choice.id] = not (sel[choice.id] == true)
+                    sel[choice.id] = sel[choice.id] ~= true
                 end
                 self._selections[self._page_idx] = sel
                 UIManager:setDirty(self, function() return "ui", self.dimen end)

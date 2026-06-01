@@ -88,10 +88,7 @@ local function apply_browser_list_item_layout()
                         local widget = self[1] and self[1][1] and self[1][1][2]
                         local wleft = widget and widget[1] and widget[1][1] and widget[1][1][2]
                         if wleft and wleft.height_adjust and wleft.getLineHeight then
-                            local library_font = require("common/library_font")
                             local scale = library_font.getScale(18)
-                            local Screen = require("device").screen
-                            local scale_by_size = Screen:scaleBySize(1000000) * (1/1000000)
                             local dimen_h = self.height - 2
                             local fs = math.floor(20 * dimen_h * (1 / 64) / scale_by_size * scale + 0.5)
                             local max_scaled = math.max(1, math.floor(24 * scale + 0.5))
@@ -418,7 +415,7 @@ local function apply_browser_list_item_layout()
             local book_info = self.menu.getBookInfo(filepath)
             self.been_opened = book_info.been_opened
 
-            local directory, filename = util.splitFilePathName(filepath)
+            local filename = select(2, util.splitFilePathName(filepath))
             local filename_without_suffix = filemanagerutil.splitFileNameType(filename)
             local has_description = bookinfo.description ~= nil
             self.has_description = has_description
@@ -612,7 +609,7 @@ local function apply_browser_list_item_layout()
             local wauthors
             if authors then
                 wauthors = TextWidget:new{
-                    text      = authors:gsub("\n", " "),
+                    text      = authors:gsub("\n", ", "),
                     face      = library_font.getFace(fs_meta),
                     max_width = main_w,
                     fgcolor   = fgcolor,

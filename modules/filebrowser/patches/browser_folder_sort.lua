@@ -97,7 +97,6 @@ local function apply_browser_folder_sort()
         local real_path = ffiUtil and ffiUtil.realpath and ffiUtil.realpath(path) or path
 
         -- Never apply a per-folder sort override to the home directory.
-        local g = rawget(_G, "G_reader_settings")
         local home_dir = paths.getHomeDir()
         if home_dir then
             local home_real = ffiUtil and ffiUtil.realpath and ffiUtil.realpath(home_dir) or home_dir

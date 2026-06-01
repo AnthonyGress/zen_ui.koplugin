@@ -161,7 +161,7 @@ local function apply_browser_series_badge()
             local _bcc = _sc and type(_sc.config) == "table"
                 and type(_sc.config.browser_cover_badges) == "table"
                 and _sc.config.browser_cover_badges.badge_color
-            local badge_is_dark = type(_bcc) == "table" and _bcc[1] == 0 and _bcc[2] == 0 and _bcc[3] == 0
+            local badge_is_dark = _bcc == nil or (type(_bcc) == "table" and _bcc[1] == 0 and _bcc[2] == 0 and _bcc[3] == 0)
             local badge_fg = badge_is_dark and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK
 
             if not tw or tw_fs ~= font_size or tw_idx ~= series_idx or rawget(self, "_zen_series_dark") ~= badge_is_dark then

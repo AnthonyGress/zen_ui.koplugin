@@ -117,7 +117,7 @@ function M.build(plugin)
                 return config.features["zen_mode"] == true
             end,
             callback = function()
-                config.features["zen_mode"] = not (config.features["zen_mode"] == true)
+                config.features["zen_mode"] = config.features["zen_mode"] ~= true
                 save_and_apply("zen_mode")
             end,
         },

@@ -165,8 +165,9 @@ local function apply_opds()
     local _plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
     -- Mosaic title strip: read at apply time; mirrors mosaic_title_strip.lua logic.
-    local _strip_show_title, _strip_show_author, _strip_h = false, false, 0
+    local _strip_show_title, _strip_show_author, _strip_h
     do
+        _strip_h = 0
         local p = _plugin or rawget(_G, "__ZEN_UI_PLUGIN")
         local sc = p and type(p.config) == "table"
             and type(p.config.mosaic_title_strip) == "table"
@@ -565,7 +566,6 @@ local function apply_opds()
         local ok_bim, BIM = pcall(require, "bookinfomanager")
         if ok_bim then display_mode = BIM:getSetting("filemanager_display_mode") end
         local mosaic_mode = display_mode and display_mode:sub(1, 6) == "mosaic"
-        local Screen = require("device").screen
         local portrait_mode = Screen:getWidth() < Screen:getHeight()
         local nb_cols_setting, nb_rows_setting, perpage_setting
         if ok_bim then
@@ -1124,7 +1124,6 @@ local function apply_opds()
     end
 
     -- Custom search dialog matching library search.lua style.
-    local orig_searchCatalog = OPDSBrowser.searchCatalog
     function OPDSBrowser:searchCatalog(item_url)
         local InputDialog  = require("ui/widget/inputdialog")
         local util         = require("util")
@@ -1192,21 +1191,10 @@ local function apply_opds()
 
         local ButtonDialog   = require("ui/widget/buttondialog")
         local ConfirmBox     = require("ui/widget/confirmbox")
-        local Font           = require("ui/font")
-        local FrameContainer = require("ui/widget/container/framecontainer")
-        local Geom           = require("ui/geometry")
-        local HGroup         = require("ui/widget/horizontalgroup")
-        local HSpan          = require("ui/widget/horizontalspan")
-        local ImageWidget    = require("ui/widget/imagewidget")
         local LeftContainer  = require("ui/widget/container/leftcontainer")
-        local LineWidget     = require("ui/widget/linewidget")
         local Notification   = require("ui/widget/notification")
         local OPDSPSE        = require("opdspse")
-        local Screen         = require("device").screen
         local TextViewer     = require("ui/widget/textviewer")
-        local TextWidget     = require("ui/widget/textwidget")
-        local VGroup         = require("ui/widget/verticalgroup")
-        local VSpan          = require("ui/widget/verticalspan")
         local url_mod        = require("socket.url")
         local util           = require("util")
         local _              = require("gettext")

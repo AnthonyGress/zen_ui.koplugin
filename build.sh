@@ -55,6 +55,7 @@ rsync -a \
   --exclude '*.yml/' \
   --exclude '.venv/' \
   --exclude '*.py' \
+  --exclude '*.luarocks' \
   "$REPO_ROOT/" "$STAGE_DIR/"
 
 if [[ "$WITH_DICT" -eq 1 ]]; then

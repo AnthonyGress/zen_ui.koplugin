@@ -5,7 +5,6 @@
 local _ = require("gettext")
 local T = require("ffi/util").template
 local UIManager = require("ui/uimanager")
-local utils = require("modules/settings/zen_settings_utils")
 
 local M = {}
 
@@ -14,10 +13,6 @@ function M.build(ctx)
     local save_and_apply = ctx.save_and_apply
 
     local function save_and_apply_quick_settings() save_and_apply("quick_settings") end
-
-    local function make_enable_feature_item(feature, text)
-        return utils.make_enable_feature_item(feature, text, config, save_and_apply)
-    end
 
     -- Resolve UI instance once for plugin-availability checks (fail-open if nil).
     local _ui
@@ -131,7 +126,7 @@ function M.build(ctx)
                     table.insert(sort_items, {
                         text = label,
                         orig_item = id,
-                        dim = not (config.quick_settings.show_buttons[id] == true),
+                        dim = config.quick_settings.show_buttons[id] ~= true,
                     })
                 end
             end
@@ -163,10 +158,10 @@ function M.build(ctx)
     local CUSTOM_BUTTON_ICONS
     local function getCustomButtonIcons()
         if CUSTOM_BUTTON_ICONS then return CUSTOM_BUTTON_ICONS end
-        local utils = require("common/utils")
+        local icon_utils = require("common/utils")
         local ok_root, root = pcall(require, "common/plugin_root")
         local excluded = { zen_ui_light = true, zen_ui_update = true }
-        CUSTOM_BUTTON_ICONS = utils.getIconPickerList(ok_root and root or nil, excluded)
+        CUSTOM_BUTTON_ICONS = icon_utils.getIconPickerList(ok_root and root or nil, excluded)
         return CUSTOM_BUTTON_ICONS
     end
 
@@ -392,7 +387,7 @@ function M.build(ctx)
                     or countEnabledButtons() < quick_buttons_max
             end,
             callback = function()
-                config.quick_settings.show_buttons[key] = not (config.quick_settings.show_buttons[key] == true)
+                config.quick_settings.show_buttons[key] = config.quick_settings.show_buttons[key] ~= true
                 save_and_apply_quick_settings()
             end,
         })
@@ -409,7 +404,7 @@ function M.build(ctx)
                 text = _("Show brightness slider"),
                 checked_func = function() return config.quick_settings.show_frontlight == true end,
                 callback = function()
-                    config.quick_settings.show_frontlight = not (config.quick_settings.show_frontlight == true)
+                    config.quick_settings.show_frontlight = config.quick_settings.show_frontlight ~= true
                     save_and_apply_quick_settings()
                 end,
             },
@@ -417,7 +412,7 @@ function M.build(ctx)
                 text = _("Show warmth slider"),
                 checked_func = function() return config.quick_settings.show_warmth == true end,
                 callback = function()
-                    config.quick_settings.show_warmth = not (config.quick_settings.show_warmth == true)
+                    config.quick_settings.show_warmth = config.quick_settings.show_warmth ~= true
                     save_and_apply_quick_settings()
                 end,
             },

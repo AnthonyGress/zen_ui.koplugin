@@ -969,7 +969,7 @@ function M.build_install_pages(ctx)
                 page.image_bb, page.image = home_bb, nil
             end
             if page.choices then
-                for _i, choice in ipairs(page.choices) do
+                for _j, choice in ipairs(page.choices) do
                     if choice.id == "mosaic" and mosaic_bb then
                         choice.image_bb, choice.image = mosaic_bb, nil
                     elseif choice.id == "list" and list_bb then

@@ -11,7 +11,6 @@ local Blitbuffer       = require("ffi/blitbuffer")
 local ButtonDialog     = require("ui/widget/buttondialog")
 local CenterContainer  = require("ui/widget/container/centercontainer")
 local DataStorage      = require("datastorage")
-local Device           = require("device")
 local Font             = require("ui/font")
 local FrameContainer   = require("ui/widget/container/framecontainer")
 local Geom             = require("ui/geometry")
@@ -171,4 +170,3 @@ function M.run()
 end
 
 return M
-

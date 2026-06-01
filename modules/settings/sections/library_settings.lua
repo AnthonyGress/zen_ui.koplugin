@@ -46,6 +46,22 @@ function M.build(ctx)
     local plugin        = ctx.plugin
     local save_and_apply = ctx.save_and_apply
 
+    local function fbc()
+        if type(config.browser_folder_cover) ~= "table" then
+            config.browser_folder_cover = {}
+        end
+        return config.browser_folder_cover
+    end
+    local function save_fbc()
+        plugin:saveConfig()
+        UIManager:setDirty(nil, "full")
+    end
+    local function save_fbc_and_update()
+        plugin:saveConfig()
+        local ui = require("apps/filemanager/filemanager").instance
+        if ui and ui.file_chooser then ui.file_chooser:updateItems() end
+    end
+
     local items = {}
 
     table.insert(items, status_bar_section.build(ctx))
@@ -140,7 +156,7 @@ function M.build(ctx)
                 checked_func = function() return config.browser_hide_up_folder.hide_up_folder == true end,
                 callback = function()
                     config.browser_hide_up_folder.hide_up_folder =
-                        not (config.browser_hide_up_folder.hide_up_folder == true)
+                        config.browser_hide_up_folder.hide_up_folder ~= true
                     save_and_apply("browser_hide_up_folder")
                 end,
             },
@@ -151,75 +167,53 @@ function M.build(ctx)
                     {
                         text = _("Gallery"),
                         radio = true,
-                        checked_func = function()
-                            return G_reader_settings:isTrue("folder_gallery_mode")
-                        end,
+                        checked_func = function() return fbc().cover_mode == "gallery" end,
                         callback = function()
-                            G_reader_settings:saveSetting("folder_gallery_mode", true)
-                            G_reader_settings:saveSetting("folder_stack_mode", false)
-                            local ui = require("apps/filemanager/filemanager").instance
-                            if ui and ui.file_chooser then
-                                ui.file_chooser:updateItems()
-                            end
+                            fbc().cover_mode = "gallery"
+                            save_fbc_and_update()
                         end,
                     },
                     {
                         text = _("First cover image"),
                         radio = true,
-                        checked_func = function()
-                            return not G_reader_settings:isTrue("folder_gallery_mode")
-                                and not G_reader_settings:isTrue("folder_stack_mode")
-                        end,
+                        checked_func = function() return fbc().cover_mode == "normal" end,
                         callback = function()
-                            G_reader_settings:saveSetting("folder_gallery_mode", false)
-                            G_reader_settings:saveSetting("folder_stack_mode", false)
-                            local ui = require("apps/filemanager/filemanager").instance
-                            if ui and ui.file_chooser then
-                                ui.file_chooser:updateItems()
-                            end
+                            fbc().cover_mode = "normal"
+                            save_fbc_and_update()
                         end,
                     },
                     {
                         text = _("Stack"),
                         radio = true,
-                        checked_func = function()
-                            return G_reader_settings:isTrue("folder_stack_mode")
-                        end,
+                        checked_func = function() return fbc().cover_mode == "stack" end,
                         callback = function()
-                            G_reader_settings:saveSetting("folder_stack_mode", true)
-                            G_reader_settings:saveSetting("folder_gallery_mode", false)
-                            local ui = require("apps/filemanager/filemanager").instance
-                            if ui and ui.file_chooser then
-                                ui.file_chooser:updateItems()
-                            end
+                            fbc().cover_mode = "stack"
+                            save_fbc_and_update()
+                        end,
+                    },
+                    {
+                        text = _("None (folder name only)"),
+                        radio = true,
+                        checked_func = function() return fbc().cover_mode == "none" end,
+                        callback = function()
+                            fbc().cover_mode = "none"
+                            save_fbc_and_update()
                         end,
                     },
                     {
                         text = _("Show spine lines"),
-                        checked_func = function()
-                            local ok, bim = pcall(require, "bookinfomanager")
-                            if not ok then return true end
-                            return not bim:getSetting("folder_spine_lines_show")
-                        end,
+                        checked_func = function() return fbc().show_spine_lines ~= false end,
                         callback = function()
-                            local ok, bim = pcall(require, "bookinfomanager")
-                            if not ok then return end
-                            bim:toggleSetting("folder_spine_lines_show")
-                            UIManager:setDirty(nil, "full")
+                            fbc().show_spine_lines = fbc().show_spine_lines == false
+                            save_fbc()
                         end,
                     },
                     {
                         text = _("Show item count"),
-                        checked_func = function()
-                            local ok, bim = pcall(require, "bookinfomanager")
-                            if not ok then return true end
-                            return not bim:getSetting("folder_item_count_show")
-                        end,
+                        checked_func = function() return fbc().show_item_count ~= false end,
                         callback = function()
-                            local ok, bim = pcall(require, "bookinfomanager")
-                            if not ok then return end
-                            bim:toggleSetting("folder_item_count_show")
-                            UIManager:setDirty(nil, "full")
+                            fbc().show_item_count = fbc().show_item_count == false
+                            save_fbc()
                         end,
                     },
                 },
@@ -230,16 +224,10 @@ function M.build(ctx)
                 sub_item_table = {
                     {
                         text = _("Opaque background"),
-                        checked_func = function()
-                            local ok, bim = pcall(require, "bookinfomanager")
-                            if not ok then return true end
-                            return not bim:getSetting("folder_name_opaque")
-                        end,
+                        checked_func = function() return fbc().name_opaque == true end,
                         callback = function()
-                            local ok, bim = pcall(require, "bookinfomanager")
-                            if not ok then return end
-                            bim:toggleSetting("folder_name_opaque")
-                            UIManager:setDirty(nil, "full")
+                            fbc().name_opaque = fbc().name_opaque ~= true
+                            save_fbc()
                         end,
                     },
                     {
@@ -248,51 +236,29 @@ function M.build(ctx)
                             {
                                 text = _("Center"),
                                 radio = true,
-                                checked_func = function()
-                                    local ok, bim = pcall(require, "bookinfomanager")
-                                    if not ok then return true end
-                                    return not bim:getSetting("folder_name_centered")
-                                end,
+                                checked_func = function() return fbc().name_centered == true end,
                                 callback = function()
-                                    local ok, bim = pcall(require, "bookinfomanager")
-                                    if not ok then return end
-                                    if bim:getSetting("folder_name_centered") then
-                                        bim:toggleSetting("folder_name_centered")
-                                    end
-                                    UIManager:setDirty(nil, "full")
+                                    fbc().name_centered = true
+                                    save_fbc()
                                 end,
                             },
                             {
                                 text = _("Bottom"),
                                 radio = true,
-                                checked_func = function()
-                                    local ok, bim = pcall(require, "bookinfomanager")
-                                    if not ok then return false end
-                                    return bim:getSetting("folder_name_centered") ~= nil
-                                end,
+                                checked_func = function() return fbc().name_centered ~= true end,
                                 callback = function()
-                                    local ok, bim = pcall(require, "bookinfomanager")
-                                    if not ok then return end
-                                    if not bim:getSetting("folder_name_centered") then
-                                        bim:toggleSetting("folder_name_centered")
-                                    end
-                                    UIManager:setDirty(nil, "full")
+                                    fbc().name_centered = false
+                                    save_fbc()
                                 end,
                             },
                         },
                     },
                     {
                         text = _("Show folder name"),
-                        checked_func = function()
-                            local ok, bim = pcall(require, "bookinfomanager")
-                            if not ok then return true end
-                            return not bim:getSetting("folder_name_show")
-                        end,
+                        checked_func = function() return fbc().show_folder_name ~= false end,
                         callback = function()
-                            local ok, bim = pcall(require, "bookinfomanager")
-                            if not ok then return end
-                            bim:toggleSetting("folder_name_show")
-                            UIManager:setDirty(nil, "full")
+                            fbc().show_folder_name = fbc().show_folder_name == false
+                            save_fbc()
                         end,
                     },
                 },
@@ -362,11 +328,12 @@ function M.build(ctx)
                             UIManager:setDirty(nil, "full")
                         end,
                         default_text = _("Default"),
-                        reset_text   = _("Default (gray)"),
+                        reset_text   = _("Default (black)"),
                         dialog_title = _("Badge color RGB"),
                         presets = {
                             { text = _("Black"), r = 0,    g = 0,    b = 0    },
                             { text = _("White"), r = 255,  g = 255,  b = 255  },
+                            { text = _("Gray"),  r = 204,  g = 204,  b = 204  },
                             { text = _("Blue"),  r = 0x99, g = 0xBB, b = 0xF0 },
                             { text = _("Green"), r = 0x99, g = 0xCC, b = 0x99 },
                             { text = _("Amber"), r = 0xF0, g = 0xD0, b = 0x80 },
@@ -384,7 +351,7 @@ function M.build(ctx)
                                 config.browser_page_count = {}
                             end
                             config.browser_page_count.show_page_count =
-                                not (config.browser_page_count.show_page_count == true)
+                                config.browser_page_count.show_page_count ~= true
                             plugin:saveConfig()
                             UIManager:setDirty(nil, "full")
                         end,
@@ -400,7 +367,7 @@ function M.build(ctx)
                                 config.browser_series_badge = {}
                             end
                             config.browser_series_badge.show_series_badge =
-                                not (config.browser_series_badge.show_series_badge == true)
+                                config.browser_series_badge.show_series_badge ~= true
                             plugin:saveConfig()
                             UIManager:setDirty(nil, "full")
                         end,
@@ -416,7 +383,7 @@ function M.build(ctx)
                                 config.browser_cover_badges = {}
                             end
                             config.browser_cover_badges.show_favorite_badge =
-                                not (config.browser_cover_badges.show_favorite_badge == true)
+                                config.browser_cover_badges.show_favorite_badge ~= true
                             plugin:saveConfig()
                             UIManager:setDirty(nil, "full")
                         end,
@@ -432,7 +399,7 @@ function M.build(ctx)
                                 config.browser_cover_badges = {}
                             end
                             config.browser_cover_badges.show_new_banner =
-                                not (config.browser_cover_badges.show_new_banner == true)
+                                config.browser_cover_badges.show_new_banner ~= true
                             plugin:saveConfig()
                             UIManager:setDirty(nil, "full")
                         end,
@@ -448,7 +415,7 @@ function M.build(ctx)
                                 config.browser_cover_badges = {}
                             end
                             config.browser_cover_badges.show_native_progress_bar =
-                                not (config.browser_cover_badges.show_native_progress_bar == true)
+                                config.browser_cover_badges.show_native_progress_bar ~= true
                             plugin:saveConfig()
                             UIManager:setDirty(nil, "full")
                         end,
@@ -464,7 +431,7 @@ function M.build(ctx)
                                 config.browser_cover_badges = {}
                             end
                             config.browser_cover_badges.show_mosaic_progress =
-                                not (config.browser_cover_badges.show_mosaic_progress == true)
+                                config.browser_cover_badges.show_mosaic_progress ~= true
                             plugin:saveConfig()
                             UIManager:setDirty(nil, "full")
                         end,
@@ -483,7 +450,7 @@ function M.build(ctx)
                         callback = function()
                             if type(config.features) ~= "table" then config.features = {} end
                             config.features.browser_cover_mosaic_uniform =
-                                not (config.features.browser_cover_mosaic_uniform == true)
+                                config.features.browser_cover_mosaic_uniform ~= true
                             plugin:saveConfig()
                             settings_apply.prompt_restart()
                         end,
@@ -525,7 +492,7 @@ function M.build(ctx)
                         config.browser_cover_badges = {}
                     end
                     config.browser_cover_badges.dim_finished_books =
-                        not (config.browser_cover_badges.dim_finished_books == true)
+                        config.browser_cover_badges.dim_finished_books ~= true
                     plugin:saveConfig()
                     UIManager:setDirty(nil, "full")
                 end,
@@ -539,7 +506,7 @@ function M.build(ctx)
                 callback = function()
                     if type(config.features) ~= "table" then config.features = {} end
                     config.features.browser_cover_rounded_corners =
-                        not (config.features.browser_cover_rounded_corners == true)
+                        config.features.browser_cover_rounded_corners ~= true
                     plugin:saveConfig()
                     UIManager:setDirty(nil, "full")
                 end,
@@ -555,7 +522,7 @@ function M.build(ctx)
                         config.mosaic_title_strip = {}
                     end
                     config.mosaic_title_strip.show_title =
-                        not (config.mosaic_title_strip.show_title == true)
+                        config.mosaic_title_strip.show_title ~= true
                     plugin:saveConfig()
                     settings_apply.prompt_restart()
                 end,
@@ -571,7 +538,7 @@ function M.build(ctx)
                         config.mosaic_title_strip = {}
                     end
                     config.mosaic_title_strip.show_author =
-                        not (config.mosaic_title_strip.show_author == true)
+                        config.mosaic_title_strip.show_author ~= true
                     plugin:saveConfig()
                     settings_apply.prompt_restart()
                 end,
@@ -1004,7 +971,7 @@ function M.build(ctx)
             return config.features.browser_hide_underline ~= true
         end,
         callback = function()
-            config.features.browser_hide_underline = not (config.features.browser_hide_underline == true)
+            config.features.browser_hide_underline = config.features.browser_hide_underline ~= true
             save_and_apply("browser_hide_underline")
         end,
     })
@@ -1020,7 +987,7 @@ function M.build(ctx)
                 config.browser_list_item_layout = {}
             end
             config.browser_list_item_layout.hide_list_borders =
-                not (config.browser_list_item_layout.hide_list_borders == true)
+                config.browser_list_item_layout.hide_list_borders ~= true
             plugin:saveConfig()
             -- updateItems rebuilds item_group so stripListBorders takes effect immediately.
             local ok_fm, FM = pcall(require, "apps/filemanager/filemanager")
@@ -1102,7 +1069,7 @@ function M.build(ctx)
                     })
                     for i, dir in ipairs(dirs) do
                         local util = require("util")
-                        local _d, name = util.splitFilePathName(dir)
+                        local name = select(2, util.splitFilePathName(dir))
                         table.insert(sub, {
                             text = name ~= "" and name or dir,
                             keep_menu_open = true,
@@ -1136,7 +1103,7 @@ function M.build(ctx)
         end,
         callback = function()
             if type(config.context_menu) ~= "table" then config.context_menu = {} end
-            config.context_menu.allow_delete = not (config.context_menu.allow_delete == true)
+            config.context_menu.allow_delete = config.context_menu.allow_delete ~= true
             plugin:saveConfig()
         end,
     })

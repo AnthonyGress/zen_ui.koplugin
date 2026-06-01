@@ -1,0 +1,1733 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: zen-ui 0.1.0\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: vi\n"
+
+msgid "%1 (%2)"
+msgstr "%1 (%2)"
+
+msgid "%1 et al."
+msgstr "%1 và cộng sự"
+
+msgid "%1 mins left in chapter"
+msgstr "%1 phút còn lại trong chương"
+
+msgid "%d%% Read"
+msgstr "%d%% Đã đọc"
+
+msgid "(auto)"
+msgstr "(tự động)"
+
+msgid "1 author"
+msgstr "1 tác giả"
+
+msgid "1 book"
+msgstr "1 cuốn sách"
+
+msgid "1 min left in chapter"
+msgstr "1 phút còn lại trong chương"
+
+msgid "1 series"
+msgstr "1 bộ"
+
+msgid "1 tag"
+msgstr "1 thẻ"
+
+msgid "12-hour  (3:30 PM)"
+msgstr "12 giờ (3:30 chiều)"
+
+msgid "12-hour time"
+msgstr "Định dạng giờ 12"
+
+msgid "24-hour  (15:30)"
+msgstr "24 giờ (15:30)"
+
+msgid "< 1 min left in chapter"
+msgstr "< 1 phút còn lại trong chương"
+
+msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
+msgstr "Giao diện tối giản, sạch sẽ và đơn giản cho máy đọc sách điện tử của bạn.
+
+Vuốt hoặc nhấn Tiếp theo để tiếp tục."
+
+msgid "A short summary of what went wrong"
+msgstr "Tóm tắt ngắn gọn về những gì đã xảy ra sai"
+
+msgid "A simple tab-based bar at the bottom of your library.\nFully customizable to make it your own"
+msgstr "Thanh tab đơn giản ở dưới thư viện của bạn.
+Hoàn toàn có thể tùy chỉnh để làm nó trở thành của riêng bạn"
+
+msgid "About"
+msgstr "Về"
+
+msgid "Action: %1"
+msgstr "Hành động: %1"
+
+msgid "Action: (none)"
+msgstr "Hành động: (none)"
+
+msgid "Active tab color"
+msgstr "Màu tab hoạt động"
+
+msgid "Active tab color: "
+msgstr "Màu tab hoạt động: "
+
+msgid "Active tab RGB"
+msgstr "RGB tab hoạt động"
+
+msgid "Active tab styling"
+msgstr "Kiểu dáng tab hoạt động"
+
+msgid "Active tab underline"
+msgstr "Dòng gạch chân tab hoạt động"
+
+msgid "Add catalog"
+msgstr "Thêm danh mục"
+
+msgid "Add custom button"
+msgstr "Thêm nút tùy chỉnh"
+
+msgid "Add folder…"
+msgstr "Thêm thư mục…"
+
+msgid "Add to collection"
+msgstr "Thêm vào bộ sưu tập"
+
+msgid "added"
+msgstr "đã thêm"
+
+msgid "Additional home folders"
+msgstr "Thư mục home bổ sung"
+
+msgid "Advanced"
+msgstr "Nâng cao"
+
+msgid "Alexandre Dumas"
+msgstr "Alexandre Dumas"
+
+msgid "All"
+msgstr "Tất cả"
+
+msgid "All settings in one unified tab.\nCheck for and install Zen UI updates directly from your e-reader."
+msgstr "Tất cả cài đặt trong một tab thống nhất.
+Kiểm tra và cài đặt cập nhật Zen UI trực tiếp từ máy đọc sách điện tử của bạn."
+
+msgid "All Time"
+msgstr "Tất cả thời gian"
+
+msgid "Allow custom icons"
+msgstr "Cho phép biểu tượng tùy chỉnh"
+
+msgid "Allow delete in context menu"
+msgstr "Cho phép xóa trong menu ngữ cảnh"
+
+msgid "Amber"
+msgstr "Hổ phách"
+
+msgid "An item with that name already exists."
+msgstr "Một mục với tên đó đã tồn tại."
+
+msgid "An unobtrusive reader view with customizable top clock and bottom progress bar."
+msgstr "Giao diện đọc sách không gây phiền nhiễu với đồng hồ tùy chỉnh ở trên và thanh tiến độ ở dưới."
+
+msgid "Apply"
+msgstr "Áp dụng"
+
+msgid "Are you sure you want to exit KOReader?"
+msgstr "Bạn có chắc chắn muốn thoát KOReader?"
+
+msgid "Are you sure you want to quit KOReader?"
+msgstr "Bạn có chắc chắn muốn thoát KOReader?"
+
+msgid "Are you sure you want to restart KOReader?"
+msgstr "Bạn có chắc chắn muốn khởi động lại KOReader?"
+
+msgid "Arrange"
+msgstr "Sắp xếp"
+
+msgid "Arrange center items"
+msgstr "Sắp xếp các mục ở giữa"
+
+msgid "Arrange left items"
+msgstr "Sắp xếp các mục ở bên trái"
+
+msgid "Arrange navbar tabs"
+msgstr "Sắp xếp các tab thanh điều hướng"
+
+msgid "Arrange quick settings buttons"
+msgstr "Sắp xếp các nút cài đặt nhanh"
+
+msgid "Arrange right items"
+msgstr "Sắp xếp các mục bên phải"
+
+msgid "Arrange tabs"
+msgstr "Sắp xếp các tab"
+
+msgid "Ascending"
+msgstr "Sắp xếp tăng dần"
+
+msgid "Authors"
+msgstr "Tác giả"
+
+msgid "authors"
+msgstr "tác giả"
+
+msgid "Authors & Series"
+msgstr "Tác giả & Series"
+
+msgid "Automatic suspend"
+msgstr "Tạm tự động"
+
+msgid "avg pages/day"
+msgstr "trung bình trang/ngày"
+
+msgid "avg time/book"
+msgstr "trung bình thời gian/sách"
+
+msgid "avg time/day"
+msgstr "trung bình thời gian/ngày"
+
+msgid "Badge size"
+msgstr "Kích thước huy hiệu"
+
+msgid "Badges"
+msgstr "Huy hiệu"
+
+msgid "Bar"
+msgstr "Thanh"
+
+msgid "Battery"
+msgstr "Pin"
+
+msgid "Battery Stats"
+msgstr "Thống kê pin"
+
+msgid "Beginning / End"
+msgstr "Bắt đầu / Kết thúc"
+
+msgid "best day"
+msgstr "ngày tốt nhất"
+
+msgid "best month"
+msgstr "tháng tốt nhất"
+
+msgid "best week"
+msgstr "tuần tuyệt vời"
+
+msgid "Beta"
+msgstr "Beta"
+
+msgid "Blue"
+msgstr "Xanh dương"
+
+msgid "Bold"
+msgstr "In đậm"
+
+msgid "Bold active tab"
+msgstr "Tab hoạt động in đậm"
+
+msgid "Bold text"
+msgstr "Văn bản in đậm"
+
+msgid "Book"
+msgstr "Sách"
+
+msgid "Book added to download list"
+msgstr "Sách đã được thêm vào danh sách tải xuống"
+
+msgid "Book cover - black background"
+msgstr "Bìa sách - nền đen"
+
+msgid "Book information"
+msgstr "Thông tin sách"
+
+msgid "Book Status"
+msgstr "Trạng thái sách"
+
+msgid "books"
+msgstr "sách"
+
+msgid "Books"
+msgstr "Sách"
+
+msgid "books finished"
+msgstr "sách đã đọc xong"
+
+msgid "Books tab label"
+msgstr "Nhãn tab Sách"
+
+msgid "Books tab label: "
+msgstr "Nhãn tab Sách: "
+
+msgid "Bottom"
+msgstr "Đáy"
+
+msgid "Bottom status bar"
+msgstr "Thanh trạng thái dưới cùng"
+
+msgid "Brief description of the bug"
+msgstr "Mô tả ngắn gọn về lỗi"
+
+msgid "Brightness"
+msgstr "Độ sáng"
+
+msgid "Brightness schedule"
+msgstr "Lịch độ sáng"
+
+msgid "Browse your entire library organized by author or series.\nAccess these views anytime from the navigation bar."
+msgstr "Duyệt toàn bộ thư viện được sắp xếp theo tác giả hoặc bộ truyện.
+Truy cập các chế độ xem này bất cứ lúc nào từ thanh điều hướng."
+
+msgid "Bug description (optional)"
+msgstr "Mô tả lỗi (tùy chọn)"
+
+msgid "Bug report submitted!"
+msgstr "Báo cáo lỗi đã được gửi!"
+
+msgid "Bug report title"
+msgstr "Tiêu đề báo cáo lỗi"
+
+msgid "Bullet"
+msgstr "Danh sách gạch đầu dòng"
+
+msgid "Buttons"
+msgstr "Nút bấm"
+
+msgid "Calendar"
+msgstr "Lịch"
+
+msgid "Calibre"
+msgstr "Calibre"
+
+msgid "Calibre plugin is not installed."
+msgstr "Plugin Calibre chưa được cài đặt."
+
+msgid "Calibre Search"
+msgstr "Tìm kiếm Calibre"
+
+msgid "Cancel"
+msgstr "Hủy"
+
+msgid "Cannot open last document"
+msgstr "Không thể mở tài liệu cuối cùng"
+
+msgid "Casual Chess"
+msgstr "Cờ vua thông thường"
+
+msgid "Center"
+msgstr "Trung tâm"
+
+msgid "Center items"
+msgstr "Các mục ở trung tâm"
+
+msgid "Centered Pages"
+msgstr "Trang được căn giữa"
+
+msgid "Change folder"
+msgstr "Thay đổi thư mục"
+
+msgid "Change Row"
+msgstr "Thay đổi hàng"
+
+msgid "Chapter Time + %"
+msgstr "Thời gian chương + %"
+
+msgid "Check for updates"
+msgstr "Kiểm tra cập nhật"
+
+msgid "Checking for updates…"
+msgstr "Đang kiểm tra cập nhật..."
+
+msgid "Chess"
+msgstr "Cờ vua"
+
+msgid "Choose a different folder"
+msgstr "Chọn một thư mục khác"
+
+msgid "Choose a preset for your reading progress bar."
+msgstr "Chọn một cài đặt trước cho thanh tiến trình đọc của bạn."
+
+msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
+msgstr "Chọn các tab nào xuất hiện trong thanh điều hướng của bạn.\nBạn có thể sắp xếp hoặc điều chỉnh những tab này bất kỳ lúc nào trong Cài đặt."
+
+msgid "Classic (filename only)"
+msgstr "Kinh điển (chỉ tên tệp)"
+
+msgid "Clean, minimal library with mosaic cover art and list views, reduced clutter, and a streamlined context menu."
+msgstr "Thư viện sạch sẽ, tối giản với nghệ thuật bìa mosaic và chế độ xem danh sách, giảm thiểu sự lộn xộn, và menu ngữ cảnh được tối ưu hóa."
+
+msgid "Clear"
+msgstr "Xóa"
+
+msgid "Clear all gestures"
+msgstr "Xóa tất cả cử chỉ"
+
+msgid "Close"
+msgstr "Đóng"
+
+msgid "Cloud"
+msgstr "Đám mây"
+
+msgid "Cloud storage"
+msgstr "Lưu đám mây"
+
+msgid "Collections"
+msgstr "Bộ sưu tập"
+
+msgid "Colored active tab"
+msgstr "Tab hoạt động có màu"
+
+msgid "Colored status icons"
+msgstr "Biểu tượng trạng thái có màu"
+
+msgid "Columns"
+msgstr "Cột"
+
+msgid "Compact"
+msgstr "Gọn gàng"
+
+msgid "Connect folders"
+msgstr "Kết nối thư mục"
+
+msgid "Connections"
+msgstr "Kết nối"
+
+msgid "Context Menu"
+msgstr "Menu ngữ cảnh"
+
+msgid "Continue"
+msgstr "Tiếp tục"
+
+msgid "Copy"
+msgstr "Sao chép"
+
+msgid "Could not reach update server. Check your internet connection."
+msgstr "Không thể kết nối đến máy chủ cập nhật. Kiểm tra kết nối internet của bạn."
+
+msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
+msgstr "Plugin CoverBrowser không được kích hoạt, một số tính năng sẽ không hoạt động đúng cách."
+
+msgid "Covers"
+msgstr "Bìa"
+
+msgid "crash.log will be embedded in a public GitHub issue. It may contain file paths and book titles."
+msgstr "crash.log sẽ được nhúng vào một vấn đề GitHub công khai. Nó có thể chứa đường dẫn tệp và tiêu đề sách."
+
+msgid "Create this folder and use as home"
+msgstr "Tạo thư mục này và sử dụng làm thư mục chính"
+
+msgid "Crop folder custom image"
+msgstr "Cắt thư mục hình ảnh tùy chỉnh"
+
+msgid "Crossword"
+msgstr "Đố chữ"
+
+msgid "Current home folder:"
+msgstr "Thư mục home hiện tại:"
+
+msgid "Current only"
+msgstr "Chỉ hiện tại"
+
+msgid "Custom"
+msgstr "Tùy chỉnh"
+
+msgid "Custom button label"
+msgstr "Nhãn nút tùy chỉnh"
+
+msgid "Custom buttons"
+msgstr "Nút tùy chỉnh"
+
+msgid "Custom RGB"
+msgstr "RGB tùy chỉnh"
+
+msgid "Custom separator"
+msgstr "Bộ tách tùy chỉnh"
+
+msgid "Custom text"
+msgstr "Văn bản tùy chỉnh"
+
+msgid "Custom text: "
+msgstr "Văn bản tùy chỉnh: "
+
+msgid "Custom: "
+msgstr "Tùy chỉnh: "
+
+msgid "Cut"
+msgstr "Cắt"
+
+msgid "Dash"
+msgstr "Gạch ngang"
+
+msgid "date modified"
+msgstr "ngày sửa đổi"
+
+msgid "Day brightness"
+msgstr "Độ sáng ban ngày"
+
+msgid "Day brightness time"
+msgstr "Thời gian độ sáng ban ngày"
+
+msgid "Day brightness time: "
+msgstr "Thời gian độ sáng ban ngày: "
+
+msgid "Day brightness: "
+msgstr "Độ sáng ban ngày: "
+
+msgid "day streak"
+msgstr "chuỗi ngày"
+
+msgid "Day warmth"
+msgstr "Nắng ấm"
+
+msgid "Day warmth time"
+msgstr "Thời gian nắng ấm"
+
+msgid "Day warmth time: "
+msgstr "Thời gian nắng ấm: "
+
+msgid "Day warmth: "
+msgstr "Nắng ấm: "
+
+msgid "Debug logging"
+msgstr "Ghi nhật ký gỡ lỗi"
+
+msgid "Debug logging must be enabled to submit bug reports."
+msgstr "Ghi nhật ký gỡ lỗi phải được bật để gửi báo cáo lỗi."
+
+msgid "default"
+msgstr "mặc định"
+
+msgid "Delete"
+msgstr "Xóa"
+
+msgid "Delete collection"
+msgstr "Xóa bộ sưu tập"
+
+msgid "Delete OPDS catalog?"
+msgstr "Xóa danh mục OPDS?"
+
+msgid "Delete preset?"
+msgstr "Xóa cài đặt trước?"
+
+msgid "Descending"
+msgstr "Giảm dần"
+
+msgid "Description"
+msgstr "Mô tả"
+
+msgid "Detailed list with cover images and filenames"
+msgstr "Danh sách chi tiết với ảnh bìa và tên tệp"
+
+msgid "Detailed list with cover images and metadata"
+msgstr "Danh sách chi tiết với ảnh bìa và siêu dữ liệu"
+
+msgid "Detailed list with metadata, no images"
+msgstr "Danh sách chi tiết với siêu dữ liệu, không có ảnh"
+
+msgid "Details"
+msgstr "Chi tiết"
+
+msgid "Device: "
+msgstr "Thiết bị: "
+
+msgid "Dictionary lookup"
+msgstr "Tra từ điển"
+
+msgid "Dim finished books"
+msgstr "Giảm độ sáng sách đã hoàn thành"
+
+msgid "Disable bottom menu swipe"
+msgstr "Vô hiệu dụng vuốt menu dưới"
+
+msgid "Disable context menu"
+msgstr "Vô hiệu dụng menu ngữ cảnh"
+
+msgid "Disable multi-word selection"
+msgstr "Vô hiệu dụng chọn nhiều từ"
+
+msgid "Disable settings panel"
+msgstr "Vô hiệu dụng bảng cài đặt"
+
+msgid "Disable word search on hold"
+msgstr "Vô hiệu hóa tìm kiếm từ khi giữ"
+
+msgid "Disk space"
+msgstr "Dung lượng đĩa"
+
+msgid "Display"
+msgstr "Hiển thị"
+
+msgid "Display mode"
+msgstr "Chế độ hiển thị"
+
+msgid "Done"
+msgstr "Hoàn thành"
+
+msgid "Dots"
+msgstr "Chấm"
+
+msgid "Download"
+msgstr "Tải xuống"
+
+msgid "Download failed: "
+msgstr "Tải xuống thất bại: "
+
+msgid "Downloaded"
+msgstr "Đã tải xuống"
+
+msgid "Edit"
+msgstr "Chỉnh sửa"
+
+msgid "Enable"
+msgstr "Bật"
+
+msgid "Enable bottom swipe"
+msgstr "Bật vuốt từ dưới lên"
+
+msgid "Enable brightness schedule"
+msgstr "Bên lịch độ sáng"
+
+msgid "Enable custom status bar"
+msgstr "Bên thanh trạng thái tùy chỉnh"
+
+msgid "Enable KOReader verbose debug logging. Logs are written to koreader.log. Takes effect immediately."
+msgstr "Bên ghi gỡ lỗi chi tiết KOReader. Nhật ký được ghi vào koreader.log. Có hiệu lực ngay lập tức."
+
+msgid "Enable night mode schedule"
+msgstr "Bên lịch chế độ ban đêm"
+
+msgid "Enable page browser"
+msgstr "Bật trình duyệt trang"
+
+msgid "Enable reader clock"
+msgstr "Bật đồng hồ đọc sách"
+
+msgid "Enable warmth schedule"
+msgstr "Bật lịch trình ấm áp"
+
+msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
+msgstr "Bật cải tiến giao diện Zen cho trình duyệt OPDS: ảnh bìa, chế độ xem danh sách, menu giữ, và cải tiến điều hướng."
+
+msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
+msgstr "Bật ghi nhật ký gỡ lỗi, yêu cầu khởi động lại. Vui lòng tái tạo sự cố, sau đó gửi báo cáo."
+
+msgid "Enter your GitHub username to be tagged in the issue"
+msgstr "Nhập tên người dùng GitHub của bạn để được gắn thẻ trong vấn đề"
+
+msgid "Exit"
+msgstr "Thoát"
+
+msgid "Extra large"
+msgstr "Cực lớn"
+
+msgid "Extract and cache book metadata and cover images for books in the current directory. Requires CoverBrowser plugin."
+msgstr "Trích xuất và lưu trữ metadata sách và ảnh bìa cho sách trong thư mục hiện tại. Yêu cầu plugin CoverBrowser."
+
+msgid "Extract metadata"
+msgstr "Trích xuất metadata"
+
+msgid "Failed to remove existing plugin."
+msgstr "Không thể xóa plugin hiện có."
+
+msgid "Failed to submit report: "
+msgstr "Không thể gửi báo cáo: "
+
+msgid "Failed to unpack update."
+msgstr "Không thể giải nén bản cập nhật."
+
+msgid "Favorites"
+msgstr "Yêu thích"
+
+msgid "File Browser"
+msgstr "Trình duyệt tệp"
+
+msgid "File search"
+msgstr "Tìm kiếm tệp"
+
+msgid "Filebrowser"
+msgstr "Filebrowser"
+
+msgid "Filebrowser plugin is not installed."
+msgstr "Plugin Filebrowser chưa được cài đặt."
+
+msgid "Filter"
+msgstr "Lọc"
+
+msgid "Filter by status"
+msgstr "Lọc theo trạng thái"
+
+msgid "Finished"
+msgstr "Hoàn thành"
+
+msgid "finished"
+msgstr "hoàn thành"
+
+msgid "Firmware: "
+msgstr "Phần mềm firmware: "
+
+msgid "Folder"
+msgstr "Thư mục"
+
+msgid "Folder name centered"
+msgstr "Tên thư mục được căn giữa"
+
+msgid "Folder name opaque background"
+msgstr "Tên thư mục có nền mờ đục"
+
+msgid "Folder name position"
+msgstr "Vị trí tên thư mục"
+
+msgid "Folder presets"
+msgstr "Cài đặt trước thư mục"
+
+msgid "Folders"
+msgstr "Thư mục"
+
+msgid "Folders and files mixed"
+msgstr "Thư mục và tệp trộn lẫn"
+
+msgid "Font"
+msgstr "Phông chữ"
+
+msgid "Font size"
+msgstr "Cỡ chữ"
+
+msgid "Font size:"
+msgstr "Kích cỡ chữ:"
+
+msgid "Font:"
+msgstr "Phông chữ:"
+
+msgid "Force sync"
+msgstr "Đồng bộ hóa bắt buộc"
+
+msgid "Force sync all catalogs"
+msgstr "Đồng bộ hóa bắt buộc tất cả danh mục"
+
+msgid "Format: R,G,B (0-255)"
+msgstr "Định dạng: R,G,B (0-255)"
+
+msgid "Gallery view"
+msgstr "Xem thư viện"
+
+msgid "Get Started"
+msgstr "Bắt đầu"
+
+msgid "GitHub username (optional)"
+msgstr "Tên người dùng GitHub (tùy chọn)"
+
+msgid "Global"
+msgstr "Toàn cầu"
+
+msgid "Go"
+msgstr "Đi"
+
+msgid "Go to page"
+msgstr "Đi đến trang"
+
+msgid "Green"
+msgstr "Xanh"
+
+msgid "Hide in CBZ/PDF files"
+msgstr "Ẩn trong tệp CBZ/PDF"
+
+msgid "Hide list borders"
+msgstr "Ẩn viền danh sách"
+
+msgid "Hide up folder"
+msgstr "Ẩn thư mục lên"
+
+msgid "Highlight / Lookup"
+msgstr "Đánh dấu / Tìm kiếm"
+
+msgid "History"
+msgstr "Lịch sử"
+
+msgid "Hold to skip"
+msgstr "Giữ để bỏ qua"
+
+msgid "Home"
+msgstr "Trang chủ"
+
+msgid "Home Folder"
+msgstr "Thư mục Trang chủ"
+
+msgid "Home folder"
+msgstr "Thư mục nhà"
+
+msgid "Hour"
+msgstr "Giờ"
+
+msgid "Icon: %1"
+msgstr "Biểu tượng: %1"
+
+msgid "Incompatible plugins have been disabled:"
+msgstr "Các plugin không tương thích đã bị vô hiệu hóa:"
+
+msgid "Install dictionary"
+msgstr "Cài đặt từ điển"
+
+msgid "items per page"
+msgstr "mục mỗi trang"
+
+msgid "Items per page"
+msgstr "Mục mỗi trang"
+
+msgid "Keep existing settings"
+msgstr "Giữ cài đặt hiện có"
+
+msgid "Keywords"
+msgstr "Từ khóa"
+
+msgid "KOReader: "
+msgstr "KOReader: "
+
+msgid "Label: %1"
+msgstr "Nhãn: %1"
+
+msgid "Landscape mosaic mode"
+msgstr "Chế độ ghép ảnh ngang"
+
+msgid "Landscape mosaic: "
+msgstr "Mosaic cảnh quan: "
+
+msgid "Large"
+msgstr "Lớn"
+
+msgid "last read date"
+msgstr "ngày đọc lần cuối"
+
+msgid "Later"
+msgstr "Sau"
+
+msgid "latest"
+msgstr "mới nhất"
+
+msgid "Leave empty to use action title"
+msgstr "Để trống để sử dụng tiêu đề hành động"
+
+msgid "Left"
+msgstr "Trái"
+
+msgid "Left items"
+msgstr "Các mục còn lại"
+
+msgid "Library"
+msgstr "Thư viện"
+
+msgid "Library View"
+msgstr "Xem thư viện"
+
+msgid "List (basic)"
+msgstr "Danh sách (cơ bản)"
+
+msgid "List (detailed)"
+msgstr "Danh sách (chi tiết)"
+
+msgid "List - detailed titles and metadata"
+msgstr "Danh sách - tiêu đề và siêu dữ liệu chi tiết"
+
+msgid "List: "
+msgstr "Danh sách: "
+
+msgid "LocalSend"
+msgstr "LocalSend"
+
+msgid "Lock home folder"
+msgstr "Khóa thư mục home"
+
+msgid "Lockdown"
+msgstr "Khóa chặt"
+
+msgid "Lockdown mode"
+msgstr "Chế độ khóa chặt"
+
+msgid "Magnify UI"
+msgstr "Phóng to UI"
+
+msgid "Manga"
+msgstr "Manga"
+
+msgid "Manga folder not found: "
+msgstr "Thư mục Manga không tìm thấy: "
+
+msgid "Manga tab action: "
+msgstr "Hành động tab Manga: "
+
+msgid "Menu"
+msgstr "Menu"
+
+msgid "Middle dot"
+msgstr "Dấu chấm giữa"
+
+msgid "Minimal status bar in the library view.\nCustomizable - show only what you need: time, battery, etc."
+msgstr "Thanh trạng thái tối giản trong chế độ xem thư viện.
+Tùy chỉnh - chỉ hiển thị những gì bạn cần: thời gian, pin, v.v."
+
+msgid "Minute"
+msgstr "Phút"
+
+msgid "Mosaic"
+msgstr "Mosaic"
+
+msgid "Mosaic - large cover thumbnails"
+msgstr "Mosaic - ảnh bìa lớn"
+
+msgid "Mosaic and detailed list settings"
+msgstr "Cài đặt hình ghép và danh sách chi tiết"
+
+msgid "Mosaic with cover images"
+msgstr "Hình ghép với ảnh bìa"
+
+msgid "Mosaic with text"
+msgstr "Hình ghép với văn bản"
+
+msgid "Move"
+msgstr "Di chuyển"
+
+msgid "Move failed."
+msgstr "Di chuyển thất bại."
+
+msgid "Move to…"
+msgstr "Di chuyển đến…"
+
+msgid "name"
+msgstr "tên"
+
+msgid "name (natural sorting)"
+msgstr "tên (sắp xếp tự nhiên)"
+
+msgid "Navbar"
+msgstr "Thanh điều hướng"
+
+msgid "Navbar Tabs"
+msgstr "Tab thanh điều hướng"
+
+msgid "Navigation Bar"
+msgstr "Thanh điều hướng"
+
+msgid "New"
+msgstr "Mới"
+
+msgid "New collection"
+msgstr "Bộ sưu tập mới"
+
+msgid "New folder"
+msgstr "Thư mục mới"
+
+msgid "News"
+msgstr "Tin tức"
+
+msgid "News folder not found: "
+msgstr "Không tìm thấy thư mục tin tức: "
+
+msgid "News tab action: "
+msgstr "Hành động tab tin tức: "
+
+msgid "Next"
+msgstr "Tiếp theo"
+
+msgid "Next page"
+msgstr "Trang tiếp theo"
+
+msgid "Night"
+msgstr "Đêm"
+
+msgid "Night brightness"
+msgstr "Độ sáng ban đêm"
+
+msgid "Night brightness time"
+msgstr "Thời gian độ sáng ban đêm"
+
+msgid "Night brightness time: "
+msgstr "Thời gian độ sáng ban đêm: "
+
+msgid "Night brightness: "
+msgstr "Độ sáng ban đêm: "
+
+msgid "Night mode"
+msgstr "Chế độ ban đêm"
+
+msgid "Night mode off time"
+msgstr "Thời gian tắt chế độ ban đêm"
+
+msgid "Night mode off: "
+msgstr "Tắt chế độ ban đêm: "
+
+msgid "Night mode on time"
+msgstr "Thời gian bật chế độ ban đêm"
+
+msgid "Night mode on: "
+msgstr "Chế độ ban đêm bật: "
+
+msgid "Night mode schedule"
+msgstr "Lịch chế độ ban đêm"
+
+msgid "Night warmth"
+msgstr "Sưởi ấm ban đêm"
+
+msgid "Night warmth time"
+msgstr "Thời gian sưởi ấm ban đêm"
+
+msgid "Night warmth time: "
+msgstr "Thời gian ấm áp ban đêm: "
+
+msgid "Night warmth: "
+msgstr "Sự ấm áp ban đêm: "
+
+msgid "No books found"
+msgstr "Không tìm thấy sách"
+
+msgid "No description."
+msgstr "Không mô tả."
+
+msgid "No network connection. Please connect to Wi-Fi and try again."
+msgstr "Không có kết nối mạng. Vui lòng kết nối Wi-Fi và thử lại."
+
+msgid "No reader engine for this file or invalid file."
+msgstr "Không có trình đọc cho tệp này hoặc tệp không hợp lệ."
+
+msgid "No separator"
+msgstr "Không có dấu phân cách"
+
+msgid "No update asset found."
+msgstr "Không tìm thấy tài sản cập nhật."
+
+msgid "Normal"
+msgstr "Bình thường"
+
+msgid "Nothing"
+msgstr "Không có gì"
+
+msgid "Notion"
+msgstr "Khái niệm"
+
+msgid "NotionSync"
+msgstr "NotionSync"
+
+msgid "Off"
+msgstr "Tắt"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "OPDS"
+msgstr "OPDS"
+
+msgid "Open folder"
+msgstr "Mở thư mục"
+
+msgid "Open folder: "
+msgstr "Mở thư mục: "
+
+msgid "Open QuickRSS"
+msgstr "Mở QuickRSS"
+
+msgid "Open Rakuyomi"
+msgstr "Mở Rakuyomi"
+
+msgid "Open RSS Reader"
+msgstr "Mở trình đọc RSS"
+
+msgid "Opening"
+msgstr "Mở"
+
+msgid "Order"
+msgstr "Đặt hàng"
+
+msgid "Page Browser"
+msgstr "Trình duyệt trang"
+
+msgid "Page number"
+msgstr "Số trang"
+
+msgid "Page number format"
+msgstr "Định dạng số trang"
+
+msgid "Page stream"
+msgstr "Luồng trang"
+
+msgid "Page x / y"
+msgstr "Trang x / y"
+
+msgid "pages"
+msgstr "trang"
+
+msgid "Pages + Chapter Time + %"
+msgstr "Trang + Thời lượng chương + %"
+
+msgid "Pages and %"
+msgstr "Trang và %"
+
+msgid "pages today"
+msgstr "trang hôm nay"
+
+msgid "Partial pages refresh"
+msgstr "Làm mới một phần trang"
+
+msgid "Paste"
+msgstr "Dán"
+
+msgid "percent - unopened - finished last"
+msgstr "phần trăm - chưa mở - hoàn thành cuối cùng"
+
+msgid "percent - unopened first"
+msgstr "phần trăm - chưa mở đầu"
+
+msgid "percent - unopened last"
+msgstr "phần trăm - chưa mở cuối"
+
+msgid "Personal Records"
+msgstr "Bản ghi cá nhân"
+
+msgid "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
+msgstr "Vui lòng xóa plugin Project: Title từ thư mục plugins của bạn và khởi động lại KOReader."
+
+msgid "Plugin management"
+msgstr "Quản lý plugin"
+
+msgid "Portrait list mode"
+msgstr "Chế độ danh sách dọc"
+
+msgid "Portrait mosaic mode"
+msgstr "Chế độ ghép ảnh chân dung"
+
+msgid "Portrait mosaic: "
+msgstr "Ghép ảnh chân dung: "
+
+msgid "Position"
+msgstr "Vị trí"
+
+msgid "Preset name"
+msgstr "Tên cài đặt trước"
+
+msgid "Presets"
+msgstr "Cài đặt trước"
+
+msgid "Prev"
+msgstr "Trước"
+
+msgid "Previous page"
+msgstr "Trang trước"
+
+msgid "Progress"
+msgstr "Tiến trình"
+
+msgid "Project: Title is not compatible with Zen UI."
+msgstr "Dự án: Tiêu đề không tương thích với Zen UI."
+
+msgid "Puzzle"
+msgstr "Đốm"
+
+msgid "Quick Settings"
+msgstr "Cài đặt nhanh"
+
+msgid "QuickRSS"
+msgstr "QuickRSS"
+
+msgid "QuickRSS plugin is not installed."
+msgstr "QuickRSS plugin chưa được cài đặt."
+
+msgid "Quit"
+msgstr "Thoát"
+
+msgid "Quit KOReader"
+msgstr "Thoát KOReader"
+
+msgid "Rakuyomi"
+msgstr "Rakuyomi"
+
+msgid "Rakuyomi plugin is not installed."
+msgstr "Plugin Rakuyomi chưa được cài đặt."
+
+msgid "RAM usage"
+msgstr "Sử dụng RAM"
+
+msgid "Read now"
+msgstr "Đọc ngay"
+
+msgid "Read status"
+msgstr "Trạng thái đọc"
+
+msgid "read today"
+msgstr "đọc hôm nay"
+
+msgid "Reader"
+msgstr "Trình đọc"
+
+msgid "Reader clock"
+msgstr "Đồng hồ trình đọc"
+
+msgid "Reader clock font"
+msgstr "Phông chữ đồng hồ trình đọc"
+
+msgid "Reader Progress"
+msgstr "Tiến trình đọc"
+
+msgid "Reading"
+msgstr "Đang đọc"
+
+msgid "reading"
+msgstr "đọc"
+
+msgid "Rebooting…"
+msgstr "Khởi động lại…"
+
+msgid "Recently read"
+msgstr "Đã đọc gần đây"
+
+msgid "Red"
+msgstr "Đỏ"
+
+msgid "Refresh navbar"
+msgstr "Làm mới thanh điều hướng"
+
+msgid "Regular Oxford English"
+msgstr "Tiếng Anh Oxford thông thường"
+
+msgid "Regular Oxford English (203 MB)"
+msgstr "Tiếng Anh Oxford thông thường (203 MB)"
+
+msgid "Remove"
+msgstr "Xóa bỏ"
+
+msgid "Remove default"
+msgstr "Xóa bỏ mặc định"
+
+msgid "Remove from collection"
+msgstr "Xóa khỏi bộ sưu tập"
+
+msgid "Remove from history"
+msgstr "Xóa khỏi lịch sử"
+
+msgid "Remove this button"
+msgstr "Xóa nút này"
+
+msgid "Remove this folder from additional home folders?"
+msgstr "Xóa thư mục này khỏi các thư mục trang chủ bổ sung?"
+
+msgid "Rename"
+msgstr "Đổi tên"
+
+msgid "Report a Bug"
+msgstr "Báo cáo lỗi"
+
+msgid "Require hold to toggle buttons"
+msgstr "Yêu cầu giữ để chuyển đổi nút"
+
+msgid "Restart"
+msgstr "Khởi động lại"
+
+msgid "Restart Book"
+msgstr "Khởi động lại Sách"
+
+msgid "Restart now"
+msgstr "Khởi động lại ngay"
+
+msgid "Restore library view on return"
+msgstr "Khôi phục chế độ xem thư viện khi quay lại"
+
+msgid "Resume from page"
+msgstr "Tiếp tục từ trang"
+
+msgid "Reverse sorting"
+msgstr "Sắp xếp ngược"
+
+msgid "Review"
+msgstr "Đánh giá"
+
+msgid "Right"
+msgstr "Phải"
+
+msgid "Right items"
+msgstr "Các mục bên phải"
+
+msgid "Rotate"
+msgstr "Xoay"
+
+msgid "Rounded cover corners"
+msgstr "Góc bo bìa"
+
+msgid "Rows"
+msgstr "Hàng"
+
+msgid "RSS Reader"
+msgstr "Trình đọc RSS"
+
+msgid "RSS Reader plugin is not installed."
+msgstr "Plugin Trình đọc RSS chưa được cài đặt."
+
+msgid "Save"
+msgstr "Lưu"
+
+msgid "Save current settings as preset"
+msgstr "Lưu cài đặt hiện tại làm mẫu"
+
+msgid "Screenshot"
+msgstr "Chụp màn hình"
+
+msgid "Screenshot saved to:"
+msgstr "Ảnh chụp màn hình đã lưu vào:"
+
+msgid "Scroll bar style"
+msgstr "Kiểu thanh cuộn"
+
+msgid "Search"
+msgstr "Tìm kiếm"
+
+msgid "Search Book"
+msgstr "Tìm kiếm sách"
+
+msgid "Search Library"
+msgstr "Tìm kiếm thư viện"
+
+msgid "Search results"
+msgstr "Kết quả tìm kiếm"
+
+msgid "Select"
+msgstr "Chọn"
+
+msgid "Select icon"
+msgstr "Chọn biểu tượng"
+
+msgid "Send with LocalSend"
+msgstr "Gửi bằng LocalSend"
+
+msgid "Separator: "
+msgstr "Phân cách: "
+
+msgid "Series"
+msgstr "Bộ sưu tập"
+
+msgid "series"
+msgstr "bộ sưu tập"
+
+msgid "Series number"
+msgstr "Số bộ sưu tập"
+
+msgid "Set"
+msgstr "Đặt"
+
+msgid "Set all gestures to pass-through? Top-right corner in reader will be kept as Toggle bookmark."
+msgstr "Đặt tất cả cử chỉ để cho phép truyền qua? Góc trên bên phải trong trình đọc sẽ được giữ lại để Chuyển đổi dấu trang."
+
+msgid "Set as default"
+msgstr "Đặt làm mặc định"
+
+msgid "Set as wallpaper"
+msgstr "Đặt làm hình nền"
+
+msgid "Set file types to sync"
+msgstr "Đặt loại tệp để đồng bộ"
+
+msgid "Set home folder"
+msgstr "Đặt thư mục home"
+
+msgid "Set max number of files to sync"
+msgstr "Đặt số lượng tệp tối đa để đồng bộ"
+
+msgid "Set sync folder"
+msgstr "Đặt thư mục đồng bộ"
+
+msgid "Settings & Updates"
+msgstr "Cài đặt & Cập nhật"
+
+msgid "Setup Guide"
+msgstr "Hướng dẫn cài đặt"
+
+msgid "Short Oxford English"
+msgstr "Tiếng Anh Oxford ngắn"
+
+msgid "Short Oxford English (26 MB)"
+msgstr "Tiếng Anh Oxford ngắn (26 MB)"
+
+msgid "Show author below cover (mosaic)"
+msgstr "Hiển thị tác giả dưới bìa (mosaic)"
+
+msgid "Show bottom border"
+msgstr "Hiển thị viền dưới"
+
+msgid "Show brightness slider"
+msgstr "Hiển thị thanh trượt độ sáng"
+
+msgid "Show favorite badge"
+msgstr "Hiển thị huy hiệu yêu thích"
+
+msgid "Show folder covers as gallery"
+msgstr "Hiển thị ảnh bìa thư mục như một bộ sưu tập"
+
+msgid "Show folder name"
+msgstr "Hiển thị tên thư mục"
+
+msgid "Show folder name on cover"
+msgstr "Hiển thị tên thư mục trên ảnh bìa"
+
+msgid "Show hidden files"
+msgstr "Hiển thị các file ẩn"
+
+msgid "Show in quick settings"
+msgstr "Hiển thị trong cài đặt nhanh"
+
+msgid "Show item count on folder covers"
+msgstr "Hiển thị số lượng mục trên bìa thư mục"
+
+msgid "Show item underline"
+msgstr "Hiển thị gạch chân mục"
+
+msgid "Show KOReader progress bar"
+msgstr "Hiển thị thanh tiến trình KOReader"
+
+msgid "Show labels"
+msgstr "Hiển thị nhãn"
+
+msgid "Show new banner"
+msgstr "Hiển thị banner mới"
+
+msgid "Show other items"
+msgstr "Hiển thị các mục khác"
+
+msgid "Show other KOReader quick lookup options alongside Zen buttons."
+msgstr "Hiển thị các tùy tra cứu nhanh khác của KOReader cùng với các nút Zen."
+
+msgid "Show page count"
+msgstr "Hiển thị số trang"
+
+msgid "Show progress % on mosaic covers"
+msgstr "Hiển thị tiến độ % trên bìa mosaïc"
+
+msgid "Show series number on covers"
+msgstr "Hiển thị số series trên bìa"
+
+msgid "Show spine lines on folder covers"
+msgstr "Hiển thị đường gáy trên bìa folder"
+
+msgid "Show title below cover (mosaic)"
+msgstr "Hiển thị tiêu đề dưới bìa (mosaic)"
+
+msgid "Show top border"
+msgstr "Hiển thị viền trên"
+
+msgid "Show warmth slider"
+msgstr "Hiển thị thanh trượt nhiệt độ"
+
+msgid "Show Wikipedia"
+msgstr "Hiển thị Wikipedia"
+
+msgid "size"
+msgstr "kích thước"
+
+msgid "Skip"
+msgstr "Bỏ qua"
+
+msgid "Skip 10 pages"
+msgstr "Bỏ qua 10 trang"
+
+msgid "Skip 20 pages"
+msgstr "Bỏ qua 20 trang"
+
+msgid "Sleep"
+msgstr "Ngủ"
+
+msgid "Sleep Screen"
+msgstr "Màn hình ngủ"
+
+msgid "Slide Puzzle"
+msgstr "Đố trượt"
+
+msgid "Sort"
+msgstr "Sắp xếp"
+
+msgid "Sort authors"
+msgstr "Sắp xếp tác giả"
+
+msgid "Sort books by"
+msgstr "Sắp xếp sách theo"
+
+msgid "Sort by"
+msgstr "Sắp xếp theo"
+
+msgid "Sort by: "
+msgstr "Sắp xếp theo: "
+
+msgid "Sort folder"
+msgstr "Sắp xếp thư mục"
+
+msgid "Sort folder by"
+msgstr "Sắp xếp thư mục theo"
+
+msgid "Sort library"
+msgstr "Sắp xếp thư viện"
+
+msgid "Sort library by"
+msgstr "Sắp xếp thư viện theo"
+
+msgid "Sort order"
+msgstr "Thứ tự sắp xếp"
+
+msgid "Sort series"
+msgstr "Sắp xếp chuỗi"
+
+msgid "Space only"
+msgstr "Chỉ khoảng trắng"
+
+msgid "Space only (small)"
+msgstr "Chỉ khoảng trắng (nhỏ)"
+
+msgid "Stable"
+msgstr "Ổn định"
+
+msgid "Statistics"
+msgstr "Thống kê"
+
+msgid "Stats"
+msgstr "Thống kê"
+
+msgid "Stats: Calendar"
+msgstr "Thống kê: Lịch"
+
+msgid "Stats: Progress"
+msgstr "Thống kê: Tiến trình"
+
+msgid "Status bar"
+msgstr "Thanh trạng thái"
+
+msgid "Status Bar"
+msgstr "Thanh Trạng Thái"
+
+msgid "Steps to reproduce, expected vs. actual behavior"
+msgstr "Các bước để tái tạo, hành vi mong đợi so với hành vi thực tế"
+
+msgid "Streak"
+msgstr "Chuỗi"
+
+msgid "Stream from page"
+msgstr "Phát từ trang"
+
+msgid "Styling"
+msgstr "Kiểu dáng"
+
+msgid "Submit"
+msgstr "Gửi"
+
+msgid "Submitting report…"
+msgstr "Đang gửi báo cáo…"
+
+msgid "Swipe down to reach quick settings like brightness, Wi-Fi, night mode, zen mode and more."
+msgstr "Vuốt xuống để truy cập cài đặt nhanh như độ sáng, Wi-Fi, chế độ ban đêm, chế độ zen và hơn nữa."
+
+msgid "Swipe up from the bottom while reading to open the Page Browser.\n\nSkim through pages or skip chapters, browse the table of contents, manage bookmarks, adjust fonts and more."
+msgstr "Vuốt lên từ dưới cùng khi đọc để mở Trình duyệt Trang.
+
+Duyệt nhanh các trang hoặc bỏ qua các chương, duyệt mục lục, quản lý dấu trang, điều chỉnh phông chữ và hơn nữa."
+
+msgid "Sync"
+msgstr "Đồng bộ"
+
+msgid "Sync all catalogs"
+msgstr "Đồng bộ tất cả các danh mục"
+
+msgid "Tabs"
+msgstr "Tab"
+
+msgid "Tags"
+msgstr "Thẻ"
+
+msgid "tags"
+msgstr "thẻ"
+
+msgid "Tap and hold any book or folder in your library to reveal details."
+msgstr "Nhấn và giữ bất kỳ cuốn sách hoặc thư mục nào trong thư viện của bạn để xem chi tiết."
+
+msgid "The best interface is the one you forget is there.\nNow go get lost in a good book."
+msgstr "Giao diện tốt nhất là giao diện mà bạn quên nó tồn tại.
+Bây giờ hãy để mình lạc vào một cuốn sách hay."
+
+msgid "The place for all your books %1"
+msgstr "Nơi lưu trữ tất cả sách của bạn %1"
+
+msgid "This change requires a restart to take effect."
+msgstr "Thay đổi này yêu cầu khởi động lại để có hiệu lực."
+
+msgid "This is a large file and may take a few minutes. Please wait."
+msgstr "Đây là một tệp lớn và có thể mất vài phút. Vui lòng chờ."
+
+msgid "This may take a few minutes. Please wait."
+msgstr "Điều này có thể mất vài phút. Vui lòng chờ."
+
+msgid "This Month"
+msgstr "Tháng này"
+
+msgid "This Week"
+msgstr "Tuần này"
+
+msgid "This Year"
+msgstr "Năm nay"
+
+msgid "Time"
+msgstr "Thời gian"
+
+msgid "Time Format"
+msgstr "Định dạng thời gian"
+
+msgid "Title"
+msgstr "Tiêu đề"
+
+msgid "To Be Read"
+msgstr "Đọc Sau"
+
+msgid "Today"
+msgstr "Hôm nay"
+
+msgid "Too many requests. Please try again later."
+msgstr "Quá nhiều yêu cầu. Vui lòng thử lại sau."
+
+msgid "total books"
+msgstr "tổng số sách"
+
+msgid "total pages read"
+msgstr "tổng số trang đã đọc"
+
+msgid "total read time"
+msgstr "tổng thời gian đọc"
+
+msgid "total time"
+msgstr "tổng thời gian"
+
+msgid "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
+msgstr "Bật chế độ Zen để tinh chỉnh KOReader về những tính năng cơ bản nhất.\n\nLoại bỏ các yếu tố hình ảnh gây rối để có trải nghiệm tập trung, không bị phân tâm khi đọc. Thoát bất kỳ lúc nào từ Cài đặt."
+
+msgid "type"
+msgstr "loại"
+
+msgid "Underline above icon"
+msgstr "Gạch chân trên biểu tượng"
+
+msgid "Uniform covers"
+msgstr "Bao bì đồng nhất"
+
+msgid "unknown error"
+msgstr "lỗi không xác định"
+
+msgid "Unread"
+msgstr "Chưa đọc"
+
+msgid "Update available: "
+msgstr "Có bản cập nhật: "
+
+msgid "Update channel"
+msgstr "Kênh cập nhật"
+
+msgid "Update now"
+msgstr "Cập nhật ngay"
+
+msgid "Update Status"
+msgstr "Cập nhật trạng thái"
+
+msgid "Updated to %1"
+msgstr "Đã cập nhật thành %1"
+
+msgid "Updates"
+msgstr "Cập nhật"
+
+msgid "Updating…"
+msgstr "Đang cập nhật…"
+
+msgid "USB"
+msgstr "USB"
+
+msgid "Use current folder"
+msgstr "Sử dụng thư mục hiện tại"
+
+msgid "Use default font"
+msgstr "Sử dụng phông chữ mặc định"
+
+msgid "Use home folder"
+msgstr "Sử dụng thư mục home"
+
+msgid "Use last folder"
+msgstr "Sử dụng thư mục cuối cùng"
+
+msgid "username"
+msgstr "tên người dùng"
+
+msgid "Verbose time to chapter end"
+msgstr "Thời gian chi tiết đến cuối chương"
+
+msgid "Vertical bar"
+msgstr "Thanh dọc"
+
+msgid "View"
+msgstr "Xem"
+
+msgid "Visibility"
+msgstr "Tính hiển thị"
+
+msgid "Warmth"
+msgstr "Ấm áp"
+
+msgid "Warmth schedule"
+msgstr "Lịch trình ấm áp"
+
+msgid "Welcome to Zen UI"
+msgstr "Chào mừng đến với Zen UI"
+
+msgid "What should your device show when it goes to sleep?"
+msgstr "Thiết bị của bạn nên hiển thị gì khi vào chế độ ngủ?"
+
+msgid "What's New"
+msgstr "Có gì mới"
+
+msgid "When enabled, icons placed in KOReader's user icons folder override the bundled Zen UI icons. Falls back to Zen UI icons, then KOReader built-ins."
+msgstr "Khi được bật, các biểu tượng được đặt trong thư mục biểu tượng người dùng của KOReader sẽ ghi đè lên các biểu tượng Zen UI được đóng gói. Fallback đến các biểu tượng Zen UI, sau đó là các biểu tượng tích hợp sẵn của KOReader."
+
+msgid "Which time format do you prefer?"
+msgstr "Bạn thích định dạng thời gian nào?"
+
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
+
+msgid "You're All Set"
+msgstr "Bạn đã sẵn sàng"
+
+msgid "Z-Lib"
+msgstr "Z-Lib"
+
+msgid "Z-Library"
+msgstr "Z-Library"
+
+msgid "Zen"
+msgstr "Zen"
+
+msgid "Zen highlight menu"
+msgstr "Trình đơn đánh dấu Zen"
+
+msgid "Zen icon - white background"
+msgstr "Biểu tượng Zen - nền trắng"
+
+msgid "Zen Mode"
+msgstr "Chế độ Zen"
+
+msgid "Zen mode"
+msgstr "chế độ Zen"
+
+msgid "Zen OPDS"
+msgstr "Zen OPDS"
+
+msgid "Zen quick lookup"
+msgstr "Tra cứu nhanh Zen"
+
+msgid "Zen UI"
+msgstr "Zen UI"
+
+msgid "Zen UI defaults"
+msgstr "Cài đặt mặc định của Zen UI"
+
+msgid "Zen UI is up to date."
+msgstr "Zen UI đã được cập nhật."
+
+msgid "Zen UI: "
+msgstr "Zen UI: "
+

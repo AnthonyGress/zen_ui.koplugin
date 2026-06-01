@@ -81,7 +81,7 @@ local function apply_page_browser()
     end
 
     local function is_substring_enabled()
-        return G_reader_settings:isTrue("substring_search")
+        return G_reader_settings:readSetting("substring_search") ~= false  -- default: substring (whole-word off)
     end
 
     -- -----------------------------------------------------------------------
@@ -100,7 +100,6 @@ local function apply_page_browser()
         local IconButton = require("ui/widget/iconbutton")
         local IconWidget = require("ui/widget/iconwidget")
         local HorizontalGroup = require("ui/widget/horizontalgroup")
-        local HorizontalSpan  = require("ui/widget/horizontalspan")
         local VerticalGroup   = require("ui/widget/verticalgroup")
         local VerticalSpan    = require("ui/widget/verticalspan")
         local TextWidget      = require("ui/widget/textwidget")
@@ -323,9 +322,14 @@ local function apply_page_browser()
                 self._zen_nb_cols_override = 1
                 self._zen_nb_rows_override = 1
             end
-            -- Always re-run updateLayout so the modified title bar is captured
-            -- in self[1] (the first call happened inside _orig_init).
+            -- Re-run updateLayout to capture the modified title bar in self[1].
+            -- When no layout override is needed, skip _orig_updateLayout to avoid
+            -- cancelling the async tile rendering queue that it already started.
+            if not self._zen_nb_cols_override then
+                self._zen_panel_only_rebuild = true
+            end
             self:updateLayout()
+            self._zen_panel_only_rebuild = nil
         end
 
         -- ----------------------------------------------------------------
@@ -391,15 +395,15 @@ local function apply_page_browser()
             -- _orig_updateLayout, so we just need to redo that part.
             local zen_panel_h = zen_measure_panel_h(self.nb_pages or 1)
 
-            -- The native row_height formula is:
-            --   ceil((nb_toc_spans + page_slots_height_ratio + 1) * span_height + 2*border)
-            -- where page_slots_height_ratio = 0.2 (stats off, toc > 0) or 1 (otherwise).
-            -- On books with many TOC levels (e.g. nb_toc_spans = 10) the naive
-            -- approach of inflating span_height to fit zen_panel_h at factor=2
-            -- blows row_height up 5-6x.  Pre-compute nb_toc_spans from settings
-            -- (same path as native updateLayout) to solve for the exact span_height
-            -- that targets row_height = zen_panel_h + top_pad.
-            local top_pad    = Screen:scaleBySize(6)
+            -- When _zen_panel_only_rebuild is set (second call during init, no
+            -- layout change needed), skip _orig_updateLayout entirely so the
+            -- async tile rendering queue started by the first call is not
+            -- cancelled and restarted, which caused ~11s delays on slow devices.
+            local top_pad = Screen:scaleBySize(6)  -- grid-to-title gap; used below
+            if self._zen_panel_only_rebuild then
+                logger.dbg("ZenUI page_browser: panel-only rebuild, skipping _orig_updateLayout")
+                self._zen_tile_size = nil
+            else
             local nb_toc_pre
             if self.ui.handmade and self.ui.handmade:isHandmadeTocEnabled() then
                 nb_toc_pre = self.ui.doc_settings:readSetting("page_browser_toc_depth_handmade_toc") or self.max_toc_depth
@@ -467,6 +471,7 @@ local function apply_page_browser()
                 end
                 logger.dbg("ZenUI page_browser: restored ds cols="..tostring(_saved_ds_cols).." rows="..tostring(_saved_ds_rows))
             end
+            end -- panel_only_rebuild else
 
             -- Suppress native left-side page number widgets: we draw our own
             -- badges in paintTo() instead.  showTile() checks show_pagenum on
@@ -545,13 +550,12 @@ local function apply_page_browser()
             -- Throttle interval for setDirty during drag (seconds).
             -- GL16 takes ~450ms on Kobo; firing faster than this just queues
             -- competing waveform cycles that produce artifacts.
-            local SCRUB_DIRTY_INTERVAL = 0.15
-
             -- Deferred full update used to debounce thumbnail re-render during drag.
             -- Fires after 250 ms of slider inactivity regardless of whether the
             -- finger is still down; if the user resumes dragging, on_change will
             -- re-enable scrubbing and reschedule.
             self._zen_deferred_update = function()
+                logger.dbg("ZenUI PBW deferred_update: fired, setting post_scrub=true")
                 self._zen_scrubbing = false
                 self._zen_placeholders_painted = false
                 self._zen_last_scrub_dirty = nil
@@ -564,6 +568,7 @@ local function apply_page_browser()
             -- Clears post-scrub suppression and fires one clean repaint to show
             -- all tiles that loaded during the suppression window without flashing.
             self._zen_post_scrub_clear = function()
+                logger.dbg("ZenUI PBW post_scrub_clear: fired, clearing post_scrub, scheduling setDirty")
                 self._zen_post_scrub = false
                 UIManager:setDirty(self, "ui", self._zen_scrub_dimen or self.dimen)
             end
@@ -1108,6 +1113,12 @@ local function apply_page_browser()
         -- ----------------------------------------------------------------
         local _orig_update = PageBrowserWidget.update
         PageBrowserWidget.update = function(self)
+            logger.dbg("ZenUI PBW update: focus_page="..tostring(self.focus_page)
+                .." cur_page="..tostring(self.cur_page)
+                .." scrubbing="..tostring(self._zen_scrubbing)
+                .." post_scrub="..tostring(self._zen_post_scrub)
+                .." nb_grid_items="..tostring(self.nb_grid_items)
+                .." nb_pages="..tostring(self.nb_pages))
             -- On the very first call (focus_page is nil, init → updateLayout → update),
             -- pre-initialise focus_page from cur_page with clamping so the grid
             -- never displays blank leading/trailing slots.  Subsequent calls
@@ -1121,6 +1132,7 @@ local function apply_page_browser()
                 local min_fp = shift + 1
                 local max_fp = math.max(min_fp, total - items + 1 + shift)
                 self.focus_page = math.max(min_fp, math.min(max_fp, fp))
+                logger.dbg("ZenUI PBW update: clamped focus_page to "..tostring(self.focus_page))
             end
 
             -- Block showTile() from re-adding native page number widgets.
@@ -1129,7 +1141,9 @@ local function apply_page_browser()
             end
 
             -- _orig_update writes BookMapRow into self.row (detached CenterContainer)
+            local t0 = os.clock()
             _orig_update(self)
+            logger.dbg("ZenUI PBW update: _orig_update took "..(os.clock()-t0).."s")
 
             -- Clean up any page num widgets that slipped through (e.g. async tiles).
             for i = #self.grid, 1, -1 do
@@ -1162,18 +1176,29 @@ local function apply_page_browser()
         -- ----------------------------------------------------------------
         local _orig_showTile = PageBrowserWidget.showTile
         PageBrowserWidget.showTile = function(self, grid_idx, page, tile, do_refresh)
+            local has_bitmap = tile and tile.bb ~= nil
             if tile and tile.bb and not self._zen_tile_size then
                 self._zen_tile_size = {
                     w = tile.bb:getWidth(),
                     h = tile.bb:getHeight(),
                 }
+                logger.dbg("ZenUI PBW showTile: first tile bitmap seen, size "
+                    ..self._zen_tile_size.w.."x"..self._zen_tile_size.h)
             end
             -- During scrubbing and for one full repaint cycle after scrubbing
             -- ends, suppress per-tile display refreshes.  Without this, each
             -- async tile that loads fires its own hardware update, producing
             -- the multi-flash artifact on the panel area.
             -- _zen_post_scrub is cleared by the next paintTo call.
-            if (self._zen_scrubbing or self._zen_post_scrub) and do_refresh then
+            local suppressed = (self._zen_scrubbing or self._zen_post_scrub) and do_refresh
+            logger.dbg("ZenUI PBW showTile: idx="..tostring(grid_idx)
+                .." page="..tostring(page)
+                .." has_bitmap="..tostring(has_bitmap)
+                .." do_refresh="..tostring(do_refresh)
+                .." suppressed="..tostring(suppressed ~= nil and suppressed ~= false)
+                .." scrubbing="..tostring(self._zen_scrubbing)
+                .." post_scrub="..tostring(self._zen_post_scrub))
+            if suppressed then
                 return _orig_showTile(self, grid_idx, page, tile, false)
             end
             return _orig_showTile(self, grid_idx, page, tile, do_refresh)
@@ -1511,14 +1536,11 @@ local function apply_page_browser()
     -- -----------------------------------------------------------------------
     local ok_rs, ReaderSearch = pcall(require, "apps/reader/modules/readersearch")
     if ok_rs and ReaderSearch then
-        local BD          = require("ui/bidi")
         local InputDialog = require("ui/widget/inputdialog")
-        local CheckButton = require("ui/widget/checkbutton")
         local Screen_s    = require("device").screen
         local _           = require("gettext")
         local logger_rs   = require("logger")
 
-        local _orig_onShowFulltextSearchInput = ReaderSearch.onShowFulltextSearchInput
         local _orig_InputDialog_onTap = InputDialog.onTap
 
         local SEARCH_ICON = "\u{F002}"
@@ -1555,21 +1577,21 @@ local function apply_page_browser()
             self.check_button_regex = { checked = false }
 
             -- Tap outside = close keyboard + dialog together
-            function self.input_dialog:onTap(arg, ges)
-                if self.deny_keyboard_hiding then return end
-                if self:isKeyboardVisible() then
-                    local kb = self._input_widget and self._input_widget.keyboard
+            self.input_dialog.onTap = function(dialog_self, arg, ges)
+                if dialog_self.deny_keyboard_hiding then return end
+                if dialog_self:isKeyboardVisible() then
+                    local kb = dialog_self._input_widget and dialog_self._input_widget.keyboard
                     if kb and kb.dimen
                        and ges.pos:notIntersectWith(kb.dimen)
-                       and ges.pos:notIntersectWith(self.dialog_frame.dimen) then
-                        self:onCloseKeyboard()
-                        UIManager:close(self)
+                       and ges.pos:notIntersectWith(dialog_self.dialog_frame.dimen) then
+                        dialog_self:onCloseKeyboard()
+                        UIManager:close(dialog_self)
                         return true
                     end
-                    return _orig_InputDialog_onTap(self, arg, ges)
+                    return _orig_InputDialog_onTap(dialog_self, arg, ges)
                 else
-                    if ges.pos:notIntersectWith(self.dialog_frame.dimen) then
-                        UIManager:close(self)
+                    if ges.pos:notIntersectWith(dialog_self.dialog_frame.dimen) then
+                        UIManager:close(dialog_self)
                         return true
                     end
                 end

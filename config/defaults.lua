@@ -7,6 +7,17 @@ local defaults = {
         footer_backup_created = false,
         quickstart_shown_for_version = false,
         sort_defaults_applied = false,
+        bim_fbc_migrated = false,
+    },
+    updater = {
+        just_updated_version = "",
+        last_update_check = 0,
+        update_available = false,
+        latest_version = "",
+        update_dl_url = "",
+        update_sha256 = "",
+        update_channel = "stable",
+        update_auto_check = true,
     },
     localization = {
         default_locale = "en",
@@ -140,6 +151,15 @@ local defaults = {
     browser_page_count = {
         show_page_count = false,
     },
+    browser_folder_cover = {
+        cover_mode = "gallery",   -- "gallery" | "stack" | "normal" | "none"
+        show_folder_name = true,
+        name_centered = false,    -- false = bottom placement
+        name_opaque = false,      -- false = transparent bg
+        show_spine_lines = false,
+        show_item_count = true,
+        crop_to_fit = true,
+    },
     browser_series_badge = {
         show_series_badge = false,
     },
@@ -216,7 +236,21 @@ local defaults = {
             tags = "list_image_meta",
             to_be_read = "list_image_meta",
         },
+        group_reverse = {
+            authors = false,
+            series = false,
+        },
+        tags_global = {
+            collate = "title",
+            reverse = false,
+        },
         detail_collate = {
+            authors = {},
+            series = {},
+            tags = {},
+            to_be_read = {},
+        },
+        detail_reverse = {
             authors = {},
             series = {},
             tags = {},

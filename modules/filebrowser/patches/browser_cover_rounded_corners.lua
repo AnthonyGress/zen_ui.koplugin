@@ -7,7 +7,6 @@
 local function apply_browser_cover_rounded_corners()
     local Blitbuffer = require("ffi/blitbuffer")
     local Screen     = require("device").screen
-    local logger     = require("logger")
 
     -- Capture plugin reference at apply-time.
     local _plugin = rawget(_G, "__ZEN_UI_PLUGIN")

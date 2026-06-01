@@ -29,7 +29,6 @@ local function build_warmth_slider(touch_menu, opts)
     local inner_width     = opts.inner_width
     local slider_width    = opts.slider_width
     local small_btn_width = opts.small_btn_width
-    local toggle_width    = opts.toggle_width
     local slider_gap      = opts.slider_gap
     local medium_font     = opts.medium_font
     local small_btn_size  = opts.small_btn_size

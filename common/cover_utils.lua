@@ -28,13 +28,15 @@ end
 
 function CoverUtils.getMode()
     local G = rawget(_G, "G_reader_settings")
-    local is_gallery = G and G:isTrue("folder_gallery_mode") or false
-    local is_stack = G and G:isTrue("folder_stack_mode") or false
-
-    if is_gallery then
+    local cfg = G and G:readSetting("zen_ui_config")
+    local fbc = type(cfg) == "table" and cfg.browser_folder_cover or nil
+    local mode = type(fbc) == "table" and fbc.cover_mode or "gallery"
+    if mode == "gallery" then
         return "gallery", 4, true
-    elseif is_stack then
+    elseif mode == "stack" then
         return "stack", 4, true
+    elseif mode == "none" then
+        return "none", 0, false
     else
         return "normal", 1, false
     end
@@ -68,8 +70,7 @@ end
 -- Generate placeholder cover from file path
 -- ============================================================
 
-function CoverUtils.genCover(filepath, target_w, target_h)
-    local ratio = CoverUtils.getRatio()
+function CoverUtils.genCover(filepath, target_w, target_h, no_fallback)
     local width, height
 
     if target_w and target_h then
@@ -84,10 +85,12 @@ function CoverUtils.genCover(filepath, target_w, target_h)
     local ok, BookInfoManager = pcall(require, "bookinfomanager")
     local title = ""
     local authors = ""
+    local bookinfo_found = false
 
     if ok then
         local bookinfo = BookInfoManager:getBookInfo(filepath, true)
         if bookinfo and not bookinfo.ignore_meta then
+            bookinfo_found = true
             title = bookinfo.title or ""
             authors = bookinfo.authors or ""
             if authors and authors:find("\n") then
@@ -96,16 +99,21 @@ function CoverUtils.genCover(filepath, target_w, target_h)
         end
     end
 
-    -- Fallback to filename
-    if title == "" then
+    -- Fallback to filename (suppressed when no_fallback=true)
+    if title == "" and not no_fallback then
         local fname = filepath:match("([^/]+)$") or ""
         fname = fname:gsub("/$", "")
         fname = fname:gsub("%.[^%.]+$", "")
         title = fname
     end
 
-    if title == "" then title = _("Unknown") end
-    if authors == "" then authors = _("Unknown Author") end
+    if not no_fallback then
+        if title == "" then title = _("Unknown") end
+        if authors == "" then authors = _("Unknown Author") end
+    elseif bookinfo_found and authors == "" then
+        -- Metadata loaded but no author field: still label it.
+        authors = _("Unknown Author")
+    end
 
     -- Create canvas
     local final_bb = Blitbuffer.new(width, height, Blitbuffer.TYPE_BBRGB32)
@@ -132,12 +140,12 @@ function CoverUtils.genCover(filepath, target_w, target_h)
     local title_color = Blitbuffer.ColorRGB32(1, 68, 142, 255)
     local authors_color = Blitbuffer.ColorRGB32(8, 51, 93, 255)
 
-    -- Title widget
+    -- Title widget (skip when no text available)
     local title_font_size = library_font.scaleValue(20)
     local min_title_font = library_font.scaleValue(10)
     local title_widget = nil
 
-    while title_font_size >= min_title_font do
+    while title ~= "" and title_font_size >= min_title_font do
         if title_widget then title_widget:free() end
         local face = library_font.getFace(title_font_size)
         title_widget = TextBoxWidget:new{
@@ -153,7 +161,7 @@ function CoverUtils.genCover(filepath, target_w, target_h)
         title_font_size = title_font_size - 1
     end
 
-    if title_widget:getSize().h > title_area_h then
+    if title_widget and title_widget:getSize().h > title_area_h then
         title_widget:free()
         local face = library_font.getFace(min_title_font)
         title_widget = TextBoxWidget:new{
@@ -169,14 +177,14 @@ function CoverUtils.genCover(filepath, target_w, target_h)
             height_overflow_show_ellipsis = true,
         }
     end
-    title_widget.handleEvent = function() return false end
+    if title_widget then title_widget.handleEvent = function() return false end end
 
-    -- Author widget
+    -- Author widget (skip when no text available)
     local authors_font_size = library_font.scaleValue(16)
     local min_authors_font = library_font.scaleValue(6)
     local authors_widget = nil
 
-    while authors_font_size >= min_authors_font do
+    while authors ~= "" and authors_font_size >= min_authors_font do
         if authors_widget then authors_widget:free() end
         local face = library_font.getFace(authors_font_size)
         authors_widget = TextBoxWidget:new{
@@ -211,9 +219,11 @@ function CoverUtils.genCover(filepath, target_w, target_h)
     end
 
     -- Paint
-    local title_y = math.max(5, (split_y - title_widget:getSize().h) / 2)
-    title_widget:paintTo(final_bb, math.max(0, (width - title_widget:getSize().w) / 2), title_y)
-    title_widget:free()
+    if title_widget then
+        local title_y = math.max(5, (split_y - title_widget:getSize().h) / 2)
+        title_widget:paintTo(final_bb, math.max(0, (width - title_widget:getSize().w) / 2), title_y)
+        title_widget:free()
+    end
 
     if authors_widget then
         local authors_y = split_y + math.max(5, (author_area_h - authors_widget:getSize().h) / 2)
@@ -350,9 +360,7 @@ function CoverUtils.collect(dir_path, chooser, max_covers, need_copy, entries)
             -- skip folder cover image files (cover.png, .cover.png, cover1.jpg, etc.)
             local _fname = (fpath:match("([^/]+)$") or ""):lower()
             local _fext  = _fname:match("%.([^%.]+)$")
-            if _fext and _img_exts[_fext] and _fname:match("^%.?cover%d*%.") then
-                -- not a book; skip
-            else
+            if not (_fext and _img_exts[_fext] and _fname:match("^%.?cover%d*%.")) then
                 local bookinfo = BookInfoManager:getBookInfo(fpath, true)
                 if bookinfo and bookinfo.cover_bb and bookinfo.has_cover
                         and bookinfo.cover_fetched and not bookinfo.ignore_cover then
@@ -596,7 +604,6 @@ function CoverUtils.drawNoImage(folder_name, portrait_w, portrait_h, border)
     local CenterContainer = require("ui/widget/container/centercontainer")
     local FrameContainer = require("ui/widget/container/framecontainer")
     local ImageWidget = require("ui/widget/imagewidget")
-    local TextBoxWidget = require("ui/widget/textboxwidget")
 
     -- Use constant colors; original_in_nightmode=false lets the screen's live
     -- inversion handle night mode so the cover updates immediately on toggle.
@@ -719,9 +726,9 @@ function CoverUtils.makeCover(path, chooser, options)
         if ok then
             local bookinfo = BookInfoManager:getBookInfo(path, true)
 
-            if bookinfo and bookinfo.cover_bb and bookinfo.has_cover
-                    and bookinfo.cover_fetched and not bookinfo.ignore_cover then
-                local scaled_bb, sw, sh = CoverUtils.scaleCover(
+                if bookinfo and bookinfo.cover_bb and bookinfo.has_cover
+                        and bookinfo.cover_fetched and not bookinfo.ignore_cover then
+                local scaled_bb = CoverUtils.scaleCover(
                     bookinfo.cover_bb, bookinfo.cover_w, bookinfo.cover_h,
                     final_w, final_h)
                 local need_copy = options.need_copy == true
@@ -737,6 +744,15 @@ function CoverUtils.makeCover(path, chooser, options)
     -- Handle folder
     local mode, max_covers, need_copy = CoverUtils.getMode()
     if options.max_covers then max_covers = options.max_covers end
+
+    -- "none" mode: skip cover collection, show name-only placeholder immediately
+    if mode == "none" then
+        local fname = options.folder_name or (path:match("([^/]+)/?$") or path):gsub("/$", "")
+        fname = BD.directory(fname)
+        local border = 2
+        local portrait_w, portrait_h = CoverUtils.calcDims(options.max_w or 200, options.max_h or 300)
+        return CoverUtils.drawNoImage(fname, portrait_w, portrait_h, border), mode, "empty_folder", nil
+    end
 
     local covers = options.covers_data
     if not covers or #covers == 0 then
@@ -763,7 +779,7 @@ function CoverUtils.makeCover(path, chooser, options)
 
     local portrait_w, portrait_h = CoverUtils.calcDims(max_w, max_h)
 
-    local cover_widget = nil
+    local cover_widget
 
     local scaled_covers = {}
     for _i, c in ipairs(covers) do
