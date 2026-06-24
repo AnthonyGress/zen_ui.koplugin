@@ -1,12 +1,12 @@
-#zen-ui
+# zen-ui
 # Translators:
 # d0nizam 2026
 msgid ""
 msgstr ""
 "Project-Id-Version: zen-ui\n"
 "POT-Creation-Date: 2026-04-25 21:00+0300\n"
-"PO-Revision-Date: 2026-04-26 19:20+0300\n"
-"Last-Translator: d0nizam
+"PO-Revision-Date: 2026-06-25 00:32+0000\n"
+"Last-Translator: d0nizam\n"
 "Language-Team: Bulgarian\n"
 "Language: bg\n"
 "MIME-Version: 1.0\n"
@@ -72,8 +72,14 @@ msgstr "90°"
 msgid "< 1 min left in chapter"
 msgstr "< 1 мин. до края на главата"
 
-msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
-msgstr "Минималистичен, изчистен и опростен интерфейс за вашия електронен четец.\n\nПлъзнете или докоснете „Напред“, за да продължите."
+msgid ""
+"A minimal, clean, and simple interface for your e-reader.\n"
+"\n"
+"Swipe or tap Next to continue."
+msgstr ""
+"Минималистичен, изчистен и опростен интерфейс за вашия електронен четец.\n"
+"\n"
+"Плъзнете или докоснете „Напред“, за да продължите."
 
 msgid "A short summary of what went wrong"
 msgstr "Кратко описание на проблема"
@@ -156,8 +162,14 @@ msgstr "Александър Дюма"
 msgid "All"
 msgstr "Всички"
 
-msgid "All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall Zen UI updates directly from your device."
-msgstr "Всички настройки са в един обединен раздел. Тази икона с точката показва, че има налична актуализация.\n\nИнсталирайте актуализации на Zen UI директно от устройството си."
+msgid ""
+"All settings are in one unified tab. This icon with the dot indicates an update is available.\n"
+"\n"
+"Install Zen UI updates directly from your device."
+msgstr ""
+"Всички настройки са в един обединен раздел. Тази икона с точката показва, че има налична актуализация.\n"
+"\n"
+"Инсталирайте актуализации на Zen UI директно от устройството си."
 
 msgid "All Time"
 msgstr "За всички времена"
@@ -337,7 +349,7 @@ msgid "Bottom"
 msgstr "Долу"
 
 msgid "Bottom status bar"
-msgstr "Долна лента на състоянието"
+msgstr "Долна статус лента"
 
 msgid "Brief description of the bug"
 msgstr "Кратко описание на грешката"
@@ -421,7 +433,7 @@ msgid "Choose a different folder"
 msgstr "Избор на друга папка"
 
 msgid "Choose a preset for your reading progress bar."
-msgstr "Изберете предварителна настройка за лентата за напредък в четенето."
+msgstr "Изберете шаблон за лентата за прогрес в четенето."
 
 msgid "Choose item"
 msgstr "Избор на елемент"
@@ -429,8 +441,12 @@ msgstr "Избор на елемент"
 msgid "Choose plugin menu"
 msgstr "Избор на меню на плъгин"
 
-msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
-msgstr "Изберете кои раздели да се показват във вашата навигационна лента.\nМожете да ги пренареждате или коригирате по всяко време в Настройки."
+msgid ""
+"Choose which tabs appear in your navigation bar.\n"
+"You can rearrange or adjust these anytime in Settings."
+msgstr ""
+"Изберете кои раздели да се показват във вашата навигационна лента.\n"
+"Можете да ги пренареждате или коригирате по всяко време в Настройки."
 
 msgid "Classic (filename only)"
 msgstr "Класически (само име на файл)"
@@ -490,22 +506,37 @@ msgid "Could not determine update status."
 msgstr "Състоянието на актуализацията не можа да се определи."
 
 msgid "Could not reach update server. Check your internet connection."
-msgstr "Неуспешна връзка със сървъра за обновления. Проверете интернет връзката си."
+msgstr ""
+"Неуспешна връзка със сървъра за обновления. Проверете интернет връзката си."
 
-msgid "Could not reach update server. Check your internet connection.\n\nUnable to load changelog."
-msgstr "Сървърът за актуализации не е достъпен. Проверете интернет връзката си.\n\nСписъкът с промени не може да се зареди."
+msgid ""
+"Could not reach update server. Check your internet connection.\n"
+"\n"
+"Unable to load changelog."
+msgstr ""
+"Сървърът за актуализации не е достъпен. Проверете интернет връзката си.\n"
+"\n"
+"Списъкът с промени не може да се зареди."
 
 msgid "Could not read release data from update server."
-msgstr "Данните за изданието не могат да се прочетат от сървъра за актуализации."
+msgstr ""
+"Данните за изданието не могат да се прочетат от сървъра за актуализации."
 
-msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
-msgstr "Плъгинът CoverBrowser не е активиран, някои функции няма да работят правилно."
+msgid ""
+"CoverBrowser plugin is not enabled, some features will not work correctly."
+msgstr ""
+"Плъгинът CoverBrowser не е активиран, някои функции няма да работят "
+"правилно."
 
 msgid "Covers"
 msgstr "Корици"
 
-msgid "crash.log will be embedded in a public GitHub issue. It may contain file paths and book titles."
-msgstr "Файлът crash.log ще бъде вграден в публичен проблем в GitHub. Може да съдържа пътища до файлове и заглавия на книги."
+msgid ""
+"crash.log will be embedded in a public GitHub issue. It may contain file "
+"paths and book titles."
+msgstr ""
+"Файлът crash.log ще бъде вграден в публичен проблем в GitHub. Може да "
+"съдържа пътища до файлове и заглавия на книги."
 
 msgid "Create this folder and use as home"
 msgstr "Създаване на тази папка и използване като начална"
@@ -559,7 +590,7 @@ msgid "Custom: "
 msgstr "По избор: "
 
 msgid "Customizable top status bar and bottom progress bar."
-msgstr "Персонализируема горна лента на състоянието и долна лента на напредъка."
+msgstr "Персонализируема горна статус лента и долна лента на прогреса."
 
 msgid "Cut"
 msgstr "Изрязване"
@@ -610,7 +641,9 @@ msgid "Debug logging"
 msgstr "Журнал за отстраняване на грешки"
 
 msgid "Debug logging must be enabled to submit bug reports."
-msgstr "Регистрирането на отстраняване на грешки трябва да е активирано за изпращане на доклади."
+msgstr ""
+"Регистрирането на отстраняване на грешки трябва да е активирано за изпращане"
+" на доклади."
 
 msgid "default"
 msgstr "по подразбиране"
@@ -637,7 +670,7 @@ msgid "Delete OPDS catalog?"
 msgstr "Изтриване на OPDS каталог?"
 
 msgid "Delete preset?"
-msgstr "Изтриване на предварителна настройка?"
+msgstr "Изтриване на шаблон?"
 
 msgid "Delete this button?"
 msgstr "Да се изтрие ли този бутон?"
@@ -676,22 +709,24 @@ msgid "Dim finished books"
 msgstr "Dim finished books"
 
 msgid "Disable bottom menu swipe"
-msgstr "Деактивиране на долното меню с плъзгане"
+msgstr "Изключване на долното меню с плъзгане"
 
 msgid "Disable context menu"
-msgstr "Деактивиране на контекстното меню"
+msgstr "Изключване на контекстното меню"
 
 msgid "Disable multi-word selection"
-msgstr "Деактивиране на избиране на няколко думи"
+msgstr "Изключване на избиране на няколко думи"
 
 msgid "Disable settings panel"
-msgstr "Деактивиране на панела с настройки"
+msgstr "Изключване на панела с настройки"
 
 msgid "Disable word search on hold"
-msgstr "Деактивиране на търсене на дума при задържане"
+msgstr "Изключване на търсене на дума при задържане"
 
 msgid "Disable zen mode to access default KOReader menus."
-msgstr "Деактивирайте режим Zen, за да получите достъп до стандартните менюта на KOReader."
+msgstr ""
+"Деактивирайте режим Zen, за да получите достъп до стандартните менюта на "
+"KOReader."
 
 msgid "Disk space"
 msgstr "Дисково пространство"
@@ -730,40 +765,53 @@ msgid "Edit"
 msgstr "Редактиране"
 
 msgid "Enable"
-msgstr "Активиране"
+msgstr "Включване"
 
 msgid "Enable bottom swipe"
-msgstr "Активиране на плъзгане отдолу"
+msgstr "Включване на плъзгане отдолу"
 
 msgid "Enable brightness schedule"
-msgstr "Активиране на график на яркостта"
+msgstr "Включване на график на яркостта"
 
 msgid "Enable custom status bar"
-msgstr "Активиране на потребителска лента на състоянието"
+msgstr "Включване на потребителска статус лента"
 
-msgid "Enable KOReader verbose debug logging. Logs are written to koreader.log. Takes effect immediately."
-msgstr "Активиране на подробен запис в журнала на KOReader. Записите се пазят в koreader.log. Влиза в сила незабавно."
+msgid ""
+"Enable KOReader verbose debug logging. Logs are written to koreader.log. "
+"Takes effect immediately."
+msgstr ""
+"Включване на подробен запис в журнала на KOReader. Записите се пазят в "
+"koreader.log. Влиза в сила незабавно."
 
 msgid "Enable night mode schedule"
-msgstr "Активиране на график за нощен режим"
+msgstr "Включване на график за нощен режим"
 
 msgid "Enable page browser"
-msgstr "Активиране на преглед на страници"
+msgstr "Включване на преглед на страници"
 
 msgid "Enable top status bar"
 msgstr "Включване на горната лента за състояние"
 
 msgid "Enable warmth schedule"
-msgstr "Активиране на график на топлината"
+msgstr "Включване на график на топлината"
 
-msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
-msgstr "Активиране на подобренията на Zen UI за OPDS браузъра: корици, списъчен изглед, меню при задържане и подобрена навигация."
+msgid ""
+"Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold "
+"menu, and navigation improvements."
+msgstr ""
+"Включване на подобренията на Zen UI за OPDS браузъра: корици, списъчен "
+"изглед, меню при задържане и подобрена навигация."
 
-msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
-msgstr "Активиране на журналиране за отстраняване на грешки, необходимо е рестартиране. Възпроизведете проблема, след което изпратете доклада."
+msgid ""
+"Enabling debug logging, restart required. Please reproduce the issue, then "
+"submit the report."
+msgstr ""
+"Включване на журналиране за отстраняване на грешки, необходимо е "
+"рестартиране. Възпроизведете проблема, след което изпратете доклада."
 
 msgid "Enter your GitHub username to be tagged in the issue"
-msgstr "Въведете потребителското си име в GitHub, за да бъдете споменати в проблема"
+msgstr ""
+"Въведете потребителското си име в GitHub, за да бъдете споменати в проблема"
 
 msgid "Exit"
 msgstr "Изход"
@@ -771,8 +819,12 @@ msgstr "Изход"
 msgid "Extra large"
 msgstr "Много голям"
 
-msgid "Extract and cache book metadata and cover images for books in the current directory. Requires CoverBrowser plugin."
-msgstr "Извличане и кеширане на метаданни и корици за книгите в текущата директория. Изисква плъгина CoverBrowser."
+msgid ""
+"Extract and cache book metadata and cover images for books in the current "
+"directory. Requires CoverBrowser plugin."
+msgstr ""
+"Извличане и кеширане на метаданни и корици за книгите в текущата директория."
+" Изисква плъгина CoverBrowser."
 
 msgid "Extract metadata"
 msgstr "Извличане на метаданни"
@@ -1194,8 +1246,14 @@ msgstr "Не са намерени книги"
 msgid "No buttons"
 msgstr "Няма бутони"
 
-msgid "No changelog entries found.\n\nNo releases are available for this channel."
-msgstr "Не са намерени записи в списъка с промени.\n\nНяма налични издания за този канал."
+msgid ""
+"No changelog entries found.\n"
+"\n"
+"No releases are available for this channel."
+msgstr ""
+"Не са намерени записи в списъка с промени.\n"
+"\n"
+"Няма налични издания за този канал."
 
 msgid "No changelog provided."
 msgstr "Няма предоставен списък с промени."
@@ -1311,8 +1369,12 @@ msgstr "Процент"
 msgid "Personal Records"
 msgstr "Лични рекорди"
 
-msgid "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
-msgstr "Моля, изтрийте плъгина Project: Title от папката с плъгини и рестартирайте KOReader."
+msgid ""
+"Please delete the Project: Title plugin from your plugins folder and restart"
+" KOReader."
+msgstr ""
+"Моля, изтрийте плъгина Project: Title от папката с плъгини и рестартирайте "
+"KOReader."
 
 msgid "Plugin management"
 msgstr "Управление на плъгини"
@@ -1327,7 +1389,7 @@ msgid "Portrait mosaic: "
 msgstr "Портретна мозайка: "
 
 msgid "Preset name"
-msgstr "Име на предварителната настройка"
+msgstr "Име на шаблона"
 
 msgid "Presets"
 msgstr "Предварителни настройки"
@@ -1339,13 +1401,13 @@ msgid "Previous page"
 msgstr "Предишна страница"
 
 msgid "Progress"
-msgstr "Напредък"
+msgstr "Прогрес"
 
 msgid "Progress bar"
-msgstr "Лента за напредък"
+msgstr "Лента за прогрес"
 
 msgid "Progress labels"
-msgstr "Етикети за напредък"
+msgstr "Етикети за прогрес"
 
 msgid "Project: Title is not compatible with Zen UI."
 msgstr "Project: Title не е съвместим с Zen UI."
@@ -1393,7 +1455,7 @@ msgid "Reader"
 msgstr "Четец"
 
 msgid "Reader Progress"
-msgstr "Напредък в четеца"
+msgstr "Прогрес в четеца"
 
 msgid "Reading"
 msgstr "Четене"
@@ -1525,7 +1587,7 @@ msgid "Save"
 msgstr "Запазване"
 
 msgid "Save current home page as preset"
-msgstr "Запазване на текущото табло като предварителна настройка"
+msgstr "Запазване на текущото табло като шаблон"
 
 msgid "Save current settings as preset"
 msgstr "Запазване на текущите настройки като предварителни"
@@ -1578,8 +1640,12 @@ msgstr "Номер в поредицата"
 msgid "Set"
 msgstr "Задаване"
 
-msgid "Set all gestures to pass-through? Top-right corner in reader will be kept as Toggle bookmark."
-msgstr "Задаване на всички жестове на „предаване нататък“? Горният десен ъгъл в четеца ще остане за превключване на отметка."
+msgid ""
+"Set all gestures to pass-through? Top-right corner in reader will be kept as"
+" Toggle bookmark."
+msgstr ""
+"Задаване на всички жестове на „предаване нататък“? Горният десен ъгъл в "
+"четеца ще остане за превключване на отметка."
 
 msgid "Set as default"
 msgstr "Задаване по подразбиране"
@@ -1663,7 +1729,7 @@ msgid "Show item underline"
 msgstr "Показване на подчертаване на елемента"
 
 msgid "Show KOReader progress bar"
-msgstr "Показване на лентата за напредък на KOReader"
+msgstr "Показване на лентата за прогрес на KOReader"
 
 msgid "Show labels"
 msgstr "Показване на етикети"
@@ -1675,13 +1741,15 @@ msgid "Show other items"
 msgstr "Показване на други елементи"
 
 msgid "Show other KOReader quick lookup options alongside Zen buttons."
-msgstr "Показване на други опции за бърза справка в KOReader заедно с бутоните на Zen."
+msgstr ""
+"Показване на други опции за бърза справка в KOReader заедно с бутоните на "
+"Zen."
 
 msgid "Show page count"
 msgstr "Показване на броя страници"
 
 msgid "Show progress % on mosaic covers"
-msgstr "Показване на % напредък върху мозаечните корици"
+msgstr "Показване на % прогрес върху мозаечните корици"
 
 msgid "Show separator"
 msgstr "Показване на разделител"
@@ -1699,7 +1767,7 @@ msgid "Show top border"
 msgstr "Показване на горна граница"
 
 msgid "Show top status bar"
-msgstr "Показване на горната лента на състоянието"
+msgstr "Показване на горната статус лента"
 
 msgid "Show warmth slider"
 msgstr "Показване на плъзгач за топлина"
@@ -1789,7 +1857,7 @@ msgid "Stats: Calendar"
 msgstr "Статистики: Календар"
 
 msgid "Stats: Progress"
-msgstr "Статистики: Напредък"
+msgstr "Статистики: Прогрес"
 
 msgid "Status bar"
 msgstr "Лента на състоянието"
@@ -1818,11 +1886,21 @@ msgstr "Изпрати"
 msgid "Submitting report…"
 msgstr "Изпращане на доклада…"
 
-msgid "Swipe down from the top to reach quick settings like brightness, Wi-Fi, night mode, zen mode and more."
-msgstr "Плъзнете надолу от горния край, за да отворите бързи настройки като яркост, Wi-Fi, нощен режим, режим Zen и други."
+msgid ""
+"Swipe down from the top to reach quick settings like brightness, Wi-Fi, "
+"night mode, zen mode and more."
+msgstr ""
+"Плъзнете надолу от горния край, за да отворите бързи настройки като яркост, "
+"Wi-Fi, нощен режим, режим Zen и други."
 
-msgid "Swipe up from the bottom while reading to open the Page Browser.\n\nSkim through pages or skip chapters, browse the table of contents, manage bookmarks, adjust fonts and more."
-msgstr "Плъзнете нагоре от дъното, докато четете, за да отворите Преглед на страници.\n\nПреглеждайте бързо страниците или прескачайте глави, разглеждайте съдържанието, управлявайте отметки, променяйте шрифтове и други."
+msgid ""
+"Swipe up from the bottom while reading to open the Page Browser.\n"
+"\n"
+"Skim through pages or skip chapters, browse the table of contents, manage bookmarks, adjust fonts and more."
+msgstr ""
+"Плъзнете нагоре от дъното, докато четете, за да отворите Преглед на страници.\n"
+"\n"
+"Преглеждайте бързо страниците или прескачайте глави, разглеждайте съдържанието, управлявайте отметки, променяйте шрифтове и други."
 
 msgid "Sync"
 msgstr "Синхронизация"
@@ -1843,13 +1921,19 @@ msgid "tags"
 msgstr "тагове"
 
 msgid "Tap and hold any book or folder in your library to reveal details."
-msgstr "Докоснете и задръжте която и да е книга или папка в библиотеката си, за да видите подробности."
+msgstr ""
+"Докоснете и задръжте която и да е книга или папка в библиотеката си, за да "
+"видите подробности."
 
 msgid "Text styles"
 msgstr "Стилове на текста"
 
-msgid "The best interface is the one you forget is there.\nNow go get lost in a good book."
-msgstr "Най-добрият интерфейс е този, за чието съществуване забравяте.\nСега се потопете в една хубава книга."
+msgid ""
+"The best interface is the one you forget is there.\n"
+"Now go get lost in a good book."
+msgstr ""
+"Най-добрият интерфейс е този, за чието съществуване забравяте.\n"
+"Сега се потопете в една хубава книга."
 
 msgid "The default KOReader reader menu is inside the Aa icon."
 msgstr "Стандартното меню за четене на KOReader е в иконата Aa."
@@ -1932,8 +2016,14 @@ msgstr "общо време за четене"
 msgid "total time"
 msgstr "общо време"
 
-msgid "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
-msgstr "Включете режим Zen, за да сведете KOReader до най-важното.\n\nПремахнете визуалното претрупване за фокусирано четене без разсейване. Излезте по всяко време от Настройки."
+msgid ""
+"Turn on Zen mode to strip KOReader down to its bare essentials.\n"
+"\n"
+"Remove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
+msgstr ""
+"Включете режим Zen, за да сведете KOReader до най-важното.\n"
+"\n"
+"Премахнете визуалното претрупване за фокусирано четене без разсейване. Излезте по всяко време от Настройки."
 
 msgid "Two rows"
 msgstr "Два реда"
@@ -1978,7 +2068,8 @@ msgid "Update failed and rollback failed."
 msgstr "Актуализацията се провали и връщането назад също се провали."
 
 msgid "Update failed: active plugin folder not found."
-msgstr "Актуализацията се провали: активната папка на добавката не е намерена."
+msgstr ""
+"Актуализацията се провали: активната папка на добавката не е намерена."
 
 msgid "Update failed: corrupted update package."
 msgstr "Актуализацията се провали: повреден пакет за актуализация."
@@ -1993,10 +2084,14 @@ msgid "Update failed: could not prepare staging area."
 msgstr "Актуализацията се провали: не може да се подготви временната зона."
 
 msgid "Update failed: could not restore previous plugin backup."
-msgstr "Актуализацията се провали: предишното резервно копие на добавката не може да се възстанови."
+msgstr ""
+"Актуализацията се провали: предишното резервно копие на добавката не може да"
+" се възстанови."
 
 msgid "Update failed: could not unpack update package."
-msgstr "Актуализацията се провали: пакетът за актуализация не може да се разархивира."
+msgstr ""
+"Актуализацията се провали: пакетът за актуализация не може да се "
+"разархивира."
 
 msgid "Update failed: invalid package layout."
 msgstr "Актуализацията се провали: невалидна структура на пакета."
@@ -2011,10 +2106,12 @@ msgid "Update failed: new version is invalid."
 msgstr "Актуализацията се провали: новата версия е невалидна."
 
 msgid "Update failed: plugin directory is not writable."
-msgstr "Актуализацията се провали: директорията на добавката не позволява запис."
+msgstr ""
+"Актуализацията се провали: директорията на добавката не позволява запис."
 
 msgid "Update failed: staged plugin validation failed."
-msgstr "Актуализацията се провали: проверката на подготвената добавка е неуспешна."
+msgstr ""
+"Актуализацията се провали: проверката на подготвената добавка е неуспешна."
 
 msgid "Update failed: timed out."
 msgstr "Актуализацията се провали: времето изтече."
@@ -2083,7 +2180,9 @@ msgid "Welcome to Zen UI"
 msgstr "Добре дошли в Zen UI"
 
 msgid "What should your device show when it goes to sleep?"
-msgstr "Какво трябва да показва устройството ви, когато премине в режим на приспиване?"
+msgstr ""
+"Какво трябва да показва устройството ви, когато премине в режим на "
+"приспиване?"
 
 msgid "What's changed"
 msgstr "Какво е променено"
@@ -2091,11 +2190,20 @@ msgstr "Какво е променено"
 msgid "What's New"
 msgstr "Какво е новото"
 
-msgid "When enabled, icons placed in KOReader's user icons folder override the bundled Zen UI icons. Falls back to Zen UI icons, then KOReader built-ins."
-msgstr "Когато е активирано, иконите, поставени в папката за потребителски икони на KOReader, имат приоритет пред вградените икони на Zen UI. В противен случай се използват тези на Zen UI, а след това вградените в KOReader."
+msgid ""
+"When enabled, icons placed in KOReader's user icons folder override the "
+"bundled Zen UI icons. Falls back to Zen UI icons, then KOReader built-ins."
+msgstr ""
+"Когато е активирано, иконите, поставени в папката за потребителски икони на "
+"KOReader, имат приоритет пред вградените икони на Zen UI. В противен случай "
+"се използват тези на Zen UI, а след това вградените в KOReader."
 
-msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
-msgstr "Когато е включено, търсенето съвпада само с цели думи. Когато е изключено, се използва съвпадение по част от дума (напр. „fish“ съвпада с „fishing“)."
+msgid ""
+"When enabled, search matches whole words only. When disabled, substring "
+"matching is used (e.g., 'fish' matches 'fishing')."
+msgstr ""
+"Когато е включено, търсенето съвпада само с цели думи. Когато е изключено, "
+"се използва съвпадение по част от дума (напр. „fish“ съвпада с „fishing“)."
 
 msgid "Which time format do you prefer?"
 msgstr "Кой формат на часа предпочитате?"
@@ -2150,3 +2258,138 @@ msgstr "Zen UI е актуален."
 
 msgid "Zen UI: "
 msgstr "Zen UI: "
+
+msgid "(none)"
+msgstr "(няма)"
+
+msgid "Active tab"
+msgstr "Активен раздел"
+
+msgid "Background"
+msgstr "Фон"
+
+msgid "Background image must be a JPG or JPEG file."
+msgstr "Фоновото изображение трябва да е JPG или JPEG файл."
+
+msgid "Center align buttons"
+msgstr "Центриране на бутоните"
+
+msgid "Colored"
+msgstr "Цветен"
+
+msgid "Controls"
+msgstr "Контроли"
+
+msgid "Could not reach update server."
+msgstr "Сървърът за актуализации е недостъпен."
+
+msgid ""
+"Could not scan Wi-Fi networks. Please try again after waking the device."
+msgstr ""
+"Wi-Fi мрежите не могат да бъдат сканирани. Опитайте отново след събуждане на"
+" устройството."
+
+msgid "Current / total pages"
+msgstr "Текуща / общо страници"
+
+msgid "Delete this tab?"
+msgstr "Изтриване на този раздел?"
+
+msgid "Frontlight"
+msgstr "Предна светлина"
+
+msgid "Gyro"
+msgstr "Жиро"
+
+msgid "Gyroscope"
+msgstr "Жироскоп"
+
+msgid "Hold to arrange"
+msgstr "Задръжте за подреждане"
+
+msgid "Icon size:"
+msgstr "Размер на иконата:"
+
+msgid "Icons"
+msgstr "Икони"
+
+msgid "Image: "
+msgstr "Изображение: "
+
+msgid "Image: none"
+msgstr "Изображение: няма"
+
+msgid "Label"
+msgstr "Етикет"
+
+msgid "Label size:"
+msgstr "Размер на етикета:"
+
+msgid "Label: "
+msgstr "Етикет: "
+
+msgid "Labels"
+msgstr "Етикети"
+
+msgid "Light"
+msgstr "Светлина"
+
+msgid "Navbar icon size"
+msgstr "Размер на иконите в навигационната лента"
+
+msgid "Navbar label size"
+msgstr "Размер на етикетите в навигационната лента"
+
+msgid "No network connection."
+msgstr "Няма мрежова връзка."
+
+msgid "Plugin"
+msgstr "Плъгин"
+
+msgid "Plugin: %1"
+msgstr "Плъгин: %1"
+
+msgid "Progress %"
+msgstr "Прогрес %"
+
+msgid "Quick settings button is unavailable"
+msgstr "Бутонът за бързи настройки не е наличен"
+
+msgid "Reset"
+msgstr "Нулиране"
+
+msgid "Reset Controls to defaults?"
+msgstr "Нулиране на контролите по подразбиране?"
+
+msgid "Reset font"
+msgstr "Нулиране на шрифта"
+
+msgid "Reset font family and size to default?"
+msgstr "Нулиране на шрифта и размера по подразбиране?"
+
+msgid "Reset to defaults"
+msgstr "Нулиране по подразбиране"
+
+msgid "Underline"
+msgstr "Подчертаване"
+
+msgid "Use border as progress bar"
+msgstr "Използване на рамката като лента за прогрес"
+
+msgid "Zen UI - Home"
+msgstr "Zen UI – Начало"
+
+msgid "Zen UI - Toggle Lockdown Mode"
+msgstr "Zen UI – Превключване на заключен режим"
+
+msgid "Zen UI - Toggle Zen Mode"
+msgstr "Zen UI – Превключване на Zen режим"
+
+msgid "Zen UI - Toggle bottom reader status bar"
+msgstr "Zen UI – Превключване на долната статус лента на четеца"
+
+msgid "Zen UI - Toggle reader status bars"
+msgstr "Zen UI – Превключване на статус лентите на четеца"
+
+msgid "Zen UI - Toggle top reader status bar"
+msgstr "Zen UI – Превключване на горната статус лента на четеца"
