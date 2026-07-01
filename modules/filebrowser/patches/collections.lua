@@ -42,13 +42,34 @@ local function apply_collections()
         return hide == true or hide == nil
     end
 
-    local function get_coll_display_mode()
+    local VALID_DISPLAY_MODES = {
+        mosaic_image = true,
+        list_image_meta = true,
+        list_image_filename = true,
+    }
+
+    local function get_coll_display_mode(coll_name)
+        if coll_name then
+            local ReadCollection = require("readcollection")
+            local settings = ReadCollection.coll_settings[coll_name]
+            local mode = settings and settings.zen_ui_display_mode
+            if VALID_DISPLAY_MODES[mode] then return mode end
+        end
         local gv = type(zen_plugin.config.group_view) == "table" and zen_plugin.config.group_view or {}
         local dm = type(gv.display_mode) == "table" and gv.display_mode or {}
         return dm.collections
     end
 
-    local function set_coll_display_mode(mode)
+    local function set_coll_display_mode(mode, coll_name)
+        if not VALID_DISPLAY_MODES[mode] then return end
+        if coll_name then
+            local ReadCollection = require("readcollection")
+            local settings = ReadCollection.coll_settings[coll_name]
+            if not settings then return end
+            settings.zen_ui_display_mode = mode
+            ReadCollection:write({ [coll_name] = true })
+            return
+        end
         if type(zen_plugin.config.group_view) ~= "table" then zen_plugin.config.group_view = {} end
         local gv = zen_plugin.config.group_view
         if type(gv.display_mode) ~= "table" then gv.display_mode = {} end
@@ -144,18 +165,48 @@ local function apply_collections()
         local sorted = {}
         for _k, entry in pairs(coll) do
             if type(entry) == "table" and type(entry.file) == "string" and entry.file ~= "" then
-                table.insert(sorted, entry)
+                table.insert(sorted, {
+                    file = entry.file,
+                    text = entry.text,
+                    order = entry.order,
+                    attr = entry.attr,
+                })
             end
         end
 
-        table.sort(sorted, function(a, b)
-            local a_order = tonumber(a.order) or 0
-            local b_order = tonumber(b.order) or 0
-            if a_order == b_order then
-                return (a.file or "") < (b.file or "")
+        local settings = ReadCollection.coll_settings[coll_name] or {}
+        local collate_id = settings.collate
+        local BookList = collate_id and require("ui/widget/booklist")
+        local collate = BookList and BookList.collates[collate_id]
+        local sorting_func
+
+        if collate then
+            local FileManager = require("apps/filemanager/filemanager")
+            local ui = FileManager.instance
+            if not ui then
+                ui = require("apps/reader/readerui").instance
             end
-            return a_order < b_order
-        end)
+            if collate.item_func then
+                for _i, item in ipairs(sorted) do
+                    collate.item_func(item, ui)
+                end
+            end
+            sorting_func = collate.init_sort_func()
+            if settings.collate_reverse then
+                local unreversed = sorting_func
+                sorting_func = function(a, b) return unreversed(b, a) end
+            end
+        else
+            sorting_func = function(a, b)
+                local a_order = tonumber(a.order) or 0
+                local b_order = tonumber(b.order) or 0
+                if a_order == b_order then
+                    return (a.file or "") < (b.file or "")
+                end
+                return a_order < b_order
+            end
+        end
+        table.sort(sorted, sorting_func)
 
         local files = {}
         for _i, entry in ipairs(sorted) do
@@ -445,7 +496,7 @@ local function apply_collections()
     end
 
     ---------------------------------------------------------------------------
-    -- Shared sort submenu (unchanged)
+    -- Shared per-collection sort submenu
     ---------------------------------------------------------------------------
     local function show_coll_sort_submenu(coll_name, close_parent, on_sort_applied)
         local ReadCollection = require("readcollection")
@@ -489,6 +540,7 @@ local function apply_collections()
         table.insert(sort_buttons, {{
             text     = "\u{F04BF}  " .. _g("Order") .. "  \u{25B6}",
             align    = "left",
+            enabled  = current ~= nil,
             callback = function()
                 UIManager_ss:close(sort_dialog)
                 local ok_fm, FM = pcall(require, "apps/filemanager/filemanager")
@@ -505,6 +557,25 @@ local function apply_collections()
                 })
             end,
         }})
+        if current then
+            table.insert(sort_buttons, {})
+            table.insert(sort_buttons, {{
+                text = "\u{F099B}  " .. _g("Clear"),
+                align = "left",
+                callback = function()
+                    UIManager_ss:close(sort_dialog)
+                    local ordered = {}
+                    for _i, file in ipairs(get_collection_files_in_cover_order(coll_name)) do
+                        ordered[#ordered + 1] = { file = file }
+                    end
+                    ReadCollection:updateCollectionOrder(coll_name, ordered)
+                    coll_settings.collate = nil
+                    coll_settings.collate_reverse = nil
+                    ReadCollection:write({ [coll_name] = true })
+                    if on_sort_applied then on_sort_applied() end
+                end,
+            }})
+        end
         sort_dialog = ButtonDialog:new{
             title       = _g("Sort collection by"),
             title_align = "center",
@@ -514,7 +585,7 @@ local function apply_collections()
     end
 
     ---------------------------------------------------------------------------
-    -- Context menus (unchanged - keep original)
+    -- Context menus
     ---------------------------------------------------------------------------
     local function show_coll_item_menu(fm_coll, item, coll_list)
         if not item then return false end
@@ -579,7 +650,7 @@ local function apply_collections()
         end
 
         local function showDisplaySubmenu()
-            local cur_mode = get_coll_display_mode()
+            local cur_mode = get_coll_display_mode(coll_name)
             local view_dialog
             local function viewBtn(label, icon, mode)
                 local active = cur_mode == mode
@@ -589,7 +660,7 @@ local function apply_collections()
                     enabled  = not active,
                     callback = function()
                         UIManager_cm:close(view_dialog)
-                        set_coll_display_mode(mode)
+                        set_coll_display_mode(mode, coll_name)
                         reopen_collection_list()
                     end,
                 }}
@@ -614,7 +685,9 @@ local function apply_collections()
                 _zen_group_name      = display_name,
                 _zen_group_subtitle  = book_count == 1 and _("1 book")
                                       or (tostring(book_count) .. " " .. _("books")),
-                _zen_sort_cb         = function() show_coll_sort_submenu(coll_name, function() end) end,
+                _zen_sort_cb         = function()
+                    show_coll_sort_submenu(coll_name, function() end, reopen_collection_list)
+                end,
                 _zen_display_cb      = showDisplaySubmenu,
                 _zen_prepend_buttons = prepend_buttons,
                 _zen_extra_buttons   = extra_buttons,
@@ -633,7 +706,11 @@ local function apply_collections()
             table.insert(buttons, {{
                 text     = "\u{F04BF}  " .. _("Sort") .. "  \u{25B8}",
                 align    = "left",
-                callback = function() show_coll_sort_submenu(coll_name, function() UIManager_cm:close(button_dialog) end) end,
+                callback = function()
+                    show_coll_sort_submenu(coll_name,
+                        function() UIManager_cm:close(button_dialog) end,
+                        reopen_collection_list)
+                end,
             }})
             for _i, row in ipairs(extra_buttons) do table.insert(buttons, row) end
             button_dialog = ButtonDialog:new{ buttons = apply_button_group_font(buttons) }
@@ -668,9 +745,9 @@ local function apply_collections()
         end
 
         local function showDisplaySubmenu()
-            local cur_mode = get_coll_display_mode()
+            local cur_mode = get_coll_display_mode(raw_coll_name)
             local function apply_mode(mode)
-                set_coll_display_mode(mode)
+                set_coll_display_mode(mode, raw_coll_name)
             end
             local view_dialog
             local function viewBtn(label, icon, mode)
@@ -1103,7 +1180,7 @@ local function apply_collections()
             or (ok and resolved_name == ReadCollection.default_collection_name)
 
         if is_enabled() then
-            _coll_display_mode_override = get_coll_display_mode()
+            _coll_display_mode_override = get_coll_display_mode(resolved_name)
             _patching_named_coll = true
         end
         orig_onShowColl(self, collection_name)

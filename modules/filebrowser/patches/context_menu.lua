@@ -14,7 +14,9 @@ local function apply_context_menu()
     local _            = require("gettext")
     local C_           = _.pgettext
     local book_status  = require("common/book_status")
+    local ConfigManager = require("config/manager")
     local paths        = require("common/paths")
+    local SharedState  = require("common/shared_state")
     local icons        = require("common/inline_icon_map")
     local submenu_arrow = icons.arrow_right
     local zen_plugin   = rawget(_G, "__ZEN_UI_PLUGIN")
@@ -94,6 +96,26 @@ local function apply_context_menu()
         if type(tv.textw) == "table" then
             tv.textw[1] = new_scroll
         end
+    end
+
+    -- Keep Zen's path-keyed folder settings aligned with successful moves.
+    local orig_FileManager_moveFile = FileManager.moveFile
+    FileManager.moveFile = function(self, from, to, ...)
+        local ffiUtil = require("ffi/util")
+        local lfs = require("libs/libkoreader-lfs")
+        local source_is_folder = lfs.attributes(from, "mode") == "directory"
+        local source = source_is_folder and (ffiUtil.realpath(from) or from)
+        local destination = to
+        if source_is_folder and lfs.attributes(to, "mode") == "directory" then
+            destination = ffiUtil.joinPath(to, ffiUtil.basename(source))
+        end
+
+        local moved = orig_FileManager_moveFile(self, from, to, ...)
+        if moved and source_is_folder then
+            destination = ffiUtil.realpath(destination) or destination
+            pcall(ConfigManager.moveFolderPathSettings, source, destination)
+        end
+        return moved
     end
 
     -- MoveChooser
@@ -1341,6 +1363,10 @@ local function apply_context_menu()
                                 local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
                                 if ok_bim then
                                     BookInfoManager:deleteBookInfo(file)
+                                    local home = zen_plugin and SharedState.get(zen_plugin, "home")
+                                    if home and type(home.invalidateBookCache) == "function" then
+                                        home.invalidateBookCache(file)
+                                    end
                                     if self_fc.filemanager_menu then
                                         self_fc.filemanager_menu.files_updated = true
                                     end
@@ -2007,7 +2033,6 @@ local function apply_context_menu()
                                 ok_callback = function()
                                     local ReadHistory = require("readhistory")
                                     ReadHistory:removeItemByPath(file)
-                                    local SharedState = require("common/shared_state")
                                     local plug = zen_plugin or rawget(_G, "__ZEN_UI_PLUGIN")
                                     local home = plug and SharedState.get(plug, "home")
                                     if home and home.rebuildActive then

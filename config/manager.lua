@@ -777,6 +777,54 @@ function M.save(config)
     _current_config = config
 end
 
+function M.moveFolderPathSettings(from_path, to_path)
+    if type(from_path) ~= "string" or type(to_path) ~= "string" then return false end
+
+    local paths = require("common/paths")
+    local function normalize(path)
+        path = paths.normPath(path:gsub("/+$", ""))
+        return path ~= "" and path or "/"
+    end
+
+    local source = normalize(from_path)
+    local destination = normalize(to_path)
+    if source == destination then return false end
+
+    local cfg = M.get()
+    if type(cfg) ~= "table" then cfg = M.load() end
+    local changed = false
+
+    for _i, map_name in ipairs({ "folder_sort", "folder_display_mode" }) do
+        local settings = cfg[map_name]
+        if type(settings) == "table" then
+            local moves = {}
+            for key, value in pairs(settings) do
+                if type(key) == "string" then
+                    local normalized_key = normalize(key)
+                    if normalized_key == source
+                            or normalized_key:sub(1, #source + 1) == source .. "/" then
+                        moves[#moves + 1] = {
+                            from = key,
+                            to = destination .. normalized_key:sub(#source + 1),
+                            value = value,
+                        }
+                    end
+                end
+            end
+            for _j, move in ipairs(moves) do
+                settings[move.from] = nil
+                if settings[move.to] == nil then
+                    settings[move.to] = move.value
+                end
+                changed = true
+            end
+        end
+    end
+
+    if changed then M.save(cfg) end
+    return changed
+end
+
 -- Kept for deletePluginSettings: identifies the legacy G_reader_settings key
 -- so it can be cleaned up alongside the dedicated file.
 function M.key()

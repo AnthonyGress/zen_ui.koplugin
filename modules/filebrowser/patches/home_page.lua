@@ -73,6 +73,11 @@ local function invalidate_home_book_cache(path)
             _home_book_cache[key] = nil
         end
     end
+    for i = #_home_book_cache_order, 1, -1 do
+        if _home_book_cache_order[i]:sub(1, #prefix) == prefix then
+            table.remove(_home_book_cache_order, i)
+        end
+    end
 end
 
 local function cache_home_book(key, book)
@@ -2088,6 +2093,10 @@ end
 
 function M.getActivePage()
     return _home_menu and (_home_menu.page or 1)
+end
+
+function M.invalidateBookCache(path)
+    invalidate_home_book_cache(path)
 end
 
 function M.rebuildActive()
