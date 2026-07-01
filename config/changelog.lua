@@ -137,6 +137,7 @@ return {
         "Add new action Zen UI - Library (Respects Restore last location)",
         "Add toggles in recently read strip widget to hide unread/finished books",
         "Add mark new and updated books as TBR (Advanced > Mark new and updated books as TBR)",
+        "Update: Folder covers match order inside",
         "Add display mode per folder & collections",
         "Add separate display modes for OPDS (Advanced > Zen OPDS)",
         "Fixed a bug in Launcher settings showing reader actions",
