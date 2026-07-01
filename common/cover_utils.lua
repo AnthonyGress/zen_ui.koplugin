@@ -337,11 +337,23 @@ function CoverUtils.collect(dir_path, chooser, max_covers, need_copy, entries)
 
     if not entries then
         if not chooser then return covers end
-        local lfs = require("libs/libkoreader-lfs")
-        local G = rawget(_G, "G_reader_settings")
-        local collate = G and G:readSetting("collate") or "strcoll"
-        local ok, iter, dir_obj = pcall(lfs.dir, dir_path)
-        if ok then
+        -- Reuse the browser pipeline so cover order matches the opened folder.
+        if type(chooser.genItemTableFromPath) == "function" then
+            local was_collecting = chooser._zen_folder_cover_collect
+            chooser._zen_folder_cover_collect = true
+            local ok, item_table = pcall(chooser.genItemTableFromPath, chooser, dir_path)
+            chooser._zen_folder_cover_collect = was_collecting
+            if ok and type(item_table) == "table" then
+                entries = item_table
+            end
+        end
+
+        if not entries then
+            local lfs = require("libs/libkoreader-lfs")
+            local G = rawget(_G, "G_reader_settings")
+            local collate = G and G:readSetting("collate") or "strcoll"
+            local ok, iter, dir_obj = pcall(lfs.dir, dir_path)
+            if not ok then return covers end
             local doc_exts = { epub=1, pdf=1, djvu=1, cbz=1, cbr=1, mobi=1, azw3=1, fb2=1, txt=1, rtf=1, html=1, chm=1, zip=1, kpub=1, epub3=1 }
             local files = {}
             for f in iter, dir_obj do
@@ -375,15 +387,6 @@ function CoverUtils.collect(dir_path, chooser, max_covers, need_copy, entries)
             entries = {}
             for i = 1, math.min(#files, max_covers * 2) do
                 table.insert(entries, { is_file = true, file = files[i].path })
-            end
-        else
-            -- lfs.dir failed (e.g. virtual path like a collection name);
-            -- try the chooser's item table as a fallback.
-            if chooser and type(chooser.genItemTableFromPath) == "function" then
-                local t = chooser:genItemTableFromPath(dir_path)
-                entries = type(t) == "table" and t or {}
-            else
-                entries = {}
             end
         end
     end

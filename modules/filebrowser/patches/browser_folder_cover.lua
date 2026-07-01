@@ -283,6 +283,20 @@ local function apply_browser_folder_cover()
     local orig_FileChooser_genItemTableFromPath = FileChooser.genItemTableFromPath
 
     function FileChooser:genItemTableFromPath(path)
+        -- Nested cover lookups need full sorting without replacing the browser cache.
+        if self._zen_folder_cover_collect then
+            local override = _folder_sort_override(path)
+            local collate_mode = type(override) == "table" and override.collate
+                or G_reader_settings:readSetting("collate", "strcoll")
+            local collate = (self.collates and self.collates[collate_mode]) or self:getCollate()
+            local reverse_collate = type(override) == "table"
+                and override.reverse or G_reader_settings:isTrue("reverse_collate")
+            local result = orig_FileChooser_genItemTableFromPath(self, path)
+            if collate_mode == "access" then
+                result = _apply_history_order(self, result, collate, reverse_collate)
+            end
+            return result
+        end
         if not self._dummy and self.name == "filemanager" then
             local override = _folder_sort_override(path)
             local collate_mode = type(override) == "table" and override.collate
