@@ -716,6 +716,8 @@ function ZenUI:deletePluginSettings()
     local gs = rawget(_G, "G_reader_settings")
     if gs and type(gs.delSetting) == "function" then
         pcall(gs.delSetting, gs, ConfigManager.key())
+        pcall(gs.delSetting, gs, "zen_ui_folder_sort")
+        pcall(gs.delSetting, gs, "zen_ui_folder_display_mode")
         pcall(gs.flush, gs)
     end
 

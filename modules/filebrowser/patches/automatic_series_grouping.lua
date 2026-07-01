@@ -194,9 +194,12 @@ local function apply_automatic_series_grouping()
             if type(collate.item_func) == "function" then
                 for _i, item in ipairs(items) do
                     if item and item.path then
-                        pcall(collate.item_func, item, file_chooser)
+                        pcall(collate.item_func, item, file_chooser.ui)
                     end
                 end
+            end
+            for _i, item in ipairs(items) do
+                ensure_sort_doc_props(item)
             end
 
             local ok_sort_func, sort_func = pcall(
@@ -400,6 +403,13 @@ local function apply_automatic_series_grouping()
         local items = clone_series_items(group_item.series_items)
         local parent_path = file_chooser.path
         self:sortSeriesItems(items, group_item, file_chooser)
+        local display_api = rawget(_G, "__ZEN_FOLDER_DISPLAY_MODE")
+        local display_key = group_item._zen_sort_key or group_item.path
+        if display_api and type(display_api.get) == "function"
+                and display_api.get(display_key)
+                and type(display_api.apply) == "function" then
+            display_api.apply(display_key)
+        end
 
         current_series_group = {
             series_name = group_item.text,

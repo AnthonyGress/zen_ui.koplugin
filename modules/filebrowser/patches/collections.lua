@@ -480,6 +480,7 @@ local function apply_collections()
                     if coll_settings then
                         coll_settings.collate = opt.key
                         coll_settings.collate_reverse = nil
+                        ReadCollection:write({ [coll_name] = true })
                     end
                     if on_sort_applied then on_sort_applied() end
                 end,
@@ -569,6 +570,42 @@ local function apply_collections()
             }})
         end
 
+        local function reopen_collection_list()
+            if fm_coll.coll_list then
+                UIManager_cm:close(fm_coll.coll_list)
+                fm_coll.coll_list = nil
+            end
+            fm_coll:onShowCollList()
+        end
+
+        local function showDisplaySubmenu()
+            local cur_mode = get_coll_display_mode()
+            local view_dialog
+            local function viewBtn(label, icon, mode)
+                local active = cur_mode == mode
+                return {{
+                    text     = icon .. "  " .. label .. (active and "  \u{2713}" or ""),
+                    align    = "left",
+                    enabled  = not active,
+                    callback = function()
+                        UIManager_cm:close(view_dialog)
+                        set_coll_display_mode(mode)
+                        reopen_collection_list()
+                    end,
+                }}
+            end
+            view_dialog = ButtonDialog:new{
+                title       = _("Display mode"),
+                title_align = "center",
+                buttons     = apply_button_group_font({
+                    viewBtn(_("Mosaic"),          "\u{F00A}", "mosaic_image"),
+                    viewBtn(_("List (detailed)"), "\u{F03A}", "list_image_meta"),
+                    viewBtn(_("List (basic)"),    "\u{F0CA}", "list_image_filename"),
+                }),
+            }
+            UIManager_cm:show(view_dialog)
+        end
+
         local ok_fm, FM = pcall(require, "apps/filemanager/filemanager")
         local fm = ok_fm and FM and FM.instance
         if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
@@ -578,12 +615,21 @@ local function apply_collections()
                 _zen_group_subtitle  = book_count == 1 and _("1 book")
                                       or (tostring(book_count) .. " " .. _("books")),
                 _zen_sort_cb         = function() show_coll_sort_submenu(coll_name, function() end) end,
+                _zen_display_cb      = showDisplaySubmenu,
                 _zen_prepend_buttons = prepend_buttons,
                 _zen_extra_buttons   = extra_buttons,
             })
         else
             local buttons = {}
             for _i, row in ipairs(prepend_buttons) do table.insert(buttons, row) end
+            table.insert(buttons, {{
+                text     = "\u{F06D0}  " .. _("Display") .. "  \u{25B8}",
+                align    = "left",
+                callback = function()
+                    UIManager_cm:close(button_dialog)
+                    showDisplaySubmenu()
+                end,
+            }})
             table.insert(buttons, {{
                 text     = "\u{F04BF}  " .. _("Sort") .. "  \u{25B8}",
                 align    = "left",
