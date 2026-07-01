@@ -1660,7 +1660,7 @@ msgid "Show author"
 msgstr "显示作者"
 
 msgid "Show author below cover (mosaic)"
-msgstr "Show author below cover (mosaic)"
+msgstr "拼图模式下显示作者"
 
 msgid "Show badges"
 msgstr "显示徽章"
@@ -1705,7 +1705,7 @@ msgid "Show labels"
 msgstr "显示标签"
 
 msgid "Show new banner"
-msgstr "Show new banner"
+msgstr "显示“新建”标识"
 
 msgid "Show other items"
 msgstr "显示其他项目"
@@ -1729,7 +1729,7 @@ msgid "Show spine lines"
 msgstr "显示书脊线"
 
 msgid "Show title below cover (mosaic)"
-msgstr "Show title below cover (mosaic)"
+msgstr "拼图模式下显示书名"
 
 msgid "Show top border"
 msgstr "显示顶部边框"
@@ -1801,7 +1801,7 @@ msgid "Sort series"
 msgstr "按系列排序"
 
 msgid "Stable"
-msgstr "Stable"
+msgstr "稳定版"
 
 msgid "Stack"
 msgstr "堆叠"
@@ -2149,28 +2149,28 @@ msgid "Z-Library"
 msgstr "Z-Library"
 
 msgid "Zen"
-msgstr "禅"
+msgstr "Zen"
 
 msgid "Zen highlight menu"
-msgstr "禅 高亮菜单"
+msgstr "Zen 高亮菜单"
 
 msgid "Zen Mode"
-msgstr "禅模式"
+msgstr "Zen模式"
 
 msgid "Zen mode"
-msgstr "禅 模式"
+msgstr "Zen 模式"
 
 msgid "Zen OPDS"
-msgstr "禅 OPDS"
+msgstr "Zen OPDS"
 
 msgid "Zen Presets"
-msgstr "Zen Presets"
+msgstr "Zen 预设"
 
 msgid "Zen quick lookup"
-msgstr "禅 快速查询"
+msgstr "Zen 快速查询"
 
 msgid "Zen UI"
-msgstr "禅 UI"
+msgstr "Zen UI"
 
 msgid "Zen UI - Authors"
 msgstr "Zen UI - 作者"
@@ -2200,16 +2200,16 @@ msgid "Zen UI - Toggle top reader status bar"
 msgstr "Zen UI - 切换顶部阅读器状态栏"
 
 msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - 切换禅模式"
+msgstr "Zen UI - 切换Zen模式"
 
 msgid "Zen UI defaults"
-msgstr "禅 UI 默认设置"
+msgstr "Zen UI 默认设置"
 
 msgid "Zen UI is up to date."
-msgstr "禅 UI 已是最新版本。"
+msgstr "Zen UI 已是最新版本。"
 
 msgid "Zen UI: "
-msgstr "禅 UI: "
+msgstr "Zen UI: "
 
 msgid "Zen UI: folder not found: "
 msgstr "Zen UI: 找不到文件夹: "
