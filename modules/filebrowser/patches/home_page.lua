@@ -1825,6 +1825,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
         local row_ctx = {
             width = content_w,
             height = content_h,
+            menu = menu,
             config = dcfg,
             data = data_provider,
             openBook = open_book,
