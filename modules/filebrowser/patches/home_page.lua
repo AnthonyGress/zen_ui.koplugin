@@ -1665,6 +1665,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
     local TextWidget = require("ui/widget/textwidget")
     local LeftContainer = require("ui/widget/container/leftcontainer")
     local FrameContainer = require("ui/widget/container/framecontainer")
+    local ScrollableContainer = require("ui/widget/container/scrollablecontainer")
     local Font = require("ui/font")
 
     local prev_focus_key = menu._zen_home_focus_key
@@ -1905,6 +1906,17 @@ local function build_home_content(menu, dcfg, rows, data_provider)
         set_home_focus(menu, restore_i)
     end
 
+    local sc = ScrollableContainer:new{
+        dimen = Geom:new{ w = content_w, h = body_h },
+        scroll_bar_width = 0, -- hidden; prevents horizontal scrollbar from appearing
+        swipe_full_view = false,
+    }
+    sc.show_parent = menu
+    sc[1] = VerticalGroup:new(children)
+    if sc.initState then sc:initState() end
+    -- Remove the zero-width scrollbar to avoid drawing artifacts
+    sc._v_scroll_bar = nil
+
     return HorizontalGroup:new{
         HorizontalSpan:new{ width = side_pad },
         FrameContainer:new{
@@ -1913,7 +1925,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             padding = 0,
             bordersize = 0,
             background = home_frame_bg(),
-            VerticalGroup:new(children),
+            sc,
         },
         HorizontalSpan:new{ width = right_pad },
     }
