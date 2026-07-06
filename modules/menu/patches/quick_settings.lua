@@ -68,7 +68,7 @@ local function apply_quick_settings()
     -- ============================================================
 
     local config_default = {
-        button_order = { "wifi", "night", "frontlight", "gyro", "rotate", "zen", "lockdown", "usb", "search", "quickrss", "cloud", "zlibrary", "calibre", "calibre_search", "notion", "streak", "opds", "localsend", "filebrowser", "puzzle", "crossword", "connections", "chess", "casualchess", "stats_progress", "stats_calendar", "battery_stats", "kosync", "restart", "exit", "sleep", "screenshot" },
+        button_order = { "wifi", "night", "frontlight", "gyro", "rotate", "zen", "lockdown", "incognito", "usb", "search", "quickrss", "cloud", "zlibrary", "calibre", "calibre_search", "notion", "streak", "opds", "localsend", "filebrowser", "puzzle", "crossword", "connections", "chess", "casualchess", "stats_progress", "stats_calendar", "battery_stats", "kosync", "restart", "exit", "sleep", "screenshot" },
         show_buttons = {
             wifi = true,
             night = true,
@@ -77,6 +77,7 @@ local function apply_quick_settings()
             rotate = true,
             zen = true,
             lockdown = false,
+            incognito = false,
             search = false,
             usb = false,
             quickrss = false,
@@ -593,6 +594,22 @@ local function apply_quick_settings()
             callback = function(touch_menu)
                 if zen_plugin.onToggleLockdownMode then
                     zen_plugin:onToggleLockdownMode()
+                end
+                if touch_menu and touch_menu.updateItems then
+                    touch_menu:updateItems(1)
+                end
+            end,
+        },
+        incognito = {
+            icon = "quick_incognito",
+            label = _("Incognito"),
+            active_func = function()
+                local features = zen_plugin.config and zen_plugin.config.features
+                return type(features) == "table" and features.incognito_mode == true
+            end,
+            callback = function(touch_menu)
+                if zen_plugin.onToggleIncognitoMode then
+                    zen_plugin:onToggleIncognitoMode()
                 end
                 if touch_menu and touch_menu.updateItems then
                     touch_menu:updateItems(1)

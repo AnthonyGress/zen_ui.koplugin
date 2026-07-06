@@ -9,6 +9,7 @@ local PATCH_MODULES = {
     opds                   = "modules/global/patches/opds",
     kindle_network_profile_guard = "modules/global/patches/kindle_network_profile_guard",
     lockdown_mode          = "modules/global/patches/lockdown_mode",
+    incognito_mode         = "modules/global/patches/incognito_mode",
     menu_font              = "modules/global/patches/menu_font",
 }
 
@@ -73,6 +74,13 @@ function M.init(logger, plugin)
     local lockdown_mode_fn = load_patch("lockdown_mode")
     if lockdown_mode_fn then
         run_patch(logger, plugin, "lockdown_mode", lockdown_mode_fn)
+    end
+
+    -- Always install the incognito monkeypatches; they no-op unless the
+    -- incognito_mode feature flag is live, so toggling needs no restart.
+    local incognito_mode_fn = load_patch("incognito_mode")
+    if incognito_mode_fn then
+        run_patch(logger, plugin, "incognito_mode", incognito_mode_fn)
     end
 
     local menu_font_fn = load_patch("menu_font")

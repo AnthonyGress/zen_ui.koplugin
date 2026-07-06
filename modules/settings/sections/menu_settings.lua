@@ -43,6 +43,7 @@ function M.build(ctx)
         { key = "gyro", text = _("Gyroscope"), detect = function() return Device:hasGSensor() end },
         { key = "zen",     text = _("Zen mode")    },
         { key = "lockdown",text = _("Lockdown")    },
+        { key = "incognito", text = _("Incognito")  },
         { key = "rotate",  text = _("Rotate")      },
         { key = "usb",     text = _("USB")         },
         { key = "search",  text = _("File search") },

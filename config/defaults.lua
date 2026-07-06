@@ -63,6 +63,7 @@ local defaults = {
         dict_quick_lookup    = true,
         custom_icons_enabled = false,
         lockdown_mode        = false,
+        incognito_mode       = false,
         zen_opds             = true,
     },
     navbar = {
@@ -102,7 +103,7 @@ local defaults = {
         show_top_border = false,
     },
     quick_settings = {
-        button_order = { "wifi", "night", "frontlight", "gyro", "rotate", "zen", "lockdown", "usb", "search", "quickrss", "cloud", "zlibrary", "calibre", "notion", "streak", "opds", "filebrowser", "restart", "exit", "sleep" },
+        button_order = { "wifi", "night", "frontlight", "gyro", "rotate", "zen", "lockdown", "incognito", "usb", "search", "quickrss", "cloud", "zlibrary", "calibre", "notion", "streak", "opds", "filebrowser", "restart", "exit", "sleep" },
         show_buttons = {
             wifi = true,
             night = true,
@@ -111,6 +112,7 @@ local defaults = {
             rotate = true,
             zen = true,
             lockdown = false,
+            incognito = false,
             usb = false,
             search = false,
             quickrss = false,

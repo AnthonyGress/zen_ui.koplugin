@@ -307,6 +307,12 @@ function M.onDispatcherRegisterActions()
         title = _("Zen UI - Toggle Lockdown Mode"),
         general = true,
     })
+    Dispatcher:registerAction("zen_ui_toggle_incognito_mode", {
+        category = "none",
+        event = "ToggleIncognitoMode",
+        title = _("Zen UI - Toggle Incognito Mode"),
+        general = true,
+    })
     Dispatcher:registerAction("zen_ui_toggle_reader_top_status_bar", {
         category = "none",
         event = "ToggleReaderTopStatusBar",
@@ -405,6 +411,14 @@ function M.onToggleLockdownMode(plugin)
     return true
 end
 
+function M.onToggleIncognitoMode(plugin)
+    local features = plugin and plugin.config and plugin.config.features
+    if type(features) ~= "table" then return false end
+    features.incognito_mode = not features.incognito_mode
+    save_config(plugin)
+    return true
+end
+
 function M.onToggleReaderTopStatusBar(plugin)
     return set_top_status_bar(plugin, not is_top_status_bar_enabled(plugin))
 end
@@ -453,6 +467,7 @@ function M.install(target)
     target.onDispatcherRegisterActions = M.onDispatcherRegisterActions
     target.onToggleZenMode = M.onToggleZenMode
     target.onToggleLockdownMode = M.onToggleLockdownMode
+    target.onToggleIncognitoMode = M.onToggleIncognitoMode
     target.onToggleReaderTopStatusBar = M.onToggleReaderTopStatusBar
     target.onToggleReaderBottomStatusBar = M.onToggleReaderBottomStatusBar
     target.onToggleReaderStatusBars = M.onToggleReaderStatusBars
