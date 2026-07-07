@@ -19,6 +19,7 @@ if _plugin_root then
         ["folder_open"]         = "folder_open.svg",
         -- Highlight / lookup popup (shared by highlight_menu + dict_quick_lookup)
         ["lookup.highlight"]    = "lookup_highlight.svg",
+        ["lookup.ai"]           = "lookup_ai.svg",
         ["lookup.vocab"]        = "lookup_vocab.svg",
         ["lookup.vocab_remove"] = "lookup_vocab_remove.svg",
         ["lookup.dictionary"]   = "lookup_dictionary.svg",

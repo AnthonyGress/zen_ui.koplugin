@@ -598,6 +598,22 @@ function M.build(ctx)
                 end,
             },
             {
+                text = _("Show AI assistant"),
+                help_text = _("Show a button for the Assistant plugin, if installed."),
+                checked_func = function()
+                    return type(config.highlight_lookup) == "table"
+                        and config.highlight_lookup.show_ai_assistant == true
+                end,
+                callback = function()
+                    if type(config.highlight_lookup) ~= "table" then
+                        config.highlight_lookup = {}
+                    end
+                    config.highlight_lookup.show_ai_assistant =
+                        config.highlight_lookup.show_ai_assistant ~= true
+                    plugin:saveConfig()
+                end,
+            },
+            {
                 text = _("Show other items"),
                 help_text = _("Show other KOReader quick lookup options alongside Zen buttons."),
                 checked_func = function()

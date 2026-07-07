@@ -36,11 +36,22 @@ local function apply()
         return type(cfg) == "table" and cfg.allow_unknown_items == true
     end
 
+    local function show_ai_assistant()
+        local cfg = _plugin_ref
+            and _plugin_ref.config
+            and _plugin_ref.config.highlight_lookup
+        return type(cfg) == "table" and cfg.show_ai_assistant == true
+    end
+
     -- IDs we handle explicitly; everything else is "unknown".
+    -- assistant_* are the dict-popup buttons of assistant.koplugin; the Zen
+    -- AI icon replaces them (see ai_dict_button).
     local KNOWN_IDS = {
         highlight = true, search = true, wikipedia = true,
         translate = true, close = true, save = true,
         vocabulary = true, prev_dict = true, next_dict = true,
+        assistant_dictionary = true, assistant_wikipedia = true,
+        assistant_term_xray = true,
     }
 
     -- Icon mapping for pool button ids.
@@ -53,6 +64,29 @@ local function apply()
         prev_dict = "prev_dict",
         next_dict = "next_dict",
     }
+
+    -- AI assistant icon (assistant.koplugin). Built directly against the
+    -- plugin, like the other Zen icons, so it shows whenever the plugin is
+    -- loaded regardless of which buttons it registered itself. Opens the
+    -- main AI dialog with the looked-up word.
+    local function ai_dict_button(dict_widget)
+        local assistant = dict_widget.ui and dict_widget.ui.assistant
+        if not assistant or not assistant.assistant_dialog then return nil end
+        return {
+            id = "zen_ai_assistant",
+            icon = "lookup.ai",
+            callback = function()
+                if not assistant:isConfigured() then return end
+                local NetworkMgr = require("ui/network/manager")
+                NetworkMgr:runWhenOnline(function()
+                    UIManager:nextTick(function()
+                        assistant.assistant_dialog:show(
+                            dict_widget.lookupword or dict_widget.word)
+                    end)
+                end)
+            end,
+        }
+    end
 
     -- Build a minimal icon-only spec from an original button.
     local function icon_btn(orig, icon)
@@ -213,6 +247,14 @@ local function apply()
                 table.insert(icon_row, icon_btn(by_id["translate"], ICON_MAP.translate))
             end
 
+            -- AI assistant.
+            if show_ai_assistant() then
+                local ai = ai_dict_button(self_dql)
+                if ai then
+                    table.insert(icon_row, ai)
+                end
+            end
+
             -- Search.
             if by_id["search"] then
                 table.insert(icon_row, icon_btn(by_id["search"], ICON_MAP.search))
@@ -305,10 +347,12 @@ local function apply()
         -- vocab button built below after post-processing catches VocabBuilder's row
         local w = show_wikipedia() and icon_btn(by_id["wikipedia"], "lookup.wikipedia") or nil
         local s = icon_btn(by_id["search"],    "lookup.search")
+        local ai = show_ai_assistant() and ai_dict_button(dict_widget) or nil
         if h then table.insert(icon_row, h) end
         -- vocab slot placeholder: filled in post-process below
         if w then table.insert(icon_row, w) end
         table.insert(icon_row, translate_btn)
+        if ai then table.insert(icon_row, ai) end
         if s then table.insert(icon_row, s) end
 
         if #icon_row == 0 then
