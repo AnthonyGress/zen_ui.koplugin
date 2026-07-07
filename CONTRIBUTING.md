@@ -123,7 +123,7 @@ The project config is in `.luacheckrc` and is aligned with KOReader's baseline (
    ```sh
    git commit -m "Fix progress bar not updating after resume"
    ```
-7. Push your branch and open a Pull Request against `main`.
+7. Push your branch and open a Pull Request against `dev`.
 
 ### Extracting translatable strings
 
