@@ -20,6 +20,14 @@ function M.build(ctx)
         return utils.make_enable_feature_item(feature, text, config, save_and_apply)
     end
 
+    -- Returns true if a plugin slot is loaded in the active UI; fails open if no UI yet.
+    local function hasPlugin(slot)
+        local ok_f, FM = pcall(require, "apps/filemanager/filemanager")
+        local ok_r, RU = pcall(require, "apps/reader/readerui")
+        local ui = (ok_f and FM.instance) or (ok_r and RU.instance)
+        return ui == nil or ui[slot] ~= nil
+    end
+
     local items = {}
 
     -- -------------------------------------------------------------------------
@@ -600,6 +608,7 @@ function M.build(ctx)
             {
                 text = _("Show AI assistant"),
                 help_text = _("Show a button for the Assistant plugin, if installed."),
+                show_func = function() return hasPlugin("assistant") end,
                 checked_func = function()
                     return type(config.highlight_lookup) == "table"
                         and config.highlight_lookup.show_ai_assistant == true
