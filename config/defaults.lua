@@ -247,7 +247,14 @@ local defaults = {
         night_value = 5,
     },
     stats_page = {
-        rows = { "today", "this_month", "this_year", "all_time", "library" },
+        stat_style = "divider",
+        blocks = {
+            { id = "today" },
+            { id = "trend_graph", metric = "pages", range_days = 14 },
+            { id = "goal_progress" },
+            { id = "calendar" },
+            { id = "library" },
+        },
     },
     group_view = {
         include_new_in_tbr = false,

@@ -159,7 +159,7 @@ return {
         "Add row break in Launcher",
         "Add unified push/pull sync button to Actions",
         "Add Incognito mode to Controls/Actions",
-        "Add home api for 3rd party plugins",
+        "Add Home API for 3rd party plugins",
         "Add AI Assistant icon in lookup/highlight",
         "Update status bar API to allow images",
         "Update Zen Updater to support Android ARM",
