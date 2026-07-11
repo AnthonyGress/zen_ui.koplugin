@@ -6,6 +6,7 @@ local _ = require("gettext")
 local Rakuyomi = require("common/rakuyomi")
 local SharedState = require("common/shared_state")
 local global_settings = require("modules/settings/sections/global_settings")
+local stats_settings = require("modules/settings/sections/stats_settings")
 
 local M = {}
 
@@ -14,6 +15,8 @@ function M.build(ctx)
     local plugin = ctx.plugin
     local settings_apply = ctx.settings_apply
     local items = {}
+
+    table.insert(items, stats_settings.build(ctx))
 
     do
         if type(config.opds) ~= "table" then

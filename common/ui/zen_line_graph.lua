@@ -97,6 +97,18 @@ function LineGraph:handleEvent()
     return false
 end
 
+function LineGraph:getPointIndexAt(x)
+    local count = #self.series
+    if count == 0 then return nil end
+    if count == 1 then return 1 end
+    local pad_l = Screen:scaleBySize(28)
+    local pad_r = Screen:scaleBySize(10)
+    local plot_w = math.max(1, self.dimen.w - pad_l - pad_r)
+    local ratio = (x - pad_l) / plot_w
+    ratio = math.min(1, math.max(0, ratio))
+    return math.floor(ratio * (count - 1) + 0.5) + 1
+end
+
 function LineGraph:paintTo(bb, x, y)
     local w = self.dimen.w
     local h = self.dimen.h

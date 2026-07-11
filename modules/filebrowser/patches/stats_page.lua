@@ -4,7 +4,6 @@
 local Blitbuffer = require("ffi/blitbuffer")
 local ButtonDialog = require("ui/widget/buttondialog")
 local CenterContainer = require("ui/widget/container/centercontainer")
-local BD = require("ui/bidi")
 local Device = require("device")
 local Font = require("ui/font")
 local FrameContainer = require("ui/widget/container/framecontainer")
@@ -12,6 +11,8 @@ local Geom = require("ui/geometry")
 local GestureRange = require("ui/gesturerange")
 local HorizontalGroup = require("ui/widget/horizontalgroup")
 local HorizontalSpan = require("ui/widget/horizontalspan")
+local IconWidget = require("ui/widget/iconwidget")
+local InputContainer = require("ui/widget/container/inputcontainer")
 local LeftContainer = require("ui/widget/container/leftcontainer")
 local LineWidget = require("ui/widget/linewidget")
 local PluginLoader = require("pluginloader")
@@ -28,74 +29,27 @@ local SharedState = require("common/shared_state")
 local StatsDB = require("common/db_stats")
 local LibraryDB = require("common/db_library")
 local BookInfoDB = require("common/db_bookinfo")
-local ConfigManager = require("config/manager")
 local LineGraph = require("common/ui/zen_line_graph")
+local StatsSettings = require("modules/filebrowser/patches/stats_settings")
+local PresetStore = require("config/preset_store")
+local HomeGoals = require("modules/filebrowser/patches/home/widgets/reading_goals")
+local utils = require("common/utils")
 local Screen = Device.screen
 local _ = require("gettext")
 
 local StatsPage = {}
 local active_stats_menus = {}
 
-local MAX_BLOCK_SLOTS = 6
-
-local DEFAULT_BLOCKS = {
-    { id = "today" },
-    { id = "trend_graph", metric = "pages", range_days = 14 },
-    { id = "goal_progress" },
-    { id = "calendar" },
-    { id = "library" },
-}
-
-local ALL_BLOCK_TYPES = {
-    "today", "this_week", "this_month", "this_year", "all_time",
-    "personal_records", "library", "current_book", "trend_graph", "goal_progress", "calendar",
-}
-
-local function copyBlock(block)
-    local out = {}
-    for key, value in pairs(block or {}) do
-        out[key] = value
+local _icons_dir
+do
+    local src = debug.getinfo(1, "S").source or ""
+    if src:sub(1, 1) == "@" then
+        local root = src:sub(2):match("^(.*)/modules/")
+        if root then _icons_dir = root .. "/icons/" end
     end
-    return out
 end
 
-local function defaultBlock(type_id)
-    if type_id == "trend_graph" then
-        return { id = type_id, metric = "pages", range_days = 14 }
-    end
-    return { id = type_id }
-end
-
-local function blockSlots(block)
-    local type_id = type(block) == "table" and block.id or block
-    return type_id == "calendar" and 2 or 1
-end
-
-local function validBlockTypes()
-    local valid = {}
-    for _i, type_id in ipairs(ALL_BLOCK_TYPES) do
-        valid[type_id] = true
-    end
-    return valid
-end
-
-local function sanitizeBlock(block)
-    local valid = validBlockTypes()
-    local type_id = type(block) == "table" and block.id or block
-    if not valid[type_id] then return nil end
-    local out = defaultBlock(type_id)
-    if type(block) == "table" then
-        if type_id == "trend_graph" then
-            out.metric = (block.metric == "time" or block.metric == "duration") and "time" or "pages"
-            local range = tonumber(block.range_days) or 14
-            if range ~= 7 and range ~= 14 and range ~= 30 and range ~= 90 then
-                range = 14
-            end
-            out.range_days = range
-        end
-    end
-    return out
-end
+local flame_icon_path = utils.resolveLocalIcon(_icons_dir, "flame")
 
 local function blockTitle(block)
     local titles = {
@@ -128,71 +82,6 @@ local function statsFrameBg()
     return Background.tile_bg(Blitbuffer.COLOR_WHITE)
 end
 
-local function useLibraryBgScrollBuffer(scroll_widget)
-    if not scroll_widget or scroll_widget._zen_library_scroll_bg then return end
-    scroll_widget._zen_library_scroll_bg = true
-    local orig_paintTo = scroll_widget.paintTo
-    function scroll_widget:paintTo(bb, x, y)
-        local bg_path = Background.library_path()
-        if bg_path == "" then
-            return orig_paintTo(self, bb, x, y)
-        end
-        if self[1] == nil then return end
-        self.dimen.x = x
-        self.dimen.y = y
-        if self._is_scrollable == nil then
-            self:initState()
-        end
-        local mirrored = BD.mirroredUILayout()
-        if not self._is_scrollable then
-            if mirrored then
-                x = x + (self.dimen.w - self[1]:getSize().w)
-            end
-            self[1]:paintTo(bb, x, y)
-            return
-        end
-
-        local screen_size = Screen:getSize()
-        if not self._bb or self._bb:getWidth() ~= screen_size.w or self._bb:getHeight() ~= screen_size.h then
-            if self._bb then self._bb:free() end
-            self._bb = Blitbuffer.new(screen_size.w, screen_size.h, bb:getType())
-        end
-        if not Background.paint(self._bb, 0, 0, screen_size.w, screen_size.h, bg_path) then
-            self._bb:fill(Blitbuffer.COLOR_WHITE)
-        end
-
-        local dx
-        if mirrored then
-            dx = self._max_scroll_offset_x - self._scroll_offset_x - self._crop_dx
-        else
-            dx = self._scroll_offset_x
-        end
-        self[1]:paintTo(self._bb, x - dx, y - self._scroll_offset_y)
-        bb:blitFrom(self._bb, x + self._crop_dx, y, x + self._crop_dx, y,
-            self._crop_w, self._crop_h_limited or self._crop_h)
-        if self._h_scroll_bar then
-            if mirrored then
-                self._h_scroll_bar:paintTo(bb, x + self._h_scroll_bar_shift,
-                    y + self.dimen.h - 2 * self.scroll_bar_width)
-            else
-                self._h_scroll_bar:paintTo(bb, x, y + self.dimen.h - 2 * self.scroll_bar_width)
-            end
-        end
-        if self._v_scroll_bar then
-            if mirrored then
-                self._v_scroll_bar:paintTo(bb, x + self.scroll_bar_width, y)
-            else
-                self._v_scroll_bar:paintTo(bb, x + self.dimen.w - 2 * self.scroll_bar_width, y)
-            end
-        end
-    end
-end
-
-local function blockHasStatSeparators(block)
-    local id = type(block) == "table" and block.id or block
-    return id ~= "trend_graph" and id ~= "goal_progress" and id ~= "calendar"
-end
-
 local function displayBlockTitle(block)
     local title = blockTitle(block)
     if block.id == "trend_graph" then
@@ -204,116 +93,22 @@ local function displayBlockTitle(block)
     return title
 end
 
-local function cloneDefaultBlocks()
-    local blocks = {}
-    for _i, block in ipairs(DEFAULT_BLOCKS) do
-        blocks[#blocks + 1] = copyBlock(block)
-    end
-    return blocks
-end
-
-local function saveBlocksConfig(blocks)
-    local ok, cfg = pcall(ConfigManager.load)
-    if not ok or type(cfg) ~= "table" then return end
-    cfg.stats_page = cfg.stats_page or {}
-    cfg.stats_page.blocks = blocks
-    cfg.stats_page.rows = nil
-    pcall(ConfigManager.save, cfg)
-end
-
-local function saveStatStyleConfig(style)
-    local ok, cfg = pcall(ConfigManager.load)
-    if not ok or type(cfg) ~= "table" then return end
-    cfg.stats_page = cfg.stats_page or {}
-    cfg.stats_page.stat_style = normalizeStatStyle(style)
-    pcall(ConfigManager.save, cfg)
-end
-
 local function isCalendarMonth(month)
     local year, month_num = tostring(month or ""):match("^(%d%d%d%d)%-(%d%d)$")
     month_num = tonumber(month_num)
     return year ~= nil and month_num ~= nil and month_num >= 1 and month_num <= 12
 end
 
-local function saveCalendarMonthConfig(month)
+local function saveCalendarMonthConfig(settings, month)
     month = tostring(month or "")
     if not isCalendarMonth(month) then return end
-    local ok, cfg = pcall(ConfigManager.load)
-    if not ok or type(cfg) ~= "table" then return end
-    cfg.stats_page = cfg.stats_page or {}
-    cfg.stats_page.calendar_month = month
-    pcall(ConfigManager.save, cfg)
+    settings.calendar_month = month
+    StatsSettings.save(settings)
 end
 
-local function loadCalendarMonthConfig()
-    local ok, cfg = pcall(ConfigManager.load)
-    if ok and type(cfg) == "table" and type(cfg.stats_page) == "table" then
-        local month = tostring(cfg.stats_page.calendar_month or "")
-        if isCalendarMonth(month) then return month end
-    end
-end
-
-local function loadStatStyleConfig()
-    local ok, cfg = pcall(ConfigManager.load)
-    if ok and type(cfg) == "table" and type(cfg.stats_page) == "table" then
-        return normalizeStatStyle(cfg.stats_page.stat_style)
-    end
-    return "divider"
-end
-
-local function loadBlocksConfig()
-    local ok, cfg = pcall(ConfigManager.load)
-    if ok and type(cfg) == "table" and type(cfg.stats_page) == "table" then
-        local source = cfg.stats_page.blocks
-        local migrated = false
-        if type(source) ~= "table" or #source == 0 then
-            source = cfg.stats_page.rows
-            migrated = type(source) == "table" and #source > 0
-        end
-        if type(source) == "table" then
-            local blocks = {}
-            local changed = false
-            local slots = 0
-            for _i, block in ipairs(source) do
-                local clean = sanitizeBlock(block)
-                if clean then
-                    local weight = blockSlots(clean)
-                    if slots + weight > MAX_BLOCK_SLOTS and #blocks > 0 then
-                        changed = true
-                        break
-                    end
-                    if type(block) ~= "table"
-                            or block.id ~= clean.id
-                            or block.metric ~= clean.metric
-                            or block.range_days ~= clean.range_days
-                            or block.intensity ~= nil then
-                        changed = true
-                    end
-                    blocks[#blocks + 1] = clean
-                    slots = slots + weight
-                    if slots >= MAX_BLOCK_SLOTS then break end
-                end
-            end
-            if #blocks > 0 then
-                local default_idx = #blocks + 1
-                while slots < MAX_BLOCK_SLOTS and default_idx <= #DEFAULT_BLOCKS do
-                    local block = copyBlock(DEFAULT_BLOCKS[default_idx])
-                    local weight = blockSlots(block)
-                    if slots + weight <= MAX_BLOCK_SLOTS then
-                        blocks[#blocks + 1] = block
-                        slots = slots + weight
-                    end
-                    changed = true
-                    default_idx = default_idx + 1
-                end
-                if migrated or changed or cfg.stats_page.rows ~= nil then
-                    saveBlocksConfig(blocks)
-                end
-                return blocks
-            end
-        end
-    end
-    return cloneDefaultBlocks()
+local function loadCalendarMonthConfig(settings)
+    local month = tostring(settings.calendar_month or "")
+    if isCalendarMonth(month) then return month end
 end
 
 local function formatTime(secs)
@@ -499,34 +294,6 @@ local function queryDashboardData(blocks)
     return data
 end
 
-local function paintPill(bb, x, y, w, h, color)
-    if w <= 0 or h <= 0 then return end
-    local r = math.floor(h / 2)
-    for row = 0, h - 1 do
-        local dy = row - r + 0.5
-        local inset = math.floor(r - math.sqrt(math.max(0, r * r - dy * dy)) + 0.5)
-        local rw = w - inset * 2
-        if rw > 0 then bb:paintRect(x + inset, y + row, rw, 1, color) end
-    end
-end
-
-local function createProgressBar(width, height, current, target)
-    local pct = 0
-    if target > 0 then pct = math.min(1, math.max(0, current / target)) end
-    return {
-        dimen = Geom:new{ w = width, h = height },
-        getSize = function(self) return self.dimen end,
-        handleEvent = function() return false end,
-        paintTo = function(_self, bb, x, y)
-            paintPill(bb, x, y, width, height, Blitbuffer.COLOR_LIGHT_GRAY)
-            local fill_w = math.floor(width * pct)
-            if fill_w > 0 then
-                paintPill(bb, x, y, math.max(fill_w, height), height, Blitbuffer.COLOR_BLACK)
-            end
-        end,
-    }, math.floor(pct * 100 + 0.5)
-end
-
 local function createCard(opts)
     local card_w = opts.width
     local card_h = opts.height
@@ -548,7 +315,7 @@ local function createCard(opts)
         }
         content_items[#content_items + 1] = VerticalSpan:new{ width = Screen:scaleBySize(2) }
     end
-    content_items[#content_items + 1] = TextWidget:new{
+    content_items[#content_items + 1] = opts.value_widget or TextWidget:new{
         text = opts.value or "",
         face = value_font,
         max_width = inner_w,
@@ -661,12 +428,12 @@ local function createDayBookCard(width, title_text, minutes, pages, stat_style)
     }
 end
 
-local function makeBlockPanel(page_w, content_w, title, body, extra_h)
+local function makeBlockPanel(page_w, content_w, title, body, height)
     local padding = Screen:scaleBySize(8)
     local title_h = title ~= "" and Screen:scaleBySize(15) or 0
     local title_gap = title ~= "" and Screen:scaleBySize(5) or 0
     local body_h = body:getSize().h
-    local panel_h = title_h + title_gap + body_h + padding * 2 + (extra_h or 0)
+    local panel_h = height or (title_h + title_gap + body_h + padding * 2)
     local inner_w = content_w - padding * 2
     local panel_items = {}
     if title_h > 0 then
@@ -784,7 +551,6 @@ local function showCalendarDaySummary(stats_plugin, visible_day_ts, stat_style)
     local content_h = math.min(content:getSize().h, math.floor(Screen:getHeight() * 0.58))
     local scroll_widget = ScrollableContainer:new{
         dimen = Geom:new{ w = width, h = content_h },
-        show_parent = dialog,
         content,
     }
     dialog:addWidget(scroll_widget)
@@ -888,9 +654,9 @@ local function tuneEmbeddedCalendar(calendar)
                 / (calendar.nb_book_spans + 1))
         end
         local text_height = math.min(calendar.span_height, calendar.week_height / 3)
-        calendar.span_font_size = TextBoxWidget:getFontSizeToFitHeight(text_height, 1, 0.2)
+        calendar.span_font_size = TextBoxWidget:getFontSizeToFitHeight(text_height, 1, 0.55)
         local day_inner_width = calendar.day_width - 2 * calendar.day_border - 2 * calendar.inner_padding
-        while calendar.span_font_size > 7 do
+        while true do
             local test_w = TextWidget:new{
                 text = " 30 + 99 ",
                 face = Font:getFace(calendar.font_face, calendar.span_font_size),
@@ -905,16 +671,91 @@ local function tuneEmbeddedCalendar(calendar)
     end
 end
 
-local function buildContent(sc, blocks_config, data, page_w, h_padding, calendar_widgets, stat_style)
-    local function sz(x) return math.floor(Screen:scaleBySize(x) * sc) end
-    local function fsz(base) return math.max(8, math.floor(base * sc)) end
+local function hideCalendarPageInfo(calendar)
+    if not (calendar and calendar.page_info) then return end
+    calendar.page_info:clear()
+    calendar.page_info:resetLayout()
+    calendar.page_info.dimen = Geom:new{ w = 0, h = 0 }
+    calendar.page_info.getSize = function(self) return self.dimen end
+end
+
+local STATS_TRIPLET_SIZE = { preferred_pct = 0.18, min_pct = 0.12, max_pct = 0.30, grow_priority = 3 }
+local GOALS_SIZE = { preferred_pct = 0.12, min_pct = 0.08, max_pct = 0.18, grow_priority = 4 }
+local FEATURED_SIZE = { preferred_pct = 0.36, min_pct = 0.22, max_pct = 0.50, grow_priority = 1 }
+
+local function blockSize(block)
+    if block.id == "calendar" then return FEATURED_SIZE end
+    if block.id == "goal_progress" then return GOALS_SIZE end
+    return STATS_TRIPLET_SIZE
+end
+
+local function computeBlockHeights(blocks, height)
+    local specs, total_min = {}, 0
+    for _i, block in ipairs(blocks) do
+        local size = blockSize(block)
+        local min_h = math.max(1, math.floor(height * size.min_pct + 0.5))
+        local max_h = math.max(min_h, math.floor(height * size.max_pct + 0.5))
+        local pref_h = math.max(min_h, math.min(max_h, math.floor(height * size.preferred_pct + 0.5)))
+        specs[#specs + 1] = { min = min_h, max = max_h, h = pref_h, priority = size.grow_priority }
+        total_min = total_min + min_h
+    end
+    if total_min > height then
+        local scale = height / total_min
+        local total = 0
+        for _i, spec in ipairs(specs) do
+            spec.h = math.max(1, math.floor(spec.min * scale))
+            total = total + spec.h
+        end
+        local remaining = height - total
+        local index = 1
+        while remaining > 0 and #specs > 0 do
+            specs[index].h = specs[index].h + 1
+            remaining = remaining - 1
+            index = index + 1
+            if index > #specs then index = 1 end
+        end
+        return specs
+    end
+
+    local total = 0
+    for _i, spec in ipairs(specs) do total = total + spec.h end
+    while total > height do
+        local candidate, room = nil, 0
+        for i, spec in ipairs(specs) do
+            if spec.h - spec.min > room then
+                candidate, room = i, spec.h - spec.min
+            end
+        end
+        if not candidate then break end
+        specs[candidate].h = specs[candidate].h - 1
+        total = total - 1
+    end
+    while total < height do
+        local grew = false
+        for priority = 1, 4 do
+            for _i, spec in ipairs(specs) do
+                if total >= height then break end
+                if spec.priority == priority and spec.h < spec.max then
+                    spec.h = spec.h + 1
+                    total = total + 1
+                    grew = true
+                end
+            end
+            if grew or total >= height then break end
+        end
+        if not grew then break end
+    end
+    return specs
+end
+
+local function buildContent(blocks_config, data, page_w, h_padding, calendar_widgets, stat_style, stats_settings, block_heights)
+    local function sz(x) return Screen:scaleBySize(x) end
     stat_style = normalizeStatStyle(stat_style)
     local content_w = page_w - h_padding * 2
     local body_w = content_w - sz(16)
     local card_gap = stat_style == "divider" and sz(8) or stat_style == "outline" and sz(9) or sz(6)
     local c3_w = math.floor((body_w - card_gap * 2) / 3)
     local c4_w = math.floor((body_w - card_gap * 3) / 4)
-    local card_h = sz(74)
     local stats = data.stats or {}
     local now_t = os.date("*t")
     local days_this_month = math.max(1, now_t.day)
@@ -922,82 +763,101 @@ local function buildContent(sc, blocks_config, data, page_w, h_padding, calendar
     local block_hits = {}
 
     local function card(opts)
-        opts.value_size = fsz(opts.value_size or 24)
-        opts.label_size = fsz(opts.label_size or 14)
-        opts.header_size = fsz(opts.header_size or 14)
+        local height = opts.height or Screen:scaleBySize(74)
+        opts.value_size = Screen:scaleBySize(math.max(12, math.min(18, math.floor(height * 0.16))))
+        opts.label_size = Screen:scaleBySize(math.max(7, math.min(11, math.floor(height * 0.09))))
+        opts.header_size = opts.header and opts.label_size or opts.header_size
+        if opts.streak and flame_icon_path then
+            local icon_size = math.max(8, math.floor(opts.value_size * 0.62))
+            opts.value_widget = HorizontalGroup:new{
+                align = "center",
+                IconWidget:new{
+                    file = flame_icon_path,
+                    width = icon_size,
+                    height = icon_size,
+                    alpha = true,
+                },
+                HorizontalSpan:new{ width = Screen:scaleBySize(3) },
+                TextWidget:new{
+                    text = opts.value or "",
+                    face = Font:getFace("infofont", opts.value_size),
+                },
+            }
+        end
         opts.stat_style = stat_style
         return createCard(opts)
     end
 
-    local function periodCards(block)
+    local function periodCards(block, body_h)
+        local card_h = math.max(Screen:scaleBySize(42), body_h)
         if block.id == "today" then
             return createCardRow(body_w, {
-                card{ width = c3_w, height = card_h, value = tostring(stats.today_pages or 0), label = _("pages today") },
-                card{ width = c3_w, height = card_h, value = formatTime(stats.today_duration), label = _("read today") },
-                card{ width = c3_w, height = card_h, value = tostring(stats.streak or 0), label = _("day streak") },
+                card{ width = c3_w, height = card_h, value = tostring(stats.today_pages or 0), label = _("Pages today") },
+                card{ width = c3_w, height = card_h, value = formatTime(stats.today_duration), label = _("Read today") },
+                card{ width = c3_w, height = card_h, value = tostring(stats.streak or 0), label = _("Day streak"), streak = true },
             }, stat_style, card_gap)
         elseif block.id == "this_week" then
             local avg_p = (stats.week_pages or 0) > 0 and math.floor((stats.week_pages or 0) / 7) or 0
             local avg_t = (stats.week_duration or 0) > 0 and math.floor((stats.week_duration or 0) / 7) or 0
             return createCardRow(body_w, {
-                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.week_pages or 0), label = _("pages") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(avg_p), label = _("avg pages/day") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(avg_t), label = _("avg time/day") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(stats.week_duration), label = _("total time") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.week_pages or 0), label = _("Pages") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(avg_p), label = _("Avg pages/day") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(avg_t), label = _("Avg time/day") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(stats.week_duration), label = _("Total time") },
             }, stat_style, card_gap)
         elseif block.id == "this_month" then
             local avg_p = math.floor((stats.month_pages or 0) / days_this_month)
             local avg_t = math.floor((stats.month_duration or 0) / days_this_month)
             return createCardRow(body_w, {
-                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.month_pages or 0), label = _("pages") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(avg_p), label = _("avg pages/day") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(avg_t), label = _("avg time/day") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(stats.month_duration), label = _("total time") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.month_pages or 0), label = _("Pages") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(avg_p), label = _("Avg pages/day") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(avg_t), label = _("Avg time/day") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(stats.month_duration), label = _("Total time") },
             }, stat_style, card_gap)
         elseif block.id == "this_year" then
             local avg_t = math.floor((stats.year_duration or 0) / days_this_year)
             return createCardRow(body_w, {
-                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.year_pages or 0), label = _("pages") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(avg_t), label = _("avg time/day") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(stats.year_duration), label = _("total time") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.books_this_year or 0), label = _("books read") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.year_pages or 0), label = _("Pages") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(avg_t), label = _("Avg time/day") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(stats.year_duration), label = _("Total time") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.books_this_year or 0), label = _("Books read") },
             }, stat_style, card_gap)
         elseif block.id == "all_time" then
             return createCardRow(body_w, {
-                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.lifetime_pages or 0), label = _("total pages") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(stats.avg_time_per_book), label = _("avg time/book") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = formatLongTime(stats.lifetime_read_time), label = _("read time") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.books_finished or 0), label = _("finished") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.lifetime_pages or 0), label = _("Total pages") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(stats.avg_time_per_book), label = _("Avg time/book") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = formatLongTime(stats.lifetime_read_time), label = _("Read time") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.books_finished or 0), label = _("Finished") },
             }, stat_style, card_gap)
         elseif block.id == "personal_records" then
             return createCardRow(body_w, {
-                card{ width = c3_w, height = card_h, value_size = 22, header = _("best day"), value = formatTime(stats.peak_day_duration), label = fmtPeakDay(stats.peak_day_ts) },
-                card{ width = c3_w, height = card_h, value_size = 22, header = _("best week"), value = formatTime(stats.peak_week_duration), label = fmtPeakWeek(stats.peak_week_ts) },
-                card{ width = c3_w, height = card_h, value_size = 22, header = _("best month"), value = formatLongTime(stats.peak_month_duration), label = fmtPeakMonth(stats.peak_month_ts) },
+                card{ width = c3_w, height = card_h, value_size = 22, header = _("Best day"), value = formatTime(stats.peak_day_duration), label = fmtPeakDay(stats.peak_day_ts) },
+                card{ width = c3_w, height = card_h, value_size = 22, header = _("Best week"), value = formatTime(stats.peak_week_duration), label = fmtPeakWeek(stats.peak_week_ts) },
+                card{ width = c3_w, height = card_h, value_size = 22, header = _("Best month"), value = formatLongTime(stats.peak_month_duration), label = fmtPeakMonth(stats.peak_month_ts) },
             }, stat_style, card_gap)
         elseif block.id == "library" then
             return createCardRow(body_w, {
-                card{ width = c3_w, height = card_h, value = tostring(stats.total_books or 0), label = _("total books") },
-                card{ width = c3_w, height = card_h, value = tostring(stats.books_reading or 0), label = _("reading") },
-                card{ width = c3_w, height = card_h, value = tostring(stats.books_finished or 0), label = _("finished") },
+                card{ width = c3_w, height = card_h, value = tostring(stats.total_books or 0), label = _("Total books") },
+                card{ width = c3_w, height = card_h, value = tostring(stats.books_reading or 0), label = _("Reading") },
+                card{ width = c3_w, height = card_h, value = tostring(stats.books_finished or 0), label = _("Finished") },
             }, stat_style, card_gap)
         elseif block.id == "current_book" then
             local book = data.current_book or {}
             local avg = book.avg_time_per_page or 0
             return createCardRow(body_w, {
-                card{ width = c4_w, height = card_h, value_size = 22, value = formatLongTime(book.total_time), label = _("total time") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(book.pages_read or 0), label = _("pages read") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(avg), label = _("time/page") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(book.session_pages or 0), label = _("session pages") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = formatLongTime(book.total_time), label = _("Total time") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(book.pages_read or 0), label = _("Pages read") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(avg), label = _("Time/page") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(book.session_pages or 0), label = _("Session pages") },
             }, stat_style, card_gap)
         end
     end
 
-    local function graphBlock(block)
+    local function graphBlock(block, body_h)
         local series = data.series[block.range_days or 14] or {}
         local graph = LineGraph:new{
             width = body_w,
-            height = sz(116),
+            height = math.max(Screen:scaleBySize(42), body_h),
             series = series,
             metric = block.metric,
             empty_text = _("No reading data"),
@@ -1007,53 +867,72 @@ local function buildContent(sc, blocks_config, data, page_w, h_padding, calendar
             axis_color = Blitbuffer.COLOR_BLACK,
             dot_radius = block.range_days == 90 and math.max(1, sz(1)) or math.max(1, sz(3)),
         }
+        local graph_container = CenterContainer:new{
+            dimen = Geom:new{ w = body_w, h = graph:getSize().h },
+            graph,
+        }
+        if not Device:isTouchDevice() or #series == 0 then
+            return VerticalGroup:new{ graph_container }
+        end
+        local tap = InputContainer:new{
+            dimen = Geom:new{ w = body_w, h = graph:getSize().h },
+            ges_events = {
+                TapStatsGraph = {
+                    GestureRange:new{ ges = "tap", range = Geom:new{
+                        x = 0, y = 0, w = Screen:getWidth(), h = Screen:getHeight(),
+                    } },
+                },
+            },
+        }
+        tap.onTapStatsGraph = function(tap_self, _arg, ges)
+            if not (tap_self.dimen and ges and ges.pos and tap_self.dimen:contains(ges.pos)) then
+                return false
+            end
+            local point = series[graph:getPointIndexAt(ges.pos.x - tap_self.dimen.x)]
+            local year, month, day = tostring(point and point.date or ""):match("^(%d%d%d%d)%-(%d%d)%-(%d%d)$")
+            if not (year and month and day) then return false end
+            local day_ts = os.time({
+                year = tonumber(year), month = tonumber(month), day = tonumber(day),
+                hour = 0, min = 0, sec = 0,
+            })
+            if os.date("%Y-%m-%d", day_ts) > os.date("%Y-%m-%d", os.time()) then return false end
+            showCalendarDaySummary(PluginLoader:getPluginInstance("statistics"), day_ts, stat_style)
+            return true
+        end
+        tap[1] = graph_container
         return VerticalGroup:new{
-            CenterContainer:new{ dimen = Geom:new{ w = body_w, h = graph:getSize().h }, graph },
+            tap,
         }
     end
 
-    local function goalBlock()
-        local metric = "pages"
-        local current = stats.today_pages or 0
-        local target = 30
-        local unit = _("pages")
-        local bar, pct = createProgressBar(body_w - sz(20), sz(9), current, target)
-        local title = tostring(current) .. " / " .. tostring(target) .. " " .. unit
-        local summary = TextWidget:new{
-            text = title .. " (" .. tostring(pct) .. "%)",
-            face = Font:getFace("infofont", fsz(18)),
-        }
-        local note = TextWidget:new{
-            text = metric == "time" and _("Daily time goal") or _("Daily pages goal"),
-            face = Font:getFace("smallinfofont", fsz(13)),
-            fgcolor = Blitbuffer.COLOR_DARK_GRAY,
-        }
-        return VerticalGroup:new{
-            CenterContainer:new{ dimen = Geom:new{ w = body_w, h = sz(24) }, summary },
-            CenterContainer:new{ dimen = Geom:new{ w = body_w, h = sz(20) }, bar },
-            CenterContainer:new{ dimen = Geom:new{ w = body_w, h = sz(20) }, note },
+    local function goalBlock(height)
+        return HomeGoals.build{
+            width = content_w,
+            height = height,
+            data = { stats = stats },
+            config = PresetStore.getSettings("home"),
         }
     end
 
-    local function calendarBlock()
+    local function calendarBlock(body_h)
         local stats_plugin = PluginLoader:getPluginInstance("statistics")
         if type(stats_plugin) ~= "table" then
-            return createFallbackCalendarWidget(body_w, sz(470))
+            return createFallbackCalendarWidget(body_w, body_h)
         end
         if type(stats_plugin.insertDB) == "function" then
             pcall(stats_plugin.insertDB, stats_plugin)
         end
         local CalendarView = loadNativeCalendarView()
         if not CalendarView then
-            return createFallbackCalendarWidget(body_w, sz(470))
+            return createFallbackCalendarWidget(body_w, body_h)
         end
         local settings = stats_plugin.settings or {}
-        local calendar_h = sz(470)
+        local calendar_h = body_h
         local calendar = CalendarView:new{
             reader_statistics = stats_plugin,
             width = body_w,
             height = calendar_h,
-            cur_month = loadCalendarMonthConfig(),
+            cur_month = loadCalendarMonthConfig(stats_settings),
             start_day_of_week = settings.calendar_start_day_of_week,
             nb_book_spans = math.max(3, tonumber(settings.calendar_nb_book_spans) or 3),
             show_hourly_histogram = false,
@@ -1064,24 +943,25 @@ local function buildContent(sc, blocks_config, data, page_w, h_padding, calendar
         local orig_go_to_month = calendar.goToMonth
         calendar.goToMonth = function(self_cal, month, ...)
             local result = orig_go_to_month(self_cal, month, ...)
-            saveCalendarMonthConfig(self_cal.cur_month)
+            saveCalendarMonthConfig(stats_settings, self_cal.cur_month)
             return result
         end
         local orig_next_month = calendar.nextMonth
         calendar.nextMonth = function(self_cal, ...)
             local result = orig_next_month(self_cal, ...)
-            saveCalendarMonthConfig(self_cal.cur_month)
+            saveCalendarMonthConfig(stats_settings, self_cal.cur_month)
             return result
         end
         local orig_prev_month = calendar.prevMonth
         calendar.prevMonth = function(self_cal, ...)
             local result = orig_prev_month(self_cal, ...)
-            saveCalendarMonthConfig(self_cal.cur_month)
+            saveCalendarMonthConfig(stats_settings, self_cal.cur_month)
             return result
         end
         local orig_populate_items = calendar._populateItems
         calendar._populateItems = function(self_cal, ...)
             local result = orig_populate_items(self_cal, ...)
+            hideCalendarPageInfo(self_cal)
             installCalendarDaySummary(self_cal, stats_plugin, stat_style)
             Background.clearWhiteBackgrounds(self_cal, 40)
             return result
@@ -1120,23 +1000,37 @@ local function buildContent(sc, blocks_config, data, page_w, h_padding, calendar
     items[#items + 1] = VerticalSpan:new{ width = sz(8) }
 
     for i, block in ipairs(blocks_config) do
+        local block_h = block_heights[i] and block_heights[i].h or Screen:scaleBySize(80)
+        local title = displayBlockTitle(block)
+        local panel_padding = Screen:scaleBySize(8)
+        local title_h = title ~= "" and Screen:scaleBySize(15) or 0
+        local title_gap = title ~= "" and Screen:scaleBySize(5) or 0
+        local panel_body_h = math.max(1, block_h - title_h - title_gap - panel_padding * 2)
         local body
         if block.id == "trend_graph" then
-            body = graphBlock(block)
+            body = graphBlock(block, panel_body_h)
         elseif block.id == "goal_progress" then
-            body = goalBlock(block)
+            body = goalBlock(block_h)
         elseif block.id == "calendar" then
             local calendar
-            body, calendar = calendarBlock()
+            body, calendar = calendarBlock(block_h)
             if calendar_widgets then
                 calendar_widgets[i] = calendar or body
             end
         else
-            body = periodCards(block)
+            body = periodCards(block, panel_body_h)
         end
 
         if body then
-            local panel = makeBlockPanel(page_w, content_w, displayBlockTitle(block), body)
+            local panel
+            if block.id == "goal_progress" or block.id == "calendar" then
+                panel = CenterContainer:new{
+                    dimen = Geom:new{ w = page_w, h = block_h },
+                    body,
+                }
+            else
+                panel = makeBlockPanel(page_w, content_w, title, body, block_h)
+            end
             local panel_h = panel:getSize().h
             items[#items + 1] = panel
             block_hits[#block_hits + 1] = {
@@ -1157,8 +1051,9 @@ local function buildContent(sc, blocks_config, data, page_w, h_padding, calendar
 end
 
 function StatsPage.create(createStatusRow, repaintTitleBar)
-    local blocks_config = loadBlocksConfig()
-    local stat_style = loadStatStyleConfig()
+    local stats_settings = StatsSettings.load()
+    local blocks_config = StatsSettings.enabledBlocks(stats_settings)
+    local stat_style = stats_settings.stat_style
     local data = queryDashboardData(blocks_config)
     local menu = StandalonePage.create_menu{
         name = "stats",
@@ -1175,45 +1070,39 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
     local body_h = (menu.inner_dimen and menu.inner_dimen.h or menu.dimen.h) - tb_h
     local page_w = menu.inner_dimen and menu.inner_dimen.w or Screen:getWidth()
     local h_padding = 0
-    local scrollbar_w = ScrollableContainer:getScrollbarWidth()
-    local content_page_w = math.max(Screen:scaleBySize(120), page_w - scrollbar_w)
     local block_hits
     local calendar_widgets = {}
-    local scroll_container
-
-    local function buildScrollable()
+    local function buildFixed()
         calendar_widgets = {}
-        local content, hits = buildContent(1.0, blocks_config, data, content_page_w, h_padding, calendar_widgets, stat_style)
-        local bottom_pad = Screen:scaleBySize(18)
-        content[#content + 1] = VerticalSpan:new{ width = bottom_pad }
+        local top_pad = Screen:scaleBySize(8)
+        local gap_h = Screen:scaleBySize(8) * math.max(0, #blocks_config - 1)
+        local block_heights = computeBlockHeights(blocks_config, math.max(1, body_h - top_pad - gap_h))
+        local content, hits = buildContent(blocks_config, data, page_w, h_padding,
+            calendar_widgets, stat_style, stats_settings, block_heights)
         content:resetLayout()
-        local content_h = content:getSize().h
-        local remaining = body_h - content_h
+        local remaining = body_h - content:getSize().h
         if remaining > 0 then
             content[#content + 1] = VerticalSpan:new{ width = remaining }
             content:resetLayout()
         end
-        scroll_container = ScrollableContainer:new{
-            dimen = Geom:new{ w = page_w, h = body_h },
-            show_parent = menu,
-            ignore_events = { "hold", "hold_pan", "hold_release" },
-            content,
-        }
-        useLibraryBgScrollBuffer(scroll_container)
-        menu.cropping_widget = scroll_container
-        return scroll_container, hits
+        menu.cropping_widget = nil
+        return content, hits
     end
 
     local content
-    content, block_hits = buildScrollable()
+    content, block_hits = buildFixed()
 
     local function rebuildStats()
+        stats_settings = StatsSettings.load()
+        blocks_config = StatsSettings.enabledBlocks(stats_settings)
+        stat_style = stats_settings.stat_style
         data = queryDashboardData(blocks_config)
         local new_content
-        new_content, block_hits = buildScrollable()
+        new_content, block_hits = buildFixed()
         StandalonePage.mount_body(menu, new_content)
         UIManager:setDirty(menu, "ui")
     end
+    menu._zen_stats_rebuild = rebuildStats
 
     local function closeConfigDialog()
         if menu._zen_block_dlg then
@@ -1234,7 +1123,7 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
                     UIManager:close(menu._zen_block_dlg)
                     menu._zen_block_dlg = nil
                     blocks_config[block_idx].range_days = range
-                    saveBlocksConfig(blocks_config)
+                    StatsSettings.saveBlockOptions(stats_settings, blocks_config[block_idx])
                     rebuildStats()
                 end,
             }}
@@ -1264,7 +1153,7 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
                     UIManager:close(menu._zen_block_dlg)
                     menu._zen_block_dlg = nil
                     blocks_config[block_idx].metric = item.id
-                    saveBlocksConfig(blocks_config)
+                    StatsSettings.saveBlockOptions(stats_settings, blocks_config[block_idx])
                     rebuildStats()
                 end,
             }}
@@ -1326,69 +1215,6 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
         UIManager:show(menu._zen_block_dlg)
     end
 
-    local function statStyleLabel(style)
-        style = normalizeStatStyle(style)
-        if style == "outline" then return _("Outline") end
-        if style == "none" then return _("None") end
-        return _("Divider")
-    end
-
-    local function showStatStyleMenu()
-        closeConfigDialog()
-        local buttons = {}
-        for _i, item in ipairs({
-            { id = "divider", text = _("Divider") },
-            { id = "outline", text = _("Outline") },
-            { id = "none", text = _("None") },
-        }) do
-            local selected = stat_style == item.id
-            buttons[#buttons + 1] = {{
-                text = item.text .. (selected and "  \u{2713}" or ""),
-                enabled = not selected,
-                callback = function()
-                    UIManager:close(menu._zen_block_dlg)
-                    menu._zen_block_dlg = nil
-                    stat_style = item.id
-                    saveStatStyleConfig(stat_style)
-                    rebuildStats()
-                end,
-            }}
-        end
-        menu._zen_block_dlg = ButtonDialog:new{
-            title = _("Stat separators"),
-            title_align = "center",
-            buttons = buttons,
-        }
-        UIManager:show(menu._zen_block_dlg)
-    end
-
-    local function showWidgetsMenu(block_idx)
-        closeConfigDialog()
-        local current = blocks_config[block_idx]
-        local buttons = {}
-        for _i, type_id in ipairs(ALL_BLOCK_TYPES) do
-            local selected = type_id == current.id
-            buttons[#buttons + 1] = {{
-                text = blockTitle({ id = type_id }) .. (selected and "  \u{2713}" or ""),
-                enabled = not selected,
-                callback = function()
-                    UIManager:close(menu._zen_block_dlg)
-                    menu._zen_block_dlg = nil
-                    blocks_config[block_idx] = defaultBlock(type_id)
-                    saveBlocksConfig(blocks_config)
-                    rebuildStats()
-                end,
-            }}
-        end
-
-        menu._zen_block_dlg = ButtonDialog:new{
-            title = _("Widgets"),
-            title_align = "center",
-            buttons = buttons,
-        }
-        UIManager:show(menu._zen_block_dlg)
-    end
-
     local function showBlockMenu(block_idx)
         closeConfigDialog()
         local current = blocks_config[block_idx]
@@ -1410,17 +1236,7 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
                 callback = function() showCalendarMonthMenu(block_idx) end,
             }}
         end
-        if blockHasStatSeparators(current) then
-            buttons[#buttons + 1] = {{
-                text = _("Stat separators") .. ": " .. statStyleLabel(stat_style),
-                callback = function() showStatStyleMenu() end,
-            }}
-        end
-
-        buttons[#buttons + 1] = {{
-            text = _("Widgets"),
-            callback = function() showWidgetsMenu(block_idx) end,
-        }}
+        if #buttons == 0 then return end
 
         menu._zen_block_dlg = ButtonDialog:new{
             title = _("Customize block"),
@@ -1484,9 +1300,7 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
     end
     function menu:onZenStatsHold(_ges_event, ges)
         local offset_y = self.dimen and self.dimen.y or 0
-        local scroll_y = scroll_container and scroll_container.getScrolledOffset
-            and scroll_container:getScrolledOffset().y or 0
-        local content_y = ges.pos.y - offset_y - tb_h + scroll_y
+        local content_y = ges.pos.y - offset_y - tb_h
         if content_y < 0 then return false end
         for _i, hit in ipairs(block_hits) do
             if content_y >= hit.y_start and content_y < hit.y_end then
@@ -1502,6 +1316,8 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
     if menu.page_info then
         while #menu.page_info > 0 do table.remove(menu.page_info) end
         menu.page_info:resetLayout()
+        menu.page_info.dimen = Geom:new{ w = 0, h = 0 }
+        menu.page_info.getSize = function(self) return self.dimen end
     end
 
     menu.close_callback = function()
@@ -1544,6 +1360,12 @@ function StatsPage.closeAll()
             UIManager:close(menu)
         end
         active_stats_menus[i] = nil
+    end
+end
+
+function StatsPage.rebuildActive()
+    for _i, menu in ipairs(active_stats_menus) do
+        if menu and menu._zen_stats_rebuild then menu:_zen_stats_rebuild() end
     end
 end
 

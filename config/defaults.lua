@@ -250,16 +250,6 @@ local defaults = {
         night_m     = 0,
         night_value = 5,
     },
-    stats_page = {
-        stat_style = "divider",
-        blocks = {
-            { id = "today" },
-            { id = "trend_graph", metric = "pages", range_days = 14 },
-            { id = "goal_progress" },
-            { id = "calendar" },
-            { id = "library" },
-        },
-    },
     group_view = {
         include_new_in_tbr = false,
         display_mode = {
