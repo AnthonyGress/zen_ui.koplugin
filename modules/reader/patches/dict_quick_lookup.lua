@@ -80,8 +80,7 @@ local function apply()
                 local NetworkMgr = require("ui/network/manager")
                 NetworkMgr:runWhenOnline(function()
                     UIManager:nextTick(function()
-                        assistant.assistant_dialog:show(
-                            dict_widget.lookupword or dict_widget.word)
+                        assistant.assistant_dialog:show(dict_widget.word)
                     end)
                 end)
             end,
