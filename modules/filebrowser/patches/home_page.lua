@@ -8,6 +8,8 @@ local PresetStore = require("config/preset_store")
 local Registry = require("modules/filebrowser/patches/home/components/registry")
 local StandalonePage = require("modules/filebrowser/patches/standalone_page")
 local SharedState = require("common/shared_state")
+local title_sort = require("common/title_sort")
+local utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
 
 local M = {}
@@ -377,6 +379,7 @@ local function ensure_strip_module_cfg(dcfg, module_id)
         if mcfg.count > 5 then mcfg.count = 5 end
     end
     if mcfg.show_strip_titles == nil then mcfg.show_strip_titles = false end
+    if mcfg.center_books == nil then mcfg.center_books = false end
     return mcfg
 end
 
@@ -680,13 +683,23 @@ local function build_data_provider(cfg, dcfg)
         local hist = ReadHistory.hist or {}
         local lfs = require("libs/libkoreader-lfs")
         local paths = require("common/paths")
+        local function is_rakuyomi_history_path(path)
+            if path:lower():sub(-4) ~= ".cbz" then return false end
+            local Rakuyomi = rawget(_G, "__ZEN_UI_RAKUYOMI")
+            if not (type(Rakuyomi) == "table"
+                    and type(Rakuyomi.isChapterFile) == "function") then
+                return false
+            end
+            local ok_chapter, is_chapter = pcall(Rakuyomi.isChapterFile, path)
+            return ok_chapter and is_chapter == true
+        end
 
         for _i, entry in ipairs(hist) do
             local path = entry and entry.file
             if type(path) == "string"
                     and path ~= ""
-                    and paths.isInHomeDir(path)
-                    and lfs.attributes(path, "mode") == "file" then
+                    and lfs.attributes(path, "mode") == "file"
+                    and (paths.isInHomeDir(path) or is_rakuyomi_history_path(path)) then
                 table.insert(history_cached, path)
             end
         end
@@ -733,6 +746,7 @@ local function build_data_provider(cfg, dcfg)
                 queue_cover_upgrade(path)
             end
         end
+        pages = utils.getStablePageCount(path, pages)
 
         local pct = nil
         local status = nil
@@ -817,7 +831,7 @@ local function build_data_provider(cfg, dcfg)
             pages = pages,
             current_page = current_page,
             time_left_secs = time_left_secs,
-            stable_pages = stable_pages,
+            stable_pages = stable_pages or pages,
             stable_current_page = stable_current_page,
             stable_current_label = stable_current_label,
             stable_last_label = stable_last_label,
@@ -867,8 +881,8 @@ local function build_data_provider(cfg, dcfg)
                 end
                 if reverse then return ka > kb else return ka < kb end
             end
-            local sa = tostring(a.key):lower()
-            local sb = tostring(b.key):lower()
+            local sa = title_sort.key(a.key):lower()
+            local sb = title_sort.key(b.key):lower()
             if reverse then return sa > sb else return sa < sb end
         end)
 
@@ -1825,6 +1839,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
         local row_ctx = {
             width = content_w,
             height = content_h,
+            menu = menu,
             config = dcfg,
             data = data_provider,
             openBook = open_book,

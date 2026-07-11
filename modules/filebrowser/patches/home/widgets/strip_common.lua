@@ -237,8 +237,9 @@ local function apply_strip_badges(frame, book, plugin)
         end
 
         -- page count: bottom-left pill
-        if show_pages and book.pages and book.pages > 0 then
-            local page_str = utils.formatPageCount(book.pages)
+        local pages = tonumber(book.stable_pages) or tonumber(book.pages)
+        if show_pages and pages and pages > 0 then
+            local page_str = utils.formatPageCount(pages)
             local fs = math.max(7, math.floor(base_sz * 0.24))
             if not _cached_pages_tw or _cached_pages_str ~= page_str or _cached_pages_fs ~= fs or _cached_pages_dark ~= is_dark then
                 WidgetResources.free(_cached_pages_tw)
@@ -355,6 +356,7 @@ function M.build_strip(ctx, source_key)
     end
     local show_strip_titles = module_cfg.show_strip_titles == true
     local show_badges = module_cfg.show_badges == true
+    local center_books = module_cfg.center_books == true
     local interactive = module_cfg.interactive ~= false
 
     local books = ctx.data:getBooksForStrip(source, count, order, ctx.component_id)
@@ -434,7 +436,8 @@ function M.build_strip(ctx, source_key)
     local function build_row_widget(row_list, row_num)
         local n = #row_list
         local row_capacity = two_rows and per_row or n
-        local left_align_partial = two_rows and row_num == 2 and n < per_row
+        local center_short_row = center_books and n <= 3
+        local left_align_partial = not center_short_row and two_rows and row_num == 2 and n < per_row
         local min_gap = math.max(6, math.min(Screen:scaleBySize(14), math.floor(width * 0.018)))
         local max_cover_w = math.max(24, math.floor((width - min_gap * (row_capacity - 1)) / row_capacity))
         local cover_h = math.min(max_cover_h_per_row, math.floor(max_cover_w * 1.62))
@@ -477,7 +480,9 @@ function M.build_strip(ctx, source_key)
             local gap_slots = left_align_partial and math.max(1, row_capacity - 1) or (#items - 1)
             local avg_cover_w = math.floor(covers_w / #items)
             local cover_slots_w = left_align_partial and (avg_cover_w * row_capacity) or covers_w
-            local available_gap = math.max(min_gap * gap_slots, width - cover_slots_w)
+            local available_gap = center_short_row
+                and (min_gap * gap_slots)
+                or math.max(min_gap * gap_slots, width - cover_slots_w)
             gap = math.floor(available_gap / gap_slots)
             extra_gap_px = left_align_partial and 0 or (available_gap - gap * gap_slots)
         end
@@ -587,6 +592,7 @@ function M.build_strip(ctx, source_key)
             local row_widget, row_h = build_row_widget(row_books[r], r)
             total_row_h = total_row_h + row_h
             local container = two_rows and r == 2 and #row_books[r] < per_row
+                and not (center_books and #row_books[r] <= 3)
                 and LeftContainer or CenterContainer
             table.insert(vgroup, container:new{ dimen = Geom:new{ w = width, h = row_h }, row_widget })
             if row_inner_bottom_pad > 0 then

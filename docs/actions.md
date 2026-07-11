@@ -33,7 +33,7 @@ Controls, Navbar, and Launcher can also launch detected plugin menus directly. T
 | --- | --- |
 | Gestures | Assign any Zen UI dispatcher action from KOReader's gesture action picker. Reader-only actions only work while a book is open. |
 | Controls | Go to **Zen UI > Controls > Buttons**, choose **Add > Action**, pick a dispatcher action, then set its icon and label. |
-| Navbar | Go to **Zen UI > Navbar > Tabs**, choose **Add > Action**, pick a dispatcher action, then set its icon and label. |
+| Navbar | Go to **Zen UI > Library > Navbar > Tabs**, choose **Add > Action**, pick a dispatcher action, then set its icon and label. |
 | Launcher | Go to **Zen UI > Launcher > Buttons**, choose **Add > Action**, pick a dispatcher action, then set its icon and label. |
 | KOReader Dispatcher integrations | Any KOReader or plugin UI that exposes Dispatcher actions can use the same Zen UI action IDs. |
 

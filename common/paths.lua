@@ -26,6 +26,27 @@ function M.getHomeDir()
     return nil
 end
 
+function M.isUnsafeFlatViewRoot(path)
+    if type(path) ~= "string" then return false end
+    local norm = M.normPath(path:gsub("/*$", ""))
+    return norm == "/mnt/us"
+        or norm == "/mnt/base-us"
+        or norm == "/storage/emulated/0"
+end
+
+function M.hasUnsafeFlatViewHomeRoot()
+    if M.isUnsafeFlatViewRoot(M.getHomeDir()) then return true end
+
+    local zen_cfg = require("config/manager").get()
+    local extra = type(zen_cfg) == "table" and zen_cfg.additional_home_dirs
+    if type(extra) == "table" then
+        for _i, dir in ipairs(extra) do
+            if M.isUnsafeFlatViewRoot(dir) then return true end
+        end
+    end
+    return false
+end
+
 -- Returns true if path is exactly one of the configured home roots
 -- (primary or additional), not merely below one.
 function M.isHomeRoot(path)

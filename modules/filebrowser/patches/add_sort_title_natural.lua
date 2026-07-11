@@ -109,7 +109,30 @@ end
 
 local function apply_add_sort_title_natural()
     local BookList = require("ui/widget/booklist")
+    local title_sort = require("common/title_sort")
     local _ = require("gettext")
+
+    local title_collate = BookList.collates.title
+    if title_collate and not title_collate._zen_article_sort_patched then
+        local orig_init_sort_func = title_collate.init_sort_func
+        title_collate.init_sort_func = function(...)
+            local fallback = type(orig_init_sort_func) == "function"
+                and orig_init_sort_func(...) or nil
+            return function(a, b)
+                local ad = a and a.doc_props or {}
+                local bd = b and b.doc_props or {}
+                local at = ad.display_title or ad.title
+                    or (a and (a.text or a.path or a.file)) or ""
+                local bt = bd.display_title or bd.title
+                    or (b and (b.text or b.path or b.file)) or ""
+                local ak = title_sort.key(at):lower()
+                local bk = title_sort.key(bt):lower()
+                if ak == bk and fallback then return fallback(a, b) end
+                return ak < bk
+            end
+        end
+        title_collate._zen_article_sort_patched = true
+    end
 
     BookList.collates.title_natural = {
         text = _("Title natural"),
@@ -120,7 +143,11 @@ local function apply_add_sort_title_natural()
         end,
         init_sort_func = function()
             return function(a, b)
-                return natord(a.doc_props.display_title, b.doc_props.display_title, true) < 0
+                local at = a and a.doc_props and a.doc_props.display_title or ""
+                local bt = b and b.doc_props and b.doc_props.display_title or ""
+                local cmp = natord(title_sort.key(at), title_sort.key(bt), true)
+                if cmp == 0 then cmp = natord(at, bt, true) end
+                return cmp < 0
             end
         end,
     }

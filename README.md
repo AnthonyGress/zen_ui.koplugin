@@ -98,7 +98,7 @@ Browse your favorite OPDS sources with the same clean, consistent interface you'
 
 ## Unified Settings 
 - Pulled the most important settings into a single, more streamlined settings tab
-- Settings are grouped by feature area (Library, Navbar, Quick Settings, Status Bar, Reader).
+- Settings are grouped by feature area (Library, Controls, Launcher, Reader, Extras, About).
 - Most features can be toggled independently, some reasonable defaults have been selected.
 - Update Zen UI directly from settings without ever leaving KOReader or plugging in to a computer.
 

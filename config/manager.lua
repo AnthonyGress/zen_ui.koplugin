@@ -109,6 +109,31 @@ local function normalize_renamed_keys(cfg)
     return cfg, changed
 end
 
+local function migrate_legacy_rakuyomi_keys(cfg)
+    local rakuyomi = type(cfg) == "table" and cfg.rakuyomi
+    if type(rakuyomi) ~= "table" then
+        return false
+    end
+
+    local changed = false
+    if rakuyomi.return_to_chapter_list_on_exit == nil
+            and rakuyomi.return_to_chapter_list_on_reader_exit ~= nil then
+        rakuyomi.return_to_chapter_list_on_exit =
+            rakuyomi.return_to_chapter_list_on_reader_exit
+        changed = true
+    end
+    if rakuyomi.return_to_chapter_list_on_reader_exit ~= nil then
+        rakuyomi.return_to_chapter_list_on_reader_exit = nil
+        changed = true
+    end
+    if rakuyomi.return_to_chapter_on_reader_exit ~= nil then
+        rakuyomi.return_to_chapter_on_reader_exit = nil
+        changed = true
+    end
+
+    return changed
+end
+
 local function collect_setting_keys(g_settings)
     local keys = {}
 
@@ -746,6 +771,7 @@ function M.load()
         end
     end
 
+    local migrated_rakuyomi = migrate_legacy_rakuyomi_keys(stored)
     local cfg = merged_with_defaults(stored)
     local migrated_renamed
     cfg, migrated_renamed = normalize_renamed_keys(cfg)
@@ -762,7 +788,7 @@ function M.load()
     if migrated_renamed or migrated_group or migrated_updater or migrated_fbc or migrated_bim
             or migrated_reader_backup or migrated_qs or migrated_file_config
             or migrated_settings_files or migrated_changed_defaults or migrated_home_lock
-            or migrated_folder_paths then
+            or migrated_folder_paths or migrated_rakuyomi then
         M.save(cfg)
     end
     if migrated_file_config then

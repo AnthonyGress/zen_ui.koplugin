@@ -225,7 +225,17 @@ local function apply_quick_settings()
 
     loadConfig()
 
+    local function isFileManagerMenu(touch_menu)
+        local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
+        local fm = ok_fm and FileManager and FileManager.instance
+        return fm and fm.menu and touch_menu
+            and touch_menu.show_parent == fm.menu.menu_container
+    end
+
     local function setRotationMode(touch_menu, mode)
+        if isFileManagerMenu(touch_menu) then
+            G_reader_settings:saveSetting("fm_rotation_mode", mode)
+        end
         if touch_menu and touch_menu.closeMenu then
             touch_menu:closeMenu()
         end

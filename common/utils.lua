@@ -303,6 +303,33 @@ function M.formatPageCount(pages, long)
     return tostring(pages) .. "\u{00A0}" .. _C(ctx, msgid)
 end
 
+function M.getStablePageCount(filepath, fallback)
+    if type(filepath) ~= "string" or filepath == "" then
+        return fallback
+    end
+
+    local ok_ds, DocSettings = pcall(require, "docsettings")
+    if ok_ds and DocSettings and DocSettings:hasSidecarFile(filepath) then
+        local ok_doc, doc = pcall(DocSettings.open, DocSettings, filepath)
+        if ok_doc and doc and doc:readSetting("pagemap_use_page_labels") == true then
+            local pages = tonumber(doc:readSetting("pagemap_doc_pages"))
+                or tonumber(doc:readSetting("pagemap_last_page_label"))
+            if pages and pages > 0 then return pages end
+        end
+    end
+
+    local ok_bl, BookList = pcall(require, "ui/widget/booklist")
+    if ok_bl and BookList then
+        local ok_book, book = pcall(BookList.getBookInfo, filepath)
+        if not ok_book then book = nil end
+        local pages = book and tonumber(book.pages)
+        if pages and pages > 0 then return pages end
+    end
+
+    fallback = tonumber(fallback)
+    return fallback and fallback > 0 and fallback or nil
+end
+
 --- Scale multiplier for mosaic cover badge sizes (compact=1.0, normal=1.10, large=1.20).
 --- Returns the corner inset for badge positioning (same value for all 4 corners).
 --- Changing the factor here moves all badges in/out uniformly.

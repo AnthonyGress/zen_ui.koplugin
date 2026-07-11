@@ -449,7 +449,7 @@ local function apply_browser_list_item_layout()
             -- ── Progress / right widget ───────────────────────────────────────
             local percent_finished = book_info.percent_finished
             local status = book_info.status
-            local pages = book_info.pages or bookinfo.pages
+            local pages = zen_utils.getStablePageCount(filepath, book_info.pages or bookinfo.pages)
             local effective_status = book_status.getComputedStatus(
                 filepath, status, percent_finished
             )

@@ -136,6 +136,7 @@ local function ensure_strip_cfg(dcfg, module_id)
     end
     if mcfg.show_strip_titles == nil then mcfg.show_strip_titles = false end
     if mcfg.show_badges == nil then mcfg.show_badges = false end
+    if mcfg.center_books == nil then mcfg.center_books = false end
     return mcfg
 end
 
@@ -691,6 +692,12 @@ function M.build(ctx)
 
     local function build_strip_custom_items(mcfg)
         if type(mcfg.paths) ~= "table" then mcfg.paths = {} end
+        local function refresh_custom_strip_menu(touchmenu_instance)
+            if touchmenu_instance then
+                touchmenu_instance.item_table = build_strip_custom_items(mcfg)
+                touchmenu_instance:updateItems()
+            end
+        end
         local items = {
             {
                 text = _("Show widget title"),
@@ -719,6 +726,16 @@ function M.build(ctx)
                 end,
                 callback = function()
                     mcfg.show_badges = mcfg.show_badges ~= true
+                    save_home("reinit")
+                end,
+            },
+            {
+                text = _("Center books"),
+                checked_func = function()
+                    return mcfg.center_books == true
+                end,
+                callback = function()
+                    mcfg.center_books = mcfg.center_books ~= true
                     save_home("reinit")
                 end,
             },
@@ -771,10 +788,7 @@ function M.build(ctx)
                         end
                         mcfg.paths[#mcfg.paths + 1] = path
                         save_home("reinit")
-                        if touchmenu_instance then
-                            touchmenu_instance.item_table = build_strip_custom_items(mcfg)
-                            touchmenu_instance:updateItems()
-                        end
+                        refresh_custom_strip_menu(touchmenu_instance)
                     end)
                 end,
             },
@@ -783,9 +797,10 @@ function M.build(ctx)
         for i, path in ipairs(mcfg.paths) do
             items[#items + 1] = {
                 text = _("Remove: ") .. path_label(path),
-                callback = function()
+                callback = function(touchmenu_instance)
                     table.remove(mcfg.paths, i)
                     save_home("reinit")
+                    refresh_custom_strip_menu(touchmenu_instance)
                 end,
             }
         end
@@ -795,9 +810,10 @@ function M.build(ctx)
             enabled_func = function()
                 return #mcfg.paths > 0
             end,
-            callback = function()
+            callback = function(touchmenu_instance)
                 mcfg.paths = {}
                 save_home("reinit")
+                refresh_custom_strip_menu(touchmenu_instance)
             end,
         }
         return items
@@ -880,6 +896,16 @@ function M.build(ctx)
                 end,
                 callback = function()
                     mcfg.show_badges = mcfg.show_badges ~= true
+                    save_home("reinit")
+                end,
+            },
+            {
+                text = _("Center books"),
+                checked_func = function()
+                    return mcfg.center_books == true
+                end,
+                callback = function()
+                    mcfg.center_books = mcfg.center_books ~= true
                     save_home("reinit")
                 end,
             },

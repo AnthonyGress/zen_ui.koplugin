@@ -1,4 +1,5 @@
 local M = {}
+local Rakuyomi = require("common/rakuyomi")
 local initialized = false
 
 local FEATURES = {
@@ -19,6 +20,7 @@ local PATCH_MODULES = {
     coverbrowser_check = "modules/filebrowser/patches/coverbrowser_check",
     coverbrowser_subprocess_compat = "modules/filebrowser/patches/coverbrowser_subprocess_compat",
     context_menu = "modules/filebrowser/patches/context_menu",
+    browser_flat_view_compat = "modules/filebrowser/patches/browser_flat_view_compat",
     browser_folder_sort = "modules/filebrowser/patches/browser_folder_sort",
     disable_modal_drag = "modules/filebrowser/patches/disable_modal_drag",
     menu_single_page_scroll_guard = "modules/filebrowser/patches/menu_single_page_scroll_guard",
@@ -109,6 +111,11 @@ function M.init(logger, plugin)
     local disable_modal_drag_fn = load_patch("disable_modal_drag")
     if disable_modal_drag_fn then
         run_feature(logger, plugin, "disable_modal_drag", disable_modal_drag_fn)
+    end
+
+    local browser_flat_view_compat_fn = load_patch("browser_flat_view_compat")
+    if browser_flat_view_compat_fn then
+        run_feature(logger, plugin, "browser_flat_view_compat", browser_flat_view_compat_fn)
     end
 
     local menu_single_page_scroll_guard_fn = load_patch("menu_single_page_scroll_guard")
@@ -221,7 +228,7 @@ function M.init(logger, plugin)
         _G.__ZEN_UI_RUNTIME_PATCHES = runtime_patches
     end
 
-    local rakuyomi_fn = load_patch("rakuyomi")
+    local rakuyomi_fn = Rakuyomi.is_available() and load_patch("rakuyomi") or nil
     if rakuyomi_fn then
         local ok = run_feature(logger, plugin, "rakuyomi", rakuyomi_fn)
         if ok then

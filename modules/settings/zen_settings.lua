@@ -13,8 +13,7 @@ local navbar_section   = require("modules/settings/sections/library_settings/nav
 local menu_section     = require("modules/settings/sections/menu_settings")
 local app_launcher_section = require("modules/settings/sections/app_launcher_settings")
 local reader_section   = require("modules/settings/sections/reader_settings")
-local global_section   = require("modules/settings/sections/global_settings")
-local advanced_section = require("modules/settings/sections/advanced_settings")
+local extras_section   = require("modules/settings/sections/extras_settings")
 local about_section    = require("modules/settings/sections/about_settings")
 local shutdown         = require("common/shutdown")
 
@@ -49,19 +48,30 @@ function M.build(plugin)
         settings_apply = settings_apply,
     }
 
-    local filebrowser_items    = lib_section.build(ctx)
-    local home_item       = home_section.build(ctx)
     local navbar_item          = navbar_section.build(ctx)
+    local filebrowser_items    = lib_section.build(ctx)
+    do
+        local inserted = false
+        for _i, item in ipairs(filebrowser_items) do
+            if item.text == _("Layout") then
+                table.insert(filebrowser_items, _i + 1, navbar_item)
+                inserted = true
+                break
+            end
+        end
+        if not inserted then
+            table.insert(filebrowser_items, navbar_item)
+        end
+    end
+    local home_item       = home_section.build(ctx)
     local quick_settings_item  = menu_section.build(ctx)
     local app_launcher_item = app_launcher_section.build(ctx)
     local reader_items         = reader_section.build(ctx)
-    local global_items      = global_section.build(ctx)
-    local advanced_items    = advanced_section.build(ctx)
+    local extras_items      = extras_section.build(ctx)
     local general_items     = about_section.build(ctx)
 
     table.insert(general_items, {
         text = _("Quit KOReader"),
-        separator = true,
         callback = function()
             UIManager:show(require("ui/widget/confirmbox"):new{
                 text = _("Are you sure you want to quit KOReader?"),
@@ -137,17 +147,14 @@ function M.build(plugin)
     home_item.text = _("Home")
     IconItem.decorate(home_item, icons.settings_home)
     navbar_item.text = _("Navbar")
-    IconItem.decorate(navbar_item, icons.settings_navbar)
 
     local root_items = {
         quick_settings_item,
         app_launcher_item,
         home_item,
         IconItem.decorate({ text = _("Library"), sub_item_table = filebrowser_items }, icons.settings_library),
-        navbar_item,
         IconItem.decorate({ text = _("Reader"), sub_item_table = reader_items }, icons.settings_reader),
-        IconItem.decorate({ text = _("Global"), sub_item_table = global_items }, icons.settings_global),
-        IconItem.decorate({ text = _("Advanced"), sub_item_table = advanced_items }, icons.settings_advanced),
+        IconItem.decorate({ text = _("Extras"), sub_item_table = extras_items }, icons.fav_add),
         IconItem.decorate({
             text = _("About"),
             sub_item_table = general_items,

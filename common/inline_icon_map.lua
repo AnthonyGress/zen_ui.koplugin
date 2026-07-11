@@ -35,8 +35,8 @@ return {
     clear        = "\u{F099B}",  -- mdi-close-circle
 
     -- favourites (context_menu.lua)
-    fav_add      = "\u{F04CE}",  -- mdi-heart
-    fav_remove   = "\u{F04D2}",  -- mdi-heart-broken
+    fav_add      = "\u{F04CE}",  -- mdi-star
+    fav_remove   = "\u{F04D2}",  -- mdi-star-outlined
 
     -- read status (context_menu.lua)
     status       = "\u{F0B64}",  -- mdi-book-open-blank-variant (unread)
@@ -82,10 +82,8 @@ return {
     settings_quick    = "\u{F0A1A}",
     settings_library  = "\u{F125F}",
     settings_home     = "\u{F02DC}",
-    settings_navbar   = "\u{F0837}",
     settings_reader   = "\u{F14F7}",
     settings_global   = "\u{F484}",
-    settings_advanced = "\u{F1323}",
     settings_about    = "\u{F02FD}",  -- mdi-information
 
     -- book status actions (book_status.lua)

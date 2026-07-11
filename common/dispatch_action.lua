@@ -228,6 +228,40 @@ local function sync_reading_progress()
     return true
 end
 
+local function show_zen_toc(plugin)
+    local reader = get_reader()
+    if not (reader and reader.document and reader.toc) then return false end
+    if type(reader.toc.toc) ~= "table" or #reader.toc.toc == 0 then
+        require("ui/uimanager"):show(require("ui/widget/infomessage"):new{
+            text = _("No table of contents available."),
+        })
+        return true
+    end
+
+    local ZenTocWidget = require("modules/reader/zen_toc_widget")
+    ZenTocWidget.set_plugin(plugin)
+
+    local focus_page = 1
+    if type(reader.getCurrentPage) == "function" then
+        local ok, page = pcall(reader.getCurrentPage, reader)
+        if ok and type(page) == "number" then
+            focus_page = page
+        end
+    end
+
+    require("ui/uimanager"):show(ZenTocWidget:new{
+        ui = reader,
+        focus_page = focus_page,
+        on_goto = function(page)
+            if reader.link then
+                reader.link:addCurrentLocationToStack()
+            end
+            reader:handleEvent(require("ui/event"):new("GotoPage", page))
+        end,
+    })
+    return true
+end
+
 local _folder_picker_patched = false
 
 -- Render a per-action folder picker for zen_ui_show_folder. The default Dispatcher
@@ -331,6 +365,12 @@ function M.onDispatcherRegisterActions()
         title = _("Zen UI - Toggle reader status bars"),
         reader = true,
     })
+    Dispatcher:registerAction("zen_ui_show_toc", {
+        category = "none",
+        event = "ShowZenUIToc",
+        title = _("Zen UI - Table of contents"),
+        reader = true,
+    })
     Dispatcher:registerAction("zen_ui_show_home", {
         category = "none",
         event = "ShowZenUIHome",
@@ -428,6 +468,9 @@ function M.onToggleReaderTopStatusBar(plugin)
     return set_top_status_bar(plugin, not is_top_status_bar_enabled(plugin))
 end
 
+M.isBottomStatusBarVisible = is_bottom_status_bar_visible
+M.setBottomStatusBar = set_bottom_status_bar
+
 function M.onToggleReaderBottomStatusBar(plugin)
     return set_bottom_status_bar(plugin, not is_bottom_status_bar_visible())
 end
@@ -468,6 +511,10 @@ function M.onZenUIKOSyncSync()
     return sync_reading_progress()
 end
 
+function M.onShowZenUIToc(plugin)
+    return show_zen_toc(plugin)
+end
+
 function M.install(target)
     target.onDispatcherRegisterActions = M.onDispatcherRegisterActions
     target.onToggleZenMode = M.onToggleZenMode
@@ -483,6 +530,7 @@ function M.install(target)
     target.onShowZenUITags = M.onShowZenUITags
     target.onShowZenUIFolder = M.onShowZenUIFolder
     target.onZenUIKOSyncSync = M.onZenUIKOSyncSync
+    target.onShowZenUIToc = M.onShowZenUIToc
 end
 
 return M

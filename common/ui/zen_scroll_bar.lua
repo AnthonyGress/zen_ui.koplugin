@@ -2,6 +2,7 @@ local function apply_zen_scroll_bar()
     -- Replaces the pagination footer with a pill-bar, dot-style, or page-number
     -- scroll indicator. Style is read live from config; no restart needed to toggle.
     local _       = require("gettext")
+    local Blitbuffer = require("ffi/blitbuffer")
     local Device  = require("device")
     local Geom    = require("ui/geometry")
     local Menu    = require("ui/widget/menu")
@@ -13,6 +14,7 @@ local function apply_zen_scroll_bar()
         filemanager = true,
         history = true,
         collections = true,
+        filesearcher = true,
     }
 
     local function getRakuyomi()
@@ -27,7 +29,7 @@ local function apply_zen_scroll_bar()
         orig_menu_init(self)
 
         -- Check if this is a target menu:
-        -- 1. Named menus (filemanager, history, collections)
+        -- 1. Named menus (filemanager, history, collections, search results)
         -- 2. File browser style menus (covers_fullscreen + is_borderless + title_bar_fm_style)
         -- 3. Bookmarks menu (is_borderless + title_bar_fm_style + title_bar_left_icon == "appbar.menu")
         local is_bookmarks_menu = self.is_borderless
@@ -49,6 +51,7 @@ local function apply_zen_scroll_bar()
         end
 
         local menu   = self
+        local is_search = self.name == "filesearcher"
         local scr_w  = Screen:getWidth()
         local bar_w  = math.floor(scr_w * BAR_W_PCT)
         local bar_x  = math.floor((scr_w - bar_w) / 2)   -- centred offset from left edge
@@ -66,10 +69,19 @@ local function apply_zen_scroll_bar()
 
         -- BottomContainer positions page_info at y = inner_dimen.h - h.
         self.page_info.getSize = function() return foot end
+        if is_search then
+            self.page_info:resetLayout()
+        end
 
         -- Replace the chevron rendering with the configured scroll indicator.
         -- x, y: absolute screen position supplied by BottomContainer.
         self.page_info.paintTo = function(_, bb, x, y)
+            if is_search then
+                local paint_y = Screen:getHeight() - foot_h
+                bb:paintRect(0, paint_y, scr_w, foot_h, Blitbuffer.COLOR_WHITE)
+                pager.paint(bb, bar_x, paint_y, bar_w, foot_h, menu.page or 1, menu.page_num or 1)
+                return
+            end
             pager.paint(bb, x + bar_x, y, bar_w, foot_h, menu.page or 1, menu.page_num or 1)
         end
 
@@ -78,8 +90,10 @@ local function apply_zen_scroll_bar()
         -- screen_zone uses ratio_x/y/w/h (fractions of screen dimensions),
         -- as required by InputContainer:registerTouchZones.
         local scr_h    = Screen:getHeight()
-        local footer_y = self.dimen.y + self.dimen.h - foot_h
-        local menu_x   = self.dimen.x
+        local footer_y = is_search
+            and (scr_h - foot_h)
+            or  (self.dimen.y + self.dimen.h - foot_h)
+        local menu_x = is_search and 0 or self.dimen.x
 
         -- Pre-compute ratios shared across zones.
         local rz_left_x   = (menu_x + bar_x) / scr_w

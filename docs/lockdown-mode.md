@@ -2,7 +2,7 @@
 title: Lockdown Mode
 category: Lockdown Mode
 summary: Restrict library, Controls, and reader interactions for a controlled reading setup.
-settingsPath: Zen UI > Global > Lockdown mode
+settingsPath: Zen UI > Extras > Lockdown mode
 order: 65
 ---
 
@@ -10,7 +10,7 @@ order: 65
 
 ## Overview
 
-Lockdown Mode applies restrictions across Zen UI and KOReader. It is toggled from Controls or the `Zen UI - Toggle Lockdown Mode` dispatcher action, while its behavior is configured under Global settings.
+Lockdown Mode applies restrictions across Zen UI and KOReader. It is toggled from Controls or the `Zen UI - Toggle Lockdown Mode` dispatcher action, while its behavior is configured under Extras.
 
 ## Options
 

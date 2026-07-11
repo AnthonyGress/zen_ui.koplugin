@@ -16,9 +16,106 @@ local action_tabs_close_library = {
 }
 
 local is_real_exit_target
+local zen_plugin
+
+local function get_zen_config()
+    local plugin = zen_plugin or rawget(_G, "__ZEN_UI_PLUGIN")
+    if plugin and type(plugin.config) == "table" then
+        return plugin.config
+    end
+
+    local ok_cm, ConfigManager = pcall(require, "config/manager")
+    if ok_cm and ConfigManager and type(ConfigManager.get) == "function" then
+        return ConfigManager.get()
+    end
+end
 
 local function is_library_view(widget)
     return widget and widget.name == "library_view"
+end
+
+local function is_chapter_listing(widget)
+    return widget and widget.name == "chapter_listing"
+end
+
+local function close_top_chapter_listing()
+    local stack = UIManager._window_stack
+    local top = type(stack) == "table" and stack[#stack]
+    local widget = top and top.widget
+    if is_chapter_listing(widget) then
+        UIManager:close(widget)
+    end
+end
+
+local function return_to_chapter_list_on_exit_enabled()
+    local config = get_zen_config()
+    local rakuyomi = config and config.rakuyomi
+    if type(rakuyomi) ~= "table" then return true end
+    if rakuyomi.return_to_chapter_list_on_exit ~= nil then
+        return rakuyomi.return_to_chapter_list_on_exit ~= false
+    end
+    if rakuyomi.return_to_chapter_list_on_reader_exit ~= nil then
+        return rakuyomi.return_to_chapter_list_on_reader_exit ~= false
+    end
+    return true
+end
+
+local function reverse_page_scrolling_enabled()
+    local config = get_zen_config()
+    local rakuyomi = config and config.rakuyomi
+    return type(rakuyomi) == "table" and rakuyomi.reverse_page_scrolling == true
+end
+
+local function save_reverse_page_scrolling_for_file(filepath, enabled)
+    if type(filepath) ~= "string" or filepath == "" then
+        return
+    end
+    if enabled == nil then enabled = reverse_page_scrolling_enabled() end
+    local ok_ds, DocSettings = pcall(require, "docsettings")
+    if not ok_ds or not DocSettings then
+        return
+    end
+    local ok_doc, doc_settings = pcall(DocSettings.open, DocSettings, filepath)
+    if not ok_doc or not doc_settings then
+        return
+    end
+    doc_settings:saveSetting("inverse_reading_order", enabled == true)
+    if type(doc_settings.flush) == "function" then
+        pcall(doc_settings.flush, doc_settings)
+    end
+end
+
+local function apply_reverse_page_scrolling_to_reader(ui, enabled, reason)
+    local file = ui and ui.document and ui.document.file
+    if not ui then
+        return false
+    end
+    if not M.isChapterFile(file) then
+        return false
+    end
+
+    enabled = enabled == true
+    local view = ui.view
+    if ui.doc_settings then
+        ui.doc_settings:saveSetting("inverse_reading_order", enabled)
+        if type(ui.doc_settings.flush) == "function" then
+            pcall(ui.doc_settings.flush, ui.doc_settings)
+        end
+    else
+        save_reverse_page_scrolling_for_file(file, enabled)
+    end
+
+    if view then
+        local changed = view.inverse_reading_order ~= enabled
+        view.inverse_reading_order = enabled
+        if changed or ui._zen_rakuyomi_touch_zones_applied ~= enabled then
+            if type(view.setupTouchZones) == "function" then
+                view:setupTouchZones()
+            end
+            ui._zen_rakuyomi_touch_zones_applied = enabled
+        end
+    end
+    return true
 end
 
 function M.isLibraryView(widget)
@@ -33,6 +130,12 @@ function M.isScrollBarMenu(widget)
         or name == "library_view"
         or name == "manga_search_results"
         or name == "notification_view"
+end
+
+function M.applyReversePageScrollingToCurrentReader(enabled)
+    local ok_rui, ReaderUI = pcall(require, "apps/reader/readerui")
+    local ui = ok_rui and ReaderUI and ReaderUI.instance
+    return apply_reverse_page_scrolling_to_reader(ui, enabled, "settings_toggle")
 end
 
 function M.getStandaloneTabId(widget)
@@ -74,6 +177,7 @@ end
 
 local storage_path_loaded = false
 local storage_path_cache
+local origin_metadata_cache = {}
 
 local function get_storage_path()
     if storage_path_loaded then
@@ -96,252 +200,85 @@ local function get_storage_path()
         end
     end
     storage_path_cache = normalize_path(storage)
-    logger.dbg("zen-ui rakuyomi-return: cached storage path:", tostring(storage_path_cache))
     return storage_path_cache
+end
+
+local function read_zip_comment(path)
+    local file = io.open(path, "rb")
+    if not file then return nil end
+
+    local size = file:seek("end")
+    if not size or size <= 0 then
+        file:close()
+        return nil
+    end
+
+    local read_size = math.min(size, 65535 + 22)
+    file:seek("set", size - read_size)
+    local data = file:read(read_size)
+    file:close()
+    if not data then return nil end
+
+    for pos = read_size - 21, 1, -1 do
+        if data:sub(pos, pos + 3) == "PK\005\006" then
+            local len_low = data:byte(pos + 20) or 0
+            local len_high = data:byte(pos + 21) or 0
+            local comment_len = len_low + len_high * 256
+            if pos + 21 + comment_len == read_size and comment_len > 0 then
+                return data:sub(pos + 22, pos + 21 + comment_len)
+            end
+        end
+    end
+end
+
+local function has_origin_metadata(path)
+    if origin_metadata_cache[path] ~= nil then
+        return origin_metadata_cache[path]
+    end
+
+    local comment = read_zip_comment(path)
+    local has_origin = type(comment) == "string"
+        and comment:find('"chapter_id"', 1, true) ~= nil
+        and comment:find('"manga_id"', 1, true) ~= nil
+        and comment:find('"source_id"', 1, true) ~= nil
+    origin_metadata_cache[path] = has_origin
+    return has_origin
 end
 
 function M.isChapterFile(path)
     if type(path) ~= "string" then
-        logger.dbg("zen-ui rakuyomi-return: chapter detection rejected non-string path")
         return false
     end
 
     local storage = get_storage_path()
     local in_storage = path_is_inside(path, storage) == true
-    logger.dbg(
-        "zen-ui rakuyomi-return: chapter detection:",
-        "path=", path,
-        "storage=", tostring(storage),
-        "in_storage=", tostring(in_storage))
-    return in_storage
+    local has_origin = in_storage or has_origin_metadata(path)
+    return has_origin
 end
 
-local function target_from_origin(origin)
-    if type(origin) == "table" and origin.type == "SUCCESS" then
-        origin = origin.body
-    end
-    if type(origin) == "table" and origin.type == "ERROR" then
-        logger.warn(
-            "zen-ui rakuyomi-return: getOrigin error response:",
-            tostring(origin.status), tostring(origin.message))
-        return nil
-    end
-    if origin == nil then
-        -- No embedded origin comment: legacy chapter downloaded before rakuyomi's
-        -- ZIP-comment origin feature. Unrecoverable; expected, not an error.
-        logger.dbg("zen-ui rakuyomi-return: getOrigin has no origin comment (legacy chapter)")
-        return nil
-    end
-    if type(origin) ~= "table" or type(origin.manga_id) ~= "table" then
-        local manga_id_type = "nil"
-        if type(origin) == "table" then
-            manga_id_type = type(origin.manga_id)
-        end
-        logger.warn(
-            "zen-ui rakuyomi-return: getOrigin unexpected response:",
-            "type=", type(origin),
-            "manga_id_type=", manga_id_type)
-        return nil
-    end
-    local manga_id = origin.manga_id.manga_id
-    local source_id = origin.manga_id.source_id
-    if type(manga_id) ~= "string" or type(source_id) ~= "string" then
-        logger.warn(
-            "zen-ui rakuyomi-return: getOrigin missing ids:",
-            "source=", tostring(source_id),
-            "manga=", tostring(manga_id),
-            "chapter=", tostring(origin.chapter_id))
-        return nil
-    end
-    return {
-        id = manga_id,
-        chapter_id = origin.chapter_id,
-        source = { id = source_id },
-    }
-end
-
-local function append_origin_candidate(candidates, label, object, call_style)
-    if type(object) == "table" and type(object.getOrigin) == "function" then
+local function append_file_opener_candidate(candidates, label, object)
+    if type(object) == "table" and type(object.openChapterListingFromFile) == "function" then
         candidates[#candidates + 1] = {
             label = label,
             object = object,
-            call_style = call_style or "method",
         }
     end
 end
 
-local function append_origin_candidates(candidates, label, object)
-    -- RakuyomiShared:getOrigin is a colon method; function-style call passes the
-    -- path as self, leaving filepath nil and crashing io.open. Method style only.
-    append_origin_candidate(candidates, label .. " method", object, "method")
-end
-
-local function call_origin_candidate(candidate, path)
-    logger.dbg(
-        "zen-ui rakuyomi-return: trying getOrigin:",
-        candidate.label,
-        "style=", candidate.call_style)
-    if candidate.call_style == "function" then
-        return pcall(candidate.object.getOrigin, path)
-    end
-    return pcall(candidate.object.getOrigin, candidate.object, path)
-end
-
-local function get_origin_from_document(path)
-    local ok_registry, DocumentRegistry = pcall(require, "document/documentregistry")
-    if not ok_registry then
-        return false, DocumentRegistry
-    end
-
-    local refcount = 0
-    if type(DocumentRegistry.getReferenceCount) == "function" then
-        refcount = DocumentRegistry:getReferenceCount(path) or 0
-    end
-
-    local doc = DocumentRegistry:openDocument(path)
-    if type(doc) ~= "table" or type(doc.getOrigin) ~= "function" then
-        if doc and refcount > 0 then
-            pcall(DocumentRegistry.closeDocument, DocumentRegistry, path)
-        elseif doc and type(doc.close) == "function" then
-            pcall(doc.close, doc)
-        end
-        return false, "document has no getOrigin"
-    end
-
-    local ok_origin, origin = pcall(doc.getOrigin, doc, path)
-    if ok_origin and origin == nil then
-        ok_origin, origin = pcall(doc.getOrigin, doc)
-    end
-
-    if refcount > 0 then
-        pcall(DocumentRegistry.closeDocument, DocumentRegistry, path)
-    elseif type(doc.close) == "function" then
-        pcall(doc.close, doc)
-    else
-        pcall(DocumentRegistry.closeDocument, DocumentRegistry, path)
-    end
-
-    return ok_origin, origin
-end
-
-local function resolve_origin_target(path)
-    local candidates = {}
-
-    append_origin_candidates(candidates, "global RakuyomiShared", rawget(_G, "RakuyomiShared"))
-    append_origin_candidates(candidates, "package.loaded RakuyomiShared", package.loaded.RakuyomiShared)
-
-    local ok_shared, RakuyomiShared = pcall(require, "RakuyomiShared")
-    if ok_shared then
-        append_origin_candidates(candidates, "require RakuyomiShared", RakuyomiShared)
-    else
-        logger.dbg("zen-ui rakuyomi-return: require RakuyomiShared failed:", tostring(RakuyomiShared))
-    end
-
-    local ok_backend, Backend = pcall(require, "Backend")
-    if ok_backend then
-        append_origin_candidate(candidates, "require Backend", Backend, "function")
-    else
-        logger.dbg("zen-ui rakuyomi-return: require Backend failed:", tostring(Backend))
-    end
-
-    local fm = FileManager and FileManager.instance
-    local rakuyomi = fm and fm.rakuyomi
-    append_origin_candidates(candidates, "FileManager.rakuyomi", rakuyomi)
-    append_origin_candidates(candidates, "FileManager.rakuyomi.shared", rakuyomi and rakuyomi.shared)
-    append_origin_candidates(
-        candidates,
-        "FileManager.rakuyomi.RakuyomiShared",
-        rakuyomi and rakuyomi.RakuyomiShared)
-
-    for _i, candidate in ipairs(candidates) do
-        local ok_origin, origin = call_origin_candidate(candidate, path)
-        if ok_origin then
-            logger.dbg("zen-ui rakuyomi-return: getOrigin returned:", candidate.label)
-            local target = target_from_origin(origin)
-            if target then
-                return target, candidate.label
-            end
-        else
-            logger.warn(
-                "zen-ui rakuyomi-return: getOrigin failed:",
-                candidate.label,
-                tostring(origin))
-        end
-    end
-
-    if #candidates == 0 then
-        logger.dbg("zen-ui rakuyomi-return: no module getOrigin candidates")
-    end
-    logger.dbg("zen-ui rakuyomi-return: trying getOrigin: document")
-    local ok_doc_origin, doc_origin = get_origin_from_document(path)
-    if ok_doc_origin then
-        logger.dbg("zen-ui rakuyomi-return: getOrigin returned: document")
-        local target = target_from_origin(doc_origin)
-        if target then
-            return target, "document"
-        end
-    else
-        logger.warn("zen-ui rakuyomi-return: getOrigin failed: document", tostring(doc_origin))
-    end
-
-    return nil, "all Rakuyomi getOrigin candidates failed or returned no target"
-end
-
-function M.resolveChapterFile(path)
-    if not M.isChapterFile(path) then
-        logger.warn("zen-ui rakuyomi-return: resolver rejected path:", tostring(path))
-        return nil
-    end
-
-    local target, origin_source = resolve_origin_target(path)
-    if not target then
-        logger.warn("zen-ui rakuyomi-return: getOrigin unavailable:", tostring(origin_source))
-        return nil
-    end
-    logger.dbg(
-        "zen-ui rakuyomi-return: resolver matched:",
-        "origin=", tostring(origin_source),
-        "source=", target.source.id,
-        "manga=", target.id,
-        "chapter=", tostring(target.chapter_id))
-    return target
-end
-
-function M.resolveTarget(file, reason)
-    if type(file) ~= "string" or file == "" then return nil end
-    local has_detector = type(M.isChapterFile) == "function"
-    local is_chapter = has_detector and M.isChapterFile(file) == true
-    local has_resolver = type(M.resolveChapterFile) == "function"
-    logger.dbg(
-        "zen-ui rakuyomi-return: target resolve:",
-        "reason=", tostring(reason),
-        "file=", file,
-        "has_detector=", tostring(has_detector),
-        "is_chapter=", tostring(is_chapter),
-        "has_resolver=", tostring(has_resolver))
-    if not (is_chapter and has_resolver) then return nil end
-
-    local target = M.resolveChapterFile(file)
-    if target then
-        logger.dbg(
-            "zen-ui rakuyomi-return: target resolved:",
-            "reason=", tostring(reason),
-            "target_source=", tostring(target.source and target.source.id),
-            "target_manga=", tostring(target.id))
-    else
-        logger.warn(
-            "zen-ui rakuyomi-return: owned file without target:",
-            "reason=", tostring(reason),
-            "file=", file)
-    end
-    return target
+local function append_file_opener_candidates(candidates, label, object)
+    append_file_opener_candidate(candidates, label .. " method", object)
 end
 
 function M.openLibraryView(options)
     local fm = FileManager and FileManager.instance
     local rakuyomi = fm and fm.rakuyomi
     if rakuyomi then
-        rakuyomi:openLibraryView(options or { hideTopClose = true })
+        options = options or { hideTopClose = true }
+        rakuyomi:openLibraryView(options)
+        if options.forceLibraryView == true then
+            close_top_chapter_listing()
+            UIManager:nextTick(close_top_chapter_listing)
+        end
         return true
     end
 
@@ -352,61 +289,47 @@ function M.openLibraryView(options)
     return false
 end
 
-function M.openChapterList(manga)
-    if type(manga) ~= "table" or type(manga.id) ~= "string"
-            or type(manga.source) ~= "table"
-            or type(manga.source.id) ~= "string" then
-        logger.warn("zen-ui rakuyomi-return: invalid chapter-list target")
-        return false
-    end
-    logger.dbg(
-        "zen-ui rakuyomi-return: opening chapter list:",
-        "source=", manga.source.id,
-        "manga=", manga.id)
-    if not M.openLibraryView({ hideTopClose = true }) then
-        logger.warn("zen-ui rakuyomi-return: could not open Rakuyomi library")
+function M.openChapterListingFromFile(filepath, hide_top_close)
+    if type(filepath) ~= "string" or filepath == "" then
+        logger.warn("zen-ui rakuyomi-return: invalid chapter-list file")
         return false
     end
 
-    local stack = UIManager._window_stack
-    local top = type(stack) == "table" and stack[#stack]
-    local library_view = top and top.widget
-    if not is_library_view(library_view) then
-        logger.warn(
-            "zen-ui rakuyomi-return: library did not become top widget:",
-            tostring(library_view and library_view.name))
-        return false
+    local candidates = {}
+    append_file_opener_candidates(candidates, "global RakuyomiShared", rawget(_G, "RakuyomiShared"))
+    append_file_opener_candidates(candidates, "package.loaded RakuyomiShared", package.loaded.RakuyomiShared)
+
+    local ok_shared, RakuyomiShared = pcall(require, "RakuyomiShared")
+    if ok_shared then
+        append_file_opener_candidates(candidates, "require RakuyomiShared", RakuyomiShared)
     end
 
-    for _i, candidate in ipairs(library_view.mangas or {}) do
-        if candidate.id == manga.id and candidate.source
-                and candidate.source.id == manga.source.id then
-            manga = candidate
-            break
+    local fm = FileManager and FileManager.instance
+    local rakuyomi = fm and fm.rakuyomi
+    append_file_opener_candidates(candidates, "FileManager.rakuyomi", rakuyomi)
+    append_file_opener_candidates(candidates, "FileManager.rakuyomi.shared", rakuyomi and rakuyomi.shared)
+    append_file_opener_candidates(
+        candidates,
+        "FileManager.rakuyomi.RakuyomiShared",
+        rakuyomi and rakuyomi.RakuyomiShared)
+
+    for _i, candidate in ipairs(candidates) do
+        local ok_open, opened = pcall(
+            candidate.object.openChapterListingFromFile,
+            candidate.object,
+            filepath,
+            hide_top_close)
+        if ok_open and opened == true then
+            return true
+        elseif not ok_open then
+            logger.warn(
+                "zen-ui rakuyomi-return: openChapterListingFromFile failed:",
+                candidate.label,
+                tostring(opened))
         end
     end
 
-    local ok_listing, ChapterListing = pcall(require, "ChapterListing")
-    local ok_trapper, Trapper = pcall(require, "ui/trapper")
-    if not (ok_listing and ok_trapper) then
-        logger.warn(
-            "zen-ui rakuyomi-return: chapter-list dependencies unavailable:",
-            "listing=", tostring(ok_listing),
-            "trapper=", tostring(ok_trapper))
-        return false
-    end
-
-    Trapper:wrap(function()
-        local on_return = function()
-            M.openLibraryView({ hideTopClose = true })
-        end
-        local opened = ChapterListing:fetchAndShow(manga, on_return, true)
-        logger.dbg("zen-ui rakuyomi-return: ChapterListing result:", tostring(opened))
-        if opened then
-            M.closeLibraryView(library_view)
-        end
-    end)
-    return true
+    return false
 end
 
 function M.closeLibraryView(widget)
@@ -543,25 +466,75 @@ end
 
 -- Capture the Rakuyomi return target for *any* book open, not only the
 -- Continue-tab resume. showReader is the single choke point every open flows
--- through, and it broadcasts "ShowingReader" (→ onShowingReader, which persists
--- the target) before opening. Detect chapter files here so opening from a file
--- list / history / etc. still returns to the chapter list.
+-- through, and it broadcasts "ShowingReader" before opening. Detect chapter
+-- files here so file lists / history / etc. still restore to Rakuyomi.
 function M.installShowReaderCapture()
     local ReaderUI = require("apps/reader/readerui")
-    if ReaderUI._zen_rakuyomi_showReader_patched then return end
+    if ReaderUI._zen_rakuyomi_showReader_patched then
+        return
+    end
     ReaderUI._zen_rakuyomi_showReader_patched = true
     local orig_reader_showReader = ReaderUI.showReader
     function ReaderUI:showReader(file, ...)
-        if type(file) == "string"
-                and rawget(_G, "__ZEN_UI_RAKUYOMI_RETURN_TARGET") == nil then
-            local target = M.resolveTarget(file, "showReader")
-            if target then
+        if type(file) == "string" then
+            local is_chapter = M.isChapterFile(file) == true
+            if is_chapter then
+                save_reverse_page_scrolling_for_file(file)
+            end
+            local return_to_chapter_list = return_to_chapter_list_on_exit_enabled()
+            if is_chapter then
                 _G.__ZEN_UI_LIBRARY_SOURCE_TAB = "manga"
                 _G.__ZEN_UI_FORCE_SOURCE_TAB_RESTORE = true
-                _G.__ZEN_UI_RAKUYOMI_RETURN_TARGET = target
+                _G.__ZEN_UI_RAKUYOMI_RETURN_FILE = return_to_chapter_list and file or nil
+                if not return_to_chapter_list then
+                    close_top_chapter_listing()
+                end
             end
         end
         return orig_reader_showReader(self, file, ...)
+    end
+
+    local orig_onReaderReady = ReaderUI.onReaderReady
+    function ReaderUI:onReaderReady(...)
+        local result
+        if orig_onReaderReady then
+            result = orig_onReaderReady(self, ...)
+        end
+        apply_reverse_page_scrolling_to_reader(
+            self,
+            reverse_page_scrolling_enabled(),
+            "onReaderReady")
+        return result
+    end
+
+    local orig_saveSettings = ReaderUI.saveSettings
+    function ReaderUI:saveSettings(...)
+        apply_reverse_page_scrolling_to_reader(
+            self,
+            reverse_page_scrolling_enabled(),
+            "saveSettings_before")
+        return orig_saveSettings(self, ...)
+    end
+
+    local orig_onClose = ReaderUI.onClose
+    function ReaderUI:onClose(...)
+        local file = self.document and self.document.file
+        apply_reverse_page_scrolling_to_reader(
+            self,
+            reverse_page_scrolling_enabled(),
+            "onClose_before")
+        if M.isChapterFile(file) and not return_to_chapter_list_on_exit_enabled()
+                and type(UIManager.avoidFlashOnNextRepaint) == "function" then
+            UIManager:avoidFlashOnNextRepaint()
+        end
+        return orig_onClose(self, ...)
+    end
+
+    if ReaderUI.instance then
+        apply_reverse_page_scrolling_to_reader(
+            ReaderUI.instance,
+            reverse_page_scrolling_enabled(),
+            "existing_instance")
     end
 end
 
@@ -603,6 +576,7 @@ local function apply_rakuyomi()
     logger = require("logger")
     _ = require("gettext")
 
+    zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
     _G.__ZEN_UI_RAKUYOMI = M
     M.installShowReaderCapture()
 end

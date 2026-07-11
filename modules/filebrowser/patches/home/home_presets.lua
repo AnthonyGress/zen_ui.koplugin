@@ -114,6 +114,7 @@ local DEFAULT_HOME_PAGE = {
             show_module_title = false,
         },
         strip_custom = {
+            center_books = false,
             count = 4,
             interactive = true,
             order = "default",
@@ -124,6 +125,7 @@ local DEFAULT_HOME_PAGE = {
             two_rows = false,
         },
         strip_recent = {
+            center_books = false,
             count = 4,
             filter_finished = false,
             filter_tbr = false,
@@ -136,6 +138,7 @@ local DEFAULT_HOME_PAGE = {
             two_rows = false,
         },
         strip_tbr = {
+            center_books = false,
             count = 4,
             interactive = true,
             order = "default",
@@ -254,6 +257,7 @@ local BOOKSHELF_HOME_PAGE = {
             show_module_title = false,
         },
         strip_custom = {
+            center_books = false,
             count = 4,
             interactive = true,
             order = "default",
@@ -264,6 +268,7 @@ local BOOKSHELF_HOME_PAGE = {
             two_rows = false,
         },
         strip_recent = {
+            center_books = false,
             count = 8,
             filter_finished = false,
             filter_tbr = false,
@@ -276,6 +281,7 @@ local BOOKSHELF_HOME_PAGE = {
             two_rows = true,
         },
         strip_tbr = {
+            center_books = false,
             count = 4,
             interactive = true,
             order = "default",

@@ -5,6 +5,7 @@
 local _ = require("gettext")
 local UIManager = require("ui/uimanager")
 local Event = require("ui/event")
+local dispatch_action = require("common/dispatch_action")
 local utils = require("modules/settings/zen_settings_utils")
 local constants = require("common/constants")
 local PresetStore = require("config/preset_store")
@@ -809,6 +810,17 @@ function M.build(ctx)
             local mock = {}
             ui.view.footer:addToMainMenu(mock)
             local result = {}
+            table.insert(result, {
+                text = _("Enable bottom status bar"),
+                checked_func = function()
+                    return dispatch_action.isBottomStatusBarVisible()
+                end,
+                callback = function(touchmenu_instance)
+                    dispatch_action.setBottomStatusBar(plugin,
+                        not dispatch_action.isBottomStatusBarVisible())
+                    if touchmenu_instance then touchmenu_instance:updateItems() end
+                end,
+            })
             table.insert(result, build_footer_presets_item())
             table.insert(result, font_submenu)
             table.insert(result, {

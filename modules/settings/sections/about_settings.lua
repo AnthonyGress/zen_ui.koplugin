@@ -1,12 +1,13 @@
 -- settings/sections/about.lua
 -- "About" info items: plugin version plus a grouped device subsection.
--- Receives ctx: { plugin }
+-- Receives ctx: { plugin, config, save_and_apply, settings_apply }
 
 local _ = require("gettext")
 local UIManager = require("ui/uimanager")
 local utils = require("modules/settings/zen_settings_utils")
 local bugreporter = require("modules/settings/zen_bugreporter")
 local updater = require("modules/settings/zen_updater")
+local advanced_section = require("modules/settings/sections/advanced_settings")
 
 local M = {}
 
@@ -78,6 +79,11 @@ function M.build(ctx)
             bugreporter.show_dialog(ctx)
         end,
         keep_menu_open = true,
+    })
+
+    table.insert(items, {
+        text = _("Advanced"),
+        sub_item_table = advanced_section.build(ctx),
     })
 
     table.insert(items, {

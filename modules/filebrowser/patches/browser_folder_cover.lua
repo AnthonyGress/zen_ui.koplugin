@@ -1075,8 +1075,11 @@ local function apply_browser_folder_cover()
             self._zen_cover_dimen = dimen
             self._zen_cover_top = math.floor((eff_h - dimen.h) / 2)
 
-            local _file_count = type(self.mandatory) == "string"
-                and (tonumber(self.mandatory:match("(%d+)%s*\xef\x80\x96")) or 0) or 0
+            local _file_count = tonumber(img.book_count)
+            if not _file_count then
+                _file_count = type(self.mandatory) == "string"
+                    and (tonumber(self.mandatory:match("(%d+)%s*\xef\x80\x96")) or 0) or 0
+            end
             self._zen_folder_count = (settings.show_item_count.get() and _file_count > 0)
                 and _file_count or nil
 

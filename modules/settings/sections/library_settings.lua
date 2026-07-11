@@ -1023,57 +1023,68 @@ function M.build(ctx)
     -- Layout
     -- -------------------------------------------------------------------------
 
+    local layout_items = {
+        display_mode_item,
+        items_per_page_item,
+    }
+    table.insert(layout_items, {
+        text = _("Show all files from subfolders"),
+        checked_func = function()
+            return G_reader_settings:isTrue("show_flat_view")
+                and not paths.hasUnsafeFlatViewHomeRoot()
+        end,
+        callback = function()
+            local v = not G_reader_settings:isTrue("show_flat_view")
+            if v and paths.hasUnsafeFlatViewHomeRoot() then
+                G_reader_settings:saveSetting("show_flat_view", false)
+                local InfoMessage = require("ui/widget/infomessage")
+                UIManager:show(InfoMessage:new{
+                    text = _("This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."),
+                })
+                return
+            end
+            G_reader_settings:saveSetting("show_flat_view", v)
+            settings_apply.prompt_restart()
+        end,
+    })
+    table.insert(layout_items, {
+        text = _("Show item underline"),
+        checked_func = function()
+            return config.features.browser_hide_underline ~= true
+        end,
+        callback = function()
+            config.features.browser_hide_underline = config.features.browser_hide_underline ~= true
+            save_and_apply("browser_hide_underline")
+        end,
+    })
+    table.insert(layout_items, {
+        text = _("Hide list borders"),
+        checked_func = function()
+            return type(config.browser_list_item_layout) == "table"
+                and config.browser_list_item_layout.hide_list_borders == true
+        end,
+        callback = function()
+            if type(config.browser_list_item_layout) ~= "table" then
+                config.browser_list_item_layout = {}
+            end
+            config.browser_list_item_layout.hide_list_borders =
+                config.browser_list_item_layout.hide_list_borders ~= true
+            plugin:saveConfig()
+            -- updateItems rebuilds item_group so stripListBorders takes effect immediately.
+            local ok_fm, FM = pcall(require, "apps/filemanager/filemanager")
+            local fm = ok_fm and FM and FM.instance
+            if fm and fm.file_chooser and fm.file_chooser.updateItems then
+                fm.file_chooser:updateItems()
+                UIManager:setDirty(fm, "ui")
+            else
+                UIManager:setDirty(nil, "full")
+            end
+        end,
+    })
+
     table.insert(items, 2, {
         text = _("Layout"),
-        sub_item_table = {
-            display_mode_item,
-            items_per_page_item,
-            {
-                text = _("Show all files from subfolders"),
-                checked_func = function()
-                    return G_reader_settings:isTrue("show_flat_view")
-                end,
-                callback = function()
-                    local v = not G_reader_settings:isTrue("show_flat_view")
-                    G_reader_settings:saveSetting("show_flat_view", v)
-                    settings_apply.prompt_restart()
-                end,
-            },
-            {
-                text = _("Show item underline"),
-                checked_func = function()
-                    return config.features.browser_hide_underline ~= true
-                end,
-                callback = function()
-                    config.features.browser_hide_underline = config.features.browser_hide_underline ~= true
-                    save_and_apply("browser_hide_underline")
-                end,
-            },
-            {
-                text = _("Hide list borders"),
-                checked_func = function()
-                    return type(config.browser_list_item_layout) == "table"
-                        and config.browser_list_item_layout.hide_list_borders == true
-                end,
-                callback = function()
-                    if type(config.browser_list_item_layout) ~= "table" then
-                        config.browser_list_item_layout = {}
-                    end
-                    config.browser_list_item_layout.hide_list_borders =
-                        config.browser_list_item_layout.hide_list_borders ~= true
-                    plugin:saveConfig()
-                    -- updateItems rebuilds item_group so stripListBorders takes effect immediately.
-                    local ok_fm, FM = pcall(require, "apps/filemanager/filemanager")
-                    local fm = ok_fm and FM and FM.instance
-                    if fm and fm.file_chooser and fm.file_chooser.updateItems then
-                        fm.file_chooser:updateItems()
-                        UIManager:setDirty(fm, "ui")
-                    else
-                        UIManager:setDirty(nil, "full")
-                    end
-                end,
-            },
-        },
+        sub_item_table = layout_items,
     })
 
     -- -------------------------------------------------------------------------
@@ -1199,6 +1210,71 @@ function M.build(ctx)
         },
     })
 
+    local function build_additional_home_items()
+        local dirs = type(config.additional_home_dirs) == "table"
+            and config.additional_home_dirs or {}
+        local sub = {}
+        local function refresh(touchmenu_instance)
+            if touchmenu_instance then
+                touchmenu_instance.item_table = build_additional_home_items()
+                touchmenu_instance:updateItems()
+            end
+        end
+        table.insert(sub, {
+            text = _("Add folder…"),
+            keep_menu_open = true,
+            callback = function(touchmenu_instance)
+                local PathChooser = require("ui/widget/pathchooser")
+                local start_path = paths.getHomeDir()
+                    or G_reader_settings:readSetting("lastdir") or "/"
+                UIManager:show(PathChooser:new{
+                    select_file = false,
+                    show_files  = false,
+                    path        = start_path,
+                    onConfirm   = function(dir_path)
+                        if paths.isUnsafeFlatViewRoot(dir_path) then
+                            local InfoMessage = require("ui/widget/infomessage")
+                            UIManager:show(InfoMessage:new{
+                                text = _("Use a narrower books folder instead of the device storage root."),
+                            })
+                            return
+                        end
+                        if type(config.additional_home_dirs) ~= "table" then
+                            config.additional_home_dirs = {}
+                        end
+                        for _i, existing in ipairs(config.additional_home_dirs) do
+                            if existing == dir_path then return end
+                        end
+                        table.insert(config.additional_home_dirs, dir_path)
+                        plugin:saveConfig()
+                        refresh(touchmenu_instance)
+                    end,
+                })
+            end,
+        })
+        for i, dir in ipairs(dirs) do
+            local util = require("util")
+            local name = select(2, util.splitFilePathName(dir))
+            table.insert(sub, {
+                text = name ~= "" and name or dir,
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    local ConfirmBox = require("ui/widget/confirmbox")
+                    UIManager:show(ConfirmBox:new{
+                        text = _("Remove this folder from additional home folders?") .. "\n" .. dir,
+                        ok_text = _("Remove"),
+                        ok_callback = function()
+                            table.remove(config.additional_home_dirs, i)
+                            plugin:saveConfig()
+                            refresh(touchmenu_instance)
+                        end,
+                    })
+                end,
+            })
+        end
+        return sub
+    end
+
     table.insert(items, {
         text = _("Home folder"),
         sub_item_table = {
@@ -1211,6 +1287,14 @@ function M.build(ctx)
                     local default_path = filemanagerutil.getDefaultDir()
                     filemanagerutil.showChooseDialog(title_header, function(path)
                         G_reader_settings:saveSetting("home_dir", path)
+                        if paths.isUnsafeFlatViewRoot(path)
+                                and G_reader_settings:isTrue("show_flat_view") then
+                            G_reader_settings:saveSetting("show_flat_view", false)
+                            local InfoMessage = require("ui/widget/infomessage")
+                            UIManager:show(InfoMessage:new{
+                                text = _("Subfolder flat view was disabled because the home folder is the device storage root."),
+                            })
+                        end
                         local ok, FM = pcall(require, "apps/filemanager/filemanager")
                         local fm = ok and FM and FM.instance
                         if fm and type(fm.updateTitleBarPath) == "function" then
@@ -1247,61 +1331,7 @@ function M.build(ctx)
             },
             {
                 text = _("Additional home folders"),
-                sub_item_table_func = function()
-                    local dirs = type(config.additional_home_dirs) == "table"
-                        and config.additional_home_dirs or {}
-                    local sub = {}
-                    table.insert(sub, {
-                        text = _("Add folder…"),
-                        keep_menu_open = true,
-                        callback = function(touchmenu_instance)
-                            local PathChooser = require("ui/widget/pathchooser")
-                            local start_path = paths.getHomeDir()
-                                or G_reader_settings:readSetting("lastdir") or "/"
-                            UIManager:show(PathChooser:new{
-                                select_file = false,
-                                show_files  = false,
-                                path        = start_path,
-                                onConfirm   = function(dir_path)
-                                    if type(config.additional_home_dirs) ~= "table" then
-                                        config.additional_home_dirs = {}
-                                    end
-                                    for _i, existing in ipairs(config.additional_home_dirs) do
-                                        if existing == dir_path then return end
-                                    end
-                                    table.insert(config.additional_home_dirs, dir_path)
-                                    plugin:saveConfig()
-                                    if touchmenu_instance then
-                                        touchmenu_instance:updateItems()
-                                    end
-                                end,
-                            })
-                        end,
-                    })
-                    for i, dir in ipairs(dirs) do
-                        local util = require("util")
-                        local name = select(2, util.splitFilePathName(dir))
-                        table.insert(sub, {
-                            text = name ~= "" and name or dir,
-                            keep_menu_open = true,
-                            callback = function(touchmenu_instance)
-                                local ConfirmBox = require("ui/widget/confirmbox")
-                                UIManager:show(ConfirmBox:new{
-                                    text = _("Remove this folder from additional home folders?") .. "\n" .. dir,
-                                    ok_text = _("Remove"),
-                                    ok_callback = function()
-                                        table.remove(config.additional_home_dirs, i)
-                                        plugin:saveConfig()
-                                        if touchmenu_instance then
-                                            touchmenu_instance:updateItems()
-                                        end
-                                    end,
-                                })
-                            end,
-                        })
-                    end
-                    return sub
-                end,
+                sub_item_table_func = build_additional_home_items,
             },
         },
     })

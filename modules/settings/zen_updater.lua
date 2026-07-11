@@ -759,7 +759,38 @@ local function build_single_release_scroll_text(notes, version)
     return text
 end
 
+local function call_device_bool(name)
+    local ok_dev, Device = pcall(require, "device")
+    if not ok_dev or not Device or type(Device[name]) ~= "function" then
+        return false
+    end
+    local ok, value = pcall(Device[name], Device)
+    if ok then return value == true end
+    ok, value = pcall(Device[name])
+    return ok and value == true
+end
+
+local function is_sdl_wayland_desktop()
+    if os.getenv("WAYLAND_DISPLAY") == nil and os.getenv("SDL_VIDEODRIVER") ~= "wayland" then
+        return false
+    end
+    if type(jit) == "table" and jit.os ~= "Linux" and jit.os ~= "BSD" and jit.os ~= "POSIX" then
+        return false
+    end
+    return call_device_bool("isSDL") or call_device_bool("isDesktop")
+end
+
+local function dismissable_or_in_process(Trapper, task, trap_widget, task_returns_simple_string)
+    if is_sdl_wayland_desktop() then
+        logger.warn("ZenUpdater: running update task in-process on SDL/Wayland to avoid EGL fork crash")
+        return true, task()
+    end
+    return Trapper:dismissableRunInSubprocess(task, trap_widget, task_returns_simple_string)
+end
+
 --- Run do_network_check() in a non-blocking subprocess via Trapper.
+--- On SDL/Wayland desktop this falls back to an in-process call because
+--- forking with live EGL state can abort inside egl-wayland.
 --- setup_fn(co) -- optional; called with the coroutine so the caller can wire
 ---                  a cancel button via coroutine.resume(co, false).
 --- on_done(net_ok) -- called when the subprocess completes.
@@ -770,7 +801,7 @@ local function network_check_async(trap_widget, setup_fn, on_done, on_cancelled)
         local co = coroutine.running()
         if setup_fn then setup_fn(co) end
         local completed, net_ok, has_upd, latest_ver, dl_url, latest_sha256, latest_notes, last_error =
-            Trapper:dismissableRunInSubprocess(function()
+            dismissable_or_in_process(Trapper, function()
                 local ok = do_network_check()
                 return ok, M._has_update, M._latest_ver, M._dl_url, M._latest_sha256, M._latest_notes, M._last_error
             end, trap_widget)
@@ -781,8 +812,8 @@ local function network_check_async(trap_widget, setup_fn, on_done, on_cancelled)
             M._latest_sha256 = latest_sha256
             M._latest_notes = latest_notes
         end
-        -- do_network_check() mutates M._last_error inside the forked subprocess,
-        -- so it never reaches the parent unless propagated via the return tuple.
+        -- On the subprocess path, do_network_check() mutates child state, so
+        -- copy the returned status back into the parent.
         if completed then
             M._last_error = last_error
         end
@@ -1251,10 +1282,10 @@ local function _do_install(screen, plugin_root, plugins_dir)
         end
         UIManager:scheduleIn(INSTALL_TIMEOUT, timeout_cb)
 
-        local completed, ok, err = Trapper:dismissableRunInSubprocess(function()
+        local completed, ok, err = dismissable_or_in_process(Trapper, function()
             return https_download(M._dl_url, zip_path, M._latest_sha256)
         end, screen)
-        logger.dbg("ZenUpdater: download subprocess result completed=", tostring(completed), "ok=", tostring(ok), "err=", tostring(err))
+        logger.dbg("ZenUpdater: download task result completed=", tostring(completed), "ok=", tostring(ok), "err=", tostring(err))
 
         UIManager:unschedule(timeout_cb)
         screen._on_button_action = nil  -- prevent stale cancel action on subsequent button states
@@ -1414,7 +1445,11 @@ local function _do_install(screen, plugin_root, plugins_dir)
         screen:update{ subtitle = _("Rebooting") .. "...", button = false }
         UIManager:forceRePaint()
         UIManager:scheduleIn(1, function()
-            UIManager:broadcastEvent(require("ui/event"):new("Restart"))
+            if type(UIManager.restartKOReader) == "function" then
+                UIManager:restartKOReader()
+            else
+                UIManager:broadcastEvent(require("ui/event"):new("Restart"))
+            end
         end)
     end)
 end

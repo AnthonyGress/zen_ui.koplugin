@@ -1,7 +1,7 @@
 ---
 title: About and Updates
 category: About
-summary: View version, device, setup, bug reporting, update, changelog, channel, and quit controls.
+summary: View version, device, setup, bug reporting, update, changelog, channel, advanced, and quit controls.
 settingsPath: Zen UI > About
 order: 80
 ---
@@ -10,7 +10,7 @@ order: 80
 
 ## Overview
 
-The About section groups project information, device information, support actions, update controls, and the KOReader quit action.
+The About section groups project information, device information, support actions, update controls, advanced settings, and the KOReader quit action.
 
 > **Note:** When you see the Zen icon with the dot, that means that an update is available.
 
@@ -37,6 +37,7 @@ You can switch channels and toggle automatic update checking from **About > Upda
 - Read the changelog
 - Select the update channel
 - Control automatic update checks.
+- Open Advanced settings.
 - Quit KOReader from the Zen UI menu.
 
 ## Setting reference
@@ -53,4 +54,5 @@ You can switch channels and toggle automatic update checking from **About > Upda
 | Updates > Changelog | Opens the Zen UI changelog. |
 | Updates > Channel | Selects the update channel. |
 | Updates > Automatic update checking | Enables or disables automatic update checks. |
+| About > Advanced | Opens metadata extraction, refresh behavior, logs, gestures, and plugin tools. |
 | About > Quit KOReader | Opens a confirmation dialog and exits KOReader. |
