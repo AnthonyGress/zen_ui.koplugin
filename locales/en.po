@@ -1392,6 +1392,9 @@ msgstr "Pages + Chapter Time + %"
 msgid "Pages and %"
 msgstr "Pages and %"
 
+msgid "Pages/day"
+msgstr ""
+
 msgid "pages today"
 msgstr "pages today"
 
@@ -1997,6 +2000,12 @@ msgstr "This Year"
 
 msgid "Time"
 msgstr "Time"
+
+msgid "Time/book"
+msgstr ""
+
+msgid "Time/day"
+msgstr ""
 
 msgid "Time Format"
 msgstr "Time Format"

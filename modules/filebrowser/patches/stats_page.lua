@@ -554,6 +554,7 @@ local function showCalendarDaySummary(stats_plugin, visible_day_ts, stat_style)
         content,
     }
     dialog:addWidget(scroll_widget)
+    if dialog.movable then dialog.movable.ges_events = {} end
     dialog.ges_events.ZenDayPopupTouch = {
         GestureRange:new{ ges = "touch", range = Geom:new{ x = 0, y = 0, w = Screen:getWidth(), h = Screen:getHeight() } },
     }
@@ -566,6 +567,15 @@ local function showCalendarDaySummary(stats_plugin, visible_day_ts, stat_style)
     dialog.ges_events.ZenDayPopupPanRelease = {
         GestureRange:new{ ges = "pan_release", range = Geom:new{ x = 0, y = 0, w = Screen:getWidth(), h = Screen:getHeight() } },
     }
+    dialog.ges_events.ZenDayPopupHold = {
+        GestureRange:new{ ges = "hold", range = Geom:new{ x = 0, y = 0, w = Screen:getWidth(), h = Screen:getHeight() } },
+    }
+    dialog.ges_events.ZenDayPopupHoldPan = {
+        GestureRange:new{ ges = "hold_pan", range = Geom:new{ x = 0, y = 0, w = Screen:getWidth(), h = Screen:getHeight() } },
+    }
+    dialog.ges_events.ZenDayPopupHoldRelease = {
+        GestureRange:new{ ges = "hold_release", range = Geom:new{ x = 0, y = 0, w = Screen:getWidth(), h = Screen:getHeight() } },
+    }
     function dialog:onZenDayPopupTouch(_arg, ges)
         return scroll_widget:onScrollableTouch(nil, ges)
     end
@@ -577,6 +587,15 @@ local function showCalendarDaySummary(stats_plugin, visible_day_ts, stat_style)
     end
     function dialog:onZenDayPopupPanRelease(_arg, ges)
         return scroll_widget:onScrollablePanRelease(nil, ges)
+    end
+    function dialog:onZenDayPopupHold(_arg, ges)
+        return scroll_widget:onScrollableHold(nil, ges)
+    end
+    function dialog:onZenDayPopupHoldPan(_arg, ges)
+        return scroll_widget:onScrollableHoldPan(nil, ges)
+    end
+    function dialog:onZenDayPopupHoldRelease(_arg, ges)
+        return scroll_widget:onScrollableHoldRelease(nil, ges)
     end
     UIManager:show(dialog)
 end
@@ -616,7 +635,20 @@ local function installCalendarDaySummary(calendar, stats_plugin, stat_style)
     end
 end
 
-local function tuneEmbeddedCalendar(calendar)
+local function embeddedCalendarWeekCount(month, start_day_of_week)
+    local year, month_num = tostring(month or ""):match("^(%d%d%d%d)%-(%d%d)$")
+    year = tonumber(year)
+    month_num = tonumber(month_num)
+    if not year or not month_num then return 6 end
+    local first_day = os.date("*t", os.time({ year = year, month = month_num, day = 1, hour = 12 }))
+    local last_day = os.date("*t", os.time({ year = year, month = month_num + 1, day = 0, hour = 12 }))
+    local start_day = tonumber(start_day_of_week) or 2
+    if start_day < 1 or start_day > 7 then start_day = 2 end
+    local leading_days = (first_day.wday - start_day + 7) % 7
+    return math.ceil((leading_days + last_day.day) / 7)
+end
+
+local function tuneEmbeddedCalendar(calendar, populate)
     if not calendar or not calendar.dimen then return end
 
     if calendar.title_bar then
@@ -643,7 +675,8 @@ local function tuneEmbeddedCalendar(calendar)
     if calendar.title_bar and calendar.day_names then
         local available_height = calendar.dimen.h - calendar.title_bar:getHeight()
             - calendar.day_names:getSize().h
-        calendar.week_height = math.floor((available_height - 6 * calendar.inner_padding) * (1 / 6))
+        local week_count = embeddedCalendarWeekCount(calendar.cur_month, calendar.start_day_of_week)
+        calendar.week_height = math.floor((available_height - week_count * calendar.inner_padding) / week_count)
         calendar.week_height = math.max(Screen:scaleBySize(38), calendar.week_height)
         calendar.day_border = calendar.day_border or Screen:scaleBySize(1)
         if calendar.show_hourly_histogram then
@@ -667,8 +700,19 @@ local function tuneEmbeddedCalendar(calendar)
             if fits then break end
             calendar.span_font_size = calendar.span_font_size - 1
         end
-        calendar:_populateItems()
+        if populate ~= false then calendar:_populateItems() end
     end
+end
+
+local function embeddedCalendarBookSpans(stats_plugin, month)
+    if type(stats_plugin.getReadBookByDay) ~= "function" then return 1 end
+    if not isCalendarMonth(month) then month = os.date("%Y-%m", os.time()) end
+    local ok, books_by_day = pcall(stats_plugin.getReadBookByDay, stats_plugin, month)
+    if not ok or type(books_by_day) ~= "table" then return 1 end
+    for _day, books in pairs(books_by_day) do
+        if type(books) == "table" and #books >= 2 then return 2 end
+    end
+    return 1
 end
 
 local function hideCalendarPageInfo(calendar)
@@ -679,9 +723,9 @@ local function hideCalendarPageInfo(calendar)
     calendar.page_info.getSize = function(self) return self.dimen end
 end
 
-local STATS_TRIPLET_SIZE = { preferred_pct = 0.18, min_pct = 0.12, max_pct = 0.30, grow_priority = 3 }
+local STATS_TRIPLET_SIZE = { preferred_pct = 0.12, min_pct = 0.09, max_pct = 0.18, grow_priority = 3 }
 local GOALS_SIZE = { preferred_pct = 0.12, min_pct = 0.08, max_pct = 0.18, grow_priority = 4 }
-local FEATURED_SIZE = { preferred_pct = 0.36, min_pct = 0.22, max_pct = 0.50, grow_priority = 1 }
+local FEATURED_SIZE = { preferred_pct = 0.52, min_pct = 0.34, max_pct = 0.68, grow_priority = 1 }
 
 local function blockSize(block)
     if block.id == "calendar" then return FEATURED_SIZE end
@@ -768,7 +812,12 @@ local function buildContent(blocks_config, data, page_w, h_padding, calendar_wid
         opts.label_size = Screen:scaleBySize(math.max(7, math.min(11, math.floor(height * 0.09))))
         opts.header_size = opts.header and opts.label_size or opts.header_size
         if opts.streak and flame_icon_path then
-            local icon_size = math.max(8, math.floor(opts.value_size * 0.62))
+            local value_widget = TextWidget:new{
+                text = opts.value or "",
+                face = Font:getFace("infofont", opts.value_size),
+            }
+            local value_size = value_widget:getSize()
+            local icon_size = math.max(8, math.floor((value_size.h or 12) * 0.62))
             opts.value_widget = HorizontalGroup:new{
                 align = "center",
                 IconWidget:new{
@@ -778,10 +827,7 @@ local function buildContent(blocks_config, data, page_w, h_padding, calendar_wid
                     alpha = true,
                 },
                 HorizontalSpan:new{ width = Screen:scaleBySize(3) },
-                TextWidget:new{
-                    text = opts.value or "",
-                    face = Font:getFace("infofont", opts.value_size),
-                },
+                value_widget,
             }
         end
         opts.stat_style = stat_style
@@ -801,8 +847,8 @@ local function buildContent(blocks_config, data, page_w, h_padding, calendar_wid
             local avg_t = (stats.week_duration or 0) > 0 and math.floor((stats.week_duration or 0) / 7) or 0
             return createCardRow(body_w, {
                 card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.week_pages or 0), label = _("Pages") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(avg_p), label = _("Avg pages/day") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(avg_t), label = _("Avg time/day") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(avg_p), label = _("Pages/day") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(avg_t), label = _("Time/day") },
                 card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(stats.week_duration), label = _("Total time") },
             }, stat_style, card_gap)
         elseif block.id == "this_month" then
@@ -810,22 +856,22 @@ local function buildContent(blocks_config, data, page_w, h_padding, calendar_wid
             local avg_t = math.floor((stats.month_duration or 0) / days_this_month)
             return createCardRow(body_w, {
                 card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.month_pages or 0), label = _("Pages") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(avg_p), label = _("Avg pages/day") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(avg_t), label = _("Avg time/day") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = tostring(avg_p), label = _("Pages/day") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(avg_t), label = _("Time/day") },
                 card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(stats.month_duration), label = _("Total time") },
             }, stat_style, card_gap)
         elseif block.id == "this_year" then
             local avg_t = math.floor((stats.year_duration or 0) / days_this_year)
             return createCardRow(body_w, {
                 card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.year_pages or 0), label = _("Pages") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(avg_t), label = _("Avg time/day") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(avg_t), label = _("Time/day") },
                 card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(stats.year_duration), label = _("Total time") },
                 card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.books_this_year or 0), label = _("Books read") },
             }, stat_style, card_gap)
         elseif block.id == "all_time" then
             return createCardRow(body_w, {
                 card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.lifetime_pages or 0), label = _("Total pages") },
-                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(stats.avg_time_per_book), label = _("Avg time/book") },
+                card{ width = c4_w, height = card_h, value_size = 22, value = formatTime(stats.avg_time_per_book), label = _("Time/book") },
                 card{ width = c4_w, height = card_h, value_size = 22, value = formatLongTime(stats.lifetime_read_time), label = _("Read time") },
                 card{ width = c4_w, height = card_h, value_size = 22, value = tostring(stats.books_finished or 0), label = _("Finished") },
             }, stat_style, card_gap)
@@ -928,13 +974,14 @@ local function buildContent(blocks_config, data, page_w, h_padding, calendar_wid
         end
         local settings = stats_plugin.settings or {}
         local calendar_h = body_h
+        local calendar_month = loadCalendarMonthConfig(stats_settings)
         local calendar = CalendarView:new{
             reader_statistics = stats_plugin,
             width = body_w,
             height = calendar_h,
-            cur_month = loadCalendarMonthConfig(stats_settings),
+            cur_month = calendar_month,
             start_day_of_week = settings.calendar_start_day_of_week,
-            nb_book_spans = math.max(3, tonumber(settings.calendar_nb_book_spans) or 3),
+            nb_book_spans = embeddedCalendarBookSpans(stats_plugin, calendar_month),
             show_hourly_histogram = false,
             browse_future_months = settings.calendar_browse_future_months,
         }
@@ -960,6 +1007,8 @@ local function buildContent(blocks_config, data, page_w, h_padding, calendar_wid
         end
         local orig_populate_items = calendar._populateItems
         calendar._populateItems = function(self_cal, ...)
+            self_cal.nb_book_spans = embeddedCalendarBookSpans(stats_plugin, self_cal.cur_month)
+            tuneEmbeddedCalendar(self_cal, false)
             local result = orig_populate_items(self_cal, ...)
             hideCalendarPageInfo(self_cal)
             installCalendarDaySummary(self_cal, stats_plugin, stat_style)
@@ -1068,6 +1117,11 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
     local tb = menu.title_bar
     local tb_h = tb and tb:getSize().h or 0
     local body_h = (menu.inner_dimen and menu.inner_dimen.h or menu.dimen.h) - tb_h
+    local navbar_h = tonumber(rawget(_G, "__ZEN_UI_NAVBAR_HEIGHT")) or 0
+    local hard_body_h = Screen:getHeight() - tb_h - navbar_h
+    if hard_body_h < 1 then hard_body_h = Screen:getHeight() - tb_h end
+    if body_h < 1 then body_h = hard_body_h end
+    if body_h > hard_body_h then body_h = hard_body_h end
     local page_w = menu.inner_dimen and menu.inner_dimen.w or Screen:getWidth()
     local h_padding = 0
     local block_hits
@@ -1075,8 +1129,9 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
     local function buildFixed()
         calendar_widgets = {}
         local top_pad = Screen:scaleBySize(8)
+        local bottom_pad = Screen:scaleBySize(8)
         local gap_h = Screen:scaleBySize(8) * math.max(0, #blocks_config - 1)
-        local block_heights = computeBlockHeights(blocks_config, math.max(1, body_h - top_pad - gap_h))
+        local block_heights = computeBlockHeights(blocks_config, math.max(1, body_h - top_pad - bottom_pad - gap_h))
         local content, hits = buildContent(blocks_config, data, page_w, h_padding,
             calendar_widgets, stat_style, stats_settings, block_heights)
         content:resetLayout()
