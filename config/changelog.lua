@@ -183,6 +183,9 @@ return {
         "Fix No Books Found using fallback if history is empty",
         "Improved logging",
         "Bug fixes"
+    },
+    ["2.4.3"] = {
+        "Update quotes"
     }
 
 }
