@@ -192,11 +192,11 @@ msgstr "Phải hiển thị ít nhất một tab"
 msgid "Author"
 msgstr "Tác giả"
 
-msgid "Authors"
-msgstr "Tác giả"
-
 msgid "authors"
 msgstr "tác giả"
+
+msgid "Authors"
+msgstr "Tác giả"
 
 msgid "Automatic suspend"
 msgstr "Tạm tự động"
@@ -215,6 +215,12 @@ msgstr "Quay lại"
 
 msgid "Background"
 msgstr "Nền"
+
+msgid "Background image could not be loaded. It may be corrupt or unsupported."
+msgstr "Không thể tải ảnh nền. Ảnh có thể bị hỏng hoặc không được hỗ trợ."
+
+msgid "Background image file not found."
+msgstr "Không tìm thấy tệp ảnh nền."
 
 msgid "Background image must be a JPG or JPEG file."
 msgstr "Ảnh nền phải là tệp JPG hoặc JPEG."
@@ -270,11 +276,11 @@ msgstr "đậm"
 msgid "Bold text"
 msgstr "Văn bản in đậm"
 
-msgid "Book"
-msgstr "Sách"
-
 msgid "book"
 msgstr "sách"
+
+msgid "Book"
+msgstr "Sách"
 
 msgid "Book added to download list"
 msgstr "Sách đã được thêm vào danh sách tải xuống"
@@ -285,10 +291,10 @@ msgstr "Thông tin sách"
 msgid "Book Status"
 msgstr "Trạng thái sách"
 
-msgid "Book Title"
+msgid "Book title"
 msgstr "Tên sách"
 
-msgid "Book title"
+msgid "Book Title"
 msgstr "Tên sách"
 
 msgid "Book: "
@@ -366,8 +372,8 @@ msgstr "Cờ vua thông thường"
 msgid "Center"
 msgstr "Trung tâm"
 
-msgid "Center align buttons"
-msgstr "Căn giữa các nút"
+msgid "Center books"
+msgstr "Căn giữa sách"
 
 msgid "Center items"
 msgstr "Các mục ở trung tâm"
@@ -416,6 +422,9 @@ msgstr "Chọn menu plugin"
 
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 msgstr "Chọn các tab nào xuất hiện trong thanh điều hướng của bạn.\nBạn có thể sắp xếp hoặc điều chỉnh những tab này bất kỳ lúc nào trong Cài đặt."
+
+msgid "Classic"
+msgstr "Cổ điển"
 
 msgid "Classic (filename only)"
 msgstr "Kinh điển (chỉ tên tệp)"
@@ -477,6 +486,9 @@ msgstr "Sao chép"
 msgid "Could not determine update status."
 msgstr "Không thể xác định trạng thái cập nhật."
 
+msgid "Could not get release from update server."
+msgstr "Không thể lấy bản phát hành từ máy chủ cập nhật."
+
 msgid "Could not reach update server."
 msgstr "Không thể kết nối tới máy chủ cập nhật."
 
@@ -485,9 +497,6 @@ msgstr "Không thể kết nối đến máy chủ cập nhật. Kiểm tra kế
 
 msgid "Could not reach update server. Check your internet connection.\n\nUnable to load changelog."
 msgstr "Không thể kết nối tới máy chủ cập nhật. Hãy kiểm tra kết nối internet.\n\nKhông thể tải nhật ký thay đổi."
-
-msgid "Could not read release data from update server."
-msgstr "Không thể đọc dữ liệu bản phát hành từ máy chủ cập nhật."
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
 msgstr "Không thể quét mạng Wi-Fi. Vui lòng thử lại sau khi đánh thức thiết bị."
@@ -636,6 +645,9 @@ msgstr "Xóa nút này?"
 msgid "Delete this folder and its buttons?"
 msgstr "Xóa thư mục này và các nút của nó?"
 
+msgid "Delete this row break?"
+msgstr "Xóa dấu ngắt hàng này?"
+
 msgid "Delete this tab?"
 msgstr "Xóa tab này?"
 
@@ -726,6 +738,9 @@ msgstr "Chỉnh sửa"
 msgid "Enable"
 msgstr "Bật"
 
+msgid "Enable bottom status bar"
+msgstr "Bật thanh trạng thái dưới cùng"
+
 msgid "Enable bottom swipe"
 msgstr "Bật vuốt từ dưới lên"
 
@@ -750,6 +765,9 @@ msgstr "Bật thanh trạng thái trên"
 msgid "Enable warmth schedule"
 msgstr "Bật lịch trình ấm áp"
 
+msgid "Enable Zen OPDS"
+msgstr "Bật Zen OPDS"
+
 msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "Bật cải tiến giao diện Zen cho trình duyệt OPDS: ảnh bìa, chế độ xem danh sách, menu giữ, và cải tiến điều hướng."
 
@@ -770,6 +788,9 @@ msgstr "Trích xuất và lưu trữ metadata sách và ảnh bìa cho sách tro
 
 msgid "Extract metadata"
 msgstr "Trích xuất metadata"
+
+msgid "Extras"
+msgstr "Tiện ích bổ sung"
 
 msgid "Failed to submit report: "
 msgstr "Không thể gửi báo cáo: "
@@ -834,11 +855,11 @@ msgstr "Cài đặt trước thư mục"
 msgid "Folders"
 msgstr "Thư mục"
 
-msgid "Font"
-msgstr "Phông chữ"
-
 msgid "font"
 msgstr "phông chữ"
+
+msgid "Font"
+msgstr "Phông chữ"
 
 msgid "Font size"
 msgstr "Cỡ chữ"
@@ -876,9 +897,6 @@ msgstr "Bắt đầu"
 msgid "GitHub username (optional)"
 msgstr "Tên người dùng GitHub (tùy chọn)"
 
-msgid "Global"
-msgstr "Toàn cầu"
-
 msgid "Go"
 msgstr "Đi"
 
@@ -912,6 +930,9 @@ msgstr "Con quay hồi chuyển"
 msgid "Gyroscope"
 msgstr "Con quay hồi chuyển"
 
+msgid "Hide finished books"
+msgstr "Ẩn sách đã đọc xong"
+
 msgid "Hide in CBZ/PDF files"
 msgstr "Ẩn trong tệp CBZ/PDF"
 
@@ -920,6 +941,12 @@ msgstr "Ẩn viền danh sách"
 
 msgid "Hide reader actions in library"
 msgstr "Ẩn hành động đọc trong thư viện"
+
+msgid "Hide TBR books"
+msgstr "Ẩn sách cần đọc"
+
+msgid "Hide unread books"
+msgstr "Ẩn sách chưa đọc"
 
 msgid "Hide up folder"
 msgstr "Ẩn thư mục lên"
@@ -963,11 +990,26 @@ msgstr "Biểu tượng: %1"
 msgid "Icons"
 msgstr "Biểu tượng"
 
+msgid "Image support is unavailable on this device."
+msgstr "Thiết bị này không hỗ trợ hình ảnh."
+
 msgid "Image: "
 msgstr "Ảnh: "
 
 msgid "Image: none"
 msgstr "Ảnh: không có"
+
+msgid "Include new books in TBR"
+msgstr "Thêm sách mới vào danh sách cần đọc"
+
+msgid "Incognito"
+msgstr "Ẩn danh"
+
+msgid "Incognito mode disabled"
+msgstr "Đã tắt chế độ ẩn danh"
+
+msgid "Incognito mode enabled"
+msgstr "Đã bật chế độ ẩn danh"
 
 msgid "Incompatible plugins have been disabled:"
 msgstr "Các plugin không tương thích đã bị vô hiệu hóa:"
@@ -981,11 +1023,11 @@ msgstr "Đang cài đặt"
 msgid "Interactive"
 msgstr "Tương tác"
 
-msgid "items per page"
-msgstr "mục mỗi trang"
-
 msgid "Items per page"
 msgstr "Mục mỗi trang"
+
+msgid "items per page"
+msgstr "mục mỗi trang"
 
 msgid "Keep existing settings"
 msgstr "Giữ cài đặt hiện có"
@@ -1058,6 +1100,9 @@ msgstr "Xem thư viện"
 
 msgid "Light"
 msgstr "Sáng"
+
+msgid "List"
+msgstr "Danh sách"
 
 msgid "List (basic)"
 msgstr "Danh sách (cơ bản)"
@@ -1158,6 +1203,9 @@ msgstr "Kích thước nhãn thanh điều hướng"
 msgid "Navbar Tabs"
 msgstr "Tab thanh điều hướng"
 
+msgid "Network unavailable."
+msgstr "Mạng không khả dụng."
+
 msgid "New"
 msgstr "Mới"
 
@@ -1166,6 +1214,9 @@ msgstr "Bộ sưu tập mới"
 
 msgid "New folder"
 msgstr "Thư mục mới"
+
+msgid "New includes unread books and books modified since they were last opened."
+msgstr "Mục Mới bao gồm sách chưa đọc và sách đã thay đổi kể từ lần mở gần nhất."
 
 msgid "News"
 msgstr "Tin tức"
@@ -1224,6 +1275,9 @@ msgstr "Thời gian ấm áp ban đêm: "
 msgid "Night warmth: "
 msgstr "Sự ấm áp ban đêm: "
 
+msgid "No background image selected."
+msgstr "Chưa chọn ảnh nền."
+
 msgid "No books found"
 msgstr "Không tìm thấy sách"
 
@@ -1239,14 +1293,14 @@ msgstr "Không mô tả."
 msgid "No launchable plugin menus found"
 msgstr "Không tìm thấy menu plugin nào có thể khởi chạy"
 
-msgid "No network connection."
-msgstr "Không có kết nối mạng."
-
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Không có kết nối mạng. Vui lòng kết nối Wi-Fi và thử lại."
 
 msgid "No reader engine for this file or invalid file."
 msgstr "Không có trình đọc cho tệp này hoặc tệp không hợp lệ."
+
+msgid "No table of contents available."
+msgstr "Không có mục lục."
 
 msgid "No update asset found."
 msgstr "Không tìm thấy tài sản cập nhật."
@@ -1275,6 +1329,12 @@ msgstr "Tắt"
 msgid "OK"
 msgstr "OK"
 
+msgid "On"
+msgstr "Bật"
+
+msgid "Only in Zen mode"
+msgstr "Chỉ trong chế độ Zen"
+
 msgid "Opaque background"
 msgstr "Nền đục"
 
@@ -1283,6 +1343,9 @@ msgstr "OPDS"
 
 msgid "Open folder"
 msgstr "Mở thư mục"
+
+msgid "Open next file"
+msgstr "Mở tệp tiếp theo"
 
 msgid "Open QuickRSS"
 msgstr "Mở QuickRSS"
@@ -1416,6 +1479,9 @@ msgstr "Thoát KOReader"
 msgid "Quotes widget"
 msgstr "Widget trích dẫn"
 
+msgid "Rakuyomi"
+msgstr "Rakuyomi"
+
 msgid "Rakuyomi plugin is not installed."
 msgstr "Plugin Rakuyomi chưa được cài đặt."
 
@@ -1536,8 +1602,14 @@ msgstr "Khôi phục vị trí thư viện khi thoát"
 msgid "Resume from page"
 msgstr "Tiếp tục từ trang"
 
+msgid "Return to chapter list on exit"
+msgstr "Trở về danh sách chương khi thoát"
+
 msgid "Reverse"
 msgstr "Đảo ngược"
+
+msgid "Reverse page scrolling"
+msgstr "Đảo ngược cuộn trang"
 
 msgid "Review"
 msgstr "Đánh giá"
@@ -1557,6 +1629,9 @@ msgstr "Xoay: %1"
 msgid "Rounded cover corners"
 msgstr "Góc bo bìa"
 
+msgid "Row break"
+msgstr "Ngắt hàng"
+
 msgid "Rows"
 msgstr "Hàng"
 
@@ -1571,6 +1646,9 @@ msgstr "Lưu bảng điều khiển hiện tại làm mẫu"
 
 msgid "Save current settings as preset"
 msgstr "Lưu cài đặt hiện tại làm mẫu"
+
+msgid "Schedules"
+msgstr "Lịch biểu"
 
 msgid "Screenshot"
 msgstr "Chụp màn hình"
@@ -1655,6 +1733,15 @@ msgstr "Cài đặt & Cập nhật"
 
 msgid "Setup Guide"
 msgstr "Hướng dẫn cài đặt"
+
+msgid "Show a button for the Assistant plugin, if installed."
+msgstr "Hiển thị nút cho phần bổ trợ Assistant nếu đã cài đặt."
+
+msgid "Show AI assistant"
+msgstr "Hiển thị trợ lý AI"
+
+msgid "Show all files from subfolders"
+msgstr "Hiển thị tất cả tệp trong các thư mục con"
 
 msgid "Show author"
 msgstr "Hiển thị tác giả"
@@ -1848,6 +1935,9 @@ msgstr "Widget dải"
 msgid "Styling"
 msgstr "Kiểu dáng"
 
+msgid "Subfolder flat view was disabled because the home folder is the device storage root."
+msgstr "Đã tắt chế độ xem phẳng thư mục con vì thư mục chính là thư mục gốc của bộ nhớ thiết bị."
+
 msgid "Submit"
 msgstr "Gửi"
 
@@ -1869,11 +1959,11 @@ msgstr "Đồng bộ tất cả các danh mục"
 msgid "Tabs"
 msgstr "Tab"
 
-msgid "Tags"
-msgstr "Thẻ"
-
 msgid "tags"
 msgstr "thẻ"
+
+msgid "Tags"
+msgstr "Thẻ"
 
 msgid "Tap and hold any book or folder in your library to reveal details."
 msgstr "Nhấn và giữ bất kỳ cuốn sách hoặc thư mục nào trong thư viện của bạn để xem chi tiết."
@@ -1895,6 +1985,9 @@ msgstr "Thay đổi này yêu cầu khởi động lại để có hiệu lực.
 
 msgid "This Month"
 msgstr "Tháng này"
+
+msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
+msgstr "Tùy chọn này bị tắt khi thư mục chính là thư mục gốc của bộ nhớ thiết bị. Trước tiên, hãy đặt các thư mục sách cụ thể hơn làm thư mục chính."
 
 msgid "This Week"
 msgstr "Tuần này"
@@ -1962,6 +2055,9 @@ msgstr "Bật chế độ Zen để tinh chỉnh KOReader về những tính nă
 msgid "Two rows"
 msgstr "Hai hàng"
 
+msgid "Unavailable"
+msgstr "Không khả dụng"
+
 msgid "Underline"
 msgstr "Gạch chân"
 
@@ -1970,9 +2066,6 @@ msgstr "Gạch chân trên biểu tượng"
 
 msgid "Uniform covers"
 msgstr "Bao bì đồng nhất"
-
-msgid "Unavailable"
-msgstr "Không khả dụng"
 
 msgid "Unknown"
 msgstr "Không rõ"
@@ -2063,6 +2156,9 @@ msgstr "Cập nhật"
 
 msgid "USB"
 msgstr "USB"
+
+msgid "Use a narrower books folder instead of the device storage root."
+msgstr "Sử dụng thư mục sách cụ thể hơn thay vì thư mục gốc của bộ nhớ thiết bị."
 
 msgid "Use border as progress bar"
 msgstr "Dùng viền làm thanh tiến độ"
@@ -2181,17 +2277,29 @@ msgstr "Zen UI - Tác giả"
 msgid "Zen UI - Home"
 msgstr "Zen UI - Trang chủ"
 
+msgid "Zen UI - Library"
+msgstr "Zen UI - Thư viện"
+
 msgid "Zen UI - Open folder"
 msgstr "Zen UI - Mở thư mục"
 
 msgid "Zen UI - Series"
 msgstr "Zen UI - Bộ sách"
 
+msgid "Zen UI - Sync progress (pull + push)"
+msgstr "Zen UI - Tiến trình đồng bộ (nhận + gửi)"
+
+msgid "Zen UI - Table of contents"
+msgstr "Zen UI - Mục lục"
+
 msgid "Zen UI - Tags"
 msgstr "Zen UI - Thẻ"
 
 msgid "Zen UI - Toggle bottom reader status bar"
 msgstr "Zen UI - Bật/tắt thanh trạng thái dưới khi đọc"
+
+msgid "Zen UI - Toggle Incognito Mode"
+msgstr "Zen UI - Chuyển đổi chế độ ẩn danh"
 
 msgid "Zen UI - Toggle Lockdown Mode"
 msgstr "Zen UI - Bật/tắt chế độ khóa"

@@ -12,6 +12,7 @@ local function apply_browser_folder_sort()
     local FileChooser = require("ui/widget/filechooser")
     local ConfigManager = require("config/manager")
     local ffiUtil     = require("ffi/util")
+    local HistoryIndex = require("common/history_index")
     local paths       = require("common/paths")
 
     local NO_METADATA = "\u{FFFF}"
@@ -141,24 +142,11 @@ local function apply_browser_folder_sort()
                 dir_paths[index] = normalize_path(item.path)
                 item._zen_history_time = nil
             end
-            local ok_rh, ReadHistory = pcall(require, "readhistory")
-            if ok_rh and ReadHistory then
-                pcall(function() ReadHistory:reload(false) end)
-                for _i, entry in ipairs(ReadHistory.hist or {}) do
-                    local history_path = entry and normalize_path(entry.file)
-                    local history_time = entry and tonumber(entry.time)
-                    if history_path and history_time then
-                        for index, item in ipairs(dirs) do
-                            local dir_path = dir_paths[index]
-                            if dir_path and history_path:sub(1, #dir_path + 1) == dir_path .. "/" then
-                                item._zen_history_time = math.max(
-                                    item._zen_history_time or 0, history_time)
-                            end
-                        end
-                    end
-                end
-            end
+            local history = HistoryIndex.load(normalize_path)
+            local times = HistoryIndex.maxDescendantTimes(history, dir_paths)
             for _i, item in ipairs(dirs) do
+                local dir_path = normalize_path(item.path)
+                item._zen_history_time = dir_path and times[dir_path] or nil
                 item.attr.access = item._zen_history_time
                     or item.attr.modification
                     or item.attr.access

@@ -6,7 +6,7 @@
 
 local JSON = require("json")
 local _ = require("gettext")
-local logger = require("logger")
+local logger = require("common/zen_logger").new("zen_bugreporter")
 local UIManager = require("ui/uimanager")
 local zen_utils = require("common/utils")
 
@@ -53,7 +53,7 @@ local function upload_crash_log(log_data)
     if code == 200 or code == 201 then
         return resp and resp:match('"url"%s*:%s*"([^"]+)"')
     end
-    logger.warn("ZenBugReporter: upload failed, code:", tostring(code))
+    logger.warn("upload failed, code:", tostring(code))
     return nil
 end
 
@@ -113,9 +113,9 @@ end
 local function submit_issue(title, body)
     local payload = JSON.encode({ title = title, body = body, labels = { "bug" } })
 
-    logger.dbg("ZenBugReporter: POSTing to proxy:", PROXY_URL)
+    logger.dbg("POSTing to proxy:", PROXY_URL)
     local code, resp = https_post_json(PROXY_URL, payload)
-    logger.dbg("ZenBugReporter: response code:", code)
+    logger.dbg("response code:", code)
 
     if code == 201 then
         local url = resp and resp:match('"url"%s*:%s*"([^"]+)"')
@@ -297,7 +297,7 @@ function M._do_submit(ctx, bug_title, description, github_username)
         if ok_android and type(android.dumpLogs) == "function" then
             local dump_ok, dump_err = pcall(android.dumpLogs)
             if not dump_ok then
-                logger.warn("ZenBugReporter: Android log dump failed:", tostring(dump_err))
+                logger.warn("Android log dump failed:", tostring(dump_err))
             end
         end
 

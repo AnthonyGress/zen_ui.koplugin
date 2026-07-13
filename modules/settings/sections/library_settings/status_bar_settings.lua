@@ -63,7 +63,7 @@ function M.build(ctx)
         local canon_pos = {}
         for i, k in ipairs(canonical) do canon_pos[k] = i end
         local other_keys = {}
-        for _, s in ipairs({ "left", "center", "right" }) do
+        for _i, s in ipairs({ "left", "center", "right" }) do
             if s ~= slot_name then
                 table.insert(other_keys, s .. "_order")
             end
@@ -77,9 +77,9 @@ function M.build(ctx)
                 callback = function()
                     local SortWidget = require("ui/widget/sortwidget")
                     local lbl = {}
-                    for _, d in ipairs(status_bar_all_items) do lbl[d.key] = d.text end
+                    for _i, d in ipairs(status_bar_all_items) do lbl[d.key] = d.text end
                     local sort_items = {}
-                    for _, key in ipairs(config.status_bar[order_key] or {}) do
+                    for _i, key in ipairs(config.status_bar[order_key] or {}) do
                         if lbl[key] then
                             table.insert(sort_items, { text = lbl[key], orig_item = key })
                         end
@@ -89,7 +89,7 @@ function M.build(ctx)
                         item_table = sort_items,
                         callback = function()
                             local new_order = {}
-                            for _, item in ipairs(sort_items) do
+                            for _i, item in ipairs(sort_items) do
                                 table.insert(new_order, item.orig_item)
                             end
                             config.status_bar[order_key] = new_order
@@ -100,22 +100,22 @@ function M.build(ctx)
             },
         }
 
-        for _, def in ipairs(status_bar_all_items) do
+        for _i, def in ipairs(status_bar_all_items) do
             local key = def.key
             table.insert(t, {
                 text = def.text,
                 keep_menu_open = true,
                 enabled_func = function()
                     -- Disable if already active in another slot.
-                    for _, other_key in ipairs(other_keys) do
-                        for _, k in ipairs(config.status_bar[other_key] or {}) do
+                    for _j, other_key in ipairs(other_keys) do
+                        for _k, k in ipairs(config.status_bar[other_key] or {}) do
                             if k == key then return false end
                         end
                     end
                     return true
                 end,
                 checked_func = function()
-                    for _, k in ipairs(config.status_bar[order_key] or {}) do
+                    for _j, k in ipairs(config.status_bar[order_key] or {}) do
                         if k == key then return true end
                     end
                     return false
@@ -124,15 +124,15 @@ function M.build(ctx)
                     local this_order = config.status_bar[order_key] or {}
                     local found = false
                     local new_this = {}
-                    for _, k in ipairs(this_order) do
+                    for _j, k in ipairs(this_order) do
                         if k == key then found = true else table.insert(new_this, k) end
                     end
                     if found then
                         config.status_bar[order_key] = new_this
                     else
-                        for _, other_key in ipairs(other_keys) do
+                        for _j, other_key in ipairs(other_keys) do
                             local new_other = {}
-                            for _, k in ipairs(config.status_bar[other_key] or {}) do
+                            for _k, k in ipairs(config.status_bar[other_key] or {}) do
                                 if k ~= key then table.insert(new_other, k) end
                             end
                             config.status_bar[other_key] = new_other

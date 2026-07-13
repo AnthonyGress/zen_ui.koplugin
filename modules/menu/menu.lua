@@ -28,7 +28,7 @@ local function run_feature(logger, plugin, feature, fn)
     local ok, err = pcall(fn)
     _G.__ZEN_UI_PLUGIN = prev_plugin
     if not ok and logger then
-        logger.warn("zen-ui: grouped menu feature failed", feature, err)
+        logger.warn("grouped menu feature failed", feature, err)
     end
     return ok
 end
@@ -66,7 +66,7 @@ function M.init(logger, plugin)
                     runtime_patches[feature] = true
                 end
             elseif logger then
-                logger.warn("zen-ui: menu patch module missing", feature)
+                logger.warn("menu patch module missing", feature)
             end
         end
     end

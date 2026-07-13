@@ -1,4 +1,4 @@
-local logger = require("logger")
+local logger = require("common/zen_logger").new("home_page")
 local ConfigManager = require("config/manager")
 local book_status = require("common/book_status")
 local Blitbuffer = require("ffi/blitbuffer")
@@ -28,6 +28,7 @@ local _zen_shared = nil
 local _zen_plugin = nil
 local _home_book_cache = {}
 local _home_book_cache_order = {}
+local _home_library_paths_cache = nil
 local HOME_BOOK_CACHE_MAX = 32
 
 local function free_cached_book(book)
@@ -36,11 +37,13 @@ local function free_cached_book(book)
     end
 end
 
-local function clone_cached_book(book)
+local function clone_cached_book(book, include_internal)
     if type(book) ~= "table" then return nil end
     local out = {}
     for k, v in pairs(book) do
-        if k ~= "cover_bb" then out[k] = v end
+        if k ~= "cover_bb" and (include_internal or k:sub(1, 5) ~= "_zen_") then
+            out[k] = v
+        end
     end
     if book.cover_bb and book.cover_bb.copy then
         out.cover_bb = book.cover_bb:copy()
@@ -85,7 +88,12 @@ end
 local function cache_home_book(key, book)
     local old = _home_book_cache[key]
     if old then free_cached_book(old) end
-    _home_book_cache[key] = clone_cached_book(book)
+    for i = #_home_book_cache_order, 1, -1 do
+        if _home_book_cache_order[i] == key then
+            table.remove(_home_book_cache_order, i)
+        end
+    end
+    _home_book_cache[key] = clone_cached_book(book, true)
     _home_book_cache_order[#_home_book_cache_order + 1] = key
     while #_home_book_cache_order > HOME_BOOK_CACHE_MAX do
         local evict = table.remove(_home_book_cache_order, 1)
@@ -159,7 +167,7 @@ local function flush_cover_upgrade_queue()
 
     local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
     if not ok_bim or not BookInfoManager then
-        logger.warn("zen-ui home: bookinfomanager require failed, cannot upgrade covers")
+        logger.warn("bookinfomanager require failed, cannot upgrade covers")
         return
     end
 
@@ -608,8 +616,13 @@ local function build_data_provider(cfg, dcfg)
     local stats_cached = nil
     local stats_cached_key = nil
     local history_cached = nil
+    local library_paths_cached = nil
+    local effective_status_cached = {}
     local tbr_cached = nil
     local strip_offsets = {}
+    local book_cache_hits = 0
+    local book_cache_misses = 0
+    local book_lookup_ms = 0
 
     local function is_widget_visible(widget_id)
         if type(widget_id) ~= "string" or widget_id == "" then return false end
@@ -707,14 +720,145 @@ local function build_data_provider(cfg, dcfg)
         return history_cached
     end
 
+    -- History stays first, while this cached library list supplies unread books
+    -- for any remaining Home slots without adding them to KOReader history.
+    local function get_library_paths()
+        local started_at = os.clock()
+        if library_paths_cached then
+            logger.perf("Library paths cache hit", (os.clock() - started_at) * 1000,
+                "books=", #library_paths_cached)
+            return library_paths_cached
+        end
+
+        local paths = require("common/paths")
+        local roots = {}
+        local seen_roots = {}
+        local function add_root(path)
+            if type(path) ~= "string" then return end
+            path = paths.normPath(path:gsub("/*$", ""))
+            if path == "" or seen_roots[path] then return end
+            seen_roots[path] = true
+            roots[#roots + 1] = path
+        end
+
+        add_root(paths.getHomeDir())
+        local extra = type(cfg) == "table" and cfg.additional_home_dirs
+        if type(extra) == "table" then
+            for _i, path in ipairs(extra) do
+                add_root(path)
+            end
+        end
+
+        local ok_lfs, lfs = pcall(require, "libs/libkoreader-lfs")
+        local cache_key = table.concat(roots, "\n")
+        local cached = _home_library_paths_cache
+        if ok_lfs and cached and cached.key == cache_key then
+            local unchanged = true
+            for path, modification in pairs(cached.dirs) do
+                if (lfs.attributes(path, "modification") or false) ~= modification then
+                    unchanged = false
+                    break
+                end
+            end
+            if unchanged then
+                logger.perf("Library fallback cache hit", (os.clock() - started_at) * 1000,
+                    "books=", #cached.paths)
+                library_paths_cached = cached.paths
+                return library_paths_cached
+            end
+        end
+
+        library_paths_cached = {}
+        local ok_docs, DocumentRegistry = pcall(require, "document/documentregistry")
+        if not (ok_lfs and ok_docs and DocumentRegistry) then
+            return library_paths_cached
+        end
+
+        local BookWalker = require("common/book_walker")
+        local items = {}
+        local dirs = {}
+        local seen_paths = {}
+        local walk_started_at = os.clock()
+        logger.dbg("Starting library fallback walk", "roots=", #roots)
+        for _i, root in ipairs(roots) do
+            dirs[root] = lfs.attributes(root, "modification") or false
+        end
+        BookWalker.walk(roots, {
+            on_scan_dir = function(path, attributes)
+                dirs[path] = attributes and attributes.modification or false
+            end,
+            on_file = function(_name, fullpath, attributes)
+                local ok_provider, has_provider = pcall(
+                    DocumentRegistry.hasProvider, DocumentRegistry, fullpath
+                )
+                if ok_provider and has_provider and not book_status.isImageFile(fullpath)
+                        and not seen_paths[fullpath] then
+                    seen_paths[fullpath] = true
+                    items[#items + 1] = {
+                        path = fullpath,
+                        modification = attributes.modification or 0,
+                    }
+                end
+            end,
+        })
+
+        table.sort(items, function(a, b)
+            if a.modification == b.modification then return a.path < b.path end
+            return a.modification > b.modification
+        end)
+        for _i, item in ipairs(items) do
+            library_paths_cached[#library_paths_cached + 1] = item.path
+        end
+        _home_library_paths_cache = {
+            key = cache_key,
+            paths = library_paths_cached,
+            dirs = dirs,
+        }
+        logger.perf("Library fallback walk completed", (os.clock() - walk_started_at) * 1000,
+            "books=", #library_paths_cached)
+        return library_paths_cached
+    end
+
+    local function populate_time_left(book)
+        if not book or book._zen_time_left_loaded then return end
+        book._zen_time_left_loaded = true
+        if not book._zen_has_sidecar then return end
+
+        local ok_stats, StatsDB = pcall(require, "common/db_stats")
+        if not (ok_stats and StatsDB and type(StatsDB.queryBookAveragePageTime) == "function") then
+            return
+        end
+        local avg_time, db_pages = StatsDB.queryBookAveragePageTime(
+            book.path, book._zen_partial_md5_checksum)
+        local total_pages = tonumber(book.pages)
+        if not total_pages and db_pages and db_pages > 0 then
+            total_pages = db_pages
+            book.pages = db_pages
+            book.stable_pages = book.stable_pages or db_pages
+            if book.percent_finished then
+                book.current_page = math.floor(total_pages * book.percent_finished + 0.5)
+                if book.percent_finished > 0 and book.current_page < 1 then book.current_page = 1 end
+                if book.current_page > total_pages then book.current_page = total_pages end
+            end
+        end
+        if avg_time and avg_time > 0 and total_pages and book.current_page
+                and book.current_page < total_pages then
+            book.time_left_secs = math.floor((total_pages - book.current_page) * avg_time)
+        end
+    end
+
     local function get_book(path, need_time_left)
         if not path then return nil end
+        local started_at = os.clock()
         local cache_key = get_home_book_cache_key(path)
-            .. (need_time_left and "|time_left" or "")
         local cached = _home_book_cache[cache_key]
         if cached then
+            book_cache_hits = book_cache_hits + 1
+            if need_time_left then populate_time_left(cached) end
+            book_lookup_ms = book_lookup_ms + (os.clock() - started_at) * 1000
             return clone_cached_book(cached)
         end
+        book_cache_misses = book_cache_misses + 1
         local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
         local cover_bb, title, authors, pages, description
         if ok_bim and BookInfoManager then
@@ -751,12 +895,12 @@ local function build_data_provider(cfg, dcfg)
         local pct = nil
         local status = nil
         local current_page = nil
-        local time_left_secs = nil
         local stable_pages = nil
         local stable_current_page = nil
         local stable_current_label = nil
         local stable_last_label = nil
         local doc_settings = nil
+        local partial_md5_checksum = nil
         local ok_ds, DocSettings = pcall(require, "docsettings")
         if ok_ds and DocSettings and DocSettings:hasSidecarFile(path) then
             local ok_doc, doc = pcall(DocSettings.open, DocSettings, path)
@@ -775,27 +919,7 @@ local function build_data_provider(cfg, dcfg)
                     if pct > 0 and current_page < 1 then current_page = 1 end
                     if current_page > total_pages then current_page = total_pages end
                 end
-                local avg_time
-                if need_time_left then
-                    local ok_stats, StatsDB = pcall(require, "common/db_stats")
-                    if ok_stats and StatsDB and type(StatsDB.queryBookAveragePageTime) == "function" then
-                        local db_avg_time, db_pages = StatsDB.queryBookAveragePageTime(
-                            path, doc:readSetting("partial_md5_checksum"))
-                        avg_time = db_avg_time
-                        if not total_pages and db_pages and db_pages > 0 then
-                            pages = db_pages
-                            total_pages = db_pages
-                            if pct then
-                                current_page = math.floor(total_pages * pct + 0.5)
-                                if pct > 0 and current_page < 1 then current_page = 1 end
-                                if current_page > total_pages then current_page = total_pages end
-                            end
-                        end
-                    end
-                end
-                if avg_time and avg_time > 0 and total_pages and current_page and current_page < total_pages then
-                    time_left_secs = math.floor((total_pages - current_page) * avg_time)
-                end
+                partial_md5_checksum = doc:readSetting("partial_md5_checksum")
                 if doc:readSetting("pagemap_use_page_labels") == true then
                     stable_current_label = doc:readSetting("pagemap_current_page_label")
                     stable_last_label = doc:readSetting("pagemap_last_page_label")
@@ -830,14 +954,18 @@ local function build_data_provider(cfg, dcfg)
             status = computed_status,
             pages = pages,
             current_page = current_page,
-            time_left_secs = time_left_secs,
+            time_left_secs = nil,
             stable_pages = stable_pages or pages,
             stable_current_page = stable_current_page,
             stable_current_label = stable_current_label,
             stable_last_label = stable_last_label,
             description = description,
+            _zen_has_sidecar = doc_settings ~= nil,
+            _zen_partial_md5_checksum = partial_md5_checksum,
         }
+        if need_time_left then populate_time_left(book) end
         cache_home_book(cache_key, book)
+        book_lookup_ms = book_lookup_ms + (os.clock() - started_at) * 1000
         return book
     end
 
@@ -917,11 +1045,19 @@ local function build_data_provider(cfg, dcfg)
         return tbr_cached
     end
 
+    local function get_effective_status(path)
+        local cached = effective_status_cached[path]
+        if cached then return cached end
+        local status = book_status.getEffectiveStatusFromFile(path)
+        effective_status_cached[path] = status
+        return status
+    end
+
     local function get_paths_by_statuses(statuses, limit)
         local hist = get_history()
         local out = {}
         for _i, path in ipairs(hist) do
-            local eff = book_status.getEffectiveStatusFromFile(path)
+            local eff = get_effective_status(path)
             if statuses[eff] then
                 table.insert(out, path)
                 if #out >= limit then break end
@@ -934,7 +1070,7 @@ local function build_data_provider(cfg, dcfg)
         return get_paths_by_statuses({ [status_key] = true }, limit)
     end
 
-    local function append_unique_paths(dst, src, limit)
+    local function append_unique_paths(dst, src, limit, include_path)
         if type(src) ~= "table" then return end
         local seen = {}
         for _i, path in ipairs(dst) do
@@ -943,7 +1079,8 @@ local function build_data_provider(cfg, dcfg)
             end
         end
         for _i, path in ipairs(src) do
-            if type(path) == "string" and path ~= "" and not seen[path] then
+            if type(path) == "string" and path ~= "" and not seen[path]
+                    and (not include_path or include_path(path)) then
                 seen[path] = true
                 table.insert(dst, path)
                 if #dst >= limit then break end
@@ -968,7 +1105,7 @@ local function build_data_provider(cfg, dcfg)
                 and source ~= "to_be_read" then
             source = "recently_read"
         end
-        local lim = tonumber(limit) or 5000
+        local lim = tonumber(limit) or math.huge
         if source == "custom_featured" then
             local mcfg = dcfg and dcfg.modules and dcfg.modules.featured_custom or {}
             local path = type(mcfg.path) == "string" and mcfg.path or nil
@@ -1002,14 +1139,52 @@ local function build_data_provider(cfg, dcfg)
         if opts.filter_unread ~= true then statuses.new = true end
         if opts.filter_tbr ~= true then statuses.abandoned = true end
         if opts.filter_finished ~= true then statuses.complete = true end
-        return get_paths_by_statuses(statuses, lim)
+        local recent = get_paths_by_statuses(statuses, lim)
+        local filters_active = opts.filter_unread == true
+            or opts.filter_tbr == true
+            or opts.filter_finished == true
+        local include_path
+        if filters_active then
+            include_path = function(path)
+                return statuses[get_effective_status(path)] == true
+            end
+        end
+        local library = get_library_paths()
+        if opts.reverse_sections == true then
+            recent = reverse_copy(recent)
+            library = reverse_copy(library)
+        end
+        append_unique_paths(recent, library, lim, include_path)
+        return recent
+    end
+
+    local function is_recent_source(source)
+        return source ~= "custom_featured"
+            and source ~= "custom_strip"
+            and source ~= "currently_reading"
+            and source ~= "to_be_read"
+    end
+
+    local function get_ordered_paths(source, limit, order_key, opts)
+        local reverse = normalize_order(order_key) == "reverse"
+        local collect_opts = {}
+        for key, value in pairs(opts or {}) do
+            collect_opts[key] = value
+        end
+        if reverse and is_recent_source(source) then
+            collect_opts.reverse_sections = true
+        end
+
+        local paths = collect_paths_for_source(source, limit, collect_opts)
+        if reverse and not is_recent_source(source)
+                and source ~= "custom_featured" and source ~= "custom_strip" then
+            paths = reverse_copy(paths)
+        end
+        return paths
     end
 
     function provider:getFeaturedBook(source_key, order_key)
-        local paths = collect_paths_for_source(source_key)
-        if source_key ~= "custom_featured" and normalize_order(order_key) == "reverse" then
-            paths = reverse_copy(paths)
-        end
+        local paths = get_ordered_paths(source_key, nil, order_key)
         local path = paths[1]
         local module_id = featured_widget_for_source(source_key)
         local featured_cfg = dcfg and dcfg.modules and dcfg.modules[module_id] or {}
@@ -1027,21 +1202,19 @@ local function build_data_provider(cfg, dcfg)
             source = "recently_read"
         end
         local mcfg = dcfg and dcfg.modules and dcfg.modules[component_id] or {}
-        local paths = collect_paths_for_source(source, 5000, {
+        local paths = get_ordered_paths(source, nil, order_key, {
             filter_unread = source == "recently_read" and mcfg.filter_unread == true,
             filter_tbr = source == "recently_read" and mcfg.filter_tbr == true,
             filter_finished = source == "recently_read" and mcfg.filter_finished == true,
         })
 
-        if source ~= "custom_strip" and normalize_order(order_key) == "reverse" then
-            paths = reverse_copy(paths)
-        end
-
         -- Keep strip distinct from featured only when that featured widget is visible.
         local featured_widget_id = featured_widget_for_source(source)
         local should_dedupe_featured = source ~= "custom_strip" and is_widget_visible(featured_widget_id)
         if should_dedupe_featured and #paths > 0 then
-            local featured_path = paths[1]
+            local featured_source = source == "currently_reading" and "recently_read" or source
+            local featured_paths = get_ordered_paths(featured_source, nil, order_key)
+            local featured_path = featured_paths[1]
             if featured_path and featured_path ~= "" then
                 local filtered = {}
                 for _i, path in ipairs(paths) do
@@ -1177,6 +1350,20 @@ local function build_data_provider(cfg, dcfg)
         stats_cached_key = nil
         self.stats = {}
         return self.stats
+    end
+
+    function provider:resetPerformanceStats()
+        book_cache_hits = 0
+        book_cache_misses = 0
+        book_lookup_ms = 0
+    end
+
+    function provider:getPerformanceStats()
+        return {
+            book_cache_hits = book_cache_hits,
+            book_cache_misses = book_cache_misses,
+            book_lookup_ms = math.floor(book_lookup_ms + 0.5),
+        }
     end
 
     return provider
@@ -1902,7 +2089,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             })
             used_h = used_h + h
         else
-            logger.warn("zen-ui home: failed to build component:", comp.id, widget)
+            logger.warn("failed to build component:", comp.id, widget)
         end
         if row_gap > 0 and i < #rows then
             table.insert(children, VerticalSpan:new{ width = row_gap })
@@ -2004,6 +2191,10 @@ function M.showHomeView(injectNavbar)
     menu._zen_home_has_clock_refreshers = has_clock_refreshers
 
     local function rebuild(refresh_stats)
+        local started_at = os.clock()
+        if data_provider and type(data_provider.resetPerformanceStats) == "function" then
+            data_provider:resetPerformanceStats()
+        end
         if data_provider then
             if type(data_provider.prepareStats) == "function" then
                 data_provider:prepareStats(rows, refresh_stats == true)
@@ -2014,6 +2205,13 @@ function M.showHomeView(injectNavbar)
         local content = build_home_content(menu, dcfg, rows, data_provider)
         StandalonePage.mount_body(menu, content)
         UIManager:setDirty(menu, "ui")
+        local perf = data_provider and data_provider.getPerformanceStats
+            and data_provider:getPerformanceStats() or {}
+        logger.perf("Home content rebuild completed", (os.clock() - started_at) * 1000,
+            "rows=", #rows,
+            "book_cache_hits=", perf.book_cache_hits or 0,
+            "book_cache_misses=", perf.book_cache_misses or 0,
+            "book_lookup_ms=", perf.book_lookup_ms or 0)
     end
 
     function menu:_zen_home_refresh_clock_widgets()
@@ -2025,7 +2223,7 @@ function M.showHomeView(injectNavbar)
                 if ok and did_refresh then
                     refreshed = refreshed + 1
                 elseif not ok then
-                    logger.warn("zen-ui home: embedded clock refresh failed:", tostring(did_refresh))
+                    logger.warn("embedded clock refresh failed:", tostring(did_refresh))
                 end
             end
         end

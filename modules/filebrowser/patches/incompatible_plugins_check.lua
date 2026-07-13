@@ -58,11 +58,11 @@ local AUTO_DISABLE = {
 }
 
 local function apply_incompatible_plugins_check()
-    local logger = require("logger")
+    local logger = require("common/zen_logger").new("incompatible_plugins_check")
 
     -- Manual-block check: inform user and halt init without touching anything.
     if is_pt_active() then
-        logger.warn("ZenUI compat-check: BLOCKED by Project: Title -- user must remove it")
+        logger.warn("Project: Title is active; initialization stopped")
         local UIManager = require("ui/uimanager")
         UIManager:scheduleIn(0.5, function()
             local _ = require("gettext")
@@ -75,10 +75,15 @@ local function apply_incompatible_plugins_check()
         end)
         return true
     end
-
     if not G_reader_settings then
-        logger.warn("ZenUI compat-check: G_reader_settings is nil, skipping")
+        logger.warn("Unable to determine Project: Title status: G_reader_settings is nil")
         return false
+    end
+
+    if package.loaded["ptutil"] ~= nil then
+        logger.info("Project: Title is loaded but inactive")
+    else
+        logger.info("Project: Title is not active")
     end
 
     local disabled_list = G_reader_settings:readSetting("plugins_disabled")
@@ -87,22 +92,22 @@ local function apply_incompatible_plugins_check()
     local needs_restart = false
     local disabled_labels = {}
 
-    for _, entry in ipairs(AUTO_DISABLE) do
+    for _i, entry in ipairs(AUTO_DISABLE) do
         local sentinel_loaded = package.loaded[entry.sentinel] ~= nil
         if sentinel_loaded then
             local dir = get_dir_from_loaded(entry.sentinel)
             local folder_key = get_folder_key(dir) or entry.fallback_key
             local already_disabled = disabled_list[folder_key] ~= nil
-            logger.info("ZenUI compat-check:", entry.label,
+            logger.info("Compatibility state", entry.label,
                 "| loaded=true | folder_key=" .. tostring(folder_key),
                 "| already_disabled=" .. tostring(already_disabled))
             if already_disabled then
                 -- In disabled_list but still loaded: bad state, force restart.
-                logger.warn("ZenUI compat-check:", entry.label, "in disabled list but still loaded -- forcing restart")
+                logger.warn(entry.label, "is disabled but still loaded; forcing restart")
                 disabled_labels[#disabled_labels + 1] = entry.label
                 needs_restart = true
             else
-                logger.warn("ZenUI compat-check: DISABLING", entry.label, "| key=" .. folder_key)
+                logger.warn("Disabling", entry.label, "| key=" .. folder_key)
                 disabled_list[folder_key] = true
                 disabled_labels[#disabled_labels + 1] = entry.label
                 needs_restart = true
@@ -115,7 +120,7 @@ local function apply_incompatible_plugins_check()
             and any_zen_schedule_enabled() then
         local dir = get_dir_from_loaded("suntime")
         local folder_key = get_folder_key(dir) or "autowarmth"
-        logger.warn("ZenUI compat-check: DISABLING autowarmth | key=" .. folder_key)
+        logger.warn("Disabling autowarmth | key=" .. folder_key)
         disabled_list[folder_key] = true
         disabled_labels[#disabled_labels + 1] = "Auto warmth and night mode"
         needs_restart = true

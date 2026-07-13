@@ -38,7 +38,7 @@ end
 
 function M.get_path(tbl, path)
     local node = tbl
-    for _, key in ipairs(path) do
+    for _i, key in ipairs(path) do
         node = node and node[key]
     end
     return node
@@ -208,7 +208,7 @@ function M.get_device_firmware_info()
             function() return Device.getFirmwareVersion(Device) end,
             function() return Device.getFirmwareVersion() end,
         }
-        for _, get_fw in ipairs(calls) do
+        for _i, get_fw in ipairs(calls) do
             local ok, value = pcall(get_fw)
             value = ok and normalize_fw_value(value) or nil
             if value then
@@ -377,7 +377,7 @@ function M.order_items_by_text(item_table, preferred_order)
     local ordered = {}
     local used = {}
 
-    for _, item in ipairs(item_table) do
+    for _i, item in ipairs(item_table) do
         if type(item.text) == "string" and item.text ~= "" then
             if by_text[item.text] == nil then
                 by_text[item.text] = item
@@ -385,7 +385,7 @@ function M.order_items_by_text(item_table, preferred_order)
         end
     end
 
-    for _, text in ipairs(preferred_order) do
+    for _i, text in ipairs(preferred_order) do
         local item = by_text[text]
         if item then
             table.insert(ordered, item)
@@ -393,7 +393,7 @@ function M.order_items_by_text(item_table, preferred_order)
         end
     end
 
-    for _, item in ipairs(item_table) do
+    for _i, item in ipairs(item_table) do
         if not used[item] then
             table.insert(ordered, item)
         end
@@ -403,7 +403,7 @@ function M.order_items_by_text(item_table, preferred_order)
 end
 
 function M.reorder_nested_items_by_text(item_table, target_text, preferred_order)
-    for _, item in ipairs(item_table) do
+    for _i, item in ipairs(item_table) do
         if item.text == target_text and type(item.sub_item_table) == "table" then
             item.sub_item_table = M.order_items_by_text(item.sub_item_table, preferred_order)
             return true

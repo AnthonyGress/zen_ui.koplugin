@@ -5,7 +5,7 @@
 local _ = require("gettext")
 local Archiver = require("ffi/archiver")
 local json = require("json")
-local logger = require("logger")
+local logger = require("common/zen_logger").new("zen_updater")
 local ConfigManager = require("config/manager")
 
 local GITHUB_OWNER = "AnthonyGress"
@@ -172,7 +172,7 @@ local function get_asset_info(release)
                 }, nil
             end
             logger.warn(
-                "ZenUpdater: rejected asset URL tag=",
+                "rejected asset URL tag=",
                 tostring(release.tag_name),
                 "url=",
                 tostring(asset.browser_download_url)
@@ -253,20 +253,20 @@ end
 local function parse_release_entries(body)
     local ok, releases = pcall(json.decode, body)
     if not ok or type(releases) ~= "table" then
-        logger.warn("ZenUpdater: JSON decode failed")
+        logger.warn("JSON decode failed")
         return nil
     end
     local decoded_count = #releases
     if decoded_count == 0 then
         if type(releases.message) == "string" then
             logger.warn(
-                "ZenUpdater: releases API returned non-list payload message=",
+                "releases API returned non-list payload message=",
                 releases.message,
                 "status=",
                 tostring(releases.status)
             )
         else
-            logger.warn("ZenUpdater: decoded releases list is empty")
+            logger.warn("decoded releases list is empty")
         end
     end
     local entries = {}
@@ -297,7 +297,7 @@ local function parse_release_entries(body)
     end
     sort_entries_most_recent(entries)
     logger.dbg(
-        "ZenUpdater: parse_release_entries total=",
+        "parse_release_entries total=",
         decoded_count,
         "accepted=",
         #entries,
@@ -325,7 +325,7 @@ local function filter_entries_for_channel(entries, channel)
             end
         end
         logger.dbg(
-            "ZenUpdater: filter channel=stable in=",
+            "filter channel=stable in=",
             #entries,
             "out=",
             #filtered,
@@ -352,7 +352,7 @@ local function filter_entries_for_channel(entries, channel)
         end
     end
     logger.dbg(
-        "ZenUpdater: filter channel=beta in=",
+        "filter channel=beta in=",
         #entries,
         "out=",
         #filtered,
@@ -373,7 +373,7 @@ local function filter_changelog_entries_for_channel(entries, channel)
             end
         end
         logger.dbg(
-            "ZenUpdater: changelog stable filter in=",
+            "changelog stable filter in=",
             #entries,
             "out=",
             #stable
@@ -382,7 +382,7 @@ local function filter_changelog_entries_for_channel(entries, channel)
     end
 
     logger.dbg(
-        "ZenUpdater: changelog beta filter in=",
+        "changelog beta filter in=",
         #entries,
         "out=",
         #entries
@@ -397,11 +397,11 @@ local function https_get(url)
     local ok_ssl, https = pcall(require, "ssl.https")
     local ok_ltn, ltn12 = pcall(require, "ltn12")
     if not ok_ssl or not ok_ltn then
-        logger.warn("ZenUpdater: ssl.https or ltn12 not available")
+        logger.warn("ssl.https or ltn12 not available")
         return nil
     end
 
-    logger.dbg("ZenUpdater: GET", url)
+    logger.dbg("GET", url)
     local body = {}
     local ok_req, req_err = pcall(function()
         local _, code, headers, status = https.request{
@@ -414,7 +414,7 @@ local function https_get(url)
             local body_text = table.concat(body)
             local snippet = body_text:sub(1, 200)
             logger.warn(
-                "ZenUpdater: https_get non-200 code=",
+                "https_get non-200 code=",
                 tostring(code),
                 "status=",
                 tostring(status),
@@ -427,7 +427,7 @@ local function https_get(url)
         end
     end)
     if not ok_req then
-        logger.warn("ZenUpdater: https_get error:", req_err)
+        logger.warn("https_get error:", req_err)
         return nil
     end
     if not body then return nil end
@@ -609,7 +609,7 @@ local function is_check_due()
     local last_num = type(last) == "number" and last or 0
     local delta = now - last_num
     local due = delta >= CHECK_INTERVAL
-    logger.info("ZenUpdater: is_check_due last=", last_num, "now=", now, "delta=", delta, "due=", tostring(due))
+    logger.info("is_check_due last=", last_num, "now=", now, "delta=", delta, "due=", tostring(due))
     return due
 end
 
@@ -652,11 +652,11 @@ local function do_network_check()
     local current = get_current_version()
     clear_release_details()
     M._last_error = nil
-    logger.dbg("ZenUpdater: do_network_check channel=", channel, "current=", current)
+    logger.dbg("do_network_check channel=", channel, "current=", current)
 
     local body = https_get(GITHUB_RELEASES_URL .. "?per_page=100")
     if not body then
-        logger.warn("ZenUpdater: no response from releases API")
+        logger.warn("no response from releases API")
         local ok_nm, NetworkMgr = pcall(require, "ui/network/manager")
         if ok_nm and NetworkMgr and not NetworkMgr:isWifiOn() then
             M._last_error = _("Network unavailable.")
@@ -682,7 +682,7 @@ local function do_network_check()
     end
 
     if not selected then
-        logger.warn("ZenUpdater: no eligible tag with digest for channel", channel)
+        logger.warn("no eligible tag with digest for channel", channel)
         reset_release_state()
         M._last_error = _("Release metadata is invalid or incomplete.")
         return false
@@ -694,7 +694,7 @@ local function do_network_check()
     M._latest_notes = selected.notes
     M._has_update = semver_gt(selected.tag, current)
     M._last_error = nil
-    logger.dbg("ZenUpdater: latest=", M._latest_ver, "has_update=", tostring(M._has_update))
+    logger.dbg("latest=", M._latest_ver, "has_update=", tostring(M._has_update))
     return true
 end
 
@@ -707,20 +707,20 @@ local function ensure_selected_release_details(force_live)
 end
 
 local function fetch_channel_release_entries(channel)
-    logger.dbg("ZenUpdater: fetch_channel_release_entries channel=", tostring(channel))
+    logger.dbg("fetch_channel_release_entries channel=", tostring(channel))
     local body = https_get(GITHUB_RELEASES_URL .. "?per_page=100")
     if not body then
-        logger.warn("ZenUpdater: changelog fetch failed: empty API response")
+        logger.warn("changelog fetch failed: empty API response")
         return nil
     end
     local entries = parse_release_entries(body)
     if not entries then
-        logger.warn("ZenUpdater: changelog fetch failed: parse_release_entries returned nil")
+        logger.warn("changelog fetch failed: parse_release_entries returned nil")
         return nil
     end
     local filtered = filter_changelog_entries_for_channel(entries, channel)
     logger.dbg(
-        "ZenUpdater: changelog entries channel=",
+        "changelog entries channel=",
         tostring(channel),
         "raw=",
         #entries,
@@ -782,7 +782,7 @@ end
 
 local function dismissable_or_in_process(Trapper, task, trap_widget, task_returns_simple_string)
     if is_sdl_wayland_desktop() then
-        logger.warn("ZenUpdater: running update task in-process on SDL/Wayland to avoid EGL fork crash")
+        logger.warn("running update task in-process on SDL/Wayland to avoid EGL fork crash")
         return true, task()
     end
     return Trapper:dismissableRunInSubprocess(task, trap_widget, task_returns_simple_string)
@@ -847,7 +847,7 @@ function M.cancel_wakeup_check()
         UIManager:unschedule(M._wakeup_timer)
     end
     M._wakeup_timer = nil
-    logger.dbg("ZenUpdater: wakeup check cancelled")
+    logger.dbg("wakeup check cancelled")
 end
 
 --- Schedule a background update check on device resume.
@@ -858,21 +858,21 @@ end
 --- (NET_ERROR_BASE_DELAY doubling each attempt, up to NET_ERROR_MAX_RETRIES).
 --- Cancelled on suspend so nothing fires while asleep.
 function M.schedule_wakeup_check()
-    logger.info("ZenUpdater: schedule_wakeup_check called")
+    logger.info("schedule_wakeup_check called")
     M.cancel_wakeup_check()  -- reset on every resume
     if not is_auto_check_enabled() then
-        logger.info("ZenUpdater: background check disabled in settings")
+        logger.info("background check disabled in settings")
         return
     end
     M._check_cancelled = false
     if not is_check_due() then
-        logger.info("ZenUpdater: background check skipped, within 24h window")
+        logger.info("background check skipped, within 24h window")
         return
     end
 
     local ok_um, UIManager = pcall(require, "ui/uimanager")
     if not ok_um or not UIManager then
-        logger.warn("ZenUpdater: UIManager not available, aborting")
+        logger.warn("UIManager not available, aborting")
         return
     end
 
@@ -885,7 +885,7 @@ function M.schedule_wakeup_check()
     -- Uses a subprocess so the UI thread is never blocked.
     local function run_check_with_retry(retry_count, error_delay)
         if M._check_cancelled then return end
-        logger.info("ZenUpdater: starting background network check")
+        logger.info("starting background network check")
         network_check_async(
             nil,  -- invisible trap: taps pass through normally
             nil,
@@ -894,12 +894,12 @@ function M.schedule_wakeup_check()
                 if net_ok then
                     persist_state(os.time())
                     M._banner_loaded = true
-                    logger.info("ZenUpdater: background check done, has_update=", tostring(M._has_update))
+                    logger.info("background check done, has_update=", tostring(M._has_update))
                     if M._has_update and type(M._on_update_found) == "function" then
                         M._on_update_found()
                     end
                 elseif retry_count < NET_ERROR_MAX_RETRIES then
-                    logger.warn("ZenUpdater: check failed, retry", retry_count + 1, "of", NET_ERROR_MAX_RETRIES, "in", error_delay, "s")
+                    logger.warn("check failed, retry", retry_count + 1, "of", NET_ERROR_MAX_RETRIES, "in", error_delay, "s")
                     local next_count = retry_count + 1
                     local next_delay = error_delay * 2
                     local function error_retry()
@@ -909,7 +909,7 @@ function M.schedule_wakeup_check()
                     M._wakeup_timer = error_retry
                     UIManager:scheduleIn(error_delay, error_retry)
                 else
-                    logger.warn("ZenUpdater: background check failed after", NET_ERROR_MAX_RETRIES, "retries, giving up")
+                    logger.warn("background check failed after", NET_ERROR_MAX_RETRIES, "retries, giving up")
                 end
             end
         )
@@ -920,17 +920,17 @@ function M.schedule_wakeup_check()
         M._wakeup_timer = nil
         if M._check_cancelled then return end
         local net_up = has_network()
-        logger.info("ZenUpdater: attempt fired, network=", tostring(net_up))
+        logger.info("attempt fired, network=", tostring(net_up))
         if not net_up then
             -- No network after settle delay -- retry once after NET_RETRY_DELAY.
-            logger.info("ZenUpdater: no network, scheduling retry in ", NET_RETRY_DELAY, "s")
+            logger.info("no network, scheduling retry in ", NET_RETRY_DELAY, "s")
             local function retry_check()
                 M._wakeup_timer = nil
                 if M._check_cancelled then return end
                 local retry_net = has_network()
-                logger.info("ZenUpdater: retry fired, network=", tostring(retry_net))
+                logger.info("retry fired, network=", tostring(retry_net))
                 if not retry_net then
-                    logger.info("ZenUpdater: retry: still no network, giving up")
+                    logger.info("retry: still no network, giving up")
                     return
                 end
                 run_check_with_retry(0, NET_ERROR_BASE_DELAY)
@@ -944,16 +944,16 @@ function M.schedule_wakeup_check()
 
     M._wakeup_timer = attempt
     UIManager:scheduleIn(NET_SETTLE_DELAY, attempt)
-    logger.info("ZenUpdater: wakeup check scheduled in ", NET_SETTLE_DELAY, "s")
+    logger.info("wakeup check scheduled in ", NET_SETTLE_DELAY, "s")
 end
 
 --- Check for updates with a live network request.
 --- Returns "ok" (live check succeeded) or "error" (network failure).
 function M.check_for_update()
     local now = os.time()
-    logger.dbg("ZenUpdater: check_for_update live now=", now)
+    logger.dbg("check_for_update live now=", now)
     if not do_network_check() then
-        logger.warn("ZenUpdater: live check failed")
+        logger.warn("live check failed")
         clear_release_details()
         return "error"
     end
@@ -973,10 +973,10 @@ function M.latest_version()
 end
 
 local function run_shell_ok(cmd, label)
-    logger.dbg("ZenUpdater: shell start", label or "", cmd)
+    logger.dbg("shell start", label or "", cmd)
     local rc, how, code = os.execute(cmd)
     local ok = shell_result_ok(rc, how, code)
-    logger.dbg("ZenUpdater: shell done", label or "", "ok=", tostring(ok), "rc=", tostring(rc), "how=", tostring(how), "code=", tostring(code))
+    logger.dbg("shell done", label or "", "ok=", tostring(ok), "rc=", tostring(rc), "how=", tostring(how), "code=", tostring(code))
     return ok
 end
 
@@ -1003,7 +1003,7 @@ end
 local function collect_zip_entries(zip_path)
     local reader = Archiver.Reader:new()
     if not reader:open(zip_path) then
-        logger.warn("ZenUpdater: archive open failed:", tostring(reader.err))
+        logger.warn("archive open failed:", tostring(reader.err))
         return nil
     end
 
@@ -1015,21 +1015,21 @@ local function collect_zip_entries(zip_path)
     reader:close()
 
     if read_error then
-        logger.warn("ZenUpdater: archive listing failed:", tostring(read_error))
+        logger.warn("archive listing failed:", tostring(read_error))
         return nil
     end
     if #entries == 0 then
-        logger.warn("ZenUpdater: archive contains no entries")
+        logger.warn("archive contains no entries")
         return nil
     end
 
-    logger.dbg("ZenUpdater: zip list parsed method=ffi_archiver entry_count=", #entries)
+    logger.dbg("zip list parsed method=ffi_archiver entry_count=", #entries)
     return entries
 end
 
 local function check_zip_integrity(zip_path)
     logger.dbg(
-        "ZenUpdater: check_zip_integrity zip_path=",
+        "check_zip_integrity zip_path=",
         zip_path,
         "exists=",
         tostring(path_exists(zip_path)),
@@ -1039,10 +1039,10 @@ local function check_zip_integrity(zip_path)
 
     local entries = collect_zip_entries(zip_path)
     if entries then
-        logger.dbg("ZenUpdater: zip integrity ffi/archiver passed")
+        logger.dbg("zip integrity ffi/archiver passed")
         return true
     end
-    logger.warn("ZenUpdater: zip integrity ffi/archiver failed")
+    logger.warn("zip integrity ffi/archiver failed")
     return false
 end
 
@@ -1059,10 +1059,10 @@ local function is_unsafe_zip_entry(entry)
 end
 
 local function validate_zip_layout(zip_path, plugin_name)
-    logger.dbg("ZenUpdater: validate_zip_layout zip=", zip_path, "plugin_name=", plugin_name)
+    logger.dbg("validate_zip_layout zip=", zip_path, "plugin_name=", plugin_name)
     local entries = collect_zip_entries(zip_path)
     if not entries then
-        logger.warn("ZenUpdater: validate_zip_layout failed to list zip entries")
+        logger.warn("validate_zip_layout failed to list zip entries")
         return false, "zip list failed"
     end
 
@@ -1075,20 +1075,20 @@ local function validate_zip_layout(zip_path, plugin_name)
             sample_entries[#sample_entries + 1] = entry
         end
         if is_unsafe_zip_entry(entry) then
-            logger.warn("ZenUpdater: validate_zip_layout unsafe entry:", entry)
+            logger.warn("validate_zip_layout unsafe entry:", entry)
             return false, "unsafe zip entry path"
         end
         if entry == plugin_name or entry:sub(1, #prefix) == prefix then
             saw_prefix = true
         else
-            logger.warn("ZenUpdater: validate_zip_layout unexpected root entry:", entry)
+            logger.warn("validate_zip_layout unexpected root entry:", entry)
             return false, "unexpected zip root"
         end
     end
 
     if not saw_prefix then
         logger.warn(
-            "ZenUpdater: validate_zip_layout missing plugin root expected=",
+            "validate_zip_layout missing plugin root expected=",
             plugin_name,
             "entry_count=",
             entry_count,
@@ -1098,7 +1098,7 @@ local function validate_zip_layout(zip_path, plugin_name)
         return false, "zip missing plugin root"
     end
     logger.dbg(
-        "ZenUpdater: validate_zip_layout ok expected=",
+        "validate_zip_layout ok expected=",
         plugin_name,
         "entry_count=",
         entry_count,
@@ -1140,9 +1140,9 @@ local function extract_zip_with_archiver(zip_path, destination)
 end
 
 local function validate_plugin_tree(root)
-    logger.dbg("ZenUpdater: validate_plugin_tree root=", root)
+    logger.dbg("validate_plugin_tree root=", root)
     if not path_is_dir(root) then
-        logger.warn("ZenUpdater: validate_plugin_tree missing dir:", root)
+        logger.warn("validate_plugin_tree missing dir:", root)
         return false, "plugin folder missing"
     end
     local required = {
@@ -1153,26 +1153,26 @@ local function validate_plugin_tree(root)
     }
     for _i, rel in ipairs(required) do
         if not path_is_readable_file(root .. "/" .. rel) then
-            logger.warn("ZenUpdater: validate_plugin_tree missing required file:", root .. "/" .. rel)
+            logger.warn("validate_plugin_tree missing required file:", root .. "/" .. rel)
             return false, "missing " .. rel
         end
     end
-    logger.dbg("ZenUpdater: validate_plugin_tree ok root=", root)
+    logger.dbg("validate_plugin_tree ok root=", root)
     return true
 end
 
 local function prepare_plugins_dir_writable(plugins_dir)
-    logger.dbg("ZenUpdater: prepare_plugins_dir_writable dir=", plugins_dir)
+    logger.dbg("prepare_plugins_dir_writable dir=", plugins_dir)
     local probe = plugins_dir .. "/.zen_ui_update_write_probe"
     local f = io.open(probe, "wb")
     if not f then
-        logger.warn("ZenUpdater: plugins dir write probe open failed path=", probe)
+        logger.warn("plugins dir write probe open failed path=", probe)
         return false
     end
     f:write("ok")
     f:close()
     os.remove(probe)
-    logger.dbg("ZenUpdater: prepare_plugins_dir_writable ok")
+    logger.dbg("prepare_plugins_dir_writable ok")
     return true
 end
 
@@ -1194,11 +1194,11 @@ local function _do_install(screen, plugin_root, plugins_dir)
         return ok_nm and NetworkMgr and NetworkMgr:isWifiOn()
     end
 
-    logger.info("ZenUpdater: install begin plugin_root=", plugin_root, "plugins_dir=", plugins_dir)
+    logger.info("install begin plugin_root=", plugin_root, "plugins_dir=", plugins_dir)
 
-    logger.dbg("ZenUpdater: install refreshing release metadata")
+    logger.dbg("install refreshing release metadata")
     if not do_network_check() then
-        logger.warn("ZenUpdater: install abort live metadata refresh failed")
+        logger.warn("install abort live metadata refresh failed")
         screen:update{
             subtitle    = M._last_error or _("Could not reach update server. Check your internet connection."),
             button      = _("OK"),
@@ -1208,23 +1208,23 @@ local function _do_install(screen, plugin_root, plugins_dir)
     end
     persist_state(os.time())
     if not M._has_update then
-        logger.warn("ZenUpdater: install abort no newer release after refresh")
+        logger.warn("install abort no newer release after refresh")
         screen:update{ subtitle = _("Zen UI is up to date."), button = _("OK"), dismissable = true }
         return
     end
     if not is_valid_asset_url(M._dl_url) then
-        logger.warn("ZenUpdater: install abort invalid dl url:", tostring(M._dl_url))
+        logger.warn("install abort invalid dl url:", tostring(M._dl_url))
         screen:update{ subtitle = _("No update asset found."), button = _("OK"), dismissable = true }
         return
     end
     if not is_valid_sha256_digest(M._latest_sha256) then
-        logger.warn("ZenUpdater: install abort invalid/missing sha256")
+        logger.warn("install abort invalid/missing sha256")
         screen:update{ subtitle = _("Update failed: missing checksum."), button = _("OK"), dismissable = true }
         return
     end
 
     if not has_network() then
-        logger.warn("ZenUpdater: install abort no network")
+        logger.warn("install abort no network")
         screen:update{ subtitle = _("Update failed: network connection lost."), button = _("OK"), dismissable = true }
         return
     end
@@ -1236,7 +1236,7 @@ local function _do_install(screen, plugin_root, plugins_dir)
     local stage_parent = plugins_dir .. "/.zen_ui_update_stage"
     local staged_dir = stage_parent .. "/" .. plugin_name
     logger.dbg(
-        "ZenUpdater: install paths active=", active_dir,
+        "install paths active=", active_dir,
         " backup=", backup_dir,
         " stage_parent=", stage_parent,
         " staged=", staged_dir,
@@ -1244,19 +1244,19 @@ local function _do_install(screen, plugin_root, plugins_dir)
     )
 
     local function fail_with(msg)
-        logger.warn("ZenUpdater: install fail:", msg)
+        logger.warn("install fail:", msg)
         screen:update{ subtitle = msg, button = _("OK"), dismissable = true }
     end
 
     local function rollback_active_from_backup()
-        logger.warn("ZenUpdater: rollback start from backup")
+        logger.warn("rollback start from backup")
         -- Remove partial active tree before restoring backup.
         if path_exists(active_dir) then
-            logger.dbg("ZenUpdater: rollback removing partial active:", active_dir)
+            logger.dbg("rollback removing partial active:", active_dir)
             safe_remove_tree(active_dir)
         end
         local ok_restore = safe_rename(backup_dir, active_dir)
-        logger.warn("ZenUpdater: rollback done ok=", tostring(ok_restore))
+        logger.warn("rollback done ok=", tostring(ok_restore))
         return ok_restore
     end
 
@@ -1285,7 +1285,7 @@ local function _do_install(screen, plugin_root, plugins_dir)
         local completed, ok, err = dismissable_or_in_process(Trapper, function()
             return https_download(M._dl_url, zip_path, M._latest_sha256)
         end, screen)
-        logger.dbg("ZenUpdater: download task result completed=", tostring(completed), "ok=", tostring(ok), "err=", tostring(err))
+        logger.dbg("download task result completed=", tostring(completed), "ok=", tostring(ok), "err=", tostring(err))
 
         UIManager:unschedule(timeout_cb)
         screen._on_button_action = nil  -- prevent stale cancel action on subsequent button states
@@ -1314,7 +1314,7 @@ local function _do_install(screen, plugin_root, plugins_dir)
         end
 
         logger.dbg(
-            "ZenUpdater: download artifact ready zip=",
+            "download artifact ready zip=",
             zip_path,
             "exists=",
             tostring(path_exists(zip_path)),
@@ -1323,7 +1323,7 @@ local function _do_install(screen, plugin_root, plugins_dir)
         )
 
         -- Preflight checks before touching the active plugin folder.
-        logger.dbg("ZenUpdater: preflight start")
+        logger.dbg("preflight start")
         if not prepare_plugins_dir_writable(plugins_dir) then
             os.remove(zip_path)
             fail_with(_("Update failed: plugin directory is not writable."))
@@ -1339,21 +1339,21 @@ local function _do_install(screen, plugin_root, plugins_dir)
         local zip_ok, zip_reason = validate_zip_layout(zip_path, plugin_name)
         if not zip_ok then
             os.remove(zip_path)
-            logger.warn("ZenUpdater: rejected update zip layout:", tostring(zip_reason))
+            logger.warn("rejected update zip layout:", tostring(zip_reason))
             fail_with(_("Update failed: invalid package layout."))
             return
         end
-        logger.dbg("ZenUpdater: preflight checks passed")
+        logger.dbg("preflight checks passed")
 
         screen:update{ subtitle = _("Installing") .. "...", button = false }
         UIManager:forceRePaint()
-        logger.dbg("ZenUpdater: install staging begin")
+        logger.dbg("install staging begin")
 
         -- Clean stale leftovers from previous interrupted updates.
         safe_remove_tree(stage_parent)
 
         if not path_exists(active_dir) and path_exists(backup_dir) then
-            logger.warn("ZenUpdater: active folder missing; restoring from backup before update")
+            logger.warn("active folder missing; restoring from backup before update")
             if not safe_rename(backup_dir, active_dir) then
                 os.remove(zip_path)
                 fail_with(_("Update failed: could not restore previous plugin backup."))
@@ -1371,7 +1371,7 @@ local function _do_install(screen, plugin_root, plugins_dir)
 
         local unpack_ok, unpack_reason = extract_zip_with_archiver(zip_path, stage_parent)
         if not unpack_ok then
-            logger.warn("ZenUpdater: ffi/archiver extraction failed:", tostring(unpack_reason))
+            logger.warn("ffi/archiver extraction failed:", tostring(unpack_reason))
             safe_remove_tree(stage_parent)
             os.remove(zip_path)
             fail_with(_("Update failed: could not unpack update package."))
@@ -1380,7 +1380,7 @@ local function _do_install(screen, plugin_root, plugins_dir)
 
         local staged_ok, staged_reason = validate_plugin_tree(staged_dir)
         if not staged_ok then
-            logger.warn("ZenUpdater: staged validation failed:", tostring(staged_reason))
+            logger.warn("staged validation failed:", tostring(staged_reason))
             safe_remove_tree(stage_parent)
             os.remove(zip_path)
             fail_with(_("Update failed: staged plugin validation failed."))
@@ -1388,14 +1388,14 @@ local function _do_install(screen, plugin_root, plugins_dir)
         end
 
         if not path_exists(active_dir) then
-            logger.warn("ZenUpdater: install active dir missing before backup rename:", active_dir)
+            logger.warn("install active dir missing before backup rename:", active_dir)
             safe_remove_tree(stage_parent)
             os.remove(zip_path)
             fail_with(_("Update failed: active plugin folder not found."))
             return
         end
 
-        logger.dbg("ZenUpdater: swap start moving active to backup")
+        logger.dbg("swap start moving active to backup")
         if not safe_rename(active_dir, backup_dir) then
             safe_remove_tree(stage_parent)
             os.remove(zip_path)
@@ -1403,9 +1403,9 @@ local function _do_install(screen, plugin_root, plugins_dir)
             return
         end
 
-        logger.dbg("ZenUpdater: swap activating staged plugin")
+        logger.dbg("swap activating staged plugin")
         if not safe_rename(staged_dir, active_dir) then
-            logger.warn("ZenUpdater: activation rename failed, attempting rollback")
+            logger.warn("activation rename failed, attempting rollback")
             safe_remove_tree(stage_parent)
             os.remove(zip_path)
             if rollback_active_from_backup() then
@@ -1420,7 +1420,7 @@ local function _do_install(screen, plugin_root, plugins_dir)
 
         local active_ok, active_reason = validate_plugin_tree(active_dir)
         if not active_ok then
-            logger.warn("ZenUpdater: post-swap validation failed:", tostring(active_reason))
+            logger.warn("post-swap validation failed:", tostring(active_reason))
             os.remove(zip_path)
             if rollback_active_from_backup() then
                 fail_with(_("Update failed: new version is invalid."))
@@ -1432,7 +1432,7 @@ local function _do_install(screen, plugin_root, plugins_dir)
 
         safe_remove_tree(backup_dir)
         os.remove(zip_path)
-        logger.info("ZenUpdater: install transaction completed successfully")
+        logger.info("install transaction completed successfully")
 
         local installed_version = M._latest_ver or ""
         clear_update_state()
@@ -1667,7 +1667,7 @@ function M.build_changelog_item()
 
             local function open_viewer()
                 local channel = get_channel()
-                logger.dbg("ZenUpdater: opening changelog viewer channel=", tostring(channel))
+                logger.dbg("opening changelog viewer channel=", tostring(channel))
 
                 local screen = ZenScreen:new{
                     title        = _("Changelog"),
@@ -1683,7 +1683,7 @@ function M.build_changelog_item()
                 UIManager:scheduleIn(0.1, function()
                     local entries = fetch_channel_release_entries(channel)
                     if not entries then
-                        logger.warn("ZenUpdater: changelog viewer failed to load entries for channel", channel)
+                        logger.warn("changelog viewer failed to load entries for channel", channel)
                         screen:update{
                             scroll_text = _("Could not reach update server. Check your internet connection.\n\nUnable to load changelog."),
                             button = false,
@@ -1694,7 +1694,7 @@ function M.build_changelog_item()
                     end
 
                     if #entries == 0 then
-                        logger.warn("ZenUpdater: changelog viewer has zero entries for channel", channel)
+                        logger.warn("changelog viewer has zero entries for channel", channel)
                         screen:update{
                             scroll_text = _("No changelog entries found.\n\nNo releases are available for this channel."),
                             button = false,

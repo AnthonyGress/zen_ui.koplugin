@@ -26,7 +26,8 @@ local function apply_browser_folder_cover()
     local VerticalSpan = require("ui/widget/verticalspan")
     local ffiUtil = require("ffi/util")
     local lfs = require("libs/libkoreader-lfs")
-    local logger = require("logger")
+    local HistoryIndex = require("common/history_index")
+    local logger = require("common/zen_logger").new("browser_folder_cover")
     local paths = require("common/paths")
     local library_font = require("modules/filebrowser/patches/library_font")
     local utils = require("common/utils")
@@ -55,30 +56,67 @@ local function apply_browser_folder_cover()
         return item
     end
 
-    local function toKey(...)
-        local keys = {}
-        for _i, key in pairs { ... } do
-            if type(key) == "table" then
-                table.insert(keys, "table")
-                for k, v in pairs(key) do
-                    table.insert(keys, tostring(k))
-                    table.insert(keys, tostring(v))
-                end
-            else
-                table.insert(keys, tostring(key))
-            end
-        end
-        return table.concat(keys, "")
-    end
-
     local function covers_suppressed(menu)
         return (menu and menu.no_refresh_covers == true)
             or rawget(_G, "__ZEN_UI_SUPPRESS_FILEMANAGER_COVERS") == true
     end
 
     local orig_FileChooser_getListItem = FileChooser.getListItem
-    local cached_list = {}
-    local _item_table_cache = nil
+    local FOLDER_AGGREGATE_CACHE_MAX = 128
+
+    local function _stable_table_key(value)
+        if type(value) ~= "table" then return tostring(value) end
+        local fields = {}
+        for key, field_value in pairs(value) do
+            local kind = type(field_value)
+            if kind == "string" or kind == "number" or kind == "boolean" or field_value == nil then
+                fields[#fields + 1] = tostring(key) .. "=" .. tostring(field_value)
+            end
+        end
+        table.sort(fields)
+        return table.concat(fields, "\31")
+    end
+
+    local function _list_item_key(dirpath, filename, fullpath, attributes, collate, filter_status)
+        return table.concat({
+            tostring(dirpath),
+            tostring(filename),
+            tostring(fullpath),
+            _stable_table_key(attributes),
+            tostring(collate),
+            tostring(filter_status),
+        }, "\30")
+    end
+
+    local function _list_cache(self)
+        if not self._zen_folder_cover_list_cache then
+            self._zen_folder_cover_list_cache = {}
+        end
+        return self._zen_folder_cover_list_cache
+    end
+
+    local function _folder_aggregate_cache(self)
+        if not self._zen_folder_cover_aggregate_cache then
+            self._zen_folder_cover_aggregate_cache = { values = {}, order = {} }
+        end
+        return self._zen_folder_cover_aggregate_cache
+    end
+
+    local function _cache_folder_aggregate(self, path, mtime, access, modification)
+        local cache = _folder_aggregate_cache(self)
+        if not cache.values[path] then
+            cache.order[#cache.order + 1] = path
+        end
+        cache.values[path] = {
+            mtime = mtime,
+            access = access,
+            modification = modification,
+        }
+        while #cache.order > FOLDER_AGGREGATE_CACHE_MAX do
+            local evicted = table.remove(cache.order, 1)
+            cache.values[evicted] = nil
+        end
+    end
 
     local function _automatic_series_grouping_enabled()
         local plugin = _plugin or rawget(_G, "__ZEN_UI_PLUGIN")
@@ -126,24 +164,12 @@ local function apply_browser_folder_cover()
     -- read") collation by ReadHistory time -- the same source the home strip uses,
     -- and what the user perceives as "recently read order".
     local function _history_time_map()
-        local map = {}
-        local ok_rh, ReadHistory = pcall(require, "readhistory")
-        if not ok_rh or not ReadHistory then return map end
-        pcall(function() ReadHistory:reload(false) end)
-        for _i, entry in ipairs(ReadHistory.hist or {}) do
-            local p = entry and entry.file
-            if type(p) == "string" and p ~= "" then
-                map[p] = entry.time
-                local real = _canonical_path(p)
-                if real then map[real] = entry.time end
-            end
-        end
-        return map
+        return HistoryIndex.load(_canonical_path)
     end
 
     local function _hist_time(map, item)
         if not (map and item and item.path) then return nil end
-        return map[item.path] or map[_canonical_path(item.path)]
+        return HistoryIndex.fileTime(map, item.path, _canonical_path)
     end
 
     -- Re-sort an access-collated item table by a unified recency key:
@@ -231,23 +257,31 @@ local function apply_browser_folder_cover()
         if attributes.mode == "directory" and collate
                 and collate.can_collate_mixed and collate.mandatory_func and not collate.item_func then
             local item = orig_FileChooser_getListItem(self, dirpath, f, fullpath, attributes, collate)
-            local ok, iter, dir_obj = pcall(lfs.dir, fullpath)
-            if ok then
-                local max_access = attributes.access or 0
-                local max_modification = attributes.modification or 0
-                for fname in iter, dir_obj do
-                    if fname ~= "." and fname ~= ".." then
-                        local fattr = lfs.attributes(fullpath .. "/" .. fname)
-                        if fattr and fattr.mode == "file" then
-                            if fattr.access > max_access then
-                                max_access = fattr.access
-                            end
-                            if fattr.modification > max_modification then
-                                max_modification = fattr.modification
+            local mtime = attributes.modification or 0
+            local aggregate = _folder_aggregate_cache(self).values[fullpath]
+            local use_cached_aggregate = aggregate and aggregate.mtime == mtime
+            local max_access = use_cached_aggregate and aggregate.access or attributes.access or 0
+            local max_modification = use_cached_aggregate and aggregate.modification or mtime
+            if not use_cached_aggregate then
+                max_access = attributes.access or 0
+                max_modification = mtime
+                local ok, iter, dir_obj = pcall(lfs.dir, fullpath)
+                if ok then
+                    for fname in iter, dir_obj do
+                        if fname ~= "." and fname ~= ".." then
+                            local fattr = lfs.attributes(fullpath .. "/" .. fname)
+                            if fattr and fattr.mode == "file" then
+                                if fattr.access > max_access then max_access = fattr.access end
+                                if fattr.modification > max_modification then
+                                    max_modification = fattr.modification
+                                end
                             end
                         end
                     end
                 end
+                _cache_folder_aggregate(self, fullpath, mtime, max_access, max_modification)
+            end
+            if max_access and max_modification then
                 local new_attr = {}
                 for k, v in pairs(attributes) do new_attr[k] = v end
                 new_attr.access = max_access
@@ -256,11 +290,13 @@ local function apply_browser_folder_cover()
             end
             return item
         end
-        local key = toKey(dirpath, f, fullpath, attributes, collate, self.show_filter.status)
-        if not cached_list[key] then
-            cached_list[key] = orig_FileChooser_getListItem(self, dirpath, f, fullpath, attributes, collate)
+        local filter = self.show_filter and self.show_filter.status
+        local key = _list_item_key(dirpath, f, fullpath, attributes, collate, filter)
+        local cache = _list_cache(self)
+        if not cache[key] then
+            cache[key] = orig_FileChooser_getListItem(self, dirpath, f, fullpath, attributes, collate)
         end
-        return cached_list[key]
+        return cache[key]
     end
 
     local function _item_table_stable_key(path)
@@ -283,8 +319,9 @@ local function apply_browser_folder_cover()
     end
 
     function FileChooser:_zen_clear_item_table_cache()
-        _item_table_cache = nil
-        cached_list = {}
+        self._zen_folder_cover_item_table_cache = nil
+        self._zen_folder_cover_list_cache = {}
+        self._zen_folder_cover_aggregate_cache = nil
     end
 
     local orig_FileChooser_genItemTableFromPath = FileChooser.genItemTableFromPath
@@ -316,11 +353,12 @@ local function apply_browser_folder_cover()
             -- removed, sidecar written) advances the key and invalidates the cache.
             local key = _item_table_key(path)
             local stable_key = _item_table_stable_key(path)
-            if _item_table_cache and _item_table_cache.key == key then
-                local cached_table = _item_table_cache.table
+            local item_table_cache = self._zen_folder_cover_item_table_cache
+            if item_table_cache and item_table_cache.key == key then
+                local cached_table = item_table_cache.table
                 if collate_mode == "access" then
                     cached_table = _apply_history_order(self, cached_table, collate, reverse_collate)
-                    _item_table_cache.table = cached_table
+                    item_table_cache.table = cached_table
                 end
                 return cached_table
             end
@@ -334,11 +372,11 @@ local function apply_browser_folder_cover()
             -- through to a fresh regen.
             if collate_mode == "access"
                     and rawget(_G, "__ZEN_UI_LAST_READ_FILE")
-                    and _item_table_cache
-                    and _item_table_cache.stable_key == stable_key then
+                    and item_table_cache
+                    and item_table_cache.stable_key == stable_key then
                 _G.__ZEN_UI_LAST_READ_FILE = nil
-                local cached_table = _apply_history_order(self, _item_table_cache.table, collate, reverse_collate)
-                _item_table_cache = {
+                local cached_table = _apply_history_order(self, item_table_cache.table, collate, reverse_collate)
+                self._zen_folder_cover_item_table_cache = {
                     key = key,
                     stable_key = stable_key,
                     table = cached_table,
@@ -346,12 +384,12 @@ local function apply_browser_folder_cover()
                 }
                 return cached_table
             end
-            cached_list = {}
+            self._zen_folder_cover_list_cache = {}
             local result = orig_FileChooser_genItemTableFromPath(self, path)
             if collate_mode == "access" then
                 result = _apply_history_order(self, result, collate, reverse_collate)
             end
-            _item_table_cache = {
+            self._zen_folder_cover_item_table_cache = {
                 key = key,
                 stable_key = stable_key,
                 table = result,
@@ -573,7 +611,7 @@ local function apply_browser_folder_cover()
                             and candidate_bi.has_cover
                             and candidate_bi.cover_fetched
                             and not candidate_bi.ignore_cover then
-                        logger.dbg("[zen-ui] fallback: found cover at ancestor path",
+                        logger.dbg("fallback: found cover at ancestor path",
                             candidate, "for", path)
                         return candidate_bi, candidate
                     end
@@ -597,7 +635,7 @@ local function apply_browser_folder_cover()
                     "UPDATE bookinfo SET filepath='" .. sq_esc(new_path) ..
                     "' WHERE filepath='" .. sq_esc(old_path) .. "'"
                 )
-                logger.dbg("[zen-ui] migrated DB row", old_path, "->", new_path)
+                logger.dbg("migrated DB row", old_path, "->", new_path)
             end)
         end
 
@@ -1527,11 +1565,11 @@ local function apply_browser_folder_cover()
                 -- history-ordered list; a bookinfo update (cover extracted) does not
                 -- change ordering, so keep it. Other collations may depend on the
                 -- updated info, so drop the cache to force a clean regen.
-                if G_reader_settings:readSetting("collate", "strcoll") ~= "access" then
-                    _item_table_cache = nil
-                end
                 local fm = require("apps/filemanager/filemanager").instance
                 local fc = fm and fm.file_chooser
+                if G_reader_settings:readSetting("collate", "strcoll") ~= "access" then
+                    if fc then fc._zen_folder_cover_item_table_cache = nil end
+                end
                 if fc and pending_folders_by_menu[fc] then
                     scheduleFolderRefresh(fc)
                 end

@@ -32,8 +32,8 @@ local function apply_reader_top_status_bar()
     local _ReaderView_paintTo_orig = ReaderView.paintTo
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
-    local logger = require("logger")
-    local DBG = function(...) logger.dbg("ZenHeader:", ...) end
+    local logger = require("common/zen_logger").new("reader_top_status_bar")
+    local DBG = function(...) logger.dbg("", ...) end
 
     local function is_enabled()
         local plugin = zen_plugin or rawget(_G, "__ZEN_UI_PLUGIN")

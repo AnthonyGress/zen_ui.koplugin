@@ -988,8 +988,8 @@ function M.build_install_pages(ctx)
         end
     end)
     if not ok_inject then
-        local logger = require("logger")
-        logger.warn("ZenUI quickstart: cover injection failed:", err_inject)
+        local logger = require("common/zen_logger").new("quickstart_pages")
+        logger.warn("cover injection failed:", err_inject)
     end
 
     return pages

@@ -1,4 +1,4 @@
-local logger = require("logger")
+local logger = require("common/zen_logger").new("shutdown")
 local SharedState = require("common/shared_state")
 
 local M = {}
@@ -10,7 +10,7 @@ function M.closeStandaloneViews(plugin)
         if view and type(view.closeAll) == "function" then
             local ok, err = pcall(view.closeAll)
             if not ok then
-                logger.warn("zen-ui: failed to close standalone view before shutdown", key, err)
+                logger.warn("failed to close standalone view before shutdown", key, err)
             end
         end
     end

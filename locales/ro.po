@@ -192,11 +192,11 @@ msgstr "Cel puțin o filă trebuie să fie vizibilă"
 msgid "Author"
 msgstr "Autor"
 
-msgid "Authors"
-msgstr "Autori"
-
 msgid "authors"
 msgstr "autori"
+
+msgid "Authors"
+msgstr "Autori"
 
 msgid "Automatic suspend"
 msgstr "Suspendare automată"
@@ -215,6 +215,12 @@ msgstr "Înapoi"
 
 msgid "Background"
 msgstr "Fundal"
+
+msgid "Background image could not be loaded. It may be corrupt or unsupported."
+msgstr "Imaginea de fundal nu a putut fi încărcată. Poate fi deteriorată sau neacceptată."
+
+msgid "Background image file not found."
+msgstr "Fișierul imaginii de fundal nu a fost găsit."
 
 msgid "Background image must be a JPG or JPEG file."
 msgstr "Imaginea de fundal trebuie să fie un fișier JPG sau JPEG."
@@ -270,11 +276,11 @@ msgstr "aldin"
 msgid "Bold text"
 msgstr "Text îngroșat"
 
-msgid "Book"
-msgstr "Carte"
-
 msgid "book"
 msgstr "carte"
+
+msgid "Book"
+msgstr "Carte"
 
 msgid "Book added to download list"
 msgstr "Carte adăugată în lista de descărcări"
@@ -285,10 +291,10 @@ msgstr "Informații carte"
 msgid "Book Status"
 msgstr "Stare carte"
 
-msgid "Book Title"
+msgid "Book title"
 msgstr "Titlul cărții"
 
-msgid "Book title"
+msgid "Book Title"
 msgstr "Titlul cărții"
 
 msgid "Book: "
@@ -366,8 +372,8 @@ msgstr "Șah casual"
 msgid "Center"
 msgstr "Centru"
 
-msgid "Center align buttons"
-msgstr "Aliniază butoanele la centru"
+msgid "Center books"
+msgstr "Centrează cărțile"
 
 msgid "Center items"
 msgstr "Elemente centrale"
@@ -416,6 +422,9 @@ msgstr "Alege meniul pluginului"
 
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 msgstr "Alegeți ce file apar în bara de navigare.\nPuteți rearanja sau ajusta oricând în Setări."
+
+msgid "Classic"
+msgstr "Clasic"
 
 msgid "Classic (filename only)"
 msgstr "Clasic (doar numele fișierului)"
@@ -477,6 +486,9 @@ msgstr "Copiază"
 msgid "Could not determine update status."
 msgstr "Nu s-a putut determina starea actualizării."
 
+msgid "Could not get release from update server."
+msgstr "Versiunea nu a putut fi obținută de la serverul de actualizări."
+
 msgid "Could not reach update server."
 msgstr "Nu s-a putut contacta serverul de actualizări."
 
@@ -485,9 +497,6 @@ msgstr "Nu s-a putut contacta serverul de actualizări. Verificați conexiunea l
 
 msgid "Could not reach update server. Check your internet connection.\n\nUnable to load changelog."
 msgstr "Nu s-a putut contacta serverul de actualizări. Verifică conexiunea la internet.\n\nNu s-a putut încărca jurnalul modificărilor."
-
-msgid "Could not read release data from update server."
-msgstr "Nu s-au putut citi datele versiunii de pe serverul de actualizări."
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
 msgstr "Nu s-au putut scana rețelele Wi-Fi. Încercați din nou după trezirea dispozitivului."
@@ -636,6 +645,9 @@ msgstr "Ștergi acest buton?"
 msgid "Delete this folder and its buttons?"
 msgstr "Ștergi acest dosar și butoanele sale?"
 
+msgid "Delete this row break?"
+msgstr "Ștergeți această întrerupere de rând?"
+
 msgid "Delete this tab?"
 msgstr "Ștergi această filă?"
 
@@ -726,6 +738,9 @@ msgstr "Editează"
 msgid "Enable"
 msgstr "Activează"
 
+msgid "Enable bottom status bar"
+msgstr "Activează bara de stare de jos"
+
 msgid "Enable bottom swipe"
 msgstr "Activează glisarea de jos"
 
@@ -750,6 +765,9 @@ msgstr "Activează bara de stare de sus"
 msgid "Enable warmth schedule"
 msgstr "Activare planificare căldură"
 
+msgid "Enable Zen OPDS"
+msgstr "Activează Zen OPDS"
+
 msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "Activați îmbunătățirile Zen UI pentru browserul OPDS: coperte, vizualizare listă, meniu la apăsare lungă și îmbunătățiri de navigare."
 
@@ -770,6 +788,9 @@ msgstr "Extrage și stochează metadatele și copertele cărților din directoru
 
 msgid "Extract metadata"
 msgstr "Extrage metadate"
+
+msgid "Extras"
+msgstr "Suplimentare"
 
 msgid "Failed to submit report: "
 msgstr "Trimiterea raportului a eșuat: "
@@ -834,11 +855,11 @@ msgstr "Setări predefinite dosar"
 msgid "Folders"
 msgstr "Dosare"
 
-msgid "Font"
-msgstr "Font"
-
 msgid "font"
 msgstr "font"
+
+msgid "Font"
+msgstr "Font"
 
 msgid "Font size"
 msgstr "Dimensiune font"
@@ -876,9 +897,6 @@ msgstr "Începeți"
 msgid "GitHub username (optional)"
 msgstr "Nume utilizator GitHub (opțional)"
 
-msgid "Global"
-msgstr "Global"
-
 msgid "Go"
 msgstr "Mergi"
 
@@ -912,6 +930,9 @@ msgstr "Giroscop"
 msgid "Gyroscope"
 msgstr "Giroscop"
 
+msgid "Hide finished books"
+msgstr "Ascunde cărțile terminate"
+
 msgid "Hide in CBZ/PDF files"
 msgstr "Ascunde în fișiere CBZ/PDF"
 
@@ -920,6 +941,12 @@ msgstr "Ascunde marginile listei"
 
 msgid "Hide reader actions in library"
 msgstr "Ascunde acțiunile cititorului în bibliotecă"
+
+msgid "Hide TBR books"
+msgstr "Ascunde cărțile de citit"
+
+msgid "Hide unread books"
+msgstr "Ascunde cărțile necitite"
 
 msgid "Hide up folder"
 msgstr "Ascunde dosarul părinte"
@@ -963,17 +990,26 @@ msgstr "Pictogramă: %1"
 msgid "Icons"
 msgstr "Pictograme"
 
+msgid "Image support is unavailable on this device."
+msgstr "Imaginile nu sunt acceptate pe acest dispozitiv."
+
 msgid "Image: "
 msgstr "Imagine: "
 
 msgid "Image: none"
 msgstr "Imagine: niciuna"
 
-msgid "Include New books in To Be Read"
-msgstr "Include cărțile noi în De citit"
+msgid "Include new books in TBR"
+msgstr "Include cărțile noi în lista de citit"
 
-msgid "New includes unread books and books modified since they were last opened."
-msgstr "Nou include cărțile necitite și cărțile modificate de la ultima deschidere."
+msgid "Incognito"
+msgstr "Incognito"
+
+msgid "Incognito mode disabled"
+msgstr "Modul incognito este dezactivat"
+
+msgid "Incognito mode enabled"
+msgstr "Modul incognito este activat"
 
 msgid "Incompatible plugins have been disabled:"
 msgstr "Pluginurile incompatibile au fost dezactivate:"
@@ -987,11 +1023,11 @@ msgstr "Se instalează"
 msgid "Interactive"
 msgstr "Interactiv"
 
-msgid "items per page"
-msgstr "elemente pe pagină"
-
 msgid "Items per page"
 msgstr "Elemente pe pagină"
+
+msgid "items per page"
+msgstr "elemente pe pagină"
 
 msgid "Keep existing settings"
 msgstr "Păstrați setările existente"
@@ -1064,6 +1100,9 @@ msgstr "Vizualizare bibliotecă"
 
 msgid "Light"
 msgstr "Lumină"
+
+msgid "List"
+msgstr "Listă"
 
 msgid "List (basic)"
 msgstr "Listă (de bază)"
@@ -1164,6 +1203,9 @@ msgstr "Dimensiune etichete bară de navigare"
 msgid "Navbar Tabs"
 msgstr "File bare de navigare"
 
+msgid "Network unavailable."
+msgstr "Rețeaua nu este disponibilă."
+
 msgid "New"
 msgstr "Nou"
 
@@ -1172,6 +1214,9 @@ msgstr "Colecție nouă"
 
 msgid "New folder"
 msgstr "Dosar nou"
+
+msgid "New includes unread books and books modified since they were last opened."
+msgstr "Nou include cărțile necitite și cărțile modificate de la ultima deschidere."
 
 msgid "News"
 msgstr "Știri"
@@ -1230,6 +1275,9 @@ msgstr "Oră căldură noapte: "
 msgid "Night warmth: "
 msgstr "Căldură noapte: "
 
+msgid "No background image selected."
+msgstr "Nu a fost selectată nicio imagine de fundal."
+
 msgid "No books found"
 msgstr "Nu s-au găsit cărți"
 
@@ -1245,14 +1293,14 @@ msgstr "Fără descriere."
 msgid "No launchable plugin menus found"
 msgstr "Nu au fost găsite meniuri de pluginuri lansabile"
 
-msgid "No network connection."
-msgstr "Fără conexiune la rețea."
-
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Fără conexiune la rețea. Conectați-vă la Wi-Fi și încercați din nou."
 
 msgid "No reader engine for this file or invalid file."
 msgstr "Niciun motor de citire pentru acest fișier sau fișier invalid."
+
+msgid "No table of contents available."
+msgstr "Nu este disponibil niciun cuprins."
 
 msgid "No update asset found."
 msgstr "Nu s-a găsit nicio resursă de actualizare."
@@ -1281,6 +1329,12 @@ msgstr "Oprit"
 msgid "OK"
 msgstr "OK"
 
+msgid "On"
+msgstr "Pornit"
+
+msgid "Only in Zen mode"
+msgstr "Numai în modul Zen"
+
 msgid "Opaque background"
 msgstr "Fundal opac"
 
@@ -1289,6 +1343,9 @@ msgstr "OPDS"
 
 msgid "Open folder"
 msgstr "Deschide dosar"
+
+msgid "Open next file"
+msgstr "Deschide fișierul următor"
 
 msgid "Open QuickRSS"
 msgstr "Deschide QuickRSS"
@@ -1422,6 +1479,9 @@ msgstr "Închide KOReader"
 msgid "Quotes widget"
 msgstr "Widget citate"
 
+msgid "Rakuyomi"
+msgstr "Rakuyomi"
+
 msgid "Rakuyomi plugin is not installed."
 msgstr "Pluginul Rakuyomi nu este instalat."
 
@@ -1542,8 +1602,14 @@ msgstr "Restaurează locația bibliotecii la ieșire"
 msgid "Resume from page"
 msgstr "Continuă de la pagina"
 
+msgid "Return to chapter list on exit"
+msgstr "Revino la lista de capitole la ieșire"
+
 msgid "Reverse"
 msgstr "Inversează"
+
+msgid "Reverse page scrolling"
+msgstr "Derulare inversă a paginilor"
 
 msgid "Review"
 msgstr "Recenzie"
@@ -1563,6 +1629,9 @@ msgstr "Rotire: %1"
 msgid "Rounded cover corners"
 msgstr "Colțuri rotunjite ale copertelor"
 
+msgid "Row break"
+msgstr "Întrerupere de rând"
+
 msgid "Rows"
 msgstr "Rânduri"
 
@@ -1577,6 +1646,9 @@ msgstr "Salvează panoul curent ca presetare"
 
 msgid "Save current settings as preset"
 msgstr "Salvează setările curente ca setare predefinită"
+
+msgid "Schedules"
+msgstr "Programări"
 
 msgid "Screenshot"
 msgstr "Captură de ecran"
@@ -1661,6 +1733,15 @@ msgstr "Setări și actualizări"
 
 msgid "Setup Guide"
 msgstr "Ghid de configurare"
+
+msgid "Show a button for the Assistant plugin, if installed."
+msgstr "Afișează un buton pentru extensia Assistant, dacă este instalată."
+
+msgid "Show AI assistant"
+msgstr "Afișează asistentul IA"
+
+msgid "Show all files from subfolders"
+msgstr "Afișează toate fișierele din subdosare"
 
 msgid "Show author"
 msgstr "Arată autorul"
@@ -1854,6 +1935,9 @@ msgstr "Widgeturi bandă"
 msgid "Styling"
 msgstr "Stil"
 
+msgid "Subfolder flat view was disabled because the home folder is the device storage root."
+msgstr "Vizualizarea simplă a subdosarelor a fost dezactivată deoarece dosarul principal este rădăcina spațiului de stocare al dispozitivului."
+
 msgid "Submit"
 msgstr "Trimite"
 
@@ -1875,11 +1959,11 @@ msgstr "Sincronizează toate cataloagele"
 msgid "Tabs"
 msgstr "File"
 
-msgid "Tags"
-msgstr "Etichete"
-
 msgid "tags"
 msgstr "etichete"
+
+msgid "Tags"
+msgstr "Etichete"
 
 msgid "Tap and hold any book or folder in your library to reveal details."
 msgstr "Apăsați lung pe orice carte sau dosar din biblioteca dvs. pentru a vedea detalii."
@@ -1901,6 +1985,9 @@ msgstr "Această modificare necesită o repornire pentru a intra în vigoare."
 
 msgid "This Month"
 msgstr "Luna aceasta"
+
+msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
+msgstr "Această opțiune este dezactivată când un dosar principal este rădăcina spațiului de stocare al dispozitivului. Setați mai întâi dosare de cărți mai restrânse ca dosare principale."
 
 msgid "This Week"
 msgstr "Săptămâna aceasta"
@@ -1968,6 +2055,9 @@ msgstr "Activați modul Zen pentru a reduce KOReader la esențial.\n\nEliminați
 msgid "Two rows"
 msgstr "Două rânduri"
 
+msgid "Unavailable"
+msgstr "Indisponibil"
+
 msgid "Underline"
 msgstr "Subliniere"
 
@@ -1976,9 +2066,6 @@ msgstr "Subliniere deasupra pictogramei"
 
 msgid "Uniform covers"
 msgstr "Coperte uniforme"
-
-msgid "Unavailable"
-msgstr "Indisponibil"
 
 msgid "Unknown"
 msgstr "Necunoscut"
@@ -2069,6 +2156,9 @@ msgstr "Actualizări"
 
 msgid "USB"
 msgstr "USB"
+
+msgid "Use a narrower books folder instead of the device storage root."
+msgstr "Folosiți un dosar de cărți mai restrâns în locul rădăcinii spațiului de stocare al dispozitivului."
 
 msgid "Use border as progress bar"
 msgstr "Folosește chenarul ca bară de progres"
@@ -2187,17 +2277,29 @@ msgstr "Zen UI - Autori"
 msgid "Zen UI - Home"
 msgstr "Zen UI - Acasă"
 
+msgid "Zen UI - Library"
+msgstr "Zen UI – Bibliotecă"
+
 msgid "Zen UI - Open folder"
 msgstr "Zen UI - Deschide dosar"
 
 msgid "Zen UI - Series"
 msgstr "Zen UI - Serii"
 
+msgid "Zen UI - Sync progress (pull + push)"
+msgstr "Zen UI – Progresul sincronizării (descărcare + încărcare)"
+
+msgid "Zen UI - Table of contents"
+msgstr "Zen UI – Cuprins"
+
 msgid "Zen UI - Tags"
 msgstr "Zen UI - Etichete"
 
 msgid "Zen UI - Toggle bottom reader status bar"
 msgstr "Zen UI - Comută bara de stare inferioară a cititorului"
+
+msgid "Zen UI - Toggle Incognito Mode"
+msgstr "Zen UI – Comută modul incognito"
 
 msgid "Zen UI - Toggle Lockdown Mode"
 msgstr "Zen UI - Comută modul restricție"

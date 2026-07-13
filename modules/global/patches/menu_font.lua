@@ -9,15 +9,15 @@
 -- Approach adapted from sebdelsol/KOReader.patches (2--ui-font.lua).
 
 local function apply_menu_font()
-    local logger = require("logger")
+    local logger = require("common/zen_logger").new("menu_font")
     local Font = require("ui/font")
     local library_font = require("modules/filebrowser/patches/library_font")
     local font_name = library_font.getFontName()
 
-    logger.dbg("ZenUI menu_font: library_font.getFontName() =", font_name)
+    logger.dbg("library_font.getFontName() =", font_name)
 
     if font_name == "cfont" then
-        logger.dbg("ZenUI menu_font: font_name is cfont, no-op")
+        logger.dbg("font_name is cfont, no-op")
         return
     end
 
@@ -26,12 +26,12 @@ local function apply_menu_font()
     if bold_name == font_name then
         bold_name = font_name:gsub("%.ttf", "-Bold.ttf", 1)
     end
-    logger.dbg("ZenUI menu_font: bold_name =", bold_name)
+    logger.dbg("bold_name =", bold_name)
 
     -- ---- Determine default KOReader regular / bold TTFs ----
     local def_regular = Font.fontmap and Font.fontmap["cfont"] or "NotoSans-Regular.ttf"
     local def_bold    = Font.fontmap and Font.fontmap["ffont"] or "NotoSans-Bold.ttf"
-    logger.dbg("ZenUI menu_font: def_regular =", def_regular, "def_bold =", def_bold)
+    logger.dbg("def_regular =", def_regular, "def_bold =", def_bold)
 
     -- ---- Rewrite Font.fontmap ----
     if Font.fontmap and font_name ~= def_regular then
@@ -45,11 +45,11 @@ local function apply_menu_font()
                 count = count + 1
             end
         end
-        logger.dbg("ZenUI menu_font: fontmap entries rewritten:", count)
-        logger.dbg("ZenUI menu_font: after rewrite fontmap['smallinfofont'] =", Font.fontmap["smallinfofont"])
-        logger.dbg("ZenUI menu_font: after rewrite fontmap['cfont'] =", Font.fontmap["cfont"])
+        logger.dbg("fontmap entries rewritten:", count)
+        logger.dbg("after rewrite fontmap['smallinfofont'] =", Font.fontmap["smallinfofont"])
+        logger.dbg("after rewrite fontmap['cfont'] =", Font.fontmap["cfont"])
     else
-        logger.dbg("ZenUI menu_font: fontmap skip — fontmap=", Font.fontmap ~= nil, "same_regular=", font_name == def_regular)
+        logger.dbg("fontmap skip — fontmap=", Font.fontmap ~= nil, "same_regular=", font_name == def_regular)
     end
 
     -- ---- Re-patch already-loaded local classes ----
@@ -64,7 +64,7 @@ local function apply_menu_font()
         if ok_tm and TouchMenu and not TouchMenu.__zen_patched then
             TouchMenu.__zen_patched = true
             local orig_updateItems = TouchMenu.updateItems
-            logger.dbg("ZenUI menu_font: installing TouchMenu.updateItems wrapper")
+            logger.dbg("installing TouchMenu.updateItems wrapper")
             TouchMenu.updateItems = function(self, ...)
                 orig_updateItems(self, ...)
                 if not self.__zen_items_patched then
@@ -75,7 +75,7 @@ local function apply_menu_font()
                             if cls and cls.face then
                                 local orig_size = cls.face.orig_size or 18
                                 cls.face = Font:getFace("smallinfofont", orig_size)
-                                logger.dbg("ZenUI menu_font: TouchMenuItem face patched, size =", orig_size)
+                                logger.dbg("TouchMenuItem face patched, size =", orig_size)
                                 self.__zen_items_patched = true
                                 self.__zen_items_patched = nil
                                 orig_updateItems(self, ...)
@@ -94,7 +94,7 @@ local function apply_menu_font()
         if ok_m and Menu and not Menu.__zen_patched then
             Menu.__zen_patched = true
             local orig_updateItems = Menu.updateItems
-            logger.dbg("ZenUI menu_font: installing Menu.updateItems wrapper")
+            logger.dbg("installing Menu.updateItems wrapper")
             Menu.updateItems = function(self, ...)
                 orig_updateItems(self, ...)
                 if not self.__zen_items_patched then
@@ -105,7 +105,7 @@ local function apply_menu_font()
                             if cls then
                                 cls.font = font_name
                                 cls.infont = font_name
-                                logger.dbg("ZenUI menu_font: MenuItem font/infont patched via updateItems")
+                                logger.dbg("MenuItem font/infont patched via updateItems")
                                 self.__zen_items_patched = true
                                 self.__zen_items_patched = nil
                                 orig_updateItems(self, ...)

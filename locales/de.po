@@ -192,10 +192,10 @@ msgstr "Mindestens ein Tab muss sichtbar sein"
 msgid "Author"
 msgstr "Autor"
 
-msgid "Authors"
+msgid "authors"
 msgstr "Autoren"
 
-msgid "authors"
+msgid "Authors"
 msgstr "Autoren"
 
 msgid "Automatic suspend"
@@ -215,6 +215,12 @@ msgstr "Zurück"
 
 msgid "Background"
 msgstr "Hintergrund"
+
+msgid "Background image could not be loaded. It may be corrupt or unsupported."
+msgstr "Das Hintergrundbild konnte nicht geladen werden. Es ist möglicherweise beschädigt oder wird nicht unterstützt."
+
+msgid "Background image file not found."
+msgstr "Hintergrundbilddatei nicht gefunden."
 
 msgid "Background image must be a JPG or JPEG file."
 msgstr "Hintergrundbild muss eine JPG- oder JPEG-Datei sein."
@@ -270,10 +276,10 @@ msgstr "fett"
 msgid "Bold text"
 msgstr "Fetter Text"
 
-msgid "Book"
+msgid "book"
 msgstr "Buch"
 
-msgid "book"
+msgid "Book"
 msgstr "Buch"
 
 msgid "Book added to download list"
@@ -285,10 +291,10 @@ msgstr "Buchinformationen"
 msgid "Book Status"
 msgstr "Buchstatus"
 
-msgid "Book Title"
+msgid "Book title"
 msgstr "Buchtitel"
 
-msgid "Book title"
+msgid "Book Title"
 msgstr "Buchtitel"
 
 msgid "Book: "
@@ -366,8 +372,8 @@ msgstr "Gelegenheits-Schach"
 msgid "Center"
 msgstr "Zentriert"
 
-msgid "Center align buttons"
-msgstr "Buttons zentrieren"
+msgid "Center books"
+msgstr "Bücher zentrieren"
 
 msgid "Center items"
 msgstr "Elemente zentrieren"
@@ -416,6 +422,9 @@ msgstr "Plugin-Menü auswählen"
 
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 msgstr "Wählen Sie, welche Tabs in Ihrer Navigationsleiste angezeigt werden.\nSie können diese jederzeit in den Einstellungen neu anordnen oder anpassen."
+
+msgid "Classic"
+msgstr "Klassisch"
 
 msgid "Classic (filename only)"
 msgstr "Klassisch (nur Dateiname)"
@@ -477,6 +486,9 @@ msgstr "Kopieren"
 msgid "Could not determine update status."
 msgstr "Update-Status konnte nicht ermittelt werden."
 
+msgid "Could not get release from update server."
+msgstr "Die Version konnte nicht vom Aktualisierungsserver abgerufen werden."
+
 msgid "Could not reach update server."
 msgstr "Update-Server konnte nicht erreicht werden."
 
@@ -485,9 +497,6 @@ msgstr "Update-Server konnte nicht erreicht werden. Überprüfen Sie Ihre Intern
 
 msgid "Could not reach update server. Check your internet connection.\n\nUnable to load changelog."
 msgstr "Update-Server konnte nicht erreicht werden. Überprüfen Sie Ihre Internetverbindung.\n\nÄnderungsprotokoll konnte nicht geladen werden."
-
-msgid "Could not read release data from update server."
-msgstr "Release-Daten konnten nicht vom Update-Server gelesen werden."
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
 msgstr "WLAN-Netzwerke konnten nicht gescannt werden. Bitte versuchen Sie es erneut, nachdem das Gerät aufgeweckt wurde."
@@ -636,6 +645,9 @@ msgstr "Diesen Button löschen?"
 msgid "Delete this folder and its buttons?"
 msgstr "Diesen Ordner und seine Buttons löschen?"
 
+msgid "Delete this row break?"
+msgstr "Diesen Zeilenumbruch löschen?"
+
 msgid "Delete this tab?"
 msgstr "Diesen Tab löschen?"
 
@@ -726,6 +738,9 @@ msgstr "Bearbeiten"
 msgid "Enable"
 msgstr "Aktivieren"
 
+msgid "Enable bottom status bar"
+msgstr "Untere Statusleiste aktivieren"
+
 msgid "Enable bottom swipe"
 msgstr "Wischen von unten aktivieren"
 
@@ -750,6 +765,9 @@ msgstr "Obere Statusleiste aktivieren"
 msgid "Enable warmth schedule"
 msgstr "Farbtemperatur-Zeitplan aktivieren"
 
+msgid "Enable Zen OPDS"
+msgstr "Zen OPDS aktivieren"
+
 msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "Aktivieren Sie die Zen-UI-Erweiterungen für den OPDS-Browser: Coverbilder, Listenansicht, Gedrückthalten-Menü und Navigationsverbesserungen."
 
@@ -770,6 +788,9 @@ msgstr "Buch-Metadaten und Coverbilder für Bücher im aktuellen Verzeichnis ext
 
 msgid "Extract metadata"
 msgstr "Metadaten extrahieren"
+
+msgid "Extras"
+msgstr "Extras"
 
 msgid "Failed to submit report: "
 msgstr "Bericht konnte nicht gesendet werden: "
@@ -834,10 +855,10 @@ msgstr "Ordner-Voreinstellungen"
 msgid "Folders"
 msgstr "Ordner"
 
-msgid "Font"
+msgid "font"
 msgstr "Schriftart"
 
-msgid "font"
+msgid "Font"
 msgstr "Schriftart"
 
 msgid "Font size"
@@ -876,9 +897,6 @@ msgstr "Erste Schritte"
 msgid "GitHub username (optional)"
 msgstr "GitHub-Benutzername (optional)"
 
-msgid "Global"
-msgstr "Global"
-
 msgid "Go"
 msgstr "Los"
 
@@ -912,6 +930,9 @@ msgstr "Gyro"
 msgid "Gyroscope"
 msgstr "Gyroskop"
 
+msgid "Hide finished books"
+msgstr "Fertig gelesene Bücher ausblenden"
+
 msgid "Hide in CBZ/PDF files"
 msgstr "In CBZ/PDF-Dateien ausblenden"
 
@@ -920,6 +941,12 @@ msgstr "Listenränder ausblenden"
 
 msgid "Hide reader actions in library"
 msgstr "Reader-Aktionen in Bibliothek ausblenden"
+
+msgid "Hide TBR books"
+msgstr "Bücher auf der Leseliste ausblenden"
+
+msgid "Hide unread books"
+msgstr "Ungelesene Bücher ausblenden"
 
 msgid "Hide up folder"
 msgstr "Übergeordneten Ordner ausblenden"
@@ -963,11 +990,26 @@ msgstr "Icon: %1"
 msgid "Icons"
 msgstr "Icons"
 
+msgid "Image support is unavailable on this device."
+msgstr "Bildunterstützung ist auf diesem Gerät nicht verfügbar."
+
 msgid "Image: "
 msgstr "Bild: "
 
 msgid "Image: none"
 msgstr "Bild: keines"
+
+msgid "Include new books in TBR"
+msgstr "Neue Bücher in die Leseliste aufnehmen"
+
+msgid "Incognito"
+msgstr "Inkognito"
+
+msgid "Incognito mode disabled"
+msgstr "Inkognitomodus deaktiviert"
+
+msgid "Incognito mode enabled"
+msgstr "Inkognitomodus aktiviert"
 
 msgid "Incompatible plugins have been disabled:"
 msgstr "Inkompatible Plugins wurden deaktiviert:"
@@ -981,10 +1023,10 @@ msgstr "Wird installiert"
 msgid "Interactive"
 msgstr "Interaktiv"
 
-msgid "items per page"
+msgid "Items per page"
 msgstr "Elemente pro Seite"
 
-msgid "Items per page"
+msgid "items per page"
 msgstr "Elemente pro Seite"
 
 msgid "Keep existing settings"
@@ -1058,6 +1100,9 @@ msgstr "Bibliotheksansicht"
 
 msgid "Light"
 msgstr "Hell"
+
+msgid "List"
+msgstr "Liste"
 
 msgid "List (basic)"
 msgstr "Liste (einfach)"
@@ -1158,6 +1203,9 @@ msgstr "Label-Größe der Navigationsleiste"
 msgid "Navbar Tabs"
 msgstr "Navigationsleisten-Tabs"
 
+msgid "Network unavailable."
+msgstr "Netzwerk nicht verfügbar."
+
 msgid "New"
 msgstr "Neu"
 
@@ -1166,6 +1214,9 @@ msgstr "Neue Sammlung"
 
 msgid "New folder"
 msgstr "Neuer Ordner"
+
+msgid "New includes unread books and books modified since they were last opened."
+msgstr "„Neu“ umfasst ungelesene Bücher und Bücher, die seit dem letzten Öffnen geändert wurden."
 
 msgid "News"
 msgstr "Nachrichten"
@@ -1224,6 +1275,9 @@ msgstr "Zeit für Farbtemperatur (Nacht): "
 msgid "Night warmth: "
 msgstr "Farbtemperatur (Nacht): "
 
+msgid "No background image selected."
+msgstr "Kein Hintergrundbild ausgewählt."
+
 msgid "No books found"
 msgstr "Keine Bücher gefunden"
 
@@ -1239,14 +1293,14 @@ msgstr "Keine Beschreibung."
 msgid "No launchable plugin menus found"
 msgstr "Keine startbaren Plugin-Menüs gefunden"
 
-msgid "No network connection."
-msgstr "Keine Netzwerkverbindung."
-
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Keine Netzwerkverbindung. Bitte mit dem WLAN verbinden und erneut versuchen."
 
 msgid "No reader engine for this file or invalid file."
 msgstr "Keine Lese-Engine für diese Datei oder ungültige Datei."
+
+msgid "No table of contents available."
+msgstr "Kein Inhaltsverzeichnis verfügbar."
 
 msgid "No update asset found."
 msgstr "Keine Update-Datei gefunden."
@@ -1275,6 +1329,12 @@ msgstr "Aus"
 msgid "OK"
 msgstr "OK"
 
+msgid "On"
+msgstr "Ein"
+
+msgid "Only in Zen mode"
+msgstr "Nur im Zen-Modus"
+
 msgid "Opaque background"
 msgstr "Deckender Hintergrund"
 
@@ -1283,6 +1343,9 @@ msgstr "OPDS"
 
 msgid "Open folder"
 msgstr "Ordner öffnen"
+
+msgid "Open next file"
+msgstr "Nächste Datei öffnen"
 
 msgid "Open QuickRSS"
 msgstr "QuickRSS öffnen"
@@ -1416,6 +1479,9 @@ msgstr "KOReader verlassen"
 msgid "Quotes widget"
 msgstr "Zitat-Widget"
 
+msgid "Rakuyomi"
+msgstr "Rakuyomi"
+
 msgid "Rakuyomi plugin is not installed."
 msgstr "Rakuyomi-Plugin ist nicht installiert."
 
@@ -1536,8 +1602,14 @@ msgstr "Bibliotheksort beim Beenden wiederherstellen"
 msgid "Resume from page"
 msgstr "Ab Seite fortsetzen"
 
+msgid "Return to chapter list on exit"
+msgstr "Beim Beenden zur Kapitelliste zurückkehren"
+
 msgid "Reverse"
 msgstr "Umkehren"
+
+msgid "Reverse page scrolling"
+msgstr "Umgekehrtes Scrollen der Seiten"
 
 msgid "Review"
 msgstr "Rezension"
@@ -1557,6 +1629,9 @@ msgstr "Drehen: %1"
 msgid "Rounded cover corners"
 msgstr "Abgerundete Cover-Ecken"
 
+msgid "Row break"
+msgstr "Zeilenumbruch"
+
 msgid "Rows"
 msgstr "Zeilen"
 
@@ -1571,6 +1646,9 @@ msgstr "Aktuelle Startseite als Voreinstellung speichern"
 
 msgid "Save current settings as preset"
 msgstr "Aktuelle Einstellungen als Voreinstellung speichern"
+
+msgid "Schedules"
+msgstr "Zeitpläne"
 
 msgid "Screenshot"
 msgstr "Screenshot"
@@ -1655,6 +1733,15 @@ msgstr "Einstellungen & Updates"
 
 msgid "Setup Guide"
 msgstr "Einrichtungsassistent"
+
+msgid "Show a button for the Assistant plugin, if installed."
+msgstr "Eine Schaltfläche für das Assistant-Plugin anzeigen, falls installiert."
+
+msgid "Show AI assistant"
+msgstr "KI-Assistenten anzeigen"
+
+msgid "Show all files from subfolders"
+msgstr "Alle Dateien aus Unterordnern anzeigen"
 
 msgid "Show author"
 msgstr "Autor anzeigen"
@@ -1848,6 +1935,9 @@ msgstr "Streifen-Widgets"
 msgid "Styling"
 msgstr "Styling"
 
+msgid "Subfolder flat view was disabled because the home folder is the device storage root."
+msgstr "Die flache Unterordneransicht wurde deaktiviert, da der Stammordner des Gerätes als Startordner festgelegt ist."
+
 msgid "Submit"
 msgstr "Absenden"
 
@@ -1869,10 +1959,10 @@ msgstr "Alle Kataloge synchronisieren"
 msgid "Tabs"
 msgstr "Tabs"
 
-msgid "Tags"
+msgid "tags"
 msgstr "Tags"
 
-msgid "tags"
+msgid "Tags"
 msgstr "Tags"
 
 msgid "Tap and hold any book or folder in your library to reveal details."
@@ -1895,6 +1985,9 @@ msgstr "Diese Änderung erfordert einen Neustart, um wirksam zu werden."
 
 msgid "This Month"
 msgstr "Diesen Monat"
+
+msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
+msgstr "Diese Option ist deaktiviert, wenn der Stammordner des Gerätes als Startordner festgelegt ist. Legen Sie zuerst spezifischere Bücherordner als Startordner fest."
 
 msgid "This Week"
 msgstr "Diese Woche"
@@ -1962,6 +2055,9 @@ msgstr "Schalten Sie den Zen-Modus ein, um KOReader auf das Wesentliche zu reduz
 msgid "Two rows"
 msgstr "Zwei Zeilen"
 
+msgid "Unavailable"
+msgstr "Nicht verfügbar"
+
 msgid "Underline"
 msgstr "Unterstreichung"
 
@@ -1970,9 +2066,6 @@ msgstr "Unterstreichung über dem Icon"
 
 msgid "Uniform covers"
 msgstr "Einheitliche Cover"
-
-msgid "Unavailable"
-msgstr "Nicht verfügbar"
 
 msgid "Unknown"
 msgstr "Unbekannt"
@@ -2063,6 +2156,9 @@ msgstr "Updates"
 
 msgid "USB"
 msgstr "USB"
+
+msgid "Use a narrower books folder instead of the device storage root."
+msgstr "Verwenden Sie statt des Stammordners des Gerätes einen spezifischeren Bücherordner."
 
 msgid "Use border as progress bar"
 msgstr "Rand als Fortschrittsbalken verwenden"
@@ -2181,17 +2277,29 @@ msgstr "Zen UI - Autoren"
 msgid "Zen UI - Home"
 msgstr "Zen UI - Startseite"
 
+msgid "Zen UI - Library"
+msgstr "Zen UI – Bibliothek"
+
 msgid "Zen UI - Open folder"
 msgstr "Zen UI - Ordner öffnen"
 
 msgid "Zen UI - Series"
 msgstr "Zen UI - Serien"
 
+msgid "Zen UI - Sync progress (pull + push)"
+msgstr "Zen UI – Synchronisierungsfortschritt (Abrufen + Übertragen)"
+
+msgid "Zen UI - Table of contents"
+msgstr "Zen UI – Inhaltsverzeichnis"
+
 msgid "Zen UI - Tags"
 msgstr "Zen UI - Tags"
 
 msgid "Zen UI - Toggle bottom reader status bar"
 msgstr "Zen UI - Untere Reader-Statusleiste umschalten"
+
+msgid "Zen UI - Toggle Incognito Mode"
+msgstr "Zen UI – Inkognitomodus umschalten"
 
 msgid "Zen UI - Toggle Lockdown Mode"
 msgstr "Zen UI - Sperrmodus umschalten"

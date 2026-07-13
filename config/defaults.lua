@@ -154,6 +154,9 @@ local defaults = {
         hide_up_folder = true,
         lock_home_folder = "zen", -- "off" | "zen" | "on"
     },
+    browser_flat_view = {
+        enabled = false,
+    },
     folder_sort = {},
     folder_display_mode = {},
     library_background = {

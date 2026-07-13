@@ -31,7 +31,7 @@ local function run_feature(logger, plugin, feature, fn)
     local ok, err = pcall(fn)
     _G.__ZEN_UI_PLUGIN = prev_plugin
     if not ok and logger then
-        logger.warn("zen-ui: grouped reader feature failed", feature, err)
+        logger.warn("grouped reader feature failed", feature, err)
     end
     return ok
 end
@@ -126,10 +126,10 @@ function M.init(logger, plugin)
 
     -- Always apply: custom highlight/lookup popup (self-disables when feature is off).
     local highlight_menu_fn = load_patch("highlight_menu")
-    logger.dbg("zen-ui[reader]: load_patch(highlight_menu)=", tostring(highlight_menu_fn))
+    logger.dbg("load_patch(highlight_menu)=", tostring(highlight_menu_fn))
     if highlight_menu_fn then
         local ok = run_feature(logger, plugin, "highlight_menu", highlight_menu_fn)
-        logger.dbg("zen-ui[reader]: run_feature(highlight_menu) ok=", tostring(ok))
+        logger.dbg("run_feature(highlight_menu) ok=", tostring(ok))
     end
 
     -- Ensure the runtime-patches registry exists.
@@ -147,7 +147,7 @@ function M.init(logger, plugin)
                 runtime_patches["reader_top_status_bar"] = true
             end
         elseif logger then
-            logger.warn("zen-ui: reader patch module missing", "reader_top_status_bar")
+            logger.warn("reader patch module missing", "reader_top_status_bar")
         end
     end
 

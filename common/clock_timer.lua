@@ -32,7 +32,7 @@ end
 local function safe_call(callback, ...)
     local ok, err = pcall(callback, ...)
     if not ok then
-        require("logger").warn("ZenUI clock timer callback failed:", tostring(err))
+        require("common/zen_logger").new("clock_timer").warn("Callback failed:", tostring(err))
     end
 end
 

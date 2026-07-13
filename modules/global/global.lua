@@ -19,7 +19,7 @@ local function run_patch(logger, plugin, feature, fn)
     local ok, err = pcall(fn)
     _G.__ZEN_UI_PLUGIN = prev_plugin
     if not ok and logger then
-        logger.warn("zen-ui: global patch failed", feature, err)
+        logger.warn("global patch failed", feature, err)
     end
     return ok
 end

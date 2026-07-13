@@ -146,8 +146,8 @@ local function apply_browser_page_count()
 
             if not _page_count_log_done then
                 _page_count_log_done = true
-                local logger = require("logger")
-                logger.dbg("zen-ui:browser_page_count:paintTo: x=", x, "y=", y,
+                local logger = require("common/zen_logger").new("browser_page_count")
+                logger.dbg("paintTo: x=", x, "y=", y,
                     "self.height=", self.height, "self.width=", self.width,
                     "target.dimen.h=", target.dimen.h, "target.dimen.w=", target.dimen.w,
                     "target.dimen.y=", target.dimen.y,

@@ -9,7 +9,7 @@
 
 local Device = require("device")
 local Blitbuffer = require("ffi/blitbuffer")
-local logger = require("logger")
+local logger = require("common/zen_logger").new("background")
 local Screen = Device.screen
 
 local ok_iw, ImageWidget = pcall(require, "ui/widget/imagewidget")
@@ -113,7 +113,7 @@ function M.paint(bb, x, y, w, h, path)
         end
     end)
     if not ok then
-        logger.warn("zen-ui background: paint failed for", tostring(path), tostring(err))
+        logger.warn("paint failed for", tostring(path), tostring(err))
     end
     return ok
 end

@@ -232,7 +232,7 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
                                     on_select(selected_name)
                                 end, debug.traceback)
                                 if not ok_select then
-                                    require("logger").warn("zen-ui icon picker select failed:", err)
+                                    require("common/zen_logger").new("zen_icon_picker").warn("Selection failed:", err)
                                 end
                             end)
                         end

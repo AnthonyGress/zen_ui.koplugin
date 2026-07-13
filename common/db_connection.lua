@@ -4,7 +4,7 @@
 -- database module (db_stats, db_library, …) does not duplicate this logic.
 
 local SQ3 = require("lua-ljsqlite3/init")
-local logger = require("logger")
+local logger = require("common/zen_logger").new("db_connection")
 
 local M = {}
 
@@ -38,7 +38,7 @@ function M.open(path)
     end
     local ok, conn = pcall(SQ3.open, path)
     if not ok then
-        logger.warn("zen-ui db_connection: failed to open", path, ":", conn)
+        logger.warn("failed to open", path, ":", conn)
         return nil, tostring(conn)
     end
     return conn, nil

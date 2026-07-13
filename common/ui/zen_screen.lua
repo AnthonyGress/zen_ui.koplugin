@@ -26,7 +26,7 @@ local Screen         = Device.screen
 local _              = require("gettext")
 local ok_stw, ScrollTextWidget = pcall(require, "ui/widget/scrolltextwidget")
 
-local logger           = require("logger")
+local logger           = require("common/zen_logger").new("zen_screen")
 local ok_iw, ImageWidget = pcall(require, "ui/widget/imagewidget")
 if not ok_iw then ImageWidget = nil end
 
@@ -81,7 +81,7 @@ function ZenScreen:_computeLayout()
 end
 
 function ZenScreen:init()
-    logger.info("ZenScreen:init title=", self.title)
+    logger.info("init title=", self.title)
     local sw = Screen:getWidth()
     local sh = Screen:getHeight()
     self.dimen = Geom:new{ x = 0, y = 0, w = sw, h = sh }
@@ -518,7 +518,7 @@ function ZenScreen:update(opts)
 end
 
 function ZenScreen:onShow()
-    logger.info("ZenScreen:onShow dimen=", self.dimen)
+    logger.info("onShow dimen=", self.dimen)
     UIManager:setDirty(self, function()
         return "flashui", self.dimen
     end)

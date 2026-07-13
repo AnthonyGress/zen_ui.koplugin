@@ -1,3 +1,6 @@
+local ZenLogger = require("common/zen_logger")
+local logger = ZenLogger.new("main")
+
 -- i18n must be installed before any other require() so every subsequent
 -- require("gettext") in every sub-module receives the wrapped version.
 local i18n = require("common/i18n")
@@ -5,7 +8,6 @@ i18n.install()
 require("common/status_bar_registry").install()
 
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
-local logger = require("logger")
 local _ = require("gettext")
 
 -- Early conflict detection: checked before any potentially interfering code
@@ -13,11 +15,6 @@ local _ = require("gettext")
 -- ptutil is unique to ProjectTitle and is required at the top of its main.lua,
 -- so it will be in package.loaded before our module-level code runs.
 local _pt_active = package.loaded["ptutil"] ~= nil
-if _pt_active then
-    logger.warn("ZenUI [module-load]: ProjectTitle detected via package.loaded['ptutil'] — skipping font registration")
-else
-    logger.info("ZenUI [module-load]: package.loaded['ptutil'] is nil — no conflict at module-load time")
-end
 
 local ConfigManager = require("config/manager")
 local registry = require("modules/registry")
@@ -94,7 +91,7 @@ if not rawget(_G, "__zen_ui_uimgr_guard") then
         local _orig_scheduleIn = UIManager.scheduleIn
         UIManager.scheduleIn = function(self, seconds, action, ...)
             if action == nil then
-                logger.warn("ZenUI guard: UIManager:scheduleIn(nil) suppressed\n" ..
+                logger.warn("UIManager:scheduleIn(nil) suppressed\n" ..
                     (debug and debug.traceback and debug.traceback("", 2) or ""))
                 return
             end
@@ -103,7 +100,7 @@ if not rawget(_G, "__zen_ui_uimgr_guard") then
         local _orig_nextTick = UIManager.nextTick
         UIManager.nextTick = function(self, action, ...)
             if action == nil then
-                logger.warn("ZenUI guard: UIManager:nextTick(nil) suppressed\n" ..
+                logger.warn("UIManager:nextTick(nil) suppressed\n" ..
                     (debug and debug.traceback and debug.traceback("", 2) or ""))
                 return
             end
@@ -137,20 +134,24 @@ end
 function ZenUI:_initModules()
     for _i, def in ipairs(registry) do
         if is_enabled(self.config, def.setting) then
+            local started_at = os.clock()
             local ok, module = pcall(require, def.file)
             if ok and module and module.init then
                 local loaded_ok = module.init(logger, self)
                 if not loaded_ok then
-                    logger.warn("zen-ui: module failed to load", def.id)
+                    logger.warn("Module failed to load", def.id)
                 end
             else
-                logger.warn("zen-ui: module require failed", def.id)
+                logger.warn("Module require failed", def.id)
             end
+            logger.perf("Module initialization completed",
+                (os.clock() - started_at) * 1000, "module=", def.id)
         end
     end
 end
 
 function ZenUI:init()
+    local started_at = os.clock()
     i18n.install()  -- reinstall after any context-switch uninstall (onCloseWidget removes it)
     self.config = ConfigManager.load()
     _G.__ZEN_UI_LIBRARY_FONT_CFG = self.config and self.config.library_font or nil
@@ -166,12 +167,13 @@ function ZenUI:init()
 
     -- Run incompatible-plugin detection before ANY module or patch loads.
     do
+        logger.info("Checking for Project: Title incompatibility")
         local ok_compat, incompatible_check = pcall(require,
             "modules/filebrowser/patches/incompatible_plugins_check")
         if not ok_compat then
-            logger.warn("ZenUI [init]: failed to load incompatible_plugins_check:", incompatible_check)
+            logger.warn("Project: Title incompatibility check failed:", incompatible_check)
         elseif type(incompatible_check) == "function" and incompatible_check() then
-            logger.warn("ZenUI [init]: conflict found — aborting init, restart pending")
+            logger.warn("Incompatible plugin changes require a restart")
             return
         end
     end
@@ -276,6 +278,7 @@ function ZenUI:init()
     end
 
     self:_initModules()
+    logger.perf("Core initialization completed", (os.clock() - started_at) * 1000)
 
     -- -----------------------------------------------------------------------
     -- Quickstart / onboarding screen
@@ -323,7 +326,7 @@ function ZenUI:init()
 
         local update_channel = (type(self.config.updater) == "table"
             and self.config.updater.update_channel) or "stable"
-        logger.info("ZenUI quickstart check: current_ver=", current_ver,
+        logger.info("current_ver=", current_ver,
             "shown_ver=", tostring(shown_ver),
             "just_updated_ver=", tostring(just_updated_ver),
             "from_updater=", from_updater,
@@ -405,15 +408,15 @@ function ZenUI:init()
             -- Post-update: always show the ZenScreen splash, then chain UPDATE_PAGES if present.
             self.config._meta.quickstart_shown_for_version = current_ver
             self:saveConfig()
-            logger.info("ZenUI update splash: scheduling for version", current_ver, "pages_to_show=", pages_to_show and #pages_to_show or 0)
+            logger.info("scheduling for version", current_ver, "pages_to_show=", pages_to_show and #pages_to_show or 0)
             require("ui/uimanager"):scheduleIn(0.5, function()
-                logger.info("ZenUI update splash: timer fired, requiring zen_screen")
+                logger.info("timer fired, requiring zen_screen")
                 local ok_zs, ZenScreen = pcall(require, "common/ui/zen_screen")
                 if not ok_zs then
-                    logger.warn("ZenUI update splash: failed to load zen_screen:", ZenScreen)
+                    logger.warn("failed to load zen_screen:", ZenScreen)
                     return
                 end
-                logger.info("ZenUI update splash: showing ZenScreen")
+                logger.info("showing ZenScreen")
                 local T = require("ffi/util").template
                 require("ui/uimanager"):show(ZenScreen:new{
                     title       = _("Zen UI"),
@@ -423,14 +426,14 @@ function ZenUI:init()
                         and changelog_to_show or nil,
                     scroll_text = build_update_changelog_scroll_text(changelog_to_show),
                     on_close    = function()
-                        logger.info("ZenUI update splash: closed, pages_to_show=", pages_to_show and #pages_to_show or 0)
+                        logger.info("closed, pages_to_show=", pages_to_show and #pages_to_show or 0)
                         if pages_to_show and #pages_to_show > 0 then
                             local ok_qs, QuickstartScreen = pcall(require, "common/quickstart/quickstart_screen")
                             if not ok_qs then
-                                logger.warn("ZenUI update splash: failed to load quickstart_screen:", QuickstartScreen)
+                                logger.warn("failed to load quickstart_screen:", QuickstartScreen)
                                 return
                             end
-                            logger.info("ZenUI update splash: showing QuickstartScreen")
+                            logger.info("showing QuickstartScreen")
                             require("ui/uimanager"):show(QuickstartScreen:new{
                                 pages = pages_to_show,
                             })
@@ -702,7 +705,7 @@ local function close_zen_standalone_views(shared)
         if view and type(view.closeAll) == "function" then
             local ok, err = pcall(view.closeAll)
             if not ok then
-                logger.warn("zen-ui: failed to close standalone view", key, err)
+                logger.warn("failed to close standalone view", key, err)
             end
         end
     end
@@ -748,13 +751,13 @@ function ZenUI:deletePluginSettings()
                 local fullpath = patches_dir .. "/" .. entry
                 if lfs.attributes(fullpath, "mode") == "file" then
                     os.remove(fullpath)
-                    logger.info("ZenUI: removed userpatch", entry)
+                    logger.info("removed userpatch", entry)
                 end
             end
         end
     end)
 
-    logger.info("ZenUI: deletePluginSettings completed")
+    logger.info("deletePluginSettings completed")
     return true
 end
 

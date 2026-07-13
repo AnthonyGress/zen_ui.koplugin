@@ -34,3 +34,16 @@ To improve or correct a translation, edit the appropriate `.po` file and open a
 pull request. Strings are grouped alphabetically by `msgid`. Leave `msgstr ""`
 blank for any string you are not confident about — KOReader will fall back to
 the English source string.
+
+## Maintenance
+
+Synchronize every catalog with the Lua source in one command:
+
+```sh
+python3 translation_utils.py --sync
+```
+
+This removes dead entries, adds missing entries, translates empty `msgstr`
+values, and alphabetizes each catalog. Untranslated English strings are sent to
+Google Translate; existing translations are preserved. Use `--locale LOCALE`
+to process only one catalog.

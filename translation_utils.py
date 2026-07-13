@@ -3,9 +3,10 @@
 Extract translatable strings from all Lua source files and compare against .po files.
 
 Usage:
-    python3 extract_translatable_strings.py [--update-po] [--locale LOCALE]
+    python3 translation_utils.py --sync [--locale LOCALE]
 
 Flags:
+    --sync          Remove dead strings, add and translate missing strings, then alphabetize
     --update-po     Write missing msgids into all (or specified) locale .po files
     --remove-dead   Remove msgids from .po files not found in any Lua source
     --alphabetize   Sort all entries in .po files alphabetically by msgid
@@ -16,9 +17,15 @@ Flags:
 """
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import json
 import os
 import re
 import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 
 # Directories relative to this script
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -28,8 +35,17 @@ LOCALES_DIR = os.path.join(SCRIPT_DIR, "locales")
 LUA_DIRS = [
     SCRIPT_DIR,
 ]
-LUA_EXCLUDE_DIRS = {"node_modules", ".git", "dist"}
+LUA_EXCLUDE_DIRS = {"node_modules", ".git", "dist", "spec"}
 LUA_EXCLUDE_FILES = {"extract_translatable_strings.py"}
+
+GOOGLE_TRANSLATE_URL = "https://translate.googleapis.com/translate_a/single"
+GOOGLE_LOCALES = {
+    "pt_BR": "pt",
+    "pt_PT": "pt-PT",
+    "zh_CN": "zh-CN",
+    "zh_TW": "zh-TW",
+}
+TRANSLATION_WORKERS = 6
 
 # ---------------------------------------------------------------------------
 # Patterns for extractable string calls
@@ -234,12 +250,99 @@ def apply_translations(locale: str, translations: dict[str, str]) -> int:
     return sum(1 for v in translations.values() if v)
 
 
+def _format_tokens(text: str) -> list[str]:
+    """Return placeholders that translations must preserve."""
+    return sorted(re.findall(r"%\d+|%(?:[-+0 #]*\d*(?:\.\d+)?)?[A-Za-z%]", text))
+
+
+def google_translate(text: str, locale: str, timeout: int = 20) -> str:
+    """Translate English text with Google Translate's keyless web endpoint."""
+    if locale == "en":
+        return text
+
+    query = urllib.parse.urlencode({
+        "client": "gtx",
+        "sl": "en",
+        "tl": GOOGLE_LOCALES.get(locale, locale),
+        "dt": "t",
+        "q": text,
+    })
+    request = urllib.request.Request(
+        f"{GOOGLE_TRANSLATE_URL}?{query}",
+        headers={"User-Agent": "Mozilla/5.0"},
+    )
+    last_error = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                data = json.load(response)
+            translated = "".join(part[0] for part in data[0] if part and part[0])
+            if not translated:
+                raise ValueError("Google returned an empty translation")
+            if _format_tokens(translated) != _format_tokens(text):
+                raise ValueError("translation changed a formatting placeholder")
+            return translated
+        except (OSError, ValueError, KeyError, IndexError, TypeError, urllib.error.URLError) as exc:
+            last_error = exc
+            if attempt < 2:
+                time.sleep(2 ** attempt)
+    raise RuntimeError(f"Google translation failed for {locale}: {text!r}: {last_error}")
+
+
+def translate_strings(locale: str, msgids: list[str]) -> dict[str, str]:
+    """Translate msgids concurrently, returning {msgid: translated string}."""
+    if locale == "en":
+        return {msgid: msgid for msgid in msgids}
+    if not msgids:
+        return {}
+
+    translated = {}
+    worker_count = min(TRANSLATION_WORKERS, len(msgids))
+    with ThreadPoolExecutor(max_workers=worker_count) as pool:
+        jobs = {pool.submit(google_translate, msgid, locale): msgid for msgid in msgids}
+        for job in as_completed(jobs):
+            msgid = jobs[job]
+            translated[msgid] = job.result()
+    return translated
+
+
+def sync_catalogs(po_files: list[str], lua_strings: set[str]) -> None:
+    """Fully synchronize catalogs, translating blanks before writing any files."""
+    plans = []
+    for po_file in po_files:
+        locale = po_file[:-3]
+        po_path = os.path.join(LOCALES_DIR, po_file)
+        existing = parse_po(po_path)
+        missing = sorted(lua_strings - set(existing))
+        dead = sorted(set(existing) - lua_strings)
+        synced = {msgid: existing.get(msgid, "") for msgid in lua_strings}
+        untranslated = sorted(msgid for msgid, msgstr in synced.items() if not msgstr)
+
+        print(
+            f"[{locale}]  missing={len(missing)}  dead={len(dead)}  "
+            f"untranslated={len(untranslated)}"
+        )
+        if untranslated:
+            print(f"  -> translating {len(untranslated)} entries")
+            synced.update(translate_strings(locale, untranslated))
+        plans.append((po_path, synced, len(dead), len(missing), len(untranslated)))
+
+    # Do not modify any catalog unless every translation succeeded.
+    for po_path, synced, removed, added, translated in plans:
+        rewrite_po(po_path, synced, lua_strings, [], remove_dead=False, alphabetize=True)
+        print(
+            f"  -> {os.path.basename(po_path)}: removed={removed} added={added} "
+            f"translated={translated} alphabetized=yes"
+        )
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--sync", action="store_true", help="Remove dead entries, add and translate missing entries, and alphabetize")
     parser.add_argument("--update-po", action="store_true", help="Append missing msgids to .po files")
     parser.add_argument("--remove-dead", action="store_true", help="Remove msgids from .po files that no longer exist in Lua source")
     parser.add_argument("--alphabetize", action="store_true", help="Sort all entries in .po files alphabetically by msgid")
@@ -248,6 +351,16 @@ def main() -> None:
     parser.add_argument("--locale", metavar="LOCALE", help="Only process this locale (e.g. zh_CN)")
     parser.add_argument("--show-dead", action="store_true", help="Show msgids in .po but not in Lua source")
     args = parser.parse_args()
+
+    if args.sync and any((
+        args.update_po,
+        args.remove_dead,
+        args.alphabetize,
+        args.list_missing,
+        args.list_untranslated,
+        args.show_dead,
+    )):
+        parser.error("--sync cannot be combined with other action flags")
 
     if args.list_missing:
         for loc, msgids in get_missing_per_locale(args.locale).items():
@@ -275,6 +388,14 @@ def main() -> None:
             print(f"Error: {target} not found in {LOCALES_DIR}", file=sys.stderr)
             sys.exit(1)
         po_files = [target]
+
+    if args.sync:
+        try:
+            sync_catalogs(po_files, set(lua_strings))
+        except RuntimeError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            sys.exit(1)
+        return
 
     for po_file in po_files:
         locale = po_file[:-3]

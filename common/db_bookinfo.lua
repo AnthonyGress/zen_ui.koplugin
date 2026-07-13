@@ -2,7 +2,7 @@
 -- Queries KOReader's bookinfo_cache.sqlite3 to group books by author or series.
 -- Used by the Authors and Series navbar tabs.
 
-local logger = require("logger")
+local logger = require("common/zen_logger").new("db_bookinfo")
 local lfs = require("libs/libkoreader-lfs")
 local paths = require("common/paths")
 local bimOk, BookInfoManager = pcall(require, "bookinfomanager")
@@ -18,19 +18,52 @@ local function splitAuthors(authors_str)
     return { trimmed }
 end
 
+local function get_valid_book_path(home_dir, directory, filename)
+    if not directory or not filename then return nil end
+    local raw_filepath = directory .. filename
+    local normalized_filepath = paths.normPath(raw_filepath)
+    if home_dir and not paths.isInHomeDir(normalized_filepath) then return nil end
+    if lfs.attributes(normalized_filepath, "mode") ~= "file" then return nil end
+    -- Keep the database key: BookInfoManager and DocSettings may not use the
+    -- normalized path on Android symlinked storage.
+    return raw_filepath
+end
+
+local function for_each_valid_book_row(conn, sql, callback)
+    local result = conn:exec(sql)
+    if not result then return 0 end
+    local directories = result[1] or {}
+    local filenames = result[2] or {}
+    local home_dir = paths.getHomeDir()
+    for index = 1, #directories do
+        local raw_filepath = get_valid_book_path(home_dir, directories[index], filenames[index])
+        if raw_filepath then
+            callback(raw_filepath, filenames[index], result, index)
+        end
+    end
+    return #directories
+end
+
+local function sorted_groups(group_map, group_key, files_key)
+    local groups = {}
+    for name, files in pairs(group_map) do
+        groups[#groups + 1] = { [group_key] = name, [files_key] = files }
+    end
+    table.sort(groups, function(a, b) return a[group_key] < b[group_key] end)
+    return groups
+end
+
 -- Returns a sorted list of author groups:
 --   { { author="Name", files={"/abs/path", ...} }, ... }
 -- Only includes books within home_dir that still exist on disk.
 -- Each book appears under every author it has (multi-author support).
 function M.getGroupedByAuthor()
     if not bimOk then
-        logger.warn("zen-ui getGroupedByAuthor: BookInfoManager not available")
+        logger.warn("BookInfoManager not available")
         return {}
     end
     BookInfoManager:openDbConnection()
     local conn = BookInfoManager.db_conn
-
-    local home_dir = paths.getHomeDir()
 
     local author_map = {}  -- author -> { files }
 
@@ -43,62 +76,30 @@ function M.getGroupedByAuthor()
               AND authors != ''
             ORDER BY authors
         ]]
-        local res = conn:exec(sql)
-        if not res then return end
-
-        local dirs      = res[1] or {}
-        local filenames = res[2] or {}
-        local authors_col = res[3] or {}
-        logger.info("zen-ui db_bookinfo: getGroupedByAuthor rows from SQL:", #dirs)
-
-        for i = 1, #dirs do
-            local dir    = dirs[i]
-            local fname  = filenames[i]
-            local authors_str = authors_col[i]
-
-            if not dir or not fname or not authors_str then goto continue end
-
-            local raw_filepath  = dir .. fname
-            local norm_filepath = paths.normPath(raw_filepath)
-
-            -- Skip if outside home_dir (compare normalized to handle /sdcard symlink)
-            if home_dir and not paths.isInHomeDir(norm_filepath) then
-                goto continue
-            end
-
-            -- Skip if file no longer exists on disk (use normalized path for safety on Android).
-            if lfs.attributes(norm_filepath, "mode") ~= "file" then
-                goto continue
-            end
-
-            -- Keep raw path so BookInfoManager can find the SQLite entry by its key.
-            local author_list = splitAuthors(authors_str)
-            for _i, author in ipairs(author_list) do
-                if not author_map[author] then
-                    author_map[author] = {}
+        local row_count = for_each_valid_book_row(conn, sql, function(raw_filepath, _filename, result, index)
+            local authors_str = result[3] and result[3][index]
+            if authors_str then
+                local author_list = splitAuthors(authors_str)
+                for _i, author in ipairs(author_list) do
+                    if not author_map[author] then
+                        author_map[author] = {}
+                    end
+                    table.insert(author_map[author], raw_filepath)
                 end
-                table.insert(author_map[author], raw_filepath)
             end
-
-            ::continue::
-        end
+        end)
+        logger.info("getGroupedByAuthor rows from SQL:", row_count)
     end)
 
     if not ok2 then
-        logger.warn("zen-ui db_bookinfo: query error:", err)
+        logger.warn("query error:", err)
         return {}
     end
 
     -- Build sorted list
-    local groups = {}
-    for author, files in pairs(author_map) do
-        table.insert(groups, { author = author, files = files })
-    end
-    table.sort(groups, function(a, b)
-        return a.author < b.author
-    end)
+    local groups = sorted_groups(author_map, "author", "files")
 
-    logger.dbg("zen-ui db_bookinfo: getGroupedByAuthor result:", #groups, "authors")
+    logger.dbg("getGroupedByAuthor result:", #groups, "authors")
     return groups
 end
 
@@ -108,13 +109,11 @@ end
 -- Only includes books within home_dir that still exist on disk.
 function M.getGroupedBySeries()
     if not bimOk then
-        logger.warn("zen-ui automatic_series_grouping: BookInfoManager not available")
+        logger.warn("BookInfoManager not available")
         return {}
     end
     BookInfoManager:openDbConnection()
     local conn = BookInfoManager.db_conn
-    local home_dir = paths.getHomeDir()
-
     local series_map = {}  -- series_name -> { {file, series_index, filename} }
 
     local ok2, err = pcall(function()
@@ -126,50 +125,21 @@ function M.getGroupedBySeries()
               AND series != ''
             ORDER BY series, series_index
         ]]
-        local res = conn:exec(sql)
-        if not res then return end
-
-        local dirs         = res[1] or {}
-        local filenames    = res[2] or {}
-        local series_col   = res[3] or {}
-        local idx_col      = res[4] or {}
-        logger.dbg("zen-ui db_bookinfo: getGroupedBySeries rows from SQL:", #dirs)
-
-        for i = 1, #dirs do
-            local dir    = dirs[i]
-            local fname  = filenames[i]
-            local series = series_col[i]
-            local sidx   = tonumber(idx_col[i])
-
-            if not dir or not fname or not series then goto continue end
-
-            local raw_filepath  = dir .. fname
-            local norm_filepath = paths.normPath(raw_filepath)
-
-            if home_dir and not paths.isInHomeDir(norm_filepath) then
-                goto continue
-            end
-
-            if lfs.attributes(norm_filepath, "mode") ~= "file" then
-                goto continue
-            end
-
-            if not series_map[series] then
-                series_map[series] = {}
-            end
-            -- Keep raw path so BookInfoManager can find the SQLite entry by its key.
+        local row_count = for_each_valid_book_row(conn, sql, function(raw_filepath, filename, result, index)
+            local series = result[3] and result[3][index]
+            if not series then return end
+            if not series_map[series] then series_map[series] = {} end
             table.insert(series_map[series], {
-                file         = raw_filepath,
-                series_index = sidx,
-                filename     = fname,
+                file = raw_filepath,
+                series_index = tonumber(result[4] and result[4][index]),
+                filename = filename,
             })
-
-            ::continue::
-        end
+        end)
+        logger.dbg("getGroupedBySeries rows from SQL:", row_count)
     end)
 
     if not ok2 then
-        logger.warn("zen-ui db_bookinfo: query error:", err)
+        logger.warn("query error:", err)
         return {}
     end
 
@@ -188,20 +158,18 @@ function M.getGroupedBySeries()
         return a.series < b.series
     end)
 
-    logger.dbg("zen-ui db_bookinfo: getGroupedBySeries result:", #groups, "series")
+    logger.dbg("getGroupedBySeries result:", #groups, "series")
     return groups
 end
 
 -- Returns explicit TBR books plus computed-New books when configured.
 function M.getTBRBooks()
     if not bimOk then
-        logger.warn("zen-ui automatic_series_grouping: BookInfoManager not available")
+        logger.warn("BookInfoManager not available")
         return {}
     end
     BookInfoManager:openDbConnection()
     local conn = BookInfoManager.db_conn
-    local home_dir = paths.getHomeDir()
-
     local candidates = {}
 
     local ok2, err = pcall(function()
@@ -215,33 +183,14 @@ function M.getTBRBooks()
             FROM bookinfo
             ORDER BY filename
         ]]
-        local res = conn:exec(sql)
-        if not res then return end
-
-        local dirs      = res[1] or {}
-        local filenames = res[2] or {}
-
-        for i = 1, #dirs do
-            local dir   = dirs[i]
-            local fname = filenames[i]
-            if not dir or not fname then goto continue end
-            local raw_filepath  = dir .. fname
-            local norm_filepath = paths.normPath(raw_filepath)
-            if home_dir and not paths.isInHomeDir(norm_filepath) then
-                goto continue
-            end
-            if lfs.attributes(norm_filepath, "mode") ~= "file" then
-                goto continue
-            end
-            -- Keep raw path so DocSettings sidecar lookup matches the stored key.
+        for_each_valid_book_row(conn, sql, function(raw_filepath)
             table.insert(candidates, raw_filepath)
-            ::continue::
-        end
+        end)
     end)
 
 
     if not ok2 then
-        logger.warn("zen-ui db_bookinfo: getTBRBooks query error:", err)
+        logger.warn("getTBRBooks query error:", err)
         return {}
     end
 
@@ -272,7 +221,7 @@ function M.getTBRBooks()
         end
     end
 
-    logger.dbg("zen-ui db_bookinfo: getTBRBooks result:", #result, "books")
+    logger.dbg("getTBRBooks result:", #result, "books")
     return result
 end
 
@@ -282,13 +231,11 @@ end
 -- Only includes books within home_dir that still exist on disk.
 function M.getGroupedByTags()
     if not bimOk then
-        logger.warn("zen-ui automatic_series_grouping: BookInfoManager not available")
+        logger.warn("BookInfoManager not available")
         return {}
     end
     BookInfoManager:openDbConnection()
     local conn = BookInfoManager.db_conn
-    local home_dir = paths.getHomeDir()
-
     local tag_map = {}  -- tag_name -> { file_paths }
 
     local ok2, err = pcall(function()
@@ -299,61 +246,34 @@ function M.getGroupedByTags()
               AND keywords != ''
             ORDER BY filename
         ]]
-        local res = conn:exec(sql)
-        if not res then return end
-
-        local dirs      = res[1] or {}
-        local filenames = res[2] or {}
-        local kw_col    = res[3] or {}
-
-        for i = 1, #dirs do
-            local dir   = dirs[i]
-            local fname = filenames[i]
-            local kw    = kw_col[i]
-            if not dir or not fname or not kw then goto continue end
-
-            local raw_filepath  = dir .. fname
-            local norm_filepath = paths.normPath(raw_filepath)
-
-            if home_dir and not paths.isInHomeDir(norm_filepath) then
-                goto continue
-            end
-            if lfs.attributes(norm_filepath, "mode") ~= "file" then
-                goto continue
-            end
-
-            -- Split newline-separated tags (KOReader default) and also handle comma-separated.
-            -- Replace commas with newlines so one gmatch handles both formats.
-            local normalized = kw:gsub(",", "\n")
-            for tag in normalized:gmatch("[^\n]+") do
-                local trimmed = tag:match("^%s*(.-)%s*$")
-                if trimmed and trimmed ~= "" then
-                    if not tag_map[trimmed] then
-                        tag_map[trimmed] = {}
+        for_each_valid_book_row(conn, sql, function(raw_filepath, _filename, result, index)
+            local kw = result[3] and result[3][index]
+            if kw then
+                -- Split newline-separated tags (KOReader default) and also handle comma-separated.
+                -- Replace commas with newlines so one gmatch handles both formats.
+                local normalized = kw:gsub(",", "\n")
+                for tag in normalized:gmatch("[^\n]+") do
+                    local trimmed = tag:match("^%s*(.-)%s*$")
+                    if trimmed and trimmed ~= "" then
+                        if not tag_map[trimmed] then
+                            tag_map[trimmed] = {}
+                        end
+                        table.insert(tag_map[trimmed], raw_filepath)
                     end
-                    table.insert(tag_map[trimmed], raw_filepath)
                 end
             end
-
-            ::continue::
-        end
+        end)
     end)
 
 
     if not ok2 then
-        logger.warn("zen-ui db_bookinfo: getGroupedByTags query error:", err)
+        logger.warn("getGroupedByTags query error:", err)
         return {}
     end
 
-    local groups = {}
-    for tag, files in pairs(tag_map) do
-        table.insert(groups, { tag = tag, files = files })
-    end
-    table.sort(groups, function(a, b)
-        return a.tag < b.tag
-    end)
+    local groups = sorted_groups(tag_map, "tag", "files")
 
-    logger.dbg("zen-ui db_bookinfo: getGroupedByTags result:", #groups, "tags")
+    logger.dbg("getGroupedByTags result:", #groups, "tags")
     return groups
 end
 
@@ -361,7 +281,7 @@ end
 -- across all directories. Uses a SQL COUNT so no lfs calls are made.
 function M.getTotalBookCount()
     if not bimOk then
-        logger.warn("zen-ui automatic_series_grouping: BookInfoManager not available")
+        logger.warn("BookInfoManager not available")
         return {}
     end
     BookInfoManager:openDbConnection()
@@ -373,9 +293,9 @@ function M.getTotalBookCount()
         count = tonumber(row) or 0
     end)
     if not ok2 then
-        logger.warn("zen-ui db_bookinfo: getTotalBookCount error:", err)
+        logger.warn("getTotalBookCount error:", err)
     end
-    logger.info("zen-ui db_bookinfo: total_book_count=", count)
+    logger.info("total_book_count=", count)
     return count
 end
 

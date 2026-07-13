@@ -4,12 +4,12 @@ local function apply_automatic_series_grouping()
     local Device = require("device")
     local FileChooser = require("ui/widget/filechooser")
     local TitleBar = require("ui/widget/titlebar")
-    local logger = require("logger")
+    local logger = require("common/zen_logger").new("automatic_series_grouping")
     local util = require("util")
 
     local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
     if not ok_bim or not BookInfoManager then
-        logger.warn("zen-ui automatic_series_grouping: BookInfoManager not available")
+        logger.warn("BookInfoManager not available")
         return
     end
 
@@ -28,7 +28,7 @@ local function apply_automatic_series_grouping()
         local path_item = file_chooser and file_chooser.path_items
             and path and file_chooser.path_items[path]
         logger.info(
-            "zen-ui series-nav:", event,
+            "Navigation:", event,
             detail or "",
             "page=", tostring(file_chooser and file_chooser.page),
             "page_num=", tostring(file_chooser and file_chooser.page_num),
@@ -274,7 +274,7 @@ local function apply_automatic_series_grouping()
             if ok_sort_func and sort_func then
                 local ok_sort, err = pcall(table.sort, items, sort_func)
                 if not ok_sort then
-                    logger.warn("zen-ui automatic_series_grouping: series sort failed:", err)
+                    logger.warn("series sort failed:", err)
                 end
             end
         end
@@ -423,7 +423,7 @@ local function apply_automatic_series_grouping()
                 end
                 local ok_sort, err = pcall(table.sort, to_sort, sort_func)
                 if not ok_sort then
-                    logger.warn("zen-ui automatic_series_grouping: sort failed:", err)
+                    logger.warn("sort failed:", err)
                 end
                 if up_item then table.insert(final_table, up_item) end
                 for _i, item in ipairs(to_sort) do
@@ -452,7 +452,7 @@ local function apply_automatic_series_grouping()
             if sort_func then
                 local ok_sort, err = pcall(table.sort, dirs, sort_func)
                 if not ok_sort then
-                    logger.warn("zen-ui automatic_series_grouping: sort failed:", err)
+                    logger.warn("sort failed:", err)
                 end
             end
 

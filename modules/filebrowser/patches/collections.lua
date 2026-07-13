@@ -1,4 +1,4 @@
-local logger = require("logger")
+local logger = require("common/zen_logger").new("collections")
 local icons  = require("common/inline_icon_map")
 local Cover  = require("common/cover_utils")
 local library_font = require("modules/filebrowser/patches/library_font")
@@ -9,10 +9,10 @@ local VerticalSpan = require("ui/widget/verticalspan")
 local Background = require("common/ui/background")
 local SharedState = require("common/shared_state")
 
-logger.dbg("zen-coll: module loaded")
+logger.dbg("module loaded")
 
 local function apply_collections()
-    logger.dbg("zen-coll: apply_collections() called")
+    logger.dbg("apply_collections() called")
 
     local FileManagerCollection = require("apps/filemanager/filemanagercollection")
     local Menu = require("ui/widget/menu")
@@ -1326,12 +1326,12 @@ local function apply_collections()
             local ok, err = pcall(_orig_searchCollections, self, coll_name)
             bookinfo.findInProps = orig_findInProps
             if not ok then
-                logger.dbg("zen-coll: searchCollections error:", err)
+                logger.dbg("searchCollections error:", err)
             end
         end
     end
 
-    logger.dbg("zen-coll: all hooks installed")
+    logger.dbg("all hooks installed")
 end
 
 return apply_collections

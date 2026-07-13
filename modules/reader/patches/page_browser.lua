@@ -379,7 +379,7 @@ local function apply_page_browser()
         local GestureRange    = require("ui/gesturerange")
         local ZenSlider       = require("common/ui/zen_slider")
         local ZenIconButton   = require("common/ui/zen_icon_button")
-        local logger          = require("logger")
+        local logger          = require("common/zen_logger").new("page_browser")
 
         local function get_page_display_text(pbw, page_num)
             local fallback = tostring(page_num)
@@ -555,7 +555,7 @@ local function apply_page_browser()
             local function open_reader_menu()
                 local ui_ref = pbw_ref.ui
                 if not (ui_ref and ui_ref.config) then
-                    logger.warn("zen PBW open_reader_menu: ui.config missing")
+                    logger.warn("open_reader_menu: ui.config missing")
                     pbw_ref:onClose()
                     return
                 end
@@ -595,7 +595,7 @@ local function apply_page_browser()
                         UIManager:show(dialog)
                     end)
                     if not ok then
-                        logger.err("zen PBW open_reader_menu: failed to open config dialog:", err)
+                        logger.err("open_reader_menu: failed to open config dialog:", err)
                         cfg.config_dialog = nil
                     end
                 end)
@@ -710,7 +710,7 @@ local function apply_page_browser()
             -- cancelled and restarted, which caused ~11s delays on slow devices.
             local top_pad = Screen:scaleBySize(6)  -- grid-to-title gap; used below
             if self._zen_panel_only_rebuild then
-                logger.dbg("ZenUI page_browser: panel-only rebuild, skipping _orig_updateLayout")
+                logger.dbg("panel-only rebuild, skipping _orig_updateLayout")
                 self._zen_tile_size = nil
             else
             local nb_toc_pre
@@ -740,11 +740,11 @@ local function apply_page_browser()
                 local nr = self._zen_nb_rows_override or nc
                 self._zen_nb_cols_override = nil
                 self._zen_nb_rows_override = nil
-                logger.dbg("ZenUI page_browser: forcing cols="..nc.." rows="..nr)
+                logger.dbg("forcing cols="..nc.." rows="..nr)
                 if ds then
                     _saved_ds_cols = ds:readSetting("page_browser_nb_cols")
                     _saved_ds_rows = ds:readSetting("page_browser_nb_rows")
-                    logger.dbg("ZenUI page_browser: saved ds cols="..tostring(_saved_ds_cols).." rows="..tostring(_saved_ds_rows))
+                    logger.dbg("saved ds cols="..tostring(_saved_ds_cols).." rows="..tostring(_saved_ds_rows))
                     ds:saveSetting("page_browser_nb_cols", nc)
                     ds:saveSetting("page_browser_nb_rows", nr)
                     _zen_ds_patched = true
@@ -761,7 +761,7 @@ local function apply_page_browser()
 
             _orig_updateLayout(self)
 
-            logger.dbg("ZenUI page_browser: after orig nb_cols="..tostring(self.nb_cols).." nb_rows="..tostring(self.nb_rows).." nb_grid_items="..tostring(self.nb_grid_items))
+            logger.dbg("after orig nb_cols="..tostring(self.nb_cols).." nb_rows="..tostring(self.nb_rows).." nb_grid_items="..tostring(self.nb_grid_items))
 
             -- Restore span_height so the detached BookMapRow is self-consistent.
             self.span_height = orig_span_h
@@ -778,7 +778,7 @@ local function apply_page_browser()
                 else
                     ds:delSetting("page_browser_nb_rows")
                 end
-                logger.dbg("ZenUI page_browser: restored ds cols="..tostring(_saved_ds_cols).." rows="..tostring(_saved_ds_rows))
+                logger.dbg("restored ds cols="..tostring(_saved_ds_cols).." rows="..tostring(_saved_ds_rows))
             end
             end -- panel_only_rebuild else
 
@@ -864,7 +864,7 @@ local function apply_page_browser()
             -- finger is still down; if the user resumes dragging, on_change will
             -- re-enable scrubbing and reschedule.
             self._zen_deferred_update = function()
-                logger.dbg("ZenUI PBW deferred_update: fired, setting post_scrub=true")
+                logger.dbg("fired, setting post_scrub=true")
                 self._zen_scrubbing = false
                 self._zen_placeholders_painted = false
                 self._zen_last_scrub_dirty = nil
@@ -877,7 +877,7 @@ local function apply_page_browser()
             -- Clears post-scrub suppression and fires one clean repaint to show
             -- all tiles that loaded during the suppression window without flashing.
             self._zen_post_scrub_clear = function()
-                logger.dbg("ZenUI PBW post_scrub_clear: fired, clearing post_scrub, scheduling setDirty")
+                logger.dbg("fired, clearing post_scrub, scheduling setDirty")
                 self._zen_post_scrub = false
                 UIManager:setDirty(self, "ui", self._zen_scrub_dimen or self.dimen)
             end
@@ -1224,7 +1224,7 @@ local function apply_page_browser()
                 pbw._zen_nb_cols_override = 1
                 pbw._zen_nb_rows_override = 1
                 set_page_browser_layout("single")
-                logger.dbg("ZenUI page_browser: switch to single page")
+                logger.dbg("switch to single page")
                 pbw:updateLayout()
                 UIManager:setDirty(pbw, function() return "partial", pbw.dimen end)
             end
@@ -1232,7 +1232,7 @@ local function apply_page_browser()
                 pbw._zen_nb_cols_override = pbw._zen_orig_nb_cols or 3
                 pbw._zen_nb_rows_override = pbw._zen_orig_nb_rows or 5
                 set_page_browser_layout("grid")
-                logger.dbg("ZenUI page_browser: switch to grid")
+                logger.dbg("switch to grid")
                 pbw:updateLayout()
                 UIManager:setDirty(pbw, function() return "partial", pbw.dimen end)
             end
@@ -1306,8 +1306,8 @@ local function apply_page_browser()
                 w = btn_row_w - half_w,
                 h = btn_row_h,
             }
-            logger.dbg("ZenUI page_browser: btn_view_zone x="..self._zen_btn_view_zone.x.." y="..self._zen_btn_view_zone.y.." w="..self._zen_btn_view_zone.w.." h="..self._zen_btn_view_zone.h)
-            logger.dbg("ZenUI page_browser: btn_grid_zone x="..self._zen_btn_grid_zone.x.." y="..self._zen_btn_grid_zone.y.." w="..self._zen_btn_grid_zone.w.." h="..self._zen_btn_grid_zone.h)
+            logger.dbg("btn_view_zone x="..self._zen_btn_view_zone.x.." y="..self._zen_btn_view_zone.y.." w="..self._zen_btn_view_zone.w.." h="..self._zen_btn_view_zone.h)
+            logger.dbg("btn_grid_zone x="..self._zen_btn_grid_zone.x.." y="..self._zen_btn_grid_zone.y.." w="..self._zen_btn_grid_zone.w.." h="..self._zen_btn_grid_zone.h)
 
             -- Skip buttons flanking the view-toggle group
             local skip_side_gap = Screen:scaleBySize(40)
@@ -1422,7 +1422,7 @@ local function apply_page_browser()
         -- ----------------------------------------------------------------
         local _orig_update = PageBrowserWidget.update
         PageBrowserWidget.update = function(self)
-            logger.dbg("ZenUI PBW update: focus_page="..tostring(self.focus_page)
+            logger.dbg("focus_page="..tostring(self.focus_page)
                 .." cur_page="..tostring(self.cur_page)
                 .." scrubbing="..tostring(self._zen_scrubbing)
                 .." post_scrub="..tostring(self._zen_post_scrub)
@@ -1441,7 +1441,7 @@ local function apply_page_browser()
                 local min_fp = shift + 1
                 local max_fp = math.max(min_fp, total - items + 1 + shift)
                 self.focus_page = math.max(min_fp, math.min(max_fp, fp))
-                logger.dbg("ZenUI PBW update: clamped focus_page to "..tostring(self.focus_page))
+                logger.dbg("clamped focus_page to "..tostring(self.focus_page))
             end
 
             -- Block showTile() from re-adding native page number widgets.
@@ -1454,7 +1454,7 @@ local function apply_page_browser()
             _orig_update(self)
             self._zen_page_label_text_cache = nil
             self._zen_page_label_source = nil
-            logger.dbg("ZenUI PBW update: _orig_update took "..(os.clock()-t0).."s")
+            logger.perf("Original update completed", (os.clock() - t0) * 1000)
 
             -- Clean up any page num widgets that slipped through (e.g. async tiles).
             for i = #self.grid, 1, -1 do
@@ -1493,7 +1493,7 @@ local function apply_page_browser()
                     w = tile.bb:getWidth(),
                     h = tile.bb:getHeight(),
                 }
-                logger.dbg("ZenUI PBW showTile: first tile bitmap seen, size "
+                logger.dbg("first tile bitmap seen, size "
                     ..self._zen_tile_size.w.."x"..self._zen_tile_size.h)
             end
             -- During scrubbing and for one full repaint cycle after scrubbing
@@ -1502,7 +1502,7 @@ local function apply_page_browser()
             -- the multi-flash artifact on the panel area.
             -- _zen_post_scrub is cleared by the next paintTo call.
             local suppressed = (self._zen_scrubbing or self._zen_post_scrub) and do_refresh
-            logger.dbg("ZenUI PBW showTile: idx="..tostring(grid_idx)
+            logger.dbg("idx="..tostring(grid_idx)
                 .." page="..tostring(page)
                 .." has_bitmap="..tostring(has_bitmap)
                 .." do_refresh="..tostring(do_refresh)
@@ -1615,10 +1615,10 @@ local function apply_page_browser()
         -- ----------------------------------------------------------------
         local _orig_onTap = PageBrowserWidget.onTap
         PageBrowserWidget.onTap = function(self, arg, ges)
-            logger.dbg("ZenUI page_browser: onTap at "..ges.pos.x..","..ges.pos.y)
+            logger.dbg("onTap at "..ges.pos.x..","..ges.pos.y)
             -- 1. Slider tap → navigate to that page.
             if self._zen_slider and self._zen_slider:handleTap(ges) then
-                logger.dbg("ZenUI page_browser: onTap → slider")
+                logger.dbg("onTap → slider")
                 return true
             end
             -- 2. Skip chapter buttons.
@@ -1640,13 +1640,13 @@ local function apply_page_browser()
             --    matching, so zero-area tap points on a border stay inclusive.
             if self._zen_btn_view_zone
                and self._zen_btn_view_zone:contains(ges.pos) then
-                logger.dbg("ZenUI page_browser: onTap → btn_view (single)")
+                logger.dbg("onTap → btn_view (single)")
                 if self._zen_switch_single then self._zen_switch_single() end
                 return true
             end
             if self._zen_btn_grid_zone
                and self._zen_btn_grid_zone:contains(ges.pos) then
-                logger.dbg("ZenUI page_browser: onTap → btn_grid")
+                logger.dbg("onTap → btn_grid")
                 if self._zen_switch_grid then self._zen_switch_grid() end
                 return true
             end
@@ -1850,7 +1850,7 @@ local function apply_page_browser()
         local InputDialog = require("ui/widget/inputdialog")
         local Screen_s    = require("device").screen
         local _           = require("gettext")
-        local logger_rs   = require("logger")
+        local logger_rs   = require("common/zen_logger").new("page_browser")
 
         local _orig_InputDialog_onTap = InputDialog.onTap
 
@@ -1982,7 +1982,7 @@ local function apply_page_browser()
 
             -- Fix outer dimen so gesture hit-testing covers the full screen.
             if menu.dimen and menu.dimen.h < real_h then
-                logger_rs.info("ZenUI [search] fixing menu height:", menu.dimen.h, "→", real_h)
+                logger_rs.info("fixing menu height:", menu.dimen.h, "→", real_h)
                 menu.dimen.h = real_h
             end
 

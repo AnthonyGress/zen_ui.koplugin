@@ -7,16 +7,16 @@ local function apply()
     local ButtonDialog = require("ui/widget/buttondialog")
     local UIManager = require("ui/uimanager")
     local Event = require("ui/event")
-    local logger = require("logger")
+    local logger = require("common/zen_logger").new("highlight_menu")
 
     local _plugin_ref = rawget(_G, "__ZEN_UI_PLUGIN")
 
-    logger.dbg("zen-ui[highlight_menu]: apply() called, _plugin_ref=", tostring(_plugin_ref))
+    logger.dbg("apply() called, _plugin_ref=", tostring(_plugin_ref))
     if _plugin_ref then
         local cfg = _plugin_ref.config
-        logger.dbg("zen-ui[highlight_menu]: config=", tostring(cfg))
+        logger.dbg("config=", tostring(cfg))
         if type(cfg) == "table" and type(cfg.features) == "table" then
-            logger.dbg("zen-ui[highlight_menu]: features.highlight_lookup=",
+            logger.dbg("features.highlight_lookup=",
                 tostring(cfg.features.highlight_lookup))
         end
     end
@@ -79,17 +79,17 @@ local function apply()
     -- -------------------------------------------------------------------------
     local orig_onShowHighlightMenu = ReaderHighlight.onShowHighlightMenu
 
-    logger.dbg("zen-ui[highlight_menu]: orig_onShowHighlightMenu=", tostring(orig_onShowHighlightMenu))
+    logger.dbg("orig_onShowHighlightMenu=", tostring(orig_onShowHighlightMenu))
 
     ReaderHighlight.onShowHighlightMenu = function(self, index)
-        logger.dbg("zen-ui[highlight_menu]: onShowHighlightMenu called, is_enabled=",
+        logger.dbg("onShowHighlightMenu called, is_enabled=",
             tostring(is_enabled()), "selected_text=", tostring(self.selected_text ~= nil))
         if not is_enabled() then
-            logger.dbg("zen-ui[highlight_menu]: disabled, falling back to orig")
+            logger.dbg("disabled, falling back to orig")
             return orig_onShowHighlightMenu(self, index)
         end
         if not self.selected_text then
-            logger.dbg("zen-ui[highlight_menu]: no selected_text, aborting")
+            logger.dbg("no selected_text, aborting")
             return
         end
 
@@ -185,11 +185,11 @@ local function apply()
                 end
             end,
         }
-        logger.dbg("zen-ui[highlight_menu]: showing custom highlight_dialog")
+        logger.dbg("showing custom highlight_dialog")
         UIManager:show(self.highlight_dialog, "[ui]")
     end
 
-    logger.dbg("zen-ui[highlight_menu]: onShowHighlightMenu override installed, new fn=",
+    logger.dbg("onShowHighlightMenu override installed, new fn=",
         tostring(ReaderHighlight.onShowHighlightMenu))
 
 end

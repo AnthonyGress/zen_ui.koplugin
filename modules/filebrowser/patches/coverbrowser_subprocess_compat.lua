@@ -3,7 +3,7 @@
 -- does not expose setIsolateSMask (older/newer API mismatch).
 
 local function apply_coverbrowser_subprocess_compat()
-    local logger = require("logger")
+    local logger = require("common/zen_logger").new("coverbrowser_subprocess_compat")
 
     local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
     if not ok_bim or not BookInfoManager then return end
@@ -26,7 +26,7 @@ local function apply_coverbrowser_subprocess_compat()
             end
 
             if is_known_incompat(a) then
-                logger.warn("zen-ui: cover extraction compatibility fallback (" .. method_name .. "): " .. tostring(a))
+                logger.warn("cover extraction compatibility fallback (" .. method_name .. "): " .. tostring(a))
                 return nil
             end
 

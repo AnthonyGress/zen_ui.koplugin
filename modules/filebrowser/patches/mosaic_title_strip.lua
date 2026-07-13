@@ -7,10 +7,10 @@
 ]]
 
 local function apply_mosaic_title_strip()
-    local logger = require("logger")
+    local logger = require("common/zen_logger").new("mosaic_title_strip")
     local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
     if not ok_bim or not BookInfoManager then
-        logger.warn("zen-ui:mosaic_title_strip: BookInfoManager not available")
+        logger.warn("BookInfoManager not available")
         return
     end
 
@@ -29,9 +29,9 @@ local function apply_mosaic_title_strip()
     local c = cfg()
     local _show_title  = c and c.show_title  == true or false
     local _show_author = c and c.show_author == true or false
-    logger.dbg("zen-ui:mosaic_title_strip: apply, show_title=", _show_title, "show_author=", _show_author)
+    logger.dbg("apply, show_title=", _show_title, "show_author=", _show_author)
     if not _show_title and not _show_author then
-        logger.dbg("zen-ui:mosaic_title_strip: both disabled, skipping apply")
+        logger.dbg("both disabled, skipping apply")
         return
     end
 
@@ -47,16 +47,16 @@ local function apply_mosaic_title_strip()
     local MosaicMenu = require("mosaicmenu")
     local MosaicMenuItem = get_upvalue(MosaicMenu._updateItemsBuildUI, "MosaicMenuItem")
     if not MosaicMenuItem then
-        logger.warn("zen-ui:mosaic_title_strip: could not find MosaicMenuItem upvalue")
+        logger.warn("could not find MosaicMenuItem upvalue")
         return
     end
 
     if MosaicMenuItem._zen_title_strip_patched then
-        logger.dbg("zen-ui:mosaic_title_strip: already patched, skipping")
+        logger.dbg("already patched, skipping")
         return
     end
     MosaicMenuItem._zen_title_strip_patched = true
-    logger.dbg("zen-ui:mosaic_title_strip: patching MosaicMenuItem")
+    logger.dbg("patching MosaicMenuItem")
 
     local Blitbuffer = require("ffi/blitbuffer")
     local TextWidget = require("ui/widget/textwidget")
@@ -86,7 +86,7 @@ local function apply_mosaic_title_strip()
     if _show_title and _show_author then STRIP_H = STRIP_H + GAP end
     if _show_author then STRIP_H = STRIP_H + AUTHOR_LINE end
     STRIP_H = STRIP_H + PAD
-    logger.dbg("zen-ui:mosaic_title_strip: STRIP_H=", STRIP_H)
+    logger.dbg("STRIP_H=", STRIP_H)
     -- Shared with browser_folder_cover so _setFolderCover can use the correct effective height.
     MosaicMenuItem._zen_strip_h = STRIP_H
 
@@ -97,7 +97,7 @@ local function apply_mosaic_title_strip()
     -- patched at this point) computes max_img_h against the reduced height.
     local orig_init = MosaicMenuItem.init
     function MosaicMenuItem:init()
-        logger.dbg("zen-ui:mosaic_title_strip:init: self.height before=", self.height, "STRIP_H=", STRIP_H)
+        logger.dbg("init: self.height before=", self.height, "STRIP_H=", STRIP_H)
         self.height = self.height - STRIP_H
         _in_init = true
         MosaicMenuItem._zen_in_init = true
@@ -105,7 +105,7 @@ local function apply_mosaic_title_strip()
         _in_init = false
         MosaicMenuItem._zen_in_init = false
         self.height = self.height + STRIP_H
-        logger.dbg("zen-ui:mosaic_title_strip:init: self.height after restore=", self.height)
+        logger.dbg("init: self.height after restore=", self.height)
     end
 
     -- Wrap update: rebuild the cover widget within the reduced height on any
@@ -113,7 +113,7 @@ local function apply_mosaic_title_strip()
     local orig_update = MosaicMenuItem.update
     function MosaicMenuItem:update()
         if not _in_init then
-            logger.dbg("zen-ui:mosaic_title_strip:update: reducing height by STRIP_H=", STRIP_H, "from=", self.height)
+            logger.dbg("update: reducing height by STRIP_H=", STRIP_H, "from=", self.height)
             self.height = self.height - STRIP_H
         end
         self._zen_strip_data = nil -- reset text/render cache on cover reload
@@ -128,7 +128,7 @@ local function apply_mosaic_title_strip()
         orig_update(self)
         if not _in_init then
             self.height = self.height + STRIP_H
-            logger.dbg("zen-ui:mosaic_title_strip:update: restored height=", self.height)
+            logger.dbg("update: restored height=", self.height)
         end
     end
 
@@ -139,7 +139,7 @@ local function apply_mosaic_title_strip()
     -- breaking uv_idx upvalue lookup (corner_mark_size etc. not present in strip's closure).
     local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
     if not ok_fm or not FileManager then
-        logger.warn("zen-ui:mosaic_title_strip: FileManager not available for paintTo patch")
+        logger.warn("FileManager not available for paintTo patch")
         return
     end
 
@@ -150,7 +150,7 @@ local function apply_mosaic_title_strip()
         orig_setupLayout(fm, ...)
         if _paintTo_patched or not fm.coverbrowser then return end
         _paintTo_patched = true
-        logger.dbg("zen-ui:mosaic_title_strip: patching paintTo via setupLayout")
+        logger.dbg("patching paintTo via setupLayout")
 
         local orig_paintTo = MosaicMenuItem.paintTo
         local _logged_chain = false
@@ -158,7 +158,7 @@ local function apply_mosaic_title_strip()
         function MosaicMenuItem:paintTo(bb, x, y)
             if not _logged_chain then
                 _logged_chain = true
-                logger.dbg("zen-ui:mosaic_title_strip:paintTo: chain=", tostring(orig_paintTo),
+                logger.dbg("paintTo: chain=", tostring(orig_paintTo),
                     "self.height=", self.height, "STRIP_H=", STRIP_H,
                     "is_directory=", tostring(self.is_directory),
                     "bookinfo_found=", tostring(self.bookinfo_found))
@@ -207,7 +207,7 @@ local function apply_mosaic_title_strip()
                 end
                 if title or authors then
                     self._zen_strip_data = { title = title, authors = authors }
-                    logger.dbg("zen-ui:mosaic_title_strip:paintTo: cached title=",
+                    logger.dbg("paintTo: cached title=",
                         tostring(title), "authors=", tostring(authors))
                 else
                     self._zen_strip_data = false

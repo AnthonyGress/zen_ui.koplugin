@@ -25,7 +25,7 @@ local function apply_navbar()
     local Screen = Device.screen
     local _ = require("gettext")
     local lfs = require("libs/libkoreader-lfs")
-    local logger = require("logger")
+    local logger = require("common/zen_logger").new("navbar")
 
     local function getRakuyomi()
         return rawget(_G, "__ZEN_UI_RAKUYOMI") or {}
@@ -551,7 +551,7 @@ local function apply_navbar()
             and rakuyomi_return_to_chapter_list_on_exit_enabled()
             and last_file or nil
         logger.dbg(
-            "zen-ui rakuyomi-return: Continue:",
+            "Rakuyomi return: Continue:",
             "file=", last_file,
             "detected=", tostring(resume_rakuyomi))
         _G.__ZEN_UI_FORCE_SOURCE_TAB_RESTORE = nil
@@ -2248,13 +2248,14 @@ local function apply_navbar()
     -- showFileManager() recreates it we can scroll back to the right place.
     local orig_fm_onShowingReader = FileManager.onShowingReader
     function FileManager:onShowingReader()
+        local started_at = os.clock()
         local gv = get_shared("group_view")
         local source_tab = rawget(_G, "__ZEN_UI_LIBRARY_SOURCE_TAB") or active_tab
         local force_source_restore = rawget(_G, "__ZEN_UI_FORCE_SOURCE_TAB_RESTORE") == true
         local rakuyomi_return_file = rawget(_G, "__ZEN_UI_RAKUYOMI_RETURN_FILE")
         if force_source_restore or rakuyomi_return_file then
             logger.dbg(
-                "zen-ui rakuyomi-return: onShowingReader capture:",
+                "Rakuyomi return: onShowingReader capture:",
                 "source_tab=", tostring(source_tab),
                 "force=", tostring(force_source_restore),
                 "file=", tostring(rakuyomi_return_file))
@@ -2324,6 +2325,8 @@ local function apply_navbar()
             end
         end
         if orig_fm_onShowingReader then orig_fm_onShowingReader(self) end
+        logger.perf("Library state captured for reader", (os.clock() - started_at) * 1000,
+            "tab=", tostring(source_tab))
     end
 
     local orig_setupLayout = FileManager.setupLayout
@@ -2363,6 +2366,7 @@ local function apply_navbar()
     end
 
     function FileManager:showFiles(path, focused_file, selected_files)
+        local started_at = os.clock()
         local open_home_after_filemanager = rawget(_G, "__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER") == true
         _G.__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER = nil
         local open_target_tab = rawget(_G, "__ZEN_UI_OPEN_TARGET_TAB")
@@ -2377,7 +2381,7 @@ local function apply_navbar()
         local keep_book_location = keep_book_location_requested and not force_source_restore
         if force_source_restore then
             logger.dbg(
-                "zen-ui rakuyomi-return: showFiles restore state:",
+                "Rakuyomi return: showFiles restore state:",
                 "path=", tostring(path),
                 "focused_file=", tostring(focused_file),
                 "file=", tostring(state_before_show.rakuyomi_return_file),
@@ -2425,6 +2429,9 @@ local function apply_navbar()
         else
             orig_showFiles(self, path, effective_focused, selected_files)
         end
+        logger.perf("File manager base restore completed", (os.clock() - started_at) * 1000,
+            "restore_tab=", tostring(state_before_show and state_before_show.tab),
+            "path=", tostring(path))
         if suppress_initial_covers and self.file_chooser then
             self.file_chooser._zen_needs_cover_refresh = true
         end
@@ -2499,7 +2506,7 @@ local function apply_navbar()
                 local opened_library = type(Rakuyomi.openLibraryView) == "function"
                     and Rakuyomi.openLibraryView({ hideTopClose = true })
                 logger.dbg(
-                    "zen-ui rakuyomi-return: restore library:",
+                    "Rakuyomi return: restore library:",
                     "opened_library=", tostring(opened_library),
                     "manga_action=", tostring(config.manga_action),
                     "manga_destination=", tostring(config.manga_action == "folder"
@@ -2516,7 +2523,7 @@ local function apply_navbar()
             local opened_chapters = return_file and has_file_opener
                 and Rakuyomi.openChapterListingFromFile(return_file, true)
             logger.dbg(
-                "zen-ui rakuyomi-return: restore dispatch:",
+                "Rakuyomi return: restore dispatch:",
                 "has_file=", tostring(return_file ~= nil),
                 "has_file_opener=", tostring(has_file_opener),
                 "opened_chapters=", tostring(opened_chapters),

@@ -291,7 +291,7 @@ end
 
 function M.openChapterListingFromFile(filepath, hide_top_close)
     if type(filepath) ~= "string" or filepath == "" then
-        logger.warn("zen-ui rakuyomi-return: invalid chapter-list file")
+        logger.warn("rakuyomi return: invalid chapter-list file")
         return false
     end
 
@@ -323,7 +323,7 @@ function M.openChapterListingFromFile(filepath, hide_top_close)
             return true
         elseif not ok_open then
             logger.warn(
-                "zen-ui rakuyomi-return: openChapterListingFromFile failed:",
+                "rakuyomi return: openChapterListingFromFile failed:",
                 candidate.label,
                 tostring(opened))
         end
@@ -573,7 +573,7 @@ local function apply_rakuyomi()
     Geom = require("ui/geometry")
     Screen = require("device").screen
     UIManager = require("ui/uimanager")
-    logger = require("logger")
+    logger = require("common/zen_logger").new("rakuyomi")
     _ = require("gettext")
 
     zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")

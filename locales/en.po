@@ -192,11 +192,11 @@ msgstr "At least one tab must be visible"
 msgid "Author"
 msgstr "Author"
 
-msgid "Authors"
-msgstr "Authors"
-
 msgid "authors"
 msgstr "authors"
+
+msgid "Authors"
+msgstr "Authors"
 
 msgid "Automatic suspend"
 msgstr "Automatic suspend"
@@ -215,6 +215,12 @@ msgstr "Back"
 
 msgid "Background"
 msgstr "Background"
+
+msgid "Background image could not be loaded. It may be corrupt or unsupported."
+msgstr "Background image could not be loaded. It may be corrupt or unsupported."
+
+msgid "Background image file not found."
+msgstr "Background image file not found."
 
 msgid "Background image must be a JPG or JPEG file."
 msgstr "Background image must be a JPG or JPEG file."
@@ -270,11 +276,11 @@ msgstr "bold"
 msgid "Bold text"
 msgstr "Bold text"
 
-msgid "Book"
-msgstr "Book"
-
 msgid "book"
 msgstr "book"
+
+msgid "Book"
+msgstr "Book"
 
 msgid "Book added to download list"
 msgstr "Book added to download list"
@@ -285,11 +291,11 @@ msgstr "Book information"
 msgid "Book Status"
 msgstr "Book Status"
 
-msgid "Book Title"
-msgstr "Book Title"
-
 msgid "Book title"
 msgstr "Book title"
+
+msgid "Book Title"
+msgstr "Book Title"
 
 msgid "Book: "
 msgstr "Book: "
@@ -366,8 +372,8 @@ msgstr "Casual Chess"
 msgid "Center"
 msgstr "Center"
 
-msgid "Center align buttons"
-msgstr "Center align buttons"
+msgid "Center books"
+msgstr "Center books"
 
 msgid "Center items"
 msgstr "Center items"
@@ -416,6 +422,9 @@ msgstr "Choose plugin menu"
 
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 msgstr "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
+
+msgid "Classic"
+msgstr "Classic"
 
 msgid "Classic (filename only)"
 msgstr "Classic (filename only)"
@@ -477,6 +486,9 @@ msgstr "Copy"
 msgid "Could not determine update status."
 msgstr "Could not determine update status."
 
+msgid "Could not get release from update server."
+msgstr "Could not get release from update server."
+
 msgid "Could not reach update server."
 msgstr "Could not reach update server."
 
@@ -485,9 +497,6 @@ msgstr "Could not reach update server. Check your internet connection."
 
 msgid "Could not reach update server. Check your internet connection.\n\nUnable to load changelog."
 msgstr "Could not reach update server. Check your internet connection.\n\nUnable to load changelog."
-
-msgid "Could not read release data from update server."
-msgstr "Could not read release data from update server."
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
 msgstr "Could not scan Wi-Fi networks. Please try again after waking the device."
@@ -636,6 +645,9 @@ msgstr "Delete this button?"
 msgid "Delete this folder and its buttons?"
 msgstr "Delete this folder and its buttons?"
 
+msgid "Delete this row break?"
+msgstr "Delete this row break?"
+
 msgid "Delete this tab?"
 msgstr "Delete this tab?"
 
@@ -726,6 +738,9 @@ msgstr "Edit"
 msgid "Enable"
 msgstr "Enable"
 
+msgid "Enable bottom status bar"
+msgstr "Enable bottom status bar"
+
 msgid "Enable bottom swipe"
 msgstr "Enable bottom swipe"
 
@@ -750,6 +765,9 @@ msgstr "Enable top status bar"
 msgid "Enable warmth schedule"
 msgstr "Enable warmth schedule"
 
+msgid "Enable Zen OPDS"
+msgstr "Enable Zen OPDS"
+
 msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 
@@ -770,6 +788,9 @@ msgstr "Extract and cache book metadata and cover images for books in the curren
 
 msgid "Extract metadata"
 msgstr "Extract metadata"
+
+msgid "Extras"
+msgstr "Extras"
 
 msgid "Failed to submit report: "
 msgstr "Failed to submit report: "
@@ -834,11 +855,11 @@ msgstr "Folder presets"
 msgid "Folders"
 msgstr "Folders"
 
-msgid "Font"
-msgstr "Font"
-
 msgid "font"
 msgstr "font"
+
+msgid "Font"
+msgstr "Font"
 
 msgid "Font size"
 msgstr "Font size"
@@ -876,9 +897,6 @@ msgstr "Get Started"
 msgid "GitHub username (optional)"
 msgstr "GitHub username (optional)"
 
-msgid "Global"
-msgstr "Global"
-
 msgid "Go"
 msgstr "Go"
 
@@ -912,6 +930,9 @@ msgstr "Gyro"
 msgid "Gyroscope"
 msgstr "Gyroscope"
 
+msgid "Hide finished books"
+msgstr "Hide finished books"
+
 msgid "Hide in CBZ/PDF files"
 msgstr "Hide in CBZ/PDF files"
 
@@ -920,6 +941,12 @@ msgstr "Hide list borders"
 
 msgid "Hide reader actions in library"
 msgstr "Hide reader actions in library"
+
+msgid "Hide TBR books"
+msgstr "Hide TBR books"
+
+msgid "Hide unread books"
+msgstr "Hide unread books"
 
 msgid "Hide up folder"
 msgstr "Hide up folder"
@@ -963,17 +990,26 @@ msgstr "Icon: %1"
 msgid "Icons"
 msgstr "Icons"
 
+msgid "Image support is unavailable on this device."
+msgstr "Image support is unavailable on this device."
+
 msgid "Image: "
 msgstr "Image: "
 
 msgid "Image: none"
 msgstr "Image: none"
 
-msgid "Include New books in To Be Read"
-msgstr "Include New books in To Be Read"
+msgid "Include new books in TBR"
+msgstr "Include new books in TBR"
 
-msgid "New includes unread books and books modified since they were last opened."
-msgstr "New includes unread books and books modified since they were last opened."
+msgid "Incognito"
+msgstr "Incognito"
+
+msgid "Incognito mode disabled"
+msgstr "Incognito mode disabled"
+
+msgid "Incognito mode enabled"
+msgstr "Incognito mode enabled"
 
 msgid "Incompatible plugins have been disabled:"
 msgstr "Incompatible plugins have been disabled:"
@@ -987,11 +1023,11 @@ msgstr "Installing"
 msgid "Interactive"
 msgstr "Interactive"
 
-msgid "items per page"
-msgstr "items per page"
-
 msgid "Items per page"
 msgstr "Items per page"
+
+msgid "items per page"
+msgstr "items per page"
 
 msgid "Keep existing settings"
 msgstr "Keep existing settings"
@@ -1064,6 +1100,9 @@ msgstr "Library View"
 
 msgid "Light"
 msgstr "Light"
+
+msgid "List"
+msgstr "List"
 
 msgid "List (basic)"
 msgstr "List (basic)"
@@ -1164,6 +1203,9 @@ msgstr "Navbar label size"
 msgid "Navbar Tabs"
 msgstr "Navbar Tabs"
 
+msgid "Network unavailable."
+msgstr "Network unavailable."
+
 msgid "New"
 msgstr "New"
 
@@ -1172,6 +1214,9 @@ msgstr "New collection"
 
 msgid "New folder"
 msgstr "New folder"
+
+msgid "New includes unread books and books modified since they were last opened."
+msgstr "New includes unread books and books modified since they were last opened."
 
 msgid "News"
 msgstr "News"
@@ -1230,6 +1275,9 @@ msgstr "Night warmth time: "
 msgid "Night warmth: "
 msgstr "Night warmth: "
 
+msgid "No background image selected."
+msgstr "No background image selected."
+
 msgid "No books found"
 msgstr "No books found"
 
@@ -1245,14 +1293,14 @@ msgstr "No description."
 msgid "No launchable plugin menus found"
 msgstr "No launchable plugin menus found"
 
-msgid "No network connection."
-msgstr "No network connection."
-
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "No network connection. Please connect to Wi-Fi and try again."
 
 msgid "No reader engine for this file or invalid file."
 msgstr "No reader engine for this file or invalid file."
+
+msgid "No table of contents available."
+msgstr "No table of contents available."
 
 msgid "No update asset found."
 msgstr "No update asset found."
@@ -1281,6 +1329,12 @@ msgstr "Off"
 msgid "OK"
 msgstr "OK"
 
+msgid "On"
+msgstr "On"
+
+msgid "Only in Zen mode"
+msgstr "Only in Zen mode"
+
 msgid "Opaque background"
 msgstr "Opaque background"
 
@@ -1289,6 +1343,9 @@ msgstr "OPDS"
 
 msgid "Open folder"
 msgstr "Open folder"
+
+msgid "Open next file"
+msgstr "Open next file"
 
 msgid "Open QuickRSS"
 msgstr "Open QuickRSS"
@@ -1422,6 +1479,9 @@ msgstr "Quit KOReader"
 msgid "Quotes widget"
 msgstr "Quotes widget"
 
+msgid "Rakuyomi"
+msgstr "Rakuyomi"
+
 msgid "Rakuyomi plugin is not installed."
 msgstr "Rakuyomi plugin is not installed."
 
@@ -1542,8 +1602,14 @@ msgstr "Restore library location on exit"
 msgid "Resume from page"
 msgstr "Resume from page"
 
+msgid "Return to chapter list on exit"
+msgstr "Return to chapter list on exit"
+
 msgid "Reverse"
 msgstr "Reverse"
+
+msgid "Reverse page scrolling"
+msgstr "Reverse page scrolling"
 
 msgid "Review"
 msgstr "Review"
@@ -1563,6 +1629,9 @@ msgstr "Rotate: %1"
 msgid "Rounded cover corners"
 msgstr "Rounded cover corners"
 
+msgid "Row break"
+msgstr "Row break"
+
 msgid "Rows"
 msgstr "Rows"
 
@@ -1577,6 +1646,9 @@ msgstr "Save current home page as preset"
 
 msgid "Save current settings as preset"
 msgstr "Save current settings as preset"
+
+msgid "Schedules"
+msgstr "Schedules"
 
 msgid "Screenshot"
 msgstr "Screenshot"
@@ -1661,6 +1733,15 @@ msgstr "Settings & Updates"
 
 msgid "Setup Guide"
 msgstr "Setup Guide"
+
+msgid "Show a button for the Assistant plugin, if installed."
+msgstr "Show a button for the Assistant plugin, if installed."
+
+msgid "Show AI assistant"
+msgstr "Show AI assistant"
+
+msgid "Show all files from subfolders"
+msgstr "Show all files from subfolders"
 
 msgid "Show author"
 msgstr "Show author"
@@ -1854,6 +1935,9 @@ msgstr "Strip widgets"
 msgid "Styling"
 msgstr "Styling"
 
+msgid "Subfolder flat view was disabled because the home folder is the device storage root."
+msgstr "Subfolder flat view was disabled because the home folder is the device storage root."
+
 msgid "Submit"
 msgstr "Submit"
 
@@ -1875,11 +1959,11 @@ msgstr "Sync all catalogs"
 msgid "Tabs"
 msgstr "Tabs"
 
-msgid "Tags"
-msgstr "Tags"
-
 msgid "tags"
 msgstr "tags"
+
+msgid "Tags"
+msgstr "Tags"
 
 msgid "Tap and hold any book or folder in your library to reveal details."
 msgstr "Tap and hold any book or folder in your library to reveal details."
@@ -1901,6 +1985,9 @@ msgstr "This change requires a restart to take effect."
 
 msgid "This Month"
 msgstr "This Month"
+
+msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
+msgstr "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
 
 msgid "This Week"
 msgstr "This Week"
@@ -1968,6 +2055,9 @@ msgstr "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemov
 msgid "Two rows"
 msgstr "Two rows"
 
+msgid "Unavailable"
+msgstr "Unavailable"
+
 msgid "Underline"
 msgstr "Underline"
 
@@ -1976,9 +2066,6 @@ msgstr "Underline above icon"
 
 msgid "Uniform covers"
 msgstr "Uniform covers"
-
-msgid "Unavailable"
-msgstr "Unavailable"
 
 msgid "Unknown"
 msgstr "Unknown"
@@ -2069,6 +2156,9 @@ msgstr "Updates"
 
 msgid "USB"
 msgstr "USB"
+
+msgid "Use a narrower books folder instead of the device storage root."
+msgstr "Use a narrower books folder instead of the device storage root."
 
 msgid "Use border as progress bar"
 msgstr "Use border as progress bar"
@@ -2187,17 +2277,29 @@ msgstr "Zen UI - Authors"
 msgid "Zen UI - Home"
 msgstr "Zen UI - Home"
 
+msgid "Zen UI - Library"
+msgstr "Zen UI - Library"
+
 msgid "Zen UI - Open folder"
 msgstr "Zen UI - Open folder"
 
 msgid "Zen UI - Series"
 msgstr "Zen UI - Series"
 
+msgid "Zen UI - Sync progress (pull + push)"
+msgstr "Zen UI - Sync progress (pull + push)"
+
+msgid "Zen UI - Table of contents"
+msgstr "Zen UI - Table of contents"
+
 msgid "Zen UI - Tags"
 msgstr "Zen UI - Tags"
 
 msgid "Zen UI - Toggle bottom reader status bar"
 msgstr "Zen UI - Toggle bottom reader status bar"
+
+msgid "Zen UI - Toggle Incognito Mode"
+msgstr "Zen UI - Toggle Incognito Mode"
 
 msgid "Zen UI - Toggle Lockdown Mode"
 msgstr "Zen UI - Toggle Lockdown Mode"

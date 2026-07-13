@@ -65,7 +65,7 @@ local function run_feature(logger, plugin, feature, fn)
     local ok, err = pcall(fn)
     _G.__ZEN_UI_PLUGIN = prev_plugin
     if not ok and logger then
-        logger.warn("zen-ui: grouped filebrowser feature failed", feature, err)
+        logger.warn("grouped filebrowser feature failed", feature, err)
     end
     return ok
 end
@@ -251,7 +251,7 @@ function M.init(logger, plugin)
                     runtime_patches[feature] = true
                 end
             elseif logger then
-                logger.warn("zen-ui: grouped filebrowser patch load failed", feature, err)
+                logger.warn("grouped filebrowser patch load failed", feature, err)
             end
         end
     end

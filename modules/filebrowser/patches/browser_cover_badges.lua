@@ -222,8 +222,8 @@ local function apply_browser_cover_badges()
             if _is_fm and self.width and self.height then
                 if not _badges_log_done then
                     _badges_log_done = true
-                    local logger = require("logger")
-                    logger.dbg("zen-ui:browser_cover_badges:paintTo: white fill x=", x, "y=", y,
+                    local logger = require("common/zen_logger").new("browser_cover_badges")
+                    logger.dbg("paintTo: white fill x=", x, "y=", y,
                         "w=", self.width, "h=", self.height,
                         "strip_patched=", tostring(MosaicMenuItem._zen_title_strip_patched),
                         "is_directory=", tostring(self.is_directory))
@@ -271,8 +271,8 @@ local function apply_browser_cover_badges()
             if not (target and target.dimen and target.dimen.y) then
                 if not _badges_target_missing_log_done then
                     _badges_target_missing_log_done = true
-                    local logger = require("logger")
-                    logger.dbg("zen-ui:browser_cover_badges:paintTo: target not found, self[1]=",
+                    local logger = require("common/zen_logger").new("browser_cover_badges")
+                    logger.dbg("paintTo: target not found, self[1]=",
                         tostring(self[1] ~= nil), "self[1][1]=", tostring(self[1] and self[1][1] ~= nil),
                         "self[1][1][1]=", tostring(self[1] and self[1][1] and self[1][1][1] ~= nil))
                 end
@@ -281,8 +281,8 @@ local function apply_browser_cover_badges()
             do
                 if not _badges_target_log_done then
                     _badges_target_log_done = true
-                    local logger = require("logger")
-                    logger.dbg("zen-ui:browser_cover_badges:paintTo: target.dimen x=", target.dimen.x,
+                    local logger = require("common/zen_logger").new("browser_cover_badges")
+                    logger.dbg("paintTo: target.dimen x=", target.dimen.x,
                         "y=", target.dimen.y, "w=", target.dimen.w, "h=", target.dimen.h,
                         "self.height=", self.height, "self.width=", self.width)
                 end

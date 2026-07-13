@@ -2,6 +2,7 @@ local function apply_browser_list_item_layout()
     -- Capture plugin reference while __ZEN_UI_PLUGIN is still set by run_feature.
     local _plugin_ref = rawget(_G, "__ZEN_UI_PLUGIN")
     local Cover = require("common/cover_utils")
+    local logger = require("common/zen_logger").new("browser_list_item_layout")
 
     local BD = require("ui/bidi")
     local Blitbuffer = require("ffi/blitbuffer")
@@ -914,8 +915,12 @@ local function apply_browser_list_item_layout()
         if fc and fc.updateItems then
             if fc._zen_strip_list_borders_fn ~= fc.updateItems then
                 local function zen_fc_updateItems(s, ...)
+                    local started_at = os.clock()
                     FileChooser.updateItems(s, ...)
                     stripListBorders(s)
+                    logger.perf("File chooser update completed", (os.clock() - started_at) * 1000,
+                        "mode=", tostring(s.display_mode_type),
+                        "items=", #(s.item_table or {}))
                 end
                 fc._zen_strip_list_borders_fn = zen_fc_updateItems
                 fc.updateItems = zen_fc_updateItems

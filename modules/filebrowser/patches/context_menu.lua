@@ -266,7 +266,7 @@ local function apply_context_menu()
 
         local file_chooser = self.file_chooser
         local file_manager = self
-        local logger = require("logger")
+        local logger = require("common/zen_logger").new("context_menu")
         local ffiUtil_sel = require("ffi/util")
 
         local orig_showFileDialog = file_chooser.showFileDialog
@@ -334,7 +334,7 @@ local function apply_context_menu()
 
         if type(orig_onFileSelect) == "function" then
             file_chooser.onFileSelect = function(self_fc, item)
-                logger.dbg("zen-ui:context_menu:onFileSelect",
+                logger.dbg("onFileSelect",
                     "select_mode=", tostring(file_manager.selected_files ~= nil),
                     "is_file=", tostring(item and item.is_file),
                     "path=", tostring(item and item.path),
@@ -345,12 +345,12 @@ local function apply_context_menu()
                 if file_manager.selected_files then
                     local item_key = resolveItemKey(item)
                     if not item_key then
-                        logger.dbg("zen-ui:context_menu:onFileSelect", "no item key, fallback to original")
+                        logger.dbg("onFileSelect", "no item key, fallback to original")
                         return orig_onFileSelect(self_fc, item)
                     end
 
                     local widget, source, i1, i2 = findVisibleWidgetByKey(self_fc, item_key)
-                    logger.dbg("zen-ui:context_menu:onFileSelect",
+                    logger.dbg("onFileSelect",
                         "item_key=", tostring(item_key),
                         "layout_rows=", tostring(self_fc and self_fc.layout and #self_fc.layout or 0),
                         "visible_items=", tostring(self_fc and self_fc.item_group and #self_fc.item_group or 0),
@@ -359,9 +359,9 @@ local function apply_context_menu()
                         "idx2=", tostring(i2))
 
                     if not widget then
-                        logger.dbg("zen-ui:context_menu:onFileSelect", "no visible match, fallback to original (single toggle)")
+                        logger.dbg("onFileSelect", "no visible match, fallback to original (single toggle)")
                         local ret = orig_onFileSelect(self_fc, item)
-                        logger.dbg("zen-ui:context_menu:onFileSelect",
+                        logger.dbg("onFileSelect",
                             "fallback_return=", tostring(ret),
                             "dim_after_fallback=", tostring(item and item.dim),
                             "selected_after_fallback=", tostring(file_manager.selected_files[item_key]))
@@ -370,7 +370,7 @@ local function apply_context_menu()
 
                     item.dim = not item.dim and true or nil
                     file_manager.selected_files[item_key] = item.dim
-                    logger.dbg("zen-ui:context_menu:onFileSelect",
+                    logger.dbg("onFileSelect",
                         "dim_after=", tostring(item.dim),
                         "selected_entry=", tostring(file_manager.selected_files[item_key]))
 
@@ -402,11 +402,11 @@ local function apply_context_menu()
                             return "ui", d, dirty_owner.dithered
                         end)
                     end
-                    logger.dbg("zen-ui:context_menu:onFileSelect", "fast-path return true")
+                    logger.dbg("onFileSelect", "fast-path return true")
                     return true
                 end
                 local ret = orig_onFileSelect(self_fc, item)
-                logger.dbg("zen-ui:context_menu:onFileSelect",
+                logger.dbg("onFileSelect",
                     "not_in_select_mode_return=", tostring(ret),
                     "dim_after=", tostring(item and item.dim))
                 return ret

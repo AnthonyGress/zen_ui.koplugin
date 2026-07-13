@@ -8,7 +8,7 @@
 -- USAGE: call i18n.install() early in main.lua (before menus are built).
 -- Call i18n.uninstall() in ZenUI:onCloseWidget / teardown.
 
-local logger = require("logger")
+local logger = require("common/zen_logger").new("i18n")
 
 local _dir = (debug.getinfo(1, "S").source:match("^@(.+/)") or "./")
 
@@ -100,10 +100,10 @@ local function loadTranslationsForLang(lang)
         local path = _dir .. "../locales/" .. name .. ".po"
         local t, c, n = parsePO(path)
         if t and n and n > 0 then
-            logger.info("zen-ui i18n: loaded " .. path .. " — " .. n .. " entries")
+            logger.info("loaded " .. path .. " — " .. n .. " entries")
             return t, c
         end
-        logger.warn("zen-ui i18n: no translations in " .. path)
+        logger.warn("no translations in " .. path)
         return nil, nil
     end
 
@@ -113,10 +113,10 @@ local function loadTranslationsForLang(lang)
     -- fallback: language prefix only (e.g. "pt" for "pt_BR")
     local prefix = lang:match("^([a-zA-Z]+)")
     if prefix and prefix ~= lang then
-        logger.warn("zen-ui i18n: falling back from " .. lang .. " to " .. prefix)
+        logger.warn("falling back from " .. lang .. " to " .. prefix)
         return try(prefix)
     end
-    logger.warn("zen-ui i18n: no .po file found for lang=" .. lang)
+    logger.warn("no .po file found for lang=" .. lang)
     return nil, nil
 end
 
@@ -127,7 +127,7 @@ end
 local function applyZenTranslations(GetText, lang)
     local translations, contexts = loadTranslationsForLang(lang)
     if not translations then
-        logger.warn("zen-ui i18n: skipping injection — no translations for lang=" .. (lang or "nil"))
+        logger.warn("skipping injection — no translations for lang=" .. (lang or "nil"))
         return
     end
     for msgid, msgstr in pairs(translations) do
@@ -157,7 +157,7 @@ local function install()
     if not GetText then
         local ok, gt = pcall(require, "gettext")
         if not ok or not gt then
-            logger.warn("zen-ui i18n: cannot load gettext — translations disabled")
+            logger.warn("cannot load gettext — translations disabled")
             return
         end
         GetText = gt
@@ -177,17 +177,17 @@ local function install()
         mt_index.changeLang = function(new_lang)
             local result = orig_changeLang(new_lang)
             if result == false then
-                logger.warn("zen-ui i18n: changeLang failed for lang=" .. (new_lang or "nil"))
+                logger.warn("changeLang failed for lang=" .. (new_lang or "nil"))
             end
             applyZenTranslations(GetText, new_lang)
             return result
         end
     else
-        logger.warn("zen-ui i18n: cannot patch changeLang — unexpected gettext metatable shape")
+        logger.warn("cannot patch changeLang — unexpected gettext metatable shape")
     end
 
     _installed = true
-    logger.info("zen-ui i18n: installed for lang=" .. (detectLang() or "?"))
+    logger.info("installed for lang=" .. (detectLang() or "?"))
 end
 
 local function uninstall()
@@ -200,15 +200,15 @@ local function uninstall()
             -- Reload clean KOReader translations without Zen UI overlay
             _orig_changeLang(_orig_gettext.current_lang)
         else
-            logger.warn("zen-ui i18n: uninstall — cannot restore changeLang, metatable changed")
+            logger.warn("uninstall — cannot restore changeLang, metatable changed")
         end
     else
-        logger.warn("zen-ui i18n: uninstall — missing saved state, may be partially installed")
+        logger.warn("uninstall — missing saved state, may be partially installed")
     end
     _orig_changeLang = nil
     _orig_gettext    = nil
     _installed       = false
-    logger.info("zen-ui i18n: uninstalled")
+    logger.info("uninstalled")
 end
 
 return {

@@ -1030,20 +1030,27 @@ function M.build(ctx)
     table.insert(layout_items, {
         text = _("Show all files from subfolders"),
         checked_func = function()
-            return G_reader_settings:isTrue("show_flat_view")
+            return type(config.browser_flat_view) == "table"
+                and config.browser_flat_view.enabled == true
                 and not paths.hasUnsafeFlatViewHomeRoot()
         end,
         callback = function()
-            local v = not G_reader_settings:isTrue("show_flat_view")
+            if type(config.browser_flat_view) ~= "table" then
+                config.browser_flat_view = {}
+            end
+            local v = config.browser_flat_view.enabled ~= true
             if v and paths.hasUnsafeFlatViewHomeRoot() then
-                G_reader_settings:saveSetting("show_flat_view", false)
                 local InfoMessage = require("ui/widget/infomessage")
                 UIManager:show(InfoMessage:new{
                     text = _("This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."),
                 })
                 return
             end
-            G_reader_settings:saveSetting("show_flat_view", v)
+            config.browser_flat_view.enabled = v
+            if v then
+                G_reader_settings:saveSetting("show_flat_view", false)
+            end
+            plugin:saveConfig()
             settings_apply.prompt_restart()
         end,
     })
@@ -1288,8 +1295,10 @@ function M.build(ctx)
                     filemanagerutil.showChooseDialog(title_header, function(path)
                         G_reader_settings:saveSetting("home_dir", path)
                         if paths.isUnsafeFlatViewRoot(path)
-                                and G_reader_settings:isTrue("show_flat_view") then
-                            G_reader_settings:saveSetting("show_flat_view", false)
+                                and type(config.browser_flat_view) == "table"
+                                and config.browser_flat_view.enabled == true then
+                            config.browser_flat_view.enabled = false
+                            plugin:saveConfig()
                             local InfoMessage = require("ui/widget/infomessage")
                             UIManager:show(InfoMessage:new{
                                 text = _("Subfolder flat view was disabled because the home folder is the device storage root."),

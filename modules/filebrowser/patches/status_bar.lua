@@ -69,7 +69,7 @@ local function apply_status_bar()
         hide_browser_bar = true,
     }
 
-    local logger = require("logger")
+    local logger = require("common/zen_logger").new("status_bar")
 
     local function _serializeOrder(t)
         if type(t) ~= "table" then return tostring(t) end
@@ -78,13 +78,13 @@ local function apply_status_bar()
 
     local function loadConfig()
         local config = zen_plugin.config.status_bar or {}
-        logger.dbg("ZenUI [status_bar] loadConfig raw: left_order=",
+        logger.dbg("loadConfig raw: left_order=",
             _serializeOrder(config.left_order),
             "center_order=", _serializeOrder(config.center_order),
             "right_order=",  _serializeOrder(config.right_order))
         -- Migration: convert old show/order/show_time format to left_order/right_order
         if config.left_order == nil and config.right_order == nil then
-            logger.info("ZenUI [status_bar] migrating legacy status bar config to left/center/right order")
+            logger.info("migrating legacy status bar config to left/center/right order")
             local old_order = type(config.order) == "table" and config.order
                               or { "wifi", "disk", "ram", "frontlight", "battery" }
             local old_show  = type(config.show) == "table" and config.show or {}
@@ -119,12 +119,12 @@ local function apply_status_bar()
         -- Merge scalar defaults
         for k, v in pairs(config_default) do
             if config[k] == nil then
-                logger.dbg("ZenUI [status_bar] merging default for nil key:", k,
+                logger.dbg("merging default for nil key:", k,
                     "->", type(v) == "table" and _serializeOrder(v) or tostring(v))
                 config[k] = utils.deepcopy(v)
             end
         end
-        logger.dbg("ZenUI [status_bar] post-defaults: left_order=",
+        logger.dbg("post-defaults: left_order=",
             _serializeOrder(config.left_order),
             "center_order=", _serializeOrder(config.center_order),
             "right_order=",  _serializeOrder(config.right_order))
@@ -134,9 +134,9 @@ local function apply_status_bar()
             local out = {}
             for _i, v in ipairs(type(list) == "table" and list or {}) do
                 if type(v) ~= "string" or v == "" then
-                    logger.warn("ZenUI [status_bar] dropping invalid item on", side_name, ":", tostring(v))
+                    logger.warn("dropping invalid item on", side_name, ":", tostring(v))
                 elseif seen[v] then
-                    logger.warn("ZenUI [status_bar] dropping duplicate item across sides:", tostring(v), "on", side_name)
+                    logger.warn("dropping duplicate item across sides:", tostring(v), "on", side_name)
                 else
                     seen[v] = true
                     table.insert(out, v)
@@ -147,7 +147,7 @@ local function apply_status_bar()
         config.left_order   = clean_order(config.left_order, "left_order")
         config.center_order = clean_order(config.center_order, "center_order")
         config.right_order  = clean_order(config.right_order, "right_order")
-        logger.dbg("ZenUI [status_bar] final: left_order=",
+        logger.dbg("final: left_order=",
             _serializeOrder(config.left_order),
             "center_order=", _serializeOrder(config.center_order),
             "right_order=",  _serializeOrder(config.right_order))
@@ -1002,7 +1002,7 @@ local function apply_status_bar()
         if #title_group < 2 then return end
 
         local current_path = self.file_chooser and self.file_chooser.path
-        logger.dbg("ZenUI [status_bar] _updateStatusBar: left=",
+        logger.dbg("_updateStatusBar: left=",
             _serializeOrder(config.left_order),
             "center=", _serializeOrder(config.center_order),
             "right=",  _serializeOrder(config.right_order))
