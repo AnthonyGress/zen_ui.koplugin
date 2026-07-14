@@ -830,20 +830,18 @@ local function build_data_provider(cfg, dcfg)
         end
         local avg_time, db_pages = StatsDB.queryBookAveragePageTime(
             book.path, book._zen_partial_md5_checksum)
-        local total_pages = tonumber(book.pages)
-        if not total_pages and db_pages and db_pages > 0 then
-            total_pages = db_pages
-            book.pages = db_pages
-            book.stable_pages = book.stable_pages or db_pages
-            if book.percent_finished then
-                book.current_page = math.floor(total_pages * book.percent_finished + 0.5)
-                if book.percent_finished > 0 and book.current_page < 1 then book.current_page = 1 end
-                if book.current_page > total_pages then book.current_page = total_pages end
-            end
+        local db_total_pages = tonumber(db_pages)
+        local total_pages = db_total_pages and db_total_pages > 0 and db_total_pages
+            or tonumber(book._zen_time_left_pages)
+        local current_page = book.current_page
+        if total_pages and book.percent_finished then
+            current_page = math.floor(total_pages * book.percent_finished + 0.5)
+            if book.percent_finished > 0 and current_page < 1 then current_page = 1 end
+            if current_page > total_pages then current_page = total_pages end
         end
-        if avg_time and avg_time > 0 and total_pages and book.current_page
-                and book.current_page < total_pages then
-            book.time_left_secs = math.floor((total_pages - book.current_page) * avg_time)
+        if avg_time and avg_time > 0 and total_pages and current_page
+                and current_page < total_pages then
+            book.time_left_secs = math.floor((total_pages - current_page) * avg_time)
         end
     end
 
@@ -890,6 +888,7 @@ local function build_data_provider(cfg, dcfg)
                 queue_cover_upgrade(path)
             end
         end
+        local time_left_pages = pages
         pages = utils.getStablePageCount(path, pages)
 
         local pct = nil
@@ -910,10 +909,11 @@ local function build_data_provider(cfg, dcfg)
                 local summary = doc:readSetting("summary")
                 status = summary and summary.status
                 local stats = doc:readSetting("stats")
-                if not pages then
-                    pages = stats and stats.pages
+                if not time_left_pages then
+                    time_left_pages = stats and stats.pages
                 end
-                local total_pages = tonumber(pages)
+                if not pages then pages = time_left_pages end
+                local total_pages = tonumber(time_left_pages)
                 if total_pages and pct then
                     current_page = math.floor(total_pages * pct + 0.5)
                     if pct > 0 and current_page < 1 then current_page = 1 end
@@ -962,6 +962,7 @@ local function build_data_provider(cfg, dcfg)
             description = description,
             _zen_has_sidecar = doc_settings ~= nil,
             _zen_partial_md5_checksum = partial_md5_checksum,
+            _zen_time_left_pages = time_left_pages,
         }
         if need_time_left then populate_time_left(book) end
         cache_home_book(cache_key, book)
