@@ -13,7 +13,6 @@ local DEFAULT_ENABLED = {
     trend_graph = true,
     goal_progress = true,
     calendar = true,
-    library = true,
 }
 
 function M.defaultWidget(id)
