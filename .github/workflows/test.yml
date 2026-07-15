@@ -26,6 +26,7 @@ jobs:
       REQUESTED_SUITE: ${{ inputs.suite || github.event.inputs.suite || '' }}
       BASE_REF: ${{ github.base_ref }}
       ZEN_UI_KOREADER_CACHE: ${{ github.workspace }}/spec/.cache/koreader
+      KOREADER_CACHE_VERSION: 2
     steps:
       - uses: actions/checkout@v4
 
@@ -48,7 +49,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: spec/.cache/koreader
-          key: koreader-stable-${{ runner.os }}-${{ hashFiles('spec/koreader-lock.json') }}
+          key: koreader-stable-${{ runner.os }}-${{ runner.arch }}-v${{ env.KOREADER_CACHE_VERSION }}-${{ hashFiles('spec/koreader-lock.json') }}
 
       - uses: actions/cache@v4
         with:
@@ -89,6 +90,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ZEN_UI_KOREADER_CACHE: ${{ github.workspace }}/spec/.cache/koreader
+      KOREADER_CACHE_VERSION: 2
     steps:
       - uses: actions/checkout@v4
 
@@ -110,7 +112,7 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: spec/.cache/koreader
-          key: koreader-master-${{ runner.os }}-${{ hashFiles('spec/koreader-lock.json') }}
+          key: koreader-master-${{ runner.os }}-${{ runner.arch }}-v${{ env.KOREADER_CACHE_VERSION }}-${{ hashFiles('spec/koreader-lock.json') }}
 
       - name: Provision Master KOReader
         run: |

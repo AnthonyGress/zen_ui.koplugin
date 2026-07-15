@@ -39,6 +39,17 @@ if [[ "$TARGET" == "master" ]]; then
   )
 fi
 
+if [[ "$(uname -s)" == "Linux" && "$(uname -m)" == "x86_64" ]]; then
+  build_flags="$SOURCE/base/Makefile.defs"
+  if rg -q '^  TARGET_CFLAGS = -march=native$' "$build_flags"; then
+    # Keep cached emulator builds runnable across GitHub-hosted CPUs.
+    sed -i 's/^  TARGET_CFLAGS = -march=native$/  TARGET_CFLAGS = -march=x86-64 -mtune=generic/' "$build_flags"
+  elif ! rg -q '^  TARGET_CFLAGS = -march=x86-64 -mtune=generic$' "$build_flags"; then
+    echo "Unable to set portable emulator CPU flags" >&2
+    exit 1
+  fi
+fi
+
 (
   cd "$SOURCE"
   ./kodev build >&2
