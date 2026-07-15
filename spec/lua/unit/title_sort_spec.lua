@@ -1,0 +1,10 @@
+local TitleSort = require("common/title_sort")
+
+describe("title sort", function()
+    it("moves supported leading articles without changing other titles", function()
+        assert.are.equal("Left Hand of Darkness", TitleSort.key("The Left Hand of Darkness"))
+        assert.are.equal("Archive", TitleSort.key("An Archive"))
+        assert.are.equal("A-Frame", TitleSort.key("A-Frame"))
+        assert.are.equal("123", TitleSort.key("  123"))
+    end)
+end)

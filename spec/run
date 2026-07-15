@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+COMMAND="${1:-}"
+LOCK_FILE="$ROOT/spec/koreader-lock.json"
+ARTIFACTS="$ROOT/spec/.artifacts"
+
+usage() {
+  cat <<'EOF'
+Usage: ./spec/run <lua|smoke|full|master-smoke|update-goldens|package-check>
+
+Set KOREADER_DIR to a KOReader emulator/runtime directory containing luajit,
+frontend, and the Busted rocks under spec/rocks. The runtime is never mutated.
+EOF
+}
+
+find_runtime() {
+  if [[ -n "${KOREADER_DIR:-}" ]]; then
+    printf '%s\n' "$KOREADER_DIR"
+    return
+  fi
+  local parent
+  parent="$(cd "$ROOT/.." && pwd)"
+  local candidate
+  for candidate in "$parent"/koreader/koreader-emulator-*/koreader; do
+    if [[ -x "$candidate/luajit" ]]; then
+      printf '%s\n' "$candidate"
+      return
+    fi
+  done
+  return 1
+}
+
+require_runtime() {
+  if [[ -z "${KOREADER_DIR:-}" ]] && ! find_runtime >/dev/null 2>&1; then
+    KOREADER_DIR="$($ROOT/spec/provision-koreader.sh stable)"
+  fi
+  RUNTIME="$(find_runtime)" || {
+    echo "No KOReader runtime found. Set KOREADER_DIR; pins are in $LOCK_FILE." >&2
+    exit 2
+  }
+  [[ -x "$RUNTIME/luajit" ]] || { echo "Missing KOReader LuaJIT: $RUNTIME/luajit" >&2; exit 2; }
+  [[ -d "$RUNTIME/spec/rocks" ]] || { echo "Missing KOReader Busted rocks: $RUNTIME/spec/rocks" >&2; exit 2; }
+  [[ -d "$RUNTIME/plugins/coverbrowser.koplugin" ]] || {
+    echo "Missing bundled KOReader CoverBrowser plugin: $RUNTIME/plugins/coverbrowser.koplugin" >&2
+    exit 2
+  }
+}
+
+run_lua() {
+  require_runtime
+  local luacheck_bin="$ROOT/.luarocks/bin/luacheck"
+  if [[ ! -x "$luacheck_bin" ]]; then luacheck_bin="$(command -v luacheck)"; fi
+  "$luacheck_bin" -q _meta.lua main.lua common config modules spec/lua spec/python/zen_ui_test_driver.koplugin
+  local ko_home
+  ko_home="$(mktemp -d "${TMPDIR:-/tmp}/zen-ui-spec-home.XXXXXX")"
+  trap 'rm -rf "$ko_home"' RETURN
+  mkdir -p "$ARTIFACTS/lua"
+  (
+    cd "$RUNTIME"
+    export KO_HOME="$ko_home"
+    export ZEN_UI_ROOT="$ROOT"
+    export LUA_PATH="$ROOT/?.lua;$ROOT/?/init.lua;$ROOT/spec/lua/support/?.lua;?.lua;common/?.lua;frontend/?.lua;spec/rocks/share/lua/5.1/?.lua;spec/rocks/share/lua/5.1/?/init.lua"
+    export LUA_CPATH="?.so;common/?.so;spec/rocks/lib/lua/5.1/?.so"
+    local lua_status=0
+    ./luajit -e 'require "busted.runner" { standalone = false }' /dev/null \
+      --output=junit -Xoutput="$ARTIFACTS/lua/junit.xml" \
+      --helper="$ROOT/spec/lua/support/helper.lua" \
+      --pattern="_spec" "$ROOT/spec/lua" || lua_status=$?
+    if [[ ! -f "$ARTIFACTS/lua/junit.xml" ]]; then
+      echo "Lua test runner exited without a JUnit report" >&2
+      if [[ "$lua_status" -eq 0 ]]; then
+        exit 1
+      fi
+      exit "$lua_status"
+    fi
+    python3 - "$ARTIFACTS/lua/junit.xml" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+
+results = ET.parse(sys.argv[1]).getroot().attrib
+tests = int(results.get("tests", 0))
+failures = int(results.get("failures", 0))
+errors = int(results.get("errors", 0))
+skipped = int(results.get("skip", results.get("skipped", 0)))
+passed = tests - failures - errors - skipped
+print(f"Lua/Busted: {passed} passed, {skipped} skipped, {failures} failed, {errors} errors")
+PY
+    if [[ "$lua_status" -ne 0 ]]; then
+      cat "$ARTIFACTS/lua/junit.xml" >&2
+      exit "$lua_status"
+    fi
+    if grep -Eq "<testsuites[^>]*(failures|errors)='[1-9]" "$ARTIFACTS/lua/junit.xml"; then
+      echo "Lua test failures recorded in $ARTIFACTS/lua/junit.xml" >&2
+      exit 1
+    fi
+  )
+}
+
+run_python() {
+  local target="$1"
+  local python="$ROOT/spec/.venv/bin/python"
+  if [[ ! -x "$python" ]]; then
+    python3 -m venv "$ROOT/spec/.venv"
+  fi
+  if ! "$python" -c 'from PIL import Image; import pytest, pyautogui' >/dev/null 2>&1; then
+    "$python" -m pip install --requirement "$ROOT/spec/python/requirements.txt"
+  fi
+  local staged_runtime=""
+  if [[ "${ZEN_UI_RUN_EMULATOR:-0}" == "1" ]]; then
+    require_runtime
+    staged_runtime="$(mktemp -d "${TMPDIR:-/tmp}/zen-ui-spec-runtime.XXXXXX")"
+    local item
+    for item in "$RUNTIME"/*; do
+      ln -s "$item" "$staged_runtime/$(basename "$item")"
+    done
+    rm "$staged_runtime/plugins"
+    mkdir "$staged_runtime/plugins"
+    for item in "$RUNTIME"/plugins/*; do
+      local plugin_name
+      plugin_name="$(basename "$item")"
+      if [[ "$plugin_name" == "zen_ui.koplugin" || "$plugin_name" == "zen_ui_test_driver.koplugin" ]]; then
+        continue
+      fi
+      ln -s "$item" "$staged_runtime/plugins/$plugin_name"
+    done
+    rsync -a --exclude '.git/' --exclude '.luarocks/' --exclude 'dist/' --exclude 'spec/' \
+      "$ROOT/" "$staged_runtime/plugins/zen_ui.koplugin/"
+    rsync -a "$ROOT/spec/python/zen_ui_test_driver.koplugin/" \
+      "$staged_runtime/plugins/zen_ui_test_driver.koplugin/"
+  fi
+  local python_status=0
+  local pytest_target="${ZEN_UI_PYTEST_TARGET:-$ROOT/spec/python/tests}"
+  PYTHONPATH="$ROOT/spec/python" KOREADER_DIR="$staged_runtime" \
+    "$python" -m pytest "$pytest_target" -q || python_status=$?
+  if [[ -n "$staged_runtime" ]]; then rm -rf "$staged_runtime"; fi
+  return "$python_status"
+  if [[ "$target" == "master" ]]; then
+    echo "Master smoke uses the pinned ref in $LOCK_FILE when CI provisions it."
+  fi
+}
+
+package_check() {
+  (
+    cd "$ROOT"
+    bash build.sh
+    local listing
+    listing="$(unzip -Z1 dist/zen_ui.koplugin.zip)"
+    if printf '%s\n' "$listing" | grep -Eq '/spec/|_spec\.lua$|\.py$|zen_ui_test_driver'; then
+      echo "Test asset leaked into release ZIP" >&2
+      exit 1
+    fi
+  )
+}
+
+case "$COMMAND" in
+  lua) run_lua ;;
+  smoke) run_lua; run_python stable ;;
+  master-smoke) run_lua; run_python master ;;
+  package-check) package_check ;;
+  full) run_lua; run_python stable; package_check ;;
+  update-goldens)
+    ZEN_UI_RUN_EMULATOR=1 ZEN_UI_UPDATE_GOLDENS=1 run_lua
+    ZEN_UI_RUN_EMULATOR=1 ZEN_UI_UPDATE_GOLDENS=1 run_python stable
+    ;;
+  *) usage; exit 2 ;;
+esac

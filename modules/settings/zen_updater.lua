@@ -16,6 +16,9 @@ local GITHUB_RELEASES_URL = string.format(
     GITHUB_OWNER,
     GITHUB_REPO
 )
+local TRUSTED_RELEASE_REPOS = {
+    [string.format("/%s/%s", GITHUB_OWNER, GITHUB_REPO):lower()] = true,
+}
 
 local TRUSTED_DL_HOSTS = {
     ["github.com"] = true,
@@ -136,13 +139,27 @@ local function is_valid_asset_url(url)
     if host == "github.com" then
         -- parse_url includes query string in path; strip query/fragment for filename checks.
         local asset_path = path:match("^([^%?#]+)") or path
-        local expected_prefix = string.format("/%s/%s/releases/download/", GITHUB_OWNER, GITHUB_REPO):lower()
         local normalized_path = asset_path:lower()
         local asset_suffix = ("/" .. RELEASE_ASSET_NAME):lower()
-        if normalized_path:find(expected_prefix, 1, true) ~= 1 then return false end
+        local repo_path = normalized_path:match("^(/[^/]+/[^/]+)/releases/download/")
+        if not repo_path or not TRUSTED_RELEASE_REPOS[repo_path] then return false end
         if normalized_path:sub(-#asset_suffix) ~= asset_suffix then return false end
     end
     return true
+end
+
+local function parse_release_api_url(url)
+    local scheme, host, path = parse_url(url)
+    if scheme ~= "https" or host ~= "api.github.com" or not path then return nil, false end
+    local api_path = path:match("^([^%?#]+)") or path
+    local owner, repo, release_id = api_path:match("^/repos/([^/]+)/([^/]+)/releases/?(%d*)$")
+    if owner and repo then
+        return string.format("/%s/%s", owner, repo):lower(), release_id == ""
+    end
+    if api_path:match("^/repositories/%d+/releases$") then
+        return nil, true
+    end
+    return nil, false
 end
 
 local function resolve_redirect_url(base_url, location)
@@ -162,6 +179,10 @@ end
 local function get_asset_info(release)
     if not release or type(release.assets) ~= "table" then
         return nil, "missing_assets_table"
+    end
+    local canonical_repo = parse_release_api_url(release.url)
+    if canonical_repo then
+        TRUSTED_RELEASE_REPOS[canonical_repo] = true
     end
     for _i, asset in ipairs(release.assets) do
         if asset.name == RELEASE_ASSET_NAME then
@@ -393,7 +414,13 @@ end
 --- Best-effort HTTPS GET; returns the response body string or nil.
 --- Uses ssl.https (LuaSec, bundled with KOReader). Blocking -- use only
 --- for user-initiated checks.
-local function https_get(url)
+local function https_get(url, depth)
+    depth = depth or 0
+    local is_release_list = select(2, parse_release_api_url(url))
+    if depth > 5 or not is_release_list then
+        logger.warn("rejected releases API URL", url)
+        return nil
+    end
     local ok_ssl, https = pcall(require, "ssl.https")
     local ok_ltn, ltn12 = pcall(require, "ltn12")
     if not ok_ssl or not ok_ltn then
@@ -407,8 +434,21 @@ local function https_get(url)
         local _, code, headers, status = https.request{
             url     = url,
             headers = { ["User-Agent"] = "zen_ui.koplugin" },
+            redirect = false,
             sink    = ltn12.sink.table(body),
         }
+        if (code == 301 or code == 302 or code == 307 or code == 308)
+            and headers and headers.location then
+            local next_url = resolve_redirect_url(url, headers.location)
+            local is_next_release_list = select(2, parse_release_api_url(next_url))
+            if not is_next_release_list then
+                logger.warn("rejected releases API redirect", tostring(headers.location))
+                body = nil
+                return
+            end
+            body = https_get(next_url, depth + 1)
+            return
+        end
         -- code can be a string error message on Kobo (e.g. "connection refused")
         if code ~= 200 then
             local body_text = table.concat(body)
@@ -431,6 +471,7 @@ local function https_get(url)
         return nil
     end
     if not body then return nil end
+    if type(body) == "string" then return body end
     return table.concat(body)
 end
 

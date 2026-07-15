@@ -1,0 +1,135 @@
+name: Test Suite
+
+on:
+  pull_request:
+    branches: [dev, main]
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Test level
+        required: true
+        default: smoke
+        type: choice
+        options: [smoke, full]
+  workflow_call:
+    inputs:
+      suite:
+        required: false
+        default: full
+        type: string
+
+jobs:
+  stable:
+    name: Stable KOReader
+    runs-on: ubuntu-latest
+    env:
+      REQUESTED_SUITE: ${{ inputs.suite || github.event.inputs.suite || '' }}
+      BASE_REF: ${{ github.base_ref }}
+      ZEN_UI_KOREADER_CACHE: ${{ github.workspace }}/spec/.cache/koreader
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install KOReader emulator dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential gettext git lua5.1 luarocks meson nasm ninja-build pkg-config xvfb \
+            libsdl2-dev libfreetype6-dev libfontconfig1-dev libharfbuzz-dev libxtst-dev \
+            libfribidi-dev libpng-dev libjpeg-dev libsqlite3-dev
+          python -m pip install fonttools
+          luarocks --tree="$GITHUB_WORKSPACE/.luarocks" install luacheck
+
+      - name: Restore stable KOReader build
+        id: stable-koreader-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: spec/.cache/koreader
+          key: koreader-stable-${{ runner.os }}-${{ hashFiles('spec/koreader-lock.json') }}
+
+      - uses: actions/cache@v4
+        with:
+          path: spec/.venv
+          key: zen-ui-python-${{ runner.os }}-${{ hashFiles('spec/python/requirements.txt') }}
+
+      - name: Provision pinned stable KOReader
+        run: |
+          KOREADER_DIR="$(./spec/provision-koreader.sh stable)"
+          echo "KOREADER_DIR=$KOREADER_DIR" >> "$GITHUB_ENV"
+
+      - name: Save stable KOReader build
+        uses: actions/cache/save@v4
+        with:
+          path: spec/.cache/koreader
+          key: ${{ steps.stable-koreader-cache.outputs.cache-primary-key }}
+
+      - name: Run pull request suite
+        run: |
+          if [[ "$REQUESTED_SUITE" == "full" || "$BASE_REF" == "main" ]]; then
+            ZEN_UI_RUN_EMULATOR=1 xvfb-run -s '-screen 0 800x600x24' ./spec/run full
+          else
+            ZEN_UI_RUN_EMULATOR=1 xvfb-run -s '-screen 0 800x600x24' ./spec/run smoke
+          fi
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stable-test-artifacts
+          path: spec/.artifacts
+          if-no-files-found: ignore
+
+  master:
+    name: Pinned master smoke
+    needs: stable
+    if: ${{ inputs.suite == 'full' || github.event.inputs.suite == 'full' || github.base_ref == 'main' }}
+    runs-on: ubuntu-latest
+    env:
+      ZEN_UI_KOREADER_CACHE: ${{ github.workspace }}/spec/.cache/koreader
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install KOReader emulator dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential gettext git lua5.1 luarocks meson nasm ninja-build pkg-config xvfb \
+            libsdl2-dev libfreetype6-dev libfontconfig1-dev libharfbuzz-dev libxtst-dev \
+            libfribidi-dev libpng-dev libjpeg-dev libsqlite3-dev
+          luarocks --tree="$GITHUB_WORKSPACE/.luarocks" install luacheck
+
+      - name: Restore master KOReader build
+        id: master-koreader-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: spec/.cache/koreader
+          key: koreader-master-${{ runner.os }}-${{ hashFiles('spec/koreader-lock.json') }}
+
+      - name: Provision pinned master KOReader
+        run: |
+          KOREADER_DIR="$(./spec/provision-koreader.sh master)"
+          echo "KOREADER_DIR=$KOREADER_DIR" >> "$GITHUB_ENV"
+
+      - name: Save master KOReader build
+        uses: actions/cache/save@v4
+        with:
+          path: spec/.cache/koreader
+          key: ${{ steps.master-koreader-cache.outputs.cache-primary-key }}
+
+      - name: Run master compatibility smoke
+        run: ZEN_UI_RUN_EMULATOR=1 xvfb-run -s '-screen 0 800x600x24' ./spec/run master-smoke
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: master-test-artifacts
+          path: spec/.artifacts
+          if-no-files-found: ignore

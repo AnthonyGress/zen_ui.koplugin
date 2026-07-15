@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Zen UI Test OPDS</title>
+  <entry>
+    <title>Fixture Book</title>
+    <id>urn:zen-ui:fixture-book</id>
+    <link rel="http://opds-spec.org/image" href="cover.png" type="image/png" />
+  </entry>
+</feed>

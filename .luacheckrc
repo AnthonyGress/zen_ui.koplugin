@@ -5,6 +5,7 @@ self = false
 globals = {
     "G_reader_settings",
     "G_defaults",
+    "ZenSpec",
     "table.pack",
     "table.unpack",
 }

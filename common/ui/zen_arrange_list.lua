@@ -20,6 +20,7 @@ local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
 local ZenToggle = require("common/ui/zen_toggle")
 local utils = require("common/utils")
+local ArrangeState = require("common/arrange_state")
 
 local M = {}
 local show_submenu
@@ -146,27 +147,11 @@ local function suppress_footer_page_button(sort_widget)
     button.onHoldReleaseSelectButton = function() return true end
 end
 
-local function item_order_key(item)
-    if type(item) ~= "table" then return item end
-    local key = item.orig_item
-    if key == nil then key = item.orig_entry end
-    if type(key) == "table" then
-        return key.id or key.key or key.name or key.text or key.label
-    end
-    return key or item.text
-end
-
 local function has_rearranged_items(sort_widget)
-    local orig_items = sort_widget and sort_widget.orig_item_table
-    local items = sort_widget and sort_widget.item_table
-    if type(orig_items) ~= "table" or type(items) ~= "table" then return false end
-    if #orig_items ~= #items then return true end
-    for i, item in ipairs(items) do
-        if item_order_key(item) ~= item_order_key(orig_items[i]) then
-            return true
-        end
-    end
-    return false
+    return ArrangeState.hasRearrangedItems(
+        sort_widget and sort_widget.orig_item_table,
+        sort_widget and sort_widget.item_table
+    )
 end
 
 local function sync_footer_ok(sort_widget)
@@ -432,22 +417,8 @@ local function configure_title_bar(sort_widget, opts)
     end
 end
 
-local SUBMENU_CARET = " \u{25B8}"
-local ASCII_SUBMENU_CARET = " >"
-local OLD_SUBMENU_CARET = string.char(226, 150, 184)
-
 local function strip_submenu_caret(text)
-    if type(text) ~= "string" then return text end
-    if text:sub(-#SUBMENU_CARET) == SUBMENU_CARET then
-        return text:sub(1, -#SUBMENU_CARET - 1)
-    end
-    if text:sub(-#ASCII_SUBMENU_CARET) == ASCII_SUBMENU_CARET then
-        return text:sub(1, -#ASCII_SUBMENU_CARET - 1)
-    end
-    if text:sub(-#OLD_SUBMENU_CARET) == OLD_SUBMENU_CARET then
-        return (text:sub(1, -#OLD_SUBMENU_CARET - 1):gsub("%s+$", ""))
-    end
-    return text
+    return ArrangeState.stripSubmenuCaret(text)
 end
 
 local function has_submenu(item)
@@ -468,12 +439,7 @@ local function item_base_text(item)
 end
 
 local function strip_value_suffix(text)
-    if type(text) ~= "string" then return text end
-    local value_start = text:find(": ", 1, true)
-    if value_start and value_start > 1 then
-        return text:sub(1, value_start - 1)
-    end
-    return text
+    return ArrangeState.stripValueSuffix(text)
 end
 
 local function item_submenu_title(item)
@@ -485,7 +451,7 @@ local function update_dynamic_text(items)
     for _i, item in ipairs(items) do
         local text = item_base_text(item)
         if has_submenu(item) and type(text) == "string" then
-            item.text = text .. SUBMENU_CARET
+            item.text = text .. ArrangeState.SUBMENU_CARET
         elseif text ~= nil then
             item.text = text
         end

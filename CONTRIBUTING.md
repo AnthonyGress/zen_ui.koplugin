@@ -80,6 +80,23 @@ To test changes:
 
 The [KOReader emulator](https://github.com/koreader/koreader/blob/master/doc/Building.md) is the fastest way to iterate without a physical device.
 
+### Automated tests
+
+Zen UI's tests live under `spec/` and run against KOReader's bundled LuaJIT.
+Set `KOREADER_DIR` to a built KOReader emulator when it is not discoverable next
+to this checkout. The first Python smoke run creates an ignored virtualenv.
+
+```sh
+./spec/run lua             # Lua unit and KOReader patch integration specs
+./spec/run smoke           # Lua plus deterministic Python checks
+./spec/run package-check   # Assert release ZIP excludes every test asset
+```
+
+`ZEN_UI_RUN_EMULATOR=1 ./spec/run smoke` starts a disposable emulator overlay
+with the current plugin source and test-only driver plugin; it never changes the
+emulator or plugin installation you use for development. See `spec/README.md`
+for pinned KOReader versions and golden-image workflow.
+
 ### Static linting (LuaCheck)
 
 Zen UI uses [LuaCheck](https://github.com/mpeterv/luacheck) for static analysis.

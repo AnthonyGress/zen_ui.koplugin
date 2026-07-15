@@ -1,0 +1,15 @@
+{
+  "stable": {
+    "tag": "v2026.03",
+    "source": "https://github.com/koreader/koreader.git"
+  },
+  "master": {
+    "commit": "f5579dd5faaaa6caf5dcbffd42be650f8ff8e236",
+    "source": "https://github.com/koreader/koreader.git"
+  },
+  "visual": {
+    "platform": "linux-xvfb",
+    "width": 800,
+    "height": 600
+  }
+}

@@ -189,6 +189,9 @@ return {
     },
     ["2.4.4"] = {
         "Fix time to book finished incorrect with stable pages"
+    },
+    ["2.5.0"] = {
+        "Add testing framework",
+        "Updated ZenUpdater"
     }
-
 }
