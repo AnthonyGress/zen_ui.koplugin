@@ -192,6 +192,8 @@ return {
     },
     ["2.5.0"] = {
         "Add testing framework",
+        "Updated stats page + widgets",
+        "Better sizing/spacing on home widgets",
         "Updated ZenUpdater"
     }
 }
