@@ -334,9 +334,12 @@ local function apply_strip_badges(frame, book, plugin)
 end
 
 function M.build_strip(ctx, source_key)
-    local width = ctx.width
-    local height = ctx.height
+    local outer_width = ctx.width
+    local outer_height = ctx.height
     local Screen = Device.screen
+    local padding = Screen:scaleBySize(8)
+    local width = math.max(1, outer_width - padding * 2)
+    local height = math.max(1, outer_height - padding * 2)
     local module_cfg = type(ctx.module_cfg) == "table" and ctx.module_cfg or {}
     local source = source_key or "recently_read"
     local order = module_cfg.order or "default"
@@ -362,13 +365,13 @@ function M.build_strip(ctx, source_key)
     local books = ctx.data:getBooksForStrip(source, count, order, ctx.component_id)
     if #books == 0 then
         return FrameContainer:new{
-            width = width,
-            height = height,
+            width = outer_width,
+            height = outer_height,
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
             CenterContainer:new{
-                dimen = Geom:new{ w = width, h = height },
+                dimen = Geom:new{ w = outer_width, h = outer_height },
                 TextWidget:new{ text = "No books found", face = ctx.face_label },
             },
         }
@@ -606,14 +609,17 @@ function M.build_strip(ctx, source_key)
     table.insert(vgroup, VerticalSpan:new{ width = row_bottom_pad })
 
     local frame = FrameContainer:new{
-        width = width,
-        height = height,
+        width = outer_width,
+        height = outer_height,
         padding = 0,
         bordersize = 0,
         background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
-        TopContainer:new{
+        CenterContainer:new{
+            dimen = Geom:new{ w = outer_width, h = outer_height },
+            TopContainer:new{
             dimen = Geom:new{ w = width, h = height },
             vgroup,
+            },
         },
     }
 
@@ -622,7 +628,7 @@ function M.build_strip(ctx, source_key)
     end
 
     local swipe = InputContainer:new{
-        dimen = Geom:new{ w = width, h = height },
+        dimen = Geom:new{ w = outer_width, h = outer_height },
         ges_events = {
             SwipeStrip = {
                 GestureRange:new{ ges = "swipe", range = Geom:new{

@@ -74,7 +74,7 @@ end
 return {
     id = "stats_triplet",
     label = "Reading stats widget",
-    size = { preferred_pct = 0.18, min_pct = 0.12, max_pct = 0.30, grow_priority = 3 },
+    size = { preferred_pct = 0.14, min_pct = 0.10, max_pct = 0.24, grow_priority = 4 },
     build = function(ctx)
         local width = ctx.width
         local height = ctx.height
@@ -101,12 +101,17 @@ return {
         local cell_w = math.max(20, math.floor((width - gap_w * 2) / 3))
         local card_h = math.max(20, height)
         local Screen = Device.screen
-        local value_face = Font:getFace("smallinfofont", Screen:scaleBySize(math.max(12, math.min(18, math.floor(card_h * 0.16)))))
-        local label_face = Font:getFace("smallinfofont", Screen:scaleBySize(math.max(7, math.min(11, math.floor(card_h * 0.09)))))
+        local value_face = Font:getFace("smallinfofont", Screen:scaleBySize(math.max(10, math.min(18, math.floor(card_h * 0.13)))))
+        local label_face = Font:getFace("smallinfofont", Screen:scaleBySize(math.max(6, math.min(11, math.floor(card_h * 0.075)))))
         local row = HorizontalGroup:new{ align = "center" }
 
         for _i, field in ipairs(fields) do
-            local value_widget = TextWidget:new{ text = field.get(stats), face = value_face, bold = true }
+            local value_widget = TextWidget:new{
+                text = field.get(stats),
+                face = value_face,
+                bold = true,
+                fgcolor = Blitbuffer.COLOR_BLACK,
+            }
             if field.id == "streak" and flame_icon_path then
                 local value_size = value_widget:getSize()
                 local icon_size = math.max(8, math.floor((value_size.h or 12) * 0.62))
@@ -125,7 +130,7 @@ return {
             local inner_w = cell_w - 12
             local inner_h = math.max(1, card_h - 12)
             local content = metric_content(inner_w, inner_h, value_widget,
-                TextWidget:new{ text = field.label, face = label_face, fgcolor = Blitbuffer.COLOR_GRAY_3 })
+                TextWidget:new{ text = field.label, face = label_face, fgcolor = Blitbuffer.COLOR_BLACK })
             local card = FrameContainer:new{
                 width = cell_w,
                 height = card_h,

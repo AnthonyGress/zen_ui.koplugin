@@ -1995,6 +1995,7 @@ local function apply_navbar()
                 end
                 if body_widget.resetLayout then body_widget:resetLayout() end
             end
+            if menu._zen_stats_rebuild then menu:_zen_stats_rebuild() end
             refreshStandaloneAfterResize(menu)
             if vg.resetLayout then vg:resetLayout() end
             if menu[1] and menu[1].resetLayout then menu[1]:resetLayout() end

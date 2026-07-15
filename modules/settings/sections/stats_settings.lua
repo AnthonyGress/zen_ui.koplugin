@@ -1,5 +1,10 @@
 local _ = require("gettext")
+local UIManager = require("ui/uimanager")
 local StatsSettings = require("modules/filebrowser/patches/stats_settings")
+local PresetStore = require("config/preset_store")
+local HomePresets = require("modules/filebrowser/patches/home/home_presets")
+local ReadingGoals = require("common/reading_goals")
+local SharedState = require("common/shared_state")
 
 local M = {}
 
@@ -14,21 +19,61 @@ local function label_for(id)
         library = _("Library"),
         current_book = _("Current Book"),
         trend_graph = _("Reading Trend"),
-        goal_progress = _("Goal Progress"),
+        goal_progress = _("Reading goals"),
         calendar = _("Reading Calendar"),
     }
     return labels[id] or tostring(id)
 end
 
-local function refresh_active_page()
+local function refresh_active_pages(plugin)
     local StatsPage = require("modules/filebrowser/patches/stats_page")
     if StatsPage.rebuildActive then StatsPage.rebuildActive() end
+    local home = SharedState.get(plugin, "home")
+    if home and home.rebuildActive then home.rebuildActive() end
 end
 
-function M.build(_ctx)
+local function is_filemanager_menu_open()
+    local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
+    if not ok_fm or not FileManager or not FileManager.instance then return false end
+    local menu = FileManager.instance.menu
+    if not menu then return false end
+    local menu_container = menu.menu_container
+    local stack = UIManager._window_stack
+    if not stack then return menu_container ~= nil end
+    for _i, entry in ipairs(stack) do
+        local widget = entry and entry.widget
+        if widget == menu or (menu_container and widget == menu_container) then return true end
+    end
+    return false
+end
+
+function M.build(ctx)
+    local plugin = ctx and ctx.plugin or rawget(_G, "__ZEN_UI_PLUGIN")
+    local active_pages_refresh_pending = false
+    local active_pages_refresh_poll_active = false
+
+    local function refresh_active_pages_on_menu_close()
+        active_pages_refresh_pending = true
+        if active_pages_refresh_poll_active then return end
+        active_pages_refresh_poll_active = true
+
+        local function tick()
+            if is_filemanager_menu_open() then
+                UIManager:scheduleIn(0.25, tick)
+                return
+            end
+            active_pages_refresh_poll_active = false
+            if not active_pages_refresh_pending then return end
+            active_pages_refresh_pending = false
+            refresh_active_pages(plugin)
+        end
+
+        UIManager:scheduleIn(0.25, tick)
+    end
+
     local function save(settings)
         StatsSettings.save(settings)
-        refresh_active_page()
+        refresh_active_pages_on_menu_close()
     end
 
     local function graph_items(settings)
@@ -68,6 +113,18 @@ function M.build(_ctx)
                 end,
             },
         }
+    end
+
+    local function goal_items()
+        local home = PresetStore.getSettings("home")
+        if type(home) ~= "table" or next(home) == nil then
+            home = HomePresets.defaultHomePage()
+        end
+        home.goals = ReadingGoals.normalize(home.goals)
+        return ReadingGoals.settingsItems(home.goals, function()
+            PresetStore.saveSettings("home", home)
+            refresh_active_pages_on_menu_close()
+        end)
     end
 
     local function arrange_widgets()
@@ -112,7 +169,17 @@ function M.build(_ctx)
             }
             if item_id == "trend_graph" then
                 item.sub_title = label_for(item_id)
-                item.sub_item_table_func = function() return graph_items(settings) end
+                item.sub_item_table_func = function()
+                    local items = graph_items(settings)
+                    items._zen_arrange_done_func = function() end
+                    return items
+                end
+            elseif item_id == "goal_progress" then
+                item.sub_item_table_func = function()
+                    local items = goal_items()
+                    items._zen_arrange_done_func = function() end
+                    return items
+                end
             end
             sort_items[#sort_items + 1] = item
         end

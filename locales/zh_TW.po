@@ -201,15 +201,6 @@ msgstr "作者"
 msgid "Automatic suspend"
 msgstr "自動暫停"
 
-msgid "avg pages/day"
-msgstr "平均頁數/天"
-
-msgid "avg time/book"
-msgstr "平均時長/本"
-
-msgid "avg time/day"
-msgstr "平均時長/天"
-
 msgid "Back"
 msgstr "返回"
 
@@ -248,15 +239,6 @@ msgstr "電池統計"
 
 msgid "Beginning / End"
 msgstr "開頭 / 末尾"
-
-msgid "best day"
-msgstr "單日最佳"
-
-msgid "best month"
-msgstr "單月最佳"
-
-msgid "best week"
-msgstr "單週最佳"
 
 msgid "Beta"
 msgstr "Beta"
@@ -305,12 +287,6 @@ msgstr "本書"
 
 msgid "Books"
 msgstr "書庫"
-
-msgid "books finished"
-msgstr "本已讀完"
-
-msgid "books read"
-msgstr "已讀書籍"
 
 msgid "Books shown"
 msgstr "顯示書籍數"
@@ -383,9 +359,6 @@ msgstr "置中頁數"
 
 msgid "Change folder"
 msgstr "變更資料夾"
-
-msgid "Change Row"
-msgstr "變更列"
 
 msgid "Changelog"
 msgstr "更新記錄"
@@ -567,18 +540,6 @@ msgstr "剪下"
 msgid "Cycle"
 msgstr "循環"
 
-msgid "Daily pages goal"
-msgstr "每日頁數目標"
-
-msgid "Daily pages goal: "
-msgstr "每日頁數目標： "
-
-msgid "Daily time goal (min)"
-msgstr "每日時間目標（分鐘）"
-
-msgid "Daily time goal (min): "
-msgstr "每日時間目標（分鐘）： "
-
 msgid "Day brightness"
 msgstr "白天亮度"
 
@@ -590,9 +551,6 @@ msgstr "白天亮度時間: "
 
 msgid "Day brightness: "
 msgstr "白天亮度: "
-
-msgid "day streak"
-msgstr "天連續"
 
 msgid "Day warmth"
 msgstr "白天色溫"
@@ -822,9 +780,6 @@ msgstr "完成"
 msgid "Finished"
 msgstr "已讀完"
 
-msgid "finished"
-msgstr "已讀完"
-
 msgid "Firmware: "
 msgstr "韌體: "
 
@@ -902,18 +857,6 @@ msgstr "前往"
 
 msgid "Go to page"
 msgstr "前往頁面"
-
-msgid "Goal shown: Daily"
-msgstr "顯示目標：每日"
-
-msgid "Goal shown: Weekly"
-msgstr "顯示目標：每週"
-
-msgid "Goals metric: Pages"
-msgstr "目標指標：頁數"
-
-msgid "Goals metric: Time"
-msgstr "目標指標：時間"
 
 msgid "Gray"
 msgstr "灰色"
@@ -1392,9 +1335,6 @@ msgstr "頁數 + 章節時間 + %"
 msgid "Pages and %"
 msgstr "頁數和 %"
 
-msgid "pages today"
-msgstr "今日頁數"
-
 msgid "Partial pages refresh"
 msgstr "局部頁面重新整理"
 
@@ -1494,9 +1434,6 @@ msgstr "立即閱讀"
 msgid "Read status"
 msgstr "閱讀狀態"
 
-msgid "read today"
-msgstr "今日已讀"
-
 msgid "Reader"
 msgstr "閱讀器"
 
@@ -1504,9 +1441,6 @@ msgid "Reader Progress"
 msgstr "閱讀進度"
 
 msgid "Reading"
-msgstr "閱讀中"
-
-msgid "reading"
 msgstr "閱讀中"
 
 msgid "Reading goals"
@@ -2034,20 +1968,8 @@ msgstr "頂部列字型"
 msgid "Top status bar"
 msgstr "頂部狀態列"
 
-msgid "total books"
-msgstr "書籍總數"
-
 msgid "Total pages"
 msgstr "總頁數"
-
-msgid "total pages read"
-msgstr "總閱讀頁數"
-
-msgid "total read time"
-msgstr "總閱讀時長"
-
-msgid "total time"
-msgstr "總時長"
 
 msgid "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
 msgstr "開啟禪模式，將 KOReader 精簡至最基本功能。\n\n消除視覺干擾，享受專注無打擾的閱讀體驗。隨時可從設定退出。"
@@ -2196,18 +2118,6 @@ msgstr "色溫"
 msgid "Warmth schedule"
 msgstr "色溫排程"
 
-msgid "Weekly pages goal"
-msgstr "每週頁數目標"
-
-msgid "Weekly pages goal: "
-msgstr "每週頁數目標： "
-
-msgid "Weekly time goal (min)"
-msgstr "每週時間目標（分鐘）"
-
-msgid "Weekly time goal (min): "
-msgstr "每週時間目標（分鐘）： "
-
 msgid "Welcome to Zen UI"
 msgstr "歡迎使用 禪 UI"
 
@@ -2327,3 +2237,135 @@ msgstr "Zen UI: 找不到資料夾: "
 
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI: 未為此操作設定資料夾。"
+
+msgid " days"
+msgstr ""
+
+msgid "Best day"
+msgstr ""
+
+msgid "Best month"
+msgstr ""
+
+msgid "Best week"
+msgstr ""
+
+msgid "Books read"
+msgstr ""
+
+msgid "Current Book"
+msgstr ""
+
+msgid "Customize widget"
+msgstr ""
+
+msgid "Months"
+msgstr ""
+
+msgid "Day streak"
+msgstr ""
+
+msgid "Divider"
+msgstr ""
+
+msgid "Graph metric"
+msgstr ""
+
+msgid "Graph range"
+msgstr ""
+
+msgid "Metric"
+msgstr ""
+
+msgid "Minutes"
+msgstr ""
+
+msgid "No reading data"
+msgstr ""
+
+msgid "Outline"
+msgstr ""
+
+msgid "Pages"
+msgstr ""
+
+msgid "Pages read"
+msgstr ""
+
+msgid "Pages today"
+msgstr ""
+
+msgid "Pages/day"
+msgstr ""
+
+msgid "Range"
+msgstr ""
+
+msgid "Read time"
+msgstr ""
+
+msgid "Read today"
+msgstr ""
+
+msgid "Reading Calendar"
+msgstr ""
+
+msgid "Reading Trend"
+msgstr ""
+
+msgid "Session pages"
+msgstr ""
+
+msgid "Statistics calendar is unavailable"
+msgstr ""
+
+msgid "Time/book"
+msgstr ""
+
+msgid "Time/day"
+msgstr ""
+
+msgid "Time/page"
+msgstr ""
+
+msgid "Total"
+msgstr ""
+
+msgid "Total books"
+msgstr ""
+
+msgid "Total time"
+msgstr ""
+
+msgid "min"
+msgstr ""
+
+msgid "minutes"
+msgstr ""
+
+msgid "Daily"
+msgstr ""
+
+msgid "Monthly"
+msgstr ""
+
+msgid "Show goal"
+msgstr ""
+
+msgid "Weekly"
+msgstr ""
+
+msgid "Yearly"
+msgstr ""
+
+msgid "%s goal"
+msgstr ""
+
+msgid "%s pages goal"
+msgstr ""
+
+msgid "%s time goal (min)"
+msgstr ""
+
+msgid "%s goal (%s)"
+msgstr ""

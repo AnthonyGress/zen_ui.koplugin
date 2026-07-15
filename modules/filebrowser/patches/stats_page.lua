@@ -29,6 +29,7 @@ local SharedState = require("common/shared_state")
 local StatsDB = require("common/db_stats")
 local LibraryDB = require("common/db_library")
 local BookInfoDB = require("common/db_bookinfo")
+local WidgetResources = require("common/widget_resources")
 local LineGraph = require("common/ui/zen_line_graph")
 local StatsSettings = require("modules/filebrowser/patches/stats_settings")
 local PresetStore = require("config/preset_store")
@@ -62,7 +63,7 @@ local function blockTitle(block)
         library          = _("Library"),
         current_book     = _("Current Book"),
         trend_graph      = _("Reading Trend"),
-        goal_progress    = _("Goal Progress"),
+        goal_progress    = _("Reading goals"),
         calendar         = _("Reading Calendar"),
     }
     return titles[block.id] or tostring(block.id)
@@ -301,7 +302,7 @@ local function createCard(opts)
     local value_font = Font:getFace("infofont", opts.value_size or 28)
     local label_font = Font:getFace("smallinfofont", opts.label_size or 16)
     local hdr_font = Font:getFace("smallinfofont", opts.header_size or 16)
-    local padding = Screen:scaleBySize(stat_style == "outline" and 7 or 4)
+    local padding = Screen:scaleBySize(stat_style == "outline" and 7 or 3)
     local border = stat_style == "outline" and Screen:scaleBySize(1) or 0
     local inner_w = math.max(1, card_w - (padding + border) * 2)
     local content_items = { align = "center" }
@@ -433,6 +434,7 @@ local function makeBlockPanel(page_w, content_w, title, body, height)
     local title_h = title ~= "" and Screen:scaleBySize(15) or 0
     local title_gap = title ~= "" and Screen:scaleBySize(5) or 0
     local body_h = body:getSize().h
+    local min_h = title_h + title_gap + body_h + padding * 2
     local panel_h = height or (title_h + title_gap + body_h + padding * 2)
     local inner_w = content_w - padding * 2
     local panel_items = {}
@@ -461,7 +463,7 @@ local function makeBlockPanel(page_w, content_w, title, body, height)
     return CenterContainer:new{
         dimen = Geom:new{ w = page_w, h = panel_h },
         panel,
-    }, padding
+    }, min_h
 end
 
 local function createFallbackCalendarWidget(width, height)
@@ -551,9 +553,11 @@ local function showCalendarDaySummary(stats_plugin, visible_day_ts, stat_style)
     local content_h = math.min(content:getSize().h, math.floor(Screen:getHeight() * 0.58))
     local scroll_widget = ScrollableContainer:new{
         dimen = Geom:new{ w = width, h = content_h },
+        show_parent = dialog,
         content,
     }
     dialog:addWidget(scroll_widget)
+    dialog.cropping_widget = scroll_widget
     if dialog.movable then dialog.movable.ges_events = {} end
     dialog.ges_events.ZenDayPopupTouch = {
         GestureRange:new{ ges = "touch", range = Geom:new{ x = 0, y = 0, w = Screen:getWidth(), h = Screen:getHeight() } },
@@ -617,9 +621,35 @@ local function installCalendarDaySummary(calendar, stats_plugin, stat_style)
                     hour = 0, min = 0, sec = 0,
                 })
                 local day_s = os.date("%Y-%m-%d", day_ts)
+                local day_frame = day_widget[1]
+                if day_s == today_s and day_frame and not day_frame._zen_today_outline then
+                    day_frame._zen_today_outline = true
+                    local orig_paint_to = day_frame.paintTo
+                    day_frame.paintTo = function(self_frame, bb, x, y)
+                        orig_paint_to(self_frame, bb, x, y)
+                        local inset = math.max(1, calendar.day_border or 1)
+                        local width = self_frame.width or self_frame.dimen.w
+                        local height = self_frame.height or self_frame.dimen.h
+                        if width > inset * 2 and height > inset * 2 then
+                            bb:paintBorder(x + inset, y + inset, width - inset * 2, height - inset * 2,
+                                inset, Blitbuffer.COLOR_BLACK)
+                        end
+                    end
+                end
+                if day_widget.nb_not_shown_w then
+                    day_widget.nb_not_shown_w.fgcolor = Blitbuffer.COLOR_BLACK
+                end
                 if day_s <= today_s then
                     day_widget.callback = function()
                         showCalendarDaySummary(stats_plugin, day_ts, stat_style)
+                    end
+                    local orig_on_tap = day_widget.onTap
+                    day_widget.onTap = function(self_day, arg, ges)
+                        if not (ges and ges.pos and self_day.dimen
+                                and self_day.dimen:contains(ges.pos)) then
+                            return false
+                        end
+                        return orig_on_tap(self_day, arg, ges)
                     end
                     day_widget.onHold = function()
                         return false
@@ -648,6 +678,11 @@ local function embeddedCalendarWeekCount(month, start_day_of_week)
     return math.ceil((leading_days + last_day.day) / 7)
 end
 
+local function refreshEmbeddedCalendarLayout(calendar)
+    local layout = calendar and calendar[1] and calendar[1][1] and calendar[1][1][1]
+    if layout and layout.resetLayout then layout:resetLayout() end
+end
+
 local function tuneEmbeddedCalendar(calendar, populate)
     if not calendar or not calendar.dimen then return end
 
@@ -657,6 +692,8 @@ local function tuneEmbeddedCalendar(calendar, populate)
         calendar.title_bar.has_right_icon = false
         calendar.title_bar.right_button = nil
         calendar.title_bar.title_face = Font:getFace("smallinfofontbold", Screen:scaleBySize(10))
+        calendar.title_bar.title_top_padding = 0
+        calendar.title_bar.bottom_v_padding = 0
         calendar.title_bar:clear()
         calendar.title_bar:init()
     end
@@ -677,7 +714,7 @@ local function tuneEmbeddedCalendar(calendar, populate)
             - calendar.day_names:getSize().h
         local week_count = embeddedCalendarWeekCount(calendar.cur_month, calendar.start_day_of_week)
         calendar.week_height = math.floor((available_height - week_count * calendar.inner_padding) / week_count)
-        calendar.week_height = math.max(Screen:scaleBySize(38), calendar.week_height)
+        calendar.week_height = math.max(1, calendar.week_height)
         calendar.day_border = calendar.day_border or Screen:scaleBySize(1)
         if calendar.show_hourly_histogram then
             calendar.span_height = math.ceil((calendar.week_height - 2 * calendar.day_border)
@@ -700,7 +737,10 @@ local function tuneEmbeddedCalendar(calendar, populate)
             if fits then break end
             calendar.span_font_size = calendar.span_font_size - 1
         end
-        if populate ~= false then calendar:_populateItems() end
+        if populate ~= false then
+            calendar:_populateItems()
+            refreshEmbeddedCalendarLayout(calendar)
+        end
     end
 end
 
@@ -723,40 +763,33 @@ local function hideCalendarPageInfo(calendar)
     calendar.page_info.getSize = function(self) return self.dimen end
 end
 
-local STATS_TRIPLET_SIZE = { preferred_pct = 0.12, min_pct = 0.09, max_pct = 0.18, grow_priority = 3 }
+local STATS_TRIPLET_SIZE = { preferred_pct = 0.08, min_pct = 0.06, max_pct = 0.10, grow_priority = 4 }
 local GOALS_SIZE = { preferred_pct = 0.12, min_pct = 0.08, max_pct = 0.18, grow_priority = 4 }
-local FEATURED_SIZE = { preferred_pct = 0.52, min_pct = 0.34, max_pct = 0.68, grow_priority = 1 }
+local TREND_GRAPH_SIZE = { preferred_pct = 0.26, min_pct = 0.20, max_pct = 0.36, grow_priority = 2 }
+local FEATURED_SIZE = { preferred_pct = 0.60, min_pct = 0.40, max_pct = 0.74, grow_priority = 1 }
 
 local function blockSize(block)
+    if block.id == "trend_graph" then return TREND_GRAPH_SIZE end
     if block.id == "calendar" then return FEATURED_SIZE end
     if block.id == "goal_progress" then return GOALS_SIZE end
     return STATS_TRIPLET_SIZE
 end
 
-local function computeBlockHeights(blocks, height)
+local function computeBlockHeights(blocks, height, required_heights)
     local specs, total_min = {}, 0
-    for _i, block in ipairs(blocks) do
+    required_heights = required_heights or {}
+    for i, block in ipairs(blocks) do
         local size = blockSize(block)
         local min_h = math.max(1, math.floor(height * size.min_pct + 0.5))
+        min_h = math.max(min_h, required_heights[i] or 0)
         local max_h = math.max(min_h, math.floor(height * size.max_pct + 0.5))
         local pref_h = math.max(min_h, math.min(max_h, math.floor(height * size.preferred_pct + 0.5)))
         specs[#specs + 1] = { min = min_h, max = max_h, h = pref_h, priority = size.grow_priority }
         total_min = total_min + min_h
     end
     if total_min > height then
-        local scale = height / total_min
-        local total = 0
         for _i, spec in ipairs(specs) do
-            spec.h = math.max(1, math.floor(spec.min * scale))
-            total = total + spec.h
-        end
-        local remaining = height - total
-        local index = 1
-        while remaining > 0 and #specs > 0 do
-            specs[index].h = specs[index].h + 1
-            remaining = remaining - 1
-            index = index + 1
-            if index > #specs then index = 1 end
+            spec.h = spec.min
         end
         return specs
     end
@@ -764,10 +797,12 @@ local function computeBlockHeights(blocks, height)
     local total = 0
     for _i, spec in ipairs(specs) do total = total + spec.h end
     while total > height do
-        local candidate, room = nil, 0
+        local candidate, room, priority = nil, 0, nil
         for i, spec in ipairs(specs) do
-            if spec.h - spec.min > room then
-                candidate, room = i, spec.h - spec.min
+            local available = spec.h - spec.min
+            if available > 0 and (not priority or spec.priority > priority
+                    or (spec.priority == priority and available > room)) then
+                candidate, room, priority = i, available, spec.priority
             end
         end
         if not candidate then break end
@@ -792,10 +827,10 @@ local function computeBlockHeights(blocks, height)
     return specs
 end
 
-local function buildContent(blocks_config, data, page_w, h_padding, calendar_widgets, stat_style, stats_settings, block_heights)
+local function buildContent(blocks_config, data, page_w, h_padding, top_padding, calendar_widgets, stat_style, stats_settings, block_heights)
     local function sz(x) return Screen:scaleBySize(x) end
     stat_style = normalizeStatStyle(stat_style)
-    local content_w = page_w - h_padding * 2
+    local content_w = math.max(1, page_w - h_padding * 2)
     local body_w = content_w - sz(16)
     local card_gap = stat_style == "divider" and sz(8) or stat_style == "outline" and sz(9) or sz(6)
     local c3_w = math.floor((body_w - card_gap * 2) / 3)
@@ -808,8 +843,9 @@ local function buildContent(blocks_config, data, page_w, h_padding, calendar_wid
 
     local function card(opts)
         local height = opts.height or Screen:scaleBySize(74)
-        opts.value_size = Screen:scaleBySize(math.max(12, math.min(18, math.floor(height * 0.16))))
-        opts.label_size = Screen:scaleBySize(math.max(7, math.min(11, math.floor(height * 0.09))))
+        opts.value_size = opts.value_size
+            or Screen:scaleBySize(math.max(10, math.min(15, math.floor(height * 0.14))))
+        opts.label_size = Screen:scaleBySize(math.max(6, math.min(9, math.floor(height * 0.08))))
         opts.header_size = opts.header and opts.label_size or opts.header_size
         if opts.streak and flame_icon_path then
             local value_widget = TextWidget:new{
@@ -835,7 +871,7 @@ local function buildContent(blocks_config, data, page_w, h_padding, calendar_wid
     end
 
     local function periodCards(block, body_h)
-        local card_h = math.max(Screen:scaleBySize(42), body_h)
+        local card_h = math.max(Screen:scaleBySize(36), body_h)
         if block.id == "today" then
             return createCardRow(body_w, {
                 card{ width = c3_w, height = card_h, value = tostring(stats.today_pages or 0), label = _("Pages today") },
@@ -1013,6 +1049,7 @@ local function buildContent(blocks_config, data, page_w, h_padding, calendar_wid
             hideCalendarPageInfo(self_cal)
             installCalendarDaySummary(self_cal, stats_plugin, stat_style)
             Background.clearWhiteBackgrounds(self_cal, 40)
+            refreshEmbeddedCalendarLayout(self_cal)
             return result
         end
         installCalendarDaySummary(calendar, stats_plugin, stat_style)
@@ -1039,14 +1076,16 @@ local function buildContent(blocks_config, data, page_w, h_padding, calendar_wid
             return false
         end
         return CenterContainer:new{
-            dimen = Geom:new{ w = content_w - sz(16), h = calendar:getSize().h },
+            dimen = Geom:new{ w = content_w, h = calendar:getSize().h },
             calendar,
         }, calendar
     end
 
     local items = { align = "center" }
-    local y_acc = sz(8)
-    items[#items + 1] = VerticalSpan:new{ width = sz(8) }
+    local y_acc = top_padding
+    local has_overflow = false
+    local required_heights = {}
+    items[#items + 1] = VerticalSpan:new{ width = top_padding }
 
     for i, block in ipairs(blocks_config) do
         local block_h = block_heights[i] and block_heights[i].h or Screen:scaleBySize(80)
@@ -1072,31 +1111,39 @@ local function buildContent(blocks_config, data, page_w, h_padding, calendar_wid
 
         if body then
             local panel
+            local min_h
             if block.id == "goal_progress" or block.id == "calendar" then
                 panel = CenterContainer:new{
                     dimen = Geom:new{ w = page_w, h = block_h },
                     body,
                 }
+                min_h = body:getSize().h
             else
-                panel = makeBlockPanel(page_w, content_w, title, body, block_h)
+                panel, min_h = makeBlockPanel(page_w, content_w, title, body, block_h)
             end
-            local panel_h = panel:getSize().h
-            items[#items + 1] = panel
-            block_hits[#block_hits + 1] = {
-                block_idx = i,
-                y_start = y_acc,
-                y_end = y_acc + panel_h,
-            }
-            y_acc = y_acc + panel_h
-            if i < #blocks_config then
-                local gap = sz(8)
-                items[#items + 1] = VerticalSpan:new{ width = gap }
-                y_acc = y_acc + gap
+            if min_h <= block_h then
+                if #block_hits > 0 then
+                    local gap = sz(8)
+                    items[#items + 1] = VerticalSpan:new{ width = gap }
+                    y_acc = y_acc + gap
+                end
+                items[#items + 1] = panel
+                block_hits[#block_hits + 1] = {
+                    block_idx = i,
+                    y_start = y_acc,
+                    y_end = y_acc + block_h,
+                }
+                y_acc = y_acc + block_h
+            else
+                has_overflow = true
+                required_heights[i] = min_h
+                WidgetResources.free(panel)
+                if calendar_widgets then calendar_widgets[i] = nil end
             end
         end
     end
 
-    return VerticalGroup:new(items), block_hits
+    return VerticalGroup:new(items), block_hits, has_overflow, required_heights
 end
 
 function StatsPage.create(createStatusRow, repaintTitleBar)
@@ -1116,32 +1163,83 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
 
     local tb = menu.title_bar
     local tb_h = tb and tb:getSize().h or 0
-    local body_h = (menu.inner_dimen and menu.inner_dimen.h or menu.dimen.h) - tb_h
-    local navbar_h = tonumber(rawget(_G, "__ZEN_UI_NAVBAR_HEIGHT")) or 0
-    local hard_body_h = Screen:getHeight() - tb_h - navbar_h
-    if hard_body_h < 1 then hard_body_h = Screen:getHeight() - tb_h end
-    if body_h < 1 then body_h = hard_body_h end
-    if body_h > hard_body_h then body_h = hard_body_h end
+    local function getBodyHeight()
+        local menu_h = menu.height or (menu.inner_dimen and menu.inner_dimen.h or menu.dimen.h)
+        local body_h = menu_h - tb_h
+        local navbar_h = tonumber(menu._zen_navbar_height)
+            or tonumber(rawget(_G, "__ZEN_UI_NAVBAR_HEIGHT")) or 0
+        local hard_body_h = Screen:getHeight() - tb_h - navbar_h
+        if hard_body_h < 1 then hard_body_h = Screen:getHeight() - tb_h end
+        if body_h < 1 then body_h = hard_body_h end
+        if body_h > hard_body_h then body_h = hard_body_h end
+        return body_h
+    end
     local page_w = menu.inner_dimen and menu.inner_dimen.w or Screen:getWidth()
-    local h_padding = 0
+    local h_padding = math.max(2, math.min(Screen:scaleBySize(8), math.floor(page_w * 0.025)))
+    if h_padding * 2 >= page_w then
+        h_padding = math.max(0, math.floor(page_w * 0.04))
+    end
     local block_hits
     local calendar_widgets = {}
     local function buildFixed()
-        calendar_widgets = {}
-        local top_pad = Screen:scaleBySize(8)
+        local body_h = getBodyHeight()
+        local top_pad = 0
         local bottom_pad = Screen:scaleBySize(8)
-        local gap_h = Screen:scaleBySize(8) * math.max(0, #blocks_config - 1)
-        local block_heights = computeBlockHeights(blocks_config, math.max(1, body_h - top_pad - bottom_pad - gap_h))
-        local content, hits = buildContent(blocks_config, data, page_w, h_padding,
-            calendar_widgets, stat_style, stats_settings, block_heights)
-        content:resetLayout()
-        local remaining = body_h - content:getSize().h
-        if remaining > 0 then
-            content[#content + 1] = VerticalSpan:new{ width = remaining }
-            content:resetLayout()
+        local visible_blocks = {}
+        local required_heights = {}
+        for _i, block in ipairs(blocks_config) do
+            visible_blocks[#visible_blocks + 1] = block
         end
+
+        while #visible_blocks > 0 do
+            calendar_widgets = {}
+            local gap_h = Screen:scaleBySize(8) * math.max(0, #visible_blocks - 1)
+            local block_heights = computeBlockHeights(visible_blocks,
+                math.max(1, body_h - top_pad - bottom_pad - gap_h), required_heights)
+            local content, hits, has_overflow, measured_heights = buildContent(visible_blocks, data, page_w, h_padding, top_pad,
+                calendar_widgets, stat_style, stats_settings, block_heights)
+            content:resetLayout()
+            if not has_overflow and content:getSize().h <= body_h then
+                local remaining = body_h - content:getSize().h
+                if remaining > 0 then
+                    content[#content + 1] = VerticalSpan:new{ width = remaining }
+                    content:resetLayout()
+                end
+                blocks_config = visible_blocks
+                menu.cropping_widget = nil
+                return FrameContainer:new{
+                    width = page_w,
+                    height = body_h,
+                    padding = 0,
+                    bordersize = 0,
+                    background = statsFrameBg(),
+                    content,
+                }, hits
+            end
+            WidgetResources.free(content)
+            local updated = false
+            for i, min_h in pairs(measured_heights) do
+                if min_h > (required_heights[i] or 0) then
+                    required_heights[i] = min_h
+                    updated = true
+                end
+            end
+            if not updated then
+                required_heights[#visible_blocks] = nil
+                visible_blocks[#visible_blocks] = nil
+            end
+        end
+
+        calendar_widgets = {}
         menu.cropping_widget = nil
-        return content, hits
+        return FrameContainer:new{
+            width = page_w,
+            height = body_h,
+            padding = 0,
+            bordersize = 0,
+            background = statsFrameBg(),
+            VerticalSpan:new{ width = math.max(1, body_h) },
+        }, {}
     end
 
     local content
@@ -1263,7 +1361,7 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
         end
 
         menu._zen_block_dlg = ButtonDialog:new{
-            title = _("Date"),
+            title = _("Months"),
             title_align = "center",
             buttons = buttons,
         }
@@ -1294,7 +1392,7 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
         if #buttons == 0 then return end
 
         menu._zen_block_dlg = ButtonDialog:new{
-            title = _("Customize block"),
+            title = _("Customize widget"),
             title_align = "center",
             buttons = buttons,
         }
@@ -1359,7 +1457,11 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
         if content_y < 0 then return false end
         for _i, hit in ipairs(block_hits) do
             if content_y >= hit.y_start and content_y < hit.y_end then
-                showBlockMenu(hit.block_idx)
+                if blocks_config[hit.block_idx].id == "calendar" then
+                    showCalendarMonthMenu(hit.block_idx)
+                else
+                    showBlockMenu(hit.block_idx)
+                end
                 return true
             end
         end

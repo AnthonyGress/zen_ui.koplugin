@@ -207,6 +207,10 @@ function StatsDB.queryHomeStats(fields)
         today_duration = 0,
         week_pages = 0,
         week_duration = 0,
+        month_pages = 0,
+        month_duration = 0,
+        year_pages = 0,
+        year_duration = 0,
         streak = 0,
     }
     local requested = field_set(fields)
@@ -231,6 +235,16 @@ function StatsDB.queryHomeStats(fields)
             stats.week_pages, stats.week_duration =
                 query_period_stats(conn, starts.period_begin,
                     requested.week_pages, requested.week_duration)
+        end
+        if requested.month_pages or requested.month_duration then
+            stats.month_pages, stats.month_duration =
+                query_period_stats(conn, starts.start_month,
+                    requested.month_pages, requested.month_duration)
+        end
+        if requested.year_pages or requested.year_duration then
+            stats.year_pages, stats.year_duration =
+                query_period_stats(conn, starts.start_year,
+                    requested.year_pages, requested.year_duration)
         end
         if requested.streak then
             stats.streak = query_streak(conn, starts.one_day)

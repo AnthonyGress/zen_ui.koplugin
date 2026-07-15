@@ -148,14 +148,17 @@ local function build_progress_text(book, pct, progress_meta)
 end
 
 function M.build(ctx, source_key)
-    local width = ctx.width
-    local height = ctx.height
+    local outer_width = ctx.width
+    local outer_height = ctx.height
+    local Screen = Device.screen
+    local padding = Screen:scaleBySize(8)
+    local width = math.max(1, outer_width - padding * 2)
+    local height = math.max(1, outer_height - padding * 2)
     local module_cfg = type(ctx.module_cfg) == "table" and ctx.module_cfg or {}
     local interactive = module_cfg.interactive ~= false
     local source = source_key or "recently_read"
     local order = module_cfg.order or "default"
     local book = ctx.data:getFeaturedBook(source, order)
-    local Screen = Device.screen
     local show_description = module_cfg.show_description ~= false
     local show_status_bar = module_cfg.show_status_bar == true and type(ctx.buildStatusRow) == "function"
 
@@ -165,13 +168,13 @@ function M.build(ctx, source_key)
 
     if not book then
         return FrameContainer:new{
-            width = width,
-            height = height,
+            width = outer_width,
+            height = outer_height,
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
             CenterContainer:new{
-                dimen = Geom:new{ w = width, h = height },
+                dimen = Geom:new{ w = outer_width, h = outer_height },
                 TextWidget:new{ text = "No books found", face = ctx.face_label },
             },
         }
@@ -441,17 +444,20 @@ function M.build(ctx, source_key)
     }
 
     local frame = FrameContainer:new{
-        width = width,
-        height = height,
+        width = outer_width,
+        height = outer_height,
         padding = 0,
         bordersize = 0,
         background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
-        TopContainer:new{
+        CenterContainer:new{
+            dimen = Geom:new{ w = outer_width, h = outer_height },
+            TopContainer:new{
             dimen = Geom:new{ w = width, h = height },
             VerticalGroup:new{
                 align = "center",
                 VerticalSpan:new{ width = col_top_pad },
                 body,
+            },
             },
         },
     }
@@ -460,7 +466,7 @@ function M.build(ctx, source_key)
         return frame
     end
     local tap = InputContainer:new{
-        dimen = Geom:new{ w = width, h = height },
+        dimen = Geom:new{ w = outer_width, h = outer_height },
         ges_events = {
             TapFeatured = {
                 GestureRange:new{ ges = "tap", range = Geom:new{

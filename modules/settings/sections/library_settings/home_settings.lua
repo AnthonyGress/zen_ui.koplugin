@@ -5,6 +5,7 @@ local HomePresets = require("modules/filebrowser/patches/home/home_presets")
 local PresetStore = require("config/preset_store")
 local Registry = require("modules/filebrowser/patches/home/components/registry")
 local library_font = require("modules/filebrowser/patches/library_font")
+local ReadingGoals = require("common/reading_goals")
 
 local M = {}
 
@@ -170,17 +171,7 @@ local function ensure_cfg(_config)
         dcfg.middle_stats_triplet = { "today_pages", "today_duration", "streak" }
     end
 
-    if type(dcfg.goals) ~= "table" then dcfg.goals = {} end
-    if dcfg.goals.metric ~= "time" and dcfg.goals.metric ~= "pages" then
-        dcfg.goals.metric = "pages"
-    end
-    if dcfg.goals.period ~= "weekly" and dcfg.goals.period ~= "daily" then
-        dcfg.goals.period = "daily"
-    end
-    if type(dcfg.goals.daily_pages_target) ~= "number" then dcfg.goals.daily_pages_target = 30 end
-    if type(dcfg.goals.weekly_pages_target) ~= "number" then dcfg.goals.weekly_pages_target = 210 end
-    if type(dcfg.goals.daily_time_target_min) ~= "number" then dcfg.goals.daily_time_target_min = 30 end
-    if type(dcfg.goals.weekly_time_target_min) ~= "number" then dcfg.goals.weekly_time_target_min = 210 end
+    dcfg.goals = ReadingGoals.normalize(dcfg.goals)
 
     if type(dcfg.quotes) ~= "table" then dcfg.quotes = {} end
     if dcfg.quotes.show_author == nil then dcfg.quotes.show_author = true end
@@ -1234,7 +1225,7 @@ function M.build(ctx)
 
     local function build_goals_items()
         local goals_cfg = ensure_module_cfg(dcfg, "reading_goals")
-        return {
+        local items = {
             {
                 text = _("Show widget title"),
                 checked_func = function()
@@ -1245,111 +1236,12 @@ function M.build(ctx)
                     save_home("reinit")
                 end,
             },
-            {
-                text = _("Goal shown: Daily"),
-                radio = true,
-                checked_func = function() return dcfg.goals.period ~= "weekly" end,
-                callback = function()
-                    dcfg.goals.period = "daily"
-                    save_home("reinit")
-                end,
-            },
-            {
-                text = _("Goal shown: Weekly"),
-                radio = true,
-                checked_func = function() return dcfg.goals.period == "weekly" end,
-                callback = function()
-                    dcfg.goals.period = "weekly"
-                    save_home("reinit")
-                end,
-            },
-            {
-                text = _("Goals metric: Pages"),
-                radio = true,
-                checked_func = function() return dcfg.goals.metric ~= "time" end,
-                callback = function()
-                    dcfg.goals.metric = "pages"
-                    save_home("reinit")
-                end,
-            },
-            {
-                text = _("Goals metric: Time"),
-                radio = true,
-                checked_func = function() return dcfg.goals.metric == "time" end,
-                callback = function()
-                    dcfg.goals.metric = "time"
-                    save_home("reinit")
-                end,
-            },
-            {
-                text_func = function() return _("Daily pages goal: ") .. tostring(dcfg.goals.daily_pages_target or 30) end,
-                keep_menu_open = true,
-                callback = function()
-                    local SpinWidget = require("ui/widget/spinwidget")
-                    UIManager:show(SpinWidget:new{
-                        title_text = _("Daily pages goal"),
-                        value = dcfg.goals.daily_pages_target or 30,
-                        value_min = 1,
-                        value_max = 5000,
-                        callback = function(spin)
-                            dcfg.goals.daily_pages_target = spin.value
-                            save_home("reinit")
-                        end,
-                    })
-                end,
-            },
-            {
-                text_func = function() return _("Weekly pages goal: ") .. tostring(dcfg.goals.weekly_pages_target or 210) end,
-                keep_menu_open = true,
-                callback = function()
-                    local SpinWidget = require("ui/widget/spinwidget")
-                    UIManager:show(SpinWidget:new{
-                        title_text = _("Weekly pages goal"),
-                        value = dcfg.goals.weekly_pages_target or 210,
-                        value_min = 1,
-                        value_max = 20000,
-                        callback = function(spin)
-                            dcfg.goals.weekly_pages_target = spin.value
-                            save_home("reinit")
-                        end,
-                    })
-                end,
-            },
-            {
-                text_func = function() return _("Daily time goal (min): ") .. tostring(dcfg.goals.daily_time_target_min or 30) end,
-                keep_menu_open = true,
-                callback = function()
-                    local SpinWidget = require("ui/widget/spinwidget")
-                    UIManager:show(SpinWidget:new{
-                        title_text = _("Daily time goal (min)"),
-                        value = dcfg.goals.daily_time_target_min or 30,
-                        value_min = 1,
-                        value_max = 1440,
-                        callback = function(spin)
-                            dcfg.goals.daily_time_target_min = spin.value
-                            save_home("reinit")
-                        end,
-                    })
-                end,
-            },
-            {
-                text_func = function() return _("Weekly time goal (min): ") .. tostring(dcfg.goals.weekly_time_target_min or 210) end,
-                keep_menu_open = true,
-                callback = function()
-                    local SpinWidget = require("ui/widget/spinwidget")
-                    UIManager:show(SpinWidget:new{
-                        title_text = _("Weekly time goal (min)"),
-                        value = dcfg.goals.weekly_time_target_min or 210,
-                        value_min = 1,
-                        value_max = 10080,
-                        callback = function(spin)
-                            dcfg.goals.weekly_time_target_min = spin.value
-                            save_home("reinit")
-                        end,
-                    })
-                end,
-            },
         }
+        local shared_items = ReadingGoals.settingsItems(dcfg.goals, function()
+            save_home("reinit")
+        end)
+        for _i, item in ipairs(shared_items) do items[#items + 1] = item end
+        return items
     end
 
     local stats_field_options = {
@@ -1468,21 +1360,20 @@ function M.build(ctx)
     end
 
     build_widget_settings_items = function(id)
+        local items
         if id == "featured_custom" or id == "featured_tbr" or id == "featured_recent" then
-            return build_featured_widget_items(id)
+            items = build_featured_widget_items(id)
+        elseif id == "strip_custom" or id == "strip_tbr" or id == "strip_recent" then
+            items = build_strip_widget_items(id)
+        elseif id == "reading_goals" then
+            items = build_goals_items()
+        elseif id == "stats_triplet" then
+            items = build_stats_triplet_items()
+        elseif id == "quotes" then
+            items = build_quotes_items()
         end
-        if id == "strip_custom" or id == "strip_tbr" or id == "strip_recent" then
-            return build_strip_widget_items(id)
-        end
-        if id == "reading_goals" then
-            return build_goals_items()
-        end
-        if id == "stats_triplet" then
-            return build_stats_triplet_items()
-        end
-        if id == "quotes" then
-            return build_quotes_items()
-        end
+        if items then items._zen_arrange_done_func = function() end end
+        return items
     end
 
     return {

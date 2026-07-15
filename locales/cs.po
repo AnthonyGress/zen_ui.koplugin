@@ -201,15 +201,6 @@ msgstr "Autoři"
 msgid "Automatic suspend"
 msgstr "Automaticky potlačit"
 
-msgid "avg pages/day"
-msgstr "průměr stránek/den"
-
-msgid "avg time/book"
-msgstr "průměrný čas/knihu"
-
-msgid "avg time/day"
-msgstr "průměrný čas/den"
-
 msgid "Back"
 msgstr "Zpět"
 
@@ -248,15 +239,6 @@ msgstr "Statistiky baterie"
 
 msgid "Beginning / End"
 msgstr "Začátek / Konec"
-
-msgid "best day"
-msgstr "nejlepší den"
-
-msgid "best month"
-msgstr "nejlepší měsíc"
-
-msgid "best week"
-msgstr "nejlepší týden"
 
 msgid "Beta"
 msgstr "Beta"
@@ -305,12 +287,6 @@ msgstr "knihy"
 
 msgid "Books"
 msgstr "Knihy"
-
-msgid "books finished"
-msgstr "dočtených knih"
-
-msgid "books read"
-msgstr "rozečtených knih"
 
 msgid "Books shown"
 msgstr "Zobrazené knihy"
@@ -383,9 +359,6 @@ msgstr "Stránky na střed"
 
 msgid "Change folder"
 msgstr "Změnit složku"
-
-msgid "Change Row"
-msgstr "Změnit řádek"
 
 msgid "Changelog"
 msgstr "Seznam změn"
@@ -567,18 +540,6 @@ msgstr "Vyjmout"
 msgid "Cycle"
 msgstr "Cyklus"
 
-msgid "Daily pages goal"
-msgstr "Denní cíl stránek"
-
-msgid "Daily pages goal: "
-msgstr "Denní cíl stránek: "
-
-msgid "Daily time goal (min)"
-msgstr "Denní časový cíl"
-
-msgid "Daily time goal (min): "
-msgstr "Denní časový cíl (min): "
-
 msgid "Day brightness"
 msgstr "Denní jas"
 
@@ -590,9 +551,6 @@ msgstr "Čas pro denní jas: "
 
 msgid "Day brightness: "
 msgstr "Denní jas: "
-
-msgid "day streak"
-msgstr "denní pruh"
 
 msgid "Day warmth"
 msgstr "Denní teplota"
@@ -822,9 +780,6 @@ msgstr "Dokončit"
 msgid "Finished"
 msgstr "Dokončeno"
 
-msgid "finished"
-msgstr "dokončeno"
-
 msgid "Firmware: "
 msgstr "Firmware: "
 
@@ -902,18 +857,6 @@ msgstr "Přejít"
 
 msgid "Go to page"
 msgstr "Přejít na stránku"
-
-msgid "Goal shown: Daily"
-msgstr "Zobrazený cíl: Denní"
-
-msgid "Goal shown: Weekly"
-msgstr "Zobrazený cíl: Týdenní"
-
-msgid "Goals metric: Pages"
-msgstr "Metrika cílů: Stránky"
-
-msgid "Goals metric: Time"
-msgstr "Metrika cílů: Čas"
 
 msgid "Gray"
 msgstr "Šedá"
@@ -1392,9 +1335,6 @@ msgstr "Stránky + Čas kapitoly + %"
 msgid "Pages and %"
 msgstr "Stránky a %"
 
-msgid "pages today"
-msgstr "stránek dnes"
-
 msgid "Partial pages refresh"
 msgstr "Částečné obnovení stránek"
 
@@ -1494,9 +1434,6 @@ msgstr "Přečteno nyní"
 msgid "Read status"
 msgstr "Stav čtení"
 
-msgid "read today"
-msgstr "přečteno dnes"
-
 msgid "Reader"
 msgstr "Čtečka"
 
@@ -1505,9 +1442,6 @@ msgstr "Postup čtení"
 
 msgid "Reading"
 msgstr "Čtení"
-
-msgid "reading"
-msgstr "čtení"
 
 msgid "Reading goals"
 msgstr "Cíle čtení"
@@ -2034,20 +1968,8 @@ msgstr "Písmo horního řádku"
 msgid "Top status bar"
 msgstr "Horní stavový řádek"
 
-msgid "total books"
-msgstr "celkem knih"
-
 msgid "Total pages"
 msgstr "Celkem stránek"
-
-msgid "total pages read"
-msgstr "celkem přečteno stránek"
-
-msgid "total read time"
-msgstr "celková doba čtení"
-
-msgid "total time"
-msgstr "celková doba"
 
 msgid "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
 msgstr "Zapněte režim Zen a omezte KOReader na nejnutnější funkce.\n\nOdstraňte vizuální nepořádek a soustřeďte se na čtenářský zážitek bez rušivých prvků. Funkci můžete ukončit v nastavení."
@@ -2196,18 +2118,6 @@ msgstr "Teplota"
 msgid "Warmth schedule"
 msgstr "Časový plán teploty"
 
-msgid "Weekly pages goal"
-msgstr "Týdenní cíl stránek"
-
-msgid "Weekly pages goal: "
-msgstr "Týdenní cíl stránek: "
-
-msgid "Weekly time goal (min)"
-msgstr "Týdenní časový cíl (min)"
-
-msgid "Weekly time goal (min): "
-msgstr "Týdenní časový cíl (min): "
-
 msgid "Welcome to Zen UI"
 msgstr "Vítejte v rozhraní Zen UI"
 
@@ -2327,3 +2237,135 @@ msgstr "Zen UI: Nenalezena složka: "
 
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI: Pro tuto akci není nastavena žádná složka."
+
+msgid " days"
+msgstr ""
+
+msgid "Best day"
+msgstr ""
+
+msgid "Best month"
+msgstr ""
+
+msgid "Best week"
+msgstr ""
+
+msgid "Books read"
+msgstr ""
+
+msgid "Current Book"
+msgstr ""
+
+msgid "Customize widget"
+msgstr ""
+
+msgid "Months"
+msgstr ""
+
+msgid "Day streak"
+msgstr ""
+
+msgid "Divider"
+msgstr ""
+
+msgid "Graph metric"
+msgstr ""
+
+msgid "Graph range"
+msgstr ""
+
+msgid "Metric"
+msgstr ""
+
+msgid "Minutes"
+msgstr ""
+
+msgid "No reading data"
+msgstr ""
+
+msgid "Outline"
+msgstr ""
+
+msgid "Pages"
+msgstr ""
+
+msgid "Pages read"
+msgstr ""
+
+msgid "Pages today"
+msgstr ""
+
+msgid "Pages/day"
+msgstr ""
+
+msgid "Range"
+msgstr ""
+
+msgid "Read time"
+msgstr ""
+
+msgid "Read today"
+msgstr ""
+
+msgid "Reading Calendar"
+msgstr ""
+
+msgid "Reading Trend"
+msgstr ""
+
+msgid "Session pages"
+msgstr ""
+
+msgid "Statistics calendar is unavailable"
+msgstr ""
+
+msgid "Time/book"
+msgstr ""
+
+msgid "Time/day"
+msgstr ""
+
+msgid "Time/page"
+msgstr ""
+
+msgid "Total"
+msgstr ""
+
+msgid "Total books"
+msgstr ""
+
+msgid "Total time"
+msgstr ""
+
+msgid "min"
+msgstr ""
+
+msgid "minutes"
+msgstr ""
+
+msgid "Daily"
+msgstr ""
+
+msgid "Monthly"
+msgstr ""
+
+msgid "Show goal"
+msgstr ""
+
+msgid "Weekly"
+msgstr ""
+
+msgid "Yearly"
+msgstr ""
+
+msgid "%s goal"
+msgstr ""
+
+msgid "%s pages goal"
+msgstr ""
+
+msgid "%s time goal (min)"
+msgstr ""
+
+msgid "%s goal (%s)"
+msgstr ""

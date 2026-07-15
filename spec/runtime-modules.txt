@@ -19,6 +19,7 @@ common/inline_icon_map.lua|unit
 common/library_navigation.lua|unit
 common/paths.lua|unit
 common/plugin_root.lua|unit
+common/reading_goals.lua|unit
 common/quickstart/quickstart_pages.lua|unit
 common/quickstart/quickstart_screen.lua|unit
 common/rakuyomi.lua|unit
@@ -34,6 +35,7 @@ common/ui/zen_button.lua|unit
 common/ui/zen_dialog.lua|unit
 common/ui/zen_icon_button.lua|unit
 common/ui/zen_icon_picker.lua|unit
+common/ui/zen_line_graph.lua|unit
 common/ui/zen_menu_picker.lua|unit
 common/ui/zen_pager.lua|unit
 common/ui/zen_screen.lua|unit
@@ -104,6 +106,7 @@ modules/filebrowser/patches/partial_page_repaint.lua|integration
 modules/filebrowser/patches/rakuyomi.lua|integration
 modules/filebrowser/patches/search.lua|integration
 modules/filebrowser/patches/standalone_page.lua|integration
+modules/filebrowser/patches/stats_settings.lua|integration
 modules/filebrowser/patches/stats_page.lua|integration
 modules/filebrowser/patches/status_bar.lua|integration
 modules/filebrowser/patches/status_on_open.lua|integration
@@ -161,6 +164,7 @@ modules/settings/sections/library_settings/navbar_settings.lua|integration
 modules/settings/sections/library_settings/status_bar_settings.lua|integration
 modules/settings/sections/menu_settings.lua|integration
 modules/settings/sections/reader_settings.lua|integration
+modules/settings/sections/stats_settings.lua|integration
 modules/settings/zen_bugreporter.lua|integration
 modules/settings/zen_settings.lua|integration
 modules/settings/zen_settings_apply.lua|integration

@@ -4,6 +4,7 @@ local book_status = require("common/book_status")
 local Blitbuffer = require("ffi/blitbuffer")
 local HomeQuotes = require("modules/filebrowser/patches/home/home_quotes")
 local HomePresets = require("modules/filebrowser/patches/home/home_presets")
+local ReadingGoals = require("common/reading_goals")
 local PresetStore = require("config/preset_store")
 local Registry = require("modules/filebrowser/patches/home/components/registry")
 local StandalonePage = require("modules/filebrowser/patches/standalone_page")
@@ -447,17 +448,7 @@ local function ensure_home_cfg()
         dcfg.middle_stats_triplet = { "today_pages", "today_duration", "streak" }
     end
 
-    if type(dcfg.goals) ~= "table" then dcfg.goals = {} end
-    if dcfg.goals.metric ~= "time" and dcfg.goals.metric ~= "pages" then
-        dcfg.goals.metric = "pages"
-    end
-    if dcfg.goals.period ~= "weekly" and dcfg.goals.period ~= "daily" then
-        dcfg.goals.period = "daily"
-    end
-    if type(dcfg.goals.daily_pages_target) ~= "number" then dcfg.goals.daily_pages_target = 30 end
-    if type(dcfg.goals.weekly_pages_target) ~= "number" then dcfg.goals.weekly_pages_target = 210 end
-    if type(dcfg.goals.daily_time_target_min) ~= "number" then dcfg.goals.daily_time_target_min = 30 end
-    if type(dcfg.goals.weekly_time_target_min) ~= "number" then dcfg.goals.weekly_time_target_min = 210 end
+    dcfg.goals = ReadingGoals.normalize(dcfg.goals)
 
     if type(dcfg.quotes) ~= "table" then dcfg.quotes = {} end
     if dcfg.quotes.show_author == nil then dcfg.quotes.show_author = true end
@@ -587,12 +578,15 @@ local function collect_stats_fields(rows, dcfg)
             if not added then add("today_pages") end
         elseif id == "reading_goals" then
             local goals = dcfg.goals or {}
-            local metric = goals.metric == "time" and "time" or "pages"
-            local period = goals.period == "weekly" and "weekly" or "daily"
-            if metric == "time" then
-                add(period == "weekly" and "week_duration" or "today_duration")
-            else
-                add(period == "weekly" and "week_pages" or "today_pages")
+            local periods = type(goals.periods) == "table" and goals.periods
+                or { goals.period == "weekly" and "weekly" or "daily" }
+            for _j, period in ipairs(periods) do
+                add(period == "weekly" and "week_pages"
+                    or period == "monthly" and "month_pages"
+                    or period == "yearly" and "year_pages" or "today_pages")
+                add(period == "weekly" and "week_duration"
+                    or period == "monthly" and "month_duration"
+                    or period == "yearly" and "year_duration" or "today_duration")
             end
         end
     end
@@ -603,7 +597,11 @@ end
 
 local function stats_fields_key(fields)
     if type(fields) ~= "table" then return "" end
-    local order = { "today_pages", "today_duration", "week_pages", "week_duration", "streak" }
+    local order = {
+        "today_pages", "today_duration", "week_pages", "week_duration",
+        "month_pages", "month_duration",
+        "year_pages", "year_duration", "streak",
+    }
     local out = {}
     for _i, key in ipairs(order) do
         if fields[key] then out[#out + 1] = key end
@@ -1390,12 +1388,7 @@ local function compute_row_heights(rows, body_h)
         if max_h < min_h then max_h = min_h end
         if pref < min_h then pref = min_h end
         if pref > max_h then pref = max_h end
-        local id = comp.id or ""
         table.insert(specs, {
-            id = id,
-            is_strip = id == "strip" or id:match("^strip_") ~= nil,
-            is_featured = id == "featured" or id:match("^featured_") ~= nil,
-            is_datetime = id == "datetime",
             pref = pref,
             min = min_h,
             max = max_h,
@@ -1435,26 +1428,25 @@ local function compute_row_heights(rows, body_h)
         total = total + sp.h
     end
 
-    local function pick_shrink_candidate(strip_only)
+    local function pick_shrink_candidate()
         local best_i = nil
         local best_room = 0
+        local best_priority = nil
         for i, sp in ipairs(specs) do
-            if not strip_only or sp.is_strip then
-                local room = sp.h - sp.min
-                if room > best_room then
-                    best_room = room
-                    best_i = i
-                end
+            local room = sp.h - sp.min
+            local priority = tonumber(sp.grow_priority) or 10
+            if room > 0 and (not best_priority or priority > best_priority
+                    or (priority == best_priority and room > best_room)) then
+                best_i = i
+                best_room = room
+                best_priority = priority
             end
         end
         return best_i, best_room
     end
 
     while total > body_h do
-        local best_i, best_room = pick_shrink_candidate(true)
-        if not best_i or best_room <= 0 then
-            best_i, best_room = pick_shrink_candidate(false)
-        end
+        local best_i, best_room = pick_shrink_candidate()
         if not best_i or best_room <= 0 then break end
         specs[best_i].h = specs[best_i].h - 1
         total = total - 1

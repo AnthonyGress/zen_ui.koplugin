@@ -12,6 +12,9 @@
 
 <p align="center">A clean, minimal UI for KOReader. </p>
 
+## Documentation
+For the most complete and up to date documentation, visit [https://zen-labs.org/zen-ui](https://zen-labs.org/zen-ui)
+
 ## Philosophy
 
 Zen UI is built around the simple idea that **less is more.** Everything in Zen UI was designed either to remove clutter or add clear value. The interface stays fast, light, and focused on making reading more enjoyable.

@@ -201,15 +201,6 @@ msgstr "著者"
 msgid "Automatic suspend"
 msgstr "自動サスペンド"
 
-msgid "avg pages/day"
-msgstr "平均ページ数/日"
-
-msgid "avg time/book"
-msgstr "平均読書時間/冊"
-
-msgid "avg time/day"
-msgstr "平均読書時間/日"
-
 msgid "Back"
 msgstr "戻る"
 
@@ -248,15 +239,6 @@ msgstr "バッテリー統計"
 
 msgid "Beginning / End"
 msgstr "最初 / 最後"
-
-msgid "best day"
-msgstr "最高の日"
-
-msgid "best month"
-msgstr "最高の月"
-
-msgid "best week"
-msgstr "最高の週"
 
 msgid "Beta"
 msgstr "ベータ"
@@ -305,12 +287,6 @@ msgstr "本"
 
 msgid "Books"
 msgstr "本"
-
-msgid "books finished"
-msgstr "読了した本"
-
-msgid "books read"
-msgstr "読了した本"
 
 msgid "Books shown"
 msgstr "表示する本"
@@ -383,9 +359,6 @@ msgstr "中央揃えページ"
 
 msgid "Change folder"
 msgstr "フォルダを変更"
-
-msgid "Change Row"
-msgstr "行を変更"
 
 msgid "Changelog"
 msgstr "変更履歴"
@@ -567,18 +540,6 @@ msgstr "切り取り"
 msgid "Cycle"
 msgstr "順送り"
 
-msgid "Daily pages goal"
-msgstr "1日のページ目標"
-
-msgid "Daily pages goal: "
-msgstr "1日のページ目標: "
-
-msgid "Daily time goal (min)"
-msgstr "1日の時間目標 (分)"
-
-msgid "Daily time goal (min): "
-msgstr "1日の時間目標 (分): "
-
 msgid "Day brightness"
 msgstr "日中明るさ"
 
@@ -590,9 +551,6 @@ msgstr "日中明るさの時刻: "
 
 msgid "Day brightness: "
 msgstr "日中明るさ: "
-
-msgid "day streak"
-msgstr "連続日数"
 
 msgid "Day warmth"
 msgstr "日中色温度"
@@ -822,9 +780,6 @@ msgstr "完了"
 msgid "Finished"
 msgstr "読了"
 
-msgid "finished"
-msgstr "読了"
-
 msgid "Firmware: "
 msgstr "ファームウェア: "
 
@@ -902,18 +857,6 @@ msgstr "移動"
 
 msgid "Go to page"
 msgstr "ページへ移動"
-
-msgid "Goal shown: Daily"
-msgstr "表示する目標: 日次"
-
-msgid "Goal shown: Weekly"
-msgstr "表示する目標: 週次"
-
-msgid "Goals metric: Pages"
-msgstr "目標の指標: ページ"
-
-msgid "Goals metric: Time"
-msgstr "目標の指標: 時間"
 
 msgid "Gray"
 msgstr "グレー"
@@ -1392,9 +1335,6 @@ msgstr "ページ + チャプター時間 + %"
 msgid "Pages and %"
 msgstr "ページと%"
 
-msgid "pages today"
-msgstr "今日のページ"
-
 msgid "Partial pages refresh"
 msgstr "部分ページリフレッシュ"
 
@@ -1494,9 +1434,6 @@ msgstr "今すぐ読む"
 msgid "Read status"
 msgstr "読書ステータス"
 
-msgid "read today"
-msgstr "今日読んだ"
-
 msgid "Reader"
 msgstr "リーダー"
 
@@ -1504,9 +1441,6 @@ msgid "Reader Progress"
 msgstr "リーダー進行状況"
 
 msgid "Reading"
-msgstr "読書中"
-
-msgid "reading"
 msgstr "読書中"
 
 msgid "Reading goals"
@@ -2034,20 +1968,8 @@ msgstr "上部バーのフォント"
 msgid "Top status bar"
 msgstr "上部ステータスバー"
 
-msgid "total books"
-msgstr "総冊数"
-
 msgid "Total pages"
 msgstr "総ページ数"
-
-msgid "total pages read"
-msgstr "総読了ページ数"
-
-msgid "total read time"
-msgstr "総読書時間"
-
-msgid "total time"
-msgstr "合計時間"
 
 msgid "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
 msgstr "Zenモードをオンにすると、KOReaderを必要最小限にそぎ落とします。\n\n集中して邪魔のない読書体験のために視覚的なノイズを取り除きます。いつでも設定から終了できます。"
@@ -2196,18 +2118,6 @@ msgstr "色温度"
 msgid "Warmth schedule"
 msgstr "色温度スケジュール"
 
-msgid "Weekly pages goal"
-msgstr "週のページ目標"
-
-msgid "Weekly pages goal: "
-msgstr "週のページ目標: "
-
-msgid "Weekly time goal (min)"
-msgstr "週の時間目標 (分)"
-
-msgid "Weekly time goal (min): "
-msgstr "週の時間目標 (分): "
-
 msgid "Welcome to Zen UI"
 msgstr "Zen UIへようこそ"
 
@@ -2327,3 +2237,135 @@ msgstr "Zen UI: フォルダが見つかりません: "
 
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI: このアクションにフォルダが設定されていません。"
+
+msgid " days"
+msgstr ""
+
+msgid "Best day"
+msgstr ""
+
+msgid "Best month"
+msgstr ""
+
+msgid "Best week"
+msgstr ""
+
+msgid "Books read"
+msgstr ""
+
+msgid "Current Book"
+msgstr ""
+
+msgid "Customize widget"
+msgstr ""
+
+msgid "Months"
+msgstr ""
+
+msgid "Day streak"
+msgstr ""
+
+msgid "Divider"
+msgstr ""
+
+msgid "Graph metric"
+msgstr ""
+
+msgid "Graph range"
+msgstr ""
+
+msgid "Metric"
+msgstr ""
+
+msgid "Minutes"
+msgstr ""
+
+msgid "No reading data"
+msgstr ""
+
+msgid "Outline"
+msgstr ""
+
+msgid "Pages"
+msgstr ""
+
+msgid "Pages read"
+msgstr ""
+
+msgid "Pages today"
+msgstr ""
+
+msgid "Pages/day"
+msgstr ""
+
+msgid "Range"
+msgstr ""
+
+msgid "Read time"
+msgstr ""
+
+msgid "Read today"
+msgstr ""
+
+msgid "Reading Calendar"
+msgstr ""
+
+msgid "Reading Trend"
+msgstr ""
+
+msgid "Session pages"
+msgstr ""
+
+msgid "Statistics calendar is unavailable"
+msgstr ""
+
+msgid "Time/book"
+msgstr ""
+
+msgid "Time/day"
+msgstr ""
+
+msgid "Time/page"
+msgstr ""
+
+msgid "Total"
+msgstr ""
+
+msgid "Total books"
+msgstr ""
+
+msgid "Total time"
+msgstr ""
+
+msgid "min"
+msgstr ""
+
+msgid "minutes"
+msgstr ""
+
+msgid "Daily"
+msgstr ""
+
+msgid "Monthly"
+msgstr ""
+
+msgid "Show goal"
+msgstr ""
+
+msgid "Weekly"
+msgstr ""
+
+msgid "Yearly"
+msgstr ""
+
+msgid "%s goal"
+msgstr ""
+
+msgid "%s pages goal"
+msgstr ""
+
+msgid "%s time goal (min)"
+msgstr ""
+
+msgid "%s goal (%s)"
+msgstr ""

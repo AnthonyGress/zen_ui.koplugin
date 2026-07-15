@@ -201,15 +201,6 @@ msgstr "Autori"
 msgid "Automatic suspend"
 msgstr "Suspendare automată"
 
-msgid "avg pages/day"
-msgstr "pag. med./zi"
-
-msgid "avg time/book"
-msgstr "timp med./carte"
-
-msgid "avg time/day"
-msgstr "timp med./zi"
-
 msgid "Back"
 msgstr "Înapoi"
 
@@ -248,15 +239,6 @@ msgstr "Statistici baterie"
 
 msgid "Beginning / End"
 msgstr "Început / Sfârșit"
-
-msgid "best day"
-msgstr "cea mai bună zi"
-
-msgid "best month"
-msgstr "cea mai bună lună"
-
-msgid "best week"
-msgstr "cea mai bună săptămână"
 
 msgid "Beta"
 msgstr "Beta"
@@ -305,12 +287,6 @@ msgstr "cărți"
 
 msgid "Books"
 msgstr "Cărți"
-
-msgid "books finished"
-msgstr "cărți terminate"
-
-msgid "books read"
-msgstr "cărți citite"
 
 msgid "Books shown"
 msgstr "Cărți afișate"
@@ -383,9 +359,6 @@ msgstr "Pagini centrate"
 
 msgid "Change folder"
 msgstr "Schimbă dosarul"
-
-msgid "Change Row"
-msgstr "Schimbă rândul"
 
 msgid "Changelog"
 msgstr "Jurnal modificări"
@@ -567,18 +540,6 @@ msgstr "Taie"
 msgid "Cycle"
 msgstr "Ciclu"
 
-msgid "Daily pages goal"
-msgstr "Obiectiv zilnic de pagini"
-
-msgid "Daily pages goal: "
-msgstr "Obiectiv zilnic de pagini: "
-
-msgid "Daily time goal (min)"
-msgstr "Obiectiv zilnic de timp (min)"
-
-msgid "Daily time goal (min): "
-msgstr "Obiectiv zilnic de timp (min): "
-
 msgid "Day brightness"
 msgstr "Luminozitate zi"
 
@@ -590,9 +551,6 @@ msgstr "Oră luminozitate zi: "
 
 msgid "Day brightness: "
 msgstr "Luminozitate zi: "
-
-msgid "day streak"
-msgstr "serie de zile"
 
 msgid "Day warmth"
 msgstr "Căldură zi"
@@ -822,9 +780,6 @@ msgstr "Finalizează"
 msgid "Finished"
 msgstr "Terminat"
 
-msgid "finished"
-msgstr "terminat"
-
 msgid "Firmware: "
 msgstr "Firmware: "
 
@@ -902,18 +857,6 @@ msgstr "Mergi"
 
 msgid "Go to page"
 msgstr "Mergi la pagina"
-
-msgid "Goal shown: Daily"
-msgstr "Obiectiv afișat: Zilnic"
-
-msgid "Goal shown: Weekly"
-msgstr "Obiectiv afișat: Săptămânal"
-
-msgid "Goals metric: Pages"
-msgstr "Metrică obiective: Pagini"
-
-msgid "Goals metric: Time"
-msgstr "Metrică obiective: Timp"
 
 msgid "Gray"
 msgstr "Gri"
@@ -1392,9 +1335,6 @@ msgstr "Pagini + Timp capitol + %"
 msgid "Pages and %"
 msgstr "Pagini și %"
 
-msgid "pages today"
-msgstr "pagini azi"
-
 msgid "Partial pages refresh"
 msgstr "Reîmprospătare pagini parțiale"
 
@@ -1494,9 +1434,6 @@ msgstr "Citește acum"
 msgid "Read status"
 msgstr "Stare citire"
 
-msgid "read today"
-msgstr "citit azi"
-
 msgid "Reader"
 msgstr "Cititor"
 
@@ -1505,9 +1442,6 @@ msgstr "Progres de lectură"
 
 msgid "Reading"
 msgstr "Se citește"
-
-msgid "reading"
-msgstr "în citire"
 
 msgid "Reading goals"
 msgstr "Obiective de lectură"
@@ -2034,20 +1968,8 @@ msgstr "Font bară de sus"
 msgid "Top status bar"
 msgstr "Bară de stare de sus"
 
-msgid "total books"
-msgstr "total cărți"
-
 msgid "Total pages"
 msgstr "Pagini totale"
-
-msgid "total pages read"
-msgstr "pagini totale citite"
-
-msgid "total read time"
-msgstr "timp total de citit"
-
-msgid "total time"
-msgstr "timp total"
 
 msgid "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
 msgstr "Activați modul Zen pentru a reduce KOReader la esențial.\n\nEliminați dezordinea vizuală pentru o experiență de lectură concentrată, fără distracții. Ieșiți oricând din Setări."
@@ -2196,18 +2118,6 @@ msgstr "Căldură"
 msgid "Warmth schedule"
 msgstr "Planificare căldură"
 
-msgid "Weekly pages goal"
-msgstr "Obiectiv săptămânal de pagini"
-
-msgid "Weekly pages goal: "
-msgstr "Obiectiv săptămânal de pagini: "
-
-msgid "Weekly time goal (min)"
-msgstr "Obiectiv săptămânal de timp (min)"
-
-msgid "Weekly time goal (min): "
-msgstr "Obiectiv săptămânal de timp (min): "
-
 msgid "Welcome to Zen UI"
 msgstr "Bun venit în Zen UI"
 
@@ -2327,3 +2237,135 @@ msgstr "Zen UI: dosarul nu a fost găsit: "
 
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI: niciun dosar setat pentru această acțiune."
+
+msgid " days"
+msgstr ""
+
+msgid "Best day"
+msgstr ""
+
+msgid "Best month"
+msgstr ""
+
+msgid "Best week"
+msgstr ""
+
+msgid "Books read"
+msgstr ""
+
+msgid "Current Book"
+msgstr ""
+
+msgid "Customize widget"
+msgstr ""
+
+msgid "Months"
+msgstr ""
+
+msgid "Day streak"
+msgstr ""
+
+msgid "Divider"
+msgstr ""
+
+msgid "Graph metric"
+msgstr ""
+
+msgid "Graph range"
+msgstr ""
+
+msgid "Metric"
+msgstr ""
+
+msgid "Minutes"
+msgstr ""
+
+msgid "No reading data"
+msgstr ""
+
+msgid "Outline"
+msgstr ""
+
+msgid "Pages"
+msgstr ""
+
+msgid "Pages read"
+msgstr ""
+
+msgid "Pages today"
+msgstr ""
+
+msgid "Pages/day"
+msgstr ""
+
+msgid "Range"
+msgstr ""
+
+msgid "Read time"
+msgstr ""
+
+msgid "Read today"
+msgstr ""
+
+msgid "Reading Calendar"
+msgstr ""
+
+msgid "Reading Trend"
+msgstr ""
+
+msgid "Session pages"
+msgstr ""
+
+msgid "Statistics calendar is unavailable"
+msgstr ""
+
+msgid "Time/book"
+msgstr ""
+
+msgid "Time/day"
+msgstr ""
+
+msgid "Time/page"
+msgstr ""
+
+msgid "Total"
+msgstr ""
+
+msgid "Total books"
+msgstr ""
+
+msgid "Total time"
+msgstr ""
+
+msgid "min"
+msgstr ""
+
+msgid "minutes"
+msgstr ""
+
+msgid "Daily"
+msgstr ""
+
+msgid "Monthly"
+msgstr ""
+
+msgid "Show goal"
+msgstr ""
+
+msgid "Weekly"
+msgstr ""
+
+msgid "Yearly"
+msgstr ""
+
+msgid "%s goal"
+msgstr ""
+
+msgid "%s pages goal"
+msgstr ""
+
+msgid "%s time goal (min)"
+msgstr ""
+
+msgid "%s goal (%s)"
+msgstr ""

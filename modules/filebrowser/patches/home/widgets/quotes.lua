@@ -46,17 +46,18 @@ end
 return {
     id = "quotes",
     label = "Quotes widget",
-    size = { preferred_pct = 0.18, min_pct = 0.10, max_pct = 0.28, grow_priority = 4 },
+    size = { preferred_pct = 0.16, min_pct = 0.10, max_pct = 0.28, grow_priority = 3 },
     build = function(ctx)
         local width = ctx.width
         local height = ctx.height
         local quote = get_quote(ctx)
         local show_author = ctx.config.quotes and ctx.config.quotes.show_author ~= false
+        local Screen = Device.screen
 
-        local content_w = math.max(30, width - 20)
+        local padding = Screen:scaleBySize(8)
+        local content_w = math.max(30, width - padding * 2)
         local inner_h = math.max(20, height - 12)
         local quote_text = '"' .. (quote.text or "") .. '"'
-        local Screen = Device.screen
         local author_face = Font:getFace("smallinfofont", Screen:scaleBySize(10))
         local author_h = 0
         if show_author and quote.author and quote.author ~= "" then

@@ -111,11 +111,22 @@ describe("home basic widgets", function()
         })
 
         assert.are.equal("datetime", component.id)
+        assert.are.same({ preferred_pct = 0.13, min_pct = 0.08, max_pct = 0.26, grow_priority = 2 }, component.size)
         assert.is_table(widget)
         assert.is_function(refresh)
         assert.is_true(refresh())
         assert.is_true(has_text("21:07"))
         assert.is_true(has_text("Monday, January 8"))
+        local clock_size, date_size
+        for _i, child in ipairs(created) do
+            if child.text == "21:07" then
+                clock_size = child.face.size
+            elseif child.text == "Monday, January 8" then
+                date_size = child.face.size
+            end
+        end
+        assert.are.equal(240, clock_size)
+        assert.are.equal(86, date_size)
     end)
 
     it("honors the twelve-hour clock setting and removes its leading zero", function()
@@ -132,10 +143,17 @@ describe("home basic widgets", function()
         })
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/datetime")
         require("modules/filebrowser/patches/home/widgets/datetime").build({
-            width = 300, height = 100, is_first_row = false,
+            width = 300, height = 60, is_first_row = false,
         })
 
         assert.is_true(has_text("9:05"))
+        local clock_size
+        for _i, child in ipairs(created) do
+            if child.text == "9:05" then
+                clock_size = child.face.size
+            end
+        end
+        assert.are.equal(120, clock_size)
     end)
 
     it("renders quote text and author and navigates in both tap zones", function()

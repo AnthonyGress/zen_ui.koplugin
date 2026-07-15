@@ -201,15 +201,6 @@ msgstr "Tác giả"
 msgid "Automatic suspend"
 msgstr "Tạm tự động"
 
-msgid "avg pages/day"
-msgstr "trung bình trang/ngày"
-
-msgid "avg time/book"
-msgstr "trung bình thời gian/sách"
-
-msgid "avg time/day"
-msgstr "trung bình thời gian/ngày"
-
 msgid "Back"
 msgstr "Quay lại"
 
@@ -248,15 +239,6 @@ msgstr "Thống kê pin"
 
 msgid "Beginning / End"
 msgstr "Bắt đầu / Kết thúc"
-
-msgid "best day"
-msgstr "ngày tốt nhất"
-
-msgid "best month"
-msgstr "tháng tốt nhất"
-
-msgid "best week"
-msgstr "tuần tuyệt vời"
 
 msgid "Beta"
 msgstr "Beta"
@@ -305,12 +287,6 @@ msgstr "sách"
 
 msgid "Books"
 msgstr "Sách"
-
-msgid "books finished"
-msgstr "sách đã đọc xong"
-
-msgid "books read"
-msgstr "sách đã đọc"
 
 msgid "Books shown"
 msgstr "Sách hiển thị"
@@ -383,9 +359,6 @@ msgstr "Trang được căn giữa"
 
 msgid "Change folder"
 msgstr "Thay đổi thư mục"
-
-msgid "Change Row"
-msgstr "Thay đổi hàng"
 
 msgid "Changelog"
 msgstr "Nhật ký thay đổi"
@@ -567,18 +540,6 @@ msgstr "Cắt"
 msgid "Cycle"
 msgstr "Xoay vòng"
 
-msgid "Daily pages goal"
-msgstr "Mục tiêu trang hằng ngày"
-
-msgid "Daily pages goal: "
-msgstr "Mục tiêu trang hằng ngày: "
-
-msgid "Daily time goal (min)"
-msgstr "Mục tiêu thời gian hằng ngày (phút)"
-
-msgid "Daily time goal (min): "
-msgstr "Mục tiêu thời gian hằng ngày (phút): "
-
 msgid "Day brightness"
 msgstr "Độ sáng ban ngày"
 
@@ -590,9 +551,6 @@ msgstr "Thời gian độ sáng ban ngày: "
 
 msgid "Day brightness: "
 msgstr "Độ sáng ban ngày: "
-
-msgid "day streak"
-msgstr "chuỗi ngày"
 
 msgid "Day warmth"
 msgstr "Nắng ấm"
@@ -822,9 +780,6 @@ msgstr "Hoàn tất"
 msgid "Finished"
 msgstr "Hoàn thành"
 
-msgid "finished"
-msgstr "hoàn thành"
-
 msgid "Firmware: "
 msgstr "Phần mềm firmware: "
 
@@ -902,18 +857,6 @@ msgstr "Đi"
 
 msgid "Go to page"
 msgstr "Đi đến trang"
-
-msgid "Goal shown: Daily"
-msgstr "Mục tiêu hiển thị: hằng ngày"
-
-msgid "Goal shown: Weekly"
-msgstr "Mục tiêu hiển thị: hằng tuần"
-
-msgid "Goals metric: Pages"
-msgstr "Chỉ số mục tiêu: trang"
-
-msgid "Goals metric: Time"
-msgstr "Chỉ số mục tiêu: thời gian"
 
 msgid "Gray"
 msgstr "Xám"
@@ -1392,9 +1335,6 @@ msgstr "Trang + Thời lượng chương + %"
 msgid "Pages and %"
 msgstr "Trang và %"
 
-msgid "pages today"
-msgstr "trang hôm nay"
-
 msgid "Partial pages refresh"
 msgstr "Làm mới một phần trang"
 
@@ -1494,9 +1434,6 @@ msgstr "Đọc ngay"
 msgid "Read status"
 msgstr "Trạng thái đọc"
 
-msgid "read today"
-msgstr "đọc hôm nay"
-
 msgid "Reader"
 msgstr "Trình đọc"
 
@@ -1505,9 +1442,6 @@ msgstr "Tiến trình đọc"
 
 msgid "Reading"
 msgstr "Đang đọc"
-
-msgid "reading"
-msgstr "đọc"
 
 msgid "Reading goals"
 msgstr "Mục tiêu đọc"
@@ -2034,20 +1968,8 @@ msgstr "Phông chữ thanh trên"
 msgid "Top status bar"
 msgstr "Thanh trạng thái trên"
 
-msgid "total books"
-msgstr "tổng số sách"
-
 msgid "Total pages"
 msgstr "Tổng số trang"
-
-msgid "total pages read"
-msgstr "tổng số trang đã đọc"
-
-msgid "total read time"
-msgstr "tổng thời gian đọc"
-
-msgid "total time"
-msgstr "tổng thời gian"
 
 msgid "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
 msgstr "Bật chế độ Zen để tinh chỉnh KOReader về những tính năng cơ bản nhất.\n\nLoại bỏ các yếu tố hình ảnh gây rối để có trải nghiệm tập trung, không bị phân tâm khi đọc. Thoát bất kỳ lúc nào từ Cài đặt."
@@ -2196,18 +2118,6 @@ msgstr "Ấm áp"
 msgid "Warmth schedule"
 msgstr "Lịch trình ấm áp"
 
-msgid "Weekly pages goal"
-msgstr "Mục tiêu trang hằng tuần"
-
-msgid "Weekly pages goal: "
-msgstr "Mục tiêu trang hằng tuần: "
-
-msgid "Weekly time goal (min)"
-msgstr "Mục tiêu thời gian hằng tuần (phút)"
-
-msgid "Weekly time goal (min): "
-msgstr "Mục tiêu thời gian hằng tuần (phút): "
-
 msgid "Welcome to Zen UI"
 msgstr "Chào mừng đến với Zen UI"
 
@@ -2327,3 +2237,135 @@ msgstr "Zen UI: không tìm thấy thư mục: "
 
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI: chưa đặt thư mục cho hành động này."
+
+msgid " days"
+msgstr ""
+
+msgid "Best day"
+msgstr ""
+
+msgid "Best month"
+msgstr ""
+
+msgid "Best week"
+msgstr ""
+
+msgid "Books read"
+msgstr ""
+
+msgid "Current Book"
+msgstr ""
+
+msgid "Customize widget"
+msgstr ""
+
+msgid "Months"
+msgstr ""
+
+msgid "Day streak"
+msgstr ""
+
+msgid "Divider"
+msgstr ""
+
+msgid "Graph metric"
+msgstr ""
+
+msgid "Graph range"
+msgstr ""
+
+msgid "Metric"
+msgstr ""
+
+msgid "Minutes"
+msgstr ""
+
+msgid "No reading data"
+msgstr ""
+
+msgid "Outline"
+msgstr ""
+
+msgid "Pages"
+msgstr ""
+
+msgid "Pages read"
+msgstr ""
+
+msgid "Pages today"
+msgstr ""
+
+msgid "Pages/day"
+msgstr ""
+
+msgid "Range"
+msgstr ""
+
+msgid "Read time"
+msgstr ""
+
+msgid "Read today"
+msgstr ""
+
+msgid "Reading Calendar"
+msgstr ""
+
+msgid "Reading Trend"
+msgstr ""
+
+msgid "Session pages"
+msgstr ""
+
+msgid "Statistics calendar is unavailable"
+msgstr ""
+
+msgid "Time/book"
+msgstr ""
+
+msgid "Time/day"
+msgstr ""
+
+msgid "Time/page"
+msgstr ""
+
+msgid "Total"
+msgstr ""
+
+msgid "Total books"
+msgstr ""
+
+msgid "Total time"
+msgstr ""
+
+msgid "min"
+msgstr ""
+
+msgid "minutes"
+msgstr ""
+
+msgid "Daily"
+msgstr ""
+
+msgid "Monthly"
+msgstr ""
+
+msgid "Show goal"
+msgstr ""
+
+msgid "Weekly"
+msgstr ""
+
+msgid "Yearly"
+msgstr ""
+
+msgid "%s goal"
+msgstr ""
+
+msgid "%s pages goal"
+msgstr ""
+
+msgid "%s time goal (min)"
+msgstr ""
+
+msgid "%s goal (%s)"
+msgstr ""
