@@ -111,7 +111,7 @@ describe("home basic widgets", function()
         })
 
         assert.are.equal("datetime", component.id)
-        assert.are.same({ preferred_pct = 0.13, min_pct = 0.08, max_pct = 0.26, grow_priority = 2 }, component.size)
+        assert.are.same({ preferred_pct = 0.15, min_pct = 0.10, max_pct = 0.26, grow_priority = 2 }, component.size)
         assert.is_table(widget)
         assert.is_function(refresh)
         assert.is_true(refresh())

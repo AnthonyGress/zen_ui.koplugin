@@ -20,7 +20,7 @@ on:
 
 jobs:
   stable:
-    name: Stable KOReader
+    name: Stable KOReader Test
     runs-on: ubuntu-latest
     env:
       REQUESTED_SUITE: ${{ inputs.suite || github.event.inputs.suite || '' }}
@@ -55,7 +55,7 @@ jobs:
           path: spec/.venv
           key: zen-ui-python-${{ runner.os }}-${{ hashFiles('spec/python/requirements.txt') }}
 
-      - name: Provision pinned stable KOReader
+      - name: Provision stable KOReader
         run: |
           KOREADER_DIR="$(./spec/provision-koreader.sh stable)"
           echo "KOREADER_DIR=$KOREADER_DIR" >> "$GITHUB_ENV"
@@ -66,7 +66,7 @@ jobs:
           path: spec/.cache/koreader
           key: ${{ steps.stable-koreader-cache.outputs.cache-primary-key }}
 
-      - name: Run pull request suite
+      - name: Run test suite
         run: |
           if [[ "$REQUESTED_SUITE" == "full" || "$BASE_REF" == "main" ]]; then
             ZEN_UI_RUN_EMULATOR=1 xvfb-run -s '-screen 0 800x600x24' ./spec/run full
@@ -83,7 +83,7 @@ jobs:
           if-no-files-found: ignore
 
   master:
-    name: Pinned master smoke
+    name: Master smoke test
     needs: stable
     if: ${{ inputs.suite == 'full' || github.event.inputs.suite == 'full' || github.base_ref == 'main' }}
     runs-on: ubuntu-latest
@@ -112,7 +112,7 @@ jobs:
           path: spec/.cache/koreader
           key: koreader-master-${{ runner.os }}-${{ hashFiles('spec/koreader-lock.json') }}
 
-      - name: Provision pinned master KOReader
+      - name: Provision Master KOReader
         run: |
           KOREADER_DIR="$(./spec/provision-koreader.sh master)"
           echo "KOREADER_DIR=$KOREADER_DIR" >> "$GITHUB_ENV"
@@ -123,7 +123,7 @@ jobs:
           path: spec/.cache/koreader
           key: ${{ steps.master-koreader-cache.outputs.cache-primary-key }}
 
-      - name: Run master compatibility smoke
+      - name: Run master compatibility smoke test
         run: ZEN_UI_RUN_EMULATOR=1 xvfb-run -s '-screen 0 800x600x24' ./spec/run master-smoke
 
       - name: Upload test artifacts
