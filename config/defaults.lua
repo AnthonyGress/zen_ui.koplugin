@@ -219,6 +219,7 @@ local defaults = {
         custom_text      = "",
         show_bottom_border = false,
         bottom_border_progress = false,
+        hide_in_cbz = true,
     },
     reader_footer = {
         verbose_chapter_time = false,
