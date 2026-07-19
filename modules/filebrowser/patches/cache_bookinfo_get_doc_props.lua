@@ -7,6 +7,7 @@ local function apply_cache_bookinfo_get_doc_props()
     local sqlite3 = require("lua-ljsqlite3/init")
     local rapidjson = require("rapidjson")
     local DataStorage = require("datastorage")
+    local DocumentRegistry = require("document/documentregistry")
 
     local DB_PATH = DataStorage:getSettingsDir() .. "/docprops_cache.sqlite"
     local db = sqlite3.open(DB_PATH)
@@ -27,9 +28,29 @@ local function apply_cache_bookinfo_get_doc_props()
     ]])
 
     ---@param file string
+    local function getProvider(file)
+        local providers = DocumentRegistry:getProviders(file)
+        if providers then
+            -- associated provider
+            local provider_key = DocumentRegistry:getAssociatedProviderKey(file)
+            local provider = provider_key and DocumentRegistry.known_providers[provider_key]
+            if provider and not provider.order then -- excluding auxiliary by default
+                return provider, true
+            end
+            -- highest weighted provider
+            return providers and providers[1].provider
+        end
+    end
+
+    ---@param file string
     ---@return string
     local function getFastCacheKey(file)
         local attrs = lfs.attributes(file)
+        local provider = getProvider(file)
+
+        if not provider or provider.provider == "picdocument" or provider.provider == "imageviewer" or provider.provider == "textviewer" then
+            return file
+        end
         if not attrs then return file end
         return string.format("%s_%s_%s", file, attrs.size, attrs.modification)
     end
@@ -76,7 +97,6 @@ local function apply_cache_bookinfo_get_doc_props()
     local BookList = require("ui/widget/booklist")
     local DocSettings = require("docsettings")
     local Document = require("document/document")
-    local DocumentRegistry = require("document/documentregistry")
 
     -- Returns customized document metadata, including number of pages.
     ---@param file string
