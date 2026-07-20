@@ -2471,3 +2471,57 @@ msgstr "Zen UI: cartella non trovata: "
 
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI: nessuna cartella impostata per questa azione."
+
+msgid "Reader themes"
+msgstr "Temi di lettura"
+
+msgid "Enable reader themes"
+msgstr "Abilita temi di lettura"
+
+msgid "Dark warm gray"
+msgstr "Grigio caldo scuro"
+
+msgid "Dark graphite"
+msgstr "Grafite scura"
+
+msgid "Light sepia"
+msgstr "Seppia chiara"
+
+msgid "Light tan"
+msgstr "Beige chiaro"
+
+msgid "Zen UI - Toggle reader themes"
+msgstr "Zen UI - Attiva/disattiva temi di lettura"
+
+msgid "Dark mode"
+msgstr "Modalità scura"
+
+msgid "Light mode"
+msgstr "Modalità chiara"
+
+msgid "Custom themes"
+msgstr "Temi personalizzati"
+
+msgid "New custom theme"
+msgstr "Nuovo tema personalizzato"
+
+msgid "Theme name"
+msgstr "Nome del tema"
+
+msgid "Background color"
+msgstr "Colore di sfondo"
+
+msgid "Text color"
+msgstr "Colore del testo"
+
+msgid "Theme font"
+msgstr "Carattere del tema"
+
+msgid "Delete theme"
+msgstr "Elimina tema"
+
+msgid "Delete this custom theme?"
+msgstr "Eliminare questo tema personalizzato?"
+
+msgid "Custom theme"
+msgstr "Tema personalizzato"

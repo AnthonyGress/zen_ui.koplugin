@@ -2471,3 +2471,57 @@ msgstr "Zen UI: folder not found: "
 
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI: no folder set for this action."
+
+msgid "Reader themes"
+msgstr "Reader themes"
+
+msgid "Enable reader themes"
+msgstr "Enable reader themes"
+
+msgid "Dark warm gray"
+msgstr "Dark warm gray"
+
+msgid "Dark graphite"
+msgstr "Dark graphite"
+
+msgid "Light sepia"
+msgstr "Light sepia"
+
+msgid "Light tan"
+msgstr "Light tan"
+
+msgid "Zen UI - Toggle reader themes"
+msgstr "Zen UI - Toggle reader themes"
+
+msgid "Dark mode"
+msgstr "Dark mode"
+
+msgid "Light mode"
+msgstr "Light mode"
+
+msgid "Custom themes"
+msgstr "Custom themes"
+
+msgid "New custom theme"
+msgstr "New custom theme"
+
+msgid "Theme name"
+msgstr "Theme name"
+
+msgid "Background color"
+msgstr "Background color"
+
+msgid "Text color"
+msgstr "Text color"
+
+msgid "Theme font"
+msgstr "Theme font"
+
+msgid "Delete theme"
+msgstr "Delete theme"
+
+msgid "Delete this custom theme?"
+msgstr "Delete this custom theme?"
+
+msgid "Custom theme"
+msgstr "Custom theme"

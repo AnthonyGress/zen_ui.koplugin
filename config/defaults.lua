@@ -57,6 +57,7 @@ local defaults = {
         automatic_series_grouping = true,
         partial_page_repaint = false,
         reader_top_status_bar = true,
+        reader_themes = false,
         reader_bottom_menu = false,
         night_mode_schedule = false,
         warmth_schedule     = false,
@@ -219,6 +220,11 @@ local defaults = {
         custom_text      = "",
         show_bottom_border = false,
         bottom_border_progress = false,
+    },
+    reader_themes = {
+        dark_mode = "dark_warm_gray",
+        light_mode = "default",
+        custom = {},
     },
     reader_footer = {
         verbose_chapter_time = false,

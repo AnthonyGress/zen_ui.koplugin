@@ -2471,3 +2471,57 @@ msgstr "Zen UI : dossier introuvable : "
 
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI : aucun dossier défini pour cette action."
+
+msgid "Reader themes"
+msgstr "Thèmes de lecture"
+
+msgid "Enable reader themes"
+msgstr "Activer les thèmes de lecture"
+
+msgid "Dark warm gray"
+msgstr "Gris chaud foncé"
+
+msgid "Dark graphite"
+msgstr "Graphite foncé"
+
+msgid "Light sepia"
+msgstr "Sépia clair"
+
+msgid "Light tan"
+msgstr "Beige clair"
+
+msgid "Zen UI - Toggle reader themes"
+msgstr "Zen UI - Basculer les thèmes de lecture"
+
+msgid "Dark mode"
+msgstr "Mode sombre"
+
+msgid "Light mode"
+msgstr "Mode clair"
+
+msgid "Custom themes"
+msgstr "Thèmes personnalisés"
+
+msgid "New custom theme"
+msgstr "Nouveau thème personnalisé"
+
+msgid "Theme name"
+msgstr "Nom du thème"
+
+msgid "Background color"
+msgstr "Couleur d’arrière-plan"
+
+msgid "Text color"
+msgstr "Couleur du texte"
+
+msgid "Theme font"
+msgstr "Police du thème"
+
+msgid "Delete theme"
+msgstr "Supprimer le thème"
+
+msgid "Delete this custom theme?"
+msgstr "Supprimer ce thème personnalisé ?"
+
+msgid "Custom theme"
+msgstr "Thème personnalisé"

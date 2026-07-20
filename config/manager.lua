@@ -106,6 +106,29 @@ local function normalize_renamed_keys(cfg)
         changed = true
     end
 
+    if cfg.features.reader_color_presets ~= nil then
+        cfg.features.reader_themes = cfg.features.reader_color_presets
+        changed = true
+    end
+    if cfg.features.reader_color_presets ~= nil then
+        cfg.features.reader_color_presets = nil
+        changed = true
+    end
+
+    if type(cfg.reader_color_presets) == "table" then
+        cfg.reader_themes = cfg.reader_color_presets
+        cfg.reader_color_presets = nil
+        changed = true
+    end
+
+    local reader_themes = cfg.reader_themes
+    if type(reader_themes) == "table" and reader_themes.preset ~= nil then
+        reader_themes.dark_mode = reader_themes.preset
+        reader_themes.light_mode = reader_themes.preset
+        reader_themes.preset = nil
+        changed = true
+    end
+
     return cfg, changed
 end
 

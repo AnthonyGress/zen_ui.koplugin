@@ -2471,3 +2471,57 @@ msgstr "Zen UI: папка не найдена: "
 
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI: для этого действия папка не задана."
+
+msgid "Reader themes"
+msgstr "Темы чтения"
+
+msgid "Enable reader themes"
+msgstr "Включить темы чтения"
+
+msgid "Dark warm gray"
+msgstr "Тёмный тёплый серый"
+
+msgid "Dark graphite"
+msgstr "Тёмный графит"
+
+msgid "Light sepia"
+msgstr "Светлая сепия"
+
+msgid "Light tan"
+msgstr "Светло-бежевый"
+
+msgid "Zen UI - Toggle reader themes"
+msgstr "Zen UI - Переключить темы чтения"
+
+msgid "Dark mode"
+msgstr "Темный режим"
+
+msgid "Light mode"
+msgstr "Светлый режим"
+
+msgid "Custom themes"
+msgstr "Пользовательские темы"
+
+msgid "New custom theme"
+msgstr "Новая пользовательская тема"
+
+msgid "Theme name"
+msgstr "Название темы"
+
+msgid "Background color"
+msgstr "Цвет фона"
+
+msgid "Text color"
+msgstr "Цвет текста"
+
+msgid "Theme font"
+msgstr "Шрифт темы"
+
+msgid "Delete theme"
+msgstr "Удалить тему"
+
+msgid "Delete this custom theme?"
+msgstr "Удалить эту пользовательскую тему?"
+
+msgid "Custom theme"
+msgstr "Пользовательская тема"

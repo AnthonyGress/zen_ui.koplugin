@@ -2471,3 +2471,57 @@ msgstr "Zen UI: dosarul nu a fost găsit: "
 
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI: niciun dosar setat pentru această acțiune."
+
+msgid "Reader themes"
+msgstr "Teme de lectură"
+
+msgid "Enable reader themes"
+msgstr "Activează temele de lectură"
+
+msgid "Dark warm gray"
+msgstr "Gri cald închis"
+
+msgid "Dark graphite"
+msgstr "Grafit închis"
+
+msgid "Light sepia"
+msgstr "Sepia deschis"
+
+msgid "Light tan"
+msgstr "Bej deschis"
+
+msgid "Zen UI - Toggle reader themes"
+msgstr "Zen UI - Comută temele de lectură"
+
+msgid "Dark mode"
+msgstr "Mod întunecat"
+
+msgid "Light mode"
+msgstr "Mod luminos"
+
+msgid "Custom themes"
+msgstr "Teme personalizate"
+
+msgid "New custom theme"
+msgstr "Temă personalizată nouă"
+
+msgid "Theme name"
+msgstr "Numele temei"
+
+msgid "Background color"
+msgstr "Culoare fundal"
+
+msgid "Text color"
+msgstr "Culoare text"
+
+msgid "Theme font"
+msgstr "Fontul temei"
+
+msgid "Delete theme"
+msgstr "Șterge tema"
+
+msgid "Delete this custom theme?"
+msgstr "Ștergeți această temă personalizată?"
+
+msgid "Custom theme"
+msgstr "Temă personalizată"

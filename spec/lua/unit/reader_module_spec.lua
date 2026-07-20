@@ -14,6 +14,7 @@ describe("reader module initialization", function()
         "dict_quick_lookup",
         "highlight_menu",
         "reader_top_status_bar",
+        "reader_themes",
     }
 
     local function prepare_patches(calls, failing_name)
@@ -76,6 +77,26 @@ describe("reader module initialization", function()
         Reader.init(logger, plugin)
         assert.are.equal("reader_top_status_bar", calls[#calls])
         assert.is_true(_G.__ZEN_UI_RUNTIME_PATCHES.reader_top_status_bar)
+    end)
+
+    it("does not load themes when disabled and records the enabled theme patch", function()
+        local calls = {}
+        local Reader = prepare_patches(calls)
+        local logger = { dbg = function() end, warn = function() end }
+
+        Reader.init(logger, { config = { features = { reader_themes = false } } })
+        assert.is_nil(_G.__ZEN_UI_RUNTIME_PATCHES.reader_themes)
+        local theme_loaded = false
+        for _i, name in ipairs(calls) do
+            if name == "reader_themes" then theme_loaded = true end
+        end
+        assert.is_false(theme_loaded)
+
+        calls = {}
+        Reader = prepare_patches(calls)
+        Reader.init(logger, { config = { features = { reader_themes = true } } })
+        assert.are.equal("reader_themes", calls[#calls])
+        assert.is_true(_G.__ZEN_UI_RUNTIME_PATCHES.reader_themes)
     end)
 
     it("isolates a failed patch, restores the prior plugin, and continues initialization", function()

@@ -233,6 +233,9 @@ zen_action_active = {
     zen_ui_toggle_reader_top_status_bar = function(plugin)
         return is_top_status_bar_enabled(plugin or _plugin)
     end,
+    zen_ui_toggle_reader_themes = function(plugin)
+        return feature_enabled("reader_themes", plugin or _plugin)
+    end,
     zen_ui_toggle_reader_bottom_status_bar = is_bottom_status_bar_visible,
     zen_ui_toggle_reader_status_bars = function(plugin)
         return is_top_status_bar_enabled(plugin or _plugin) or is_bottom_status_bar_visible()
@@ -384,6 +387,13 @@ function M.onDispatcherRegisterActions()
         reader = true,
         active_func = zen_action_active.zen_ui_toggle_reader_top_status_bar,
     })
+    Dispatcher:registerAction("zen_ui_toggle_reader_themes", {
+        category = "none",
+        event = "ToggleReaderThemes",
+        title = _("Zen UI - Toggle reader themes"),
+        reader = true,
+        active_func = zen_action_active.zen_ui_toggle_reader_themes,
+    })
     Dispatcher:registerAction("zen_ui_toggle_reader_bottom_status_bar", {
         category = "none",
         event = "ToggleReaderBottomStatusBar",
@@ -519,6 +529,16 @@ function M.onToggleReaderTopStatusBar(plugin)
     return set_top_status_bar(plugin, not is_top_status_bar_enabled(plugin))
 end
 
+function M.onToggleReaderThemes(plugin)
+    local features = plugin and plugin.config and plugin.config.features
+    if type(features) ~= "table" then return false end
+    features.reader_themes = features.reader_themes ~= true
+    save_config(plugin)
+    local settings_apply = require("modules/settings/zen_settings_apply")
+    settings_apply.apply_feature_toggle(plugin, "reader_themes", features.reader_themes)
+    return true
+end
+
 M.isBottomStatusBarVisible = is_bottom_status_bar_visible
 M.setBottomStatusBar = set_bottom_status_bar
 
@@ -573,6 +593,7 @@ function M.install(target)
     target.onToggleLockdownMode = M.onToggleLockdownMode
     target.onToggleIncognitoMode = M.onToggleIncognitoMode
     target.onToggleReaderTopStatusBar = M.onToggleReaderTopStatusBar
+    target.onToggleReaderThemes = M.onToggleReaderThemes
     target.onToggleReaderBottomStatusBar = M.onToggleReaderBottomStatusBar
     target.onToggleReaderStatusBars = M.onToggleReaderStatusBars
     target.onShowZenUIHome = M.onShowZenUIHome

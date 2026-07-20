@@ -88,6 +88,7 @@ return {
     settings_reader   = "\u{F14F7}",
     settings_global   = "\u{F484}",
     settings_status   = "\u{F12F0}",
+    reader_themes     = "\u{F0E0C}",
     settings_folders  = "\u{F0256}",
     settings_covers   = "\u{F168B}",  -- mdi-view-module
     settings_scroll   = "\u{F0BB8}",

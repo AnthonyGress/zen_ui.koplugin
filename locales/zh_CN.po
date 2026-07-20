@@ -2471,3 +2471,57 @@ msgstr "Zen UI: 找不到文件夹: "
 
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI: 未为此操作设置文件夹。"
+
+msgid "Reader themes"
+msgstr "阅读主题"
+
+msgid "Enable reader themes"
+msgstr "启用阅读主题"
+
+msgid "Dark warm gray"
+msgstr "深暖灰"
+
+msgid "Dark graphite"
+msgstr "深石墨灰"
+
+msgid "Light sepia"
+msgstr "浅棕褐色"
+
+msgid "Light tan"
+msgstr "浅棕色"
+
+msgid "Zen UI - Toggle reader themes"
+msgstr "Zen UI - 切换阅读主题"
+
+msgid "Dark mode"
+msgstr "深色模式"
+
+msgid "Light mode"
+msgstr "浅色模式"
+
+msgid "Custom themes"
+msgstr "自定义主题"
+
+msgid "New custom theme"
+msgstr "新建自定义主题"
+
+msgid "Theme name"
+msgstr "主题名称"
+
+msgid "Background color"
+msgstr "背景颜色"
+
+msgid "Text color"
+msgstr "文字颜色"
+
+msgid "Theme font"
+msgstr "主题字体"
+
+msgid "Delete theme"
+msgstr "删除主题"
+
+msgid "Delete this custom theme?"
+msgstr "删除此自定义主题？"
+
+msgid "Custom theme"
+msgstr "自定义主题"

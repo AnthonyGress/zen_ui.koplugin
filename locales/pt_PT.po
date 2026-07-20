@@ -2471,3 +2471,57 @@ msgstr "Zen UI: pasta não encontrada: "
 
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI: nenhuma pasta definida para esta ação."
+
+msgid "Reader themes"
+msgstr "Temas de leitura"
+
+msgid "Enable reader themes"
+msgstr "Ativar temas de leitura"
+
+msgid "Dark warm gray"
+msgstr "Cinzento quente escuro"
+
+msgid "Dark graphite"
+msgstr "Grafite escuro"
+
+msgid "Light sepia"
+msgstr "Sépia claro"
+
+msgid "Light tan"
+msgstr "Bege claro"
+
+msgid "Zen UI - Toggle reader themes"
+msgstr "Zen UI - Alternar temas de leitura"
+
+msgid "Dark mode"
+msgstr "Modo escuro"
+
+msgid "Light mode"
+msgstr "Modo claro"
+
+msgid "Custom themes"
+msgstr "Temas personalizados"
+
+msgid "New custom theme"
+msgstr "Novo tema personalizado"
+
+msgid "Theme name"
+msgstr "Nome do tema"
+
+msgid "Background color"
+msgstr "Cor de fundo"
+
+msgid "Text color"
+msgstr "Cor do texto"
+
+msgid "Theme font"
+msgstr "Tipo de letra do tema"
+
+msgid "Delete theme"
+msgstr "Eliminar tema"
+
+msgid "Delete this custom theme?"
+msgstr "Eliminar este tema personalizado?"
+
+msgid "Custom theme"
+msgstr "Tema personalizado"

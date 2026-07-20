@@ -6,6 +6,7 @@ local PATCH_MODULES = {
     opening_banner = "modules/reader/patches/opening_banner",
     book_status = "modules/reader/patches/book_status",
     reader_top_status_bar = "modules/reader/patches/reader_top_status_bar",
+    reader_themes = "modules/reader/patches/reader_themes",
     screensaver_cover = "modules/reader/patches/screensaver_cover",
     reader_footer = "modules/reader/patches/reader_footer",
     reader_footer_time_format = "modules/reader/patches/reader_footer_time_format",
@@ -148,6 +149,18 @@ function M.init(logger, plugin)
             end
         elseif logger then
             logger.warn("reader patch module missing", "reader_top_status_bar")
+        end
+    end
+
+    if is_feature_enabled(plugin, "reader_themes") then
+        local fn = load_patch("reader_themes")
+        if fn then
+            local ok = run_feature(logger, plugin, "reader_themes", fn)
+            if ok then
+                runtime_patches["reader_themes"] = true
+            end
+        elseif logger then
+            logger.warn("reader patch module missing", "reader_themes")
         end
     end
 

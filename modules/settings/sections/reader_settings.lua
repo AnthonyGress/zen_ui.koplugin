@@ -9,6 +9,7 @@ local dispatch_action = require("common/dispatch_action")
 local utils = require("modules/settings/zen_settings_utils")
 local constants = require("common/constants")
 local PresetStore = require("config/preset_store")
+local ReaderThemes = require("common/reader_themes")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
 
@@ -384,6 +385,275 @@ function M.build(ctx)
                     save_clock()
                 end,
             },
+        },
+    })
+
+    local builtin_themes = {
+        { key = "default", text = _("Default") },
+        { key = "dark_warm_gray", text = _("Dark warm gray") },
+        { key = "dark_graphite", text = _("Dark graphite") },
+        { key = "light_sepia", text = _("Light sepia") },
+        { key = "light_tan", text = _("Light tan") },
+    }
+
+    local function theme_settings()
+        if type(config.reader_themes) ~= "table" then config.reader_themes = {} end
+        if type(config.reader_themes.custom) ~= "table" then config.reader_themes.custom = {} end
+        return config.reader_themes
+    end
+
+    local function save_themes()
+        plugin:saveConfig()
+        if config.features.reader_themes == true then ctx.apply_feature("reader_themes") end
+    end
+
+    local function get_theme(mode)
+        local settings = config.reader_themes
+        local default = mode == "dark_mode" and "dark_warm_gray" or "default"
+        return type(settings) == "table" and settings[mode] or default
+    end
+
+    local function theme_name(key)
+        for _i, theme in ipairs(builtin_themes) do
+            if theme.key == key then return theme.text end
+        end
+        local custom = type(config.reader_themes) == "table" and config.reader_themes.custom
+        local theme = type(custom) == "table" and custom[key]
+        return type(theme) == "table" and theme.name or _("Default")
+    end
+
+    local function make_theme_mode_item(mode, label)
+        return {
+            text_func = function()
+                return label .. ": " .. theme_name(get_theme(mode))
+            end,
+            sub_item_table_func = function()
+                local theme_items = {}
+                for _i, theme in ipairs(builtin_themes) do
+                    local key = theme.key
+                    table.insert(theme_items, {
+                        text = theme.text,
+                        checked_func = function() return get_theme(mode) == key end,
+                        callback = function(touchmenu_instance)
+                            theme_settings()[mode] = key
+                            save_themes()
+                            if touchmenu_instance then touchmenu_instance:updateItems() end
+                        end,
+                    })
+                end
+                local custom = theme_settings().custom
+                for key, theme in pairs(custom) do
+                    if type(theme) == "table" then
+                        table.insert(theme_items, {
+                            text = theme.name or _("Custom theme"),
+                            checked_func = function() return get_theme(mode) == key end,
+                            callback = function(touchmenu_instance)
+                                theme_settings()[mode] = key
+                                save_themes()
+                                if touchmenu_instance then touchmenu_instance:updateItems() end
+                            end,
+                        })
+                    end
+                end
+                return theme_items
+            end,
+        }
+    end
+
+    local function show_theme_text_dialog(theme, field, title, touchmenu_instance, on_change)
+        local InputDialog = require("ui/widget/inputdialog")
+        local dlg
+        dlg = InputDialog:new{
+            title = title,
+            input = theme[field] or "",
+            buttons = {{
+                {
+                    text = _("Cancel"),
+                    id = "close",
+                    callback = function() UIManager:close(dlg) end,
+                },
+                {
+                    text = _("Set"),
+                    is_enter_default = true,
+                    callback = function()
+                        local value = dlg:getInputText()
+                        local is_color = field == "background" or field == "text"
+                        if (not is_color and value and not value:match("^%s*$"))
+                            or (is_color and ReaderThemes.isValidColor(value)) then
+                            value = is_color and ReaderThemes.normalizeColor(value) or value
+                            if value == theme[field] then
+                                UIManager:close(dlg)
+                                return
+                            end
+                            UIManager:close(dlg)
+                            on_change(value)
+                            if touchmenu_instance then touchmenu_instance:updateItems() end
+                        end
+                    end,
+                },
+            }},
+        }
+        UIManager:show(dlg)
+        dlg:onShowKeyboard()
+    end
+
+    local function unique_custom_theme_name(base_key)
+        local custom = theme_settings().custom
+        local base_name = _("Custom") .. " " .. theme_name(base_key)
+        local name = base_name
+        local number = 2
+        local in_use = true
+        while in_use do
+            in_use = false
+            for _key, existing in pairs(custom) do
+                if type(existing) == "table" and existing.name == name then
+                    in_use = true
+                    name = base_name .. " " .. number
+                    number = number + 1
+                    break
+                end
+            end
+        end
+        return name
+    end
+
+    local function make_theme_edit_item(key, theme, base_key)
+        local editable_theme = theme
+        local editable_key = key
+        local function save_change(field, value)
+            if editable_theme[field] == value then return end
+            if not editable_key then
+                local settings = theme_settings()
+                local custom = settings.custom
+                local number = 1
+                editable_key = "custom_" .. number
+                while custom[editable_key] do
+                    number = number + 1
+                    editable_key = "custom_" .. number
+                end
+                editable_theme = {
+                    name = unique_custom_theme_name(base_key),
+                    text = theme.text,
+                    background = theme.background,
+                    font_face = "default",
+                }
+                custom[editable_key] = editable_theme
+            end
+            editable_theme[field] = value
+            save_themes()
+        end
+
+        local edit_items = {}
+        if editable_key then
+            table.insert(edit_items, {
+                text_func = function() return _("Theme name") .. ": " .. (editable_theme.name or "") end,
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    show_theme_text_dialog(editable_theme, "name", _("Theme name"), touchmenu_instance,
+                        function(value) save_change("name", value) end)
+                end,
+            })
+        end
+        table.insert(edit_items, {
+            text_func = function() return _("Background color") .. ": " .. editable_theme.background end,
+            keep_menu_open = true,
+            callback = function(touchmenu_instance)
+                show_theme_text_dialog(editable_theme, "background", _("Background color"), touchmenu_instance,
+                    function(value) save_change("background", value) end)
+            end,
+        })
+        table.insert(edit_items, {
+            text_func = function() return _("Text color") .. ": " .. editable_theme.text end,
+            keep_menu_open = true,
+            callback = function(touchmenu_instance)
+                show_theme_text_dialog(editable_theme, "text", _("Text color"), touchmenu_instance,
+                    function(value) save_change("text", value) end)
+            end,
+        })
+        table.insert(edit_items, {
+            text_func = function()
+                local ok, FontChooser = pcall(require, "ui/widget/fontchooser")
+                local face = editable_theme.font_face
+                local name = (not face or face == "default") and _("default")
+                    or (ok and FontChooser.getFontNameText(face) or face)
+                return _("Theme font") .. ": " .. name
+            end,
+            keep_menu_open = true,
+            callback = function(touchmenu_instance)
+                local ok, FontChooser = pcall(require, "ui/widget/fontchooser")
+                if not ok then return end
+                local face = editable_theme.font_face
+                UIManager:show(FontChooser:new{
+                    title = _("Theme font"),
+                    font_file = (not face or face == "default") and "NotoSerif-Regular.ttf" or face,
+                    default_font_file = "NotoSerif-Regular.ttf",
+                    callback = function(file)
+                        save_change("font_face", file)
+                        if touchmenu_instance then touchmenu_instance:updateItems() end
+                    end,
+                })
+            end,
+            hold_callback = function(touchmenu_instance)
+                save_change("font_face", "default")
+                if touchmenu_instance then touchmenu_instance:updateItems() end
+            end,
+        })
+        if editable_key then
+            table.insert(edit_items, {
+                text = _("Delete theme"),
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    local ConfirmBox = require("ui/widget/confirmbox")
+                    UIManager:show(ConfirmBox:new{
+                        text = _("Delete this custom theme?") .. "\n\n" .. (editable_theme.name or ""),
+                        ok_text = _("Delete"),
+                        ok_callback = function()
+                            local settings = theme_settings()
+                            settings.custom[editable_key] = nil
+                            if settings.dark_mode == editable_key then settings.dark_mode = "dark_warm_gray" end
+                            if settings.light_mode == editable_key then settings.light_mode = "default" end
+                            save_themes()
+                            if touchmenu_instance then touchmenu_instance:updateItems() end
+                        end,
+                    })
+                end,
+            })
+        end
+
+        return {
+            text_func = function() return editable_theme.name or theme_name(base_key) end,
+            sub_item_table = edit_items,
+        }
+    end
+
+    local function make_custom_themes_item()
+        return {
+            text = _("Custom themes"),
+            sub_item_table_func = function()
+                local custom_items = {}
+                for _i, builtin in ipairs(builtin_themes) do
+                    if builtin.key ~= "default" then
+                        table.insert(custom_items,
+                            make_theme_edit_item(nil, ReaderThemes.BUILTIN_THEMES[builtin.key], builtin.key))
+                    end
+                end
+                for key, theme in pairs(theme_settings().custom) do
+                    if type(theme) == "table" then
+                        table.insert(custom_items, make_theme_edit_item(key, theme))
+                    end
+                end
+                return custom_items
+            end,
+        }
+    end
+
+    table.insert(items, {
+        text = _("Reader themes"),
+        sub_item_table = {
+            make_enable_feature_item("reader_themes", _("Enable reader themes")),
+            make_theme_mode_item("dark_mode", _("Dark mode")),
+            make_theme_mode_item("light_mode", _("Light mode")),
+            make_custom_themes_item(),
         },
     })
 
@@ -856,9 +1126,10 @@ function M.build(ctx)
     })
 
     IconItem.decorate(items[1], icons.settings_status)
-    IconItem.decorate(items[2], icons.title)
-    IconItem.decorate(items[3], icons.search)
-    IconItem.decorate(items[8], icons.settings_status)
+    IconItem.decorate(items[2], icons.reader_themes)
+    IconItem.decorate(items[3], icons.title)
+    IconItem.decorate(items[4], icons.search)
+    IconItem.decorate(items[9], icons.settings_status)
 
     return items
 end

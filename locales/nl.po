@@ -2471,3 +2471,57 @@ msgstr "Zen UI: map niet gevonden: "
 
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI: geen map ingesteld voor deze actie."
+
+msgid "Reader themes"
+msgstr "Leesthema's"
+
+msgid "Enable reader themes"
+msgstr "Leesthema's inschakelen"
+
+msgid "Dark warm gray"
+msgstr "Donker warmgrijs"
+
+msgid "Dark graphite"
+msgstr "Donker grafiet"
+
+msgid "Light sepia"
+msgstr "Licht sepia"
+
+msgid "Light tan"
+msgstr "Licht beige"
+
+msgid "Zen UI - Toggle reader themes"
+msgstr "Zen UI - Leesthema's wisselen"
+
+msgid "Dark mode"
+msgstr "Donkere modus"
+
+msgid "Light mode"
+msgstr "Lichte modus"
+
+msgid "Custom themes"
+msgstr "Aangepaste thema's"
+
+msgid "New custom theme"
+msgstr "Nieuw aangepast thema"
+
+msgid "Theme name"
+msgstr "Themanaam"
+
+msgid "Background color"
+msgstr "Achtergrondkleur"
+
+msgid "Text color"
+msgstr "Tekstkleur"
+
+msgid "Theme font"
+msgstr "Themalettertype"
+
+msgid "Delete theme"
+msgstr "Thema verwijderen"
+
+msgid "Delete this custom theme?"
+msgstr "Dit aangepaste thema verwijderen?"
+
+msgid "Custom theme"
+msgstr "Aangepast thema"
