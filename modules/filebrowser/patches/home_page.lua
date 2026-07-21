@@ -896,7 +896,7 @@ local function build_data_provider(cfg, dcfg)
         end
         book_cache_misses = book_cache_misses + 1
         local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
-        local cover_bb, title, authors, pages, description
+        local cover_bb, title, authors, series, series_index, pages, description
         if ok_bim and BookInfoManager then
             -- get_cover=true also matches a directory/unsupported-file placeholder
             -- object (ignore_cover='Y', _no_provider/_is_directory set) that's never
@@ -905,8 +905,24 @@ local function build_data_provider(cfg, dcfg)
             if bi then
                 title = bi.title
                 authors = bi.authors
+                series = bi.series
+                series_index = bi.series_index
                 pages = bi.pages
                 description = bi.description
+            end
+            local ok_rakuyomi, Rakuyomi = pcall(require, "common/rakuyomi")
+            local metadata = ok_rakuyomi and type(Rakuyomi.getMetadata) == "function"
+                and Rakuyomi.getMetadata(path) or nil
+            if metadata then
+                title = metadata.title or title
+                authors = metadata.authors or authors
+                series = metadata.series or series
+                series_index = metadata.series_index or series_index
+                description = metadata.description or description
+                if bi and type(BookInfoManager.setBookInfoProperties) == "function" then
+                    pcall(BookInfoManager.setBookInfoProperties,
+                        BookInfoManager, path, metadata)
+                end
             end
             if bi and bi.cover_bb and bi.has_cover and bi.cover_fetched and not bi.ignore_cover then
                 cover_bb = bi.cover_bb:copy()
@@ -986,6 +1002,8 @@ local function build_data_provider(cfg, dcfg)
             path = path,
             title = title,
             authors = authors or "",
+            series = series,
+            series_index = tonumber(series_index),
             cover_bb = cover_bb,
             percent = pct or 0,
             percent_finished = pct,
@@ -1993,7 +2011,8 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             _zen_disable_select = true,
             _zen_is_history = source == "recently_read",
             _zen_widget_settings = dcfg.edit_mode == true and function()
-                return require("modules/settings/sections/library_settings/home_settings").openWidgetSettings(component_id)
+                return require("modules/settings/sections/library_settings/home_settings")
+                    .openWidgetSettings(component_id, _zen_plugin)
             end or nil,
             _zen_after_status_change = function(changed_path)
                 invalidate_home_book_cache(changed_path)
@@ -2005,7 +2024,8 @@ local function build_home_content(menu, dcfg, rows, data_provider)
 
     local function open_widget_settings(id)
         if dcfg.edit_mode ~= true then return false end
-        return require("modules/settings/sections/library_settings/home_settings").openWidgetSettings(id)
+        return require("modules/settings/sections/library_settings/home_settings")
+            .openWidgetSettings(id, _zen_plugin)
     end
 
     local function add_widget_settings_hold(widget, id, width, height)

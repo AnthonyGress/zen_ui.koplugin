@@ -310,6 +310,37 @@ function Driver:handleCommand(command)
     if kind == "home_state" then
         return { ok = true, home = home_state() }
     end
+    if kind == "open_widget_settings" and type(params.id) == "string" then
+        local module_name = params.page == "stats"
+            and "modules/settings/sections/stats_settings"
+            or "modules/settings/sections/library_settings/home_settings"
+        local ok_call, opened = pcall(function()
+            local plugin = params.page == "stats" and nil
+                or require("modules/filebrowser/patches/home_page")
+            local register_home_api = type(plugin) == "function"
+                and find_upvalue(plugin, "register_home_api") or nil
+            return require(module_name).openWidgetSettings(
+                params.id,
+                register_home_api and find_upvalue(register_home_api, "_zen_plugin") or nil
+            )
+        end)
+        return {
+            ok = ok_call and opened == true,
+            opened = ok_call and opened == true,
+            error = ok_call and nil or tostring(opened),
+        }
+    end
+    if kind == "activate_arrange_finish" then
+        local stack = UIManager._window_stack
+        local top = stack and stack[#stack]
+        local widget = top and top.widget
+        local button = widget and widget.title_bar and widget.title_bar._zen_arrange_done_button
+        if not (button and type(button.callback) == "function") then
+            return { ok = false, error = "Finish button unavailable" }
+        end
+        button.callback()
+        return { ok = true }
+    end
     if kind == "navbar_state" then
         return { ok = true, navbar = navbar_state() }
     end

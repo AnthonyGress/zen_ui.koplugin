@@ -13,6 +13,9 @@ local DEFAULT_GOALS_FONT_SIZE = 11
 local open_widget_settings
 
 function M.openWidgetSettings(id)
+    if type(open_widget_settings) ~= "function" then
+        M.build({})
+    end
     if type(open_widget_settings) == "function" then
         return open_widget_settings(id)
     end
@@ -324,6 +327,7 @@ function M.build(ctx)
             arrange_widgets()
             return true
         end
+        items._zen_arrange_done_func = function() end
         require("common/ui/zen_arrange_list").show{
             title = label_for(id),
             item_table = items,

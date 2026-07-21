@@ -2,12 +2,12 @@ describe("reader themes settings", function()
     local ReaderSettings
     local shown_dialog
     local dialog_input
-    local reader_settings
+    local reader_store
 
     before_each(function()
         shown_dialog = nil
         dialog_input = nil
-        reader_settings = {}
+        reader_store = { settings = { footer = { existing = true } } }
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("ui/uimanager", {
             show = function(_, dialog) shown_dialog = dialog end,
@@ -29,9 +29,9 @@ describe("reader themes settings", function()
         })
         ZenSpec.replace("common/constants", { SEPARATOR_PRESETS = {} })
         ZenSpec.replace("config/preset_store", {
-            getSettings = function() return reader_settings end,
-            saveSettings = function(_, settings)
-                reader_settings = settings
+            loadStore = function() return reader_store end,
+            saveStore = function(_, store)
+                reader_store = store
                 return true
             end,
         })
@@ -50,6 +50,9 @@ describe("reader themes settings", function()
                 spec.onShowKeyboard = function() end
                 return spec
             end,
+        })
+        ZenSpec.replace("ui/widget/confirmbox", {
+            new = function(_, spec) return spec end,
         })
         ZenSpec.unload("modules/settings/sections/reader_settings")
         ReaderSettings = require("modules/settings/sections/reader_settings")
@@ -95,7 +98,9 @@ describe("reader themes settings", function()
         assert.are.equal("#101010", custom.background)
         assert.are.equal("#dcdccc", custom.text)
         assert.are.equal("dark_warm_gray", config.reader_themes.dark_mode)
-        assert.are.equal(custom, reader_settings.reader_themes.custom.custom_1)
+        assert.are.equal(custom, reader_store.reader_themes.custom.custom_1)
+        assert.is_nil(reader_store.settings.reader_themes)
+        assert.is_true(reader_store.settings.footer.existing)
         assert.are.equal(1, saved)
         assert.are.equal(1, applied)
     end)
@@ -127,21 +132,49 @@ describe("reader themes settings", function()
         local custom_items = themes.sub_item_table[4].sub_item_table_func()
         local new_theme = custom_items[1]
 
-        assert.are.equal("New custom theme", new_theme.text_func())
-        dialog_input = "#f0f0f0"
-        new_theme.sub_item_table[2].callback()
-        shown_dialog.buttons[1][2].callback()
+        assert.are.equal("New custom theme", new_theme.text)
+        local opened_item, updates = nil, 0
+        local touchmenu = {
+            item_table_stack = {},
+            updateItems = function() updates = updates + 1 end,
+            onMenuSelect = function(self, item)
+                opened_item = item
+                table.insert(self.item_table_stack, self.item_table)
+                self.item_table = item.sub_item_table
+            end,
+            backToUpperMenu = function(self)
+                self.item_table = table.remove(self.item_table_stack)
+                self:updateItems()
+            end,
+        }
+        new_theme.callback(touchmenu)
 
         local custom = config.reader_themes.custom.custom_1
         assert.are.equal("Custom theme", custom.name)
-        assert.are.equal("#f0f0f0", custom.background)
+        assert.are.equal("#ffffff", custom.background)
         assert.are.equal("#000000", custom.text)
         assert.are.equal("default", custom.font_face)
         assert.are.equal("dark_warm_gray", config.reader_themes.dark_mode)
         assert.are.equal("default", config.reader_themes.light_mode)
-        assert.are.equal(custom, reader_settings.reader_themes.custom.custom_1)
+        assert.are.equal(custom, reader_store.reader_themes.custom.custom_1)
+        assert.are.equal("Custom theme", opened_item.text_func())
+        assert.are.equal("Theme name: Custom theme", touchmenu.item_table[1].text_func())
+        assert.are.equal("Background color: #ffffff", touchmenu.item_table[2].text_func())
+        assert.are.equal("Text color: #000000", touchmenu.item_table[3].text_func())
+        assert.are.equal("New custom theme", touchmenu.item_table_stack[1][1].text)
         assert.are.equal(1, saved)
         assert.are.equal(1, applied)
+
+        touchmenu.item_table[5].callback(touchmenu)
+        shown_dialog.ok_callback()
+
+        assert.is_nil(config.reader_themes.custom.custom_1)
+        assert.are.equal(0, #touchmenu.item_table_stack)
+        assert.are.equal(5, #touchmenu.item_table)
+        assert.are.equal("New custom theme", touchmenu.item_table[1].text)
+        assert.are.equal(1, updates)
+        assert.are.equal(2, saved)
+        assert.are.equal(2, applied)
     end)
 
     it("persists separate light and dark themes and immediately applies enabled themes", function()

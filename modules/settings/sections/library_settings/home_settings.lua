@@ -13,7 +13,15 @@ local M = {}
 local DEFAULT_GOALS_FONT_SIZE = 11
 local open_widget_settings
 
-function M.openWidgetSettings(id)
+function M.openWidgetSettings(id, plugin)
+    if type(open_widget_settings) ~= "function"
+            and plugin and type(plugin.config) == "table" then
+        M.build({
+            plugin = plugin,
+            config = plugin.config,
+            settings_apply = require("modules/settings/zen_settings_apply"),
+        })
+    end
     if type(open_widget_settings) == "function" then
         return open_widget_settings(id)
     end
@@ -48,6 +56,7 @@ local DEFAULT_FEATURED_PROGRESS_META = {
 local FEATURED_TEXT_STYLE_DEFAULTS = {
     title = { font_face = "default", font_size = 11, bold = true },
     author = { font_face = "default", font_size = 9, bold = false },
+    series = { font_face = "default", font_size = 7, bold = false },
     description = { font_face = "default", font_size = 16, bold = false },
 }
 
@@ -531,6 +540,13 @@ function M.build(ctx)
                 return _("Author") .. ": " .. featured_text_style_summary(mcfg, "author")
             end,
             sub_item_table = build_featured_text_style_items(mcfg, "author", _("Author")),
+        }
+        items[#items + 1] = {
+            sub_title = _("Series"),
+            text_func = function()
+                return _("Series") .. ": " .. featured_text_style_summary(mcfg, "series")
+            end,
+            sub_item_table = build_featured_text_style_items(mcfg, "series", _("Series")),
         }
         items[#items + 1] = {
             sub_title = _("Description"),

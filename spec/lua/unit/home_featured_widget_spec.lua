@@ -92,6 +92,12 @@ describe("home featured widget", function()
         return false
     end
 
+    local function text_widget(expected)
+        for _i, widget in ipairs(created) do
+            if widget.kind == "ui/widget/textboxwidget" and widget.text == expected then return widget end
+        end
+    end
+
     it("renders the recent book cover, title, author, and description", function()
         local opened
         local actions
@@ -99,6 +105,8 @@ describe("home featured widget", function()
             path = "/library/alpha.epub",
             title = "Alpha",
             authors = "Zen Author",
+            series = "Zen Chronicles",
+            series_index = 3,
             description = "<p>A deterministic description.</p>",
             status = "reading",
             percent = 0.25,
@@ -120,11 +128,49 @@ describe("home featured widget", function()
         assert.are.equal(book, cover_calls[1].book)
         assert.is_true(has_text("Alpha"))
         assert.is_true(has_text("Zen Author"))
+        assert.is_true(has_text("Zen Chronicles #3"))
+        assert.is_true(text_widget("Zen Chronicles #3").face.size < text_widget("Zen Author").face.size)
         assert.is_true(has_text("A deterministic description."))
+        for _i, text in ipairs({ "Alpha", "Zen Author", "Zen Chronicles #3", "A deterministic description." }) do
+            local text_box = text_widget(text)
+            assert.equals("left", text_box.alignment)
+            assert.is_true(text_box.alignment_strict)
+        end
         assert.is_true(has_text("25%"))
         assert.is_true(has_text("120 pages"))
         assert.is_true(actions.activate())
         assert.are.equal(book.path, opened)
+    end)
+
+    it("applies the configured series text style independently", function()
+        local Featured = require("modules/filebrowser/patches/home/widgets/featured_common")
+        Featured.build({
+            width = 600,
+            height = 220,
+            face_label = { size = 12 },
+            module_cfg = {
+                text_styles = {
+                    series = { font_face = "SeriesFont", font_size = 14, bold = true },
+                },
+            },
+            data = {
+                getFeaturedBook = function()
+                    return {
+                        path = "/library/alpha.epub",
+                        title = "Alpha",
+                        authors = "Zen Author",
+                        series = "Zen Chronicles",
+                        series_index = 3,
+                        status = "new",
+                    }
+                end,
+            },
+        }, "recently_read")
+
+        local series = text_widget("Zen Chronicles #3")
+        assert.is_table(series)
+        assert.equals("SeriesFont", series.face.name)
+        assert.is_true(series.bold)
     end)
 
     it("renders an explicit empty-history state without constructing a cover", function()

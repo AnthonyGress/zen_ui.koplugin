@@ -155,6 +155,48 @@ def test_home_renders_all_core_widgets_with_and_without_history(with_history: bo
             process.wait(timeout=15)
 
 
+def test_home_edit_mode_reopens_widget_settings_after_finish() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-home-edit-") as temporary:
+        root = Path(temporary)
+        ko_home = root / "home"
+        ko_home.mkdir()
+        build_library(root / "library")
+        _seed_home_settings(ko_home)
+        settings_path = ko_home / "settings" / "Zen UI" / "home.lua"
+        settings_path.write_text(
+            settings_path.read_text(encoding="utf-8").replace(
+                "show_status_bar = false,",
+                "show_status_bar = false, edit_mode = true,",
+            ),
+            encoding="utf-8",
+        )
+        socket_path = root / "driver.sock"
+        process = launch(runtime, ko_home, socket_path, root / "library")
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            assert driver.command("activate_navbar_tab", id="home")["ok"] is True
+            _wait_for_home(driver)
+
+            first = driver.command("open_widget_settings", page="home", id="quotes")
+            assert first["opened"] is True, first
+            deadline = time.monotonic() + 5
+            finish: dict[str, object] = {}
+            while time.monotonic() < deadline:
+                finish = driver.command("activate_arrange_finish")
+                if finish.get("ok") is True:
+                    break
+                time.sleep(0.1)
+            assert finish.get("ok") is True, finish
+
+            second = driver.command("open_widget_settings", page="home", id="quotes")
+            assert second["opened"] is True, second
+        finally:
+            process.send_signal(signal.SIGTERM)
+            process.wait(timeout=15)
+
+
 def _wait_for_navbar(driver: ZenDriver, label: str, tab_id: str | None) -> dict[str, object]:
     deadline = time.monotonic() + 20
     latest: dict[str, object] = {}

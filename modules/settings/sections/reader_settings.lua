@@ -403,10 +403,10 @@ function M.build(ctx)
     end
 
     local function save_themes()
-        if type(PresetStore.getSettings) == "function" and type(PresetStore.saveSettings) == "function" then
-            local reader_settings = PresetStore.getSettings("reader")
-            reader_settings.reader_themes = config.reader_themes
-            PresetStore.saveSettings("reader", reader_settings)
+        if type(PresetStore.loadStore) == "function" and type(PresetStore.saveStore) == "function" then
+            local reader_store = PresetStore.loadStore("reader")
+            reader_store.reader_themes = config.reader_themes
+            PresetStore.saveStore("reader", reader_store)
         end
         plugin:saveConfig()
         if config.features.reader_themes == true then ctx.apply_feature("reader_themes") end
@@ -522,34 +522,40 @@ function M.build(ctx)
         return name
     end
 
-    local function make_theme_edit_item(key, theme, base_key, item_text)
+    local function create_custom_theme(theme, base_key)
+        local custom = theme_settings().custom
+        local number = 1
+        local key = "custom_" .. number
+        while custom[key] do
+            number = number + 1
+            key = "custom_" .. number
+        end
+        local new_theme = {
+            name = unique_custom_theme_name(base_key),
+            text = theme.text,
+            background = theme.background,
+            font_face = theme.font_face or "default",
+        }
+        custom[key] = new_theme
+        return key, new_theme
+    end
+
+    local build_custom_theme_items
+
+    local function make_theme_edit_item(key, theme, base_key)
         local editable_theme = theme
         local editable_key = key
         local function save_change(field, value)
             if editable_theme[field] == value then return end
             if not editable_key then
-                local settings = theme_settings()
-                local custom = settings.custom
-                local number = 1
-                editable_key = "custom_" .. number
-                while custom[editable_key] do
-                    number = number + 1
-                    editable_key = "custom_" .. number
-                end
-                editable_theme = {
-                    name = unique_custom_theme_name(base_key),
-                    text = theme.text,
-                    background = theme.background,
-                    font_face = "default",
-                }
-                custom[editable_key] = editable_theme
+                editable_key, editable_theme = create_custom_theme(theme, base_key)
             end
             editable_theme[field] = value
             save_themes()
         end
 
         local edit_items = {}
-        if editable_key or not base_key then
+        if editable_key then
             table.insert(edit_items, {
                 text_func = function() return _("Theme name") .. ": " .. (editable_theme.name or "") end,
                 keep_menu_open = true,
@@ -618,7 +624,17 @@ function M.build(ctx)
                             if settings.dark_mode == editable_key then settings.dark_mode = "dark_warm_gray" end
                             if settings.light_mode == editable_key then settings.light_mode = "default" end
                             save_themes()
-                            if touchmenu_instance then touchmenu_instance:updateItems() end
+                            if touchmenu_instance then
+                                local refreshed_items = build_custom_theme_items()
+                                local stack = touchmenu_instance.item_table_stack
+                                if type(stack) == "table" and #stack > 0 then
+                                    stack[#stack] = refreshed_items
+                                    touchmenu_instance:backToUpperMenu()
+                                else
+                                    touchmenu_instance.item_table = refreshed_items
+                                    touchmenu_instance:updateItems()
+                                end
+                            end
                         end,
                     })
                 end,
@@ -626,35 +642,52 @@ function M.build(ctx)
         end
 
         return {
-            text_func = function() return editable_theme.name or item_text or theme_name(base_key) end,
+            text_func = function() return editable_theme.name or theme_name(base_key) end,
             sub_item_table = edit_items,
         }
+    end
+
+    build_custom_theme_items = function(target_key)
+        local custom_items = {
+            {
+                text = _("New custom theme"),
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    local new_key = create_custom_theme({
+                        text = "#000000",
+                        background = "#ffffff",
+                        font_face = "default",
+                    })
+                    save_themes()
+                    if touchmenu_instance then
+                        local parent_items, edit_item = build_custom_theme_items(new_key)
+                        touchmenu_instance.item_table = parent_items
+                        touchmenu_instance:onMenuSelect(edit_item)
+                    end
+                end,
+            },
+        }
+        local target_item
+        for _i, builtin in ipairs(builtin_themes) do
+            if builtin.key ~= "default" then
+                table.insert(custom_items,
+                    make_theme_edit_item(nil, ReaderThemes.BUILTIN_THEMES[builtin.key], builtin.key))
+            end
+        end
+        for key, theme in pairs(theme_settings().custom) do
+            if type(theme) == "table" then
+                local item = make_theme_edit_item(key, theme)
+                table.insert(custom_items, item)
+                if key == target_key then target_item = item end
+            end
+        end
+        return custom_items, target_item
     end
 
     local function make_custom_themes_item()
         return {
             text = _("Custom themes"),
-            sub_item_table_func = function()
-                local custom_items = {
-                    make_theme_edit_item(nil, {
-                        text = "#000000",
-                        background = "#ffffff",
-                        font_face = "default",
-                    }, nil, _("New custom theme")),
-                }
-                for _i, builtin in ipairs(builtin_themes) do
-                    if builtin.key ~= "default" then
-                        table.insert(custom_items,
-                            make_theme_edit_item(nil, ReaderThemes.BUILTIN_THEMES[builtin.key], builtin.key))
-                    end
-                end
-                for key, theme in pairs(theme_settings().custom) do
-                    if type(theme) == "table" then
-                        table.insert(custom_items, make_theme_edit_item(key, theme))
-                    end
-                end
-                return custom_items
-            end,
+            sub_item_table_func = build_custom_theme_items,
         }
     end
 
@@ -719,7 +752,6 @@ function M.build(ctx)
                             G_reader_settings:readSetting("reader_footer_custom_text_repetitions") or 1,
                         verbose_chapter_time = type(config.reader_footer) == "table"
                             and config.reader_footer.verbose_chapter_time == true,
-                        reader_themes = config.reader_themes,
                     }
                 end
 

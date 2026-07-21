@@ -94,6 +94,11 @@ function M.init(logger, plugin)
         return true
     end
 
+    local ok_metadata, metadata_err = pcall(Rakuyomi.installMetadataIntegration)
+    if not ok_metadata and logger then
+        logger.warn("Rakuyomi metadata integration failed", metadata_err)
+    end
+
     local add_sort_title_natural_fn = load_patch("add_sort_title_natural")
     if add_sort_title_natural_fn then
         run_feature(logger, plugin, "add_sort_title_natural", add_sort_title_natural_fn)

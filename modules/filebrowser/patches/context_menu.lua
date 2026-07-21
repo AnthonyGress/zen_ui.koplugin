@@ -953,7 +953,7 @@ local function apply_context_menu()
                                 if bookinfo.series then
                                     local s = BD.auto(bookinfo.series)
                                     if bookinfo.series_index then
-                                        series_str_local = string.format("#%.4g – %s", bookinfo.series_index, s)
+                                        series_str_local = string.format("%s #%.4g", s, bookinfo.series_index)
                                     else
                                         series_str_local = s
                                     end

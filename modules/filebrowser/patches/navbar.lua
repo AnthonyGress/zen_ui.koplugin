@@ -2398,6 +2398,9 @@ local function apply_navbar()
         local restore_enabled = is_restore_enabled()
         local state_before_show = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
         local force_source_restore = state_before_show and state_before_show.force_restore == true
+        local hide_rakuyomi_filemanager = force_source_restore
+            and state_before_show.tab == "manga"
+            and rakuyomi_return_to_chapter_list_on_exit_enabled()
         local keep_book_location = keep_book_location_requested and not force_source_restore
         if force_source_restore then
             logger.dbg(
@@ -2448,6 +2451,11 @@ local function apply_navbar()
             end)
         else
             orig_showFiles(self, path, effective_focused, selected_files)
+        end
+        local filemanager = FileManager.instance
+        if hide_rakuyomi_filemanager and filemanager then
+            filemanager.invisible = true
+            UIManager._dirty[filemanager] = nil
         end
         logger.perf("File manager base restore completed", (os.clock() - started_at) * 1000,
             "restore_tab=", tostring(state_before_show and state_before_show.tab),
@@ -2542,6 +2550,9 @@ local function apply_navbar()
                 and type(Rakuyomi.openChapterListingFromFile) == "function"
             local opened_chapters = return_file and has_file_opener
                 and Rakuyomi.openChapterListingFromFile(return_file, true)
+            if opened_chapters then
+                _G.__ZEN_UI_RAKUYOMI_CHAPTER_LIST_RESTORED = true
+            end
             logger.dbg(
                 "Rakuyomi return: restore dispatch:",
                 "has_file=", tostring(return_file ~= nil),
@@ -2555,6 +2566,9 @@ local function apply_navbar()
                 tab_callbacks[state.tab]()
             end
         end)
+        if filemanager then
+            filemanager.invisible = nil
+        end
         -- If a detail view was open, open it synchronously too (stack: [fm, group_menu, detail_menu]).
         -- _repaint will then start from detail_menu and never show the intermediate views.
         if state.detail_group and gv and gv.restoreDetail then

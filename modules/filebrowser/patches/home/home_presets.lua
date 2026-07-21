@@ -7,6 +7,7 @@ local function featured_text_styles()
     return {
         title = { font_face = "default", font_size = 11, bold = true },
         author = { font_face = "default", font_size = 9, bold = false },
+        series = { font_face = "default", font_size = 7, bold = false },
         description = { font_face = "default", font_size = 16, bold = false },
     }
 end

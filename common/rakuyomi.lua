@@ -120,7 +120,10 @@ local is_android = android ~= nil
 
 local function normalize_path(path)
     if type(path) ~= "string" or path == "" then return nil end
-    return is_android and path:gsub("^/sdcard/", "/storage/emulated/0/"):gsub("/+$", "")
+    if is_android then
+        path = path:gsub("^/sdcard/", "/storage/emulated/0/")
+    end
+    return path:gsub("/+$", "")
 end
 
 local function path_is_inside(path, directory)
@@ -163,6 +166,7 @@ end
 local storage_path_loaded = false
 local storage_path_cache
 local origin_metadata_cache = {}
+local metadata_cache = {}
 
 local function get_storage_path()
     if storage_path_loaded then
@@ -239,6 +243,119 @@ function M.isChapterFile(path)
     local in_storage = path_is_inside(path, storage) == true
     local has_origin = in_storage or has_origin_metadata(path)
     return has_origin
+end
+
+function M.getMetadataProvider(path)
+    if type(path) ~= "string" or path:lower():sub(-4) ~= ".cbz"
+            or not M.isChapterFile(path) then
+        return nil
+    end
+
+    local ok_cbz, CbzDocument = pcall(require, "extensions/CbzDocument")
+    if ok_cbz and type(CbzDocument) == "table" then
+        return CbzDocument
+    end
+end
+
+function M.getMetadata(path)
+    local CbzDocument = M.getMetadataProvider(path)
+    if not CbzDocument then return nil end
+
+    local ok_lfs, lfs = pcall(require, "libs/libkoreader-lfs")
+    local size = ok_lfs and lfs.attributes(path, "size") or 0
+    local modification = ok_lfs and lfs.attributes(path, "modification") or 0
+    local cache_key = tostring(size or 0) .. ":" .. tostring(modification or 0)
+    local cached = metadata_cache[path]
+    if cached and cached.key == cache_key then
+        return cached.props or nil
+    end
+
+    local reader = setmetatable({ file = path }, { __index = CbzDocument })
+    local read_json = reader._getComicBookInfoJSONFromBinary
+    local parse_json = reader._parseMetadata
+    if type(read_json) ~= "function" or type(parse_json) ~= "function" then
+        metadata_cache[path] = { key = cache_key, props = false }
+        return nil
+    end
+
+    local ok_json, json = pcall(read_json, reader)
+    local ok_parse, raw = false, nil
+    if ok_json and json then
+        ok_parse, raw = pcall(parse_json, reader, json)
+    end
+    if not ok_parse or type(raw) ~= "table" then
+        metadata_cache[path] = { key = cache_key, props = false }
+        return nil
+    end
+
+    local props = {
+        title = raw.title,
+        authors = raw.authors or raw.author,
+        series = raw.series,
+        series_index = tonumber(raw.series_index),
+        language = raw.language,
+        keywords = raw.keywords,
+        description = raw.description or raw.notes,
+    }
+    if not next(props) then props = false end
+    metadata_cache[path] = { key = cache_key, props = props }
+    return props or nil
+end
+
+function M.installMetadataIntegration()
+    local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
+    local ok_registry, DocumentRegistry = pcall(require, "document/documentregistry")
+    if not (ok_bim and ok_registry)
+            or type(BookInfoManager) ~= "table"
+            or type(BookInfoManager.extractBookInfo) ~= "function"
+            or type(DocumentRegistry) ~= "table"
+            or type(DocumentRegistry.getProvider) ~= "function" then
+        return false
+    end
+    if BookInfoManager._zen_rakuyomi_metadata_patched then
+        return true
+    end
+
+    local orig_extractBookInfo = BookInfoManager.extractBookInfo
+    function BookInfoManager:extractBookInfo(filepath, ...)
+        local provider = M.getMetadataProvider(filepath)
+        if not provider then
+            return orig_extractBookInfo(self, filepath, ...)
+        end
+
+        local orig_getProvider = DocumentRegistry.getProvider
+        DocumentRegistry.getProvider = function(registry, file, ...)
+            if file == filepath then
+                return provider
+            end
+            return orig_getProvider(registry, file, ...)
+        end
+        local ok_extract, result = pcall(orig_extractBookInfo, self, filepath, ...)
+        DocumentRegistry.getProvider = orig_getProvider
+        if not ok_extract then
+            error(result, 0)
+        end
+        return result
+    end
+
+    local orig_getBookInfo = BookInfoManager.getBookInfo
+    if type(orig_getBookInfo) == "function"
+            and type(BookInfoManager.deleteBookInfo) == "function" then
+        local checked_cache_rows = {}
+        function BookInfoManager:getBookInfo(filepath, ...)
+            local bookinfo = orig_getBookInfo(self, filepath, ...)
+            if bookinfo and not bookinfo.title and not checked_cache_rows[filepath]
+                    and M.getMetadataProvider(filepath) then
+                checked_cache_rows[filepath] = true
+                self:deleteBookInfo(filepath)
+                return nil
+            end
+            return bookinfo
+        end
+    end
+
+    BookInfoManager._zen_rakuyomi_metadata_patched = true
+    return true
 end
 
 local function append_file_opener_candidate(candidates, label, object)

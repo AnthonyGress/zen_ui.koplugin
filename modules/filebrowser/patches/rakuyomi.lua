@@ -438,6 +438,39 @@ function M.installShowReaderCapture()
     end
 end
 
+function M.installReaderReturnPatch()
+    local ok, MangaReader = pcall(require, "MangaReader")
+    if not ok or type(MangaReader) ~= "table"
+            or type(MangaReader.onReturn) ~= "function"
+            or MangaReader._zen_rakuyomi_return_patched then
+        return
+    end
+    MangaReader._zen_rakuyomi_return_patched = true
+    local orig_onReturn = MangaReader.onReturn
+    function MangaReader:onReturn(...)
+        local ReaderUI = require("apps/reader/readerui")
+        local reader = ReaderUI.instance
+        local file = reader and reader.document and reader.document.file
+        if self.is_showing and M.isChapterFile(file)
+                and return_to_chapter_list_on_exit_enabled()
+                and not self._zen_rakuyomi_return_pending then
+            local orig_callback = self.on_return_callback
+            self._zen_rakuyomi_return_pending = true
+            self.on_return_callback = function(...)
+                self._zen_rakuyomi_return_pending = nil
+                if rawget(_G, "__ZEN_UI_RAKUYOMI_CHAPTER_LIST_RESTORED") then
+                    _G.__ZEN_UI_RAKUYOMI_CHAPTER_LIST_RESTORED = nil
+                    return
+                end
+                if not M.openChapterListingFromFile(file, true) and orig_callback then
+                    return orig_callback(...)
+                end
+            end
+        end
+        return orig_onReturn(self, ...)
+    end
+end
+
 function M.refreshAfterResize(widget)
     if is_library_view(widget) and type(widget.updateItems) == "function"
             and widget.item_group and widget.content_group then
@@ -479,6 +512,7 @@ local function apply_rakuyomi()
     zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
     _G.__ZEN_UI_RAKUYOMI = M
     M.installShowReaderCapture()
+    M.installReaderReturnPatch()
 end
 
 return apply_rakuyomi

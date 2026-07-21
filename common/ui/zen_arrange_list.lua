@@ -338,7 +338,7 @@ local function sync_done_button(sort_widget, menu_proxy, fallback)
             local current_action = get_done_action(current_items, fallback)
             if not current_action then return true end
             current_action.done_func(menu_proxy)
-            UIManager:close(sort_widget)
+            sort_widget:onClose()
             if current_action.finish and fallback and type(fallback.close_arrange) == "function" then
                 fallback.close_arrange()
             elseif fallback and type(fallback.return_to_parent) == "function" then
@@ -765,6 +765,10 @@ end
 function M.show(opts)
     opts = opts or {}
     local item_table = opts.item_table or {}
+    local done_opts = {
+        done_func = opts.done_func,
+        done_enabled_func = opts.done_enabled_func,
+    }
     update_dynamic_text(item_table)
     ensure_submenu_callbacks(item_table)
 
@@ -773,12 +777,18 @@ function M.show(opts)
         item_table = item_table,
         callback = opts.callback,
     }
+    sort_widget._zen_arrange_done_func = item_table._zen_arrange_done_func or opts.done_func
+    sort_widget._zen_arrange_done_enabled_func =
+        item_table._zen_arrange_done_enabled_func or opts.done_enabled_func
     sort_widget._zen_arrange_refresh = function(self)
         if type(opts.refresh_func) == "function" then
             local refreshed = opts.refresh_func()
             if type(refreshed) == "table" then
                 item_table = refreshed
                 self.item_table = item_table
+                self._zen_arrange_done_func = item_table._zen_arrange_done_func or opts.done_func
+                self._zen_arrange_done_enabled_func =
+                    item_table._zen_arrange_done_enabled_func or opts.done_enabled_func
                 ensure_submenu_callbacks(item_table)
                 update_dynamic_text(item_table)
             end
@@ -829,6 +839,7 @@ function M.show(opts)
 
     configure_title_bar(sort_widget, title_opts)
     suppress_page_centering(sort_widget)
+    sync_done_button(sort_widget, nil, done_opts)
     if opts.hide_footer_cancel then
         suppress_footer_cancel(sort_widget.footer_cancel)
     else
@@ -853,6 +864,7 @@ function M.show(opts)
         suppress_footer_jump_buttons(self)
         suppress_footer_page_button(self)
         sync_footer_ok(self)
+        sync_done_button(self, nil, done_opts)
         apply_icon_rows(self)
         install_root_tap_handlers(self)
         install_titlebar_focus(self)

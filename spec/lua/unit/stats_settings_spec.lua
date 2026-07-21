@@ -157,11 +157,11 @@ describe("stats settings", function()
         assert.is_true(saved_edit_mode)
     end)
 
-    it("opens a widget settings page", function()
+    it("opens a widget settings page with finish controls", function()
         local settings = require("modules/settings/sections/stats_settings")
-        settings.build({})
 
         assert.is_true(settings.openWidgetSettings("trend_graph"))
         assert.are.equal("Reading trend", arrange_options.title)
+        assert.is_function(arrange_options.item_table._zen_arrange_done_func)
     end)
 end)

@@ -45,6 +45,22 @@ return {
         }
         local two_quote_lines_h = quote_probe:getSize().h or 0
         WidgetResources.free(quote_probe)
+        local quote_line_probe = TextBoxWidget:new{
+            text = "A",
+            width = content_w,
+            face = quote_face,
+            line_height = quote_line_height,
+        }
+        local quote_line_h = quote_line_probe:getSize().h or 0
+        WidgetResources.free(quote_line_probe)
+        local quote_height_probe = TextBoxWidget:new{
+            text = quote_text,
+            width = content_w,
+            face = quote_face,
+            line_height = quote_line_height,
+        }
+        local natural_quote_h = quote_height_probe:getSize().h or 0
+        WidgetResources.free(quote_height_probe)
         local author_face = Font:getFace(
             "smallinfofont",
             Screen:scaleBySize(math.max(6, math.floor(quote_font_size * 9 / 10)))
@@ -57,8 +73,9 @@ return {
             author_h = author_line_h
         end
         local author_gap = 0
-        local quote_h = math.max(10, inner_h - author_h - author_gap)
-        if quote_h < two_quote_lines_h then
+        local max_quote_h = math.max(10, inner_h - author_h - author_gap)
+        local quote_h = natural_quote_h <= quote_line_h and natural_quote_h or max_quote_h
+        if natural_quote_h > quote_line_h and quote_h < two_quote_lines_h then
             quote_line_height = math.max(0, math.min(
                 quote_line_height,
                 math.floor(quote_h / 2) / math.max(1, quote_face.size or 1) - 1
@@ -90,7 +107,7 @@ return {
             content_h = content_h + author_gap + (author_size.h or 0)
         end
         local available_h = math.max(0, height - content_h)
-        local content_top = math.min(available_h, vertical_padding)
+        local content_top = math.floor(available_h / 2)
         local content = WidgetResources.managedPaintWidget{
             dimen = Geom:new{ w = width, h = height },
             resources = { quote_widget, author_widget },

@@ -23,8 +23,9 @@ describe("home basic widgets", function()
                     h = values.height or 12,
                 }
                 values.getSize = values.getSize or function(self) return self.dimen end
-                values.paintTo = values.paintTo or function(self)
+                values.paintTo = values.paintTo or function(self, _bb, x, y)
                     self.painted = (self.painted or 0) + 1
+                    self.paint_x, self.paint_y = x, y
                 end
                 values.free = values.free or function(self) self.freed = true end
                 created[#created + 1] = values
@@ -191,6 +192,17 @@ describe("home basic widgets", function()
                 assert.are.equal(0.55, child.line_height)
             end
         end
+        widget[1][1]:paintTo(nil, 0, 0)
+        local quote_widget, author_widget
+        for _i, child in ipairs(created) do
+            if child.text == '"Read deeply."' then
+                quote_widget = child
+            elseif child.text == "\226\128\148 Zen Tester" then
+                author_widget = child
+            end
+        end
+        assert.are.equal(48, quote_widget.paint_y)
+        assert.are.equal(60, author_widget.paint_y)
     end)
 
     it("renders the empty-history quote fallback without an author", function()
