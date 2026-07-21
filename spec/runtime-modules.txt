@@ -62,6 +62,7 @@ modules/filebrowser/patches/browser_cover_mosaic_uniform.lua|integration
 modules/filebrowser/patches/browser_cover_rounded_corners.lua|integration
 modules/filebrowser/patches/browser_display_mode_by_path.lua|integration
 modules/filebrowser/patches/browser_flat_view_compat.lua|integration
+modules/filebrowser/patches/cache_bookinfo_get_doc_props.lua|integration
 modules/filebrowser/patches/browser_folder_cover.lua|integration
 modules/filebrowser/patches/browser_folder_sort.lua|integration
 modules/filebrowser/patches/browser_hide_underline.lua|integration

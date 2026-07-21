@@ -1710,9 +1710,6 @@ msgstr "При выходе возвращаться к списку глав"
 msgid "Reverse"
 msgstr "Обратный порядок"
 
-msgid "Reverse page scrolling"
-msgstr "Обратная прокрутка страниц"
-
 msgid "Review"
 msgstr "Рецензия"
 

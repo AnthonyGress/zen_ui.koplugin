@@ -1707,9 +1707,6 @@ msgstr "Beim Beenden zur Kapitelliste zurückkehren"
 msgid "Reverse"
 msgstr "Umkehren"
 
-msgid "Reverse page scrolling"
-msgstr "Umgekehrtes Scrollen der Seiten"
-
 msgid "Review"
 msgstr "Rezension"
 

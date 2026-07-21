@@ -1707,9 +1707,6 @@ msgstr "終了時に章一覧へ戻る"
 msgid "Reverse"
 msgstr "逆順"
 
-msgid "Reverse page scrolling"
-msgstr "ページスクロールを反転"
-
 msgid "Review"
 msgstr "レビュー"
 

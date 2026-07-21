@@ -1716,9 +1716,6 @@ msgstr "Връщане към списъка с глави при изход"
 msgid "Reverse"
 msgstr "Обратно"
 
-msgid "Reverse page scrolling"
-msgstr "Обратно превъртане на страниците"
-
 msgid "Review"
 msgstr "Преглед"
 

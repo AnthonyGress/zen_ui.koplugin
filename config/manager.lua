@@ -153,6 +153,10 @@ local function migrate_legacy_rakuyomi_keys(cfg)
         rakuyomi.return_to_chapter_on_reader_exit = nil
         changed = true
     end
+    if rakuyomi.reverse_page_scrolling ~= nil then
+        rakuyomi.reverse_page_scrolling = nil
+        changed = true
+    end
 
     return changed
 end

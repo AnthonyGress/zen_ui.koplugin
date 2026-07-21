@@ -60,64 +60,6 @@ local function return_to_chapter_list_on_exit_enabled()
     return true
 end
 
-local function reverse_page_scrolling_enabled()
-    local config = get_zen_config()
-    local rakuyomi = config and config.rakuyomi
-    return type(rakuyomi) == "table" and rakuyomi.reverse_page_scrolling == true
-end
-
-local function save_reverse_page_scrolling_for_file(filepath, enabled)
-    if type(filepath) ~= "string" or filepath == "" then
-        return
-    end
-    if enabled == nil then enabled = reverse_page_scrolling_enabled() end
-    local ok_ds, DocSettings = pcall(require, "docsettings")
-    if not ok_ds or not DocSettings then
-        return
-    end
-    local ok_doc, doc_settings = pcall(DocSettings.open, DocSettings, filepath)
-    if not ok_doc or not doc_settings then
-        return
-    end
-    doc_settings:saveSetting("inverse_reading_order", enabled == true)
-    if type(doc_settings.flush) == "function" then
-        pcall(doc_settings.flush, doc_settings)
-    end
-end
-
-local function apply_reverse_page_scrolling_to_reader(ui, enabled, reason)
-    local file = ui and ui.document and ui.document.file
-    if not ui then
-        return false
-    end
-    if not M.isChapterFile(file) then
-        return false
-    end
-
-    enabled = enabled == true
-    local view = ui.view
-    if ui.doc_settings then
-        ui.doc_settings:saveSetting("inverse_reading_order", enabled)
-        if type(ui.doc_settings.flush) == "function" then
-            pcall(ui.doc_settings.flush, ui.doc_settings)
-        end
-    else
-        save_reverse_page_scrolling_for_file(file, enabled)
-    end
-
-    if view then
-        local changed = view.inverse_reading_order ~= enabled
-        view.inverse_reading_order = enabled
-        if changed or ui._zen_rakuyomi_touch_zones_applied ~= enabled then
-            if type(view.setupTouchZones) == "function" then
-                view:setupTouchZones()
-            end
-            ui._zen_rakuyomi_touch_zones_applied = enabled
-        end
-    end
-    return true
-end
-
 function M.isLibraryView(widget)
     return is_library_view(widget)
 end
@@ -130,12 +72,6 @@ function M.isScrollBarMenu(widget)
         or name == "library_view"
         or name == "manga_search_results"
         or name == "notification_view"
-end
-
-function M.applyReversePageScrollingToCurrentReader(enabled)
-    local ok_rui, ReaderUI = pcall(require, "apps/reader/readerui")
-    local ui = ok_rui and ReaderUI and ReaderUI.instance
-    return apply_reverse_page_scrolling_to_reader(ui, enabled, "settings_toggle")
 end
 
 function M.getStandaloneTabId(widget)
@@ -478,9 +414,6 @@ function M.installShowReaderCapture()
     function ReaderUI:showReader(file, ...)
         if type(file) == "string" then
             local is_chapter = M.isChapterFile(file) == true
-            if is_chapter then
-                save_reverse_page_scrolling_for_file(file)
-            end
             local return_to_chapter_list = return_to_chapter_list_on_exit_enabled()
             if is_chapter then
                 _G.__ZEN_UI_LIBRARY_SOURCE_TAB = "manga"
@@ -494,47 +427,14 @@ function M.installShowReaderCapture()
         return orig_reader_showReader(self, file, ...)
     end
 
-    local orig_onReaderReady = ReaderUI.onReaderReady
-    function ReaderUI:onReaderReady(...)
-        local result
-        if orig_onReaderReady then
-            result = orig_onReaderReady(self, ...)
-        end
-        apply_reverse_page_scrolling_to_reader(
-            self,
-            reverse_page_scrolling_enabled(),
-            "onReaderReady")
-        return result
-    end
-
-    local orig_saveSettings = ReaderUI.saveSettings
-    function ReaderUI:saveSettings(...)
-        apply_reverse_page_scrolling_to_reader(
-            self,
-            reverse_page_scrolling_enabled(),
-            "saveSettings_before")
-        return orig_saveSettings(self, ...)
-    end
-
     local orig_onClose = ReaderUI.onClose
     function ReaderUI:onClose(...)
         local file = self.document and self.document.file
-        apply_reverse_page_scrolling_to_reader(
-            self,
-            reverse_page_scrolling_enabled(),
-            "onClose_before")
         if M.isChapterFile(file) and not return_to_chapter_list_on_exit_enabled()
                 and type(UIManager.avoidFlashOnNextRepaint) == "function" then
             UIManager:avoidFlashOnNextRepaint()
         end
         return orig_onClose(self, ...)
-    end
-
-    if ReaderUI.instance then
-        apply_reverse_page_scrolling_to_reader(
-            ReaderUI.instance,
-            reverse_page_scrolling_enabled(),
-            "existing_instance")
     end
 end
 

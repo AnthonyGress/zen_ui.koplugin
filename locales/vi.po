@@ -1707,9 +1707,6 @@ msgstr "Trở về danh sách chương khi thoát"
 msgid "Reverse"
 msgstr "Đảo ngược"
 
-msgid "Reverse page scrolling"
-msgstr "Đảo ngược cuộn trang"
-
 msgid "Review"
 msgstr "Đánh giá"
 

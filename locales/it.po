@@ -1710,9 +1710,6 @@ msgstr "Torna all’elenco dei capitoli all’uscita"
 msgid "Reverse"
 msgstr "Inverti"
 
-msgid "Reverse page scrolling"
-msgstr "Scorrimento delle pagine inverso"
-
 msgid "Review"
 msgstr "Recensione"
 

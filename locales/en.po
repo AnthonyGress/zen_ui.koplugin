@@ -1710,9 +1710,6 @@ msgstr "Return to chapter list on exit"
 msgid "Reverse"
 msgstr "Reverse"
 
-msgid "Reverse page scrolling"
-msgstr "Reverse page scrolling"
-
 msgid "Review"
 msgstr "Review"
 

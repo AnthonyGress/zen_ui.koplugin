@@ -1710,9 +1710,6 @@ msgstr "Volver a la lista de capítulos al salir"
 msgid "Reverse"
 msgstr "Invertir"
 
-msgid "Reverse page scrolling"
-msgstr "Desplazamiento de páginas inverso"
-
 msgid "Review"
 msgstr "Reseña"
 

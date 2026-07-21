@@ -1710,9 +1710,6 @@ msgstr "離開時返回章節清單"
 msgid "Reverse"
 msgstr "反向"
 
-msgid "Reverse page scrolling"
-msgstr "反向頁面捲動"
-
 msgid "Review"
 msgstr "書評"
 

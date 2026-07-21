@@ -1710,9 +1710,6 @@ msgstr "Revino la lista de capitole la ieșire"
 msgid "Reverse"
 msgstr "Inversează"
 
-msgid "Reverse page scrolling"
-msgstr "Derulare inversă a paginilor"
-
 msgid "Review"
 msgstr "Recenzie"
 

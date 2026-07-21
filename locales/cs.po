@@ -1707,9 +1707,6 @@ msgstr "Při ukončení se vrátit na seznam kapitol"
 msgid "Reverse"
 msgstr "Opačně"
 
-msgid "Reverse page scrolling"
-msgstr "Obrácené posouvání stránek"
-
 msgid "Review"
 msgstr "Prohlédnout"
 

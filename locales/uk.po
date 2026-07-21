@@ -1608,9 +1608,6 @@ msgstr "Повертатися до списку розділів при вих�
 msgid "Reverse"
 msgstr "Обернути"
 
-msgid "Reverse page scrolling"
-msgstr "Обернути гортання сторінок"
-
 msgid "Review"
 msgstr "Огляд"
 

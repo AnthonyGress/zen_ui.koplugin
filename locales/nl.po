@@ -1710,9 +1710,6 @@ msgstr "Bij afsluiten terugkeren naar de hoofdstukkenlijst"
 msgid "Reverse"
 msgstr "Omgekeerd"
 
-msgid "Reverse page scrolling"
-msgstr "Omgekeerd door pagina’s bladeren"
-
 msgid "Review"
 msgstr "Recensie"
 
