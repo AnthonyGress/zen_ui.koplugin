@@ -251,7 +251,7 @@ function M.build(ctx)
             sort_items[#sort_items + 1] = item
         end
         require("common/ui/zen_arrange_list").show{
-            title = _("Widgets"),
+            title = _("Widgets") .. " (" .. _("Hold to arrange") .. ")",
             item_table = sort_items,
             callback = function()
                 local order = {}

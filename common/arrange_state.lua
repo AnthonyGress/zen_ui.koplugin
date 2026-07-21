@@ -22,6 +22,17 @@ function M.hasRearrangedItems(original, current)
     return false
 end
 
+function M.rootTapAction(item, toggle_tap)
+    if type(item) ~= "table" then return nil end
+    if item.checked_func and toggle_tap then return "toggle" end
+    if type(item.sub_item_table) == "table"
+            or type(item.sub_item_table_func) == "function" then
+        return "submenu"
+    end
+    if item.callback then return "callback" end
+    return "consume"
+end
+
 function M.stripSubmenuCaret(text)
     if type(text) ~= "string" then return text end
     local ascii_caret = " >"

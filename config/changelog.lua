@@ -192,12 +192,15 @@ return {
     },
     ["2.5.0"] = {
         "Add testing framework",
+        "Add Zen UI Reader margins to Advanced settings",
+        "Add Reader themes",
         "Add Control buttons to Launcher/Navbar",
         "Auto suggest icons for Controls/Launcher/Navbar",
         "Standardize buttons menu for Controls/Launcher/Navbar",
         "Better sizing/spacing on home widgets",
         "Update menu icons",
         "Updated stats page + widgets",
-        "Updated ZenUpdater"
+        "Updated ZenUpdater",
+        "Add Ukrainian translation",
     }
 }

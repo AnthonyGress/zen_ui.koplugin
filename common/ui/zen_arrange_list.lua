@@ -736,17 +736,26 @@ install_root_tap_handlers = function(sort_widget)
                 return true
             end
         end
-        if item and item._zen_arrange_submenu_on_tap and not child._zen_arrange_root_tap_patched then
+        if item and not child._zen_arrange_root_tap_patched then
             child._zen_arrange_root_tap_patched = true
             child.onTap = function(row, _arg, ges)
-                if item.checked_func and ges and is_toggle_tap(row, ges.pos) then
+                local action = ArrangeState.rootTapAction(
+                    item,
+                    ges and is_toggle_tap(row, ges.pos)
+                )
+                if action == "toggle" then
                     if item.callback then
                         item:callback()
                     end
                     repopulate(row.show_parent)
                     return true
                 end
-                open_submenu_for_item(row.show_parent, item)
+                if action == "submenu" then
+                    open_submenu_for_item(row.show_parent, item)
+                elseif action == "callback" then
+                    item:callback()
+                    repopulate(row.show_parent)
+                end
                 return true
             end
         end

@@ -403,6 +403,11 @@ function M.build(ctx)
     end
 
     local function save_themes()
+        if type(PresetStore.getSettings) == "function" and type(PresetStore.saveSettings) == "function" then
+            local reader_settings = PresetStore.getSettings("reader")
+            reader_settings.reader_themes = config.reader_themes
+            PresetStore.saveSettings("reader", reader_settings)
+        end
         plugin:saveConfig()
         if config.features.reader_themes == true then ctx.apply_feature("reader_themes") end
     end
@@ -499,7 +504,7 @@ function M.build(ctx)
 
     local function unique_custom_theme_name(base_key)
         local custom = theme_settings().custom
-        local base_name = _("Custom") .. " " .. theme_name(base_key)
+        local base_name = base_key and (_("Custom") .. " " .. theme_name(base_key)) or _("Custom theme")
         local name = base_name
         local number = 2
         local in_use = true
@@ -517,7 +522,7 @@ function M.build(ctx)
         return name
     end
 
-    local function make_theme_edit_item(key, theme, base_key)
+    local function make_theme_edit_item(key, theme, base_key, item_text)
         local editable_theme = theme
         local editable_key = key
         local function save_change(field, value)
@@ -544,7 +549,7 @@ function M.build(ctx)
         end
 
         local edit_items = {}
-        if editable_key then
+        if editable_key or not base_key then
             table.insert(edit_items, {
                 text_func = function() return _("Theme name") .. ": " .. (editable_theme.name or "") end,
                 keep_menu_open = true,
@@ -621,7 +626,7 @@ function M.build(ctx)
         end
 
         return {
-            text_func = function() return editable_theme.name or theme_name(base_key) end,
+            text_func = function() return editable_theme.name or item_text or theme_name(base_key) end,
             sub_item_table = edit_items,
         }
     end
@@ -630,7 +635,13 @@ function M.build(ctx)
         return {
             text = _("Custom themes"),
             sub_item_table_func = function()
-                local custom_items = {}
+                local custom_items = {
+                    make_theme_edit_item(nil, {
+                        text = "#000000",
+                        background = "#ffffff",
+                        font_face = "default",
+                    }, nil, _("New custom theme")),
+                }
                 for _i, builtin in ipairs(builtin_themes) do
                     if builtin.key ~= "default" then
                         table.insert(custom_items,
@@ -706,10 +717,9 @@ function M.build(ctx)
                         reader_footer_custom_text = G_reader_settings:readSetting("reader_footer_custom_text") or "KOReader",
                         reader_footer_custom_text_repetitions =
                             G_reader_settings:readSetting("reader_footer_custom_text_repetitions") or 1,
-                        zen = {
-                            verbose_chapter_time = type(config.reader_footer) == "table"
-                                and config.reader_footer.verbose_chapter_time == true,
-                        },
+                        verbose_chapter_time = type(config.reader_footer) == "table"
+                            and config.reader_footer.verbose_chapter_time == true,
+                        reader_themes = config.reader_themes,
                     }
                 end
 
@@ -721,11 +731,13 @@ function M.build(ctx)
                         ui.document.configurable.status_line = 1
                         ui:handleEvent(Event:new("SetStatusLine", 1))
                     end
-                    if preset.zen then
+                    local verbose_chapter_time = preset.verbose_chapter_time
+                    if verbose_chapter_time == nil and type(preset.zen) == "table" then
+                        verbose_chapter_time = preset.zen.verbose_chapter_time
+                    end
+                    if verbose_chapter_time ~= nil then
                         if type(config.reader_footer) ~= "table" then config.reader_footer = {} end
-                        if preset.zen.verbose_chapter_time ~= nil then
-                            config.reader_footer.verbose_chapter_time = preset.zen.verbose_chapter_time
-                        end
+                        config.reader_footer.verbose_chapter_time = verbose_chapter_time
                         plugin:saveConfig()
                     end
                     PresetStore.saveSettings("reader", capture_footer_state())

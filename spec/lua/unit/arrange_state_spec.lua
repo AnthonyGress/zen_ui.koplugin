@@ -35,4 +35,21 @@ describe("arrange state", function()
             { { text = "Two" } }
         ))
     end)
+
+    it("routes root taps to controls instead of arrange selection", function()
+        local configurable = {
+            checked_func = function() return true end,
+            callback = function() end,
+            sub_item_table_func = function() return {} end,
+        }
+        local toggle_only = {
+            checked_func = function() return true end,
+            callback = function() end,
+        }
+
+        assert.are.equal("toggle", ArrangeState.rootTapAction(configurable, true))
+        assert.are.equal("submenu", ArrangeState.rootTapAction(configurable, false))
+        assert.are.equal("callback", ArrangeState.rootTapAction(toggle_only, false))
+        assert.are.equal("consume", ArrangeState.rootTapAction({}, false))
+    end)
 end)
