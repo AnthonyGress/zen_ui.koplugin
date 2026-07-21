@@ -2,7 +2,6 @@ local M = {}
 
 local FileManager
 local Geom
-local Screen
 local UIManager
 local logger
 local _
@@ -448,41 +447,6 @@ function M.closeLibraryView(widget)
     return true
 end
 
-local function openTopMenuFromSwipe(ges)
-    if not (ges and ges.direction == "south" and ges.pos
-            and ges.pos.y < Screen:getHeight() * 0.05) then
-        return false
-    end
-    local fm = FileManager.instance
-    local fm_menu = fm and fm.menu
-    if fm_menu and fm_menu.activation_menu ~= "tap" then
-        local tab_index = fm_menu:_getTabIndexFromLocation(ges)
-        fm_menu:onShowMenu(tab_index)
-        return true
-    end
-    local ok_rui, RUI = pcall(require, "apps/reader/readerui")
-    local reader_menu = ok_rui and RUI and RUI.instance and RUI.instance.menu
-    if reader_menu and reader_menu.activation_menu ~= "tap" then
-        local tab_index = reader_menu:_getTabIndexFromLocation(ges)
-        reader_menu:onShowMenu(tab_index)
-        return true
-    end
-    return false
-end
-
-function M.patchTopSwipe(widget)
-    if not is_library_view(widget) or widget._zen_top_swipe_patched then return end
-    widget._zen_top_swipe_patched = true
-    local orig_onSwipe = widget.onSwipe
-    widget.onSwipe = function(self, arg, ges)
-        if openTopMenuFromSwipe(ges) then
-            return true
-        end
-        if orig_onSwipe then return orig_onSwipe(self, arg, ges) end
-        return false
-    end
-end
-
 local function isTransientCover(widget, library_view)
     if not widget or widget == library_view then return true end
     if widget.show_parent == library_view then return true end
@@ -562,7 +526,6 @@ end
 
 function M.onStandaloneNavbarInjected(widget, exit_target_predicate)
     if not is_library_view(widget) then return end
-    M.patchTopSwipe(widget)
     M.installCloseGuard(exit_target_predicate)
 end
 
@@ -637,7 +600,6 @@ local function apply_rakuyomi()
 
     FileManager = require("apps/filemanager/filemanager")
     Geom = require("ui/geometry")
-    Screen = require("device").screen
     UIManager = require("ui/uimanager")
     logger = require("common/zen_logger").new("rakuyomi")
     _ = require("gettext")
