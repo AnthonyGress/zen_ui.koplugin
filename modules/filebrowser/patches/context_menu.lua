@@ -1302,6 +1302,43 @@ local function apply_context_menu()
                 if is_virtual_folder then return end
                 close_dialog()
                 local edit_dialog
+                local has_selected_files = file_manager.selected_files
+                    and next(file_manager.selected_files) ~= nil
+
+                local function showSelectedFilesPasteDialog()
+                    local action_dialog
+                    local function paste_selected(cutfile)
+                        UIManager:close(action_dialog)
+                        file_manager.cutfile = cutfile
+                        file_manager:showCopyMoveSelectedFilesDialog(function() end, file)
+                    end
+                    action_dialog = ButtonDialog:new{
+                        title = _("Paste selected files"),
+                        title_align = "center",
+                        buttons = apply_button_group_font({{
+                            {
+                                text = icons.copy .. "  " .. C_("File", "Copy"),
+                                align = "left",
+                                callback = function() paste_selected(false) end,
+                            },
+                            {
+                                text = icons.move .. "  " .. _("Move"),
+                                align = "left",
+                                callback = function() paste_selected(true) end,
+                            },
+                        }}),
+                    }
+                    UIManager:show(action_dialog)
+                end
+
+                local function paste()
+                    UIManager:close(edit_dialog)
+                    if file_manager.clipboard then
+                        file_manager:pasteFileFromClipboard(file)
+                    elseif has_selected_files then
+                        showSelectedFilesPasteDialog()
+                    end
+                end
 
                 if is_home_dir then
                     edit_dialog = ButtonDialog:new{
@@ -1309,11 +1346,8 @@ local function apply_context_menu()
                             {{
                                 text = "\u{F0192}  " .. C_("File", "Paste"),
                                 align = "left",
-                                enabled = file_manager.clipboard and true or false,
-                                callback = function()
-                                    UIManager:close(edit_dialog)
-                                    file_manager:pasteFileFromClipboard(file)
-                                end,
+                                enabled = (file_manager.clipboard or has_selected_files) and true or false,
+                                callback = paste,
                             }},
                         }),
                     }
@@ -1348,11 +1382,8 @@ local function apply_context_menu()
                         {
                             text = "\u{F0192}  " .. C_("File", "Paste"),
                             align = "left",
-                            enabled = file_manager.clipboard and true or false,
-                            callback = function()
-                                UIManager:close(edit_dialog)
-                                file_manager:pasteFileFromClipboard(file)
-                            end,
+                            enabled = (file_manager.clipboard or has_selected_files) and true or false,
+                            callback = paste,
                         },
                     },
                 }
