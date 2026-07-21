@@ -28,6 +28,7 @@ The `en.po` file is the source catalog. All other locales are translated from it
 | `pt_PT` | European Portuguese |
 | `ro` | Romanian |
 | `ru` | Russian |
+| `uk` | Ukrainian |
 | `zh_CN` | Simplified Chinese |
 | `zh_TW` | Traditional Chinese |
 

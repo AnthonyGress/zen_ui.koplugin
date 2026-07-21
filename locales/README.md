@@ -25,6 +25,7 @@ at runtime — KOReader handles this automatically.
 | `pt_PT` | European Portuguese |
 | `ro` | Romanian |
 | `ru` | Russian |
+| `uk` | Ukrainian |
 | `zh_CN` | Simplified Chinese |
 | `zh_TW` | Traditional Chinese |
 
