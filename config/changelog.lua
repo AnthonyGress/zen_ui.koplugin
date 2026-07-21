@@ -202,5 +202,6 @@ return {
         "Updated stats page + widgets",
         "Updated ZenUpdater",
         "Add Ukrainian translation",
+        "Bug fixes"
     }
 }
