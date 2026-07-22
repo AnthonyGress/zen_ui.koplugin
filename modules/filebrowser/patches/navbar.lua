@@ -2776,6 +2776,10 @@ local function apply_navbar()
     _G.__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB = open_default_tab
     _G.__ZEN_UI_NAVBAR_OPEN_TAB = open_tab
     _G.__ZEN_UI_NAVBAR_RESOLVE_DEFAULT_TAB = resolve_default_tab
+    _G.__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON = function()
+        local tab = tabs_by_id[resolve_default_tab()]
+        return tab and tab.icon
+    end
 
     _G.__ZEN_UI_REINJECT_FM_NAVBAR = function()
         local fm = FileManager.instance

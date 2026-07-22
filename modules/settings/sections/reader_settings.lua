@@ -385,6 +385,18 @@ function M.build(ctx)
                     save_clock()
                 end,
             },
+            {
+                text = _("Hide in CBZ/PDF files"),
+                checked_func = function()
+                    return type(config.reader_top_status_bar) == "table"
+                        and config.reader_top_status_bar.hide_in_cbz == true
+                end,
+                callback = function()
+                    if type(config.reader_top_status_bar) ~= "table" then config.reader_top_status_bar = {} end
+                    config.reader_top_status_bar.hide_in_cbz = not config.reader_top_status_bar.hide_in_cbz
+                    save_clock()
+                end,
+            },
         },
     })
 

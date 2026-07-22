@@ -204,6 +204,18 @@ function M.isActive(plugin)
     return theme_for(plugin) ~= nil
 end
 
+function M.isActiveInReader(plugin, dark_mode)
+    local ok, ReaderUI = pcall(require, "apps/reader/readerui")
+    local reader = ok and ReaderUI and ReaderUI.instance
+    local active
+    if dark_mode == nil then
+        active = M.isActive(plugin)
+    else
+        active = M.isActiveForMode(plugin, dark_mode)
+    end
+    return reader and reader.document and active or false
+end
+
 function M.isActiveForMode(plugin, dark_mode)
     return theme_for(plugin, dark_mode) ~= nil
 end

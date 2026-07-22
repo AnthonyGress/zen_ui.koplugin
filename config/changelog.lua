@@ -205,5 +205,10 @@ return {
         "Updated ZenUpdater",
         "Add Ukrainian translation",
         "Bug fixes"
+    },
+    ["2.5.2"] = {
+        "Allow top status bar in CBZ/PDF (Reader > Top status bar)",
+        "Match top Menu icon to default Navbar tab",
+        "Fix prevent auto night mode schedule from inverting Reader theme color"
     }
 }

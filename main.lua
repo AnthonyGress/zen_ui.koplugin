@@ -495,6 +495,13 @@ function ZenUI:init()
     end
 
     local function library_home_icon()
+        local get_default_tab_icon = rawget(_G, "__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON")
+        if type(get_default_tab_icon) == "function" then
+            local icon = get_default_tab_icon()
+            if type(icon) == "string" and icon ~= "" then
+                return icon
+            end
+        end
         local _cfg = _zen_plugin_ref and _zen_plugin_ref.config
         local _menu = _cfg and _cfg.menu
         local icon = type(_menu) == "table" and _menu.library_home_icon
