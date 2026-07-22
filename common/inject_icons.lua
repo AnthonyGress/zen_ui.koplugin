@@ -17,6 +17,17 @@ if _plugin_root then
         ["app_launcher"]        = "app_launcher.svg",
         ["lightning"]           = "lightning.svg",
         ["folder_open"]         = "folder_open.svg",
+        -- Navbar tab icons (needed so the menu-bar shortcut icon, which tracks
+        -- the navbar's default tab, can resolve any of them by name).
+        ["home"]                = "home.svg",
+        ["tab_manga"]           = "tab_manga.svg",
+        ["tab_news"]            = "tab_news.svg",
+        ["tab_history"]         = "tab_history.svg",
+        ["tab_collections"]     = "tab_collections.svg",
+        ["tab_authors"]         = "tab_authors.svg",
+        ["tab_series"]          = "tab_series.svg",
+        ["tab_tags"]            = "tab_tags.svg",
+        ["tab_to_be_read"]      = "tab_to_be_read.svg",
         -- Highlight / lookup popup (shared by highlight_menu + dict_quick_lookup)
         ["lookup.highlight"]    = "lookup_highlight.svg",
         ["lookup.ai"]           = "lookup_ai.svg",
