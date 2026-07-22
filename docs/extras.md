@@ -16,6 +16,12 @@ Extras collects optional additions that fall outside of the Library/Reader. It i
 
 Open the **Stats** tab from the Navbar to view reading activity. Use **Extras > Stats** to choose and arrange the dashboard widgets, enable Edit mode for on-page adjustments, set the default text size, and choose stat separators. Widgets can show activity for today, week, month, year, all time, personal records, your library, the current book, reading trends, goals, and the reading calendar.
 
+### Widgets and settings
+
+Choose from Today, This week, This month, This year, All time, Personal records, Library, Current book, Reading trend, Reading goals, and Reading calendar widgets. Enable the widgets you want and hold an item in **Extras > Stats > Widgets** to arrange its position. The dashboard has six slots; the Reading calendar uses two.
+
+The Reading trend widget can show pages or time for the past 7, 14, 30, or 90 days. Text-based widgets can use the default Stats font size or an individual override. Enable **Edit mode** to open a widget's settings directly from the Stats page, and use **Stat separators** to choose dividers, outlines, or no separation.
+
 ## OPDS
 
 ![OPDS catalog](/images/zen_ui/opds.png)

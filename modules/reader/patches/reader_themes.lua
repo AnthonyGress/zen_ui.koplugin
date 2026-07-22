@@ -18,6 +18,33 @@ local function apply_reader_themes()
         return orig_setStyleSheet(self, css_file, ReaderThemes.appendCss(plugin, appended_css))
     end
 
+    local reader_refresh_depth = 0
+    local orig_setDirty = UIManager.setDirty
+    UIManager.setDirty = function(self, widget, refresh_type, ...)
+        local reader = ReaderUI.instance
+        if refresh_type == "partial" and reader and (widget == reader or widget == reader.dialog)
+                and ReaderThemes.isActive(plugin) then
+            reader_refresh_depth = reader_refresh_depth + 1
+            local result = orig_setDirty(self, widget, refresh_type, ...)
+            reader_refresh_depth = reader_refresh_depth - 1
+            return result
+        end
+        return orig_setDirty(self, widget, refresh_type, ...)
+    end
+
+    local orig_refresh = UIManager._refresh
+    UIManager._refresh = function(self, refresh_type, ...)
+        local refresh_count = #self._refresh_stack
+        local result = orig_refresh(self, refresh_type, ...)
+        if reader_refresh_depth > 0 and refresh_type == "partial" then
+            for _i = refresh_count + 1, #self._refresh_stack do
+                local refresh = self._refresh_stack[_i]
+                if refresh.mode == "partial" then refresh.mode = "ui" end
+            end
+        end
+        return result
+    end
+
     local orig_onReadSettings = ReaderTypeset.onReadSettings
     ReaderTypeset.onReadSettings = function(self, ...)
         ReaderThemes.syncNightModeInversion(plugin)
@@ -51,7 +78,6 @@ local function apply_reader_themes()
                 self.ui.document:resetCallCache()
             end
             ReaderThemes.applyCurrent(plugin)
-            UIManager:setDirty("all", "full")
             return true
         end
         return orig_onToggleNightMode(self, ...)
