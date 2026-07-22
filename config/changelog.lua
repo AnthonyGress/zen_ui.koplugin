@@ -190,7 +190,7 @@ return {
     ["2.4.4"] = {
         "Fix time to book finished incorrect with stable pages"
     },
-    ["2.5.0"] = {
+    ["2.5.1"] = {
         "Add testing framework",
         "Add Zen UI Reader margins to Advanced settings (About > Advanced)",
         "Add Reader themes (Reader > Reader themes)",
