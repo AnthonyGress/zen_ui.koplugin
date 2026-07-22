@@ -112,14 +112,15 @@ describe("reader themes", function()
         local call_cache_resets, buffer_cache_resets = 0, 0
         local reader = {
             document = {
-                setStyleSheet = function() end,
+                setStyleSheet = function(_, _css_file, css) applied_css = css end,
                 setBackgroundColor = function(_, color) backgrounds[#backgrounds + 1] = color end,
                 resetCallCache = function() call_cache_resets = call_cache_resets + 1 end,
                 resetBufferCache = function() buffer_cache_resets = buffer_cache_resets + 1 end,
             },
             typeset = {
-                onApplyStyleSheet = function() applied_css = applied_css + 1 end,
+                css = "epub.css",
             },
+            styletweak = { getCssText = function() return "base" end },
         }
         ZenSpec.replace("apps/reader/readerui", { instance = reader })
         local plugin = {
@@ -130,7 +131,7 @@ describe("reader themes", function()
         }
 
         assert.is_true(Themes.applyCurrent(plugin))
-        assert.are.equal(1, applied_css)
+        assert.matches("#3f3524", applied_css, 1, true)
         assert.are.equal(1, call_cache_resets)
         assert.are.equal(1, buffer_cache_resets)
         assert.are.equal(0xf3ead2, backgrounds[1])
