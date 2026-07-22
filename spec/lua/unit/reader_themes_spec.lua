@@ -2,15 +2,23 @@ describe("reader themes", function()
     local Themes
     local dirty_calls
     local next_tick_callback
+    local promote_partial
 
     before_each(function()
         dirty_calls = {}
         next_tick_callback = nil
+        promote_partial = false
         _G.G_reader_settings = ZenSpec.memorySettings()
         _G.G_reader_settings.has = function(self, key) return self.data[key] ~= nil end
         ZenSpec.replace("ui/uimanager", {
-            setDirty = function(...)
-                dirty_calls[#dirty_calls + 1] = { ... }
+            _refresh_stack = {},
+            _refresh = function(self, refresh_type)
+                if refresh_type == "partial" and promote_partial then refresh_type = "full" end
+                table.insert(self._refresh_stack, { mode = refresh_type })
+            end,
+            setDirty = function(self, ...)
+                dirty_calls[#dirty_calls + 1] = { self, ... }
+                return self:_refresh(select(2, ...))
             end,
             nextTick = function(_, callback) next_tick_callback = callback end,
         })
@@ -104,14 +112,15 @@ describe("reader themes", function()
         local call_cache_resets, buffer_cache_resets = 0, 0
         local reader = {
             document = {
-                setStyleSheet = function() end,
+                setStyleSheet = function(_, _css_file, css) applied_css = css end,
                 setBackgroundColor = function(_, color) backgrounds[#backgrounds + 1] = color end,
                 resetCallCache = function() call_cache_resets = call_cache_resets + 1 end,
                 resetBufferCache = function() buffer_cache_resets = buffer_cache_resets + 1 end,
             },
             typeset = {
-                onApplyStyleSheet = function() applied_css = applied_css + 1 end,
+                css = "epub.css",
             },
+            styletweak = { getCssText = function() return "base" end },
         }
         ZenSpec.replace("apps/reader/readerui", { instance = reader })
         local plugin = {
@@ -122,7 +131,7 @@ describe("reader themes", function()
         }
 
         assert.is_true(Themes.applyCurrent(plugin))
-        assert.are.equal(1, applied_css)
+        assert.matches("#3f3524", applied_css, 1, true)
         assert.are.equal(1, call_cache_resets)
         assert.are.equal(1, buffer_cache_resets)
         assert.are.equal(0xf3ead2, backgrounds[1])
@@ -202,6 +211,26 @@ describe("reader themes", function()
         CreDocument:setStyleSheet("epub.css", "base")
         assert.matches("#252525", received_css, 1, true)
 
+        ReaderUI.instance = {}
+        require("ui/uimanager"):setDirty(ReaderUI.instance, "partial")
+        assert.are.equal("partial", dirty_calls[1][3])
+        assert.are.equal("ui", require("ui/uimanager")._refresh_stack[1].mode)
+        dirty_calls = {}
+        require("ui/uimanager")._refresh_stack = {}
+        promote_partial = true
+        require("ui/uimanager"):setDirty(ReaderUI.instance, "partial")
+        assert.are.equal("full", require("ui/uimanager")._refresh_stack[1].mode)
+        dirty_calls = {}
+        require("ui/uimanager")._refresh_stack = {}
+        promote_partial = false
+        plugin.config.features.reader_themes = false
+        require("ui/uimanager"):setDirty(ReaderUI.instance, "partial")
+        assert.are.equal("partial", dirty_calls[1][3])
+        assert.are.equal("partial", require("ui/uimanager")._refresh_stack[1].mode)
+        dirty_calls = {}
+        plugin.config.features.reader_themes = true
+        ReaderUI.instance = nil
+
         ReaderMenu:onShowMenu()
         G_reader_settings:saveSetting("night_mode", true)
         local inversions = 0
@@ -227,6 +256,7 @@ describe("reader themes", function()
         assert.is_true(G_reader_settings:isTrue("night_mode"))
         assert.is_false(require("device").screen.night_mode)
         assert.are.equal(1, cache_resets)
+        assert.are.equal(0, #dirty_calls)
 
         G_reader_settings:saveSetting("night_mode", false)
         local document = {
@@ -243,5 +273,6 @@ describe("reader themes", function()
         G_reader_settings:saveSetting("night_mode", true)
         assert.is_function(next_tick_callback)
         next_tick_callback()
+        assert.are.equal("full", dirty_calls[1][3])
     end)
 end)

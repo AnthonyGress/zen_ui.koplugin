@@ -164,7 +164,7 @@ function M.applyCurrent(plugin)
     local styletweak = reader.styletweak
     if type(typeset.css) == "string" and styletweak
         and type(styletweak.getCssText) == "function" then
-        reader.document:setStyleSheet(typeset.css, styletweak:getCssText())
+        reader.document:setStyleSheet(typeset.css, M.appendCss(plugin, styletweak:getCssText()))
     elseif type(typeset.onApplyStyleSheet) == "function" then
         reader.typeset:onApplyStyleSheet()
     end
