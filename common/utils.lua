@@ -430,6 +430,45 @@ function M.getIconPickerList(plugin_root, excluded)
     return all
 end
 
+--- Suggest an icon whose filename matches a label. Falls back when none do.
+function M.suggestIcon(plugin_root, label, fallback, strip_zen_prefix)
+    local text = type(label) == "string" and label or ""
+    if strip_zen_prefix then
+        text = text:gsub("^Zen UI%s*%-%s*", "")
+    end
+    local needle = text:lower():gsub("[^%w]", "")
+    if #needle < 3 then return fallback or "lightning" end
+    local best, best_score
+    local tokens = {}
+    for token in text:lower():gmatch("[%w]+") do
+        if #token >= 3 then tokens[#tokens + 1] = token end
+    end
+    for _i, item in ipairs(M.getIconPickerList(plugin_root)) do
+        local name = item.name:lower():gsub("[^%w]", "")
+        local score
+        if name == needle then
+            score = 3
+        elseif name:find(needle, 1, true) then
+            score = 2
+        elseif needle:find(name, 1, true) then
+            score = 1
+        end
+        if not score then
+            local token_score
+            for _j, token in ipairs(tokens) do
+                if name:find(token, 1, true) and (not token_score or #token > token_score) then
+                    token_score = #token
+                end
+            end
+            score = token_score and token_score / 100 or nil
+        end
+        if score and (not best_score or score > best_score) then
+            best, best_score = item.name, score
+        end
+    end
+    return best or fallback or "lightning"
+end
+
 -- Close all UIManager window-stack entries above `anchor_widget`.
 -- Collects first to avoid mutating the stack during iteration.
 function M.closeWidgetsAbove(anchor_widget)

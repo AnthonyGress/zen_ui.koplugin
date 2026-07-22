@@ -6,6 +6,8 @@ settingsPath: ''
 order: 95
 ---
 
+<!-- Documentation current through Zen UI v2.5.0. -->
+
 Zen UI is translated through gettext `.po` files in the `locales/` folder. No programming knowledge is needed — you only edit text.
 
 > **Open translation pull requests against the `dev` branch.** Changes are reviewed on `dev` before release.
@@ -28,6 +30,7 @@ The `en.po` file is the source catalog. All other locales are translated from it
 | `pt_PT` | European Portuguese |
 | `ro` | Romanian |
 | `ru` | Russian |
+| `uk` | Ukrainian |
 | `zh_CN` | Simplified Chinese |
 | `zh_TW` | Traditional Chinese |
 

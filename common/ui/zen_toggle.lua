@@ -125,7 +125,7 @@ function ZenToggle:paintTo(bb, x, y)
         -- Offset by bw so the visual gap from the inner wall matches ON-state gap
         paintPill(bb, x, y, w, h, Blitbuffer.COLOR_BLACK)
         paintPill(bb, x + bw, y + bw, w - 2 * bw, h - 2 * bw, Blitbuffer.COLOR_WHITE)
-        paintCircle(bb, x + bw + pad + kr, cy - .05, kr, Blitbuffer.COLOR_BLACK)
+        paintCircle(bb, x + bw + pad + kr, cy, kr, Blitbuffer.COLOR_BLACK)
     end
 end
 

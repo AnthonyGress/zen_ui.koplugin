@@ -2,7 +2,6 @@ local M = {}
 
 local FileManager
 local Geom
-local Screen
 local UIManager
 local logger
 local _
@@ -60,64 +59,6 @@ local function return_to_chapter_list_on_exit_enabled()
     return true
 end
 
-local function reverse_page_scrolling_enabled()
-    local config = get_zen_config()
-    local rakuyomi = config and config.rakuyomi
-    return type(rakuyomi) == "table" and rakuyomi.reverse_page_scrolling == true
-end
-
-local function save_reverse_page_scrolling_for_file(filepath, enabled)
-    if type(filepath) ~= "string" or filepath == "" then
-        return
-    end
-    if enabled == nil then enabled = reverse_page_scrolling_enabled() end
-    local ok_ds, DocSettings = pcall(require, "docsettings")
-    if not ok_ds or not DocSettings then
-        return
-    end
-    local ok_doc, doc_settings = pcall(DocSettings.open, DocSettings, filepath)
-    if not ok_doc or not doc_settings then
-        return
-    end
-    doc_settings:saveSetting("inverse_reading_order", enabled == true)
-    if type(doc_settings.flush) == "function" then
-        pcall(doc_settings.flush, doc_settings)
-    end
-end
-
-local function apply_reverse_page_scrolling_to_reader(ui, enabled, reason)
-    local file = ui and ui.document and ui.document.file
-    if not ui then
-        return false
-    end
-    if not M.isChapterFile(file) then
-        return false
-    end
-
-    enabled = enabled == true
-    local view = ui.view
-    if ui.doc_settings then
-        ui.doc_settings:saveSetting("inverse_reading_order", enabled)
-        if type(ui.doc_settings.flush) == "function" then
-            pcall(ui.doc_settings.flush, ui.doc_settings)
-        end
-    else
-        save_reverse_page_scrolling_for_file(file, enabled)
-    end
-
-    if view then
-        local changed = view.inverse_reading_order ~= enabled
-        view.inverse_reading_order = enabled
-        if changed or ui._zen_rakuyomi_touch_zones_applied ~= enabled then
-            if type(view.setupTouchZones) == "function" then
-                view:setupTouchZones()
-            end
-            ui._zen_rakuyomi_touch_zones_applied = enabled
-        end
-    end
-    return true
-end
-
 function M.isLibraryView(widget)
     return is_library_view(widget)
 end
@@ -130,12 +71,6 @@ function M.isScrollBarMenu(widget)
         or name == "library_view"
         or name == "manga_search_results"
         or name == "notification_view"
-end
-
-function M.applyReversePageScrollingToCurrentReader(enabled)
-    local ok_rui, ReaderUI = pcall(require, "apps/reader/readerui")
-    local ui = ok_rui and ReaderUI and ReaderUI.instance
-    return apply_reverse_page_scrolling_to_reader(ui, enabled, "settings_toggle")
 end
 
 function M.getStandaloneTabId(widget)
@@ -346,41 +281,6 @@ function M.closeLibraryView(widget)
     return true
 end
 
-local function openTopMenuFromSwipe(ges)
-    if not (ges and ges.direction == "south" and ges.pos
-            and ges.pos.y < Screen:getHeight() * 0.05) then
-        return false
-    end
-    local fm = FileManager.instance
-    local fm_menu = fm and fm.menu
-    if fm_menu and fm_menu.activation_menu ~= "tap" then
-        local tab_index = fm_menu:_getTabIndexFromLocation(ges)
-        fm_menu:onShowMenu(tab_index)
-        return true
-    end
-    local ok_rui, RUI = pcall(require, "apps/reader/readerui")
-    local reader_menu = ok_rui and RUI and RUI.instance and RUI.instance.menu
-    if reader_menu and reader_menu.activation_menu ~= "tap" then
-        local tab_index = reader_menu:_getTabIndexFromLocation(ges)
-        reader_menu:onShowMenu(tab_index)
-        return true
-    end
-    return false
-end
-
-function M.patchTopSwipe(widget)
-    if not is_library_view(widget) or widget._zen_top_swipe_patched then return end
-    widget._zen_top_swipe_patched = true
-    local orig_onSwipe = widget.onSwipe
-    widget.onSwipe = function(self, arg, ges)
-        if openTopMenuFromSwipe(ges) then
-            return true
-        end
-        if orig_onSwipe then return orig_onSwipe(self, arg, ges) end
-        return false
-    end
-end
-
 local function isTransientCover(widget, library_view)
     if not widget or widget == library_view then return true end
     if widget.show_parent == library_view then return true end
@@ -460,7 +360,6 @@ end
 
 function M.onStandaloneNavbarInjected(widget, exit_target_predicate)
     if not is_library_view(widget) then return end
-    M.patchTopSwipe(widget)
     M.installCloseGuard(exit_target_predicate)
 end
 
@@ -478,9 +377,6 @@ function M.installShowReaderCapture()
     function ReaderUI:showReader(file, ...)
         if type(file) == "string" then
             local is_chapter = M.isChapterFile(file) == true
-            if is_chapter then
-                save_reverse_page_scrolling_for_file(file)
-            end
             local return_to_chapter_list = return_to_chapter_list_on_exit_enabled()
             if is_chapter then
                 _G.__ZEN_UI_LIBRARY_SOURCE_TAB = "manga"
@@ -494,47 +390,47 @@ function M.installShowReaderCapture()
         return orig_reader_showReader(self, file, ...)
     end
 
-    local orig_onReaderReady = ReaderUI.onReaderReady
-    function ReaderUI:onReaderReady(...)
-        local result
-        if orig_onReaderReady then
-            result = orig_onReaderReady(self, ...)
-        end
-        apply_reverse_page_scrolling_to_reader(
-            self,
-            reverse_page_scrolling_enabled(),
-            "onReaderReady")
-        return result
-    end
-
-    local orig_saveSettings = ReaderUI.saveSettings
-    function ReaderUI:saveSettings(...)
-        apply_reverse_page_scrolling_to_reader(
-            self,
-            reverse_page_scrolling_enabled(),
-            "saveSettings_before")
-        return orig_saveSettings(self, ...)
-    end
-
     local orig_onClose = ReaderUI.onClose
     function ReaderUI:onClose(...)
         local file = self.document and self.document.file
-        apply_reverse_page_scrolling_to_reader(
-            self,
-            reverse_page_scrolling_enabled(),
-            "onClose_before")
         if M.isChapterFile(file) and not return_to_chapter_list_on_exit_enabled()
                 and type(UIManager.avoidFlashOnNextRepaint) == "function" then
             UIManager:avoidFlashOnNextRepaint()
         end
         return orig_onClose(self, ...)
     end
+end
 
-    if ReaderUI.instance then
-        apply_reverse_page_scrolling_to_reader(
-            ReaderUI.instance,
-            reverse_page_scrolling_enabled(),
-            "existing_instance")
+function M.installReaderReturnPatch()
+    local ok, MangaReader = pcall(require, "MangaReader")
+    if not ok or type(MangaReader) ~= "table"
+            or type(MangaReader.onReturn) ~= "function"
+            or MangaReader._zen_rakuyomi_return_patched then
+        return
+    end
+    MangaReader._zen_rakuyomi_return_patched = true
+    local orig_onReturn = MangaReader.onReturn
+    function MangaReader:onReturn(...)
+        local ReaderUI = require("apps/reader/readerui")
+        local reader = ReaderUI.instance
+        local file = reader and reader.document and reader.document.file
+        if self.is_showing and M.isChapterFile(file)
+                and return_to_chapter_list_on_exit_enabled()
+                and not self._zen_rakuyomi_return_pending then
+            local orig_callback = self.on_return_callback
+            self._zen_rakuyomi_return_pending = true
+            self.on_return_callback = function(...)
+                self._zen_rakuyomi_return_pending = nil
+                if rawget(_G, "__ZEN_UI_RAKUYOMI_CHAPTER_LIST_RESTORED") then
+                    _G.__ZEN_UI_RAKUYOMI_CHAPTER_LIST_RESTORED = nil
+                    return
+                end
+                if not M.openChapterListingFromFile(file, true) and orig_callback then
+                    return orig_callback(...)
+                end
+            end
+        end
+        return orig_onReturn(self, ...)
     end
 end
 
@@ -571,7 +467,6 @@ local function apply_rakuyomi()
 
     FileManager = require("apps/filemanager/filemanager")
     Geom = require("ui/geometry")
-    Screen = require("device").screen
     UIManager = require("ui/uimanager")
     logger = require("common/zen_logger").new("rakuyomi")
     _ = require("gettext")
@@ -579,6 +474,7 @@ local function apply_rakuyomi()
     zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
     _G.__ZEN_UI_RAKUYOMI = M
     M.installShowReaderCapture()
+    M.installReaderReturnPatch()
 end
 
 return apply_rakuyomi

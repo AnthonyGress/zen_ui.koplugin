@@ -6,6 +6,8 @@ settingsPath: ''
 order: 6
 ---
 
+<!-- Documentation current through Zen UI v2.5.0. -->
+
 ## How do I install Zen UI?
 
 See the [Installation](/zen-ui/docs/installation) guide for full installation instructions.

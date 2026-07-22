@@ -27,6 +27,7 @@ M.SIZE = { preferred_pct = 0.36, min_pct = 0.22, max_pct = 0.50, grow_priority =
 local DEFAULT_TEXT_STYLES = {
     title = { font_face = "default", font_size = 11, bold = true },
     author = { font_face = "default", font_size = 9, bold = false },
+    series = { font_face = "default", font_size = 7, bold = false },
     description = { font_face = "default", font_size = 16, bold = false },
 }
 
@@ -113,6 +114,16 @@ local function fmt_duration(secs)
     return tostring(math.max(1, mins)) .. "m"
 end
 
+local function format_series(book)
+    local series = type(book.series) == "string" and book.series:gsub("^%s*(.-)%s*$", "%1") or ""
+    if series == "" then return "" end
+    local index = tonumber(book.series_index)
+    if not index then return series end
+    local index_text = index == math.floor(index)
+        and tostring(math.floor(index)) or string.format("%.10g", index)
+    return series .. " #" .. index_text
+end
+
 local function build_progress_text(book, pct, progress_meta)
     progress_meta = type(progress_meta) == "table" and progress_meta or {}
     local left = {}
@@ -148,14 +159,17 @@ local function build_progress_text(book, pct, progress_meta)
 end
 
 function M.build(ctx, source_key)
-    local width = ctx.width
-    local height = ctx.height
+    local outer_width = ctx.width
+    local outer_height = ctx.height
+    local Screen = Device.screen
+    local padding = Screen:scaleBySize(8)
+    local width = math.max(1, outer_width - padding * 2)
+    local height = math.max(1, outer_height - padding * 2)
     local module_cfg = type(ctx.module_cfg) == "table" and ctx.module_cfg or {}
     local interactive = module_cfg.interactive ~= false
     local source = source_key or "recently_read"
     local order = module_cfg.order or "default"
     local book = ctx.data:getFeaturedBook(source, order)
-    local Screen = Device.screen
     local show_description = module_cfg.show_description ~= false
     local show_status_bar = module_cfg.show_status_bar == true and type(ctx.buildStatusRow) == "function"
 
@@ -165,13 +179,13 @@ function M.build(ctx, source_key)
 
     if not book then
         return FrameContainer:new{
-            width = width,
-            height = height,
+            width = outer_width,
+            height = outer_height,
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
             CenterContainer:new{
-                dimen = Geom:new{ w = width, h = height },
+                dimen = Geom:new{ w = outer_width, h = outer_height },
                 TextWidget:new{ text = "No books found", face = ctx.face_label },
             },
         }
@@ -209,9 +223,11 @@ function M.build(ctx, source_key)
     local scale = clamp(col_h / 300, 0.55, 1.28) * library_font.getScale(18)
     local title_style = text_style(module_cfg, "title")
     local author_style = text_style(module_cfg, "author")
+    local series_style = text_style(module_cfg, "series")
     local description_style = text_style(module_cfg, "description")
     local title_face = get_text_face(title_style, Screen:scaleBySize(math.floor(title_style.font_size * scale + 0.5)))
     local meta_face = get_text_face(author_style, Screen:scaleBySize(math.floor(author_style.font_size * scale + 0.5)))
+    local series_face = get_text_face(series_style, Screen:scaleBySize(math.floor(series_style.font_size * scale + 0.5)))
     local stats_face = Font:getFace("smallinfofont", Screen:scaleBySize(math.floor(6.5 * scale + 0.5)))
     local desc_face = get_text_face(description_style, library_font.scaleValue(description_style.font_size))
 
@@ -277,6 +293,7 @@ function M.build(ctx, source_key)
     -- Title: up to 2 lines before truncating
     local title_line_h = math.max(1, math.floor((tonumber(title_face.size) or 12) * 1.05 + 0.5))
     local author_line_h = math.max(1, math.floor((tonumber(meta_face.size) or 10) * 1.05 + 0.5))
+    local series_line_h = math.max(1, math.floor((tonumber(series_face.size) or 8) * 1.05 + 0.5))
     local probe = TextWidget:new{ text = book.title or "", face = title_face, bold = title_style.bold == true }
     local title_needs_2_lines = probe:getSize().w > text_w
     WidgetResources.free(probe)
@@ -284,14 +301,18 @@ function M.build(ctx, source_key)
 
     local author_text = (book.authors or ""):gsub("%s*\n%s*", ", "):gsub("%s+", " ")
     local has_author = author_text ~= ""
+    local series_text = format_series(book)
+    local has_series = series_text ~= ""
     local author_h = 0
     if has_author then
         local author_probe = TextWidget:new{ text = author_text, face = meta_face, bold = author_style.bold == true }
-        local lines = author_probe:getSize().w > text_w and 2 or 1
+        local lines = not has_series and author_probe:getSize().w > text_w and 2 or 1
         WidgetResources.free(author_probe)
         author_h = author_line_h * lines
     end
-    local title_author_gap = has_author and math.max(1, Screen:scaleBySize(1)) or 0
+    local series_h = has_series and series_line_h or 0
+    local title_author_gap = (has_author or has_series) and math.max(1, Screen:scaleBySize(1)) or 0
+    local author_series_gap = has_author and has_series and math.max(1, Screen:scaleBySize(1)) or 0
 
     -- Build top block widgets first so we can measure actual heights
     local top_items = {}
@@ -323,20 +344,27 @@ function M.build(ctx, source_key)
         end
     end
 
-    -- Clamp title/author to remaining budget
-    if title_h + title_author_gap + author_h > top_budget then
+    -- Clamp title and metadata to remaining budget
+    if title_h + title_author_gap + author_h + author_series_gap + series_h > top_budget then
         if has_author and top_budget >= author_line_h then
-            if top_budget < title_h + title_author_gap + author_h then
+            if top_budget < title_h + title_author_gap + author_h + author_series_gap + series_h then
                 author_h = author_line_h
             end
-            title_h = math.min(title_h, math.max(0, top_budget - title_author_gap - author_h))
+            title_h = math.min(title_h, math.max(0,
+                top_budget - title_author_gap - author_h - author_series_gap - series_h))
         else
             author_h = 0
-            title_author_gap = 0
-            title_h = math.min(title_h, math.max(0, top_budget))
+            author_series_gap = 0
+            title_h = math.min(title_h,
+                math.max(0, top_budget - title_author_gap - series_h))
         end
     end
-    if title_h <= 0 then title_author_gap = 0 end
+    if title_h + title_author_gap + author_h + author_series_gap + series_h > top_budget then
+        series_h = 0
+        author_series_gap = 0
+        title_h = math.min(title_h, math.max(0, top_budget - title_author_gap - author_h))
+    end
+    if title_h <= 0 or (author_h <= 0 and series_h <= 0) then title_author_gap = 0 end
 
     if title_h > 0 then
         table.insert(top_items, TextBoxWidget:new{
@@ -345,6 +373,8 @@ function M.build(ctx, source_key)
             height = title_h,
             face = title_face,
             bold = title_style.bold == true,
+            alignment = "left",
+            alignment_strict = true,
             line_height = 0,
             height_overflow_show_ellipsis = true,
         })
@@ -359,6 +389,25 @@ function M.build(ctx, source_key)
             height = author_h,
             face = meta_face,
             bold = author_style.bold == true,
+            alignment = "left",
+            alignment_strict = true,
+            line_height = 0,
+            fgcolor = Blitbuffer.COLOR_BLACK,
+            height_overflow_show_ellipsis = true,
+        })
+    end
+    if author_series_gap > 0 and series_h > 0 then
+        table.insert(top_items, VerticalSpan:new{ width = author_series_gap })
+    end
+    if has_series and series_h > 0 then
+        table.insert(top_items, TextBoxWidget:new{
+            text = series_text,
+            width = text_w,
+            height = series_h,
+            face = series_face,
+            bold = series_style.bold == true,
+            alignment = "left",
+            alignment_strict = true,
             line_height = 0,
             fgcolor = Blitbuffer.COLOR_BLACK,
             height_overflow_show_ellipsis = true,
@@ -405,6 +454,8 @@ function M.build(ctx, source_key)
             height = desc_h,
             face = desc_face,
             bold = description_style.bold == true,
+            alignment = "left",
+            alignment_strict = true,
             fgcolor = Blitbuffer.COLOR_BLACK,
             height_overflow_show_ellipsis = true,
         }
@@ -441,17 +492,20 @@ function M.build(ctx, source_key)
     }
 
     local frame = FrameContainer:new{
-        width = width,
-        height = height,
+        width = outer_width,
+        height = outer_height,
         padding = 0,
         bordersize = 0,
         background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
-        TopContainer:new{
+        CenterContainer:new{
+            dimen = Geom:new{ w = outer_width, h = outer_height },
+            TopContainer:new{
             dimen = Geom:new{ w = width, h = height },
             VerticalGroup:new{
                 align = "center",
                 VerticalSpan:new{ width = col_top_pad },
                 body,
+            },
             },
         },
     }
@@ -460,7 +514,7 @@ function M.build(ctx, source_key)
         return frame
     end
     local tap = InputContainer:new{
-        dimen = Geom:new{ w = width, h = height },
+        dimen = Geom:new{ w = outer_width, h = outer_height },
         ges_events = {
             TapFeatured = {
                 GestureRange:new{ ges = "tap", range = Geom:new{

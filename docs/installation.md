@@ -6,6 +6,8 @@ settingsPath: ''
 order: 5
 ---
 
+<!-- Documentation current through Zen UI v2.5.0. -->
+
 ![zen_ui.koplugin folder inside the KOReader plugins directory](/images/zen_ui/plugins_folder.png)
 
 ## Prerequisites
@@ -51,5 +53,4 @@ After disabling or removing Project Title, restart KOReader and Zen UI will load
 5. Once the folder is copied, restart KOReader and you should be guided through initial setup.
 
 ![Zen UI Startup Screen](/images/zen_ui/quickstart.png)
-
 

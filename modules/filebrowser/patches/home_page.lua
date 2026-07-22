@@ -4,6 +4,7 @@ local book_status = require("common/book_status")
 local Blitbuffer = require("ffi/blitbuffer")
 local HomeQuotes = require("modules/filebrowser/patches/home/home_quotes")
 local HomePresets = require("modules/filebrowser/patches/home/home_presets")
+local ReadingGoals = require("common/reading_goals")
 local PresetStore = require("config/preset_store")
 local Registry = require("modules/filebrowser/patches/home/components/registry")
 local StandalonePage = require("modules/filebrowser/patches/standalone_page")
@@ -13,6 +14,7 @@ local utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
 
 local M = {}
+local DEFAULT_GOALS_FONT_SIZE = 11
 
 -- When a library background image is configured, home module frames must be
 -- transparent (nil fill) instead of opaque COLOR_WHITE, or they paint over the
@@ -400,6 +402,19 @@ local function ensure_home_widget_cfg(dcfg)
     if stats_triplet.stat_style ~= "outline" and stats_triplet.stat_style ~= "none" then
         stats_triplet.stat_style = "divider"
     end
+    local stats_font_size = tonumber(stats_triplet.font_size)
+        or tonumber(stats_triplet.font_scale) and 18 * stats_triplet.font_scale / 100
+    local stats_font_override = stats_triplet.font_size_override == true
+    stats_triplet.font_size = stats_font_size and (stats_font_override or stats_font_size ~= 18)
+        and math.max(8, math.min(32, math.floor(stats_font_size + 0.5))) or nil
+    stats_triplet.font_size_override = stats_triplet.font_size and true or nil
+    stats_triplet.font_scale = nil
+    local reading_goals = ensure_module_cfg(dcfg, "reading_goals")
+    local goals_font_size = tonumber(reading_goals.font_size)
+    local goals_font_override = reading_goals.font_size_override == true
+    reading_goals.font_size = goals_font_size and (goals_font_override or goals_font_size ~= DEFAULT_GOALS_FONT_SIZE)
+        and math.max(8, math.min(32, math.floor(goals_font_size + 0.5))) or nil
+    reading_goals.font_size_override = reading_goals.font_size and true or nil
     local strip_custom = ensure_strip_module_cfg(dcfg, "strip_custom")
     if type(strip_custom.paths) ~= "table" then strip_custom.paths = {} end
     ensure_strip_module_cfg(dcfg, "strip_tbr")
@@ -442,25 +457,24 @@ local function ensure_home_cfg()
     dcfg.rows = Registry.normalizeRows(dcfg.rows, DEFAULT_ROW_ORDER, DEFAULT_ROW_ENABLED)
 
     if dcfg.show_status_bar == nil then dcfg.show_status_bar = true end
+    dcfg.edit_mode = dcfg.edit_mode == true
+    local font_size = tonumber(dcfg.font_size)
+    dcfg.font_size = font_size and math.max(8, math.min(32, math.floor(font_size + 0.5))) or 18
+    dcfg.font_size_override = dcfg.font_size_override == true
 
     if type(dcfg.middle_stats_triplet) ~= "table" then
         dcfg.middle_stats_triplet = { "today_pages", "today_duration", "streak" }
     end
 
-    if type(dcfg.goals) ~= "table" then dcfg.goals = {} end
-    if dcfg.goals.metric ~= "time" and dcfg.goals.metric ~= "pages" then
-        dcfg.goals.metric = "pages"
-    end
-    if dcfg.goals.period ~= "weekly" and dcfg.goals.period ~= "daily" then
-        dcfg.goals.period = "daily"
-    end
-    if type(dcfg.goals.daily_pages_target) ~= "number" then dcfg.goals.daily_pages_target = 30 end
-    if type(dcfg.goals.weekly_pages_target) ~= "number" then dcfg.goals.weekly_pages_target = 210 end
-    if type(dcfg.goals.daily_time_target_min) ~= "number" then dcfg.goals.daily_time_target_min = 30 end
-    if type(dcfg.goals.weekly_time_target_min) ~= "number" then dcfg.goals.weekly_time_target_min = 210 end
+    dcfg.goals = ReadingGoals.normalize(dcfg.goals)
 
     if type(dcfg.quotes) ~= "table" then dcfg.quotes = {} end
     if dcfg.quotes.show_author == nil then dcfg.quotes.show_author = true end
+    local quote_font_size = tonumber(dcfg.quotes.font_size)
+    local quote_font_override = dcfg.quotes.font_size_override == true
+    dcfg.quotes.font_size = quote_font_size and (quote_font_override or quote_font_size ~= 12)
+        and math.max(4, math.min(32, math.floor(quote_font_size + 0.5))) or nil
+    dcfg.quotes.font_size_override = dcfg.quotes.font_size and true or nil
 
     if type(dcfg.quotes.manual_index) ~= "number" then dcfg.quotes.manual_index = 1 end
 
@@ -587,12 +601,23 @@ local function collect_stats_fields(rows, dcfg)
             if not added then add("today_pages") end
         elseif id == "reading_goals" then
             local goals = dcfg.goals or {}
-            local metric = goals.metric == "time" and "time" or "pages"
-            local period = goals.period == "weekly" and "weekly" or "daily"
-            if metric == "time" then
-                add(period == "weekly" and "week_duration" or "today_duration")
-            else
-                add(period == "weekly" and "week_pages" or "today_pages")
+            local metrics = type(goals.metrics) == "table" and goals.metrics or {}
+            local periods = type(goals.periods) == "table" and goals.periods
+                or { goals.period == "weekly" and "weekly" or "daily" }
+            for _j, period in ipairs(periods) do
+                add(period == "weekly" and "week_pages"
+                    or period == "monthly" and "month_pages"
+                    or period == "yearly" and "year_pages" or "today_pages")
+                add(period == "weekly" and "week_duration"
+                    or period == "monthly" and "month_duration"
+                    or period == "yearly" and "year_duration" or "today_duration")
+                if metrics[period] == "books" then
+                    if period == "monthly" then
+                        add("finished_this_month")
+                    elseif period == "yearly" then
+                        add("finished_this_year")
+                    end
+                end
             end
         end
     end
@@ -603,7 +628,11 @@ end
 
 local function stats_fields_key(fields)
     if type(fields) ~= "table" then return "" end
-    local order = { "today_pages", "today_duration", "week_pages", "week_duration", "streak" }
+    local order = {
+        "today_pages", "today_duration", "week_pages", "week_duration",
+        "month_pages", "month_duration",
+        "year_pages", "year_duration", "finished_this_month", "finished_this_year", "streak",
+    }
     local out = {}
     for _i, key in ipairs(order) do
         if fields[key] then out[#out + 1] = key end
@@ -675,6 +704,15 @@ local function build_data_provider(cfg, dcfg)
             stats_cached = StatsDB.queryStats() or {}
         else
             stats_cached = {}
+        end
+        if fields and (fields.finished_this_month or fields.finished_this_year) then
+            local ok_library, LibraryDB = pcall(require, "common/db_library")
+            local counts = ok_library and LibraryDB and LibraryDB.getBookCounts
+                and LibraryDB.getBookCounts() or {}
+            stats_cached.finished_this_month = fields.finished_this_month
+                and (counts.finished_this_month or 0) or 0
+            stats_cached.finished_this_year = fields.finished_this_year
+                and (counts.finished_this_year or 0) or 0
         end
         return stats_cached
     end
@@ -858,7 +896,7 @@ local function build_data_provider(cfg, dcfg)
         end
         book_cache_misses = book_cache_misses + 1
         local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
-        local cover_bb, title, authors, pages, description
+        local cover_bb, title, authors, series, series_index, pages, description
         if ok_bim and BookInfoManager then
             -- get_cover=true also matches a directory/unsupported-file placeholder
             -- object (ignore_cover='Y', _no_provider/_is_directory set) that's never
@@ -867,8 +905,24 @@ local function build_data_provider(cfg, dcfg)
             if bi then
                 title = bi.title
                 authors = bi.authors
+                series = bi.series
+                series_index = bi.series_index
                 pages = bi.pages
                 description = bi.description
+            end
+            local ok_rakuyomi, Rakuyomi = pcall(require, "common/rakuyomi")
+            local metadata = ok_rakuyomi and type(Rakuyomi.getMetadata) == "function"
+                and Rakuyomi.getMetadata(path) or nil
+            if metadata then
+                title = metadata.title or title
+                authors = metadata.authors or authors
+                series = metadata.series or series
+                series_index = metadata.series_index or series_index
+                description = metadata.description or description
+                if bi and type(BookInfoManager.setBookInfoProperties) == "function" then
+                    pcall(BookInfoManager.setBookInfoProperties,
+                        BookInfoManager, path, metadata)
+                end
             end
             if bi and bi.cover_bb and bi.has_cover and bi.cover_fetched and not bi.ignore_cover then
                 cover_bb = bi.cover_bb:copy()
@@ -948,6 +1002,8 @@ local function build_data_provider(cfg, dcfg)
             path = path,
             title = title,
             authors = authors or "",
+            series = series,
+            series_index = tonumber(series_index),
             cover_bb = cover_bb,
             percent = pct or 0,
             percent_finished = pct,
@@ -1390,12 +1446,7 @@ local function compute_row_heights(rows, body_h)
         if max_h < min_h then max_h = min_h end
         if pref < min_h then pref = min_h end
         if pref > max_h then pref = max_h end
-        local id = comp.id or ""
         table.insert(specs, {
-            id = id,
-            is_strip = id == "strip" or id:match("^strip_") ~= nil,
-            is_featured = id == "featured" or id:match("^featured_") ~= nil,
-            is_datetime = id == "datetime",
             pref = pref,
             min = min_h,
             max = max_h,
@@ -1435,26 +1486,25 @@ local function compute_row_heights(rows, body_h)
         total = total + sp.h
     end
 
-    local function pick_shrink_candidate(strip_only)
+    local function pick_shrink_candidate()
         local best_i = nil
         local best_room = 0
+        local best_priority = nil
         for i, sp in ipairs(specs) do
-            if not strip_only or sp.is_strip then
-                local room = sp.h - sp.min
-                if room > best_room then
-                    best_room = room
-                    best_i = i
-                end
+            local room = sp.h - sp.min
+            local priority = tonumber(sp.grow_priority) or 10
+            if room > 0 and (not best_priority or priority > best_priority
+                    or (priority == best_priority and room > best_room)) then
+                best_i = i
+                best_room = room
+                best_priority = priority
             end
         end
         return best_i, best_room
     end
 
     while total > body_h do
-        local best_i, best_room = pick_shrink_candidate(true)
-        if not best_i or best_room <= 0 then
-            best_i, best_room = pick_shrink_candidate(false)
-        end
+        local best_i, best_room = pick_shrink_candidate()
         if not best_i or best_room <= 0 then break end
         specs[best_i].h = specs[best_i].h - 1
         total = total - 1
@@ -1867,7 +1917,9 @@ local function build_home_content(menu, dcfg, rows, data_provider)
     local TextWidget = require("ui/widget/textwidget")
     local LeftContainer = require("ui/widget/container/leftcontainer")
     local FrameContainer = require("ui/widget/container/framecontainer")
+    local InputContainer = require("ui/widget/container/inputcontainer")
     local Font = require("ui/font")
+    local GestureRange = require("ui/gesturerange")
 
     local prev_focus_key = menu._zen_home_focus_key
     menu._zen_home_focus_targets = {}
@@ -1947,7 +1999,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
         end
     end
 
-    local function show_book_context_menu(path, source)
+    local function show_book_context_menu(path, source, component_id)
         if type(path) ~= "string" or path == "" then return false end
         local fm = FileManager.instance
         local fc = fm and fm.file_chooser
@@ -1958,12 +2010,44 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             _zen_home_context = true,
             _zen_disable_select = true,
             _zen_is_history = source == "recently_read",
+            _zen_widget_settings = dcfg.edit_mode == true and function()
+                return require("modules/settings/sections/library_settings/home_settings")
+                    .openWidgetSettings(component_id, _zen_plugin)
+            end or nil,
             _zen_after_status_change = function(changed_path)
                 invalidate_home_book_cache(changed_path)
                 M.rebuildActive()
             end,
         })
         return true
+    end
+
+    local function open_widget_settings(id)
+        if dcfg.edit_mode ~= true then return false end
+        return require("modules/settings/sections/library_settings/home_settings")
+            .openWidgetSettings(id, _zen_plugin)
+    end
+
+    local function add_widget_settings_hold(widget, id, width, height)
+        if dcfg.edit_mode ~= true then return widget end
+        local tap = InputContainer:new{
+            dimen = Geom:new{ w = width, h = height },
+            ges_events = {
+                HoldWidgetSettings = {
+                    GestureRange:new{ ges = "hold", range = Geom:new{
+                        x = 0, y = 0, w = Screen:getWidth(), h = Screen:getHeight(),
+                    } },
+                },
+            },
+        }
+        tap.onHoldWidgetSettings = function(tap_self, _arg, ges)
+            if not (tap_self.dimen and ges and ges.pos and tap_self.dimen:contains(ges.pos)) then
+                return false
+            end
+            return open_widget_settings(id)
+        end
+        tap[1] = widget
+        return tap
     end
 
     local function shift_strip(source_key, count, order_key, direction, component_id)
@@ -2031,7 +2115,13 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             config = dcfg,
             data = data_provider,
             openBook = open_book,
-            showBookMenu = show_book_context_menu,
+            showBookMenu = function(path, source)
+                return show_book_context_menu(path, source, comp.id)
+            end,
+            editMode = dcfg.edit_mode == true,
+            openWidgetSettings = function()
+                return open_widget_settings(comp.id)
+            end,
             shiftStrip = shift_strip,
             openTopMenu = open_top_menu,
             buildStatusRow = _zen_shared and _zen_shared.buildStatusRow,
@@ -2070,6 +2160,12 @@ local function build_home_content(menu, dcfg, rows, data_provider)
                     VerticalSpan:new{ width = title_gap_h },
                     widget,
                 }
+            end
+            if comp.id ~= "featured_custom" and comp.id ~= "featured_tbr"
+                    and comp.id ~= "featured_recent" and comp.id ~= "strip_custom"
+                    and comp.id ~= "strip_tbr" and comp.id ~= "strip_recent"
+                    and comp.id ~= "quotes" and comp.id ~= "reading_goals" then
+                final_widget = add_widget_settings_hold(final_widget, comp.id, content_w, h)
             end
             final_widget = wrap_home_focus_target(menu, {
                 key = "widget:" .. tostring(comp.id),

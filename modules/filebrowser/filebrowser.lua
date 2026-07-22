@@ -41,6 +41,7 @@ local PATCH_MODULES = {
     mosaic_title_strip = "modules/filebrowser/patches/mosaic_title_strip",
     browser_cover_rounded_corners = "modules/filebrowser/patches/browser_cover_rounded_corners",
     browser_show_hidden = "modules/filebrowser/patches/browser_show_hidden",
+    cache_bookinfo_get_doc_props = "modules/filebrowser/patches/cache_bookinfo_get_doc_props",
     browser_page_count = "modules/filebrowser/patches/browser_page_count",
     browser_series_badge = "modules/filebrowser/patches/browser_series_badge",
     automatic_series_grouping = "modules/filebrowser/patches/automatic_series_grouping",
@@ -91,6 +92,11 @@ end
 function M.init(logger, plugin)
     if initialized then
         return true
+    end
+
+    local ok_metadata, metadata_err = pcall(Rakuyomi.installMetadataIntegration)
+    if not ok_metadata and logger then
+        logger.warn("Rakuyomi metadata integration failed", metadata_err)
     end
 
     local add_sort_title_natural_fn = load_patch("add_sort_title_natural")
@@ -184,6 +190,11 @@ function M.init(logger, plugin)
     local browser_show_hidden_fn = load_patch("browser_show_hidden")
     if browser_show_hidden_fn then
         run_feature(logger, plugin, "browser_show_hidden", browser_show_hidden_fn)
+    end
+
+    local cache_bookinfo_get_doc_props = load_patch("cache_bookinfo_get_doc_props")
+    if cache_bookinfo_get_doc_props then
+        run_feature(logger, plugin, "cache_bookinfo_get_doc_props", cache_bookinfo_get_doc_props)
     end
 
     local browser_page_count_fn = load_patch("browser_page_count")

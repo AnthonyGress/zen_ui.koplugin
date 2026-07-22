@@ -250,9 +250,28 @@ def apply_translations(locale: str, translations: dict[str, str]) -> int:
     return sum(1 for v in translations.values() if v)
 
 
-def _format_tokens(text: str) -> list[str]:
-    """Return placeholders that translations must preserve."""
-    return sorted(re.findall(r"%\d+|%(?:[-+0 #]*\d*(?:\.\d+)?)?[A-Za-z%]", text))
+_FORMAT_TOKEN_RE = re.compile(r"%(?:\d+\$)?[-+ #0]*\d*(?:\.\d+)?[A-Za-z%]|%\d+")
+
+
+def _protect_format_tokens(text: str) -> tuple[str, list[str]]:
+    """Replace format placeholders with markers that translation services preserve."""
+    tokens: list[str] = []
+
+    def replace(match: re.Match) -> str:
+        tokens.append(match.group(0))
+        return f"⟪ZENFMT{len(tokens) - 1}⟫"
+
+    return _FORMAT_TOKEN_RE.sub(replace, text), tokens
+
+
+def _restore_format_tokens(text: str, tokens: list[str]) -> str:
+    """Restore protected format placeholders after translation."""
+    for index, token in enumerate(tokens):
+        marker = f"⟪ZENFMT{index}⟫"
+        if text.count(marker) != 1:
+            raise ValueError("translation changed a format placeholder marker")
+        text = text.replace(marker, token)
+    return text
 
 
 def google_translate(text: str, locale: str, timeout: int = 20) -> str:
@@ -260,12 +279,13 @@ def google_translate(text: str, locale: str, timeout: int = 20) -> str:
     if locale == "en":
         return text
 
+    protected_text, format_tokens = _protect_format_tokens(text)
     query = urllib.parse.urlencode({
         "client": "gtx",
         "sl": "en",
         "tl": GOOGLE_LOCALES.get(locale, locale),
         "dt": "t",
-        "q": text,
+        "q": protected_text,
     })
     request = urllib.request.Request(
         f"{GOOGLE_TRANSLATE_URL}?{query}",
@@ -279,9 +299,7 @@ def google_translate(text: str, locale: str, timeout: int = 20) -> str:
             translated = "".join(part[0] for part in data[0] if part and part[0])
             if not translated:
                 raise ValueError("Google returned an empty translation")
-            if _format_tokens(translated) != _format_tokens(text):
-                raise ValueError("translation changed a formatting placeholder")
-            return translated
+            return _restore_format_tokens(translated, format_tokens)
         except (OSError, ValueError, KeyError, IndexError, TypeError, urllib.error.URLError) as exc:
             last_error = exc
             if attempt < 2:

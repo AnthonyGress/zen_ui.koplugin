@@ -6,9 +6,15 @@ settingsPath: Zen UI > Extras
 order: 60
 ---
 
+<!-- Documentation current through Zen UI v2.5.0. -->
+
 ## Overview
 
-Extras collects optional addtions that fall outside of the Library/Reader. It includes Zen OPDS, TBR behavior, custom icons, Rakuyomi return behavior, lighting schedules, whole word search matching, sleep seetings, and Lockdown Mode.
+Extras collects optional additions that fall outside of the Library/Reader. It includes Stats, Zen OPDS, TBR behavior, custom icons, Rakuyomi return behavior, lighting schedules, whole-word search matching, sleep settings, and Lockdown Mode.
+
+## Stats
+
+Open the **Stats** tab from the Navbar to view reading activity. Use **Extras > Stats** to choose and arrange the dashboard widgets, enable Edit mode for on-page adjustments, set the default text size, and choose stat separators. Widgets can show activity for today, week, month, year, all time, personal records, your library, the current book, reading trends, goals, and the reading calendar.
 
 ## OPDS
 
@@ -48,6 +54,10 @@ Use **Extras > Lockdown mode** to configure library, Controls, and reader restri
 
 | Setting | Description |
 | --- | --- |
+| Extras > Stats > Widgets | Chooses and arranges dashboard widgets. The calendar occupies two widget slots; up to six slots can be enabled. |
+| Extras > Stats > Edit mode | Enables editing supported Stats and Home widgets directly from their pages. |
+| Extras > Stats > Default font size | Sets the default text size for Stats widgets. Individual supported widgets can override it. |
+| Extras > Stats > Stat separators | Selects divider lines, outlines, or no separators for Stats widgets. |
 | Extras > Zen OPDS | Enables Zen UI OPDS enhancements, including cover art, list/mosaic view, hold menu, and navigation changes. |
 | Extras > Zen OPDS > Display mode | Selects mosaic, list, or classic OPDS display mode. |
 | Extras > Include new books in TBR | Includes unread books and books modified since they were last opened in the To Be Read view. |

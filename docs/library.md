@@ -6,6 +6,8 @@ settingsPath: Zen UI > Library
 order: 30
 ---
 
+<!-- Documentation current through Zen UI v2.5.0. -->
+
 ![Library cover view](/images/zen_ui/library_covers_full.png)
 
 ![Library list view](/images/zen_ui/library_list_full.png)
@@ -85,8 +87,9 @@ Adjust a grouped view's display and sort from its context menu while that tab is
 | Navbar | Opens navbar tab, action, label, icon, default-tab, and styling settings. |
 | Navbar > Tabs | Opens the tab arranger. At least 1 tab must remain visible and no more than 7 tabs can be visible. |
 | Navbar > Tabs > Built-in tabs | Includes Library, Manga, News, Continue, History, Favorites, Collections, Authors, Series, Home, Tags, To Be Read, Search, Calibre Search, Stats, Exit, Previous page, Next page, and Menu. |
-| Navbar > Tabs > Add > Action | Adds a user-defined tab that runs a dispatcher action. |
-| Navbar > Tabs > Add > Plugin | Scans for launchable plugin menus and adds the selected plugin menu as a tab. |
+| Navbar > Tabs > Add > Control | Adds a Navbar tab that runs a selected Controls control. |
+| Navbar > Tabs > Add > Action | Adds a user-defined tab that runs a dispatcher action with a suggested icon. |
+| Navbar > Tabs > Add > Plugin | Scans for launchable plugin menus and adds the selected plugin menu as a tab with a suggested icon. |
 | Navbar > Custom tabs > Show in navbar | Shows or hides a custom tab. |
 | Navbar > Custom tabs > Action | Selects the dispatcher action run by an action tab. |
 | Navbar > Custom tabs > Plugin | Selects the launchable plugin menu run by a plugin tab. |

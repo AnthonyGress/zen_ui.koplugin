@@ -4,18 +4,14 @@ local subscribers = {}
 local object_subscribers = setmetatable({}, { __mode = "k" })
 local scheduled_fn = nil
 local paused = false
+local ClockSchedule = require("common/clock_schedule")
 
 local function get_ui_manager()
     return require("ui/uimanager")
 end
 
 local function next_minute_delay()
-    local t = os.date("*t")
-    local sec = type(t) == "table" and tonumber(t.sec) or 0
-    sec = sec or 0
-    local delay = 60 - sec
-    if delay <= 0 or delay > 60 then delay = 60 end
-    return delay
+    return ClockSchedule.nextMinuteDelay(os.date("*t"))
 end
 
 local function has_subscribers()

@@ -953,7 +953,7 @@ local function apply_context_menu()
                                 if bookinfo.series then
                                     local s = BD.auto(bookinfo.series)
                                     if bookinfo.series_index then
-                                        series_str_local = string.format("#%.4g – %s", bookinfo.series_index, s)
+                                        series_str_local = string.format("%s #%.4g", s, bookinfo.series_index)
                                     else
                                         series_str_local = s
                                     end
@@ -1302,6 +1302,43 @@ local function apply_context_menu()
                 if is_virtual_folder then return end
                 close_dialog()
                 local edit_dialog
+                local has_selected_files = file_manager.selected_files
+                    and next(file_manager.selected_files) ~= nil
+
+                local function showSelectedFilesPasteDialog()
+                    local action_dialog
+                    local function paste_selected(cutfile)
+                        UIManager:close(action_dialog)
+                        file_manager.cutfile = cutfile
+                        file_manager:showCopyMoveSelectedFilesDialog(function() end, file)
+                    end
+                    action_dialog = ButtonDialog:new{
+                        title = _("Paste selected files"),
+                        title_align = "center",
+                        buttons = apply_button_group_font({{
+                            {
+                                text = icons.copy .. "  " .. C_("File", "Copy"),
+                                align = "left",
+                                callback = function() paste_selected(false) end,
+                            },
+                            {
+                                text = icons.move .. "  " .. _("Move"),
+                                align = "left",
+                                callback = function() paste_selected(true) end,
+                            },
+                        }}),
+                    }
+                    UIManager:show(action_dialog)
+                end
+
+                local function paste()
+                    UIManager:close(edit_dialog)
+                    if file_manager.clipboard then
+                        file_manager:pasteFileFromClipboard(file)
+                    elseif has_selected_files then
+                        showSelectedFilesPasteDialog()
+                    end
+                end
 
                 if is_home_dir then
                     edit_dialog = ButtonDialog:new{
@@ -1309,11 +1346,8 @@ local function apply_context_menu()
                             {{
                                 text = "\u{F0192}  " .. C_("File", "Paste"),
                                 align = "left",
-                                enabled = file_manager.clipboard and true or false,
-                                callback = function()
-                                    UIManager:close(edit_dialog)
-                                    file_manager:pasteFileFromClipboard(file)
-                                end,
+                                enabled = (file_manager.clipboard or has_selected_files) and true or false,
+                                callback = paste,
                             }},
                         }),
                     }
@@ -1348,11 +1382,8 @@ local function apply_context_menu()
                         {
                             text = "\u{F0192}  " .. C_("File", "Paste"),
                             align = "left",
-                            enabled = file_manager.clipboard and true or false,
-                            callback = function()
-                                UIManager:close(edit_dialog)
-                                file_manager:pasteFileFromClipboard(file)
-                            end,
+                            enabled = (file_manager.clipboard or has_selected_files) and true or false,
+                            callback = paste,
                         },
                     },
                 }
@@ -2073,6 +2104,18 @@ local function apply_context_menu()
             end
 
             local dlg_title = dialog_cover_widget and "" or dialog_title
+            if type(item._zen_widget_settings) == "function" then
+                table.insert(buttons, {
+                    {
+                        text = icons.settings .. "  " .. _("Widget settings"),
+                        align = "left",
+                        callback = function()
+                            close_dialog()
+                            UIManager:nextTick(item._zen_widget_settings)
+                        end,
+                    },
+                })
+            end
             self_fc.file_dialog = ButtonDialog:new{
                 title = dlg_title ~= "" and dlg_title or nil,
                 title_align = "center",

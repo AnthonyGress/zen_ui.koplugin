@@ -52,39 +52,28 @@ function M.makeState(glyph, width, height, face)
     }
 end
 
+local function get_menu_icon_width(menu)
+    local width
+    for _i, item in ipairs(menu and menu.item_table or {}) do
+        if type(item) == "table" and item.icon_glyph then
+            width = math.max(width or 0, M.getWidth(item))
+        end
+    end
+    return width
+end
+
 local function rebuild_touch_menu_item(row)
     local item = row and row.item
-    if not (item and item.icon_glyph and row.dimen) then return end
+    if not (item and row.dimen) then return end
+
+    local icon_w = item.icon_glyph and M.getWidth(item) or get_menu_icon_width(row.menu)
+    if not icon_w or (not item.icon_glyph and not item.checked_func) then return end
 
     local item_enabled = item.enabled
     if item.enabled_func then
         item_enabled = item.enabled_func()
     end
-    local item_checkable = false
-    local item_checked = item.checked
-    if item.checked_func then
-        item_checkable = true
-        item_checked = item.checked_func()
-    end
-    local checkmark_widget
-    if item.radio then
-        checkmark_widget = RadioMark:new{
-            checkable = item_checkable,
-            checked = item_checked,
-            enabled = item_enabled,
-        }
-    else
-        checkmark_widget = CheckMark:new{
-            checkable = item_checkable,
-            checked = item_checked,
-            enabled = item_enabled,
-        }
-    end
-
-    local checked_widget = CheckMark:new{ checked = true }
-    local check_w = checked_widget:getSize().w
-    local icon_w = M.getWidth(item)
-    local text_max_width = row.dimen.w - 2 * Size.padding.default - check_w - icon_w
+    local text_max_width = row.dimen.w - 2 * Size.padding.default - icon_w
     local text = require("ui/widget/menu").getMenuText(item)
     local face = row.face
     local forced_baseline, forced_height
@@ -98,6 +87,25 @@ local function rebuild_touch_menu_item(row)
         else
             face = row.face
         end
+    end
+    local state_widget
+    if item.checked_func then
+        local item_checked = item.checked_func()
+        local checkmark_widget = item.radio and RadioMark:new{
+            checkable = true,
+            checked = item_checked,
+            enabled = item_enabled,
+        } or CheckMark:new{
+            checkable = true,
+            checked = item_checked,
+            enabled = item_enabled,
+        }
+        state_widget = CenterContainer:new{
+            dimen = Geom:new{ w = icon_w, h = row.dimen.h },
+            checkmark_widget,
+        }
+    else
+        state_widget = M.makeState(item.icon_glyph, icon_w, row.dimen.h, face)
     end
     local text_widget = TextWidget:new{
         text = text,
@@ -114,11 +122,7 @@ local function rebuild_touch_menu_item(row)
         color = Blitbuffer.COLOR_BLACK,
         HorizontalGroup:new{
             align = "center",
-            CenterContainer:new{
-                dimen = Geom:new{ w = check_w },
-                checkmark_widget,
-            },
-            M.makeState(item.icon_glyph, icon_w, row.dimen.h, face),
+            state_widget,
             text_widget,
         },
     }

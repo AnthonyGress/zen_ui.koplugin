@@ -7,6 +7,7 @@ local function featured_text_styles()
     return {
         title = { font_face = "default", font_size = 11, bold = true },
         author = { font_face = "default", font_size = 9, bold = false },
+        series = { font_face = "default", font_size = 7, bold = false },
         description = { font_face = "default", font_size = 16, bold = false },
     }
 end
@@ -40,6 +41,7 @@ local DEFAULT_HOME_PAGE = {
             strip_tbr = false,
         },
     },
+    font_size = 18,
     middle_stats_triplet = {
         "today_pages",
         "today_duration",
@@ -50,10 +52,18 @@ local DEFAULT_HOME_PAGE = {
         daily_target = 30,
         daily_time_target_min = 30,
         metric = "pages",
+        metrics = { daily = "pages", weekly = "pages", monthly = "pages", yearly = "pages" },
         period = "daily",
+        periods = { "daily" },
         weekly_pages_target = 210,
         weekly_target = 210,
         weekly_time_target_min = 210,
+        monthly_pages_target = 900,
+        monthly_time_target_min = 900,
+        monthly_books_target = 1,
+        yearly_pages_target = 1000,
+        yearly_time_target_min = 1000,
+        yearly_books_target = 12,
     },
     show_status_bar = false,
     modules = {
@@ -184,6 +194,7 @@ local BOOKSHELF_HOME_PAGE = {
             strip_tbr = false,
         },
     },
+    font_size = 18,
     middle_stats_triplet = {
         "today_pages",
         "today_duration",
@@ -194,10 +205,18 @@ local BOOKSHELF_HOME_PAGE = {
         daily_target = 30,
         daily_time_target_min = 30,
         metric = "pages",
+        metrics = { daily = "pages", weekly = "pages", monthly = "pages", yearly = "pages" },
         period = "daily",
+        periods = { "daily" },
         weekly_pages_target = 210,
         weekly_target = 210,
         weekly_time_target_min = 210,
+        monthly_pages_target = 900,
+        monthly_time_target_min = 900,
+        monthly_books_target = 1,
+        yearly_pages_target = 1000,
+        yearly_time_target_min = 1000,
+        yearly_books_target = 12,
     },
     show_status_bar = false,
     modules = {

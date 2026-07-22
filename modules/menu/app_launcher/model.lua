@@ -23,6 +23,8 @@ local function valid_entry(entry, allow_folder)
         return type(entry.action) == "table"
     elseif entry.type == "plugin" then
         return valid_plugin(entry.plugin)
+    elseif entry.type == "quick_setting" then
+        return type(entry.quick_setting_id) == "string" and entry.quick_setting_id ~= ""
     elseif allow_folder and entry.type == "folder" then
         return true
     end

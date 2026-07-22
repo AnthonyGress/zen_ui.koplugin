@@ -267,6 +267,54 @@ function M.get_device_firmware_display()
     return fw
 end
 
+function M.get_device_ip_address()
+    local ok_ffi, ffi = pcall(require, "ffi")
+    if not ok_ffi then return nil end
+    local ok_posix = pcall(require, "ffi/posix_h")
+    if not ok_posix then return nil end
+
+    local C = ffi.C
+    local ok_network, NetworkMgr = pcall(require, "ui/network/manager")
+    local interface = ok_network and NetworkMgr and NetworkMgr.interface or nil
+    if not interface and ok_network and NetworkMgr and type(NetworkMgr.getNetworkInterfaceName) == "function" then
+        local ok_interface, value = pcall(NetworkMgr.getNetworkInterfaceName, NetworkMgr)
+        interface = ok_interface and value or nil
+    end
+
+    local ifaddrs = ffi.new("struct ifaddrs *[1]")
+    if C.getifaddrs(ifaddrs) ~= 0 then return nil end
+
+    local selected
+    local fallback
+    local ifa = ifaddrs[0]
+    while ifa ~= nil do
+        if ifa.ifa_addr ~= nil and ifa.ifa_addr.sa_family == C.AF_INET then
+            local host = ffi.new("char[?]", C.NI_MAXHOST)
+            local result = C.getnameinfo(
+                ifa.ifa_addr,
+                ffi.sizeof("struct sockaddr_in"),
+                host,
+                C.NI_MAXHOST,
+                nil,
+                0,
+                C.NI_NUMERICHOST
+            )
+            local address = result == 0 and M.normalize_value(ffi.string(host)) or nil
+            if address and address:sub(1, 4) ~= "127." then
+                local name = ffi.string(ifa.ifa_name)
+                if name == interface then
+                    selected = address
+                    break
+                end
+                fallback = fallback or address
+            end
+        end
+        ifa = ifa.ifa_next
+    end
+    C.freeifaddrs(ifaddrs[0])
+    return selected or fallback
+end
+
 function M.get_device_language()
     local lang_code
     local ok_gs, gs = pcall(function() return G_reader_settings end)

@@ -27,7 +27,7 @@ function LibraryDB.invalidateCache()
     _cache.cache_time  = 0
 end
 
--- Returns { finished = N, reading = N, total = N }
+-- Returns { finished = N, reading = N, total = N, finished_this_month = N, finished_this_year = N }
 --   finished  books whose sidecar summary.status is "complete"
 --   reading   books whose sidecar summary.status is "reading"
 --   total     all books in ReadHistory that have a sidecar file
@@ -41,7 +41,15 @@ function LibraryDB.getBookCounts()
         return _cache.book_counts
     end
 
-    local counts = { finished = 0, reading = 0, total = 0 }
+    local counts = {
+        finished = 0,
+        reading = 0,
+        total = 0,
+        finished_this_month = 0,
+        finished_this_year = 0,
+    }
+    local month = os.date("%Y-%m")
+    local year = os.date("%Y")
 
     -- Count finished books from sidecar status
     local ok, err = pcall(function()
@@ -70,6 +78,15 @@ function LibraryDB.getBookCounts()
                 local status  = summary.status
                 if status == "complete" then
                     counts.finished = counts.finished + 1
+                    local modified = summary.modified
+                    if type(modified) == "string" then
+                        if modified:sub(1, 7) == month then
+                            counts.finished_this_month = counts.finished_this_month + 1
+                        end
+                        if modified:sub(1, 4) == year then
+                            counts.finished_this_year = counts.finished_this_year + 1
+                        end
+                    end
                 elseif status == "reading" then
                     counts.reading = counts.reading + 1
                 end

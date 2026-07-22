@@ -130,6 +130,7 @@
         local icon_size = opts.icon_size
         local circle_size = opts.circle_size
         local circle_border = opts.circle_border
+        local active = opts.active == true
         local label_face = opts.label_face
         local fg = opts.dim and Blitbuffer.COLOR_DARK_GRAY or Blitbuffer.COLOR_BLACK
         local show_label = opts.show_label ~= false
@@ -138,19 +139,28 @@
             icon = icon_path and nil or icon_name,
             width = icon_size,
             height = icon_size,
-            alpha = true,
+            alpha = not active,
         }
+        if active then
+            icon:_render()
+            if icon._bb then
+                local bb_copy = icon._bb:copy()
+                bb_copy:invertRect(0, 0, bb_copy:getWidth(), bb_copy:getHeight())
+                icon._bb = bb_copy
+            end
+        end
+        local border = active and 0 or circle_border
         local icon_circle = FrameContainer:new{
             width = circle_size,
             height = circle_size,
             padding = 0,
-            bordersize = circle_border,
+            bordersize = border,
             radius = math.floor(circle_size / 2),
-            background = Blitbuffer.COLOR_WHITE,
+            background = active and Blitbuffer.COLOR_BLACK or Blitbuffer.COLOR_WHITE,
             CenterContainer:new{
                 dimen = Geom:new{
-                    w = circle_size - circle_border * 2,
-                    h = circle_size - circle_border * 2,
+                    w = circle_size - border * 2,
+                    h = circle_size - border * 2,
                 },
                 icon,
             },
@@ -290,6 +300,7 @@
 
     local function activate_entry(touch_menu, entry)
         if not entry then return end
+        if entry.enabled == false then return end
         local cfg = Model.ensure(zen_plugin.config)
         if entry_hidden_in_context(entry, touch_menu, cfg) then return end
         if entry._app_back then
@@ -313,6 +324,13 @@
             end)
             return
         end
+        if entry.type == "quick_setting" then
+            local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
+            if not (controls and controls.activate and controls.activate(entry.quick_setting_id, touch_menu)) then
+                show_unavailable()
+            end
+            return
+        end
         if entry.type == "plugin" and type(entry.plugin) == "table" then
             local launch = PluginScan.resolve(entry.plugin.key, entry.plugin.method)
             if not launch then
@@ -328,9 +346,31 @@
 
     local function entry_available(entry, touch_menu, cfg)
         if entry_hidden_in_context(entry, touch_menu, cfg) then return false end
+        if entry.type == "quick_setting" then
+            local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
+            return controls and controls.has and controls.has(entry.quick_setting_id)
+        end
         if entry.type ~= "plugin" then return true end
         local plugin = entry.plugin
         return type(plugin) == "table" and PluginScan.exists(plugin.key, plugin.method)
+    end
+
+    local function entry_active(entry)
+        if entry.type == "quick_setting" then
+            local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
+            return controls and controls.isActive and controls.isActive(entry.quick_setting_id)
+        end
+        if entry.type == "action" then
+            return require("common/dispatch_action").isActionActive(entry.action, zen_plugin)
+        end
+        return false
+    end
+
+    local function entry_disabled(entry)
+        if entry.enabled == false then return true end
+        if entry.type ~= "quick_setting" then return false end
+        local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
+        return controls and controls.isDisabled and controls.isDisabled(entry.quick_setting_id)
     end
 
     local function create_panel(touch_menu)
@@ -480,7 +520,8 @@
             layout_rows[#layout_rows + 1] = {}
             for _j, entry in ipairs(row_entries) do
                 row_counts[#rows] = row_counts[#rows] + 1
-                local dim = not entry._app_back and not entry_available(entry, touch_menu, cfg)
+                local dim = not entry._app_back
+                    and (not entry_available(entry, touch_menu, cfg) or entry_disabled(entry))
                 local cell = make_cell{
                     cell_w = row_widths[#rows] or cell_w,
                     cell_h = cell_h,
@@ -493,6 +534,7 @@
                     show_label = show_labels,
                     icon = entry.icon or (entry.type == "folder" and DEFAULT_FOLDER_ICON or DEFAULT_ENTRY_ICON),
                     dim = dim,
+                    active = not dim and entry_active(entry),
                     callback = not dim and function()
                         activate_entry(touch_menu, entry)
                     end or nil,
@@ -544,7 +586,7 @@
         return {
             id = "app_launcher",
             icon = "app_launcher",
-            remember = false,
+            remember = true,
             panel = create_panel,
             _zen_app_launcher_library = library_context == true,
         }
@@ -599,6 +641,17 @@
     if ok_rm then patch_menu_class(ReaderMenu, false) end
 
     local TouchMenu = require("ui/widget/touchmenu")
+    if not TouchMenu.__zen_app_launcher_open_first_patched then
+        TouchMenu.__zen_app_launcher_open_first_patched = true
+        local orig_init = TouchMenu.init
+        TouchMenu.init = function(self, ...)
+            if is_enabled() and Model.ensure().open_first == true then
+                local index = find_tab(self.tab_item_table, "app_launcher")
+                if index then self.last_index = index end
+            end
+            return orig_init(self, ...)
+        end
+    end
     if not TouchMenu.__zen_app_launcher_back_patched then
         TouchMenu.__zen_app_launcher_back_patched = true
         local function reset_folder(self, refresh)

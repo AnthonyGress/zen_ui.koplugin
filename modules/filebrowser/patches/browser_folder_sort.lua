@@ -50,7 +50,8 @@ local function apply_browser_folder_sort()
         local key = normalize_path(path)
         if not key then return nil end
         local m = read_map()
-        local entry = m[key] or (key ~= path and m[path])
+        local entry = m[key]
+        if entry == nil and key ~= path then entry = m[path] end
         -- Backward compat: if entry is a string, convert to table format
         if type(entry) == "string" then
             return { collate = entry, reverse = false }

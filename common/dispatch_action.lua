@@ -1,6 +1,14 @@
 local _ = require("gettext")
 
 local M = {}
+local _plugin
+local zen_action_active
+
+local function feature_enabled(key, plugin)
+    local active_plugin = plugin or _plugin
+    local features = active_plugin and active_plugin.config and active_plugin.config.features
+    return type(features) == "table" and features[key] == true
+end
 
 local function save_config(plugin)
     if plugin and type(plugin.saveConfig) == "function" then
@@ -212,6 +220,28 @@ local function set_bottom_status_bar(plugin, enabled)
     return true
 end
 
+zen_action_active = {
+    zen_ui_toggle_zen_mode = function(plugin)
+        return feature_enabled("zen_mode", plugin)
+    end,
+    zen_ui_toggle_lockdown_mode = function(plugin)
+        return feature_enabled("lockdown_mode", plugin)
+    end,
+    zen_ui_toggle_incognito_mode = function(plugin)
+        return feature_enabled("incognito_mode", plugin)
+    end,
+    zen_ui_toggle_reader_top_status_bar = function(plugin)
+        return is_top_status_bar_enabled(plugin or _plugin)
+    end,
+    zen_ui_toggle_reader_themes = function(plugin)
+        return feature_enabled("reader_themes", plugin or _plugin)
+    end,
+    zen_ui_toggle_reader_bottom_status_bar = is_bottom_status_bar_visible,
+    zen_ui_toggle_reader_status_bars = function(plugin)
+        return is_top_status_bar_enabled(plugin or _plugin) or is_bottom_status_bar_visible()
+    end,
+}
+
 -- Combines KOReader's built-in pull-then-push progress sync (previously the
 -- "Sync" quick settings button) into a single bindable action.
 local function sync_reading_progress()
@@ -334,36 +364,49 @@ function M.onDispatcherRegisterActions()
         event = "ToggleZenMode",
         title = _("Zen UI - Toggle Zen Mode"),
         general = true,
+        active_func = zen_action_active.zen_ui_toggle_zen_mode,
     })
     Dispatcher:registerAction("zen_ui_toggle_lockdown_mode", {
         category = "none",
         event = "ToggleLockdownMode",
         title = _("Zen UI - Toggle Lockdown Mode"),
         general = true,
+        active_func = zen_action_active.zen_ui_toggle_lockdown_mode,
     })
     Dispatcher:registerAction("zen_ui_toggle_incognito_mode", {
         category = "none",
         event = "ToggleIncognitoMode",
         title = _("Zen UI - Toggle Incognito Mode"),
         general = true,
+        active_func = zen_action_active.zen_ui_toggle_incognito_mode,
     })
     Dispatcher:registerAction("zen_ui_toggle_reader_top_status_bar", {
         category = "none",
         event = "ToggleReaderTopStatusBar",
         title = _("Zen UI - Toggle top reader status bar"),
         reader = true,
+        active_func = zen_action_active.zen_ui_toggle_reader_top_status_bar,
+    })
+    Dispatcher:registerAction("zen_ui_toggle_reader_themes", {
+        category = "none",
+        event = "ToggleReaderThemes",
+        title = _("Zen UI - Toggle reader themes"),
+        reader = true,
+        active_func = zen_action_active.zen_ui_toggle_reader_themes,
     })
     Dispatcher:registerAction("zen_ui_toggle_reader_bottom_status_bar", {
         category = "none",
         event = "ToggleReaderBottomStatusBar",
         title = _("Zen UI - Toggle bottom reader status bar"),
         reader = true,
+        active_func = zen_action_active.zen_ui_toggle_reader_bottom_status_bar,
     })
     Dispatcher:registerAction("zen_ui_toggle_reader_status_bars", {
         category = "none",
         event = "ToggleReaderStatusBars",
         title = _("Zen UI - Toggle reader status bars"),
         reader = true,
+        active_func = zen_action_active.zen_ui_toggle_reader_status_bars,
     })
     Dispatcher:registerAction("zen_ui_show_toc", {
         category = "none",
@@ -436,6 +479,24 @@ function M.onToggleZenMode(plugin)
     return true
 end
 
+function M.isActionActive(actions, plugin)
+    if type(actions) ~= "table" then return false end
+    local action_name
+    for key, value in pairs(actions) do
+        if key ~= "settings" then
+            local name = type(key) == "number" and value or key
+            if type(name) == "string" then
+                if action_name then return false end
+                action_name = name
+            end
+        end
+    end
+    local active_func = action_name and zen_action_active[action_name]
+    if type(active_func) ~= "function" then return false end
+    local ok, active = pcall(active_func, plugin)
+    return ok and active == true
+end
+
 function M.onToggleLockdownMode(plugin)
     local features = plugin and plugin.config and plugin.config.features
     if type(features) ~= "table" then return false end
@@ -466,6 +527,16 @@ end
 
 function M.onToggleReaderTopStatusBar(plugin)
     return set_top_status_bar(plugin, not is_top_status_bar_enabled(plugin))
+end
+
+function M.onToggleReaderThemes(plugin)
+    local features = plugin and plugin.config and plugin.config.features
+    if type(features) ~= "table" then return false end
+    features.reader_themes = features.reader_themes ~= true
+    save_config(plugin)
+    local settings_apply = require("modules/settings/zen_settings_apply")
+    settings_apply.apply_feature_toggle(plugin, "reader_themes", features.reader_themes)
+    return true
 end
 
 M.isBottomStatusBarVisible = is_bottom_status_bar_visible
@@ -516,11 +587,13 @@ function M.onShowZenUIToc(plugin)
 end
 
 function M.install(target)
+    _plugin = target
     target.onDispatcherRegisterActions = M.onDispatcherRegisterActions
     target.onToggleZenMode = M.onToggleZenMode
     target.onToggleLockdownMode = M.onToggleLockdownMode
     target.onToggleIncognitoMode = M.onToggleIncognitoMode
     target.onToggleReaderTopStatusBar = M.onToggleReaderTopStatusBar
+    target.onToggleReaderThemes = M.onToggleReaderThemes
     target.onToggleReaderBottomStatusBar = M.onToggleReaderBottomStatusBar
     target.onToggleReaderStatusBars = M.onToggleReaderStatusBars
     target.onShowZenUIHome = M.onShowZenUIHome

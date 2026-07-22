@@ -20,7 +20,6 @@ local defaults = {
     },
     rakuyomi = {
         return_to_chapter_list_on_exit = false,
-        reverse_page_scrolling = false,
     },
     localization = {
         default_locale = "en",
@@ -57,6 +56,7 @@ local defaults = {
         automatic_series_grouping = true,
         partial_page_repaint = false,
         reader_top_status_bar = true,
+        reader_themes = false,
         reader_bottom_menu = false,
         night_mode_schedule = false,
         warmth_schedule     = false,
@@ -88,7 +88,7 @@ local defaults = {
             page_right = false,
             menu = false,
         },
-        tab_order = { "page_left", "books", "manga", "news", "authors", "series", "home", "continue", "favorites", "history", "collections", "stats", "exit", "page_right", "menu" },
+        tab_order = { "books", "authors", "series", "home", "continue", "favorites" },
         show_icons = true,
         show_labels = true,
         icon_size = 34,
@@ -107,7 +107,7 @@ local defaults = {
         show_top_border = false,
     },
     quick_settings = {
-        button_order = { "wifi", "night", "frontlight", "gyro", "rotate", "zen", "lockdown", "incognito", "usb", "search", "quickrss", "cloud", "zlibrary", "calibre", "notion", "streak", "opds", "filebrowser", "restart", "exit", "sleep" },
+        button_order = { "wifi", "night", "rotate", "zen", "restart", "sleep" },
         show_buttons = {
             wifi = true,
             night = true,
@@ -220,6 +220,11 @@ local defaults = {
         show_bottom_border = false,
         bottom_border_progress = false,
     },
+    reader_themes = {
+        dark_mode = "dark_warm_gray",
+        light_mode = "default",
+        custom = {},
+    },
     reader_footer = {
         verbose_chapter_time = false,
         hide_in_cbz = true,
@@ -252,9 +257,6 @@ local defaults = {
         night_h     = 20,
         night_m     = 0,
         night_value = 5,
-    },
-    stats_page = {
-        rows = { "today", "this_month", "this_year", "all_time", "library" },
     },
     group_view = {
         include_new_in_tbr = false,

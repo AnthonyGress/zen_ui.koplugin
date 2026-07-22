@@ -189,6 +189,21 @@ return {
     },
     ["2.4.4"] = {
         "Fix time to book finished incorrect with stable pages"
+    },
+    ["2.5.0"] = {
+        "Add testing framework",
+        "Add Zen UI Reader margins to Advanced settings (About > Advanced)",
+        "Add Reader themes (Reader > Reader themes)",
+        "Add Control buttons to Launcher/Navbar",
+        "Add Edit mode to Home/Stats",
+        "Allow setting Launcher to be the default when you open the top Menu (Launcher > Open menu to Launcher)",
+        "Auto suggest icons for Controls/Launcher/Navbar",
+        "Standardize buttons menu for Controls/Launcher/Navbar",
+        "Better sizing/spacing on home widgets",
+        "Update menu icons",
+        "Updated stats page + widgets (Extras > Stats)",
+        "Updated ZenUpdater",
+        "Add Ukrainian translation",
+        "Bug fixes"
     }
-
 }

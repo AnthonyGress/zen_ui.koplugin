@@ -657,7 +657,7 @@ local function apply_browser_list_item_layout()
             if wseries then table.insert(optional_widgets, wseries) end
             if wtags_left then table.insert(optional_widgets, wtags_left) end
 
-            local title_min_h = math.max(1, math.floor(content_h * 0.45))
+            local title_min_h = math.max(1, math.min(content_h, wtitle:getSize().h))
             local optional_budget = math.max(0, content_h - title_min_h)
             local used_optional_h = 0
             local visible_optional = {}

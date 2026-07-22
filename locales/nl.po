@@ -6,6 +6,9 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Language: nl\n"
 
+msgid " days"
+msgstr "dagen"
+
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
@@ -15,8 +18,23 @@ msgstr "%1 min resterend in hoofdstuk"
 msgid "%d%% Read"
 msgstr "%d%% gelezen"
 
+msgid "%s books goal"
+msgstr "%s boekdoel"
+
+msgid "%s goal"
+msgstr "%s doel"
+
+msgid "%s goal (%s)"
+msgstr "%s doel (%s)"
+
 msgid "%s left"
 msgstr "%s over"
+
+msgid "%s pages goal"
+msgstr "%s paginadoel"
+
+msgid "%s time goal (min)"
+msgstr "%s tijdsdoel (min)"
 
 msgid "(auto)"
 msgstr "(auto)"
@@ -111,6 +129,9 @@ msgstr "Knoppen toevoegen"
 msgid "Add catalog"
 msgstr "Catalogus toevoegen"
 
+msgid "Add control"
+msgstr "Voeg controle toe"
+
 msgid "Add custom buttons for other plugins or actions."
 msgstr "Voeg aangepaste knoppen toe voor andere plug-ins of acties."
 
@@ -143,6 +164,9 @@ msgstr "Alle instellingen staan in één geïntegreerd tabblad. Dit pictogram me
 
 msgid "All Time"
 msgstr "Totaaltijd"
+
+msgid "All time"
+msgstr "Altijd"
 
 msgid "Allow custom icons"
 msgstr "Aangepaste pictogrammen toestaan"
@@ -192,23 +216,14 @@ msgstr "Er moet minstens één tabblad zichtbaar zijn"
 msgid "Author"
 msgstr "Auteur"
 
-msgid "authors"
-msgstr "auteurs"
-
 msgid "Authors"
 msgstr "Auteurs"
 
+msgid "authors"
+msgstr "auteurs"
+
 msgid "Automatic suspend"
 msgstr "Automatische slaapstand"
-
-msgid "avg pages/day"
-msgstr "gem. pagina's/dag"
-
-msgid "avg time/book"
-msgstr "gem. tijd/boek"
-
-msgid "avg time/day"
-msgstr "gem. tijd/dag"
 
 msgid "Back"
 msgstr "Terug"
@@ -249,14 +264,14 @@ msgstr "Batterijstatistieken"
 msgid "Beginning / End"
 msgstr "Begin / Einde"
 
-msgid "best day"
-msgstr "beste dag"
+msgid "Best day"
+msgstr "Beste dag"
 
-msgid "best month"
-msgstr "beste maand"
+msgid "Best month"
+msgstr "Beste maand"
 
-msgid "best week"
-msgstr "beste week"
+msgid "Best week"
+msgstr "Beste week"
 
 msgid "Beta"
 msgstr "Beta"
@@ -267,11 +282,11 @@ msgstr "Zwart"
 msgid "Blue"
 msgstr "Blauw"
 
-msgid "Bold"
-msgstr "Vet"
-
 msgid "bold"
 msgstr "vet"
+
+msgid "Bold"
+msgstr "Vet"
 
 msgid "Bold text"
 msgstr "Vette tekst"
@@ -300,17 +315,14 @@ msgstr "Boektitel"
 msgid "Book: "
 msgstr "Boek: "
 
-msgid "books"
-msgstr "boeken"
-
 msgid "Books"
 msgstr "Boeken"
 
-msgid "books finished"
-msgstr "boeken klaar"
+msgid "books"
+msgstr "boeken"
 
-msgid "books read"
-msgstr "boeken gelezen"
+msgid "Books read"
+msgstr "Boeken gelezen"
 
 msgid "Books shown"
 msgstr "Getoonde boeken"
@@ -384,9 +396,6 @@ msgstr "Gecentreerde pagina's"
 msgid "Change folder"
 msgstr "Map wijzigen"
 
-msgid "Change Row"
-msgstr "Rij wijzigen"
-
 msgid "Changelog"
 msgstr "Wijzigingslogboek"
 
@@ -396,8 +405,8 @@ msgstr "Hoofdstuk"
 msgid "Chapter Time + %"
 msgstr "Hoofdstuktijd + %"
 
-msgid "Check for updates"
-msgstr "Controleren op updates"
+msgid "Update Zen UI"
+msgstr "Zen UI bijwerken"
 
 msgid "Check for updates automatically"
 msgstr "Automatisch controleren op updates"
@@ -414,11 +423,17 @@ msgstr "Een andere map kiezen"
 msgid "Choose a preset for your reading progress bar."
 msgstr "Kies een voorinstelling voor je leesvoortgangsbalk."
 
+msgid "Choose control"
+msgstr "Kies voor controle"
+
 msgid "Choose item"
 msgstr "Item kiezen"
 
 msgid "Choose plugin menu"
 msgstr "Plug-inmenu kiezen"
+
+msgid "Choose tab"
+msgstr "Kies tabblad"
 
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 msgstr "Kies welke tabbladen in je navigatiebalk verschijnen.\nJe kunt ze op elk moment in Instellingen opnieuw rangschikken of aanpassen."
@@ -477,6 +492,15 @@ msgstr "Contextmenu"
 msgid "Continue"
 msgstr "Doorgaan"
 
+msgid "Control"
+msgstr "Controle"
+
+msgid "Control settings"
+msgstr "Controle-instellingen"
+
+msgid "Control: %1"
+msgstr "Controle: %1"
+
 msgid "Controls"
 msgstr "Bediening"
 
@@ -518,6 +542,12 @@ msgstr "Kruiswoord"
 
 msgid "Current / total pages"
 msgstr "Huidige / totaal aantal pagina's"
+
+msgid "Current Book"
+msgstr "Huidig ​​boek"
+
+msgid "Current book"
+msgstr "Huidig ​​boek"
 
 msgid "Current home folder:"
 msgstr "Huidige startmap:"
@@ -561,23 +591,20 @@ msgstr "Aangepast: "
 msgid "Customizable top status bar and bottom progress bar."
 msgstr "Aanpasbare bovenste statusbalk en onderste voortgangsbalk."
 
+msgid "Customize widget"
+msgstr "Widget aanpassen"
+
 msgid "Cut"
 msgstr "Knippen"
 
 msgid "Cycle"
 msgstr "Cyclisch wisselen"
 
-msgid "Daily pages goal"
-msgstr "Dagdoel pagina's"
+msgid "Daily"
+msgstr "Dagelijks"
 
-msgid "Daily pages goal: "
-msgstr "Dagdoel pagina's: "
-
-msgid "Daily time goal (min)"
-msgstr "Dagdoel tijd (min)"
-
-msgid "Daily time goal (min): "
-msgstr "Dagdoel tijd (min): "
+msgid "Date"
+msgstr "Datum"
 
 msgid "Day brightness"
 msgstr "Dagheldheid"
@@ -591,8 +618,8 @@ msgstr "Daghelderheidstijd: "
 msgid "Day brightness: "
 msgstr "Dagheldheid: "
 
-msgid "day streak"
-msgstr "dagenreeks"
+msgid "Day streak"
+msgstr "Dagreeks"
 
 msgid "Day warmth"
 msgstr "Dagwarmte"
@@ -612,14 +639,17 @@ msgstr "Debug-logboek"
 msgid "Debug logging must be enabled to submit bug reports."
 msgstr "Foutopsporing moet ingeschakeld zijn om foutrapporten te versturen."
 
-msgid "default"
-msgstr "standaard"
-
 msgid "Default"
 msgstr "Standaard"
 
+msgid "default"
+msgstr "standaard"
+
 msgid "Default (black)"
 msgstr "Standaard (zwart)"
+
+msgid "Default font size:"
+msgstr "Standaard lettergrootte:"
 
 msgid "Default tab: "
 msgstr "Standaardtabblad: "
@@ -641,6 +671,9 @@ msgstr "Voorinstelling verwijderen?"
 
 msgid "Delete this button?"
 msgstr "Deze knop verwijderen?"
+
+msgid "Delete this control?"
+msgstr "Dit besturingselement verwijderen?"
 
 msgid "Delete this folder and its buttons?"
 msgstr "Deze map en de knoppen erin verwijderen?"
@@ -707,6 +740,9 @@ msgstr "Weergave"
 
 msgid "Display mode"
 msgstr "Weergavemodus"
+
+msgid "Divider"
+msgstr "Verdeler"
 
 msgid "Dividing lines"
 msgstr "Scheidingslijnen"
@@ -822,9 +858,6 @@ msgstr "Voltooien"
 msgid "Finished"
 msgstr "Klaar"
 
-msgid "finished"
-msgstr "klaar"
-
 msgid "Firmware: "
 msgstr "Firmware: "
 
@@ -855,17 +888,17 @@ msgstr "Mapvoorinstellingen"
 msgid "Folders"
 msgstr "Mappen"
 
-msgid "font"
-msgstr "lettertype"
-
 msgid "Font"
 msgstr "Lettertype"
 
-msgid "Font size"
-msgstr "Lettergrootte"
+msgid "font"
+msgstr "lettertype"
 
 msgid "font size"
 msgstr "lettergrootte"
+
+msgid "Font size"
+msgstr "Lettergrootte"
 
 msgid "Font size:"
 msgstr "Lettergrootte:"
@@ -903,17 +936,11 @@ msgstr "Ga"
 msgid "Go to page"
 msgstr "Ga naar pagina"
 
-msgid "Goal shown: Daily"
-msgstr "Getoond doel: dagelijks"
+msgid "Graph metric"
+msgstr "Grafiekmetriek"
 
-msgid "Goal shown: Weekly"
-msgstr "Getoond doel: wekelijks"
-
-msgid "Goals metric: Pages"
-msgstr "Doelmeting: pagina's"
-
-msgid "Goals metric: Time"
-msgstr "Doelmeting: tijd"
+msgid "Graph range"
+msgstr "Grafiek bereik"
 
 msgid "Gray"
 msgstr "Grijs"
@@ -966,6 +993,9 @@ msgstr "Vasthouden om te overslaan"
 msgid "Home"
 msgstr "Startpagina"
 
+msgid "Home default font size"
+msgstr "Standaardlettergrootte voor thuisgebruik"
+
 msgid "Home Folder"
 msgstr "Startmap"
 
@@ -992,6 +1022,9 @@ msgstr "Pictogrammen"
 
 msgid "Image support is unavailable on this device."
 msgstr "Afbeeldingen worden op dit apparaat niet ondersteund."
+
+msgid "IP address: %1"
+msgstr "IP-adres: %1"
 
 msgid "Image: "
 msgstr "Afbeelding: "
@@ -1158,8 +1191,26 @@ msgstr "Maximaal 9 knoppen toegestaan"
 msgid "Menu"
 msgstr "Menu"
 
+msgid "Metric"
+msgstr "Metrisch"
+
+msgid "min"
+msgstr "min"
+
 msgid "Minute"
 msgstr "Minuut"
+
+msgid "Minutes"
+msgstr "Notulen"
+
+msgid "minutes"
+msgstr "notulen"
+
+msgid "Monthly"
+msgstr "Maandelijks"
+
+msgid "Months"
+msgstr "Maanden"
 
 msgid "Mosaic"
 msgstr "Mozaiëk"
@@ -1281,6 +1332,15 @@ msgstr "Geen achtergrondafbeelding geselecteerd."
 msgid "No books found"
 msgstr "Geen boeken gevonden"
 
+msgid "No books with author metadata found"
+msgstr "Geen boeken met metagegevens van de auteur gevonden"
+
+msgid "No books with series metadata found"
+msgstr "Er zijn geen boeken met metagegevens van de serie gevonden"
+
+msgid "No books with tags metadata found"
+msgstr "Geen boeken met tags metadata gevonden"
+
 msgid "No changelog entries found.\n\nNo releases are available for this channel."
 msgstr "Geen vermeldingen in het wijzigingslogboek gevonden.\n\nEr zijn geen releases beschikbaar voor dit kanaal."
 
@@ -1298,6 +1358,9 @@ msgstr "Geen netwerkverbinding. Maak verbinding met Wi-Fi en probeer opnieuw."
 
 msgid "No reader engine for this file or invalid file."
 msgstr "Geen leesmotor voor dit bestand of ongeldig bestand."
+
+msgid "No reading data"
+msgstr "Geen leesgegevens"
 
 msgid "No table of contents available."
 msgstr "Geen inhoudsopgave beschikbaar."
@@ -1344,6 +1407,9 @@ msgstr "OPDS"
 msgid "Open folder"
 msgstr "Map openen"
 
+msgid "Open menu to Launcher"
+msgstr "Open het menu naar Launcher"
+
 msgid "Open next file"
 msgstr "Volgend bestand openen"
 
@@ -1361,6 +1427,9 @@ msgstr "Openen"
 
 msgid "Order"
 msgstr "Volgorde"
+
+msgid "Outline"
+msgstr "Overzicht"
 
 msgid "Outlined boxes"
 msgstr "Omlijnde vakken"
@@ -1386,14 +1455,26 @@ msgstr "Pagina x / y"
 msgid "pages"
 msgstr "pag."
 
+msgid "Pages"
+msgstr "Pagina's"
+
 msgid "Pages + Chapter Time + %"
 msgstr "Pagina's + Hoofdstuktijd + %"
 
 msgid "Pages and %"
 msgstr "Pagina's en %"
 
-msgid "pages today"
-msgstr "pagina's vandaag"
+msgid "Pages read"
+msgstr "Pagina's gelezen"
+
+msgid "Pages this week"
+msgstr "Pagina's deze week"
+
+msgid "Pages today"
+msgstr "Pagina's vandaag"
+
+msgid "Pages/day"
+msgstr "Pagina's/dag"
 
 msgid "Partial pages refresh"
 msgstr "Gedeeltelijke paginaverversing"
@@ -1405,6 +1486,9 @@ msgid "Percent"
 msgstr "Percentage"
 
 msgid "Personal Records"
+msgstr "Persoonlijke records"
+
+msgid "Personal records"
 msgstr "Persoonlijke records"
 
 msgid "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
@@ -1476,6 +1560,9 @@ msgstr "Afsluiten"
 msgid "Quit KOReader"
 msgstr "KOReader sluiten"
 
+msgid "Quote font size"
+msgstr "Citeer de lettergrootte"
+
 msgid "Quotes widget"
 msgstr "Citatenwidget"
 
@@ -1488,14 +1575,20 @@ msgstr "De Rakuyomi-plugin is niet geïnstalleerd."
 msgid "RAM usage"
 msgstr "RAM-gebruik"
 
+msgid "Range"
+msgstr "Bereik"
+
 msgid "Read now"
 msgstr "Nu lezen"
 
 msgid "Read status"
 msgstr "Leesstatus"
 
-msgid "read today"
-msgstr "vandaag gelezen"
+msgid "Read time"
+msgstr "Lees tijd"
+
+msgid "Read today"
+msgstr "Lees vandaag"
 
 msgid "Reader"
 msgstr "Lezer"
@@ -1506,14 +1599,23 @@ msgstr "Leesvoortgang"
 msgid "Reading"
 msgstr "Aan het lezen"
 
-msgid "reading"
-msgstr "aan het lezen"
+msgid "Reading Calendar"
+msgstr "Kalender lezen"
+
+msgid "Reading calendar"
+msgstr "Kalender lezen"
 
 msgid "Reading goals"
 msgstr "Leesdoelen"
 
 msgid "Reading stats widget"
 msgstr "Leesstatistiekenwidget"
+
+msgid "Reading Trend"
+msgstr "Leestrend"
+
+msgid "Reading trend"
+msgstr "Leestrend"
 
 msgid "Rebooting"
 msgstr "Herstarten"
@@ -1608,9 +1710,6 @@ msgstr "Bij afsluiten terugkeren naar de hoofdstukkenlijst"
 msgid "Reverse"
 msgstr "Omgekeerd"
 
-msgid "Reverse page scrolling"
-msgstr "Omgekeerd door pagina’s bladeren"
-
 msgid "Review"
 msgstr "Recensie"
 
@@ -1701,6 +1800,9 @@ msgstr "reeksen"
 msgid "Series number"
 msgstr "Reeksnummer"
 
+msgid "Session pages"
+msgstr "Sessiepagina's"
+
 msgid "Set"
 msgstr "Instellen"
 
@@ -1772,6 +1874,9 @@ msgstr "Favorietbadge weergeven"
 
 msgid "Show folder name"
 msgstr "Mapnaam weergeven"
+
+msgid "Show goal"
+msgstr "Doel tonen"
 
 msgid "Show hidden files"
 msgstr "Verborgen bestanden weergeven"
@@ -1905,8 +2010,17 @@ msgstr "Statistiekvak "
 msgid "Statistics"
 msgstr "Statistieken"
 
+msgid "Statistics calendar is unavailable"
+msgstr "Statistiekenkalender is niet beschikbaar"
+
 msgid "Stats"
 msgstr "Statistieken"
+
+msgid "Stats default font size"
+msgstr "Standaardlettergrootte voor statistieken"
+
+msgid "Stats font size"
+msgstr "Statistieken lettergrootte"
 
 msgid "Stats: Calendar"
 msgstr "Statistieken: Kalender"
@@ -1956,6 +2070,9 @@ msgstr "Synchroniseren"
 msgid "Sync all catalogs"
 msgstr "Alle catalogi synchroniseren"
 
+msgid "Tab"
+msgstr "Tab"
+
 msgid "Tabs"
 msgstr "Tabbladen"
 
@@ -1986,11 +2103,20 @@ msgstr "Deze wijziging vereist een herstart om van kracht te worden."
 msgid "This Month"
 msgstr "Deze maand"
 
+msgid "This month"
+msgstr "Deze maand"
+
 msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
 msgstr "Deze optie is uitgeschakeld wanneer een thuismap de hoofdmap van de apparaatopslag is. Stel eerst specifiekere boekenmappen in als thuismappen."
 
+msgid "This week"
+msgstr "Deze week"
+
 msgid "This Week"
 msgstr "Deze week"
+
+msgid "This year"
+msgstr "Dit jaar"
 
 msgid "This Year"
 msgstr "Dit jaar"
@@ -2001,8 +2127,23 @@ msgstr "Tijd"
 msgid "Time Format"
 msgstr "Tijdnotatie"
 
+msgid "Time this week"
+msgstr "Tijd deze week"
+
 msgid "Time to book end"
 msgstr "Tijd tot einde van boek"
+
+msgid "Time today"
+msgstr "Tijd vandaag"
+
+msgid "Time/book"
+msgstr "Tijd/boek"
+
+msgid "Time/day"
+msgstr "Tijd/dag"
+
+msgid "Time/page"
+msgstr "Tijd/pagina"
 
 msgid "Timer: %1 s"
 msgstr "Timer: %1 s"
@@ -2034,20 +2175,17 @@ msgstr "Lettertype bovenbalk"
 msgid "Top status bar"
 msgstr "Bovenste statusbalk"
 
-msgid "total books"
-msgstr "totaal boeken"
+msgid "Total"
+msgstr "Totaal"
+
+msgid "Total books"
+msgstr "Totaal boeken"
 
 msgid "Total pages"
 msgstr "Totaal aantal pagina’s"
 
-msgid "total pages read"
-msgstr "totaal pagina's gelezen"
-
-msgid "total read time"
-msgstr "totale leestijd"
-
-msgid "total time"
-msgstr "totale tijd"
+msgid "Total time"
+msgstr "Totale tijd"
 
 msgid "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
 msgstr "Zet de Zen-modus aan om KOReader terug te brengen tot het essentiële.\n\nVerwijder visuele rommel voor een gefocuste, afleidingsvrije lezerservaring. Sluit af via Instellingen."
@@ -2067,11 +2205,11 @@ msgstr "Onderstreping boven pictogram"
 msgid "Uniform covers"
 msgstr "Uniforme omslagen"
 
-msgid "Unknown"
-msgstr "Onbekend"
-
 msgid "unknown"
 msgstr "onbekend"
+
+msgid "Unknown"
+msgstr "Onbekend"
 
 msgid "Unknown Author"
 msgstr "Onbekende auteur"
@@ -2145,6 +2283,9 @@ msgstr "Update mislukt: time-out."
 msgid "Update now"
 msgstr "Nu bijwerken"
 
+msgid "Update KOReader"
+msgstr "KOReader bijwerken"
+
 msgid "Update Status"
 msgstr "Status bijwerken"
 
@@ -2172,11 +2313,17 @@ msgstr "Standaard lettertype gebruiken"
 msgid "Use default style"
 msgstr "Standaardstijl gebruiken"
 
+msgid "Use Home default font size"
+msgstr "Gebruik de standaardlettergrootte van Home"
+
 msgid "Use home folder"
 msgstr "Startmap gebruiken"
 
 msgid "Use last folder"
 msgstr "Laatste map gebruiken"
+
+msgid "Use Stats default font size"
+msgstr "Gebruik de standaardlettergrootte van Stats"
 
 msgid "username"
 msgstr "gebruikersnaam"
@@ -2196,17 +2343,8 @@ msgstr "Warmte"
 msgid "Warmth schedule"
 msgstr "Warmteplanning"
 
-msgid "Weekly pages goal"
-msgstr "Weekdoel pagina's"
-
-msgid "Weekly pages goal: "
-msgstr "Weekdoel pagina's: "
-
-msgid "Weekly time goal (min)"
-msgstr "Weekdoel tijd (min)"
-
-msgid "Weekly time goal (min): "
-msgstr "Weekdoel tijd (min): "
+msgid "Weekly"
+msgstr "Wekelijks"
 
 msgid "Welcome to Zen UI"
 msgstr "Welkom bij Zen UI"
@@ -2237,6 +2375,9 @@ msgstr "Wi-Fi"
 
 msgid "Widgets"
 msgstr "Widgets"
+
+msgid "Yearly"
+msgstr "Jaarlijks"
 
 msgid "You're All Set"
 msgstr "Klaar om te gaan"
@@ -2327,3 +2468,57 @@ msgstr "Zen UI: map niet gevonden: "
 
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI: geen map ingesteld voor deze actie."
+
+msgid "Reader themes"
+msgstr "Leesthema's"
+
+msgid "Enable reader themes"
+msgstr "Leesthema's inschakelen"
+
+msgid "Dark warm gray"
+msgstr "Donker warmgrijs"
+
+msgid "Dark graphite"
+msgstr "Donker grafiet"
+
+msgid "Light sepia"
+msgstr "Licht sepia"
+
+msgid "Light tan"
+msgstr "Licht beige"
+
+msgid "Zen UI - Toggle reader themes"
+msgstr "Zen UI - Leesthema's wisselen"
+
+msgid "Dark mode"
+msgstr "Donkere modus"
+
+msgid "Light mode"
+msgstr "Lichte modus"
+
+msgid "Custom themes"
+msgstr "Aangepaste thema's"
+
+msgid "New custom theme"
+msgstr "Nieuw aangepast thema"
+
+msgid "Theme name"
+msgstr "Themanaam"
+
+msgid "Background color"
+msgstr "Achtergrondkleur"
+
+msgid "Text color"
+msgstr "Tekstkleur"
+
+msgid "Theme font"
+msgstr "Themalettertype"
+
+msgid "Delete theme"
+msgstr "Thema verwijderen"
+
+msgid "Delete this custom theme?"
+msgstr "Dit aangepaste thema verwijderen?"
+
+msgid "Custom theme"
+msgstr "Aangepast thema"

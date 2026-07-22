@@ -7,6 +7,8 @@ local _ = require("gettext")
 local UIManager = require("ui/uimanager")
 local utils = require("modules/settings/zen_settings_utils")
 local constants = require("common/constants")
+local icons = require("common/inline_icon_map")
+local IconItem = require("common/ui/icon_menu_item")
 
 local M = {}
 
@@ -165,7 +167,7 @@ function M.build(ctx)
     -- Status bar item
     -- -------------------------------------------------------------------------
 
-    return {
+    return IconItem.decorate({
         text = _("Status bar"),
         sub_item_table = {
             make_enable_feature_item("status_bar", _("Enable custom status bar")),
@@ -323,7 +325,7 @@ function M.build(ctx)
                 end)(),
             },
         },
-    }
+    }, icons.settings_status)
 end
 
 return M

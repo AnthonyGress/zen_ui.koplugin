@@ -6,6 +6,9 @@ local _ = require("gettext")
 local Rakuyomi = require("common/rakuyomi")
 local SharedState = require("common/shared_state")
 local global_settings = require("modules/settings/sections/global_settings")
+local stats_settings = require("modules/settings/sections/stats_settings")
+local icons = require("common/inline_icon_map")
+local IconItem = require("common/ui/icon_menu_item")
 
 local M = {}
 
@@ -14,6 +17,8 @@ function M.build(ctx)
     local plugin = ctx.plugin
     local settings_apply = ctx.settings_apply
     local items = {}
+
+    table.insert(items, stats_settings.build(ctx))
 
     do
         if type(config.opds) ~= "table" then
@@ -45,6 +50,11 @@ function M.build(ctx)
             })
         end
 
+        local opds_display_item = IconItem.decorate({
+            text = _("Display mode"),
+            sub_item_table = display_mode_items,
+        }, icons.eye)
+
         table.insert(items, {
             text = _("Zen OPDS"),
             help_text = _("Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."),
@@ -61,12 +71,10 @@ function M.build(ctx)
                         settings_apply.prompt_restart()
                     end,
                 },
-                {
-                    text = _("Display mode"),
-                    sub_item_table = display_mode_items,
-                },
+                opds_display_item,
             },
         })
+        IconItem.decorate(items[#items], icons.settings_opds)
     end
 
     if Rakuyomi.is_available() then
@@ -91,9 +99,6 @@ function M.build(ctx)
             config.rakuyomi.return_to_chapter_on_reader_exit = nil
             migrated_rakuyomi = true
         end
-        if config.rakuyomi.reverse_page_scrolling == nil then
-            config.rakuyomi.reverse_page_scrolling = false
-        end
         if migrated_rakuyomi then
             plugin:saveConfig()
         end
@@ -112,25 +117,9 @@ function M.build(ctx)
                         if touchmenu_instance then touchmenu_instance:updateItems() end
                     end,
                 },
-                {
-                    text = _("Reverse page scrolling"),
-                    checked_func = function()
-                        return config.rakuyomi.reverse_page_scrolling == true
-                    end,
-                    callback = function(touchmenu_instance)
-                        local enabled = config.rakuyomi.reverse_page_scrolling ~= true
-                        config.rakuyomi.reverse_page_scrolling = enabled
-                        plugin:saveConfig()
-                        local RakuyomiPatch = rawget(_G, "__ZEN_UI_RAKUYOMI")
-                        if type(RakuyomiPatch) == "table"
-                                and type(RakuyomiPatch.applyReversePageScrollingToCurrentReader) == "function" then
-                            RakuyomiPatch.applyReversePageScrollingToCurrentReader(enabled)
-                        end
-                        if touchmenu_instance then touchmenu_instance:updateItems() end
-                    end,
-                },
             },
         })
+        IconItem.decorate(items[#items], icons.reading)
     end
 
     local global_items = global_settings.build_extras_items(ctx)

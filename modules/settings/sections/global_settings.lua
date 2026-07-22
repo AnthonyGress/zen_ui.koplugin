@@ -8,6 +8,8 @@ local Device = require("device")
 local ConfirmBox = require("ui/widget/confirmbox")
 local PresetStore = require("config/preset_store")
 local utils = require("modules/settings/zen_settings_utils")
+local icons = require("common/inline_icon_map")
+local IconItem = require("common/ui/icon_menu_item")
 
 -- Disables the built-in autowarmth plugin if it's running, then prompts restart.
 -- Uses the same dialog style as incompatible_plugins_check.
@@ -777,7 +779,12 @@ function M.build_extras_items(ctx)
     local sleep_item = global_items[5]
     local lockdown_item = global_items[6]
 
-    return {
+    IconItem.decorate(night_schedule_item, icons.schedule_night)
+    IconItem.decorate(brightness_schedule_item, icons.schedule_brightness)
+    IconItem.decorate(warmth_schedule_item, icons.schedule_warmth)
+    IconItem.decorate(sleep_item, icons.settings_sleep)
+
+    local items = {
         search_item,
         {
             text = _("Schedules"),
@@ -790,6 +797,10 @@ function M.build_extras_items(ctx)
         sleep_item,
         lockdown_item,
     }
+    IconItem.decorate(items[1], icons.search)
+    IconItem.decorate(items[2], icons.tbr)
+    IconItem.decorate(items[4], icons.settings_lockdown)
+    return items
 end
 
 return M

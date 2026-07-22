@@ -6,6 +6,8 @@ settingsPath: Zen UI > Reader
 order: 50
 ---
 
+<!-- Documentation current through Zen UI v2.5.0. -->
+
 ![Page browser menu](/images/zen_ui/page_browser_menu.png)
 
 ![Page browser table of contents](/images/zen_ui/page_browser_toc.png)
@@ -26,13 +28,14 @@ order: 50
 
 ## Overview
 
-Reader settings control Zen UI features while a book is open. They cover the top status bar, reader font menu, highlight and lookup tools, bottom swipe, stable page labels, page browser, return behavior, and bottom status bar options including presets.
+Reader settings control Zen UI features while a book is open. They cover the top status bar, reader themes and font menu, highlight and lookup tools, bottom swipe, stable page labels, page browser, return behavior, and bottom status bar options including presets.
 
 ![Page browser](/images/zen_ui/page_browser.png)
 
 ## Options
 
 - Configure a reader top status bar with left, center, and right item slots.
+- Apply built-in or custom themes for light and dark reader modes.
 - Apply prebuilt bottom status bars or save your current setup as a preset.
 - Open KOReader's reader font controls from Zen UI.
 - Configure Zen quick lookup, Zen highlight menu, Wikipedia, and other lookup actions.
@@ -55,10 +58,15 @@ Reader settings control Zen UI features while a book is open. They cover the top
 | Top status bar > Font | Sets the top-bar font face or restores the default font. |
 | Top status bar > Separator | Selects a preset separator for top-bar items. |
 | Top status bar > Show bottom border | Draws a separator below the reader top status bar. |
+| Reader themes > Enable reader themes | Enables Zen UI reader themes. |
+| Reader themes > Dark mode | Selects the theme used while KOReader night mode is active. |
+| Reader themes > Light mode | Selects the theme used while KOReader night mode is inactive. |
+| Reader themes > Custom themes | Creates, edits, and deletes custom themes. A custom theme can set its name, background color, text color, and font. |
 | Font > Reader font menu | Opens KOReader's reader font submenu when a reader instance is active. |
 | Highlight / Lookup > Zen quick lookup | Enables Zen UI quick lookup behavior. |
 | Highlight / Lookup > Zen highlight menu | Enables Zen UI's highlight menu. |
 | Highlight / Lookup > Show Wikipedia | Shows Wikipedia in lookup options. |
+| Highlight / Lookup > Show AI assistant | Shows an Assistant plugin button in lookup and highlight menus when the plugin is installed. |
 | Highlight / Lookup > Show other items | Shows non-Zen KOReader quick lookup options alongside Zen buttons. |
 | Reader > Verbose time to chapter end | Shows expanded chapter time information in compatible footer layouts. |
 | Reader > Enable bottom swipe | Enables bottom-swipe reader menu behavior. This is forced on while page browser is enabled. |

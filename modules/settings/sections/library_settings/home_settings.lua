@@ -5,8 +5,28 @@ local HomePresets = require("modules/filebrowser/patches/home/home_presets")
 local PresetStore = require("config/preset_store")
 local Registry = require("modules/filebrowser/patches/home/components/registry")
 local library_font = require("modules/filebrowser/patches/library_font")
+local ReadingGoals = require("common/reading_goals")
+local icons = require("common/inline_icon_map")
+local IconItem = require("common/ui/icon_menu_item")
 
 local M = {}
+local DEFAULT_GOALS_FONT_SIZE = 11
+local open_widget_settings
+
+function M.openWidgetSettings(id, plugin)
+    if type(open_widget_settings) ~= "function"
+            and plugin and type(plugin.config) == "table" then
+        M.build({
+            plugin = plugin,
+            config = plugin.config,
+            settings_apply = require("modules/settings/zen_settings_apply"),
+        })
+    end
+    if type(open_widget_settings) == "function" then
+        return open_widget_settings(id)
+    end
+    return false
+end
 
 local DEFAULT_ORDER = {
     "datetime",
@@ -36,6 +56,7 @@ local DEFAULT_FEATURED_PROGRESS_META = {
 local FEATURED_TEXT_STYLE_DEFAULTS = {
     title = { font_face = "default", font_size = 11, bold = true },
     author = { font_face = "default", font_size = 9, bold = false },
+    series = { font_face = "default", font_size = 7, bold = false },
     description = { font_face = "default", font_size = 16, bold = false },
 }
 
@@ -149,6 +170,19 @@ local function ensure_home_widget_cfg(dcfg)
     if stats_triplet.stat_style ~= "outline" and stats_triplet.stat_style ~= "none" then
         stats_triplet.stat_style = "divider"
     end
+    local stats_font_size = tonumber(stats_triplet.font_size)
+        or tonumber(stats_triplet.font_scale) and 18 * stats_triplet.font_scale / 100
+    local stats_font_override = stats_triplet.font_size_override == true
+    stats_triplet.font_size = stats_font_size and (stats_font_override or stats_font_size ~= 18)
+        and math.max(8, math.min(32, math.floor(stats_font_size + 0.5))) or nil
+    stats_triplet.font_size_override = stats_triplet.font_size and true or nil
+    stats_triplet.font_scale = nil
+    local reading_goals = ensure_module_cfg(dcfg, "reading_goals")
+    local goals_font_size = tonumber(reading_goals.font_size)
+    local goals_font_override = reading_goals.font_size_override == true
+    reading_goals.font_size = goals_font_size and (goals_font_override or goals_font_size ~= DEFAULT_GOALS_FONT_SIZE)
+        and math.max(8, math.min(32, math.floor(goals_font_size + 0.5))) or nil
+    reading_goals.font_size_override = reading_goals.font_size and true or nil
     local strip_custom = ensure_strip_cfg(dcfg, "strip_custom")
     if type(strip_custom.paths) ~= "table" then strip_custom.paths = {} end
     ensure_strip_cfg(dcfg, "strip_tbr")
@@ -165,25 +199,24 @@ local function ensure_cfg(_config)
     dcfg.rows = Registry.normalizeRows(dcfg.rows, DEFAULT_ORDER, DEFAULT_ENABLED)
 
     if dcfg.show_status_bar == nil then dcfg.show_status_bar = true end
+    dcfg.edit_mode = dcfg.edit_mode == true
+    local font_size = tonumber(dcfg.font_size)
+    dcfg.font_size = font_size and math.max(8, math.min(32, math.floor(font_size + 0.5))) or 18
+    dcfg.font_size_override = dcfg.font_size_override == true
 
     if type(dcfg.middle_stats_triplet) ~= "table" then
         dcfg.middle_stats_triplet = { "today_pages", "today_duration", "streak" }
     end
 
-    if type(dcfg.goals) ~= "table" then dcfg.goals = {} end
-    if dcfg.goals.metric ~= "time" and dcfg.goals.metric ~= "pages" then
-        dcfg.goals.metric = "pages"
-    end
-    if dcfg.goals.period ~= "weekly" and dcfg.goals.period ~= "daily" then
-        dcfg.goals.period = "daily"
-    end
-    if type(dcfg.goals.daily_pages_target) ~= "number" then dcfg.goals.daily_pages_target = 30 end
-    if type(dcfg.goals.weekly_pages_target) ~= "number" then dcfg.goals.weekly_pages_target = 210 end
-    if type(dcfg.goals.daily_time_target_min) ~= "number" then dcfg.goals.daily_time_target_min = 30 end
-    if type(dcfg.goals.weekly_time_target_min) ~= "number" then dcfg.goals.weekly_time_target_min = 210 end
+    dcfg.goals = ReadingGoals.normalize(dcfg.goals)
 
     if type(dcfg.quotes) ~= "table" then dcfg.quotes = {} end
     if dcfg.quotes.show_author == nil then dcfg.quotes.show_author = true end
+    local quote_font_size = tonumber(dcfg.quotes.font_size)
+    local quote_font_override = dcfg.quotes.font_size_override == true
+    dcfg.quotes.font_size = quote_font_size and (quote_font_override or quote_font_size ~= 12)
+        and math.max(4, math.min(32, math.floor(quote_font_size + 0.5))) or nil
+    dcfg.quotes.font_size_override = dcfg.quotes.font_size and true or nil
 
     for _i, comp in ipairs(Registry.list()) do
         ensure_module_cfg(dcfg, comp.id)
@@ -507,6 +540,13 @@ function M.build(ctx)
                 return _("Author") .. ": " .. featured_text_style_summary(mcfg, "author")
             end,
             sub_item_table = build_featured_text_style_items(mcfg, "author", _("Author")),
+        }
+        items[#items + 1] = {
+            sub_title = _("Series"),
+            text_func = function()
+                return _("Series") .. ": " .. featured_text_style_summary(mcfg, "series")
+            end,
+            sub_item_table = build_featured_text_style_items(mcfg, "series", _("Series")),
         }
         items[#items + 1] = {
             sub_title = _("Description"),
@@ -1030,7 +1070,7 @@ function M.build(ctx)
             sort_items[#sort_items + 1] = item
         end
         ZenArrangeList.show{
-            title = _("Widgets"),
+            title = _("Widgets") .. " (" .. _("Hold to arrange") .. ")",
             item_table = sort_items,
             callback = function()
                 local new_order = {}
@@ -1234,7 +1274,7 @@ function M.build(ctx)
 
     local function build_goals_items()
         local goals_cfg = ensure_module_cfg(dcfg, "reading_goals")
-        return {
+        local items = {
             {
                 text = _("Show widget title"),
                 checked_func = function()
@@ -1246,119 +1286,59 @@ function M.build(ctx)
                 end,
             },
             {
-                text = _("Goal shown: Daily"),
-                radio = true,
-                checked_func = function() return dcfg.goals.period ~= "weekly" end,
-                callback = function()
-                    dcfg.goals.period = "daily"
-                    save_home("reinit")
+                text_func = function()
+                    return string.format("%s %s", _("Font size:"), tostring(goals_cfg.font_size or DEFAULT_GOALS_FONT_SIZE))
                 end,
-            },
-            {
-                text = _("Goal shown: Weekly"),
-                radio = true,
-                checked_func = function() return dcfg.goals.period == "weekly" end,
-                callback = function()
-                    dcfg.goals.period = "weekly"
-                    save_home("reinit")
-                end,
-            },
-            {
-                text = _("Goals metric: Pages"),
-                radio = true,
-                checked_func = function() return dcfg.goals.metric ~= "time" end,
-                callback = function()
-                    dcfg.goals.metric = "pages"
-                    save_home("reinit")
-                end,
-            },
-            {
-                text = _("Goals metric: Time"),
-                radio = true,
-                checked_func = function() return dcfg.goals.metric == "time" end,
-                callback = function()
-                    dcfg.goals.metric = "time"
-                    save_home("reinit")
-                end,
-            },
-            {
-                text_func = function() return _("Daily pages goal: ") .. tostring(dcfg.goals.daily_pages_target or 30) end,
                 keep_menu_open = true,
-                callback = function()
+                callback = function(touchmenu_instance)
                     local SpinWidget = require("ui/widget/spinwidget")
                     UIManager:show(SpinWidget:new{
-                        title_text = _("Daily pages goal"),
-                        value = dcfg.goals.daily_pages_target or 30,
-                        value_min = 1,
-                        value_max = 5000,
+                        title_text = _("Reading goals font size"),
+                        value = goals_cfg.font_size or DEFAULT_GOALS_FONT_SIZE,
+                        value_min = 8,
+                        value_max = 32,
+                        default_value = DEFAULT_GOALS_FONT_SIZE,
                         callback = function(spin)
-                            dcfg.goals.daily_pages_target = spin.value
+                            goals_cfg.font_size = spin.value
+                            goals_cfg.font_size_override = true
                             save_home("reinit")
+                            if touchmenu_instance and touchmenu_instance.updateItems then
+                                touchmenu_instance:updateItems()
+                            end
                         end,
                     })
                 end,
             },
             {
-                text_func = function() return _("Weekly pages goal: ") .. tostring(dcfg.goals.weekly_pages_target or 210) end,
-                keep_menu_open = true,
-                callback = function()
-                    local SpinWidget = require("ui/widget/spinwidget")
-                    UIManager:show(SpinWidget:new{
-                        title_text = _("Weekly pages goal"),
-                        value = dcfg.goals.weekly_pages_target or 210,
-                        value_min = 1,
-                        value_max = 20000,
-                        callback = function(spin)
-                            dcfg.goals.weekly_pages_target = spin.value
-                            save_home("reinit")
-                        end,
-                    })
-                end,
-            },
-            {
-                text_func = function() return _("Daily time goal (min): ") .. tostring(dcfg.goals.daily_time_target_min or 30) end,
-                keep_menu_open = true,
-                callback = function()
-                    local SpinWidget = require("ui/widget/spinwidget")
-                    UIManager:show(SpinWidget:new{
-                        title_text = _("Daily time goal (min)"),
-                        value = dcfg.goals.daily_time_target_min or 30,
-                        value_min = 1,
-                        value_max = 1440,
-                        callback = function(spin)
-                            dcfg.goals.daily_time_target_min = spin.value
-                            save_home("reinit")
-                        end,
-                    })
-                end,
-            },
-            {
-                text_func = function() return _("Weekly time goal (min): ") .. tostring(dcfg.goals.weekly_time_target_min or 210) end,
-                keep_menu_open = true,
-                callback = function()
-                    local SpinWidget = require("ui/widget/spinwidget")
-                    UIManager:show(SpinWidget:new{
-                        title_text = _("Weekly time goal (min)"),
-                        value = dcfg.goals.weekly_time_target_min or 210,
-                        value_min = 1,
-                        value_max = 10080,
-                        callback = function(spin)
-                            dcfg.goals.weekly_time_target_min = spin.value
-                            save_home("reinit")
-                        end,
-                    })
+                text = _("Use default font size"),
+                callback = function(touchmenu_instance)
+                    goals_cfg.font_size = nil
+                    goals_cfg.font_size_override = nil
+                    save_home("reinit")
+                    if touchmenu_instance and touchmenu_instance.updateItems then
+                        touchmenu_instance:updateItems()
+                    end
                 end,
             },
         }
+        local shared_items = ReadingGoals.settingsItems(dcfg.goals, function()
+            save_home("reinit")
+        end)
+        for _i, item in ipairs(shared_items) do items[#items + 1] = item end
+        return items
     end
 
     local stats_field_options = {
-        { id = "today_pages", text = "Pages today" },
-        { id = "today_duration", text = "Read today" },
-        { id = "streak", text = "Day streak" },
-        { id = "week_pages", text = "Week pages" },
-        { id = "week_duration", text = "Week time" },
+        { id = "today_pages", text = _("Pages today") },
+        { id = "today_duration", text = _("Time today") },
+        { id = "streak", text = _("Day streak") },
+        { id = "week_pages", text = _("Pages this week") },
+        { id = "week_duration", text = _("Time this week") },
     }
+    local stats_field_labels = {}
+    for _i, option in ipairs(stats_field_options) do
+        stats_field_labels[option.id] = option.text
+    end
 
     local function build_stats_triplet_items()
         local stats_cfg = ensure_module_cfg(dcfg, "stats_triplet")
@@ -1370,6 +1350,35 @@ function M.build(ctx)
                 end,
                 callback = function()
                     stats_cfg.show_module_title = stats_cfg.show_module_title ~= true
+                    save_home("reinit")
+                end,
+            },
+            {
+                text_func = function()
+                    return string.format("%s %s", _("Font size:"), tostring(stats_cfg.font_size or dcfg.font_size))
+                end,
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    local SpinWidget = require("ui/widget/spinwidget")
+                    UIManager:show(SpinWidget:new{
+                        title_text = _("Stats font size"),
+                        value = stats_cfg.font_size or dcfg.font_size,
+                        value_min = 8,
+                        value_max = 32,
+                        default_value = 18,
+                        callback = function(spin)
+                            stats_cfg.font_size = spin.value
+                            stats_cfg.font_size_override = true
+                            save_home("reinit")
+                        end,
+                    })
+                end,
+            },
+            {
+                text = _("Use Home default font size"),
+                callback = function()
+                    stats_cfg.font_size = nil
+                    stats_cfg.font_size_override = nil
                     save_home("reinit")
                 end,
             },
@@ -1416,7 +1425,8 @@ function M.build(ctx)
             items[#items + 1] = {
                 text_func = function()
                     local cur = dcfg.middle_stats_triplet[slot] or "today_pages"
-                    return _("Stat slot ") .. tostring(slot) .. ": " .. cur
+                    return _("Stat slot ") .. tostring(slot) .. ": "
+                        .. (stats_field_labels[cur] or stats_field_labels.today_pages)
                 end,
                 sub_item_table = (function()
                     local slot_items = {}
@@ -1455,6 +1465,35 @@ function M.build(ctx)
                 end,
             },
             {
+                text_func = function()
+                    return string.format("%s %s", _("Font size:"), tostring(dcfg.quotes.font_size or dcfg.font_size))
+                end,
+                keep_menu_open = true,
+                callback = function()
+                    local SpinWidget = require("ui/widget/spinwidget")
+                    UIManager:show(SpinWidget:new{
+                        title_text = _("Quote font size"),
+                        value = dcfg.quotes.font_size or dcfg.font_size,
+                        value_min = 4,
+                        value_max = 32,
+                        default_value = 12,
+                        callback = function(spin)
+                            dcfg.quotes.font_size = spin.value
+                            dcfg.quotes.font_size_override = true
+                            save_home("reinit")
+                        end,
+                    })
+                end,
+            },
+            {
+                text = _("Use Home default font size"),
+                callback = function()
+                    dcfg.quotes.font_size = nil
+                    dcfg.quotes.font_size_override = nil
+                    save_home("reinit")
+                end,
+            },
+            {
                 text = _("Show author"),
                 checked_func = function()
                     return dcfg.quotes.show_author ~= false
@@ -1468,34 +1507,79 @@ function M.build(ctx)
     end
 
     build_widget_settings_items = function(id)
+        local items
         if id == "featured_custom" or id == "featured_tbr" or id == "featured_recent" then
-            return build_featured_widget_items(id)
+            items = build_featured_widget_items(id)
+        elseif id == "strip_custom" or id == "strip_tbr" or id == "strip_recent" then
+            items = build_strip_widget_items(id)
+        elseif id == "reading_goals" then
+            items = build_goals_items()
+        elseif id == "stats_triplet" then
+            items = build_stats_triplet_items()
+        elseif id == "quotes" then
+            items = build_quotes_items()
         end
-        if id == "strip_custom" or id == "strip_tbr" or id == "strip_recent" then
-            return build_strip_widget_items(id)
-        end
-        if id == "reading_goals" then
-            return build_goals_items()
-        end
-        if id == "stats_triplet" then
-            return build_stats_triplet_items()
-        end
-        if id == "quotes" then
-            return build_quotes_items()
-        end
+        if items then items._zen_arrange_done_func = function() end end
+        return items
     end
 
-    return {
-        text = _("Home"),
-        sub_item_table = {
+    open_widget_settings = function(id)
+        local items = build_widget_settings_items(id)
+        if type(items) ~= "table" or #items == 0 then
+            arrange_widgets()
+            return true
+        end
+        require("common/ui/zen_arrange_list").show{
+            title = component_label(id),
+            item_table = items,
+            hide_footer_cancel = true,
+        }
+        return true
+    end
+
+    local home_items = {
             {
                 text = _("Widgets") .. " \u{25B8}",
                 keep_menu_open = true,
                 callback = arrange_widgets,
             },
             {
+                text = _("Edit mode"),
+                checked_func = function()
+                    return dcfg.edit_mode == true
+                end,
+                callback = function()
+                    dcfg.edit_mode = dcfg.edit_mode ~= true
+                    save_home("reinit")
+                end,
+            },
+            {
                 text = _("Presets"),
                 sub_item_table_func = build_preset_items,
+            },
+            {
+                text_func = function()
+                    return string.format("%s %s", _("Default font size:"), tostring(dcfg.font_size))
+                end,
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    local SpinWidget = require("ui/widget/spinwidget")
+                    UIManager:show(SpinWidget:new{
+                        title_text = _("Home default font size"),
+                        value = dcfg.font_size,
+                        value_min = 8,
+                        value_max = 32,
+                        default_value = 18,
+                        callback = function(spin)
+                            dcfg.font_size = spin.value
+                            dcfg.font_size_override = true
+                            save_home("reinit")
+                            if touchmenu_instance and touchmenu_instance.updateItems then
+                                touchmenu_instance:updateItems()
+                            end
+                        end,
+                    })
+                end,
             },
             {
                 text = _("Show top status bar"),
@@ -1570,7 +1654,14 @@ function M.build(ctx)
                 },
             },
             ]]
-        },
+    }
+    IconItem.decorate(home_items[1], icons.display)
+    IconItem.decorate(home_items[3], icons.save)
+    IconItem.decorate(home_items[4], icons.title)
+
+    return {
+        text = _("Home"),
+        sub_item_table = home_items,
     }
 end
 

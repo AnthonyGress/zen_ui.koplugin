@@ -12,6 +12,9 @@
 
 <p align="center">A clean, minimal UI for KOReader. </p>
 
+## Documentation
+For the most complete and up to date documentation, visit [https://zen-labs.org/zen-ui](https://zen-labs.org/zen-ui)
+
 ## Philosophy
 
 Zen UI is built around the simple idea that **less is more.** Everything in Zen UI was designed either to remove clutter or add clear value. The interface stays fast, light, and focused on making reading more enjoyable.
@@ -187,6 +190,7 @@ Zen UI is currently translated into:
 | `pt_PT` | European Portuguese |
 | `ro` | Romanian |
 | `ru` | Russian |
+| `uk` | Ukrainian |
 | `zh_CN` | Simplified Chinese |
 | `zh_TW` | Traditional Chinese |
 
@@ -219,7 +223,7 @@ Please follow these guidelines:
 
 ## FAQ/Community
 
-Feel free to join the [Discord Community](https://discord.gg/GGUEXctJT) if you want to get help/chat/contribute
+Feel free to join the [Discord Community](https://discord.gg/Tv2PhrCPQ8) if you want to get help/chat/contribute
 
 ## Security
 

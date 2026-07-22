@@ -6,6 +6,8 @@ settingsPath: Zen UI > About > Advanced
 order: 81
 ---
 
+<!-- Documentation current through Zen UI v2.5.0. -->
+
 ![Zen UI settings](/images/zen_ui/zen_settings.png)
 
 ## Overview
@@ -15,6 +17,7 @@ Advanced settings expose maintenance and lower-level behavior. They include meta
 ## Options
 
 - Extract metadata and cover images for books in the current directory.
+- Apply Zen UI's recommended Reader margin defaults.
 - Toggle partial page refresh.
 - Show hidden and unsupported files outside the home folder.
 - Toggle KOReader verbose debug logging.
@@ -26,6 +29,7 @@ Advanced settings expose maintenance and lower-level behavior. They include meta
 | Setting | Description |
 | --- | --- |
 | About > Advanced > Extract metadata | Extracts and caches book metadata and cover images for the current directory. |
+| About > Advanced > Enable Zen UI Reader margins | Applies the Setup Guide's 30-unit Reader margin defaults. Books with their own saved margins are unchanged. |
 | About > Advanced > Partial pages refresh | Enables partial page repaint behavior. |
 | About > Advanced > Show hidden files | Shows hidden and unsupported files outside the home folder and hides them again when disabled. |
 | About > Advanced > Debug logging | Toggles KOReader debug and verbose debug settings. |

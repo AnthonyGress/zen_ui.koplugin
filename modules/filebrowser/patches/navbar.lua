@@ -109,7 +109,7 @@ local function apply_navbar()
             page_right = false,
             menu = false,
         },
-        tab_order = { "page_left", "books", "manga", "news", "continue", "authors", "series", "tags", "to_be_read", "home", "history", "favorites", "collections", "stats", "search", "calibre_search", "exit", "page_right", "menu" },
+        tab_order = { "books", "manga", "news", "continue", "home" },
         show_icons = true,
         show_labels = true,
         icon_size = navbar_icon_size_default,
@@ -126,10 +126,12 @@ local function apply_navbar()
         active_tab_underline = true,
         underline_above = false,
         show_top_border = false,
+        layout_version = 2,
     }
 
     local function loadConfig()
         local config = zen_plugin.config.navbar or {}
+        local legacy_layout = config.layout_version ~= 2
         for k, v in pairs(config_default) do
             if config[k] == nil then
                 config[k] = utils.deepcopy(v)
@@ -144,17 +146,33 @@ local function apply_navbar()
         else
             config.show_tabs = config_default.show_tabs
         end
-        -- Ensure tab_order contains all known tabs
-        if type(config.tab_order) ~= "table" then
+        if legacy_layout then
+            local selected = {}
+            local seen = {}
+            local custom_ids = {}
+            for _i, tab in ipairs(config.custom_tabs or {}) do
+                if type(tab.id) == "string" then custom_ids[tab.id] = true end
+            end
+            for _i, id in ipairs(config.tab_order or {}) do
+                if (config.show_tabs[id] == true or custom_ids[id]) and not seen[id] then
+                    selected[#selected + 1] = id
+                    seen[id] = true
+                end
+            end
+            config.tab_order = selected
+            config.layout_version = 2
+        elseif type(config.tab_order) ~= "table" then
             config.tab_order = config_default.tab_order
         else
             local order_set = {}
-            for _i, v in ipairs(config.tab_order) do order_set[v] = true end
-            for _i, v in ipairs(config_default.tab_order) do
-                if not order_set[v] then
-                    table.insert(config.tab_order, v)
+            local deduped = {}
+            for _i, id in ipairs(config.tab_order) do
+                if not order_set[id] then
+                    order_set[id] = true
+                    deduped[#deduped + 1] = id
                 end
             end
+            config.tab_order = deduped
         end
         config.icon_size = clampNavbarSize(
             config.icon_size,
@@ -166,19 +184,12 @@ local function apply_navbar()
             navbar_label_size_min,
             navbar_label_size_max,
             navbar_label_size_default)
-        -- Add custom tab IDs to tab_order if not already present
-        if type(config.custom_tabs) == "table" then
-            local ct_order_set = {}
-            for _i, v in ipairs(config.tab_order) do ct_order_set[v] = true end
-            for _i, ct in ipairs(config.custom_tabs) do
-                if type(ct.id) == "string" and not ct_order_set[ct.id] then
-                    table.insert(config.tab_order, ct.id)
-                end
-            end
-        end
         -- migrate old hard-coded English default
         if config.books_label == "Library" then config.books_label = "" end
         zen_plugin.config.navbar = config
+        if legacy_layout and type(zen_plugin.saveConfig) == "function" then
+            zen_plugin:saveConfig()
+        end
         return config
     end
 
@@ -1156,6 +1167,14 @@ local function apply_navbar()
                             local launch = PluginScan.resolve(plugin.key, plugin.method)
                             if launch then pcall(launch) end
                         end
+                    elseif ct.type == "quick_setting" then
+                        local quick_setting_id = ct.quick_setting_id
+                        tab_callbacks[ct.id] = function()
+                            local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
+                            if controls and controls.activate then
+                                controls.activate(quick_setting_id)
+                            end
+                        end
                     elseif ok_disp_ct and ct.action and next(ct.action) then
                         local action = ct.action
                         tab_callbacks[ct.id] = function() Dispatcher_ct:execute(action) end
@@ -1995,6 +2014,7 @@ local function apply_navbar()
                 end
                 if body_widget.resetLayout then body_widget:resetLayout() end
             end
+            if menu._zen_stats_rebuild then menu:_zen_stats_rebuild() end
             refreshStandaloneAfterResize(menu)
             if vg.resetLayout then vg:resetLayout() end
             if menu[1] and menu[1].resetLayout then menu[1]:resetLayout() end
@@ -2378,6 +2398,9 @@ local function apply_navbar()
         local restore_enabled = is_restore_enabled()
         local state_before_show = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
         local force_source_restore = state_before_show and state_before_show.force_restore == true
+        local hide_rakuyomi_filemanager = force_source_restore
+            and state_before_show.tab == "manga"
+            and rakuyomi_return_to_chapter_list_on_exit_enabled()
         local keep_book_location = keep_book_location_requested and not force_source_restore
         if force_source_restore then
             logger.dbg(
@@ -2428,6 +2451,11 @@ local function apply_navbar()
             end)
         else
             orig_showFiles(self, path, effective_focused, selected_files)
+        end
+        local filemanager = FileManager.instance
+        if hide_rakuyomi_filemanager and filemanager then
+            filemanager.invisible = true
+            UIManager._dirty[filemanager] = nil
         end
         logger.perf("File manager base restore completed", (os.clock() - started_at) * 1000,
             "restore_tab=", tostring(state_before_show and state_before_show.tab),
@@ -2522,6 +2550,9 @@ local function apply_navbar()
                 and type(Rakuyomi.openChapterListingFromFile) == "function"
             local opened_chapters = return_file and has_file_opener
                 and Rakuyomi.openChapterListingFromFile(return_file, true)
+            if opened_chapters then
+                _G.__ZEN_UI_RAKUYOMI_CHAPTER_LIST_RESTORED = true
+            end
             logger.dbg(
                 "Rakuyomi return: restore dispatch:",
                 "has_file=", tostring(return_file ~= nil),
@@ -2535,6 +2566,9 @@ local function apply_navbar()
                 tab_callbacks[state.tab]()
             end
         end)
+        if filemanager then
+            filemanager.invisible = nil
+        end
         -- If a detail view was open, open it synchronously too (stack: [fm, group_menu, detail_menu]).
         -- _repaint will then start from detail_menu and never show the intermediate views.
         if state.detail_group and gv and gv.restoreDetail then

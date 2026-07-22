@@ -20,6 +20,7 @@ local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
 local ZenToggle = require("common/ui/zen_toggle")
 local utils = require("common/utils")
+local ArrangeState = require("common/arrange_state")
 
 local M = {}
 local show_submenu
@@ -146,27 +147,11 @@ local function suppress_footer_page_button(sort_widget)
     button.onHoldReleaseSelectButton = function() return true end
 end
 
-local function item_order_key(item)
-    if type(item) ~= "table" then return item end
-    local key = item.orig_item
-    if key == nil then key = item.orig_entry end
-    if type(key) == "table" then
-        return key.id or key.key or key.name or key.text or key.label
-    end
-    return key or item.text
-end
-
 local function has_rearranged_items(sort_widget)
-    local orig_items = sort_widget and sort_widget.orig_item_table
-    local items = sort_widget and sort_widget.item_table
-    if type(orig_items) ~= "table" or type(items) ~= "table" then return false end
-    if #orig_items ~= #items then return true end
-    for i, item in ipairs(items) do
-        if item_order_key(item) ~= item_order_key(orig_items[i]) then
-            return true
-        end
-    end
-    return false
+    return ArrangeState.hasRearrangedItems(
+        sort_widget and sort_widget.orig_item_table,
+        sort_widget and sort_widget.item_table
+    )
 end
 
 local function sync_footer_ok(sort_widget)
@@ -190,7 +175,7 @@ local function rebuild_icon_row(row)
         item_checkable = true
         item_checked = item.checked_func()
     end
-    local toggle_h = math.max(16, math.floor(row.height * 0.45))
+    local toggle_h = math.max(16, math.floor(row.height * 0.55))
     local check_w = toggle_h * 2
     if item_checkable then
         row.checkmark_widget = ZenToggle:new{
@@ -244,6 +229,19 @@ local function rebuild_icon_row(row)
         },
     }
     row[1].invert = row.invert
+end
+
+local function is_toggle_tap(row, pos)
+    local toggle = row and row.checkmark_widget
+    local dimen = toggle and toggle.dimen
+    if not (dimen and pos) then return false end
+    local padding = Size.padding.default
+    return pos:intersectWith(Geom:new{
+        x = dimen.x - padding,
+        y = dimen.y - padding,
+        w = dimen.w + 2 * padding,
+        h = dimen.h + 2 * padding,
+    })
 end
 
 local function apply_icon_rows(sort_widget)
@@ -340,7 +338,7 @@ local function sync_done_button(sort_widget, menu_proxy, fallback)
             local current_action = get_done_action(current_items, fallback)
             if not current_action then return true end
             current_action.done_func(menu_proxy)
-            UIManager:close(sort_widget)
+            sort_widget:onClose()
             if current_action.finish and fallback and type(fallback.close_arrange) == "function" then
                 fallback.close_arrange()
             elseif fallback and type(fallback.return_to_parent) == "function" then
@@ -432,22 +430,8 @@ local function configure_title_bar(sort_widget, opts)
     end
 end
 
-local SUBMENU_CARET = " \u{25B8}"
-local ASCII_SUBMENU_CARET = " >"
-local OLD_SUBMENU_CARET = string.char(226, 150, 184)
-
 local function strip_submenu_caret(text)
-    if type(text) ~= "string" then return text end
-    if text:sub(-#SUBMENU_CARET) == SUBMENU_CARET then
-        return text:sub(1, -#SUBMENU_CARET - 1)
-    end
-    if text:sub(-#ASCII_SUBMENU_CARET) == ASCII_SUBMENU_CARET then
-        return text:sub(1, -#ASCII_SUBMENU_CARET - 1)
-    end
-    if text:sub(-#OLD_SUBMENU_CARET) == OLD_SUBMENU_CARET then
-        return (text:sub(1, -#OLD_SUBMENU_CARET - 1):gsub("%s+$", ""))
-    end
-    return text
+    return ArrangeState.stripSubmenuCaret(text)
 end
 
 local function has_submenu(item)
@@ -468,12 +452,7 @@ local function item_base_text(item)
 end
 
 local function strip_value_suffix(text)
-    if type(text) ~= "string" then return text end
-    local value_start = text:find(": ", 1, true)
-    if value_start and value_start > 1 then
-        return text:sub(1, value_start - 1)
-    end
-    return text
+    return ArrangeState.stripValueSuffix(text)
 end
 
 local function item_submenu_title(item)
@@ -485,7 +464,7 @@ local function update_dynamic_text(items)
     for _i, item in ipairs(items) do
         local text = item_base_text(item)
         if has_submenu(item) and type(text) == "string" then
-            item.text = text .. SUBMENU_CARET
+            item.text = text .. ArrangeState.SUBMENU_CARET
         elseif text ~= nil then
             item.text = text
         end
@@ -732,8 +711,7 @@ install_submenu_tap_handlers = function(sort_widget)
         if item and item._zen_arrange_submenu_on_tap and not child._zen_arrange_submenu_tap_patched then
             child._zen_arrange_submenu_tap_patched = true
             child.onTap = function(row, _arg, ges)
-                if item.checked_func and row.checkmark_widget and ges and ges.pos
-                        and ges.pos:intersectWith(row.checkmark_widget.dimen) then
+                if item.checked_func and ges and is_toggle_tap(row, ges.pos) then
                     if item.callback then
                         item:callback()
                     end
@@ -758,18 +736,26 @@ install_root_tap_handlers = function(sort_widget)
                 return true
             end
         end
-        if item and item._zen_arrange_submenu_on_tap and not child._zen_arrange_root_tap_patched then
+        if item and not child._zen_arrange_root_tap_patched then
             child._zen_arrange_root_tap_patched = true
             child.onTap = function(row, _arg, ges)
-                if item.checked_func and row.checkmark_widget and ges and ges.pos
-                        and ges.pos:intersectWith(row.checkmark_widget.dimen) then
+                local action = ArrangeState.rootTapAction(
+                    item,
+                    ges and is_toggle_tap(row, ges.pos)
+                )
+                if action == "toggle" then
                     if item.callback then
                         item:callback()
                     end
                     repopulate(row.show_parent)
                     return true
                 end
-                open_submenu_for_item(row.show_parent, item)
+                if action == "submenu" then
+                    open_submenu_for_item(row.show_parent, item)
+                elseif action == "callback" then
+                    item:callback()
+                    repopulate(row.show_parent)
+                end
                 return true
             end
         end
@@ -779,6 +765,10 @@ end
 function M.show(opts)
     opts = opts or {}
     local item_table = opts.item_table or {}
+    local done_opts = {
+        done_func = opts.done_func,
+        done_enabled_func = opts.done_enabled_func,
+    }
     update_dynamic_text(item_table)
     ensure_submenu_callbacks(item_table)
 
@@ -787,12 +777,18 @@ function M.show(opts)
         item_table = item_table,
         callback = opts.callback,
     }
+    sort_widget._zen_arrange_done_func = item_table._zen_arrange_done_func or opts.done_func
+    sort_widget._zen_arrange_done_enabled_func =
+        item_table._zen_arrange_done_enabled_func or opts.done_enabled_func
     sort_widget._zen_arrange_refresh = function(self)
         if type(opts.refresh_func) == "function" then
             local refreshed = opts.refresh_func()
             if type(refreshed) == "table" then
                 item_table = refreshed
                 self.item_table = item_table
+                self._zen_arrange_done_func = item_table._zen_arrange_done_func or opts.done_func
+                self._zen_arrange_done_enabled_func =
+                    item_table._zen_arrange_done_enabled_func or opts.done_enabled_func
                 ensure_submenu_callbacks(item_table)
                 update_dynamic_text(item_table)
             end
@@ -843,6 +839,7 @@ function M.show(opts)
 
     configure_title_bar(sort_widget, title_opts)
     suppress_page_centering(sort_widget)
+    sync_done_button(sort_widget, nil, done_opts)
     if opts.hide_footer_cancel then
         suppress_footer_cancel(sort_widget.footer_cancel)
     else
@@ -867,6 +864,7 @@ function M.show(opts)
         suppress_footer_jump_buttons(self)
         suppress_footer_page_button(self)
         sync_footer_ok(self)
+        sync_done_button(self, nil, done_opts)
         apply_icon_rows(self)
         install_root_tap_handlers(self)
         install_titlebar_focus(self)

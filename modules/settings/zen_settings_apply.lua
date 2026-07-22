@@ -20,6 +20,7 @@ local PATCH_MODULES = {
     browser_hide_up_folder = "modules/filebrowser/patches/browser_hide_up_folder",
     automatic_series_grouping = "modules/filebrowser/patches/automatic_series_grouping",
     reader_top_status_bar = "modules/reader/patches/reader_top_status_bar",
+    reader_themes = "modules/reader/patches/reader_themes",
 }
 
 local RESTART_REQUIRED = {
@@ -38,6 +39,7 @@ local APPLY_MODE = {
     browser_hide_up_folder = "filemanager_refresh",
     automatic_series_grouping = "filemanager_refresh",
     reader_top_status_bar = "reader_refresh",
+    reader_themes = "reader_themes",
 }
 
 local RUNTIME_PATCHES = rawget(_G, "__ZEN_UI_RUNTIME_PATCHES")
@@ -146,6 +148,10 @@ local function apply_reader_refresh()
     end
 end
 
+local function apply_reader_themes()
+    require("common/reader_themes").applyCurrent(active_plugin)
+end
+
 -- Deferred to avoid resetting the menu to page 1 while it's still open.
 local DISRUPTIVE_MODES = {
     filemanager_layout  = true,
@@ -187,6 +193,8 @@ local function run_apply_mode_now(mode)
         apply_menu_refresh()
     elseif mode == "reader_refresh" then
         apply_reader_refresh()
+    elseif mode == "reader_themes" then
+        apply_reader_themes()
     end
 end
 

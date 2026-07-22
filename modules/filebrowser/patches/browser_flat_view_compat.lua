@@ -79,6 +79,30 @@ local function apply_browser_flat_view_compat()
             return orig_getList(self, path, collate, ...)
         end
     end
+
+    if zen_flat_view_enabled() then
+        local ok_ui, UIManager = pcall(require, "ui/uimanager")
+        if ok_ui and UIManager and type(UIManager.scheduleIn) == "function" then
+            local attempts = 0
+            local function refresh_startup_listing()
+                attempts = attempts + 1
+                local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
+                local file_chooser = ok_fm and FileManager and FileManager.instance
+                    and FileManager.instance.file_chooser
+                if file_chooser and type(file_chooser.path) == "string" then
+                    if not flat_view_enabled(file_chooser.path) then return end
+                    if type(file_chooser.refreshPath) == "function" then
+                        file_chooser:refreshPath()
+                        return
+                    end
+                end
+                if attempts < 20 then
+                    UIManager:scheduleIn(0.1, refresh_startup_listing)
+                end
+            end
+            UIManager:scheduleIn(0.1, refresh_startup_listing)
+        end
+    end
 end
 
 return apply_browser_flat_view_compat

@@ -6,6 +6,9 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Language: zh_CN\n"
 
+msgid " days"
+msgstr "天"
+
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
@@ -15,8 +18,23 @@ msgstr "本章剩余 %1 分钟"
 msgid "%d%% Read"
 msgstr "已读 %d%%"
 
+msgid "%s books goal"
+msgstr "%s 书籍目标"
+
+msgid "%s goal"
+msgstr "%s目标"
+
+msgid "%s goal (%s)"
+msgstr "%s目标（%s）"
+
 msgid "%s left"
 msgstr "剩余 %s"
+
+msgid "%s pages goal"
+msgstr "%s 页数目标"
+
+msgid "%s time goal (min)"
+msgstr "%s 时间目标（分钟）"
 
 msgid "(auto)"
 msgstr "（自动）"
@@ -111,6 +129,9 @@ msgstr "添加按钮"
 msgid "Add catalog"
 msgstr "添加目录"
 
+msgid "Add control"
+msgstr "添加控件"
+
 msgid "Add custom buttons for other plugins or actions."
 msgstr "为其他插件或操作添加自定义按钮。"
 
@@ -143,6 +164,9 @@ msgstr "所有设置都在一个统一标签页中。带点的此图标表示有
 
 msgid "All Time"
 msgstr "历史总计"
+
+msgid "All time"
+msgstr "所有时间"
 
 msgid "Allow custom icons"
 msgstr "允许自定义图标"
@@ -192,23 +216,14 @@ msgstr "至少必须显示一个标签页"
 msgid "Author"
 msgstr "作者"
 
-msgid "authors"
-msgstr "位作者"
-
 msgid "Authors"
 msgstr "作者"
 
+msgid "authors"
+msgstr "位作者"
+
 msgid "Automatic suspend"
 msgstr "自动休眠"
-
-msgid "avg pages/day"
-msgstr "平均页数/天"
-
-msgid "avg time/book"
-msgstr "平均时长/本"
-
-msgid "avg time/day"
-msgstr "平均时长/天"
 
 msgid "Back"
 msgstr "返回"
@@ -249,14 +264,14 @@ msgstr "电池统计"
 msgid "Beginning / End"
 msgstr "开头 / 末尾"
 
-msgid "best day"
-msgstr "单日最佳"
+msgid "Best day"
+msgstr "最好的一天"
 
-msgid "best month"
-msgstr "单月最佳"
+msgid "Best month"
+msgstr "最佳月份"
 
-msgid "best week"
-msgstr "单周最佳"
+msgid "Best week"
+msgstr "最好的一周"
 
 msgid "Beta"
 msgstr "Beta"
@@ -267,10 +282,10 @@ msgstr "黑色"
 msgid "Blue"
 msgstr "蓝色"
 
-msgid "Bold"
+msgid "bold"
 msgstr "粗体"
 
-msgid "bold"
+msgid "Bold"
 msgstr "粗体"
 
 msgid "Bold text"
@@ -300,17 +315,14 @@ msgstr "图书标题"
 msgid "Book: "
 msgstr "图书： "
 
-msgid "books"
-msgstr "本书"
-
 msgid "Books"
 msgstr "书库"
 
-msgid "books finished"
-msgstr "本已读完"
+msgid "books"
+msgstr "本书"
 
-msgid "books read"
-msgstr "已读图书"
+msgid "Books read"
+msgstr "读过的书"
 
 msgid "Books shown"
 msgstr "显示图书数"
@@ -384,9 +396,6 @@ msgstr "居中页码"
 msgid "Change folder"
 msgstr "更改文件夹"
 
-msgid "Change Row"
-msgstr "更改行"
-
 msgid "Changelog"
 msgstr "更新日志"
 
@@ -396,8 +405,8 @@ msgstr "章节"
 msgid "Chapter Time + %"
 msgstr "章节时间 + %"
 
-msgid "Check for updates"
-msgstr "检查更新"
+msgid "Update Zen UI"
+msgstr "更新 Zen UI"
 
 msgid "Check for updates automatically"
 msgstr "自动检查更新"
@@ -414,11 +423,17 @@ msgstr "选择其他文件夹"
 msgid "Choose a preset for your reading progress bar."
 msgstr "为您的阅读进度条选择预设。"
 
+msgid "Choose control"
+msgstr "选择控制"
+
 msgid "Choose item"
 msgstr "选择项目"
 
 msgid "Choose plugin menu"
 msgstr "选择插件菜单"
+
+msgid "Choose tab"
+msgstr "选择选项卡"
 
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 msgstr "选择导航栏显示的标签页。\n您可以随时在设置中重新排列或调整。"
@@ -477,6 +492,15 @@ msgstr "上下文菜单"
 msgid "Continue"
 msgstr "继续"
 
+msgid "Control"
+msgstr "控制"
+
+msgid "Control settings"
+msgstr "控制设置"
+
+msgid "Control: %1"
+msgstr "控制：%1"
+
 msgid "Controls"
 msgstr "控件"
 
@@ -518,6 +542,12 @@ msgstr "填字游戏"
 
 msgid "Current / total pages"
 msgstr "当前 / 总页数"
+
+msgid "Current Book"
+msgstr "当前书籍"
+
+msgid "Current book"
+msgstr "当前书籍"
 
 msgid "Current home folder:"
 msgstr "当前主目录："
@@ -561,23 +591,20 @@ msgstr "自定义: "
 msgid "Customizable top status bar and bottom progress bar."
 msgstr "可自定义顶部状态栏和底部进度条。"
 
+msgid "Customize widget"
+msgstr "自定义小部件"
+
 msgid "Cut"
 msgstr "剪切"
 
 msgid "Cycle"
 msgstr "循环"
 
-msgid "Daily pages goal"
-msgstr "每日页数目标"
+msgid "Daily"
+msgstr "日常的"
 
-msgid "Daily pages goal: "
-msgstr "每日页数目标： "
-
-msgid "Daily time goal (min)"
-msgstr "每日时长目标（分钟）"
-
-msgid "Daily time goal (min): "
-msgstr "每日时长目标（分钟）： "
+msgid "Date"
+msgstr "日期"
 
 msgid "Day brightness"
 msgstr "白天亮度"
@@ -591,8 +618,8 @@ msgstr "白天亮度时间: "
 msgid "Day brightness: "
 msgstr "白天亮度: "
 
-msgid "day streak"
-msgstr "天连续"
+msgid "Day streak"
+msgstr "连续日数"
 
 msgid "Day warmth"
 msgstr "白天色温"
@@ -612,14 +639,17 @@ msgstr "调试日志"
 msgid "Debug logging must be enabled to submit bug reports."
 msgstr "提交问题报告前必须启用调试日志。"
 
-msgid "default"
+msgid "Default"
 msgstr "默认"
 
-msgid "Default"
+msgid "default"
 msgstr "默认"
 
 msgid "Default (black)"
 msgstr "默认（黑色）"
+
+msgid "Default font size:"
+msgstr "默认字体大小："
 
 msgid "Default tab: "
 msgstr "默认标签： "
@@ -641,6 +671,9 @@ msgstr "删除预设？"
 
 msgid "Delete this button?"
 msgstr "删除此按钮？"
+
+msgid "Delete this control?"
+msgstr "删除这个控件？"
 
 msgid "Delete this folder and its buttons?"
 msgstr "删除此文件夹及其按钮？"
@@ -707,6 +740,9 @@ msgstr "显示"
 
 msgid "Display mode"
 msgstr "显示模式"
+
+msgid "Divider"
+msgstr "分频器"
 
 msgid "Dividing lines"
 msgstr "分隔线"
@@ -822,9 +858,6 @@ msgstr "完成"
 msgid "Finished"
 msgstr "已读完"
 
-msgid "finished"
-msgstr "已读完"
-
 msgid "Firmware: "
 msgstr "固件: "
 
@@ -855,17 +888,17 @@ msgstr "文件夹预设"
 msgid "Folders"
 msgstr "文件夹"
 
-msgid "font"
-msgstr "字体"
-
 msgid "Font"
 msgstr "字体"
 
-msgid "Font size"
-msgstr "字体大小"
+msgid "font"
+msgstr "字体"
 
 msgid "font size"
 msgstr "字号"
+
+msgid "Font size"
+msgstr "字体大小"
 
 msgid "Font size:"
 msgstr "字体大小："
@@ -903,17 +936,11 @@ msgstr "前往"
 msgid "Go to page"
 msgstr "前往页面"
 
-msgid "Goal shown: Daily"
-msgstr "显示目标：每日"
+msgid "Graph metric"
+msgstr "图表指标"
 
-msgid "Goal shown: Weekly"
-msgstr "显示目标：每周"
-
-msgid "Goals metric: Pages"
-msgstr "目标指标：页数"
-
-msgid "Goals metric: Time"
-msgstr "目标指标：时长"
+msgid "Graph range"
+msgstr "图表范围"
 
 msgid "Gray"
 msgstr "灰色"
@@ -966,6 +993,9 @@ msgstr "长按跳过"
 msgid "Home"
 msgstr "主页"
 
+msgid "Home default font size"
+msgstr "首页默认字体大小"
+
 msgid "Home Folder"
 msgstr "主文件夹"
 
@@ -992,6 +1022,9 @@ msgstr "图标"
 
 msgid "Image support is unavailable on this device."
 msgstr "此设备不支持图像。"
+
+msgid "IP address: %1"
+msgstr "IP 地址：%1"
 
 msgid "Image: "
 msgstr "图片: "
@@ -1158,8 +1191,26 @@ msgstr "最多允许 9 个按钮"
 msgid "Menu"
 msgstr "菜单"
 
+msgid "Metric"
+msgstr "公制"
+
+msgid "min"
+msgstr "分钟"
+
 msgid "Minute"
 msgstr "分"
+
+msgid "Minutes"
+msgstr "分钟"
+
+msgid "minutes"
+msgstr "分钟"
+
+msgid "Monthly"
+msgstr "每月"
+
+msgid "Months"
+msgstr "几个月"
 
 msgid "Mosaic"
 msgstr "网格"
@@ -1281,6 +1332,15 @@ msgstr "未选择背景图像。"
 msgid "No books found"
 msgstr "未找到书籍"
 
+msgid "No books with author metadata found"
+msgstr "未找到包含作者元数据的书籍"
+
+msgid "No books with series metadata found"
+msgstr "未找到包含系列元数据的书籍"
+
+msgid "No books with tags metadata found"
+msgstr "找不到带有标签元数据的书籍"
+
 msgid "No changelog entries found.\n\nNo releases are available for this channel."
 msgstr "未找到更新日志条目。\n\n此频道没有可用发布版本。"
 
@@ -1298,6 +1358,9 @@ msgstr "无网络连接。请连接 Wi-Fi 后重试。"
 
 msgid "No reader engine for this file or invalid file."
 msgstr "此文件没有可用的阅读引擎或文件无效。"
+
+msgid "No reading data"
+msgstr "无读取数据"
 
 msgid "No table of contents available."
 msgstr "没有可用的目录。"
@@ -1344,6 +1407,9 @@ msgstr "OPDS"
 msgid "Open folder"
 msgstr "打开文件夹"
 
+msgid "Open menu to Launcher"
+msgstr "打开启动器菜单"
+
 msgid "Open next file"
 msgstr "打开下一个文件"
 
@@ -1361,6 +1427,9 @@ msgstr "正在打开"
 
 msgid "Order"
 msgstr "顺序"
+
+msgid "Outline"
+msgstr "大纲"
 
 msgid "Outlined boxes"
 msgstr "描边方框"
@@ -1386,14 +1455,26 @@ msgstr "第 x / y 页"
 msgid "pages"
 msgstr "页"
 
+msgid "Pages"
+msgstr "页数"
+
 msgid "Pages + Chapter Time + %"
 msgstr "页数 + 章节时间 + %"
 
 msgid "Pages and %"
 msgstr "页数和 %"
 
-msgid "pages today"
-msgstr "今日页数"
+msgid "Pages read"
+msgstr "已读页数"
+
+msgid "Pages this week"
+msgstr "本周页面"
+
+msgid "Pages today"
+msgstr "今天的页面"
+
+msgid "Pages/day"
+msgstr "页数/天"
 
 msgid "Partial pages refresh"
 msgstr "局部页面刷新"
@@ -1405,6 +1486,9 @@ msgid "Percent"
 msgstr "百分比"
 
 msgid "Personal Records"
+msgstr "个人记录"
+
+msgid "Personal records"
 msgstr "个人记录"
 
 msgid "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
@@ -1476,6 +1560,9 @@ msgstr "退出"
 msgid "Quit KOReader"
 msgstr "退出 KOReader"
 
+msgid "Quote font size"
+msgstr "报价字体大小"
+
 msgid "Quotes widget"
 msgstr "引文小组件"
 
@@ -1488,14 +1575,20 @@ msgstr "Rakuyomi 插件未安装。"
 msgid "RAM usage"
 msgstr "内存使用"
 
+msgid "Range"
+msgstr "范围"
+
 msgid "Read now"
 msgstr "立即阅读"
 
 msgid "Read status"
 msgstr "阅读状态"
 
-msgid "read today"
-msgstr "今日已读"
+msgid "Read time"
+msgstr "阅读时间"
+
+msgid "Read today"
+msgstr "今天阅读"
 
 msgid "Reader"
 msgstr "阅读器"
@@ -1506,14 +1599,23 @@ msgstr "阅读进度"
 msgid "Reading"
 msgstr "阅读中"
 
-msgid "reading"
-msgstr "阅读中"
+msgid "Reading Calendar"
+msgstr "阅读日历"
+
+msgid "Reading calendar"
+msgstr "读日历"
 
 msgid "Reading goals"
 msgstr "阅读目标"
 
 msgid "Reading stats widget"
 msgstr "阅读统计小组件"
+
+msgid "Reading Trend"
+msgstr "阅读趋势"
+
+msgid "Reading trend"
+msgstr "阅读趋势"
 
 msgid "Rebooting"
 msgstr "正在重启"
@@ -1608,9 +1710,6 @@ msgstr "退出时返回章节列表"
 msgid "Reverse"
 msgstr "反向"
 
-msgid "Reverse page scrolling"
-msgstr "反向翻页滚动"
-
 msgid "Review"
 msgstr "书评"
 
@@ -1701,6 +1800,9 @@ msgstr "个系列"
 msgid "Series number"
 msgstr "系列编号"
 
+msgid "Session pages"
+msgstr "会话页面"
+
 msgid "Set"
 msgstr "设置"
 
@@ -1772,6 +1874,9 @@ msgstr "显示收藏徽章"
 
 msgid "Show folder name"
 msgstr "显示文件夹名称"
+
+msgid "Show goal"
+msgstr "显示目标"
 
 msgid "Show hidden files"
 msgstr "显示隐藏文件"
@@ -1905,8 +2010,17 @@ msgstr "统计项 "
 msgid "Statistics"
 msgstr "统计"
 
+msgid "Statistics calendar is unavailable"
+msgstr "统计日历不可用"
+
 msgid "Stats"
 msgstr "统计"
+
+msgid "Stats default font size"
+msgstr "统计默认字体大小"
+
+msgid "Stats font size"
+msgstr "统计字体大小"
 
 msgid "Stats: Calendar"
 msgstr "统计：日历"
@@ -1956,6 +2070,9 @@ msgstr "同步"
 msgid "Sync all catalogs"
 msgstr "同步所有目录"
 
+msgid "Tab"
+msgstr "选项卡"
+
 msgid "Tabs"
 msgstr "标签"
 
@@ -1986,11 +2103,20 @@ msgstr "此更改需要重启才能生效。"
 msgid "This Month"
 msgstr "本月"
 
+msgid "This month"
+msgstr "本月"
+
 msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
 msgstr "当主文件夹是设备存储根目录时，此选项会被禁用。请先将范围更小的书籍文件夹设为主文件夹。"
 
+msgid "This week"
+msgstr "本星期"
+
 msgid "This Week"
 msgstr "本周"
+
+msgid "This year"
+msgstr "今年"
 
 msgid "This Year"
 msgstr "今年"
@@ -2001,8 +2127,23 @@ msgstr "时间"
 msgid "Time Format"
 msgstr "时间格式"
 
+msgid "Time this week"
+msgstr "本周时间"
+
 msgid "Time to book end"
 msgstr "到读完本书的时间"
+
+msgid "Time today"
+msgstr "今天时间"
+
+msgid "Time/book"
+msgstr "时间/书籍"
+
+msgid "Time/day"
+msgstr "时间/天"
+
+msgid "Time/page"
+msgstr "时间/页数"
 
 msgid "Timer: %1 s"
 msgstr "计时器：%1 s"
@@ -2034,20 +2175,17 @@ msgstr "顶部栏字体"
 msgid "Top status bar"
 msgstr "顶部状态栏"
 
-msgid "total books"
-msgstr "总书籍数"
+msgid "Total"
+msgstr "全部的"
+
+msgid "Total books"
+msgstr "书籍总数"
 
 msgid "Total pages"
 msgstr "总页数"
 
-msgid "total pages read"
-msgstr "总阅读页数"
-
-msgid "total read time"
-msgstr "总阅读时长"
-
-msgid "total time"
-msgstr "总时长"
+msgid "Total time"
+msgstr "总时间"
 
 msgid "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
 msgstr "开启禅模式，将 KOReader 精简至最基本功能。\n\n消除视觉干扰，享受专注无打扰的阅读体验。随时可从设置退出。"
@@ -2067,10 +2205,10 @@ msgstr "图标上方下划线"
 msgid "Uniform covers"
 msgstr "统一封面"
 
-msgid "Unknown"
+msgid "unknown"
 msgstr "未知"
 
-msgid "unknown"
+msgid "Unknown"
 msgstr "未知"
 
 msgid "Unknown Author"
@@ -2145,6 +2283,9 @@ msgstr "更新失败：已超时。"
 msgid "Update now"
 msgstr "立即更新"
 
+msgid "Update KOReader"
+msgstr "更新 KOReader"
+
 msgid "Update Status"
 msgstr "更新状态"
 
@@ -2172,11 +2313,17 @@ msgstr "使用默认字体"
 msgid "Use default style"
 msgstr "使用默认样式"
 
+msgid "Use Home default font size"
+msgstr "使用主页默认字体大小"
+
 msgid "Use home folder"
 msgstr "使用主文件夹"
 
 msgid "Use last folder"
 msgstr "使用上次文件夹"
+
+msgid "Use Stats default font size"
+msgstr "使用统计默认字体大小"
 
 msgid "username"
 msgstr "用户名"
@@ -2196,17 +2343,8 @@ msgstr "色温"
 msgid "Warmth schedule"
 msgstr "色温定时"
 
-msgid "Weekly pages goal"
-msgstr "每周页数目标"
-
-msgid "Weekly pages goal: "
-msgstr "每周页数目标： "
-
-msgid "Weekly time goal (min)"
-msgstr "每周时长目标（分钟）"
-
-msgid "Weekly time goal (min): "
-msgstr "每周时长目标（分钟）： "
+msgid "Weekly"
+msgstr "每周"
 
 msgid "Welcome to Zen UI"
 msgstr "欢迎使用 禅 UI"
@@ -2237,6 +2375,9 @@ msgstr "Wi-Fi"
 
 msgid "Widgets"
 msgstr "小组件"
+
+msgid "Yearly"
+msgstr "每年"
 
 msgid "You're All Set"
 msgstr "已全部设置完成"
@@ -2327,3 +2468,57 @@ msgstr "Zen UI: 找不到文件夹: "
 
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI: 未为此操作设置文件夹。"
+
+msgid "Reader themes"
+msgstr "阅读主题"
+
+msgid "Enable reader themes"
+msgstr "启用阅读主题"
+
+msgid "Dark warm gray"
+msgstr "深暖灰"
+
+msgid "Dark graphite"
+msgstr "深石墨灰"
+
+msgid "Light sepia"
+msgstr "浅棕褐色"
+
+msgid "Light tan"
+msgstr "浅棕色"
+
+msgid "Zen UI - Toggle reader themes"
+msgstr "Zen UI - 切换阅读主题"
+
+msgid "Dark mode"
+msgstr "深色模式"
+
+msgid "Light mode"
+msgstr "浅色模式"
+
+msgid "Custom themes"
+msgstr "自定义主题"
+
+msgid "New custom theme"
+msgstr "新建自定义主题"
+
+msgid "Theme name"
+msgstr "主题名称"
+
+msgid "Background color"
+msgstr "背景颜色"
+
+msgid "Text color"
+msgstr "文字颜色"
+
+msgid "Theme font"
+msgstr "主题字体"
+
+msgid "Delete theme"
+msgstr "删除主题"
+
+msgid "Delete this custom theme?"
+msgstr "删除此自定义主题？"
+
+msgid "Custom theme"
+msgstr "自定义主题"

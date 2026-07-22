@@ -106,6 +106,29 @@ local function normalize_renamed_keys(cfg)
         changed = true
     end
 
+    if cfg.features.reader_color_presets ~= nil then
+        cfg.features.reader_themes = cfg.features.reader_color_presets
+        changed = true
+    end
+    if cfg.features.reader_color_presets ~= nil then
+        cfg.features.reader_color_presets = nil
+        changed = true
+    end
+
+    if type(cfg.reader_color_presets) == "table" then
+        cfg.reader_themes = cfg.reader_color_presets
+        cfg.reader_color_presets = nil
+        changed = true
+    end
+
+    local reader_themes = cfg.reader_themes
+    if type(reader_themes) == "table" and reader_themes.preset ~= nil then
+        reader_themes.dark_mode = reader_themes.preset
+        reader_themes.light_mode = reader_themes.preset
+        reader_themes.preset = nil
+        changed = true
+    end
+
     return cfg, changed
 end
 
@@ -128,6 +151,10 @@ local function migrate_legacy_rakuyomi_keys(cfg)
     end
     if rakuyomi.return_to_chapter_on_reader_exit ~= nil then
         rakuyomi.return_to_chapter_on_reader_exit = nil
+        changed = true
+    end
+    if rakuyomi.reverse_page_scrolling ~= nil then
+        rakuyomi.reverse_page_scrolling = nil
         changed = true
     end
 
@@ -653,6 +680,35 @@ local function capture_reader_footer_settings()
     }
 end
 
+local function load_reader_theme_settings(cfg)
+    if type(cfg) ~= "table" then return end
+    local reader_store = PresetStore.loadStore("reader")
+    if type(reader_store.reader_themes) == "table" then
+        cfg.reader_themes = reader_store.reader_themes
+    end
+end
+
+local function migrate_reader_preset_zen_settings()
+    local store = PresetStore.loadStore("reader")
+    local changed = false
+    for _name, preset in pairs(store.presets) do
+        local zen = type(preset) == "table" and preset.zen
+        if type(zen) == "table" then
+            if preset.verbose_chapter_time == nil and zen.verbose_chapter_time ~= nil then
+                preset.verbose_chapter_time = zen.verbose_chapter_time
+                changed = true
+            end
+            if zen.verbose_chapter_time ~= nil then changed = true end
+            zen.verbose_chapter_time = nil
+            if next(zen) == nil then
+                preset.zen = nil
+                changed = true
+            end
+        end
+    end
+    return changed and PresetStore.saveStore("reader", store)
+end
+
 local function migrate_reader_footer_backup(cfg)
     if type(cfg) ~= "table" or type(cfg.reader_footer) ~= "table" then
         return false
@@ -783,11 +839,14 @@ function M.load()
     cfg, migrated_bim     = migrate_bim_folder_cover_keys(cfg)
     local migrated_reader_backup = migrate_reader_footer_backup(cfg)
     local migrated_settings_files = migrate_settings_files()
+    load_reader_theme_settings(cfg)
+    local migrated_reader_presets = migrate_reader_preset_zen_settings()
     local migrated_changed_defaults
     cfg, migrated_changed_defaults = migrate_changed_defaults(cfg)
     if migrated_renamed or migrated_group or migrated_updater or migrated_fbc or migrated_bim
             or migrated_reader_backup or migrated_qs or migrated_file_config
-            or migrated_settings_files or migrated_changed_defaults or migrated_home_lock
+            or migrated_settings_files or migrated_reader_presets
+            or migrated_changed_defaults or migrated_home_lock
             or migrated_folder_paths or migrated_rakuyomi then
         M.save(cfg)
     end

@@ -27,6 +27,7 @@ local function apply_reader_top_status_bar()
     local UIManager = require("ui/uimanager")
     local zen_utils = require("common/utils")
     local _ = require("gettext")
+    local ReaderThemes = require("common/reader_themes")
     local Screen = Device.screen
     local ReaderView = require("apps/reader/modules/readerview")
     local _ReaderView_paintTo_orig = ReaderView.paintTo
@@ -39,6 +40,10 @@ local function apply_reader_top_status_bar()
         local plugin = zen_plugin or rawget(_G, "__ZEN_UI_PLUGIN")
         local features = plugin and plugin.config and plugin.config.features
         return type(features) == "table" and features.reader_top_status_bar == true
+    end
+
+    local function header_text_color()
+        return ReaderThemes.getTextColor(zen_plugin) or Blitbuffer.COLOR_BLACK
     end
 
     local function is_view_active_top(view)
@@ -317,7 +322,7 @@ local function apply_reader_top_status_bar()
             local tw = TextWidget:new{
                 text = texts[i].text,
                 face = face,
-                fgcolor = Blitbuffer.COLOR_BLACK,
+                fgcolor = header_text_color(),
                 padding = 0,
             }
             total = total + tw:getSize().w
@@ -340,6 +345,7 @@ local function apply_reader_top_status_bar()
                 local sep_w = TextWidget:new{
                     text = sep,
                     face = face,
+                    fgcolor = header_text_color(),
                     padding = 0,
                 }
                 table.insert(group, sep_w)
@@ -348,7 +354,7 @@ local function apply_reader_top_status_bar()
             local tw = TextWidget:new{
                 text = texts[i].text,
                 face = face,
-                fgcolor = texts[i].color or Blitbuffer.COLOR_BLACK,
+                fgcolor = header_text_color(),
                 padding = 0,
             }
             table.insert(group, tw)
@@ -362,7 +368,7 @@ local function apply_reader_top_status_bar()
             local tw = TextWidget:new{
                 text      = joined,
                 face      = face,
-                fgcolor   = Blitbuffer.COLOR_BLACK,
+                fgcolor   = header_text_color(),
                 padding   = 0,
                 max_width = max_width,
             }
@@ -617,6 +623,10 @@ local function apply_reader_top_status_bar()
         end
         if not view.ui then
             DBG("repaintHeader SKIP: view.ui is nil")
+            return
+        end
+        if ReaderThemes.isActive(zen_plugin) then
+            UIManager:setDirty(view.ui, "ui")
             return
         end
         local header, all_widgets, header_h, screen_width = buildHeader(view)
