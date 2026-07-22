@@ -8,7 +8,7 @@ ARTIFACTS="$ROOT/spec/.artifacts"
 
 usage() {
   cat <<'EOF'
-Usage: ./spec/run <lua|smoke|full|master-smoke|update-goldens|package-check>
+Usage: ./spec/run <lua|smoke|full|nightly-smoke|update-goldens|package-check>
 
 Set KOREADER_DIR to a KOReader emulator/runtime directory containing luajit,
 frontend, and the Busted rocks under spec/rocks. The runtime is never mutated.
@@ -136,9 +136,6 @@ run_python() {
     "$python" -m pytest "$pytest_target" -q || python_status=$?
   if [[ -n "$staged_runtime" ]]; then rm -rf "$staged_runtime"; fi
   return "$python_status"
-  if [[ "$target" == "master" ]]; then
-    echo "Master smoke uses the pinned ref in $LOCK_FILE when CI provisions it."
-  fi
 }
 
 package_check() {
@@ -157,7 +154,7 @@ package_check() {
 case "$COMMAND" in
   lua) run_lua ;;
   smoke) run_lua; run_python stable ;;
-  master-smoke) run_lua; run_python master ;;
+  nightly-smoke) run_lua; run_python nightly ;;
   package-check) package_check ;;
   full) run_lua; run_python stable; package_check ;;
   update-goldens)

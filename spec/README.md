@@ -5,7 +5,7 @@ Run all commands from the plugin root through `./spec/run`.
 - `lua` runs Busted specs with KOReader's LuaJIT and a fresh `KO_HOME`.
 - `smoke` runs the deterministic Python smoke contract against the stable runtime.
 - `full` runs Lua, smoke, visual golden checks, and package validation.
-- `master-smoke` repeats the smoke contract against the pinned master runtime.
+- `nightly-smoke` repeats the smoke contract against the latest KOReader master runtime.
 - `update-goldens` is the only command allowed to replace committed PNG baselines.
 - `package-check` builds the plugin and asserts that test assets are absent.
 

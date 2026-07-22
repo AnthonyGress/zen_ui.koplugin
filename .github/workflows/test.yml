@@ -83,10 +83,10 @@ jobs:
           path: spec/.artifacts
           if-no-files-found: ignore
 
-  master:
-    name: Master smoke test
+  nightly:
+    name: Nightly KOReader smoke test
     needs: stable
-    if: ${{ inputs.suite == 'full' || github.event.inputs.suite == 'full' || github.base_ref == 'main' }}
+    if: ${{ github.base_ref == 'dev' }}
     runs-on: ubuntu-latest
     env:
       ZEN_UI_KOREADER_CACHE: ${{ github.workspace }}/spec/.cache/koreader
@@ -107,31 +107,31 @@ jobs:
             libfribidi-dev libpng-dev libjpeg-dev libsqlite3-dev
           luarocks --tree="$GITHUB_WORKSPACE/.luarocks" install luacheck
 
-      - name: Restore master KOReader build
-        id: master-koreader-cache
+      - name: Restore nightly KOReader build
+        id: nightly-koreader-cache
         uses: actions/cache/restore@v4
         with:
           path: spec/.cache/koreader
-          key: koreader-master-${{ runner.os }}-${{ runner.arch }}-v${{ env.KOREADER_CACHE_VERSION }}-${{ hashFiles('spec/koreader-lock.json') }}
+          key: koreader-nightly-${{ runner.os }}-${{ runner.arch }}-v${{ env.KOREADER_CACHE_VERSION }}
 
-      - name: Provision Master KOReader
+      - name: Provision latest nightly KOReader
         run: |
-          KOREADER_DIR="$(./spec/provision-koreader.sh master)"
+          KOREADER_DIR="$(./spec/provision-koreader.sh nightly)"
           echo "KOREADER_DIR=$KOREADER_DIR" >> "$GITHUB_ENV"
 
-      - name: Save master KOReader build
+      - name: Save nightly KOReader build
         uses: actions/cache/save@v4
         with:
           path: spec/.cache/koreader
-          key: ${{ steps.master-koreader-cache.outputs.cache-primary-key }}
+          key: ${{ steps.nightly-koreader-cache.outputs.cache-primary-key }}
 
-      - name: Run master compatibility smoke test
-        run: ZEN_UI_RUN_EMULATOR=1 xvfb-run -s '-screen 0 800x600x24' ./spec/run master-smoke
+      - name: Run nightly compatibility smoke test
+        run: ZEN_UI_RUN_EMULATOR=1 xvfb-run -s '-screen 0 800x600x24' ./spec/run nightly-smoke
 
       - name: Upload test artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: master-test-artifacts
+          name: nightly-test-artifacts
           path: spec/.artifacts
           if-no-files-found: ignore
