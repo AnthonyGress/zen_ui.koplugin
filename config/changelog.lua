@@ -210,5 +210,8 @@ return {
         "Allow top status bar in CBZ/PDF (Reader > Top status bar)",
         "Match top Menu icon to default Navbar tab",
         "Fix prevent auto night mode schedule from inverting Reader theme color"
+    },
+    ["2.5.3"] = {
+        "Run plugin compat check immediately to prevent user install issues",
     }
 }
