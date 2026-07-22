@@ -70,6 +70,22 @@ describe("reader themes", function()
         assert.are.equal("base", Themes.appendCss(plugin, "base"))
     end)
 
+    it("detects a theme selected for an open reader's target mode", function()
+        ZenSpec.replace("apps/reader/readerui", { instance = { document = {} } })
+        local plugin = {
+            config = {
+                features = { reader_themes = true },
+                reader_themes = {
+                    dark_mode = "dark_graphite",
+                    light_mode = "default",
+                },
+            },
+        }
+
+        assert.is_false(Themes.isActive(plugin))
+        assert.is_true(Themes.isActiveInReader(plugin, true))
+    end)
+
     it("uses custom theme colors and font face", function()
         local face, background
         local reader = {
