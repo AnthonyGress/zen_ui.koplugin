@@ -195,6 +195,7 @@ return {
         "Add Zen UI Reader margins to Advanced settings (About > Advanced)",
         "Add Reader themes (Reader > Reader themes)",
         "Add Control buttons to Launcher/Navbar",
+        "Add Edit mode to Home/Stats",
         "Auto suggest icons for Controls/Launcher/Navbar",
         "Standardize buttons menu for Controls/Launcher/Navbar",
         "Better sizing/spacing on home widgets",
