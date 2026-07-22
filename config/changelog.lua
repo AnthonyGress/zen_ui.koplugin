@@ -213,5 +213,7 @@ return {
     },
     ["2.5.3"] = {
         "Run plugin compat check immediately to prevent user install issues",
+        "Fix line graph y-axis truncating too early",
+        "Add TBR instructions to docs"
     }
 }
