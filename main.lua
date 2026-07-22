@@ -180,6 +180,14 @@ function ZenUI:init()
     self.config = ConfigManager.load()
     _G.__ZEN_UI_LIBRARY_FONT_CFG = self.config and self.config.library_font or nil
     _zen_plugin_ref = self
+    local ok_zenpm, added_or_error = pcall(function()
+        return require("modules/menu/app_launcher/model").ensure_zenpm_launcher_entry()
+    end)
+    if not ok_zenpm then
+        logger.warn("ZenPM launcher integration failed:", added_or_error)
+    elseif added_or_error then
+        logger.info("Added ZenPM to the launcher")
+    end
     self:onDispatcherRegisterActions()
     -- Initialize updater state; release metadata stays live-only.
     zen_updater.init_banner()

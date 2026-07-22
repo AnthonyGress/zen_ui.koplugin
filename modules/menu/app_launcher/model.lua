@@ -61,6 +61,38 @@ local function sanitize_list(entries, allow_folder)
     return out, changed
 end
 
+local function zenpm_is_enabled()
+    local ok_loader, PluginLoader = pcall(require, "pluginloader")
+    if not ok_loader or type(PluginLoader) ~= "table"
+            or type(PluginLoader.loadPlugins) ~= "function" then
+        return false
+    end
+    local ok_plugins, plugins = pcall(PluginLoader.loadPlugins, PluginLoader)
+    if not ok_plugins or type(plugins) ~= "table" then return false end
+    for _i, plugin in ipairs(plugins) do
+        if type(plugin) == "table" and plugin.name == "zenpm" then
+            return true
+        end
+    end
+    return false
+end
+
+local function has_zenpm_entry(entries)
+    for _i, entry in ipairs(entries or {}) do
+        if type(entry) == "table" then
+            local plugin = entry.plugin
+            if entry.type == "plugin" and type(plugin) == "table"
+                    and plugin.key == "zenpm" then
+                return true
+            end
+            if entry.type == "folder" and has_zenpm_entry(entry.children) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 function M.ensure()
     local cfg = Store.load()
     local entries, changed = sanitize_list(cfg.entries, true)
@@ -77,6 +109,25 @@ end
 
 function M.save(cfg)
     return Store.save(cfg)
+end
+
+function M.ensure_zenpm_launcher_entry()
+    local cfg = M.ensure()
+    if cfg.zenpm_launcher_added == true or not zenpm_is_enabled() then
+        return false
+    end
+    if not has_zenpm_entry(cfg.entries) then
+        cfg.entries[#cfg.entries + 1] = {
+            id = M.next_id(cfg),
+            type = "plugin",
+            label = "ZenPM",
+            icon = "zenpm",
+            plugin = { key = "zenpm", method = "open" },
+        }
+    end
+    cfg.zenpm_launcher_added = true
+    Store.save(cfg)
+    return true
 end
 
 -- Monotonic counter that only ever increments, so removing entries can never

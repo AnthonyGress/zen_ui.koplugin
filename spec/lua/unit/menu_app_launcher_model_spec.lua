@@ -15,6 +15,10 @@ describe("app launcher model", function()
         })
     end)
 
+    after_each(function()
+        ZenSpec.unload("pluginloader")
+    end)
+
     it("sanitizes invalid root and folder entries before saving", function()
         local valid_action = { id = "action", type = "action", label = "Open", action = {} }
         local valid_plugin = {
@@ -77,6 +81,65 @@ describe("app launcher model", function()
         assert.is_false(Model.move_to_root(entries, "second"))
         assert.is_true(Model.remove_by_id(entries, "second"))
         assert.is_false(Model.remove_by_id(entries, "missing"))
+    end)
+
+    it("adds enabled ZenPM once without replacing an existing launcher entry", function()
+        ZenSpec.replace("pluginloader", {
+            loadPlugins = function()
+                return { { name = "zenpm" } }
+            end,
+        })
+        local Model = require("modules/menu/app_launcher/model")
+        saved_configs.loaded = { entries = {}, next_id = 3 }
+
+        assert.is_true(Model.ensure_zenpm_launcher_entry())
+        assert.are.same({ {
+            id = "al_4",
+            type = "plugin",
+            label = "ZenPM",
+            icon = "zenpm",
+            plugin = { key = "zenpm", method = "open" },
+        } }, saved_configs.loaded.entries)
+        assert.is_true(saved_configs.loaded.zenpm_launcher_added)
+
+        saved_configs.saved = nil
+        assert.is_false(Model.ensure_zenpm_launcher_entry())
+        assert.is_nil(saved_configs.saved)
+    end)
+
+    it("keeps an existing ZenPM launcher entry and records the integration", function()
+        ZenSpec.replace("pluginloader", {
+            loadPlugins = function()
+                return { { name = "zenpm" } }
+            end,
+        })
+        local Model = require("modules/menu/app_launcher/model")
+        local existing = {
+            id = "al_7",
+            type = "plugin",
+            label = "My ZenPM",
+            plugin = { key = "zenpm", method = "onOpenZenPM" },
+        }
+        saved_configs.loaded = { entries = { existing }, next_id = 7 }
+
+        assert.is_true(Model.ensure_zenpm_launcher_entry())
+        assert.are.same({ existing }, saved_configs.loaded.entries)
+        assert.is_true(saved_configs.loaded.zenpm_launcher_added)
+    end)
+
+    it("waits to record the integration until ZenPM is enabled", function()
+        ZenSpec.replace("pluginloader", {
+            loadPlugins = function()
+                return { { name = "other_plugin" } }
+            end,
+        })
+        local Model = require("modules/menu/app_launcher/model")
+        saved_configs.loaded = { entries = {}, next_id = 3 }
+
+        assert.is_false(Model.ensure_zenpm_launcher_entry())
+        assert.are.same({}, saved_configs.loaded.entries)
+        assert.is_nil(saved_configs.loaded.zenpm_launcher_added)
+        assert.is_nil(saved_configs.saved)
     end)
 end)
 
