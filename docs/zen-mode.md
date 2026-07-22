@@ -6,6 +6,8 @@ settingsPath: Zen UI > Controls > Buttons > Zen mode
 order: 30
 ---
 
+<!-- Documentation current through Zen UI v2.5.0. -->
+
 ![Controls](/images/zen_ui/quicksettings.png)
 
 ![Zen Mode](/images/zen_ui/zen_mode.png)

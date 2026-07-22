@@ -6,6 +6,8 @@ settingsPath: ''
 order: 90
 ---
 
+<!-- Documentation current through Zen UI v2.5.0. -->
+
 Contributions that keep it clean, minimal, and performant are most welcome.
 
 > **Open all [pull requests](https://github.com/AnthonyGress/zen_ui.koplugin/pulls) against the `dev` branch.** PRs are tested and reviewed on `dev` before being merged. PRs opened against `main` will be asked to retarget.

@@ -6,6 +6,8 @@ settingsPath: Zen UI > About
 order: 80
 ---
 
+<!-- Documentation current through Zen UI v2.5.0. -->
+
 ![Update available](/images/zen_ui/update_available.png)
 
 ## Overview

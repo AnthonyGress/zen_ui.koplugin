@@ -6,6 +6,8 @@ settingsPath: Zen UI > Extras > Lockdown mode
 order: 65
 ---
 
+<!-- Documentation current through Zen UI v2.5.0. -->
+
 ![Lockdown Mode](/images/zen_ui/lockdown_mode.png)
 
 ## Overview

@@ -6,6 +6,8 @@ settingsPath: ''
 order: 55
 ---
 
+<!-- Documentation current through Zen UI v2.5.0. -->
+
 ## Overview
 
 Zen UI registers dispatcher actions with KOReader so they can be assigned to gestures, Controls buttons, Navbar tabs, Launcher buttons, and any other KOReader feature that uses the Dispatcher action picker.
@@ -18,14 +20,19 @@ Controls, Navbar, and Launcher can also launch detected plugin menus directly. T
 | --- | --- | --- |
 | Zen UI - Toggle Zen Mode | General | Turns Zen Mode on or off. If Lockdown Mode is active, Zen Mode stays on. |
 | Zen UI - Toggle Lockdown Mode | General | Turns Lockdown Mode on or off. Turning it on also enables Zen Mode. |
+| Zen UI - Toggle Incognito Mode | General | Turns Incognito Mode on or off. |
 | Zen UI - Toggle top reader status bar | Reader | Shows or hides Zen UI's top reader status bar. |
+| Zen UI - Toggle reader themes | Reader | Enables or disables the selected Zen reader themes. |
 | Zen UI - Toggle bottom reader status bar | Reader | Shows or hides KOReader's bottom reader status bar, restoring the previous footer mode when shown. |
 | Zen UI - Toggle reader status bars | Reader | Toggles the reader top and bottom status bars together. |
+| Zen UI - Table of contents | Reader | Opens the Zen table of contents. |
 | Zen UI - Home | General | Opens the Zen UI home screen. |
+| Zen UI - Library | General | Opens the Zen UI Library, respecting the restore-last-location setting. |
 | Zen UI - Authors | General | Opens the Zen UI authors tab. |
 | Zen UI - Series | General | Opens the Zen UI series tab. |
 | Zen UI - Tags | General | Opens the Zen UI tags tab. |
 | Zen UI - Open folder | General | Opens your Library to the chosen folder. |
+| Zen UI - Sync progress (pull + push) | General | Runs a unified KOReader sync pull and push. |
 
 ## Trigger surfaces
 
