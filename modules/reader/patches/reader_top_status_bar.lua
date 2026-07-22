@@ -660,7 +660,7 @@ local function apply_reader_top_status_bar()
         if not is_enabled() then return end
         if bb ~= Screen.bb then return end -- offscreen renders, e.g. page-browser thumbnails
         local cfg2 = zen_plugin and zen_plugin.config and zen_plugin.config.reader_top_status_bar
-        if self.render_mode ~= nil and (not type(cfg2) == "table" or cfg2.hide_in_cbz) then return end -- pdf-like; skip
+        if self.render_mode ~= nil and (type(cfg2) ~= "table" or cfg2.hide_in_cbz) then return end -- pdf-like; skip
         if not self.document then return end
         -- Guard: don't paint when reader is not active (allow overlays that
         -- belong to this ReaderUI via show_parent, e.g., AutoDim on resume).
