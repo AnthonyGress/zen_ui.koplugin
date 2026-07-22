@@ -20,7 +20,9 @@ describe("home basic widgets", function()
                     x = 0,
                     y = 0,
                     w = values.width or (type(values.text) == "string" and #values.text * 6 or 20),
-                    h = values.height or 12,
+                    h = values.height or (kind == "ui/widget/textboxwidget"
+                        and type(values.text) == "string"
+                        and (select(2, values.text:gsub("\n", "")) + 1) * 12 or 12),
                 }
                 values.getSize = values.getSize or function(self) return self.dimen end
                 values.paintTo = values.paintTo or function(self, _bb, x, y)
@@ -217,5 +219,28 @@ describe("home basic widgets", function()
 
         assert.is_true(has_text('"No quote available."'))
         assert.is_false(has_text("\226\128\148 "))
+    end)
+
+    it("shows up to three quote lines when the widget has room", function()
+        ZenSpec.unload("modules/filebrowser/patches/home/widgets/quotes")
+        local component = require("modules/filebrowser/patches/home/widgets/quotes")
+        component.build({
+            width = 400,
+            height = 120,
+            config = { quotes = { show_author = false } },
+            data = {
+                getCurrentQuote = function()
+                    return { text = "First\nSecond\nThird\nFourth", author = "" }
+                end,
+            },
+        })
+
+        for _i, child in ipairs(created) do
+            if child.text == '"First\nSecond\nThird\nFourth"' and child.height then
+                assert.are.equal(36, child.height)
+                return
+            end
+        end
+        assert.fail("quote widget was not created")
     end)
 end)

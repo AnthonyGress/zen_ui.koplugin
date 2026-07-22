@@ -45,6 +45,14 @@ return {
         }
         local two_quote_lines_h = quote_probe:getSize().h or 0
         WidgetResources.free(quote_probe)
+        local quote_three_line_probe = TextBoxWidget:new{
+            text = "A\nA\nA",
+            width = content_w,
+            face = quote_face,
+            line_height = quote_line_height,
+        }
+        local three_quote_lines_h = quote_three_line_probe:getSize().h or 0
+        WidgetResources.free(quote_three_line_probe)
         local quote_line_probe = TextBoxWidget:new{
             text = "A",
             width = content_w,
@@ -74,11 +82,17 @@ return {
         end
         local author_gap = 0
         local max_quote_h = math.max(10, inner_h - author_h - author_gap)
-        local quote_h = natural_quote_h <= quote_line_h and natural_quote_h or max_quote_h
-        if natural_quote_h > quote_line_h and quote_h < two_quote_lines_h then
+        local quote_h = math.min(natural_quote_h, three_quote_lines_h, max_quote_h)
+        local line_height_target = 2
+        if natural_quote_h > two_quote_lines_h and quote_h < three_quote_lines_h
+                and quote_h >= quote_face.size * 3 then
+            line_height_target = 3
+        end
+        if natural_quote_h > quote_line_h and quote_h < (line_height_target == 3
+                and three_quote_lines_h or two_quote_lines_h) then
             quote_line_height = math.max(0, math.min(
                 quote_line_height,
-                math.floor(quote_h / 2) / math.max(1, quote_face.size or 1) - 1
+                math.floor(quote_h / line_height_target) / math.max(1, quote_face.size or 1) - 1
             ))
         end
         local quote_widget = TextBoxWidget:new{

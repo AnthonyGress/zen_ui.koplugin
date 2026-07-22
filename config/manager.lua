@@ -680,15 +680,12 @@ local function capture_reader_footer_settings()
     }
 end
 
-local function sync_reader_theme_settings(cfg)
-    if type(cfg) ~= "table" or type(cfg.reader_themes) ~= "table" then return false end
+local function load_reader_theme_settings(cfg)
+    if type(cfg) ~= "table" then return end
     local reader_store = PresetStore.loadStore("reader")
     if type(reader_store.reader_themes) == "table" then
         cfg.reader_themes = reader_store.reader_themes
-        return false
     end
-    reader_store.reader_themes = utils.deepcopy(cfg.reader_themes)
-    return PresetStore.saveStore("reader", reader_store)
 end
 
 local function migrate_reader_preset_zen_settings()
@@ -842,13 +839,13 @@ function M.load()
     cfg, migrated_bim     = migrate_bim_folder_cover_keys(cfg)
     local migrated_reader_backup = migrate_reader_footer_backup(cfg)
     local migrated_settings_files = migrate_settings_files()
-    local saved_reader_themes = sync_reader_theme_settings(cfg)
+    load_reader_theme_settings(cfg)
     local migrated_reader_presets = migrate_reader_preset_zen_settings()
     local migrated_changed_defaults
     cfg, migrated_changed_defaults = migrate_changed_defaults(cfg)
     if migrated_renamed or migrated_group or migrated_updater or migrated_fbc or migrated_bim
             or migrated_reader_backup or migrated_qs or migrated_file_config
-            or migrated_settings_files or saved_reader_themes or migrated_reader_presets
+            or migrated_settings_files or migrated_reader_presets
             or migrated_changed_defaults or migrated_home_lock
             or migrated_folder_paths or migrated_rakuyomi then
         M.save(cfg)
