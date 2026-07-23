@@ -282,6 +282,9 @@ msgstr "Чёрный"
 msgid "Blue"
 msgstr "Синий"
 
+msgid "Bluetooth"
+msgstr "Bluetooth"
+
 msgid "bold"
 msgstr "полужирный"
 

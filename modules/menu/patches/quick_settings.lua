@@ -25,6 +25,7 @@ local function apply_quick_settings()
     local utils = require("common/utils")
     local shutdown = require("common/shutdown")
     local SharedState = require("common/shared_state")
+    local Bluetooth = require("common/bluetooth")
     local build_brightness_slider = require("modules/menu/patches/brightness_slider")
     local build_warmth_slider     = require("modules/menu/patches/warmth_slider")
     local _ = require("gettext")
@@ -87,6 +88,7 @@ local function apply_quick_settings()
         button_order = { "wifi", "night", "rotate", "zen", "restart", "sleep" },
         show_buttons = {
             wifi = true,
+            bluetooth = false,
             night = true,
             frontlight = false,
             gyro = false,
@@ -436,6 +438,22 @@ local function apply_quick_settings()
     -- ============================================================
 
     local button_defs = {
+        bluetooth = {
+            icon = "quick_bluetooth",
+            label = _("Bluetooth"),
+            visible_func = Bluetooth.isAvailable,
+            active_func = Bluetooth.isEnabled,
+            callback = function(touch_menu)
+                if Bluetooth.toggle() then
+                    UIManager:scheduleIn(0.5, function()
+                        Bluetooth.logState("0.5 s after control toggle")
+                        if touch_menu.item_table and touch_menu.item_table.panel then
+                            touch_menu:updateItems(1)
+                        end
+                    end)
+                end
+            end,
+        },
         wifi = {
             icon = "quick_wifi",
             label = _("Wi-Fi"),

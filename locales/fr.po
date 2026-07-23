@@ -282,6 +282,9 @@ msgstr "Noir"
 msgid "Blue"
 msgstr "Bleu"
 
+msgid "Bluetooth"
+msgstr "Bluetooth"
+
 msgid "bold"
 msgstr "gras"
 

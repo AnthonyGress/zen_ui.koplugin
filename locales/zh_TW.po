@@ -282,6 +282,9 @@ msgstr "黑色"
 msgid "Blue"
 msgstr "藍色"
 
+msgid "Bluetooth"
+msgstr "藍牙"
+
 msgid "bold"
 msgstr "粗體"
 

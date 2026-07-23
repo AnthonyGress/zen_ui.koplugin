@@ -282,6 +282,9 @@ msgstr "Preto"
 msgid "Blue"
 msgstr "Azul"
 
+msgid "Bluetooth"
+msgstr "Bluetooth"
+
 msgid "bold"
 msgstr "negrito"
 

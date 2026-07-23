@@ -282,6 +282,9 @@ msgstr "Black"
 msgid "Blue"
 msgstr "Blue"
 
+msgid "Bluetooth"
+msgstr "Bluetooth"
+
 msgid "bold"
 msgstr "bold"
 

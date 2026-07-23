@@ -26,6 +26,8 @@ local function apply_status_bar()
     local SharedState = require("common/shared_state")
     local status_bar_registry = require("common/status_bar_registry")
     local Background = require("common/ui/background")
+    local Bluetooth = require("common/bluetooth")
+    local inline_icons = require("common/inline_icon_map")
     local _ = require("gettext")
 
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
@@ -335,6 +337,15 @@ local function apply_status_bar()
         end
     end
 
+    local function getBluetoothInfo()
+        local enabled = Bluetooth.getState()
+        if enabled == nil then return nil end
+        if enabled then
+            return inline_icons.bluetooth_on, nil, colors.wifi_on
+        end
+        return nil
+    end
+
     local function getRamInfo()
         local now = os.time()
         if cached_ram_text and (now - cached_ram_time) < 30 then
@@ -433,6 +444,7 @@ local function apply_status_bar()
     -- === Item registry ===
 
     local item_fetchers = {
+        bluetooth   = getBluetoothInfo,
         wifi        = getWifiInfo,
         disk        = getDiskInfo,
         ram         = getRamInfo,

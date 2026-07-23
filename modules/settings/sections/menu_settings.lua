@@ -11,6 +11,7 @@ local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
 local icon_utils = require("common/utils")
+local Bluetooth = require("common/bluetooth")
 
 local M = {}
 
@@ -53,6 +54,7 @@ function M.build(ctx)
 
     local quick_button_items = {
         { key = "wifi",    text = _("Wi-Fi")       },
+        { key = "bluetooth", text = _("Bluetooth"), detect = Bluetooth.isAvailable },
         { key = "night",   text = _("Night mode")  },
         { key = "frontlight", text = _("Frontlight"), detect = function() return Device:hasFrontlight() end },
         { key = "gyro", text = _("Gyroscope"), detect = function() return Device:hasGSensor() end },

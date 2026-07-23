@@ -73,6 +73,7 @@ return {
     -- status bar (status_bar.lua)
     wifi_on      = "\u{ECA8}",   -- nf-md-wifi
     wifi_off     = "\u{ECA9}",   -- nf-md-wifi-off
+    bluetooth_on = "\u{F293}",  -- nf-fa-bluetooth
     ram          = "\u{EA5A}",   -- nf-cod-chip
     disk         = "\u{F0A0}",   -- mdi-harddisk
 
