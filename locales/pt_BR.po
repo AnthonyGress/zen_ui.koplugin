@@ -7,7 +7,7 @@ msgstr ""
 "Language: pt_BR\n"
 
 msgid " days"
-msgstr "dias"
+msgstr " dias"
 
 msgid "%1 (%2)"
 msgstr "%1 (%2)"

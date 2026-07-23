@@ -16,7 +16,7 @@ msgstr ""
 "X-Generator: Poedit 3.9\n"
 
 msgid " days"
-msgstr "дни"
+msgstr " дни"
 
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
