@@ -40,6 +40,8 @@ After disabling or removing Project Title, restart KOReader and Zen UI will load
 
 > The final path should look like: `.../plugins/zen_ui.koplugin/main.lua`
 
+![zen_ui.koplugin folder inside the KOReader plugins directory](/images/zen_ui/plugins_folder.png)
+
 ## Plugins directory by device
 
 | Device | Plugins directory |
