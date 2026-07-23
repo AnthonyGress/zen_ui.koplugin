@@ -14,7 +14,7 @@ See the [Installation](/zen-ui/docs/installation) guide for full installation in
 
 ## Zen UI is not starting and doesn't show in the Plugins list
 
-Make sure there is not a second folder inside the `zen_ui.koplugin` folder. The `zen_ui.koplugin` folder should contain `main.lua` along with the other Zen UI code files - *NOT* a second `zen_ui.koplugin` folder. You want to copy the one that has the `.lua` files inside
+Make sure you downloaded the [Release](https://github.com/AnthonyGress/zen_ui.koplugin/releases) and that there is not a second folder inside the `zen_ui.koplugin` folder. The `zen_ui.koplugin` folder should contain `main.lua` along with the other Zen UI code files - *NOT* a second `zen_ui.koplugin` folder. You want to copy the one that has the `.lua` files inside
 
 ![zen_ui.koplugin folder inside the KOReader plugins directory](/images/zen_ui/plugins_folder.png)
 
