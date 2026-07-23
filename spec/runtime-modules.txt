@@ -172,4 +172,5 @@ modules/settings/zen_bugreporter.lua|integration
 modules/settings/zen_settings.lua|integration
 modules/settings/zen_settings_apply.lua|integration
 modules/settings/zen_settings_utils.lua|integration
+modules/settings/zenpm_installer.lua|integration
 modules/settings/zen_updater.lua|integration
