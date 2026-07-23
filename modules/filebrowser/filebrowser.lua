@@ -1,5 +1,5 @@
 local M = {}
-local Rakuyomi = require("common/rakuyomi")
+local Rakuyomi = require("modules/filebrowser/patches/rakuyomi")
 local initialized = false
 
 local FEATURES = {
@@ -80,6 +80,10 @@ local function load_patch(feature)
     local ok, patch_or_err = pcall(require, module_name)
     if not ok then
         return nil, patch_or_err
+    end
+
+    if feature == "rakuyomi" and type(patch_or_err) == "table" then
+        return patch_or_err.apply
     end
 
     if type(patch_or_err) ~= "function" then

@@ -910,7 +910,7 @@ local function build_data_provider(cfg, dcfg)
                 pages = bi.pages
                 description = bi.description
             end
-            local ok_rakuyomi, Rakuyomi = pcall(require, "common/rakuyomi")
+            local ok_rakuyomi, Rakuyomi = pcall(require, "modules/filebrowser/patches/rakuyomi")
             local metadata = ok_rakuyomi and type(Rakuyomi.getMetadata) == "function"
                 and Rakuyomi.getMetadata(path) or nil
             if metadata then

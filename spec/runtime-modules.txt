@@ -24,7 +24,6 @@ common/reader_margins.lua|unit
 common/reader_themes.lua|unit
 common/quickstart/quickstart_pages.lua|unit
 common/quickstart/quickstart_screen.lua|unit
-common/rakuyomi.lua|unit
 common/shared_state.lua|unit
 common/shutdown.lua|unit
 common/status_bar_registry.lua|unit

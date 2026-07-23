@@ -3,7 +3,7 @@
 -- Receives ctx: { plugin, config, settings_apply }
 
 local _ = require("gettext")
-local Rakuyomi = require("common/rakuyomi")
+local Rakuyomi = require("modules/filebrowser/patches/rakuyomi")
 local SharedState = require("common/shared_state")
 local global_settings = require("modules/settings/sections/global_settings")
 local stats_settings = require("modules/settings/sections/stats_settings")
