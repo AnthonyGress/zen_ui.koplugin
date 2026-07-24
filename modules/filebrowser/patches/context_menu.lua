@@ -736,6 +736,23 @@ local function apply_context_menu()
                 end)
             end
 
+            local function refresh_book_info()
+                local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
+                if not ok_bim then return end
+                BookInfoManager:deleteBookInfo(file)
+                local home = zen_plugin and SharedState.get(zen_plugin, "home")
+                if home and type(home.invalidateBookCache) == "function" then
+                    home.invalidateBookCache(file)
+                end
+                if home and type(home.rebuildActive) == "function" then
+                    home.rebuildActive()
+                end
+                if self_fc.filemanager_menu then
+                    self_fc.filemanager_menu.files_updated = true
+                end
+                refresh()
+            end
+
             local function refresh_after_sort_change()
                 if self_fc._zen_clear_item_table_cache then
                     self_fc:_zen_clear_item_table_cache()
@@ -1409,21 +1426,7 @@ local function apply_context_menu()
                             align = "left",
                             callback = function()
                                 UIManager:close(edit_dialog)
-                                local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
-                                if ok_bim then
-                                    BookInfoManager:deleteBookInfo(file)
-                                    local home = zen_plugin and SharedState.get(zen_plugin, "home")
-                                    if home and type(home.invalidateBookCache) == "function" then
-                                        home.invalidateBookCache(file)
-                                    end
-                                    if home and type(home.rebuildActive) == "function" then
-                                        home.rebuildActive()
-                                    end
-                                    if self_fc.filemanager_menu then
-                                        self_fc.filemanager_menu.files_updated = true
-                                    end
-                                    refresh()
-                                end
+                                refresh_book_info()
                             end,
                         },
                     })
@@ -1756,6 +1759,19 @@ local function apply_context_menu()
                                 }),
                             }
                             UIManager:show(status_dialog)
+                        end,
+                    },
+                })
+            end
+
+            if is_file and is_not_parent_folder and item._zen_home_context then
+                table.insert(buttons, {
+                    {
+                        text = icons.refresh .. "  " .. _("Refresh"),
+                        align = "left",
+                        callback = function()
+                            close_dialog()
+                            refresh_book_info()
                         end,
                     },
                 })
