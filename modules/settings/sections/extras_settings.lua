@@ -3,6 +3,7 @@
 -- Receives ctx: { plugin, config, settings_apply }
 
 local _ = require("gettext")
+local Device = require("device")
 local Rakuyomi = require("modules/filebrowser/patches/rakuyomi")
 local SharedState = require("common/shared_state")
 local global_settings = require("modules/settings/sections/global_settings")
@@ -20,7 +21,9 @@ function M.build(ctx)
     local items = {}
 
     table.insert(items, stats_settings.build(ctx))
-    table.insert(items, IconItem.decorate(zenpm_installer.build_item(plugin), icons.download))
+    if not (Device.isAndroid and Device:isAndroid()) then
+        table.insert(items, IconItem.decorate(zenpm_installer.build_item(plugin), icons.download))
+    end
 
     do
         if type(config.opds) ~= "table" then

@@ -1,19 +1,36 @@
 describe("config manager folder-path migration", function()
     local Manager
     local settings_file
+    local stores
 
     before_each(function()
         settings_file = { data = {}, flush = function() end }
+        stores = {
+            home = { settings = {}, presets = {} },
+            reader = { settings = {}, presets = {} },
+        }
         ZenSpec.replace("luasettings", { open = function() return settings_file end })
+        ZenSpec.replace("util", {
+            tableDeepCopy = function(value) return value end,
+        })
         ZenSpec.replace("config/preset_store", {
             rootDir = function() return "/tmp/zen-ui-spec" end,
             getSettings = function() return {} end,
             saveSettings = function() return true end,
+            loadStore = function(kind) return stores[kind] or { settings = {}, presets = {} } end,
+            saveStore = function(kind, store)
+                stores[kind] = store
+                return true
+            end,
+            migrateStores = function() return false end,
         })
         ZenSpec.replace("modules/filebrowser/patches/home/home_presets", {
             applyMosaicTitlesToStrips = function() end,
+            defaultHomePage = function() return { quotes = { font_size = 12 } } end,
         })
-        ZenSpec.replace("modules/filebrowser/patches/home/home_quotes", {})
+        ZenSpec.replace("modules/filebrowser/patches/home/home_quotes", {
+            ensureFile = function() return false end,
+        })
         ZenSpec.unload("config/manager")
         Manager = require("config/manager")
     end)
@@ -41,5 +58,21 @@ describe("config manager folder-path migration", function()
     it("does not rewrite identical normalized paths", function()
         Manager.save({ folder_sort = { ["/library/same"] = { collate = "title" } } })
         assert.is_false(Manager.moveFolderPathSettings("/library/same/", "/library/same"))
+    end)
+
+    it("migrates missing and legacy quote font sizes to 12", function()
+        stores.home = {
+            settings = { font_size = 18, quotes = { font_size = 18 } },
+            presets = {
+                missing = { quotes = {} },
+                explicit = { quotes = { font_size = 18, font_size_override = true } },
+            },
+        }
+
+        Manager.load()
+
+        assert.are.equal(12, stores.home.settings.quotes.font_size)
+        assert.are.equal(12, stores.home.presets.missing.quotes.font_size)
+        assert.are.equal(18, stores.home.presets.explicit.quotes.font_size)
     end)
 end)
