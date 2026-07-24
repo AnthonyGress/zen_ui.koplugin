@@ -272,10 +272,8 @@ function M.build(ctx)
     end
 
     local function shouldDimTab(id)
-        if config.navbar.show_tabs[id] == true then
-            return countEnabledTabs() <= 1
-        end
-        return true
+        return config.navbar.show_tabs[id] ~= true
+            and countEnabledTabs() >= navbar_max_tabs
     end
 
     local function getCustomTabById(id)

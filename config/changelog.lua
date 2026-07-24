@@ -217,6 +217,7 @@ return {
         "Fix line graph y-axis truncating too early",
         "Add Bluetooth toggle for supported Kindles in Controls/Navbar/Launcher + status bar icon",
         "Add TBR instructions to docs",
-        "Fix translation bug"
+        "Fix translation bug",
+        "Fix custom icon in menu for default tab"
     }
 }

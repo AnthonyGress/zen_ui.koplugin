@@ -456,6 +456,7 @@ function M.build(ctx)
         local sort_items
         local function shouldDimButton(id)
             return config.quick_settings.show_buttons[id] ~= true
+                and countEnabledButtons() >= quick_buttons_max
         end
         local function updateDimStates()
             for _i, sort_item in ipairs(sort_items) do
