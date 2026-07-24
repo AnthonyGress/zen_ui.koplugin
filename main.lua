@@ -178,6 +178,10 @@ function ZenUI:init()
     end
     i18n.install()  -- reinstall after any context-switch uninstall (onCloseWidget removes it)
     self.config = ConfigManager.load()
+    if _plugin_root then
+        require("common/utils").copyDefaultCustomTabIcon(
+            _plugin_root .. "/icons/", self.config and self.config.navbar)
+    end
     _G.__ZEN_UI_LIBRARY_FONT_CFG = self.config and self.config.library_font or nil
     _zen_plugin_ref = self
     local ok_zenpm, added_or_error = pcall(function()
