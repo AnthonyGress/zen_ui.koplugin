@@ -212,8 +212,10 @@ local function ensure_cfg(_config)
 
     if type(dcfg.quotes) ~= "table" then dcfg.quotes = {} end
     if dcfg.quotes.show_author == nil then dcfg.quotes.show_author = true end
+    dcfg.quotes.use_home_font_size = dcfg.quotes.use_home_font_size == true or nil
     local quote_font_size = tonumber(dcfg.quotes.font_size)
     local quote_font_override = dcfg.quotes.font_size_override == true
+    if quote_font_size == 18 and not quote_font_override then quote_font_size = nil end
     dcfg.quotes.font_size = quote_font_size and (quote_font_override or quote_font_size ~= 12)
         and math.max(4, math.min(32, math.floor(quote_font_size + 0.5))) or nil
     dcfg.quotes.font_size_override = dcfg.quotes.font_size and true or nil
@@ -1453,6 +1455,10 @@ function M.build(ctx)
 
     local function build_quotes_items()
         local quotes_cfg = ensure_module_cfg(dcfg, "quotes")
+        local function quote_font_size()
+            if dcfg.quotes.use_home_font_size then return dcfg.font_size end
+            return dcfg.quotes.font_size or 12
+        end
         return {
             {
                 text = _("Show widget title"),
@@ -1466,20 +1472,21 @@ function M.build(ctx)
             },
             {
                 text_func = function()
-                    return string.format("%s %s", _("Font size:"), tostring(dcfg.quotes.font_size or dcfg.font_size))
+                    return string.format("%s %s", _("Font size:"), tostring(quote_font_size()))
                 end,
                 keep_menu_open = true,
                 callback = function()
                     local SpinWidget = require("ui/widget/spinwidget")
                     UIManager:show(SpinWidget:new{
                         title_text = _("Quote font size"),
-                        value = dcfg.quotes.font_size or dcfg.font_size,
+                        value = quote_font_size(),
                         value_min = 4,
                         value_max = 32,
                         default_value = 12,
                         callback = function(spin)
                             dcfg.quotes.font_size = spin.value
                             dcfg.quotes.font_size_override = true
+                            dcfg.quotes.use_home_font_size = nil
                             save_home("reinit")
                         end,
                     })
@@ -1490,6 +1497,7 @@ function M.build(ctx)
                 callback = function()
                     dcfg.quotes.font_size = nil
                     dcfg.quotes.font_size_override = nil
+                    dcfg.quotes.use_home_font_size = true
                     save_home("reinit")
                 end,
             },

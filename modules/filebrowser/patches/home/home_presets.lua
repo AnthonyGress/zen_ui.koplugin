@@ -160,6 +160,7 @@ local DEFAULT_HOME_PAGE = {
     },
     quotes = {
         day_seed = 741666,
+        font_size = 12,
         manual_index = 11,
         show_author = true,
     },
@@ -312,6 +313,7 @@ local BOOKSHELF_HOME_PAGE = {
     },
     quotes = {
         day_seed = 741666,
+        font_size = 12,
         manual_index = 11,
         show_author = true,
     },

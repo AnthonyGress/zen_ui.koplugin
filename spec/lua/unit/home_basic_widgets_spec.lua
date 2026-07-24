@@ -166,7 +166,7 @@ describe("home basic widgets", function()
         local widget = component.build({
             width = 400,
             height = 120,
-            config = { quotes = { show_author = true } },
+            config = { font_size = 18, quotes = { show_author = true } },
             data = {
                 getCurrentQuote = function() return { text = "Read deeply.", author = "Zen Tester" } end,
                 prevQuote = function() previous = previous + 1 end,
@@ -192,6 +192,7 @@ describe("home basic widgets", function()
         for _i, child in ipairs(created) do
             if child.text == '"Read deeply."' then
                 assert.are.equal(0.55, child.line_height)
+                assert.are.equal(12, child.face.size)
             end
         end
         widget[1][1]:paintTo(nil, 0, 0)
@@ -205,6 +206,12 @@ describe("home basic widgets", function()
         end
         assert.are.equal(48, quote_widget.paint_y)
         assert.are.equal(60, author_widget.paint_y)
+    end)
+
+    it("seeds the quotes font size at 12 in the default home preset", function()
+        ZenSpec.unload("modules/filebrowser/patches/home/home_presets")
+        local preset = require("modules/filebrowser/patches/home/home_presets").defaultHomePage()
+        assert.are.equal(12, preset.quotes.font_size)
     end)
 
     it("renders the empty-history quote fallback without an author", function()

@@ -24,10 +24,13 @@ return {
         local width = ctx.width
         local height = ctx.height
         local quote = get_quote(ctx)
-        local show_author = ctx.config.quotes and ctx.config.quotes.show_author ~= false
+        local quotes = ctx.config.quotes or {}
+        local show_author = quotes.show_author ~= false
         local Screen = Device.screen
-        local quote_font_size = ctx.config.quotes and ctx.config.quotes.font_size
-            or ctx.config.font_size or 18
+        local quote_font_size = quotes.font_size
+        if quote_font_size == nil then
+            quote_font_size = quotes.use_home_font_size and ctx.config.font_size or 12
+        end
         quote_font_size = math.max(4, math.min(32, tonumber(quote_font_size) or 12))
 
         local padding = Screen:scaleBySize(8)

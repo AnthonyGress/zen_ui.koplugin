@@ -48,6 +48,52 @@ require_runtime() {
   }
 }
 
+report_test_results() {
+  python3 - "$@" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+
+reports = list(zip(sys.argv[1::2], sys.argv[2::2]))
+failed = []
+
+print("\n========== Test results ==========")
+for label, report in reports:
+    try:
+        root = ET.parse(report).getroot()
+    except (OSError, ET.ParseError):
+        print(f"{label}: no report")
+        continue
+
+    results = root.attrib
+    if "tests" not in results:
+        results = {
+            key: str(sum(int(suite.get(key, 0)) for suite in root.findall("testsuite")))
+            for key in ("tests", "failures", "errors", "skip", "skipped")
+        }
+    tests = int(results.get("tests", 0))
+    failures = int(results.get("failures", 0))
+    errors = int(results.get("errors", 0))
+    skipped = int(results.get("skip", 0)) or int(results.get("skipped", 0))
+    passed = tests - failures - errors - skipped
+    print(f"{label}: {passed} passed, {skipped} skipped, {failures} failed, {errors} errors")
+
+    for case in root.iter("testcase"):
+        for outcome in case:
+            if outcome.tag not in ("failure", "error"):
+                continue
+            message = " ".join((outcome.get("message") or outcome.text or "").split())
+            failed.append((label, case.get("name", "unnamed test"), message))
+
+if failed:
+    print("\nFailing tests:")
+    for label, name, message in failed:
+        print(f"  [FAIL] {label}: {name}")
+        if message:
+            print(f"         {message}")
+print("==================================")
+PY
+}
+
 run_lua() {
   require_runtime
   local luacheck_bin="$ROOT/.luarocks/bin/luacheck"
@@ -55,7 +101,7 @@ run_lua() {
   "$luacheck_bin" -q _meta.lua main.lua common config modules spec/lua spec/python/zen_ui_test_driver.koplugin
   local ko_home
   ko_home="$(mktemp -d "${TMPDIR:-/tmp}/zen-ui-spec-home.XXXXXX")"
-  trap 'rm -rf "$ko_home"' RETURN
+  trap "rm -rf '$ko_home'" RETURN
   mkdir -p "$ARTIFACTS/lua"
   (
     cd "$RUNTIME"
@@ -75,24 +121,10 @@ run_lua() {
       fi
       exit "$lua_status"
     fi
-    python3 - "$ARTIFACTS/lua/junit.xml" <<'PY'
-import sys
-import xml.etree.ElementTree as ET
-
-results = ET.parse(sys.argv[1]).getroot().attrib
-tests = int(results.get("tests", 0))
-failures = int(results.get("failures", 0))
-errors = int(results.get("errors", 0))
-skipped = int(results.get("skip", results.get("skipped", 0)))
-passed = tests - failures - errors - skipped
-print(f"Lua/Busted: {passed} passed, {skipped} skipped, {failures} failed, {errors} errors")
-PY
     if [[ "$lua_status" -ne 0 ]]; then
-      cat "$ARTIFACTS/lua/junit.xml" >&2
       exit "$lua_status"
     fi
     if grep -Eq "<testsuites[^>]*(failures|errors)='[1-9]" "$ARTIFACTS/lua/junit.xml"; then
-      echo "Lua test failures recorded in $ARTIFACTS/lua/junit.xml" >&2
       exit 1
     fi
   )
@@ -132,10 +164,32 @@ run_python() {
   fi
   local python_status=0
   local pytest_target="${ZEN_UI_PYTEST_TARGET:-$ROOT/spec/python/tests}"
+  mkdir -p "$ARTIFACTS/python"
   PYTHONPATH="$ROOT/spec/python" KOREADER_DIR="$staged_runtime" \
-    "$python" -m pytest "$pytest_target" -q || python_status=$?
+    "$python" -m pytest "$pytest_target" -q \
+      --junitxml="$ARTIFACTS/python/junit.xml" || python_status=$?
   if [[ -n "$staged_runtime" ]]; then rm -rf "$staged_runtime"; fi
   return "$python_status"
+}
+
+run_test_suite() {
+  local runtime="$1"
+  local lua_status=0
+  local python_status=0
+  run_lua || lua_status=$?
+  run_python "$runtime" || python_status=$?
+  report_test_results \
+    "Lua/Busted" "$ARTIFACTS/lua/junit.xml" \
+    "Python/pytest" "$ARTIFACTS/python/junit.xml"
+  if [[ "$lua_status" -ne 0 ]]; then return "$lua_status"; fi
+  return "$python_status"
+}
+
+run_lua_suite() {
+  local lua_status=0
+  run_lua || lua_status=$?
+  report_test_results "Lua/Busted" "$ARTIFACTS/lua/junit.xml"
+  return "$lua_status"
 }
 
 package_check() {
@@ -152,11 +206,11 @@ package_check() {
 }
 
 case "$COMMAND" in
-  lua) run_lua ;;
-  smoke) run_lua; run_python stable ;;
-  nightly-smoke) run_lua; run_python nightly ;;
+  lua) run_lua_suite ;;
+  smoke) run_test_suite stable ;;
+  nightly-smoke) run_test_suite nightly ;;
   package-check) package_check ;;
-  full) run_lua; run_python stable; package_check ;;
+  full) run_test_suite stable; package_check ;;
   update-goldens)
     ZEN_UI_RUN_EMULATOR=1 ZEN_UI_UPDATE_GOLDENS=1 run_lua
     ZEN_UI_RUN_EMULATOR=1 ZEN_UI_UPDATE_GOLDENS=1 run_python stable
