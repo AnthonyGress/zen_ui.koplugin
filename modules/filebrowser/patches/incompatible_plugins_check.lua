@@ -55,6 +55,7 @@ end
 -- Plugins that Zen UI will auto-disable (writes plugins_disabled, requires restart).
 local AUTO_DISABLE = {
     { sentinel = "sui_core", label = "Simple UI", fallback_key = "simpleui" },
+    { sentinel = "quickmenu", label = "QuickMenu", fallback_key = "quickmenu" },
 }
 
 local function apply_incompatible_plugins_check()
