@@ -7,7 +7,7 @@ msgstr ""
 "Language: pt_BR\n"
 
 msgid " days"
-msgstr "dias"
+msgstr " dias"
 
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
@@ -281,6 +281,9 @@ msgstr "Preto"
 
 msgid "Blue"
 msgstr "Azul"
+
+msgid "Bluetooth"
+msgstr "Bluetooth"
 
 msgid "bold"
 msgstr "negrito"

@@ -1,11 +1,31 @@
 local ZenLogger = require("common/zen_logger")
 local logger = ZenLogger.new("main")
 
+-- This must happen before loading Zen UI modules: Simple UI installs a
+-- conflicting common/i18n module during its own startup.
+local _incompatible_plugins_restart_required = false
+do
+    logger.info("Checking incompatible plugins before startup")
+    local ok_compat, incompatible_check = pcall(require,
+        "modules/filebrowser/patches/incompatible_plugins_check")
+    if not ok_compat then
+        logger.warn("Incompatible-plugin check failed:", incompatible_check)
+    elseif type(incompatible_check) == "function" then
+        _incompatible_plugins_restart_required = incompatible_check()
+    end
+end
+
 -- i18n must be installed before any other require() so every subsequent
 -- require("gettext") in every sub-module receives the wrapped version.
-local i18n = require("common/i18n")
-i18n.install()
-require("common/status_bar_registry").install()
+local i18n
+if _incompatible_plugins_restart_required then
+    -- KOReader may still call onCloseWidget on this inert plugin instance.
+    i18n = { install = function() end, uninstall = function() end }
+else
+    i18n = require("common/i18n")
+    i18n.install()
+    require("common/status_bar_registry").install()
+end
 
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
 local _ = require("gettext")
@@ -152,10 +172,26 @@ end
 
 function ZenUI:init()
     local started_at = os.clock()
+    if _incompatible_plugins_restart_required then
+        logger.warn("Zen UI initialization skipped; restart required after disabling incompatible plugins")
+        return
+    end
     i18n.install()  -- reinstall after any context-switch uninstall (onCloseWidget removes it)
     self.config = ConfigManager.load()
+    if _plugin_root then
+        require("common/utils").copyDefaultCustomTabIcon(
+            _plugin_root .. "/icons/", self.config and self.config.navbar)
+    end
     _G.__ZEN_UI_LIBRARY_FONT_CFG = self.config and self.config.library_font or nil
     _zen_plugin_ref = self
+    local ok_zenpm, added_or_error = pcall(function()
+        return require("modules/menu/app_launcher/model").ensure_zenpm_launcher_entry()
+    end)
+    if not ok_zenpm then
+        logger.warn("ZenPM launcher integration failed:", added_or_error)
+    elseif added_or_error then
+        logger.info("Added ZenPM to the launcher")
+    end
     self:onDispatcherRegisterActions()
     -- Initialize updater state; release metadata stays live-only.
     zen_updater.init_banner()
@@ -164,19 +200,6 @@ function ZenUI:init()
     -- so covers stay legible regardless of where it was set (zen UI,
     -- KOReader's coverbrowser, or a legacy save).
     pcall(function() require("common/cover_utils").getFilesPerPage() end)
-
-    -- Run incompatible-plugin detection before ANY module or patch loads.
-    do
-        logger.info("Checking for Project: Title incompatibility")
-        local ok_compat, incompatible_check = pcall(require,
-            "modules/filebrowser/patches/incompatible_plugins_check")
-        if not ok_compat then
-            logger.warn("Project: Title incompatibility check failed:", incompatible_check)
-        elseif type(incompatible_check) == "function" and incompatible_check() then
-            logger.warn("Incompatible plugin changes require a restart")
-            return
-        end
-    end
 
     -- First-run: backup user's original screensaver settings as a preset.
     if not self.config._meta.screensaver_backup_created then

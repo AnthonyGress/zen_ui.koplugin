@@ -470,8 +470,10 @@ local function ensure_home_cfg()
 
     if type(dcfg.quotes) ~= "table" then dcfg.quotes = {} end
     if dcfg.quotes.show_author == nil then dcfg.quotes.show_author = true end
+    dcfg.quotes.use_home_font_size = dcfg.quotes.use_home_font_size == true or nil
     local quote_font_size = tonumber(dcfg.quotes.font_size)
     local quote_font_override = dcfg.quotes.font_size_override == true
+    if quote_font_size == 18 and not quote_font_override then quote_font_size = nil end
     dcfg.quotes.font_size = quote_font_size and (quote_font_override or quote_font_size ~= 12)
         and math.max(4, math.min(32, math.floor(quote_font_size + 0.5))) or nil
     dcfg.quotes.font_size_override = dcfg.quotes.font_size and true or nil
@@ -910,7 +912,7 @@ local function build_data_provider(cfg, dcfg)
                 pages = bi.pages
                 description = bi.description
             end
-            local ok_rakuyomi, Rakuyomi = pcall(require, "common/rakuyomi")
+            local ok_rakuyomi, Rakuyomi = pcall(require, "modules/filebrowser/patches/rakuyomi")
             local metadata = ok_rakuyomi and type(Rakuyomi.getMetadata) == "function"
                 and Rakuyomi.getMetadata(path) or nil
             if metadata then

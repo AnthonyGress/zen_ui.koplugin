@@ -6,29 +6,23 @@ M.BUILTIN_THEMES = {
     dark_warm_gray = {
         text = "#dcdccc",
         background = "#1f1f1f",
-        background_value = 0x1f1f1f,
     },
     dark_graphite = {
         text = "#d0d0d0",
         background = "#252525",
-        background_value = 0x252525,
     },
     light_sepia = {
         text = "#3f3524",
         background = "#f3ead2",
-        background_value = 0xf3ead2,
     },
     light_tan = {
         text = "#473b2d",
         background = "#e8dcc5",
-        background_value = 0xe8dcc5,
     },
 }
 
 local CSS_START = "/* zen_ui_reader_themes:start */"
 local CSS_END = "/* zen_ui_reader_themes:end */"
-local syncing_night_mode = false
-
 local function is_enabled(plugin)
     local features = plugin and plugin.config and plugin.config.features
     return type(features) == "table" and features.reader_themes == true
@@ -53,6 +47,12 @@ end
 
 local function valid_color(value)
     return normalize_color(value) ~= nil
+end
+
+local function display_color(value)
+    local color = normalize_color(value)
+    if not color or not is_dark_mode() then return color end
+    return string.format("#%06x", 0xffffff - tonumber(color:sub(2), 16))
 end
 
 local function theme_for(plugin, dark_mode)
@@ -84,8 +84,8 @@ function M.appendCss(plugin, css)
 
     local theme = theme_for(plugin)
     if not theme then return base end
-    local background = normalize_color(theme.background)
-    local text = normalize_color(theme.text)
+    local background = display_color(theme.background)
+    local text = display_color(theme.text)
     return base .. "\n" .. CSS_START .. "\n"
         .. "html, body { background-color: " .. background .. " !important; }\n"
         .. "body, body * { color: " .. text .. " !important; }\n"
@@ -98,9 +98,7 @@ function M.applyBackground(reader, plugin)
 
     local theme = theme_for(plugin)
     if theme then
-        local value = theme.background_value
-            or tonumber(normalize_color(theme.background):sub(2), 16)
-        document:setBackgroundColor(value)
+        document:setBackgroundColor(tonumber(display_color(theme.background):sub(2), 16))
     elseif G_reader_settings and type(G_reader_settings.has) == "function"
         and G_reader_settings:has("cre_background_color") then
         document:setBackgroundColor(G_reader_settings:readSetting("cre_background_color"))
@@ -113,7 +111,7 @@ end
 function M.getTextColor(plugin)
     local theme = theme_for(plugin)
     if not theme then return nil end
-    local text = normalize_color(theme.text)
+    local text = display_color(theme.text)
     local r = tonumber(text:sub(2, 3), 16)
     local g = tonumber(text:sub(4, 5), 16)
     local b = tonumber(text:sub(6, 7), 16)
@@ -156,7 +154,6 @@ function M.applyCurrent(plugin)
     local ok, ReaderUI = pcall(require, "apps/reader/readerui")
     local reader = ok and ReaderUI and ReaderUI.instance
     if not reader then return false end
-    M.syncNightModeInversion(plugin)
     if not (reader.typeset and reader.document) then return false end
     if type(reader.document.setStyleSheet) ~= "function" then return false end
 
@@ -222,36 +219,6 @@ end
 
 function M.isDarkMode()
     return is_dark_mode()
-end
-
-function M.syncNightModeInversion(plugin)
-    local desired = is_dark_mode() and not M.isActive(plugin)
-    local Screen = require("device").screen
-    if Screen and Screen.night_mode ~= desired then
-        syncing_night_mode = true
-        Screen:toggleNightMode()
-        syncing_night_mode = false
-        if type(UIManager.ToggleNightMode) == "function" then
-            UIManager:ToggleNightMode(desired)
-        end
-    end
-end
-
-function M.restoreNightModeInversion()
-    local desired = is_dark_mode()
-    local Screen = require("device").screen
-    if Screen and Screen.night_mode ~= desired then
-        syncing_night_mode = true
-        Screen:toggleNightMode()
-        syncing_night_mode = false
-        if type(UIManager.ToggleNightMode) == "function" then
-            UIManager:ToggleNightMode(desired)
-        end
-    end
-end
-
-function M.isSyncingNightMode()
-    return syncing_night_mode
 end
 
 function M.getTheme(plugin)

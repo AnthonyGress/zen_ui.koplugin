@@ -62,9 +62,36 @@ end
 local function compactNumber(value)
     value = math.floor(tonumber(value) or 0)
     if value >= 1000 then
-        return tostring(math.floor(value / 1000)) .. "k"
+        local tenths = math.floor(value / 100 + 0.5)
+        if tenths % 10 == 0 then
+            return tostring(math.floor(tenths / 10)) .. "k"
+        end
+        return string.format("%d.%dk", math.floor(tenths / 10), tenths % 10)
     end
     return tostring(value)
+end
+
+local function graphValues(series, metric, max_value)
+    local values = {}
+    max_value = max_value or 0
+    for _i, point in ipairs(series) do
+        local value = metric == "time"
+            and math.floor((point.duration or 0) / 60)
+            or (point.pages or 0)
+        values[#values + 1] = value
+        if value > max_value then max_value = value end
+    end
+    return max_value, values
+end
+
+local function axisLeftPadding(axis_face, max_value)
+    local label = TextWidget:new{
+        text = compactNumber(max_value),
+        face = axis_face,
+    }
+    local label_w = label:getWidth()
+    label:free()
+    return math.max(Screen:scaleBySize(28), label_w + Screen:scaleBySize(4))
 end
 
 function LineGraph:new(opts)
@@ -101,7 +128,9 @@ function LineGraph:getPointIndexAt(x)
     local count = #self.series
     if count == 0 then return nil end
     if count == 1 then return 1 end
-    local pad_l = Screen:scaleBySize(28)
+    local axis_face = Font:getFace("smallinfofont", Screen:scaleBySize(9))
+    local max_value = graphValues(self.series, self.metric, self.max_value)
+    local pad_l = axisLeftPadding(axis_face, max_value)
     local pad_r = Screen:scaleBySize(10)
     local plot_w = math.max(1, self.dimen.w - pad_l - pad_r)
     local ratio = (x - pad_l) / plot_w
@@ -112,10 +141,12 @@ end
 function LineGraph:paintTo(bb, x, y)
     local w = self.dimen.w
     local h = self.dimen.h
-    local pad_l = Screen:scaleBySize(28)
     local pad_r = Screen:scaleBySize(10)
     local pad_t = Screen:scaleBySize(8)
     local pad_b = Screen:scaleBySize(24)
+    local axis_face = Font:getFace("smallinfofont", Screen:scaleBySize(9))
+    local max_value, values = graphValues(self.series, self.metric, self.max_value)
+    local pad_l = axisLeftPadding(axis_face, max_value)
     local plot_x = x + pad_l
     local plot_y = y + pad_t
     local plot_w = math.max(1, w - pad_l - pad_r)
@@ -124,23 +155,12 @@ function LineGraph:paintTo(bb, x, y)
     local fg = Blitbuffer.COLOR_BLACK
     local faint = Blitbuffer.COLOR_DARK_GRAY
     local axis_text = self.axis_color or fg
-    local axis_face = Font:getFace("smallinfofont", Screen:scaleBySize(9))
 
     bb:paintRect(plot_x, plot_y + plot_h, plot_w, 1, fg)
     bb:paintRect(plot_x, plot_y, 1, plot_h + 1, fg)
     for i = 1, 3 do
         local gy = plot_y + math.floor(plot_h * i / 4)
         bb:paintRect(plot_x, gy, plot_w, 1, grid)
-    end
-
-    local values = {}
-    local max_value = self.max_value or 0
-    for _i, point in ipairs(self.series) do
-        local value = self.metric == "time"
-            and math.floor((point.duration or 0) / 60)
-            or (point.pages or 0)
-        values[#values + 1] = value
-        if value > max_value then max_value = value end
     end
 
     paintText(bb, compactNumber(max_value), axis_face, axis_text, x, plot_y - 1, pad_l - 2)

@@ -9,7 +9,7 @@ describe("Rakuyomi availability", function()
         original_bookinfomanager = package.loaded.bookinfomanager
         original_documentregistry = package.loaded["document/documentregistry"]
         original_cbz_document = package.loaded["extensions/CbzDocument"]
-        ZenSpec.unload("common/rakuyomi")
+        ZenSpec.unload("modules/filebrowser/patches/rakuyomi")
     end)
 
     after_each(function()
@@ -17,7 +17,7 @@ describe("Rakuyomi availability", function()
         package.loaded.bookinfomanager = original_bookinfomanager
         package.loaded["document/documentregistry"] = original_documentregistry
         package.loaded["extensions/CbzDocument"] = original_cbz_document
-        ZenSpec.unload("common/rakuyomi")
+        ZenSpec.unload("modules/filebrowser/patches/rakuyomi")
     end)
 
     it("exports the availability API used by Zen UI initialization", function()
@@ -25,7 +25,7 @@ describe("Rakuyomi availability", function()
             instance = { rakuyomi = {} },
         }
 
-        local Rakuyomi = require("common/rakuyomi")
+        local Rakuyomi = require("modules/filebrowser/patches/rakuyomi")
 
         assert.is_table(Rakuyomi)
         assert.is_function(Rakuyomi.is_available)
@@ -51,7 +51,7 @@ describe("Rakuyomi availability", function()
         ZenSpec.replace("document/documentregistry", DocumentRegistry)
         ZenSpec.replace("extensions/CbzDocument", cbz_provider)
 
-        local Rakuyomi = require("common/rakuyomi")
+        local Rakuyomi = require("modules/filebrowser/patches/rakuyomi")
         Rakuyomi.isChapterFile = function(path)
             return path == "/library/chapter.cbz"
         end
@@ -85,7 +85,7 @@ describe("Rakuyomi availability", function()
             end,
         })
 
-        local Rakuyomi = require("common/rakuyomi")
+        local Rakuyomi = require("modules/filebrowser/patches/rakuyomi")
         Rakuyomi.isChapterFile = function() return true end
 
         local metadata = Rakuyomi.getMetadata("/library/chapter.cbz")
@@ -114,7 +114,7 @@ describe("Rakuyomi availability", function()
         ZenSpec.replace("document/documentregistry", DocumentRegistry)
         ZenSpec.replace("extensions/CbzDocument", {})
 
-        local Rakuyomi = require("common/rakuyomi")
+        local Rakuyomi = require("modules/filebrowser/patches/rakuyomi")
         Rakuyomi.isChapterFile = function() return true end
         assert.is_true(Rakuyomi.installMetadataIntegration())
 
@@ -138,7 +138,7 @@ describe("Rakuyomi availability", function()
         })
         ZenSpec.replace("extensions/CbzDocument", {})
 
-        local Rakuyomi = require("common/rakuyomi")
+        local Rakuyomi = require("modules/filebrowser/patches/rakuyomi")
         Rakuyomi.isChapterFile = function() return true end
         assert.is_true(Rakuyomi.installMetadataIntegration())
 

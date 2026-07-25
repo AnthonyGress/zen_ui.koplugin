@@ -9,6 +9,7 @@ local utils = require("modules/settings/zen_settings_utils")
 local constants = require("common/constants")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
+local Bluetooth = require("common/bluetooth")
 
 local M = {}
 
@@ -27,6 +28,7 @@ function M.build(ctx)
     -- -------------------------------------------------------------------------
 
     local status_bar_all_items = {
+        { key = "bluetooth",   text = _("Bluetooth"), available = Bluetooth.isAvailable },
         { key = "wifi",        text = _("Wi-Fi")       },
         { key = "disk",        text = _("Disk space")  },
         { key = "ram",         text = _("RAM usage")   },
@@ -35,6 +37,16 @@ function M.build(ctx)
         { key = "time",        text = _("Time")        },
         { key = "custom_text", text = _("Custom text") },
     }
+
+    do
+        local available_items = {}
+        for _i, item in ipairs(status_bar_all_items) do
+            if not item.available or item.available() then
+                table.insert(available_items, item)
+            end
+        end
+        status_bar_all_items = available_items
+    end
 
     -- Append items registered by external plugins via
     -- _G.__ZEN_UI_REGISTER_STATUS_ITEM so they are placeable from this UI.
@@ -56,7 +68,7 @@ function M.build(ctx)
     local CANONICAL_ORDERS = {
         left   = { "time", "custom_text" },
         center = {},
-        right  = { "custom_text", "disk", "ram", "frontlight", "wifi", "battery" },
+        right  = { "custom_text", "disk", "ram", "frontlight", "bluetooth", "wifi", "battery" },
     }
 
     local function make_status_bar_slot_items(slot_name, arrange_title)

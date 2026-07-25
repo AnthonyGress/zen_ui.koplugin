@@ -7,7 +7,7 @@ msgstr ""
 "Language: cs\n"
 
 msgid " days"
-msgstr "dní"
+msgstr " dní"
 
 msgid "%1 (%2)"
 msgstr "%1 (%2)"

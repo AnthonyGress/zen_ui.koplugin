@@ -3,10 +3,12 @@
 -- Receives ctx: { plugin, config, settings_apply }
 
 local _ = require("gettext")
-local Rakuyomi = require("common/rakuyomi")
+local Device = require("device")
+local Rakuyomi = require("modules/filebrowser/patches/rakuyomi")
 local SharedState = require("common/shared_state")
 local global_settings = require("modules/settings/sections/global_settings")
 local stats_settings = require("modules/settings/sections/stats_settings")
+local zenpm_installer = require("modules/settings/zenpm_installer")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
 
@@ -19,6 +21,9 @@ function M.build(ctx)
     local items = {}
 
     table.insert(items, stats_settings.build(ctx))
+    if not (Device.isAndroid and Device:isAndroid()) then
+        table.insert(items, IconItem.decorate(zenpm_installer.build_item(plugin), icons.download))
+    end
 
     do
         if type(config.opds) ~= "table" then

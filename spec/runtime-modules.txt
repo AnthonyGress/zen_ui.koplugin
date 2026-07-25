@@ -2,6 +2,7 @@ common/arrange_state.lua|unit
 _meta.lua|load
 main.lua|integration
 common/book_status.lua|unit
+common/bluetooth.lua|unit
 common/book_walker.lua|unit
 common/clock_schedule.lua|unit
 common/clock_timer.lua|unit
@@ -24,7 +25,6 @@ common/reader_margins.lua|unit
 common/reader_themes.lua|unit
 common/quickstart/quickstart_pages.lua|unit
 common/quickstart/quickstart_screen.lua|unit
-common/rakuyomi.lua|unit
 common/shared_state.lua|unit
 common/shutdown.lua|unit
 common/status_bar_registry.lua|unit
@@ -173,4 +173,5 @@ modules/settings/zen_bugreporter.lua|integration
 modules/settings/zen_settings.lua|integration
 modules/settings/zen_settings_apply.lua|integration
 modules/settings/zen_settings_utils.lua|integration
+modules/settings/zenpm_installer.lua|integration
 modules/settings/zen_updater.lua|integration

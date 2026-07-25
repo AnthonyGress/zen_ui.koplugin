@@ -210,5 +210,14 @@ return {
         "Allow top status bar in CBZ/PDF (Reader > Top status bar)",
         "Match top Menu icon to default Navbar tab",
         "Fix prevent auto night mode schedule from inverting Reader theme color"
+    },
+    ["2.5.3"] = {
+        "Run plugin compat check immediately to prevent user install issues",
+        "Improve Reader Themes in dark mode",
+        "Fix line graph y-axis truncating too early",
+        "Add Bluetooth toggle for supported Kindles in Controls/Navbar/Launcher + status bar icon",
+        "Add TBR instructions to docs",
+        "Fix translation bug",
+        "Fix custom icon in menu for default tab"
     }
 }

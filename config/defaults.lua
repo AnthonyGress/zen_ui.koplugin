@@ -110,6 +110,7 @@ local defaults = {
         button_order = { "wifi", "night", "rotate", "zen", "restart", "sleep" },
         show_buttons = {
             wifi = true,
+            bluetooth = false,
             night = true,
             frontlight = false,
             gyro = false,

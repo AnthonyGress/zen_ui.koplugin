@@ -7,7 +7,7 @@ msgstr ""
 "Language: zh_TW\n"
 
 msgid " days"
-msgstr "天"
+msgstr " 天"
 
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
@@ -281,6 +281,9 @@ msgstr "黑色"
 
 msgid "Blue"
 msgstr "藍色"
+
+msgid "Bluetooth"
+msgstr "藍牙"
 
 msgid "bold"
 msgstr "粗體"

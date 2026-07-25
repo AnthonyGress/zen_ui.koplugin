@@ -37,11 +37,8 @@ describe("night mode schedule", function()
         }
         ReaderUI = { instance = nil }
         ReaderThemes = {
-            isActiveInReader = function()
-                return ReaderUI.instance ~= nil
-            end,
-            syncNightModeInversion = function()
-                ReaderThemes.synced = (ReaderThemes.synced or 0) + 1
+            isEnabled = function()
+                return true
             end,
             applyCurrent = function()
                 ReaderThemes.applied = (ReaderThemes.applied or 0) + 1
@@ -59,14 +56,13 @@ describe("night mode schedule", function()
         _G.__ZEN_UI_PLUGIN = nil
     end)
 
-    it("keeps hardware inversion off for an open themed reader", function()
+    it("keeps hardware inversion on for an open themed reader", function()
         ReaderUI.instance = { document = {} }
         assert.is_nil(require("modules/global/patches/night_mode_schedule")())
 
         assert.is_true(G_reader_settings:isTrue("night_mode"))
-        assert.is_false(screen.night_mode)
-        assert.is_nil(screen.hw_night_mode)
-        assert.are.equal(1, ReaderThemes.synced)
+        assert.is_true(screen.night_mode)
+        assert.is_true(screen.hw_night_mode)
         assert.are.equal(1, ReaderThemes.applied)
     end)
 
@@ -76,6 +72,6 @@ describe("night mode schedule", function()
         assert.is_true(G_reader_settings:isTrue("night_mode"))
         assert.is_true(screen.night_mode)
         assert.is_true(screen.hw_night_mode)
-        assert.is_nil(ReaderThemes.synced)
+        assert.are.equal(1, ReaderThemes.applied)
     end)
 end)

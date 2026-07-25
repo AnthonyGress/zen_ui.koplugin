@@ -38,7 +38,7 @@ describe("Rakuyomi reader return", function()
             config = { rakuyomi = { return_to_chapter_list_on_exit = return_enabled } },
         }
         ZenSpec.unload("modules/filebrowser/patches/rakuyomi")
-        require("modules/filebrowser/patches/rakuyomi")()
+        require("modules/filebrowser/patches/rakuyomi").apply()
         local Rakuyomi = _G.__ZEN_UI_RAKUYOMI
         Rakuyomi.isChapterFile = function() return true end
         Rakuyomi.openChapterListingFromFile = function(path, hide_top_close)

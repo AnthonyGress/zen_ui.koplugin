@@ -64,7 +64,14 @@ describe("reader themes", function()
         }
 
         G_reader_settings:saveSetting("night_mode", true)
-        assert.matches("#252525", Themes.appendCss(plugin, "base"), 1, true)
+        local css = Themes.appendCss(plugin, "base")
+        assert.matches("#2f2f2f", css, 1, true)
+        assert.matches("#dadada", css, 1, true)
+        local background
+        Themes.applyBackground({
+            document = { setBackgroundColor = function(_, color) background = color end },
+        }, plugin)
+        assert.are.equal(0xdadada, background)
 
         G_reader_settings:saveSetting("night_mode", false)
         assert.are.equal("base", Themes.appendCss(plugin, "base"))
@@ -181,7 +188,7 @@ describe("reader themes", function()
     end)
 
     it("wraps CRE stylesheets only while the feature is enabled", function()
-        local received_css, cache_resets = nil, 0
+        local received_css
         local CreDocument = {
             setStyleSheet = function(_, _file, css) received_css = css end,
         }
@@ -191,16 +198,6 @@ describe("reader themes", function()
         local ReaderFooter = {
             updateFooterContainer = function() end,
             updateFooterFont = function() end,
-        }
-        local DeviceListener = {
-            onToggleNightMode = function() end,
-        }
-        local menu = {
-            getSize = function() return { w = 100, h = 50 } end,
-            paintTo = function() end,
-        }
-        local ReaderMenu = {
-            onShowMenu = function(self) self.menu_container = { menu } end,
         }
         local plugin = {
             config = {
@@ -213,10 +210,8 @@ describe("reader themes", function()
         }
         _G.__ZEN_UI_PLUGIN = plugin
         ZenSpec.replace("document/credocument", CreDocument)
-        ZenSpec.replace("device/devicelistener", DeviceListener)
         ZenSpec.replace("apps/reader/modules/readertypeset", ReaderTypeset)
         ZenSpec.replace("apps/reader/modules/readerfooter", ReaderFooter)
-        ZenSpec.replace("apps/reader/modules/readermenu", ReaderMenu)
         local ReaderUI = {
             onClose = function() end,
         }
@@ -247,34 +242,11 @@ describe("reader themes", function()
         plugin.config.features.reader_themes = true
         ReaderUI.instance = nil
 
-        ReaderMenu:onShowMenu()
-        G_reader_settings:saveSetting("night_mode", true)
-        local inversions = 0
-        menu:paintTo({
-            invertRect = function() inversions = inversions + 1 end,
-        }, 0, 0)
-        assert.are.equal(1, inversions)
-        G_reader_settings:saveSetting("night_mode", false)
-
         plugin.config.features.reader_themes = false
         CreDocument:setStyleSheet("epub.css", "base")
         assert.are.equal("base", received_css)
 
         plugin.config.features.reader_themes = true
-        DeviceListener.onToggleNightMode({
-            ui = {
-                document = {
-                    provider = "crengine",
-                    resetCallCache = function() cache_resets = cache_resets + 1 end,
-                },
-            },
-        })
-        assert.is_true(G_reader_settings:isTrue("night_mode"))
-        assert.is_false(require("device").screen.night_mode)
-        assert.are.equal(1, cache_resets)
-        assert.are.equal(0, #dirty_calls)
-
-        G_reader_settings:saveSetting("night_mode", false)
         local document = {
             setStyleSheet = function() end,
             setBackgroundColor = function() end,
@@ -285,8 +257,8 @@ describe("reader themes", function()
             styletweak = { getCssText = function() return "" end },
         }
         require("device").screen:toggleNightMode()
-        assert.is_false(require("device").screen.night_mode)
         G_reader_settings:saveSetting("night_mode", true)
+        assert.is_true(require("device").screen.night_mode)
         assert.is_function(next_tick_callback)
         next_tick_callback()
         assert.are.equal("full", dirty_calls[1][3])

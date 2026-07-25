@@ -88,25 +88,33 @@ function M.init(logger, plugin)
         run_patch(logger, plugin, "menu_font", menu_font_fn)
     end
 
-    -- Hook Device._afterResume / _beforeSuspend directly so schedules always
-    -- fire on power events regardless of widget-tree event dispatch.
+    -- Hook the global Resume broadcast so schedules are independent of the
+    -- active widget. This also covers Android, which broadcasts Resume without
+    -- going through Device:_afterResume.
     local Device = require("device")
+    local UIManager = require("ui/uimanager")
     local SCHEDULE_STATES = {
         "__ZEN_UI_NIGHT_SCHEDULE",
         "__ZEN_UI_BRIGHTNESS_SCHEDULE",
         "__ZEN_UI_WARMTH_SCHEDULE",
     }
 
-    if type(Device._afterResume) == "function" then
-        local orig_afterResume = Device._afterResume
-        Device._afterResume = function(self, ...)
-            local result = orig_afterResume(self, ...)
-            for _i, name in ipairs(SCHEDULE_STATES) do
-                local state = rawget(_G, name)
-                if type(state) == "table" then
-                    local fn = state.force_reschedule or state.reschedule
-                    if type(fn) == "function" then pcall(fn) end
-                end
+    local function reschedule_schedules()
+        for _i, name in ipairs(SCHEDULE_STATES) do
+            local state = rawget(_G, name)
+            if type(state) == "table" then
+                local fn = state.force_reschedule or state.reschedule
+                if type(fn) == "function" then pcall(fn) end
+            end
+        end
+    end
+
+    if type(UIManager.broadcastEvent) == "function" then
+        local orig_broadcastEvent = UIManager.broadcastEvent
+        UIManager.broadcastEvent = function(self, event, ...)
+            local result = orig_broadcastEvent(self, event, ...)
+            if event and event.handler == "onResume" then
+                reschedule_schedules()
             end
             return result
         end

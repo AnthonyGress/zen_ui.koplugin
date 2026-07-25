@@ -725,6 +725,34 @@ local function migrate_reader_footer_backup(cfg)
     return true
 end
 
+local function migrate_home_quote_font_size()
+    local store = PresetStore.loadStore("home")
+    local changed = false
+
+    local function migrate(page)
+        if type(page) ~= "table" then return end
+        if type(page.quotes) ~= "table" then
+            page.quotes = {}
+            changed = true
+        end
+        local quotes = page.quotes
+        local font_size = tonumber(quotes.font_size)
+        if quotes.use_home_font_size ~= true
+                and (font_size == nil or (font_size == 18 and quotes.font_size_override ~= true)) then
+            quotes.font_size = 12
+            quotes.font_size_override = nil
+            changed = true
+        end
+    end
+
+    migrate(store.settings)
+    for _name, preset in pairs(store.presets) do
+        local page = type(preset) == "table" and (preset.home_page or preset)
+        migrate(page)
+    end
+    return changed and PresetStore.saveStore("home", store)
+end
+
 local function migrate_settings_files()
     local changed = PresetStore.migrateStores({
         home = HomePresets.defaultHomePage(),
@@ -732,6 +760,9 @@ local function migrate_settings_files()
         screensaver = capture_screensaver_settings(),
     })
     if HomeQuotes.ensureFile() then
+        changed = true
+    end
+    if migrate_home_quote_font_size() then
         changed = true
     end
     return changed

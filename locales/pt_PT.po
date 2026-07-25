@@ -7,7 +7,7 @@ msgstr ""
 "Language: pt_PT\n"
 
 msgid " days"
-msgstr "dias"
+msgstr " dias"
 
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
@@ -282,6 +282,9 @@ msgstr "Preto"
 msgid "Blue"
 msgstr "Azul"
 
+msgid "Bluetooth"
+msgstr "Bluetooth"
+
 msgid "bold"
 msgstr "negrito"
 
@@ -433,7 +436,7 @@ msgid "Choose plugin menu"
 msgstr "Escolher menu do plugin"
 
 msgid "Choose tab"
-msgstr "Escolha a guia"
+msgstr "Escolha o separador"
 
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 msgstr "Escolha quais separadores aparecem na sua barra de navegação.\nPode reorganizá-los ou ajustá-los a qualquer momento em Definições."
@@ -988,13 +991,13 @@ msgid "Hold to arrange"
 msgstr "Manter premido para organizar"
 
 msgid "Hold to skip"
-msgstr "Mantenha premido para saltar"
+msgstr "Manter premido para saltar"
 
 msgid "Home"
 msgstr "Início"
 
 msgid "Home default font size"
-msgstr "Tamanho da fonte padrão inicial"
+msgstr "Tamanho predefinido da letra do Início"
 
 msgid "Home Folder"
 msgstr "Pasta inicial"
@@ -1003,7 +1006,7 @@ msgid "Home folder"
 msgstr "Pasta inicial"
 
 msgid "Home page preset"
-msgstr "Predefinição do painel"
+msgstr "Predefinição da página inicial"
 
 msgid "Home tab label"
 msgstr "Etiqueta do separador Início"
@@ -1588,7 +1591,7 @@ msgid "Read time"
 msgstr "Tempo de leitura"
 
 msgid "Read today"
-msgstr "Leia hoje"
+msgstr "Lido hoje"
 
 msgid "Reader"
 msgstr "Leitor"
@@ -1741,7 +1744,7 @@ msgid "Save"
 msgstr "Guardar"
 
 msgid "Save current home page as preset"
-msgstr "Guardar painel atual como predefinição"
+msgstr "Guardar página inicial atual como predefinição"
 
 msgid "Save current settings as preset"
 msgstr "Guardar definições atuais como predefinição"
@@ -1849,7 +1852,7 @@ msgid "Show author"
 msgstr "Mostrar autor"
 
 msgid "Show author below cover (mosaic)"
-msgstr "Show author below cover (mosaic)"
+msgstr "Mostrar autor abaixo da capa (mosaico)"
 
 msgid "Show badges"
 msgstr "Mostrar emblemas"
@@ -1897,7 +1900,7 @@ msgid "Show labels"
 msgstr "Mostrar rótulos"
 
 msgid "Show new banner"
-msgstr "Show new banner"
+msgstr "Mostrar novo banner"
 
 msgid "Show other items"
 msgstr "Mostrar outros itens"
@@ -1921,7 +1924,7 @@ msgid "Show spine lines"
 msgstr "Mostrar linhas da lombada"
 
 msgid "Show title below cover (mosaic)"
-msgstr "Show title below cover (mosaic)"
+msgstr "Mostrar título abaixo da capa (mosaico)"
 
 msgid "Show top border"
 msgstr "Mostrar margem superior"
@@ -1930,7 +1933,7 @@ msgid "Show top status bar"
 msgstr "Mostrar barra de estado superior"
 
 msgid "Show warmth slider"
-msgstr "Mostrar controlo deslizante de calor"
+msgstr "Mostrar controlo deslizante de tonalidade quente"
 
 msgid "Show widget title"
 msgstr "Mostrar título do widget"
@@ -2017,7 +2020,7 @@ msgid "Stats"
 msgstr "Estatísticas"
 
 msgid "Stats default font size"
-msgstr "Tamanho da fonte padrão das estatísticas"
+msgstr "Tamanho predefinido da letra das estatísticas"
 
 msgid "Stats font size"
 msgstr "Tamanho da fonte das estatísticas"
@@ -2128,13 +2131,13 @@ msgid "Time Format"
 msgstr "Formato de hora"
 
 msgid "Time this week"
-msgstr "Horário esta semana"
+msgstr "Tempo esta semana"
 
 msgid "Time to book end"
 msgstr "Tempo até ao fim do livro"
 
 msgid "Time today"
-msgstr "Hora hoje"
+msgstr "Tempo hoje"
 
 msgid "Time/book"
 msgstr "Hora/livro"
@@ -2314,7 +2317,7 @@ msgid "Use default style"
 msgstr "Usar estilo predefinido"
 
 msgid "Use Home default font size"
-msgstr "Usar tamanho de letra padrão inicial"
+msgstr "Usar tamanho predefinido da letra do Início"
 
 msgid "Use home folder"
 msgstr "Usar pasta inicial"
@@ -2323,7 +2326,7 @@ msgid "Use last folder"
 msgstr "Usar última pasta"
 
 msgid "Use Stats default font size"
-msgstr "Utilize o tamanho de fonte padrão do Stats"
+msgstr "Usar tamanho de letra predefinido das estatísticas"
 
 msgid "username"
 msgstr "nome de utilizador"
@@ -2338,7 +2341,7 @@ msgid "Virtual folder"
 msgstr "Pasta virtual"
 
 msgid "Warmth"
-msgstr "Calor"
+msgstr "Tonalidade quente"
 
 msgid "Warmth schedule"
 msgstr "Programação de tonalidade quente"

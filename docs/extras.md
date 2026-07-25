@@ -32,6 +32,12 @@ Enable **Extras > Zen OPDS** to apply Zen UI styling to the OPDS catalog browser
 
 Tap and hold any item to open the OPDS context menu for per-item actions.
 
+## To Be Read
+
+To add one book to your To Be Read list, tap and hold it in the Library, choose **Read status**, then choose **To Be Read**. The book appears in the To Be Read Navbar tab and in To Be Read Home widgets, including the To Be Read strip when that widget is enabled.
+
+To include every new book automatically, enable **Extras > Include new books in TBR**. This adds books with the New status to the To Be Read Navbar tab and Home widgets without changing their saved read status. New includes unread books and books modified since they were last opened.
+
 ## Custom Icons
 
 Enable **Extras > Allow custom icons**, then place your icons in the `/koreader/icons` folder. Any icon that Zen UI uses will prefer the icons placed in `/koreader/icons` when enabled.
@@ -66,7 +72,7 @@ Use **Extras > Lockdown mode** to configure library, Controls, and reader restri
 | Extras > Stats > Stat separators | Selects divider lines, outlines, or no separators for Stats widgets. |
 | Extras > Zen OPDS | Enables Zen UI OPDS enhancements, including cover art, list/mosaic view, hold menu, and navigation changes. |
 | Extras > Zen OPDS > Display mode | Selects mosaic, list, or classic OPDS display mode. |
-| Extras > Include new books in TBR | Includes unread books and books modified since they were last opened in the To Be Read view. |
+| Extras > Include new books in TBR | Adds books with the New status to the To Be Read tab and Home widgets. New includes unread books and books modified since they were last opened. |
 | Extras > Allow custom icons | Lets KOReader user icons override bundled Zen UI icons, with fallback to bundled and built-in icons. |
 | Extras > Rakuyomi > Return to chapter list on exit | Returns Rakuyomi-owned books to their manga chapter list when exiting the reader. Disable this to return to Rakuyomi library view. |
 | Extras > Search > Match whole words | Uses whole-word search instead of substring search. |

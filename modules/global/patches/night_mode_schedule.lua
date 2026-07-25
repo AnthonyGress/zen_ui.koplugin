@@ -95,33 +95,24 @@ local function apply_night_mode_schedule()
         end
     end
 
-    -- Apply night mode to a specific state. Outside a themed reader, directly
-    -- set and check Screen.night_mode (the real display state) instead of
-    -- G_reader_settings, which can drift during suspend/resume or when the OS
-    -- changes the HW inversion flag while KOReader is sleeping.
+    -- Apply night mode to a specific state. Directly set and check
+    -- Screen.night_mode (the real display state) instead of G_reader_settings,
+    -- which can drift during suspend/resume or when the OS changes the HW
+    -- inversion flag while KOReader is sleeping.
     --
     -- When `force` is true the guard is skipped so the HW flag is always
     -- re-written.  This is used on device resume where the OS may have
     -- changed the EPDC inversion flag while KOReader was sleeping.
     local function set_night_mode(enable, force)
         local ReaderThemes = require("common/reader_themes")
-        local reader_has_theme = ReaderThemes.isActiveInReader(zen_plugin, enable)
-            or ReaderThemes.isActiveInReader(zen_plugin)
-        if reader_has_theme then
-            if not force and G_reader_settings:isTrue("night_mode") == enable then return end
-            G_reader_settings:saveSetting("night_mode", enable)
-            -- Keep reader colors and status bars theme-controlled. The logical
-            -- night-mode setting still changes, while HW inversion stays off.
-            ReaderThemes.syncNightModeInversion(zen_plugin)
-            ReaderThemes.applyCurrent(zen_plugin)
-            return
-        end
-
         if not force and Screen.night_mode == enable then return end
         G_reader_settings:saveSetting("night_mode", enable)
         Screen.night_mode = enable
         if type(Screen.setHWNightmode) == "function" then
             pcall(Screen.setHWNightmode, Screen, enable)
+        end
+        if ReaderThemes.isEnabled(zen_plugin) then
+            ReaderThemes.applyCurrent(zen_plugin)
         end
         UIManager:setDirty("all", "full")
     end

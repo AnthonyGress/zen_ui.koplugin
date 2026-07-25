@@ -7,7 +7,7 @@ msgstr ""
 "Language: nl\n"
 
 msgid " days"
-msgstr "dagen"
+msgstr " dagen"
 
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
@@ -281,6 +281,9 @@ msgstr "Zwart"
 
 msgid "Blue"
 msgstr "Blauw"
+
+msgid "Bluetooth"
+msgstr "Bluetooth"
 
 msgid "bold"
 msgstr "vet"

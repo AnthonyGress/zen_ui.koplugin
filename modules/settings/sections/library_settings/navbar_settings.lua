@@ -25,9 +25,15 @@ function M.build(ctx)
     local save_and_apply = ctx.save_and_apply
     local settings_apply = ctx.settings_apply
 
+    local function sync_default_tab_icon()
+        local ok_root, root = pcall(require, "common/plugin_root")
+        icon_utils.copyDefaultCustomTabIcon(ok_root and root and root .. "/icons/" or nil, config.navbar)
+    end
+
     -- Defer reinject to next event loop tick so the menu's post-callback
     -- redraws complete first, then the navbar repaints correctly.
     local function save_and_apply_navbar()
+        sync_default_tab_icon()
         ctx.plugin:saveConfig()
         local reinject = rawget(_G, "__ZEN_UI_REINJECT_FM_NAVBAR")
         if reinject then
@@ -73,6 +79,7 @@ function M.build(ctx)
     end
 
     local function save_and_defer_navbar_refresh()
+        sync_default_tab_icon()
         ctx.plugin:saveConfig()
         queue_deferred_navbar_refresh()
     end
@@ -265,10 +272,8 @@ function M.build(ctx)
     end
 
     local function shouldDimTab(id)
-        if config.navbar.show_tabs[id] == true then
-            return countEnabledTabs() <= 1
-        end
-        return true
+        return config.navbar.show_tabs[id] ~= true
+            and countEnabledTabs() >= navbar_max_tabs
     end
 
     local function getCustomTabById(id)

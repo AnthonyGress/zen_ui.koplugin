@@ -140,6 +140,49 @@ function M.getUserIconsDir()
     return DataStorage:getDataDir() .. "/icons/"
 end
 
+--- Copy the selected custom default-tab icon into KOReader's user icons dir.
+--- Existing user icons are left untouched so a user's override always wins.
+function M.copyDefaultCustomTabIcon(plugin_icons_dir, navbar)
+    if type(navbar) ~= "table" or type(navbar.default_tab) ~= "string"
+        or type(navbar.custom_tabs) ~= "table" then
+        return false
+    end
+
+    local icon_name
+    for _i, tab in ipairs(navbar.custom_tabs) do
+        if type(tab) == "table" and tab.id == navbar.default_tab then
+            icon_name = tab.icon
+            break
+        end
+    end
+    if type(icon_name) ~= "string" or not icon_name:match("^[%w._-]+$") then
+        return false
+    end
+
+    local ok, lfs = pcall(require, "libs/libkoreader-lfs")
+    local user_dir = M.getUserIconsDir()
+    if not ok or not lfs or not user_dir then return false end
+    if M.resolveLocalIcon(user_dir, icon_name) then return true end
+
+    local source
+    if plugin_icons_dir then
+        source = M.resolveLocalIcon(plugin_icons_dir, icon_name)
+    end
+    if not source then
+        source = M.resolveLocalIcon(lfs.currentdir() .. "/resources/icons/mdlight/", icon_name)
+    end
+    if not source then return false end
+
+    local parent_dir = user_dir:sub(1, -2)
+    if lfs.attributes(parent_dir, "mode") ~= "directory" and not lfs.mkdir(parent_dir) then
+        return false
+    end
+    local ext = source:match("(%.[^./]+)$") or ".svg"
+    local ok_copy, ffiutil = pcall(require, "ffi/util")
+    if not ok_copy or not ffiutil then return false end
+    return ffiutil.copyFile(source, user_dir .. icon_name .. ext) == true
+end
+
 local _custom_icons_enabled
 function M.isCustomIconsEnabled()
     if _custom_icons_enabled ~= nil then return _custom_icons_enabled end

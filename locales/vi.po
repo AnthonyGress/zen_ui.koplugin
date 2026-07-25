@@ -7,7 +7,7 @@ msgstr ""
 "Language: vi\n"
 
 msgid " days"
-msgstr "ngày"
+msgstr " ngày"
 
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
