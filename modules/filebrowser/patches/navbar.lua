@@ -27,6 +27,26 @@ local function apply_navbar()
     local lfs = require("libs/libkoreader-lfs")
     local logger = require("common/zen_logger").new("navbar")
 
+    local function screenRotation()
+        return type(Screen.getRotationMode) == "function"
+            and Screen:getRotationMode() or "unknown"
+    end
+
+    local function fastReturnTrace(trace, phase, ...)
+        if not (trace and type(trace.now) == "function") then return end
+        local elapsed = math.floor((trace.now() - trace.started_at) * 1000 + 0.5)
+        local parts = {
+            "FAST_RETURN_TRACE",
+            tostring(trace.id),
+            phase,
+            "elapsed_ms=" .. tostring(elapsed),
+        }
+        for i = 1, select("#", ...) do
+            parts[#parts + 1] = tostring(select(i, ...))
+        end
+        logger.info(table.concat(parts, " "))
+    end
+
     local function getRakuyomi()
         return rawget(_G, "__ZEN_UI_RAKUYOMI") or {}
     end
@@ -825,6 +845,49 @@ local function apply_navbar()
         return true
     end
 
+    local fast_return_tabs = {
+        home = true,
+        authors = true,
+        series = true,
+        tags = true,
+        to_be_read = true,
+    }
+
+    local function open_fast_return(tab_id, trace)
+        tab_id = tab_id or resolve_default_tab()
+        if not fast_return_tabs[tab_id] then return false end
+
+        fastReturnTrace(trace, "navbarOpen:start",
+            "tab=" .. tostring(tab_id),
+            "rotation=" .. tostring(screenRotation()),
+            "size=" .. tostring(Screen:getWidth()) .. "x" .. tostring(Screen:getHeight()))
+        local rotation_started_at = trace and trace.now()
+        if type(FileManager.setRotationMode) == "function" then
+            FileManager:setRotationMode()
+        end
+        fastReturnTrace(trace, "navbarOpen:rotationReady",
+            "duration_ms=" .. tostring(rotation_started_at
+                and math.floor((trace.now() - rotation_started_at) * 1000 + 0.5) or 0),
+            "rotation=" .. tostring(screenRotation()),
+            "size=" .. tostring(Screen:getWidth()) .. "x" .. tostring(Screen:getHeight()))
+        _G.__ZEN_UI_LIBRARY_STATE = nil
+        setActiveTab(tab_id)
+        local view_started_at = trace and trace.now()
+        runTabCallback(tab_id)
+        fastReturnTrace(trace, "navbarOpen:viewBuilt",
+            "duration_ms=" .. tostring(view_started_at
+                and math.floor((trace.now() - view_started_at) * 1000 + 0.5) or 0))
+
+        local view = tab_id == "home" and get_shared("home") or get_shared("group_view")
+        local widgets = view and type(view.getActiveWidgets) == "function"
+            and view.getActiveWidgets(tab_id) or nil
+        if type(widgets) ~= "table" or #widgets == 0 then return false end
+        return {
+            tab_id = tab_id,
+            widgets = widgets,
+        }
+    end
+
     do
         local default_tab = resolve_default_tab()
         active_tab = shouldTrackActiveTab(default_tab) and default_tab or "books"
@@ -1522,6 +1585,9 @@ local function apply_navbar()
             end
         end
 
+        if rawget(_G, "__ZEN_UI_FAST_RETURN_REBUILDING") == true then
+            return
+        end
         if new_tab and new_tab ~= active_tab then
             active_tab = new_tab
             syncActiveTabLabel()
@@ -2387,6 +2453,14 @@ local function apply_navbar()
 
     function FileManager:showFiles(path, focused_file, selected_files)
         local started_at = os.clock()
+        local fast_return = rawget(_G, "__ZEN_UI_FAST_RETURN")
+        _G.__ZEN_UI_FAST_RETURN = nil
+        local fast_trace = fast_return and fast_return.trace
+        fastReturnTrace(fast_trace, "fmWrapper:start",
+            "path=" .. tostring(path),
+            "focused=" .. tostring(focused_file),
+            "rotation=" .. tostring(screenRotation()),
+            "size=" .. tostring(Screen:getWidth()) .. "x" .. tostring(Screen:getHeight()))
         local open_home_after_filemanager = rawget(_G, "__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER") == true
         _G.__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER = nil
         local open_target_tab = rawget(_G, "__ZEN_UI_OPEN_TARGET_TAB")
@@ -2422,8 +2496,9 @@ local function apply_navbar()
             and resolve_default_tab() or nil
         local default_tab = forced_default_tab or resolve_default_tab()
         -- When restore is disabled, open at library root immediately (no double render).
-        local effective_focused = (restore_enabled or keep_book_location) and focused_file or nil
-        if not restore_enabled and not keep_book_location then
+        local effective_focused = not fast_return
+            and (restore_enabled or keep_book_location) and focused_file or nil
+        if fast_return or (not restore_enabled and not keep_book_location) then
             local home_dir = require("common/paths").getHomeDir()
             if home_dir then
                 path = home_dir
@@ -2432,7 +2507,8 @@ local function apply_navbar()
                 end
             end
         end
-        local hidden_bootstrap = (forced_default_tab and forced_default_tab ~= "books")
+        local hidden_bootstrap = fast_return ~= nil
+            or (forced_default_tab and forced_default_tab ~= "books")
             or open_home_after_filemanager
             or open_target_tab
             or open_target_folder
@@ -2445,6 +2521,11 @@ local function apply_navbar()
                 and state_before_show.tab
                 and state_before_show.tab ~= "books")
         local suppress_initial_covers = hidden_bootstrap
+        fastReturnTrace(fast_trace, "fmWrapper:baseStart",
+            "path=" .. tostring(path),
+            "focused=" .. tostring(effective_focused),
+            "covers_suppressed=" .. tostring(suppress_initial_covers))
+        local base_started_at = fast_trace and fast_trace.now()
         if suppress_initial_covers then
             withCoversSuppressed(function()
                 orig_showFiles(self, path, effective_focused, selected_files)
@@ -2452,6 +2533,12 @@ local function apply_navbar()
         else
             orig_showFiles(self, path, effective_focused, selected_files)
         end
+        fastReturnTrace(fast_trace, "fmWrapper:baseEnd",
+            "duration_ms=" .. tostring(base_started_at
+                and math.floor((fast_trace.now() - base_started_at) * 1000 + 0.5) or 0),
+            "instance=" .. tostring(FileManager.instance),
+            "rotation=" .. tostring(screenRotation()),
+            "size=" .. tostring(Screen:getWidth()) .. "x" .. tostring(Screen:getHeight()))
         local filemanager = FileManager.instance
         if hide_rakuyomi_filemanager and filemanager then
             filemanager.invisible = true
@@ -2462,6 +2549,17 @@ local function apply_navbar()
             "path=", tostring(path))
         if suppress_initial_covers and self.file_chooser then
             self.file_chooser._zen_needs_cover_refresh = true
+        end
+        if fast_return then
+            _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = nil
+            _G.__ZEN_UI_LIBRARY_STATE = nil
+            if fast_return.tab_id and shouldTrackActiveTab(fast_return.tab_id) then
+                active_tab = fast_return.tab_id
+                syncActiveTabLabel()
+            end
+            fastReturnTrace(fast_trace, "fmWrapper:complete",
+                "active_tab=" .. tostring(active_tab))
+            return
         end
         if open_home_after_filemanager then
             _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = nil
@@ -2775,6 +2873,7 @@ local function apply_navbar()
     -- Allows main.lua to rebuild the navbar after quickstart changes tab config.
     _G.__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB = open_default_tab
     _G.__ZEN_UI_NAVBAR_OPEN_TAB = open_tab
+    _G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN = open_fast_return
     _G.__ZEN_UI_NAVBAR_RESOLVE_DEFAULT_TAB = resolve_default_tab
     _G.__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON = function()
         local tab = tabs_by_id[resolve_default_tab()]

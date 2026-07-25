@@ -232,6 +232,7 @@ describe("file browser group views", function()
             assert.are.equal(message, item.text)
             assert.is_true(item.dim)
             assert.is_function(item.callback)
+            assert.is_true(item._zen_empty_placeholder)
         end
     end)
 

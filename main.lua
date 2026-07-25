@@ -742,7 +742,17 @@ local function close_zen_standalone_views(shared)
 end
 
 function ZenUI:onCloseWidget()
-    close_zen_standalone_views(self._zen_shared)
+    local rebuilding = rawget(_G, "__ZEN_UI_FAST_RETURN_REBUILDING") == true
+    if rebuilding then
+        local fast_return = rawget(_G, "__ZEN_UI_FAST_RETURN")
+        local trace = fast_return and fast_return.trace
+        local elapsed = trace and type(trace.now) == "function"
+            and math.floor((trace.now() - trace.started_at) * 1000 + 0.5) or 0
+        logger.info("FAST_RETURN_TRACE", tostring(trace and trace.id),
+            "pluginClose:retainingViews", "elapsed_ms=", elapsed)
+    else
+        close_zen_standalone_views(self._zen_shared)
+    end
     i18n.uninstall()
 end
 

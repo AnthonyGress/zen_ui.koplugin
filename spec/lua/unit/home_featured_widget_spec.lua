@@ -84,7 +84,7 @@ describe("home featured widget", function()
             make_empty_cover_widget = function(source, max_w, max_h, opts)
                 empty_sources[#empty_sources + 1] = source
                 cover_calls[#cover_calls + 1] = {
-                    book = { placeholder_text = source },
+                    book = { is_empty_placeholder = true },
                     max_w = max_w,
                     max_h = max_h,
                     opts = opts,
@@ -188,7 +188,7 @@ describe("home featured widget", function()
         assert.is_true(series.bold)
     end)
 
-    it("renders a descriptive ornate placeholder for empty recent history", function()
+    it("renders an empty recent-history state", function()
         local Featured = require("modules/filebrowser/patches/home/widgets/featured_common")
         local widget = Featured.build({
             width = 500,

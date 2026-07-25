@@ -4,7 +4,11 @@ local Screen = require("device").screen
 local CenterContainer = require("ui/widget/container/centercontainer")
 local FrameContainer = require("ui/widget/container/framecontainer")
 local ImageWidget = require("ui/widget/imagewidget")
+local TextBoxWidget = require("ui/widget/textboxwidget")
+local VerticalGroup = require("ui/widget/verticalgroup")
+local VerticalSpan = require("ui/widget/verticalspan")
 local Widget = require("ui/widget/widget")
+local Font = require("ui/font")
 local CoverUtils = require("common/cover_utils")
 local RenderCache = require("common/cover_render_cache")
 
@@ -175,10 +179,10 @@ function M.make_cover_widget(book, max_w, max_h, opts)
             width = target_w,
             height = target_h,
         }
-    elseif book and type(book.placeholder_text) == "string" and book.placeholder_text ~= "" then
+    elseif book and book.is_empty_placeholder then
         local fake_cover = CoverUtils.genCover(
             "zen-empty-placeholder", target_w, target_h, true,
-            { title = book.placeholder_text, authors = "", title_only = true }
+            { title = "", authors = "", title_only = true }
         )
         if fake_cover then
             child = ImageWidget:new{
@@ -230,9 +234,35 @@ function M.make_cover_widget(book, max_w, max_h, opts)
 end
 
 function M.make_empty_cover_widget(source, max_w, max_h, opts)
-    return M.make_cover_widget({
-        placeholder_text = M.get_empty_message(source),
-    }, max_w, max_h, opts)
+    local message = TextBoxWidget:new{
+        text = M.get_empty_message(source),
+        face = Font:getFace("smallinfofont", Screen:scaleBySize(10)),
+        width = max_w,
+        alignment = "center",
+        alignment_strict = true,
+        height_adjust = true,
+    }
+    local message_h = message:getSize().h
+    local gap = math.max(2, Screen:scaleBySize(4))
+    local cover, cover_w, cover_h = M.make_empty_placeholder_cover(
+        max_w, math.max(1, max_h - message_h - gap), opts
+    )
+
+    return VerticalGroup:new{
+        CenterContainer:new{
+            dimen = Geom:new{ w = max_w, h = cover_h },
+            cover,
+        },
+        VerticalSpan:new{ width = gap },
+        CenterContainer:new{
+            dimen = Geom:new{ w = max_w, h = message_h },
+            message,
+        },
+    }, cover_w, cover_h + gap + message_h
+end
+
+function M.make_empty_placeholder_cover(max_w, max_h, opts)
+    return M.make_cover_widget({ is_empty_placeholder = true }, max_w, max_h, opts)
 end
 
 return M

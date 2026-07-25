@@ -49,7 +49,7 @@ def _write_readable_epub(path: Path) -> None:
 
 
 def _launch(
-    runtime: Path, ko_home: Path, socket_path: Path, library: Path
+    runtime: Path, ko_home: Path, socket_path: Path, library: Path, default_tab: str
 ) -> subprocess.Popen[str]:
     settings_dir = ko_home / "settings" / "Zen UI"
     settings_dir.mkdir(parents=True, exist_ok=True)
@@ -61,7 +61,9 @@ def _launch(
     (settings_dir / "config.lua").write_text(
         "return { updater = { update_auto_check = false }, "
         "features = { restore_library_view = true }, "
-        "navbar = { default_tab = 'books' } }\n",
+        "navbar = { default_tab = " + repr(default_tab) + ", "
+        "show_tabs = { home = true, series = true }, "
+        "tab_order = { 'home', 'series', 'books' } } }\n",
         encoding="utf-8",
     )
     env = os.environ.copy()
@@ -87,7 +89,9 @@ def _wait_for_reader(driver: ZenDriver, expected_file: Path) -> dict[str, object
         state = response.get("reader", {})
         if isinstance(state, dict):
             last = state
-            if state.get("open") is True and state.get("file") == str(expected_file):
+            actual_file = state.get("file")
+            if state.get("open") is True and isinstance(actual_file, str) \
+                    and Path(actual_file).resolve() == expected_file.resolve():
                 return state
         time.sleep(0.1)
     raise AssertionError(f"book did not open in ReaderUI: {last}")
@@ -111,7 +115,30 @@ def _wait_for_file_manager(driver: ZenDriver) -> dict[str, object]:
     raise AssertionError(f"file manager did not return: {last}")
 
 
-def test_book_opens_in_reader_and_home_returns_to_library() -> None:
+def _wait_for_navbar_view(
+    driver: ZenDriver, expected_name: str, expected_label: str
+) -> dict[str, object]:
+    deadline = time.monotonic() + 30
+    last: dict[str, object] = {}
+    while time.monotonic() < deadline:
+        response = driver.command("navbar_state")
+        state = response.get("navbar", {})
+        if isinstance(state, dict):
+            last = state
+            if state.get("top_name") == expected_name \
+                    and state.get("active_tab_label") == expected_label:
+                return state
+        time.sleep(0.1)
+    raise AssertionError(f"navbar view did not return: {last}")
+
+
+@pytest.mark.parametrize(
+    ("default_tab", "expected_label"),
+    [("home", "Home"), ("series", "Series")],
+)
+def test_book_opens_in_reader_and_home_returns_to_library(
+    default_tab: str, expected_label: str
+) -> None:
     runtime = Path(os.environ["KOREADER_DIR"])
     with tempfile.TemporaryDirectory(prefix="zen-ui-reader-navigation-") as temporary:
         root = Path(temporary)
@@ -122,27 +149,29 @@ def test_book_opens_in_reader_and_home_returns_to_library() -> None:
         book = library / "Reader Navigation.epub"
         _write_readable_epub(book)
         socket_path = root / "driver.sock"
-        process = _launch(runtime, ko_home, socket_path, library)
+        process = _launch(runtime, ko_home, socket_path, library, default_tab)
         try:
             wait_for_socket(socket_path)
             driver = ZenDriver(socket_path)
             before = _wait_for_file_manager(driver)
+            activated = driver.command("activate_navbar_tab", id=default_tab)
+            assert activated.get("ok") is True, activated
+            _wait_for_navbar_view(driver, default_tab, expected_label)
             assert before.get("path") == str(library.resolve())
             assert before.get("page") == 1
-            assert before.get("active_tab_label") == "Library"
 
             opened = driver.open_book(book)
             assert opened.get("ok") is True, opened
             reader = _wait_for_reader(driver, book)
             assert reader.get("page") == 1
-            assert reader.get("active_tab_label") == "Library"
+            assert reader.get("active_tab_label") == expected_label
 
             returned = driver.reader_menu_home()
             assert returned.get("ok") is True, returned
             after = _wait_for_file_manager(driver)
+            _wait_for_navbar_view(driver, default_tab, expected_label)
             assert after.get("path") == before.get("path")
             assert after.get("page") == before.get("page")
-            assert after.get("active_tab_label") == before.get("active_tab_label")
         finally:
             process.send_signal(signal.SIGTERM)
             try:

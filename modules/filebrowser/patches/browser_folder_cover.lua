@@ -320,8 +320,11 @@ local function apply_browser_folder_cover()
         return string.format("%s|%d", _item_table_stable_key(path), mtime)
     end
 
+    local shared_filemanager_item_table_cache
+
     function FileChooser:_zen_clear_item_table_cache()
         self._zen_folder_cover_item_table_cache = nil
+        shared_filemanager_item_table_cache = nil
         self._zen_folder_cover_list_cache = {}
         self._zen_folder_cover_aggregate_cache = nil
     end
@@ -364,7 +367,9 @@ local function apply_browser_folder_cover()
             local key = _item_table_key(path)
             local stable_key = _item_table_stable_key(path)
             local item_table_cache = self._zen_folder_cover_item_table_cache
+                or shared_filemanager_item_table_cache
             if item_table_cache and item_table_cache.key == key then
+                self._zen_folder_cover_item_table_cache = item_table_cache
                 local cached_table = item_table_cache.table
                 if collate_mode == "access" then
                     cached_table = _apply_history_order(self, cached_table, collate, reverse_collate)
@@ -386,12 +391,14 @@ local function apply_browser_folder_cover()
                     and item_table_cache.stable_key == stable_key then
                 _G.__ZEN_UI_LAST_READ_FILE = nil
                 local cached_table = _apply_history_order(self, item_table_cache.table, collate, reverse_collate)
-                self._zen_folder_cover_item_table_cache = {
+                local cache = {
                     key = key,
                     stable_key = stable_key,
                     table = cached_table,
                     path = path,
                 }
+                self._zen_folder_cover_item_table_cache = cache
+                shared_filemanager_item_table_cache = cache
                 return measured(cached_table, "reader_reuse")
             end
             self._zen_folder_cover_list_cache = {}
@@ -399,12 +406,14 @@ local function apply_browser_folder_cover()
             if collate_mode == "access" then
                 result = _apply_history_order(self, result, collate, reverse_collate)
             end
-            self._zen_folder_cover_item_table_cache = {
+            local cache = {
                 key = key,
                 stable_key = stable_key,
                 table = result,
                 path = path,
             }
+            self._zen_folder_cover_item_table_cache = cache
+            shared_filemanager_item_table_cache = cache
             return measured(result, "miss")
         end
         return orig_FileChooser_genItemTableFromPath(self, path)
@@ -1556,6 +1565,7 @@ local function apply_browser_folder_cover()
                 local fc = fm and fm.file_chooser
                 if G_reader_settings:readSetting("collate", "strcoll") ~= "access" then
                     if fc then fc._zen_folder_cover_item_table_cache = nil end
+                    shared_filemanager_item_table_cache = nil
                 end
                 if fc and pending_folders_by_menu[fc] then
                     scheduleFolderRefresh(fc)

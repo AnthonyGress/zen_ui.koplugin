@@ -2539,6 +2539,10 @@ function M.getActivePage()
     return _home_menu and (_home_menu.page or 1)
 end
 
+function M.getActiveWidgets()
+    return _home_menu and { _home_menu } or {}
+end
+
 function M.invalidateBookCache(path)
     invalidate_home_book_cache(path)
 end

@@ -88,10 +88,14 @@ describe("home recent strip widget", function()
                 local cover = widget_class("cover"):new{ width = 80, height = max_h }
                 return cover, 80, max_h
             end,
-            make_empty_cover_widget = function(source, _max_w, max_h)
-                empty_sources[#empty_sources + 1] = source
+            make_empty_placeholder_cover = function(_max_w, max_h)
+                empty_sources[#empty_sources + 1] = true
                 local cover = widget_class("cover"):new{ width = 80, height = max_h }
                 return cover, 80, max_h
+            end,
+            get_empty_message = function(source)
+                if source == "recently_read" then return "No recently read books found" end
+                return "No books found"
             end,
         })
         ZenSpec.replace("gettext", function(text) return text end)
@@ -142,7 +146,7 @@ describe("home recent strip widget", function()
         assert.are.equal(book.path, opened)
     end)
 
-    it("renders a descriptive ornate placeholder for empty recent history", function()
+    it("renders an empty recent-history state", function()
         local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
         local widget = Strip.build({
             width = 500,
@@ -155,6 +159,7 @@ describe("home recent strip widget", function()
 
         assert.is_table(widget)
         assert.are.equal(0, #cover_books)
-        assert.are.same({ "recently_read" }, empty_sources)
+        assert.are.same({ true }, empty_sources)
+        assert.is_true(has_text("No recently read books found"))
     end)
 end)

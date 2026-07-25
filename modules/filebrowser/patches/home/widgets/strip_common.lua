@@ -364,10 +364,20 @@ function M.build_strip(ctx, source_key)
 
     local books = ctx.data:getBooksForStrip(source, count, order, ctx.component_id)
     if #books == 0 then
-        local empty_cover = cover_common.make_empty_cover_widget(
-            source, width, height,
+        local empty_cover, cover_w, cover_h = cover_common.make_empty_placeholder_cover(
+            width, height,
             { border = 1, background = Blitbuffer.COLOR_LIGHT_GRAY }
         )
+        local gap = math.max(4, Screen:scaleBySize(8))
+        local message_w = math.max(1, width - cover_w - gap)
+        local empty_message = TextBoxWidget:new{
+            text = cover_common.get_empty_message(source),
+            face = Font:getFace("smallinfofont", Screen:scaleBySize(10)),
+            width = message_w,
+            alignment = "left",
+            alignment_strict = true,
+            height_adjust = true,
+        }
         return FrameContainer:new{
             width = outer_width,
             height = outer_height,
@@ -376,7 +386,14 @@ function M.build_strip(ctx, source_key)
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
             CenterContainer:new{
                 dimen = Geom:new{ w = outer_width, h = outer_height },
-                empty_cover,
+                HorizontalGroup:new{
+                    empty_cover,
+                    HorizontalSpan:new{ width = gap },
+                    CenterContainer:new{
+                        dimen = Geom:new{ w = message_w, h = cover_h },
+                        empty_message,
+                    },
+                },
             },
         }
     end

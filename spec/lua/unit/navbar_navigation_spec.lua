@@ -3,6 +3,9 @@ describe("file browser navbar navigation", function()
     local shared
     local calls
     local library_font_sizes
+    local UIManager
+    local home_widget
+    local group_widgets
 
     local function class(methods)
         methods = methods or {}
@@ -24,10 +27,15 @@ describe("file browser navbar navigation", function()
     before_each(function()
         calls = {}
         library_font_sizes = {}
+        home_widget = {}
+        group_widgets = {
+            authors = {}, series = {}, tags = {}, to_be_read = {},
+        }
         shared = {
             home = {
                 showHomeView = function() calls[#calls + 1] = "home" end,
                 closeAll = function() calls[#calls + 1] = "close_home" end,
+                getActiveWidgets = function() return { home_widget } end,
             },
             group_view = {
                 showAuthorsView = function() calls[#calls + 1] = "authors" end,
@@ -35,11 +43,15 @@ describe("file browser navbar navigation", function()
                 showTagsView = function() calls[#calls + 1] = "tags" end,
                 showTBRView = function() calls[#calls + 1] = "to_be_read" end,
                 closeAll = function() calls[#calls + 1] = "close_groups" end,
+                getActiveWidgets = function(tab_id) return { group_widgets[tab_id] } end,
             },
         }
         FileManager = class({
             setupLayout = function() end,
-            showFiles = function() end,
+            showFiles = function(self, path, focused)
+                FileManager.instance = self
+                calls[#calls + 1] = "base:" .. tostring(path) .. ":" .. tostring(focused)
+            end,
             onShowingReader = function() end,
         })
         FileManager.instance = nil
@@ -88,7 +100,7 @@ describe("file browser navbar navigation", function()
         ZenSpec.replace("ui/event", { new = function(_, name) return { name = name } end })
         ZenSpec.replace("ui/rendertext", { getGlyphByIndex = function() return nil end })
         ZenSpec.replace("dispatcher", {})
-        ZenSpec.replace("ui/uimanager", {
+        UIManager = {
             _window_stack = {},
             setDirty = function() end,
             forceRePaint = function() end,
@@ -98,7 +110,8 @@ describe("file browser navbar navigation", function()
             close = function() end,
             closeWidgetsAbove = function() end,
             broadcastEvent = function() end,
-        })
+        }
+        ZenSpec.replace("ui/uimanager", UIManager)
         ZenSpec.replace("common/utils", {
             deepcopy = function(value)
                 if type(value) ~= "table" then return value end
@@ -109,7 +122,10 @@ describe("file browser navbar navigation", function()
             resolveLocalIcon = function(_, icon) return icon end,
             closeWidgetsAbove = function() end,
         })
-        ZenSpec.replace("common/paths", { getHomeDir = function() return "/library" end })
+        ZenSpec.replace("common/paths", {
+            getHomeDir = function() return "/library" end,
+            isInHomeDir = function(path) return path:sub(1, 8) == "/library" end,
+        })
         ZenSpec.replace("common/plugin_root", "/plugin")
         ZenSpec.replace("common/shared_state", {
             get = function(_, key) return shared[key] end,
@@ -165,6 +181,8 @@ describe("file browser navbar navigation", function()
     after_each(function()
         for _i, name in ipairs({
             "__ZEN_UI_PLUGIN", "__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB", "__ZEN_UI_NAVBAR_OPEN_TAB",
+            "__ZEN_UI_NAVBAR_OPEN_FAST_RETURN", "__ZEN_UI_FAST_RETURN",
+            "__ZEN_UI_FAST_RETURN_REBUILDING",
             "__ZEN_UI_NAVBAR_RESOLVE_DEFAULT_TAB", "__ZEN_UI_ACTIVE_TAB_LABEL",
             "__ZEN_UI_REINJECT_FM_NAVBAR", "__ZEN_UI_REINJECT_NAVBARS",
         }) do
@@ -245,5 +263,57 @@ describe("file browser navbar navigation", function()
             if size == 17 then used_configured_size = true end
         end
         assert.is_true(used_configured_size)
+    end)
+
+    it("opens supported defaults as standalone fast-return views", function()
+        FileManager.setRotationMode = function()
+            calls[#calls + 1] = "rotate"
+        end
+        local fast_return = _G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN()
+        assert.are.equal("home", fast_return.tab_id)
+        assert.are.same({ home_widget }, fast_return.widgets)
+        assert.are.same({ "rotate", "home" }, calls)
+
+        calls = {}
+        fast_return = _G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN("series")
+        assert.are.equal("series", fast_return.tab_id)
+        assert.are.same({ group_widgets.series }, fast_return.widgets)
+        assert.are.same({ "rotate", "series" }, calls)
+    end)
+
+    it("rejects file-manager-backed tabs for fast return", function()
+        assert.is_false(_G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN("books"))
+        assert.is_false(_G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN("history"))
+        assert.are.same({}, calls)
+    end)
+
+    it("rebuilds the hidden file manager without reopening the default view", function()
+        local fm = make_instance()
+        calls = {}
+        _G.__ZEN_UI_FAST_RETURN = {
+            tab_id = "home",
+            widgets = { home_widget },
+        }
+
+        FileManager.showFiles(fm, "/library/subfolder", "/library/Book.epub")
+
+        assert.are.same({ "base:/library:nil" }, calls)
+        assert.is_true(fm.file_chooser._zen_needs_cover_refresh)
+        assert.are.equal("Home", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+        assert.is_nil(_G.__ZEN_UI_FAST_RETURN)
+    end)
+
+    it("does not queue a full books repaint during the hidden rebuild", function()
+        local fm = make_instance()
+        local dirty_modes = {}
+        UIManager.setDirty = function(_self, _widget, mode)
+            dirty_modes[#dirty_modes + 1] = mode
+        end
+        _G.__ZEN_UI_FAST_RETURN_REBUILDING = true
+
+        FileManager.onPathChanged(fm, "/library")
+
+        assert.are.same({}, dirty_modes)
+        assert.are.equal("Home", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
     end)
 end)

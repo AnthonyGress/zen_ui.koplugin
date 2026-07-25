@@ -342,6 +342,13 @@ local function setup_display_mode(menu, is_group_view, tab_id)
     return display_mode_type
 end
 
+local function gen_empty_group_cover(CoverUtils, width, height)
+    return CoverUtils.genCover(
+        "zen-empty-group-placeholder", width, height, true,
+        { title = "", authors = "", title_only = true }
+    )
+end
+
 -------------------------------------------------------------------------------
 -- patch_mosaic_item: one-time install of MosaicMenuItem.update override
 -- Uses self.entry._zen_files (list of absolute file paths)
@@ -427,13 +434,15 @@ local function patch_mosaic_item()
         end
 
         if not (self.menu and self.menu._zen_group_view
-                and self.entry and self.entry._zen_files) then
+                and self.entry and (self.entry._zen_files
+                    or self.entry._zen_empty_placeholder)) then
             return orig_update(self, ...)
         end
 
         self.is_directory = true
 
-        local files      = self.entry._zen_files
+        local is_empty_placeholder = self.entry._zen_empty_placeholder == true
+        local files      = self.entry._zen_files or {}
         local book_count = #files
         local mode, max_covers = CoverUtils.getMode()
         local is_gallery = mode == "gallery"
@@ -452,29 +461,41 @@ local function patch_mosaic_item()
         end
 
         local covers = {}
-        for i = 1, math.min(book_count, max_covers) do
-            local bi = BookInfoManager:getBookInfo(files[i], true)
-            if bi and bi.cover_bb and bi.has_cover
-                    and bi.cover_fetched and not bi.ignore_cover then
-                local cover_bb = bi.cover_bb:copy()
-                bi.cover_bb:free()
-                table.insert(covers, {
-                    data = cover_bb,
-                    w    = bi.cover_w,
-                    h    = bi.cover_h,
-                })
-            else
-                if bi and bi.cover_bb then bi.cover_bb:free() end
-                local gen_bb, gen_w, gen_h = CoverUtils.genCover(files[i], _pw_pre, _ph_pre)
-                if gen_bb then
-                    table.insert(covers, { data = gen_bb, w = gen_w, h = gen_h })
+        if is_empty_placeholder then
+            local cover_bb = gen_empty_group_cover(CoverUtils, _pw_pre, _ph_pre)
+            table.insert(covers, { data = cover_bb, w = _pw_pre, h = _ph_pre })
+        else
+            for i = 1, math.min(book_count, max_covers) do
+                local bi = BookInfoManager:getBookInfo(files[i], true)
+                if bi and bi.cover_bb and bi.has_cover
+                        and bi.cover_fetched and not bi.ignore_cover then
+                    local cover_bb = bi.cover_bb:copy()
+                    bi.cover_bb:free()
+                    table.insert(covers, {
+                        data = cover_bb,
+                        w    = bi.cover_w,
+                        h    = bi.cover_h,
+                    })
+                else
+                    if bi and bi.cover_bb then bi.cover_bb:free() end
+                    local gen_bb, gen_w, gen_h = CoverUtils.genCover(files[i], _pw_pre, _ph_pre)
+                    if gen_bb then
+                        table.insert(covers, { data = gen_bb, w = gen_w, h = gen_h })
+                    end
                 end
             end
         end
 
         -- Delegate to browser_folder_cover's method when available.
         if self._setFolderCover then
-            if is_gallery then
+            if is_empty_placeholder then
+                self:_setFolderCover{
+                    data = covers[1].data,
+                    w = covers[1].w,
+                    h = covers[1].h,
+                    book_count = book_count,
+                }
+            elseif is_gallery then
                 self:_setFolderCover{ gallery = covers, book_count = book_count }
             elseif is_stack then
                 self:_setFolderCover{ stack = covers, book_count = book_count }
@@ -526,7 +547,7 @@ local function patch_mosaic_item()
         for i = 1, 4 do
             local c  = covers[i]
             local cd = cell_dims[i]
-            if c then
+            if c and not is_empty_placeholder then
                 cells[i] = CenterContainer:new{
                     dimen = { w = cd.w, h = cd.h },
                     ImageWidget:new{ image = c.data, width = cd.w, height = cd.h },
@@ -540,7 +561,9 @@ local function patch_mosaic_item()
         end
         local dimen = { w = portrait_w + 2 * border, h = portrait_h + 2 * border }
         local image_widget
-        if is_stack then
+        if is_empty_placeholder then
+            image_widget = CoverUtils.drawSingle(covers[1].data, portrait_w, portrait_h, border)
+        elseif is_stack then
             image_widget = CoverUtils.drawStack(covers, portrait_w, portrait_h, border)
         else
             image_widget = FrameContainer:new{
@@ -635,8 +658,10 @@ local function patch_list_item()
     ListMenuItem._zen_gv_orig = ListMenuItem.update
 
     function ListMenuItem:update(...)
-        if not (self.menu and self.menu._zen_group_view
-                and self.entry and self.entry._zen_files) then
+        local is_empty_placeholder = self.menu and self.menu._zen_group_view
+            and self.entry and self.entry._zen_empty_placeholder
+        if not (is_empty_placeholder or (self.menu and self.menu._zen_group_view
+                and self.entry and self.entry._zen_files)) then
             -- Use the live fallthrough so BLL's patch is honoured even if it
             -- ran after our install (Android timing issue).
             local fallthrough = ListMenuItem._zen_gv_orig
@@ -645,7 +670,7 @@ local function patch_list_item()
 
         self.is_directory = true
 
-        local files      = self.entry._zen_files
+        local files      = self.entry._zen_files or {}
         local book_count = #files
         local display_name = self.entry.text or ""
 
@@ -691,7 +716,12 @@ local function patch_list_item()
             end
 
             local cover_frame
-            if gallery_mode then
+            if is_empty_placeholder then
+                local cover_bb = gen_empty_group_cover(CoverUtils, cover_w, max_img)
+                cover_frame = CoverUtils.drawSingle(cover_bb, cover_w, max_img, border_size)
+                self.menu._has_cover_images = true
+                self._has_cover_image = true
+            elseif gallery_mode then
                 local gall_w = cover_w
                 local gall_h = max_img
                 if #covers > 0 then
@@ -950,9 +980,10 @@ local function build_group_item_table(groups, data_type)
     end
     if #items == 0 then
         table.insert(items, {
-            text     = empty_message,
-            dim      = true,
-            callback = function() end,
+            text                    = empty_message,
+            dim                     = true,
+            callback                = function() end,
+            _zen_empty_placeholder  = true,
         })
     end
 
@@ -2076,6 +2107,28 @@ function M.getActivePage(tab_id)
     elseif tab_id == "tags" and _tags_menu then
         return _tags_menu.page
     end
+end
+
+function M.getActiveWidgets(tab_id)
+    local root
+    if tab_id == "authors" then
+        root = _authors_menu
+    elseif tab_id == "series" then
+        root = _series_menu
+    elseif tab_id == "to_be_read" then
+        root = _tbr_menu
+    elseif tab_id == "tags" then
+        root = _tags_menu
+    end
+
+    local widgets = {}
+    if root then table.insert(widgets, root) end
+    for _i, menu in ipairs(_detail_menus) do
+        if menu._zen_tab_id == tab_id then
+            table.insert(widgets, menu)
+        end
+    end
+    return widgets
 end
 
 -- Close all open group/detail menus to prevent UIManager stack pollution
