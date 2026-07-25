@@ -5,6 +5,7 @@ describe("library navigation", function()
         _G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN = nil
         _G.__ZEN_UI_FAST_RETURN = nil
         _G.__ZEN_UI_FAST_RETURN_REBUILDING = nil
+        _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = nil
         _G.__ZEN_UI_RAKUYOMI = {
             isChapterFile = function() return false end,
         }
@@ -25,6 +26,7 @@ describe("library navigation", function()
         _G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN = nil
         _G.__ZEN_UI_FAST_RETURN = nil
         _G.__ZEN_UI_FAST_RETURN_REBUILDING = nil
+        _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = nil
         _G.__ZEN_UI_RAKUYOMI = nil
     end)
 
@@ -58,6 +60,35 @@ describe("library navigation", function()
         assert.is_true(Navigation.showFromReader(ui, plugin))
         assert.is_true(_G.__ZEN_UI_KEEP_BOOK_LOCATION)
         assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+    end)
+
+    it("forces a file-manager-backed default even when restore is enabled", function()
+        ZenSpec.replace("ui/uimanager", {
+            _window_stack = {},
+            _dirty = {},
+            _refresh_stack = {},
+            _refresh_func_stack = {},
+        })
+        ZenSpec.replace("device", {})
+        _G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN = function()
+            return false
+        end
+        local closed, shown
+        local ui = {
+            document = { file = "/library/Book.epub" },
+            doc_settings = {},
+            handleEvent = function() end,
+            onClose = function() closed = true end,
+            showFileManager = function(_, file) shown = file end,
+        }
+
+        Navigation.showFromReader(ui, {
+            config = { features = { restore_library_view = true } },
+        })
+
+        assert.is_true(closed)
+        assert.are.equal("/library/Book.epub", shown)
+        assert.is_true(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
     end)
 
     it("uses explicit home and folder targets before restore behavior", function()

@@ -75,6 +75,22 @@ end
 
 local count_image_widgets
 
+local function collect_folder_widgets(widget, states, seen, depth)
+    if type(widget) ~= "table" or seen[widget] or depth > 64 then return end
+    seen[widget] = true
+    local entry = widget.entry
+    if type(entry) == "table" and not (entry.is_file or entry.file) and entry.path then
+        states[#states + 1] = {
+            path = entry.path,
+            processed = widget._foldercover_processed == true,
+            has_cover_frame = widget._cover_frame ~= nil,
+        }
+    end
+    for _i, child in ipairs(widget) do
+        collect_folder_widgets(child, states, seen, depth + 1)
+    end
+end
+
 local function file_chooser_items()
     local FileManager = require("apps/filemanager/filemanager")
     local file_chooser = FileManager.instance and FileManager.instance.file_chooser
@@ -100,6 +116,8 @@ local function file_chooser_items()
     end
     local visible_texts = {}
     collect_texts(file_chooser.item_group or file_chooser, visible_texts, {}, 0)
+    local folder_widgets = {}
+    collect_folder_widgets(file_chooser.item_group or file_chooser, folder_widgets, {}, 0)
     local focused_item
     local focused_index = file_chooser.itemnumber or file_chooser.prev_itemnumber
     if focused_index and file_chooser.item_table then
@@ -121,6 +139,7 @@ local function file_chooser_items()
             and count_image_widgets(file_chooser.item_group or file_chooser, {}, 0) or 0,
         item_widget_count = type(file_chooser.item_group) == "table" and #file_chooser.item_group or 0,
         items = items,
+        folder_widgets = folder_widgets,
         visible_texts = visible_texts,
     }
 end

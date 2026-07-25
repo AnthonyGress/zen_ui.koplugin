@@ -1,5 +1,6 @@
 import os
 import signal
+import sqlite3
 import subprocess
 import tempfile
 import time
@@ -46,6 +47,30 @@ def _write_readable_epub(path: Path) -> None:
         archive.writestr("META-INF/container.xml", container)
         archive.writestr("OEBPS/content.opf", package)
         archive.writestr("OEBPS/chapter.xhtml", chapter)
+
+
+def _seed_mosaic_mode(ko_home: Path) -> None:
+    database = ko_home / "settings" / "bookinfo_cache.sqlite3"
+    database.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(database) as connection:
+        connection.executescript("""
+            PRAGMA user_version=20201210;
+            CREATE TABLE bookinfo (
+                bcid INTEGER PRIMARY KEY AUTOINCREMENT,
+                directory TEXT NOT NULL, filename TEXT NOT NULL,
+                filesize INTEGER, filemtime INTEGER, in_progress INTEGER,
+                unsupported TEXT, cover_fetched TEXT, has_meta TEXT,
+                has_cover TEXT, cover_sizetag TEXT, ignore_meta TEXT,
+                ignore_cover TEXT, pages INTEGER, title TEXT, authors TEXT,
+                series TEXT, series_index REAL, language TEXT, keywords TEXT,
+                description TEXT, cover_w INTEGER, cover_h INTEGER,
+                cover_bb_type INTEGER, cover_bb_stride INTEGER, cover_bb_data BLOB
+            );
+            CREATE UNIQUE INDEX dir_filename ON bookinfo(directory, filename);
+            CREATE TABLE config (key TEXT PRIMARY KEY, value TEXT);
+            INSERT INTO config (key, value)
+                VALUES ('filemanager_display_mode', 'mosaic_image');
+        """)
 
 
 def _launch(
@@ -115,8 +140,24 @@ def _wait_for_file_manager(driver: ZenDriver) -> dict[str, object]:
     raise AssertionError(f"file manager did not return: {last}")
 
 
+def _wait_for_folder_cover(driver: ZenDriver, folder: Path) -> dict[str, object]:
+    deadline = time.monotonic() + 30
+    expected = str(folder.resolve())
+    last: dict[str, object] = {}
+    while time.monotonic() < deadline:
+        response = driver.command("file_chooser_items")
+        state = response.get("file_chooser", {})
+        if isinstance(state, dict):
+            last = state
+            for widget in state.get("folder_widgets", []):
+                if widget.get("path") == expected and widget.get("processed") is True:
+                    return widget
+        time.sleep(0.1)
+    raise AssertionError(f"folder cover did not render: {last}")
+
+
 def _wait_for_navbar_view(
-    driver: ZenDriver, expected_name: str, expected_label: str
+    driver: ZenDriver, expected_name: str | None, expected_label: str
 ) -> dict[str, object]:
     deadline = time.monotonic() + 30
     last: dict[str, object] = {}
@@ -134,7 +175,7 @@ def _wait_for_navbar_view(
 
 @pytest.mark.parametrize(
     ("default_tab", "expected_label"),
-    [("home", "Home"), ("series", "Series")],
+    [("home", "Home"), ("series", "Series"), ("books", "Library")],
 )
 def test_book_opens_in_reader_and_home_returns_to_library(
     default_tab: str, expected_label: str
@@ -148,6 +189,10 @@ def test_book_opens_in_reader_and_home_returns_to_library(
         library.mkdir()
         book = library / "Reader Navigation.epub"
         _write_readable_epub(book)
+        folder = library / "Shelf"
+        folder.mkdir()
+        _write_readable_epub(folder / "Nested.epub")
+        _seed_mosaic_mode(ko_home)
         socket_path = root / "driver.sock"
         process = _launch(runtime, ko_home, socket_path, library, default_tab)
         try:
@@ -156,9 +201,12 @@ def test_book_opens_in_reader_and_home_returns_to_library(
             before = _wait_for_file_manager(driver)
             activated = driver.command("activate_navbar_tab", id=default_tab)
             assert activated.get("ok") is True, activated
-            _wait_for_navbar_view(driver, default_tab, expected_label)
+            expected_name = None if default_tab == "books" else default_tab
+            _wait_for_navbar_view(driver, expected_name, expected_label)
             assert before.get("path") == str(library.resolve())
             assert before.get("page") == 1
+            if default_tab == "books":
+                _wait_for_folder_cover(driver, folder)
 
             opened = driver.open_book(book)
             assert opened.get("ok") is True, opened
@@ -169,9 +217,11 @@ def test_book_opens_in_reader_and_home_returns_to_library(
             returned = driver.reader_menu_home()
             assert returned.get("ok") is True, returned
             after = _wait_for_file_manager(driver)
-            _wait_for_navbar_view(driver, default_tab, expected_label)
+            _wait_for_navbar_view(driver, expected_name, expected_label)
             assert after.get("path") == before.get("path")
             assert after.get("page") == before.get("page")
+            if default_tab == "books":
+                _wait_for_folder_cover(driver, folder)
         finally:
             process.send_signal(signal.SIGTERM)
             try:

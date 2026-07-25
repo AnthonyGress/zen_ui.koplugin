@@ -49,7 +49,8 @@ describe("file browser navbar navigation", function()
         FileManager = class({
             setupLayout = function() end,
             showFiles = function(self, path, focused)
-                FileManager.instance = self
+                FileManager.instance = self._test_next_instance or self
+                self._test_next_instance = nil
                 calls[#calls + 1] = "base:" .. tostring(path) .. ":" .. tostring(focused)
             end,
             onShowingReader = function() end,
@@ -197,6 +198,7 @@ describe("file browser navbar navigation", function()
                 path_items = {},
                 item_table = {},
                 changeToPath = function(_, path) calls[#calls + 1] = "books:" .. path end,
+                updateItems = function() calls[#calls + 1] = "covers" end,
                 onPrevPage = function() calls[#calls + 1] = "previous" end,
                 onNextPage = function() calls[#calls + 1] = "next" end,
                 showFileDialog = function() calls[#calls + 1] = "menu" end,
@@ -220,6 +222,23 @@ describe("file browser navbar navigation", function()
             "page_left", "page_right", "menu",
         }, { unpack(_G.__ZEN_UI_PLUGIN.config.navbar.tab_order, 1, 13) })
         assert.are.equal("Home", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+    end)
+
+    it("reloads and opens a file-manager-backed Library default at the root", function()
+        _G.__ZEN_UI_PLUGIN.config.features.restore_library_view = true
+        _G.__ZEN_UI_PLUGIN.config.navbar.default_tab = "books"
+        assert.are.equal("books", _G.__ZEN_UI_NAVBAR_RESOLVE_DEFAULT_TAB())
+
+        local fm = make_instance()
+        calls = {}
+        FileManager._test_next_instance = fm
+        _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = true
+        FileManager.showFiles(FileManager, "/library/subfolder", "/library/Book.epub")
+
+        assert.are.same({ "base:/library:nil", "covers" }, calls)
+        assert.are.equal("Library", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+        assert.is_nil(fm.file_chooser._zen_needs_cover_refresh)
+        assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
     end)
 
     it("dispatches persistent tabs to their intended library views and tracks active state", function()
