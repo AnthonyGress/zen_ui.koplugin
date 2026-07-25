@@ -125,6 +125,24 @@ local function file_chooser_items()
     }
 end
 
+local function file_chooser_cover_state()
+    local FileManager = require("apps/filemanager/filemanager")
+    local chooser = FileManager.instance and FileManager.instance.file_chooser
+    if not chooser then return nil end
+    local BookInfoManager = require("bookinfomanager")
+    local files = 0
+    local fetched = 0
+    for _i, item in ipairs(chooser.item_table or {}) do
+        local path = item.path or item.file
+        if path and (item.is_file or item.file) then
+            files = files + 1
+            local info = BookInfoManager:getBookInfo(path, false)
+            if info and info.cover_fetched then fetched = fetched + 1 end
+        end
+    end
+    return { files = files, fetched = fetched }
+end
+
 local function open_book(path)
     local FileManager = require("apps/filemanager/filemanager")
     local file_chooser = FileManager.instance and FileManager.instance.file_chooser
@@ -243,6 +261,61 @@ local function navbar_state()
     }
 end
 
+local function cover_cache_comparison()
+    local FileManager = require("apps/filemanager/filemanager")
+    local chooser = FileManager.instance and FileManager.instance.file_chooser
+    if not chooser then
+        return nil, "file chooser unavailable"
+    end
+    local cache = require("common/cover_decode_cache")
+    local path
+    for _i, item in ipairs(chooser.item_table or {}) do
+        local candidate = item.path or item.file
+        if candidate and cache:has(candidate) then
+            path = candidate
+            break
+        end
+    end
+    if not path then return nil, "no visible cached cover" end
+    local BookInfoManager = require("bookinfomanager")
+    local now = require("common/zen_logger").now
+    local function delta(after, before)
+        local result = {}
+        for key, value in pairs(after) do
+            if type(value) == "number" then
+                result[key] = value - (before[key] or 0)
+            end
+        end
+        return result
+    end
+
+    cache:drop(path)
+    local before_cold = cache:stats()
+    local cold_started_at = now()
+    local info = BookInfoManager:getBookInfo(path, true)
+    local cold_elapsed_ms = (now() - cold_started_at) * 1000
+    if info and info.cover_bb then info.cover_bb:free() end
+    local after_cold = cache:stats()
+
+    local warm_started_at = now()
+    info = BookInfoManager:getBookInfo(path, true)
+    local warm_elapsed_ms = (now() - warm_started_at) * 1000
+    if info and info.cover_bb then info.cover_bb:free() end
+    local after_warm = cache:stats()
+    return {
+        path = path,
+        cold = {
+            elapsed_ms = cold_elapsed_ms,
+            delta = delta(after_cold, before_cold),
+        },
+        warm = {
+            elapsed_ms = warm_elapsed_ms,
+            delta = delta(after_warm, after_cold),
+        },
+        total = after_warm,
+    }
+end
+
 local Driver = WidgetContainer:extend{}
 
 function Driver:init()
@@ -286,6 +359,11 @@ function Driver:handleCommand(command)
     if kind == "file_chooser_items" then
         local state = file_chooser_items()
         return state and { ok = true, file_chooser = state }
+            or { ok = false, error = "file chooser unavailable" }
+    end
+    if kind == "file_chooser_cover_state" then
+        local state = file_chooser_cover_state()
+        return state and { ok = true, covers = state }
             or { ok = false, error = "file chooser unavailable" }
     end
     if kind == "open_book" and type(params.path) == "string" then
@@ -358,6 +436,14 @@ function Driver:handleCommand(command)
         end
         return { ok = open_tab(params.id) == true }
     end
+    if kind == "race_home_to_books" then
+        local open_tab = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_TAB")
+        if type(open_tab) ~= "function" or open_tab("home") ~= true then
+            return { ok = false, error = "Home tab unavailable" }
+        end
+        UIManager:scheduleIn(0.05, function() open_tab("books") end)
+        return { ok = true }
+    end
     if kind == "reader_menu_home" then
         local ReaderUI = require("apps/reader/readerui")
         local reader = ReaderUI.instance
@@ -383,6 +469,14 @@ function Driver:handleCommand(command)
         end
         chooser:onNextPage()
         return { ok = true, page = chooser.page }
+    end
+    if kind == "cover_cache_stats" then
+        return { ok = true, stats = require("common/cover_decode_cache"):stats() }
+    end
+    if kind == "cover_cache_comparison" then
+        local result, err = cover_cache_comparison()
+        return result and { ok = true, measurement = result }
+            or { ok = false, error = err }
     end
     if kind == "checkpoint" then return { ok = true, name = params.name } end
     if kind == "screenshot" and type(params.output) == "string" then

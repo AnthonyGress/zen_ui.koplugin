@@ -1,6 +1,8 @@
 describe("home recent strip widget", function()
     local created
     local cover_books
+    local empty_sources
+    local library_font_sizes
 
     local function widget_class(kind)
         return {
@@ -30,7 +32,7 @@ describe("home recent strip widget", function()
     end
 
     before_each(function()
-        created, cover_books = {}, {}
+        created, cover_books, empty_sources, library_font_sizes = {}, {}, {}, {}
         ZenSpec.replace("common/ui/background", { tile_bg = function(color) return color end })
         ZenSpec.replace("ffi/blitbuffer", {
             COLOR_BLACK = "black", COLOR_WHITE = "white", COLOR_LIGHT_GRAY = "lightgray",
@@ -74,12 +76,20 @@ describe("home recent strip widget", function()
             formatPageCount = function(pages) return tostring(pages) end,
         })
         ZenSpec.replace("modules/filebrowser/patches/library_font", {
-            getFace = function(size) return { size = size } end,
-            scaleValue = function(value) return value end,
+            getFace = function(size)
+                library_font_sizes[#library_font_sizes + 1] = size
+                return { name = "LibraryFont", size = size }
+            end,
+            scaleValue = function() error("home strip used library font size") end,
         })
         ZenSpec.replace("modules/filebrowser/patches/home/widgets/cover_common", {
             make_cover_widget = function(book, _max_w, max_h)
                 cover_books[#cover_books + 1] = book
+                local cover = widget_class("cover"):new{ width = 80, height = max_h }
+                return cover, 80, max_h
+            end,
+            make_empty_cover_widget = function(source, _max_w, max_h)
+                empty_sources[#empty_sources + 1] = source
                 local cover = widget_class("cover"):new{ width = 80, height = max_h }
                 return cover, 80, max_h
             end,
@@ -126,12 +136,13 @@ describe("home recent strip widget", function()
         assert.are.same({ "recently_read", 4, "default", "strip_recent" }, requested)
         assert.are.same({ book }, cover_books)
         assert.is_true(has_text("Alpha"))
+        assert.are.same({ 16 }, library_font_sizes)
         assert.are.equal("book:/library/alpha.epub", focus_target.key)
         assert.is_true(focus_target.activate())
         assert.are.equal(book.path, opened)
     end)
 
-    it("renders an explicit empty-history state without cover allocation", function()
+    it("renders a descriptive ornate placeholder for empty recent history", function()
         local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
         local widget = Strip.build({
             width = 500,
@@ -144,6 +155,6 @@ describe("home recent strip widget", function()
 
         assert.is_table(widget)
         assert.are.equal(0, #cover_books)
-        assert.is_true(has_text("No books found"))
+        assert.are.same({ "recently_read" }, empty_sources)
     end)
 end)

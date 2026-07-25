@@ -19,6 +19,8 @@ local PATCH_MODULES = {
     add_sort_title_natural = "modules/filebrowser/patches/add_sort_title_natural",
     coverbrowser_check = "modules/filebrowser/patches/coverbrowser_check",
     coverbrowser_subprocess_compat = "modules/filebrowser/patches/coverbrowser_subprocess_compat",
+    cover_decode_cache = "modules/filebrowser/patches/cover_decode_cache",
+    cover_preload = "modules/filebrowser/patches/cover_preload",
     context_menu = "modules/filebrowser/patches/context_menu",
     browser_flat_view_compat = "modules/filebrowser/patches/browser_flat_view_compat",
     browser_folder_sort = "modules/filebrowser/patches/browser_folder_sort",
@@ -39,6 +41,7 @@ local PATCH_MODULES = {
     browser_cover_badges = "modules/filebrowser/patches/browser_cover_badges",
     browser_cover_mosaic_uniform = "modules/filebrowser/patches/browser_cover_mosaic_uniform",
     mosaic_title_strip = "modules/filebrowser/patches/mosaic_title_strip",
+    zen_mosaic_renderer = "modules/filebrowser/patches/zen_mosaic_renderer",
     browser_cover_rounded_corners = "modules/filebrowser/patches/browser_cover_rounded_corners",
     browser_show_hidden = "modules/filebrowser/patches/browser_show_hidden",
     cache_bookinfo_get_doc_props = "modules/filebrowser/patches/cache_bookinfo_get_doc_props",
@@ -116,6 +119,11 @@ function M.init(logger, plugin)
     local coverbrowser_subprocess_compat_fn = load_patch("coverbrowser_subprocess_compat")
     if coverbrowser_subprocess_compat_fn then
         run_feature(logger, plugin, "coverbrowser_subprocess_compat", coverbrowser_subprocess_compat_fn)
+    end
+
+    local cover_decode_cache_fn = load_patch("cover_decode_cache")
+    if cover_decode_cache_fn then
+        run_feature(logger, plugin, "cover_decode_cache", cover_decode_cache_fn)
     end
 
     local disable_modal_drag_fn = load_patch("disable_modal_drag")
@@ -269,6 +277,17 @@ function M.init(logger, plugin)
                 logger.warn("grouped filebrowser patch load failed", feature, err)
             end
         end
+    end
+
+    local zen_mosaic_renderer_fn = load_patch("zen_mosaic_renderer")
+    if zen_mosaic_renderer_fn then
+        run_feature(logger, plugin, "zen_mosaic_renderer", zen_mosaic_renderer_fn)
+    end
+
+    -- Apply last so measurements wrap the final CoverMenu implementation.
+    local cover_preload_fn = load_patch("cover_preload")
+    if cover_preload_fn then
+        run_feature(logger, plugin, "cover_preload", cover_preload_fn)
     end
 
     initialized = true

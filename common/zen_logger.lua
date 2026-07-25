@@ -5,6 +5,7 @@ local _logger
 local _original = {}
 local _installed = false
 local _plugin_root
+local _now
 
 local LEVELS = { "dbg", "info", "warn", "err" }
 M.SLOW_THRESHOLD_MS = 500
@@ -64,6 +65,26 @@ local function emit_performance(feature, message, elapsed_ms, ...)
     return emit("dbg", feature, args)
 end
 
+local function emit_measurement(feature, message, elapsed_ms, ...)
+    elapsed_ms = math.floor((tonumber(elapsed_ms) or 0) * 10 + 0.5) / 10
+    local args = { "PERF: " .. tostring(message) }
+    for i = 1, select("#", ...) do
+        args[#args + 1] = select(i, ...)
+    end
+    args[#args + 1] = "elapsed_ms="
+    args[#args + 1] = elapsed_ms
+    return emit("info", feature, args)
+end
+
+function M.now()
+    if not _now then
+        local ok, socket = pcall(require, "socket")
+        _now = ok and socket and type(socket.gettime) == "function"
+            and socket.gettime or os.clock
+    end
+    return _now()
+end
+
 function M.install()
     if _installed then return _logger end
 
@@ -102,6 +123,10 @@ function M.new(feature)
     logger.perf = function(message, elapsed_ms, ...)
         local source = debug.getinfo(2, "S").source
         return emit_performance(feature_from_source(source) or feature, message, elapsed_ms, ...)
+    end
+    logger.measure = function(message, elapsed_ms, ...)
+        local source = debug.getinfo(2, "S").source
+        return emit_measurement(feature_from_source(source) or feature, message, elapsed_ms, ...)
     end
     return logger
 end

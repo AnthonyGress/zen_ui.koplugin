@@ -235,6 +235,16 @@ describe("file browser group views", function()
         end
     end)
 
+    it("names an empty TBR page", function()
+        install_group_view({ tbr = {} })
+
+        api.showTBRView()
+
+        local item = assert(find_menu("to_be_read")).item_table[1]
+        assert.are.equal("No TBR books found", item.text)
+        assert.is_true(item.dim)
+    end)
+
     it("names the group metadata when a detail page has no books", function()
         install_group_view({
             authors = { { author = "Ada", files = {} } },

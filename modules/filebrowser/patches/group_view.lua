@@ -456,12 +456,15 @@ local function patch_mosaic_item()
             local bi = BookInfoManager:getBookInfo(files[i], true)
             if bi and bi.cover_bb and bi.has_cover
                     and bi.cover_fetched and not bi.ignore_cover then
+                local cover_bb = bi.cover_bb:copy()
+                bi.cover_bb:free()
                 table.insert(covers, {
-                    data = bi.cover_bb:copy(),
+                    data = cover_bb,
                     w    = bi.cover_w,
                     h    = bi.cover_h,
                 })
             else
+                if bi and bi.cover_bb then bi.cover_bb:free() end
                 local gen_bb, gen_w, gen_h = CoverUtils.genCover(files[i], _pw_pre, _ph_pre)
                 if gen_bb then
                     table.insert(covers, { data = gen_bb, w = gen_w, h = gen_h })
@@ -674,8 +677,11 @@ local function patch_list_item()
                 local bi = BookInfoManager:getBookInfo(files[i], true)
                 if bi and bi.cover_bb and bi.has_cover
                         and bi.cover_fetched and not bi.ignore_cover then
-                    table.insert(covers, { data = bi.cover_bb:copy() })
+                    local cover_bb = bi.cover_bb:copy()
+                    bi.cover_bb:free()
+                    table.insert(covers, { data = cover_bb })
                 else
+                    if bi and bi.cover_bb then bi.cover_bb:free() end
                     local gen_bb = CoverUtils.genCover(files[i], cover_w, max_img)
                     if gen_bb then
                         table.insert(covers, { data = gen_bb })
@@ -914,6 +920,7 @@ local function group_empty_message(data_type)
         authors = _("No books with author metadata found"),
         series = _("No books with series metadata found"),
         tags = _("No books with tags metadata found"),
+        to_be_read = _("No TBR books found"),
     })[data_type] or _("No books found")
 end
 
@@ -1190,7 +1197,7 @@ local function sortDetailFiles(files, collate, reverse)
     -- Build sortable array with metadata
     local items = {}
     for _i, fpath in ipairs(files) do
-        local bookinfo = BookInfoManager:getBookInfo(fpath, true)
+        local bookinfo = BookInfoManager:getBookInfo(fpath, false)
         local sort_key
 
         if collate == "title" or collate == "title_natural" then
@@ -1893,7 +1900,7 @@ function M.showTBRView(injectNavbar)
         end
         if #items == 0 then
             table.insert(items, {
-                text     = _("No books found"),
+                text     = group_empty_message(tab_id),
                 dim      = true,
                 callback = function() end,
             })

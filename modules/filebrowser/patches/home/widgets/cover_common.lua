@@ -6,8 +6,13 @@ local FrameContainer = require("ui/widget/container/framecontainer")
 local ImageWidget = require("ui/widget/imagewidget")
 local Widget = require("ui/widget/widget")
 local CoverUtils = require("common/cover_utils")
+local RenderCache = require("common/cover_render_cache")
 
 local M = {}
+
+function M.get_empty_message(source)
+    return CoverUtils.getEmptyPlaceholderText(source)
+end
 
 local function get_uniform_ratio()
     local g = rawget(_G, "G_reader_settings")
@@ -148,7 +153,12 @@ function M.make_cover_widget(book, max_w, max_h, opts)
     opts = opts or {}
     local border = tonumber(opts.border) or 1
     local bg = opts.background or Blitbuffer.COLOR_LIGHT_GRAY
-    local target_w, target_h = calc_uniform_dims(max_w, max_h)
+    local target_w, target_h
+    if opts.uniform == false then
+        target_w, target_h = max_w, max_h
+    else
+        target_w, target_h = calc_uniform_dims(max_w, max_h)
+    end
     if target_w < 18 then target_w = 18 end
     if target_h < 28 then target_h = 28 end
 
@@ -156,14 +166,31 @@ function M.make_cover_widget(book, max_w, max_h, opts)
     if book and book.cover_bb then
         local cover_bb = book.cover_bb
         book.cover_bb = nil
+        if book.path then
+            cover_bb = RenderCache:render(book.path, cover_bb, target_w, target_h)
+        end
         child = ImageWidget:new{
             image = cover_bb,
             image_disposable = true,
             width = target_w,
             height = target_h,
         }
+    elseif book and type(book.placeholder_text) == "string" and book.placeholder_text ~= "" then
+        local fake_cover = CoverUtils.genCover(
+            "zen-empty-placeholder", target_w, target_h, true,
+            { title = book.placeholder_text, authors = "", title_only = true }
+        )
+        if fake_cover then
+            child = ImageWidget:new{
+                image = fake_cover,
+                image_disposable = true,
+                width = target_w,
+                height = target_h,
+                scale_factor = 1,
+            }
+        end
     elseif book and type(book.path) == "string" and book.path ~= "" then
-        local fake_cover = CoverUtils.genCover(book.path, target_w, target_h)
+        local fake_cover = CoverUtils.genCover(book.path, target_w, target_h, nil, book.bookinfo)
         if fake_cover then
             child = ImageWidget:new{
                 image = fake_cover,
@@ -200,6 +227,12 @@ function M.make_cover_widget(book, max_w, max_h, opts)
     end
 
     return frame, target_w, target_h
+end
+
+function M.make_empty_cover_widget(source, max_w, max_h, opts)
+    return M.make_cover_widget({
+        placeholder_text = M.get_empty_message(source),
+    }, max_w, max_h, opts)
 end
 
 return M

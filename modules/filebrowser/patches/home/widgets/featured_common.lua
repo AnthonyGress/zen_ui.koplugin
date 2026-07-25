@@ -178,6 +178,10 @@ function M.build(ctx, source_key)
     local gap = math.max(4, math.floor(width * 0.025))
 
     if not book then
+        local empty_cover = cover_common.make_empty_cover_widget(
+            source, width, height,
+            { border = 1, background = Blitbuffer.COLOR_LIGHT_GRAY }
+        )
         return FrameContainer:new{
             width = outer_width,
             height = outer_height,
@@ -186,7 +190,7 @@ function M.build(ctx, source_key)
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
             CenterContainer:new{
                 dimen = Geom:new{ w = outer_width, h = outer_height },
-                TextWidget:new{ text = "No books found", face = ctx.face_label },
+                empty_cover,
             },
         }
     end
@@ -220,7 +224,7 @@ function M.build(ctx, source_key)
     local text_w = math.max(1, width - cover_col_w - gap)
 
     -- Fonts
-    local scale = clamp(col_h / 300, 0.55, 1.28) * library_font.getScale(18)
+    local scale = clamp(col_h / 300, 0.55, 1.28)
     local title_style = text_style(module_cfg, "title")
     local author_style = text_style(module_cfg, "author")
     local series_style = text_style(module_cfg, "series")
@@ -229,7 +233,7 @@ function M.build(ctx, source_key)
     local meta_face = get_text_face(author_style, Screen:scaleBySize(math.floor(author_style.font_size * scale + 0.5)))
     local series_face = get_text_face(series_style, Screen:scaleBySize(math.floor(series_style.font_size * scale + 0.5)))
     local stats_face = Font:getFace("smallinfofont", Screen:scaleBySize(math.floor(6.5 * scale + 0.5)))
-    local desc_face = get_text_face(description_style, library_font.scaleValue(description_style.font_size))
+    local desc_face = get_text_face(description_style, description_style.font_size)
 
     -- Optional status bar (top of right column)
     local status_opts = {

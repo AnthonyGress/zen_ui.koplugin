@@ -2,6 +2,7 @@ describe("file browser navbar navigation", function()
     local FileManager
     local shared
     local calls
+    local library_font_sizes
 
     local function class(methods)
         methods = methods or {}
@@ -22,6 +23,7 @@ describe("file browser navbar navigation", function()
 
     before_each(function()
         calls = {}
+        library_font_sizes = {}
         shared = {
             home = {
                 showHomeView = function() calls[#calls + 1] = "home" end,
@@ -117,8 +119,11 @@ describe("file browser navbar navigation", function()
         })
         ZenSpec.replace("modules/menu/app_launcher/plugin_scan", {})
         ZenSpec.replace("modules/filebrowser/patches/library_font", {
-            getFace = function(size) return { size = size } end,
-            scaleValue = function(value) return value end,
+            getFace = function(size)
+                library_font_sizes[#library_font_sizes + 1] = size
+                return { size = size }
+            end,
+            scaleValue = function() error("navbar used library font size") end,
         })
         ZenSpec.replace("libs/libkoreader-lfs", {
             attributes = function(path, field)
@@ -149,6 +154,7 @@ describe("file browser navbar navigation", function()
                     default_tab = "home",
                     show_icons = false,
                     show_labels = true,
+                    label_size = 17,
                 },
             },
         }
@@ -228,5 +234,16 @@ describe("file browser navbar navigation", function()
         assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("authors"))
         assert.is_false(_G.__ZEN_UI_NAVBAR_OPEN_TAB("not-a-tab"))
         assert.are.equal("Authors", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+    end)
+
+    it("uses the library face at the navbar's configured label size", function()
+        local fm = make_instance()
+        fm[1] = { fm.file_chooser }
+        _G.__ZEN_UI_REINJECT_FM_NAVBAR()
+        local used_configured_size = false
+        for _i, size in ipairs(library_font_sizes) do
+            if size == 17 then used_configured_size = true end
+        end
+        assert.is_true(used_configured_size)
     end)
 end)

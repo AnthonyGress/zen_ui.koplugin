@@ -173,6 +173,25 @@ local function flush_cover_upgrade_queue()
         return
     end
 
+    -- CoverBrowser owns a single extraction subprocess. Do not let a delayed
+    -- home-screen upgrade cancel the file browser's in-flight page batch after
+    -- the user has navigated away; those unresolved rows otherwise keep their
+    -- loading placeholder until a manual page change creates a new batch.
+    if not M.isActiveOnTop() then
+        for _i, path in ipairs(paths) do
+            invalidate_home_book_cache(path)
+        end
+        return
+    end
+    if BookInfoManager:isExtractingInBackground() then
+        for _i, path in ipairs(paths) do
+            _pending_cover_upgrade_paths[path] = true
+        end
+        _cover_upgrade_scheduled = true
+        require("ui/uimanager"):scheduleIn(1, flush_cover_upgrade_queue)
+        return
+    end
+
     local specs = home_cover_specs()
     local files = {}
     for _i, path in ipairs(paths) do
@@ -928,6 +947,7 @@ local function build_data_provider(cfg, dcfg)
             end
             if bi and bi.cover_bb and bi.has_cover and bi.cover_fetched and not bi.ignore_cover then
                 cover_bb = bi.cover_bb:copy()
+                bi.cover_bb:free()
                 -- Cached cover may be too small (e.g. extracted for a small
                 -- list row); queue a background re-extraction at full size
                 -- and use today's (possibly upscaled) cover in the meantime.
@@ -935,9 +955,11 @@ local function build_data_provider(cfg, dcfg)
                     queue_cover_upgrade(path)
                 end
             elseif bi and (bi.cover_fetched or bi.ignore_cover) then -- luacheck: ignore 542
+                if bi.cover_bb then bi.cover_bb:free() end
                 -- Extraction was already tried and found no usable cover (or the
                 -- user chose to ignore it): nothing to gain from retrying.
             else
+                if bi and bi.cover_bb then bi.cover_bb:free() end
                 -- Never extracted at all (fresh cache, or only metadata was ever
                 -- fetched): queue a first extraction at home-screen size instead
                 -- of waiting for the file browser to stumble onto this book.

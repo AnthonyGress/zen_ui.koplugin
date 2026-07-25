@@ -27,7 +27,9 @@ local function apply_browser_folder_cover()
     local ffiUtil = require("ffi/util")
     local lfs = require("libs/libkoreader-lfs")
     local HistoryIndex = require("common/history_index")
-    local logger = require("common/zen_logger").new("browser_folder_cover")
+    local zen_logger = require("common/zen_logger")
+    local logger = zen_logger.new("browser_folder_cover")
+    local now = zen_logger.now
     local paths = require("common/paths")
     local library_font = require("modules/filebrowser/patches/library_font")
     local utils = require("common/utils")
@@ -342,6 +344,14 @@ local function apply_browser_folder_cover()
             return result
         end
         if not self._dummy and self.name == "filemanager" then
+            local started_at = now()
+            local function measured(result, cache_state)
+                logger.measure("File list generated", (now() - started_at) * 1000,
+                    "cache=", cache_state,
+                    "path=", tostring(path),
+                    "items=", type(result) == "table" and #result or 0)
+                return result
+            end
             local override = _folder_sort_override(path)
             local collate_mode = type(override) == "table" and override.collate
                 or G_reader_settings:readSetting("collate", "strcoll")
@@ -360,7 +370,7 @@ local function apply_browser_folder_cover()
                     cached_table = _apply_history_order(self, cached_table, collate, reverse_collate)
                     item_table_cache.table = cached_table
                 end
-                return cached_table
+                return measured(cached_table, "hit")
             end
             -- Returning from reading a book writes its sidecar, which bumps the
             -- directory mtime even though the file list is unchanged. That alone
@@ -382,7 +392,7 @@ local function apply_browser_folder_cover()
                     table = cached_table,
                     path = path,
                 }
-                return cached_table
+                return measured(cached_table, "reader_reuse")
             end
             self._zen_folder_cover_list_cache = {}
             local result = orig_FileChooser_genItemTableFromPath(self, path)
@@ -395,7 +405,7 @@ local function apply_browser_folder_cover()
                 table = result,
                 path = path,
             }
-            return result
+            return measured(result, "miss")
         end
         return orig_FileChooser_genItemTableFromPath(self, path)
     end
@@ -615,6 +625,7 @@ local function apply_browser_folder_cover()
                             candidate, "for", path)
                         return candidate_bi, candidate
                     end
+                    if candidate_bi and candidate_bi.cover_bb then candidate_bi.cover_bb:free() end
                 end
                 if parent == home_dir then break end
                 dir = parent
@@ -715,39 +726,14 @@ local function apply_browser_folder_cover()
 
             local max_covers = (mode == "gallery" or mode == "stack") and 4 or 1
             local need_copy = mode == "gallery" or mode == "stack"
-            local covers = {}
-
-            for _i, book_entry in ipairs(series_items) do
-                local path = book_entry and (book_entry.path or book_entry.file)
-                if path then
-                    local bookinfo = BookInfoManager:getBookInfo(path, true)
-                    local invalid = bookinfo and type(menu_cover_specs) == "table"
-                        and type(BookInfoManager.isCachedCoverInvalid) == "function"
-                        and BookInfoManager.isCachedCoverInvalid(bookinfo, menu_cover_specs)
-                    if bookinfo
-                            and bookinfo.cover_bb
-                            and bookinfo.has_cover
-                            and bookinfo.cover_fetched
-                            and not bookinfo.ignore_cover
-                            and not invalid then
-                        table.insert(covers, {
-                            data = need_copy and bookinfo.cover_bb:copy() or bookinfo.cover_bb,
-                            w = bookinfo.cover_w,
-                            h = bookinfo.cover_h,
-                        })
-                    elseif not invalid then
-                        local cover_bb, cover_w, cover_h = Cover.genCover(path, 200, 300)
-                        table.insert(covers, {
-                            data = cover_bb,
-                            w = cover_w,
-                            h = cover_h,
-                        })
-                    end
-                    if #covers >= max_covers then
-                        break
-                    end
-                end
-            end
+            local covers = Cover.collect(
+                nil,
+                nil,
+                max_covers,
+                need_copy,
+                series_items,
+                menu_cover_specs
+            )
 
             if #covers == 0 then
                 return { no_image = true }
@@ -837,7 +823,7 @@ local function apply_browser_folder_cover()
             if self._zen_ancestor_cover then
                 if self.entry and (self.entry.is_file or self.entry.file) then
                     local _p = self.entry.path or self.entry.file
-                    if _p and not BookInfoManager:getBookInfo(_p, true) then
+                    if _p and not BookInfoManager:getBookInfo(_p, false) then
                         return
                     end
                 end
@@ -893,11 +879,12 @@ local function apply_browser_folder_cover()
             local _resolved_path = self.entry.path or self.entry.file
             if (self.entry.is_file or self.entry.file) and _resolved_path then
                 local path = _resolved_path
-                local bookinfo = BookInfoManager:getBookInfo(path, true)
+                local bookinfo = BookInfoManager:getBookInfo(path, false)
                 if not bookinfo then
                     local ancestor_bi, ancestor_path = getBookInfoWithFallback(path)
                     if ancestor_bi and ancestor_path ~= path and ancestor_bi.cover_bb then
                         local cover_bb_copy = ancestor_bi.cover_bb:copy()
+                        ancestor_bi.cover_bb:free()
                         local border = Folder.face.border_size
                         local max_w = self.width - 2 * border
                         local eff_h = getEffectiveMosaicHeight(self)

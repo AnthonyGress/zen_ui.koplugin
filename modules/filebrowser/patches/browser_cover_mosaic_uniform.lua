@@ -8,6 +8,7 @@
 local function apply_browser_cover_mosaic_uniform()
     local Size = require("ui/size")
     local OverlapGroup = require("ui/widget/overlapgroup")
+    local RenderCache = require("common/cover_render_cache")
 
     local MosaicMenu = require("mosaicmenu")
 
@@ -39,9 +40,10 @@ local function apply_browser_cover_mosaic_uniform()
     end
 
     -- Find the ImageWidget upvalue inside MosaicMenuItem.update.
+    local mosaic_update = MosaicMenuItem.update
     local local_ImageWidget, upvalue_idx
     for i = 1, 128 do
-        local name, value = debug.getupvalue(MosaicMenuItem.update, i)
+        local name, value = debug.getupvalue(mosaic_update, i)
         if not name then break end
         if name == "ImageWidget" then
             local_ImageWidget = value
@@ -101,20 +103,34 @@ local function apply_browser_cover_mosaic_uniform()
             return
         end
 
-        self.scale_factor = nil
-
         local aspect_ratio = get_aspect_ratio()
-
+        local target_w, target_h
         if max_img_w / max_img_h > aspect_ratio then
-            self.height = max_img_h
-            self.width  = math.floor(max_img_h * aspect_ratio)
+            target_h = max_img_h
+            target_w = math.floor(max_img_h * aspect_ratio)
         else
-            self.width  = max_img_w
-            self.height = math.floor(max_img_w / aspect_ratio)
+            target_w = max_img_w
+            target_h = math.floor(max_img_w / aspect_ratio)
         end
+        local path = rawget(_G, "__ZEN_COVER_RENDER_PATH")
+        if path and self.image then
+            self.image = RenderCache:render(path, self.image, target_w, target_h)
+            self.scale_factor = 1
+        else
+            self.scale_factor = nil
+        end
+        self.width, self.height = target_w, target_h
     end
 
-    debug.setupvalue(MosaicMenuItem.update, upvalue_idx, StretchingImageWidget)
+    debug.setupvalue(mosaic_update, upvalue_idx, StretchingImageWidget)
+
+    function MosaicMenuItem:update(...)
+        local previous = rawget(_G, "__ZEN_COVER_RENDER_PATH")
+        _G.__ZEN_COVER_RENDER_PATH = self.filepath
+        local result = mosaic_update(self, ...)
+        _G.__ZEN_COVER_RENDER_PATH = previous
+        return result
+    end
 end
 
 return apply_browser_cover_mosaic_uniform

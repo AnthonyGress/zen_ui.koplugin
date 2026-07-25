@@ -67,6 +67,12 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
         ko_home.mkdir()
         library = root / "library"
         books = stage_epub_library(library)
+        ko_home.joinpath("history.lua").write_text(
+            "return {{ time = 1704067200, file = "
+            + repr(str(books["wasteland123456789011"].resolve()))
+            + " }}\n",
+            encoding="utf-8",
+        )
         socket_path = root / "driver.sock"
         library_screenshot = _artifact_path("fixture-library.png")
         reader_screenshot = _artifact_path("fixture-reader.png")
@@ -97,6 +103,37 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             driver.screenshot(library_screenshot)
             assert library_screenshot.stat().st_size > 0
             _assert_golden(library_screenshot, "fixture-library.png")
+
+            assert driver.command("race_home_to_books")["ok"] is True
+            deadline = time.monotonic() + 30
+            cover_state: dict[str, object] = {}
+            while time.monotonic() < deadline:
+                cover_state = driver.command("file_chooser_cover_state").get("covers", {})
+                if int(cover_state.get("files", 0)) > 0 \
+                        and cover_state.get("fetched") == cover_state.get("files"):
+                    break
+                time.sleep(0.25)
+            assert cover_state.get("fetched") == cover_state.get("files")
+
+            deadline = time.monotonic() + 30
+            cache_comparison: dict[str, object] = {}
+            while time.monotonic() < deadline:
+                response = driver.command("cover_cache_comparison")
+                if response.get("ok"):
+                    cache_comparison = response["measurement"]
+                    break
+                time.sleep(0.25)
+            assert cache_comparison, "no visible extracted cover reached the cache"
+            cold = cache_comparison["cold"]
+            warm = cache_comparison["warm"]
+            assert int(cold["delta"].get("full_reads", 0)) == 1
+            assert int(cold["delta"].get("decode_reads", 0)) == 1
+            assert int(warm["delta"].get("fast_hits", 0)) == 1
+            assert int(warm["delta"].get("full_reads", 0)) == 0
+            assert int(warm["delta"].get("decode_reads", 0)) == 0
+            assert int(warm["delta"].get("validation_reads", 0)) == 0
+            assert float(cold["elapsed_ms"]) >= 0
+            assert float(warm["elapsed_ms"]) >= 0
 
             wasteland = books["wasteland123456789011"]
             assert driver.open_book(wasteland)["ok"] is True

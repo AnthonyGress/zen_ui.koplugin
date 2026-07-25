@@ -364,6 +364,10 @@ function M.build_strip(ctx, source_key)
 
     local books = ctx.data:getBooksForStrip(source, count, order, ctx.component_id)
     if #books == 0 then
+        local empty_cover = cover_common.make_empty_cover_widget(
+            source, width, height,
+            { border = 1, background = Blitbuffer.COLOR_LIGHT_GRAY }
+        )
         return FrameContainer:new{
             width = outer_width,
             height = outer_height,
@@ -372,7 +376,7 @@ function M.build_strip(ctx, source_key)
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
             CenterContainer:new{
                 dimen = Geom:new{ w = outer_width, h = outer_height },
-                TextWidget:new{ text = "No books found", face = ctx.face_label },
+                empty_cover,
             },
         }
     end
@@ -382,7 +386,7 @@ function M.build_strip(ctx, source_key)
     local row_top_pad = math.max(4, Screen:scaleBySize(4))
     local row_bottom_pad = math.max(4, Screen:scaleBySize(4))
     local row_inner_bottom_pad = two_rows and math.max(2, Screen:scaleBySize(4)) or 0
-    local strip_title_face = library_font.getFace(library_font.scaleValue(16))
+    local strip_title_face = library_font.getFace(16)
     -- Measure the real rendered single-line height: TextBoxWidget renders at
     -- round((1+line_height)*face.size) and bumps a too-small height up to that,
     -- so a guessed title_h underreserves and the title overflows into the navbar.

@@ -1,6 +1,7 @@
 describe("home featured widget", function()
     local created
     local cover_calls
+    local empty_sources
 
     local function widget_class(kind)
         return {
@@ -31,6 +32,7 @@ describe("home featured widget", function()
     before_each(function()
         created = {}
         cover_calls = {}
+        empty_sources = {}
         ZenSpec.replace("common/ui/background", { tile_bg = function(color) return color end })
         ZenSpec.replace("ffi/blitbuffer", {
             COLOR_BLACK = "black", COLOR_GRAY_5 = "gray5",
@@ -69,13 +71,24 @@ describe("home featured widget", function()
         ZenSpec.replace("util", { htmlToPlainTextIfHtml = function(text) return text:gsub("<.->", "") end })
         ZenSpec.replace("common/utils", { formatPageCount = function(pages) return pages .. " pages" end })
         ZenSpec.replace("modules/filebrowser/patches/library_font", {
-            getFontName = function() return "default" end,
-            getScale = function() return 1 end,
-            scaleValue = function(value) return value end,
+            getFontName = function() return "LibraryFont" end,
+            getScale = function() error("home widget used library font size") end,
+            scaleValue = function() error("home widget used library font size") end,
         })
         ZenSpec.replace("modules/filebrowser/patches/home/widgets/cover_common", {
             make_cover_widget = function(book, max_w, max_h, opts)
                 cover_calls[#cover_calls + 1] = { book = book, max_w = max_w, max_h = max_h, opts = opts }
+                local cover = widget_class("cover"):new{ width = 90, height = 135 }
+                return cover, 90, 135
+            end,
+            make_empty_cover_widget = function(source, max_w, max_h, opts)
+                empty_sources[#empty_sources + 1] = source
+                cover_calls[#cover_calls + 1] = {
+                    book = { placeholder_text = source },
+                    max_w = max_w,
+                    max_h = max_h,
+                    opts = opts,
+                }
                 local cover = widget_class("cover"):new{ width = 90, height = 135 }
                 return cover, 90, 135
             end,
@@ -127,10 +140,12 @@ describe("home featured widget", function()
         assert.are.equal(1, #cover_calls)
         assert.are.equal(book, cover_calls[1].book)
         assert.is_true(has_text("Alpha"))
+        assert.equals("LibraryFont", text_widget("Alpha").face.name)
         assert.is_true(has_text("Zen Author"))
         assert.is_true(has_text("Zen Chronicles #3"))
         assert.is_true(text_widget("Zen Chronicles #3").face.size < text_widget("Zen Author").face.size)
         assert.is_true(has_text("A deterministic description."))
+        assert.equals(16, text_widget("A deterministic description.").face.size)
         for _i, text in ipairs({ "Alpha", "Zen Author", "Zen Chronicles #3", "A deterministic description." }) do
             local text_box = text_widget(text)
             assert.equals("left", text_box.alignment)
@@ -173,7 +188,7 @@ describe("home featured widget", function()
         assert.is_true(series.bold)
     end)
 
-    it("renders an explicit empty-history state without constructing a cover", function()
+    it("renders a descriptive ornate placeholder for empty recent history", function()
         local Featured = require("modules/filebrowser/patches/home/widgets/featured_common")
         local widget = Featured.build({
             width = 500,
@@ -184,7 +199,7 @@ describe("home featured widget", function()
         }, "recently_read")
 
         assert.is_table(widget)
-        assert.are.equal(0, #cover_calls)
-        assert.is_true(has_text("No books found"))
+        assert.are.same({ "recently_read" }, empty_sources)
+        assert.are.equal(1, #cover_calls)
     end)
 end)

@@ -7,6 +7,8 @@ common/book_walker.lua|unit
 common/clock_schedule.lua|unit
 common/clock_timer.lua|unit
 common/constants.lua|unit
+common/cover_decode_cache.lua|unit
+common/cover_render_cache.lua|unit
 common/cover_utils.lua|unit
 common/db_bookinfo.lua|unit
 common/db_connection.lua|unit
@@ -75,6 +77,8 @@ modules/filebrowser/patches/collections.lua|integration
 modules/filebrowser/patches/context_menu.lua|integration
 modules/filebrowser/patches/coverbrowser_check.lua|integration
 modules/filebrowser/patches/coverbrowser_subprocess_compat.lua|integration
+modules/filebrowser/patches/cover_decode_cache.lua|integration
+modules/filebrowser/patches/cover_preload.lua|integration
 modules/filebrowser/patches/disable_modal_drag.lua|integration
 modules/filebrowser/patches/favorites.lua|integration
 modules/filebrowser/patches/group_view.lua|integration
@@ -104,6 +108,7 @@ modules/filebrowser/patches/library_background.lua|integration
 modules/filebrowser/patches/library_font.lua|integration
 modules/filebrowser/patches/menu_single_page_scroll_guard.lua|integration
 modules/filebrowser/patches/mosaic_title_strip.lua|integration
+modules/filebrowser/patches/zen_mosaic_renderer.lua|integration
 modules/filebrowser/patches/navbar.lua|integration
 modules/filebrowser/patches/partial_page_repaint.lua|integration
 modules/filebrowser/patches/rakuyomi.lua|integration
