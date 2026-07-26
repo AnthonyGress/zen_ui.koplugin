@@ -3,12 +3,14 @@ describe("ZenPM installer asset selection", function()
     local original_logger
     local original_root
     local original_archiver
+    local original_network_manager
 
     before_each(function()
         original_logger = package.loaded["common/zen_logger"]
         original_root = package.loaded["common/plugin_root"]
         original_archiver = package.loaded["ffi/archiver"]
-        ZenSpec.replace("common/zen_logger", { new = function() return { warn = function() end } end })
+        original_network_manager = package.loaded["ui/network/manager"]
+        ZenSpec.replace("common/zen_logger", { new = function() return { info = function() end, warn = function() end } end })
         ZenSpec.replace("common/plugin_root", "/plugins/zen_ui.koplugin")
         ZenSpec.replace("ffi/archiver", {})
         ZenSpec.unload("modules/settings/zenpm_installer")
@@ -19,6 +21,7 @@ describe("ZenPM installer asset selection", function()
         package.loaded["common/zen_logger"] = original_logger
         package.loaded["common/plugin_root"] = original_root
         package.loaded["ffi/archiver"] = original_archiver
+        package.loaded["ui/network/manager"] = original_network_manager
         ZenSpec.unload("modules/settings/zenpm_installer")
     end)
 
@@ -58,5 +61,24 @@ describe("ZenPM installer asset selection", function()
             "https://github.com/xZenLabs/zen-pm/releases/download/v1.0.0-beta120/" .. name,
             name
         ))
+    end)
+
+    it("enables Wi-Fi before opening the install prompt", function()
+        local checked_wifi = false
+        local queued_callback
+        ZenSpec.replace("ui/network/manager", {
+            isWifiOn = function()
+                checked_wifi = true
+                return false
+            end,
+            runWhenOnline = function(_, callback)
+                queued_callback = callback
+            end,
+        })
+
+        Installer.prompt_install({})
+
+        assert.is_true(checked_wifi)
+        assert.is_function(queued_callback)
     end)
 end)
