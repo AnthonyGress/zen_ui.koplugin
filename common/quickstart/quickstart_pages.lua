@@ -11,6 +11,7 @@ local M = {}
 local _ = require("gettext")
 local T = require("ffi/util").template
 local ConfigManager = require("config/manager")
+local CoverUtils = require("common/cover_utils")
 local paths = require("common/paths")
 local PresetStore = require("config/preset_store")
 local ReaderMargins = require("common/reader_margins")
@@ -230,7 +231,7 @@ local function buildContextMenuBB(slot_w, slot_h, cover_info)
         local VerticalSpan    = require("ui/widget/verticalspan")
         local Widget          = require("ui/widget/widget")
 
-        local border      = SizeR.border.thin
+        local border      = CoverUtils.BORDER_SIZE
         local gap         = Screen:scaleBySize(8)
         local avail_inner = dlg_w
             - 2 * (SizeR.border.window + SizeR.padding.button)

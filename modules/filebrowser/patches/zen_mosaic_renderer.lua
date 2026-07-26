@@ -71,7 +71,7 @@ local function apply_zen_mosaic_renderer()
     end
 
     local function cover_dimensions(width, height)
-        local border = Size.border.thin
+        local border = CoverWidget.BORDER_SIZE or 2
         local max_w = width - 2 * border
         local max_h = height - 2 * border
         local features = plugin_config().features or {}

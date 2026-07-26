@@ -156,8 +156,8 @@ describe("Zen mosaic renderer", function()
         assert.is_not_nil(MosaicMenu._zen_mosaic_item_class)
         assert.are.equal(1, stock_created)
         assert.are.equal(1, #menu.items_to_update)
-        assert.are.same({ width = 98, height = 147, options = {
-            border = 1, uniform = true,
+        assert.are.same({ width = 96, height = 144, options = {
+            border = 2, uniform = true,
         } }, cover_requests[1])
         local found_stock_item = false
         for index = 1, 128 do

@@ -392,10 +392,9 @@ local function patch_mosaic_item()
                 local CenterContainer2 = require("ui/widget/container/centercontainer")
                 local FrameContainer2  = require("ui/widget/container/framecontainer")
                 local OverlapGroup2    = require("ui/widget/overlapgroup")
-                local Size2            = require("ui/size")
                 local VerticalGroup2   = require("ui/widget/verticalgroup")
                 local VerticalSpan2    = require("ui/widget/verticalspan")
-                local border   = Size2.border.thin
+                local border   = CoverUtils.BORDER_SIZE
                 local max_w    = self.width  - 2 * border
                 local bh       = self.height - 2 * border
                 local pw, ph
@@ -515,11 +514,10 @@ local function patch_mosaic_item()
         local ImageWidget     = require("ui/widget/imagewidget")
         local LineWidget      = require("ui/widget/linewidget")
         local OverlapGroup    = require("ui/widget/overlapgroup")
-        local Size            = require("ui/size")
         local VerticalGroup   = require("ui/widget/verticalgroup")
         local VerticalSpan    = require("ui/widget/verticalspan")
 
-        local border = Size.border.thin
+        local border = CoverUtils.BORDER_SIZE
         local max_w  = self.width  - 2 * border
         local bh     = self.height - 2 * border
         local portrait_w, portrait_h
@@ -643,7 +641,6 @@ local function patch_list_item()
     local LineWidget      = require("ui/widget/linewidget")
     local OverlapGroup    = require("ui/widget/overlapgroup")
     local RightContainer  = require("ui/widget/container/rightcontainer")
-    local Size            = require("ui/size")
     local TextBoxWidget   = require("ui/widget/textboxwidget")
     local TextWidget      = require("ui/widget/textwidget")
     local VerticalGroup   = require("ui/widget/verticalgroup")
@@ -676,7 +673,7 @@ local function patch_list_item()
 
         local underline_h  = 1
         local dimen_h      = self.height - 2 * underline_h
-        local border_size  = Size.border.thin
+        local border_size  = CoverUtils.BORDER_SIZE
         local cover_v_pad  = Screen:scaleBySize(4)  -- matches bll top+bottom padding
         local cover_zone_w = dimen_h
         local max_img      = dimen_h - 2 * border_size - 2 * cover_v_pad

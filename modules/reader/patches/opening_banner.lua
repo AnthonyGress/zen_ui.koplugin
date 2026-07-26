@@ -99,8 +99,7 @@ local function apply_opening_banner()
         if type(MosaicMenuItem.onTapSelect) ~= "function" then return end
 
         -- Match browser_cover_mosaic_uniform constants (kept in sync).
-        local Size = require("ui/size")
-        local _UNIFORM_BORDER = Size.border.thin or 1
+        local _UNIFORM_BORDER = require("common/cover_utils").BORDER_SIZE
         local _UNIFORM_UNDERLINE_RESERVE = 6
         local function _uniform_aspect()
             local s = _G.G_reader_settings and G_reader_settings:readSetting("uniform_cover_ratio") or "2:3"

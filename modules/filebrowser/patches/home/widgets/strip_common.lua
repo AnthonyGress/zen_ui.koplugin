@@ -366,7 +366,7 @@ function M.build_strip(ctx, source_key)
     if #books == 0 then
         local empty_cover, cover_w, cover_h = cover_common.make_empty_placeholder_cover(
             width, height,
-            { border = 1, background = Blitbuffer.COLOR_LIGHT_GRAY }
+            { border = cover_common.BORDER_SIZE, background = Blitbuffer.COLOR_LIGHT_GRAY }
         )
         local gap = math.max(4, Screen:scaleBySize(8))
         local message_w = math.max(1, width - cover_w - gap)
@@ -476,7 +476,7 @@ function M.build_strip(ctx, source_key)
                 max_cover_w,
                 cover_h,
                 {
-                    border = 1,
+                    border = cover_common.BORDER_SIZE,
                     background = Blitbuffer.COLOR_LIGHT_GRAY,
                     decorate = show_badges and function(frame)
                         apply_strip_badges(frame, book, rawget(_G, "__ZEN_UI_PLUGIN"))

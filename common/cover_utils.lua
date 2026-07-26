@@ -11,6 +11,13 @@ local RenderCache = require("common/cover_render_cache")
 local plugin_root = require("common/plugin_root")
 
 local CoverUtils = {}
+do
+    local ok, Device = pcall(require, "device")
+    local screen = ok and Device and Device.screen
+    local scaled = screen and type(screen.scaleBySize) == "function"
+        and screen:scaleBySize(1)
+    CoverUtils.BORDER_SIZE = scaled or 2
+end
 local ORNATE_FRAME_PATH = plugin_root and plugin_root .. "/images/ornate-cover-frame.svg" or nil
 local ORNATE_FRAME_CACHE_KEY = (ORNATE_FRAME_PATH or "ornate-cover-frame") .. "\30background-v6"
 
@@ -156,7 +163,7 @@ local function placeholder_cache_key(filepath, width, height, title, authors)
     return table.concat({
         tostring(filepath), tostring(width), tostring(height), title, authors,
         tostring(font_name), tostring(font_size),
-    }, "\30") .. "\30placeholder-v9"
+    }, "\30") .. "\30placeholder-v10"
 end
 
 local function paint_text_without_background(widget, bb, x, y, ink)
@@ -226,7 +233,7 @@ function CoverUtils.genCover(filepath, target_w, target_h, no_fallback, metadata
     if cached then return cached, width, height end
 
     local paper = Blitbuffer.COLOR_WHITE
-    local ink = Blitbuffer.ColorRGB32(49, 51, 57, 255)
+    local ink = Blitbuffer.COLOR_BLACK
     local final_bb = ornate_background(width, height, paper)
 
     local divider_y = math.floor(height * 0.61)
@@ -609,9 +616,8 @@ function CoverUtils.drawStack(covers, portrait_w, portrait_h, border, bg_fn)
 
     local stack_count = #covers
     local dimen = { w = portrait_w + 2 * border, h = portrait_h + 2 * border }
-    -- Gray border baked into each cover's blitbuffer; survives double-inversion so
-    -- it stays gray in both day and night mode.
-    local border_color = Blitbuffer.ColorRGB32(128, 128, 128, 255)
+    -- Bake the same black border into each stacked cover.
+    local border_color = Blitbuffer.COLOR_BLACK
 
     if stack_count == 0 then
         return FrameContainer:new{
@@ -634,13 +640,15 @@ function CoverUtils.drawStack(covers, portrait_w, portrait_h, border, bg_fn)
         local cover = covers[1]
         local scaled_bb, sw, sh = CoverUtils.scaleCover(cover.data, cover.w, cover.h, portrait_w, portrait_h)
         if scaled_bb ~= cover.data and cover.data.free then cover.data:free() end
-        for x = 0, sw - 1 do
-            scaled_bb:setPixel(x, 0, border_color)
-            scaled_bb:setPixel(x, sh - 1, border_color)
-        end
-        for y = 0, sh - 1 do
-            scaled_bb:setPixel(0, y, border_color)
-            scaled_bb:setPixel(sw - 1, y, border_color)
+        for i = 0, border - 1 do
+            for x = 0, sw - 1 do
+                scaled_bb:setPixel(x, i, border_color)
+                scaled_bb:setPixel(x, sh - 1 - i, border_color)
+            end
+            for y = 0, sh - 1 do
+                scaled_bb:setPixel(i, y, border_color)
+                scaled_bb:setPixel(sw - 1 - i, y, border_color)
+            end
         end
         return FrameContainer:new{
             padding = 0,
@@ -696,13 +704,15 @@ function CoverUtils.drawStack(covers, portrait_w, portrait_h, border, bg_fn)
         local off = offsets[n - i + 1] or { x = 0, y = 0 }
         local scaled_bb, sw, sh = CoverUtils.scaleCover(cover.data, cover.w, cover.h, book_width, book_height)
         if scaled_bb ~= cover.data and cover.data.free then cover.data:free() end
-        for x = 0, sw - 1 do
-            scaled_bb:setPixel(x, 0, border_color)
-            scaled_bb:setPixel(x, sh - 1, border_color)
-        end
-        for y = 0, sh - 1 do
-            scaled_bb:setPixel(0, y, border_color)
-            scaled_bb:setPixel(sw - 1, y, border_color)
+        for j = 0, border - 1 do
+            for x = 0, sw - 1 do
+                scaled_bb:setPixel(x, j, border_color)
+                scaled_bb:setPixel(x, sh - 1 - j, border_color)
+            end
+            for y = 0, sh - 1 do
+                scaled_bb:setPixel(j, y, border_color)
+                scaled_bb:setPixel(sw - 1 - j, y, border_color)
+            end
         end
         table.insert(children, ImageWidget:new{
             image = scaled_bb,
@@ -836,7 +846,7 @@ function CoverUtils.makeCover(path, chooser, options)
     if mode == "none" then
         local fname = options.folder_name or (path:match("([^/]+)/?$") or path):gsub("/$", "")
         fname = BD.directory(fname)
-        local border = 2
+        local border = CoverUtils.BORDER_SIZE
         local portrait_w, portrait_h = CoverUtils.calcDims(options.max_w or 200, options.max_h or 300)
         return CoverUtils.drawNoImage(fname, portrait_w, portrait_h, border), mode, "empty_folder", nil
     end
@@ -860,7 +870,7 @@ function CoverUtils.makeCover(path, chooser, options)
     local folder_name = options.folder_name or (path:match("([^/]+)/?$") or path):gsub("/$", "")
     folder_name = BD.directory(folder_name)
 
-    local border = 2
+    local border = CoverUtils.BORDER_SIZE
     local max_w = options.max_w or 200
     local max_h = options.max_h or 300
 

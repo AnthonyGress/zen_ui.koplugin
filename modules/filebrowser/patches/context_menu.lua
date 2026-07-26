@@ -478,7 +478,7 @@ local function apply_context_menu()
                 local display_cb  = item._zen_display_cb
                 local Screen   = Device.screen
                 local SizeR    = require("ui/size")
-                local border   = SizeR.border.thin
+                local border   = Cover.BORDER_SIZE
                 local gap      = Screen:scaleBySize(8)
                 local dlg_w    = math.floor(math.min(Screen:getWidth(), Screen:getHeight()) * 0.9)
                 local avail_w  = dlg_w - 2 * (SizeR.border.window + SizeR.padding.button)
@@ -788,7 +788,7 @@ local function apply_context_menu()
             do
                 local Screen = Device.screen
                 local SizeR = require("ui/size")
-                local border = SizeR.border.thin
+                local border = Cover.BORDER_SIZE
                 local gap = Screen:scaleBySize(8)
                 local dlg_w = math.floor(math.min(Screen:getWidth(), Screen:getHeight()) * 0.9)
                 local avail_w = dlg_w - 2 * (SizeR.border.window + SizeR.padding.button)

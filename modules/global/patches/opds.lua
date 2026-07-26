@@ -254,7 +254,7 @@ local function apply_opds()
         return fs
     end
 
-    local COVER_BORDER = Size.border.thin
+    local COVER_BORDER = CoverUtils.BORDER_SIZE
 
     local function build_cover_widget(entry, cover_w, cover_h)
         if entry._zen_opds_folder then
@@ -1062,7 +1062,7 @@ local function apply_opds()
         local is_default     = default_url == item.url
 
         -- Build the same cover+title header as showDownloads.
-        local border      = Size.border.thin or 1
+        local border      = CoverUtils.BORDER_SIZE
         local gap         = Screen:scaleBySize(8)
         local dlg_w       = math.floor(math.min(Screen:getWidth(), Screen:getHeight()) * 0.9)
         local avail_w     = dlg_w - 2 * (Size.border.window + Size.padding.button)
@@ -1247,7 +1247,7 @@ local function apply_opds()
         local current_dir = self:getCurrentDownloadDir()
 
         -- Header geometry: exact inner-content width formula matching context_menu.lua.
-        local border  = Size.border.thin or 1
+        local border  = CoverUtils.BORDER_SIZE
         local gap     = Screen:scaleBySize(8)
         local dlg_w   = math.floor(math.min(Screen:getWidth(), Screen:getHeight()) * 0.9)
         local avail_w = dlg_w - 2 * (Size.border.window + Size.padding.button)

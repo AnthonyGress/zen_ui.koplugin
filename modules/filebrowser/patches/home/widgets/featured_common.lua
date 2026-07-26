@@ -180,7 +180,7 @@ function M.build(ctx, source_key)
     if not book then
         local empty_cover = cover_common.make_empty_cover_widget(
             source, width, height,
-            { border = 1, background = Blitbuffer.COLOR_LIGHT_GRAY }
+            { border = cover_common.BORDER_SIZE, background = Blitbuffer.COLOR_LIGHT_GRAY }
         )
         return FrameContainer:new{
             width = outer_width,
@@ -215,7 +215,7 @@ function M.build(ctx, source_key)
     local cover_max_w = math.max(1, math.floor(col_h * 0.80))
     local cover_widget, cover_w, cover_actual_h = cover_common.make_cover_widget(
         book, cover_max_w, col_h,
-        { border = 1, background = Blitbuffer.COLOR_LIGHT_GRAY }
+        { border = cover_common.BORDER_SIZE, background = Blitbuffer.COLOR_LIGHT_GRAY }
     )
     -- Right column must match the actual rendered cover height exactly
     local cover_col_w = math.max(1, cover_w or cover_max_w)

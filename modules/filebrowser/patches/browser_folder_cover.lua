@@ -427,7 +427,7 @@ local function apply_browser_folder_cover()
             width = 0.97,
         },
         face = {
-            border_size = Size.border.thin,
+            border_size = Cover.BORDER_SIZE,
             alpha = 0.75,
             nb_items_font_size = 15,
             nb_items_badge_size = Screen:scaleBySize(22),
@@ -1349,7 +1349,7 @@ local function apply_browser_folder_cover()
                     -- Get dimensions for list mode
                     local underline_h = 1
                     local dimen_h = self.height - 2 * underline_h
-                    local border_size = Size.border.thin
+                    local border_size = Cover.BORDER_SIZE
                     local cover_v_pad = Screen:scaleBySize(4)
                     local max_img = dimen_h - 2 * border_size - 2 * cover_v_pad
                     local ratio = Cover.getRatio()
@@ -1373,7 +1373,7 @@ local function apply_browser_folder_cover()
 
                 function ListMenuItem:_setListFolderCover(img)
                     local underline_h = 1
-                    local border_size = Size.border.thin
+                    local border_size = Cover.BORDER_SIZE
                     local cover_v_pad = Screen:scaleBySize(4)
                     local dimen_h = self.height - 2 * underline_h
                     local cover_zone_w = dimen_h

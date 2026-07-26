@@ -13,6 +13,7 @@ local CoverUtils = require("common/cover_utils")
 local RenderCache = require("common/cover_render_cache")
 
 local M = {}
+M.BORDER_SIZE = CoverUtils.BORDER_SIZE
 
 function M.get_empty_message(source)
     return CoverUtils.getEmptyPlaceholderText(source)
@@ -155,7 +156,7 @@ end
 
 function M.make_cover_widget(book, max_w, max_h, opts)
     opts = opts or {}
-    local border = tonumber(opts.border) or 1
+    local border = tonumber(opts.border) or M.BORDER_SIZE
     local bg = opts.background or Blitbuffer.COLOR_LIGHT_GRAY
     local target_w, target_h
     if opts.uniform == false then

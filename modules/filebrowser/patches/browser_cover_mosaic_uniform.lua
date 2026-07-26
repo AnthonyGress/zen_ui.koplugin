@@ -6,9 +6,9 @@
 ]]
 
 local function apply_browser_cover_mosaic_uniform()
-    local Size = require("ui/size")
     local OverlapGroup = require("ui/widget/overlapgroup")
     local RenderCache = require("common/cover_render_cache")
+    local CoverUtils = require("common/cover_utils")
 
     local MosaicMenu = require("mosaicmenu")
 
@@ -63,7 +63,7 @@ local function apply_browser_cover_mosaic_uniform()
     local orig_init = MosaicMenuItem.init
     function MosaicMenuItem:init()
         if self.width and self.height then
-            local border = Size.border.thin
+            local border = CoverUtils.BORDER_SIZE
             max_img_w = self.width  - 2 * border
             max_img_h = self.height - 2 * border - UNDERLINE_RESERVE
         end

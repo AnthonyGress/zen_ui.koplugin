@@ -17,7 +17,6 @@ local function apply_browser_list_item_layout()
     local OverlapGroup = require("ui/widget/overlapgroup")
     local ReadCollection = require("readcollection")
     local RightContainer = require("ui/widget/container/rightcontainer")
-    local Size = require("ui/size")
     local TextBoxWidget = require("ui/widget/textboxwidget")
     local TextWidget = require("ui/widget/textwidget")
     local VerticalGroup = require("ui/widget/verticalgroup")
@@ -129,7 +128,7 @@ local function apply_browser_list_item_layout()
                     local text_safe_pad_top = math.max(2, Screen:scaleBySize(4))
                     local text_safe_pad_bottom = math.max(2, Screen:scaleBySize(3))
                     local content_h = math.max(1, dimen_h - text_safe_pad_top - text_safe_pad_bottom)
-                    local border_size = Size.border.thin
+                    local border_size = Cover.BORDER_SIZE
                     local cover_v_pad = Screen:scaleBySize(4)
                     local cover_zone_w = dimen_h
                     local max_img  = dimen_h - 2 * border_size - 2 * cover_v_pad
@@ -273,7 +272,7 @@ local function apply_browser_list_item_layout()
 
             local underline_h = 1 -- matches self.underline_h in ListMenuItem:init()
             local dimen_h = self.height - 2 * underline_h
-            local border_size = Size.border.thin
+            local border_size = Cover.BORDER_SIZE
             local cover_v_pad = Screen:scaleBySize(4)  -- top+bottom breathing room
             local cover_zone_w = dimen_h  -- squared, identical to stock list mode
             local max_img = dimen_h - 2 * border_size - 2 * cover_v_pad
