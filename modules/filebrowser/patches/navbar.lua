@@ -648,9 +648,21 @@ local function apply_navbar()
         if GroupView then GroupView.showTagsView(injectStandaloneNavbar) end
     end
 
-    local function onTabHome()
+    local function resetHomeStripPages()
         local Home = get_shared("home")
-        if Home then Home.showHomeView(injectStandaloneNavbar) end
+        if Home and Home.isActiveOnTop and Home.isActiveOnTop()
+                and Home.resetStripPages then
+            Home.resetStripPages()
+            return true
+        end
+        return false
+    end
+
+    local function onTabHome()
+        if resetHomeStripPages() then return end
+        local Home = get_shared("home")
+        if not Home then return end
+        Home.showHomeView(injectStandaloneNavbar)
     end
 
     local function onTabSearch()
@@ -1982,6 +1994,9 @@ local function apply_navbar()
 
             -- Already in this view: close detail to return to group, or scroll to first page
             if tapped_id == view_tab_id then
+                if view_tab_id == "home" and resetHomeStripPages() then
+                    return true
+                end
                 local is_detail = menu.name == "authors_detail"
                     or menu.name == "series_detail"
                     or menu.name == "tags_detail"

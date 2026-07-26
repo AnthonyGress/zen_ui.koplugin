@@ -251,6 +251,15 @@ describe("file browser navbar navigation", function()
         assert.are.same({ "home", "authors", "series", "tags", "to_be_read" }, calls)
     end)
 
+    it("resets strip pages when Home is already on top", function()
+        make_instance()
+        shared.home.isActiveOnTop = function() return true end
+        shared.home.resetStripPages = function() calls[#calls + 1] = "reset_strips" end
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        assert.are.same({ "reset_strips" }, calls)
+    end)
+
     it("dispatches books and stock file-browser tabs to their intended actions", function()
         make_instance()
         for _i, id in ipairs({

@@ -1400,6 +1400,17 @@ local function build_data_provider(cfg, dcfg)
         return true
     end
 
+    function provider:resetStripPages()
+        local changed = false
+        for offset_key, offset in pairs(strip_offsets) do
+            if tonumber(offset) ~= 0 then
+                changed = true
+            end
+            strip_offsets[offset_key] = nil
+        end
+        return changed
+    end
+
     function provider:getCurrentQuote()
         local quotes = HomeQuotes.getQuotes()
         local quote_count = #quotes
@@ -2566,6 +2577,16 @@ function M.showHomeView(injectNavbar)
         rebuild(refresh_stats == true)
     end
 
+    function menu:_zen_home_reset_strip_pages()
+        if self._zen_home_closing or not data_provider
+                or type(data_provider.resetStripPages) ~= "function" then
+            return false
+        end
+        if not data_provider:resetStripPages() then return false end
+        self:_home_rebuild()
+        return true
+    end
+
     menu.close_callback = function()
         if menu._zen_home_closing then return end
         menu._zen_home_closing = true
@@ -2646,6 +2667,13 @@ function M.rebuildActive()
         return true
     end
     return false
+end
+
+function M.resetStripPages()
+    if not (M.isActiveOnTop() and _home_menu and _home_menu._zen_home_reset_strip_pages) then
+        return false
+    end
+    return _home_menu:_zen_home_reset_strip_pages()
 end
 
 function M.refreshDateDependentActive()
