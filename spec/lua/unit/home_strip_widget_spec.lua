@@ -3,6 +3,7 @@ describe("home recent strip widget", function()
     local cover_books
     local empty_sources
     local library_font_sizes
+    local touch_device
 
     local function widget_class(kind)
         return {
@@ -33,6 +34,7 @@ describe("home recent strip widget", function()
 
     before_each(function()
         created, cover_books, empty_sources, library_font_sizes = {}, {}, {}, {}
+        touch_device = false
         ZenSpec.replace("common/ui/background", { tile_bg = function(color) return color end })
         ZenSpec.replace("ffi/blitbuffer", {
             COLOR_BLACK = "black", COLOR_WHITE = "white", COLOR_LIGHT_GRAY = "lightgray",
@@ -64,7 +66,7 @@ describe("home recent strip widget", function()
                 getWidth = function() return 800 end,
                 getHeight = function() return 600 end,
             },
-            isTouchDevice = function() return false end,
+            isTouchDevice = function() return touch_device end,
         })
         ZenSpec.replace("ui/font", { getFace = function(_, name, size) return { name = name, size = size } end })
         ZenSpec.replace("common/utils", {
@@ -161,5 +163,38 @@ describe("home recent strip widget", function()
         assert.are.equal(0, #cover_books)
         assert.are.same({ true }, empty_sources)
         assert.is_true(has_text("No recently read books found"))
+    end)
+
+    it("replaces only the swiped strip with its next books", function()
+        touch_device = true
+        local first = { path = "/library/first.epub", title = "First" }
+        local second = { path = "/library/second.epub", title = "Second" }
+        local show_second = false
+        local shifted = {}
+        local refreshed = 0
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local widget = Strip.build({
+            width = 600,
+            height = 160,
+            component_id = "strip_recent",
+            module_cfg = { count = 4, interactive = true },
+            data = {
+                getBooksForStrip = function()
+                    return { show_second and second or first }
+                end,
+            },
+            shiftStrip = function(source, count, order, direction, component_id, two_rows, refresh)
+                shifted = { source, count, order, direction, component_id, two_rows }
+                show_second = true
+                refresh()
+                return true
+            end,
+            refreshStrip = function() refreshed = refreshed + 1 end,
+        })
+
+        assert.is_true(widget:onSwipeStrip(nil, { pos = { x = 10, y = 10 }, direction = "west" }))
+        assert.are.same({ "recently_read", 4, "default", "next", "strip_recent", false }, shifted)
+        assert.are.same({ first, second }, cover_books)
+        assert.are.equal(1, refreshed)
     end)
 end)

@@ -266,6 +266,22 @@ describe("file browser navbar navigation", function()
         assert.are.equal("Collections", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
     end)
 
+    it("reveals the current Library page before validating its directory snapshot", function()
+        local fm = make_instance()
+        fm.file_chooser.path = "/library"
+        fm.file_chooser.onGotoPage = function(_, page)
+            calls[#calls + 1] = "goto:" .. tostring(page)
+        end
+        local next_tick
+        UIManager.nextTick = function(_, callback) next_tick = callback end
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        assert.are.same({ "goto:1" }, calls)
+        assert.is_function(next_tick)
+        next_tick()
+    end)
+
     it("rejects unknown tab ids without changing the active tab", function()
         make_instance()
         assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("authors"))

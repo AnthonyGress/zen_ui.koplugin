@@ -669,6 +669,8 @@ local function build_data_provider(cfg, dcfg)
     local library_paths_cached = nil
     local effective_status_cached = {}
     local tbr_cached = nil
+    local ordered_paths_cached = {}
+    local strip_paths_cached = {}
     local strip_offsets = {}
     local book_cache_hits = 0
     local book_cache_misses = 0
@@ -1177,6 +1179,14 @@ local function build_data_provider(cfg, dcfg)
         return out
     end
 
+    local function copy_paths(paths)
+        local out = {}
+        for i = 1, #(paths or {}) do
+            out[i] = paths[i]
+        end
+        return out
+    end
+
     local function collect_paths_for_source(source_key, limit, opts)
         opts = type(opts) == "table" and opts or {}
         local source = source_key
@@ -1248,6 +1258,22 @@ local function build_data_provider(cfg, dcfg)
 
     local function get_ordered_paths(source, limit, order_key, opts)
         local reverse = normalize_order(order_key) == "reverse"
+        local cache_key = table.concat({
+            tostring(source),
+            reverse and "reverse" or "default",
+            opts and opts.filter_unread == true and "unread" or "",
+            opts and opts.filter_tbr == true and "tbr" or "",
+            opts and opts.filter_finished == true and "finished" or "",
+        }, "\0")
+        local cached = ordered_paths_cached[cache_key]
+        if cached then
+            if limit and #cached > limit then
+                local limited = {}
+                for i = 1, limit do limited[i] = cached[i] end
+                return limited
+            end
+            return cached
+        end
         local collect_opts = {}
         for key, value in pairs(opts or {}) do
             collect_opts[key] = value
@@ -1256,10 +1282,16 @@ local function build_data_provider(cfg, dcfg)
             collect_opts.reverse_sections = true
         end
 
-        local paths = collect_paths_for_source(source, limit, collect_opts)
+        local paths = collect_paths_for_source(source, nil, collect_opts)
         if reverse and not is_recent_source(source)
                 and source ~= "custom_featured" and source ~= "custom_strip" then
             paths = reverse_copy(paths)
+        end
+        ordered_paths_cached[cache_key] = paths
+        if limit and #paths > limit then
+            local limited = {}
+            for i = 1, limit do limited[i] = paths[i] end
+            return limited
         end
         return paths
     end
@@ -1283,11 +1315,22 @@ local function build_data_provider(cfg, dcfg)
             source = "recently_read"
         end
         local mcfg = dcfg and dcfg.modules and dcfg.modules[component_id] or {}
-        local paths = get_ordered_paths(source, nil, order_key, {
+        local strip_cache_key = table.concat({
+            tostring(component_id or source),
+            source,
+            normalize_order(order_key),
+            tostring(n),
+            mcfg.filter_unread == true and "unread" or "",
+            mcfg.filter_tbr == true and "tbr" or "",
+            mcfg.filter_finished == true and "finished" or "",
+        }, "\0")
+        local cached = strip_paths_cached[strip_cache_key]
+        if cached then return source, cached, n end
+        local paths = copy_paths(get_ordered_paths(source, nil, order_key, {
             filter_unread = source == "recently_read" and mcfg.filter_unread == true,
             filter_tbr = source == "recently_read" and mcfg.filter_tbr == true,
             filter_finished = source == "recently_read" and mcfg.filter_finished == true,
-        })
+        }))
 
         -- Keep strip distinct from featured only when that featured widget is visible.
         local featured_widget_id = featured_widget_for_source(source)
@@ -1313,6 +1356,7 @@ local function build_data_provider(cfg, dcfg)
             append_unique_paths(paths, get_history(), n)
         end
 
+        strip_paths_cached[strip_cache_key] = paths
         return source, paths, n
     end
 
@@ -1341,14 +1385,16 @@ local function build_data_provider(cfg, dcfg)
         return books
     end
 
-    function provider:shiftStrip(source_key, count, order_key, direction, component_id)
+    function provider:shiftStrip(source_key, count, order_key, direction, component_id, refresh)
         local source, paths, n = get_strip_paths(source_key, count, order_key, component_id)
         if #paths <= n then return false end
         local offset_key = tostring(component_id or source) .. ":" .. source .. ":" .. normalize_order(order_key)
         local cur = tonumber(strip_offsets[offset_key]) or 0
         local step = direction == "previous" and -n or n
         strip_offsets[offset_key] = (cur + step) % #paths
-        if _home_menu and _home_menu._home_rebuild then
+        if type(refresh) == "function" then
+            refresh()
+        elseif _home_menu and _home_menu._home_rebuild then
             _home_menu:_home_rebuild()
         end
         return true
@@ -1944,6 +1990,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
     local InputContainer = require("ui/widget/container/inputcontainer")
     local Font = require("ui/font")
     local GestureRange = require("ui/gesturerange")
+    local UIManager = require("ui/uimanager")
 
     local prev_focus_key = menu._zen_home_focus_key
     menu._zen_home_focus_targets = {}
@@ -2074,9 +2121,33 @@ local function build_home_content(menu, dcfg, rows, data_provider)
         return tap
     end
 
-    local function shift_strip(source_key, count, order_key, direction, component_id)
+    local function shift_strip(source_key, count, order_key, direction, component_id, _two_rows, refresh)
         if not (data_provider and type(data_provider.shiftStrip) == "function") then return false end
-        return data_provider:shiftStrip(source_key, count, order_key, direction, component_id)
+        return data_provider:shiftStrip(source_key, count, order_key, direction, component_id, refresh)
+    end
+
+    local function clear_strip_focus_targets(component_id)
+        local targets = menu._zen_home_focus_targets
+        if type(targets) ~= "table" then return end
+        for i = #targets, 1, -1 do
+            if targets[i].component_id == component_id then
+                table.remove(targets, i)
+            end
+        end
+    end
+
+    local function refresh_strip(swipe)
+        sort_home_focus_targets(menu)
+        local restore_i = find_home_focus_index(menu, menu._zen_home_focus_key)
+        if restore_i then
+            set_home_focus(menu, restore_i)
+        else
+            menu._zen_home_focus_index = nil
+            menu._zen_home_focus_id = nil
+        end
+        UIManager:setDirty(menu, function()
+            return "ui", swipe and swipe.dimen, menu.dithered
+        end)
     end
 
     local top_tap_zone_h = math.max(1, math.floor(Screen:getHeight() * 0.05))
@@ -2159,11 +2230,14 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             end,
             registerHomeFocusTarget = function(target, widget)
                 if not target then return widget end
+                target.component_id = comp.id
                 target.row_order = tonumber(target.row_order) or row_focus_base + (tonumber(target.subrow) or 1)
                 target.col = tonumber(target.col) or 1
                 target.key = target.key or (comp.id .. ":" .. tostring(target.row_order) .. ":" .. tostring(target.col))
                 return wrap_home_focus_target(menu, target, widget)
             end,
+            clearStripFocusTargets = clear_strip_focus_targets,
+            refreshStrip = refresh_strip,
             face_title = face_title,
             face_value = face_value,
             face_label = face_label,

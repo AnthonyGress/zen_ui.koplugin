@@ -366,10 +366,14 @@ local function apply_browser_folder_cover()
             -- removed, sidecar written) advances the key and invalidates the cache.
             local key = _item_table_key(path)
             local stable_key = _item_table_stable_key(path)
-            local item_table_cache = self._zen_folder_cover_item_table_cache
+            local is_home_root = path == paths.getHomeDir()
+            local root_cache = self._zen_folder_cover_item_table_cache
+            local item_table_cache = root_cache and root_cache.key == key and root_cache
                 or shared_filemanager_item_table_cache
             if item_table_cache and item_table_cache.key == key then
-                self._zen_folder_cover_item_table_cache = item_table_cache
+                if is_home_root then
+                    self._zen_folder_cover_item_table_cache = item_table_cache
+                end
                 local cached_table = item_table_cache.table
                 if collate_mode == "access" then
                     cached_table = _apply_history_order(self, cached_table, collate, reverse_collate)
@@ -385,19 +389,29 @@ local function apply_browser_folder_cover()
             -- (stable_key matches), reuse the cached table and only re-apply
             -- history order. One-shot: clear the flag so later refreshes fall
             -- through to a fresh regen.
+            local stable_item_table_cache = item_table_cache
+            if not (stable_item_table_cache and stable_item_table_cache.stable_key == stable_key) then
+                if root_cache and root_cache.stable_key == stable_key then
+                    stable_item_table_cache = root_cache
+                elseif shared_filemanager_item_table_cache
+                        and shared_filemanager_item_table_cache.stable_key == stable_key then
+                    stable_item_table_cache = shared_filemanager_item_table_cache
+                end
+            end
             if collate_mode == "access"
                     and rawget(_G, "__ZEN_UI_LAST_READ_FILE")
-                    and item_table_cache
-                    and item_table_cache.stable_key == stable_key then
+                    and stable_item_table_cache
+                    and stable_item_table_cache.stable_key == stable_key then
                 _G.__ZEN_UI_LAST_READ_FILE = nil
-                local cached_table = _apply_history_order(self, item_table_cache.table, collate, reverse_collate)
+                local cached_table = _apply_history_order(
+                    self, stable_item_table_cache.table, collate, reverse_collate)
                 local cache = {
                     key = key,
                     stable_key = stable_key,
                     table = cached_table,
                     path = path,
                 }
-                self._zen_folder_cover_item_table_cache = cache
+                if is_home_root then self._zen_folder_cover_item_table_cache = cache end
                 shared_filemanager_item_table_cache = cache
                 return measured(cached_table, "reader_reuse")
             end
@@ -412,7 +426,7 @@ local function apply_browser_folder_cover()
                 table = result,
                 path = path,
             }
-            self._zen_folder_cover_item_table_cache = cache
+            if is_home_root then self._zen_folder_cover_item_table_cache = cache end
             shared_filemanager_item_table_cache = cache
             return measured(result, "miss")
         end

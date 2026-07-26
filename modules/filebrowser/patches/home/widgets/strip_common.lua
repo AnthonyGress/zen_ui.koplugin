@@ -357,11 +357,13 @@ function M.build_strip(ctx, source_key)
         if count > 5 then count = 5 end
         per_row = count
     end
-    local show_strip_titles = module_cfg.show_strip_titles == true
+    local wants_strip_titles = module_cfg.show_strip_titles == true
     local show_badges = module_cfg.show_badges == true
     local center_books = module_cfg.center_books == true
     local interactive = module_cfg.interactive ~= false
 
+    local function build_frame()
+    local show_strip_titles = wants_strip_titles
     local books = ctx.data:getBooksForStrip(source, count, order, ctx.component_id)
     if #books == 0 then
         local empty_cover, cover_w, cover_h = cover_common.make_empty_placeholder_cover(
@@ -644,6 +646,11 @@ function M.build_strip(ctx, source_key)
         },
     }
 
+    return frame
+    end
+
+    local frame = build_frame()
+
     if not interactive or not Device:isTouchDevice() then
         return frame
     end
@@ -659,14 +666,36 @@ function M.build_strip(ctx, source_key)
             },
         },
     }
+    local function refresh_strip(swipe_self)
+        if ctx.clearStripFocusTargets then
+            ctx.clearStripFocusTargets(ctx.component_id)
+        end
+        WidgetResources.free(swipe_self[1])
+        swipe_self[1] = build_frame()
+        if swipe_self.resetLayout then swipe_self:resetLayout() end
+        if ctx.refreshStrip then
+            ctx.refreshStrip(swipe_self)
+        else
+            require("ui/uimanager"):setDirty(ctx.menu, "ui")
+        end
+    end
+
     swipe.onSwipeStrip = function(swipe_self, _, ges)
         if not swipe_self.dimen or not ges or not ges.pos then return false end
         if not swipe_self.dimen:contains(ges.pos) then return false end
         if ges.direction == "west" then
-            if ctx.shiftStrip then ctx.shiftStrip(source, count, order, "next", ctx.component_id, two_rows) end
+            if ctx.shiftStrip then
+                ctx.shiftStrip(source, count, order, "next", ctx.component_id, two_rows, function()
+                    refresh_strip(swipe_self)
+                end)
+            end
             return true
         elseif ges.direction == "east" then
-            if ctx.shiftStrip then ctx.shiftStrip(source, count, order, "previous", ctx.component_id, two_rows) end
+            if ctx.shiftStrip then
+                ctx.shiftStrip(source, count, order, "previous", ctx.component_id, two_rows, function()
+                    refresh_strip(swipe_self)
+                end)
+            end
             return true
         end
         return false

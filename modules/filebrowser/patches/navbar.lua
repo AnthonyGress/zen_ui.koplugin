@@ -481,19 +481,26 @@ local function apply_navbar()
             return
         end
         if fc.path == home_dir then
-            -- Already in the library root. Always jump to page 1, and clear the
-            -- item-table cache if the tree changed since last check so new books
-            -- show up. refreshPath re-reads the (now possibly invalidated) cache.
-            local snap = _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
-            if _snapshot_differs(fc._zen_lib_mtime_snapshot, snap) then
-                if fc._zen_clear_item_table_cache then fc:_zen_clear_item_table_cache() end
-            end
-            fc._zen_lib_mtime_snapshot = snap
-            -- refreshPath uses path_items[path] as the focus index; pin it to 1 so
-            -- we always land on page 1 instead of the previously-remembered spot.
+            -- Home is a fullscreen overlay over this already-built file list.
+            -- Reveal its first page immediately, then validate the directory tree
+            -- after its first paint. A synchronous snapshot can traverse hundreds of folders
+            -- and made Home -> Library feel far slower than an ordinary page turn.
             fc.path_items[home_dir] = 1
-            refreshSuppressedCoversNow(fm)
-            fc:refreshPath()
+            if not refreshSuppressedCoversNow(fm) and type(fc.onGotoPage) == "function" then
+                fc:onGotoPage(1)
+            end
+            local schedule_validation = UIManager.tickAfterNext or UIManager.nextTick
+            schedule_validation(UIManager, function()
+                if FileManager.instance ~= fm or active_tab ~= "books" or fc.path ~= home_dir then return end
+                local snap = _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
+                if fc._zen_lib_mtime_snapshot
+                        and _snapshot_differs(fc._zen_lib_mtime_snapshot, snap) then
+                    if fc._zen_clear_item_table_cache then fc:_zen_clear_item_table_cache() end
+                    fc:refreshPath()
+                end
+                fc._zen_lib_mtime_snapshot = snap
+                refreshLibraryStatusBar(fm)
+            end)
         else
             fc.path_items[home_dir] = nil
             fc._zen_lib_mtime_snapshot = _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
