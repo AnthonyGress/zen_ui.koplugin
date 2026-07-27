@@ -222,6 +222,7 @@ return {
     },
     ["2.5.4"] = {
         "Ensure wifi before showing ZenPM installer",
-        "Adjust Zen screensaver book cover resolution"
+        "Adjust Zen screensaver book cover resolution",
+        "Update testing emulator to KOReader 2026.07"
     }
 }
