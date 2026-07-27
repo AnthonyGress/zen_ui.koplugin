@@ -433,6 +433,30 @@ local function apply_quick_settings()
         })
     end
 
+    local function refreshQuickSettings(touch_menu)
+        if touch_menu and touch_menu.item_table and touch_menu.item_table.panel then
+            touch_menu:updateItems(1)
+        end
+    end
+
+    local function enableWifiInBackground(touch_menu)
+        if not (Device.hasWifiRestore and Device:hasWifiRestore())
+            or type(NetworkMgr.restoreWifiAsync) ~= "function" then
+            return false
+        end
+
+        NetworkMgr.pending_connection = true
+        UIManager:broadcastEvent(Event:new("NetworkConnecting"))
+        NetworkMgr:restoreWifiAsync()
+        NetworkMgr:scheduleConnectivityCheck(function()
+            refreshQuickSettings(touch_menu)
+        end)
+        UIManager:scheduleIn(1, function()
+            refreshQuickSettings(touch_menu)
+        end)
+        return true
+    end
+
     -- ============================================================
     -- Button definitions (data-driven)
     -- ============================================================
@@ -468,16 +492,16 @@ local function apply_quick_settings()
             end,
             active_func = function() return NetworkMgr:isWifiOn() end,
             callback = function(touch_menu)
-                if NetworkMgr:isWifiOn() then
-                    NetworkMgr:toggleWifiOff()
-                else
-                    NetworkMgr:toggleWifiOn()
+                local wifi_on = NetworkMgr:isWifiOn()
+                if not wifi_on and (NetworkMgr.pending_connection or NetworkMgr.pending_connectivity_check) then
+                    return
                 end
-                UIManager:scheduleIn(1, function()
-                    if touch_menu.item_table and touch_menu.item_table.panel then
-                        touch_menu:updateItems(1)
-                    end
-                end)
+                if not wifi_on and enableWifiInBackground(touch_menu) then
+                    return
+                end
+
+                local wifi_menu = NetworkMgr:getWifiMenuTable()
+                wifi_menu.callback(touch_menu)
             end,
             hold_callback = function(touch_menu)
                 -- Long-hold: (re)connect and show the AP picker.

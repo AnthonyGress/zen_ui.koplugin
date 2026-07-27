@@ -1,8 +1,22 @@
 local _ = require("gettext")
+local ZenToggle = require("common/ui/zen_toggle")
 
 local M = {}
 
 local BACK_PREFIX = "< "
+
+local function is_checkbox(item)
+    return type(item) == "table"
+        and item.radio ~= true
+        and type(item.checked_func) == "function"
+end
+
+local function has_checkboxes(items)
+    for _i, item in ipairs(items or {}) do
+        if is_checkbox(item) then return true end
+    end
+    return false
+end
 
 local function row_text(item)
     if type(item.text_func) == "function" then
@@ -33,6 +47,15 @@ local function map_items(host, src_items)
                 dim = not enabled or nil,
                 _src = item,
             }
+            if is_checkbox(item) then
+                row.state = ZenToggle:new{
+                    width = host._toggle_width,
+                    height = host._toggle_height,
+                    value_func = function()
+                        return item.checked_func() == true
+                    end,
+                }
+            end
             if item.sub_item_table ~= nil or item.sub_item_table_func ~= nil then
                 row.sub_item_table_func = function()
                     return source_items(host, item) or {}
@@ -48,7 +71,12 @@ local function map_items(host, src_items)
                     local callback = item.callback_func and item.callback_func() or item.callback
                     if callback then
                         callback(host._shim)
-                        if item.keep_menu_open then
+                        if is_checkbox(item) then
+                            if not item.check_callback_updates_menu
+                                    and not item.check_callback_closes_menu then
+                                host:_refresh()
+                            end
+                        elseif item.keep_menu_open then
                             host:_refresh()
                         else
                             M.close(host)
@@ -99,7 +127,11 @@ function M.show(opts)
     local Screen = require("device").screen
     local UIManager = require("ui/uimanager")
 
-    local host = { _stack = {} }
+    local host = {
+        _stack = {},
+        _toggle_width = Screen:scaleBySize(56),
+        _toggle_height = Screen:scaleBySize(28),
+    }
     host._shim = {
         updateItems = function()
             if host._refresh then host:_refresh() end
@@ -120,6 +152,7 @@ function M.show(opts)
         if self._closed then return end
         local level = self:_current()
         if not level then return end
+        self._menu.state_w = has_checkboxes(level.items) and self._toggle_width or nil
         self._menu:switchItemTable(level.title,
             level_items(self, level.items, #self._stack > 1))
     end
@@ -127,6 +160,7 @@ function M.show(opts)
     function host:_push(title, items)
         self._stack[#self._stack + 1] = { title = title, items = items }
         self._menu.paths[#self._menu.paths + 1] = { title = title }
+        self._menu.state_w = has_checkboxes(items) and self._toggle_width or nil
         self._menu:switchItemTable(title, level_items(self, items, true))
     end
 
@@ -144,6 +178,7 @@ function M.show(opts)
     host._menu = Menu:new{
         title = opts.title,
         item_table = map_items(host, opts.item_table),
+        state_w = has_checkboxes(opts.item_table) and host._toggle_width or nil,
         width = Screen:getWidth(),
         height = Screen:getHeight(),
         is_borderless = true,

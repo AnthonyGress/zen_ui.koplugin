@@ -291,6 +291,7 @@ function M.build(ctx)
     local ok_disp, Dispatcher = pcall(require, "dispatcher")
     local build_ct_sub_items
     local build_builtin_tab_items
+    local addTagTab
 
     local function is_draft_tab(ct)
         return type(ct) == "table" and type(ct._zen_draft_commit) == "function"
@@ -391,16 +392,24 @@ function M.build(ctx)
             if not selected[tab.id] then
                 picker_items[#picker_items + 1] = {
                     id = tab.id,
-                    text = get_tab_item_text(tab),
+                    text = tab.id == "tags" and _("All tags") or get_tab_item_text(tab),
                 }
             end
         end
+        picker_items[#picker_items + 1] = {
+            id = "tag",
+            text = _("Single tag"),
+        }
         table.sort(picker_items, function(a, b) return a.text < b.text end)
         if #picker_items == 0 then return end
         require("common/ui/zen_menu_picker"){
             title = _("Choose tab"),
             items = picker_items,
             on_select = function(item)
+                if item.id == "tag" then
+                    addTagTab(touch_menu)
+                    return
+                end
                 ensureTabOrder(item.id)
                 config.navbar.show_tabs[item.id] = countEnabledTabs() < navbar_max_tabs
                 save_and_defer_navbar_refresh()
@@ -589,7 +598,7 @@ function M.build(ctx)
         end)
     end
 
-    local function addTagTab(touch_menu)
+    addTagTab = function(touch_menu)
         showTagPicker(function(item)
             local ct = {
                 type = "tag",
@@ -1225,11 +1234,6 @@ function M.build(ctx)
                     keep_menu_open = true,
                     callback = addActionTab,
                 }, icons.action),
-                IconItem.decorate({
-                    text = _("Tag"),
-                    keep_menu_open = true,
-                    callback = addTagTab,
-                }, icons.keywords),
                 IconItem.decorate({
                     text = _("Control"),
                     keep_menu_open = true,
