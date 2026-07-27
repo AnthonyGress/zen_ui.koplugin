@@ -65,6 +65,18 @@ local function apply_reader_themes()
         return result
     end
 
+    local orig_shouldBeRepainted = ReaderFooter.shouldBeRepainted
+    if type(orig_shouldBeRepainted) == "function" then
+        ReaderFooter.shouldBeRepainted = function(self, ...)
+            local repaint, full_repaint = orig_shouldBeRepainted(self, ...)
+            -- A transparent footer needs ReaderView to redraw its backdrop first.
+            if repaint and not full_repaint and ReaderThemes.isActive(plugin) then
+                return true, true
+            end
+            return repaint, full_repaint
+        end
+    end
+
     local orig_doShowReader = ReaderUI.doShowReader
     ReaderUI.doShowReader = function(self, ...)
         local result = orig_doShowReader(self, ...)

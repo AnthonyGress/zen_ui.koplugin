@@ -201,6 +201,7 @@ describe("reader themes", function()
         local ReaderFooter = {
             updateFooterContainer = function() end,
             updateFooterFont = function() end,
+            shouldBeRepainted = function() return true end,
         }
         local plugin = {
             config = {
@@ -227,6 +228,15 @@ describe("reader themes", function()
         assert.is_true(require("modules/reader/patches/reader_themes")())
         CreDocument:setStyleSheet("epub.css", "base")
         assert.matches("#252525", received_css, 1, true)
+
+        local repaint, full_repaint = ReaderFooter:shouldBeRepainted()
+        assert.is_true(repaint)
+        assert.is_true(full_repaint)
+        plugin.config.features.reader_themes = false
+        repaint, full_repaint = ReaderFooter:shouldBeRepainted()
+        assert.is_true(repaint)
+        assert.is_nil(full_repaint)
+        plugin.config.features.reader_themes = true
 
         ReaderUI:doShowReader("themed.epub")
         assert.is_nil(dirty_calls[1][2])

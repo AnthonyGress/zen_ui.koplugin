@@ -308,15 +308,16 @@ local function apply_opening_banner()
     pcall(try_hook_mosaic)
     pcall(try_hook_list)
 
-    -- Bottom-corner masking for the banner
-    local function _mask_bottom_corners(bb, x, y, w, h, r)
-        local color = Blitbuffer.COLOR_WHITE
+    -- Restore the covered pixels in the rounded bottom-corner cut-outs.
+    local function _mask_bottom_corners(bb, x, y, w, h, r, background)
         for j = 0, r - 1 do
             local inner = math.sqrt(r * r - (r - j) * (r - j))
             local cut   = math.ceil(r - inner)
             if cut > 0 then
-                bb:paintRect(x,           y + h - 1 - j, cut, 1, color)
-                bb:paintRect(x + w - cut, y + h - 1 - j, cut, 1, color)
+                local source_y = r - 1 - j
+                bb:blitFrom(background, x, y + h - 1 - j, 0, source_y, cut, 1)
+                bb:blitFrom(background, x + w - cut, y + h - 1 - j,
+                    2 * r - cut, source_y, cut, 1)
             end
         end
     end
@@ -368,12 +369,22 @@ local function apply_opening_banner()
         local fg = use_dark and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK
         local w, h = self.dimen.w, self.dimen.h
         local r    = self.round_bottom_corners and Screen:scaleBySize(8) or 0
+        local background
+        if r > 0 then
+            background = Blitbuffer.new(r * 2, r, bb:getType())
+            if background then
+                background:blitFrom(bb, 0, 0, x, y + h - r, r, r)
+                background:blitFrom(bb, r, 0, x + w - r, y + h - r, r, r)
+            else
+                r = 0
+            end
+        end
 
         -- 1. Fill background
         bb:paintRect(x, y, w, h, bg)
         -- 2. Clip bottom corners (before border so the border draws on top)
         if r > 0 then
-            _mask_bottom_corners(bb, x, y, w, h, r)
+            _mask_bottom_corners(bb, x, y, w, h, r, background)
         end
         -- 3. Border contrasts with bg (fg color), consistent with night mode.
         _draw_border(bb, x, y, w, h, r, fg)
@@ -389,6 +400,7 @@ local function apply_opening_banner()
             x + math.floor((w - tsz.w) / 2),
             y + math.floor((h - tsz.h) / 2))
         tw:free()
+        if background then background:free() end
     end
 
     local function build_banner(cover)
