@@ -5,7 +5,6 @@ describe("file browser navbar navigation", function()
     local library_font_sizes
     local UIManager
     local home_widget
-    local group_widgets
 
     local function class(methods)
         methods = methods or {}
@@ -28,9 +27,6 @@ describe("file browser navbar navigation", function()
         calls = {}
         library_font_sizes = {}
         home_widget = {}
-        group_widgets = {
-            authors = {}, series = {}, tags = {}, to_be_read = {},
-        }
         shared = {
             home = {
                 showHomeView = function() calls[#calls + 1] = "home" end,
@@ -41,9 +37,11 @@ describe("file browser navbar navigation", function()
                 showAuthorsView = function() calls[#calls + 1] = "authors" end,
                 showSeriesView = function() calls[#calls + 1] = "series" end,
                 showTagsView = function() calls[#calls + 1] = "tags" end,
+                showTagDetail = function(tag, _inject, tab_id)
+                    calls[#calls + 1] = "tag:" .. tag .. ":" .. tab_id
+                end,
                 showTBRView = function() calls[#calls + 1] = "to_be_read" end,
                 closeAll = function() calls[#calls + 1] = "close_groups" end,
-                getActiveWidgets = function(tab_id) return { group_widgets[tab_id] } end,
             },
         }
         FileManager = class({
@@ -182,10 +180,9 @@ describe("file browser navbar navigation", function()
     after_each(function()
         for _i, name in ipairs({
             "__ZEN_UI_PLUGIN", "__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB", "__ZEN_UI_NAVBAR_OPEN_TAB",
-            "__ZEN_UI_NAVBAR_OPEN_FAST_RETURN", "__ZEN_UI_FAST_RETURN",
-            "__ZEN_UI_FAST_RETURN_REBUILDING", "__ZEN_UI_RETAIN_LIBRARY_VIEW",
             "__ZEN_UI_NAVBAR_RESOLVE_DEFAULT_TAB", "__ZEN_UI_ACTIVE_TAB_LABEL",
             "__ZEN_UI_REINJECT_FM_NAVBAR", "__ZEN_UI_REINJECT_NAVBARS",
+            "__ZEN_UI_LIBRARY_STATE", "__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER",
         }) do
             _G[name] = nil
         end
@@ -249,6 +246,23 @@ describe("file browser navbar navigation", function()
                 _G.__ZEN_UI_ACTIVE_TAB_LABEL)
         end
         assert.are.same({ "home", "authors", "series", "tags", "to_be_read" }, calls)
+    end)
+
+    it("opens a custom tag tab directly in that tag's detail view", function()
+        local navbar = _G.__ZEN_UI_PLUGIN.config.navbar
+        navbar.custom_tabs = {
+            { id = "ct_tag", type = "tag", tag = "Science", label = "Science" },
+        }
+        navbar.show_tabs.ct_tag = true
+        table.insert(navbar.tab_order, "ct_tag")
+        local fm = make_instance()
+        fm[1] = { fm.file_chooser }
+        _G.__ZEN_UI_REINJECT_FM_NAVBAR()
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("ct_tag"))
+        assert.are.same({ "tag:Science:ct_tag" }, calls)
+        assert.are.equal("Science", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
     end)
 
     it("does not repaint the covered file manager for overlay tabs", function()
@@ -364,84 +378,28 @@ describe("file browser navbar navigation", function()
         assert.is_true(used_configured_size)
     end)
 
-    it("requires an already-retained view for fast return", function()
-        assert.is_false(_G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN())
-        assert.is_false(_G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN("series"))
-        assert.are.same({}, calls)
-    end)
-
-    it("reuses Home from beneath Reader instead of rebuilding it", function()
-        UIManager._window_stack = { { widget = home_widget } }
-        _G.__ZEN_UI_RETAIN_LIBRARY_VIEW = {
-            tab_id = "home",
-            widgets = { home_widget },
-            rotation = "unknown",
-        }
-
-        local fast_return = _G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN("home")
-
-        assert.is_true(fast_return.retained)
-        assert.are.same({ home_widget }, fast_return.widgets)
-        assert.are.same({}, calls)
-    end)
-
-    it("does not park a retained view from another rotation", function()
-        UIManager._window_stack = { { widget = home_widget } }
-        _G.__ZEN_UI_RETAIN_LIBRARY_VIEW = {
-            tab_id = "home",
-            widgets = { home_widget },
-            rotation = "portrait",
-        }
-
-        assert.is_false(_G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN("home"))
-    end)
-
-    it("retains an active Home when opening Reader", function()
-        make_instance()
-        UIManager._window_stack = { { widget = home_widget } }
-        calls = {}
-
-        FileManager.onShowingReader(FileManager)
-
-        assert.are.same({ "close_groups" }, calls)
-        assert.are.equal("home", _G.__ZEN_UI_RETAIN_LIBRARY_VIEW.tab_id)
-        assert.are.same({ home_widget }, _G.__ZEN_UI_RETAIN_LIBRARY_VIEW.widgets)
-        assert.are.equal("unknown", _G.__ZEN_UI_RETAIN_LIBRARY_VIEW.rotation)
-    end)
-
-    it("rejects file-manager-backed tabs for fast return", function()
-        assert.is_false(_G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN("books"))
-        assert.is_false(_G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN("history"))
-        assert.are.same({}, calls)
-    end)
-
-    it("rebuilds the hidden file manager without reopening the default view", function()
+    it("captures the active view and closes library overlays before Reader opens", function()
         local fm = make_instance()
+        _G.__ZEN_UI_PLUGIN.config.features.restore_library_view = true
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("series"))
         calls = {}
-        _G.__ZEN_UI_FAST_RETURN = {
-            tab_id = "home",
-            widgets = { home_widget },
-        }
+
+        FileManager.onShowingReader(fm)
+
+        assert.are.same({ "close_groups", "close_home" }, calls)
+        assert.are.equal("series", _G.__ZEN_UI_LIBRARY_STATE.tab)
+        assert.are.equal(1, _G.__ZEN_UI_LIBRARY_STATE.page)
+    end)
+
+    it("rebuilds FileManager before opening Home after Reader closes", function()
+        local fm = make_instance()
+        _G.__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER = true
+        calls = {}
 
         FileManager.showFiles(fm, "/library/subfolder", "/library/Book.epub")
 
-        assert.are.same({ "base:/library:nil" }, calls)
+        assert.are.same({ "base:/library:nil", "home" }, calls)
         assert.is_true(fm.file_chooser._zen_needs_cover_refresh)
-        assert.are.equal("Home", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
-        assert.is_nil(_G.__ZEN_UI_FAST_RETURN)
-    end)
-
-    it("does not queue a full books repaint during the hidden rebuild", function()
-        local fm = make_instance()
-        local dirty_modes = {}
-        UIManager.setDirty = function(_self, _widget, mode)
-            dirty_modes[#dirty_modes + 1] = mode
-        end
-        _G.__ZEN_UI_FAST_RETURN_REBUILDING = true
-
-        FileManager.onPathChanged(fm, "/library")
-
-        assert.are.same({}, dirty_modes)
         assert.are.equal("Home", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
     end)
 end)

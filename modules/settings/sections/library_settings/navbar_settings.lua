@@ -298,6 +298,9 @@ function M.build(ctx)
 
     local function get_ct_label(ct)
         if ct.label and ct.label ~= "" then return ct.label end
+        if ct.type == "tag" then
+            return ct.tag or _("Tag")
+        end
         if ct.type == "plugin" then
             return ct.plugin_title or _("Plugin")
         end
@@ -335,6 +338,9 @@ function M.build(ctx)
         end
         if ct.type == "quick_setting" then
             return type(ct.quick_setting_id) == "string" and ct.quick_setting_id ~= ""
+        end
+        if ct.type == "tag" then
+            return type(ct.tag) == "string" and ct.tag ~= ""
         end
         return ct.type == "plugin"
             and type(ct.plugin) == "table"
@@ -491,6 +497,28 @@ function M.build(ctx)
         }
     end
 
+    local function showTagPicker(on_select)
+        local ok_db, db = pcall(require, "common/db_bookinfo")
+        local groups = ok_db and db and type(db.getGroupedByTags) == "function"
+            and db.getGroupedByTags() or {}
+        if #groups == 0 then
+            local InfoMessage = require("ui/widget/infomessage")
+            UIManager:show(InfoMessage:new{ text = _("No tags found") })
+            return
+        end
+        local items = {}
+        for _i, group in ipairs(groups) do
+            items[#items + 1] = { text = group.tag, tag = group.tag }
+        end
+        require("common/ui/zen_menu_picker"){
+            title = _("Choose tag"),
+            items = items,
+            on_select = function(item)
+                if item and item.tag then on_select(item) end
+            end,
+        }
+    end
+
     local function choosePluginTab(ct, touch_menu)
         showPluginPicker(function(item)
             local plugin = item.plugin
@@ -561,6 +589,37 @@ function M.build(ctx)
         end)
     end
 
+    local function addTagTab(touch_menu)
+        showTagPicker(function(item)
+            local ct = {
+                type = "tag",
+                tag = item.tag,
+                label = item.tag,
+                label_auto = true,
+                icon = "tab_tags",
+            }
+            commitCustomTab(ct)
+            openCustomTabSettings(touch_menu, ct)
+        end)
+    end
+
+    local function chooseTagTab(ct, touch_menu)
+        showTagPicker(function(item)
+            local old_tag = ct.tag
+            ct.tag = item.tag
+            if ct.label_auto == true or not ct.label or ct.label == "" or ct.label == old_tag then
+                ct.label = item.tag
+                ct.label_auto = true
+            end
+            if not is_draft_tab(ct) then
+                save_and_defer_navbar_refresh()
+            end
+            if touch_menu and touch_menu.updateItems then
+                touch_menu:updateItems(1)
+            end
+        end)
+    end
+
     local function addQuickSettingTab(touch_menu)
         local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
         if not controls or type(controls.getItems) ~= "function" then return end
@@ -619,7 +678,17 @@ function M.build(ctx)
     build_ct_sub_items = function(ct)
         local items = {}
 
-        if ct.type == "quick_setting" then
+        if ct.type == "tag" then
+            table.insert(items, IconItem.decorate({
+                text_func = function()
+                    return T(_("Tag: %1"), ct.tag or _("(none)"))
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    chooseTagTab(ct, touch_menu)
+                end,
+            }, icons.keywords))
+        elseif ct.type == "quick_setting" then
             table.insert(items, IconItem.decorate({
                 text_func = function()
                     return T(_("Control: %1"), ct.label or _("(none)"))
@@ -715,6 +784,9 @@ function M.build(ctx)
                                 if txt and txt ~= "" then
                                     ct.label = txt
                                     ct.label_auto = false
+                                elseif ct.type == "tag" then
+                                    ct.label = ct.tag
+                                    ct.label_auto = true
                                 else
                                     ct.label = nil
                                     ct.label_auto = true
@@ -770,7 +842,8 @@ function M.build(ctx)
             end,
         }, icons.delete))
 
-        if ct.type == "action" or ct.type == "plugin" or ct.type == "quick_setting" then
+        if ct.type == "action" or ct.type == "plugin" or ct.type == "quick_setting"
+                or ct.type == "tag" then
             add_done_metadata(items, ct)
         end
         return items
@@ -1152,6 +1225,11 @@ function M.build(ctx)
                     keep_menu_open = true,
                     callback = addActionTab,
                 }, icons.action),
+                IconItem.decorate({
+                    text = _("Tag"),
+                    keep_menu_open = true,
+                    callback = addTagTab,
+                }, icons.keywords),
                 IconItem.decorate({
                     text = _("Control"),
                     keep_menu_open = true,

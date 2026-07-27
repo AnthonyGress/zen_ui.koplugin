@@ -334,6 +334,7 @@ local DEFAULT_ROW_ORDER = {
     "reading_goals",
     "strip_recent",
     "strip_custom",
+    "strip_tag",
     "strip_tbr",
     "quotes",
 }
@@ -363,6 +364,7 @@ local MODULE_TITLES = {
     featured_recent = "Recently read",
     reading_goals = "Reading goals",
     strip_custom = "Featured Books",
+    strip_tag = "Tag books",
     strip_tbr = "To be Read",
     strip_recent = "Recently read",
     stats_triplet = "Reading stats",
@@ -493,6 +495,8 @@ local function ensure_home_widget_cfg(dcfg)
     reading_goals.font_size_override = reading_goals.font_size and true or nil
     local strip_custom = ensure_strip_module_cfg(dcfg, "strip_custom")
     if type(strip_custom.paths) ~= "table" then strip_custom.paths = {} end
+    local strip_tag = ensure_strip_module_cfg(dcfg, "strip_tag")
+    if type(strip_tag.tag) ~= "string" then strip_tag.tag = nil end
     ensure_strip_module_cfg(dcfg, "strip_tbr")
     ensure_strip_module_cfg(dcfg, "strip_recent")
 end
@@ -772,6 +776,7 @@ local function build_data_provider(cfg, dcfg)
         if source == "custom_featured" then return "featured_custom" end
         if source == "custom_strip" then return "featured_custom" end
         if source == "to_be_read" then return "featured_tbr" end
+        if source == "tag" then return nil end
         return "featured_recent"
     end
 
@@ -1347,7 +1352,8 @@ local function build_data_provider(cfg, dcfg)
         if source ~= "custom_featured"
                 and source ~= "custom_strip"
                 and source ~= "currently_reading"
-                and source ~= "to_be_read" then
+                and source ~= "to_be_read"
+                and source ~= "tag" then
             source = "recently_read"
         end
         local lim = tonumber(limit) or math.huge
@@ -1365,6 +1371,17 @@ local function build_data_provider(cfg, dcfg)
                     out[#out + 1] = path
                     if #out >= lim then break end
                 end
+            end
+            return out
+        end
+        if source == "tag" then
+            local ok_db, db = pcall(require, "common/db_bookinfo")
+            local files = ok_db and db and type(db.getTagBooks) == "function"
+                and db.getTagBooks(opts.tag) or {}
+            local out = {}
+            for _i, path in ipairs(files) do
+                out[#out + 1] = path
+                if #out >= lim then break end
             end
             return out
         end
@@ -1408,6 +1425,7 @@ local function build_data_provider(cfg, dcfg)
             and source ~= "custom_strip"
             and source ~= "currently_reading"
             and source ~= "to_be_read"
+            and source ~= "tag"
     end
 
     local function get_ordered_paths(source, limit, order_key, opts)
@@ -1418,6 +1436,7 @@ local function build_data_provider(cfg, dcfg)
             opts and opts.filter_unread == true and "unread" or "",
             opts and opts.filter_tbr == true and "tbr" or "",
             opts and opts.filter_finished == true and "finished" or "",
+            opts and opts.tag or "",
         }, "\0")
         local cached = dataset.ordered_paths[cache_key]
         if cached then
@@ -1479,7 +1498,8 @@ local function build_data_provider(cfg, dcfg)
         local n = tonumber(count) or 5
         if n < 1 then n = 1 end
         local source = source_key
-        if source ~= "custom_strip" and source ~= "currently_reading" and source ~= "to_be_read" then
+        if source ~= "custom_strip" and source ~= "currently_reading"
+                and source ~= "to_be_read" and source ~= "tag" then
             source = "recently_read"
         end
         local mcfg = dcfg and dcfg.modules and dcfg.modules[component_id] or {}
@@ -1491,6 +1511,7 @@ local function build_data_provider(cfg, dcfg)
             mcfg.filter_unread == true and "unread" or "",
             mcfg.filter_tbr == true and "tbr" or "",
             mcfg.filter_finished == true and "finished" or "",
+            mcfg.tag or "",
         }, "\0")
         local cached = dataset.strip_paths[strip_cache_key]
         if cached then return source, cached, n end
@@ -1498,11 +1519,13 @@ local function build_data_provider(cfg, dcfg)
             filter_unread = source == "recently_read" and mcfg.filter_unread == true,
             filter_tbr = source == "recently_read" and mcfg.filter_tbr == true,
             filter_finished = source == "recently_read" and mcfg.filter_finished == true,
+            tag = source == "tag" and mcfg.tag or nil,
         }))
 
         -- Keep strip distinct from featured only when that featured widget is visible.
         local featured_widget_id = featured_widget_for_source(source)
-        local should_dedupe_featured = source ~= "custom_strip" and is_widget_visible(featured_widget_id)
+        local should_dedupe_featured = source ~= "custom_strip" and source ~= "tag"
+            and is_widget_visible(featured_widget_id)
         if should_dedupe_featured and #paths > 0 then
             local featured_source = source == "currently_reading" and "recently_read" or source
             local featured_paths = get_ordered_paths(featured_source, nil, order_key)
@@ -2320,7 +2343,6 @@ local function build_home_content(menu, dcfg, rows, data_provider)
 
     local function open_book(path)
         if not path then return end
-        if require("common/reader_park").open(path) then return end
         _G.__ZEN_UI_LIBRARY_SOURCE_TAB = "home"
         local fm = FileManager.instance
         if filemanagerutil.openFile then
@@ -2332,7 +2354,6 @@ local function build_home_content(menu, dcfg, rows, data_provider)
 
     local function show_book_context_menu(path, source, component_id)
         if type(path) ~= "string" or path == "" then return false end
-        require("common/reader_park").ensureFileManager("home-context-menu")
         local fm = FileManager.instance
         local fc = fm and fm.file_chooser
         if not (fc and type(fc.showFileDialog) == "function") then return false end
@@ -2433,7 +2454,6 @@ local function build_home_content(menu, dcfg, rows, data_provider)
     local top_tap_zone_h = math.max(1, math.floor(Screen:getHeight() * 0.05))
     local function open_top_menu(ges)
         if not (ges and ges.pos and ges.pos.y < top_tap_zone_h) then return false end
-        require("common/reader_park").ensureFileManager("home-menu")
         local fm = FileManager.instance
         local fm_menu = fm and fm.menu
         if fm_menu and fm_menu.activation_menu ~= "swipe" then
@@ -2548,7 +2568,8 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             end
             if comp.id ~= "featured_custom" and comp.id ~= "featured_tbr"
                     and comp.id ~= "featured_recent" and comp.id ~= "strip_custom"
-                    and comp.id ~= "strip_tbr" and comp.id ~= "strip_recent"
+                    and comp.id ~= "strip_tag" and comp.id ~= "strip_tbr"
+                    and comp.id ~= "strip_recent"
                     and comp.id ~= "quotes" and comp.id ~= "reading_goals" then
                 final_widget = add_widget_settings_hold(final_widget, comp.id, content_w, h)
             end
@@ -2847,7 +2868,6 @@ function M.showHomeView(injectNavbar)
 
     function menu:_home_rebuild(refresh_stats, reload_config)
         if self._zen_home_closing then return end
-        self._zen_home_reader_stale = nil
         refresh_shared_state()
         if reload_config == true then
             local next_cfg = load_zen_config()
@@ -2876,7 +2896,6 @@ function M.showHomeView(injectNavbar)
 
     menu.close_callback = function()
         if menu._zen_home_closing then return end
-        if require("common/reader_park").unpark() then return end
         menu._zen_home_closing = true
         if rawequal(_home_menu, menu) then
             _home_menu = nil
@@ -2968,26 +2987,9 @@ function M.rebuildActive()
     return false
 end
 
-function M.refreshAfterReader()
-    if not M.isActiveOnTop() or not _home_menu then
-        return false
-    end
-    if consume_last_read_file() then
-        -- Keep the retained framebuffer visible. Rebuild only on the next
-        -- intentional Home activation so reader teardown cannot flash twice.
-        _home_menu._zen_home_reader_stale = true
-    end
-    return true
-end
-
 function M.resetStripPages()
     if not (M.isActiveOnTop() and _home_menu and _home_menu._zen_home_reset_strip_pages) then
         return false
-    end
-    if _home_menu._zen_home_reader_stale and _home_menu._home_rebuild then
-        _home_menu._zen_home_reader_stale = nil
-        _home_menu:_home_rebuild(true)
-        return true
     end
     return _home_menu:_zen_home_reset_strip_pages()
 end

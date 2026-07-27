@@ -1204,14 +1204,11 @@ local function apply_status_bar()
 
         -- Defer again after all plugins (coverbrowser etc.) finish init
         local fm = self
-        local hidden_fast_return = rawget(_G, "__ZEN_UI_FAST_RETURN_REBUILDING") == true
         UIManager:nextTick(function()
-            if not hidden_fast_return then
-                refreshVisibleStatusBar(fm, false)
-            end
+            refreshVisibleStatusBar(fm, false)
             -- Restore subtitle path only when subtitle widget exists
-            if not hidden_fast_return and not config.hide_browser_bar
-                    and fm.file_chooser and fm.file_chooser.path then
+            if not config.hide_browser_bar and fm.file_chooser
+                    and fm.file_chooser.path then
                 fm:updateTitleBarPath(fm.file_chooser.path)
             end
 

@@ -745,23 +745,7 @@ local function close_zen_standalone_views(shared)
 end
 
 function ZenUI:onCloseWidget()
-    local rebuilding = rawget(_G, "__ZEN_UI_FAST_RETURN_REBUILDING") == true
-    local retaining = type(rawget(_G, "__ZEN_UI_RETAIN_LIBRARY_VIEW")) == "table"
-    local parking = require("common/reader_park").isFinishing()
-    if rebuilding or retaining or parking then
-        local fast_return = rawget(_G, "__ZEN_UI_FAST_RETURN")
-        local trace = fast_return and fast_return.trace
-        if trace then
-            local elapsed = type(trace.now) == "function"
-                and math.floor((trace.now() - trace.started_at) * 1000 + 0.5) or 0
-            logger.info("FAST_RETURN_TRACE", tostring(trace.id),
-                "pluginClose:retainingViews", "elapsed_ms=", elapsed)
-        else
-            logger.dbg("Retaining standalone views during context close")
-        end
-    else
-        close_zen_standalone_views(self._zen_shared)
-    end
+    close_zen_standalone_views(self._zen_shared)
     i18n.uninstall()
 end
 

@@ -26,26 +26,6 @@ local function apply_navbar()
     local lfs = require("libs/libkoreader-lfs")
     local logger = require("common/zen_logger").new("navbar")
 
-    local function screenRotation()
-        return type(Screen.getRotationMode) == "function"
-            and Screen:getRotationMode() or "unknown"
-    end
-
-    local function fastReturnTrace(trace, phase, ...)
-        if not (trace and type(trace.now) == "function") then return end
-        local elapsed = math.floor((trace.now() - trace.started_at) * 1000 + 0.5)
-        local parts = {
-            "FAST_RETURN_TRACE",
-            tostring(trace.id),
-            phase,
-            "elapsed_ms=" .. tostring(elapsed),
-        }
-        for i = 1, select("#", ...) do
-            parts[#parts + 1] = tostring(select(i, ...))
-        end
-        logger.info(table.concat(parts, " "))
-    end
-
     local function getRakuyomi()
         return rawget(_G, "__ZEN_UI_RAKUYOMI") or {}
     end
@@ -336,6 +316,28 @@ local function apply_navbar()
         books = true, manga = true, news = true,
         continue = true, search = true, stats = true, exit = true,
     }
+    local group_view_tabs = {
+        authors = true, series = true, tags = true, to_be_read = true,
+    }
+
+    local function getCustomTagTab(tab_id)
+        if type(config.custom_tabs) ~= "table" then return nil end
+        for _i, tab in ipairs(config.custom_tabs) do
+            if type(tab) == "table" and tab.id == tab_id and tab.type == "tag"
+                    and type(tab.tag) == "string"
+                    and tab.tag ~= "" then
+                return tab
+            end
+        end
+    end
+
+    local function isGroupViewTab(tab_id)
+        return group_view_tabs[tab_id] == true or getCustomTagTab(tab_id) ~= nil
+    end
+
+    local function getGroupViewTab(tab_id)
+        return getCustomTagTab(tab_id) and "tags" or tab_id
+    end
 
     -- Forward declarations; defined later
     local injectNavbar
@@ -371,7 +373,17 @@ local function apply_navbar()
         local getters = {}
         if config.show_tabs.authors == true then getters[#getters + 1] = "getGroupedByAuthor" end
         if config.show_tabs.series == true then getters[#getters + 1] = "getGroupedBySeries" end
-        if config.show_tabs.tags == true then getters[#getters + 1] = "getGroupedByTags" end
+        local has_tag_tab = config.show_tabs.tags == true
+        if type(config.custom_tabs) == "table" then
+            for _i, tab in ipairs(config.custom_tabs) do
+                if type(tab) == "table" and tab.type == "tag" and type(tab.id) == "string"
+                        and config.show_tabs[tab.id] == true then
+                    has_tag_tab = true
+                    break
+                end
+            end
+        end
+        if has_tag_tab then getters[#getters + 1] = "getGroupedByTags" end
         if #getters == 0 then return end
 
         _group_prewarm_pending = true
@@ -501,7 +513,8 @@ local function apply_navbar()
             -- after its first paint. A synchronous snapshot can traverse hundreds of folders
             -- and made Home -> Library feel far slower than an ordinary page turn.
             fc.path_items[home_dir] = 1
-            if not refreshSuppressedCoversNow(fm) and type(fc.onGotoPage) == "function" then
+            if not refreshSuppressedCoversNow(fm)
+                    and type(fc.onGotoPage) == "function" then
                 fc:onGotoPage(1)
             end
             local schedule_validation = UIManager.tickAfterNext or UIManager.nextTick
@@ -830,7 +843,7 @@ local function apply_navbar()
     }
 
     local function shouldTrackActiveTab(tab_id)
-        return active_tab_whitelist[tab_id] == true
+        return active_tab_whitelist[tab_id] == true or getCustomTagTab(tab_id) ~= nil
     end
 
     local function is_tab_enabled(tab_id)
@@ -874,31 +887,9 @@ local function apply_navbar()
         return first_enabled_default_tab()
     end
 
-    local function prepareParkedTab(tab_id)
-        if tab_id == "home" then return false, false end
-        local ReaderPark = require("common/reader_park")
-        if tab_id == "continue" then
-            local last_file = G_reader_settings:readSetting("lastfile")
-            local was_parked = ReaderPark.isParked()
-            if last_file and ReaderPark.open(last_file) then return true, false end
-            if ReaderPark.isParked() then
-                ReaderPark.ensureFileManager("navbar:continue")
-            end
-            return false, was_parked and not ReaderPark.isParked()
-        end
-        local finished = ReaderPark.ensureFileManager(
-            "navbar:" .. tostring(tab_id))
-        return false, finished
-    end
-
     local function runTabCallback(tab_id)
         local cb = tab_callbacks[tab_id]
         if not cb then return end
-        local consumed, finished_park = prepareParkedTab(tab_id)
-        if consumed then return end
-        if finished_park and shouldTrackActiveTab(tab_id) then
-            setActiveTab(tab_id)
-        end
         if shouldTrackActiveTab(tab_id) then
             cb()
             return
@@ -929,45 +920,6 @@ local function apply_navbar()
         end
         runTabCallback(tab_id)
         return true
-    end
-
-    local function open_fast_return(tab_id, trace)
-        tab_id = tab_id or resolve_default_tab()
-        local retained = rawget(_G, "__ZEN_UI_RETAIN_LIBRARY_VIEW")
-        if type(retained) ~= "table" or retained.tab_id ~= tab_id
-                or type(retained.widgets) ~= "table" or #retained.widgets == 0 then
-            return false
-        end
-        if retained.rotation ~= nil and retained.rotation ~= screenRotation() then
-            return false
-        end
-
-        fastReturnTrace(trace, "navbarOpen:start",
-            "tab=" .. tostring(tab_id),
-            "rotation=" .. tostring(screenRotation()),
-            "size=" .. tostring(Screen:getWidth()) .. "x" .. tostring(Screen:getHeight()))
-        _G.__ZEN_UI_LIBRARY_STATE = nil
-        setActiveTab(tab_id)
-        local stack = UIManager._window_stack or {}
-        local shown = {}
-        for _i, entry in ipairs(stack) do
-            if entry and entry.widget then shown[entry.widget] = true end
-        end
-        for _i, widget in ipairs(retained.widgets) do
-            if not shown[widget] then
-                return false
-            end
-        end
-        local view = tab_id == "home" and get_shared("home") or get_shared("group_view")
-        fastReturnTrace(trace, "navbarOpen:viewRetained",
-            "widgets=" .. tostring(#retained.widgets))
-        return {
-            tab_id = tab_id,
-            widgets = retained.widgets,
-            retained = true,
-            rotation = retained.rotation,
-            refresh = view and view.refreshAfterReader,
-        }
     end
 
     do
@@ -1303,6 +1255,7 @@ local function apply_navbar()
                         tabs_by_id[ct.id] = entry
                     end
                     entry.label = (ct.label ~= nil and ct.label ~= "") and ct.label
+                        or ct.tag
                         or ct.plugin_title
                         or _("Custom")
                     entry.icon  = ct.icon or "zen_ui"
@@ -1318,6 +1271,15 @@ local function apply_navbar()
                             local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
                             if controls and controls.activate then
                                 controls.activate(quick_setting_id)
+                            end
+                        end
+                    elseif ct.type == "tag" and type(ct.tag) == "string" and ct.tag ~= "" then
+                        local tag_name = ct.tag
+                        local tab_id = ct.id
+                        tab_callbacks[ct.id] = function()
+                            local GroupView = get_shared("group_view")
+                            if GroupView and type(GroupView.showTagDetail) == "function" then
+                                GroupView.showTagDetail(tag_name, injectStandaloneNavbar, tab_id)
                             end
                         end
                     elseif ok_disp_ct and ct.action and next(ct.action) then
@@ -1663,9 +1625,6 @@ local function apply_navbar()
             end
         end
 
-        if rawget(_G, "__ZEN_UI_FAST_RETURN_REBUILDING") == true then
-            return
-        end
         if new_tab and new_tab ~= active_tab then
             active_tab = new_tab
             syncActiveTabLabel()
@@ -2070,8 +2029,6 @@ local function apply_navbar()
                 return true
             end
 
-            if prepareParkedTab(tapped_id) then return true end
-
             if not shouldTrackActiveTab(tapped_id) then
                 if shouldCloseStandaloneBeforeAction(menu, tapped_id) then
                     closeStandaloneView(menu)
@@ -2089,8 +2046,7 @@ local function apply_navbar()
             end
 
             local keep_home = menu.name == "home"
-                and (tapped_id == "authors" or tapped_id == "series"
-                    or tapped_id == "tags" or tapped_id == "to_be_read")
+                and isGroupViewTab(tapped_id)
             if not keep_home then closeStandaloneView(menu) end
 
             -- Update FM navbar active tab only for persistent views.
@@ -2306,7 +2262,6 @@ local function apply_navbar()
                 if tapped_id == view_tab_id then
                     menu.page = 1; menu:updateItems(); return
                 end
-                if prepareParkedTab(tapped_id) then return end
                 if not shouldTrackActiveTab(tapped_id) then
                     if shouldCloseStandaloneBeforeAction(menu, tapped_id) then
                         closeStandaloneView(menu)
@@ -2438,7 +2393,7 @@ local function apply_navbar()
             local page = 1
             -- Group views expose page via M.getActivePage
             if gv and gv.getActivePage then
-                page = gv.getActivePage(source_tab) or 1
+                page = gv.getActivePage(getGroupViewTab(source_tab)) or 1
             end
             local home = get_shared("home")
             if home and source_tab == "home" and home.getActivePage then
@@ -2474,23 +2429,8 @@ local function apply_navbar()
             _G.__ZEN_UI_LIBRARY_STATE = nil
         end
         local home = get_shared("home")
-        local home_widgets = source_tab == "home" and home
-            and type(home.getActiveWidgets) == "function"
-            and home.getActiveWidgets() or nil
-        if type(home_widgets) == "table" and #home_widgets > 0 then
-            _G.__ZEN_UI_RETAIN_LIBRARY_VIEW = {
-                tab_id = "home",
-                widgets = home_widgets,
-                rotation = screenRotation(),
-            }
-        else
-            _G.__ZEN_UI_RETAIN_LIBRARY_VIEW = nil
-        end
-        -- Keep an active Home beneath Reader; other standalone views are closed.
         if gv and gv.closeAll then gv.closeAll() end
-        if not _G.__ZEN_UI_RETAIN_LIBRARY_VIEW and home and home.closeAll then
-            home.closeAll()
-        end
+        if home and home.closeAll then home.closeAll() end
         local fm = FileManager.instance
         if fm then
             if fm.history and fm.history.booklist_menu then
@@ -2551,21 +2491,6 @@ local function apply_navbar()
 
     function FileManager:showFiles(path, focused_file, selected_files)
         local started_at = os.clock()
-        local fast_return = rawget(_G, "__ZEN_UI_FAST_RETURN")
-        _G.__ZEN_UI_FAST_RETURN = nil
-        if not fast_return and rawget(_G, "__ZEN_UI_RETAIN_LIBRARY_VIEW") then
-            _G.__ZEN_UI_RETAIN_LIBRARY_VIEW = nil
-            local retained_home = get_shared("home")
-            if retained_home and type(retained_home.closeAll) == "function" then
-                retained_home.closeAll()
-            end
-        end
-        local fast_trace = fast_return and fast_return.trace
-        fastReturnTrace(fast_trace, "fmWrapper:start",
-            "path=" .. tostring(path),
-            "focused=" .. tostring(focused_file),
-            "rotation=" .. tostring(screenRotation()),
-            "size=" .. tostring(Screen:getWidth()) .. "x" .. tostring(Screen:getHeight()))
         local open_home_after_filemanager = rawget(_G, "__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER") == true
         _G.__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER = nil
         local open_target_tab = rawget(_G, "__ZEN_UI_OPEN_TARGET_TAB")
@@ -2601,10 +2526,9 @@ local function apply_navbar()
             and resolve_default_tab() or nil
         local default_tab = forced_default_tab or resolve_default_tab()
         -- When restore is disabled, open at library root immediately (no double render).
-        local effective_focused = not fast_return and not forced_default_tab
+        local effective_focused = not forced_default_tab
             and (restore_enabled or keep_book_location) and focused_file or nil
-        if fast_return or forced_default_tab
-                or (not restore_enabled and not keep_book_location) then
+        if forced_default_tab or (not restore_enabled and not keep_book_location) then
             local home_dir = require("common/paths").getHomeDir()
             if home_dir then
                 path = home_dir
@@ -2613,8 +2537,7 @@ local function apply_navbar()
                 end
             end
         end
-        local hidden_bootstrap = fast_return ~= nil
-            or forced_default_tab ~= nil
+        local hidden_bootstrap = forced_default_tab ~= nil
             or open_home_after_filemanager
             or open_target_tab
             or open_target_folder
@@ -2627,11 +2550,6 @@ local function apply_navbar()
                 and state_before_show.tab
                 and state_before_show.tab ~= "books")
         local suppress_initial_covers = hidden_bootstrap
-        fastReturnTrace(fast_trace, "fmWrapper:baseStart",
-            "path=" .. tostring(path),
-            "focused=" .. tostring(effective_focused),
-            "covers_suppressed=" .. tostring(suppress_initial_covers))
-        local base_started_at = fast_trace and fast_trace.now()
         if suppress_initial_covers then
             withCoversSuppressed(function()
                 orig_showFiles(self, path, effective_focused, selected_files)
@@ -2639,12 +2557,6 @@ local function apply_navbar()
         else
             orig_showFiles(self, path, effective_focused, selected_files)
         end
-        fastReturnTrace(fast_trace, "fmWrapper:baseEnd",
-            "duration_ms=" .. tostring(base_started_at
-                and math.floor((fast_trace.now() - base_started_at) * 1000 + 0.5) or 0),
-            "instance=" .. tostring(FileManager.instance),
-            "rotation=" .. tostring(screenRotation()),
-            "size=" .. tostring(Screen:getWidth()) .. "x" .. tostring(Screen:getHeight()))
         local filemanager = FileManager.instance
         if hide_rakuyomi_filemanager and filemanager then
             filemanager.invisible = true
@@ -2655,17 +2567,6 @@ local function apply_navbar()
             "path=", tostring(path))
         if suppress_initial_covers and filemanager and filemanager.file_chooser then
             filemanager.file_chooser._zen_needs_cover_refresh = true
-        end
-        if fast_return then
-            _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = nil
-            _G.__ZEN_UI_LIBRARY_STATE = nil
-            if fast_return.tab_id and shouldTrackActiveTab(fast_return.tab_id) then
-                active_tab = fast_return.tab_id
-                syncActiveTabLabel()
-            end
-            fastReturnTrace(fast_trace, "fmWrapper:complete",
-                "active_tab=" .. tostring(active_tab))
-            return
         end
         if open_home_after_filemanager then
             _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = nil
@@ -2775,7 +2676,7 @@ local function apply_navbar()
         end
         -- If a detail view was open, open it synchronously too (stack: [fm, group_menu, detail_menu]).
         -- _repaint will then start from detail_menu and never show the intermediate views.
-        if state.detail_group and gv and gv.restoreDetail then
+        if state.detail_group and gv and gv.restoreDetail and not getCustomTagTab(state.tab) then
             gv.restoreDetail(state.detail_group, state.tab, injectStandaloneNavbar)
         end
     end
@@ -2979,7 +2880,6 @@ local function apply_navbar()
     -- Allows main.lua to rebuild the navbar after quickstart changes tab config.
     _G.__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB = open_default_tab
     _G.__ZEN_UI_NAVBAR_OPEN_TAB = open_tab
-    _G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN = open_fast_return
     _G.__ZEN_UI_NAVBAR_RESOLVE_DEFAULT_TAB = resolve_default_tab
     _G.__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON = function()
         local tab = tabs_by_id[resolve_default_tab()]

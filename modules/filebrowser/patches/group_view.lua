@@ -1461,7 +1461,7 @@ end
 -- showDetailView: book list for one author/series group
 -- Called from onMenuSelect on the group list menu
 -------------------------------------------------------------------------------
-local function showDetailView(group_item, injectNavbar, tab_id)
+local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
     local _ = require("gettext")
     local UIManager = require("ui/uimanager")
 
@@ -1602,7 +1602,7 @@ local function showDetailView(group_item, injectNavbar, tab_id)
     clean_nav(detail_menu, group_name, back_to_group)
 
     if injectNavbar then
-        injectNavbar(detail_menu, tab_id)  -- keep authors/series tab active
+        injectNavbar(detail_menu, navbar_tab_id or tab_id)
     end
 
     -- Add blank-space hold gesture handler for context menu
@@ -1640,7 +1640,7 @@ local function showDetailView(group_item, injectNavbar, tab_id)
                     _zen_filter_refresh_cb = function()
                         -- Rebuild item_table with new filter: close and reopen.
                         UIManager:close(detail_menu)
-                        showDetailView(group_item, injectNavbar, tab_id)
+                        showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
                     end,
                 })
             end
@@ -1886,6 +1886,16 @@ function M.showTagsView(injectNavbar)
     if not ok then return end
     local groups = db.getGroupedByTags()
     showGroupView("tags", injectNavbar, groups)
+end
+
+-- Opens one tag directly, for custom navbar tabs that target a specific tag.
+function M.showTagDetail(tag_name, injectNavbar, navbar_tab_id)
+    if type(tag_name) ~= "string" or tag_name == "" then return end
+    refresh_shared_state()
+    local ok, db = pcall(require, "common/db_bookinfo")
+    if not ok then return end
+    local files = type(db.getTagBooks) == "function" and db.getTagBooks(tag_name) or {}
+    showDetailView({ text = tag_name, _zen_files = files }, injectNavbar, "tags", navbar_tab_id)
 end
 
 -------------------------------------------------------------------------------
@@ -2139,28 +2149,6 @@ function M.getActivePage(tab_id)
     elseif tab_id == "tags" and _tags_menu then
         return _tags_menu.page
     end
-end
-
-function M.getActiveWidgets(tab_id)
-    local root
-    if tab_id == "authors" then
-        root = _authors_menu
-    elseif tab_id == "series" then
-        root = _series_menu
-    elseif tab_id == "to_be_read" then
-        root = _tbr_menu
-    elseif tab_id == "tags" then
-        root = _tags_menu
-    end
-
-    local widgets = {}
-    if root then table.insert(widgets, root) end
-    for _i, menu in ipairs(_detail_menus) do
-        if menu._zen_tab_id == tab_id then
-            table.insert(widgets, menu)
-        end
-    end
-    return widgets
 end
 
 -- Close all open group/detail menus to prevent UIManager stack pollution

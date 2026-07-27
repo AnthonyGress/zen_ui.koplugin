@@ -37,6 +37,7 @@ local DEFAULT_ORDER = {
     "reading_goals",
     "strip_recent",
     "strip_custom",
+    "strip_tag",
     "strip_tbr",
     "quotes",
 }
@@ -185,6 +186,8 @@ local function ensure_home_widget_cfg(dcfg)
     reading_goals.font_size_override = reading_goals.font_size and true or nil
     local strip_custom = ensure_strip_cfg(dcfg, "strip_custom")
     if type(strip_custom.paths) ~= "table" then strip_custom.paths = {} end
+    local strip_tag = ensure_strip_cfg(dcfg, "strip_tag")
+    if type(strip_tag.tag) ~= "string" then strip_tag.tag = nil end
     ensure_strip_cfg(dcfg, "strip_tbr")
     ensure_strip_cfg(dcfg, "strip_recent")
 end
@@ -674,6 +677,28 @@ function M.build(ctx)
         })
     end
 
+    local function choose_tag(callback)
+        local ok_db, db = pcall(require, "common/db_bookinfo")
+        local groups = ok_db and db and type(db.getGroupedByTags) == "function"
+            and db.getGroupedByTags() or {}
+        if #groups == 0 then
+            local InfoMessage = require("ui/widget/infomessage")
+            UIManager:show(InfoMessage:new{ text = _("No tags found") })
+            return
+        end
+        local items = {}
+        for _i, group in ipairs(groups) do
+            items[#items + 1] = { text = group.tag, tag = group.tag }
+        end
+        require("common/ui/zen_menu_picker"){
+            title = _("Choose tag"),
+            items = items,
+            on_select = function(item)
+                if item and item.tag then callback(item.tag) end
+            end,
+        }
+    end
+
     local function build_featured_custom_items(mcfg)
         return {
             {
@@ -996,6 +1021,20 @@ function M.build(ctx)
             table.insert(items, 3, filter_status_item(mcfg, "filter_unread", _("Hide unread books")))
             table.insert(items, 4, filter_status_item(mcfg, "filter_tbr", _("Hide TBR books")))
             table.insert(items, 5, filter_status_item(mcfg, "filter_finished", _("Hide finished books")))
+        elseif module_id == "strip_tag" then
+            table.insert(items, 2, {
+                text_func = function()
+                    return _("Tag: ") .. (mcfg.tag or _("None"))
+                end,
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    choose_tag(function(tag)
+                        mcfg.tag = tag
+                        save_home("reinit")
+                        if touchmenu_instance then touchmenu_instance:updateItems() end
+                    end)
+                end,
+            })
         end
         return items
     end
@@ -1029,6 +1068,7 @@ function M.build(ctx)
         stats_triplet = true,
         reading_goals = true,
         strip_custom = true,
+        strip_tag = true,
         strip_tbr = true,
         strip_recent = true,
         quotes = true,
@@ -1518,7 +1558,8 @@ function M.build(ctx)
         local items
         if id == "featured_custom" or id == "featured_tbr" or id == "featured_recent" then
             items = build_featured_widget_items(id)
-        elseif id == "strip_custom" or id == "strip_tbr" or id == "strip_recent" then
+        elseif id == "strip_custom" or id == "strip_tag" or id == "strip_tbr"
+                or id == "strip_recent" then
             items = build_strip_widget_items(id)
         elseif id == "reading_goals" then
             items = build_goals_items()
@@ -1636,6 +1677,10 @@ function M.build(ctx)
                             {
                                 text = _("Custom strip widget"),
                                 sub_item_table_func = function() return build_strip_widget_items("strip_custom") end,
+                            },
+                            {
+                                text = _("Tag strip widget"),
+                                sub_item_table_func = function() return build_strip_widget_items("strip_tag") end,
                             },
                             {
                                 text = _("To Be Read strip widget"),

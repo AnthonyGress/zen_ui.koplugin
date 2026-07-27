@@ -84,6 +84,14 @@ describe("book info grouping cache", function()
         assert.are.equal(2, exec_calls)
     end)
 
+    it("returns one tag's books from the cached tag groups", function()
+        local groups = DbBookInfo.getGroupedByTags()
+        local files = DbBookInfo.getTagBooks(groups[1].tag)
+
+        assert.are.same(groups[1].files, files)
+        assert.are.equal(1, exec_calls)
+    end)
+
     it("builds a sidecar-free TBR candidate list with history first", function()
         local candidates = DbBookInfo.getTBRIndexCandidates()
 

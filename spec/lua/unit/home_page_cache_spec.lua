@@ -172,6 +172,32 @@ describe("home data and book caches", function()
         assert.are.equal(2, history_reload_count)
     end)
 
+    it("loads a tag strip from the tag index without consulting reading history", function()
+        local requested_tag
+        ZenSpec.replace("common/db_bookinfo", {
+            getTagBooks = function(tag)
+                requested_tag = tag
+                return { "/library/alpha.epub" }
+            end,
+        })
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local build_data_provider = get_build_data_provider(Home)
+        local provider = build_data_provider({ browser_cover_badges = {} }, {
+            rows = {
+                order = { "strip_tag" },
+                enabled = { strip_tag = true },
+                max_rows = 1,
+            },
+            modules = { strip_tag = { tag = "Science" } },
+        })
+
+        local books = provider:getBooksForStrip("tag", 4, "default", "strip_tag")
+
+        assert.are.equal("Science", requested_tag)
+        assert.are.equal("/library/alpha.epub", books[1].path)
+        assert.are.equal(0, history_reload_count)
+    end)
+
     it("requests only visible TBR rows from the persistent index", function()
         local indexed = {
             "/library/tbr-1.epub", "/library/tbr-2.epub", "/library/tbr-3.epub",
@@ -262,37 +288,4 @@ describe("home data and book caches", function()
         assert.are.equal(1, favorite_lookup_count)
     end)
 
-    it("defers the retained Home rebuild until Home is intentionally activated", function()
-        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
-        local rebuilds = 0
-        local menu = {
-            _home_rebuild = function(_, refresh_stats)
-                assert.is_true(refresh_stats)
-                rebuilds = rebuilds + 1
-            end,
-            _zen_home_reset_strip_pages = function()
-                error("stale Home should rebuild before resetting strips")
-            end,
-        }
-        for index = 1, 20 do
-            local name = debug.getupvalue(Home.refreshAfterReader, index)
-            if name == "_home_menu" then
-                debug.setupvalue(Home.refreshAfterReader, index, menu)
-                break
-            end
-        end
-        ZenSpec.replace("ui/uimanager", {
-            _window_stack = { { widget = menu } },
-        })
-        _G.__ZEN_UI_LAST_READ_FILE = "/library/alpha.epub"
-
-        assert.is_true(Home.refreshAfterReader())
-        assert.are.equal(0, rebuilds)
-        assert.is_true(menu._zen_home_reader_stale)
-        assert.is_nil(_G.__ZEN_UI_LAST_READ_FILE)
-
-        assert.is_true(Home.resetStripPages())
-        assert.are.equal(1, rebuilds)
-        assert.is_nil(menu._zen_home_reader_stale)
-    end)
 end)

@@ -412,6 +412,18 @@ function M.getGroupedByTags()
     return groups
 end
 
+-- Returns the books for one exact Calibre tag. Reuses the cached tag groups so
+-- Home widgets and tag tabs do not issue a second database query.
+function M.getTagBooks(tag_name)
+    if type(tag_name) ~= "string" or tag_name == "" then return {} end
+    for _i, group in ipairs(M.getGroupedByTags()) do
+        if group.tag == tag_name then
+            return group.files or {}
+        end
+    end
+    return {}
+end
+
 -- Returns the total number of fully-indexed books in the bookinfo cache,
 -- across all directories. Uses a SQL COUNT so no lfs calls are made.
 function M.getTotalBookCount()

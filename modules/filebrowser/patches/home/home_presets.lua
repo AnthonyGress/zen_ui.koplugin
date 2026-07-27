@@ -25,6 +25,7 @@ local DEFAULT_HOME_PAGE = {
             "reading_goals",
             "strip_recent",
             "strip_custom",
+            "strip_tag",
             "strip_tbr",
             "quotes",
         },
@@ -37,6 +38,7 @@ local DEFAULT_HOME_PAGE = {
             reading_goals = false,
             stats_triplet = true,
             strip_custom = false,
+            strip_tag = false,
             strip_recent = true,
             strip_tbr = false,
         },
@@ -134,6 +136,17 @@ local DEFAULT_HOME_PAGE = {
             show_strip_titles = false,
             two_rows = false,
         },
+        strip_tag = {
+            center_books = false,
+            count = 4,
+            interactive = true,
+            order = "default",
+            show_badges = false,
+            show_module_title = false,
+            show_strip_titles = false,
+            tag = nil,
+            two_rows = false,
+        },
         strip_recent = {
             center_books = false,
             count = 4,
@@ -179,6 +192,7 @@ local BOOKSHELF_HOME_PAGE = {
             "reading_goals",
             "strip_recent",
             "strip_custom",
+            "strip_tag",
             "strip_tbr",
             "quotes",
         },
@@ -191,6 +205,7 @@ local BOOKSHELF_HOME_PAGE = {
             reading_goals = false,
             stats_triplet = false,
             strip_custom = false,
+            strip_tag = false,
             strip_recent = true,
             strip_tbr = false,
         },
@@ -285,6 +300,17 @@ local BOOKSHELF_HOME_PAGE = {
             show_badges = false,
             show_module_title = false,
             show_strip_titles = false,
+            two_rows = false,
+        },
+        strip_tag = {
+            center_books = false,
+            count = 4,
+            interactive = true,
+            order = "default",
+            show_badges = false,
+            show_module_title = false,
+            show_strip_titles = false,
+            tag = nil,
             two_rows = false,
         },
         strip_recent = {
@@ -387,7 +413,7 @@ function M.captureHomePage(dcfg)
     return out
 end
 
-local STRIP_MODULE_IDS = { "strip_recent", "strip_custom", "strip_tbr" }
+local STRIP_MODULE_IDS = { "strip_recent", "strip_custom", "strip_tag", "strip_tbr" }
 
 -- Mirror the library "Show title below cover (mosaic)" setting onto the strip
 -- widgets' show_strip_titles. Only used for the one-time first-startup seed;

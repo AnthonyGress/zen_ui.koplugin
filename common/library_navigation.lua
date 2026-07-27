@@ -2,22 +2,6 @@ local paths = require("common/paths")
 
 local M = {}
 
-local function getRakuyomi()
-    local Rakuyomi = rawget(_G, "__ZEN_UI_RAKUYOMI")
-    if type(Rakuyomi) == "table" then return Rakuyomi end
-    local ok, module = pcall(require, "modules/filebrowser/patches/rakuyomi")
-    return ok and module or nil
-end
-
-local function isRakuyomiChapter(file)
-    local Rakuyomi = getRakuyomi()
-    if not (Rakuyomi and type(Rakuyomi.isChapterFile) == "function") then
-        return false
-    end
-    local ok, is_chapter = pcall(Rakuyomi.isChapterFile, file)
-    return ok and is_chapter == true
-end
-
 local function closeConfigMenuForTransition(ui)
     local was_tearing_down = ui.tearing_down
     ui.tearing_down = true
@@ -58,16 +42,6 @@ function M.returnToRakuyomiReader(restore, plugin)
     return true
 end
 
-local function startParkedReturn(ui, target_tab)
-    local open = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_FAST_RETURN")
-    if type(open) ~= "function" then return false end
-
-    local ok, view = pcall(open, target_tab)
-    if not ok then error(view) end
-    if type(view) ~= "table" or view.retained ~= true then return false end
-    return require("common/reader_park").park(ui, view)
-end
-
 function M.showFromReader(ui, plugin, opts)
     if not ui or not ui.document then return false end
 
@@ -83,17 +57,6 @@ function M.showFromReader(ui, plugin, opts)
 
     closeConfigMenuForTransition(ui)
     if M.returnToRakuyomiReader(restore, plugin) then
-        return true
-    end
-
-    local fast_target
-    if open_home then
-        fast_target = "home"
-    elseif target_tab then
-        fast_target = target_tab
-    end
-    if not target_folder and not outside_home and not isRakuyomiChapter(file)
-            and startParkedReturn(ui, fast_target) then
         return true
     end
 
