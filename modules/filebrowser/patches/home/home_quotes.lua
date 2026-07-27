@@ -220,6 +220,7 @@ function M.getQuotes(config)
     end
 
     if use_annotations then append(annotation_quotes()) end
+    if #quotes == 0 then append(DEFAULT_QUOTES) end
     return quotes
 end
 

@@ -80,6 +80,14 @@ describe("home quotes", function()
         assert.are.equal("Custom quote", quotes[2].text)
     end)
 
+    it("falls back to defaults when selected sources are empty", function()
+        dofile_stub.returns({})
+
+        assert.are.same({
+            { text = "Default quote", author = "Default author" },
+        }, HomeQuotes.getQuotes({ sources = { custom = true } }))
+    end)
+
     it("keeps a daily quote stable and advances a shuffled deck on refresh", function()
         dofile_stub.returns({
             "First",

@@ -1478,6 +1478,10 @@ function M.build(ctx)
                     return quote_sources()[key] == true
                 end,
                 callback = function()
+                    if options and options.enabled_func
+                            and options.enabled_func() == false then
+                        return
+                    end
                     local sources = quote_sources()
                     sources[key] = sources[key] ~= true
                     if not sources.default and not sources.custom and not sources.annotations then
@@ -1489,6 +1493,7 @@ function M.build(ctx)
             if options then
                 item.enabled_func = options.enabled_func
                 item.help_text = options.help_text
+                item.dim = options.enabled_func and options.enabled_func() == false or nil
             end
             return item
         end
@@ -1496,17 +1501,34 @@ function M.build(ctx)
             if dcfg.quotes.use_home_font_size then return dcfg.font_size end
             return dcfg.quotes.font_size or 12
         end
+        local custom_quotes_available = HomeQuotes.hasCustomQuotes()
+        if not custom_quotes_available then
+            local sources = quote_sources()
+            sources.custom = false
+            if not sources.default and not sources.annotations then
+                sources.default = true
+            end
+        end
+        local source_items = {
+            source_item(_("Default quotes"), "default"),
+            source_item(_("Custom quotes"), "custom", {
+                enabled_func = HomeQuotes.hasCustomQuotes,
+                help_text = _("Add at least one quote to settings/Zen UI/quotes.lua to enable this source."),
+            }),
+        }
+        if not custom_quotes_available then
+            source_items[#source_items + 1] = {
+                text = _("quotes.lua is empty"),
+                enabled = false,
+                dim = true,
+            }
+        end
+        source_items[#source_items + 1] =
+            source_item(_("Annotations"), "annotations")
         local items = {
             {
                 text = _("Quote sources"),
-                sub_item_table = {
-                    source_item(_("Default quotes"), "default"),
-                    source_item(_("Custom quotes"), "custom", {
-                        enabled_func = HomeQuotes.hasCustomQuotes,
-                        help_text = _("Add at least one quote to settings/Zen UI/quotes.lua to enable this source."),
-                    }),
-                    source_item(_("Annotations"), "annotations"),
-                },
+                sub_item_table = source_items,
             },
             {
                 text = _("New quote"),
