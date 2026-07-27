@@ -100,6 +100,22 @@ local function apply()
         }
     end
 
+    -- KOReader 2026.07 removed Translate from the default dictionary layout,
+    -- while keeping the action in the button pool.
+    local function translate_btn(dict_widget, orig)
+        if orig then
+            return icon_btn(orig, ICON_MAP.translate)
+        end
+        return {
+            id = "translate",
+            icon = ICON_MAP.translate,
+            enabled = not dict_widget.isDocless or not dict_widget:isDocless(),
+            callback = function()
+                Translator:showTranslation(dict_widget.lookupword or dict_widget.word, true)
+            end,
+        }
+    end
+
     -- Find the existing highlight index for the current selection (rolling docs).
     -- Returns nil if no match found.
     local function find_existing_highlight_index(highlight_module)
@@ -242,9 +258,7 @@ local function apply()
             end
 
             -- Translate.
-            if by_id["translate"] then
-                table.insert(icon_row, icon_btn(by_id["translate"], ICON_MAP.translate))
-            end
+            table.insert(icon_row, translate_btn(self_dql, by_id["translate"]))
 
             -- AI assistant.
             if show_ai_assistant() then
@@ -320,13 +334,7 @@ local function apply()
         end
 
         -- Translate is not included in the DictButtonsReady event; build manually.
-        local translate_btn = {
-            id   = "translate",
-            icon = "lookup.translate",
-            callback = function()
-                Translator:showTranslation(dict_widget.word, true)
-            end,
-        }
+        local translation = translate_btn(dict_widget)
 
         local icon_row = {}
         local h = icon_btn(by_id["highlight"], "lookup.highlight")
@@ -350,7 +358,7 @@ local function apply()
         if h then table.insert(icon_row, h) end
         -- vocab slot placeholder: filled in post-process below
         if w then table.insert(icon_row, w) end
-        table.insert(icon_row, translate_btn)
+        table.insert(icon_row, translation)
         if ai then table.insert(icon_row, ai) end
         if s then table.insert(icon_row, s) end
 

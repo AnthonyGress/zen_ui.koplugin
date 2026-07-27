@@ -21,6 +21,7 @@
     local Model = require("modules/menu/app_launcher/model")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
     local ZenButton = require("common/ui/zen_button")
+    local SolidCircle = require("common/ui/zen_solid_circle")
     local utils = require("common/utils")
     local library_font = require("modules/filebrowser/patches/library_font")
 
@@ -150,7 +151,7 @@
             end
         end
         local border = active and 0 or circle_border
-        local icon_circle = FrameContainer:new{
+        local icon_circle = SolidCircle:new{
             width = circle_size,
             height = circle_size,
             padding = 0,

@@ -219,5 +219,10 @@ return {
         "Add TBR instructions to docs",
         "Fix translation bug",
         "Fix custom icon in menu for default tab"
+    },
+    ["2.5.4"] = {
+        "Ensure wifi before showing ZenPM installer",
+        "Adjust Zen screensaver book cover resolution",
+        "Update testing emulator to KOReader 2026.07"
     }
 }

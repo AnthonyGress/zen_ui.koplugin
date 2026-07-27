@@ -107,16 +107,21 @@ describe("reader lookup menus", function()
     end)
 
     it("turns dictionary buttons into the configured icon row", function()
+        local translated
         local original = {
             { { id = "highlight", callback = function() end }, { id = "wikipedia" } },
-            { { id = "translate" }, { id = "search" }, { id = "third_party", text = "Extra" } },
+            { { id = "search" }, { id = "third_party", text = "Extra" } },
         }
         local DictQuickLookup = {
             buildButtonLayout = function() return original end,
         }
         ZenSpec.replace("ui/widget/dictquicklookup", DictQuickLookup)
         ZenSpec.replace("apps/reader/modules/readerhighlight", {})
-        ZenSpec.replace("ui/translator", {})
+        ZenSpec.replace("ui/translator", {
+            showTranslation = function(_, word, is_quick_lookup)
+                translated = { word, is_quick_lookup }
+            end,
+        })
         _G.__ZEN_UI_PLUGIN = {
             config = {
                 features = { dict_quick_lookup = true },
@@ -125,7 +130,10 @@ describe("reader lookup menus", function()
         }
         require("modules/reader/patches/dict_quick_lookup")()
 
-        local result = DictQuickLookup.buildButtonLayout({ highlight = {} })
+        local result = DictQuickLookup.buildButtonLayout({
+            highlight = {},
+            lookupword = "deterministic",
+        })
         assert.same({
             "lookup.highlight", "lookup.wikipedia", "lookup.translate", "lookup.search",
         }, (function()
@@ -135,6 +143,8 @@ describe("reader lookup menus", function()
         end)())
         assert.are.equal("third_party", result[2][1].id)
         assert.are.equal("Extra", result[2][1].text)
+        result[1][3].callback()
+        assert.same({ "deterministic", true }, translated)
     end)
 
     it("toggles an existing dictionary highlight off and closes the lookup", function()

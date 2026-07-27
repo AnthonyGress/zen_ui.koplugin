@@ -322,7 +322,7 @@ local function restart_koreader()
     end
 end
 
-function M.prompt_install(plugin)
+local function show_install_prompt(plugin)
     local ConfirmBox = require("ui/widget/confirmbox")
     local UIManager = require("ui/uimanager")
     local plugin_template, apk_template = M.detect_assets()
@@ -387,6 +387,15 @@ function M.prompt_install(plugin)
             end)
         end,
     })
+end
+
+function M.prompt_install(plugin)
+    local ok_nm, NetworkMgr = pcall(require, "ui/network/manager")
+    if ok_nm and NetworkMgr and not NetworkMgr:isWifiOn() then
+        NetworkMgr:runWhenOnline(function() show_install_prompt(plugin) end)
+    else
+        show_install_prompt(plugin)
+    end
 end
 
 function M.build_item(plugin)
