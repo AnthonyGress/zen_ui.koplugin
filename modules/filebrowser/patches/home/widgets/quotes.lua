@@ -25,6 +25,7 @@ return {
         local quote = get_quote(ctx)
         local quotes = ctx.config.quotes or {}
         local show_author = quotes.show_author ~= false
+        local show_title = quotes.show_title ~= false
         local automatic_font_size = quotes.automatic_font_size == true
         local Screen = Device.screen
         local quote_font_size = quotes.font_size
@@ -38,13 +39,18 @@ return {
         local content_w = math.max(30, width - padding * 2)
         local inner_h = math.max(20, height - vertical_padding * 2)
         local quote_text = '"' .. (quote.text or "") .. '"'
-        local attribution = quote.attribution
-        if not attribution or attribution == "" then
-            attribution = quote.author or ""
-            if quote.title and quote.title ~= "" then
-                attribution = attribution
-                    .. (attribution ~= "" and ",  " or "") .. quote.title
-            end
+        local attribution_parts = {}
+        if show_author and quote.author and quote.author ~= "" then
+            attribution_parts[#attribution_parts + 1] = quote.author
+        end
+        if show_title and quote.title and quote.title ~= "" then
+            attribution_parts[#attribution_parts + 1] = quote.title
+        end
+        local attribution = table.concat(attribution_parts, ",  ")
+        if attribution == "" and show_author
+                and (not quote.author or quote.author == "")
+                and (not quote.title or quote.title == "") then
+            attribution = quote.attribution or ""
         end
 
         if automatic_font_size then
@@ -65,7 +71,7 @@ return {
                 }
                 local measured_h = quote_probe:getSize().h or 0
                 WidgetResources.free(quote_probe)
-                if show_author and attribution ~= "" then
+                if attribution ~= "" then
                     local candidate_author_face = Font:getFace(
                         "smallinfofont",
                         Screen:scaleBySize(math.max(6, math.floor(candidate * 9 / 10)))
@@ -123,7 +129,7 @@ return {
             Screen:scaleBySize(math.max(6, math.floor(quote_font_size * 9 / 10)))
         )
         local author_h = 0
-        if show_author and attribution ~= "" then
+        if attribution ~= "" then
             local author_probe = TextBoxWidget:new{
                 text = "\226\128\148 " .. attribution,
                 width = content_w,
@@ -167,7 +173,7 @@ return {
         local quote_size = quote_widget:getSize()
         local author_widget
 
-        if show_author and attribution ~= "" then
+        if attribution ~= "" then
             author_widget = TextBoxWidget:new{
                 text = "\226\128\148 " .. attribution,
                 width = content_w,

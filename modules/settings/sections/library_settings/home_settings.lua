@@ -213,6 +213,7 @@ local function ensure_cfg(_config)
 
     if type(dcfg.quotes) ~= "table" then dcfg.quotes = {} end
     if dcfg.quotes.show_author == nil then dcfg.quotes.show_author = true end
+    if dcfg.quotes.show_title == nil then dcfg.quotes.show_title = true end
     if type(dcfg.quotes.sources) ~= "table" then
         dcfg.quotes.sources = { default = true }
     end
@@ -1644,12 +1645,22 @@ function M.build(ctx)
         }
 
         items[#items + 1] = {
-            text = _("Show author and title"),
+            text = _("Show author"),
             checked_func = function()
                 return dcfg.quotes.show_author ~= false
             end,
             callback = function()
                 dcfg.quotes.show_author = dcfg.quotes.show_author == false
+                save_home("reinit")
+            end,
+        }
+        items[#items + 1] = {
+            text = _("Show title"),
+            checked_func = function()
+                return dcfg.quotes.show_title ~= false
+            end,
+            callback = function()
+                dcfg.quotes.show_title = dcfg.quotes.show_title == false
                 save_home("reinit")
             end,
         }

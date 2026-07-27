@@ -472,6 +472,7 @@ local function ensure_home_cfg()
 
     if type(dcfg.quotes) ~= "table" then dcfg.quotes = {} end
     if dcfg.quotes.show_author == nil then dcfg.quotes.show_author = true end
+    if dcfg.quotes.show_title == nil then dcfg.quotes.show_title = true end
     if type(dcfg.quotes.sources) ~= "table" then
         dcfg.quotes.sources = { default = true }
     end

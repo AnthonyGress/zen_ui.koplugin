@@ -71,7 +71,8 @@ Add widgets like featured books, cover strips, reading goals, reading stats, quo
 | Quotes widget > Show widget title | Shows the quotes widget title. |
 | Quotes widget > Quote sources | Selects any combination of default quotes, custom quotes, and annotations. |
 | Quotes widget > New quote | Changes the quote daily or whenever Home refreshes. |
-| Quotes widget > Show author and title | Shows the quote attribution. Annotation quotes show the book title and author. |
+| Quotes widget > Show author | Shows the quote author when available. |
+| Quotes widget > Show title | Shows the book title when available. |
 
 ## Stable Page Labels
 

@@ -166,7 +166,10 @@ describe("home basic widgets", function()
         local widget = component.build({
             width = 400,
             height = 120,
-            config = { font_size = 18, quotes = { show_author = true } },
+            config = {
+                font_size = 18,
+                quotes = { show_author = true, show_title = true },
+            },
             data = {
                 getCurrentQuote = function()
                     return {
@@ -227,6 +230,42 @@ describe("home basic widgets", function()
         assert.are.equal(12, preset.quotes.font_size)
         assert.are.equal("daily", preset.quotes.rotation)
         assert.are.same({ default = true }, preset.quotes.sources)
+        assert.is_true(preset.quotes.show_author)
+        assert.is_true(preset.quotes.show_title)
+    end)
+
+    it("controls quote authors and titles independently", function()
+        local function render_attribution(show_author, show_title)
+            created = {}
+            ZenSpec.unload("modules/filebrowser/patches/home/widgets/quotes")
+            require("modules/filebrowser/patches/home/widgets/quotes").build({
+                width = 400,
+                height = 100,
+                config = {
+                    quotes = {
+                        show_author = show_author,
+                        show_title = show_title,
+                    },
+                },
+                data = {
+                    getCurrentQuote = function()
+                        return {
+                            text = "Read deeply.",
+                            author = "Zen Tester",
+                            title = "The Test Book",
+                        }
+                    end,
+                },
+            })
+        end
+
+        render_attribution(true, false)
+        assert.is_true(has_text("\226\128\148 Zen Tester"))
+        assert.is_false(has_text("\226\128\148 Zen Tester,  The Test Book"))
+
+        render_attribution(false, true)
+        assert.is_true(has_text("\226\128\148 The Test Book"))
+        assert.is_false(has_text("\226\128\148 Zen Tester"))
     end)
 
     it("renders the empty-history quote fallback without an author", function()
