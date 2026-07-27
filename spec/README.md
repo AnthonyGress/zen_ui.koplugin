@@ -32,7 +32,7 @@ emulator scenario; normal smoke and CI runs still execute the complete suite.
 The committed framebuffer baselines are generated only on Linux/Xvfb at
 800×600. Run the `Generate Linux Goldens` workflow manually, download its
 `linux-goldens` artifact, review the PNGs, and commit the approved files under
-`spec/goldens/v2026.03/linux-800x600/`. Normal CI only compares committed
+`spec/goldens/v2026.07/linux-800x600/`. Normal CI only compares committed
 baselines; it never writes or pushes goldens. A missing Linux baseline is a
 test failure, so the initial artifact must be reviewed and committed before
 the regular CI job can pass.

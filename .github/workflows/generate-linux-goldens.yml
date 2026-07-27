@@ -55,5 +55,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: linux-goldens
-          path: spec/goldens/v2026.03/linux-800x600
+          path: spec/goldens/v2026.07/linux-800x600
           if-no-files-found: error
