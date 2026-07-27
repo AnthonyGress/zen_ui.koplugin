@@ -44,6 +44,7 @@ common/ui/zen_menu_picker.lua|unit
 common/ui/zen_pager.lua|unit
 common/ui/zen_screen.lua|unit
 common/ui/zen_scroll_bar.lua|unit
+common/ui/zen_solid_circle.lua|unit
 common/ui/zen_slider.lua|unit
 common/ui/zen_slider_dialog.lua|unit
 common/ui/zen_toggle.lua|unit

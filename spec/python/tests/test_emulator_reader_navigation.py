@@ -114,9 +114,7 @@ def _wait_for_reader(driver: ZenDriver, expected_file: Path) -> dict[str, object
         state = response.get("reader", {})
         if isinstance(state, dict):
             last = state
-            actual_file = state.get("file")
-            if state.get("open") is True and isinstance(actual_file, str) \
-                    and Path(actual_file).resolve() == expected_file.resolve():
+            if state.get("open") is True and Path(str(state.get("file", ""))).resolve() == expected_file.resolve():
                 return state
         time.sleep(0.1)
     raise AssertionError(f"book did not open in ReaderUI: {last}")

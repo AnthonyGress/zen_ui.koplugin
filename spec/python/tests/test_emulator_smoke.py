@@ -34,7 +34,7 @@ def _golden_root() -> Path:
     default_dir = "macos-1200x1600" if platform.system() == "Darwin" else "linux-800x600"
     return Path(os.environ.get(
         "ZEN_UI_GOLDEN_DIR",
-        Path(__file__).parents[2] / "goldens" / "v2026.03" / default_dir,
+        Path(__file__).parents[2] / "goldens" / "v2026.07" / default_dir,
     ))
 
 

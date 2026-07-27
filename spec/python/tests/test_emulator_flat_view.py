@@ -92,4 +92,8 @@ def test_flat_view_pulls_books_out_of_subfolders() -> None:
             assert nested_dir not in paths
         finally:
             process.send_signal(signal.SIGTERM)
-            process.wait(timeout=15)
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
