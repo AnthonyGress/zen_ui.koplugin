@@ -38,6 +38,7 @@ describe("home recent strip widget", function()
     before_each(function()
         created, cover_books, empty_sources, library_font_sizes, scheduled = {}, {}, {}, {}, {}
         touch_device = false
+        rawset(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER", nil)
         ZenSpec.replace("common/ui/background", { tile_bg = function(color) return color end })
         ZenSpec.replace("ffi/blitbuffer", {
             COLOR_BLACK = "black", COLOR_WHITE = "white", COLOR_LIGHT_GRAY = "lightgray",
@@ -182,6 +183,32 @@ describe("home recent strip widget", function()
         assert.are.equal(0, #cover_books)
         assert.are.same({ true }, empty_sources)
         assert.is_true(has_text("No recently read books found"))
+    end)
+
+    it("supplies the selected strip cover before opening its book", function()
+        local captured_cover
+        rawset(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER", function(cover)
+            captured_cover = cover
+        end)
+        local book = { path = "/library/alpha.epub", title = "Alpha" }
+        local focus_target
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        Strip.build({
+            width = 600,
+            height = 160,
+            face_label = { size = 12 },
+            component_id = "strip_recent",
+            module_cfg = { count = 4, interactive = true },
+            data = { getBooksForStrip = function() return { book } end },
+            registerHomeFocusTarget = function(target, child)
+                focus_target = target
+                return child
+            end,
+            openBook = function() end,
+        })
+
+        assert.is_true(focus_target.activate())
+        assert.is_not_nil(captured_cover)
     end)
 
     it("replaces only the swiped strip with its next books", function()

@@ -33,6 +33,7 @@ describe("home featured widget", function()
         created = {}
         cover_calls = {}
         empty_sources = {}
+        rawset(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER", nil)
         ZenSpec.replace("common/ui/background", { tile_bg = function(color) return color end })
         ZenSpec.replace("ffi/blitbuffer", {
             COLOR_BLACK = "black", COLOR_GRAY_5 = "gray5",
@@ -186,6 +187,29 @@ describe("home featured widget", function()
         assert.is_table(series)
         assert.equals("SeriesFont", series.face.name)
         assert.is_true(series.bold)
+    end)
+
+    it("supplies the featured cover before opening its book", function()
+        local captured_cover
+        rawset(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER", function(cover)
+            captured_cover = cover
+        end)
+        local book = { path = "/library/alpha.epub", title = "Alpha" }
+        local actions
+        local Featured = require("modules/filebrowser/patches/home/widgets/featured_common")
+        Featured.build({
+            width = 600,
+            height = 220,
+            face_label = { size = 12 },
+            module_cfg = {},
+            data = { getFeaturedBook = function() return book end },
+            setWidgetActions = function(value) actions = value end,
+            openBook = function() end,
+        }, "recently_read")
+
+        assert.is_true(actions.activate())
+        assert.are.equal(cover_calls[1].book, book)
+        assert.is_not_nil(captured_cover)
     end)
 
     it("renders an empty recent-history state", function()

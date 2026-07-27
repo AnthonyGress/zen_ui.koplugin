@@ -266,6 +266,8 @@ local function apply_zen_mosaic_renderer()
     end
 
     function ZenMosaicItem:onTapSelect()
+        local set_cover = rawget(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER")
+        if type(set_cover) == "function" then set_cover(self._zen_cover_frame) end
         self.menu:onMenuSelect(self.entry)
         return true
     end

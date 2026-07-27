@@ -65,6 +65,18 @@ local function apply_reader_themes()
         return result
     end
 
+    local orig_doShowReader = ReaderUI.doShowReader
+    ReaderUI.doShowReader = function(self, ...)
+        local result = orig_doShowReader(self, ...)
+        local reader = ReaderUI.instance
+        if reader and reader.document and ReaderThemes.isActive(plugin) then
+            -- The themed background replaces a visually busy library page.
+            UIManager:setDirty(nil, "full")
+            UIManager:forceRePaint()
+        end
+        return result
+    end
+
     local Screen = Device.screen
     local orig_toggleNightMode = Screen.toggleNightMode
     Screen.toggleNightMode = function(self, ...)

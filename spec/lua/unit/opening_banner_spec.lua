@@ -52,7 +52,7 @@ describe("opening banner", function()
         ZenSpec.replace("ui/widget/widget", Widget)
         ZenSpec.replace("common/zen_logger", {
             new = function()
-                return { info = function() end, err = function() end, perf = function() end }
+                return { info = function() end, warn = function() end, err = function() end, perf = function() end }
             end,
         })
         ZenSpec.replace("gettext", function(text) return text end)
@@ -81,6 +81,34 @@ describe("opening banner", function()
         run_next_tick()
         assert.same({ shown[1] }, closed)
         assert.are.equal(1, opens)
+    end)
+
+    it("uses a home-widget cover supplied by the opening-banner handoff", function()
+        local ReaderUI, _, shown, _, run_next_tick = install_stubs()
+        local opens = 0
+        local reader = {
+            doShowReader = function()
+                opens = opens + 1
+            end,
+        }
+        apply_patch()
+
+        local set_cover = rawget(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER")
+        assert.is_function(set_cover)
+        assert.is_true(set_cover({ dimen = { x = 31, y = 47, w = 220, h = 330 } }))
+        assert.are.same({ x = 31, y = 349, w = 220, h = 28 }, shown[1].dimen)
+
+        ReaderUI.showReaderCoroutine(reader, "book.epub", {})
+        assert.are.equal(1, #shown)
+
+        run_next_tick()
+        assert.is_true(set_cover({ dimen = { x = 52, y = 80, w = 180, h = 270 } }))
+        assert.are.same({ x = 52, y = 322, w = 180, h = 28 }, shown[2].dimen)
+        ReaderUI.showReaderCoroutine(reader, "book.epub", {})
+        assert.are.equal(2, #shown)
+
+        run_next_tick()
+        assert.are.equal(2, opens)
     end)
 
     it("ignores an early tap before visible highlight boxes exist", function()

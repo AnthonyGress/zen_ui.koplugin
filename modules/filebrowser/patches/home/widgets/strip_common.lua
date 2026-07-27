@@ -26,6 +26,11 @@ local logger = require("common/zen_logger").new("home_strip")
 local M = {}
 M.SIZE = { preferred_pct = 0.20, min_pct = 0.12, max_pct = 0.50, grow_priority = 1 }
 
+local function set_opening_banner_cover(cover)
+    local set_cover = rawget(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER")
+    if type(set_cover) == "function" then set_cover(cover) end
+end
+
 -- ── Strip badge helpers ───────────────────────────────────────────────────────
 
 local function get_zen_config(plugin)
@@ -577,6 +582,7 @@ function M.build_strip(ctx, source_key)
                     if not tap_self.dimen or not ges or not ges.pos then return false end
                     if ctx.openTopMenu and ctx.openTopMenu(ges) then return true end
                     if not tap_self.dimen:contains(ges.pos) then return false end
+                    set_opening_banner_cover(item.cover)
                     ctx.openBook(path)
                     return true
                 end
@@ -597,6 +603,7 @@ function M.build_strip(ctx, source_key)
                     width = item_w,
                     height = item.h,
                     activate = function()
+                        set_opening_banner_cover(item.cover)
                         ctx.openBook(path)
                         return true
                     end,

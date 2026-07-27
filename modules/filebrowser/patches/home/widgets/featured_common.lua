@@ -54,6 +54,11 @@ local function get_text_face(style, size)
     return Font:getFace(font_name, size)
 end
 
+local function set_opening_banner_cover(cover)
+    local set_cover = rawget(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER")
+    if type(set_cover) == "function" then set_cover(cover) end
+end
+
 local function paint_pill(bb, x, y, w, h, color)
     if w <= 0 or h <= 0 then return end
     if h <= 1 then
@@ -172,6 +177,7 @@ function M.build(ctx, source_key)
     local book = ctx.data:getFeaturedBook(source, order)
     local show_description = module_cfg.show_description ~= false
     local show_status_bar = module_cfg.show_status_bar == true and type(ctx.buildStatusRow) == "function"
+    local cover_widget, cover_w, cover_actual_h
 
     local col_top_pad = math.max(1, math.floor(height * 0.015))
     local col_bottom_pad = math.max(3, math.floor(height * 0.02))
@@ -198,6 +204,7 @@ function M.build(ctx, source_key)
     if type(ctx.setWidgetActions) == "function" then
         ctx.setWidgetActions{
             activate = function()
+                set_opening_banner_cover(cover_widget)
                 ctx.openBook(book.path)
                 return true
             end,
@@ -213,7 +220,7 @@ function M.build(ctx, source_key)
 
     -- Left column: cover fills col_h, width is natural (aspect ratio driven)
     local cover_max_w = math.max(1, math.floor(col_h * 0.80))
-    local cover_widget, cover_w, cover_actual_h = cover_common.make_cover_widget(
+    cover_widget, cover_w, cover_actual_h = cover_common.make_cover_widget(
         book, cover_max_w, col_h,
         { border = cover_common.BORDER_SIZE, background = Blitbuffer.COLOR_LIGHT_GRAY }
     )
@@ -538,6 +545,7 @@ function M.build(ctx, source_key)
         if not tap_self.dimen or not ges or not ges.pos then return false end
         if ctx.openTopMenu and ctx.openTopMenu(ges) then return true end
         if not tap_self.dimen:contains(ges.pos) then return false end
+        set_opening_banner_cover(cover_widget)
         ctx.openBook(book.path)
         return true
     end

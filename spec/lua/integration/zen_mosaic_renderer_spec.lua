@@ -169,6 +169,26 @@ describe("Zen mosaic renderer", function()
         assert.is_true(found_stock_item)
     end)
 
+    it("supplies the rendered book cover before opening a Zen mosaic tile", function()
+        require("modules/filebrowser/patches/zen_mosaic_renderer")()
+        local captured_cover
+        local selected_entry
+        rawset(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER", function(cover)
+            captured_cover = cover
+        end)
+        local cover = { dimen = { x = 20, y = 30, w = 80, h = 120 } }
+        local entry = { path = "/book.epub" }
+        local item = setmetatable({
+            _zen_cover_frame = cover,
+            entry = entry,
+            menu = { onMenuSelect = function(_, selected) selected_entry = selected end },
+        }, { __index = MosaicMenu._zen_mosaic_item_class })
+
+        assert.is_true(item:onTapSelect())
+        assert.are.equal(cover, captured_cover)
+        assert.are.equal(entry, selected_entry)
+    end)
+
     it("paints status, page, and series badges at the configured scale", function()
         require("modules/filebrowser/patches/zen_mosaic_renderer")()
         _G.__ZEN_UI_PLUGIN.config.browser_cover_badges = {
