@@ -736,6 +736,34 @@ local function migrate_home_quote_font_size()
             changed = true
         end
         local quotes = page.quotes
+        if type(quotes.sources) ~= "table" then
+            quotes.sources = { default = true }
+            changed = true
+        end
+        if quotes.rotation ~= "daily" and quotes.rotation ~= "refresh" then
+            quotes.rotation = "daily"
+            changed = true
+        end
+        if quotes.automatic_font_size ~= true and quotes.automatic_font_size ~= false then
+            quotes.automatic_font_size = false
+            changed = true
+        end
+        local max_font_size = tonumber(quotes.max_font_size)
+        local normalized_max_font_size = math.max(
+            4, math.min(32, math.floor((max_font_size or 16) + 0.5))
+        )
+        if quotes.max_font_size ~= normalized_max_font_size then
+            quotes.max_font_size = normalized_max_font_size
+            changed = true
+        end
+        if quotes.day_seed ~= nil then
+            quotes.day_seed = nil
+            changed = true
+        end
+        if quotes.manual_index ~= nil then
+            quotes.manual_index = nil
+            changed = true
+        end
         local font_size = tonumber(quotes.font_size)
         if quotes.use_home_font_size ~= true
                 and (font_size == nil or (font_size == 18 and quotes.font_size_override ~= true)) then

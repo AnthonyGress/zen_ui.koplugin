@@ -55,7 +55,10 @@ def _seed_home_settings(ko_home: Path) -> None:
       },
       quotes = { show_module_title = false },
     },
-    quotes = { manual_index = 1, show_author = true },
+    quotes = {
+      rotation = "daily", show_author = true,
+      sources = { default = true },
+    },
   },
 }
 """,
