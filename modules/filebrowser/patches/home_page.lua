@@ -12,6 +12,8 @@ local SharedState = require("common/shared_state")
 local title_sort = require("common/title_sort")
 local utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
+local UIManager = require("ui/uimanager")
+local _ = require("gettext")
 
 local M = {}
 local DEFAULT_GOALS_FONT_SIZE = 11
@@ -1360,30 +1362,43 @@ local function build_data_provider(cfg, dcfg)
         local filename = filepath:match("([^/\\]+)$") or filepath
 
         local function open()
-            local ReaderUI = require("apps/reader/readerui")
-            ReaderUI:showReader(filepath)
-            if pos0 or page then
-                UIManager:scheduleIn(0.5, function()
-                    local reader = package.loaded["apps/reader/readerui"]
-                    local instance = reader and reader.instance
-                    if not instance then return end
-                    local Event = require("ui/event")
-                    if pos0 then
-                        instance:handleEvent(Event:new("GotoXPointer", pos0, pos0))
-                    elseif page then
-                        instance:handleEvent(Event:new("GotoPage", tonumber(page) or page))
-                    end
-                end)
-            end
+            UIManager:nextTick(function()
+                local FileManager = require("apps/filemanager/filemanager")
+                local filemanagerutil = require("apps/filemanager/filemanagerutil")
+                local fm = FileManager.instance
+                if filemanagerutil.openFile then
+                    filemanagerutil.openFile(fm, filepath)
+                elseif fm and type(fm.openFile) == "function" then
+                    fm:openFile(filepath)
+                else
+                    local ReaderUI = require("apps/reader/readerui")
+                    ReaderUI:showReader(filepath)
+                end
+                if pos0 or page then
+                    UIManager:scheduleIn(0.5, function()
+                        local reader = package.loaded["apps/reader/readerui"]
+                        local instance = reader and reader.instance
+                        if not instance then return end
+                        local Event = require("ui/event")
+                        if pos0 then
+                            instance:handleEvent(Event:new("GotoXPointer", pos0))
+                        elseif page then
+                            instance:handleEvent(Event:new("GotoPage", tonumber(page) or page))
+                        end
+                    end)
+                end
+            end)
         end
 
         local ConfirmBox = require("ui/widget/confirmbox")
-        UIManager:show(ConfirmBox:new{
-            text = _("Open this file?") .. "\n\n" .. filename,
-            ok_text = _("Open"),
-            cancel_text = _("Cancel"),
-            ok_callback = open,
-        })
+        UIManager:nextTick(function()
+            UIManager:show(ConfirmBox:new{
+                text = _("Open this file?") .. "\n\n" .. filename,
+                ok_text = _("Open"),
+                cancel_text = _("Cancel"),
+                ok_callback = open,
+            })
+        end)
         return true
     end
 
