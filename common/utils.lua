@@ -346,28 +346,39 @@ function M.formatPageCount(pages, long)
     return tostring(pages) .. "\u{00A0}" .. _C(ctx, msgid)
 end
 
-function M.getStablePageCount(filepath, fallback)
+--- Resolve the stable page count, optionally reusing metadata already read by
+--- the caller. context fields: doc_settings, sidecar_checked, book_info, and
+--- book_info_checked.
+function M.getStablePageCount(filepath, fallback, context)
     if type(filepath) ~= "string" or filepath == "" then
         return fallback
     end
 
-    local ok_ds, DocSettings = pcall(require, "docsettings")
-    if ok_ds and DocSettings and DocSettings:hasSidecarFile(filepath) then
-        local ok_doc, doc = pcall(DocSettings.open, DocSettings, filepath)
-        if ok_doc and doc and doc:readSetting("pagemap_use_page_labels") == true then
-            local pages = tonumber(doc:readSetting("pagemap_doc_pages"))
-                or tonumber(doc:readSetting("pagemap_last_page_label"))
-            if pages and pages > 0 then return pages end
+    context = type(context) == "table" and context or {}
+    local doc = context.doc_settings
+    if not doc and context.sidecar_checked ~= true then
+        local ok_ds, DocSettings = pcall(require, "docsettings")
+        if ok_ds and DocSettings and DocSettings:hasSidecarFile(filepath) then
+            local ok_doc, opened_doc = pcall(DocSettings.open, DocSettings, filepath)
+            if ok_doc then doc = opened_doc end
         end
     end
-
-    local ok_bl, BookList = pcall(require, "ui/widget/booklist")
-    if ok_bl and BookList then
-        local ok_book, book = pcall(BookList.getBookInfo, filepath)
-        if not ok_book then book = nil end
-        local pages = book and tonumber(book.pages)
+    if doc and doc:readSetting("pagemap_use_page_labels") == true then
+        local pages = tonumber(doc:readSetting("pagemap_doc_pages"))
+            or tonumber(doc:readSetting("pagemap_last_page_label"))
         if pages and pages > 0 then return pages end
     end
+
+    local book = context.book_info
+    if type(book) ~= "table" and context.book_info_checked ~= true then
+        local ok_bl, BookList = pcall(require, "ui/widget/booklist")
+        if ok_bl and BookList then
+            local ok_book, loaded_book = pcall(BookList.getBookInfo, filepath)
+            if ok_book then book = loaded_book end
+        end
+    end
+    local pages = book and tonumber(book.pages)
+    if pages and pages > 0 then return pages end
 
     fallback = tonumber(fallback)
     return fallback and fallback > 0 and fallback or nil

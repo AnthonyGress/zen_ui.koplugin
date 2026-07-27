@@ -104,9 +104,8 @@ describe("Zen mosaic renderer", function()
         })
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("common/book_status", {
-            getComputedStatus = function(_path, status, percent)
-                if status then return status end
-                return percent and "reading" or "new"
+            getFileStatusData = function()
+                return { effective_status = "new", sidecar_checked = true }
             end,
         })
         ZenSpec.replace("common/utils", {
@@ -186,7 +185,8 @@ describe("Zen mosaic renderer", function()
             _zen_effective_status = "reading",
             percent_finished = 0.5,
             _zen_is_fav = true,
-            _zen_bookinfo = { pages = 120, series_index = 2 },
+            _zen_page_label = "120 p.",
+            _zen_series_label = "#2",
             filepath = "/book.epub",
         }, { __index = item_class })
         local compact = {}
@@ -219,6 +219,108 @@ describe("Zen mosaic renderer", function()
             return width
         end
         assert.is_true(widest(large) > widest(compact))
+    end)
+
+    it("resolves metadata during update and performs no metadata reads during paint", function()
+        local metadata_allowed = true
+        local calls = {
+            bookinfo = 0, sidecar_check = 0, sidecar_open = 0,
+            sidecar_read = 0, booklist = 0, favorite = 0, stat = 0,
+        }
+        local function metadata_call(key)
+            assert.is_true(metadata_allowed, key .. " metadata read during paint")
+            calls[key] = calls[key] + 1
+        end
+        ZenSpec.replace("bookinfomanager", {
+            getBookInfo = function()
+                metadata_call("bookinfo")
+                return { pages = 321, series_index = 4, has_cover = false }
+            end,
+        })
+        local doc_values = {
+            summary = { status = "reading" },
+            percent_finished = 0.25,
+            zen_new_mtime = 200,
+            pagemap_use_page_labels = true,
+            pagemap_doc_pages = 321,
+        }
+        local doc = {
+            readSetting = function(_self, key)
+                metadata_call("sidecar_read")
+                return doc_values[key]
+            end,
+        }
+        ZenSpec.replace("docsettings", {
+            hasSidecarFile = function()
+                metadata_call("sidecar_check")
+                return true
+            end,
+            open = function()
+                metadata_call("sidecar_open")
+                return doc
+            end,
+            findSidecarFile = function() return "/book.sdr/metadata.lua" end,
+        })
+        ZenSpec.replace("libs/libkoreader-lfs", {
+            attributes = function(path, attribute)
+                metadata_call("stat")
+                local values = path == "/book.epub"
+                    and { mode = "file", modification = 200 }
+                    or { mode = "file", modification = 150 }
+                return attribute and values[attribute] or values
+            end,
+        })
+        ZenSpec.replace("ui/widget/booklist", {
+            getBookInfo = function()
+                metadata_call("booklist")
+                return { pages = 999 }
+            end,
+        })
+        ZenSpec.replace("gettext", setmetatable({
+            pgettext = function(_context, text) return text end,
+        }, {
+            __call = function(_self, text) return text end,
+        }))
+        ZenSpec.replace("readcollection", {
+            isFileInCollections = function()
+                metadata_call("favorite")
+                return true
+            end,
+        })
+        _G.__ZEN_UI_PLUGIN.config.browser_cover_badges = {
+            show_mosaic_progress = true,
+            show_favorite_badge = true,
+        }
+        _G.__ZEN_UI_PLUGIN.config.browser_page_count = { show_page_count = true }
+        _G.__ZEN_UI_PLUGIN.config.browser_series_badge = { show_series_badge = true }
+        ZenSpec.unload("common/book_status")
+        ZenSpec.unload("common/utils")
+        ZenSpec.unload("modules/filebrowser/patches/zen_mosaic_renderer")
+        require("modules/filebrowser/patches/zen_mosaic_renderer")()
+        local menu = {
+            item_table = { { title = "Book", is_file = true, path = "/book.epub" } },
+            item_group = {}, layout = {}, items_to_update = {}, page = 1,
+            perpage = 1, nb_cols = 2, item_margin = 1, item_width = 100,
+            item_height = 150, item_dimen = { copy = function() return {} end },
+            inner_dimen = { w = 110 }, _do_cover_images = true,
+        }
+        MosaicMenu._updateItemsBuildUI(menu)
+        local item = menu.layout[1][1]
+        local before_paint = {}
+        for key, value in pairs(calls) do before_paint[key] = value end
+        metadata_allowed = false
+        item._zen_cover_frame.dimen.x = 0
+        item._zen_cover_frame.dimen.y = 0
+        item:paintTo({
+            paintRectRGB32 = function() end,
+            paintRect = function() end,
+        }, 0, 0)
+
+        assert.are.same(before_paint, calls)
+        assert.matches("321", item._zen_page_label)
+        assert.are.equal("#4", item._zen_series_label)
+        assert.are.equal(1, calls.sidecar_open)
+        assert.are.equal(0, calls.booklist)
     end)
 
     it("honors finished dimming and the new-banner setting", function()

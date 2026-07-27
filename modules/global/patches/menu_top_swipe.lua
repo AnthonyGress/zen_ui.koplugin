@@ -21,6 +21,7 @@ local function apply_menu_top_swipe()
     Menu.onSwipe = function(self, arg, ges_ev)
         if ges_ev.direction == "south" then
             if ges_ev.pos.y < Device.screen:getHeight() * 0.14 then
+                require("common/reader_park").ensureFileManager("top-menu-swipe")
                 -- Try FileManager menu first (library / filebrowser context)
                 local fm = require("apps/filemanager/filemanager").instance
                 if fm and fm.menu then
@@ -76,6 +77,7 @@ local function apply_menu_top_swipe()
             end
         end
         if ges_ev.pos.y < Device.screen:getHeight() * 0.05 then
+            require("common/reader_park").ensureFileManager("top-menu-tap")
             local fm = require("apps/filemanager/filemanager").instance
             if fm and fm.menu then
                 local fm_menu = fm.menu

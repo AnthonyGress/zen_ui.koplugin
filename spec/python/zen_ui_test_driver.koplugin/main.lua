@@ -280,6 +280,61 @@ local function navbar_state()
     }
 end
 
+local function find_text_widget(widget, text, seen, depth)
+    if type(widget) ~= "table" or seen[widget] or depth > 64 then return end
+    seen[widget] = true
+    if widget.text == text then return widget end
+    for _i, child in ipairs(widget) do
+        local found = find_text_widget(child, text, seen, depth + 1)
+        if found then return found end
+    end
+end
+
+local function tap_navbar_tab(label)
+    local stack = UIManager._window_stack
+    local top = stack and stack[#stack] and stack[#stack].widget
+    if not top then return false, "top widget unavailable" end
+
+    local navbar
+    local function find_navbar(widget, seen, depth)
+        if type(widget) ~= "table" or seen[widget] or depth > 64 then return end
+        seen[widget] = true
+        if type(widget.onTapNavBar) == "function"
+                and find_text_widget(widget, label, {}, 0) then
+            navbar = widget
+            return
+        end
+        for _i, child in ipairs(widget) do
+            find_navbar(child, seen, depth + 1)
+            if navbar then return end
+        end
+    end
+    find_navbar(top, {}, 0)
+    if not navbar then return false, "navbar tab unavailable: " .. tostring(label) end
+
+    local labels = {}
+    collect_texts(navbar, labels, {}, 0)
+    local label_index
+    for i, value in ipairs(labels) do
+        if value == label then
+            label_index = i
+            break
+        end
+    end
+    local dimen = navbar.dimen
+    if not label_index or not dimen or #labels == 0 then
+        return false, "navbar label geometry unavailable"
+    end
+    local pos = {
+        x = (dimen.x or 0)
+            + math.floor((dimen.w or 1) * (label_index - 0.5) / #labels),
+        y = (dimen.y or 0) + math.floor((dimen.h or 1) / 2),
+        w = 0,
+        h = 0,
+    }
+    return navbar:onTapNavBar(nil, { pos = pos }) == true
+end
+
 local function cover_cache_comparison()
     local FileManager = require("apps/filemanager/filemanager")
     local chooser = FileManager.instance and FileManager.instance.file_chooser
@@ -454,6 +509,10 @@ function Driver:handleCommand(command)
             return { ok = false, error = "navbar callback unavailable" }
         end
         return { ok = open_tab(params.id) == true }
+    end
+    if kind == "tap_navbar_tab" and type(params.label) == "string" then
+        local ok, err = tap_navbar_tab(params.label)
+        return { ok = ok == true, error = err }
     end
     if kind == "race_home_to_books" then
         local open_tab = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_TAB")

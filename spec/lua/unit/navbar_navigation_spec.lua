@@ -183,7 +183,7 @@ describe("file browser navbar navigation", function()
         for _i, name in ipairs({
             "__ZEN_UI_PLUGIN", "__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB", "__ZEN_UI_NAVBAR_OPEN_TAB",
             "__ZEN_UI_NAVBAR_OPEN_FAST_RETURN", "__ZEN_UI_FAST_RETURN",
-            "__ZEN_UI_FAST_RETURN_REBUILDING",
+            "__ZEN_UI_FAST_RETURN_REBUILDING", "__ZEN_UI_RETAIN_LIBRARY_VIEW",
             "__ZEN_UI_NAVBAR_RESOLVE_DEFAULT_TAB", "__ZEN_UI_ACTIVE_TAB_LABEL",
             "__ZEN_UI_REINJECT_FM_NAVBAR", "__ZEN_UI_REINJECT_NAVBARS",
         }) do
@@ -251,6 +251,46 @@ describe("file browser navbar navigation", function()
         assert.are.same({ "home", "authors", "series", "tags", "to_be_read" }, calls)
     end)
 
+    it("does not repaint the covered file manager for overlay tabs", function()
+        local fm = make_instance()
+        local dirty = {}
+        UIManager.setDirty = function(_self, widget, mode)
+            dirty[#dirty + 1] = { widget = widget, mode = mode }
+        end
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("authors"))
+        assert.are.same({}, dirty)
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        assert.are.equal(1, #dirty)
+        assert.are.equal(fm, dirty[1].widget)
+        assert.are.equal("ui", dirty[1].mode)
+    end)
+
+    it("prewarms enabled group tabs after Home becomes visible", function()
+        local scheduled = {}
+        local warmed = {}
+        UIManager.scheduleIn = function(_self, delay, callback)
+            scheduled[#scheduled + 1] = { delay = delay, callback = callback }
+        end
+        ZenSpec.replace("bookinfomanager", {
+            isExtractingInBackground = function() return false end,
+        })
+        ZenSpec.replace("common/db_bookinfo", {
+            getGroupedByAuthor = function() warmed[#warmed + 1] = "authors" end,
+            getGroupedBySeries = function() warmed[#warmed + 1] = "series" end,
+            getGroupedByTags = function() warmed[#warmed + 1] = "tags" end,
+        })
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        assert.are.equal(0.75, scheduled[1].delay)
+        while #scheduled > 0 do
+            table.remove(scheduled, 1).callback()
+        end
+
+        assert.are.same({ "authors", "series", "tags" }, warmed)
+    end)
+
     it("resets strip pages when Home is already on top", function()
         make_instance()
         shared.home.isActiveOnTop = function() return true end
@@ -258,6 +298,21 @@ describe("file browser navbar navigation", function()
 
         assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
         assert.are.same({ "reset_strips" }, calls)
+    end)
+
+    it("raises an existing Home view instead of rebuilding it", function()
+        make_instance()
+        local covering_widget = {}
+        UIManager._window_stack = {
+            { widget = home_widget },
+            { widget = covering_widget },
+        }
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+
+        assert.are.equal(home_widget, UIManager._window_stack[#UIManager._window_stack].widget)
+        assert.are.same({}, calls)
     end)
 
     it("dispatches books and stock file-browser tabs to their intended actions", function()
@@ -309,20 +364,49 @@ describe("file browser navbar navigation", function()
         assert.is_true(used_configured_size)
     end)
 
-    it("opens supported defaults as standalone fast-return views", function()
-        FileManager.setRotationMode = function()
-            calls[#calls + 1] = "rotate"
-        end
-        local fast_return = _G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN()
-        assert.are.equal("home", fast_return.tab_id)
-        assert.are.same({ home_widget }, fast_return.widgets)
-        assert.are.same({ "rotate", "home" }, calls)
+    it("requires an already-retained view for fast return", function()
+        assert.is_false(_G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN())
+        assert.is_false(_G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN("series"))
+        assert.are.same({}, calls)
+    end)
 
+    it("reuses Home from beneath Reader instead of rebuilding it", function()
+        UIManager._window_stack = { { widget = home_widget } }
+        _G.__ZEN_UI_RETAIN_LIBRARY_VIEW = {
+            tab_id = "home",
+            widgets = { home_widget },
+            rotation = "unknown",
+        }
+
+        local fast_return = _G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN("home")
+
+        assert.is_true(fast_return.retained)
+        assert.are.same({ home_widget }, fast_return.widgets)
+        assert.are.same({}, calls)
+    end)
+
+    it("does not park a retained view from another rotation", function()
+        UIManager._window_stack = { { widget = home_widget } }
+        _G.__ZEN_UI_RETAIN_LIBRARY_VIEW = {
+            tab_id = "home",
+            widgets = { home_widget },
+            rotation = "portrait",
+        }
+
+        assert.is_false(_G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN("home"))
+    end)
+
+    it("retains an active Home when opening Reader", function()
+        make_instance()
+        UIManager._window_stack = { { widget = home_widget } }
         calls = {}
-        fast_return = _G.__ZEN_UI_NAVBAR_OPEN_FAST_RETURN("series")
-        assert.are.equal("series", fast_return.tab_id)
-        assert.are.same({ group_widgets.series }, fast_return.widgets)
-        assert.are.same({ "rotate", "series" }, calls)
+
+        FileManager.onShowingReader(FileManager)
+
+        assert.are.same({ "close_groups" }, calls)
+        assert.are.equal("home", _G.__ZEN_UI_RETAIN_LIBRARY_VIEW.tab_id)
+        assert.are.same({ home_widget }, _G.__ZEN_UI_RETAIN_LIBRARY_VIEW.widgets)
+        assert.are.equal("unknown", _G.__ZEN_UI_RETAIN_LIBRARY_VIEW.rotation)
     end)
 
     it("rejects file-manager-backed tabs for fast return", function()

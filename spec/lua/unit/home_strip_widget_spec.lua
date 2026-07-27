@@ -4,6 +4,7 @@ describe("home recent strip widget", function()
     local empty_sources
     local library_font_sizes
     local touch_device
+    local scheduled
 
     local function widget_class(kind)
         return {
@@ -25,7 +26,9 @@ describe("home recent strip widget", function()
                 values.dimen = values.dimen or { x = 0, y = 0, w = width or 1, h = height or 12 }
                 values.getSize = values.getSize or function(self) return self.dimen end
                 values.paintTo = values.paintTo or function() end
-                values.free = values.free or function() end
+                values.free = values.free or function(self)
+                    self.free_calls = (self.free_calls or 0) + 1
+                end
                 created[#created + 1] = values
                 return values
             end,
@@ -33,7 +36,7 @@ describe("home recent strip widget", function()
     end
 
     before_each(function()
-        created, cover_books, empty_sources, library_font_sizes = {}, {}, {}, {}
+        created, cover_books, empty_sources, library_font_sizes, scheduled = {}, {}, {}, {}, {}
         touch_device = false
         ZenSpec.replace("common/ui/background", { tile_bg = function(color) return color end })
         ZenSpec.replace("ffi/blitbuffer", {
@@ -101,6 +104,17 @@ describe("home recent strip widget", function()
             end,
         })
         ZenSpec.replace("gettext", function(text) return text end)
+        ZenSpec.replace("ui/uimanager", {
+            scheduleIn = function(_, _delay, callback)
+                scheduled[#scheduled + 1] = callback
+            end,
+            unschedule = function(_, callback)
+                for i = #scheduled, 1, -1 do
+                    if scheduled[i] == callback then table.remove(scheduled, i) end
+                end
+            end,
+            setDirty = function() end,
+        })
         ZenSpec.unload("common/widget_resources")
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/strip_common")
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/strip_recent")
@@ -111,6 +125,11 @@ describe("home recent strip widget", function()
             if widget.text == expected then return true end
         end
         return false
+    end
+
+    local function run_scheduled()
+        local callback = table.remove(scheduled, 1)
+        if callback then callback() end
     end
 
     it("loads recent books, renders strip titles, and exposes open actions", function()
@@ -196,5 +215,52 @@ describe("home recent strip widget", function()
         assert.are.same({ "recently_read", 4, "default", "next", "strip_recent", false }, shifted)
         assert.are.same({ first, second }, cover_books)
         assert.are.equal(1, refreshed)
+    end)
+
+    it("uses the idle-built adjacent frame without synchronous book or cover work", function()
+        touch_device = true
+        local pages = {
+            [-1] = { { path = "/library/previous.epub", title = "Previous" } },
+            [0] = { { path = "/library/current.epub", title = "Current" } },
+            [1] = { { path = "/library/next.epub", title = "Next" } },
+        }
+        local current_page = 0
+        local page_requests = 0
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local widget = Strip.build({
+            width = 600,
+            height = 160,
+            component_id = "strip_recent",
+            module_cfg = { count = 4, interactive = true },
+            data = {
+                getBooksForStripPage = function(_, _source, _count, _order, _component_id, delta)
+                    page_requests = page_requests + 1
+                    return pages[current_page + delta], true
+                end,
+            },
+            shiftStrip = function(_source, _count, _order, direction, _component_id, _two_rows, refresh)
+                current_page = current_page + (direction == "next" and 1 or -1)
+                refresh()
+                return true
+            end,
+            refreshStrip = function() end,
+        })
+
+        widget:paintTo({}, 0, 0)
+        run_scheduled()
+        run_scheduled()
+        assert.are.equal(3, page_requests)
+        assert.are.equal(3, #cover_books)
+
+        assert.is_true(widget:onSwipeStrip(nil, {
+            pos = { x = 10, y = 10 }, direction = "west",
+        }))
+        assert.are.equal(3, page_requests)
+        assert.are.equal(3, #cover_books)
+
+        widget:free()
+        while #scheduled > 0 do run_scheduled() end
+        assert.are.equal(3, page_requests)
+        assert.are.equal(3, #cover_books)
     end)
 end)

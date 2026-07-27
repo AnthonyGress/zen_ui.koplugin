@@ -1,9 +1,11 @@
 describe("book info grouping cache", function()
     local exec_calls
     local DbBookInfo
+    local now_value
 
     before_each(function()
         exec_calls = 0
+        now_value = 0
         ZenSpec.replace("libs/libkoreader-lfs", {
             attributes = function(path, key)
                 local attr
@@ -36,12 +38,11 @@ describe("book info grouping cache", function()
             },
             openDbConnection = function() end,
         })
-        local tick = 0
+        ZenSpec.replace("readhistory", {
+            hist = { { file = "/books/b.epub" } },
+        })
         ZenSpec.replace("common/zen_logger", {
-            now = function()
-                tick = tick + 0.001
-                return tick
-            end,
+            now = function() return now_value end,
             new = function()
                 return {
                     measure = function() end,
@@ -68,5 +69,27 @@ describe("book info grouping cache", function()
 
         assert.are.equal(2, exec_calls)
         assert.are.same({ hits = 1, misses = 2 }, DbBookInfo.getCacheStats())
+    end)
+
+    it("keeps unchanged group shapes warm across normal tab-switch intervals", function()
+        local first = DbBookInfo.getGroupedByAuthor()
+        now_value = 31
+        local after_thirty_seconds = DbBookInfo.getGroupedByAuthor()
+
+        assert.are.equal(first, after_thirty_seconds)
+        assert.are.equal(1, exec_calls)
+
+        now_value = 301
+        DbBookInfo.getGroupedByAuthor()
+        assert.are.equal(2, exec_calls)
+    end)
+
+    it("builds a sidecar-free TBR candidate list with history first", function()
+        local candidates = DbBookInfo.getTBRIndexCandidates()
+
+        assert.are.equal(2, #candidates)
+        assert.are.equal("/books/b.epub", candidates[1].path)
+        assert.are.equal("Author B", candidates[1].title)
+        assert.are.equal("/books/a.epub", candidates[2].path)
     end)
 end)

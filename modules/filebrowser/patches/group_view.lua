@@ -1898,7 +1898,6 @@ function M.showTBRView(injectNavbar)
 
     local ok, db = pcall(require, "common/db_bookinfo")
     if not ok then return end
-    local files = db.getTBRBooks()
 
     local tab_id     = "to_be_read"
     local SORT_GROUP = "to_be_read"
@@ -1907,8 +1906,18 @@ function M.showTBRView(injectNavbar)
     local cur_collate = get_detail_collate(tab_id, SORT_GROUP, "title")
     local cur_reverse = get_detail_reverse(tab_id, SORT_GROUP, false)
 
-    local sorted_files = sortDetailFiles(files, cur_collate, cur_reverse)
-    sorted_files = apply_status_filter(sorted_files)
+    local ok_index, tbr_index = pcall(require, "common/tbr_index")
+    if not ok_index or type(tbr_index.getAll) ~= "function" then tbr_index = nil end
+
+    local function loadFiles()
+        local loaded = tbr_index and tbr_index.getAll({
+            include_new = book_status.includeNewInTBREnabled(),
+        }) or db.getTBRBooks()
+        loaded = sortDetailFiles(loaded, cur_collate, cur_reverse)
+        return apply_status_filter(loaded)
+    end
+
+    local files = loadFiles()
 
     local function buildItems(flist)
         local lfs_mod  = require("libs/libkoreader-lfs")
@@ -1936,7 +1945,7 @@ function M.showTBRView(injectNavbar)
         return items
     end
 
-    local items = buildItems(sorted_files)
+    local items = buildItems(files)
     if should_show_up_folder() then
         table.insert(items, 1, { text = "\u{2B06} ..", is_go_up = true, mandatory = "" })
     end
@@ -2004,6 +2013,32 @@ function M.showTBRView(injectNavbar)
     end
 
     _tbr_menu = menu
+
+    if tbr_index and (type(tbr_index.isAuditComplete) ~= "function"
+            or not tbr_index.isAuditComplete()) then
+        local refresh_pending = false
+        local function refreshIndexedItems()
+            if refresh_pending then return end
+            refresh_pending = true
+            UIManager:scheduleIn(0.2, function()
+                refresh_pending = false
+                if _tbr_menu ~= menu then return end
+                files = loadFiles()
+                local refreshed = buildItems(files)
+                if should_show_up_folder() then
+                    table.insert(refreshed, 1,
+                        { text = "\u{2B06} ..", is_go_up = true, mandatory = "" })
+                end
+                menu.item_table = refreshed
+                menu:updateItems()
+            end)
+        end
+        UIManager:nextTick(function()
+            local candidates = type(db.getTBRIndexCandidates) == "function"
+                and db.getTBRIndexCandidates() or {}
+            tbr_index.scheduleAudit(candidates, refreshIndexedItems, refreshIndexedItems)
+        end)
+    end
 
     local Device_tbr = require("device")
     if Device_tbr:isTouchDevice() then

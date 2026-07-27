@@ -139,34 +139,56 @@ local function apply_zen_mosaic_renderer()
         local strip_h = strip_metrics(show_title, show_author)
         local content_h = math.max(1, self.height - strip_h)
         local target_w, target_h, border, uniform = cover_dimensions(self.width, content_h)
-        local specs = { max_cover_w = target_w, max_cover_h = target_h }
+        local specs = {
+            max_cover_w = target_w,
+            max_cover_h = target_h,
+            uniform = uniform,
+        }
         self.menu.cover_specs = self.do_cover_image and specs or false
+        self.menu._zen_file_cover_specs = self.do_cover_image and specs or false
         self.file_deleted = self.entry.dim
         self.is_directory = false
         self.bookinfo_found = false
         self._has_cover_image = false
         self.cover_specs = nil
         self._zen_cover_frame = nil
+        self.status = nil
+        self.percent_finished = nil
+        self._zen_effective_status = nil
+        self._zen_is_fav = false
+        self._zen_page_label = nil
+        self._zen_series_label = nil
 
         local info = BookInfoManager:getBookInfo(self.filepath, self.do_cover_image)
         local cover
         if info then
             self.bookinfo_found = true
-            self._zen_bookinfo = info
-            local book_info = type(self.menu.getBookInfo) == "function"
-                and self.menu.getBookInfo(self.filepath) or self.entry or {}
-            self.status = book_info.status
-            self.percent_finished = book_info.percent_finished
-            self._zen_effective_status = book_status.getComputedStatus(
-                self.filepath, self.status, self.percent_finished
-            )
-            local badge = plugin_config().browser_cover_badges or {}
+            local status_data = book_status.getFileStatusData(self.filepath)
+            self.status = status_data.status
+            self.percent_finished = status_data.percent_finished
+            self._zen_effective_status = status_data.effective_status
+            local config = plugin_config()
+            local badge = config.browser_cover_badges or {}
             local is_collection = self.menu.name == "collections" or self.menu._zen_coll_list
             if badge.show_favorite_badge == true and not is_collection then
                 local ReadCollection = require("readcollection")
                 self._zen_is_fav = ReadCollection:isFileInCollections(self.filepath, true)
-            else
-                self._zen_is_fav = false
+            end
+            if config.browser_page_count and config.browser_page_count.show_page_count then
+                local pages = utils.getStablePageCount(self.filepath, info.pages, {
+                    doc_settings = status_data.doc_settings,
+                    sidecar_checked = status_data.sidecar_checked,
+                    book_info = status_data.book_info,
+                    book_info_checked = true,
+                })
+                if pages then self._zen_page_label = utils.formatPageCount(pages) end
+            end
+            if config.browser_series_badge and config.browser_series_badge.show_series_badge then
+                local index = tonumber(info.series_index)
+                if index then
+                    self._zen_series_label = index == math.floor(index) and "#" .. math.floor(index)
+                        or string.format("#%.1f", index)
+                end
             end
             self._has_cover_image = self.do_cover_image and info.has_cover
                 and not info.ignore_cover and info.cover_bb ~= nil
@@ -515,18 +537,8 @@ local function apply_zen_mosaic_renderer()
         paint_favorite_badge(self, bb, config)
         paint_native_progress(self, bb, config)
         paint_progress_badge(self, bb, config)
-        if config.browser_page_count and config.browser_page_count.show_page_count
-                and self._zen_bookinfo then
-            local pages = utils.getStablePageCount(self.filepath, self._zen_bookinfo.pages)
-            if pages then paint_page_badge(self, bb, utils.formatPageCount(pages), config) end
-        end
-        if config.browser_series_badge and config.browser_series_badge.show_series_badge
-                and self._zen_bookinfo and tonumber(self._zen_bookinfo.series_index) then
-            local index = tonumber(self._zen_bookinfo.series_index)
-            local label = index == math.floor(index) and "#" .. math.floor(index)
-                or string.format("#%.1f", index)
-            paint_series_badge(self, bb, label, config)
-        end
+        if self._zen_page_label then paint_page_badge(self, bb, self._zen_page_label, config) end
+        if self._zen_series_label then paint_series_badge(self, bb, self._zen_series_label, config) end
         paint_new_banner(self, bb, config)
     end
 

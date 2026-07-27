@@ -33,4 +33,25 @@ describe("final cover render cache", function()
         assert.is_true(second_source.freed)
         assert.are.equal(1, Cache:stats().hits)
     end)
+
+    it("reuses one larger bitmap across smaller layout sizes", function()
+        Cache:put("/book.epub", 8, 12, bb(8, 12))
+        local smaller = Cache:get("/book.epub", 5, 8)
+
+        assert.are.equal(5, smaller:getWidth())
+        assert.are.equal(8, smaller:getHeight())
+        assert.are.equal(1, Cache:stats().hits)
+    end)
+
+    it("replaces an undersized bitmap for a larger layout", function()
+        Cache:put("/book.epub", 5, 8, bb(5, 8))
+        assert.is_nil(Cache:get("/book.epub", 8, 12))
+
+        Cache:put("/book.epub", 8, 12, bb(8, 12))
+        local larger = Cache:get("/book.epub", 8, 12)
+
+        assert.are.equal(8, larger:getWidth())
+        assert.are.equal(12, larger:getHeight())
+        assert.are.equal(1, Cache:stats().hits)
+    end)
 end)

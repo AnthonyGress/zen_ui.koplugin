@@ -10,7 +10,7 @@ local paths = require("common/paths")
 local bimOk, BookInfoManager = pcall(require, "bookinfomanager")
 
 local M = {}
-local GROUP_CACHE_TTL_S = 30
+local GROUP_CACHE_TTL_S = 300
 local group_cache = {}
 local cache_hits = 0
 local cache_misses = 0
@@ -297,6 +297,58 @@ function M.getTBRBooks()
         "sidecar_reads=", sidecar_reads,
         "books=", #result)
     return result
+end
+
+-- Cheap candidate list for the persistent TBR status index. Reading sidecars
+-- is deliberately left to common/tbr_index's bounded idle audit.
+function M.getTBRIndexCandidates()
+    if not bimOk then return {} end
+    BookInfoManager:openDbConnection()
+    local candidates = {}
+    local by_path = {}
+    local ok_query, err = pcall(function()
+        local sql = [[
+            SELECT directory, filename, title, series_index
+            FROM bookinfo
+            ORDER BY filename
+        ]]
+        for_each_valid_book_row(BookInfoManager.db_conn, sql,
+            function(raw_filepath, _filename, result, index)
+                local candidate = {
+                    path = raw_filepath,
+                    title = result[3] and result[3][index],
+                    series_index = tonumber(result[4] and result[4][index]),
+                }
+                candidates[#candidates + 1] = candidate
+                by_path[raw_filepath] = candidate
+            end)
+    end)
+    if not ok_query then
+        logger.warn("TBR candidate query error:", err)
+        return {}
+    end
+
+    -- Opened books are the most likely explicit TBR matches, so audit history
+    -- first and make the initial indexed page available quickly.
+    local prioritized = {}
+    local seen = {}
+    local ok_history, ReadHistory = pcall(require, "readhistory")
+    if ok_history and ReadHistory and type(ReadHistory.hist) == "table" then
+        for _i, entry in ipairs(ReadHistory.hist) do
+            local path = entry and entry.file
+            local candidate = path and by_path[path]
+            if candidate and not seen[path] then
+                seen[path] = true
+                prioritized[#prioritized + 1] = candidate
+            end
+        end
+    end
+    for _i, candidate in ipairs(candidates) do
+        if not seen[candidate.path] then
+            prioritized[#prioritized + 1] = candidate
+        end
+    end
+    return prioritized
 end
 
 -- Returns a sorted list of tag groups from the keywords (Calibre tags) column:

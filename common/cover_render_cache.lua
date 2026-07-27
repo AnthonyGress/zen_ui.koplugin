@@ -24,8 +24,27 @@ local function free(bb)
     if bb and bb.free then pcall(bb.free, bb) end
 end
 
-local function key(path, width, height)
-    return tostring(path) .. "\31" .. tostring(width) .. "x" .. tostring(height)
+local function key(path)
+    return tostring(path)
+end
+
+-- Takes ownership of source and returns an exact-size crop.
+local function resize(source, width, height)
+    local src_w, src_h = source:getWidth(), source:getHeight()
+    if src_w == width and src_h == height then return source end
+    local scale = math.max(width / src_w, height / src_h)
+    local scaled_w = math.max(width, math.ceil(src_w * scale))
+    local scaled_h = math.max(height, math.ceil(src_h * scale))
+    local scaled = source
+    if scaled_w ~= src_w or scaled_h ~= src_h then
+        scaled = source:scale(scaled_w, scaled_h)
+        free(source)
+    end
+    local out = Blitbuffer.new(width, height, scaled:getType())
+    out:blitFrom(scaled, 0, 0,
+        math.floor((scaled_w - width) / 2), math.floor((scaled_h - height) / 2), width, height)
+    free(scaled)
+    return out
 end
 
 function M:_drop(cache_key, evicted)
@@ -52,8 +71,8 @@ function M:_makeRoom(needed)
 end
 
 function M:get(path, width, height)
-    local entry = self._entries[key(path, width, height)]
-    if not entry then
+    local entry = self._entries[key(path)]
+    if not entry or entry.width < width or entry.height < height then
         self._misses = self._misses + 1
         return nil
     end
@@ -65,11 +84,18 @@ function M:get(path, width, height)
     self._clock = self._clock + 1
     entry.touch = self._clock
     self._hits = self._hits + 1
-    return copy
+    return resize(copy, width, height)
 end
 
 function M:put(path, width, height, bb)
     if not path or not bb then return nil end
+    local cache_key = key(path)
+    local existing = self._entries[cache_key]
+    if existing and existing.width >= width and existing.height >= height then
+        self._clock = self._clock + 1
+        existing.touch = self._clock
+        return bb
+    end
     local ok, stored = pcall(bb.copy, bb)
     if not ok or not stored then return nil end
     local size = bytes(stored)
@@ -77,11 +103,16 @@ function M:put(path, width, height, bb)
         free(stored)
         return nil
     end
-    local cache_key = key(path, width, height)
     self:_drop(cache_key)
     self:_makeRoom(size)
     self._clock = self._clock + 1
-    self._entries[cache_key] = { bb = stored, bytes = size, touch = self._clock }
+    self._entries[cache_key] = {
+        bb = stored,
+        bytes = size,
+        touch = self._clock,
+        width = width,
+        height = height,
+    }
     self._bytes = self._bytes + size
     self._puts = self._puts + 1
     return bb
@@ -95,19 +126,7 @@ function M:render(path, source, width, height)
         return cached
     end
     if not source or width < 1 or height < 1 then return nil end
-    local src_w, src_h = source:getWidth(), source:getHeight()
-    local scale = math.max(width / src_w, height / src_h)
-    local scaled_w = math.max(width, math.ceil(src_w * scale))
-    local scaled_h = math.max(height, math.ceil(src_h * scale))
-    local scaled = source
-    if scaled_w ~= src_w or scaled_h ~= src_h then
-        scaled = source:scale(scaled_w, scaled_h)
-        free(source)
-    end
-    local out = Blitbuffer.new(width, height, scaled:getType())
-    out:blitFrom(scaled, 0, 0,
-        math.floor((scaled_w - width) / 2), math.floor((scaled_h - height) / 2), width, height)
-    if scaled ~= source then free(scaled) else free(source) end
+    local out = resize(source, width, height)
     self:put(path, width, height, out)
     return out
 end
@@ -121,12 +140,7 @@ function M:setByteBudget(value)
 end
 
 function M:drop(path)
-    local prefix = tostring(path) .. "\31"
-    local keys = {}
-    for cache_key in pairs(self._entries) do
-        if cache_key:sub(1, #prefix) == prefix then keys[#keys + 1] = cache_key end
-    end
-    for _i, cache_key in ipairs(keys) do self:_drop(cache_key) end
+    self:_drop(key(path))
 end
 
 function M:clear()

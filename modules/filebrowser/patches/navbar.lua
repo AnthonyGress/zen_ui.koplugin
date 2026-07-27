@@ -20,7 +20,6 @@ local function apply_navbar()
     local utils = require("common/utils")
     local paths = require("common/paths")
     local SharedState = require("common/shared_state")
-    local Background = require("common/ui/background")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
     local Screen = Device.screen
     local _ = require("gettext")
@@ -333,7 +332,6 @@ local function apply_navbar()
     local active_tab
     local _navbar_focused_idx = nil  -- keyboard-focused tab index (nil = file list has focus)
     local _last_menu_item = nil  -- tracks last long-held item for the menu tab
-    local _suppress_bg_tab_refresh = false
     local skip_tabs_for_state = {
         books = true, manga = true, news = true,
         continue = true, search = true, stats = true, exit = true,
@@ -349,30 +347,59 @@ local function apply_navbar()
         _G.__ZEN_UI_ACTIVE_TAB_LABEL = tabs_by_id[active_tab] and tabs_by_id[active_tab].label or active_tab
     end
 
-    local _navbar_bg_refresh_pending = false
-    local function refreshBackgroundTabChange()
-        if _suppress_bg_tab_refresh or _navbar_bg_refresh_pending or not Background.library_active() then return end
-        _navbar_bg_refresh_pending = true
-        UIManager:nextTick(function()
-            _navbar_bg_refresh_pending = false
-            UIManager:setDirty(nil, "full")
-            UIManager:forceRePaint()
-        end)
+    local function tabStaysInFileManager(id)
+        return id == "books"
+            or (id == "manga" and config.manga_action == "folder" and config.manga_folder ~= "")
+            or (id == "news" and config.news_action == "folder" and config.news_folder ~= "")
     end
 
     local function setActiveTab(id)
-        local changed = active_tab ~= id
         active_tab = id
         syncActiveTabLabel()
         _navbar_focused_idx = nil
         local fm = FileManager.instance
-        if fm then
+        local stays_in_browser = tabStaysInFileManager(id)
+        if fm and stays_in_browser then
             injectNavbar(fm)
-            UIManager:setDirty(fm, "full")
+            UIManager:setDirty(fm, "ui")
         end
-        if changed then
-            refreshBackgroundTabChange()
+    end
+
+    local _group_prewarm_pending = false
+    local function scheduleGroupPrewarm()
+        if _group_prewarm_pending or type(UIManager.scheduleIn) ~= "function" then return end
+        local getters = {}
+        if config.show_tabs.authors == true then getters[#getters + 1] = "getGroupedByAuthor" end
+        if config.show_tabs.series == true then getters[#getters + 1] = "getGroupedBySeries" end
+        if config.show_tabs.tags == true then getters[#getters + 1] = "getGroupedByTags" end
+        if #getters == 0 then return end
+
+        _group_prewarm_pending = true
+        local index = 1
+        local extraction_retries = 0
+        local function step()
+            local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
+            if ok_bim and type(BookInfoManager.isExtractingInBackground) == "function"
+                    and BookInfoManager:isExtractingInBackground() then
+                extraction_retries = extraction_retries + 1
+                if extraction_retries <= 10 then
+                    UIManager:scheduleIn(0.4, step)
+                    return
+                end
+                _group_prewarm_pending = false
+                return
+            end
+            local ok_db, db = pcall(require, "common/db_bookinfo")
+            local getter = ok_db and db and db[getters[index]]
+            if type(getter) == "function" then pcall(getter) end
+            index = index + 1
+            if index <= #getters then
+                UIManager:scheduleIn(0.05, step)
+            else
+                _group_prewarm_pending = false
+            end
         end
+        UIManager:scheduleIn(0.75, step)
     end
 
     local function withCoversSuppressed(fn)
@@ -384,15 +411,6 @@ local function apply_navbar()
         else
             _G.__ZEN_UI_SUPPRESS_FILEMANAGER_COVERS = old
         end
-        if not ok then error(result) end
-        return result
-    end
-
-    local function withBgTabRefreshSuppressed(fn)
-        local old = _suppress_bg_tab_refresh
-        _suppress_bg_tab_refresh = true
-        local ok, result = pcall(fn)
-        _suppress_bg_tab_refresh = old
         if not ok then error(result) end
         return result
     end
@@ -409,11 +427,8 @@ local function apply_navbar()
     local function refreshLibraryStatusBar(fm)
         if not (fm and type(fm._updateStatusBar) == "function") then return end
         -- Update synchronously so the titlebar's setDirty coalesces with the
-        -- repaint already queued this tick (the file-list rebuild, or the
-        -- full-screen paint from refreshBackgroundTabChange when a library
-        -- background is active). Deferring to its own nextTick fires a separate
-        -- partial "ui" refresh right after, causing a visible flash on color
-        -- devices. Matches the synchronous onPathChanged approach.
+        -- repaint already queued this tick. Deferring to its own nextTick fires
+        -- a separate partial refresh and causes a visible flash on color devices.
         if FileManager.instance == fm then
             fm:_updateStatusBar()
         end
@@ -658,10 +673,39 @@ local function apply_navbar()
         return false
     end
 
+    local function raiseStandaloneWidgets(widgets)
+        if type(widgets) ~= "table" or #widgets == 0 then return false end
+        local stack = UIManager._window_stack
+        if type(stack) ~= "table" then return false end
+        for _i, widget in ipairs(widgets) do
+            local found
+            for index, entry in ipairs(stack) do
+                if entry and entry.widget == widget then
+                    found = index
+                    break
+                end
+            end
+            if not found then return false end
+            table.insert(stack, table.remove(stack, found))
+        end
+        local top = widgets[#widgets]
+        UIManager:setDirty(top, function()
+            return "ui", top.dimen
+        end)
+        return true
+    end
+
     local function onTabHome()
+        scheduleGroupPrewarm()
         if resetHomeStripPages() then return end
         local Home = get_shared("home")
         if not Home then return end
+        local widgets = type(Home.getActiveWidgets) == "function"
+            and Home.getActiveWidgets() or nil
+        if raiseStandaloneWidgets(widgets) then
+            if type(Home.resetStripPages) == "function" then Home.resetStripPages() end
+            return
+        end
         Home.showHomeView(injectStandaloneNavbar)
     end
 
@@ -830,9 +874,31 @@ local function apply_navbar()
         return first_enabled_default_tab()
     end
 
+    local function prepareParkedTab(tab_id)
+        if tab_id == "home" then return false, false end
+        local ReaderPark = require("common/reader_park")
+        if tab_id == "continue" then
+            local last_file = G_reader_settings:readSetting("lastfile")
+            local was_parked = ReaderPark.isParked()
+            if last_file and ReaderPark.open(last_file) then return true, false end
+            if ReaderPark.isParked() then
+                ReaderPark.ensureFileManager("navbar:continue")
+            end
+            return false, was_parked and not ReaderPark.isParked()
+        end
+        local finished = ReaderPark.ensureFileManager(
+            "navbar:" .. tostring(tab_id))
+        return false, finished
+    end
+
     local function runTabCallback(tab_id)
         local cb = tab_callbacks[tab_id]
         if not cb then return end
+        local consumed, finished_park = prepareParkedTab(tab_id)
+        if consumed then return end
+        if finished_park and shouldTrackActiveTab(tab_id) then
+            setActiveTab(tab_id)
+        end
         if shouldTrackActiveTab(tab_id) then
             cb()
             return
@@ -843,7 +909,7 @@ local function apply_navbar()
             active_tab = saved_active
             syncActiveTabLabel()
             local fm = FileManager.instance
-            if fm then injectNavbar(fm); UIManager:setDirty(fm, "full") end
+            if fm then injectNavbar(fm); UIManager:setDirty(fm, "ui") end
         end
     end
 
@@ -865,46 +931,42 @@ local function apply_navbar()
         return true
     end
 
-    local fast_return_tabs = {
-        home = true,
-        authors = true,
-        series = true,
-        tags = true,
-        to_be_read = true,
-    }
-
     local function open_fast_return(tab_id, trace)
         tab_id = tab_id or resolve_default_tab()
-        if not fast_return_tabs[tab_id] then return false end
+        local retained = rawget(_G, "__ZEN_UI_RETAIN_LIBRARY_VIEW")
+        if type(retained) ~= "table" or retained.tab_id ~= tab_id
+                or type(retained.widgets) ~= "table" or #retained.widgets == 0 then
+            return false
+        end
+        if retained.rotation ~= nil and retained.rotation ~= screenRotation() then
+            return false
+        end
 
         fastReturnTrace(trace, "navbarOpen:start",
             "tab=" .. tostring(tab_id),
             "rotation=" .. tostring(screenRotation()),
             "size=" .. tostring(Screen:getWidth()) .. "x" .. tostring(Screen:getHeight()))
-        local rotation_started_at = trace and trace.now()
-        if type(FileManager.setRotationMode) == "function" then
-            FileManager:setRotationMode()
-        end
-        fastReturnTrace(trace, "navbarOpen:rotationReady",
-            "duration_ms=" .. tostring(rotation_started_at
-                and math.floor((trace.now() - rotation_started_at) * 1000 + 0.5) or 0),
-            "rotation=" .. tostring(screenRotation()),
-            "size=" .. tostring(Screen:getWidth()) .. "x" .. tostring(Screen:getHeight()))
         _G.__ZEN_UI_LIBRARY_STATE = nil
         setActiveTab(tab_id)
-        local view_started_at = trace and trace.now()
-        runTabCallback(tab_id)
-        fastReturnTrace(trace, "navbarOpen:viewBuilt",
-            "duration_ms=" .. tostring(view_started_at
-                and math.floor((trace.now() - view_started_at) * 1000 + 0.5) or 0))
-
+        local stack = UIManager._window_stack or {}
+        local shown = {}
+        for _i, entry in ipairs(stack) do
+            if entry and entry.widget then shown[entry.widget] = true end
+        end
+        for _i, widget in ipairs(retained.widgets) do
+            if not shown[widget] then
+                return false
+            end
+        end
         local view = tab_id == "home" and get_shared("home") or get_shared("group_view")
-        local widgets = view and type(view.getActiveWidgets) == "function"
-            and view.getActiveWidgets(tab_id) or nil
-        if type(widgets) ~= "table" or #widgets == 0 then return false end
+        fastReturnTrace(trace, "navbarOpen:viewRetained",
+            "widgets=" .. tostring(#retained.widgets))
         return {
             tab_id = tab_id,
-            widgets = widgets,
+            widgets = retained.widgets,
+            retained = true,
+            rotation = retained.rotation,
+            refresh = view and view.refreshAfterReader,
         }
     end
 
@@ -1389,14 +1451,10 @@ local function apply_navbar()
             if track_tab and tapped_id ~= active_tab then
                 active_tab = tapped_id
                 syncActiveTabLabel()
-                refreshBackgroundTabChange()
-                -- Only repaint the FM navbar for tabs that render inside it (not overlay views)
-                local stays_in_browser = tapped_id == "books"
-                    or (tapped_id == "manga" and config.manga_action == "folder" and config.manga_folder ~= "")
-                    or (tapped_id == "news" and config.news_action == "folder" and config.news_folder ~= "")
+                local stays_in_browser = tabStaysInFileManager(tapped_id)
                 if stays_in_browser then
                     local fm = FileManager.instance
-                    if fm then injectNavbar(fm); UIManager:setDirty(fm, "full") end
+                    if fm then injectNavbar(fm); UIManager:setDirty(fm, "ui") end
                 end
             end
             return true
@@ -1612,7 +1670,7 @@ local function apply_navbar()
             active_tab = new_tab
             syncActiveTabLabel()
             injectNavbar(self)
-            UIManager:setDirty(self, "full")
+            UIManager:setDirty(self, "ui")
         end
     end
 
@@ -1725,13 +1783,10 @@ local function apply_navbar()
             if track and tid ~= active_tab then
                 active_tab = tid
                 syncActiveTabLabel()
-                refreshBackgroundTabChange()
-                local stays = tid == "books"
-                    or (tid == "manga" and config.manga_action == "folder" and config.manga_folder ~= "")
-                    or (tid == "news"  and config.news_action  == "folder" and config.news_folder  ~= "")
+                local stays = tabStaysInFileManager(tid)
                 if stays then
                     local fm2 = FileManager.instance
-                    if fm2 then injectNavbar(fm2); UIManager:setDirty(fm2, "full") end
+                    if fm2 then injectNavbar(fm2); UIManager:setDirty(fm2, "ui") end
                 end
             end
             runTabCallback(tid)
@@ -2015,6 +2070,8 @@ local function apply_navbar()
                 return true
             end
 
+            if prepareParkedTab(tapped_id) then return true end
+
             if not shouldTrackActiveTab(tapped_id) then
                 if shouldCloseStandaloneBeforeAction(menu, tapped_id) then
                     closeStandaloneView(menu)
@@ -2031,7 +2088,10 @@ local function apply_navbar()
                 return true
             end
 
-            closeStandaloneView(menu)
+            local keep_home = menu.name == "home"
+                and (tapped_id == "authors" or tapped_id == "series"
+                    or tapped_id == "tags" or tapped_id == "to_be_read")
+            if not keep_home then closeStandaloneView(menu) end
 
             -- Update FM navbar active tab only for persistent views.
             if shouldTrackActiveTab(tapped_id) then
@@ -2246,6 +2306,7 @@ local function apply_navbar()
                 if tapped_id == view_tab_id then
                     menu.page = 1; menu:updateItems(); return
                 end
+                if prepareParkedTab(tapped_id) then return end
                 if not shouldTrackActiveTab(tapped_id) then
                     if shouldCloseStandaloneBeforeAction(menu, tapped_id) then
                         closeStandaloneView(menu)
@@ -2412,10 +2473,24 @@ local function apply_navbar()
         else
             _G.__ZEN_UI_LIBRARY_STATE = nil
         end
-        -- Close orphaned overlay menus to keep UIManager's stack clean
-        if gv and gv.closeAll then gv.closeAll() end
         local home = get_shared("home")
-        if home and home.closeAll then home.closeAll() end
+        local home_widgets = source_tab == "home" and home
+            and type(home.getActiveWidgets) == "function"
+            and home.getActiveWidgets() or nil
+        if type(home_widgets) == "table" and #home_widgets > 0 then
+            _G.__ZEN_UI_RETAIN_LIBRARY_VIEW = {
+                tab_id = "home",
+                widgets = home_widgets,
+                rotation = screenRotation(),
+            }
+        else
+            _G.__ZEN_UI_RETAIN_LIBRARY_VIEW = nil
+        end
+        -- Keep an active Home beneath Reader; other standalone views are closed.
+        if gv and gv.closeAll then gv.closeAll() end
+        if not _G.__ZEN_UI_RETAIN_LIBRARY_VIEW and home and home.closeAll then
+            home.closeAll()
+        end
         local fm = FileManager.instance
         if fm then
             if fm.history and fm.history.booklist_menu then
@@ -2478,6 +2553,13 @@ local function apply_navbar()
         local started_at = os.clock()
         local fast_return = rawget(_G, "__ZEN_UI_FAST_RETURN")
         _G.__ZEN_UI_FAST_RETURN = nil
+        if not fast_return and rawget(_G, "__ZEN_UI_RETAIN_LIBRARY_VIEW") then
+            _G.__ZEN_UI_RETAIN_LIBRARY_VIEW = nil
+            local retained_home = get_shared("home")
+            if retained_home and type(retained_home.closeAll) == "function" then
+                retained_home.closeAll()
+            end
+        end
         local fast_trace = fast_return and fast_return.trace
         fastReturnTrace(fast_trace, "fmWrapper:start",
             "path=" .. tostring(path),
@@ -2588,13 +2670,13 @@ local function apply_navbar()
         if open_home_after_filemanager then
             _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = nil
             _G.__ZEN_UI_LIBRARY_STATE = nil
-            withBgTabRefreshSuppressed(function() open_tab("home") end)
+            open_tab("home")
             return
         end
         if open_target_tab then
             _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = nil
             _G.__ZEN_UI_LIBRARY_STATE = nil
-            withBgTabRefreshSuppressed(function() open_tab(open_target_tab) end)
+            open_tab(open_target_tab)
             return
         end
         if open_target_folder then
@@ -2613,13 +2695,11 @@ local function apply_navbar()
             _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = nil
             _G.__ZEN_UI_LIBRARY_STATE = nil
             if forced_default_tab == "books" then
-                withBgTabRefreshSuppressed(function()
-                    setActiveTab("books")
-                    refreshSuppressedCoversNow(filemanager)
-                end)
+                setActiveTab("books")
+                refreshSuppressedCoversNow(filemanager)
                 return
             end
-            withBgTabRefreshSuppressed(open_default_tab)
+            open_default_tab()
             return
         end
         if keep_book_location then
@@ -2646,7 +2726,7 @@ local function apply_navbar()
         active_tab = state.tab
         syncActiveTabLabel()
         -- Open group/standalone view synchronously (stack: [fm, group_menu])
-        withBgTabRefreshSuppressed(function()
+        local function restoreSavedTab()
             local Rakuyomi = getRakuyomi()
             local return_enabled = rakuyomi_return_to_chapter_list_on_exit_enabled()
             local return_file = return_enabled and state.rakuyomi_return_file or nil
@@ -2688,7 +2768,8 @@ local function apply_navbar()
             if not opened_chapters then
                 tab_callbacks[state.tab]()
             end
-        end)
+        end
+        restoreSavedTab()
         if filemanager then
             filemanager.invisible = nil
         end

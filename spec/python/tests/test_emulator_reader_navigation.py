@@ -214,12 +214,25 @@ def test_book_opens_in_reader_and_home_returns_to_library(
 
             returned = driver.reader_menu_home()
             assert returned.get("ok") is True, returned
-            after = _wait_for_file_manager(driver)
-            _wait_for_navbar_view(driver, expected_name, expected_label)
-            assert after.get("path") == before.get("path")
-            assert after.get("page") == before.get("page")
-            if default_tab == "books":
-                _wait_for_folder_cover(driver, folder)
+            if default_tab == "home":
+                _wait_for_navbar_view(driver, "home", "Home")
+                parked = driver.reader_state().get("reader", {})
+                assert parked.get("open") is True, parked
+                assert Path(str(parked.get("file", ""))).resolve() == book.resolve()
+
+                activated = driver.command("tap_navbar_tab", label="Library")
+                assert activated.get("ok") is True, activated
+                after = _wait_for_file_manager(driver)
+                _wait_for_navbar_view(driver, None, "Library")
+                assert after.get("path") == before.get("path")
+                assert after.get("page") == before.get("page")
+            else:
+                after = _wait_for_file_manager(driver)
+                _wait_for_navbar_view(driver, expected_name, expected_label)
+                assert after.get("path") == before.get("path")
+                assert after.get("page") == before.get("page")
+                if default_tab == "books":
+                    _wait_for_folder_cover(driver, folder)
         finally:
             process.send_signal(signal.SIGTERM)
             try:

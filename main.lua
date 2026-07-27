@@ -623,13 +623,16 @@ function ZenUI:init()
             end
             local home_tab = { id = "zen_library_home", icon = library_home_icon(), remember = false }
             home_tab.callback = function()
+                local ui = m_self.ui
+                local was_tearing_down = ui and ui.tearing_down
+                if ui and ui.document then ui.tearing_down = true end
                 require("ui/uimanager"):scheduleIn(0, function()
                     local UIManager = require("ui/uimanager")
                     if m_self.menu_container then
                         UIManager:close(m_self.menu_container)
                         m_self.menu_container = nil
                     end
-                    local ui = m_self.ui
+                    if ui and ui.document then ui.tearing_down = was_tearing_down end
                     if not ui then return end
                     if ui.document then
                         library_navigation.showFromReader(ui, _zen_plugin_ref)
@@ -743,13 +746,19 @@ end
 
 function ZenUI:onCloseWidget()
     local rebuilding = rawget(_G, "__ZEN_UI_FAST_RETURN_REBUILDING") == true
-    if rebuilding then
+    local retaining = type(rawget(_G, "__ZEN_UI_RETAIN_LIBRARY_VIEW")) == "table"
+    local parking = require("common/reader_park").isFinishing()
+    if rebuilding or retaining or parking then
         local fast_return = rawget(_G, "__ZEN_UI_FAST_RETURN")
         local trace = fast_return and fast_return.trace
-        local elapsed = trace and type(trace.now) == "function"
-            and math.floor((trace.now() - trace.started_at) * 1000 + 0.5) or 0
-        logger.info("FAST_RETURN_TRACE", tostring(trace and trace.id),
-            "pluginClose:retainingViews", "elapsed_ms=", elapsed)
+        if trace then
+            local elapsed = type(trace.now) == "function"
+                and math.floor((trace.now() - trace.started_at) * 1000 + 0.5) or 0
+            logger.info("FAST_RETURN_TRACE", tostring(trace.id),
+                "pluginClose:retainingViews", "elapsed_ms=", elapsed)
+        else
+            logger.dbg("Retaining standalone views during context close")
+        end
     else
         close_zen_standalone_views(self._zen_shared)
     end

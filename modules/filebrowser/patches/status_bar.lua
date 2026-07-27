@@ -1118,12 +1118,12 @@ local function apply_status_bar()
         end
     end
 
-    local page_load_refresh_pending = false
-    local function schedulePageLoadStatusRefresh(fm)
-        if not fm or page_load_refresh_pending then return end
-        page_load_refresh_pending = true
+    local show_refresh_pending = false
+    local function scheduleShowStatusRefresh(fm)
+        if not fm or show_refresh_pending then return end
+        show_refresh_pending = true
         UIManager:nextTick(function()
-            page_load_refresh_pending = false
+            show_refresh_pending = false
             refreshVisibleStatusBar(fm, false)
         end)
     end
@@ -1139,7 +1139,7 @@ local function apply_status_bar()
     Menu._zen_status_bar_on_show_refresh = function(menu)
         local fm = FileManager.instance
         if fm and is_enabled() and has_refreshable_status_bar(menu, fm) then
-            schedulePageLoadStatusRefresh(fm)
+            scheduleShowStatusRefresh(fm)
         end
     end
     if not Menu._zen_status_bar_on_show_patched then
@@ -1327,22 +1327,6 @@ local function apply_status_bar()
             end)
         end
     end
-
-    -- Refresh on filebrowser page turns (paging through the file list)
-    local FileChooser = require("ui/widget/filechooser")
-    local function wrapFCPage(method_name)
-        local orig = FileChooser[method_name]
-        FileChooser[method_name] = function(fc, ...)
-            local result = orig and orig(fc, ...) or true
-            local fm = FileManager.instance
-            if fm and is_enabled() then
-                schedulePageLoadStatusRefresh(fm)
-            end
-            return result
-        end
-    end
-    wrapFCPage("onNextPage")
-    wrapFCPage("onPrevPage")
 
     -- onResume: defer long enough for the screensaver to finish its full-screen
     -- repaint and for the titlebar layout to be fully established.  nextTick

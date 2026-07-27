@@ -1,4 +1,4 @@
--- Measure cover-page work and warm the adjacent page in bounded idle chunks.
+-- Measure cover-page work and warm adjacent pages in bounded idle chunks.
 local function apply_cover_preload()
     local CoverMenu = require("covermenu")
     if CoverMenu.__zen_cover_preload_patched then return end
@@ -10,15 +10,17 @@ local function apply_cover_preload()
     local UIManager = require("ui/uimanager")
     local cache = require("common/cover_decode_cache")
     local render_cache = require("common/cover_render_cache")
+    local CoverUtils = require("common/cover_utils")
     local zen_logger = require("common/zen_logger")
     local logger = zen_logger.new("cover_preload")
     local now = zen_logger.now
 
-    local PRELOAD_DELAY_S = 0.35
-    local PRELOAD_TICK_S = 0.05
-    local PRELOAD_CHUNK = 2
+    local PRELOAD_DELAY_S = 0.08
+    local PRELOAD_TICK_S = 0.03
+    local PRELOAD_CHUNK = 9
     local PRELOAD_BUDGET_S = 0.03
     local PRELOAD_MAX_JOBS = 24
+    local PRELOAD_LOOKAHEAD_PAGES = 1
     local COVER_POLL_S = 0.4
     local EXTRACTION_DEBOUNCE_S = 0.15
 
@@ -63,10 +65,14 @@ local function apply_cover_preload()
                 measure.tile_ms = measure.tile_ms + (now() - started_at) * 1000
                 if not measure.logged and measure.tile_count >= measure.expected then
                     measure.logged = true
+                    local input_to_last_tile_ms = measure.input_started_at
+                        and (now() - measure.input_started_at) * 1000 or 0
                     logger.measure("Cover page painted", measure.tile_ms,
                         "page=", measure.page,
                         "tiles=", measure.tile_count,
-                        "wall_ms=", math.floor((now() - measure.started_at) * 1000 + 0.5))
+                        "wall_ms=", math.floor((now() - measure.started_at) * 1000 + 0.5),
+                        "page_turn_direction=", measure.direction or "none",
+                        "input_to_last_tile_ms=", math.floor(input_to_last_tile_ms * 10 + 0.5) / 10)
                 end
                 return result
             end
@@ -254,53 +260,162 @@ local function apply_cover_preload()
         UIManager:scheduleIn(COVER_POLL_S, poll)
     end
 
-    local function add_path(jobs, seen, path, already)
-        if not path or path == "" or seen[path] or #jobs >= PRELOAD_MAX_JOBS then
-            return already
+    local function add_path(jobs, seen, path, width, height, render_width, render_height, final_render)
+        if not path or path == "" then
+            return
         end
-        seen[path] = true
-        if cache:has(path) then return already + 1 end
-        jobs[#jobs + 1] = path
-        return already
+        local existing = seen[path]
+        if existing then
+            if final_render then existing.final_render = true end
+            return
+        end
+        if #jobs >= PRELOAD_MAX_JOBS then return end
+        local job = {
+            path = path,
+            width = width,
+            height = height,
+            render_width = render_width,
+            render_height = render_height,
+            final_render = final_render == true,
+        }
+        seen[path] = job
+        jobs[#jobs + 1] = job
     end
 
     local function collect_jobs(menu, direction)
         local items = menu.item_table
         local perpage = tonumber(menu.perpage)
         local page = tonumber(menu.page)
+        local specs = menu.display_mode_type == "mosaic"
+            and menu._zen_file_cover_specs or menu.cover_specs
+        if type(specs) ~= "table" then specs = menu.cover_specs end
+        local width = type(specs) == "table" and tonumber(specs.max_cover_w)
+        local height = type(specs) == "table" and tonumber(specs.max_cover_h)
+        local render_width, render_height = width, height
+        if type(specs) == "table" and specs.uniform == true and width and height then
+            render_width, render_height = CoverUtils.calcDims(width, height)
+        end
         if type(items) ~= "table" or not perpage or perpage < 1 or not page then
-            return {}, 0, nil
+            return {}, nil
+        end
+        if not width or width < 1 or not height or height < 1 then
+            return {}, nil
         end
         local page_count = tonumber(menu.page_num) or math.max(1, math.ceil(#items / perpage))
-        local target_page = page + direction
-        if target_page < 1 or target_page > page_count then return {}, 0, nil end
-
         local jobs = {}
         local seen = {}
-        local already = 0
-        local first = (target_page - 1) * perpage + 1
-        local last = math.min(#items, first + perpage - 1)
-        for index = first, last do
-            local item = items[index]
-            if type(item) == "table" then
-                local is_file = item.is_file or item.file
-                    or (item.attr and item.attr.mode == "file")
-                if is_file then
-                    already = add_path(jobs, seen, item.path or item.file, already)
-                end
-                local grouped = item._zen_files or item.series_items
-                if type(grouped) == "table" then
-                    for grouped_index = 1, math.min(4, #grouped) do
-                        local grouped_item = grouped[grouped_index]
-                        local path = type(grouped_item) == "table"
-                            and (grouped_item.path or grouped_item.file) or grouped_item
-                        already = add_path(jobs, seen, path, already)
+        local target_pages = {}
+        for page_offset = 1, PRELOAD_LOOKAHEAD_PAGES do
+            local target_page = page + direction * page_offset
+            if target_page < 1 or target_page > page_count then break end
+            target_pages[#target_pages + 1] = target_page
+            local first = (target_page - 1) * perpage + 1
+            local last = math.min(#items, first + perpage - 1)
+            for index = first, last do
+                local item = items[index]
+                if type(item) == "table" then
+                    local is_file = item.is_file or item.file
+                        or (item.attr and item.attr.mode == "file")
+                    if is_file then
+                        add_path(jobs, seen, item.path or item.file,
+                            width, height, render_width, render_height, true)
+                    end
+                    local grouped = item._zen_files or item.series_items
+                    if type(grouped) == "table" then
+                        -- Group/gallery renderers scale these through their own path.
+                        for grouped_index = 1, math.min(4, #grouped) do
+                            local grouped_item = grouped[grouped_index]
+                            local path = type(grouped_item) == "table"
+                                and (grouped_item.path or grouped_item.file) or grouped_item
+                            add_path(jobs, seen, path,
+                                width, height, render_width, render_height, false)
+                        end
                     end
                 end
+                if #jobs >= PRELOAD_MAX_JOBS then break end
             end
             if #jobs >= PRELOAD_MAX_JOBS then break end
         end
-        return jobs, already, target_page
+        return jobs, target_pages
+    end
+
+    local function free_bitmap(bb)
+        if bb and type(bb.free) == "function" then pcall(bb.free, bb) end
+    end
+
+    local function warm_job(job, outcomes)
+        local decoded_cached = cache:has(job.path)
+        local previous = rawget(_G, "__ZEN_COVER_PRELOAD_ACTIVE")
+        _G.__ZEN_COVER_PRELOAD_ACTIVE = true
+        local ok_info, info = pcall(BookInfoManager.getBookInfo,
+            BookInfoManager, job.path, true)
+        _G.__ZEN_COVER_PRELOAD_ACTIVE = previous
+
+        local has_real_cover = ok_info and info and info.cover_bb
+            and info.has_cover and not info.ignore_cover
+        if not job.final_render then
+            if has_real_cover then
+                if decoded_cached then
+                    outcomes.decoded_cached = outcomes.decoded_cached + 1
+                else
+                    outcomes.decoded_warmed = outcomes.decoded_warmed + 1
+                end
+            else
+                outcomes.failed = outcomes.failed + 1
+            end
+            if info and info.cover_bb then
+                free_bitmap(info.cover_bb)
+                info.cover_bb = nil
+            end
+            return
+        end
+        if has_real_cover then
+            if decoded_cached then
+                outcomes.decoded_cached = outcomes.decoded_cached + 1
+            else
+                outcomes.decoded_warmed = outcomes.decoded_warmed + 1
+            end
+            local source = info.cover_bb
+            info.cover_bb = nil
+            local before = render_cache:stats()
+            local ok_render, final = pcall(render_cache.render, render_cache,
+                job.path, source, job.render_width, job.render_height)
+            local after = render_cache:stats()
+            if ok_render and final then
+                free_bitmap(final)
+                if delta(after, before, "puts") > 0 then
+                    outcomes.final_render_warmed = outcomes.final_render_warmed + 1
+                elseif delta(after, before, "hits") > 0 then
+                    outcomes.final_render_cached = outcomes.final_render_cached + 1
+                else
+                    outcomes.failed = outcomes.failed + 1
+                end
+                return
+            end
+            outcomes.failed = outcomes.failed + 1
+            return
+        end
+
+        if info and info.cover_bb then
+            free_bitmap(info.cover_bb)
+            info.cover_bb = nil
+        end
+        local before = render_cache:stats()
+        local ok_generated, generated = pcall(CoverUtils.genCover,
+            job.path, job.width, job.height, nil, info or false)
+        local after = render_cache:stats()
+        if ok_generated and generated then
+            free_bitmap(generated)
+            if delta(after, before, "puts") > 0 then
+                outcomes.generated_warmed = outcomes.generated_warmed + 1
+            elseif delta(after, before, "hits") > 0 then
+                outcomes.generated_cached = outcomes.generated_cached + 1
+            else
+                outcomes.failed = outcomes.failed + 1
+            end
+            return
+        end
+        outcomes.failed = outcomes.failed + 1
     end
 
     local function schedule(menu)
@@ -311,12 +426,14 @@ local function apply_cover_preload()
         end
         local direction = menu._zen_cover_preload_direction or 1
         menu._zen_cover_preload_direction = nil
-        local jobs, already, target_page = collect_jobs(menu, direction)
+        local jobs, target_pages = collect_jobs(menu, direction)
         if #jobs == 0 then return end
+        local target_page = target_pages[1]
         if is_extracting() then
             logger.measure("Cover preload skipped", 0,
                 "reason=background_extraction",
                 "target_page=", target_page,
+                "lookahead_pages=", #target_pages,
                 "queued=", #jobs)
             return
         end
@@ -324,8 +441,16 @@ local function apply_cover_preload()
         menu._zen_cover_preload_jobs = jobs
         local started_at = now()
         local work_ms = 0
-        local warmed = 0
-        local failed = 0
+        local cover_w, cover_h = jobs[1].width, jobs[1].height
+        local outcomes = {
+            decoded_warmed = 0,
+            decoded_cached = 0,
+            final_render_warmed = 0,
+            final_render_cached = 0,
+            generated_warmed = 0,
+            generated_cached = 0,
+            failed = 0,
+        }
 
         local step
         step = function()
@@ -336,6 +461,7 @@ local function apply_cover_preload()
                 logger.measure("Cover preload skipped", work_ms,
                     "reason=background_extraction_after_delay",
                     "target_page=", target_page,
+                    "lookahead_pages=", #target_pages,
                     "queued=", #jobs,
                     "wall_ms=", math.floor((now() - started_at) * 1000 + 0.5))
                 return
@@ -345,23 +471,9 @@ local function apply_cover_preload()
             local processed = 0
             while processed < PRELOAD_CHUNK and #jobs > 0
                     and (processed == 0 or now() < deadline) do
-                local path = table.remove(jobs, 1)
+                local job = table.remove(jobs, 1)
                 processed = processed + 1
-                if cache:has(path) then
-                    already = already + 1
-                else
-                    local previous = rawget(_G, "__ZEN_COVER_PRELOAD_ACTIVE")
-                    _G.__ZEN_COVER_PRELOAD_ACTIVE = true
-                    local ok, info = pcall(BookInfoManager.getBookInfo,
-                        BookInfoManager, path, true)
-                    _G.__ZEN_COVER_PRELOAD_ACTIVE = previous
-                    if ok and info and info.cover_bb then
-                        info.cover_bb:free()
-                        warmed = warmed + 1
-                    else
-                        failed = failed + 1
-                    end
-                end
+                warm_job(job, outcomes)
             end
             work_ms = work_ms + (now() - chunk_started_at) * 1000
             if #jobs > 0 then
@@ -372,9 +484,18 @@ local function apply_cover_preload()
             menu._zen_cover_preload_jobs = nil
             logger.measure("Cover preload completed", work_ms,
                 "target_page=", target_page,
-                "warmed=", warmed,
-                "already_cached=", already,
-                "failed=", failed,
+                "lookahead_pages=", #target_pages,
+                "cover_w=", cover_w,
+                "cover_h=", cover_h,
+                "warmed=", outcomes.final_render_warmed + outcomes.generated_warmed,
+                "already_cached=", outcomes.final_render_cached + outcomes.generated_cached,
+                "decoded_warmed=", outcomes.decoded_warmed,
+                "decoded_cached=", outcomes.decoded_cached,
+                "final_render_warmed=", outcomes.final_render_warmed,
+                "final_render_cached=", outcomes.final_render_cached,
+                "generated_warmed=", outcomes.generated_warmed,
+                "generated_cached=", outcomes.generated_cached,
+                "failed=", outcomes.failed,
                 "wall_ms=", math.floor((now() - started_at) * 1000 + 0.5))
         end
         menu._zen_cover_preload_fn = step
@@ -383,11 +504,16 @@ local function apply_cover_preload()
 
     local function measured_updateItems(menu, original, ...)
         if menu._zen_cover_measure_active then return original(menu, ...) end
+        local turn_measure = menu._zen_cover_turn_measure
+        menu._zen_cover_turn_measure = nil
         menu._zen_cover_measure_active = true
         menu._zen_cover_build_measure = { tile_count = 0, tile_ms = 0 }
         local before = cache:stats()
         local before_render = render_cache:stats()
         local started_at = now()
+        if menu.display_mode_type == "mosaic" then
+            menu._zen_file_cover_specs = nil
+        end
         local result = defer_extraction_launch(menu, original, ...)
         accelerate_cover_poll(menu)
         local elapsed_ms = (now() - started_at) * 1000
@@ -407,9 +533,14 @@ local function apply_cover_preload()
             expected = visible,
             page = menu.page,
             started_at = now(),
+            input_started_at = turn_measure and turn_measure.started_at,
+            direction = turn_measure and turn_measure.direction,
             tile_count = 0,
             tile_ms = 0,
         }
+        local input_to_update_ms = turn_measure
+            and (now() - turn_measure.started_at) * 1000 or 0
+        local file_specs = menu._zen_file_cover_specs
         logger.measure("Cover page updated", elapsed_ms,
             "mode=", tostring(menu.display_mode_type),
             "page=", tostring(menu.page),
@@ -429,7 +560,11 @@ local function apply_cover_preload()
             "render_cache_hits=", delta(after_render, before_render, "hits"),
             "render_cache_misses=", delta(after_render, before_render, "misses"),
             "render_cache_mb=", math.floor((after_render.bytes or 0) / 1024 / 1024 * 10 + 0.5) / 10,
-            "cache_mb=", math.floor((after.bytes or 0) / 1024 / 1024 * 10 + 0.5) / 10)
+            "cache_mb=", math.floor((after.bytes or 0) / 1024 / 1024 * 10 + 0.5) / 10,
+            "cover_w=", type(file_specs) == "table" and file_specs.max_cover_w or 0,
+            "cover_h=", type(file_specs) == "table" and file_specs.max_cover_h or 0,
+            "page_turn_direction=", turn_measure and turn_measure.direction or "none",
+            "input_to_update_ms=", math.floor(input_to_update_ms * 10 + 0.5) / 10)
         schedule(menu)
         return result
     end
@@ -451,19 +586,31 @@ local function apply_cover_preload()
         FileChooser.updateItems = CoverMenu.updateItems
     end
 
-    if not Menu.__zen_cover_preload_direction_patched then
-        Menu.__zen_cover_preload_direction_patched = true
-        local original_next = Menu.onNextPage
-        function Menu:onNextPage(...)
-            self._zen_cover_preload_direction = 1
-            return original_next(self, ...)
-        end
-        local original_prev = Menu.onPrevPage
-        function Menu:onPrevPage(...)
-            self._zen_cover_preload_direction = -1
-            return original_prev(self, ...)
+    local function patch_page_turn(owner, method, direction, label)
+        local marker = "__zen_cover_preload_" .. method .. "_patched"
+        if rawget(owner, marker) or type(owner[method]) ~= "function" then return end
+        owner[marker] = true
+        local original = owner[method]
+        owner[method] = function(menu, ...)
+            if menu._zen_cover_turn_active then return original(menu, ...) end
+            menu._zen_cover_turn_active = true
+            menu._zen_cover_preload_direction = direction
+            local turn_measure = { direction = label, started_at = now() }
+            menu._zen_cover_turn_measure = turn_measure
+            local result = original(menu, ...)
+            if menu._zen_cover_turn_measure == turn_measure then
+                menu._zen_cover_turn_measure = nil
+            end
+            menu._zen_cover_turn_active = nil
+            return result
         end
     end
+    patch_page_turn(Menu, "onNextPage", 1, "next")
+    patch_page_turn(Menu, "onPrevPage", -1, "previous")
+    patch_page_turn(CoverMenu, "onNextPage", 1, "next")
+    patch_page_turn(CoverMenu, "onPrevPage", -1, "previous")
+    patch_page_turn(FileChooser, "onNextPage", 1, "next")
+    patch_page_turn(FileChooser, "onPrevPage", -1, "previous")
 
     local original_onCloseWidget = CoverMenu.onCloseWidget
     local function onCloseWidget(menu, ...)

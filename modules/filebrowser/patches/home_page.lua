@@ -31,7 +31,64 @@ local _zen_plugin = nil
 local _home_book_cache = {}
 local _home_book_cache_order = {}
 local _home_library_paths_cache = nil
+local _home_dataset_cache = nil
+local _home_dataset_generation = 0
 local HOME_BOOK_CACHE_MAX = 32
+local HOME_DATASET_TTL = 120
+
+local function new_home_dataset()
+    _home_dataset_generation = _home_dataset_generation + 1
+    return {
+        generation = _home_dataset_generation,
+        expires_at = os.time() + HOME_DATASET_TTL,
+        effective_status = {},
+        favorite = {},
+        ordered_paths = {},
+        strip_paths = {},
+    }
+end
+
+local function get_home_dataset()
+    if not _home_dataset_cache or os.time() >= _home_dataset_cache.expires_at then
+        _home_dataset_cache = new_home_dataset()
+    end
+    return _home_dataset_cache
+end
+
+local function clear_home_dataset_derived(dataset)
+    if not dataset then return end
+    dataset.ordered_paths = {}
+    dataset.strip_paths = {}
+    dataset.tbr = nil
+end
+
+local function invalidate_home_dataset_path(path, history_changed)
+    if type(path) ~= "string" or path == "" then return end
+    local dataset = _home_dataset_cache
+    if not dataset then return end
+    dataset.generation = dataset.generation + 1
+    dataset.effective_status[path] = nil
+    dataset.favorite[path] = nil
+    if history_changed then dataset.history = nil end
+    clear_home_dataset_derived(dataset)
+end
+
+local function invalidate_home_library_dataset()
+    local loaded_index = package.loaded["common/tbr_index"]
+    if loaded_index and type(loaded_index.invalidateAudit) == "function" then
+        loaded_index.invalidateAudit()
+    elseif loaded_index and type(loaded_index.cancelAudit) == "function" then
+        loaded_index.cancelAudit()
+    end
+    local dataset = _home_dataset_cache
+    if dataset then
+        dataset.generation = dataset.generation + 1
+        dataset.library_paths = nil
+        dataset.tbr_audit_requested = nil
+        clear_home_dataset_derived(dataset)
+    end
+    _home_library_paths_cache = nil
+end
 
 local function free_cached_book(book)
     if book and book.cover_bb and book.cover_bb.free then
@@ -663,18 +720,18 @@ end
 
 local function build_data_provider(cfg, dcfg)
     local provider = {}
+    local dataset = get_home_dataset()
+    local cover_badges = type(cfg) == "table" and type(cfg.browser_cover_badges) == "table"
+        and cfg.browser_cover_badges or {}
+    local wants_favorite_badge = cover_badges.show_favorite_badge == true
     local stats_cached = nil
     local stats_cached_key = nil
-    local history_cached = nil
-    local library_paths_cached = nil
-    local effective_status_cached = {}
-    local tbr_cached = nil
-    local ordered_paths_cached = {}
-    local strip_paths_cached = {}
     local strip_offsets = {}
     local book_cache_hits = 0
     local book_cache_misses = 0
     local book_lookup_ms = 0
+    local tbr_index
+    local tbr_index_checked = false
 
     local function is_widget_visible(widget_id)
         if type(widget_id) ~= "string" or widget_id == "" then return false end
@@ -741,13 +798,13 @@ local function build_data_provider(cfg, dcfg)
     end
 
     local function get_history()
-        if history_cached then
-            return history_cached
+        if dataset.history then
+            return dataset.history
         end
-        history_cached = {}
+        dataset.history = {}
         local ok_rh, ReadHistory = pcall(require, "readhistory")
         if not ok_rh or not ReadHistory then
-            return history_cached
+            return dataset.history
         end
 
         if type(ReadHistory.reload) == "function" then
@@ -774,23 +831,17 @@ local function build_data_provider(cfg, dcfg)
                     and path ~= ""
                     and lfs.attributes(path, "mode") == "file"
                     and (paths.isInHomeDir(path) or is_rakuyomi_history_path(path)) then
-                table.insert(history_cached, path)
+                table.insert(dataset.history, path)
             end
         end
 
-        return history_cached
+        return dataset.history
     end
 
     -- History stays first, while this cached library list supplies unread books
     -- for any remaining Home slots without adding them to KOReader history.
     local function get_library_paths()
         local started_at = os.clock()
-        if library_paths_cached then
-            logger.perf("Library paths cache hit", (os.clock() - started_at) * 1000,
-                "books=", #library_paths_cached)
-            return library_paths_cached
-        end
-
         local paths = require("common/paths")
         local roots = {}
         local seen_roots = {}
@@ -810,8 +861,15 @@ local function build_data_provider(cfg, dcfg)
             end
         end
 
-        local ok_lfs, lfs = pcall(require, "libs/libkoreader-lfs")
         local cache_key = table.concat(roots, "\n")
+        if dataset.library_paths and dataset.library_key == cache_key then
+            logger.perf("Library paths cache hit", (os.clock() - started_at) * 1000,
+                "books=", #dataset.library_paths,
+                "generation=", dataset.generation)
+            return dataset.library_paths
+        end
+
+        local ok_lfs, lfs = pcall(require, "libs/libkoreader-lfs")
         local cached = _home_library_paths_cache
         if ok_lfs and cached and cached.key == cache_key then
             local unchanged = true
@@ -824,15 +882,17 @@ local function build_data_provider(cfg, dcfg)
             if unchanged then
                 logger.perf("Library fallback cache hit", (os.clock() - started_at) * 1000,
                     "books=", #cached.paths)
-                library_paths_cached = cached.paths
-                return library_paths_cached
+                dataset.library_paths = cached.paths
+                dataset.library_key = cache_key
+                return dataset.library_paths
             end
         end
 
-        library_paths_cached = {}
+        dataset.library_paths = {}
+        dataset.library_key = cache_key
         local ok_docs, DocumentRegistry = pcall(require, "document/documentregistry")
         if not (ok_lfs and ok_docs and DocumentRegistry) then
-            return library_paths_cached
+            return dataset.library_paths
         end
 
         local BookWalker = require("common/book_walker")
@@ -868,16 +928,16 @@ local function build_data_provider(cfg, dcfg)
             return a.modification > b.modification
         end)
         for _i, item in ipairs(items) do
-            library_paths_cached[#library_paths_cached + 1] = item.path
+            dataset.library_paths[#dataset.library_paths + 1] = item.path
         end
         _home_library_paths_cache = {
             key = cache_key,
-            paths = library_paths_cached,
+            paths = dataset.library_paths,
             dirs = dirs,
         }
         logger.perf("Library fallback walk completed", (os.clock() - walk_started_at) * 1000,
-            "books=", #library_paths_cached)
-        return library_paths_cached
+            "books=", #dataset.library_paths)
+        return dataset.library_paths
     end
 
     local function populate_time_left(book)
@@ -920,11 +980,13 @@ local function build_data_provider(cfg, dcfg)
         book_cache_misses = book_cache_misses + 1
         local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
         local cover_bb, title, authors, series, series_index, pages, description
+        local book_info
         if ok_bim and BookInfoManager then
             -- get_cover=true also matches a directory/unsupported-file placeholder
             -- object (ignore_cover='Y', _no_provider/_is_directory set) that's never
             -- queueable; real books fall through to the branches below.
             local bi = BookInfoManager:getBookInfo(path, true)
+            book_info = bi
             if bi then
                 title = bi.title
                 authors = bi.authors
@@ -969,7 +1031,6 @@ local function build_data_provider(cfg, dcfg)
             end
         end
         local time_left_pages = pages
-        pages = utils.getStablePageCount(path, pages)
 
         local pct = nil
         local status = nil
@@ -1016,6 +1077,12 @@ local function build_data_provider(cfg, dcfg)
                 end
             end
         end
+        pages = utils.getStablePageCount(path, pages or time_left_pages, {
+            doc_settings = doc_settings,
+            sidecar_checked = true,
+            book_info = book_info,
+            book_info_checked = true,
+        })
         local computed_status = book_status.getComputedStatus(
             path, status, pct, doc_settings
         )
@@ -1104,11 +1171,89 @@ local function build_data_provider(cfg, dcfg)
         return sorted
     end
 
-    local function get_tbr_paths()
-        if tbr_cached then
-            return tbr_cached
+    local function get_tbr_index()
+        if tbr_index_checked then return tbr_index end
+        tbr_index_checked = true
+        local ok_index, index = pcall(require, "common/tbr_index")
+        if ok_index and index then tbr_index = index end
+        return tbr_index
+    end
+
+    local function tbr_sort_options(order_key, exclude_featured)
+        local group_view = cfg and cfg.group_view or {}
+        local detail_collate = group_view.detail_collate or {}
+        local detail_reverse = group_view.detail_reverse or {}
+        local collate_tbl = detail_collate.to_be_read or {}
+        local reverse_tbl = detail_reverse.to_be_read or {}
+        local reverse = reverse_tbl.to_be_read == true
+        if normalize_order(order_key) == "reverse" then reverse = not reverse end
+        local options = {
+            collate = collate_tbl.to_be_read or "title",
+            reverse = reverse,
+            include_new = book_status.includeNewInTBREnabled(),
+        }
+        local index = get_tbr_index()
+        if exclude_featured and index and is_widget_visible("featured_tbr") then
+            local featured = index.getPage(0, 1, {
+                collate = options.collate,
+                reverse = reverse_tbl.to_be_read == true,
+                include_new = options.include_new,
+            })
+            options.exclude_path = featured[1]
         end
-        tbr_cached = {}
+        return options
+    end
+
+    local function invalidate_indexed_tbr()
+        dataset.tbr = nil
+        dataset.tbr_revision = nil
+        dataset.ordered_paths = {}
+        dataset.strip_paths = {}
+    end
+
+    local function schedule_tbr_rebuild()
+        invalidate_indexed_tbr()
+        if dataset.tbr_rebuild_pending then return end
+        dataset.tbr_rebuild_pending = true
+        local UIManager = require("ui/uimanager")
+        UIManager:scheduleIn(0.2, function()
+            dataset.tbr_rebuild_pending = nil
+            if _home_menu and not _home_menu._zen_home_closing then
+                M.rebuildActive()
+            end
+        end)
+    end
+
+    local function ensure_tbr_audit()
+        local index = get_tbr_index()
+        if not index or dataset.tbr_audit_requested
+                or (type(index.isAuditComplete) == "function" and index.isAuditComplete()) then
+            return
+        end
+        dataset.tbr_audit_requested = true
+        local UIManager = require("ui/uimanager")
+        UIManager:nextTick(function()
+            local ok_db, db_bookinfo = pcall(require, "common/db_bookinfo")
+            local candidates = ok_db and db_bookinfo
+                and type(db_bookinfo.getTBRIndexCandidates) == "function"
+                and db_bookinfo.getTBRIndexCandidates() or {}
+            index.scheduleAudit(candidates, schedule_tbr_rebuild)
+        end)
+    end
+
+    local function get_tbr_paths()
+        local index = get_tbr_index()
+        if index then
+            ensure_tbr_audit()
+            local current_revision = index.getRevision()
+            if dataset.tbr and dataset.tbr_revision == current_revision then
+                return dataset.tbr
+            end
+            dataset.tbr = index.getAll(tbr_sort_options("default", false))
+            dataset.tbr_revision = current_revision
+            return dataset.tbr
+        end
+        dataset.tbr = {}
         local ok_db, db = pcall(require, "common/db_bookinfo")
         if ok_db and db and type(db.getTBRBooks) == "function" then
             local raw_tbr = db.getTBRBooks() or {}
@@ -1122,18 +1267,27 @@ local function build_data_provider(cfg, dcfg)
                     table.insert(normalized, path)
                 end
             end
-            tbr_cached = normalized
-            tbr_cached = sort_files_like_tbr(tbr_cached)
+            dataset.tbr = sort_files_like_tbr(normalized)
         end
-        return tbr_cached
+        return dataset.tbr
     end
 
     local function get_effective_status(path)
-        local cached = effective_status_cached[path]
+        local cached = dataset.effective_status[path]
         if cached then return cached end
         local status = book_status.getEffectiveStatusFromFile(path)
-        effective_status_cached[path] = status
+        dataset.effective_status[path] = status
         return status
+    end
+
+    local function get_favorite(path)
+        local cached = dataset.favorite[path]
+        if cached ~= nil then return cached end
+        local ok_rc, ReadCollection = pcall(require, "readcollection")
+        cached = ok_rc and ReadCollection
+            and ReadCollection:isFileInCollections(path, true) == true or false
+        dataset.favorite[path] = cached
+        return cached
     end
 
     local function get_paths_by_statuses(statuses, limit)
@@ -1265,7 +1419,7 @@ local function build_data_provider(cfg, dcfg)
             opts and opts.filter_tbr == true and "tbr" or "",
             opts and opts.filter_finished == true and "finished" or "",
         }, "\0")
-        local cached = ordered_paths_cached[cache_key]
+        local cached = dataset.ordered_paths[cache_key]
         if cached then
             if limit and #cached > limit then
                 local limited = {}
@@ -1287,7 +1441,7 @@ local function build_data_provider(cfg, dcfg)
                 and source ~= "custom_featured" and source ~= "custom_strip" then
             paths = reverse_copy(paths)
         end
-        ordered_paths_cached[cache_key] = paths
+        dataset.ordered_paths[cache_key] = paths
         if limit and #paths > limit then
             local limited = {}
             for i = 1, limit do limited[i] = paths[i] end
@@ -1297,8 +1451,22 @@ local function build_data_provider(cfg, dcfg)
     end
 
     function provider:getFeaturedBook(source_key, order_key)
-        local paths = get_ordered_paths(source_key, nil, order_key)
-        local path = paths[1]
+        local path
+        local used_index = false
+        if source_key == "to_be_read" then
+            local index = get_tbr_index()
+            if index then
+                used_index = true
+                ensure_tbr_audit()
+                local indexed_paths = index.getPage(0, 1,
+                    tbr_sort_options(order_key, false))
+                path = indexed_paths[1]
+            end
+        end
+        if not used_index then
+            local ordered_paths = get_ordered_paths(source_key, 1, order_key)
+            path = ordered_paths[1]
+        end
         local module_id = featured_widget_for_source(source_key)
         local featured_cfg = dcfg and dcfg.modules and dcfg.modules[module_id] or {}
         local progress_meta = featured_cfg.progress_meta or {}
@@ -1324,7 +1492,7 @@ local function build_data_provider(cfg, dcfg)
             mcfg.filter_tbr == true and "tbr" or "",
             mcfg.filter_finished == true and "finished" or "",
         }, "\0")
-        local cached = strip_paths_cached[strip_cache_key]
+        local cached = dataset.strip_paths[strip_cache_key]
         if cached then return source, cached, n end
         local paths = copy_paths(get_ordered_paths(source, nil, order_key, {
             filter_unread = source == "recently_read" and mcfg.filter_unread == true,
@@ -1356,18 +1524,62 @@ local function build_data_provider(cfg, dcfg)
             append_unique_paths(paths, get_history(), n)
         end
 
-        strip_paths_cached[strip_cache_key] = paths
+        dataset.strip_paths[strip_cache_key] = paths
         return source, paths, n
     end
 
-    function provider:getBooksForStrip(source_key, count, order_key, component_id)
+    function provider:getBooksForStripPage(source_key, count, order_key, component_id, page_delta)
+        if source_key == "to_be_read" then
+            local index = get_tbr_index()
+            if index then
+                ensure_tbr_audit()
+                local n = tonumber(count) or 4
+                if n < 1 then n = 1 end
+                local options = tbr_sort_options(order_key, true)
+                local total = index.getCount(options)
+                local offset_key = tostring(component_id or source_key)
+                    .. ":" .. source_key .. ":" .. normalize_order(order_key)
+                local offset = tonumber(strip_offsets[offset_key]) or 0
+                if total > 0 then
+                    offset = offset % total
+                    strip_offsets[offset_key] = offset
+                    offset = (offset + (tonumber(page_delta) or 0) * n) % total
+                else
+                    offset = 0
+                end
+                local paths = index.getPage(offset, n, options)
+                if #paths < n and #paths < total then
+                    local wrapped = index.getPage(0, n - #paths, options)
+                    local seen = {}
+                    for _i, path in ipairs(paths) do seen[path] = true end
+                    for _i, path in ipairs(wrapped) do
+                        if not seen[path] then paths[#paths + 1] = path end
+                    end
+                end
+                local component_cfg = dcfg and dcfg.modules and dcfg.modules[component_id] or {}
+                local resolve_favorite = wants_favorite_badge
+                    and component_cfg.show_badges == true
+                local books = {}
+                for _i, path in ipairs(paths) do
+                    local book = get_book(path)
+                    if book then
+                        if resolve_favorite then book.is_fav = get_favorite(path) end
+                        books[#books + 1] = book
+                    end
+                end
+                return books, total > n or index.isAuditRunning()
+            end
+        end
         local source, paths, n = get_strip_paths(source_key, count, order_key, component_id)
+        local component_cfg = dcfg and dcfg.modules and dcfg.modules[component_id] or {}
+        local resolve_favorite = wants_favorite_badge and component_cfg.show_badges == true
 
         local offset_key = tostring(component_id or source) .. ":" .. source .. ":" .. normalize_order(order_key)
         local offset = tonumber(strip_offsets[offset_key]) or 0
         if #paths > 0 then
             offset = offset % #paths
             strip_offsets[offset_key] = offset
+            offset = (offset + (tonumber(page_delta) or 0) * n) % #paths
         else
             offset = 0
         end
@@ -1378,14 +1590,38 @@ local function build_data_provider(cfg, dcfg)
             local path = paths[idx]
             local book = get_book(path)
             if book then
+                if resolve_favorite then
+                    book.is_fav = get_favorite(path)
+                end
                 table.insert(books, book)
                 if #books >= n then break end
             end
         end
-        return books
+        return books, #paths > n
+    end
+
+    function provider:getBooksForStrip(source_key, count, order_key, component_id)
+        return self:getBooksForStripPage(source_key, count, order_key, component_id, 0)
     end
 
     function provider:shiftStrip(source_key, count, order_key, direction, component_id, refresh)
+        if source_key == "to_be_read" then
+            local index = get_tbr_index()
+            if index then
+                local n = tonumber(count) or 4
+                if n < 1 then n = 1 end
+                local options = tbr_sort_options(order_key, true)
+                local total = index.getCount(options)
+                if total <= n then return false end
+                local offset_key = tostring(component_id or source_key)
+                    .. ":" .. source_key .. ":" .. normalize_order(order_key)
+                local cur = tonumber(strip_offsets[offset_key]) or 0
+                local step = direction == "previous" and -n or n
+                strip_offsets[offset_key] = (cur + step) % total
+                if type(refresh) == "function" then refresh() end
+                return true
+            end
+        end
         local source, paths, n = get_strip_paths(source_key, count, order_key, component_id)
         if #paths <= n then return false end
         local offset_key = tostring(component_id or source) .. ":" .. source .. ":" .. normalize_order(order_key)
@@ -1409,6 +1645,14 @@ local function build_data_provider(cfg, dcfg)
             strip_offsets[offset_key] = nil
         end
         return changed
+    end
+
+    function provider:cancelTBRIndexAudit()
+        local index = get_tbr_index()
+        if not index then return end
+        local was_running = index.isAuditRunning()
+        index.cancelAudit()
+        if was_running then dataset.tbr_audit_requested = nil end
     end
 
     function provider:getCurrentQuote()
@@ -1501,6 +1745,7 @@ local function build_data_provider(cfg, dcfg)
             book_cache_hits = book_cache_hits,
             book_cache_misses = book_cache_misses,
             book_lookup_ms = math.floor(book_lookup_ms + 0.5),
+            dataset_generation = dataset.generation,
         }
     end
 
@@ -1698,7 +1943,7 @@ local function register_home_focus_target(menu, target)
     return target
 end
 
-local function wrap_home_focus_target(menu, target, widget)
+local function wrap_home_focus_target(menu, target, widget, defer_registration)
     if not (menu and target and widget) then return widget end
     local FrameContainer = require("ui/widget/container/framecontainer")
     local size = widget.getSize and widget:getSize() or nil
@@ -1706,7 +1951,9 @@ local function wrap_home_focus_target(menu, target, widget)
     local height = tonumber(target.height) or (size and size.h) or 1
     target.width = width
     target.height = height
-    register_home_focus_target(menu, target)
+    if not defer_registration then
+        register_home_focus_target(menu, target)
+    end
 
     local frame = FrameContainer:new{
         width = width,
@@ -2073,6 +2320,8 @@ local function build_home_content(menu, dcfg, rows, data_provider)
 
     local function open_book(path)
         if not path then return end
+        if require("common/reader_park").open(path) then return end
+        _G.__ZEN_UI_LIBRARY_SOURCE_TAB = "home"
         local fm = FileManager.instance
         if filemanagerutil.openFile then
             filemanagerutil.openFile(fm, path)
@@ -2083,6 +2332,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
 
     local function show_book_context_menu(path, source, component_id)
         if type(path) ~= "string" or path == "" then return false end
+        require("common/reader_park").ensureFileManager("home-context-menu")
         local fm = FileManager.instance
         local fc = fm and fm.file_chooser
         if not (fc and type(fc.showFileDialog) == "function") then return false end
@@ -2098,6 +2348,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             end or nil,
             _zen_after_status_change = function(changed_path)
                 invalidate_home_book_cache(changed_path)
+                invalidate_home_dataset_path(changed_path, false)
                 M.rebuildActive()
             end,
         })
@@ -2147,6 +2398,24 @@ local function build_home_content(menu, dcfg, rows, data_provider)
         end
     end
 
+    local function prepare_home_focus_target(target, widget, component_id, row_focus_base)
+        if not target then return widget end
+        target.component_id = component_id
+        target.row_order = tonumber(target.row_order)
+            or row_focus_base + (tonumber(target.subrow) or 1)
+        target.col = tonumber(target.col) or 1
+        target.key = target.key
+            or (component_id .. ":" .. tostring(target.row_order) .. ":" .. tostring(target.col))
+        return wrap_home_focus_target(menu, target, widget, true)
+    end
+
+    local function activate_strip_focus_targets(component_id, targets)
+        clear_strip_focus_targets(component_id)
+        for _i, target in ipairs(targets or {}) do
+            register_home_focus_target(menu, target)
+        end
+    end
+
     local function refresh_strip(swipe)
         sort_home_focus_targets(menu)
         local restore_i = find_home_focus_index(menu, menu._zen_home_focus_key)
@@ -2164,6 +2433,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
     local top_tap_zone_h = math.max(1, math.floor(Screen:getHeight() * 0.05))
     local function open_top_menu(ges)
         if not (ges and ges.pos and ges.pos.y < top_tap_zone_h) then return false end
+        require("common/reader_park").ensureFileManager("home-menu")
         local fm = FileManager.instance
         local fm_menu = fm and fm.menu
         if fm_menu and fm_menu.activation_menu ~= "swipe" then
@@ -2246,6 +2516,12 @@ local function build_home_content(menu, dcfg, rows, data_provider)
                 target.col = tonumber(target.col) or 1
                 target.key = target.key or (comp.id .. ":" .. tostring(target.row_order) .. ":" .. tostring(target.col))
                 return wrap_home_focus_target(menu, target, widget)
+            end,
+            prepareHomeFocusTarget = function(target, widget)
+                return prepare_home_focus_target(target, widget, comp.id, row_focus_base)
+            end,
+            activateStripFocusTargets = function(targets)
+                activate_strip_focus_targets(comp.id, targets)
             end,
             clearStripFocusTargets = clear_strip_focus_targets,
             refreshStrip = refresh_strip,
@@ -2355,16 +2631,24 @@ local function rows_have_date_dependent(rows)
     return false
 end
 
+local function consume_last_read_file()
+    local last_read_file = rawget(_G, "__ZEN_UI_LAST_READ_FILE")
+    if not last_read_file then return false end
+    _G.__ZEN_UI_LAST_READ_FILE = nil
+    invalidate_home_book_cache(last_read_file)
+    invalidate_home_dataset_path(last_read_file, true)
+    pcall(function()
+        require("common/tbr_index").refreshPath(last_read_file)
+    end)
+    return true
+end
+
 function M.showHomeView(injectNavbar)
     local UIManager = require("ui/uimanager")
 
     refresh_shared_state()
     _home_inject_navbar = injectNavbar
-    local last_read_file = rawget(_G, "__ZEN_UI_LAST_READ_FILE")
-    if last_read_file then
-        _G.__ZEN_UI_LAST_READ_FILE = nil
-        invalidate_home_book_cache(last_read_file)
-    end
+    consume_last_read_file()
     local cfg = load_zen_config()
     if type(cfg) ~= "table" then return end
     local dcfg = ensure_home_cfg()
@@ -2417,7 +2701,8 @@ function M.showHomeView(injectNavbar)
             "rows=", #rows,
             "book_cache_hits=", perf.book_cache_hits or 0,
             "book_cache_misses=", perf.book_cache_misses or 0,
-            "book_lookup_ms=", perf.book_lookup_ms or 0)
+            "book_lookup_ms=", perf.book_lookup_ms or 0,
+            "dataset_generation=", perf.dataset_generation or 0)
     end
 
     function menu:_zen_home_refresh_clock_widgets()
@@ -2562,12 +2847,14 @@ function M.showHomeView(injectNavbar)
 
     function menu:_home_rebuild(refresh_stats, reload_config)
         if self._zen_home_closing then return end
+        self._zen_home_reader_stale = nil
         refresh_shared_state()
         if reload_config == true then
             local next_cfg = load_zen_config()
             if type(next_cfg) == "table" then
                 cfg = next_cfg
                 dcfg = ensure_home_cfg()
+                _home_dataset_cache = new_home_dataset()
                 data_provider = build_data_provider(cfg, dcfg)
             end
         end
@@ -2589,6 +2876,7 @@ function M.showHomeView(injectNavbar)
 
     menu.close_callback = function()
         if menu._zen_home_closing then return end
+        if require("common/reader_park").unpark() then return end
         menu._zen_home_closing = true
         if rawequal(_home_menu, menu) then
             _home_menu = nil
@@ -2601,6 +2889,9 @@ function M.showHomeView(injectNavbar)
         self._zen_home_closing = true
         if rawequal(_home_menu, self) then
             _home_menu = nil
+        end
+        if data_provider and type(data_provider.cancelTBRIndexAudit) == "function" then
+            data_provider:cancelTBRIndexAudit()
         end
         pcall(function()
             require("common/clock_timer").unbind(self)
@@ -2638,8 +2929,16 @@ function M.getActiveWidgets()
     return _home_menu and { _home_menu } or {}
 end
 
-function M.invalidateBookCache(path)
+function M.invalidateBookCache(path, history_changed)
     invalidate_home_book_cache(path)
+    invalidate_home_dataset_path(path, history_changed == true)
+    pcall(function()
+        require("common/tbr_index").refreshPath(path)
+    end)
+end
+
+function M.invalidateLibraryCache()
+    invalidate_home_library_dataset()
 end
 
 function M.rebuildActive()
@@ -2669,9 +2968,26 @@ function M.rebuildActive()
     return false
 end
 
+function M.refreshAfterReader()
+    if not M.isActiveOnTop() or not _home_menu then
+        return false
+    end
+    if consume_last_read_file() then
+        -- Keep the retained framebuffer visible. Rebuild only on the next
+        -- intentional Home activation so reader teardown cannot flash twice.
+        _home_menu._zen_home_reader_stale = true
+    end
+    return true
+end
+
 function M.resetStripPages()
     if not (M.isActiveOnTop() and _home_menu and _home_menu._zen_home_reset_strip_pages) then
         return false
+    end
+    if _home_menu._zen_home_reader_stale and _home_menu._home_rebuild then
+        _home_menu._zen_home_reader_stale = nil
+        _home_menu:_home_rebuild(true)
+        return true
     end
     return _home_menu:_zen_home_reset_strip_pages()
 end

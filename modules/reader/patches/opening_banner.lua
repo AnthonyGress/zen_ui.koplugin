@@ -79,6 +79,20 @@ local function apply_opening_banner()
     local logger  = require("common/zen_logger").new("opening_banner")
     local _       = require("gettext")
 
+    local ok_highlight, ReaderHighlight = pcall(require, "apps/reader/modules/readerhighlight")
+    if ok_highlight and type(ReaderHighlight.onTap) == "function"
+            and not ReaderHighlight._zen_visible_boxes_guard then
+        ReaderHighlight._zen_visible_boxes_guard = true
+        local orig_onTap = ReaderHighlight.onTap
+        ReaderHighlight.onTap = function(self, arg, ges)
+            local highlight = self.view and self.view.highlight
+            if not self.hold_pos and ges and highlight and highlight.visible_boxes == nil then
+                return
+            end
+            return orig_onTap(self, arg, ges)
+        end
+    end
+
     -- Hook MosaicMenuItem.onTapSelect to capture cover cell geometry
     local function try_hook_mosaic()
         local ok, MosaicMenu = pcall(require, "mosaicmenu")
@@ -367,45 +381,48 @@ local function apply_opening_banner()
     end
 
     -- Patch showReaderCoroutine.
-    -- We do NOT call the original on the duplicate-tap path: the original
-    -- shows its own "Opening file '%1'." InfoMessage which the user would
-    -- perceive as a second banner overlapping ours. Instead, on a duplicate
-    -- same-tap call we run doShowReader directly (no InfoMessage).
+    -- Do not show the stock opening message on duplicate opens, but preserve
+    -- its next-tick transition: replacing ReaderUI during the current gesture
+    -- lets that gesture reach the unpainted reader.
     local function _show_reader_no_banner(self, file, provider, seamless)
         logger.info("_show_reader_no_banner called, file=", tostring(file))
-        -- do NOT defer with nextTick: a deferred doShowReader allows UIManager
-        -- to exit before the reader widget is shown (e.g. rakuyomi where the
-        -- caller's widget tree unwinds before the next tick fires).
-        logger.info("_show_reader_no_banner creating doShowReader coroutine, file=", tostring(file), "provider=", tostring(provider))
-        local co = coroutine.create(function()
-            logger.info("_show_reader_no_banner doShowReader coroutine starting")
-            local started_at = os.clock()
-            local doc_ok, doc_err = pcall(function()
-                self:doShowReader(file, provider, seamless)
+        -- Keep UIManager alive for callers that unwind their widget tree before
+        -- the next tick (notably Rakuyomi), without displaying a second banner.
+        local pending = Widget:new{ invisible = true }
+        UIManager:show(pending)
+        UIManager:nextTick(function()
+            UIManager:close(pending)
+            logger.info("_show_reader_no_banner creating doShowReader coroutine, file=", tostring(file), "provider=", tostring(provider))
+            local co = coroutine.create(function()
+                logger.info("_show_reader_no_banner doShowReader coroutine starting")
+                local started_at = os.clock()
+                local doc_ok, doc_err = pcall(function()
+                    self:doShowReader(file, provider, seamless)
+                end)
+                if not doc_ok then
+                    logger.err("_show_reader_no_banner doShowReader threw error:", tostring(doc_err))
+                    logger.err("_show_reader_no_banner doShowReader traceback:", debug.traceback())
+                end
+                logger.info("_show_reader_no_banner doShowReader coroutine finished, ok=", tostring(doc_ok))
+                logger.perf("Book open completed", (os.clock() - started_at) * 1000,
+                    "file=", tostring(file), "ok=", tostring(doc_ok))
             end)
-            if not doc_ok then
-                logger.err("_show_reader_no_banner doShowReader threw error:", tostring(doc_err))
-                logger.err("_show_reader_no_banner doShowReader traceback:", debug.traceback())
+            logger.info("_show_reader_no_banner resuming doShowReader coroutine")
+            local ok, err = coroutine.resume(co)
+            logger.info("_show_reader_no_banner doShowReader coroutine resumed, ok=", tostring(ok), "err=", tostring(err))
+            if err ~= nil or ok == false then
+                logger.err("_show_reader_no_banner coroutine crashed, err=", tostring(err), "ok=", tostring(ok))
+                logger.err("doShowReader coroutine crash traceback:", debug.traceback(co, err, 1))
+                Device:setIgnoreInput(false)
+                local Input = require("device/input")
+                Input:inhibitInputUntil(0.2)
+                local InfoMessage = require("ui/widget/infomessage")
+                UIManager:show(InfoMessage:new{
+                    text = _("No reader engine for this file or invalid file."),
+                })
+                self:showFileManager(file)
             end
-            logger.info("_show_reader_no_banner doShowReader coroutine finished, ok=", tostring(doc_ok))
-            logger.perf("Book open completed", (os.clock() - started_at) * 1000,
-                "file=", tostring(file), "ok=", tostring(doc_ok))
         end)
-        logger.info("_show_reader_no_banner resuming doShowReader coroutine")
-        local ok, err = coroutine.resume(co)
-        logger.info("_show_reader_no_banner doShowReader coroutine resumed, ok=", tostring(ok), "err=", tostring(err))
-        if err ~= nil or ok == false then
-            logger.err("_show_reader_no_banner coroutine crashed, err=", tostring(err), "ok=", tostring(ok))
-            logger.err("doShowReader coroutine crash traceback:", debug.traceback(co, err, 1))
-            Device:setIgnoreInput(false)
-            local Input = require("device/input")
-            Input:inhibitInputUntil(0.2)
-            local InfoMessage = require("ui/widget/infomessage")
-            UIManager:show(InfoMessage:new{
-                text = _("No reader engine for this file or invalid file."),
-            })
-            self:showFileManager(file)
-        end
     end
 
         ReaderUI.showReaderCoroutine = function(self, file, provider, seamless)

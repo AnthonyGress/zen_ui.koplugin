@@ -115,6 +115,18 @@ local function apply_context_menu()
             destination = ffiUtil.realpath(destination) or destination
             pcall(ConfigManager.moveFolderPathSettings, source, destination)
         end
+        if moved then
+            UIManager:nextTick(function()
+                local plug = zen_plugin or rawget(_G, "__ZEN_UI_PLUGIN")
+                local home = plug and SharedState.get(plug, "home")
+                if home and type(home.invalidateBookCache) == "function" then
+                    home.invalidateBookCache(from, true)
+                end
+                if home and type(home.invalidateLibraryCache) == "function" then
+                    home.invalidateLibraryCache()
+                end
+            end)
+        end
         return moved
     end
 
@@ -736,10 +748,7 @@ local function apply_context_menu()
                 end)
             end
 
-            local function refresh_book_info()
-                local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
-                if not ok_bim then return end
-                BookInfoManager:deleteBookInfo(file)
+            local function invalidate_home_book()
                 local home = zen_plugin and SharedState.get(zen_plugin, "home")
                 if home and type(home.invalidateBookCache) == "function" then
                     home.invalidateBookCache(file)
@@ -747,6 +756,13 @@ local function apply_context_menu()
                 if home and type(home.rebuildActive) == "function" then
                     home.rebuildActive()
                 end
+            end
+
+            local function refresh_book_info()
+                local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
+                if not ok_bim then return end
+                BookInfoManager:deleteBookInfo(file)
+                invalidate_home_book()
                 if self_fc.filemanager_menu then
                     self_fc.filemanager_menu.files_updated = true
                 end
@@ -1627,6 +1643,7 @@ local function apply_context_menu()
                                 close_dialog()
                                 ReadCollection:removeItem(file, coll_name)
                                 ReadCollection:write({ [coll_name] = true })
+                                invalidate_home_book()
                                 if item._zen_collection_refresh then
                                     UIManager:nextTick(item._zen_collection_refresh)
                                 end
@@ -1675,6 +1692,7 @@ local function apply_context_menu()
                                         UIManager:close(coll_picker)
                                         ReadCollection:addItem(file, item_m._cn)
                                         ReadCollection:write({ [item_m._cn] = true })
+                                        UIManager:nextTick(invalidate_home_book)
                                         return true
                                     end,
                                     close_callback = function()
@@ -1716,6 +1734,9 @@ local function apply_context_menu()
                                 end
                                 filemanagerutil.saveSummary(doc_settings, summary)
                                 BookList.setBookInfoCacheProperty(file, "status", to_status)
+                                pcall(function()
+                                    require("common/tbr_index").refreshPath(file, doc_settings)
+                                end)
                                 if to_status == nil then
                                     -- Snapshot pages before reset: setBookInfoCacheProperty("been_opened", false)
                                     -- replaces the whole cache entry with {been_opened=false}, losing pages.
@@ -2109,6 +2130,9 @@ local function apply_context_menu()
                                     local home = plug and SharedState.get(plug, "home")
                                     if home and home.rebuildActive then
                                         UIManager:nextTick(function()
+                                            if type(home.invalidateBookCache) == "function" then
+                                                home.invalidateBookCache(file, true)
+                                            end
                                             home.rebuildActive()
                                         end)
                                     end

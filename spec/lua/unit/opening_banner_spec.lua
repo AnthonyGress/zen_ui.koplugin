@@ -1,0 +1,110 @@
+describe("opening banner", function()
+    local function apply_patch()
+        ZenSpec.unload("modules/reader/patches/opening_banner")
+        require("modules/reader/patches/opening_banner")()
+    end
+
+    local function install_stubs()
+        local next_tick
+        local shown, closed = {}, {}
+        local ReaderUI = {
+            showReaderCoroutine = function() end,
+        }
+        local ReaderHighlight = {
+            onTap = function()
+                return "stock"
+            end,
+        }
+        local Widget = {}
+        function Widget:extend(proto)
+            return setmetatable(proto, { __index = self })
+        end
+        function Widget:new(props)
+            return setmetatable(props, { __index = self })
+        end
+
+        ZenSpec.replace("apps/reader/readerui", ReaderUI)
+        ZenSpec.replace("apps/reader/modules/readerhighlight", ReaderHighlight)
+        ZenSpec.replace("ui/uimanager", {
+            show = function(_, widget)
+                shown[#shown + 1] = widget
+            end,
+            close = function(_, widget)
+                closed[#closed + 1] = widget
+            end,
+            nextTick = function(_, callback)
+                next_tick = callback
+            end,
+            forceRePaint = function() end,
+        })
+        ZenSpec.replace("device", {
+            screen = {
+                getWidth = function() return 600 end,
+                getHeight = function() return 800 end,
+                scaleBySize = function(_, value) return value end,
+            },
+            setIgnoreInput = function() end,
+        })
+        ZenSpec.replace("ffi/blitbuffer", {})
+        ZenSpec.replace("ui/font", {})
+        ZenSpec.replace("ui/geometry", { new = function(_, value) return value end })
+        ZenSpec.replace("ui/widget/textwidget", {})
+        ZenSpec.replace("ui/widget/widget", Widget)
+        ZenSpec.replace("common/zen_logger", {
+            new = function()
+                return { info = function() end, err = function() end, perf = function() end }
+            end,
+        })
+        ZenSpec.replace("gettext", function(text) return text end)
+
+        return ReaderUI, ReaderHighlight, shown, closed, function()
+            assert.is_function(next_tick)
+            next_tick()
+        end
+    end
+
+    it("defers no-banner opens while retaining a silent UI window", function()
+        local ReaderUI, _, shown, closed, run_next_tick = install_stubs()
+        local opens = 0
+        local reader = {
+            doShowReader = function()
+                opens = opens + 1
+            end,
+        }
+        apply_patch()
+
+        ReaderUI.showReaderCoroutine(reader, "book.epub", {}, true)
+        assert.are.equal(0, opens)
+        assert.are.equal(1, #shown)
+        assert.is_true(shown[1].invisible)
+
+        run_next_tick()
+        assert.same({ shown[1] }, closed)
+        assert.are.equal(1, opens)
+    end)
+
+    it("ignores an early tap before visible highlight boxes exist", function()
+        local _, ReaderHighlight = install_stubs()
+        local stock_calls = 0
+        ReaderHighlight.onTap = function()
+            stock_calls = stock_calls + 1
+            return "stock"
+        end
+        apply_patch()
+
+        local highlight = {
+            view = { highlight = { visible_boxes = nil } },
+        }
+        assert.is_nil(ReaderHighlight.onTap(highlight, nil, { pos = {} }))
+        assert.are.equal(0, stock_calls)
+
+        highlight.view.highlight.visible_boxes = {}
+        assert.are.equal("stock", ReaderHighlight.onTap(highlight, nil, { pos = {} }))
+        assert.are.equal(1, stock_calls)
+
+        highlight.hold_pos = {}
+        highlight.view.highlight.visible_boxes = nil
+        assert.are.equal("stock", ReaderHighlight.onTap(highlight, nil, { pos = {} }))
+        assert.are.equal(2, stock_calls)
+    end)
+end)

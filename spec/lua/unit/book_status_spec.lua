@@ -74,4 +74,55 @@ describe("book status", function()
             percent_finished = 0.25,
         }))
     end)
+
+    it("opens the authoritative sidecar once per lookup without consulting BookList", function()
+        local opens = 0
+        local booklist_reads = 0
+        local doc, data = settings({
+            summary = { status = "reading" },
+            percent_finished = 0.5,
+            zen_new_mtime = 200,
+        })
+        ZenSpec.replace("docsettings", {
+            findSidecarFile = function() return "/books/book.sdr/metadata.lua" end,
+            hasSidecarFile = function() return true end,
+            open = function()
+                opens = opens + 1
+                return doc
+            end,
+        })
+        ZenSpec.replace("ui/widget/booklist", {
+            getBookInfo = function()
+                booklist_reads = booklist_reads + 1
+                return { status = "complete", percent_finished = 1 }
+            end,
+        })
+        local BookStatus = require("common/book_status")
+
+        assert.are.equal("reading", BookStatus.getEffectiveStatusFromFile("/books/book.epub"))
+        assert.are.equal(1, opens)
+        assert.are.equal(0, booklist_reads)
+
+        data.zen_new_mtime = 100
+        assert.are.equal("new", BookStatus.getEffectiveStatusFromFile("/books/book.epub"))
+        assert.are.equal(2, opens)
+        assert.are.equal(0, booklist_reads)
+    end)
+
+    it("consults BookList once when no sidecar is available", function()
+        local booklist_reads = 0
+        ZenSpec.replace("docsettings", {
+            hasSidecarFile = function() return false end,
+        })
+        ZenSpec.replace("ui/widget/booklist", {
+            getBookInfo = function()
+                booklist_reads = booklist_reads + 1
+                return { status = "complete", percent_finished = 1 }
+            end,
+        })
+        local BookStatus = require("common/book_status")
+
+        assert.are.equal("complete", BookStatus.getEffectiveStatusFromFile("/books/book.epub"))
+        assert.are.equal(1, booklist_reads)
+    end)
 end)
