@@ -887,11 +887,23 @@ local function apply_navbar()
         return first_enabled_default_tab()
     end
 
+    local navbar_refresh_pending = false
+    local function refreshAfterNavbarPageSwitch()
+        if navbar_refresh_pending then return end
+        navbar_refresh_pending = true
+        UIManager:nextTick(function()
+            navbar_refresh_pending = false
+            UIManager:setDirty(nil, "full")
+            UIManager:forceRePaint()
+        end)
+    end
+
     local function runTabCallback(tab_id)
         local cb = tab_callbacks[tab_id]
         if not cb then return end
         if shouldTrackActiveTab(tab_id) then
             cb()
+            refreshAfterNavbarPageSwitch()
             return
         end
         local saved_active = active_tab
