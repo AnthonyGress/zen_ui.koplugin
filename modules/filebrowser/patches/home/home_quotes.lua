@@ -288,7 +288,7 @@ local function save_deck(store, order, position, signature)
     store:saveSetting("deck_order", table.concat(order, ","))
     store:saveSetting("deck_position", position)
     store:saveSetting("deck_signature", signature)
-    store:flush()
+    if store.flush then store:flush() end
 end
 
 local function advance(order, position)
@@ -324,7 +324,7 @@ end
 
 function M.stepQuote(config, delta)
     local quotes = M.getQuotes(config)
-    local order, position, _created, signature = load_deck(quotes)
+    local order, position, _, signature = load_deck(quotes)
     if not order then return nil end
     if delta < 0 then
         position = position - 1
