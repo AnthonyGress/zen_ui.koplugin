@@ -111,6 +111,7 @@ local function apply_quick_settings()
             streak = false,
             opds = false,
             filebrowser = false,
+            tailscale = false,
             puzzle = false,
             crossword = false,
             connections = false,
@@ -362,6 +363,19 @@ local function apply_quick_settings()
             end
         end
         return getLoadedPlugin(candidate)
+    end
+
+    local tailscale_plugin = {
+        slots = { "tailscale" },
+        key = "tailscale",
+        toggle = "onToggleTailscale",
+    }
+
+    local function getTailscalePlugin()
+        local plugin = getCandidatePlugin(tailscale_plugin)
+        if plugin and isCallable(plugin[tailscale_plugin.toggle]) then
+            return plugin
+        end
     end
 
     local function getFilebrowserPlugin(prefer_running)
@@ -767,6 +781,27 @@ local function apply_quick_settings()
                 end)
             end,
         },
+        tailscale = {
+            icon = utils.resolveLocalIcon(_icons_dir, "network"),
+            label = _("Tailscale"),
+            visible_func = function() return getTailscalePlugin() ~= nil end,
+            active_func = function()
+                local plugin = getTailscalePlugin()
+                if not (plugin and isCallable(plugin.isRunning)) then return false end
+                local ok, running = pcall(plugin.isRunning, plugin)
+                return ok and running == true
+            end,
+            callback = function(touch_menu)
+                local plugin = getTailscalePlugin()
+                if not plugin then
+                    showUnavailable()
+                    return
+                end
+                plugin:onToggleTailscale(function()
+                    refreshQuickSettings(touch_menu)
+                end)
+            end,
+        },
         zen = {
             icon = "quick_zen",
             label = _("Zen"),
@@ -1138,7 +1173,8 @@ local function apply_quick_settings()
         local normal_border = Screen:scaleBySize(2)
 
         local function makeActionButton(icon_name, label_text, active, dim)
-            local icon_path = _icons_dir and utils.resolveIcon(_icons_dir, icon_name)
+            local icon_path = type(icon_name) == "string" and icon_name:sub(1, 1) == "/"
+                and icon_name or (_icons_dir and utils.resolveIcon(_icons_dir, icon_name))
             local icon = IconWidget:new{
                 file   = icon_path or nil,
                 icon   = icon_path and nil or icon_name,

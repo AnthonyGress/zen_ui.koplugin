@@ -130,6 +130,7 @@ local defaults = {
             notion = false,
             streak = false,
             opds = false,
+            tailscale = false,
             filebrowser = false,
         },
         show_frontlight = true,
