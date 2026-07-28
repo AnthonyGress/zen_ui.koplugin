@@ -795,6 +795,19 @@ function M.show(opts)
         end
         self:_populateItems()
     end
+    local menu_proxy = {
+        item_table = item_table,
+        updateItems = function(self)
+            if type(self.item_table) == "table" and self.item_table ~= item_table then
+                item_table = self.item_table
+                sort_widget.item_table = item_table
+            end
+            sort_widget:_zen_arrange_refresh()
+        end,
+    }
+    refresh_after_callbacks(item_table, function()
+        sort_widget:_zen_arrange_refresh()
+    end, menu_proxy)
     sort_widget._zen_arrange_close_all = function()
         if sort_widget.callback then
             sort_widget:callback()

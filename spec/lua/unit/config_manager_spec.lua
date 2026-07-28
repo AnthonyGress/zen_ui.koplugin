@@ -62,7 +62,10 @@ describe("config manager folder-path migration", function()
 
     it("migrates missing and legacy quote font sizes to 12", function()
         stores.home = {
-            settings = { font_size = 18, quotes = { font_size = 18 } },
+            settings = {
+                font_size = 18,
+                quotes = { day_seed = 123, font_size = 18, manual_index = 4 },
+            },
             presets = {
                 missing = { quotes = {} },
                 explicit = { quotes = { font_size = 18, font_size_override = true } },
@@ -72,6 +75,10 @@ describe("config manager folder-path migration", function()
         Manager.load()
 
         assert.are.equal(12, stores.home.settings.quotes.font_size)
+        assert.are.equal("daily", stores.home.settings.quotes.rotation)
+        assert.are.same({ default = true }, stores.home.settings.quotes.sources)
+        assert.is_nil(stores.home.settings.quotes.day_seed)
+        assert.is_nil(stores.home.settings.quotes.manual_index)
         assert.are.equal(12, stores.home.presets.missing.quotes.font_size)
         assert.are.equal(18, stores.home.presets.explicit.quotes.font_size)
     end)

@@ -159,16 +159,25 @@ describe("home basic widgets", function()
         assert.are.equal(120, clock_size)
     end)
 
-    it("renders quote text and author and navigates in both tap zones", function()
+    it("renders quote attribution and navigates with horizontal swipes", function()
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/quotes")
         local previous, next_quote, opened_settings = 0, 0, 0
         local component = require("modules/filebrowser/patches/home/widgets/quotes")
         local widget = component.build({
             width = 400,
             height = 120,
-            config = { font_size = 18, quotes = { show_author = true } },
+            config = {
+                font_size = 18,
+                quotes = { show_author = true, show_title = true },
+            },
             data = {
-                getCurrentQuote = function() return { text = "Read deeply.", author = "Zen Tester" } end,
+                getCurrentQuote = function()
+                    return {
+                        text = "Read deeply.",
+                        author = "Zen Tester",
+                        title = "The Test Book",
+                    }
+                end,
                 prevQuote = function() previous = previous + 1 end,
                 nextQuote = function() next_quote = next_quote + 1 end,
             },
@@ -182,13 +191,20 @@ describe("home basic widgets", function()
 
         assert.are.equal("quotes", component.id)
         assert.is_true(widget:onTapQuote(nil, { pos = { x = 40, y = 40 } }))
-        assert.is_true(widget:onTapQuote(nil, { pos = { x = 300, y = 40 } }))
+        assert.is_true(widget:onSwipeQuote(nil, {
+            pos = { x = 40, y = 40 },
+            direction = "east",
+        }))
+        assert.is_true(widget:onSwipeQuote(nil, {
+            pos = { x = 300, y = 40 },
+            direction = "west",
+        }))
         assert.are.same({ 1, 1 }, { previous, next_quote })
         assert.is_false(widget:onTapQuote(nil, { pos = { x = 700, y = 40 } }))
         assert.is_true(widget:onHoldQuote(nil, { pos = { x = 40, y = 40 } }))
         assert.are.equal(1, opened_settings)
         assert.is_true(has_text('"Read deeply."'))
-        assert.is_true(has_text("\226\128\148 Zen Tester"))
+        assert.is_true(has_text("\226\128\148 Zen Tester,  The Test Book"))
         for _i, child in ipairs(created) do
             if child.text == '"Read deeply."' then
                 assert.are.equal(0.55, child.line_height)
@@ -200,7 +216,7 @@ describe("home basic widgets", function()
         for _i, child in ipairs(created) do
             if child.text == '"Read deeply."' then
                 quote_widget = child
-            elseif child.text == "\226\128\148 Zen Tester" then
+            elseif child.text == "\226\128\148 Zen Tester,  The Test Book" then
                 author_widget = child
             end
         end
@@ -212,6 +228,44 @@ describe("home basic widgets", function()
         ZenSpec.unload("modules/filebrowser/patches/home/home_presets")
         local preset = require("modules/filebrowser/patches/home/home_presets").defaultHomePage()
         assert.are.equal(12, preset.quotes.font_size)
+        assert.are.equal("daily", preset.quotes.rotation)
+        assert.are.same({ default = true }, preset.quotes.sources)
+        assert.is_true(preset.quotes.show_author)
+        assert.is_true(preset.quotes.show_title)
+    end)
+
+    it("controls quote authors and titles independently", function()
+        local function render_attribution(show_author, show_title)
+            created = {}
+            ZenSpec.unload("modules/filebrowser/patches/home/widgets/quotes")
+            require("modules/filebrowser/patches/home/widgets/quotes").build({
+                width = 400,
+                height = 100,
+                config = {
+                    quotes = {
+                        show_author = show_author,
+                        show_title = show_title,
+                    },
+                },
+                data = {
+                    getCurrentQuote = function()
+                        return {
+                            text = "Read deeply.",
+                            author = "Zen Tester",
+                            title = "The Test Book",
+                        }
+                    end,
+                },
+            })
+        end
+
+        render_attribution(true, false)
+        assert.is_true(has_text("\226\128\148 Zen Tester"))
+        assert.is_false(has_text("\226\128\148 Zen Tester,  The Test Book"))
+
+        render_attribution(false, true)
+        assert.is_true(has_text("\226\128\148 The Test Book"))
+        assert.is_false(has_text("\226\128\148 Zen Tester"))
     end)
 
     it("renders the empty-history quote fallback without an author", function()
@@ -226,6 +280,32 @@ describe("home basic widgets", function()
 
         assert.is_true(has_text('"No quote available."'))
         assert.is_false(has_text("\226\128\148 "))
+    end)
+
+    it("opens annotation quotes when tapped", function()
+        ZenSpec.unload("modules/filebrowser/patches/home/widgets/quotes")
+        local opened
+        local quote = {
+            text = "Saved highlight",
+            is_annotation = true,
+            filepath = "/books/test.epub",
+        }
+        local component = require("modules/filebrowser/patches/home/widgets/quotes")
+        local widget = component.build({
+            width = 400,
+            height = 100,
+            config = { quotes = { show_author = true } },
+            data = {
+                getCurrentQuote = function() return quote end,
+                openQuote = function(_, selected)
+                    opened = selected
+                    return true
+                end,
+            },
+        })
+
+        assert.is_true(widget:onTapQuote(nil, { pos = { x = 40, y = 40 } }))
+        assert.are.equal(quote, opened)
     end)
 
     it("shows up to three quote lines when the widget has room", function()
