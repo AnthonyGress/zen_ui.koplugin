@@ -1166,6 +1166,8 @@ local function apply_quick_settings()
 
         local num_buttons = #visible_buttons
         local action_btn_size = Screen:scaleBySize(64)
+        local action_cell_width = num_buttons > 0
+            and math.floor(inner_width / num_buttons) or inner_width
         local icon_size = math.floor(action_btn_size * 0.5)
         local label_size = Font.sizemap and Font.sizemap["xx_smallinfofont"] or 18
         local label_font = library_font.getFace(label_size)
@@ -1231,7 +1233,7 @@ local function apply_quick_settings()
             local label = TextWidget:new{
                 text = label_text,
                 face = label_font,
-                max_width = action_btn_size + Screen:scaleBySize(4),
+                max_width = math.max(1, action_cell_width - padding * 2),
             }
             local group = VerticalGroup:new{
                 align = "center",
@@ -1246,9 +1248,7 @@ local function apply_quick_settings()
         refs.button_layout_row = {}
 
         if num_buttons > 0 then
-            local btn_gap = math.floor((inner_width - num_buttons * action_btn_size) / math.max(num_buttons - 1, 1))
-
-            for i, entry in ipairs(visible_buttons) do
+            for _i, entry in ipairs(visible_buttons) do
                 local def = entry.def
                 local label_text = def.label
                 if def.label_func then
@@ -1270,10 +1270,10 @@ local function apply_quick_settings()
                 })
                 table.insert(refs.button_layout_row, btn_circle)
 
-                table.insert(top_row, btn_widget)
-                if i < num_buttons then
-                    table.insert(top_row, HorizontalSpan:new{ width = btn_gap })
-                end
+                table.insert(top_row, CenterContainer:new{
+                    dimen = Geom:new{ w = action_cell_width, h = btn_widget:getSize().h },
+                    btn_widget,
+                })
             end
         end
 
