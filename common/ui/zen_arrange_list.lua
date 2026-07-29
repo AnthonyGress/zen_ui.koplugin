@@ -1,5 +1,6 @@
 local Blitbuffer = require("ffi/blitbuffer")
 local BD = require("ui/bidi")
+local Device = require("device")
 local BottomContainer = require("ui/widget/container/bottomcontainer")
 local Button = require("ui/widget/button")
 local CenterContainer = require("ui/widget/container/centercontainer")
@@ -720,6 +721,46 @@ local function toggle_arrange_selection(row)
     return true
 end
 
+local function enter_keyboard_arrange_mode(sort_widget)
+    if not sort_widget or sort_widget.marked > 0 then return true end
+    local focused = sort_widget.getFocusItem and sort_widget:getFocusItem()
+    if not (focused and focused.index) then return true end
+    sort_widget.marked = focused.index
+    sort_widget:_populateItems()
+    return true
+end
+
+local function exit_keyboard_arrange_mode(sort_widget)
+    if not sort_widget or sort_widget.marked == 0 then return false end
+    sort_widget.marked = 0
+    sort_widget:_populateItems()
+    return true
+end
+
+local function install_non_touch_keyboard_controls(sort_widget)
+    if Device:isTouchDevice() then return end
+
+    local orig_on_press = sort_widget.onPress
+    sort_widget.onPress = function(self)
+        if exit_keyboard_arrange_mode(self) then return true end
+        return orig_on_press and orig_on_press(self)
+    end
+
+    sort_widget.onHold = function(self)
+        return enter_keyboard_arrange_mode(self)
+    end
+    sort_widget.onHoldNonTouch = sort_widget.onHold
+
+    local orig_on_focus_move = sort_widget.onFocusMove
+    sort_widget.onFocusMove = function(self, args)
+        if self.marked > 0 and args and args[1] == 0 and args[2] ~= 0 then
+            self:moveItem(args[2])
+            return true
+        end
+        return orig_on_focus_move and orig_on_focus_move(self, args)
+    end
+end
+
 local function ensure_submenu_callbacks(items)
     if type(items) ~= "table" then return end
     for _i, item in ipairs(items) do
@@ -1005,6 +1046,7 @@ function M.show(opts)
         event = "ZenArrangeToggle",
     }
     sort_widget.onZenArrangeToggle = function(self)
+        if not Device:isTouchDevice() and exit_keyboard_arrange_mode(self) then return true end
         if toggle_sort_item(self, get_focused_item(self)) then return true end
         if has_rearranged_items(self) then
             return self:onReturn()
@@ -1039,6 +1081,7 @@ function M.show(opts)
     apply_icon_rows(sort_widget)
     install_root_tap_handlers(sort_widget)
     patch_move_item_kb(sort_widget)
+    install_non_touch_keyboard_controls(sort_widget)
     local orig_populate = sort_widget._populateItems
     sort_widget._populateItems = function(self, ...)
         update_dynamic_text(self.item_table)

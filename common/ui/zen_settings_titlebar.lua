@@ -353,10 +353,11 @@ function ZenSettingsTitleBar:onGesture(ges)
     if InputContainer.onGesture(self, ges) then return true end
     local dimen = self.dimen
     local pos = ges and ges.pos
-    return dimen and pos
+    local in_header = dimen and pos
         and pos.x >= dimen.x and pos.x < dimen.x + dimen.w
         and pos.y >= dimen.y and pos.y < dimen.y + dimen.h
-        or false
+    if in_header and (ges.ges == "tap" or ges.ges == "swipe") then return false end
+    return in_header or false
 end
 
 function ZenSettingsTitleBar:closeSearchKeyboard()

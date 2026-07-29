@@ -16,6 +16,7 @@ describe("Zen settings page", function()
         "common/ui/icon_menu_item",
         "modules/settings/zen_settings",
         "common/ui/zen_settings_titlebar",
+        "apps/filemanager/filemanager",
     }
 
     local Menu = {}
@@ -42,6 +43,16 @@ describe("Zen settings page", function()
 
     function Menu:updateItems(select_number)
         self.last_select_number = select_number
+    end
+
+    function Menu:onTap()
+        self.top_menu_taps = (self.top_menu_taps or 0) + 1
+        return true
+    end
+
+    function Menu:onSwipe()
+        self.top_menu_swipes = (self.top_menu_swipes or 0) + 1
+        return true
     end
 
     function Menu:getPageNumber()
@@ -82,6 +93,15 @@ describe("Zen settings page", function()
             installMenuPatch = function() end,
         })
         ZenSpec.replace("modules/settings/zen_settings", { build = function() return {} end })
+        ZenSpec.replace("apps/filemanager/filemanager", {
+            instance = {
+                menu = {
+                    onShowMenu = function(self)
+                        self.opened = (self.opened or 0) + 1
+                    end,
+                },
+            },
+        })
         ZenSpec.replace("common/ui/zen_settings_titlebar", {
             new = function(_self, opts)
                 opts.setState = function(self, title, back_visible, search_visible)
@@ -200,6 +220,34 @@ describe("Zen settings page", function()
         assert.are.equal("Controls", settings.title_bar.title)
         assert.is_true(settings.title_bar.search_visible)
         assert.is_true(settings.title_bar.search_collapsed)
+    end)
+
+    it("opens the KOReader menu from the physical Menu key", function()
+        local settings = make_page({})
+        local menu = require("apps/filemanager/filemanager").instance.menu
+
+        assert.is_true(settings:onLeftButtonTap())
+        assert.are.equal(1, menu.opened)
+    end)
+
+    it("keeps top-menu gestures away from header controls and their edges", function()
+        local settings = make_page({})
+        settings.title_bar.close_button = { dimen = { x = 50, y = 10, w = 24, h = 24 } }
+
+        assert.is_true(settings:onTap(nil, { pos = { x = 46, y = 20 } }))
+        assert.is_true(settings:onSwipe(nil, { pos = { x = 55, y = 20 } }))
+        assert.is_nil(settings.top_menu_taps)
+        assert.is_nil(settings.top_menu_swipes)
+    end)
+
+    it("leaves unoccupied header space for the KOReader top menu", function()
+        local settings = make_page({})
+        settings.title_bar.close_button = { dimen = { x = 50, y = 10, w = 24, h = 24 } }
+
+        assert.is_true(settings:onTap(nil, { pos = { x = 100, y = 10 } }))
+        assert.is_true(settings:onSwipe(nil, { pos = { x = 100, y = 10 } }))
+        assert.are.equal(1, settings.top_menu_taps)
+        assert.are.equal(1, settings.top_menu_swipes)
     end)
 
     it("opens an arrange-only item from search", function()

@@ -1,4 +1,5 @@
 local BD = require("ui/bidi")
+local Device = require("device")
 local InfoMessage = require("ui/widget/infomessage")
 local Menu = require("ui/widget/menu")
 local UIManager = require("ui/uimanager")
@@ -104,6 +105,27 @@ end
 
 local ZenSettingsPage = Menu:extend{}
 
+local function is_near_header_control(title_bar, pos)
+    if not (title_bar and pos and pos.x and pos.y) then return false end
+    local screen = Device.screen
+    local padding = type(screen.scaleBySize) == "function" and screen:scaleBySize(8) or 8
+
+    local function is_near(control)
+        if not control or control.skip_paint then return false end
+        local dimen = control.dimen
+        return dimen and dimen.x and dimen.y and dimen.w and dimen.h
+            and pos.x >= dimen.x - padding and pos.x < dimen.x + dimen.w + padding
+            and pos.y >= dimen.y - padding and pos.y < dimen.y + dimen.h + padding
+    end
+
+    return is_near(title_bar.back_button)
+        or is_near(title_bar.search_button)
+        or is_near(title_bar.search_frame)
+        or is_near(title_bar.action_button)
+        or is_near(title_bar.more_button)
+        or is_near(title_bar.close_button)
+end
+
 function ZenSettingsPage:_resolveSubItems(item)
     if type(item.sub_item_table_func) == "function" then
         local ok, items = pcall(item.sub_item_table_func, self)
@@ -157,13 +179,30 @@ function ZenSettingsPage:_focusSearchInput()
     if input and not input.focused then input:focus() end
 end
 
+function ZenSettingsPage:openKoreaderMenu()
+    local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
+    local filemanager_menu = ok_fm and FileManager.instance and FileManager.instance.menu
+    if filemanager_menu and type(filemanager_menu.onShowMenu) == "function" then
+        filemanager_menu:onShowMenu()
+        return true
+    end
+
+    local ok_rui, ReaderUI = pcall(require, "apps/reader/readerui")
+    local reader_menu = ok_rui and ReaderUI.instance and ReaderUI.instance.menu
+    if reader_menu and type(reader_menu.onShowMenu) == "function" then
+        reader_menu:onShowMenu()
+        return true
+    end
+    return false
+end
+
 function ZenSettingsPage:init()
     self.name = "zen_settings"
     self.title = self.title or _("Settings")
     self.item_table = self.item_table or {}
     self.item_table._zen_title = self.title
-    self.width = require("device").screen:getWidth()
-    self.height = require("device").screen:getHeight()
+    self.width = Device.screen:getWidth()
+    self.height = Device.screen:getHeight()
     self.is_borderless = true
     self.is_popout = false
     self.linesize = require("ui/size").line.thin
@@ -211,6 +250,16 @@ function ZenSettingsPage:handleEvent(event)
         end
     end
     return Menu.handleEvent(self, event)
+end
+
+function ZenSettingsPage:onTap(arg, ges_ev)
+    if is_near_header_control(self.title_bar, ges_ev and ges_ev.pos) then return true end
+    if Menu.onTap then return Menu.onTap(self, arg, ges_ev) end
+end
+
+function ZenSettingsPage:onSwipe(arg, ges_ev)
+    if is_near_header_control(self.title_bar, ges_ev and ges_ev.pos) then return true end
+    if Menu.onSwipe then return Menu.onSwipe(self, arg, ges_ev) end
 end
 
 function ZenSettingsPage:_recalculateDimen(no_recalculate_dimen)
@@ -316,6 +365,10 @@ end
 
 function ZenSettingsPage:onClose()
     return self:backToUpperMenu()
+end
+
+function ZenSettingsPage:onLeftButtonTap()
+    return self:openKoreaderMenu()
 end
 
 function ZenSettingsPage:onCloseAllMenus()
