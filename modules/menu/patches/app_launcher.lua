@@ -222,67 +222,19 @@
         UIManager:show(InfoMessage:new{ text = _("Launcher entry is unavailable") })
     end
 
-    local function find_app_launcher_settings_item(root_items)
-        for _i, item in ipairs(root_items or {}) do
-            if item._zen_settings_root == "launcher" then
-                return item
-            end
-        end
-    end
-
-    local function find_launcher_buttons_item(items)
-        for _i, item in ipairs(items or {}) do
-            if item._zen_launcher_buttons then
-                return item
-            end
-        end
-    end
-
     local function open_app_launcher_settings(touch_menu, open_buttons)
-        if not (touch_menu and type(touch_menu.updateItems) == "function") then
-            return
+        if touch_menu and type(touch_menu.closeMenu) == "function" then
+            touch_menu:closeMenu()
         end
-        local zen_tab_idx, zen_tab
-        for i, tab in ipairs(touch_menu.tab_item_table or {}) do
-            if tab.id == "zen_ui" then
-                zen_tab_idx = i
-                zen_tab = tab
-                break
+        UIManager:nextTick(function()
+            local path = {
+                { key = "_zen_settings_root", value = "launcher" },
+            }
+            if open_buttons then
+                path[#path + 1] = { key = "_zen_launcher_buttons", value = true }
             end
-        end
-        if type(zen_tab) ~= "table" then
-            return
-        end
-        touch_menu._zen_panel_refs = nil
-        touch_menu._zen_panel_locked = false
-        if touch_menu.bar and type(touch_menu.bar.switchToTab) == "function" and zen_tab_idx then
-            touch_menu.bar:switchToTab(zen_tab_idx)
-        elseif type(touch_menu.switchMenuTab) == "function" and zen_tab_idx then
-            touch_menu:switchMenuTab(zen_tab_idx)
-        else
-            touch_menu.item_table = zen_tab
-        end
-        local root_items = type(touch_menu.item_table) == "table"
-            and touch_menu.item_table.id == "zen_ui"
-            and touch_menu.item_table
-            or zen_tab
-        local settings_item = find_app_launcher_settings_item(root_items)
-        if not settings_item or type(settings_item.sub_item_table) ~= "table" then
-            return
-        end
-        touch_menu.item_table_stack = touch_menu.item_table_stack or {}
-        table.insert(touch_menu.item_table_stack, root_items)
-        touch_menu.parent_id = nil
-        touch_menu.item_table = settings_item.sub_item_table
-        touch_menu:updateItems(1)
-        if open_buttons then
-            local buttons_item = find_launcher_buttons_item(settings_item.sub_item_table)
-            if buttons_item and type(buttons_item.callback) == "function" then
-                UIManager:nextTick(function()
-                    buttons_item.callback(touch_menu)
-                end)
-            end
-        end
+            require("modules/settings/zen_settings_page").show(zen_plugin, { path = path })
+        end)
     end
 
     local function is_library_launcher(touch_menu)

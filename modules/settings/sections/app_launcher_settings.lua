@@ -757,12 +757,9 @@ function M.build(ctx)
             checked_func = function()
                 return config.features.app_launcher == true
             end,
-            callback = function(touch_menu)
+            callback = function()
                 config.features.app_launcher = config.features.app_launcher ~= true
                 save_and_apply("app_launcher")
-                if touch_menu and touch_menu.closeMenu then
-                    touch_menu:closeMenu()
-                end
             end,
         },
         {
@@ -816,8 +813,48 @@ function M.build(ctx)
     }
     IconItem.decorate(root_items[2], icons.action)
 
+    local function open_entry_settings_from_search(entry, parent)
+        local items = build_entry_items(entry, parent)
+        if type(items) ~= "table" or #items == 0 then
+            show_entries_arrange(parent)
+            return true
+        end
+        require("common/ui/zen_arrange_list").show{
+            title = Model.display_label(entry),
+            item_table = items,
+            hide_footer_cancel = true,
+        }
+        return true
+    end
+
+    local function arrange_search_items()
+        local items = {}
+        local function add_entries(entries, parent, breadcrumb)
+            for _i, entry in ipairs(entries or {}) do
+                local label = Model.display_label(entry)
+                if type(label) == "string" and label ~= "" then
+                    local search_entry = entry
+                    local search_parent = parent
+                    items[#items + 1] = {
+                        text = label,
+                        _zen_search_breadcrumb = breadcrumb,
+                        _zen_search_open = function()
+                            return open_entry_settings_from_search(search_entry, search_parent)
+                        end,
+                    }
+                    if entry.type == "folder" then
+                        add_entries(entry.children, entry, breadcrumb .. " › " .. label)
+                    end
+                end
+            end
+        end
+        add_entries(cfg.entries, nil, _("Launcher"))
+        return items
+    end
+
     return {
         text = _("Launcher"),
+        _zen_search_items_func = arrange_search_items,
         sub_item_table = root_items,
     }
 end

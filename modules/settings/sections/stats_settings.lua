@@ -336,8 +336,26 @@ function M.build(ctx)
         return true
     end
 
+    local function arrange_search_items()
+        local items = {}
+        local settings = StatsSettings.load()
+        for _i, id in ipairs(settings.widgets.order) do
+            if id == "trend_graph" or id == "goal_progress" or StatsSettings.hasFontSize(id) then
+                local widget_id = id
+                items[#items + 1] = {
+                    text = label_for(widget_id),
+                    _zen_search_open = function()
+                        return open_widget_settings(widget_id)
+                    end,
+                }
+            end
+        end
+        return items
+    end
+
     return IconItem.decorate({
         text = _("Stats"),
+        _zen_search_items_func = arrange_search_items,
         sub_item_table = {
             IconItem.decorate({
                 text = _("Widgets") .. " \u{25B8}",

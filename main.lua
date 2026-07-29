@@ -38,7 +38,7 @@ local _pt_active = package.loaded["ptutil"] ~= nil
 
 local ConfigManager = require("config/manager")
 local registry = require("modules/registry")
-local zen_settings = require("modules/settings/zen_settings")
+local zen_settings_page = require("modules/settings/zen_settings_page")
 require("modules/filebrowser/patches/home/components/registry").install()
 local zen_updater   = require("modules/settings/zen_updater")
 local paths         = require("common/paths")
@@ -537,6 +537,27 @@ function ZenUI:init()
         return type(_ft) == "table" and _ft.app_launcher == true
     end
 
+    local function make_zen_settings_tab(m_self)
+        local tab = {
+            id = "zen_ui",
+            icon = zen_updater.has_update() and "zen_ui_update" or "zen_settings",
+            remember = false,
+        }
+        tab.callback = function()
+            require("ui/uimanager"):scheduleIn(0, function()
+                local UIManager = require("ui/uimanager")
+                if m_self.menu_container then
+                    UIManager:close(m_self.menu_container)
+                    m_self.menu_container = nil
+                end
+                if _zen_plugin_ref then
+                    zen_settings_page.show(_zen_plugin_ref)
+                end
+            end)
+        end
+        return tab
+    end
+
     local function remove_zen_menu_tabs(m_self)
         for i = #m_self.tab_item_table, 1, -1 do
             local tab = m_self.tab_item_table[i]
@@ -592,8 +613,7 @@ function ZenUI:init()
         m_self._zen_home_tab_item.icon = library_home_icon()
         if not panel_hidden then
             if not m_self._zen_tab_item then
-                m_self._zen_tab_item = zen_settings.build(_zen_plugin_ref).sub_item_table
-                m_self._zen_tab_item.id = "zen_ui"
+                m_self._zen_tab_item = make_zen_settings_tab(m_self)
             end
             m_self._zen_tab_item.icon = zen_updater.has_update() and "zen_ui_update" or "zen_settings"
         end
@@ -618,8 +638,7 @@ function ZenUI:init()
             _zen_menu_instances[m_self] = true
             local _panel_hidden = zen_panel_hidden()
             if not _panel_hidden then
-                m_self._zen_tab_item = zen_settings.build(_zen_plugin_ref).sub_item_table
-                m_self._zen_tab_item.id = "zen_ui"
+                m_self._zen_tab_item = make_zen_settings_tab(m_self)
             end
             local home_tab = { id = "zen_library_home", icon = library_home_icon(), remember = false }
             home_tab.callback = function()

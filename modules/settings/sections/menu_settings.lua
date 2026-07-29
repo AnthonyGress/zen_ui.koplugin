@@ -845,8 +845,51 @@ function M.build(ctx)
         save_and_apply_quick_settings()
     end
 
+    local function open_button_settings(id)
+        local cb = quick_button_custom_by_id[id]
+        local items = cb and build_cb_sub_items(cb) or build_control_sub_items(id)
+        if type(items) ~= "table" or #items == 0 then
+            showButtonsArrange()
+            return true
+        end
+        require("common/ui/zen_arrange_list").show{
+            title = quick_button_label_by_id[id] or tostring(id),
+            item_table = items,
+            hide_footer_cancel = true,
+        }
+        return true
+    end
+
+    local function button_search_label(id)
+        if id == "rotate" then
+            return T(_("Rotate: %1"), getRotateActionLabel())
+        end
+        if id == "screenshot" then
+            return T(_("Screenshot: %1 s"), getScreenshotTimerSeconds())
+        end
+        return quick_button_label_by_id[id]
+    end
+
+    local function arrange_search_items()
+        local items = {}
+        for _i, id in ipairs(config.quick_settings.button_order) do
+            local label = button_search_label(id)
+            if label then
+                local button_id = id
+                items[#items + 1] = {
+                    text = label,
+                    _zen_search_open = function()
+                        return open_button_settings(button_id)
+                    end,
+                }
+            end
+        end
+        return items
+    end
+
     return {
         text = _("Controls"),
+        _zen_search_items_func = arrange_search_items,
         sub_item_table = {
             IconItem.decorate({
                 text = _("Buttons") .. " \u{25B8}",

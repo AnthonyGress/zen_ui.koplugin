@@ -182,6 +182,16 @@ def test_home_edit_mode_reopens_widget_settings_after_finish() -> None:
             first = driver.command("open_widget_settings", page="home", id="quotes")
             assert first["opened"] is True, first
             deadline = time.monotonic() + 5
+            quotes: dict[str, object] = {}
+            while time.monotonic() < deadline:
+                response = driver.command("arrange_page_state")
+                if response.get("ok"):
+                    quotes = response["arrange"]
+                    break
+                time.sleep(0.1)
+            assert quotes.get("title") == "Quotes widget"
+            assert quotes.get("row_style") == quotes.get("standard_style")
+            deadline = time.monotonic() + 5
             finish: dict[str, object] = {}
             while time.monotonic() < deadline:
                 finish = driver.command("activate_arrange_finish")

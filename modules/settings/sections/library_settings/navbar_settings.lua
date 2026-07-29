@@ -1262,12 +1262,53 @@ function M.build(ctx)
         }
     end
 
+    local function open_tab_settings(id)
+        local ct = getCustomTabById(id)
+        local tab = tab_item_by_id[id]
+        if not ct and not tab then
+            showTabsArrange()
+            return true
+        end
+        local items = ct and build_ct_sub_items(ct) or build_builtin_tab_items(id)
+        if type(items) ~= "table" or #items == 0 then
+            showTabsArrange()
+            return true
+        end
+        require("common/ui/zen_arrange_list").show{
+            title = ct and get_ct_label(ct) or get_tab_item_text(tab),
+            item_table = items,
+            hide_footer_cancel = true,
+        }
+        return true
+    end
+
+    local function arrange_search_items()
+        local items = {}
+        local seen = {}
+        for _i, id in ipairs(config.navbar.tab_order) do
+            local ct = getCustomTabById(id)
+            local tab = tab_item_by_id[id]
+            if not seen[id] and (ct or tab) then
+                seen[id] = true
+                local tab_id = id
+                items[#items + 1] = {
+                    text = ct and get_ct_label(ct) or get_tab_item_text(tab),
+                    _zen_search_open = function()
+                        return open_tab_settings(tab_id)
+                    end,
+                }
+            end
+        end
+        return items
+    end
+
     -- -------------------------------------------------------------------------
     -- Navbar item
     -- -------------------------------------------------------------------------
 
     return IconItem.decorate({
         text = _("Navbar"),
+        _zen_search_items_func = arrange_search_items,
         sub_item_table = {
             {
                 text = _("Tabs") .. " \u{25B8}",

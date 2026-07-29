@@ -1,8 +1,9 @@
 local Blitbuffer = require("ffi/blitbuffer")
+local BD = require("ui/bidi")
+local BottomContainer = require("ui/widget/container/bottomcontainer")
 local Button = require("ui/widget/button")
 local CenterContainer = require("ui/widget/container/centercontainer")
 local CheckMark = require("ui/widget/checkmark")
-local Font = require("ui/font")
 local FrameContainer = require("ui/widget/container/framecontainer")
 local Geom = require("ui/geometry")
 local HorizontalGroup = require("ui/widget/horizontalgroup")
@@ -10,6 +11,9 @@ local HorizontalSpan = require("ui/widget/horizontalspan")
 local IconWidget = require("ui/widget/iconwidget")
 local LeftContainer = require("ui/widget/container/leftcontainer")
 local LineWidget = require("ui/widget/linewidget")
+local OverlapGroup = require("ui/widget/overlapgroup")
+local RadioMark = require("ui/widget/radiomark")
+local RightContainer = require("ui/widget/container/rightcontainer")
 local Size = require("ui/size")
 local SortWidget = require("ui/widget/sortwidget")
 local TextWidget = require("ui/widget/textwidget")
@@ -18,6 +22,7 @@ local VerticalGroup = require("ui/widget/verticalgroup")
 local _ = require("gettext")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
+local SettingsTitleBar = require("common/ui/zen_settings_titlebar")
 local ZenToggle = require("common/ui/zen_toggle")
 local utils = require("common/utils")
 local ArrangeState = require("common/arrange_state")
@@ -132,6 +137,45 @@ local function suppress_footer_jump_buttons(sort_widget)
     hide_button_icon(sort_widget.footer_last_down)
 end
 
+local function sync_pagination_footer(sort_widget)
+    if not (sort_widget and sort_widget.page_info) then return end
+
+    local has_pages = (sort_widget.pages or 0) > 1
+    if has_pages then
+        restore_button_icon(sort_widget.footer_left)
+        restore_button_icon(sort_widget.footer_right)
+    else
+        hide_button_icon(sort_widget.footer_left)
+        hide_button_icon(sort_widget.footer_right)
+    end
+
+    local page_info = sort_widget.page_info
+    local show_footer = has_pages or (sort_widget.marked and sort_widget.marked > 0)
+    if page_info._zen_arrange_footer_visible == show_footer then return end
+    page_info._zen_arrange_footer_visible = show_footer
+
+    if page_info._zen_arrange_paint_to == nil then
+        page_info._zen_arrange_paint_to = page_info.paintTo
+    end
+
+    local content = sort_widget[1] and sort_widget[1][1]
+    local footer_group = content and content[2] and content[2][1]
+    local footer_line = footer_group and footer_group[1]
+    if footer_line and footer_line._zen_arrange_style == nil then
+        footer_line._zen_arrange_style = footer_line.style or false
+    end
+
+    if show_footer then
+        page_info.paintTo = page_info._zen_arrange_paint_to
+        if footer_line then
+            footer_line.style = footer_line._zen_arrange_style or nil
+        end
+    else
+        page_info.paintTo = function() end
+        if footer_line then footer_line.style = "none" end
+    end
+end
+
 local function suppress_footer_page_button(sort_widget)
     local button = sort_widget and sort_widget.footer_page
     if not button then return end
@@ -145,6 +189,7 @@ local function suppress_footer_page_button(sort_widget)
     button.onTapSelectButton = function() return true end
     button.onHoldSelectButton = function() return true end
     button.onHoldReleaseSelectButton = function() return true end
+    button.skip_paint = (sort_widget.pages or 0) <= 1
 end
 
 local function has_rearranged_items(sort_widget)
@@ -175,36 +220,77 @@ local function rebuild_icon_row(row)
         item_checkable = true
         item_checked = item.checked_func()
     end
-    local toggle_h = math.max(16, math.floor(row.height * 0.55))
-    local check_w = toggle_h * 2
+    local toggle_h = IconItem.SETTINGS_TOGGLE_HEIGHT
+    local check_w = IconItem.SETTINGS_TOGGLE_WIDTH
     if item_checkable then
-        row.checkmark_widget = ZenToggle:new{
-            value = item_checked,
-            width = check_w,
-            height = toggle_h,
-        }
+        if item.radio == true then
+            row.checkmark_widget = RadioMark:new{
+                checkable = true,
+                checked = item_checked == true,
+                enabled = item.dim ~= true,
+            }
+        else
+            row.checkmark_widget = ZenToggle:new{
+                value = item_checked,
+                width = check_w,
+                height = toggle_h,
+            }
+        end
     else
         row.checkmark_widget = CheckMark:new{ checkable = false }
     end
-    local icon_w = item.icon_glyph and IconItem.getWidth(item) or 0
-    local toggle_gap = Size.padding.default
-    local text_max_width = math.max(1, row.width - 2 * Size.padding.default - check_w - toggle_gap - icon_w)
-    local face = item.face or row.face or Font:getFace("smallinfofont")
+    local icon_w = item.icon_glyph and IconItem.SETTINGS_ICON_WIDTH or 0
+    local item_has_submenu = type(item.sub_item_table) == "table"
+        or type(item.sub_item_table_func) == "function"
+    local content_w = row.width - 2 * Size.padding.default
+    local face = IconItem.getSettingsFace(item.face or row.face)
+    local right_items = { align = "center" }
+    if item_checkable then
+        table.insert(right_items, CenterContainer:new{
+            dimen = Geom:new{ w = check_w, h = row.height },
+            row.checkmark_widget,
+        })
+    end
+    if item_checkable and item_has_submenu then
+        table.insert(right_items, HorizontalSpan:new{ width = Size.padding.large })
+    end
+    if item_has_submenu then
+        table.insert(right_items, IconWidget:new{
+            icon = BD.mirroredUILayout() and "chevron.left" or "chevron.right",
+            width = IconItem.SETTINGS_CARET_SIZE,
+            height = IconItem.SETTINGS_CARET_SIZE,
+        })
+    elseif item_checkable then
+        table.insert(right_items, HorizontalSpan:new{
+            width = Size.padding.large + IconItem.SETTINGS_CARET_SIZE,
+        })
+    end
+    local right_group = HorizontalGroup:new(right_items)
+    local right_w = right_group:getSize().w
+    local icon_gap = item.icon_glyph and Size.padding.default or 0
+    local controls_gap = right_w > 0 and Size.padding.default or 0
+    local text_max_width = math.max(1,
+        content_w - icon_w - icon_gap - right_w - controls_gap)
+    local icon_face = IconItem.getSettingsIconFace(face)
     local row_items = {
         align = "center",
-        CenterContainer:new{
-            dimen = Geom:new{ w = check_w },
-            row.checkmark_widget,
-        },
-        HorizontalSpan:new{ width = toggle_gap },
     }
     if item.icon_glyph then
-        table.insert(row_items, IconItem.makeState(item.icon_glyph, icon_w, row.height, face))
+        table.insert(row_items, IconItem.makeState(item.icon_glyph, icon_w, row.height, icon_face))
+        table.insert(row_items, HorizontalSpan:new{ width = icon_gap })
     end
+    row._zen_settings_style = {
+        row_height = row.height,
+        font_size = face.orig_size,
+        icon_width = IconItem.SETTINGS_ICON_WIDTH,
+        toggle_width = IconItem.SETTINGS_TOGGLE_WIDTH,
+        toggle_height = IconItem.SETTINGS_TOGGLE_HEIGHT,
+        caret_size = IconItem.SETTINGS_CARET_SIZE,
+    }
     table.insert(row_items, VerticalGroup:new{
         align = "left",
         TextWidget:new{
-            text = item.text,
+            text = ArrangeState.stripSubmenuCaret(item.text),
             max_width = text_max_width,
             face = face,
             fgcolor = item.dim and Blitbuffer.COLOR_DARK_GRAY or nil,
@@ -215,17 +301,41 @@ local function rebuild_icon_row(row)
         },
     })
 
-    row[1] = FrameContainer:new{
+    local content = OverlapGroup:new{
+        dimen = Geom:new{ w = content_w, h = row.height },
+        LeftContainer:new{
+            dimen = Geom:new{ w = content_w, h = row.height },
+            HorizontalGroup:new(row_items),
+        },
+    }
+    if right_w > 0 then
+        local EndContainer = BD.mirroredUILayout() and LeftContainer or RightContainer
+        table.insert(content, EndContainer:new{
+            dimen = Geom:new{ w = content_w, h = row.height },
+            right_group,
+        })
+    end
+
+    local frame = FrameContainer:new{
         padding = 0,
         bordersize = 0,
         focusable = true,
         focus_border_size = Size.border.thin,
-        LeftContainer:new{
-            dimen = Geom:new{
-                w = row.width,
-                h = row.height,
+        HorizontalGroup:new{
+            HorizontalSpan:new{ width = Size.padding.default },
+            content,
+            HorizontalSpan:new{ width = Size.padding.default },
+        },
+    }
+    row[1] = OverlapGroup:new{
+        dimen = Geom:new{ w = row.width, h = row.height },
+        frame,
+        BottomContainer:new{
+            dimen = Geom:new{ w = row.width, h = row.height },
+            LineWidget:new{
+                dimen = Geom:new{ w = row.width, h = Size.line.thin },
+                background = Blitbuffer.COLOR_LIGHT_GRAY,
             },
-            HorizontalGroup:new(row_items),
         },
     }
     row[1].invert = row.invert
@@ -262,6 +372,26 @@ local function suppress_page_centering(sort_widget)
             vertical_group:resetLayout()
         end
     end
+end
+
+local function apply_settings_row_metrics(sort_widget)
+    if not (sort_widget and sort_widget.dimen and sort_widget.title_bar) then return end
+
+    sort_widget.item_height = IconItem.getSettingsRowHeight()
+    sort_widget.item_margin = 0
+
+    local content = sort_widget[1] and sort_widget[1][1]
+    local footer = content and content[2]
+    local footer_group = footer and footer[1]
+    local footer_size = footer_group and footer_group.getSize and footer_group:getSize()
+    local footer_height = footer_size and footer_size.h or 0
+    local content_height = sort_widget.dimen.h - sort_widget.title_bar:getHeight()
+        - footer_height - Size.padding.large
+    sort_widget.items_per_page = math.max(1,
+        math.floor(content_height / sort_widget.item_height))
+    sort_widget.pages = math.max(1,
+        math.ceil(#sort_widget.item_table / sort_widget.items_per_page))
+    sort_widget.show_page = math.min(sort_widget.show_page, sort_widget.pages)
 end
 
 local function get_done_action(items, fallback)
@@ -310,6 +440,30 @@ local function sync_done_button(sort_widget, menu_proxy, fallback)
     if not title_bar then return end
     local items = menu_proxy and menu_proxy.item_table or sort_widget.item_table
     local action = get_done_action(items, fallback)
+    if title_bar._zen_settings_header then
+        if action then
+            title_bar:setAction{
+                text = action.text,
+                callback = function()
+                    local current_items = menu_proxy and menu_proxy.item_table or sort_widget.item_table
+                    local current_action = get_done_action(current_items, fallback)
+                    if not current_action then return true end
+                    current_action.done_func(menu_proxy)
+                    sort_widget:onClose()
+                    if current_action.finish and fallback
+                            and type(fallback.close_arrange) == "function" then
+                        fallback.close_arrange()
+                    elseif fallback and type(fallback.return_to_parent) == "function" then
+                        fallback.return_to_parent()
+                    end
+                    return true
+                end,
+            }
+        else
+            title_bar:setAction(title_bar._zen_arrange_default_action)
+        end
+        return
+    end
     if not action then
         remove_done_button(sort_widget)
         return
@@ -361,72 +515,60 @@ end
 
 local function configure_title_bar(sort_widget, opts)
     opts = opts or {}
-    local title_bar = sort_widget and sort_widget.title_bar
-    if not title_bar then return end
+    local old_title_bar = sort_widget and sort_widget.title_bar
+    local content = sort_widget and sort_widget[1] and sort_widget[1][1]
+    local frame_content = content and content[1]
+    local vertical_group = frame_content and frame_content[1]
+    if not (old_title_bar and vertical_group) then return end
 
-    local left_button = title_bar.left_button
-    if left_button then
-        left_button:setIcon("chevron.left")
-        left_button.allow_flash = false
-        left_button.callback = function()
-            return sort_widget:onClose()
-        end
-        left_button.hold_callback = false
-        left_button.onHoldIconButton = function() return true end
-        left_button.onHoldReleaseIconButton = function() return true end
+    local default_action
+    if type(opts.add_item_table) == "table" and #opts.add_item_table > 0 then
+        default_action = {
+            file = get_plus_icon_path(),
+            icon = "plus",
+            callback = function()
+                show_submenu(opts.add_title or "", opts.add_item_table, function()
+                    if sort_widget._zen_arrange_refresh then
+                        sort_widget:_zen_arrange_refresh()
+                    else
+                        repopulate(sort_widget)
+                    end
+                end, {
+                    close_arrange = opts.close_arrange,
+                })
+                return true
+            end,
+        }
     end
 
-    local right_button = title_bar.right_button
-    if right_button then
-        if type(opts.add_item_table) == "table" and #opts.add_item_table > 0 then
-            local icon_path = get_plus_icon_path()
-            if icon_path and right_button.image and right_button.horizontal_group then
-                right_button.image:free()
-                right_button.image = IconWidget:new{
-                    file = icon_path,
-                    width = right_button.width,
-                    height = right_button.height,
-                }
-                right_button.horizontal_group[2] = right_button.image
-                right_button:update()
-            elseif title_bar.setRightIcon then
-                title_bar:setRightIcon("plus")
-            elseif right_button.setIcon then
-                right_button:setIcon("plus")
-            end
-            right_button.enabled = true
-            right_button.callback = function()
-                if show_submenu then
-                    show_submenu(opts.add_title or "", opts.add_item_table, function()
-                        if sort_widget._zen_arrange_refresh then
-                            sort_widget:_zen_arrange_refresh()
-                        else
-                            repopulate(sort_widget)
-                        end
-                    end, {
-                        close_arrange = opts.close_arrange,
-                    })
-                end
-                return true
-            end
-            right_button.onTapIconButton = nil
-            if right_button.image then
-                right_button.image.hide = false
-            end
-            if right_button.show then right_button:show() end
-            if right_button.enable then right_button:enable() end
-        else
-            right_button.enabled = false
-            right_button.callback = nil
-            right_button.onTapIconButton = function() return true end
-            if right_button.image then
-                right_button.image.hide = true
-            end
-        end
-        right_button.hold_callback = false
-        right_button.allow_flash = false
-        right_button.onHoldIconButton = function() return true end
-        right_button.onHoldReleaseIconButton = function() return true end
+    local function close_with(callback)
+        if type(callback) == "function" then return callback() end
+        return sort_widget:onClose()
+    end
+
+    local title_bar = SettingsTitleBar:new{
+        width = sort_widget.dimen.w,
+        title = sort_widget.title,
+        back_visible = true,
+        search_visible = false,
+        more_visible = false,
+        title_full_width = true,
+        action = default_action,
+        show_parent = sort_widget,
+        back_callback = function() return close_with(opts.back_callback) end,
+        close_callback = function() return close_with(opts.close_callback) end,
+    }
+    title_bar._zen_settings_header = true
+    title_bar._zen_arrange_default_action = default_action
+    vertical_group[1] = title_bar
+    sort_widget.title_bar = title_bar
+    if vertical_group.resetLayout then vertical_group:resetLayout() end
+    old_title_bar:free()
+
+    local orig_onCloseWidget = sort_widget.onCloseWidget
+    sort_widget.onCloseWidget = function(self, ...)
+        title_bar:clearStatusRefresh()
+        if orig_onCloseWidget then return orig_onCloseWidget(self, ...) end
     end
 end
 
@@ -480,6 +622,20 @@ end
 local function install_titlebar_focus(sort_widget)
     if not (sort_widget and sort_widget.layout) then return end
     local title_bar = sort_widget.title_bar
+    if title_bar and title_bar._zen_settings_header then
+        local row = title_bar:generateHorizontalLayout()[1]
+        row._zen_settings_titlebar = true
+        local first = sort_widget.layout[1]
+        if first and first._zen_settings_titlebar then
+            sort_widget.layout[1] = row
+            return
+        end
+        table.insert(sort_widget.layout, 1, row)
+        if sort_widget.selected then
+            sort_widget.selected.y = (sort_widget.selected.y or 1) + 1
+        end
+        return
+    end
     local left_button = title_bar and title_bar.left_button
     if not left_button then return end
     local first = sort_widget.layout[1]
@@ -640,7 +796,10 @@ show_submenu = function(title, items, refresh, opts)
         title = title,
         item_table = items,
         sort_disabled = false,
+        covers_fullscreen = true,
     }
+    sort_widget.item_margin = 0
+    sort_widget:_populateItems()
     sort_widget.sort_disabled = true
     sort_widget._zen_arrange_close_all = opts.close_arrange
     sort_widget._zen_arrange_return_to_parent = function()
@@ -668,18 +827,33 @@ show_submenu = function(title, items, refresh, opts)
         return true
     end
 
-    configure_title_bar(sort_widget)
-    suppress_page_centering(sort_widget)
-    sync_done_button(sort_widget, menu_proxy, opts)
-    if sort_widget.title_bar and sort_widget.title_bar.left_button then
-        sort_widget.title_bar.left_button.callback = function()
+    local function close_submenu_and_arrange()
+        if sort_widget then
+            local current = sort_widget
+            sort_widget = nil
+            current:onClose()
+        end
+        if type(opts.close_arrange) == "function" then opts.close_arrange() end
+    end
+    configure_title_bar(sort_widget, {
+        back_callback = function()
             menu_proxy:backToUpperMenu()
             return true
-        end
-    end
+        end,
+        close_callback = function()
+            close_submenu_and_arrange()
+            require("modules/settings/zen_settings_page").closeActive()
+            return true
+        end,
+    })
+    apply_settings_row_metrics(sort_widget)
+    sort_widget:_populateItems()
+    suppress_page_centering(sort_widget)
+    sync_done_button(sort_widget, menu_proxy, opts)
     suppress_footer_cancel(sort_widget.footer_cancel)
     suppress_footer_jump_buttons(sort_widget)
     suppress_footer_page_button(sort_widget)
+    sync_pagination_footer(sort_widget)
     sync_footer_ok(sort_widget)
     apply_icon_rows(sort_widget)
     install_submenu_tap_handlers(sort_widget)
@@ -687,11 +861,13 @@ show_submenu = function(title, items, refresh, opts)
     local orig_populate = sort_widget._populateItems
     sort_widget._populateItems = function(self, ...)
         update_dynamic_text(self.item_table)
+        apply_settings_row_metrics(self)
         local result = orig_populate(self, ...)
         suppress_page_centering(self)
         suppress_footer_cancel(self.footer_cancel)
         suppress_footer_jump_buttons(self)
         suppress_footer_page_button(self)
+        sync_pagination_footer(self)
         sync_footer_ok(self)
         sync_done_button(self, menu_proxy, opts)
         apply_icon_rows(self)
@@ -776,7 +952,10 @@ function M.show(opts)
         title = opts.title or "",
         item_table = item_table,
         callback = opts.callback,
+        covers_fullscreen = true,
     }
+    sort_widget.item_margin = 0
+    sort_widget:_populateItems()
     sort_widget._zen_arrange_done_func = item_table._zen_arrange_done_func or opts.done_func
     sort_widget._zen_arrange_done_enabled_func =
         item_table._zen_arrange_done_enabled_func or opts.done_enabled_func
@@ -807,6 +986,12 @@ function M.show(opts)
         add_title = opts.add_title,
         add_item_table = opts.add_item_table,
         close_arrange = sort_widget._zen_arrange_close_all,
+        back_callback = sort_widget._zen_arrange_close_all,
+        close_callback = function()
+            sort_widget._zen_arrange_close_all()
+            require("modules/settings/zen_settings_page").closeActive()
+            return true
+        end,
     }
 
     local orig_on_press = sort_widget.onPress
@@ -838,6 +1023,8 @@ function M.show(opts)
     end
 
     configure_title_bar(sort_widget, title_opts)
+    apply_settings_row_metrics(sort_widget)
+    sort_widget:_populateItems()
     suppress_page_centering(sort_widget)
     sync_done_button(sort_widget, nil, done_opts)
     if opts.hide_footer_cancel then
@@ -847,6 +1034,7 @@ function M.show(opts)
     end
     suppress_footer_jump_buttons(sort_widget)
     suppress_footer_page_button(sort_widget)
+    sync_pagination_footer(sort_widget)
     sync_footer_ok(sort_widget)
     apply_icon_rows(sort_widget)
     install_root_tap_handlers(sort_widget)
@@ -854,6 +1042,7 @@ function M.show(opts)
     local orig_populate = sort_widget._populateItems
     sort_widget._populateItems = function(self, ...)
         update_dynamic_text(self.item_table)
+        apply_settings_row_metrics(self)
         local result = orig_populate(self, ...)
         suppress_page_centering(self)
         if opts.hide_footer_cancel then
@@ -863,6 +1052,7 @@ function M.show(opts)
         end
         suppress_footer_jump_buttons(self)
         suppress_footer_page_button(self)
+        sync_pagination_footer(self)
         sync_footer_ok(self)
         sync_done_button(self, nil, done_opts)
         apply_icon_rows(self)

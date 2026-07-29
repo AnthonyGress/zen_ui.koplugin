@@ -15,6 +15,7 @@ local function apply_zen_scroll_bar()
         history = true,
         collections = true,
         filesearcher = true,
+        zen_settings = true,
     }
 
     local function getRakuyomi()
@@ -56,7 +57,8 @@ local function apply_zen_scroll_bar()
         local bar_w  = math.floor(scr_w * BAR_W_PCT)
         local bar_x  = math.floor((scr_w - bar_w) / 2)   -- centred offset from left edge
         -- Decide footer height once at init; page_number gets the taller strip.
-        local foot_h = pager.getStyle() == "page_number" and pager.PN_FOOTER_H or pager.FOOTER_H
+        local page_number_style = pager.getStyle() == "page_number"
+        local foot_h = page_number_style and pager.PN_FOOTER_H or pager.FOOTER_H
         local foot   = Geom:new{ w = scr_w, h = foot_h }
 
         -- _recalculateDimen uses getSize().h on these two widgets to compute
@@ -85,8 +87,7 @@ local function apply_zen_scroll_bar()
             pager.paint(bb, x + bar_x, y, bar_w, foot_h, menu.page or 1, menu.page_num or 1)
         end
 
-        -- Register touch zones for the page_number style.
-        -- These are no-ops when another style is active (get_style() guard).
+        -- Register touch zones for the page-number footer.
         -- screen_zone uses ratio_x/y/w/h (fractions of screen dimensions),
         -- as required by InputContainer:registerTouchZones.
         local scr_h    = Screen:getHeight()
@@ -108,7 +109,7 @@ local function apply_zen_scroll_bar()
             return pager.getStyle() == "page_number" and (menu.page_num or 0) > 1
         end
 
-        self:registerTouchZones({
+        self._zen_page_number_zones = {
             -- Left chevron — tap: prev page.
             {
                 id = "zen_pn_left_tap",
@@ -195,7 +196,8 @@ local function apply_zen_scroll_bar()
                     return true
                 end,
             },
-        })
+        }
+        self:registerTouchZones(self._zen_page_number_zones)
 
         -- Re-run layout so the new sizes take effect before the first paint.
         self:_recalculateDimen()

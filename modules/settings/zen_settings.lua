@@ -50,19 +50,6 @@ function M.build(plugin)
 
     local navbar_item          = navbar_section.build(ctx)
     local filebrowser_items    = lib_section.build(ctx)
-    do
-        local inserted = false
-        for _i, item in ipairs(filebrowser_items) do
-            if item.text == _("Layout") then
-                table.insert(filebrowser_items, _i + 1, navbar_item)
-                inserted = true
-                break
-            end
-        end
-        if not inserted then
-            table.insert(filebrowser_items, navbar_item)
-        end
-    end
     local home_item       = home_section.build(ctx)
     local quick_settings_item  = menu_section.build(ctx)
     local app_launcher_item = app_launcher_section.build(ctx)
@@ -152,6 +139,7 @@ function M.build(plugin)
         quick_settings_item,
         app_launcher_item,
         home_item,
+        IconItem.decorate(navbar_item, icons.settings_navbar),
         IconItem.decorate({ text = _("Library"), sub_item_table = filebrowser_items }, icons.settings_library),
         IconItem.decorate({ text = _("Reader"), sub_item_table = reader_items }, icons.settings_reader),
         IconItem.decorate({ text = _("Extras"), sub_item_table = extras_items }, icons.fav_add),

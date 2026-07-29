@@ -155,6 +155,7 @@ describe("file browser guard patches", function()
 
     it("makes every movable container unmovable and consumes drag callbacks", function()
         local init_calls = 0
+        local modal_frame
         local MovableContainer = {
             init = function(self, marker)
                 init_calls = init_calls + 1
@@ -164,12 +165,17 @@ describe("file browser guard patches", function()
             onMovableSwipe = function() return "swipe" end,
         }
         ZenSpec.replace("ui/widget/container/movablecontainer", MovableContainer)
+        ZenSpec.replace("common/ui/modal_border", {
+            apply = function(frame) modal_frame = frame end,
+        })
 
         apply_patch("modules/filebrowser/patches/disable_modal_drag")
-        local instance = {}
+        local frame = { bordersize = 1 }
+        local instance = { frame }
         assert.are.equal("initialized", MovableContainer.init(instance, "initialized"))
         assert.is_true(instance.unmovable)
         assert.are.equal(1, init_calls)
+        assert.are.equal(frame, modal_frame)
         assert.is_nil(MovableContainer.onMovableTouch(instance))
         assert.is_nil(MovableContainer.onMovableSwipe(instance))
         assert.is_nil(MovableContainer.onMovablePanRelease(instance))

@@ -35,6 +35,7 @@ common/tbr_index.lua|unit
 common/ui/background.lua|unit
 common/ui/corner_banner.lua|unit
 common/ui/icon_menu_item.lua|unit
+common/ui/modal_border.lua|unit
 common/ui/zen_arrange_list.lua|unit
 common/ui/zen_button.lua|unit
 common/ui/zen_dialog.lua|unit
@@ -48,6 +49,7 @@ common/ui/zen_scroll_bar.lua|unit
 common/ui/zen_solid_circle.lua|unit
 common/ui/zen_slider.lua|unit
 common/ui/zen_slider_dialog.lua|unit
+common/ui/zen_settings_titlebar.lua|unit
 common/ui/zen_toggle.lua|unit
 common/utils.lua|unit
 common/widget_resources.lua|unit
@@ -179,6 +181,7 @@ modules/settings/sections/reader_settings.lua|integration
 modules/settings/sections/stats_settings.lua|integration
 modules/settings/zen_bugreporter.lua|integration
 modules/settings/zen_settings.lua|integration
+modules/settings/zen_settings_page.lua|integration
 modules/settings/zen_settings_apply.lua|integration
 modules/settings/zen_settings_utils.lua|integration
 modules/settings/zenpm_installer.lua|integration

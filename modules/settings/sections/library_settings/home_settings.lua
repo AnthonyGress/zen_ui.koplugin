@@ -1074,6 +1074,24 @@ function M.build(ctx)
         quotes = true,
     }
 
+    local function arrange_search_items()
+        dcfg.rows = Registry.normalizeRows(dcfg.rows, DEFAULT_ORDER, DEFAULT_ENABLED)
+        local items = {}
+        for _i, id in ipairs(dcfg.rows.order) do
+            if widget_ids_with_settings[id] then
+                local widget_id = id
+                items[#items + 1] = {
+                    text = component_label(widget_id),
+                    _zen_search_breadcrumb = _("Home"),
+                    _zen_search_open = function()
+                        return open_widget_settings(widget_id)
+                    end,
+                }
+            end
+        end
+        return items
+    end
+
     local function arrange_widgets()
         local ZenArrangeList = require("common/ui/zen_arrange_list")
         dcfg.rows = Registry.normalizeRows(dcfg.rows, DEFAULT_ORDER, DEFAULT_ENABLED)
@@ -1715,6 +1733,7 @@ function M.build(ctx)
     return {
         text = _("Home"),
         sub_item_table = home_items,
+        _zen_search_items_func = arrange_search_items,
     }
 end
 
