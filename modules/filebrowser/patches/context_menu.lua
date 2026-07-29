@@ -713,7 +713,7 @@ local function apply_context_menu()
             local home_dir = paths.getHomeDir()
             local cur_path = self_fc.path or ""
             if home_dir and not item._zen_collection_name and not item._zen_home_context then
-                if not paths.isInHomeDir(cur_path) then
+                if not paths.isInThemedDir(cur_path) then
                     return orig_showFileDialog(self_fc, item)
                 end
             end
@@ -2162,7 +2162,7 @@ local function apply_context_menu()
                 local home_dir_bh = paths.getHomeDir()
                 local cur_path_bh = fc.path or ""
                 if home_dir_bh then
-                    if not paths.isInHomeDir(cur_path_bh) then return false end
+                    if not paths.isInThemedDir(cur_path_bh) then return false end
                 end
                 local ffiUtil_bh = require("ffi/util")
                 local cur_real = ffiUtil_bh.realpath(cur_path_bh) or cur_path_bh

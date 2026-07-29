@@ -2525,3 +2525,9 @@ msgstr "Delete this custom theme?"
 
 msgid "Custom theme"
 msgstr "Custom theme"
+
+msgid "Archive"
+msgstr "Archive"
+
+msgid "Archive folder not found: "
+msgstr "Archive folder not found: "

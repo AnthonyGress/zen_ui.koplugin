@@ -26,6 +26,26 @@ function M.getHomeDir()
     return nil
 end
 
+-- Returns the archive root configured by the Move to Archive user patch.
+-- Archive is intentionally separate from the library roots: it can share the
+-- Zen browser presentation without feeding archived books back into Home
+-- widgets, library statistics, or library database scans.
+function M.getArchiveDir()
+    local ok_storage, DataStorage = pcall(require, "datastorage")
+    if not ok_storage or not DataStorage then return nil end
+    local path = DataStorage:getSettingsDir() .. "/move_to_archive_settings.lua"
+    local ok_settings, archive_settings = pcall(dofile, path)
+    local dir = ok_settings and type(archive_settings) == "table"
+        and archive_settings.archive_dir or nil
+    if type(dir) ~= "string" or dir == "" then return nil end
+    return M.normPath(dir:gsub("/*$", ""))
+end
+
+local function is_at_or_below(path, root)
+    return root ~= nil
+        and (path == root or path:sub(1, #root + 1) == root .. "/")
+end
+
 function M.isUnsafeFlatViewRoot(path)
     if type(path) ~= "string" then return false end
     local norm = M.normPath(path:gsub("/*$", ""))
@@ -102,6 +122,15 @@ function M.isInHomeDir(path)
     end
 
     return false
+end
+
+-- Browser presentation scope: normal library roots plus the external archive
+-- configured by the Move to Archive patch.
+function M.isInThemedDir(path)
+    if M.isInHomeDir(path) then return true end
+    if not path then return false end
+    local norm = M.normPath(path:gsub("/+$", ""))
+    return is_at_or_below(norm, M.getArchiveDir())
 end
 
 function M.getHomeLockMode()
