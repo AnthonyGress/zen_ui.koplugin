@@ -327,7 +327,8 @@ local function rebuild_icon_row(row)
         BottomContainer:new{
             dimen = Geom:new{ w = row.width, h = row.height },
             LineWidget:new{
-                dimen = Geom:new{ w = row.width, h = Size.line.thin },
+                -- Keep dividers edge-to-edge while the row content stays inset.
+                dimen = Geom:new{ w = row.show_parent.dimen.w, h = Size.line.thin },
                 background = Blitbuffer.COLOR_LIGHT_GRAY,
             },
         },

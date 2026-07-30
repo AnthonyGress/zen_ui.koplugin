@@ -119,7 +119,7 @@ function ZenSettingsTitleBar:init()
     self:clearStatusRefresh()
     self.status_factory = self.status_factory or default_status_factory(self.plugin)
 
-    local icon_size = Screen:scaleBySize(24)
+    local icon_size = Screen:scaleBySize(28)
     local button_padding = Screen:scaleBySize(8)
     local button_size = icon_size + 2 * button_padding
     local left_padding = Size.padding.small
@@ -333,7 +333,7 @@ function ZenSettingsTitleBar:init()
     })
     table.insert(vertical_group, VerticalSpan:new{ width = vertical_padding })
     table.insert(vertical_group, LineWidget:new{
-        dimen = Geom:new{ w = self.width, h = Size.line.thin },
+        dimen = Geom:new{ w = self.width, h = Screen:scaleBySize(2) },
         background = Blitbuffer.COLOR_LIGHT_GRAY,
     })
     self._vertical_group = vertical_group

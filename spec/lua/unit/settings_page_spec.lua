@@ -191,6 +191,12 @@ describe("Zen settings page", function()
         assert.are.equal(2, #shown_widgets)
     end)
 
+    it("covers the underlying page when first opened", function()
+        local settings = make_page({})
+
+        assert.is_true(settings.covers_fullscreen)
+    end)
+
     it("restores the parent title when the parent table refreshes on back", function()
         local library = { text = "Library", sub_item_table = {{ text = "Layout" }} }
         local root = { library }

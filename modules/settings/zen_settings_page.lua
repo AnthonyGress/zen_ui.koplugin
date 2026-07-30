@@ -205,6 +205,7 @@ function ZenSettingsPage:init()
     self.height = Device.screen:getHeight()
     self.is_borderless = true
     self.is_popout = false
+    self.covers_fullscreen = true
     self.linesize = require("ui/size").line.thin
     self.line_color = require("ffi/blitbuffer").COLOR_LIGHT_GRAY
     self._search_index = nil
