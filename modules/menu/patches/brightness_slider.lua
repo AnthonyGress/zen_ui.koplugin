@@ -69,6 +69,7 @@ local function build_brightness_slider(touch_menu, opts)
         value_max = fl.max,
         show_parent = show_parent,
     }
+    local fl_button_height = fl_progress:getSize().h
 
     local fl_minus = Button:new{
         text           = "−",
@@ -76,6 +77,7 @@ local function build_brightness_slider(touch_menu, opts)
         text_font_size = small_btn_size,
         text_font_bold = false,
         width          = small_btn_width,
+        height         = fl_button_height,
         bordersize     = 0,
         show_parent    = show_parent,
         callback       = function() end, -- placeholder, wired below
@@ -143,6 +145,7 @@ local function build_brightness_slider(touch_menu, opts)
         text_font_size = small_btn_size,
         text_font_bold = false,
         width          = small_btn_width,
+        height         = fl_button_height,
         bordersize     = 0,
         show_parent    = show_parent,
         callback       = function() setBrightness(fl.cur + 1) end,

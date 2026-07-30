@@ -69,6 +69,7 @@ local function build_warmth_slider(touch_menu, opts)
         value_max = nl.max,
         show_parent = show_parent,
     }
+    local nl_button_height = nl_progress:getSize().h
 
     local nl_label_fn = nil
     local nl_row  -- forward-declare for on_change closure
@@ -130,6 +131,7 @@ local function build_warmth_slider(touch_menu, opts)
         text_font_size = small_btn_size,
         text_font_bold = false,
         width          = small_btn_width,
+        height         = nl_button_height,
         bordersize     = 0,
         show_parent    = show_parent,
         callback       = function() setWarmth(nl.cur - 1) end,
@@ -140,6 +142,7 @@ local function build_warmth_slider(touch_menu, opts)
         text_font_size = small_btn_size,
         text_font_bold = false,
         width          = small_btn_width,
+        height         = nl_button_height,
         bordersize     = 0,
         show_parent    = show_parent,
         callback       = function() setWarmth(nl.cur + 1) end,
