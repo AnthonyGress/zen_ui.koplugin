@@ -2529,5 +2529,50 @@ msgstr "Custom theme"
 msgid "Archive"
 msgstr ""
 
-msgid "Archive folder not found: "
+msgid "Archive folder not found: %1"
+msgstr ""
+
+msgid "No archive folder is set. Set one now?"
+msgstr ""
+
+msgid "Set archive folder"
+msgstr ""
+
+msgid "Move to archive"
+msgstr ""
+
+msgid "Move to library"
+msgstr ""
+
+msgid "A book with that name already exists in the destination."
+msgstr ""
+
+msgid "A book with that name already exists in the archive."
+msgstr ""
+
+msgid "Failed to move book."
+msgstr ""
+
+msgid "Set a HOME folder in File Manager first."
+msgstr ""
+
+msgid "Book moved to library."
+msgstr ""
+
+msgid "Book moved to archive."
+msgstr ""
+
+msgid "Mark as complete and archive"
+msgstr ""
+
+msgid "Set an archive folder with Move to archive first."
+msgstr ""
+
+msgid "This book is already in the archive."
+msgstr ""
+
+msgid "Book marked as complete and moved to archive."
+msgstr ""
+
+msgid "Failed to move book to archive."
 msgstr ""

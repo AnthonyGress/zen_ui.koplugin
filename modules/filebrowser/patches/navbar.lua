@@ -24,6 +24,7 @@ local function apply_navbar()
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
     local Screen = Device.screen
     local _ = require("gettext")
+    local T = require("ffi/util").template
     local lfs = require("libs/libkoreader-lfs")
     local logger = require("common/zen_logger").new("navbar")
 
@@ -495,7 +496,7 @@ local function apply_navbar()
         if lfs.attributes(archive_dir, "mode") ~= "directory" then
             local InfoMessage = require("ui/widget/infomessage")
             UIManager:show(InfoMessage:new{
-                text = _("Archive folder not found: ") .. archive_dir,
+                text = T(_("Archive folder not found: %1"), archive_dir),
             })
             return false
         end

@@ -12,6 +12,7 @@ local function apply_book_status()
 
     -- Always use the Zen UI custom Book Status layout (home + close buttons, cleaner stats)
     local BookStatusWidget = require("ui/widget/bookstatuswidget")
+    local archive_actions = require("common/archive_actions")
     local library_navigation = require("common/library_navigation")
 
     BookStatusWidget.getStatusContent = function(self, width)
@@ -139,6 +140,21 @@ local function apply_book_status()
                 end,
             }
         end
+        local file = self.ui and self.ui.document and self.ui.document.file
+        local archive_button
+        if not self.readonly and archive_actions.canArchive(file) then
+            archive_button = Button:new{
+                text = _("Mark as complete and archive"),
+                width = math.floor(width * 0.55),
+                show_parent = self,
+                callback = function()
+                    local reader_status = self.ui and self.ui.status
+                    if reader_status then
+                        archive_actions.markCompleteAndArchive(reader_status, self)
+                    end
+                end,
+            }
+        end
         local orig_generateRateGroup = BookStatusWidget.generateRateGroup
         self.generateRateGroup = function(s, w, h, rating)
             local stars = orig_generateRateGroup(s, w, h, rating)
@@ -154,14 +170,27 @@ local function apply_book_status()
             else
                 btn_row = restart_book_btn
             end
-            return VerticalGroup:new{
+            local controls = {
                 CenterContainer:new{
                     dimen = Geom:new{ w = w, h = btn_h },
                     btn_row,
                 },
                 VerticalSpan:new{ width = Screen:scaleBySize(6) },
-                stars,
             }
+            if archive_button then
+                controls[#controls + 1] = CenterContainer:new{
+                    dimen = Geom:new{
+                        w = w,
+                        h = archive_button:getSize().h,
+                    },
+                    archive_button,
+                }
+                controls[#controls + 1] = VerticalSpan:new{
+                    width = Screen:scaleBySize(6),
+                }
+            end
+            controls[#controls + 1] = stars
+            return VerticalGroup:new(controls)
         end
         local book_info_group = self:genBookInfoGroup()
         self.generateRateGroup = nil -- remove instance override

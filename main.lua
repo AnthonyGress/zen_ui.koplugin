@@ -657,6 +657,10 @@ function ZenUI:init()
         local orig_show = menu_class.onShowMenu
         if type(orig_show) == "function" then
             menu_class.onShowMenu = function(m_self, ...)
+                local refresh_settings = rawget(_G, "__ZEN_UI_REFRESH_SETTINGS")
+                if type(refresh_settings) == "function" then
+                    refresh_settings()
+                end
                 refresh_zen_menu_tabs(m_self)
                 return orig_show(m_self, ...)
             end
@@ -690,6 +694,28 @@ function ZenUI:init()
         end
     end
     zen_updater._on_update_found = update_icon
+
+    -- Settings whose availability depends on external KOReader state (such as
+    -- the configured archive folder) can ask us to rebuild the cached Zen tab.
+    local archive_was_available = paths.getArchiveDir() ~= nil
+    _G.__ZEN_UI_REFRESH_SETTINGS = function(force)
+        local archive_available = paths.getArchiveDir() ~= nil
+        if not force and archive_available == archive_was_available then return end
+        if archive_available and not archive_was_available then
+            _zen_plugin_ref.config.navbar.show_tabs.archive = false
+            _zen_plugin_ref:saveConfig()
+        end
+        archive_was_available = archive_available
+        for m_instance in pairs(_zen_menu_instances) do
+            local item = zen_settings.build(_zen_plugin_ref).sub_item_table
+            item.id = "zen_ui"
+            m_instance._zen_tab_item = item
+            refresh_zen_menu_tabs(m_instance)
+        end
+        local reinject = rawget(_G, "__ZEN_UI_REINJECT_NAVBARS")
+            or rawget(_G, "__ZEN_UI_REINJECT_FM_NAVBAR")
+        if type(reinject) == "function" then reinject() end
+    end
 
     -- Trigger background update check on fresh startup too, not only on resume.
     zen_updater.schedule_wakeup_check()

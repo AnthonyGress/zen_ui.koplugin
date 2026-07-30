@@ -13,6 +13,7 @@ local function apply_context_menu()
     local UIManager    = require("ui/uimanager")
     local _            = require("gettext")
     local C_           = _.pgettext
+    local archive_actions = require("common/archive_actions")
     local book_status  = require("common/book_status")
     local ConfigManager = require("config/manager")
     local paths        = require("common/paths")
@@ -695,6 +696,10 @@ local function apply_context_menu()
                         end,
                     }})
                 end
+
+                local archive_row = archive_actions.contextRow(
+                    FileManager.instance, item.path, item.is_file)
+                if archive_row then table.insert(buttons, archive_row) end
 
                 if item._zen_extra_buttons then
                     for _i, row in ipairs(item._zen_extra_buttons) do
@@ -2084,6 +2089,10 @@ local function apply_context_menu()
                     },
                 })
             end
+
+            local archive_row = archive_actions.contextRow(
+                FileManager.instance, file, is_file)
+            if archive_row then table.insert(buttons, archive_row) end
 
             if item._zen_extra_buttons then
                 for _i, row in ipairs(item._zen_extra_buttons) do

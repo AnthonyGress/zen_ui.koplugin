@@ -41,11 +41,6 @@ function M.getArchiveDir()
     return M.normPath(dir:gsub("/*$", ""))
 end
 
-local function is_at_or_below(path, root)
-    return root ~= nil
-        and (path == root or path:sub(1, #root + 1) == root .. "/")
-end
-
 function M.isUnsafeFlatViewRoot(path)
     if type(path) ~= "string" then return false end
     local norm = M.normPath(path:gsub("/*$", ""))
@@ -125,12 +120,14 @@ function M.isInHomeDir(path)
 end
 
 -- Browser presentation scope: normal library roots plus the external archive
--- configured by the Move to Archive patch.
+-- configured by KOReader's Move to archive plugin.
 function M.isInThemedDir(path)
     if M.isInHomeDir(path) then return true end
     if not path then return false end
     local norm = M.normPath(path:gsub("/+$", ""))
-    return is_at_or_below(norm, M.getArchiveDir())
+    local archive = M.getArchiveDir()
+    return archive ~= nil
+        and (norm == archive or norm:sub(1, #archive + 1) == archive .. "/")
 end
 
 function M.getHomeLockMode()
