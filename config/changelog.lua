@@ -232,5 +232,8 @@ return {
         "Improved default covers",
         "Add book tags to Navbar (Navbar > Tabs)",
         "Add book tags strip to Home page (Home > Widgets",
+        "Add checkboxes of toggles in plugin menus accessed via launcher/controls",
+        "Add tailscale Control button",
+        "Add Restarting notice",
     }
 }

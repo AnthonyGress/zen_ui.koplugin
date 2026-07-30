@@ -189,6 +189,42 @@ describe("home featured widget", function()
         assert.is_true(series.bold)
     end)
 
+    it("applies the configured progress-label text style", function()
+        local Featured = require("modules/filebrowser/patches/home/widgets/featured_common")
+        Featured.build({
+            width = 600,
+            height = 220,
+            module_cfg = {
+                progress_meta = { left = "percent", right = "total_pages" },
+                text_styles = {
+                    progress = { font_face = "ProgressFont", font_size = 12, bold = true },
+                },
+            },
+            data = {
+                getFeaturedBook = function()
+                    return {
+                        path = "/library/alpha.epub",
+                        title = "Alpha",
+                        status = "reading",
+                        percent = 0.25,
+                        pages = 120,
+                    }
+                end,
+            },
+        }, "recently_read")
+
+        local labels = 0
+        for _i, widget in ipairs(created) do
+            if widget.text == "25%" or widget.text == "120 pages" then
+                labels = labels + 1
+                assert.equals("ProgressFont", widget.face.name)
+                assert.equals(7, widget.face.size)
+                assert.is_true(widget.bold)
+            end
+        end
+        assert.equals(2, labels)
+    end)
+
     it("supplies the featured cover before opening its book", function()
         local captured_cover
         rawset(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER", function(cover)

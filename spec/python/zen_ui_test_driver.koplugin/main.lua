@@ -64,6 +64,30 @@ local function filemanager_status_y()
     return widget_y(title_group and title_group[2])
 end
 
+local function focus_position(widget, target)
+    if not (widget and target) then return nil end
+    for row_i, row in ipairs(widget.layout or {}) do
+        for column_i, control in ipairs(row) do
+            if control == target then return column_i, row_i end
+        end
+    end
+    return nil
+end
+
+local function is_focus_target(widget, target)
+    return focus_position(widget, target) ~= nil
+end
+
+local function has_focus_feedback(control)
+    if not (control and control.handleEvent) then return false end
+    control:handleEvent(Event:new("Focus"))
+    local focused = control.invert == true
+        or control.image and control.image.invert == true
+        or control.frame and control.frame.invert == true
+    control:handleEvent(Event:new("Unfocus"))
+    return focused
+end
+
 ffi.cdef[[
 struct zen_test_sockaddr_un { unsigned short sun_family; char sun_path[108]; };
 int socket(int domain, int type, int protocol);
@@ -554,6 +578,8 @@ function Driver:handleCommand(command)
     if kind == "settings_page_state" then
         local page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
         if not page then return { ok = false, error = "settings page unavailable" } end
+        local first_row = page.item_group and page.item_group[1]
+        local focus_frame = first_row and first_row.item_frame
         local left_zone = page._zones and page._zones.zen_pn_left_tap
         local right_zone = page._zones and page._zones.zen_pn_right_tap
         local left_range = left_zone and left_zone.gs_range and left_zone.gs_range.range
@@ -617,6 +643,10 @@ function Driver:handleCommand(command)
                     and page.title_bar.search_frame.radius or 0,
                 shortcuts_enabled = page.is_enable_shortcut == true
                     or page.key_events and page.key_events.SelectByShortCut ~= nil,
+                row_focusable = focus_frame and focus_frame.focusable == true,
+                row_focus_border_size = focus_frame and focus_frame.focus_border_size,
+                row_focus_inner_border = focus_frame and focus_frame.focus_inner_border == true,
+                row_focus_feedback = has_focus_feedback(focus_frame),
                 row_style = find_settings_row_style(page.item_group),
                 standard_style = settings_row_standard(),
                 labels = labels,
@@ -772,6 +802,53 @@ function Driver:handleCommand(command)
         local ok_submit, err = pcall(input.onTextInput, input, "\n")
         return { ok = ok_submit, error = ok_submit and nil or tostring(err) }
     end
+    if kind == "settings_page_non_touch_search" then
+        local page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
+        local title_bar = page and page.title_bar
+        local search_button = title_bar and title_bar.search_button
+        local button_x, button_y = focus_position(page, search_button)
+        local initial_close_x, initial_close_y = focus_position(page, title_bar and title_bar.close_button)
+        if not (title_bar and button_x and button_y and initial_close_x and initial_close_y) then
+            return { ok = false, error = "settings search button unavailable" }
+        end
+        page.selected = { x = button_x, y = button_y }
+        local search_button_focused = page.selected.x == button_x and page.selected.y == button_y
+        page:onZenSettingsFocusRight()
+        local close_focused_from_search = page.selected.x == initial_close_x
+            and page.selected.y == initial_close_y
+        page:onZenSettingsFocusLeft()
+        local search_focused_from_close = page.selected.x == button_x and page.selected.y == button_y
+        title_bar:openSearch()
+        local input = title_bar.search_input
+        local input_x, input_y = focus_position(page, input)
+        local close_x, close_y = focus_position(page, title_bar.close_button)
+        if not (input and input_x and input_y and close_x and close_y) then
+            return { ok = false, error = "settings search input unavailable" }
+        end
+        local search_input_focused = input_x == page.selected.x and input_y == page.selected.y
+        input.focused = true
+        input.charpos = #(input.charlist or {}) + 1
+        local exited = input:onKeyPress({ Right = true })
+        local close_focused = page.selected.x == close_x and page.selected.y == close_y
+        title_bar:setQuery("term")
+        page:_onSearchChanged("term")
+        title_bar.close_button.callback()
+        local collapsed_search_x, collapsed_search_y = focus_position(page, title_bar.search_button)
+        return {
+            ok = true,
+            search_button_focused = search_button_focused,
+            close_focused_from_search = close_focused_from_search,
+            search_focused_from_close = search_focused_from_close,
+            search_input_focused = search_input_focused,
+            exited = exited == true,
+            close_focused = close_focused,
+            search_input_focused_after_exit = input.focused == true,
+            search_closed = title_bar.search_input == nil and title_bar.query == ""
+                and page._search_active == false,
+            search_button_focused_after_close = page.selected.x == collapsed_search_x
+                and page.selected.y == collapsed_search_y,
+        }
+    end
     if kind == "arrange_page_state" then
         local widget = active_arrange_widget()
         local title_bar = widget and widget.title_bar
@@ -795,6 +872,8 @@ function Driver:handleCommand(command)
             end
         end
         local marked_frame = marked_row and marked_row[1] and marked_row[1][1]
+        local first_row = widget.main_content and widget.main_content[2]
+        local focus_frame = first_row and first_row[1] and first_row[1][1]
         return {
             ok = true,
             arrange = {
@@ -815,6 +894,14 @@ function Driver:handleCommand(command)
                     and widget.page_info._zen_arrange_footer_visible == true,
                 marked = widget.marked,
                 move_highlighted = marked_frame and marked_frame.invert == true or false,
+                row_focusable = focus_frame and focus_frame.focusable == true,
+                row_focus_border_size = focus_frame and focus_frame.focus_border_size,
+                row_focus_inner_border = focus_frame and focus_frame.focus_inner_border == true,
+                row_focus_feedback = has_focus_feedback(focus_frame),
+                action_focusable = is_focus_target(widget, title_bar.action_button),
+                close_focusable = is_focus_target(widget, title_bar.close_button),
+                action_focus_feedback = has_focus_feedback(title_bar.action_button),
+                close_focus_feedback = has_focus_feedback(title_bar.close_button),
                 row_style = find_settings_row_style(widget.main_content),
                 standard_style = settings_row_standard(),
                 labels = labels,
@@ -833,6 +920,26 @@ function Driver:handleCommand(command)
             end
         end
         return { ok = false, error = "arrange item unavailable" }
+    end
+    if kind == "arrange_page_focus_header" then
+        local widget = active_arrange_widget()
+        local title_bar = widget and widget.title_bar
+        local controls = title_bar and title_bar.generateHorizontalLayout
+            and title_bar:generateHorizontalLayout()[1]
+        local back_x, back_y = focus_position(widget, title_bar and title_bar.back_button)
+        local action_x, action_y = focus_position(widget, title_bar and title_bar.action_button)
+        local close_x, close_y = focus_position(widget, title_bar and title_bar.close_button)
+        if not (back_x and action_x and close_x and controls) then
+            return { ok = false, error = "arrange header controls unavailable" }
+        end
+        widget.selected = { x = back_x, y = back_y }
+        widget:onZenArrangeOpenSubmenu()
+        local action_focused = widget.selected.x == action_x and widget.selected.y == action_y
+        widget:onZenArrangeOpenSubmenu()
+        local close_focused = widget.selected.x == close_x and widget.selected.y == close_y
+        title_bar.close_button:handleEvent(Event:new("Unfocus"))
+        widget.selected = { x = 1, y = back_y + 1 }
+        return { ok = true, action_focused = action_focused, close_focused = close_focused }
     end
     if kind == "arrange_page_top_tap" then
         local widget = active_arrange_widget()

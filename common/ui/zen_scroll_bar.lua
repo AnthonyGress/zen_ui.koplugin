@@ -50,6 +50,11 @@ local function apply_zen_scroll_bar()
             return
         end
 
+        if self.name == "zen_settings" then
+            self.page_info_text.tap_input = nil
+            self.page_info_text.hold_input = nil
+        end
+
         local menu   = self
         local is_search = self.name == "filesearcher"
         local scr_w  = Screen:getWidth()
@@ -178,6 +183,7 @@ local function apply_zen_scroll_bar()
                 ges = "tap",
                 screen_zone = { ratio_x = rz_center_x, ratio_y = rz_y, ratio_w = rz_center_w, ratio_h = rz_h },
                 handler = function()
+                    if menu.name == "zen_settings" then return true end
                     if not canUsePageNumber() then return end
                     local createZenDialog = require("common/ui/zen_dialog")
                     local nb     = menu.page_num or 1

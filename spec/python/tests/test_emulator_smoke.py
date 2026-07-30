@@ -123,6 +123,10 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             assert settings.get("has_search_button") is True
             assert settings.get("has_more") is False
             assert settings.get("shortcuts_enabled") is False
+            assert settings.get("row_focusable") is True
+            assert settings.get("row_focus_inner_border") is True
+            assert settings.get("row_focus_feedback") is True
+            settings_focus_border = settings.get("row_focus_border_size")
             modal_enter = driver.command("settings_modal_enter_behavior")
             assert modal_enter.get("dismissed") is True
             assert modal_enter.get("submitted") is False
@@ -192,6 +196,16 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             assert settings.get("has_search_input") is False
             assert settings.get("has_search_button") is True
             assert driver.command("settings_page_back")["ok"] is True
+            non_touch_search = driver.command("settings_page_non_touch_search")
+            assert non_touch_search.get("search_button_focused") is True
+            assert non_touch_search.get("close_focused_from_search") is True
+            assert non_touch_search.get("search_focused_from_close") is True
+            assert non_touch_search.get("search_input_focused") is True
+            assert non_touch_search.get("exited") is True
+            assert non_touch_search.get("close_focused") is True
+            assert non_touch_search.get("search_input_focused_after_exit") is False
+            assert non_touch_search.get("search_closed") is True
+            assert non_touch_search.get("search_button_focused_after_close") is True
 
             assert driver.command(
                 "settings_page_search", query="items per page"
@@ -270,6 +284,10 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             assert arrange.get("pagination_visible") is False
             assert arrange.get("row_style") == arrange.get("standard_style")
             assert arrange.get("row_style") == search_row_style
+            assert arrange.get("row_focusable") is True
+            assert arrange.get("row_focus_inner_border") is True
+            assert arrange.get("row_focus_feedback") is True
+            assert arrange.get("row_focus_border_size") == settings_focus_border
             assert driver.command(
                 "arrange_page_hold_item", index=1
             ).get("ok") is True
@@ -286,6 +304,13 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             assert arrange_screenshot.stat().st_size > 0
             if str(arrange.get("title", "")).startswith("Buttons"):
                 assert arrange.get("has_action") is True
+                assert arrange.get("action_focusable") is True
+                assert arrange.get("close_focusable") is True
+                assert arrange.get("action_focus_feedback") is True
+                assert arrange.get("close_focus_feedback") is True
+                header_focus = driver.command("arrange_page_focus_header")
+                assert header_focus.get("action_focused") is True
+                assert header_focus.get("close_focused") is True
                 assert driver.command("arrange_page_action")["ok"] is True
                 time.sleep(0.2)
                 arrange = driver.command("arrange_page_state")["arrange"]

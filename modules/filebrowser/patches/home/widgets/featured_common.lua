@@ -29,6 +29,7 @@ local DEFAULT_TEXT_STYLES = {
     author = { font_face = "default", font_size = 9, bold = false },
     series = { font_face = "default", font_size = 7, bold = false },
     description = { font_face = "default", font_size = 16, bold = false },
+    progress = { font_face = "default", font_size = 7, bold = false },
 }
 
 local function clamp(v, min_v, max_v)
@@ -49,8 +50,8 @@ local function text_style(module_cfg, key)
     }
 end
 
-local function get_text_face(style, size)
-    local font_name = style.font_face == "default" and library_font.getFontName() or style.font_face
+local function get_text_face(style, size, default_font_name)
+    local font_name = style.font_face == "default" and (default_font_name or library_font.getFontName()) or style.font_face
     return Font:getFace(font_name, size)
 end
 
@@ -236,10 +237,12 @@ function M.build(ctx, source_key)
     local author_style = text_style(module_cfg, "author")
     local series_style = text_style(module_cfg, "series")
     local description_style = text_style(module_cfg, "description")
+    local progress_style = text_style(module_cfg, "progress")
     local title_face = get_text_face(title_style, Screen:scaleBySize(math.floor(title_style.font_size * scale + 0.5)))
     local meta_face = get_text_face(author_style, Screen:scaleBySize(math.floor(author_style.font_size * scale + 0.5)))
     local series_face = get_text_face(series_style, Screen:scaleBySize(math.floor(series_style.font_size * scale + 0.5)))
-    local stats_face = Font:getFace("smallinfofont", Screen:scaleBySize(math.floor(6.5 * scale + 0.5)))
+    local stats_face = get_text_face(progress_style,
+        Screen:scaleBySize(math.floor(progress_style.font_size * scale + 0.5)), "smallinfofont")
     local desc_face = get_text_face(description_style, description_style.font_size)
 
     -- Optional status bar (top of right column)
@@ -283,8 +286,18 @@ function M.build(ctx, source_key)
     local progress_row
     if bar_h > 0 and book.status ~= "new" then
         if has_progress_text then
-            local lw = TextWidget:new{ text = left_progress_text, face = stats_face, fgcolor = Blitbuffer.COLOR_BLACK }
-            local rw = TextWidget:new{ text = right_progress_text, face = stats_face, fgcolor = Blitbuffer.COLOR_BLACK }
+            local lw = TextWidget:new{
+                text = left_progress_text,
+                face = stats_face,
+                bold = progress_style.bold == true,
+                fgcolor = Blitbuffer.COLOR_BLACK,
+            }
+            local rw = TextWidget:new{
+                text = right_progress_text,
+                face = stats_face,
+                bold = progress_style.bold == true,
+                fgcolor = Blitbuffer.COLOR_BLACK,
+            }
             local tgap = math.max(4, math.floor(text_w * 0.02))
             local bar_w = math.max(20, text_w - lw:getSize().w - rw:getSize().w - tgap * 2)
             progress_row = HorizontalGroup:new{

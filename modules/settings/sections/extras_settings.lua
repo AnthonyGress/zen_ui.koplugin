@@ -134,26 +134,6 @@ function M.build(ctx)
         table.insert(items, item)
     end
 
-    table.insert(items, IconItem.decorate({
-        text = _("Include new books in TBR"),
-        help_text = _("New includes unread books and books modified since they were last opened."),
-        checked_func = function()
-            return type(config.group_view) == "table"
-                and config.group_view.include_new_in_tbr == true
-        end,
-        callback = function(touchmenu_instance)
-            if type(config.group_view) ~= "table" then config.group_view = {} end
-            config.group_view.include_new_in_tbr =
-                config.group_view.include_new_in_tbr ~= true
-            plugin:saveConfig()
-            local home = SharedState.get(plugin, "home")
-            if home and home.rebuildActive then
-                home.rebuildActive()
-            end
-            if touchmenu_instance then touchmenu_instance:updateItems() end
-        end,
-    }, icons.tbr))
-
     local custom_icons_enabled_item = IconItem.decorate({
         text = _("Enable custom icons"),
         help_text = _("When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."),
@@ -261,6 +241,26 @@ function M.build(ctx)
             custom_icon_pack_item,
         },
     }, icons.icon))
+
+    table.insert(items, IconItem.decorate({
+        text = _("Include new books in TBR"),
+        help_text = _("New includes unread books and books modified since they were last opened."),
+        checked_func = function()
+            return type(config.group_view) == "table"
+                and config.group_view.include_new_in_tbr == true
+        end,
+        callback = function(touchmenu_instance)
+            if type(config.group_view) ~= "table" then config.group_view = {} end
+            config.group_view.include_new_in_tbr =
+                config.group_view.include_new_in_tbr ~= true
+            plugin:saveConfig()
+            local home = SharedState.get(plugin, "home")
+            if home and home.rebuildActive then
+                home.rebuildActive()
+            end
+            if touchmenu_instance then touchmenu_instance:updateItems() end
+        end,
+    }, icons.tbr))
 
     return items
 end

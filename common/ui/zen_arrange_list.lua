@@ -426,7 +426,7 @@ local function rebuild_icon_row(row)
             },
         },
     }
-    frame.invert = row.invert
+    IconItem.enableFullRowFocus(frame, row.invert)
 end
 
 local function is_toggle_tap(row, pos)
@@ -776,6 +776,20 @@ local function install_titlebar_focus(sort_widget)
     end
 end
 
+local function move_focus_right_from_header(sort_widget)
+    local title_bar = sort_widget and sort_widget.title_bar
+    local focused = sort_widget and sort_widget.getFocusItem and sort_widget:getFocusItem()
+    local controls = title_bar and title_bar.generateHorizontalLayout
+        and title_bar:generateHorizontalLayout()[1]
+    for _control_i, control in ipairs(controls or {}) do
+        if control == focused then
+            sort_widget:onFocusMove({ 1, 0 })
+            return true
+        end
+    end
+    return false
+end
+
 local function patch_move_item_kb(sort_widget)
     if not sort_widget or sort_widget._zen_move_kb_patched then return end
     sort_widget._zen_move_kb_patched = true
@@ -993,6 +1007,7 @@ show_submenu = function(title, items, refresh, opts)
         event = "ZenArrangeOpenSubmenu",
     }
     sort_widget.onZenArrangeOpenSubmenu = function(self)
+        if move_focus_right_from_header(self) then return true end
         open_submenu_for_item(self, get_focused_item(self))
         return true
     end
@@ -1190,6 +1205,7 @@ function M.show(opts)
         event = "ZenArrangeOpenSubmenu",
     }
     sort_widget.onZenArrangeOpenSubmenu = function(self)
+        if move_focus_right_from_header(self) then return true end
         if open_submenu_for_item(self, get_focused_item(self)) then return true end
         return true
     end

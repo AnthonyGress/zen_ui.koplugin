@@ -9,6 +9,7 @@ local function featured_text_styles()
         author = { font_face = "default", font_size = 9, bold = false },
         series = { font_face = "default", font_size = 7, bold = false },
         description = { font_face = "default", font_size = 16, bold = false },
+        progress = { font_face = "default", font_size = 7, bold = false },
     }
 end
 

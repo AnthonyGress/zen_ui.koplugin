@@ -104,6 +104,23 @@ function M.makeState(glyph, width, height, face)
     }
 end
 
+function M.enableFullRowFocus(frame, unfocused_invert)
+    local orig_on_focus = frame.onFocus
+    local orig_on_unfocus = frame.onUnfocus
+    frame.invert = unfocused_invert == true
+    frame.onFocus = function(self)
+        local handled = orig_on_focus(self)
+        self.invert = true
+        return handled or true
+    end
+    frame.onUnfocus = function(self)
+        local handled = orig_on_unfocus(self)
+        self.invert = unfocused_invert == true
+        return handled or true
+    end
+    return frame
+end
+
 local function get_menu_icon_width(menu)
     local width
     for _i, item in ipairs(menu and menu.item_table or {}) do
@@ -313,8 +330,12 @@ local function rebuild_settings_menu_item(row)
         padding = 0,
         margin = 0,
         bordersize = 0,
+        focusable = true,
+        focus_border_size = Size.border.thin,
+        focus_inner_border = true,
         content,
     }
+    M.enableFullRowFocus(row.item_frame)
     row._zen_settings_divider = LineWidget:new{
         dimen = Geom:new{ w = row.dimen.w, h = Size.line.thin },
         background = Blitbuffer.COLOR_LIGHT_GRAY,

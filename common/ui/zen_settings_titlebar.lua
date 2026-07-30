@@ -278,6 +278,19 @@ function ZenSettingsTitleBar:init()
                 self.search_callback(self.query)
             end
         end
+        local orig_on_key_press = self.search_input.onKeyPress
+        self.search_input.onKeyPress = function(input, key)
+            local at_end = key and key["Right"]
+                and (input.charpos or 1) > #(input.charlist or {})
+            if input.focused and key and (key["Back"] or at_end) then
+                self:closeSearchKeyboard()
+                if self.search_input_exit_callback then
+                    self.search_input_exit_callback(input)
+                end
+                return true
+            end
+            return orig_on_key_press(input, key)
+        end
         self.search_frame = SolidCircle:new{
             width = search_outer_width,
             height = search_height,
@@ -330,7 +343,15 @@ function ZenSettingsTitleBar:init()
         padding = button_padding,
         allow_flash = false,
         show_parent = self.show_parent,
-        callback = self.close_callback,
+        callback = function()
+            if self.search_expanded then
+                if self.search_close_callback then return self.search_close_callback() end
+                self:collapseSearch()
+                return true
+            end
+            if self.close_callback then return self.close_callback() end
+            return true
+        end,
     }
     local trailing_buttons = {}
     if self.action_button then table.insert(trailing_buttons, self.action_button) end
@@ -423,6 +444,9 @@ function ZenSettingsTitleBar:openSearch()
     self.search_expanded = true
     self:clear()
     self:init()
+    if self.search_opened_callback then
+        self.search_opened_callback(self.search_input)
+    end
     UIManager:setDirty(self.show_parent, "ui", self.dimen)
     UIManager:nextTick(function()
         local input = self.search_input
@@ -522,23 +546,28 @@ function ZenSettingsTitleBar:refreshStatus()
     return true
 end
 
+local function focus_controls(title_bar)
+    local controls = {}
+    local function append(control)
+        if control and not control.skip_paint then controls[#controls + 1] = control end
+    end
+    append(title_bar.back_button)
+    append(title_bar.search_input)
+    append(title_bar.search_button)
+    append(title_bar.action_button)
+    append(title_bar.close_button)
+    return controls
+end
+
 function ZenSettingsTitleBar:generateHorizontalLayout()
-    local row = {}
-    if self.back_button then row[#row + 1] = self.back_button end
-    if self.search_input then row[#row + 1] = self.search_input end
-    if self.search_button then row[#row + 1] = self.search_button end
-    if self.action_button then row[#row + 1] = self.action_button end
-    if self.close_button then row[#row + 1] = self.close_button end
-    return { row }
+    return { focus_controls(self) }
 end
 
 function ZenSettingsTitleBar:generateVerticalLayout()
     local layout = {}
-    if self.back_button then layout[#layout + 1] = { self.back_button } end
-    if self.search_input then layout[#layout + 1] = { self.search_input } end
-    if self.search_button then layout[#layout + 1] = { self.search_button } end
-    if self.action_button then layout[#layout + 1] = { self.action_button } end
-    if self.close_button then layout[#layout + 1] = { self.close_button } end
+    for control_i, control in ipairs(focus_controls(self)) do
+        layout[control_i] = { control }
+    end
     return layout
 end
 

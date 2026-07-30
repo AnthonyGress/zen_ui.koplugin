@@ -59,6 +59,7 @@ local FEATURED_TEXT_STYLE_DEFAULTS = {
     author = { font_face = "default", font_size = 9, bold = false },
     series = { font_face = "default", font_size = 7, bold = false },
     description = { font_face = "default", font_size = 16, bold = false },
+    progress = { font_face = "default", font_size = 7, bold = false },
 }
 
 local function normalize_order(order)
@@ -559,6 +560,13 @@ function M.build(ctx)
                 return _("Description") .. ": " .. featured_text_style_summary(mcfg, "description")
             end,
             sub_item_table = build_featured_text_style_items(mcfg, "description", _("Description")),
+        }
+        items[#items + 1] = {
+            sub_title = _("Progress labels"),
+            text_func = function()
+                return _("Progress labels") .. ": " .. featured_text_style_summary(mcfg, "progress")
+            end,
+            sub_item_table = build_featured_text_style_items(mcfg, "progress", _("Progress labels")),
         }
         return items
     end

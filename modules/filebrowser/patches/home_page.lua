@@ -386,6 +386,7 @@ local FEATURED_TEXT_STYLE_DEFAULTS = {
     title = { font_face = "default", font_size = 11, bold = true },
     author = { font_face = "default", font_size = 9, bold = false },
     description = { font_face = "default", font_size = 16, bold = false },
+    progress = { font_face = "default", font_size = 7, bold = false },
 }
 
 local MODULE_TITLES = {

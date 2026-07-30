@@ -156,7 +156,39 @@ end
 
 function ZenSettingsPage:_focusSearchInput()
     local input = self.title_bar and self.title_bar.search_input
-    if input and not input.focused then input:focus() end
+    if input and not self:_focusHeaderControl(input) and not input.focused then input:focus() end
+end
+
+function ZenSettingsPage:_focusHeaderControl(control)
+    if not (control and self.getFocusableWidgetXY and self.moveFocusTo) then return false end
+    local x, y = self:getFocusableWidgetXY(control)
+    if not (x and y) then return false end
+    return self:moveFocusTo(x, y)
+end
+
+function ZenSettingsPage:_isHeaderFocused()
+    local focused = self.getFocusItem and self:getFocusItem()
+    local title_bar = self.title_bar
+    local controls = title_bar and title_bar.generateHorizontalLayout
+        and title_bar:generateHorizontalLayout()[1]
+    for control_i, control in ipairs(controls or {}) do
+        if control == focused then return true end
+    end
+    return false
+end
+
+function ZenSettingsPage:_refreshHeaderFocus(control)
+    self:updateItems(nil, true)
+    return self:_focusHeaderControl(control)
+end
+
+function ZenSettingsPage:_closeSearchPill()
+    if self._search_active then self:_leaveSearch(true) end
+    local title_bar = self.title_bar
+    if title_bar and title_bar:collapseSearch() then
+        self:_refreshHeaderFocus(title_bar.search_button)
+    end
+    return true
 end
 
 function ZenSettingsPage:openKoreaderMenu()
@@ -191,11 +223,22 @@ function ZenSettingsPage:init()
         back_callback = function() self:backToUpperMenu() end,
         close_callback = function() self:closeMenu() end,
         search_callback = function(query) self:_onSearchChanged(query) end,
+        search_opened_callback = function(input) self:_refreshHeaderFocus(input) end,
+        search_input_exit_callback = function()
+            self:_focusHeaderControl(self.title_bar and self.title_bar.close_button)
+        end,
+        search_close_callback = function() return self:_closeSearchPill() end,
         plugin = self.plugin,
     }
     Menu.init(self)
     self.key_events = self.key_events or {}
     self.key_events.SelectByShortCut = nil
+    if Device.hasFewKeys and Device:hasFewKeys() then
+        self.key_events.Close = { { "Back" } }
+        self.key_events.Right = nil
+        self.key_events.ZenSettingsFocusLeft = { { "Left" } }
+        self.key_events.ZenSettingsFocusRight = { { "Right" } }
+    end
     _G.__ZEN_UI_SETTINGS_PAGE = self
 end
 
@@ -205,6 +248,23 @@ function ZenSettingsPage:updateItems(...)
     self:_prepareItems()
     self:_syncHeader()
     return Menu.updateItems(self, ...)
+end
+
+function ZenSettingsPage:mergeTitleBarIntoLayout()
+    local title_bar = self.title_bar
+    if not (title_bar and title_bar.generateHorizontalLayout) then return end
+    table.insert(self.layout, 1, title_bar:generateHorizontalLayout()[1])
+    self.selected.y = (self.selected.y or 1) + 1
+end
+
+function ZenSettingsPage:onZenSettingsFocusLeft()
+    if self:_isHeaderFocused() then return self:onFocusMove({ -1, 0 }) end
+    return self:backToUpperMenu()
+end
+
+function ZenSettingsPage:onZenSettingsFocusRight()
+    if self:_isHeaderFocused() then return self:onFocusMove({ 1, 0 }) end
+    return Menu.onRight(self)
 end
 
 function ZenSettingsPage:handleEvent(event)
