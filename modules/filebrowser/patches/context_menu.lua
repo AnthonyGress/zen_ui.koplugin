@@ -13,6 +13,7 @@ local function apply_context_menu()
     local UIManager    = require("ui/uimanager")
     local _            = require("gettext")
     local C_           = _.pgettext
+    local archive_actions = require("common/archive_actions")
     local book_status  = require("common/book_status")
     local ConfigManager = require("config/manager")
     local paths        = require("common/paths")
@@ -696,6 +697,10 @@ local function apply_context_menu()
                     }})
                 end
 
+                local archive_row = archive_actions.contextRow(
+                    FileManager.instance, item.path, item.is_file)
+                if archive_row then table.insert(buttons, archive_row) end
+
                 if item._zen_extra_buttons then
                     for _i, row in ipairs(item._zen_extra_buttons) do
                         table.insert(buttons, row)
@@ -713,7 +718,7 @@ local function apply_context_menu()
             local home_dir = paths.getHomeDir()
             local cur_path = self_fc.path or ""
             if home_dir and not item._zen_collection_name and not item._zen_home_context then
-                if not paths.isInHomeDir(cur_path) then
+                if not paths.isInThemedDir(cur_path) then
                     return orig_showFileDialog(self_fc, item)
                 end
             end
@@ -2085,6 +2090,10 @@ local function apply_context_menu()
                 })
             end
 
+            local archive_row = archive_actions.contextRow(
+                FileManager.instance, file, is_file)
+            if archive_row then table.insert(buttons, archive_row) end
+
             if item._zen_extra_buttons then
                 for _i, row in ipairs(item._zen_extra_buttons) do
                     table.insert(buttons, row)
@@ -2162,7 +2171,7 @@ local function apply_context_menu()
                 local home_dir_bh = paths.getHomeDir()
                 local cur_path_bh = fc.path or ""
                 if home_dir_bh then
-                    if not paths.isInHomeDir(cur_path_bh) then return false end
+                    if not paths.isInThemedDir(cur_path_bh) then return false end
                 end
                 local ffiUtil_bh = require("ffi/util")
                 local cur_real = ffiUtil_bh.realpath(cur_path_bh) or cur_path_bh

@@ -24,6 +24,7 @@ local function apply_navbar()
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
     local Screen = Device.screen
     local _ = require("gettext")
+    local T = require("ffi/util").template
     local lfs = require("libs/libkoreader-lfs")
     local logger = require("common/zen_logger").new("navbar")
 
@@ -90,6 +91,7 @@ local function apply_navbar()
     local config_default = {
         show_tabs = {
             books = true,
+            archive = false,
             manga = true,
             news = true,
             continue = true,
@@ -210,6 +212,11 @@ local function apply_navbar()
             id = "books",
             label = getBooksLabel(),
             icon = "library",
+        },
+        {
+            id = "archive",
+            label = _("Archive"),
+            icon = "quick_calibre",
         },
         {
             id = "manga",
@@ -482,6 +489,24 @@ local function apply_navbar()
         refreshLibraryStatusBar(fm)
     end
 
+    local function onTabArchive()
+        local fm = FileManager.instance
+        local archive_dir = paths.getArchiveDir()
+        if not (fm and fm.file_chooser and archive_dir) then return false end
+        if lfs.attributes(archive_dir, "mode") ~= "directory" then
+            local InfoMessage = require("ui/widget/infomessage")
+            UIManager:show(InfoMessage:new{
+                text = T(_("Archive folder not found: %1"), archive_dir),
+            })
+            return false
+        end
+        utils.closeWidgetsAbove(fm)
+        fm.file_chooser.path_items[archive_dir] = nil
+        fm.file_chooser:changeToPath(archive_dir)
+        refreshLibraryStatusBar(fm)
+        return true
+    end
+
     local function onTabManga()
         local fm = FileManager.instance
         if not fm then return end
@@ -698,6 +723,7 @@ local function apply_navbar()
 
     local tab_callbacks = {
         books = onTabBooks,
+        archive = onTabArchive,
         manga = onTabManga,
         news = onTabNews,
         continue = onTabContinue,
@@ -720,6 +746,7 @@ local function apply_navbar()
 
     local default_tab_whitelist = {
         books = true,
+        archive = true,
         manga = true,
         news = true,
         history = true,
@@ -734,6 +761,7 @@ local function apply_navbar()
 
     local active_tab_whitelist = {
         books = true,
+        archive = true,
         manga = true,
         news = true,
         authors = true,
@@ -1103,7 +1131,8 @@ local function apply_navbar()
     local function getVisibleTabs()
         local visible = {}
         for _i, id in ipairs(config.tab_order) do
-            if config.show_tabs[id] and tabs_by_id[id] then
+            local available = id ~= "archive" or paths.getArchiveDir() ~= nil
+            if available and config.show_tabs[id] and tabs_by_id[id] then
                 table.insert(visible, tabs_by_id[id])
                 if #visible >= navbar_max_tabs then break end
             end
@@ -1309,6 +1338,7 @@ local function apply_navbar()
                 refreshBackgroundTabChange()
                 -- Only repaint the FM navbar for tabs that render inside it (not overlay views)
                 local stays_in_browser = tapped_id == "books"
+                    or tapped_id == "archive"
                     or (tapped_id == "manga" and config.manga_action == "folder" and config.manga_folder ~= "")
                     or (tapped_id == "news" and config.news_action == "folder" and config.news_folder ~= "")
                 if stays_in_browser then
@@ -1513,6 +1543,16 @@ local function apply_navbar()
                 new_tab = "news"
             end
         end
+        -- Track the configured archive as its own persistent browser tab.
+        if not new_tab then
+            local archive_dir = paths.getArchiveDir()
+            local normalized_path = paths.normPath(path:gsub("/+$", ""))
+            if archive_dir
+                    and (normalized_path == archive_dir
+                        or startsWith(normalized_path, archive_dir .. "/")) then
+                new_tab = "archive"
+            end
+        end
         -- Check home dir for books
         if not new_tab then
             local home_dir = paths.getHomeDir()
@@ -1641,6 +1681,7 @@ local function apply_navbar()
                 syncActiveTabLabel()
                 refreshBackgroundTabChange()
                 local stays = tid == "books"
+                    or tid == "archive"
                     or (tid == "manga" and config.manga_action == "folder" and config.manga_folder ~= "")
                     or (tid == "news"  and config.news_action  == "folder" and config.news_folder  ~= "")
                 if stays then

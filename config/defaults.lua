@@ -73,6 +73,7 @@ local defaults = {
     navbar = {
         show_tabs = {
             books = true,
+            archive = false,
             manga = false,
             news = false,
             continue = true,

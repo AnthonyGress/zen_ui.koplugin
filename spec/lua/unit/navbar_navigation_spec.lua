@@ -107,7 +107,10 @@ describe("file browser navbar navigation", function()
             resolveLocalIcon = function(_, icon) return icon end,
             closeWidgetsAbove = function() end,
         })
-        ZenSpec.replace("common/paths", { getHomeDir = function() return "/library" end })
+        ZenSpec.replace("common/paths", {
+            getHomeDir = function() return "/library" end,
+            getArchiveDir = function() return "/archive" end,
+        })
         ZenSpec.replace("common/plugin_root", "/plugin")
         ZenSpec.replace("common/shared_state", {
             get = function(_, key) return shared[key] end,
@@ -122,7 +125,9 @@ describe("file browser navbar navigation", function()
         })
         ZenSpec.replace("libs/libkoreader-lfs", {
             attributes = function(path, field)
-                if field == "mode" and path == "/library" then return "directory" end
+                if field == "mode" and (path == "/library" or path == "/archive") then
+                    return "directory"
+                end
             end,
             dir = function() return function() end end,
         })
@@ -136,13 +141,13 @@ describe("file browser navbar navigation", function()
                 features = { navbar = true, restore_library_view = false },
                 navbar = {
                     show_tabs = {
-                        books = true, home = true, authors = true, series = true,
+                        books = true, archive = true, home = true, authors = true, series = true,
                         tags = true, to_be_read = true, history = true,
                         favorites = true, collections = true, search = true,
                         page_left = true, page_right = true, menu = true,
                     },
                     tab_order = {
-                        "home", "books", "authors", "series", "tags", "to_be_read",
+                        "home", "books", "archive", "authors", "series", "tags", "to_be_read",
                         "history", "favorites", "collections", "search",
                         "page_left", "page_right", "menu",
                     },
@@ -191,10 +196,10 @@ describe("file browser navbar navigation", function()
     it("keeps configured tab order and resolves the first enabled default", function()
         assert.are.equal("home", _G.__ZEN_UI_NAVBAR_RESOLVE_DEFAULT_TAB())
         assert.are.same({
-            "home", "books", "authors", "series", "tags", "to_be_read",
+            "home", "books", "archive", "authors", "series", "tags", "to_be_read",
             "history", "favorites", "collections", "search",
             "page_left", "page_right", "menu",
-        }, { unpack(_G.__ZEN_UI_PLUGIN.config.navbar.tab_order, 1, 13) })
+        }, { unpack(_G.__ZEN_UI_PLUGIN.config.navbar.tab_order, 1, 14) })
         assert.are.equal("Home", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
     end)
 
@@ -211,13 +216,13 @@ describe("file browser navbar navigation", function()
     it("dispatches books and stock file-browser tabs to their intended actions", function()
         make_instance()
         for _i, id in ipairs({
-            "books", "history", "favorites", "collections", "search",
+            "books", "archive", "history", "favorites", "collections", "search",
             "page_left", "page_right", "menu",
         }) do
             assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB(id))
         end
         assert.are.same({
-            "books:/library", "history", "favorites", "collections", "search",
+            "books:/library", "books:/archive", "history", "favorites", "collections", "search",
             "previous", "next", "menu",
         }, calls)
         assert.are.equal("Collections", _G.__ZEN_UI_ACTIVE_TAB_LABEL)

@@ -1,4 +1,5 @@
 common/arrange_state.lua|unit
+common/archive_actions.lua|unit
 _meta.lua|load
 main.lua|integration
 common/book_status.lua|unit
