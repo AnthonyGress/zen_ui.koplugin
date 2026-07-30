@@ -100,7 +100,7 @@ describe("home recent strip widget", function()
                 return cover, 80, max_h
             end,
             get_empty_message = function(source)
-                if source == "recently_read" then return "No recently read books found" end
+                if source == "recently_read" then return "Start reading a book to fill this space." end
                 return "No books found"
             end,
         })
@@ -182,7 +182,7 @@ describe("home recent strip widget", function()
         assert.is_table(widget)
         assert.are.equal(0, #cover_books)
         assert.are.same({ true }, empty_sources)
-        assert.is_true(has_text("No recently read books found"))
+        assert.is_true(has_text("Start reading a book to fill this space."))
     end)
 
     it("supplies the selected strip cover before opening its book", function()

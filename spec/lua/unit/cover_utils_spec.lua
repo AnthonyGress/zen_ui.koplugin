@@ -21,7 +21,8 @@ describe("cover utility policy", function()
     end)
 
     it("describes each empty home-book source", function()
-        assert.are.equal("No recently read books found", CoverUtils.getEmptyPlaceholderText("recently_read"))
+        assert.are.equal("Start reading a book to fill this space.",
+            CoverUtils.getEmptyPlaceholderText("recently_read"))
         assert.are.equal("No TBR books found", CoverUtils.getEmptyPlaceholderText("to_be_read"))
         assert.are.equal(
             "No books found in the selected folder",

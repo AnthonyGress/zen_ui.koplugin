@@ -108,7 +108,7 @@ end
 
 function CoverUtils.getEmptyPlaceholderText(source)
     if source == "recently_read" then
-        return _("No recently read books found")
+        return _("Start reading a book to fill this space.")
     elseif source == "to_be_read" then
         return _("No TBR books found")
     elseif source == "custom_featured" or source == "custom_strip" then

@@ -240,7 +240,7 @@ local function enabled_count(enabled)
 end
 
 local home_max_widgets = 5
-local custom_strip_max_books = 50
+local custom_strip_max_books = 40
 
 function M.build(ctx)
     local config = ctx.config

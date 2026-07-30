@@ -30,11 +30,11 @@ local _zen_shared = nil
 local _zen_plugin = nil
 local _home_book_cache = {}
 local _home_book_cache_order = {}
-local _home_library_paths_cache = nil
 local _home_dataset_cache = nil
 local _home_dataset_generation = 0
 local HOME_BOOK_CACHE_MAX = 32
 local HOME_DATASET_TTL = 120
+local HOME_STRIP_MAX_BOOKS = 40
 
 local function new_home_dataset()
     _home_dataset_generation = _home_dataset_generation + 1
@@ -83,11 +83,9 @@ local function invalidate_home_library_dataset()
     local dataset = _home_dataset_cache
     if dataset then
         dataset.generation = dataset.generation + 1
-        dataset.library_paths = nil
         dataset.tbr_audit_requested = nil
         clear_home_dataset_derived(dataset)
     end
-    _home_library_paths_cache = nil
 end
 
 local function free_cached_book(book)
@@ -833,116 +831,15 @@ local function build_data_provider(cfg, dcfg)
         for _i, entry in ipairs(hist) do
             local path = entry and entry.file
             if type(path) == "string"
-                    and path ~= ""
-                    and lfs.attributes(path, "mode") == "file"
-                    and (paths.isInHomeDir(path) or is_rakuyomi_history_path(path)) then
+                and path ~= ""
+                and lfs.attributes(path, "mode") == "file"
+                and (paths.isInHomeDir(path) or is_rakuyomi_history_path(path)) then
                 table.insert(dataset.history, path)
+                if #dataset.history >= HOME_STRIP_MAX_BOOKS then break end
             end
         end
 
         return dataset.history
-    end
-
-    -- History stays first, while this cached library list supplies unread books
-    -- for any remaining Home slots without adding them to KOReader history.
-    local function get_library_paths()
-        local started_at = os.clock()
-        local paths = require("common/paths")
-        local roots = {}
-        local seen_roots = {}
-        local function add_root(path)
-            if type(path) ~= "string" then return end
-            path = paths.normPath(path:gsub("/*$", ""))
-            if path == "" or seen_roots[path] then return end
-            seen_roots[path] = true
-            roots[#roots + 1] = path
-        end
-
-        add_root(paths.getHomeDir())
-        local extra = type(cfg) == "table" and cfg.additional_home_dirs
-        if type(extra) == "table" then
-            for _i, path in ipairs(extra) do
-                add_root(path)
-            end
-        end
-
-        local cache_key = table.concat(roots, "\n")
-        if dataset.library_paths and dataset.library_key == cache_key then
-            logger.perf("Library paths cache hit", (os.clock() - started_at) * 1000,
-                "books=", #dataset.library_paths,
-                "generation=", dataset.generation)
-            return dataset.library_paths
-        end
-
-        local ok_lfs, lfs = pcall(require, "libs/libkoreader-lfs")
-        local cached = _home_library_paths_cache
-        if ok_lfs and cached and cached.key == cache_key then
-            local unchanged = true
-            for path, modification in pairs(cached.dirs) do
-                if (lfs.attributes(path, "modification") or false) ~= modification then
-                    unchanged = false
-                    break
-                end
-            end
-            if unchanged then
-                logger.perf("Library fallback cache hit", (os.clock() - started_at) * 1000,
-                    "books=", #cached.paths)
-                dataset.library_paths = cached.paths
-                dataset.library_key = cache_key
-                return dataset.library_paths
-            end
-        end
-
-        dataset.library_paths = {}
-        dataset.library_key = cache_key
-        local ok_docs, DocumentRegistry = pcall(require, "document/documentregistry")
-        if not (ok_lfs and ok_docs and DocumentRegistry) then
-            return dataset.library_paths
-        end
-
-        local BookWalker = require("common/book_walker")
-        local items = {}
-        local dirs = {}
-        local seen_paths = {}
-        local walk_started_at = os.clock()
-        logger.dbg("Starting library fallback walk", "roots=", #roots)
-        for _i, root in ipairs(roots) do
-            dirs[root] = lfs.attributes(root, "modification") or false
-        end
-        BookWalker.walk(roots, {
-            on_scan_dir = function(path, attributes)
-                dirs[path] = attributes and attributes.modification or false
-            end,
-            on_file = function(_name, fullpath, attributes)
-                local ok_provider, has_provider = pcall(
-                    DocumentRegistry.hasProvider, DocumentRegistry, fullpath
-                )
-                if ok_provider and has_provider and not book_status.isImageFile(fullpath)
-                        and not seen_paths[fullpath] then
-                    seen_paths[fullpath] = true
-                    items[#items + 1] = {
-                        path = fullpath,
-                        modification = attributes.modification or 0,
-                    }
-                end
-            end,
-        })
-
-        table.sort(items, function(a, b)
-            if a.modification == b.modification then return a.path < b.path end
-            return a.modification > b.modification
-        end)
-        for _i, item in ipairs(items) do
-            dataset.library_paths[#dataset.library_paths + 1] = item.path
-        end
-        _home_library_paths_cache = {
-            key = cache_key,
-            paths = dataset.library_paths,
-            dirs = dirs,
-        }
-        logger.perf("Library fallback walk completed", (os.clock() - walk_started_at) * 1000,
-            "books=", #dataset.library_paths)
-        return dataset.library_paths
     end
 
     local function populate_time_left(book)
@@ -1246,16 +1143,20 @@ local function build_data_provider(cfg, dcfg)
         end)
     end
 
-    local function get_tbr_paths()
+    local function get_tbr_paths(limit)
+        local max_books = math.min(HOME_STRIP_MAX_BOOKS,
+            math.max(1, math.floor(tonumber(limit) or HOME_STRIP_MAX_BOOKS)))
         local index = get_tbr_index()
         if index then
             ensure_tbr_audit()
             local current_revision = index.getRevision()
-            if dataset.tbr and dataset.tbr_revision == current_revision then
+            if dataset.tbr and dataset.tbr_revision == current_revision
+                    and dataset.tbr_limit == max_books then
                 return dataset.tbr
             end
-            dataset.tbr = index.getAll(tbr_sort_options("default", false))
+            dataset.tbr = index.getPage(0, max_books, tbr_sort_options("default", false))
             dataset.tbr_revision = current_revision
+            dataset.tbr_limit = max_books
             return dataset.tbr
         end
         dataset.tbr = {}
@@ -1270,6 +1171,7 @@ local function build_data_provider(cfg, dcfg)
                 end
                 if type(path) == "string" and path ~= "" then
                     table.insert(normalized, path)
+                    if #normalized >= max_books then break end
                 end
             end
             dataset.tbr = sort_files_like_tbr(normalized)
@@ -1356,7 +1258,8 @@ local function build_data_provider(cfg, dcfg)
                 and source ~= "tag" then
             source = "recently_read"
         end
-        local lim = tonumber(limit) or math.huge
+        local lim = math.min(HOME_STRIP_MAX_BOOKS,
+            math.max(1, math.floor(tonumber(limit) or HOME_STRIP_MAX_BOOKS)))
         if source == "custom_featured" then
             local mcfg = dcfg and dcfg.modules and dcfg.modules.featured_custom or {}
             local path = type(mcfg.path) == "string" and mcfg.path or nil
@@ -1389,7 +1292,7 @@ local function build_data_provider(cfg, dcfg)
             return get_paths_by_status("reading", lim)
         end
         if source == "to_be_read" then
-            local tbr = get_tbr_paths()
+            local tbr = get_tbr_paths(lim)
             local out = {}
             for _i, path in ipairs(tbr) do
                 table.insert(out, path)
@@ -1402,21 +1305,9 @@ local function build_data_provider(cfg, dcfg)
         if opts.filter_tbr ~= true then statuses.abandoned = true end
         if opts.filter_finished ~= true then statuses.complete = true end
         local recent = get_paths_by_statuses(statuses, lim)
-        local filters_active = opts.filter_unread == true
-            or opts.filter_tbr == true
-            or opts.filter_finished == true
-        local include_path
-        if filters_active then
-            include_path = function(path)
-                return statuses[get_effective_status(path)] == true
-            end
-        end
-        local library = get_library_paths()
         if opts.reverse_sections == true then
-            recent = reverse_copy(recent)
-            library = reverse_copy(library)
+            return reverse_copy(recent)
         end
-        append_unique_paths(recent, library, lim, include_path)
         return recent
     end
 
@@ -1455,7 +1346,7 @@ local function build_data_provider(cfg, dcfg)
             collect_opts.reverse_sections = true
         end
 
-        local paths = collect_paths_for_source(source, nil, collect_opts)
+        local paths = collect_paths_for_source(source, HOME_STRIP_MAX_BOOKS, collect_opts)
         if reverse and not is_recent_source(source)
                 and source ~= "custom_featured" and source ~= "custom_strip" then
             paths = reverse_copy(paths)
@@ -1559,7 +1450,7 @@ local function build_data_provider(cfg, dcfg)
                 local n = tonumber(count) or 4
                 if n < 1 then n = 1 end
                 local options = tbr_sort_options(order_key, true)
-                local total = index.getCount(options)
+                local total = math.min(index.getCount(options), HOME_STRIP_MAX_BOOKS)
                 local offset_key = tostring(component_id or source_key)
                     .. ":" .. source_key .. ":" .. normalize_order(order_key)
                 local offset = tonumber(strip_offsets[offset_key]) or 0
@@ -1634,7 +1525,7 @@ local function build_data_provider(cfg, dcfg)
                 local n = tonumber(count) or 4
                 if n < 1 then n = 1 end
                 local options = tbr_sort_options(order_key, true)
-                local total = index.getCount(options)
+                local total = math.min(index.getCount(options), HOME_STRIP_MAX_BOOKS)
                 if total <= n then return false end
                 local offset_key = tostring(component_id or source_key)
                     .. ":" .. source_key .. ":" .. normalize_order(order_key)

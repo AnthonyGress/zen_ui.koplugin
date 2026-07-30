@@ -78,10 +78,6 @@ describe("home data and book caches", function()
                 return true
             end,
         })
-        ZenSpec.replace("document/documentregistry", {
-            hasProvider = function() return true end,
-        })
-        ZenSpec.replace("common/book_walker", { walk = function() end })
         ZenSpec.replace("common/paths", {
             getHomeDir = function() return "/library" end,
             normPath = function(path) return path end,
@@ -198,6 +194,39 @@ describe("home data and book caches", function()
         assert.are.equal(0, history_reload_count)
     end)
 
+    it("caps recent strip candidates at 40 without a library fallback walk", function()
+        for i = #history_items, 1, -1 do
+            table.remove(history_items, i)
+        end
+        for i = 1, 45 do
+            history_items[#history_items + 1] = {
+                file = string.format("/library/book-%02d.epub", i),
+            }
+        end
+        ZenSpec.replace("common/book_walker", {
+            walk = function()
+                error("Recent strips must not walk the library")
+            end,
+        })
+        ZenSpec.unload("modules/filebrowser/patches/home_page")
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local build_data_provider = get_build_data_provider(Home)
+        local provider = build_data_provider({ browser_cover_badges = {} }, {
+            rows = {
+                order = { "strip_recent" },
+                enabled = { strip_recent = true },
+                max_rows = 1,
+            },
+            modules = { strip_recent = {} },
+        })
+
+        local books = provider:getBooksForStripPage(
+            "recently_read", 4, "default", "strip_recent", 10)
+
+        assert.are.equal("/library/book-01.epub", books[1].path)
+        assert.are.equal(40, status_lookup_count)
+    end)
+
     it("requests only visible TBR rows from the persistent index", function()
         local indexed = {
             "/library/tbr-1.epub", "/library/tbr-2.epub", "/library/tbr-3.epub",
@@ -267,6 +296,57 @@ describe("home data and book caches", function()
             { offset = 2, limit = 2 },
         }, page_calls)
         assert.are.equal(0, all_calls)
+    end)
+
+    it("caps TBR strip pages to the first 40 indexed books", function()
+        local indexed = {}
+        for i = 1, 45 do
+            indexed[#indexed + 1] = string.format("/library/tbr-%02d.epub", i)
+        end
+        ZenSpec.replace("common/tbr_index", {
+            refreshPath = function() end,
+            getCount = function() return #indexed end,
+            getPage = function(offset, limit)
+                local out = {}
+                for i = offset + 1, math.min(#indexed, offset + limit) do
+                    out[#out + 1] = indexed[i]
+                end
+                return out
+            end,
+            isAuditRunning = function() return false end,
+            scheduleAudit = function() return true end,
+            cancelAudit = function() end,
+        })
+        ZenSpec.replace("common/db_bookinfo", {
+            getTBRIndexCandidates = function() return {} end,
+        })
+        ZenSpec.replace("ui/uimanager", {
+            nextTick = function(_, fn) fn() end,
+            scheduleIn = function() end,
+        })
+        ZenSpec.unload("modules/filebrowser/patches/home_page")
+
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local build_data_provider = get_build_data_provider(Home)
+        local provider = build_data_provider({
+            browser_cover_badges = {},
+            group_view = {
+                detail_collate = { to_be_read = { to_be_read = "title" } },
+                detail_reverse = { to_be_read = { to_be_read = false } },
+            },
+        }, {
+            rows = {
+                order = { "strip_tbr" },
+                enabled = { strip_tbr = true },
+                max_rows = 1,
+            },
+            modules = { strip_tbr = {} },
+        })
+
+        local books = provider:getBooksForStripPage(
+            "to_be_read", 2, "default", "strip_tbr", 20)
+
+        assert.are.equal("/library/tbr-01.epub", books[1].path)
     end)
 
     it("resolves favorite state only for strips that display badges", function()
