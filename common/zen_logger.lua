@@ -73,7 +73,7 @@ local function emit_measurement(feature, message, elapsed_ms, ...)
     end
     args[#args + 1] = "elapsed_ms="
     args[#args + 1] = elapsed_ms
-    return emit("info", feature, args)
+    return emit("dbg", feature, args)
 end
 
 function M.now()
