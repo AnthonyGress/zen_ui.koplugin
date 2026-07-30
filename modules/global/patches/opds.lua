@@ -844,11 +844,28 @@ local function apply_opds()
                 { "Menu" },
                 event = "ZenOPDSMenu",
             }
+            -- Physical Home button: close the OPDS browser entirely (regardless
+            -- of catalog depth) and return to the default navbar tab underneath.
+            browser.key_events.Home = { { "Home" } }
         end
     end
 
     function OPDSBrowser:onZenOPDSMenu()
         activate_right_button(self)
+        return true
+    end
+
+    function OPDSBrowser:onHome()
+        if self.close_callback then
+            local ok = pcall(self.close_callback)
+            if not ok then UIManager:close(self) end
+        else
+            UIManager:close(self)
+        end
+        local open_default = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB")
+        if type(open_default) == "function" then
+            open_default()
+        end
         return true
     end
 

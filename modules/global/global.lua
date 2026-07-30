@@ -7,6 +7,7 @@ local PATCH_MODULES = {
     brightness_schedule    = "modules/global/patches/brightness_schedule",
     menu_top_swipe         = "modules/global/patches/menu_top_swipe",
     opds                   = "modules/global/patches/opds",
+    cloud_storage_home     = "modules/global/patches/cloud_storage_home",
     kindle_network_profile_guard = "modules/global/patches/kindle_network_profile_guard",
     lockdown_mode          = "modules/global/patches/lockdown_mode",
     incognito_mode         = "modules/global/patches/incognito_mode",
@@ -63,6 +64,11 @@ function M.init(logger, plugin)
     local opds_fn = load_patch("opds")
     if opds_fn and plugin.config.features.zen_opds ~= false then
         run_patch(logger, plugin, "opds", opds_fn)
+    end
+
+    local cloud_storage_home_fn = load_patch("cloud_storage_home")
+    if cloud_storage_home_fn then
+        run_patch(logger, plugin, "cloud_storage_home", cloud_storage_home_fn)
     end
 
     local kindle_network_profile_guard_fn = load_patch("kindle_network_profile_guard")
