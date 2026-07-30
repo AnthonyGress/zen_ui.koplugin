@@ -1314,7 +1314,7 @@ function M.build(ctx)
                 text = _("Tabs") .. " \u{25B8}",
                 keep_menu_open = true,
                 callback = showTabsArrange,
-            }, icons.settings_navbar),
+            }, icons.navbar_tabs),
             IconItem.decorate({
                 text = _("Styling"),
                 sub_item_table = {
