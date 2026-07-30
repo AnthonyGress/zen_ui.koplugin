@@ -106,7 +106,7 @@ describe("archive actions", function()
             fm, "/library/book.epub", true)
 
         assert.is_table(row)
-        row[1][1].callback()
+        row[1].callback()
         assert.are.same({
             { "/library/book.epub", "/archive/" },
         }, moves)
@@ -130,7 +130,7 @@ describe("archive actions", function()
         local row = ArchiveActions.contextRow(
             fm, "/library/book.epub", true)
 
-        row[1][1].callback()
+        row[1].callback()
         shown[1].ok_callback()
         shown[2].onConfirm("/archive")
 

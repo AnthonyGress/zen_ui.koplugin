@@ -114,7 +114,7 @@ local function choose_archive_folder(fm)
 end
 
 local function move_book(fm, file, destination_dir, original_dirs)
-    local _source_dir, filename = util.splitFilePathName(file)
+    local filename = select(2, util.splitFilePathName(file))
     destination_dir = with_slash(destination_dir)
     local destination = destination_dir .. filename
     if lfs.attributes(destination) then
@@ -189,7 +189,7 @@ function M.contextRow(fm, file, is_file)
         align = "left",
         enabled = not currently_open,
         callback = function()
-            local _source_dir, filename = util.splitFilePathName(file)
+            local filename = select(2, util.splitFilePathName(file))
             original_dirs[archive .. filename] = parent_dir(file)
             if move_book(fm, file, archive, original_dirs) then
                 show_message(_("Book moved to archive."))
@@ -220,7 +220,7 @@ function M.markCompleteAndArchive(reader_status, status_widget)
     end
 
     local source_dir = parent_dir(file)
-    local _source_dir, filename = util.splitFilePathName(file)
+    local filename = select(2, util.splitFilePathName(file))
     local destination = archive .. filename
     if lfs.attributes(destination) then
         show_message(_("A book with that name already exists in the archive."))
