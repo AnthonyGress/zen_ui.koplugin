@@ -30,7 +30,7 @@ describe("archive actions", function()
             end,
         })
         ZenSpec.replace("apps/filemanager/filemanager", {
-            moveFile = function(source, destination)
+            moveFile = function(_, source, destination)
                 moves[#moves + 1] = { source, destination }
                 return true
             end,
