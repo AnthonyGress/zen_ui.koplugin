@@ -228,8 +228,9 @@ return {
     ["3.0.0"] = {
         "Large scale performance overhaul",
         "New settings page",
-        "Custom icon packs",
+        "Custom icon packs (Extras > Custom icons)",
         "Improved default covers",
-        "",
+        "Add book tags to Navbar (Navbar > Tabs)",
+        "Add book tags strip to Home page (Home > Widgets",
     }
 }

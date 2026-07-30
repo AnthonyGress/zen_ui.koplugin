@@ -87,6 +87,7 @@ return {
     settings_library  = "\u{F125F}",
     settings_home     = "\u{F02DE}",
     settings_reader   = "\u{F14F7}",
+    widgets           = "\u{F072C}",
     settings_global   = "\u{F484}",
     settings_status   = "\u{F12F0}",
     reader_themes     = "\u{F03D8}",

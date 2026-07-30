@@ -12,6 +12,7 @@ local InputContainer = require("ui/widget/container/inputcontainer")
 local InputText = require("ui/widget/inputtext")
 local LeftContainer = require("ui/widget/container/leftcontainer")
 local LineWidget = require("ui/widget/linewidget")
+local OverlapGroup = require("ui/widget/overlapgroup")
 local Size = require("ui/size")
 local TextWidget = require("ui/widget/textwidget")
 local UIManager = require("ui/uimanager")
@@ -40,6 +41,11 @@ local ZenSettingsTitleBar = InputContainer:extend{
 local function more_icon_path()
     local root = require("common/plugin_root")
     return root and utils.resolveLocalIcon(root .. "/icons/", "more_vertical")
+end
+
+local function zen_icon_path()
+    local root = require("common/plugin_root")
+    return root and utils.resolveLocalIcon(root .. "/icons/", "zen_ui")
 end
 
 local function plugin_icon_path(icon_name)
@@ -122,6 +128,12 @@ function ZenSettingsTitleBar:init()
     local icon_size = Screen:scaleBySize(28)
     local button_padding = Screen:scaleBySize(8)
     local button_size = icon_size + 2 * button_padding
+    local title_leading_padding = Screen:scaleBySize(6)
+    self.title_leading_padding = title_leading_padding
+    local root_icon_size = math.min(button_size, Screen:scaleBySize(32))
+    local root_icon_inset = button_size - root_icon_size
+    local root_icon_inset_start = math.floor(root_icon_inset / 2)
+    local root_icon_inset_end = root_icon_inset - root_icon_inset_start
     local left_padding = Size.padding.small
     local right_padding = Size.padding.large
     local back_width = button_size
@@ -165,7 +177,8 @@ function ZenSettingsTitleBar:init()
         + (show_search_button and button_size or 0)
     if self.title_full_width then
         title_cap = math.max(1,
-            self.width - left_padding - right_padding - back_width - trailing_width)
+            self.width - left_padding - right_padding - back_width - title_leading_padding
+                - trailing_width)
         title_width = title_cap
     end
     self.title_widget = TextWidget:new{
@@ -175,7 +188,8 @@ function ZenSettingsTitleBar:init()
         max_width = title_cap,
     }
     local available_width = math.max(0,
-        self.width - left_padding - right_padding - back_width - title_width - trailing_width)
+        self.width - left_padding - right_padding - back_width - title_leading_padding
+            - title_width - trailing_width)
     local search_outer_width = math.max(Screen:scaleBySize(100), available_width)
     local row_height = math.max(button_size, Screen:scaleBySize(42))
     local vertical_padding = Screen:scaleBySize(6)
@@ -194,7 +208,26 @@ function ZenSettingsTitleBar:init()
         end,
     }
     self.back_button.skip_paint = self.back_visible ~= true
-    table.insert(row, self.back_button)
+    self.root_icon = ZenIconButton:new{
+        file = zen_icon_path(),
+        icon = "zen_ui",
+        width = root_icon_size,
+        height = root_icon_size,
+        padding = 0,
+        padding_top = root_icon_inset_start,
+        padding_right = root_icon_inset_end,
+        padding_bottom = root_icon_inset_end,
+        padding_left = root_icon_inset_start,
+        allow_flash = false,
+        show_parent = self.show_parent,
+    }
+    self.root_icon.skip_paint = self.back_visible == true
+    self.leading_container = OverlapGroup:new{
+        self.root_icon,
+        self.back_button,
+    }
+    table.insert(row, self.leading_container)
+    table.insert(row, HorizontalSpan:new{ width = title_leading_padding })
 
     self.title_container = LeftContainer:new{
         dimen = Geom:new{ w = title_width, h = row_height },
@@ -205,7 +238,15 @@ function ZenSettingsTitleBar:init()
         GestureRange:new{
             ges = "tap",
             range = function()
-                if self.back_visible then return self.title_container.dimen end
+                if not self.back_visible then return end
+                local dimen = self.title_container.dimen
+                if not dimen then return end
+                return Geom:new{
+                    x = dimen.x - self.title_leading_padding,
+                    y = dimen.y,
+                    w = dimen.w + self.title_leading_padding,
+                    h = dimen.h,
+                }
             end,
         },
     }
@@ -451,6 +492,7 @@ function ZenSettingsTitleBar:setState(title, back_visible, search_visible, more_
     self.more_visible = more_visible
     if self.title_widget then self.title_widget:setText(title) end
     if self.back_button then self.back_button.skip_paint = not self.back_visible end
+    if self.root_icon then self.root_icon.skip_paint = self.back_visible end
     if self.search_button then self.search_button.skip_paint = not self.search_visible end
     if self.more_button then self.more_button.skip_paint = not self.more_visible end
 end

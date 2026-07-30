@@ -258,14 +258,17 @@ describe("Zen settings page", function()
         assert.are.equal(1, menu.opened)
     end)
 
-    it("keeps top-menu gestures away from header controls and their edges", function()
+    it("keeps top-menu taps away from header controls and their edges", function()
         local settings = make_page({})
-        settings.title_bar.close_button = { dimen = { x = 50, y = 10, w = 24, h = 24 } }
+        settings.title_bar.search_button = { dimen = { x = 50, y = 10, w = 20, h = 24 } }
+        settings.title_bar.close_button = { dimen = { x = 100, y = 10, w = 24, h = 24 } }
 
         assert.is_true(settings:onTap(nil, { pos = { x = 46, y = 20 } }))
-        assert.is_true(settings:onSwipe(nil, { pos = { x = 55, y = 20 } }))
+        assert.is_true(settings:onTap(nil, { pos = { x = 85, y = 20 } }))
+        assert.is_true(settings:onTap(nil, { pos = { x = 85, y = 0 } }))
         assert.is_nil(settings.top_menu_taps)
-        assert.is_nil(settings.top_menu_swipes)
+        assert.is_true(settings:onSwipe(nil, { pos = { x = 55, y = 20 } }))
+        assert.are.equal(1, settings.top_menu_swipes)
     end)
 
     it("leaves unoccupied header space for the KOReader top menu", function()

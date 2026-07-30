@@ -1726,7 +1726,7 @@ function M.build(ctx)
             },
             ]]
     }
-    IconItem.decorate(home_items[1], icons.display)
+    IconItem.decorate(home_items[1], icons.widgets)
     IconItem.decorate(home_items[2], icons.edit)
     IconItem.decorate(home_items[3], icons.save)
     IconItem.decorate(home_items[4], icons.title)

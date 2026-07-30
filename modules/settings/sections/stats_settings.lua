@@ -361,7 +361,7 @@ function M.build(ctx)
                 text = _("Widgets") .. " \u{25B8}",
                 keep_menu_open = true,
                 callback = arrange_widgets,
-            }, icons.display),
+            }, icons.widgets),
             IconItem.decorate({
                 text = _("Edit mode"),
                 checked_func = function()
