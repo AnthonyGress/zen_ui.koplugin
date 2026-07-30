@@ -1704,6 +1704,9 @@ msgstr "Начать книгу заново"
 msgid "Restart now"
 msgstr "Перезапустить сейчас"
 
+msgid "Restarting"
+msgstr "Перезагрузка"
+
 msgid "Restore library location on exit"
 msgstr "Восстанавливать расположение библиотеки при выходе"
 

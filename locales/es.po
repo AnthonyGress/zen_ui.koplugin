@@ -1704,6 +1704,9 @@ msgstr "Reiniciar libro"
 msgid "Restart now"
 msgstr "Reiniciar ahora"
 
+msgid "Restarting"
+msgstr "Reiniciando"
+
 msgid "Restore library location on exit"
 msgstr "Restaurar ubicación de la biblioteca al salir"
 

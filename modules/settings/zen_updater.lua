@@ -1485,15 +1485,7 @@ local function _do_install(screen, plugin_root, plugins_dir)
             save_updater_config(cfg2)
         end
 
-        screen:update{ subtitle = _("Rebooting") .. "...", button = false }
-        UIManager:forceRePaint()
-        UIManager:scheduleIn(1, function()
-            if type(UIManager.restartKOReader) == "function" then
-                UIManager:restartKOReader()
-            else
-                UIManager:broadcastEvent(require("ui/event"):new("Restart"))
-            end
-        end)
+        require("common/restart").request()
     end)
 end
 

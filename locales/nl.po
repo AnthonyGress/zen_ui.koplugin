@@ -1704,6 +1704,9 @@ msgstr "Boek herstarten"
 msgid "Restart now"
 msgstr "Nu herstarten"
 
+msgid "Restarting"
+msgstr "Herstarten"
+
 msgid "Restore library location on exit"
 msgstr "Bibliotheeklocatie herstellen bij afsluiten"
 

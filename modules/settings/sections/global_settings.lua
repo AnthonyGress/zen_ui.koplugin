@@ -6,6 +6,7 @@ local _ = require("gettext")
 local UIManager = require("ui/uimanager")
 local Device = require("device")
 local ConfirmBox = require("ui/widget/confirmbox")
+local restart = require("common/restart")
 local PresetStore = require("config/preset_store")
 local utils = require("modules/settings/zen_settings_utils")
 local icons = require("common/inline_icon_map")
@@ -39,14 +40,13 @@ local function disable_autowarmth()
     G_reader_settings:saveSetting("plugins_disabled", disabled_list)
     G_reader_settings:flush()
     UIManager:scheduleIn(0.5, function()
-        local Event = require("ui/event")
         UIManager:show(ConfirmBox:new{
             text         = _("Incompatible plugins have been disabled:") .. "\nAuto warmth and night mode",
             dismissable  = false,
             no_ok_button = true,
             cancel_text  = _("Restart now"),
             cancel_callback = function()
-                UIManager:broadcastEvent(Event:new("Restart"))
+                restart.request()
             end,
         })
     end)

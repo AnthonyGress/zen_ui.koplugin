@@ -24,6 +24,7 @@ local function apply_quick_settings()
     local VerticalSpan = require("ui/widget/verticalspan")
     local utils = require("common/utils")
     local shutdown = require("common/shutdown")
+    local restart = require("common/restart")
     local SharedState = require("common/shared_state")
     local Bluetooth = require("common/bluetooth")
     local build_brightness_slider = require("modules/menu/patches/brightness_slider")
@@ -632,7 +633,7 @@ local function apply_quick_settings()
                     text = _("Are you sure you want to restart KOReader?"),
                     ok_text = _("Restart"),
                     ok_callback = function()
-                        UIManager:broadcastEvent(Event:new("Restart"))
+                        restart.request()
                     end,
                 })
             end,

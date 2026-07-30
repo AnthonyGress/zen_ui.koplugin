@@ -1704,6 +1704,9 @@ msgstr "Restart Book"
 msgid "Restart now"
 msgstr "Restart now"
 
+msgid "Restarting"
+msgstr "Restarting"
+
 msgid "Restore library location on exit"
 msgstr "Restore library location on exit"
 

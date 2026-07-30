@@ -351,7 +351,7 @@ describe("Zen UI icon packs", function()
         })
         assert.are.equal(plugin_icons .. "home.svg", IconPacks.resolve("home", plugin_icons))
         assert.is_nil(IconPacks._getResolvedPathForTests("bookmark"))
-        assert.are.equal(plugin_icons .. "plus.svg", IconPacks.resolve("zen.plus", plugin_icons))
+        assert.are.equal(plugin_icons .. "plus.svg", IconPacks.resolve("plus", plugin_icons))
     end)
 
     it("keeps custom icons and the active pack disabled by default", function()

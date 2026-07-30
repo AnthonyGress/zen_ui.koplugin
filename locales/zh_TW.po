@@ -1704,6 +1704,9 @@ msgstr "重新開始閱讀"
 msgid "Restart now"
 msgstr "立即重新啟動"
 
+msgid "Restarting"
+msgstr "正在重新啟動"
+
 msgid "Restore library location on exit"
 msgstr "離開時還原書庫位置"
 

@@ -26,6 +26,7 @@ common/plugin_root.lua|unit
 common/reading_goals.lua|unit
 common/reader_margins.lua|unit
 common/reader_themes.lua|unit
+common/restart.lua|unit
 common/quickstart/quickstart_pages.lua|unit
 common/quickstart/quickstart_screen.lua|unit
 common/shared_state.lua|unit

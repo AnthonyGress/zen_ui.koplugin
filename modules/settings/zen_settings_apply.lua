@@ -2,7 +2,7 @@ local _ = require("gettext")
 
 local UIManager = require("ui/uimanager")
 local ConfirmBox = require("ui/widget/confirmbox")
-local Event = require("ui/event")
+local restart = require("common/restart")
 local SharedState = require("common/shared_state")
 
 local M = {}
@@ -91,7 +91,7 @@ local function prompt_restart()
         ok_text = _("Restart now"),
         cancel_text = _("Later"),
         ok_callback = function()
-            UIManager:broadcastEvent(Event:new("Restart"))
+            restart.request()
         end,
     })
 end

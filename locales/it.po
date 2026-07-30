@@ -1704,6 +1704,9 @@ msgstr "Ricomincia libro"
 msgid "Restart now"
 msgstr "Riavvia ora"
 
+msgid "Restarting"
+msgstr "Riavvio in corso"
+
 msgid "Restore library location on exit"
 msgstr "Ripristina posizione della libreria all'uscita"
 

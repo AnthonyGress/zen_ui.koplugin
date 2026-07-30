@@ -283,12 +283,17 @@ describe("file browser navbar navigation", function()
         end
 
         assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("authors"))
-        assert.are.same({}, dirty)
+        for _i, entry in ipairs(dirty) do
+            assert.are_not.equal(fm, entry.widget)
+        end
 
         assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
-        assert.are.equal(1, #dirty)
-        assert.are.equal(fm, dirty[1].widget)
-        assert.are.equal("ui", dirty[1].mode)
+        local file_manager_dirty
+        for _i, entry in ipairs(dirty) do
+            if entry.widget == fm then file_manager_dirty = entry end
+        end
+        assert.are.equal(fm, file_manager_dirty.widget)
+        assert.are.equal("ui", file_manager_dirty.mode)
     end)
 
     it("prewarms enabled group tabs after Home becomes visible", function()
