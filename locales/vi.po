@@ -168,8 +168,11 @@ msgstr "Tất cả thời gian"
 msgid "All time"
 msgstr "Mọi lúc"
 
-msgid "Allow custom icons"
-msgstr "Cho phép biểu tượng tùy chỉnh"
+msgid "Custom icons"
+msgstr "Biểu tượng tùy chỉnh"
+
+msgid "Enable custom icons"
+msgstr "Bật biểu tượng tùy chỉnh"
 
 msgid "Allow delete"
 msgstr "Cho phép xóa"
@@ -792,8 +795,8 @@ msgstr "Bên ghi gỡ lỗi chi tiết KOReader. Nhật ký được ghi vào ko
 msgid "Enable night mode schedule"
 msgstr "Bên lịch chế độ ban đêm"
 
-msgid "Enable page browser"
-msgstr "Bật trình duyệt trang"
+msgid "Zen page browser"
+msgstr "Trình duyệt trang Zen"
 
 msgid "Enable top status bar"
 msgstr "Bật thanh trạng thái trên"

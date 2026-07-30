@@ -89,7 +89,7 @@ return {
     settings_reader   = "\u{F14F7}",
     settings_global   = "\u{F484}",
     settings_status   = "\u{F12F0}",
-    reader_themes     = "\u{F0E0C}",
+    reader_themes     = "\u{F03D8}",
     settings_folders  = "\u{F0256}",
     settings_covers   = "\u{F168B}",  -- mdi-view-module
     settings_scroll   = "\u{F0BB8}",
@@ -97,12 +97,14 @@ return {
     settings_background = "\u{F0E09}",
     settings_home_folder = "\u{F10B6}",
     settings_navbar   = "\u{F0837}",
+    navbar_styling    = "\u{F03D8}",
     settings_stats    = "\u{F012A}",
     settings_opds     = "\u{F0B7D}",
     settings_sleep    = "\u{F04B2}",
     schedule_brightness = "\u{F0599}",
     schedule_night    = "\u{F0594}",  -- mdi-weather-night
     schedule_warmth   = "\u{F0510}",
+    flip_lh_rh        = "\u{F0A0E}",
     settings_lockdown = "\u{F033E}",
     settings_device   = "\u{F04F7}",
     settings_setup    = "\u{F0C5A}",
@@ -119,9 +121,15 @@ return {
     downgrade    = "\u{F0CDC}",
     upgrade      = "\u{F0CE2}",
     enable       = "\u{F040A}",
+    verbose_chapter_time = "\u{F19B9}",
+    bottom_swipe = "\u{F0740}",
+    page_browser = "\u{F0570}",
+    restore_library_location = "\u{F006F}",
+    hide_reader_actions = "\u{F0209}",
     remove       = "\u{F0374}",
     check        = "\u{2713}",   -- plain checkmark
     arrow_right  = "\u{25B8}",   -- triangular bullet
     go           = "\u{F124}",   -- nf-fa-location-arrow
+    open_menu    = "\u{F073D}",  -- mdi-menu-open
     bullet       = "\u{2022}",   -- bullet point
 }

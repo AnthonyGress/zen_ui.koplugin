@@ -168,8 +168,11 @@ msgstr "歷史總計"
 msgid "All time"
 msgstr "所有時間"
 
-msgid "Allow custom icons"
-msgstr "允許自訂圖示"
+msgid "Custom icons"
+msgstr "自訂圖示"
+
+msgid "Enable custom icons"
+msgstr "啟用自訂圖示"
 
 msgid "Allow delete"
 msgstr "允許刪除"
@@ -795,8 +798,8 @@ msgstr "啟用 KOReader 詳細除錯記錄。記錄寫入 koreader.log，立即�
 msgid "Enable night mode schedule"
 msgstr "啟用夜間模式排程"
 
-msgid "Enable page browser"
-msgstr "啟用頁面瀏覽器"
+msgid "Zen page browser"
+msgstr "Zen 頁面瀏覽器"
 
 msgid "Enable top status bar"
 msgstr "啟用頂部狀態列"

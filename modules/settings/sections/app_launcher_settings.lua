@@ -811,7 +811,11 @@ function M.build(ctx)
             end,
         },
     }
+    IconItem.decorate(root_items[1], icons.enable)
     IconItem.decorate(root_items[2], icons.action)
+    IconItem.decorate(root_items[3], icons.keywords)
+    IconItem.decorate(root_items[4], icons.open_menu)
+    IconItem.decorate(root_items[5], icons.hide_reader_actions)
 
     local function open_entry_settings_from_search(entry, parent)
         local items = build_entry_items(entry, parent)

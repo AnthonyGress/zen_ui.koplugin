@@ -168,8 +168,11 @@ msgstr "Da sempre"
 msgid "All time"
 msgstr "Tutto il tempo"
 
-msgid "Allow custom icons"
-msgstr "Consenti icone personalizzate"
+msgid "Custom icons"
+msgstr "Icone personalizzate"
+
+msgid "Enable custom icons"
+msgstr "Abilita icone personalizzate"
 
 msgid "Allow delete"
 msgstr "Consenti eliminazione"
@@ -795,8 +798,8 @@ msgstr "Abilita la registrazione di debug dettagliata di KOReader. I log vengono
 msgid "Enable night mode schedule"
 msgstr "Attiva pianificazione modalità notte"
 
-msgid "Enable page browser"
-msgstr "Abilita navigatore di pagine"
+msgid "Zen page browser"
+msgstr "Navigatore di pagine Zen"
 
 msgid "Enable top status bar"
 msgstr "Attiva barra di stato superiore"

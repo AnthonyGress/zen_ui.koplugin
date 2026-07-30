@@ -226,6 +226,27 @@ describe("file browser group views", function()
         assert.are.equal(1, tags.update_count)
     end)
 
+    it("reuses an open group page", function()
+        install_group_view({
+            authors = {
+                { author = "Ada", files = { "/a.epub" } },
+            },
+        })
+
+        local first = api.showAuthorsView()
+        local second = api.showAuthorsView()
+
+        assert.are.equal(first, second)
+        assert.are.equal(1, #menus)
+        assert.are.equal(1, #shown)
+
+        first.close_callback()
+        local reopened = api.showAuthorsView()
+        assert.are_not.equal(first, reopened)
+        assert.are.equal(2, #menus)
+        assert.are.equal(2, #shown)
+    end)
+
     it("names the missing metadata in an empty group page", function()
         install_group_view({})
 

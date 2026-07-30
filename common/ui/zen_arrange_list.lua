@@ -3,7 +3,6 @@ local BD = require("ui/bidi")
 local Device = require("device")
 local BottomContainer = require("ui/widget/container/bottomcontainer")
 local Button = require("ui/widget/button")
-local CenterContainer = require("ui/widget/container/centercontainer")
 local CheckMark = require("ui/widget/checkmark")
 local FrameContainer = require("ui/widget/container/framecontainer")
 local Geom = require("ui/geometry")
@@ -162,18 +161,12 @@ local function sync_pagination_footer(sort_widget)
     local content = sort_widget[1] and sort_widget[1][1]
     local footer_group = content and content[2] and content[2][1]
     local footer_line = footer_group and footer_group[1]
-    if footer_line and footer_line._zen_arrange_style == nil then
-        footer_line._zen_arrange_style = footer_line.style or false
-    end
+    if footer_line then footer_line.style = "none" end
 
     if show_footer then
         page_info.paintTo = page_info._zen_arrange_paint_to
-        if footer_line then
-            footer_line.style = footer_line._zen_arrange_style or nil
-        end
     else
         page_info.paintTo = function() end
-        if footer_line then footer_line.style = "none" end
     end
 end
 
@@ -240,17 +233,16 @@ local function rebuild_icon_row(row)
     else
         row.checkmark_widget = CheckMark:new{ checkable = false }
     end
-    local icon_w = item.icon_glyph and IconItem.SETTINGS_ICON_WIDTH or 0
+    local left_padding = Size.padding.fullscreen
+    local right_padding = Size.padding.default
+    local icon_w = IconItem.SETTINGS_ICON_WIDTH
     local item_has_submenu = type(item.sub_item_table) == "table"
         or type(item.sub_item_table_func) == "function"
-    local content_w = row.width - 2 * Size.padding.default
+    local content_w = row.width - left_padding - right_padding
     local face = IconItem.getSettingsFace(item.face or row.face)
     local right_items = { align = "center" }
     if item_checkable then
-        table.insert(right_items, CenterContainer:new{
-            dimen = Geom:new{ w = check_w, h = row.height },
-            row.checkmark_widget,
-        })
+        table.insert(right_items, row.checkmark_widget)
     end
     if item_checkable and item_has_submenu then
         table.insert(right_items, HorizontalSpan:new{ width = Size.padding.large })
@@ -268,7 +260,7 @@ local function rebuild_icon_row(row)
     end
     local right_group = HorizontalGroup:new(right_items)
     local right_w = right_group:getSize().w
-    local icon_gap = item.icon_glyph and Size.padding.default or 0
+    local icon_gap = Size.padding.default
     local controls_gap = right_w > 0 and Size.padding.default or 0
     local text_max_width = math.max(1,
         content_w - icon_w - icon_gap - right_w - controls_gap)
@@ -276,10 +268,10 @@ local function rebuild_icon_row(row)
     local row_items = {
         align = "center",
     }
-    if item.icon_glyph then
-        table.insert(row_items, IconItem.makeState(item.icon_glyph, icon_w, row.height, icon_face))
-        table.insert(row_items, HorizontalSpan:new{ width = icon_gap })
-    end
+    table.insert(row_items, item.icon_glyph
+        and IconItem.makeState(item.icon_glyph, icon_w, row.height, icon_face)
+        or HorizontalSpan:new{ width = icon_w })
+    table.insert(row_items, HorizontalSpan:new{ width = icon_gap })
     row._zen_settings_style = {
         row_height = row.height,
         font_size = face.orig_size,
@@ -322,10 +314,11 @@ local function rebuild_icon_row(row)
         bordersize = 0,
         focusable = true,
         focus_border_size = Size.border.thin,
+        focus_inner_border = true,
         HorizontalGroup:new{
-            HorizontalSpan:new{ width = Size.padding.default },
+            HorizontalSpan:new{ width = left_padding },
             content,
-            HorizontalSpan:new{ width = Size.padding.default },
+            HorizontalSpan:new{ width = right_padding },
         },
     }
     row[1] = OverlapGroup:new{

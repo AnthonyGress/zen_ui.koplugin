@@ -248,6 +248,16 @@ describe("file browser navbar navigation", function()
         assert.are.same({ "home", "authors", "series", "tags", "to_be_read" }, calls)
     end)
 
+    it("does not reopen the navbar page already on top", function()
+        make_instance()
+        UIManager._window_stack = {
+            { widget = { _zen_navbar_tab_id = "authors" } },
+        }
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("authors"))
+        assert.are.same({}, calls)
+    end)
+
     it("opens a custom tag tab directly in that tag's detail view", function()
         local navbar = _G.__ZEN_UI_PLUGIN.config.navbar
         navbar.custom_tabs = {

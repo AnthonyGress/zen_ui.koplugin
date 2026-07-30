@@ -168,8 +168,11 @@ msgstr "Tot timpul"
 msgid "All time"
 msgstr "Tot timpul"
 
-msgid "Allow custom icons"
-msgstr "Permite pictograme personalizate"
+msgid "Custom icons"
+msgstr "Pictograme personalizate"
+
+msgid "Enable custom icons"
+msgstr "Activează pictogramele personalizate"
 
 msgid "Allow delete"
 msgstr "Permite ștergerea"
@@ -795,8 +798,8 @@ msgstr "Activați jurnalizarea detaliată de depanare KOReader. Jurnalele sunt s
 msgid "Enable night mode schedule"
 msgstr "Activare planificare mod noapte"
 
-msgid "Enable page browser"
-msgstr "Activează browserul de pagini"
+msgid "Zen page browser"
+msgstr "Browser de pagini Zen"
 
 msgid "Enable top status bar"
 msgstr "Activează bara de stare de sus"

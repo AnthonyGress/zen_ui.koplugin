@@ -19,6 +19,34 @@ local _tags_menu    = nil
 -- Detail view menus layered on top of the group menu
 local _detail_menus = {}
 
+local function get_root_menu(tab_id)
+    if tab_id == "authors" then return _authors_menu end
+    if tab_id == "series" then return _series_menu end
+    if tab_id == "tags" then return _tags_menu end
+    if tab_id == "to_be_read" then return _tbr_menu end
+end
+
+local function clear_root_menu(tab_id, menu)
+    if tab_id == "authors" and _authors_menu == menu then
+        _authors_menu = nil
+    elseif tab_id == "series" and _series_menu == menu then
+        _series_menu = nil
+    elseif tab_id == "tags" and _tags_menu == menu then
+        _tags_menu = nil
+    elseif tab_id == "to_be_read" and _tbr_menu == menu then
+        _tbr_menu = nil
+    end
+end
+
+local function remove_detail_menu(menu)
+    for i = #_detail_menus, 1, -1 do
+        if _detail_menus[i] == menu then
+            table.remove(_detail_menus, i)
+            return
+        end
+    end
+end
+
 -- Set during apply (called at init while __ZEN_UI_PLUGIN is set)
 local _zen_shared    = nil
 local _zen_plugin    = nil  -- captured at init; __ZEN_UI_PLUGIN is cleared after init
@@ -1475,6 +1503,11 @@ local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
     else
         detail_name = "series_detail"
     end
+    for _i, active_menu in ipairs(_detail_menus) do
+        if active_menu.name == detail_name then
+            return active_menu, false
+        end
+    end
 
     -- Get sort settings for this group
     -- Series defaults to series_index; tags fall back to the global tags sort setting;
@@ -1575,8 +1608,13 @@ local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
     detail_menu._zen_tab_id     = tab_id
     detail_menu.close_callback = function()
         UIManager:close(detail_menu)
-        for i, m in ipairs(_detail_menus) do
-            if m == detail_menu then table.remove(_detail_menus, i); break end
+        remove_detail_menu(detail_menu)
+    end
+    local orig_detail_on_close_widget = detail_menu.onCloseWidget
+    function detail_menu:onCloseWidget(...)
+        remove_detail_menu(self)
+        if orig_detail_on_close_widget then
+            return orig_detail_on_close_widget(self, ...)
         end
     end
 
@@ -1666,6 +1704,7 @@ local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
             if repaintTB2 then repaintTB2(tb2) end
         end
     end)
+    return detail_menu, true
 end
 
 -------------------------------------------------------------------------------
@@ -1675,6 +1714,8 @@ end
 -- groups: pre-loaded data from db_bookinfo
 -------------------------------------------------------------------------------
 showGroupView = function(tab_id, injectNavbar, groups)
+    local active_menu = get_root_menu(tab_id)
+    if active_menu then return active_menu, false end
     local _ = require("gettext")
     local UIManager = require("ui/uimanager")
 
@@ -1741,12 +1782,13 @@ showGroupView = function(tab_id, injectNavbar, groups)
 
     menu.close_callback = function()
         UIManager:close(menu)
-        if tab_id == "authors" then
-            _authors_menu = nil
-        elseif tab_id == "tags" then
-            _tags_menu = nil
-        else
-            _series_menu = nil
+        clear_root_menu(tab_id, menu)
+    end
+    local orig_group_on_close_widget = menu.onCloseWidget
+    function menu:onCloseWidget(...)
+        clear_root_menu(tab_id, self)
+        if orig_group_on_close_widget then
+            return orig_group_on_close_widget(self, ...)
         end
     end
 
@@ -1859,33 +1901,37 @@ showGroupView = function(tab_id, injectNavbar, groups)
             end
         end
     end)
+    return menu, true
 end
 
 -------------------------------------------------------------------------------
 -- Public API called by navbar.lua tab callbacks
 -------------------------------------------------------------------------------
 function M.showAuthorsView(injectNavbar)
+    if _authors_menu then return _authors_menu, false end
     refresh_shared_state()
     local ok, db = pcall(require, "common/db_bookinfo")
     if not ok then return end
     local groups = db.getGroupedByAuthor()
-    showGroupView("authors", injectNavbar, groups)
+    return showGroupView("authors", injectNavbar, groups)
 end
 
 function M.showSeriesView(injectNavbar)
+    if _series_menu then return _series_menu, false end
     refresh_shared_state()
     local ok, db = pcall(require, "common/db_bookinfo")
     if not ok then return end
     local groups = db.getGroupedBySeries()
-    showGroupView("series", injectNavbar, groups)
+    return showGroupView("series", injectNavbar, groups)
 end
 
 function M.showTagsView(injectNavbar)
+    if _tags_menu then return _tags_menu, false end
     refresh_shared_state()
     local ok, db = pcall(require, "common/db_bookinfo")
     if not ok then return end
     local groups = db.getGroupedByTags()
-    showGroupView("tags", injectNavbar, groups)
+    return showGroupView("tags", injectNavbar, groups)
 end
 
 -- Opens one tag directly, for custom navbar tabs that target a specific tag.
@@ -1895,13 +1941,15 @@ function M.showTagDetail(tag_name, injectNavbar, navbar_tab_id)
     local ok, db = pcall(require, "common/db_bookinfo")
     if not ok then return end
     local files = type(db.getTagBooks) == "function" and db.getTagBooks(tag_name) or {}
-    showDetailView({ text = tag_name, _zen_files = files }, injectNavbar, "tags", navbar_tab_id)
+    return showDetailView(
+        { text = tag_name, _zen_files = files }, injectNavbar, "tags", navbar_tab_id)
 end
 
 -------------------------------------------------------------------------------
 -- M.showTBRView: flat book list filtered to "To Be Read" (abandoned) status
 -------------------------------------------------------------------------------
 function M.showTBRView(injectNavbar)
+    if _tbr_menu then return _tbr_menu, false end
     refresh_shared_state()
     local _          = require("gettext")
     local UIManager  = require("ui/uimanager")
@@ -2013,7 +2061,14 @@ function M.showTBRView(injectNavbar)
 
     menu.close_callback = function()
         UIManager:close(menu)
-        _tbr_menu = nil
+        clear_root_menu(tab_id, menu)
+    end
+    local orig_tbr_on_close_widget = menu.onCloseWidget
+    function menu:onCloseWidget(...)
+        clear_root_menu(tab_id, self)
+        if orig_tbr_on_close_widget then
+            return orig_tbr_on_close_widget(self, ...)
+        end
     end
 
     clean_nav(menu, group_name)
@@ -2107,6 +2162,7 @@ function M.showTBRView(injectNavbar)
             if repaintTB2 then repaintTB2(tb2) end
         end
     end)
+    return menu, true
 end
 
 -- Open a detail view synchronously by group name (used by navbar.showFiles post-hook).

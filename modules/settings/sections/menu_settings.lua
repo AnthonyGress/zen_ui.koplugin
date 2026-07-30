@@ -896,30 +896,30 @@ function M.build(ctx)
                 keep_menu_open = true,
                 callback = showButtonsArrange,
             }, icons.action),
-            {
+            IconItem.decorate({
                 text = _("Show brightness slider"),
                 checked_func = function() return config.quick_settings.show_frontlight == true end,
                 callback = function()
                     config.quick_settings.show_frontlight = config.quick_settings.show_frontlight ~= true
                     save_and_apply_quick_settings()
                 end,
-            },
-            {
+            }, icons.schedule_brightness),
+            IconItem.decorate({
                 text = _("Show warmth slider"),
                 checked_func = function() return config.quick_settings.show_warmth == true end,
                 callback = function()
                     config.quick_settings.show_warmth = config.quick_settings.show_warmth ~= true
                     save_and_apply_quick_settings()
                 end,
-            },
-            {
+            }, icons.schedule_warmth),
+            IconItem.decorate({
                 text = _("Flip LH/RH icon"),
                 checked_func = function() return config.quick_settings.flip_lh_rh_icon == true end,
                 callback = function()
                     config.quick_settings.flip_lh_rh_icon = config.quick_settings.flip_lh_rh_icon ~= true
                     save_and_apply_quick_settings()
                 end,
-            },
+            }, icons.flip_lh_rh),
             IconItem.decorate({
                 text = _("Reset to defaults"),
                 separator = true,

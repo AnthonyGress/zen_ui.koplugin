@@ -2667,6 +2667,9 @@ end
 function M.showHomeView(injectNavbar)
     local UIManager = require("ui/uimanager")
 
+    if _home_menu and not _home_menu._zen_home_closing then
+        return _home_menu, false
+    end
     refresh_shared_state()
     _home_inject_navbar = injectNavbar
     consume_last_read_file()
@@ -2938,6 +2941,7 @@ function M.showHomeView(injectNavbar)
             menu:_zen_status_refresh()
         end
     end)
+    return menu, true
 end
 
 function M.getActivePage()

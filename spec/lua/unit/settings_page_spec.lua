@@ -1,6 +1,8 @@
 describe("Zen settings page", function()
     local Page
+    local PageModule
     local saved_modules
+    local shown_widgets
 
     local dependency_names = {
         "gettext",
@@ -13,6 +15,7 @@ describe("Zen settings page", function()
         "device",
         "ui/size",
         "ffi/blitbuffer",
+        "ui/widget/inputdialog",
         "common/ui/icon_menu_item",
         "modules/settings/zen_settings",
         "common/ui/zen_settings_titlebar",
@@ -63,6 +66,7 @@ describe("Zen settings page", function()
 
     before_each(function()
         saved_modules = {}
+        shown_widgets = {}
         for _i, name in ipairs(dependency_names) do
             saved_modules[name] = package.loaded[name] or false
         end
@@ -73,7 +77,7 @@ describe("Zen settings page", function()
         ZenSpec.replace("ui/uimanager", {
             close = function() end,
             nextTick = function(_self, callback) callback() end,
-            show = function() end,
+            show = function(_self, widget) shown_widgets[#shown_widgets + 1] = widget end,
         })
         ZenSpec.replace("ffi/utf8proc", {
             lowercase = function(text) return text:lower() end,
@@ -87,12 +91,15 @@ describe("Zen settings page", function()
         })
         ZenSpec.replace("ui/size", { line = { thin = 1 } })
         ZenSpec.replace("ffi/blitbuffer", { COLOR_LIGHT_GRAY = 1 })
+        ZenSpec.replace("ui/widget/inputdialog", { init = function() end })
         ZenSpec.replace("common/ui/icon_menu_item", {
             getSettingsFontSize = function() return 18 end,
             getSettingsRowHeight = function() return 64 end,
             installMenuPatch = function() end,
         })
-        ZenSpec.replace("modules/settings/zen_settings", { build = function() return {} end })
+        ZenSpec.replace("modules/settings/zen_settings", {
+            build = function() return { sub_item_table = {} } end,
+        })
         ZenSpec.replace("apps/filemanager/filemanager", {
             instance = {
                 menu = {
@@ -117,7 +124,8 @@ describe("Zen settings page", function()
             end,
         })
         ZenSpec.unload("modules/settings/zen_settings_page")
-        Page = require("modules/settings/zen_settings_page").Page
+        PageModule = require("modules/settings/zen_settings_page")
+        Page = PageModule.Page
     end)
 
     after_each(function()
@@ -167,6 +175,20 @@ describe("Zen settings page", function()
         assert.are.equal("Settings", settings.title_bar.title)
         assert.is_false(settings.title_bar.back_visible)
         assert.is_true(settings.title_bar.search_visible)
+    end)
+
+    it("reuses the active settings page", function()
+        local plugin = { config = {} }
+        local first = PageModule.show(plugin)
+        local second = PageModule.show(plugin)
+
+        assert.are.equal(first, second)
+        assert.are.equal(1, #shown_widgets)
+
+        first:closeMenu()
+        local reopened = PageModule.show(plugin)
+        assert.are_not.equal(first, reopened)
+        assert.are.equal(2, #shown_widgets)
     end)
 
     it("restores the parent title when the parent table refreshes on back", function()

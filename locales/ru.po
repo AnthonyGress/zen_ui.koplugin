@@ -168,8 +168,11 @@ msgstr "За всё время"
 msgid "All time"
 msgstr "Все время"
 
-msgid "Allow custom icons"
-msgstr "Разрешить пользовательские значки"
+msgid "Custom icons"
+msgstr "Пользовательские значки"
+
+msgid "Enable custom icons"
+msgstr "Включить пользовательские значки"
 
 msgid "Allow delete"
 msgstr "Разрешить удаление"
@@ -795,8 +798,8 @@ msgstr "Включить подробное журналирование отл�
 msgid "Enable night mode schedule"
 msgstr "Включить расписание ночного режима"
 
-msgid "Enable page browser"
-msgstr "Включить просмотр страниц"
+msgid "Zen page browser"
+msgstr "Просмотр страниц Zen"
 
 msgid "Enable top status bar"
 msgstr "Включить верхнюю строку состояния"

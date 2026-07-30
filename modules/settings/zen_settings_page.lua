@@ -609,8 +609,29 @@ function ZenSettingsPage:openPath(markers)
     return true
 end
 
+local function schedule_open_path(page, path, reset_to_root)
+    if type(path) ~= "table" or #path == 0 then return end
+    UIManager:nextTick(function()
+        if page._closed then return end
+        if reset_to_root then
+            page:_leaveSearch(false)
+            if page.title_bar and page.title_bar.collapseSearch then
+                page.title_bar:collapseSearch()
+            end
+            page.item_table_stack = {}
+            page.item_table = page._root_items
+            page:updateItems(1)
+        end
+        page:openPath(path)
+    end)
+end
+
 function M.show(plugin, opts)
     opts = opts or {}
+    if active_page and not active_page._closed then
+        schedule_open_path(active_page, opts.path, true)
+        return active_page
+    end
     install_modal_keyboard_dismissal()
     local root_items = zen_settings.build(plugin).sub_item_table
     root_items._zen_title = _("Settings")
@@ -622,11 +643,7 @@ function M.show(plugin, opts)
     }
     active_page = page
     UIManager:show(page)
-    if type(opts.path) == "table" and #opts.path > 0 then
-        UIManager:nextTick(function()
-            if not page._closed then page:openPath(opts.path) end
-        end)
-    end
+    schedule_open_path(page, opts.path, false)
     return page
 end
 

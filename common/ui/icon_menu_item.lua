@@ -227,14 +227,14 @@ local function rebuild_settings_menu_item(row)
     if type(item.font_func) == "function" then
         face = item.font_func(face.orig_size) or face
     end
-    local left_padding = Size.padding.fullscreen
-    local right_padding = Size.padding.default
+    local left_padding = Size.padding.large + Size.padding.fullscreen
+    local right_padding = Size.padding.large + Size.padding.default
     local icon_widget = settings_icon_widget(item, row.dimen.h, face)
     local control_widget = settings_control_widget(item, visual_enabled)
     local left_icon_w = M.SETTINGS_ICON_WIDTH + Size.padding.default
     local right_controls = HorizontalGroup:new{ align = "center" }
-    if control_widget then table.insert(right_controls, control_widget) end
-    if control_widget and item._zen_has_submenu then
+    if control_widget then
+        table.insert(right_controls, control_widget)
         table.insert(right_controls, HorizontalSpan:new{ width = Size.padding.large })
     end
     if item._zen_has_submenu then
@@ -243,6 +243,8 @@ local function rebuild_settings_menu_item(row)
             width = M.SETTINGS_CARET_SIZE,
             height = M.SETTINGS_CARET_SIZE,
         })
+    elseif control_widget then
+        table.insert(right_controls, HorizontalSpan:new{ width = M.SETTINGS_CARET_SIZE })
     end
     table.insert(right_controls, HorizontalSpan:new{ width = right_padding })
     local right_controls_w = right_controls:getSize().w

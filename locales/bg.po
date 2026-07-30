@@ -177,8 +177,11 @@ msgstr "За всички времена"
 msgid "All time"
 msgstr "През цялото време"
 
-msgid "Allow custom icons"
-msgstr "Разрешаване на потребителски икони"
+msgid "Custom icons"
+msgstr "Персонализирани икони"
+
+msgid "Enable custom icons"
+msgstr "Активиране на персонализирани икони"
 
 msgid "Allow delete"
 msgstr "Разрешаване на изтриване"
@@ -801,8 +804,8 @@ msgstr "Активиране на подробното регистриране 
 msgid "Enable night mode schedule"
 msgstr "Включване на график за нощен режим"
 
-msgid "Enable page browser"
-msgstr "Включване на преглед на страници"
+msgid "Zen page browser"
+msgstr "Zen браузър за страници"
 
 msgid "Enable top status bar"
 msgstr "Включване на горната лента за състояние"

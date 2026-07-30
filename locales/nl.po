@@ -168,8 +168,11 @@ msgstr "Totaaltijd"
 msgid "All time"
 msgstr "Altijd"
 
-msgid "Allow custom icons"
-msgstr "Aangepaste pictogrammen toestaan"
+msgid "Custom icons"
+msgstr "Aangepaste pictogrammen"
+
+msgid "Enable custom icons"
+msgstr "Aangepaste pictogrammen inschakelen"
 
 msgid "Allow delete"
 msgstr "Verwijderen toestaan"
@@ -795,8 +798,8 @@ msgstr "KOReader uitgebreide debug-logregistratie inschakelen. Logbestanden word
 msgid "Enable night mode schedule"
 msgstr "Nachtmodus planning inschakelen"
 
-msgid "Enable page browser"
-msgstr "Paginabrowser inschakelen"
+msgid "Zen page browser"
+msgstr "Zen-paginabrowser"
 
 msgid "Enable top status bar"
 msgstr "Bovenste statusbalk inschakelen"

@@ -168,8 +168,11 @@ msgstr "All Time"
 msgid "All time"
 msgstr "All time"
 
-msgid "Allow custom icons"
-msgstr "Allow custom icons"
+msgid "Custom icons"
+msgstr "Custom icons"
+
+msgid "Enable custom icons"
+msgstr "Enable custom icons"
 
 msgid "Allow delete"
 msgstr "Allow delete"
@@ -795,8 +798,8 @@ msgstr "Enable KOReader verbose debug logging. Logs are written to koreader.log.
 msgid "Enable night mode schedule"
 msgstr "Enable night mode schedule"
 
-msgid "Enable page browser"
-msgstr "Enable page browser"
+msgid "Zen page browser"
+msgstr "Zen page browser"
 
 msgid "Enable top status bar"
 msgstr "Enable top status bar"

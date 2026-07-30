@@ -1310,12 +1310,12 @@ function M.build(ctx)
         text = _("Navbar"),
         _zen_search_items_func = arrange_search_items,
         sub_item_table = {
-            {
+            IconItem.decorate({
                 text = _("Tabs") .. " \u{25B8}",
                 keep_menu_open = true,
                 callback = showTabsArrange,
-            },
-            {
+            }, icons.settings_navbar),
+            IconItem.decorate({
                 text = _("Styling"),
                 sub_item_table = {
                     {
@@ -1478,15 +1478,15 @@ function M.build(ctx)
                         end,
                     },
                 },
-            },
-            {
+            }, icons.navbar_styling),
+            IconItem.decorate({
                 text_func = function()
                     local current = config.navbar.default_tab or "books"
                     return _("Default tab: ") .. get_default_tab_label(current)
                 end,
                 keep_menu_open = true,
                 sub_item_table_func = build_default_tab_items,
-            },
+            }, icons.settings_home),
         },
     }, icons.settings_navbar)
 end

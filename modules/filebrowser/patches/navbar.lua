@@ -745,7 +745,8 @@ local function apply_navbar()
         local StatsPage = require("modules/filebrowser/patches/stats_page")
         local _createStatusRow = get_shared("createStatusRow")
         local _repaintTitleBar = get_shared("repaintTitleBar")
-        local stats_page = StatsPage.create(_createStatusRow, _repaintTitleBar)
+        local stats_page, is_new = StatsPage.create(_createStatusRow, _repaintTitleBar)
+        if not is_new then return end
         injectStandaloneNavbar(stats_page, "stats")
         UIManager:show(stats_page)
     end
@@ -901,6 +902,14 @@ local function apply_navbar()
     local function runTabCallback(tab_id)
         local cb = tab_callbacks[tab_id]
         if not cb then return end
+        local stack = UIManager._window_stack
+        local top = stack and stack[#stack]
+        local top_widget = top and top.widget
+        if tab_id ~= "home"
+                and top_widget
+                and top_widget._zen_navbar_tab_id == tab_id then
+            return
+        end
         if shouldTrackActiveTab(tab_id) then
             cb()
             refreshAfterNavbarPageSwitch()
@@ -1980,6 +1989,7 @@ local function apply_navbar()
 
     injectStandaloneNavbar = function(menu, view_tab_id)
         if not menu or not menu[1] then return end
+        menu._zen_navbar_tab_id = view_tab_id
         if menu._zen_standalone_navbar_injected then return end
         _G.__ZEN_UI_ACTIVE_TAB_LABEL = tabs_by_id[view_tab_id] and tabs_by_id[view_tab_id].label or view_tab_id
         preventStandaloneSwipeClose(menu)
@@ -2790,6 +2800,7 @@ local function apply_navbar()
         local orig_qrss_init = QuickRSSUI_class.init
         function QuickRSSUI_class:init()
             orig_qrss_init(self)
+            self._zen_navbar_tab_id = "news"
 
             local navbar_h = getNavbarHeight()
             if navbar_h <= 0 then return end

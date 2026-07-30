@@ -77,6 +77,7 @@ describe("stats settings", function()
         ZenSpec.replace("common/inline_icon_map", {
             divider = "divider",
             display = "widgets",
+            edit = "edit",
             settings_stats = "stats",
             title = "font",
         })
@@ -152,6 +153,7 @@ describe("stats settings", function()
 
     it("persists edit mode", function()
         local section = require("modules/settings/sections/stats_settings").build({})
+        assert.are.equal("edit", section.sub_item_table[2].icon_glyph)
         section.sub_item_table[2].callback()
 
         assert.is_true(saved_edit_mode)

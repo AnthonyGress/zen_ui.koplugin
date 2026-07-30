@@ -60,13 +60,13 @@ function M.build(ctx)
         local opds_display_item = IconItem.decorate({
             text = _("Display mode"),
             sub_item_table = display_mode_items,
-        }, icons.eye)
+        }, icons.settings_layout)
 
         table.insert(items, {
             text = _("Zen OPDS"),
             help_text = _("Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."),
             sub_item_table = {
-                {
+                IconItem.decorate({
                     text = _("Enable Zen OPDS"),
                     checked_func = function()
                         return config.features.zen_opds ~= false
@@ -77,7 +77,7 @@ function M.build(ctx)
                         if touchmenu_instance then touchmenu_instance:updateItems() end
                         settings_apply.prompt_restart()
                     end,
-                },
+                }, icons.enable),
                 opds_display_item,
             },
         })
@@ -134,7 +134,7 @@ function M.build(ctx)
         table.insert(items, item)
     end
 
-    table.insert(items, {
+    table.insert(items, IconItem.decorate({
         text = _("Include new books in TBR"),
         help_text = _("New includes unread books and books modified since they were last opened."),
         checked_func = function()
@@ -152,10 +152,10 @@ function M.build(ctx)
             end
             if touchmenu_instance then touchmenu_instance:updateItems() end
         end,
-    })
+    }, icons.tbr))
 
-    table.insert(items, {
-        text = _("Allow custom icons"),
+    local custom_icons_enabled_item = IconItem.decorate({
+        text = _("Enable custom icons"),
         help_text = _("When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."),
         checked_func = function()
             return config.features.custom_icons_enabled == true
@@ -166,7 +166,7 @@ function M.build(ctx)
             if touchmenu_instance then touchmenu_instance:updateItems() end
             settings_apply.prompt_restart()
         end,
-    })
+    }, icons.enable)
 
     if type(config.custom_icons) ~= "table" then config.custom_icons = { active_pack = "" } end
     local function active_pack_id()
@@ -243,7 +243,7 @@ function M.build(ctx)
         return pack_items
     end
 
-    table.insert(items, IconItem.decorate({
+    local custom_icon_pack_item = IconItem.decorate({
         text_func = function()
             return T(_("Custom icon pack: %1"), active_pack_name())
         end,
@@ -252,6 +252,14 @@ function M.build(ctx)
             return config.features.custom_icons_enabled == true
         end,
         sub_item_table_func = build_pack_items,
+    }, icons.icon)
+
+    table.insert(items, IconItem.decorate({
+        text = _("Custom icons"),
+        sub_item_table = {
+            custom_icons_enabled_item,
+            custom_icon_pack_item,
+        },
     }, icons.icon))
 
     return items

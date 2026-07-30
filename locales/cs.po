@@ -168,7 +168,10 @@ msgstr "Za celou dobu"
 msgid "All time"
 msgstr "Celou dobu"
 
-msgid "Allow custom icons"
+msgid "Custom icons"
+msgstr "Vlastní ikony"
+
+msgid "Enable custom icons"
 msgstr "Povolit vlastní ikony"
 
 msgid "Allow delete"
@@ -792,8 +795,8 @@ msgstr "Zapnout protokolování KOReaderu pro ladění. Protokol se zapisuje do 
 msgid "Enable night mode schedule"
 msgstr "Zapnout noční časový plán"
 
-msgid "Enable page browser"
-msgstr "Povolit prohlížeč stránek"
+msgid "Zen page browser"
+msgstr "Prohlížeč stránek Zen"
 
 msgid "Enable top status bar"
 msgstr "Zapnout horní stavový řádek"

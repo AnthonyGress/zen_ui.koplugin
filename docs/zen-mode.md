@@ -14,9 +14,13 @@ order: 30
 
 ## Introduction
 
-When you first start Zen UI, you will be in Zen Mode. This cleans up the top menu bar and replaces it with 4 powerful items: [Controls](/zen-ui/docs/controls), Zen Settings (Unified Zen + KOReader settings), [Launcher](/zen-ui/docs/launcher), and the Home button. Zen Mode by default also locks the home folder. This means that you can't accidentally go "back" out of your library and into the device filesystem. If you want to navigate the filesystem you can enable it in Zen Settings > Library > Home folder > Lock home folder
+Zen Mode simplifies KOReade. When you first start Zen UI, you will be in Zen Mode. This cleans up the top menu bar and replaces it with 4 powerful items: [Controls](/zen-ui/docs/controls), Zen Settings (Unified Zen + KOReader settings), [Launcher](/zen-ui/docs/launcher), and the Home button. 
 
-Exiting Zen Mode with the toggle in Controls will re-enable the top KOReader menu bar icons like Settings, Tools, etc.
+Zen Mode by default also locks the home folder. This means that you can't accidentally go "back" out of your library and into the device filesystem. If you want to navigate the filesystem you can enable it in `Zen Settings > Library > Home folder > Lock home folder`
+
+Exiting Zen Mode with the toggle in Controls (icon below) will re-enable the top KOReader menu bar icons like Settings, Tools, etc.
+
+![Zen Mode](/images/zen_ui/zen_mode.png)
 
 ## Options
 

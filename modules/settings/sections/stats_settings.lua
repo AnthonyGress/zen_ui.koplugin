@@ -362,7 +362,7 @@ function M.build(ctx)
                 keep_menu_open = true,
                 callback = arrange_widgets,
             }, icons.display),
-            {
+            IconItem.decorate({
                 text = _("Edit mode"),
                 checked_func = function()
                     return StatsSettings.load().edit_mode == true
@@ -372,7 +372,7 @@ function M.build(ctx)
                     settings.edit_mode = settings.edit_mode ~= true
                     save(settings)
                 end,
-            },
+            }, icons.edit),
             IconItem.decorate(default_font_size_item(), icons.title),
             IconItem.decorate({
                 text = _("Stat separators"),
