@@ -54,6 +54,7 @@ local defaults = {
         browser_cover_rounded_corners = true,
         browser_cover_mosaic_uniform = true,
         automatic_series_grouping = true,
+        hide_grouped_series = false,
         partial_page_repaint = false,
         reader_top_status_bar = true,
         reader_themes = false,

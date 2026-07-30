@@ -295,6 +295,28 @@ function M.build(ctx)
                     end
                 end,
             },
+            {
+                text = _("Hide grouped series"),
+                checked_func = function()
+                    return config.features.hide_grouped_series == true
+                end,
+                callback = function()
+                    config.features.hide_grouped_series =
+                        config.features.hide_grouped_series ~= true
+                    plugin:saveConfig()
+                    local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
+                    local fc = ok_fm and FileManager and FileManager.instance
+                        and FileManager.instance.file_chooser
+                    if fc and fc._zen_clear_item_table_cache then
+                        fc:_zen_clear_item_table_cache()
+                    end
+                    if fc and fc.path and fc.changeToPath then
+                        fc:changeToPath(fc.path)
+                    else
+                        save_and_apply("automatic_series_grouping")
+                    end
+                end,
+            },
             -- Cover mode subsection
             {
                 text = _("Covers"),
