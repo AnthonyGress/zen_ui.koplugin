@@ -2,6 +2,7 @@ local _ = require("gettext")
 local UIManager = require("ui/uimanager")
 
 local HomePresets = require("modules/filebrowser/patches/home/home_presets")
+local HomeQuotes = require("modules/filebrowser/patches/home/home_quotes")
 local PresetStore = require("config/preset_store")
 local Registry = require("modules/filebrowser/patches/home/components/registry")
 local library_font = require("modules/filebrowser/patches/library_font")
@@ -216,6 +217,15 @@ local function ensure_cfg(_config)
 
     if type(dcfg.quotes) ~= "table" then dcfg.quotes = {} end
     if dcfg.quotes.show_author == nil then dcfg.quotes.show_author = true end
+    if dcfg.quotes.show_title == nil then dcfg.quotes.show_title = true end
+    if type(dcfg.quotes.sources) ~= "table" then
+        dcfg.quotes.sources = { default = true }
+    end
+    if dcfg.quotes.rotation ~= "refresh" then dcfg.quotes.rotation = "daily" end
+    dcfg.quotes.automatic_font_size = dcfg.quotes.automatic_font_size == true
+    dcfg.quotes.max_font_size = math.max(
+        4, math.min(32, tonumber(dcfg.quotes.max_font_size) or 16)
+    )
     dcfg.quotes.use_home_font_size = dcfg.quotes.use_home_font_size == true or nil
     local quote_font_size = tonumber(dcfg.quotes.font_size)
     local quote_font_override = dcfg.quotes.font_size_override == true
@@ -1521,11 +1531,97 @@ function M.build(ctx)
 
     local function build_quotes_items()
         local quotes_cfg = ensure_module_cfg(dcfg, "quotes")
+        local function quote_sources()
+            if type(dcfg.quotes.sources) ~= "table" then
+                dcfg.quotes.sources = { default = true }
+            end
+            return dcfg.quotes.sources
+        end
+        local function source_item(label, key, options)
+            local item = {
+                text = label,
+                keep_menu_open = true,
+                checked_func = function()
+                    return quote_sources()[key] == true
+                end,
+                callback = function()
+                    if options and options.enabled_func
+                            and options.enabled_func() == false then
+                        return
+                    end
+                    local sources = quote_sources()
+                    sources[key] = sources[key] ~= true
+                    if not sources.default and not sources.custom and not sources.annotations then
+                        sources.default = true
+                    end
+                    save_home("reinit")
+                end,
+            }
+            if options then
+                item.enabled_func = options.enabled_func
+                item.help_text = options.help_text
+                item.dim = options.enabled_func and options.enabled_func() == false or nil
+            end
+            return item
+        end
         local function quote_font_size()
             if dcfg.quotes.use_home_font_size then return dcfg.font_size end
             return dcfg.quotes.font_size or 12
         end
-        return {
+        local custom_quotes_available = HomeQuotes.hasCustomQuotes()
+        if not custom_quotes_available then
+            local sources = quote_sources()
+            sources.custom = false
+            if not sources.default and not sources.annotations then
+                sources.default = true
+            end
+        end
+        local source_items = {
+            source_item(_("Default quotes"), "default"),
+            source_item(_("Custom quotes"), "custom", {
+                enabled_func = HomeQuotes.hasCustomQuotes,
+                help_text = _("Add at least one quote to settings/Zen UI/quotes.lua to enable this source."),
+            }),
+        }
+        if not custom_quotes_available then
+            source_items[#source_items + 1] = {
+                text = _("quotes.lua is empty"),
+                enabled = false,
+                dim = true,
+            }
+        end
+        source_items[#source_items + 1] =
+            source_item(_("Annotations"), "annotations")
+        local items = {
+            {
+                text = _("Quote sources"),
+                sub_item_table = source_items,
+            },
+            {
+                text = _("New quote"),
+                sub_item_table = {
+                    {
+                        text = _("Daily"),
+                        checked_func = function()
+                            return dcfg.quotes.rotation ~= "refresh"
+                        end,
+                        callback = function()
+                            dcfg.quotes.rotation = "daily"
+                            save_home("reinit")
+                        end,
+                    },
+                    {
+                        text = _("On Home refresh"),
+                        checked_func = function()
+                            return dcfg.quotes.rotation == "refresh"
+                        end,
+                        callback = function()
+                            dcfg.quotes.rotation = "refresh"
+                            save_home("reinit")
+                        end,
+                    },
+                },
+            },
             {
                 text = _("Show widget title"),
                 checked_func = function()
@@ -1537,12 +1633,51 @@ function M.build(ctx)
                 end,
             },
             {
-                text_func = function()
-                    return string.format("%s %s", _("Font size:"), tostring(quote_font_size()))
+                text = _("Automatic font size"),
+                checked_func = function()
+                    return dcfg.quotes.automatic_font_size == true
                 end,
-                keep_menu_open = true,
-                callback = function()
-                    local SpinWidget = require("ui/widget/spinwidget")
+                callback = function(touchmenu_instance)
+                    dcfg.quotes.automatic_font_size =
+                        dcfg.quotes.automatic_font_size ~= true
+                    save_home("reinit")
+                    if touchmenu_instance and touchmenu_instance.updateItems then
+                        touchmenu_instance:updateItems()
+                    end
+                end,
+            },
+        }
+
+        items[#items + 1] = {
+            text_func = function()
+                if dcfg.quotes.automatic_font_size == true then
+                    return string.format(
+                        "%s %s",
+                        _("Maximum font size:"),
+                        tostring(dcfg.quotes.max_font_size or 16)
+                    )
+                end
+                return string.format("%s %s", _("Font size:"), tostring(quote_font_size()))
+            end,
+            keep_menu_open = true,
+            callback = function(touchmenu_instance)
+                local SpinWidget = require("ui/widget/spinwidget")
+                if dcfg.quotes.automatic_font_size == true then
+                    UIManager:show(SpinWidget:new{
+                        title_text = _("Maximum quote font size"),
+                        value = dcfg.quotes.max_font_size or 16,
+                        value_min = 4,
+                        value_max = 32,
+                        default_value = 16,
+                        callback = function(spin)
+                            dcfg.quotes.max_font_size = spin.value
+                            save_home("reinit")
+                            if touchmenu_instance and touchmenu_instance.updateItems then
+                                touchmenu_instance:updateItems()
+                            end
+                        end,
+                    })
+                else
                     UIManager:show(SpinWidget:new{
                         title_text = _("Quote font size"),
                         value = quote_font_size(),
@@ -1554,30 +1689,48 @@ function M.build(ctx)
                             dcfg.quotes.font_size_override = true
                             dcfg.quotes.use_home_font_size = nil
                             save_home("reinit")
+                            if touchmenu_instance and touchmenu_instance.updateItems then
+                                touchmenu_instance:updateItems()
+                            end
                         end,
                     })
-                end,
-            },
-            {
-                text = _("Use Home default font size"),
-                callback = function()
-                    dcfg.quotes.font_size = nil
-                    dcfg.quotes.font_size_override = nil
-                    dcfg.quotes.use_home_font_size = true
-                    save_home("reinit")
-                end,
-            },
-            {
-                text = _("Show author"),
-                checked_func = function()
-                    return dcfg.quotes.show_author ~= false
-                end,
-                callback = function()
-                    dcfg.quotes.show_author = dcfg.quotes.show_author == false
-                    save_home("reinit")
-                end,
-            },
+                end
+            end,
         }
+        items[#items + 1] = {
+            text = _("Use Home default font size"),
+            enabled_func = function()
+                return dcfg.quotes.automatic_font_size ~= true
+            end,
+            callback = function()
+                dcfg.quotes.font_size = nil
+                dcfg.quotes.font_size_override = nil
+                dcfg.quotes.use_home_font_size = true
+                save_home("reinit")
+            end,
+        }
+
+        items[#items + 1] = {
+            text = _("Show author"),
+            checked_func = function()
+                return dcfg.quotes.show_author ~= false
+            end,
+            callback = function()
+                dcfg.quotes.show_author = dcfg.quotes.show_author == false
+                save_home("reinit")
+            end,
+        }
+        items[#items + 1] = {
+            text = _("Show title"),
+            checked_func = function()
+                return dcfg.quotes.show_title ~= false
+            end,
+            callback = function()
+                dcfg.quotes.show_title = dcfg.quotes.show_title == false
+                save_home("reinit")
+            end,
+        }
+        return items
     end
 
     build_widget_settings_items = function(id)

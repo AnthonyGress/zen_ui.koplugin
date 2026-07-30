@@ -755,6 +755,24 @@ function ZenUI:onResume()
     end)
 end
 
+local function invalidate_annotation_quotes(plugin)
+    local ok_quotes, HomeQuotes = pcall(
+        require, "modules/filebrowser/patches/home/home_quotes"
+    )
+    if ok_quotes and HomeQuotes and HomeQuotes.invalidateAnnotations then
+        HomeQuotes.invalidateAnnotations()
+    end
+    refresh_home_date_dependent(plugin)
+end
+
+function ZenUI:onAnnotationsModified()
+    invalidate_annotation_quotes(self)
+end
+
+function ZenUI:onCloseDocument()
+    invalidate_annotation_quotes(self)
+end
+
 -- On suspend: cancel the pending timer so checks don't run while asleep.
 function ZenUI:onSuspend()
     zen_updater.cancel_wakeup_check()

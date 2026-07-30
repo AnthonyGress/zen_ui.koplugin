@@ -173,10 +173,13 @@ local DEFAULT_HOME_PAGE = {
         },
     },
     quotes = {
-        day_seed = 741666,
+        automatic_font_size = false,
         font_size = 12,
-        manual_index = 11,
+        max_font_size = 16,
+        rotation = "daily",
         show_author = true,
+        show_title = true,
+        sources = { default = true },
     },
 }
 
@@ -339,10 +342,13 @@ local BOOKSHELF_HOME_PAGE = {
         },
     },
     quotes = {
-        day_seed = 741666,
+        automatic_font_size = false,
         font_size = 12,
-        manual_index = 11,
+        max_font_size = 16,
+        rotation = "daily",
         show_author = true,
+        show_title = true,
+        sources = { default = true },
     },
 }
 

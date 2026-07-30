@@ -13,6 +13,8 @@ local SharedState = require("common/shared_state")
 local title_sort = require("common/title_sort")
 local utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
+local UIManager = require("ui/uimanager")
+local _ = require("gettext")
 
 local M = {}
 local DEFAULT_GOALS_FONT_SIZE = 11
@@ -582,6 +584,15 @@ local function ensure_home_cfg()
 
     if type(dcfg.quotes) ~= "table" then dcfg.quotes = {} end
     if dcfg.quotes.show_author == nil then dcfg.quotes.show_author = true end
+    if dcfg.quotes.show_title == nil then dcfg.quotes.show_title = true end
+    if type(dcfg.quotes.sources) ~= "table" then
+        dcfg.quotes.sources = { default = true }
+    end
+    if dcfg.quotes.rotation ~= "refresh" then dcfg.quotes.rotation = "daily" end
+    dcfg.quotes.automatic_font_size = dcfg.quotes.automatic_font_size == true
+    dcfg.quotes.max_font_size = math.max(
+        4, math.min(32, tonumber(dcfg.quotes.max_font_size) or 16)
+    )
     dcfg.quotes.use_home_font_size = dcfg.quotes.use_home_font_size == true or nil
     local quote_font_size = tonumber(dcfg.quotes.font_size)
     local quote_font_override = dcfg.quotes.font_size_override == true
@@ -589,8 +600,6 @@ local function ensure_home_cfg()
     dcfg.quotes.font_size = quote_font_size and (quote_font_override or quote_font_size ~= 12)
         and math.max(4, math.min(32, math.floor(quote_font_size + 0.5))) or nil
     dcfg.quotes.font_size_override = dcfg.quotes.font_size and true or nil
-
-    if type(dcfg.quotes.manual_index) ~= "number" then dcfg.quotes.manual_index = 1 end
 
     -- Per-widget home settings.
     for _i, comp in ipairs(Registry.list()) do
@@ -674,17 +683,6 @@ local function resolve_rows(dcfg)
     end
 
     return out
-end
-
-local function get_quote_day_index()
-    local now = os.date("*t")
-    return ((now.year * 366) + now.yday)
-end
-
-local function get_daily_quote_index()
-    local quotes = HomeQuotes.getQuotes()
-    if #quotes == 0 then return 1 end
-    return (get_quote_day_index() % #quotes) + 1
 end
 
 local function collect_stats_fields(rows, dcfg)
@@ -1604,37 +1602,17 @@ local function build_data_provider(cfg, dcfg)
     end
 
     function provider:getCurrentQuote()
-        local quotes = HomeQuotes.getQuotes()
-        local quote_count = #quotes
-        if quote_count == 0 then return nil end
-        local idx
+        if current_quote then return current_quote end
         local quote_cfg = dcfg.quotes or {}
-        if quote_cfg.day_seed == get_quote_day_index() and type(quote_cfg.manual_index) == "number" then
-            idx = quote_cfg.manual_index
-        else
-            idx = get_daily_quote_index()
-        end
-        if idx < 1 then idx = 1 end
-        if idx > quote_count then idx = ((idx - 1) % quote_count) + 1 end
-        return quotes[idx]
+        local rotation = quote_cfg.rotation == "refresh" and "refresh" or "daily"
+        current_quote = HomeQuotes.selectQuote(quote_cfg, rotation)
+        return current_quote
     end
 
     local function step_quote(delta)
-        local quotes = HomeQuotes.getQuotes()
-        local quote_count = #quotes
-        if quote_count == 0 then return end
         local quote_cfg = dcfg.quotes or {}
-        local current
-        if quote_cfg.day_seed == get_quote_day_index() and type(quote_cfg.manual_index) == "number" then
-            current = quote_cfg.manual_index
-        else
-            current = get_daily_quote_index()
-        end
-        local next_idx = ((current - 1 + delta) % quote_count) + 1
-        quote_cfg.manual_index = next_idx
-        quote_cfg.day_seed = get_quote_day_index()
-        dcfg.quotes = quote_cfg
-        save_home_settings(dcfg)
+        current_quote = HomeQuotes.stepQuote(quote_cfg, delta)
+        if not current_quote then return end
         if _home_menu and _home_menu._home_rebuild then
             _home_menu:_home_rebuild()
         end
@@ -1646,6 +1624,52 @@ local function build_data_provider(cfg, dcfg)
 
     function provider:prevQuote()
         step_quote(-1)
+    end
+
+    function provider:openQuote(quote)
+        if not (quote and quote.is_annotation and quote.filepath) then return false end
+        local filepath, pos0, page = quote.filepath, quote.pos0, quote.page
+        local filename = filepath:match("([^/\\]+)$") or filepath
+
+        local function open()
+            UIManager:nextTick(function()
+                local FileManager = require("apps/filemanager/filemanager")
+                local filemanagerutil = require("apps/filemanager/filemanagerutil")
+                local fm = FileManager.instance
+                if filemanagerutil.openFile then
+                    filemanagerutil.openFile(fm, filepath)
+                elseif fm and type(fm.openFile) == "function" then
+                    fm:openFile(filepath)
+                else
+                    local ReaderUI = require("apps/reader/readerui")
+                    ReaderUI:showReader(filepath)
+                end
+                if pos0 or page then
+                    UIManager:scheduleIn(0.5, function()
+                        local reader = package.loaded["apps/reader/readerui"]
+                        local instance = reader and reader.instance
+                        if not instance then return end
+                        local Event = require("ui/event")
+                        if pos0 then
+                            instance:handleEvent(Event:new("GotoXPointer", pos0))
+                        elseif page then
+                            instance:handleEvent(Event:new("GotoPage", tonumber(page) or page))
+                        end
+                    end)
+                end
+            end)
+        end
+
+        local ConfirmBox = require("ui/widget/confirmbox")
+        UIManager:nextTick(function()
+            UIManager:show(ConfirmBox:new{
+                text = _("Open this file?") .. "\n\n" .. filename,
+                ok_text = _("Open"),
+                cancel_text = _("Cancel"),
+                ok_callback = open,
+            })
+        end)
+        return true
     end
 
     provider.stats = {}
