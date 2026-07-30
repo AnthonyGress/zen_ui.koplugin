@@ -53,7 +53,7 @@ describe("archive actions", function()
         ZenSpec.replace("ui/uimanager", {
             show = function(_, widget) shown[#shown + 1] = widget end,
             close = function() end,
-            nextTick = function(fn) fn() end,
+            nextTick = function(_, fn) fn() end,
             setDirty = function() end,
         })
         ZenSpec.replace("ui/widget/pathchooser", {
