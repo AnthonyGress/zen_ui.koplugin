@@ -10,10 +10,13 @@ local function apply_cover_preload()
     local UIManager = require("ui/uimanager")
     local cache = require("common/cover_decode_cache")
     local render_cache = require("common/cover_render_cache")
+    local memory_policy = require("common/memory_policy")
     local CoverUtils = require("common/cover_utils")
     local zen_logger = require("common/zen_logger")
     local logger = zen_logger.new("cover_preload")
     local now = zen_logger.now
+
+    memory_policy.applyCoverBudgets(render_cache, cache)
 
     local PRELOAD_DELAY_S = 0.08
     local PRELOAD_TICK_S = 0.03
@@ -418,7 +421,7 @@ local function apply_cover_preload()
         outcomes.failed = outcomes.failed + 1
     end
 
-    local function schedule(menu)
+    local function schedule(menu, memory_profile)
         cancel(menu)
         if menu.no_refresh_covers == true or menu.cover_specs == false
                 or menu._do_cover_images == false then
@@ -429,6 +432,16 @@ local function apply_cover_preload()
         local jobs, target_pages = collect_jobs(menu, direction)
         if #jobs == 0 then return end
         local target_page = target_pages[1]
+        memory_profile = memory_profile
+            or memory_policy.applyCoverBudgets(render_cache, cache)
+        if not memory_policy.canPreload(memory_profile) then
+            logger.measure("Cover preload skipped", 0,
+                "reason=memory_" .. tostring(memory_profile.pressure),
+                "target_page=", target_page,
+                "lookahead_pages=", #target_pages,
+                "queued=", #jobs)
+            return
+        end
         if is_extracting() then
             logger.measure("Cover preload skipped", 0,
                 "reason=background_extraction",
@@ -455,6 +468,18 @@ local function apply_cover_preload()
         local step
         step = function()
             if menu._zen_cover_preload_fn ~= step then return end
+            local current_memory = memory_policy.applyCoverBudgets(render_cache, cache)
+            if not memory_policy.canPreload(current_memory) then
+                menu._zen_cover_preload_fn = nil
+                menu._zen_cover_preload_jobs = nil
+                logger.measure("Cover preload skipped", work_ms,
+                    "reason=memory_" .. tostring(current_memory.pressure),
+                    "target_page=", target_page,
+                    "lookahead_pages=", #target_pages,
+                    "queued=", #jobs,
+                    "wall_ms=", math.floor((now() - started_at) * 1000 + 0.5))
+                return
+            end
             if is_extracting() then
                 menu._zen_cover_preload_fn = nil
                 menu._zen_cover_preload_jobs = nil
@@ -508,6 +533,7 @@ local function apply_cover_preload()
         menu._zen_cover_turn_measure = nil
         menu._zen_cover_measure_active = true
         menu._zen_cover_build_measure = { tile_count = 0, tile_ms = 0 }
+        local memory_profile = memory_policy.applyCoverBudgets(render_cache, cache)
         local before = cache:stats()
         local before_render = render_cache:stats()
         local started_at = now()
@@ -561,11 +587,18 @@ local function apply_cover_preload()
             "render_cache_misses=", delta(after_render, before_render, "misses"),
             "render_cache_mb=", math.floor((after_render.bytes or 0) / 1024 / 1024 * 10 + 0.5) / 10,
             "cache_mb=", math.floor((after.bytes or 0) / 1024 / 1024 * 10 + 0.5) / 10,
+            "memory_pressure=", memory_profile.pressure,
+            "memory_available_mb=", memory_profile.available_bytes
+                and math.floor(memory_profile.available_bytes / 1024 / 1024 + 0.5) or -1,
+            "render_budget_mb=",
+                math.floor((after_render.byte_budget or 0) / 1024 / 1024 * 10 + 0.5) / 10,
+            "decode_budget_mb=",
+                math.floor((after.byte_budget or 0) / 1024 / 1024 * 10 + 0.5) / 10,
             "cover_w=", type(file_specs) == "table" and file_specs.max_cover_w or 0,
             "cover_h=", type(file_specs) == "table" and file_specs.max_cover_h or 0,
             "page_turn_direction=", turn_measure and turn_measure.direction or "none",
             "input_to_update_ms=", math.floor(input_to_update_ms * 10 + 0.5) / 10)
-        schedule(menu)
+        schedule(menu, memory_profile)
         return result
     end
 

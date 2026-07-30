@@ -5,6 +5,8 @@ describe("file browser navbar navigation", function()
     local library_font_sizes
     local UIManager
     local home_widget
+    local allow_group_prewarm
+    local original_memory_policy
 
     local function class(methods)
         methods = methods or {}
@@ -27,6 +29,8 @@ describe("file browser navbar navigation", function()
         calls = {}
         library_font_sizes = {}
         home_widget = {}
+        allow_group_prewarm = true
+        original_memory_policy = package.loaded["common/memory_policy"]
         shared = {
             home = {
                 showHomeView = function() calls[#calls + 1] = "home" end,
@@ -129,6 +133,9 @@ describe("file browser navbar navigation", function()
         ZenSpec.replace("common/shared_state", {
             get = function(_, key) return shared[key] end,
         })
+        ZenSpec.replace("common/memory_policy", {
+            canPrewarmGroups = function() return allow_group_prewarm end,
+        })
         ZenSpec.replace("common/ui/background", {
             library_active = function() return false end,
         })
@@ -186,6 +193,7 @@ describe("file browser navbar navigation", function()
         }) do
             _G[name] = nil
         end
+        package.loaded["common/memory_policy"] = original_memory_policy
     end)
 
     local function make_instance()
@@ -318,6 +326,17 @@ describe("file browser navbar navigation", function()
         end
 
         assert.are.same({ "authors", "series", "tags" }, warmed)
+    end)
+
+    it("does not prewarm group tabs on constrained devices", function()
+        local scheduled = {}
+        allow_group_prewarm = false
+        UIManager.scheduleIn = function(_self, delay, callback)
+            scheduled[#scheduled + 1] = { delay = delay, callback = callback }
+        end
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        assert.are.same({}, scheduled)
     end)
 
     it("resets strip pages when Home is already on top", function()

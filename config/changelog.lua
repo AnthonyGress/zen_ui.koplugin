@@ -224,5 +224,12 @@ return {
         "Ensure wifi before showing ZenPM installer",
         "Adjust Zen screensaver book cover resolution",
         "Update testing emulator to KOReader 2026.07"
+    },
+    ["3.0.0"] = {
+        "Large scale performance overhaul",
+        "New settings page",
+        "Custom icon packs",
+        "Improved default covers",
+        "",
     }
 }

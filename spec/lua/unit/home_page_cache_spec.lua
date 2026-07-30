@@ -5,6 +5,7 @@ describe("home data and book caches", function()
     local stable_contexts
     local favorite_lookup_count
     local history_items
+    local book_info_reads
 
     before_each(function()
         _G.__ZEN_UI_LAST_READ_FILE = nil
@@ -13,10 +14,17 @@ describe("home data and book caches", function()
         status_lookup_count = 0
         stable_contexts = {}
         favorite_lookup_count = 0
+        book_info_reads = 0
         history_items = { { file = "/library/alpha.epub" } }
 
         ZenSpec.replace("config/manager", { get = function() return {} end })
         ZenSpec.replace("ffi/blitbuffer", { COLOR_WHITE = "white", COLOR_BLACK = "black" })
+        ZenSpec.replace("device", {
+            screen = {
+                getWidth = function() return 600 end,
+                getHeight = function() return 900 end,
+            },
+        })
         ZenSpec.replace("modules/filebrowser/patches/home/home_quotes", {})
         ZenSpec.replace("modules/filebrowser/patches/home/home_presets", {})
         ZenSpec.replace("common/reading_goals", {})
@@ -59,6 +67,7 @@ describe("home data and book caches", function()
         })
         ZenSpec.replace("bookinfomanager", {
             getBookInfo = function()
+                book_info_reads = book_info_reads + 1
                 return {
                     title = "Alpha", authors = "Author", pages = 400,
                     cover_fetched = true, ignore_cover = true,
@@ -101,6 +110,7 @@ describe("home data and book caches", function()
                 return fallback
             end,
         })
+        ZenSpec.unload("common/memory_policy")
         ZenSpec.unload("modules/filebrowser/patches/home_page")
     end)
 
@@ -166,6 +176,55 @@ describe("home data and book caches", function()
         assert.are.equal(0,
             #after_removal:getBooksForStrip("recently_read", 4, "default", "strip_recent"))
         assert.are.equal(2, history_reload_count)
+    end)
+
+    it("evicts raw Home covers by bytes and clears them for Reader", function()
+        local function cover()
+            local bb = { stride = 6, h = 1, freed = false }
+            function bb:getHeight() return self.h end
+            function bb:copy() return cover() end
+            function bb:free() self.freed = true end
+            return bb
+        end
+        require("bookinfomanager").getBookInfo = function()
+            book_info_reads = book_info_reads + 1
+            return {
+                title = "Book",
+                authors = "Author",
+                cover_fetched = true,
+                has_cover = true,
+                cover_sizetag = "300x400",
+                cover_w = 300,
+                cover_h = 400,
+                cover_bb = cover(),
+            }
+        end
+        history_items[2] = { file = "/library/beta.epub" }
+
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        Home.setCoverCacheBudget(10)
+        local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, {
+            rows = {
+                order = { "strip_recent" },
+                enabled = { strip_recent = true },
+                max_rows = 1,
+            },
+            modules = { strip_recent = {} },
+        })
+
+        provider:getBooksForStrip("recently_read", 2, "default", "strip_recent")
+        local stats = Home.getCoverCacheStats()
+        assert.are.equal(6, stats.bytes)
+        assert.are.equal(1, stats.count)
+        assert.are.equal(2, book_info_reads)
+
+        provider:getBooksForStrip("recently_read", 2, "default", "strip_recent")
+        assert.are.equal(4, book_info_reads)
+
+        Home.setCoverCacheBudget(0)
+        stats = Home.getCoverCacheStats()
+        assert.are.equal(0, stats.bytes)
+        assert.are.equal(0, stats.count)
     end)
 
     it("loads a tag strip from the tag index without consulting reading history", function()

@@ -135,14 +135,19 @@ end
 -- Stores a private copy so callers retain normal ownership of the source bb.
 function M:put(key, signature, bb, metadata, validated_at)
     if not key or not bb then return false end
+    local bytes = bb_bytes(bb)
+    if bytes <= 0 or bytes > self._byte_budget then
+        return false
+    end
+    self:_drop(key)
+    self:_makeRoom(bytes)
     local copy = copy_bb(bb)
     if not copy then return false end
-    local bytes = bb_bytes(copy)
+    bytes = bb_bytes(copy)
     if bytes <= 0 or bytes > self._byte_budget then
         free_bb(copy)
         return false
     end
-    self:_drop(key)
     self:_makeRoom(bytes)
     self._clock = self._clock + 1
     self._entries[key] = {

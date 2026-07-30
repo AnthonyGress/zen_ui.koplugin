@@ -4,6 +4,7 @@ local book_status = require("common/book_status")
 local Blitbuffer = require("ffi/blitbuffer")
 local HomeQuotes = require("modules/filebrowser/patches/home/home_quotes")
 local HomePresets = require("modules/filebrowser/patches/home/home_presets")
+local MemoryPolicy = require("common/memory_policy")
 local ReadingGoals = require("common/reading_goals")
 local PresetStore = require("config/preset_store")
 local Registry = require("modules/filebrowser/patches/home/components/registry")
@@ -30,6 +31,8 @@ local _zen_shared = nil
 local _zen_plugin = nil
 local _home_book_cache = {}
 local _home_book_cache_order = {}
+local _home_book_cache_bytes = 0
+local _home_book_cache_byte_budget = MemoryPolicy.homeByteBudget()
 local _home_dataset_cache = nil
 local _home_dataset_generation = 0
 local HOME_BOOK_CACHE_MAX = 32
@@ -91,6 +94,7 @@ end
 local function free_cached_book(book)
     if book and book.cover_bb and book.cover_bb.free then
         pcall(function() book.cover_bb:free() end)
+        book.cover_bb = nil
     end
 end
 
@@ -103,7 +107,8 @@ local function clone_cached_book(book, include_internal)
         end
     end
     if book.cover_bb and book.cover_bb.copy then
-        out.cover_bb = book.cover_bb:copy()
+        local ok, cover_bb = pcall(book.cover_bb.copy, book.cover_bb)
+        if ok then out.cover_bb = cover_bb end
     end
     return out
 end
@@ -131,6 +136,8 @@ local function invalidate_home_book_cache(path)
     local prefix = path .. "|"
     for key, book in pairs(_home_book_cache) do
         if key:sub(1, #prefix) == prefix then
+            _home_book_cache_bytes = math.max(
+                0, _home_book_cache_bytes - (book._zen_cache_bytes or 0))
             free_cached_book(book)
             _home_book_cache[key] = nil
         end
@@ -142,23 +149,49 @@ local function invalidate_home_book_cache(path)
     end
 end
 
+local function remove_home_book_cache_entry(key)
+    local book = key and _home_book_cache[key]
+    if not book then return end
+    _home_book_cache[key] = nil
+    _home_book_cache_bytes = math.max(
+        0, _home_book_cache_bytes - (book._zen_cache_bytes or 0))
+    free_cached_book(book)
+end
+
+local function trim_home_book_cache()
+    while #_home_book_cache_order > HOME_BOOK_CACHE_MAX
+            or _home_book_cache_bytes > _home_book_cache_byte_budget do
+        local evict = table.remove(_home_book_cache_order, 1)
+        if not evict then break end
+        remove_home_book_cache_entry(evict)
+    end
+end
+
 local function cache_home_book(key, book)
-    local old = _home_book_cache[key]
-    if old then free_cached_book(old) end
+    remove_home_book_cache_entry(key)
     for i = #_home_book_cache_order, 1, -1 do
         if _home_book_cache_order[i] == key then
             table.remove(_home_book_cache_order, i)
         end
     end
-    _home_book_cache[key] = clone_cached_book(book, true)
-    _home_book_cache_order[#_home_book_cache_order + 1] = key
-    while #_home_book_cache_order > HOME_BOOK_CACHE_MAX do
+    local expected_bytes = MemoryPolicy.bitmapBytes(book.cover_bb)
+    if expected_bytes > _home_book_cache_byte_budget then return end
+    while #_home_book_cache_order >= HOME_BOOK_CACHE_MAX
+            or _home_book_cache_bytes + expected_bytes > _home_book_cache_byte_budget do
         local evict = table.remove(_home_book_cache_order, 1)
-        if evict and evict ~= key then
-            free_cached_book(_home_book_cache[evict])
-            _home_book_cache[evict] = nil
-        end
+        if not evict then break end
+        remove_home_book_cache_entry(evict)
     end
+    local cached = clone_cached_book(book, true)
+    cached._zen_cache_bytes = MemoryPolicy.bitmapBytes(cached.cover_bb)
+    if cached._zen_cache_bytes > _home_book_cache_byte_budget then
+        free_cached_book(cached)
+        return
+    end
+    _home_book_cache[key] = cached
+    _home_book_cache_bytes = _home_book_cache_bytes + cached._zen_cache_bytes
+    _home_book_cache_order[#_home_book_cache_order + 1] = key
+    trim_home_book_cache()
 end
 
 -- Home-screen widgets (featured/strip) can render covers much larger than the
@@ -2558,6 +2591,7 @@ end
 function M.showHomeView(injectNavbar)
     local UIManager = require("ui/uimanager")
 
+    M.setCoverCacheBudget(MemoryPolicy.homeByteBudget())
     if _home_menu and not _home_menu._zen_home_closing then
         return _home_menu, false
     end
@@ -2843,6 +2877,29 @@ function M.getActiveWidgets()
     return _home_menu and { _home_menu } or {}
 end
 
+function M.setCoverCacheBudget(bytes)
+    bytes = tonumber(bytes)
+    if not bytes or bytes < 0 then return false end
+    _home_book_cache_byte_budget = math.floor(bytes)
+    if _home_book_cache_byte_budget == 0 then
+        for _i, key in ipairs(_home_book_cache_order) do
+            remove_home_book_cache_entry(key)
+        end
+        _home_book_cache_order = {}
+    else
+        trim_home_book_cache()
+    end
+    return true
+end
+
+function M.getCoverCacheStats()
+    return {
+        bytes = _home_book_cache_bytes,
+        byte_budget = _home_book_cache_byte_budget,
+        count = #_home_book_cache_order,
+    }
+end
+
 function M.invalidateBookCache(path, history_changed)
     invalidate_home_book_cache(path)
     invalidate_home_dataset_path(path, history_changed == true)
@@ -2927,6 +2984,7 @@ function M.closeAll()
 end
 
 Registry.setRefreshCallback(M.rebuildActive)
+MemoryPolicy.registerHomeCache(M)
 
 local function register_home_api(zen_plugin)
     if not zen_plugin or type(zen_plugin.config) ~= "table" then return end

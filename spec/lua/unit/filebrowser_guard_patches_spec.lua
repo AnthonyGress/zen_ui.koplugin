@@ -1,5 +1,6 @@
 describe("file browser guard patches", function()
     local original_plugin
+    local original_memory_policy
 
     local function apply_patch(name)
         ZenSpec.unload(name)
@@ -8,11 +9,13 @@ describe("file browser guard patches", function()
 
     before_each(function()
         original_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
+        original_memory_policy = package.loaded["common/memory_policy"]
         _G.G_reader_settings = ZenSpec.memorySettings()
     end)
 
     after_each(function()
         _G.__ZEN_UI_PLUGIN = original_plugin
+        package.loaded["common/memory_policy"] = original_memory_policy
     end)
 
     it("shows hidden and unsupported files only outside the library home", function()
@@ -251,6 +254,7 @@ describe("file browser guard patches", function()
     it("marks new and abandoned books as reading before opening", function()
         local statuses = { new = "new", abandoned = "abandoned", complete = "complete" }
         local saved, cached, opened = {}, {}, {}
+        local reader_releases = 0
         local filemanagerutil = {
             openFile = function(_, file)
                 opened[#opened + 1] = file
@@ -274,6 +278,9 @@ describe("file browser guard patches", function()
             end,
         })
         ZenSpec.replace("common/book_status", { acknowledgeNewVersion = function() return false end })
+        ZenSpec.replace("common/memory_policy", {
+            releaseForReader = function() reader_releases = reader_releases + 1 end,
+        })
 
         apply_patch("modules/filebrowser/patches/status_on_open")
         assert.are.equal("opened", filemanagerutil.openFile({}, "new"))
@@ -285,5 +292,6 @@ describe("file browser guard patches", function()
             { "abandoned", "status", "reading" },
         }, cached)
         assert.same({ "new", "abandoned", "complete" }, opened)
+        assert.are.equal(3, reader_releases)
     end)
 end)

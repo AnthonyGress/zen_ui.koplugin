@@ -30,20 +30,40 @@ end
 
 -- Takes ownership of source and returns an exact-size crop.
 local function resize(source, width, height)
-    local src_w, src_h = source:getWidth(), source:getHeight()
+    local ok_dims, src_w, src_h = pcall(function()
+        return source:getWidth(), source:getHeight()
+    end)
+    if not ok_dims or not src_w or not src_h then
+        free(source)
+        return nil
+    end
     if src_w == width and src_h == height then return source end
     local scale = math.max(width / src_w, height / src_h)
     local scaled_w = math.max(width, math.ceil(src_w * scale))
     local scaled_h = math.max(height, math.ceil(src_h * scale))
     local scaled = source
     if scaled_w ~= src_w or scaled_h ~= src_h then
-        scaled = source:scale(scaled_w, scaled_h)
+        local ok_scale, resized = pcall(source.scale, source, scaled_w, scaled_h)
+        if not ok_scale or not resized then
+            free(source)
+            return nil
+        end
+        scaled = resized
         free(source)
     end
-    local out = Blitbuffer.new(width, height, scaled:getType())
-    out:blitFrom(scaled, 0, 0,
-        math.floor((scaled_w - width) / 2), math.floor((scaled_h - height) / 2), width, height)
+    local ok_out, out = pcall(Blitbuffer.new, width, height, scaled:getType())
+    if not ok_out or not out then
+        free(scaled)
+        return nil
+    end
+    local ok_blit = pcall(out.blitFrom, out, scaled, 0, 0,
+        math.floor((scaled_w - width) / 2),
+        math.floor((scaled_h - height) / 2), width, height)
     free(scaled)
+    if not ok_blit then
+        free(out)
+        return nil
+    end
     return out
 end
 
@@ -81,10 +101,16 @@ function M:get(path, width, height)
         self._misses = self._misses + 1
         return nil
     end
+    local resized = resize(copy, width, height)
+    if not resized then
+        self:_drop(key(path), true)
+        self._misses = self._misses + 1
+        return nil
+    end
     self._clock = self._clock + 1
     entry.touch = self._clock
     self._hits = self._hits + 1
-    return resize(copy, width, height)
+    return resized
 end
 
 function M:put(path, width, height, bb)
@@ -96,14 +122,19 @@ function M:put(path, width, height, bb)
         existing.touch = self._clock
         return bb
     end
+    local size = bytes(bb)
+    if size <= 0 or size > self._byte_budget then
+        return nil
+    end
+    self:_drop(cache_key)
+    self:_makeRoom(size)
     local ok, stored = pcall(bb.copy, bb)
     if not ok or not stored then return nil end
-    local size = bytes(stored)
+    size = bytes(stored)
     if size <= 0 or size > self._byte_budget then
         free(stored)
         return nil
     end
-    self:_drop(cache_key)
     self:_makeRoom(size)
     self._clock = self._clock + 1
     self._entries[cache_key] = {
@@ -127,6 +158,7 @@ function M:render(path, source, width, height)
     end
     if not source or width < 1 or height < 1 then return nil end
     local out = resize(source, width, height)
+    if not out then return nil end
     self:put(path, width, height, out)
     return out
 end

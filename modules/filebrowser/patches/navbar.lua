@@ -19,6 +19,7 @@ local function apply_navbar()
     local library_font = require("modules/filebrowser/patches/library_font")
     local utils = require("common/utils")
     local paths = require("common/paths")
+    local MemoryPolicy = require("common/memory_policy")
     local SharedState = require("common/shared_state")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
     local Screen = Device.screen
@@ -370,6 +371,7 @@ local function apply_navbar()
     local _group_prewarm_pending = false
     local function scheduleGroupPrewarm()
         if _group_prewarm_pending or type(UIManager.scheduleIn) ~= "function" then return end
+        if not MemoryPolicy.canPrewarmGroups() then return end
         local getters = {}
         if config.show_tabs.authors == true then getters[#getters + 1] = "getGroupedByAuthor" end
         if config.show_tabs.series == true then getters[#getters + 1] = "getGroupedBySeries" end
@@ -390,6 +392,10 @@ local function apply_navbar()
         local index = 1
         local extraction_retries = 0
         local function step()
+            if not MemoryPolicy.canPrewarmGroups() then
+                _group_prewarm_pending = false
+                return
+            end
             local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
             if ok_bim and type(BookInfoManager.isExtractingInBackground) == "function"
                     and BookInfoManager:isExtractingInBackground() then

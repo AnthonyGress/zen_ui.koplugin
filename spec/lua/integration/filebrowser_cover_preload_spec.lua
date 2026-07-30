@@ -19,6 +19,8 @@ describe("filebrowser cover preloading", function()
     local next_page
     local previous_page
     local mosaic_item
+    local memory_pressure
+    local original_memory_policy
 
     local function bitmap(path)
         return {
@@ -61,6 +63,8 @@ describe("filebrowser cover preloading", function()
             update = function() end,
             paintTo = function() end,
         }
+        memory_pressure = "normal"
+        original_memory_policy = package.loaded["common/memory_policy"]
 
         ZenSpec.replace("covermenu", {
             updateItems = function(menu, ...)
@@ -174,6 +178,14 @@ describe("filebrowser cover preloading", function()
                 }
             end,
         })
+        ZenSpec.replace("common/memory_policy", {
+            applyCoverBudgets = function()
+                return { pressure = memory_pressure }
+            end,
+            canPreload = function(profile)
+                return profile.pressure == "normal"
+            end,
+        })
         ZenSpec.replace("common/cover_utils", {
             calcDims = function(width, height)
                 local aspect = 2 / 3
@@ -220,6 +232,10 @@ describe("filebrowser cover preloading", function()
         ZenSpec.unload("modules/filebrowser/patches/cover_preload")
     end)
 
+    after_each(function()
+        package.loaded["common/memory_policy"] = original_memory_policy
+    end)
+
     it("warms only the next page and reports page and preload measurements", function()
         local CoverMenu = require("covermenu")
         book_infos["/group-2.epub"] = { has_cover = false, title = "Grouped" }
@@ -263,6 +279,30 @@ describe("filebrowser cover preloading", function()
         assert.are.same({
             { path = "/next.epub", width = 100, height = 150 },
         }, render_calls)
+    end)
+
+    it("does not warm covers while available memory is low", function()
+        local CoverMenu = require("covermenu")
+        memory_pressure = "low"
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = {
+                { is_file = true, path = "/current.epub" },
+                { is_file = true, path = "/next.epub" },
+            },
+            page = 1,
+            page_num = 2,
+            perpage = 1,
+            display_mode_type = "mosaic",
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+
+        assert.are.equal(0, #scheduled)
+        assert.are.same({}, warmed)
+        assert.are.equal("Cover preload skipped", measurements[2][1])
+        assert.are.equal("reason=memory_low", measurements[2][3])
     end)
 
     it("turns adjacent real and generated covers into final-render hits", function()

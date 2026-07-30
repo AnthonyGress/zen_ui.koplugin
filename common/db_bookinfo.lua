@@ -7,6 +7,7 @@ local logger = zen_logger.new("db_bookinfo")
 local now = zen_logger.now
 local lfs = require("libs/libkoreader-lfs")
 local paths = require("common/paths")
+local MemoryPolicy = require("common/memory_policy")
 local bimOk, BookInfoManager = pcall(require, "bookinfomanager")
 
 local M = {}
@@ -34,6 +35,11 @@ local function cache_generation()
 end
 
 local function get_cached(kind)
+    if MemoryPolicy.limitGroupCache() then
+        for cached_kind in pairs(group_cache) do
+            if cached_kind ~= kind then group_cache[cached_kind] = nil end
+        end
+    end
     local entry = group_cache[kind]
     if entry and entry.generation == cache_generation() and entry.expires_at > now() then
         cache_hits = cache_hits + 1
@@ -44,6 +50,9 @@ local function get_cached(kind)
 end
 
 local function save_cached(kind, value)
+    if MemoryPolicy.limitGroupCache() then
+        group_cache = {}
+    end
     group_cache[kind] = {
         generation = cache_generation(),
         expires_at = now() + GROUP_CACHE_TTL_S,

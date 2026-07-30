@@ -54,4 +54,13 @@ describe("final cover render cache", function()
         assert.are.equal(12, larger:getHeight())
         assert.are.equal(1, Cache:stats().hits)
     end)
+
+    it("falls back without retaining a failed resize allocation", function()
+        local source = bb(10, 20)
+        function source:scale() error("out of memory") end
+
+        assert.is_nil(Cache:render("/book.epub", source, 5, 8))
+        assert.is_true(source.freed)
+        assert.are.equal(0, Cache:stats().bytes)
+    end)
 end)
