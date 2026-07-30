@@ -1002,8 +1002,15 @@ local function apply_status_bar()
         end
     end
 
+    local function home_without_status_bar_is_on_top()
+        local stack = UIManager._window_stack
+        local top = stack and stack[#stack]
+        local widget = top and top.widget
+        return widget and widget._zen_home_show_status_bar == false
+    end
+
     function FileManager:_updateStatusBar()
-        if not is_enabled() then
+        if not is_enabled() or home_without_status_bar_is_on_top() then
             return
         end
 

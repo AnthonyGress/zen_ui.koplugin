@@ -231,9 +231,11 @@ return {
         "Custom icon packs (Extras > Custom icons)",
         "Improved default covers",
         "Add book tags to Navbar (Navbar > Tabs)",
-        "Add book tags strip to Home page (Home > Widgets",
+        "Add book tags strip to Home page (Home > Widgets)",
+        "Add opening banner to books on Home",
         "Add checkboxes of toggles in plugin menus accessed via launcher/controls",
         "Add tailscale Control button",
+        "Add font styling for Featured progress labels",
         "Add Restarting notice",
     }
 }
