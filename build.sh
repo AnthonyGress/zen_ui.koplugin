@@ -88,6 +88,7 @@ rsync -a \
   --exclude 'dist/' \
   --exclude 'spec/' \
   --exclude 'docs/' \
+  --exclude 'icon-packs/' \
   --exclude '.DS_Store' \
   --exclude '.gitignore' \
   --exclude '*.zip' \

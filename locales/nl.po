@@ -2525,3 +2525,36 @@ msgstr "Dit aangepaste thema verwijderen?"
 
 msgid "Custom theme"
 msgstr "Aangepast thema"
+
+msgid "%1 (%2/%3 icons)"
+msgstr "%1 (%2/%3 pictogrammen)"
+
+msgid "By %1"
+msgstr "Door %1"
+
+msgid "Could not install %1: %2"
+msgstr "Kan %1 niet installeren: %2"
+
+msgid "Custom icon pack: %1"
+msgstr "Aangepast pictogrampakket: %1"
+
+msgid "Loose icons"
+msgstr "Losse pictogrammen"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Losse pictogrammen in /koreader/icons"
+
+msgid "Missing: %1"
+msgstr "Ontbreekt: %1"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Plaats pakketmappen of ZIP-bestanden in /koreader/icons/zen. ZIP-bestanden worden automatisch geïnstalleerd."
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Herstart KOReader om het bijgewerkte actieve pakket toe te passen"
+
+msgid "Unavailable pack: %1"
+msgstr "Niet-beschikbaar pakket: %1"
+
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "Indien ingeschakeld vervangen losse pictogrammen of een geselecteerd Zen UI-pictogrampakket de ondersteunde pictogrammen. Ontbrekende pictogrammen vallen eerst terug op Zen UI en daarna op KOReader."

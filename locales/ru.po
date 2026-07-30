@@ -2525,3 +2525,36 @@ msgstr "Удалить эту пользовательскую тему?"
 
 msgid "Custom theme"
 msgstr "Пользовательская тема"
+
+msgid "%1 (%2/%3 icons)"
+msgstr "%1 (%2/%3 значков)"
+
+msgid "By %1"
+msgstr "Автор: %1"
+
+msgid "Could not install %1: %2"
+msgstr "Не удалось установить %1: %2"
+
+msgid "Custom icon pack: %1"
+msgstr "Пользовательский набор значков: %1"
+
+msgid "Loose icons"
+msgstr "Отдельные значки"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Отдельные значки в /koreader/icons"
+
+msgid "Missing: %1"
+msgstr "Отсутствует: %1"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Поместите папки наборов или ZIP-файлы в /koreader/icons/zen. ZIP-файлы устанавливаются автоматически."
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Перезапустите KOReader, чтобы применить обновлённый активный набор"
+
+msgid "Unavailable pack: %1"
+msgstr "Недоступный набор: %1"
+
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "Если параметр включён, отдельные значки или выбранный набор значков Zen UI заменяют поддерживаемые значки. Для отсутствующих значков сначала используется Zen UI, затем KOReader."

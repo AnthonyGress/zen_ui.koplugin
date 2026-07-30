@@ -690,7 +690,7 @@ function M.build_install_pages(ctx)
         -- 1. Welcome (static)
         {
             title       = _("Welcome to Zen UI"),
-            icon        = "zen_ui",
+            icon        = "_zen_quickstart",
             description = _("A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."),
         },
 
@@ -867,7 +867,7 @@ function M.build_install_pages(ctx)
         -- 11. Settings & Updates (static)
         {
             title       = _("Settings & Updates"),
-            icon        = "zen_ui_update",
+            icon        = "_zen_quickstart_update",
             icon_size   = 120,
             description = _("All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall Zen UI updates directly from your device."),
         },
@@ -875,7 +875,7 @@ function M.build_install_pages(ctx)
         -- 12. Finale
         {
             title       = _("You're All Set"),
-            icon        = "zen_ui",
+            icon        = "_zen_quickstart",
             finale      = true,
             description = _("The best interface is the one you forget is there.\nNow go get lost in a good book."),
         },

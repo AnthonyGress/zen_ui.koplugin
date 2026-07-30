@@ -197,13 +197,16 @@ function M.isCustomIconsEnabled()
     return _custom_icons_enabled
 end
 
---- Resolve an icon honouring the custom-icons toggle: user dir first when enabled,
---- falls back to the plugin's bundled icons dir.
+--- Resolve an icon from the active pack or loose icons, then bundled icons.
 --- @param plugin_icons_dir string  absolute path ending with "/"
 --- @param name             string  icon name without extension
 --- @return                 string|nil
 function M.resolveIcon(plugin_icons_dir, name)
     if not plugin_icons_dir or not name then return nil end
+    local ok_packs, icon_packs = pcall(require, "common/icon_packs")
+    if ok_packs and icon_packs then
+        return icon_packs.resolve(name, plugin_icons_dir)
+    end
     if M.isCustomIconsEnabled() then
         local user_dir = M.getUserIconsDir()
         if user_dir then
@@ -294,9 +297,11 @@ end
 
 --- Override built-in KOReader icons by name at runtime (does not modify disk).
 --- @param overrides table  map of icon_name → absolute replacement path
-function M.overrideIcons(overrides)
+--- @param prefer_user_icon boolean|nil  allow a loose user icon to take precedence
+function M.overrideIcons(overrides, prefer_user_icon)
     local lfs = require("libs/libkoreader-lfs")
-    local user_icons_dir = M.isCustomIconsEnabled() and M.getUserIconsDir() or nil
+    local user_icons_dir = prefer_user_icon ~= false and M.isCustomIconsEnabled()
+        and M.getUserIconsDir() or nil
     local valid = {}
     for name, path in pairs(overrides) do
         local user_p = user_icons_dir and M.resolveLocalIcon(user_icons_dir, name) or nil
@@ -447,10 +452,7 @@ function M.getBadgeTextColor(config)
 end
 
 --- Build the combined {name, file} icon list for the icon picker.
---- Sources (in order, names deduplicated across groups, each sorted by name):
----   1. Zen UI plugin icons  (plugin_root/icons)
----   2. KOReader user icons  (DataStorage/icons)
----   3. KOReader built-in icons  (resources/icons/mdlight)
+--- Sources are ordered by the active pack resolution precedence.
 --- @param plugin_root string   absolute path to the plugin root (no trailing slash)
 --- @param excluded    table|nil  set of icon name strings to skip in the plugin group
 --- @return table  list of {name=string, file=string}
@@ -459,7 +461,7 @@ function M.getIconPickerList(plugin_root, excluded)
     if not ok or not lfs then return {} end
     local seen = {}
     local all  = {}
-    local function addDir(dir, filter)
+    local function addDir(dir, filter, allow)
         if not dir then return end
         dir = dir:match("^(.*[^/])/*$") or dir  -- strip trailing slash
         if lfs.attributes(dir, "mode") ~= "directory" then return end
@@ -467,7 +469,8 @@ function M.getIconPickerList(plugin_root, excluded)
         for f in lfs.dir(dir) do
             if f:match("%.svg$") and not f:match("%.bak%.svg$") then
                 local name = f:sub(1, -5)
-                if not seen[name] and (not filter or not filter[name]) then
+                if not seen[name] and (not filter or not filter[name])
+                        and (not allow or allow(name)) then
                     entries[#entries + 1] = { name = name, file = dir .. "/" .. f }
                 end
             end
@@ -478,9 +481,15 @@ function M.getIconPickerList(plugin_root, excluded)
             all[#all + 1] = item
         end
     end
-    addDir(plugin_root and plugin_root .. "/icons", excluded)
-    addDir(M.getUserIconsDir(), nil)
-    addDir(lfs.currentdir() .. "/resources/icons/mdlight", nil)
+    local icon_packs = require("common/icon_packs")
+    local dirs = icon_packs.getPickerDirectories(plugin_root)
+    local active_pack_dir = icon_packs.getActivePackDirectory()
+    for _i, dir in ipairs(dirs) do
+        addDir(
+            dir,
+            dir == (plugin_root and plugin_root .. "/icons") and excluded or nil,
+            dir == active_pack_dir and icon_packs.isPackPickerIconAllowed or nil)
+    end
     return all
 end
 

@@ -2525,3 +2525,36 @@ msgstr "删除此自定义主题？"
 
 msgid "Custom theme"
 msgstr "自定义主题"
+
+msgid "%1 (%2/%3 icons)"
+msgstr "%1（%2/%3 个图标）"
+
+msgid "By %1"
+msgstr "作者：%1"
+
+msgid "Could not install %1: %2"
+msgstr "无法安装 %1：%2"
+
+msgid "Custom icon pack: %1"
+msgstr "自定义图标包：%1"
+
+msgid "Loose icons"
+msgstr "独立图标"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "/koreader/icons 中的独立图标"
+
+msgid "Missing: %1"
+msgstr "缺失：%1"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "将图标包文件夹或 ZIP 文件放入 /koreader/icons/zen。ZIP 文件会自动安装。"
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "重启 KOReader 以应用已更新的当前图标包"
+
+msgid "Unavailable pack: %1"
+msgstr "不可用的图标包：%1"
+
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "启用后，独立图标或选定的 Zen UI 图标包会替换支持的图标。缺失的图标将依次回退到 Zen UI 和 KOReader。"

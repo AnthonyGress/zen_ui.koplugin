@@ -37,6 +37,7 @@ local _ = require("gettext")
 local _pt_active = package.loaded["ptutil"] ~= nil
 
 local ConfigManager = require("config/manager")
+local _startup_config = ConfigManager.load()
 local registry = require("modules/registry")
 local zen_settings_page = require("modules/settings/zen_settings_page")
 require("modules/filebrowser/patches/home/components/registry").install()
@@ -47,16 +48,21 @@ local library_navigation = require("common/library_navigation")
 -- Absolute path to this plugin's root directory (shared module resolves relative paths).
 local _plugin_root = require("common/plugin_root")
 
--- Register all plugin icons into KOReader's icon cache (copies to user icons dir).
+-- Preserve Zen UI's existing cache registration and navbar icon sync behavior.
 require("common/inject_icons")
 if _plugin_root then
     local utils = require("common/utils")
-    -- Override KOReader's default dialog icons with the Zen UI logo.
+    -- Fixed Zen controls use private aliases that icon packs cannot name.
     local zen_icon = _plugin_root .. "/icons/zen_ui.svg"
+    local zen_update_icon = _plugin_root .. "/icons/zen_ui_update.svg"
     utils.overrideIcons({
-        ["notice-info"]     = zen_icon,
-        ["notice-question"] = zen_icon,
-    })
+        ["notice-info"]      = zen_icon,
+        ["notice-question"]  = zen_icon,
+        ["_zen_settings_tab"] = zen_icon,
+        ["_zen_update_tab"]   = zen_update_icon,
+        ["_zen_quickstart"]   = zen_icon,
+        ["_zen_quickstart_update"] = zen_update_icon,
+    }, false)
     -- Register bundled SymbolsNerdFont as last-resort fallback for MDI glyphs.
     -- Skipped when ProjectTitle is active: crengine fails to register the font
     -- on some devices, which causes a width=0 crash in ProjectTitle's TextWidget.
@@ -74,6 +80,9 @@ if _plugin_root then
         end
     end
 end
+
+-- Custom packs are an additional first-priority layer over the existing loader.
+require("common/icon_packs").initialize(_startup_config)
 
 -- Holds the single plugin instance so the FileManagerMenu patch can reach it.
 local _zen_plugin_ref = nil
@@ -540,7 +549,7 @@ function ZenUI:init()
     local function make_zen_settings_tab(m_self)
         local tab = {
             id = "zen_ui",
-            icon = zen_updater.has_update() and "zen_ui_update" or "zen_settings",
+            icon = zen_updater.has_update() and "_zen_update_tab" or "_zen_settings_tab",
             remember = false,
         }
         tab.callback = function()
@@ -615,7 +624,8 @@ function ZenUI:init()
             if not m_self._zen_tab_item then
                 m_self._zen_tab_item = make_zen_settings_tab(m_self)
             end
-            m_self._zen_tab_item.icon = zen_updater.has_update() and "zen_ui_update" or "zen_settings"
+            m_self._zen_tab_item.icon = zen_updater.has_update()
+                and "_zen_update_tab" or "_zen_settings_tab"
         end
         remove_zen_menu_tabs(m_self)
         insert_zen_menu_tabs(m_self, panel_hidden)
@@ -704,7 +714,7 @@ function ZenUI:init()
     -- also refreshes the icon, so this is just for the case where a menu
     -- instance already exists when the background check finishes.
     local update_icon = function()
-        local icon = zen_updater.has_update() and "zen_ui_update" or "zen_settings"
+        local icon = zen_updater.has_update() and "_zen_update_tab" or "_zen_settings_tab"
         for m_instance in pairs(_zen_menu_instances) do
             if m_instance._zen_tab_item then
                 m_instance._zen_tab_item.icon = icon

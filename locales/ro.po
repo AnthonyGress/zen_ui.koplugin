@@ -2525,3 +2525,36 @@ msgstr "Ștergeți această temă personalizată?"
 
 msgid "Custom theme"
 msgstr "Temă personalizată"
+
+msgid "%1 (%2/%3 icons)"
+msgstr "%1 (%2/%3 pictograme)"
+
+msgid "By %1"
+msgstr "De %1"
+
+msgid "Could not install %1: %2"
+msgstr "Nu s-a putut instala %1: %2"
+
+msgid "Custom icon pack: %1"
+msgstr "Pachet de pictograme personalizat: %1"
+
+msgid "Loose icons"
+msgstr "Pictograme separate"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Pictograme separate în /koreader/icons"
+
+msgid "Missing: %1"
+msgstr "Lipsește: %1"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Plasează dosarele pachetelor sau fișierele ZIP în /koreader/icons/zen. Fișierele ZIP sunt instalate automat."
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Repornește KOReader pentru a aplica pachetul activ actualizat"
+
+msgid "Unavailable pack: %1"
+msgstr "Pachet indisponibil: %1"
+
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "Când opțiunea este activată, pictogramele separate sau un pachet de pictograme Zen UI selectat înlocuiesc pictogramele acceptate. Pictogramele lipsă folosesc mai întâi Zen UI, apoi KOReader."

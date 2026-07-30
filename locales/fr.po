@@ -2525,3 +2525,36 @@ msgstr "Supprimer ce thème personnalisé ?"
 
 msgid "Custom theme"
 msgstr "Thème personnalisé"
+
+msgid "%1 (%2/%3 icons)"
+msgstr "%1 (%2/%3 icônes)"
+
+msgid "By %1"
+msgstr "Par %1"
+
+msgid "Could not install %1: %2"
+msgstr "Impossible d’installer %1 : %2"
+
+msgid "Custom icon pack: %1"
+msgstr "Pack d’icônes personnalisé : %1"
+
+msgid "Loose icons"
+msgstr "Icônes individuelles"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Icônes individuelles dans /koreader/icons"
+
+msgid "Missing: %1"
+msgstr "Manquant : %1"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Placez les dossiers de packs ou les fichiers ZIP dans /koreader/icons/zen. Les fichiers ZIP sont installés automatiquement."
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Redémarrez KOReader pour appliquer la mise à jour du pack actif"
+
+msgid "Unavailable pack: %1"
+msgstr "Pack indisponible : %1"
+
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "Lorsque cette option est activée, les icônes individuelles ou le pack d’icônes Zen UI sélectionné remplacent les icônes prises en charge. Les icônes manquantes utilisent d’abord Zen UI, puis KOReader."
