@@ -129,35 +129,6 @@ function M.build(ctx)
         return nil
     end
 
-    local function has_valid_target(entry)
-        if entry.type == "action" then
-            return type(entry.action) == "table" and next(entry.action) ~= nil
-        end
-        if entry.type == "quick_setting" then
-            return type(entry.quick_setting_id) == "string" and entry.quick_setting_id ~= ""
-        end
-        return entry.type == "plugin"
-            and type(entry.plugin) == "table"
-            and entry.plugin.key ~= nil
-            and entry.plugin.method ~= nil
-    end
-
-    local function add_done_metadata(items, entry)
-        items._zen_arrange_done_func = function()
-            if entry.type == "action" then
-                sync_action_label(entry)
-            end
-            if is_draft_entry(entry) then
-                entry._zen_draft_commit()
-            elseif has_valid_target(entry) then
-                save_app_launcher()
-            end
-        end
-        items._zen_arrange_done_enabled_func = function()
-            return has_valid_target(entry)
-        end
-    end
-
     sync_action_label = function(entry)
         if entry.type ~= "action" then return end
         local current = entry.label or ""
@@ -682,9 +653,6 @@ function M.build(ctx)
                 })
             end,
         }, icons.delete)
-        if entry.type == "action" or entry.type == "plugin" or entry.type == "quick_setting" then
-            add_done_metadata(items, entry)
-        end
         return items
     end
 

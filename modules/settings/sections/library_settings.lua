@@ -1297,6 +1297,7 @@ function M.build(ctx)
                         end
                     end, current_path, default_path)
                 end,
+                keep_menu_open = true,
             },
             {
                 text = _("Lock home folder"),

@@ -611,33 +611,6 @@ function M.build(ctx)
         end
     end
 
-    local function has_valid_custom_button_target(cb)
-        if cb.type == "action" then
-            return type(cb.action) == "table" and next(cb.action) ~= nil
-        end
-        return cb.type == "plugin"
-            and type(cb.plugin) == "table"
-            and cb.plugin.key ~= nil
-            and cb.plugin.method ~= nil
-    end
-
-    local function add_done_metadata(items, cb)
-        items._zen_arrange_done_func = function()
-            if cb.type == "action" then
-                sync_cb_action_label(cb)
-            end
-            if is_draft_button(cb) then
-                cb._zen_draft_commit()
-            elseif has_valid_custom_button_target(cb) then
-                quick_button_label_by_id[cb.id] = get_cb_label(cb)
-                save_and_apply_quick_settings()
-            end
-        end
-        items._zen_arrange_done_enabled_func = function()
-            return has_valid_custom_button_target(cb)
-        end
-    end
-
     build_cb_sub_items = function(cb)
         local items = {}
 
@@ -782,9 +755,6 @@ function M.build(ctx)
             end,
         }, icons.delete))
 
-        if cb.type == "action" or cb.type == "plugin" then
-            add_done_metadata(items, cb)
-        end
         return items
     end
 

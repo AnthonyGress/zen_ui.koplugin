@@ -333,38 +333,6 @@ function M.build(ctx)
         end
     end
 
-    local function has_valid_custom_tab_target(ct)
-        if ct.type == "action" then
-            return type(ct.action) == "table" and next(ct.action) ~= nil
-        end
-        if ct.type == "quick_setting" then
-            return type(ct.quick_setting_id) == "string" and ct.quick_setting_id ~= ""
-        end
-        if ct.type == "tag" then
-            return type(ct.tag) == "string" and ct.tag ~= ""
-        end
-        return ct.type == "plugin"
-            and type(ct.plugin) == "table"
-            and ct.plugin.key ~= nil
-            and ct.plugin.method ~= nil
-    end
-
-    local function add_done_metadata(items, ct)
-        items._zen_arrange_done_func = function()
-            if ct.type == "action" then
-                sync_ct_action_label(ct)
-            end
-            if is_draft_tab(ct) then
-                ct._zen_draft_commit()
-            elseif has_valid_custom_tab_target(ct) then
-                save_and_defer_navbar_refresh()
-            end
-        end
-        items._zen_arrange_done_enabled_func = function()
-            return has_valid_custom_tab_target(ct)
-        end
-    end
-
     local function ensureTabOrder(id)
         for _i, ordered_id in ipairs(config.navbar.tab_order) do
             if ordered_id == id then return end
@@ -851,10 +819,6 @@ function M.build(ctx)
             end,
         }, icons.delete))
 
-        if ct.type == "action" or ct.type == "plugin" or ct.type == "quick_setting"
-                or ct.type == "tag" then
-            add_done_metadata(items, ct)
-        end
         return items
     end
 

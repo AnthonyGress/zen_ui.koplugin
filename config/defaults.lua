@@ -73,6 +73,9 @@ local defaults = {
         incognito_mode       = false,
         zen_opds             = true,
     },
+    search = {
+        substring = false,
+    },
     navbar = {
         show_tabs = {
             books = true,
@@ -292,9 +295,6 @@ local defaults = {
             tags = {},
             to_be_read = {},
         },
-    },
-    reader_page_browser = {
-        layout = "grid",
     },
     lockdown = {
         disable_context_menu      = false,

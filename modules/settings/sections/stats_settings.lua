@@ -234,21 +234,15 @@ function M.build(ctx)
             if item_id == "trend_graph" then
                 item.sub_title = label_for(item_id)
                 item.sub_item_table_func = function()
-                    local items = graph_items(settings)
-                    items._zen_arrange_done_func = function() end
-                    return items
+                    return graph_items(settings)
                 end
             elseif item_id == "goal_progress" then
                 item.sub_item_table_func = function()
-                    local items = goal_items(settings)
-                    items._zen_arrange_done_func = function() end
-                    return items
+                    return goal_items(settings)
                 end
             elseif StatsSettings.hasFontSize(item_id) then
                 item.sub_item_table_func = function()
-                    local items = font_size_items(settings, item_id)
-                    items._zen_arrange_done_func = function() end
-                    return items
+                    return font_size_items(settings, item_id)
                 end
             end
             sort_items[#sort_items + 1] = item
@@ -327,7 +321,6 @@ function M.build(ctx)
             arrange_widgets()
             return true
         end
-        items._zen_arrange_done_func = function() end
         require("common/ui/zen_arrange_list").show{
             title = label_for(id),
             item_table = items,

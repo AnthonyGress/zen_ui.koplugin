@@ -33,6 +33,7 @@ describe("config manager folder-path migration", function()
         })
         ZenSpec.unload("config/manager")
         Manager = require("config/manager")
+        _G.G_reader_settings = ZenSpec.memorySettings()
     end)
 
     it("moves sort and display overrides for a renamed folder subtree", function()
@@ -81,5 +82,23 @@ describe("config manager folder-path migration", function()
         assert.is_nil(stores.home.settings.quotes.manual_index)
         assert.are.equal(12, stores.home.presets.missing.quotes.font_size)
         assert.are.equal(18, stores.home.presets.explicit.quotes.font_size)
+    end)
+
+    it("moves global search and page-browser layout into their Zen settings", function()
+        settings_file.data = {
+            reader_page_browser = { layout = "single" },
+        }
+        _G.G_reader_settings = ZenSpec.memorySettings({
+            substring_search = false,
+            zen_page_browser_layout = "grid",
+        })
+
+        local config = Manager.load()
+
+        assert.is_false(config.search.substring)
+        assert.is_nil(config.reader_page_browser)
+        assert.are.equal("single", stores.reader.settings.page_browser_layout)
+        assert.is_nil(G_reader_settings:readSetting("substring_search"))
+        assert.is_nil(G_reader_settings:readSetting("zen_page_browser_layout"))
     end)
 end)

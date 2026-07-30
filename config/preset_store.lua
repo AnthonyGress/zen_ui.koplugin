@@ -124,7 +124,14 @@ end
 
 function M.saveSettings(kind, settings_data)
     local store = M.loadStore(kind)
+    local previous = store.settings
     store.settings = type(settings_data) == "table" and settings_data or {}
+    if kind == "reader" and store.settings.page_browser_layout == nil then
+        local layout = type(previous) == "table" and previous.page_browser_layout
+        if layout == "single" or layout == "grid" then
+            store.settings.page_browser_layout = layout
+        end
+    end
     return M.saveStore(kind, store)
 end
 

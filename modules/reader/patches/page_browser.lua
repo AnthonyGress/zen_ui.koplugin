@@ -10,7 +10,7 @@ local function apply_page_browser()
     local UIManager    = require("ui/uimanager")
     local Event        = require("ui/event")
     local ZenTocWidget = require("modules/reader/zen_toc_widget")
-    local ConfigManager = require("config/manager")
+    local PresetStore   = require("config/preset_store")
     local utils        = require("common/utils")
 
     -- -----------------------------------------------------------------------
@@ -32,40 +32,20 @@ local function apply_page_browser()
     ZenTocWidget.set_plugin(_plugin_ref)
 
     local function get_page_browser_layout()
-        local cfg = _plugin_ref and _plugin_ref.config
-        if type(cfg) == "table" and type(cfg.reader_page_browser) == "table" then
-            local layout = cfg.reader_page_browser.layout
-            if layout == "single" or layout == "grid" then
-                return layout
-            end
-        end
-        local g_settings = rawget(_G, "G_reader_settings")
-        local legacy = g_settings and g_settings:readSetting("zen_page_browser_layout")
-        if legacy == "single" or legacy == "grid" then
-            return legacy
-        end
+        local settings = PresetStore.getSettings("reader")
+        local layout = type(settings) == "table" and settings.page_browser_layout
+        if layout == "single" or layout == "grid" then return layout end
         return "grid"
     end
 
     local function set_page_browser_layout(layout)
         if layout ~= "single" and layout ~= "grid" then return end
-        if _plugin_ref and type(_plugin_ref.config) == "table" then
-            if type(_plugin_ref.config.reader_page_browser) ~= "table" then
-                _plugin_ref.config.reader_page_browser = {}
-            end
-            _plugin_ref.config.reader_page_browser.layout = layout
-            if type(_plugin_ref.saveConfig) == "function" then
-                _plugin_ref:saveConfig()
-                return
-            end
-        end
-        local ok, cfg = pcall(ConfigManager.load)
-        if not ok or type(cfg) ~= "table" then return end
-        if type(cfg.reader_page_browser) ~= "table" then
-            cfg.reader_page_browser = {}
-        end
-        cfg.reader_page_browser.layout = layout
-        pcall(ConfigManager.save, cfg)
+        local store = PresetStore.loadStore("reader")
+        if type(store) ~= "table" then return end
+        if type(store.settings) ~= "table" then store.settings = {} end
+        if store.settings.page_browser_layout == layout then return end
+        store.settings.page_browser_layout = layout
+        PresetStore.saveStore("reader", store)
     end
 
     local function is_enabled()
@@ -81,7 +61,9 @@ local function apply_page_browser()
     end
 
     local function is_substring_enabled()
-        return G_reader_settings:readSetting("substring_search") ~= false  -- default: substring (whole-word off)
+        local cfg = _plugin_ref and _plugin_ref.config
+        local search = type(cfg) == "table" and cfg.search
+        return type(search) ~= "table" or search.substring ~= false
     end
 
     rawset(_G, "__ZEN_UI_BUILD_PAGE_BROWSER_PREVIEW", function(slot_w, slot_h)
@@ -121,19 +103,21 @@ local function apply_page_browser()
         local slot_btn_w = btn_sz + btn_pad * 2
         local title_y = math.floor((title_h - btn_sz) / 2)
         canvas:paintRect(0, title_h - 1, slot_w, 1, Blitbuffer.COLOR_LIGHT_GRAY)
-        paint_icon("chevron.left", nil, btn_pad, title_y, btn_sz)
-
-        local toc_icon_path = _icons_dir and utils.resolveIcon(_icons_dir, "toc")
-        local right_icons = {
-            { icon = "appbar.search" },
-            { icon = "appbar.textsize" },
-            { icon = "bookmark" },
-            { icon = "appbar.navigation", file = toc_icon_path },
+        local DataStorage = require("datastorage")
+        local stock_icons_dir = DataStorage:getDataDir() .. "/resources/icons/mdlight/"
+        local header_icons = {
+            "appbar.search", "appbar.textsize", "bookmark",
         }
-        for _i, def in ipairs(right_icons) do
-            local x = slot_w - slot_btn_w * _i + btn_pad
-            paint_icon(def.icon, def.file, x, title_y, btn_sz)
+        for i, icon_name in ipairs(header_icons) do
+            local icon_path = utils.resolveLocalIcon(stock_icons_dir, icon_name)
+            paint_icon(nil, icon_path, slot_btn_w * (i - 1) + btn_pad, title_y, btn_sz)
         end
+        local toc_icon_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "toc")
+        paint_icon(nil, toc_icon_path, slot_btn_w * #header_icons + btn_pad, title_y, btn_sz)
+        local info_icon_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "info")
+        paint_icon(nil, info_icon_path, slot_btn_w * (#header_icons + 1) + btn_pad, title_y, btn_sz)
+        local close_icon_path = utils.resolveLocalIcon(stock_icons_dir, "close")
+        paint_icon(nil, close_icon_path, slot_w - slot_btn_w + btn_pad, title_y, btn_sz)
 
         local icon_size            = Screen:scaleBySize(24)
         local skip_icon_size       = Screen:scaleBySize(36)
@@ -246,16 +230,15 @@ local function apply_page_browser()
             value_max = 240,
         }
 
-        local grid_slide_path = _icons_dir and utils.resolveIcon(_icons_dir, "grid_slide")
-        local grid_path       = _icons_dir and utils.resolveIcon(_icons_dir, "grid")
-        local skip_left_path  = _icons_dir and utils.resolveIcon(_icons_dir, "skip_left")
-        local skip_right_path = _icons_dir and utils.resolveIcon(_icons_dir, "skip_right")
+        local grid_slide_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "grid_slide")
+        local grid_path       = _icons_dir and utils.resolveLocalIcon(_icons_dir, "grid")
+        local skip_left_path  = _icons_dir and utils.resolveLocalIcon(_icons_dir, "skip_left")
+        local skip_right_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "skip_right")
         local is_single_page = layout == "single"
 
-        local function make_toggle_icon(icon_name, file_path, active)
+        local function make_toggle_icon(file_path, active)
             local icon = IconWidget:new{
                 file   = file_path,
-                icon   = file_path and nil or icon_name,
                 width  = icon_size,
                 height = icon_size,
                 alpha  = not active,
@@ -275,14 +258,14 @@ local function apply_page_browser()
             padding_left = icon_pad_h, padding_right = icon_pad_h,
             bordersize = 0,
             background = is_single_page and Blitbuffer.COLOR_BLACK or Blitbuffer.COLOR_WHITE,
-            make_toggle_icon("grid_slide", grid_slide_path, is_single_page),
+            make_toggle_icon(grid_slide_path, is_single_page),
         }
         local btn_grid_frame = FrameContainer:new{
             padding_top = icon_pad_v, padding_bottom = icon_pad_v,
             padding_left = icon_pad_h, padding_right = icon_pad_h,
             bordersize = 0,
             background = is_single_page and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK,
-            make_toggle_icon("grid", grid_path, not is_single_page),
+            make_toggle_icon(grid_path, not is_single_page),
         }
         local divider = LineWidget:new{
             dimen = Geom:new{ w = Screen:scaleBySize(1), h = icon_size + icon_pad_v * 2 },
@@ -295,7 +278,7 @@ local function apply_page_browser()
             radius = Screen:scaleBySize(4),
             HorizontalGroup:new{ align = "center", btn_view_frame, divider, btn_grid_frame },
         }
-        local function make_skip_btn(file_path, fallback_icon)
+        local function make_skip_btn(file_path)
             return FrameContainer:new{
                 padding_top = icon_pad_v, padding_bottom = icon_pad_v,
                 padding_left = icon_pad_h, padding_right = icon_pad_h,
@@ -303,14 +286,13 @@ local function apply_page_browser()
                 background = Blitbuffer.COLOR_WHITE,
                 IconWidget:new{
                     file = file_path,
-                    icon = file_path and nil or fallback_icon,
                     width = skip_icon_size,
                     height = skip_icon_size,
                 },
             }
         end
-        local skip_left_btn = make_skip_btn(skip_left_path, "chevron.left")
-        local skip_right_btn = make_skip_btn(skip_right_path, "chevron.right")
+        local skip_left_btn = make_skip_btn(skip_left_path)
+        local skip_right_btn = make_skip_btn(skip_right_path)
         local btn_row_sz = btn_row:getSize()
         local skip_sz = skip_left_btn:getSize()
         local row_h = math.max(btn_row_sz.h, skip_sz.h)
@@ -338,11 +320,11 @@ local function apply_page_browser()
             VerticalGroup:new{
                 align = "center",
                 VerticalSpan:new{ width = panel_pad_top },
-                CenterContainer:new{ dimen = Geom:new{ w = slot_w, h = chapter_label:getSize().h }, chapter_label },
-                VerticalSpan:new{ width = panel_pad_v },
-                CenterContainer:new{ dimen = Geom:new{ w = slot_w, h = slider:getSize().h }, slider },
-                VerticalSpan:new{ width = panel_pad_btn },
                 btn_and_skip,
+                VerticalSpan:new{ width = panel_pad_btn },
+                CenterContainer:new{ dimen = Geom:new{ w = slot_w, h = slider:getSize().h }, slider },
+                VerticalSpan:new{ width = panel_pad_v },
+                CenterContainer:new{ dimen = Geom:new{ w = slot_w, h = chapter_label:getSize().h }, chapter_label },
                 VerticalSpan:new{ width = panel_pad_bottom },
             },
         }
@@ -364,7 +346,6 @@ local function apply_page_browser()
         local Device     = require("device")
         local Font       = require("ui/font")
         local Geom       = require("ui/geometry")
-        local IconButton = require("ui/widget/iconbutton")
         local IconWidget = require("ui/widget/iconwidget")
         local HorizontalGroup = require("ui/widget/horizontalgroup")
         local VerticalGroup   = require("ui/widget/verticalgroup")
@@ -380,6 +361,16 @@ local function apply_page_browser()
         local ZenSlider       = require("common/ui/zen_slider")
         local ZenIconButton   = require("common/ui/zen_icon_button")
         local logger          = require("common/zen_logger").new("page_browser")
+        local _               = require("gettext")
+
+        local function resolve_stock_icon(name)
+            local ok, DataStorage = pcall(require, "datastorage")
+            if ok and DataStorage then
+                local icons_dir = DataStorage:getDataDir() .. "/resources/icons/mdlight/"
+                return utils.resolveLocalIcon(icons_dir, name)
+            end
+            return utils.resolveLocalIcon(_icons_dir, name)
+        end
 
         local function get_page_display_text(pbw, page_num)
             local fallback = tostring(page_num)
@@ -421,12 +412,98 @@ local function apply_page_browser()
             return text
         end
 
+        local function visible_page_raw(pbw, page)
+            local pages = pbw._zen_visible_pages
+            return pages and pages[page] or page
+        end
+
+        local function visible_page_index(pbw, page)
+            local pages = pbw._zen_visible_pages
+            if not pages then return page end
+
+            local index = (pbw._zen_visible_page_indexes or {})[page]
+            if index then return index end
+
+            -- A TOC entry may target a hidden fragment. Keep it hidden by
+            -- focusing the next linear page (or the final one at the end).
+            for i, visible_page in ipairs(pages) do
+                if visible_page >= page then return i end
+            end
+            return #pages
+        end
+
+        local function update_visible_pages(pbw)
+            local document = pbw.ui and pbw.ui.document
+            if not document then return false end
+
+            local raw_nb_pages = type(document.getPageCount) == "function"
+                and document:getPageCount() or pbw._zen_raw_nb_pages or pbw.nb_pages
+            if type(raw_nb_pages) ~= "number" or raw_nb_pages < 1 then return false end
+
+            local raw_focus = visible_page_raw(pbw, pbw.focus_page or pbw.cur_page or 1)
+            local raw_current = visible_page_raw(pbw, pbw.cur_page or raw_focus)
+            local has_hidden_flows = type(document.hasHiddenFlows) == "function"
+                and document:hasHiddenFlows()
+                and type(document.getPageFlow) == "function"
+
+            if not has_hidden_flows then
+                pbw._zen_visible_pages = nil
+                pbw._zen_visible_page_indexes = nil
+                pbw._zen_raw_nb_pages = raw_nb_pages
+                pbw.nb_pages = raw_nb_pages
+                pbw.focus_page = math.max(1, math.min(raw_nb_pages, raw_focus))
+                pbw.cur_page = math.max(1, math.min(raw_nb_pages, raw_current))
+                return false
+            end
+
+            if pbw._zen_visible_pages
+                and pbw._zen_visible_document == document
+                and pbw._zen_raw_nb_pages == raw_nb_pages then
+                return true
+            end
+
+            local pages, indexes = {}, {}
+            for raw_page = 1, raw_nb_pages do
+                if document:getPageFlow(raw_page) == 0 then
+                    table.insert(pages, raw_page)
+                    indexes[raw_page] = #pages
+                end
+            end
+            if #pages == 0 or #pages == raw_nb_pages then
+                pbw._zen_visible_pages = nil
+                pbw._zen_visible_page_indexes = nil
+                pbw._zen_raw_nb_pages = raw_nb_pages
+                pbw.nb_pages = raw_nb_pages
+                pbw.focus_page = math.max(1, math.min(raw_nb_pages, raw_focus))
+                pbw.cur_page = math.max(1, math.min(raw_nb_pages, raw_current))
+                return false
+            end
+
+            pbw._zen_visible_pages = pages
+            pbw._zen_visible_page_indexes = indexes
+            pbw._zen_visible_document = document
+            pbw._zen_raw_nb_pages = raw_nb_pages
+            pbw.nb_pages = #pages
+            pbw.focus_page = visible_page_index(pbw, raw_focus)
+            pbw.cur_page = visible_page_index(pbw, raw_current)
+            return true
+        end
+
         -- ----------------------------------------------------------------
-        -- 1. Patch init: blank title, X to left, 3 icons on right
+        -- 1. Patch init: blank title, actions on the left and close on the right.
         -- ----------------------------------------------------------------
         local _orig_init = PageBrowserWidget.init
         PageBrowserWidget.init = function(self)
+            self._zen_layout_mode = get_page_browser_layout()
+            if self._zen_layout_mode == "single" then
+                self._zen_nb_cols_override = 1
+                self._zen_nb_rows_override = 1
+            else
+                self._zen_nb_cols_override = 3
+                self._zen_nb_rows_override = 2
+            end
             _orig_init(self)
+            update_visible_pages(self)
             -- Register pan_release so onPanRelease fires when the user lifts
             -- their finger after dragging the slider.  PageBrowserWidget does
             -- not include pan_release in its native ges_events.
@@ -437,9 +514,9 @@ local function apply_page_browser()
                                       w = Screen:getWidth(), h = Screen:getHeight() },
                 }
             }
-            -- Store original grid dimensions so view-toggle buttons can restore them.
-            self._zen_orig_nb_cols = self.nb_cols
-            self._zen_orig_nb_rows = self.nb_rows
+            -- Grid mode is fixed at 3 columns × 2 rows on every device.
+            self._zen_orig_nb_cols = 3
+            self._zen_orig_nb_rows = 2
             -- Block slider input until the opening swipe gesture completes so
             -- the northward swipe that opens us doesn't immediately move the
             -- slider (which appears right where the finger lifted).
@@ -466,48 +543,9 @@ local function apply_page_browser()
                 self.title_bar.has_left_icon = false
             end
 
-            -- Move the close button (right_button) to the LEFT side.
-            -- Extract the close callback before removing it.
-            local close_cb, close_hold_cb
-            if self.title_bar.right_button then
-                close_cb      = self.title_bar.right_button.callback
-                close_hold_cb = self.title_bar.right_button.hold_callback
-                for i = #self.title_bar, 1, -1 do
-                    if self.title_bar[i] == self.title_bar.right_button then
-                        table.remove(self.title_bar, i)
-                        break
-                    end
-                end
-                self.title_bar.right_button   = nil
-                self.title_bar.has_right_icon = false
-            end
-
-            -- Re-add close at left as a left chevron (overlap_align="left", tap zone extends right)
-            table.insert(self.title_bar, IconButton:new{
-                icon           = "chevron.left",
-                width          = btn_sz,
-                height         = btn_sz,
-                padding        = btn_pad,
-                padding_right  = 2 * btn_sz,
-                padding_bottom = btn_sz,
-                overlap_align  = "left",
-                allow_flash    = false,
-                show_parent    = self,
-                callback       = close_cb or function() self:onClose() end,
-                hold_callback  = close_hold_cb,
-            })
-
-            -- Add 3 icon buttons on the RIGHT side (font, toc, search)
-            local slot_w  = btn_sz + btn_pad * 2
-            local right_x = Screen:getWidth()
-
-            local _toc_icon_path = _icons_dir and utils.resolveIcon(_icons_dir, "toc")
-
-            local function make_right_btn(icon, x_pos, cb, file_path)
-                local cls = file_path and ZenIconButton or IconButton
-                return cls:new{
+            local function make_header_btn(file_path, x_pos, cb)
+                return ZenIconButton:new{
                     file           = file_path,
-                    icon           = icon,
                     width          = btn_sz,
                     height         = btn_sz,
                     padding        = btn_pad,
@@ -520,32 +558,220 @@ local function apply_page_browser()
                 }
             end
 
-            -- TOC button opens ZenTocWidget
+            local slot_w = btn_sz + btn_pad * 2
+
             local pbw_ref = self
             local function open_toc()
-                -- Close the page browser first so the TOC renders over the reader.
-                pbw_ref:onClose()
+                -- Keep this widget open beneath the full-screen TOC. Closing the
+                -- TOC then naturally returns to the page browser.
                 UIManager:show(ZenTocWidget:new{
                     ui         = pbw_ref.ui,
-                    focus_page = pbw_ref.focus_page or pbw_ref.cur_page or 1,
+                    focus_page = visible_page_raw(pbw_ref, pbw_ref.focus_page or pbw_ref.cur_page or 1),
                     on_goto    = function(page)
-                        -- Navigate directly in the book (PBW is already closed).
                         if pbw_ref.ui.link then
                             pbw_ref.ui.link:addCurrentLocationToStack()
                         end
+                        pbw_ref:onClose()
                         pbw_ref.ui:handleEvent(Event:new("GotoPage", page))
                     end,
                 })
             end
+
+            local function open_book_info()
+                local ui = pbw_ref.ui
+                local file = ui and ui.document and ui.document.file
+                if not file then return end
+
+                local props = type(ui.doc_props) == "table" and ui.doc_props or {}
+                local settings = ui.doc_settings
+                local summary = settings and settings:readSetting("summary") or {}
+                if type(summary) ~= "table" then summary = {} end
+                local annotations = ui.annotation and ui.annotation.annotations
+                if type(annotations) ~= "table" and settings then
+                    annotations = settings:readSetting("annotations")
+                end
+                local pages = settings and settings:readSetting("doc_pages") or props.pages
+                local description = props.description
+                local ok_util, util = pcall(require, "util")
+                if description and ok_util and util.htmlToPlainTextIfHtml then
+                    description = util.htmlToPlainTextIfHtml(description)
+                end
+
+                local function is_present(text)
+                    if text == nil then return false end
+                    text = tostring(text):match("^%s*(.-)%s*$")
+                    return text ~= "" and text:lower() ~= "n/a"
+                end
+
+                local details = {}
+                local function add_detail(text, style, bold, gap_before)
+                    if is_present(text) then
+                        table.insert(details, {
+                            text = tostring(text),
+                            style = style,
+                            bold = bold,
+                            gap_before = gap_before,
+                        })
+                    end
+                end
+
+                local function full_language_name(language)
+                    if not is_present(language) then return language end
+                    local original = tostring(language)
+                    local code = original:gsub("-", "_")
+                    local ok_language, Language = pcall(require, "ui/language")
+                    if ok_language and Language and Language.getLanguageName then
+                        local name = Language:getLanguageName(code)
+                        if name ~= code then return name end
+                        local base = code:match("^([^_]+)")
+                        if base then
+                            name = Language:getLanguageName(base)
+                            if name ~= base then return name end
+                        end
+                    end
+                    local ok_iso, IsoLanguage = pcall(require, "ui/data/isolanguage")
+                    if ok_iso and IsoLanguage and IsoLanguage.getLocalizedLanguage then
+                        local name = IsoLanguage:getLocalizedLanguage(code:lower())
+                        if name ~= code:lower() then return name end
+                    end
+                    return original
+                end
+
+                local series = props.series
+                if is_present(series) and props.series_index then
+                    series = series .. " #" .. tostring(props.series_index)
+                elseif not is_present(series) then
+                    series = nil
+                end
+                local tags = props.keywords
+                if is_present(tags) then
+                    tags = tostring(tags)
+                        :gsub("%s*[\n;]%s*", ", ")
+                        :gsub("%s+\xC2\xB7%s+", ", ")
+                        :gsub("^,%s*", ""):gsub(",%s*$", "")
+                end
+                local title = is_present(props.title) and props.title or file:match("([^/]+)$")
+                add_detail(title, "title", true)
+                add_detail(props.authors, "author", false, 2)
+                add_detail(series, "secondary", false, 2)
+                add_detail(tags, "secondary", false, 3)
+                if is_present(pages) then
+                    add_detail(tostring(pages) .. " " .. _("pages"), "secondary", false, 3)
+                end
+                add_detail(full_language_name(props.language), "secondary", false, 3)
+                local rating = summary.rating
+                local numeric_rating = tonumber(rating)
+                if (not numeric_rating or numeric_rating > 0) and is_present(rating) then
+                    local ok_list, BookList = pcall(require, "ui/widget/booklist")
+                    local rating_text = ok_list and BookList and BookList.getBookRatingString
+                        and BookList.getBookRatingString(rating) or rating
+                    add_detail(rating_text, "secondary", false, 3)
+                end
+                add_detail(tostring(type(annotations) == "table" and #annotations or 0)
+                    .. " " .. _("Annotations"), "secondary", false, 3)
+                add_detail(summary.note, "secondary", false, 3)
+
+                local ui_reader_font = ui.font and ui.font.font_face
+                local settings_reader_font = settings and settings:readSetting("font_face")
+                local reader_font = ui_reader_font
+                    or settings_reader_font
+                    or (ui.document and ui.document.default_font)
+                local reader_font_size = tonumber(ui.configurable and ui.configurable.font_size)
+                    or (Font.sizemap and Font.sizemap.cfont) or 16
+                local reader_font_file, reader_font_index
+                if reader_font then
+                    local ok_cre, CreDocument = pcall(require, "document/credocument")
+                    if ok_cre and CreDocument then
+                        local ok_engine, cre = pcall(CreDocument.engineInit, CreDocument)
+                        if ok_engine and cre and cre.getFontFaceFilenameAndFaceIndex then
+                            reader_font_file, reader_font_index =
+                                cre.getFontFaceFilenameAndFaceIndex(reader_font)
+                            if not reader_font_file then
+                                reader_font_file, reader_font_index =
+                                    cre.getFontFaceFilenameAndFaceIndex(reader_font, nil, true)
+                            end
+                        end
+                    end
+                end
+                local function reader_face_at(size)
+                    local font_source = reader_font_file or reader_font or "cfont"
+                    local ok, face = pcall(Font.getFace, Font, font_source, size, reader_font_index)
+                    if ok and face then return face end
+                    if font_source == reader_font or not reader_font then
+                        return nil
+                    end
+                    ok, face = pcall(Font.getFace, Font, reader_font, size)
+                    return ok and face or nil
+                end
+                local reader_face = reader_face_at(reader_font_size)
+                local text_faces = {
+                    title = reader_face,
+                    author = reader_face_at(math.max(1, math.floor(reader_font_size * 17 / 20 + 0.5))),
+                    secondary = reader_face_at(math.max(1, math.floor(reader_font_size * 14 / 20 + 0.5))),
+                }
+
+                local cover_bb, cover_w, cover_h, cover_kind
+                local ok_cover, Cover = pcall(require, "common/cover_utils")
+                if ok_cover and Cover and Cover.makeCover then
+                    local target_h = math.floor(Screen:getHeight() * 0.30)
+                    local target_w = math.floor(target_h * Cover.getRatio())
+                    local cover = { Cover.makeCover(file, nil, {
+                        is_folder = false,
+                        width = target_w,
+                        height = target_h,
+                        need_copy = true,
+                    }) }
+                    cover_bb, cover_w, cover_h, cover_kind = cover[1], cover[2], cover[3], cover[5]
+                    -- Placeholder covers may be shared from the render cache;
+                    -- hand BookInfoWidget its own buffer to dispose on close.
+                    if cover_bb and cover_kind ~= "real_cover" and cover_bb.copy then
+                        cover_bb = cover_bb:copy()
+                    end
+                end
+
+                local function show_cover_fullscreen()
+                    local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
+                    if not ok_bim then return end
+                    local bookinfo = BookInfoManager:getBookInfo(file, true)
+                    if not bookinfo or not bookinfo.cover_bb or not bookinfo.has_cover
+                        or bookinfo.ignore_cover then return end
+                    local ImageViewer = require("ui/widget/imageviewer")
+                    local viewer = ImageViewer:new{
+                        image = bookinfo.cover_bb,
+                        image_disposable = false,
+                        fullscreen = true,
+                        with_title_bar = false,
+                    }
+                    viewer.onTap = function(viewer_self)
+                        viewer_self:onClose()
+                        return true
+                    end
+                    UIManager:show(viewer)
+                end
+
+                local BookInfoWidget = require("modules/reader/book_info_widget")
+                UIManager:show(BookInfoWidget:new{
+                    title = _("Book details"),
+                    details = details,
+                    description = description or "",
+                    cover = cover_bb,
+                    cover_width = cover_w,
+                    cover_height = cover_h,
+                    cover_tap_callback = show_cover_fullscreen,
+                    rounded_cover = _plugin_ref and _plugin_ref.config
+                        and _plugin_ref.config.features
+                        and _plugin_ref.config.features.browser_cover_rounded_corners == true,
+                    text_face = reader_face,
+                    text_size = reader_font_size,
+                    text_faces = text_faces,
+                })
+            end
+
             local function open_search()
-                -- Use onClose() (synchronous) so the page browser is removed
-                -- from the widget stack before the search dialog appears,
-                -- matching how open_font_menu closes the PBW.
                 pbw_ref:onClose()
                 pbw_ref.ui:handleEvent(Event:new("ShowFulltextSearchInput"))
             end
             local function open_bookmarks()
-                -- Close page browser and open bookmarks list
                 pbw_ref:onClose()
                 if pbw_ref.ui.bookmark then
                     pbw_ref.ui.bookmark:onShowBookmark()
@@ -560,16 +786,11 @@ local function apply_page_browser()
                     return
                 end
                 local cfg = ui_ref.config
-                -- Close PBW first so it is off the stack before the dialog appears.
                 pbw_ref:onClose()
                 UIManager:nextTick(function()
-                    if cfg.config_dialog then return end -- already open
+                    if cfg.config_dialog then return end
                     local ok, err = pcall(function()
                         local ConfigDialog = require("ui/widget/configdialog")
-                        -- Forward-declare so the close_callback closure captures it
-                        -- as a proper upvalue (in Lua, local x = expr puts x in
-                        -- scope only AFTER the statement, so the closure would see
-                        -- a global 'dialog' (nil) if we used a single statement).
                         local dialog
                         dialog = ConfigDialog:new{
                             document        = cfg.document,
@@ -601,42 +822,24 @@ local function apply_page_browser()
                 end)
             end
 
-            -- Vocab Builder: show button only if plugin is active and icon resolves.
-            -- package.loaded["db"] is set when vocabbuilder.koplugin is running
-            -- (same check used by dict_quick_lookup.lua).
-            local _vocab_icon_path = package.loaded["db"]
-                and _icons_dir and utils.resolveIcon(_icons_dir, "tab_vocab")
-
-            local function open_vocab()
-                pbw_ref:onClose()
-                pbw_ref.ui:handleEvent(Event:new("ShowVocabBuilder"))
+            -- Keep the original reader action glyphs, in reverse visual order
+            -- on the left, followed by the added book information action.
+            local action_icons = {
+                { "appbar.search", open_search, true },
+                { "appbar.textsize", open_reader_menu, true },
+                { "bookmark", open_bookmarks, true },
+                { "toc", open_toc },
+                { "info", open_book_info },
+            }
+            for i, action in ipairs(action_icons) do
+                local icon_path = action[3] and resolve_stock_icon(action[1])
+                    or (_icons_dir and utils.resolveLocalIcon(_icons_dir, action[1]))
+                table.insert(self.title_bar, make_header_btn(icon_path, slot_w * (i - 1), action[2]))
             end
 
-            -- Left to right: TOC, [Vocab], Bookmark, Font, Search
-            -- When vocab builder is active, TOC shifts one slot further left.
-            local toc_slot = _vocab_icon_path and 5 or 4
-            table.insert(self.title_bar, make_right_btn("appbar.search",     right_x - slot_w,         open_search))
-            table.insert(self.title_bar, make_right_btn("appbar.textsize",   right_x - slot_w * 2,     open_reader_menu))
-            table.insert(self.title_bar, make_right_btn("bookmark",          right_x - slot_w * 3,     open_bookmarks))
-            if _vocab_icon_path then
-                table.insert(self.title_bar, make_right_btn(nil, right_x - slot_w * 4, open_vocab, _vocab_icon_path))
-            end
-            table.insert(self.title_bar, make_right_btn("appbar.navigation", right_x - slot_w * toc_slot, open_toc, _toc_icon_path))
-
-            -- Restore last-used layout; default to grid so thumbnails are small
-            -- and render quickly on slower devices (e.g. Kindle PW4).
-            -- Single-page mode is only used when the user explicitly chose it.
-            local _saved_layout = get_page_browser_layout()
-            if _saved_layout == "single" then
-                self._zen_nb_cols_override = 1
-                self._zen_nb_rows_override = 1
-            end
-            -- Re-run updateLayout to capture the modified title bar in self[1].
-            -- When no layout override is needed, skip _orig_updateLayout to avoid
-            -- cancelling the async tile rendering queue that it already started.
-            if not self._zen_nb_cols_override then
-                self._zen_panel_only_rebuild = true
-            end
+            -- Rebuild only the panel: the initial layout already used the
+            -- selected fixed grid dimensions.
+            self._zen_panel_only_rebuild = true
             self:updateLayout()
             self._zen_panel_only_rebuild = nil
         end
@@ -673,7 +876,7 @@ local function apply_page_browser()
             local btn_toggle_h = zen_icon_size      + zen_icon_pad_v * 2 + Screen:scaleBySize(2) * 2
             local btn_skip_h   = zen_skip_icon_size + zen_icon_pad_v * 2
             local btn_h = math.max(btn_toggle_h, btn_skip_h)
-            -- top_pad + panel_pads + 1× label + (optional slider) + 1× icon row + bottom_pad
+            -- top_pad + icon row + (optional slider) + chapter label + bottom_pad
             -- Only include slider height and spacing if there's more than 1 page
             if nb_pages and nb_pages > 1 then
                 return zen_panel_pad_top + zen_panel_pad_v + zen_panel_pad_btn + lh + slider_h + btn_h + zen_panel_pad_bottom
@@ -683,6 +886,16 @@ local function apply_page_browser()
         end
 
         PageBrowserWidget.updateLayout = function(self)
+            update_visible_pages(self)
+            if not self._zen_panel_only_rebuild and not self._zen_nb_cols_override then
+                if self._zen_layout_mode == "single" then
+                    self._zen_nb_cols_override = 1
+                    self._zen_nb_rows_override = 1
+                else
+                    self._zen_nb_cols_override = 3
+                    self._zen_nb_rows_override = 2
+                end
+            end
             -- Free any panel we built in a previous updateLayout call.
             if self._zen_row_panel then
                 if self._zen_row_panel.free then self._zen_row_panel:free() end
@@ -850,7 +1063,7 @@ local function apply_page_browser()
             -- Use focus_page consistently so slider position doesn't jump when switching views
             local cp = self.focus_page or cur_page
             local chap_label = TextWidget:new{
-                text      = chapter_title(cp),
+                text      = chapter_title(visible_page_raw(self, cp)),
                 face      = label_face,
                 max_width = slider_w,
                 padding   = 0,
@@ -893,9 +1106,9 @@ local function apply_page_browser()
                 if label and label_text then
                     -- TextWidget doesn't set self.dimen in paintTo, so we
                     -- compute label position from the slider (which does).
-                    -- Layout order: chapter label → pad_v → slider.
+                    -- Layout order: icon row → slider → pad_v → chapter label.
                     local lh = label:getSize().h
-                    local label_y = sl.dimen.y - pad_v - lh
+                    local label_y = sl.dimen.y + sl:getSize().h + pad_v
                     -- Erase the full slider_w row, then paint centred text.
                     Screen.bb:paintRect(sl.dimen.x, label_y, slider_w, lh,
                                         Blitbuffer.COLOR_WHITE)
@@ -991,7 +1204,7 @@ local function apply_page_browser()
 
                         if page_num >= 1 and page_num <= np then
                             local lbl = TextWidget:new{
-                                text    = get_page_display_text(pbw, page_num),
+                                text    = get_page_display_text(pbw, visible_page_raw(pbw, page_num)),
                                 face    = badge_face_s,
                                 fgcolor = fg_color_s,
                                 padding = 0,
@@ -1038,7 +1251,7 @@ local function apply_page_browser()
                 if not self._zen_scrubbing then return end
                 self._zen_last_scrub_dirty = os.clock()
                 directPaintScrub(self.focus_page or self.cur_page or 1,
-                    chapter_title(self.focus_page or self.cur_page or 1))
+                    chapter_title(visible_page_raw(self, self.focus_page or self.cur_page or 1)))
             end
 
             -- Only create slider if there's more than 1 page
@@ -1066,7 +1279,7 @@ local function apply_page_browser()
                                 UIManager:scheduleIn(0.25, self._zen_deferred_update)
                                 -- Paint grid placeholders + slider + label
                                 -- directly to Screen.bb and push one A2 refresh.
-                                directPaintScrub(v, chapter_title(v))
+                                directPaintScrub(v, chapter_title(visible_page_raw(self, v)))
                             else
                                 UIManager:unschedule(self._zen_deferred_update)
                                 UIManager:unschedule(self._zen_scrub_dirty_func)
@@ -1093,10 +1306,10 @@ local function apply_page_browser()
             -- Determine current layout mode
             local is_single_page = (self.nb_cols == 1 and self.nb_rows == 1)
 
-            local grid_slide_path = _icons_dir and utils.resolveIcon(_icons_dir, "grid_slide")
-            local grid_path       = _icons_dir and utils.resolveIcon(_icons_dir, "grid")
-            local skip_left_path  = _icons_dir and utils.resolveIcon(_icons_dir, "skip_left")
-            local skip_right_path = _icons_dir and utils.resolveIcon(_icons_dir, "skip_right")
+            local grid_slide_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "grid_slide")
+            local grid_path       = _icons_dir and utils.resolveLocalIcon(_icons_dir, "grid")
+            local skip_left_path  = _icons_dir and utils.resolveLocalIcon(_icons_dir, "skip_left")
+            local skip_right_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "skip_right")
 
             -- Create icon widgets with active state styling
             local icon_size      = zen_icon_size
@@ -1106,7 +1319,6 @@ local function apply_page_browser()
 
             local icon_view = IconWidget:new{
                 file   = grid_slide_path,
-                icon   = grid_slide_path and nil or "grid_slide",
                 width  = icon_size,
                 height = icon_size,
                 alpha  = not is_single_page, -- opaque when active, alpha when inactive
@@ -1114,7 +1326,6 @@ local function apply_page_browser()
 
             local icon_grid = IconWidget:new{
                 file   = grid_path,
-                icon   = grid_path and nil or "grid",
                 width  = icon_size,
                 height = icon_size,
                 alpha  = is_single_page, -- opaque when active, alpha when inactive
@@ -1200,7 +1411,7 @@ local function apply_page_browser()
             }
 
             -- Skip chapter buttons (larger icons, no border)
-            local function make_skip_btn(file_path, fallback_icon)
+            local function make_skip_btn(file_path)
                 return FrameContainer:new{
                     padding_top    = icon_pad_v,
                     padding_bottom = icon_pad_v,
@@ -1210,17 +1421,17 @@ local function apply_page_browser()
                     background     = Blitbuffer.COLOR_WHITE,
                     IconWidget:new{
                         file   = file_path,
-                        icon   = file_path and nil or fallback_icon,
                         width  = skip_icon_size,
                         height = skip_icon_size,
                     },
                 }
             end
-            local skip_left_btn  = make_skip_btn(skip_left_path,  "chevron.left")
-            local skip_right_btn = make_skip_btn(skip_right_path, "chevron.right")
+            local skip_left_btn  = make_skip_btn(skip_left_path)
+            local skip_right_btn = make_skip_btn(skip_right_path)
 
             -- Switch callbacks
             local _switch_single = function()
+                pbw._zen_layout_mode = "single"
                 pbw._zen_nb_cols_override = 1
                 pbw._zen_nb_rows_override = 1
                 set_page_browser_layout("single")
@@ -1229,8 +1440,9 @@ local function apply_page_browser()
                 UIManager:setDirty(pbw, function() return "partial", pbw.dimen end)
             end
             local _switch_grid = function()
-                pbw._zen_nb_cols_override = pbw._zen_orig_nb_cols or 3
-                pbw._zen_nb_rows_override = pbw._zen_orig_nb_rows or 5
+                pbw._zen_layout_mode = "grid"
+                pbw._zen_nb_cols_override = 3
+                pbw._zen_nb_rows_override = 2
                 set_page_browser_layout("grid")
                 logger.dbg("switch to grid")
                 pbw:updateLayout()
@@ -1242,21 +1454,21 @@ local function apply_page_browser()
             -- Chapter-skip: jump to nearest TOC boundary before/after focus_page
             local function skip_to_prev_chapter()
                 if not pbw.ui or not pbw.ui.toc or not pbw.ui.toc.toc then return end
-                local cur = pbw.focus_page or pbw.cur_page or 1
+                local cur = visible_page_raw(pbw, pbw.focus_page or pbw.cur_page or 1)
                 for i = #pbw.ui.toc.toc, 1, -1 do
                     local e = pbw.ui.toc.toc[i]
                     if e.page and e.page < cur then
-                        if pbw:updateFocusPage(e.page, false) then pbw:update() end
+                        if pbw:updateFocusPage(visible_page_index(pbw, e.page), false) then pbw:update() end
                         return
                     end
                 end
             end
             local function skip_to_next_chapter()
                 if not pbw.ui or not pbw.ui.toc or not pbw.ui.toc.toc then return end
-                local cur = pbw.focus_page or pbw.cur_page or 1
+                local cur = visible_page_raw(pbw, pbw.focus_page or pbw.cur_page or 1)
                 for _i, e in ipairs(pbw.ui.toc.toc) do
                     if e.page and e.page > cur then
-                        if pbw:updateFocusPage(e.page, false) then pbw:update() end
+                        if pbw:updateFocusPage(visible_page_index(pbw, e.page), false) then pbw:update() end
                         return
                     end
                 end
@@ -1273,17 +1485,8 @@ local function apply_page_browser()
             -- The button group is a unified widget, split into left/right tap zones.
             -- Panel top Y (screen-absolute):
             local panel_abs_y = (self.dimen.y or 0) + self.dimen.h - zen_panel_h
-            -- Stack the VerticalGroup rows to find btn_row top:
-            local btn_zone_y = panel_abs_y
-                + zen_panel_pad_top
-                + chap_label:getSize().h
-
-            -- Only add slider height if slider exists
-            if zen_slider then
-                btn_zone_y = btn_zone_y + pad_v + zen_slider:getSize().h + zen_panel_pad_btn
-            else
-                btn_zone_y = btn_zone_y + zen_panel_pad_btn
-            end
+            -- The navigation controls are the first content row in the panel.
+            local btn_zone_y = panel_abs_y + zen_panel_pad_top
 
             -- btn_row is CenterContainer'd horizontally in grid_w
             local btn_row_sz = btn_row:getSize()
@@ -1347,10 +1550,8 @@ local function apply_page_browser()
             -- Store panel height for onHold suppression.
             self._zen_panel_h = zen_panel_h
 
-            -- Tighten the scrub dirty region so that the button row below
-            -- the slider is never included in the A2/GL16 refresh during
-            -- drag.  btn_zone_y is the top of the button group.
-            self._zen_scrub_dimen.h = math.max(1, btn_zone_y - self._zen_scrub_dimen.y)
+            -- The controls now sit above the slider. Keep the entire panel in
+            -- the scrub refresh so the slider and chapter label update together.
 
             -- Panel spans full grid width, pinned to the absolute bottom of
             -- the screen via OverlapGroup offset (set below).  Height is the
@@ -1360,24 +1561,24 @@ local function apply_page_browser()
             local panel_content = {
                 align = "center",
                 VerticalSpan:new{ width = zen_panel_pad_top },
-                CenterContainer:new{
-                    dimen = Geom:new{ w = grid_w, h = chap_label:getSize().h },
-                    chap_label,
-                },
+                btn_and_skip,
             }
 
-            -- Only add slider and its spacing if there's more than 1 page
+            table.insert(panel_content, VerticalSpan:new{ width = zen_panel_pad_btn })
+
+            -- Only add slider and its spacing if there's more than 1 page.
             if zen_slider then
-                table.insert(panel_content, VerticalSpan:new{ width = pad_v })
                 table.insert(panel_content, CenterContainer:new{
                     dimen = Geom:new{ w = grid_w, h = zen_slider:getSize().h },
                     zen_slider,
                 })
+                table.insert(panel_content, VerticalSpan:new{ width = pad_v })
             end
 
-            -- Add button group with skip buttons flanking it
-            table.insert(panel_content, VerticalSpan:new{ width = zen_panel_pad_btn })
-            table.insert(panel_content, btn_and_skip)
+            table.insert(panel_content, CenterContainer:new{
+                dimen = Geom:new{ w = grid_w, h = chap_label:getSize().h },
+                chap_label,
+            })
             table.insert(panel_content, VerticalSpan:new{ width = zen_panel_pad_bottom })
 
             local panel = FrameContainer:new{
@@ -1449,9 +1650,28 @@ local function apply_page_browser()
                 if self.grid[i] then self.grid[i].show_pagenum = false end
             end
 
-            -- _orig_update writes BookMapRow into self.row (detached CenterContainer)
+            -- _orig_update writes BookMapRow into self.row (detached CenterContainer).
+            -- When non-linear fragments are hidden, make its logical page slots
+            -- request thumbnails for the matching linear document page instead.
             local t0 = os.clock()
-            _orig_update(self)
+            local thumbnail = self._zen_visible_pages and self.ui and self.ui.thumbnail
+            local orig_get_thumbnail = thumbnail and thumbnail.getPageThumbnail
+            local orig_has_hidden_flows = self.has_hidden_flows
+            if orig_get_thumbnail then
+                thumbnail.getPageThumbnail = function(thumb, page, ...)
+                    return orig_get_thumbnail(thumb, visible_page_raw(self, page), ...)
+                end
+                -- The native stripe overlay is for visible hidden fragments.
+                self.has_hidden_flows = false
+                self._zen_mapping_thumbnails = true
+            end
+            local ok, err = pcall(_orig_update, self)
+            if orig_get_thumbnail then
+                thumbnail.getPageThumbnail = orig_get_thumbnail
+                self.has_hidden_flows = orig_has_hidden_flows
+                self._zen_mapping_thumbnails = nil
+            end
+            if not ok then error(err, 0) end
             self._zen_page_label_text_cache = nil
             self._zen_page_label_source = nil
             logger.perf("Original update completed", (os.clock() - t0) * 1000)
@@ -1475,7 +1695,7 @@ local function apply_page_browser()
             if self._zen_chap_label then
                 local title = ""
                 if self.ui and self.ui.toc then
-                    title = self.ui.toc:getTocTitleByPage(cp) or ""
+                    title = self.ui.toc:getTocTitleByPage(visible_page_raw(self, cp)) or ""
                 end
                 self._zen_chap_label:setText(title)
             end
@@ -1510,9 +1730,40 @@ local function apply_page_browser()
                 .." scrubbing="..tostring(self._zen_scrubbing)
                 .." post_scrub="..tostring(self._zen_post_scrub))
             if suppressed then
+                if self._zen_visible_pages then
+                    local has_hidden_flows = self.has_hidden_flows
+                    self.has_hidden_flows = false
+                    local result = _orig_showTile(self, grid_idx, page, tile, false)
+                    self.has_hidden_flows = has_hidden_flows
+                    return result
+                end
                 return _orig_showTile(self, grid_idx, page, tile, false)
             end
+            if self._zen_visible_pages then
+                local has_hidden_flows = self.has_hidden_flows
+                self.has_hidden_flows = false
+                local result = _orig_showTile(self, grid_idx, page, tile, do_refresh)
+                self.has_hidden_flows = has_hidden_flows
+                return result
+            end
             return _orig_showTile(self, grid_idx, page, tile, do_refresh)
+        end
+
+        local _orig_preloadThumbnail = PageBrowserWidget.preloadThumbnail
+        if _orig_preloadThumbnail then
+            PageBrowserWidget.preloadThumbnail = function(self, page, dbg_msg)
+                if not self._zen_visible_pages or self._zen_mapping_thumbnails then
+                    return _orig_preloadThumbnail(self, page, dbg_msg)
+                end
+                if page < 1 or page > self.nb_pages then return end
+                self.ui.thumbnail:getPageThumbnail(
+                    visible_page_raw(self, page),
+                    self.grid_item_width,
+                    self.grid_item_height,
+                    self.requests_batch_id,
+                    function() end
+                )
+            end
         end
 
         -- ----------------------------------------------------------------
@@ -1589,7 +1840,7 @@ local function apply_page_browser()
                         end
 
                         local label = TextWidget:new{
-                            text    = get_page_display_text(self, page_num),
+                            text    = get_page_display_text(self, visible_page_raw(self, page_num)),
                             face    = badge_face,
                             fgcolor = fg_color,
                             padding = 0,
@@ -1657,6 +1908,22 @@ local function apply_page_browser()
             if panel_h > 0 and self.dimen
                and ges.pos.y >= (self.dimen.y + self.dimen.h - panel_h) then
                 return true
+            end
+            -- Native page slots use linear-page indexes while this Zen view is
+            -- active; translate a thumbnail tap back to its document page.
+            if self._zen_visible_pages and self.grid then
+                for idx = 1, self.nb_grid_items do
+                    if ges.pos:intersectWith(self.grid[idx].dimen) then
+                        local page = self.grid[idx].page_idx
+                        if page then
+                            self:onClose(true)
+                            self.ui.link:addCurrentLocationToStack()
+                            self.ui:handleEvent(Event:new("GotoPage", visible_page_raw(self, page)))
+                            return true
+                        end
+                        break
+                    end
+                end
             end
             -- 5. Thumbnail grid area → native handler.
             return _orig_onTap(self, arg, ges)
@@ -1756,6 +2023,18 @@ local function apply_page_browser()
             if panel_h > 0 and self.dimen
                and ges.pos.y >= (self.dimen.y + self.dimen.h - panel_h) then
                 return true  -- swallow
+            end
+            if self._zen_visible_pages and self.grid and ges.pos then
+                for idx = 1, self.nb_grid_items do
+                    if ges.pos:intersectWith(self.grid[idx].dimen) then
+                        local page = self.grid[idx].page_idx
+                        if page then
+                            self:onThumbnailHold(visible_page_raw(self, page), ges)
+                            return true
+                        end
+                        break
+                    end
+                end
             end
             if _orig_onHold then return _orig_onHold(self, arg, ges) end
         end
@@ -1923,13 +2202,29 @@ local function apply_page_browser()
         end
 
         local _orig_rs_search = ReaderSearch.search
-        function ReaderSearch:search(pattern, origin, regex, case_insensitive)
+        local function regex_search_type(self, search_type)
+            local source_type = search_type
+            if type(source_type) ~= "table" then
+                source_type = self.current_search_type or self.default_search_type
+            end
+            if type(source_type) ~= "table" then
+                return true -- KOReader before search-type tables used a regex boolean.
+            end
+            local whole_word_type = {}
+            for key, value in pairs(source_type) do
+                whole_word_type[key] = value
+            end
+            whole_word_type.regex = true
+            return whole_word_type
+        end
+
+        function ReaderSearch:search(pattern, origin, search_type, case_insensitive)
             -- Only use whole-word regex when substring mode is NOT enabled
             if not is_substring_enabled() then
                 pattern = make_whole_word_regex(pattern)
-                regex = true
+                search_type = regex_search_type(self, search_type)
             end
-            return _orig_rs_search(self, pattern, origin, regex, case_insensitive)
+            return _orig_rs_search(self, pattern, origin, search_type, case_insensitive)
         end
 
         local _orig_rs_findAllText = ReaderSearch.findAllText
@@ -1937,6 +2232,13 @@ local function apply_page_browser()
             -- Only use whole-word regex when substring mode is NOT enabled
             if not is_substring_enabled() then
                 search_text = make_whole_word_regex(search_text)
+                if type(self.current_search_type) == "table" then
+                    local saved_search_type = self.current_search_type
+                    self.current_search_type = regex_search_type(self, saved_search_type)
+                    local result = _orig_rs_findAllText(self, search_text)
+                    self.current_search_type = saved_search_type
+                    return result
+                end
                 self.use_regex = true
             end
             return _orig_rs_findAllText(self, search_text)

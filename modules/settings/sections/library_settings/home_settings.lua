@@ -1747,7 +1747,6 @@ function M.build(ctx)
         elseif id == "quotes" then
             items = build_quotes_items()
         end
-        if items then items._zen_arrange_done_func = function() end end
         return items
     end
 
