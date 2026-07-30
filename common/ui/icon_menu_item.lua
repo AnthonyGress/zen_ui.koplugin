@@ -31,7 +31,7 @@ local function settings_size(size)
     return Screen:scaleBySize(math.floor(size * M.SETTINGS_ROW_SCALE + 0.5))
 end
 
-M.SETTINGS_ROW_HEIGHT = settings_size(64)
+M.SETTINGS_ROW_HEIGHT = settings_size(60)
 M.SETTINGS_ICON_WIDTH = settings_size(54)
 M.SETTINGS_TOGGLE_WIDTH = settings_size(44)
 M.SETTINGS_TOGGLE_HEIGHT = settings_size(22)

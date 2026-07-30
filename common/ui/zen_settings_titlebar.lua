@@ -42,6 +42,12 @@ local function more_icon_path()
     return root and utils.resolveLocalIcon(root .. "/icons/", "more_vertical")
 end
 
+local function plugin_icon_path(icon_name)
+    local root = require("common/plugin_root")
+    local icons_dir = root and root .. "/icons/"
+    return icons_dir and utils.resolveIcon(icons_dir, icon_name)
+end
+
 local function default_status_factory(plugin)
     local settings_page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
     plugin = plugin or rawget(_G, "__ZEN_UI_PLUGIN") or (settings_page and settings_page.plugin)
@@ -190,10 +196,19 @@ function ZenSettingsTitleBar:init()
     self.back_button.skip_paint = self.back_visible ~= true
     table.insert(row, self.back_button)
 
-    table.insert(row, LeftContainer:new{
+    self.title_container = LeftContainer:new{
         dimen = Geom:new{ w = title_width, h = row_height },
         self.title_widget,
-    })
+    }
+    table.insert(row, self.title_container)
+    self.ges_events.TapBackTitle = {
+        GestureRange:new{
+            ges = "tap",
+            range = function()
+                if self.back_visible then return self.title_container.dimen end
+            end,
+        },
+    }
 
     self.search_input = nil
     self.search_frame = nil
@@ -260,7 +275,8 @@ function ZenSettingsTitleBar:init()
 
     self.search_button = nil
     if show_search_button then
-        self.search_button = IconButton:new{
+        self.search_button = ZenIconButton:new{
+            file = plugin_icon_path("quick_search"),
             icon = "appbar.search",
             width = icon_size,
             height = icon_size,
@@ -347,6 +363,12 @@ function ZenSettingsTitleBar:onTapSearch(arg, ges)
         return self.search_input:onTapTextBox(arg, ges)
     end
     return false
+end
+
+function ZenSettingsTitleBar:onTapBackTitle()
+    if not (self.back_visible and self.back_callback) then return false end
+    self.back_callback()
+    return true
 end
 
 function ZenSettingsTitleBar:onGesture(ges)
