@@ -297,6 +297,9 @@ function M.build(ctx)
             },
             {
                 text = _("Hide grouped series"),
+                enabled_func = function()
+                    return config.features.automatic_series_grouping ~= false
+                end,
                 checked_func = function()
                     return config.features.hide_grouped_series == true
                 end,
