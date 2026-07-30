@@ -130,7 +130,12 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
     local content_y = pad
     local grid_x    = content_x
     local grid_y    = content_y + title_h + span
-    local bar_y     = grid_y + grid_h + span
+    local bar_y = pager.getCenteredFooterY(
+        grid_y + grid_h,
+        sh - pad - bar_area_h,
+        bar_area_h,
+        true
+    )
 
     local function paintBar(bb)
         pager.paint(bb, content_x, bar_y, content_w, bar_area_h, cur_page, total_pages, "page_number")

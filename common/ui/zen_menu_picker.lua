@@ -53,7 +53,12 @@ local function showMenuPicker(opts)
     local list_h    = math.max(row_h, sh - overhead)
     local rows_per_page = math.max(1, math.floor(list_h / row_h))
     local page_h    = rows_per_page * row_h
-    local bar_y     = list_y + page_h + span
+    local bar_y = pager.getCenteredFooterY(
+        list_y + page_h,
+        sh - pad - bar_area_h,
+        bar_area_h,
+        true
+    )
     local total_pages = math.max(1, math.ceil(math.max(#items, 1) / rows_per_page))
     local cur_page = 1
 

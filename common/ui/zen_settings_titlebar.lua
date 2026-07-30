@@ -33,15 +33,9 @@ local ZenSettingsTitleBar = InputContainer:extend{
     title = "",
     back_visible = false,
     search_visible = true,
-    more_visible = true,
     query = "",
     search_expanded = false,
 }
-
-local function more_icon_path()
-    local root = require("common/plugin_root")
-    return root and utils.resolveLocalIcon(root .. "/icons/", "more_vertical")
-end
 
 local function zen_icon_path()
     local root = require("common/plugin_root")
@@ -139,7 +133,6 @@ function ZenSettingsTitleBar:init()
     local back_width = button_size
     local show_search = self.search_expanded == true and self.search_visible ~= false
     local show_search_button = self.search_visible ~= false and not show_search
-    local show_more = self.more_visible ~= false
     local title_cap = math.min(Screen:scaleBySize(150), math.floor(self.width * 0.25))
     local title_width = title_cap
     self.action_button = nil
@@ -173,8 +166,12 @@ function ZenSettingsTitleBar:init()
         end
         action_width = self.action_button:getSize().w
     end
-    local trailing_width = (show_more and 2 or 1) * button_size + action_width
+    local trailing_controls = 1 + (self.action and 1 or 0)
+        + (show_search_button and 1 or 0)
+    local trailing_gap = Screen:scaleBySize(4)
+    local trailing_width = button_size + action_width
         + (show_search_button and button_size or 0)
+        + (trailing_controls - 1) * trailing_gap
     if self.title_full_width then
         title_cap = math.max(1,
             self.width - left_padding - right_padding - back_width - title_leading_padding
@@ -312,8 +309,6 @@ function ZenSettingsTitleBar:init()
         table.insert(row, HorizontalSpan:new{ width = available_width })
         self.ges_events.TapSearch = nil
     end
-    if self.action_button then table.insert(row, self.action_button) end
-
     self.search_button = nil
     if show_search_button then
         self.search_button = ZenIconButton:new{
@@ -326,22 +321,8 @@ function ZenSettingsTitleBar:init()
             show_parent = self.show_parent,
             callback = function() return self:openSearch() end,
         }
-        table.insert(row, self.search_button)
     end
 
-    self.more_button = nil
-    if show_more then
-        self.more_button = ZenIconButton:new{
-            file = more_icon_path(),
-            icon = "appbar.menu",
-            width = icon_size,
-            height = icon_size,
-            padding = button_padding,
-            allow_flash = false,
-            show_parent = self.show_parent,
-            callback = function() return true end,
-        }
-    end
     self.close_button = IconButton:new{
         icon = "close",
         width = icon_size,
@@ -351,8 +332,14 @@ function ZenSettingsTitleBar:init()
         show_parent = self.show_parent,
         callback = self.close_callback,
     }
-    if self.more_button then table.insert(row, self.more_button) end
-    table.insert(row, self.close_button)
+    local trailing_buttons = {}
+    if self.action_button then table.insert(trailing_buttons, self.action_button) end
+    if self.search_button then table.insert(trailing_buttons, self.search_button) end
+    table.insert(trailing_buttons, self.close_button)
+    for index, button in ipairs(trailing_buttons) do
+        if index > 1 then table.insert(row, HorizontalSpan:new{ width = trailing_gap }) end
+        table.insert(row, button)
+    end
 
     self.status_widget = nil
     local vertical_group = VerticalGroup:new{}
@@ -471,16 +458,14 @@ function ZenSettingsTitleBar:getHeight()
     return self.dimen.h
 end
 
-function ZenSettingsTitleBar:setState(title, back_visible, search_visible, more_visible)
+function ZenSettingsTitleBar:setState(title, back_visible, search_visible)
     search_visible = search_visible ~= false
-    more_visible = more_visible ~= false
     if self.search_expanded and not search_visible then
         self:closeSearchKeyboard()
         self.search_expanded = false
         self.title = title
         self.back_visible = back_visible == true
         self.search_visible = search_visible
-        self.more_visible = more_visible
         self.query = ""
         self:clear()
         self:init()
@@ -489,12 +474,10 @@ function ZenSettingsTitleBar:setState(title, back_visible, search_visible, more_
     self.title = title
     self.back_visible = back_visible == true
     self.search_visible = search_visible
-    self.more_visible = more_visible
     if self.title_widget then self.title_widget:setText(title) end
     if self.back_button then self.back_button.skip_paint = not self.back_visible end
     if self.root_icon then self.root_icon.skip_paint = self.back_visible end
     if self.search_button then self.search_button.skip_paint = not self.search_visible end
-    if self.more_button then self.more_button.skip_paint = not self.more_visible end
 end
 
 function ZenSettingsTitleBar:setTitle(title)
@@ -545,7 +528,6 @@ function ZenSettingsTitleBar:generateHorizontalLayout()
     if self.search_input then row[#row + 1] = self.search_input end
     if self.search_button then row[#row + 1] = self.search_button end
     if self.action_button then row[#row + 1] = self.action_button end
-    if self.more_button then row[#row + 1] = self.more_button end
     if self.close_button then row[#row + 1] = self.close_button end
     return { row }
 end
@@ -556,7 +538,6 @@ function ZenSettingsTitleBar:generateVerticalLayout()
     if self.search_input then layout[#layout + 1] = { self.search_input } end
     if self.search_button then layout[#layout + 1] = { self.search_button } end
     if self.action_button then layout[#layout + 1] = { self.action_button } end
-    if self.more_button then layout[#layout + 1] = { self.more_button } end
     if self.close_button then layout[#layout + 1] = { self.close_button } end
     return layout
 end

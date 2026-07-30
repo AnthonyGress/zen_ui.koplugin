@@ -41,9 +41,10 @@ return {
     fav_remove   = "\u{F04D2}",  -- mdi-star-outlined
 
     -- read status (context_menu.lua)
-    status       = "\u{F0B64}",  -- mdi-book-open-blank-variant (unread)
-    reading      = "\u{F0B63}",  -- mdi-book-open
-    tbr          = "\u{F0150}",  -- mdi-clock-outline (to-be-read)
+    read_status  = "\u{F00C0}",  -- bookmark
+    status       = "\u{F00BA}",  -- mdi-book-open-blank-variant (unread)
+    reading      = "\u{F14F7}",  -- mdi-book-open
+    tbr          = "\u{F0954}",  -- mdi-clock-outline (to-be-read)
     finished     = "\u{F012C}",  -- mdi-check-circle
 
     -- metadata sort keys (context_menu.lua / collections.lua)
@@ -54,7 +55,7 @@ return {
     keywords     = "\u{F12F7}",  -- mdi-tag-multiple
 
     -- details / info (context_menu.lua / opds.lua)
-    details      = "\u{F02FD}",  -- mdi-information
+    details      = "\u{f05a}",  -- mdi-information
     edit         = "\u{F090C}",  -- mdi-pencil
     label        = "\u{F04F9}",
     icon         = "\u{F02F5}",
@@ -83,10 +84,11 @@ return {
 
     -- Zen UI settings root
     settings_launcher = "\u{F15FC}",
-    settings_quick    = "\u{F0A1A}",
+    settings_quick    = "\u{f0521}",
     settings_library  = "\u{F125F}",
     settings_home     = "\u{F02DE}",
     settings_reader   = "\u{F14F7}",
+    settings_about    = "\u{F064E}",
     widgets           = "\u{F072C}",
     settings_global   = "\u{F484}",
     settings_status   = "\u{F12F0}",

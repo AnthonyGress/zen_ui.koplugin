@@ -554,6 +554,10 @@ function Driver:handleCommand(command)
     if kind == "settings_page_state" then
         local page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
         if not page then return { ok = false, error = "settings page unavailable" } end
+        local left_zone = page._zones and page._zones.zen_pn_left_tap
+        local right_zone = page._zones and page._zones.zen_pn_right_tap
+        local left_range = left_zone and left_zone.gs_range and left_zone.gs_range.range
+        local right_range = right_zone and right_zone.gs_range and right_zone.gs_range.range
         local labels = {}
         local items = {}
         for _i, item in ipairs(page.item_table or {}) do
@@ -584,6 +588,11 @@ function Driver:handleCommand(command)
                 status_identity = tostring(page.title_bar and page.title_bar.status_widget),
                 page = page.page,
                 page_count = page.page_num,
+                pager_x = left_range and left_range.x,
+                pager_y = right_range and right_range.y,
+                pager_width = left_range and right_range
+                    and right_range.x + right_range.w - left_range.x,
+                screen_width = page.width,
                 title_font_size = page.title_bar and page.title_bar.title_widget
                     and page.title_bar.title_widget.face.orig_size or nil,
                 title_bold = page.title_bar and page.title_bar.title_widget
@@ -591,6 +600,7 @@ function Driver:handleCommand(command)
                 search_active = page._search_active == true,
                 has_search_input = page.title_bar and page.title_bar.search_input ~= nil,
                 has_search_button = page.title_bar and page.title_bar.search_button ~= nil,
+                has_more = page.title_bar and page.title_bar.more_button ~= nil,
                 search_text = page.title_bar and page.title_bar.search_input
                     and page.title_bar.search_input:getText() or "",
                 search_focused = page.title_bar and page.title_bar.search_input
@@ -633,11 +643,15 @@ function Driver:handleCommand(command)
         end
         local footer_height = pager.getStyle() == "page_number"
             and pager.PN_FOOTER_H or pager.FOOTER_H
+        local pager_zone = page._zones and page._zones["zen_pn_" .. zone .. "_tap"]
+        local pager_range = pager_zone and pager_zone.gs_range and pager_zone.gs_range.range
         local gesture = {
             ges = "tap",
             pos = Geom:new{
                 x = x,
-                y = height - math.floor(footer_height / 2),
+                y = pager_range
+                    and pager_range.y + math.floor(pager_range.h / 2)
+                    or height - math.floor(footer_height / 2),
                 w = 0,
                 h = 0,
             },
@@ -765,6 +779,7 @@ function Driver:handleCommand(command)
             return { ok = false, error = "arrange page unavailable" }
         end
         local labels = {}
+        local marked_row
         for _i, item in ipairs(widget.item_table or {}) do
             local label = item._zen_arrange_base_text or item.text or ""
             if type(item.text_func) == "function" then
@@ -773,6 +788,13 @@ function Driver:handleCommand(command)
             end
             labels[#labels + 1] = label
         end
+        for _i, row in ipairs(widget.main_content or {}) do
+            if row.index == widget.marked then
+                marked_row = row
+                break
+            end
+        end
+        local marked_frame = marked_row and marked_row[1] and marked_row[1][1]
         return {
             ok = true,
             arrange = {
@@ -791,10 +813,56 @@ function Driver:handleCommand(command)
                 page_count = widget.pages,
                 pagination_visible = widget.page_info
                     and widget.page_info._zen_arrange_footer_visible == true,
+                marked = widget.marked,
+                move_highlighted = marked_frame and marked_frame.invert == true or false,
                 row_style = find_settings_row_style(widget.main_content),
                 standard_style = settings_row_standard(),
                 labels = labels,
             },
+        }
+    end
+    if kind == "arrange_page_hold_item" then
+        local widget = active_arrange_widget()
+        local target_index = tonumber(params.index) or 1
+        for _i, row in ipairs(widget and widget.main_content or {}) do
+            if row.index == target_index and type(row.onHoldTouch) == "function" then
+                return {
+                    ok = row:onHoldTouch() == true,
+                    marked = widget.marked,
+                }
+            end
+        end
+        return { ok = false, error = "arrange item unavailable" }
+    end
+    if kind == "arrange_page_top_tap" then
+        local widget = active_arrange_widget()
+        if not widget then return { ok = false, error = "arrange page unavailable" } end
+        local Device = require("device")
+        local Geom = require("ui/geometry")
+        local FileManager = require("apps/filemanager/filemanager")
+        local menu = FileManager.instance and FileManager.instance.menu
+        local gesture = {
+            ges = "tap",
+            pos = Geom:new{
+                x = math.floor(Device.screen:getWidth() * (tonumber(params.x_ratio) or 0.5)),
+                y = math.floor(Device.screen:getHeight() * (tonumber(params.y_ratio) or 0.01)),
+                w = 0,
+                h = 0,
+            },
+        }
+        local handled = widget:handleEvent(Event:new("Gesture", gesture))
+        local current = active_arrange_widget()
+        local menu_open = menu and menu.menu_container ~= nil
+        if menu_open and params.close_menu == true
+                and type(menu.onCloseFileManagerMenu) == "function" then
+            menu:onCloseFileManagerMenu()
+        end
+        return {
+            ok = handled == true,
+            same_widget = current == widget,
+            marked = current and current.marked,
+            title = current and current.title_bar and current.title_bar.title,
+            menu_open = menu_open,
         }
     end
     if kind == "arrange_page_action" then

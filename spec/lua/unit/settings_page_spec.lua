@@ -17,6 +17,7 @@ describe("Zen settings page", function()
         "ffi/blitbuffer",
         "ui/widget/inputdialog",
         "common/ui/icon_menu_item",
+        "modules/global/patches/menu_top_swipe",
         "modules/settings/zen_settings",
         "common/ui/zen_settings_titlebar",
         "apps/filemanager/filemanager",
@@ -195,6 +196,7 @@ describe("Zen settings page", function()
         local settings = make_page({})
 
         assert.is_true(settings.covers_fullscreen)
+        assert.is_nil(settings.title_bar.more_visible)
     end)
 
     it("restores the parent title when the parent table refreshes on back", function()

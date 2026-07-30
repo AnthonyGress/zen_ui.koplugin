@@ -54,6 +54,84 @@ local function apply_context_menu()
         return button_rows
     end
 
+    local CONTEXT_ICON_COLUMN_WIDTH = Device.screen:scaleBySize(30)
+    local CONTEXT_ICON_GAP = Device.screen:scaleBySize(8)
+
+    local function split_inline_icon(text)
+        local first_byte = text:byte(1)
+        if not first_byte then return nil, text end
+
+        local char_len
+        if first_byte < 0x80 then
+            char_len = 1
+        elseif first_byte < 0xE0 then
+            char_len = 2
+        elseif first_byte < 0xF0 then
+            char_len = 3
+        else
+            char_len = 4
+        end
+
+        local suffix = text:sub(char_len + 1)
+        if suffix:sub(1, 2) ~= "  " then return nil, text end
+        return text:sub(1, char_len), suffix:sub(3)
+    end
+
+    local function align_button_dialog_icons(dialog)
+        local button_rows = dialog and dialog.buttontable and dialog.buttontable.buttons_layout
+        if type(button_rows) ~= "table" then return dialog end
+
+        for _i, row in ipairs(button_rows) do
+            for _j, button in ipairs(row) do
+                local old_label = button.label_widget
+                local label_container = button.label_container
+                if button.text and old_label and label_container and label_container.dimen then
+                    local display_text = button.checked_func and button:getDisplayText() or button.text
+                    local glyph, label = split_inline_icon(display_text)
+                    local face = old_label.face
+                    local fgcolor = old_label.fgcolor
+                    local bold = old_label.bold
+                    local label_width = math.max(1, label_container.dimen.w
+                        - CONTEXT_ICON_COLUMN_WIDTH - CONTEXT_ICON_GAP)
+                    local icon_widget = glyph and TextWidget:new{
+                        text = glyph,
+                        face = face,
+                        fgcolor = fgcolor,
+                        bold = bold,
+                    } or HorizontalSpan:new{ width = 0 }
+                    local text_widget = TextWidget:new{
+                        text = label,
+                        lang = button.lang,
+                        max_width = label_width,
+                        face = face,
+                        fgcolor = fgcolor,
+                        bold = bold,
+                    }
+
+                    old_label:free()
+                    button.label_widget = text_widget
+                    label_container[1] = HorizontalGroup:new{
+                        align = "center",
+                        CenterContainer:new{
+                            dimen = Geom:new{
+                                w = CONTEXT_ICON_COLUMN_WIDTH,
+                                h = label_container.dimen.h,
+                            },
+                            icon_widget,
+                        },
+                        HorizontalSpan:new{ width = CONTEXT_ICON_GAP },
+                        text_widget,
+                    }
+                end
+            end
+        end
+        return dialog
+    end
+
+    local function new_context_menu_dialog(options)
+        return align_button_dialog_icons(ButtonDialog:new(options))
+    end
+
     local function get_title_face_for_textviewer()
         local default_title_face = Font:getFace("x_smalltfont")
         local title_size = default_title_face and default_title_face.orig_size or 20
@@ -427,11 +505,10 @@ local function apply_context_menu()
 
         file_chooser.showSortOrderDialog = function(self_fc, opts)
             local UIManager_sod    = require("ui/uimanager")
-            local ButtonDialog_sod = require("ui/widget/buttondialog")
             local _sod             = require("gettext")
             local cur_rev          = opts.current_reverse or false
             local order_dialog
-            order_dialog = ButtonDialog_sod:new{
+            order_dialog = new_context_menu_dialog{
                 title       = opts.title or _sod("Sort order"),
                 title_align = "center",
                 buttons     = {
@@ -681,7 +758,7 @@ local function apply_context_menu()
                             end,
                         }})
                     end
-                    filter_dialog = ButtonDialog:new{
+                    filter_dialog = new_context_menu_dialog{
                         title = _("Filter by status"),
                         title_align = "center",
                         buttons = apply_button_group_font(fbts),
@@ -714,7 +791,7 @@ local function apply_context_menu()
                     end
                 end
 
-                self_fc.file_dialog = ButtonDialog:new{
+                self_fc.file_dialog = new_context_menu_dialog{
                     buttons = apply_button_group_font(buttons),
                     _added_widgets = { header_widget },
                 }
@@ -1345,7 +1422,7 @@ local function apply_context_menu()
                         file_manager.cutfile = cutfile
                         file_manager:showCopyMoveSelectedFilesDialog(function() end, file)
                     end
-                    action_dialog = ButtonDialog:new{
+                    action_dialog = new_context_menu_dialog{
                         title = _("Paste selected files"),
                         title_align = "center",
                         buttons = apply_button_group_font({{
@@ -1374,7 +1451,7 @@ local function apply_context_menu()
                 end
 
                 if is_home_dir then
-                    edit_dialog = ButtonDialog:new{
+                    edit_dialog = new_context_menu_dialog{
                         buttons = apply_button_group_font({
                             {{
                                 text = "\u{F0192}  " .. C_("File", "Paste"),
@@ -1466,7 +1543,7 @@ local function apply_context_menu()
                     })
                 end
 
-                edit_dialog = ButtonDialog:new{
+                edit_dialog = new_context_menu_dialog{
                     buttons = apply_button_group_font(edit_buttons),
                 }
                 UIManager:show(edit_dialog)
@@ -1478,7 +1555,7 @@ local function apply_context_menu()
             if is_file and is_not_parent_folder then
                 table.insert(buttons, {
                     {
-                        text = "\u{F02FD}  " .. _("Details"),
+                        text = icons.details .. "  " .. _("Details"),
                         align = "left",
                         callback = function()
                             close_dialog()
@@ -1495,7 +1572,7 @@ local function apply_context_menu()
                                 text_type = "book_info",
                                 buttons_table = {
                                     {{
-                                        text = "\u{F02FD} " .. _("Book information"),
+                                        text = icons.details .. " " .. _("Book information"),
                                         font_face = library_font.getFontName(),
                                         callback = function()
                                             UIManager:close(tv)
@@ -1709,7 +1786,7 @@ local function apply_context_menu()
             if is_file and is_not_parent_folder then
                 table.insert(buttons, {
                     {
-                        text = "\u{F0B64}  " .. _("Read status") .. "  " .. submenu_arrow,
+                        text = icons.read_status .. "  " .. _("Read status") .. "  " .. submenu_arrow,
                         align = "left",
                         callback = function()
                             close_dialog()
@@ -1769,14 +1846,14 @@ local function apply_context_menu()
                                 }}
                             end
 
-                            status_dialog = ButtonDialog:new{
+                            status_dialog = new_context_menu_dialog{
                                 title = _("Read status"),
                                 title_align = "center",
                                 buttons = apply_button_group_font({
-                                    statusBtn("\u{F0B64}", _("Unread"), nil),
-                                    statusBtn("\u{F0B63}", _("Reading"), "reading"),
-                                    statusBtn("\u{F0150}", _("To Be Read"), "abandoned"),
-                                    statusBtn("\u{F012C}", _("Finished"), "complete"),
+                                    statusBtn(icons.status, _("Unread"), nil),
+                                    statusBtn(icons.reading, _("Reading"), "reading"),
+                                    statusBtn(icons.tbr, _("To Be Read"), "abandoned"),
+                                    statusBtn(icons.finished, _("Finished"), "complete"),
                                 }),
                             }
                             UIManager:show(status_dialog)
@@ -1852,7 +1929,7 @@ local function apply_context_menu()
                             end,
                         }}
                     end
-                    view_dialog = ButtonDialog:new{
+                    view_dialog = new_context_menu_dialog{
                         title = _("Display mode"),
                         title_align = "center",
                         buttons = apply_button_group_font({
@@ -1927,7 +2004,7 @@ local function apply_context_menu()
                                             })
                                         end,
                                     }})
-                                    sort_dialog = ButtonDialog:new{
+                                    sort_dialog = new_context_menu_dialog{
                                         title = _("Sort library by"),
                                         title_align = "center",
                                         buttons = apply_button_group_font(sort_buttons),
@@ -1997,7 +2074,7 @@ local function apply_context_menu()
                                             end,
                                         }})
                                     end
-                                    sort_dialog = ButtonDialog:new{
+                                    sort_dialog = new_context_menu_dialog{
                                         title = _("Sort folder by"),
                                         title_align = "center",
                                         buttons = apply_button_group_font(sort_buttons),
@@ -2068,7 +2145,7 @@ local function apply_context_menu()
                         }})
                     end
 
-                    filter_dialog = ButtonDialog:new{
+                    filter_dialog = new_context_menu_dialog{
                         title = _("Filter by status"),
                         title_align = "center",
                         buttons = apply_button_group_font(fbts),
@@ -2156,7 +2233,7 @@ local function apply_context_menu()
                     },
                 })
             end
-            self_fc.file_dialog = ButtonDialog:new{
+            self_fc.file_dialog = new_context_menu_dialog{
                 title = dlg_title ~= "" and dlg_title or nil,
                 title_align = "center",
                 buttons = apply_button_group_font(buttons),

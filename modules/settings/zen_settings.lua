@@ -146,7 +146,7 @@ function M.build(plugin)
         IconItem.decorate({
             text = _("About"),
             sub_item_table = general_items,
-        }, icons.details),
+        }, icons.settings_about),
     }
 
     -- Insert banner if an update is already known.

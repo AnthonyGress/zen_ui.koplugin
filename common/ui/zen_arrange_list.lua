@@ -6,6 +6,7 @@ local Button = require("ui/widget/button")
 local CheckMark = require("ui/widget/checkmark")
 local FrameContainer = require("ui/widget/container/framecontainer")
 local Geom = require("ui/geometry")
+local GestureRange = require("ui/gesturerange")
 local HorizontalGroup = require("ui/widget/horizontalgroup")
 local HorizontalSpan = require("ui/widget/horizontalspan")
 local IconWidget = require("ui/widget/iconwidget")
@@ -23,7 +24,9 @@ local _ = require("gettext")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
 local SettingsTitleBar = require("common/ui/zen_settings_titlebar")
+local TopMenu = require("modules/global/patches/menu_top_swipe")
 local ZenToggle = require("common/ui/zen_toggle")
+local pager = require("common/ui/zen_pager")
 local utils = require("common/utils")
 local ArrangeState = require("common/arrange_state")
 
@@ -137,6 +140,63 @@ local function suppress_footer_jump_buttons(sort_widget)
     hide_button_icon(sort_widget.footer_last_down)
 end
 
+local function can_use_arrange_pager(sort_widget)
+    return (sort_widget.pages or 0) > 1
+        and (sort_widget.marked or 0) == 0
+end
+
+local function update_arrange_pager_zones(sort_widget, paint_y, footer_h)
+    for _i, zone in ipairs(sort_widget._zen_arrange_pager_zones or {}) do
+        zone.screen_zone.ratio_y = paint_y / Device.screen:getHeight()
+        local registered = sort_widget._zones and sort_widget._zones[zone.id]
+        local range = registered and registered.gs_range and registered.gs_range.range
+        if range then
+            range.y = paint_y
+            range.h = footer_h
+        end
+    end
+end
+
+local function install_arrange_pager_zones(sort_widget, bar_x, bar_w, footer_h)
+    if sort_widget._zen_arrange_pager_zones then return end
+    local screen_w = Device.screen:getWidth()
+    local screen_h = Device.screen:getHeight()
+    local footer_y = sort_widget.dimen.y + sort_widget.dimen.h - footer_h
+    local chevron_w = pager.CHEV_W
+    local function change_page(diff)
+        if not can_use_arrange_pager(sort_widget) then return end
+        local pages = sort_widget.pages
+        local target = ((sort_widget.show_page - 1 + diff) % pages) + 1
+        sort_widget:onGoToPage(target)
+        return true
+    end
+    sort_widget._zen_arrange_pager_zones = {
+        {
+            id = "zen_arrange_pager_left_tap",
+            ges = "tap",
+            screen_zone = {
+                ratio_x = bar_x / screen_w,
+                ratio_y = footer_y / screen_h,
+                ratio_w = chevron_w / screen_w,
+                ratio_h = footer_h / screen_h,
+            },
+            handler = function() return change_page(-1) end,
+        },
+        {
+            id = "zen_arrange_pager_right_tap",
+            ges = "tap",
+            screen_zone = {
+                ratio_x = (bar_x + bar_w - chevron_w) / screen_w,
+                ratio_y = footer_y / screen_h,
+                ratio_w = chevron_w / screen_w,
+                ratio_h = footer_h / screen_h,
+            },
+            handler = function() return change_page(1) end,
+        },
+    }
+    sort_widget:registerTouchZones(sort_widget._zen_arrange_pager_zones)
+end
+
 local function sync_pagination_footer(sort_widget)
     if not (sort_widget and sort_widget.page_info) then return end
 
@@ -155,7 +215,40 @@ local function sync_pagination_footer(sort_widget)
     page_info._zen_arrange_footer_visible = show_footer
 
     if page_info._zen_arrange_paint_to == nil then
-        page_info._zen_arrange_paint_to = page_info.paintTo
+        local original_paint_to = page_info.paintTo
+        local bar_x, bar_w = pager.getFooterGeometry(
+            sort_widget.dimen.x,
+            sort_widget.dimen.w
+        )
+        install_arrange_pager_zones(sort_widget, bar_x, bar_w, page_info:getSize().h)
+        page_info._zen_arrange_paint_to = function(self, bb, x, y)
+            local perpage = tonumber(sort_widget.items_per_page) or 0
+            local row_height = (tonumber(sort_widget.item_height) or 0)
+                + (tonumber(sort_widget.item_margin) or 0)
+            local title_height = sort_widget.title_bar and sort_widget.title_bar:getHeight() or 0
+            local content_bottom = sort_widget.dimen.y + title_height + perpage * row_height
+            local paint_y = pager.getCenteredFooterY(
+                content_bottom,
+                y,
+                self:getSize().h,
+                perpage > 0 and row_height > 0
+            )
+            if not can_use_arrange_pager(sort_widget) then
+                return original_paint_to(self, bb, x, paint_y)
+            end
+            local footer_h = self:getSize().h
+            update_arrange_pager_zones(sort_widget, paint_y, footer_h)
+            pager.paint(
+                bb,
+                bar_x,
+                paint_y,
+                bar_w,
+                footer_h,
+                sort_widget.show_page,
+                sort_widget.pages,
+                "page_number"
+            )
+        end
     end
 
     local content = sort_widget[1] and sort_widget[1][1]
@@ -333,7 +426,7 @@ local function rebuild_icon_row(row)
             },
         },
     }
-    row[1].invert = row.invert
+    frame.invert = row.invert
 end
 
 local function is_toggle_tap(row, pos)
@@ -546,7 +639,6 @@ local function configure_title_bar(sort_widget, opts)
         title = sort_widget.title,
         back_visible = true,
         search_visible = false,
-        more_visible = false,
         title_full_width = true,
         action = default_action,
         show_parent = sort_widget,
@@ -564,6 +656,49 @@ local function configure_title_bar(sort_widget, opts)
     sort_widget.onCloseWidget = function(self, ...)
         title_bar:clearStatusRefresh()
         if orig_onCloseWidget then return orig_onCloseWidget(self, ...) end
+    end
+end
+
+local function install_top_menu_gestures(sort_widget)
+    if not sort_widget or sort_widget._zen_top_menu_gestures then return end
+    sort_widget._zen_top_menu_gestures = true
+    sort_widget.ges_events.Tap = {
+        GestureRange:new{
+            ges = "tap",
+            range = Geom:new{
+                x = sort_widget.dimen.x,
+                y = sort_widget.dimen.y,
+                w = sort_widget.dimen.w,
+                h = TopMenu.getTapHeight(sort_widget.title_bar),
+            },
+        },
+    }
+
+    local original_handle_event = sort_widget.handleEvent
+    sort_widget.handleEvent = function(self, event)
+        if event.handler == "onGesture" then
+            local gesture = event.args[1]
+            if gesture and gesture.ges == "tap"
+                    and not TopMenu.isInsideHeaderControl(self.title_bar, gesture.pos) then
+                local handled = TopMenu.handleTap(self.title_bar, gesture)
+                if handled ~= nil then return handled end
+            end
+        end
+        return original_handle_event(self, event)
+    end
+
+    local original_on_tap = sort_widget.onTap
+    sort_widget.onTap = function(self, arg, gesture)
+        local handled = TopMenu.handleTap(self.title_bar, gesture)
+        if handled ~= nil then return handled end
+        if original_on_tap then return original_on_tap(self, arg, gesture) end
+    end
+
+    local original_on_swipe = sort_widget.onSwipe
+    sort_widget.onSwipe = function(self, arg, gesture)
+        local handled = TopMenu.handleSwipe(gesture)
+        if handled ~= nil then return handled end
+        if original_on_swipe then return original_on_swipe(self, arg, gesture) end
     end
 end
 
@@ -881,6 +1016,7 @@ show_submenu = function(title, items, refresh, opts)
             return true
         end,
     })
+    install_top_menu_gestures(sort_widget)
     apply_settings_row_metrics(sort_widget)
     sort_widget:_populateItems()
     suppress_page_centering(sort_widget)
@@ -1059,6 +1195,7 @@ function M.show(opts)
     end
 
     configure_title_bar(sort_widget, title_opts)
+    install_top_menu_gestures(sort_widget)
     apply_settings_row_metrics(sort_widget)
     sort_widget:_populateItems()
     suppress_page_centering(sort_widget)

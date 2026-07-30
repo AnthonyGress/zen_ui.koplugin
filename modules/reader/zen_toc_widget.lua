@@ -154,6 +154,12 @@ function ZenTocWidget:init()
     -- Footer bar geometry (shared by paintTo and the page_number tap zones).
     local BAR_W = math.floor(MODAL_W * 0.78)
     local BAR_X = math.floor((MODAL_W - BAR_W) / 2)   -- offset from modal left
+    local BAR_Y = pager.getCenteredFooterY(
+        LIST_Y + list_h,
+        MODAL_Y + MODAL_H - SCROLLBAR_H,
+        SCROLLBAR_H,
+        needs_bar
+    )
 
     self._L = {
         sw = sw, sh = sh,
@@ -167,7 +173,7 @@ function ZenTocWidget:init()
         dot_diam = DOT_DIAM, dot_gap = DOT_GAP,
         scrollbar_h = SCROLLBAR_H,
         style   = toc_style,
-        bar_w   = BAR_W,   bar_x   = BAR_X,
+        bar_w   = BAR_W,   bar_x   = BAR_X, bar_y = BAR_Y,
         close_x = CLOSE_X, close_y = CLOSE_Y,
         close_w = CLOSE_W, close_h = TITLE_H,
     }
@@ -213,8 +219,11 @@ function ZenTocWidget:_footerZone(p)
     if L.style ~= "page_number" or self._nb_pages <= 1 then return nil end
     local bar_left  = L.modal_x + L.bar_x
     local bar_right = bar_left + L.bar_w
-    local bar_top   = L.modal_y + L.modal_h - L.scrollbar_h
-    if p.y < bar_top or p.x < bar_left or p.x >= bar_right then return nil end
+    local bar_top   = L.bar_y
+    if p.y < bar_top or p.y >= bar_top + L.scrollbar_h
+            or p.x < bar_left or p.x >= bar_right then
+        return nil
+    end
     if p.x < bar_left + pager.CHEV_W then return "left" end
     if p.x >= bar_right - pager.CHEV_W then return "right" end
     return "center"
@@ -374,7 +383,7 @@ function ZenTocWidget:paintTo(bb, x, y)
     -- Only rendered when there is more than one page of entries.
     -- -----------------------------------------------------------------------
     if self._nb_pages > 1 then
-        local scrollbar_top = my + L.modal_h - L.scrollbar_h
+        local scrollbar_top = y + L.bar_y
         pager.paint(bb, mx + L.bar_x, scrollbar_top, L.bar_w, L.scrollbar_h,
             self._toc_page, self._nb_pages)
     end

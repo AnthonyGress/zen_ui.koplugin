@@ -10,6 +10,7 @@ local _ = require("gettext")
 local ArrangeState = require("common/arrange_state")
 local IconItem = require("common/ui/icon_menu_item")
 local SettingsTitleBar = require("common/ui/zen_settings_titlebar")
+local TopMenu = require("modules/global/patches/menu_top_swipe")
 local zen_settings = require("modules/settings/zen_settings")
 
 local M = {}
@@ -105,54 +106,6 @@ end
 
 local ZenSettingsPage = Menu:extend{}
 
-local function is_near_header_control(title_bar, pos)
-    if not (title_bar and pos and pos.x and pos.y) then return false end
-    local screen = Device.screen
-    local padding = type(screen.scaleBySize) == "function" and screen:scaleBySize(8) or 8
-
-    local function visible_dimen(control)
-        if not control or control.skip_paint then return false end
-        local dimen = control.dimen
-        if dimen and dimen.x and dimen.y and dimen.w and dimen.h then return dimen end
-    end
-
-    local function is_near(control)
-        local dimen = visible_dimen(control)
-        return dimen
-            and pos.x >= dimen.x - padding and pos.x < dimen.x + dimen.w + padding
-            and pos.y >= dimen.y - padding and pos.y < dimen.y + dimen.h + padding
-    end
-
-    if is_near(title_bar.back_button)
-        or is_near(title_bar.search_button)
-        or is_near(title_bar.search_frame)
-        or is_near(title_bar.action_button)
-        or is_near(title_bar.more_button)
-        or is_near(title_bar.close_button) then
-        return true
-    end
-
-    local min_x, max_x, max_y
-    local right_controls = {
-        title_bar.search_button,
-        title_bar.search_frame,
-        title_bar.action_button,
-        title_bar.more_button,
-        title_bar.close_button,
-    }
-    for control_index = 1, 5 do
-        local control = right_controls[control_index]
-        local dimen = visible_dimen(control)
-        if dimen then
-            min_x = min_x and math.min(min_x, dimen.x) or dimen.x
-            max_x = max_x and math.max(max_x, dimen.x + dimen.w) or dimen.x + dimen.w
-            max_y = max_y and math.max(max_y, dimen.y + dimen.h) or dimen.y + dimen.h
-        end
-    end
-    return min_x and pos.x >= min_x - padding and pos.x < max_x + padding
-        and pos.y >= 0 and pos.y < max_y + padding
-end
-
 function ZenSettingsPage:_resolveSubItems(item)
     if type(item.sub_item_table_func) == "function" then
         local ok, items = pcall(item.sub_item_table_func, self)
@@ -207,20 +160,7 @@ function ZenSettingsPage:_focusSearchInput()
 end
 
 function ZenSettingsPage:openKoreaderMenu()
-    local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
-    local filemanager_menu = ok_fm and FileManager.instance and FileManager.instance.menu
-    if filemanager_menu and type(filemanager_menu.onShowMenu) == "function" then
-        filemanager_menu:onShowMenu()
-        return true
-    end
-
-    local ok_rui, ReaderUI = pcall(require, "apps/reader/readerui")
-    local reader_menu = ok_rui and ReaderUI.instance and ReaderUI.instance.menu
-    if reader_menu and type(reader_menu.onShowMenu) == "function" then
-        reader_menu:onShowMenu()
-        return true
-    end
-    return false
+    return TopMenu.open()
 end
 
 function ZenSettingsPage:init()
@@ -281,7 +221,7 @@ function ZenSettingsPage:handleEvent(event)
 end
 
 function ZenSettingsPage:onTap(arg, ges_ev)
-    if is_near_header_control(self.title_bar, ges_ev and ges_ev.pos) then return true end
+    if TopMenu.isNearHeaderControl(self.title_bar, ges_ev and ges_ev.pos) then return true end
     if Menu.onTap then return Menu.onTap(self, arg, ges_ev) end
 end
 

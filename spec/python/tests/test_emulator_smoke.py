@@ -121,6 +121,7 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             assert settings.get("search_focused") is False
             assert settings.get("has_search_input") is False
             assert settings.get("has_search_button") is True
+            assert settings.get("has_more") is False
             assert settings.get("shortcuts_enabled") is False
             modal_enter = driver.command("settings_modal_enter_behavior")
             assert modal_enter.get("dismissed") is True
@@ -205,9 +206,18 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             )["ok"] is True
             settings = driver.command("settings_page_state")["settings"]
             assert settings.get("page_count", 1) > 1
+            pager_x = settings.get("pager_x")
+            pager_y = settings.get("pager_y")
+            pager_width = settings.get("pager_width")
+            assert isinstance(pager_y, (int, float))
+            assert pager_width == int(settings.get("screen_width", 0) * 0.92)
             footer = driver.command("settings_page_footer_tap", zone="right")
             assert footer.get("ok") is True, footer
             assert footer.get("page") == 2
+            settings = driver.command("settings_page_state")["settings"]
+            assert settings.get("pager_x") == pager_x
+            assert settings.get("pager_y") == pager_y
+            assert settings.get("pager_width") == pager_width
             assert driver.command(
                 "settings_page_search", query="quotes"
             )["ok"] is True
@@ -260,6 +270,18 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             assert arrange.get("pagination_visible") is False
             assert arrange.get("row_style") == arrange.get("standard_style")
             assert arrange.get("row_style") == search_row_style
+            assert driver.command(
+                "arrange_page_hold_item", index=1
+            ).get("ok") is True
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange.get("marked") == 1
+            assert arrange.get("move_highlighted") is True
+            assert driver.command(
+                "arrange_page_hold_item", index=1
+            ).get("ok") is True
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange.get("marked") == 0
+            assert arrange.get("move_highlighted") is False
             driver.screenshot(arrange_screenshot)
             assert arrange_screenshot.stat().st_size > 0
             if str(arrange.get("title", "")).startswith("Buttons"):
@@ -392,6 +414,25 @@ def test_settings_page_keeps_enabled_status_bar_at_top() -> None:
             assert arrange.get("status_visible") is True
             assert arrange.get("status_height") == arrange.get("filemanager_status_height")
             assert settings_status_y == arrange.get("filemanager_status_y")
+            top_right = driver.command(
+                "arrange_page_top_tap", x_ratio=0.97, y_ratio=0.01
+            )
+            assert top_right.get("ok") is True
+            assert top_right.get("same_widget") is True
+            assert top_right.get("title") == arrange.get("title")
+            assert top_right.get("marked") == 0
+            assert top_right.get("menu_open") is False
+            top_center = driver.command(
+                "arrange_page_top_tap",
+                x_ratio=0.5,
+                y_ratio=0.01,
+                close_menu=True,
+            )
+            assert top_center.get("ok") is True
+            assert top_center.get("same_widget") is True
+            assert top_center.get("title") == arrange.get("title")
+            assert top_center.get("marked") == 0
+            assert top_center.get("menu_open") is True
             status_identity = arrange.get("status_identity")
             assert driver.command("refresh_clock")["ok"] is True
             deadline = time.monotonic() + 5

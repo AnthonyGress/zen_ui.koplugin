@@ -7,6 +7,9 @@ describe("Zen menu picker", function()
     local device_is_touch
     local back_inverted
     local closed
+    local pager_x
+    local pager_y
+    local pager_w
 
     local module_names = {
         "gettext",
@@ -63,6 +66,9 @@ describe("Zen menu picker", function()
         device_is_touch = false
         back_inverted = nil
         closed = 0
+        pager_x = nil
+        pager_y = nil
+        pager_w = nil
 
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("device", {
@@ -116,7 +122,15 @@ describe("Zen menu picker", function()
             CHEV_W = 20,
             PN_FOOTER_H = 30,
             getHoldSkip = function() return "ends" end,
-            paint = function() end,
+            getCenteredFooterY = function(content_bottom, footer_y, footer_h)
+                local gap_h = footer_y + footer_h - content_bottom
+                return content_bottom + math.floor((gap_h - footer_h) / 2)
+            end,
+            paint = function(_bb, x, y, w)
+                pager_x = x
+                pager_y = y
+                pager_w = w
+            end,
         })
         ZenSpec.unload("common/ui/zen_menu_picker")
     end)
@@ -188,5 +202,23 @@ describe("Zen menu picker", function()
         assert.is_true(shown:onFocusMove({ 0, -1 }))
         assert.is_true(shown:onPress())
         assert.are.equal(1, closed)
+    end)
+
+    it("keeps a centered pager at the same height on every page", function()
+        local items = {}
+        for item_index = 1, 15 do
+            items[item_index] = { text = "Item " .. tostring(item_index) }
+        end
+        require("common/ui/zen_menu_picker"){ items = items }
+
+        shown:paintTo({ paintRect = function() end }, 0, 0)
+        local first_page_y = pager_y
+        shown:onMenuPickerPage(1)
+        shown:paintTo({ paintRect = function() end }, 0, 0)
+
+        assert.are.equal(10, pager_x)
+        assert.are.equal(743, first_page_y)
+        assert.are.equal(580, pager_w)
+        assert.are.equal(first_page_y, pager_y)
     end)
 end)
