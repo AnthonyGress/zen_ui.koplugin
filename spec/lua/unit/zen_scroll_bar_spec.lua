@@ -1,7 +1,7 @@
 describe("Zen scroll bar", function()
     local Menu
     local shown
-    local centered_content_bottom
+    local painted_y
     local saved_modules
 
     local module_names = {
@@ -23,13 +23,16 @@ describe("Zen scroll bar", function()
         end
     end
 
-    local function new_menu(name)
+    local function new_menu(name, values)
         local menu = {
             name = name,
             page = 1,
             page_num = 3,
             dimen = { x = 0, y = 0, w = 600, h = 800 },
         }
+        for key, value in pairs(values or {}) do
+            menu[key] = value
+        end
         setmetatable(menu, { __index = Menu })
         Menu.init(menu)
         return menu
@@ -41,7 +44,7 @@ describe("Zen scroll bar", function()
             saved_modules[name] = package.loaded[name] or false
         end
         shown = nil
-        centered_content_bottom = nil
+        painted_y = nil
         Menu = {
             init = function(self)
                 self.page_info = { resetLayout = function() end }
@@ -61,24 +64,21 @@ describe("Zen scroll bar", function()
         })
         ZenSpec.replace("ui/geometry", { new = function(_self, values) return values end })
         ZenSpec.replace("ui/widget/menu", Menu)
-        ZenSpec.replace("ui/size", { line = { thin = 1 } })
+        ZenSpec.replace("ui/size", { padding = { large = 10 } })
         ZenSpec.replace("ui/uimanager", {
             show = function(_self, widget) shown = widget end,
             close = function() end,
         })
         ZenSpec.replace("common/ui/zen_pager", {
             CHEV_W = 40,
+            CHEV_HIT_W = 72,
             FOOTER_H = 32,
             PN_FOOTER_H = 40,
             setPlugin = function() end,
             getFooterGeometry = function() return 24, 552 end,
             getStyle = function() return "page_number" end,
-            getCenteredFooterY = function(content_bottom, footer_y)
-                centered_content_bottom = content_bottom
-                return footer_y
-            end,
             getHoldSkip = function() return "10" end,
-            paint = function() end,
+            paint = function(_bb, _x, y) painted_y = y end,
         })
         ZenSpec.replace("common/ui/zen_dialog", function(options)
             options.onShowKeyboard = function() end
@@ -113,19 +113,54 @@ describe("Zen scroll bar", function()
         assert.are.equal("Go to page", shown.title)
     end)
 
-    it("uses list geometry after switching from mosaic mode", function()
-        local filemanager = new_menu("filemanager")
-        filemanager.display_mode_type = "list"
-        filemanager.perpage = 10
-        filemanager.files_per_page = 10
-        filemanager.item_dimen = { h = 50 }
-        filemanager.item_height = 50
-        -- These fields are retained from the prior mosaic layout.
-        filemanager.nb_rows = 3
-        filemanager.item_margin = 10
+    it("keeps List and Mosaic Authors pagination at the same height", function()
+        local list = new_menu("authors", {
+            covers_fullscreen = true,
+            is_borderless = true,
+            title_bar_fm_style = true,
+            display_mode_type = "list",
+            item_group = {
+                getSize = function() return { h = 520 } end,
+            },
+        })
+        local mosaic = new_menu("authors", {
+            covers_fullscreen = true,
+            is_borderless = true,
+            title_bar_fm_style = true,
+            display_mode_type = "mosaic",
+            item_margin = 10,
+            item_group = {
+                getSize = function() return { h = 320 } end,
+            },
+        })
 
-        filemanager.page_info.paintTo(nil, nil, 0, 760)
+        local list_area_y = list.dimen.h - list.page_info:getSize().h
+        list.page_info.paintTo(nil, nil, 0, list_area_y)
+        local list_y = painted_y
+        local mosaic_area_y = mosaic.dimen.h - mosaic.page_info:getSize().h
+        mosaic.page_info.paintTo(nil, nil, 0, mosaic_area_y)
 
-        assert.are.equal(511, centered_content_bottom)
+        assert.are.equal(60, list.page_info:getSize().h)
+        assert.are.equal(60, mosaic.page_info:getSize().h)
+        assert.are.equal(750, list_y)
+        assert.are.equal(list_y, painted_y)
+    end)
+
+    it("uses hitboxes wider than the visible chevron slots", function()
+        local authors = new_menu("authors", {
+            covers_fullscreen = true,
+            is_borderless = true,
+            title_bar_fm_style = true,
+        })
+        local left = find_zone(authors, "zen_pn_left_tap")
+        local right = find_zone(authors, "zen_pn_right_tap")
+        local center = find_zone(authors, "zen_pn_center_tap")
+
+        assert.are.equal(72 / 600, left.screen_zone.ratio_w)
+        assert.are.equal((24 + 552 - 72) / 600, right.screen_zone.ratio_x)
+        assert.are.equal((24 + 72) / 600, center.screen_zone.ratio_x)
+        assert.are.equal((552 - 144) / 600, center.screen_zone.ratio_w)
+        assert.are.equal(740 / 800, left.screen_zone.ratio_y)
+        assert.are.equal(60 / 800, left.screen_zone.ratio_h)
     end)
 end)

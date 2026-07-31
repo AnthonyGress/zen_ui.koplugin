@@ -25,6 +25,7 @@ M.DOT_DIAM    = Screen:scaleBySize(10)
 M.DOT_GAP     = Screen:scaleBySize(12)
 M.BAR_PAD     = Screen:scaleBySize(5)
 M.CHEV_W      = Screen:scaleBySize(60)
+M.CHEV_HIT_W  = Screen:scaleBySize(96)
 M.PN_ICON_SZ  = Screen:scaleBySize(36)
 M.FOOTER_H    = math.max(M.BAR_H, M.DOT_DIAM) + M.BAR_PAD * 2
 M.PN_FOOTER_H = math.max(M.FOOTER_H, M.PN_ICON_SZ + Screen:scaleBySize(6))
