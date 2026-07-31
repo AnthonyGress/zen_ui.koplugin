@@ -367,12 +367,12 @@ function CoverUtils.genCover(filepath, target_w, target_h, no_fallback, metadata
 end
 
 -- ============================================================
--- Scale a real cover to target dimensions while preserving aspect ratio
+-- Render a real cover with the same scale-and-crop policy as library and Home.
 -- ============================================================
 
-function CoverUtils.scaleCover(cover_bb, src_w, src_h, target_w, target_h)
-    local scaled_bb = cover_bb:scale(target_w, target_h)
-    return scaled_bb, target_w, target_h
+function CoverUtils.scaleCover(cover_bb, _src_w, _src_h, target_w, target_h, cache_key)
+    if not cover_bb then return nil end
+    return RenderCache:render(cache_key or tostring(cover_bb), cover_bb, target_w, target_h)
 end
 -- ============================================================
 -- Explicit cover file detection and loading
@@ -848,10 +848,10 @@ function CoverUtils.makeCover(path, chooser, options)
                         and bookinfo.cover_fetched and not bookinfo.ignore_cover then
                 local scaled_bb = CoverUtils.scaleCover(
                     bookinfo.cover_bb, bookinfo.cover_w, bookinfo.cover_h,
-                    final_w, final_h)
-                local need_copy = options.need_copy == true
-                local cover_bb = need_copy and scaled_bb:copy() or scaled_bb
-                return cover_bb, final_w, final_h, "single", "real_cover"
+                    final_w, final_h, path)
+                if scaled_bb then
+                    return scaled_bb, final_w, final_h, "single", "real_cover"
+                end
             end
         end
 

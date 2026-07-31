@@ -1751,6 +1751,10 @@ function M.build(ctx)
     end
 
     open_widget_settings = function(id)
+        local settings_page = require("modules/settings/zen_settings_page")
+        local standalone_route = settings_page.rememberStandaloneArrangeRoute({
+            { text = _("Home"), occurrence = 1 },
+        }, _("Widgets"), { id })
         local items = build_widget_settings_items(id)
         if type(items) ~= "table" or #items == 0 then
             arrange_widgets()
@@ -1759,7 +1763,18 @@ function M.build(ctx)
         require("common/ui/zen_arrange_list").show{
             title = component_label(id),
             item_table = items,
+            allow_arrange = false,
             hide_footer_cancel = true,
+            back_callback = standalone_route and function()
+                settings_page.rememberStandaloneArrangeRoute({
+                    { text = _("Home"), occurrence = 1 },
+                }, _("Widgets"), {})
+                UIManager:nextTick(function()
+                    local plugin = ctx.plugin or rawget(_G, "__ZEN_UI_PLUGIN")
+                    if plugin then settings_page.show(plugin) end
+                end)
+                return true
+            end or nil,
         }
         return true
     end

@@ -1613,8 +1613,16 @@ function M.show(opts)
         sort_widget.orig_item_table = nil
         return orig_on_close(sort_widget)
     end
-    sort_widget.onClose = sort_widget._zen_arrange_close_all
-    sort_widget.onCancelOrClose = sort_widget._zen_arrange_close_all
+    local close_and_go_back
+    if type(opts.back_callback) == "function" then
+        close_and_go_back = function()
+            if sort_widget._zen_arrange_closing then return true end
+            sort_widget:_zen_arrange_close_all()
+            return opts.back_callback()
+        end
+    end
+    sort_widget.onClose = close_and_go_back or sort_widget._zen_arrange_close_all
+    sort_widget.onCancelOrClose = sort_widget.onClose
     local settings_resume
     if not menu_mode and rawget(_G, "__ZEN_UI_SETTINGS_PAGE") then
         local ok_settings_page, settings_page = pcall(require, "modules/settings/zen_settings_page")
@@ -1627,8 +1635,9 @@ function M.show(opts)
         add_title = opts.add_title,
         add_item_table = opts.add_item_table,
         close_arrange = sort_widget._zen_arrange_close_all,
-        back_callback = sort_widget._zen_arrange_close_all,
+        back_callback = close_and_go_back or sort_widget._zen_arrange_close_all,
         back_hold_callback = function()
+            if close_and_go_back then return close_and_go_back() end
             sort_widget._zen_arrange_close_all()
             if not menu_mode then back_to_settings_root() end
             return true

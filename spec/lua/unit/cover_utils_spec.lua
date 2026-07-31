@@ -25,6 +25,49 @@ describe("cover utility policy", function()
         assert.are.same({ 60, 150 }, { CoverUtils.fitDims(100, 150, 80, 200) })
     end)
 
+    it("uses the shared crop renderer for real single-book covers", function()
+        local source = {}
+        local render_request
+        ZenSpec.replace("bookinfomanager", {
+            getBookInfo = function()
+                return {
+                    cover_bb = source,
+                    cover_w = 120,
+                    cover_h = 80,
+                    has_cover = true,
+                    cover_fetched = true,
+                }
+            end,
+        })
+        ZenSpec.replace("common/cover_render_cache", {
+            get = function() end,
+            put = function() end,
+            render = function(_self, cache_key, cover_bb, width, height)
+                render_request = {
+                    cache_key = cache_key,
+                    cover_bb = cover_bb,
+                    width = width,
+                    height = height,
+                }
+                return "cropped-cover"
+            end,
+        })
+        ZenSpec.unload("common/cover_utils")
+        CoverUtils = require("common/cover_utils")
+
+        local cover_bb, width, height, mode, kind = CoverUtils.makeCover(
+            "/landscape.epub", nil, { is_folder = false, width = 100, height = 150 })
+
+        assert.are.equal("cropped-cover", cover_bb)
+        assert.are.same({
+            cache_key = "/landscape.epub",
+            cover_bb = source,
+            width = 100,
+            height = 150,
+        }, render_request)
+        assert.are.same({ 100, 150, "single", "real_cover" }, { width, height, mode, kind })
+    end)
+
     it("describes each empty home-book source", function()
         assert.are.equal("Start reading a book to fill this space.",
             CoverUtils.getEmptyPlaceholderText("recently_read"))

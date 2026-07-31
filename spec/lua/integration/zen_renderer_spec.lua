@@ -104,8 +104,17 @@ describe("Zen renderer", function()
         })
         ZenSpec.replace("ui/widget/textboxwidget", {
             new = function(_self, values)
-                folder_name_labels[#folder_name_labels + 1] = values
+                if values.height then
+                    folder_name_labels[#folder_name_labels + 1] = values
+                end
                 values.dimen = {}
+                local text_length = #(values.text or "")
+                local line_count = text_length > 100 and 3 or (text_length > 20 and 2 or 1)
+                values.vertical_string_list = {}
+                for line = 1, line_count do
+                    values.vertical_string_list[line] = {}
+                end
+                values.getLineHeight = function() return 8 end
                 values._updateLayout = function(self)
                     self._bb = { getHeight = function() return 8 end }
                 end
@@ -228,7 +237,7 @@ describe("Zen renderer", function()
         ZenSpec.replace("modules/filebrowser/patches/library_font", {
             getFontName = function() return "cfont" end,
             getBaseSize = function() return 18 end,
-            getFace = function() return {} end,
+            getFace = function(size) return { size = size } end,
             scaleValue = function(value) return value end,
         })
         ZenSpec.replace("ui/widget/filechooser", { _updateItemsBuildUI = stock_builder })
@@ -378,6 +387,13 @@ describe("Zen renderer", function()
         assert.are.equal(3, text_target.x)
         assert.are.equal(4, text_target.y)
         assert.are.equal(0, text_target.color)
+
+        local two_line_menu = folder_menu("A folder name that wraps cleanly")
+        MosaicMenu._updateItemsBuildUI(two_line_menu)
+        local two_line_label = folder_name_labels[#folder_name_labels]
+        assert.are.equal(19, two_line_label.face.size)
+        assert.are.equal(2, #two_line_label.vertical_string_list)
+        assert.are.equal(16, two_line_label.height)
 
         _G.__ZEN_UI_PLUGIN.config.browser_folder_cover.name_opaque = false
         local translucent_menu = folder_menu()

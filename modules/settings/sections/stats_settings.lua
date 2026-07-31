@@ -309,6 +309,11 @@ function M.build(ctx)
     end
 
     open_widget_settings = function(id)
+        local settings_page = require("modules/settings/zen_settings_page")
+        local standalone_route = settings_page.rememberStandaloneArrangeRoute({
+            { text = _("Extras"), occurrence = 1 },
+            { text = _("Stats"), occurrence = 1 },
+        }, _("Widgets"), { id })
         local settings = StatsSettings.load()
         local items
         if id == "trend_graph" then
@@ -325,7 +330,18 @@ function M.build(ctx)
         require("common/ui/zen_arrange_list").show{
             title = label_for(id),
             item_table = items,
+            allow_arrange = false,
             hide_footer_cancel = true,
+            back_callback = standalone_route and function()
+                settings_page.rememberStandaloneArrangeRoute({
+                    { text = _("Extras"), occurrence = 1 },
+                    { text = _("Stats"), occurrence = 1 },
+                }, _("Widgets"), {})
+                UIManager:nextTick(function()
+                    if plugin then settings_page.show(plugin) end
+                end)
+                return true
+            end or nil,
         }
         return true
     end

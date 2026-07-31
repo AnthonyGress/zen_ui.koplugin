@@ -869,6 +869,22 @@ function M.noteArrangeRoute(resume)
     end
 end
 
+function M.rememberStandaloneArrangeRoute(path, opener_text, arrange_path)
+    if rawget(_G, "__ZEN_UI_SETTINGS_PAGE") or type(path) ~= "table"
+            or type(opener_text) ~= "string" then
+        return false
+    end
+    resume_state = {
+        closed_at = os.time(),
+        path = copy_resume_path(path),
+        arrange = {
+            opener = { text = opener_text, occurrence = 1 },
+            path = copy_array(arrange_path),
+        },
+    }
+    return true
+end
+
 M.Page = ZenSettingsPage
 
 return M

@@ -263,9 +263,8 @@ local function apply_zen_renderer()
             label_h - 2 * badge_probe:getSize().h - 2 * label_pad_v)
         badge_probe:free()
 
-        local max_font_size = library_font.scaleValue(25)
+        local max_font_size = library_font.getBaseSize() + 1
         local min_font_size = library_font.scaleValue(14)
-        local text_w = math.max(1, label_w - 2 * Screen:scaleBySize(2))
         local line_probe = TextWidget:new{
             text = "Ag",
             face = library_font.getFace(min_font_size),
@@ -274,46 +273,38 @@ local function apply_zen_renderer()
         }
         local two_line_h = math.min(available_h, 2 * line_probe:getSize().h)
         line_probe:free()
-        local font_size = max_font_size
-        local probe
-        while font_size >= min_font_size do
-            if probe then probe:free() end
-            probe = TextWidget:new{
+        local function make_label(font_size, height)
+            return TextBoxWidget:new{
                 text = text,
                 face = library_font.getFace(font_size),
+                width = label_w,
+                height = height,
+                height_adjust = height ~= nil,
+                height_overflow_show_ellipsis = height ~= nil,
+                alignment = "center",
                 bold = true,
-                padding = 0,
+                fgcolor = Blitbuffer.COLOR_BLACK,
             }
-            local size = probe:getSize()
-            if size.w <= text_w and size.h <= available_h then break end
+        end
+
+        local font_size = max_font_size
+        local fits_two_lines = false
+        while font_size >= min_font_size do
+            local probe = make_label(font_size)
+            local line_count = #probe.vertical_string_list
+            local probe_line_h = probe:getLineHeight()
+            probe:free()
+            if line_count <= 2 and line_count * probe_line_h <= two_line_h then
+                fits_two_lines = true
+                break
+            end
             font_size = font_size - 1
         end
 
-        local label
-        if font_size >= min_font_size then
-            probe:free()
-            label = TextBoxWidget:new{
-                text = text,
-                face = library_font.getFace(font_size),
-                width = label_w,
-                alignment = "center",
-                bold = true,
-                fgcolor = Blitbuffer.COLOR_BLACK,
-            }
-        else
-            if probe then probe:free() end
-            label = TextBoxWidget:new{
-                text = text,
-                face = library_font.getFace(min_font_size),
-                width = label_w,
-                alignment = "center",
-                bold = true,
-                height = two_line_h,
-                height_adjust = true,
-                height_overflow_show_ellipsis = true,
-                fgcolor = Blitbuffer.COLOR_BLACK,
-            }
+        if not fits_two_lines then
+            font_size = min_font_size
         end
+        local label = make_label(font_size, two_line_h)
         label = transparent_folder_label(label)
         local label_dimen = Geom:new{
             w = label_w + 2 * (label_pad_h + CoverUtils.BORDER_SIZE),

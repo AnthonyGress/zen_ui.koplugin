@@ -5,8 +5,10 @@ describe("stats settings", function()
     local saved_edit_mode
     local arrange_options
     local shown_widget
+    local remembered_routes
 
     before_each(function()
+        remembered_routes = {}
         local settings = {
             widgets = {
                 order = { "today", "this_week", "trend_graph", "goal_progress" },
@@ -61,6 +63,7 @@ describe("stats settings", function()
         ZenSpec.replace("ui/uimanager", {
             scheduleIn = function() end,
             show = function(_self, widget) shown_widget = widget end,
+            nextTick = function(_self, callback) callback() end,
         })
         ZenSpec.replace("ui/widget/spinwidget", { new = function(_self, opts) return opts end })
         ZenSpec.replace("modules/filebrowser/patches/stats_settings", StatsSettings)
@@ -89,6 +92,17 @@ describe("stats settings", function()
         })
         ZenSpec.replace("common/ui/zen_arrange_list", {
             show = function(opts) arrange_options = opts end,
+        })
+        ZenSpec.replace("modules/settings/zen_settings_page", {
+            rememberStandaloneArrangeRoute = function(path, opener, arrange_path)
+                remembered_routes[#remembered_routes + 1] = {
+                    path = path,
+                    opener = opener,
+                    arrange_path = arrange_path,
+                }
+                return true
+            end,
+            show = function() end,
         })
         ZenSpec.unload("modules/settings/sections/stats_settings")
     end)
@@ -180,6 +194,12 @@ describe("stats settings", function()
 
         assert.is_true(settings.openWidgetSettings("trend_graph"))
         assert.are.equal("Reading trend", arrange_options.title)
+        assert.is_false(arrange_options.allow_arrange)
+        assert.is_function(arrange_options.back_callback)
         assert.is_nil(arrange_options.item_table._zen_arrange_done_func)
+
+        arrange_options.back_callback()
+        assert.are.same({ "trend_graph" }, remembered_routes[1].arrange_path)
+        assert.are.same({}, remembered_routes[2].arrange_path)
     end)
 end)

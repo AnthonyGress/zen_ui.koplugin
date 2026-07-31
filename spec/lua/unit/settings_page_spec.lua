@@ -311,6 +311,40 @@ describe("Zen settings page", function()
         assert.are.same({ "quotes" }, restored_arrange_path)
     end)
 
+    it("restores a standalone widget-settings route from the top menu", function()
+        local restored_arrange_path
+
+        require("modules/settings/zen_settings").build = function()
+            local widgets = {
+                text = "Widgets",
+                keep_menu_open = true,
+                callback = function()
+                    local route = PageModule.claimArrangeRoute()
+                    restored_arrange_path = route.path
+                end,
+            }
+            return {
+                sub_item_table = {
+                    {
+                        text = "Extras",
+                        sub_item_table = {
+                            { text = "Stats", sub_item_table = { widgets } },
+                        },
+                    },
+                },
+            }
+        end
+
+        assert.is_true(PageModule.rememberStandaloneArrangeRoute({
+            { text = "Extras", occurrence = 1 },
+            { text = "Stats", occurrence = 1 },
+        }, "Widgets", { "trend_graph" }))
+
+        local restored = PageModule.show({ config = {} })
+        assert.are.equal("Stats", restored.title_bar.title)
+        assert.are.same({ "trend_graph" }, restored_arrange_path)
+    end)
+
     it("does not replay an arrange route while the settings page stays open", function()
         local opened_paths = {}
 
