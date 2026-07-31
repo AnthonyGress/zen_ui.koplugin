@@ -230,6 +230,7 @@ return {
         "New Settings page",
         "Custom icon packs (Extras > Custom icons)",
         "Page browser enhancements + Book Detail button",
+        "Quotes improvements (Moments of Zen)",
         "Improved default covers",
         "Add Calibre tag to Navbar (Navbar > Tabs)",
         "Add Calibre tag strip to Home page (Home > Widgets)",

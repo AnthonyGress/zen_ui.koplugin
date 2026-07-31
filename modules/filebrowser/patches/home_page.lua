@@ -289,7 +289,6 @@ local function flush_cover_upgrade_queue()
         _inflight_cover_upgrade_paths[path] = true
     end
 
-    local UIManager = require("ui/uimanager")
     local launched = BookInfoManager:extractInBackground(files)
     if not launched then
         for _i, path in ipairs(paths) do
@@ -545,22 +544,6 @@ local function load_zen_config()
     end
 end
 
-local function unique_user_preset_name(base)
-    if not PresetStore.find("home", base) then return base end
-    local i = 2
-    while PresetStore.find("home", base .. " " .. i) do
-        i = i + 1
-    end
-    return base .. " " .. i
-end
-
-local function editable_name_for_builtin(preset_name)
-    if preset_name == HomePresets.DEFAULT_PRESET_NAME then
-        return HomePresets.CUSTOM_PRESET_NAME
-    end
-    return tostring(preset_name or HomePresets.CUSTOM_PRESET_NAME) .. " custom"
-end
-
 local function ensure_home_cfg()
     local dcfg = PresetStore.getSettings("home")
     if type(dcfg) ~= "table" or next(dcfg) == nil then
@@ -608,19 +591,6 @@ local function ensure_home_cfg()
     ensure_home_widget_cfg(dcfg)
 
     return dcfg
-end
-
-local function save_home_settings(dcfg)
-    if type(dcfg) == "table" and HomePresets.isBuiltinPresetName(dcfg.active_preset) then
-        local name = unique_user_preset_name(editable_name_for_builtin(dcfg.active_preset))
-        dcfg.active_preset = name
-        dcfg.title = name
-        local state = HomePresets.captureHomePage(dcfg)
-        state.title = name
-        PresetStore.save("home", name, state)
-        PresetStore.setActivePreset("home", name)
-    end
-    PresetStore.saveSettings("home", dcfg)
 end
 
 local function resolve_rows(dcfg)
@@ -766,6 +736,7 @@ local function build_data_provider(cfg, dcfg)
     local book_lookup_ms = 0
     local tbr_index
     local tbr_index_checked = false
+    local current_quote
 
     local function is_widget_visible(widget_id)
         if type(widget_id) ~= "string" or widget_id == "" then return false end
@@ -1149,7 +1120,6 @@ local function build_data_provider(cfg, dcfg)
         invalidate_indexed_tbr()
         if dataset.tbr_rebuild_pending then return end
         dataset.tbr_rebuild_pending = true
-        local UIManager = require("ui/uimanager")
         UIManager:scheduleIn(0.2, function()
             dataset.tbr_rebuild_pending = nil
             if _home_menu and not _home_menu._zen_home_closing then
@@ -1165,7 +1135,6 @@ local function build_data_provider(cfg, dcfg)
             return
         end
         dataset.tbr_audit_requested = true
-        local UIManager = require("ui/uimanager")
         UIManager:nextTick(function()
             local ok_db, db_bookinfo = pcall(require, "common/db_bookinfo")
             local candidates = ok_db and db_bookinfo
@@ -2047,7 +2016,6 @@ end
 local function install_home_key_handlers(menu)
     if not menu or menu._zen_home_key_patched then return end
     menu._zen_home_key_patched = true
-    local UIManager = require("ui/uimanager")
     local HOLD_DELAY = 0.4
     local hold_fn = nil
     local hold_key = nil
@@ -2220,8 +2188,6 @@ local function build_home_content(menu, dcfg, rows, data_provider)
     local InputContainer = require("ui/widget/container/inputcontainer")
     local Font = require("ui/font")
     local GestureRange = require("ui/gesturerange")
-    local UIManager = require("ui/uimanager")
-
     local prev_focus_key = menu._zen_home_focus_key
     menu._zen_home_focus_targets = {}
     menu._zen_home_focus_seq = 0
@@ -2614,8 +2580,6 @@ local function consume_last_read_file()
 end
 
 function M.showHomeView(injectNavbar)
-    local UIManager = require("ui/uimanager")
-
     M.setCoverCacheBudget(MemoryPolicy.homeByteBudget())
     if _home_menu and not _home_menu._zen_home_closing then
         return _home_menu, false
@@ -2950,7 +2914,6 @@ function M.rebuildActive()
         if _home_menu._zen_home_show_status_bar ~= show_status_bar
                 or (not show_status_bar
                     and _home_menu._zen_home_has_clock_refreshers ~= has_clock_refreshers) then
-            local UIManager = require("ui/uimanager")
             local old_menu = _home_menu
             _home_menu = nil
             old_menu._zen_home_closing = true
@@ -2990,7 +2953,6 @@ end
 
 function M.isActiveOnTop()
     if not _home_menu then return false end
-    local UIManager = require("ui/uimanager")
     local stack = UIManager._window_stack
     local top = stack and stack[#stack]
     return top and top.widget == _home_menu
@@ -2999,7 +2961,6 @@ end
 function M.closeAll()
     local menu = _home_menu
     if menu then
-        local UIManager = require("ui/uimanager")
         _home_menu = nil
         if not menu._zen_home_closing then
             menu._zen_home_closing = true

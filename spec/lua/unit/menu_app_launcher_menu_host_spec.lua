@@ -1,84 +1,46 @@
 describe("app launcher plugin menu host", function()
-    local shown_menu
+    local shown_opts
 
     before_each(function()
         ZenSpec.unload("modules/menu/app_launcher/menu_host")
-        ZenSpec.replace("gettext", function(text) return text end)
-        ZenSpec.replace("common/ui/zen_toggle", {
-            new = function(_self, opts)
-                return opts
+        ZenSpec.replace("common/ui/zen_arrange_list", {
+            show = function(opts)
+                shown_opts = opts
+                return { shown = true }
             end,
-        })
-        ZenSpec.replace("device", {
-            screen = {
-                getWidth = function() return 800 end,
-                getHeight = function() return 600 end,
-                scaleBySize = function(_self, value) return value end,
-            },
-        })
-        ZenSpec.replace("ui/widget/menu", {
-            new = function(_self, opts)
-                shown_menu = {
-                    paths = {},
-                    item_table = opts.item_table,
-                    state_w = opts.state_w,
-                    switch_count = 0,
-                    switchItemTable = function(self, title, items)
-                        self.last_title = title
-                        self.last_items = items
-                        self.switch_count = self.switch_count + 1
-                    end,
-                }
-                return shown_menu
-            end,
-        })
-        ZenSpec.replace("ui/uimanager", {
-            show = function() end,
-            close = function() end,
         })
     end)
 
-    it("uses a Zen toggle for checkbox items and refreshes their live state", function()
-        local enabled = false
+    after_each(function()
+        ZenSpec.unload("common/ui/zen_arrange_list")
+    end)
+
+    it("shows plugin menus as non-arranging Zen lists", function()
         local MenuHost = require("modules/menu/app_launcher/menu_host")
+        local item_table = {
+            {
+                text = "Send review as tags",
+                checked_func = function() return false end,
+                callback = function() end,
+            },
+            {
+                text = "Choice A",
+                radio = true,
+                checked_func = function() return true end,
+                callback = function() end,
+            },
+        }
+
         local host = MenuHost.show{
             title = "Wallabag",
-            item_table = {
-                {
-                    text = "Send review as tags",
-                    checked_func = function() return enabled end,
-                    callback = function() enabled = not enabled end,
-                },
-            },
+            item_table = item_table,
         }
 
-        local row = shown_menu.item_table[1]
-        assert.is_equal(56, shown_menu.state_w)
-        assert.is_false(row.state.value_func())
-
-        row.callback()
-
-        assert.is_true(enabled)
-        assert.is_nil(host._closed)
-        assert.is_equal(1, shown_menu.switch_count)
-        assert.is_true(shown_menu.last_items[1].state.value_func())
-    end)
-
-    it("does not turn radio options into toggles", function()
-        local MenuHost = require("modules/menu/app_launcher/menu_host")
-        MenuHost.show{
-            title = "Choices",
-            item_table = {
-                {
-                    text = "Choice A",
-                    radio = true,
-                    checked_func = function() return true end,
-                    callback = function() end,
-                },
-            },
-        }
-
-        assert.is_nil(shown_menu.state_w)
-        assert.is_nil(shown_menu.item_table[1].state)
+        assert.is_true(host.shown)
+        assert.are.equal("Wallabag", shown_opts.title)
+        assert.are.equal(item_table, shown_opts.item_table)
+        assert.is_false(shown_opts.allow_arrange)
+        assert.is_true(shown_opts.hide_footer_cancel)
+        assert.is_true(shown_opts.menu_mode)
     end)
 end)

@@ -660,6 +660,28 @@ local function update_dynamic_text(items)
     end
 end
 
+local function item_is_enabled(item)
+    if type(item) ~= "table" or item.enabled == false then return false end
+    if type(item.enabled_func) == "function" then
+        return item.enabled_func() ~= false
+    end
+    return true
+end
+
+local function update_menu_enabled_state(items)
+    if type(items) ~= "table" then return end
+    for _i, item in ipairs(items) do
+        if type(item) == "table" then
+            if not item._zen_menu_original_dim_set then
+                item._zen_menu_original_dim = item.dim
+                item._zen_menu_original_dim_set = true
+            end
+            item.dim = not item_is_enabled(item) or item._zen_menu_original_dim
+            update_menu_enabled_state(item.sub_item_table)
+        end
+    end
+end
+
 repopulate = function(sort_widget)
     if not sort_widget then return end
     sort_widget:_populateItems()
@@ -720,23 +742,44 @@ local function patch_move_item_kb(sort_widget)
     end
 end
 
-local function refresh_after_callbacks(items, refresh, menu_proxy)
+local function refresh_after_callbacks(items, refresh, menu_proxy, callback_complete)
     if type(items) ~= "table" or type(refresh) ~= "function" then return end
     for _i, item in ipairs(items) do
-        if type(item.callback) == "function"
+        if (type(item.callback) == "function" or type(item.callback_func) == "function")
                 and (not item._zen_arrange_refresh_wrapped
                     or item._zen_arrange_refresh_proxy ~= menu_proxy) then
             local orig_callback = item._zen_arrange_orig_callback or item.callback
             item.callback = function(...)
-                local result = orig_callback(menu_proxy, select(2, ...))
-                refresh()
+                local callback = type(item.callback_func) == "function"
+                    and item.callback_func() or orig_callback
+                if type(callback) ~= "function" then return end
+                local result = callback(menu_proxy, select(2, ...))
+                if callback_complete then
+                    callback_complete(item)
+                else
+                    refresh()
+                end
                 return result
             end
             item._zen_arrange_orig_callback = orig_callback
             item._zen_arrange_refresh_proxy = menu_proxy
             item._zen_arrange_refresh_wrapped = true
         end
-        refresh_after_callbacks(item.sub_item_table, refresh, menu_proxy)
+        refresh_after_callbacks(item.sub_item_table, refresh, menu_proxy, callback_complete)
+    end
+end
+
+local function complete_menu_callback(item, refresh, close)
+    if type(item.checked_func) == "function" then
+        if item.check_callback_closes_menu then
+            close()
+        elseif not item.check_callback_updates_menu then
+            refresh()
+        end
+    elseif item.keep_menu_open then
+        refresh()
+    else
+        close()
     end
 end
 
@@ -744,12 +787,13 @@ local install_submenu_tap_handlers
 local install_root_tap_handlers
 
 local function open_submenu_for_item(sort_widget, item, resume_path)
-    if not (sort_widget and item and has_submenu(item)) then
+    if not (sort_widget and item and has_submenu(item)
+            and (not sort_widget._zen_menu_mode or item_is_enabled(item))) then
         return false
     end
     local sub_items = item.sub_item_table
     if type(item.sub_item_table_func) == "function" then
-        sub_items = item.sub_item_table_func()
+        sub_items = item.sub_item_table_func(sort_widget._zen_menu_proxy)
     end
     show_submenu(item_submenu_title(item), sub_items, function()
         if sort_widget._zen_arrange_refresh then
@@ -759,6 +803,7 @@ local function open_submenu_for_item(sort_widget, item, resume_path)
         end
     end, {
         close_arrange = sort_widget._zen_arrange_close_all,
+        menu_mode = sort_widget._zen_menu_mode,
         settings_resume = extend_settings_resume(sort_widget._zen_settings_resume, item),
         resume_path = resume_path,
     })
@@ -839,19 +884,25 @@ end
 show_submenu = function(title, items, refresh, opts)
     if type(items) ~= "table" or #items == 0 then return end
     opts = opts or {}
+    if opts.menu_mode then update_menu_enabled_state(items) end
     ensure_submenu_callbacks(items)
     update_dynamic_text(items)
 
     local sort_widget
     local menu_proxy
     local close_submenu_and_arrange
-    local function refresh_lists()
+    local refresh_lists
+    local menu_callback_complete = opts.menu_mode and function(item)
+        complete_menu_callback(item, refresh_lists, close_submenu_and_arrange)
+    end
+    refresh_lists = function()
         if menu_proxy and type(menu_proxy.item_table) == "table" and menu_proxy.item_table ~= items then
             items = menu_proxy.item_table
         end
+        if opts.menu_mode then update_menu_enabled_state(items) end
         ensure_submenu_callbacks(items)
         update_dynamic_text(items)
-        refresh_after_callbacks(items, refresh_lists, menu_proxy)
+        refresh_after_callbacks(items, refresh_lists, menu_proxy, menu_callback_complete)
         if sort_widget then
             sort_widget.item_table = items
             repopulate(sort_widget)
@@ -886,8 +937,19 @@ show_submenu = function(title, items, refresh, opts)
             end
             refresh_lists()
         end,
+        closeMenu = function()
+            close_submenu_and_arrange()
+            return true
+        end,
+        onClose = function()
+            close_submenu_and_arrange()
+            return true
+        end,
+        handleEvent = function()
+            return false
+        end,
     }
-    refresh_after_callbacks(items, refresh_lists, menu_proxy)
+    refresh_after_callbacks(items, refresh_lists, menu_proxy, menu_callback_complete)
     sort_widget = SortWidget:new{
         title = title,
         item_table = items,
@@ -898,6 +960,8 @@ show_submenu = function(title, items, refresh, opts)
     sort_widget:_populateItems()
     sort_widget.sort_disabled = true
     sort_widget._zen_arrange_close_all = opts.close_arrange
+    sort_widget._zen_menu_mode = opts.menu_mode == true
+    sort_widget._zen_menu_proxy = menu_proxy
     sort_widget._zen_settings_resume = opts.settings_resume
 
     sort_widget.key_events = sort_widget.key_events or {}
@@ -983,14 +1047,35 @@ install_submenu_tap_handlers = function(sort_widget)
     if not sort_widget or not sort_widget.main_content then return end
     for _i, child in ipairs(sort_widget.main_content) do
         local item = type(child) == "table" and child.item or nil
+        if item and sort_widget._zen_menu_mode
+                and not child._zen_arrange_menu_hold_patched then
+            child._zen_arrange_menu_hold_patched = true
+            child.onHoldTouch = function()
+                return true
+            end
+        end
+        if item and sort_widget._zen_menu_mode
+                and not child._zen_arrange_menu_tap_patched then
+            child._zen_arrange_menu_tap_patched = true
+            local orig_on_tap = child.onTap
+            child.onTap = function(row, arg, ges)
+                if not item_is_enabled(item) then return true end
+                return orig_on_tap(row, arg, ges)
+            end
+        end
         if item and item._zen_arrange_submenu_on_tap and not child._zen_arrange_submenu_tap_patched then
             child._zen_arrange_submenu_tap_patched = true
             child.onTap = function(row, _arg, ges)
+                if row.show_parent._zen_menu_mode and not item_is_enabled(item) then
+                    return true
+                end
                 if item.checked_func and ges and is_toggle_tap(row, ges.pos) then
                     if item.callback then
                         item:callback()
                     end
-                    repopulate(row.show_parent)
+                    if not row.show_parent._zen_menu_mode then
+                        repopulate(row.show_parent)
+                    end
                     return true
                 end
                 open_submenu_for_item(row.show_parent, item)
@@ -1006,14 +1091,23 @@ install_root_tap_handlers = function(sort_widget)
         local item = type(child) == "table" and child.item or nil
         if item and not child._zen_arrange_root_hold_patched then
             child._zen_arrange_root_hold_patched = true
-            child.onHoldTouch = function(row)
-                toggle_arrange_selection(row)
-                return true
+            if sort_widget._zen_arrange_enabled then
+                child.onHoldTouch = function(row)
+                    toggle_arrange_selection(row)
+                    return true
+                end
+            else
+                child.onHoldTouch = function()
+                    return true
+                end
             end
         end
         if item and not child._zen_arrange_root_tap_patched then
             child._zen_arrange_root_tap_patched = true
             child.onTap = function(row, _arg, ges)
+                if row.show_parent._zen_menu_mode and not item_is_enabled(item) then
+                    return true
+                end
                 local action = ArrangeState.rootTapAction(
                     item,
                     ges and is_toggle_tap(row, ges.pos)
@@ -1022,14 +1116,18 @@ install_root_tap_handlers = function(sort_widget)
                     if item.callback then
                         item:callback()
                     end
-                    repopulate(row.show_parent)
+                    if not row.show_parent._zen_menu_mode then
+                        repopulate(row.show_parent)
+                    end
                     return true
                 end
                 if action == "submenu" then
                     open_submenu_for_item(row.show_parent, item)
                 elseif action == "callback" then
                     item:callback()
-                    repopulate(row.show_parent)
+                    if not row.show_parent._zen_menu_mode then
+                        repopulate(row.show_parent)
+                    end
                 end
                 return true
             end
@@ -1039,18 +1137,26 @@ end
 
 function M.show(opts)
     opts = opts or {}
+    local arrange_enabled = opts.allow_arrange ~= false
+    local menu_mode = opts.menu_mode == true
     local item_table = opts.item_table or {}
+    if menu_mode then update_menu_enabled_state(item_table) end
     update_dynamic_text(item_table)
     ensure_submenu_callbacks(item_table)
 
+    local menu_proxy
+    local menu_callback_complete
     local sort_widget = SortWidget:new{
         title = opts.title or "",
         item_table = item_table,
         callback = opts.callback,
+        sort_disabled = not arrange_enabled,
         covers_fullscreen = true,
     }
     sort_widget.item_margin = 0
     sort_widget:_populateItems()
+    sort_widget._zen_arrange_enabled = arrange_enabled
+    sort_widget._zen_menu_mode = menu_mode
     sort_widget._zen_arrange_refresh = function(self)
         if type(opts.refresh_func) == "function" then
             local refreshed = opts.refresh_func()
@@ -1061,9 +1167,15 @@ function M.show(opts)
                 update_dynamic_text(item_table)
             end
         end
+        if menu_mode then update_menu_enabled_state(item_table) end
+        if menu_proxy then
+            refresh_after_callbacks(item_table, function()
+                sort_widget:_zen_arrange_refresh()
+            end, menu_proxy, menu_callback_complete)
+        end
         self:_populateItems()
     end
-    local menu_proxy = {
+    menu_proxy = {
         item_table = item_table,
         updateItems = function(self)
             if type(self.item_table) == "table" and self.item_table ~= item_table then
@@ -1072,10 +1184,27 @@ function M.show(opts)
             end
             sort_widget:_zen_arrange_refresh()
         end,
+        closeMenu = function()
+            return sort_widget:_zen_arrange_close_all()
+        end,
+        onClose = function()
+            return sort_widget:_zen_arrange_close_all()
+        end,
+        handleEvent = function()
+            return false
+        end,
     }
+    sort_widget._zen_menu_proxy = menu_proxy
+    menu_callback_complete = menu_mode and function(item)
+        complete_menu_callback(item, function()
+            sort_widget:_zen_arrange_refresh()
+        end, function()
+            sort_widget:_zen_arrange_close_all()
+        end)
+    end
     refresh_after_callbacks(item_table, function()
         sort_widget:_zen_arrange_refresh()
-    end, menu_proxy)
+    end, menu_proxy, menu_callback_complete)
     sort_widget._zen_arrange_close_all = function()
         if sort_widget.callback then
             sort_widget:callback()
@@ -1085,7 +1214,7 @@ function M.show(opts)
         return sort_widget:onClose()
     end
     local settings_resume
-    if rawget(_G, "__ZEN_UI_SETTINGS_PAGE") then
+    if not menu_mode and rawget(_G, "__ZEN_UI_SETTINGS_PAGE") then
         local ok_settings_page, settings_page = pcall(require, "modules/settings/zen_settings_page")
         if ok_settings_page and settings_page.claimArrangeRoute then
             settings_resume = settings_page.claimArrangeRoute()
@@ -1099,13 +1228,15 @@ function M.show(opts)
         back_callback = sort_widget._zen_arrange_close_all,
         back_hold_callback = function()
             sort_widget._zen_arrange_close_all()
-            back_to_settings_root()
+            if not menu_mode then back_to_settings_root() end
             return true
         end,
         close_callback = function()
-            remember_settings_resume(sort_widget)
+            if not menu_mode then remember_settings_resume(sort_widget) end
             sort_widget._zen_arrange_close_all()
-            require("modules/settings/zen_settings_page").closeActive()
+            if not menu_mode then
+                require("modules/settings/zen_settings_page").closeActive()
+            end
             return true
         end,
     }
@@ -1156,8 +1287,10 @@ function M.show(opts)
     sync_footer_ok(sort_widget)
     apply_icon_rows(sort_widget)
     install_root_tap_handlers(sort_widget)
-    patch_move_item_kb(sort_widget)
-    install_non_touch_keyboard_controls(sort_widget)
+    if arrange_enabled then
+        patch_move_item_kb(sort_widget)
+        install_non_touch_keyboard_controls(sort_widget)
+    end
     local orig_populate = sort_widget._populateItems
     sort_widget._populateItems = function(self, ...)
         update_dynamic_text(self.item_table)
