@@ -47,7 +47,6 @@ local defaults = {
         zen_mode = true,
         status_bar = true,
         disable_top_menu_swipe_zones = true,
-        browser_folder_cover = true,
         browser_hide_underline = true,
         browser_hide_up_folder = true,
         favorites = true,
@@ -193,7 +192,6 @@ local defaults = {
         name_opaque = false,      -- false = transparent bg
         show_spine_lines = false,
         show_item_count = true,
-        crop_to_fit = true,
     },
     browser_series_badge = {
         show_series_badge = false,

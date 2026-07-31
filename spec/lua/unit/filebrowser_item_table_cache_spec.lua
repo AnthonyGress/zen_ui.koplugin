@@ -64,7 +64,10 @@ describe("file browser item-table cache", function()
                 return { measure = function() end, dbg = function() end, warn = function() end }
             end,
         })
-        ZenSpec.replace("common/paths", { getHomeDir = function() return "/library" end })
+        ZenSpec.replace("common/paths", {
+            getHomeDir = function() return "/library" end,
+            normPath = function(path) return path end,
+        })
         ZenSpec.replace("modules/filebrowser/patches/library_font", {})
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("apps/filemanager/filemanager", { setupLayout = function() end })
@@ -75,12 +78,12 @@ describe("file browser item-table cache", function()
             end,
             isTrue = function() return false end,
         }
-        ZenSpec.unload("modules/filebrowser/patches/browser_folder_cover")
-        require("modules/filebrowser/patches/browser_folder_cover")()
+        ZenSpec.unload("modules/filebrowser/patches/browser_item_table_cache")
+        require("modules/filebrowser/patches/browser_item_table_cache")()
     end)
 
     after_each(function()
-        ZenSpec.unload("modules/filebrowser/patches/browser_folder_cover")
+        ZenSpec.unload("modules/filebrowser/patches/browser_item_table_cache")
         for _i, name in ipairs(module_names) do
             package.loaded[name] = saved_modules[name]
         end

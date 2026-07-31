@@ -463,3 +463,61 @@ def test_settings_page_keeps_enabled_status_bar_at_top() -> None:
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait()
+
+
+def test_non_touch_enter_hold_enters_arrange_mode() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-non-touch-arrange-") as temporary:
+        root = Path(temporary)
+        ko_home, library = root / "home", root / "library"
+        ko_home.mkdir()
+        library.mkdir()
+        socket_path = root / "driver.sock"
+        process = launch(
+            runtime,
+            ko_home,
+            socket_path,
+            library,
+            env_overrides={"DISABLE_TOUCH": "1"},
+        )
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            assert driver.command("open_settings_page")["ok"] is True
+            assert driver.command("settings_page_select", label="Launcher")["ok"] is True
+            assert driver.command("settings_page_select", label="Buttons")["ok"] is True
+            time.sleep(0.2)
+
+            arrange = driver.command("arrange_page_state")["arrange"]
+            initial_checked = arrange["checked"][0]
+            assert arrange["marked"] == 0
+
+            assert driver.command("arrange_page_key", key="Press")["ok"] is True
+            assert driver.command("arrange_page_state")["arrange"]["checked"][0] \
+                == initial_checked
+            assert driver.command(
+                "arrange_page_key", key="Press", phase="release"
+            )["ok"] is True
+            time.sleep(0.1)
+            tapped_checked = driver.command("arrange_page_state")["arrange"]["checked"][0]
+            assert tapped_checked != initial_checked
+
+            assert driver.command("arrange_page_key", key="Press")["ok"] is True
+            try:
+                time.sleep(0.1)
+                arrange = driver.command("arrange_page_state")["arrange"]
+                assert arrange["marked"] == 0
+                assert arrange["checked"][0] == tapped_checked
+                time.sleep(0.4)
+                arrange = driver.command("arrange_page_state")["arrange"]
+                assert arrange["marked"] == 1
+                assert arrange["checked"][0] == tapped_checked
+            finally:
+                driver.command("arrange_page_key", key="Press", phase="release")
+        finally:
+            process.send_signal(signal.SIGTERM)
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()

@@ -1,8 +1,7 @@
--- Zen-owned file tiles for mosaic mode. Folder tiles stay on CoverBrowser's
--- renderer so the existing folder-cover integration remains unchanged.
-local function apply_zen_mosaic_renderer()
+-- Zen-owned book, folder, and virtual-group tiles for library mosaic views.
+local function apply_zen_renderer()
     local MosaicMenu = require("mosaicmenu")
-    if MosaicMenu._zen_mosaic_renderer_patched then return end
+    if MosaicMenu._zen_renderer_patched then return end
     local plugin_ref = rawget(_G, "__ZEN_UI_PLUGIN")
     local stock_builder = MosaicMenu._updateItemsBuildUI
     if type(stock_builder) ~= "function" then return end
@@ -29,10 +28,14 @@ local function apply_zen_mosaic_renderer()
     local Geom = require("ui/geometry")
     local GestureRange = require("ui/gesturerange")
     local InputContainer = require("ui/widget/container/inputcontainer")
+    local AlphaContainer = require("ui/widget/container/alphacontainer")
+    local BottomContainer = require("ui/widget/container/bottomcontainer")
     local CenterContainer = require("ui/widget/container/centercontainer")
+    local FrameContainer = require("ui/widget/container/framecontainer")
     local HorizontalGroup = require("ui/widget/horizontalgroup")
     local HorizontalSpan = require("ui/widget/horizontalspan")
     local LeftContainer = require("ui/widget/container/leftcontainer")
+    local OverlapGroup = require("ui/widget/overlapgroup")
     local Menu = require("ui/widget/menu")
     local TextWidget = require("ui/widget/textwidget")
     local UnderlineContainer = require("ui/widget/container/underlinecontainer")
@@ -40,6 +43,9 @@ local function apply_zen_mosaic_renderer()
     local VerticalSpan = require("ui/widget/verticalspan")
     local Size = require("ui/size")
     local CoverWidget = require("modules/filebrowser/patches/home/widgets/cover_common")
+    local CoverUtils = require("common/cover_utils")
+    local FolderCover = require("modules/filebrowser/folder_cover")
+    local Background = require("common/ui/background")
     local book_status = require("common/book_status")
     local library_font = require("modules/filebrowser/patches/library_font")
     local utils = require("common/utils")
@@ -60,6 +66,11 @@ local function apply_zen_mosaic_renderer()
     local function strip_options()
         local config = plugin_config().mosaic_title_strip or {}
         return config.show_title == true, config.show_author == true
+    end
+
+    local function covers_suppressed(menu)
+        return (menu and menu.no_refresh_covers == true)
+            or rawget(_G, "__ZEN_UI_SUPPRESS_FILEMANAGER_COVERS") == true
     end
 
     local function filename(path)
@@ -92,8 +103,16 @@ local function apply_zen_mosaic_renderer()
         return math.max(1, target_w), math.max(1, target_h), border, true
     end
 
+    local strip_height_cache = {}
     local function strip_metrics(show_title, show_author)
         if not show_title and not show_author then return 0 end
+        local key = table.concat({
+            show_title and "title" or "",
+            show_author and "author" or "",
+            library_font.getFontName(),
+            tostring(library_font.getBaseSize()),
+        }, ":")
+        if strip_height_cache[key] then return strip_height_cache[key] end
         local padding = Screen:scaleBySize(3)
         local gap = Screen:scaleBySize(2)
         local height = 2 * padding
@@ -114,6 +133,7 @@ local function apply_zen_mosaic_renderer()
             height = height + author:getSize().h
             author:free()
         end
+        strip_height_cache[key] = height
         return height
     end
 
@@ -134,6 +154,98 @@ local function apply_zen_mosaic_renderer()
         self.init_done = true
     end
 
+    local function folder_name_overlay(item, cover, content_h, title, strip_h)
+        local config = plugin_config().browser_folder_cover or {}
+        if config.show_folder_name == false or strip_h > 0 then return cover end
+        local label = TextWidget:new{
+            text = BD.directory(title),
+            face = library_font.getFace(library_font.scaleValue(15)),
+            bold = true,
+            max_width = math.max(1, item.width - Screen:scaleBySize(12)),
+            truncate_with_ellipsis = true,
+            padding = Screen:scaleBySize(2),
+        }
+        local label_frame = FrameContainer:new{
+            padding = 0,
+            bordersize = CoverUtils.BORDER_SIZE,
+            background = Blitbuffer.COLOR_WHITE,
+            label,
+        }
+        local label_widget = config.name_opaque == true and label_frame
+            or AlphaContainer:new{ alpha = 0.75, label_frame }
+        local PositionContainer = config.name_centered == true and CenterContainer or BottomContainer
+        return OverlapGroup:new{
+            dimen = Geom:new{ w = item.width, h = content_h },
+            cover,
+            PositionContainer:new{
+                dimen = Geom:new{ w = item.width, h = content_h },
+                label_widget,
+            },
+        }
+    end
+
+    local function update_folder(item, show_title, show_author, strip_h, content_h)
+        local border = CoverUtils.BORDER_SIZE
+        local max_w = math.max(1, item.width - 2 * border)
+        local max_h = math.max(1, content_h - 2 * border)
+        local target_w, target_h = CoverUtils.calcDims(max_w, max_h)
+        local uniform = (plugin_config().features or {}).browser_cover_mosaic_uniform == true
+        local specs = {
+            max_cover_w = target_w,
+            max_cover_h = target_h,
+            uniform = uniform,
+        }
+        item.menu.cover_specs = item.do_cover_image and specs or false
+        local result = FolderCover.build(item.menu, item.entry, item.text, max_w, max_h, {
+            load_covers = item.do_cover_image and not covers_suppressed(item.menu),
+            cover_specs = specs,
+            uniform = uniform,
+        })
+
+        item.is_directory = true
+        item.bookinfo_found = true
+        item.file_deleted = item.entry.dim
+        item._zen_is_book = false
+        item._zen_tile_kind = item.entry.is_series_group and "series_group"
+            or (item.entry._zen_files and "metadata_group")
+            or (item.menu._zen_coll_list and item.entry.name and "collection")
+            or (item.entry.is_go_up and "up")
+            or (item.entry._zen_empty_placeholder and "empty_group")
+            or "folder"
+        item._zen_effective_status = item.entry._zen_effective_status
+            or book_status.getEffectiveStatus(item.entry.status, item.entry.percent_finished)
+        item._zen_folder_count = result.count > 0 and result.count or nil
+        item._zen_folder_title = result.title
+        item._zen_cover_frame = result.frame
+        item._cover_frame = result.frame
+        item._foldercover_processed = true
+        result.frame.dim = item.file_deleted and true or nil
+        item._has_cover_image = result.cover_count > 0
+        if item._has_cover_image then item.menu._has_cover_images = true end
+
+        local cover = CenterContainer:new{
+            dimen = Geom:new{ w = item.width, h = content_h },
+            result.frame,
+        }
+        cover = folder_name_overlay(item, cover, content_h, result.title, strip_h)
+        local content = VerticalGroup:new{ align = "center", cover }
+        if strip_h > 0 and (show_title or show_author) then
+            table.insert(content, CenterContainer:new{
+                dimen = Geom:new{ w = item.width, h = strip_h },
+                TextWidget:new{
+                    text = BD.directory(result.title),
+                    face = library_font.getFace(library_font.scaleValue(16)),
+                    bold = true,
+                    max_width = item.width - Screen:scaleBySize(12),
+                    truncate_with_ellipsis = true,
+                    padding = 0,
+                },
+            })
+        end
+        if item._underline_container[1] then item._underline_container[1]:free() end
+        item._underline_container[1] = content
+    end
+
     function ZenMosaicItem:update()
         local show_title, show_author = strip_options()
         local strip_h = strip_metrics(show_title, show_author)
@@ -145,24 +257,49 @@ local function apply_zen_mosaic_renderer()
             uniform = uniform,
         }
         self.menu.cover_specs = self.do_cover_image and specs or false
-        self.menu._zen_file_cover_specs = self.do_cover_image and specs or false
         self.file_deleted = self.entry.dim
         self.is_directory = false
         self.bookinfo_found = false
         self._has_cover_image = false
         self.cover_specs = nil
         self._zen_cover_frame = nil
+        self._cover_frame = nil
         self.status = nil
         self.percent_finished = nil
         self._zen_effective_status = nil
         self._zen_is_fav = false
         self._zen_page_label = nil
         self._zen_series_label = nil
+        self._zen_folder_count = nil
+        self._zen_folder_title = nil
+        self._foldercover_processed = nil
+        self._zen_is_book = FolderCover.isBook(self.entry)
 
-        local info = BookInfoManager:getBookInfo(self.filepath, self.do_cover_image)
+        if not self._zen_is_book then
+            update_folder(self, show_title, show_author, strip_h, content_h)
+            return
+        end
+        self._zen_tile_kind = "book"
+        self.menu._zen_file_cover_specs = self.do_cover_image and specs or false
+
+        local want_cover = self.do_cover_image and not covers_suppressed(self.menu)
+        local metadata = BookInfoManager:getBookInfo(self.filepath, want_cover)
+        local info = metadata
+        if info and want_cover and not info.ignore_cover and not self.file_deleted then
+            if not info.cover_fetched then
+                info = nil
+            elseif info.has_cover
+                    and type(BookInfoManager.isCachedCoverInvalid) == "function"
+                    and BookInfoManager.isCachedCoverInvalid(info, specs) then
+                if info.cover_bb then
+                    info.cover_bb:free()
+                    info.cover_bb = nil
+                end
+                info = nil
+            end
+        end
         local cover
-        if info then
-            self.bookinfo_found = true
+        if metadata then
             local status_data = book_status.getFileStatusData(self.filepath)
             self.status = status_data.status
             self.percent_finished = status_data.percent_finished
@@ -175,46 +312,50 @@ local function apply_zen_mosaic_renderer()
                 self._zen_is_fav = ReadCollection:isFileInCollections(self.filepath, true)
             end
             if config.browser_page_count and config.browser_page_count.show_page_count then
-                local pages = utils.getStablePageCount(self.filepath, info.pages, {
+                local pages = utils.getStablePageCount(self.filepath, metadata.pages, {
                     doc_settings = status_data.doc_settings,
                     sidecar_checked = status_data.sidecar_checked,
                     book_info = status_data.book_info,
-                    book_info_checked = true,
                 })
                 if pages then self._zen_page_label = utils.formatPageCount(pages) end
             end
             if config.browser_series_badge and config.browser_series_badge.show_series_badge then
-                local index = tonumber(info.series_index)
+                local index = tonumber(metadata.series_index)
                 if index then
                     self._zen_series_label = index == math.floor(index) and "#" .. math.floor(index)
                         or string.format("#%.1f", index)
                 end
             end
-            self._has_cover_image = self.do_cover_image and info.has_cover
+        end
+        if info then
+            self.bookinfo_found = true
+            self._has_cover_image = want_cover and info.has_cover
                 and not info.ignore_cover and info.cover_bb ~= nil
         else
             self.cover_specs = specs
         end
 
-        -- This is shared with Home and the list layout. It gives real and
-        -- generated covers the same uniform dimensions, border, and corner
-        -- treatment while retaining the fast final-render cache.
+        -- Shared with Home and list mode so cover ownership, borders, and the
+        -- final-render cache follow one path.
         local book = {
             path = self.filepath,
             cover_bb = self._has_cover_image and info.cover_bb or nil,
+            cover_w = self._has_cover_image and info.cover_w or nil,
+            cover_h = self._has_cover_image and info.cover_h or nil,
             -- false is intentional: generated filename covers must not repeat
             -- the BookInfo lookup the tile already performed.
-            bookinfo = info or false,
+            bookinfo = metadata or false,
         }
-        if info and info.cover_bb and not self._has_cover_image then
-            info.cover_bb:free()
-            info.cover_bb = nil
+        if metadata and metadata.cover_bb and not self._has_cover_image then
+            metadata.cover_bb:free()
+            metadata.cover_bb = nil
         end
         local frame = CoverWidget.make_cover_widget(book, target_w, target_h, {
             border = border,
             uniform = uniform,
         })
-        if info then info.cover_bb = nil end
+        frame.dim = self.file_deleted and true or nil
+        if metadata then metadata.cover_bb = nil end
         cover = CenterContainer:new{
             dimen = Geom:new{ w = self.width, h = content_h },
             frame,
@@ -225,9 +366,9 @@ local function apply_zen_mosaic_renderer()
         local content = VerticalGroup:new{ align = "center", cover }
         if strip_h > 0 then
             local lines = VerticalGroup:new{ align = "center" }
-            if show_title and info then
+            if show_title and metadata then
                 table.insert(lines, TextWidget:new{
-                    text = (not info.ignore_meta and info.title) or fallback_title(self.filepath),
+                    text = (not metadata.ignore_meta and metadata.title) or fallback_title(self.filepath),
                     face = library_font.getFace(library_font.scaleValue(16)),
                     bold = true,
                     max_width = self.width - Screen:scaleBySize(12),
@@ -235,9 +376,9 @@ local function apply_zen_mosaic_renderer()
                     padding = 0,
                 })
             end
-            if show_author and info and info.authors then
+            if show_author and metadata and metadata.authors then
                 table.insert(lines, TextWidget:new{
-                    text = info.authors:match("^[^\n]+") or info.authors,
+                    text = metadata.authors:match("^[^\n]+") or metadata.authors,
                     face = library_font.getFace(library_font.scaleValue(13)),
                     max_width = self.width - Screen:scaleBySize(12),
                     truncate_with_ellipsis = true,
@@ -266,8 +407,10 @@ local function apply_zen_mosaic_renderer()
     end
 
     function ZenMosaicItem:onTapSelect()
-        local set_cover = rawget(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER")
-        if type(set_cover) == "function" then set_cover(self._zen_cover_frame) end
+        if self._zen_is_book then
+            local set_cover = rawget(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER")
+            if type(set_cover) == "function" then set_cover(self._zen_cover_frame) end
+        end
         self.menu:onMenuSelect(self.entry)
         return true
     end
@@ -532,10 +675,64 @@ local function apply_zen_mosaic_renderer()
         end
     end
 
+    local function paint_folder_count(item, bb, config)
+        local folder = config.browser_folder_cover or {}
+        local count = item._zen_folder_count
+        if folder.show_item_count == false or not count then return end
+        local frame = item._zen_cover_frame
+        if not frame or not frame.dimen then return end
+        local size = badge_size(frame, config)
+        local radius = math.floor(size / 2)
+        local color, foreground = badge_colors(config)
+        local widget = badge_text(item, "_zen_folder_count_badge", tostring(count),
+            math.max(7, math.floor(size * 0.26)), foreground)
+        local widget_size = widget:getSize()
+        local inset = utils.getBadgeInset(radius)
+        local x = frame.dimen.x + frame.dimen.w - radius - inset
+        local y = frame.dimen.y + radius + inset
+        paint_circle(bb, x, y, radius + 2, foreground)
+        paint_circle(bb, x, y, radius, color)
+        widget:paintTo(bb, x - math.floor(widget_size.w / 2), y - math.floor(widget_size.h / 2))
+    end
+
+    local function paint_folder_spines(item, bb, config)
+        local folder = config.browser_folder_cover or {}
+        if folder.show_spine_lines ~= true then return end
+        local frame = item._zen_cover_frame
+        if not frame or not frame.dimen then return end
+        local thickness = math.max(1, Screen:scaleBySize(2))
+        local gap = Screen:scaleBySize(4)
+        local color = Blitbuffer.COLOR_GRAY_4 or Blitbuffer.COLOR_BLACK
+        local first_w = math.floor(frame.dimen.w * 0.94)
+        local second_w = math.floor(frame.dimen.w * 0.97)
+        local first_y = frame.dimen.y - 2 * thickness - gap
+        if first_y >= 0 then
+            bb:paintRect(frame.dimen.x + math.floor((frame.dimen.w - first_w) / 2),
+                first_y, first_w, thickness, color)
+            bb:paintRect(frame.dimen.x + math.floor((frame.dimen.w - second_w) / 2),
+                first_y + thickness + gap, second_w, thickness, color)
+        end
+    end
+
     function ZenMosaicItem:paintTo(bb, x, y)
+        local menu = self.menu
+        local is_library = menu and (menu.name == "filemanager" or menu.name == "history"
+            or menu._zen_tab_id or menu._zen_coll_list or menu._zen_group_view)
+        if is_library and self.width and self.height then
+            local background_path = Background.library_path()
+            if background_path == "" or not Background.paintScreenRegion(bb, x, y,
+                    x, y, self.width, self.height, background_path) then
+                bb:paintRect(x, y, self.width, self.height, Blitbuffer.COLOR_WHITE)
+            end
+        end
         InputContainer.paintTo(self, bb, x, y)
         local config = plugin_config()
         dim_finished_cover(self, bb, config)
+        if not self._zen_is_book then
+            paint_folder_spines(self, bb, config)
+            paint_folder_count(self, bb, config)
+            return
+        end
         paint_favorite_badge(self, bb, config)
         paint_native_progress(self, bb, config)
         paint_progress_badge(self, bb, config)
@@ -586,9 +783,8 @@ local function apply_zen_mosaic_renderer()
                 do_cover_image = self._do_cover_images,
                 do_hint_opened = self._do_hint_opened,
             }
-            -- MosaicMenuItem must remain a direct upvalue of this builder:
-            -- folder-cover and badge patches discover and decorate this class.
-            local item = (entry.is_file or entry.file) and ZenMosaicItem:new(common)
+            -- Unknown MosaicMenu consumers retain the stock item class.
+            local item = FolderCover.isSupported(entry, self) and ZenMosaicItem:new(common)
                 or MosaicMenuItem:new(common)
             table.insert(self._zen_mosaic_row, item)
             table.insert(self._zen_mosaic_row, HorizontalSpan:new{ width = self.item_margin })
@@ -603,12 +799,13 @@ local function apply_zen_mosaic_renderer()
         return select_number
     end
 
-    MosaicMenu._zen_mosaic_renderer_patched = true
+    MosaicMenu._zen_renderer_patched = true
     MosaicMenu._zen_mosaic_item_class = ZenMosaicItem
+    MosaicMenu._zen_mosaic_folder_item_class = ZenMosaicItem
     local ok, FileChooser = pcall(require, "ui/widget/filechooser")
     if ok and FileChooser and FileChooser._updateItemsBuildUI == stock_builder then
         FileChooser._updateItemsBuildUI = MosaicMenu._updateItemsBuildUI
     end
 end
 
-return apply_zen_mosaic_renderer
+return apply_zen_renderer

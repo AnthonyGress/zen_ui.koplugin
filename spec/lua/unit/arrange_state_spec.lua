@@ -52,4 +52,25 @@ describe("arrange state", function()
         assert.are.equal("callback", ArrangeState.rootTapAction(toggle_only, false))
         assert.are.equal("consume", ArrangeState.rootTapAction({}, false))
     end)
+
+    it("uses Right as hold-to-arrange only on non-touch few-key devices", function()
+        assert.is_true(ArrangeState.rightKeyEntersArrange(false, true))
+        assert.is_false(ArrangeState.rightKeyEntersArrange(true, true))
+        assert.is_false(ArrangeState.rightKeyEntersArrange(false, false))
+    end)
+
+    it("recognizes unmodified Enter keys for delayed hold handling", function()
+        local press = {
+            match = function(_self, sequence) return sequence[1] == "Press" end,
+        }
+        local shifted_press = {
+            match = function() return false end,
+        }
+
+        assert.are.equal("Press", ArrangeState.confirmKeyName("Press"))
+        assert.are.equal("Return", ArrangeState.confirmKeyName("Return"))
+        assert.are.equal("Press", ArrangeState.confirmKeyName(press))
+        assert.is_nil(ArrangeState.confirmKeyName(shifted_press))
+        assert.is_nil(ArrangeState.confirmKeyName("Down"))
+    end)
 end)

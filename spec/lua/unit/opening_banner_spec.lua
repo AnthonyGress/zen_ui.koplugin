@@ -15,6 +15,14 @@ describe("opening banner", function()
                 return "stock"
             end,
         }
+        local ListMenuItem = {
+            onTapSelect = function()
+                return "selected"
+            end,
+        }
+        local function build_list_items()
+            return ListMenuItem
+        end
         local Widget = {}
         function Widget:extend(proto)
             return setmetatable(proto, { __index = self })
@@ -56,11 +64,12 @@ describe("opening banner", function()
             end,
         })
         ZenSpec.replace("gettext", function(text) return text end)
+        ZenSpec.replace("listmenu", { _updateItemsBuildUI = build_list_items })
 
         return ReaderUI, ReaderHighlight, shown, closed, function()
             assert.is_function(next_tick)
             next_tick()
-        end
+        end, ListMenuItem
     end
 
     it("defers no-banner opens while retaining a silent UI window", function()
@@ -109,6 +118,31 @@ describe("opening banner", function()
 
         run_next_tick()
         assert.are.equal(2, opens)
+    end)
+
+    it("prepares list banners only for actual books", function()
+        local _, _, shown, _, _, ListMenuItem = install_stubs()
+        apply_patch()
+
+        local dimen = { x = 10, y = 20, w = 300, h = 60 }
+        assert.are.equal("selected", ListMenuItem.onTapSelect({
+            entry = { text = "Author", _zen_files = { "/book.epub" } },
+            dimen = dimen,
+        }))
+        assert.are.equal("selected", ListMenuItem.onTapSelect({
+            entry = { path = "/books", attr = { mode = "directory" } },
+            filepath = "/books",
+            is_directory = true,
+            dimen = dimen,
+        }))
+        assert.are.equal(0, #shown)
+
+        assert.are.equal("selected", ListMenuItem.onTapSelect({
+            entry = { path = "/book.epub", is_file = true },
+            filepath = "/book.epub",
+            dimen = dimen,
+        }))
+        assert.are.equal(1, #shown)
     end)
 
     it("ignores an early tap before visible highlight boxes exist", function()

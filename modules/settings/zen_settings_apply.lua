@@ -15,7 +15,6 @@ local PATCH_MODULES = {
     zen_mode = "modules/menu/patches/zen_mode",
     status_bar = "modules/filebrowser/patches/status_bar",
     disable_top_menu_swipe_zones = "modules/menu/patches/disable_top_menu_swipe_zones",
-    browser_folder_cover = "modules/filebrowser/patches/browser_folder_cover",
     browser_hide_underline = "modules/filebrowser/patches/browser_hide_underline",
     browser_hide_up_folder = "modules/filebrowser/patches/browser_hide_up_folder",
     automatic_series_grouping = "modules/filebrowser/patches/automatic_series_grouping",
@@ -24,7 +23,6 @@ local PATCH_MODULES = {
 }
 
 local RESTART_REQUIRED = {
-    browser_folder_cover = true,
     browser_hide_underline = true,
     zen_mode = true,
 }

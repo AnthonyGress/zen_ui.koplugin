@@ -162,18 +162,39 @@ local function apply_cover_border(frame, rounded)
     end
 end
 
+function M.decorate_cover_frame(frame)
+    if not frame or frame._zen_cover_frame_decorated then return frame end
+    frame._zen_cover_frame_decorated = true
+    if (frame.bordersize or 0) > 0 then
+        apply_cover_border(frame, rounded_enabled())
+    end
+    return frame
+end
+
 function M.make_cover_widget(book, max_w, max_h, opts)
     opts = opts or {}
     local border = tonumber(opts.border) or M.BORDER_SIZE
     local bg = opts.background or Blitbuffer.COLOR_LIGHT_GRAY
     local target_w, target_h
-    if opts.uniform == false then
-        target_w, target_h = max_w, max_h
+    local preserve_aspect = opts.uniform == false and book and book.cover_bb
+    if preserve_aspect then
+        local source_w, source_h = tonumber(book.cover_w), tonumber(book.cover_h)
+        if not source_w or source_w <= 0 or not source_h or source_h <= 0 then
+            local ok, width, height = pcall(function()
+                return book.cover_bb:getWidth(), book.cover_bb:getHeight()
+            end)
+            if ok then source_w, source_h = width, height end
+        end
+        target_w, target_h = CoverUtils.fitDims(max_w, max_h, source_w, source_h)
     else
         target_w, target_h = calc_uniform_dims(max_w, max_h)
     end
-    if target_w < 18 then target_w = 18 end
-    if target_h < 28 then target_h = 28 end
+    if preserve_aspect then
+        target_w, target_h = math.max(1, target_w), math.max(1, target_h)
+    else
+        if target_w < 18 then target_w = 18 end
+        if target_h < 28 then target_h = 28 end
+    end
 
     local child
     if book and book.cover_bb then
@@ -235,11 +256,7 @@ function M.make_cover_widget(book, max_w, max_h, opts)
     if type(opts.decorate) == "function" then
         opts.decorate(frame)
     end
-    if border > 0 then
-        apply_cover_border(frame, rounded_enabled())
-    end
-
-    return frame, target_w, target_h
+    return M.decorate_cover_frame(frame), target_w, target_h
 end
 
 function M.make_empty_cover_widget(source, max_w, max_h, opts)

@@ -287,14 +287,6 @@ function ZenUI:init()
         self:saveConfig()
     end
 
-    -- First-run: defaults for folder covers (gallery, bottom name, transparent bg)
-    -- are now in config/defaults.lua under browser_folder_cover; no explicit init needed.
-    -- Guard flag kept so this block doesn't run on every startup for existing installs.
-    if not self.config._meta.gallery_mode_defaulted then
-        self.config._meta.gallery_mode_defaulted = true
-        self:saveConfig()
-    end
-
     -- First-run: default portrait list mode to 5 items per page.
     if not self.config._meta.files_per_page_defaulted then
         local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")

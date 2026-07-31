@@ -82,6 +82,26 @@ local function apply_opening_banner()
     local pending_banner_seq
     local show_prepared_banner
 
+    local function is_book_item(item)
+        if not item or item.is_directory then return false end
+        local entry = item.entry
+        if type(entry) == "table" then
+            if entry._zen_files or entry.series_items or entry.is_series_group
+                    or entry.is_go_up or entry._zen_empty_placeholder then
+                return false
+            end
+            local attr_mode = type(entry.attr) == "table" and entry.attr.mode or nil
+            if entry.is_directory or entry.mode == "directory" or attr_mode == "directory" then
+                return false
+            end
+            if entry.is_file == true or type(entry.file) == "string"
+                    or type(entry.filepath) == "string" or attr_mode == "file" then
+                return true
+            end
+        end
+        return type(item.filepath) == "string" and item.filepath ~= ""
+    end
+
     local function set_opening_banner_dimen(dimen, cover_widget, is_list, advance_tap)
         if not (dimen and dimen.x and dimen.y and dimen.w and dimen.h
                 and dimen.w > 0 and dimen.h > 0) then
@@ -249,10 +269,9 @@ local function apply_opening_banner()
         local orig_tap = MosaicMenuItem.onTapSelect
         MosaicMenuItem.onTapSelect = function(self_item, ...)
             _tap_seq = _tap_seq + 1
-            -- Skip directories: a folder tap navigates the browser with no reader
-            -- opening, so storing the dimen leaves a stale value that bleeds into
-            -- the next book open (especially with folder-profile list mode).
-            if not self_item.is_directory then
+            -- Only book taps may prepare a banner. Virtual group rows do not
+            -- always carry KOReader's is_directory marker.
+            if is_book_item(self_item) then
                 -- self[1][1][1]: FrameContainer/FakeCover inside CenterContainer.
                 local cover_frame = self_item[1] and self_item[1][1] and self_item[1][1][1]
 
@@ -294,7 +313,7 @@ local function apply_opening_banner()
         local orig_tap = ListMenuItem.onTapSelect
         ListMenuItem.onTapSelect = function(self_item, ...)
             _tap_seq = _tap_seq + 1
-            if not self_item.is_directory then
+            if is_book_item(self_item) then
                 if not set_opening_banner_dimen(self_item.dimen, self_item, true, false) then
                     _last_cover_dimen = nil
                 end

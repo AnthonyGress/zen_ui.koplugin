@@ -2,10 +2,6 @@ local logger = require("common/zen_logger").new("collections")
 local icons  = require("common/inline_icon_map")
 local Cover  = require("common/cover_utils")
 local library_font = require("modules/filebrowser/patches/library_font")
-local OverlapGroup = require("ui/widget/overlapgroup")
-local CenterContainer = require("ui/widget/container/centercontainer")
-local VerticalGroup = require("ui/widget/verticalgroup")
-local VerticalSpan = require("ui/widget/verticalspan")
 local Background = require("common/ui/background")
 local SharedState = require("common/shared_state")
 
@@ -102,12 +98,21 @@ local function apply_collections()
     -- Display mode setup
     ---------------------------------------------------------------------------
     local _coll_display_mode_override = nil
+    local get_collection_files_in_cover_order
 
     local function setup_display_mode(menu)
         local BookInfoManager = require("bookinfomanager")
         local display_mode = _coll_display_mode_override
             or get_coll_display_mode()
         menu._zen_coll_list = true
+        menu._zen_get_collection_files = get_collection_files_in_cover_order
+        menu._zen_get_collection_title = function(name)
+            local ReadCollection = require("readcollection")
+            if name == ReadCollection.default_collection_name then
+                return require("gettext")("Favorites")
+            end
+            return name
+        end
 
         if not display_mode then
             display_mode = "mosaic"
@@ -157,7 +162,7 @@ local function apply_collections()
         return display_mode_type
     end
 
-    local function get_collection_files_in_cover_order(coll_name)
+    get_collection_files_in_cover_order = function(coll_name)
         local ReadCollection = require("readcollection")
         local coll = ReadCollection.coll[coll_name]
         if type(coll) ~= "table" then return {} end
@@ -215,18 +220,6 @@ local function apply_collections()
         return files
     end
 
-    local function build_fake_chooser_from_files(files)
-        return {
-            genItemTableFromPath = function()
-                local items = {}
-                for _i, fpath in ipairs(files) do
-                    table.insert(items, { path = fpath, is_file = true })
-                end
-                return items
-            end,
-        }
-    end
-
     local function get_visible_files_from_menu(menu)
         if not (menu and type(menu.item_table) == "table") then return nil end
 
@@ -241,255 +234,6 @@ local function apply_collections()
         end
 
         return #files > 0 and files or nil
-    end
-
-    ---------------------------------------------------------------------------
-    -- Hook MosaicMenuItem.update for collection gallery covers
-    ---------------------------------------------------------------------------
-    local _mosaic_item_patched = false
-
-    local function patch_mosaic_item()
-        if _mosaic_item_patched then return end
-
-        local ok, MosaicMenu = pcall(require, "mosaicmenu")
-        if not ok then return end
-        local MosaicMenuItem = Cover.getUpvalue(MosaicMenu._updateItemsBuildUI, "MosaicMenuItem")
-        if not MosaicMenuItem then return end
-        _mosaic_item_patched = true
-
-        local Blitbuffer_uc = require("ffi/blitbuffer")
-        if not MosaicMenuItem._zen_coll_focus_patched then
-            MosaicMenuItem._zen_coll_focus_patched = true
-            function MosaicMenuItem:onFocus()
-                if self._underline_container then
-                    self._underline_container.color = Blitbuffer_uc.COLOR_WHITE
-                end
-                return true
-            end
-        end
-
-        local orig_update = MosaicMenuItem.update
-        function MosaicMenuItem:update(...)
-            if not (self.menu and self.menu._zen_coll_list
-                    and self.entry and self.entry.name) then
-                return orig_update(self, ...)
-            end
-
-            self.is_directory = true
-
-            local coll_name = self.entry.name
-            local files = get_collection_files_in_cover_order(coll_name)
-            local book_count = #files
-
-            -- Build fake chooser for collection
-            local fake_chooser = build_fake_chooser_from_files(files)
-
-            local border = Cover.BORDER_SIZE
-            local max_w = self.width - 2 * border
-            local bh = self.height - 2 * border
-
-            -- Use unified makeCover - it handles everything: mode detection, cover collection, drawing
-            local cover_widget, cover_mode, scenario = Cover.makeCover(coll_name, fake_chooser, {
-                is_folder = true,
-                max_w = max_w,
-                max_h = bh,
-                folder_name = coll_name,
-            })
-
-            if self._setFolderCover then
-                if scenario == "empty_folder" or cover_mode == "none" then
-                    self:_setFolderCover { no_image = true, book_count = book_count }
-                else
-                    -- makeCover already returned the appropriate widget based on mode
-                    self:_setFolderCover { image_widget = cover_widget, book_count = book_count }
-                end
-                return
-            end
-
-            -- Fallback: directly assign to _underline_container
-            local centered_top = math.floor((self.height - (bh + 2 * border)) / 2)
-            local widget = OverlapGroup:new{
-                dimen = { w = self.width, h = self.height },
-                VerticalGroup:new{
-                    VerticalSpan:new{ width = centered_top },
-                    CenterContainer:new{
-                        dimen = { w = self.width, h = bh + 2 * border },
-                        cover_widget,
-                    },
-                },
-            }
-            if self._underline_container[1] then
-                self._underline_container[1]:free()
-            end
-            self._underline_container[1] = widget
-        end
-    end
-
-    ---------------------------------------------------------------------------
-    -- Hook ListMenuItem.update for collection list-mode rendering
-    ---------------------------------------------------------------------------
-    local _list_item_patched = false
-
-    local function patch_list_item()
-        if _list_item_patched then return end
-
-        local ok, ListMenu = pcall(require, "listmenu")
-        if not ok then return end
-        local ListMenuItem = Cover.getUpvalue(ListMenu._updateItemsBuildUI, "ListMenuItem")
-        if not ListMenuItem then return end
-        _list_item_patched = true
-
-        local BD              = require("ui/bidi")
-        local Blitbuffer      = require("ffi/blitbuffer")
-        local Device          = require("device")
-        local HorizontalGroup = require("ui/widget/horizontalgroup")
-        local HorizontalSpan  = require("ui/widget/horizontalspan")
-        local LeftContainer   = require("ui/widget/container/leftcontainer")
-        local ReadCollection  = require("readcollection")
-        local RightContainer  = require("ui/widget/container/rightcontainer")
-        local TextBoxWidget   = require("ui/widget/textboxwidget")
-        local TextWidget      = require("ui/widget/textwidget")
-
-        local Screen = Device.screen
-        local scale_by_size = Screen:scaleBySize(1000000) * (1 / 1000000)
-
-        local orig_list_update = ListMenuItem.update
-
-        function ListMenuItem:update(...)
-            if not (self.menu and self.menu._zen_coll_list
-                    and self.entry and self.entry.name) then
-                return orig_list_update(self, ...)
-            end
-
-            self.is_directory = true
-
-            local _ = require("gettext")
-            local coll_name  = self.entry.name
-            local files = get_collection_files_in_cover_order(coll_name)
-            local book_count = #files
-            local display_name = coll_name
-            if coll_name == ReadCollection.default_collection_name then
-                display_name = _("Favorites")
-            end
-
-            local underline_h  = 1
-            local dimen_h      = self.height - 2 * underline_h
-            local border_size  = Cover.BORDER_SIZE
-            local cover_v_pad  = Screen:scaleBySize(4)
-            local cover_zone_w = dimen_h
-            local max_img      = dimen_h - 2 * border_size - 2 * cover_v_pad
-
-            local ratio = Cover.getRatio()
-            local cover_w = math.floor(max_img * ratio)
-
-            local function _fontSize(nominal, max_size)
-                local scale = library_font.getScale(18)
-                local fs = math.floor(nominal * dimen_h * (1 / 64) / scale_by_size * scale + 0.5)
-                if max_size then
-                    local max_scaled = math.max(1, math.floor(max_size * scale + 0.5))
-                    if fs >= max_scaled then return max_scaled end
-                end
-                return fs
-            end
-
-            -- Build fake chooser
-            local fake_chooser = build_fake_chooser_from_files(files)
-
-            -- Use unified makeCover
-            local cover_widget = Cover.makeCover(coll_name, fake_chooser, {
-                is_folder = true,
-                max_w = cover_w + 2 * border_size,
-                max_h = max_img + 2 * border_size,
-                folder_name = display_name,
-                book_count = book_count,
-            })
-
-            -- Cover thumbnail
-            local wleft
-            if self.do_cover_image and cover_widget then
-                wleft = CenterContainer:new{
-                    dimen = { w = cover_zone_w, h = dimen_h },
-                    cover_widget,
-                }
-                self._cover_frame = cover_widget
-                self.menu._has_cover_images = true
-                self._has_cover_image = true
-            end
-
-            -- Layout constants (same as original)
-            local pad_left  = self.do_cover_image
-                              and Screen:scaleBySize(6) or Screen:scaleBySize(10)
-            local pad_right = Screen:scaleBySize(10)
-            local fs_title  = _fontSize(18, 21)
-            local fs_meta   = _fontSize(14, 18)
-            local left_offset = self.do_cover_image
-                                and (cover_zone_w + pad_left) or pad_left
-
-            -- Right widget: book count
-            local count_str  = tostring(book_count) .. " " .. (book_count == 1 and _("book") or _("books"))
-            local wright_status = TextWidget:new{
-                text    = count_str,
-                face    = library_font.getFace(fs_meta),
-                fgcolor = Blitbuffer.COLOR_GRAY_3,
-                padding = 0,
-            }
-            local wright_w = wright_status:getWidth()
-
-            -- Main text area
-            local main_w = math.max(1,
-                self.width - left_offset - wright_w - 2 * pad_right)
-
-            local wtitle = TextBoxWidget:new{
-                text      = BD.auto(display_name),
-                face      = library_font.getFace(fs_title),
-                width     = main_w,
-                height    = dimen_h,
-                height_adjust = true,
-                height_overflow_show_ellipsis = true,
-                alignment = "left",
-                bold      = true,
-            }
-
-            local wmain = LeftContainer:new{
-                dimen = { w = self.width, h = dimen_h },
-                HorizontalGroup:new{
-                    HorizontalSpan:new{ width = left_offset },
-                    LeftContainer:new{
-                        dimen = { w = main_w, h = dimen_h },
-                        wtitle,
-                    },
-                },
-            }
-
-            -- Assemble row
-            local row_dimen = { w = self.width, h = dimen_h }
-            local widget = OverlapGroup:new{
-                dimen = row_dimen,
-                wmain,
-            }
-            if wleft then
-                table.insert(widget, 1, wleft)
-            end
-            table.insert(widget, RightContainer:new{
-                dimen = row_dimen,
-                HorizontalGroup:new{
-                    wright_status,
-                    HorizontalSpan:new{ width = pad_right },
-                },
-            })
-
-            -- Commit to underline container
-            if self._underline_container[1] then
-                self._underline_container[1]:free()
-            end
-            self._underline_container[1] = VerticalGroup:new{
-                VerticalSpan:new{ width = underline_h },
-                widget,
-            }
-
-            self.bookinfo_found = true
-            self.init_done = true
-        end
     end
 
     ---------------------------------------------------------------------------
@@ -945,12 +689,7 @@ local function apply_collections()
         end
 
         if is_enabled() and is_coll_menu then
-            local mode_type = setup_display_mode(self)
-            if mode_type == "mosaic" then
-                patch_mosaic_item()
-            elseif mode_type == "list" then
-                patch_list_item()
-            end
+            setup_display_mode(self)
         end
     end
 

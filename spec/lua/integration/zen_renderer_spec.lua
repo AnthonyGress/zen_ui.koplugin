@@ -1,7 +1,8 @@
-describe("Zen mosaic renderer", function()
+describe("Zen renderer", function()
     local MosaicMenu
     local stock_created
     local cover_requests
+    local folder_requests
     local painted_text
     local native_progress_paints
     local banner_labels
@@ -30,6 +31,7 @@ describe("Zen mosaic renderer", function()
     before_each(function()
         stock_created = 0
         cover_requests = {}
+        folder_requests = {}
         painted_text = {}
         native_progress_paints = 0
         banner_labels = {}
@@ -48,6 +50,7 @@ describe("Zen mosaic renderer", function()
         ZenSpec.replace("mosaicmenu", MosaicMenu)
         ZenSpec.replace("bookinfomanager", {
             getBookInfo = function() return nil end,
+            isCachedCoverInvalid = function() return false end,
         })
         ZenSpec.replace("device", {
             screen = {
@@ -55,7 +58,10 @@ describe("Zen mosaic renderer", function()
             },
         })
         ZenSpec.replace("ui/font", { getFace = function() return {} end })
-        ZenSpec.replace("ui/bidi", { mirroredUILayout = function() return false end })
+        ZenSpec.replace("ui/bidi", {
+            mirroredUILayout = function() return false end,
+            directory = function(text) return text end,
+        })
         ZenSpec.replace("ui/geometry", { new = function(_self, values) return values end })
         ZenSpec.replace("ui/gesturerange", { new = function(_self, values) return values end })
         ZenSpec.replace("ui/widget/imagewidget", class())
@@ -66,10 +72,13 @@ describe("Zen mosaic renderer", function()
             return Widget
         end
         ZenSpec.replace("ui/widget/container/centercontainer", widget_class())
+        ZenSpec.replace("ui/widget/container/alphacontainer", widget_class())
+        ZenSpec.replace("ui/widget/container/bottomcontainer", widget_class())
         ZenSpec.replace("ui/widget/container/framecontainer", widget_class())
         ZenSpec.replace("ui/widget/horizontalgroup", widget_class())
         ZenSpec.replace("ui/widget/horizontalspan", widget_class())
         ZenSpec.replace("ui/widget/container/leftcontainer", widget_class())
+        ZenSpec.replace("ui/widget/overlapgroup", widget_class())
         ZenSpec.replace("ui/widget/textwidget", {
             new = function(_self, values)
                 values.getSize = function(self)
@@ -107,6 +116,41 @@ describe("Zen mosaic renderer", function()
             getFileStatusData = function()
                 return { effective_status = "new", sidecar_checked = true }
             end,
+            getEffectiveStatus = function(status) return status end,
+        })
+        ZenSpec.replace("common/cover_utils", {
+            BORDER_SIZE = 2,
+            calcDims = function(width, height) return width, height end,
+        })
+        ZenSpec.replace("modules/filebrowser/folder_cover", {
+            isBook = function(entry)
+                return entry.is_file == true or type(entry.file) == "string"
+                    or (entry.attr and entry.attr.mode == "file")
+            end,
+            isSupported = function(entry, menu)
+                return entry.is_file == true or type(entry.file) == "string"
+                    or (entry.attr and entry.attr.mode == "file")
+                    or entry.is_go_up or entry.is_series_group or entry.series_items
+                    or entry._zen_files or entry._zen_empty_placeholder
+                    or (menu._zen_coll_list and entry.name)
+                    or (menu.name == "filemanager" and entry.attr and entry.attr.mode == "directory")
+            end,
+            build = function(menu, entry, text, width, height, options)
+                folder_requests[#folder_requests + 1] = {
+                    menu = menu, entry = entry, text = text, options = options,
+                }
+                return {
+                    frame = { dimen = { w = width, h = height } },
+                    count = entry.count or 2,
+                    title = text,
+                    cover_count = options.load_covers and 1 or 0,
+                    mode = "gallery",
+                }
+            end,
+        })
+        ZenSpec.replace("common/ui/background", {
+            library_path = function() return "" end,
+            paintScreenRegion = function() return false end,
         })
         ZenSpec.replace("common/utils", {
             formatPageCount = function(pages) return pages .. " p." end,
@@ -118,6 +162,7 @@ describe("Zen mosaic renderer", function()
             end,
         })
         ZenSpec.replace("modules/filebrowser/patches/home/widgets/cover_common", {
+            BORDER_SIZE = 2,
             make_cover_widget = function(_book, width, height, options)
                 cover_requests[#cover_requests + 1] = {
                     width = width,
@@ -127,6 +172,12 @@ describe("Zen mosaic renderer", function()
                 return { dimen = { w = 66, h = 99 } }
             end,
         })
+        ZenSpec.replace("modules/filebrowser/patches/library_font", {
+            getFontName = function() return "cfont" end,
+            getBaseSize = function() return 18 end,
+            getFace = function() return {} end,
+            scaleValue = function(value) return value end,
+        })
         ZenSpec.replace("ui/widget/filechooser", { _updateItemsBuildUI = stock_builder })
         _G.G_reader_settings = {
             readSetting = function() return "2:3" end,
@@ -134,20 +185,26 @@ describe("Zen mosaic renderer", function()
         _G.__ZEN_UI_PLUGIN = {
             config = { features = { browser_cover_mosaic_uniform = true } },
         }
-        ZenSpec.unload("modules/filebrowser/patches/zen_mosaic_renderer")
+        ZenSpec.unload("modules/filebrowser/patches/zen_renderer")
     end)
 
-    it("uses Zen tiles for books and retains stock tiles for folders", function()
-        require("modules/filebrowser/patches/zen_mosaic_renderer")()
+    it("uses Zen tiles for books, folders, and virtual groups", function()
+        require("modules/filebrowser/patches/zen_renderer")()
         local menu = {
+            name = "filemanager",
+            _zen_coll_list = true,
             item_table = {
                 { title = "Book", is_file = true, path = "/book.epub" },
-                { title = "Folder/", path = "/folder" },
+                { title = "Folder/", path = "/folder", attr = { mode = "directory" } },
+                { title = "Series", is_series_group = true, series_items = {} },
+                { title = "Author", _zen_files = { "/book.epub" } },
+                { title = "Favorites", name = "favorites" },
+                { title = "Unknown" },
             },
             item_group = {}, layout = {}, items_to_update = {}, page = 1,
-            perpage = 2, nb_cols = 2, item_margin = 1, item_width = 100,
+            perpage = 6, nb_cols = 6, item_margin = 1, item_width = 100,
             item_height = 150, item_dimen = { copy = function() return {} end },
-            inner_dimen = { w = 220 }, _do_cover_images = true,
+            inner_dimen = { w = 620 }, _do_cover_images = true,
         }
 
         MosaicMenu._updateItemsBuildUI(menu)
@@ -155,6 +212,9 @@ describe("Zen mosaic renderer", function()
         assert.is_not_nil(MosaicMenu._zen_mosaic_item_class)
         assert.are.equal(1, stock_created)
         assert.are.equal(1, #menu.items_to_update)
+        assert.are.equal(4, #folder_requests)
+        assert.is_true(folder_requests[1].options.uniform)
+        assert.is_true(folder_requests[1].options.cover_specs.uniform)
         assert.are.same({ width = 96, height = 144, options = {
             border = 2, uniform = true,
         } }, cover_requests[1])
@@ -169,8 +229,26 @@ describe("Zen mosaic renderer", function()
         assert.is_true(found_stock_item)
     end)
 
+    it("uses non-uniform sizing for group previews when configured", function()
+        _G.__ZEN_UI_PLUGIN.config.features.browser_cover_mosaic_uniform = false
+        require("modules/filebrowser/patches/zen_renderer")()
+        local menu = {
+            name = "authors",
+            item_table = { { title = "Author", _zen_files = { "/book.epub" } } },
+            item_group = {}, layout = {}, items_to_update = {}, page = 1,
+            perpage = 1, nb_cols = 2, item_margin = 1, item_width = 100,
+            item_height = 150, item_dimen = { copy = function() return {} end },
+            inner_dimen = { w = 110 }, _do_cover_images = true,
+        }
+
+        MosaicMenu._updateItemsBuildUI(menu)
+
+        assert.is_false(folder_requests[1].options.uniform)
+        assert.is_false(folder_requests[1].options.cover_specs.uniform)
+    end)
+
     it("supplies the rendered book cover before opening a Zen mosaic tile", function()
-        require("modules/filebrowser/patches/zen_mosaic_renderer")()
+        require("modules/filebrowser/patches/zen_renderer")()
         local captured_cover
         local selected_entry
         rawset(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER", function(cover)
@@ -180,6 +258,7 @@ describe("Zen mosaic renderer", function()
         local entry = { path = "/book.epub" }
         local item = setmetatable({
             _zen_cover_frame = cover,
+            _zen_is_book = true,
             entry = entry,
             menu = { onMenuSelect = function(_, selected) selected_entry = selected end },
         }, { __index = MosaicMenu._zen_mosaic_item_class })
@@ -187,10 +266,83 @@ describe("Zen mosaic renderer", function()
         assert.is_true(item:onTapSelect())
         assert.are.equal(cover, captured_cover)
         assert.are.equal(entry, selected_entry)
+
+        captured_cover = nil
+        item._zen_is_book = false
+        assert.is_true(item:onTapSelect())
+        assert.is_nil(captured_cover)
+    end)
+
+    it("queues cover extraction for metadata-only and undersized cached covers", function()
+        local mode = "metadata_only"
+        local freed = 0
+        ZenSpec.replace("bookinfomanager", {
+            getBookInfo = function()
+                if mode == "metadata_only" then
+                    return { pages = 120, cover_fetched = false, has_cover = false }
+                end
+                return {
+                    pages = 120,
+                    cover_fetched = true,
+                    has_cover = true,
+                    cover_bb = { free = function() freed = freed + 1 end },
+                }
+            end,
+            isCachedCoverInvalid = function() return mode == "undersized" end,
+        })
+        _G.__ZEN_UI_PLUGIN.config.browser_page_count = { show_page_count = true }
+        ZenSpec.unload("modules/filebrowser/patches/zen_renderer")
+        require("modules/filebrowser/patches/zen_renderer")()
+
+        local function build()
+            local menu = {
+                item_table = { { title = "Book", is_file = true, path = "/book.epub" } },
+                item_group = {}, layout = {}, items_to_update = {}, page = 1,
+                perpage = 1, nb_cols = 2, item_margin = 1, item_width = 100,
+                item_height = 150, item_dimen = { copy = function() return {} end },
+                inner_dimen = { w = 110 }, _do_cover_images = true,
+            }
+            MosaicMenu._updateItemsBuildUI(menu)
+            return menu
+        end
+
+        local metadata_menu = build()
+        assert.are.equal(1, #metadata_menu.items_to_update)
+        assert.is_false(metadata_menu.layout[1][1].bookinfo_found)
+        assert.are.equal("120 p.", metadata_menu.layout[1][1]._zen_page_label)
+
+        mode = "undersized"
+        local undersized_menu = build()
+        assert.are.equal(1, #undersized_menu.items_to_update)
+        assert.is_false(undersized_menu.layout[1][1].bookinfo_found)
+        assert.are.equal("120 p.", undersized_menu.layout[1][1]._zen_page_label)
+        assert.are.equal(1, freed)
+    end)
+
+    it("dims selected mosaic book covers", function()
+        ZenSpec.replace("bookinfomanager", {
+            getBookInfo = function()
+                return { cover_fetched = true, has_cover = false }
+            end,
+            isCachedCoverInvalid = function() return false end,
+        })
+        ZenSpec.unload("modules/filebrowser/patches/zen_renderer")
+        require("modules/filebrowser/patches/zen_renderer")()
+        local menu = {
+            item_table = { { title = "Book", is_file = true, path = "/book.epub", dim = true } },
+            item_group = {}, layout = {}, items_to_update = {}, page = 1,
+            perpage = 1, nb_cols = 2, item_margin = 1, item_width = 100,
+            item_height = 150, item_dimen = { copy = function() return {} end },
+            inner_dimen = { w = 110 }, _do_cover_images = true,
+        }
+
+        MosaicMenu._updateItemsBuildUI(menu)
+
+        assert.is_true(menu.layout[1][1]._zen_cover_frame.dim)
     end)
 
     it("paints status, page, and series badges at the configured scale", function()
-        require("modules/filebrowser/patches/zen_mosaic_renderer")()
+        require("modules/filebrowser/patches/zen_renderer")()
         _G.__ZEN_UI_PLUGIN.config.browser_cover_badges = {
             show_mosaic_progress = true,
             show_native_progress_bar = true,
@@ -207,6 +359,7 @@ describe("Zen mosaic renderer", function()
             _zen_is_fav = true,
             _zen_page_label = "120 p.",
             _zen_series_label = "#2",
+            _zen_is_book = true,
             filepath = "/book.epub",
         }, { __index = item_class })
         local compact = {}
@@ -259,15 +412,15 @@ describe("Zen mosaic renderer", function()
         ZenSpec.replace("bookinfomanager", {
             getBookInfo = function()
                 metadata_call("bookinfo")
-                return { pages = 321, series_index = 4, has_cover = false }
+                return { series_index = 4, cover_fetched = true, has_cover = false }
             end,
+            isCachedCoverInvalid = function() return false end,
         })
         local doc_values = {
             summary = { status = "reading" },
             percent_finished = 0.25,
             zen_new_mtime = 200,
-            pagemap_use_page_labels = true,
-            pagemap_doc_pages = 321,
+            pagemap_use_page_labels = false,
         }
         local doc = {
             readSetting = function(_self, key)
@@ -320,8 +473,8 @@ describe("Zen mosaic renderer", function()
         _G.__ZEN_UI_PLUGIN.config.browser_series_badge = { show_series_badge = true }
         ZenSpec.unload("common/book_status")
         ZenSpec.unload("common/utils")
-        ZenSpec.unload("modules/filebrowser/patches/zen_mosaic_renderer")
-        require("modules/filebrowser/patches/zen_mosaic_renderer")()
+        ZenSpec.unload("modules/filebrowser/patches/zen_renderer")
+        require("modules/filebrowser/patches/zen_renderer")()
         local menu = {
             item_table = { { title = "Book", is_file = true, path = "/book.epub" } },
             item_group = {}, layout = {}, items_to_update = {}, page = 1,
@@ -342,19 +495,20 @@ describe("Zen mosaic renderer", function()
         }, 0, 0)
 
         assert.are.same(before_paint, calls)
-        assert.matches("321", item._zen_page_label)
+        assert.matches("999", item._zen_page_label)
         assert.are.equal("#4", item._zen_series_label)
         assert.are.equal(1, calls.sidecar_open)
-        assert.are.equal(0, calls.booklist)
+        assert.are.equal(1, calls.booklist)
     end)
 
     it("honors finished dimming and the new-banner setting", function()
-        require("modules/filebrowser/patches/zen_mosaic_renderer")()
+        require("modules/filebrowser/patches/zen_renderer")()
         _G.__ZEN_UI_PLUGIN.config.browser_cover_badges = { dim_finished_books = true }
         local item_class = MosaicMenu._zen_mosaic_item_class
         local item = setmetatable({
             _zen_cover_frame = { dimen = { x = 0, y = 0, w = 100, h = 150 }, bordersize = 1 },
             _zen_effective_status = "complete",
+            _zen_is_book = true,
             width = 320,
             height = 400,
         }, { __index = item_class })
@@ -376,7 +530,7 @@ describe("Zen mosaic renderer", function()
     end)
 
     it("respects the hide-underline feature when focus returns", function()
-        require("modules/filebrowser/patches/zen_mosaic_renderer")()
+        require("modules/filebrowser/patches/zen_renderer")()
         local item = setmetatable({ _underline_container = {} }, {
             __index = MosaicMenu._zen_mosaic_item_class,
         })

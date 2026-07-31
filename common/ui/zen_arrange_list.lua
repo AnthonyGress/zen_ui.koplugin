@@ -840,6 +840,18 @@ end
 local function install_non_touch_keyboard_controls(sort_widget)
     if Device:isTouchDevice() then return end
 
+    local hold_delay = 0.4
+    local hold_action
+    local confirm_key_down
+    local hold_fired = false
+
+    local function clear_confirm_hold()
+        if hold_action then UIManager:unschedule(hold_action) end
+        hold_action = nil
+        confirm_key_down = nil
+        hold_fired = false
+    end
+
     local orig_on_press = sort_widget.onPress
     sort_widget.onPress = function(self)
         if exit_keyboard_arrange_mode(self) then return true end
@@ -850,6 +862,49 @@ local function install_non_touch_keyboard_controls(sort_widget)
         return enter_keyboard_arrange_mode(self)
     end
     sort_widget.onHoldNonTouch = sort_widget.onHold
+
+    local orig_on_key_press = sort_widget.onKeyPress
+    sort_widget.onKeyPress = function(self, key)
+        local key_name = ArrangeState.confirmKeyName(key)
+        if key_name and self.marked == 0 then
+            clear_confirm_hold()
+            confirm_key_down = key_name
+            hold_action = function()
+                hold_action = nil
+                if confirm_key_down ~= key_name then return end
+                hold_fired = true
+                enter_keyboard_arrange_mode(self)
+            end
+            UIManager:scheduleIn(hold_delay, hold_action)
+            return true
+        end
+        if confirm_key_down then clear_confirm_hold() end
+        return orig_on_key_press and orig_on_key_press(self, key)
+    end
+
+    local orig_on_key_release = sort_widget.onKeyRelease
+    sort_widget.onKeyRelease = function(self, key)
+        local key_name = ArrangeState.confirmKeyName(key)
+        if key_name and key_name == confirm_key_down then
+            local activate = hold_action ~= nil
+            local consume = activate or hold_fired
+            if hold_action then UIManager:unschedule(hold_action) end
+            hold_action = nil
+            confirm_key_down = nil
+            hold_fired = false
+            if activate then
+                return orig_on_key_press and orig_on_key_press(self, key) or true
+            end
+            if consume then return true end
+        end
+        return orig_on_key_release and orig_on_key_release(self, key)
+    end
+
+    local orig_on_close_widget = sort_widget.onCloseWidget
+    sort_widget.onCloseWidget = function(self, ...)
+        clear_confirm_hold()
+        if orig_on_close_widget then return orig_on_close_widget(self, ...) end
+    end
 
     local orig_on_focus_move = sort_widget.onFocusMove
     sort_widget.onFocusMove = function(self, args)
@@ -1267,6 +1322,11 @@ function M.show(opts)
     }
     sort_widget.onZenArrangeOpenSubmenu = function(self)
         if move_focus_right_from_header(self) then return true end
+        -- KOReader uses Right as the hold action on few-key devices.
+        if ArrangeState.rightKeyEntersArrange(
+                Device:isTouchDevice(), Device:hasFewKeys()) then
+            return enter_keyboard_arrange_mode(self)
+        end
         if open_submenu_for_item(self, get_focused_item(self)) then return true end
         return true
     end

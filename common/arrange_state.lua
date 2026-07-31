@@ -33,6 +33,20 @@ function M.rootTapAction(item, toggle_tap)
     return "consume"
 end
 
+function M.rightKeyEntersArrange(is_touch, has_few_keys)
+    return not is_touch and has_few_keys
+end
+
+function M.confirmKeyName(key)
+    for _i, name in ipairs({ "Press", "Return" }) do
+        if key == name then return name end
+        if type(key) == "table" and type(key.match) == "function"
+                and key:match({ name }) then
+            return name
+        end
+    end
+end
+
 function M.stripSubmenuCaret(text)
     if type(text) ~= "string" then return text end
     local ascii_caret = " >"

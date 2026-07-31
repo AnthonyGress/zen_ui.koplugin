@@ -43,6 +43,13 @@ describe("final cover render cache", function()
         assert.are.equal(1, Cache:stats().hits)
     end)
 
+    it("does not reuse a differently shaped crop", function()
+        Cache:put("/book.epub", 8, 12, bb(8, 12))
+
+        assert.is_nil(Cache:get("/book.epub", 8, 10))
+        assert.are.equal(0, Cache:stats().hits)
+    end)
+
     it("replaces an undersized bitmap for a larger layout", function()
         Cache:put("/book.epub", 5, 8, bb(5, 8))
         assert.is_nil(Cache:get("/book.epub", 8, 12))

@@ -109,6 +109,16 @@ def _seed_bookinfo(ko_home: Path, book: Path) -> None:
         )
 
 
+def _seed_page_count_sidecar(book: Path) -> None:
+    sidecar = book.with_suffix(".sdr")
+    sidecar.mkdir()
+    sidecar.joinpath("metadata.epub.lua").write_text(
+        "return { doc_pages = 120, pagemap_use_page_labels = true, "
+        "pagemap_doc_pages = 85 }\n",
+        encoding="utf-8",
+    )
+
+
 def _wait_for_home(driver: ZenDriver) -> dict[str, object]:
     deadline = time.monotonic() + 30
     latest: dict[str, object] = {}
@@ -271,6 +281,7 @@ def test_mosaic_title_strip_renders_metadata_and_cover_cells() -> None:
         book = root / "library" / "Alpha Home.epub"
         fixture["epub"].replace(book)
         _seed_bookinfo(ko_home, book)
+        _seed_page_count_sidecar(book)
         with sqlite3.connect(ko_home / "settings" / "bookinfo_cache.sqlite3") as connection:
             connection.execute(
                 "INSERT INTO config (key, value) VALUES (?, ?)",
@@ -283,6 +294,7 @@ def test_mosaic_title_strip_renders_metadata_and_cover_cells() -> None:
   features = { automatic_series_grouping = false },
   navbar = { default_tab = "books" },
   mosaic_title_strip = { show_title = true, show_author = true },
+  browser_page_count = { show_page_count = true },
 }
 """
         process = launch(
@@ -306,6 +318,7 @@ def test_mosaic_title_strip_renders_metadata_and_cover_cells() -> None:
                 if (
                     chooser.get("display_mode_type") == "mosaic"
                     and {"Alpha Home", "Zen Author"} <= visible
+                    and "85\N{NO-BREAK SPACE}p." in chooser.get("page_badges", [])
                     and chooser.get("item_widget_count", 0) > 0
                     and chooser.get("image_widget_count", 0) > 0
                 ):
@@ -314,6 +327,7 @@ def test_mosaic_title_strip_renders_metadata_and_cover_cells() -> None:
 
             assert chooser["display_mode_type"] == "mosaic"
             assert {"Alpha Home", "Zen Author"} <= visible
+            assert "85\N{NO-BREAK SPACE}p." in chooser["page_badges"]
             assert chooser["item_widget_count"] > 0
             assert chooser["image_widget_count"] > 0
             driver.screenshot(screenshot)

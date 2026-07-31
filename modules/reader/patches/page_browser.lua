@@ -1804,7 +1804,7 @@ local function apply_page_browser()
             local gap_bot    = Screen:scaleBySize(3)   -- badge offset from thumb bottom
 
             -- paintPill: horizontal capsule (rounded left/right, flat top/bottom).
-            -- Ported from browser_page_count.lua.
+            -- Matches the library page-count badge.
             local function paintPill(bx, by, bw, bh, color)
                 local r = bh / 2
                 for row = 0, bh - 1 do

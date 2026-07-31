@@ -127,6 +127,8 @@ describe("filebrowser cover preloading", function()
                 return {
                     has_cover = true,
                     cover_bb = bitmap(path),
+                    cover_w = configured and configured.cover_w,
+                    cover_h = configured and configured.cover_h,
                 }
             end,
         })
@@ -194,6 +196,11 @@ describe("filebrowser cover preloading", function()
                 end
                 return width, math.floor(width / aspect)
             end,
+            fitDims = function(max_w, max_h, source_w, source_h)
+                local scale = math.min(max_w / source_w, max_h / source_h)
+                return math.floor(source_w * scale + 0.5),
+                    math.floor(source_h * scale + 0.5)
+            end,
             genCover = function(path, width, height)
                 local aspect = 2 / 3
                 local cached_width, cached_height
@@ -229,6 +236,7 @@ describe("filebrowser cover preloading", function()
                 }
             end,
         })
+        ZenSpec.replace("dbg", { is_on = true })
         ZenSpec.unload("modules/filebrowser/patches/cover_preload")
     end)
 
@@ -414,6 +422,37 @@ describe("filebrowser cover preloading", function()
             { path = "/next.epub", width = 91, height = 137 },
         }, render_calls)
         assert.are.equal(1, metric_value(measurements[2], "lookahead_pages="))
+    end)
+
+    it("warms non-uniform real covers at their natural aspect ratio", function()
+        local CoverMenu = require("covermenu")
+        update_items = function(menu)
+            menu._zen_file_cover_specs = {
+                max_cover_w = 100,
+                max_cover_h = 150,
+                uniform = false,
+            }
+        end
+        book_infos["/landscape.epub"] = { cover_w = 120, cover_h = 80 }
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = {
+                { is_file = true, path = "/current.epub" },
+                { is_file = true, path = "/landscape.epub" },
+            },
+            page = 1,
+            page_num = 2,
+            perpage = 1,
+            display_mode_type = "mosaic",
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        while #scheduled > 0 do table.remove(scheduled, 1)() end
+
+        assert.are.same({
+            { path = "/landscape.epub", width = 100, height = 67 },
+        }, render_calls)
     end)
 
     it("matches generated-cover cache dimensions in uniform and non-uniform layouts", function()

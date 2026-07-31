@@ -199,6 +199,14 @@ local function file_chooser_items()
     end
     local visible_texts = {}
     collect_texts(file_chooser.item_group or file_chooser, visible_texts, {}, 0)
+    local page_badges = {}
+    for _row_i, row in ipairs(file_chooser.layout or {}) do
+        for _column_i, widget in ipairs(row) do
+            if type(widget._zen_page_label) == "string" then
+                page_badges[#page_badges + 1] = widget._zen_page_label
+            end
+        end
+    end
     local folder_widgets = {}
     collect_folder_widgets(file_chooser.item_group or file_chooser, folder_widgets, {}, 0)
     local focused_item
@@ -222,6 +230,7 @@ local function file_chooser_items()
             and count_image_widgets(file_chooser.item_group or file_chooser, {}, 0) or 0,
         item_widget_count = type(file_chooser.item_group) == "table" and #file_chooser.item_group or 0,
         items = items,
+        page_badges = page_badges,
         folder_widgets = folder_widgets,
         visible_texts = visible_texts,
     }
@@ -856,6 +865,7 @@ function Driver:handleCommand(command)
             return { ok = false, error = "arrange page unavailable" }
         end
         local labels = {}
+        local checked = {}
         for _i, item in ipairs(widget.item_table or {}) do
             local label = item._zen_arrange_base_text or item.text or ""
             if type(item.text_func) == "function" then
@@ -863,6 +873,12 @@ function Driver:handleCommand(command)
                 if ok_text and type(value) == "string" then label = value end
             end
             labels[#labels + 1] = label
+            local value = false
+            if type(item.checked_func) == "function" then
+                local ok_checked, is_checked = pcall(item.checked_func)
+                if ok_checked then value = is_checked == true end
+            end
+            checked[#checked + 1] = value
         end
         local first_row = widget.main_content and widget.main_content[2]
         local focus_frame = first_row and first_row[1] and first_row[1][1]
@@ -881,6 +897,7 @@ function Driver:handleCommand(command)
                 status_identity = tostring(title_bar.status_widget),
                 filemanager_status_height = filemanager_status_height(),
                 filemanager_status_y = filemanager_status_y(),
+                marked = widget.marked,
                 page_count = widget.pages,
                 pagination_visible = widget.page_info
                     and widget.page_info._zen_arrange_footer_visible == true,
@@ -895,6 +912,7 @@ function Driver:handleCommand(command)
                 row_style = find_settings_row_style(widget.main_content),
                 standard_style = settings_row_standard(),
                 labels = labels,
+                checked = checked,
             },
         }
     end
@@ -917,6 +935,17 @@ function Driver:handleCommand(command)
         title_bar.close_button:handleEvent(Event:new("Unfocus"))
         widget.selected = { x = 1, y = back_y + 1 }
         return { ok = true, action_focused = action_focused, close_focused = close_focused }
+    end
+    if kind == "arrange_page_key" then
+        local widget = active_arrange_widget()
+        if not widget then return { ok = false, error = "arrange page unavailable" } end
+        local Key = require("device/key")
+        local event_name = params.phase == "release" and "KeyRelease" or "KeyPress"
+        local handled = widget:handleEvent(Event:new(
+            event_name,
+            Key:new(params.key or "Press", {})
+        ))
+        return { ok = handled == true, marked = widget.marked }
     end
     if kind == "arrange_page_top_tap" then
         local widget = active_arrange_widget()

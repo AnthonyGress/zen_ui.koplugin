@@ -28,6 +28,12 @@ local function key(path)
     return tostring(path)
 end
 
+local function same_aspect(width_a, height_a, width_b, height_b)
+    if height_a < 1 or height_b < 1 then return false end
+    local rounding_tolerance = math.max(width_a, height_a, width_b, height_b)
+    return math.abs(width_a * height_b - width_b * height_a) <= rounding_tolerance
+end
+
 -- Takes ownership of source and returns an exact-size crop.
 local function resize(source, width, height)
     local ok_dims, src_w, src_h = pcall(function()
@@ -92,7 +98,8 @@ end
 
 function M:get(path, width, height)
     local entry = self._entries[key(path)]
-    if not entry or entry.width < width or entry.height < height then
+    if not entry or entry.width < width or entry.height < height
+            or not same_aspect(entry.width, entry.height, width, height) then
         self._misses = self._misses + 1
         return nil
     end
@@ -117,7 +124,8 @@ function M:put(path, width, height, bb)
     if not path or not bb then return nil end
     local cache_key = key(path)
     local existing = self._entries[cache_key]
-    if existing and existing.width >= width and existing.height >= height then
+    if existing and existing.width >= width and existing.height >= height
+            and same_aspect(existing.width, existing.height, width, height) then
         self._clock = self._clock + 1
         existing.touch = self._clock
         return bb

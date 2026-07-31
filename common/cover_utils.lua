@@ -106,6 +106,16 @@ function CoverUtils.calcDims(max_w, max_h)
     end
 end
 
+function CoverUtils.fitDims(max_w, max_h, source_w, source_h)
+    source_w, source_h = tonumber(source_w), tonumber(source_h)
+    if not source_w or source_w <= 0 or not source_h or source_h <= 0 then
+        return CoverUtils.calcDims(max_w, max_h)
+    end
+    local scale = math.min(max_w / source_w, max_h / source_h)
+    return math.max(1, math.floor(source_w * scale + 0.5)),
+        math.max(1, math.floor(source_h * scale + 0.5))
+end
+
 function CoverUtils.getEmptyPlaceholderText(source)
     if source == "recently_read" then
         return _("Start reading a book to fill this space.")
@@ -528,7 +538,36 @@ local function coverBg()
     return Blitbuffer.COLOR_LIGHT_GRAY
 end
 
-function CoverUtils.drawGallery(covers, portrait_w, portrait_h, border, bg_fn)
+local function previewCover(cover, max_w, max_h, uniform, ImageWidget)
+    if type(cover) ~= "table" or cover.data == nil then cover = { data = cover } end
+    local source_w, source_h = tonumber(cover.w), tonumber(cover.h)
+    if not source_w or source_w <= 0 or not source_h or source_h <= 0 then
+        local ok, width, height = pcall(function()
+            return cover.data:getWidth(), cover.data:getHeight()
+        end)
+        if ok then source_w, source_h = width, height end
+    end
+
+    local width, height, scale_factor
+    if uniform == false then
+        width, height = CoverUtils.fitDims(max_w, max_h, source_w, source_h)
+        scale_factor = 0
+    else
+        width, height = CoverUtils.calcDims(max_w, max_h)
+        if source_w and source_w > 0 and source_h and source_h > 0 then
+            scale_factor = math.max(width / source_w, height / source_h)
+        end
+    end
+    return ImageWidget:new{
+        image = cover.data,
+        image_disposable = true,
+        width = width,
+        height = height,
+        scale_factor = scale_factor,
+    }, width, height
+end
+
+function CoverUtils.drawGallery(covers, portrait_w, portrait_h, border, bg_fn, uniform)
     local sep = 1
     local half_w = math.floor((portrait_w - sep) / 2)
     local half_w2 = portrait_w - sep - half_w
@@ -554,13 +593,10 @@ function CoverUtils.drawGallery(covers, portrait_w, portrait_h, border, bg_fn)
         local c = covers[i]
         local cd = cell_dims[i]
         if c then
+            local image = previewCover(c, cd.w, cd.h, uniform, ImageWidget)
             cells[i] = CenterContainer:new{
                 dimen = { w = cd.w, h = cd.h },
-                ImageWidget:new{
-                    image = c.data,
-                    width = cd.w,
-                    height = cd.h,
-                },
+                image,
             }
         else
             cells[i] = CenterContainer:new{
@@ -608,7 +644,7 @@ function CoverUtils.drawGallery(covers, portrait_w, portrait_h, border, bg_fn)
     }
 end
 
-function CoverUtils.drawStack(covers, portrait_w, portrait_h, border, bg_fn)
+function CoverUtils.drawStack(covers, portrait_w, portrait_h, border, bg_fn, uniform)
     local CenterContainer = require("ui/widget/container/centercontainer")
     local FrameContainer = require("ui/widget/container/framecontainer")
     local ImageWidget = require("ui/widget/imagewidget")
@@ -617,9 +653,6 @@ function CoverUtils.drawStack(covers, portrait_w, portrait_h, border, bg_fn)
 
     local stack_count = #covers
     local dimen = { w = portrait_w + 2 * border, h = portrait_h + 2 * border }
-    -- Bake the same black border into each stacked cover.
-    local border_color = Blitbuffer.COLOR_BLACK
-
     if stack_count == 0 then
         return FrameContainer:new{
             padding = 0,
@@ -635,36 +668,20 @@ function CoverUtils.drawStack(covers, portrait_w, portrait_h, border, bg_fn)
         }
     end
 
-    -- Single book: full-size cover with gray border baked in. No baked fill needed
-    -- since the cover stretches to fill the entire portrait area.
+    -- A single cover uses the same sizing policy as an opened book.
     if stack_count == 1 then
-        local cover = covers[1]
-        local scaled_bb, sw, sh = CoverUtils.scaleCover(cover.data, cover.w, cover.h, portrait_w, portrait_h)
-        if scaled_bb ~= cover.data and cover.data.free then cover.data:free() end
-        for i = 0, border - 1 do
-            for x = 0, sw - 1 do
-                scaled_bb:setPixel(x, i, border_color)
-                scaled_bb:setPixel(x, sh - 1 - i, border_color)
-            end
-            for y = 0, sh - 1 do
-                scaled_bb:setPixel(i, y, border_color)
-                scaled_bb:setPixel(sw - 1 - i, y, border_color)
-            end
-        end
+        local image, image_w, image_h = previewCover(
+            covers[1], portrait_w, portrait_h, uniform, ImageWidget)
+        local frame_w, frame_h = image_w + 2 * border, image_h + 2 * border
         return FrameContainer:new{
             padding = 0,
             bordersize = border,
-            width = dimen.w,
-            height = dimen.h,
+            width = frame_w,
+            height = frame_h,
             background = Blitbuffer.COLOR_WHITE,
             CenterContainer:new{
-                dimen = { w = portrait_w, h = portrait_h },
-                ImageWidget:new{
-                    image = scaled_bb,
-                    image_disposable = true,
-                    width = sw,
-                    height = sh,
-                },
+                dimen = { w = image_w, h = image_h },
+                image,
             },
             overlap_align = "center",
         }
@@ -703,24 +720,20 @@ function CoverUtils.drawStack(covers, portrait_w, portrait_h, border, bg_fn)
     for i = n, 1, -1 do
         local cover = covers[i]
         local off = offsets[n - i + 1] or { x = 0, y = 0 }
-        local scaled_bb, sw, sh = CoverUtils.scaleCover(cover.data, cover.w, cover.h, book_width, book_height)
-        if scaled_bb ~= cover.data and cover.data.free then cover.data:free() end
-        for j = 0, border - 1 do
-            for x = 0, sw - 1 do
-                scaled_bb:setPixel(x, j, border_color)
-                scaled_bb:setPixel(x, sh - 1 - j, border_color)
-            end
-            for y = 0, sh - 1 do
-                scaled_bb:setPixel(j, y, border_color)
-                scaled_bb:setPixel(sw - 1 - j, y, border_color)
-            end
-        end
-        table.insert(children, ImageWidget:new{
-            image = scaled_bb,
-            image_disposable = true,
-            width = sw,
-            height = sh,
-            overlap_offset = { base_x + off.x, base_y + off.y },
+        local image, image_w, image_h = previewCover(
+            cover, book_width, book_height, uniform, ImageWidget)
+        local frame_w, frame_h = image_w + 2 * border, image_h + 2 * border
+        table.insert(children, FrameContainer:new{
+            padding = 0,
+            bordersize = border,
+            width = frame_w,
+            height = frame_h,
+            background = Blitbuffer.COLOR_WHITE,
+            overlap_offset = {
+                math.floor((portrait_w - frame_w) / 2) + off.x,
+                math.floor((portrait_h - frame_h) / 2) + off.y,
+            },
+            image,
         })
     end
 
@@ -778,13 +791,15 @@ function CoverUtils.drawNoImage(folder_name, portrait_w, portrait_h, border)
     }
 end
 
-function CoverUtils.drawSingle(cover_data, portrait_w, portrait_h, border)
+function CoverUtils.drawSingle(cover, portrait_w, portrait_h, border, uniform)
     local CenterContainer = require("ui/widget/container/centercontainer")
     local FrameContainer = require("ui/widget/container/framecontainer")
     local ImageWidget = require("ui/widget/imagewidget")
 
+    local image, image_w, image_h = previewCover(
+        cover, portrait_w, portrait_h, uniform, ImageWidget)
     local bg = Blitbuffer.COLOR_LIGHT_GRAY
-    local dimen = { w = portrait_w + 2 * border, h = portrait_h + 2 * border }
+    local dimen = { w = image_w + 2 * border, h = image_h + 2 * border }
 
     return FrameContainer:new{
         padding = 0,
@@ -793,12 +808,8 @@ function CoverUtils.drawSingle(cover_data, portrait_w, portrait_h, border)
         height = dimen.h,
         background = bg,
         CenterContainer:new{
-            dimen = { w = portrait_w, h = portrait_h },
-            ImageWidget:new{
-                image = cover_data,
-                width = portrait_w,
-                height = portrait_h,
-            },
+            dimen = { w = image_w, h = image_h },
+            image,
         },
         overlap_align = "center",
     }
@@ -881,11 +892,14 @@ function CoverUtils.makeCover(path, chooser, options)
 
     if #covers > 0 then
         if mode == "gallery" then
-            cover_widget = CoverUtils.drawGallery(covers, portrait_w, portrait_h, border)
+            cover_widget = CoverUtils.drawGallery(
+                covers, portrait_w, portrait_h, border, nil, options.uniform)
         elseif mode == "stack" then
-            cover_widget = CoverUtils.drawStack(covers, portrait_w, portrait_h, border)
+            cover_widget = CoverUtils.drawStack(
+                covers, portrait_w, portrait_h, border, nil, options.uniform)
         else
-            cover_widget = CoverUtils.drawSingle(covers[1].data, portrait_w, portrait_h, border)
+            cover_widget = CoverUtils.drawSingle(
+                covers[1], portrait_w, portrait_h, border, options.uniform)
         end
         return cover_widget, mode, "folder_covers", covers
     end

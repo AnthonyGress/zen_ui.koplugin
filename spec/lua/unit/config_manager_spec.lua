@@ -84,6 +84,21 @@ describe("config manager folder-path migration", function()
         assert.are.equal(18, stores.home.presets.explicit.quotes.font_size)
     end)
 
+    it("removes obsolete folder-cover lifecycle settings", function()
+        settings_file.data = {
+            features = { browser_folder_cover = true },
+            browser_folder_cover = { crop_to_fit = false, cover_mode = "stack" },
+            _meta = { gallery_mode_defaulted = true },
+        }
+
+        local config = Manager.load()
+
+        assert.is_nil(config.features.browser_folder_cover)
+        assert.is_nil(config.browser_folder_cover.crop_to_fit)
+        assert.are.equal("stack", config.browser_folder_cover.cover_mode)
+        assert.is_nil(config._meta.gallery_mode_defaulted)
+    end)
+
     it("moves global search and page-browser layout into their Zen settings", function()
         settings_file.data = {
             reader_page_browser = { layout = "single" },

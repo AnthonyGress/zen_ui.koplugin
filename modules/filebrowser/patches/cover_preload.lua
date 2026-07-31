@@ -15,6 +15,8 @@ local function apply_cover_preload()
     local zen_logger = require("common/zen_logger")
     local logger = zen_logger.new("cover_preload")
     local now = zen_logger.now
+    local ok_dbg, dbg = pcall(require, "dbg")
+    local measurements_enabled = ok_dbg and dbg and dbg.is_on == true
 
     memory_policy.applyCoverBudgets(render_cache, cache)
 
@@ -84,7 +86,7 @@ local function apply_cover_preload()
         patch_item(zen_item)
     end
 
-    install_tile_measurements()
+    if measurements_enabled then install_tile_measurements() end
 
     local function delta(after, before, key)
         return (after[key] or 0) - (before[key] or 0)
@@ -263,13 +265,15 @@ local function apply_cover_preload()
         UIManager:scheduleIn(COVER_POLL_S, poll)
     end
 
-    local function add_path(jobs, seen, path, width, height, render_width, render_height, final_render)
+    local function add_path(jobs, seen, path, width, height, render_width, render_height,
+            final_render, preserve_aspect)
         if not path or path == "" then
             return
         end
         local existing = seen[path]
         if existing then
             if final_render then existing.final_render = true end
+            if preserve_aspect then existing.preserve_aspect = true end
             return
         end
         if #jobs >= PRELOAD_MAX_JOBS then return end
@@ -280,6 +284,7 @@ local function apply_cover_preload()
             render_width = render_width,
             render_height = render_height,
             final_render = final_render == true,
+            preserve_aspect = preserve_aspect == true,
         }
         seen[path] = job
         jobs[#jobs + 1] = job
@@ -298,6 +303,7 @@ local function apply_cover_preload()
         if type(specs) == "table" and specs.uniform == true and width and height then
             render_width, render_height = CoverUtils.calcDims(width, height)
         end
+        local preserve_aspect = type(specs) == "table" and specs.uniform == false
         if type(items) ~= "table" or not perpage or perpage < 1 or not page then
             return {}, nil
         end
@@ -321,9 +327,14 @@ local function apply_cover_preload()
                         or (item.attr and item.attr.mode == "file")
                     if is_file then
                         add_path(jobs, seen, item.path or item.file,
-                            width, height, render_width, render_height, true)
+                            width, height, render_width, render_height, true, preserve_aspect)
                     end
                     local grouped = item._zen_files or item.series_items
+                    if type(grouped) ~= "table" and menu._zen_coll_list and item.name
+                            and type(menu._zen_get_collection_files) == "function" then
+                        local ok, files = pcall(menu._zen_get_collection_files, item.name)
+                        if ok then grouped = files end
+                    end
                     if type(grouped) == "table" then
                         -- Group/gallery renderers scale these through their own path.
                         for grouped_index = 1, math.min(4, #grouped) do
@@ -380,9 +391,21 @@ local function apply_cover_preload()
             end
             local source = info.cover_bb
             info.cover_bb = nil
+            local render_width, render_height = job.render_width, job.render_height
+            if job.preserve_aspect then
+                local source_w, source_h = tonumber(info.cover_w), tonumber(info.cover_h)
+                if not source_w or source_w <= 0 or not source_h or source_h <= 0 then
+                    local ok, width, height = pcall(function()
+                        return source:getWidth(), source:getHeight()
+                    end)
+                    if ok then source_w, source_h = width, height end
+                end
+                render_width, render_height = CoverUtils.fitDims(
+                    job.width, job.height, source_w, source_h)
+            end
             local before = render_cache:stats()
             local ok_render, final = pcall(render_cache.render, render_cache,
-                job.path, source, job.render_width, job.render_height)
+                job.path, source, render_width, render_height)
             local after = render_cache:stats()
             if ok_render and final then
                 free_bitmap(final)
@@ -529,25 +552,32 @@ local function apply_cover_preload()
 
     local function measured_updateItems(menu, original, ...)
         if menu._zen_cover_measure_active then return original(menu, ...) end
-        local turn_measure = menu._zen_cover_turn_measure
+        local turn_measure = measurements_enabled and menu._zen_cover_turn_measure or nil
         menu._zen_cover_turn_measure = nil
         menu._zen_cover_measure_active = true
-        menu._zen_cover_build_measure = { tile_count = 0, tile_ms = 0 }
+        if measurements_enabled then
+            menu._zen_cover_build_measure = { tile_count = 0, tile_ms = 0 }
+        end
         local memory_profile = memory_policy.applyCoverBudgets(render_cache, cache)
-        local before = cache:stats()
-        local before_render = render_cache:stats()
-        local started_at = now()
+        local before = measurements_enabled and cache:stats() or nil
+        local before_render = measurements_enabled and render_cache:stats() or nil
+        local started_at = measurements_enabled and now() or nil
         if menu.display_mode_type == "mosaic" then
             menu._zen_file_cover_specs = nil
         end
         local result = defer_extraction_launch(menu, original, ...)
         accelerate_cover_poll(menu)
+        menu._zen_cover_measure_active = nil
+        if not measurements_enabled then
+            schedule(menu, memory_profile)
+            return result
+        end
+
         local elapsed_ms = (now() - started_at) * 1000
         local after = cache:stats()
         local after_render = render_cache:stats()
         local build_measure = menu._zen_cover_build_measure
         menu._zen_cover_build_measure = nil
-        menu._zen_cover_measure_active = nil
         local hits = delta(after, before, "hits")
         local misses = delta(after, before, "misses")
         local requests = hits + misses
@@ -628,10 +658,13 @@ local function apply_cover_preload()
             if menu._zen_cover_turn_active then return original(menu, ...) end
             menu._zen_cover_turn_active = true
             menu._zen_cover_preload_direction = direction
-            local turn_measure = { direction = label, started_at = now() }
-            menu._zen_cover_turn_measure = turn_measure
+            local turn_measure
+            if measurements_enabled then
+                turn_measure = { direction = label, started_at = now() }
+                menu._zen_cover_turn_measure = turn_measure
+            end
             local result = original(menu, ...)
-            if menu._zen_cover_turn_measure == turn_measure then
+            if turn_measure and menu._zen_cover_turn_measure == turn_measure then
                 menu._zen_cover_turn_measure = nil
             end
             menu._zen_cover_turn_active = nil

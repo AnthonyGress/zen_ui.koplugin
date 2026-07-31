@@ -20,6 +20,11 @@ describe("cover utility policy", function()
         assert.are.same({ 300, 400 }, { CoverUtils.calcDims(300, 500) })
     end)
 
+    it("fits real covers without changing their aspect ratio", function()
+        assert.are.same({ 100, 67 }, { CoverUtils.fitDims(100, 150, 120, 80) })
+        assert.are.same({ 60, 150 }, { CoverUtils.fitDims(100, 150, 80, 200) })
+    end)
+
     it("describes each empty home-book source", function()
         assert.are.equal("Start reading a book to fill this space.",
             CoverUtils.getEmptyPlaceholderText("recently_read"))
@@ -366,5 +371,36 @@ describe("cover utility policy", function()
         assert.are.equal("stack-widget", widget)
         assert.are.equal(source, received[1].data)
         assert.are.equal(0, scale_calls)
+    end)
+
+    it("sizes one-book stack previews with the uniform-cover policy", function()
+        local function container()
+            return { new = function(_self, values) return values end }
+        end
+        ZenSpec.replace("ui/widget/container/centercontainer", container())
+        ZenSpec.replace("ui/widget/container/framecontainer", container())
+        ZenSpec.replace("ui/widget/imagewidget", container())
+        ZenSpec.replace("ui/widget/overlapgroup", container())
+        ZenSpec.replace("ui/widget/verticalspan", container())
+
+        local natural = CoverUtils.drawStack({ {
+            data = {}, w = 120, h = 80,
+        } }, 100, 150, 2, nil, false)
+        local natural_image = natural[1][1]
+        assert.are.equal(104, natural.width)
+        assert.are.equal(71, natural.height)
+        assert.are.equal(100, natural_image.width)
+        assert.are.equal(67, natural_image.height)
+        assert.are.equal(0, natural_image.scale_factor)
+
+        local uniform = CoverUtils.drawStack({ {
+            data = {}, w = 120, h = 80,
+        } }, 100, 150, 2, nil, true)
+        local uniform_image = uniform[1][1]
+        assert.are.equal(104, uniform.width)
+        assert.are.equal(154, uniform.height)
+        assert.are.equal(100, uniform_image.width)
+        assert.are.equal(150, uniform_image.height)
+        assert.are.equal(1.875, uniform_image.scale_factor)
     end)
 end)

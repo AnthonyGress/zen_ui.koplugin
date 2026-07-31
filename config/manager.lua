@@ -87,8 +87,20 @@ local function normalize_renamed_keys(cfg)
         changed = true
     end
 
-    -- Always-on features: no user toggle in Zen settings.
-    cfg.features.browser_folder_cover = true
+    -- Folder covers are always on and no longer need a persisted feature flag.
+    if cfg.features.browser_folder_cover ~= nil then
+        cfg.features.browser_folder_cover = nil
+        changed = true
+    end
+    if type(cfg.browser_folder_cover) == "table"
+            and cfg.browser_folder_cover.crop_to_fit ~= nil then
+        cfg.browser_folder_cover.crop_to_fit = nil
+        changed = true
+    end
+    if type(cfg._meta) == "table" and cfg._meta.gallery_mode_defaulted ~= nil then
+        cfg._meta.gallery_mode_defaulted = nil
+        changed = true
+    end
 
     if type(cfg.navbar) == "table" and cfg.navbar.active_tab_bold ~= nil then
         cfg.navbar.active_tab_bold = nil
@@ -615,13 +627,16 @@ local function migrate_bim_folder_cover_keys(cfg)
     -- All BIM folder cover keys used BooleanSetting(default=true): get() = not BIM_value.
     -- Zen config stores the direct value, so: zen_value = BIM_value ~= true.
     local mappings = {
-        { bim = "folder_crop_custom_image", cfg = "crop_to_fit"      },
         { bim = "folder_name_centered",     cfg = "name_centered"     },
         { bim = "folder_name_show",         cfg = "show_folder_name"  },
         { bim = "folder_item_count_show",   cfg = "show_item_count"   },
         { bim = "folder_name_opaque",       cfg = "name_opaque"       },
         { bim = "folder_spine_lines_show",  cfg = "show_spine_lines"  },
     }
+    -- This old CoverBrowser option never affected Zen's renderer.
+    if bim:getSetting("folder_crop_custom_image") ~= nil then
+        pcall(bim.saveSetting, bim, "folder_crop_custom_image", nil)
+    end
     for _i, m in ipairs(mappings) do
         local bim_val = bim:getSetting(m.bim)
         if bim_val ~= nil then
