@@ -8,6 +8,7 @@ describe("incompatible plugin and patch check", function()
     local original_sui_core
     local original_quickmenu
     local original_suntime
+    local original_appearance_setting
     local UIManager
     local settings
     local patch_dir
@@ -16,6 +17,7 @@ describe("incompatible plugin and patch check", function()
         "2-quick-settings.lua",
         "2-automatic-book-series.lua",
         "2-ui-font.lua",
+        "2-custom-navbar.lua",
     }
 
     local module_names = {
@@ -39,10 +41,12 @@ describe("incompatible plugin and patch check", function()
         original_sui_core = package.loaded["sui_core"]
         original_quickmenu = package.loaded["quickmenu"]
         original_suntime = package.loaded["suntime"]
+        original_appearance_setting = package.loaded["lib/setting"]
         package.loaded["ptutil"] = nil
         package.loaded["sui_core"] = nil
         package.loaded["quickmenu"] = nil
         package.loaded["suntime"] = nil
+        package.loaded["lib/setting"] = nil
         _G.__ZEN_UI_PLUGIN = nil
         patch_dir = os.tmpname()
         os.remove(patch_dir)
@@ -100,6 +104,7 @@ describe("incompatible plugin and patch check", function()
         package.loaded["sui_core"] = original_sui_core
         package.loaded["quickmenu"] = original_quickmenu
         package.loaded["suntime"] = original_suntime
+        package.loaded["lib/setting"] = original_appearance_setting
         _G.__ZEN_UI_PLUGIN = original_plugin
         _G.G_reader_settings = original_settings
         for _i, filename in ipairs(patch_files) do
@@ -116,6 +121,7 @@ describe("incompatible plugin and patch check", function()
                 ["2-quick-settings.lua"] = true,
                 ["2-automatic-book-series.lua"] = false,
                 ["2-ui-font.lua"] = true,
+                ["2-custom-navbar.lua"] = true,
             },
         })
 
@@ -131,7 +137,7 @@ describe("incompatible plugin and patch check", function()
         UIManager.scheduled[1].callback()
         assert.are.equal(
             "Incompatible plugins and patches have been disabled:\n"
-                .. "2-quick-settings.lua\n2-automatic-book-series.lua\n2-ui-font.lua",
+                .. "2-quick-settings.lua\n2-automatic-book-series.lua\n2-ui-font.lua\n2-custom-navbar.lua",
             UIManager.shown[1].text)
     end)
 
@@ -142,5 +148,30 @@ describe("incompatible plugin and patch check", function()
         assert.are.equal("file", lfs.attributes(patch_dir .. "/2-quick-settings.lua", "mode"))
         assert.are.equal(0, settings.flushes)
         assert.are.same({}, UIManager.scheduled)
+    end)
+
+    it("disables Appearance when its settings module is loaded", function()
+        local root = assert(os.getenv("ZEN_UI_ROOT"))
+        package.loaded["lib/setting"] = assert(loadfile(
+            root .. "/spec/lua/fixtures/appearance.koplugin/lib/setting.lua"))()
+        ZenSpec.replace("userpatch", { execution_status = {} })
+
+        assert.is_true(require("modules/filebrowser/patches/incompatible_plugins_check")())
+        assert.is_true(settings.disabled.appearance)
+        assert.are.equal(1, settings.flushes)
+
+        UIManager.scheduled[1].callback()
+        assert.are.equal(
+            "Incompatible plugins and patches have been disabled:\nAppearance",
+            UIManager.shown[1].text)
+    end)
+
+    it("does not mistake another plugin's settings module for Appearance", function()
+        package.loaded["lib/setting"] = { get = function() end }
+        ZenSpec.replace("userpatch", { execution_status = {} })
+
+        assert.is_false(require("modules/filebrowser/patches/incompatible_plugins_check")())
+        assert.is_nil(settings.disabled.appearance)
+        assert.are.equal(0, settings.flushes)
     end)
 end)

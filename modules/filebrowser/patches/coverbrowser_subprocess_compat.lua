@@ -13,6 +13,7 @@ local function apply_coverbrowser_subprocess_compat()
     local function is_known_incompat(err)
         local msg = tostring(err)
         return msg:find("setIsolateSMask", 1, true) ~= nil
+            or msg:find("setBackgroundCleanup", 1, true) ~= nil
     end
 
     local function wrap_method(method_name)

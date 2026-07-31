@@ -1995,9 +1995,10 @@ function M.showTBRView(injectNavbar)
         end
         if #items == 0 then
             table.insert(items, {
-                text     = group_empty_message(tab_id),
-                dim      = true,
-                callback = function() end,
+                text                   = group_empty_message(tab_id),
+                dim                    = true,
+                callback               = function() end,
+                _zen_empty_placeholder = true,
             })
         end
         return items
@@ -2049,7 +2050,7 @@ function M.showTBRView(injectNavbar)
     -- doesn't suppress covers the way it does for non-FM dialogs (e.g. screensaver picker).
     menu._zen_tab_id = tab_id
 
-    local mode_type = setup_display_mode(menu, false, tab_id)
+    local mode_type = setup_display_mode(menu, true, tab_id)
     if mode_type == "mosaic" then
         patch_mosaic_item()
     elseif mode_type == "list" then

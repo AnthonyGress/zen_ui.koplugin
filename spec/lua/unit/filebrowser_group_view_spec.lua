@@ -276,6 +276,8 @@ describe("file browser group views", function()
         local item = assert(find_menu("to_be_read")).item_table[1]
         assert.are.equal("No TBR books found", item.text)
         assert.is_true(item.dim)
+        assert.is_true(item._zen_empty_placeholder)
+        assert.is_true(find_menu("to_be_read")._zen_group_view)
         assert.are.equal(0, legacy_tbr_calls)
     end)
 

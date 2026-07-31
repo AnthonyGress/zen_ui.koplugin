@@ -1031,16 +1031,6 @@ function Driver:handleCommand(command)
             error = ok_call and nil or tostring(opened),
         }
     end
-    if kind == "activate_arrange_finish" then
-        local widget = active_arrange_widget()
-        local title_bar = widget and widget.title_bar
-        local button = title_bar and (title_bar._zen_arrange_done_button or title_bar.action_button)
-        if not (button and type(button.callback) == "function") then
-            return { ok = false, error = "Finish button unavailable" }
-        end
-        button.callback()
-        return { ok = true }
-    end
     if kind == "navbar_state" then
         return { ok = true, navbar = navbar_state() }
     end

@@ -12,6 +12,8 @@ local function apply_page_browser()
     local ZenTocWidget = require("modules/reader/zen_toc_widget")
     local PresetStore   = require("config/preset_store")
     local utils        = require("common/utils")
+    local lfs          = require("libs/libkoreader-lfs")
+    local _stock_icons_dir = lfs.currentdir() .. "/resources/icons/mdlight/"
 
     -- -----------------------------------------------------------------------
     -- Resolve plugin icons/ dir from this file's path at apply-time
@@ -103,8 +105,7 @@ local function apply_page_browser()
         local slot_btn_w = btn_sz + btn_pad * 2
         local title_y = math.floor((title_h - btn_sz) / 2)
         canvas:paintRect(0, title_h - 1, slot_w, 1, Blitbuffer.COLOR_LIGHT_GRAY)
-        local DataStorage = require("datastorage")
-        local stock_icons_dir = DataStorage:getDataDir() .. "/resources/icons/mdlight/"
+        local stock_icons_dir = _stock_icons_dir
         local header_icons = {
             "appbar.search", "info", "appbar.textsize", "bookmark",
         }
@@ -363,12 +364,7 @@ local function apply_page_browser()
         local _               = require("gettext")
 
         local function resolve_stock_icon(name)
-            local ok, DataStorage = pcall(require, "datastorage")
-            if ok and DataStorage then
-                local icons_dir = DataStorage:getDataDir() .. "/resources/icons/mdlight/"
-                return utils.resolveLocalIcon(icons_dir, name)
-            end
-            return utils.resolveLocalIcon(_icons_dir, name)
+            return utils.resolveLocalIcon(_stock_icons_dir, name)
         end
 
         local function get_page_display_text(pbw, page_num)
