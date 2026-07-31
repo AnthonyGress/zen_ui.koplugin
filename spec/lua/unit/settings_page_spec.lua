@@ -47,6 +47,8 @@ describe("Zen settings page", function()
 
     function Menu:updateItems(select_number)
         self.last_select_number = select_number
+        self.updated_item_tables = self.updated_item_tables or {}
+        self.updated_item_tables[#self.updated_item_tables + 1] = self.item_table
     end
 
     function Menu:onTap()
@@ -236,6 +238,17 @@ describe("Zen settings page", function()
         UIManager._window_stack = nil
     end)
 
+    it("allows the underlying screen to repaint when a deferred page closes", function()
+        local settings = make_page({})
+        settings.invisible = true
+        settings._deferred_arrange_parent = true
+
+        settings:closeMenu()
+
+        assert.is_false(settings.invisible)
+        assert.is_nil(settings._deferred_arrange_parent)
+    end)
+
     it("restores the last page for six seconds after closing", function()
         local original_time = os.time
         local now = 100
@@ -257,8 +270,17 @@ describe("Zen settings page", function()
         first:closeMenu()
 
         now = 106
+        local shown_titles = {}
+        local UIManager = require("ui/uimanager")
+        UIManager.show = function(_self, widget)
+            shown_titles[#shown_titles + 1] = widget.title_bar.title
+            shown_widgets[#shown_widgets + 1] = widget
+        end
         local restored = PageModule.show(plugin)
+        assert.are.same({ "Zen OPDS" }, shown_titles)
         assert.are.equal("Zen OPDS", restored.title_bar.title)
+        assert.are.equal(2, #restored.item_table_stack)
+        assert.are.same({ restored.item_table }, restored.updated_item_tables)
         restored:closeMenu()
 
         now = 113
@@ -279,6 +301,7 @@ describe("Zen settings page", function()
                     local route = PageModule.claimArrangeRoute()
                     if route.path[1] == "quotes" then
                         restored_arrange_path = route.path
+                        require("ui/uimanager"):show({ title = "Quotes" })
                     else
                         PageModule.noteArrangeRoute({
                             opener = route.opener,
@@ -306,9 +329,14 @@ describe("Zen settings page", function()
         first:onMenuSelect(first.item_table[1])
         first:closeMenu()
 
+        shown_widgets = {}
         local restored = PageModule.show(plugin)
         assert.are.equal("Stats", restored.title_bar.title)
         assert.are.same({ "quotes" }, restored_arrange_path)
+        assert.are.equal(2, #shown_widgets)
+        assert.are.equal(restored, shown_widgets[1])
+        assert.is_true(shown_widgets[1].invisible)
+        assert.are.equal("Quotes", shown_widgets[2].title)
     end)
 
     it("restores a standalone widget-settings route from the top menu", function()

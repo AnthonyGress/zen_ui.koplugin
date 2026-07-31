@@ -238,6 +238,7 @@ function ZenSettingsPage:init()
     self._search_index = nil
     self._search_active = false
     self._closed = false
+    self.item_table_stack = {}
     self._resume_path = {}
     self._title_stack_depth = 0
     self._displayed_title = self.title
@@ -261,6 +262,10 @@ function ZenSettingsPage:init()
         search_close_callback = function() return self:_closeSearchPill() end,
         plugin = self.plugin,
     }
+    if self._initial_resume_path then
+        self:_restoreResumePath(self._initial_resume_path, true)
+        self._initial_item_table_stack = self.item_table_stack
+    end
     Menu.init(self)
     self.key_events = self.key_events or {}
     self.key_events.SelectByShortCut = nil
@@ -275,6 +280,10 @@ end
 
 function ZenSettingsPage:updateItems(...)
     if self._closed then return end
+    if self._initial_item_table_stack then
+        self.item_table_stack = self._initial_item_table_stack
+        self._initial_item_table_stack = nil
+    end
     self:_ensureCurrentTitle()
     self:_prepareItems()
     self:_syncHeader()
@@ -349,12 +358,16 @@ function ZenSettingsPage:_findResumeItem(step)
     end
 end
 
-function ZenSettingsPage:_restoreResumePath(path)
+function ZenSettingsPage:_restoreResumePath(path, defer_update)
     for _i, step in ipairs(path or {}) do
         local item = self:_findResumeItem(step)
         local items = item and self:_resolveSubItems(item)
-        if not items or not self:_openSubmenu(item, items) then return false end
+        if not items or not self:_openSubmenu(item, items, true) then
+            if not defer_update then self:updateItems(1) end
+            return false
+        end
     end
+    if not defer_update then self:updateItems(1) end
     return true
 end
 
@@ -365,7 +378,7 @@ function ZenSettingsPage:_activateResumeSelector(selector)
     return true
 end
 
-function ZenSettingsPage:_openSubmenu(item, items)
+function ZenSettingsPage:_openSubmenu(item, items, defer_update)
     if type(items) ~= "table" or #items == 0 then return false end
     self:_leaveSearch(false)
     if self.title_bar and self.title_bar.collapseSearch then
@@ -377,7 +390,7 @@ function ZenSettingsPage:_openSubmenu(item, items)
     items._zen_title = item.sub_title or item_text(item)
     self.parent_id = nil
     self.item_table = items
-    self:updateItems(1)
+    if not defer_update then self:updateItems(1) end
     return true
 end
 
@@ -509,6 +522,10 @@ function ZenSettingsPage:closeMenu()
     if self._closed then return true end
     self:_rememberResume()
     self._closed = true
+    if self._deferred_arrange_parent then
+        self._deferred_arrange_parent = nil
+        self.invisible = false
+    end
     if self.title_bar and self.title_bar.clearStatusRefresh then
         self.title_bar:clearStatusRefresh()
     end
@@ -522,6 +539,10 @@ end
 
 function ZenSettingsPage:onCloseWidget()
     self:_rememberResume()
+    if self._deferred_arrange_parent then
+        self._deferred_arrange_parent = nil
+        self.invisible = false
+    end
     if self.title_bar and self.title_bar.clearStatusRefresh then
         self.title_bar:clearStatusRefresh()
     end
@@ -790,18 +811,25 @@ function M.show(plugin, opts)
         title = _("Settings"),
         item_table = root_items,
         _root_items = root_items,
+        _initial_resume_path = resume and resume.path or nil,
         plugin = plugin,
     }
+    if resume and resume.arrange then
+        page.invisible = true
+        page._deferred_arrange_resume = true
+    end
     active_page = page
     UIManager:show(page)
-    if resume then
+    if resume and resume.arrange then
         UIManager:nextTick(function()
             if page._closed then return end
-            page:_restoreResumePath(resume.path)
-            if resume.arrange then
-                page:_activateResumeSelector(resume.arrange.opener)
-                restoring_arrange_resume = nil
-                arrange_open_context = nil
+            page:_activateResumeSelector(resume.arrange.opener)
+            restoring_arrange_resume = nil
+            arrange_open_context = nil
+            if page._deferred_arrange_resume then
+                page._deferred_arrange_resume = nil
+                page.invisible = false
+                UIManager:setDirty(page, "ui")
             end
         end)
     else
@@ -842,6 +870,11 @@ function M.claimArrangeRoute()
         local resume = restoring_arrange_resume
         restoring_arrange_resume = nil
         arrange_open_context = nil
+        if active_page and active_page._deferred_arrange_resume then
+            active_page._deferred_arrange_resume = nil
+            active_page._deferred_arrange_parent = true
+            resume.deferred_parent = active_page
+        end
         return resume
     end
     if not arrange_open_context then return nil end

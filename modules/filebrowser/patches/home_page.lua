@@ -574,7 +574,7 @@ local function ensure_home_cfg()
     if dcfg.quotes.rotation ~= "refresh" then dcfg.quotes.rotation = "daily" end
     dcfg.quotes.automatic_font_size = dcfg.quotes.automatic_font_size == true
     dcfg.quotes.max_font_size = math.max(
-        4, math.min(32, tonumber(dcfg.quotes.max_font_size) or 16)
+        4, math.min(32, tonumber(dcfg.quotes.max_font_size) or 14)
     )
     dcfg.quotes.use_home_font_size = dcfg.quotes.use_home_font_size == true or nil
     local quote_font_size = tonumber(dcfg.quotes.font_size)

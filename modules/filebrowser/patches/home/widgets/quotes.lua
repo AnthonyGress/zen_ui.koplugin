@@ -55,7 +55,7 @@ return {
 
         if automatic_font_size then
             local max_font_size = math.max(
-                4, math.min(32, tonumber(quotes.max_font_size) or 16)
+                4, math.min(32, tonumber(quotes.max_font_size) or 14)
             )
             quote_font_size = 4
             for candidate = max_font_size, 4, -1 do

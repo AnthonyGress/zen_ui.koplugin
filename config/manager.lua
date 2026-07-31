@@ -801,12 +801,12 @@ local function migrate_home_quote_font_size()
             changed = true
         end
         if quotes.automatic_font_size ~= true and quotes.automatic_font_size ~= false then
-            quotes.automatic_font_size = false
+            quotes.automatic_font_size = true
             changed = true
         end
         local max_font_size = tonumber(quotes.max_font_size)
         local normalized_max_font_size = math.max(
-            4, math.min(32, math.floor((max_font_size or 16) + 0.5))
+            4, math.min(32, math.floor((max_font_size or 14) + 0.5))
         )
         if quotes.max_font_size ~= normalized_max_font_size then
             quotes.max_font_size = normalized_max_font_size

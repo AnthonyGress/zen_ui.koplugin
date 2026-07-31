@@ -224,7 +224,7 @@ local function ensure_cfg(_config)
     if dcfg.quotes.rotation ~= "refresh" then dcfg.quotes.rotation = "daily" end
     dcfg.quotes.automatic_font_size = dcfg.quotes.automatic_font_size == true
     dcfg.quotes.max_font_size = math.max(
-        4, math.min(32, tonumber(dcfg.quotes.max_font_size) or 16)
+        4, math.min(32, tonumber(dcfg.quotes.max_font_size) or 14)
     )
     dcfg.quotes.use_home_font_size = dcfg.quotes.use_home_font_size == true or nil
     local quote_font_size = tonumber(dcfg.quotes.font_size)
@@ -1654,7 +1654,7 @@ function M.build(ctx)
                     return string.format(
                         "%s %s",
                         _("Maximum font size:"),
-                        tostring(dcfg.quotes.max_font_size or 16)
+                        tostring(dcfg.quotes.max_font_size or 14)
                     )
                 end
                 return string.format("%s %s", _("Font size:"), tostring(quote_font_size()))
@@ -1665,10 +1665,10 @@ function M.build(ctx)
                 if dcfg.quotes.automatic_font_size == true then
                     UIManager:show(SpinWidget:new{
                         title_text = _("Maximum quote font size"),
-                        value = dcfg.quotes.max_font_size or 16,
+                        value = dcfg.quotes.max_font_size or 14,
                         value_min = 4,
                         value_max = 32,
-                        default_value = 16,
+                        default_value = 14,
                         callback = function(spin)
                             dcfg.quotes.max_font_size = spin.value
                             save_home("reinit")

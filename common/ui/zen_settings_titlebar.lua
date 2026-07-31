@@ -134,6 +134,7 @@ function ZenSettingsTitleBar:init()
     local icon_size = Screen:scaleBySize(28)
     local button_padding = Screen:scaleBySize(8)
     local button_size = icon_size + 2 * button_padding
+    local close_hitbox_inset = Screen:scaleBySize(4)
     local title_leading_padding = Screen:scaleBySize(6)
     self.title_leading_padding = title_leading_padding
     local root_icon_size = math.min(button_size, Screen:scaleBySize(32))
@@ -368,7 +369,8 @@ function ZenSettingsTitleBar:init()
         icon = "close",
         width = icon_size,
         height = icon_size,
-        padding = button_padding,
+        padding = button_padding + close_hitbox_inset,
+        overlap_align = "center",
         allow_flash = false,
         show_parent = self.show_parent,
         callback = function()
@@ -384,7 +386,11 @@ function ZenSettingsTitleBar:init()
     local trailing_buttons = {}
     if self.action_button then table.insert(trailing_buttons, self.action_button) end
     if self.search_button then table.insert(trailing_buttons, self.search_button) end
-    table.insert(trailing_buttons, self.close_button)
+    table.insert(trailing_buttons, OverlapGroup:new{
+        dimen = Geom:new{ w = button_size, h = button_size },
+        allow_mirroring = false,
+        self.close_button,
+    })
     for index, button in ipairs(trailing_buttons) do
         if index > 1 then table.insert(row, HorizontalSpan:new{ width = trailing_gap }) end
         table.insert(row, button)

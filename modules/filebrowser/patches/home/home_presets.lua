@@ -173,9 +173,9 @@ local DEFAULT_HOME_PAGE = {
         },
     },
     quotes = {
-        automatic_font_size = false,
+        automatic_font_size = true,
         font_size = 12,
-        max_font_size = 16,
+        max_font_size = 14,
         rotation = "daily",
         show_author = true,
         show_title = true,
@@ -342,9 +342,9 @@ local BOOKSHELF_HOME_PAGE = {
         },
     },
     quotes = {
-        automatic_font_size = false,
+        automatic_font_size = true,
         font_size = 12,
-        max_font_size = 16,
+        max_font_size = 14,
         rotation = "daily",
         show_author = true,
         show_title = true,

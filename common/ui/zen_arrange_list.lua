@@ -38,6 +38,19 @@ local repopulate
 local plus_icon_path
 local DRAG_UNFOCUS_DELAY = 0.1
 
+local function background_refresh_count()
+    local refreshes = UIManager._refresh_func_stack
+    return type(refreshes) == "table" and #refreshes or nil
+end
+
+local function discard_background_refreshes(count)
+    local refreshes = UIManager._refresh_func_stack
+    if not (count and type(refreshes) == "table") then return end
+    for i = #refreshes, count + 1, -1 do
+        table.remove(refreshes, i)
+    end
+end
+
 local function get_plus_icon_path()
     if plus_icon_path ~= nil then return plus_icon_path end
     plus_icon_path = false
@@ -549,6 +562,10 @@ end
 local function back_to_settings_root()
     local settings_page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
     if settings_page and settings_page.backToRootMenu then
+        if settings_page._deferred_arrange_parent then
+            settings_page._deferred_arrange_parent = nil
+            settings_page.invisible = false
+        end
         return settings_page:backToRootMenu()
     end
     return false
@@ -848,7 +865,7 @@ end
 local install_submenu_tap_handlers
 local install_root_tap_handlers
 
-local function open_submenu_for_item(sort_widget, item, resume_path)
+local function open_submenu_for_item(sort_widget, item, resume_path, resume_in_background)
     if not (sort_widget and item and has_submenu(item)
             and (not sort_widget._zen_menu_mode or item_is_enabled(item))) then
         return false
@@ -858,7 +875,7 @@ local function open_submenu_for_item(sort_widget, item, resume_path)
     if type(item.sub_item_table_func) == "function" then
         sub_items = item.sub_item_table_func(sort_widget._zen_menu_proxy)
     end
-    show_submenu(item_submenu_title(item), sub_items, function()
+    local submenu = show_submenu(item_submenu_title(item), sub_items, function()
         if sort_widget._zen_arrange_refresh then
             sort_widget:_zen_arrange_refresh()
         else
@@ -869,8 +886,10 @@ local function open_submenu_for_item(sort_widget, item, resume_path)
         menu_mode = sort_widget._zen_menu_mode,
         settings_resume = extend_settings_resume(sort_widget._zen_settings_resume, item),
         resume_path = resume_path,
+        resume_in_background = resume_in_background,
+        restore_parent = resume_in_background and sort_widget or nil,
     })
-    return true
+    return submenu ~= nil
 end
 
 local function get_focused_arrange_target(sort_widget)
@@ -1274,6 +1293,12 @@ show_submenu = function(title, items, refresh, opts)
     ensure_submenu_callbacks(items)
     update_dynamic_text(items)
 
+    local resume_item
+    if opts.resume_in_background and type(opts.resume_path) == "table" and #opts.resume_path > 0 then
+        resume_item = find_resume_item(items, opts.resume_path[1])
+    end
+    local refresh_count = resume_item and background_refresh_count()
+
     local sort_widget
     local menu_proxy
     local close_submenu_and_arrange
@@ -1341,6 +1366,7 @@ show_submenu = function(title, items, refresh, opts)
         item_table = items,
         sort_disabled = false,
         covers_fullscreen = true,
+        invisible = resume_item ~= nil,
     }
     sort_widget.item_margin = 0
     sort_widget:_populateItems()
@@ -1351,12 +1377,18 @@ show_submenu = function(title, items, refresh, opts)
     sort_widget._zen_settings_resume = opts.settings_resume
 
     local orig_on_close = sort_widget.onClose
-    sort_widget.onClose = function(self)
+    local function close_submenu(self, restore_parent)
+        if restore_parent and opts.restore_parent then
+            opts.restore_parent.invisible = false
+        end
         DispatcherMenu.flush(menu_proxy)
         remember_settings_resume(self)
         local result = orig_on_close(self)
         if refresh then refresh() end
         return result
+    end
+    sort_widget.onClose = function(self)
+        return close_submenu(self, true)
     end
     sort_widget.onCancelOrClose = sort_widget.onClose
 
@@ -1377,7 +1409,7 @@ show_submenu = function(title, items, refresh, opts)
         if sort_widget then
             local current = sort_widget
             sort_widget = nil
-            current:onClose()
+            close_submenu(current, false)
         end
         if type(opts.close_arrange) == "function" then opts.close_arrange() end
     end
@@ -1388,8 +1420,8 @@ show_submenu = function(title, items, refresh, opts)
             return true
         end,
         back_hold_callback = function()
-            close_submenu_and_arrange()
             back_to_settings_root()
+            close_submenu_and_arrange()
             return true
         end,
         close_callback = function()
@@ -1430,15 +1462,18 @@ show_submenu = function(title, items, refresh, opts)
     end
     install_titlebar_focus(sort_widget)
 
-    UIManager:show(sort_widget)
-    if type(opts.resume_path) == "table" and #opts.resume_path > 0 then
-        UIManager:nextTick(function()
-            if not sort_widget then return end
-            local key = table.remove(opts.resume_path, 1)
-            local item = find_resume_item(sort_widget.item_table, key)
-            if item then open_submenu_for_item(sort_widget, item, opts.resume_path) end
-        end)
+    if resume_item then
+        discard_background_refreshes(refresh_count)
+        UIManager:show(sort_widget)
+        table.remove(opts.resume_path, 1)
+        if not open_submenu_for_item(sort_widget, resume_item, opts.resume_path, true) then
+            sort_widget.invisible = false
+            UIManager:setDirty(sort_widget, "ui")
+        end
+    else
+        UIManager:show(sort_widget)
     end
+    return sort_widget
 end
 
 install_submenu_tap_handlers = function(sort_widget)
@@ -1534,6 +1569,31 @@ function M.show(opts)
     update_dynamic_text(item_table)
     ensure_submenu_callbacks(item_table)
 
+    local settings_resume
+    if not menu_mode and rawget(_G, "__ZEN_UI_SETTINGS_PAGE") then
+        local ok_settings_page, settings_page = pcall(require, "modules/settings/zen_settings_page")
+        if ok_settings_page and settings_page.claimArrangeRoute then
+            settings_resume = settings_page.claimArrangeRoute()
+        end
+    end
+    local resume_item
+    local resume_path
+    if settings_resume and #settings_resume.path > 0 then
+        resume_path = {}
+        for _i, key in ipairs(settings_resume.path) do
+            resume_path[#resume_path + 1] = key
+        end
+        resume_item = find_resume_item(item_table, resume_path[1])
+        if resume_item then
+            settings_resume = {
+                opener = settings_resume.opener,
+                path = {},
+                deferred_parent = settings_resume.deferred_parent,
+            }
+        end
+    end
+    local refresh_count = resume_item and background_refresh_count()
+
     local menu_proxy
     local menu_callback_complete
     local sort_widget = SortWidget:new{
@@ -1542,6 +1602,7 @@ function M.show(opts)
         callback = opts.callback,
         sort_disabled = not arrange_enabled,
         covers_fullscreen = true,
+        invisible = resume_item ~= nil,
     }
     sort_widget.item_margin = 0
     sort_widget:_populateItems()
@@ -1603,15 +1664,28 @@ function M.show(opts)
         return true
     end
     local orig_on_close = sort_widget.onClose
-    sort_widget._zen_arrange_close_all = function()
+    local function show_deferred_parent()
+        local parent = settings_resume and settings_resume.deferred_parent
+        if not parent then return end
+        settings_resume.deferred_parent = nil
+        if parent._deferred_arrange_parent then
+            parent._deferred_arrange_parent = nil
+            parent.invisible = false
+        end
+    end
+    local function close_arrange(restore_parent)
         if sort_widget._zen_arrange_closing then return true end
         sort_widget._zen_arrange_closing = true
+        if restore_parent then show_deferred_parent() end
         cancel_drag_unfocus(sort_widget)
         DispatcherMenu.flush(menu_proxy)
         commit_arrange_order(sort_widget)
         sort_widget.marked = 0
         sort_widget.orig_item_table = nil
         return orig_on_close(sort_widget)
+    end
+    sort_widget._zen_arrange_close_all = function()
+        return close_arrange(false)
     end
     local close_and_go_back
     if type(opts.back_callback) == "function" then
@@ -1621,25 +1695,21 @@ function M.show(opts)
             return opts.back_callback()
         end
     end
-    sort_widget.onClose = close_and_go_back or sort_widget._zen_arrange_close_all
-    sort_widget.onCancelOrClose = sort_widget.onClose
-    local settings_resume
-    if not menu_mode and rawget(_G, "__ZEN_UI_SETTINGS_PAGE") then
-        local ok_settings_page, settings_page = pcall(require, "modules/settings/zen_settings_page")
-        if ok_settings_page and settings_page.claimArrangeRoute then
-            settings_resume = settings_page.claimArrangeRoute()
-        end
+    local close_and_restore_parent = function()
+        return close_arrange(true)
     end
+    sort_widget.onClose = close_and_go_back or close_and_restore_parent
+    sort_widget.onCancelOrClose = sort_widget.onClose
     sort_widget._zen_settings_resume = settings_resume
     local title_opts = {
         add_title = opts.add_title,
         add_item_table = opts.add_item_table,
         close_arrange = sort_widget._zen_arrange_close_all,
-        back_callback = close_and_go_back or sort_widget._zen_arrange_close_all,
+        back_callback = close_and_go_back or close_and_restore_parent,
         back_hold_callback = function()
             if close_and_go_back then return close_and_go_back() end
-            sort_widget._zen_arrange_close_all()
             if not menu_mode then back_to_settings_root() end
+            sort_widget._zen_arrange_close_all()
             return true
         end,
         close_callback = function()
@@ -1720,14 +1790,16 @@ function M.show(opts)
     end
     install_titlebar_focus(sort_widget)
 
-    UIManager:show(sort_widget)
-    if settings_resume and #settings_resume.path > 0 then
-        UIManager:nextTick(function()
-            local resume_path = settings_resume.path
-            local key = table.remove(resume_path, 1)
-            local item = find_resume_item(sort_widget.item_table, key)
-            if item then open_submenu_for_item(sort_widget, item, resume_path) end
-        end)
+    if resume_item then
+        discard_background_refreshes(refresh_count)
+        UIManager:show(sort_widget)
+        table.remove(resume_path, 1)
+        if not open_submenu_for_item(sort_widget, resume_item, resume_path, true) then
+            sort_widget.invisible = false
+            UIManager:setDirty(sort_widget, "ui")
+        end
+    else
+        UIManager:show(sort_widget)
     end
     if opts.open_add_on_show and type(opts.add_item_table) == "table" and #opts.add_item_table > 0 then
         UIManager:nextTick(function()
