@@ -88,6 +88,24 @@ describe("home cover rendering", function()
         assert.are.same({ { 32, 8 } }, allocations)
     end)
 
+    it("keeps the corner radius fixed for smaller list covers", function()
+        local Cover = require("modules/filebrowser/patches/home/widgets/cover_common")
+        local target = {
+            getType = function() return "bb8" end,
+            blitFrom = function() end,
+            paintRect = function() end,
+        }
+        local large = Cover.make_cover_widget(
+            { path = "/library/large.epub" }, 100, 150)
+        local small = Cover.make_cover_widget(
+            { path = "/library/small.epub" }, 18, 28)
+
+        large:paintTo(target, 10, 20)
+        small:paintTo(target, 10, 20)
+
+        assert.are.same({ { 32, 8 }, { 32, 8 } }, allocations)
+    end)
+
     it("fits a non-uniform frame to the real cover aspect ratio", function()
         local Cover = require("modules/filebrowser/patches/home/widgets/cover_common")
         local frame, width, height = Cover.make_cover_widget({

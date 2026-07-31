@@ -28,10 +28,8 @@ local function apply_zen_renderer()
     local Geom = require("ui/geometry")
     local GestureRange = require("ui/gesturerange")
     local InputContainer = require("ui/widget/container/inputcontainer")
-    local AlphaContainer = require("ui/widget/container/alphacontainer")
     local BottomContainer = require("ui/widget/container/bottomcontainer")
     local CenterContainer = require("ui/widget/container/centercontainer")
-    local FrameContainer = require("ui/widget/container/framecontainer")
     local HorizontalGroup = require("ui/widget/horizontalgroup")
     local HorizontalSpan = require("ui/widget/horizontalspan")
     local LeftContainer = require("ui/widget/container/leftcontainer")
@@ -42,6 +40,7 @@ local function apply_zen_renderer()
     local UnderlineContainer = require("ui/widget/container/underlinecontainer")
     local VerticalGroup = require("ui/widget/verticalgroup")
     local VerticalSpan = require("ui/widget/verticalspan")
+    local WidgetContainer = require("ui/widget/container/widgetcontainer")
     local Size = require("ui/size")
     local CoverWidget = require("modules/filebrowser/patches/home/widgets/cover_common")
     local CoverUtils = require("common/cover_utils")
@@ -138,6 +137,91 @@ local function apply_zen_renderer()
         return height
     end
 
+    local label_strip_cache = {}
+    local LabelStrip = WidgetContainer:extend{}
+
+    function LabelStrip:paintTo(bb, x, y)
+        bb:colorblitFromRGB32(self.strip.background_mask, x, y, 0, 0,
+            self.dimen.w, self.dimen.h, Blitbuffer.COLOR_WHITE)
+        bb:colorblitFromRGB32(self.strip.border_mask, x, y, 0, 0,
+            self.dimen.w, self.dimen.h, Blitbuffer.COLOR_BLACK)
+    end
+
+    local function cached_label_strip(width, height, radius, opaque)
+        radius = math.max(0, math.min(radius, math.floor((math.min(width, height) - 1) / 2)))
+        local alpha = opaque and 0xFF or math.floor(0.75 * 0xFF + 0.5)
+        local key = table.concat({ width, height, radius, alpha }, ":")
+        if label_strip_cache[key] then return label_strip_cache[key], radius, alpha end
+
+        local background_mask = Blitbuffer.new(width, height, Blitbuffer.TYPE_BB8)
+        local border_mask = Blitbuffer.new(width, height, Blitbuffer.TYPE_BB8)
+        local background = Blitbuffer.Color8(alpha)
+        local border = math.max(1, math.min(CoverUtils.BORDER_SIZE, math.floor(math.min(width, height) / 2)))
+        background_mask:fill(Blitbuffer.COLOR_BLACK)
+        border_mask:fill(Blitbuffer.COLOR_BLACK)
+        background_mask:paintRect(0, 0, width, height, background)
+
+        if radius >= 2 then
+            local inner_radius = math.max(0, radius - border)
+            for row = 0, radius - 1 do
+                local y = height - radius + row
+                for column = 0, radius - 1 do
+                    local dx = radius - column - 0.5
+                    local dy = row + 0.5
+                    local distance = math.sqrt(dx * dx + dy * dy)
+                    if distance > radius then
+                        background_mask:paintRect(column, y, 1, 1, Blitbuffer.COLOR_BLACK)
+                        background_mask:paintRect(width - 1 - column, y, 1, 1, Blitbuffer.COLOR_BLACK)
+                    elseif distance >= inner_radius then
+                        border_mask:paintRect(column, y, 1, 1, Blitbuffer.COLOR_WHITE)
+                        border_mask:paintRect(width - 1 - column, y, 1, 1, Blitbuffer.COLOR_WHITE)
+                    end
+                end
+            end
+            border_mask:paintRect(0, 0, width, border, Blitbuffer.COLOR_WHITE)
+            border_mask:paintRect(0, 0, border, height - radius, Blitbuffer.COLOR_WHITE)
+            border_mask:paintRect(width - border, 0, border, height - radius, Blitbuffer.COLOR_WHITE)
+            border_mask:paintRect(radius, height - border, width - 2 * radius, border, Blitbuffer.COLOR_WHITE)
+        else
+            border_mask:paintRect(0, 0, width, border, Blitbuffer.COLOR_WHITE)
+            border_mask:paintRect(0, height - border, width, border, Blitbuffer.COLOR_WHITE)
+            border_mask:paintRect(0, 0, border, height, Blitbuffer.COLOR_WHITE)
+            border_mask:paintRect(width - border, 0, border, height, Blitbuffer.COLOR_WHITE)
+        end
+
+        local strip = { background_mask = background_mask, border_mask = border_mask }
+        label_strip_cache[key] = strip
+        return strip, radius, alpha
+    end
+
+    local function transparent_folder_label(label)
+        local original_free = label.free
+        function label:paintTo(bb, x, y)
+            if not self._bb then self:_updateLayout() end
+            local width = self.width
+            local height = self._bb:getHeight()
+            if not self._zen_folder_label_mask
+                    or self._zen_folder_label_mask:getWidth() ~= width
+                    or self._zen_folder_label_mask:getHeight() ~= height then
+                if self._zen_folder_label_mask then self._zen_folder_label_mask:free() end
+                self._zen_folder_label_mask = Blitbuffer.new(width, height, Blitbuffer.TYPE_BB8)
+            end
+            local mask = self._zen_folder_label_mask
+            mask:fill(Blitbuffer.COLOR_WHITE)
+            mask:blitFrom(self._bb, 0, 0, 0, 0, width, height)
+            mask:invertRect(0, 0, width, height)
+            bb:colorblitFromRGB32(mask, x, y, 0, 0, width, height, self.fgcolor)
+        end
+        function label:free(...)
+            if self._zen_folder_label_mask then
+                self._zen_folder_label_mask:free()
+                self._zen_folder_label_mask = nil
+            end
+            return original_free(self, ...)
+        end
+        return label
+    end
+
     function ZenMosaicItem:init()
         self.filepath = self.entry.file or self.entry.path
         self.ges_events = {
@@ -153,78 +237,6 @@ local function apply_zen_renderer()
         self[1] = self._underline_container
         self:update()
         self.init_done = true
-    end
-
-    local function round_label_bottom(frame, radius)
-        frame._zen_bottom_corner_radius = radius
-        frame.radius = radius
-        if radius < 2 or type(frame.paintTo) ~= "function" then return end
-        local original_paint = frame.paintTo
-        frame.paintTo = function(self, bb, x, y)
-            local size = self:getSize()
-            local max_radius = math.floor((math.min(size.w, size.h) - 1) / 2)
-            local corner_radius = math.min(radius, max_radius)
-            if corner_radius < 2 then return original_paint(self, bb, x, y) end
-
-            local snapshot = Blitbuffer.new(corner_radius * 2, corner_radius, bb:getType())
-            snapshot:blitFrom(bb, 0, 0, x, y + size.h - corner_radius,
-                corner_radius, corner_radius)
-            snapshot:blitFrom(bb, corner_radius, 0, x + size.w - corner_radius,
-                y + size.h - corner_radius, corner_radius, corner_radius)
-            original_paint(self, bb, x, y)
-
-            for row = 0, corner_radius - 1 do
-                local inner = math.sqrt(math.max(0, corner_radius * corner_radius
-                    - (corner_radius - row) * (corner_radius - row)))
-                local cut = math.ceil(corner_radius - inner)
-                if cut > 0 then
-                    local restore_y = y + size.h - corner_radius + row
-                    snapshot:blitFrom(bb, x, restore_y, 0, row, cut, 1)
-                    snapshot:blitFrom(bb, x + size.w - cut, restore_y,
-                        corner_radius * 2 - cut, row, cut, 1)
-                end
-            end
-            local border = math.max(1, self.bordersize or 0)
-            local inner_radius = corner_radius - border
-            local color = self.color or Blitbuffer.COLOR_BLACK
-            for row = 0, corner_radius - 1 do
-                for column = 0, corner_radius - 1 do
-                    local dx = corner_radius - column - 0.5
-                    local dy = corner_radius - row - 0.5
-                    local distance = math.sqrt(dx * dx + dy * dy)
-                    if distance >= inner_radius and distance <= corner_radius then
-                        local arc_y = y + size.h - 1 - row
-                        bb:paintRect(x + column, arc_y, 1, 1, color)
-                        bb:paintRect(x + size.w - 1 - column, arc_y, 1, 1, color)
-                    end
-                end
-            end
-            local background = self.background or Blitbuffer.COLOR_WHITE
-            bb:paintRect(x, y, corner_radius, corner_radius, background)
-            bb:paintRect(x + size.w - corner_radius, y,
-                corner_radius, corner_radius, background)
-            bb:paintRect(x, y, size.w, border, color)
-            bb:paintRect(x, y, border, corner_radius, color)
-            bb:paintRect(x + size.w - border, y, border, corner_radius, color)
-            snapshot:free()
-        end
-    end
-
-    local function translucent_label(frame)
-        local alpha = AlphaContainer:new{ alpha = 0.75, frame }
-        function alpha:paintTo(bb, x, y)
-            local size = self[1]:getSize()
-            if not self.private_bb
-                    or self.private_bb:getWidth() ~= size.w
-                    or self.private_bb:getHeight() ~= size.h then
-                if self.private_bb then self.private_bb:free() end
-                self.private_bb = Blitbuffer.new(size.w, size.h, bb:getType())
-            end
-            self.private_bb:blitFrom(bb, 0, 0, x, y, size.w, size.h)
-            self[1]:paintTo(self.private_bb, 0, 0)
-            bb:addblitFrom(self.private_bb, x, y, 0, 0, size.w, size.h, self.alpha)
-        end
-        return alpha
     end
 
     local function folder_name_overlay(item, cover, content_h, title, strip_h, cover_dimen)
@@ -286,6 +298,7 @@ local function apply_zen_renderer()
                 width = label_w,
                 alignment = "center",
                 bold = true,
+                fgcolor = Blitbuffer.COLOR_BLACK,
             }
         else
             if probe then probe:free() end
@@ -298,25 +311,30 @@ local function apply_zen_renderer()
                 height = two_line_h,
                 height_adjust = true,
                 height_overflow_show_ellipsis = true,
+                fgcolor = Blitbuffer.COLOR_BLACK,
             }
         end
-        local label_frame = FrameContainer:new{
-            padding = 0,
-            padding_left = label_pad_h,
-            padding_right = label_pad_h,
-            padding_top = label_pad_v,
-            padding_bottom = label_pad_v,
-            bordersize = CoverUtils.BORDER_SIZE,
-            background = Blitbuffer.COLOR_WHITE,
-            _zen_keep_background = true,
+        label = transparent_folder_label(label)
+        local label_dimen = Geom:new{
+            w = label_w + 2 * (label_pad_h + CoverUtils.BORDER_SIZE),
+            h = two_line_h + 2 * (label_pad_v + CoverUtils.BORDER_SIZE),
+        }
+        local strip, strip_radius, strip_alpha = cached_label_strip(
+            label_dimen.w, label_dimen.h, corner_radius, config.name_opaque == true)
+        local label_strip = LabelStrip:new{
+            dimen = label_dimen,
+            strip = strip,
+            radius = strip_radius,
+            alpha = strip_alpha,
+        }
+        local label_widget = OverlapGroup:new{
+            dimen = label_dimen,
+            label_strip,
             CenterContainer:new{
-                dimen = Geom:new{ w = label_w, h = two_line_h },
+                dimen = label_dimen,
                 label,
             },
         }
-        round_label_bottom(label_frame, corner_radius)
-        local label_widget = config.name_opaque == true and label_frame
-            or translucent_label(label_frame)
         local PositionContainer = config.name_centered == true and CenterContainer or BottomContainer
         return OverlapGroup:new{
             dimen = Geom:new{ w = item.width, h = content_h },
@@ -387,6 +405,7 @@ local function apply_zen_renderer()
                     max_width = item.width - Screen:scaleBySize(12),
                     truncate_with_ellipsis = true,
                     padding = 0,
+                    fgcolor = Blitbuffer.COLOR_BLACK,
                 },
             })
         end

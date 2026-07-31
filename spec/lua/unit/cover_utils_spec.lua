@@ -193,11 +193,12 @@ describe("cover utility policy", function()
             return "folder-placeholder"
         end
 
-        CoverUtils.drawNoImage("Empty Shelf", 100, 150, 2)
+        local frame = CoverUtils.drawNoImage("Empty Shelf", 100, 150, 2)
 
         assert.are.equal("zen-folder-placeholder:Empty Shelf", request.path)
         assert.are.same({ title = "Empty Shelf", authors = "", title_only = true }, request.metadata)
         assert.is_true(request.no_fallback)
+        assert.is_true(frame[1][1].original_in_nightmode)
     end)
 
     it("draws and caches the ornate placeholder cover", function()

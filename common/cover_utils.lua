@@ -793,7 +793,7 @@ function CoverUtils.drawNoImage(folder_name, portrait_w, portrait_h, border)
                 image_disposable = true,
                 width = portrait_w,
                 height = portrait_h,
-                original_in_nightmode = false,
+                original_in_nightmode = true,
             },
         },
         overlap_align = "center",

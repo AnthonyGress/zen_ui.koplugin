@@ -73,6 +73,7 @@ local function apply_browser_list_item_layout()
 
                             wleft:free(true)
                             wleft.face = library_font.getFace(fs)
+                            wleft.fgcolor = Blitbuffer.COLOR_BLACK
                             wleft:init() -- init once to compute font metrics
 
                             local lh = wleft:getLineHeight()
@@ -213,6 +214,7 @@ local function apply_browser_list_item_layout()
                         height_overflow_show_ellipsis = true,
                         alignment = "left",
                         bold = true,
+                        fgcolor = Blitbuffer.COLOR_BLACK,
                     }
                     local row_dimen = { w = self.width, h = dimen_h }
                     local widget = OverlapGroup:new{

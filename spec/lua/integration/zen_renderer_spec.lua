@@ -83,6 +83,9 @@ describe("Zen renderer", function()
         ZenSpec.replace("ui/widget/container/alphacontainer", widget_class())
         ZenSpec.replace("ui/widget/container/bottomcontainer", widget_class())
         ZenSpec.replace("ui/widget/container/framecontainer", widget_class())
+        local WidgetContainer = class()
+        function WidgetContainer:getSize() return self.dimen end
+        ZenSpec.replace("ui/widget/container/widgetcontainer", WidgetContainer)
         ZenSpec.replace("ui/widget/horizontalgroup", widget_class())
         ZenSpec.replace("ui/widget/horizontalspan", widget_class())
         ZenSpec.replace("ui/widget/container/leftcontainer", widget_class())
@@ -102,6 +105,10 @@ describe("Zen renderer", function()
         ZenSpec.replace("ui/widget/textboxwidget", {
             new = function(_self, values)
                 folder_name_labels[#folder_name_labels + 1] = values
+                values.dimen = {}
+                values._updateLayout = function(self)
+                    self._bb = { getHeight = function() return 8 end }
+                end
                 values.free = function() end
                 return values
             end,
@@ -111,7 +118,28 @@ describe("Zen renderer", function()
         ZenSpec.replace("ui/widget/verticalspan", widget_class())
         ZenSpec.replace("ui/size", { border = { thin = 1, default = 1 }, padding = { tiny = 1 }, line = { focus_indicator = 1 } })
         ZenSpec.replace("ui/widget/menu", { getMenuText = function(entry) return entry.title end })
-        ZenSpec.replace("ffi/blitbuffer", { COLOR_BLACK = 0, COLOR_WHITE = 1 })
+        ZenSpec.replace("ffi/blitbuffer", {
+            COLOR_BLACK = 0,
+            COLOR_WHITE = 1,
+            TYPE_BB8 = 1,
+            Color8A = function(value, alpha) return { value = value, alpha = alpha } end,
+            Color8 = function(value) return { value = value } end,
+            new = function(width, height, buffer_type)
+                local buffer = { width = width, height = height, buffer_type = buffer_type, rects = {} }
+                function buffer:paintRect(x, y, rect_w, rect_h, color)
+                    table.insert(self.rects, {
+                        x = x, y = y, width = rect_w, height = rect_h, color = color,
+                    })
+                end
+                function buffer:fill() end
+                function buffer:blitFrom() end
+                function buffer:invertRect() end
+                function buffer:getWidth() return self.width end
+                function buffer:getHeight() return self.height end
+                function buffer:free() end
+                return buffer
+            end,
+        })
         ZenSpec.replace("common/cover_render_cache", { render = function() return nil end })
         ZenSpec.replace("ui/widget/progresswidget", {
             new = function(_self, values)
@@ -324,34 +352,49 @@ describe("Zen renderer", function()
         local item = menu.layout[1][1]
         local overlay = item._underline_container[1][1]
         local label_container = overlay[2][1]
-        local label_frame = label_container[1]
+        local label_widget = label_container[1]
+        local label_strip = label_widget[1]
         local cover_size = item._zen_cover_frame:getSize()
         assert.are.equal(cover_size.w - 14, folder_name_labels[1].width)
         assert.are.equal(cover_size.w, label_container.dimen.w)
         assert.are.equal(cover_size.h, label_container.dimen.h)
-        assert.are.equal(16, label_frame[1].dimen.h)
-        assert.is_true(label_frame._zen_keep_background)
-        assert.are.equal(8, label_frame.radius)
-        assert.are.equal(8, label_frame._zen_bottom_corner_radius)
+        assert.are.equal(cover_size.w, label_strip.dimen.w)
+        assert.are.equal(20, label_strip.dimen.h)
+        assert.are.equal(8, label_strip.radius)
+        assert.are.equal(0xFF, label_strip.alpha)
+        assert.are.same({ value = 0xFF }, label_strip.strip.background_mask.rects[1].color)
+        assert.are.equal(folder_name_labels[1], label_widget[2][1])
         assert.are.equal("center", folder_name_labels[1].alignment)
         assert.is_true(folder_name_labels[1].height_adjust)
         assert.is_true(folder_name_labels[1].height_overflow_show_ellipsis)
         assert.are.equal(16, folder_name_labels[1].height)
+        assert.are.equal(0, folder_name_labels[1].fgcolor)
+        local text_target = {}
+        function text_target:colorblitFromRGB32(mask, x, y, _offset_x, _offset_y, width, height, color)
+            self.mask, self.x, self.y = mask, x, y
+            self.width, self.height, self.color = width, height, color
+        end
+        folder_name_labels[1]:paintTo(text_target, 3, 4)
+        assert.are.equal(3, text_target.x)
+        assert.are.equal(4, text_target.y)
+        assert.are.equal(0, text_target.color)
 
         _G.__ZEN_UI_PLUGIN.config.browser_folder_cover.name_opaque = false
         local translucent_menu = folder_menu()
         MosaicMenu._updateItemsBuildUI(translucent_menu)
         local translucent_overlay = translucent_menu.layout[1][1]._underline_container[1][1]
-        local alpha_label = translucent_overlay[2][1][1]
+        local translucent_strip = translucent_overlay[2][1][1][1]
 
-        assert.are.equal(0.75, alpha_label.alpha)
-        assert.is_true(alpha_label[1]._zen_keep_background)
+        assert.are.equal(math.floor(0.75 * 0xFF + 0.5), translucent_strip.alpha)
+        assert.are.same({ value = math.floor(0.75 * 0xFF + 0.5) },
+            translucent_strip.strip.background_mask.rects[1].color)
 
         local short_menu = folder_menu("Short")
         MosaicMenu._updateItemsBuildUI(short_menu)
         local short_overlay = short_menu.layout[1][1]._underline_container[1][1]
-        local short_frame = short_overlay[2][1][1][1]
-        assert.are.equal(label_frame[1].dimen.h, short_frame[1].dimen.h)
+        local short_strip = short_overlay[2][1][1][1]
+        assert.are.equal(translucent_strip.dimen.h, short_strip.dimen.h)
+        assert.are.equal(translucent_strip.strip, short_strip.strip)
     end)
 
     it("supplies the rendered book cover before opening a Zen mosaic tile", function()
