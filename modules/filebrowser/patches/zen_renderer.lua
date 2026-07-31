@@ -632,8 +632,9 @@ local function apply_zen_renderer()
                 bordercolor = Blitbuffer.COLOR_BLACK,
                 height = height,
                 margin_h = Screen:scaleBySize(1),
+                margin_v = Screen:scaleBySize(1),
                 width = width,
-                radius = Size.border.thin,
+                radius = math.floor(height / 2),
                 bordersize = Size.border.default,
             }
             item._zen_native_progress = progress
@@ -642,8 +643,25 @@ local function apply_zen_renderer()
         progress.fillcolor = item._zen_effective_status == "abandoned"
             and Blitbuffer.COLOR_GRAY_6 or Blitbuffer.COLOR_BLACK
         progress:setPercentage(item.percent_finished)
-        progress:paintTo(bb, frame.dimen.x + margin,
-            frame.dimen.y + frame.dimen.h - badge_size(frame, config) + margin)
+        local x = frame.dimen.x + margin
+        local y = frame.dimen.y + frame.dimen.h - badge_size(frame, config) + margin
+        progress:paintTo(bb, x, y)
+
+        if not bb.paintRoundedRect then return end
+        local percentage = math.max(0, math.min(1, tonumber(progress.percentage) or 0))
+        local fill_width = width - 2 * (progress.margin_h + progress.bordersize)
+        local fill_height = height - 2 * (progress.margin_v + progress.bordersize)
+        if percentage <= 0 or fill_width <= 0 or fill_height <= 0 then return end
+        local fill_x = x + progress.margin_h + progress.bordersize
+        local painted_width = math.ceil(fill_width * percentage)
+        if BD.mirroredUILayout() then
+            fill_x = fill_x + math.floor(fill_width * (1 - percentage))
+        end
+        bb:paintRect(fill_x, y + progress.margin_v + progress.bordersize,
+            painted_width, fill_height, progress.bgcolor)
+        bb:paintRoundedRect(fill_x, y + progress.margin_v + progress.bordersize,
+            painted_width, fill_height, progress.fillcolor,
+            math.floor(math.min(painted_width, fill_height) / 2))
     end
 
     local function paint_new_banner(item, bb, config)

@@ -184,28 +184,37 @@ function M.paintSpines(bb, frame, item_x, item_y, options)
     local second_length = math.max(0, math.floor(extent * 0.97) - 2 * inset)
     local color = Blitbuffer.COLOR_GRAY_4 or Blitbuffer.COLOR_BLACK
 
+    local function paint_spine(x, y, width, height)
+        if bb.paintRoundedRect then
+            bb:paintRoundedRect(x, y, width, height, color,
+                math.max(1, math.floor(math.min(width, height) / 2)))
+        else
+            bb:paintRect(x, y, width, height, color)
+        end
+    end
+
     if orientation == "top" then
         local lines_h = 2 * thickness + margin
         local first_y = dimen.y - top_h + math.floor((top_h - lines_h) / 2)
         if first_length > 0 then
-            bb:paintRect(dimen.x + math.floor((dimen.w - first_length) / 2),
-                first_y, first_length, thickness, color)
+            paint_spine(dimen.x + math.floor((dimen.w - first_length) / 2),
+                first_y, first_length, thickness)
         end
         if second_length > 0 then
-            bb:paintRect(dimen.x + math.floor((dimen.w - second_length) / 2),
-                first_y + thickness + margin, second_length, thickness, color)
+            paint_spine(dimen.x + math.floor((dimen.w - second_length) / 2),
+                first_y + thickness + margin, second_length, thickness)
         end
     else
         local center_y = options.center_y or dimen.y + dimen.h / 2
         local first_x = dimen.x - spine_gap
         if first_length > 0 then
-            bb:paintRect(first_x, math.floor(center_y - first_length / 2),
-                thickness, first_length, color)
+            paint_spine(first_x, math.floor(center_y - first_length / 2),
+                thickness, first_length)
         end
         if second_length > 0 then
-            bb:paintRect(first_x + thickness + margin,
+            paint_spine(first_x + thickness + margin,
                 math.floor(center_y - second_length / 2),
-                thickness, second_length, color)
+                thickness, second_length)
         end
     end
     return orientation

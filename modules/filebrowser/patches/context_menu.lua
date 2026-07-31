@@ -335,6 +335,11 @@ local function apply_context_menu()
             tb.left_button = nil
             tb:init()
         end
+        local close_icon = tb and tb.right_button and tb.right_button.image
+        if close_icon then
+            close_icon.alpha = true
+            close_icon:free()
+        end
     end
 
     local orig_setupLayout = FileManager.setupLayout

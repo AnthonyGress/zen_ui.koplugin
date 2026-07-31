@@ -209,7 +209,7 @@ describe("shared folder cover provider", function()
         assert.are.equal(1, 30 - (rects[2].x + rects[2].width))
     end)
 
-    it("uses the full list row height for left spine lengths", function()
+    it("matches mosaic spine proportions in list view", function()
         ZenSpec.replace("device", {
             screen = { scaleBySize = function(_self, value) return math.floor(value + 0.5) end },
         })
@@ -227,13 +227,40 @@ describe("shared folder cover provider", function()
         FolderCover.paintSpines(bb, {
             dimen = { x = 30, y = 6, w = 60, h = 90 },
         }, 0, 0, {
-            orientation = "left", line_extent = 100, center_y = 51, rounded = true,
+            orientation = "left", rounded = true,
         })
 
         assert.are.same({
-            { x = 21, y = 8, width = 3, height = 86 },
-            { x = 26, y = 6, width = 3, height = 89 },
+            { x = 21, y = 13, width = 3, height = 76 },
+            { x = 26, y = 11, width = 3, height = 79 },
         }, rects)
+    end)
+
+    it("rounds spine line ends when supported by the blitbuffer", function()
+        ZenSpec.replace("device", {
+            screen = { scaleBySize = function(_self, value) return math.floor(value + 0.5) end },
+        })
+        ZenSpec.replace("ffi/blitbuffer", { COLOR_GRAY_4 = 4, COLOR_BLACK = 0 })
+        ZenSpec.replace("ui/size", { line = { medium = 2 } })
+        ZenSpec.unload("modules/filebrowser/folder_cover")
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local rounded = {}
+        local bb = {
+            paintRoundedRect = function(_self, x, y, width, height, _color, radius)
+                rounded[#rounded + 1] = {
+                    x = x, y = y, width = width, height = height, radius = radius,
+                }
+            end,
+        }
+
+        FolderCover.paintSpines(bb, {
+            dimen = { x = 30, y = 6, w = 60, h = 90 },
+        }, 0, 0, { orientation = "left", rounded = true })
+
+        assert.are.same({
+            { x = 21, y = 13, width = 3, height = 76, radius = 1 },
+            { x = 26, y = 11, width = 3, height = 79, radius = 1 },
+        }, rounded)
     end)
 
     it("uses synthetic group and collection members without scanning paths", function()

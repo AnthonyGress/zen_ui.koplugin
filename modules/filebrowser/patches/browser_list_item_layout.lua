@@ -770,13 +770,9 @@ local function apply_browser_list_item_layout()
                 if self.do_cover_image and folder.show_spine_lines == true
                         and entry and not entry.is_go_up
                         and not FolderCover.isBook(entry) and self._cover_frame then
-                    local underline_h = 1
-                    local content_h = math.max(1, self.height - 2 * underline_h)
                     local features = config.features or {}
-                    FolderCover.paintSpines(bb, self._cover_frame, x, y + underline_h, {
+                    FolderCover.paintSpines(bb, self._cover_frame, x, y, {
                         orientation = "left",
-                        line_extent = content_h,
-                        center_y = y + underline_h + content_h / 2,
                         rounded = features.browser_cover_rounded_corners == true,
                     })
                 end

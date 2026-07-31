@@ -82,6 +82,18 @@ local function apply_browser_item_table_cache()
         return type(config) == "table" and config.dim_finished_books == true
     end
 
+    local function up_folder_visibility_key()
+        local config = plugin and plugin.config
+        local features = type(config) == "table" and config.features
+        local folder_config = type(config) == "table" and config.browser_hide_up_folder
+        return table.concat({
+            tostring(type(features) == "table" and features.browser_hide_up_folder == true),
+            tostring(type(folder_config) == "table" and folder_config.hide_up_folder == true),
+            tostring(type(folder_config) == "table" and folder_config.lock_home_folder or "zen"),
+            tostring(type(features) == "table" and features.zen_mode == true),
+        }, ":")
+    end
+
     local function canonical_path(path)
         if not path then return nil end
         return paths.normPath((ffiUtil.realpath(path) or path):gsub("/$", ""))
@@ -203,13 +215,14 @@ local function apply_browser_item_table_cache()
 
     local function stable_key(path)
         local filter = FileChooser.show_filter and FileChooser.show_filter.status
-        return string.format("%s|%s|%s|%s|%s|%s|%s|%s|%s",
+        return string.format("%s|%s|%s|%s|%s|%s|%s|%s|%s|%s",
             path,
             G_reader_settings:readSetting("collate", "strcoll"),
             tostring(G_reader_settings:isTrue("collate_mixed")),
             tostring(G_reader_settings:isTrue("reverse_collate")),
             tostring(FileChooser.show_hidden), tostring(filter), folder_sort_key(path),
-            tostring(automatic_series_enabled()), tostring(dim_finished_enabled()))
+            tostring(automatic_series_enabled()), tostring(dim_finished_enabled()),
+            up_folder_visibility_key())
     end
 
     local function cache_key(path)

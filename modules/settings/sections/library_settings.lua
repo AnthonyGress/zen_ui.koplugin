@@ -281,6 +281,10 @@ function M.build(ctx)
                     config.features.automatic_series_grouping =
                         config.features.automatic_series_grouping == false
                     plugin:saveConfig()
+                    local home = SharedState.get(plugin, "home")
+                    if home and type(home.invalidateLibraryCache) == "function" then
+                        home.invalidateLibraryCache()
+                    end
                     local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
                     local fc = ok_fm and FileManager and FileManager.instance
                         and FileManager.instance.file_chooser

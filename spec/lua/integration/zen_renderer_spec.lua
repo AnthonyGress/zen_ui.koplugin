@@ -5,6 +5,7 @@ describe("Zen renderer", function()
     local folder_requests
     local painted_text
     local native_progress_paints
+    local native_progress
     local banner_labels
     local banner_sizes
     local background_menus
@@ -36,6 +37,7 @@ describe("Zen renderer", function()
         folder_requests = {}
         painted_text = {}
         native_progress_paints = 0
+        native_progress = nil
         banner_labels = {}
         banner_sizes = {}
         background_menus = {}
@@ -104,6 +106,7 @@ describe("Zen renderer", function()
         ZenSpec.replace("common/cover_render_cache", { render = function() return nil end })
         ZenSpec.replace("ui/widget/progresswidget", {
             new = function(_self, values)
+                native_progress = values
                 values.setPercentage = function(self, percentage) self.percentage = percentage end
                 values.paintTo = function() native_progress_paints = native_progress_paints + 1 end
                 return values
@@ -395,11 +398,15 @@ describe("Zen renderer", function()
             filepath = "/book.epub",
         }, { __index = item_class })
         local compact = {}
+        local rounded_progress
         local bb = {
             paintRectRGB32 = function(_self, x, y, width, height)
                 compact[#compact + 1] = { x = x, y = y, width = width, height = height }
             end,
             paintRect = function() end,
+            paintRoundedRect = function(_self, _x, _y, width, height, _color, radius)
+                rounded_progress = { width = width, height = height, radius = radius }
+            end,
         }
 
         item:paintTo(bb, 0, 0)
@@ -410,6 +417,8 @@ describe("Zen renderer", function()
         assert.is_true(table.concat(painted_text, " "):find("#2") ~= nil)
         assert.is_true(table.concat(painted_text, " "):find("☆") ~= nil)
         assert.are.equal(1, native_progress_paints)
+        assert.are.equal(4, native_progress.radius)
+        assert.are.same({ width = 42, height = 4, radius = 2 }, rounded_progress)
 
         _G.__ZEN_UI_PLUGIN.config.browser_cover_badges.show_native_progress_bar = false
         item:paintTo(bb, 0, 0)

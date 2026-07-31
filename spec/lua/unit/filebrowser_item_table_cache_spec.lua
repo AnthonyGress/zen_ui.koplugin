@@ -3,6 +3,7 @@ describe("file browser item-table cache", function()
     local generated
     local saved_modules
     local saved_settings
+    local saved_plugin
 
     local module_names = {
         "common/cover_utils",
@@ -26,6 +27,7 @@ describe("file browser item-table cache", function()
             saved_modules[name] = package.loaded[name]
         end
         saved_settings = _G.G_reader_settings
+        saved_plugin = _G.__ZEN_UI_PLUGIN
 
         FileChooser = {
             collates = { title = { id = "title" } },
@@ -78,6 +80,12 @@ describe("file browser item-table cache", function()
             end,
             isTrue = function() return false end,
         }
+        _G.__ZEN_UI_PLUGIN = {
+            config = {
+                features = { browser_hide_up_folder = true, zen_mode = true },
+                browser_hide_up_folder = { hide_up_folder = true, lock_home_folder = "zen" },
+            },
+        }
         ZenSpec.unload("modules/filebrowser/patches/browser_item_table_cache")
         require("modules/filebrowser/patches/browser_item_table_cache")()
     end)
@@ -88,6 +96,7 @@ describe("file browser item-table cache", function()
             package.loaded[name] = saved_modules[name]
         end
         _G.G_reader_settings = saved_settings
+        _G.__ZEN_UI_PLUGIN = saved_plugin
     end)
 
     it("keeps the library root cached while a child folder is open", function()
@@ -99,5 +108,15 @@ describe("file browser item-table cache", function()
 
         assert.are.equal(1, generated["/library"])
         assert.are.equal(1, generated["/library/series"])
+    end)
+
+    it("refreshes cached folders when up-folder visibility changes", function()
+        local chooser = setmetatable({ name = "filemanager" }, { __index = FileChooser })
+
+        chooser:genItemTableFromPath("/library/series")
+        _G.__ZEN_UI_PLUGIN.config.browser_hide_up_folder.hide_up_folder = false
+        chooser:genItemTableFromPath("/library/series")
+
+        assert.are.equal(2, generated["/library/series"])
     end)
 end)
