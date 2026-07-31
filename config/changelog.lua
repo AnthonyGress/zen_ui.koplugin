@@ -226,9 +226,10 @@ return {
         "Update testing emulator to KOReader 2026.07"
     },
     ["3.0.0"] = {
-        "Large scale performance overhaul",
-        "New settings page",
+        "Large performance improvements",
+        "New Settings page",
         "Custom icon packs (Extras > Custom icons)",
+        "Page browser enhancements + Book Detail button",
         "Improved default covers",
         "Add Calibre tag to Navbar (Navbar > Tabs)",
         "Add Calibre tag strip to Home page (Home > Widgets)",
@@ -236,8 +237,8 @@ return {
         "Add checkboxes of toggles in plugin menus accessed via launcher/controls",
         "Add tailscale Control button",
         "Add font styling for Featured progress labels",
-        "Page browser enhancements + Book Detail button",
         "Respect non-linear page fragments in Page Browser",
         "Add Restarting notice",
+        "Bug fixes"
     }
 }
