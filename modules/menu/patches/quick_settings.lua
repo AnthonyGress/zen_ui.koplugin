@@ -13,7 +13,6 @@ local function apply_quick_settings()
     local SolidCircle = require("common/ui/zen_solid_circle")
     local Geom = require("ui/geometry")
     local HorizontalGroup = require("ui/widget/horizontalgroup")
-    local HorizontalSpan = require("ui/widget/horizontalspan")
     local IconWidget = require("ui/widget/iconwidget")
     local NetworkMgr = require("ui/network/manager")
     local ConfirmBox = require("ui/widget/confirmbox")
@@ -26,6 +25,7 @@ local function apply_quick_settings()
     local shutdown = require("common/shutdown")
     local restart = require("common/restart")
     local SharedState = require("common/shared_state")
+    local ButtonLabelWidth = require("common/ui/button_label_width")
     local Bluetooth = require("common/bluetooth")
     local build_brightness_slider = require("modules/menu/patches/brightness_slider")
     local build_warmth_slider     = require("modules/menu/patches/warmth_slider")
@@ -125,6 +125,7 @@ local function apply_quick_settings()
             localsend = false,
             screenshot = false,
         },
+        show_labels = true,
         show_frontlight = true,
         show_warmth = true,
         rotate_action = "cycle",
@@ -1167,11 +1168,11 @@ local function apply_quick_settings()
 
         local num_buttons = #visible_buttons
         local action_btn_size = Screen:scaleBySize(64)
-        local action_cell_width = num_buttons > 0
-            and math.floor(inner_width / num_buttons) or inner_width
+        local action_cell_width = ButtonLabelWidth.equalCellWidth(inner_width, num_buttons)
         local icon_size = math.floor(action_btn_size * 0.5)
         local label_size = Font.sizemap and Font.sizemap["xx_smallinfofont"] or 18
         local label_font = library_font.getFace(label_size)
+        local label_side_padding = Screen:scaleBySize(ButtonLabelWidth.SIDE_PADDING)
 
         local normal_border = Screen:scaleBySize(2)
 
@@ -1231,17 +1232,19 @@ local function apply_quick_settings()
                 end
                 return true
             end
-            local label = TextWidget:new{
-                text = label_text,
-                face = label_font,
-                max_width = math.max(1, action_cell_width - padding * 2),
-            }
             local group = VerticalGroup:new{
                 align = "center",
                 circle,
-                VerticalSpan:new{ width = Screen:scaleBySize(2) },
-                label,
             }
+            if config.show_labels ~= false then
+                local label_max_width = ButtonLabelWidth.maxWidth(action_cell_width, label_side_padding)
+                group[#group + 1] = VerticalSpan:new{ width = Screen:scaleBySize(2) }
+                group[#group + 1] = TextWidget:new{
+                    text = label_text,
+                    face = label_font,
+                    max_width = label_max_width,
+                }
+            end
             return group, circle
         end
 

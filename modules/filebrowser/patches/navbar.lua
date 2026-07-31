@@ -949,6 +949,19 @@ local function apply_navbar()
         return true
     end
 
+    local function is_default_tab_active()
+        local tab_id = resolve_default_tab()
+        if active_tab ~= tab_id then return false end
+        local stack = UIManager._window_stack
+        local top = stack and stack[#stack]
+        local widget = top and top.widget
+        if widget and widget._zen_navbar_tab_id == tab_id then return true end
+        local fm = FileManager.instance
+        return tabStaysInFileManager(tab_id)
+            and fm ~= nil
+            and (widget == fm or widget == fm.show_parent)
+    end
+
     do
         local default_tab = resolve_default_tab()
         active_tab = shouldTrackActiveTab(default_tab) and default_tab or "books"
@@ -2910,6 +2923,7 @@ local function apply_navbar()
     _G.__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB = open_default_tab
     _G.__ZEN_UI_NAVBAR_OPEN_TAB = open_tab
     _G.__ZEN_UI_NAVBAR_RESOLVE_DEFAULT_TAB = resolve_default_tab
+    _G.__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE = is_default_tab_active
     _G.__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON = function()
         local tab = tabs_by_id[resolve_default_tab()]
         return tab and tab.icon

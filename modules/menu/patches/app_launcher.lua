@@ -20,6 +20,7 @@
     local ActionFilter = require("modules/menu/app_launcher/action_filter")
     local Model = require("modules/menu/app_launcher/model")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
+    local ButtonLabelWidth = require("common/ui/button_label_width")
     local ZenButton = require("common/ui/zen_button")
     local SolidCircle = require("common/ui/zen_solid_circle")
     local utils = require("common/utils")
@@ -171,11 +172,12 @@
             icon_circle,
         }
         if show_label then
+            local label_max_width = ButtonLabelWidth.maxWidth(opts.cell_w, opts.label_side_padding)
             local label = TextWidget:new{
                 text = opts.label,
                 face = label_face,
                 fgcolor = fg,
-                max_width = opts.cell_w - opts.pad * 2,
+                max_width = label_max_width,
             }
             table.insert(content_items, 1, VerticalSpan:new{ width = opts.pad })
             content_items[#content_items + 1] = VerticalSpan:new{ width = Screen:scaleBySize(4) }
@@ -335,7 +337,6 @@
         local inner_w = panel_width - pad * 2
         local min_cell_w = Screen:scaleBySize(96)
         local cols = math.max(2, math.floor(inner_w / min_cell_w))
-        local cell_w = math.floor(inner_w / cols)
         local cell_h = Screen:scaleBySize(92)
         local row_gap = Screen:scaleBySize(8)
         local circle_size = Screen:scaleBySize(64)
@@ -343,6 +344,7 @@
         local circle_border = Screen:scaleBySize(2)
         local label_size = Font.sizemap and Font.sizemap["xx_smallinfofont"] or 18
         local label_face = library_font.getFace(label_size)
+        local label_side_padding = Screen:scaleBySize(ButtonLabelWidth.SIDE_PADDING)
         local rows = {}
         local row_counts = {}
         local row_widths = {}
@@ -391,7 +393,7 @@
         for _i, row in ipairs(all_rows) do
             if #row > max_row_len then max_row_len = #row end
         end
-        local uniform_cell_w = math.floor(inner_w / math.max(1, max_row_len))
+        local uniform_cell_w = ButtonLabelWidth.equalCellWidth(inner_w, max_row_len)
 
         -- Pagination: slice the grid so it never overflows the space a normal
         -- menu would use (bar + items area + footer). The footer up arrow then
@@ -476,13 +478,14 @@
                 local dim = not entry._app_back
                     and (not entry_available(entry, touch_menu, cfg) or entry_disabled(entry))
                 local cell = make_cell{
-                    cell_w = row_widths[#rows] or cell_w,
+                    cell_w = row_widths[#rows] or uniform_cell_w,
                     cell_h = cell_h,
                     pad = pad,
                     icon_size = icon_size,
                     circle_size = circle_size,
                     circle_border = circle_border,
                     label_face = label_face,
+                    label_side_padding = label_side_padding,
                     label = Model.display_label(entry),
                     show_label = show_labels,
                     icon = entry.icon or (entry.type == "folder" and DEFAULT_FOLDER_ICON or DEFAULT_ENTRY_ICON),
@@ -504,7 +507,7 @@
         end
 
         for _i, row in ipairs(rows) do
-            local used = (row_counts[_i] or 0) * (row_widths[_i] or cell_w)
+            local used = (row_counts[_i] or 0) * (row_widths[_i] or uniform_cell_w)
             local lead = math.max(pad, math.floor((panel_width - used) / 2))
             local trail = panel_width - used - lead
             table.insert(row, 1, HorizontalSpan:new{ width = lead })

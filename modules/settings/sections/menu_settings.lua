@@ -808,6 +808,7 @@ function M.build(ctx)
         end
         config.quick_settings.show_buttons = new_show
         config.quick_settings.button_order = new_order
+        config.quick_settings.show_labels = def.show_labels
         config.quick_settings.show_frontlight = def.show_frontlight
         config.quick_settings.show_warmth = def.show_warmth
         config.quick_settings.flip_lh_rh_icon = def.flip_lh_rh_icon
@@ -866,6 +867,14 @@ function M.build(ctx)
                 keep_menu_open = true,
                 callback = showButtonsArrange,
             }, icons.action),
+            IconItem.decorate({
+                text = _("Show labels"),
+                checked_func = function() return config.quick_settings.show_labels ~= false end,
+                callback = function()
+                    config.quick_settings.show_labels = config.quick_settings.show_labels == false
+                    save_and_apply_quick_settings()
+                end,
+            }, icons.keywords),
             IconItem.decorate({
                 text = _("Show brightness slider"),
                 checked_func = function() return config.quick_settings.show_frontlight == true end,

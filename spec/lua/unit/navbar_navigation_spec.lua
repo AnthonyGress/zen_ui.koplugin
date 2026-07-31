@@ -187,7 +187,8 @@ describe("file browser navbar navigation", function()
     after_each(function()
         for _i, name in ipairs({
             "__ZEN_UI_PLUGIN", "__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB", "__ZEN_UI_NAVBAR_OPEN_TAB",
-            "__ZEN_UI_NAVBAR_RESOLVE_DEFAULT_TAB", "__ZEN_UI_ACTIVE_TAB_LABEL",
+            "__ZEN_UI_NAVBAR_RESOLVE_DEFAULT_TAB", "__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE",
+            "__ZEN_UI_ACTIVE_TAB_LABEL",
             "__ZEN_UI_REINJECT_FM_NAVBAR", "__ZEN_UI_REINJECT_NAVBARS",
             "__ZEN_UI_LIBRARY_STATE", "__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER",
         }) do
@@ -227,6 +228,30 @@ describe("file browser navbar navigation", function()
             "page_left", "page_right", "menu",
         }, { unpack(_G.__ZEN_UI_PLUGIN.config.navbar.tab_order, 1, 13) })
         assert.are.equal("Home", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+    end)
+
+    it("recognizes an already-active default tab", function()
+        local fm = make_instance()
+        UIManager._window_stack = { { widget = { _zen_navbar_tab_id = "home" } } }
+        assert.is_true(_G.__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE())
+
+        _G.__ZEN_UI_PLUGIN.config.navbar.default_tab = "authors"
+        assert.is_false(_G.__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE())
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("authors"))
+        UIManager._window_stack = { { widget = { _zen_navbar_tab_id = "authors" } } }
+        assert.is_true(_G.__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE())
+
+        _G.__ZEN_UI_PLUGIN.config.navbar.default_tab = "books"
+        assert.is_false(_G.__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE())
+        FileManager.onPathChanged(fm, "/library/folder")
+        UIManager._window_stack = { { widget = fm } }
+        assert.is_true(_G.__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE())
+
+        _G.__ZEN_UI_PLUGIN.config.navbar.default_tab = "tags"
+        assert.is_false(_G.__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE())
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("tags"))
+        UIManager._window_stack = { { widget = { _zen_navbar_tab_id = "tags" } } }
+        assert.is_true(_G.__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE())
     end)
 
     it("reloads and opens a file-manager-backed Library default at the root", function()

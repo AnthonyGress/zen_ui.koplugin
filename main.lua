@@ -666,6 +666,10 @@ function ZenUI:init()
                     if ui.document then
                         library_navigation.showFromReader(ui, _zen_plugin_ref)
                     else
+                        local is_default_active = rawget(_G, "__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE")
+                        if type(is_default_active) == "function" and is_default_active() then
+                            return
+                        end
                         local fm = require("apps/filemanager/filemanager").instance
                         if fm then require("common/utils").closeWidgetsAbove(fm) end
                         local open_default = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB")

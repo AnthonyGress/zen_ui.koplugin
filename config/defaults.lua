@@ -139,6 +139,7 @@ local defaults = {
             tailscale = false,
             filebrowser = false,
         },
+        show_labels = true,
         show_frontlight = true,
         show_warmth = true,
         flip_lh_rh_icon = false,
