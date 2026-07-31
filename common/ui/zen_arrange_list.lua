@@ -1085,13 +1085,13 @@ install_submenu_tap_handlers = function(sort_widget)
     end
 end
 
-install_root_tap_handlers = function(sort_widget)
+install_root_tap_handlers = function(sort_widget, arrange_enabled)
     if not sort_widget or not sort_widget.main_content then return end
     for _i, child in ipairs(sort_widget.main_content) do
         local item = type(child) == "table" and child.item or nil
         if item and not child._zen_arrange_root_hold_patched then
             child._zen_arrange_root_hold_patched = true
-            if sort_widget._zen_arrange_enabled then
+            if arrange_enabled ~= false then
                 child.onHoldTouch = function(row)
                     toggle_arrange_selection(row)
                     return true
@@ -1155,7 +1155,6 @@ function M.show(opts)
     }
     sort_widget.item_margin = 0
     sort_widget:_populateItems()
-    sort_widget._zen_arrange_enabled = arrange_enabled
     sort_widget._zen_menu_mode = menu_mode
     sort_widget._zen_arrange_refresh = function(self)
         if type(opts.refresh_func) == "function" then
@@ -1286,7 +1285,7 @@ function M.show(opts)
     sync_pagination_footer(sort_widget)
     sync_footer_ok(sort_widget)
     apply_icon_rows(sort_widget)
-    install_root_tap_handlers(sort_widget)
+    install_root_tap_handlers(sort_widget, arrange_enabled)
     if arrange_enabled then
         patch_move_item_kb(sort_widget)
         install_non_touch_keyboard_controls(sort_widget)
@@ -1307,7 +1306,7 @@ function M.show(opts)
         sync_pagination_footer(self)
         sync_footer_ok(self)
         apply_icon_rows(self)
-        install_root_tap_handlers(self)
+        install_root_tap_handlers(self, arrange_enabled)
         install_titlebar_focus(self)
         return result
     end
