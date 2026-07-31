@@ -88,6 +88,17 @@ describe("top menu tap handling", function()
         assert.is_true(TopMenu.isInsideHeaderControl(title_bar, point(820, 70)))
     end)
 
+    it("preserves expanded header-button hitboxes", function()
+        local title_bar = {
+            close_button = {
+                dimen = { x = 900, y = 50, w = 56, h = 64 },
+                image = { dimen = { x = 916, y = 62, w = 28, h = 28 } },
+            },
+        }
+
+        assert.is_true(TopMenu.isInsideHeaderControl(title_bar, point(904, 108)))
+    end)
+
     it("opens the KOReader menu from an unoccupied top-center tap", function()
         local title_bar = {
             action_button = { dimen = { x = 800, y = 50, w = 40, h = 40 } },

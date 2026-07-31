@@ -135,6 +135,8 @@ function ZenSettingsTitleBar:init()
     local button_padding = Screen:scaleBySize(8)
     local button_size = icon_size + 2 * button_padding
     local close_hitbox_inset = Screen:scaleBySize(4)
+    local close_hitbox_left_inset = Screen:scaleBySize(4)
+    local close_hitbox_bottom_inset = Screen:scaleBySize(12)
     local title_leading_padding = Screen:scaleBySize(6)
     self.title_leading_padding = title_leading_padding
     local root_icon_size = math.min(button_size, Screen:scaleBySize(32))
@@ -369,8 +371,14 @@ function ZenSettingsTitleBar:init()
         icon = "close",
         width = icon_size,
         height = icon_size,
-        padding = button_padding + close_hitbox_inset,
-        overlap_align = "center",
+        padding_top = button_padding + close_hitbox_inset,
+        padding_right = button_padding + close_hitbox_inset,
+        padding_bottom = button_padding + close_hitbox_inset + close_hitbox_bottom_inset,
+        padding_left = button_padding + close_hitbox_inset + close_hitbox_left_inset,
+        overlap_offset = {
+            -(close_hitbox_inset + close_hitbox_left_inset),
+            -close_hitbox_inset,
+        },
         allow_flash = false,
         show_parent = self.show_parent,
         callback = function()

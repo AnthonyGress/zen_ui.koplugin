@@ -25,8 +25,7 @@ function M.isInsideHeaderControl(title_bar, pos)
     local controls = header_controls(title_bar)
     for control_index = 1, 6 do
         local control = controls[control_index]
-        local target = control and control.image or control
-        local dimen = visible_dimen(target)
+        local dimen = visible_dimen(control)
         if dimen
                 and pos.x >= dimen.x and pos.x < dimen.x + dimen.w
                 and pos.y >= dimen.y and pos.y < dimen.y + dimen.h then
