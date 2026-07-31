@@ -1085,20 +1085,32 @@ install_submenu_tap_handlers = function(sort_widget)
     end
 end
 
+local function install_arrange_item_hold_handlers(sort_widget, arrange_enabled)
+    if arrange_enabled == false then return end
+    for _i, item in ipairs(sort_widget.item_table or {}) do
+        local index = _i
+        item.hold_callback = function(_item, refresh)
+            if sort_widget.marked == index then
+                sort_widget.marked = 0
+            else
+                sort_widget.marked = index
+            end
+            if refresh then
+                refresh()
+            else
+                sort_widget:_populateItems()
+            end
+        end
+    end
+end
+
 install_root_tap_handlers = function(sort_widget, arrange_enabled)
     if not sort_widget or not sort_widget.main_content then return end
     for _i, child in ipairs(sort_widget.main_content) do
         local item = type(child) == "table" and child.item or nil
-        if item then
-            if arrange_enabled ~= false then
-                child.onHoldTouch = function(row)
-                    toggle_arrange_selection(row)
-                    return true
-                end
-            else
-                child.onHoldTouch = function()
-                    return true
-                end
+        if item and arrange_enabled == false then
+            child.onHoldTouch = function()
+                return true
             end
         end
         if item and not child._zen_arrange_root_tap_patched then
@@ -1153,6 +1165,7 @@ function M.show(opts)
         covers_fullscreen = true,
     }
     sort_widget.item_margin = 0
+    install_arrange_item_hold_handlers(sort_widget, arrange_enabled)
     sort_widget:_populateItems()
     sort_widget._zen_menu_mode = menu_mode
     sort_widget._zen_arrange_refresh = function(self)
@@ -1293,6 +1306,7 @@ function M.show(opts)
     sort_widget._populateItems = function(self, ...)
         update_dynamic_text(self.item_table)
         apply_settings_row_metrics(self)
+        install_arrange_item_hold_handlers(self, arrange_enabled)
         local result = orig_populate(self, ...)
         suppress_page_centering(self)
         if opts.hide_footer_cancel then
