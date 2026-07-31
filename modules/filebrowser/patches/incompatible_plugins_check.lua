@@ -69,6 +69,7 @@ local AUTO_DISABLE_PATCHES = {
     "2-automatic-book-series.lua",
     "2-ui-font.lua",
     "2-custom-navbar.lua",
+    "2-page-scrubber.lua",
 }
 
 local function apply_incompatible_plugins_check()
