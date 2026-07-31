@@ -139,7 +139,7 @@ local function apply_incompatible_plugins_check()
     local ok_userpatch, userpatch = pcall(require, "userpatch")
     local execution_status = ok_userpatch and userpatch and userpatch.execution_status
     if type(execution_status) == "table" then
-        local patch_dir = require("datastorage"):getPatchesDir()
+        local patch_dir = require("datastorage"):getDataDir() .. "/patches"
         for _i, filename in ipairs(AUTO_DISABLE_PATCHES) do
             if execution_status[filename] ~= nil then
                 local source = patch_dir .. "/" .. filename

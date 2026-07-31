@@ -830,7 +830,7 @@ function ZenUI:deletePluginSettings()
     pcall(function()
         local DataStorage = require("datastorage")
         local lfs = require("libs/libkoreader-lfs")
-        local patches_dir = DataStorage:getPatchesDir()
+        local patches_dir = DataStorage:getDataDir() .. "/patches"
         if lfs.attributes(patches_dir, "mode") ~= "directory" then return end
         for entry in lfs.dir(patches_dir) do
             if entry:match("^%d+%-zen.*%-suppress%-startup%-alerts%.lua$")

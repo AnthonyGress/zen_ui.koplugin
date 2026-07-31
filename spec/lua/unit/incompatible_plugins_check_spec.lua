@@ -11,6 +11,7 @@ describe("incompatible plugin and patch check", function()
     local original_appearance_setting
     local UIManager
     local settings
+    local data_dir
     local patch_dir
 
     local patch_files = {
@@ -48,8 +49,10 @@ describe("incompatible plugin and patch check", function()
         package.loaded["suntime"] = nil
         package.loaded["lib/setting"] = nil
         _G.__ZEN_UI_PLUGIN = nil
-        patch_dir = os.tmpname()
-        os.remove(patch_dir)
+        data_dir = os.tmpname()
+        os.remove(data_dir)
+        assert.is_true(lfs.mkdir(data_dir))
+        patch_dir = data_dir .. "/patches"
         assert.is_true(lfs.mkdir(patch_dir))
         for _i, filename in ipairs(patch_files) do
             local file = assert(io.open(patch_dir .. "/" .. filename, "w"))
@@ -76,7 +79,7 @@ describe("incompatible plugin and patch check", function()
             end,
         })
         ZenSpec.replace("datastorage", {
-            getPatchesDir = function() return patch_dir end,
+            getDataDir = function() return data_dir end,
         })
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("ui/widget/confirmbox", {
@@ -112,6 +115,7 @@ describe("incompatible plugin and patch check", function()
             os.remove(patch_dir .. "/" .. filename .. ".disabled")
         end
         lfs.rmdir(patch_dir)
+        lfs.rmdir(data_dir)
         ZenSpec.unload("modules/filebrowser/patches/incompatible_plugins_check")
     end)
 
