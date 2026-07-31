@@ -15,6 +15,10 @@ local zen_settings = require("modules/settings/zen_settings")
 
 local M = {}
 local active_page
+local resume_state
+local pending_arrange_resume
+local arrange_open_context
+local RESUME_TTL_SECONDS = 6
 
 IconItem.installMenuPatch()
 
@@ -54,6 +58,17 @@ local function copy_array(items)
     return copy
 end
 
+local function copy_resume_path(path)
+    local copy = {}
+    for i, step in ipairs(path or {}) do
+        copy[i] = {
+            text = step.text,
+            occurrence = step.occurrence,
+        }
+    end
+    return copy
+end
+
 local function item_text(item)
     if type(item) ~= "table" then return "" end
     local text
@@ -65,6 +80,18 @@ local function item_text(item)
     end
     text = type(text) == "string" and text or ""
     return ArrangeState.stripSubmenuCaret(text)
+end
+
+local function resume_selector(items, item, text)
+    local occurrence = 0
+    for _i, sibling in ipairs(items or {}) do
+        if item_text(sibling) == text then occurrence = occurrence + 1 end
+        if sibling == item then break end
+    end
+    return {
+        text = text,
+        occurrence = occurrence,
+    }
 end
 
 local function normalized(text)
@@ -210,6 +237,7 @@ function ZenSettingsPage:init()
     self._search_index = nil
     self._search_active = false
     self._closed = false
+    self._resume_path = {}
     self._title_stack_depth = 0
     self._displayed_title = self.title
     self.is_enable_shortcut = false
@@ -217,10 +245,12 @@ function ZenSettingsPage:init()
     self.custom_title_bar = SettingsTitleBar:new{
         width = self.width,
         title = self.title,
+        title_expand_to_fit = true,
         back_visible = false,
         search_visible = true,
         show_parent = self,
         back_callback = function() self:backToUpperMenu() end,
+        back_hold_callback = function() self:backToRootMenu() end,
         close_callback = function() self:closeMenu() end,
         search_callback = function(query) self:_onSearchChanged(query) end,
         search_opened_callback = function(input) self:_refreshHeaderFocus(input) end,
@@ -302,6 +332,38 @@ function ZenSettingsPage:_recalculateDimen(no_recalculate_dimen)
     self.page = math.min(requested_page, self.page_num)
 end
 
+function ZenSettingsPage:_resumeSelector(item)
+    local text = item_text(item)
+    return resume_selector(self.item_table, item, text)
+end
+
+function ZenSettingsPage:_findResumeItem(step)
+    if type(step) ~= "table" or type(step.text) ~= "string" then return nil end
+    local occurrence = 0
+    for _i, item in ipairs(self.item_table or {}) do
+        if item_text(item) == step.text then
+            occurrence = occurrence + 1
+            if occurrence == (step.occurrence or 1) then return item end
+        end
+    end
+end
+
+function ZenSettingsPage:_restoreResumePath(path)
+    for _i, step in ipairs(path or {}) do
+        local item = self:_findResumeItem(step)
+        local items = item and self:_resolveSubItems(item)
+        if not items or not self:_openSubmenu(item, items) then return false end
+    end
+    return true
+end
+
+function ZenSettingsPage:_activateResumeSelector(selector)
+    local item = self:_findResumeItem(selector)
+    if not item then return false end
+    self:onMenuSelect(item)
+    return true
+end
+
 function ZenSettingsPage:_openSubmenu(item, items)
     if type(items) ~= "table" or #items == 0 then return false end
     self:_leaveSearch(false)
@@ -310,6 +372,7 @@ function ZenSettingsPage:_openSubmenu(item, items)
     end
     self.item_table._zen_title = self:_currentTitle()
     table.insert(self.item_table_stack, self.item_table)
+    self._resume_path[#self._resume_path + 1] = self:_resumeSelector(item)
     items._zen_title = item.sub_title or item_text(item)
     self.parent_id = nil
     self.item_table = items
@@ -333,7 +396,9 @@ function ZenSettingsPage:onMenuSelect(item)
 
     local callback = callback_for(item)
     if type(callback) == "function" then
+        arrange_open_context = { opener = self:_resumeSelector(item) }
         callback(self)
+        arrange_open_context = nil
         self._search_index = nil
         if self._closed then return true end
         if item.checked ~= nil or type(item.checked_func) == "function" then
@@ -353,7 +418,9 @@ function ZenSettingsPage:onMenuHold(item, text_truncated)
         and item.hold_callback_func() or item.hold_callback
     if type(hold_callback) == "function" then
         if item.hold_keep_menu_open == false then self:closeMenu() end
+        arrange_open_context = { opener = self:_resumeSelector(item) }
         hold_callback(self, item)
+        arrange_open_context = nil
         return true
     end
     local help_text = type(item.help_text_func) == "function"
@@ -368,6 +435,25 @@ function ZenSettingsPage:onMenuHold(item, text_truncated)
     return true
 end
 
+function ZenSettingsPage:backToRootMenu()
+    self:_leaveSearch(false)
+    if self.title_bar and self.title_bar.collapseSearch then
+        self.title_bar:collapseSearch()
+    end
+    if #self.item_table_stack == 0 and self.item_table == self._root_items then
+        return true
+    end
+    self.item_table_stack = {}
+    self._resume_path = {}
+    self.item_table = self._root_items
+    self.parent_id = nil
+    self._pending_navigation_title = nil
+    self.itemnumber = 1
+    self.page = 1
+    self:updateItems(1)
+    return true
+end
+
 function ZenSettingsPage:backToUpperMenu(no_close)
     if self._search_active then
         self:_leaveSearch(true)
@@ -378,6 +464,7 @@ function ZenSettingsPage:backToUpperMenu(no_close)
         return true
     end
     local parent = table.remove(self.item_table_stack)
+    table.remove(self._resume_path)
     local parent_title = parent._zen_title
     if parent.needs_refresh and type(parent.refresh_func) == "function" then
         parent = parent.refresh_func() or parent
@@ -403,8 +490,23 @@ function ZenSettingsPage:onCloseAllMenus()
     return true
 end
 
+function ZenSettingsPage:_rememberResume()
+    if self._resume_recorded then return end
+    self._resume_recorded = true
+    resume_state = {
+        closed_at = os.time(),
+        path = copy_resume_path(self._resume_path),
+        arrange = pending_arrange_resume and {
+            opener = pending_arrange_resume.opener,
+            path = copy_array(pending_arrange_resume.path),
+        } or nil,
+    }
+    pending_arrange_resume = nil
+end
+
 function ZenSettingsPage:closeMenu()
     if self._closed then return true end
+    self:_rememberResume()
     self._closed = true
     if self.title_bar and self.title_bar.clearStatusRefresh then
         self.title_bar:clearStatusRefresh()
@@ -418,6 +520,7 @@ function ZenSettingsPage:closeMenu()
 end
 
 function ZenSettingsPage:onCloseWidget()
+    self:_rememberResume()
     if self.title_bar and self.title_bar.clearStatusRefresh then
         self.title_bar:clearStatusRefresh()
     end
@@ -501,6 +604,7 @@ function ZenSettingsPage:_buildSearchIndex()
                         child_levels[#child_levels + 1] = {
                             title = sub_items._zen_title,
                             items = sub_items,
+                            selector = resume_selector(items, item, label),
                         }
                         walk(sub_items, child_levels, depth + 1)
                     end
@@ -575,8 +679,14 @@ end
 
 function ZenSettingsPage:_setPath(levels, current_items)
     self.item_table_stack = {}
+    self._resume_path = {}
     for i = 1, #levels - 1 do
         self.item_table_stack[#self.item_table_stack + 1] = levels[i].items
+    end
+    for i = 2, #levels do
+        if levels[i].selector then
+            self._resume_path[#self._resume_path + 1] = levels[i].selector
+        end
     end
     self.item_table = current_items
     self.parent_id = nil
@@ -600,6 +710,7 @@ function ZenSettingsPage:_openSearchResult(entry)
     if sub_items and #sub_items > 0 then
         self:_setPath(levels, levels[#levels].items)
         table.insert(self.item_table_stack, self.item_table)
+        self._resume_path[#self._resume_path + 1] = self:_resumeSelector(entry.item)
         self.item_table = sub_items
         self:updateItems(1)
         return
@@ -646,6 +757,7 @@ local function schedule_open_path(page, path, reset_to_root)
                 page.title_bar:collapseSearch()
             end
             page.item_table_stack = {}
+            page._resume_path = {}
             page.item_table = page._root_items
             page:updateItems(1)
         end
@@ -660,6 +772,16 @@ function M.show(plugin, opts)
         return active_page
     end
     install_modal_keyboard_dismissal()
+    local resume
+    if resume_state then
+        local age = os.time() - resume_state.closed_at
+        if age >= 0 and age <= RESUME_TTL_SECONDS and not opts.path then
+            resume = resume_state
+        end
+        resume_state = nil
+    end
+    pending_arrange_resume = resume and resume.arrange or nil
+    arrange_open_context = nil
     local root_items = zen_settings.build(plugin).sub_item_table
     root_items._zen_title = _("Settings")
     local page = ZenSettingsPage:new{
@@ -670,7 +792,20 @@ function M.show(plugin, opts)
     }
     active_page = page
     UIManager:show(page)
-    schedule_open_path(page, opts.path, false)
+    if resume then
+        UIManager:nextTick(function()
+            if page._closed then return end
+            page:_restoreResumePath(resume.path)
+            if resume.arrange then
+                pending_arrange_resume = resume.arrange
+                page:_activateResumeSelector(resume.arrange.opener)
+                pending_arrange_resume = nil
+                arrange_open_context = nil
+            end
+        end)
+    else
+        schedule_open_path(page, opts.path, false)
+    end
     return page
 end
 
@@ -687,6 +822,38 @@ function M.searchActive(query)
     active_page.title_bar:setQuery(query)
     active_page:_onSearchChanged(query)
     return true
+end
+
+function M.claimArrangeRoute()
+    if pending_arrange_resume then
+        local resume = pending_arrange_resume
+        pending_arrange_resume = nil
+        arrange_open_context = nil
+        return resume
+    end
+    if not arrange_open_context then return nil end
+    local resume = {
+        opener = arrange_open_context.opener,
+        path = {},
+    }
+    arrange_open_context = nil
+    return resume
+end
+
+function M.noteArrangeRoute(resume)
+    if type(resume) ~= "table" or type(resume.opener) ~= "table" then return end
+    local arrange = {
+        opener = {
+            text = resume.opener.text,
+            occurrence = resume.opener.occurrence,
+        },
+        path = copy_array(resume.path),
+    }
+    pending_arrange_resume = arrange
+    if (not active_page or active_page._closed) and resume_state
+            and os.time() - resume_state.closed_at <= RESUME_TTL_SECONDS then
+        resume_state.arrange = arrange
+    end
 end
 
 M.Page = ZenSettingsPage

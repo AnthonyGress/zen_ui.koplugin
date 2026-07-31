@@ -373,6 +373,7 @@ function M.build(ctx)
         require("common/ui/zen_menu_picker"){
             title = _("Choose tab"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
                 if item.id == "tag" then
                     addTagTab(touch_menu)
@@ -453,7 +454,7 @@ function M.build(ctx)
         end
     end
 
-    local function showPluginPicker(on_select)
+    local function showPluginPicker(on_select, touch_menu)
         local found = PluginScan.scan()
         if #found == 0 then
             local InfoMessage = require("ui/widget/infomessage")
@@ -470,11 +471,12 @@ function M.build(ctx)
         require("common/ui/zen_menu_picker"){
             title = _("Choose plugin menu"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = on_select,
         }
     end
 
-    local function showTagPicker(on_select)
+    local function showTagPicker(on_select, touch_menu)
         local ok_db, db = pcall(require, "common/db_bookinfo")
         local groups = ok_db and db and type(db.getGroupedByTags) == "function"
             and db.getGroupedByTags() or {}
@@ -490,6 +492,7 @@ function M.build(ctx)
         require("common/ui/zen_menu_picker"){
             title = _("Choose tag"),
             items = items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
                 if item and item.tag then on_select(item) end
             end,
@@ -515,7 +518,7 @@ function M.build(ctx)
             if touch_menu and touch_menu.updateItems then
                 touch_menu:updateItems(1)
             end
-        end)
+        end, touch_menu)
     end
 
     local function addActionTab(touch_menu)
@@ -563,7 +566,7 @@ function M.build(ctx)
             }
             commitCustomTab(new_ct)
             openCustomTabSettings(touch_menu, new_ct)
-        end)
+        end, touch_menu)
     end
 
     addTagTab = function(touch_menu)
@@ -577,7 +580,7 @@ function M.build(ctx)
             }
             commitCustomTab(ct)
             openCustomTabSettings(touch_menu, ct)
-        end)
+        end, touch_menu)
     end
 
     local function chooseTagTab(ct, touch_menu)
@@ -594,7 +597,7 @@ function M.build(ctx)
             if touch_menu and touch_menu.updateItems then
                 touch_menu:updateItems(1)
             end
-        end)
+        end, touch_menu)
     end
 
     local function addQuickSettingTab(touch_menu)
@@ -605,6 +608,7 @@ function M.build(ctx)
         require("common/ui/zen_menu_picker"){
             title = _("Choose control"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
                 local ct = {
                     type = "quick_setting",
@@ -626,6 +630,7 @@ function M.build(ctx)
         require("common/ui/zen_menu_picker"){
             title = _("Choose control"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
                 ct.quick_setting_id = item.id
                 ct.label = item.label

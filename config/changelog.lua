@@ -237,6 +237,7 @@ return {
         "Add checkboxes of toggles in plugin menus accessed via launcher/controls",
         "Add tailscale Control button",
         "Add font styling for Featured progress labels",
+        "Short term Settings page memory",
         "Respect non-linear page fragments in Page Browser",
         "Add Restarting notice",
         "Accessibility improvements for non-touch devices",

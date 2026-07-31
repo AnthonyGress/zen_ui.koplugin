@@ -480,6 +480,14 @@ local function apply_settings_row_metrics(sort_widget)
     sort_widget.show_page = math.min(sort_widget.show_page, sort_widget.pages)
 end
 
+local function back_to_settings_root()
+    local settings_page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
+    if settings_page and settings_page.backToRootMenu then
+        return settings_page:backToRootMenu()
+    end
+    return false
+end
+
 local function configure_title_bar(sort_widget, opts)
     opts = opts or {}
     local old_title_bar = sort_widget and sort_widget.title_bar
@@ -522,6 +530,7 @@ local function configure_title_bar(sort_widget, opts)
         action = default_action,
         show_parent = sort_widget,
         back_callback = function() return close_with(opts.back_callback) end,
+        back_hold_callback = function() return close_with(opts.back_hold_callback) end,
         close_callback = function() return close_with(opts.close_callback) end,
     }
     title_bar._zen_settings_header = true
@@ -608,6 +617,35 @@ end
 
 local function item_submenu_title(item)
     return item.sub_title or strip_value_suffix(item_base_text(item)) or item.text
+end
+
+local function resume_item_key(item)
+    return item and (item._zen_settings_resume_key or item.orig_item or item_base_text(item))
+end
+
+local function find_resume_item(items, key)
+    for _i, item in ipairs(items or {}) do
+        if resume_item_key(item) == key then return item end
+    end
+end
+
+local function extend_settings_resume(resume, item)
+    if not (resume and resume.opener) then return nil end
+    local path = {}
+    for _i, key in ipairs(resume.path or {}) do path[#path + 1] = key end
+    local key = resume_item_key(item)
+    if type(key) ~= "string" then return nil end
+    path[#path + 1] = key
+    return { opener = resume.opener, path = path }
+end
+
+local function remember_settings_resume(sort_widget)
+    local resume = sort_widget and sort_widget._zen_settings_resume
+    if not (resume and resume.opener) then return end
+    local ok, settings_page = pcall(require, "modules/settings/zen_settings_page")
+    if ok and settings_page.noteArrangeRoute then
+        settings_page.noteArrangeRoute(resume)
+    end
 end
 
 local function update_dynamic_text(items)
@@ -705,7 +743,7 @@ end
 local install_submenu_tap_handlers
 local install_root_tap_handlers
 
-local function open_submenu_for_item(sort_widget, item)
+local function open_submenu_for_item(sort_widget, item, resume_path)
     if not (sort_widget and item and has_submenu(item)) then
         return false
     end
@@ -721,6 +759,8 @@ local function open_submenu_for_item(sort_widget, item)
         end
     end, {
         close_arrange = sort_widget._zen_arrange_close_all,
+        settings_resume = extend_settings_resume(sort_widget._zen_settings_resume, item),
+        resume_path = resume_path,
     })
     return true
 end
@@ -804,6 +844,7 @@ show_submenu = function(title, items, refresh, opts)
 
     local sort_widget
     local menu_proxy
+    local close_submenu_and_arrange
     local function refresh_lists()
         if menu_proxy and type(menu_proxy.item_table) == "table" and menu_proxy.item_table ~= items then
             items = menu_proxy.item_table
@@ -834,6 +875,11 @@ show_submenu = function(title, items, refresh, opts)
             end
             if refresh then refresh() end
         end,
+        backToSettingsRoot = function()
+            close_submenu_and_arrange()
+            back_to_settings_root()
+            return true
+        end,
         updateItems = function(self)
             if type(self.item_table) == "table" then
                 items = self.item_table
@@ -852,6 +898,7 @@ show_submenu = function(title, items, refresh, opts)
     sort_widget:_populateItems()
     sort_widget.sort_disabled = true
     sort_widget._zen_arrange_close_all = opts.close_arrange
+    sort_widget._zen_settings_resume = opts.settings_resume
 
     sort_widget.key_events = sort_widget.key_events or {}
     sort_widget.key_events.FocusRight = nil
@@ -866,10 +913,11 @@ show_submenu = function(title, items, refresh, opts)
         return true
     end
 
-    local function close_submenu_and_arrange()
+    close_submenu_and_arrange = function()
         if sort_widget then
             local current = sort_widget
             sort_widget = nil
+            remember_settings_resume(current)
             current:onClose()
         end
         if type(opts.close_arrange) == "function" then opts.close_arrange() end
@@ -877,6 +925,11 @@ show_submenu = function(title, items, refresh, opts)
     configure_title_bar(sort_widget, {
         back_callback = function()
             menu_proxy:backToUpperMenu()
+            return true
+        end,
+        back_hold_callback = function()
+            close_submenu_and_arrange()
+            back_to_settings_root()
             return true
         end,
         close_callback = function()
@@ -916,6 +969,14 @@ show_submenu = function(title, items, refresh, opts)
     install_titlebar_focus(sort_widget)
 
     UIManager:show(sort_widget)
+    if type(opts.resume_path) == "table" and #opts.resume_path > 0 then
+        UIManager:nextTick(function()
+            if not sort_widget then return end
+            local key = table.remove(opts.resume_path, 1)
+            local item = find_resume_item(sort_widget.item_table, key)
+            if item then open_submenu_for_item(sort_widget, item, opts.resume_path) end
+        end)
+    end
 end
 
 install_submenu_tap_handlers = function(sort_widget)
@@ -1023,12 +1084,26 @@ function M.show(opts)
         sort_widget.orig_item_table = nil
         return sort_widget:onClose()
     end
+    local settings_resume
+    if rawget(_G, "__ZEN_UI_SETTINGS_PAGE") then
+        local ok_settings_page, settings_page = pcall(require, "modules/settings/zen_settings_page")
+        if ok_settings_page and settings_page.claimArrangeRoute then
+            settings_resume = settings_page.claimArrangeRoute()
+        end
+    end
+    sort_widget._zen_settings_resume = settings_resume
     local title_opts = {
         add_title = opts.add_title,
         add_item_table = opts.add_item_table,
         close_arrange = sort_widget._zen_arrange_close_all,
         back_callback = sort_widget._zen_arrange_close_all,
+        back_hold_callback = function()
+            sort_widget._zen_arrange_close_all()
+            back_to_settings_root()
+            return true
+        end,
         close_callback = function()
+            remember_settings_resume(sort_widget)
             sort_widget._zen_arrange_close_all()
             require("modules/settings/zen_settings_page").closeActive()
             return true
@@ -1106,6 +1181,14 @@ function M.show(opts)
     install_titlebar_focus(sort_widget)
 
     UIManager:show(sort_widget)
+    if settings_resume and #settings_resume.path > 0 then
+        UIManager:nextTick(function()
+            local resume_path = settings_resume.path
+            local key = table.remove(resume_path, 1)
+            local item = find_resume_item(sort_widget.item_table, key)
+            if item then open_submenu_for_item(sort_widget, item, resume_path) end
+        end)
+    end
     if opts.open_add_on_show and type(opts.add_item_table) == "table" and #opts.add_item_table > 0 then
         UIManager:nextTick(function()
             show_submenu(opts.add_title or "", opts.add_item_table, function()

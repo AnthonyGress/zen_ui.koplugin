@@ -76,7 +76,7 @@ describe("stats settings", function()
         ZenSpec.replace("common/shared_state", { get = function() end })
         ZenSpec.replace("common/inline_icon_map", {
             divider = "divider",
-            display = "widgets",
+            widgets = "widgets",
             edit = "edit",
             settings_stats = "stats",
             title = "font",

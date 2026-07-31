@@ -17,6 +17,15 @@ local function showMenuPicker(opts)
     opts = opts or {}
     local items = type(opts.items) == "table" and opts.items or {}
     local on_select = type(opts.on_select) == "function" and opts.on_select or function() end
+    local back_hold_callback = opts.back_hold_callback
+    if type(back_hold_callback) ~= "function" then
+        local settings_page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
+        if settings_page and settings_page.backToRootMenu then
+            back_hold_callback = function()
+                return settings_page:backToRootMenu()
+            end
+        end
+    end
 
     local sw, sh   = Screen:getWidth(), Screen:getHeight()
     local pad      = Size.padding.default
@@ -72,6 +81,12 @@ local function showMenuPicker(opts)
         closed = true
         UIManager:close(dialog, "ui")
         UIManager:forceRePaint()
+    end
+
+    local function backToSettingsRoot()
+        closeDialog()
+        if back_hold_callback then back_hold_callback() end
+        return true
     end
 
     local function goToPage(page)
@@ -210,7 +225,12 @@ local function showMenuPicker(opts)
                 ges         = "hold",
                 screen_zone = { ratio_x = 0, ratio_y = 0, ratio_w = 1, ratio_h = 1 },
                 handler     = function(ges)
-                    return handlePageNumberHold(ges.pos.x, ges.pos.y)
+                    local gx, gy = ges.pos.x, ges.pos.y
+                    if gx >= content_x and gx < content_x + content_w
+                            and gy >= content_y and gy < content_y + title_h then
+                        return backToSettingsRoot()
+                    end
+                    return handlePageNumberHold(gx, gy)
                 end,
             },
             {

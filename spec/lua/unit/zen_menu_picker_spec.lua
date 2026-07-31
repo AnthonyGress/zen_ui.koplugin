@@ -49,7 +49,7 @@ describe("Zen menu picker", function()
             }
         end
 
-        function FocusManager:registerTouchZones() end
+        function FocusManager:registerTouchZones(zones) self.touch_zones = zones end
 
         return FocusManager
     end
@@ -202,6 +202,46 @@ describe("Zen menu picker", function()
         assert.is_true(shown:onFocusMove({ 0, -1 }))
         assert.is_true(shown:onPress())
         assert.are.equal(1, closed)
+    end)
+
+    it("uses its supplied root callback when its header is held", function()
+        local root_returns = 0
+        local fallback_returns = 0
+        _G.__ZEN_UI_SETTINGS_PAGE = {
+            backToRootMenu = function() fallback_returns = fallback_returns + 1 end,
+        }
+        require("ui/uimanager").close = function()
+            closed = closed + 1
+            _G.__ZEN_UI_SETTINGS_PAGE = nil
+        end
+        require("common/ui/zen_menu_picker"){
+            items = { { text = "Plugin" } },
+            back_hold_callback = function() root_returns = root_returns + 1 end,
+        }
+
+        assert.is_true(shown.touch_zones[2].handler({ pos = { x = 30, y = 20 } }))
+        assert.are.equal(1, closed)
+        assert.are.equal(1, root_returns)
+        assert.are.equal(0, fallback_returns)
+        _G.__ZEN_UI_SETTINGS_PAGE = nil
+    end)
+
+    it("captures the settings page before closing the picker", function()
+        local root_returns = 0
+        _G.__ZEN_UI_SETTINGS_PAGE = {
+            backToRootMenu = function() root_returns = root_returns + 1 end,
+        }
+        require("ui/uimanager").close = function()
+            closed = closed + 1
+            _G.__ZEN_UI_SETTINGS_PAGE = nil
+        end
+        require("common/ui/zen_menu_picker"){
+            items = { { text = "Plugin" } },
+        }
+
+        assert.is_true(shown.touch_zones[2].handler({ pos = { x = 30, y = 20 } }))
+        assert.are.equal(1, closed)
+        assert.are.equal(1, root_returns)
     end)
 
     it("keeps a centered pager at the same height on every page", function()

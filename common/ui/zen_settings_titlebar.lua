@@ -172,10 +172,21 @@ function ZenSettingsTitleBar:init()
     local trailing_width = button_size + action_width
         + (show_search_button and button_size or 0)
         + (trailing_controls - 1) * trailing_gap
+    local max_title_width = math.max(1,
+        self.width - left_padding - right_padding - back_width - title_leading_padding
+            - trailing_width)
+    self._title_max_width = max_title_width
     if self.title_full_width then
-        title_cap = math.max(1,
-            self.width - left_padding - right_padding - back_width - title_leading_padding
-                - trailing_width)
+        title_cap = max_title_width
+        title_width = title_cap
+    elseif self.title_expand_to_fit and not show_search then
+        local title_probe = TextWidget:new{
+            text = self.title,
+            face = IconItem.getSettingsFace(),
+            bold = true,
+        }
+        title_cap = math.max(1, math.min(max_title_width, title_probe:getSize().w))
+        title_probe:free()
         title_width = title_cap
     end
     self.title_widget = TextWidget:new{
@@ -192,6 +203,7 @@ function ZenSettingsTitleBar:init()
     local vertical_padding = Screen:scaleBySize(6)
 
     local row = HorizontalGroup:new{ align = "center" }
+    self._header_row = row
     self.back_button = IconButton:new{
         icon = "chevron.left",
         width = icon_size,
@@ -201,6 +213,12 @@ function ZenSettingsTitleBar:init()
         show_parent = self.show_parent,
         callback = function()
             if self.back_visible and self.back_callback then return self.back_callback() end
+            return true
+        end,
+        hold_callback = function()
+            if self.back_visible and self.back_hold_callback then
+                return self.back_hold_callback()
+            end
             return true
         end,
     }
@@ -247,9 +265,26 @@ function ZenSettingsTitleBar:init()
             end,
         },
     }
+    self.ges_events.HoldBackTitle = {
+        GestureRange:new{
+            ges = "hold",
+            range = function()
+                if not self.back_visible then return end
+                local dimen = self.title_container.dimen
+                if not dimen then return end
+                return Geom:new{
+                    x = dimen.x - self.title_leading_padding,
+                    y = dimen.y,
+                    w = dimen.w + self.title_leading_padding,
+                    h = dimen.h,
+                }
+            end,
+        },
+    }
 
     self.search_input = nil
     self.search_frame = nil
+    self._title_filler = nil
     if show_search then
         local search_border = Screen:scaleBySize(2)
         local search_height = Screen:scaleBySize(36)
@@ -319,7 +354,8 @@ function ZenSettingsTitleBar:init()
             },
         }
     else
-        table.insert(row, HorizontalSpan:new{ width = available_width })
+        self._title_filler = HorizontalSpan:new{ width = available_width }
+        table.insert(row, self._title_filler)
         self.ges_events.TapSearch = nil
     end
     self.search_button = nil
@@ -375,11 +411,12 @@ function ZenSettingsTitleBar:init()
         table.insert(vertical_group, self.status_widget)
     end
     table.insert(vertical_group, VerticalSpan:new{ width = vertical_padding })
-    table.insert(vertical_group, HorizontalGroup:new{
+    self._header_group = HorizontalGroup:new{
         HorizontalSpan:new{ width = left_padding },
         row,
         HorizontalSpan:new{ width = right_padding },
-    })
+    }
+    table.insert(vertical_group, self._header_group)
     table.insert(vertical_group, VerticalSpan:new{ width = vertical_padding })
     table.insert(vertical_group, LineWidget:new{
         dimen = Geom:new{ w = self.width, h = Screen:scaleBySize(2) },
@@ -417,6 +454,12 @@ end
 function ZenSettingsTitleBar:onTapBackTitle()
     if not (self.back_visible and self.back_callback) then return false end
     self.back_callback()
+    return true
+end
+
+function ZenSettingsTitleBar:onHoldBackTitle()
+    if not (self.back_visible and self.back_hold_callback) then return false end
+    self.back_hold_callback()
     return true
 end
 
@@ -484,6 +527,39 @@ end
 
 function ZenSettingsTitleBar:setState(title, back_visible, search_visible)
     search_visible = search_visible ~= false
+    if self.title_expand_to_fit and not self.search_expanded and title ~= self.title then
+        self.title = title
+        self.back_visible = back_visible == true
+        self.search_visible = search_visible
+        if self.back_button then self.back_button.skip_paint = not self.back_visible end
+        if self.root_icon then self.root_icon.skip_paint = self.back_visible end
+        if self.search_button then self.search_button.skip_paint = not self.search_visible end
+        local title_probe = TextWidget:new{
+            text = title,
+            face = IconItem.getSettingsFace(),
+            bold = true,
+        }
+        local title_width = math.max(1,
+            math.min(self._title_max_width, title_probe:getSize().w))
+        title_probe:free()
+        self.title_widget:setMaxWidth(title_width)
+        self.title_widget:setText(title)
+        self.title_container.dimen.w = title_width
+        if self._title_filler then
+            self._title_filler.width = self._title_max_width - title_width
+        end
+        if self._header_row and self._header_row.resetLayout then
+            self._header_row:resetLayout()
+        end
+        if self._header_group and self._header_group.resetLayout then
+            self._header_group:resetLayout()
+        end
+        if self._vertical_group and self._vertical_group.resetLayout then
+            self._vertical_group:resetLayout()
+        end
+        UIManager:setDirty(self.show_parent, "ui", self.dimen)
+        return
+    end
     if self.search_expanded and not search_visible then
         self:closeSearchKeyboard()
         self.search_expanded = false

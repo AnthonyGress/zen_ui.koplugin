@@ -286,6 +286,7 @@ function M.build(ctx)
         show_menu_picker{
             title = _("Choose plugin menu"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
                 local plugin = item.plugin
                 local entry = {
@@ -321,6 +322,7 @@ function M.build(ctx)
         show_menu_picker{
             title = _("Choose plugin menu"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
                 local plugin = item.plugin
                 entry.type = "plugin"
@@ -350,7 +352,7 @@ function M.build(ctx)
         open_entry_settings(touch_menu, entry, folder)
     end
 
-    local function show_quick_setting_picker(on_select)
+    local function show_quick_setting_picker(on_select, touch_menu)
         local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
         if not controls or type(controls.getItems) ~= "function" then return end
         local picker_items = controls.getItems()
@@ -358,6 +360,7 @@ function M.build(ctx)
         require("common/ui/zen_menu_picker"){
             title = _("Choose control"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = on_select,
         }
     end
@@ -371,7 +374,7 @@ function M.build(ctx)
             if touch_menu and touch_menu.updateItems then
                 touch_menu:updateItems(1)
             end
-        end)
+        end, touch_menu)
     end
 
     local function add_quick_setting(folder, touch_menu)
@@ -387,7 +390,7 @@ function M.build(ctx)
                 UIManager:nextTick(function()
                     open_entry_settings(touch_menu, entry, folder)
                 end)
-        end)
+        end, touch_menu)
     end
 
     local function add_items(folder)

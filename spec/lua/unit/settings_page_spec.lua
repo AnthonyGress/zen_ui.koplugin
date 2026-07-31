@@ -160,6 +160,7 @@ describe("Zen settings page", function()
 
         assert.is_false(settings.title_bar.back_visible)
         assert.is_true(settings.title_bar.search_visible)
+        assert.is_true(settings.title_bar.title_expand_to_fit)
         assert.are.equal("Library", library._zen_display_text)
         assert.is_true(library._zen_has_submenu)
 
@@ -178,6 +179,24 @@ describe("Zen settings page", function()
         assert.is_true(settings.title_bar.search_visible)
     end)
 
+    it("returns to the settings root when the header Back button is held", function()
+        local detail = { text = "Detail", sub_item_table = {{ text = "Option" }} }
+        local library = { text = "Library >", sub_item_table = { detail } }
+        local settings = make_page({ library })
+
+        settings:onMenuSelect(library)
+        settings:onMenuSelect(detail)
+        assert.are.equal("Detail", settings.title_bar.title)
+        assert.is_function(settings.title_bar.back_hold_callback)
+
+        settings.title_bar.back_hold_callback()
+
+        assert.are.equal("Settings", settings.title_bar.title)
+        assert.are.equal(settings._root_items, settings.item_table)
+        assert.are.equal(0, #settings.item_table_stack)
+        assert.is_false(settings.title_bar.back_visible)
+    end)
+
     it("reuses the active settings page", function()
         local plugin = { config = {} }
         local first = PageModule.show(plugin)
@@ -190,6 +209,81 @@ describe("Zen settings page", function()
         local reopened = PageModule.show(plugin)
         assert.are_not.equal(first, reopened)
         assert.are.equal(2, #shown_widgets)
+    end)
+
+    it("restores the last page for six seconds after closing", function()
+        local original_time = os.time
+        local now = 100
+        rawset(os, "time", function() return now end)
+
+        require("modules/settings/zen_settings").build = function()
+            local opds = { text = "Zen OPDS", sub_item_table = {{ text = "Mosaic" }} }
+            return {
+                sub_item_table = {
+                    { text = "Extras", sub_item_table = { opds } },
+                },
+            }
+        end
+
+        local plugin = { config = {} }
+        local first = PageModule.show(plugin)
+        first:onMenuSelect(first.item_table[1])
+        first:onMenuSelect(first.item_table[1])
+        first:closeMenu()
+
+        now = 106
+        local restored = PageModule.show(plugin)
+        assert.are.equal("Zen OPDS", restored.title_bar.title)
+        restored:closeMenu()
+
+        now = 113
+        local expired = PageModule.show(plugin)
+        assert.are.equal("Settings", expired.title_bar.title)
+
+        rawset(os, "time", original_time)
+    end)
+
+    it("restores settings-launched arrange pages generically", function()
+        local restored_arrange_path
+
+        require("modules/settings/zen_settings").build = function()
+            local widgets = {
+                text = "Widgets",
+                keep_menu_open = true,
+                callback = function()
+                    local route = PageModule.claimArrangeRoute()
+                    if route.path[1] == "quotes" then
+                        restored_arrange_path = route.path
+                    else
+                        PageModule.noteArrangeRoute({
+                            opener = route.opener,
+                            path = { "quotes" },
+                        })
+                    end
+                end,
+            }
+            return {
+                sub_item_table = {
+                    {
+                        text = "Extras",
+                        sub_item_table = {
+                            { text = "Stats", sub_item_table = { widgets } },
+                        },
+                    },
+                },
+            }
+        end
+
+        local plugin = { config = {} }
+        local first = PageModule.show(plugin)
+        first:onMenuSelect(first.item_table[1])
+        first:onMenuSelect(first.item_table[1])
+        first:onMenuSelect(first.item_table[1])
+        first:closeMenu()
+
+        local restored = PageModule.show(plugin)
+        assert.are.equal("Stats", restored.title_bar.title)
+        assert.are.same({ "quotes" }, restored_arrange_path)
     end)
 
     it("covers the underlying page when first opened", function()

@@ -25,6 +25,7 @@ describe("quick settings Tailscale", function()
         "ui/widget/verticalspan",
         "common/utils",
         "common/shutdown",
+        "common/restart",
         "common/shared_state",
         "common/bluetooth",
         "modules/menu/patches/brightness_slider",
@@ -82,6 +83,7 @@ describe("quick settings Tailscale", function()
             end,
         })
         ZenSpec.replace("common/shutdown", no_op)
+        ZenSpec.replace("common/restart", no_op)
         ZenSpec.replace("common/shared_state", { get = function() end })
         ZenSpec.replace("common/bluetooth", no_op)
         ZenSpec.replace("modules/menu/patches/brightness_slider", function() end)

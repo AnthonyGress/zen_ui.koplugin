@@ -340,7 +340,7 @@ function M.build(ctx)
         end
     end
 
-    local function showPluginPicker(on_select)
+    local function showPluginPicker(on_select, touch_menu)
         local found = PluginScan.scan()
         if #found == 0 then
             local InfoMessage = require("ui/widget/infomessage")
@@ -359,6 +359,7 @@ function M.build(ctx)
             title = _("Choose plugin menu"),
             items = picker_items,
             on_select = on_select,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
         }
     end
 
@@ -377,6 +378,7 @@ function M.build(ctx)
         require("common/ui/zen_menu_picker"){
             title = _("Choose control"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
                 ensureButtonOrder(item.id)
                 config.quick_settings.show_buttons[item.id] = countEnabledButtons() < quick_buttons_max
@@ -411,7 +413,7 @@ function M.build(ctx)
             elseif touch_menu and touch_menu.updateItems then
                 touch_menu:updateItems(1)
             end
-        end)
+        end, touch_menu)
     end
 
     local function addPluginButton(touch_menu)
@@ -449,7 +451,7 @@ function M.build(ctx)
                     touch_menu:updateItems(1)
                 end
             end
-        end)
+        end, touch_menu)
     end
 
     local function showButtonsArrange()

@@ -437,6 +437,9 @@ function ZenUI:init()
                 })
             end)
         elseif is_update then
+            -- Clear a stale banner left by a manual/external install.
+            zen_updater.clear_update_state(self.config)
+
             -- Post-update: always show the ZenScreen splash, then chain UPDATE_PAGES if present.
             self.config._meta.quickstart_shown_for_version = current_ver
             self:saveConfig()

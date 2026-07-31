@@ -27,6 +27,7 @@ describe("quick settings Wi-Fi", function()
         "ui/widget/verticalspan",
         "common/utils",
         "common/shutdown",
+        "common/restart",
         "common/shared_state",
         "common/bluetooth",
         "modules/menu/patches/brightness_slider",
@@ -77,6 +78,7 @@ describe("quick settings Wi-Fi", function()
         ZenSpec.replace("ui/widget/verticalgroup", no_op)
         ZenSpec.replace("ui/widget/verticalspan", no_op)
         ZenSpec.replace("common/shutdown", no_op)
+        ZenSpec.replace("common/restart", no_op)
         ZenSpec.replace("common/shared_state", { get = function() end })
         ZenSpec.replace("common/bluetooth", no_op)
         ZenSpec.replace("modules/menu/patches/brightness_slider", function() end)
@@ -86,7 +88,10 @@ describe("quick settings Wi-Fi", function()
         ZenSpec.replace("common/dispatch_action", no_op)
         ZenSpec.replace("modules/menu/app_launcher/plugin_scan", no_op)
         ZenSpec.replace("common/plugin_root", "/tmp/zen-ui")
-        ZenSpec.replace("common/utils", { deepcopy = deepcopy })
+        ZenSpec.replace("common/utils", {
+            deepcopy = deepcopy,
+            resolveLocalIcon = function() end,
+        })
         ZenSpec.replace("ui/event", { new = function(_, name) return { name = name } end })
         ZenSpec.replace("modules/menu/patches/touch_menu_panel", { install = function() end })
         ZenSpec.replace("ui/widget/touchmenu", {

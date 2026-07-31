@@ -25,6 +25,10 @@ describe("home data and book caches", function()
                 getHeight = function() return 900 end,
             },
         })
+        ZenSpec.replace("ui/uimanager", {
+            nextTick = function(_self, callback) callback() end,
+            scheduleIn = function() end,
+        })
         ZenSpec.replace("modules/filebrowser/patches/home/home_quotes", {})
         ZenSpec.replace("modules/filebrowser/patches/home/home_presets", {})
         ZenSpec.replace("common/reading_goals", {})
