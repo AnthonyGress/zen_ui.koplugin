@@ -204,6 +204,10 @@ describe("cover utility policy", function()
         local opaque_text_paints = 0
         local background_colors = {}
         local text_configs = {}
+        local color_mask_blits = 0
+        local color_mask_colors = {}
+        local ornament_inverts = 0
+        local rgb_background_paints = 0
         local function cache_key(key, width, height)
             return table.concat({ key, width, height }, "\31")
         end
@@ -218,15 +222,29 @@ describe("cover utility policy", function()
                         paint_calls = paint_calls + 1
                         background_colors[#background_colors + 1] = color
                     end,
+                    paintRectRGB32 = function(_self, _x, _y, _width, _height, color)
+                        paint_calls = paint_calls + 1
+                        rgb_background_paints = rgb_background_paints + 1
+                        background_colors[#background_colors + 1] = color
+                    end,
                     alphablitFrom = function() paint_calls = paint_calls + 1 end,
                     pmulalphablitFrom = function() paint_calls = paint_calls + 1 end,
                     colorblitFrom = function()
                         paint_calls = paint_calls + 1
                         mask_blits = mask_blits + 1
                     end,
+                    colorblitFromRGB32 = function(_self, _mask, _x, _y, _sx, _sy, _width, _height, color)
+                        paint_calls = paint_calls + 1
+                        color_mask_blits = color_mask_blits + 1
+                        color_mask_colors[#color_mask_colors + 1] = color
+                    end,
                 }
             end,
         })
+        ZenSpec.replace("device", { screen = {
+            isColorScreen = function() return true end,
+            isColorEnabled = function() return false end,
+        } })
         ZenSpec.replace("modules/filebrowser/patches/library_font", {
             getFontName = function() return "cfont" end,
             getBaseSize = function() return 18 end,
@@ -253,6 +271,9 @@ describe("cover utility policy", function()
                 rendered_path = path
                 return {
                     free = function() ornament_frees = ornament_frees + 1 end,
+                    getWidth = function() return 120 end,
+                    getHeight = function() return 180 end,
+                    invertRect = function() ornament_inverts = ornament_inverts + 1 end,
                 }, true
             end,
         })
@@ -302,6 +323,23 @@ describe("cover utility policy", function()
         })
         assert.are.equal(5, mask_blits)
         assert.are.equal("No books found", text_configs[5].text)
+
+        ZenSpec.replace("device", { screen = {
+            isColorScreen = function() return true end,
+            isColorEnabled = function() return true end,
+        } })
+        ZenSpec.unload("common/cover_utils")
+        CoverUtils = require("common/cover_utils")
+        CoverUtils.genCover("/color-book.epub", 120, 180, nil, {
+            title = "A Color Title",
+            authors = "An Author",
+        })
+        assert.are.same({ 0x02, 0x01, 0x36, 0xFF }, background_colors[2])
+        assert.are.equal(1, rgb_background_paints)
+        assert.are.equal(2, color_mask_blits)
+        assert.are.equal("white", color_mask_colors[1])
+        assert.are.equal(1, ornament_inverts)
+        assert.are.equal(2, svg_renders)
     end)
 
     it("does not pre-scale folder covers before the selected renderer", function()

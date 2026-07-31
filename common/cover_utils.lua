@@ -11,12 +11,18 @@ local RenderCache = require("common/cover_render_cache")
 local plugin_root = require("common/plugin_root")
 
 local CoverUtils = {}
+local supports_color = false
 do
     local ok, Device = pcall(require, "device")
     local screen = ok and Device and Device.screen
     local scaled = screen and type(screen.scaleBySize) == "function"
         and screen:scaleBySize(1)
     CoverUtils.BORDER_SIZE = scaled or 2
+    local is_color = screen and (screen.isColorEnabled or screen.isColorScreen)
+    if type(is_color) == "function" then
+        local ok_color, enabled = pcall(is_color, screen)
+        supports_color = ok_color and enabled == true
+    end
 end
 local ORNATE_FRAME_PATH = plugin_root and plugin_root .. "/images/ornate-cover-frame.svg" or nil
 local ORNATE_FRAME_CACHE_KEY = (ORNATE_FRAME_PATH or "ornate-cover-frame") .. "\30background-v6"
@@ -121,12 +127,17 @@ end
 -- Generate placeholder cover from file path
 -- ============================================================
 
-local function ornate_background(width, height, paper)
-    local cached = RenderCache:get(ORNATE_FRAME_CACHE_KEY, width, height)
+local function ornate_background(width, height, paper, palette)
+    local cache_key = ORNATE_FRAME_CACHE_KEY .. "\30" .. palette
+    local cached = RenderCache:get(cache_key, width, height)
     if cached then return cached end
 
     local background = Blitbuffer.new(width, height, Blitbuffer.TYPE_BBRGB32)
-    background:paintRect(0, 0, width, height, paper)
+    if palette == "navy" and type(background.paintRectRGB32) == "function" then
+        background:paintRectRGB32(0, 0, width, height, paper)
+    else
+        background:paintRect(0, 0, width, height, paper)
+    end
 
     if ORNATE_FRAME_PATH and width >= 24 and height >= 36 then
         local ok_module, RenderImage = pcall(require, "ui/renderimage")
@@ -144,6 +155,9 @@ local function ornate_background(width, height, paper)
                 ornament:free()
                 ornament = scaled
             end
+            if palette == "navy" and straight_alpha and type(ornament.invertRect) == "function" then
+                ornament:invertRect(0, 0, ornament:getWidth(), ornament:getHeight())
+            end
             if straight_alpha then
                 background:alphablitFrom(ornament, 0, 0)
             else
@@ -153,25 +167,29 @@ local function ornate_background(width, height, paper)
         end
     end
 
-    RenderCache:put(ORNATE_FRAME_CACHE_KEY, width, height, background)
+    RenderCache:put(cache_key, width, height, background)
     return background
 end
 
-local function placeholder_cache_key(filepath, width, height, title, authors)
+local function placeholder_cache_key(filepath, width, height, title, authors, palette)
     local font_name = type(library_font.getFontName) == "function" and library_font.getFontName() or "cfont"
     local font_size = type(library_font.getBaseSize) == "function" and library_font.getBaseSize() or 18
     return table.concat({
         tostring(filepath), tostring(width), tostring(height), title, authors,
         tostring(font_name), tostring(font_size),
-    }, "\30") .. "\30placeholder-v10"
+    }, "\30") .. "\30placeholder-v20\30" .. palette
 end
 
-local function paint_text_without_background(widget, bb, x, y, ink)
+local function paint_text_without_background(widget, bb, x, y, ink, color)
     local size = widget:getSize()
     local mask = widget._bb
     if mask and type(mask.invert) == "function" and type(bb.colorblitFrom) == "function" then
         mask:invert()
-        bb:colorblitFrom(mask, x, y, 0, 0, size.w, size.h, ink)
+        if color and type(bb.colorblitFromRGB32) == "function" then
+            bb:colorblitFromRGB32(mask, x, y, 0, 0, size.w, size.h, ink)
+        else
+            bb:colorblitFrom(mask, x, y, 0, 0, size.w, size.h, ink)
+        end
     else
         widget:paintTo(bb, x, y)
     end
@@ -228,13 +246,16 @@ function CoverUtils.genCover(filepath, target_w, target_h, no_fallback, metadata
         authors = _("Unknown Author")
     end
 
-    local cache_key = placeholder_cache_key(filepath, width, height, title, authors)
+    local color = supports_color
+    local palette = color and "navy" or "white"
+    local cache_key = placeholder_cache_key(filepath, width, height, title, authors, palette)
     local cached = RenderCache:get(cache_key, width, height)
     if cached then return cached, width, height end
 
-    local paper = Blitbuffer.COLOR_WHITE
-    local ink = Blitbuffer.COLOR_BLACK
-    local final_bb = ornate_background(width, height, paper)
+    local paper = color and Blitbuffer.ColorRGB32(0x02, 0x01, 0x36, 0xFF)
+        or Blitbuffer.COLOR_WHITE
+    local ink = color and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK
+    local final_bb = ornate_background(width, height, paper, palette)
 
     local divider_y = math.floor(height * 0.61)
     local title_top = math.floor(height * 0.22)
@@ -337,7 +358,7 @@ function CoverUtils.genCover(filepath, target_w, target_h, no_fallback, metadata
         local title_y = title_top + math.floor((title_area_h - title_widget:getSize().h) / 2)
         paint_text_without_background(
             title_widget, final_bb,
-            math.max(0, (width - title_widget:getSize().w) / 2), title_y, ink
+            math.max(0, (width - title_widget:getSize().w) / 2), title_y, ink, color
         )
         title_widget:free()
     end
@@ -346,7 +367,7 @@ function CoverUtils.genCover(filepath, target_w, target_h, no_fallback, metadata
         local authors_y = author_top + math.floor((author_area_h - authors_widget:getSize().h) / 2)
         paint_text_without_background(
             authors_widget, final_bb,
-            math.max(0, (width - authors_widget:getSize().w) / 2), authors_y, ink
+            math.max(0, (width - authors_widget:getSize().w) / 2), authors_y, ink, color
         )
         authors_widget:free()
     end
