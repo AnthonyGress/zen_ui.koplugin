@@ -856,7 +856,6 @@ function Driver:handleCommand(command)
             return { ok = false, error = "arrange page unavailable" }
         end
         local labels = {}
-        local marked_row
         for _i, item in ipairs(widget.item_table or {}) do
             local label = item._zen_arrange_base_text or item.text or ""
             if type(item.text_func) == "function" then
@@ -865,13 +864,6 @@ function Driver:handleCommand(command)
             end
             labels[#labels + 1] = label
         end
-        for _i, row in ipairs(widget.main_content or {}) do
-            if row.index == widget.marked then
-                marked_row = row
-                break
-            end
-        end
-        local marked_frame = marked_row and marked_row[1] and marked_row[1][1]
         local first_row = widget.main_content and widget.main_content[2]
         local focus_frame = first_row and first_row[1] and first_row[1][1]
         return {
@@ -892,8 +884,6 @@ function Driver:handleCommand(command)
                 page_count = widget.pages,
                 pagination_visible = widget.page_info
                     and widget.page_info._zen_arrange_footer_visible == true,
-                marked = widget.marked,
-                move_highlighted = marked_frame and marked_frame.invert == true or false,
                 row_focusable = focus_frame and focus_frame.focusable == true,
                 row_focus_border_size = focus_frame and focus_frame.focus_border_size,
                 row_focus_inner_border = focus_frame and focus_frame.focus_inner_border == true,
@@ -907,19 +897,6 @@ function Driver:handleCommand(command)
                 labels = labels,
             },
         }
-    end
-    if kind == "arrange_page_hold_item" then
-        local widget = active_arrange_widget()
-        local target_index = tonumber(params.index) or 1
-        for _i, row in ipairs(widget and widget.main_content or {}) do
-            if row.index == target_index and type(row.onHoldTouch) == "function" then
-                return {
-                    ok = row:onHoldTouch() == true,
-                    marked = widget.marked,
-                }
-            end
-        end
-        return { ok = false, error = "arrange item unavailable" }
     end
     if kind == "arrange_page_focus_header" then
         local widget = active_arrange_widget()

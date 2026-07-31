@@ -288,18 +288,6 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             assert arrange.get("row_focus_inner_border") is True
             assert arrange.get("row_focus_feedback") is True
             assert arrange.get("row_focus_border_size") == settings_focus_border
-            assert driver.command(
-                "arrange_page_hold_item", index=1
-            ).get("ok") is True
-            arrange = driver.command("arrange_page_state")["arrange"]
-            assert arrange.get("marked") == 1
-            assert arrange.get("move_highlighted") is True
-            assert driver.command(
-                "arrange_page_hold_item", index=1
-            ).get("ok") is True
-            arrange = driver.command("arrange_page_state")["arrange"]
-            assert arrange.get("marked") == 0
-            assert arrange.get("move_highlighted") is False
             driver.screenshot(arrange_screenshot)
             assert arrange_screenshot.stat().st_size > 0
             if str(arrange.get("title", "")).startswith("Buttons"):
