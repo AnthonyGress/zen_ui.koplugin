@@ -1089,8 +1089,7 @@ install_root_tap_handlers = function(sort_widget, arrange_enabled)
     if not sort_widget or not sort_widget.main_content then return end
     for _i, child in ipairs(sort_widget.main_content) do
         local item = type(child) == "table" and child.item or nil
-        if item and not child._zen_arrange_root_hold_patched then
-            child._zen_arrange_root_hold_patched = true
+        if item then
             if arrange_enabled ~= false then
                 child.onHoldTouch = function(row)
                     toggle_arrange_selection(row)
