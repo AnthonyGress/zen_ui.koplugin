@@ -1,8 +1,8 @@
 -- incompatible_plugins_check.lua
--- Detects incompatible plugins via package.loaded (not file system checks).
+-- Detects incompatible plugins and user patches.
 -- Two categories:
 --   MANUAL_BLOCK  -- Zen UI cannot auto-fix these. User is informed and init is halted.
---   AUTO_DISABLE  -- Zen UI writes plugins_disabled and prompts restart.
+--   AUTO_DISABLE  -- Zen UI disables plugins/patches and prompts restart.
 
 -- Returns the plugin directory for an already-loaded sentinel module.
 local function get_dir_from_loaded(sentinel)
@@ -56,6 +56,12 @@ end
 local AUTO_DISABLE = {
     { sentinel = "sui_core", label = "Simple UI", fallback_key = "simpleui" },
     { sentinel = "quickmenu", label = "QuickMenu", fallback_key = "quickmenu" },
+}
+
+local AUTO_DISABLE_PATCHES = {
+    "2-quick-settings.lua",
+    "2-automatic-book-series.lua",
+    "2-ui-font.lua",
 }
 
 local function apply_incompatible_plugins_check()
@@ -116,6 +122,24 @@ local function apply_incompatible_plugins_check()
         end
     end
 
+    local ok_userpatch, userpatch = pcall(require, "userpatch")
+    local execution_status = ok_userpatch and userpatch and userpatch.execution_status
+    if type(execution_status) == "table" then
+        local patch_dir = require("datastorage"):getPatchesDir()
+        for _i, filename in ipairs(AUTO_DISABLE_PATCHES) do
+            if execution_status[filename] ~= nil then
+                local source = patch_dir .. "/" .. filename
+                if os.rename(source, source .. ".disabled") then
+                    logger.warn("Disabling incompatible user patch", filename)
+                    disabled_labels[#disabled_labels + 1] = filename
+                    needs_restart = true
+                else
+                    logger.warn("Unable to disable incompatible user patch", filename)
+                end
+            end
+        end
+    end
+
     -- Disable autowarmth when a Zen schedule is active (they conflict).
     if package.loaded["suntime"] ~= nil and disabled_list["autowarmth"] == nil
             and any_zen_schedule_enabled() then
@@ -138,7 +162,7 @@ local function apply_incompatible_plugins_check()
         local ConfirmBox = require("ui/widget/confirmbox")
         local Event = require("ui/event")
         UIManager:show(ConfirmBox:new{
-            text         = _("Incompatible plugins have been disabled:") .. "\n" .. table.concat(disabled_labels, "\n"),
+            text         = _("Incompatible plugins and patches have been disabled:") .. "\n" .. table.concat(disabled_labels, "\n"),
             dismissable  = false,
             no_ok_button = true,
             cancel_text  = _("Restart now"),
