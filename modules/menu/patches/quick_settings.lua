@@ -817,8 +817,9 @@ local function apply_quick_settings()
                 local features = zen_plugin.config and zen_plugin.config.features
                 return type(features) == "table" and features.lockdown_mode == true
             end,
-            callback = function()
+            callback = function(touch_menu)
                 if zen_plugin.onToggleZenMode then
+                    touch_menu:closeMenu()
                     zen_plugin:onToggleZenMode()
                 end
             end,

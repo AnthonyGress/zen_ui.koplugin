@@ -1,6 +1,7 @@
 local Blitbuffer = require("ffi/blitbuffer")
 local BD = require("ui/bidi")
 local Device = require("device")
+local Event = require("ui/event")
 local BottomContainer = require("ui/widget/container/bottomcontainer")
 local CenterContainer = require("ui/widget/container/centercontainer")
 local CheckMark = require("ui/widget/checkmark")
@@ -35,6 +36,7 @@ local M = {}
 local show_submenu
 local repopulate
 local plus_icon_path
+local DRAG_UNFOCUS_DELAY = 0.1
 
 local function get_plus_icon_path()
     if plus_icon_path ~= nil then return plus_icon_path end
@@ -275,17 +277,16 @@ local function rebuild_icon_row(row)
     local right_padding = Size.padding.default
     local icon_w = IconItem.SETTINGS_ICON_WIDTH
     local arrange_enabled = row.show_parent._zen_arrange_enabled == true
-    local handle_w = arrange_enabled and check_w or 0
+    local content_w = row.width - left_padding - right_padding
     local item_has_submenu = type(item.sub_item_table) == "table"
         or type(item.sub_item_table_func) == "function"
-    local content_w = row.width - handle_w - left_padding - right_padding
     local face = IconItem.getSettingsFace(item.face or row.face)
     local right_items = { align = "center" }
     if item_checkable then
         local toggle_control = row.checkmark_widget
         if arrange_enabled and Device:hasDPad() then
             local toggle_focus = FrameContainer:new{
-                padding = Size.padding.default,
+                padding = 0,
                 bordersize = 0,
                 focusable = true,
                 focus_border_size = Size.border.thick,
@@ -331,7 +332,7 @@ local function rebuild_icon_row(row)
     local row_items = {
         align = "center",
     }
-    table.insert(row_items, item.icon_glyph
+    table.insert(row_items, not arrange_enabled and item.icon_glyph
         and IconItem.makeState(item.icon_glyph, icon_w, row.height, icon_face)
         or HorizontalSpan:new{ width = icon_w })
     table.insert(row_items, HorizontalSpan:new{ width = icon_gap })
@@ -375,14 +376,14 @@ local function rebuild_icon_row(row)
     local frame_items = { align = "center" }
     if arrange_enabled then
         local handle = FrameContainer:new{
-            dimen = Geom:new{ w = handle_w, h = row.height },
+            dimen = Geom:new{ w = icon_w, h = row.height },
             padding = 0,
             bordersize = 0,
             focusable = true,
             focus_border_size = Size.border.thin,
             focus_inner_border = true,
             CenterContainer:new{
-                dimen = Geom:new{ w = handle_w, h = row.height },
+                dimen = Geom:new{ w = icon_w, h = row.height },
                 IconWidget:new{
                     icon = "appbar.menu",
                     width = IconItem.SETTINGS_CARET_SIZE,
@@ -403,7 +404,11 @@ local function rebuild_icon_row(row)
         handle.onUnfocus = function(self)
             return orig_handle_unfocus(self)
         end
-        table.insert(frame_items, handle)
+        local StartContainer = BD.mirroredUILayout() and RightContainer or LeftContainer
+        table.insert(content, StartContainer:new{
+            dimen = Geom:new{ w = content_w, h = row.height },
+            handle,
+        })
     end
     table.insert(frame_items, HorizontalSpan:new{ width = left_padding })
     table.insert(frame_items, content)
@@ -971,6 +976,7 @@ local function release_arrange_item(sort_widget)
     sort_widget._zen_dragging = false
     sort_widget._zen_drag_top = nil
     sort_widget._zen_drag_start_x = nil
+    sort_widget._zen_drag_last_pos = nil
     sort_widget._zen_drag_horizontal_threshold = nil
     sort_widget._zen_drag_page_latch = nil
     sort_widget._zen_arrange_focus_column = 2
@@ -1091,6 +1097,74 @@ local function move_dragged_item(sort_widget, ges)
     return move_arrange_item(sort_widget, target)
 end
 
+local function cancel_drag_unfocus(sort_widget)
+    local pending = sort_widget and sort_widget._zen_drag_unfocus
+    if not pending then return end
+    UIManager:unschedule(pending)
+    sort_widget._zen_drag_unfocus = nil
+end
+
+local function unfocus_widget(widget)
+    if widget and type(widget.handleEvent) == "function" then
+        widget:handleEvent(Event:new("Unfocus"))
+    end
+end
+
+local function schedule_drag_unfocus(sort_widget, dropped_index, focused_after_drop)
+    cancel_drag_unfocus(sort_widget)
+    local pending
+    pending = function()
+        if sort_widget._zen_drag_unfocus ~= pending then return end
+        sort_widget._zen_drag_unfocus = nil
+        if sort_widget._zen_dragging or sort_widget._zen_arrange_closing then return end
+        if focused_after_drop
+                and get_focused_arrange_target(sort_widget) == focused_after_drop then
+            unfocus_widget(focused_after_drop)
+        end
+        for _row_i, row in ipairs(sort_widget.main_content or {}) do
+            if row.index == dropped_index then
+                unfocus_widget(row._zen_arrange_handle)
+                unfocus_widget(row._zen_arrange_row_frame)
+                break
+            end
+        end
+        UIManager:setDirty(sort_widget, "ui")
+    end
+    sort_widget._zen_drag_unfocus = pending
+    UIManager:scheduleIn(DRAG_UNFOCUS_DELAY, pending)
+end
+
+local function finish_touch_drag(sort_widget, ges)
+    if not sort_widget._zen_dragging then return false end
+    local drop_pos = ges and ges.pos
+    if ges and ges.ges == "swipe" then
+        drop_pos = ges.end_pos or sort_widget._zen_drag_last_pos
+    end
+    if drop_pos then
+        move_dragged_item(sort_widget, {
+            pos = drop_pos,
+            relative = ges and ges.relative,
+        })
+    end
+    local dropped_index = sort_widget.marked
+    sort_widget._zen_dragging = false
+    sort_widget._zen_drag_top = nil
+    sort_widget._zen_drag_start_x = nil
+    sort_widget._zen_drag_last_pos = nil
+    sort_widget._zen_drag_horizontal_threshold = nil
+    sort_widget._zen_drag_page_latch = nil
+    sort_widget._zen_arrange_focus_column = 2
+    sort_widget.marked = 0
+    sort_widget:_populateItems()
+    schedule_drag_unfocus(
+        sort_widget,
+        dropped_index,
+        get_focused_arrange_target(sort_widget)
+    )
+    commit_arrange_order(sort_widget)
+    return true
+end
+
 local function install_touch_handle_drag(sort_widget)
     if not Device:isTouchDevice() or not sort_widget._zen_arrange_enabled then return end
 
@@ -1104,10 +1178,12 @@ local function install_touch_handle_drag(sort_widget)
     sort_widget.onZenArrangeHandlePan = function(self, _arg, ges)
         local pos = ges and ges.pos
         if not pos then return false end
+        self._zen_drag_last_pos = pos
         if not self._zen_dragging then
             local start_pos = ges.start_pos or pos
             for _row_i, row in ipairs(self.main_content or {}) do
                 if row.index and is_arrange_handle_tap(row, start_pos) then
+                    cancel_drag_unfocus(self)
                     local first = (self.show_page - 1) * self.items_per_page + 1
                     local row_height = self.item_height + self.item_margin
                     self._zen_drag_top = row._zen_arrange_handle.dimen.y
@@ -1131,26 +1207,22 @@ local function install_touch_handle_drag(sort_widget)
         return true
     end
     sort_widget.onZenArrangeHandlePanRelease = function(self, _arg, ges)
-        if not self._zen_dragging then return false end
-        local pos = ges and ges.pos
-        if pos then move_dragged_item(self, ges) end
-        local dropped_index = self.marked
-        self._zen_dragging = false
-        self._zen_drag_top = nil
-        self._zen_drag_start_x = nil
-        self._zen_drag_horizontal_threshold = nil
-        self._zen_drag_page_latch = nil
-        self._zen_arrange_focus_column = 2
-        self.marked = 0
-        self:_populateItems()
-        for _row_i, row in ipairs(self.main_content or {}) do
-            if row.index == dropped_index and row._zen_arrange_handle then
-                row._zen_arrange_handle:onUnfocus()
-                break
+        return finish_touch_drag(self, ges)
+    end
+
+    local orig_on_swipe = sort_widget.onSwipe
+    sort_widget.onSwipe = function(self, arg, ges)
+        if not self._zen_dragging then
+            local start_pos = ges and (ges.start_pos or ges.pos)
+            for _row_i, row in ipairs(self.main_content or {}) do
+                if is_arrange_handle_tap(row, start_pos) then
+                    self:onZenArrangeHandlePan(nil, ges)
+                    break
+                end
             end
         end
-        commit_arrange_order(self)
-        return true
+        if self._zen_dragging then return finish_touch_drag(self, ges) end
+        return orig_on_swipe and orig_on_swipe(self, arg, ges)
     end
 
     local orig_handle_event = sort_widget.handleEvent
@@ -1534,6 +1606,7 @@ function M.show(opts)
     sort_widget._zen_arrange_close_all = function()
         if sort_widget._zen_arrange_closing then return true end
         sort_widget._zen_arrange_closing = true
+        cancel_drag_unfocus(sort_widget)
         DispatcherMenu.flush(menu_proxy)
         commit_arrange_order(sort_widget)
         sort_widget.marked = 0

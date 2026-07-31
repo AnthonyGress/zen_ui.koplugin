@@ -319,9 +319,9 @@ local function patch_folder_picker_menu(Dispatcher)
                 local folder = stored_folder()
                 if type(folder) == "string" and folder ~= "" then
                     local name = select(2, util.splitFilePathName(folder))
-                    return _("Zen UI - Open folder") .. ": " .. name
+                    return _("Zen UI: Open folder") .. ": " .. name
                 end
-                return _("Zen UI - Open folder")
+                return _("Zen UI: Open folder")
             end,
             checked_func = function()
                 return stored_folder() ~= nil
@@ -362,86 +362,86 @@ function M.onDispatcherRegisterActions()
     Dispatcher:registerAction("zen_ui_toggle_zen_mode", {
         category = "none",
         event = "ToggleZenMode",
-        title = _("Zen UI - Toggle Zen Mode"),
+        title = _("Zen UI: Toggle Zen Mode"),
         general = true,
         active_func = zen_action_active.zen_ui_toggle_zen_mode,
     })
     Dispatcher:registerAction("zen_ui_toggle_lockdown_mode", {
         category = "none",
         event = "ToggleLockdownMode",
-        title = _("Zen UI - Toggle Lockdown Mode"),
+        title = _("Zen UI: Toggle Lockdown Mode"),
         general = true,
         active_func = zen_action_active.zen_ui_toggle_lockdown_mode,
     })
     Dispatcher:registerAction("zen_ui_toggle_incognito_mode", {
         category = "none",
         event = "ToggleIncognitoMode",
-        title = _("Zen UI - Toggle Incognito Mode"),
+        title = _("Zen UI: Toggle Incognito Mode"),
         general = true,
         active_func = zen_action_active.zen_ui_toggle_incognito_mode,
     })
     Dispatcher:registerAction("zen_ui_toggle_reader_top_status_bar", {
         category = "none",
         event = "ToggleReaderTopStatusBar",
-        title = _("Zen UI - Toggle top reader status bar"),
+        title = _("Zen UI: Toggle top reader status bar"),
         reader = true,
         active_func = zen_action_active.zen_ui_toggle_reader_top_status_bar,
     })
     Dispatcher:registerAction("zen_ui_toggle_reader_themes", {
         category = "none",
         event = "ToggleReaderThemes",
-        title = _("Zen UI - Toggle reader themes"),
+        title = _("Zen UI: Toggle reader themes"),
         reader = true,
         active_func = zen_action_active.zen_ui_toggle_reader_themes,
     })
     Dispatcher:registerAction("zen_ui_toggle_reader_bottom_status_bar", {
         category = "none",
         event = "ToggleReaderBottomStatusBar",
-        title = _("Zen UI - Toggle bottom reader status bar"),
+        title = _("Zen UI: Toggle bottom reader status bar"),
         reader = true,
         active_func = zen_action_active.zen_ui_toggle_reader_bottom_status_bar,
     })
     Dispatcher:registerAction("zen_ui_toggle_reader_status_bars", {
         category = "none",
         event = "ToggleReaderStatusBars",
-        title = _("Zen UI - Toggle reader status bars"),
+        title = _("Zen UI: Toggle reader status bars"),
         reader = true,
         active_func = zen_action_active.zen_ui_toggle_reader_status_bars,
     })
     Dispatcher:registerAction("zen_ui_show_toc", {
         category = "none",
         event = "ShowZenUIToc",
-        title = _("Zen UI - Table of contents"),
+        title = _("Zen UI: Table of contents"),
         reader = true,
     })
     Dispatcher:registerAction("zen_ui_show_home", {
         category = "none",
         event = "ShowZenUIHome",
-        title = _("Zen UI - Home"),
+        title = _("Zen UI: Home"),
         general = true,
     })
     Dispatcher:registerAction("zen_ui_show_library", {
         category = "none",
         event = "ShowZenUILibrary",
-        title = _("Zen UI - Library"),
+        title = _("Zen UI: Library"),
         general = true,
     })
     Dispatcher:registerAction("zen_ui_show_authors", {
         category = "none",
         event = "ShowZenUIAuthors",
-        title = _("Zen UI - Authors"),
+        title = _("Zen UI: Authors"),
         general = true,
     })
     Dispatcher:registerAction("zen_ui_show_series", {
         category = "none",
         event = "ShowZenUISeries",
-        title = _("Zen UI - Series"),
+        title = _("Zen UI: Series"),
         general = true,
     })
     Dispatcher:registerAction("zen_ui_show_tags", {
         category = "none",
         event = "ShowZenUITags",
-        title = _("Zen UI - Tags"),
+        title = _("Zen UI: Tags"),
         general = true,
     })
     -- Folder action stores its target path per-gesture (category="string" passes the
@@ -453,7 +453,7 @@ function M.onDispatcherRegisterActions()
     Dispatcher:registerAction("zen_ui_show_folder", {
         category = "string",
         event = "ShowZenUIFolder",
-        title = _("Zen UI - Open folder"),
+        title = _("Zen UI: Open folder"),
         args = {},
         toggle = {},
         zen_folder_picker = true,
@@ -461,7 +461,7 @@ function M.onDispatcherRegisterActions()
     Dispatcher:registerAction("zen_ui_kosync_sync", {
         category = "none",
         event = "ZenUIKOSyncSync",
-        title = _("Zen UI - Sync progress (pull + push)"),
+        title = _("Zen UI: Sync progress (pull + push)"),
         general = true,
     })
     patch_folder_picker_menu(Dispatcher)
@@ -475,7 +475,12 @@ function M.onToggleZenMode(plugin)
     end
     features.zen_mode = not features.zen_mode
     save_config(plugin)
-    require("modules/settings/zen_settings_apply").prompt_restart()
+    require("modules/settings/zen_settings_apply").apply_feature_toggle(
+        plugin, "zen_mode", features.zen_mode)
+    require("ui/uimanager"):show(require("ui/widget/infomessage"):new{
+        text = features.zen_mode and _("Zen Mode: Enabled") or _("Zen Mode: Disabled"),
+        timeout = 2,
+    })
     return true
 end
 

@@ -2421,47 +2421,47 @@ msgstr "Ricerca rapida Zen"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - Autori"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: Autori"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - Home"
+msgid "Zen UI: Home"
+msgstr "Zen UI: Home"
 
-msgid "Zen UI - Library"
-msgstr "Zen UI - Biblioteca"
+msgid "Zen UI: Library"
+msgstr "Zen UI: Biblioteca"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - Apri cartella"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: Apri cartella"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - Serie"
+msgid "Zen UI: Series"
+msgstr "Zen UI: Serie"
 
-msgid "Zen UI - Sync progress (pull + push)"
-msgstr "Zen UI - Avanzamento sincronizzazione (ricezione + invio)"
+msgid "Zen UI: Sync progress (pull + push)"
+msgstr "Zen UI: Avanzamento sincronizzazione (ricezione + invio)"
 
-msgid "Zen UI - Table of contents"
-msgstr "Zen UI - Indice"
+msgid "Zen UI: Table of contents"
+msgstr "Zen UI: Indice"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - Etichette"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: Etichette"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - Attiva/disattiva barra di stato inferiore del lettore"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: Attiva/disattiva barra di stato inferiore del lettore"
 
-msgid "Zen UI - Toggle Incognito Mode"
-msgstr "Zen UI - Attiva/disattiva modalità incognito"
+msgid "Zen UI: Toggle Incognito Mode"
+msgstr "Zen UI: Attiva/disattiva modalità incognito"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - Attiva/disattiva modalità blocco"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: Attiva/disattiva modalità blocco"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - Attiva/disattiva barre di stato del lettore"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: Attiva/disattiva barre di stato del lettore"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - Attiva/disattiva barra di stato superiore del lettore"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: Attiva/disattiva barra di stato superiore del lettore"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Attiva/disattiva modalità Zen"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: Attiva/disattiva modalità Zen"
 
 msgid "Zen UI defaults"
 msgstr "Impostazioni predefinite di Zen UI"
@@ -2496,8 +2496,8 @@ msgstr "Seppia chiara"
 msgid "Light tan"
 msgstr "Beige chiaro"
 
-msgid "Zen UI - Toggle reader themes"
-msgstr "Zen UI - Attiva/disattiva temi di lettura"
+msgid "Zen UI: Toggle reader themes"
+msgstr "Zen UI: Attiva/disattiva temi di lettura"
 
 msgid "Dark mode"
 msgstr "Modalità scura"

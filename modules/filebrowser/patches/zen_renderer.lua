@@ -37,6 +37,7 @@ local function apply_zen_renderer()
     local LeftContainer = require("ui/widget/container/leftcontainer")
     local OverlapGroup = require("ui/widget/overlapgroup")
     local Menu = require("ui/widget/menu")
+    local TextBoxWidget = require("ui/widget/textboxwidget")
     local TextWidget = require("ui/widget/textwidget")
     local UnderlineContainer = require("ui/widget/container/underlinecontainer")
     local VerticalGroup = require("ui/widget/verticalgroup")
@@ -154,32 +155,178 @@ local function apply_zen_renderer()
         self.init_done = true
     end
 
-    local function folder_name_overlay(item, cover, content_h, title, strip_h)
+    local function round_label_bottom(frame, radius)
+        frame._zen_bottom_corner_radius = radius
+        frame.radius = radius
+        if radius < 2 or type(frame.paintTo) ~= "function" then return end
+        local original_paint = frame.paintTo
+        frame.paintTo = function(self, bb, x, y)
+            local size = self:getSize()
+            local max_radius = math.floor((math.min(size.w, size.h) - 1) / 2)
+            local corner_radius = math.min(radius, max_radius)
+            if corner_radius < 2 then return original_paint(self, bb, x, y) end
+
+            local snapshot = Blitbuffer.new(corner_radius * 2, corner_radius, bb:getType())
+            snapshot:blitFrom(bb, 0, 0, x, y + size.h - corner_radius,
+                corner_radius, corner_radius)
+            snapshot:blitFrom(bb, corner_radius, 0, x + size.w - corner_radius,
+                y + size.h - corner_radius, corner_radius, corner_radius)
+            original_paint(self, bb, x, y)
+
+            for row = 0, corner_radius - 1 do
+                local inner = math.sqrt(math.max(0, corner_radius * corner_radius
+                    - (corner_radius - row) * (corner_radius - row)))
+                local cut = math.ceil(corner_radius - inner)
+                if cut > 0 then
+                    local restore_y = y + size.h - corner_radius + row
+                    snapshot:blitFrom(bb, x, restore_y, 0, row, cut, 1)
+                    snapshot:blitFrom(bb, x + size.w - cut, restore_y,
+                        corner_radius * 2 - cut, row, cut, 1)
+                end
+            end
+            local border = math.max(1, self.bordersize or 0)
+            local inner_radius = corner_radius - border
+            local color = self.color or Blitbuffer.COLOR_BLACK
+            for row = 0, corner_radius - 1 do
+                for column = 0, corner_radius - 1 do
+                    local dx = corner_radius - column - 0.5
+                    local dy = corner_radius - row - 0.5
+                    local distance = math.sqrt(dx * dx + dy * dy)
+                    if distance >= inner_radius and distance <= corner_radius then
+                        local arc_y = y + size.h - 1 - row
+                        bb:paintRect(x + column, arc_y, 1, 1, color)
+                        bb:paintRect(x + size.w - 1 - column, arc_y, 1, 1, color)
+                    end
+                end
+            end
+            local background = self.background or Blitbuffer.COLOR_WHITE
+            bb:paintRect(x, y, corner_radius, corner_radius, background)
+            bb:paintRect(x + size.w - corner_radius, y,
+                corner_radius, corner_radius, background)
+            bb:paintRect(x, y, size.w, border, color)
+            bb:paintRect(x, y, border, corner_radius, color)
+            bb:paintRect(x + size.w - border, y, border, corner_radius, color)
+            snapshot:free()
+        end
+    end
+
+    local function translucent_label(frame)
+        local alpha = AlphaContainer:new{ alpha = 0.75, frame }
+        function alpha:paintTo(bb, x, y)
+            local size = self[1]:getSize()
+            if not self.private_bb
+                    or self.private_bb:getWidth() ~= size.w
+                    or self.private_bb:getHeight() ~= size.h then
+                if self.private_bb then self.private_bb:free() end
+                self.private_bb = Blitbuffer.new(size.w, size.h, bb:getType())
+            end
+            self.private_bb:blitFrom(bb, 0, 0, x, y, size.w, size.h)
+            self[1]:paintTo(self.private_bb, 0, 0)
+            bb:addblitFrom(self.private_bb, x, y, 0, 0, size.w, size.h, self.alpha)
+        end
+        return alpha
+    end
+
+    local function folder_name_overlay(item, cover, content_h, title, strip_h, cover_dimen)
         local config = plugin_config().browser_folder_cover or {}
         if config.show_folder_name == false or strip_h > 0 then return cover end
-        local label = TextWidget:new{
-            text = BD.directory(title),
+        local border = CoverUtils.BORDER_SIZE
+        local cover_w = math.max(1, (cover_dimen and cover_dimen.w) or item.width)
+        local cover_h = math.max(1, (cover_dimen and cover_dimen.h) or content_h)
+        local rounded = (plugin_config().features or {}).browser_cover_rounded_corners == true
+        local corner_radius = rounded and math.min(Screen:scaleBySize(8),
+            math.floor((math.min(cover_w, cover_h) - 1) / 2)) or 0
+        local label_pad_h = Screen:scaleBySize(5)
+        local label_pad_v = 0
+        local label_w = math.max(1, cover_w - 2 * border - 2 * label_pad_h)
+        local label_h = math.max(1, cover_h - 2 * border)
+        local text = BD.directory(title)
+        local badge_probe = TextWidget:new{
+            text = "0",
             face = library_font.getFace(library_font.scaleValue(15)),
             bold = true,
-            max_width = math.max(1, item.width - Screen:scaleBySize(12)),
-            truncate_with_ellipsis = true,
-            padding = Screen:scaleBySize(2),
+            padding = 0,
         }
+        local available_h = math.max(1,
+            label_h - 2 * badge_probe:getSize().h - 2 * label_pad_v)
+        badge_probe:free()
+
+        local max_font_size = library_font.scaleValue(25)
+        local min_font_size = library_font.scaleValue(14)
+        local text_w = math.max(1, label_w - 2 * Screen:scaleBySize(2))
+        local line_probe = TextWidget:new{
+            text = "Ag",
+            face = library_font.getFace(min_font_size),
+            bold = true,
+            padding = 0,
+        }
+        local two_line_h = math.min(available_h, 2 * line_probe:getSize().h)
+        line_probe:free()
+        local font_size = max_font_size
+        local probe
+        while font_size >= min_font_size do
+            if probe then probe:free() end
+            probe = TextWidget:new{
+                text = text,
+                face = library_font.getFace(font_size),
+                bold = true,
+                padding = 0,
+            }
+            local size = probe:getSize()
+            if size.w <= text_w and size.h <= available_h then break end
+            font_size = font_size - 1
+        end
+
+        local label
+        if font_size >= min_font_size then
+            probe:free()
+            label = TextBoxWidget:new{
+                text = text,
+                face = library_font.getFace(font_size),
+                width = label_w,
+                alignment = "center",
+                bold = true,
+            }
+        else
+            if probe then probe:free() end
+            label = TextBoxWidget:new{
+                text = text,
+                face = library_font.getFace(min_font_size),
+                width = label_w,
+                alignment = "center",
+                bold = true,
+                height = two_line_h,
+                height_adjust = true,
+                height_overflow_show_ellipsis = true,
+            }
+        end
         local label_frame = FrameContainer:new{
             padding = 0,
+            padding_left = label_pad_h,
+            padding_right = label_pad_h,
+            padding_top = label_pad_v,
+            padding_bottom = label_pad_v,
             bordersize = CoverUtils.BORDER_SIZE,
             background = Blitbuffer.COLOR_WHITE,
-            label,
+            _zen_keep_background = true,
+            CenterContainer:new{
+                dimen = Geom:new{ w = label_w, h = two_line_h },
+                label,
+            },
         }
+        round_label_bottom(label_frame, corner_radius)
         local label_widget = config.name_opaque == true and label_frame
-            or AlphaContainer:new{ alpha = 0.75, label_frame }
+            or translucent_label(label_frame)
         local PositionContainer = config.name_centered == true and CenterContainer or BottomContainer
         return OverlapGroup:new{
             dimen = Geom:new{ w = item.width, h = content_h },
             cover,
-            PositionContainer:new{
+            CenterContainer:new{
                 dimen = Geom:new{ w = item.width, h = content_h },
-                label_widget,
+                PositionContainer:new{
+                    dimen = Geom:new{ w = cover_w, h = cover_h },
+                    label_widget,
+                },
             },
         }
     end
@@ -225,7 +372,10 @@ local function apply_zen_renderer()
             dimen = Geom:new{ w = item.width, h = content_h },
             result.frame,
         }
-        cover = folder_name_overlay(item, cover, content_h, result.title, strip_h)
+        local cover_size = type(result.frame.getSize) == "function"
+            and result.frame:getSize() or result.frame.dimen
+        cover = folder_name_overlay(item, cover, content_h, result.title, strip_h,
+            cover_size)
         local content = VerticalGroup:new{ align = "center", cover }
         if strip_h > 0 and (show_title or show_author) then
             table.insert(content, CenterContainer:new{

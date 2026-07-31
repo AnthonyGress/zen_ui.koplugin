@@ -2409,47 +2409,47 @@ msgstr "Zenクイック検索"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - 著者"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: 著者"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - ホーム"
+msgid "Zen UI: Home"
+msgstr "Zen UI: ホーム"
 
-msgid "Zen UI - Library"
-msgstr "Zen UI - ライブラリ"
+msgid "Zen UI: Library"
+msgstr "Zen UI: ライブラリ"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - フォルダを開く"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: フォルダを開く"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - シリーズ"
+msgid "Zen UI: Series"
+msgstr "Zen UI: シリーズ"
 
-msgid "Zen UI - Sync progress (pull + push)"
-msgstr "Zen UI - 同期の進行状況（取得 + 送信）"
+msgid "Zen UI: Sync progress (pull + push)"
+msgstr "Zen UI: 同期の進行状況（取得 + 送信）"
 
-msgid "Zen UI - Table of contents"
-msgstr "Zen UI - 目次"
+msgid "Zen UI: Table of contents"
+msgstr "Zen UI: 目次"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - タグ"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: タグ"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - 下部リーダーステータスバーの表示切替"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: 下部リーダーステータスバーの表示切替"
 
-msgid "Zen UI - Toggle Incognito Mode"
-msgstr "Zen UI - シークレットモードを切り替え"
+msgid "Zen UI: Toggle Incognito Mode"
+msgstr "Zen UI: シークレットモードを切り替え"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - ロックダウンモードの切替"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: ロックダウンモードの切替"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - リーダーステータスバーの表示切替"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: リーダーステータスバーの表示切替"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - 上部リーダーステータスバーの表示切替"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: 上部リーダーステータスバーの表示切替"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Zenモードの切替"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: Zenモードの切替"
 
 msgid "Zen UI defaults"
 msgstr "Zen UIデフォルト"

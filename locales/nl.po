@@ -2421,47 +2421,47 @@ msgstr "Zen snel opzoeken"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - Auteurs"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: Auteurs"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - Startpagina"
+msgid "Zen UI: Home"
+msgstr "Zen UI: Startpagina"
 
-msgid "Zen UI - Library"
-msgstr "Zen UI - Bibliotheek"
+msgid "Zen UI: Library"
+msgstr "Zen UI: Bibliotheek"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - Map openen"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: Map openen"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - Reeksen"
+msgid "Zen UI: Series"
+msgstr "Zen UI: Reeksen"
 
-msgid "Zen UI - Sync progress (pull + push)"
-msgstr "Zen UI - Synchronisatievoortgang (ophalen + verzenden)"
+msgid "Zen UI: Sync progress (pull + push)"
+msgstr "Zen UI: Synchronisatievoortgang (ophalen + verzenden)"
 
-msgid "Zen UI - Table of contents"
-msgstr "Zen UI - Inhoudsopgave"
+msgid "Zen UI: Table of contents"
+msgstr "Zen UI: Inhoudsopgave"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - Labels"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: Labels"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - Onderste leesstatusbalk schakelen"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: Onderste leesstatusbalk schakelen"
 
-msgid "Zen UI - Toggle Incognito Mode"
-msgstr "Zen UI - Incognitomodus omschakelen"
+msgid "Zen UI: Toggle Incognito Mode"
+msgstr "Zen UI: Incognitomodus omschakelen"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - Lockdown-modus schakelen"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: Lockdown-modus schakelen"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - Leesstatusbalken schakelen"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: Leesstatusbalken schakelen"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - Bovenste leesstatusbalk schakelen"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: Bovenste leesstatusbalk schakelen"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Zen-modus schakelen"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: Zen-modus schakelen"
 
 msgid "Zen UI defaults"
 msgstr "Zen UI-standaardinstellingen"
@@ -2496,8 +2496,8 @@ msgstr "Licht sepia"
 msgid "Light tan"
 msgstr "Licht beige"
 
-msgid "Zen UI - Toggle reader themes"
-msgstr "Zen UI - Leesthema's wisselen"
+msgid "Zen UI: Toggle reader themes"
+msgstr "Zen UI: Leesthema's wisselen"
 
 msgid "Dark mode"
 msgstr "Donkere modus"

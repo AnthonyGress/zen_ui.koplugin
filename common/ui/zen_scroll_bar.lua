@@ -62,8 +62,9 @@ local function apply_zen_scroll_bar()
         -- Decide footer height once at init; page_number gets the taller strip.
         local page_number_style = pager.getStyle() == "page_number"
         local foot_h = page_number_style and pager.PN_FOOTER_H or pager.FOOTER_H
-        local footer_pad = Size.padding.large
-        local footer_area_h = foot_h + footer_pad * 2
+        local footer_pad_top = Size.padding.small
+        local footer_pad_bottom = Size.padding.large
+        local footer_area_h = foot_h + footer_pad_top + footer_pad_bottom
         local footer_area = Geom:new{ w = scr_w, h = footer_area_h }
 
         -- _recalculateDimen uses getSize().h on these two widgets to compute
@@ -102,7 +103,7 @@ local function apply_zen_scroll_bar()
         -- x, y: absolute screen position supplied by BottomContainer.
         self.page_info.paintTo = function(_, bb, x, y)
             local area_y = is_search and (scr_h - footer_area_h) or y
-            local paint_y = area_y + footer_pad
+            local paint_y = area_y + footer_pad_top
             updateTouchZoneY(area_y)
             if is_search then
                 bb:paintRect(0, area_y, scr_w, footer_area_h, Blitbuffer.COLOR_WHITE)

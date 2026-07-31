@@ -664,7 +664,7 @@ function M.build(ctx)
                     config.mosaic_title_strip.show_title =
                         config.mosaic_title_strip.show_title ~= true
                     plugin:saveConfig()
-                    settings_apply.prompt_restart()
+                    rebuild_filechooser()
                 end,
             },
             {
@@ -680,7 +680,7 @@ function M.build(ctx)
                     config.mosaic_title_strip.show_author =
                         config.mosaic_title_strip.show_author ~= true
                     plugin:saveConfig()
-                    settings_apply.prompt_restart()
+                    rebuild_filechooser()
                 end,
             },
         },

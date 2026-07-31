@@ -89,4 +89,50 @@ describe("library settings", function()
         assert.are.equal(1, clears)
         assert.are.equal(1, refreshes)
     end)
+
+    it("rebuilds the library when mosaic title strips change", function()
+        local saves = 0
+        local refreshes = 0
+        local restart_prompts = 0
+        package.loaded["modules/settings/zen_settings_apply"].prompt_restart = function()
+            restart_prompts = restart_prompts + 1
+        end
+        ZenSpec.replace("apps/filemanager/filemanager", {
+            instance = {
+                file_chooser = {
+                    updateItems = function() refreshes = refreshes + 1 end,
+                },
+            },
+        })
+
+        local config = {
+            browser_hide_up_folder = {},
+            features = {},
+            mosaic_title_strip = {},
+        }
+        local items = require("modules/settings/sections/library_settings").build({
+            config = config,
+            plugin = { saveConfig = function() saves = saves + 1 end },
+            save_and_apply = function() end,
+        })
+
+        local function find_item(item_table, text)
+            for _i, item in ipairs(item_table) do
+                if item.text == text then return item end
+                if type(item.sub_item_table) == "table" then
+                    local found = find_item(item.sub_item_table, text)
+                    if found then return found end
+                end
+            end
+        end
+
+        find_item(items, "Show title below cover (mosaic)").callback()
+        find_item(items, "Show author below cover (mosaic)").callback()
+
+        assert.is_true(config.mosaic_title_strip.show_title)
+        assert.is_true(config.mosaic_title_strip.show_author)
+        assert.are.equal(2, saves)
+        assert.are.equal(2, refreshes)
+        assert.are.equal(0, restart_prompts)
+    end)
 end)

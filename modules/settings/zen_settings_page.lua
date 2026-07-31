@@ -17,6 +17,7 @@ local M = {}
 local active_page
 local resume_state
 local pending_arrange_resume
+local restoring_arrange_resume
 local arrange_open_context
 local RESUME_TTL_SECONDS = 6
 
@@ -780,7 +781,8 @@ function M.show(plugin, opts)
         end
         resume_state = nil
     end
-    pending_arrange_resume = resume and resume.arrange or nil
+    pending_arrange_resume = nil
+    restoring_arrange_resume = resume and resume.arrange or nil
     arrange_open_context = nil
     local root_items = zen_settings.build(plugin).sub_item_table
     root_items._zen_title = _("Settings")
@@ -797,9 +799,8 @@ function M.show(plugin, opts)
             if page._closed then return end
             page:_restoreResumePath(resume.path)
             if resume.arrange then
-                pending_arrange_resume = resume.arrange
                 page:_activateResumeSelector(resume.arrange.opener)
-                pending_arrange_resume = nil
+                restoring_arrange_resume = nil
                 arrange_open_context = nil
             end
         end)
@@ -837,9 +838,9 @@ function M.searchActive(query)
 end
 
 function M.claimArrangeRoute()
-    if pending_arrange_resume then
-        local resume = pending_arrange_resume
-        pending_arrange_resume = nil
+    if restoring_arrange_resume then
+        local resume = restoring_arrange_resume
+        restoring_arrange_resume = nil
         arrange_open_context = nil
         return resume
     end

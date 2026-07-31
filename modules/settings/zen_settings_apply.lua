@@ -24,14 +24,13 @@ local PATCH_MODULES = {
 
 local RESTART_REQUIRED = {
     browser_hide_underline = true,
-    zen_mode = true,
 }
 
 local APPLY_MODE = {
     navbar = "filemanager_layout",
     quick_settings = "menu_refresh",
     app_launcher = "menu_refresh",
-    zen_mode = "menu_refresh",
+    zen_mode = "zen_mode",
     status_bar = "filemanager_reinit",
     disable_top_menu_swipe_zones = "menu_refresh",
     browser_hide_up_folder = "filemanager_refresh",
@@ -138,6 +137,12 @@ local function apply_menu_refresh()
     UIManager:setDirty("all", "ui")
 end
 
+local function apply_zen_mode()
+    local refresh = get_shared(active_plugin, "refreshZenModeMenus")
+    if type(refresh) == "function" then refresh() end
+    apply_menu_refresh()
+end
+
 local function apply_reader_refresh()
     local ok, ReaderUI = pcall(require, "apps/reader/readerui")
     local reader = ok and ReaderUI and ReaderUI.instance
@@ -189,6 +194,8 @@ local function run_apply_mode_now(mode)
         apply_filemanager_refresh()
     elseif mode == "menu_refresh" then
         apply_menu_refresh()
+    elseif mode == "zen_mode" then
+        apply_zen_mode()
     elseif mode == "reader_refresh" then
         apply_reader_refresh()
     elseif mode == "reader_themes" then

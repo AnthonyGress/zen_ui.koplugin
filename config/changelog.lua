@@ -134,7 +134,7 @@ return {
     },
     ["2.2.0"] = {
         "Improve integration with Rakuyomi",
-        "Add new action Zen UI - Library (Respects Restore last location)",
+        "Add new action Zen UI: Library (Respects Restore last location)",
         "Add toggles in recently read strip widget to hide unread/finished books",
         "Add mark new and updated books as TBR (Advanced > Mark new and updated books as TBR)",
         "Update: Folder covers match order inside",
@@ -227,11 +227,14 @@ return {
     },
     ["3.0.0"] = {
         "Large performance improvements",
+        "New Zen Renderer",
         "New Settings page",
+        "Improved all Settings submenus",
         "Custom icon packs (Extras > Custom icons)",
         "Page browser enhancements + Book Detail button",
         "Quotes improvements (Moments of Zen)",
         "Improved default covers",
+        "Use Zen Mode without restarting",
         "Add Calibre tag to Navbar (Navbar > Tabs)",
         "Add Calibre tag strip to Home page (Home > Widgets)",
         "Add opening banner to books on Home",

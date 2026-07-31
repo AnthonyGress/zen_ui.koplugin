@@ -2421,47 +2421,47 @@ msgstr "禪 快速查詢"
 msgid "Zen UI"
 msgstr "禪 UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - 作者"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: 作者"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - 主頁"
+msgid "Zen UI: Home"
+msgstr "Zen UI: 主頁"
 
-msgid "Zen UI - Library"
-msgstr "Zen UI - 書庫"
+msgid "Zen UI: Library"
+msgstr "Zen UI: 書庫"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - 開啟資料夾"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: 開啟資料夾"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - 系列"
+msgid "Zen UI: Series"
+msgstr "Zen UI: 系列"
 
-msgid "Zen UI - Sync progress (pull + push)"
-msgstr "Zen UI - 同步進度（拉取 + 推送）"
+msgid "Zen UI: Sync progress (pull + push)"
+msgstr "Zen UI: 同步進度（拉取 + 推送）"
 
-msgid "Zen UI - Table of contents"
-msgstr "Zen UI - 目錄"
+msgid "Zen UI: Table of contents"
+msgstr "Zen UI: 目錄"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - 標籤"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: 標籤"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - 切換底部閱讀器狀態列"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: 切換底部閱讀器狀態列"
 
-msgid "Zen UI - Toggle Incognito Mode"
-msgstr "Zen UI - 切換無痕模式"
+msgid "Zen UI: Toggle Incognito Mode"
+msgstr "Zen UI: 切換無痕模式"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - 切換鎖定模式"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: 切換鎖定模式"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - 切換閱讀器狀態列"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: 切換閱讀器狀態列"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - 切換頂部閱讀器狀態列"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: 切換頂部閱讀器狀態列"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - 切換禪模式"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: 切換禪模式"
 
 msgid "Zen UI defaults"
 msgstr "禪 UI 預設設定"
@@ -2496,8 +2496,8 @@ msgstr "淺褐色"
 msgid "Light tan"
 msgstr "淺棕色"
 
-msgid "Zen UI - Toggle reader themes"
-msgstr "Zen UI - 切換閱讀主題"
+msgid "Zen UI: Toggle reader themes"
+msgstr "Zen UI: 切換閱讀主題"
 
 msgid "Dark mode"
 msgstr "深色模式"

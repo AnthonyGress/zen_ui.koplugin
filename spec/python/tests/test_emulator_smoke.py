@@ -245,6 +245,11 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             assert driver.command("settings_page_select", label="Folders")["ok"] is True
             settings = driver.command("settings_page_state")["settings"]
             assert settings.get("title") == "Folders"
+            alignment_keys = {
+                "text_x", "toggle_x", "toggle_right", "caret_x", "caret_right",
+            }
+            settings_row_alignment = settings.get("row_alignment", {})
+            assert alignment_keys.issubset(settings_row_alignment)
             assert driver.command("settings_page_select", label="Covers")["ok"] is True
             settings = driver.command("settings_page_state")["settings"]
             assert settings.get("title") == "Covers"
@@ -381,6 +386,7 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             assert arrange.get("pagination_visible") is False
             assert arrange.get("row_style") == arrange.get("standard_style")
             assert arrange.get("row_style") == search_row_style
+            assert arrange.get("row_alignment") == settings_row_alignment
             assert arrange.get("row_focusable") is True
             assert arrange.get("row_focus_inner_border") is True
             assert arrange.get("row_focus_feedback") is True
@@ -660,6 +666,68 @@ def test_touch_arrange_drag_crosses_to_previous_page() -> None:
             assert driver.command("arrange_page_back")["ok"] is True
             arrange = driver.command("arrange_page_state")["arrange"]
             assert arrange["labels"] == expected_labels
+        finally:
+            process.send_signal(signal.SIGTERM)
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+
+
+def test_touch_arrange_swipe_release_exits_drag_mode() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-arrange-swipe-release-") as temporary:
+        root = Path(temporary)
+        ko_home, library = root / "home", root / "library"
+        ko_home.mkdir()
+        library.mkdir()
+        socket_path = root / "driver.sock"
+        process = launch(runtime, ko_home, socket_path, library)
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            _open_buttons_arrange(driver)
+            time.sleep(0.2)
+
+            arrange = driver.command("arrange_page_state")["arrange"]
+            initial_labels = arrange["labels"]
+            assert len(initial_labels) > 1
+
+            dragged = driver.command(
+                "arrange_page_drag",
+                **{
+                    "from": 1,
+                    "to": 2,
+                    "release_gesture": "swipe",
+                    "focus_without_unfocus": True,
+                    "track_refresh_modes": True,
+                },
+            )
+            assert dragged.get("ok") is True, dragged
+            assert dragged.get("marked") == 0
+            assert dragged.get("dragging") is False
+            assert dragged.get("drag_unfocus_pending") is True
+
+            time.sleep(0.2)
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["labels"][:2] == initial_labels[1::-1]
+            assert arrange["drag_unfocus_pending"] is False
+            assert arrange["handle_focus_visible"] is False
+            assert arrange["drop_refresh_modes"][-1] == "ui"
+
+            top_menu = driver.command("arrange_page_top_swipe", close_menu=True)
+            assert top_menu.get("ok") is True, top_menu
+            assert top_menu.get("menu_open") is True
+            assert top_menu.get("marked") == 0
+            assert top_menu.get("dragging") is False
+
+            assert driver.command("close_arrange_page")["ok"] is True
+            assert driver.command("close_settings_page")["ok"] is True
+            _open_buttons_arrange(driver)
+            time.sleep(0.2)
+            reopened = driver.command("arrange_page_state")["arrange"]
+            assert reopened["labels"][:2] == initial_labels[1::-1]
         finally:
             process.send_signal(signal.SIGTERM)
             try:

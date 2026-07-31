@@ -2418,47 +2418,47 @@ msgstr "Бърза справка Zen"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - Автори"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: Автори"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - Начало"
+msgid "Zen UI: Home"
+msgstr "Zen UI: Начало"
 
-msgid "Zen UI - Library"
+msgid "Zen UI: Library"
 msgstr "Zen UI – Библиотека"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - Отваряне на папка"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: Отваряне на папка"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - Поредици"
+msgid "Zen UI: Series"
+msgstr "Zen UI: Поредици"
 
-msgid "Zen UI - Sync progress (pull + push)"
+msgid "Zen UI: Sync progress (pull + push)"
 msgstr "Zen UI – Напредък на синхронизирането (изтегляне + качване)"
 
-msgid "Zen UI - Table of contents"
+msgid "Zen UI: Table of contents"
 msgstr "Zen UI – Съдържание"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - Тагове"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: Тагове"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - Превключване на долната лента на състоянието на четеца"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: Превключване на долната лента на състоянието на четеца"
 
-msgid "Zen UI - Toggle Incognito Mode"
+msgid "Zen UI: Toggle Incognito Mode"
 msgstr "Zen UI – Превключване на режим „Инкогнито“"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - Превключване на режим на заключване"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: Превключване на режим на заключване"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - Превключване на лентите на състоянието на четеца"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: Превключване на лентите на състоянието на четеца"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - Превключване на горната лента на състоянието на четеца"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: Превключване на горната лента на състоянието на четеца"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Превключване на режим Zen"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: Превключване на режим Zen"
 
 msgid "Zen UI defaults"
 msgstr "По подразбиране за Zen UI"

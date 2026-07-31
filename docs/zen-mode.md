@@ -24,14 +24,14 @@ Exiting Zen Mode with the toggle in Controls (icon below) will re-enable the top
 
 ## Options
 
-- Toggle Zen Mode from the Controls/Launcher Zen button or the `Zen UI - Toggle Zen Mode` dispatcher action.
+- Toggle Zen Mode from the Controls/Launcher Zen button or the `Zen UI: Toggle Zen Mode` dispatcher action.
 
 ## Setting reference
 
 | Setting | Description |
 | --- | --- |
 | Controls > Zen mode button | Toggles Zen Mode from the Controls panel. |
-| Dispatcher > Zen UI - Toggle Zen Mode | Provides the same toggle as a dispatcher action for gestures, custom buttons, launcher buttons, or navbar tabs. |
+| Dispatcher > Zen UI: Toggle Zen Mode | Provides the same toggle as a dispatcher action for gestures, custom buttons, launcher buttons, or navbar tabs. |
 | Behavior > Filtered menu tabs | Hides most default KOReader menu tabs and keeps Controls available. |
 | Behavior > Restart prompt | Prompts for a restart after the Zen Mode state changes. |
 | Lockdown Mode > Zen Mode dependency | Lockdown Mode turns Zen Mode on and prevents turning it off while Lockdown Mode remains active. |

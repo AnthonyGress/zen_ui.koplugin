@@ -2421,47 +2421,47 @@ msgstr "Быстрый поиск Zen"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - Авторы"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: Авторы"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - Главная"
+msgid "Zen UI: Home"
+msgstr "Zen UI: Главная"
 
-msgid "Zen UI - Library"
+msgid "Zen UI: Library"
 msgstr "Zen UI — Библиотека"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - Открыть папку"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: Открыть папку"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - Серии"
+msgid "Zen UI: Series"
+msgstr "Zen UI: Серии"
 
-msgid "Zen UI - Sync progress (pull + push)"
+msgid "Zen UI: Sync progress (pull + push)"
 msgstr "Zen UI — Ход синхронизации (получение + отправка)"
 
-msgid "Zen UI - Table of contents"
+msgid "Zen UI: Table of contents"
 msgstr "Zen UI — Оглавление"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - Теги"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: Теги"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - Переключить нижнюю строку состояния читалки"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: Переключить нижнюю строку состояния читалки"
 
-msgid "Zen UI - Toggle Incognito Mode"
+msgid "Zen UI: Toggle Incognito Mode"
 msgstr "Zen UI — Переключить режим инкогнито"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - Переключить режим блокировки"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: Переключить режим блокировки"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - Переключить строки состояния читалки"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: Переключить строки состояния читалки"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - Переключить верхнюю строку состояния читалки"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: Переключить верхнюю строку состояния читалки"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Переключить режим Zen"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: Переключить режим Zen"
 
 msgid "Zen UI defaults"
 msgstr "Настройки по умолчанию Zen UI"
@@ -2496,8 +2496,8 @@ msgstr "Светлая сепия"
 msgid "Light tan"
 msgstr "Светло-бежевый"
 
-msgid "Zen UI - Toggle reader themes"
-msgstr "Zen UI - Переключить темы чтения"
+msgid "Zen UI: Toggle reader themes"
+msgstr "Zen UI: Переключить темы чтения"
 
 msgid "Dark mode"
 msgstr "Темный режим"

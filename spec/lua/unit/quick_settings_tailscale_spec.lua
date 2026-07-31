@@ -154,4 +154,19 @@ describe("quick settings Tailscale", function()
         assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.isActive("tailscale"))
         assert.is_equal(1, updates)
     end)
+
+    it("closes the menu before toggling Zen mode", function()
+        local calls = {}
+        _G.__ZEN_UI_PLUGIN.onToggleZenMode = function()
+            calls[#calls + 1] = "toggle"
+        end
+        local touch_menu = {
+            closeMenu = function() calls[#calls + 1] = "close" end,
+            updateItems = function() end,
+            item_table = { panel = true },
+        }
+
+        assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.activate("zen", touch_menu))
+        assert.are.same({ "close", "toggle" }, calls)
+    end)
 end)

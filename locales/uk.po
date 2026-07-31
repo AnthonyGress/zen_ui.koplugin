@@ -2271,46 +2271,46 @@ msgstr "Швидкий пошук Zen"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
+msgid "Zen UI: Authors"
 msgstr "Zen UI — Автори"
 
-msgid "Zen UI - Home"
+msgid "Zen UI: Home"
 msgstr "Zen UI — Головна"
 
-msgid "Zen UI - Library"
+msgid "Zen UI: Library"
 msgstr "Zen UI — Бібліотека"
 
-msgid "Zen UI - Open folder"
+msgid "Zen UI: Open folder"
 msgstr "Zen UI — Відкрити теку"
 
-msgid "Zen UI - Series"
+msgid "Zen UI: Series"
 msgstr "Zen UI — Серії"
 
-msgid "Zen UI - Sync progress (pull + push)"
+msgid "Zen UI: Sync progress (pull + push)"
 msgstr "Zen UI — Синхронізація прогресу (отримати + надіслати)"
 
-msgid "Zen UI - Table of contents"
+msgid "Zen UI: Table of contents"
 msgstr "Zen UI — Зміст"
 
-msgid "Zen UI - Tags"
+msgid "Zen UI: Tags"
 msgstr "Zen UI — Теги"
 
-msgid "Zen UI - Toggle bottom reader status bar"
+msgid "Zen UI: Toggle bottom reader status bar"
 msgstr "Zen UI — Перемкнути нижній рядок статусу читалки"
 
-msgid "Zen UI - Toggle Incognito Mode"
+msgid "Zen UI: Toggle Incognito Mode"
 msgstr "Zen UI — Перемкнути режим інкогніто"
 
-msgid "Zen UI - Toggle Lockdown Mode"
+msgid "Zen UI: Toggle Lockdown Mode"
 msgstr "Zen UI — Перемкнути режим блокування"
 
-msgid "Zen UI - Toggle reader status bars"
+msgid "Zen UI: Toggle reader status bars"
 msgstr "Zen UI — Перемкнути рядки статусу читалки"
 
-msgid "Zen UI - Toggle top reader status bar"
+msgid "Zen UI: Toggle top reader status bar"
 msgstr "Zen UI — Перемкнути верхній рядок статусу читалки"
 
-msgid "Zen UI - Toggle Zen Mode"
+msgid "Zen UI: Toggle Zen Mode"
 msgstr "Zen UI — Перемкнути режим Zen"
 
 msgid "Zen UI defaults"

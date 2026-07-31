@@ -10,6 +10,7 @@ describe("Zen renderer", function()
     local banner_sizes
     local background_menus
     local calc_dimensions
+    local folder_name_labels
 
     local function class(base)
         local out = {}
@@ -41,6 +42,7 @@ describe("Zen renderer", function()
         banner_labels = {}
         banner_sizes = {}
         background_menus = {}
+        folder_name_labels = {}
         calc_dimensions = function(width, height) return width, height end
         local MosaicMenuItem = class()
         function MosaicMenuItem:new(values)
@@ -97,6 +99,13 @@ describe("Zen renderer", function()
                 return values
             end,
         })
+        ZenSpec.replace("ui/widget/textboxwidget", {
+            new = function(_self, values)
+                folder_name_labels[#folder_name_labels + 1] = values
+                values.free = function() end
+                return values
+            end,
+        })
         ZenSpec.replace("ui/widget/container/underlinecontainer", widget_class())
         ZenSpec.replace("ui/widget/verticalgroup", widget_class())
         ZenSpec.replace("ui/widget/verticalspan", widget_class())
@@ -148,7 +157,12 @@ describe("Zen renderer", function()
                     menu = menu, entry = entry, text = text, options = options,
                 }
                 return {
-                    frame = { dimen = { w = width, h = height } },
+                    frame = {
+                        dimen = { w = width, h = height },
+                        getSize = function()
+                            return { w = width - 20, h = height - 20 }
+                        end,
+                    },
                     count = entry.count or 2,
                     title = text,
                     cover_count = options.load_covers and 1 or 0,
@@ -280,6 +294,64 @@ describe("Zen renderer", function()
         assert.are.equal(1, #folder_requests)
         assert.is_false(folder_requests[1].options.load_covers)
         assert.are.same({ menu }, background_menus)
+    end)
+
+    it("bounds two-line folder name labels to their cover when title strips are off", function()
+        _G.__ZEN_UI_PLUGIN.config.browser_folder_cover = { name_opaque = true }
+        _G.__ZEN_UI_PLUGIN.config.features.browser_cover_rounded_corners = true
+        require("modules/filebrowser/patches/zen_renderer")()
+        local function folder_menu(title)
+            return {
+                name = "filemanager",
+                item_table = {
+                    {
+                        title = title or string.rep("Long folder name ", 12),
+                        path = "/folder",
+                        attr = { mode = "directory" },
+                    },
+                },
+                item_group = {}, layout = {}, items_to_update = {}, page = 1,
+                perpage = 1, nb_cols = 2, item_margin = 1, item_width = 100,
+                item_height = 150, item_dimen = { copy = function() return {} end },
+                inner_dimen = { w = 110 }, _do_cover_images = true,
+            }
+        end
+        local menu = folder_menu()
+
+        MosaicMenu._updateItemsBuildUI(menu)
+
+        assert.are.equal(1, #folder_name_labels)
+        local item = menu.layout[1][1]
+        local overlay = item._underline_container[1][1]
+        local label_container = overlay[2][1]
+        local label_frame = label_container[1]
+        local cover_size = item._zen_cover_frame:getSize()
+        assert.are.equal(cover_size.w - 14, folder_name_labels[1].width)
+        assert.are.equal(cover_size.w, label_container.dimen.w)
+        assert.are.equal(cover_size.h, label_container.dimen.h)
+        assert.are.equal(16, label_frame[1].dimen.h)
+        assert.is_true(label_frame._zen_keep_background)
+        assert.are.equal(8, label_frame.radius)
+        assert.are.equal(8, label_frame._zen_bottom_corner_radius)
+        assert.are.equal("center", folder_name_labels[1].alignment)
+        assert.is_true(folder_name_labels[1].height_adjust)
+        assert.is_true(folder_name_labels[1].height_overflow_show_ellipsis)
+        assert.are.equal(16, folder_name_labels[1].height)
+
+        _G.__ZEN_UI_PLUGIN.config.browser_folder_cover.name_opaque = false
+        local translucent_menu = folder_menu()
+        MosaicMenu._updateItemsBuildUI(translucent_menu)
+        local translucent_overlay = translucent_menu.layout[1][1]._underline_container[1][1]
+        local alpha_label = translucent_overlay[2][1][1]
+
+        assert.are.equal(0.75, alpha_label.alpha)
+        assert.is_true(alpha_label[1]._zen_keep_background)
+
+        local short_menu = folder_menu("Short")
+        MosaicMenu._updateItemsBuildUI(short_menu)
+        local short_overlay = short_menu.layout[1][1]._underline_container[1][1]
+        local short_frame = short_overlay[2][1][1][1]
+        assert.are.equal(label_frame[1].dimen.h, short_frame[1].dimen.h)
     end)
 
     it("supplies the rendered book cover before opening a Zen mosaic tile", function()

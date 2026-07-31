@@ -311,6 +311,40 @@ describe("Zen settings page", function()
         assert.are.same({ "quotes" }, restored_arrange_path)
     end)
 
+    it("does not replay an arrange route while the settings page stays open", function()
+        local opened_paths = {}
+
+        require("modules/settings/zen_settings").build = function()
+            local buttons = {
+                text = "Buttons",
+                keep_menu_open = true,
+                callback = function()
+                    local route = PageModule.claimArrangeRoute()
+                    opened_paths[#opened_paths + 1] = route.path
+                    if #opened_paths == 1 then
+                        PageModule.noteArrangeRoute({
+                            opener = route.opener,
+                            path = { "screenshot" },
+                        })
+                    end
+                end,
+            }
+            return {
+                sub_item_table = {
+                    { text = "Controls", sub_item_table = { buttons } },
+                },
+            }
+        end
+
+        local page = PageModule.show({ config = {} })
+        page:onMenuSelect(page.item_table[1])
+        page:onMenuSelect(page.item_table[1])
+        page:onMenuSelect(page.item_table[1])
+
+        assert.are.same({}, opened_paths[1])
+        assert.are.same({}, opened_paths[2])
+    end)
+
     it("covers the underlying page when first opened", function()
         local settings = make_page({})
 

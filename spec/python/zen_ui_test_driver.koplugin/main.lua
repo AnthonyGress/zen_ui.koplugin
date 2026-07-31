@@ -6,6 +6,17 @@ local C = ffi.C
 local rapidjson = require("rapidjson")
 local UIManager = require("ui/uimanager")
 
+local original_set_dirty = UIManager.setDirty
+UIManager.setDirty = function(self, widget, refresh_type, ...)
+    if type(widget) == "table" and widget._zen_test_capture_refresh_modes
+            and type(refresh_type) == "string" then
+        local modes = widget._zen_test_refresh_modes or {}
+        modes[#modes + 1] = refresh_type
+        widget._zen_test_refresh_modes = modes
+    end
+    return original_set_dirty(self, widget, refresh_type, ...)
+end
+
 local function find_settings_row_style(widget, seen)
     if type(widget) ~= "table" then return nil end
     seen = seen or {}
@@ -18,6 +29,55 @@ local function find_settings_row_style(widget, seen)
         local style = find_settings_row_style(child, seen)
         if style then return style end
     end
+end
+
+local function find_descendant(widget, predicate, seen)
+    if type(widget) ~= "table" then return nil end
+    seen = seen or {}
+    if seen[widget] then return nil end
+    seen[widget] = true
+    if predicate(widget) then return widget end
+    for _i, child in ipairs(widget) do
+        local found = find_descendant(child, predicate, seen)
+        if found then return found end
+    end
+end
+
+local function settings_row_alignment(rows)
+    local alignment = {}
+    local IconItem = require("common/ui/icon_menu_item")
+    local Size = require("ui/size")
+    for _i, row in ipairs(rows or {}) do
+        local entry = row.entry or row.item
+        if entry then
+            local toggle = find_descendant(row, function(widget)
+                return widget.dimen and widget._knob_r ~= nil and widget._border ~= nil
+            end)
+            local caret = find_descendant(row, function(widget)
+                return widget.dimen and (widget.icon == "chevron.right"
+                    or widget.icon == "chevron.left")
+            end)
+            if alignment.text_x == nil then
+                local handle = row._zen_arrange_handle
+                if handle and handle.dimen then
+                    alignment.text_x = handle.dimen.x + handle.dimen.w
+                        + Size.padding.default
+                elseif row.entry then
+                    alignment.text_x = Size.padding.large + Size.padding.fullscreen
+                        + IconItem.SETTINGS_ICON_WIDTH + Size.padding.default
+                end
+            end
+            if toggle and alignment.toggle_x == nil then
+                alignment.toggle_x = toggle.dimen.x
+                alignment.toggle_right = toggle.dimen.x + toggle.dimen.w
+            end
+            if caret and alignment.caret_x == nil then
+                alignment.caret_x = caret.dimen.x
+                alignment.caret_right = caret.dimen.x + caret.dimen.w
+            end
+        end
+    end
+    return alignment
 end
 
 local function settings_row_standard()
@@ -659,6 +719,7 @@ function Driver:handleCommand(command)
                 row_focus_inner_border = focus_frame and focus_frame.focus_inner_border == true,
                 row_focus_feedback = has_focus_feedback(focus_frame),
                 row_style = find_settings_row_style(page.item_group),
+                row_alignment = settings_row_alignment(page.item_group),
                 standard_style = settings_row_standard(),
                 labels = labels,
                 items = items,
@@ -890,6 +951,8 @@ function Driver:handleCommand(command)
         local first_row = widget.main_content and widget.main_content[2]
         local focus_frame = first_row and first_row[1] and first_row[1][1]
         local focused = widget.getFocusItem and widget:getFocusItem()
+        local drop_refresh_modes = widget._zen_test_refresh_modes
+        widget._zen_test_capture_refresh_modes = false
         local handle_focus_visible = false
         for _row_i, row in ipairs(widget.main_content or {}) do
             local handle = row._zen_arrange_handle
@@ -922,6 +985,8 @@ function Driver:handleCommand(command)
                 focused_index = focused and focused.index,
                 handle_active = widget._zen_handle_active == true,
                 dragging = widget._zen_dragging == true,
+                drag_unfocus_pending = widget._zen_drag_unfocus ~= nil,
+                drop_refresh_modes = drop_refresh_modes,
                 handle_visible = first_row and first_row._zen_arrange_handle ~= nil,
                 item_focusable = first_row
                     and is_focus_target(widget, first_row._zen_arrange_content_focus),
@@ -953,6 +1018,7 @@ function Driver:handleCommand(command)
                 action_focus_feedback = has_focus_feedback(title_bar.action_button),
                 close_focus_feedback = has_focus_feedback(title_bar.close_button),
                 row_style = find_settings_row_style(widget.main_content),
+                row_alignment = settings_row_alignment(widget.main_content),
                 standard_style = settings_row_standard(),
                 labels = labels,
                 checked = checked,
@@ -1018,6 +1084,10 @@ function Driver:handleCommand(command)
     if kind == "arrange_page_drag" then
         local widget = active_arrange_widget()
         if not widget then return { ok = false, error = "arrange page unavailable" } end
+        if params.track_refresh_modes == true then
+            widget._zen_test_refresh_modes = {}
+            widget._zen_test_capture_refresh_modes = true
+        end
         local rows = {}
         for _i, row in ipairs(widget.main_content or {}) do
             if row._zen_arrange_handle and row._zen_arrange_handle.dimen then
@@ -1079,7 +1149,16 @@ function Driver:handleCommand(command)
             }))
         end
         local released = true
-        if params.release ~= false then
+        if params.release_gesture == "swipe" then
+            released = widget:handleEvent(Event:new("Gesture", {
+                ges = "swipe",
+                direction = to_pos.y >= from_pos.y and "south" or "north",
+                pos = from_pos,
+                end_pos = to_pos,
+                start_pos = from_pos,
+                relative = relative,
+            }))
+        elseif params.release ~= false then
             released = widget:handleEvent(Event:new("Gesture", {
                 ges = "pan_release",
                 pos = to_pos,
@@ -1087,11 +1166,16 @@ function Driver:handleCommand(command)
                 relative = relative,
             }))
         end
+        if params.focus_without_unfocus == true then
+            local focused = widget.getFocusItem and widget:getFocusItem()
+            if focused then focused.onUnfocus = false end
+        end
         return {
             ok = started == true and moved == true and released == true,
             marked = widget.marked,
             page = widget.show_page,
             dragging = widget._zen_dragging == true,
+            drag_unfocus_pending = widget._zen_drag_unfocus ~= nil,
         }
     end
     if kind == "arrange_page_turn" then
@@ -1189,6 +1273,37 @@ function Driver:handleCommand(command)
             same_widget = current == widget,
             marked = current and current.marked,
             title = current and current.title_bar and current.title_bar.title,
+            menu_open = menu_open,
+        }
+    end
+    if kind == "arrange_page_top_swipe" then
+        local widget = active_arrange_widget()
+        if not widget then return { ok = false, error = "arrange page unavailable" } end
+        local Device = require("device")
+        local Geom = require("ui/geometry")
+        local FileManager = require("apps/filemanager/filemanager")
+        local menu = FileManager.instance and FileManager.instance.menu
+        local pos = Geom:new{
+            x = math.floor(Device.screen:getWidth() * 0.5),
+            y = math.floor(Device.screen:getHeight() * 0.01),
+            w = 0,
+            h = 0,
+        }
+        local handled = widget:handleEvent(Event:new("Gesture", {
+            ges = "swipe",
+            direction = "south",
+            pos = pos,
+            start_pos = pos,
+        }))
+        local menu_open = menu and menu.menu_container ~= nil
+        if menu_open and params.close_menu == true
+                and type(menu.onCloseFileManagerMenu) == "function" then
+            menu:onCloseFileManagerMenu()
+        end
+        return {
+            ok = handled == true,
+            marked = widget.marked,
+            dragging = widget._zen_dragging == true,
             menu_open = menu_open,
         }
     end

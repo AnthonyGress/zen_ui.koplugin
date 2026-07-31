@@ -2409,47 +2409,47 @@ msgstr "Zen-Schnellsuche"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - Autoren"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: Autoren"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - Startseite"
+msgid "Zen UI: Home"
+msgstr "Zen UI: Startseite"
 
-msgid "Zen UI - Library"
+msgid "Zen UI: Library"
 msgstr "Zen UI – Bibliothek"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - Ordner öffnen"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: Ordner öffnen"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - Serien"
+msgid "Zen UI: Series"
+msgstr "Zen UI: Serien"
 
-msgid "Zen UI - Sync progress (pull + push)"
+msgid "Zen UI: Sync progress (pull + push)"
 msgstr "Zen UI – Synchronisierungsfortschritt (Abrufen + Übertragen)"
 
-msgid "Zen UI - Table of contents"
+msgid "Zen UI: Table of contents"
 msgstr "Zen UI – Inhaltsverzeichnis"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - Tags"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: Tags"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - Untere Reader-Statusleiste umschalten"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: Untere Reader-Statusleiste umschalten"
 
-msgid "Zen UI - Toggle Incognito Mode"
+msgid "Zen UI: Toggle Incognito Mode"
 msgstr "Zen UI – Inkognitomodus umschalten"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - Sperrmodus umschalten"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: Sperrmodus umschalten"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - Reader-Statusleisten umschalten"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: Reader-Statusleisten umschalten"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - Obere Reader-Statusleiste umschalten"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: Obere Reader-Statusleiste umschalten"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Zen-Modus umschalten"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: Zen-Modus umschalten"
 
 msgid "Zen UI defaults"
 msgstr "Zen-UI-Standardwerte"
