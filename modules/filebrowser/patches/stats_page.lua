@@ -1165,6 +1165,9 @@ local function buildContent(blocks_config, data, page_w, h_padding, top_padding,
 end
 
 function StatsPage.create(createStatusRow, repaintTitleBar)
+    if #active_stats_menus > 0 then
+        return active_stats_menus[#active_stats_menus], false
+    end
     local stats_settings = StatsSettings.load()
     local blocks_config = StatsSettings.enabledBlocks(stats_settings)
     local stat_style = stats_settings.stat_style
@@ -1536,7 +1539,7 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
         UIManager:setDirty(menu, "flashui")
     end)
 
-    return menu
+    return menu, true
 end
 
 function StatsPage.closeAll()

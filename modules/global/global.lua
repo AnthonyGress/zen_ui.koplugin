@@ -37,6 +37,25 @@ local function load_patch(feature)
     return nil
 end
 
+local function is_koreader_opds_enabled()
+    local settings = rawget(_G, "G_reader_settings")
+    if type(settings) ~= "table" or type(settings.readSetting) ~= "function" then
+        return true
+    end
+    local disabled_plugins = settings:readSetting("plugins_disabled")
+    return type(disabled_plugins) ~= "table" or not disabled_plugins.opds
+end
+
+local function disable_zen_opds(plugin, logger)
+    plugin.config.features.zen_opds = false
+    if type(plugin.saveConfig) == "function" then
+        plugin:saveConfig()
+    end
+    if logger then
+        logger.info("Zen OPDS disabled because KOReader OPDS is disabled")
+    end
+end
+
 function M.init(logger, plugin)
     if initialized then return true end
 
@@ -60,9 +79,15 @@ function M.init(logger, plugin)
         run_patch(logger, plugin, "menu_top_swipe", menu_top_swipe_fn)
     end
 
-    local opds_fn = load_patch("opds")
-    if opds_fn and plugin.config.features.zen_opds ~= false then
-        run_patch(logger, plugin, "opds", opds_fn)
+    if plugin.config.features.zen_opds ~= false then
+        if is_koreader_opds_enabled() then
+            local opds_fn = load_patch("opds")
+            if opds_fn then
+                run_patch(logger, plugin, "opds", opds_fn)
+            end
+        else
+            disable_zen_opds(plugin, logger)
+        end
     end
 
     local kindle_network_profile_guard_fn = load_patch("kindle_network_profile_guard")

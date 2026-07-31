@@ -168,8 +168,11 @@ msgstr "全期間"
 msgid "All time"
 msgstr "ずっと"
 
-msgid "Allow custom icons"
-msgstr "カスタムアイコンを許可"
+msgid "Custom icons"
+msgstr "カスタムアイコン"
+
+msgid "Enable custom icons"
+msgstr "カスタムアイコンを有効化"
 
 msgid "Allow delete"
 msgstr "削除を許可"
@@ -792,8 +795,8 @@ msgstr "KOReaderの詳細デバッグログを有効にします。ログはkore
 msgid "Enable night mode schedule"
 msgstr "夜間モードスケジュールを有効化"
 
-msgid "Enable page browser"
-msgstr "ページブラウザを有効化"
+msgid "Zen page browser"
+msgstr "Zenページブラウザ"
 
 msgid "Enable top status bar"
 msgstr "上部ステータスバーを有効化"

@@ -15,6 +15,10 @@ local function apply_status_on_open()
                 and type(doc_settings.flush) == "function" then
             doc_settings:flush()
         end
+        pcall(function()
+            local file = doc_settings and doc_settings.data and doc_settings.data.doc_path
+            if file then require("common/tbr_index").refreshPath(file, doc_settings) end
+        end)
     end
 end
 

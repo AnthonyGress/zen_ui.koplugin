@@ -41,9 +41,10 @@ return {
     fav_remove   = "\u{F04D2}",  -- mdi-star-outlined
 
     -- read status (context_menu.lua)
-    status       = "\u{F0B64}",  -- mdi-book-open-blank-variant (unread)
-    reading      = "\u{F0B63}",  -- mdi-book-open
-    tbr          = "\u{F0150}",  -- mdi-clock-outline (to-be-read)
+    read_status  = "\u{F00C0}",  -- bookmark
+    status       = "\u{F00BA}",  -- mdi-book-open-blank-variant (unread)
+    reading      = "\u{F14F7}",  -- mdi-book-open
+    tbr          = "\u{F0954}",  -- mdi-clock-outline (to-be-read)
     finished     = "\u{F012C}",  -- mdi-check-circle
 
     -- metadata sort keys (context_menu.lua / collections.lua)
@@ -54,7 +55,7 @@ return {
     keywords     = "\u{F12F7}",  -- mdi-tag-multiple
 
     -- details / info (context_menu.lua / opds.lua)
-    details      = "\u{F02FD}",  -- mdi-information
+    details      = "\u{F05A}",  -- mdi-information
     edit         = "\u{F090C}",  -- mdi-pencil
     label        = "\u{F04F9}",
     icon         = "\u{F02F5}",
@@ -83,26 +84,31 @@ return {
 
     -- Zen UI settings root
     settings_launcher = "\u{F15FC}",
-    settings_quick    = "\u{F0A1A}",
+    settings_quick    = "\u{f0521}",
     settings_library  = "\u{F125F}",
     settings_home     = "\u{F02DE}",
     settings_reader   = "\u{F14F7}",
+    settings_about    = "\u{F064E}",
+    widgets           = "\u{F072C}",
     settings_global   = "\u{F484}",
     settings_status   = "\u{F12F0}",
-    reader_themes     = "\u{F0E0C}",
+    reader_themes     = "\u{F03D8}",
     settings_folders  = "\u{F0256}",
     settings_covers   = "\u{F168B}",  -- mdi-view-module
     settings_scroll   = "\u{F0BB8}",
     settings_layout   = "\u{F0758}",
     settings_background = "\u{F0E09}",
     settings_home_folder = "\u{F10B6}",
-    settings_navbar   = "\u{F0837}",
+    settings_navbar   = "\u{F10A9}",
+    navbar_tabs       = "\u{F0837}",
+    navbar_styling    = "\u{F03D8}",
     settings_stats    = "\u{F012A}",
     settings_opds     = "\u{F0B7D}",
     settings_sleep    = "\u{F04B2}",
     schedule_brightness = "\u{F0599}",
     schedule_night    = "\u{F0594}",  -- mdi-weather-night
     schedule_warmth   = "\u{F0510}",
+    flip_lh_rh        = "\u{F0A0E}",
     settings_lockdown = "\u{F033E}",
     settings_device   = "\u{F04F7}",
     settings_setup    = "\u{F0C5A}",
@@ -119,9 +125,15 @@ return {
     downgrade    = "\u{F0CDC}",
     upgrade      = "\u{F0CE2}",
     enable       = "\u{F040A}",
+    verbose_chapter_time = "\u{F19B9}",
+    bottom_swipe = "\u{F0740}",
+    page_browser = "\u{F0570}",
+    restore_library_location = "\u{F006F}",
+    hide_reader_actions = "\u{F0209}",
     remove       = "\u{F0374}",
     check        = "\u{2713}",   -- plain checkmark
     arrow_right  = "\u{25B8}",   -- triangular bullet
     go           = "\u{F124}",   -- nf-fa-location-arrow
+    open_menu    = "\u{F073D}",  -- mdi-menu-open
     bullet       = "\u{2022}",   -- bullet point
 }

@@ -7,6 +7,7 @@ local function apply_zen_scroll_bar()
     local Geom    = require("ui/geometry")
     local Menu    = require("ui/widget/menu")
     local Screen  = Device.screen
+    local Size    = require("ui/size")
     local UIManager = require("ui/uimanager")
     local pager   = require("common/ui/zen_pager")
     pager.setPlugin(rawget(_G, "__ZEN_UI_PLUGIN"))
@@ -15,13 +16,12 @@ local function apply_zen_scroll_bar()
         history = true,
         collections = true,
         filesearcher = true,
+        zen_settings = true,
     }
 
     local function getRakuyomi()
         return rawget(_G, "__ZEN_UI_RAKUYOMI") or {}
     end
-
-    local BAR_W_PCT = 0.92  -- track width as fraction of screen width
 
     local orig_menu_init = Menu.init
 
@@ -50,13 +50,18 @@ local function apply_zen_scroll_bar()
             return
         end
 
+        if self.name == "zen_settings" then
+            self.page_info_text.tap_input = nil
+            self.page_info_text.hold_input = nil
+        end
+
         local menu   = self
         local is_search = self.name == "filesearcher"
         local scr_w  = Screen:getWidth()
-        local bar_w  = math.floor(scr_w * BAR_W_PCT)
-        local bar_x  = math.floor((scr_w - bar_w) / 2)   -- centred offset from left edge
+        local bar_x, bar_w = pager.getFooterGeometry(0, scr_w)
         -- Decide footer height once at init; page_number gets the taller strip.
-        local foot_h = pager.getStyle() == "page_number" and pager.PN_FOOTER_H or pager.FOOTER_H
+        local page_number_style = pager.getStyle() == "page_number"
+        local foot_h = page_number_style and pager.PN_FOOTER_H or pager.FOOTER_H
         local foot   = Geom:new{ w = scr_w, h = foot_h }
 
         -- _recalculateDimen uses getSize().h on these two widgets to compute
@@ -73,28 +78,65 @@ local function apply_zen_scroll_bar()
             self.page_info:resetLayout()
         end
 
-        -- Replace the chevron rendering with the configured scroll indicator.
-        -- x, y: absolute screen position supplied by BottomContainer.
-        self.page_info.paintTo = function(_, bb, x, y)
-            if is_search then
-                local paint_y = Screen:getHeight() - foot_h
-                bb:paintRect(0, paint_y, scr_w, foot_h, Blitbuffer.COLOR_WHITE)
-                pager.paint(bb, bar_x, paint_y, bar_w, foot_h, menu.page or 1, menu.page_num or 1)
-                return
-            end
-            pager.paint(bb, x + bar_x, y, bar_w, foot_h, menu.page or 1, menu.page_num or 1)
-        end
-
-        -- Register touch zones for the page_number style.
-        -- These are no-ops when another style is active (get_style() guard).
-        -- screen_zone uses ratio_x/y/w/h (fractions of screen dimensions),
-        -- as required by InputContainer:registerTouchZones.
         local scr_h    = Screen:getHeight()
         local footer_y = is_search
             and (scr_h - foot_h)
             or  (self.dimen.y + self.dimen.h - foot_h)
         local menu_x = is_search and 0 or self.dimen.x
 
+        local function menuContentBottom()
+            local perpage = tonumber(menu.perpage) or 0
+            local row_height = menu.item_dimen and tonumber(menu.item_dimen.h) or 0
+            if perpage <= 0 or row_height <= 0 then return end
+            local title_height = menu.title_bar and menu.title_bar:getHeight() or 0
+            local content_height = perpage * row_height
+            local rows = tonumber(menu.nb_rows)
+            local item_height = tonumber(menu.item_height)
+            local item_margin = tonumber(menu.item_margin) or 0
+            if rows and rows > 0 and item_height and item_height > 0 then
+                content_height = rows * item_height + (rows + 1) * item_margin
+            elseif menu.files_per_page and item_height and item_height > 0 then
+                content_height = Size.line.thin
+                    + perpage * (item_height + Size.line.thin)
+            end
+            return menu.dimen.y + title_height + content_height
+        end
+
+        local function updateTouchZoneY(paint_y)
+            for _i, zone in ipairs(menu._zen_page_number_zones or {}) do
+                zone.screen_zone.ratio_y = paint_y / scr_h
+                local registered = menu._zones and menu._zones[zone.id]
+                local range = registered and registered.gs_range and registered.gs_range.range
+                if range then
+                    range.y = paint_y
+                    range.h = foot_h
+                end
+            end
+        end
+
+        -- Replace the chevron rendering with the configured scroll indicator.
+        -- x, y: absolute screen position supplied by BottomContainer.
+        self.page_info.paintTo = function(_, bb, x, y)
+            local paint_y = is_search and (scr_h - foot_h) or y
+            local content_bottom = menuContentBottom()
+            paint_y = pager.getCenteredFooterY(
+                content_bottom,
+                paint_y,
+                foot_h,
+                content_bottom ~= nil
+            )
+            updateTouchZoneY(paint_y)
+            if is_search then
+                bb:paintRect(0, paint_y, scr_w, foot_h, Blitbuffer.COLOR_WHITE)
+                pager.paint(bb, bar_x, paint_y, bar_w, foot_h, menu.page or 1, menu.page_num or 1)
+                return
+            end
+            pager.paint(bb, x + bar_x, paint_y, bar_w, foot_h, menu.page or 1, menu.page_num or 1)
+        end
+
+        -- Register touch zones for the page-number footer.
+        -- screen_zone uses ratio_x/y/w/h (fractions of screen dimensions),
+        -- as required by InputContainer:registerTouchZones.
         -- Pre-compute ratios shared across zones.
         local rz_left_x   = (menu_x + bar_x) / scr_w
         local rz_right_x  = (menu_x + bar_x + bar_w - pager.CHEV_W) / scr_w
@@ -108,7 +150,7 @@ local function apply_zen_scroll_bar()
             return pager.getStyle() == "page_number" and (menu.page_num or 0) > 1
         end
 
-        self:registerTouchZones({
+        self._zen_page_number_zones = {
             -- Left chevron — tap: prev page.
             {
                 id = "zen_pn_left_tap",
@@ -141,6 +183,7 @@ local function apply_zen_scroll_bar()
                 ges = "tap",
                 screen_zone = { ratio_x = rz_center_x, ratio_y = rz_y, ratio_w = rz_center_w, ratio_h = rz_h },
                 handler = function()
+                    if menu.name == "zen_settings" then return true end
                     if not canUsePageNumber() then return end
                     local createZenDialog = require("common/ui/zen_dialog")
                     local nb     = menu.page_num or 1
@@ -195,7 +238,8 @@ local function apply_zen_scroll_bar()
                     return true
                 end,
             },
-        })
+        }
+        self:registerTouchZones(self._zen_page_number_zones)
 
         -- Re-run layout so the new sizes take effect before the first paint.
         self:_recalculateDimen()

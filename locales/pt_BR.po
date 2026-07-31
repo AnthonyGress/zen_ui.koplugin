@@ -168,8 +168,11 @@ msgstr "Todo o tempo"
 msgid "All time"
 msgstr "Todo o tempo"
 
-msgid "Allow custom icons"
-msgstr "Permitir ícones personalizados"
+msgid "Custom icons"
+msgstr "Ícones personalizados"
+
+msgid "Enable custom icons"
+msgstr "Ativar ícones personalizados"
 
 msgid "Allow delete"
 msgstr "Permitir exclusão"
@@ -795,8 +798,8 @@ msgstr "Ativar registro detalhado de depuração do KOReader. Os registros são 
 msgid "Enable night mode schedule"
 msgstr "Ativar programação do modo noturno"
 
-msgid "Enable page browser"
-msgstr "Ativar navegador de páginas"
+msgid "Zen page browser"
+msgstr "Navegador de páginas Zen"
 
 msgid "Enable top status bar"
 msgstr "Ativar barra de status superior"
@@ -1701,6 +1704,9 @@ msgstr "Reiniciar livro"
 msgid "Restart now"
 msgstr "Reiniciar agora"
 
+msgid "Restarting"
+msgstr "Reiniciando"
+
 msgid "Restore library location on exit"
 msgstr "Restaurar localização da biblioteca ao sair"
 
@@ -2525,3 +2531,36 @@ msgstr "Excluir este tema personalizado?"
 
 msgid "Custom theme"
 msgstr "Tema personalizado"
+
+msgid "%1 (%2/%3 icons)"
+msgstr "%1 (%2/%3 ícones)"
+
+msgid "By %1"
+msgstr "Por %1"
+
+msgid "Could not install %1: %2"
+msgstr "Não foi possível instalar %1: %2"
+
+msgid "Custom icon pack: %1"
+msgstr "Pacote de ícones personalizado: %1"
+
+msgid "Loose icons"
+msgstr "Ícones avulsos"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Ícones avulsos em /koreader/icons"
+
+msgid "Missing: %1"
+msgstr "Ausente: %1"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Coloque pastas de pacotes ou arquivos ZIP em /koreader/icons/zen. Os arquivos ZIP são instalados automaticamente."
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Reinicie o KOReader para aplicar o pacote ativo atualizado"
+
+msgid "Unavailable pack: %1"
+msgstr "Pacote indisponível: %1"
+
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "Quando ativado, ícones avulsos ou um pacote de ícones do Zen UI selecionado substituem os ícones compatíveis. Os ícones ausentes usam primeiro o Zen UI e depois o KOReader."

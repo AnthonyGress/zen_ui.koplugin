@@ -29,6 +29,7 @@ local DEFAULT_TEXT_STYLES = {
     author = { font_face = "default", font_size = 9, bold = false },
     series = { font_face = "default", font_size = 7, bold = false },
     description = { font_face = "default", font_size = 16, bold = false },
+    progress = { font_face = "default", font_size = 7, bold = false },
 }
 
 local function clamp(v, min_v, max_v)
@@ -49,9 +50,14 @@ local function text_style(module_cfg, key)
     }
 end
 
-local function get_text_face(style, size)
-    local font_name = style.font_face == "default" and library_font.getFontName() or style.font_face
+local function get_text_face(style, size, default_font_name)
+    local font_name = style.font_face == "default" and (default_font_name or library_font.getFontName()) or style.font_face
     return Font:getFace(font_name, size)
+end
+
+local function set_opening_banner_cover(cover)
+    local set_cover = rawget(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER")
+    if type(set_cover) == "function" then set_cover(cover) end
 end
 
 local function paint_pill(bb, x, y, w, h, color)
@@ -172,12 +178,17 @@ function M.build(ctx, source_key)
     local book = ctx.data:getFeaturedBook(source, order)
     local show_description = module_cfg.show_description ~= false
     local show_status_bar = module_cfg.show_status_bar == true and type(ctx.buildStatusRow) == "function"
+    local cover_widget, cover_w, cover_actual_h
 
     local col_top_pad = math.max(1, math.floor(height * 0.015))
     local col_bottom_pad = math.max(3, math.floor(height * 0.02))
     local gap = math.max(4, math.floor(width * 0.025))
 
     if not book then
+        local empty_cover = cover_common.make_empty_cover_widget(
+            source, width, height,
+            { border = cover_common.BORDER_SIZE, background = Blitbuffer.COLOR_LIGHT_GRAY }
+        )
         return FrameContainer:new{
             width = outer_width,
             height = outer_height,
@@ -186,7 +197,7 @@ function M.build(ctx, source_key)
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
             CenterContainer:new{
                 dimen = Geom:new{ w = outer_width, h = outer_height },
-                TextWidget:new{ text = "No books found", face = ctx.face_label },
+                empty_cover,
             },
         }
     end
@@ -194,6 +205,7 @@ function M.build(ctx, source_key)
     if type(ctx.setWidgetActions) == "function" then
         ctx.setWidgetActions{
             activate = function()
+                set_opening_banner_cover(cover_widget)
                 ctx.openBook(book.path)
                 return true
             end,
@@ -209,9 +221,9 @@ function M.build(ctx, source_key)
 
     -- Left column: cover fills col_h, width is natural (aspect ratio driven)
     local cover_max_w = math.max(1, math.floor(col_h * 0.80))
-    local cover_widget, cover_w, cover_actual_h = cover_common.make_cover_widget(
+    cover_widget, cover_w, cover_actual_h = cover_common.make_cover_widget(
         book, cover_max_w, col_h,
-        { border = 1, background = Blitbuffer.COLOR_LIGHT_GRAY }
+        { border = cover_common.BORDER_SIZE, background = Blitbuffer.COLOR_LIGHT_GRAY }
     )
     -- Right column must match the actual rendered cover height exactly
     local cover_col_w = math.max(1, cover_w or cover_max_w)
@@ -220,16 +232,18 @@ function M.build(ctx, source_key)
     local text_w = math.max(1, width - cover_col_w - gap)
 
     -- Fonts
-    local scale = clamp(col_h / 300, 0.55, 1.28) * library_font.getScale(18)
+    local scale = clamp(col_h / 300, 0.55, 1.28)
     local title_style = text_style(module_cfg, "title")
     local author_style = text_style(module_cfg, "author")
     local series_style = text_style(module_cfg, "series")
     local description_style = text_style(module_cfg, "description")
+    local progress_style = text_style(module_cfg, "progress")
     local title_face = get_text_face(title_style, Screen:scaleBySize(math.floor(title_style.font_size * scale + 0.5)))
     local meta_face = get_text_face(author_style, Screen:scaleBySize(math.floor(author_style.font_size * scale + 0.5)))
     local series_face = get_text_face(series_style, Screen:scaleBySize(math.floor(series_style.font_size * scale + 0.5)))
-    local stats_face = Font:getFace("smallinfofont", Screen:scaleBySize(math.floor(6.5 * scale + 0.5)))
-    local desc_face = get_text_face(description_style, library_font.scaleValue(description_style.font_size))
+    local stats_face = get_text_face(progress_style,
+        Screen:scaleBySize(math.floor(progress_style.font_size * scale + 0.5)), "smallinfofont")
+    local desc_face = get_text_face(description_style, description_style.font_size)
 
     -- Optional status bar (top of right column)
     local status_opts = {
@@ -272,8 +286,18 @@ function M.build(ctx, source_key)
     local progress_row
     if bar_h > 0 and book.status ~= "new" then
         if has_progress_text then
-            local lw = TextWidget:new{ text = left_progress_text, face = stats_face, fgcolor = Blitbuffer.COLOR_BLACK }
-            local rw = TextWidget:new{ text = right_progress_text, face = stats_face, fgcolor = Blitbuffer.COLOR_BLACK }
+            local lw = TextWidget:new{
+                text = left_progress_text,
+                face = stats_face,
+                bold = progress_style.bold == true,
+                fgcolor = Blitbuffer.COLOR_BLACK,
+            }
+            local rw = TextWidget:new{
+                text = right_progress_text,
+                face = stats_face,
+                bold = progress_style.bold == true,
+                fgcolor = Blitbuffer.COLOR_BLACK,
+            }
             local tgap = math.max(4, math.floor(text_w * 0.02))
             local bar_w = math.max(20, text_w - lw:getSize().w - rw:getSize().w - tgap * 2)
             progress_row = HorizontalGroup:new{
@@ -534,6 +558,7 @@ function M.build(ctx, source_key)
         if not tap_self.dimen or not ges or not ges.pos then return false end
         if ctx.openTopMenu and ctx.openTopMenu(ges) then return true end
         if not tap_self.dimen:contains(ges.pos) then return false end
+        set_opening_banner_cover(cover_widget)
         ctx.openBook(book.path)
         return true
     end

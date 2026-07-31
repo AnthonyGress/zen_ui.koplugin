@@ -372,25 +372,25 @@ local function migrate_legacy_group_view_keys(cfg)
         removed_legacy = true
     end
 
-    local legacy_layout = g:readSetting("zen_page_browser_layout")
-    if legacy_layout ~= nil then
-        if type(cfg.reader_page_browser) ~= "table" then
-            cfg.reader_page_browser = {}
-            changed = true
-        end
-        if cfg.reader_page_browser.layout == nil then
-            cfg.reader_page_browser.layout = legacy_layout
-            changed = true
-        end
-        g:delSetting("zen_page_browser_layout")
-        removed_legacy = true
-    end
-
     if removed_legacy then
         pcall(g.flush, g)
     end
 
     return cfg, (changed or removed_legacy)
+end
+
+local function migrate_legacy_substring_search(cfg)
+    local g = rawget(_G, "G_reader_settings")
+    if not g or type(cfg) ~= "table" then return cfg, false end
+
+    local legacy = g:readSetting("substring_search")
+    if legacy == nil then return cfg, false end
+
+    if type(cfg.search) ~= "table" then cfg.search = {} end
+    cfg.search.substring = legacy ~= false
+    g:delSetting("substring_search")
+    pcall(g.flush, g)
+    return cfg, true
 end
 
 local function migrate_legacy_updater_keys(cfg)
@@ -725,6 +725,47 @@ local function migrate_reader_footer_backup(cfg)
     return true
 end
 
+local function migrate_page_browser_layout(cfg)
+    if type(cfg) ~= "table" then return false end
+
+    local store = PresetStore.loadStore("reader")
+    if type(store) ~= "table" then return false end
+    if type(store.settings) ~= "table" then store.settings = {} end
+
+    local changed = false
+    local layout = store.settings.page_browser_layout
+    if layout ~= "single" and layout ~= "grid" then
+        local legacy_config = type(cfg.reader_page_browser) == "table"
+            and cfg.reader_page_browser.layout
+        local g = rawget(_G, "G_reader_settings")
+        local legacy_global = g and g:readSetting("zen_page_browser_layout")
+        if legacy_config == "single" or legacy_config == "grid" then
+            layout = legacy_config
+        elseif legacy_global == "single" or legacy_global == "grid" then
+            layout = legacy_global
+        end
+        if layout == "single" or layout == "grid" then
+            store.settings.page_browser_layout = layout
+            PresetStore.saveStore("reader", store)
+            changed = true
+        end
+    end
+
+    if cfg.reader_page_browser ~= nil then
+        cfg.reader_page_browser = nil
+        changed = true
+    end
+
+    local g = rawget(_G, "G_reader_settings")
+    if g and g:readSetting("zen_page_browser_layout") ~= nil then
+        g:delSetting("zen_page_browser_layout")
+        pcall(g.flush, g)
+        changed = true
+    end
+
+    return changed
+end
+
 local function migrate_home_quote_font_size()
     local store = PresetStore.loadStore("home")
     local changed = false
@@ -890,23 +931,25 @@ function M.load()
     local cfg = merged_with_defaults(stored)
     local migrated_renamed
     cfg, migrated_renamed = normalize_renamed_keys(cfg)
-    local migrated_group, migrated_updater, migrated_folder_paths, migrated_fbc, migrated_bim
+    local migrated_group, migrated_substring, migrated_updater, migrated_folder_paths, migrated_fbc, migrated_bim
     cfg, migrated_group   = migrate_legacy_group_view_keys(cfg)
+    cfg, migrated_substring = migrate_legacy_substring_search(cfg)
     cfg, migrated_updater = migrate_legacy_updater_keys(cfg)
     cfg, migrated_folder_paths = migrate_folder_path_settings(cfg)
     cfg, migrated_fbc     = migrate_folder_cover_keys(cfg)
     cfg, migrated_bim     = migrate_bim_folder_cover_keys(cfg)
     local migrated_reader_backup = migrate_reader_footer_backup(cfg)
     local migrated_settings_files = migrate_settings_files()
+    local migrated_page_browser = migrate_page_browser_layout(cfg)
     load_reader_theme_settings(cfg)
     local migrated_reader_presets = migrate_reader_preset_zen_settings()
     local migrated_changed_defaults
     cfg, migrated_changed_defaults = migrate_changed_defaults(cfg)
-    if migrated_renamed or migrated_group or migrated_updater or migrated_fbc or migrated_bim
+    if migrated_renamed or migrated_group or migrated_substring or migrated_updater or migrated_fbc or migrated_bim
             or migrated_reader_backup or migrated_qs or migrated_file_config
             or migrated_settings_files or migrated_reader_presets
             or migrated_changed_defaults or migrated_home_lock
-            or migrated_folder_paths or migrated_rakuyomi then
+            or migrated_folder_paths or migrated_rakuyomi or migrated_page_browser then
         M.save(cfg)
     end
     if migrated_file_config then

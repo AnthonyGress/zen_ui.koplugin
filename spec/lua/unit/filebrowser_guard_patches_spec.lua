@@ -1,5 +1,6 @@
 describe("file browser guard patches", function()
     local original_plugin
+    local original_memory_policy
 
     local function apply_patch(name)
         ZenSpec.unload(name)
@@ -8,11 +9,13 @@ describe("file browser guard patches", function()
 
     before_each(function()
         original_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
+        original_memory_policy = package.loaded["common/memory_policy"]
         _G.G_reader_settings = ZenSpec.memorySettings()
     end)
 
     after_each(function()
         _G.__ZEN_UI_PLUGIN = original_plugin
+        package.loaded["common/memory_policy"] = original_memory_policy
     end)
 
     it("shows hidden and unsupported files only outside the library home", function()
@@ -155,6 +158,7 @@ describe("file browser guard patches", function()
 
     it("makes every movable container unmovable and consumes drag callbacks", function()
         local init_calls = 0
+        local modal_frame
         local MovableContainer = {
             init = function(self, marker)
                 init_calls = init_calls + 1
@@ -164,12 +168,17 @@ describe("file browser guard patches", function()
             onMovableSwipe = function() return "swipe" end,
         }
         ZenSpec.replace("ui/widget/container/movablecontainer", MovableContainer)
+        ZenSpec.replace("common/ui/modal_border", {
+            apply = function(frame) modal_frame = frame end,
+        })
 
         apply_patch("modules/filebrowser/patches/disable_modal_drag")
-        local instance = {}
+        local frame = { bordersize = 1 }
+        local instance = { frame }
         assert.are.equal("initialized", MovableContainer.init(instance, "initialized"))
         assert.is_true(instance.unmovable)
         assert.are.equal(1, init_calls)
+        assert.are.equal(frame, modal_frame)
         assert.is_nil(MovableContainer.onMovableTouch(instance))
         assert.is_nil(MovableContainer.onMovableSwipe(instance))
         assert.is_nil(MovableContainer.onMovablePanRelease(instance))
@@ -245,6 +254,7 @@ describe("file browser guard patches", function()
     it("marks new and abandoned books as reading before opening", function()
         local statuses = { new = "new", abandoned = "abandoned", complete = "complete" }
         local saved, cached, opened = {}, {}, {}
+        local reader_releases = 0
         local filemanagerutil = {
             openFile = function(_, file)
                 opened[#opened + 1] = file
@@ -268,6 +278,9 @@ describe("file browser guard patches", function()
             end,
         })
         ZenSpec.replace("common/book_status", { acknowledgeNewVersion = function() return false end })
+        ZenSpec.replace("common/memory_policy", {
+            releaseForReader = function() reader_releases = reader_releases + 1 end,
+        })
 
         apply_patch("modules/filebrowser/patches/status_on_open")
         assert.are.equal("opened", filemanagerutil.openFile({}, "new"))
@@ -279,5 +292,6 @@ describe("file browser guard patches", function()
             { "abandoned", "status", "reading" },
         }, cached)
         assert.same({ "new", "abandoned", "complete" }, opened)
+        assert.are.equal(3, reader_releases)
     end)
 end)

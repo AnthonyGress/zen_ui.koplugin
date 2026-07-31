@@ -29,6 +29,13 @@ local function apply_status_on_open()
             doc_settings:flush()
         end
 
+        pcall(function()
+            require("common/tbr_index").refreshPath(file, doc_settings)
+        end)
+        pcall(function()
+            require("common/memory_policy").releaseForReader()
+        end)
+
         return _orig_openFile(ui, file, caller_pre_callback, no_dialog)
     end
 end

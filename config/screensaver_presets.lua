@@ -3,8 +3,10 @@
 
 local function get(icons_dir)
     local utils = require("common/utils")
-    local zen_cover_svg = utils.resolveIcon(icons_dir, "zen_cover") or (icons_dir .. "zen_cover.svg")
-    local zen_cover_light_svg = utils.resolveIcon(icons_dir, "zen_cover_light") or (icons_dir .. "zen_cover_light.svg")
+    local zen_cover_svg = utils.resolveLocalIcon(icons_dir, "zen_cover")
+        or (icons_dir .. "zen_cover.svg")
+    local zen_cover_light_svg = utils.resolveLocalIcon(icons_dir, "zen_cover_light")
+        or (icons_dir .. "zen_cover_light.svg")
     return {
         {
             name = "Book cover - Black Fill",
@@ -36,7 +38,7 @@ local function get(icons_dir)
             screensaver_stretch_limit_percentage = 8,
         },
         {
-            name = "Zen - Black",
+        name = "Zen - Black",
             builtin = true,
             screensaver_type = "document_cover",
             screensaver_document_cover = zen_cover_light_svg,

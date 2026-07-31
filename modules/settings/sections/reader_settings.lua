@@ -970,7 +970,7 @@ function M.build(ctx)
         },
     })
 
-    table.insert(items, {
+    table.insert(items, IconItem.decorate({
         text = _("Verbose time to chapter end"),
         checked_func = function()
             return type(config.reader_footer) == "table"
@@ -984,14 +984,14 @@ function M.build(ctx)
                 config.reader_footer.verbose_chapter_time ~= true
             plugin:saveConfig()
         end,
-    })
+    }, icons.verbose_chapter_time))
 
     -- -------------------------------------------------------------------------
     -- Feature toggles
     -- -------------------------------------------------------------------------
 
     -- bottom swipe is forced on when page browser is active
-    table.insert(items, {
+    table.insert(items, IconItem.decorate({
         text = _("Enable bottom swipe"),
         checked_func = function()
             return config.features["reader_bottom_menu"] == true
@@ -1004,10 +1004,10 @@ function M.build(ctx)
             config.features["reader_bottom_menu"] = config.features["reader_bottom_menu"] ~= true
             save_and_apply("reader_bottom_menu")
         end,
-    })
+    }, icons.bottom_swipe))
     -- page browser requires bottom swipe; disabling bottom swipe unchecks this too
-    table.insert(items, {
-        text = _("Enable page browser"),
+    table.insert(items, IconItem.decorate({
+        text = _("Zen page browser"),
         checked_func = function()
             return config.features["page_browser"] == true
         end,
@@ -1019,8 +1019,8 @@ function M.build(ctx)
             config.features["page_browser"] = config.features["page_browser"] ~= true
             save_and_apply("page_browser")
         end,
-    })
-    table.insert(items, {
+    }, icons.page_browser))
+    table.insert(items, IconItem.decorate({
         text = _("Restore library location on exit"),
         checked_func = function()
             return config.features["restore_library_view"] == true
@@ -1029,7 +1029,7 @@ function M.build(ctx)
             config.features["restore_library_view"] = config.features["restore_library_view"] ~= true
             save_and_apply("restore_library_view")
         end,
-    })
+    }, icons.restore_library_location))
 
     -- -------------------------------------------------------------------------
     -- Bottom status bar (passthrough to KOReader's footer menu)

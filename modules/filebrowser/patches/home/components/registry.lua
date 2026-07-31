@@ -6,6 +6,7 @@ local builtin_components = {
     require("modules/filebrowser/patches/home/widgets/stats_triplet"),
     require("modules/filebrowser/patches/home/widgets/reading_goals"),
     require("modules/filebrowser/patches/home/widgets/strip_custom"),
+    require("modules/filebrowser/patches/home/widgets/strip_tag"),
     require("modules/filebrowser/patches/home/widgets/strip_tbr"),
     require("modules/filebrowser/patches/home/widgets/strip_recent"),
     require("modules/filebrowser/patches/home/widgets/quotes"),

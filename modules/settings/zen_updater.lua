@@ -678,15 +678,28 @@ local function persist_state(now)
     save_updater_config(cfg)
 end
 
---- Clear all persisted update state (called after a successful install).
-local function clear_update_state()
+--- Clear all persisted update state after an install or version-change acknowledgement.
+local function clear_update_state(cfg)
     reset_release_state()
     M._last_error = nil
-    local cfg, updater = load_updater_config()
+    local updater
+    if type(cfg) == "table" then
+        if type(cfg.updater) ~= "table" then
+            cfg.updater = {}
+        end
+        updater = cfg.updater
+    else
+        cfg, updater = load_updater_config()
+    end
     if not updater then return end
     updater[UP_KEY_AVAIL] = false
     clear_persisted_release_state(updater)
     save_updater_config(cfg)
+end
+
+--- Acknowledge a version change detected outside Zen UI's updater.
+function M.clear_update_state(cfg)
+    clear_update_state(cfg)
 end
 
 --- Perform an actual network check; returns true on success.
@@ -1485,15 +1498,7 @@ local function _do_install(screen, plugin_root, plugins_dir)
             save_updater_config(cfg2)
         end
 
-        screen:update{ subtitle = _("Rebooting") .. "...", button = false }
-        UIManager:forceRePaint()
-        UIManager:scheduleIn(1, function()
-            if type(UIManager.restartKOReader) == "function" then
-                UIManager:restartKOReader()
-            else
-                UIManager:broadcastEvent(require("ui/event"):new("Restart"))
-            end
-        end)
+        require("common/restart").request()
     end)
 end
 

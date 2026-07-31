@@ -144,8 +144,11 @@ msgstr "Усі налаштування в одній вкладці. Ця по�
 msgid "All Time"
 msgstr "За весь час"
 
-msgid "Allow custom icons"
-msgstr "Дозволити власні іконки"
+msgid "Custom icons"
+msgstr "Спеціальні значки"
+
+msgid "Enable custom icons"
+msgstr "Увімкнути власні іконки"
 
 msgid "Allow delete"
 msgstr "Дозволити видалення"
@@ -756,8 +759,8 @@ msgstr "Увімкнути детальне логування налагодж�
 msgid "Enable night mode schedule"
 msgstr "Увімкнути розклад нічного режиму"
 
-msgid "Enable page browser"
-msgstr "Увімкнути браузер сторінок"
+msgid "Zen page browser"
+msgstr "Переглядач сторінок Zen"
 
 msgid "Enable top status bar"
 msgstr "Увімкнути верхній рядок статусу"

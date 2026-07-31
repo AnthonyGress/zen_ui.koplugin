@@ -1297,6 +1297,7 @@ function M.build(ctx)
                         end
                     end, current_path, default_path)
                 end,
+                keep_menu_open = true,
             },
             {
                 text = _("Lock home folder"),
@@ -1343,6 +1344,7 @@ function M.build(ctx)
             plugin:saveConfig()
         end,
     })
+    IconItem.decorate(items[#items], icons.delete)
 
     IconItem.decorate(items[1], icons.settings_status)
     IconItem.decorate(items[2], icons.settings_layout)

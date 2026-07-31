@@ -1,8 +1,8 @@
 -- incompatible_plugins_check.lua
--- Detects incompatible plugins via package.loaded (not file system checks).
+-- Detects incompatible plugins and user patches.
 -- Two categories:
 --   MANUAL_BLOCK  -- Zen UI cannot auto-fix these. User is informed and init is halted.
---   AUTO_DISABLE  -- Zen UI writes plugins_disabled and prompts restart.
+--   AUTO_DISABLE  -- Zen UI disables plugins/patches and prompts restart.
 
 -- Returns the plugin directory for an already-loaded sentinel module.
 local function get_dir_from_loaded(sentinel)
@@ -27,10 +27,10 @@ local function get_dir_from_loaded(sentinel)
     end
 end
 
--- e.g. "/path/to/projecttitle.koplugin/" -> "projecttitle"
+-- e.g. "/path/to/appearance.koplugin/lib/" -> "appearance"
 local function get_folder_key(dir)
     if not dir then return nil end
-    return dir:match("([^/]+)%.koplugin/?$")
+    return dir:match("^.*/([^/]+)%.koplugin/")
 end
 
 local function any_zen_schedule_enabled()
@@ -56,6 +56,19 @@ end
 local AUTO_DISABLE = {
     { sentinel = "sui_core", label = "Simple UI", fallback_key = "simpleui" },
     { sentinel = "quickmenu", label = "QuickMenu", fallback_key = "quickmenu" },
+    {
+        sentinel = "lib/setting",
+        label = "Appearance",
+        fallback_key = "appearance",
+        expected_folder_key = "appearance",
+    },
+}
+
+local AUTO_DISABLE_PATCHES = {
+    "2-quick-settings.lua",
+    "2-automatic-book-series.lua",
+    "2-ui-font.lua",
+    "2-custom-navbar.lua",
 }
 
 local function apply_incompatible_plugins_check()
@@ -97,21 +110,45 @@ local function apply_incompatible_plugins_check()
         local sentinel_loaded = package.loaded[entry.sentinel] ~= nil
         if sentinel_loaded then
             local dir = get_dir_from_loaded(entry.sentinel)
-            local folder_key = get_folder_key(dir) or entry.fallback_key
-            local already_disabled = disabled_list[folder_key] ~= nil
-            logger.info("Compatibility state", entry.label,
-                "| loaded=true | folder_key=" .. tostring(folder_key),
-                "| already_disabled=" .. tostring(already_disabled))
-            if already_disabled then
-                -- In disabled_list but still loaded: bad state, force restart.
-                logger.warn(entry.label, "is disabled but still loaded; forcing restart")
-                disabled_labels[#disabled_labels + 1] = entry.label
-                needs_restart = true
+            local folder_key = get_folder_key(dir)
+            if entry.expected_folder_key and folder_key ~= entry.expected_folder_key then
+                logger.info("Compatibility state", entry.label,
+                    "| loaded=false | source=" .. tostring(dir))
             else
-                logger.warn("Disabling", entry.label, "| key=" .. folder_key)
-                disabled_list[folder_key] = true
-                disabled_labels[#disabled_labels + 1] = entry.label
-                needs_restart = true
+                folder_key = folder_key or entry.fallback_key
+                local already_disabled = disabled_list[folder_key] ~= nil
+                logger.info("Compatibility state", entry.label,
+                    "| loaded=true | folder_key=" .. tostring(folder_key),
+                    "| already_disabled=" .. tostring(already_disabled))
+                if already_disabled then
+                    -- In disabled_list but still loaded: bad state, force restart.
+                    logger.warn(entry.label, "is disabled but still loaded; forcing restart")
+                    disabled_labels[#disabled_labels + 1] = entry.label
+                    needs_restart = true
+                else
+                    logger.warn("Disabling", entry.label, "| key=" .. folder_key)
+                    disabled_list[folder_key] = true
+                    disabled_labels[#disabled_labels + 1] = entry.label
+                    needs_restart = true
+                end
+            end
+        end
+    end
+
+    local ok_userpatch, userpatch = pcall(require, "userpatch")
+    local execution_status = ok_userpatch and userpatch and userpatch.execution_status
+    if type(execution_status) == "table" then
+        local patch_dir = require("datastorage"):getPatchesDir()
+        for _i, filename in ipairs(AUTO_DISABLE_PATCHES) do
+            if execution_status[filename] ~= nil then
+                local source = patch_dir .. "/" .. filename
+                if os.rename(source, source .. ".disabled") then
+                    logger.warn("Disabling incompatible user patch", filename)
+                    disabled_labels[#disabled_labels + 1] = filename
+                    needs_restart = true
+                else
+                    logger.warn("Unable to disable incompatible user patch", filename)
+                end
             end
         end
     end
@@ -138,7 +175,7 @@ local function apply_incompatible_plugins_check()
         local ConfirmBox = require("ui/widget/confirmbox")
         local Event = require("ui/event")
         UIManager:show(ConfirmBox:new{
-            text         = _("Incompatible plugins have been disabled:") .. "\n" .. table.concat(disabled_labels, "\n"),
+            text         = _("Incompatible plugins and patches have been disabled:") .. "\n" .. table.concat(disabled_labels, "\n"),
             dismissable  = false,
             no_ok_button = true,
             cancel_text  = _("Restart now"),

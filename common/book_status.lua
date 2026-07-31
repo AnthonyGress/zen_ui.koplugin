@@ -164,26 +164,49 @@ function M.getEffectiveStatusFromInfo(book_info)
     return M.getEffectiveStatus(book_info.status, book_info.percent_finished)
 end
 
-function M.getEffectiveStatusFromFile(file_path)
+local function getBookListInfo(file_path)
     local ok_bl, BookList = pcall(require, "ui/widget/booklist")
-    local book_info
     if ok_bl and type(BookList) == "table" and type(BookList.getBookInfo) == "function" then
-        book_info = BookList.getBookInfo(file_path)
+        local ok_info, book_info = pcall(BookList.getBookInfo, file_path)
+        if ok_info then return book_info end
     end
+end
 
-    local status = book_info and book_info.status
-    local percent_finished = book_info and book_info.percent_finished
+-- Read status metadata from one authoritative source. A sidecar, when present
+-- and readable, wins; BookList is only consulted as the fallback path.
+function M.getFileStatusData(file_path, fallback_info)
     local ok_ds, DocSettings = pcall(require, "docsettings")
     if ok_ds and DocSettings and DocSettings:hasSidecarFile(file_path) then
         local ok_doc, doc = pcall(DocSettings.open, DocSettings, file_path)
         if ok_doc and doc then
             local summary = doc:readSetting("summary")
-            status = summary and summary.status
-            percent_finished = doc:readSetting("percent_finished")
-            return M.getComputedStatus(file_path, status, percent_finished, doc)
+            local status = summary and summary.status
+            local percent_finished = doc:readSetting("percent_finished")
+            return {
+                status = status,
+                percent_finished = percent_finished,
+                effective_status = M.getComputedStatus(file_path, status, percent_finished, doc),
+                doc_settings = doc,
+                sidecar_checked = true,
+            }
         end
     end
-    return M.getComputedStatus(file_path, status, percent_finished)
+
+    local book_info = type(fallback_info) == "table" and fallback_info
+        or getBookListInfo(file_path)
+    local status = book_info and book_info.status
+    local percent_finished = book_info and book_info.percent_finished
+    return {
+        status = status,
+        percent_finished = percent_finished,
+        effective_status = M.getEffectiveStatus(status, percent_finished),
+        book_info = book_info,
+        sidecar_checked = true,
+    }
+end
+
+function M.getEffectiveStatusFromFile(file_path)
+    return M.getFileStatusData(file_path).effective_status
 end
 
 return M

@@ -234,21 +234,15 @@ function M.build(ctx)
             if item_id == "trend_graph" then
                 item.sub_title = label_for(item_id)
                 item.sub_item_table_func = function()
-                    local items = graph_items(settings)
-                    items._zen_arrange_done_func = function() end
-                    return items
+                    return graph_items(settings)
                 end
             elseif item_id == "goal_progress" then
                 item.sub_item_table_func = function()
-                    local items = goal_items(settings)
-                    items._zen_arrange_done_func = function() end
-                    return items
+                    return goal_items(settings)
                 end
             elseif StatsSettings.hasFontSize(item_id) then
                 item.sub_item_table_func = function()
-                    local items = font_size_items(settings, item_id)
-                    items._zen_arrange_done_func = function() end
-                    return items
+                    return font_size_items(settings, item_id)
                 end
             end
             sort_items[#sort_items + 1] = item
@@ -327,7 +321,6 @@ function M.build(ctx)
             arrange_widgets()
             return true
         end
-        items._zen_arrange_done_func = function() end
         require("common/ui/zen_arrange_list").show{
             title = label_for(id),
             item_table = items,
@@ -336,15 +329,33 @@ function M.build(ctx)
         return true
     end
 
+    local function arrange_search_items()
+        local items = {}
+        local settings = StatsSettings.load()
+        for _i, id in ipairs(settings.widgets.order) do
+            if id == "trend_graph" or id == "goal_progress" or StatsSettings.hasFontSize(id) then
+                local widget_id = id
+                items[#items + 1] = {
+                    text = label_for(widget_id),
+                    _zen_search_open = function()
+                        return open_widget_settings(widget_id)
+                    end,
+                }
+            end
+        end
+        return items
+    end
+
     return IconItem.decorate({
         text = _("Stats"),
+        _zen_search_items_func = arrange_search_items,
         sub_item_table = {
             IconItem.decorate({
                 text = _("Widgets") .. " \u{25B8}",
                 keep_menu_open = true,
                 callback = arrange_widgets,
-            }, icons.display),
-            {
+            }, icons.widgets),
+            IconItem.decorate({
                 text = _("Edit mode"),
                 checked_func = function()
                     return StatsSettings.load().edit_mode == true
@@ -354,7 +365,7 @@ function M.build(ctx)
                     settings.edit_mode = settings.edit_mode ~= true
                     save(settings)
                 end,
-            },
+            }, icons.edit),
             IconItem.decorate(default_font_size_item(), icons.title),
             IconItem.decorate({
                 text = _("Stat separators"),

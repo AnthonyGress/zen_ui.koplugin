@@ -257,8 +257,6 @@ local function apply_collections()
         if not MosaicMenuItem then return end
         _mosaic_item_patched = true
 
-        local Size = require("ui/size")
-
         local Blitbuffer_uc = require("ffi/blitbuffer")
         if not MosaicMenuItem._zen_coll_focus_patched then
             MosaicMenuItem._zen_coll_focus_patched = true
@@ -286,7 +284,7 @@ local function apply_collections()
             -- Build fake chooser for collection
             local fake_chooser = build_fake_chooser_from_files(files)
 
-            local border = Size.border.thin
+            local border = Cover.BORDER_SIZE
             local max_w = self.width - 2 * border
             local bh = self.height - 2 * border
 
@@ -349,7 +347,6 @@ local function apply_collections()
         local LeftContainer   = require("ui/widget/container/leftcontainer")
         local ReadCollection  = require("readcollection")
         local RightContainer  = require("ui/widget/container/rightcontainer")
-        local Size            = require("ui/size")
         local TextBoxWidget   = require("ui/widget/textboxwidget")
         local TextWidget      = require("ui/widget/textwidget")
 
@@ -377,7 +374,7 @@ local function apply_collections()
 
             local underline_h  = 1
             local dimen_h      = self.height - 2 * underline_h
-            local border_size  = Size.border.thin
+            local border_size  = Cover.BORDER_SIZE
             local cover_v_pad  = Screen:scaleBySize(4)
             local cover_zone_w = dimen_h
             local max_img      = dimen_h - 2 * border_size - 2 * cover_v_pad

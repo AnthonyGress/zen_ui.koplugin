@@ -168,8 +168,11 @@ msgstr "历史总计"
 msgid "All time"
 msgstr "所有时间"
 
-msgid "Allow custom icons"
-msgstr "允许自定义图标"
+msgid "Custom icons"
+msgstr "自定义图标"
+
+msgid "Enable custom icons"
+msgstr "启用自定义图标"
 
 msgid "Allow delete"
 msgstr "允许删除"
@@ -795,8 +798,8 @@ msgstr "启用 KOReader 详细调试日志。日志写入 koreader.log，立即�
 msgid "Enable night mode schedule"
 msgstr "启用夜间模式定时"
 
-msgid "Enable page browser"
-msgstr "启用页面浏览器"
+msgid "Zen page browser"
+msgstr "Zen 页面浏览器"
 
 msgid "Enable top status bar"
 msgstr "启用顶部状态栏"
@@ -1701,6 +1704,9 @@ msgstr "重新开始阅读"
 msgid "Restart now"
 msgstr "立即重启"
 
+msgid "Restarting"
+msgstr "正在重启"
+
 msgid "Restore library location on exit"
 msgstr "退出时恢复书库位置"
 
@@ -2525,3 +2531,36 @@ msgstr "删除此自定义主题？"
 
 msgid "Custom theme"
 msgstr "自定义主题"
+
+msgid "%1 (%2/%3 icons)"
+msgstr "%1（%2/%3 个图标）"
+
+msgid "By %1"
+msgstr "作者：%1"
+
+msgid "Could not install %1: %2"
+msgstr "无法安装 %1：%2"
+
+msgid "Custom icon pack: %1"
+msgstr "自定义图标包：%1"
+
+msgid "Loose icons"
+msgstr "独立图标"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "/koreader/icons 中的独立图标"
+
+msgid "Missing: %1"
+msgstr "缺失：%1"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "将图标包文件夹或 ZIP 文件放入 /koreader/icons/zen。ZIP 文件会自动安装。"
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "重启 KOReader 以应用已更新的当前图标包"
+
+msgid "Unavailable pack: %1"
+msgstr "不可用的图标包：%1"
+
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "启用后，独立图标或选定的 Zen UI 图标包会替换支持的图标。缺失的图标将依次回退到 Zen UI 和 KOReader。"

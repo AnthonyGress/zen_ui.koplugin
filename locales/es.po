@@ -168,8 +168,11 @@ msgstr "Todo el tiempo"
 msgid "All time"
 msgstr "Todo el tiempo"
 
-msgid "Allow custom icons"
-msgstr "Permitir iconos personalizados"
+msgid "Custom icons"
+msgstr "Iconos personalizados"
+
+msgid "Enable custom icons"
+msgstr "Activar iconos personalizados"
 
 msgid "Allow delete"
 msgstr "Permitir eliminar"
@@ -795,8 +798,8 @@ msgstr "Activar el registro de depuración detallado de KOReader. Los registros 
 msgid "Enable night mode schedule"
 msgstr "Activar programación de modo nocturno"
 
-msgid "Enable page browser"
-msgstr "Activar navegador de páginas"
+msgid "Zen page browser"
+msgstr "Navegador de páginas Zen"
 
 msgid "Enable top status bar"
 msgstr "Activar barra de estado superior"
@@ -1701,6 +1704,9 @@ msgstr "Reiniciar libro"
 msgid "Restart now"
 msgstr "Reiniciar ahora"
 
+msgid "Restarting"
+msgstr "Reiniciando"
+
 msgid "Restore library location on exit"
 msgstr "Restaurar ubicación de la biblioteca al salir"
 
@@ -2525,3 +2531,36 @@ msgstr "¿Eliminar este tema personalizado?"
 
 msgid "Custom theme"
 msgstr "Tema personalizado"
+
+msgid "%1 (%2/%3 icons)"
+msgstr "%1 (%2/%3 iconos)"
+
+msgid "By %1"
+msgstr "Por %1"
+
+msgid "Could not install %1: %2"
+msgstr "No se pudo instalar %1: %2"
+
+msgid "Custom icon pack: %1"
+msgstr "Paquete de iconos personalizado: %1"
+
+msgid "Loose icons"
+msgstr "Iconos sueltos"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Iconos sueltos en /koreader/icons"
+
+msgid "Missing: %1"
+msgstr "Falta: %1"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Coloca carpetas de paquetes o archivos ZIP en /koreader/icons/zen. Los archivos ZIP se instalan automáticamente."
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Reinicia KOReader para aplicar el paquete activo actualizado"
+
+msgid "Unavailable pack: %1"
+msgstr "Paquete no disponible: %1"
+
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "Al activarlo, los iconos sueltos o un paquete de iconos de Zen UI seleccionado sustituyen los iconos compatibles. Los iconos que falten usan primero Zen UI y después KOReader."

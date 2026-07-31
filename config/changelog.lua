@@ -224,5 +224,24 @@ return {
         "Ensure wifi before showing ZenPM installer",
         "Adjust Zen screensaver book cover resolution",
         "Update testing emulator to KOReader 2026.07"
+    },
+    ["3.0.0"] = {
+        "Large performance improvements",
+        "New Settings page",
+        "Custom icon packs (Extras > Custom icons)",
+        "Page browser enhancements + Book Detail button",
+        "Quotes improvements (Moments of Zen)",
+        "Improved default covers",
+        "Add Calibre tag to Navbar (Navbar > Tabs)",
+        "Add Calibre tag strip to Home page (Home > Widgets)",
+        "Add opening banner to books on Home",
+        "Add checkboxes of toggles in plugin menus accessed via launcher/controls",
+        "Add tailscale Control button",
+        "Add font styling for Featured progress labels",
+        "Short term Settings page memory",
+        "Respect non-linear page fragments in Page Browser",
+        "Add Restarting notice",
+        "Accessibility improvements for non-touch devices",
+        "Bug fixes"
     }
 }

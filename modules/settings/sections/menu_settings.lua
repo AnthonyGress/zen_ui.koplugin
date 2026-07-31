@@ -77,6 +77,7 @@ function M.build(ctx)
         { key = "streak",         text = _("Streak"),          detect = function() return hasPlugin("readingstreak") end },
         { key = "opds",           text = _("OPDS"),            detect = function() return hasPlugin("opds") end },
         { key = "localsend",      text = _("LocalSend"),       detect = function() return hasPlugin("localsend") end },
+        { key = "tailscale",      text = _("Tailscale"),       detect = function() return hasPlugin("tailscale") end },
         { key = "filebrowser",    text = _("Filebrowser"),     detect = function() return hasAnyPlugin(filebrowser_slots) end },
         { key = "puzzle",         text = _("Slide Puzzle"),    detect = function() return hasPlugin("slidepuzzle") end },
         { key = "crossword",      text = _("Crossword"),       detect = function() return hasPlugin("crossword") end },
@@ -339,7 +340,7 @@ function M.build(ctx)
         end
     end
 
-    local function showPluginPicker(on_select)
+    local function showPluginPicker(on_select, touch_menu)
         local found = PluginScan.scan()
         if #found == 0 then
             local InfoMessage = require("ui/widget/infomessage")
@@ -358,6 +359,7 @@ function M.build(ctx)
             title = _("Choose plugin menu"),
             items = picker_items,
             on_select = on_select,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
         }
     end
 
@@ -376,6 +378,7 @@ function M.build(ctx)
         require("common/ui/zen_menu_picker"){
             title = _("Choose control"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
                 ensureButtonOrder(item.id)
                 config.quick_settings.show_buttons[item.id] = countEnabledButtons() < quick_buttons_max
@@ -410,7 +413,7 @@ function M.build(ctx)
             elseif touch_menu and touch_menu.updateItems then
                 touch_menu:updateItems(1)
             end
-        end)
+        end, touch_menu)
     end
 
     local function addPluginButton(touch_menu)
@@ -448,7 +451,7 @@ function M.build(ctx)
                     touch_menu:updateItems(1)
                 end
             end
-        end)
+        end, touch_menu)
     end
 
     local function showButtonsArrange()
@@ -610,33 +613,6 @@ function M.build(ctx)
         end
     end
 
-    local function has_valid_custom_button_target(cb)
-        if cb.type == "action" then
-            return type(cb.action) == "table" and next(cb.action) ~= nil
-        end
-        return cb.type == "plugin"
-            and type(cb.plugin) == "table"
-            and cb.plugin.key ~= nil
-            and cb.plugin.method ~= nil
-    end
-
-    local function add_done_metadata(items, cb)
-        items._zen_arrange_done_func = function()
-            if cb.type == "action" then
-                sync_cb_action_label(cb)
-            end
-            if is_draft_button(cb) then
-                cb._zen_draft_commit()
-            elseif has_valid_custom_button_target(cb) then
-                quick_button_label_by_id[cb.id] = get_cb_label(cb)
-                save_and_apply_quick_settings()
-            end
-        end
-        items._zen_arrange_done_enabled_func = function()
-            return has_valid_custom_button_target(cb)
-        end
-    end
-
     build_cb_sub_items = function(cb)
         local items = {}
 
@@ -781,9 +757,6 @@ function M.build(ctx)
             end,
         }, icons.delete))
 
-        if cb.type == "action" or cb.type == "plugin" then
-            add_done_metadata(items, cb)
-        end
         return items
     end
 
@@ -837,6 +810,7 @@ function M.build(ctx)
         end
         config.quick_settings.show_buttons = new_show
         config.quick_settings.button_order = new_order
+        config.quick_settings.show_labels = def.show_labels
         config.quick_settings.show_frontlight = def.show_frontlight
         config.quick_settings.show_warmth = def.show_warmth
         config.quick_settings.flip_lh_rh_icon = def.flip_lh_rh_icon
@@ -844,38 +818,89 @@ function M.build(ctx)
         save_and_apply_quick_settings()
     end
 
+    local function open_button_settings(id)
+        local cb = quick_button_custom_by_id[id]
+        local items = cb and build_cb_sub_items(cb) or build_control_sub_items(id)
+        if type(items) ~= "table" or #items == 0 then
+            showButtonsArrange()
+            return true
+        end
+        require("common/ui/zen_arrange_list").show{
+            title = quick_button_label_by_id[id] or tostring(id),
+            item_table = items,
+            hide_footer_cancel = true,
+        }
+        return true
+    end
+
+    local function button_search_label(id)
+        if id == "rotate" then
+            return T(_("Rotate: %1"), getRotateActionLabel())
+        end
+        if id == "screenshot" then
+            return T(_("Screenshot: %1 s"), getScreenshotTimerSeconds())
+        end
+        return quick_button_label_by_id[id]
+    end
+
+    local function arrange_search_items()
+        local items = {}
+        for _i, id in ipairs(config.quick_settings.button_order) do
+            local label = button_search_label(id)
+            if label then
+                local button_id = id
+                items[#items + 1] = {
+                    text = label,
+                    _zen_search_open = function()
+                        return open_button_settings(button_id)
+                    end,
+                }
+            end
+        end
+        return items
+    end
+
     return {
         text = _("Controls"),
+        _zen_search_items_func = arrange_search_items,
         sub_item_table = {
             IconItem.decorate({
                 text = _("Buttons") .. " \u{25B8}",
                 keep_menu_open = true,
                 callback = showButtonsArrange,
             }, icons.action),
-            {
+            IconItem.decorate({
+                text = _("Show labels"),
+                checked_func = function() return config.quick_settings.show_labels ~= false end,
+                callback = function()
+                    config.quick_settings.show_labels = config.quick_settings.show_labels == false
+                    save_and_apply_quick_settings()
+                end,
+            }, icons.keywords),
+            IconItem.decorate({
                 text = _("Show brightness slider"),
                 checked_func = function() return config.quick_settings.show_frontlight == true end,
                 callback = function()
                     config.quick_settings.show_frontlight = config.quick_settings.show_frontlight ~= true
                     save_and_apply_quick_settings()
                 end,
-            },
-            {
+            }, icons.schedule_brightness),
+            IconItem.decorate({
                 text = _("Show warmth slider"),
                 checked_func = function() return config.quick_settings.show_warmth == true end,
                 callback = function()
                     config.quick_settings.show_warmth = config.quick_settings.show_warmth ~= true
                     save_and_apply_quick_settings()
                 end,
-            },
-            {
+            }, icons.schedule_warmth),
+            IconItem.decorate({
                 text = _("Flip LH/RH icon"),
                 checked_func = function() return config.quick_settings.flip_lh_rh_icon == true end,
                 callback = function()
                     config.quick_settings.flip_lh_rh_icon = config.quick_settings.flip_lh_rh_icon ~= true
                     save_and_apply_quick_settings()
                 end,
-            },
+            }, icons.flip_lh_rh),
             IconItem.decorate({
                 text = _("Reset to defaults"),
                 separator = true,

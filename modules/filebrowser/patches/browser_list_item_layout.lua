@@ -2,7 +2,7 @@ local function apply_browser_list_item_layout()
     -- Capture plugin reference while __ZEN_UI_PLUGIN is still set by run_feature.
     local _plugin_ref = rawget(_G, "__ZEN_UI_PLUGIN")
     local Cover = require("common/cover_utils")
-    local logger = require("common/zen_logger").new("browser_list_item_layout")
+    local RenderCache = require("common/cover_render_cache")
 
     local BD = require("ui/bidi")
     local Blitbuffer = require("ffi/blitbuffer")
@@ -17,7 +17,6 @@ local function apply_browser_list_item_layout()
     local OverlapGroup = require("ui/widget/overlapgroup")
     local ReadCollection = require("readcollection")
     local RightContainer = require("ui/widget/container/rightcontainer")
-    local Size = require("ui/size")
     local TextBoxWidget = require("ui/widget/textboxwidget")
     local TextWidget = require("ui/widget/textwidget")
     local VerticalGroup = require("ui/widget/verticalgroup")
@@ -129,7 +128,7 @@ local function apply_browser_list_item_layout()
                     local text_safe_pad_top = math.max(2, Screen:scaleBySize(4))
                     local text_safe_pad_bottom = math.max(2, Screen:scaleBySize(3))
                     local content_h = math.max(1, dimen_h - text_safe_pad_top - text_safe_pad_bottom)
-                    local border_size = Size.border.thin
+                    local border_size = Cover.BORDER_SIZE
                     local cover_v_pad = Screen:scaleBySize(4)
                     local cover_zone_w = dimen_h
                     local max_img  = dimen_h - 2 * border_size - 2 * cover_v_pad
@@ -273,7 +272,7 @@ local function apply_browser_list_item_layout()
 
             local underline_h = 1 -- matches self.underline_h in ListMenuItem:init()
             local dimen_h = self.height - 2 * underline_h
-            local border_size = Size.border.thin
+            local border_size = Cover.BORDER_SIZE
             local cover_v_pad = Screen:scaleBySize(4)  -- top+bottom breathing room
             local cover_zone_w = dimen_h  -- squared, identical to stock list mode
             local max_img = dimen_h - 2 * border_size - 2 * cover_v_pad
@@ -350,17 +349,8 @@ local function apply_browser_list_item_layout()
                     -- Uniform fill: scale from the actual cached-bb dimensions so
                     -- the image covers the entire 2:3 frame, then centre-crop to
                     -- exactly cover_w × max_img.
-                    local bb_w     = bookinfo.cover_bb:getWidth()
-                    local bb_h     = bookinfo.cover_bb:getHeight()
-                    local sf       = math.max(cover_w / bb_w, max_img / bb_h)
-                    local scaled_w = math.max(cover_w,  math.ceil(bb_w * sf))
-                    local scaled_h = math.max(max_img,  math.ceil(bb_h * sf))
-                    local x_off    = math.floor((scaled_w - cover_w) / 2)
-                    local y_off    = math.floor((scaled_h - max_img) / 2)
-                    local scaled_bb = bookinfo.cover_bb:scale(scaled_w, scaled_h)
-                    local fill_bb   = Blitbuffer.new(cover_w, max_img, scaled_bb:getType())
-                    fill_bb:blitFrom(scaled_bb, 0, 0, x_off, y_off, cover_w, max_img)
-                    scaled_bb:free()
+                    local fill_bb = RenderCache:render(filepath, bookinfo.cover_bb, cover_w, max_img)
+                    bookinfo.cover_bb = nil
                     local wimage = ImageWidget:new{
                         image        = fill_bb,
                         scale_factor = 1,
@@ -915,12 +905,8 @@ local function apply_browser_list_item_layout()
         if fc and fc.updateItems then
             if fc._zen_strip_list_borders_fn ~= fc.updateItems then
                 local function zen_fc_updateItems(s, ...)
-                    local started_at = os.clock()
                     FileChooser.updateItems(s, ...)
                     stripListBorders(s)
-                    logger.perf("File chooser update completed", (os.clock() - started_at) * 1000,
-                        "mode=", tostring(s.display_mode_type),
-                        "items=", #(s.item_table or {}))
                 end
                 fc._zen_strip_list_borders_fn = zen_fc_updateItems
                 fc.updateItems = zen_fc_updateItems

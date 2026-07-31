@@ -21,9 +21,15 @@ local Device = require("device")
 local utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
 local _ = require("gettext")
+local logger = require("common/zen_logger").new("home_strip")
 
 local M = {}
 M.SIZE = { preferred_pct = 0.20, min_pct = 0.12, max_pct = 0.50, grow_priority = 1 }
+
+local function set_opening_banner_cover(cover)
+    local set_cover = rawget(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER")
+    if type(set_cover) == "function" then set_cover(cover) end
+end
 
 -- ── Strip badge helpers ───────────────────────────────────────────────────────
 
@@ -89,9 +95,7 @@ local function paintPill(bb, bx, by, bw, bh, color)
 end
 
 -- Wraps a cover FrameContainer paintTo to draw library-style badges over the cover.
--- book fields: percent (0-1 float), status (string|nil), pages (number|nil), path (string)
--- series_index resolved lazily via BookInfoManager.
--- is_fav resolved lazily via ReadCollection.
+-- Metadata and collection state must be resolved before this paint path.
 local function apply_strip_badges(frame, book, plugin)
     local orig_paintTo = frame.paintTo
     if type(orig_paintTo) ~= "function" then return end
@@ -164,22 +168,16 @@ local function apply_strip_badges(frame, book, plugin)
                             math.floor(d.w * 0.14)) * badge_scale)
 
         -- favorite: top-left circle with star
-        if show_favorite then
-            local ok_rc, ReadCollection = pcall(require, "readcollection")
-            if ok_rc and ReadCollection then
-                local is_fav = ReadCollection:isFileInCollections(book.path, true)
-                if is_fav then
-                    local r      = math.floor(base_sz * 0.45)
-                    local inset  = utils.getBadgeInset(r)
-                    local cx     = x + border + r + inset
-                    local cy     = y + border + r + inset
-                    paintCircle(bb, cx, cy, r + 2, outline)
-                    paintCircle(bb, cx, cy, r,     badge_col)
-                    local mark = get_fav_mark(r * 2, is_dark)
-                    local msz  = mark:getSize()
-                    mark:paintTo(bb, cx - math.ceil(msz.w/2), cy - math.ceil(msz.h/2))
-                end
-            end
+        if show_favorite and book.is_fav == true then
+            local r      = math.floor(base_sz * 0.45)
+            local inset  = utils.getBadgeInset(r)
+            local cx     = x + border + r + inset
+            local cy     = y + border + r + inset
+            paintCircle(bb, cx, cy, r + 2, outline)
+            paintCircle(bb, cx, cy, r,     badge_col)
+            local mark = get_fav_mark(r * 2, is_dark)
+            local msz  = mark:getSize()
+            mark:paintTo(bb, cx - math.ceil(msz.w/2), cy - math.ceil(msz.h/2))
         end
 
         -- progress/status: top-right pentagon
@@ -262,57 +260,53 @@ local function apply_strip_badges(frame, book, plugin)
 
         -- series: bottom-right circle
         if show_series then
-            local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
-            if ok_bim and BookInfoManager then
-                local bi = BookInfoManager:getBookInfo(book.path, false)
-                local series_idx = bi and tonumber(bi.series_index)
-                if series_idx and series_idx > 0 then
-                    local idx_str
-                    if series_idx == math.floor(series_idx) then
-                        idx_str = "#" .. tostring(math.floor(series_idx))
-                    else
-                        idx_str = "#" .. string.format("%.1f", series_idx)
-                    end
-                    local r    = math.floor(base_sz / 2)
-                    local fs   = math.max(7, math.floor(base_sz * 0.26))
-                    if not _cached_series_tw or _cached_series_idx ~= series_idx or _cached_series_fs ~= fs or _cached_series_dark ~= is_dark then
-                        WidgetResources.free(_cached_series_tw)
-                        local inner_w = math.floor(r * 1.30)
-                        local function make_tw(label, sz)
-                            return TextWidget:new{ text=label, face=Font:getFace("cfont",sz), bold=true, fgcolor=badge_fg, padding=0 }
-                        end
-                        local tw = make_tw(idx_str, fs)
-                        if tw:getSize().w > inner_w then
-                            WidgetResources.free(tw)
-                            local no_hash = idx_str:sub(1,1) == "#" and idx_str:sub(2) or idx_str
-                            local tw2 = make_tw(no_hash, fs)
-                            if tw2:getSize().w <= inner_w then
-                                tw = tw2
-                            else
-                                WidgetResources.free(tw2)
-                                local sz = fs
-                                while sz > 7 do
-                                    local t = make_tw(no_hash, sz)
-                                    if t:getSize().w <= inner_w then tw = t; break end
-                                    WidgetResources.free(t)
-                                    sz = sz - 1
-                                end
-                                if not tw then tw = make_tw(no_hash, 7) end
-                            end
-                        end
-                        _cached_series_tw   = tw
-                        _cached_series_idx  = series_idx
-                        _cached_series_fs   = fs
-                        _cached_series_dark = is_dark
-                    end
-                    local inset = utils.getBadgeInset(r)
-                    local cx = x + d.w - r - inset
-                    local cy = y + d.h - r - inset
-                    paintCircle(bb, cx, cy, r + 2, outline)
-                    paintCircle(bb, cx, cy, r,     badge_col)
-                    local tsz = _cached_series_tw:getSize()
-                    _cached_series_tw:paintTo(bb, cx - math.floor(tsz.w/2), cy - math.floor(tsz.h/2))
+            local series_idx = tonumber(book.series_index)
+            if series_idx and series_idx > 0 then
+                local idx_str
+                if series_idx == math.floor(series_idx) then
+                    idx_str = "#" .. tostring(math.floor(series_idx))
+                else
+                    idx_str = "#" .. string.format("%.1f", series_idx)
                 end
+                local r    = math.floor(base_sz / 2)
+                local fs   = math.max(7, math.floor(base_sz * 0.26))
+                if not _cached_series_tw or _cached_series_idx ~= series_idx or _cached_series_fs ~= fs or _cached_series_dark ~= is_dark then
+                    WidgetResources.free(_cached_series_tw)
+                    local inner_w = math.floor(r * 1.30)
+                    local function make_tw(label, sz)
+                        return TextWidget:new{ text=label, face=Font:getFace("cfont",sz), bold=true, fgcolor=badge_fg, padding=0 }
+                    end
+                    local tw = make_tw(idx_str, fs)
+                    if tw:getSize().w > inner_w then
+                        WidgetResources.free(tw)
+                        local no_hash = idx_str:sub(1,1) == "#" and idx_str:sub(2) or idx_str
+                        local tw2 = make_tw(no_hash, fs)
+                        if tw2:getSize().w <= inner_w then
+                            tw = tw2
+                        else
+                            WidgetResources.free(tw2)
+                            local sz = fs
+                            while sz > 7 do
+                                local t = make_tw(no_hash, sz)
+                                if t:getSize().w <= inner_w then tw = t; break end
+                                WidgetResources.free(t)
+                                sz = sz - 1
+                            end
+                            if not tw then tw = make_tw(no_hash, 7) end
+                        end
+                    end
+                    _cached_series_tw   = tw
+                    _cached_series_idx  = series_idx
+                    _cached_series_fs   = fs
+                    _cached_series_dark = is_dark
+                end
+                local inset = utils.getBadgeInset(r)
+                local cx = x + d.w - r - inset
+                local cy = y + d.h - r - inset
+                paintCircle(bb, cx, cy, r + 2, outline)
+                paintCircle(bb, cx, cy, r,     badge_col)
+                local tsz = _cached_series_tw:getSize()
+                _cached_series_tw:paintTo(bb, cx - math.floor(tsz.w/2), cy - math.floor(tsz.h/2))
             end
         end
 
@@ -357,14 +351,46 @@ function M.build_strip(ctx, source_key)
         if count > 5 then count = 5 end
         per_row = count
     end
-    local show_strip_titles = module_cfg.show_strip_titles == true
+    local wants_strip_titles = module_cfg.show_strip_titles == true
     local show_badges = module_cfg.show_badges == true
     local center_books = module_cfg.center_books == true
     local interactive = module_cfg.interactive ~= false
+    local page_cache = {}
+    local has_adjacent_pages = false
 
-    local books = ctx.data:getBooksForStrip(source, count, order, ctx.component_id)
+    local function get_page_books(page_delta)
+        if type(ctx.data.getBooksForStripPage) == "function" then
+            local books, has_adjacent = ctx.data:getBooksForStripPage(
+                source, count, order, ctx.component_id, page_delta)
+            has_adjacent_pages = has_adjacent == true
+            return books
+        end
+        if page_delta == 0 then
+            return ctx.data:getBooksForStrip(source, count, order, ctx.component_id)
+        end
+        return nil
+    end
+
+    local function build_frame(page_delta)
+    local started_at = os.clock()
+    local show_strip_titles = wants_strip_titles
+    local books = get_page_books(page_delta or 0) or {}
     if #books == 0 then
-        return FrameContainer:new{
+        local empty_cover, cover_w, cover_h = cover_common.make_empty_placeholder_cover(
+            width, height,
+            { border = cover_common.BORDER_SIZE, background = Blitbuffer.COLOR_LIGHT_GRAY }
+        )
+        local gap = math.max(4, Screen:scaleBySize(8))
+        local message_w = math.max(1, width - cover_w - gap)
+        local empty_message = TextBoxWidget:new{
+            text = cover_common.get_empty_message(source),
+            face = Font:getFace("smallinfofont", Screen:scaleBySize(10)),
+            width = message_w,
+            alignment = "left",
+            alignment_strict = true,
+            height_adjust = true,
+        }
+        local empty_frame = FrameContainer:new{
             width = outer_width,
             height = outer_height,
             padding = 0,
@@ -372,9 +398,21 @@ function M.build_strip(ctx, source_key)
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
             CenterContainer:new{
                 dimen = Geom:new{ w = outer_width, h = outer_height },
-                TextWidget:new{ text = "No books found", face = ctx.face_label },
+                HorizontalGroup:new{
+                    empty_cover,
+                    HorizontalSpan:new{ width = gap },
+                    CenterContainer:new{
+                        dimen = Geom:new{ w = message_w, h = cover_h },
+                        empty_message,
+                    },
+                },
             },
         }
+        logger.perf("strip frame built", (os.clock() - started_at) * 1000,
+            "component=", ctx.component_id or source,
+            "page_delta=", page_delta or 0,
+            "books=", 0)
+        return empty_frame, {}
     end
 
     local num_rows = two_rows and 2 or 1
@@ -382,7 +420,7 @@ function M.build_strip(ctx, source_key)
     local row_top_pad = math.max(4, Screen:scaleBySize(4))
     local row_bottom_pad = math.max(4, Screen:scaleBySize(4))
     local row_inner_bottom_pad = two_rows and math.max(2, Screen:scaleBySize(4)) or 0
-    local strip_title_face = library_font.getFace(library_font.scaleValue(16))
+    local strip_title_face = library_font.getFace(16)
     -- Measure the real rendered single-line height: TextBoxWidget renders at
     -- round((1+line_height)*face.size) and bumps a too-small height up to that,
     -- so a guessed title_h underreserves and the title overflows into the navbar.
@@ -435,6 +473,7 @@ function M.build_strip(ctx, source_key)
     local per_row_budget = math.floor((avail_h - visible_rows * (title_h + title_gap)) / visible_rows)
     local max_cover_h_per_row = math.max(1, math.min(MIN_COVER_H, per_row_budget))
     if per_row_budget > MIN_COVER_H then max_cover_h_per_row = per_row_budget end
+    local page_focus_targets = {}
 
     local function build_row_widget(row_list, row_num)
         local n = #row_list
@@ -455,7 +494,7 @@ function M.build_strip(ctx, source_key)
                 max_cover_w,
                 cover_h,
                 {
-                    border = 1,
+                    border = cover_common.BORDER_SIZE,
                     background = Blitbuffer.COLOR_LIGHT_GRAY,
                     decorate = show_badges and function(frame)
                         apply_strip_badges(frame, book, rawget(_G, "__ZEN_UI_PLUGIN"))
@@ -543,6 +582,7 @@ function M.build_strip(ctx, source_key)
                     if not tap_self.dimen or not ges or not ges.pos then return false end
                     if ctx.openTopMenu and ctx.openTopMenu(ges) then return true end
                     if not tap_self.dimen:contains(ges.pos) then return false end
+                    set_opening_banner_cover(item.cover)
                     ctx.openBook(path)
                     return true
                 end
@@ -556,13 +596,14 @@ function M.build_strip(ctx, source_key)
                 item_widget = tap
             end
             if interactive and type(ctx.registerHomeFocusTarget) == "function" then
-                item_widget = ctx.registerHomeFocusTarget({
+                local target = {
                     key = "book:" .. tostring(path),
                     subrow = row_num or 1,
                     col = idx,
                     width = item_w,
                     height = item.h,
                     activate = function()
+                        set_opening_banner_cover(item.cover)
                         ctx.openBook(path)
                         return true
                     end,
@@ -570,7 +611,13 @@ function M.build_strip(ctx, source_key)
                         if ctx.showBookMenu then return ctx.showBookMenu(path, source) end
                         return false
                     end,
-                }, item_widget)
+                }
+                if type(ctx.prepareHomeFocusTarget) == "function" then
+                    item_widget = ctx.prepareHomeFocusTarget(target, item_widget)
+                    page_focus_targets[#page_focus_targets + 1] = target
+                else
+                    item_widget = ctx.registerHomeFocusTarget(target, item_widget)
+                end
             end
 
             table.insert(row, item_widget)
@@ -623,6 +670,18 @@ function M.build_strip(ctx, source_key)
         },
     }
 
+    logger.perf("strip frame built", (os.clock() - started_at) * 1000,
+        "component=", ctx.component_id or source,
+        "page_delta=", page_delta or 0,
+        "books=", #books)
+    return frame, page_focus_targets
+    end
+
+    local frame, initial_targets = build_frame(0)
+    if type(ctx.activateStripFocusTargets) == "function" then
+        ctx.activateStripFocusTargets(initial_targets)
+    end
+
     if not interactive or not Device:isTouchDevice() then
         return frame
     end
@@ -638,19 +697,176 @@ function M.build_strip(ctx, source_key)
             },
         },
     }
+    local UIManager = require("ui/uimanager")
+    local closed = false
+    local prewarm_scheduled = false
+    local prewarm_queue = {}
+    local swap_sequence = 0
+
+    local function new_entry(cached_frame, targets)
+        return { frame = cached_frame, targets = targets or {}, freed = false }
+    end
+
+    page_cache[0] = new_entry(frame, initial_targets)
+
+    local function free_entry(entry)
+        if not entry or entry.freed then return end
+        entry.freed = true
+        WidgetResources.free(entry.frame)
+        entry.frame = nil
+        entry.targets = nil
+    end
+
+    local function build_entry(page_delta)
+        local cached_frame, targets = build_frame(page_delta)
+        return new_entry(cached_frame, targets)
+    end
+
+    local run_prewarm
+    local function schedule_prewarm()
+        if closed or prewarm_scheduled or not has_adjacent_pages
+                or type(ctx.data.getBooksForStripPage) ~= "function" then
+            return
+        end
+        prewarm_queue = {}
+        if not page_cache[1] then prewarm_queue[#prewarm_queue + 1] = 1 end
+        if not page_cache[-1] then prewarm_queue[#prewarm_queue + 1] = -1 end
+        if #prewarm_queue == 0 then return end
+        prewarm_scheduled = true
+        UIManager:scheduleIn(0.05, run_prewarm)
+    end
+
+    run_prewarm = function()
+        prewarm_scheduled = false
+        if closed then return end
+        local page_delta = table.remove(prewarm_queue, 1)
+        if page_delta and not page_cache[page_delta] then
+            local started_at = os.clock()
+            page_cache[page_delta] = build_entry(page_delta)
+            logger.perf("strip page prewarmed", (os.clock() - started_at) * 1000,
+                "component=", ctx.component_id or source,
+                "page_delta=", page_delta)
+        end
+        if #prewarm_queue > 0 and not closed then
+            prewarm_scheduled = true
+            UIManager:scheduleIn(0.05, run_prewarm)
+        elseif not closed then
+            schedule_prewarm()
+        end
+    end
+
+    local function refresh_strip(swipe_self, direction, gesture_started_at)
+        local replacement_delta = direction == "next" and 1 or -1
+        local replacement = page_cache[replacement_delta]
+        local cache_hit = replacement ~= nil
+        if not replacement then
+            replacement = build_entry(0)
+        end
+
+        local evicted
+        if direction == "next" then
+            evicted = page_cache[-1]
+            page_cache[-1] = page_cache[0]
+            page_cache[0] = replacement
+            page_cache[1] = nil
+        else
+            evicted = page_cache[1]
+            page_cache[1] = page_cache[0]
+            page_cache[0] = replacement
+            page_cache[-1] = nil
+        end
+        swipe_self[1] = replacement.frame
+        if swipe_self.resetLayout then swipe_self:resetLayout() end
+        if type(ctx.activateStripFocusTargets) == "function" then
+            ctx.activateStripFocusTargets(replacement.targets)
+        elseif ctx.clearStripFocusTargets then
+            ctx.clearStripFocusTargets(ctx.component_id)
+        end
+        free_entry(evicted)
+
+        swap_sequence = swap_sequence + 1
+        local swapped_at = os.clock()
+        swipe_self._zen_pending_strip_paint = {
+            sequence = swap_sequence,
+            gesture_started_at = gesture_started_at,
+            swapped_at = swapped_at,
+        }
+        logger.perf("strip page swapped", (swapped_at - gesture_started_at) * 1000,
+            "component=", ctx.component_id or source,
+            "sequence=", swap_sequence,
+            "direction=", direction,
+            "cache_hit=", cache_hit and 1 or 0)
+        if ctx.refreshStrip then
+            ctx.refreshStrip(swipe_self)
+        else
+            UIManager:setDirty(ctx.menu, "ui")
+        end
+        schedule_prewarm()
+    end
+
     swipe.onSwipeStrip = function(swipe_self, _, ges)
         if not swipe_self.dimen or not ges or not ges.pos then return false end
         if not swipe_self.dimen:contains(ges.pos) then return false end
         if ges.direction == "west" then
-            if ctx.shiftStrip then ctx.shiftStrip(source, count, order, "next", ctx.component_id, two_rows) end
+            if ctx.shiftStrip then
+                local gesture_started_at = os.clock()
+                ctx.shiftStrip(source, count, order, "next", ctx.component_id, two_rows, function()
+                    refresh_strip(swipe_self, "next", gesture_started_at)
+                end)
+            end
             return true
         elseif ges.direction == "east" then
-            if ctx.shiftStrip then ctx.shiftStrip(source, count, order, "previous", ctx.component_id, two_rows) end
+            if ctx.shiftStrip then
+                local gesture_started_at = os.clock()
+                ctx.shiftStrip(source, count, order, "previous", ctx.component_id, two_rows, function()
+                    refresh_strip(swipe_self, "previous", gesture_started_at)
+                end)
+            end
             return true
         end
         return false
     end
     swipe[1] = frame
+
+    local orig_paintTo = swipe.paintTo
+    local first_paint = true
+    if type(orig_paintTo) == "function" then
+        swipe.paintTo = function(self, bb, x, y)
+            local started_at = os.clock()
+            orig_paintTo(self, bb, x, y)
+            local painted_at = os.clock()
+            local pending = self._zen_pending_strip_paint
+            if first_paint or pending then
+                logger.perf("strip page painted", (painted_at - started_at) * 1000,
+                    "component=", ctx.component_id or source,
+                    "sequence=", pending and pending.sequence or 0,
+                    "swap_to_paint_ms=", pending
+                        and math.floor((painted_at - pending.swapped_at) * 1000 + 0.5) or 0,
+                    "gesture_to_paint_ms=", pending
+                        and math.floor((painted_at - pending.gesture_started_at) * 1000 + 0.5) or 0)
+                self._zen_pending_strip_paint = nil
+            end
+            if first_paint then
+                first_paint = false
+                schedule_prewarm()
+            end
+        end
+    end
+
+    WidgetResources.wrapFree(swipe, function()
+        closed = true
+        if prewarm_scheduled then
+            UIManager:unschedule(run_prewarm)
+            prewarm_scheduled = false
+        end
+        for page_delta, entry in pairs(page_cache) do
+            if not rawequal(entry.frame, swipe[1]) then
+                free_entry(entry)
+            end
+            page_cache[page_delta] = nil
+        end
+        prewarm_queue = {}
+    end)
     return swipe
 end
 

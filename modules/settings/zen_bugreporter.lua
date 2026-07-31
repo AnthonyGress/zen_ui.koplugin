@@ -8,6 +8,7 @@ local JSON = require("json")
 local _ = require("gettext")
 local logger = require("common/zen_logger").new("zen_bugreporter")
 local UIManager = require("ui/uimanager")
+local restart = require("common/restart")
 local zen_utils = require("common/utils")
 
 local PROXY_URL       = "https://zen-reporter.misty-mud-afb2.workers.dev/"
@@ -147,7 +148,7 @@ function M.show_dialog(ctx)
             ok_callback = function()
                 G_reader_settings:saveSetting("debug_verbose", true)
                 G_reader_settings:flush()
-                UIManager:restartKOReader()
+                restart.request()
             end,
         })
         return

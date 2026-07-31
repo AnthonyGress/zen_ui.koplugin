@@ -33,7 +33,11 @@ end
 local function find_control(widget, icon, seen, depth)
     if type(widget) ~= "table" or depth > 16 or seen[widget] then return end
     seen[widget] = true
-    if widget.icon == icon and type(widget.callback) == "function" then return widget end
+    local file = widget.file
+    local filename = type(file) == "string" and (file:match("([^/]+)$") or file) or ""
+    local matches_icon = widget.icon == icon
+        or (filename:sub(1, #icon) == icon and filename:sub(#icon + 1, #icon + 1) == ".")
+    if matches_icon and type(widget.callback) == "function" then return widget end
     for _i, child in ipairs(widget) do
         local found = find_control(child, icon, seen, depth + 1)
         if found then return found end

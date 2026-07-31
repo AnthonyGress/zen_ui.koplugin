@@ -168,8 +168,11 @@ msgstr "Tout le temps"
 msgid "All time"
 msgstr "Tout le temps"
 
-msgid "Allow custom icons"
-msgstr "Autoriser les icônes personnalisées"
+msgid "Custom icons"
+msgstr "Icônes personnalisées"
+
+msgid "Enable custom icons"
+msgstr "Activer les icônes personnalisées"
 
 msgid "Allow delete"
 msgstr "Autoriser la suppression"
@@ -795,8 +798,8 @@ msgstr "Activer la journalisation de débogage détaillée de KOReader. Les jour
 msgid "Enable night mode schedule"
 msgstr "Activer la planification du mode nuit"
 
-msgid "Enable page browser"
-msgstr "Activer le navigateur de pages"
+msgid "Zen page browser"
+msgstr "Navigateur de pages Zen"
 
 msgid "Enable top status bar"
 msgstr "Activer la barre d'état supérieure"
@@ -1701,6 +1704,9 @@ msgstr "Recommencer le livre"
 msgid "Restart now"
 msgstr "Redémarrer maintenant"
 
+msgid "Restarting"
+msgstr "Redémarrage"
+
 msgid "Restore library location on exit"
 msgstr "Restaurer l'emplacement de la bibliothèque à la sortie"
 
@@ -2525,3 +2531,36 @@ msgstr "Supprimer ce thème personnalisé ?"
 
 msgid "Custom theme"
 msgstr "Thème personnalisé"
+
+msgid "%1 (%2/%3 icons)"
+msgstr "%1 (%2/%3 icônes)"
+
+msgid "By %1"
+msgstr "Par %1"
+
+msgid "Could not install %1: %2"
+msgstr "Impossible d’installer %1 : %2"
+
+msgid "Custom icon pack: %1"
+msgstr "Pack d’icônes personnalisé : %1"
+
+msgid "Loose icons"
+msgstr "Icônes individuelles"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Icônes individuelles dans /koreader/icons"
+
+msgid "Missing: %1"
+msgstr "Manquant : %1"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Placez les dossiers de packs ou les fichiers ZIP dans /koreader/icons/zen. Les fichiers ZIP sont installés automatiquement."
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Redémarrez KOReader pour appliquer la mise à jour du pack actif"
+
+msgid "Unavailable pack: %1"
+msgstr "Pack indisponible : %1"
+
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "Lorsque cette option est activée, les icônes individuelles ou le pack d’icônes Zen UI sélectionné remplacent les icônes prises en charge. Les icônes manquantes utilisent d’abord Zen UI, puis KOReader."

@@ -128,8 +128,9 @@ def test_home_renders_all_core_widgets_with_and_without_history(with_history: bo
         root = Path(temporary)
         ko_home = root / "home"
         ko_home.mkdir()
-        fixture = build_library(root / "library")
-        book = root / "library" / "Alpha Home.epub"
+        library = root / "library"
+        fixture = build_library(library)
+        book = library / "Alpha Home.epub"
         fixture["epub"].replace(book)
         fixture["epub"] = book
         _seed_home_settings(ko_home)
@@ -137,7 +138,7 @@ def test_home_renders_all_core_widgets_with_and_without_history(with_history: bo
         if with_history:
             _seed_history(ko_home, fixture["epub"])
         socket_path = root / "driver.sock"
-        process = launch(runtime, ko_home, socket_path, root / "library")
+        process = launch(runtime, ko_home, socket_path, library.resolve())
         try:
             wait_for_socket(socket_path)
             driver = ZenDriver(socket_path)
@@ -152,13 +153,17 @@ def test_home_renders_all_core_widgets_with_and_without_history(with_history: bo
             screenshot = root / "home.png"
             driver.screenshot(screenshot)
             assert screenshot.stat().st_size > 0
-            assert "Alpha Home" in home["visible_texts"]
+            if with_history:
+                assert "Alpha Home" in home["visible_texts"]
+            else:
+                assert "Alpha Home" not in home["visible_texts"]
+                assert "Start reading a book to fill this space." in home["visible_texts"]
         finally:
             process.send_signal(signal.SIGTERM)
             process.wait(timeout=15)
 
 
-def test_home_edit_mode_reopens_widget_settings_after_finish() -> None:
+def test_home_edit_mode_reopens_widget_settings_after_close() -> None:
     runtime = Path(os.environ["KOREADER_DIR"])
     with tempfile.TemporaryDirectory(prefix="zen-ui-home-edit-") as temporary:
         root = Path(temporary)
@@ -185,13 +190,16 @@ def test_home_edit_mode_reopens_widget_settings_after_finish() -> None:
             first = driver.command("open_widget_settings", page="home", id="quotes")
             assert first["opened"] is True, first
             deadline = time.monotonic() + 5
-            finish: dict[str, object] = {}
+            quotes: dict[str, object] = {}
             while time.monotonic() < deadline:
-                finish = driver.command("activate_arrange_finish")
-                if finish.get("ok") is True:
+                response = driver.command("arrange_page_state")
+                if response.get("ok"):
+                    quotes = response["arrange"]
                     break
                 time.sleep(0.1)
-            assert finish.get("ok") is True, finish
+            assert quotes.get("title") == "Quotes widget"
+            assert quotes.get("row_style") == quotes.get("standard_style")
+            assert driver.command("close_arrange_page")["ok"] is True
 
             second = driver.command("open_widget_settings", page="home", id="quotes")
             assert second["opened"] is True, second

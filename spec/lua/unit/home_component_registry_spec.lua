@@ -7,6 +7,7 @@ describe("home component registry", function()
         "stats_triplet",
         "reading_goals",
         "strip_custom",
+        "strip_tag",
         "strip_tbr",
         "strip_recent",
         "quotes",
@@ -50,7 +51,7 @@ describe("home component registry", function()
         assert.are.same({
             "quotes", "external_missing", "datetime", "featured_recent",
             "featured_custom", "featured_tbr", "stats_triplet", "reading_goals",
-            "strip_custom", "strip_tbr", "strip_recent", "dormant",
+            "strip_custom", "strip_tag", "strip_tbr", "strip_recent", "dormant",
         }, rows.order)
         assert.is_true(rows.enabled.quotes)
         assert.is_true(rows.enabled.dormant)

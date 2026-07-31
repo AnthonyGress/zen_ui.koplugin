@@ -1,0 +1,127 @@
+describe("CoverBrowser decoded cover cache patch", function()
+    local BookInfoManager
+    local Cache
+    local apply
+    local full_reads
+    local metadata_reads
+    local current_time
+    local forced_info
+
+    local function fake_bb(id)
+        local bb = { stride = 4, h = 1, id = id }
+        function bb:getHeight() return self.h end
+        function bb:copy() return fake_bb(id .. ":copy") end
+        function bb:free() self.freed = true end
+        return bb
+    end
+
+    local function info(with_cover)
+        return {
+            filesize = 100,
+            filemtime = 200,
+            cover_fetched = "Y",
+            has_cover = "Y",
+            cover_sizetag = "100x150",
+            cover_w = 50,
+            cover_h = 75,
+            cover_bb = with_cover and fake_bb("decoded") or nil,
+        }
+    end
+
+    before_each(function()
+        full_reads = 0
+        metadata_reads = 0
+        current_time = 100
+        forced_info = nil
+        BookInfoManager = {
+            getBookInfo = function(_self, _filepath, get_cover)
+                if get_cover then
+                    full_reads = full_reads + 1
+                else
+                    metadata_reads = metadata_reads + 1
+                end
+                return forced_info or info(get_cover)
+            end,
+            deleteBookInfo = function() end,
+            extractInBackground = function() end,
+        }
+        ZenSpec.replace("bookinfomanager", BookInfoManager)
+        ZenSpec.replace("common/zen_logger", {
+            now = function() return current_time end,
+        })
+        ZenSpec.unload("common/cover_decode_cache")
+        Cache = require("common/cover_decode_cache")
+        Cache:clear()
+        Cache:setByteBudget(Cache.DEFAULT_BYTE_BUDGET)
+        ZenSpec.unload("modules/filebrowser/patches/cover_decode_cache")
+        apply = require("modules/filebrowser/patches/cover_decode_cache")
+        apply()
+    end)
+
+    after_each(function()
+        Cache:clear()
+    end)
+
+    it("decompresses and queries once, then serves recent copies from memory", function()
+        local first = BookInfoManager:getBookInfo("/book.epub", true)
+        local second = BookInfoManager:getBookInfo("/book.epub", true)
+
+        assert.are.equal(1, full_reads)
+        assert.are.equal(0, metadata_reads)
+        assert.are_not.equal(first.cover_bb, second.cover_bb)
+        assert.are.equal(1, Cache:stats().hits)
+        assert.are.equal(1, Cache:stats().fast_hits)
+    end)
+
+    it("revalidates cached metadata after thirty seconds", function()
+        BookInfoManager:getBookInfo("/book.epub", true)
+        current_time = current_time + 31
+        BookInfoManager:getBookInfo("/book.epub", true)
+
+        assert.are.equal(1, full_reads)
+        assert.are.equal(1, metadata_reads)
+        assert.are.equal(1, Cache:stats().validation_reads)
+    end)
+
+    it("avoids 99 of 100 repeated decompressions", function()
+        for _i = 1, 100 do
+            local result = BookInfoManager:getBookInfo("/book.epub", true)
+            result.cover_bb:free()
+        end
+
+        local stats = Cache:stats()
+        assert.are.equal(1, full_reads)
+        assert.are.equal(0, metadata_reads)
+        assert.are.equal(99, stats.hits)
+        assert.are.equal(99, stats.fast_hits)
+        assert.are.equal(1, stats.decode_reads)
+        assert.are.equal(99, stats.hits / (stats.hits + stats.decode_reads) * 100)
+    end)
+
+    it("invalidates a book when CoverBrowser deletes its metadata", function()
+        BookInfoManager:getBookInfo("/book.epub", true)
+        assert.is_true(Cache:has("/book.epub"))
+
+        BookInfoManager:deleteBookInfo("/book.epub")
+
+        assert.is_false(Cache:has("/book.epub"))
+    end)
+
+    it("invalidates queued CoverBrowser extraction records", function()
+        BookInfoManager:getBookInfo("/book.epub", true)
+        assert.is_true(Cache:has("/book.epub"))
+
+        BookInfoManager:extractInBackground({ { filepath = "/book.epub" } })
+
+        assert.is_false(Cache:has("/book.epub"))
+    end)
+
+    it("retries books that CoverBrowser abandoned after interrupted extraction", function()
+        local deleted
+        forced_info = { unsupported = "too many interruptions or crashes" }
+        BookInfoManager.deleteBookInfo = function(_self, path) deleted = path end
+
+        assert.is_nil(BookInfoManager:getBookInfo("/interrupted.epub", true))
+        assert.are.equal("/interrupted.epub", deleted)
+    end)
+end)

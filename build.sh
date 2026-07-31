@@ -88,6 +88,7 @@ rsync -a \
   --exclude 'dist/' \
   --exclude 'spec/' \
   --exclude 'docs/' \
+  --exclude 'icon-packs/' \
   --exclude '.DS_Store' \
   --exclude '.gitignore' \
   --exclude '*.zip' \
@@ -97,7 +98,9 @@ rsync -a \
   --exclude '*_includes/' \
   --exclude '_config.yml' \
   --exclude '*.yml/' \
-  --exclude 'images/' \
+  --include '/images/' \
+  --include '/images/ornate-cover-frame.svg' \
+  --exclude '/images/***' \
   --exclude '.venv/' \
   --exclude '*.py' \
   --exclude '*.luarocks' \

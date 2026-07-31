@@ -19,6 +19,34 @@ local _tags_menu    = nil
 -- Detail view menus layered on top of the group menu
 local _detail_menus = {}
 
+local function get_root_menu(tab_id)
+    if tab_id == "authors" then return _authors_menu end
+    if tab_id == "series" then return _series_menu end
+    if tab_id == "tags" then return _tags_menu end
+    if tab_id == "to_be_read" then return _tbr_menu end
+end
+
+local function clear_root_menu(tab_id, menu)
+    if tab_id == "authors" and _authors_menu == menu then
+        _authors_menu = nil
+    elseif tab_id == "series" and _series_menu == menu then
+        _series_menu = nil
+    elseif tab_id == "tags" and _tags_menu == menu then
+        _tags_menu = nil
+    elseif tab_id == "to_be_read" and _tbr_menu == menu then
+        _tbr_menu = nil
+    end
+end
+
+local function remove_detail_menu(menu)
+    for i = #_detail_menus, 1, -1 do
+        if _detail_menus[i] == menu then
+            table.remove(_detail_menus, i)
+            return
+        end
+    end
+end
+
 -- Set during apply (called at init while __ZEN_UI_PLUGIN is set)
 local _zen_shared    = nil
 local _zen_plugin    = nil  -- captured at init; __ZEN_UI_PLUGIN is cleared after init
@@ -342,6 +370,13 @@ local function setup_display_mode(menu, is_group_view, tab_id)
     return display_mode_type
 end
 
+local function gen_empty_group_cover(CoverUtils, width, height)
+    return CoverUtils.genCover(
+        "zen-empty-group-placeholder", width, height, true,
+        { title = "", authors = "", title_only = true }
+    )
+end
+
 -------------------------------------------------------------------------------
 -- patch_mosaic_item: one-time install of MosaicMenuItem.update override
 -- Uses self.entry._zen_files (list of absolute file paths)
@@ -385,10 +420,9 @@ local function patch_mosaic_item()
                 local CenterContainer2 = require("ui/widget/container/centercontainer")
                 local FrameContainer2  = require("ui/widget/container/framecontainer")
                 local OverlapGroup2    = require("ui/widget/overlapgroup")
-                local Size2            = require("ui/size")
                 local VerticalGroup2   = require("ui/widget/verticalgroup")
                 local VerticalSpan2    = require("ui/widget/verticalspan")
-                local border   = Size2.border.thin
+                local border   = CoverUtils.BORDER_SIZE
                 local max_w    = self.width  - 2 * border
                 local bh       = self.height - 2 * border
                 local pw, ph
@@ -427,13 +461,15 @@ local function patch_mosaic_item()
         end
 
         if not (self.menu and self.menu._zen_group_view
-                and self.entry and self.entry._zen_files) then
+                and self.entry and (self.entry._zen_files
+                    or self.entry._zen_empty_placeholder)) then
             return orig_update(self, ...)
         end
 
         self.is_directory = true
 
-        local files      = self.entry._zen_files
+        local is_empty_placeholder = self.entry._zen_empty_placeholder == true
+        local files      = self.entry._zen_files or {}
         local book_count = #files
         local mode, max_covers = CoverUtils.getMode()
         local is_gallery = mode == "gallery"
@@ -452,26 +488,41 @@ local function patch_mosaic_item()
         end
 
         local covers = {}
-        for i = 1, math.min(book_count, max_covers) do
-            local bi = BookInfoManager:getBookInfo(files[i], true)
-            if bi and bi.cover_bb and bi.has_cover
-                    and bi.cover_fetched and not bi.ignore_cover then
-                table.insert(covers, {
-                    data = bi.cover_bb:copy(),
-                    w    = bi.cover_w,
-                    h    = bi.cover_h,
-                })
-            else
-                local gen_bb, gen_w, gen_h = CoverUtils.genCover(files[i], _pw_pre, _ph_pre)
-                if gen_bb then
-                    table.insert(covers, { data = gen_bb, w = gen_w, h = gen_h })
+        if is_empty_placeholder then
+            local cover_bb = gen_empty_group_cover(CoverUtils, _pw_pre, _ph_pre)
+            table.insert(covers, { data = cover_bb, w = _pw_pre, h = _ph_pre })
+        else
+            for i = 1, math.min(book_count, max_covers) do
+                local bi = BookInfoManager:getBookInfo(files[i], true)
+                if bi and bi.cover_bb and bi.has_cover
+                        and bi.cover_fetched and not bi.ignore_cover then
+                    local cover_bb = bi.cover_bb:copy()
+                    bi.cover_bb:free()
+                    table.insert(covers, {
+                        data = cover_bb,
+                        w    = bi.cover_w,
+                        h    = bi.cover_h,
+                    })
+                else
+                    if bi and bi.cover_bb then bi.cover_bb:free() end
+                    local gen_bb, gen_w, gen_h = CoverUtils.genCover(files[i], _pw_pre, _ph_pre)
+                    if gen_bb then
+                        table.insert(covers, { data = gen_bb, w = gen_w, h = gen_h })
+                    end
                 end
             end
         end
 
         -- Delegate to browser_folder_cover's method when available.
         if self._setFolderCover then
-            if is_gallery then
+            if is_empty_placeholder then
+                self:_setFolderCover{
+                    data = covers[1].data,
+                    w = covers[1].w,
+                    h = covers[1].h,
+                    book_count = book_count,
+                }
+            elseif is_gallery then
                 self:_setFolderCover{ gallery = covers, book_count = book_count }
             elseif is_stack then
                 self:_setFolderCover{ stack = covers, book_count = book_count }
@@ -491,11 +542,10 @@ local function patch_mosaic_item()
         local ImageWidget     = require("ui/widget/imagewidget")
         local LineWidget      = require("ui/widget/linewidget")
         local OverlapGroup    = require("ui/widget/overlapgroup")
-        local Size            = require("ui/size")
         local VerticalGroup   = require("ui/widget/verticalgroup")
         local VerticalSpan    = require("ui/widget/verticalspan")
 
-        local border = Size.border.thin
+        local border = CoverUtils.BORDER_SIZE
         local max_w  = self.width  - 2 * border
         local bh     = self.height - 2 * border
         local portrait_w, portrait_h
@@ -523,7 +573,7 @@ local function patch_mosaic_item()
         for i = 1, 4 do
             local c  = covers[i]
             local cd = cell_dims[i]
-            if c then
+            if c and not is_empty_placeholder then
                 cells[i] = CenterContainer:new{
                     dimen = { w = cd.w, h = cd.h },
                     ImageWidget:new{ image = c.data, width = cd.w, height = cd.h },
@@ -537,7 +587,9 @@ local function patch_mosaic_item()
         end
         local dimen = { w = portrait_w + 2 * border, h = portrait_h + 2 * border }
         local image_widget
-        if is_stack then
+        if is_empty_placeholder then
+            image_widget = CoverUtils.drawSingle(covers[1].data, portrait_w, portrait_h, border)
+        elseif is_stack then
             image_widget = CoverUtils.drawStack(covers, portrait_w, portrait_h, border)
         else
             image_widget = FrameContainer:new{
@@ -617,7 +669,6 @@ local function patch_list_item()
     local LineWidget      = require("ui/widget/linewidget")
     local OverlapGroup    = require("ui/widget/overlapgroup")
     local RightContainer  = require("ui/widget/container/rightcontainer")
-    local Size            = require("ui/size")
     local TextBoxWidget   = require("ui/widget/textboxwidget")
     local TextWidget      = require("ui/widget/textwidget")
     local VerticalGroup   = require("ui/widget/verticalgroup")
@@ -632,8 +683,10 @@ local function patch_list_item()
     ListMenuItem._zen_gv_orig = ListMenuItem.update
 
     function ListMenuItem:update(...)
-        if not (self.menu and self.menu._zen_group_view
-                and self.entry and self.entry._zen_files) then
+        local is_empty_placeholder = self.menu and self.menu._zen_group_view
+            and self.entry and self.entry._zen_empty_placeholder
+        if not (is_empty_placeholder or (self.menu and self.menu._zen_group_view
+                and self.entry and self.entry._zen_files)) then
             -- Use the live fallthrough so BLL's patch is honoured even if it
             -- ran after our install (Android timing issue).
             local fallthrough = ListMenuItem._zen_gv_orig
@@ -642,13 +695,13 @@ local function patch_list_item()
 
         self.is_directory = true
 
-        local files      = self.entry._zen_files
+        local files      = self.entry._zen_files or {}
         local book_count = #files
         local display_name = self.entry.text or ""
 
         local underline_h  = 1
         local dimen_h      = self.height - 2 * underline_h
-        local border_size  = Size.border.thin
+        local border_size  = CoverUtils.BORDER_SIZE
         local cover_v_pad  = Screen:scaleBySize(4)  -- matches bll top+bottom padding
         local cover_zone_w = dimen_h
         local max_img      = dimen_h - 2 * border_size - 2 * cover_v_pad
@@ -674,8 +727,11 @@ local function patch_list_item()
                 local bi = BookInfoManager:getBookInfo(files[i], true)
                 if bi and bi.cover_bb and bi.has_cover
                         and bi.cover_fetched and not bi.ignore_cover then
-                    table.insert(covers, { data = bi.cover_bb:copy() })
+                    local cover_bb = bi.cover_bb:copy()
+                    bi.cover_bb:free()
+                    table.insert(covers, { data = cover_bb })
                 else
+                    if bi and bi.cover_bb then bi.cover_bb:free() end
                     local gen_bb = CoverUtils.genCover(files[i], cover_w, max_img)
                     if gen_bb then
                         table.insert(covers, { data = gen_bb })
@@ -685,7 +741,12 @@ local function patch_list_item()
             end
 
             local cover_frame
-            if gallery_mode then
+            if is_empty_placeholder then
+                local cover_bb = gen_empty_group_cover(CoverUtils, cover_w, max_img)
+                cover_frame = CoverUtils.drawSingle(cover_bb, cover_w, max_img, border_size)
+                self.menu._has_cover_images = true
+                self._has_cover_image = true
+            elseif gallery_mode then
                 local gall_w = cover_w
                 local gall_h = max_img
                 if #covers > 0 then
@@ -914,6 +975,7 @@ local function group_empty_message(data_type)
         authors = _("No books with author metadata found"),
         series = _("No books with series metadata found"),
         tags = _("No books with tags metadata found"),
+        to_be_read = _("No TBR books found"),
     })[data_type] or _("No books found")
 end
 
@@ -943,9 +1005,10 @@ local function build_group_item_table(groups, data_type)
     end
     if #items == 0 then
         table.insert(items, {
-            text     = empty_message,
-            dim      = true,
-            callback = function() end,
+            text                    = empty_message,
+            dim                     = true,
+            callback                = function() end,
+            _zen_empty_placeholder  = true,
         })
     end
 
@@ -1190,7 +1253,7 @@ local function sortDetailFiles(files, collate, reverse)
     -- Build sortable array with metadata
     local items = {}
     for _i, fpath in ipairs(files) do
-        local bookinfo = BookInfoManager:getBookInfo(fpath, true)
+        local bookinfo = BookInfoManager:getBookInfo(fpath, false)
         local sort_key
 
         if collate == "title" or collate == "title_natural" then
@@ -1426,7 +1489,7 @@ end
 -- showDetailView: book list for one author/series group
 -- Called from onMenuSelect on the group list menu
 -------------------------------------------------------------------------------
-local function showDetailView(group_item, injectNavbar, tab_id)
+local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
     local _ = require("gettext")
     local UIManager = require("ui/uimanager")
 
@@ -1439,6 +1502,11 @@ local function showDetailView(group_item, injectNavbar, tab_id)
         detail_name = "tags_detail"
     else
         detail_name = "series_detail"
+    end
+    for _i, active_menu in ipairs(_detail_menus) do
+        if active_menu.name == detail_name then
+            return active_menu, false
+        end
     end
 
     -- Get sort settings for this group
@@ -1540,8 +1608,13 @@ local function showDetailView(group_item, injectNavbar, tab_id)
     detail_menu._zen_tab_id     = tab_id
     detail_menu.close_callback = function()
         UIManager:close(detail_menu)
-        for i, m in ipairs(_detail_menus) do
-            if m == detail_menu then table.remove(_detail_menus, i); break end
+        remove_detail_menu(detail_menu)
+    end
+    local orig_detail_on_close_widget = detail_menu.onCloseWidget
+    function detail_menu:onCloseWidget(...)
+        remove_detail_menu(self)
+        if orig_detail_on_close_widget then
+            return orig_detail_on_close_widget(self, ...)
         end
     end
 
@@ -1567,7 +1640,7 @@ local function showDetailView(group_item, injectNavbar, tab_id)
     clean_nav(detail_menu, group_name, back_to_group)
 
     if injectNavbar then
-        injectNavbar(detail_menu, tab_id)  -- keep authors/series tab active
+        injectNavbar(detail_menu, navbar_tab_id or tab_id)
     end
 
     -- Add blank-space hold gesture handler for context menu
@@ -1605,7 +1678,7 @@ local function showDetailView(group_item, injectNavbar, tab_id)
                     _zen_filter_refresh_cb = function()
                         -- Rebuild item_table with new filter: close and reopen.
                         UIManager:close(detail_menu)
-                        showDetailView(group_item, injectNavbar, tab_id)
+                        showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
                     end,
                 })
             end
@@ -1631,6 +1704,7 @@ local function showDetailView(group_item, injectNavbar, tab_id)
             if repaintTB2 then repaintTB2(tb2) end
         end
     end)
+    return detail_menu, true
 end
 
 -------------------------------------------------------------------------------
@@ -1640,6 +1714,8 @@ end
 -- groups: pre-loaded data from db_bookinfo
 -------------------------------------------------------------------------------
 showGroupView = function(tab_id, injectNavbar, groups)
+    local active_menu = get_root_menu(tab_id)
+    if active_menu then return active_menu, false end
     local _ = require("gettext")
     local UIManager = require("ui/uimanager")
 
@@ -1706,12 +1782,13 @@ showGroupView = function(tab_id, injectNavbar, groups)
 
     menu.close_callback = function()
         UIManager:close(menu)
-        if tab_id == "authors" then
-            _authors_menu = nil
-        elseif tab_id == "tags" then
-            _tags_menu = nil
-        else
-            _series_menu = nil
+        clear_root_menu(tab_id, menu)
+    end
+    local orig_group_on_close_widget = menu.onCloseWidget
+    function menu:onCloseWidget(...)
+        clear_root_menu(tab_id, self)
+        if orig_group_on_close_widget then
+            return orig_group_on_close_widget(self, ...)
         end
     end
 
@@ -1824,46 +1901,61 @@ showGroupView = function(tab_id, injectNavbar, groups)
             end
         end
     end)
+    return menu, true
 end
 
 -------------------------------------------------------------------------------
 -- Public API called by navbar.lua tab callbacks
 -------------------------------------------------------------------------------
 function M.showAuthorsView(injectNavbar)
+    if _authors_menu then return _authors_menu, false end
     refresh_shared_state()
     local ok, db = pcall(require, "common/db_bookinfo")
     if not ok then return end
     local groups = db.getGroupedByAuthor()
-    showGroupView("authors", injectNavbar, groups)
+    return showGroupView("authors", injectNavbar, groups)
 end
 
 function M.showSeriesView(injectNavbar)
+    if _series_menu then return _series_menu, false end
     refresh_shared_state()
     local ok, db = pcall(require, "common/db_bookinfo")
     if not ok then return end
     local groups = db.getGroupedBySeries()
-    showGroupView("series", injectNavbar, groups)
+    return showGroupView("series", injectNavbar, groups)
 end
 
 function M.showTagsView(injectNavbar)
+    if _tags_menu then return _tags_menu, false end
     refresh_shared_state()
     local ok, db = pcall(require, "common/db_bookinfo")
     if not ok then return end
     local groups = db.getGroupedByTags()
-    showGroupView("tags", injectNavbar, groups)
+    return showGroupView("tags", injectNavbar, groups)
+end
+
+-- Opens one tag directly, for custom navbar tabs that target a specific tag.
+function M.showTagDetail(tag_name, injectNavbar, navbar_tab_id)
+    if type(tag_name) ~= "string" or tag_name == "" then return end
+    refresh_shared_state()
+    local ok, db = pcall(require, "common/db_bookinfo")
+    if not ok then return end
+    local files = type(db.getTagBooks) == "function" and db.getTagBooks(tag_name) or {}
+    return showDetailView(
+        { text = tag_name, _zen_files = files }, injectNavbar, "tags", navbar_tab_id)
 end
 
 -------------------------------------------------------------------------------
 -- M.showTBRView: flat book list filtered to "To Be Read" (abandoned) status
 -------------------------------------------------------------------------------
 function M.showTBRView(injectNavbar)
+    if _tbr_menu then return _tbr_menu, false end
     refresh_shared_state()
     local _          = require("gettext")
     local UIManager  = require("ui/uimanager")
 
     local ok, db = pcall(require, "common/db_bookinfo")
     if not ok then return end
-    local files = db.getTBRBooks()
 
     local tab_id     = "to_be_read"
     local SORT_GROUP = "to_be_read"
@@ -1872,8 +1964,18 @@ function M.showTBRView(injectNavbar)
     local cur_collate = get_detail_collate(tab_id, SORT_GROUP, "title")
     local cur_reverse = get_detail_reverse(tab_id, SORT_GROUP, false)
 
-    local sorted_files = sortDetailFiles(files, cur_collate, cur_reverse)
-    sorted_files = apply_status_filter(sorted_files)
+    local ok_index, tbr_index = pcall(require, "common/tbr_index")
+    if not ok_index or type(tbr_index.getAll) ~= "function" then tbr_index = nil end
+
+    local function loadFiles()
+        local loaded = tbr_index and tbr_index.getAll({
+            include_new = book_status.includeNewInTBREnabled(),
+        }) or db.getTBRBooks()
+        loaded = sortDetailFiles(loaded, cur_collate, cur_reverse)
+        return apply_status_filter(loaded)
+    end
+
+    local files = loadFiles()
 
     local function buildItems(flist)
         local lfs_mod  = require("libs/libkoreader-lfs")
@@ -1893,15 +1995,16 @@ function M.showTBRView(injectNavbar)
         end
         if #items == 0 then
             table.insert(items, {
-                text     = _("No books found"),
-                dim      = true,
-                callback = function() end,
+                text                   = group_empty_message(tab_id),
+                dim                    = true,
+                callback               = function() end,
+                _zen_empty_placeholder = true,
             })
         end
         return items
     end
 
-    local items = buildItems(sorted_files)
+    local items = buildItems(files)
     if should_show_up_folder() then
         table.insert(items, 1, { text = "\u{2B06} ..", is_go_up = true, mandatory = "" })
     end
@@ -1947,7 +2050,7 @@ function M.showTBRView(injectNavbar)
     -- doesn't suppress covers the way it does for non-FM dialogs (e.g. screensaver picker).
     menu._zen_tab_id = tab_id
 
-    local mode_type = setup_display_mode(menu, false, tab_id)
+    local mode_type = setup_display_mode(menu, true, tab_id)
     if mode_type == "mosaic" then
         patch_mosaic_item()
     elseif mode_type == "list" then
@@ -1959,7 +2062,14 @@ function M.showTBRView(injectNavbar)
 
     menu.close_callback = function()
         UIManager:close(menu)
-        _tbr_menu = nil
+        clear_root_menu(tab_id, menu)
+    end
+    local orig_tbr_on_close_widget = menu.onCloseWidget
+    function menu:onCloseWidget(...)
+        clear_root_menu(tab_id, self)
+        if orig_tbr_on_close_widget then
+            return orig_tbr_on_close_widget(self, ...)
+        end
     end
 
     clean_nav(menu, group_name)
@@ -1969,6 +2079,32 @@ function M.showTBRView(injectNavbar)
     end
 
     _tbr_menu = menu
+
+    if tbr_index and (type(tbr_index.isAuditComplete) ~= "function"
+            or not tbr_index.isAuditComplete()) then
+        local refresh_pending = false
+        local function refreshIndexedItems()
+            if refresh_pending then return end
+            refresh_pending = true
+            UIManager:scheduleIn(0.2, function()
+                refresh_pending = false
+                if _tbr_menu ~= menu then return end
+                files = loadFiles()
+                local refreshed = buildItems(files)
+                if should_show_up_folder() then
+                    table.insert(refreshed, 1,
+                        { text = "\u{2B06} ..", is_go_up = true, mandatory = "" })
+                end
+                menu.item_table = refreshed
+                menu:updateItems()
+            end)
+        end
+        UIManager:nextTick(function()
+            local candidates = type(db.getTBRIndexCandidates) == "function"
+                and db.getTBRIndexCandidates() or {}
+            tbr_index.scheduleAudit(candidates, refreshIndexedItems, refreshIndexedItems)
+        end)
+    end
 
     local Device_tbr = require("device")
     if Device_tbr:isTouchDevice() then
@@ -2027,6 +2163,7 @@ function M.showTBRView(injectNavbar)
             if repaintTB2 then repaintTB2(tb2) end
         end
     end)
+    return menu, true
 end
 
 -- Open a detail view synchronously by group name (used by navbar.showFiles post-hook).

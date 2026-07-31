@@ -27,7 +27,9 @@ local function apply_browser_folder_cover()
     local ffiUtil = require("ffi/util")
     local lfs = require("libs/libkoreader-lfs")
     local HistoryIndex = require("common/history_index")
-    local logger = require("common/zen_logger").new("browser_folder_cover")
+    local zen_logger = require("common/zen_logger")
+    local logger = zen_logger.new("browser_folder_cover")
+    local now = zen_logger.now
     local paths = require("common/paths")
     local library_font = require("modules/filebrowser/patches/library_font")
     local utils = require("common/utils")
@@ -318,8 +320,11 @@ local function apply_browser_folder_cover()
         return string.format("%s|%d", _item_table_stable_key(path), mtime)
     end
 
+    local shared_filemanager_item_table_cache
+
     function FileChooser:_zen_clear_item_table_cache()
         self._zen_folder_cover_item_table_cache = nil
+        shared_filemanager_item_table_cache = nil
         self._zen_folder_cover_list_cache = {}
         self._zen_folder_cover_aggregate_cache = nil
     end
@@ -342,6 +347,14 @@ local function apply_browser_folder_cover()
             return result
         end
         if not self._dummy and self.name == "filemanager" then
+            local started_at = now()
+            local function measured(result, cache_state)
+                logger.measure("File list generated", (now() - started_at) * 1000,
+                    "cache=", cache_state,
+                    "path=", tostring(path),
+                    "items=", type(result) == "table" and #result or 0)
+                return result
+            end
             local override = _folder_sort_override(path)
             local collate_mode = type(override) == "table" and override.collate
                 or G_reader_settings:readSetting("collate", "strcoll")
@@ -353,14 +366,20 @@ local function apply_browser_folder_cover()
             -- removed, sidecar written) advances the key and invalidates the cache.
             local key = _item_table_key(path)
             local stable_key = _item_table_stable_key(path)
-            local item_table_cache = self._zen_folder_cover_item_table_cache
+            local is_home_root = path == paths.getHomeDir()
+            local root_cache = self._zen_folder_cover_item_table_cache
+            local item_table_cache = root_cache and root_cache.key == key and root_cache
+                or shared_filemanager_item_table_cache
             if item_table_cache and item_table_cache.key == key then
+                if is_home_root then
+                    self._zen_folder_cover_item_table_cache = item_table_cache
+                end
                 local cached_table = item_table_cache.table
                 if collate_mode == "access" then
                     cached_table = _apply_history_order(self, cached_table, collate, reverse_collate)
                     item_table_cache.table = cached_table
                 end
-                return cached_table
+                return measured(cached_table, "hit")
             end
             -- Returning from reading a book writes its sidecar, which bumps the
             -- directory mtime even though the file list is unchanged. That alone
@@ -370,32 +389,46 @@ local function apply_browser_folder_cover()
             -- (stable_key matches), reuse the cached table and only re-apply
             -- history order. One-shot: clear the flag so later refreshes fall
             -- through to a fresh regen.
+            local stable_item_table_cache = item_table_cache
+            if not (stable_item_table_cache and stable_item_table_cache.stable_key == stable_key) then
+                if root_cache and root_cache.stable_key == stable_key then
+                    stable_item_table_cache = root_cache
+                elseif shared_filemanager_item_table_cache
+                        and shared_filemanager_item_table_cache.stable_key == stable_key then
+                    stable_item_table_cache = shared_filemanager_item_table_cache
+                end
+            end
             if collate_mode == "access"
                     and rawget(_G, "__ZEN_UI_LAST_READ_FILE")
-                    and item_table_cache
-                    and item_table_cache.stable_key == stable_key then
+                    and stable_item_table_cache
+                    and stable_item_table_cache.stable_key == stable_key then
                 _G.__ZEN_UI_LAST_READ_FILE = nil
-                local cached_table = _apply_history_order(self, item_table_cache.table, collate, reverse_collate)
-                self._zen_folder_cover_item_table_cache = {
+                local cached_table = _apply_history_order(
+                    self, stable_item_table_cache.table, collate, reverse_collate)
+                local cache = {
                     key = key,
                     stable_key = stable_key,
                     table = cached_table,
                     path = path,
                 }
-                return cached_table
+                if is_home_root then self._zen_folder_cover_item_table_cache = cache end
+                shared_filemanager_item_table_cache = cache
+                return measured(cached_table, "reader_reuse")
             end
             self._zen_folder_cover_list_cache = {}
             local result = orig_FileChooser_genItemTableFromPath(self, path)
             if collate_mode == "access" then
                 result = _apply_history_order(self, result, collate, reverse_collate)
             end
-            self._zen_folder_cover_item_table_cache = {
+            local cache = {
                 key = key,
                 stable_key = stable_key,
                 table = result,
                 path = path,
             }
-            return result
+            if is_home_root then self._zen_folder_cover_item_table_cache = cache end
+            shared_filemanager_item_table_cache = cache
+            return measured(result, "miss")
         end
         return orig_FileChooser_genItemTableFromPath(self, path)
     end
@@ -408,7 +441,7 @@ local function apply_browser_folder_cover()
             width = 0.97,
         },
         face = {
-            border_size = Size.border.thin,
+            border_size = Cover.BORDER_SIZE,
             alpha = 0.75,
             nb_items_font_size = 15,
             nb_items_badge_size = Screen:scaleBySize(22),
@@ -615,6 +648,7 @@ local function apply_browser_folder_cover()
                             candidate, "for", path)
                         return candidate_bi, candidate
                     end
+                    if candidate_bi and candidate_bi.cover_bb then candidate_bi.cover_bb:free() end
                 end
                 if parent == home_dir then break end
                 dir = parent
@@ -715,39 +749,14 @@ local function apply_browser_folder_cover()
 
             local max_covers = (mode == "gallery" or mode == "stack") and 4 or 1
             local need_copy = mode == "gallery" or mode == "stack"
-            local covers = {}
-
-            for _i, book_entry in ipairs(series_items) do
-                local path = book_entry and (book_entry.path or book_entry.file)
-                if path then
-                    local bookinfo = BookInfoManager:getBookInfo(path, true)
-                    local invalid = bookinfo and type(menu_cover_specs) == "table"
-                        and type(BookInfoManager.isCachedCoverInvalid) == "function"
-                        and BookInfoManager.isCachedCoverInvalid(bookinfo, menu_cover_specs)
-                    if bookinfo
-                            and bookinfo.cover_bb
-                            and bookinfo.has_cover
-                            and bookinfo.cover_fetched
-                            and not bookinfo.ignore_cover
-                            and not invalid then
-                        table.insert(covers, {
-                            data = need_copy and bookinfo.cover_bb:copy() or bookinfo.cover_bb,
-                            w = bookinfo.cover_w,
-                            h = bookinfo.cover_h,
-                        })
-                    elseif not invalid then
-                        local cover_bb, cover_w, cover_h = Cover.genCover(path, 200, 300)
-                        table.insert(covers, {
-                            data = cover_bb,
-                            w = cover_w,
-                            h = cover_h,
-                        })
-                    end
-                    if #covers >= max_covers then
-                        break
-                    end
-                end
-            end
+            local covers = Cover.collect(
+                nil,
+                nil,
+                max_covers,
+                need_copy,
+                series_items,
+                menu_cover_specs
+            )
 
             if #covers == 0 then
                 return { no_image = true }
@@ -837,7 +846,7 @@ local function apply_browser_folder_cover()
             if self._zen_ancestor_cover then
                 if self.entry and (self.entry.is_file or self.entry.file) then
                     local _p = self.entry.path or self.entry.file
-                    if _p and not BookInfoManager:getBookInfo(_p, true) then
+                    if _p and not BookInfoManager:getBookInfo(_p, false) then
                         return
                     end
                 end
@@ -893,11 +902,12 @@ local function apply_browser_folder_cover()
             local _resolved_path = self.entry.path or self.entry.file
             if (self.entry.is_file or self.entry.file) and _resolved_path then
                 local path = _resolved_path
-                local bookinfo = BookInfoManager:getBookInfo(path, true)
+                local bookinfo = BookInfoManager:getBookInfo(path, false)
                 if not bookinfo then
                     local ancestor_bi, ancestor_path = getBookInfoWithFallback(path)
                     if ancestor_bi and ancestor_path ~= path and ancestor_bi.cover_bb then
                         local cover_bb_copy = ancestor_bi.cover_bb:copy()
+                        ancestor_bi.cover_bb:free()
                         local border = Folder.face.border_size
                         local max_w = self.width - 2 * border
                         local eff_h = getEffectiveMosaicHeight(self)
@@ -1353,7 +1363,7 @@ local function apply_browser_folder_cover()
                     -- Get dimensions for list mode
                     local underline_h = 1
                     local dimen_h = self.height - 2 * underline_h
-                    local border_size = Size.border.thin
+                    local border_size = Cover.BORDER_SIZE
                     local cover_v_pad = Screen:scaleBySize(4)
                     local max_img = dimen_h - 2 * border_size - 2 * cover_v_pad
                     local ratio = Cover.getRatio()
@@ -1377,7 +1387,7 @@ local function apply_browser_folder_cover()
 
                 function ListMenuItem:_setListFolderCover(img)
                     local underline_h = 1
-                    local border_size = Size.border.thin
+                    local border_size = Cover.BORDER_SIZE
                     local cover_v_pad = Screen:scaleBySize(4)
                     local dimen_h = self.height - 2 * underline_h
                     local cover_zone_w = dimen_h
@@ -1569,6 +1579,7 @@ local function apply_browser_folder_cover()
                 local fc = fm and fm.file_chooser
                 if G_reader_settings:readSetting("collate", "strcoll") ~= "access" then
                     if fc then fc._zen_folder_cover_item_table_cache = nil end
+                    shared_filemanager_item_table_cache = nil
                 end
                 if fc and pending_folders_by_menu[fc] then
                     scheduleFolderRefresh(fc)

@@ -3,6 +3,7 @@ describe("updater repository redirects", function()
     local original_ltn12
     local original_archiver
     local original_icon_item
+    local config
     local requests
 
     before_each(function()
@@ -11,13 +12,14 @@ describe("updater repository redirects", function()
         original_archiver = package.loaded["ffi/archiver"]
         original_icon_item = package.loaded["common/ui/icon_menu_item"]
         requests = {}
+        config = { updater = { update_channel = "stable" } }
 
         ZenSpec.replace("ffi/archiver", {})
         ZenSpec.replace("common/ui/icon_menu_item", {
             decorate = function(item) return item end,
         })
         ZenSpec.replace("config/manager", {
-            load = function() return { updater = { update_channel = "stable" } } end,
+            load = function() return config end,
             save = function() end,
         })
         ZenSpec.replace("ltn12", {
@@ -79,5 +81,18 @@ describe("updater repository redirects", function()
         )
         assert.are.equal("999.0.0", updater.latest_version())
         assert.is_true(updater.has_update())
+    end)
+
+    it("clears the update marker after a version change is acknowledged", function()
+        local updater = require("modules/settings/zen_updater")
+        assert.are.equal("ok", updater.check_for_update())
+        assert.is_true(updater.has_update())
+        assert.is_true(config.updater.update_available)
+
+        updater.clear_update_state(config)
+
+        assert.is_false(updater.has_update())
+        assert.is_nil(updater.latest_version())
+        assert.is_false(config.updater.update_available)
     end)
 end)

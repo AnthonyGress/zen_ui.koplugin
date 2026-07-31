@@ -314,12 +314,7 @@ local function install_asset(asset, plugins_dir)
 end
 
 local function restart_koreader()
-    local UIManager = require("ui/uimanager")
-    if type(UIManager.restartKOReader) == "function" then
-        UIManager:restartKOReader()
-    else
-        UIManager:broadcastEvent(require("ui/event"):new("Restart"))
-    end
+    require("common/restart").request()
 end
 
 local function show_install_prompt(plugin)

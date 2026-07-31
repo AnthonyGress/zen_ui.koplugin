@@ -97,7 +97,6 @@ local function apply_mosaic_title_strip()
     -- patched at this point) computes max_img_h against the reduced height.
     local orig_init = MosaicMenuItem.init
     function MosaicMenuItem:init()
-        logger.dbg("init: self.height before=", self.height, "STRIP_H=", STRIP_H)
         self.height = self.height - STRIP_H
         _in_init = true
         MosaicMenuItem._zen_in_init = true
@@ -105,7 +104,6 @@ local function apply_mosaic_title_strip()
         _in_init = false
         MosaicMenuItem._zen_in_init = false
         self.height = self.height + STRIP_H
-        logger.dbg("init: self.height after restore=", self.height)
     end
 
     -- Wrap update: rebuild the cover widget within the reduced height on any
@@ -113,7 +111,6 @@ local function apply_mosaic_title_strip()
     local orig_update = MosaicMenuItem.update
     function MosaicMenuItem:update()
         if not _in_init then
-            logger.dbg("update: reducing height by STRIP_H=", STRIP_H, "from=", self.height)
             self.height = self.height - STRIP_H
         end
         self._zen_strip_data = nil -- reset text/render cache on cover reload
@@ -128,7 +125,6 @@ local function apply_mosaic_title_strip()
         orig_update(self)
         if not _in_init then
             self.height = self.height + STRIP_H
-            logger.dbg("update: restored height=", self.height)
         end
     end
 
@@ -153,17 +149,7 @@ local function apply_mosaic_title_strip()
         logger.dbg("patching paintTo via setupLayout")
 
         local orig_paintTo = MosaicMenuItem.paintTo
-        local _logged_chain = false
-
         function MosaicMenuItem:paintTo(bb, x, y)
-            if not _logged_chain then
-                _logged_chain = true
-                logger.dbg("paintTo: chain=", tostring(orig_paintTo),
-                    "self.height=", self.height, "STRIP_H=", STRIP_H,
-                    "is_directory=", tostring(self.is_directory),
-                    "bookinfo_found=", tostring(self.bookinfo_found))
-            end
-
             orig_paintTo(self, bb, x, y)
 
             -- Directories: show folder name in strip (either setting enabled means strip is active).
@@ -207,8 +193,6 @@ local function apply_mosaic_title_strip()
                 end
                 if title or authors then
                     self._zen_strip_data = { title = title, authors = authors }
-                    logger.dbg("paintTo: cached title=",
-                        tostring(title), "authors=", tostring(authors))
                 else
                     self._zen_strip_data = false
                 end

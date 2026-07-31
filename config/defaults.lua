@@ -21,6 +21,9 @@ local defaults = {
     rakuyomi = {
         return_to_chapter_list_on_exit = false,
     },
+    custom_icons = {
+        active_pack = "",
+    },
     localization = {
         default_locale = "en",
         locales = {
@@ -69,6 +72,9 @@ local defaults = {
         lockdown_mode        = false,
         incognito_mode       = false,
         zen_opds             = true,
+    },
+    search = {
+        substring = false,
     },
     navbar = {
         show_tabs = {
@@ -130,8 +136,10 @@ local defaults = {
             notion = false,
             streak = false,
             opds = false,
+            tailscale = false,
             filebrowser = false,
         },
+        show_labels = true,
         show_frontlight = true,
         show_warmth = true,
         flip_lh_rh_icon = false,
@@ -288,9 +296,6 @@ local defaults = {
             tags = {},
             to_be_read = {},
         },
-    },
-    reader_page_browser = {
-        layout = "grid",
     },
     lockdown = {
         disable_context_menu      = false,

@@ -4,10 +4,20 @@ local Screen = require("device").screen
 local CenterContainer = require("ui/widget/container/centercontainer")
 local FrameContainer = require("ui/widget/container/framecontainer")
 local ImageWidget = require("ui/widget/imagewidget")
+local TextBoxWidget = require("ui/widget/textboxwidget")
+local VerticalGroup = require("ui/widget/verticalgroup")
+local VerticalSpan = require("ui/widget/verticalspan")
 local Widget = require("ui/widget/widget")
+local Font = require("ui/font")
 local CoverUtils = require("common/cover_utils")
+local RenderCache = require("common/cover_render_cache")
 
 local M = {}
+M.BORDER_SIZE = CoverUtils.BORDER_SIZE
+
+function M.get_empty_message(source)
+    return CoverUtils.getEmptyPlaceholderText(source)
+end
 
 local function get_uniform_ratio()
     local g = rawget(_G, "G_reader_settings")
@@ -37,18 +47,19 @@ local function rounded_enabled()
         and cfg.features.browser_cover_rounded_corners == true
 end
 
--- Restore the corner pixels from a pre-paint snapshot of the background so the
--- rounded corners reveal whatever was behind the cover (page or library bg
--- image) instead of an opaque white square. snap origin is (ox, oy) absolute.
-local function paint_corner_masks(bb, tx, ty, tw, th, r, snap, ox, oy)
+-- The four r-by-r corners are packed side-by-side in one small snapshot.
+local function paint_corner_masks(bb, tx, ty, tw, th, r, snap, snap_r)
     for j = 0, r - 1 do
         local inner = math.sqrt(r * r - (r - j) * (r - j))
         local cut = math.ceil(r - inner)
         if cut > 0 then
-            bb:blitFrom(snap, tx, ty + j, tx - ox, ty + j - oy, cut, 1)
-            bb:blitFrom(snap, tx + tw - cut, ty + j, tx + tw - cut - ox, ty + j - oy, cut, 1)
-            bb:blitFrom(snap, tx, ty + th - 1 - j, tx - ox, ty + th - 1 - j - oy, cut, 1)
-            bb:blitFrom(snap, tx + tw - cut, ty + th - 1 - j, tx + tw - cut - ox, ty + th - 1 - j - oy, cut, 1)
+            bb:blitFrom(snap, tx, ty + j, 0, j, cut, 1)
+            bb:blitFrom(snap, tx + tw - cut, ty + j,
+                snap_r * 2 - cut, j, cut, 1)
+            bb:blitFrom(snap, tx, ty + th - 1 - j,
+                snap_r * 2, snap_r - 1 - j, cut, 1)
+            bb:blitFrom(snap, tx + tw - cut, ty + th - 1 - j,
+                snap_r * 4 - cut, snap_r - 1 - j, cut, 1)
         end
     end
 end
@@ -110,12 +121,19 @@ local function apply_cover_border(frame, rounded)
         -- For rounded corners we need the background that sits *behind* the
         -- cover so the corner cut-outs can reveal it. Snapshot the target rect
         -- before the cover paints over it.
-        local snap
+        local snap, snap_r
         if rounded then
             local w, h = self:getSize().w, self:getSize().h
             if w and h and w > 0 and h > 0 then
-                snap = Blitbuffer.new(w, h, bb:getType())
-                snap:blitFrom(bb, 0, 0, x, y, w, h)
+                snap_r = math.min(base_radius, math.floor((math.min(w, h) - 1) / 2))
+                if snap_r >= 2 then
+                    snap = Blitbuffer.new(snap_r * 4, snap_r, bb:getType())
+                    snap:blitFrom(bb, 0, 0, x, y, snap_r, snap_r)
+                    snap:blitFrom(bb, snap_r, 0, x + w - snap_r, y, snap_r, snap_r)
+                    snap:blitFrom(bb, snap_r * 2, 0, x, y + h - snap_r, snap_r, snap_r)
+                    snap:blitFrom(bb, snap_r * 3, 0,
+                        x + w - snap_r, y + h - snap_r, snap_r, snap_r)
+                end
             end
         end
         orig_paintTo(self, bb, x, y)
@@ -137,7 +155,7 @@ local function apply_cover_border(frame, rounded)
             if snap then snap:free() end
             return
         end
-        paint_corner_masks(bb, tx, ty, tw, th, r, snap, x, y)
+        paint_corner_masks(bb, tx, ty, tw, th, r, snap, snap_r)
         paint_rounded_border_edges(bb, tx, ty, tw, th, r, bsz)
         paint_corner_border_arcs(bb, tx, ty, tw, th, r, bsz)
         snap:free()
@@ -146,9 +164,14 @@ end
 
 function M.make_cover_widget(book, max_w, max_h, opts)
     opts = opts or {}
-    local border = tonumber(opts.border) or 1
+    local border = tonumber(opts.border) or M.BORDER_SIZE
     local bg = opts.background or Blitbuffer.COLOR_LIGHT_GRAY
-    local target_w, target_h = calc_uniform_dims(max_w, max_h)
+    local target_w, target_h
+    if opts.uniform == false then
+        target_w, target_h = max_w, max_h
+    else
+        target_w, target_h = calc_uniform_dims(max_w, max_h)
+    end
     if target_w < 18 then target_w = 18 end
     if target_h < 28 then target_h = 28 end
 
@@ -156,14 +179,31 @@ function M.make_cover_widget(book, max_w, max_h, opts)
     if book and book.cover_bb then
         local cover_bb = book.cover_bb
         book.cover_bb = nil
+        if book.path then
+            cover_bb = RenderCache:render(book.path, cover_bb, target_w, target_h)
+        end
         child = ImageWidget:new{
             image = cover_bb,
             image_disposable = true,
             width = target_w,
             height = target_h,
         }
+    elseif book and book.is_empty_placeholder then
+        local fake_cover = CoverUtils.genCover(
+            "zen-empty-placeholder", target_w, target_h, true,
+            { title = "", authors = "", title_only = true }
+        )
+        if fake_cover then
+            child = ImageWidget:new{
+                image = fake_cover,
+                image_disposable = true,
+                width = target_w,
+                height = target_h,
+                scale_factor = 1,
+            }
+        end
     elseif book and type(book.path) == "string" and book.path ~= "" then
-        local fake_cover = CoverUtils.genCover(book.path, target_w, target_h)
+        local fake_cover = CoverUtils.genCover(book.path, target_w, target_h, nil, book.bookinfo)
         if fake_cover then
             child = ImageWidget:new{
                 image = fake_cover,
@@ -200,6 +240,38 @@ function M.make_cover_widget(book, max_w, max_h, opts)
     end
 
     return frame, target_w, target_h
+end
+
+function M.make_empty_cover_widget(source, max_w, max_h, opts)
+    local message = TextBoxWidget:new{
+        text = M.get_empty_message(source),
+        face = Font:getFace("smallinfofont", Screen:scaleBySize(10)),
+        width = max_w,
+        alignment = "center",
+        alignment_strict = true,
+        height_adjust = true,
+    }
+    local message_h = message:getSize().h
+    local gap = math.max(2, Screen:scaleBySize(4))
+    local cover, cover_w, cover_h = M.make_empty_placeholder_cover(
+        max_w, math.max(1, max_h - message_h - gap), opts
+    )
+
+    return VerticalGroup:new{
+        CenterContainer:new{
+            dimen = Geom:new{ w = max_w, h = cover_h },
+            cover,
+        },
+        VerticalSpan:new{ width = gap },
+        CenterContainer:new{
+            dimen = Geom:new{ w = max_w, h = message_h },
+            message,
+        },
+    }, cover_w, cover_h + gap + message_h
+end
+
+function M.make_empty_placeholder_cover(max_w, max_h, opts)
+    return M.make_cover_widget({ is_empty_placeholder = true }, max_w, max_h, opts)
 end
 
 return M
