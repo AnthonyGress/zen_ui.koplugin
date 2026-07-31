@@ -239,6 +239,7 @@ return {
         "Add font styling for Featured progress labels",
         "Respect non-linear page fragments in Page Browser",
         "Add Restarting notice",
+        "Accessibility improvements for non-touch devices",
         "Bug fixes"
     }
 }
