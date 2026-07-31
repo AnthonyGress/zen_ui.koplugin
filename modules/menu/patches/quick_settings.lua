@@ -25,6 +25,7 @@ local function apply_quick_settings()
     local shutdown = require("common/shutdown")
     local restart = require("common/restart")
     local SharedState = require("common/shared_state")
+    local SettingsTransition = require("common/settings_transition")
     local ButtonLabelWidth = require("common/ui/button_label_width")
     local Bluetooth = require("common/bluetooth")
     local build_brightness_slider = require("modules/menu/patches/brightness_slider")
@@ -947,6 +948,7 @@ local function apply_quick_settings()
             end,
             callback = function(touch_menu)
                 local plugin, candidate = getFilebrowserPlugin(true)
+                SettingsTransition.close()
                 if toggleFilebrowserPlugin(plugin, candidate) then
                     UIManager:scheduleIn(1.5, function()
                         if touch_menu.item_table and touch_menu.item_table.panel then
@@ -1013,6 +1015,7 @@ local function apply_quick_settings()
                             return
                         end
                         tm:closeMenu()
+                        SettingsTransition.close()
                         UIManager:nextTick(function()
                             pcall(launch)
                         end)
@@ -1030,6 +1033,7 @@ local function apply_quick_settings()
                     end,
                     callback = function(tm)
                         tm:closeMenu()
+                        SettingsTransition.close()
                         if type(cb_action) == "table" and next(cb_action) then
                             Dispatcher:execute(cb_action)
                         end

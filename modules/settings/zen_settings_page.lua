@@ -245,7 +245,7 @@ function ZenSettingsPage:init()
     self.custom_title_bar = SettingsTitleBar:new{
         width = self.width,
         title = self.title,
-        title_expand_to_fit = true,
+        title_full_width = true,
         back_visible = false,
         search_visible = true,
         show_parent = self,
@@ -810,7 +810,19 @@ function M.show(plugin, opts)
 end
 
 function M.closeActive()
+    local stack = UIManager._window_stack
+    if active_page and type(stack) == "table" then
+        for index = #stack, 1, -1 do
+            local widget = stack[index] and stack[index].widget
+            if widget == active_page then break end
+            if widget and type(widget._zen_arrange_close_all) == "function" then
+                widget:_zen_arrange_close_all()
+                break
+            end
+        end
+    end
     if active_page then active_page:closeMenu() end
+    return true
 end
 
 function M.searchActive(query)

@@ -167,6 +167,7 @@ describe("cover utility policy", function()
             covers[2].data,
             covers[3].data,
         })
+        assert.are.equal("/real.epub", covers[1].cache_key)
         assert.are.equal(stale_metadata, generated[1].metadata)
         assert.are.equal(info["/missing.epub"], generated[2].metadata)
         assert.are.equal(1, real_frees)
@@ -402,5 +403,34 @@ describe("cover utility policy", function()
         assert.are.equal(100, uniform_image.width)
         assert.are.equal(150, uniform_image.height)
         assert.are.equal(1.875, uniform_image.scale_factor)
+    end)
+
+    it("uses the shared final-render path for real group previews", function()
+        local request
+        local function container()
+            return { new = function(_self, values) return values end }
+        end
+        ZenSpec.replace("ui/widget/container/centercontainer", container())
+        ZenSpec.replace("ui/widget/container/framecontainer", container())
+        ZenSpec.replace("ui/widget/imagewidget", container())
+        ZenSpec.replace("common/cover_render_cache", {
+            render = function(_self, key, _source, width, height)
+                request = { key = key, width = width, height = height }
+                return "final-cover"
+            end,
+        })
+        ZenSpec.unload("common/cover_utils")
+        CoverUtils = require("common/cover_utils")
+
+        local frame = CoverUtils.drawSingle({
+            data = "decoded-cover",
+            w = 120,
+            h = 180,
+            cache_key = "/book.epub",
+        }, 100, 150, 2, true)
+
+        assert.are.same({ key = "/book.epub", width = 100, height = 150 }, request)
+        assert.are.equal("final-cover", frame[1][1].image)
+        assert.are.equal(1, frame[1][1].scale_factor)
     end)
 end)

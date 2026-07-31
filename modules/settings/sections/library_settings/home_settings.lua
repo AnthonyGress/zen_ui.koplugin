@@ -1148,7 +1148,7 @@ function M.build(ctx)
             sort_items[#sort_items + 1] = item
         end
         ZenArrangeList.show{
-            title = _("Widgets") .. " (" .. _("Hold to arrange") .. ")",
+            title = _("Widgets"),
             item_table = sort_items,
             callback = function()
                 local new_order = {}

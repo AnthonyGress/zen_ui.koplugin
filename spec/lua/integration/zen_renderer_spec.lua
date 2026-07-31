@@ -7,6 +7,8 @@ describe("Zen renderer", function()
     local native_progress_paints
     local banner_labels
     local banner_sizes
+    local background_menus
+    local calc_dimensions
 
     local function class(base)
         local out = {}
@@ -36,6 +38,8 @@ describe("Zen renderer", function()
         native_progress_paints = 0
         banner_labels = {}
         banner_sizes = {}
+        background_menus = {}
+        calc_dimensions = function(width, height) return width, height end
         local MosaicMenuItem = class()
         function MosaicMenuItem:new(values)
             stock_created = stock_created + 1
@@ -120,7 +124,7 @@ describe("Zen renderer", function()
         })
         ZenSpec.replace("common/cover_utils", {
             BORDER_SIZE = 2,
-            calcDims = function(width, height) return width, height end,
+            calcDims = function(width, height) return calc_dimensions(width, height) end,
         })
         ZenSpec.replace("modules/filebrowser/folder_cover", {
             isBook = function(entry)
@@ -133,7 +137,8 @@ describe("Zen renderer", function()
                     or entry.is_go_up or entry.is_series_group or entry.series_items
                     or entry._zen_files or entry._zen_empty_placeholder
                     or (menu._zen_coll_list and entry.name)
-                    or (menu.name == "filemanager" and entry.attr and entry.attr.mode == "directory")
+                    or ((menu.name == "filemanager" or menu._zen_renderer)
+                        and (entry.is_directory or (entry.attr and entry.attr.mode == "directory")))
             end,
             build = function(menu, entry, text, width, height, options)
                 folder_requests[#folder_requests + 1] = {
@@ -151,6 +156,9 @@ describe("Zen renderer", function()
         ZenSpec.replace("common/ui/background", {
             library_path = function() return "" end,
             paintScreenRegion = function() return false end,
+            applyToMenu = function(menu)
+                background_menus[#background_menus + 1] = menu
+            end,
         })
         ZenSpec.replace("common/utils", {
             formatPageCount = function(pages) return pages .. " p." end,
@@ -231,6 +239,7 @@ describe("Zen renderer", function()
 
     it("uses non-uniform sizing for group previews when configured", function()
         _G.__ZEN_UI_PLUGIN.config.features.browser_cover_mosaic_uniform = false
+        calc_dimensions = function() return 64, 96 end
         require("modules/filebrowser/patches/zen_renderer")()
         local menu = {
             name = "authors",
@@ -245,6 +254,29 @@ describe("Zen renderer", function()
 
         assert.is_false(folder_requests[1].options.uniform)
         assert.is_false(folder_requests[1].options.cover_specs.uniform)
+        assert.are.equal(96, folder_requests[1].options.cover_specs.max_cover_w)
+        assert.are.equal(146, folder_requests[1].options.cover_specs.max_cover_h)
+    end)
+
+    it("uses Zen folder tiles and the library background for opted-in choosers", function()
+        require("modules/filebrowser/patches/zen_renderer")()
+        local menu = {
+            _zen_renderer = true,
+            item_table = {
+                { title = "Destination", path = "/destination", is_directory = true },
+            },
+            item_group = {}, layout = {}, items_to_update = {}, page = 1,
+            perpage = 1, nb_cols = 2, item_margin = 1, item_width = 100,
+            item_height = 150, item_dimen = { copy = function() return {} end },
+            inner_dimen = { w = 110 }, _do_cover_images = false,
+        }
+
+        MosaicMenu._updateItemsBuildUI(menu)
+
+        assert.are.equal(0, stock_created)
+        assert.are.equal(1, #folder_requests)
+        assert.is_false(folder_requests[1].options.load_covers)
+        assert.are.same({ menu }, background_menus)
     end)
 
     it("supplies the rendered book cover before opening a Zen mosaic tile", function()

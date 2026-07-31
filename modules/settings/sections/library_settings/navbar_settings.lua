@@ -12,6 +12,7 @@ local paths = require("common/paths")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
+local DispatcherMenu = require("common/dispatcher_menu")
 
 local M = {}
 
@@ -413,45 +414,7 @@ function M.build(ctx)
     end
 
     local function wrap_dispatch_callbacks(items, caller, on_update)
-        if type(items) ~= "table" then return end
-        for _i, item in ipairs(items) do
-            if type(item.callback) == "function" and not item._zen_nav_dispatch_wrapped then
-                local orig_callback = item.callback
-                item.callback = function(touch_menu, ...)
-                    caller.updated = false
-                    local result = orig_callback(touch_menu, ...)
-                    if caller.updated then
-                        caller.updated = false
-                        on_update(touch_menu)
-                    end
-                    return result
-                end
-                item._zen_nav_dispatch_wrapped = true
-            end
-            if type(item.hold_callback) == "function" and not item._zen_nav_dispatch_hold_wrapped then
-                local orig_hold_callback = item.hold_callback
-                item.hold_callback = function(touch_menu, ...)
-                    caller.updated = false
-                    local result = orig_hold_callback(touch_menu, ...)
-                    if caller.updated then
-                        caller.updated = false
-                        on_update(touch_menu)
-                    end
-                    return result
-                end
-                item._zen_nav_dispatch_hold_wrapped = true
-            end
-            if type(item.sub_item_table_func) == "function" and not item._zen_nav_dispatch_func_wrapped then
-                local orig_sub_item_table_func = item.sub_item_table_func
-                item.sub_item_table_func = function(...)
-                    local sub_items = orig_sub_item_table_func(...)
-                    wrap_dispatch_callbacks(sub_items, caller, on_update)
-                    return sub_items
-                end
-                item._zen_nav_dispatch_func_wrapped = true
-            end
-            wrap_dispatch_callbacks(item.sub_item_table, caller, on_update)
-        end
+        DispatcherMenu.wrap(items, caller, on_update, "_zen_nav_dispatch")
     end
 
     local function showPluginPicker(on_select, touch_menu)
@@ -1188,7 +1151,7 @@ function M.build(ctx)
         sort_items = build_sort_items()
 
         ZenArrangeList.show{
-            title = _("Tabs") .. " (" .. _("Hold to arrange") .. ")",
+            title = _("Tabs"),
             item_table = sort_items,
             add_title = _("Add"),
             hide_footer_cancel = true,

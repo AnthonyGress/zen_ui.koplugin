@@ -17,13 +17,14 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
     end)
 
     local _          = require("gettext")
-    local Screen     = require("device").screen
+    local Device     = require("device")
+    local Screen     = Device.screen
     local Geom       = require("ui/geometry")
     local Blitbuffer = require("ffi/blitbuffer")
     local Font       = require("ui/font")
     local Size       = require("ui/size")
     local UIManager  = require("ui/uimanager")
-    local IC         = require("ui/widget/container/inputcontainer")
+    local FocusManager = require("ui/widget/focusmanager")
     local CC         = require("ui/widget/container/centercontainer")
     local FC         = require("ui/widget/container/framecontainer")
     local VG         = require("ui/widget/verticalgroup")
@@ -79,10 +80,25 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
     local per_page      = cols * rows_per_page
     local total_pages   = math.max(1, math.ceil(math.max(#icons_list, 1) / per_page))
 
-    local cur_page = 1
+    local selected_idx
+    if #icons_list > 0 then
+        selected_idx = 1
+        for i, item in ipairs(icons_list) do
+            if item.name == current_icon then
+                selected_idx = i
+                break
+            end
+        end
+    end
+    local show_focus = not Device:isTouchDevice() or Device:hasDPad() or Device:hasKeyboard()
+    local focus_area = selected_idx and "grid" or "back"
+    local footer_side = "left"
+    local cur_page = show_focus and selected_idx
+        and math.ceil(selected_idx / per_page) or 1
 
     -- Pre-build one VG per page (painted directly; no ScrollableContainer needed).
     local page_vgs = {}
+    local cell_frames = {}
     for p = 1, total_pages do
         local pv      = VG:new{ align = "left" }
         local start_i = (p - 1) * per_page + 1
@@ -101,7 +117,7 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
             -- bordersize is added on top of content by FC.getSize(), so subtract it
             -- from the CC inner dimen so each FC reports exactly cell_w to HG.
             local cell_brd = is_sel and Screen:scaleBySize(2) or Screen:scaleBySize(1)
-            table.insert(row_g, FC:new{
+            local cell_frame = FC:new{
                 width      = cell_w,
                 height     = cell_h,
                 bordersize = cell_brd,
@@ -121,7 +137,9 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
                         },
                     },
                 },
-            })
+            }
+            table.insert(row_g, cell_frame)
+            cell_frames[i] = cell_frame
         end
         page_vgs[p] = pv
     end
@@ -155,7 +173,104 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
     local function goToPage(p)
         if p < 1 or p > total_pages then return end
         cur_page = p
+        local first = (p - 1) * per_page + 1
+        local last = math.min(#icons_list, first + per_page - 1)
+        if (focus_area == "grid" or focus_area == "back") and selected_idx
+                and (selected_idx < first or selected_idx > last) then
+            selected_idx = first
+        end
         UIManager:setDirty(dialog, function() return "ui", dialog.dimen end)
+    end
+
+    local function selectIcon(idx)
+        local item = idx and icons_list[idx]
+        if not item then return true end
+        closeDialog()
+        UIManager:nextTick(function()
+            local ok_select, err = xpcall(function()
+                on_select(item.name)
+            end, debug.traceback)
+            if not ok_select then
+                require("common/zen_logger").new("zen_icon_picker").warn("Selection failed:", err)
+            end
+        end)
+        return true
+    end
+
+    local function pageBounds(page)
+        local first = (page - 1) * per_page + 1
+        return first, math.min(#icons_list, first + per_page - 1)
+    end
+
+    local function changePage(diff)
+        if total_pages <= 1 then return true end
+        local old_first = (cur_page - 1) * per_page + 1
+        local offset = selected_idx and selected_idx - old_first or 0
+        local page = ((cur_page - 1 + diff) % total_pages) + 1
+        if focus_area == "grid" or focus_area == "back" then
+            local first, last = pageBounds(page)
+            selected_idx = math.min(first + offset, last)
+        end
+        goToPage(page)
+        return true
+    end
+
+    local function focusGridFromFooter()
+        local first, last = pageBounds(cur_page)
+        if last < first then return true end
+        local last_row = first + math.floor((last - first) / cols) * cols
+        selected_idx = footer_side == "left" and last_row or last
+        focus_area = "grid"
+        goToPage(cur_page)
+        return true
+    end
+
+    local function moveGridFocus(dx, dy)
+        local first, last = pageBounds(cur_page)
+        local offset = selected_idx - first
+        local row = math.floor(offset / cols)
+        local col = offset % cols
+
+        if dy < 0 then
+            if row == 0 then
+                focus_area = "back"
+            else
+                selected_idx = selected_idx - cols
+            end
+        elseif dy > 0 then
+            local next_idx = selected_idx + cols
+            if next_idx <= last then
+                selected_idx = next_idx
+            elseif total_pages > 1 then
+                focus_area = "footer"
+                footer_side = col < cols / 2 and "left" or "right"
+            end
+        elseif dx < 0 and col > 0 then
+            selected_idx = selected_idx - 1
+        elseif dx > 0 and col < cols - 1 and selected_idx < last then
+            selected_idx = selected_idx + 1
+        end
+        goToPage(cur_page)
+        return true
+    end
+
+    local function moveFocus(dx, dy)
+        if focus_area == "back" then
+            if dy > 0 and selected_idx then focus_area = "grid" end
+            goToPage(cur_page)
+            return true
+        end
+        if focus_area == "footer" then
+            if dy < 0 then return focusGridFromFooter() end
+            if dx < 0 then
+                footer_side = "left"
+            elseif dx > 0 then
+                footer_side = "right"
+            end
+            goToPage(cur_page)
+            return true
+        end
+        return moveGridFocus(dx, dy)
     end
 
     local function canUsePageNumber()
@@ -200,11 +315,23 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
         return true
     end
 
-    local PickerDlg = IC:extend{}
+    local PickerDlg = FocusManager:extend{}
 
     function PickerDlg:init()
         self:_init()
         self.dimen = Geom:new{ x = 0, y = 0, w = sw, h = sh }
+        if Device:hasKeys() then
+            self.key_events.CancelOrClose = { { Device.input.group.Back } }
+            self.key_events.IconPickerPrevPage = { { Device.input.group.PgBack }, event = "IconPickerPage", args = -1 }
+            self.key_events.IconPickerNextPage = { { Device.input.group.PgFwd }, event = "IconPickerPage", args = 1 }
+            if not Device:hasDPad() then
+                self.key_events.IconPickerUp = { { "Up" }, event = "IconPickerUp" }
+                self.key_events.IconPickerDown = { { "Down" }, event = "IconPickerDown" }
+                self.key_events.IconPickerLeft = { { "Left" }, event = "IconPickerLeft" }
+                self.key_events.IconPickerRight = { { "Right" }, event = "IconPickerRight" }
+                self.key_events.IconPickerSelect = { { "Press" }, event = "IconPickerSelect" }
+            end
+        end
         self:registerTouchZones({
             {
                 id          = "picker_tap",
@@ -230,16 +357,7 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
                         local row_i = math.floor((gy - grid_y) / cell_h)
                         local idx   = (cur_page - 1) * per_page + row_i * cols + col_i + 1
                         if idx >= 1 and idx <= #icons_list then
-                            local selected_name = icons_list[idx].name
-                            closeDialog()
-                            UIManager:nextTick(function()
-                                local ok_select, err = xpcall(function()
-                                    on_select(selected_name)
-                                end, debug.traceback)
-                                if not ok_select then
-                                    require("common/zen_logger").new("zen_icon_picker").warn("Selection failed:", err)
-                                end
-                            end)
+                            selectIcon(idx)
                         end
                     end
                     return true
@@ -275,10 +393,62 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
         })
     end
 
+    function PickerDlg:onCancelOrClose()
+        closeDialog()
+        return true
+    end
+
+    function PickerDlg:onIconPickerPage(diff)
+        return changePage(diff)
+    end
+
+    function PickerDlg:onFocusMove(args)
+        return moveFocus(args and args[1] or 0, args and args[2] or 0)
+    end
+
+    function PickerDlg:onIconPickerUp()
+        return moveFocus(0, -1)
+    end
+
+    function PickerDlg:onIconPickerDown()
+        return moveFocus(0, 1)
+    end
+
+    function PickerDlg:onIconPickerLeft()
+        return moveFocus(-1, 0)
+    end
+
+    function PickerDlg:onIconPickerRight()
+        return moveFocus(1, 0)
+    end
+
+    function PickerDlg:onPress()
+        if focus_area == "back" then
+            closeDialog()
+            return true
+        end
+        if focus_area == "footer" then
+            return changePage(footer_side == "left" and -1 or 1)
+        end
+        return selectIcon(selected_idx)
+    end
+
+    function PickerDlg:onIconPickerSelect()
+        return self:onPress()
+    end
+
     function PickerDlg:paintTo(bb, x, y)
         self.dimen.x = x
         self.dimen.y = y
         bb:paintRect(0, 0, sw, sh, Blitbuffer.COLOR_WHITE)
+        local focused_frame = show_focus and focus_area == "grid" and cell_frames[selected_idx] or nil
+        if self._focused_frame and self._focused_frame ~= focused_frame then
+            self._focused_frame.invert = false
+        end
+        if focused_frame then focused_frame.invert = true end
+        self._focused_frame = focused_frame
+
+        back_iw.invert = show_focus and focus_area == "back"
         back_iw:paintTo(bb, content_x, content_y + math.floor((title_h - back_sz) / 2))
         -- Title text (offset right of back icon, vertically centred).
         title_tw:paintTo(bb, content_x + back_sz + back_gap,
@@ -287,6 +457,11 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
         page_vgs[cur_page]:paintTo(bb, grid_x, grid_y)
         -- Page indicator bar.
         paintBar(bb)
+        if show_focus and focus_area == "footer" and total_pages > 1 then
+            local footer_x = footer_side == "left"
+                and content_x or content_x + content_w - pager.CHEV_W
+            bb:invertRect(footer_x, bar_y, pager.CHEV_W, bar_area_h)
+        end
     end
 
     dialog = PickerDlg:new{}

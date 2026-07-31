@@ -3,6 +3,7 @@ local CoverUtils = require("common/cover_utils")
 local CoverWidget = require("modules/filebrowser/patches/home/widgets/cover_common")
 
 local M = {}
+local Blitbuffer, Screen, Size
 
 function M.isBook(entry)
     return type(entry) == "table" and (entry.is_file == true
@@ -24,7 +25,8 @@ function M.isSupported(entry, menu)
         return true
     end
     if menu and menu._zen_coll_list and entry.name then return true end
-    return is_directory(entry) and menu and menu.name == "filemanager"
+    return is_directory(entry) and menu
+        and (menu.name == "filemanager" or menu._zen_renderer == true)
 end
 
 function M.title(entry, menu_text, menu)
@@ -132,9 +134,13 @@ function M.build(menu, entry, menu_text, max_w, max_h, options)
     if mode == "gallery" and #covers > 0 then
         frame = CoverUtils.drawGallery(covers, portrait_w, portrait_h, border, nil, uniform)
     elseif mode == "stack" and #covers > 0 then
-        frame = CoverUtils.drawStack(covers, portrait_w, portrait_h, border, nil, uniform)
+        local preview_w = not uniform and #covers == 1 and max_w or portrait_w
+        local preview_h = not uniform and #covers == 1 and max_h or portrait_h
+        frame = CoverUtils.drawStack(covers, preview_w, preview_h, border, nil, uniform)
     elseif #covers > 0 then
-        frame = CoverUtils.drawSingle(covers[1], portrait_w, portrait_h, border, uniform)
+        local preview_w = uniform and portrait_w or max_w
+        local preview_h = uniform and portrait_h or max_h
+        frame = CoverUtils.drawSingle(covers[1], preview_w, preview_h, border, uniform)
     else
         frame = CoverUtils.drawNoImage(title, portrait_w, portrait_h, border)
     end
@@ -148,6 +154,61 @@ function M.build(menu, entry, menu_text, max_w, max_h, options)
         entries = entries,
         cover_count = #covers,
     }
+end
+
+function M.paintSpines(bb, frame, item_x, item_y, options)
+    local dimen = frame and frame.dimen
+    if not (bb and dimen and dimen.x and dimen.y and dimen.w and dimen.h) then return end
+    options = options or {}
+
+    if not Screen then
+        Blitbuffer = require("ffi/blitbuffer")
+        Screen = require("device").screen
+        Size = require("ui/size")
+    end
+    local thickness = math.max(1, Screen:scaleBySize(2.5))
+    local margin = Size.line.medium
+    local spine_gap = Screen:scaleBySize(9)
+    local top_h = 2 * (thickness + margin)
+    local orientation = options.orientation
+    if not orientation then
+        local top_gap = dimen.y - (item_y or 0)
+        local left_gap = dimen.x - (item_x or 0)
+        orientation = (top_gap >= top_h or left_gap < spine_gap) and "top" or "left"
+    end
+
+    local inset = options.rounded and Screen:scaleBySize(4) or 0
+    local extent = options.line_extent
+        or (orientation == "top" and dimen.w or dimen.h)
+    local first_length = math.max(0, math.floor(extent * (0.97 ^ 2)) - 2 * inset)
+    local second_length = math.max(0, math.floor(extent * 0.97) - 2 * inset)
+    local color = Blitbuffer.COLOR_GRAY_4 or Blitbuffer.COLOR_BLACK
+
+    if orientation == "top" then
+        local lines_h = 2 * thickness + margin
+        local first_y = dimen.y - top_h + math.floor((top_h - lines_h) / 2)
+        if first_length > 0 then
+            bb:paintRect(dimen.x + math.floor((dimen.w - first_length) / 2),
+                first_y, first_length, thickness, color)
+        end
+        if second_length > 0 then
+            bb:paintRect(dimen.x + math.floor((dimen.w - second_length) / 2),
+                first_y + thickness + margin, second_length, thickness, color)
+        end
+    else
+        local center_y = options.center_y or dimen.y + dimen.h / 2
+        local first_x = dimen.x - spine_gap
+        if first_length > 0 then
+            bb:paintRect(first_x, math.floor(center_y - first_length / 2),
+                thickness, first_length, color)
+        end
+        if second_length > 0 then
+            bb:paintRect(first_x + thickness + margin,
+                math.floor(center_y - second_length / 2),
+                thickness, second_length, color)
+        end
+    end
+    return orientation
 end
 
 return M

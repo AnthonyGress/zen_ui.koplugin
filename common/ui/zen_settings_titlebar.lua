@@ -48,6 +48,18 @@ local function plugin_icon_path(icon_name)
     return icons_dir and utils.resolveIcon(icons_dir, icon_name)
 end
 
+local function title_back_range(title_bar)
+    if not title_bar.back_visible then return end
+    local dimen = title_bar.title_container.dimen
+    if not dimen then return end
+    return Geom:new{
+        x = dimen.x,
+        y = dimen.y,
+        w = math.min(dimen.w, title_bar.title_widget:getSize().w),
+        h = dimen.h,
+    }
+end
+
 local function default_status_factory(plugin)
     local settings_page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
     plugin = plugin or rawget(_G, "__ZEN_UI_PLUGIN") or (settings_page and settings_page.plugin)
@@ -176,7 +188,7 @@ function ZenSettingsTitleBar:init()
         self.width - left_padding - right_padding - back_width - title_leading_padding
             - trailing_width)
     self._title_max_width = max_title_width
-    if self.title_full_width then
+    if self.title_full_width and not show_search then
         title_cap = max_title_width
         title_width = title_cap
     elseif self.title_expand_to_fit and not show_search then
@@ -252,33 +264,13 @@ function ZenSettingsTitleBar:init()
     self.ges_events.TapBackTitle = {
         GestureRange:new{
             ges = "tap",
-            range = function()
-                if not self.back_visible then return end
-                local dimen = self.title_container.dimen
-                if not dimen then return end
-                return Geom:new{
-                    x = dimen.x - self.title_leading_padding,
-                    y = dimen.y,
-                    w = dimen.w + self.title_leading_padding,
-                    h = dimen.h,
-                }
-            end,
+            range = function() return title_back_range(self) end,
         },
     }
     self.ges_events.HoldBackTitle = {
         GestureRange:new{
             ges = "hold",
-            range = function()
-                if not self.back_visible then return end
-                local dimen = self.title_container.dimen
-                if not dimen then return end
-                return Geom:new{
-                    x = dimen.x - self.title_leading_padding,
-                    y = dimen.y,
-                    w = dimen.w + self.title_leading_padding,
-                    h = dimen.h,
-                }
-            end,
+            range = function() return title_back_range(self) end,
         },
     }
 

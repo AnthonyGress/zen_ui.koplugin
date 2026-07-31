@@ -209,7 +209,10 @@ local function apply_context_menu()
     end
 
     -- MoveChooser
-    local MoveChooser = PathChooser:extend{ _zen_no_forced_repaint = true }
+    local MoveChooser = PathChooser:extend{
+        _zen_no_forced_repaint = true,
+        _zen_renderer = true,
+    }
 
     function MoveChooser:genItemTableFromPath(path)
         local ffiUtil3 = require("ffi/util")
@@ -224,6 +227,7 @@ local function apply_context_menu()
                 text           = ffiUtil3.basename(root),
                 path           = root,
                 is_file        = false,
+                is_directory   = true,
                 bidi_wrap_func = BD3.directory,
                 mandatory      = self:getMenuItemMandatory({ path = root }),
             })
@@ -254,6 +258,7 @@ local function apply_context_menu()
                         text           = display,
                         path           = sub.path,
                         is_file        = false,
+                        is_directory   = true,
                         bidi_wrap_func = BD3.directory,
                         mandatory      = self:getMenuItemMandatory({ path = sub.path }),
                     })
@@ -282,6 +287,7 @@ local function apply_context_menu()
                             text           = er_name,
                             path           = er,
                             is_file        = false,
+                            is_directory   = true,
                             bidi_wrap_func = BD3.directory,
                             mandatory      = self:getMenuItemMandatory({ path = er }),
                         })
@@ -311,6 +317,15 @@ local function apply_context_menu()
     function MoveChooser:onMenuHold() return true end
 
     function MoveChooser:init()
+        local CoverMenu = require("covermenu")
+        local MosaicMenu = require("mosaicmenu")
+        self.display_mode_type = "mosaic"
+        self.updateItems = CoverMenu.updateItems
+        self.onCloseWidget = CoverMenu.onCloseWidget
+        self._recalculateDimen = MosaicMenu._recalculateDimen
+        self._updateItemsBuildUI = MosaicMenu._updateItemsBuildUI
+        self._do_cover_images = false
+        self._do_center_partial_rows = false
         PathChooser.init(self)
         local tb = self.title_bar
         if tb and tb.has_left_icon then

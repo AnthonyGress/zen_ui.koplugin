@@ -160,7 +160,7 @@ describe("Zen settings page", function()
 
         assert.is_false(settings.title_bar.back_visible)
         assert.is_true(settings.title_bar.search_visible)
-        assert.is_true(settings.title_bar.title_expand_to_fit)
+        assert.is_true(settings.title_bar.title_full_width)
         assert.are.equal("Library", library._zen_display_text)
         assert.is_true(library._zen_has_submenu)
 
@@ -209,6 +209,31 @@ describe("Zen settings page", function()
         local reopened = PageModule.show(plugin)
         assert.are_not.equal(first, reopened)
         assert.are.equal(2, #shown_widgets)
+    end)
+
+    it("closes the active arrange stack before the settings page", function()
+        local page = PageModule.show({ config = {} })
+        local closed = {}
+        local arrange = {
+            _zen_arrange_close_all = function()
+                closed[#closed + 1] = "arrange"
+            end,
+        }
+        local UIManager = require("ui/uimanager")
+        UIManager._window_stack = {
+            { widget = page },
+            { widget = arrange },
+        }
+        local orig_close = page.closeMenu
+        page.closeMenu = function(self)
+            closed[#closed + 1] = "settings"
+            return orig_close(self)
+        end
+
+        assert.is_true(PageModule.closeActive())
+        assert.are.same({ "arrange", "settings" }, closed)
+        assert.is_true(page._closed)
+        UIManager._window_stack = nil
     end)
 
     it("restores the last page for six seconds after closing", function()

@@ -23,6 +23,7 @@
     local ButtonLabelWidth = require("common/ui/button_label_width")
     local ZenButton = require("common/ui/zen_button")
     local SolidCircle = require("common/ui/zen_solid_circle")
+    local SettingsTransition = require("common/settings_transition")
     local utils = require("common/utils")
     local library_font = require("modules/filebrowser/patches/library_font")
 
@@ -272,6 +273,7 @@
         end
         if entry.type == "action" then
             touch_menu:closeMenu()
+            SettingsTransition.close()
             UIManager:nextTick(function()
                 if type(entry.action) == "table" and next(entry.action) then
                     Dispatcher:execute(entry.action)
@@ -293,6 +295,7 @@
                 return
             end
             touch_menu:closeMenu()
+            SettingsTransition.close()
             UIManager:nextTick(function()
                 pcall(launch)
             end)

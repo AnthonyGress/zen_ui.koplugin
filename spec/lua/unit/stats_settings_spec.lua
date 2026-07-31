@@ -104,6 +104,22 @@ describe("stats settings", function()
         assert.is_true(saved_settings.enabled.this_week)
     end)
 
+    it("persists repeated widget order commits", function()
+        local section = require("modules/settings/sections/stats_settings").build({})
+        section.sub_item_table[1].callback()
+        local items = arrange_options.item_table
+
+        items[1], items[2] = items[2], items[1]
+        arrange_options.callback()
+        assert.are.same({ "this_week", "today", "trend_graph", "goal_progress" },
+            saved_settings.order)
+
+        items[2], items[3] = items[3], items[2]
+        arrange_options.callback()
+        assert.are.same({ "this_week", "trend_graph", "today", "goal_progress" },
+            saved_settings.order)
+    end)
+
     it("uses the divider icon for stat separators", function()
         local section = require("modules/settings/sections/stats_settings").build({})
 

@@ -508,7 +508,12 @@ function CoverUtils.collect(dir_path, chooser, max_covers, need_copy, entries, c
                         cover_bb = cover_bb:copy()
                         bookinfo.cover_bb:free()
                     end
-                    table.insert(covers, { data = cover_bb, w = bookinfo.cover_w, h = bookinfo.cover_h })
+                    table.insert(covers, {
+                        data = cover_bb,
+                        w = bookinfo.cover_w,
+                        h = bookinfo.cover_h,
+                        cache_key = fpath,
+                    })
                 else
                     if bookinfo and bookinfo.cover_bb then bookinfo.cover_bb:free() end
                     local metadata = entry.doc_props or bookinfo
@@ -557,6 +562,10 @@ local function previewCover(cover, max_w, max_h, uniform, ImageWidget)
         if source_w and source_w > 0 and source_h and source_h > 0 then
             scale_factor = math.max(width / source_w, height / source_h)
         end
+    end
+    if cover.cache_key then
+        cover.data = RenderCache:render(cover.cache_key, cover.data, width, height)
+        scale_factor = 1
     end
     return ImageWidget:new{
         image = cover.data,

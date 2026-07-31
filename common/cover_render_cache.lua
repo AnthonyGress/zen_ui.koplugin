@@ -1,5 +1,6 @@
 -- Shared LRU of final-size cover bitmaps used by mosaic, list, and Home.
 local Blitbuffer = require("ffi/blitbuffer")
+local RenderImage
 
 local M = {
     DEFAULT_BYTE_BUDGET = 24 * 1024 * 1024,
@@ -49,13 +50,16 @@ local function resize(source, width, height)
     local scaled_h = math.max(height, math.ceil(src_h * scale))
     local scaled = source
     if scaled_w ~= src_w or scaled_h ~= src_h then
-        local ok_scale, resized = pcall(source.scale, source, scaled_w, scaled_h)
+        RenderImage = RenderImage or require("ui/renderimage")
+        local ok_scale, resized = pcall(
+            RenderImage.scaleBlitBuffer, RenderImage,
+            source, scaled_w, scaled_h, true
+        )
         if not ok_scale or not resized then
             free(source)
             return nil
         end
         scaled = resized
-        free(source)
     end
     local ok_out, out = pcall(Blitbuffer.new, width, height, scaled:getType())
     if not ok_out or not out then

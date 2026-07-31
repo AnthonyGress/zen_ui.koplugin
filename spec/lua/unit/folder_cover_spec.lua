@@ -28,7 +28,10 @@ describe("shared folder cover provider", function()
                 return { kind = "gallery", covers = covers, bordersize = 2 }
             end,
             drawStack = function() return { kind = "stack", bordersize = 2 } end,
-            drawSingle = function() return { kind = "single", bordersize = 2 } end,
+            drawSingle = function(_cover, width, height, _border, uniform)
+                calls.single = { width = width, height = height, uniform = uniform }
+                return { kind = "single", bordersize = 2 }
+            end,
             drawNoImage = function(title)
                 return { kind = "placeholder", title = title, bordersize = 2 }
             end,
@@ -56,6 +59,7 @@ describe("shared folder cover provider", function()
         assert.is_true(FolderCover.isSupported({ _zen_files = {} }, {}))
         assert.is_true(FolderCover.isSupported({ is_go_up = true }, {}))
         assert.is_true(FolderCover.isSupported({ name = "Favorites" }, { _zen_coll_list = true }))
+        assert.is_true(FolderCover.isSupported({ is_directory = true }, { _zen_renderer = true }))
         assert.is_false(FolderCover.isSupported({ text = "Unrelated" }, {}))
     end)
 
@@ -139,6 +143,97 @@ describe("shared folder cover provider", function()
         }, "Author", 80, 120, { uniform = false })
 
         assert.is_false(calls.uniform)
+    end)
+
+    it("gives a natural single preview the same full bounds as its child", function()
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        cover_mode = "normal"
+        FolderCover.build({}, {
+            _zen_files = { "/library/tall.epub" },
+        }, "Author", 80, 122, { uniform = false })
+
+        assert.are.same({ width = 80, height = 122, uniform = false }, calls.single)
+    end)
+
+    it("keeps mosaic spine lines short and separated from the cover", function()
+        ZenSpec.replace("device", {
+            screen = { scaleBySize = function(_self, value) return math.floor(value + 0.5) end },
+        })
+        ZenSpec.replace("ffi/blitbuffer", { COLOR_GRAY_4 = 4, COLOR_BLACK = 0 })
+        ZenSpec.replace("ui/size", { line = { medium = 2 } })
+        ZenSpec.unload("modules/filebrowser/folder_cover")
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local rects = {}
+        local bb = {
+            paintRect = function(_self, x, y, width, height)
+                rects[#rects + 1] = { x = x, y = y, width = width, height = height }
+            end,
+        }
+
+        local orientation = FolderCover.paintSpines(bb, {
+            dimen = { x = 30, y = 20, w = 100, h = 150 },
+        }, 0, 0, { rounded = true })
+
+        assert.are.equal("top", orientation)
+        assert.are.same({
+            { x = 37, y = 11, width = 86, height = 3 },
+            { x = 35, y = 16, width = 89, height = 3 },
+        }, rects)
+        assert.are.equal(1, 20 - (rects[2].y + rects[2].height))
+    end)
+
+    it("moves spines left when the mosaic has no room above", function()
+        ZenSpec.replace("device", {
+            screen = { scaleBySize = function(_self, value) return math.floor(value + 0.5) end },
+        })
+        ZenSpec.replace("ffi/blitbuffer", { COLOR_GRAY_4 = 4, COLOR_BLACK = 0 })
+        ZenSpec.replace("ui/size", { line = { medium = 2 } })
+        ZenSpec.unload("modules/filebrowser/folder_cover")
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local rects = {}
+        local bb = {
+            paintRect = function(_self, x, y, width, height)
+                rects[#rects + 1] = { x = x, y = y, width = width, height = height }
+            end,
+        }
+
+        local orientation = FolderCover.paintSpines(bb, {
+            dimen = { x = 30, y = 2, w = 100, h = 150 },
+        }, 0, 0, { rounded = true })
+
+        assert.are.equal("left", orientation)
+        assert.are.same({
+            { x = 21, y = 10, width = 3, height = 133 },
+            { x = 26, y = 8, width = 3, height = 137 },
+        }, rects)
+        assert.are.equal(1, 30 - (rects[2].x + rects[2].width))
+    end)
+
+    it("uses the full list row height for left spine lengths", function()
+        ZenSpec.replace("device", {
+            screen = { scaleBySize = function(_self, value) return math.floor(value + 0.5) end },
+        })
+        ZenSpec.replace("ffi/blitbuffer", { COLOR_GRAY_4 = 4, COLOR_BLACK = 0 })
+        ZenSpec.replace("ui/size", { line = { medium = 2 } })
+        ZenSpec.unload("modules/filebrowser/folder_cover")
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local rects = {}
+        local bb = {
+            paintRect = function(_self, x, y, width, height)
+                rects[#rects + 1] = { x = x, y = y, width = width, height = height }
+            end,
+        }
+
+        FolderCover.paintSpines(bb, {
+            dimen = { x = 30, y = 6, w = 60, h = 90 },
+        }, 0, 0, {
+            orientation = "left", line_extent = 100, center_y = 51, rounded = true,
+        })
+
+        assert.are.same({
+            { x = 21, y = 8, width = 3, height = 86 },
+            { x = 26, y = 6, width = 3, height = 89 },
+        }, rects)
     end)
 
     it("uses synthetic group and collection members without scanning paths", function()

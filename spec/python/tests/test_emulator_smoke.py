@@ -59,6 +59,103 @@ def _assert_golden(actual: Path, name: str) -> None:
     )
 
 
+def _select_arrange_label(driver: ZenDriver, label: str) -> None:
+    arrange = driver.command("arrange_page_state")["arrange"]
+    index = arrange["labels"].index(label) + 1
+    items_per_page = int(arrange["items_per_page"])
+    page = (index - 1) // items_per_page + 1
+    if page != 1:
+        assert driver.command("arrange_page_go_to", page=page)["ok"] is True
+    assert driver.command("arrange_page_select", index=index)["ok"] is True
+
+
+def _open_buttons_arrange(driver: ZenDriver) -> None:
+    assert driver.command("open_settings_page")["ok"] is True
+    for _attempt in range(3):
+        if driver.command("arrange_page_state").get("ok") is True:
+            return
+        labels = driver.command("settings_page_state")["settings"]["labels"]
+        target = "Controls" if "Controls" in labels else "Buttons"
+        assert driver.command("settings_page_select", label=target)["ok"] is True
+    raise AssertionError("Buttons arrange page did not open")
+
+
+def test_action_selection_saves_immediately_and_x_closes_settings_stack() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-action-save-") as temporary:
+        root = Path(temporary)
+        ko_home, library = root / "home", root / "library"
+        ko_home.mkdir()
+        library.mkdir()
+        socket_path = root / "driver.sock"
+        process = launch(runtime, ko_home, socket_path, library)
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            _open_buttons_arrange(driver)
+            assert driver.command("arrange_page_action")["ok"] is True
+            _select_arrange_label(driver, "Action")
+            _select_arrange_label(driver, "Action: (none)")
+            _select_arrange_label(driver, "General")
+            _select_arrange_label(driver, "History")
+
+            actions = driver.command("custom_action_state")["actions"]
+            assert len(actions) == 1
+            assert actions[0]["history"] is True
+
+            assert driver.command("arrange_page_hardware_back")["ok"] is True
+            actions = driver.command("custom_action_state")["actions"]
+            assert len(actions) == 1
+            assert actions[0]["history"] is True
+
+            assert driver.command("arrange_page_close_button")["ok"] is True
+            stack = driver.command("zen_settings_stack_state")
+            assert stack["settings_open"] is False
+            assert stack["arrange_count"] == 0
+
+            assert driver.command("open_settings_page")["ok"] is True
+            assert driver.command(
+                "activate_custom_control", id=actions[0]["id"]
+            )["ok"] is True
+            history = driver.command("history_state")
+            assert history["open"] is True
+            assert history["settings_open"] is False
+            assert driver.command("close_history")["ok"] is True
+
+            _open_buttons_arrange(driver)
+            _select_arrange_label(driver, "History")
+            _select_arrange_label(driver, "Action: History")
+            _select_arrange_label(driver, "General")
+            _select_arrange_label(driver, "History")
+            _select_arrange_label(driver, "File browser")
+
+            actions = driver.command("custom_action_state")["actions"]
+            assert actions[0]["history"] is False
+            assert actions[0]["filebrowser"] is True
+            assert driver.command("arrange_page_close_button")["ok"] is True
+
+            assert driver.command("open_settings_page")["ok"] is True
+            assert driver.command(
+                "activate_custom_control", id=actions[0]["id"]
+            )["ok"] is True
+            stack = driver.command("zen_settings_stack_state")
+            assert stack["settings_open"] is False
+            assert stack["arrange_count"] == 0
+
+            assert driver.command("open_settings_page")["ok"] is True
+            assert driver.command("open_koreader_history")["ok"] is True
+            history = driver.command("history_state")
+            assert history["open"] is True
+            assert history["settings_open"] is False
+        finally:
+            process.send_signal(signal.SIGTERM)
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+
+
 def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
     runtime = Path(os.environ["KOREADER_DIR"])
     with tempfile.TemporaryDirectory(prefix="zen-ui-emulator-") as temporary:
@@ -288,6 +385,11 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             assert arrange.get("row_focus_inner_border") is True
             assert arrange.get("row_focus_feedback") is True
             assert arrange.get("row_focus_border_size") == settings_focus_border
+            assert arrange.get("handle_visible") is True
+            assert arrange.get("footer_cancel_hidden") is True
+            assert arrange.get("footer_first_hidden") is True
+            assert arrange.get("footer_last_hidden") is True
+            assert arrange.get("footer_ok_hidden") is True
             driver.screenshot(arrange_screenshot)
             assert arrange_screenshot.stat().st_size > 0
             if str(arrange.get("title", "")).startswith("Buttons"):
@@ -308,6 +410,21 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             assert driver.command(
                 "arrange_page_search", query="items per page"
             )["ok"] is False
+            assert driver.command("close_arrange_page")["ok"] is True
+            assert driver.command("close_settings_page")["ok"] is True
+
+            assert driver.command("open_settings_page")["ok"] is True
+            assert driver.command("settings_page_search", query="tabs")["ok"] is True
+            assert driver.command("settings_page_select", label="Tabs")["ok"] is True
+            time.sleep(0.2)
+            arrange = driver.command("arrange_page_state")["arrange"]
+            initial_labels = arrange.get("labels", [])
+            assert len(initial_labels) > 1
+            dragged = driver.command("arrange_page_drag", **{"from": 1, "to": 2})
+            assert dragged.get("ok") is True, dragged
+            assert dragged.get("marked") == 0
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange.get("labels", [])[:2] == initial_labels[1::-1]
             assert driver.command("close_arrange_page")["ok"] is True
             assert driver.command("close_settings_page")["ok"] is True
 
@@ -465,9 +582,9 @@ def test_settings_page_keeps_enabled_status_bar_at_top() -> None:
                 process.wait()
 
 
-def test_non_touch_enter_hold_enters_arrange_mode() -> None:
+def test_touch_arrange_drag_crosses_to_previous_page() -> None:
     runtime = Path(os.environ["KOREADER_DIR"])
-    with tempfile.TemporaryDirectory(prefix="zen-ui-non-touch-arrange-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="zen-ui-touch-arrange-") as temporary:
         root = Path(temporary)
         ko_home, library = root / "home", root / "library"
         ko_home.mkdir()
@@ -478,42 +595,188 @@ def test_non_touch_enter_hold_enters_arrange_mode() -> None:
             ko_home,
             socket_path,
             library,
-            env_overrides={"DISABLE_TOUCH": "1"},
+            env_overrides={
+                "EMULATE_READER_W": "600",
+                "EMULATE_READER_H": "800",
+            },
         )
         try:
             wait_for_socket(socket_path)
             driver = ZenDriver(socket_path)
             assert driver.command("open_settings_page")["ok"] is True
-            assert driver.command("settings_page_select", label="Launcher")["ok"] is True
-            assert driver.command("settings_page_select", label="Buttons")["ok"] is True
+            assert driver.command("settings_page_search", query="widgets")["ok"] is True
+            assert driver.command("settings_page_select", label="Widgets")["ok"] is True
             time.sleep(0.2)
 
             arrange = driver.command("arrange_page_state")["arrange"]
-            initial_checked = arrange["checked"][0]
+            initial_labels = arrange["labels"]
+            items_per_page = int(arrange["items_per_page"])
+            last_page = int(arrange["page_count"])
+            assert last_page > 1
+
+            started = driver.command(
+                "arrange_page_drag", **{"from": 1, "to": 1, "release": False}
+            )
+            assert started.get("ok") is True, started
+            assert started.get("marked") == 1
+            assert started.get("dragging") is True
+            turned = driver.command("arrange_page_turn", direction="next")
+            assert turned.get("page") == 2, turned
+            assert turned.get("marked") == 0
+            assert turned.get("dragging") is False
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["handle_focus_visible"] is False
+            assert arrange["labels"] == initial_labels
+
+            first_index = (last_page - 1) * items_per_page
+            expected_labels = list(initial_labels)
+            expected_labels.insert(first_index - 1, expected_labels.pop(first_index))
+            assert driver.command("arrange_page_go_to", page=last_page)["ok"] is True
+            dragged = driver.command("arrange_page_drag", **{"from": 1, "edge": "left"})
+            assert dragged.get("ok") is True, dragged
+            assert dragged.get("marked") == 0
+            assert dragged.get("page") == last_page - 1, dragged
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["handle_focus_visible"] is False
+            assert arrange["labels"] == expected_labels
+
+            expected_labels = list(arrange["labels"])
+            expected_labels.insert(first_index - 1, expected_labels.pop(first_index))
+            assert driver.command("arrange_page_go_to", page=last_page)["ok"] is True
+            dragged = driver.command("arrange_page_drag", **{"from": 1, "edge": "up"})
+            assert dragged.get("ok") is True, dragged
+            assert dragged.get("marked") == 0
+            assert dragged.get("page") == last_page - 1, dragged
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["handle_focus_visible"] is False
+            assert arrange["labels"] == expected_labels
+
+            submenu_index = arrange["submenu_indices"][0]
+            submenu_page = (submenu_index - 1) // items_per_page + 1
+            assert driver.command("arrange_page_go_to", page=submenu_page)["ok"] is True
+            assert driver.command("arrange_page_select", index=submenu_index)["ok"] is True
+            submenu = driver.command("arrange_page_state")["arrange"]
+            assert submenu["title"] != arrange["title"]
+            assert driver.command("arrange_page_back")["ok"] is True
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["labels"] == expected_labels
+        finally:
+            process.send_signal(signal.SIGTERM)
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+
+
+def test_touch_dpad_arrange_handle_reorders_with_keys() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-non-touch-arrange-") as temporary:
+        root = Path(temporary)
+        ko_home, library = root / "home", root / "library"
+        ko_home.mkdir()
+        library.mkdir()
+        socket_path = root / "driver.sock"
+        process = launch(runtime, ko_home, socket_path, library)
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            _open_buttons_arrange(driver)
+            time.sleep(0.2)
+
+            arrange = driver.command("arrange_page_state")["arrange"]
+            initial_title = arrange["title"]
+            initial_labels = arrange["labels"]
             assert arrange["marked"] == 0
+            assert arrange["handle_visible"] is True
+            assert arrange["handle_focused"] is False
+            assert arrange["item_focused"] is True
+            assert arrange["item_focusable"] is True
+            assert arrange["toggle_focusable"] is True
+            assert arrange["toggle_focus_feedback"] is True
+            assert arrange["toggle_focus_border_size"] > arrange["row_focus_border_size"]
+            assert arrange["footer_cancel_hidden"] is True
+            assert arrange["footer_first_hidden"] is True
+            assert arrange["footer_last_hidden"] is True
+            assert arrange["footer_ok_hidden"] is True
+
+            assert driver.command("arrange_page_key", key="Left")["ok"] is True
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["handle_focused"] is True
+
+            menu_result = driver.command(
+                "arrange_page_menu", close_menu=True
+            )
+            assert menu_result["ok"] is True
+            assert menu_result["menu_open"] is True
+            assert menu_result["marked"] == 0
+            assert menu_result["handle_active"] is False
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["handle_focused"] is True
+            assert driver.command("arrange_page_key", key="Right")["ok"] is True
+            assert driver.command("arrange_page_state")["arrange"]["item_focused"] is True
+
+            initial_checked = arrange["checked"][0]
+            assert driver.command("arrange_page_key", key="Right")["ok"] is True
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["toggle_focused"] is True
+            assert arrange["focused_index"] == 1
 
             assert driver.command("arrange_page_key", key="Press")["ok"] is True
-            assert driver.command("arrange_page_state")["arrange"]["checked"][0] \
-                == initial_checked
             assert driver.command(
                 "arrange_page_key", key="Press", phase="release"
             )["ok"] is True
-            time.sleep(0.1)
-            tapped_checked = driver.command("arrange_page_state")["arrange"]["checked"][0]
-            assert tapped_checked != initial_checked
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["checked"][0] != initial_checked
+            assert arrange["toggle_focused"] is True
+
+            assert driver.command("arrange_page_key", key="Down")["ok"] is True
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["toggle_focused"] is True
+            assert arrange["focused_index"] == 2
+            assert driver.command("arrange_page_key", key="Up")["ok"] is True
+            assert driver.command("arrange_page_key", key="Left")["ok"] is True
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["item_focused"] is True
+            assert arrange["focused_index"] == 1
+
+            assert driver.command("arrange_page_key", key="Left")["ok"] is True
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["handle_focused"] is True
 
             assert driver.command("arrange_page_key", key="Press")["ok"] is True
-            try:
-                time.sleep(0.1)
-                arrange = driver.command("arrange_page_state")["arrange"]
-                assert arrange["marked"] == 0
-                assert arrange["checked"][0] == tapped_checked
-                time.sleep(0.4)
-                arrange = driver.command("arrange_page_state")["arrange"]
-                assert arrange["marked"] == 1
-                assert arrange["checked"][0] == tapped_checked
-            finally:
-                driver.command("arrange_page_key", key="Press", phase="release")
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["marked"] == 1
+            assert arrange["handle_active"] is True
+            assert driver.command(
+                "arrange_page_key", key="Press", phase="repeat"
+            )["ok"] is True
+            assert driver.command("arrange_page_state")["arrange"]["marked"] == 1
+            assert driver.command(
+                "arrange_page_key", key="Press", phase="release"
+            )["ok"] is True
+
+            assert driver.command("arrange_page_key", key="Down")["ok"] is True
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["marked"] == 2
+            assert arrange["labels"][:2] == initial_labels[1::-1]
+
+            assert driver.command("arrange_page_key", key="Press")["ok"] is True
+            assert driver.command(
+                "arrange_page_key", key="Press", phase="release"
+            )["ok"] is True
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["marked"] == 0
+            assert arrange["handle_active"] is False
+            assert arrange["handle_focused"] is True
+
+            assert driver.command("arrange_page_key", key="Right")["ok"] is True
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["item_focused"] is True
+            assert driver.command("arrange_page_key", key="Return")["ok"] is True
+            time.sleep(0.2)
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["title"] != initial_title
         finally:
             process.send_signal(signal.SIGTERM)
             try:

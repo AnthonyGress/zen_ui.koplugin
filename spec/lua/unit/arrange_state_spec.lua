@@ -53,13 +53,7 @@ describe("arrange state", function()
         assert.are.equal("consume", ArrangeState.rootTapAction({}, false))
     end)
 
-    it("uses Right as hold-to-arrange only on non-touch few-key devices", function()
-        assert.is_true(ArrangeState.rightKeyEntersArrange(false, true))
-        assert.is_false(ArrangeState.rightKeyEntersArrange(true, true))
-        assert.is_false(ArrangeState.rightKeyEntersArrange(false, false))
-    end)
-
-    it("recognizes unmodified Enter keys for delayed hold handling", function()
+    it("recognizes unmodified Enter keys for handle repeat suppression", function()
         local press = {
             match = function(_self, sequence) return sequence[1] == "Press" end,
         }
@@ -72,5 +66,36 @@ describe("arrange state", function()
         assert.are.equal("Press", ArrangeState.confirmKeyName(press))
         assert.is_nil(ArrangeState.confirmKeyName(shifted_press))
         assert.is_nil(ArrangeState.confirmKeyName("Down"))
+    end)
+
+    it("maps drag positions to visible rows and adjacent pages", function()
+        assert.are.equal(1, ArrangeState.dragTargetIndex(1, 4, 10, 100, 50, 125))
+        assert.are.equal(3, ArrangeState.dragTargetIndex(1, 4, 10, 100, 50, 225))
+        assert.are.equal(5, ArrangeState.dragTargetIndex(1, 4, 10, 100, 50, 325))
+        assert.are.equal(4, ArrangeState.dragTargetIndex(2, 4, 10, 100, 50, 75))
+        assert.are.equal(10, ArrangeState.dragTargetIndex(3, 4, 10, 100, 50, 225))
+        assert.is_nil(ArrangeState.dragTargetIndex(1, 4, 10, 100, 0, 125))
+    end)
+
+    it("recognizes vertical and horizontal page crossings", function()
+        assert.are.equal(-1, ArrangeState.dragPageDirection(-30, 20, 150, 100, 300))
+        assert.are.equal(1, ArrangeState.dragPageDirection(30, 20, 150, 100, 300))
+        assert.are.equal(-1, ArrangeState.dragPageDirection(0, 20, 90, 100, 300))
+        assert.are.equal(1, ArrangeState.dragPageDirection(0, 20, 300, 100, 300))
+        assert.are.equal(0, ArrangeState.dragPageDirection(0, 20, 150, 100, 300))
+        assert.are.equal(-1, ArrangeState.dragPageDirection(30, 20, 90, 100, 300))
+        assert.are.equal(1, ArrangeState.dragPageDirection(-30, 20, 310, 100, 300))
+    end)
+
+    it("moves only table items to validated absolute positions", function()
+        local items = { { text = "One" }, { text = "Two" }, { text = "Three" } }
+        assert.is_true(ArrangeState.moveTableItem(items, 3, 1))
+        assert.are.equal("Three", items[1].text)
+        assert.are.equal("One", items[2].text)
+        assert.are.equal("Two", items[3].text)
+
+        local invalid = { { text = "One" }, 2 }
+        assert.is_false(ArrangeState.moveTableItem(invalid, 2, 1))
+        assert.are.equal(2, invalid[2])
     end)
 end)

@@ -2,6 +2,7 @@ local Blitbuffer = require("ffi/blitbuffer")
 local BD = require("ui/bidi")
 local Device = require("device")
 local BottomContainer = require("ui/widget/container/bottomcontainer")
+local CenterContainer = require("ui/widget/container/centercontainer")
 local CheckMark = require("ui/widget/checkmark")
 local FrameContainer = require("ui/widget/container/framecontainer")
 local Geom = require("ui/geometry")
@@ -9,6 +10,7 @@ local GestureRange = require("ui/gesturerange")
 local HorizontalGroup = require("ui/widget/horizontalgroup")
 local HorizontalSpan = require("ui/widget/horizontalspan")
 local IconWidget = require("ui/widget/iconwidget")
+local InputContainer = require("ui/widget/container/inputcontainer")
 local LeftContainer = require("ui/widget/container/leftcontainer")
 local LineWidget = require("ui/widget/linewidget")
 local OverlapGroup = require("ui/widget/overlapgroup")
@@ -27,6 +29,7 @@ local ZenToggle = require("common/ui/zen_toggle")
 local pager = require("common/ui/zen_pager")
 local utils = require("common/utils")
 local ArrangeState = require("common/arrange_state")
+local DispatcherMenu = require("common/dispatcher_menu")
 
 local M = {}
 local show_submenu
@@ -66,33 +69,9 @@ local function toggle_sort_item(sort_widget, item)
     return true
 end
 
-local function get_marked_item(sort_widget)
-    local idx = sort_widget and sort_widget.marked
-    if type(idx) ~= "number" or idx <= 0 then return nil end
-    return sort_widget.item_table and sort_widget.item_table[idx]
-end
-
 local function get_focused_item(sort_widget)
     local focused = sort_widget and sort_widget.getFocusItem and sort_widget:getFocusItem()
     return focused and focused.item
-end
-
-local function sync_footer_cancel(sort_widget)
-    local button = sort_widget and sort_widget.footer_cancel
-    local item = get_marked_item(sort_widget)
-    if not (button and item and item.checked_func and item.callback and item.checked_func()) then
-        suppress_footer_button(button)
-        return
-    end
-    button.skip_paint = false
-    button:show()
-    button:enable()
-    button.onTapSelectButton = nil
-    button.onHoldSelectButton = nil
-    button.onHoldReleaseSelectButton = nil
-    button.callback = function()
-        return toggle_sort_item(sort_widget, item)
-    end
 end
 
 local function hide_button_icon(button)
@@ -125,22 +104,8 @@ local function restore_button_icon(button)
     button:show()
 end
 
-local function suppress_footer_jump_buttons(sort_widget)
-    if not sort_widget then return end
-    local moving = sort_widget.marked and sort_widget.marked > 0
-    if moving then
-        restore_button_icon(sort_widget.footer_first_up)
-        restore_button_icon(sort_widget.footer_last_down)
-        return
-    end
-
-    hide_button_icon(sort_widget.footer_first_up)
-    hide_button_icon(sort_widget.footer_last_down)
-end
-
 local function can_use_arrange_pager(sort_widget)
     return (sort_widget.pages or 0) > 1
-        and (sort_widget.marked or 0) == 0
 end
 
 local function update_arrange_pager_zones(sort_widget, paint_y, footer_h)
@@ -208,7 +173,7 @@ local function sync_pagination_footer(sort_widget)
     end
 
     local page_info = sort_widget.page_info
-    local show_footer = has_pages or (sort_widget.marked and sort_widget.marked > 0)
+    local show_footer = has_pages
     if page_info._zen_arrange_footer_visible == show_footer then return end
     page_info._zen_arrange_footer_visible = show_footer
 
@@ -277,24 +242,6 @@ local function suppress_footer_page_button(sort_widget)
     button.skip_paint = (sort_widget.pages or 0) <= 1
 end
 
-local function has_rearranged_items(sort_widget)
-    return ArrangeState.hasRearrangedItems(
-        sort_widget and sort_widget.orig_item_table,
-        sort_widget and sort_widget.item_table
-    )
-end
-
-local function sync_footer_ok(sort_widget)
-    local button = sort_widget and sort_widget.footer_ok
-    if not button then return end
-    if has_rearranged_items(sort_widget) then
-        restore_button_icon(button)
-        button:enable()
-    else
-        hide_button_icon(button)
-    end
-end
-
 local function rebuild_icon_row(row)
     local item = row and row.item
     if not (item and row.width and row.height) then return end
@@ -327,13 +274,38 @@ local function rebuild_icon_row(row)
     local left_padding = Size.padding.fullscreen
     local right_padding = Size.padding.default
     local icon_w = IconItem.SETTINGS_ICON_WIDTH
+    local arrange_enabled = row.show_parent._zen_arrange_enabled == true
+    local handle_w = arrange_enabled and check_w or 0
     local item_has_submenu = type(item.sub_item_table) == "table"
         or type(item.sub_item_table_func) == "function"
-    local content_w = row.width - left_padding - right_padding
+    local content_w = row.width - handle_w - left_padding - right_padding
     local face = IconItem.getSettingsFace(item.face or row.face)
     local right_items = { align = "center" }
     if item_checkable then
-        table.insert(right_items, row.checkmark_widget)
+        local toggle_control = row.checkmark_widget
+        if arrange_enabled and Device:hasDPad() then
+            local toggle_focus = FrameContainer:new{
+                padding = Size.padding.default,
+                bordersize = 0,
+                focusable = true,
+                focus_border_size = Size.border.thick,
+                focus_inner_border = true,
+                toggle_control,
+            }
+            toggle_focus._zen_arrange_toggle = true
+            toggle_focus._zen_arrange_row = row
+            toggle_focus.item = item
+            toggle_focus.index = row.index
+            row._zen_arrange_toggle_focus = toggle_focus
+            local orig_toggle_focus = toggle_focus.onFocus
+            toggle_focus.onFocus = function(self)
+                row.show_parent._zen_arrange_focus_column = 3
+                return orig_toggle_focus(self)
+            end
+            table.insert(right_items, toggle_focus)
+        else
+            table.insert(right_items, toggle_control)
+        end
     end
     if item_checkable and item_has_submenu then
         table.insert(right_items, HorizontalSpan:new{ width = Size.padding.large })
@@ -400,18 +372,69 @@ local function rebuild_icon_row(row)
         })
     end
 
+    local frame_items = { align = "center" }
+    if arrange_enabled then
+        local handle = FrameContainer:new{
+            dimen = Geom:new{ w = handle_w, h = row.height },
+            padding = 0,
+            bordersize = 0,
+            focusable = true,
+            focus_border_size = Size.border.thin,
+            focus_inner_border = true,
+            CenterContainer:new{
+                dimen = Geom:new{ w = handle_w, h = row.height },
+                IconWidget:new{
+                    icon = "appbar.menu",
+                    width = IconItem.SETTINGS_CARET_SIZE,
+                    height = IconItem.SETTINGS_CARET_SIZE,
+                },
+            },
+        }
+        handle._zen_arrange_handle = true
+        handle._zen_arrange_row = row
+        row._zen_arrange_handle = handle
+        IconItem.enableFullRowFocus(handle, row.show_parent.marked == row.index)
+        local orig_handle_focus = handle.onFocus
+        local orig_handle_unfocus = handle.onUnfocus
+        handle.onFocus = function(self)
+            row.show_parent._zen_arrange_focus_column = 1
+            return orig_handle_focus(self)
+        end
+        handle.onUnfocus = function(self)
+            return orig_handle_unfocus(self)
+        end
+        table.insert(frame_items, handle)
+    end
+    table.insert(frame_items, HorizontalSpan:new{ width = left_padding })
+    table.insert(frame_items, content)
+    table.insert(frame_items, HorizontalSpan:new{ width = right_padding })
+
     local frame = FrameContainer:new{
         padding = 0,
         bordersize = 0,
         focusable = true,
         focus_border_size = Size.border.thin,
         focus_inner_border = true,
-        HorizontalGroup:new{
-            HorizontalSpan:new{ width = left_padding },
-            content,
-            HorizontalSpan:new{ width = right_padding },
-        },
+        HorizontalGroup:new(frame_items),
     }
+    row._zen_arrange_row_frame = frame
+    if arrange_enabled then
+        local focus_content = InputContainer:new{
+            dimen = row.dimen,
+            item = item,
+            index = row.index,
+        }
+        focus_content._zen_arrange_content = true
+        focus_content._zen_arrange_row = row
+        focus_content.onFocus = function()
+            row.show_parent._zen_arrange_focus_column = 2
+            return frame:onFocus()
+        end
+        focus_content.onUnfocus = function()
+            return frame:onUnfocus()
+        end
+        row._zen_arrange_content_focus = focus_content
+    end
     row[1] = OverlapGroup:new{
         dimen = Geom:new{ w = row.width, h = row.height },
         frame,
@@ -424,7 +447,12 @@ local function rebuild_icon_row(row)
             },
         },
     }
-    IconItem.enableFullRowFocus(frame, row.invert)
+    IconItem.enableFullRowFocus(frame, not arrange_enabled and row.invert)
+end
+
+local function is_arrange_handle_tap(row, pos)
+    local handle = row and row._zen_arrange_handle
+    return handle and handle.dimen and pos and pos:intersectWith(handle.dimen) or false
 end
 
 local function is_toggle_tap(row, pos)
@@ -444,6 +472,39 @@ local function apply_icon_rows(sort_widget)
     if not sort_widget or not sort_widget.main_content then return end
     for _i, child in ipairs(sort_widget.main_content) do
         rebuild_icon_row(child)
+    end
+end
+
+local function install_arrange_handle_layout(sort_widget)
+    if not Device:hasDPad() or not (sort_widget and sort_widget._zen_arrange_enabled) then
+        return
+    end
+    for _row_i, layout_row in ipairs(sort_widget.layout or {}) do
+        local row = #layout_row == 1 and layout_row[1]
+        if row and row._zen_arrange_handle then
+            sort_widget.layout[_row_i] = {
+                row._zen_arrange_handle,
+                row._zen_arrange_content_focus,
+                row._zen_arrange_toggle_focus,
+            }
+        end
+    end
+
+    local selected = sort_widget.selected
+    local layout_row = selected and sort_widget.layout[selected.y]
+    if not (layout_row and layout_row[1] and layout_row[1]._zen_arrange_handle) then
+        return
+    end
+    local focus_column = sort_widget._zen_handle_active and 1
+        or sort_widget._zen_arrange_focus_column or 2
+    if not layout_row[focus_column] then focus_column = 2 end
+    selected.x = focus_column
+    for column, target in ipairs(layout_row) do
+        if column == focus_column then
+            target:onFocus()
+        else
+            target:onUnfocus()
+        end
     end
 end
 
@@ -488,6 +549,13 @@ local function back_to_settings_root()
     return false
 end
 
+local function commit_arrange_order(sort_widget)
+    if sort_widget and type(sort_widget._zen_arrange_commit_order) == "function" then
+        return sort_widget:_zen_arrange_commit_order()
+    end
+    return false
+end
+
 local function configure_title_bar(sort_widget, opts)
     opts = opts or {}
     local old_title_bar = sort_widget and sort_widget.title_bar
@@ -502,6 +570,7 @@ local function configure_title_bar(sort_widget, opts)
             file = get_plus_icon_path(),
             icon = "plus",
             callback = function()
+                commit_arrange_order(sort_widget)
                 show_submenu(opts.add_title or "", opts.add_item_table, function()
                     if sort_widget._zen_arrange_refresh then
                         sort_widget:_zen_arrange_refresh()
@@ -537,6 +606,7 @@ local function configure_title_bar(sort_widget, opts)
     title_bar._zen_arrange_default_action = default_action
     vertical_group[1] = title_bar
     sort_widget.title_bar = title_bar
+    sort_widget.onShowWidgetMenu = function() return TopMenu.open() end
     if vertical_group.resetLayout then vertical_group:resetLayout() end
     old_title_bar:free()
 
@@ -729,19 +799,6 @@ local function move_focus_right_from_header(sort_widget)
     return false
 end
 
-local function patch_move_item_kb(sort_widget)
-    if not sort_widget or sort_widget._zen_move_kb_patched then return end
-    sort_widget._zen_move_kb_patched = true
-    sort_widget.onMoveItemKB = function(self, diff)
-        local focused = self.getFocusItem and self:getFocusItem()
-        if focused and focused.index then
-            self.marked = focused.index
-            self:moveItem(diff)
-        end
-        return true
-    end
-end
-
 local function refresh_after_callbacks(items, refresh, menu_proxy, callback_complete)
     if type(items) ~= "table" or type(refresh) ~= "function" then return end
     for _i, item in ipairs(items) do
@@ -791,6 +848,7 @@ local function open_submenu_for_item(sort_widget, item, resume_path)
             and (not sort_widget._zen_menu_mode or item_is_enabled(item))) then
         return false
     end
+    commit_arrange_order(sort_widget)
     local sub_items = item.sub_item_table
     if type(item.sub_item_table_func) == "function" then
         sub_items = item.sub_item_table_func(sort_widget._zen_menu_proxy)
@@ -810,109 +868,310 @@ local function open_submenu_for_item(sort_widget, item, resume_path)
     return true
 end
 
-local function toggle_arrange_selection(row)
-    if not (row and row.show_parent and row.index) then return false end
-    if row.show_parent.marked == row.index then
-        row.show_parent.marked = 0
-    else
-        row.show_parent.marked = row.index
+local function get_focused_arrange_target(sort_widget)
+    local focused = sort_widget and sort_widget.getFocusItem and sort_widget:getFocusItem()
+    if focused and (focused._zen_arrange_handle
+            or focused._zen_arrange_content
+            or focused._zen_arrange_toggle) then
+        return focused
     end
-    repopulate(row.show_parent)
+end
+
+local function get_focused_arrange_handle(sort_widget)
+    local focused = get_focused_arrange_target(sort_widget)
+    if focused and focused._zen_arrange_handle then return focused end
+end
+
+local function focus_arrange_column(sort_widget, column)
+    local selected = sort_widget and sort_widget.selected
+    local row = selected and sort_widget.layout and sort_widget.layout[selected.y]
+    if not (row and row[1] and row[1]._zen_arrange_handle and row[column]) then
+        return false
+    end
+    sort_widget:moveFocusTo(column, selected.y)
     return true
 end
 
-local function enter_keyboard_arrange_mode(sort_widget)
-    if not sort_widget or sort_widget.marked > 0 then return true end
-    local focused = sort_widget.getFocusItem and sort_widget:getFocusItem()
-    if not (focused and focused.index) then return true end
-    sort_widget.marked = focused.index
+local function toggle_focused_arrange_item(sort_widget)
+    local focused = get_focused_arrange_target(sort_widget)
+    local row = focused and focused._zen_arrange_row
+    if not (row and row.index) then return false end
+    local dropped = sort_widget._zen_handle_active == true
+    sort_widget._zen_handle_active = not dropped
+    sort_widget.marked = dropped and 0 or row.index
+    sort_widget._zen_arrange_focus_column = 1
+    sort_widget:_populateItems()
+    focus_arrange_column(sort_widget, 1)
+    if dropped then commit_arrange_order(sort_widget) end
+    return true
+end
+
+local function toggle_keyboard_handle(sort_widget)
+    local handle = get_focused_arrange_handle(sort_widget)
+    if not handle then return false end
+    return toggle_focused_arrange_item(sort_widget)
+end
+
+local function activate_keyboard_target(sort_widget)
+    if toggle_keyboard_handle(sort_widget) then return true end
+    local focused = get_focused_arrange_target(sort_widget)
+    local item = focused and focused.item
+    if not (focused and item) then return false end
+    if sort_widget._zen_menu_mode and not item_is_enabled(item) then return true end
+    if focused._zen_arrange_toggle then
+        sort_widget._zen_arrange_focus_column = 3
+        local toggled = toggle_sort_item(sort_widget, item)
+        focus_arrange_column(sort_widget, 3)
+        return toggled
+    end
+    if focused._zen_arrange_content and open_submenu_for_item(sort_widget, item) then
+        return true
+    end
+    if item.checked_func then return toggle_sort_item(sort_widget, item) end
+    if item.callback then
+        item:callback()
+        if not sort_widget._zen_menu_mode then sort_widget:_populateItems() end
+        return true
+    end
+    return true
+end
+
+local function move_arrange_item(sort_widget, target)
+    if not (sort_widget and type(target) == "number"
+            and ArrangeState.moveTableItem(
+                sort_widget.item_table, sort_widget.marked, target
+            )) then
+        return false
+    end
+    sort_widget.marked = target
+    sort_widget._zen_arrange_order_dirty = true
+    sort_widget.show_page = math.ceil(target / sort_widget.items_per_page)
     sort_widget:_populateItems()
     return true
 end
 
-local function exit_keyboard_arrange_mode(sort_widget)
-    if not sort_widget or sort_widget.marked == 0 then return false end
+local function install_arrange_movement(sort_widget)
+    sort_widget.moveItem = function(self, diff)
+        if type(diff) ~= "number" then return false end
+        return move_arrange_item(self, self.marked + diff)
+    end
+    sort_widget.onMoveItemKB = function(self, diff)
+        if self._zen_handle_active then self:moveItem(diff) end
+        return true
+    end
+end
+
+local function release_arrange_item(sort_widget)
+    if not sort_widget or ((sort_widget.marked or 0) == 0
+            and not sort_widget._zen_handle_active
+            and not sort_widget._zen_dragging) then
+        return false
+    end
+    sort_widget._zen_handle_active = false
+    sort_widget._zen_dragging = false
+    sort_widget._zen_drag_top = nil
+    sort_widget._zen_drag_start_x = nil
+    sort_widget._zen_drag_horizontal_threshold = nil
+    sort_widget._zen_drag_page_latch = nil
+    sort_widget._zen_arrange_focus_column = 2
     sort_widget.marked = 0
-    sort_widget:_populateItems()
+    commit_arrange_order(sort_widget)
     return true
 end
 
-local function install_non_touch_keyboard_controls(sort_widget)
-    if Device:isTouchDevice() then return end
+local function install_arrange_paging(sort_widget)
+    local orig_next_page = sort_widget.nextPage
+    sort_widget.nextPage = function(self)
+        local page = self.show_page
+        local released = release_arrange_item(self)
+        local result = orig_next_page(self)
+        if released and self.show_page == page then self:_populateItems() end
+        return result
+    end
 
-    local hold_delay = 0.4
-    local hold_action
+    local orig_prev_page = sort_widget.prevPage
+    sort_widget.prevPage = function(self)
+        local page = self.show_page
+        local released = release_arrange_item(self)
+        local result = orig_prev_page(self)
+        if released and self.show_page == page then self:_populateItems() end
+        return result
+    end
+
+    local orig_on_go_to_page = sort_widget.onGoToPage
+    sort_widget.onGoToPage = function(self, page)
+        release_arrange_item(self)
+        return orig_on_go_to_page(self, page)
+    end
+end
+
+local function install_dpad_handle_controls(sort_widget)
+    if not Device:hasDPad() then return end
+
+    local orig_on_focus_move = sort_widget.onFocusMove
+    sort_widget.onFocusMove = function(self, args)
+        if self._zen_handle_active and args then
+            if args[1] ~= 0 then return true end
+            if args[2] ~= 0 then
+                self:moveItem(args[2])
+                return true
+            end
+        end
+        return orig_on_focus_move and orig_on_focus_move(self, args)
+    end
+
     local confirm_key_down
-    local hold_fired = false
-
-    local function clear_confirm_hold()
-        if hold_action then UIManager:unschedule(hold_action) end
-        hold_action = nil
-        confirm_key_down = nil
-        hold_fired = false
-    end
-
-    local orig_on_press = sort_widget.onPress
-    sort_widget.onPress = function(self)
-        if exit_keyboard_arrange_mode(self) then return true end
-        return orig_on_press and orig_on_press(self)
-    end
-
-    sort_widget.onHold = function(self)
-        return enter_keyboard_arrange_mode(self)
-    end
-    sort_widget.onHoldNonTouch = sort_widget.onHold
-
     local orig_on_key_press = sort_widget.onKeyPress
     sort_widget.onKeyPress = function(self, key)
-        local key_name = ArrangeState.confirmKeyName(key)
-        if key_name and self.marked == 0 then
-            clear_confirm_hold()
+        local key_name = get_focused_arrange_target(self)
+            and ArrangeState.confirmKeyName(key)
+        if key_name then
+            if confirm_key_down == key_name then return true end
             confirm_key_down = key_name
-            hold_action = function()
-                hold_action = nil
-                if confirm_key_down ~= key_name then return end
-                hold_fired = true
-                enter_keyboard_arrange_mode(self)
-            end
-            UIManager:scheduleIn(hold_delay, hold_action)
+        end
+        return orig_on_key_press and orig_on_key_press(self, key)
+    end
+
+    local orig_on_key_repeat = sort_widget.onKeyRepeat
+    sort_widget.onKeyRepeat = function(self, key)
+        if get_focused_arrange_target(self) and ArrangeState.confirmKeyName(key) then
             return true
         end
-        if confirm_key_down then clear_confirm_hold() end
-        return orig_on_key_press and orig_on_key_press(self, key)
+        return orig_on_key_repeat and orig_on_key_repeat(self, key)
     end
 
     local orig_on_key_release = sort_widget.onKeyRelease
     sort_widget.onKeyRelease = function(self, key)
         local key_name = ArrangeState.confirmKeyName(key)
-        if key_name and key_name == confirm_key_down then
-            local activate = hold_action ~= nil
-            local consume = activate or hold_fired
-            if hold_action then UIManager:unschedule(hold_action) end
-            hold_action = nil
+        if key_name and confirm_key_down == key_name then
             confirm_key_down = nil
-            hold_fired = false
-            if activate then
-                return orig_on_key_press and orig_on_key_press(self, key) or true
-            end
-            if consume then return true end
+            if orig_on_key_release then orig_on_key_release(self, key) end
+            return true
         end
         return orig_on_key_release and orig_on_key_release(self, key)
     end
+end
 
-    local orig_on_close_widget = sort_widget.onCloseWidget
-    sort_widget.onCloseWidget = function(self, ...)
-        clear_confirm_hold()
-        if orig_on_close_widget then return orig_on_close_widget(self, ...) end
+local function move_dragged_item(sort_widget, ges)
+    local pos = ges and ges.pos
+    if not pos then return false end
+
+    local item_count = #sort_widget.item_table
+    local first = (sort_widget.show_page - 1) * sort_widget.items_per_page + 1
+    local visible = math.min(sort_widget.items_per_page, item_count - first + 1)
+    local row_height = sort_widget.item_height + sort_widget.item_margin
+    local bottom = sort_widget._zen_drag_top + visible * row_height
+    local relative_x = ges.relative and ges.relative.x
+        or sort_widget._zen_drag_start_x and pos.x - sort_widget._zen_drag_start_x
+    local page_direction = ArrangeState.dragPageDirection(
+        relative_x,
+        sort_widget._zen_drag_horizontal_threshold,
+        pos.y,
+        sort_widget._zen_drag_top,
+        bottom
+    )
+    local target
+    if page_direction ~= 0 then
+        target = page_direction < 0 and first - 1 or first + visible
+        if target < 1 or target > item_count then return false end
+        if sort_widget._zen_drag_page_latch == page_direction then return false end
+        sort_widget._zen_drag_page_latch = page_direction
+    else
+        sort_widget._zen_drag_page_latch = nil
+        target = ArrangeState.dragTargetIndex(
+            sort_widget.show_page,
+            sort_widget.items_per_page,
+            item_count,
+            sort_widget._zen_drag_top,
+            row_height,
+            pos.y
+        )
+    end
+    if target == sort_widget.marked then return false end
+    return move_arrange_item(sort_widget, target)
+end
+
+local function install_touch_handle_drag(sort_widget)
+    if not Device:isTouchDevice() or not sort_widget._zen_arrange_enabled then return end
+
+    local full = sort_widget.dimen
+    sort_widget.ges_events.ZenArrangeHandlePan = {
+        GestureRange:new{ ges = "pan", range = full },
+    }
+    sort_widget.ges_events.ZenArrangeHandlePanRelease = {
+        GestureRange:new{ ges = "pan_release", range = full },
+    }
+    sort_widget.onZenArrangeHandlePan = function(self, _arg, ges)
+        local pos = ges and ges.pos
+        if not pos then return false end
+        if not self._zen_dragging then
+            local start_pos = ges.start_pos or pos
+            for _row_i, row in ipairs(self.main_content or {}) do
+                if row.index and is_arrange_handle_tap(row, start_pos) then
+                    local first = (self.show_page - 1) * self.items_per_page + 1
+                    local row_height = self.item_height + self.item_margin
+                    self._zen_drag_top = row._zen_arrange_handle.dimen.y
+                        - (row.index - first) * row_height
+                    self._zen_drag_horizontal_threshold = math.max(
+                        Size.padding.default,
+                        math.floor(row._zen_arrange_handle.dimen.w / 2)
+                    )
+                    self._zen_drag_start_x = start_pos.x
+                    self._zen_drag_page_latch = nil
+                    self._zen_dragging = true
+                    self.marked = row.index
+                    self:_populateItems()
+                    move_dragged_item(self, ges)
+                    return true
+                end
+            end
+            return false
+        end
+        move_dragged_item(self, ges)
+        return true
+    end
+    sort_widget.onZenArrangeHandlePanRelease = function(self, _arg, ges)
+        if not self._zen_dragging then return false end
+        local pos = ges and ges.pos
+        if pos then move_dragged_item(self, ges) end
+        local dropped_index = self.marked
+        self._zen_dragging = false
+        self._zen_drag_top = nil
+        self._zen_drag_start_x = nil
+        self._zen_drag_horizontal_threshold = nil
+        self._zen_drag_page_latch = nil
+        self._zen_arrange_focus_column = 2
+        self.marked = 0
+        self:_populateItems()
+        for _row_i, row in ipairs(self.main_content or {}) do
+            if row.index == dropped_index and row._zen_arrange_handle then
+                row._zen_arrange_handle:onUnfocus()
+                break
+            end
+        end
+        commit_arrange_order(self)
+        return true
     end
 
-    local orig_on_focus_move = sort_widget.onFocusMove
-    sort_widget.onFocusMove = function(self, args)
-        if self.marked > 0 and args and args[1] == 0 and args[2] ~= 0 then
-            self:moveItem(args[2])
-            return true
+    local orig_handle_event = sort_widget.handleEvent
+    sort_widget.handleEvent = function(self, event)
+        if event.handler == "onGesture" then
+            local ges = event.args[1]
+            if ges and ges.ges == "pan" then
+                if self._zen_dragging then
+                    return self:onZenArrangeHandlePan(nil, ges)
+                end
+                local start_pos = ges.start_pos or ges.pos
+                for _row_i, row in ipairs(self.main_content or {}) do
+                    if is_arrange_handle_tap(row, start_pos) then
+                        return self:onZenArrangeHandlePan(nil, ges)
+                    end
+                end
+            elseif ges and ges.ges == "pan_release" and self._zen_dragging then
+                return self:onZenArrangeHandlePanRelease(nil, ges)
+            end
         end
-        return orig_on_focus_move and orig_on_focus_move(self, args)
+        return orig_handle_event(self, event)
     end
 end
 
@@ -976,10 +1235,10 @@ show_submenu = function(title, items, refresh, opts)
                 return
             end
             if sort_widget then
-                UIManager:close(sort_widget)
+                local current = sort_widget
                 sort_widget = nil
+                current:onClose()
             end
-            if refresh then refresh() end
         end,
         backToSettingsRoot = function()
             close_submenu_and_arrange()
@@ -1019,6 +1278,16 @@ show_submenu = function(title, items, refresh, opts)
     sort_widget._zen_menu_proxy = menu_proxy
     sort_widget._zen_settings_resume = opts.settings_resume
 
+    local orig_on_close = sort_widget.onClose
+    sort_widget.onClose = function(self)
+        DispatcherMenu.flush(menu_proxy)
+        remember_settings_resume(self)
+        local result = orig_on_close(self)
+        if refresh then refresh() end
+        return result
+    end
+    sort_widget.onCancelOrClose = sort_widget.onClose
+
     sort_widget.key_events = sort_widget.key_events or {}
     sort_widget.key_events.FocusRight = nil
     sort_widget.key_events.AlternativeFocusRight = nil
@@ -1036,11 +1305,11 @@ show_submenu = function(title, items, refresh, opts)
         if sort_widget then
             local current = sort_widget
             sort_widget = nil
-            remember_settings_resume(current)
             current:onClose()
         end
         if type(opts.close_arrange) == "function" then opts.close_arrange() end
     end
+    sort_widget._zen_arrange_close_all = close_submenu_and_arrange
     configure_title_bar(sort_widget, {
         back_callback = function()
             menu_proxy:backToUpperMenu()
@@ -1063,7 +1332,8 @@ show_submenu = function(title, items, refresh, opts)
     suppress_page_centering(sort_widget)
     suppress_footer_button(sort_widget.footer_cancel)
     suppress_footer_button(sort_widget.footer_ok)
-    suppress_footer_jump_buttons(sort_widget)
+    suppress_footer_button(sort_widget.footer_first_up)
+    suppress_footer_button(sort_widget.footer_last_down)
     suppress_footer_page_button(sort_widget)
     sync_pagination_footer(sort_widget)
     apply_icon_rows(sort_widget)
@@ -1077,7 +1347,8 @@ show_submenu = function(title, items, refresh, opts)
         suppress_page_centering(self)
         suppress_footer_button(self.footer_cancel)
         suppress_footer_button(self.footer_ok)
-        suppress_footer_jump_buttons(self)
+        suppress_footer_button(self.footer_first_up)
+        suppress_footer_button(self.footer_last_down)
         suppress_footer_page_button(self)
         sync_pagination_footer(self)
         apply_icon_rows(self)
@@ -1146,16 +1417,7 @@ install_root_tap_handlers = function(sort_widget)
         local item = type(child) == "table" and child.item or nil
         if item and not child._zen_arrange_root_hold_patched then
             child._zen_arrange_root_hold_patched = true
-            if sort_widget._zen_arrange_enabled then
-                child.onHoldTouch = function(row)
-                    toggle_arrange_selection(row)
-                    return true
-                end
-            else
-                child.onHoldTouch = function()
-                    return true
-                end
-            end
+            child.onHoldTouch = function() return true end
         end
         if item and not child._zen_arrange_root_tap_patched then
             child._zen_arrange_root_tap_patched = true
@@ -1163,6 +1425,7 @@ install_root_tap_handlers = function(sort_widget)
                 if row.show_parent._zen_menu_mode and not item_is_enabled(item) then
                     return true
                 end
+                if ges and is_arrange_handle_tap(row, ges.pos) then return true end
                 local action = ArrangeState.rootTapAction(
                     item,
                     ges and is_toggle_tap(row, ges.pos)
@@ -1260,14 +1523,25 @@ function M.show(opts)
     refresh_after_callbacks(item_table, function()
         sort_widget:_zen_arrange_refresh()
     end, menu_proxy, menu_callback_complete)
+    sort_widget._zen_arrange_order_dirty = false
+    sort_widget._zen_arrange_commit_order = function(self)
+        if not self._zen_arrange_order_dirty then return false end
+        if self.callback then self:callback() end
+        self._zen_arrange_order_dirty = false
+        return true
+    end
+    local orig_on_close = sort_widget.onClose
     sort_widget._zen_arrange_close_all = function()
-        if sort_widget.callback then
-            sort_widget:callback()
-        end
+        if sort_widget._zen_arrange_closing then return true end
+        sort_widget._zen_arrange_closing = true
+        DispatcherMenu.flush(menu_proxy)
+        commit_arrange_order(sort_widget)
         sort_widget.marked = 0
         sort_widget.orig_item_table = nil
-        return sort_widget:onClose()
+        return orig_on_close(sort_widget)
     end
+    sort_widget.onClose = sort_widget._zen_arrange_close_all
+    sort_widget.onCancelOrClose = sort_widget._zen_arrange_close_all
     local settings_resume
     if not menu_mode and rawget(_G, "__ZEN_UI_SETTINGS_PAGE") then
         local ok_settings_page, settings_page = pcall(require, "modules/settings/zen_settings_page")
@@ -1298,7 +1572,7 @@ function M.show(opts)
 
     local orig_on_press = sort_widget.onPress
     sort_widget.onPress = function(self)
-        if toggle_sort_item(self, get_focused_item(self)) then return true end
+        if activate_keyboard_target(self) then return true end
         return orig_on_press and orig_on_press(self)
     end
     sort_widget.key_events = sort_widget.key_events or {}
@@ -1307,12 +1581,7 @@ function M.show(opts)
         event = "ZenArrangeToggle",
     }
     sort_widget.onZenArrangeToggle = function(self)
-        if not Device:isTouchDevice() and exit_keyboard_arrange_mode(self) then return true end
-        if toggle_sort_item(self, get_focused_item(self)) then return true end
-        if has_rearranged_items(self) then
-            return self:onReturn()
-        end
-        return true
+        return self:onPress()
     end
     sort_widget.key_events.FocusRight = nil
     sort_widget.key_events.AlternativeFocusRight = nil
@@ -1322,10 +1591,8 @@ function M.show(opts)
     }
     sort_widget.onZenArrangeOpenSubmenu = function(self)
         if move_focus_right_from_header(self) then return true end
-        -- KOReader uses Right as the hold action on few-key devices.
-        if ArrangeState.rightKeyEntersArrange(
-                Device:isTouchDevice(), Device:hasFewKeys()) then
-            return enter_keyboard_arrange_mode(self)
+        if arrange_enabled and get_focused_arrange_target(self) then
+            return self:onFocusMove({ 1, 0 })
         end
         if open_submenu_for_item(self, get_focused_item(self)) then return true end
         return true
@@ -1336,20 +1603,20 @@ function M.show(opts)
     apply_settings_row_metrics(sort_widget)
     sort_widget:_populateItems()
     suppress_page_centering(sort_widget)
-    if opts.hide_footer_cancel then
-        suppress_footer_button(sort_widget.footer_cancel)
-    else
-        sync_footer_cancel(sort_widget)
-    end
-    suppress_footer_jump_buttons(sort_widget)
+    suppress_footer_button(sort_widget.footer_cancel)
+    suppress_footer_button(sort_widget.footer_first_up)
+    suppress_footer_button(sort_widget.footer_last_down)
+    suppress_footer_button(sort_widget.footer_ok)
     suppress_footer_page_button(sort_widget)
     sync_pagination_footer(sort_widget)
-    sync_footer_ok(sort_widget)
     apply_icon_rows(sort_widget)
+    install_arrange_handle_layout(sort_widget)
     install_root_tap_handlers(sort_widget)
     if arrange_enabled then
-        patch_move_item_kb(sort_widget)
-        install_non_touch_keyboard_controls(sort_widget)
+        install_arrange_movement(sort_widget)
+        install_arrange_paging(sort_widget)
+        install_dpad_handle_controls(sort_widget)
+        install_touch_handle_drag(sort_widget)
     end
     local orig_populate = sort_widget._populateItems
     sort_widget._populateItems = function(self, ...)
@@ -1357,16 +1624,14 @@ function M.show(opts)
         apply_settings_row_metrics(self)
         local result = orig_populate(self, ...)
         suppress_page_centering(self)
-        if opts.hide_footer_cancel then
-            suppress_footer_button(self.footer_cancel)
-        else
-            sync_footer_cancel(self)
-        end
-        suppress_footer_jump_buttons(self)
+        suppress_footer_button(self.footer_cancel)
+        suppress_footer_button(self.footer_first_up)
+        suppress_footer_button(self.footer_last_down)
+        suppress_footer_button(self.footer_ok)
         suppress_footer_page_button(self)
         sync_pagination_footer(self)
-        sync_footer_ok(self)
         apply_icon_rows(self)
+        install_arrange_handle_layout(self)
         install_root_tap_handlers(self)
         install_titlebar_focus(self)
         return result

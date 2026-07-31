@@ -3,6 +3,7 @@ local function apply_history()
     local Menu = require("ui/widget/menu")
     local Background = require("common/ui/background")
     local SharedState = require("common/shared_state")
+    local SettingsTransition = require("common/settings_transition")
     local _ = require("gettext")
 
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
@@ -229,6 +230,7 @@ local function apply_history()
 
     local orig_onShowHist = FileManagerHistory.onShowHist
     function FileManagerHistory:onShowHist(search_info)
+        SettingsTransition.close()
         if is_enabled() then
             -- Sync display mode from zen_ui_config to BIM before CoverBrowser reads it
             local mode = get_hist_display_mode()

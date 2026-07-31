@@ -185,11 +185,9 @@ local function apply_zen_renderer()
     end
 
     local function update_folder(item, show_title, show_author, strip_h, content_h)
-        local border = CoverUtils.BORDER_SIZE
+        local target_w, target_h, border, uniform = cover_dimensions(item.width, content_h)
         local max_w = math.max(1, item.width - 2 * border)
         local max_h = math.max(1, content_h - 2 * border)
-        local target_w, target_h = CoverUtils.calcDims(max_w, max_h)
-        local uniform = (plugin_config().features or {}).browser_cover_mosaic_uniform == true
         local specs = {
             max_cover_w = target_w,
             max_cover_h = target_h,
@@ -695,29 +693,22 @@ local function apply_zen_renderer()
         widget:paintTo(bb, x - math.floor(widget_size.w / 2), y - math.floor(widget_size.h / 2))
     end
 
-    local function paint_folder_spines(item, bb, config)
+    local function paint_folder_spines(item, bb, config, x, y)
         local folder = config.browser_folder_cover or {}
         if folder.show_spine_lines ~= true then return end
         local frame = item._zen_cover_frame
         if not frame or not frame.dimen then return end
-        local thickness = math.max(1, Screen:scaleBySize(2))
-        local gap = Screen:scaleBySize(4)
-        local color = Blitbuffer.COLOR_GRAY_4 or Blitbuffer.COLOR_BLACK
-        local first_w = math.floor(frame.dimen.w * 0.94)
-        local second_w = math.floor(frame.dimen.w * 0.97)
-        local first_y = frame.dimen.y - 2 * thickness - gap
-        if first_y >= 0 then
-            bb:paintRect(frame.dimen.x + math.floor((frame.dimen.w - first_w) / 2),
-                first_y, first_w, thickness, color)
-            bb:paintRect(frame.dimen.x + math.floor((frame.dimen.w - second_w) / 2),
-                first_y + thickness + gap, second_w, thickness, color)
-        end
+        local features = config.features or {}
+        FolderCover.paintSpines(bb, frame, x, y, {
+            rounded = features.browser_cover_rounded_corners == true,
+        })
     end
 
     function ZenMosaicItem:paintTo(bb, x, y)
         local menu = self.menu
         local is_library = menu and (menu.name == "filemanager" or menu.name == "history"
-            or menu._zen_tab_id or menu._zen_coll_list or menu._zen_group_view)
+            or menu._zen_tab_id or menu._zen_coll_list or menu._zen_group_view
+            or menu._zen_renderer == true)
         if is_library and self.width and self.height then
             local background_path = Background.library_path()
             if background_path == "" or not Background.paintScreenRegion(bb, x, y,
@@ -729,7 +720,7 @@ local function apply_zen_renderer()
         local config = plugin_config()
         dim_finished_cover(self, bb, config)
         if not self._zen_is_book then
-            paint_folder_spines(self, bb, config)
+            paint_folder_spines(self, bb, config, x, y)
             paint_folder_count(self, bb, config)
             return
         end
@@ -742,6 +733,7 @@ local function apply_zen_renderer()
     end
 
     function MosaicMenu:_updateItemsBuildUI()
+        if self._zen_renderer == true then Background.applyToMenu(self) end
         local index_offset = (self.page - 1) * self.perpage
         local line_layout = {}
         local select_number

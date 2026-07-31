@@ -15,6 +15,7 @@ common/db_connection.lua|unit
 common/db_library.lua|unit
 common/db_stats.lua|unit
 common/dispatch_action.lua|unit
+common/dispatcher_menu.lua|unit
 common/history_index.lua|unit
 common/i18n.lua|unit
 common/icon_packs.lua|unit
@@ -31,6 +32,7 @@ common/restart.lua|unit
 common/quickstart/quickstart_pages.lua|unit
 common/quickstart/quickstart_screen.lua|unit
 common/shared_state.lua|unit
+common/settings_transition.lua|unit
 common/shutdown.lua|unit
 common/status_bar_registry.lua|unit
 common/title_sort.lua|unit

@@ -1,5 +1,6 @@
 describe("final cover render cache", function()
     local Cache
+    local scale_calls
 
     local function bb(width, height)
         local out = { w = width, h = height, stride = width, freed = false }
@@ -14,7 +15,16 @@ describe("final cover render cache", function()
     end
 
     before_each(function()
+        scale_calls = 0
         ZenSpec.replace("ffi/blitbuffer", { new = function(w, h) return bb(w, h) end })
+        ZenSpec.replace("ui/renderimage", {
+            scaleBlitBuffer = function(_self, source, width, height)
+                scale_calls = scale_calls + 1
+                local scaled = source:scale(width, height)
+                source:free()
+                return scaled
+            end,
+        })
         ZenSpec.unload("common/cover_render_cache")
         Cache = require("common/cover_render_cache")
         Cache:clear()
@@ -32,6 +42,7 @@ describe("final cover render cache", function()
         assert.are.equal(5, second:getWidth())
         assert.is_true(second_source.freed)
         assert.are.equal(1, Cache:stats().hits)
+        assert.are.equal(1, scale_calls)
     end)
 
     it("reuses one larger bitmap across smaller layout sizes", function()
