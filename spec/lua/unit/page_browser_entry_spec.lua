@@ -122,6 +122,7 @@ describe("page browser entry", function()
         local function zone(name)
             return { contains = function() activated[#activated + 1] = name; return true end }
         end
+        local page_down, page_up = 0, 0
         local browser = {
             _zen_slider = {
                 handleTap = function() return false end,
@@ -129,26 +130,43 @@ describe("page browser entry", function()
             },
             _zen_btn_skip_left_zone = zone("skip-left-zone"),
             _zen_skip_prev = function() activated[#activated + 1] = "skip-left" end,
+            _zen_skip_next = function() activated[#activated + 1] = "skip-right" end,
             _zen_switch_single = function() activated[#activated + 1] = "single" end,
+            onScrollPageDown = function() page_down = page_down + 1 end,
+            onScrollPageUp = function() page_up = page_up + 1 end,
             dimen = { x = 0, y = 0, h = 800 },
         }
         expect(PageBrowserWidget.onTap(browser, nil, { pos = { x = 10, y = 10 } }) == true)
+        expect(activated[1] == "skip-left-zone")
+        expect(page_up == 1)
+
+        activated = {}
+        expect(PageBrowserWidget.onHold(browser, nil, { pos = { x = 10, y = 10 } }) == true)
         expect(activated[1] == "skip-left-zone")
         expect(activated[2] == "skip-left")
 
         activated = {}
         browser._zen_btn_skip_left_zone = nil
+        browser._zen_btn_skip_right_zone = zone("skip-right-zone")
+        expect(PageBrowserWidget.onTap(browser, nil, { pos = { x = 30, y = 10 } }) == true)
+        expect(activated[1] == "skip-right-zone")
+        expect(page_down == 1)
+
+        activated = {}
+        expect(PageBrowserWidget.onHold(browser, nil, { pos = { x = 30, y = 10 } }) == true)
+        expect(activated[1] == "skip-right-zone")
+        expect(activated[2] == "skip-right")
+
+        activated = {}
+        browser._zen_btn_skip_right_zone = nil
         browser._zen_btn_view_zone = zone("single-zone")
         expect(PageBrowserWidget.onTap(browser, nil, { pos = { x = 20, y = 20 } }) == true)
         expect(activated[1] == "single-zone")
         expect(activated[2] == "single")
 
-        local page_down, page_up = 0, 0
-        browser.onScrollPageDown = function() page_down = page_down + 1 end
-        browser.onScrollPageUp = function() page_up = page_up + 1 end
         expect(PageBrowserWidget.onSwipe(browser, nil, { direction = "west" }) == true)
         expect(PageBrowserWidget.onSwipe(browser, nil, { direction = "east" }) == true)
-        expect(page_down == 1 and page_up == 1)
+        expect(page_down == 2 and page_up == 2)
     end)
 
     it("honors lockdown by suppressing page-browser and native config gestures", function()
@@ -309,10 +327,14 @@ describe("page browser entry", function()
     it("routes page-browser title-bar actions and keeps TOC returnable", function()
         local ReaderMenu = { initGesListener = function() end }
         local ReaderConfig = { onSwipeShowConfigMenu = function() end }
+        local close_button_taps = 0
         local PageBrowserWidget = {
             init = function(self)
                 local left = { callback = function() end, hold_callback = function() end }
-                local right = { callback = function() end, hold_callback = function() end }
+                local right = {
+                    callback = function() close_button_taps = close_button_taps + 1 end,
+                    hold_callback = function() end,
+                }
                 self.ges_events = {}
                 self.nb_cols, self.nb_rows = 3, 2
                 self.title_bar = {
@@ -471,12 +493,18 @@ describe("page browser entry", function()
         expect(type(by_file["/icons/toc.svg"]) == "function")
         expect(type(by_file["/icons/info.svg"]) == "function")
         expect(positions["/icons/appbar.search.svg"] == 0)
-        expect(positions["/icons/appbar.textsize.svg"] == 54)
-        expect(positions["/icons/bookmark.svg"] == 108)
-        expect(positions["/icons/toc.svg"] == 162)
-        expect(positions["/icons/info.svg"] == 216)
+        expect(positions["/icons/info.svg"] == 54)
+        expect(positions["/icons/appbar.textsize.svg"] == 108)
+        expect(positions["/icons/bookmark.svg"] == 162)
+        expect(positions["/icons/toc.svg"] == 216)
         expect(browser._zen_orig_nb_cols == 3 and browser._zen_orig_nb_rows == 2)
-        expect(browser.title_bar.right_button ~= nil)
+        local close_button = browser.title_bar.right_button
+        expect(close_button.file == "/icons/close.svg")
+        expect(close_button.width == 32 and close_button.height == 32)
+        expect(close_button.padding == 11 and close_button.padding_bottom == 32)
+        expect(close_button.overlap_align == "right")
+        close_button.callback()
+        expect(close_button_taps == 1)
 
         by_file["/icons/appbar.search.svg"]()
         expect(closes == 1 and action_events[#action_events].name == "ShowFulltextSearchInput")

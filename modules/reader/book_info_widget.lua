@@ -11,6 +11,7 @@ local TextWidget = require("ui/widget/textwidget")
 local UIManager = require("ui/uimanager")
 local Cover = require("common/cover_utils")
 local utils = require("common/utils")
+local TopMenu = require("modules/global/patches/menu_top_swipe")
 local _ = require("gettext")
 
 local COVER_BORDER_COLOR = Blitbuffer.COLOR_BLACK
@@ -129,7 +130,7 @@ function BookInfoWidget:init()
             image_disposable = true,
             width = cover_w,
             height = cover_h,
-            original_in_nightmode = false,
+            original_in_nightmode = true,
         }
     end
     self._description_widget = ScrollTextWidget:new{
@@ -255,6 +256,8 @@ function BookInfoWidget:_onTap(ges)
     if pos.x < self._L.title_h and pos.y < self._L.title_h then
         return self:onClose()
     end
+    local handled = TopMenu.handleTap(nil, ges)
+    if handled then return handled end
     if self:_inCover(pos) then
         if self.cover_tap_callback then self.cover_tap_callback() end
         return true
@@ -266,6 +269,9 @@ function BookInfoWidget:_onTap(ges)
 end
 
 function BookInfoWidget:_onSwipe(ges)
+    if ges.direction == "south" and ges.pos.y < Device.screen:getHeight() * 0.14 then
+        return TopMenu.handleSwipe(ges)
+    end
     if self:_inDescription(ges.pos) then
         self._description_widget:onScrollText(nil, ges)
     end

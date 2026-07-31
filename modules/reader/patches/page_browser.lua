@@ -106,16 +106,15 @@ local function apply_page_browser()
         local DataStorage = require("datastorage")
         local stock_icons_dir = DataStorage:getDataDir() .. "/resources/icons/mdlight/"
         local header_icons = {
-            "appbar.search", "appbar.textsize", "bookmark",
+            "appbar.search", "info", "appbar.textsize", "bookmark",
         }
         for i, icon_name in ipairs(header_icons) do
-            local icon_path = utils.resolveLocalIcon(stock_icons_dir, icon_name)
+            local icon_dir = icon_name == "info" and _icons_dir or stock_icons_dir
+            local icon_path = icon_dir and utils.resolveLocalIcon(icon_dir, icon_name)
             paint_icon(nil, icon_path, slot_btn_w * (i - 1) + btn_pad, title_y, btn_sz)
         end
         local toc_icon_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "toc")
         paint_icon(nil, toc_icon_path, slot_btn_w * #header_icons + btn_pad, title_y, btn_sz)
-        local info_icon_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "info")
-        paint_icon(nil, info_icon_path, slot_btn_w * (#header_icons + 1) + btn_pad, title_y, btn_sz)
         local close_icon_path = utils.resolveLocalIcon(stock_icons_dir, "close")
         paint_icon(nil, close_icon_path, slot_w - slot_btn_w + btn_pad, title_y, btn_sz)
 
@@ -232,8 +231,8 @@ local function apply_page_browser()
 
         local grid_slide_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "grid_slide")
         local grid_path       = _icons_dir and utils.resolveLocalIcon(_icons_dir, "grid")
-        local skip_left_path  = _icons_dir and utils.resolveLocalIcon(_icons_dir, "skip_left")
-        local skip_right_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "skip_right")
+        local chevron_left_path  = utils.resolveLocalIcon(stock_icons_dir, "chevron.left")
+        local chevron_right_path = utils.resolveLocalIcon(stock_icons_dir, "chevron.right")
         local is_single_page = layout == "single"
 
         local function make_toggle_icon(file_path, active)
@@ -291,8 +290,8 @@ local function apply_page_browser()
                 },
             }
         end
-        local skip_left_btn = make_skip_btn(skip_left_path)
-        local skip_right_btn = make_skip_btn(skip_right_path)
+        local skip_left_btn = make_skip_btn(chevron_left_path)
+        local skip_right_btn = make_skip_btn(chevron_right_path)
         local btn_row_sz = btn_row:getSize()
         local skip_sz = skip_left_btn:getSize()
         local row_h = math.max(btn_row_sz.h, skip_sz.h)
@@ -543,22 +542,38 @@ local function apply_page_browser()
                 self.title_bar.has_left_icon = false
             end
 
-            local function make_header_btn(file_path, x_pos, cb)
-                return ZenIconButton:new{
+            local function make_header_btn(file_path, x_pos, cb, hold_cb, align, allow_flash)
+                local button = {
                     file           = file_path,
                     width          = btn_sz,
                     height         = btn_sz,
                     padding        = btn_pad,
                     padding_bottom = btn_sz,
-                    overlap_offset = { x_pos, 0 },
-                    overlap_align  = "left",
-                    allow_flash    = true,
+                    overlap_align  = align or "left",
+                    allow_flash    = allow_flash ~= false,
                     show_parent    = self,
                     callback       = cb or function() end,
+                    hold_callback  = hold_cb,
                 }
+                if x_pos then button.overlap_offset = { x_pos, 0 } end
+                return ZenIconButton:new(button)
             end
 
             local slot_w = btn_sz + btn_pad * 2
+
+            local old_right_button = self.title_bar.right_button
+            if old_right_button then
+                for i = #self.title_bar, 1, -1 do
+                    if self.title_bar[i] == old_right_button then
+                        table.remove(self.title_bar, i)
+                        break
+                    end
+                end
+                self.title_bar.right_button = make_header_btn(
+                    resolve_stock_icon("close"), nil, old_right_button.callback,
+                    old_right_button.hold_callback, "right", old_right_button.allow_flash)
+                table.insert(self.title_bar, self.title_bar.right_button)
+            end
 
             local pbw_ref = self
             local function open_toc()
@@ -822,14 +837,13 @@ local function apply_page_browser()
                 end)
             end
 
-            -- Keep the original reader action glyphs, in reverse visual order
-            -- on the left, followed by the added book information action.
+            -- Page-browser title-bar actions, from left to right.
             local action_icons = {
                 { "appbar.search", open_search, true },
+                { "info", open_book_info },
                 { "appbar.textsize", open_reader_menu, true },
                 { "bookmark", open_bookmarks, true },
                 { "toc", open_toc },
-                { "info", open_book_info },
             }
             for i, action in ipairs(action_icons) do
                 local icon_path = action[3] and resolve_stock_icon(action[1])
@@ -1308,8 +1322,8 @@ local function apply_page_browser()
 
             local grid_slide_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "grid_slide")
             local grid_path       = _icons_dir and utils.resolveLocalIcon(_icons_dir, "grid")
-            local skip_left_path  = _icons_dir and utils.resolveLocalIcon(_icons_dir, "skip_left")
-            local skip_right_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "skip_right")
+            local chevron_left_path  = resolve_stock_icon("chevron.left")
+            local chevron_right_path = resolve_stock_icon("chevron.right")
 
             -- Create icon widgets with active state styling
             local icon_size      = zen_icon_size
@@ -1426,8 +1440,8 @@ local function apply_page_browser()
                     },
                 }
             end
-            local skip_left_btn  = make_skip_btn(skip_left_path)
-            local skip_right_btn = make_skip_btn(skip_right_path)
+            local skip_left_btn  = make_skip_btn(chevron_left_path)
+            local skip_right_btn = make_skip_btn(chevron_right_path)
 
             -- Switch callbacks
             local _switch_single = function()
@@ -1872,15 +1886,15 @@ local function apply_page_browser()
                 logger.dbg("onTap → slider")
                 return true
             end
-            -- 2. Skip chapter buttons.
+            -- 2. Chevron buttons: tap to move the page-browser viewport.
             if self._zen_btn_skip_left_zone
                and self._zen_btn_skip_left_zone:contains(ges.pos) then
-                if self._zen_skip_prev then self._zen_skip_prev() end
+                self:onScrollPageUp()
                 return true
             end
             if self._zen_btn_skip_right_zone
                and self._zen_btn_skip_right_zone:contains(ges.pos) then
-                if self._zen_skip_next then self._zen_skip_next() end
+                self:onScrollPageDown()
                 return true
             end
             -- 3. View-toggle buttons: fallback for taps before the first paintTo,
@@ -2015,10 +2029,20 @@ local function apply_page_browser()
             return true  -- swallow remaining north/south and anything else
         end
 
-        -- Suppress hold gestures in the bottom panel area so they don't
-        -- trigger the native book-map-row popup.
+        -- Holds on the navigation chevrons skip chapters. Other holds in the
+        -- bottom panel stay suppressed to avoid the native book-map-row popup.
         local _orig_onHold = PageBrowserWidget.onHold
         PageBrowserWidget.onHold = function(self, arg, ges)
+            if ges.pos and self._zen_btn_skip_left_zone
+               and self._zen_btn_skip_left_zone:contains(ges.pos) then
+                if self._zen_skip_prev then self._zen_skip_prev() end
+                return true
+            end
+            if ges.pos and self._zen_btn_skip_right_zone
+               and self._zen_btn_skip_right_zone:contains(ges.pos) then
+                if self._zen_skip_next then self._zen_skip_next() end
+                return true
+            end
             local panel_h = self._zen_panel_h or 0
             if panel_h > 0 and self.dimen
                and ges.pos.y >= (self.dimen.y + self.dimen.h - panel_h) then
