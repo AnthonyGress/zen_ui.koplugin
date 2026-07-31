@@ -93,7 +93,16 @@ local function apply_zen_scroll_bar()
             local rows = tonumber(menu.nb_rows)
             local item_height = tonumber(menu.item_height)
             local item_margin = tonumber(menu.item_margin) or 0
-            if rows and rows > 0 and item_height and item_height > 0 then
+            -- CoverBrowser keeps mosaic grid fields when changing to list mode.
+            -- Prefer the active mode so the first list render uses its full height.
+            if menu.display_mode_type == "mosaic"
+                    and rows and rows > 0 and item_height and item_height > 0 then
+                content_height = rows * item_height + (rows + 1) * item_margin
+            elseif menu.display_mode_type == "list"
+                    and menu.files_per_page and item_height and item_height > 0 then
+                content_height = Size.line.thin
+                    + perpage * (item_height + Size.line.thin)
+            elseif rows and rows > 0 and item_height and item_height > 0 then
                 content_height = rows * item_height + (rows + 1) * item_margin
             elseif menu.files_per_page and item_height and item_height > 0 then
                 content_height = Size.line.thin

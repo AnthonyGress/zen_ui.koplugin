@@ -540,6 +540,22 @@ function M.build(ctx)
                         end,
                     },
                     {
+                        text = _("Show KOReader progress bar"),
+                        checked_func = function()
+                            return type(config.browser_cover_badges) == "table"
+                                and config.browser_cover_badges.show_native_progress_bar == true
+                        end,
+                        callback = function()
+                            if type(config.browser_cover_badges) ~= "table" then
+                                config.browser_cover_badges = {}
+                            end
+                            config.browser_cover_badges.show_native_progress_bar =
+                                config.browser_cover_badges.show_native_progress_bar ~= true
+                            plugin:saveConfig()
+                            UIManager:setDirty(nil, "full")
+                        end,
+                    },
+                    {
                         text = _("Show progress % on mosaic covers"),
                         checked_func = function()
                             return type(config.browser_cover_badges) == "table"

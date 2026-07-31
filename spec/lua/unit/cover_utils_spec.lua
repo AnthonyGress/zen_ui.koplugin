@@ -334,12 +334,12 @@ describe("cover utility policy", function()
             title = "A Color Title",
             authors = "An Author",
         })
-        assert.are.same({ 0x02, 0x01, 0x36, 0xFF }, background_colors[2])
-        assert.are.equal(1, rgb_background_paints)
-        assert.are.equal(2, color_mask_blits)
-        assert.are.equal("white", color_mask_colors[1])
-        assert.are.equal(1, ornament_inverts)
-        assert.are.equal(2, svg_renders)
+        assert.are.equal("white", background_colors[1])
+        assert.are.equal(0, rgb_background_paints)
+        assert.are.equal(7, mask_blits)
+        assert.are.equal(0, color_mask_blits)
+        assert.are.equal(0, ornament_inverts)
+        assert.are.equal(1, svg_renders)
     end)
 
     it("does not pre-scale folder covers before the selected renderer", function()

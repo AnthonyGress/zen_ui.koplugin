@@ -226,6 +226,11 @@ describe("Zen mosaic renderer", function()
         assert.is_true(table.concat(painted_text, " "):find("☆") ~= nil)
         assert.are.equal(1, native_progress_paints)
 
+        _G.__ZEN_UI_PLUGIN.config.browser_cover_badges.show_native_progress_bar = false
+        item:paintTo(bb, 0, 0)
+        assert.are.equal(1, native_progress_paints)
+
+        _G.__ZEN_UI_PLUGIN.config.browser_cover_badges.show_native_progress_bar = true
         _G.__ZEN_UI_PLUGIN.config.browser_cover_badges.badge_size = "extra_large"
         local large = {}
         bb.paintRectRGB32 = function(_self, x, y, width, height)

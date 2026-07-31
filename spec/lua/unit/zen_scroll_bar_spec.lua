@@ -1,6 +1,7 @@
 describe("Zen scroll bar", function()
     local Menu
     local shown
+    local centered_content_bottom
     local saved_modules
 
     local module_names = {
@@ -40,6 +41,7 @@ describe("Zen scroll bar", function()
             saved_modules[name] = package.loaded[name] or false
         end
         shown = nil
+        centered_content_bottom = nil
         Menu = {
             init = function(self)
                 self.page_info = { resetLayout = function() end }
@@ -71,7 +73,10 @@ describe("Zen scroll bar", function()
             setPlugin = function() end,
             getFooterGeometry = function() return 24, 552 end,
             getStyle = function() return "page_number" end,
-            getCenteredFooterY = function(_content_bottom, footer_y) return footer_y end,
+            getCenteredFooterY = function(content_bottom, footer_y)
+                centered_content_bottom = content_bottom
+                return footer_y
+            end,
             getHoldSkip = function() return "10" end,
             paint = function() end,
         })
@@ -106,5 +111,21 @@ describe("Zen scroll bar", function()
 
         assert.is_true(center_tap.handler())
         assert.are.equal("Go to page", shown.title)
+    end)
+
+    it("uses list geometry after switching from mosaic mode", function()
+        local filemanager = new_menu("filemanager")
+        filemanager.display_mode_type = "list"
+        filemanager.perpage = 10
+        filemanager.files_per_page = 10
+        filemanager.item_dimen = { h = 50 }
+        filemanager.item_height = 50
+        -- These fields are retained from the prior mosaic layout.
+        filemanager.nb_rows = 3
+        filemanager.item_margin = 10
+
+        filemanager.page_info.paintTo(nil, nil, 0, 760)
+
+        assert.are.equal(511, centered_content_bottom)
     end)
 end)
