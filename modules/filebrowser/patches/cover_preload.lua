@@ -768,8 +768,10 @@ local function apply_cover_preload()
             return
         end
         if job.final_render and not job.preserve_aspect
-                and type(render_cache.hasExact) == "function"
-                and render_cache:hasExact(job.path, job.render_width, job.render_height) then
+                and ((type(render_cache.hasReusable) == "function"
+                    and render_cache:hasReusable(job.path, job.render_width, job.render_height))
+                or (type(render_cache.hasExact) == "function"
+                    and render_cache:hasExact(job.path, job.render_width, job.render_height))) then
             outcomes.final_render_cached = outcomes.final_render_cached + 1
             return
         end
@@ -883,20 +885,42 @@ local function apply_cover_preload()
         local target_page = target_pages[1]
         local cover_w, cover_h = jobs[1].width, jobs[1].height
         local cover_jobs = #jobs
-        local already_cached = 0
-        if type(render_cache.hasExact) == "function" then
-            local pending = {}
-            for _i, job in ipairs(jobs) do
-                if job.final_render and not job.preserve_aspect
+        local already_final = 0
+        local already_generated = 0
+        local already_gallery = 0
+        local pending = {}
+        for _i, job in ipairs(jobs) do
+            local cached_job = false
+            if job.kind == "gallery" and type(FolderCover.isGalleryCached) == "function" then
+                cached_job = FolderCover.isGalleryCached(
+                    job.menu, job.entry, job.menu_text, job.width, job.height, {
+                        entries = job.entries,
+                        uniform = job.uniform,
+                    })
+                if cached_job then already_gallery = already_gallery + 1 end
+            elseif job.final_render and not job.preserve_aspect
+                    and ((type(render_cache.hasReusable) == "function"
+                        and render_cache:hasReusable(
+                            job.path, job.render_width, job.render_height))
+                    or (type(render_cache.hasExact) == "function"
                         and render_cache:hasExact(
-                            job.path, job.render_width, job.render_height) then
-                    already_cached = already_cached + 1
-                else
-                    pending[#pending + 1] = job
+                            job.path, job.render_width, job.render_height))) then
+                cached_job = true
+                already_final = already_final + 1
+            elseif type(CoverUtils.hasCachedGeneratedCover) == "function" then
+                local metadata = type(cache.getFreshMetadata) == "function"
+                    and cache:getFreshMetadata(job.path, now(), 30) or nil
+                if type(metadata) == "table" and metadata.cover_fetched
+                        and (not metadata.has_cover or metadata.ignore_cover) then
+                    cached_job = CoverUtils.hasCachedGeneratedCover(
+                        job.path, job.width, job.height, nil, metadata)
+                    if cached_job then already_generated = already_generated + 1 end
                 end
             end
-            jobs = pending
+            if not cached_job then pending[#pending + 1] = job end
         end
+        jobs = pending
+        local already_cached = already_final + already_generated + already_gallery
         if #jobs == 0 then
             logger.measure("Cover preload completed", 0,
                 "target_page=", target_page,
@@ -909,11 +933,11 @@ local function apply_cover_preload()
                 "decoded_warmed=", 0,
                 "decoded_cached=", 0,
                 "final_render_warmed=", 0,
-                "final_render_cached=", already_cached,
+                "final_render_cached=", already_final,
                 "generated_warmed=", 0,
-                "generated_cached=", 0,
+                "generated_cached=", already_generated,
                 "gallery_warmed=", 0,
-                "gallery_cached=", 0,
+                "gallery_cached=", already_gallery,
                 "failed=", 0,
                 "wall_ms=", 0)
             return
@@ -946,11 +970,11 @@ local function apply_cover_preload()
             decoded_warmed = 0,
             decoded_cached = 0,
             final_render_warmed = 0,
-            final_render_cached = already_cached,
+            final_render_cached = already_final,
             generated_warmed = 0,
-            generated_cached = 0,
+            generated_cached = already_generated,
             gallery_warmed = 0,
-            gallery_cached = 0,
+            gallery_cached = already_gallery,
             failed = 0,
         }
 

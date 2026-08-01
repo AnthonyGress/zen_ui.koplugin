@@ -78,6 +78,8 @@ describe("final cover render cache", function()
 
     it("reuses one larger bitmap across smaller layout sizes", function()
         Cache:put("/book.epub", 8, 12, bb(8, 12))
+
+        assert.is_true(Cache:hasReusable("/book.epub", 5, 8))
         local smaller = Cache:get("/book.epub", 5, 8)
 
         assert.are.equal(5, smaller:getWidth())
@@ -88,6 +90,7 @@ describe("final cover render cache", function()
     it("does not reuse a differently shaped crop", function()
         Cache:put("/book.epub", 8, 12, bb(8, 12))
 
+        assert.is_false(Cache:hasReusable("/book.epub", 8, 10))
         assert.is_nil(Cache:get("/book.epub", 8, 10))
         assert.are.equal(0, Cache:stats().hits)
     end)

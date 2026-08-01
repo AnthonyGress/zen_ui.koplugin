@@ -9,6 +9,23 @@ local InputContainer = require("ui/widget/container/inputcontainer")
 local GestureRange = require("ui/gesturerange")
 local WidgetResources = require("common/widget_resources")
 
+local LAYOUT_CACHE_MAX = 32
+local layout_cache = { values = {}, order = {} }
+
+local function get_cached_layout(key)
+    return layout_cache.values[key]
+end
+
+local function cache_layout(key, value)
+    if not layout_cache.values[key] then
+        layout_cache.order[#layout_cache.order + 1] = key
+    end
+    layout_cache.values[key] = value
+    while #layout_cache.order > LAYOUT_CACHE_MAX do
+        layout_cache.values[table.remove(layout_cache.order, 1)] = nil
+    end
+end
+
 local function get_quote(ctx)
     local q = ctx.data:getCurrentQuote()
     if q then return q end
@@ -54,7 +71,16 @@ return {
         end
 
         local quote_line_height = 0.55
-        if automatic_font_size then
+        local layout_key = table.concat({
+            quote_text, attribution, tostring(content_w), tostring(inner_h),
+            tostring(automatic_font_size), tostring(quote_font_size),
+            tostring(quotes.max_font_size),
+        }, "\30")
+        local cached_layout = get_cached_layout(layout_key)
+        if cached_layout then
+            quote_font_size = cached_layout.quote_font_size
+            quote_line_height = cached_layout.quote_line_height
+        elseif automatic_font_size then
             local max_font_size = math.max(
                 4, math.min(32, tonumber(quotes.max_font_size) or 14)
             )
@@ -113,53 +139,74 @@ return {
         end
 
         local quote_face = Font:getFace("smallinfofont", Screen:scaleBySize(quote_font_size))
-        local quote_probe = TextBoxWidget:new{
-            text = "A\nA",
-            width = content_w,
-            face = quote_face,
-            line_height = quote_line_height,
-        }
-        local two_quote_lines_h = quote_probe:getSize().h or 0
-        WidgetResources.free(quote_probe)
-        local quote_three_line_probe = TextBoxWidget:new{
-            text = "A\nA\nA",
-            width = content_w,
-            face = quote_face,
-            line_height = quote_line_height,
-        }
-        local three_quote_lines_h = quote_three_line_probe:getSize().h or 0
-        WidgetResources.free(quote_three_line_probe)
-        local quote_line_probe = TextBoxWidget:new{
-            text = "A",
-            width = content_w,
-            face = quote_face,
-            line_height = quote_line_height,
-        }
-        local quote_line_h = quote_line_probe:getSize().h or 0
-        WidgetResources.free(quote_line_probe)
-        local quote_height_probe = TextBoxWidget:new{
-            text = quote_text,
-            width = content_w,
-            face = quote_face,
-            line_height = quote_line_height,
-        }
-        local natural_quote_h = quote_height_probe:getSize().h or 0
-        WidgetResources.free(quote_height_probe)
         local author_face = Font:getFace(
             "smallinfofont",
             Screen:scaleBySize(math.max(6, math.floor(quote_font_size * 9 / 10)))
         )
-        local author_h = 0
-        if attribution ~= "" then
-            local author_probe = TextBoxWidget:new{
-                text = "\226\128\148 " .. attribution,
+        local two_quote_lines_h
+        local three_quote_lines_h
+        local quote_line_h
+        local natural_quote_h
+        local author_h
+        if cached_layout then
+            two_quote_lines_h = cached_layout.two_quote_lines_h
+            three_quote_lines_h = cached_layout.three_quote_lines_h
+            quote_line_h = cached_layout.quote_line_h
+            natural_quote_h = cached_layout.natural_quote_h
+            author_h = cached_layout.author_h
+        else
+            local quote_probe = TextBoxWidget:new{
+                text = "A\nA",
                 width = content_w,
-                face = author_face,
-                alignment = "center",
+                face = quote_face,
+                line_height = quote_line_height,
             }
-            local author_line_h = author_probe:getSize().h or 0
-            WidgetResources.free(author_probe)
-            author_h = author_line_h
+            two_quote_lines_h = quote_probe:getSize().h or 0
+            WidgetResources.free(quote_probe)
+            local quote_three_line_probe = TextBoxWidget:new{
+                text = "A\nA\nA",
+                width = content_w,
+                face = quote_face,
+                line_height = quote_line_height,
+            }
+            three_quote_lines_h = quote_three_line_probe:getSize().h or 0
+            WidgetResources.free(quote_three_line_probe)
+            local quote_line_probe = TextBoxWidget:new{
+                text = "A",
+                width = content_w,
+                face = quote_face,
+                line_height = quote_line_height,
+            }
+            quote_line_h = quote_line_probe:getSize().h or 0
+            WidgetResources.free(quote_line_probe)
+            local quote_height_probe = TextBoxWidget:new{
+                text = quote_text,
+                width = content_w,
+                face = quote_face,
+                line_height = quote_line_height,
+            }
+            natural_quote_h = quote_height_probe:getSize().h or 0
+            WidgetResources.free(quote_height_probe)
+            author_h = 0
+            if attribution ~= "" then
+                local author_probe = TextBoxWidget:new{
+                    text = "\226\128\148 " .. attribution,
+                    width = content_w,
+                    face = author_face,
+                    alignment = "center",
+                }
+                author_h = author_probe:getSize().h or 0
+                WidgetResources.free(author_probe)
+            end
+            cache_layout(layout_key, {
+                quote_font_size = quote_font_size,
+                quote_line_height = quote_line_height,
+                two_quote_lines_h = two_quote_lines_h,
+                three_quote_lines_h = three_quote_lines_h,
+                quote_line_h = quote_line_h,
+                natural_quote_h = natural_quote_h,
+                author_h = author_h,
+            })
         end
         local author_gap = 0
         local max_quote_h = math.max(10, inner_h - author_h - author_gap)

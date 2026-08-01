@@ -37,6 +37,11 @@ local function same_aspect(width_a, height_a, width_b, height_b)
     return math.abs(width_a * height_b - width_b * height_a) <= rounding_tolerance
 end
 
+local function is_reusable(entry, width, height)
+    return entry ~= nil and entry.width >= width and entry.height >= height
+        and same_aspect(entry.width, entry.height, width, height)
+end
+
 -- Takes ownership of source and returns an exact-size crop.
 local function resize(source, width, height)
     local ok_dims, src_w, src_h = pcall(function()
@@ -113,8 +118,7 @@ end
 
 function M:get(path, width, height)
     local entry = self._entries[key(path)]
-    if not entry or entry.width < width or entry.height < height
-            or not same_aspect(entry.width, entry.height, width, height) then
+    if not is_reusable(entry, width, height) then
         self._misses = self._misses + 1
         return nil
     end
@@ -133,6 +137,10 @@ function M:get(path, width, height)
     entry.touch = self._clock
     self._hits = self._hits + 1
     return resized
+end
+
+function M:hasReusable(path, width, height)
+    return is_reusable(self._entries[key(path)], width, height)
 end
 
 function M:hasExact(path, width, height)

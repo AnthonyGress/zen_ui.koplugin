@@ -4,6 +4,11 @@ describe("file browser item-table cache", function()
     local saved_modules
     local saved_settings
     local saved_plugin
+    local collate_mode
+    local mixed
+    local history_times
+    local descendant_times
+    local source_items
 
     local module_names = {
         "common/cover_utils",
@@ -22,6 +27,11 @@ describe("file browser item-table cache", function()
 
     before_each(function()
         generated = {}
+        collate_mode = "title"
+        mixed = false
+        history_times = {}
+        descendant_times = {}
+        source_items = {}
         saved_modules = {}
         for _i, name in ipairs(module_names) do
             saved_modules[name] = package.loaded[name]
@@ -30,12 +40,24 @@ describe("file browser item-table cache", function()
         saved_plugin = _G.__ZEN_UI_PLUGIN
 
         FileChooser = {
-            collates = { title = { id = "title" } },
-            getCollate = function(self) return self.collates.title, "title" end,
+            collates = {
+                title = { id = "title" },
+                access = {
+                    id = "access",
+                    can_collate_mixed = true,
+                    mandatory_func = function() return "2026-08-01 12:00" end,
+                },
+            },
+            getCollate = function(self)
+                return self.collates[collate_mode], collate_mode
+            end,
+            getMenuItemMandatory = function(_, item, collate)
+                return collate.mandatory_func(item)
+            end,
             getListItem = function() end,
             genItemTableFromPath = function(_, path)
                 generated[path] = (generated[path] or 0) + 1
-                return { { path = path } }
+                return source_items[path] or { { path = path } }
             end,
         }
         ZenSpec.replace("common/cover_utils", { BORDER_SIZE = 2 })
@@ -59,7 +81,11 @@ describe("file browser item-table cache", function()
                 if field == "modification" then return 1 end
             end,
         })
-        ZenSpec.replace("common/history_index", {})
+        ZenSpec.replace("common/history_index", {
+            load = function() return history_times end,
+            fileTime = function(index, path) return index[path] end,
+            maxDescendantTimes = function() return descendant_times end,
+        })
         ZenSpec.replace("common/zen_logger", {
             now = function() return 0 end,
             new = function()
@@ -75,10 +101,12 @@ describe("file browser item-table cache", function()
         ZenSpec.replace("apps/filemanager/filemanager", { setupLayout = function() end })
         _G.G_reader_settings = {
             readSetting = function(_, key, default)
-                if key == "collate" then return "title" end
+                if key == "collate" then return collate_mode end
                 return default
             end,
-            isTrue = function() return false end,
+            isTrue = function(_, key)
+                return key == "collate_mixed" and mixed
+            end,
         }
         _G.__ZEN_UI_PLUGIN = {
             config = {
@@ -93,6 +121,7 @@ describe("file browser item-table cache", function()
     after_each(function()
         ZenSpec.unload("modules/filebrowser/patches/browser_item_table_cache")
         _G.__ZEN_UI_DEFER_FILEMANAGER_LISTING = nil
+        _G.__ZEN_UI_LAST_READ_FILE = nil
         for _i, name in ipairs(module_names) do
             package.loaded[name] = saved_modules[name]
         end
@@ -133,5 +162,37 @@ describe("file browser item-table cache", function()
         chooser:genItemTableFromPath("/library/series")
 
         assert.are.equal(2, generated["/library/series"])
+    end)
+
+    it("promotes a folder when one of its descendant books is read", function()
+        collate_mode = "access"
+        mixed = true
+        source_items["/library"] = {
+            {
+                text = "Earlier/", path = "/library/Earlier",
+                mandatory = "1 \xef\x80\x96", attr = { mode = "directory", modification = 1 },
+            },
+            {
+                text = "Later/", path = "/library/Later",
+                mandatory = "2 \xef\x80\x96", attr = { mode = "directory", modification = 1 },
+            },
+        }
+        descendant_times = {
+            ["/library/Earlier"] = 20,
+            ["/library/Later"] = 10,
+        }
+        local chooser = setmetatable({ name = "filemanager" }, { __index = FileChooser })
+
+        local before = chooser:genItemTableFromPath("/library")
+        assert.are.equal("Earlier/", before[1].text)
+        assert.are.equal("1 \xef\x80\x96", before[1].mandatory)
+
+        descendant_times["/library/Later"] = 30
+        _G.__ZEN_UI_LAST_READ_FILE = "/library/Later/book.epub"
+        local after = chooser:genItemTableFromPath("/library")
+
+        assert.are.equal("Later/", after[1].text)
+        assert.are.equal("2 \xef\x80\x96", after[1].mandatory)
+        assert.are.equal(1, generated["/library"])
     end)
 end)

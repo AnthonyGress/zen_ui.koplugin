@@ -388,11 +388,12 @@ function M.build_strip(ctx, source_key)
         return nil
     end
 
-    local function build_frame(page_delta)
-    local started_at = os.clock()
-    local show_strip_titles = wants_strip_titles
-    local books = get_page_books(page_delta or 0) or {}
-    if #books == 0 then
+    local function build_frame(page_delta, supplied_books)
+        local started_at = os.clock()
+        local show_strip_titles = wants_strip_titles
+        local books = supplied_books or get_page_books(page_delta or 0) or {}
+        local cover_plans = {}
+        if #books == 0 then
         local empty_cover, cover_w, cover_h = cover_common.make_empty_placeholder_cover(
             width, height,
             { border = cover_common.BORDER_SIZE, background = Blitbuffer.COLOR_LIGHT_GRAY }
@@ -445,8 +446,8 @@ function M.build_strip(ctx, source_key)
             "component=", ctx.component_id or source,
             "page_delta=", page_delta or 0,
             "books=", 0)
-        return empty_frame, {}, {}
-    end
+            return empty_frame, {}, {}, books, cover_plans
+        end
 
     local num_rows = two_rows and 2 or 1
     local row_gap = two_rows and math.max(2, Screen:scaleBySize(3)) or 0
@@ -538,6 +539,10 @@ function M.build_strip(ctx, source_key)
             cover_w = cover_w or max_cover_w
             local cover_size = cover.getSize and cover:getSize() or nil
             local actual_cover_h = rendered_cover_h or (cover_size and cover_size.h) or cover_h
+            cover_plans[#cover_plans + 1] = {
+                width = cover_w,
+                height = actual_cover_h,
+            }
             if needs_hydration and not hydration_failed_paths[book.path] then
                 hydration_jobs[#hydration_jobs + 1] = {
                     book = book,
@@ -739,10 +744,10 @@ function M.build_strip(ctx, source_key)
         "component=", ctx.component_id or source,
         "page_delta=", page_delta or 0,
         "books=", #books)
-    return frame, page_focus_targets, hydration_jobs
+        return frame, page_focus_targets, hydration_jobs, books, cover_plans
     end
 
-    local frame, initial_targets, initial_jobs = build_frame(0)
+    local frame, initial_targets, initial_jobs, initial_books, initial_plans = build_frame(0)
     if type(ctx.activateStripFocusTargets) == "function" then
         ctx.activateStripFocusTargets(initial_targets)
     end
@@ -766,16 +771,19 @@ function M.build_strip(ctx, source_key)
     local prewarm_direction = 1
     local swap_sequence = 0
 
-    local function new_entry(cached_frame, targets, jobs)
+    local function new_entry(cached_frame, targets, jobs, books, plans)
         return {
             frame = cached_frame,
             targets = targets or {},
             jobs = jobs or {},
+            books = books or {},
+            plans = plans or {},
             freed = false,
         }
     end
 
-    page_cache[0] = new_entry(frame, initial_targets, initial_jobs)
+    page_cache[0] = new_entry(
+        frame, initial_targets, initial_jobs, initial_books, initial_plans)
 
     local function free_entry(entry)
         if not entry or entry.freed then return end
@@ -784,11 +792,14 @@ function M.build_strip(ctx, source_key)
         entry.frame = nil
         entry.targets = nil
         entry.jobs = nil
+        entry.books = nil
+        entry.plans = nil
     end
 
-    local function build_entry(page_delta)
-        local cached_frame, targets, jobs = build_frame(page_delta)
-        return new_entry(cached_frame, targets, jobs)
+    local function build_entry(page_delta, books)
+        local cached_frame, targets, jobs, loaded_books, plans =
+            build_frame(page_delta, books)
+        return new_entry(cached_frame, targets, jobs, loaded_books, plans)
     end
 
     local function activate_entry(entry)
@@ -935,7 +946,22 @@ function M.build_strip(ctx, source_key)
             end
             local entry = page_cache[page_delta]
             if not entry then
-                entry = build_entry(page_delta)
+                local books = get_page_books(page_delta) or {}
+                local plans = current and current.plans or {}
+                local jobs = {}
+                for index, book in ipairs(books) do
+                    local plan = plans[index] or plans[#plans]
+                    if plan and book.is_cover_pending == true
+                            and not hydration_failed_paths[book.path] then
+                        jobs[#jobs + 1] = {
+                            book = book,
+                            path = book.path,
+                            width = plan.width,
+                            height = plan.height,
+                        }
+                    end
+                end
+                entry = new_entry(nil, {}, jobs, books, {})
                 page_cache[page_delta] = entry
             end
             if #(entry.jobs or {}) == 0 then
@@ -990,8 +1016,6 @@ function M.build_strip(ctx, source_key)
                 return
             end
 
-            local replacement = build_entry(page_delta)
-            replace_entry(page_delta, replacement, false)
             prewarm_fn = nil
             logger.perf("strip page prewarmed", work_ms,
                 "component=", ctx.component_id or source,
@@ -1011,8 +1035,12 @@ function M.build_strip(ctx, source_key)
         cancel_prewarm("swipe")
         local replacement_delta = direction == "next" and 1 or -1
         local replacement = page_cache[replacement_delta]
-        local cache_hit = replacement ~= nil
-        if not replacement then
+        local cache_hit = replacement ~= nil and replacement.frame ~= nil
+        if replacement and not replacement.frame then
+            local lazy_entry = replacement
+            replacement = build_entry(replacement_delta, lazy_entry.books)
+            free_entry(lazy_entry)
+        elseif not replacement then
             replacement = build_entry(0)
         end
 

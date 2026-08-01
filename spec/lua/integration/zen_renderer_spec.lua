@@ -6,6 +6,7 @@ describe("Zen renderer", function()
     local book_info_requests
     local fresh_metadata
     local render_exact
+    local render_reusable
     local folder_requests
     local painted_text
     local native_progress_paints
@@ -15,6 +16,7 @@ describe("Zen renderer", function()
     local background_menus
     local calc_dimensions
     local folder_name_labels
+    local textbox_line_height
 
     local function class(base)
         local out = {}
@@ -43,6 +45,7 @@ describe("Zen renderer", function()
         book_info_requests = {}
         fresh_metadata = nil
         render_exact = false
+        render_reusable = false
         folder_requests = {}
         painted_text = {}
         native_progress_paints = 0
@@ -51,6 +54,7 @@ describe("Zen renderer", function()
         banner_sizes = {}
         background_menus = {}
         folder_name_labels = {}
+        textbox_line_height = 8
         calc_dimensions = function(width, height) return width, height end
         local MosaicMenuItem = class()
         function MosaicMenuItem:new(values)
@@ -121,12 +125,24 @@ describe("Zen renderer", function()
                 end
                 values.dimen = {}
                 local text_length = #(values.text or "")
-                local line_count = text_length > 100 and 3 or (text_length > 20 and 2 or 1)
+                local line_count = text_length > 100 and 3 or (text_length > 18 and 2 or 1)
                 values.vertical_string_list = {}
                 for line = 1, line_count do
                     values.vertical_string_list[line] = {}
                 end
-                values.getLineHeight = function() return 8 end
+                values.getLineHeight = function() return textbox_line_height end
+                if values.height then
+                    if values.height < textbox_line_height then
+                        values.height = textbox_line_height
+                    end
+                    values.lines_per_page = math.floor(values.height / textbox_line_height)
+                    if values.height_adjust then
+                        values.height = values.lines_per_page * textbox_line_height
+                        if line_count < values.lines_per_page then
+                            values.height = line_count * textbox_line_height
+                        end
+                    end
+                end
                 values._updateLayout = function(self)
                     self._bb = { getHeight = function() return 8 end }
                 end
@@ -163,6 +179,7 @@ describe("Zen renderer", function()
         })
         ZenSpec.replace("common/cover_render_cache", {
             hasExact = function() return render_exact end,
+            hasReusable = function() return render_reusable or render_exact end,
             render = function() return nil end,
             drop = function() end,
         })
@@ -337,6 +354,33 @@ describe("Zen renderer", function()
         assert.are.same({}, book_info_requests)
         assert.is_true(cover_books[1].has_real_cover)
         assert.is_nil(cover_books[1].cover_bb)
+    end)
+
+    it("uses a larger Home render without deferring Library hydration", function()
+        render_reusable = true
+        fresh_metadata = {
+            title = "Cached",
+            cover_fetched = "Y",
+            has_cover = "Y",
+            cover_w = 600,
+            cover_h = 900,
+        }
+        require("modules/filebrowser/patches/zen_renderer")()
+        local menu = {
+            name = "filemanager",
+            item_table = { { title = "Cached", is_file = true, path = "/cached.epub" } },
+            item_group = {}, layout = {}, items_to_update = {}, page = 1,
+            perpage = 1, nb_cols = 2, item_margin = 1, item_width = 100,
+            item_height = 150, item_dimen = { copy = function() return {} end },
+            inner_dimen = { w = 110 }, _do_cover_images = true,
+        }
+
+        MosaicMenu._updateItemsBuildUI(menu)
+
+        assert.are.same({}, book_info_requests)
+        assert.is_true(cover_books[1].has_real_cover)
+        assert.is_false(cover_books[1].is_cover_pending)
+        assert.are.equal(0, #(menu._zen_cover_hydration_items or {}))
     end)
 
     it("uses fresh no-cover metadata without repeating a full book-info read", function()
@@ -605,12 +649,14 @@ describe("Zen renderer", function()
         assert.are.equal(4, text_target.y)
         assert.are.equal(0, text_target.color)
 
-        local two_line_menu = folder_menu("A folder name that wraps cleanly")
+        textbox_line_height = 12
+        local two_line_menu = folder_menu("folder1234567891011")
         MosaicMenu._updateItemsBuildUI(two_line_menu)
         local two_line_label = folder_name_labels[#folder_name_labels]
         assert.are.equal(19, two_line_label.face.size)
         assert.are.equal(2, #two_line_label.vertical_string_list)
-        assert.are.equal(16, two_line_label.height)
+        assert.are.equal(2, two_line_label.lines_per_page)
+        assert.are.equal(24, two_line_label.height)
 
         _G.__ZEN_UI_PLUGIN.config.browser_folder_cover.name_opaque = false
         local translucent_menu = folder_menu()

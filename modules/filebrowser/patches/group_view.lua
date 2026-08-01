@@ -1,5 +1,7 @@
 local ConfigManager = require("config/manager")
 local book_status = require("common/book_status")
+local HistoryIndex = require("common/history_index")
+local paths = require("common/paths")
 local StandalonePage = require("modules/filebrowser/patches/standalone_page")
 local SharedState = require("common/shared_state")
 local title_sort = require("common/title_sort")
@@ -660,6 +662,8 @@ local function sortDetailFiles(files, collate, reverse)
 
     -- Build sortable array with metadata
     local items = {}
+    local normalize_path = paths.normPath
+    local history = collate == "access" and HistoryIndex.load(normalize_path) or nil
     for _i, fpath in ipairs(files) do
         local bookinfo = BookInfoManager:getBookInfo(fpath, false)
         local sort_key
@@ -672,9 +676,9 @@ local function sortDetailFiles(files, collate, reverse)
         elseif collate == "series" then
             sort_key = (bookinfo and bookinfo.series) or ""
         elseif collate == "access" then
-            -- Use file access time, which KOReader updates via lfs.touch() on each open.
             local lfs = require("libs/libkoreader-lfs")
-            sort_key = lfs.attributes(fpath, "access") or 0
+            sort_key = HistoryIndex.fileTime(history, fpath, normalize_path)
+                or lfs.attributes(fpath, "access") or 0
         else
             sort_key = fpath:match("([^/]+)$") or fpath
         end

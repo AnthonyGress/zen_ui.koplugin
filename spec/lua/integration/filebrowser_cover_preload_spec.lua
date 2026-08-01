@@ -25,6 +25,7 @@ describe("filebrowser cover preloading", function()
     local folder_preview_entries
     local folder_preview_limits
     local gallery_warms
+    local gallery_cached
     local preload_order
     local decode_drops
     local render_drops
@@ -81,6 +82,7 @@ describe("filebrowser cover preloading", function()
         folder_preview_entries = {}
         folder_preview_limits = {}
         gallery_warms = {}
+        gallery_cached = {}
         preload_order = {}
         decode_drops = {}
         render_drops = {}
@@ -181,6 +183,7 @@ describe("filebrowser cover preloading", function()
         })
         ZenSpec.replace("common/cover_decode_cache", {
             has = function(_self, path) return decoded[path] == true end,
+            getFreshMetadata = function(_self, path) return book_infos[path] end,
             drop = function(_self, path) decode_drops[#decode_drops + 1] = path end,
             stats = function()
                 return {
@@ -197,6 +200,9 @@ describe("filebrowser cover preloading", function()
         ZenSpec.replace("common/cover_render_cache", {
             drop = function(_self, path) render_drops[#render_drops + 1] = path end,
             hasExact = function(_self, path, width, height)
+                return render_entries[render_key(path, width, height)] == true
+            end,
+            hasReusable = function(_self, path, width, height)
                 return render_entries[render_key(path, width, height)] == true
             end,
             get = function(_self, path, width, height)
@@ -348,6 +354,16 @@ describe("filebrowser cover preloading", function()
                     key, cached_width, cached_height, final)
                 return stored, cached_width, cached_height, owned, key
             end,
+            hasCachedGeneratedCover = function(path, width, height)
+                local cached_width, cached_height
+                if height * (2 / 3) <= width then
+                    cached_width, cached_height = math.floor(height * (2 / 3)), height
+                else
+                    cached_width, cached_height = width, math.floor(width / (2 / 3))
+                end
+                return render_entries[render_key(
+                    "generated:" .. path, cached_width, cached_height)] == true
+            end,
         })
         ZenSpec.replace("modules/filebrowser/folder_cover", {
             isSupported = function(entry, menu)
@@ -371,6 +387,9 @@ describe("filebrowser cover preloading", function()
                         or { is_file = true, path = value }
                 end
                 return entries
+            end,
+            isGalleryCached = function(_menu, entry)
+                return gallery_cached[entry.path] == true
             end,
             warmGallery = function(menu, entry, menu_text, width, height, options)
                 preload_order[#preload_order + 1] = "gallery:" .. tostring(entry.path)
@@ -508,6 +527,43 @@ describe("filebrowser cover preloading", function()
         assert.are.equal(1, metric_value(measurements[#measurements], "cover_jobs="))
         assert.are.equal(1, metric_value(measurements[#measurements], "warmed="))
         assert.are.equal(1, metric_value(measurements[#measurements], "gallery_warmed="))
+    end)
+
+    it("skips delayed jobs for cached generated and gallery covers", function()
+        local CoverMenu = require("covermenu")
+        folder_cover_mode = "gallery"
+        folder_preview_entries["/folder"] = {
+            "/folder/first.epub", "/folder/second.epub",
+        }
+        book_infos["/placeholder.epub"] = {
+            cover_fetched = true,
+            has_cover = false,
+            title = "Placeholder",
+            authors = "Author",
+        }
+        render_entries[render_key("generated:/placeholder.epub", 100, 150)] = true
+        gallery_cached["/folder"] = true
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = {
+                { is_file = true, path = "/current-1.epub" },
+                { is_file = true, path = "/current-2.epub" },
+                { is_file = true, path = "/placeholder.epub" },
+                { path = "/folder", attr = { mode = "directory" } },
+            },
+            page = 1, page_num = 2, perpage = 2,
+            display_mode_type = "mosaic",
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+
+        assert.are.equal(0, #scheduled)
+        assert.are.same({}, warmed)
+        assert.are.equal(0, #gallery_warms)
+        assert.are.equal(1, metric_value(measurements[2], "generated_cached="))
+        assert.are.equal(1, metric_value(measurements[2], "gallery_cached="))
+        assert.are.equal(2, metric_value(measurements[2], "already_cached="))
     end)
 
     it("warms ordinary page covers before prioritizing gallery composites", function()

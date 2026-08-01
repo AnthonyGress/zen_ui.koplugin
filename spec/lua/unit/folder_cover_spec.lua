@@ -56,6 +56,12 @@ describe("shared folder cover provider", function()
                 calls.gallery_lookup_key = key
                 return calls.cached_gallery
             end,
+            hasCachedGallery = function(key, width, height)
+                calls.gallery_cached_request = {
+                    key = key, width = width, height = height,
+                }
+                return calls.gallery_cached == true
+            end,
             loadExplicitCovers = function(path)
                 calls.explicit = path
                 return {}
@@ -190,6 +196,24 @@ describe("shared folder cover provider", function()
         assert.are.equal(2, result.count)
         assert.are.equal("gallery", result.frame.kind)
         assert.is_true(calls.uniform)
+    end)
+
+    it("counts scanned children instead of interpreting a date as the count", function()
+        install_lfs(function()
+            return {
+                { name = "a.epub" },
+                { name = "b.epub" },
+                { name = "notes.bin" },
+            }
+        end)
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local result = FolderCover.build({ name = "filemanager" }, {
+            path = "/library/folder",
+            attr = { mode = "directory" },
+            mandatory = "2026-08-01 12:00",
+        }, "Folder", 80, 120)
+
+        assert.are.equal(2, result.count)
     end)
 
     it("retains only the configured number of book candidates", function()
@@ -353,6 +377,21 @@ describe("shared folder cover provider", function()
         assert.are.equal("gallery:key", calls.gallery_lookup_key)
         assert.is_true(result.perf.composite_cache_hit)
         assert.are.equal(2, result.cover_count)
+    end)
+
+    it("checks a supplied gallery descriptor without loading child covers", function()
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        calls.gallery_cache_key = "gallery:key"
+        calls.gallery_cached = true
+
+        assert.is_true(FolderCover.isGalleryCached({}, {
+            _zen_files = { "/library/a.epub" },
+        }, "Author", 80, 120, {
+            entries = { { path = "/library/a.epub" } },
+        }))
+        assert.are.same({ key = "gallery:key", width = 80, height = 120 },
+            calls.gallery_cached_request)
+        assert.are.equal(0, #calls.collect)
     end)
 
     it("warms and releases one complete gallery bitmap", function()

@@ -308,14 +308,6 @@ local function apply_zen_renderer()
 
         local max_font_size = library_font.getBaseSize() + 1
         local min_font_size = library_font.scaleValue(14)
-        local line_probe = TextWidget:new{
-            text = "Ag",
-            face = library_font.getFace(min_font_size),
-            bold = true,
-            padding = 0,
-        }
-        local two_line_h = math.min(available_h, 2 * line_probe:getSize().h)
-        line_probe:free()
         local function make_label(font_size, height)
             return TextBoxWidget:new{
                 text = text,
@@ -332,12 +324,13 @@ local function apply_zen_renderer()
 
         local font_size = max_font_size
         local fits_two_lines = false
+        local line_h
         while font_size >= min_font_size do
             local probe = make_label(font_size)
             local line_count = #probe.vertical_string_list
-            local probe_line_h = probe:getLineHeight()
+            line_h = probe:getLineHeight()
             probe:free()
-            if line_count <= 2 and line_count * probe_line_h <= two_line_h then
+            if line_count <= 2 and line_count * line_h <= available_h then
                 fits_two_lines = true
                 break
             end
@@ -346,7 +339,11 @@ local function apply_zen_renderer()
 
         if not fits_two_lines then
             font_size = min_font_size
+            local probe = make_label(font_size)
+            line_h = probe:getLineHeight()
+            probe:free()
         end
+        local two_line_h = math.min(available_h, 2 * line_h)
         local label = make_label(font_size, two_line_h)
         label = transparent_folder_label(label)
         local label_dimen = Geom:new{
@@ -521,7 +518,7 @@ local function apply_zen_renderer()
         local cached_final = false
         local hydrate_later = false
         if want_cover and not self.file_deleted
-                and type(RenderCache.hasExact) == "function" then
+                and type(RenderCache.hasReusable) == "function" then
             local render_w, render_h
             if uniform then
                 render_w, render_h = CoverUtils.calcDims(target_w, target_h)
@@ -533,7 +530,7 @@ local function apply_zen_renderer()
                         target_w, target_h, metadata.cover_w, metadata.cover_h)
                 end
             end
-            if render_w and render_h and RenderCache:hasExact(
+            if render_w and render_h and RenderCache:hasReusable(
                     self.filepath, render_w, render_h) then
                 metadata = metadata or metadata_without_cover(self.filepath)
                 if valid_real_cover(metadata, specs) then

@@ -6,6 +6,7 @@ describe("home data and book caches", function()
     local favorite_lookup_count
     local history_items
     local book_info_reads
+    local stats_query_count
 
     before_each(function()
         _G.__ZEN_UI_LAST_READ_FILE = nil
@@ -15,6 +16,7 @@ describe("home data and book caches", function()
         stable_contexts = {}
         favorite_lookup_count = 0
         book_info_reads = 0
+        stats_query_count = 0
         history_items = { { file = "/library/alpha.epub" } }
 
         ZenSpec.replace("config/manager", { get = function() return {} end })
@@ -32,6 +34,12 @@ describe("home data and book caches", function()
         ZenSpec.replace("modules/filebrowser/patches/home/home_quotes", {})
         ZenSpec.replace("modules/filebrowser/patches/home/home_presets", {})
         ZenSpec.replace("common/reading_goals", {})
+        ZenSpec.replace("common/db_stats", {
+            queryHomeStats = function()
+                stats_query_count = stats_query_count + 1
+                return { today_pages = 12 }
+            end,
+        })
         ZenSpec.replace("config/preset_store", {})
         ZenSpec.replace("modules/filebrowser/patches/home/components/registry", {
             get = function(id) return { id = id } end,
@@ -215,6 +223,25 @@ describe("home data and book caches", function()
         assert.are.equal(0,
             #after_removal:getBooksForStrip("recently_read", 4, "default", "strip_recent"))
         assert.are.equal(2, history_reload_count)
+    end)
+
+    it("reuses matching Home stats across provider rebuilds", function()
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local build_data_provider = get_build_data_provider(Home)
+        local dcfg = {
+            middle_stats_triplet = { "today_pages", "today_duration", "streak" },
+            modules = {},
+        }
+        local rows = { { id = "stats_triplet" } }
+        local first = build_data_provider({ browser_cover_badges = {} }, dcfg)
+        local second = build_data_provider({ browser_cover_badges = {} }, dcfg)
+
+        assert.are.equal(12, first:prepareStats(rows).today_pages)
+        assert.are.equal(12, second:prepareStats(rows).today_pages)
+        assert.are.equal(1, stats_query_count)
+
+        second:prepareStats(rows, true)
+        assert.are.equal(2, stats_query_count)
     end)
 
     it("keeps strip cache entries metadata-only and clears them for Reader", function()

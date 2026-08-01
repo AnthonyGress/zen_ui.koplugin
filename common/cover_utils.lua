@@ -199,6 +199,49 @@ local function placeholder_cache_key(filepath, width, height, title, authors)
     }, "\30") .. "\30placeholder-v21"
 end
 
+local function generated_cover_spec(filepath, target_w, target_h, no_fallback, metadata)
+    local width, height
+    if target_w and target_h then
+        width, height = CoverUtils.calcDims(target_w, target_h)
+    elseif target_w then
+        width, height = CoverUtils.calcDims(target_w, 9999)
+    else
+        width, height = CoverUtils.calcDims(9999, target_h or 300)
+    end
+
+    local title = ""
+    local authors = ""
+    local bookinfo_found = false
+    local bookinfo = metadata
+    if metadata == nil then
+        local ok, BookInfoManager = pcall(require, "bookinfomanager")
+        if ok then bookinfo = BookInfoManager:getBookInfo(filepath, false) end
+    end
+    if type(bookinfo) == "table" and not bookinfo.ignore_meta then
+        bookinfo_found = true
+        title = bookinfo.title or ""
+        authors = bookinfo.authors or ""
+        if authors:find("\n") then authors = authors:match("^([^\n]+)") end
+    end
+
+    if title == "" and not no_fallback then
+        local fname = filepath:match("([^/]+)$") or ""
+        title = fname:gsub("/$", ""):gsub("%.[^%.]+$", "")
+    end
+
+    if type(metadata) == "table" and metadata.title_only == true then
+        authors = ""
+    elseif not no_fallback then
+        if title == "" then title = _("Unknown") end
+        if authors == "" then authors = _("Unknown Author") end
+    elseif bookinfo_found and authors == "" then
+        authors = _("Unknown Author")
+    end
+
+    return placeholder_cache_key(filepath, width, height, title, authors),
+        width, height, title, authors
+end
+
 local function paint_text_without_background(widget, bb, x, y, ink)
     local size = widget:getSize()
     local mask = widget._bb
@@ -221,57 +264,8 @@ local function finish_generated(cache_key, final_bb, width, height, shared)
 end
 
 local function gen_cover(filepath, target_w, target_h, no_fallback, metadata, shared, cached_only)
-    local width, height
-
-    if target_w and target_h then
-        width, height = CoverUtils.calcDims(target_w, target_h)
-    elseif target_w then
-        width, height = CoverUtils.calcDims(target_w, 9999)
-    else
-        width, height = CoverUtils.calcDims(9999, target_h or 300)
-    end
-
-    -- Get metadata
-    local title = ""
-    local authors = ""
-    local bookinfo_found = false
-
-    local bookinfo = metadata
-    if metadata == nil then
-        local ok, BookInfoManager = pcall(require, "bookinfomanager")
-        if ok then
-            bookinfo = BookInfoManager:getBookInfo(filepath, false)
-        end
-    end
-    if type(bookinfo) == "table" and not bookinfo.ignore_meta then
-        bookinfo_found = true
-        title = bookinfo.title or ""
-        authors = bookinfo.authors or ""
-        if authors and authors:find("\n") then
-            authors = authors:match("^([^\n]+)")
-        end
-    end
-
-    -- Fallback to filename (suppressed when no_fallback=true)
-    if title == "" and not no_fallback then
-        local fname = filepath:match("([^/]+)$") or ""
-        fname = fname:gsub("/$", "")
-        fname = fname:gsub("%.[^%.]+$", "")
-        title = fname
-    end
-
-    local title_only = type(metadata) == "table" and metadata.title_only == true
-    if title_only then
-        authors = ""
-    elseif not no_fallback then
-        if title == "" then title = _("Unknown") end
-        if authors == "" then authors = _("Unknown Author") end
-    elseif bookinfo_found and authors == "" then
-        -- Metadata loaded but no author field: still label it.
-        authors = _("Unknown Author")
-    end
-
-    local cache_key = placeholder_cache_key(filepath, width, height, title, authors)
+    local cache_key, width, height, title, authors = generated_cover_spec(
+        filepath, target_w, target_h, no_fallback, metadata)
     local cached
     if shared then
         cached = RenderCache:getShared(cache_key, width, height)
@@ -408,6 +402,15 @@ end
 
 function CoverUtils.getCachedGeneratedCover(filepath, target_w, target_h, no_fallback, metadata)
     return gen_cover(filepath, target_w, target_h, no_fallback, metadata, false, true)
+end
+
+function CoverUtils.hasCachedGeneratedCover(filepath, target_w, target_h, no_fallback, metadata)
+    local cache_key, width, height = generated_cover_spec(
+        filepath, target_w, target_h, no_fallback, metadata)
+    if type(RenderCache.touchExact) == "function" then
+        return RenderCache:touchExact(cache_key, width, height)
+    end
+    return RenderCache:hasExact(cache_key, width, height)
 end
 
 -- Returns an immutable leased bitmap and its cache key when the budget allows.

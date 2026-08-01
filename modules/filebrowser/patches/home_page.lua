@@ -42,6 +42,8 @@ local _home_dataset_generation = 0
 local HOME_BOOK_CACHE_MAX = 32
 local HOME_DATASET_TTL = 120
 local HOME_STRIP_MAX_BOOKS = 40
+local HOME_STATS_TTL = 60
+local _home_stats_cache = { key = nil, value = nil, expires_at = 0 }
 
 local function new_home_dataset()
     _home_dataset_generation = _home_dataset_generation + 1
@@ -139,6 +141,7 @@ end
 
 local function invalidate_home_book_cache(path)
     if type(path) ~= "string" or path == "" then return end
+    if type(book_status.invalidate) == "function" then book_status.invalidate(path) end
     local prefix = path .. "|"
     for key, book in pairs(_home_book_cache) do
         if key:sub(1, #prefix) == prefix then
@@ -776,6 +779,12 @@ local function build_data_provider(cfg, dcfg)
 
     local function get_stats(fields)
         if stats_cached then return stats_cached end
+        local key = stats_fields_key(fields)
+        if _home_stats_cache.value and _home_stats_cache.key == key
+                and os.time() < _home_stats_cache.expires_at then
+            stats_cached = _home_stats_cache.value
+            return stats_cached
+        end
         local ok_stats, StatsDB = pcall(require, "common/db_stats")
         if ok_stats and StatsDB and type(StatsDB.queryHomeStats) == "function" then
             stats_cached = StatsDB.queryHomeStats(fields) or {}
@@ -784,6 +793,9 @@ local function build_data_provider(cfg, dcfg)
         else
             stats_cached = {}
         end
+        _home_stats_cache.key = key
+        _home_stats_cache.value = stats_cached
+        _home_stats_cache.expires_at = os.time() + HOME_STATS_TTL
         if fields and (fields.finished_this_month or fields.finished_this_year) then
             local ok_library, LibraryDB = pcall(require, "common/db_library")
             local counts = ok_library and LibraryDB and LibraryDB.getBookCounts
@@ -1576,8 +1588,8 @@ local function build_data_provider(cfg, dcfg)
                 or not height or height < 1 then
             return "failed"
         end
-        if type(RenderCache.hasExact) == "function"
-                and RenderCache:hasExact(path, width, height) then
+        if type(RenderCache.hasReusable) == "function"
+                and RenderCache:hasReusable(path, width, height) then
             return "cached"
         end
 
@@ -1724,6 +1736,10 @@ local function build_data_provider(cfg, dcfg)
         if force or key ~= stats_cached_key then
             stats_cached = nil
             stats_cached_key = key
+            if force and _home_stats_cache.key == key then
+                _home_stats_cache.value = nil
+                _home_stats_cache.expires_at = 0
+            end
         end
         self.stats = get_stats(fields)
         return self.stats
@@ -2416,7 +2432,11 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             module_cfg = module_cfg,
             is_first_row = i == 1,
         }
+        local component_started_at = os.clock()
         local ok_widget, widget = pcall(comp.build, row_ctx)
+        menu._zen_home_component_ms = menu._zen_home_component_ms or {}
+        menu._zen_home_component_ms[comp.id] =
+            math.floor((os.clock() - component_started_at) * 10000 + 0.5) / 10
         if ok_widget and widget then
             local final_widget = widget
             if title_widget then
@@ -2608,6 +2628,7 @@ function M.showHomeView(injectNavbar)
 
     local function rebuild(refresh_stats)
         local started_at = os.clock()
+        local stats_started_at = started_at
         if data_provider and type(data_provider.resetPerformanceStats) == "function" then
             data_provider:resetPerformanceStats()
         end
@@ -2618,16 +2639,31 @@ function M.showHomeView(injectNavbar)
                 data_provider:refreshStats(rows)
             end
         end
+        local stats_ms = (os.clock() - stats_started_at) * 1000
+        menu._zen_home_component_ms = {}
+        local build_started_at = os.clock()
         local content = build_home_content(menu, dcfg, rows, data_provider)
+        local build_ms = (os.clock() - build_started_at) * 1000
+        local mount_started_at = os.clock()
         StandalonePage.mount_body(menu, content)
+        local mount_ms = (os.clock() - mount_started_at) * 1000
         UIManager:setDirty(menu, "ui")
         local perf = data_provider and data_provider.getPerformanceStats
             and data_provider:getPerformanceStats() or {}
+        local component_times = {}
+        for _i, comp in ipairs(rows) do
+            component_times[#component_times + 1] = tostring(comp.id) .. ":"
+                .. tostring(menu._zen_home_component_ms[comp.id] or 0)
+        end
         logger.perf("Home content rebuild completed", (os.clock() - started_at) * 1000,
             "rows=", #rows,
             "book_cache_hits=", perf.book_cache_hits or 0,
             "book_cache_misses=", perf.book_cache_misses or 0,
             "book_lookup_ms=", perf.book_lookup_ms or 0,
+            "stats_ms=", math.floor(stats_ms * 10 + 0.5) / 10,
+            "build_ms=", math.floor(build_ms * 10 + 0.5) / 10,
+            "mount_ms=", math.floor(mount_ms * 10 + 0.5) / 10,
+            "component_ms=", table.concat(component_times, ","),
             "dataset_generation=", perf.dataset_generation or 0)
     end
 

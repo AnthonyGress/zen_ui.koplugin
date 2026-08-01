@@ -94,7 +94,7 @@ describe("book status", function()
         }))
     end)
 
-    it("opens the authoritative sidecar once per lookup without consulting BookList", function()
+    it("reuses authoritative sidecar status until explicitly invalidated", function()
         local opens = 0
         local booklist_reads = 0
         local doc, data = settings({
@@ -123,9 +123,46 @@ describe("book status", function()
         assert.are.equal(0, booklist_reads)
 
         data.zen_new_mtime = 100
+        assert.are.equal("reading", BookStatus.getEffectiveStatusFromFile("/books/book.epub"))
+        assert.are.equal(1, opens)
+        BookStatus.invalidate("/books/book.epub")
         assert.are.equal("new", BookStatus.getEffectiveStatusFromFile("/books/book.epub"))
         assert.are.equal(2, opens)
         assert.are.equal(0, booklist_reads)
+    end)
+
+    it("refreshes cached status when the sidecar modification time changes", function()
+        local sidecar_mtime = 150
+        local opens = 0
+        local doc, data = settings({
+            summary = { status = "reading" },
+            percent_finished = 0.5,
+            zen_new_mtime = 200,
+        })
+        ZenSpec.replace("libs/libkoreader-lfs", {
+            attributes = function(path, attribute)
+                local value = path == "/books/book.epub"
+                    and { mode = "file", modification = 200 }
+                    or { mode = "file", modification = sidecar_mtime }
+                return attribute and value[attribute] or value
+            end,
+        })
+        ZenSpec.replace("docsettings", {
+            findSidecarFile = function() return "/books/book.sdr/metadata.lua" end,
+            hasSidecarFile = function() return true end,
+            open = function()
+                opens = opens + 1
+                return doc
+            end,
+        })
+        local BookStatus = require("common/book_status")
+
+        assert.are.equal("reading", BookStatus.getEffectiveStatusFromFile("/books/book.epub"))
+        data.summary.status = "complete"
+        assert.are.equal("reading", BookStatus.getEffectiveStatusFromFile("/books/book.epub"))
+        sidecar_mtime = 151
+        assert.are.equal("complete", BookStatus.getEffectiveStatusFromFile("/books/book.epub"))
+        assert.are.equal(2, opens)
     end)
 
     it("consults BookList once when no sidecar is available", function()

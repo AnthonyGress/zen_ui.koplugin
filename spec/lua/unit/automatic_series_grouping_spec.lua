@@ -6,12 +6,12 @@ describe("automatic series grouping patch", function()
     local cached_rows
     local doc_props_lookups
 
-    local function item(path, title)
+    local function item(path, title, access)
         return {
             text = title,
             path = path,
             is_file = true,
-            attr = { mode = "file" },
+            attr = { mode = "file", access = access },
         }
     end
 
@@ -146,6 +146,31 @@ describe("automatic series grouping patch", function()
         assert.are.equal("2 \u{F016}", group.mandatory)
         assert.are.same({ second, first }, group.series_items)
         assert.are.equal(loose, fc.item_table[2])
+    end)
+
+    it("uses the newest member when sorting virtual folders by recently read", function()
+        local saga_early = item("/library/Saga-1.epub", "Saga 1", 10)
+        local other_recent = item("/library/Other-1.epub", "Other 1", 50)
+        local saga_latest = item("/library/Saga-2.epub", "Saga 2", 100)
+        local other_early = item("/library/Other-2.epub", "Other 2", 40)
+        metadata[saga_early.path] = { series = "Saga", series_index = 1 }
+        metadata[saga_latest.path] = { series = "Saga", series_index = 2 }
+        metadata[other_recent.path] = { series = "Other", series_index = 1 }
+        metadata[other_early.path] = { series = "Other", series_index = 2 }
+        local fc = chooser()
+        fc.getCollate = function() return { can_collate_mixed = false }, "access" end
+        fc.getSortingFunction = function()
+            return function(a, b)
+                return (a.attr.access or 0) > (b.attr.access or 0)
+            end
+        end
+
+        FileChooser.switchItemTable(fc, nil, {
+            saga_early, other_recent, saga_latest, other_early,
+        })
+
+        assert.are.equal("Saga", fc.item_table[1].text)
+        assert.are.equal(100, fc.item_table[1].attr.access)
     end)
 
     it("groups Series-A from the CoverBrowser directory metadata cache", function()

@@ -541,6 +541,9 @@ describe("cover utility policy", function()
             put = function(_self, key, width, height, bb)
                 cached[cache_key(key, width, height)] = bb
             end,
+            hasExact = function(_self, key, width, height)
+                return cached[cache_key(key, width, height)] ~= nil
+            end,
         })
         ZenSpec.unload("common/cover_utils")
         CoverUtils = require("common/cover_utils")
@@ -549,6 +552,14 @@ describe("cover utility policy", function()
             title = "A Classic Title",
             authors = "An Author",
         })
+        assert.is_true(CoverUtils.hasCachedGeneratedCover(
+            "/book.epub", 120, 180, nil,
+            { title = "A Classic Title", authors = "An Author" }
+        ))
+        assert.is_false(CoverUtils.hasCachedGeneratedCover(
+            "/book.epub", 120, 180, nil,
+            { title = "A Classic Title", authors = "Another Author" }
+        ))
         local first_paint_count = paint_calls
         CoverUtils.genCover("/book.epub", 120, 180, nil, {
             title = "A Classic Title",

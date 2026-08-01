@@ -318,7 +318,7 @@ describe("home recent strip widget", function()
         assert.are.equal(0, #scheduled)
     end)
 
-    it("prewarms only the next-direction frame without swipe-time work", function()
+    it("prewarms next-direction covers without building its frame", function()
         touch_device = true
         local pages = {
             [-1] = { { path = "/library/previous.epub", title = "Previous" } },
@@ -353,7 +353,7 @@ describe("home recent strip widget", function()
         assert.are.same({ 0.35 }, scheduled_delays)
         run_scheduled()
         assert.are.equal(2, page_requests)
-        assert.are.equal(2, #cover_books)
+        assert.are.equal(1, #cover_books)
 
         assert.is_true(widget:onSwipeStrip(nil, {
             pos = { x = 10, y = 10 }, direction = "west",
@@ -373,7 +373,7 @@ describe("home recent strip widget", function()
         widget:free()
         while #scheduled > 0 do run_scheduled() end
         assert.are.equal(3, page_requests)
-        assert.are.equal(3, #cover_books)
+        assert.are.equal(2, #cover_books)
     end)
 
     it("bounds directional cover prewarming to four jobs per callback", function()

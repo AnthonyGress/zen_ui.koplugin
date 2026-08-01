@@ -381,7 +381,13 @@ local function apply_automatic_series_grouping()
                             table.insert(processed_list, group_item)
                             group_item._list_index = #processed_list
                         else
-                            table.insert(series_map[series_name].series_items, item)
+                            local group = series_map[series_name]
+                            table.insert(group.series_items, item)
+                            if collate_id == "access" then
+                                group.attr.access = math.max(
+                                    tonumber(group.attr.access) or 0,
+                                    tonumber(item.attr and item.attr.access) or 0)
+                            end
                         end
                         series_handled = true
                     else

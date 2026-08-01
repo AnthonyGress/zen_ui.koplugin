@@ -278,8 +278,10 @@ describe("home basic widgets", function()
     end)
 
     it("prioritizes a larger automatic quote font over extra line spacing", function()
+        local textbox_creations = 0
         ZenSpec.replace("ui/widget/textboxwidget", {
             new = function(_self, values)
+                textbox_creations = textbox_creations + 1
                 local line_count = values.text:sub(1, 3) == "\226\128\148" and 1 or 2
                 if values.text == "A" then line_count = 1 end
                 if values.text == "A\nA\nA" then line_count = 3 end
@@ -300,7 +302,8 @@ describe("home basic widgets", function()
             end,
         })
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/quotes")
-        require("modules/filebrowser/patches/home/widgets/quotes").build({
+        local component = require("modules/filebrowser/patches/home/widgets/quotes")
+        local ctx = {
             width = 400,
             height = 63,
             config = {
@@ -318,18 +321,25 @@ describe("home basic widgets", function()
                     }
                 end,
             },
-        })
+        }
+        component.build(ctx)
 
+        local found = false
         for _i, child in ipairs(created) do
             if child.text == '"A mostly full first line with one word below"'
                     and child.height then
                 assert.are.equal(14, child.face.size)
                 assert.are.equal(0.35, child.line_height)
                 assert.are.equal(38, child.height)
-                return
+                found = true
+                break
             end
         end
-        assert.fail("automatically sized quote widget was not created")
+        assert.is_true(found)
+
+        local first_build_creations = textbox_creations
+        component.build(ctx)
+        assert.are.equal(2, textbox_creations - first_build_creations)
     end)
 
     it("controls quote authors and titles independently", function()

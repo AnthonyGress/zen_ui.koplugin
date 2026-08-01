@@ -118,15 +118,27 @@ local function apply_browser_item_table_cache()
         local reverse = type(reverse_collate) == "boolean"
             and reverse_collate or G_reader_settings:isTrue("reverse_collate")
         local mixed = collate.can_collate_mixed and G_reader_settings:isTrue("collate_mixed")
+        local directory_paths = {}
+        for _i, item in ipairs(item_table) do
+            if not is_special_item(item) and item.attr and item.attr.mode == "directory" then
+                directory_paths[#directory_paths + 1] = canonical_path(item.path)
+            end
+        end
+        local directory_times = HistoryIndex.maxDescendantTimes(map, directory_paths)
 
         for _i, item in ipairs(item_table) do
             if not is_special_item(item) then
                 local is_directory = item.attr and item.attr.mode == "directory"
-                local read_time = not is_directory and history_time(map, item) or nil
+                local read_time
+                if is_directory then
+                    read_time = directory_times[canonical_path(item.path)]
+                else
+                    read_time = history_time(map, item)
+                end
                 if read_time then
                     item.attr = item.attr or {}
                     item.attr.access = read_time
-                    if collate.mandatory_func ~= nil then
+                    if not is_directory and collate.mandatory_func ~= nil then
                         item.mandatory = chooser:getMenuItemMandatory(item, collate)
                     end
                 end

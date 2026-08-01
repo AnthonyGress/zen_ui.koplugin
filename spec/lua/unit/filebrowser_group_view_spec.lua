@@ -18,6 +18,8 @@ describe("file browser group views", function()
         "gettext",
         "config/manager",
         "common/book_status",
+        "common/history_index",
+        "common/paths",
         "common/shared_state",
         "modules/filebrowser/patches/standalone_page",
         "common/db_bookinfo",
@@ -73,6 +75,11 @@ describe("file browser group views", function()
             getEffectiveStatusFromFile = function(path) return statuses[path] end,
             includeNewInTBREnabled = function() return false end,
         })
+        ZenSpec.replace("common/history_index", {
+            load = function() return groups.history or {} end,
+            fileTime = function(index, path) return index[path] end,
+        })
+        ZenSpec.replace("common/paths", { normPath = function(path) return path end })
         ZenSpec.replace("common/shared_state", {
             registerLoader = function() end,
             register = function(_, exports)
@@ -357,6 +364,29 @@ describe("file browser group views", function()
         })
         assert.are.equal("20 B", detail.item_table[2].mandatory)
         assert.are.same({ group_name = "Saga", tab_id = "series", page = 1 }, api.getActiveDetail())
+    end)
+
+    it("sorts recently read detail books from read history", function()
+        local groups = {
+            history = { ["/older.epub"] = 100, ["/newer.epub"] = 200 },
+            authors = {
+                { author = "Writer", files = { "/older.epub", "/newer.epub" } },
+            },
+        }
+        install_group_view(groups)
+        config.group_view.detail_collate = { authors = { Writer = "access" } }
+        metadata["/older.epub"] = { access = 300 }
+        metadata["/newer.epub"] = { access = 100 }
+
+        api.showAuthorsView()
+        local root = assert(find_menu("authors"))
+        root.onMenuSelect(root, root.item_table[1])
+
+        local detail = assert(find_menu("authors_detail"))
+        assert.are.same({ "newer", "older" }, {
+            detail.item_table[1].text,
+            detail.item_table[2].text,
+        })
     end)
 
     it("applies saved title sort, reverse state, and status filtering to author details", function()

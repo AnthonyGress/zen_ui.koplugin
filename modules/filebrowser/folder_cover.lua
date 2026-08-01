@@ -78,7 +78,7 @@ local function mandatory_file_count(mandatory)
     if type(mandatory) == "number" then return mandatory end
     if type(mandatory) ~= "string" then return nil end
     return tonumber(mandatory:match("(%d+)%s*\xef\x80\x96"))
-        or tonumber(mandatory:match("(%d+)"))
+        or tonumber(mandatory:match("^%D*(%d+)%D*$"))
 end
 
 local function get_descriptor(menu, entry, max_covers)
@@ -379,6 +379,21 @@ function M.build(menu, entry, menu_text, max_w, max_h, options)
         needs_hydration = needs_hydration,
         perf = perf,
     }
+end
+
+function M.isGalleryCached(menu, entry, menu_text, max_w, max_h, options)
+    options = options or {}
+    local mode, max_covers = CoverUtils.getMode()
+    if mode ~= "gallery" then return false end
+    local entries = options.entries
+    if entries == nil then entries = M.previewEntries(menu, entry, max_covers) end
+    if type(entries) ~= "table" or #entries == 0 then return false end
+    local portrait_w, portrait_h = CoverUtils.calcDims(max_w, max_h)
+    local cache_key = CoverUtils.galleryCacheKey(
+        gallery_identity(menu, entry, M.title(entry, menu_text, menu)), entries,
+        portrait_w, portrait_h, options.uniform ~= false)
+    return type(CoverUtils.hasCachedGallery) == "function"
+        and CoverUtils.hasCachedGallery(cache_key, portrait_w, portrait_h) == true
 end
 
 function M.warmGallery(menu, entry, menu_text, max_w, max_h, options)
