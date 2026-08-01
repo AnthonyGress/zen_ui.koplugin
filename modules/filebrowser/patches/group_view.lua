@@ -893,6 +893,38 @@ local function show_file_dialog_with_refresh(fc, menu_self, item)
     fc:showFileDialog(item)
 end
 
+local function get_file_manager()
+    local FileManager = require("apps/filemanager/filemanager")
+    return FileManager.instance
+end
+
+local function is_file_selected(path)
+    local file_manager = get_file_manager()
+    return file_manager and file_manager.selected_files
+        and file_manager.selected_files[path] == true or nil
+end
+
+local function toggle_file_selection(menu, item)
+    local file_manager = get_file_manager()
+    if not (file_manager and file_manager.selected_files ~= nil and item.path) then
+        return false
+    end
+    item.dim = not item.dim and true or nil
+    file_manager.selected_files[item.path] = item.dim
+    menu:updateItems()
+    return true
+end
+
+local function show_select_mode_menu()
+    local file_manager = get_file_manager()
+    if file_manager and file_manager.selected_files ~= nil
+            and type(file_manager.onShowPlusMenu) == "function" then
+        file_manager:onShowPlusMenu()
+        return true
+    end
+    return false
+end
+
 -------------------------------------------------------------------------------
 -- showDetailView: book list for one author/series group
 -- Called from onMenuSelect on the group list menu
@@ -949,6 +981,7 @@ local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
             path      = fpath,
             filepath  = fpath,
             is_file   = true,
+            dim       = is_file_selected(fpath),
             mandatory = attr and util_mod.getFriendlySize(attr.size or 0) or "",
         })
     end
@@ -975,8 +1008,8 @@ local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
                 return
             end
             if item.path then
-                local FileManager = require("apps/filemanager/filemanager")
-                local fm = FileManager.instance
+                if toggle_file_selection(menu_self, item) then return end
+                local fm = get_file_manager()
                 local fmu = require("apps/filemanager/filemanagerutil")
                 if fmu.openFile then
                     fmu.openFile(fm, item.path)
@@ -986,14 +1019,17 @@ local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
             end
         end,
         onMenuHold = function(menu_self, item)
+            if show_select_mode_menu() then return true end
             if not item.path then return end
-            local FileManager = require("apps/filemanager/filemanager")
-            local fm = FileManager.instance
+            local fm = get_file_manager()
             if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
                 show_file_dialog_with_refresh(fm.file_chooser, menu_self, {
                     path = item.path,
                     is_file = true,
                     text = item.text,
+                    _zen_select_cb = function()
+                        return toggle_file_selection(menu_self, item)
+                    end,
                 })
             end
         end,
@@ -1067,8 +1103,8 @@ local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
             },
         }
         function detail_menu:onZenDetailBlankHold(arg, ges)
-            local FileManager = require("apps/filemanager/filemanager")
-            local fm = FileManager.instance
+            if show_select_mode_menu() then return true end
+            local fm = get_file_manager()
             if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
                 fm.file_chooser:showFileDialog({
                     _zen_group_files       = sorted_files,
@@ -1150,9 +1186,9 @@ showGroupView = function(tab_id, injectNavbar, groups)
             end
         end,
         onMenuHold = function(menu_self, item)
+            if show_select_mode_menu() then return true end
             if item._zen_files then
-                local FileManager = require("apps/filemanager/filemanager")
-                local fm = FileManager.instance
+                local fm = get_file_manager()
                 if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
                     fm.file_chooser:showFileDialog({
                         _zen_group_files = item._zen_files,
@@ -1224,8 +1260,8 @@ showGroupView = function(tab_id, injectNavbar, groups)
             },
         }
         function menu:onZenGroupBlankHold(arg, ges)
-            local FileManager = require("apps/filemanager/filemanager")
-            local fm = FileManager.instance
+            if show_select_mode_menu() then return true end
+            local fm = get_file_manager()
             if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
                 local n = self.item_table and #self.item_table or 0
                 local subtitle
@@ -1389,6 +1425,7 @@ function M.showTBRView(injectNavbar)
                 path      = fpath,
                 filepath  = fpath,
                 is_file   = true,
+                dim       = is_file_selected(fpath),
                 mandatory = attr and util_mod.getFriendlySize(attr.size or 0) or "",
             })
         end
@@ -1419,8 +1456,8 @@ function M.showTBRView(injectNavbar)
                 return
             end
             if item.path then
-                local FileManager = require("apps/filemanager/filemanager")
-                local fm = FileManager.instance
+                if toggle_file_selection(menu_self, item) then return end
+                local fm = get_file_manager()
                 local fmu = require("apps/filemanager/filemanagerutil")
                 if fmu.openFile then
                     fmu.openFile(fm, item.path)
@@ -1430,14 +1467,17 @@ function M.showTBRView(injectNavbar)
             end
         end,
         onMenuHold = function(menu_self, item)
+            if show_select_mode_menu() then return true end
             if not item.path then return end
-            local FileManager = require("apps/filemanager/filemanager")
-            local fm = FileManager.instance
+            local fm = get_file_manager()
             if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
                 show_file_dialog_with_refresh(fm.file_chooser, menu_self, {
                     path    = item.path,
                     is_file = true,
                     text    = item.text,
+                    _zen_select_cb = function()
+                        return toggle_file_selection(menu_self, item)
+                    end,
                 })
             end
         end,
@@ -1518,8 +1558,8 @@ function M.showTBRView(injectNavbar)
             },
         }
         function menu:onZenTBRBlankHold(arg, ges)
-            local FileManager = require("apps/filemanager/filemanager")
-            local fm = FileManager.instance
+            if show_select_mode_menu() then return true end
+            local fm = get_file_manager()
             if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
                 local n = self.item_table and #self.item_table or 0
                 fm.file_chooser:showFileDialog({

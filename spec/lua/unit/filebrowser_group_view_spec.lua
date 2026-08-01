@@ -12,6 +12,7 @@ describe("file browser group views", function()
     local file_dialog_args
     local sort_dialog_args
     local legacy_tbr_calls
+    local select_menu_calls
     local saved_modules
     local replaced_modules = {
         "gettext",
@@ -54,6 +55,7 @@ describe("file browser group views", function()
         metadata, statuses, opened = {}, {}, {}
         saved, file_dialog_args, sort_dialog_args = 0, nil, nil
         legacy_tbr_calls = 0
+        select_menu_calls = 0
 
         local plugin = {
             config = config,
@@ -165,6 +167,7 @@ describe("file browser group views", function()
         })
         ZenSpec.replace("apps/filemanager/filemanager", {
             instance = {
+                onShowPlusMenu = function() select_menu_calls = select_menu_calls + 1 end,
                 file_chooser = {
                     showFileDialog = function(_, args) file_dialog_args = args end,
                     showSortOrderDialog = function(_, args) sort_dialog_args = args end,
@@ -491,5 +494,55 @@ describe("file browser group views", function()
         assert.is_nil(api.getActivePage("authors"))
         assert.is_true(#closed >= 4)
         assert.are.equal("authors_detail", second_detail.name)
+    end)
+
+    it("selects group-detail books without opening them", function()
+        install_group_view({
+            authors = { { author = "Writer", files = { "/book.epub" } } },
+        })
+        local file_manager = package.loaded["apps/filemanager/filemanager"].instance
+        file_manager.selected_files = {}
+
+        api.showAuthorsView()
+        local root = assert(find_menu("authors"))
+        root.onMenuSelect(root, root.item_table[1])
+        local detail = assert(find_menu("authors_detail"))
+        local book = detail.item_table[1]
+
+        detail.onMenuSelect(detail, book)
+        assert.is_true(book.dim)
+        assert.is_true(file_manager.selected_files["/book.epub"])
+        assert.are.equal(0, #opened)
+
+        detail.onMenuSelect(detail, book)
+        assert.is_nil(book.dim)
+        assert.is_nil(file_manager.selected_files["/book.epub"])
+        assert.are.equal(0, #opened)
+
+        detail.onMenuHold(detail, book)
+        assert.are.equal(1, select_menu_calls)
+        assert.is_nil(file_dialog_args)
+    end)
+
+    it("marks the held group-detail book when Select enters selection mode", function()
+        install_group_view({
+            authors = { { author = "Writer", files = { "/book.epub" } } },
+        })
+
+        api.showAuthorsView()
+        local root = assert(find_menu("authors"))
+        root.onMenuSelect(root, root.item_table[1])
+        local detail = assert(find_menu("authors_detail"))
+        local book = detail.item_table[1]
+
+        detail.onMenuHold(detail, book)
+        assert.is_function(file_dialog_args._zen_select_cb)
+
+        local file_manager = package.loaded["apps/filemanager/filemanager"].instance
+        file_manager.selected_files = {}
+        assert.is_true(file_dialog_args._zen_select_cb())
+        assert.is_true(book.dim)
+        assert.is_true(file_manager.selected_files["/book.epub"])
+        assert.are.equal(0, #opened)
     end)
 end)

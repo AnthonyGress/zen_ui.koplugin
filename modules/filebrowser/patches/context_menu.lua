@@ -1525,7 +1525,9 @@ local function apply_context_menu()
                             callback = function()
                                 UIManager:close(edit_dialog)
                                 file_manager:onToggleSelectMode()
-                                if is_file and type(self_fc.onFileSelect) == "function" then
+                                if type(item._zen_select_cb) == "function" then
+                                    item._zen_select_cb()
+                                elseif is_file and type(self_fc.onFileSelect) == "function" then
                                     self_fc:onFileSelect(item)
                                 end
                             end,

@@ -73,6 +73,11 @@ local function apply_zen_renderer()
             or rawget(_G, "__ZEN_UI_SUPPRESS_FILEMANAGER_COVERS") == true
     end
 
+    local function is_file_manager_select_mode()
+        local ok, FileManager = pcall(require, "apps/filemanager/filemanager")
+        return ok and FileManager.instance and FileManager.instance.selected_files ~= nil
+    end
+
     local function filename(path)
         return (path or ""):match("([^/]+)$") or ""
     end
@@ -565,7 +570,7 @@ local function apply_zen_renderer()
     end
 
     function ZenMosaicItem:onTapSelect()
-        if self._zen_is_book then
+        if self._zen_is_book and not is_file_manager_select_mode() then
             local set_cover = rawget(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER")
             if type(set_cover) == "function" then set_cover(self._zen_cover_frame) end
         end

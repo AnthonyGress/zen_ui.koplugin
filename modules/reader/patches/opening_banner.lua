@@ -104,7 +104,9 @@ local function apply_opening_banner()
 
     local function is_select_mode(item)
         local menu = item and item.menu
-        return menu and menu.ui and menu.ui.selected_files ~= nil
+        if menu and menu.ui and menu.ui.selected_files ~= nil then return true end
+        local ok, FileManager = pcall(require, "apps/filemanager/filemanager")
+        return ok and FileManager.instance and FileManager.instance.selected_files ~= nil
     end
 
     local function set_opening_banner_dimen(dimen, cover_widget, is_list, advance_tap)

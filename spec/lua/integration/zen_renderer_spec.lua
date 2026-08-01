@@ -439,6 +439,28 @@ describe("Zen renderer", function()
         assert.is_nil(captured_cover)
     end)
 
+    it("does not prepare an opening banner while selection mode is active", function()
+        ZenSpec.replace("apps/filemanager/filemanager", {
+            instance = { selected_files = {} },
+        })
+        require("modules/filebrowser/patches/zen_renderer")()
+        local captured_cover
+        rawset(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER", function(cover)
+            captured_cover = cover
+        end)
+        local cover = { dimen = { x = 20, y = 30, w = 80, h = 120 } }
+        local entry = { path = "/book.epub" }
+        local item = setmetatable({
+            _zen_cover_frame = cover,
+            _zen_is_book = true,
+            entry = entry,
+            menu = { onMenuSelect = function() end },
+        }, { __index = MosaicMenu._zen_mosaic_item_class })
+
+        assert.is_true(item:onTapSelect())
+        assert.is_nil(captured_cover)
+    end)
+
     it("queues cover extraction for metadata-only and undersized cached covers", function()
         local mode = "metadata_only"
         local freed = 0

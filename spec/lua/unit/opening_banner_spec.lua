@@ -75,6 +75,7 @@ describe("opening banner", function()
         ZenSpec.replace("listmenu", { _updateItemsBuildUI = build_list_items })
         ZenSpec.replace("mosaicmenu", { _updateItemsBuildUI = build_mosaic_items })
         ZenSpec.replace("common/cover_utils", { BORDER_SIZE = 1 })
+        ZenSpec.replace("apps/filemanager/filemanager", { instance = {} })
 
         return ReaderUI, ReaderHighlight, shown, closed, function()
             assert.is_function(next_tick)
@@ -148,6 +149,16 @@ describe("opening banner", function()
             menu = { ui = { selected_files = {} } },
         }))
         assert.are.equal(0, #shown)
+
+        package.loaded["apps/filemanager/filemanager"].instance.selected_files = {}
+        assert.are.equal("selected", ListMenuItem.onTapSelect({
+            entry = { path = "/book.epub", is_file = true },
+            filepath = "/book.epub",
+            dimen = dimen,
+            menu = {},
+        }))
+        assert.are.equal(0, #shown)
+        package.loaded["apps/filemanager/filemanager"].instance.selected_files = nil
 
         assert.are.equal("selected", ListMenuItem.onTapSelect({
             entry = { text = "Author", _zen_files = { "/book.epub" } },
