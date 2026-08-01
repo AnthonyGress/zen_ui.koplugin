@@ -947,7 +947,7 @@ local function apply_navbar()
         end
         if shouldTrackActiveTab(tab_id) then
             cb()
-            refreshAfterNavbarPageSwitch()
+            if tab_id ~= "books" then refreshAfterNavbarPageSwitch() end
             return
         end
         local saved_active = active_tab

@@ -434,20 +434,30 @@ describe("file browser navbar navigation", function()
         assert.are.equal("Collections", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
     end)
 
-    it("reveals the current Library page before validating its directory snapshot", function()
+    it("reveals the current Library page without scheduling a full-screen repaint", function()
         local fm = make_instance()
         fm.file_chooser.path = "/library"
         fm.file_chooser.onGotoPage = function(_, page)
             calls[#calls + 1] = "goto:" .. tostring(page)
         end
-        local next_tick
-        UIManager.nextTick = function(_, callback) next_tick = callback end
+        local next_ticks = {}
+        local dirty = {}
+        local force_repaints = 0
+        UIManager.nextTick = function(_, callback) next_ticks[#next_ticks + 1] = callback end
+        UIManager.setDirty = function(_self, widget, mode)
+            dirty[#dirty + 1] = { widget = widget, mode = mode }
+        end
+        UIManager.forceRePaint = function() force_repaints = force_repaints + 1 end
         calls = {}
 
         assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
         assert.are.same({ "goto:1" }, calls)
-        assert.is_function(next_tick)
-        next_tick()
+        assert.are.equal(1, #next_ticks)
+        table.remove(next_ticks, 1)()
+        for _i, entry in ipairs(dirty) do
+            assert.is_false(entry.widget == nil and entry.mode == "full")
+        end
+        assert.are.equal(0, force_repaints)
     end)
 
     it("rejects unknown tab ids without changing the active tab", function()

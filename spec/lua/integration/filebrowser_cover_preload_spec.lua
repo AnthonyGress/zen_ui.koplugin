@@ -997,6 +997,63 @@ describe("filebrowser cover preloading", function()
         assert.are.equal(93.8, metric_value(measurements[1], "refresh_region_pct="))
     end)
 
+    it("reveals direct page jumps before hydrating cold covers", function()
+        local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
+        local Menu = require("ui/widget/menu")
+        local UIManager = require("ui/uimanager")
+        local hydrated = {}
+        goto_page = function(menu, page)
+            menu.page = page
+            return CoverMenu.updateItems(menu)
+        end
+        update_items = function(menu)
+            UIManager:setDirty(menu.show_parent, function()
+                return "ui", menu.dimen, true
+            end)
+            for index = 1, 2 do
+                local item = {
+                    menu = menu,
+                    _zen_cover_hydration_queued = true,
+                    [1] = { dimen = Geom:new{
+                        x = index * 100, y = 100, w = 90, h = 120,
+                    } },
+                }
+                item.update = function(self)
+                    hydrated[#hydrated + 1] = index
+                    self._has_cover_image = true
+                end
+                menu._zen_cover_hydration_items[#menu._zen_cover_hydration_items + 1] = item
+            end
+            menu:_zen_request_cover_hydration()
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = {
+                { is_file = true, path = "/one.epub" },
+                { is_file = true, path = "/two.epub" },
+            },
+            page = 9, page_num = 9, perpage = 2,
+            display_mode_type = "mosaic", show_parent = {},
+            dimen = Geom:new{ x = 0, y = 0, w = 600, h = 800 },
+            title_bar = { dimen = { h = 50 } },
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        Menu.onGotoPage(menu, 1)
+
+        assert.are.equal(1, #dirty)
+        assert.are.same({}, hydrated)
+        assert.are.equal("immediate_jump",
+            metric_value(measurements[#measurements], "reason="))
+
+        table.remove(scheduled, 1)()
+
+        assert.are.same({ 1, 2 }, hydrated)
+        assert.are.equal(2, #dirty)
+        assert.is_nil(menu._zen_cover_direct_jump_active)
+    end)
+
     it("reveals a cold mosaic page once after all first-pass hydration", function()
         local CoverMenu = require("covermenu")
         local Geom = require("ui/geometry")

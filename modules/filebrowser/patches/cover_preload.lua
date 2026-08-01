@@ -1132,7 +1132,12 @@ local function apply_cover_preload()
             if not initial_jobs then return end
             if reveal then
                 if #initial_jobs > 0 then
-                    schedule_hydration(menu, initial_jobs, reveal)
+                    if menu._zen_cover_direct_jump_active then
+                        flush_reveal(menu, reveal, "immediate_jump", 0, 0)
+                        schedule_hydration(menu, initial_jobs)
+                    else
+                        schedule_hydration(menu, initial_jobs, reveal)
+                    end
                 else
                     flush_reveal(menu, reveal, "immediate", 0, 0)
                 end
@@ -1286,6 +1291,7 @@ local function apply_cover_preload()
             local direction = target > current and 1 or -1
             local label = direction > 0 and "jump_forward" or "jump_backward"
             menu._zen_cover_turn_active = true
+            menu._zen_cover_direct_jump_active = true
             menu._zen_cover_preload_direction = direction
             local turn_measure
             if measurements_enabled then
@@ -1296,6 +1302,7 @@ local function apply_cover_preload()
             if turn_measure and menu._zen_cover_turn_measure == turn_measure then
                 menu._zen_cover_turn_measure = nil
             end
+            menu._zen_cover_direct_jump_active = nil
             menu._zen_cover_turn_active = nil
             return result
         end
