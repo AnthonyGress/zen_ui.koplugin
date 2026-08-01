@@ -945,8 +945,8 @@ msgstr "Приховати межі списку"
 msgid "Hide reader actions in library"
 msgstr "Приховати дії читалки в бібліотеці"
 
-msgid "Hide TBR books"
-msgstr "Приховати книги для читання"
+msgid "Hide on-hold books"
+msgstr "Приховати відкладені книги"
 
 msgid "Hide unread books"
 msgstr "Приховати непрочитані книги"

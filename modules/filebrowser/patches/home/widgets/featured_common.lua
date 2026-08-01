@@ -22,7 +22,7 @@ local library_font = require("modules/filebrowser/patches/library_font")
 local _ = require("gettext")
 
 local M = {}
-M.SIZE = { preferred_pct = 0.36, min_pct = 0.22, max_pct = 0.50, grow_priority = 1 }
+M.SIZE = "l"
 
 local DEFAULT_TEXT_STYLES = {
     title = { font_face = "default", font_size = 11, bold = true },
@@ -189,16 +189,33 @@ function M.build(ctx, source_key)
             source, width, height,
             { border = cover_common.BORDER_SIZE, background = Blitbuffer.COLOR_LIGHT_GRAY }
         )
+        local empty_size = empty_cover:getSize()
+        local empty_top = math.floor(math.max(0, outer_height - (empty_size.h or outer_height)) / 2)
+        local visual_shift = 0
+        local empty_container = CenterContainer:new{
+            dimen = Geom:new{ w = outer_width, h = outer_height },
+            empty_cover,
+        }
+        local original_empty_paint = empty_container.paintTo
+        empty_container.paintTo = function(self, bb, x, y)
+            return original_empty_paint(self, bb, x, y + visual_shift)
+        end
+        if type(ctx.setContentBounds) == "function" then
+            ctx.setContentBounds{
+                top = empty_top,
+                bottom = empty_top + (empty_size.h or outer_height),
+                min_shift = -empty_top,
+                max_shift = outer_height - empty_top - (empty_size.h or outer_height),
+                set_shift = function(shift) visual_shift = shift end,
+            }
+        end
         return FrameContainer:new{
             width = outer_width,
             height = outer_height,
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
-            CenterContainer:new{
-                dimen = Geom:new{ w = outer_width, h = outer_height },
-                empty_cover,
-            },
+            empty_container,
         }
     end
 
@@ -262,14 +279,15 @@ function M.build(ctx, source_key)
     local status_gap = status_h > 0 and math.max(1, math.floor(col_h * 0.015)) or 0
 
     -- Progress bar anchored to bottom of right column
-    local progress_percent = book.status == "new" and 0 or book.percent
-    if book.status ~= "new"
+    local is_tbr = book.status == "tbr"
+    local progress_percent = (book.status == "new" or is_tbr) and 0 or book.percent
+    if book.status ~= "new" and not is_tbr
             and book.stable_current_page and book.stable_pages and book.stable_pages > 0 then
         progress_percent = book.stable_current_page / book.stable_pages
     end
     local pct = math.floor((progress_percent or 0) * 100 + 0.5)
     local left_progress_text, right_progress_text = "", ""
-    if book.status ~= "new" then
+    if book.status ~= "new" and not is_tbr then
         left_progress_text, right_progress_text =
             build_progress_text(book, pct, module_cfg.progress_meta)
     end
@@ -284,7 +302,7 @@ function M.build(ctx, source_key)
     local bar_h = math.max(progress_h, stats_text_h)
 
     local progress_row
-    if bar_h > 0 and book.status ~= "new" then
+    if bar_h > 0 and book.status ~= "new" and not is_tbr then
         if has_progress_text then
             local lw = TextWidget:new{
                 text = left_progress_text,
@@ -515,6 +533,34 @@ function M.build(ctx, source_key)
         detail,
     }
 
+    local visual_group = VerticalGroup:new{
+        align = "center",
+        VerticalSpan:new{ width = col_top_pad },
+        body,
+    }
+    local visual_size = visual_group:getSize()
+    local visual_shift = 0
+    local content_container = TopContainer:new{
+        dimen = Geom:new{ w = width, h = height },
+        visual_group,
+    }
+    local original_content_paint = content_container.paintTo
+    content_container.paintTo = function(self, bb, x, y)
+        return original_content_paint(self, bb, x, y + visual_shift)
+    end
+    if type(ctx.setContentBounds) == "function" then
+        local outer_top = math.floor(math.max(0, outer_height - height) / 2)
+        local visual_top = outer_top + col_top_pad
+        local visual_bottom = outer_top + (visual_size.h or height)
+        ctx.setContentBounds{
+            top = visual_top,
+            bottom = visual_bottom,
+            min_shift = -visual_top,
+            max_shift = outer_height - visual_bottom,
+            set_shift = function(shift) visual_shift = shift end,
+        }
+    end
+
     local frame = FrameContainer:new{
         width = outer_width,
         height = outer_height,
@@ -523,14 +569,7 @@ function M.build(ctx, source_key)
         background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
         CenterContainer:new{
             dimen = Geom:new{ w = outer_width, h = outer_height },
-            TopContainer:new{
-            dimen = Geom:new{ w = width, h = height },
-            VerticalGroup:new{
-                align = "center",
-                VerticalSpan:new{ width = col_top_pad },
-                body,
-            },
-            },
+            content_container,
         },
     }
 

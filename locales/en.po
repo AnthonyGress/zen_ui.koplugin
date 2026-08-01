@@ -975,8 +975,8 @@ msgstr "Hide list borders"
 msgid "Hide reader actions in library"
 msgstr "Hide reader actions in library"
 
-msgid "Hide TBR books"
-msgstr "Hide TBR books"
+msgid "Hide on-hold books"
+msgstr "Hide on-hold books"
 
 msgid "Hide unread books"
 msgstr "Hide unread books"
@@ -1899,8 +1899,8 @@ msgstr "Show item count"
 msgid "Show item underline"
 msgstr "Show item underline"
 
-msgid "Show KOReader progress bar"
-msgstr "Show KOReader progress bar"
+msgid "Show progress bar"
+msgstr "Show progress bar"
 
 msgid "Show labels"
 msgstr "Show labels"
@@ -1917,8 +1917,8 @@ msgstr "Show other KOReader quick lookup options alongside Zen buttons."
 msgid "Show page count"
 msgstr "Show page count"
 
-msgid "Show progress % on mosaic covers"
-msgstr "Show progress % on mosaic covers"
+msgid "Show reading progress"
+msgstr "Show reading progress"
 
 msgid "Show separator"
 msgstr "Show separator"

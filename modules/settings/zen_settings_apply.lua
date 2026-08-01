@@ -102,6 +102,16 @@ local function apply_filemanager_layout()
     end
 end
 
+local function apply_navbar_refresh()
+    local reinject = rawget(_G, "__ZEN_UI_REINJECT_NAVBARS")
+        or rawget(_G, "__ZEN_UI_REINJECT_FM_NAVBAR")
+    if type(reinject) == "function" then
+        reinject()
+    else
+        apply_filemanager_layout()
+    end
+end
+
 local function apply_filemanager_reinit()
     local ok, FileManager = pcall(require, "apps/filemanager/filemanager")
     local fm = ok and FileManager and FileManager.instance
@@ -160,6 +170,7 @@ local DISRUPTIVE_MODES = {
     filemanager_layout  = true,
     filemanager_reinit  = true,
     filemanager_refresh = true,
+    navbar_refresh      = true,
 }
 
 local deferred_applies      = {}
@@ -167,8 +178,9 @@ local deferred_poll_active  = false
 local deferred_poll_retries = 0
 local DEFERRED_MAX_RETRIES  = 40 -- 10 s at 0.25 s intervals
 
--- True when the FileManager's TouchMenu is open.
+-- True when a settings menu that owns the FileManager is open.
 local function is_filemanager_menu_open()
+    if rawget(_G, "__ZEN_UI_SETTINGS_PAGE") then return true end
     local ok, FileManager = pcall(require, "apps/filemanager/filemanager")
     if not ok or not FileManager or not FileManager.instance then return false end
     local fm = FileManager.instance
@@ -192,6 +204,8 @@ local function run_apply_mode_now(mode)
         UIManager:scheduleIn(0, rebuild_active_home)
     elseif mode == "filemanager_refresh" then
         apply_filemanager_refresh()
+    elseif mode == "navbar_refresh" then
+        apply_navbar_refresh()
     elseif mode == "menu_refresh" then
         apply_menu_refresh()
     elseif mode == "zen_mode" then
@@ -208,14 +222,18 @@ local function flush_deferred_now()
     deferred_poll_retries = 0
     local pending = deferred_applies
     deferred_applies = {}
+    local navbar_refresh = pending.navbar_refresh
+    pending.navbar_refresh = nil
     for mode, _mode in pairs(pending) do
         run_apply_mode_now(mode)
     end
+    if navbar_refresh then run_apply_mode_now("navbar_refresh") end
 end
 
 -- Polls at 0.25 s intervals until the menu closes, then applies deferred modes.
 local function flush_deferred()
     deferred_poll_active = false
+    if rawget(_G, "__ZEN_UI_SETTINGS_PAGE") then return end
     if is_filemanager_menu_open() and deferred_poll_retries < DEFERRED_MAX_RETRIES then
         deferred_poll_retries = deferred_poll_retries + 1
         deferred_poll_active = true
@@ -227,6 +245,7 @@ end
 
 local function queue_deferred_apply(mode)
     deferred_applies[mode] = true
+    if rawget(_G, "__ZEN_UI_SETTINGS_PAGE") then return end
     if not deferred_poll_active then
         deferred_poll_active  = true
         deferred_poll_retries = 0
@@ -290,6 +309,18 @@ end
 -- Use this from TouchMenu callbacks that change footer/navbar height.
 function M.reinit_filemanager_on_menu_close()
     queue_deferred_apply("filemanager_reinit")
+end
+
+-- Queue navbar reinjection until the active settings menu closes.
+function M.refresh_navbar_on_menu_close()
+    queue_deferred_apply("navbar_refresh")
+end
+
+-- ZenSettingsPage calls this after it has been closed. TouchMenu has its own
+-- close hook above.
+function M.flush_deferred_on_settings_close()
+    if next(deferred_applies) == nil then return end
+    UIManager:nextTick(flush_deferred_now)
 end
 
 return M

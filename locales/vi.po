@@ -972,8 +972,8 @@ msgstr "Ẩn viền danh sách"
 msgid "Hide reader actions in library"
 msgstr "Ẩn hành động đọc trong thư viện"
 
-msgid "Hide TBR books"
-msgstr "Ẩn sách cần đọc"
+msgid "Hide on-hold books"
+msgstr "Ẩn sách đang tạm dừng"
 
 msgid "Hide unread books"
 msgstr "Ẩn sách chưa đọc"

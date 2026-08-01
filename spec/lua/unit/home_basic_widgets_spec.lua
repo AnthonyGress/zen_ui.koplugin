@@ -41,6 +41,7 @@ describe("home basic widgets", function()
         ZenSpec.replace("common/ui/background", { tile_bg = function(color) return color end })
         ZenSpec.replace("ffi/blitbuffer", {
             COLOR_BLACK = "black",
+            COLOR_DARK_GRAY = "darkgray",
             COLOR_GRAY_3 = "gray",
             COLOR_WHITE = "white",
         })
@@ -58,11 +59,17 @@ describe("home basic widgets", function()
         for _i, name in ipairs({
             "ui/widget/container/framecontainer",
             "ui/widget/container/inputcontainer",
+            "ui/widget/container/centercontainer",
+            "ui/widget/horizontalgroup",
+            "ui/widget/horizontalspan",
+            "ui/widget/iconwidget",
+            "ui/widget/linewidget",
             "ui/widget/textboxwidget",
             "ui/widget/textwidget",
         }) do
             ZenSpec.replace(name, widget_class(name))
         end
+        ZenSpec.replace("common/utils", { resolveLocalIcon = function() return nil end })
         ZenSpec.replace("ui/gesturerange", widget_class("gesture"))
         ZenSpec.unload("common/widget_resources")
     end
@@ -114,7 +121,7 @@ describe("home basic widgets", function()
         })
 
         assert.are.equal("datetime", component.id)
-        assert.are.same({ preferred_pct = 0.15, min_pct = 0.10, max_pct = 0.26, grow_priority = 2 }, component.size)
+        assert.are.equal("s", component.size)
         assert.is_table(widget)
         assert.is_function(refresh)
         assert.is_true(refresh())
@@ -159,9 +166,32 @@ describe("home basic widgets", function()
         assert.are.equal(120, clock_size)
     end)
 
+    it("aligns stats dividers to the visible text block", function()
+        ZenSpec.unload("modules/filebrowser/patches/home/widgets/stats_triplet")
+        require("modules/filebrowser/patches/home/widgets/stats_triplet").build({
+            width = 600,
+            height = 120,
+            config = {
+                font_size = 18,
+                middle_stats_triplet = { "today_pages", "today_duration", "streak" },
+            },
+            module_cfg = { stat_style = "divider" },
+            data = { stats = {} },
+        })
+
+        local divider_heights = {}
+        for _i, child in ipairs(created) do
+            if child.kind == "ui/widget/linewidget" then
+                divider_heights[#divider_heights + 1] = child.dimen.h
+            end
+        end
+        assert.are.same({ 19, 19 }, divider_heights)
+    end)
+
     it("renders quote attribution and navigates with horizontal swipes", function()
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/quotes")
         local previous, next_quote, opened_settings = 0, 0, 0
+        local content_bounds
         local component = require("modules/filebrowser/patches/home/widgets/quotes")
         local widget = component.build({
             width = 400,
@@ -186,10 +216,12 @@ describe("home basic widgets", function()
                 opened_settings = opened_settings + 1
                 return true
             end,
+            setContentBounds = function(bounds) content_bounds = bounds end,
         })
         widget.dimen.x, widget.dimen.y = 10, 20
 
         assert.are.equal("quotes", component.id)
+        assert.are.same({ units = 1.5 }, component.size)
         assert.is_true(widget:onTapQuote(nil, { pos = { x = 40, y = 40 } }))
         assert.is_true(widget:onSwipeQuote(nil, {
             pos = { x = 40, y = 40 },
@@ -222,11 +254,18 @@ describe("home basic widgets", function()
         end
         assert.are.equal(48, quote_widget.paint_y)
         assert.are.equal(60, author_widget.paint_y)
+        assert.are.same({ 4, 116, 0, 0 }, {
+            content_bounds.top,
+            content_bounds.bottom,
+            content_bounds.min_shift,
+            content_bounds.max_shift,
+        })
     end)
 
     it("seeds automatic quote sizing in the default home preset", function()
         ZenSpec.unload("modules/filebrowser/patches/home/home_presets")
         local preset = require("modules/filebrowser/patches/home/home_presets").defaultHomePage()
+        assert.are.equal(10, preset.rows.capacity_units)
         assert.are.equal(18, preset.modules.stats_triplet.font_size)
         assert.is_true(preset.modules.stats_triplet.font_size_override)
         assert.is_true(preset.quotes.automatic_font_size)
@@ -236,6 +275,61 @@ describe("home basic widgets", function()
         assert.are.same({ default = true }, preset.quotes.sources)
         assert.is_true(preset.quotes.show_author)
         assert.is_true(preset.quotes.show_title)
+    end)
+
+    it("prioritizes a larger automatic quote font over extra line spacing", function()
+        ZenSpec.replace("ui/widget/textboxwidget", {
+            new = function(_self, values)
+                local line_count = values.text:sub(1, 3) == "\226\128\148" and 1 or 2
+                if values.text == "A" then line_count = 1 end
+                if values.text == "A\nA\nA" then line_count = 3 end
+                local line_height = values.line_height or 0.3
+                local line_height_px = math.floor(
+                    values.face.size * (1 + line_height) + 0.5
+                )
+                local natural_h = line_count * line_height_px
+                values.dimen = {
+                    w = values.width,
+                    h = values.height or natural_h,
+                }
+                values.getSize = function(self) return self.dimen end
+                values.paintTo = function() end
+                values.free = function() end
+                created[#created + 1] = values
+                return values
+            end,
+        })
+        ZenSpec.unload("modules/filebrowser/patches/home/widgets/quotes")
+        require("modules/filebrowser/patches/home/widgets/quotes").build({
+            width = 400,
+            height = 63,
+            config = {
+                quotes = {
+                    automatic_font_size = true,
+                    max_font_size = 14,
+                    show_author = true,
+                },
+            },
+            data = {
+                getCurrentQuote = function()
+                    return {
+                        text = "A mostly full first line with one word below",
+                        author = "Author",
+                    }
+                end,
+            },
+        })
+
+        for _i, child in ipairs(created) do
+            if child.text == '"A mostly full first line with one word below"'
+                    and child.height then
+                assert.are.equal(14, child.face.size)
+                assert.are.equal(0.35, child.line_height)
+                assert.are.equal(38, child.height)
+                return
+            end
+        end
+        assert.fail("automatically sized quote widget was not created")
     end)
 
     it("controls quote authors and titles independently", function()
@@ -315,6 +409,7 @@ describe("home basic widgets", function()
     it("shows up to three quote lines when the widget has room", function()
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/quotes")
         local component = require("modules/filebrowser/patches/home/widgets/quotes")
+        local content_bounds
         component.build({
             width = 400,
             height = 120,
@@ -324,11 +419,16 @@ describe("home basic widgets", function()
                     return { text = "First\nSecond\nThird\nFourth", author = "" }
                 end,
             },
+            setContentBounds = function(bounds) content_bounds = bounds end,
         })
 
         for _i, child in ipairs(created) do
             if child.text == '"First\nSecond\nThird\nFourth"' and child.height then
                 assert.are.equal(36, child.height)
+                assert.are.same({ 4, 116 }, {
+                    content_bounds.top,
+                    content_bounds.bottom,
+                })
                 return
             end
         end

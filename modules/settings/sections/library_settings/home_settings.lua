@@ -1,4 +1,5 @@
 local _ = require("gettext")
+local T = require("ffi/util").template
 local UIManager = require("ui/uimanager")
 
 local HomePresets = require("modules/filebrowser/patches/home/home_presets")
@@ -44,9 +45,9 @@ local DEFAULT_ORDER = {
 }
 
 local DEFAULT_ENABLED = {
-    datetime = true,
     featured_recent = true,
     quotes = true,
+    stats_triplet = true,
     strip_recent = true,
 }
 
@@ -242,15 +243,6 @@ local function ensure_cfg(_config)
     return dcfg
 end
 
-local function enabled_count(enabled)
-    local n = 0
-    for _k, v in pairs(enabled) do
-        if v == true then n = n + 1 end
-    end
-    return n
-end
-
-local home_max_widgets = 5
 local custom_strip_max_books = 40
 
 function M.build(ctx)
@@ -351,6 +343,52 @@ function M.build(ctx)
         local comp = Registry.get(id)
         if comp and comp.label then return comp.label end
         return tostring(id) .. " (" .. _("Unavailable") .. ")"
+    end
+
+    local function used_home_units()
+        return Registry.totalUnits(dcfg.rows.enabled, dcfg.modules)
+    end
+
+    local function enabled_widget_count()
+        local count = 0
+        for _id, value in pairs(dcfg.rows.enabled) do
+            if value == true then count = count + 1 end
+        end
+        return count
+    end
+
+    local function component_units(id, module_cfg)
+        local comp = Registry.get(id)
+        return comp and Registry.sizeUnits(comp, module_cfg or dcfg.modules[id]) or 0
+    end
+
+    local function show_capacity_message(used, needed)
+        local InfoMessage = require("ui/widget/infomessage")
+        UIManager:show(InfoMessage:new{
+            text = T(
+                _("Not enough Home space: %1/%2 units used; this widget needs %3."),
+                used,
+                Registry.CAPACITY_UNITS,
+                needed
+            ),
+        })
+    end
+
+    local function toggle_strip_rows(module_id, mcfg)
+        local enable_two_rows = mcfg.two_rows ~= true
+        if enable_two_rows and dcfg.rows.enabled[module_id] == true then
+            local used = used_home_units()
+            local current_units = component_units(module_id, mcfg)
+            local next_units = component_units(module_id, { two_rows = true })
+            if used - current_units + next_units > Registry.CAPACITY_UNITS then
+                show_capacity_message(used - current_units, next_units)
+                return false
+            end
+        end
+        mcfg.two_rows = enable_two_rows
+        mcfg.count = enable_two_rows and 8 or 4
+        save_home("reinit")
+        return true
     end
 
     local order_options = {
@@ -831,13 +869,7 @@ function M.build(ctx)
                     return mcfg.two_rows == true
                 end,
                 callback = function()
-                    mcfg.two_rows = mcfg.two_rows ~= true
-                    if mcfg.two_rows then
-                        mcfg.count = 8
-                    else
-                        mcfg.count = 4
-                    end
-                    save_home("reinit")
+                    toggle_strip_rows("strip_custom", mcfg)
                 end,
             },
             {
@@ -1001,13 +1033,7 @@ function M.build(ctx)
                     return mcfg.two_rows == true
                 end,
                 callback = function()
-                    mcfg.two_rows = mcfg.two_rows ~= true
-                    if mcfg.two_rows then
-                        mcfg.count = 8
-                    else
-                        mcfg.count = 4
-                    end
-                    save_home("reinit")
+                    toggle_strip_rows(module_id, mcfg)
                 end,
             },
             {
@@ -1037,7 +1063,7 @@ function M.build(ctx)
         }
         if module_id == "strip_recent" then
             table.insert(items, 3, filter_status_item(mcfg, "filter_unread", _("Hide unread books")))
-            table.insert(items, 4, filter_status_item(mcfg, "filter_tbr", _("Hide TBR books")))
+            table.insert(items, 4, filter_status_item(mcfg, "filter_tbr", _("Hide on-hold books")))
             table.insert(items, 5, filter_status_item(mcfg, "filter_finished", _("Hide finished books")))
         elseif module_id == "strip_tag" then
             table.insert(items, 2, {
@@ -1059,17 +1085,17 @@ function M.build(ctx)
 
     local function toggle_widget_enabled(cid)
         if dcfg.rows.enabled[cid] == true then
-            if enabled_count(dcfg.rows.enabled) <= 1 and Registry.get(cid) then
+            if enabled_widget_count() <= 1 and Registry.get(cid) then
                 return false
             end
             dcfg.rows.enabled[cid] = false
         else
-            if not Registry.get(cid) then return false end
-            if enabled_count(dcfg.rows.enabled) >= home_max_widgets then
-                local InfoMessage = require("ui/widget/infomessage")
-                UIManager:show(InfoMessage:new{
-                    text = _("Maximum 5 widgets allowed"),
-                })
+            local comp = Registry.get(cid)
+            if not comp then return false end
+            local used = used_home_units()
+            local needed = component_units(cid)
+            if used + needed > Registry.CAPACITY_UNITS then
+                show_capacity_message(used, needed)
                 return false
             end
             dcfg.rows.enabled[cid] = true
@@ -1116,9 +1142,10 @@ function M.build(ctx)
         local order = dcfg.rows.order
         local sort_items = {}
         local function should_dim_widget(id)
-            if not Registry.get(id) then return true end
+            local comp = Registry.get(id)
+            if not comp then return true end
             return dcfg.rows.enabled[id] ~= true
-                and enabled_count(dcfg.rows.enabled) >= home_max_widgets
+                and used_home_units() + component_units(id) > Registry.CAPACITY_UNITS
         end
         local function update_dim_states()
             for _i, sort_item in ipairs(sort_items) do
@@ -1127,7 +1154,17 @@ function M.build(ctx)
         end
         for _i, id in ipairs(order) do
             local item = {
-                text = component_label(id),
+                text_func = function()
+                    local comp = Registry.get(id)
+                    local module_cfg = dcfg.modules[id]
+                    return T(
+                        _("%1 · %2 · %3/%4"),
+                        component_label(id),
+                        comp and Registry.sizeLabel(comp, module_cfg) or "?",
+                        component_units(id, module_cfg),
+                        Registry.CAPACITY_UNITS
+                    )
+                end,
                 orig_item = id,
                 dim = should_dim_widget(id),
                 checked_func = function()

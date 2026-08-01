@@ -46,6 +46,51 @@ describe("decoded cover cache", function()
         assert.are.equal(0, stats.evictions)
     end)
 
+    it("returns fresh metadata without copying the cover bitmap", function()
+        local source = fake_bb(4, "source")
+        Cache:put("/book.epub", "v1", source, {
+            title = "Book",
+            has_cover = true,
+            cover_w = 600,
+            cover_h = 900,
+        }, 100)
+
+        local metadata = Cache:getFreshMetadata("/book.epub", 110, 30)
+
+        assert.are.equal("Book", metadata.title)
+        assert.are.equal(600, metadata.cover_w)
+        assert.is_nil(metadata.cover_bb)
+        assert.are.equal(1, Cache:stats().metadata_hits)
+    end)
+
+    it("retains bounded metadata for generated covers without bitmap bytes", function()
+        assert.is_true(Cache:putMetadata("/placeholder.epub", {
+            title = "Placeholder",
+            cover_fetched = "Y",
+            has_cover = false,
+        }, 100))
+
+        local metadata = Cache:getFreshMetadata("/placeholder.epub", 110, 30)
+
+        assert.are.equal("Placeholder", metadata.title)
+        assert.is_false(metadata.has_cover)
+        local stats = Cache:stats()
+        assert.are.equal(0, stats.bytes)
+        assert.are.equal(1, stats.metadata_count)
+        assert.are.equal(1, stats.metadata_puts)
+    end)
+
+    it("evicts least-recent metadata entries at the count limit", function()
+        Cache.MAX_METADATA_ENTRIES = 2
+        Cache:putMetadata("/one.epub", { title = "One" }, 100)
+        Cache:putMetadata("/two.epub", { title = "Two" }, 100)
+        Cache:putMetadata("/three.epub", { title = "Three" }, 100)
+
+        assert.is_nil(Cache:getFreshMetadata("/one.epub", 100, 30))
+        assert.is_not_nil(Cache:getFreshMetadata("/two.epub", 100, 30))
+        assert.are.equal(1, Cache:stats().metadata_evictions)
+    end)
+
     it("evicts the least-recently-used cover to honor the byte budget", function()
         Cache:put("/one.epub", "v1", fake_bb(6, "one"))
         Cache:put("/two.epub", "v1", fake_bb(6, "two"))

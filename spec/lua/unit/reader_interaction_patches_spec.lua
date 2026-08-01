@@ -114,6 +114,83 @@ describe("reader interaction patches", function()
         assert.are.equal(0, flushes)
     end)
 
+    it("starts explicit TBR books as reading and removes them from the collection", function()
+        local saved, cached, removed = {}, {}, 0
+        local ReaderUI = { onReaderReady = function() end }
+        ZenSpec.replace("apps/reader/readerui", ReaderUI)
+        ZenSpec.replace("common/book_status", {
+            acknowledgeNewVersion = function() return false end,
+        })
+        ZenSpec.replace("common/tbr_index", {
+            isExplicit = function() return true end,
+            setExplicit = function(_, enabled)
+                if not enabled then removed = removed + 1 end
+                return true
+            end,
+            refreshPath = function() end,
+        })
+        ZenSpec.replace("apps/filemanager/filemanagerutil", {
+            saveSummary = function(_, summary) saved[#saved + 1] = summary.status end,
+        })
+        ZenSpec.replace("ui/widget/booklist", {
+            setBookInfoCacheProperty = function(file, key, value)
+                cached[#cached + 1] = { file, key, value }
+            end,
+        })
+        apply_patch("modules/reader/patches/status_on_open")
+
+        local summary = { status = "complete" }
+        local flushes = 0
+        ReaderUI.onReaderReady({
+            doc_settings = {
+                data = { doc_path = "/books/tbr.epub" },
+                readSetting = function(_, key) return key == "summary" and summary or nil end,
+                flush = function() flushes = flushes + 1 end,
+            },
+        })
+
+        assert.are.equal(1, removed)
+        assert.same({ "reading" }, saved)
+        assert.same({ { "/books/tbr.epub", "status", "reading" } }, cached)
+        assert.are.equal("reading", summary.status)
+        assert.are.equal(1, flushes)
+    end)
+
+    it("starts on-hold books as reading", function()
+        local saved, cached = {}, {}
+        local ReaderUI = { onReaderReady = function() end }
+        ZenSpec.replace("apps/reader/readerui", ReaderUI)
+        ZenSpec.replace("common/book_status", {
+            acknowledgeNewVersion = function() return false end,
+        })
+        ZenSpec.replace("common/tbr_index", {
+            isExplicit = function() return false end,
+            refreshPath = function() end,
+        })
+        ZenSpec.replace("apps/filemanager/filemanagerutil", {
+            saveSummary = function(_, summary) saved[#saved + 1] = summary.status end,
+        })
+        ZenSpec.replace("ui/widget/booklist", {
+            setBookInfoCacheProperty = function(file, key, value)
+                cached[#cached + 1] = { file, key, value }
+            end,
+        })
+        apply_patch("modules/reader/patches/status_on_open")
+
+        local summary = { status = "abandoned" }
+        ReaderUI.onReaderReady({
+            doc_settings = {
+                data = { doc_path = "/books/on-hold.epub" },
+                readSetting = function(_, key) return key == "summary" and summary or nil end,
+                flush = function() end,
+            },
+        })
+
+        assert.same({ "reading" }, saved)
+        assert.same({ { "/books/on-hold.epub", "status", "reading" } }, cached)
+        assert.are.equal("reading", summary.status)
+    end)
+
     it("routes Home through library navigation only while a document is open", function()
         local stock_calls, routed = 0, 0
         local ReaderUI = {

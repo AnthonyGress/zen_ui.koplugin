@@ -246,12 +246,23 @@ local function apply_browser_item_table_cache()
         shared_cache = { values = {}, order = {} }
         self._zen_list_item_cache = {}
         self._zen_folder_aggregate_cache = nil
+        local FolderCover = package.loaded["modules/filebrowser/folder_cover"]
+        if FolderCover and type(FolderCover.clear) == "function" then
+            FolderCover.clear()
+        end
     end
 
     local original_genItemTableFromPath = FileChooser.genItemTableFromPath
     function FileChooser:genItemTableFromPath(path)
         if self._dummy or self.name ~= "filemanager" then
             return original_genItemTableFromPath(self, path)
+        end
+
+        local deferred = rawget(_G, "__ZEN_UI_DEFER_FILEMANAGER_LISTING")
+        if type(deferred) == "table" and deferred.path == path then
+            logger.measure("File list generated", 0,
+                "cache=deferred", "path=", tostring(path), "items=", 0)
+            return {}
         end
 
         local started_at = now()
@@ -300,6 +311,10 @@ local function apply_browser_item_table_cache()
         local original = coverbrowser.onBookInfoUpdated
         function coverbrowser:onBookInfoUpdated(...)
             local result = original(self, ...)
+            local FolderCover = package.loaded["modules/filebrowser/folder_cover"]
+            if FolderCover and type(FolderCover.clear) == "function" then
+                FolderCover.clear()
+            end
             if G_reader_settings:readSetting("collate", "strcoll") ~= "access" then
                 shared_cache = { values = {}, order = {} }
                 local ok, FileManager = pcall(require, "apps/filemanager/filemanager")

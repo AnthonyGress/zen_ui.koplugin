@@ -8,7 +8,9 @@ local M = {
     _bytes = 0,
     _clock = 0,
     _entries = {},
+    _retired = {},
     _hits = 0,
+    _shared_hits = 0,
     _misses = 0,
     _puts = 0,
     _evictions = 0,
@@ -79,11 +81,18 @@ end
 
 function M:_drop(cache_key, evicted)
     local entry = self._entries[cache_key]
-    if not entry then return end
+    if not entry then return true end
     self._entries[cache_key] = nil
+    if (entry.refs or 0) > 0 then
+        entry.cache_key = cache_key
+        self._retired[#self._retired + 1] = entry
+        if evicted then self._evictions = self._evictions + 1 end
+        return true
+    end
     self._bytes = math.max(0, self._bytes - entry.bytes)
     free(entry.bb)
     if evicted then self._evictions = self._evictions + 1 end
+    return true
 end
 
 function M:_makeRoom(needed)
@@ -91,13 +100,15 @@ function M:_makeRoom(needed)
         local oldest_key
         local oldest_touch
         for cache_key, entry in pairs(self._entries) do
-            if not oldest_touch or entry.touch < oldest_touch then
+            if (entry.refs or 0) == 0
+                    and (not oldest_touch or entry.touch < oldest_touch) then
                 oldest_key, oldest_touch = cache_key, entry.touch
             end
         end
         if not oldest_key then break end
         self:_drop(oldest_key, true)
     end
+    return self._bytes + needed <= self._byte_budget
 end
 
 function M:get(path, width, height)
@@ -124,6 +135,57 @@ function M:get(path, width, height)
     return resized
 end
 
+function M:hasExact(path, width, height)
+    local entry = self._entries[key(path)]
+    return entry ~= nil and entry.width == width and entry.height == height
+end
+
+function M:touchExact(path, width, height)
+    local entry = self._entries[key(path)]
+    if not entry or entry.width ~= width or entry.height ~= height then return false end
+    self._clock = self._clock + 1
+    entry.touch = self._clock
+    return true
+end
+
+-- Returns an immutable cache-owned bitmap. Callers must keep it
+-- non-disposable, never modify it, and pair the lease with releaseShared().
+function M:getShared(path, width, height)
+    local entry = self._entries[key(path)]
+    if not entry or entry.width ~= width or entry.height ~= height then
+        self._misses = self._misses + 1
+        return nil
+    end
+    self._clock = self._clock + 1
+    entry.touch = self._clock
+    self._hits = self._hits + 1
+    self._shared_hits = self._shared_hits + 1
+    entry.refs = (entry.refs or 0) + 1
+    return entry.bb
+end
+
+function M:releaseShared(path, bb)
+    local cache_key = key(path)
+    local entry = self._entries[cache_key]
+    if entry and entry.bb == bb and (entry.refs or 0) > 0 then
+        entry.refs = entry.refs - 1
+        return true
+    end
+    for index = #self._retired, 1, -1 do
+        entry = self._retired[index]
+        if entry.cache_key == cache_key and entry.bb == bb and (entry.refs or 0) > 0 then
+            entry.refs = entry.refs - 1
+            if entry.refs == 0 then
+                table.remove(self._retired, index)
+                self._bytes = math.max(0, self._bytes - entry.bytes)
+                free(entry.bb)
+            end
+            return true
+        end
+    end
+    return false
+end
+
 function M:put(path, width, height, bb)
     if not path or not bb then return nil end
     local cache_key = key(path)
@@ -138,8 +200,7 @@ function M:put(path, width, height, bb)
     if size <= 0 or size > self._byte_budget then
         return nil
     end
-    self:_drop(cache_key)
-    self:_makeRoom(size)
+    if not self:_drop(cache_key) or not self:_makeRoom(size) then return bb end
     local ok, stored = pcall(bb.copy, bb)
     if not ok or not stored then return nil end
     size = bytes(stored)
@@ -147,7 +208,10 @@ function M:put(path, width, height, bb)
         free(stored)
         return nil
     end
-    self:_makeRoom(size)
+    if not self:_makeRoom(size) then
+        free(stored)
+        return bb
+    end
     self._clock = self._clock + 1
     self._entries[cache_key] = {
         bb = stored,
@@ -159,6 +223,46 @@ function M:put(path, width, height, bb)
     self._bytes = self._bytes + size
     self._puts = self._puts + 1
     return bb
+end
+
+-- Takes ownership of bb when it can be retained. The returned bitmap is
+-- cache-owned when the second return value is true. That lease must be released.
+function M:putShared(path, width, height, bb)
+    if not path or not bb then return nil, false end
+    local size = bytes(bb)
+    if size <= 0 or size > self._byte_budget then
+        return bb, false
+    end
+    local cache_key = key(path)
+    if not self:_drop(cache_key) or not self:_makeRoom(size) then
+        return bb, false
+    end
+    self._clock = self._clock + 1
+    self._entries[cache_key] = {
+        bb = bb,
+        bytes = size,
+        touch = self._clock,
+        width = width,
+        height = height,
+        refs = 1,
+    }
+    self._bytes = self._bytes + size
+    self._puts = self._puts + 1
+    return bb, true
+end
+
+-- Takes ownership of source. On success the returned bitmap is cache-owned and
+-- leased; when the cache cannot retain it, the bitmap remains caller-owned.
+function M:renderShared(path, source, width, height)
+    local cached = self:getShared(path, width, height)
+    if cached then
+        free(source)
+        return cached, true
+    end
+    if not source or width < 1 or height < 1 then return nil, false end
+    local out = resize(source, width, height)
+    if not out then return nil, false end
+    return self:putShared(path, width, height, out)
 end
 
 -- Takes ownership of source. The returned bitmap is caller-owned.
@@ -184,14 +288,15 @@ function M:setByteBudget(value)
 end
 
 function M:drop(path)
-    self:_drop(key(path))
+    return self:_drop(key(path))
 end
 
 function M:clear()
     local keys = {}
     for cache_key in pairs(self._entries) do keys[#keys + 1] = cache_key end
     for _i, cache_key in ipairs(keys) do self:_drop(cache_key) end
-    self._clock, self._hits, self._misses, self._puts, self._evictions = 0, 0, 0, 0, 0
+    self._clock, self._hits, self._shared_hits, self._misses = 0, 0, 0, 0
+    self._puts, self._evictions = 0, 0
 end
 
 function M:stats()
@@ -199,6 +304,7 @@ function M:stats()
         bytes = self._bytes,
         byte_budget = self._byte_budget,
         hits = self._hits,
+        shared_hits = self._shared_hits,
         misses = self._misses,
         puts = self._puts,
         evictions = self._evictions,

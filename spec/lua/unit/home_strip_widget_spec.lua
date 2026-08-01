@@ -5,6 +5,7 @@ describe("home recent strip widget", function()
     local library_font_sizes
     local touch_device
     local scheduled
+    local scheduled_delays
 
     local function widget_class(kind)
         return {
@@ -37,6 +38,7 @@ describe("home recent strip widget", function()
 
     before_each(function()
         created, cover_books, empty_sources, library_font_sizes, scheduled = {}, {}, {}, {}, {}
+        scheduled_delays = {}
         touch_device = false
         rawset(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER", nil)
         ZenSpec.replace("common/ui/background", { tile_bg = function(color) return color end })
@@ -92,7 +94,7 @@ describe("home recent strip widget", function()
             make_cover_widget = function(book, _max_w, max_h)
                 cover_books[#cover_books + 1] = book
                 local cover = widget_class("cover"):new{ width = 80, height = max_h }
-                return cover, 80, max_h
+                return cover, 80, max_h, book.is_cover_pending == true
             end,
             make_empty_placeholder_cover = function(_max_w, max_h)
                 empty_sources[#empty_sources + 1] = true
@@ -104,14 +106,22 @@ describe("home recent strip widget", function()
                 return "No books found"
             end,
         })
+        ZenSpec.replace("common/memory_policy", {
+            getProfile = function() return { pressure = "normal" } end,
+            canPreload = function() return true end,
+        })
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("ui/uimanager", {
-            scheduleIn = function(_, _delay, callback)
+            scheduleIn = function(_, delay, callback)
                 scheduled[#scheduled + 1] = callback
+                scheduled_delays[#scheduled_delays + 1] = delay
             end,
             unschedule = function(_, callback)
                 for i = #scheduled, 1, -1 do
-                    if scheduled[i] == callback then table.remove(scheduled, i) end
+                    if scheduled[i] == callback then
+                        table.remove(scheduled, i)
+                        table.remove(scheduled_delays, i)
+                    end
                 end
             end,
             setDirty = function() end,
@@ -130,6 +140,7 @@ describe("home recent strip widget", function()
 
     local function run_scheduled()
         local callback = table.remove(scheduled, 1)
+        table.remove(scheduled_delays, 1)
         if callback then callback() end
     end
 
@@ -139,6 +150,7 @@ describe("home recent strip widget", function()
         local focus_target
         local opened
         local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        assert.are.same({ units = 3.5 }, Strip.size)
         local widget = Strip.build({
             width = 600,
             height = 160,
@@ -159,6 +171,8 @@ describe("home recent strip widget", function()
         })
 
         assert.is_table(widget)
+        assert.are.equal("ui/widget/container/centercontainer", widget[1][1].kind)
+        assert.are.equal("ui/widget/container/centercontainer", widget[1][1][1].kind)
         assert.are.same({ "recently_read", 4, "default", "strip_recent" }, requested)
         assert.are.same({ book }, cover_books)
         assert.is_true(has_text("Alpha"))
@@ -183,6 +197,28 @@ describe("home recent strip widget", function()
         assert.are.equal(0, #cover_books)
         assert.are.same({ true }, empty_sources)
         assert.is_true(has_text("Start reading a book to fill this space."))
+    end)
+
+    it("exposes vertical slack for Home gap balancing", function()
+        local books = {
+            { path = "/library/a.epub" },
+            { path = "/library/b.epub" },
+            { path = "/library/c.epub" },
+            { path = "/library/d.epub" },
+        }
+        local content_bounds
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        Strip.build({
+            width = 600,
+            height = 400,
+            component_id = "strip_recent",
+            module_cfg = { count = 4 },
+            data = { getBooksForStrip = function() return books end },
+            setContentBounds = function(bounds) content_bounds = bounds end,
+        })
+
+        assert.is_true(content_bounds.min_shift < 0)
+        assert.is_true(content_bounds.max_shift > content_bounds.min_shift)
     end)
 
     it("supplies the selected strip cover before opening its book", function()
@@ -244,7 +280,45 @@ describe("home recent strip widget", function()
         assert.are.equal(1, refreshed)
     end)
 
-    it("uses the idle-built adjacent frame without synchronous book or cover work", function()
+    it("hydrates cold visible covers after paint with a strip-only refresh", function()
+        local book = {
+            path = "/library/cold.epub",
+            title = "Cold",
+            is_cover_pending = true,
+        }
+        local warmed
+        local refreshed = 0
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local widget = Strip.build({
+            width = 600,
+            height = 160,
+            component_id = "strip_recent",
+            module_cfg = { count = 4, interactive = true },
+            data = {
+                getBooksForStripPage = function()
+                    return { book }, false
+                end,
+                warmStripCover = function(_self, requested, width, height)
+                    warmed = { book = requested, width = width, height = height }
+                    requested.is_cover_pending = false
+                    return "warmed"
+                end,
+            },
+            refreshStrip = function() refreshed = refreshed + 1 end,
+        })
+
+        assert.are.equal(1, #cover_books)
+        widget:paintTo({}, 0, 0)
+        assert.are.same({ 0.05 }, scheduled_delays)
+        run_scheduled()
+
+        assert.are.same({ book = book, width = 80, height = 136 }, warmed)
+        assert.are.equal(2, #cover_books)
+        assert.are.equal(1, refreshed)
+        assert.are.equal(0, #scheduled)
+    end)
+
+    it("prewarms only the next-direction frame without swipe-time work", function()
         touch_device = true
         local pages = {
             [-1] = { { path = "/library/previous.epub", title = "Previous" } },
@@ -253,6 +327,7 @@ describe("home recent strip widget", function()
         }
         local current_page = 0
         local page_requests = 0
+        local requested_deltas = {}
         local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
         local widget = Strip.build({
             width = 600,
@@ -262,6 +337,7 @@ describe("home recent strip widget", function()
             data = {
                 getBooksForStripPage = function(_, _source, _count, _order, _component_id, delta)
                     page_requests = page_requests + 1
+                    requested_deltas[#requested_deltas + 1] = delta
                     return pages[current_page + delta], true
                 end,
             },
@@ -274,20 +350,155 @@ describe("home recent strip widget", function()
         })
 
         widget:paintTo({}, 0, 0)
+        assert.are.same({ 0.35 }, scheduled_delays)
         run_scheduled()
-        run_scheduled()
-        assert.are.equal(3, page_requests)
-        assert.are.equal(3, #cover_books)
+        assert.are.equal(2, page_requests)
+        assert.are.equal(2, #cover_books)
 
         assert.is_true(widget:onSwipeStrip(nil, {
             pos = { x = 10, y = 10 }, direction = "west",
         }))
-        assert.are.equal(3, page_requests)
-        assert.are.equal(3, #cover_books)
+        assert.are.equal(2, page_requests)
+        assert.are.equal(2, #cover_books)
+
+        assert.is_true(widget:onSwipeStrip(nil, {
+            pos = { x = 10, y = 10 }, direction = "east",
+        }))
+        assert.are.equal(2, page_requests)
+        assert.are.equal(2, #cover_books)
+
+        run_scheduled()
+        assert.are.same({ 0, 1, -1 }, requested_deltas)
 
         widget:free()
         while #scheduled > 0 do run_scheduled() end
         assert.are.equal(3, page_requests)
         assert.are.equal(3, #cover_books)
+    end)
+
+    it("bounds directional cover prewarming to four jobs per callback", function()
+        touch_device = true
+        local current = { { path = "/library/current.epub", title = "Current" } }
+        local next_page = {}
+        for i = 1, 5 do
+            next_page[i] = {
+                path = "/library/next-" .. i .. ".epub",
+                title = "Next " .. i,
+                is_cover_pending = true,
+            }
+        end
+        local warmed = 0
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local widget = Strip.build({
+            width = 600,
+            height = 160,
+            component_id = "strip_recent",
+            module_cfg = { count = 5, interactive = true },
+            data = {
+                getBooksForStripPage = function(_, _source, _count, _order, _component, delta)
+                    return delta == 0 and current or next_page, true
+                end,
+                warmStripCover = function(_self, book)
+                    warmed = warmed + 1
+                    book.is_cover_pending = false
+                    return "warmed"
+                end,
+                isStripCoverWorkBusy = function() return false end,
+            },
+        })
+
+        widget:paintTo({}, 0, 0)
+        run_scheduled()
+        assert.are.equal(4, warmed)
+        assert.are.same({ 0.05 }, scheduled_delays)
+
+        run_scheduled()
+        assert.are.equal(5, warmed)
+        assert.are.equal(0, #scheduled)
+    end)
+
+    it("skips directional prewarming while cover extraction is active", function()
+        touch_device = true
+        local page_requests = 0
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local widget = Strip.build({
+            width = 600,
+            height = 160,
+            component_id = "strip_recent",
+            module_cfg = { count = 4, interactive = true },
+            data = {
+                getBooksForStripPage = function()
+                    page_requests = page_requests + 1
+                    return { { path = "/library/current.epub", title = "Current" } }, true
+                end,
+                isStripCoverWorkBusy = function() return true end,
+            },
+        })
+
+        widget:paintTo({}, 0, 0)
+        run_scheduled()
+        assert.are.equal(1, page_requests)
+        assert.are.equal(0, #scheduled)
+    end)
+
+    it("skips directional prewarming under memory pressure", function()
+        touch_device = true
+        local page_requests = 0
+        require("common/memory_policy").canPreload = function() return false end
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local widget = Strip.build({
+            width = 600,
+            height = 160,
+            component_id = "strip_recent",
+            module_cfg = { count = 4, interactive = true },
+            data = {
+                getBooksForStripPage = function()
+                    page_requests = page_requests + 1
+                    return { { path = "/library/current.epub", title = "Current" } }, true
+                end,
+            },
+        })
+
+        widget:paintTo({}, 0, 0)
+        run_scheduled()
+        assert.are.equal(1, page_requests)
+        assert.are.equal(0, #scheduled)
+    end)
+
+    it("does not poll prewarming while visible extraction is pending", function()
+        touch_device = true
+        local warm_requests = 0
+        local book = {
+            path = "/library/pending.epub",
+            title = "Pending",
+            is_cover_pending = true,
+        }
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local widget = Strip.build({
+            width = 600,
+            height = 160,
+            component_id = "strip_recent",
+            module_cfg = { count = 4, interactive = true },
+            data = {
+                getBooksForStripPage = function()
+                    return { book }, true
+                end,
+                warmStripCover = function()
+                    warm_requests = warm_requests + 1
+                    return "pending"
+                end,
+                isStripCoverWorkBusy = function() return true end,
+            },
+        })
+
+        widget:paintTo({}, 0, 0)
+        run_scheduled()
+        assert.are.equal(1, warm_requests)
+        assert.are.same({ 0.35, 0.4 }, scheduled_delays)
+
+        run_scheduled()
+        assert.are.same({ 0.4 }, scheduled_delays)
+        widget:free()
+        assert.are.equal(0, #scheduled)
     end)
 end)

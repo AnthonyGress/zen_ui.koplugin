@@ -366,8 +366,8 @@ local function apply_context_menu()
                 return false
             end
 
-            local effective_status = book_status.getEffectiveStatusFromFile(fullpath)
-            return status_filter[effective_status] and true or false
+            local display_status = book_status.getDisplayStatusFromFile(fullpath)
+            return status_filter[display_status] and true or false
         end
     end
 
@@ -742,8 +742,9 @@ local function apply_context_menu()
                     end
                     local STATUS_OPTS = {
                         { key = "new", icon = icons.status, label = _("Unread") },
+                        { key = "tbr", icon = icons.tbr, label = _("To Be Read") },
                         { key = "reading", icon = icons.reading, label = _("Reading") },
-                        { key = "abandoned", icon = icons.tbr, label = _("To Be Read") },
+                        { key = "abandoned", icon = icons.on_hold, label = _("On hold") },
                         { key = "complete", icon = icons.finished, label = _("Finished") },
                     }
                     local fbts = {}
@@ -772,7 +773,7 @@ local function apply_context_menu()
                                 else new_st[st.key] = true end
                                 local n = 0
                                 for _k, v in pairs(new_st) do if v then n = n + 1 end end
-                                if n == 0 or n == 4 then setGlobalFilter(nil)
+                                if n == 0 or n == #STATUS_OPTS then setGlobalFilter(nil)
                                 else setGlobalFilter(new_st) end
                                 UIManager:nextTick(showGroupFilterDialog)
                             end,
@@ -1742,6 +1743,9 @@ local function apply_context_menu()
                                 close_dialog()
                                 ReadCollection:removeItem(file, coll_name)
                                 ReadCollection:write({ [coll_name] = true })
+                                pcall(function()
+                                    require("common/tbr_index").collectionChanged(coll_name)
+                                end)
                                 invalidate_home_book()
                                 if item._zen_collection_refresh then
                                     UIManager:nextTick(item._zen_collection_refresh)
@@ -1789,8 +1793,19 @@ local function apply_context_menu()
                                     onMenuSelect = function(self_m, item_m)
                                         if item_m.dim then return true end
                                         UIManager:close(coll_picker)
-                                        ReadCollection:addItem(file, item_m._cn)
-                                        ReadCollection:write({ [item_m._cn] = true })
+                                        local TBRIndex = require("common/tbr_index")
+                                        if item_m._cn == TBRIndex.collectionName() then
+                                            TBRIndex.setExplicit(file, true)
+                                        else
+                                            ReadCollection:addItem(file, item_m._cn)
+                                            ReadCollection:write({ [item_m._cn] = true })
+                                        end
+                                        pcall(function()
+                                            TBRIndex.collectionChanged(item_m._cn)
+                                        end)
+                                        if item._zen_collection_refresh then
+                                            UIManager:nextTick(item._zen_collection_refresh)
+                                        end
                                         UIManager:nextTick(invalidate_home_book)
                                         return true
                                     end,
@@ -1820,9 +1835,20 @@ local function apply_context_menu()
                             local current_status = summary.status
                             local is_unread = not current_status or current_status == ""
                             local status_dialog
+                            local is_explicit_tbr = false
+                            pcall(function()
+                                is_explicit_tbr = require("common/tbr_index").isExplicit(file)
+                            end)
+
+                            local function removeFromTBR()
+                                pcall(function()
+                                    require("common/tbr_index").setExplicit(file, false)
+                                end)
+                            end
 
                             local function setStatus(to_status)
                                 book_status.acknowledgeNewVersion(doc_settings)
+                                removeFromTBR()
                                 if to_status == nil then
                                     summary.status = nil
                                     doc_settings:delSetting("percent_finished")
@@ -1857,14 +1883,32 @@ local function apply_context_menu()
                                 end
                             end
 
+                            local function setTBR()
+                                pcall(function()
+                                    require("common/tbr_index").setExplicit(file, true)
+                                end)
+                                UIManager:close(status_dialog)
+                                if type(item._zen_after_status_change) == "function" then
+                                    UIManager:nextTick(function()
+                                        item._zen_after_status_change(file)
+                                    end)
+                                else
+                                    refresh()
+                                end
+                            end
+
                             local function statusBtn(icon, label, to_status)
-                                local is_cur = (to_status == nil and is_unread)
-                                    or (to_status ~= nil and current_status == to_status)
+                                local is_cur = (to_status == "tbr" and is_explicit_tbr)
+                                    or (not is_explicit_tbr and ((to_status == nil and is_unread)
+                                        or (to_status ~= nil and current_status == to_status)))
                                 return {{
                                     text = icon .. "  " .. label .. (is_cur and "  \u{2713}" or ""),
                                     align = "left",
                                     enabled = not is_cur,
-                                    callback = function() setStatus(to_status) end,
+                                    callback = function()
+                                        if to_status == "tbr" then setTBR()
+                                        else setStatus(to_status) end
+                                    end,
                                 }}
                             end
 
@@ -1873,8 +1917,9 @@ local function apply_context_menu()
                                 title_align = "center",
                                 buttons = apply_button_group_font({
                                     statusBtn(icons.status, _("Unread"), nil),
+                                    statusBtn(icons.tbr, _("To Be Read"), "tbr"),
                                     statusBtn(icons.reading, _("Reading"), "reading"),
-                                    statusBtn(icons.tbr, _("To Be Read"), "abandoned"),
+                                    statusBtn(icons.on_hold, _("On hold"), "abandoned"),
                                     statusBtn(icons.finished, _("Finished"), "complete"),
                                 }),
                             }
@@ -2127,8 +2172,9 @@ local function apply_context_menu()
 
                     local STATUS_OPTS = {
                         { key = "new", icon = icons.status, label = _("Unread") },
+                        { key = "tbr", icon = icons.tbr, label = _("To Be Read") },
                         { key = "reading", icon = icons.reading, label = _("Reading") },
-                        { key = "abandoned", icon = icons.tbr, label = _("To Be Read") },
+                        { key = "abandoned", icon = icons.on_hold, label = _("On hold") },
                         { key = "complete", icon = icons.finished, label = _("Finished") },
                     }
 
@@ -2160,7 +2206,7 @@ local function apply_context_menu()
                                 end
                                 local n = 0
                                 for _k, v in pairs(new_st) do if v then n = n + 1 end end
-                                if n == 0 or n == 4 then setFilter(nil)
+                                if n == 0 or n == #STATUS_OPTS then setFilter(nil)
                                 else setFilter(new_st) end
                                 UIManager:nextTick(showFilterDialog)
                             end,

@@ -302,6 +302,8 @@ function ZenUI:init()
     end
 
     self:_initModules()
+    -- TBR is a normal KOReader collection; create it for standard pickers.
+    pcall(function() require("common/tbr_index").ensureCollection() end)
     logger.perf("Core initialization completed", (os.clock() - started_at) * 1000)
 
     -- -----------------------------------------------------------------------
@@ -766,6 +768,14 @@ end
 
 function ZenUI:onAnnotationsModified()
     invalidate_annotation_quotes(self)
+end
+
+function ZenUI:onBookMetadataChanged()
+    pcall(function() require("common/tbr_index").invalidateStatusCache() end)
+    local home = self._zen_shared and self._zen_shared.home
+    if home and type(home.invalidateTBRCache) == "function" then
+        home.invalidateTBRCache()
+    end
 end
 
 function ZenUI:onCloseDocument()

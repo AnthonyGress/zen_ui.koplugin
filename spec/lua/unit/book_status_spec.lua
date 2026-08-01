@@ -37,6 +37,25 @@ describe("book status", function()
         assert.is_false(BookStatus.isImageFile(nil))
     end)
 
+    it("derives the TBR display status from the collection or new-book setting", function()
+        local include_new = false
+        ZenSpec.replace("config/manager", {
+            get = function()
+                return { group_view = { include_new_in_tbr = include_new } }
+            end,
+        })
+        ZenSpec.replace("common/tbr_index", {
+            isExplicit = function(path) return path == "/books/queued.epub" end,
+        })
+        local BookStatus = require("common/book_status")
+
+        assert.are.equal("tbr", BookStatus.getDisplayStatus("/books/queued.epub", "reading"))
+        assert.are.equal("new", BookStatus.getDisplayStatus("/books/new.epub", "new"))
+
+        include_new = true
+        assert.are.equal("tbr", BookStatus.getDisplayStatus("/books/new.epub", "new"))
+    end)
+
     it("detects a changed book from its sidecar or acknowledgment marker", function()
         local BookStatus = require("common/book_status")
         local doc, data = settings({ percent_finished = 0.5 })

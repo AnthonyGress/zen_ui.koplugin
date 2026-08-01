@@ -972,8 +972,8 @@ msgstr "リストの境界線を非表示"
 msgid "Hide reader actions in library"
 msgstr "ライブラリでリーダーアクションを非表示"
 
-msgid "Hide TBR books"
-msgstr "未読リストの本を非表示"
+msgid "Hide on-hold books"
+msgstr "保留中の本を非表示"
 
 msgid "Hide unread books"
 msgstr "未読の本を非表示"

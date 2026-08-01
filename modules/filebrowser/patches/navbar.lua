@@ -433,6 +433,18 @@ local function apply_navbar()
         return result
     end
 
+    local function withHiddenHomeBootstrap(path, fn)
+        local old_hidden = rawget(_G, "__ZEN_UI_HIDDEN_HOME_BOOTSTRAP")
+        local old_listing = rawget(_G, "__ZEN_UI_DEFER_FILEMANAGER_LISTING")
+        _G.__ZEN_UI_HIDDEN_HOME_BOOTSTRAP = true
+        _G.__ZEN_UI_DEFER_FILEMANAGER_LISTING = { path = path }
+        local ok, result = pcall(withCoversSuppressed, fn)
+        _G.__ZEN_UI_HIDDEN_HOME_BOOTSTRAP = old_hidden
+        _G.__ZEN_UI_DEFER_FILEMANAGER_LISTING = old_listing
+        if not ok then error(result) end
+        return result
+    end
+
     local function refreshSuppressedCoversNow(fm)
         local fc = fm and fm.file_chooser
         if not (fc and type(fc.updateItems) == "function") then return false end
@@ -501,6 +513,22 @@ local function apply_navbar()
         if not (fm and fm.file_chooser) then return false end
         local fc = fm.file_chooser
         utils.closeWidgetsAbove(fm)
+        if fc._zen_needs_full_listing then
+            fm.invisible = nil
+            fm._zen_hidden_home_startup = nil
+            fc._zen_hidden_home_startup = nil
+            fc._zen_needs_full_listing = nil
+            fc._zen_needs_cover_refresh = nil
+            if fc._zen_clear_item_table_cache then fc:_zen_clear_item_table_cache() end
+            fc.path_items[home_dir] = 1
+            if type(fc.refreshPath) == "function" then
+                fc:refreshPath()
+            else
+                fc:changeToPath(home_dir)
+            end
+            refreshLibraryStatusBar(fm)
+            return
+        end
         -- If inside a virtual series folder, exit it first. path is unchanged in
         -- series view, so without this the home-root branch below would refreshPath
         -- and immediately re-open the series group, trapping the user.
@@ -715,7 +743,6 @@ local function apply_navbar()
     end
 
     local function onTabHome()
-        scheduleGroupPrewarm()
         if resetHomeStripPages() then return end
         local Home = get_shared("home")
         if not Home then return end
@@ -723,9 +750,11 @@ local function apply_navbar()
             and Home.getActiveWidgets() or nil
         if raiseStandaloneWidgets(widgets) then
             if type(Home.resetStripPages) == "function" then Home.resetStripPages() end
+            scheduleGroupPrewarm()
             return
         end
         Home.showHomeView(injectStandaloneNavbar)
+        scheduleGroupPrewarm()
     end
 
     local function onTabSearch()
@@ -2566,10 +2595,19 @@ local function apply_navbar()
             and rawget(_G, "__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB") == true
             and resolve_default_tab() or nil
         local default_tab = forced_default_tab or resolve_default_tab()
+        local startup_default_home = default_tab == "home"
+            and not force_source_restore
+            and not open_home_after_filemanager
+            and not open_target_tab
+            and not open_target_folder
+            and not keep_book_location_requested
+            and not (state_before_show and state_before_show.tab)
+            and (not restore_enabled or not focused_file)
         -- When restore is disabled, open at library root immediately (no double render).
-        local effective_focused = not forced_default_tab
+        local effective_focused = not startup_default_home and not forced_default_tab
             and (restore_enabled or keep_book_location) and focused_file or nil
-        if forced_default_tab or (not restore_enabled and not keep_book_location) then
+        if startup_default_home or forced_default_tab
+                or (not restore_enabled and not keep_book_location) then
             local home_dir = require("common/paths").getHomeDir()
             if home_dir then
                 path = home_dir
@@ -2579,6 +2617,7 @@ local function apply_navbar()
             end
         end
         local hidden_bootstrap = forced_default_tab ~= nil
+            or startup_default_home
             or open_home_after_filemanager
             or open_target_tab
             or open_target_folder
@@ -2591,7 +2630,11 @@ local function apply_navbar()
                 and state_before_show.tab
                 and state_before_show.tab ~= "books")
         local suppress_initial_covers = hidden_bootstrap
-        if suppress_initial_covers then
+        if startup_default_home then
+            withHiddenHomeBootstrap(path, function()
+                orig_showFiles(self, path, effective_focused, selected_files)
+            end)
+        elseif suppress_initial_covers then
             withCoversSuppressed(function()
                 orig_showFiles(self, path, effective_focused, selected_files)
             end)
@@ -2605,9 +2648,22 @@ local function apply_navbar()
         end
         logger.perf("File manager base restore completed", (os.clock() - started_at) * 1000,
             "restore_tab=", tostring(state_before_show and state_before_show.tab),
-            "path=", tostring(path))
+            "path=", tostring(path),
+            "hidden_home_startup=", tostring(startup_default_home),
+            "listing_deferred=", tostring(startup_default_home))
         if suppress_initial_covers and filemanager and filemanager.file_chooser then
             filemanager.file_chooser._zen_needs_cover_refresh = true
+        end
+        if startup_default_home and filemanager and filemanager.file_chooser then
+            filemanager.invisible = true
+            filemanager._zen_hidden_home_startup = true
+            filemanager.file_chooser._zen_hidden_home_startup = true
+            filemanager.file_chooser._zen_needs_full_listing = true
+            if UIManager._dirty then UIManager._dirty[filemanager] = nil end
+            filemanager._zen_default_tab_bootstrapped = true
+            _G.__ZEN_UI_LIBRARY_STATE = nil
+            open_tab("home")
+            return
         end
         if open_home_after_filemanager then
             _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = nil
@@ -2909,6 +2965,7 @@ local function apply_navbar()
         local fm = FileManager.instance
         if fm then
             injectNavbar(fm)
+            if fm._zen_hidden_home_startup then return end
             if not maybe_open_startup_default_tab(fm) then
                 UIManager:setDirty(fm, "ui")
             end

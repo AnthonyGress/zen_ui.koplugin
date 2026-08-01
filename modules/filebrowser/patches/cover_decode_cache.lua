@@ -30,6 +30,12 @@ local function apply_cover_decode_cache()
         }, "\31")
     end
 
+    local function remember_metadata(filepath, info)
+        if info and type(cache.putMetadata) == "function" then
+            cache:putMetadata(filepath, info, now())
+        end
+    end
+
     local function recover_interrupted_extraction(filepath, info, get_cover)
         if not get_cover or type(info) ~= "table"
                 or info.unsupported ~= "too many interruptions or crashes" then
@@ -48,6 +54,7 @@ local function apply_cover_decode_cache()
             local started_at = get_cover and now()
             local info = orig_getBookInfo(self, filepath, get_cover)
             info = recover_interrupted_extraction(filepath, info, get_cover)
+            remember_metadata(filepath, info)
             if get_cover then
                 cache:recordMiss()
                 cache:recordFullRead(
@@ -72,9 +79,11 @@ local function apply_cover_decode_cache()
         local validation_started_at = now()
         info = orig_getBookInfo(self, filepath, false)
         info = recover_interrupted_extraction(filepath, info, get_cover)
+        remember_metadata(filepath, info)
         cache:recordValidation((now() - validation_started_at) * 1000)
         if not info or not info.has_cover or info.ignore_cover then
             cache:drop(filepath)
+            remember_metadata(filepath, info)
             cache:recordMiss()
             return info
         end
@@ -88,6 +97,7 @@ local function apply_cover_decode_cache()
 
         local full_read_started_at = now()
         info = orig_getBookInfo(self, filepath, true)
+        remember_metadata(filepath, info)
         cache:recordFullRead(
             (now() - full_read_started_at) * 1000,
             info and info.cover_bb ~= nil,

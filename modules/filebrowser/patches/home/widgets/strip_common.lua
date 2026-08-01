@@ -7,7 +7,6 @@ local HorizontalSpan = require("ui/widget/horizontalspan")
 local FrameContainer = require("ui/widget/container/framecontainer")
 local CenterContainer = require("ui/widget/container/centercontainer")
 local LeftContainer = require("ui/widget/container/leftcontainer")
-local TopContainer = require("ui/widget/container/topcontainer")
 local TextWidget = require("ui/widget/textwidget")
 local TextBoxWidget = require("ui/widget/textboxwidget")
 local InputContainer = require("ui/widget/container/inputcontainer")
@@ -18,13 +17,20 @@ local cover_common = require("modules/filebrowser/patches/home/widgets/cover_com
 local library_font = require("modules/filebrowser/patches/library_font")
 local Font = require("ui/font")
 local Device = require("device")
+local MemoryPolicy = require("common/memory_policy")
 local utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
 local _ = require("gettext")
 local logger = require("common/zen_logger").new("home_strip")
 
 local M = {}
-M.SIZE = { preferred_pct = 0.26, min_pct = 0.12, max_pct = 0.50, grow_priority = 1 }
+M.SIZE = { units = 3.5 }
+local HYDRATE_DELAY_S = 0.05
+local COVER_POLL_S = 0.4
+local PRELOAD_DELAY_S = 0.35
+local PRELOAD_TICK_S = 0.05
+local PRELOAD_CHUNK = 4
+local PRELOAD_BUDGET_S = 0.03
 
 local function set_opening_banner_cover(cover)
     local set_cover = rawget(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER")
@@ -102,7 +108,7 @@ local function apply_strip_badges(frame, book, plugin)
 
     -- per-item cache (lives on closure, one per cover widget)
     local _cached_pct_tw, _cached_pct_str, _cached_pct_fs, _cached_pct_dark
-    local _cached_pause_tw, _cached_pause_fs, _cached_pause_dark
+    local _cached_pause_tw, _cached_pause_icon, _cached_pause_fs, _cached_pause_dark
     local _cached_pages_tw, _cached_pages_str, _cached_pages_fs, _cached_pages_dark
     local _cached_series_tw, _cached_series_idx, _cached_series_fs, _cached_series_dark
     local _cached_fav_mark, _cached_fav_size, _cached_fav_dark
@@ -185,10 +191,11 @@ local function apply_strip_badges(frame, book, plugin)
         local status = book.status
         local is_new = status == "new"
         local do_check = (status == "complete")
+        local do_tbr = (status == "tbr")
         local do_pause = (status == "abandoned")
-        local do_pct   = not is_new and not do_check and not do_pause and pct > 0
+        local do_pct   = not is_new and not do_check and not do_tbr and not do_pause and pct > 0
 
-        if show_progress and (do_check or do_pause or do_pct) then
+        if show_progress and (do_check or do_tbr or do_pause or do_pct) then
             local bw  = math.floor(base_sz * 1.2)
             local bh  = math.floor(base_sz * 1.1)
             local bdg_x = x + d.w - bw - math.floor(bw * 0.25)
@@ -209,11 +216,19 @@ local function apply_strip_badges(frame, book, plugin)
                 local sq   = math.min(icon_w, icon_h)
                 paintCheck(bb, icon_x + math.floor((icon_w-sq)/2),
                                icon_y + math.floor((icon_h-sq)/2), sq, sq, badge_fg)
-            elseif do_pause then
+            elseif do_tbr or do_pause then
                 local fs = math.max(7, math.floor(base_sz * 0.40))
-                if not _cached_pause_tw or _cached_pause_fs ~= fs or _cached_pause_dark ~= is_dark then
+                local icon = do_tbr and "\u{F0150}" or "\u{F03E4}"
+                if not _cached_pause_tw or _cached_pause_icon ~= icon
+                        or _cached_pause_fs ~= fs or _cached_pause_dark ~= is_dark then
                     WidgetResources.free(_cached_pause_tw)
-                    _cached_pause_tw   = TextWidget:new{ text="\u{F0150}", face=Font:getFace("cfont",fs), fgcolor=badge_fg, padding=0 }
+                    _cached_pause_tw   = TextWidget:new{
+                        text = icon,
+                        face = Font:getFace("cfont", fs),
+                        fgcolor = badge_fg,
+                        padding = 0,
+                    }
+                    _cached_pause_icon = icon
                     _cached_pause_fs   = fs
                     _cached_pause_dark = is_dark
                 end
@@ -357,6 +372,8 @@ function M.build_strip(ctx, source_key)
     local interactive = module_cfg.interactive ~= false
     local page_cache = {}
     local has_adjacent_pages = false
+    local hydration_failed_paths = {}
+    local visual_shift = 0
 
     local function get_page_books(page_delta)
         if type(ctx.data.getBooksForStripPage) == "function" then
@@ -390,29 +407,45 @@ function M.build_strip(ctx, source_key)
             alignment_strict = true,
             height_adjust = true,
         }
+        local empty_row = HorizontalGroup:new{
+            empty_cover,
+            HorizontalSpan:new{ width = gap },
+            CenterContainer:new{
+                dimen = Geom:new{ w = message_w, h = cover_h },
+                empty_message,
+            },
+        }
+        local empty_top = math.floor(math.max(0, outer_height - cover_h) / 2)
+        local empty_container = CenterContainer:new{
+            dimen = Geom:new{ w = outer_width, h = outer_height },
+            empty_row,
+        }
+        local original_empty_paint = empty_container.paintTo
+        empty_container.paintTo = function(self, bb, x, y)
+            return original_empty_paint(self, bb, x, y + visual_shift)
+        end
+        if page_delta == 0 and type(ctx.setContentBounds) == "function" then
+            ctx.setContentBounds{
+                top = empty_top,
+                bottom = empty_top + cover_h,
+                min_shift = -empty_top,
+                max_shift = outer_height - empty_top - cover_h,
+                set_shift = function(shift) visual_shift = shift end,
+            }
+        end
         local empty_frame = FrameContainer:new{
             width = outer_width,
             height = outer_height,
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
-            CenterContainer:new{
-                dimen = Geom:new{ w = outer_width, h = outer_height },
-                HorizontalGroup:new{
-                    empty_cover,
-                    HorizontalSpan:new{ width = gap },
-                    CenterContainer:new{
-                        dimen = Geom:new{ w = message_w, h = cover_h },
-                        empty_message,
-                    },
-                },
-            },
+            empty_container,
         }
         logger.perf("strip frame built", (os.clock() - started_at) * 1000,
             "component=", ctx.component_id or source,
             "page_delta=", page_delta or 0,
             "books=", 0)
-        return empty_frame, {}
+        return empty_frame, {}, {}
     end
 
     local num_rows = two_rows and 2 or 1
@@ -474,6 +507,7 @@ function M.build_strip(ctx, source_key)
     local max_cover_h_per_row = math.max(1, math.min(MIN_COVER_H, per_row_budget))
     if per_row_budget > MIN_COVER_H then max_cover_h_per_row = per_row_budget end
     local page_focus_targets = {}
+    local hydration_jobs = {}
 
     local function build_row_widget(row_list, row_num)
         local n = #row_list
@@ -489,7 +523,7 @@ function M.build_strip(ctx, source_key)
         local covers_w = 0
         local row_h = 0
         for _i, book in ipairs(row_list) do
-            local cover, cover_w = cover_common.make_cover_widget(
+            local cover, cover_w, rendered_cover_h, needs_hydration = cover_common.make_cover_widget(
                 book,
                 max_cover_w,
                 cover_h,
@@ -503,7 +537,15 @@ function M.build_strip(ctx, source_key)
             )
             cover_w = cover_w or max_cover_w
             local cover_size = cover.getSize and cover:getSize() or nil
-            local actual_cover_h = (cover_size and cover_size.h) or cover_h
+            local actual_cover_h = rendered_cover_h or (cover_size and cover_size.h) or cover_h
+            if needs_hydration and not hydration_failed_paths[book.path] then
+                hydration_jobs[#hydration_jobs + 1] = {
+                    book = book,
+                    path = book.path,
+                    width = cover_w,
+                    height = actual_cover_h,
+                }
+            end
             local item_h = show_strip_titles and (actual_cover_h + title_gap + title_h) or actual_cover_h
             if item_h > row_h then row_h = item_h end
             covers_w = covers_w + cover_w
@@ -655,6 +697,32 @@ function M.build_strip(ctx, source_key)
     end
     table.insert(vgroup, VerticalSpan:new{ width = row_bottom_pad })
 
+    local visual_size = vgroup:getSize()
+    local inner_slack = math.max(0, height - (visual_size.h or height))
+    local inner_top = math.floor(inner_slack / 2)
+    local content_container = CenterContainer:new{
+        dimen = Geom:new{ w = width, h = height },
+        vgroup,
+    }
+    local original_content_paint = content_container.paintTo
+    content_container.paintTo = function(self, bb, x, y)
+        return original_content_paint(self, bb, x, y + visual_shift)
+    end
+    if page_delta == 0 and type(ctx.setContentBounds) == "function" then
+        local outer_top = math.floor(math.max(0, outer_height - height) / 2)
+        local visible_bottom = row_top_pad + total_row_h
+            + math.max(0, visible_rows - 1) * (row_gap + row_inner_bottom_pad)
+        local visual_top = outer_top + inner_top + row_top_pad
+        local visual_bottom = outer_top + inner_top + visible_bottom
+        ctx.setContentBounds{
+            top = visual_top,
+            bottom = visual_bottom,
+            min_shift = -visual_top,
+            max_shift = outer_height - visual_bottom,
+            set_shift = function(shift) visual_shift = shift end,
+        }
+    end
+
     local frame = FrameContainer:new{
         width = outer_width,
         height = outer_height,
@@ -663,10 +731,7 @@ function M.build_strip(ctx, source_key)
         background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
         CenterContainer:new{
             dimen = Geom:new{ w = outer_width, h = outer_height },
-            TopContainer:new{
-            dimen = Geom:new{ w = width, h = height },
-            vgroup,
-            },
+            content_container,
         },
     }
 
@@ -674,40 +739,43 @@ function M.build_strip(ctx, source_key)
         "component=", ctx.component_id or source,
         "page_delta=", page_delta or 0,
         "books=", #books)
-    return frame, page_focus_targets
+    return frame, page_focus_targets, hydration_jobs
     end
 
-    local frame, initial_targets = build_frame(0)
+    local frame, initial_targets, initial_jobs = build_frame(0)
     if type(ctx.activateStripFocusTargets) == "function" then
         ctx.activateStripFocusTargets(initial_targets)
     end
 
-    if not interactive or not Device:isTouchDevice() then
-        return frame
-    end
-
+    local can_swipe = interactive and Device:isTouchDevice()
     local swipe = InputContainer:new{
         dimen = Geom:new{ w = outer_width, h = outer_height },
-        ges_events = {
+        ges_events = can_swipe and {
             SwipeStrip = {
                 GestureRange:new{ ges = "swipe", range = Geom:new{
                     x = 0, y = 0,
                     w = Screen:getWidth(), h = Screen:getHeight(),
                 } },
             },
-        },
+        } or {},
     }
     local UIManager = require("ui/uimanager")
     local closed = false
-    local prewarm_scheduled = false
-    local prewarm_queue = {}
+    local visible_hydrate_fn
+    local prewarm_fn
+    local prewarm_direction = 1
     local swap_sequence = 0
 
-    local function new_entry(cached_frame, targets)
-        return { frame = cached_frame, targets = targets or {}, freed = false }
+    local function new_entry(cached_frame, targets, jobs)
+        return {
+            frame = cached_frame,
+            targets = targets or {},
+            jobs = jobs or {},
+            freed = false,
+        }
     end
 
-    page_cache[0] = new_entry(frame, initial_targets)
+    page_cache[0] = new_entry(frame, initial_targets, initial_jobs)
 
     local function free_entry(entry)
         if not entry or entry.freed then return end
@@ -715,47 +783,232 @@ function M.build_strip(ctx, source_key)
         WidgetResources.free(entry.frame)
         entry.frame = nil
         entry.targets = nil
+        entry.jobs = nil
     end
 
     local function build_entry(page_delta)
-        local cached_frame, targets = build_frame(page_delta)
-        return new_entry(cached_frame, targets)
+        local cached_frame, targets, jobs = build_frame(page_delta)
+        return new_entry(cached_frame, targets, jobs)
     end
 
-    local run_prewarm
-    local function schedule_prewarm()
-        if closed or prewarm_scheduled or not has_adjacent_pages
+    local function activate_entry(entry)
+        swipe[1] = entry.frame
+        if swipe.resetLayout then swipe:resetLayout() end
+        if type(ctx.activateStripFocusTargets) == "function" then
+            ctx.activateStripFocusTargets(entry.targets)
+        elseif ctx.clearStripFocusTargets then
+            ctx.clearStripFocusTargets(ctx.component_id)
+        end
+    end
+
+    local function replace_entry(page_delta, replacement, repaint)
+        local previous = page_cache[page_delta]
+        page_cache[page_delta] = replacement
+        if page_delta == 0 then
+            activate_entry(replacement)
+            if repaint then
+                if ctx.refreshStrip then
+                    ctx.refreshStrip(swipe)
+                else
+                    UIManager:setDirty(ctx.menu, "ui")
+                end
+            end
+        end
+        if previous and previous ~= replacement then free_entry(previous) end
+    end
+
+    local function cancel_visible_hydration(reason)
+        if not visible_hydrate_fn then return end
+        UIManager:unschedule(visible_hydrate_fn)
+        visible_hydrate_fn = nil
+        logger.perf("strip cover hydration cancelled", 0,
+            "component=", ctx.component_id or source,
+            "reason=", reason or "stale")
+    end
+
+    local function cancel_prewarm(reason)
+        if not prewarm_fn then return end
+        UIManager:unschedule(prewarm_fn)
+        prewarm_fn = nil
+        logger.perf("strip page prewarm cancelled", 0,
+            "component=", ctx.component_id or source,
+            "reason=", reason or "stale")
+    end
+
+    local function warm_job(job)
+        if type(ctx.data.warmStripCover) ~= "function" then return "failed" end
+        return ctx.data:warmStripCover(job.book, job.width, job.height)
+    end
+
+    local schedule_prewarm
+    local schedule_visible_hydration
+    schedule_visible_hydration = function(delay)
+        if closed or visible_hydrate_fn then return end
+        local entry = page_cache[0]
+        if not entry or entry.freed or #(entry.jobs or {}) == 0 then return end
+        local step
+        step = function()
+            if visible_hydrate_fn ~= step then return end
+            visible_hydrate_fn = nil
+            if closed or page_cache[0] ~= entry or entry.freed then return end
+            local started_at = os.clock()
+            local pending = {}
+            local cached, warmed, ready, failed = 0, 0, 0, 0
+            for _i, job in ipairs(entry.jobs or {}) do
+                local outcome = warm_job(job)
+                if outcome == "cached" then
+                    cached = cached + 1
+                elseif outcome == "warmed" then
+                    warmed = warmed + 1
+                elseif outcome == "ready" then
+                    ready = ready + 1
+                elseif outcome == "pending" then
+                    pending[#pending + 1] = job
+                else
+                    failed = failed + 1
+                    hydration_failed_paths[job.path] = true
+                end
+            end
+            entry.jobs = pending
+            local completed = cached + warmed + ready
+            if completed > 0 then
+                local replacement = build_entry(0)
+                replace_entry(0, replacement, true)
+                entry = replacement
+            end
+            logger.perf("strip cover hydration completed", (os.clock() - started_at) * 1000,
+                "component=", ctx.component_id or source,
+                "cached=", cached,
+                "warmed=", warmed,
+                "ready=", ready,
+                "pending=", #pending,
+                "failed=", failed,
+                "partial_repaint=", completed > 0 and 1 or 0)
+            if #pending > 0 then
+                schedule_visible_hydration(COVER_POLL_S)
+            else
+                schedule_prewarm(PRELOAD_DELAY_S)
+            end
+        end
+        visible_hydrate_fn = step
+        UIManager:scheduleIn(delay or HYDRATE_DELAY_S, step)
+    end
+
+    schedule_prewarm = function(delay)
+        if closed or prewarm_fn or not has_adjacent_pages
                 or type(ctx.data.getBooksForStripPage) ~= "function" then
             return
         end
-        prewarm_queue = {}
-        if not page_cache[1] then prewarm_queue[#prewarm_queue + 1] = 1 end
-        if not page_cache[-1] then prewarm_queue[#prewarm_queue + 1] = -1 end
-        if #prewarm_queue == 0 then return end
-        prewarm_scheduled = true
-        UIManager:scheduleIn(0.05, run_prewarm)
-    end
+        local page_delta = prewarm_direction
+        local started_at = os.clock()
+        local work_ms = 0
+        local cached, warmed, ready, failed = 0, 0, 0, 0
+        local step
+        step = function()
+            if prewarm_fn ~= step then return end
+            if closed then prewarm_fn = nil; return end
+            if not MemoryPolicy.canPreload(MemoryPolicy.getProfile()) then
+                prewarm_fn = nil
+                logger.perf("strip page prewarm skipped", work_ms,
+                    "component=", ctx.component_id or source,
+                    "page_delta=", page_delta,
+                    "reason=memory_pressure")
+                return
+            end
+            if type(ctx.data.isStripCoverWorkBusy) == "function"
+                    and ctx.data:isStripCoverWorkBusy() then
+                prewarm_fn = nil
+                logger.perf("strip page prewarm skipped", work_ms,
+                    "component=", ctx.component_id or source,
+                    "page_delta=", page_delta,
+                    "reason=background_extraction")
+                return
+            end
+            local current = page_cache[0]
+            if visible_hydrate_fn or (current and #(current.jobs or {}) > 0) then
+                prewarm_fn = nil
+                logger.perf("strip page prewarm skipped", work_ms,
+                    "component=", ctx.component_id or source,
+                    "page_delta=", page_delta,
+                    "reason=visible_hydration")
+                return
+            end
+            local entry = page_cache[page_delta]
+            if not entry then
+                entry = build_entry(page_delta)
+                page_cache[page_delta] = entry
+            end
+            if #(entry.jobs or {}) == 0 then
+                prewarm_fn = nil
+                logger.perf("strip page prewarmed", work_ms,
+                    "component=", ctx.component_id or source,
+                    "page_delta=", page_delta,
+                    "cached=", cached,
+                    "warmed=", warmed,
+                    "ready=", ready,
+                    "failed=", failed,
+                    "wall_ms=", math.floor((os.clock() - started_at) * 1000 + 0.5))
+                return
+            end
 
-    run_prewarm = function()
-        prewarm_scheduled = false
-        if closed then return end
-        local page_delta = table.remove(prewarm_queue, 1)
-        if page_delta and not page_cache[page_delta] then
-            local started_at = os.clock()
-            page_cache[page_delta] = build_entry(page_delta)
-            logger.perf("strip page prewarmed", (os.clock() - started_at) * 1000,
+            local chunk_started_at = os.clock()
+            local deadline = chunk_started_at + PRELOAD_BUDGET_S
+            local pending = {}
+            local processed = 0
+            while #entry.jobs > 0 and processed < PRELOAD_CHUNK
+                    and (processed == 0 or os.clock() < deadline) do
+                local job = table.remove(entry.jobs, 1)
+                processed = processed + 1
+                local outcome = warm_job(job)
+                if outcome == "cached" then
+                    cached = cached + 1
+                elseif outcome == "warmed" then
+                    warmed = warmed + 1
+                elseif outcome == "ready" then
+                    ready = ready + 1
+                elseif outcome == "pending" then
+                    pending[#pending + 1] = job
+                else
+                    failed = failed + 1
+                    hydration_failed_paths[job.path] = true
+                end
+            end
+            for _i, job in ipairs(pending) do entry.jobs[#entry.jobs + 1] = job end
+            work_ms = work_ms + (os.clock() - chunk_started_at) * 1000
+
+            if #entry.jobs > 0 then
+                if #pending == processed then
+                    prewarm_fn = nil
+                    logger.perf("strip page prewarm skipped", work_ms,
+                        "component=", ctx.component_id or source,
+                        "page_delta=", page_delta,
+                        "reason=cover_pending",
+                        "queued=", #entry.jobs)
+                else
+                    UIManager:scheduleIn(PRELOAD_TICK_S, step)
+                end
+                return
+            end
+
+            local replacement = build_entry(page_delta)
+            replace_entry(page_delta, replacement, false)
+            prewarm_fn = nil
+            logger.perf("strip page prewarmed", work_ms,
                 "component=", ctx.component_id or source,
-                "page_delta=", page_delta)
+                "page_delta=", page_delta,
+                "cached=", cached,
+                "warmed=", warmed,
+                "ready=", ready,
+                "failed=", failed,
+                "wall_ms=", math.floor((os.clock() - started_at) * 1000 + 0.5))
         end
-        if #prewarm_queue > 0 and not closed then
-            prewarm_scheduled = true
-            UIManager:scheduleIn(0.05, run_prewarm)
-        elseif not closed then
-            schedule_prewarm()
-        end
+        prewarm_fn = step
+        UIManager:scheduleIn(delay or PRELOAD_DELAY_S, step)
     end
 
     local function refresh_strip(swipe_self, direction, gesture_started_at)
+        cancel_visible_hydration("swipe")
+        cancel_prewarm("swipe")
         local replacement_delta = direction == "next" and 1 or -1
         local replacement = page_cache[replacement_delta]
         local cache_hit = replacement ~= nil
@@ -775,13 +1028,7 @@ function M.build_strip(ctx, source_key)
             page_cache[0] = replacement
             page_cache[-1] = nil
         end
-        swipe_self[1] = replacement.frame
-        if swipe_self.resetLayout then swipe_self:resetLayout() end
-        if type(ctx.activateStripFocusTargets) == "function" then
-            ctx.activateStripFocusTargets(replacement.targets)
-        elseif ctx.clearStripFocusTargets then
-            ctx.clearStripFocusTargets(ctx.component_id)
-        end
+        activate_entry(replacement)
         free_entry(evicted)
 
         swap_sequence = swap_sequence + 1
@@ -801,32 +1048,59 @@ function M.build_strip(ctx, source_key)
         else
             UIManager:setDirty(ctx.menu, "ui")
         end
-        schedule_prewarm()
+        prewarm_direction = direction == "next" and 1 or -1
+        schedule_visible_hydration(HYDRATE_DELAY_S)
+        schedule_prewarm(PRELOAD_DELAY_S)
     end
 
-    swipe.onSwipeStrip = function(swipe_self, _, ges)
-        if not swipe_self.dimen or not ges or not ges.pos then return false end
-        if not swipe_self.dimen:contains(ges.pos) then return false end
-        if ges.direction == "west" then
-            if ctx.shiftStrip then
-                local gesture_started_at = os.clock()
-                ctx.shiftStrip(source, count, order, "next", ctx.component_id, two_rows, function()
-                    refresh_strip(swipe_self, "next", gesture_started_at)
-                end)
+    if can_swipe then
+        swipe.onSwipeStrip = function(swipe_self, _, ges)
+            if not swipe_self.dimen or not ges or not ges.pos then return false end
+            if not swipe_self.dimen:contains(ges.pos) then return false end
+            if ges.direction == "west" then
+                if ctx.shiftStrip then
+                    local gesture_started_at = os.clock()
+                    ctx.shiftStrip(source, count, order, "next", ctx.component_id, two_rows, function()
+                        refresh_strip(swipe_self, "next", gesture_started_at)
+                    end)
+                end
+                return true
+            elseif ges.direction == "east" then
+                if ctx.shiftStrip then
+                    local gesture_started_at = os.clock()
+                    ctx.shiftStrip(source, count, order, "previous", ctx.component_id, two_rows, function()
+                        refresh_strip(swipe_self, "previous", gesture_started_at)
+                    end)
+                end
+                return true
             end
-            return true
-        elseif ges.direction == "east" then
-            if ctx.shiftStrip then
-                local gesture_started_at = os.clock()
-                ctx.shiftStrip(source, count, order, "previous", ctx.component_id, two_rows, function()
-                    refresh_strip(swipe_self, "previous", gesture_started_at)
-                end)
-            end
-            return true
+            return false
         end
-        return false
     end
     swipe[1] = frame
+
+    local unregister_cover_listener
+    if type(ctx.registerStripCoverListener) == "function" then
+        unregister_cover_listener = ctx.registerStripCoverListener(function(path)
+            hydration_failed_paths[path] = nil
+            local current = page_cache[0]
+            for _i, job in ipairs(current and current.jobs or {}) do
+                if job.path == path then
+                    cancel_visible_hydration("cover_ready")
+                    schedule_visible_hydration(0)
+                    return
+                end
+            end
+            local future = page_cache[prewarm_direction]
+            for _i, job in ipairs(future and future.jobs or {}) do
+                if job.path == path then
+                    cancel_prewarm("cover_ready")
+                    schedule_prewarm(PRELOAD_TICK_S)
+                    return
+                end
+            end
+        end)
+    end
 
     local orig_paintTo = swipe.paintTo
     local first_paint = true
@@ -848,24 +1122,23 @@ function M.build_strip(ctx, source_key)
             end
             if first_paint then
                 first_paint = false
-                schedule_prewarm()
+                schedule_visible_hydration(HYDRATE_DELAY_S)
+                schedule_prewarm(PRELOAD_DELAY_S)
             end
         end
     end
 
     WidgetResources.wrapFree(swipe, function()
         closed = true
-        if prewarm_scheduled then
-            UIManager:unschedule(run_prewarm)
-            prewarm_scheduled = false
-        end
+        cancel_visible_hydration("widget_close")
+        cancel_prewarm("widget_close")
+        if unregister_cover_listener then unregister_cover_listener() end
         for page_delta, entry in pairs(page_cache) do
             if not rawequal(entry.frame, swipe[1]) then
                 free_entry(entry)
             end
             page_cache[page_delta] = nil
         end
-        prewarm_queue = {}
     end)
     return swipe
 end

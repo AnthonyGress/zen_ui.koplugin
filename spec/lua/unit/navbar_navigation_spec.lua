@@ -7,6 +7,7 @@ describe("file browser navbar navigation", function()
     local home_widget
     local allow_group_prewarm
     local original_memory_policy
+    local base_observation
 
     local function class(methods)
         methods = methods or {}
@@ -30,6 +31,7 @@ describe("file browser navbar navigation", function()
         library_font_sizes = {}
         home_widget = {}
         allow_group_prewarm = true
+        base_observation = nil
         original_memory_policy = package.loaded["common/memory_policy"]
         shared = {
             home = {
@@ -51,6 +53,10 @@ describe("file browser navbar navigation", function()
         FileManager = class({
             setupLayout = function() end,
             showFiles = function(self, path, focused)
+                base_observation = {
+                    hidden = rawget(_G, "__ZEN_UI_HIDDEN_HOME_BOOTSTRAP"),
+                    deferred = rawget(_G, "__ZEN_UI_DEFER_FILEMANAGER_LISTING"),
+                }
                 FileManager.instance = self._test_next_instance or self
                 self._test_next_instance = nil
                 calls[#calls + 1] = "base:" .. tostring(path) .. ":" .. tostring(focused)
@@ -191,6 +197,7 @@ describe("file browser navbar navigation", function()
             "__ZEN_UI_ACTIVE_TAB_LABEL",
             "__ZEN_UI_REINJECT_FM_NAVBAR", "__ZEN_UI_REINJECT_NAVBARS",
             "__ZEN_UI_LIBRARY_STATE", "__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER",
+            "__ZEN_UI_HIDDEN_HOME_BOOTSTRAP", "__ZEN_UI_DEFER_FILEMANAGER_LISTING",
         }) do
             _G[name] = nil
         end
@@ -269,6 +276,30 @@ describe("file browser navbar navigation", function()
         assert.are.equal("Library", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
         assert.is_nil(fm.file_chooser._zen_needs_cover_refresh)
         assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+    end)
+
+    it("defers hidden FileManager construction for a default Home startup", function()
+        _G.__ZEN_UI_PLUGIN.config.features.restore_library_view = true
+        local fm = make_instance()
+        calls = {}
+        FileManager._test_next_instance = fm
+
+        FileManager.showFiles(FileManager, "/library", nil)
+
+        assert.are.same({ "base:/library:nil", "home" }, calls)
+        assert.is_true(base_observation.hidden)
+        assert.are.equal("/library", base_observation.deferred.path)
+        assert.is_true(fm.invisible)
+        assert.is_true(fm.file_chooser._zen_needs_full_listing)
+        assert.is_nil(_G.__ZEN_UI_HIDDEN_HOME_BOOTSTRAP)
+        assert.is_nil(_G.__ZEN_UI_DEFER_FILEMANAGER_LISTING)
+
+        calls = {}
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        assert.are.same({ "books:/library" }, calls)
+        assert.is_nil(fm.invisible)
+        assert.is_nil(fm.file_chooser._zen_needs_full_listing)
+        assert.is_nil(fm.file_chooser._zen_hidden_home_startup)
     end)
 
     it("dispatches persistent tabs to their intended library views and tracks active state", function()

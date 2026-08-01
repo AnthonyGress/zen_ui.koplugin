@@ -138,9 +138,7 @@ local function apply_zen_scroll_bar()
                 screen_zone = { ratio_x = rz_left_x,   ratio_y = rz_y, ratio_w = rz_chev_w,   ratio_h = rz_h },
                 handler = function()
                     if not canUsePageNumber() then return end
-                    local page = menu.page or 1
-                    local target = page > 1 and (page - 1) or menu.page_num
-                    menu:onGotoPage(target)
+                    menu:onPrevPage()
                     return true
                 end,
             },
@@ -151,9 +149,7 @@ local function apply_zen_scroll_bar()
                 screen_zone = { ratio_x = rz_right_x,  ratio_y = rz_y, ratio_w = rz_chev_w,   ratio_h = rz_h },
                 handler = function()
                     if not canUsePageNumber() then return end
-                    local page = menu.page or 1
-                    local target = page < menu.page_num and (page + 1) or 1
-                    menu:onGotoPage(target)
+                    menu:onNextPage()
                     return true
                 end,
             },

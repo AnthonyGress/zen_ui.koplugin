@@ -118,9 +118,10 @@ end
 local function paintCoverBadge(canvas, Blitbuffer, Font, TextWidget, Screen,
                                cell_x, cell_y, cell_w, progress, status)
     local do_check = (status == "complete") or (progress and progress >= 1.0)
+    local do_tbr = not do_check and (status == "tbr")
     local do_pause = not do_check and (status == "abandoned")
-    local do_pct   = not do_check and not do_pause and (progress and progress > 0)
-    if not (do_check or do_pause or do_pct) then return end
+    local do_pct   = not do_check and not do_tbr and not do_pause and (progress and progress > 0)
+    if not (do_check or do_tbr or do_pause or do_pct) then return end
     local badge_size = math.max(Screen:scaleBySize(16), math.floor(cell_w * 0.14))
     local bw = math.floor(badge_size * 1.2)
     local bh = math.floor(badge_size * 1.1)
@@ -140,13 +141,14 @@ local function paintCoverBadge(canvas, Blitbuffer, Font, TextWidget, Screen,
             bdg_y + pad_y + math.floor((icon_h - sq) / 2),
             sq, sq, Blitbuffer.COLOR_BLACK)
     elseif Font and TextWidget then
-        local font_sz = do_pause
+        local font_sz = (do_tbr or do_pause)
             and math.max(7, math.floor(badge_size * 0.40))
             or  math.max(7, math.floor(badge_size * 0.24))
         local tw = TextWidget:new{
-            text    = do_pause and "\u{F0150}" or (math.floor(100 * progress) .. "%"),
+            text    = do_tbr and "\u{F0150}"
+                or (do_pause and "\u{F03E4}" or (math.floor(100 * progress) .. "%")),
             face    = Font:getFace("cfont", font_sz),
-            bold    = not do_pause,
+            bold    = not do_tbr and not do_pause,
             fgcolor = Blitbuffer.COLOR_BLACK,
             padding = 0,
         }

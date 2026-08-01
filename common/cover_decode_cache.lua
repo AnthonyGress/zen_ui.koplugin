@@ -1,10 +1,12 @@
 -- Byte-bounded cache for decoded CoverBrowser thumbnails.
 local M = {
     DEFAULT_BYTE_BUDGET = 6 * 1024 * 1024,
+    MAX_METADATA_ENTRIES = 256,
     _byte_budget = 6 * 1024 * 1024,
     _bytes = 0,
     _clock = 0,
     _entries = {},
+    _metadata_entries = {},
     _hits = 0,
     _misses = 0,
     _evictions = 0,
@@ -18,6 +20,9 @@ local M = {
     _lookup_ms = 0,
     _preload_reads = 0,
     _fast_hits = 0,
+    _metadata_hits = 0,
+    _metadata_puts = 0,
+    _metadata_evictions = 0,
 }
 
 local function bb_bytes(bb)
@@ -60,6 +65,27 @@ local function copy_entry(self, entry, fast)
     self._hits = self._hits + 1
     if fast then self._fast_hits = self._fast_hits + 1 end
     return bb
+end
+
+function M:_dropMetadata(key, evicted)
+    if not self._metadata_entries[key] then return end
+    self._metadata_entries[key] = nil
+    if evicted then self._metadata_evictions = self._metadata_evictions + 1 end
+end
+
+function M:_makeMetadataRoom()
+    local count = 0
+    local oldest_key
+    local oldest_touch
+    for key, entry in pairs(self._metadata_entries) do
+        count = count + 1
+        if not oldest_touch or entry.touched < oldest_touch then
+            oldest_key, oldest_touch = key, entry.touched
+        end
+    end
+    if count >= self.MAX_METADATA_ENTRIES and oldest_key then
+        self:_dropMetadata(oldest_key, true)
+    end
 end
 
 function M:_drop(key, evicted)
@@ -132,6 +158,41 @@ function M:getFresh(key, current_time, max_age)
     return info
 end
 
+-- Returns metadata without copying the cached cover bitmap.
+function M:getFreshMetadata(key, current_time, max_age)
+    local entry = key and (self._entries[key] or self._metadata_entries[key])
+    if not entry or not entry.metadata or not entry.validated_at
+            or current_time - entry.validated_at > max_age then
+        return nil
+    end
+    self._clock = self._clock + 1
+    entry.touched = self._clock
+    self._metadata_hits = self._metadata_hits + 1
+    return copy_metadata(entry.metadata)
+end
+
+-- Keeps metadata for generated covers without retaining a decoded bitmap.
+function M:putMetadata(key, metadata, validated_at)
+    if not key or type(metadata) ~= "table" then return false end
+    local cover_entry = self._entries[key]
+    if cover_entry then
+        cover_entry.metadata = copy_metadata(metadata)
+        cover_entry.validated_at = validated_at
+        self._clock = self._clock + 1
+        cover_entry.touched = self._clock
+        return true
+    end
+    if not self._metadata_entries[key] then self:_makeMetadataRoom() end
+    self._clock = self._clock + 1
+    self._metadata_entries[key] = {
+        metadata = copy_metadata(metadata),
+        validated_at = validated_at,
+        touched = self._clock,
+    }
+    self._metadata_puts = self._metadata_puts + 1
+    return true
+end
+
 -- Stores a private copy so callers retain normal ownership of the source bb.
 function M:put(key, signature, bb, metadata, validated_at)
     if not key or not bb then return false end
@@ -140,6 +201,7 @@ function M:put(key, signature, bb, metadata, validated_at)
         return false
     end
     self:_drop(key)
+    self:_dropMetadata(key)
     self:_makeRoom(bytes)
     local copy = copy_bb(bb)
     if not copy then return false end
@@ -189,12 +251,14 @@ end
 
 function M:drop(key)
     self:_drop(key)
+    self:_dropMetadata(key)
 end
 
 function M:clear()
     local keys = {}
     for key in pairs(self._entries) do keys[#keys + 1] = key end
     for _i, key in ipairs(keys) do self:_drop(key) end
+    self._metadata_entries = {}
     self._clock = 0
     self._hits = 0
     self._misses = 0
@@ -209,6 +273,9 @@ function M:clear()
     self._lookup_ms = 0
     self._preload_reads = 0
     self._fast_hits = 0
+    self._metadata_hits = 0
+    self._metadata_puts = 0
+    self._metadata_evictions = 0
 end
 
 function M:setByteBudget(bytes)
@@ -222,6 +289,10 @@ end
 function M:stats()
     local count = 0
     for _key in pairs(self._entries) do count = count + 1 end
+    local metadata_count = 0
+    for _key in pairs(self._metadata_entries) do
+        metadata_count = metadata_count + 1
+    end
     return {
         bytes = self._bytes,
         byte_budget = self._byte_budget,
@@ -239,6 +310,10 @@ function M:stats()
         lookup_ms = self._lookup_ms,
         preload_reads = self._preload_reads,
         fast_hits = self._fast_hits,
+        metadata_hits = self._metadata_hits,
+        metadata_count = metadata_count,
+        metadata_puts = self._metadata_puts,
+        metadata_evictions = self._metadata_evictions,
     }
 end
 

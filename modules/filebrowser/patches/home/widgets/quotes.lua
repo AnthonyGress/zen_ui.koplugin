@@ -18,7 +18,7 @@ end
 return {
     id = "quotes",
     label = "Quotes widget",
-    size = { preferred_pct = 0.18, min_pct = 0.14, max_pct = 0.32, grow_priority = 3 },
+    size = { units = 1.5 },
     build = function(ctx)
         local width = ctx.width
         local height = ctx.height
@@ -35,7 +35,7 @@ return {
         quote_font_size = math.max(4, math.min(32, tonumber(quote_font_size) or 12))
 
         local padding = Screen:scaleBySize(8)
-        local vertical_padding = Screen:scaleBySize(8)
+        local vertical_padding = Screen:scaleBySize(4)
         local content_w = math.max(30, width - padding * 2)
         local inner_h = math.max(20, height - vertical_padding * 2)
         local quote_text = '"' .. (quote.text or "") .. '"'
@@ -53,24 +53,18 @@ return {
             attribution = quote.attribution or ""
         end
 
+        local quote_line_height = 0.55
         if automatic_font_size then
             local max_font_size = math.max(
                 4, math.min(32, tonumber(quotes.max_font_size) or 14)
             )
             quote_font_size = 4
+            quote_line_height = 0.3
             for candidate = max_font_size, 4, -1 do
                 local candidate_face = Font:getFace(
                     "smallinfofont", Screen:scaleBySize(candidate)
                 )
-                local quote_probe = TextBoxWidget:new{
-                    text = quote_text,
-                    width = content_w,
-                    face = candidate_face,
-                    alignment = "center",
-                    line_height = 0.55,
-                }
-                local measured_h = quote_probe:getSize().h or 0
-                WidgetResources.free(quote_probe)
+                local author_h = 0
                 if attribution ~= "" then
                     local candidate_author_face = Font:getFace(
                         "smallinfofont",
@@ -82,16 +76,43 @@ return {
                         face = candidate_author_face,
                         alignment = "center",
                     }
-                    measured_h = measured_h + (author_probe:getSize().h or 0)
+                    author_h = author_probe:getSize().h or 0
                     WidgetResources.free(author_probe)
                 end
-                quote_font_size = candidate
-                if measured_h <= inner_h then break end
+                local quote_probe = TextBoxWidget:new{
+                    text = quote_text,
+                    width = content_w,
+                    face = candidate_face,
+                    alignment = "center",
+                    line_height = 0.3,
+                }
+                local measured_h = quote_probe:getSize().h or 0
+                WidgetResources.free(quote_probe)
+                if measured_h + author_h <= inner_h then
+                    quote_font_size = candidate
+                    -- Keep the roomiest spacing available at the chosen font size.
+                    for line_height_step = 11, 7, -1 do
+                        local candidate_line_height = line_height_step / 20
+                        local spacing_probe = TextBoxWidget:new{
+                            text = quote_text,
+                            width = content_w,
+                            face = candidate_face,
+                            alignment = "center",
+                            line_height = candidate_line_height,
+                        }
+                        local spacing_h = spacing_probe:getSize().h or 0
+                        WidgetResources.free(spacing_probe)
+                        if spacing_h + author_h <= inner_h then
+                            quote_line_height = candidate_line_height
+                            break
+                        end
+                    end
+                    break
+                end
             end
         end
 
         local quote_face = Font:getFace("smallinfofont", Screen:scaleBySize(quote_font_size))
-        local quote_line_height = 0.55
         local quote_probe = TextBoxWidget:new{
             text = "A\nA",
             width = content_w,
@@ -190,13 +211,25 @@ return {
             content_h = content_h + author_gap + (author_size.h or 0)
         end
         local available_h = math.max(0, height - content_h)
-        local content_top = math.floor(available_h / 2)
+        local is_multiline = natural_quote_h > quote_line_h
+        local content_top = is_multiline and math.min(vertical_padding, available_h)
+            or math.floor(available_h / 2)
+        local visual_shift = 0
+        if type(ctx.setContentBounds) == "function" then
+            ctx.setContentBounds{
+                top = vertical_padding,
+                bottom = height - vertical_padding,
+                min_shift = 0,
+                max_shift = 0,
+                set_shift = function(shift) visual_shift = shift end,
+            }
+        end
         local content = WidgetResources.managedPaintWidget{
             dimen = Geom:new{ w = width, h = height },
             resources = { quote_widget, author_widget },
             paintTo = function(_self, bb, x, y)
                 local quote_x = x + math.floor((width - content_w) / 2)
-                local quote_y = y + content_top
+                local quote_y = y + content_top + visual_shift
                 quote_widget:paintTo(bb, quote_x, quote_y)
                 if author_widget then
                     local author_x = x + math.floor((width - content_w) / 2)

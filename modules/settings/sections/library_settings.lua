@@ -543,7 +543,7 @@ function M.build(ctx)
                         end,
                     },
                     {
-                        text = _("Show KOReader progress bar"),
+                        text = _("Show progress bar"),
                         checked_func = function()
                             return type(config.browser_cover_badges) == "table"
                                 and config.browser_cover_badges.show_native_progress_bar == true
@@ -559,7 +559,7 @@ function M.build(ctx)
                         end,
                     },
                     {
-                        text = _("Show progress % on mosaic covers"),
+                        text = _("Show reading progress"),
                         checked_func = function()
                             return type(config.browser_cover_badges) == "table"
                                 and config.browser_cover_badges.show_mosaic_progress == true

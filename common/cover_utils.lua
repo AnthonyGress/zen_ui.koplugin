@@ -7,8 +7,10 @@ local TextBoxWidget = require("ui/widget/textboxwidget")
 local RenderText = require("ui/rendertext")
 local BD = require("ui/bidi")
 local _ = require("gettext")
+local DecodeCache = require("common/cover_decode_cache")
 local RenderCache = require("common/cover_render_cache")
 local plugin_root = require("common/plugin_root")
+local now = require("common/zen_logger").now
 
 local CoverUtils = {}
 do
@@ -106,6 +108,26 @@ function CoverUtils.calcDims(max_w, max_h)
     end
 end
 
+function CoverUtils.getFolderPreviewBounds(mode, max_w, max_h, cover_count, slot)
+    max_w, max_h = tonumber(max_w), tonumber(max_h)
+    if not max_w or max_w < 1 or not max_h or max_h < 1 then return nil end
+    local portrait_w, portrait_h = CoverUtils.calcDims(max_w, max_h)
+    if mode == "gallery" then
+        slot = tonumber(slot) or 1
+        local left_w = math.floor((portrait_w - 1) / 2)
+        local top_h = math.floor((portrait_h - 1) / 2)
+        local cell_w = (slot == 2 or slot == 4) and portrait_w - 1 - left_w or left_w
+        local cell_h = slot > 2 and portrait_h - 1 - top_h or top_h
+        return math.max(1, cell_w), math.max(1, cell_h)
+    end
+    if mode == "stack" and (tonumber(cover_count) or 0) > 1 then
+        local book_w = math.max(1, math.floor(portrait_w * 0.72))
+        local book_h = math.max(1, math.floor(book_w * portrait_h / portrait_w))
+        return book_w, book_h
+    end
+    return portrait_w, portrait_h
+end
+
 function CoverUtils.fitDims(max_w, max_h, source_w, source_h)
     source_w, source_h = tonumber(source_w), tonumber(source_h)
     if not source_w or source_w <= 0 or not source_h or source_h <= 0 then
@@ -188,7 +210,17 @@ local function paint_text_without_background(widget, bb, x, y, ink)
     end
 end
 
-function CoverUtils.genCover(filepath, target_w, target_h, no_fallback, metadata)
+local function finish_generated(cache_key, final_bb, width, height, shared)
+    if shared then
+        local cached, cache_owned = RenderCache:putShared(
+            cache_key, width, height, final_bb)
+        return cached, width, height, cache_owned, cache_key
+    end
+    RenderCache:put(cache_key, width, height, final_bb)
+    return final_bb, width, height
+end
+
+local function gen_cover(filepath, target_w, target_h, no_fallback, metadata, shared, cached_only)
     local width, height
 
     if target_w and target_h then
@@ -240,8 +272,14 @@ function CoverUtils.genCover(filepath, target_w, target_h, no_fallback, metadata
     end
 
     local cache_key = placeholder_cache_key(filepath, width, height, title, authors)
-    local cached = RenderCache:get(cache_key, width, height)
-    if cached then return cached, width, height end
+    local cached
+    if shared then
+        cached = RenderCache:getShared(cache_key, width, height)
+    else
+        cached = RenderCache:get(cache_key, width, height)
+    end
+    if cached then return cached, width, height, shared == true, cache_key end
+    if cached_only then return nil, width, height, false, cache_key end
 
     local paper = Blitbuffer.COLOR_WHITE
     local ink = Blitbuffer.COLOR_BLACK
@@ -255,8 +293,7 @@ function CoverUtils.genCover(filepath, target_w, target_h, no_fallback, metadata
     local max_text_width = width - math.max(16, math.floor(width * 0.20))
 
     if max_text_width < 1 or title_area_h < 1 or author_area_h < 1 then
-        RenderCache:put(cache_key, width, height, final_bb)
-        return final_bb, width, height
+        return finish_generated(cache_key, final_bb, width, height, shared)
     end
 
     -- Title widget (skip when no text available)
@@ -362,8 +399,20 @@ function CoverUtils.genCover(filepath, target_w, target_h, no_fallback, metadata
         authors_widget:free()
     end
 
-    RenderCache:put(cache_key, width, height, final_bb)
-    return final_bb, width, height
+    return finish_generated(cache_key, final_bb, width, height, shared)
+end
+
+function CoverUtils.genCover(filepath, target_w, target_h, no_fallback, metadata)
+    return gen_cover(filepath, target_w, target_h, no_fallback, metadata, false)
+end
+
+function CoverUtils.getCachedGeneratedCover(filepath, target_w, target_h, no_fallback, metadata)
+    return gen_cover(filepath, target_w, target_h, no_fallback, metadata, false, true)
+end
+
+-- Returns an immutable leased bitmap and its cache key when the budget allows.
+function CoverUtils.genCoverShared(filepath, target_w, target_h, no_fallback, metadata)
+    return gen_cover(filepath, target_w, target_h, no_fallback, metadata, true)
 end
 
 -- ============================================================
@@ -424,8 +473,10 @@ end
 -- Collect covers from directory
 -- ============================================================
 
-function CoverUtils.collect(dir_path, chooser, max_covers, need_copy, entries, cover_specs)
+function CoverUtils.collect(dir_path, chooser, max_covers, _need_copy, entries, cover_specs,
+        cover_offset, cached_only)
     local covers = {}
+    local needs_hydration = false
 
     if not entries then
         if not chooser then return covers end
@@ -488,36 +539,95 @@ function CoverUtils.collect(dir_path, chooser, max_covers, need_copy, entries, c
     local ok, BookInfoManager = pcall(require, "bookinfomanager")
     if not ok then return covers end
 
+    local mode = CoverUtils.getMode()
+    cover_offset = tonumber(cover_offset) or 0
+    local expected_count = cover_offset + math.min(max_covers, #entries)
+    local function enabled(value)
+        return value == true or value == "Y" or value == 1
+    end
+    local function has_real_cover(info)
+        return type(info) == "table" and enabled(info.cover_fetched)
+            and enabled(info.has_cover) and not enabled(info.ignore_cover)
+    end
+
     local _img_exts = { jpg=1, jpeg=1, png=1, webp=1, gif=1 }
-    for _i, entry in ipairs(entries) do
+    for entry_index, entry in ipairs(entries) do
         if (entry.is_file or entry.file) and #covers < max_covers then
             local fpath = entry.path or entry.file
             -- skip folder cover image files (cover.png, .cover.png, cover1.jpg, etc.)
             local _fname = (fpath:match("([^/]+)$") or ""):lower()
             local _fext  = _fname:match("%.([^%.]+)$")
             if not (_fext and _img_exts[_fext] and _fname:match("^%.?cover%d*%.")) then
-                local bookinfo = BookInfoManager:getBookInfo(fpath, true)
-                local invalid = bookinfo and type(cover_specs) == "table"
+                local preview_w, preview_h
+                if type(cover_specs) == "table" then
+                    preview_w, preview_h = CoverUtils.getFolderPreviewBounds(
+                        mode, cover_specs.max_cover_w, cover_specs.max_cover_h,
+                        expected_count, cover_offset + entry_index)
+                end
+                local preview_specs = preview_w and preview_h and {
+                    max_cover_w = preview_w,
+                    max_cover_h = preview_h,
+                } or cover_specs
+                local bookinfo = type(DecodeCache.getFreshMetadata) == "function"
+                    and DecodeCache:getFreshMetadata(fpath, now(), 30) or nil
+                local invalid = bookinfo and type(preview_specs) == "table"
                     and type(BookInfoManager.isCachedCoverInvalid) == "function"
-                    and BookInfoManager.isCachedCoverInvalid(bookinfo, cover_specs)
-                if bookinfo and bookinfo.cover_bb and bookinfo.has_cover
-                        and bookinfo.cover_fetched and not bookinfo.ignore_cover
-                        and not invalid then
-                    local cover_bb = bookinfo.cover_bb
-                    if need_copy then
-                        cover_bb = cover_bb:copy()
-                        bookinfo.cover_bb:free()
+                    and BookInfoManager.isCachedCoverInvalid(bookinfo, preview_specs)
+                local cached_cover
+                if has_real_cover(bookinfo) and not invalid and preview_w and preview_h then
+                    local cached_w, cached_h
+                    if cover_specs.uniform == false then
+                        cached_w, cached_h = CoverUtils.fitDims(
+                            preview_w, preview_h, bookinfo.cover_w, bookinfo.cover_h)
+                    else
+                        cached_w, cached_h = CoverUtils.calcDims(preview_w, preview_h)
                     end
+                    cached_cover = RenderCache:get(fpath, cached_w, cached_h)
+                    if cached_cover then
+                        table.insert(covers, {
+                            data = cached_cover,
+                            w = cached_w,
+                            h = cached_h,
+                        })
+                    end
+                end
+                if not cached_cover and cached_only then
+                    if bookinfo and not invalid and enabled(bookinfo.cover_fetched)
+                            and not has_real_cover(bookinfo) then
+                        local metadata = entry.doc_props or bookinfo
+                        local cover_bb, pw, ph = CoverUtils.getCachedGeneratedCover(
+                            fpath, preview_w or 200, preview_h or 300, nil, metadata)
+                        if cover_bb then
+                            table.insert(covers, { data = cover_bb, w = pw, h = ph })
+                        else
+                            needs_hydration = true
+                            break
+                        end
+                    else
+                        needs_hydration = true
+                        break
+                    end
+                elseif not cached_cover then
+                    if not bookinfo or invalid or has_real_cover(bookinfo)
+                            or not enabled(bookinfo.cover_fetched) then
+                        bookinfo = BookInfoManager:getBookInfo(fpath, true)
+                    end
+                end
+                if not cached_only and not cached_cover and bookinfo and bookinfo.cover_bb
+                        and has_real_cover(bookinfo) then
+                    local cover_bb = bookinfo.cover_bb
+                    bookinfo.cover_bb = nil
                     table.insert(covers, {
                         data = cover_bb,
                         w = bookinfo.cover_w,
                         h = bookinfo.cover_h,
                         cache_key = fpath,
                     })
-                else
+                elseif not cached_only and not cached_cover and bookinfo then
                     if bookinfo and bookinfo.cover_bb then bookinfo.cover_bb:free() end
                     local metadata = entry.doc_props or bookinfo
-                    local cover_bb, pw, ph = CoverUtils.genCover(fpath, 200, 300, nil, metadata)
+                    local cover_bb, pw, ph = CoverUtils.genCover(
+                        fpath, preview_w or 200, preview_h or 300, nil, metadata)
                     if cover_bb then
                         table.insert(covers, { data = cover_bb, w = pw, h = ph })
                     end
@@ -526,7 +636,7 @@ function CoverUtils.collect(dir_path, chooser, max_covers, need_copy, entries, c
         end
     end
 
-    return covers
+    return covers, needs_hydration
 end
 
 -- ============================================================
@@ -565,6 +675,9 @@ local function previewCover(cover, max_w, max_h, uniform, ImageWidget)
     end
     if cover.cache_key then
         cover.data = RenderCache:render(cover.cache_key, cover.data, width, height)
+        source_w, source_h = width, height
+    end
+    if source_w == width and source_h == height then
         scale_factor = 1
     end
     return ImageWidget:new{
@@ -576,7 +689,115 @@ local function previewCover(cover, max_w, max_h, uniform, ImageWidget)
     }, width, height
 end
 
-function CoverUtils.drawGallery(covers, portrait_w, portrait_h, border, bg_fn, uniform)
+function CoverUtils.galleryCacheKey(identity, entries, portrait_w, portrait_h, uniform)
+    if not identity or type(entries) ~= "table" then return nil end
+    local parts = {
+        "zen-gallery-v1", tostring(identity), tostring(portrait_w), tostring(portrait_h),
+        tostring(uniform ~= false), tostring(CoverUtils.getRatio()),
+        tostring(library_font.getFontName()), tostring(library_font.getBaseSize()),
+    }
+    for index = 1, math.min(4, #entries) do
+        local entry = entries[index]
+        local path = type(entry) == "table" and (entry.path or entry.file) or entry
+        if not path then return nil end
+        local metadata = type(DecodeCache.getFreshMetadata) == "function"
+            and DecodeCache:getFreshMetadata(path, now(), 30) or nil
+        if type(metadata) ~= "table" then return nil end
+        parts[#parts + 1] = table.concat({
+            tostring(path), tostring(metadata.filesize), tostring(metadata.filemtime),
+            tostring(metadata.cover_fetched), tostring(metadata.has_cover),
+            tostring(metadata.cover_sizetag), tostring(metadata.ignore_cover),
+            tostring(metadata.ignore_meta),
+            tostring(metadata.cover_w), tostring(metadata.cover_h),
+            tostring(metadata.title), tostring(metadata.authors),
+        }, "\30")
+    end
+    return table.concat(parts, "\31")
+end
+
+local gallery_rect_cache = { values = {}, order = {} }
+local GalleryImageWidget
+
+local function rememberGalleryRects(cache_key, rects)
+    if not cache_key then return end
+    if not gallery_rect_cache.values[cache_key] then
+        gallery_rect_cache.order[#gallery_rect_cache.order + 1] = cache_key
+    end
+    gallery_rect_cache.values[cache_key] = rects
+    while #gallery_rect_cache.order > 64 do
+        gallery_rect_cache.values[table.remove(gallery_rect_cache.order, 1)] = nil
+    end
+end
+
+local function galleryFrame(image_bb, portrait_w, portrait_h, border, bg, cover_rects)
+    local CenterContainer = require("ui/widget/container/centercontainer")
+    local FrameContainer = require("ui/widget/container/framecontainer")
+    if not GalleryImageWidget then
+        local ImageWidget = require("ui/widget/imagewidget")
+        local Screen = require("device").screen
+        GalleryImageWidget = ImageWidget:extend{}
+        function GalleryImageWidget:paintTo(bb, x, y)
+            if self.hide then return end
+            ImageWidget.paintTo(self, bb, x, y)
+            if not Screen.night_mode then return end
+            for _i, rect in ipairs(self.cover_rects or {}) do
+                bb:invertRect(x + rect.x, y + rect.y, rect.w, rect.h)
+            end
+        end
+    end
+    local dimen = { w = portrait_w + 2 * border, h = portrait_h + 2 * border }
+    return FrameContainer:new{
+        padding = 0,
+        bordersize = border,
+        width = dimen.w,
+        height = dimen.h,
+        background = bg,
+        CenterContainer:new{
+            dimen = { w = portrait_w, h = portrait_h },
+            GalleryImageWidget:new{
+                image = image_bb,
+                image_disposable = true,
+                width = portrait_w,
+                height = portrait_h,
+                scale_factor = 1,
+                original_in_nightmode = false,
+                cover_rects = cover_rects,
+            },
+        },
+        overlap_align = "center",
+    }
+end
+
+function CoverUtils.getCachedGallery(cache_key, portrait_w, portrait_h, border, bg_fn)
+    if not cache_key then return nil end
+    local cached = RenderCache:get(cache_key, portrait_w, portrait_h)
+    if not cached then return nil end
+    local bg = bg_fn and bg_fn() or coverBg()
+    return galleryFrame(cached, portrait_w, portrait_h, border, bg,
+        gallery_rect_cache.values[cache_key])
+end
+
+function CoverUtils.hasCachedGallery(cache_key, portrait_w, portrait_h)
+    if not cache_key then return false end
+    if type(RenderCache.touchExact) == "function" then
+        return RenderCache:touchExact(cache_key, portrait_w, portrait_h)
+    end
+    return type(RenderCache.hasExact) == "function"
+        and RenderCache:hasExact(cache_key, portrait_w, portrait_h) or false
+end
+
+function CoverUtils.drawGallery(covers, portrait_w, portrait_h, border, bg_fn, uniform,
+        cache_key)
+    local bg = bg_fn and bg_fn() or coverBg()
+    local cached = CoverUtils.getCachedGallery(
+        cache_key, portrait_w, portrait_h, border, bg_fn)
+    if cached then
+        for index = 1, #covers do
+            local data = covers[index] and covers[index].data
+            if data and type(data.free) == "function" then pcall(data.free, data) end
+        end
+        return cached, true, false
+    end
     local sep = 1
     local half_w = math.floor((portrait_w - sep) / 2)
     local half_w2 = portrait_w - sep - half_w
@@ -598,11 +819,26 @@ function CoverUtils.drawGallery(covers, portrait_w, portrait_h, border, bg_fn, u
     local VerticalSpan = require("ui/widget/verticalspan")
 
     local cells = {}
+    local cover_rects = {}
+    local cell_origins = {
+        { x = 0, y = 0 },
+        { x = half_w + sep, y = 0 },
+        { x = 0, y = half_h + sep },
+        { x = half_w + sep, y = half_h + sep },
+    }
     for i = 1, 4 do
         local c = covers[i]
         local cd = cell_dims[i]
         if c then
-            local image = previewCover(c, cd.w, cd.h, uniform, ImageWidget)
+            local image, image_w, image_h = previewCover(
+                c, cd.w, cd.h, uniform, ImageWidget)
+            image.original_in_nightmode = false
+            cover_rects[#cover_rects + 1] = {
+                x = cell_origins[i].x + math.floor((cd.w - image_w) / 2),
+                y = cell_origins[i].y + math.floor((cd.h - image_h) / 2),
+                w = image_w,
+                h = image_h,
+            }
             cells[i] = CenterContainer:new{
                 dimen = { w = cd.w, h = cd.h },
                 image,
@@ -615,42 +851,61 @@ function CoverUtils.drawGallery(covers, portrait_w, portrait_h, border, bg_fn, u
         end
     end
 
-    local bg = bg_fn and bg_fn() or coverBg()
     local dimen = { w = portrait_w + 2 * border, h = portrait_h + 2 * border }
-
-    return FrameContainer:new{
-        padding = 0,
-        bordersize = border,
-        width = dimen.w,
-        height = dimen.h,
-        background = bg,
-        CenterContainer:new{
-            dimen = { w = portrait_w, h = portrait_h },
-            VerticalGroup:new{
-                HorizontalGroup:new{
-                    cells[1],
-                    LineWidget:new{
-                        background = Blitbuffer.COLOR_WHITE,
-                        dimen = { w = sep, h = half_h },
-                    },
-                    cells[2],
-                },
+    local inner = CenterContainer:new{
+        dimen = { w = portrait_w, h = portrait_h },
+        VerticalGroup:new{
+            HorizontalGroup:new{
+                cells[1],
                 LineWidget:new{
                     background = Blitbuffer.COLOR_WHITE,
-                    dimen = { w = portrait_w, h = sep },
+                    dimen = { w = sep, h = half_h },
                 },
-                HorizontalGroup:new{
-                    cells[3],
-                    LineWidget:new{
-                        background = Blitbuffer.COLOR_WHITE,
-                        dimen = { w = sep, h = half_h2 },
-                    },
-                    cells[4],
+                cells[2],
+            },
+            LineWidget:new{
+                background = Blitbuffer.COLOR_WHITE,
+                dimen = { w = portrait_w, h = sep },
+            },
+            HorizontalGroup:new{
+                cells[3],
+                LineWidget:new{
+                    background = Blitbuffer.COLOR_WHITE,
+                    dimen = { w = sep, h = half_h2 },
                 },
+                cells[4],
             },
         },
-        overlap_align = "center",
     }
+    local ok_buffer, composite = pcall(
+        Blitbuffer.new, portrait_w, portrait_h, Blitbuffer.TYPE_BBRGB32)
+    local ok_paint = false
+    if ok_buffer and composite then
+        composite:paintRect(0, 0, portrait_w, portrait_h, bg)
+        ok_paint = pcall(inner.paintTo, inner, composite, 0, 0)
+    end
+    if not ok_paint then
+        if composite and type(composite.free) == "function" then composite:free() end
+        return FrameContainer:new{
+            padding = 0,
+            bordersize = border,
+            width = dimen.w,
+            height = dimen.h,
+            background = bg,
+            inner,
+            overlap_align = "center",
+        }, false, false
+    end
+    inner:free()
+    local stored = false
+    if cache_key then
+        RenderCache:put(cache_key, portrait_w, portrait_h, composite)
+        stored = type(RenderCache.hasExact) == "function"
+            and RenderCache:hasExact(cache_key, portrait_w, portrait_h) or false
+        if stored then rememberGalleryRects(cache_key, cover_rects) end
+    end
+    return galleryFrame(
+        composite, portrait_w, portrait_h, border, bg, cover_rects), false, stored
 end
 
 function CoverUtils.drawStack(covers, portrait_w, portrait_h, border, bg_fn, uniform)

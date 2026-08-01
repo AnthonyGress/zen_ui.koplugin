@@ -80,6 +80,44 @@ function ZenScreen:_computeLayout()
     }
 end
 
+function ZenScreen:_normalizeButtonFocus()
+    if self._button_focus == "primary" and self.button ~= false then return end
+    if self._button_focus == "later" and self.later_button then return end
+    self._button_focus = self.button ~= false and "primary"
+        or (self.later_button and "later" or nil)
+end
+
+function ZenScreen:_moveButtonFocus()
+    self:_normalizeButtonFocus()
+    if not self._button_focus then return true end
+    local next_button = self._button_focus
+    if self.button ~= false and self.later_button then
+        next_button = self._button_focus == "primary" and "later" or "primary"
+    end
+    local needs_repaint = not self._button_focus_visible or next_button ~= self._button_focus
+    self._button_focus = next_button
+    self._button_focus_visible = true
+    if needs_repaint then
+        UIManager:setDirty(self, function() return "fast", self.dimen end)
+    end
+    return true
+end
+
+function ZenScreen:_activateButton(button)
+    if button == "later" and self.later_button then
+        self:onClose()
+    elseif button == "primary" and self.button ~= false then
+        if self._on_button_action then
+            self._on_button_action()
+        else
+            self:onClose()
+        end
+    elseif self.dismissable then
+        self:onClose()
+    end
+    return true
+end
+
 function ZenScreen:init()
     logger.info("init title=", self.title)
     local sw = Screen:getWidth()
@@ -93,6 +131,8 @@ function ZenScreen:init()
     self._scroll_w = nil
     self._scroll_h = nil
     self._scroll_top_line_num = nil
+    self._button_focus_visible = Device:hasDPad() and not Device:isTouchDevice()
+    self:_normalizeButtonFocus()
 
     self:registerTouchZones({
         {
@@ -118,11 +158,26 @@ function ZenScreen:init()
             },
             ZsConfirmPgFwd = {
                 { Input.group.PgFwd },
-                event = "ZsConfirm",
+                event = "ZsPrimary",
             },
             ZsDismiss = {
                 { Input.group.PgBack },
                 event = "ZsDismiss",
+            },
+            ZsCancelOrClose = {
+                { Input.group.Back },
+                { "Home" },
+                event = "ZsCancelOrClose",
+            },
+            ZsFocusNext = {
+                { "Right" },
+                { "Tab" },
+                event = "ZsFocusNext",
+            },
+            ZsFocusPrevious = {
+                { "Left" },
+                { "Shift", "Tab" },
+                event = "ZsFocusPrevious",
             },
         }
     end
@@ -174,18 +229,15 @@ function ZenScreen:_point_in_rect(point, rect)
         and point.y >= rect.y and point.y < rect.y + rect.h
 end
 
--- Enter/PgFwd: activate primary button (or dismiss if no button)
+-- Enter: activate the focused button (or dismiss if there are no buttons).
 function ZenScreen:onZsConfirm()
-    if self.button ~= false then
-        if self._on_button_action then
-            self._on_button_action()
-        else
-            self:onClose()
-        end
-    elseif self.dismissable then
-        self:onClose()
-    end
-    return true
+    self:_normalizeButtonFocus()
+    return self:_activateButton(self._button_focus)
+end
+
+-- PgFwd retains its existing primary-action shortcut.
+function ZenScreen:onZsPrimary()
+    return self:_activateButton("primary")
 end
 
 -- PgBack: activate "Later" / dismiss
@@ -194,6 +246,23 @@ function ZenScreen:onZsDismiss()
         self:onClose()
     end
     return true
+end
+
+function ZenScreen:onZsCancelOrClose()
+    if self.dismissable then
+        self:onClose()
+    elseif self.button ~= false then
+        self:_activateButton("primary")
+    end
+    return true
+end
+
+function ZenScreen:onZsFocusNext()
+    return self:_moveButtonFocus()
+end
+
+function ZenScreen:onZsFocusPrevious()
+    return self:_moveButtonFocus()
 end
 
 function ZenScreen:paintTo(bb, x, y)
@@ -436,6 +505,14 @@ function ZenScreen:paintTo(bb, x, y)
                 bb, btn_x, btn_y, btn_w, btn_h, lbl, 22, corner_r)
         end
     end
+    self:_normalizeButtonFocus()
+    if self._button_focus_visible then
+        local focus_rect = self._button_focus == "later"
+            and self._later_btn_rect or self._btn_rect
+        if focus_rect then
+            bb:invertRect(focus_rect.x, focus_rect.y, focus_rect.w, focus_rect.h)
+        end
+    end
 end
 
 function ZenScreen:_onSwipe(ges)
@@ -456,19 +533,13 @@ function ZenScreen:_onTap(ges)
     -- Later button: always dismisses
     if lr and p.x >= lr.x and p.x < lr.x + lr.w
            and p.y >= lr.y and p.y < lr.y + lr.h then
-        self:onClose()
-        return true
+        return self:_activateButton("later")
     end
 
     -- Primary button: call action override if set, otherwise close
     if br and p.x >= br.x and p.x < br.x + br.w
            and p.y >= br.y and p.y < br.y + br.h then
-        if self._on_button_action then
-            self._on_button_action()
-        else
-            self:onClose()
-        end
-        return true
+        return self:_activateButton("primary")
     end
 
     if self._scroll_text_w and self:_point_in_rect(p, self._scroll_rect) then
@@ -501,6 +572,7 @@ function ZenScreen:update(opts)
     if opts.later_button ~= nil then self.later_button = opts.later_button end
     if opts.dismissable ~= nil then self.dismissable = opts.dismissable end
     if opts.on_button ~= nil then self._on_button_action = opts.on_button end
+    self:_normalizeButtonFocus()
     if text_changed then
         if opts.preserve_scroll and self._scroll_text_w
             and self._scroll_text_w.text_widget

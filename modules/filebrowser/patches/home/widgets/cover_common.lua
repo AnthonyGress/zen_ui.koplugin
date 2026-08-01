@@ -171,20 +171,42 @@ function M.decorate_cover_frame(frame)
     return frame
 end
 
+local function release_shared_on_free(widget, cache_key, cover_bb)
+    if not widget or not cache_key or type(RenderCache.releaseShared) ~= "function" then return end
+    local original_free = widget.free
+    local released = false
+    widget.free = function(self, ...)
+        local result = original_free(self, ...)
+        if not released then
+            released = true
+            RenderCache:releaseShared(cache_key, cover_bb)
+        end
+        return result
+    end
+end
+
+local function free_bitmap(bb)
+    if bb and bb.free then pcall(bb.free, bb) end
+end
+
 function M.make_cover_widget(book, max_w, max_h, opts)
     opts = opts or {}
     local border = tonumber(opts.border) or M.BORDER_SIZE
     local bg = opts.background or Blitbuffer.COLOR_LIGHT_GRAY
     local target_w, target_h
-    local preserve_aspect = opts.uniform == false and book and book.cover_bb
-    if preserve_aspect then
-        local source_w, source_h = tonumber(book.cover_w), tonumber(book.cover_h)
-        if not source_w or source_w <= 0 or not source_h or source_h <= 0 then
+    local source_w, source_h
+    if opts.uniform == false and book then
+        source_w, source_h = tonumber(book.cover_w), tonumber(book.cover_h)
+        if (not source_w or source_w <= 0 or not source_h or source_h <= 0)
+                and book.cover_bb then
             local ok, width, height = pcall(function()
                 return book.cover_bb:getWidth(), book.cover_bb:getHeight()
             end)
             if ok then source_w, source_h = width, height end
         end
+    end
+    local preserve_aspect = source_w and source_w > 0 and source_h and source_h > 0
+    if preserve_aspect then
         target_w, target_h = CoverUtils.fitDims(max_w, max_h, source_w, source_h)
     else
         target_w, target_h = calc_uniform_dims(max_w, max_h)
@@ -197,42 +219,74 @@ function M.make_cover_widget(book, max_w, max_h, opts)
     end
 
     local child
-    if book and book.cover_bb then
-        local cover_bb = book.cover_bb
+    local cover_bb
+    local cache_owned = false
+    local cache_key
+    local needs_hydration = false
+    if book and book.has_real_cover == true and book.path then
+        cover_bb = RenderCache:getShared(book.path, target_w, target_h)
+        cache_owned = cover_bb ~= nil
+        cache_key = cache_owned and book.path or nil
+        if not cover_bb and type(RenderCache.get) == "function" then
+            cover_bb = RenderCache:get(book.path, target_w, target_h)
+        end
+        if cover_bb and book.cover_bb then
+            free_bitmap(book.cover_bb)
+            book.cover_bb = nil
+        end
+    end
+    if not cover_bb and book and book.cover_bb then
+        cover_bb = book.cover_bb
         book.cover_bb = nil
         if book.path then
-            cover_bb = RenderCache:render(book.path, cover_bb, target_w, target_h)
+            cover_bb, cache_owned = RenderCache:renderShared(
+                book.path, cover_bb, target_w, target_h)
+            cache_key = cache_owned and book.path or nil
         end
+    end
+    if cover_bb then
         child = ImageWidget:new{
             image = cover_bb,
-            image_disposable = true,
+            image_disposable = not cache_owned,
             width = target_w,
             height = target_h,
+            scale_factor = 1,
+        }
+        if cache_owned then release_shared_on_free(child, cache_key, cover_bb) end
+    elseif book and book.is_cover_pending then
+        needs_hydration = true
+        child = Widget:new{
+            dimen = Geom:new{ w = target_w, h = target_h },
         }
     elseif book and book.is_empty_placeholder then
-        local fake_cover = CoverUtils.genCover(
+        local generated = { CoverUtils.genCoverShared(
             "zen-empty-placeholder", target_w, target_h, true,
             { title = "", authors = "", title_only = true }
-        )
+        ) }
+        local fake_cover, shared, generated_key = generated[1], generated[4], generated[5]
         if fake_cover then
             child = ImageWidget:new{
                 image = fake_cover,
-                image_disposable = true,
+                image_disposable = not shared,
                 width = target_w,
                 height = target_h,
                 scale_factor = 1,
             }
+            if shared then release_shared_on_free(child, generated_key, fake_cover) end
         end
     elseif book and type(book.path) == "string" and book.path ~= "" then
-        local fake_cover = CoverUtils.genCover(book.path, target_w, target_h, nil, book.bookinfo)
+        local generated = { CoverUtils.genCoverShared(
+            book.path, target_w, target_h, nil, book.bookinfo) }
+        local fake_cover, shared, generated_key = generated[1], generated[4], generated[5]
         if fake_cover then
             child = ImageWidget:new{
                 image = fake_cover,
-                image_disposable = true,
+                image_disposable = not shared,
                 width = target_w,
                 height = target_h,
                 scale_factor = 1,
             }
+            if shared then release_shared_on_free(child, generated_key, fake_cover) end
         end
     end
     if not child then
@@ -256,7 +310,7 @@ function M.make_cover_widget(book, max_w, max_h, opts)
     if type(opts.decorate) == "function" then
         opts.decorate(frame)
     end
-    return M.decorate_cover_frame(frame), target_w, target_h
+    return M.decorate_cover_frame(frame), target_w, target_h, needs_hydration
 end
 
 function M.make_empty_cover_widget(source, max_w, max_h, opts)

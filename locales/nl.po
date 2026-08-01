@@ -975,8 +975,8 @@ msgstr "Lijstranden verbergen"
 msgid "Hide reader actions in library"
 msgstr "Leesacties in bibliotheek verbergen"
 
-msgid "Hide TBR books"
-msgstr "Boeken op de leeslijst verbergen"
+msgid "Hide on-hold books"
+msgstr "Boeken in de wacht verbergen"
 
 msgid "Hide unread books"
 msgstr "Ongelezen boeken verbergen"
@@ -1899,8 +1899,8 @@ msgstr "Aantal items weergeven"
 msgid "Show item underline"
 msgstr "Itemonderstreping weergeven"
 
-msgid "Show KOReader progress bar"
-msgstr "KOReader-voortgangsbalk weergeven"
+msgid "Show progress bar"
+msgstr "Voortgangsbalk weergeven"
 
 msgid "Show labels"
 msgstr "Labels weergeven"
@@ -1917,8 +1917,8 @@ msgstr "Andere snelle KOReader-opzoekopties naast Zen-knoppen weergeven."
 msgid "Show page count"
 msgstr "Paginatelling weergeven"
 
-msgid "Show progress % on mosaic covers"
-msgstr "Voortgang % op mozaïekomslagen weergeven"
+msgid "Show reading progress"
+msgstr "Leesvoortgang tonen"
 
 msgid "Show separator"
 msgstr "Scheidingsteken weergeven"

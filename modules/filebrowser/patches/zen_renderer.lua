@@ -44,11 +44,15 @@ local function apply_zen_renderer()
     local Size = require("ui/size")
     local CoverWidget = require("modules/filebrowser/patches/home/widgets/cover_common")
     local CoverUtils = require("common/cover_utils")
+    local DecodeCache = require("common/cover_decode_cache")
+    local RenderCache = require("common/cover_render_cache")
     local FolderCover = require("modules/filebrowser/folder_cover")
     local Background = require("common/ui/background")
     local book_status = require("common/book_status")
     local library_font = require("modules/filebrowser/patches/library_font")
     local utils = require("common/utils")
+    local now = require("common/zen_logger").now
+    local METADATA_TTL_S = 30
 
     local ZenMosaicItem = InputContainer:extend{
         entry = nil,
@@ -71,6 +75,40 @@ local function apply_zen_renderer()
     local function covers_suppressed(menu)
         return (menu and menu.no_refresh_covers == true)
             or rawget(_G, "__ZEN_UI_SUPPRESS_FILEMANAGER_COVERS") == true
+    end
+
+    local function fresh_metadata(path)
+        if type(DecodeCache.getFreshMetadata) == "function" then
+            local cached = DecodeCache:getFreshMetadata(path, now(), METADATA_TTL_S)
+            if cached then return cached end
+        end
+    end
+
+    local function metadata_without_cover(path)
+        local cached = fresh_metadata(path)
+        if cached then return cached end
+        return BookInfoManager:getBookInfo(path, false)
+    end
+
+    local function valid_real_cover(info, specs)
+        if not info or not info.cover_fetched or not info.has_cover or info.ignore_cover then
+            return false
+        end
+        return type(BookInfoManager.isCachedCoverInvalid) ~= "function"
+            or not BookInfoManager.isCachedCoverInvalid(info, specs)
+    end
+
+    local function queue_cover_hydration(item, kind)
+        if item._zen_cover_hydration_queued then return end
+        local menu = item.menu
+        if not menu then return end
+        menu._zen_cover_hydration_items = menu._zen_cover_hydration_items or {}
+        item._zen_cover_hydration_queued = true
+        item._zen_cover_hydration_kind = kind or "book"
+        menu._zen_cover_hydration_items[#menu._zen_cover_hydration_items + 1] = item
+        if type(menu._zen_request_cover_hydration) == "function" then
+            menu:_zen_request_cover_hydration()
+        end
     end
 
     local function is_file_manager_select_mode()
@@ -346,6 +384,7 @@ local function apply_zen_renderer()
     end
 
     local function update_folder(item, show_title, show_author, strip_h, content_h)
+        local hydrating_folder = item._zen_folder_hydrating == true
         local target_w, target_h, border, uniform = cover_dimensions(item.width, content_h)
         local max_w = math.max(1, item.width - 2 * border)
         local max_h = math.max(1, content_h - 2 * border)
@@ -355,11 +394,34 @@ local function apply_zen_renderer()
             uniform = uniform,
         }
         item.menu.cover_specs = item.do_cover_image and specs or false
+        local wants_preview = item.do_cover_image and not covers_suppressed(item.menu)
         local result = FolderCover.build(item.menu, item.entry, item.text, max_w, max_h, {
-            load_covers = item.do_cover_image and not covers_suppressed(item.menu),
+            load_covers = wants_preview,
+            cached_only = wants_preview and not hydrating_folder,
             cover_specs = specs,
             uniform = uniform,
         })
+        local perf = result.perf
+        local measure = item.menu._zen_folder_build_measure
+        if measure then
+            measure.builds = measure.builds + 1
+            if perf and perf.descriptor_cache_hit then
+                measure.descriptor_hits = measure.descriptor_hits + 1
+            end
+            if perf then
+                measure.candidates = measure.candidates + (perf.candidate_count or 0)
+                measure.enumeration_ms = measure.enumeration_ms + (perf.enumeration_ms or 0)
+                measure.explicit_ms = measure.explicit_ms + (perf.explicit_ms or 0)
+                measure.collect_ms = measure.collect_ms + (perf.collect_ms or 0)
+                measure.draw_ms = measure.draw_ms + (perf.draw_ms or 0)
+                if perf.composite_cache_hit then
+                    measure.composite_hits = measure.composite_hits + 1
+                end
+                if perf.composite_built then
+                    measure.composite_builds = measure.composite_builds + 1
+                end
+            end
+        end
 
         item.is_directory = true
         item.bookinfo_found = true
@@ -381,6 +443,9 @@ local function apply_zen_renderer()
         result.frame.dim = item.file_deleted and true or nil
         item._has_cover_image = result.cover_count > 0
         if item._has_cover_image then item.menu._has_cover_images = true end
+        if result.needs_hydration and not hydrating_folder then
+            queue_cover_hydration(item, "folder")
+        end
 
         local cover = CenterContainer:new{
             dimen = Geom:new{ w = item.width, h = content_h },
@@ -410,6 +475,8 @@ local function apply_zen_renderer()
     end
 
     function ZenMosaicItem:update()
+        local hydrating_cover = self._zen_cover_hydrating == true
+        local preserve_metadata_state = hydrating_cover and self._zen_metadata_ready == true
         local show_title, show_author = strip_options()
         local strip_h = strip_metrics(show_title, show_author)
         local content_h = math.max(1, self.height - strip_h)
@@ -427,12 +494,15 @@ local function apply_zen_renderer()
         self.cover_specs = nil
         self._zen_cover_frame = nil
         self._cover_frame = nil
-        self.status = nil
-        self.percent_finished = nil
-        self._zen_effective_status = nil
-        self._zen_is_fav = false
-        self._zen_page_label = nil
-        self._zen_series_label = nil
+        if not preserve_metadata_state then
+            self.status = nil
+            self.percent_finished = nil
+            self._zen_effective_status = nil
+            self._zen_is_fav = false
+            self._zen_page_label = nil
+            self._zen_series_label = nil
+            self._zen_metadata_ready = nil
+        end
         self._zen_folder_count = nil
         self._zen_folder_title = nil
         self._foldercover_processed = nil
@@ -446,39 +516,80 @@ local function apply_zen_renderer()
         self.menu._zen_file_cover_specs = self.do_cover_image and specs or false
 
         local want_cover = self.do_cover_image and not covers_suppressed(self.menu)
-        local metadata = BookInfoManager:getBookInfo(self.filepath, want_cover)
-        local info = metadata
-        if info and want_cover and not info.ignore_cover and not self.file_deleted then
-            if not info.cover_fetched then
-                info = nil
-            elseif info.has_cover
-                    and type(BookInfoManager.isCachedCoverInvalid) == "function"
-                    and BookInfoManager.isCachedCoverInvalid(info, specs) then
-                if info.cover_bb then
-                    info.cover_bb:free()
-                    info.cover_bb = nil
+        local metadata
+        local info
+        local cached_final = false
+        local hydrate_later = false
+        if want_cover and not self.file_deleted
+                and type(RenderCache.hasExact) == "function" then
+            local render_w, render_h
+            if uniform then
+                render_w, render_h = CoverUtils.calcDims(target_w, target_h)
+            else
+                metadata = metadata_without_cover(self.filepath)
+                if valid_real_cover(metadata, specs)
+                        and tonumber(metadata.cover_w) and tonumber(metadata.cover_h) then
+                    render_w, render_h = CoverUtils.fitDims(
+                        target_w, target_h, metadata.cover_w, metadata.cover_h)
                 end
-                info = nil
+            end
+            if render_w and render_h and RenderCache:hasExact(
+                    self.filepath, render_w, render_h) then
+                metadata = metadata or metadata_without_cover(self.filepath)
+                if valid_real_cover(metadata, specs) then
+                    info = metadata
+                    cached_final = true
+                elseif type(RenderCache.drop) == "function" then
+                    RenderCache:drop(self.filepath)
+                end
+            end
+        end
+        if not info then
+            metadata = metadata or metadata_without_cover(self.filepath)
+            if hydrating_cover and want_cover and not self.file_deleted
+                    and valid_real_cover(metadata, specs) then
+                metadata = BookInfoManager:getBookInfo(self.filepath, true)
+            end
+            info = metadata
+            if info and want_cover and not info.ignore_cover and not self.file_deleted then
+                if not info.cover_fetched then
+                    info = nil
+                elseif info.has_cover
+                        and type(BookInfoManager.isCachedCoverInvalid) == "function"
+                        and BookInfoManager.isCachedCoverInvalid(info, specs) then
+                    if info.cover_bb then
+                        info.cover_bb:free()
+                        info.cover_bb = nil
+                    end
+                    if type(RenderCache.drop) == "function" then
+                        RenderCache:drop(self.filepath)
+                    end
+                    info = nil
+                elseif info.has_cover and not info.cover_bb then
+                    hydrate_later = not hydrating_cover
+                end
             end
         end
         local cover
-        if metadata then
+        if metadata and not preserve_metadata_state then
             local status_data = book_status.getFileStatusData(self.filepath)
             self.status = status_data.status
             self.percent_finished = status_data.percent_finished
-            self._zen_effective_status = status_data.effective_status
+            self._zen_effective_status = status_data.display_status or status_data.effective_status
             local config = plugin_config()
             local badge = config.browser_cover_badges or {}
             local is_collection = self.menu.name == "collections" or self.menu._zen_coll_list
             if badge.show_favorite_badge == true and not is_collection then
                 local ReadCollection = require("readcollection")
-                self._zen_is_fav = ReadCollection:isFileInCollections(self.filepath, true)
+                local favorites = ReadCollection.default_collection_name or "favorites"
+                self._zen_is_fav = ReadCollection:isFileInCollection(self.filepath, favorites)
             end
             if config.browser_page_count and config.browser_page_count.show_page_count then
                 local pages = utils.getStablePageCount(self.filepath, metadata.pages, {
                     doc_settings = status_data.doc_settings,
                     sidecar_checked = status_data.sidecar_checked,
                     book_info = status_data.book_info,
+                    book_info_checked = true,
                 })
                 if pages then self._zen_page_label = utils.formatPageCount(pages) end
             end
@@ -489,11 +600,12 @@ local function apply_zen_renderer()
                         or string.format("#%.1f", index)
                 end
             end
+            self._zen_metadata_ready = true
         end
         if info then
             self.bookinfo_found = true
             self._has_cover_image = want_cover and info.has_cover
-                and not info.ignore_cover and info.cover_bb ~= nil
+                and not info.ignore_cover and (cached_final or info.cover_bb ~= nil)
         else
             self.cover_specs = specs
         end
@@ -505,6 +617,8 @@ local function apply_zen_renderer()
             cover_bb = self._has_cover_image and info.cover_bb or nil,
             cover_w = self._has_cover_image and info.cover_w or nil,
             cover_h = self._has_cover_image and info.cover_h or nil,
+            has_real_cover = cached_final,
+            is_cover_pending = hydrate_later,
             -- false is intentional: generated filename covers must not repeat
             -- the BookInfo lookup the tile already performed.
             bookinfo = metadata or false,
@@ -525,6 +639,7 @@ local function apply_zen_renderer()
         }
         self._zen_cover_frame = frame
         if self._has_cover_image then self.menu._has_cover_images = true end
+        if hydrate_later then queue_cover_hydration(self) end
 
         local content = VerticalGroup:new{ align = "center", cover }
         if strip_h > 0 then
@@ -719,10 +834,11 @@ local function apply_zen_renderer()
         local dim_finished = badge.dim_finished_books == true and effective_status == "complete"
         local is_new = effective_status == "new"
         local do_check = effective_status == "complete" and not dim_finished
+        local do_tbr = effective_status == "tbr"
         local do_pause = effective_status == "abandoned"
-        local do_pct = not is_new and not dim_finished and not do_check and not do_pause
+        local do_pct = not is_new and not dim_finished and not do_check and not do_tbr and not do_pause
             and item.percent_finished ~= nil
-        if not (do_check or do_pause or do_pct) then return end
+        if not (do_check or do_tbr or do_pause or do_pct) then return end
 
         local frame = item._zen_cover_frame
         if not frame or not frame.dimen then return end
@@ -748,8 +864,9 @@ local function apply_zen_renderer()
             return
         end
 
-        local text = do_pause and "\u{F0150}" or (math.floor(100 * item.percent_finished) .. "%")
-        local font_size = do_pause and math.max(7, math.floor(size * 0.40))
+        local text = do_tbr and "\u{F0150}"
+            or (do_pause and "\u{F03E4}" or (math.floor(100 * item.percent_finished) .. "%"))
+        local font_size = (do_tbr or do_pause) and math.max(7, math.floor(size * 0.40))
             or math.max(7, math.floor(size * 0.24))
         local widget = badge_text(item, "_zen_progress_badge", text, font_size, foreground)
         local widget_size = widget:getSize()
@@ -780,7 +897,8 @@ local function apply_zen_renderer()
     local function paint_native_progress(item, bb, config)
         local badge = config.browser_cover_badges or {}
         if badge.show_native_progress_bar ~= true or item.percent_finished == nil
-                or item._zen_effective_status == "new" or item._zen_effective_status == "complete" then
+                or item._zen_effective_status == "new" or item._zen_effective_status == "tbr"
+                or item._zen_effective_status == "complete" then
             return
         end
         local frame = item._zen_cover_frame

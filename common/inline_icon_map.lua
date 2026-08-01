@@ -44,7 +44,8 @@ return {
     read_status  = "\u{F00C0}",  -- bookmark
     status       = "\u{F00BA}",  -- mdi-book-open-blank-variant (unread)
     reading      = "\u{F14F7}",  -- mdi-book-open
-    tbr          = "\u{F0954}",  -- mdi-clock-outline (to-be-read)
+    tbr          = "\u{F0150}",  -- mdi-clock (to-be-read)
+    on_hold      = "\u{F03E4}",
     finished     = "\u{F012C}",  -- mdi-check-circle
 
     -- metadata sort keys (context_menu.lua / collections.lua)

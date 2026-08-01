@@ -3,6 +3,7 @@ describe("Zen settings page", function()
     local PageModule
     local saved_modules
     local shown_widgets
+    local deferred_apply_flushes
 
     local dependency_names = {
         "gettext",
@@ -19,6 +20,7 @@ describe("Zen settings page", function()
         "common/ui/icon_menu_item",
         "modules/global/patches/menu_top_swipe",
         "modules/settings/zen_settings",
+        "modules/settings/zen_settings_apply",
         "common/ui/zen_settings_titlebar",
         "apps/filemanager/filemanager",
     }
@@ -70,6 +72,7 @@ describe("Zen settings page", function()
     before_each(function()
         saved_modules = {}
         shown_widgets = {}
+        deferred_apply_flushes = 0
         for _i, name in ipairs(dependency_names) do
             saved_modules[name] = package.loaded[name] or false
         end
@@ -102,6 +105,11 @@ describe("Zen settings page", function()
         })
         ZenSpec.replace("modules/settings/zen_settings", {
             build = function() return { sub_item_table = {} } end,
+        })
+        ZenSpec.replace("modules/settings/zen_settings_apply", {
+            flush_deferred_on_settings_close = function()
+                deferred_apply_flushes = deferred_apply_flushes + 1
+            end,
         })
         ZenSpec.replace("apps/filemanager/filemanager", {
             instance = {
@@ -247,6 +255,14 @@ describe("Zen settings page", function()
 
         assert.is_false(settings.invisible)
         assert.is_nil(settings._deferred_arrange_parent)
+    end)
+
+    it("flushes deferred setting changes after closing", function()
+        local settings = make_page({})
+
+        settings:closeMenu()
+
+        assert.are.equal(1, deferred_apply_flushes)
     end)
 
     it("restores the last page for six seconds after closing", function()

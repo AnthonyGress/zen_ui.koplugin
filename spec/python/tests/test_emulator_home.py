@@ -36,19 +36,19 @@ def _seed_home_settings(ko_home: Path) -> None:
   settings = {
     show_status_bar = false,
     rows = {
-      max_rows = 4,
-      order = { "datetime", "featured_recent", "strip_recent", "quotes" },
+      capacity_units = 10,
+      order = { "featured_recent", "stats_triplet", "strip_recent", "quotes" },
       enabled = {
-        datetime = true, featured_recent = true, strip_recent = true, quotes = true,
+        featured_recent = true, stats_triplet = true, strip_recent = true, quotes = true,
       },
     },
     modules = {
-      datetime = { show_module_title = false },
       featured_recent = {
         interactive = true, show_description = true, show_module_title = false,
         show_status_bar = false,
         progress_meta = { left = "percent", right = "total_pages" },
       },
+      stats_triplet = { show_module_title = false },
       strip_recent = {
         count = 4, interactive = true, order = "default",
         show_module_title = false, show_strip_titles = true, two_rows = false,
@@ -156,10 +156,12 @@ def test_home_renders_all_core_widgets_with_and_without_history(with_history: bo
             home = _wait_for_home(driver)
             assert home["active_tab_label"] == "Home"
             assert set(home["widget_ids"]) >= {
-                "datetime", "featured_recent", "strip_recent", "quotes",
+                "featured_recent", "stats_triplet", "strip_recent", "quotes",
             }
-            assert home["clock_refreshers"] >= 1
-
+            assert home["page_padding"] > 0
+            visual_gaps = home["visual_gaps"]
+            assert len(visual_gaps) == 3
+            assert max(visual_gaps) - min(visual_gaps) <= 1, visual_gaps
             screenshot = root / "home.png"
             driver.screenshot(screenshot)
             assert screenshot.stat().st_size > 0
@@ -241,12 +243,19 @@ def test_navbar_tabs_navigate_to_real_library_views() -> None:
         _seed_home_settings(ko_home)
         _seed_bookinfo(ko_home, fixture["epub"])
         socket_path = root / "driver.sock"
-        process = launch(runtime, ko_home, socket_path, root / "library")
+        process = launch(
+            runtime, ko_home, socket_path, root / "library",
+            zen_config_source="""return {
+  updater = { update_auto_check = false },
+  navbar = { default_tab = "home" },
+}
+""",
+        )
         try:
             wait_for_socket(socket_path)
             driver = ZenDriver(socket_path)
-            assert driver.command("activate_navbar_tab", id="home")["ok"] is True
-            _wait_for_home(driver)
+            home = _wait_for_home(driver)
+            assert home["active_tab_label"] == "Home"
 
             assert driver.command("activate_navbar_tab", id="books")["ok"] is True
             books = _wait_for_navbar(driver, "Library", None)

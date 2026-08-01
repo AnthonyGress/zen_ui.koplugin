@@ -10,6 +10,7 @@ local defaults = {
         bim_fbc_migrated = false,
         reader_footer_hide_cbz_default_migrated = false,
         context_menu_allow_delete_default_migrated = false,
+        tbr_collection_migrated = false,
     },
     updater = {
         just_updated_version = "",

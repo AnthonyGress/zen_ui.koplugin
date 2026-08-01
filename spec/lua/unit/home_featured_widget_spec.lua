@@ -127,6 +127,7 @@ describe("home featured widget", function()
             pages = 120,
         }
         local Featured = require("modules/filebrowser/patches/home/widgets/featured_common")
+        assert.are.equal("l", Featured.SIZE)
         local widget = Featured.build({
             width = 600,
             height = 220,
@@ -138,6 +139,8 @@ describe("home featured widget", function()
         }, "recently_read")
 
         assert.is_table(widget)
+        assert.are.equal("ui/widget/container/centercontainer", widget[1].kind)
+        assert.are.equal("ui/widget/container/topcontainer", widget[1][1].kind)
         assert.are.equal(1, #cover_calls)
         assert.are.equal(book, cover_calls[1].book)
         assert.is_true(has_text("Alpha"))

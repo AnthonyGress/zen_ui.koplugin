@@ -44,38 +44,17 @@ function M.build(ctx)
         end
     end
 
-    local pending_navbar_refresh = false
-    local pending_navbar_poll_active = false
-
-    local function is_filemanager_menu_open()
-        local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
-        if not ok_fm or not FileManager or not FileManager.instance then return false end
-        local fm = FileManager.instance
-        return fm.menu ~= nil and fm.menu.menu_container ~= nil
-    end
-
-    local function refresh_navbar_after_menu_close()
-        if is_filemanager_menu_open() then
-            UIManager:scheduleIn(0.25, refresh_navbar_after_menu_close)
+    local function queue_deferred_navbar_refresh()
+        if settings_apply and settings_apply.refresh_navbar_on_menu_close then
+            settings_apply.refresh_navbar_on_menu_close()
             return
         end
-        pending_navbar_poll_active = false
-        if not pending_navbar_refresh then return end
-        pending_navbar_refresh = false
         local reinject = rawget(_G, "__ZEN_UI_REINJECT_NAVBARS")
             or rawget(_G, "__ZEN_UI_REINJECT_FM_NAVBAR")
-        if reinject then
-            reinject()
+        if type(reinject) == "function" then
+            UIManager:scheduleIn(0, reinject)
         else
             save_and_apply("navbar")
-        end
-    end
-
-    local function queue_deferred_navbar_refresh()
-        pending_navbar_refresh = true
-        if not pending_navbar_poll_active then
-            pending_navbar_poll_active = true
-            UIManager:scheduleIn(0.25, refresh_navbar_after_menu_close)
         end
     end
 

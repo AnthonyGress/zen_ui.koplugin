@@ -410,6 +410,8 @@ local function home_state()
         menu_name = menu and menu.name or nil,
         widget_ids = widget_ids,
         book_paths = book_paths,
+        page_padding = menu and menu._zen_home_page_padding or 0,
+        visual_gaps = menu and menu._zen_home_visual_gaps or {},
         clock_refreshers = #(menu and menu._zen_home_clock_refreshers or {}),
         visible_texts = visible_texts,
         image_widget_count = menu and count_image_widgets(menu, {}, 0) or 0,

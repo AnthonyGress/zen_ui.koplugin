@@ -28,7 +28,7 @@ end
 return {
     id = "datetime",
     label = "Date/time widget",
-    size = { preferred_pct = 0.15, min_pct = 0.10, max_pct = 0.26, grow_priority = 2 },
+    size = "s",
     build = function(ctx)
         local width = ctx.width
         local height = ctx.height
@@ -44,6 +44,7 @@ return {
         local content_h
         local time_date_overlap = 0
         local top = 0
+        local visual_shift = 0
         local resources = {}
 
         local min_time_px = 4
@@ -125,6 +126,21 @@ return {
         end
 
         rebuild_clock_widgets()
+        if type(ctx.setContentBounds) == "function" then
+            local date_top = math.min(
+                height - date_h,
+                top + time_h - time_date_overlap + date_gap
+            )
+            local visual_top = math.min(top, date_top)
+            local visual_bottom = math.max(top + time_h, date_top + date_h)
+            ctx.setContentBounds{
+                top = visual_top,
+                bottom = visual_bottom,
+                min_shift = -visual_top,
+                max_shift = height - visual_bottom,
+                set_shift = function(shift) visual_shift = shift end,
+            }
+        end
 
         local content = WidgetResources.managedPaintWidget{
             dimen = Geom:new{ w = width, h = height },
@@ -132,8 +148,11 @@ return {
             paintTo = function(_self, bb, x, y)
                 local time_x = x + math.floor((width - (time_size.w or 0)) / 2)
                 local date_x = x + math.floor((width - (date_size.w or 0)) / 2)
-                local time_y = y + top
-                local date_y = math.min(y + height - date_h, time_y + time_h - time_date_overlap + date_gap)
+                local time_y = y + top + visual_shift
+                local date_y = math.min(
+                    y + height - date_h,
+                    y + top + time_h - time_date_overlap + date_gap
+                ) + visual_shift
                 time_widget:paintTo(bb, time_x, time_y)
                 date_widget:paintTo(bb, date_x, date_y)
             end,

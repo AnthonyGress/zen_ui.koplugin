@@ -975,8 +975,8 @@ msgstr "Ascunde marginile listei"
 msgid "Hide reader actions in library"
 msgstr "Ascunde acțiunile cititorului în bibliotecă"
 
-msgid "Hide TBR books"
-msgstr "Ascunde cărțile de citit"
+msgid "Hide on-hold books"
+msgstr "Ascunde cărțile în așteptare"
 
 msgid "Hide unread books"
 msgstr "Ascunde cărțile necitite"
@@ -1899,8 +1899,8 @@ msgstr "Arată numărul de elemente"
 msgid "Show item underline"
 msgstr "Afișează sublinierea elementului"
 
-msgid "Show KOReader progress bar"
-msgstr "Afișează bara de progres KOReader"
+msgid "Show progress bar"
+msgstr "Afișează bara de progres"
 
 msgid "Show labels"
 msgstr "Afișează etichete"
@@ -1917,8 +1917,8 @@ msgstr "Afișează alte opțiuni de căutare rapidă KOReader alături de butoan
 msgid "Show page count"
 msgstr "Afișează numărul de pagini"
 
-msgid "Show progress % on mosaic covers"
-msgstr "Afișează % progres pe copertele mozaicului"
+msgid "Show reading progress"
+msgstr "Afișează progresul de citire"
 
 msgid "Show separator"
 msgstr "Arată separatorul"

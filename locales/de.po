@@ -972,8 +972,8 @@ msgstr "Listenränder ausblenden"
 msgid "Hide reader actions in library"
 msgstr "Reader-Aktionen in Bibliothek ausblenden"
 
-msgid "Hide TBR books"
-msgstr "Bücher auf der Leseliste ausblenden"
+msgid "Hide on-hold books"
+msgstr "Zurückgestellte Bücher ausblenden"
 
 msgid "Hide unread books"
 msgstr "Ungelesene Bücher ausblenden"

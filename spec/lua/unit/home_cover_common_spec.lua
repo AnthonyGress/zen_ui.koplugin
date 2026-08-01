@@ -2,6 +2,8 @@ describe("home cover rendering", function()
     local allocations
     local old_plugin
     local render_request
+    local release_request
+    local generated_calls
 
     local function widget_class()
         return {
@@ -23,6 +25,8 @@ describe("home cover rendering", function()
     before_each(function()
         allocations = {}
         render_request = nil
+        release_request = nil
+        generated_calls = 0
         old_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
         _G.__ZEN_UI_PLUGIN = {
             config = { features = { browser_cover_rounded_corners = true } },
@@ -54,16 +58,22 @@ describe("home cover rendering", function()
                 return math.floor(source_w * scale + 0.5),
                     math.floor(source_h * scale + 0.5)
             end,
-            genCover = function()
-                return { free = function() end }
+            genCoverShared = function()
+                generated_calls = generated_calls + 1
+                return { free = function() end }, nil, nil, true, "generated"
             end,
             getEmptyPlaceholderText = function() return "Empty" end,
         })
         ZenSpec.replace("common/cover_render_cache", {
             get = function() end,
-            render = function(_, path, source, width, height)
+            getShared = function() end,
+            renderShared = function(_, path, source, width, height)
                 render_request = { path = path, width = width, height = height }
-                return source
+                return source, true
+            end,
+            releaseShared = function(_self, path, bb)
+                release_request = { path = path, bb = bb }
+                return true
             end,
         })
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/cover_common")
@@ -123,5 +133,105 @@ describe("home cover rendering", function()
         assert.are.same({
             path = "/library/landscape.epub", width = 100, height = 67,
         }, render_request)
+    end)
+
+    it("uses a cached real cover as a non-disposable image", function()
+        local shared = { free = function() end }
+        local releases = 0
+        local RenderCache = require("common/cover_render_cache")
+        RenderCache.getShared = function(_self, path, width, height)
+            render_request = { path = path, width = width, height = height }
+            return shared
+        end
+        RenderCache.releaseShared = function(_self, path, bb)
+            releases = releases + 1
+            release_request = { path = path, bb = bb }
+            return true
+        end
+        local Cover = require("modules/filebrowser/patches/home/widgets/cover_common")
+        local frame = Cover.make_cover_widget({
+            path = "/library/cached.epub",
+            cover_w = 600,
+            cover_h = 900,
+            has_real_cover = true,
+        }, 100, 150, { uniform = false })
+        local image = frame[1][1]
+
+        assert.are.equal(shared, image.image)
+        assert.is_false(image.image_disposable)
+        assert.are.same({
+            path = "/library/cached.epub", width = 100, height = 150,
+        }, render_request)
+
+        image:free()
+        image:free()
+        assert.are.same({ path = "/library/cached.epub", bb = shared }, release_request)
+        assert.are.equal(1, releases)
+    end)
+
+    it("reuses a compatible larger cached render without decoding the source", function()
+        local compatible = { free = function() end }
+        local RenderCache = require("common/cover_render_cache")
+        RenderCache.get = function(_self, path, width, height)
+            render_request = { path = path, width = width, height = height }
+            return compatible
+        end
+        RenderCache.renderShared = function()
+            error("compatible render should avoid source decoding")
+        end
+        local Cover = require("modules/filebrowser/patches/home/widgets/cover_common")
+        local result = { Cover.make_cover_widget({
+            path = "/library/compatible.epub",
+            cover_w = 600,
+            cover_h = 900,
+            has_real_cover = true,
+            is_cover_pending = true,
+        }, 100, 150, { uniform = false }) }
+        local frame, needs_hydration = result[1], result[4]
+        local image = frame[1][1]
+
+        assert.are.equal(compatible, image.image)
+        assert.is_true(image.image_disposable)
+        assert.is_false(needs_hydration)
+        assert.are.same({
+            path = "/library/compatible.epub", width = 100, height = 150,
+        }, render_request)
+    end)
+
+    it("prefers an exact cached render and frees an unused supplied source", function()
+        local shared = { free = function() end }
+        local source_frees = 0
+        local RenderCache = require("common/cover_render_cache")
+        RenderCache.getShared = function() return shared end
+        RenderCache.renderShared = function()
+            error("exact render should avoid source scaling")
+        end
+        local Cover = require("modules/filebrowser/patches/home/widgets/cover_common")
+        local frame = Cover.make_cover_widget({
+            path = "/library/exact.epub",
+            cover_w = 600,
+            cover_h = 900,
+            has_real_cover = true,
+            cover_bb = { free = function() source_frees = source_frees + 1 end },
+        }, 100, 150, { uniform = false })
+
+        assert.are.equal(shared, frame[1][1].image)
+        assert.are.equal(1, source_frees)
+    end)
+
+    it("uses a cheap blank tile while a real cover is pending", function()
+        local Cover = require("modules/filebrowser/patches/home/widgets/cover_common")
+        local frame = Cover.make_cover_widget({
+            path = "/library/pending.epub",
+            cover_w = 600,
+            cover_h = 900,
+            is_cover_pending = true,
+        }, 100, 150, { uniform = false })
+        local placeholder = frame[1][1]
+
+        assert.is_nil(placeholder.image)
+        assert.are.equal(100, placeholder.dimen.w)
+        assert.are.equal(150, placeholder.dimen.h)
+        assert.are.equal(0, generated_calls)
     end)
 end)

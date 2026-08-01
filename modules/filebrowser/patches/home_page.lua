@@ -2,6 +2,8 @@ local logger = require("common/zen_logger").new("home_page")
 local ConfigManager = require("config/manager")
 local book_status = require("common/book_status")
 local Blitbuffer = require("ffi/blitbuffer")
+local DecodeCache = require("common/cover_decode_cache")
+local RenderCache = require("common/cover_render_cache")
 local HomeQuotes = require("modules/filebrowser/patches/home/home_quotes")
 local HomePresets = require("modules/filebrowser/patches/home/home_presets")
 local MemoryPolicy = require("common/memory_policy")
@@ -10,11 +12,11 @@ local PresetStore = require("config/preset_store")
 local Registry = require("modules/filebrowser/patches/home/components/registry")
 local StandalonePage = require("modules/filebrowser/patches/standalone_page")
 local SharedState = require("common/shared_state")
-local title_sort = require("common/title_sort")
 local utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
 local UIManager = require("ui/uimanager")
 local _ = require("gettext")
+local now = require("common/zen_logger").now
 
 local M = {}
 local DEFAULT_GOALS_FONT_SIZE = 11
@@ -47,6 +49,7 @@ local function new_home_dataset()
         generation = _home_dataset_generation,
         expires_at = os.time() + HOME_DATASET_TTL,
         effective_status = {},
+        status_data = {},
         favorite = {},
         ordered_paths = {},
         strip_paths = {},
@@ -73,6 +76,7 @@ local function invalidate_home_dataset_path(path, history_changed)
     if not dataset then return end
     dataset.generation = dataset.generation + 1
     dataset.effective_status[path] = nil
+    dataset.status_data[path] = nil
     dataset.favorite[path] = nil
     if history_changed then dataset.history = nil end
     clear_home_dataset_derived(dataset)
@@ -100,7 +104,7 @@ local function free_cached_book(book)
     end
 end
 
-local function clone_cached_book(book, include_internal)
+local function clone_cached_book(book, include_internal, include_cover)
     if type(book) ~= "table" then return nil end
     local out = {}
     for k, v in pairs(book) do
@@ -108,7 +112,7 @@ local function clone_cached_book(book, include_internal)
             out[k] = v
         end
     end
-    if book.cover_bb and book.cover_bb.copy then
+    if include_cover ~= false and book.cover_bb and book.cover_bb.copy then
         local ok, cover_bb = pcall(book.cover_bb.copy, book.cover_bb)
         if ok then out.cover_bb = cover_bb end
     end
@@ -234,6 +238,7 @@ end
 
 local _pending_cover_upgrade_paths = {}
 local _cover_upgrade_scheduled = false
+local _cover_upgrade_consumers = {}
 -- Paths currently being processed by an extractInBackground() subprocess we
 -- launched. A book mid-extraction still reads as "invalid" from the DB (its
 -- row isn't written until its turn in the batch completes), so a rebuild that
@@ -246,7 +251,7 @@ local _inflight_cover_upgrade_paths = {}
 -- Takes everything queued in _pending_cover_upgrade_paths and launches a
 -- single extractInBackground() batch for them at home-screen cover size, then
 -- polls until each path's extraction completes (or the subprocess dies),
--- invalidating that book's home-cache entry and triggering a home rebuild as
+-- invalidating that book's home-cache entry and notifying the consumers as
 -- results land.
 local function flush_cover_upgrade_queue()
     _cover_upgrade_scheduled = false
@@ -260,6 +265,7 @@ local function flush_cover_upgrade_queue()
     local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
     if not ok_bim or not BookInfoManager then
         logger.warn("bookinfomanager require failed, cannot upgrade covers")
+        for _i, path in ipairs(paths) do _cover_upgrade_consumers[path] = nil end
         return
     end
 
@@ -270,6 +276,7 @@ local function flush_cover_upgrade_queue()
     if not M.isActiveOnTop() then
         for _i, path in ipairs(paths) do
             invalidate_home_book_cache(path)
+            _cover_upgrade_consumers[path] = nil
         end
         return
     end
@@ -293,6 +300,7 @@ local function flush_cover_upgrade_queue()
     if not launched then
         for _i, path in ipairs(paths) do
             _inflight_cover_upgrade_paths[path] = nil
+            _cover_upgrade_consumers[path] = nil
         end
         return
     end
@@ -301,6 +309,7 @@ local function flush_cover_upgrade_queue()
     for _i, path in ipairs(paths) do
         waiting[path] = true
     end
+    local needs_full_rebuild = false
 
     -- Poll per-path completion (mirrors covermenu.lua's items_update_action)
     -- rather than waiting for the whole subprocess to exit: a single batch can
@@ -309,18 +318,20 @@ local function flush_cover_upgrade_queue()
     -- instead of being stuck waiting on the ones that never finished.
     local function poll()
         local is_still_extracting = BookInfoManager:isExtractingInBackground()
-        local any_done = false
         for path in pairs(waiting) do
             local bi = BookInfoManager:getBookInfo(path, false)
             if bi and bi.cover_fetched then
                 waiting[path] = nil
                 _inflight_cover_upgrade_paths[path] = nil
                 invalidate_home_book_cache(path)
-                any_done = true
+                local consumers = _cover_upgrade_consumers[path]
+                _cover_upgrade_consumers[path] = nil
+                if consumers and consumers.full then needs_full_rebuild = true end
+                if consumers and consumers.strip and M.isActiveOnTop()
+                        and _home_menu and _home_menu._zen_home_notify_strip_cover then
+                    _home_menu:_zen_home_notify_strip_cover(path)
+                end
             end
-        end
-        if any_done and M.isActiveOnTop() and _home_menu and _home_menu._home_rebuild then
-            _home_menu:_home_rebuild()
         end
         if next(waiting) and is_still_extracting then
             UIManager:scheduleIn(1, poll)
@@ -330,6 +341,11 @@ local function flush_cover_upgrade_queue()
             -- future visit to the home screen can requeue and retry them.
             for path in pairs(waiting) do
                 _inflight_cover_upgrade_paths[path] = nil
+                _cover_upgrade_consumers[path] = nil
+            end
+            if needs_full_rebuild and M.isActiveOnTop()
+                    and _home_menu and _home_menu._home_rebuild then
+                _home_menu:_home_rebuild()
             end
         end
     end
@@ -340,8 +356,14 @@ end
 -- pending or mid-extraction) and schedules a debounced
 -- flush_cover_upgrade_queue() call so several books queued in quick
 -- succession are batched into one extraction run.
-local function queue_cover_upgrade(path)
+local function queue_cover_upgrade(path, consumer)
     if type(path) ~= "string" or path == "" then return end
+    local consumers = _cover_upgrade_consumers[path]
+    if not consumers then
+        consumers = {}
+        _cover_upgrade_consumers[path] = consumers
+    end
+    consumers[consumer == "strip" and "strip" or "full"] = true
     if _pending_cover_upgrade_paths[path] or _inflight_cover_upgrade_paths[path] then return end
     _pending_cover_upgrade_paths[path] = true
     if not _cover_upgrade_scheduled then
@@ -372,9 +394,9 @@ local DEFAULT_ROW_ORDER = {
 }
 
 local DEFAULT_ROW_ENABLED = {
-    datetime = true,
     featured_recent = true,
     quotes = true,
+    stats_triplet = true,
     strip_recent = true,
 }
 
@@ -597,59 +619,57 @@ local function resolve_rows(dcfg)
     local rows_cfg = dcfg.rows or {}
     local order = rows_cfg.order or DEFAULT_ROW_ORDER
     local enabled = rows_cfg.enabled or {}
-    local max_rows = tonumber(rows_cfg.max_rows) or 5
-    if max_rows < 1 then max_rows = 1 end
-    if max_rows > 5 then max_rows = 5 end
+    local modules = type(dcfg.modules) == "table" and dcfg.modules or {}
+    local capacity = tonumber(Registry.CAPACITY_UNITS) or 10
 
     local seen = {}
     local out = {}
     local selected_count = 0
+    local used_units = 0
+    local full = false
 
     local function try_push(id)
-        if seen[id] then return end
+        if full or seen[id] then return end
         if enabled[id] ~= true then return end
         seen[id] = true
         selected_count = selected_count + 1
         local comp = Registry.get(id)
         if not comp then return end
-        -- for strip widgets with two_rows enabled, double the size allocation
-        local mcfg = type(dcfg.modules) == "table" and dcfg.modules[id] or nil
-        if mcfg and mcfg.two_rows == true and comp.size then
-            local s = comp.size
-            comp = setmetatable({
-                size = {
-                    preferred_pct = (s.preferred_pct or 0.20) * 2,
-                    min_pct       = (s.min_pct       or 0.12) * 2,
-                    max_pct       = (s.max_pct       or 0.30) * 2,
-                    grow_priority = s.grow_priority,
-                },
-            }, { __index = comp })
+        local units = Registry.sizeUnits and Registry.sizeUnits(comp, modules[id]) or 2
+        if used_units + units > capacity then
+            full = true
+            return
         end
-        table.insert(out, comp)
+        used_units = used_units + units
+        table.insert(out, setmetatable({ _home_units = units }, { __index = comp }))
     end
 
     for _i, id in ipairs(order) do
         try_push(id)
-        if selected_count >= max_rows then break end
+        if full then break end
     end
 
-    if selected_count < max_rows then
+    if not full then
         for _i, comp in ipairs(Registry.list()) do
             try_push(comp.id)
-            if selected_count >= max_rows then break end
+            if full then break end
         end
     end
 
     if #out == 0 and selected_count == 0 then
         for _i, id in ipairs(DEFAULT_ROW_ORDER) do
-            local comp = Registry.get(id)
-            if comp then table.insert(out, comp) end
-            if #out >= max_rows then break end
+            if DEFAULT_ROW_ENABLED[id] then
+                local comp = Registry.get(id)
+                local units = comp and (Registry.sizeUnits
+                    and Registry.sizeUnits(comp, modules[id]) or 2) or 0
+                if comp and used_units + units <= capacity then
+                    used_units = used_units + units
+                    table.insert(out, setmetatable(
+                        { _home_units = units }, { __index = comp }
+                    ))
+                end
+            end
         end
-    end
-
-    while #out > max_rows do
-        table.remove(out)
     end
 
     return out
@@ -740,36 +760,9 @@ local function build_data_provider(cfg, dcfg)
 
     local function is_widget_visible(widget_id)
         if type(widget_id) ~= "string" or widget_id == "" then return false end
-        local rows_cfg = dcfg and dcfg.rows or {}
-        local order = type(rows_cfg.order) == "table" and rows_cfg.order or DEFAULT_ROW_ORDER
-        local enabled = type(rows_cfg.enabled) == "table" and rows_cfg.enabled or {}
-        local max_rows = tonumber(rows_cfg.max_rows) or 5
-        if max_rows < 1 then max_rows = 1 end
-        if max_rows > 5 then max_rows = 5 end
-
-        local seen = {}
-        local shown = 0
-
-        local function try_mark(id)
-            if seen[id] then return false end
-            if enabled[id] ~= true then return false end
-            seen[id] = true
-            shown = shown + 1
-            local comp = Registry.get(id)
-            if not comp then return false end
-            return id == widget_id
+        for _i, comp in ipairs(resolve_rows(dcfg or {})) do
+            if comp.id == widget_id then return true end
         end
-
-        for _i, id in ipairs(order) do
-            if try_mark(id) then return true end
-            if shown >= max_rows then return false end
-        end
-
-        for _i, comp in ipairs(Registry.list()) do
-            if try_mark(comp.id) then return true end
-            if shown >= max_rows then return false end
-        end
-
         return false
     end
 
@@ -871,26 +864,85 @@ local function build_data_provider(cfg, dcfg)
         end
     end
 
-    local function get_book(path, need_time_left)
+    local function bookinfo_without_cover(info)
+        if type(info) ~= "table" then return false end
+        local copy = {}
+        for key, value in pairs(info) do
+            if key ~= "cover_bb" then copy[key] = value end
+        end
+        return copy
+    end
+
+    local function compact_status_data(data)
+        if type(data) ~= "table" then return nil end
+        local compact = {
+            status = data.status,
+            percent_finished = data.percent_finished,
+            effective_status = data.effective_status,
+            pages = data.pages,
+            has_sidecar = data.been_opened == true,
+        }
+        local doc = data.doc_settings
+        if not doc then return compact end
+        compact.has_sidecar = true
+        local stats = doc:readSetting("stats")
+        compact.pages = compact.pages or (stats and stats.pages)
+        compact.partial_md5_checksum = doc:readSetting("partial_md5_checksum")
+        if doc:readSetting("pagemap_use_page_labels") == true then
+            compact.stable_current_label = doc:readSetting("pagemap_current_page_label")
+            compact.stable_last_label = doc:readSetting("pagemap_last_page_label")
+            compact.stable_pages = tonumber(doc:readSetting("pagemap_doc_pages"))
+                or tonumber(compact.stable_last_label)
+            compact.stable_current_page = tonumber(compact.stable_current_label)
+            if not compact.stable_current_page and compact.stable_pages
+                    and compact.percent_finished then
+                compact.stable_current_page = math.floor(
+                    compact.stable_pages * compact.percent_finished + 0.5)
+            end
+            if compact.stable_current_page and compact.stable_pages then
+                if compact.percent_finished and compact.percent_finished > 0
+                        and compact.stable_current_page < 1 then
+                    compact.stable_current_page = 1
+                end
+                if compact.stable_current_page > compact.stable_pages then
+                    compact.stable_current_page = compact.stable_pages
+                end
+            end
+        end
+        return compact
+    end
+
+    local function get_book(path, need_time_left, metadata_only)
         if not path then return nil end
         local started_at = os.clock()
         local cache_key = get_home_book_cache_key(path)
         local cached = _home_book_cache[cache_key]
-        if cached then
+        if cached and (metadata_only or cached._zen_cover_loaded ~= false) then
             book_cache_hits = book_cache_hits + 1
             if need_time_left then populate_time_left(cached) end
             book_lookup_ms = book_lookup_ms + (os.clock() - started_at) * 1000
-            return clone_cached_book(cached)
+            return clone_cached_book(cached, false, not metadata_only)
+        elseif cached then
+            remove_home_book_cache_entry(cache_key)
+            for i = #_home_book_cache_order, 1, -1 do
+                if _home_book_cache_order[i] == cache_key then
+                    table.remove(_home_book_cache_order, i)
+                end
+            end
         end
         book_cache_misses = book_cache_misses + 1
         local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
         local cover_bb, title, authors, series, series_index, pages, description
         local book_info
+        local has_real_cover = false
+        local cover_pending = false
+        local cover_loaded = metadata_only ~= true
         if ok_bim and BookInfoManager then
-            -- get_cover=true also matches a directory/unsupported-file placeholder
-            -- object (ignore_cover='Y', _no_provider/_is_directory set) that's never
-            -- queueable; real books fall through to the branches below.
-            local bi = BookInfoManager:getBookInfo(path, true)
+            local bi
+            if metadata_only and type(DecodeCache.getFreshMetadata) == "function" then
+                bi = DecodeCache:getFreshMetadata(path, now(), 30)
+            end
+            bi = bi or BookInfoManager:getBookInfo(path, not metadata_only)
             book_info = bi
             if bi then
                 title = bi.title
@@ -914,25 +966,39 @@ local function build_data_provider(cfg, dcfg)
                         BookInfoManager, path, metadata)
                 end
             end
-            if bi and bi.cover_bb and bi.has_cover and bi.cover_fetched and not bi.ignore_cover then
+            has_real_cover = not not (bi and bi.cover_fetched and bi.has_cover
+                and not bi.ignore_cover)
+            cover_pending = has_real_cover
+                or not not (bi and not bi.cover_fetched and not bi.ignore_cover)
+            cover_loaded = not metadata_only
+            if metadata_only and bi and bi.cover_bb then
+                bi.cover_bb:free()
+                bi.cover_bb = nil
+            end
+            if not metadata_only and bi and bi.cover_bb and has_real_cover then
                 cover_bb = bi.cover_bb:copy()
                 bi.cover_bb:free()
+                bi.cover_bb = nil
                 -- Cached cover may be too small (e.g. extracted for a small
                 -- list row); queue a background re-extraction at full size
                 -- and use today's (possibly upscaled) cover in the meantime.
                 if home_cover_too_small(bi, home_cover_specs()) then
-                    queue_cover_upgrade(path)
+                    queue_cover_upgrade(path, "full")
                 end
-            elseif bi and (bi.cover_fetched or bi.ignore_cover) then -- luacheck: ignore 542
+            elseif not metadata_only and bi and (bi.cover_fetched or bi.ignore_cover) then -- luacheck: ignore 542
                 if bi.cover_bb then bi.cover_bb:free() end
+                bi.cover_bb = nil
                 -- Extraction was already tried and found no usable cover (or the
                 -- user chose to ignore it): nothing to gain from retrying.
-            else
+            elseif not metadata_only then
                 if bi and bi.cover_bb then bi.cover_bb:free() end
+                if bi then bi.cover_bb = nil end
                 -- Never extracted at all (fresh cache, or only metadata was ever
                 -- fetched): queue a first extraction at home-screen size instead
                 -- of waiting for the file browser to stumble onto this book.
-                queue_cover_upgrade(path)
+                queue_cover_upgrade(path, "full")
+            elseif cover_pending and not has_real_cover then
+                queue_cover_upgrade(path, "strip")
             end
         end
         local time_left_pages = pages
@@ -945,52 +1011,92 @@ local function build_data_provider(cfg, dcfg)
         local stable_current_label = nil
         local stable_last_label = nil
         local doc_settings = nil
+        local status_data
         local partial_md5_checksum = nil
-        local ok_ds, DocSettings = pcall(require, "docsettings")
-        if ok_ds and DocSettings and DocSettings:hasSidecarFile(path) then
-            local ok_doc, doc = pcall(DocSettings.open, DocSettings, path)
-            if ok_doc and doc then
-                doc_settings = doc
-                pct = doc:readSetting("percent_finished")
-                local summary = doc:readSetting("summary")
-                status = summary and summary.status
-                local stats = doc:readSetting("stats")
-                if not time_left_pages then
-                    time_left_pages = stats and stats.pages
-                end
-                if not pages then pages = time_left_pages end
-                local total_pages = tonumber(time_left_pages)
-                if total_pages and pct then
-                    current_page = math.floor(total_pages * pct + 0.5)
-                    if pct > 0 and current_page < 1 then current_page = 1 end
-                    if current_page > total_pages then current_page = total_pages end
-                end
-                partial_md5_checksum = doc:readSetting("partial_md5_checksum")
-                if doc:readSetting("pagemap_use_page_labels") == true then
-                    stable_current_label = doc:readSetting("pagemap_current_page_label")
-                    stable_last_label = doc:readSetting("pagemap_last_page_label")
-                    stable_pages = tonumber(doc:readSetting("pagemap_doc_pages"))
-                        or tonumber(stable_last_label)
-                    stable_current_page = tonumber(stable_current_label)
-                    if not stable_current_page and stable_pages and pct then
-                        stable_current_page = math.floor(stable_pages * pct + 0.5)
-                    end
-                    if stable_current_page and stable_pages then
-                        if pct and pct > 0 and stable_current_page < 1 then stable_current_page = 1 end
-                        if stable_current_page > stable_pages then stable_current_page = stable_pages end
-                    end
+        if metadata_only then
+            status_data = dataset.status_data[path]
+            if not status_data then
+                local BookList = package.loaded["ui/widget/booklist"]
+                if BookList and type(BookList.hasBookInfoCache) == "function"
+                        and BookList.hasBookInfoCache(path) then
+                    status_data = compact_status_data(BookList.getBookInfo(path))
+                    dataset.status_data[path] = status_data
                 end
             end
+            if status_data then
+                pct = status_data.percent_finished
+                status = status_data.status
+                time_left_pages = status_data.pages or time_left_pages
+                if not pages then pages = status_data.pages end
+                stable_pages = status_data.stable_pages
+                stable_current_page = status_data.stable_current_page
+                stable_current_label = status_data.stable_current_label
+                stable_last_label = status_data.stable_last_label
+                partial_md5_checksum = status_data.partial_md5_checksum
+            end
+        else
+            local ok_ds, DocSettings = pcall(require, "docsettings")
+            if ok_ds and DocSettings and DocSettings:hasSidecarFile(path) then
+                local ok_doc, doc = pcall(DocSettings.open, DocSettings, path)
+                if ok_doc then doc_settings = doc end
+            end
         end
-        pages = utils.getStablePageCount(path, pages or time_left_pages, {
-            doc_settings = doc_settings,
-            sidecar_checked = true,
-            book_info = book_info,
-            book_info_checked = true,
-        })
-        local computed_status = book_status.getComputedStatus(
-            path, status, pct, doc_settings
-        )
+        if doc_settings then
+            pct = doc_settings:readSetting("percent_finished")
+            local summary = doc_settings:readSetting("summary")
+            status = summary and summary.status
+            local stats = doc_settings:readSetting("stats")
+            if not time_left_pages then
+                time_left_pages = stats and stats.pages
+            end
+            if not pages then pages = time_left_pages end
+            local total_pages = tonumber(time_left_pages)
+            if total_pages and pct then
+                current_page = math.floor(total_pages * pct + 0.5)
+                if pct > 0 and current_page < 1 then current_page = 1 end
+                if current_page > total_pages then current_page = total_pages end
+            end
+            partial_md5_checksum = doc_settings:readSetting("partial_md5_checksum")
+            if doc_settings:readSetting("pagemap_use_page_labels") == true then
+                stable_current_label = doc_settings:readSetting("pagemap_current_page_label")
+                stable_last_label = doc_settings:readSetting("pagemap_last_page_label")
+                stable_pages = tonumber(doc_settings:readSetting("pagemap_doc_pages"))
+                    or tonumber(stable_last_label)
+                stable_current_page = tonumber(stable_current_label)
+                if not stable_current_page and stable_pages and pct then
+                    stable_current_page = math.floor(stable_pages * pct + 0.5)
+                end
+                if stable_current_page and stable_pages then
+                    if pct and pct > 0 and stable_current_page < 1 then stable_current_page = 1 end
+                    if stable_current_page > stable_pages then stable_current_page = stable_pages end
+                end
+            end
+        elseif pct then
+            local total_pages = tonumber(time_left_pages)
+            if total_pages then
+                current_page = math.floor(total_pages * pct + 0.5)
+                if pct > 0 and current_page < 1 then current_page = 1 end
+                if current_page > total_pages then current_page = total_pages end
+            end
+        end
+        pages = stable_pages or utils.getStablePageCount(
+            path, pages or time_left_pages, {
+                doc_settings = doc_settings,
+                sidecar_checked = true,
+                book_info = book_info,
+                book_info_checked = true,
+            })
+        local computed_status
+        if metadata_only then
+            computed_status = status_data and status_data.effective_status
+                or book_status.getEffectiveStatus(status, pct)
+        else
+            computed_status = book_status.getComputedStatus(
+                path, status, pct, doc_settings
+            )
+        end
+        local display_status = book_status.getDisplayStatus
+            and book_status.getDisplayStatus(path, computed_status) or computed_status
 
         if not title or title == "" then
             title = (path:match("([^/]+)$") or path):gsub("%.[^%.]+$", "")
@@ -1003,9 +1109,14 @@ local function build_data_provider(cfg, dcfg)
             series = series,
             series_index = tonumber(series_index),
             cover_bb = cover_bb,
+            cover_w = book_info and tonumber(book_info.cover_w) or nil,
+            cover_h = book_info and tonumber(book_info.cover_h) or nil,
+            has_real_cover = has_real_cover,
+            is_cover_pending = metadata_only and cover_pending or nil,
+            bookinfo = bookinfo_without_cover(book_info),
             percent = pct or 0,
             percent_finished = pct,
-            status = computed_status,
+            status = display_status,
             pages = pages,
             current_page = current_page,
             time_left_secs = nil,
@@ -1014,66 +1125,16 @@ local function build_data_provider(cfg, dcfg)
             stable_current_label = stable_current_label,
             stable_last_label = stable_last_label,
             description = description,
-            _zen_has_sidecar = doc_settings ~= nil,
+            _zen_has_sidecar = doc_settings ~= nil
+                or status_data and status_data.has_sidecar == true,
             _zen_partial_md5_checksum = partial_md5_checksum,
             _zen_time_left_pages = time_left_pages,
+            _zen_cover_loaded = cover_loaded,
         }
         if need_time_left then populate_time_left(book) end
         cache_home_book(cache_key, book)
         book_lookup_ms = book_lookup_ms + (os.clock() - started_at) * 1000
         return book
-    end
-
-    local function sort_files_like_tbr(files)
-        local group_view = cfg and cfg.group_view or {}
-        local detail_collate = group_view.detail_collate or {}
-        local detail_reverse = group_view.detail_reverse or {}
-        local collate_tbl = detail_collate.to_be_read or {}
-        local reverse_tbl = detail_reverse.to_be_read or {}
-
-        local collate = collate_tbl.to_be_read or "title"
-        local reverse = reverse_tbl.to_be_read == true
-
-        local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
-        local lfs = require("libs/libkoreader-lfs")
-
-        local items = {}
-        for _i, fpath in ipairs(files) do
-            local key
-            if collate == "access" then
-                key = lfs.attributes(fpath, "access") or 0
-            elseif collate == "series_index" then
-                local bi = ok_bim and BookInfoManager:getBookInfo(fpath, false) or nil
-                key = (bi and tonumber(bi.series_index)) or math.huge
-            elseif collate == "title" then
-                local bi = ok_bim and BookInfoManager:getBookInfo(fpath, false) or nil
-                key = (bi and bi.title) or (fpath:match("([^/]+)$") or fpath)
-            else
-                local bi = ok_bim and BookInfoManager:getBookInfo(fpath, false) or nil
-                key = (bi and bi.title) or (fpath:match("([^/]+)$") or fpath)
-            end
-            table.insert(items, { path = fpath, key = key })
-        end
-
-        table.sort(items, function(a, b)
-            if collate == "access" or collate == "series_index" then
-                local ka = type(a.key) == "number" and a.key or 0
-                local kb = type(b.key) == "number" and b.key or 0
-                if collate == "access" then
-                    if reverse then return ka < kb else return ka > kb end
-                end
-                if reverse then return ka > kb else return ka < kb end
-            end
-            local sa = title_sort.key(a.key):lower()
-            local sb = title_sort.key(b.key):lower()
-            if reverse then return sa > sb else return sa < sb end
-        end)
-
-        local sorted = {}
-        for _i, item in ipairs(items) do
-            table.insert(sorted, item.path)
-        end
-        return sorted
     end
 
     local function get_tbr_index()
@@ -1109,81 +1170,33 @@ local function build_data_provider(cfg, dcfg)
         return options
     end
 
-    local function invalidate_indexed_tbr()
-        dataset.tbr = nil
-        dataset.tbr_revision = nil
-        dataset.ordered_paths = {}
-        dataset.strip_paths = {}
-    end
-
-    local function schedule_tbr_rebuild()
-        invalidate_indexed_tbr()
-        if dataset.tbr_rebuild_pending then return end
-        dataset.tbr_rebuild_pending = true
-        UIManager:scheduleIn(0.2, function()
-            dataset.tbr_rebuild_pending = nil
-            if _home_menu and not _home_menu._zen_home_closing then
-                M.rebuildActive()
-            end
-        end)
-    end
-
-    local function ensure_tbr_audit()
-        local index = get_tbr_index()
-        if not index or dataset.tbr_audit_requested
-                or (type(index.isAuditComplete) == "function" and index.isAuditComplete()) then
-            return
-        end
-        dataset.tbr_audit_requested = true
-        UIManager:nextTick(function()
-            local ok_db, db_bookinfo = pcall(require, "common/db_bookinfo")
-            local candidates = ok_db and db_bookinfo
-                and type(db_bookinfo.getTBRIndexCandidates) == "function"
-                and db_bookinfo.getTBRIndexCandidates() or {}
-            index.scheduleAudit(candidates, schedule_tbr_rebuild)
-        end)
-    end
-
     local function get_tbr_paths(limit)
         local max_books = math.min(HOME_STRIP_MAX_BOOKS,
             math.max(1, math.floor(tonumber(limit) or HOME_STRIP_MAX_BOOKS)))
         local index = get_tbr_index()
         if index then
-            ensure_tbr_audit()
             local current_revision = index.getRevision()
             if dataset.tbr and dataset.tbr_revision == current_revision
                     and dataset.tbr_limit == max_books then
                 return dataset.tbr
             end
             dataset.tbr = index.getPage(0, max_books, tbr_sort_options("default", false))
-            dataset.tbr_revision = current_revision
+            dataset.tbr_revision = index.getRevision()
             dataset.tbr_limit = max_books
             return dataset.tbr
         end
         dataset.tbr = {}
-        local ok_db, db = pcall(require, "common/db_bookinfo")
-        if ok_db and db and type(db.getTBRBooks) == "function" then
-            local raw_tbr = db.getTBRBooks() or {}
-            local normalized = {}
-            for _i, item in ipairs(raw_tbr) do
-                local path = item
-                if type(item) == "table" then
-                    path = item.path or item.file
-                end
-                if type(path) == "string" and path ~= "" then
-                    table.insert(normalized, path)
-                    if #normalized >= max_books then break end
-                end
-            end
-            dataset.tbr = sort_files_like_tbr(normalized)
-        end
         return dataset.tbr
     end
 
     local function get_effective_status(path)
         local cached = dataset.effective_status[path]
         if cached then return cached end
-        local status = book_status.getEffectiveStatusFromFile(path)
+        local loaded_status = type(book_status.getFileStatusData) == "function"
+            and book_status.getFileStatusData(path) or nil
+        local status = loaded_status and loaded_status.effective_status
+            or book_status.getEffectiveStatusFromFile(path)
+        dataset.status_data[path] = compact_status_data(loaded_status)
         dataset.effective_status[path] = status
         return status
     end
@@ -1368,7 +1381,6 @@ local function build_data_provider(cfg, dcfg)
             local index = get_tbr_index()
             if index then
                 used_index = true
-                ensure_tbr_audit()
                 local indexed_paths = index.getPage(0, 1,
                     tbr_sort_options(order_key, false))
                 path = indexed_paths[1]
@@ -1447,7 +1459,6 @@ local function build_data_provider(cfg, dcfg)
         if source_key == "to_be_read" then
             local index = get_tbr_index()
             if index then
-                ensure_tbr_audit()
                 local n = tonumber(count) or 4
                 if n < 1 then n = 1 end
                 local options = tbr_sort_options(order_key, true)
@@ -1476,7 +1487,7 @@ local function build_data_provider(cfg, dcfg)
                     and component_cfg.show_badges == true
                 local books = {}
                 for _i, path in ipairs(paths) do
-                    local book = get_book(path)
+                    local book = get_book(path, false, true)
                     if book then
                         if resolve_favorite then book.is_fav = get_favorite(path) end
                         books[#books + 1] = book
@@ -1503,7 +1514,7 @@ local function build_data_provider(cfg, dcfg)
         for i = 1, math.min(n, #paths) do
             local idx = ((offset + i - 1) % #paths) + 1
             local path = paths[idx]
-            local book = get_book(path)
+            local book = get_book(path, false, true)
             if book then
                 if resolve_favorite then
                     book.is_fav = get_favorite(path)
@@ -1551,6 +1562,72 @@ local function build_data_provider(cfg, dcfg)
         return true
     end
 
+    function provider:isStripCoverWorkBusy()
+        local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
+        return ok_bim and BookInfoManager
+            and type(BookInfoManager.isExtractingInBackground) == "function"
+            and BookInfoManager:isExtractingInBackground() or false
+    end
+
+    function provider:warmStripCover(book, width, height)
+        local path = type(book) == "table" and book.path or nil
+        width, height = tonumber(width), tonumber(height)
+        if type(path) ~= "string" or path == "" or not width or width < 1
+                or not height or height < 1 then
+            return "failed"
+        end
+        if type(RenderCache.hasExact) == "function"
+                and RenderCache:hasExact(path, width, height) then
+            return "cached"
+        end
+
+        local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
+        if not ok_bim or not BookInfoManager then return "failed" end
+        local metadata = type(DecodeCache.getFreshMetadata) == "function"
+            and DecodeCache:getFreshMetadata(path, now(), 30) or nil
+        metadata = metadata or BookInfoManager:getBookInfo(path, false)
+        if not metadata then return "failed" end
+        if not metadata.cover_fetched then
+            queue_cover_upgrade(path, "strip")
+            return "pending"
+        end
+        if not metadata.has_cover or metadata.ignore_cover then
+            invalidate_home_book_cache(path)
+            return "ready"
+        end
+        local specs = { max_cover_w = width, max_cover_h = height }
+        if type(BookInfoManager.isCachedCoverInvalid) == "function"
+                and BookInfoManager.isCachedCoverInvalid(metadata, specs) then
+            queue_cover_upgrade(path, "strip")
+            return "pending"
+        end
+
+        local info = BookInfoManager:getBookInfo(path, true)
+        if not info then return "failed" end
+        local source = info.cover_bb
+        info.cover_bb = nil
+        if not info.cover_fetched then
+            if source and source.free then pcall(source.free, source) end
+            queue_cover_upgrade(path, "strip")
+            return "pending"
+        end
+        if not info.has_cover or info.ignore_cover then
+            if source and source.free then pcall(source.free, source) end
+            invalidate_home_book_cache(path)
+            return "ready"
+        end
+        if not source then return "failed" end
+
+        local final, cache_owned = RenderCache:renderShared(path, source, width, height)
+        if not final then return "failed" end
+        if cache_owned then
+            RenderCache:releaseShared(path, final)
+            return "warmed"
+        end
+        if final.free then pcall(final.free, final) end
+        return "failed"
+    end
+
     function provider:resetStripPages()
         local changed = false
         for offset_key, offset in pairs(strip_offsets) do
@@ -1560,14 +1637,6 @@ local function build_data_provider(cfg, dcfg)
             strip_offsets[offset_key] = nil
         end
         return changed
-    end
-
-    function provider:cancelTBRIndexAudit()
-        local index = get_tbr_index()
-        if not index then return end
-        local was_running = index.isAuditRunning()
-        index.cancelAudit()
-        if was_running then dataset.tbr_audit_requested = nil end
     end
 
     function provider:getCurrentQuote()
@@ -1693,156 +1762,19 @@ local function build_data_provider(cfg, dcfg)
     return provider
 end
 
-local function size_to_px(size, key, pct_key, body_h, fallback)
-    local pct = tonumber(size[pct_key])
-    if pct then
-        return math.max(1, math.floor(body_h * pct + 0.5))
-    end
-    return tonumber(size[key]) or fallback
-end
-
-local function compute_row_heights(rows, body_h)
+local function compute_row_heights(rows, body_h, row_gap)
     local specs = {}
-    local total_min = 0
-
-    for _i, comp in ipairs(rows) do
-        local size = comp.size or {}
-        local pref = size_to_px(size, "preferred", "preferred_pct", body_h, math.floor(body_h * 0.20))
-        local min_h = size_to_px(size, "min", "min_pct", body_h, math.max(1, math.floor(pref * 0.55)))
-        local max_h = size_to_px(size, "max", "max_pct", body_h, math.max(pref, min_h))
-        if max_h < min_h then max_h = min_h end
-        if pref < min_h then pref = min_h end
-        if pref > max_h then pref = max_h end
-        table.insert(specs, {
-            pref = pref,
-            min = min_h,
-            max = max_h,
-            grow_priority = tonumber(size.grow_priority) or 10,
-            h = pref,
-        })
-        total_min = total_min + min_h
-    end
-
-    if #specs == 0 then return specs end
-    if body_h < #specs then body_h = #specs end
-
-    if total_min > body_h then
-        -- When strict mins cannot fit, shrink proportionally so rows stay contained.
-        local scale = body_h / total_min
-        local total = 0
-        for _i, sp in ipairs(specs) do
-            sp.h = math.max(1, math.floor(sp.min * scale))
-            total = total + sp.h
-        end
-        local remaining = body_h - total
-        local i = 1
-        while remaining > 0 and #specs > 0 do
-            specs[i].h = specs[i].h + 1
-            remaining = remaining - 1
-            i = i + 1
-            if i > #specs then i = 1 end
-        end
-        return specs
-    end
-
-    local total = 0
-    for _i, sp in ipairs(specs) do
-        sp.h = sp.pref
-        if sp.h < sp.min then sp.h = sp.min end
-        if sp.h > sp.max then sp.h = sp.max end
-        total = total + sp.h
-    end
-
-    local function pick_shrink_candidate()
-        local best_i = nil
-        local best_room = 0
-        local best_priority = nil
-        for i, sp in ipairs(specs) do
-            local room = sp.h - sp.min
-            local priority = tonumber(sp.grow_priority) or 10
-            if room > 0 and (not best_priority or priority > best_priority
-                    or (priority == best_priority and room > best_room)) then
-                best_i = i
-                best_room = room
-                best_priority = priority
-            end
-        end
-        return best_i, best_room
-    end
-
-    while total > body_h do
-        local best_i, best_room = pick_shrink_candidate()
-        if not best_i or best_room <= 0 then break end
-        specs[best_i].h = specs[best_i].h - 1
-        total = total - 1
-    end
-
-    local grow_priorities = {}
-    local seen_priority = {}
-    for _i, sp in ipairs(specs) do
-        local pri = tonumber(sp.grow_priority) or 10
-        if not seen_priority[pri] then
-            seen_priority[pri] = true
-            grow_priorities[#grow_priorities + 1] = pri
+    local unit_counts = Registry.layoutUnits and Registry.layoutUnits(rows) or {}
+    if #unit_counts == 0 then
+        for _i, comp in ipairs(rows) do
+            unit_counts[#unit_counts + 1] = tonumber(comp._home_units) or 2
         end
     end
-    table.sort(grow_priorities)
-    for _i, pri in ipairs(grow_priorities) do
-        if total >= body_h then break end
-        while total < body_h do
-            local grew = false
-            for _j, sp in ipairs(specs) do
-                if total >= body_h then break end
-                if (tonumber(sp.grow_priority) or 10) == pri and sp.h < sp.max then
-                    sp.h = sp.h + 1
-                    total = total + 1
-                    grew = true
-                end
-            end
-            if not grew then break end
-        end
+    local heights = Registry.gridHeights(unit_counts, body_h, row_gap)
+    for i, height in ipairs(heights) do
+        specs[i] = { units = unit_counts[i], h = height }
     end
-
     return specs
-end
-
-local function grow_row_heights_by_priority(row_heights, extra_px)
-    local remaining = tonumber(extra_px) or 0
-    local grown = 0
-    if remaining <= 0 then
-        return grown
-    end
-    local priorities = {}
-    local seen = {}
-    for _i, row in ipairs(row_heights) do
-        local pri = tonumber(row.grow_priority) or 10
-        if not seen[pri] then
-            seen[pri] = true
-            priorities[#priorities + 1] = pri
-        end
-    end
-    table.sort(priorities)
-    for _i, pri in ipairs(priorities) do
-        if remaining <= 0 then break end
-        while remaining > 0 do
-            local grew = false
-            for _j, row in ipairs(row_heights) do
-                if remaining <= 0 then break end
-                if (tonumber(row.grow_priority) or 10) == pri then
-                    local max_h = tonumber(row.max) or tonumber(row.h) or 0
-                    local cur_h = tonumber(row.h) or 0
-                    if cur_h < max_h then
-                        row.h = cur_h + 1
-                        remaining = remaining - 1
-                        grown = grown + 1
-                        grew = true
-                    end
-                end
-            end
-            if not grew then break end
-        end
-    end
-    return grown
 end
 
 local function paint_focus_rect(bb, x, y, w, h)
@@ -2193,6 +2125,30 @@ local function build_home_content(menu, dcfg, rows, data_provider)
     menu._zen_home_focus_seq = 0
     menu._zen_home_focus_index = nil
     menu._zen_home_focus_id = nil
+    local strip_cover_listeners = {}
+    menu._zen_home_strip_cover_listeners = strip_cover_listeners
+    function menu:_zen_home_notify_strip_cover(path)
+        local listeners = self._zen_home_strip_cover_listeners or {}
+        for _i, listener in ipairs(listeners) do
+            if type(listener) == "function" then pcall(listener, path) end
+        end
+    end
+
+    local function register_strip_cover_listener(listener)
+        if type(listener) ~= "function" then return function() end end
+        strip_cover_listeners[#strip_cover_listeners + 1] = listener
+        local registered = true
+        return function()
+            if not registered then return end
+            registered = false
+            for i = #strip_cover_listeners, 1, -1 do
+                if strip_cover_listeners[i] == listener then
+                    table.remove(strip_cover_listeners, i)
+                    break
+                end
+            end
+        end
+    end
 
     local show_status_bar = dcfg.show_status_bar ~= false
     local tb = menu.title_bar
@@ -2211,41 +2167,16 @@ local function build_home_content(menu, dcfg, rows, data_provider)
     end
     local content_w = math.max(1, body_w - side_pad * 2)
     local right_pad = math.max(0, body_w - content_w - side_pad)
-    local page_pad = 0
+    local standard_gap = math.max(4, Screen:scaleBySize(8))
+    local capacity = tonumber(Registry.CAPACITY_UNITS) or 10
+    local max_page_pad = math.max(0, math.floor((body_h - capacity) / 2))
+    local page_pad = math.min(math.max(3, Screen:scaleBySize(4)), max_page_pad)
     local layout_h = math.max(1, body_h - page_pad * 2)
-    local row_gap = 0
-    local max_row_gap = 0
-    if #rows > 1 then
-        local base_gap = math.max(4, Screen:scaleBySize(8))
-        local max_gaps_h = math.floor(layout_h * 0.08)
-        row_gap = math.min(base_gap, math.floor(max_gaps_h / (#rows - 1)))
-        max_row_gap = math.max(row_gap, Screen:scaleBySize(10))
-    end
-    local gaps_h = row_gap * math.max(0, #rows - 1)
-    local rows_h_budget = layout_h - gaps_h
-    if rows_h_budget < #rows then rows_h_budget = math.max(1, layout_h) end
-
-    local row_heights = compute_row_heights(rows, rows_h_budget)
-    local rows_h_used = 0
-    for _i, row in ipairs(row_heights) do
-        rows_h_used = rows_h_used + (row.h or 0)
-    end
-    local extra_spacing_h = rows_h_budget - rows_h_used
-    if extra_spacing_h > 0 then
-        local grown = grow_row_heights_by_priority(row_heights, extra_spacing_h)
-        extra_spacing_h = extra_spacing_h - grown
-    end
-    if extra_spacing_h > 0 and #rows > 1 and row_gap < max_row_gap then
-        local gap_room = max_row_gap - row_gap
-        local add_each = math.floor(extra_spacing_h / (#rows - 1))
-        if add_each > gap_room then add_each = gap_room end
-        if add_each > 0 then
-            row_gap = row_gap + add_each
-            extra_spacing_h = extra_spacing_h - add_each * (#rows - 1)
-        end
-    end
-    local extra_top_pad = 0
-    if extra_spacing_h > 0 then extra_top_pad = math.floor(extra_spacing_h / 2) end
+    local max_grid_gap = capacity > 1
+        and math.max(0, math.floor((layout_h - capacity) / (capacity - 1))) or 0
+    local row_gap = math.min(standard_gap, max_grid_gap)
+    local row_heights = compute_row_heights(rows, layout_h, row_gap)
+    menu._zen_home_page_padding = page_pad
 
     local face_title = Font:getFace("smallinfofont", Screen:scaleBySize(24))
     local face_value = Font:getFace("smallinfofont", Screen:scaleBySize(20))
@@ -2272,12 +2203,19 @@ local function build_home_content(menu, dcfg, rows, data_provider)
         local fm = FileManager.instance
         local fc = fm and fm.file_chooser
         if not (fc and type(fc.showFileDialog) == "function") then return false end
+        local explicit_collection
+        local ok_index, index = pcall(require, "common/tbr_index")
+        if source ~= "to_be_read" or not ok_index then index = nil end
+        if index and type(index.isExplicit) == "function" and index.isExplicit(path) then
+            explicit_collection = index.collectionName()
+        end
         fc:showFileDialog({
             path = path,
             is_file = true,
             _zen_home_context = true,
             _zen_disable_select = true,
             _zen_is_history = source == "recently_read",
+            _zen_collection_name = explicit_collection,
             _zen_widget_settings = dcfg.edit_mode == true and function()
                 return require("modules/settings/sections/library_settings/home_settings")
                     .openWidgetSettings(component_id, _zen_plugin)
@@ -2380,7 +2318,9 @@ local function build_home_content(menu, dcfg, rows, data_provider)
 
     local children = { align = "left" }
     local used_h = 0
-    local top_pad = page_pad + extra_top_pad
+    local top_pad = page_pad
+    local visual_rows = {}
+    menu._zen_home_visual_gaps = {}
     menu._zen_home_clock_refreshers = {}
     if top_pad > 0 then
         table.insert(children, VerticalSpan:new{ width = top_pad })
@@ -2392,6 +2332,8 @@ local function build_home_content(menu, dcfg, rows, data_provider)
     end
 
     for i, comp in ipairs(rows) do
+        local row_y = used_h
+        local content_bounds
         local h = row_heights[i] and row_heights[i].h or 120
         local module_cfg = type(dcfg.modules) == "table" and dcfg.modules[comp.id] or nil
         local show_row_title = not (module_cfg and module_cfg.show_module_title == false)
@@ -2444,6 +2386,12 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             setWidgetActions = function(actions)
                 row_focus_actions = type(actions) == "table" and actions or {}
             end,
+            setContentBounds = function(bounds)
+                if type(bounds) == "table"
+                        and type(bounds.set_shift) == "function" then
+                    content_bounds = bounds
+                end
+            end,
             registerHomeFocusTarget = function(target, widget)
                 if not target then return widget end
                 target.component_id = comp.id
@@ -2460,6 +2408,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             end,
             clearStripFocusTargets = clear_strip_focus_targets,
             refreshStrip = refresh_strip,
+            registerStripCoverListener = register_strip_cover_listener,
             face_title = face_title,
             face_value = face_value,
             face_label = face_label,
@@ -2505,6 +2454,19 @@ local function build_home_content(menu, dcfg, rows, data_provider)
                 background = home_frame_bg(),
                 final_widget,
             })
+            if not title_widget and content_bounds then
+                content_bounds.row_y = row_y
+                if i == 1 then
+                    content_bounds.min_shift = 0
+                    content_bounds.max_shift = 0
+                elseif content_bounds.min_shift ~= 0
+                        or content_bounds.max_shift ~= 0 then
+                    -- Borrow the blank row gaps when internal slack is too small.
+                    content_bounds.min_shift = (content_bounds.min_shift or 0) - row_gap
+                    content_bounds.max_shift = (content_bounds.max_shift or 0) + row_gap
+                end
+                visual_rows[i] = content_bounds
+            end
             used_h = used_h + h
         else
             logger.warn("failed to build component:", comp.id, widget)
@@ -2514,6 +2476,32 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             used_h = used_h + row_gap
         end
     end
+
+    local run = {}
+    local function apply_visual_run()
+        if #run > 1 then
+            local shifts = Registry.equalSpacingShifts(run)
+            for i, shift in ipairs(shifts) do
+                run[i].set_shift(shift)
+            end
+            if #shifts == #run then
+                for i = 1, #run - 1 do
+                    menu._zen_home_visual_gaps[#menu._zen_home_visual_gaps + 1] =
+                        run[i + 1].row_y + run[i + 1].top + shifts[i + 1]
+                        - run[i].row_y - run[i].bottom - shifts[i]
+                end
+            end
+        end
+        run = {}
+    end
+    for i = 1, #rows do
+        if visual_rows[i] then
+            run[#run + 1] = visual_rows[i]
+        else
+            apply_visual_run()
+        end
+    end
+    apply_visual_run()
 
     if used_h < body_h then
         table.insert(children, VerticalSpan:new{ width = body_h - used_h })
@@ -2823,6 +2811,7 @@ function M.showHomeView(injectNavbar)
     local orig_onCloseWidget = menu.onCloseWidget
     function menu:onCloseWidget(...)
         self._zen_home_closing = true
+        self._zen_home_strip_cover_listeners = {}
         if rawequal(_home_menu, self) then
             _home_menu = nil
         end
@@ -2899,6 +2888,18 @@ end
 
 function M.invalidateLibraryCache()
     invalidate_home_library_dataset()
+end
+
+function M.invalidateTBRCache()
+    local dataset = _home_dataset_cache
+    if dataset then
+        dataset.generation = dataset.generation + 1
+        dataset.tbr_revision = nil
+        dataset.tbr = nil
+        dataset.ordered_paths = {}
+        dataset.strip_paths = {}
+    end
+    M.rebuildActive()
 end
 
 function M.rebuildActive()

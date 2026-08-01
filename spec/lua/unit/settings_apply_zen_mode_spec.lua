@@ -21,6 +21,7 @@ describe("Zen mode settings apply", function()
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("ui/uimanager", {
             setDirty = function() end,
+            nextTick = function(_self, callback) callback() end,
         })
         ZenSpec.replace("ui/widget/confirmbox", {
             new = function(_self, values) return values end,
@@ -60,5 +61,30 @@ describe("Zen mode settings apply", function()
         assert.are.equal(1, applies)
         assert.are.equal(1, refreshes)
         assert.are.equal(0, restart_prompts)
+    end)
+
+    it("defers navbar reinjection until the Zen settings page closes", function()
+        local reinjections = 0
+        local queued = {}
+        local UIManager = require("ui/uimanager")
+        UIManager.nextTick = function(_self, callback)
+            queued[#queued + 1] = callback
+        end
+        _G.__ZEN_UI_SETTINGS_PAGE = {}
+        _G.__ZEN_UI_REINJECT_NAVBARS = function()
+            reinjections = reinjections + 1
+        end
+
+        local settings_apply = require("modules/settings/zen_settings_apply")
+        settings_apply.refresh_navbar_on_menu_close()
+
+        assert.are.equal(0, reinjections)
+        _G.__ZEN_UI_SETTINGS_PAGE = nil
+        settings_apply.flush_deferred_on_settings_close()
+        assert.are.equal(1, #queued)
+
+        queued[1]()
+        assert.are.equal(1, reinjections)
+        _G.__ZEN_UI_REINJECT_NAVBARS = nil
     end)
 end)

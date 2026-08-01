@@ -2,6 +2,40 @@ describe("shared folder cover provider", function()
     local calls
     local cover_mode
 
+    local function install_lfs(entries_for_path, on_scan, on_yield)
+        ZenSpec.replace("libs/libkoreader-lfs", {
+            dir = function(path)
+                if on_scan then on_scan(path) end
+                local entries = entries_for_path(path)
+                local names = { ".", ".." }
+                for _i, entry in ipairs(entries) do names[#names + 1] = entry.name end
+                local index = 0
+                return function()
+                    index = index + 1
+                    local name = names[index]
+                    if on_yield and name ~= "." and name ~= ".." then on_yield(name) end
+                    return name
+                end
+            end,
+            attributes = function(path, field)
+                if field == "modification" then return 1 end
+                local dir, name = path:match("^(.*)/([^/]+)$")
+                for _i, entry in ipairs(entries_for_path(dir)) do
+                    if entry.name == name then
+                        local attr = {
+                            mode = entry.mode or "file",
+                            access = entry.access or 0,
+                            modification = entry.modification or 0,
+                            size = entry.size or 0,
+                        }
+                        return field and attr[field] or attr
+                    end
+                end
+            end,
+        })
+        ZenSpec.unload("modules/filebrowser/folder_cover")
+    end
+
     before_each(function()
         calls = { collect = {}, decorate = 0 }
         cover_mode = "gallery"
@@ -9,23 +43,43 @@ describe("shared folder cover provider", function()
             BORDER_SIZE = 2,
             getMode = function()
                 if cover_mode == "none" then return "none", 0, false end
+                if cover_mode == "normal" then return "normal", 1, false end
                 return cover_mode, 4, true
             end,
             calcDims = function(width, height) return width, height end,
+            galleryCacheKey = function(...)
+                calls.gallery_key_args = { ... }
+                return calls.gallery_cache_key
+            end,
+            getCachedGallery = function(key)
+                calls.gallery_cache_lookups = (calls.gallery_cache_lookups or 0) + 1
+                calls.gallery_lookup_key = key
+                return calls.cached_gallery
+            end,
             loadExplicitCovers = function(path)
                 calls.explicit = path
                 return {}
             end,
-            collect = function(path, chooser, limit, need_copy, entries, specs)
+            collect = function(path, chooser, limit, need_copy, entries, specs,
+                    cover_offset, cached_only)
                 calls.collect[#calls.collect + 1] = {
                     path = path, chooser = chooser, limit = limit,
                     need_copy = need_copy, entries = entries, specs = specs,
+                    cover_offset = cover_offset, cached_only = cached_only,
                 }
-                return entries and #entries > 0 and { { data = "cover" } } or {}
+                return entries and #entries > 0 and { { data = "cover" } } or {},
+                    calls.collect_pending == true
             end,
-            drawGallery = function(covers, _width, _height, _border, _bg, uniform)
+            drawGallery = function(covers, _width, _height, _border, _bg, uniform, cache_key)
                 calls.uniform = uniform
-                return { kind = "gallery", covers = covers, bordersize = 2 }
+                calls.draw_gallery_cache_key = cache_key
+                return {
+                    kind = "gallery",
+                    covers = covers,
+                    bordersize = 2,
+                    free = function() calls.gallery_freed = true end,
+                },
+                    false, cache_key ~= nil
             end,
             drawStack = function() return { kind = "stack", bordersize = 2 } end,
             drawSingle = function(_cover, width, height, _border, uniform)
@@ -75,7 +129,7 @@ describe("shared folder cover provider", function()
         }
         local result = FolderCover.build(menu, {
             path = "/library/folder", attr = { mode = "directory" },
-            mandatory = "7 books",
+            mandatory = "2 \xef\x84\x94 7 \xef\x80\x96",
         }, "Folder/", 80, 120, { load_covers = false })
 
         assert.are.equal(0, enumerations)
@@ -106,34 +160,162 @@ describe("shared folder cover provider", function()
         assert.are.equal("none", result.mode)
     end)
 
-    it("enumerates a physical folder once and passes the ordered entries through", function()
+    it("scans a folder without constructing child FileChooser items", function()
+        local scans = 0
+        install_lfs(function()
+            return {
+                { name = "b.epub" },
+                { name = "a.epub" },
+                { name = "notes.bin" },
+                { name = "nested", mode = "directory" },
+            }
+        end, function() scans = scans + 1 end)
         local FolderCover = require("modules/filebrowser/folder_cover")
-        local enumerations = 0
-        local entries = {
-            { is_file = true, path = "/library/folder/a.epub" },
-            { is_file = true, path = "/library/folder/b.epub" },
-        }
         local menu = {
             name = "filemanager",
-            genItemTableFromPath = function(self)
-                enumerations = enumerations + 1
-                assert.is_true(self._zen_folder_cover_collect)
-                return entries
-            end,
+            genItemTableFromPath = function() error("child item table was constructed") end,
         }
         local specs = { max_cover_w = 80, max_cover_h = 120 }
         local result = FolderCover.build(menu, {
             path = "/library/folder", attr = { mode = "directory" },
         }, "Folder/", 80, 120, { cover_specs = specs })
 
-        assert.are.equal(1, enumerations)
+        assert.are.equal(1, scans)
         assert.are.equal("/library/folder", calls.explicit)
         assert.are.equal(1, #calls.collect)
-        assert.are.equal(entries, calls.collect[1].entries)
+        assert.are.equal(2, #calls.collect[1].entries)
+        assert.are.equal("/library/folder/b.epub", calls.collect[1].entries[1].path)
+        assert.are.equal("/library/folder/a.epub", calls.collect[1].entries[2].path)
         assert.are.equal(specs, calls.collect[1].specs)
         assert.are.equal(2, result.count)
         assert.are.equal("gallery", result.frame.kind)
         assert.is_true(calls.uniform)
+    end)
+
+    it("retains only the configured number of book candidates", function()
+        local yielded = 0
+        install_lfs(function()
+            return {
+                { name = "f.epub" }, { name = "e.epub" }, { name = "d.epub" },
+                { name = "c.epub" }, { name = "b.epub" }, { name = "a.epub" },
+            }
+        end, nil, function() yielded = yielded + 1 end)
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local menu = {
+            name = "filemanager",
+            genItemTableFromPath = function() error("child item table was constructed") end,
+        }
+        local entry = {
+            path = "/library/folder",
+            attr = { mode = "directory" },
+            mandatory = "6 \xef\x80\x96",
+        }
+
+        local gallery = FolderCover.build(menu, entry, "Folder", 80, 120)
+        assert.are.equal(6, gallery.count)
+        assert.are.equal(4, #gallery.entries)
+        assert.are.equal("/library/folder/f.epub", gallery.entries[1].path)
+        assert.are.equal(4, yielded)
+
+        cover_mode = "normal"
+        local single = FolderCover.build(menu, entry, "Folder", 80, 120)
+        assert.are.equal(6, single.count)
+        assert.are.equal(1, #single.entries)
+        assert.are.equal(1, calls.collect[#calls.collect].limit)
+    end)
+
+    it("stops after one candidate in single mode when the parent supplied the count", function()
+        local yielded = 0
+        cover_mode = "normal"
+        install_lfs(function()
+            return {
+                { name = "first.epub" }, { name = "second.epub" },
+                { name = "third.epub" }, { name = "fourth.epub" },
+            }
+        end, nil, function() yielded = yielded + 1 end)
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local result = FolderCover.build({ name = "filemanager" }, {
+            path = "/library/folder",
+            attr = { mode = "directory" },
+            mandatory = "4 \xef\x80\x96",
+        }, "Folder", 80, 120)
+
+        assert.are.equal(1, yielded)
+        assert.are.equal(4, result.count)
+        assert.are.equal(1, #result.entries)
+        assert.are.equal(1, calls.collect[1].limit)
+    end)
+
+    it("shares candidate one across modes and adds only three gallery candidates", function()
+        install_lfs(function()
+            return {
+                { name = "first.epub" }, { name = "second.epub" },
+                { name = "third.epub" }, { name = "fourth.epub" },
+            }
+        end)
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local entry = {
+            path = "/library/folder",
+            attr = { mode = "directory" },
+            mandatory = "4 books",
+        }
+
+        local single = FolderCover.previewEntries({}, entry, 1)
+        local gallery = FolderCover.previewEntries({}, entry, 4)
+
+        assert.are.equal("/library/folder/first.epub", single[1].path)
+        assert.are.equal(single[1].path, gallery[1].path)
+        assert.are.equal(4, #gallery)
+    end)
+
+    it("reuses bounded physical-folder descriptors until invalidated", function()
+        local enumerations = 0
+        install_lfs(function(path)
+            return { { name = path:match("([^/]+)$") .. ".epub" } }
+        end, function() enumerations = enumerations + 1 end)
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local menu = {
+            name = "filemanager",
+            genItemTableFromPath = function() error("child item table was constructed") end,
+        }
+        local entry = { path = "/library/folder", attr = { mode = "directory" } }
+
+        FolderCover.build(menu, entry, "Folder/", 80, 120)
+        local cached = FolderCover.build(menu, entry, "Folder/", 80, 120)
+
+        assert.are.equal(1, enumerations)
+        assert.is_true(cached.perf.descriptor_cache_hit)
+
+        FolderCover.clear(entry.path)
+        local rebuilt = FolderCover.build(menu, entry, "Folder/", 80, 120)
+        assert.are.equal(2, enumerations)
+        assert.is_false(rebuilt.perf.descriptor_cache_hit)
+    end)
+
+    it("evicts the oldest folder descriptor after 32 folders", function()
+        local enumerations = 0
+        install_lfs(function()
+            return { { name = "book.epub" } }
+        end, function() enumerations = enumerations + 1 end)
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local menu = {
+            name = "filemanager",
+            genItemTableFromPath = function() error("child item table was constructed") end,
+        }
+        for index = 1, 33 do
+            FolderCover.build(menu, {
+                path = "/library/folder-" .. index,
+                attr = { mode = "directory" },
+            }, "Folder", 80, 120)
+        end
+
+        local rebuilt = FolderCover.build(menu, {
+            path = "/library/folder-1",
+            attr = { mode = "directory" },
+        }, "Folder", 80, 120)
+
+        assert.are.equal(34, enumerations)
+        assert.is_false(rebuilt.perf.descriptor_cache_hit)
     end)
 
     it("passes non-uniform sizing through to group previews", function()
@@ -143,6 +325,48 @@ describe("shared folder cover provider", function()
         }, "Author", 80, 120, { uniform = false })
 
         assert.is_false(calls.uniform)
+    end)
+
+    it("reports cached-only folder previews that still need hydration", function()
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        calls.collect_pending = true
+
+        local result = FolderCover.build({}, {
+            _zen_files = { "/library/cold.epub" },
+        }, "Author", 80, 120, { cached_only = true })
+
+        assert.is_true(calls.collect[1].cached_only)
+        assert.is_true(result.needs_hydration)
+        assert.are.equal(1, result.cover_count)
+    end)
+
+    it("reuses a complete gallery bitmap without loading its child covers", function()
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        calls.gallery_cache_key = "gallery:key"
+        calls.cached_gallery = { kind = "gallery", bordersize = 2 }
+
+        local result = FolderCover.build({}, {
+            _zen_files = { "/library/a.epub", "/library/b.epub" },
+        }, "Author", 80, 120)
+
+        assert.are.equal(0, #calls.collect)
+        assert.are.equal("gallery:key", calls.gallery_lookup_key)
+        assert.is_true(result.perf.composite_cache_hit)
+        assert.are.equal(2, result.cover_count)
+    end)
+
+    it("warms and releases one complete gallery bitmap", function()
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        calls.gallery_cache_key = "gallery:key"
+        calls.cached_gallery = nil
+
+        local warmed, cached = FolderCover.warmGallery({}, {
+            _zen_files = { "/library/a.epub" },
+        }, "Author", 80, 120)
+
+        assert.is_true(warmed)
+        assert.is_false(cached)
+        assert.is_true(calls.gallery_freed)
     end)
 
     it("gives a natural single preview the same full bounds as its child", function()
@@ -282,6 +506,21 @@ describe("shared folder cover provider", function()
         assert.are.equal("/library/a.epub", calls.collect[1].entries[2].path)
     end)
 
+    it("counts all virtual members while retaining only preview candidates", function()
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local files = {}
+        for index = 1, 6 do files[index] = "/library/book-" .. index .. ".epub" end
+
+        local gallery = FolderCover.build({}, { _zen_files = files }, "Author", 80, 120)
+        assert.are.equal(6, gallery.count)
+        assert.are.equal(4, #gallery.entries)
+
+        cover_mode = "normal"
+        local single = FolderCover.build({}, { _zen_files = files }, "Author", 80, 120)
+        assert.are.equal(6, single.count)
+        assert.are.equal(1, #single.entries)
+    end)
+
     it("does not sort collection members when cover loading is suppressed", function()
         local FolderCover = require("modules/filebrowser/folder_cover")
         local provider_calls = 0
@@ -298,6 +537,17 @@ describe("shared folder cover provider", function()
 
         assert.are.equal(0, provider_calls)
         assert.are.equal(3, result.count)
+    end)
+
+    it("uses virtual-group size without building member descriptors when suppressed", function()
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local result = FolderCover.build({}, {
+            _zen_files = { "/library/a.epub", "/library/b.epub" },
+        }, "Author", 80, 120, { load_covers = false })
+
+        assert.are.equal(2, result.count)
+        assert.is_nil(result.entries)
+        assert.are.equal(0, #calls.collect)
     end)
 
     it("preserves numeric collection counts when cover loading is suppressed", function()

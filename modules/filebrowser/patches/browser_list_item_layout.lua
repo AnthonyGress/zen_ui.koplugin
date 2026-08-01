@@ -443,18 +443,22 @@ local function apply_browser_list_item_layout()
             local effective_status = book_status.getComputedStatus(
                 filepath, status, percent_finished
             )
-            local is_new = effective_status == "new"
-            self._zen_effective_status = effective_status
+            local display_status = book_status.getDisplayStatus(filepath, effective_status)
+            local is_new = display_status == "new"
+            self._zen_effective_status = display_status
 
             local status_label, progress_str
             if is_new then
                 status_label = _("New")
-            elseif effective_status == "complete" then
-                status_label = _("Finished")
-                progress_str = "\u{F012C}"  -- MD check
-            elseif effective_status == "abandoned" then
+            elseif display_status == "tbr" then
                 status_label = _("To Be Read")
                 progress_str = "\u{F0150}"  -- MD Clock icon
+            elseif display_status == "complete" then
+                status_label = _("Finished")
+                progress_str = "\u{F012C}"  -- MD check
+            elseif display_status == "abandoned" then
+                status_label = _("On hold")
+                progress_str = "\u{F03E4}"
             elseif percent_finished then
                 -- has recorded progress
                 status_label = string.format(_("%d%% Read"), math.floor(100 * percent_finished))
@@ -722,8 +726,9 @@ local function apply_browser_list_item_layout()
             end
 
             -- ── Favorite star overlay (top-right corner, absolute) ─────────
+            local favorites = ReadCollection.default_collection_name or "favorites"
             if self.menu.name ~= "collections"
-                and ReadCollection:isFileInCollection(filepath, "favorites") then
+                and ReadCollection:isFileInCollection(filepath, favorites) then
                 local star_pad = Screen:scaleBySize(3)
                 -- Scale star to ~40% of row height (capped at 22) so it shrinks on
                 -- short rows (12 items/page) instead of overflowing.

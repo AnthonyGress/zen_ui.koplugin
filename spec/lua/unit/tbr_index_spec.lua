@@ -1,20 +1,41 @@
-describe("persistent TBR status index", function()
+describe("TBR path inventory", function()
     local test_dir
-    local scheduled
     local attrs
+    local entries
     local sidecars
     local docs
     local opens
     local open_fail
-    local db_rows
+    local config
+    local ReadCollection
+    local scheduled
+    local collection_writes
+
+    local function add_book(path, status, sidecar_mtime)
+        local directory, name = path:match("^(.*)/([^/]+)$")
+        entries[directory] = entries[directory] or { ".", ".." }
+        entries[directory][#entries[directory] + 1] = name
+        attrs[path] = { mode = "file", size = 10, modification = 1, access = 1 }
+        if sidecar_mtime then
+            local sidecar = "/sidecars/" .. name .. ".lua"
+            sidecars[path] = sidecar
+            attrs[sidecar] = {
+                mode = "file", size = 10, modification = sidecar_mtime,
+            }
+            docs[path] = {
+                data = { doc_path = path },
+                summary = { status = status },
+                percent_finished = status == "reading" and 0.4 or nil,
+                readSetting = function(self, key)
+                    if key == "summary" then return self.summary end
+                    if key == "percent_finished" then return self.percent_finished end
+                end,
+            }
+        end
+    end
 
     local function run_scheduled()
-        local iterations = 0
-        while #scheduled > 0 and iterations < 100 do
-            iterations = iterations + 1
-            table.remove(scheduled, 1)()
-        end
-        assert.is_true(iterations < 100)
+        while #scheduled > 0 do table.remove(scheduled, 1)() end
     end
 
     before_each(function()
@@ -22,167 +43,118 @@ describe("persistent TBR status index", function()
         test_dir = os.tmpname()
         os.remove(test_dir)
         assert(host_lfs.mkdir(test_dir))
-        scheduled = {}
+
+        attrs = {
+            ["/books"] = { mode = "directory", modification = 1 },
+        }
+        entries = { ["/books"] = { ".", ".." } }
+        sidecars = {}
+        docs = {}
         opens = 0
         open_fail = nil
-        db_rows = {}
-        attrs = {
-            ["/books/a.epub"] = { mode = "file", size = 10, modification = 1, access = 30 },
-            ["/books/b.epub"] = { mode = "file", size = 10, modification = 1, access = 20 },
-            ["/books/c.epub"] = { mode = "file", size = 10, modification = 1, access = 10 },
-            ["/sidecars/a.lua"] = { mode = "file", size = 10, modification = 1 },
-            ["/sidecars/b.lua"] = { mode = "file", size = 10, modification = 1 },
-            ["/sidecars/c.lua"] = { mode = "file", size = 10, modification = 1 },
+        scheduled = {}
+        collection_writes = 0
+        config = {
+            _meta = { tbr_collection_migrated = true },
+            additional_home_dirs = {},
         }
-        sidecars = {
-            ["/books/a.epub"] = "/sidecars/a.lua",
-            ["/books/b.epub"] = "/sidecars/b.lua",
-            ["/books/c.epub"] = "/sidecars/c.lua",
+        ReadCollection = {
+            coll = { favorites = {} },
+            coll_settings = { favorites = { order = 1 } },
         }
-        local statuses = {
-            ["/books/a.epub"] = "abandoned",
-            ["/books/b.epub"] = "reading",
-            ["/books/c.epub"] = "abandoned",
-        }
-        docs = {}
-        for path, status in pairs(statuses) do
-            docs[path] = {
-                data = { doc_path = path },
-                readSetting = function(_self, key)
-                    if key == "summary" then return { status = statuses[path] } end
-                    if key == "percent_finished" then return status == "reading" and 0.4 or nil end
-                end,
-            }
+        function ReadCollection:addCollection(name)
+            self.coll[name] = {}
+            self.coll_settings[name] = { order = 2 }
+        end
+        function ReadCollection:write() collection_writes = collection_writes + 1 end
+        function ReadCollection:addItem(path, name, attr)
+            self.coll[name][path] = { file = path, attr = attr, text = path:match("([^/]+)$") }
+        end
+        function ReadCollection:removeItem(path, name)
+            self.coll[name][path] = nil
+            return true
+        end
+        function ReadCollection:isFileInCollection(path, name)
+            return self.coll[name] and self.coll[name][path] ~= nil
         end
 
         ZenSpec.replace("datastorage", { getSettingsDir = function() return test_dir end })
-        ZenSpec.replace("common/paths", { getHomeDir = function() return "/books" end })
-        ZenSpec.replace("lua-ljsqlite3/init", {
-            open = function()
-                local database = {}
-                function database:exec() end
-                function database:close() end
-                function database:prepare(sql)
-                    local stmt = { bound = {}, done = false }
-                    function stmt:bind(...)
-                        self.bound = { ... }
-                        return self
-                    end
-                    local function qualifies(row)
-                        local matched = row.status == "abandoned"
-                            or (sql:find("effective_status = 'new'", 1, true)
-                                and row.effective_status == "new")
-                        local exclude = sql:find("path != ?", 1, true) and stmt.bound[2]
-                        return row.home_root == stmt.bound[1] and matched and row.path ~= exclude
-                    end
-                    function stmt:step()
-                        if sql:find("INSERT OR REPLACE", 1, true) then
-                            db_rows[self.bound[1]] = {
-                                path = self.bound[1], signature = self.bound[2],
-                                home_root = self.bound[3], status = self.bound[4],
-                                percent_finished = self.bound[5], effective_status = self.bound[6],
-                                sort_title = self.bound[7], series_index = self.bound[8],
-                                access_time = self.bound[9],
-                            }
-                            return true
-                        elseif sql:find("DELETE FROM", 1, true) then
-                            db_rows[self.bound[1]] = nil
-                            return true
-                        elseif sql:find("SELECT signature", 1, true) then
-                            if self.done then return nil end
-                            self.done = true
-                            local row = db_rows[self.bound[1]]
-                            if not row then return nil end
-                            return {
-                                row.signature, row.status, row.percent_finished,
-                                row.effective_status, row.sort_title,
-                                row.series_index, row.access_time,
-                            }
-                        elseif sql:find("SELECT COUNT", 1, true) then
-                            if self.done then return nil end
-                            self.done = true
-                            local count = 0
-                            for _path, row in pairs(db_rows) do
-                                if qualifies(row) then count = count + 1 end
-                            end
-                            return { count }
-                        elseif sql:find("SELECT path", 1, true) then
-                            if not self.result then
-                                self.result = {}
-                                for _path, row in pairs(db_rows) do
-                                    if qualifies(row) then self.result[#self.result + 1] = row end
-                                end
-                                table.sort(self.result, function(a, b)
-                                    if sql:find("sort_title", 1, true) then
-                                        if a.sort_title ~= b.sort_title then
-                                            local descending = sql:find("sort_title COLLATE NOCASE DESC", 1, true)
-                                            return descending and a.sort_title > b.sort_title
-                                                or not descending and a.sort_title < b.sort_title
-                                        end
-                                    end
-                                    return a.path < b.path
-                                end)
-                                local bind_offset = sql:find("path != ?", 1, true) and 2 or 1
-                                self.limit = self.bound[bind_offset + 1]
-                                self.offset = self.bound[bind_offset + 2]
-                                self.position = 1
-                            end
-                            local index = self.offset + self.position
-                            if self.position > self.limit or not self.result[index] then return nil end
-                            self.position = self.position + 1
-                            return { self.result[index].path }
-                        end
-                    end
-                    function stmt:clearbind() return self end
-                    function stmt:reset()
-                        self.done = false
-                        self.result = nil
-                        return self
-                    end
-                    return stmt
-                end
-                return database
-            end,
+        ZenSpec.replace("config/manager", {
+            get = function() return config end,
+            save = function(value) config = value end,
+        })
+        ZenSpec.replace("common/paths", {
+            getHomeDir = function() return "/books" end,
+            normPath = function(path) return path end,
+            isInHomeDir = function(path) return path:sub(1, 7) == "/books/" end,
         })
         ZenSpec.replace("libs/libkoreader-lfs", {
-            attributes = function(path) return attrs[path] end,
+            attributes = function(path, key)
+                local attr = attrs[path]
+                return key and attr and attr[key] or attr
+            end,
+            dir = function(path)
+                local list = assert(entries[path], "missing directory " .. path)
+                local index = 0
+                return function()
+                    index = index + 1
+                    return list[index]
+                end, {}
+            end,
         })
+        ZenSpec.replace("document/documentregistry", {
+            hasProvider = function(_self, path) return path:sub(-5) == ".epub" end,
+        })
+        ZenSpec.replace("ui/widget/filechooser", {
+            show_hidden = false,
+            exclude_files = {},
+            show_dir = function() return true end,
+        })
+        ZenSpec.replace("readcollection", ReadCollection)
         ZenSpec.replace("docsettings", {
             findSidecarFile = function(_self, path) return sidecars[path] end,
             open = function(_self, path)
                 opens = opens + 1
-                if open_fail == path then error("sidecar read failed") end
+                if open_fail == path then return nil end
                 return docs[path]
             end,
         })
-        ZenSpec.replace("ui/uimanager", {
-            scheduleIn = function(_self, _delay, fn) scheduled[#scheduled + 1] = fn end,
-            unschedule = function(_self, fn)
-                for index = #scheduled, 1, -1 do
-                    if scheduled[index] == fn then table.remove(scheduled, index) end
-                end
-            end,
+        ZenSpec.replace("apps/filemanager/filemanagerutil", {
+            saveSummary = function(doc, summary) doc.summary = summary end,
+        })
+        ZenSpec.replace("ui/widget/booklist", {
+            setBookInfoCacheProperty = function() end,
+            collates = {},
         })
         ZenSpec.replace("common/book_status", {
-            includeNewInTBREnabled = function() return false end,
             isImageFile = function() return false end,
             migrateLegacyMarker = function(_path, status) return status end,
-            getComputedStatus = function(_path, status)
-                return status or "new"
+            getComputedStatus = function(_path, status, percent)
+                if status then return status end
+                return percent == nil and "new" or "reading"
             end,
         })
-        ZenSpec.replace("common/title_sort", {
-            key = function(value) return tostring(value) end,
+        ZenSpec.replace("common/db_bookinfo", {
+            getLightMetadata = function()
+                return {
+                    ["/books/a.epub"] = { title = "Zulu" },
+                    ["/books/b.epub"] = { title = "Bravo" },
+                    ["/books/c.epub"] = { title = "Alpha" },
+                }
+            end,
+        })
+        ZenSpec.replace("common/title_sort", { key = function(value) return value end })
+        ZenSpec.replace("ui/uimanager", {
+            nextTick = function(_self, fn) scheduled[#scheduled + 1] = fn end,
+            unschedule = function() end,
         })
         local tick = 0
         ZenSpec.replace("common/zen_logger", {
-            now = function()
-                tick = tick + 0.001
-                return tick
-            end,
+            now = function() tick = tick + 0.001; return tick end,
             new = function()
                 return {
                     warn = function() end,
+                    info = function() end,
                     measure = function() end,
                 }
             end,
@@ -196,88 +168,130 @@ describe("persistent TBR status index", function()
         ZenSpec.unload("common/tbr_index")
         os.remove(test_dir .. "/docprops_cache.sqlite")
         os.remove(test_dir .. "/docprops_cache.sqlite-journal")
+        os.remove(test_dir .. "/docprops_cache.sqlite-wal")
+        os.remove(test_dir .. "/docprops_cache.sqlite-shm")
         require("lfs").rmdir(test_dir)
     end)
 
-    local function candidates()
-        return {
-            { path = "/books/a.epub", title = "Zulu", series_index = 3 },
-            { path = "/books/b.epub", title = "Bravo", series_index = 2 },
-            { path = "/books/c.epub", title = "Alpha", series_index = 1 },
-        }
-    end
+    it("publishes every sidecar-free book without BookInfo or DocSettings", function()
+        add_book("/books/a.epub")
+        add_book("/books/b.epub")
+        add_book("/books/c.epub")
+        ZenSpec.replace("common/db_bookinfo", {
+            getLightMetadata = function() return {} end,
+        })
 
-    it("persists paged TBR rows and reopens only changed sidecars", function()
         local Index = require("common/tbr_index")
-        assert.is_true(Index.scheduleAudit(candidates()))
-        run_scheduled()
+        assert.same({ "/books/a.epub", "/books/b.epub", "/books/c.epub" },
+            Index.getAll({ include_new = true, collate = "title" }))
+        assert.are.equal(0, opens)
+    end)
 
-        assert.are.equal(3, opens)
-        assert.are.equal(2, Index.getCount())
-        local first = Index.getPage(0, 1, { collate = "title" })
-        assert.are.same({ "/books/c.epub" }, first)
+    it("uses the ordinary collection for explicit TBR membership", function()
+        add_book("/books/a.epub", "reading", 1)
+        add_book("/books/b.epub", "reading", 1)
+        local Index = require("common/tbr_index")
+
+        assert.is_true(Index.setExplicit("/books/b.epub", true))
+        assert.same({ "/books/b.epub" }, Index.getAll({ include_new = false }))
+        assert.is_true(Index.isExplicit("/books/b.epub"))
+        assert.are.equal("reading", docs["/books/b.epub"].summary.status)
+        assert.are.equal(0.4, docs["/books/b.epub"].percent_finished)
+        assert.is_true(Index.setExplicit("/books/b.epub", false))
+        assert.same({}, Index.getAll({ include_new = false }))
+        assert.are.equal(3, collection_writes)
+    end)
+
+    it("reopens only a changed sidecar across warm queries and reloads", function()
+        add_book("/books/a.epub", "reading", 1)
+        add_book("/books/b.epub", nil, 1)
+        local Index = require("common/tbr_index")
+
+        assert.same({ "/books/b.epub" }, Index.getAll({ include_new = true }))
+        assert.are.equal(2, opens)
+        Index.invalidateStatusCache()
+        assert.same({ "/books/b.epub" }, Index.getAll({ include_new = true }))
+        assert.are.equal(2, opens)
 
         Index.close()
         ZenSpec.unload("common/tbr_index")
-        opens = 0
         Index = require("common/tbr_index")
-        Index.scheduleAudit(candidates())
-        run_scheduled()
-        assert.are.equal(0, opens)
-        assert.are.equal(2, Index.getCount())
+        assert.same({ "/books/b.epub" }, Index.getAll({ include_new = true }))
+        assert.are.equal(2, opens)
 
-        attrs["/sidecars/a.lua"].modification = 2
-        docs["/books/a.epub"].readSetting = function(_self, key)
-            if key == "summary" then return { status = "reading" } end
-            if key == "percent_finished" then return 0.2 end
-        end
-        Index.scheduleAudit(candidates())
-        run_scheduled()
-        assert.are.equal(1, opens)
-        assert.are.equal(1, Index.getCount())
+        attrs[sidecars["/books/a.epub"]].modification = 2
+        docs["/books/a.epub"].summary.status = nil
+        docs["/books/a.epub"].percent_finished = nil
+        Index.invalidateStatusCache()
+        assert.same({ "/books/b.epub", "/books/a.epub" },
+            Index.getAll({ include_new = true }))
+        assert.are.equal(3, opens)
     end)
 
-    it("updates one status synchronously without auditing the library", function()
-        local Index = require("common/tbr_index")
-        Index.refreshPath("/books/a.epub", docs["/books/a.epub"], candidates()[1])
+    it("migrates legacy abandoned statuses into the collection once", function()
+        config._meta.tbr_collection_migrated = false
+        add_book("/books/a.epub", "abandoned", 1)
+        add_book("/books/b.epub", "reading", 1)
 
-        assert.are.equal(0, opens)
-        assert.are.equal(1, Index.getCount())
-        assert.are.same({ "/books/a.epub" }, Index.getPage(0, 4))
+        local Index = require("common/tbr_index")
+        assert.same({ "/books/a.epub" }, Index.getAll({ include_new = false }))
+        assert.is_nil(docs["/books/a.epub"].summary.status)
+        assert.is_true(config._meta.tbr_collection_migrated)
+        assert.is_true(Index.isExplicit("/books/a.epub"))
     end)
 
-    it("keeps the cached status when a changed sidecar cannot be read", function()
+    it("keeps a cached classification when a changed sidecar cannot be read", function()
+        add_book("/books/a.epub", nil, 1)
         local Index = require("common/tbr_index")
-        Index.scheduleAudit(candidates())
-        run_scheduled()
-        assert.are.equal(2, Index.getCount())
+        assert.same({ "/books/a.epub" }, Index.getAll({ include_new = true }))
 
-        attrs["/sidecars/a.lua"].modification = 2
+        attrs[sidecars["/books/a.epub"]].modification = 2
         open_fail = "/books/a.epub"
-        Index.scheduleAudit(candidates())
-        run_scheduled()
-
-        assert.are.equal(2, Index.getCount())
+        Index.invalidateStatusCache()
+        assert.same({ "/books/a.epub" }, Index.getAll({ include_new = true }))
     end)
 
-    it("notifies every view waiting on the same audit", function()
+    it("reconciles externally added books as one complete result", function()
+        add_book("/books/a.epub")
         local Index = require("common/tbr_index")
-        local changes = 0
-        local completions = 0
-        Index.scheduleAudit(candidates(), function()
-            changes = changes + 1
-        end, function()
-            completions = completions + 1
-        end)
-        Index.scheduleAudit(candidates(), function()
-            changes = changes + 1
-        end, function()
-            completions = completions + 1
-        end)
-        run_scheduled()
+        assert.same({ "/books/a.epub" }, Index.getAll({ include_new = true }))
 
-        assert.are.equal(2, changes)
-        assert.are.equal(2, completions)
+        add_book("/books/b.epub")
+        attrs["/books"].modification = 2
+        assert.same({ "/books/b.epub", "/books/a.epub" },
+            Index.getAll({ include_new = true }))
+    end)
+
+    it("keeps the previous complete inventory when a root is unavailable", function()
+        add_book("/books/a.epub")
+        local Index = require("common/tbr_index")
+        assert.same({ "/books/a.epub" }, Index.getAll({ include_new = true }))
+
+        attrs["/books"] = nil
+        assert.same({ "/books/a.epub" }, Index.getAll({ include_new = true }))
+    end)
+
+    it("applies a status change immediately without rescanning paths", function()
+        add_book("/books/a.epub", "reading", 1)
+        local Index = require("common/tbr_index")
+        assert.same({}, Index.getAll({ include_new = true }))
+
+        docs["/books/a.epub"].summary.status = nil
+        docs["/books/a.epub"].percent_finished = nil
+        assert.is_true(Index.refreshPath("/books/a.epub", docs["/books/a.epub"]))
+        assert.same({ "/books/a.epub" }, Index.getAll({ include_new = true }))
+    end)
+
+    it("coalesces scheduled reconciliation callbacks", function()
+        add_book("/books/a.epub")
+        local Index = require("common/tbr_index")
+        local completed = 0
+        assert.is_true(Index.scheduleAudit(function() end,
+            function() completed = completed + 1 end))
+        assert.is_false(Index.scheduleAudit(function() end,
+            function() completed = completed + 1 end))
+        run_scheduled()
+        assert.are.equal(2, completed)
         assert.is_true(Index.isAuditComplete())
     end)
 end)

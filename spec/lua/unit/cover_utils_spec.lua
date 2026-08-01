@@ -9,6 +9,9 @@ describe("cover utility policy", function()
         ZenSpec.replace("ui/rendertext", {})
         ZenSpec.replace("ui/bidi", { directory = function(text) return text end })
         ZenSpec.replace("gettext", function(text) return text end)
+        ZenSpec.replace("common/cover_decode_cache", {
+            getFreshMetadata = function() end,
+        })
         ZenSpec.unload("common/cover_utils")
         CoverUtils = require("common/cover_utils")
     end)
@@ -93,6 +96,10 @@ describe("cover utility policy", function()
     it("maps configured folder cover modes to cover counts and gallery behavior", function()
         _G.__ZEN_UI_PLUGIN = { config = { browser_folder_cover = { cover_mode = "gallery" } } }
         assert.are.same({ "gallery", 4, true }, { CoverUtils.getMode() })
+        _G.__ZEN_UI_PLUGIN.config.browser_folder_cover.cover_mode = "stack"
+        assert.are.same({ "stack", 4, true }, { CoverUtils.getMode() })
+        _G.__ZEN_UI_PLUGIN.config.browser_folder_cover.cover_mode = "normal"
+        assert.are.same({ "normal", 1, false }, { CoverUtils.getMode() })
         _G.__ZEN_UI_PLUGIN.config.browser_folder_cover.cover_mode = "none"
         assert.are.same({ "none", 0, false }, { CoverUtils.getMode() })
     end)
@@ -155,12 +162,204 @@ describe("cover utility policy", function()
         assert.are.equal(0, lookups)
     end)
 
+    it("reuses preloaded no-cover metadata for folder candidates", function()
+        local metadata = {
+            cover_fetched = "Y",
+            has_cover = false,
+            title = "Generated",
+        }
+        _G.__ZEN_UI_PLUGIN = {
+            config = { browser_folder_cover = { cover_mode = "gallery" } },
+        }
+        ZenSpec.replace("common/cover_decode_cache", {
+            getFreshMetadata = function(_self, path)
+                return path == "/generated.epub" and metadata or nil
+            end,
+        })
+        ZenSpec.replace("bookinfomanager", {
+            getBookInfo = function() error("unexpected BookInfo lookup") end,
+        })
+        ZenSpec.unload("common/cover_utils")
+        CoverUtils = require("common/cover_utils")
+        local generated_request
+        CoverUtils.genCover = function(_path, width, height, _no_fallback, bookinfo)
+            generated_request = { width = width, height = height, metadata = bookinfo }
+            return "generated-cover", 100, 150
+        end
+
+        local covers = CoverUtils.collect(nil, nil, 1, false, {
+            { path = "/generated.epub", is_file = true },
+        }, { max_cover_w = 100, max_cover_h = 150, uniform = true })
+
+        assert.are.equal(1, #covers)
+        assert.are.equal("generated-cover", covers[1].data)
+        assert.are.same({ width = 49, height = 74, metadata = metadata }, generated_request)
+    end)
+
+    it("uses a final-render hit before loading a decoded folder cover", function()
+        local metadata = {
+            cover_fetched = "Y",
+            has_cover = "Y",
+            cover_w = 120,
+            cover_h = 180,
+        }
+        local cache_request
+        _G.__ZEN_UI_PLUGIN = {
+            config = { browser_folder_cover = { cover_mode = "gallery" } },
+        }
+        ZenSpec.replace("common/cover_decode_cache", {
+            getFreshMetadata = function() return metadata end,
+        })
+        ZenSpec.replace("common/cover_render_cache", {
+            get = function(_self, path, width, height)
+                cache_request = { path = path, width = width, height = height }
+                return "cached-preview"
+            end,
+        })
+        ZenSpec.replace("bookinfomanager", {
+            getBookInfo = function() error("unexpected decoded-cover lookup") end,
+            isCachedCoverInvalid = function() return false end,
+        })
+        ZenSpec.unload("common/cover_utils")
+        CoverUtils = require("common/cover_utils")
+
+        local covers = CoverUtils.collect(nil, nil, 4, true, {
+            { path = "/cached.epub", is_file = true },
+        }, { max_cover_w = 100, max_cover_h = 150, uniform = true })
+
+        assert.are.same({ path = "/cached.epub", width = 49, height = 73 }, cache_request)
+        assert.are.equal("cached-preview", covers[1].data)
+        assert.is_nil(covers[1].cache_key)
+    end)
+
+    it("keeps cached folder previews and defers cold cover reads", function()
+        local metadata = {
+            ["/cached.epub"] = {
+                cover_fetched = "Y", has_cover = "Y", cover_w = 120, cover_h = 180,
+            },
+            ["/cold.epub"] = {
+                cover_fetched = "Y", has_cover = "Y", cover_w = 120, cover_h = 180,
+            },
+            ["/generated.epub"] = {
+                cover_fetched = "Y", has_cover = false, title = "Generated",
+            },
+        }
+        local lookups = 0
+        local render_requests = {}
+        _G.__ZEN_UI_PLUGIN = {
+            config = { browser_folder_cover = { cover_mode = "gallery" } },
+        }
+        ZenSpec.replace("common/cover_decode_cache", {
+            getFreshMetadata = function(_self, path) return metadata[path] end,
+        })
+        ZenSpec.replace("common/cover_render_cache", {
+            get = function(_self, path)
+                render_requests[#render_requests + 1] = path
+                if path == "/cached.epub" then return "cached-preview" end
+            end,
+        })
+        ZenSpec.replace("bookinfomanager", {
+            getBookInfo = function()
+                lookups = lookups + 1
+                return nil
+            end,
+            isCachedCoverInvalid = function() return false end,
+        })
+        ZenSpec.unload("common/cover_utils")
+        CoverUtils = require("common/cover_utils")
+        CoverUtils.genCover = function() error("foreground placeholder was generated") end
+
+        local covers, needs_hydration = CoverUtils.collect(nil, nil, 4, true, {
+            { path = "/cached.epub", is_file = true },
+            { path = "/cold.epub", is_file = true },
+            { path = "/generated.epub", is_file = true },
+        }, { max_cover_w = 100, max_cover_h = 150, uniform = true }, 0, true)
+
+        assert.are.equal(0, lookups)
+        assert.is_true(needs_hydration)
+        assert.are.equal(1, #covers)
+        assert.are.equal("cached-preview", covers[1].data)
+        assert.are.same({ "/cached.epub", "/cold.epub" }, render_requests)
+    end)
+
+    it("reuses a cached generated preview without creating one in the initial pass", function()
+        local metadata = { cover_fetched = "Y", has_cover = false, title = "Generated" }
+        _G.__ZEN_UI_PLUGIN = {
+            config = { browser_folder_cover = { cover_mode = "gallery" } },
+        }
+        ZenSpec.replace("common/cover_decode_cache", {
+            getFreshMetadata = function() return metadata end,
+        })
+        ZenSpec.replace("bookinfomanager", {
+            getBookInfo = function() error("unexpected BookInfo lookup") end,
+            isCachedCoverInvalid = function() return false end,
+        })
+        ZenSpec.unload("common/cover_utils")
+        CoverUtils = require("common/cover_utils")
+        CoverUtils.getCachedGeneratedCover = function(path, width, height, _no_fallback, info)
+            assert.are.equal("/generated.epub", path)
+            assert.are.same(metadata, info)
+            return "cached-generated", width, height
+        end
+
+        local covers, needs_hydration = CoverUtils.collect(nil, nil, 1, false, {
+            { path = "/generated.epub", is_file = true },
+        }, { max_cover_w = 100, max_cover_h = 150, uniform = true }, 0, true)
+
+        assert.is_false(needs_hydration)
+        assert.are.equal("cached-generated", covers[1].data)
+    end)
+
+    it("loads a stale real folder cover during hydration using preview-sized validation", function()
+        local metadata = {
+            cover_fetched = "Y", has_cover = "Y", cover_w = 30, cover_h = 45,
+        }
+        local real_cover = { free = function() end }
+        local requested_cover
+        local validated_specs
+        _G.__ZEN_UI_PLUGIN = {
+            config = { browser_folder_cover = { cover_mode = "gallery" } },
+        }
+        ZenSpec.replace("common/cover_decode_cache", {
+            getFreshMetadata = function() return metadata end,
+        })
+        ZenSpec.replace("common/cover_render_cache", { get = function() end })
+        ZenSpec.replace("bookinfomanager", {
+            getBookInfo = function(_self, _path, get_cover)
+                requested_cover = get_cover
+                return {
+                    cover_fetched = "Y", has_cover = "Y",
+                    cover_w = 30, cover_h = 45, cover_bb = real_cover,
+                }
+            end,
+            isCachedCoverInvalid = function(_info, specs)
+                validated_specs = specs
+                return true
+            end,
+        })
+        ZenSpec.unload("common/cover_utils")
+        CoverUtils = require("common/cover_utils")
+
+        local covers = CoverUtils.collect(nil, nil, 1, false, {
+            { path = "/stale.epub", is_file = true },
+        }, { max_cover_w = 100, max_cover_h = 150, uniform = true })
+
+        assert.is_true(requested_cover)
+        assert.are.same({ max_cover_w = 49, max_cover_h = 74 }, validated_specs)
+        assert.are.equal(real_cover, covers[1].data)
+        assert.are.equal("/stale.epub", covers[1].cache_key)
+    end)
+
     it("keeps every grouped-book slot when a cached cover is stale or missing", function()
         local real_frees = 0
+        local real_copies = 0
         local stale_frees = 0
         local generated = {}
         local real_bb = {
-            copy = function() return "real-copy" end,
+            copy = function()
+                real_copies = real_copies + 1
+                return "real-copy"
+            end,
             free = function() real_frees = real_frees + 1 end,
         }
         local stale_bb = {
@@ -192,6 +391,9 @@ describe("cover utility policy", function()
             getBookInfo = function(_self, path) return info[path] end,
             isCachedCoverInvalid = function(bookinfo) return bookinfo.stale == true end,
         })
+        _G.__ZEN_UI_PLUGIN = {
+            config = { browser_folder_cover = { cover_mode = "gallery" } },
+        }
         local stale_metadata = { title = "Stale", authors = "Author" }
         CoverUtils.genCover = function(path, _width, _height, _no_fallback, metadata)
             generated[#generated + 1] = { path = path, metadata = metadata }
@@ -205,16 +407,21 @@ describe("cover utility policy", function()
         }, { max_cover_w = 100, max_cover_h = 150 })
 
         assert.are.equal(3, #covers)
-        assert.are.same({ "real-copy", "placeholder:/stale.epub", "placeholder:/missing.epub" }, {
+        assert.are.same({ real_bb, stale_bb, "placeholder:/missing.epub" }, {
             covers[1].data,
             covers[2].data,
             covers[3].data,
         })
         assert.are.equal("/real.epub", covers[1].cache_key)
-        assert.are.equal(stale_metadata, generated[1].metadata)
-        assert.are.equal(info["/missing.epub"], generated[2].metadata)
-        assert.are.equal(1, real_frees)
+        assert.are.equal("/stale.epub", covers[2].cache_key)
+        assert.are.equal(info["/missing.epub"], generated[1].metadata)
+        assert.are.equal(0, real_copies)
+        assert.are.equal(0, real_frees)
+        assert.are.equal(0, stale_frees)
+        covers[2].data:free()
         assert.are.equal(1, stale_frees)
+        covers[1].data:free()
+        assert.are.equal(1, real_frees)
     end)
 
     it("uses the book placeholder renderer for title-only folder covers", function()
@@ -447,6 +654,33 @@ describe("cover utility policy", function()
         assert.are.equal(100, uniform_image.width)
         assert.are.equal(150, uniform_image.height)
         assert.are.equal(1.875, uniform_image.scale_factor)
+    end)
+
+    it("does not rescale an exact cached gallery preview", function()
+        local images = {}
+        local function container()
+            return { new = function(_self, values) return values end }
+        end
+        ZenSpec.replace("ui/widget/container/centercontainer", container())
+        ZenSpec.replace("ui/widget/container/framecontainer", container())
+        ZenSpec.replace("ui/widget/horizontalgroup", container())
+        ZenSpec.replace("ui/widget/linewidget", container())
+        ZenSpec.replace("ui/widget/verticalgroup", container())
+        ZenSpec.replace("ui/widget/verticalspan", container())
+        ZenSpec.replace("ui/widget/imagewidget", {
+            new = function(_self, values)
+                images[#images + 1] = values
+                return values
+            end,
+        })
+
+        CoverUtils.drawGallery({ {
+            data = "cached-preview", w = 49, h = 74,
+        } }, 100, 150, 2, function() return "background" end, false)
+
+        assert.are.equal(1, images[1].scale_factor)
+        assert.are.equal(49, images[1].width)
+        assert.are.equal(74, images[1].height)
     end)
 
     it("uses the shared final-render path for real group previews", function()

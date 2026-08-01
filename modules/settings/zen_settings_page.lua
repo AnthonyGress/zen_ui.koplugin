@@ -518,6 +518,15 @@ function ZenSettingsPage:_rememberResume()
     pending_arrange_resume = nil
 end
 
+function ZenSettingsPage:_flushDeferredSettingsApplies()
+    if self._deferred_settings_applies_flushed then return end
+    self._deferred_settings_applies_flushed = true
+    local ok, settings_apply = pcall(require, "modules/settings/zen_settings_apply")
+    if ok and type(settings_apply.flush_deferred_on_settings_close) == "function" then
+        settings_apply.flush_deferred_on_settings_close()
+    end
+end
+
 function ZenSettingsPage:closeMenu()
     if self._closed then return true end
     self:_rememberResume()
@@ -534,6 +543,7 @@ function ZenSettingsPage:closeMenu()
         _G.__ZEN_UI_SETTINGS_PAGE = nil
     end
     UIManager:close(self)
+    self:_flushDeferredSettingsApplies()
     return true
 end
 
@@ -550,6 +560,7 @@ function ZenSettingsPage:onCloseWidget()
     if rawget(_G, "__ZEN_UI_SETTINGS_PAGE") == self then
         _G.__ZEN_UI_SETTINGS_PAGE = nil
     end
+    self:_flushDeferredSettingsApplies()
     return Menu.onCloseWidget(self)
 end
 

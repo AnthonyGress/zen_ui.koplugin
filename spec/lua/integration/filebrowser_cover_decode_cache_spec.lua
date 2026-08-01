@@ -98,6 +98,22 @@ describe("CoverBrowser decoded cover cache patch", function()
         assert.are.equal(99, stats.hits / (stats.hits + stats.decode_reads) * 100)
     end)
 
+    it("remembers metadata for books without covers", function()
+        forced_info = {
+            title = "Placeholder",
+            cover_fetched = "Y",
+            has_cover = false,
+        }
+
+        BookInfoManager:getBookInfo("/placeholder.epub", true)
+        local metadata = Cache:getFreshMetadata("/placeholder.epub", current_time, 30)
+
+        assert.are.equal("Placeholder", metadata.title)
+        assert.is_false(metadata.has_cover)
+        assert.are.equal(1, full_reads)
+        assert.are.equal(1, Cache:stats().metadata_count)
+    end)
+
     it("invalidates a book when CoverBrowser deletes its metadata", function()
         BookInfoManager:getBookInfo("/book.epub", true)
         assert.is_true(Cache:has("/book.epub"))

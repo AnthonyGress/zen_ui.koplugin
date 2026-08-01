@@ -972,8 +972,8 @@ msgstr "Skrýt okraje seznamu"
 msgid "Hide reader actions in library"
 msgstr "Skrýt akce čtečky v knihovně"
 
-msgid "Hide TBR books"
-msgstr "Skrýt knihy k přečtení"
+msgid "Hide on-hold books"
+msgstr "Skrýt odložené knihy"
 
 msgid "Hide unread books"
 msgstr "Skrýt nepřečtené knihy"

@@ -34,8 +34,17 @@ describe("book info grouping cache", function()
         ZenSpec.replace("bookinfomanager", {
             db_location = "/settings/bookinfo.sqlite3",
             db_conn = {
-                exec = function()
+                exec = function(_self, sql)
                     exec_calls = exec_calls + 1
+                    if sql:find("title, series", 1, true) then
+                        return {
+                            { "/books/", "/books/" },
+                            { "a.epub", "b.epub" },
+                            { "Title A", "Title B" },
+                            { "Series A", "Series B" },
+                            { 2, 1 },
+                        }
+                    end
                     return {
                         { "/books/", "/books/" },
                         { "a.epub", "b.epub" },
@@ -112,12 +121,12 @@ describe("book info grouping cache", function()
         assert.are.equal(1, exec_calls)
     end)
 
-    it("builds a sidecar-free TBR candidate list with history first", function()
-        local candidates = DbBookInfo.getTBRIndexCandidates()
+    it("loads lightweight sorting metadata in one batch", function()
+        local metadata = DbBookInfo.getLightMetadata()
 
-        assert.are.equal(2, #candidates)
-        assert.are.equal("/books/b.epub", candidates[1].path)
-        assert.are.equal("Author B", candidates[1].title)
-        assert.are.equal("/books/a.epub", candidates[2].path)
+        assert.are.equal("Title A", metadata["/books/a.epub"].title)
+        assert.are.equal("Series B", metadata["/books/b.epub"].series)
+        assert.are.equal(1, metadata["/books/b.epub"].series_index)
+        assert.are.equal(1, exec_calls)
     end)
 end)

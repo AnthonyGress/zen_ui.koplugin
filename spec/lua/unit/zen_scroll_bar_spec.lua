@@ -2,6 +2,7 @@ describe("Zen scroll bar", function()
     local Menu
     local shown
     local painted_y
+    local page_turns
     local saved_modules
 
     local module_names = {
@@ -45,6 +46,7 @@ describe("Zen scroll bar", function()
         end
         shown = nil
         painted_y = nil
+        page_turns = {}
         Menu = {
             init = function(self)
                 self.page_info = { resetLayout = function() end }
@@ -53,6 +55,12 @@ describe("Zen scroll bar", function()
             end,
             registerTouchZones = function() end,
             _recalculateDimen = function() end,
+            onPrevPage = function(self)
+                page_turns[#page_turns + 1] = { "previous", self.page }
+            end,
+            onNextPage = function(self)
+                page_turns[#page_turns + 1] = { "next", self.page }
+            end,
         }
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("ffi/blitbuffer", { COLOR_WHITE = "white" })
@@ -162,5 +170,21 @@ describe("Zen scroll bar", function()
         assert.are.equal((552 - 144) / 600, center.screen_zone.ratio_w)
         assert.are.equal(746 / 800, left.screen_zone.ratio_y)
         assert.are.equal(54 / 800, left.screen_zone.ratio_h)
+    end)
+
+    it("routes adjacent chevrons through directional page handlers", function()
+        local authors = new_menu("authors", {
+            covers_fullscreen = true,
+            is_borderless = true,
+            title_bar_fm_style = true,
+        })
+
+        assert.is_true(find_zone(authors, "zen_pn_left_tap").handler())
+        assert.is_true(find_zone(authors, "zen_pn_right_tap").handler())
+
+        assert.are.same({
+            { "previous", 1 },
+            { "next", 1 },
+        }, page_turns)
     end)
 end)

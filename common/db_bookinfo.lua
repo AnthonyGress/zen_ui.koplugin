@@ -238,126 +238,37 @@ function M.getGroupedBySeries()
     return groups
 end
 
--- Returns explicit TBR books plus computed-New books when configured.
-function M.getTBRBooks()
-    local started_at = now()
-    if not bimOk then
-        logger.warn("BookInfoManager not available")
-        return {}
-    end
-    BookInfoManager:openDbConnection()
-    local conn = BookInfoManager.db_conn
-    local candidates = {}
-    local row_count = 0
-
-    local ok2, err = pcall(function()
-        -- Query all books, not just in_progress=0.  Bookshelf (and other
-        -- plugins) can set DocSettings status to "abandoned" without
-        -- updating the CoverBrowser cache, so a previously-in-progress
-        -- book may still have in_progress=1 here.  The authoritative
-        -- filter is the sidecar check below.
-        local sql = [[
-            SELECT directory, filename
-            FROM bookinfo
-            ORDER BY filename
-        ]]
-        row_count = for_each_valid_book_row(conn, sql, function(raw_filepath)
-            table.insert(candidates, raw_filepath)
-        end)
-    end)
-
-
-    if not ok2 then
-        logger.warn("getTBRBooks query error:", err)
-        return {}
-    end
-
-    local ok_ds, DocSettings = pcall(require, "docsettings")
-    if not ok_ds then return {} end
-
-    local BookStatus = require("common/book_status")
-    local include_new = BookStatus.includeNewInTBREnabled()
-    local result = {}
-    local sidecar_reads = 0
-    for _i, filepath in ipairs(candidates) do
-        if DocSettings:hasSidecarFile(filepath) then
-            sidecar_reads = sidecar_reads + 1
-            local ok3, doc = pcall(DocSettings.open, DocSettings, filepath)
-            if ok3 and doc then
-                local summary = doc:readSetting("summary")
-                local status = summary and summary.status
-                status = BookStatus.migrateLegacyMarker(filepath, status, doc)
-                local effective_status = BookStatus.getComputedStatus(
-                    filepath, status, doc:readSetting("percent_finished"), doc
-                )
-                if status == "abandoned"
-                        or (include_new and effective_status == "new"
-                            and not BookStatus.isImageFile(filepath)) then
-                    table.insert(result, filepath)
-                end
-            end
-        elseif include_new and not BookStatus.isImageFile(filepath) then
-            table.insert(result, filepath)
-        end
-    end
-
-    logger.measure("TBR books loaded", (now() - started_at) * 1000,
-        "rows=", row_count,
-        "sidecar_reads=", sidecar_reads,
-        "books=", #result)
-    return result
-end
-
--- Cheap candidate list for the persistent TBR status index. Reading sidecars
--- is deliberately left to common/tbr_index's bounded idle audit.
-function M.getTBRIndexCandidates()
+-- Lightweight metadata for path-list sorting. This is one batched SQLite
+-- query and never asks BookInfoManager to decode covers or open documents.
+function M.getLightMetadata()
     if not bimOk then return {} end
+    local cached = get_cached("light_metadata")
+    if cached then return cached end
+
     BookInfoManager:openDbConnection()
-    local candidates = {}
-    local by_path = {}
+    local metadata = {}
     local ok_query, err = pcall(function()
         local sql = [[
-            SELECT directory, filename, title, series_index
+            SELECT directory, filename, title, series, series_index
             FROM bookinfo
-            ORDER BY filename
         ]]
         for_each_valid_book_row(BookInfoManager.db_conn, sql,
-            function(raw_filepath, _filename, result, index)
-                local candidate = {
-                    path = raw_filepath,
+            function(filepath, _filename, result, index)
+                local info = {
                     title = result[3] and result[3][index],
-                    series_index = tonumber(result[4] and result[4][index]),
+                    series = result[4] and result[4][index],
+                    series_index = tonumber(result[5] and result[5][index]),
                 }
-                candidates[#candidates + 1] = candidate
-                by_path[raw_filepath] = candidate
+                metadata[filepath] = info
+                metadata[paths.normPath(filepath)] = info
             end)
     end)
     if not ok_query then
-        logger.warn("TBR candidate query error:", err)
+        logger.warn("light metadata query error:", err)
         return {}
     end
-
-    -- Opened books are the most likely explicit TBR matches, so audit history
-    -- first and make the initial indexed page available quickly.
-    local prioritized = {}
-    local seen = {}
-    local ok_history, ReadHistory = pcall(require, "readhistory")
-    if ok_history and ReadHistory and type(ReadHistory.hist) == "table" then
-        for _i, entry in ipairs(ReadHistory.hist) do
-            local path = entry and entry.file
-            local candidate = path and by_path[path]
-            if candidate and not seen[path] then
-                seen[path] = true
-                prioritized[#prioritized + 1] = candidate
-            end
-        end
-    end
-    for _i, candidate in ipairs(candidates) do
-        if not seen[candidate.path] then
-            prioritized[#prioritized + 1] = candidate
-        end
-    end
-    return prioritized
+    save_cached("light_metadata", metadata)
+    return metadata
 end
 
 -- Returns a sorted list of tag groups from the keywords (Calibre tags) column:

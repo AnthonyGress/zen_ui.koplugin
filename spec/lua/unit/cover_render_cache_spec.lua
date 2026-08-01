@@ -45,6 +45,37 @@ describe("final cover render cache", function()
         assert.are.equal(1, scale_calls)
     end)
 
+    it("shares one immutable final-size bitmap without copying it", function()
+        local first_source = bb(5, 8)
+        local first, first_owned = Cache:renderShared(
+            "/book.epub", first_source, 5, 8)
+        local second_source = bb(5, 8)
+        local second, second_owned = Cache:renderShared(
+            "/book.epub", second_source, 5, 8)
+
+        assert.is_true(first_owned)
+        assert.is_true(second_owned)
+        assert.are.equal(first, second)
+        assert.is_false(first.freed)
+        assert.is_true(second_source.freed)
+        assert.are.equal(1, Cache:stats().shared_hits)
+        assert.are.equal(0, scale_calls)
+        assert.is_true(Cache:releaseShared("/book.epub", first))
+        assert.is_true(Cache:releaseShared("/book.epub", second))
+    end)
+
+    it("frees a shared buffer after its final consumer releases it", function()
+        local shared = bb(5, 8)
+        Cache:putShared("/book.epub", 5, 8, shared)
+
+        assert.is_true(Cache:drop("/book.epub"))
+        assert.is_false(Cache:hasExact("/book.epub", 5, 8))
+        assert.is_false(shared.freed)
+
+        assert.is_true(Cache:releaseShared("/book.epub", shared))
+        assert.is_true(shared.freed)
+    end)
+
     it("reuses one larger bitmap across smaller layout sizes", function()
         Cache:put("/book.epub", 8, 12, bb(8, 12))
         local smaller = Cache:get("/book.epub", 5, 8)
@@ -59,6 +90,19 @@ describe("final cover render cache", function()
 
         assert.is_nil(Cache:get("/book.epub", 8, 10))
         assert.are.equal(0, Cache:stats().hits)
+    end)
+
+    it("prioritizes a touched exact bitmap without copying it", function()
+        Cache:put("gallery", 5, 10, bb(5, 10))
+        Cache:put("book", 5, 10, bb(5, 10))
+
+        assert.is_true(Cache:touchExact("gallery", 5, 10))
+        assert.are.equal(0, Cache:stats().hits)
+        Cache:put("next", 5, 10, bb(5, 10))
+
+        assert.is_true(Cache:hasExact("gallery", 5, 10))
+        assert.is_false(Cache:hasExact("book", 5, 10))
+        assert.is_true(Cache:hasExact("next", 5, 10))
     end)
 
     it("replaces an undersized bitmap for a larger layout", function()

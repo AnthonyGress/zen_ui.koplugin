@@ -728,9 +728,11 @@ local function apply_status_filter(files)
     local status_filter = FileChooser.show_filter and FileChooser.show_filter.status
     if not status_filter then return files end
     local filtered = {}
+    local get_status = book_status.getDisplayStatusFromFile
+        or book_status.getEffectiveStatusFromFile
     for _i, fpath in ipairs(files) do
-        local effective_status = book_status.getEffectiveStatusFromFile(fpath)
-        if status_filter[effective_status] then
+        local display_status = get_status(fpath)
+        if status_filter[display_status] then
             table.insert(filtered, fpath)
         end
     end
@@ -744,7 +746,7 @@ end
 -- menu: the Menu instance to refresh after sort change
 -- files: list of file paths
 -------------------------------------------------------------------------------
-local function showDetailSortDialog(group_name, tab_id, menu, files)
+local function showDetailSortDialog(group_name, tab_id, menu, files, reload_files)
     local _ = require("gettext")
     local ButtonDialog = require("ui/widget/buttondialog")
     local UIManager = require("ui/uimanager")
@@ -771,7 +773,8 @@ local function showDetailSortDialog(group_name, tab_id, menu, files)
     local function rebuildMenu(collate, reverse)
         if not (menu and files) then return end
 
-        local sorted_files = sortDetailFiles(files, collate, reverse)
+        local sorted_files = reload_files and reload_files(collate, reverse)
+            or sortDetailFiles(files, collate, reverse)
         sorted_files = apply_status_filter(sorted_files)
 
         local lfs_mod  = require("libs/libkoreader-lfs")
@@ -1381,16 +1384,13 @@ function M.showTagDetail(tag_name, injectNavbar, navbar_tab_id)
 end
 
 -------------------------------------------------------------------------------
--- M.showTBRView: flat book list filtered to "To Be Read" (abandoned) status
+-- M.showTBRView: flat view of the To Be Read collection plus optional new books
 -------------------------------------------------------------------------------
 function M.showTBRView(injectNavbar)
     if _tbr_menu then return _tbr_menu, false end
     refresh_shared_state()
     local _          = require("gettext")
     local UIManager  = require("ui/uimanager")
-
-    local ok, db = pcall(require, "common/db_bookinfo")
-    if not ok then return end
 
     local tab_id     = "to_be_read"
     local SORT_GROUP = "to_be_read"
@@ -1400,19 +1400,36 @@ function M.showTBRView(injectNavbar)
     local cur_reverse = get_detail_reverse(tab_id, SORT_GROUP, false)
 
     local ok_index, tbr_index = pcall(require, "common/tbr_index")
-    if not ok_index or type(tbr_index.getAll) ~= "function" then tbr_index = nil end
+    if not ok_index or type(tbr_index.getAll) ~= "function" then return end
 
     local function loadFiles()
-        local loaded = tbr_index and tbr_index.getAll({
+        local loaded = tbr_index.getAll({
             include_new = book_status.includeNewInTBREnabled(),
-        }) or db.getTBRBooks()
-        loaded = sortDetailFiles(loaded, cur_collate, cur_reverse)
+            collate = cur_collate,
+            reverse = cur_reverse,
+        })
         return apply_status_filter(loaded)
     end
 
     local files = loadFiles()
+    local menu
+    local buildItems
 
-    local function buildItems(flist)
+    local function refreshCollectionView()
+        tbr_index.collectionChanged(tbr_index.collectionName())
+        files = loadFiles()
+        if menu then
+            local refreshed = buildItems(files)
+            if should_show_up_folder() then
+                table.insert(refreshed, 1,
+                    { text = "\u{2B06} ..", is_go_up = true, mandatory = "" })
+            end
+            menu.item_table = refreshed
+            menu:updateItems()
+        end
+    end
+
+    buildItems = function(flist)
         local lfs_mod  = require("libs/libkoreader-lfs")
         local util_mod = require("util")
         local items = {}
@@ -1427,6 +1444,9 @@ function M.showTBRView(injectNavbar)
                 is_file   = true,
                 dim       = is_file_selected(fpath),
                 mandatory = attr and util_mod.getFriendlySize(attr.size or 0) or "",
+                _zen_collection_name = tbr_index.isExplicit(fpath)
+                    and tbr_index.collectionName() or nil,
+                _zen_collection_refresh = refreshCollectionView,
             })
         end
         if #items == 0 then
@@ -1445,7 +1465,7 @@ function M.showTBRView(injectNavbar)
         table.insert(items, 1, { text = "\u{2B06} ..", is_go_up = true, mandatory = "" })
     end
 
-    local menu = StandalonePage.create_menu{
+    menu = StandalonePage.create_menu{
         name = "to_be_read",
         title = group_name,
         item_table = items,
@@ -1478,6 +1498,8 @@ function M.showTBRView(injectNavbar)
                     _zen_select_cb = function()
                         return toggle_file_selection(menu_self, item)
                     end,
+                    _zen_collection_name = item._zen_collection_name,
+                    _zen_collection_refresh = item._zen_collection_refresh,
                 })
             end
         end,
@@ -1514,32 +1536,6 @@ function M.showTBRView(injectNavbar)
 
     _tbr_menu = menu
 
-    if tbr_index and (type(tbr_index.isAuditComplete) ~= "function"
-            or not tbr_index.isAuditComplete()) then
-        local refresh_pending = false
-        local function refreshIndexedItems()
-            if refresh_pending then return end
-            refresh_pending = true
-            UIManager:scheduleIn(0.2, function()
-                refresh_pending = false
-                if _tbr_menu ~= menu then return end
-                files = loadFiles()
-                local refreshed = buildItems(files)
-                if should_show_up_folder() then
-                    table.insert(refreshed, 1,
-                        { text = "\u{2B06} ..", is_go_up = true, mandatory = "" })
-                end
-                menu.item_table = refreshed
-                menu:updateItems()
-            end)
-        end
-        UIManager:nextTick(function()
-            local candidates = type(db.getTBRIndexCandidates) == "function"
-                and db.getTBRIndexCandidates() or {}
-            tbr_index.scheduleAudit(candidates, refreshIndexedItems, refreshIndexedItems)
-        end)
-    end
-
     local Device_tbr = require("device")
     if Device_tbr:isTouchDevice() then
         local GestureRange_tbr = require("ui/gesturerange")
@@ -1567,7 +1563,12 @@ function M.showTBRView(injectNavbar)
                     _zen_group_name     = group_name,
                     _zen_group_subtitle = n == 1 and _("1 book") or (tostring(n) .. " " .. _("books")),
                     _zen_sort_cb        = function()
-                        showDetailSortDialog(SORT_GROUP, tab_id, self, files)
+                        showDetailSortDialog(SORT_GROUP, tab_id, self, files,
+                            function(collate, reverse)
+                                cur_collate, cur_reverse = collate, reverse
+                                files = loadFiles()
+                                return files
+                            end)
                     end,
                     _zen_display_cb     = function()
                         showDisplayModeDialog(self, tab_id)

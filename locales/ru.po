@@ -975,8 +975,8 @@ msgstr "Скрыть границы списка"
 msgid "Hide reader actions in library"
 msgstr "Скрыть действия читалки в библиотеке"
 
-msgid "Hide TBR books"
-msgstr "Скрыть книги к прочтению"
+msgid "Hide on-hold books"
+msgstr "Скрыть отложенные книги"
 
 msgid "Hide unread books"
 msgstr "Скрыть непрочитанные книги"
@@ -1899,8 +1899,8 @@ msgstr "Показывать число элементов"
 msgid "Show item underline"
 msgstr "Показывать подчёркивание элемента"
 
-msgid "Show KOReader progress bar"
-msgstr "Показывать полосу прогресса KOReader"
+msgid "Show progress bar"
+msgstr "Показывать полосу прогресса"
 
 msgid "Show labels"
 msgstr "Показать метки"
@@ -1917,8 +1917,8 @@ msgstr "Показывать другие варианты быстрого по
 msgid "Show page count"
 msgstr "Показывать количество страниц"
 
-msgid "Show progress % on mosaic covers"
-msgstr "Показать % прогресса на обложках мозаики"
+msgid "Show reading progress"
+msgstr "Показывать прогресс чтения"
 
 msgid "Show separator"
 msgstr "Показывать разделитель"

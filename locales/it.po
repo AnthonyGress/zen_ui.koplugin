@@ -975,8 +975,8 @@ msgstr "Nascondi bordi lista"
 msgid "Hide reader actions in library"
 msgstr "Nascondi azioni del lettore nella libreria"
 
-msgid "Hide TBR books"
-msgstr "Nascondi i libri da leggere"
+msgid "Hide on-hold books"
+msgstr "Nascondi i libri in sospeso"
 
 msgid "Hide unread books"
 msgstr "Nascondi i libri non letti"
@@ -1899,8 +1899,8 @@ msgstr "Mostra numero elementi"
 msgid "Show item underline"
 msgstr "Mostra sottolineatura degli elementi"
 
-msgid "Show KOReader progress bar"
-msgstr "Mostra la barra di avanzamento di KOReader"
+msgid "Show progress bar"
+msgstr "Mostra la barra di avanzamento"
 
 msgid "Show labels"
 msgstr "Mostra etichette"
@@ -1917,8 +1917,8 @@ msgstr "Mostra altre opzioni di ricerca rapida di KOReader accanto ai pulsanti Z
 msgid "Show page count"
 msgstr "Mostra il numero di pagine"
 
-msgid "Show progress % on mosaic covers"
-msgstr "Mostra % avanzamento sulle copertine mosaico"
+msgid "Show reading progress"
+msgstr "Mostra avanzamento lettura"
 
 msgid "Show separator"
 msgstr "Mostra separatore"

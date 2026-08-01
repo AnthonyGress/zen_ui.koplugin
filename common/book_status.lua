@@ -29,6 +29,20 @@ function M.includeNewInTBREnabled()
         and cfg.group_view.include_new_in_tbr == true
 end
 
+function M.getDisplayStatus(file_path, effective_status)
+    if effective_status == "new" and M.includeNewInTBREnabled() then
+        return "tbr"
+    end
+    if type(file_path) ~= "string" or file_path == "" then return effective_status end
+
+    local ok, TBRIndex = pcall(require, "common/tbr_index")
+    if ok and type(TBRIndex.isExplicit) == "function"
+            and TBRIndex.isExplicit(file_path) then
+        return "tbr"
+    end
+    return effective_status
+end
+
 local IMAGE_EXTS = {
     jpg = true, jpeg = true, png = true, gif = true, bmp = true,
     tiff = true, tif = true, webp = true, svg = true, ico = true,
@@ -182,10 +196,13 @@ function M.getFileStatusData(file_path, fallback_info)
             local summary = doc:readSetting("summary")
             local status = summary and summary.status
             local percent_finished = doc:readSetting("percent_finished")
+            local effective_status = M.getComputedStatus(
+                file_path, status, percent_finished, doc)
             return {
                 status = status,
                 percent_finished = percent_finished,
-                effective_status = M.getComputedStatus(file_path, status, percent_finished, doc),
+                effective_status = effective_status,
+                display_status = M.getDisplayStatus(file_path, effective_status),
                 doc_settings = doc,
                 sidecar_checked = true,
             }
@@ -196,10 +213,12 @@ function M.getFileStatusData(file_path, fallback_info)
         or getBookListInfo(file_path)
     local status = book_info and book_info.status
     local percent_finished = book_info and book_info.percent_finished
+    local effective_status = M.getEffectiveStatus(status, percent_finished)
     return {
         status = status,
         percent_finished = percent_finished,
-        effective_status = M.getEffectiveStatus(status, percent_finished),
+        effective_status = effective_status,
+        display_status = M.getDisplayStatus(file_path, effective_status),
         book_info = book_info,
         sidecar_checked = true,
     }
@@ -207,6 +226,10 @@ end
 
 function M.getEffectiveStatusFromFile(file_path)
     return M.getFileStatusData(file_path).effective_status
+end
+
+function M.getDisplayStatusFromFile(file_path)
+    return M.getFileStatusData(file_path).display_status
 end
 
 return M

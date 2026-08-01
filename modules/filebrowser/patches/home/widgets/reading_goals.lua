@@ -179,7 +179,7 @@ end
 return {
     id = "reading_goals",
     label = "Reading goals widget",
-    size = { preferred_pct = 0.12, min_pct = 0.08, max_pct = 0.18, grow_priority = 4 },
+    size = "xs",
     build = function(ctx)
         local width = ctx.width
         local height = ctx.height
@@ -367,6 +367,27 @@ return {
             if i < #goal_rows then rows[#rows + 1] = VerticalSpan:new{ width = math.max(1, bar_h) } end
         end
         local body = VerticalGroup:new(rows)
+        local body_size = body:getSize()
+        local body_h = body_size.h or height
+        local body_top = math.floor(math.max(0, height - body_h) / 2)
+        local visual_shift = 0
+        local body_container = CenterContainer:new{
+            dimen = Geom:new{ w = width, h = height },
+            body,
+        }
+        local original_body_paint = body_container.paintTo
+        body_container.paintTo = function(self, bb, x, y)
+            return original_body_paint(self, bb, x, y + visual_shift)
+        end
+        if type(ctx.setContentBounds) == "function" then
+            ctx.setContentBounds{
+                top = body_top,
+                bottom = body_top + body_h,
+                min_shift = -body_top,
+                max_shift = height - body_top - body_h,
+                set_shift = function(shift) visual_shift = shift end,
+            }
+        end
 
         local body_frame = FrameContainer:new{
             width = width,
@@ -374,10 +395,7 @@ return {
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
-            CenterContainer:new{
-                dimen = Geom:new{ w = width, h = height },
-                body,
-            },
+            body_container,
         }
         local tap = InputContainer:new{
             dimen = Geom:new{ w = width, h = height },

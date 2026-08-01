@@ -16,7 +16,7 @@ end
 local DEFAULT_HOME_PAGE = {
     title = M.DEFAULT_PRESET_NAME,
     rows = {
-        max_rows = 5,
+        capacity_units = 10,
         order = {
             "datetime",
             "featured_recent",
@@ -188,7 +188,7 @@ local DEFAULT_HOME_PAGE = {
 local BOOKSHELF_HOME_PAGE = {
     title = "Bookshelf",
     rows = {
-        max_rows = 5,
+        capacity_units = 10,
         order = {
             "datetime",
             "featured_recent",

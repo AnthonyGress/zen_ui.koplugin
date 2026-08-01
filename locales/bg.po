@@ -981,8 +981,8 @@ msgstr "Скриване на границите на списъка"
 msgid "Hide reader actions in library"
 msgstr "Скриване на действията на четеца в библиотеката"
 
-msgid "Hide TBR books"
-msgstr "Скриване на книгите за четене"
+msgid "Hide on-hold books"
+msgstr "Скриване на книгите в изчакване"
 
 msgid "Hide unread books"
 msgstr "Скриване на непрочетените книги"

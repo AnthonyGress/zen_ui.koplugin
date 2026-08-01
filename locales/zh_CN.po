@@ -975,8 +975,8 @@ msgstr "隐藏列表边框"
 msgid "Hide reader actions in library"
 msgstr "在书库中隐藏阅读器操作"
 
-msgid "Hide TBR books"
-msgstr "隐藏待读书籍"
+msgid "Hide on-hold books"
+msgstr "隐藏搁置的书籍"
 
 msgid "Hide unread books"
 msgstr "隐藏未读书籍"
@@ -1899,8 +1899,8 @@ msgstr "显示项目数"
 msgid "Show item underline"
 msgstr "显示项目下划线"
 
-msgid "Show KOReader progress bar"
-msgstr "显示 KOReader 进度条"
+msgid "Show progress bar"
+msgstr "显示进度条"
 
 msgid "Show labels"
 msgstr "显示标签"
@@ -1917,8 +1917,8 @@ msgstr "在 禅 按钮旁显示其他 KOReader 快速查询选项。"
 msgid "Show page count"
 msgstr "显示页数"
 
-msgid "Show progress % on mosaic covers"
-msgstr "在封面马赛克上显示进度%"
+msgid "Show reading progress"
+msgstr "显示阅读进度"
 
 msgid "Show separator"
 msgstr "显示分隔符"

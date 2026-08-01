@@ -92,6 +92,7 @@ describe("file browser item-table cache", function()
 
     after_each(function()
         ZenSpec.unload("modules/filebrowser/patches/browser_item_table_cache")
+        _G.__ZEN_UI_DEFER_FILEMANAGER_LISTING = nil
         for _i, name in ipairs(module_names) do
             package.loaded[name] = saved_modules[name]
         end
@@ -108,6 +109,20 @@ describe("file browser item-table cache", function()
 
         assert.are.equal(1, generated["/library"])
         assert.are.equal(1, generated["/library/series"])
+    end)
+
+    it("returns a synthetic empty list only during hidden Home bootstrap", function()
+        local chooser = setmetatable({ name = "filemanager" }, { __index = FileChooser })
+        _G.__ZEN_UI_DEFER_FILEMANAGER_LISTING = { path = "/library" }
+
+        local deferred = chooser:genItemTableFromPath("/library")
+        assert.are.same({}, deferred)
+        assert.is_nil(generated["/library"])
+
+        _G.__ZEN_UI_DEFER_FILEMANAGER_LISTING = nil
+        local materialized = chooser:genItemTableFromPath("/library")
+        assert.are.equal(1, #materialized)
+        assert.are.equal(1, generated["/library"])
     end)
 
     it("refreshes cached folders when up-folder visibility changes", function()

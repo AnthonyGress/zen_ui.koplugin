@@ -46,6 +46,14 @@ describe("home data and book caches", function()
         ZenSpec.replace("common/title_sort", { key = function(value) return tostring(value) end })
         ZenSpec.replace("common/widget_resources", {})
         ZenSpec.replace("common/ui/background", { tile_bg = function(color) return color end })
+        ZenSpec.replace("common/cover_decode_cache", {
+            getFreshMetadata = function() end,
+        })
+        ZenSpec.replace("common/cover_render_cache", {
+            hasExact = function() return false end,
+            renderShared = function(_self, _path, source) return source, true end,
+            releaseShared = function() return true end,
+        })
 
         local doc = {
             readSetting = function(_, key)
@@ -99,7 +107,22 @@ describe("home data and book caches", function()
         ZenSpec.replace("common/book_status", {
             isImageFile = function() return false end,
             includeNewInTBREnabled = function() return false end,
+            getEffectiveStatus = function(status, percent_finished)
+                if status then return status end
+                return percent_finished and "reading" or "new"
+            end,
             getComputedStatus = function() return "reading" end,
+            getDisplayStatus = function(_path, status) return status end,
+            getFileStatusData = function(path)
+                status_lookup_count = status_lookup_count + 1
+                local doc_settings = require("docsettings"):open(path)
+                return {
+                    status = "reading",
+                    percent_finished = 0.25,
+                    effective_status = "reading",
+                    doc_settings = doc_settings,
+                }
+            end,
             getEffectiveStatusFromFile = function()
                 status_lookup_count = status_lookup_count + 1
                 return "reading"
@@ -146,6 +169,18 @@ describe("home data and book caches", function()
         error("build_data_provider upvalue not found")
     end
 
+    local function set_home_menu(Home, menu)
+        for i = 1, 40 do
+            local name = debug.getupvalue(Home.isActiveOnTop, i)
+            if not name then break end
+            if name == "_home_menu" then
+                debug.setupvalue(Home.isActiveOnTop, i, menu)
+                return
+            end
+        end
+        error("home menu upvalue not found")
+    end
+
     it("reuses history/status data across providers and opens one sidecar per book miss", function()
         local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
         local build_data_provider = get_build_data_provider(Home)
@@ -169,7 +204,7 @@ describe("home data and book caches", function()
         assert.are.equal(1, doc_open_count)
         assert.are.equal(1, #stable_contexts)
         assert.is_true(stable_contexts[1].sidecar_checked)
-        assert.is_table(stable_contexts[1].doc_settings)
+        assert.is_nil(stable_contexts[1].doc_settings)
         assert.is_true(stable_contexts[1].book_info_checked)
         assert.is_table(stable_contexts[1].book_info)
         assert.are.equal(0, favorite_lookup_count)
@@ -182,7 +217,8 @@ describe("home data and book caches", function()
         assert.are.equal(2, history_reload_count)
     end)
 
-    it("evicts raw Home covers by bytes and clears them for Reader", function()
+    it("keeps strip cache entries metadata-only and clears them for Reader", function()
+        local full_cover_reads = 0
         local function cover()
             local bb = { stride = 6, h = 1, freed = false }
             function bb:getHeight() return self.h end
@@ -190,8 +226,9 @@ describe("home data and book caches", function()
             function bb:free() self.freed = true end
             return bb
         end
-        require("bookinfomanager").getBookInfo = function()
+        require("bookinfomanager").getBookInfo = function(_self, _path, get_cover)
             book_info_reads = book_info_reads + 1
+            if get_cover then full_cover_reads = full_cover_reads + 1 end
             return {
                 title = "Book",
                 authors = "Author",
@@ -218,17 +255,184 @@ describe("home data and book caches", function()
 
         provider:getBooksForStrip("recently_read", 2, "default", "strip_recent")
         local stats = Home.getCoverCacheStats()
-        assert.are.equal(6, stats.bytes)
-        assert.are.equal(1, stats.count)
+        assert.are.equal(0, stats.bytes)
+        assert.are.equal(2, stats.count)
         assert.are.equal(2, book_info_reads)
+        assert.are.equal(0, full_cover_reads)
 
         provider:getBooksForStrip("recently_read", 2, "default", "strip_recent")
-        assert.are.equal(4, book_info_reads)
+        assert.are.equal(2, book_info_reads)
+        assert.are.equal(0, full_cover_reads)
 
         Home.setCoverCacheBudget(0)
         stats = Home.getCoverCacheStats()
         assert.are.equal(0, stats.bytes)
         assert.are.equal(0, stats.count)
+    end)
+
+    it("warms a strip cover only from scheduled cover work", function()
+        local full_cover_reads = 0
+        local rendered
+        local released
+        require("bookinfomanager").getBookInfo = function(_self, _path, get_cover)
+            book_info_reads = book_info_reads + 1
+            local info = {
+                title = "Alpha",
+                authors = "Author",
+                cover_fetched = true,
+                has_cover = true,
+                cover_w = 300,
+                cover_h = 450,
+            }
+            if get_cover then
+                full_cover_reads = full_cover_reads + 1
+                info.cover_bb = { free = function() end }
+            end
+            return info
+        end
+        local RenderCache = require("common/cover_render_cache")
+        RenderCache.renderShared = function(_self, path, source, width, height)
+            rendered = { path = path, source = source, width = width, height = height }
+            return source, true
+        end
+        RenderCache.releaseShared = function(_self, path, bb)
+            released = { path = path, bb = bb }
+            return true
+        end
+
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, {
+            rows = {
+                order = { "strip_recent" },
+                enabled = { strip_recent = true },
+                max_rows = 1,
+            },
+            modules = { strip_recent = {} },
+        })
+
+        local book = provider:getBooksForStrip(
+            "recently_read", 4, "default", "strip_recent")[1]
+        assert.is_true(book.has_real_cover)
+        assert.is_true(book.is_cover_pending)
+        assert.is_nil(book.cover_bb)
+        assert.are.equal(0, full_cover_reads)
+
+        assert.are.equal("warmed", provider:warmStripCover(book, 100, 150))
+        assert.are.equal(1, full_cover_reads)
+        assert.are.same({
+            path = "/library/alpha.epub",
+            source = rendered.source,
+            width = 100,
+            height = 150,
+        }, rendered)
+        assert.are.same({ path = "/library/alpha.epub", bb = rendered.source }, released)
+    end)
+
+    it("notifies strip listeners without rebuilding Home for each extracted cover", function()
+        local scheduled = {}
+        local extraction_started = false
+        local UIManager = require("ui/uimanager")
+        UIManager.scheduleIn = function(_self, delay, callback)
+            scheduled[#scheduled + 1] = { delay = delay, callback = callback }
+        end
+        require("bookinfomanager").getBookInfo = function()
+            return {
+                title = "Alpha",
+                cover_fetched = extraction_started,
+                has_cover = extraction_started,
+                cover_w = 300,
+                cover_h = 450,
+            }
+        end
+        require("bookinfomanager").isExtractingInBackground = function()
+            return extraction_started
+        end
+        require("bookinfomanager").extractInBackground = function(_self, files)
+            assert.are.equal("/library/alpha.epub", files[1].filepath)
+            extraction_started = true
+            return true
+        end
+
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local notified = {}
+        local rebuilds = 0
+        local menu = {
+            _zen_home_notify_strip_cover = function(_self, path)
+                notified[#notified + 1] = path
+            end,
+            _home_rebuild = function() rebuilds = rebuilds + 1 end,
+        }
+        set_home_menu(Home, menu)
+        UIManager._window_stack = { { widget = menu } }
+        local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, {
+            rows = {
+                order = { "strip_recent" },
+                enabled = { strip_recent = true },
+                max_rows = 1,
+            },
+            modules = { strip_recent = {} },
+        })
+
+        provider:getBooksForStrip("recently_read", 4, "default", "strip_recent")
+        assert.are.equal(0.3, scheduled[1].delay)
+        table.remove(scheduled, 1).callback()
+        assert.are.equal(1, scheduled[1].delay)
+        table.remove(scheduled, 1).callback()
+
+        assert.are.same({ "/library/alpha.epub" }, notified)
+        assert.are.equal(0, rebuilds)
+    end)
+
+    it("coalesces featured cover extraction into one batch-completion rebuild", function()
+        local scheduled = {}
+        local extraction_started = false
+        local UIManager = require("ui/uimanager")
+        UIManager.scheduleIn = function(_self, delay, callback)
+            scheduled[#scheduled + 1] = { delay = delay, callback = callback }
+        end
+        require("bookinfomanager").getBookInfo = function()
+            return {
+                title = "Alpha",
+                cover_fetched = extraction_started,
+                has_cover = extraction_started,
+                cover_w = 300,
+                cover_h = 450,
+            }
+        end
+        require("bookinfomanager").isExtractingInBackground = function()
+            return extraction_started
+        end
+        require("bookinfomanager").extractInBackground = function()
+            extraction_started = true
+            return true
+        end
+
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local notifications = 0
+        local rebuilds = 0
+        local menu = {
+            _zen_home_notify_strip_cover = function()
+                notifications = notifications + 1
+            end,
+            _home_rebuild = function() rebuilds = rebuilds + 1 end,
+        }
+        set_home_menu(Home, menu)
+        UIManager._window_stack = { { widget = menu } }
+        local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, {
+            rows = {
+                order = { "featured_recent" },
+                enabled = { featured_recent = true },
+                max_rows = 1,
+            },
+            modules = { featured_recent = {} },
+        })
+
+        provider:getFeaturedBook("recently_read", "default")
+        table.remove(scheduled, 1).callback()
+        table.remove(scheduled, 1).callback()
+
+        assert.are.equal(0, notifications)
+        assert.are.equal(1, rebuilds)
     end)
 
     it("loads a tag strip from the tag index without consulting reading history", function()
@@ -255,6 +459,27 @@ describe("home data and book caches", function()
         assert.are.equal("Science", requested_tag)
         assert.are.equal("/library/alpha.epub", books[1].path)
         assert.are.equal(0, history_reload_count)
+        assert.are.equal(0, doc_open_count)
+    end)
+
+    it("loads a custom strip as metadata-only without opening sidecars", function()
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, {
+            rows = {
+                order = { "strip_custom" },
+                enabled = { strip_custom = true },
+                max_rows = 1,
+            },
+            modules = {
+                strip_custom = { paths = { "/library/alpha.epub" } },
+            },
+        })
+
+        local books = provider:getBooksForStrip(
+            "custom_strip", 4, "default", "strip_custom")
+
+        assert.are.equal("/library/alpha.epub", books[1].path)
+        assert.are.equal(0, doc_open_count)
     end)
 
     it("caps recent strip candidates at 40 without a library fallback walk", function()
@@ -359,6 +584,7 @@ describe("home data and book caches", function()
             { offset = 2, limit = 2 },
         }, page_calls)
         assert.are.equal(0, all_calls)
+        assert.are.equal(1, doc_open_count)
     end)
 
     it("caps TBR strip pages to the first 40 indexed books", function()

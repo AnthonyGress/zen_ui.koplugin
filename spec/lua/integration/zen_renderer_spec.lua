@@ -2,6 +2,10 @@ describe("Zen renderer", function()
     local MosaicMenu
     local stock_created
     local cover_requests
+    local cover_books
+    local book_info_requests
+    local fresh_metadata
+    local render_exact
     local folder_requests
     local painted_text
     local native_progress_paints
@@ -35,6 +39,10 @@ describe("Zen renderer", function()
     before_each(function()
         stock_created = 0
         cover_requests = {}
+        cover_books = {}
+        book_info_requests = {}
+        fresh_metadata = nil
+        render_exact = false
         folder_requests = {}
         painted_text = {}
         native_progress_paints = 0
@@ -57,7 +65,11 @@ describe("Zen renderer", function()
         MosaicMenu = { _updateItemsBuildUI = stock_builder }
         ZenSpec.replace("mosaicmenu", MosaicMenu)
         ZenSpec.replace("bookinfomanager", {
-            getBookInfo = function() return nil end,
+            getBookInfo = function(_self, path, get_cover)
+                book_info_requests[#book_info_requests + 1] = {
+                    path = path, get_cover = get_cover,
+                }
+            end,
             isCachedCoverInvalid = function() return false end,
         })
         ZenSpec.replace("device", {
@@ -149,7 +161,14 @@ describe("Zen renderer", function()
                 return buffer
             end,
         })
-        ZenSpec.replace("common/cover_render_cache", { render = function() return nil end })
+        ZenSpec.replace("common/cover_render_cache", {
+            hasExact = function() return render_exact end,
+            render = function() return nil end,
+            drop = function() end,
+        })
+        ZenSpec.replace("common/cover_decode_cache", {
+            getFreshMetadata = function() return fresh_metadata end,
+        })
         ZenSpec.replace("ui/widget/progresswidget", {
             new = function(_self, values)
                 native_progress = values
@@ -193,6 +212,7 @@ describe("Zen renderer", function()
                 folder_requests[#folder_requests + 1] = {
                     menu = menu, entry = entry, text = text, options = options,
                 }
+                local pending = entry.cold_folder == true and options.cached_only == true
                 return {
                     frame = {
                         dimen = { w = width, h = height },
@@ -202,7 +222,8 @@ describe("Zen renderer", function()
                     },
                     count = entry.count or 2,
                     title = text,
-                    cover_count = options.load_covers and 1 or 0,
+                    cover_count = options.load_covers and not pending and 1 or 0,
+                    needs_hydration = pending,
                     mode = "gallery",
                 }
             end,
@@ -225,7 +246,8 @@ describe("Zen renderer", function()
         })
         ZenSpec.replace("modules/filebrowser/patches/home/widgets/cover_common", {
             BORDER_SIZE = 2,
-            make_cover_widget = function(_book, width, height, options)
+            make_cover_widget = function(book, width, height, options)
+                cover_books[#cover_books + 1] = book
                 cover_requests[#cover_requests + 1] = {
                     width = width,
                     height = height,
@@ -289,6 +311,201 @@ describe("Zen renderer", function()
             end
         end
         assert.is_true(found_stock_item)
+    end)
+
+    it("uses an exact shared real cover without requesting the decoded blob", function()
+        render_exact = true
+        fresh_metadata = {
+            title = "Cached",
+            cover_fetched = "Y",
+            has_cover = "Y",
+            cover_w = 600,
+            cover_h = 900,
+        }
+        require("modules/filebrowser/patches/zen_renderer")()
+        local menu = {
+            name = "filemanager",
+            item_table = { { title = "Cached", is_file = true, path = "/cached.epub" } },
+            item_group = {}, layout = {}, items_to_update = {}, page = 1,
+            perpage = 1, nb_cols = 2, item_margin = 1, item_width = 100,
+            item_height = 150, item_dimen = { copy = function() return {} end },
+            inner_dimen = { w = 110 }, _do_cover_images = true,
+        }
+
+        MosaicMenu._updateItemsBuildUI(menu)
+
+        assert.are.same({}, book_info_requests)
+        assert.is_true(cover_books[1].has_real_cover)
+        assert.is_nil(cover_books[1].cover_bb)
+    end)
+
+    it("uses fresh no-cover metadata without repeating a full book-info read", function()
+        fresh_metadata = {
+            title = "Placeholder",
+            authors = "Author",
+            cover_fetched = "Y",
+            has_cover = false,
+        }
+        require("modules/filebrowser/patches/zen_renderer")()
+        local menu = {
+            name = "filemanager",
+            item_table = {
+                { title = "Placeholder", is_file = true, path = "/placeholder.epub" },
+            },
+            item_group = {}, layout = {}, items_to_update = {}, page = 1,
+            perpage = 1, nb_cols = 2, item_margin = 1, item_width = 100,
+            item_height = 150, item_dimen = { copy = function() return {} end },
+            inner_dimen = { w = 110 }, _do_cover_images = true,
+        }
+
+        MosaicMenu._updateItemsBuildUI(menu)
+
+        assert.are.same({}, book_info_requests)
+        assert.are.equal(fresh_metadata, cover_books[1].bookinfo)
+        assert.is_false(cover_books[1].has_real_cover)
+    end)
+
+    it("defers cold cover blobs and reuses metadata state during hydration", function()
+        local cover_reads = {}
+        local status_reads = 0
+        local metadata = {
+            title = "Deferred",
+            cover_fetched = "Y",
+            has_cover = "Y",
+            cover_w = 600,
+            cover_h = 900,
+        }
+        ZenSpec.replace("bookinfomanager", {
+            getBookInfo = function(_self, _path, get_cover)
+                cover_reads[#cover_reads + 1] = get_cover == true
+                if not get_cover then return metadata end
+                return {
+                    title = metadata.title,
+                    cover_fetched = "Y",
+                    has_cover = "Y",
+                    cover_w = 600,
+                    cover_h = 900,
+                    cover_bb = { free = function() end },
+                }
+            end,
+            isCachedCoverInvalid = function() return false end,
+        })
+        ZenSpec.replace("common/book_status", {
+            getFileStatusData = function()
+                status_reads = status_reads + 1
+                return { effective_status = "new", sidecar_checked = true }
+            end,
+        })
+        ZenSpec.unload("modules/filebrowser/patches/zen_renderer")
+        require("modules/filebrowser/patches/zen_renderer")()
+        local menu = {
+            name = "filemanager",
+            item_table = { { title = "Deferred", is_file = true, path = "/deferred.epub" } },
+            item_group = {}, layout = {}, items_to_update = {}, page = 1,
+            perpage = 1, nb_cols = 2, item_margin = 1, item_width = 100,
+            item_height = 150, item_dimen = { copy = function() return {} end },
+            inner_dimen = { w = 110 }, _do_cover_images = true,
+        }
+
+        MosaicMenu._updateItemsBuildUI(menu)
+        local item = menu.layout[1][1]
+
+        assert.are.same({ false }, cover_reads)
+        assert.are.equal(0, #menu.items_to_update)
+        assert.are.equal(1, #menu._zen_cover_hydration_items)
+        assert.is_true(cover_books[1].is_cover_pending)
+        assert.are.equal(1, status_reads)
+
+        fresh_metadata = metadata
+        item._zen_cover_hydration_queued = nil
+        item._zen_cover_hydrating = true
+        item._underline_container[1].free = function() end
+        item:update()
+        item._zen_cover_hydrating = nil
+
+        assert.are.same({ false, true }, cover_reads)
+        assert.is_true(item._has_cover_image)
+        assert.is_false(cover_books[#cover_books].is_cover_pending)
+        assert.are.equal(1, status_reads)
+    end)
+
+    it("uses cached-only folder previews during the initial page pass", function()
+        require("modules/filebrowser/patches/zen_renderer")()
+        local menu = {
+            name = "filemanager",
+            item_table = {
+                { title = "Folder/", path = "/folder", attr = { mode = "directory" } },
+            },
+            item_group = {}, layout = {}, items_to_update = {}, page = 1,
+            perpage = 1, nb_cols = 2, item_margin = 1, item_width = 100,
+            item_height = 150, item_dimen = { copy = function() return {} end },
+            inner_dimen = { w = 110 }, _do_cover_images = true,
+        }
+
+        MosaicMenu._updateItemsBuildUI(menu)
+        local item = menu.layout[1][1]
+
+        assert.is_true(folder_requests[1].options.load_covers)
+        assert.is_true(folder_requests[1].options.cached_only)
+        assert.is_nil(folder_requests[1].options.load_descriptor)
+        assert.is_true(item._has_cover_image)
+        assert.are.equal(0, #(menu._zen_cover_hydration_items or {}))
+    end)
+
+    it("queues a cold folder and loads it only during folder hydration", function()
+        require("modules/filebrowser/patches/zen_renderer")()
+        local menu = {
+            name = "filemanager",
+            item_table = {
+                {
+                    title = "Folder/", path = "/folder", cold_folder = true,
+                    attr = { mode = "directory" },
+                },
+            },
+            item_group = {}, layout = {}, items_to_update = {}, page = 1,
+            perpage = 1, nb_cols = 2, item_margin = 1, item_width = 100,
+            item_height = 150, item_dimen = { copy = function() return {} end },
+            inner_dimen = { w = 110 }, _do_cover_images = true,
+        }
+
+        MosaicMenu._updateItemsBuildUI(menu)
+        local item = menu.layout[1][1]
+
+        assert.is_false(item._has_cover_image)
+        assert.are.equal(1, #menu._zen_cover_hydration_items)
+        assert.are.equal("folder", item._zen_cover_hydration_kind)
+        assert.is_true(folder_requests[1].options.cached_only)
+
+        item._zen_cover_hydration_queued = nil
+        item._zen_cover_hydration_kind = nil
+        item._zen_folder_hydrating = true
+        item._underline_container[1].free = function() end
+        item:update()
+        item._zen_folder_hydrating = nil
+
+        assert.is_false(folder_requests[2].options.cached_only)
+        assert.is_true(item._has_cover_image)
+    end)
+
+    it("keeps folder previews in the initial pass after preloading", function()
+        require("modules/filebrowser/patches/zen_renderer")()
+        local menu = {
+            name = "filemanager",
+            item_table = {
+                { title = "Folder/", path = "/folder", attr = { mode = "directory" } },
+            },
+            item_group = {}, layout = {}, items_to_update = {}, page = 1,
+            perpage = 1, nb_cols = 2, item_margin = 1, item_width = 100,
+            item_height = 150, item_dimen = { copy = function() return {} end },
+            inner_dimen = { w = 110 }, _do_cover_images = true,
+        }
+
+        MosaicMenu._updateItemsBuildUI(menu)
+        local item = menu.layout[1][1]
+
+        assert.is_true(folder_requests[1].options.load_covers)
+        assert.is_true(item._has_cover_image)
+        assert.are.equal(0, #(menu._zen_cover_hydration_items or {}))
     end)
 
     it("uses non-uniform sizing for group previews when configured", function()
@@ -606,7 +823,12 @@ describe("Zen renderer", function()
         ZenSpec.replace("bookinfomanager", {
             getBookInfo = function()
                 metadata_call("bookinfo")
-                return { series_index = 4, cover_fetched = true, has_cover = false }
+                return {
+                    series_index = 4,
+                    pages = 321,
+                    cover_fetched = true,
+                    has_cover = false,
+                }
             end,
             isCachedCoverInvalid = function() return false end,
         })
@@ -654,9 +876,9 @@ describe("Zen renderer", function()
             __call = function(_self, text) return text end,
         }))
         ZenSpec.replace("readcollection", {
-            isFileInCollections = function()
+            isFileInCollection = function(_self, _path, collection)
                 metadata_call("favorite")
-                return true
+                return collection == "favorites"
             end,
         })
         _G.__ZEN_UI_PLUGIN.config.browser_cover_badges = {
@@ -689,10 +911,12 @@ describe("Zen renderer", function()
         }, 0, 0)
 
         assert.are.same(before_paint, calls)
-        assert.matches("999", item._zen_page_label)
+        assert.matches("321", item._zen_page_label)
         assert.are.equal("#4", item._zen_series_label)
+        assert.is_true(item._zen_is_fav)
+        assert.are.equal(1, calls.favorite)
         assert.are.equal(1, calls.sidecar_open)
-        assert.are.equal(1, calls.booklist)
+        assert.are.equal(0, calls.booklist)
     end)
 
     it("honors finished dimming and the new-banner setting", function()
