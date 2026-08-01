@@ -396,6 +396,7 @@ describe("filebrowser cover preloading", function()
                     measure = function(...)
                         measurements[#measurements + 1] = { ... }
                     end,
+                    warn = function() end,
                 }
             end,
         })
@@ -940,6 +941,232 @@ describe("filebrowser cover preloading", function()
         assert.are.equal(93.8, metric_value(measurements[1], "refresh_region_pct="))
     end)
 
+    it("reveals a cold mosaic page once after all first-pass hydration", function()
+        local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
+        local UIManager = require("ui/uimanager")
+        local hydrated = {}
+        update_items = function(menu)
+            UIManager:setDirty(menu.show_parent, function()
+                return "ui", menu.dimen, true
+            end)
+            for index = 1, 2 do
+                local item = {
+                    menu = menu,
+                    _zen_cover_hydration_queued = true,
+                    _zen_cover_hydration_kind = "folder",
+                    [1] = { dimen = Geom:new{
+                        x = index * 100, y = 100, w = 90, h = 120,
+                    } },
+                }
+                item.update = function(self)
+                    hydrated[#hydrated + 1] = index
+                    self._has_cover_image = true
+                end
+                menu._zen_cover_hydration_items[#menu._zen_cover_hydration_items + 1] = item
+            end
+            menu:_zen_request_cover_hydration()
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = { { path = "/folder", attr = { mode = "directory" } } },
+            page = 1, page_num = 1, perpage = 1, nb_cols = 2,
+            display_mode_type = "mosaic", show_parent = {},
+            dimen = Geom:new{ x = 0, y = 0, w = 600, h = 800 },
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        assert.are.same({}, dirty)
+
+        table.remove(scheduled, 1)()
+        assert.are.same({ 1 }, hydrated)
+        assert.are.same({}, dirty)
+
+        table.remove(scheduled, 1)()
+        assert.are.same({ 1, 2 }, hydrated)
+        assert.are.equal(1, #dirty)
+        assert.are.equal("ui", dirty[1].mode)
+        assert.is_true(dirty[1].dither)
+        assert.are.equal("Cover page revealed", measurements[#measurements][1])
+        assert.are.equal("hydrated", metric_value(measurements[#measurements], "reason="))
+        assert.are.equal(2, metric_value(measurements[#measurements], "queued="))
+        assert.are.equal(2, metric_value(measurements[#measurements], "hydrated="))
+        assert.are.equal(0, metric_value(measurements[#measurements], "fallbacks="))
+        assert.is_true(metric_value(measurements[#measurements], "combined_refresh="))
+    end)
+
+    it("reveals generated fallbacks without waiting for missing metadata", function()
+        local CoverMenu = require("covermenu")
+        local UIManager = require("ui/uimanager")
+        update_items = function(menu)
+            menu.items_to_update = { { filepath = "/missing.epub" } }
+            menu.items_update_action = function() end
+            UIManager:setDirty(menu.show_parent, "ui")
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = { { is_file = true, path = "/missing.epub" } },
+            page = 1, page_num = 1, perpage = 1,
+            display_mode_type = "mosaic", show_parent = {},
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+
+        assert.are.equal(1, #dirty)
+        assert.are.equal("ui", dirty[1].mode)
+        assert.are.equal("Cover page revealed", measurements[#measurements][1])
+        assert.are.equal("immediate", metric_value(measurements[#measurements], "reason="))
+        assert.are.equal(0, metric_value(measurements[#measurements], "queued="))
+    end)
+
+    it("reveals a hydration failure as a finished fallback", function()
+        local CoverMenu = require("covermenu")
+        local UIManager = require("ui/uimanager")
+        update_items = function(menu)
+            UIManager:setDirty(menu.show_parent, "ui")
+            menu._zen_cover_hydration_items[1] = {
+                menu = menu,
+                _zen_cover_hydration_queued = true,
+                update = function() error("bad cover") end,
+            }
+            menu:_zen_request_cover_hydration()
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = { { is_file = true, path = "/bad.epub" } },
+            page = 1, page_num = 1, perpage = 1,
+            display_mode_type = "mosaic", show_parent = {},
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        assert.are.same({}, dirty)
+        table.remove(scheduled, 1)()
+
+        assert.are.equal(1, #dirty)
+        assert.are.equal("Cover page revealed", measurements[#measurements][1])
+        assert.are.equal("fallback", metric_value(measurements[#measurements], "reason="))
+        assert.are.equal(1, metric_value(measurements[#measurements], "fallbacks="))
+    end)
+
+    it("batches extracted-cover hydration into one later repaint", function()
+        local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
+        local UIManager = require("ui/uimanager")
+        update_items = function(menu)
+            UIManager:setDirty(menu.show_parent, "ui")
+            local item = {
+                menu = menu,
+                filepath = "/missing.epub",
+                [1] = { dimen = Geom:new{ x = 10, y = 20, w = 90, h = 120 } },
+            }
+            item.update = function(self)
+                self._has_cover_image = true
+            end
+            menu.items_to_update = { item }
+            menu.items_update_action = function()
+                table.remove(menu.items_to_update, 1)
+                item._zen_cover_hydration_queued = true
+                menu._zen_cover_hydration_items[1] = item
+                menu:_zen_request_cover_hydration()
+                UIManager:setDirty(menu.show_parent, "ui")
+            end
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = { { is_file = true, path = "/missing.epub" } },
+            page = 1, page_num = 1, perpage = 1,
+            display_mode_type = "mosaic", show_parent = {},
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        assert.are.equal(1, #dirty)
+
+        table.remove(scheduled, 1)()
+        assert.are.equal(1, #dirty)
+        assert.is_nil(menu._zen_cover_poll_action)
+
+        table.remove(scheduled, 1)()
+        assert.are.equal(2, #dirty)
+        assert.are.equal("ui", dirty[2].mode)
+    end)
+
+    it("discards a superseded staged reveal", function()
+        local CoverMenu = require("covermenu")
+        local UIManager = require("ui/uimanager")
+        local hydrated_pages = {}
+        update_items = function(menu)
+            local page = menu.page
+            UIManager:setDirty(menu.show_parent, "ui")
+            local item = {
+                menu = menu,
+                _zen_cover_hydration_queued = true,
+                update = function(self)
+                    hydrated_pages[#hydrated_pages + 1] = page
+                    self._has_cover_image = true
+                end,
+            }
+            menu._zen_cover_hydration_items[1] = item
+            menu:_zen_request_cover_hydration()
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = {
+                { is_file = true, path = "/one.epub" },
+                { is_file = true, path = "/two.epub" },
+            },
+            page = 1, page_num = 2, perpage = 1,
+            display_mode_type = "mosaic", show_parent = {},
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        local stale = scheduled[1]
+        menu.page = 2
+        CoverMenu.updateItems(menu)
+        local current = scheduled[1]
+
+        stale()
+        assert.are.same({}, hydrated_pages)
+        assert.are.same({}, dirty)
+
+        current()
+        assert.are.same({ 2 }, hydrated_pages)
+        assert.are.equal(1, #dirty)
+    end)
+
+    it("cancels a staged reveal when the cover menu closes", function()
+        local CoverMenu = require("covermenu")
+        local UIManager = require("ui/uimanager")
+        update_items = function(menu)
+            UIManager:setDirty(menu.show_parent, "ui")
+            menu._zen_cover_hydration_items[1] = {
+                menu = menu,
+                _zen_cover_hydration_queued = true,
+                update = function() error("closed reveal ran") end,
+            }
+            menu:_zen_request_cover_hydration()
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = { { is_file = true, path = "/book.epub" } },
+            page = 1, page_num = 1, perpage = 1,
+            display_mode_type = "mosaic", show_parent = {},
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        local stale = scheduled[1]
+        CoverMenu.onCloseWidget(menu)
+        stale()
+
+        assert.are.same({}, dirty)
+        assert.is_nil(menu._zen_cover_reveal)
+    end)
+
     it("hydrates only the current page without waiting for unrelated extraction", function()
         local CoverMenu = require("covermenu")
         local Geom = require("ui/geometry")
@@ -1032,11 +1259,12 @@ describe("filebrowser cover preloading", function()
         assert.are.same({ 1 }, hydrated)
         assert.are.equal(1, #scheduled)
         assert.are.equal(0.05, scheduled_delays[#scheduled_delays])
-        assert.are.same({ x = 100, y = 100, w = 90, h = 120 }, dirty[1].region)
+        assert.are.same({}, dirty)
 
         table.remove(scheduled, 1)()
         assert.are.same({ 1, 2 }, hydrated)
-        assert.are.same({ x = 200, y = 100, w = 90, h = 120 }, dirty[2].region)
+        assert.are.equal(1, #dirty)
+        assert.are.same({ x = 100, y = 100, w = 190, h = 120 }, dirty[1].region)
         assert.are.equal(2, metric_value(measurements[#measurements], "chunks="))
     end)
 

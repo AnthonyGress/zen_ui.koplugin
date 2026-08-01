@@ -228,16 +228,25 @@ local function apply_cover_preload()
         menu._zen_cover_preload_jobs = nil
     end
 
+    local function clear_hydration_items(items)
+        for _i, item in ipairs(items or {}) do
+            item._zen_cover_hydration_queued = nil
+            item._zen_cover_hydration_kind = nil
+        end
+    end
+
     local function cancel_hydration(menu)
         if menu._zen_cover_hydrate_fn then
             UIManager:unschedule(menu._zen_cover_hydrate_fn)
             menu._zen_cover_hydrate_fn = nil
         end
-        for _i, item in ipairs(menu._zen_cover_hydration_items or {}) do
-            item._zen_cover_hydration_queued = nil
-            item._zen_cover_hydration_kind = nil
-        end
+        clear_hydration_items(menu._zen_cover_hydration_active_items)
+        clear_hydration_items(menu._zen_cover_hydration_items)
+        menu._zen_cover_hydration_active_items = nil
         menu._zen_cover_hydration_items = {}
+        menu._zen_cover_collecting_reveal = nil
+        menu._zen_cover_reveal = nil
+        menu._zen_cover_pending_refresh = nil
     end
 
     -- CoverBrowser starts its extraction from nextTick and kills any existing
@@ -291,19 +300,28 @@ local function apply_cover_preload()
         return Geom:new{ x = x, y = y, w = dimen.w, h = bottom - y }
     end
 
-    local function call_with_scoped_dirty(menu, region, fn, ...)
+    local function call_with_scoped_dirty(menu, region, reveal, fn, ...)
         local args = { ... }
         local original_setDirty = UIManager.setDirty
         local scoped = false
         UIManager.setDirty = function(ui, widget, refreshtype, refreshregion, refreshdither)
-            if not scoped and widget == menu.show_parent and type(refreshtype) == "function" then
-                scoped = true
-                local scoped_refresh = function()
-                    local refresh = { refreshtype() }
-                    return refresh[1], region, refresh[3]
+            if widget == menu.show_parent then
+                if not scoped and region and type(refreshtype) == "function" then
+                    scoped = true
+                    local original_refresh = refreshtype
+                    refreshtype = function()
+                        local refresh = { original_refresh() }
+                        return refresh[1], region, refresh[3]
+                    end
                 end
-                return original_setDirty(
-                    ui, widget, scoped_refresh, refreshregion, refreshdither)
+                if reveal then
+                    reveal.dirty_calls[#reveal.dirty_calls + 1] = {
+                        refreshtype = refreshtype,
+                        refreshregion = refreshregion,
+                        refreshdither = refreshdither,
+                    }
+                    return
+                end
             end
             return original_setDirty(ui, widget, refreshtype, refreshregion, refreshdither)
         end
@@ -312,6 +330,64 @@ local function apply_cover_preload()
         if not results[1] then error(results[2]) end
         table.remove(results, 1)
         return unpack(results)
+    end
+
+    local refresh_mode_priority = {
+        fast = 1,
+        partial = 2,
+        ui = 3,
+        flashui = 4,
+        full = 5,
+    }
+
+    local function flush_reveal(menu, reveal, reason, hydrated, failed)
+        if menu._zen_cover_reveal ~= reveal
+                or menu._zen_cover_hydration_generation ~= reveal.generation then
+            return false
+        end
+        menu._zen_cover_reveal = nil
+        local refresh_mode
+        local refresh_region
+        local refresh_dither = false
+        local full_region = false
+        for _i, call in ipairs(reveal.dirty_calls) do
+            local mode = call.refreshtype
+            local region = call.refreshregion
+            local dither = call.refreshdither
+            if type(mode) == "function" then
+                mode, region, dither = mode()
+            end
+            if not refresh_mode
+                    or (refresh_mode_priority[mode] or 0)
+                        > (refresh_mode_priority[refresh_mode] or 0) then
+                refresh_mode = mode
+            end
+            if region == nil then
+                full_region = true
+            elseif not full_region then
+                refresh_region = refresh_region and refresh_region:combine(region) or region
+            end
+            refresh_dither = refresh_dither or dither == true
+        end
+        local combined_refresh = #reveal.dirty_calls > 0 and menu.show_parent ~= nil
+        if combined_refresh then
+            if hydrated > 0 then menu.show_parent.dithered = true end
+            local final_region
+            if not full_region then final_region = refresh_region end
+            UIManager:setDirty(menu.show_parent, function()
+                return refresh_mode or "ui", final_region,
+                    refresh_dither or hydrated > 0
+            end)
+        end
+        logger.measure("Cover page revealed", (now() - reveal.started_at) * 1000,
+            "page=", reveal.page,
+            "reason=", reason,
+            "queued=", reveal.queued or 0,
+            "hydrated=", hydrated,
+            "fallbacks=", #(menu.items_to_update or {}) + failed,
+            "wall_ms=", math.floor((now() - reveal.started_at) * 1000 + 0.5),
+            "combined_refresh=", combined_refresh)
+        return combined_refresh
     end
 
     local function item_refresh_region(item)
@@ -328,11 +404,14 @@ local function apply_cover_preload()
         }
     end
 
-    local function schedule_hydration(menu)
-        local jobs = menu._zen_cover_hydration_items
-        if menu._zen_cover_hydrate_fn or type(jobs) ~= "table" or #jobs == 0 then
+    local function schedule_hydration(menu, supplied_jobs, reveal)
+        if menu._zen_cover_collecting_reveal then return end
+        if menu._zen_cover_hydrate_fn then return end
+        local jobs = supplied_jobs or menu._zen_cover_hydration_items
+        if type(jobs) ~= "table" or #jobs == 0 then
             return
         end
+        if not supplied_jobs then menu._zen_cover_hydration_items = {} end
         if hidden_home_bootstrap(menu) then
             cancel_hydration(menu)
             logger.measure("Cover hydration skipped", 0,
@@ -345,6 +424,7 @@ local function apply_cover_preload()
         local hydrated = 0
         local failed = 0
         local chunks = 0
+        local refresh_region
         local before = cache:stats()
         local before_render = render_cache:stats()
         local step
@@ -360,12 +440,11 @@ local function apply_cover_preload()
                     "wall_ms=", math.floor((now() - started_at) * 1000 + 0.5))
                 return
             end
-            if menu._zen_cover_poll_action then
+            if menu._zen_cover_poll_action and not reveal then
                 UIManager:scheduleIn(COVER_POLL_S, step)
                 return
             end
             local chunk_started_at = now()
-            local refresh_region
             local processed = 0
             while #jobs > 0 and processed < HYDRATE_CHUNK
                     and (processed == 0 or now() - chunk_started_at < HYDRATE_BUDGET_S) do
@@ -403,19 +482,12 @@ local function apply_cover_preload()
             end
             chunks = chunks + 1
             work_ms = work_ms + (now() - chunk_started_at) * 1000
-            if refresh_region and menu.show_parent then
-                menu.show_parent.dithered = true
-                local refreshtype = BookInfoManager:getSetting("flash_ui_cover_images")
-                    and "flashui" or "ui"
-                UIManager:setDirty(menu.show_parent, function()
-                    return refreshtype, refresh_region, true
-                end)
-            end
             if #jobs > 0 then
                 UIManager:scheduleIn(HYDRATE_TICK_S, step)
                 return
             end
             menu._zen_cover_hydrate_fn = nil
+            menu._zen_cover_hydration_active_items = nil
             local after = cache:stats()
             local after_render = render_cache:stats()
             logger.measure("Cover hydration completed", work_ms,
@@ -427,7 +499,33 @@ local function apply_cover_preload()
                 "decode_reads=", delta(after, before, "decode_reads"),
                 "render_cache_hits=", delta(after_render, before_render, "hits"),
                 "wall_ms=", math.floor((now() - started_at) * 1000 + 0.5))
+            if reveal then
+                local reason = failed == 0 and "hydrated"
+                    or (hydrated > 0 and "partial_fallback" or "fallback")
+                menu._zen_cover_pending_refresh = nil
+                flush_reveal(menu, reveal, reason, hydrated, failed)
+            elseif menu._zen_cover_pending_refresh and menu.show_parent then
+                menu._zen_cover_pending_refresh = nil
+                menu.show_parent.dithered = hydrated > 0 or menu.show_parent.dithered
+                local region = page_refresh_region(menu) or refresh_region
+                UIManager:setDirty(menu.show_parent, function()
+                    local refreshtype = BookInfoManager:getSetting("flash_ui_cover_images")
+                        and "flashui" or "ui"
+                    return refreshtype, region, hydrated > 0
+                end)
+            elseif refresh_region and menu.show_parent then
+                menu.show_parent.dithered = true
+                UIManager:setDirty(menu.show_parent, function()
+                    local refreshtype = BookInfoManager:getSetting("flash_ui_cover_images")
+                        and "flashui" or "ui"
+                    return refreshtype, refresh_region, true
+                end)
+            end
+            if #(menu._zen_cover_hydration_items or {}) > 0 then
+                schedule_hydration(menu)
+            end
         end
+        menu._zen_cover_hydration_active_items = jobs
         menu._zen_cover_hydrate_fn = step
         UIManager:scheduleIn(HYDRATE_DELAY_S, step)
     end
@@ -505,7 +603,10 @@ local function apply_cover_preload()
             end
             local keep_polling = menu.items_update_action == poll and remaining > 0
                 and (still_extracting or settle_polls < COVER_POLL_SETTLE_LIMIT)
-            if menu._zen_cover_pending_refresh and (remaining == 0 or not keep_polling) then
+            local hydration_pending = menu._zen_cover_hydrate_fn ~= nil
+                or #(menu._zen_cover_hydration_items or {}) > 0
+            if menu._zen_cover_pending_refresh and not hydration_pending
+                    and (remaining == 0 or not keep_polling) then
                 menu._zen_cover_pending_refresh = nil
                 original_setDirty(UIManager, menu.show_parent, "ui")
             end
@@ -932,6 +1033,19 @@ local function apply_cover_preload()
         menu._zen_cover_hydration_generation =
             (menu._zen_cover_hydration_generation or 0) + 1
         menu._zen_request_cover_hydration = schedule_hydration
+        local reveal
+        if menu.display_mode_type == "mosaic" and menu.show_parent
+                and not hidden_home_bootstrap(menu) then
+            reveal = {
+                generation = menu._zen_cover_hydration_generation,
+                page = menu.page,
+                started_at = now(),
+                dirty_calls = {},
+                queued = 0,
+            }
+            menu._zen_cover_reveal = reveal
+            menu._zen_cover_collecting_reveal = reveal
+        end
         local turn_measure = measurements_enabled and menu._zen_cover_turn_measure or nil
         menu._zen_cover_turn_measure = nil
         menu._zen_cover_measure_active = true
@@ -958,21 +1072,54 @@ local function apply_cover_preload()
         end
         local refresh_region = menu._zen_cover_turn_active and page_refresh_region(menu) or nil
         local result
-        if refresh_region then
+        if refresh_region or reveal then
             result = call_with_scoped_dirty(
-                menu, refresh_region, defer_extraction_launch, menu, original, ...)
-            local full_area = menu.dimen and menu.dimen.w and menu.dimen.h
-                and menu.dimen.w * menu.dimen.h or 0
-            menu._zen_cover_refresh_region_pct = full_area > 0
-                and math.floor(refresh_region.w * refresh_region.h * 1000 / full_area + 0.5) / 10
-                or 100
+                menu, refresh_region, reveal, defer_extraction_launch, menu, original, ...)
+            if refresh_region then
+                local full_area = menu.dimen and menu.dimen.w and menu.dimen.h
+                    and menu.dimen.w * menu.dimen.h or 0
+                menu._zen_cover_refresh_region_pct = full_area > 0
+                    and math.floor(
+                        refresh_region.w * refresh_region.h * 1000 / full_area + 0.5) / 10
+                    or 100
+            else
+                menu._zen_cover_refresh_region_pct = 100
+            end
         else
             result = defer_extraction_launch(menu, original, ...)
             menu._zen_cover_refresh_region_pct = 100
         end
+        if menu._zen_cover_collecting_reveal == reveal then
+            menu._zen_cover_collecting_reveal = nil
+        end
+        local initial_jobs
+        local initial_queued = 0
+        if reveal then
+            initial_jobs = menu._zen_cover_hydration_items or {}
+            menu._zen_cover_hydration_items = {}
+            initial_queued = #initial_jobs
+            reveal.queued = initial_queued
+            if #reveal.dirty_calls == 0 then
+                menu._zen_cover_reveal = nil
+                reveal = nil
+            end
+        end
+        local function begin_initial_reveal()
+            if not initial_jobs then return end
+            if reveal then
+                if #initial_jobs > 0 then
+                    schedule_hydration(menu, initial_jobs, reveal)
+                else
+                    flush_reveal(menu, reveal, "immediate", 0, 0)
+                end
+            elseif #initial_jobs > 0 then
+                schedule_hydration(menu, initial_jobs)
+            end
+        end
         if not hidden_home_bootstrap(menu) then accelerate_cover_poll(menu) end
         menu._zen_cover_measure_active = nil
         if not measurements_enabled then
+            begin_initial_reveal()
             schedule(menu, memory_profile)
             return result
         end
@@ -1014,7 +1161,7 @@ local function apply_cover_preload()
             "avoided_decompressions=", hits,
             "avoided_db_reads=", delta(after, before, "fast_hits"),
             "metadata_cache_hits=", delta(after, before, "metadata_hits"),
-            "hydration_queued=", #(menu._zen_cover_hydration_items or {}),
+            "hydration_queued=", initial_queued + #(menu._zen_cover_hydration_items or {}),
             "full_reads=", delta(after, before, "full_reads"),
             "decode_reads=", delta(after, before, "decode_reads"),
             "decode_ms=", math.floor(delta(after, before, "decode_read_ms") * 10 + 0.5) / 10,
@@ -1049,6 +1196,7 @@ local function apply_cover_preload()
             "refresh_region_pct=", menu._zen_cover_refresh_region_pct,
             "page_turn_direction=", turn_measure and turn_measure.direction or "none",
             "input_to_update_ms=", math.floor(input_to_update_ms * 10 + 0.5) / 10)
+        begin_initial_reveal()
         schedule(menu, memory_profile)
         return result
     end
