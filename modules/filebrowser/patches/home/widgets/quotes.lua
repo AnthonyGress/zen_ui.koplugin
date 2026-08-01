@@ -9,6 +9,7 @@ local InputContainer = require("ui/widget/container/inputcontainer")
 local GestureRange = require("ui/gesturerange")
 local WidgetResources = require("common/widget_resources")
 
+local AUTOMATIC_MIN_LINE_HEIGHT = 0.1
 local LAYOUT_CACHE_MAX = 32
 local layout_cache = { values = {}, order = {} }
 
@@ -52,7 +53,7 @@ return {
         quote_font_size = math.max(4, math.min(32, tonumber(quote_font_size) or 12))
 
         local padding = Screen:scaleBySize(8)
-        local vertical_padding = Screen:scaleBySize(4)
+        local vertical_padding = automatic_font_size and 0 or Screen:scaleBySize(4)
         local content_w = math.max(30, width - padding * 2)
         local inner_h = math.max(20, height - vertical_padding * 2)
         local quote_text = '"' .. (quote.text or "") .. '"'
@@ -85,7 +86,7 @@ return {
                 4, math.min(32, tonumber(quotes.max_font_size) or 14)
             )
             quote_font_size = 4
-            quote_line_height = 0.3
+            quote_line_height = AUTOMATIC_MIN_LINE_HEIGHT
             for candidate = max_font_size, 4, -1 do
                 local candidate_face = Font:getFace(
                     "smallinfofont", Screen:scaleBySize(candidate)
@@ -110,14 +111,14 @@ return {
                     width = content_w,
                     face = candidate_face,
                     alignment = "center",
-                    line_height = 0.3,
+                    line_height = AUTOMATIC_MIN_LINE_HEIGHT,
                 }
                 local measured_h = quote_probe:getSize().h or 0
                 WidgetResources.free(quote_probe)
                 if measured_h + author_h <= inner_h then
                     quote_font_size = candidate
                     -- Keep the roomiest spacing available at the chosen font size.
-                    for line_height_step = 11, 7, -1 do
+                    for line_height_step = 11, AUTOMATIC_MIN_LINE_HEIGHT * 20, -1 do
                         local candidate_line_height = line_height_step / 20
                         local spacing_probe = TextBoxWidget:new{
                             text = quote_text,

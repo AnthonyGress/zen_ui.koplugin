@@ -277,12 +277,16 @@ describe("home basic widgets", function()
         assert.is_true(preset.quotes.show_title)
     end)
 
-    it("prioritizes a larger automatic quote font over extra line spacing", function()
+    it("uses the full quote widget height before reducing automatic font size", function()
         local textbox_creations = 0
         ZenSpec.replace("ui/widget/textboxwidget", {
             new = function(_self, values)
                 textbox_creations = textbox_creations + 1
                 local line_count = values.text:sub(1, 3) == "\226\128\148" and 1 or 2
+                if values.text == '"A mostly full first line with one word below"'
+                        and values.face.size >= 13 then
+                    line_count = 3
+                end
                 if values.text == "A" then line_count = 1 end
                 if values.text == "A\nA\nA" then line_count = 3 end
                 local line_height = values.line_height or 0.3
@@ -305,11 +309,11 @@ describe("home basic widgets", function()
         local component = require("modules/filebrowser/patches/home/widgets/quotes")
         local ctx = {
             width = 400,
-            height = 63,
+            height = 66,
             config = {
                 quotes = {
                     automatic_font_size = true,
-                    max_font_size = 14,
+                    max_font_size = 16,
                     show_author = true,
                 },
             },
@@ -329,8 +333,8 @@ describe("home basic widgets", function()
             if child.text == '"A mostly full first line with one word below"'
                     and child.height then
                 assert.are.equal(14, child.face.size)
-                assert.are.equal(0.35, child.line_height)
-                assert.are.equal(38, child.height)
+                assert.are.equal(0.15, child.line_height)
+                assert.are.equal(48, child.height)
                 found = true
                 break
             end
