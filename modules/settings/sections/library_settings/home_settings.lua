@@ -1154,17 +1154,7 @@ function M.build(ctx)
         end
         for _i, id in ipairs(order) do
             local item = {
-                text_func = function()
-                    local comp = Registry.get(id)
-                    local module_cfg = dcfg.modules[id]
-                    return T(
-                        _("%1 · %2 · %3/%4"),
-                        component_label(id),
-                        comp and Registry.sizeLabel(comp, module_cfg) or "?",
-                        component_units(id, module_cfg),
-                        Registry.CAPACITY_UNITS
-                    )
-                end,
+                text = component_label(id),
                 orig_item = id,
                 dim = should_dim_widget(id),
                 checked_func = function()
