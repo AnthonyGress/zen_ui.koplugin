@@ -18,7 +18,7 @@ end
 return {
     id = "quotes",
     label = "Quotes widget",
-    size = { preferred_pct = 0.20, min_pct = 0.14, max_pct = 0.32, grow_priority = 3 },
+    size = { preferred_pct = 0.18, min_pct = 0.14, max_pct = 0.32, grow_priority = 3 },
     build = function(ctx)
         local width = ctx.width
         local height = ctx.height

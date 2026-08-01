@@ -24,7 +24,7 @@ local _ = require("gettext")
 local logger = require("common/zen_logger").new("home_strip")
 
 local M = {}
-M.SIZE = { preferred_pct = 0.20, min_pct = 0.12, max_pct = 0.50, grow_priority = 1 }
+M.SIZE = { preferred_pct = 0.26, min_pct = 0.12, max_pct = 0.50, grow_priority = 1 }
 
 local function set_opening_banner_cover(cover)
     local set_cover = rawget(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER")

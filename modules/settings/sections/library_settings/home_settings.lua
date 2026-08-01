@@ -1448,6 +1448,9 @@ function M.build(ctx)
                             stats_cfg.font_size = spin.value
                             stats_cfg.font_size_override = true
                             save_home("reinit")
+                            if touchmenu_instance and touchmenu_instance.updateItems then
+                                touchmenu_instance:updateItems()
+                            end
                         end,
                     })
                 end,

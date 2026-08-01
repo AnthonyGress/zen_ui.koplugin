@@ -59,6 +59,15 @@ local function apply_automatic_series_grouping()
         return features.automatic_series_grouping ~= false
     end
 
+    local function can_group_items(file_chooser)
+        -- PathChooser inherits FileChooser, but its items must always map to
+        -- real paths so callers can navigate or select them.
+        return is_enabled()
+            and file_chooser
+            and file_chooser.select_file == nil
+            and file_chooser.select_directory == nil
+    end
+
     local function is_dim_finished_enabled()
         local plugin = get_plugin()
         local cfg = plugin and plugin.config and plugin.config.browser_cover_badges
@@ -600,7 +609,7 @@ local function apply_automatic_series_grouping()
         local trace_navigation = current_series_group ~= nil
             or (new_item_table and new_item_table.is_in_series_view)
         local restore_index
-        if is_enabled() and new_item_table and not new_item_table.is_in_series_view then
+        if can_group_items(file_chooser) and new_item_table and not new_item_table.is_in_series_view then
             new_item_table = clone_item_table(new_item_table)
             AutomaticSeries:processItemTable(new_item_table, file_chooser)
         end
@@ -688,7 +697,7 @@ local function apply_automatic_series_grouping()
     end
 
     FileChooser.onMenuSelect = function(file_chooser, item)
-        if is_enabled() and item.is_series_group then
+        if can_group_items(file_chooser) and item.is_series_group then
             AutomaticSeries:openSeriesGroup(file_chooser, item)
             return true
         end

@@ -20,8 +20,16 @@ describe("opening banner", function()
                 return "selected"
             end,
         }
+        local MosaicMenuItem = {
+            onTapSelect = function()
+                return "mosaic selected"
+            end,
+        }
         local function build_list_items()
             return ListMenuItem
+        end
+        local function build_mosaic_items()
+            return MosaicMenuItem
         end
         local Widget = {}
         function Widget:extend(proto)
@@ -65,11 +73,13 @@ describe("opening banner", function()
         })
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("listmenu", { _updateItemsBuildUI = build_list_items })
+        ZenSpec.replace("mosaicmenu", { _updateItemsBuildUI = build_mosaic_items })
+        ZenSpec.replace("common/cover_utils", { BORDER_SIZE = 1 })
 
         return ReaderUI, ReaderHighlight, shown, closed, function()
             assert.is_function(next_tick)
             next_tick()
-        end, ListMenuItem
+        end, ListMenuItem, MosaicMenuItem
     end
 
     it("defers no-banner opens while retaining a silent UI window", function()
@@ -121,10 +131,24 @@ describe("opening banner", function()
     end)
 
     it("prepares list banners only for actual books", function()
-        local _, _, shown, _, _, ListMenuItem = install_stubs()
+        local _, _, shown, _, _, ListMenuItem, MosaicMenuItem = install_stubs()
         apply_patch()
 
         local dimen = { x = 10, y = 20, w = 300, h = 60 }
+        assert.are.equal("mosaic selected", MosaicMenuItem.onTapSelect({
+            entry = { path = "/book.epub", is_file = true },
+            filepath = "/book.epub",
+            dimen = dimen,
+            menu = { ui = { selected_files = {} } },
+        }))
+        assert.are.equal("selected", ListMenuItem.onTapSelect({
+            entry = { path = "/book.epub", is_file = true },
+            filepath = "/book.epub",
+            dimen = dimen,
+            menu = { ui = { selected_files = {} } },
+        }))
+        assert.are.equal(0, #shown)
+
         assert.are.equal("selected", ListMenuItem.onTapSelect({
             entry = { text = "Author", _zen_files = { "/book.epub" } },
             dimen = dimen,

@@ -102,6 +102,11 @@ local function apply_opening_banner()
         return type(item.filepath) == "string" and item.filepath ~= ""
     end
 
+    local function is_select_mode(item)
+        local menu = item and item.menu
+        return menu and menu.ui and menu.ui.selected_files ~= nil
+    end
+
     local function set_opening_banner_dimen(dimen, cover_widget, is_list, advance_tap)
         if not (dimen and dimen.x and dimen.y and dimen.w and dimen.h
                 and dimen.w > 0 and dimen.h > 0) then
@@ -269,6 +274,10 @@ local function apply_opening_banner()
         local orig_tap = MosaicMenuItem.onTapSelect
         MosaicMenuItem.onTapSelect = function(self_item, ...)
             _tap_seq = _tap_seq + 1
+            if is_select_mode(self_item) then
+                _last_cover_dimen = nil
+                return orig_tap(self_item, ...)
+            end
             -- Only book taps may prepare a banner. Virtual group rows do not
             -- always carry KOReader's is_directory marker.
             if is_book_item(self_item) then
@@ -313,6 +322,10 @@ local function apply_opening_banner()
         local orig_tap = ListMenuItem.onTapSelect
         ListMenuItem.onTapSelect = function(self_item, ...)
             _tap_seq = _tap_seq + 1
+            if is_select_mode(self_item) then
+                _last_cover_dimen = nil
+                return orig_tap(self_item, ...)
+            end
             if is_book_item(self_item) then
                 if not set_opening_banner_dimen(self_item.dimen, self_item, true, false) then
                     _last_cover_dimen = nil

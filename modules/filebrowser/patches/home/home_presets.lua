@@ -123,6 +123,8 @@ local DEFAULT_HOME_PAGE = {
             show_module_title = false,
         },
         stats_triplet = {
+            font_size = 18,
+            font_size_override = true,
             stat_style = "divider",
             show_module_title = false,
         },

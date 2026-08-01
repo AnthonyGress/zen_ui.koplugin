@@ -188,6 +188,22 @@ describe("automatic series grouping patch", function()
         assert.are.same({ first, second }, fc.item_table)
     end)
 
+    it("does not add virtual folders to path picker dialogs", function()
+        local first = item("/library/One.epub", "One")
+        local second = item("/library/Two.epub", "Two")
+        local loose = item("/library/Loose.epub", "Loose")
+        metadata[first.path] = { series = "Saga", series_index = 1 }
+        metadata[second.path] = { series = "Saga", series_index = 2 }
+        local fc = chooser()
+        fc.select_file = true
+        fc.select_directory = false
+
+        FileChooser.switchItemTable(fc, nil, { first, second, loose })
+
+        assert.are.same({ first, second, loose }, fc.item_table)
+        assert.is_nil(fc.item_table[1].is_series_group)
+    end)
+
     it("opens a virtual series folder and returns to its parent", function()
         local first = item("/library/One.epub", "One")
         local second = item("/library/Two.epub", "Two")

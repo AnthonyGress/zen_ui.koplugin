@@ -74,7 +74,7 @@ end
 return {
     id = "stats_triplet",
     label = "Reading stats widget",
-    size = { preferred_pct = 0.14, min_pct = 0.10, max_pct = 0.24, grow_priority = 4 },
+    size = { preferred_pct = 0.10, min_pct = 0.10, max_pct = 0.24, grow_priority = 4 },
     build = function(ctx)
         local width = ctx.width
         local height = ctx.height
