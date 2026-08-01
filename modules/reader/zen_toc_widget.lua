@@ -27,6 +27,12 @@ local UIManager      = require("ui/uimanager")
 local Screen         = Device.screen
 local pager          = require("common/ui/zen_pager")
 
+local function supports_hardware_focus()
+    local has_dpad = type(Device.hasDPad) == "function" and Device:hasDPad()
+    local has_keyboard = type(Device.hasKeyboard) == "function" and Device:hasKeyboard()
+    return has_dpad or has_keyboard
+end
+
 -- ---------------------------------------------------------------------------
 -- Title normalization: strips zero-width spaces and collapses whitespace.
 -- Epub NCX parsers sometimes insert ZWSP (U+200B) between characters, which
@@ -184,6 +190,11 @@ function ZenTocWidget:init()
 
     -- Scroll to the page containing the active (current) chapter.
     self:_initActivePage()
+    self._zen_focus_enabled = supports_hardware_focus()
+    if self._zen_focus_enabled then
+        self._zen_focus_area = "back"
+        self._zen_focus_entry_idx = (self._toc_page - 1) * per_page + 1
+    end
 
     -- -----------------------------------------------------------------------
     -- Touch zones
@@ -208,6 +219,124 @@ function ZenTocWidget:init()
             handler     = function(ges) return self:_onHold(ges) end,
         },
     })
+    if Device:hasKeys() then
+        self.key_events = {
+            Close = { { Device.input.group.Back } },
+            TocPageUp = {
+                { Device.input.group.PgBack },
+                event = "TocPage",
+                args = -1,
+            },
+            TocPageDown = {
+                { Device.input.group.PgFwd },
+                event = "TocPage",
+                args = 1,
+            },
+        }
+    end
+end
+
+function ZenTocWidget:_visibleEntryBounds()
+    local first = (self._toc_page - 1) * self._L.per_page + 1
+    return first, math.min(first + self._L.per_page - 1, #self._entries)
+end
+
+function ZenTocWidget:_hasFooterButtons()
+    return self._L.style == "page_number" and self._nb_pages > 1
+end
+
+function ZenTocWidget:_setFocus(area, entry_idx, footer_side)
+    if not self._zen_focus_enabled then return end
+    self._zen_focus_area = area
+    if entry_idx then self._zen_focus_entry_idx = entry_idx end
+    if footer_side then self._zen_footer_side = footer_side end
+    UIManager:setDirty(self, "fast")
+end
+
+function ZenTocWidget:_moveFocus(dx, dy)
+    local first, last = self:_visibleEntryBounds()
+    if self._zen_focus_area == "back" then
+        if dy > 0 and first <= last then self:_setFocus("entry", first) end
+        return true
+    elseif self._zen_focus_area == "footer" then
+        if dy < 0 and first <= last then
+            self:_setFocus("entry", last)
+        elseif dx < 0 then
+            self:_setFocus("footer", nil, "left")
+        elseif dx > 0 then
+            self:_setFocus("footer", nil, "right")
+        end
+        return true
+    end
+
+    local entry_idx = math.max(first, math.min(last, self._zen_focus_entry_idx or first))
+    if dy < 0 then
+        if entry_idx > first then
+            self:_setFocus("entry", entry_idx - 1)
+        else
+            self:_setFocus("back")
+        end
+    elseif dy > 0 then
+        if entry_idx < last then
+            self:_setFocus("entry", entry_idx + 1)
+        elseif self:_hasFooterButtons() then
+            self:_setFocus("footer", nil, "left")
+        end
+    end
+    return true
+end
+
+function ZenTocWidget:onPress()
+    if self._zen_focus_area == "back" then return self:onClose() end
+    if self._zen_focus_area == "footer" then
+        local direction = self._zen_footer_side == "right" and 1 or -1
+        self:_gotoTocPage(self._toc_page + direction)
+        return true
+    end
+    local entry = self._entries[self._zen_focus_entry_idx]
+    if not entry then return true end
+    self:onClose()
+    if self.on_goto then self.on_goto(entry.page) end
+    return true
+end
+
+function ZenTocWidget:onTocPage(direction)
+    self:_gotoTocPage(self._toc_page + direction)
+    return true
+end
+
+local _orig_onKeyPress = InputContainer.onKeyPress
+function ZenTocWidget:onKeyPress(key)
+    if self._zen_focus_enabled and key and type(key.match) == "function" then
+        if key:match({ "Up" }) then
+            return self:_moveFocus(0, -1)
+        elseif key:match({ "Right" }) and self._zen_focus_area == "footer" then
+            return self:_moveFocus(1, 0)
+        elseif key:match({ "Down" }) then
+            return self:_moveFocus(0, 1)
+        elseif key:match({ "Left" }) and self._zen_focus_area == "footer" then
+            return self:_moveFocus(-1, 0)
+        elseif key:match({ "Press" }) or key:match({ "Return" }) or key:match({ "Enter" }) then
+            return self:onPress()
+        end
+    end
+    return _orig_onKeyPress and _orig_onKeyPress(self, key)
+end
+
+local _orig_onKeyRepeat = InputContainer.onKeyRepeat
+function ZenTocWidget:onKeyRepeat(key)
+    if self._zen_focus_enabled and key and type(key.match) == "function" then
+        if key:match({ "Up" }) then
+            return self:_moveFocus(0, -1)
+        elseif key:match({ "Right" }) and self._zen_focus_area == "footer" then
+            return self:_moveFocus(1, 0)
+        elseif key:match({ "Down" }) then
+            return self:_moveFocus(0, 1)
+        elseif key:match({ "Left" }) and self._zen_focus_area == "footer" then
+            return self:_moveFocus(-1, 0)
+        end
+    end
+    return _orig_onKeyRepeat and _orig_onKeyRepeat(self, key)
 end
 
 -- ---------------------------------------------------------------------------
@@ -234,7 +363,13 @@ function ZenTocWidget:_gotoTocPage(target)
     local L = self._L
     target = math.max(1, math.min(self._nb_pages, target))
     if target == self._toc_page then return end
+    local old_first = (self._toc_page - 1) * L.per_page + 1
+    local row_offset = math.max(0, (self._zen_focus_entry_idx or old_first) - old_first)
     self._toc_page = target
+    if self._zen_focus_enabled and self._zen_focus_area == "entry" then
+        local first, last = self:_visibleEntryBounds()
+        self._zen_focus_entry_idx = math.min(first + row_offset, last)
+    end
     UIManager:setDirty(self, function()
         return "ui", Geom:new{
             x = L.modal_x, y = L.modal_y, w = L.modal_w, h = L.modal_h,
@@ -294,6 +429,18 @@ function ZenTocWidget:paintTo(bb, x, y)
         width  = icon_sz,
         height = icon_sz,
     }
+    local back_focused = self._zen_focus_enabled and self._zen_focus_area == "back"
+    close_icon.invert = back_focused
+    if back_focused then
+        local focus_pad = Screen:scaleBySize(4)
+        bb:paintRect(
+            mx + L.close_x + math.floor((L.close_w - icon_sz) / 2) - focus_pad,
+            my + math.floor((L.title_h - icon_sz) / 2) - focus_pad,
+            icon_sz + 2 * focus_pad,
+            icon_sz + 2 * focus_pad,
+            Blitbuffer.COLOR_BLACK
+        )
+    end
     close_icon:paintTo(bb,
         mx + L.close_x + math.floor((L.close_w - icon_sz) / 2),
         my + math.floor((L.title_h - icon_sz) / 2))
@@ -375,6 +522,12 @@ function ZenTocWidget:paintTo(bb, x, y)
             title_tw2:paintTo(bb, text_x,
                 row_top + math.floor((L.row_h - t_sz.h) / 2))
             title_tw2:free()
+
+            if self._zen_focus_enabled and self._zen_focus_area == "entry"
+                    and i == self._zen_focus_entry_idx then
+                bb:invertRect(mx + L.border, row_top + 1,
+                    L.modal_w - L.border * 2, L.row_h - 1)
+            end
         end
     end
 
@@ -386,6 +539,12 @@ function ZenTocWidget:paintTo(bb, x, y)
         local scrollbar_top = y + L.bar_y
         pager.paint(bb, mx + L.bar_x, scrollbar_top, L.bar_w, L.scrollbar_h,
             self._toc_page, self._nb_pages)
+        if self._zen_focus_enabled and self._zen_focus_area == "footer"
+                and self:_hasFooterButtons() then
+            local footer_x = self._zen_footer_side == "right"
+                and mx + L.bar_x + L.bar_w - pager.CHEV_W or mx + L.bar_x
+            bb:invertRect(footer_x, scrollbar_top, pager.CHEV_W, L.scrollbar_h)
+        end
     end
 end
 
@@ -500,6 +659,7 @@ end
 
 function ZenTocWidget:onClose()
     UIManager:close(self)
+    return true
 end
 
 function ZenTocWidget:onShow()

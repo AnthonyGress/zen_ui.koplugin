@@ -1,6 +1,6 @@
 -- zen_ui: page_browser patch
--- Intercepts swipe-north from the bottom 14% of the reader screen and
--- opens KOReader's native PageBrowserWidget.
+-- Opens KOReader's native PageBrowserWidget from the bottom swipe zone
+-- or a physical Menu-key hold.
 
 local function apply_page_browser()
 
@@ -9,11 +9,29 @@ local function apply_page_browser()
     -- -----------------------------------------------------------------------
     local UIManager    = require("ui/uimanager")
     local Event        = require("ui/event")
+    local Device       = require("device")
     local ZenTocWidget = require("modules/reader/zen_toc_widget")
     local PresetStore   = require("config/preset_store")
     local utils        = require("common/utils")
     local lfs          = require("libs/libkoreader-lfs")
     local _stock_icons_dir = lfs.currentdir() .. "/resources/icons/mdlight/"
+
+    local function key_matches_menu(key)
+        if not key then return false end
+        if type(key.match) ~= "function" then return key == "Menu" end
+        local has_few_keys = type(Device.hasFewKeys) == "function" and Device:hasFewKeys()
+        return key:match(has_few_keys and { { "Menu", "Right" } } or { "Menu" })
+    end
+
+    local function is_non_touch_device()
+        return type(Device.isTouchDevice) == "function" and not Device:isTouchDevice()
+    end
+
+    local function supports_page_browser_focus()
+        local has_dpad = type(Device.hasDPad) == "function" and Device:hasDPad()
+        local has_keyboard = type(Device.hasKeyboard) == "function" and Device:hasKeyboard()
+        return has_dpad or has_keyboard
+    end
 
     -- -----------------------------------------------------------------------
     -- Resolve plugin icons/ dir from this file's path at apply-time
@@ -70,7 +88,6 @@ local function apply_page_browser()
 
     rawset(_G, "__ZEN_UI_BUILD_PAGE_BROWSER_PREVIEW", function(slot_w, slot_h)
         local Blitbuffer      = require("ffi/blitbuffer")
-        local Device          = require("device")
         local Font            = require("ui/font")
         local Geom            = require("ui/geometry")
         local IconWidget      = require("ui/widget/iconwidget")
@@ -343,7 +360,7 @@ local function apply_page_browser()
         _zen_pbw_patched = true
 
         local PageBrowserWidget = require("ui/widget/pagebrowserwidget")
-        local Device     = require("device")
+        local BD         = require("ui/bidi")
         local Font       = require("ui/font")
         local Geom       = require("ui/geometry")
         local IconWidget = require("ui/widget/iconwidget")
@@ -362,6 +379,150 @@ local function apply_page_browser()
         local ZenIconButton   = require("common/ui/zen_icon_button")
         local logger          = require("common/zen_logger").new("page_browser")
         local _               = require("gettext")
+
+        local function current_focus_id(pbw)
+            local selected = pbw.selected
+            local row = selected and pbw.layout and pbw.layout[selected.y]
+            local widget = row and row[selected.x]
+            return widget and widget._zen_focus_id
+        end
+
+        local function unfocus_current(pbw)
+            local selected = pbw.selected
+            local row = selected and pbw.layout and pbw.layout[selected.y]
+            local widget = row and row[selected.x]
+            if widget and type(widget.handleEvent) == "function" then
+                widget:handleEvent(Event:new("Unfocus"))
+            end
+        end
+
+        local function tag_focus_widget(widget, id)
+            if not widget then return end
+            widget._zen_focus_id = id
+            return widget
+        end
+
+        local function rebuild_focus_layout(pbw, desired_id)
+            if not pbw._zen_focus_enabled then return end
+            desired_id = desired_id or current_focus_id(pbw)
+            unfocus_current(pbw)
+
+            local layout = {}
+            local header_row = {}
+            for i, button in ipairs(pbw._zen_header_buttons or {}) do
+                tag_focus_widget(button, "header:" .. i)
+                table.insert(header_row, button)
+            end
+            if #header_row > 0 then table.insert(layout, header_row) end
+
+            local page_rows = {}
+            local nb_cols = pbw.nb_cols or 1
+            for idx = 1, (pbw.nb_grid_items or 0) do
+                local page_frame = pbw.grid and pbw.grid[idx]
+                local nav_frame = pbw.grid and pbw.grid[(pbw.nb_grid_items or 0) + idx]
+                if page_frame and page_frame.page_idx and nav_frame then
+                    local row_index = math.floor((idx - 1) / nb_cols) + 1
+                    local row = page_rows[row_index]
+                    if not row then
+                        row = {}
+                        page_rows[row_index] = row
+                    end
+                    tag_focus_widget(nav_frame, "page:" .. idx)
+                    table.insert(row, nav_frame)
+                end
+            end
+            for row_index = 1, #page_rows do
+                if page_rows[row_index] and #page_rows[row_index] > 0 then
+                    table.insert(layout, page_rows[row_index])
+                end
+            end
+
+            local footer_row = {}
+            local footer = {
+                { pbw._zen_btn_skip_left, "footer:previous" },
+                { pbw._zen_btn_view_frame, "footer:single" },
+                { pbw._zen_btn_grid_frame, "footer:grid" },
+                { pbw._zen_btn_skip_right, "footer:next" },
+            }
+            for _i, item in ipairs(footer) do
+                if item[1] then
+                    tag_focus_widget(item[1], item[2])
+                    table.insert(footer_row, item[1])
+                end
+            end
+            if #footer_row > 0 then table.insert(layout, footer_row) end
+            if #layout == 0 then return end
+
+            pbw.layout = layout
+            pbw._zen_focus_layout_ready = true
+            desired_id = desired_id or "header:1"
+            local target_x, target_y
+            for y, row in ipairs(layout) do
+                for x, widget in ipairs(row) do
+                    if widget._zen_focus_id == desired_id then
+                        target_x, target_y = x, y
+                        break
+                    end
+                end
+                if target_x then break end
+            end
+            if not target_x then
+                target_y = 1
+                target_x = 1
+            end
+            pbw.selected = { x = target_x, y = target_y }
+            local target = layout[target_y][target_x]
+            if target and type(target.handleEvent) == "function" then
+                target:handleEvent(Event:new("Focus"))
+            end
+        end
+
+        PageBrowserWidget._zenRebuildFocusLayout = rebuild_focus_layout
+
+        local _orig_registerKeyEvents = PageBrowserWidget.registerKeyEvents
+        PageBrowserWidget.registerKeyEvents = function(self)
+            if _orig_registerKeyEvents then _orig_registerKeyEvents(self) end
+            if supports_page_browser_focus() then
+                self.key_events = self.key_events or {}
+                self.key_events.ScrollRowUp = nil
+                self.key_events.ScrollRowDown = nil
+                self.key_events.FocusUp = nil
+                self.key_events.FocusRight = nil
+                self.key_events.FocusDown = nil
+                self.key_events.FocusLeft = nil
+                self.key_events.Press = nil
+                self.key_events.ZenPageBrowserUp = {
+                    { "Up" },
+                    event = "FocusMove",
+                    args = { 0, -1 },
+                }
+                self.key_events.ZenPageBrowserRight = {
+                    { "Right" },
+                    event = "FocusMove",
+                    args = { 1, 0 },
+                }
+                self.key_events.ZenPageBrowserDown = {
+                    { "Down" },
+                    event = "FocusMove",
+                    args = { 0, 1 },
+                }
+                self.key_events.ZenPageBrowserLeft = {
+                    { "Left" },
+                    event = "FocusMove",
+                    args = { -1, 0 },
+                }
+                self.key_events.ZenPageBrowserPress = {
+                    { "Press" },
+                    event = "Press",
+                }
+                self.key_events.ZenPageBrowserConfirm = {
+                    { "Return" },
+                    { "Enter" },
+                    event = "Press",
+                }
+            end
+        end
+        PageBrowserWidget.onPhysicalKeyboardConnected = PageBrowserWidget.registerKeyEvents
 
         local function resolve_stock_icon(name)
             return utils.resolveLocalIcon(_stock_icons_dir, name)
@@ -498,6 +659,9 @@ local function apply_page_browser()
                 self._zen_nb_rows_override = 2
             end
             _orig_init(self)
+            local stock_focus_layout = self.build_focus_layout
+            self._zen_focus_enabled = supports_page_browser_focus()
+            if self._zen_focus_enabled then self.build_focus_layout = true end
             update_visible_pages(self)
             -- Register pan_release so onPanRelease fires when the user lifts
             -- their finger after dragging the slider.  PageBrowserWidget does
@@ -525,6 +689,7 @@ local function apply_page_browser()
 
             local btn_sz  = Screen:scaleBySize(32)
             local btn_pad = self.title_bar.button_padding or Screen:scaleBySize(11)
+            local focus_pad = Screen:scaleBySize(4)
 
             -- Remove the hamburger (left_button)
             if self.title_bar.left_button then
@@ -552,12 +717,45 @@ local function apply_page_browser()
                     hold_callback  = hold_cb,
                 }
                 if x_pos then button.overlap_offset = { x_pos, 0 } end
-                return ZenIconButton:new(button)
+                button = ZenIconButton:new(button)
+                local orig_paint_to = button.paintTo
+                button.onFocus = function(btn)
+                    btn._zen_keyboard_focused = true
+                    if btn.image then btn.image.invert = true end
+                    return true
+                end
+                button.onUnfocus = function(btn)
+                    btn._zen_keyboard_focused = nil
+                    if btn.image then btn.image.invert = false end
+                    return true
+                end
+                if orig_paint_to then
+                    button.paintTo = function(btn, bb, x, y)
+                        local focused = btn._zen_keyboard_focused == true
+                        if btn.image then btn.image.invert = focused end
+                        if focused then
+                            local left_pad = btn.padding_left or btn.padding or 0
+                            local right_pad = btn.padding_right or btn.padding or 0
+                            local icon_x = x + (BD.mirroredUILayout() and right_pad or left_pad)
+                            local icon_y = y + (btn.padding_top or btn.padding or 0)
+                            bb:paintRect(
+                                icon_x - focus_pad,
+                                icon_y - focus_pad,
+                                (btn.width or btn_sz) + 2 * focus_pad,
+                                (btn.height or btn_sz) + 2 * focus_pad,
+                                Blitbuffer.COLOR_BLACK
+                            )
+                        end
+                        return orig_paint_to(btn, bb, x, y)
+                    end
+                end
+                return button
             end
 
             local slot_w = btn_sz + btn_pad * 2
 
             local old_right_button = self.title_bar.right_button
+            local header_buttons = {}
             if old_right_button then
                 for i = #self.title_bar, 1, -1 do
                     if self.title_bar[i] == old_right_button then
@@ -844,12 +1042,18 @@ local function apply_page_browser()
             for i, action in ipairs(action_icons) do
                 local icon_path = action[3] and resolve_stock_icon(action[1])
                     or (_icons_dir and utils.resolveLocalIcon(_icons_dir, action[1]))
-                table.insert(self.title_bar, make_header_btn(icon_path, slot_w * (i - 1), action[2]))
+                local button = make_header_btn(icon_path, slot_w * (i - 1), action[2])
+                table.insert(self.title_bar, button)
+                table.insert(header_buttons, button)
             end
+            if self.title_bar.right_button then
+                table.insert(header_buttons, self.title_bar.right_button)
+            end
+            self._zen_header_buttons = header_buttons
 
             -- Rebuild only the panel: the initial layout already used the
             -- selected fixed grid dimensions.
-            self._zen_panel_only_rebuild = true
+            self._zen_panel_only_rebuild = not self._zen_focus_enabled or stock_focus_layout
             self:updateLayout()
             self._zen_panel_only_rebuild = nil
         end
@@ -896,6 +1100,11 @@ local function apply_page_browser()
         end
 
         PageBrowserWidget.updateLayout = function(self)
+            local desired_focus_id = current_focus_id(self)
+            if self._zen_focus_enabled then
+                unfocus_current(self)
+                self._zen_rebuilding_focus_layout = true
+            end
             update_visible_pages(self)
             if not self._zen_panel_only_rebuild and not self._zen_nb_cols_override then
                 if self._zen_layout_mode == "single" then
@@ -1376,6 +1585,10 @@ local function apply_page_browser()
                 padding_left   = icon_pad_h,
                 padding_right  = icon_pad_h,
                 bordersize     = 0,
+                focusable     = self._zen_focus_enabled,
+                focus_inner_border = true,
+                focus_border_size = Screen:scaleBySize(3),
+                focus_border_color = is_single_page and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK,
                 background     = is_single_page and Blitbuffer.COLOR_BLACK or Blitbuffer.COLOR_WHITE,
                 icon_view_centered,
             }
@@ -1387,6 +1600,10 @@ local function apply_page_browser()
                 padding_left   = icon_pad_h,
                 padding_right  = icon_pad_h,
                 bordersize     = 0,
+                focusable     = self._zen_focus_enabled,
+                focus_inner_border = true,
+                focus_border_size = Screen:scaleBySize(3),
+                focus_border_color = is_single_page and Blitbuffer.COLOR_BLACK or Blitbuffer.COLOR_WHITE,
                 background     = is_single_page and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK,
                 icon_grid_centered,
             }
@@ -1428,6 +1645,9 @@ local function apply_page_browser()
                     padding_left   = icon_pad_h,
                     padding_right  = icon_pad_h,
                     bordersize     = 0,
+                    focusable     = self._zen_focus_enabled,
+                    focus_inner_border = true,
+                    focus_border_size = Screen:scaleBySize(3),
                     background     = Blitbuffer.COLOR_WHITE,
                     IconWidget:new{
                         file   = file_path,
@@ -1490,6 +1710,8 @@ local function apply_page_browser()
             self._zen_btn_group = btn_row
             self._zen_btn_view_frame = btn_view_frame
             self._zen_btn_grid_frame = btn_grid_frame
+            self._zen_btn_skip_left = skip_left_btn
+            self._zen_btn_skip_right = skip_right_btn
 
             -- Compute hit zones analytically from known panel layout.
             -- The button group is a unified widget, split into left/right tap zones.
@@ -1626,6 +1848,8 @@ local function apply_page_browser()
                     panel,
                 }
             }
+            self._zen_rebuilding_focus_layout = nil
+            rebuild_focus_layout(self, desired_focus_id)
         end
 
         -- ----------------------------------------------------------------
@@ -1633,6 +1857,7 @@ local function apply_page_browser()
         -- ----------------------------------------------------------------
         local _orig_update = PageBrowserWidget.update
         PageBrowserWidget.update = function(self)
+            local desired_focus_id = current_focus_id(self)
             logger.dbg("focus_page="..tostring(self.focus_page)
                 .." cur_page="..tostring(self.cur_page)
                 .." scrubbing="..tostring(self._zen_scrubbing)
@@ -1675,7 +1900,11 @@ local function apply_page_browser()
                 self.has_hidden_flows = false
                 self._zen_mapping_thumbnails = true
             end
+            local restore_focus_layout = self._zen_focus_enabled
+                and self._zen_focus_layout_ready and self.build_focus_layout
+            if restore_focus_layout then self.build_focus_layout = false end
             local ok, err = pcall(_orig_update, self)
+            if restore_focus_layout then self.build_focus_layout = true end
             if orig_get_thumbnail then
                 thumbnail.getPageThumbnail = orig_get_thumbnail
                 self.has_hidden_flows = orig_has_hidden_flows
@@ -1708,6 +1937,9 @@ local function apply_page_browser()
                     title = self.ui.toc:getTocTitleByPage(visible_page_raw(self, cp)) or ""
                 end
                 self._zen_chap_label:setText(title)
+            end
+            if not self._zen_rebuilding_focus_layout then
+                rebuild_focus_layout(self, desired_focus_id)
             end
         end
 
@@ -2078,21 +2310,154 @@ local function apply_page_browser()
             -- Swallow all multiswipes; never close the page browser.
             return true
         end
+
+        local _orig_onFocusMove = PageBrowserWidget.onFocusMove
+        PageBrowserWidget.onFocusMove = function(self, args)
+            if not (self._zen_focus_enabled and self._zen_focus_layout_ready) then
+                return _orig_onFocusMove and _orig_onFocusMove(self, args)
+            end
+            local dx = args and args[1] or 0
+            local dy = args and args[2] or 0
+            local selected = self.selected or { x = 1, y = 1 }
+            local selected_row = self.layout and self.layout[selected.y]
+            local selected_widget = selected_row and selected_row[selected.x]
+            local selected_id = selected_widget and selected_widget._zen_focus_id or ""
+            if dx ~= 0 and selected_id:sub(1, 7) ~= "footer:" then
+                if BD.mirroredUILayout() then dx = -dx end
+            end
+            local row = selected_row
+            if not row then return true end
+            local target_x, target_y = selected.x, selected.y
+            if dx ~= 0 then
+                target_x = math.max(1, math.min(#row, selected.x + dx))
+            elseif dy ~= 0 then
+                target_y = math.max(1, math.min(#self.layout, selected.y + dy))
+                local target_row = self.layout[target_y]
+                if target_y ~= selected.y and target_row then
+                    target_x = math.floor((selected.x - 0.5) * #target_row / #row) + 1
+                    target_x = math.max(1, math.min(#target_row, target_x))
+                end
+            end
+            if target_x == selected.x and target_y == selected.y then return true end
+            local current = row[selected.x]
+            local target = self.layout[target_y] and self.layout[target_y][target_x]
+            if not target then return true end
+            if current and type(current.handleEvent) == "function" then
+                current:handleEvent(Event:new("Unfocus"))
+            end
+            self.selected = { x = target_x, y = target_y }
+            if type(target.handleEvent) == "function" then
+                target:handleEvent(Event:new("Focus"))
+            end
+            UIManager:setDirty(self, "fast")
+            return true
+        end
+
+        local function handle_focus_key(pbw, key, allow_confirm)
+            if not (pbw._zen_focus_enabled and key and type(key.match) == "function") then
+                return false
+            end
+            local direction
+            if key:match({ "Up" }) then
+                direction = { 0, -1 }
+            elseif key:match({ "Right" }) then
+                direction = { 1, 0 }
+            elseif key:match({ "Down" }) then
+                direction = { 0, 1 }
+            elseif key:match({ "Left" }) then
+                direction = { -1, 0 }
+            end
+            if direction then
+                pbw:onFocusMove(direction)
+                return true
+            end
+            if allow_confirm and (key:match({ "Press" })
+                    or key:match({ "Return" }) or key:match({ "Enter" })) then
+                pbw:onPress()
+                return true
+            end
+            return false
+        end
+
+        local _orig_onKeyPress = PageBrowserWidget.onKeyPress
+        PageBrowserWidget.onKeyPress = function(self, key)
+            if handle_focus_key(self, key, true) then return true end
+            return _orig_onKeyPress and _orig_onKeyPress(self, key)
+        end
+
+        local _orig_onKeyRepeat = PageBrowserWidget.onKeyRepeat
+        PageBrowserWidget.onKeyRepeat = function(self, key)
+            if handle_focus_key(self, key, false) then return true end
+            if self._zen_ignore_opening_menu_key and key_matches_menu(key) then return true end
+            return _orig_onKeyRepeat and _orig_onKeyRepeat(self, key)
+        end
+
+        local _orig_onKeyRelease = PageBrowserWidget.onKeyRelease
+        PageBrowserWidget.onKeyRelease = function(self, key)
+            if self._zen_ignore_opening_menu_key and key_matches_menu(key) then
+                self._zen_ignore_opening_menu_key = nil
+                return true
+            end
+            return _orig_onKeyRelease and _orig_onKeyRelease(self, key)
+        end
     end
 
     -- -----------------------------------------------------------------------
     -- Open KOReader's native PageBrowserWidget (with Zen UI tweaks)
     -- -----------------------------------------------------------------------
-    local function open_page_browser(ui)
+    local function open_page_browser(ui, from_menu_hold)
         local PageBrowserWidget = require("ui/widget/pagebrowserwidget")
         zen_patch_page_browser_widget()
-        UIManager:show(PageBrowserWidget:new{ ui = ui })
+        local browser = PageBrowserWidget:new{ ui = ui }
+        browser._zen_ignore_opening_menu_key = from_menu_hold or nil
+        UIManager:show(browser)
     end
 
     -- Patch ReaderMenu.initGesListener to register the swipe-up zone
     -- -----------------------------------------------------------------------
     local ReaderMenu = require("apps/reader/modules/readermenu")
     local _orig_initGesListener = ReaderMenu.initGesListener
+
+    local _orig_reader_menu_onKeyPress = ReaderMenu.onKeyPress
+    local _orig_reader_menu_onKeyRepeat = ReaderMenu.onKeyRepeat
+    local _orig_reader_menu_onKeyRelease = ReaderMenu.onKeyRelease
+    local MENU_HOLD_DELAY = 0.5
+
+    ReaderMenu.onKeyPress = function(self_rm, key)
+        if is_non_touch_device() and is_enabled() and key_matches_menu(key) then
+            if not self_rm._zen_page_browser_menu_hold_fn then
+                self_rm._zen_page_browser_menu_hold_fn = function()
+                    self_rm._zen_page_browser_menu_hold_fn = nil
+                    if is_enabled() then open_page_browser(self_rm.ui, true) end
+                end
+                UIManager:scheduleIn(MENU_HOLD_DELAY, self_rm._zen_page_browser_menu_hold_fn)
+            end
+            return true
+        end
+        return _orig_reader_menu_onKeyPress and _orig_reader_menu_onKeyPress(self_rm, key)
+    end
+
+    ReaderMenu.onKeyRepeat = function(self_rm, key)
+        if is_non_touch_device() and is_enabled() and key_matches_menu(key) then
+            return true
+        end
+        return _orig_reader_menu_onKeyRepeat and _orig_reader_menu_onKeyRepeat(self_rm, key)
+    end
+
+    ReaderMenu.onKeyRelease = function(self_rm, key)
+        if is_non_touch_device() and key_matches_menu(key) then
+            local hold_fn = self_rm._zen_page_browser_menu_hold_fn
+            if hold_fn then
+                UIManager:unschedule(hold_fn)
+                self_rm._zen_page_browser_menu_hold_fn = nil
+                if is_enabled() and type(self_rm.onKeyPressShowMenu) == "function" then
+                    return self_rm:onKeyPressShowMenu(nil, key)
+                end
+            end
+            return true
+        end
+        return _orig_reader_menu_onKeyRelease and _orig_reader_menu_onKeyRelease(self_rm, key)
+    end
 
     local function register_page_browser_zone(ui)
         ui:registerTouchZones({

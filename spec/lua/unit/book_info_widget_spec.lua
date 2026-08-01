@@ -4,6 +4,10 @@ describe("book details", function()
     local top_taps
     local top_swipes
     local description_swipes
+    local description_line_scroll
+    local description_page_up
+    local description_page_down
+    local close_calls
     local saved_modules
 
     local dependency_names = {
@@ -57,6 +61,10 @@ describe("book details", function()
         top_taps = 0
         top_swipes = 0
         description_swipes = 0
+        description_line_scroll = 0
+        description_page_up = 0
+        description_page_down = 0
+        close_calls = 0
 
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("device", {
@@ -75,7 +83,10 @@ describe("book details", function()
         })
         ZenSpec.replace("ui/font", { getFace = function() return {} end })
         ZenSpec.replace("ui/geometry", { new = function(_self, values) return values end })
-        ZenSpec.replace("ui/uimanager", { close = function() end, setDirty = function() end })
+        ZenSpec.replace("ui/uimanager", {
+            close = function() close_calls = close_calls + 1 end,
+            setDirty = function() end,
+        })
         ZenSpec.replace("ui/widget/container/inputcontainer", input_container())
         ZenSpec.replace("ui/widget/iconwidget", {
             new = function(_self, values)
@@ -103,6 +114,21 @@ describe("book details", function()
                 end
                 values.onPanText = function() end
                 values.onPanReleaseText = function() end
+                values.text_widget = {
+                    virtual_line_num = 1,
+                    scrollLines = function(scroll_widget, lines)
+                        description_line_scroll = description_line_scroll + lines
+                        scroll_widget.virtual_line_num = math.max(
+                            1, scroll_widget.virtual_line_num + lines)
+                    end,
+                }
+                values.updateScrollBar = function() end
+                values.onScrollUp = function()
+                    description_page_up = description_page_up + 1
+                end
+                values.onScrollDown = function()
+                    description_page_down = description_page_down + 1
+                end
                 return values
             end,
         })
@@ -177,5 +203,43 @@ describe("book details", function()
         assert.is_true(widget:_onSwipe({ direction = "south", pos = { x = 300, y = 400 } }))
         assert.are.equal(1, top_swipes)
         assert.are.equal(1, description_swipes)
+    end)
+
+    it("focuses Back, scrolls the description, and handles hardware page turns", function()
+        local device = require("device")
+        device.hasKeys = function() return true end
+        device.hasDPad = function() return true end
+        device.hasKeyboard = function() return false end
+        device.input = {
+            group = { Back = "Back", PgBack = "PgBack", PgFwd = "PgFwd" },
+        }
+        local widget = new_widget()
+        local function key(name)
+            return {
+                match = function(_self, sequence) return sequence[1] == name end,
+            }
+        end
+
+        assert.are.equal("back", widget._zen_focus_area)
+        assert.are.equal("Back", widget.key_events.Close[1][1])
+        assert.are.equal("PgFwd", widget.key_events.BookInfoPageDown[1][1])
+
+        assert.is_true(widget:onKeyPress(key("Down")))
+        assert.are.equal("description", widget._zen_focus_area)
+        assert.is_true(widget:onKeyPress(key("Down")))
+        assert.are.equal(1, description_line_scroll)
+        assert.is_true(widget:onKeyPress(key("Up")))
+        assert.are.equal(0, description_line_scroll)
+        assert.are.equal("description", widget._zen_focus_area)
+
+        assert.is_true(widget:onBookInfoPage(1))
+        assert.is_true(widget:onBookInfoPage(-1))
+        assert.are.equal(1, description_page_down)
+        assert.are.equal(1, description_page_up)
+
+        assert.is_true(widget:onKeyPress(key("Up")))
+        assert.are.equal("back", widget._zen_focus_area)
+        assert.is_true(widget:onKeyPress(key("Press")))
+        assert.are.equal(1, close_calls)
     end)
 end)

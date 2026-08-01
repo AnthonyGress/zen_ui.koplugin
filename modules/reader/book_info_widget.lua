@@ -16,6 +16,12 @@ local _ = require("gettext")
 
 local COVER_BORDER_COLOR = Blitbuffer.COLOR_BLACK
 
+local function supports_hardware_focus()
+    local has_dpad = type(Device.hasDPad) == "function" and Device:hasDPad()
+    local has_keyboard = type(Device.hasKeyboard) == "function" and Device:hasKeyboard()
+    return has_dpad or has_keyboard
+end
+
 local BookInfoWidget = InputContainer:extend{
     title = nil,
     details = nil,
@@ -144,6 +150,8 @@ function BookInfoWidget:init()
         justified = false,
         scroll_by_pan = true,
     }
+    self._zen_focus_enabled = supports_hardware_focus()
+    if self._zen_focus_enabled then self._zen_focus_area = "back" end
 
     self:registerTouchZones({
         {
@@ -172,8 +180,100 @@ function BookInfoWidget:init()
         },
     })
     if Device:hasKeys() then
-        self.key_events = { Close = { { Device.input.group.Back } } }
+        self.key_events = {
+            Close = { { Device.input.group.Back } },
+            BookInfoPageUp = {
+                { Device.input.group.PgBack },
+                event = "BookInfoPage",
+                args = -1,
+            },
+            BookInfoPageDown = {
+                { Device.input.group.PgFwd },
+                event = "BookInfoPage",
+                args = 1,
+            },
+        }
     end
+end
+
+function BookInfoWidget:_setFocusArea(area)
+    if not self._zen_focus_enabled or self._zen_focus_area == area then return end
+    self._zen_focus_area = area
+    UIManager:setDirty(self, "fast")
+end
+
+function BookInfoWidget:_scrollDescription(lines)
+    local description = self._description_widget
+    local text_widget = description and description.text_widget
+    if text_widget and type(text_widget.scrollLines) == "function" then
+        text_widget:scrollLines(lines)
+        description:updateScrollBar(true)
+    elseif description and type(description.scrollText) == "function" then
+        description:scrollText(lines)
+    end
+    return true
+end
+
+function BookInfoWidget:_descriptionAtTop()
+    local description = self._description_widget
+    local text_widget = description and description.text_widget
+    local line = text_widget and tonumber(text_widget.virtual_line_num)
+    if line then return line <= 1 end
+    local low = description and tonumber(description.prev_low)
+    return low ~= nil and low <= 0
+end
+
+function BookInfoWidget:onBookInfoPage(direction)
+    local description = self._description_widget
+    if direction < 0 and description and type(description.onScrollUp) == "function" then
+        description:onScrollUp()
+    elseif direction > 0 and description and type(description.onScrollDown) == "function" then
+        description:onScrollDown()
+    end
+    if self._zen_focus_enabled then self:_setFocusArea("description") end
+    return true
+end
+
+local _orig_onKeyPress = InputContainer.onKeyPress
+function BookInfoWidget:onKeyPress(key)
+    if self._zen_focus_enabled and key and type(key.match) == "function" then
+        if key:match({ "Up" }) then
+            if self._zen_focus_area == "description" then
+                if self:_descriptionAtTop() then
+                    self:_setFocusArea("back")
+                    return true
+                end
+                return self:_scrollDescription(-1)
+            end
+            return true
+        elseif key:match({ "Down" }) then
+            if self._zen_focus_area == "back" then
+                self:_setFocusArea("description")
+                return true
+            end
+            return self:_scrollDescription(1)
+        elseif key:match({ "Press" }) or key:match({ "Return" }) or key:match({ "Enter" }) then
+            if self._zen_focus_area == "back" then return self:onClose() end
+            return true
+        end
+    end
+    return _orig_onKeyPress and _orig_onKeyPress(self, key)
+end
+
+local _orig_onKeyRepeat = InputContainer.onKeyRepeat
+function BookInfoWidget:onKeyRepeat(key)
+    if self._zen_focus_enabled and key and type(key.match) == "function" then
+        if key:match({ "Up" }) and self._zen_focus_area == "description" then
+            if self:_descriptionAtTop() then
+                self:_setFocusArea("back")
+                return true
+            end
+            return self:_scrollDescription(-1)
+        elseif key:match({ "Down" }) and self._zen_focus_area == "description" then
+            return self:_scrollDescription(1)
+        end
+    end
+    return _orig_onKeyRepeat and _orig_onKeyRepeat(self, key)
 end
 
 function BookInfoWidget:_inDescription(pos)
@@ -199,6 +299,18 @@ function BookInfoWidget:paintTo(bb, x, y)
         x + math.floor((L.sw - title_size.w) / 2),
         y + math.floor((L.title_h - title_size.h) / 2))
     local back_size = self._back_icon:getSize()
+    local back_focused = self._zen_focus_enabled and self._zen_focus_area == "back"
+    self._back_icon.invert = back_focused
+    if back_focused then
+        local focus_pad = Device.screen:scaleBySize(4)
+        bb:paintRect(
+            x + math.floor((L.title_h - back_size.w) / 2) - focus_pad,
+            y + math.floor((L.title_h - back_size.h) / 2) - focus_pad,
+            back_size.w + 2 * focus_pad,
+            back_size.h + 2 * focus_pad,
+            Blitbuffer.COLOR_BLACK
+        )
+    end
     self._back_icon:paintTo(bb,
         x + math.floor((L.title_h - back_size.w) / 2),
         y + math.floor((L.title_h - back_size.h) / 2))
@@ -249,6 +361,17 @@ function BookInfoWidget:paintTo(bb, x, y)
     bb:paintRect(x, y + L.description_divider_y, L.sw, 1, Blitbuffer.COLOR_LIGHT_GRAY)
     self._description_label:paintTo(bb, x + L.description_x, y + L.description_label_y)
     self._description_widget:paintTo(bb, x + L.description_x, y + L.description_y)
+    if self._zen_focus_enabled and self._zen_focus_area == "description" then
+        bb:paintBorder(
+            x + L.description_x,
+            y + L.description_y,
+            L.description_w,
+            L.description_h,
+            Device.screen:scaleBySize(2),
+            Blitbuffer.COLOR_BLACK,
+            0
+        )
+    end
 end
 
 function BookInfoWidget:_onTap(ges)

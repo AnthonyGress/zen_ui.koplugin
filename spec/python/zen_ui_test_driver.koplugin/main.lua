@@ -608,6 +608,19 @@ function Driver:handleCommand(command)
         return state and { ok = true, page_browser = state }
             or { ok = false, error = "page browser unavailable" }
     end
+    if kind == "page_browser_key" and type(params.key) == "string" then
+        local handled, err = require("reader_tools").page_browser_key(params.key)
+        return { ok = handled == true, handled = handled == true, error = err }
+    end
+    if kind == "hardware_overlay_state" then
+        local state = require("reader_tools").hardware_overlay_state()
+        return state and { ok = true, overlay = state }
+            or { ok = false, error = "hardware overlay unavailable" }
+    end
+    if kind == "hardware_overlay_key" and type(params.key) == "string" then
+        local handled, err = require("reader_tools").hardware_overlay_key(params.key)
+        return { ok = handled == true, handled = handled == true, error = err }
+    end
     if kind == "reader_overlay_state" then
         return { ok = true, overlays = require("reader_tools").overlay_state() }
     end

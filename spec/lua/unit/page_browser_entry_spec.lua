@@ -18,6 +18,7 @@ describe("page browser entry", function()
             "ui/size", "ui/gesturerange", "common/ui/zen_slider", "common/ui/zen_icon_button",
         }
         for _i, name in ipairs(empty_modules) do ZenSpec.replace(name, {}) end
+        ZenSpec.replace("ui/bidi", { mirroredUILayout = function() return false end })
         ZenSpec.replace("ui/widget/pagebrowserwidget", PageBrowserWidget)
         ZenSpec.replace("device", {
             screen = {
@@ -167,6 +168,163 @@ describe("page browser entry", function()
         expect(PageBrowserWidget.onSwipe(browser, nil, { direction = "west" }) == true)
         expect(PageBrowserWidget.onSwipe(browser, nil, { direction = "east" }) == true)
         expect(page_down == 2 and page_up == 2)
+    end)
+
+    it("opens from a non-touch Menu hold and preserves the short Menu action", function()
+        local scheduled_fn, scheduled_delay, short_menu_calls = nil, nil, 0
+        local ReaderMenu = {
+            initGesListener = function() end,
+            onKeyPressShowMenu = function()
+                short_menu_calls = short_menu_calls + 1
+                return true
+            end,
+        }
+        local ReaderConfig = { onSwipeShowConfigMenu = function() end }
+        local PageBrowserWidget = {
+            new = function(_, spec) return { ui = spec.ui, zen_page_browser = true } end,
+        }
+        install_widget_dependencies(PageBrowserWidget)
+        ZenSpec.replace("device", {
+            screen = {
+                getWidth = function() return 600 end,
+                getHeight = function() return 800 end,
+                scaleBySize = function(_, value) return value end,
+            },
+            isTouchDevice = function() return false end,
+            hasDPad = function() return false end,
+            hasFewKeys = function() return false end,
+        })
+        ZenSpec.replace("apps/reader/modules/readermenu", ReaderMenu)
+        ZenSpec.replace("apps/reader/modules/readerconfig", ReaderConfig)
+        ZenSpec.replace("ui/uimanager", {
+            show = function(_, widget) shown = widget end,
+            scheduleIn = function(_, delay, callback)
+                scheduled_delay, scheduled_fn = delay, callback
+            end,
+            unschedule = function(_, callback)
+                if scheduled_fn == callback then scheduled_fn = nil end
+            end,
+            setDirty = function() end,
+        })
+        _G.__ZEN_UI_PLUGIN = { config = { features = { page_browser = true } } }
+        require("modules/reader/patches/page_browser")()
+
+        local menu_key = {
+            match = function(_, sequence)
+                return sequence[1] == "Menu"
+            end,
+        }
+        local menu = setmetatable({ ui = {} }, { __index = ReaderMenu })
+        expect(ReaderMenu.onKeyPress(menu, menu_key) == true)
+        expect(scheduled_delay == 0.5 and type(scheduled_fn) == "function")
+        expect(ReaderMenu.onKeyRelease(menu, menu_key) == true)
+        expect(short_menu_calls == 1 and shown == nil and scheduled_fn == nil)
+
+        expect(ReaderMenu.onKeyPress(menu, menu_key) == true)
+        local hold_callback = scheduled_fn
+        hold_callback()
+        expect(shown and shown.zen_page_browser == true)
+        expect(shown._zen_ignore_opening_menu_key == true)
+        expect(PageBrowserWidget.onKeyRepeat(shown, menu_key) == true)
+        expect(PageBrowserWidget.onKeyRelease(shown, menu_key) == true)
+        expect(shown._zen_ignore_opening_menu_key == nil)
+        expect(short_menu_calls == 1)
+    end)
+
+    it("focuses the header, every page, and footer controls", function()
+        local ReaderMenu = { initGesListener = function() end }
+        local ReaderConfig = { onSwipeShowConfigMenu = function() end }
+        local PageBrowserWidget = {
+            registerKeyEvents = function(self)
+                self.key_events = {
+                    Close = { { "Back" }, event = "Close" },
+                    ScrollRowUp = { { "Up" } },
+                    ScrollRowDown = { { "Down" } },
+                }
+            end,
+            onKeyPress = function(self)
+                self.stock_key_called = true
+            end,
+            new = function(_, spec) return { ui = spec.ui } end,
+        }
+        install_widget_dependencies(PageBrowserWidget)
+        ZenSpec.replace("device", {
+            screen = {
+                getWidth = function() return 600 end,
+                getHeight = function() return 800 end,
+                scaleBySize = function(_, value) return value end,
+            },
+            isTouchDevice = function() return true end,
+            hasDPad = function() return false end,
+            hasKeyboard = function() return true end,
+            hasFewKeys = function() return false end,
+        })
+        ZenSpec.replace("apps/reader/modules/readermenu", ReaderMenu)
+        ZenSpec.replace("apps/reader/modules/readerconfig", ReaderConfig)
+        _G.__ZEN_UI_PLUGIN = { config = { features = { page_browser = true } } }
+        require("modules/reader/patches/page_browser")()
+        ReaderConfig.onSwipeShowConfigMenu({ ui = { handleEvent = function() end } }, { direction = "north" })
+        local key_owner = {}
+        PageBrowserWidget.registerKeyEvents(key_owner)
+        expect(key_owner.key_events.Close.event == "Close")
+        expect(key_owner.key_events.Close[1][1] == "Back")
+        expect(key_owner.key_events.ScrollRowUp == nil)
+        expect(key_owner.key_events.ScrollRowDown == nil)
+        expect(key_owner.key_events.ZenPageBrowserUp.event == "FocusMove")
+        expect(key_owner.key_events.ZenPageBrowserDown.args[2] == 1)
+        expect(key_owner.key_events.ZenPageBrowserPress.event == "Press")
+        expect(key_owner.key_events.ZenPageBrowserConfirm.event == "Press")
+        expect(key_owner.key_events.ZenPageBrowserConfirm[1][1] == "Return")
+        expect(key_owner.key_events.ZenPageBrowserConfirm[2][1] == "Enter")
+
+        local function focus_widget(callback)
+            return {
+                callback = callback,
+                handleEvent = function(self, event) self.last_focus_event = event.name end,
+            }
+        end
+        local headers = {}
+        for i = 1, 6 do
+            headers[i] = focus_widget(function() end)
+        end
+        local grid = {}
+        for idx = 1, 6 do grid[idx] = { page_idx = idx } end
+        for idx = 1, 6 do grid[6 + idx] = focus_widget() end
+        local footer = {
+            focus_widget(), focus_widget(), focus_widget(), focus_widget(),
+        }
+        local browser = {
+            _zen_focus_enabled = true,
+            nb_cols = 3,
+            nb_grid_items = 6,
+            grid = grid,
+            _zen_header_buttons = headers,
+            _zen_btn_skip_left = footer[1],
+            _zen_btn_view_frame = footer[2],
+            _zen_btn_grid_frame = footer[3],
+            _zen_btn_skip_right = footer[4],
+        }
+        setmetatable(browser, { __index = PageBrowserWidget })
+        PageBrowserWidget._zenRebuildFocusLayout(browser)
+        expect(#browser.layout == 4)
+        expect(#browser.layout[1] == 6 and #browser.layout[2] == 3)
+        expect(#browser.layout[3] == 3 and #browser.layout[4] == 4)
+        expect(browser.layout[1][6]._zen_focus_id == "header:6")
+        expect(browser.layout[3][3]._zen_focus_id == "page:6")
+        expect(browser.layout[4][1]._zen_focus_id == "footer:previous")
+        expect(browser.layout[4][4]._zen_focus_id == "footer:next")
+        expect(browser.layout[browser.selected.y][browser.selected.x]._zen_focus_id == "header:1")
+
+        PageBrowserWidget.onKeyPress(browser, {
+            match = function(_key, sequence) return sequence[1] == "Down" end,
+        })
+        expect(browser.layout[browser.selected.y][browser.selected.x]._zen_focus_id == "page:1")
+        expect(browser.stock_key_called == nil)
+        PageBrowserWidget.onFocusMove(browser, { 0, -1 })
+        for _i = 1, 5 do PageBrowserWidget.onFocusMove(browser, { 1, 0 }) end
+        expect(browser.layout[browser.selected.y][browser.selected.x]._zen_focus_id == "header:6")
+        for _i = 1, 3 do PageBrowserWidget.onFocusMove(browser, { 0, 1 }) end
+        expect(browser.layout[browser.selected.y][browser.selected.x]._zen_focus_id == "footer:next")
     end)
 
     it("honors lockdown by suppressing page-browser and native config gestures", function()
@@ -503,6 +661,10 @@ describe("page browser entry", function()
         expect(close_button.width == 32 and close_button.height == 32)
         expect(close_button.padding == 11 and close_button.padding_bottom == 32)
         expect(close_button.overlap_align == "right")
+        expect(close_button.onFocus(close_button) == true)
+        expect(close_button._zen_keyboard_focused == true)
+        expect(close_button.onUnfocus(close_button) == true)
+        expect(close_button._zen_keyboard_focused == nil)
         close_button.callback()
         expect(close_button_taps == 1)
 
