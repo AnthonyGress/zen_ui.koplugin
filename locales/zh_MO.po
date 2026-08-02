@@ -4,7 +4,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: zh_TW\n"
+"Language: zh_MO\n"
 
 msgid " days"
 msgstr " 天"
@@ -85,7 +85,7 @@ msgid "< 1 min left in chapter"
 msgstr "本章剩餘 < 1 分鐘"
 
 msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
-msgstr "為您的電子閱讀器打造的極簡、整潔介面。\n\n向左滑動或點選「下一步」繼續。"
+msgstr "為您的電子書閱讀器打造的極簡、整潔介面。\n\n向左滑動或點擊「下一步」繼續。"
 
 msgid "A short summary of what went wrong"
 msgstr "簡要說明問題所在"
@@ -304,7 +304,7 @@ msgid "Book added to download list"
 msgstr "書籍已加入下載清單"
 
 msgid "Book information"
-msgstr "書籍資訊"
+msgstr "書籍資料"
 
 msgid "Book Status"
 msgstr "書籍狀態"
@@ -340,7 +340,7 @@ msgid "Bottom"
 msgstr "底部"
 
 msgid "Bottom status bar"
-msgstr "底端狀態列"
+msgstr "底部狀態列"
 
 msgid "Brief description of the bug"
 msgstr "問題的簡要描述"
@@ -355,7 +355,7 @@ msgid "Bug description (optional)"
 msgstr "問題描述（選填）"
 
 msgid "Bug report submitted!"
-msgstr "問題回報已送出！"
+msgstr "問題報告已送出！"
 
 msgid "Bug report title"
 msgstr "問題報告標題"
@@ -439,7 +439,7 @@ msgid "Choose tab"
 msgstr "選擇分頁"
 
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
-msgstr "選擇導覽列顯示的分頁。\n您可以隨時在設定中重新排列或調整。"
+msgstr "選擇導航列顯示的分頁。\n您可以隨時在設定中重新排列或調整。"
 
 msgid "Classic"
 msgstr "經典"
@@ -520,13 +520,13 @@ msgid "Could not reach update server."
 msgstr "無法連線到更新伺服器。"
 
 msgid "Could not reach update server. Check your internet connection."
-msgstr "無法連線更新伺服器。請檢查您的網路連線。"
+msgstr "無法連線更新伺服器。請檢查您的網絡連線。"
 
 msgid "Could not reach update server. Check your internet connection.\n\nUnable to load changelog."
-msgstr "無法連線至更新伺服器。請檢查網路連線。\n\n無法載入更新記錄。"
+msgstr "無法連線至更新伺服器。請檢查網絡連線。\n\n無法載入更新記錄。"
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
-msgstr "無法掃描 Wi-Fi 網路。請喚醒裝置後重試。"
+msgstr "無法掃描 Wi-Fi 網絡。請喚醒裝置後重試。"
 
 msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
 msgstr "CoverBrowser 外掛程式未啟用，部分功能無法正常運作。"
@@ -592,7 +592,7 @@ msgid "Custom: "
 msgstr "自訂: "
 
 msgid "Customizable top status bar and bottom progress bar."
-msgstr "可自訂頂端狀態列和底部進度列。"
+msgstr "可自訂頂部狀態列和底部進度列。"
 
 msgid "Customize widget"
 msgstr "自訂小工具"
@@ -697,10 +697,10 @@ msgid "Detailed list with cover images and filenames"
 msgstr "含封面與檔名的詳細清單"
 
 msgid "Detailed list with cover images and metadata"
-msgstr "含封面與中繼資料的詳細清單"
+msgstr "含封面與元數據的詳細清單"
 
 msgid "Detailed list with metadata, no images"
-msgstr "含中繼資料的詳細清單（無圖片）"
+msgstr "含元數據的詳細清單（無圖片）"
 
 msgid "Details"
 msgstr "詳情"
@@ -778,7 +778,7 @@ msgid "Enable"
 msgstr "啟用"
 
 msgid "Enable bottom status bar"
-msgstr "啟用底端狀態列"
+msgstr "啟用底部狀態列"
 
 msgid "Enable bottom swipe"
 msgstr "啟用底部上滑"
@@ -799,7 +799,7 @@ msgid "Enable page browser"
 msgstr "啟用頁面瀏覽器"
 
 msgid "Enable top status bar"
-msgstr "啟用頂端狀態列"
+msgstr "啟用頂部狀態列"
 
 msgid "Enable warmth schedule"
 msgstr "啟用色溫排程"
@@ -808,13 +808,13 @@ msgid "Enable Zen OPDS"
 msgstr "啟用 Zen OPDS"
 
 msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
-msgstr "啟用 Zen UI 對 OPDS 瀏覽器的增強：封面圖、清單視圖、長按選單及導覽改進。"
+msgstr "啟用 Zen UI 對 OPDS 瀏覽器的增強：封面圖、清單視圖、長按選單及導航改進。"
 
 msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
 msgstr "正在啟用除錯記錄，需要重新啟動。請重現問題後再送出報告。"
 
 msgid "Enter your GitHub username to be tagged in the issue"
-msgstr "輸入你的 GitHub 使用者名稱，以便在 Issue 中標註你"
+msgstr "輸入你的 GitHub 使用者名稱，以便在 issue 中標註你"
 
 msgid "Exit"
 msgstr "結束"
@@ -823,10 +823,10 @@ msgid "Extra large"
 msgstr "超大"
 
 msgid "Extract and cache book metadata and cover images for books in the current directory. Requires CoverBrowser plugin."
-msgstr "擷取並快取目前目錄中書籍的中繼資料與封面圖。需要 CoverBrowser 外掛程式。"
+msgstr "擷取並快取目前目錄中書籍的元數據與封面圖。需要 CoverBrowser 外掛程式。"
 
 msgid "Extract metadata"
-msgstr "擷取中繼資料"
+msgstr "擷取元數據"
 
 msgid "Extras"
 msgstr "其他"
@@ -862,7 +862,7 @@ msgid "Finished"
 msgstr "已讀完"
 
 msgid "Firmware: "
-msgstr "韌體: "
+msgstr "韌件: "
 
 msgid "First cover image"
 msgstr "第一張封面圖"
@@ -895,19 +895,19 @@ msgid "Font"
 msgstr "字體"
 
 msgid "font"
-msgstr "字型"
+msgstr "字體"
 
 msgid "font size"
-msgstr "字型大小"
+msgstr "字體大小"
 
 msgid "Font size"
-msgstr "字型大小"
+msgstr "字體大小"
 
 msgid "Font size:"
-msgstr "字型大小："
+msgstr "字體大小："
 
 msgid "Font:"
-msgstr "字型："
+msgstr "字體："
 
 msgid "Force sync"
 msgstr "強制同步"
@@ -925,7 +925,7 @@ msgid "Gallery"
 msgstr "圖庫"
 
 msgid "Gallery view (4-grid)"
-msgstr "圖庫檢視（4 宮格）"
+msgstr "圖庫視圖（4 宮格）"
 
 msgid "Get Started"
 msgstr "開始使用"
@@ -1126,7 +1126,7 @@ msgid "Library"
 msgstr "書庫"
 
 msgid "Library font"
-msgstr "書庫字型"
+msgstr "書庫字體"
 
 msgid "Library font size"
 msgstr "書庫字級"
@@ -1147,7 +1147,7 @@ msgid "List (detailed)"
 msgstr "清單（詳細）"
 
 msgid "List - detailed titles and metadata"
-msgstr "清單 — 詳細標題與中繼資料"
+msgstr "清單 — 詳細標題與元數據"
 
 msgid "List: "
 msgstr "清單: "
@@ -1246,19 +1246,19 @@ msgid "Move to…"
 msgstr "移動至…"
 
 msgid "Navbar"
-msgstr "導覽列"
+msgstr "導航列"
 
 msgid "Navbar icon size"
-msgstr "導覽列圖示大小"
+msgstr "導航列圖示大小"
 
 msgid "Navbar label size"
-msgstr "導覽列標籤大小"
+msgstr "導航列標籤大小"
 
 msgid "Navbar Tabs"
-msgstr "導覽分頁"
+msgstr "導航分頁"
 
 msgid "Network unavailable."
-msgstr "網路無法使用。"
+msgstr "網絡無法使用。"
 
 msgid "New"
 msgstr "新"
@@ -1336,13 +1336,13 @@ msgid "No books found"
 msgstr "找不到書籍"
 
 msgid "No books with author metadata found"
-msgstr "找不到包含作者中繼資料的書籍"
+msgstr "找不到包含作者元數據的書籍"
 
 msgid "No books with series metadata found"
-msgstr "找不到包含系列中繼資料的書籍"
+msgstr "找不到包含系列元數據的書籍"
 
 msgid "No books with tags metadata found"
-msgstr "找不到包含標籤中繼資料的書籍"
+msgstr "找不到包含標籤元數據的書籍"
 
 msgid "No changelog entries found.\n\nNo releases are available for this channel."
 msgstr "找不到更新記錄項目。\n\n此頻道沒有可用發行版本。"
@@ -1357,7 +1357,7 @@ msgid "No launchable plugin menus found"
 msgstr "找不到可啟動的外掛程式選單"
 
 msgid "No network connection. Please connect to Wi-Fi and try again."
-msgstr "無網路連線。請連接 Wi-Fi 後再試一次。"
+msgstr "無網絡連線。請連接 Wi-Fi 後再試一次。"
 
 msgid "No reader engine for this file or invalid file."
 msgstr "此檔案沒有可用的閱讀引擎或檔案無效。"
@@ -1645,7 +1645,7 @@ msgid "regular"
 msgstr "一般"
 
 msgid "Release metadata is invalid or incomplete."
-msgstr "發行資訊無效或不完整。"
+msgstr "發行資料無效或不完整。"
 
 msgid "Remove"
 msgstr "移除"
@@ -1684,10 +1684,10 @@ msgid "Reset Controls to defaults?"
 msgstr "將控制項重設為預設值？"
 
 msgid "Reset font"
-msgstr "重設字型"
+msgstr "重設字體"
 
 msgid "Reset font family and size to default?"
-msgstr "將字型系列和大小重設為預設值？"
+msgstr "將字體系列和大小重設為預設值？"
 
 msgid "Reset to defaults"
 msgstr "重設為預設值"
@@ -1927,10 +1927,10 @@ msgid "Show title below cover (mosaic)"
 msgstr "Show title below cover (mosaic)"
 
 msgid "Show top border"
-msgstr "顯示頂端邊框"
+msgstr "顯示頂部邊框"
 
 msgid "Show top status bar"
-msgstr "顯示頂端狀態列"
+msgstr "顯示頂部狀態列"
 
 msgid "Show warmth slider"
 msgstr "顯示色溫滑桿"
@@ -2053,7 +2053,7 @@ msgid "Styling"
 msgstr "樣式"
 
 msgid "Subfolder flat view was disabled because the home folder is the device storage root."
-msgstr "由於主資料夾是裝置儲存空間的根目錄，子資料夾平面檢視已停用。"
+msgstr "由於主資料夾是裝置儲存空間的根目錄，子資料夾平面視圖已停用。"
 
 msgid "Submit"
 msgstr "送出"
@@ -2062,10 +2062,10 @@ msgid "Submitting report…"
 msgstr "正在送出報告…"
 
 msgid "Swipe down from the top to reach quick settings like brightness, Wi-Fi, night mode, zen mode and more."
-msgstr "從頂端向下滑動即可開啟快速設定，如亮度、Wi-Fi、夜間模式、zen 模式等。"
+msgstr "從頂部向下滑動即可開啟快速設定，如亮度、Wi-Fi、夜間模式、zen 模式等。"
 
 msgid "Swipe up from the bottom while reading to open the Page Browser.\n\nSkim through pages or skip chapters, browse the table of contents, manage bookmarks, adjust fonts and more."
-msgstr "閱讀時從底端向上滑動以開啟頁面瀏覽器。\n\n快速翻閱或跳過章節，瀏覽目錄，管理書籤，調整字型等更多功能。"
+msgstr "閱讀時從底部向上滑動以開啟頁面瀏覽器。\n\n快速翻閱或跳過章節，瀏覽目錄，管理書籤，調整字體等更多功能。"
 
 msgid "Sync"
 msgstr "同步"
@@ -2086,7 +2086,7 @@ msgid "Tags"
 msgstr "標籤"
 
 msgid "Tap and hold any book or folder in your library to reveal details."
-msgstr "長按書庫中的任一本書或資料夾以查看詳細資訊。"
+msgstr "長按書庫中的任一本書或資料夾以查看詳細資料。"
 
 msgid "Text styles"
 msgstr "文字樣式"
@@ -2170,13 +2170,13 @@ msgid "Today"
 msgstr "今天"
 
 msgid "Too many requests. Please try again later."
-msgstr "要求次數過多，請稍後再試。"
+msgstr "請求次數過多，請稍後再試。"
 
 msgid "Top bar font"
-msgstr "頂端列字型"
+msgstr "頂部列字體"
 
 msgid "Top status bar"
-msgstr "頂端狀態列"
+msgstr "頂部狀態列"
 
 msgid "Total"
 msgstr "總計"
@@ -2266,10 +2266,10 @@ msgid "Update failed: invalid package layout."
 msgstr "更新失敗：套件結構無效。"
 
 msgid "Update failed: missing checksum."
-msgstr "更新失敗：缺少檢查碼。"
+msgstr "更新失敗：缺少校驗和。"
 
 msgid "Update failed: network connection lost."
-msgstr "更新失敗：網路連線中斷。"
+msgstr "更新失敗：網絡連線中斷。"
 
 msgid "Update failed: new version is invalid."
 msgstr "更新失敗：新版本無效。"
@@ -2311,13 +2311,13 @@ msgid "Use current folder"
 msgstr "使用目前資料夾"
 
 msgid "Use default font"
-msgstr "使用預設字型"
+msgstr "使用預設字體"
 
 msgid "Use default style"
 msgstr "使用預設樣式"
 
 msgid "Use Home default font size"
-msgstr "使用首頁預設字型大小"
+msgstr "使用首頁預設字體大小"
 
 msgid "Use home folder"
 msgstr "使用主資料夾"
@@ -2335,7 +2335,7 @@ msgid "Verbose time to chapter end"
 msgstr "詳細的本章剩餘時間"
 
 msgid "View"
-msgstr "檢視"
+msgstr "視圖"
 
 msgid "Virtual folder"
 msgstr "虛擬資料夾"
@@ -2452,7 +2452,7 @@ msgid "Zen UI - Toggle reader status bars"
 msgstr "Zen UI - 切換閱讀器狀態列"
 
 msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - 切換頂端閱讀器狀態列"
+msgstr "Zen UI - 切換頂部閱讀器狀態列"
 
 msgid "Zen UI - Toggle Zen Mode"
 msgstr "Zen UI - 切換禪模式"
