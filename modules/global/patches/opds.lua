@@ -32,12 +32,26 @@ local function apply_opds()
     local UIManager       = require("ui/uimanager")
     local VGroup          = require("ui/widget/verticalgroup")
     local VSpan           = require("ui/widget/verticalspan")
+    local ZenIconButton   = require("common/ui/zen_icon_button")
     local ZenModalClose   = require("common/ui/zen_modal_close")
     local logger          = require("common/zen_logger").new("opds")
     local Device          = require("device")
     local OPDSParser      = require("opdsparser")
     local CoverUtils      = require("common/cover_utils")
+    local utils           = require("common/utils")
     local Screen          = Device.screen
+
+    local _icons_dir
+    do
+        local root = require("common/plugin_root")
+        if root then _icons_dir = root .. "/icons/" end
+    end
+    local header_icon_paths = {
+        back = utils.resolveLocalIcon(_icons_dir, "tab_left"),
+        search = utils.resolveLocalIcon(_icons_dir, "quick_search"),
+        menu = utils.resolveLocalIcon(_icons_dir, "more_vertical"),
+        close = utils.resolveLocalIcon(_icons_dir, "close"),
+    }
 
     -- Cover cache: [url] → { bb } | { failed = true }  (session-scoped)
     local _cover_cache = {}
@@ -828,18 +842,140 @@ local function apply_opds()
         end
     end
 
-    local function shrink_title_button_bottom(button)
-        if not button or type(button.update) ~= "function" then return end
-        button.padding_bottom = 0
-        button:update()
+    local function remove_widget(group, widget)
+        if not widget then return end
+        for i = #group, 1, -1 do
+            if rawequal(group[i], widget) then
+                table.remove(group, i)
+                return
+            end
+        end
+    end
+
+    local function remove_header_from_focus(browser, buttons)
+        if not (browser.layout and buttons) then return end
+        local targets = {}
+        for _i, button in ipairs(buttons) do
+            if button then targets[button] = true end
+        end
+        for y = #browser.layout, 1, -1 do
+            local row = browser.layout[y]
+            for x = #row, 1, -1 do
+                if targets[row[x]] then table.remove(row, x) end
+            end
+            if #row == 0 then
+                table.remove(browser.layout, y)
+                if browser.selected and y < browser.selected.y then
+                    browser.selected.y = browser.selected.y - 1
+                end
+            end
+        end
+    end
+
+    local function merge_header_into_focus(browser)
+        local buttons = browser._zen_opds_header_buttons
+        if not (browser.layout and buttons and #buttons > 0) then return end
+        table.insert(browser.layout, 1, buttons)
+        if browser.selected then browser.selected.y = browser.selected.y + 1 end
+    end
+
+    local function make_header_button(browser, file, callback, focus_id, values)
+        values = values or {}
+        local button = ZenIconButton:new{
+            file = file,
+            width = values.width,
+            height = values.height,
+            padding = values.padding,
+            padding_bottom = 0,
+            overlap_align = values.overlap_align,
+            overlap_offset = values.overlap_offset,
+            allow_flash = false,
+            show_parent = browser.show_parent or browser,
+            callback = callback,
+        }
+        button._zen_opds_focus_id = focus_id
+        return button
+    end
+
+    local orig_mergeTitleBarIntoLayout = OPDSBrowser.mergeTitleBarIntoLayout
+    function OPDSBrowser:mergeTitleBarIntoLayout()
+        if not self._zen_opds_header_buttons then
+            return orig_mergeTitleBarIntoLayout(self)
+        end
+        merge_header_into_focus(self)
+    end
+
+    local function install_header_buttons(browser)
+        local title_bar = browser.title_bar
+        if not title_bar then return end
+
+        local old_buttons = browser._zen_opds_header_buttons or {}
+        old_buttons[#old_buttons + 1] = title_bar.left_button
+        old_buttons[#old_buttons + 1] = title_bar.right_button
+        remove_header_from_focus(browser, old_buttons)
+
+        local old_left = title_bar.left_button
+        local old_right = title_bar.right_button
+        local icon_size = (old_right and old_right.width) or (old_left and old_left.width)
+        local padding = title_bar.button_padding or (old_right and old_right.padding) or 0
+        if not icon_size then return end
+        local slot_width = icon_size + 2 * padding
+
+        if not title_bar._zen_opds_title_h_padding then
+            title_bar._zen_opds_title_h_padding = title_bar.title_h_padding
+        end
+        title_bar.title_h_padding = title_bar._zen_opds_title_h_padding + slot_width
+        title_bar.left_icon = header_icon_paths.back
+        title_bar.left_icon_tap_callback = function() return browser:onLeftButtonTap() end
+        title_bar.left_icon_allow_flash = false
+        title_bar.right_icon = header_icon_paths.close
+        title_bar.right_icon_tap_callback = function() return browser:onCloseAllMenus() end
+        title_bar.right_icon_allow_flash = false
+        title_bar:clear()
+        title_bar:init()
+
+        local generated_left = title_bar.left_button
+        local generated_right = title_bar.right_button
+        remove_widget(title_bar, generated_left)
+        remove_widget(title_bar, generated_right)
+
+        local back_button = make_header_button(
+            browser, header_icon_paths.back,
+            function() return browser:onLeftButtonTap() end,
+            "back", { width = icon_size, height = icon_size, padding = padding, overlap_align = "left" }
+        )
+        local in_catalog = #browser.paths > 0
+        local action_is_search = in_catalog and browser.search_url ~= nil
+        local action_button = make_header_button(
+            browser, action_is_search and header_icon_paths.search or header_icon_paths.menu,
+            function() return activate_right_button(browser) end,
+            action_is_search and "search" or "menu", {
+                width = icon_size,
+                height = icon_size,
+                padding = padding,
+                overlap_offset = { title_bar.width - 2 * slot_width, 0 },
+            }
+        )
+        local close_button = make_header_button(
+            browser, header_icon_paths.close,
+            function() return browser:onCloseAllMenus() end,
+            "close", { width = icon_size, height = icon_size, padding = padding, overlap_align = "right" }
+        )
+
+        if generated_left and type(generated_left.free) == "function" then generated_left:free() end
+        if generated_right and type(generated_right.free) == "function" then generated_right:free() end
+        title_bar.left_button = back_button
+        title_bar.right_button = close_button
+        title_bar._zen_opds_action_button = action_button
+        table.insert(title_bar, back_button)
+        table.insert(title_bar, action_button)
+        table.insert(title_bar, close_button)
+        browser._zen_opds_header_buttons = { back_button, action_button, close_button }
+        merge_header_into_focus(browser)
     end
 
     local function fix_buttons(browser)
         browser._zen_opds_browser = true
-        if browser.title_bar then
-            browser.title_bar:setLeftIcon("chevron.left")
-            shrink_title_button_bottom(browser.title_bar.left_button)
-        end
         browser.onLeftButtonTap = function()
             if #browser.paths > 0 then
                 browser:onReturn()
@@ -851,23 +987,12 @@ local function apply_opds()
                 UIManager:close(browser)
             end
         end
-        if browser.title_bar and browser.title_bar.right_button then
-            -- Search icon when inside a searchable catalog; hamburger otherwise.
-            local in_catalog = #browser.paths > 0
-            local has_search = browser.search_url ~= nil
-            local right_icon = (in_catalog and has_search) and "appbar.search" or "appbar.menu"
-            browser.title_bar:setRightIcon(right_icon)
-            shrink_title_button_bottom(browser.title_bar.right_button)
-            browser.title_bar.right_button.callback = function()
-                activate_right_button(browser)
-            end
-        end
+        install_header_buttons(browser)
 
         if Device:hasKeys() then
             browser.key_events = browser.key_events or {}
             -- Stock Menu binds the physical Menu key to LeftButtonTap.  Zen UI
-            -- moves OPDS navigation/back to the left button and the OPDS menu
-            -- to the right button, so override that inherited binding here.
+            -- keeps navigation on Back and routes Menu to the header action.
             browser.key_events.LeftButtonTap = {
                 { "Menu" },
                 event = "ZenOPDSMenu",
@@ -962,8 +1087,7 @@ local function apply_opds()
         fix_buttons(self)
     end
 
-    -- Override menu dialogs to anchor to the right button (hamburger icon is on the right).
-    -- Stock KOReader anchors both to left_button; we replicate the logic with right_button.
+    -- Anchor menus to the action button immediately left of Close.
     function OPDSBrowser:showOPDSMenu()
         local ButtonDialog = require("ui/widget/buttondialog")
         local NetworkMgr   = require("ui/network/manager")
@@ -999,7 +1123,7 @@ local function apply_opds()
             },
             shrink_unneeded_width = true,
             anchor = function()
-                return self.title_bar.right_button.image.dimen
+                return self.title_bar._zen_opds_action_button.image.dimen
             end,
         }
         UIManager:show(dialog)
@@ -1062,7 +1186,7 @@ local function apply_opds()
             buttons = buttons,
             shrink_unneeded_width = true,
             anchor = function()
-                return self.title_bar.right_button.image.dimen
+                return self.title_bar._zen_opds_action_button.image.dimen
             end,
         }
         UIManager:show(dialog)
