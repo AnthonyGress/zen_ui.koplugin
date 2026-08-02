@@ -742,8 +742,8 @@ local function apply_context_menu()
                     end
                     local STATUS_OPTS = {
                         { key = "new", icon = icons.status, label = _("Unread") },
-                        { key = "tbr", icon = icons.tbr, label = _("To Be Read") },
                         { key = "reading", icon = icons.reading, label = _("Reading") },
+                        { key = "tbr", icon = icons.tbr, label = _("To Be Read") },
                         { key = "abandoned", icon = icons.on_hold, label = _("On hold") },
                         { key = "complete", icon = icons.finished, label = _("Finished") },
                     }
@@ -1917,8 +1917,8 @@ local function apply_context_menu()
                                 title_align = "center",
                                 buttons = apply_button_group_font({
                                     statusBtn(icons.status, _("Unread"), nil),
-                                    statusBtn(icons.tbr, _("To Be Read"), "tbr"),
                                     statusBtn(icons.reading, _("Reading"), "reading"),
+                                    statusBtn(icons.tbr, _("To Be Read"), "tbr"),
                                     statusBtn(icons.on_hold, _("On hold"), "abandoned"),
                                     statusBtn(icons.finished, _("Finished"), "complete"),
                                 }),
@@ -2172,8 +2172,8 @@ local function apply_context_menu()
 
                     local STATUS_OPTS = {
                         { key = "new", icon = icons.status, label = _("Unread") },
-                        { key = "tbr", icon = icons.tbr, label = _("To Be Read") },
                         { key = "reading", icon = icons.reading, label = _("Reading") },
+                        { key = "tbr", icon = icons.tbr, label = _("To Be Read") },
                         { key = "abandoned", icon = icons.on_hold, label = _("On hold") },
                         { key = "complete", icon = icons.finished, label = _("Finished") },
                     }
