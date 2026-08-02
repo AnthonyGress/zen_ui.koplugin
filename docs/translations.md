@@ -33,6 +33,8 @@ The `en.po` file is the source catalog. All other locales are translated from it
 | `uk` | Ukrainian |
 | `zh_CN` | Simplified Chinese |
 | `zh_TW` | Traditional Chinese |
+| `zh_HK` | Traditional Chinese (Hong Kong) |
+| `zh_MO` | Traditional Chinese (Macau) |
 
 ## Adding a new language
 
