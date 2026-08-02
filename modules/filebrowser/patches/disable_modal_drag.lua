@@ -4,7 +4,6 @@ local function apply_disable_modal_drag()
         Sets unmovable=true on init (suppresses ges_events) and no-ops
         all onMovable* methods at the class level (for direct-call widgets).
     ]]
-    local ModalBorder = require("common/ui/modal_border")
     local MovableContainer = require("ui/widget/container/movablecontainer")
 
     if MovableContainer._zen_no_drag_patched then return end
@@ -14,11 +13,7 @@ local function apply_disable_modal_drag()
     local orig_init = MovableContainer.init
     MovableContainer.init = function(self, ...)
         self.unmovable = true
-        local result = orig_init(self, ...)
-        if self[1] and self[1].bordersize and self[1].bordersize > 0 then
-            ModalBorder.apply(self[1])
-        end
-        return result
+        return orig_init(self, ...)
     end
 
     -- 2. No-op all movement methods so direct calls from widgets like

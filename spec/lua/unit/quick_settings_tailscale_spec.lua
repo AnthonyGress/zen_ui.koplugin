@@ -11,7 +11,7 @@ describe("quick settings Tailscale", function()
         "device",
         "ui/event",
         "ui/font",
-        "common/ui/zen_solid_circle",
+        "ui/widget/container/framecontainer",
         "ui/geometry",
         "ui/widget/horizontalgroup",
         "ui/widget/horizontalspan",
@@ -59,7 +59,7 @@ describe("quick settings Tailscale", function()
         ZenSpec.replace("device", { screen = {} })
         ZenSpec.replace("ui/event", { new = function(_self, name) return { name = name } end })
         ZenSpec.replace("ui/font", no_op)
-        ZenSpec.replace("common/ui/zen_solid_circle", no_op)
+        ZenSpec.replace("ui/widget/container/framecontainer", no_op)
         ZenSpec.replace("ui/geometry", no_op)
         ZenSpec.replace("ui/widget/horizontalgroup", no_op)
         ZenSpec.replace("ui/widget/horizontalspan", no_op)

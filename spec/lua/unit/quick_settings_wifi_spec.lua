@@ -13,7 +13,7 @@ describe("quick settings Wi-Fi", function()
         "device",
         "ui/event",
         "ui/font",
-        "common/ui/zen_solid_circle",
+        "ui/widget/container/framecontainer",
         "ui/geometry",
         "ui/widget/horizontalgroup",
         "ui/widget/horizontalspan",
@@ -67,7 +67,7 @@ describe("quick settings Wi-Fi", function()
         ZenSpec.replace("ffi/util", { template = function(text) return text end, strcoll = function(a, b) return a < b end })
         ZenSpec.replace("ui/widget/container/centercontainer", no_op)
         ZenSpec.replace("ui/font", no_op)
-        ZenSpec.replace("common/ui/zen_solid_circle", no_op)
+        ZenSpec.replace("ui/widget/container/framecontainer", no_op)
         ZenSpec.replace("ui/geometry", no_op)
         ZenSpec.replace("ui/widget/horizontalgroup", no_op)
         ZenSpec.replace("ui/widget/horizontalspan", no_op)

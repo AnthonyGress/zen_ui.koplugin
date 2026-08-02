@@ -10,7 +10,7 @@ local function apply_quick_settings()
     local Device = require("device")
     local Event = require("ui/event")
     local Font = require("ui/font")
-    local SolidCircle = require("common/ui/zen_solid_circle")
+    local FrameContainer = require("ui/widget/container/framecontainer")
     local Geom = require("ui/geometry")
     local HorizontalGroup = require("ui/widget/horizontalgroup")
     local IconWidget = require("ui/widget/iconwidget")
@@ -1208,7 +1208,7 @@ local function apply_quick_settings()
             local bg = active and Blitbuffer.COLOR_BLACK
                 or dim  and Blitbuffer.COLOR_LIGHT_GRAY
                 or       Blitbuffer.COLOR_WHITE
-            local circle = SolidCircle:new{
+            local circle = FrameContainer:new{
                 width      = action_btn_size,
                 height     = action_btn_size,
                 radius     = math.floor(action_btn_size / 2),

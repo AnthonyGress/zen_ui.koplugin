@@ -22,7 +22,6 @@
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
     local ButtonLabelWidth = require("common/ui/button_label_width")
     local ZenButton = require("common/ui/zen_button")
-    local SolidCircle = require("common/ui/zen_solid_circle")
     local SettingsTransition = require("common/settings_transition")
     local utils = require("common/utils")
     local library_font = require("modules/filebrowser/patches/library_font")
@@ -153,7 +152,7 @@
             end
         end
         local border = active and 0 or circle_border
-        local icon_circle = SolidCircle:new{
+        local icon_circle = FrameContainer:new{
             width = circle_size,
             height = circle_size,
             padding = 0,
