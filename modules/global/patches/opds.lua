@@ -32,6 +32,7 @@ local function apply_opds()
     local UIManager       = require("ui/uimanager")
     local VGroup          = require("ui/widget/verticalgroup")
     local VSpan           = require("ui/widget/verticalspan")
+    local ZenModalClose   = require("common/ui/zen_modal_close")
     local logger          = require("common/zen_logger").new("opds")
     local Device          = require("device")
     local OPDSParser      = require("opdsparser")
@@ -1219,8 +1220,6 @@ local function apply_opds()
         local orig_onTap = InputDialog.onTap
         dialog = InputDialog:new{
             title                       = _("Search") .. (catalog_name ~= "" and " " .. catalog_name or ""),
-            title_bar_left_icon         = "close",
-            title_bar_left_icon_tap_callback = function() UIManager:close(dialog) end,
             input_hint                  = _("Alexandre Dumas"),
             buttons = {{
                 {
@@ -1230,6 +1229,7 @@ local function apply_opds()
                 },
             }},
         }
+        ZenModalClose.installDialog(dialog, function() UIManager:close(dialog) end)
         -- Close keyboard + dialog on outside tap (mirrors library search).
         function dialog:onTap(arg, ges)
             if self.deny_keyboard_hiding then return end

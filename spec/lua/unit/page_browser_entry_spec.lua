@@ -726,7 +726,7 @@ describe("page browser entry", function()
             onTap = function() end,
             new = function(_, spec)
                 dialog = spec
-                dialog.title_bar = { left_button = close_button }
+                dialog.title_bar = {}
                 dialog._input_widget = input_widget
                 dialog.layout = { { input_widget }, { search_button } }
                 dialog.selected = { x = 1, y = 1 }
@@ -760,12 +760,22 @@ describe("page browser entry", function()
         ZenSpec.replace("common/utils", {
             resolveLocalIcon = function(_, name) return "/icons/" .. name .. ".svg" end,
         })
+        ZenSpec.replace("common/ui/zen_modal_close", {
+            installDialog = function(target, callback)
+                close_button.callback = callback
+                target.title_bar.right_button = close_button
+                table.insert(target.layout, 1, { close_button })
+                target.selected.y = target.selected.y + 1
+                return close_button
+            end,
+        })
         _G.__ZEN_UI_PLUGIN = { config = { features = { page_browser = false } } }
         require("modules/reader/patches/page_browser")()
 
         ReaderSearch:onShowFulltextSearchInput("needle")
         expect(shown_dialog == dialog)
-        expect(dialog.title_bar_left_icon == "/icons/close.svg")
+        expect(dialog.title_bar.left_button == nil)
+        expect(dialog.title_bar.right_button == close_button)
         expect(dialog.layout[1][1] == close_button)
         expect(dialog.layout[2][1] == input_widget)
         expect(dialog.selected.x == 1 and dialog.selected.y == 2)
@@ -777,7 +787,7 @@ describe("page browser entry", function()
         expect(input_widget.keyboard:onZenCloseSearchDialog() == true)
         expect(closes == 2)
 
-        dialog.title_bar_left_icon_tap_callback()
+        close_button.callback()
         expect(closes == 3)
     end)
 

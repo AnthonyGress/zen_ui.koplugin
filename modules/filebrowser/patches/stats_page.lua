@@ -34,6 +34,7 @@ local LineGraph = require("common/ui/zen_line_graph")
 local StatsSettings = require("modules/filebrowser/patches/stats_settings")
 local PresetStore = require("config/preset_store")
 local HomeGoals = require("modules/filebrowser/patches/home/widgets/reading_goals")
+local ZenModalClose = require("common/ui/zen_modal_close")
 local icons = require("common/inline_icon_map")
 local utils = require("common/utils")
 local Screen = Device.screen
@@ -522,16 +523,17 @@ local function showCalendarDaySummary(stats_plugin, visible_day_ts, stat_style)
         width - ScrollableContainer:getScrollbarWidth() - Screen:scaleBySize(4)
     )
     local title_text = os.date("%B %d, %Y", visible_day_ts):gsub(" 0(%d)", " %1")
-    dialog:addWidget(TitleBar:new{
+    local title_bar = TitleBar:new{
         width = width,
         align = "left",
         title = title_text,
         title_face = Font:getFace("smallinfofontbold", Screen:scaleBySize(10)),
-        right_icon = "close",
-        right_icon_allow_flash = false,
-        right_icon_tap_callback = function() UIManager:close(dialog) end,
         show_parent = dialog,
-    })
+    }
+    local close_button = ZenModalClose.installTitleBar(
+        title_bar, dialog, function() UIManager:close(dialog) end
+    )
+    dialog:addWidget(title_bar)
     dialog:addWidget(VerticalSpan:new{ width = Screen:scaleBySize(6) })
     local items = { align = "center" }
     items[#items + 1] = createDayBookCard(scroll_w, _("Total"), total_duration, total_pages, stat_style)
@@ -602,6 +604,7 @@ local function showCalendarDaySummary(stats_plugin, visible_day_ts, stat_style)
     function dialog:onZenDayPopupHoldRelease(_arg, ges)
         return scroll_widget:onScrollableHoldRelease(nil, ges)
     end
+    ZenModalClose.addToFocusLayout(dialog, close_button)
     UIManager:show(dialog)
 end
 

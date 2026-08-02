@@ -91,6 +91,16 @@ describe("reading goals widget", function()
             getHeight = function() return 600 end,
         } })
         ZenSpec.replace("common/widget_resources", { free = function() end })
+        ZenSpec.replace("common/ui/zen_modal_close", {
+            installTitleBar = function(title_bar, _parent, callback)
+                title_bar.right_button = {
+                    file = "/zen-ui/icons/close.svg",
+                    callback = callback,
+                }
+                return title_bar.right_button
+            end,
+            addToFocusLayout = function() end,
+        })
         ZenSpec.replace("ui/uimanager", { show = function(_self, widget) shown = widget end })
         for _i, name in ipairs({
             "ui/widget/horizontalgroup", "ui/widget/horizontalspan", "ui/widget/textwidget",
@@ -161,6 +171,8 @@ describe("reading goals widget", function()
         assert.is_true(goal_widget:onHoldReadingGoals(nil, { pos = { x = 20, y = 20 } }))
         assert.are.equal(1, opened_settings)
         assert.are.equal("Reading goals", shown.widgets[1].title)
+        assert.is_nil(shown.widgets[1].left_button)
+        assert.are.equal("/zen-ui/icons/close.svg", shown.widgets[1].right_button.file)
         local popup_texts = {}
         for _i, item in ipairs(created) do
             if item.text then popup_texts[item.text] = true end

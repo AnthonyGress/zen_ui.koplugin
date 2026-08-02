@@ -19,6 +19,7 @@ local UIManager = require("ui/uimanager")
 local Font = require("ui/font")
 local Device = require("device")
 local WidgetResources = require("common/widget_resources")
+local ZenModalClose = require("common/ui/zen_modal_close")
 local _ = require("gettext")
 local Screen = Device.screen
 local DEFAULT_FONT_SIZE = 11
@@ -149,16 +150,17 @@ local function show_goals_summary(rows)
         Screen:scaleBySize(120),
         width - ScrollableContainer:getScrollbarWidth() - Screen:scaleBySize(4)
     )
-    dialog:addWidget(TitleBar:new{
+    local title_bar = TitleBar:new{
         width = width,
         align = "left",
         title = _("Reading goals"),
         title_face = Font:getFace("smallinfofontbold", Screen:scaleBySize(10)),
-        left_icon = "close",
-        left_icon_allow_flash = false,
-        left_icon_tap_callback = function() UIManager:close(dialog) end,
         show_parent = dialog,
-    })
+    }
+    local close_button = ZenModalClose.installTitleBar(
+        title_bar, dialog, function() UIManager:close(dialog) end
+    )
+    dialog:addWidget(title_bar)
     dialog:addWidget(VerticalSpan:new{ width = Screen:scaleBySize(6) })
     local items = { align = "center" }
     for _i, row in ipairs(rows) do
@@ -173,6 +175,7 @@ local function show_goals_summary(rows)
     }
     dialog:addWidget(scroll_widget)
     enable_dialog_scroll(dialog, scroll_widget)
+    ZenModalClose.addToFocusLayout(dialog, close_button)
     UIManager:show(dialog)
 end
 

@@ -1,8 +1,10 @@
 describe("file browser search", function()
-    local dialog
+    local close_button, closed, dialog, input_widget
 
     before_each(function()
         dialog = nil
+        closed = nil
+        close_button = nil
         _G.__ZEN_UI_PLUGIN = { config = { features = { search = true } } }
 
         local FileManagerFileSearcher = {
@@ -17,19 +19,28 @@ describe("file browser search", function()
             onTap = function() end,
             new = function(_, spec)
                 dialog = spec
+                input_widget = { name = "input" }
+                dialog.title_bar = {}
+                dialog.layout = { { input_widget } }
+                dialog.selected = { x = 1, y = 1 }
                 dialog.onShowKeyboard = function() end
                 return dialog
             end,
         })
         ZenSpec.replace("ui/uimanager", {
-            close = function() end,
+            close = function(_, widget) closed = widget end,
             show = function() end,
         })
         ZenSpec.replace("common/paths", { getHomeDir = function() return "/library" end })
-        ZenSpec.replace("common/utils", {
-            resolveLocalIcon = function(dir, name) return dir .. name .. ".svg" end,
+        ZenSpec.replace("common/ui/zen_modal_close", {
+            installDialog = function(target, callback)
+                close_button = { file = "/zen-ui/icons/close.svg", callback = callback }
+                target.title_bar.right_button = close_button
+                table.insert(target.layout, 1, { close_button })
+                target.selected.y = target.selected.y + 1
+                return close_button
+            end,
         })
-        ZenSpec.replace("common/plugin_root", "/zen-ui")
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("util", { stringLower = string.lower })
         ZenSpec.replace("document/documentregistry", { hasProvider = function() return false end })
@@ -43,10 +54,18 @@ describe("file browser search", function()
         ZenSpec.unload("modules/filebrowser/patches/search")
     end)
 
-    it("resolves the modal close icon to the bundled SVG", function()
+    it("places a focusable bundled close button at the top right", function()
         local FileManagerFileSearcher = require("apps/filemanager/filemanagerfilesearcher")
         FileManagerFileSearcher:onShowFileSearch()
 
-        assert.are.equal("/zen-ui/icons/close.svg", dialog.title_bar_left_icon)
+        assert.is_nil(dialog.title_bar.left_button)
+        assert.is_true(dialog.title_bar.right_button == close_button)
+        assert.are.equal("/zen-ui/icons/close.svg", close_button.file)
+        assert.is_true(dialog.layout[1][1] == close_button)
+        assert.is_true(dialog.layout[2][1] == input_widget)
+        assert.are.same({ x = 1, y = 2 }, dialog.selected)
+
+        close_button.callback()
+        assert.is_true(closed == dialog)
     end)
 end)

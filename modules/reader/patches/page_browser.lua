@@ -2513,6 +2513,7 @@ local function apply_page_browser()
     if ok_rs and ReaderSearch then
         local InputDialog = require("ui/widget/inputdialog")
         local Screen_s    = require("device").screen
+        local ZenModalClose = require("common/ui/zen_modal_close")
         local _           = require("gettext")
         local logger_rs   = require("common/zen_logger").new("page_browser")
 
@@ -2527,6 +2528,7 @@ local function apply_page_browser()
             end
 
             dialog.onCloseDialog = close_dialog
+            ZenModalClose.installDialog(dialog, close_dialog)
 
             -- The virtual keyboard otherwise consumes Back and only hides itself.
             local keyboard = dialog._input_widget and dialog._input_widget.keyboard
@@ -2536,14 +2538,6 @@ local function apply_page_browser()
                 keyboard.key_events.ZenCloseSearchDialog = keyboard_back
                 keyboard_back.event = "ZenCloseSearchDialog"
                 keyboard.onZenCloseSearchDialog = close_dialog
-            end
-
-            if not is_non_touch_device() then return end
-            local close_button = dialog.title_bar and dialog.title_bar.left_button
-            if not (close_button and dialog.layout) then return end
-            table.insert(dialog.layout, 1, { close_button })
-            if dialog.selected then
-                dialog.selected.y = dialog.selected.y + 1
             end
         end
 
@@ -2555,11 +2549,6 @@ local function apply_page_browser()
                     or self.last_search_text
                     or (self.ui.doc_settings
                         and self.ui.doc_settings:readSetting("fulltext_search_last_search_text")),
-                -- X in the title bar (top left)
-                title_bar_left_icon = utils.resolveLocalIcon(_stock_icons_dir, "close"),
-                title_bar_left_icon_tap_callback = function()
-                    UIManager:close(self.input_dialog)
-                end,
                 buttons = {
                     {
                         {
