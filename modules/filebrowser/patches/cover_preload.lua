@@ -5,11 +5,12 @@ local function apply_cover_preload()
     CoverMenu.__zen_cover_preload_patched = true
 
     local BookInfoManager = require("bookinfomanager")
-    local ok_background, Background = pcall(require, "common/ui/background")
+    local Device = require("device")
     local FileChooser = require("ui/widget/filechooser")
     local Geom = require("ui/geometry")
     local Menu = require("ui/widget/menu")
     local UIManager = require("ui/uimanager")
+    local book_status = require("common/book_status")
     local cache = require("common/cover_decode_cache")
     local render_cache = require("common/cover_render_cache")
     local memory_policy = require("common/memory_policy")
@@ -28,8 +29,14 @@ local function apply_cover_preload()
     local PRELOAD_CHUNK = 4
     local PRELOAD_BUDGET_S = 0.03
     local PRELOAD_LOOKAHEAD_PAGES = 1
-    local HYDRATE_DELAY_S = 0.05
-    local HYDRATE_TICK_S = 0.05
+    local STATUS_PRELOAD_DELAY_S = 0.05
+    local STATUS_PRELOAD_CHUNK = 4
+    local STATUS_PRELOAD_BUDGET_S = 0.015
+    local PAGE_WARM_MAX_FILES = tonumber(CoverUtils.MAX_FILES_PER_PAGE) or 12
+    local PAGE_WARM_CPU_BUDGET_S = 0.2
+    local PAGE_WARM_COOLDOWN_S = 0.25
+    local HIDDEN_FOLDER_PREWARM_RETRY_S = 0.5
+    local HIDDEN_FOLDER_PREWARM_MAX_RETRIES = 6
     local HYDRATE_CHUNK = 4
     local HYDRATE_BUDGET_S = 0.04
     local COVER_POLL_S = 0.4
@@ -75,6 +82,17 @@ local function apply_cover_preload()
                 local result = original_paintTo(self, bb, x, y)
                 measure.tile_count = measure.tile_count + 1
                 measure.tile_ms = measure.tile_ms + (now() - started_at) * 1000
+                if not measure.first_logged then
+                    measure.first_logged = true
+                    local input_to_first_tile_ms = measure.input_started_at
+                        and (now() - measure.input_started_at) * 1000 or 0
+                    logger.measure("Cover first tile painted", measure.tile_ms,
+                        "page=", measure.page,
+                        "has_cover=", self._has_cover_image == true,
+                        "page_turn_direction=", measure.direction or "none",
+                        "input_to_first_tile_ms=",
+                            math.floor(input_to_first_tile_ms * 10 + 0.5) / 10)
+                end
                 if not measure.logged and measure.tile_count >= measure.expected then
                     measure.logged = true
                     local input_to_last_tile_ms = measure.input_started_at
@@ -111,24 +129,67 @@ local function apply_cover_preload()
                 and menu.show_parent._zen_hidden_home_startup == true)
     end
 
+    local function home_covers_filemanager(menu)
+        local parent = menu and menu.show_parent
+        if parent and parent.invisible == true then return true end
+        local stack = UIManager._window_stack
+        if not parent or type(stack) ~= "table" then return false end
+        local parent_index
+        for index = 1, #stack do
+            local widget = stack[index] and stack[index].widget
+            if widget == parent or widget == menu then parent_index = index end
+        end
+        if not parent_index then return false end
+        for index = parent_index + 1, #stack do
+            local widget = stack[index] and stack[index].widget
+            if widget and (widget.name == "home"
+                    or widget._zen_navbar_tab_id == "home"
+                    or widget._zen_home_show_status_bar ~= nil) then
+                return true
+            end
+        end
+        return false
+    end
+
+    local function cover_work_block_reason(menu)
+        if hidden_home_bootstrap(menu) then return "hidden_home_startup" end
+        if rawget(_G, "__ZEN_UI_SUPPRESS_FILEMANAGER_COVERS") == true then
+            return "covers_suppressed"
+        end
+        if home_covers_filemanager(menu) then return "hidden_under_home" end
+    end
+
     -- Polling may re-cache pre-extraction metadata while the child is running.
     local function reconcile_completed_extraction()
         if is_extracting() then return false end
         local files = BookInfoManager._zen_cover_extract_active
         if type(files) ~= "table" then return false end
         BookInfoManager._zen_cover_extract_active = nil
+        local ready_paths = BookInfoManager._zen_cover_extract_ready_paths or {}
+        BookInfoManager._zen_cover_extract_ready_paths = nil
+        local preserved = 0
         for index = 1, #files do
             local path = files[index] and files[index].filepath
             if path then
-                cache:drop(path)
-                render_cache:drop(path)
+                -- The visible poll can consume a completed DB row before the
+                -- subprocess watcher observes that the batch has stopped. The
+                -- launch already invalidated every path, so a decoded entry now
+                -- is the final cover and must survive this late reconciliation.
+                if ready_paths[path] == true
+                        and type(cache.has) == "function" and cache:has(path) then
+                    preserved = preserved + 1
+                else
+                    cache:drop(path)
+                    render_cache:drop(path)
+                end
             end
         end
         if type(BookInfoManager.closeDbConnection) == "function" then
             BookInfoManager:closeDbConnection()
         end
         logger.measure("Cover extraction reconciled", 0,
-            "files=", #files)
+            "files=", #files,
+            "preserved=", preserved)
         return true
     end
 
@@ -183,6 +244,7 @@ local function apply_cover_preload()
                 local launched = original_extract(BookInfoManager, pending)
                 if launched then
                     BookInfoManager._zen_cover_extract_active = pending
+                    BookInfoManager._zen_cover_extract_ready_paths = {}
                     watch_queue()
                 end
             end
@@ -205,6 +267,7 @@ local function apply_cover_preload()
             local launched = original_extract(self, copied, ...)
             if launched then
                 self._zen_cover_extract_active = copied
+                self._zen_cover_extract_ready_paths = {}
                 watch_queue()
             end
             return launched
@@ -220,7 +283,16 @@ local function apply_cover_preload()
 
     serialize_extraction()
 
+    local cancel_cover_page_warm
+    local cancel_hidden_folder_prewarm
+
     local function cancel(menu)
+        if menu._zen_cover_status_preload_fn then
+            UIManager:unschedule(menu._zen_cover_status_preload_fn)
+            menu._zen_cover_status_preload_fn = nil
+        end
+        menu._zen_cover_status_preload_state = nil
+        menu._zen_cover_status_preload_jobs = nil
         if menu._zen_cover_preload_fn then
             UIManager:unschedule(menu._zen_cover_preload_fn)
             menu._zen_cover_preload_fn = nil
@@ -235,18 +307,77 @@ local function apply_cover_preload()
         end
     end
 
+    local function next_hydration_tick(fn)
+        local schedule = UIManager.tickAfterNext or UIManager.nextTick
+        if type(schedule) == "function" then
+            schedule(UIManager, fn)
+        else
+            UIManager:scheduleIn(0.001, fn)
+        end
+    end
+
     local function cancel_hydration(menu)
+        if cancel_hidden_folder_prewarm then
+            cancel_hidden_folder_prewarm(menu, "hydration_cancelled", "discard")
+        end
         if menu._zen_cover_hydrate_fn then
             UIManager:unschedule(menu._zen_cover_hydrate_fn)
             menu._zen_cover_hydrate_fn = nil
         end
         clear_hydration_items(menu._zen_cover_hydration_active_items)
         clear_hydration_items(menu._zen_cover_hydration_items)
+        clear_hydration_items(menu._zen_cover_suspended_hydration_items)
         menu._zen_cover_hydration_active_items = nil
         menu._zen_cover_hydration_items = {}
+        menu._zen_cover_suspended_hydration_items = nil
+        menu._zen_cover_suspended_hydration_generation = nil
         menu._zen_cover_collecting_reveal = nil
         menu._zen_cover_reveal = nil
         menu._zen_cover_pending_refresh = nil
+    end
+
+    local function suspend_hydration(menu, jobs, generation, refresh_region)
+        if menu._zen_cover_hydrate_fn then
+            UIManager:unschedule(menu._zen_cover_hydrate_fn)
+            menu._zen_cover_hydrate_fn = nil
+        end
+        local suspended = menu._zen_cover_suspended_hydration_items
+        if menu._zen_cover_suspended_hydration_generation ~= generation
+                or type(suspended) ~= "table" then
+            clear_hydration_items(suspended)
+            suspended = {}
+        end
+        local active = jobs or menu._zen_cover_hydration_active_items or {}
+        if active ~= suspended then
+            for index = 1, #active do suspended[#suspended + 1] = active[index] end
+        end
+        local queued = menu._zen_cover_hydration_items or {}
+        for index = 1, #queued do suspended[#suspended + 1] = queued[index] end
+        menu._zen_cover_hydration_active_items = nil
+        menu._zen_cover_hydration_items = {}
+        menu._zen_cover_suspended_hydration_items = suspended
+        menu._zen_cover_suspended_hydration_generation = generation
+        if refresh_region then
+            local pending = menu._zen_cover_pending_refresh
+            menu._zen_cover_pending_refresh = pending
+                and pending:combine(refresh_region) or refresh_region
+        end
+    end
+
+    local function clear_suspended_extraction_launch(menu)
+        local suspended = menu._zen_cover_suspended_extract_launch
+        if suspended and suspended.resume_fn then
+            UIManager:unschedule(suspended.resume_fn)
+        end
+        menu._zen_cover_suspended_extract_launch = nil
+    end
+
+    local function cancel_extraction_launch(menu)
+        if menu._zen_cover_extract_delay_fn then
+            UIManager:unschedule(menu._zen_cover_extract_delay_fn)
+            menu._zen_cover_extract_delay_fn = nil
+        end
+        clear_suspended_extraction_launch(menu)
     end
 
     -- CoverBrowser starts its extraction from nextTick and kills any existing
@@ -262,10 +393,40 @@ local function apply_cover_preload()
                 if menu._zen_cover_extract_delay_fn then
                     UIManager:unschedule(menu._zen_cover_extract_delay_fn)
                 end
+                clear_suspended_extraction_launch(menu)
+                local launch = {
+                    fn = fn,
+                    args = args,
+                    queued_at = queued_at,
+                    generation = menu._zen_cover_hydration_generation,
+                }
                 local delayed
                 delayed = function()
                     if menu._zen_cover_extract_delay_fn ~= delayed then return end
                     menu._zen_cover_extract_delay_fn = nil
+                    if menu._zen_cover_hydration_generation ~= launch.generation then
+                        logger.measure("Cover extraction skipped", 0,
+                            "page=", menu.page,
+                            "reason=superseded")
+                        return
+                    end
+                    local block_reason = cover_work_block_reason(menu)
+                    if block_reason == "hidden_under_home" then
+                        launch.suspended_at = now()
+                        menu._zen_cover_suspended_extract_launch = launch
+                        logger.measure("Cover extraction suspended", 0,
+                            "page=", menu.page,
+                            "generation=", launch.generation,
+                            "debounce_ms=",
+                                math.floor((launch.suspended_at - queued_at) * 1000 + 0.5),
+                            "reason=hidden_under_home")
+                        return
+                    elseif block_reason then
+                        logger.measure("Cover extraction skipped", 0,
+                            "page=", menu.page,
+                            "reason=" .. block_reason)
+                        return
+                    end
                     logger.measure("Cover extraction launched", 0,
                         "page=", menu.page,
                         "debounce_ms=", math.floor((now() - queued_at) * 1000 + 0.5))
@@ -275,29 +436,135 @@ local function apply_cover_preload()
                 UIManager:scheduleIn(EXTRACTION_DEBOUNCE_S, delayed)
             end, ...)
         end
-        local result = original(menu, ...)
+        local results = { pcall(original, menu, ...) }
         UIManager.nextTick = original_nextTick
-        return result
+        if not results[1] then error(results[2]) end
+        table.remove(results, 1)
+        return unpack(results)
     end
 
-    local function page_refresh_region(menu)
-        if ok_background and Background.library_active() then return nil end
+    local function resume_suspended_extraction_launch(menu, generation)
+        local launch = menu._zen_cover_suspended_extract_launch
+        if type(launch) ~= "table" then return false end
+        if launch.generation ~= generation then
+            clear_suspended_extraction_launch(menu)
+            return false
+        end
+        if launch.resume_fn then return true end
+
+        local resume
+        resume = function()
+            if menu._zen_cover_suspended_extract_launch ~= launch
+                    or launch.resume_fn ~= resume then
+                return
+            end
+            launch.resume_fn = nil
+            if menu._zen_cover_hydration_generation ~= launch.generation then
+                menu._zen_cover_suspended_extract_launch = nil
+                logger.measure("Cover extraction skipped", 0,
+                    "page=", menu.page,
+                    "reason=superseded")
+                return
+            end
+            local block_reason = cover_work_block_reason(menu)
+            if block_reason == "hidden_under_home" then
+                logger.measure("Cover extraction suspended", 0,
+                    "page=", menu.page,
+                    "generation=", launch.generation,
+                    "reason=hidden_under_home")
+                return
+            end
+            menu._zen_cover_suspended_extract_launch = nil
+            if block_reason then
+                logger.measure("Cover extraction skipped", 0,
+                    "page=", menu.page,
+                    "reason=" .. block_reason)
+                return
+            end
+            logger.measure("Cover extraction launched", 0,
+                "page=", menu.page,
+                "generation=", launch.generation,
+                "debounce_ms=", math.floor((now() - launch.queued_at) * 1000 + 0.5),
+                "resumed=", true,
+                "suspended_ms=", launch.suspended_at
+                    and math.floor((now() - launch.suspended_at) * 1000 + 0.5) or 0)
+            launch.fn(unpack(launch.args))
+        end
+        launch.resume_fn = resume
+        next_hydration_tick(resume)
+        return true
+    end
+
+    local function valid_region(region)
+        return region and tonumber(region.w) and tonumber(region.h)
+            and region.w > 0 and region.h > 0
+    end
+
+    local function copy_region(region)
+        if not valid_region(region) then return nil end
+        return Geom:new{
+            x = tonumber(region.x) or 0,
+            y = tonumber(region.y) or 0,
+            w = region.w,
+            h = region.h,
+        }
+    end
+
+    local function grid_refresh_region(menu)
         local total = #(menu.item_table or {})
         local perpage = tonumber(menu.perpage)
         local page = tonumber(menu.page)
         if total == 0 or not perpage or perpage < 1 or not page then return nil end
         local visible = math.max(0, math.min(perpage, total - (page - 1) * perpage))
-        if visible ~= perpage then return nil end
+        if visible == 0 then return nil end
         local dimen = menu.dimen
         local title = menu.title_bar and menu.title_bar.dimen
-        if not (dimen and dimen.w and dimen.h and title and title.h and title.h > 0) then
-            return nil
-        end
+        if not valid_region(dimen) then return nil end
         local x = tonumber(dimen.x) or 0
-        local y = (tonumber(dimen.y) or 0) + title.h
+        local y = (tonumber(dimen.y) or 0) + (title and tonumber(title.h) or 0)
         local bottom = (tonumber(dimen.y) or 0) + dimen.h
         if y >= bottom then return nil end
-        return Geom:new{ x = x, y = y, w = dimen.w, h = bottom - y }
+        local height = bottom - y
+        local item_height = tonumber(menu.item_height)
+        local columns = math.max(1, tonumber(menu.nb_cols) or 1)
+        local margin = math.max(0, tonumber(menu.item_margin) or 0)
+        if item_height and item_height > 0 then
+            local rows = math.ceil(visible / columns)
+            height = math.min(height, rows * item_height + (rows + 1) * margin)
+        elseif valid_region(menu.inner_dimen) then
+            height = math.min(height, menu.inner_dimen.h)
+        end
+        return Geom:new{ x = x, y = y, w = dimen.w, h = height }
+    end
+
+    local function pagination_refresh_region(menu)
+        if (tonumber(menu.page_num) or 1) <= 1 then return nil end
+        local page_info = menu.page_info
+        local page_dimen = page_info and page_info.dimen
+        local region = page_dimen and tonumber(page_dimen.x) and tonumber(page_dimen.y)
+            and copy_region(page_dimen) or nil
+        if region then return region end
+        if not (page_info and type(page_info.getSize) == "function"
+                and valid_region(menu.dimen)) then
+            return nil
+        end
+        local ok, size = pcall(page_info.getSize, page_info)
+        if not ok or not valid_region(size) then return nil end
+        return Geom:new{
+            x = tonumber(menu.dimen.x) or 0,
+            y = (tonumber(menu.dimen.y) or 0) + menu.dimen.h - size.h,
+            w = menu.dimen.w,
+            h = size.h,
+        }
+    end
+
+    local function page_refresh_region(menu, previous_grid)
+        local grid = grid_refresh_region(menu)
+        local region = copy_region(previous_grid)
+        if grid then region = region and region:combine(grid) or grid end
+        local pagination = pagination_refresh_region(menu)
+        if pagination then region = region and region:combine(pagination) or pagination end
+        return region, grid
     end
 
     local function call_with_scoped_dirty(menu, region, reveal, fn, ...)
@@ -372,13 +639,18 @@ local function apply_cover_preload()
         local combined_refresh = #reveal.dirty_calls > 0 and menu.show_parent ~= nil
         if combined_refresh then
             if hydrated > 0 then menu.show_parent.dithered = true end
-            local final_region
-            if not full_region then final_region = refresh_region end
+            local final_region = copy_region(reveal.refresh_region)
+            if not final_region and not full_region then final_region = refresh_region end
             UIManager:setDirty(menu.show_parent, function()
                 return refresh_mode or "ui", final_region,
                     refresh_dither or hydrated > 0
             end)
         end
+        local revealed_at = now()
+        menu._zen_cover_initial_reveal_at = revealed_at
+        menu._zen_cover_initial_reveal_generation = reveal.generation
+        local input_to_reveal_ms = reveal.input_started_at
+            and (revealed_at - reveal.input_started_at) * 1000 or 0
         logger.measure("Cover page revealed", (now() - reveal.started_at) * 1000,
             "page=", reveal.page,
             "reason=", reason,
@@ -386,25 +658,80 @@ local function apply_cover_preload()
             "hydrated=", hydrated,
             "fallbacks=", #(menu.items_to_update or {}) + failed,
             "wall_ms=", math.floor((now() - reveal.started_at) * 1000 + 0.5),
+            "input_to_reveal_submit_ms=",
+                math.floor(input_to_reveal_ms * 10 + 0.5) / 10,
             "combined_refresh=", combined_refresh)
         return combined_refresh
     end
 
     local function item_refresh_region(item)
         local region = item and (item.refresh_dimen
-            or (item[1] and item[1].dimen))
-        if not (region and region.w and region.h and region.w > 0 and region.h > 0) then
-            return nil
-        end
-        return Geom:new{
-            x = tonumber(region.x) or 0,
-            y = tonumber(region.y) or 0,
-            w = region.w,
-            h = region.h,
-        }
+            or (item[1] and item[1].dimen)
+            or item.dimen)
+        return copy_region(region)
     end
 
-    local function schedule_hydration(menu, supplied_jobs, reveal)
+    local function sort_hydration_jobs(jobs)
+        local ordered = {}
+        for index = 1, #jobs do
+            local region = item_refresh_region(jobs[index])
+            ordered[index] = {
+                item = jobs[index],
+                index = index,
+                x = region and region.x,
+                y = region and region.y,
+            }
+        end
+        table.sort(ordered, function(left, right)
+            if left.y and right.y and left.y ~= right.y then return left.y < right.y end
+            if left.y and not right.y then return true end
+            if right.y and not left.y then return false end
+            if left.x and right.x and left.x ~= right.x then return left.x < right.x end
+            return left.index < right.index
+        end)
+        for index = 1, #ordered do jobs[index] = ordered[index].item end
+    end
+
+    local function submit_hydration_refresh(menu, generation, region, hydrated, failed)
+        if not (region and menu.show_parent)
+                or menu._zen_cover_hydration_generation ~= generation
+                or cover_work_block_reason(menu) then
+            return false
+        end
+        -- Extraction waves are accumulated before this point; never add a
+        -- second e-ink refresh for the same visible page generation.
+        if menu._zen_cover_refresh_submitted_generation == generation then
+            logger.measure("Cover hydration refresh skipped", 0,
+                "page=", menu.page,
+                "generation=", generation,
+                "reason=already_submitted")
+            return false
+        end
+        menu._zen_cover_refresh_submitted_generation = generation
+        if hydrated > 0 then menu.show_parent.dithered = true end
+        UIManager:setDirty(menu.show_parent, function()
+            local refreshtype = BookInfoManager:getSetting("flash_ui_cover_images")
+                and "flashui" or "ui"
+            return refreshtype, region, hydrated > 0
+        end)
+        local full_area = menu.dimen and menu.dimen.w and menu.dimen.h
+            and menu.dimen.w * menu.dimen.h or 0
+        local region_pct = full_area > 0
+            and math.floor(region.w * region.h * 1000 / full_area + 0.5) / 10 or 100
+        local revealed_at = menu._zen_cover_initial_reveal_generation == generation
+            and menu._zen_cover_initial_reveal_at or nil
+        logger.measure("Cover hydration refresh submitted", 0,
+            "page=", menu.page,
+            "generation=", generation,
+            "hydrated=", hydrated,
+            "failed=", failed,
+            "region_pct=", region_pct,
+            "reveal_to_refresh_ms=", revealed_at
+                and math.floor((now() - revealed_at) * 1000 + 0.5) or -1)
+        return true
+    end
+
+    local function schedule_hydration(menu, supplied_jobs)
         if menu._zen_cover_collecting_reveal then return end
         if menu._zen_cover_hydrate_fn then return end
         local jobs = supplied_jobs or menu._zen_cover_hydration_items
@@ -412,13 +739,16 @@ local function apply_cover_preload()
             return
         end
         if not supplied_jobs then menu._zen_cover_hydration_items = {} end
-        if hidden_home_bootstrap(menu) then
-            cancel_hydration(menu)
+        local initial_batch = supplied_jobs ~= nil
+        local generation = menu._zen_cover_hydration_generation
+        local block_reason = cover_work_block_reason(menu)
+        if block_reason then
+            suspend_hydration(menu, jobs, generation)
             logger.measure("Cover hydration skipped", 0,
-                "reason=hidden_home_startup", "page=", menu.page)
+                "reason=" .. block_reason, "page=", menu.page)
             return
         end
-        local generation = menu._zen_cover_hydration_generation
+        sort_hydration_jobs(jobs)
         local started_at = now()
         local work_ms = 0
         local hydrated = 0
@@ -433,14 +763,15 @@ local function apply_cover_preload()
                     or menu._zen_cover_hydration_generation ~= generation then
                 return
             end
-            if hidden_home_bootstrap(menu) then
-                cancel_hydration(menu)
+            local current_block_reason = cover_work_block_reason(menu)
+            if current_block_reason then
+                suspend_hydration(menu, jobs, generation, refresh_region)
                 logger.measure("Cover hydration skipped", work_ms,
-                    "reason=hidden_home_startup", "page=", menu.page,
+                    "reason=" .. current_block_reason, "page=", menu.page,
                     "wall_ms=", math.floor((now() - started_at) * 1000 + 0.5))
                 return
             end
-            if menu._zen_cover_poll_action and not reveal then
+            if menu._zen_cover_poll_action and not initial_batch then
                 UIManager:scheduleIn(COVER_POLL_S, step)
                 return
             end
@@ -483,7 +814,15 @@ local function apply_cover_preload()
             chunks = chunks + 1
             work_ms = work_ms + (now() - chunk_started_at) * 1000
             if #jobs > 0 then
-                UIManager:scheduleIn(HYDRATE_TICK_S, step)
+                next_hydration_tick(step)
+                return
+            end
+            local queued = menu._zen_cover_hydration_items or {}
+            if #queued > 0 then
+                menu._zen_cover_hydration_items = {}
+                for index = 1, #queued do jobs[#jobs + 1] = queued[index] end
+                sort_hydration_jobs(jobs)
+                next_hydration_tick(step)
                 return
             end
             menu._zen_cover_hydrate_fn = nil
@@ -498,37 +837,272 @@ local function apply_cover_preload()
                 "full_reads=", delta(after, before, "full_reads"),
                 "decode_reads=", delta(after, before, "decode_reads"),
                 "render_cache_hits=", delta(after_render, before_render, "hits"),
+                "render_shared_hits=", delta(after_render, before_render, "shared_hits"),
+                "render_exact_copy_hits=",
+                    delta(after_render, before_render, "exact_copy_hits"),
+                "render_resized_hits=", delta(after_render, before_render, "resized_hits"),
                 "wall_ms=", math.floor((now() - started_at) * 1000 + 0.5))
-            if reveal then
-                local reason = failed == 0 and "hydrated"
-                    or (hydrated > 0 and "partial_fallback" or "fallback")
-                menu._zen_cover_pending_refresh = nil
-                flush_reveal(menu, reveal, reason, hydrated, failed)
-            elseif menu._zen_cover_pending_refresh and menu.show_parent then
-                menu._zen_cover_pending_refresh = nil
-                menu.show_parent.dithered = hydrated > 0 or menu.show_parent.dithered
-                local region = page_refresh_region(menu) or refresh_region
-                UIManager:setDirty(menu.show_parent, function()
-                    local refreshtype = BookInfoManager:getSetting("flash_ui_cover_images")
-                        and "flashui" or "ui"
-                    return refreshtype, region, hydrated > 0
-                end)
-            elseif refresh_region and menu.show_parent then
-                menu.show_parent.dithered = true
-                UIManager:setDirty(menu.show_parent, function()
-                    local refreshtype = BookInfoManager:getSetting("flash_ui_cover_images")
-                        and "flashui" or "ui"
-                    return refreshtype, refresh_region, true
-                end)
+            local pending_region = copy_region(menu._zen_cover_pending_refresh)
+            menu._zen_cover_pending_refresh = nil
+            if pending_region then
+                refresh_region = refresh_region
+                    and refresh_region:combine(pending_region) or pending_region
             end
-            if #(menu._zen_cover_hydration_items or {}) > 0 then
-                schedule_hydration(menu)
+            if refresh_region and menu._zen_cover_poll_action then
+                menu._zen_cover_pending_refresh = refresh_region
+                logger.measure("Cover hydration refresh deferred", 0,
+                    "page=", menu.page,
+                    "generation=", generation,
+                    "hydrated=", hydrated,
+                    "failed=", failed,
+                    "reason=extraction_pending")
+            else
+                local submitted = submit_hydration_refresh(
+                    menu, generation, refresh_region, hydrated, failed)
+                if not submitted and refresh_region
+                        and cover_work_block_reason(menu)
+                        and menu._zen_cover_hydration_generation == generation then
+                    menu._zen_cover_pending_refresh = refresh_region
+                end
             end
         end
         menu._zen_cover_hydration_active_items = jobs
         menu._zen_cover_hydrate_fn = step
-        UIManager:scheduleIn(HYDRATE_DELAY_S, step)
+        next_hydration_tick(step)
     end
+
+    local function preserve_hidden_folder_jobs(menu, state)
+        local jobs = state.jobs or {}
+        local retry_jobs = state.retry_jobs or {}
+        if menu._zen_cover_hydration_generation ~= state.generation then
+            clear_hydration_items(jobs)
+            clear_hydration_items(retry_jobs)
+            return 0
+        end
+        local remaining = #jobs + #retry_jobs
+        if remaining == 0 then return 0 end
+        local suspended = menu._zen_cover_suspended_hydration_items
+        if menu._zen_cover_suspended_hydration_generation ~= state.generation
+                or type(suspended) ~= "table" then
+            clear_hydration_items(suspended)
+            suspended = {}
+        end
+        for index = 1, #jobs do suspended[#suspended + 1] = jobs[index] end
+        for index = 1, #retry_jobs do suspended[#suspended + 1] = retry_jobs[index] end
+        menu._zen_cover_suspended_hydration_items = suspended
+        menu._zen_cover_suspended_hydration_generation = state.generation
+        return remaining
+    end
+
+    local function discard_hidden_folder_jobs(menu, state)
+        clear_hydration_items(state and state.jobs)
+        clear_hydration_items(state and state.retry_jobs)
+        clear_hydration_items(menu._zen_cover_suspended_hydration_items)
+        menu._zen_cover_suspended_hydration_items = nil
+        menu._zen_cover_suspended_hydration_generation = nil
+        menu._zen_cover_pending_refresh = nil
+    end
+
+    cancel_hidden_folder_prewarm = function(menu, reason, mode)
+        local state = menu and menu._zen_hidden_folder_prewarm_state
+        if not menu then return false end
+        mode = mode == "discard" and "discard" or "preserve"
+        if type(state) ~= "table" then
+            if mode == "discard" then discard_hidden_folder_jobs(menu) end
+            return false
+        end
+        if state.step then UIManager:unschedule(state.step) end
+        menu._zen_hidden_folder_prewarm_state = nil
+        local remaining
+        if mode == "discard" then
+            remaining = #state.jobs + #(state.retry_jobs or {})
+            discard_hidden_folder_jobs(menu, state)
+        else
+            remaining = preserve_hidden_folder_jobs(menu, state)
+        end
+        logger.measure("Hidden folder cover prewarm cancelled", state.work_s * 1000,
+            "page=", menu.page,
+            "jobs=", state.total,
+            "processed=", state.processed,
+            "remaining=", remaining,
+            "warmed=", state.warmed,
+            "failed=", state.failed,
+            "deferrals=", state.deferrals,
+            "mode=", mode,
+            "reason=", reason or "cancelled",
+            "wall_ms=", math.floor((now() - state.started_at) * 1000 + 0.5))
+        return true
+    end
+
+    local function hidden_folder_prewarm_block_reason(menu, state)
+        if menu._zen_cover_hydration_generation ~= state.generation then
+            return "generation_changed"
+        end
+        if not hidden_home_bootstrap(menu) then return "not_hidden" end
+        if Device.screen_saver_mode == true then return "screen_saver" end
+        if rawget(_G, "__ZEN_UI_SUPPRESS_FILEMANAGER_COVERS") == true then
+            return "covers_suppressed"
+        end
+        if menu.no_refresh_covers == true then return "refresh_suppressed" end
+        if menu.cover_specs == false or menu._do_cover_images == false then
+            return "covers_disabled"
+        end
+        if is_extracting() then return "background_extraction" end
+        local profile = memory_policy.applyCoverBudgets(render_cache, cache)
+        if not memory_policy.canPreload(profile) then
+            return "memory_" .. tostring(profile.pressure)
+        end
+        local ok, safe = pcall(state.guard)
+        if not ok or safe ~= true then return "home_not_top" end
+    end
+
+    local function retryable_hidden_folder_block(reason)
+        return reason == "background_extraction" or reason == "home_not_top"
+            or reason == "covers_suppressed"
+            or (type(reason) == "string" and reason:sub(1, 7) == "memory_")
+    end
+
+    local function start_hidden_folder_prewarm(menu, guard)
+        if type(guard) ~= "function" then return false, "guard_missing" end
+        if menu._zen_cover_hydrate_fn then return false, "hydration_active" end
+        if menu._zen_hidden_folder_prewarm_state then
+            return false, "already_running"
+        end
+        local generation = menu._zen_cover_hydration_generation
+        local suspended = menu._zen_cover_suspended_hydration_items
+        if type(suspended) ~= "table" or #suspended == 0
+                or menu._zen_cover_suspended_hydration_generation ~= generation then
+            return false, "no_folder_jobs"
+        end
+        local jobs = {}
+        local retained = {}
+        for _i, item in ipairs(suspended) do
+            if item._zen_cover_hydration_kind == "folder" then
+                jobs[#jobs + 1] = item
+            else
+                retained[#retained + 1] = item
+            end
+        end
+        if #jobs == 0 then return false, "no_folder_jobs" end
+        local state = {
+            generation = generation,
+            guard = guard,
+            jobs = jobs,
+            total = #jobs,
+            started_at = now(),
+            work_s = 0,
+            burst_work_s = 0,
+            bursts = 1,
+            deferrals = 0,
+            processed = 0,
+            warmed = 0,
+            failed = 0,
+            retry_jobs = {},
+            suppressed_dirty = 0,
+        }
+        local block_reason = hidden_folder_prewarm_block_reason(menu, state)
+        if block_reason and not retryable_hidden_folder_block(block_reason) then
+            return false, block_reason
+        end
+        menu._zen_cover_suspended_hydration_items = #retained > 0 and retained or nil
+        menu._zen_cover_suspended_hydration_generation = #retained > 0
+            and generation or nil
+        sort_hydration_jobs(jobs)
+
+        local step
+        step = function()
+            if menu._zen_hidden_folder_prewarm_state ~= state then return end
+            local reason = hidden_folder_prewarm_block_reason(menu, state)
+            if reason then
+                if retryable_hidden_folder_block(reason)
+                        and state.deferrals < HIDDEN_FOLDER_PREWARM_MAX_RETRIES then
+                    state.deferrals = state.deferrals + 1
+                    logger.measure("Hidden folder cover prewarm deferred", state.work_s * 1000,
+                        "page=", menu.page,
+                        "remaining=", #jobs + #state.retry_jobs,
+                        "retry=", state.deferrals,
+                        "max_retries=", HIDDEN_FOLDER_PREWARM_MAX_RETRIES,
+                        "reason=", reason)
+                    UIManager:scheduleIn(HIDDEN_FOLDER_PREWARM_RETRY_S, step)
+                else
+                    local mode = reason == "generation_changed" and "discard" or "preserve"
+                    cancel_hidden_folder_prewarm(menu, reason, mode)
+                end
+                return
+            end
+
+            local item = table.remove(jobs, 1)
+            local started_at = now()
+            item._zen_cover_hydration_queued = nil
+            item._zen_cover_hydration_kind = nil
+            local ok, hydrate_err = false, "stale item"
+            if item.menu == menu then
+                item._zen_folder_hydrating = true
+                local original_set_dirty = UIManager.setDirty
+                UIManager.setDirty = function()
+                    state.suppressed_dirty = state.suppressed_dirty + 1
+                end
+                ok, hydrate_err = pcall(item.update, item)
+                UIManager.setDirty = original_set_dirty
+                item._zen_folder_hydrating = nil
+            end
+            local elapsed_s = now() - started_at
+            state.work_s = state.work_s + elapsed_s
+            state.burst_work_s = state.burst_work_s + elapsed_s
+            state.processed = state.processed + 1
+            if ok and item._has_cover_image then
+                state.warmed = state.warmed + 1
+                if menu.show_parent then menu.show_parent.dithered = true end
+            else
+                state.failed = state.failed + 1
+                item._zen_cover_hydration_queued = true
+                item._zen_cover_hydration_kind = "folder"
+                state.retry_jobs[#state.retry_jobs + 1] = item
+                if not ok then
+                    logger.warn("Hidden folder cover prewarm failed",
+                        tostring(item.filepath), tostring(hydrate_err))
+                end
+            end
+
+            if #jobs == 0 then
+                menu._zen_hidden_folder_prewarm_state = nil
+                local unresolved = preserve_hidden_folder_jobs(menu, state)
+                logger.measure("Hidden folder cover prewarm completed", state.work_s * 1000,
+                    "page=", menu.page,
+                    "jobs=", state.total,
+                    "warmed=", state.warmed,
+                    "failed=", state.failed,
+                    "unresolved=", unresolved,
+                    "bursts=", state.bursts,
+                    "deferrals=", state.deferrals,
+                    "suppressed_dirty=", state.suppressed_dirty,
+                    "wall_ms=", math.floor((now() - state.started_at) * 1000 + 0.5))
+            elseif state.burst_work_s >= PAGE_WARM_CPU_BUDGET_S then
+                state.burst_work_s = 0
+                state.bursts = state.bursts + 1
+                UIManager:scheduleIn(PAGE_WARM_COOLDOWN_S, step)
+            else
+                UIManager:scheduleIn(PRELOAD_TICK_S, step)
+            end
+        end
+        state.step = step
+        menu._zen_hidden_folder_prewarm_state = state
+        local delay = block_reason and HIDDEN_FOLDER_PREWARM_RETRY_S or PRELOAD_TICK_S
+        if block_reason then state.deferrals = 1 end
+        UIManager:scheduleIn(delay, step)
+        logger.measure("Hidden folder cover prewarm started", 0,
+            "page=", menu.page,
+            "generation=", generation,
+            "jobs=", state.total,
+            "retained=", #retained,
+            "deferred_reason=", block_reason or "none")
+        return true, state.total
+    end
+
+    CoverMenu._zen_start_hidden_folder_prewarm = start_hidden_folder_prewarm
+    FileChooser._zen_start_hidden_folder_prewarm = start_hidden_folder_prewarm
+    CoverMenu._zen_cancel_hidden_folder_prewarm = cancel_hidden_folder_prewarm
+    FileChooser._zen_cancel_hidden_folder_prewarm = cancel_hidden_folder_prewarm
 
     -- CoverMenu only checks its extraction batch once a second. Polling at the
     -- same initial cadence as Bookshelf makes each committed cover visible
@@ -545,7 +1119,7 @@ local function apply_cover_preload()
     end
 
     local function accelerate_cover_poll(menu)
-        if hidden_home_bootstrap(menu) then return end
+        if cover_work_block_reason(menu) then return end
         local original = menu.items_update_action
         local generation = menu._zen_cover_hydration_generation
         local active_poll = menu._zen_cover_poll_action
@@ -571,7 +1145,23 @@ local function apply_cover_preload()
                 release_cover_poll(menu, poll)
                 return
             end
+            local block_reason = cover_work_block_reason(menu)
+            if block_reason then
+                release_cover_poll(menu, poll)
+                if menu._zen_cover_hydrate_fn then
+                    suspend_hydration(menu, nil, generation)
+                end
+                logger.measure("Cover extraction poll stopped", 0,
+                    "reason=" .. block_reason,
+                    "page=", menu.page)
+                return
+            end
             local before = #(menu.items_to_update or {})
+            local before_items = {}
+            for index = 1, before do
+                local item = menu.items_to_update[index]
+                if item then before_items[item] = item_refresh_region(item) end
+            end
             local started_at = now()
             if not is_extracting() then reconcile_completed_extraction() end
             local original_setDirty = UIManager.setDirty
@@ -583,10 +1173,34 @@ local function apply_cover_preload()
                 end
                 return original_setDirty(ui, widget, ...)
             end
-            original()
+            local poll_result = { pcall(original) }
             UIManager.setDirty = original_setDirty
+            if not poll_result[1] then error(poll_result[2]) end
             schedule_hydration(menu)
             local remaining = #(menu.items_to_update or {})
+            local remaining_items = {}
+            for index = 1, remaining do
+                remaining_items[menu.items_to_update[index]] = true
+            end
+            local changed_region
+            for item, region in pairs(before_items) do
+                if not remaining_items[item] then
+                    local path = item.filepath
+                    local active = BookInfoManager._zen_cover_extract_active
+                    if path and type(active) == "table" then
+                        local ready_paths = BookInfoManager._zen_cover_extract_ready_paths
+                        if type(ready_paths) ~= "table" then
+                            ready_paths = {}
+                            BookInfoManager._zen_cover_extract_ready_paths = ready_paths
+                        end
+                        ready_paths[path] = true
+                    end
+                    if region then
+                        changed_region = changed_region
+                            and changed_region:combine(region) or region
+                    end
+                end
+            end
             UIManager:unschedule(poll)
             if before ~= remaining then
                 logger.measure("Cover extraction poll", (now() - started_at) * 1000,
@@ -594,7 +1208,11 @@ local function apply_cover_preload()
                     "updated=", before - remaining,
                     "remaining=", remaining)
             end
-            if held_paint then menu._zen_cover_pending_refresh = true end
+            if held_paint and changed_region then
+                local pending = copy_region(menu._zen_cover_pending_refresh)
+                menu._zen_cover_pending_refresh = pending
+                    and pending:combine(changed_region) or changed_region
+            end
             local still_extracting = is_extracting()
             if remaining > 0 and not still_extracting then
                 settle_polls = remaining < before and 0 or settle_polls + 1
@@ -607,8 +1225,10 @@ local function apply_cover_preload()
                 or #(menu._zen_cover_hydration_items or {}) > 0
             if menu._zen_cover_pending_refresh and not hydration_pending
                     and (remaining == 0 or not keep_polling) then
+                local region = copy_region(menu._zen_cover_pending_refresh)
                 menu._zen_cover_pending_refresh = nil
-                original_setDirty(UIManager, menu.show_parent, "ui")
+                submit_hydration_refresh(
+                    menu, generation, region, before - remaining, 0)
             end
             if keep_polling then
                 UIManager:scheduleIn(COVER_POLL_S, poll)
@@ -653,31 +1273,112 @@ local function apply_cover_preload()
         jobs[#jobs + 1] = job
     end
 
-    local function collect_jobs(menu, direction)
-        local items = menu.item_table
-        local perpage = tonumber(menu.perpage)
-        local page = tonumber(menu.page)
+    local function cover_job_specs(menu, allow_layout_fallback)
         local specs = menu.display_mode_type == "mosaic"
             and menu._zen_file_cover_specs or menu.cover_specs
         if type(specs) ~= "table" then specs = menu.cover_specs end
         local width = type(specs) == "table" and tonumber(specs.max_cover_w)
         local height = type(specs) == "table" and tonumber(specs.max_cover_h)
+        if allow_layout_fallback and (not width or width < 1 or not height or height < 1) then
+            local border = tonumber(CoverUtils.BORDER_SIZE) or 2
+            width = (tonumber(menu.item_width) or 0) - 2 * border
+            height = (tonumber(menu.item_height) or 0) - 2 * border
+            local config = require("config/manager").get()
+            local features = type(config) == "table" and config.features or nil
+            specs = {
+                uniform = type(features) == "table"
+                    and features.browser_cover_mosaic_uniform == true,
+            }
+        end
+        if not width or width < 1 or not height or height < 1 then return end
         local render_width, render_height = width, height
-        if type(specs) == "table" and specs.uniform == true and width and height then
+        if specs.uniform == true then
             render_width, render_height = CoverUtils.calcDims(width, height)
         end
-        local preserve_aspect = type(specs) == "table" and specs.uniform == false
+        return width, height, render_width, render_height, specs.uniform == false
+    end
+
+    local function add_folder_jobs(menu, item, jobs, gallery_jobs, seen,
+            folder_mode, folder_max_covers, width, height,
+            render_width, render_height, preserve_aspect, max_jobs,
+            deferred_stack_jobs)
+        if folder_max_covers <= 0 or not FolderCover.isSupported(item, menu) then return end
+        if max_jobs and #jobs + #gallery_jobs >= max_jobs then return end
+        local entries, physical, count, descriptor_cache_hit, enumeration_ms =
+            FolderCover.previewEntries(menu, item, folder_max_covers)
+        if folder_mode == "gallery" and #entries > 0 then
+            gallery_jobs[#gallery_jobs + 1] = {
+                kind = "gallery",
+                menu = menu,
+                entry = item,
+                entries = entries,
+                physical = physical,
+                count = count,
+                descriptor_cache_hit = descriptor_cache_hit,
+                enumeration_ms = enumeration_ms,
+                menu_text = item.text or item.title,
+                width = width,
+                height = height,
+                uniform = not preserve_aspect,
+                cover_specs = {
+                    max_cover_w = width,
+                    max_cover_h = height,
+                    uniform = not preserve_aspect,
+                },
+            }
+            return
+        end
+        for entry_index = 1, #entries do
+            if max_jobs and #jobs + #gallery_jobs >= max_jobs then break end
+            local grouped_item = entries[entry_index]
+            local path = type(grouped_item) == "table"
+                and (grouped_item.path or grouped_item.file) or grouped_item
+            local folder_w, folder_h = CoverUtils.getFolderPreviewBounds(
+                folder_mode, width, height, #entries, entry_index)
+            local job_width = folder_w or width
+            local job_height = folder_h or height
+            local folder_render_w = folder_w or render_width
+            local folder_render_h = folder_h or render_height
+            local job = {
+                path = path,
+                width = job_width,
+                height = job_height,
+                render_width = folder_render_w,
+                render_height = folder_render_h,
+                final_render = folder_mode == "normal" or folder_mode == "stack",
+                preserve_aspect = (folder_mode == "normal" or folder_mode == "stack")
+                    and preserve_aspect,
+            }
+            if folder_mode == "stack" and entry_index > 1
+                    and type(deferred_stack_jobs) == "table" then
+                deferred_stack_jobs[#deferred_stack_jobs + 1] = job
+            else
+                add_path(jobs, seen, job.path, job.width, job.height,
+                    job.render_width, job.render_height,
+                    job.final_render, job.preserve_aspect)
+            end
+        end
+    end
+
+    local function collect_jobs(menu, direction)
+        local items = menu.item_table
+        local perpage = tonumber(menu.perpage)
+        local page = tonumber(menu.page)
+        local width, height, render_width, render_height, preserve_aspect =
+            cover_job_specs(menu)
         if type(items) ~= "table" or not perpage or perpage < 1 or not page then
-            return {}, nil
+            return {}, {}, {}
         end
         if not width or width < 1 or not height or height < 1 then
-            return {}, nil
+            return {}, {}, {}
         end
         local page_count = tonumber(menu.page_num) or math.max(1, math.ceil(#items / perpage))
         local folder_mode, folder_max_covers = CoverUtils.getMode()
         local jobs = {}
         local gallery_jobs = {}
+        local status_jobs = {}
         local seen = {}
+        local status_seen = {}
         local target_pages = {}
         for page_offset = 1, PRELOAD_LOOKAHEAD_PAGES do
             local target_page = page + direction * page_offset
@@ -691,53 +1392,115 @@ local function apply_cover_preload()
                     local is_file = item.is_file or item.file
                         or (item.attr and item.attr.mode == "file")
                     if is_file then
-                        add_path(jobs, seen, item.path or item.file,
+                        local path = item.path or item.file
+                        add_path(jobs, seen, path,
                             width, height, render_width, render_height, true, preserve_aspect)
-                    end
-                    if not is_file and folder_max_covers > 0
-                            and FolderCover.isSupported(item, menu) then
-                        local entries, physical, count, descriptor_cache_hit, enumeration_ms =
-                            FolderCover.previewEntries(menu, item, folder_max_covers)
-                        if folder_mode == "gallery" and #entries > 0 then
-                            gallery_jobs[#gallery_jobs + 1] = {
-                                kind = "gallery",
-                                menu = menu,
-                                entry = item,
-                                entries = entries,
-                                physical = physical,
-                                count = count,
-                                descriptor_cache_hit = descriptor_cache_hit,
-                                enumeration_ms = enumeration_ms,
-                                menu_text = item.text or item.title,
-                                width = width,
-                                height = height,
-                                uniform = not preserve_aspect,
-                                cover_specs = {
-                                    max_cover_w = width,
-                                    max_cover_h = height,
-                                    uniform = not preserve_aspect,
-                                },
-                            }
-                        else
-                            for entry_index = 1, #entries do
-                                local grouped_item = entries[entry_index]
-                                local path = type(grouped_item) == "table"
-                                    and (grouped_item.path or grouped_item.file) or grouped_item
-                                local folder_w, folder_h = CoverUtils.getFolderPreviewBounds(
-                                    folder_mode, width, height, #entries, entry_index)
-                                add_path(jobs, seen, path,
-                                    folder_w or width, folder_h or height,
-                                    folder_w or render_width, folder_h or render_height,
-                                    folder_mode == "normal",
-                                    folder_mode == "normal" and preserve_aspect)
-                            end
+                        if path and path ~= "" and not status_seen[path] then
+                            status_seen[path] = true
+                            status_jobs[#status_jobs + 1] = path
                         end
+                    end
+                    if not is_file then
+                        add_folder_jobs(menu, item, jobs, gallery_jobs, seen,
+                            folder_mode, folder_max_covers, width, height,
+                            render_width, render_height, preserve_aspect)
                     end
                 end
             end
         end
         for _i, job in ipairs(gallery_jobs) do jobs[#jobs + 1] = job end
-        return jobs, target_pages
+        return jobs, target_pages, status_jobs
+    end
+
+    local function finish_status_preload(menu, state, message, reason)
+        if menu._zen_cover_status_preload_state ~= state then return false end
+        if state.step then UIManager:unschedule(state.step) end
+        menu._zen_cover_status_preload_state = nil
+        menu._zen_cover_status_preload_fn = nil
+        menu._zen_cover_status_preload_jobs = nil
+        logger.measure(message, state.work_ms,
+            "target_page=", state.target_page,
+            "status_jobs=", state.total,
+            "warmed=", state.warmed,
+            "failed=", state.failed,
+            "remaining=", #state.jobs,
+            "reason=", reason,
+            "wall_ms=", math.floor((now() - state.started_at) * 1000 + 0.5))
+        return true
+    end
+
+    local function status_preload_block_reason(menu)
+        local reason = cover_work_block_reason(menu)
+        if reason then return reason end
+        if Device.screen_saver_mode == true then return "screen_saver" end
+        if menu.no_refresh_covers == true or menu.cover_specs == false
+                or menu._do_cover_images == false then
+            return "covers_disabled"
+        end
+        local profile = memory_policy.applyCoverBudgets(render_cache, cache)
+        if not memory_policy.canPreload(profile) then
+            return "memory_" .. tostring(profile.pressure)
+        end
+        if is_extracting() then return "background_extraction" end
+    end
+
+    local function schedule_status_preload(menu, jobs, target_page)
+        if type(jobs) ~= "table" or #jobs == 0 then return false end
+        local reason = status_preload_block_reason(menu)
+        if reason then
+            logger.measure("Cover status preload skipped", 0,
+                "target_page=", target_page,
+                "status_jobs=", #jobs,
+                "reason=", reason)
+            return false
+        end
+        local state = {
+            jobs = jobs,
+            total = #jobs,
+            target_page = target_page,
+            started_at = now(),
+            work_ms = 0,
+            warmed = 0,
+            failed = 0,
+        }
+        local step
+        step = function()
+            if menu._zen_cover_status_preload_state ~= state
+                    or menu._zen_cover_status_preload_fn ~= step then return end
+            local current_reason = status_preload_block_reason(menu)
+            if current_reason then
+                finish_status_preload(
+                    menu, state, "Cover status preload skipped", current_reason)
+                return
+            end
+            local chunk_started_at = now()
+            local deadline = chunk_started_at + STATUS_PRELOAD_BUDGET_S
+            local processed = 0
+            while processed < STATUS_PRELOAD_CHUNK and #state.jobs > 0
+                    and (processed == 0 or now() < deadline) do
+                local path = table.remove(state.jobs, 1)
+                processed = processed + 1
+                local ok = pcall(book_status.getFileStatusData, path)
+                if ok then
+                    state.warmed = state.warmed + 1
+                else
+                    state.failed = state.failed + 1
+                end
+            end
+            state.work_ms = state.work_ms + (now() - chunk_started_at) * 1000
+            if #state.jobs > 0 then
+                UIManager:scheduleIn(PRELOAD_TICK_S, step)
+                return
+            end
+            finish_status_preload(
+                menu, state, "Cover status preload completed", "completed")
+        end
+        state.step = step
+        menu._zen_cover_status_preload_state = state
+        menu._zen_cover_status_preload_fn = step
+        menu._zen_cover_status_preload_jobs = jobs
+        UIManager:scheduleIn(STATUS_PRELOAD_DELAY_S, step)
+        return true
     end
 
     local function free_bitmap(bb)
@@ -867,11 +1630,193 @@ local function apply_cover_preload()
         outcomes.failed = outcomes.failed + 1
     end
 
+    local function collect_cover_page_jobs(menu, items, page)
+        local perpage = tonumber(menu.perpage)
+        page = tonumber(page)
+        local width, height, render_width, render_height, preserve_aspect =
+            cover_job_specs(menu, true)
+        if type(items) ~= "table" or not perpage or perpage < 1
+                or not page or page < 1 or page % 1 ~= 0 or not width then
+            return {}
+        end
+        local first = (page - 1) * perpage + 1
+        local last = math.min(#items, first + perpage - 1)
+        local folder_mode, folder_max_covers = CoverUtils.getMode()
+        local jobs, gallery_jobs, seen, deferred_stack_jobs = {}, {}, {}, {}
+        for index = first, last do
+            local item = items[index]
+            if type(item) == "table" then
+                local is_file = item.is_file or item.file
+                    or (item.attr and item.attr.mode == "file")
+                if is_file then
+                    add_path(jobs, seen, item.path or item.file,
+                        width, height, render_width, render_height, true, preserve_aspect)
+                else
+                    add_folder_jobs(menu, item, jobs, gallery_jobs, seen,
+                        folder_mode, folder_max_covers, width, height,
+                        render_width, render_height, preserve_aspect,
+                        PAGE_WARM_MAX_FILES, deferred_stack_jobs)
+                end
+                if #jobs + #gallery_jobs >= PAGE_WARM_MAX_FILES then break end
+            end
+        end
+        for _i, job in ipairs(gallery_jobs) do jobs[#jobs + 1] = job end
+        for _i, job in ipairs(deferred_stack_jobs) do
+            if #jobs >= PAGE_WARM_MAX_FILES then break end
+            add_path(jobs, seen, job.path, job.width, job.height,
+                job.render_width, job.render_height,
+                job.final_render, job.preserve_aspect)
+        end
+        return jobs
+    end
+
+    local function page_warm_outcomes()
+        return {
+            decoded_warmed = 0,
+            decoded_cached = 0,
+            final_render_warmed = 0,
+            final_render_cached = 0,
+            generated_warmed = 0,
+            generated_cached = 0,
+            gallery_warmed = 0,
+            gallery_cached = 0,
+            failed = 0,
+        }
+    end
+
+    local function page_warm_total(outcomes, suffix)
+        return (outcomes["final_render_" .. suffix] or 0)
+            + (outcomes["generated_" .. suffix] or 0)
+            + (outcomes["gallery_" .. suffix] or 0)
+    end
+
+    local function finish_cover_page_warm(menu, state, message, reason)
+        if menu._zen_cover_page_warm_state ~= state then return false end
+        if state.step then UIManager:unschedule(state.step) end
+        menu._zen_cover_page_warm_state = nil
+        menu._zen_cover_page_warm_fn = nil
+        local outcomes = state.outcomes
+        logger.measure(message, state.work_s * 1000,
+            "page=", state.page,
+            "cover_jobs=", state.total,
+            "processed=", state.total - #state.jobs,
+            "remaining=", #state.jobs,
+            "warmed=", page_warm_total(outcomes, "warmed"),
+            "already_cached=", page_warm_total(outcomes, "cached"),
+            "failed=", outcomes.failed,
+            "bursts=", state.bursts,
+            "reason=", reason,
+            "wall_ms=", math.floor((now() - state.started_at) * 1000 + 0.5))
+        if reason == "completed" and type(state.on_complete) == "function" then
+            local ok, err = pcall(state.on_complete, menu, state.page)
+            if not ok then
+                logger.warn("Cover page idle warm completion failed", tostring(err))
+            end
+        end
+        return true
+    end
+
+    cancel_cover_page_warm = function(menu, reason)
+        local state = menu and menu._zen_cover_page_warm_state
+        if type(state) ~= "table" then return false end
+        return finish_cover_page_warm(
+            menu, state, "Cover page idle warm cancelled", reason or "cancelled")
+    end
+
+    local function warm_cover_page(menu, items, page, on_complete)
+        if menu._zen_needs_full_listing ~= true then return false, "listing_visible" end
+        if not home_covers_filemanager(menu) then return false, "not_hidden" end
+        if Device.screen_saver_mode == true then return false, "screen_saver" end
+        if rawget(_G, "__ZEN_UI_SUPPRESS_FILEMANAGER_COVERS") == true
+                or menu.no_refresh_covers == true or menu.cover_specs == false
+                or menu._do_cover_images == false then
+            return false, "covers_suppressed"
+        end
+        local jobs = collect_cover_page_jobs(menu, items, page)
+        if #jobs == 0 then return false, "no_files" end
+        local profile = memory_policy.applyCoverBudgets(render_cache, cache)
+        if not memory_policy.canPreload(profile) then
+            return false, "memory_" .. tostring(profile.pressure)
+        end
+        if is_extracting() then return false, "background_extraction" end
+
+        cancel_cover_page_warm(menu, "replaced")
+        cancel(menu)
+        local state = {
+            jobs = jobs,
+            total = #jobs,
+            page = page,
+            started_at = now(),
+            work_s = 0,
+            burst_work_s = 0,
+            bursts = 1,
+            outcomes = page_warm_outcomes(),
+            on_complete = on_complete,
+        }
+        local step
+        step = function()
+            if menu._zen_cover_page_warm_state ~= state
+                    or menu._zen_cover_page_warm_fn ~= step then return end
+            local reason
+            if menu._zen_needs_full_listing ~= true then
+                reason = "listing_visible"
+            elseif not home_covers_filemanager(menu) then
+                reason = "not_hidden"
+            elseif Device.screen_saver_mode == true then
+                reason = "screen_saver"
+            elseif rawget(_G, "__ZEN_UI_SUPPRESS_FILEMANAGER_COVERS") == true then
+                reason = "covers_suppressed"
+            elseif menu._zen_cover_hydrate_fn then
+                reason = "hydration_active"
+            else
+                local current_profile = memory_policy.applyCoverBudgets(render_cache, cache)
+                if not memory_policy.canPreload(current_profile) then
+                    reason = "memory_" .. tostring(current_profile.pressure)
+                elseif is_extracting() then
+                    reason = "background_extraction"
+                end
+            end
+            if reason then
+                finish_cover_page_warm(
+                    menu, state, "Cover page idle warm cancelled", reason)
+                return
+            end
+
+            local job = table.remove(state.jobs, 1)
+            local started_at = now()
+            warm_job(job, state.outcomes)
+            local elapsed_s = now() - started_at
+            state.work_s = state.work_s + elapsed_s
+            state.burst_work_s = state.burst_work_s + elapsed_s
+            if #state.jobs == 0 then
+                finish_cover_page_warm(
+                    menu, state, "Cover page idle warm completed", "completed")
+            elseif state.burst_work_s >= PAGE_WARM_CPU_BUDGET_S then
+                state.burst_work_s = 0
+                state.bursts = state.bursts + 1
+                UIManager:scheduleIn(PAGE_WARM_COOLDOWN_S, step)
+            else
+                UIManager:scheduleIn(PRELOAD_TICK_S, step)
+            end
+        end
+        state.step = step
+        menu._zen_cover_page_warm_state = state
+        menu._zen_cover_page_warm_fn = step
+        UIManager:scheduleIn(PRELOAD_TICK_S, step)
+        return true
+    end
+
+    CoverMenu._zen_warm_cover_page = warm_cover_page
+    FileChooser._zen_warm_cover_page = warm_cover_page
+    CoverMenu._zen_cancel_warm_cover_page = cancel_cover_page_warm
+    FileChooser._zen_cancel_warm_cover_page = cancel_cover_page_warm
+
     local function schedule(menu, memory_profile)
         cancel(menu)
-        if hidden_home_bootstrap(menu) then
+        local block_reason = cover_work_block_reason(menu)
+        if block_reason then
             logger.measure("Cover preload skipped", 0,
-                "reason=hidden_home_startup", "page=", menu.page)
+                "reason=" .. block_reason, "page=", menu.page)
             return
         end
         if menu.no_refresh_covers == true or menu.cover_specs == false
@@ -880,9 +1825,11 @@ local function apply_cover_preload()
         end
         local direction = menu._zen_cover_preload_direction or 1
         menu._zen_cover_preload_direction = nil
-        local jobs, target_pages = collect_jobs(menu, direction)
-        if #jobs == 0 then return end
+        local jobs, target_pages, status_jobs = collect_jobs(menu, direction)
+        if #jobs == 0 and #status_jobs == 0 then return end
         local target_page = target_pages[1]
+        schedule_status_preload(menu, status_jobs, target_page)
+        if #jobs == 0 then return end
         local cover_w, cover_h = jobs[1].width, jobs[1].height
         local cover_jobs = #jobs
         local already_final = 0
@@ -965,6 +1912,7 @@ local function apply_cover_preload()
 
         menu._zen_cover_preload_jobs = jobs
         local started_at = now()
+        local before_render = render_cache:stats()
         local work_ms = 0
         local outcomes = {
             decoded_warmed = 0,
@@ -981,6 +1929,19 @@ local function apply_cover_preload()
         local step
         step = function()
             if menu._zen_cover_preload_fn ~= step then return end
+            local current_block_reason = cover_work_block_reason(menu)
+            if current_block_reason then
+                menu._zen_cover_preload_fn = nil
+                menu._zen_cover_preload_jobs = nil
+                logger.measure("Cover preload skipped", work_ms,
+                    "reason=" .. current_block_reason,
+                    "target_page=", target_page,
+                    "lookahead_pages=", #target_pages,
+                    "cover_jobs=", cover_jobs,
+                    "queued=", #jobs,
+                    "wall_ms=", math.floor((now() - started_at) * 1000 + 0.5))
+                return
+            end
             if menu._zen_cover_hydrate_fn then
                 UIManager:scheduleIn(PRELOAD_TICK_S, step)
                 return
@@ -1026,6 +1987,7 @@ local function apply_cover_preload()
             end
             menu._zen_cover_preload_fn = nil
             menu._zen_cover_preload_jobs = nil
+            local after_render = render_cache:stats()
             logger.measure("Cover preload completed", work_ms,
                 "target_page=", target_page,
                 "lookahead_pages=", #target_pages,
@@ -1045,36 +2007,98 @@ local function apply_cover_preload()
                 "gallery_warmed=", outcomes.gallery_warmed,
                 "gallery_cached=", outcomes.gallery_cached,
                 "failed=", outcomes.failed,
+                "render_shared_hits=", delta(after_render, before_render, "shared_hits"),
+                "render_exact_copy_hits=",
+                    delta(after_render, before_render, "exact_copy_hits"),
+                "render_resized_hits=", delta(after_render, before_render, "resized_hits"),
                 "wall_ms=", math.floor((now() - started_at) * 1000 + 0.5))
         end
         menu._zen_cover_preload_fn = step
         UIManager:scheduleIn(PRELOAD_DELAY_S, step)
     end
 
+    local function resume_visible_cover_work(menu)
+        local block_reason = cover_work_block_reason(menu)
+        if block_reason then
+            if block_reason ~= "hidden_under_home" then
+                cancel_extraction_launch(menu)
+            end
+            logger.measure("Cover work resume skipped", 0,
+                "page=", menu.page,
+                "reason=" .. block_reason)
+            return false
+        end
+        cancel_hidden_folder_prewarm(menu, "library_reveal", "preserve")
+        local generation = menu._zen_cover_hydration_generation
+        local suspended = menu._zen_cover_suspended_hydration_items
+        local suspended_generation = menu._zen_cover_suspended_hydration_generation
+        menu._zen_cover_suspended_hydration_items = nil
+        menu._zen_cover_suspended_hydration_generation = nil
+        local resumed = 0
+        if type(suspended) == "table" and suspended_generation == generation then
+            resumed = #suspended
+            if resumed > 0 then schedule_hydration(menu, suspended) end
+        else
+            clear_hydration_items(suspended)
+        end
+        local extraction_launch_resumed = resume_suspended_extraction_launch(menu, generation)
+        local extraction_pending = #(menu.items_to_update or {}) > 0
+        if extraction_pending then accelerate_cover_poll(menu) end
+        if resumed == 0 and not extraction_pending and menu._zen_cover_pending_refresh then
+            local region = copy_region(menu._zen_cover_pending_refresh)
+            menu._zen_cover_pending_refresh = nil
+            submit_hydration_refresh(menu, generation, region, 0, 0)
+        end
+        schedule(menu)
+        logger.measure("Cover work resumed", 0,
+            "page=", menu.page,
+            "generation=", generation,
+            "hydration_jobs=", resumed,
+            "extraction_pending=", extraction_pending,
+            "extraction_launch_resumed=", extraction_launch_resumed)
+        return resumed > 0 or extraction_pending or extraction_launch_resumed
+    end
+
     local function measured_updateItems(menu, original, ...)
         if menu._zen_cover_measure_active then return original(menu, ...) end
+        cancel_cover_page_warm(menu, "page_update")
+        cancel(menu)
         cancel_hydration(menu)
+        cancel_extraction_launch(menu)
         menu._zen_cover_hydration_generation =
             (menu._zen_cover_hydration_generation or 0) + 1
         menu._zen_request_cover_hydration = schedule_hydration
+        menu._zen_resume_visible_cover_work = resume_visible_cover_work
+        menu._zen_start_hidden_folder_prewarm = start_hidden_folder_prewarm
+        menu._zen_cancel_hidden_folder_prewarm = cancel_hidden_folder_prewarm
+        local turn_measure = measurements_enabled and menu._zen_cover_turn_measure or nil
+        menu._zen_cover_turn_measure = nil
         local reveal
         if menu.display_mode_type == "mosaic" and menu.show_parent
-                and not hidden_home_bootstrap(menu) then
+                and not cover_work_block_reason(menu) then
             reveal = {
                 generation = menu._zen_cover_hydration_generation,
                 page = menu.page,
                 started_at = now(),
+                input_started_at = turn_measure and turn_measure.started_at,
                 dirty_calls = {},
                 queued = 0,
             }
             menu._zen_cover_reveal = reveal
             menu._zen_cover_collecting_reveal = reveal
         end
-        local turn_measure = measurements_enabled and menu._zen_cover_turn_measure or nil
-        menu._zen_cover_turn_measure = nil
         menu._zen_cover_measure_active = true
         if measurements_enabled then
-            menu._zen_cover_build_measure = { tile_count = 0, tile_ms = 0 }
+            menu._zen_cover_build_measure = {
+                tile_count = 0,
+                tile_ms = 0,
+                metadata_ms = 0,
+                status_ms = 0,
+                stable_page_sidecar_opens = 0,
+                stable_page_booklist_reads = 0,
+                cover_widget_ms = 0,
+                pending_fallback_ms = 0,
+            }
             menu._zen_folder_build_measure = {
                 builds = 0,
                 descriptor_hits = 0,
@@ -1094,23 +2118,29 @@ local function apply_cover_preload()
         if menu.display_mode_type == "mosaic" then
             menu._zen_file_cover_specs = nil
         end
-        local refresh_region = menu._zen_cover_turn_active and page_refresh_region(menu) or nil
+        local previous_grid = copy_region(menu._zen_cover_last_grid_region)
+        local refresh_region = menu._zen_cover_turn_active
+            and page_refresh_region(menu, previous_grid) or nil
         local result
         if refresh_region or reveal then
             result = call_with_scoped_dirty(
                 menu, refresh_region, reveal, defer_extraction_launch, menu, original, ...)
-            if refresh_region then
-                local full_area = menu.dimen and menu.dimen.w and menu.dimen.h
-                    and menu.dimen.w * menu.dimen.h or 0
-                menu._zen_cover_refresh_region_pct = full_area > 0
-                    and math.floor(
-                        refresh_region.w * refresh_region.h * 1000 / full_area + 0.5) / 10
-                    or 100
-            else
-                menu._zen_cover_refresh_region_pct = 100
-            end
         else
             result = defer_extraction_launch(menu, original, ...)
+        end
+        local resolved_region, current_grid = page_refresh_region(menu, previous_grid)
+        menu._zen_cover_last_grid_region = current_grid
+        if menu._zen_cover_turn_active then refresh_region = resolved_region end
+        if reveal and menu._zen_cover_turn_active then
+            reveal.refresh_region = resolved_region
+        end
+        if refresh_region then
+            local full_area = menu.dimen and menu.dimen.w and menu.dimen.h
+                and menu.dimen.w * menu.dimen.h or 0
+            menu._zen_cover_refresh_region_pct = full_area > 0
+                and math.floor(refresh_region.w * refresh_region.h * 1000
+                    / full_area + 0.5) / 10 or 100
+        else
             menu._zen_cover_refresh_region_pct = 100
         end
         if menu._zen_cover_collecting_reveal == reveal then
@@ -1131,21 +2161,15 @@ local function apply_cover_preload()
         local function begin_initial_reveal()
             if not initial_jobs then return end
             if reveal then
-                if #initial_jobs > 0 then
-                    if menu._zen_cover_direct_jump_active then
-                        flush_reveal(menu, reveal, "immediate_jump", 0, 0)
-                        schedule_hydration(menu, initial_jobs)
-                    else
-                        schedule_hydration(menu, initial_jobs, reveal)
-                    end
-                else
-                    flush_reveal(menu, reveal, "immediate", 0, 0)
-                end
-            elseif #initial_jobs > 0 then
+                local reason = menu._zen_cover_direct_jump_active and "immediate_jump"
+                    or (menu._zen_cover_turn_active and "immediate_turn" or "immediate")
+                flush_reveal(menu, reveal, reason, 0, 0)
+            end
+            if #initial_jobs > 0 then
                 schedule_hydration(menu, initial_jobs)
             end
         end
-        if not hidden_home_bootstrap(menu) then accelerate_cover_poll(menu) end
+        if not cover_work_block_reason(menu) then accelerate_cover_poll(menu) end
         menu._zen_cover_measure_active = nil
         if not measurements_enabled then
             begin_initial_reveal()
@@ -1179,6 +2203,25 @@ local function apply_cover_preload()
         local input_to_update_ms = turn_measure
             and (now() - turn_measure.started_at) * 1000 or 0
         local file_specs = menu._zen_file_cover_specs
+        local suspended_hydration =
+            menu._zen_cover_suspended_hydration_generation
+                == menu._zen_cover_hydration_generation
+            and #(menu._zen_cover_suspended_hydration_items or {}) or 0
+        local queued_hydration = initial_queued
+            + #(menu._zen_cover_hydration_items or {}) + suspended_hydration
+        local folder_hydration = 0
+        local function count_folder_jobs(items)
+            for _i, item in ipairs(items or {}) do
+                if item._zen_cover_hydration_kind == "folder" then
+                    folder_hydration = folder_hydration + 1
+                end
+            end
+        end
+        count_folder_jobs(initial_jobs)
+        count_folder_jobs(menu._zen_cover_hydration_items)
+        if suspended_hydration > 0 then
+            count_folder_jobs(menu._zen_cover_suspended_hydration_items)
+        end
         logger.measure("Cover page updated", elapsed_ms,
             "mode=", tostring(menu.display_mode_type),
             "page=", tostring(menu.page),
@@ -1190,13 +2233,23 @@ local function apply_cover_preload()
             "avoided_decompressions=", hits,
             "avoided_db_reads=", delta(after, before, "fast_hits"),
             "metadata_cache_hits=", delta(after, before, "metadata_hits"),
-            "hydration_queued=", initial_queued + #(menu._zen_cover_hydration_items or {}),
+            "hydration_queued=", queued_hydration,
+            "folder_hydration_queued=", folder_hydration,
+            "book_hydration_queued=", queued_hydration - folder_hydration,
             "full_reads=", delta(after, before, "full_reads"),
             "decode_reads=", delta(after, before, "decode_reads"),
             "decode_ms=", math.floor(delta(after, before, "decode_read_ms") * 10 + 0.5) / 10,
             "validation_ms=", math.floor(delta(after, before, "validation_ms") * 10 + 0.5) / 10,
             "tile_builds=", build_measure.tile_count,
             "tile_build_ms=", math.floor(build_measure.tile_ms * 10 + 0.5) / 10,
+            "metadata_ms=", math.floor((build_measure.metadata_ms or 0) * 10 + 0.5) / 10,
+            "status_ms=", math.floor((build_measure.status_ms or 0) * 10 + 0.5) / 10,
+            "stable_page_sidecar_opens=", build_measure.stable_page_sidecar_opens or 0,
+            "stable_page_booklist_reads=", build_measure.stable_page_booklist_reads or 0,
+            "cover_widget_ms=",
+                math.floor((build_measure.cover_widget_ms or 0) * 10 + 0.5) / 10,
+            "pending_fallback_ms=",
+                math.floor((build_measure.pending_fallback_ms or 0) * 10 + 0.5) / 10,
             "folder_builds=", folder_measure.builds,
             "folder_descriptor_hits=", folder_measure.descriptor_hits,
             "folder_candidates=", folder_measure.candidates,
@@ -1211,6 +2264,10 @@ local function apply_cover_preload()
             "folder_composite_builds=", folder_measure.composite_builds,
             "render_cache_hits=", delta(after_render, before_render, "hits"),
             "render_cache_misses=", delta(after_render, before_render, "misses"),
+            "render_shared_hits=", delta(after_render, before_render, "shared_hits"),
+            "render_exact_copy_hits=",
+                delta(after_render, before_render, "exact_copy_hits"),
+            "render_resized_hits=", delta(after_render, before_render, "resized_hits"),
             "render_cache_mb=", math.floor((after_render.bytes or 0) / 1024 / 1024 * 10 + 0.5) / 10,
             "cache_mb=", math.floor((after.bytes or 0) / 1024 / 1024 * 10 + 0.5) / 10,
             "memory_pressure=", memory_profile.pressure,
@@ -1313,16 +2370,17 @@ local function apply_cover_preload()
 
     local original_onCloseWidget = CoverMenu.onCloseWidget
     local function onCloseWidget(menu, ...)
+        cancel_cover_page_warm(menu, "menu_closed")
         cancel(menu)
         cancel_hydration(menu)
         if menu._zen_cover_poll_action then
             release_cover_poll(menu, menu._zen_cover_poll_action)
         end
         menu._zen_request_cover_hydration = nil
-        if menu._zen_cover_extract_delay_fn then
-            UIManager:unschedule(menu._zen_cover_extract_delay_fn)
-            menu._zen_cover_extract_delay_fn = nil
-        end
+        menu._zen_resume_visible_cover_work = nil
+        menu._zen_start_hidden_folder_prewarm = nil
+        menu._zen_cancel_hidden_folder_prewarm = nil
+        cancel_extraction_launch(menu)
         return original_onCloseWidget(menu, ...)
     end
     CoverMenu.onCloseWidget = onCloseWidget

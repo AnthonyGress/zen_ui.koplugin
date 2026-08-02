@@ -12,7 +12,34 @@ local function apply_book_status()
 
     -- Always use the Zen UI custom Book Status layout (home + close buttons, cleaner stats)
     local BookStatusWidget = require("ui/widget/bookstatuswidget")
+    local book_status = require("common/book_status")
     local library_navigation = require("common/library_navigation")
+
+    if not BookStatusWidget._zen_status_cache_invalidation
+            and type(BookStatusWidget.onChangeBookStatus) == "function" then
+        BookStatusWidget._zen_status_cache_invalidation = true
+        local original_onChangeBookStatus = BookStatusWidget.onChangeBookStatus
+        function BookStatusWidget:onChangeBookStatus(...)
+            local result = original_onChangeBookStatus(self, ...)
+            local file = self.ui and self.ui.document and self.ui.document.file
+            book_status.invalidate(file)
+            return result
+        end
+    end
+
+    local ok_reader_status, ReaderStatus = pcall(require, "apps/reader/modules/readerstatus")
+    if ok_reader_status and not ReaderStatus._zen_status_cache_invalidation
+            and type(ReaderStatus.markBook) == "function" then
+        ReaderStatus._zen_status_cache_invalidation = true
+        local original_markBook = ReaderStatus.markBook
+        function ReaderStatus:markBook(...)
+            local result = original_markBook(self, ...)
+            local file = self.document and self.document.file
+                or self.ui and self.ui.document and self.ui.document.file
+            book_status.invalidate(file)
+            return result
+        end
+    end
 
     BookStatusWidget.getStatusContent = function(self, width)
         local _ = require("gettext")

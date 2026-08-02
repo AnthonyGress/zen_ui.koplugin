@@ -202,12 +202,6 @@ local function apply_automatic_series_grouping()
         return copy
     end
 
-    local function clear_item_table_cache(file_chooser)
-        if file_chooser and file_chooser._zen_clear_item_table_cache then
-            file_chooser:_zen_clear_item_table_cache()
-        end
-    end
-
     local book_status
     local function get_book_status()
         if not book_status then
@@ -676,7 +670,6 @@ local function apply_automatic_series_grouping()
     FileChooser.refreshPath = function(file_chooser)
         if not is_enabled() then
             current_series_group = nil
-            clear_item_table_cache(file_chooser)
             old_refreshPath(file_chooser)
             return
         end

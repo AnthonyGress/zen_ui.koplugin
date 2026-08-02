@@ -253,7 +253,7 @@ describe("file browser guard patches", function()
             abandoned = "abandoned",
             complete = "complete",
         }
-        local saved, cached, opened = {}, {}, {}
+        local saved, cached, opened, invalidated = {}, {}, {}, {}
         local tbr_books = { tbr = true }
         local reader_releases = 0
         local filemanagerutil = {
@@ -278,7 +278,10 @@ describe("file browser guard patches", function()
                 cached[#cached + 1] = { file, key, value }
             end,
         })
-        ZenSpec.replace("common/book_status", { acknowledgeNewVersion = function() return false end })
+        ZenSpec.replace("common/book_status", {
+            acknowledgeNewVersion = function() return false end,
+            invalidate = function(file) invalidated[#invalidated + 1] = file end,
+        })
         ZenSpec.replace("common/tbr_index", {
             isExplicit = function(file) return tbr_books[file] == true end,
             setExplicit = function(file, enabled)
@@ -303,6 +306,7 @@ describe("file browser guard patches", function()
             { "abandoned", "status", "reading" },
         }, cached)
         assert.same({ "new", "tbr", "abandoned", "complete" }, opened)
+        assert.same({ "new", "tbr", "abandoned" }, invalidated)
         assert.is_false(tbr_books.tbr)
         assert.are.equal(4, reader_releases)
     end)

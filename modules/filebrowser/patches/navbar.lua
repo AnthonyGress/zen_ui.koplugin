@@ -25,7 +25,9 @@ local function apply_navbar()
     local Screen = Device.screen
     local _ = require("gettext")
     local lfs = require("libs/libkoreader-lfs")
-    local logger = require("common/zen_logger").new("navbar")
+    local zen_logger = require("common/zen_logger")
+    local logger = zen_logger.new("navbar")
+    local now = zen_logger.now or os.clock
 
     local function getRakuyomi()
         return rawget(_G, "__ZEN_UI_RAKUYOMI") or {}
@@ -345,6 +347,8 @@ local function apply_navbar()
     local injectStandaloneNavbar
     local hookQuickRSSInit
     local getNavbarHeight
+    local cancelHiddenLibraryWarm
+    local materializeHiddenLibrary
 
     local function syncActiveTabLabel()
         _G.__ZEN_UI_ACTIVE_TAB_LABEL = tabs_by_id[active_tab] and tabs_by_id[active_tab].label or active_tab
@@ -357,10 +361,34 @@ local function apply_navbar()
     end
 
     local function setActiveTab(id)
+        local fm = FileManager.instance
+        if fm and id == "books" and active_tab == "home" then
+            local stack = UIManager._window_stack
+            local top = stack and stack[#stack]
+            local top_widget = top and top.widget
+            local fc = fm.file_chooser
+            local returning_from_home = fm._zen_hidden_home_startup == true
+                or (fc and fc._zen_home_retained_library ~= nil)
+                or (top_widget and (top_widget.name == "home"
+                    or top_widget._zen_navbar_tab_id == "home"))
+            if returning_from_home then
+                fm._zen_home_to_library_started_at = now()
+            end
+        end
+        if fm and id == "home" and active_tab == "books" then
+            -- Startup's internal books-to-Home sync is not a visible transition.
+            if fm.invisible ~= true and fm._zen_hidden_home_startup ~= true then
+                fm._zen_library_to_home_started_at = now()
+            else
+                fm._zen_library_to_home_started_at = nil
+            end
+        end
+        if fm and id ~= "home" and cancelHiddenLibraryWarm then
+            cancelHiddenLibraryWarm(fm, id == "books")
+        end
         active_tab = id
         syncActiveTabLabel()
         _navbar_focused_idx = nil
-        local fm = FileManager.instance
         local stays_in_browser = tabStaysInFileManager(id)
         if fm and stays_in_browser then
             injectNavbar(fm)
@@ -445,6 +473,126 @@ local function apply_navbar()
         return result
     end
 
+    local HIDDEN_LIBRARY_WARM_DELAY_S = 0.9
+    local HIDDEN_LIBRARY_WARM_RETRY_S = 0.5
+    local HIDDEN_LIBRARY_WARM_MAX_RETRIES = 10
+
+    cancelHiddenLibraryWarm = function(fm, preserve_listing)
+        local fc = fm and fm.file_chooser
+        if fc and type(fc._zen_cancel_warm_cover_page) == "function" then
+            fc:_zen_cancel_warm_cover_page("left_home")
+        end
+        if fc and type(fc._zen_cancel_hidden_folder_prewarm) == "function" then
+            local mode = preserve_listing and "preserve" or "discard"
+            local reason = preserve_listing and "library_reveal" or "left_home"
+            fc:_zen_cancel_hidden_folder_prewarm(reason, mode)
+        end
+        if fc and not preserve_listing then
+            if type(fc._zen_discard_prepared_item_table) == "function" then
+                fc:_zen_discard_prepared_item_table()
+            end
+            fc._zen_idle_materialized_library = nil
+            fc._zen_home_retained_library = nil
+        end
+        local pending = fm and fm._zen_hidden_library_warm_fn
+        if not pending then return end
+        fm._zen_hidden_library_warm_fn = nil
+        if type(UIManager.unschedule) == "function" then
+            UIManager:unschedule(pending)
+        end
+    end
+
+    local function scheduleHiddenLibraryWarm(fm)
+        local fc = fm and fm.file_chooser
+        local home_dir = paths.getHomeDir()
+        if not (fc and fc._zen_needs_full_listing and home_dir
+                and type(fc._zen_warm_item_table) == "function"
+                and MemoryPolicy.canPrewarmGroups()) then
+            return false
+        end
+        cancelHiddenLibraryWarm(fm)
+        local retry_count = 0
+        local warm
+        warm = function()
+            if fm._zen_hidden_library_warm_fn ~= warm then return end
+            local Home = get_shared("home")
+            local stop_reason
+            if FileManager.instance ~= fm then
+                stop_reason = "filemanager_changed"
+            elseif fm.file_chooser ~= fc then
+                stop_reason = "filechooser_changed"
+            elseif active_tab ~= "home" then
+                stop_reason = "left_home"
+            elseif not fc._zen_needs_full_listing then
+                stop_reason = "listing_ready"
+            elseif not MemoryPolicy.canPrewarmGroups() then
+                stop_reason = "memory_pressure"
+            end
+            if stop_reason then
+                fm._zen_hidden_library_warm_fn = nil
+                logger.measure("Hidden Library listing warm skipped", 0,
+                    "reason=", stop_reason,
+                    "retries=", retry_count)
+                return
+            end
+            local home_block_reason
+            if not (Home and type(Home.isActiveOnTop) == "function") then
+                home_block_reason = "home_unavailable"
+            elseif not Home.isActiveOnTop() then
+                home_block_reason = "home_not_top"
+            end
+            if home_block_reason then
+                if retry_count < HIDDEN_LIBRARY_WARM_MAX_RETRIES then
+                    retry_count = retry_count + 1
+                    logger.measure("Hidden Library listing warm deferred", 0,
+                        "reason=", home_block_reason,
+                        "retry=", retry_count,
+                        "max_retries=", HIDDEN_LIBRARY_WARM_MAX_RETRIES)
+                    UIManager:scheduleIn(HIDDEN_LIBRARY_WARM_RETRY_S, warm)
+                else
+                    fm._zen_hidden_library_warm_fn = nil
+                    logger.measure("Hidden Library listing warm skipped", 0,
+                        "reason=", home_block_reason,
+                        "retries=", retry_count)
+                end
+                return
+            end
+            fm._zen_hidden_library_warm_fn = nil
+            local started_at = now()
+            local items, detail = fc:_zen_warm_item_table(home_dir)
+            detail = type(detail) == "table" and detail or {}
+            local listing_prepared = type(items) == "table"
+                and type(fc._zen_prepare_item_table) == "function"
+                and fc:_zen_prepare_item_table(home_dir, items) == true
+            local cover_page_warm, cover_page_warm_reason
+            if type(items) == "table" and type(fc._zen_warm_cover_page) == "function" then
+                cover_page_warm, cover_page_warm_reason = fc:_zen_warm_cover_page(
+                    items, 1, function()
+                        materializeHiddenLibrary(fm, fc, home_dir, items, detail)
+                    end)
+            else
+                cover_page_warm_reason = type(items) == "table"
+                    and "unsupported" or "listing_unavailable"
+            end
+            if listing_prepared and not cover_page_warm
+                    and (cover_page_warm_reason == "no_files"
+                        or cover_page_warm_reason == "unsupported") then
+                materializeHiddenLibrary(fm, fc, home_dir, items, detail)
+            end
+            logger.measure("Hidden Library listing warmed", (now() - started_at) * 1000,
+                "cache=", tostring(detail.cache or "unknown"),
+                "items=", tostring(detail.items or 0),
+                "prepared=", tostring(listing_prepared),
+                "cover_page_warm=", tostring(cover_page_warm == true),
+                "cover_page_warm_reason=", tostring(cover_page_warm_reason or "scheduled"),
+                "retries=", retry_count)
+            scheduleGroupPrewarm()
+        end
+        fm._zen_hidden_library_warm_fn = warm
+        UIManager:scheduleIn(HIDDEN_LIBRARY_WARM_DELAY_S, warm)
+        return true
+    end
+
     local function refreshSuppressedCoversNow(fm)
         local fc = fm and fm.file_chooser
         if not (fc and type(fc.updateItems) == "function") then return false end
@@ -464,6 +612,51 @@ local function apply_navbar()
         end
     end
 
+    local function fileManagerStackAnchor(fm)
+        local stack = UIManager._window_stack
+        if not (fm and type(stack) == "table") then return fm end
+        for index, entry in ipairs(stack) do
+            local widget = entry and entry.widget
+            if widget == fm or widget == fm.show_parent then
+                return widget, index
+            end
+        end
+        return fm
+    end
+
+    local function retainHomeBelowFileManager(fm, menu)
+        local fm_stack_widget, fm_index = fileManagerStackAnchor(fm)
+        if not fm or not MemoryPolicy.canPrewarmGroups() then
+            return false, fm_stack_widget
+        end
+        local Home = get_shared("home")
+        if not (Home and type(Home.suspendActive) == "function") then
+            return false, fm_stack_widget
+        end
+        local widgets = type(Home.getActiveWidgets) == "function"
+            and Home.getActiveWidgets() or nil
+        local home_widget = menu and menu.name == "home" and menu
+            or (type(widgets) == "table" and widgets[#widgets])
+        local stack = UIManager._window_stack
+        if not (home_widget and type(stack) == "table") then
+            return false, fm_stack_widget
+        end
+        if not menu then
+            local top = stack[#stack]
+            if not top or top.widget ~= home_widget then return false, fm_stack_widget end
+        end
+        local home_found
+        for index, entry in ipairs(stack) do
+            local widget = entry and entry.widget
+            if widget == home_widget then home_found = true end
+        end
+        if not (fm_index and home_found and Home.suspendActive()) then
+            return false, fm_stack_widget
+        end
+        table.insert(stack, table.remove(stack, fm_index))
+        return true, fm_stack_widget
+    end
+
     -- === Tab callbacks ===
 
     -- Build a {dir_path = mtime} snapshot of a directory tree, root + subdirs up
@@ -473,6 +666,7 @@ local function apply_navbar()
     -- The item-table cache key only stats the root dir mtime, so a book added in
     -- a subfolder would not invalidate it -- this snapshot covers that gap.
     local LIB_SNAPSHOT_DEPTH = 2
+    local LIB_VALIDATION_INTERVAL_S = 30
 
     local function _build_dir_mtime_snapshot(root, max_depth)
         local snap = {}
@@ -483,7 +677,8 @@ local function apply_navbar()
             local ok, iter, dir_obj = pcall(lfs.dir, dir)
             if not ok then return end
             for f in iter, dir_obj do
-                if f ~= "." and f ~= ".." and f:sub(1, 1) ~= "." then
+                if f ~= "." and f ~= ".." and f:sub(1, 1) ~= "."
+                        and f:sub(-4) ~= ".sdr" then
                     local sub = dir .. "/" .. f
                     if lfs.attributes(sub, "mode") == "directory" then
                         walk(sub, depth + 1)
@@ -506,27 +701,247 @@ local function apply_navbar()
         return false
     end
 
+    local function _library_sort_signature(fc, path)
+        local folder_collate, folder_reverse = "", ""
+        local folder_sort = rawget(_G, "__ZEN_FOLDER_SORT")
+        if folder_sort and type(folder_sort.get) == "function" then
+            local ok, override = pcall(folder_sort.get, path)
+            if ok and type(override) == "table" then
+                folder_collate = tostring(override.collate or "")
+                folder_reverse = tostring(override.reverse == true)
+            end
+        end
+        local filter = fc.show_filter or FileChooser.show_filter
+        local show_hidden = fc.show_hidden
+        if show_hidden == nil then show_hidden = FileChooser.show_hidden end
+        return table.concat({
+            tostring(G_reader_settings:readSetting("collate", "strcoll")),
+            tostring(G_reader_settings:isTrue("collate_mixed")),
+            tostring(G_reader_settings:isTrue("reverse_collate")),
+            tostring(show_hidden),
+            tostring(type(filter) == "table" and filter.status or filter),
+            folder_collate,
+            folder_reverse,
+        }, "\31")
+    end
+
+    local function _library_layout_signature(fc)
+        local dimen = fc.dimen or {}
+        local inner = fc.inner_dimen or {}
+        return table.concat({
+            tostring(Screen:getWidth()), tostring(Screen:getHeight()),
+            tostring(fc.display_mode_type or ""), tostring(fc.perpage or ""),
+            tostring(fc.item_width or ""), tostring(fc.item_height or ""),
+            tostring(dimen.w or ""), tostring(dimen.h or ""),
+            tostring(inner.w or ""), tostring(inner.h or ""),
+        }, "\31")
+    end
+
+    local function _library_retained_descriptor(fc, home_dir)
+        return {
+            path = fc.path,
+            page = fc.page,
+            item_table = fc.item_table,
+            sort_signature = _library_sort_signature(fc, home_dir),
+            layout_signature = _library_layout_signature(fc),
+            root_mtime = lfs.attributes(home_dir, "modification"),
+        }
+    end
+
+    local function _retained_library_valid(fc, retained, home_dir)
+        return retained ~= nil
+            and retained.path == home_dir
+            and retained.item_table == fc.item_table
+            and retained.page == fc.page
+            and retained.sort_signature == _library_sort_signature(fc, home_dir)
+            and retained.layout_signature == _library_layout_signature(fc)
+            and retained.root_mtime == lfs.attributes(home_dir, "modification")
+    end
+
+    materializeHiddenLibrary = function(fm, fc, home_dir, items, detail)
+        local Home = get_shared("home")
+        if FileManager.instance ~= fm or active_tab ~= "home"
+                or fm.file_chooser ~= fc or fc._zen_needs_full_listing ~= true
+                or fc.path ~= home_dir or fc._zen_idle_materialized_library
+                or type(items) ~= "table" or type(fc.refreshPath) ~= "function"
+                or not MemoryPolicy.canPrewarmGroups()
+                or not (Home and type(Home.isActiveOnTop) == "function"
+                    and Home.isActiveOnTop()) then
+            return false
+        end
+
+        local started_at = now()
+        fc.path_items = fc.path_items or {}
+        fc.path_items[home_dir] = 1
+        local original_set_dirty = UIManager.setDirty
+        local suppressed_dirty = 0
+        UIManager.setDirty = function()
+            suppressed_dirty = suppressed_dirty + 1
+        end
+        local ok, error_message = pcall(fc.refreshPath, fc)
+        UIManager.setDirty = original_set_dirty
+        if not ok then
+            logger.warn("Hidden Library page materialization failed:",
+                tostring(error_message))
+            return false
+        end
+        refreshLibraryStatusBar(fm)
+        fc._zen_lib_mtime_snapshot = _build_dir_mtime_snapshot(
+            home_dir, LIB_SNAPSHOT_DEPTH)
+        fc._zen_lib_mtime_snapshot_at = now()
+        local retained = _library_retained_descriptor(fc, home_dir)
+        fc._zen_idle_materialized_library = retained
+        fc._zen_home_retained_library = retained
+        local folder_prewarm, folder_prewarm_detail = false, "unsupported"
+        if type(fc._zen_start_hidden_folder_prewarm) == "function" then
+            folder_prewarm, folder_prewarm_detail = fc:_zen_start_hidden_folder_prewarm(
+                function()
+                    return FileManager.instance == fm and fm.file_chooser == fc
+                        and active_tab == "home" and fm.invisible == true
+                        and fc._zen_hidden_home_startup == true
+                        and Home.isActiveOnTop()
+                end)
+        end
+        logger.measure("Hidden Library page materialized", (now() - started_at) * 1000,
+            "cache=", tostring(type(detail) == "table" and detail.cache or "unknown"),
+            "items=", tostring(#items),
+            "page=", tostring(fc.page or 1),
+            "folder_prewarm=", tostring(folder_prewarm == true),
+            "folder_prewarm_detail=", tostring(folder_prewarm_detail),
+            "suppressed_dirty=", suppressed_dirty,
+            "listing_cache=", tostring(fc._zen_last_item_table_cache_result
+                and fc._zen_last_item_table_cache_result.cache or "unknown"))
+        return true
+    end
+
+    local function _refresh_library_path(fc, home_dir, invalidate_nested)
+        if invalidate_nested and fc._zen_invalidate_item_table_path then
+            fc:_zen_invalidate_item_table_path(home_dir)
+        end
+        fc.path_items[home_dir] = 1
+        if fc.path == home_dir and type(fc.refreshPath) == "function" then
+            fc:refreshPath()
+        else
+            fc:changeToPath(home_dir)
+        end
+    end
+
+    local function _schedule_library_validation(fm, fc, home_dir, options)
+        options = options or {}
+        local transition_started_at = fm._zen_home_to_library_started_at
+        local retained = options.retained
+        local schedule = UIManager.tickAfterNext or UIManager.nextTick
+        schedule(UIManager, function()
+            if FileManager.instance ~= fm or active_tab ~= "books" or fc.path ~= home_dir then
+                if fm._zen_home_to_library_started_at == transition_started_at then
+                    fm._zen_home_to_library_started_at = nil
+                end
+                return
+            end
+
+            if transition_started_at then
+                logger.measure("Home to Library first reveal",
+                    (now() - transition_started_at) * 1000,
+                    "mode=", options.mode or "current",
+                    "cover_work_resumed=", tostring(options.cover_work_resumed == true))
+            end
+
+            local validation_started_at = now()
+            local sort_changed = retained ~= nil
+                and retained.sort_signature ~= _library_sort_signature(fc, home_dir)
+            local tree_changed = retained ~= nil
+                and retained.item_table ~= fc.item_table
+            local baseline_missing = retained ~= nil
+                and fc._zen_lib_mtime_snapshot == nil
+            local root_changed = retained ~= nil
+                and retained.root_mtime ~= lfs.attributes(home_dir, "modification")
+            local show_flat_view = fc.show_flat_view
+            if show_flat_view == nil then show_flat_view = FileChooser.show_flat_view end
+            local validation_due = fc._zen_lib_mtime_snapshot == nil
+                or fc._zen_lib_mtime_snapshot_at == nil
+                or now() - fc._zen_lib_mtime_snapshot_at >= LIB_VALIDATION_INTERVAL_S
+                or root_changed
+                or show_flat_view == true
+            local listing_changed = false
+            local validation_mode = "cached"
+            if validation_due then
+                local snapshot = _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
+                listing_changed = fc._zen_lib_mtime_snapshot ~= nil
+                    and _snapshot_differs(fc._zen_lib_mtime_snapshot, snapshot)
+                fc._zen_lib_mtime_snapshot = snapshot
+                fc._zen_lib_mtime_snapshot_at = now()
+                validation_mode = "scan"
+            end
+            local refresh_needed = not options.already_refreshed
+                and (sort_changed or tree_changed or listing_changed)
+
+            if refresh_needed then
+                refreshLibraryStatusBar(fm)
+                _refresh_library_path(fc, home_dir, listing_changed)
+            end
+            fc._zen_home_retained_library = nil
+
+            if transition_started_at then
+                local finished_at = now()
+                logger.measure("Home to Library validation completed",
+                    (finished_at - transition_started_at) * 1000,
+                    "validation_ms=",
+                    math.floor((finished_at - validation_started_at) * 1000 + 0.5),
+                    "refreshed=", tostring(refresh_needed),
+                    "sort_changed=", tostring(sort_changed),
+                    "listing_changed=", tostring(listing_changed),
+                    "baseline_missing=", tostring(baseline_missing),
+                    "validation=", validation_mode,
+                    "recursive_validation=",
+                        validation_mode == "scan" and "scanned" or "skipped")
+                if fm._zen_home_to_library_started_at == transition_started_at then
+                    fm._zen_home_to_library_started_at = nil
+                end
+            end
+        end)
+    end
+
     local function onTabBooks()
         local fm = FileManager.instance
         local home_dir = paths.getHomeDir()
                          or require("apps/filemanager/filemanagerutil").getDefaultDir()
         if not (fm and fm.file_chooser) then return false end
         local fc = fm.file_chooser
-        utils.closeWidgetsAbove(fm)
+        local fm_stack_widget = select(2, retainHomeBelowFileManager(fm))
+        utils.closeWidgetsAbove(fm_stack_widget or fm)
+        local idle_materialized = fc._zen_idle_materialized_library
+        if idle_materialized and _retained_library_valid(fc, idle_materialized, home_dir) then
+            fm.invisible = nil
+            fm._zen_hidden_home_startup = nil
+            fc._zen_hidden_home_startup = nil
+            fc._zen_needs_full_listing = nil
+            fc._zen_needs_cover_refresh = nil
+            fc._zen_idle_materialized_library = nil
+            UIManager:setDirty(fm_stack_widget or fm, "ui")
+            local cover_work_resumed = type(fc._zen_resume_visible_cover_work) == "function"
+                and fc:_zen_resume_visible_cover_work() == true
+            _schedule_library_validation(fm, fc, home_dir, {
+                mode = "idle_materialized",
+                retained = idle_materialized,
+                cover_work_resumed = cover_work_resumed,
+            })
+            return
+        elseif idle_materialized then
+            fc._zen_idle_materialized_library = nil
+            fc._zen_home_retained_library = nil
+        end
         if fc._zen_needs_full_listing then
             fm.invisible = nil
             fm._zen_hidden_home_startup = nil
             fc._zen_hidden_home_startup = nil
             fc._zen_needs_full_listing = nil
             fc._zen_needs_cover_refresh = nil
-            if fc._zen_clear_item_table_cache then fc:_zen_clear_item_table_cache() end
-            fc.path_items[home_dir] = 1
-            if type(fc.refreshPath) == "function" then
-                fc:refreshPath()
-            else
-                fc:changeToPath(home_dir)
-            end
+            _refresh_library_path(fc, home_dir)
             refreshLibraryStatusBar(fm)
+            _schedule_library_validation(fm, fc, home_dir, {
+                already_refreshed = true,
+                mode = "deferred_listing",
+            })
             return
         end
         -- If inside a virtual series folder, exit it first. path is unchanged in
@@ -537,35 +952,39 @@ local function apply_navbar()
             series_exit(fc)
             fc.path_items[home_dir] = 1
             fc._zen_lib_mtime_snapshot = _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
+            fc._zen_lib_mtime_snapshot_at = now()
             fc:changeToPath(home_dir)
             refreshLibraryStatusBar(fm)
             return
         end
         if fc.path == home_dir then
-            -- Home is a fullscreen overlay over this already-built file list.
-            -- Reveal its first page immediately, then validate the directory tree
-            -- after its first paint. A synchronous snapshot can traverse hundreds of folders
-            -- and made Home -> Library feel far slower than an ordinary page turn.
-            fc.path_items[home_dir] = 1
-            if not refreshSuppressedCoversNow(fm)
-                    and type(fc.onGotoPage) == "function" then
-                fc:onGotoPage(1)
-            end
-            local schedule_validation = UIManager.tickAfterNext or UIManager.nextTick
-            schedule_validation(UIManager, function()
-                if FileManager.instance ~= fm or active_tab ~= "books" or fc.path ~= home_dir then return end
-                local snap = _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
-                if fc._zen_lib_mtime_snapshot
-                        and _snapshot_differs(fc._zen_lib_mtime_snapshot, snap) then
-                    if fc._zen_clear_item_table_cache then fc:_zen_clear_item_table_cache() end
-                    fc:refreshPath()
+            -- Home overlays the live FileManager. Keep its current widget tree so
+            -- closing Home only exposes an already-built page; validate after paint.
+            local retained = fc._zen_home_retained_library
+            local retained_valid = _retained_library_valid(fc, retained, home_dir)
+            if not retained_valid then
+                fc.path_items[home_dir] = 1
+                if retained then
+                    _refresh_library_path(fc, home_dir)
+                elseif not refreshSuppressedCoversNow(fm)
+                        and type(fc.onGotoPage) == "function" then
+                    fc:onGotoPage(1)
                 end
-                fc._zen_lib_mtime_snapshot = snap
-                refreshLibraryStatusBar(fm)
-            end)
+            end
+            local cover_work_resumed = retained_valid
+                and type(fc._zen_resume_visible_cover_work) == "function"
+                and fc:_zen_resume_visible_cover_work() == true
+            _schedule_library_validation(fm, fc, home_dir, {
+                already_refreshed = retained ~= nil and not retained_valid,
+                mode = retained_valid and "retained" or "rebuilt",
+                retained = retained,
+                cover_work_resumed = cover_work_resumed,
+            })
+            if retained_valid and fm._zen_home_to_library_started_at then return end
         else
             fc.path_items[home_dir] = nil
             fc._zen_lib_mtime_snapshot = _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
+            fc._zen_lib_mtime_snapshot_at = now()
             fc:changeToPath(home_dir)
         end
         refreshLibraryStatusBar(fm)
@@ -720,7 +1139,7 @@ local function apply_navbar()
         return false
     end
 
-    local function raiseStandaloneWidgets(widgets)
+    local function raiseStandaloneWidgets(widgets, defer_repaint)
         if type(widgets) ~= "table" or #widgets == 0 then return false end
         local stack = UIManager._window_stack
         if type(stack) ~= "table" then return false end
@@ -735,26 +1154,65 @@ local function apply_navbar()
             if not found then return false end
             table.insert(stack, table.remove(stack, found))
         end
-        local top = widgets[#widgets]
-        UIManager:setDirty(top, function()
-            return "ui", top.dimen
-        end)
+        if not defer_repaint then
+            local top = widgets[#widgets]
+            UIManager:setDirty(top, function()
+                return "ui", top.dimen
+            end)
+        end
         return true
+    end
+
+    local function measureLibraryToHomeReveal(fm, mode, view_reused)
+        local started_at = fm and fm._zen_library_to_home_started_at
+        if not started_at then return end
+        local schedule = UIManager.tickAfterNext or UIManager.nextTick
+        schedule(UIManager, function()
+            if fm._zen_library_to_home_started_at ~= started_at then return end
+            fm._zen_library_to_home_started_at = nil
+            logger.measure("Library to Home first reveal", (now() - started_at) * 1000,
+                "mode=", mode,
+                "view_reused=", tostring(view_reused == true))
+        end)
     end
 
     local function onTabHome()
         if resetHomeStripPages() then return end
         local Home = get_shared("home")
         if not Home then return end
+        local fm = FileManager.instance
+        local fc = fm and fm.file_chooser
+        local home_dir = paths.getHomeDir()
+        if fc and home_dir and fc.path == home_dir
+                and not fc._zen_needs_full_listing
+                and not fc._zen_needs_cover_refresh
+                and type(fc.item_table) == "table" then
+            fc._zen_home_retained_library = _library_retained_descriptor(fc, home_dir)
+        elseif fc then
+            fc._zen_home_retained_library = nil
+        end
         local widgets = type(Home.getActiveWidgets) == "function"
             and Home.getActiveWidgets() or nil
-        if raiseStandaloneWidgets(widgets) then
-            if type(Home.resetStripPages) == "function" then Home.resetStripPages() end
-            scheduleGroupPrewarm()
+        local can_resume = type(Home.resumeActive) == "function"
+        if raiseStandaloneWidgets(widgets, can_resume) then
+            local strips_reset = type(Home.resetStripPages) == "function"
+                and Home.resetStripPages() == true
+            local resumed, resume_mode = true, "reused"
+            if can_resume then resumed, resume_mode = Home.resumeActive() end
+            if not resumed then
+                if type(Home.closeAll) == "function" then Home.closeAll() end
+                Home.showHomeView(injectStandaloneNavbar)
+                measureLibraryToHomeReveal(fm, "rebuilt", false)
+            else
+                local rebuilt = resume_mode == "rebuilt" or strips_reset
+                measureLibraryToHomeReveal(fm, rebuilt and "rebuilt" or "retained", true)
+            end
+            if not scheduleHiddenLibraryWarm(fm) then scheduleGroupPrewarm() end
             return
         end
         Home.showHomeView(injectStandaloneNavbar)
-        scheduleGroupPrewarm()
+        measureLibraryToHomeReveal(fm, "rebuilt", false)
+        if not scheduleHiddenLibraryWarm(fm) then scheduleGroupPrewarm() end
     end
 
     local function onTabSearch()
@@ -947,7 +1405,9 @@ local function apply_navbar()
         end
         if shouldTrackActiveTab(tab_id) then
             cb()
-            if tab_id ~= "books" then refreshAfterNavbarPageSwitch() end
+            if tab_id ~= "books" and tab_id ~= "home" then
+                refreshAfterNavbarPageSwitch()
+            end
             return
         end
         local saved_active = active_tab
@@ -1476,18 +1936,12 @@ local function apply_navbar()
                 end
             end
             local tapped_id = visible_tabs[idx].id
-            runTabCallback(tapped_id)
             -- Track active tab for persistent views only, not launcher/action tabs.
             local track_tab = shouldTrackActiveTab(tapped_id)
             if track_tab and tapped_id ~= active_tab then
-                active_tab = tapped_id
-                syncActiveTabLabel()
-                local stays_in_browser = tabStaysInFileManager(tapped_id)
-                if stays_in_browser then
-                    local fm = FileManager.instance
-                    if fm then injectNavbar(fm); UIManager:setDirty(fm, "ui") end
-                end
+                setActiveTab(tapped_id)
             end
+            runTabCallback(tapped_id)
             return true
         end
 
@@ -1809,13 +2263,7 @@ local function apply_navbar()
             local tid = tab.id
             local track = shouldTrackActiveTab(tid)
             if track and tid ~= active_tab then
-                active_tab = tid
-                syncActiveTabLabel()
-                local stays = tabStaysInFileManager(tid)
-                if stays then
-                    local fm2 = FileManager.instance
-                    if fm2 then injectNavbar(fm2); UIManager:setDirty(fm2, "ui") end
-                end
+                setActiveTab(tid)
             end
             runTabCallback(tid)
         end
@@ -2110,7 +2558,10 @@ local function apply_navbar()
             -- Close this standalone view first
             if tapped_id == "books" then
                 setActiveTab(tapped_id)
-                closeStandaloneView(menu)
+                if menu.name ~= "home"
+                        or not retainHomeBelowFileManager(FileManager.instance, menu) then
+                    closeStandaloneView(menu)
+                end
                 runTabCallback(tapped_id)
                 return true
             end
@@ -2281,7 +2732,8 @@ local function apply_navbar()
         }
 
         -- Key nav for standalone views (group view, history, favorites, etc.)
-        if Device:hasKeys() and not menu._zen_navbar_key_patched then
+        local has_keys = Device:hasKeys()
+        if has_keys and not menu._zen_navbar_key_patched then
             menu._zen_navbar_key_patched = true
 
             menu.key_events = menu.key_events or {}
@@ -2341,7 +2793,10 @@ local function apply_navbar()
                 end
                 if tapped_id == "books" then
                     setActiveTab(tapped_id)
-                    closeStandaloneView(menu)
+                    if menu.name ~= "home"
+                            or not retainHomeBelowFileManager(FileManager.instance, menu) then
+                        closeStandaloneView(menu)
+                    end
                     runTabCallback(tapped_id)
                     return
                 end
@@ -2426,6 +2881,33 @@ local function apply_navbar()
                 if _navbar_focused_idx then
                     _navbar_focused_idx = nil
                     repaintStandaloneNavbar(); return true
+                end
+                local fm = FileManager.instance
+                if view_tab_id == "home" and fm then
+                    setActiveTab("books")
+                    if not retainHomeBelowFileManager(fm, m) then
+                        closeStandaloneView(m)
+                    end
+                    runTabCallback("books")
+                    return true
+                end
+                if m.close_callback then m.close_callback()
+                elseif m.onClose then m:onClose()
+                else UIManager:close(m) end
+                return true
+            end
+        end
+
+        if not has_keys and view_tab_id == "home" then
+            menu.onBack = function(m)
+                local fm = FileManager.instance
+                if fm then
+                    setActiveTab("books")
+                    if not retainHomeBelowFileManager(fm, m) then
+                        closeStandaloneView(m)
+                    end
+                    runTabCallback("books")
+                    return true
                 end
                 if m.close_callback then m.close_callback()
                 elseif m.onClose then m:onClose()
@@ -2525,13 +3007,59 @@ local function apply_navbar()
 
     local orig_setupLayout = FileManager.setupLayout
 
+    local function should_defer_cold_default_home(fm)
+        if FileManager.instance ~= nil or rawget(fm, "file_chooser") ~= nil then
+            return false
+        end
+        if rawget(_G, "__ZEN_UI_HIDDEN_HOME_BOOTSTRAP") == true
+                or rawget(_G, "__ZEN_UI_DEFER_FILEMANAGER_LISTING") ~= nil
+                or resolve_default_tab() ~= "home" then
+            return false
+        end
+        if rawget(_G, "__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER") == true
+                or rawget(_G, "__ZEN_UI_OPEN_TARGET_TAB") ~= nil
+                or rawget(_G, "__ZEN_UI_OPEN_TARGET_FOLDER") ~= nil
+                or rawget(_G, "__ZEN_UI_LIBRARY_STATE") ~= nil then
+            return false
+        end
+        return not is_restore_enabled() or not fm.focused_file
+    end
+
     function FileManager:setupLayout()
-        if orig_setupLayout then orig_setupLayout(self) end
+        local defer_default_home = should_defer_cold_default_home(self)
+        if defer_default_home then
+            local home_dir = paths.getHomeDir()
+            if home_dir then self.root_path = home_dir end
+            self.focused_file = nil
+            self.invisible = true
+            withHiddenHomeBootstrap(self.root_path, function()
+                if orig_setupLayout then orig_setupLayout(self) end
+            end)
+            local fc = self.file_chooser
+            self._zen_hidden_home_startup = true
+            if fc then
+                fc._zen_hidden_home_startup = true
+                fc._zen_needs_full_listing = true
+                fc._zen_needs_cover_refresh = nil
+            end
+            logger.measure("Cold Home setup deferred", 0,
+                "path=", tostring(self.root_path),
+                "listing_deferred=", true,
+                "covers_suppressed=", true)
+        elseif orig_setupLayout then
+            orig_setupLayout(self)
+        end
         self._navbar_injected = false
-        injectNavbar(self)
+        if defer_default_home then
+            withHiddenHomeBootstrap(self.root_path, function()
+                injectNavbar(self)
+            end)
+        else
+            injectNavbar(self)
+        end
         -- On reinit (FM already in the window stack), dirty-mark so the updated navbar
         -- is painted. On fresh init, UIManager:show(fm) inside showFiles handles it.
-        if FileManager.instance == self then
+        if FileManager.instance == self and not self.invisible then
             UIManager:setDirty(self, "ui")
         end
     end
@@ -2629,8 +3157,15 @@ local function apply_navbar()
                 and state_before_show
                 and state_before_show.tab
                 and state_before_show.tab ~= "books")
+        local defer_hidden_home_listing = startup_default_home
+            or open_home_after_filemanager
+            or open_target_tab == "home"
+            or forced_default_tab == "home"
+            or (restore_enabled
+                and state_before_show
+                and state_before_show.tab == "home")
         local suppress_initial_covers = hidden_bootstrap
-        if startup_default_home then
+        if defer_hidden_home_listing then
             withHiddenHomeBootstrap(path, function()
                 orig_showFiles(self, path, effective_focused, selected_files)
             end)
@@ -2649,17 +3184,20 @@ local function apply_navbar()
         logger.perf("File manager base restore completed", (os.clock() - started_at) * 1000,
             "restore_tab=", tostring(state_before_show and state_before_show.tab),
             "path=", tostring(path),
-            "hidden_home_startup=", tostring(startup_default_home),
-            "listing_deferred=", tostring(startup_default_home))
-        if suppress_initial_covers and filemanager and filemanager.file_chooser then
+            "hidden_home_startup=", tostring(defer_hidden_home_listing),
+            "listing_deferred=", tostring(defer_hidden_home_listing))
+        if suppress_initial_covers and not defer_hidden_home_listing
+                and filemanager and filemanager.file_chooser then
             filemanager.file_chooser._zen_needs_cover_refresh = true
         end
-        if startup_default_home and filemanager and filemanager.file_chooser then
+        if defer_hidden_home_listing and filemanager and filemanager.file_chooser then
             filemanager.invisible = true
             filemanager._zen_hidden_home_startup = true
             filemanager.file_chooser._zen_hidden_home_startup = true
             filemanager.file_chooser._zen_needs_full_listing = true
             if UIManager._dirty then UIManager._dirty[filemanager] = nil end
+        end
+        if startup_default_home and filemanager and filemanager.file_chooser then
             filemanager._zen_default_tab_bootstrapped = true
             _G.__ZEN_UI_LIBRARY_STATE = nil
             open_tab("home")
@@ -2768,7 +3306,7 @@ local function apply_navbar()
             end
         end
         restoreSavedTab()
-        if filemanager then
+        if filemanager and not filemanager._zen_hidden_home_startup then
             filemanager.invisible = nil
         end
         -- If a detail view was open, open it synchronously too (stack: [fm, group_menu, detail_menu]).
@@ -2959,16 +3497,18 @@ local function apply_navbar()
     -- of how QuickRSS is opened.
     hookQuickRSSInit()
 
-    -- setupLayout fires before this plugin loads on first start, so the initial
-    -- FM paint has no navbar. Reinject on the first event loop tick to fix it.
+    -- The first outer showFiles call starts before this patch is installed.
+    -- Open its deferred default tab once FileManager reaches the window stack.
     local function reinject_initial_filemanager()
         local fm = FileManager.instance
         if fm then
-            injectNavbar(fm)
-            if fm._zen_hidden_home_startup then return end
-            if not maybe_open_startup_default_tab(fm) then
-                UIManager:setDirty(fm, "ui")
+            if fm._zen_hidden_home_startup then
+                maybe_open_startup_default_tab(fm)
+                return
             end
+            injectNavbar(fm)
+            if maybe_open_startup_default_tab(fm) then return end
+            UIManager:setDirty(fm, "ui")
         end
     end
 

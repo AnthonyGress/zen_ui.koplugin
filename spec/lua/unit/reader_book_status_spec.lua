@@ -2,6 +2,8 @@ describe("reader book status", function()
     local dependencies = {
         "modules/reader/patches/book_status",
         "ui/widget/bookstatuswidget",
+        "apps/reader/modules/readerstatus",
+        "common/book_status",
         "common/library_navigation",
         "gettext",
         "ui/size",
@@ -21,6 +23,8 @@ describe("reader book status", function()
     local saved_defaults
     local saved_reader_settings
     local BookStatusWidget
+    local ReaderStatus
+    local invalidated
     local next_file_opens
     local library_opens
     local closed
@@ -80,13 +84,28 @@ describe("reader book status", function()
         next_file_opens = 0
         library_opens = 0
         closed = 0
+        invalidated = {}
 
         BookStatusWidget = {
             generateRateGroup = function()
                 return {}
             end,
+            onChangeBookStatus = function(self)
+                self.changed_status = true
+                return true
+            end,
+        }
+        ReaderStatus = {
+            markBook = function(self)
+                self.marked = true
+                return true
+            end,
         }
         ZenSpec.replace("ui/widget/bookstatuswidget", BookStatusWidget)
+        ZenSpec.replace("apps/reader/modules/readerstatus", ReaderStatus)
+        ZenSpec.replace("common/book_status", {
+            invalidate = function(file) invalidated[#invalidated + 1] = file end,
+        })
         ZenSpec.replace("common/library_navigation", {
             showFromReader = function()
                 library_opens = library_opens + 1
@@ -156,5 +175,19 @@ describe("reader book status", function()
         assert.are.equal(0, next_file_opens)
         assert.are.equal(1, closed)
         assert.are.equal(1, library_opens)
+    end)
+
+    it("invalidates cached status after reader and status-widget writes", function()
+        require("modules/reader/patches/book_status")()
+        local reader_status = { document = { file = "/books/end.epub" } }
+        local status_widget = make_status()
+        status_widget.ui.document.file = "/books/manual.epub"
+
+        assert.is_true(ReaderStatus.markBook(reader_status, true))
+        assert.is_true(BookStatusWidget.onChangeBookStatus(status_widget, { "reading" }, 1))
+
+        assert.is_true(reader_status.marked)
+        assert.is_true(status_widget.changed_status)
+        assert.same({ "/books/end.epub", "/books/manual.epub" }, invalidated)
     end)
 end)

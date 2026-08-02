@@ -1859,6 +1859,7 @@ local function apply_context_menu()
                                 end
                                 filemanagerutil.saveSummary(doc_settings, summary)
                                 BookList.setBookInfoCacheProperty(file, "status", to_status)
+                                book_status.invalidate(file)
                                 pcall(function()
                                     require("common/tbr_index").refreshPath(file, doc_settings)
                                 end)

@@ -9,8 +9,17 @@ local function settings(initial)
 end
 
 describe("book status", function()
+    local clock
+
     before_each(function()
+        clock = 0
         ZenSpec.unload("common/book_status")
+        ZenSpec.replace("common/zen_logger", {
+            now = function() return clock end,
+            new = function()
+                return { measure = function() end }
+            end,
+        })
         ZenSpec.replace("libs/libkoreader-lfs", {
             attributes = function(path, attribute)
                 local values = {
@@ -121,6 +130,10 @@ describe("book status", function()
         assert.are.equal("reading", BookStatus.getEffectiveStatusFromFile("/books/book.epub"))
         assert.are.equal(1, opens)
         assert.are.equal(0, booklist_reads)
+        assert.are.equal("reading", BookStatus.getFileStatusData(
+            "/books/book.epub", { status = "complete", percent_finished = 1 }
+        ).effective_status)
+        assert.are.equal(1, opens)
 
         data.zen_new_mtime = 100
         assert.are.equal("reading", BookStatus.getEffectiveStatusFromFile("/books/book.epub"))
@@ -134,6 +147,8 @@ describe("book status", function()
     it("refreshes cached status when the sidecar modification time changes", function()
         local sidecar_mtime = 150
         local opens = 0
+        local stats = 0
+        local sidecar_finds = 0
         local doc, data = settings({
             summary = { status = "reading" },
             percent_finished = 0.5,
@@ -141,6 +156,7 @@ describe("book status", function()
         })
         ZenSpec.replace("libs/libkoreader-lfs", {
             attributes = function(path, attribute)
+                stats = stats + 1
                 local value = path == "/books/book.epub"
                     and { mode = "file", modification = 200 }
                     or { mode = "file", modification = sidecar_mtime }
@@ -148,7 +164,10 @@ describe("book status", function()
             end,
         })
         ZenSpec.replace("docsettings", {
-            findSidecarFile = function() return "/books/book.sdr/metadata.lua" end,
+            findSidecarFile = function()
+                sidecar_finds = sidecar_finds + 1
+                return "/books/book.sdr/metadata.lua"
+            end,
             hasSidecarFile = function() return true end,
             open = function()
                 opens = opens + 1
@@ -159,10 +178,43 @@ describe("book status", function()
 
         assert.are.equal("reading", BookStatus.getEffectiveStatusFromFile("/books/book.epub"))
         data.summary.status = "complete"
+        clock = 4
         assert.are.equal("reading", BookStatus.getEffectiveStatusFromFile("/books/book.epub"))
+        assert.are.equal(2, stats)
+        assert.are.equal(1, sidecar_finds)
+        assert.are.equal(1, opens)
         sidecar_mtime = 151
+        clock = 6
         assert.are.equal("complete", BookStatus.getEffectiveStatusFromFile("/books/book.epub"))
+        assert.are.equal(4, stats)
+        assert.are.equal(2, sidecar_finds)
         assert.are.equal(2, opens)
+    end)
+
+    it("keeps the sidecar authoritative when its mtime cannot be read", function()
+        local doc = settings({
+            summary = { status = "reading" },
+            percent_finished = 0.5,
+            zen_new_mtime = 200,
+        })
+        ZenSpec.replace("libs/libkoreader-lfs", {
+            attributes = function(path, attribute)
+                local value = path == "/books/book.epub"
+                    and { mode = "file", modification = 200 } or nil
+                return attribute and value and value[attribute] or value
+            end,
+        })
+        ZenSpec.replace("docsettings", {
+            findSidecarFile = function() return "/books/book.sdr/metadata.lua" end,
+            hasSidecarFile = function() return true end,
+            open = function() return doc end,
+        })
+        ZenSpec.replace("ui/widget/booklist", {
+            getBookInfo = function() return { status = "complete", percent_finished = 1 } end,
+        })
+        local BookStatus = require("common/book_status")
+
+        assert.are.equal("reading", BookStatus.getEffectiveStatusFromFile("/books/book.epub"))
     end)
 
     it("consults BookList once when no sidecar is available", function()
@@ -179,6 +231,47 @@ describe("book status", function()
         local BookStatus = require("common/book_status")
 
         assert.are.equal("complete", BookStatus.getEffectiveStatusFromFile("/books/book.epub"))
+        assert.are.equal("complete", BookStatus.getEffectiveStatusFromFile("/books/book.epub"))
         assert.are.equal(1, booklist_reads)
+
+        local supplied = BookStatus.getFileStatusData("/books/book.epub", {
+            status = "reading", percent_finished = 0.5,
+        })
+        assert.are.equal("reading", supplied.effective_status)
+        assert.are.equal(1, booklist_reads)
+    end)
+
+    it("retains more than 32 visible statuses without reopening sidecars", function()
+        local opens = 0
+        local doc = settings({
+            summary = { status = "reading" },
+            percent_finished = 0.5,
+            zen_new_mtime = 200,
+        })
+        ZenSpec.replace("libs/libkoreader-lfs", {
+            attributes = function(path, attribute)
+                local modification = path:find("metadata%.lua$", 1) and 150 or 200
+                local value = { mode = "file", modification = modification }
+                return attribute and value[attribute] or value
+            end,
+        })
+        ZenSpec.replace("docsettings", {
+            findSidecarFile = function(_, path)
+                return path .. ".sdr/metadata.lua"
+            end,
+            open = function()
+                opens = opens + 1
+                return doc
+            end,
+        })
+        local BookStatus = require("common/book_status")
+
+        for index = 1, 40 do
+            BookStatus.getEffectiveStatusFromFile("/books/book-" .. index .. ".epub")
+        end
+        assert.are.equal(40, opens)
+        assert.are.equal("reading", BookStatus.getEffectiveStatusFromFile(
+            "/books/book-1.epub"))
+        assert.are.equal(40, opens)
     end)
 end)

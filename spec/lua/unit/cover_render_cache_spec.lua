@@ -84,7 +84,41 @@ describe("final cover render cache", function()
 
         assert.are.equal(5, smaller:getWidth())
         assert.are.equal(8, smaller:getHeight())
+        assert.is_true(Cache:hasExact("/book.epub", 5, 8))
         assert.are.equal(1, Cache:stats().hits)
+        assert.are.equal(1, Cache:stats().resized_hits)
+
+        local exact = Cache:get("/book.epub", 5, 8)
+        assert.are.equal(5, exact:getWidth())
+        assert.are.equal(1, Cache:stats().exact_copy_hits)
+    end)
+
+    it("retains exact Home and Library sizes within the shared budget", function()
+        local home, home_owned = Cache:putShared("/book.epub", 4, 6, bb(4, 6))
+        local library, library_owned = Cache:putShared("/book.epub", 5, 8, bb(5, 8))
+
+        assert.is_true(home_owned)
+        assert.is_true(library_owned)
+        assert.is_true(Cache:hasExact("/book.epub", 4, 6))
+        assert.is_true(Cache:hasExact("/book.epub", 5, 8))
+        assert.are.equal(home, Cache:getShared("/book.epub", 4, 6))
+        assert.are.equal(library, Cache:getShared("/book.epub", 5, 8))
+        assert.are.equal(2, Cache:stats().shared_hits)
+
+        assert.is_true(Cache:releaseShared("/book.epub", home))
+        assert.is_true(Cache:releaseShared("/book.epub", home))
+        assert.is_true(Cache:releaseShared("/book.epub", library))
+        assert.is_true(Cache:releaseShared("/book.epub", library))
+    end)
+
+    it("reports exact copied hits separately from resized reuse", function()
+        Cache:put("/book.epub", 5, 8, bb(5, 8))
+
+        local exact = Cache:get("/book.epub", 5, 8)
+
+        assert.are.equal(5, exact:getWidth())
+        assert.are.equal(1, Cache:stats().exact_copy_hits)
+        assert.are.equal(0, Cache:stats().resized_hits)
     end)
 
     it("does not reuse a differently shaped crop", function()

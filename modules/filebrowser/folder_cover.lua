@@ -205,6 +205,14 @@ function M.previewEntries(menu, entry, limit)
         limit = select(2, CoverUtils.getMode())
     end
     limit = math.max(0, limit)
+    local is_virtual = type(entry.series_items) == "table"
+        or type(entry._zen_files) == "table"
+        or (menu and menu._zen_coll_list and entry.name
+            and type(menu._zen_get_collection_files) == "function")
+    if is_virtual then
+        local entries, physical, count = M.entries(menu, entry, true, limit)
+        return entries or {}, physical, count or 0, false, 0
+    end
     if is_directory(entry) and entry.path then
         local descriptor, cache_hit, enumeration_ms = get_descriptor(menu, entry, limit)
         return descriptor and descriptor.entries or {}, true,
@@ -234,18 +242,18 @@ end
 
 local function gallery_identity(menu, entry, title)
     if type(entry) ~= "table" then return nil end
-    if entry.path then
+    local virtual_kind = (entry.is_series_group or entry.series_items) and "series"
+        or (entry._zen_files and "metadata")
+        or (menu and menu._zen_coll_list and "collection")
+    if entry.path and not virtual_kind then
         return table.concat({
             "folder", tostring(entry.path),
             tostring(lfs.attributes(entry.path, "modification") or 0),
         }, "\30")
     end
-    local kind = entry.is_series_group and "series"
-        or (entry._zen_files and "metadata")
-        or (menu and menu._zen_coll_list and "collection")
-        or "group"
     return table.concat({
-        kind, tostring(entry.name or entry.text or title or ""),
+        virtual_kind or "group",
+        tostring(entry.path or entry.name or entry.text or title or ""),
     }, "\30")
 end
 

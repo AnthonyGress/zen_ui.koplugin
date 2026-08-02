@@ -45,6 +45,32 @@ local HOME_STRIP_MAX_BOOKS = 40
 local HOME_STATS_TTL = 60
 local _home_stats_cache = { key = nil, value = nil, expires_at = 0 }
 
+local function home_is_on_top(menu)
+    local stack = UIManager._window_stack
+    local top = stack and stack[#stack]
+    return menu ~= nil and top ~= nil and top.widget == menu
+end
+
+local function mark_home_rebuild_needed(refresh_stats, reload_config)
+    local menu = _home_menu
+    if not menu or menu._zen_home_closing then return end
+    menu._zen_home_needs_rebuild = true
+    if refresh_stats == true then menu._zen_home_refresh_stats = true end
+    if reload_config == true then menu._zen_home_reload_config = true end
+end
+
+local function request_home_repaint(menu, refresh)
+    if not menu or menu._zen_home_closing then return false end
+    if not rawequal(menu, _home_menu) or menu._zen_home_suspended == true
+            or not home_is_on_top(menu) then
+        menu._zen_home_needs_repaint = true
+        return false
+    end
+    menu._zen_home_needs_repaint = nil
+    UIManager:setDirty(menu, refresh)
+    return true
+end
+
 local function new_home_dataset()
     _home_dataset_generation = _home_dataset_generation + 1
     return {
@@ -281,6 +307,7 @@ local function flush_cover_upgrade_queue()
             invalidate_home_book_cache(path)
             _cover_upgrade_consumers[path] = nil
         end
+        mark_home_rebuild_needed(false, false)
         return
     end
     if BookInfoManager:isExtractingInBackground() then
@@ -330,9 +357,13 @@ local function flush_cover_upgrade_queue()
                 local consumers = _cover_upgrade_consumers[path]
                 _cover_upgrade_consumers[path] = nil
                 if consumers and consumers.full then needs_full_rebuild = true end
-                if consumers and consumers.strip and M.isActiveOnTop()
-                        and _home_menu and _home_menu._zen_home_notify_strip_cover then
-                    _home_menu:_zen_home_notify_strip_cover(path)
+                if consumers and consumers.strip then
+                    if M.isActiveOnTop()
+                            and _home_menu and _home_menu._zen_home_notify_strip_cover then
+                        _home_menu:_zen_home_notify_strip_cover(path)
+                    else
+                        mark_home_rebuild_needed(false, false)
+                    end
                 end
             end
         end
@@ -349,6 +380,8 @@ local function flush_cover_upgrade_queue()
             if needs_full_rebuild and M.isActiveOnTop()
                     and _home_menu and _home_menu._home_rebuild then
                 _home_menu:_home_rebuild()
+            elseif needs_full_rebuild then
+                mark_home_rebuild_needed(false, false)
             end
         end
     end
@@ -1659,6 +1692,10 @@ local function build_data_provider(cfg, dcfg)
         return current_quote
     end
 
+    function provider:clearQuote()
+        current_quote = nil
+    end
+
     local function step_quote(delta)
         local quote_cfg = dcfg.quotes or {}
         current_quote = HomeQuotes.stepQuote(quote_cfg, delta)
@@ -2315,7 +2352,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             menu._zen_home_focus_index = nil
             menu._zen_home_focus_id = nil
         end
-        UIManager:setDirty(menu, function()
+        request_home_repaint(menu, function()
             return "ui", swipe and swipe.dimen, menu.dithered
         end)
     end
@@ -2575,6 +2612,24 @@ local function rows_have_date_dependent(rows)
     return false
 end
 
+local function rows_have_component(rows, component_id)
+    for _i, comp in ipairs(rows or {}) do
+        if comp.id == component_id then return true end
+    end
+    return false
+end
+
+local function home_shell_is_compatible(menu, dcfg)
+    if not (menu and type(dcfg) == "table") then return false end
+    local show_status_bar = dcfg.show_status_bar ~= false
+    if menu._zen_home_show_status_bar ~= show_status_bar then return false end
+    if not show_status_bar then
+        local has_clock_refreshers = rows_have_clock_refreshers(resolve_rows(dcfg), dcfg)
+        if menu._zen_home_has_clock_refreshers ~= has_clock_refreshers then return false end
+    end
+    return true
+end
+
 local function consume_last_read_file()
     local last_read_file = rawget(_G, "__ZEN_UI_LAST_READ_FILE")
     if not last_read_file then return false end
@@ -2599,6 +2654,7 @@ function M.showHomeView(injectNavbar)
     if type(cfg) ~= "table" then return end
     local dcfg = ensure_home_cfg()
     local show_status_bar = dcfg.show_status_bar ~= false
+    local Screen = require("device").screen
 
     local menu = StandalonePage.create_menu{
         name = "home",
@@ -2619,9 +2675,12 @@ function M.showHomeView(injectNavbar)
         })
     end
     menu._zen_home_show_status_bar = show_status_bar
+    menu._zen_home_screen_width = Screen:getWidth()
+    menu._zen_home_screen_height = Screen:getHeight()
 
     local rows = resolve_rows(dcfg)
     local data_provider = build_data_provider(cfg, dcfg)
+    local provider_dataset_expires_at = _home_dataset_cache and _home_dataset_cache.expires_at
     local has_clock_refreshers = rows_have_clock_refreshers(rows, dcfg)
     local has_date_dependent = rows_have_date_dependent(rows)
     menu._zen_home_has_clock_refreshers = has_clock_refreshers
@@ -2644,10 +2703,16 @@ function M.showHomeView(injectNavbar)
         local build_started_at = os.clock()
         local content = build_home_content(menu, dcfg, rows, data_provider)
         local build_ms = (os.clock() - build_started_at) * 1000
+        provider_dataset_expires_at = _home_dataset_cache
+            and _home_dataset_cache.expires_at
         local mount_started_at = os.clock()
         StandalonePage.mount_body(menu, content)
         local mount_ms = (os.clock() - mount_started_at) * 1000
-        UIManager:setDirty(menu, "ui")
+        menu._zen_home_built_day = os.date("%Y-%j")
+        menu._zen_home_needs_rebuild = nil
+        menu._zen_home_refresh_stats = nil
+        menu._zen_home_reload_config = nil
+        request_home_repaint(menu, "ui")
         local perf = data_provider and data_provider.getPerformanceStats
             and data_provider:getPerformanceStats() or {}
         local component_times = {}
@@ -2667,7 +2732,7 @@ function M.showHomeView(injectNavbar)
             "dataset_generation=", perf.dataset_generation or 0)
     end
 
-    function menu:_zen_home_refresh_clock_widgets()
+    function menu:_zen_home_refresh_clock_widgets(suppress_repaint)
         if self._zen_home_closing then return end
         local refreshed = 0
         for _i, refresh in ipairs(self._zen_home_clock_refreshers or {}) do
@@ -2680,8 +2745,8 @@ function M.showHomeView(injectNavbar)
                 end
             end
         end
-        if refreshed > 0 then
-            UIManager:setDirty(self, "ui")
+        if refreshed > 0 and suppress_repaint ~= true then
+            request_home_repaint(self, "ui")
         end
     end
 
@@ -2703,7 +2768,8 @@ function M.showHomeView(injectNavbar)
         local stack = UIManager._window_stack
         local top = stack and stack[#stack]
         if not top or top.widget ~= menu then return end
-        rebuild(true)
+        if menu._zen_home_built_day == os.date("%Y-%j") then return end
+        if menu._home_rebuild then menu:_home_rebuild(true) end
     end
 
     if show_status_bar then
@@ -2714,7 +2780,7 @@ function M.showHomeView(injectNavbar)
                 status_refresh(target, ...)
             end
             if target and target._zen_home_refresh_clock_widgets then
-                target:_zen_home_refresh_clock_widgets()
+                target:_zen_home_refresh_clock_widgets(...)
             end
         end
     else
@@ -2808,7 +2874,13 @@ function M.showHomeView(injectNavbar)
     end
 
     function menu:_home_rebuild(refresh_stats, reload_config)
-        if self._zen_home_closing then return end
+        if self._zen_home_closing then return false end
+        if self._zen_home_suspended == true or not home_is_on_top(self) then
+            self._zen_home_needs_rebuild = true
+            if refresh_stats == true then self._zen_home_refresh_stats = true end
+            if reload_config == true then self._zen_home_reload_config = true end
+            return false
+        end
         refresh_shared_state()
         if reload_config == true then
             local next_cfg = load_zen_config()
@@ -2817,12 +2889,101 @@ function M.showHomeView(injectNavbar)
                 dcfg = ensure_home_cfg()
                 _home_dataset_cache = new_home_dataset()
                 data_provider = build_data_provider(cfg, dcfg)
+                provider_dataset_expires_at = _home_dataset_cache
+                    and _home_dataset_cache.expires_at
             end
         end
         rows = resolve_rows(dcfg)
         has_clock_refreshers = rows_have_clock_refreshers(rows, dcfg)
+        has_date_dependent = rows_have_date_dependent(rows)
         self._zen_home_has_clock_refreshers = has_clock_refreshers
         rebuild(refresh_stats == true)
+        return true
+    end
+
+    function menu:_zen_home_resume()
+        if self._zen_home_closing then return false, "closing" end
+        if not home_is_on_top(self) then return false, "not_top" end
+        if self._zen_home_screen_width ~= Screen:getWidth()
+                or self._zen_home_screen_height ~= Screen:getHeight() then
+            return false, "geometry_changed"
+        end
+
+        local reload_config = self._zen_home_reload_config == true
+        if reload_config then
+            local next_cfg = load_zen_config()
+            if type(next_cfg) ~= "table" then return false, "config_unavailable" end
+            local next_dcfg = ensure_home_cfg()
+            if not home_shell_is_compatible(self, next_dcfg) then
+                return false, "layout_changed"
+            end
+        end
+
+        local started_at = now()
+        local hidden_started_at = self._zen_home_suspended_at
+        local was_suspended = self._zen_home_suspended == true
+        local reasons = {}
+        local current_time = os.time()
+        local day_changed = has_date_dependent
+            and self._zen_home_built_day ~= os.date("%Y-%j")
+        local last_read_changed = consume_last_read_file()
+        local dataset_expired = provider_dataset_expires_at ~= nil
+            and current_time >= provider_dataset_expires_at
+        local stats_fields = collect_stats_fields(rows, dcfg)
+        local stats_expired = stats_fields_key(stats_fields) ~= ""
+            and _home_stats_cache.value ~= nil
+            and current_time >= _home_stats_cache.expires_at
+        local quote_refresh = was_suspended
+            and rows_have_component(rows, "quotes")
+            and type(dcfg.quotes) == "table"
+            and dcfg.quotes.rotation == "refresh"
+
+        if reload_config then reasons[#reasons + 1] = "config" end
+        if self._zen_home_needs_rebuild == true then reasons[#reasons + 1] = "stale" end
+        if last_read_changed then reasons[#reasons + 1] = "last_read" end
+        if dataset_expired then reasons[#reasons + 1] = "dataset" end
+        if stats_expired then reasons[#reasons + 1] = "stats" end
+        if day_changed then reasons[#reasons + 1] = "day" end
+        if quote_refresh then reasons[#reasons + 1] = "quote" end
+
+        if dataset_expired and not reload_config then
+            _home_dataset_cache = new_home_dataset()
+            data_provider = build_data_provider(cfg, dcfg)
+            provider_dataset_expires_at = _home_dataset_cache
+                and _home_dataset_cache.expires_at
+        end
+        if (day_changed or quote_refresh) and data_provider
+                and type(data_provider.clearQuote) == "function" then
+            data_provider:clearQuote()
+        end
+
+        local needs_rebuild = reload_config
+            or self._zen_home_needs_rebuild == true
+            or last_read_changed or dataset_expired or stats_expired
+            or day_changed or quote_refresh
+        local refresh_stats = reload_config
+            or self._zen_home_refresh_stats == true
+            or stats_expired or day_changed
+        self._zen_home_suspended = nil
+        self._zen_home_suspended_at = nil
+
+        local rebuilt = false
+        if needs_rebuild then
+            rebuilt = self:_home_rebuild(refresh_stats, reload_config) == true
+        end
+        if self._zen_status_refresh then
+            self:_zen_status_refresh(true)
+        elseif has_clock_refreshers and self._zen_home_refresh_clock_widgets then
+            self:_zen_home_refresh_clock_widgets(true)
+        end
+        if not rebuilt then request_home_repaint(self, "ui") end
+
+        logger.measure("Home retained view resumed", (now() - started_at) * 1000,
+            "rebuilt=", tostring(rebuilt),
+            "reason=", #reasons > 0 and table.concat(reasons, ",") or "reused",
+            "hidden_ms=", hidden_started_at
+                and math.floor((now() - hidden_started_at) * 1000 + 0.5) or 0)
+        return true, rebuilt and "rebuilt" or "reused"
     end
 
     function menu:_zen_home_reset_strip_pages()
@@ -2891,6 +3052,27 @@ function M.getActiveWidgets()
     return _home_menu and { _home_menu } or {}
 end
 
+function M.suspendActive()
+    local menu = _home_menu
+    if not menu or menu._zen_home_closing then return false end
+    if menu._zen_home_suspended ~= true then
+        menu._zen_home_suspended = true
+        menu._zen_home_suspended_at = now()
+    end
+    if UIManager._dirty then UIManager._dirty[menu] = nil end
+    return true
+end
+
+function M.resumeActive()
+    local menu = _home_menu
+    if not menu or menu._zen_home_closing
+            or type(menu._zen_home_resume) ~= "function" then
+        return false, "missing"
+    end
+    if not home_is_on_top(menu) then return false, "not_top" end
+    return menu:_zen_home_resume()
+end
+
 function M.setCoverCacheBudget(bytes)
     bytes = tonumber(bytes)
     if not bytes or bytes < 0 then return false end
@@ -2940,17 +3122,14 @@ end
 
 function M.rebuildActive()
     if _home_menu and _home_menu._home_rebuild then
+        if _home_menu._zen_home_suspended == true
+                or not home_is_on_top(_home_menu) then
+            mark_home_rebuild_needed(true, true)
+            return true
+        end
         local cfg = load_zen_config()
         local dcfg = type(cfg) == "table" and ensure_home_cfg() or nil
-        local show_status_bar = not dcfg or dcfg.show_status_bar ~= false
-        local has_clock_refreshers = false
-        if dcfg then
-            local active_rows = resolve_rows(dcfg)
-            has_clock_refreshers = rows_have_clock_refreshers(active_rows, dcfg)
-        end
-        if _home_menu._zen_home_show_status_bar ~= show_status_bar
-                or (not show_status_bar
-                    and _home_menu._zen_home_has_clock_refreshers ~= has_clock_refreshers) then
+        if dcfg and not home_shell_is_compatible(_home_menu, dcfg) then
             local old_menu = _home_menu
             _home_menu = nil
             old_menu._zen_home_closing = true
@@ -2990,9 +3169,7 @@ end
 
 function M.isActiveOnTop()
     if not _home_menu then return false end
-    local stack = UIManager._window_stack
-    local top = stack and stack[#stack]
-    return top and top.widget == _home_menu
+    return home_is_on_top(_home_menu)
 end
 
 function M.closeAll()

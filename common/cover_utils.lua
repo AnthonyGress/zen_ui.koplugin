@@ -573,7 +573,7 @@ function CoverUtils.collect(dir_path, chooser, max_covers, _need_copy, entries, 
                 } or cover_specs
                 local bookinfo = type(DecodeCache.getFreshMetadata) == "function"
                     and DecodeCache:getFreshMetadata(fpath, now(), 30) or nil
-                local invalid = bookinfo and type(preview_specs) == "table"
+                local invalid = has_real_cover(bookinfo) and type(preview_specs) == "table"
                     and type(BookInfoManager.isCachedCoverInvalid) == "function"
                     and BookInfoManager.isCachedCoverInvalid(bookinfo, preview_specs)
                 local cached_cover
@@ -582,6 +582,8 @@ function CoverUtils.collect(dir_path, chooser, max_covers, _need_copy, entries, 
                     if cover_specs.uniform == false then
                         cached_w, cached_h = CoverUtils.fitDims(
                             preview_w, preview_h, bookinfo.cover_w, bookinfo.cover_h)
+                    elseif mode == "normal" then
+                        cached_w, cached_h = preview_w, preview_h
                     else
                         cached_w, cached_h = CoverUtils.calcDims(preview_w, preview_h)
                     end
@@ -597,7 +599,7 @@ function CoverUtils.collect(dir_path, chooser, max_covers, _need_copy, entries, 
                 if not cached_cover and cached_only then
                     if bookinfo and not invalid and enabled(bookinfo.cover_fetched)
                             and not has_real_cover(bookinfo) then
-                        local metadata = entry.doc_props or bookinfo
+                        local metadata = bookinfo or entry.doc_props
                         local cover_bb, pw, ph = CoverUtils.getCachedGeneratedCover(
                             fpath, preview_w or 200, preview_h or 300, nil, metadata)
                         if cover_bb then
@@ -628,7 +630,7 @@ function CoverUtils.collect(dir_path, chooser, max_covers, _need_copy, entries, 
                     })
                 elseif not cached_only and not cached_cover and bookinfo then
                     if bookinfo and bookinfo.cover_bb then bookinfo.cover_bb:free() end
-                    local metadata = entry.doc_props or bookinfo
+                    local metadata = bookinfo or entry.doc_props
                     local cover_bb, pw, ph = CoverUtils.genCover(
                         fpath, preview_w or 200, preview_h or 300, nil, metadata)
                     if cover_bb then

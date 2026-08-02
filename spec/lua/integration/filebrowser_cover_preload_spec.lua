@@ -27,9 +27,11 @@ describe("filebrowser cover preloading", function()
     local gallery_warms
     local gallery_cached
     local preload_order
+    local status_warmed
     local decode_drops
     local render_drops
     local db_closes
+    local device
     local original_memory_policy
 
     local function bitmap(path)
@@ -46,6 +48,18 @@ describe("filebrowser cover preloading", function()
     local function metric_value(measurement, name)
         for index = 3, #measurement - 1 do
             if measurement[index] == name then return measurement[index + 1] end
+        end
+    end
+
+    local function measurement_named(name)
+        for index = 1, #measurements do
+            if measurements[index][1] == name then return measurements[index] end
+        end
+    end
+
+    local function last_measurement_named(name)
+        for index = #measurements, 1, -1 do
+            if measurements[index][1] == name then return measurements[index] end
         end
     end
 
@@ -84,10 +98,14 @@ describe("filebrowser cover preloading", function()
         gallery_warms = {}
         gallery_cached = {}
         preload_order = {}
+        status_warmed = {}
         decode_drops = {}
         render_drops = {}
         db_closes = 0
+        device = { screen_saver_mode = false }
         original_memory_policy = package.loaded["common/memory_policy"]
+        _G.__ZEN_UI_SUPPRESS_FILEMANAGER_COVERS = nil
+        _G.__ZEN_UI_HIDDEN_HOME_BOOTSTRAP = nil
 
         ZenSpec.replace("covermenu", {
             updateItems = function(menu, ...)
@@ -96,6 +114,7 @@ describe("filebrowser cover preloading", function()
             onCloseWidget = function() end,
             onGotoPage = function(menu, page, ...) return goto_page(menu, page, ...) end,
         })
+        ZenSpec.replace("device", device)
         ZenSpec.replace("ui/widget/filechooser", {
             updateItems = function(menu, ...)
                 return update_items(menu, ...)
@@ -114,8 +133,13 @@ describe("filebrowser cover preloading", function()
             _zen_mosaic_item_class = mosaic_item,
         })
         ZenSpec.replace("ui/uimanager", {
+            _window_stack = {},
             nextTick = function(_self, fn)
                 fn()
+            end,
+            tickAfterNext = function(_self, fn)
+                scheduled[#scheduled + 1] = fn
+                scheduled_delays[#scheduled_delays + 1] = 0
             end,
             scheduleIn = function(_self, delay, fn)
                 scheduled[#scheduled + 1] = fn
@@ -179,6 +203,13 @@ describe("filebrowser cover preloading", function()
                     cover_w = configured and configured.cover_w,
                     cover_h = configured and configured.cover_h,
                 }
+            end,
+        })
+        ZenSpec.replace("common/book_status", {
+            getFileStatusData = function(path)
+                status_warmed[#status_warmed + 1] = path
+                preload_order[#preload_order + 1] = "status:" .. path
+                return {}
             end,
         })
         ZenSpec.replace("common/cover_decode_cache", {
@@ -268,6 +299,11 @@ describe("filebrowser cover preloading", function()
             end,
             canPreload = function(profile)
                 return profile.pressure == "normal"
+            end,
+        })
+        ZenSpec.replace("config/manager", {
+            get = function()
+                return { features = { browser_cover_mosaic_uniform = true } }
             end,
         })
         ZenSpec.replace("common/cover_utils", {
@@ -425,6 +461,369 @@ describe("filebrowser cover preloading", function()
 
     after_each(function()
         package.loaded["common/memory_policy"] = original_memory_policy
+        _G.__ZEN_UI_SUPPRESS_FILEMANAGER_COVERS = nil
+        _G.__ZEN_UI_HIDDEN_HOME_BOOTSTRAP = nil
+    end)
+
+    it("idle-warms one deferred page file per tick without repainting", function()
+        local FileChooser = require("ui/widget/filechooser")
+        require("modules/filebrowser/patches/cover_preload")()
+        local update_calls = 0
+        update_items = function() update_calls = update_calls + 1 end
+        local parent = { invisible = true }
+        local menu = {
+            _zen_needs_full_listing = true,
+            perpage = 3,
+            display_mode_type = "mosaic",
+            show_parent = parent,
+            cover_specs = { max_cover_w = 100, max_cover_h = 150, uniform = true },
+        }
+        local items = {
+            { is_file = true, path = "/first.epub" },
+            { attr = { mode = "directory" }, path = "/folder" },
+            { is_file = true, path = "/second.epub" },
+            { is_file = true, path = "/next-page.epub" },
+        }
+
+        local completed = 0
+        local callback_page
+        local callback_state
+        local callback_measurement
+        assert.is_true(FileChooser._zen_warm_cover_page(menu, items, 1,
+            function(active_menu, page)
+                completed = completed + 1
+                callback_page = page
+                callback_state = active_menu._zen_cover_page_warm_state
+                callback_measurement = measurements[#measurements][1]
+            end))
+        assert.are.same({}, warmed)
+        assert.are.equal(1, #scheduled)
+        assert.are.equal(0.05, scheduled_delays[1])
+
+        table.remove(scheduled, 1)()
+        assert.are.same({ "/first.epub" }, warmed)
+        assert.are.equal(1, #scheduled)
+        assert.are.same({}, dirty)
+
+        table.remove(scheduled, 1)()
+        assert.are.same({ "/first.epub", "/second.epub" }, warmed)
+        assert.are.equal(0, #scheduled)
+        assert.are.equal(0, update_calls)
+        assert.are.same({}, dirty)
+        assert.are.equal(2, render_puts)
+        assert.is_nil(menu._zen_cover_page_warm_state)
+        assert.are.equal(1, completed)
+        assert.are.equal(1, callback_page)
+        assert.is_nil(callback_state)
+        assert.are.equal("Cover page idle warm completed", callback_measurement)
+        assert.are.equal("Cover page idle warm completed", measurements[#measurements][1])
+        assert.are.equal(2, metric_value(measurements[#measurements], "cover_jobs="))
+        assert.are.equal(2, metric_value(measurements[#measurements], "warmed="))
+    end)
+
+    it("finishes the initial page warm after yielding between CPU bursts", function()
+        local FileChooser = require("ui/widget/filechooser")
+        local BookInfoManager = require("bookinfomanager")
+        require("modules/filebrowser/patches/cover_preload")()
+        local advance = require("common/zen_logger").now
+        local original_get_book_info = BookInfoManager.getBookInfo
+        BookInfoManager.getBookInfo = function(self, path)
+            for _tick_index = 1, 80 do advance() end
+            return original_get_book_info(self, path)
+        end
+        local items = {}
+        for index = 1, 4 do
+            items[index] = { is_file = true, path = "/" .. index .. ".epub" }
+        end
+        local menu = {
+            _zen_needs_full_listing = true,
+            perpage = 4,
+            display_mode_type = "mosaic",
+            show_parent = { invisible = true },
+            cover_specs = { max_cover_w = 100, max_cover_h = 150, uniform = true },
+        }
+
+        assert.is_true(FileChooser._zen_warm_cover_page(menu, items, 1))
+        while #scheduled > 0 do table.remove(scheduled, 1)() end
+
+        assert.are.same({ "/1.epub", "/2.epub", "/3.epub", "/4.epub" }, warmed)
+        assert.is_nil(menu._zen_cover_page_warm_state)
+        assert.are.equal("Cover page idle warm completed", measurements[#measurements][1])
+        assert.is_true(metric_value(measurements[#measurements], "bursts=") > 1)
+        local yielded = false
+        for _i, delay in ipairs(scheduled_delays) do
+            if delay == 0.25 then yielded = true; break end
+        end
+        assert.is_true(yielded)
+    end)
+
+    it("idle-warms a virtual folder cover with the visible page books", function()
+        local FileChooser = require("ui/widget/filechooser")
+        folder_cover_mode = "gallery"
+        require("modules/filebrowser/patches/cover_preload")()
+        local series = {
+            text = "Saga",
+            path = "/library/Saga",
+            is_directory = true,
+            is_series_group = true,
+            series_items = {
+                { is_file = true, path = "/saga-1.epub" },
+                { is_file = true, path = "/saga-2.epub" },
+            },
+            attr = { mode = "directory" },
+        }
+        local menu = {
+            _zen_needs_full_listing = true,
+            perpage = 2,
+            display_mode_type = "mosaic",
+            show_parent = { invisible = true },
+            cover_specs = { max_cover_w = 100, max_cover_h = 150, uniform = true },
+        }
+
+        assert.is_true(FileChooser._zen_warm_cover_page(menu, {
+            { is_file = true, path = "/loose.epub" },
+            series,
+        }, 1))
+        while #scheduled > 0 do table.remove(scheduled, 1)() end
+
+        assert.are.same({ "/loose.epub" }, warmed)
+        assert.are.same({
+            "cover:/loose.epub", "gallery:/library/Saga",
+        }, preload_order)
+        assert.are.equal(1, #gallery_warms)
+        assert.are.equal(series, gallery_warms[1].entry)
+        assert.are.same(series.series_items, gallery_warms[1].options.entries)
+        assert.are.same({}, dirty)
+        assert.are.equal(2, metric_value(measurements[#measurements], "cover_jobs="))
+        assert.are.equal(2, metric_value(measurements[#measurements], "warmed="))
+    end)
+
+    it("uses final physical and virtual folder bounds during idle rendering", function()
+        local FileChooser = require("ui/widget/filechooser")
+        folder_preview_entries["/physical"] = { "/physical/book.epub" }
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            _zen_needs_full_listing = true,
+            perpage = 2,
+            display_mode_type = "mosaic",
+            show_parent = { invisible = true },
+            cover_specs = { max_cover_w = 275, max_cover_h = 413, uniform = true },
+        }
+        local items = {
+            { path = "/physical", attr = { mode = "directory" } },
+            {
+                path = "/virtual",
+                is_series_group = true,
+                series_items = {
+                    { is_file = true, path = "/virtual/book.epub" },
+                },
+            },
+        }
+
+        assert.is_true(FileChooser._zen_warm_cover_page(menu, items, 1))
+        while #scheduled > 0 do table.remove(scheduled, 1)() end
+
+        assert.are.same({
+            { path = "/physical/book.epub", width = 275, height = 412 },
+            { path = "/virtual/book.epub", width = 275, height = 412 },
+        }, render_calls)
+    end)
+
+    it("derives deferred cover dimensions before the first tile exists", function()
+        local FileChooser = require("ui/widget/filechooser")
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            _zen_needs_full_listing = true,
+            perpage = 1,
+            item_width = 100,
+            item_height = 150,
+            display_mode_type = "mosaic",
+            show_parent = { invisible = true },
+        }
+
+        assert.is_true(FileChooser._zen_warm_cover_page(menu, {
+            { is_file = true, path = "/first.epub" },
+        }, 1))
+        table.remove(scheduled, 1)()
+
+        assert.are.same({
+            { path = "/first.epub", width = 96, height = 144 },
+        }, render_calls)
+        assert.are.same({}, dirty)
+    end)
+
+    it("cancels an idle page warm without letting a stale tick continue", function()
+        local FileChooser = require("ui/widget/filechooser")
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            _zen_needs_full_listing = true,
+            perpage = 3,
+            display_mode_type = "mosaic",
+            show_parent = { invisible = true },
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+        local items = {
+            { is_file = true, path = "/one.epub" },
+            { is_file = true, path = "/two.epub" },
+            { is_file = true, path = "/three.epub" },
+        }
+
+        local completed = 0
+        assert.is_true(FileChooser._zen_warm_cover_page(menu, items, 1, function()
+            completed = completed + 1
+        end))
+        table.remove(scheduled, 1)()
+        local stale_tick = scheduled[1]
+        assert.are.same({ "/one.epub" }, warmed)
+        assert.are.equal(0, completed)
+
+        assert.is_true(FileChooser._zen_cancel_warm_cover_page(menu, "left_home"))
+        assert.are.equal(0, #scheduled)
+        stale_tick()
+
+        assert.are.same({ "/one.epub" }, warmed)
+        assert.are.same({}, dirty)
+        assert.is_nil(menu._zen_cover_page_warm_state)
+        assert.are.equal("Cover page idle warm cancelled", measurements[#measurements][1])
+        assert.are.equal("left_home", metric_value(measurements[#measurements], "reason="))
+    end)
+
+    it("stops an idle page warm when its resource guard changes", function()
+        local FileChooser = require("ui/widget/filechooser")
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            _zen_needs_full_listing = true,
+            perpage = 2,
+            display_mode_type = "mosaic",
+            show_parent = { invisible = true },
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+        local items = {
+            { is_file = true, path = "/one.epub" },
+            { is_file = true, path = "/two.epub" },
+        }
+
+        assert.is_true(FileChooser._zen_warm_cover_page(menu, items, 1))
+        memory_pressure = "low"
+        table.remove(scheduled, 1)()
+
+        assert.are.same({}, warmed)
+        assert.are.same({}, dirty)
+        assert.is_nil(menu._zen_cover_page_warm_state)
+        assert.are.equal("memory_low", metric_value(measurements[#measurements], "reason="))
+
+        memory_pressure = "normal"
+        extracting = true
+        assert.is_false(FileChooser._zen_warm_cover_page(menu, items, 1))
+        extracting = false
+        menu.show_parent.invisible = nil
+        assert.is_false(FileChooser._zen_warm_cover_page(menu, items, 1))
+        menu.show_parent.invisible = true
+        device.screen_saver_mode = true
+        assert.is_false(FileChooser._zen_warm_cover_page(menu, items, 1))
+        assert.are.equal(0, #scheduled)
+    end)
+
+    it("caps a deferred page warm to twelve files", function()
+        local FileChooser = require("ui/widget/filechooser")
+        require("modules/filebrowser/patches/cover_preload")()
+        local items = {}
+        for index = 1, 15 do
+            items[index] = { is_file = true, path = "/" .. index .. ".epub" }
+        end
+        local menu = {
+            _zen_needs_full_listing = true,
+            perpage = 15,
+            display_mode_type = "mosaic",
+            show_parent = { invisible = true },
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        assert.is_true(FileChooser._zen_warm_cover_page(menu, items, 1))
+        while #scheduled > 0 do table.remove(scheduled, 1)() end
+
+        assert.are.equal(12, #warmed)
+        assert.are.equal(12, metric_value(measurements[#measurements], "cover_jobs="))
+        assert.are.same({}, dirty)
+    end)
+
+    it("warms every stack folder's first member before extra members", function()
+        local FileChooser = require("ui/widget/filechooser")
+        folder_cover_mode = "stack"
+        require("modules/filebrowser/patches/cover_preload")()
+        local items = {}
+        local expected_first = {}
+        for folder_index = 1, 7 do
+            local entries = {}
+            for book_index = 1, 4 do
+                entries[book_index] = "/folder-" .. folder_index
+                    .. "/book-" .. book_index .. ".epub"
+            end
+            expected_first[folder_index] = entries[1]
+            if folder_index == 4 then
+                items[folder_index] = {
+                    is_series_group = true,
+                    series_items = entries,
+                    path = "/series-4",
+                }
+            else
+                local path = "/folder-" .. folder_index
+                folder_preview_entries[path] = entries
+                items[folder_index] = {
+                    path = path,
+                    attr = { mode = "directory" },
+                }
+            end
+        end
+        local menu = {
+            _zen_needs_full_listing = true,
+            perpage = 7,
+            display_mode_type = "mosaic",
+            show_parent = { invisible = true },
+            cover_specs = { max_cover_w = 100, max_cover_h = 150, uniform = true },
+        }
+
+        assert.is_true(FileChooser._zen_warm_cover_page(menu, items, 1))
+        while #scheduled > 0 do table.remove(scheduled, 1)() end
+
+        assert.are.equal(12, #warmed)
+        for index = 1, 7 do assert.are.equal(expected_first[index], warmed[index]) end
+        assert.are.equal(7, #folder_preview_limits)
+        for _i, limit in ipairs(folder_preview_limits) do assert.are.equal(4, limit) end
+        for _i, call in ipairs(render_calls) do
+            assert.are.equal(72, call.width)
+            assert.are.equal(108, call.height)
+        end
+        assert.are.equal(12, metric_value(measurements[#measurements], "cover_jobs="))
+    end)
+
+    it("pre-renders non-uniform stack members at their fitted dimensions", function()
+        local FileChooser = require("ui/widget/filechooser")
+        folder_cover_mode = "stack"
+        folder_preview_entries["/folder"] = {
+            "/folder/first.epub", "/folder/second.epub",
+        }
+        book_infos["/folder/first.epub"] = { cover_w = 120, cover_h = 80 }
+        book_infos["/folder/second.epub"] = { cover_w = 120, cover_h = 80 }
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            _zen_needs_full_listing = true,
+            perpage = 1,
+            display_mode_type = "mosaic",
+            show_parent = { invisible = true },
+            cover_specs = { max_cover_w = 100, max_cover_h = 150, uniform = false },
+        }
+
+        assert.is_true(FileChooser._zen_warm_cover_page(menu, {
+            { path = "/folder", attr = { mode = "directory" } },
+        }, 1))
+        while #scheduled > 0 do table.remove(scheduled, 1)() end
+
+        assert.are.same({
+            { path = "/folder/first.epub", width = 72, height = 48 },
+            { path = "/folder/second.epub", width = 72, height = 48 },
+        }, render_calls)
+        assert.are.equal(2, metric_value(measurements[#measurements], "warmed="))
     end)
 
     it("warms only the next page and reports page and preload measurements", function()
@@ -445,7 +844,7 @@ describe("filebrowser cover preloading", function()
         }
 
         CoverMenu.updateItems(menu)
-        assert.are.equal(0.35, scheduled_delays[1])
+        assert.are.same({ 0.05, 0.35 }, scheduled_delays)
         local iterations = 0
         while #scheduled > 0 and iterations < 10 do
             iterations = iterations + 1
@@ -453,23 +852,91 @@ describe("filebrowser cover preloading", function()
             fn()
         end
 
-        assert.are.equal(1, iterations)
+        assert.are.equal(2, iterations)
+        assert.are.same({ "/next.epub" }, status_warmed)
         assert.are.same({
             "/next.epub",
             "/group-1.epub",
         }, warmed)
+        assert.are.same({
+            "status:/next.epub",
+            "cover:/next.epub",
+            "cover:/group-1.epub",
+        }, preload_order)
         assert.are.same({ 1 }, folder_preview_limits)
-        assert.are.equal(2, #measurements)
         assert.are.equal("Cover page updated", measurements[1][1])
-        assert.are.equal("Cover preload completed", measurements[2][1])
-        assert.are.equal(2, metric_value(measurements[2], "decoded_warmed="))
-        assert.are.equal(2, metric_value(measurements[2], "final_render_warmed="))
-        assert.are.equal(0, metric_value(measurements[2], "generated_warmed="))
-        assert.are.equal(0, metric_value(measurements[2], "failed="))
+        local status_preload = measurement_named("Cover status preload completed")
+        local cover_preload = measurement_named("Cover preload completed")
+        assert.are.equal(1, metric_value(status_preload, "status_jobs="))
+        assert.are.equal(1, metric_value(status_preload, "warmed="))
+        assert.are.equal("completed", metric_value(status_preload, "reason="))
+        assert.are.equal(2, metric_value(cover_preload, "decoded_warmed="))
+        assert.are.equal(2, metric_value(cover_preload, "final_render_warmed="))
+        assert.are.equal(0, metric_value(cover_preload, "generated_warmed="))
+        assert.are.equal(0, metric_value(cover_preload, "failed="))
         assert.are.same({
             { path = "/next.epub", width = 100, height = 150 },
             { path = "/group-1.epub", width = 100, height = 150 },
         }, render_calls)
+    end)
+
+    it("interleaves cover work with a multi-tick adjacent status queue", function()
+        local CoverMenu = require("covermenu")
+        local items = {}
+        local expected_status = {}
+        for index = 1, 5 do
+            items[#items + 1] = {
+                is_file = true, path = "/current-" .. index .. ".epub",
+            }
+        end
+        for index = 1, 5 do
+            local path = "/next-" .. index .. ".epub"
+            items[#items + 1] = { is_file = true, path = path }
+            expected_status[index] = path
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = items,
+            page = 1, page_num = 2, perpage = 5,
+            display_mode_type = "mosaic",
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        table.remove(scheduled, 1)()
+        assert.are.same({
+            expected_status[1], expected_status[2],
+            expected_status[3], expected_status[4],
+        }, status_warmed)
+        assert.are.same({}, warmed)
+
+        table.remove(scheduled, 1)()
+        assert.are.same({
+            expected_status[1], expected_status[2],
+            expected_status[3], expected_status[4],
+        }, warmed)
+        assert.are.same({
+            "status:" .. expected_status[1],
+            "status:" .. expected_status[2],
+            "status:" .. expected_status[3],
+            "status:" .. expected_status[4],
+            "cover:" .. expected_status[1],
+            "cover:" .. expected_status[2],
+            "cover:" .. expected_status[3],
+            "cover:" .. expected_status[4],
+        }, preload_order)
+
+        while #scheduled > 0 do table.remove(scheduled, 1)() end
+        assert.are.same(expected_status, status_warmed)
+        assert.are.same(expected_status, warmed)
+        assert.are.equal("status:" .. expected_status[5], preload_order[9])
+        assert.are.equal("cover:" .. expected_status[5], preload_order[10])
+        assert.is_nil(menu._zen_cover_status_preload_fn)
+        assert.is_nil(menu._zen_cover_preload_fn)
+        assert.are.equal(5,
+            metric_value(measurement_named("Cover status preload completed"), "warmed="))
+        assert.are.equal(5,
+            metric_value(measurement_named("Cover preload completed"), "warmed="))
     end)
 
     it("preloads one physical-folder candidate for single-cover mode", function()
@@ -529,7 +996,7 @@ describe("filebrowser cover preloading", function()
         assert.are.equal(1, metric_value(measurements[#measurements], "gallery_warmed="))
     end)
 
-    it("skips delayed jobs for cached generated and gallery covers", function()
+    it("status-prewarms adjacent files when every cover job is cached", function()
         local CoverMenu = require("covermenu")
         folder_cover_mode = "gallery"
         folder_preview_entries["/folder"] = {
@@ -558,12 +1025,53 @@ describe("filebrowser cover preloading", function()
 
         CoverMenu.updateItems(menu)
 
-        assert.are.equal(0, #scheduled)
+        assert.are.equal(1, #scheduled)
+        assert.are.equal(0.05, scheduled_delays[1])
         assert.are.same({}, warmed)
         assert.are.equal(0, #gallery_warms)
-        assert.are.equal(1, metric_value(measurements[2], "generated_cached="))
-        assert.are.equal(1, metric_value(measurements[2], "gallery_cached="))
-        assert.are.equal(2, metric_value(measurements[2], "already_cached="))
+        table.remove(scheduled, 1)()
+
+        assert.are.same({ "/placeholder.epub" }, status_warmed)
+        local cover_preload = measurement_named("Cover preload completed")
+        local status_preload = measurement_named("Cover status preload completed")
+        assert.are.equal(1, metric_value(cover_preload, "generated_cached="))
+        assert.are.equal(1, metric_value(cover_preload, "gallery_cached="))
+        assert.are.equal(2, metric_value(cover_preload, "already_cached="))
+        assert.are.equal(1, metric_value(status_preload, "warmed="))
+    end)
+
+    it("cancels stale adjacent status and cover queues on the next page update", function()
+        local CoverMenu = require("covermenu")
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = {
+                { is_file = true, path = "/current.epub" },
+                { is_file = true, path = "/stale.epub" },
+                { is_file = true, path = "/latest.epub" },
+            },
+            page = 1, page_num = 3, perpage = 1,
+            display_mode_type = "mosaic",
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        local stale_status_tick = scheduled[1]
+        local stale_cover_tick = scheduled[2]
+        menu.page = 2
+        CoverMenu.updateItems(menu)
+        stale_status_tick()
+        stale_cover_tick()
+        assert.are.same({}, status_warmed)
+        assert.are.same({}, warmed)
+
+        while #scheduled > 0 do table.remove(scheduled, 1)() end
+        assert.are.same({ "/latest.epub" }, status_warmed)
+        assert.are.same({ "/latest.epub" }, warmed)
+        assert.is_nil(menu._zen_cover_status_preload_state)
+        assert.is_nil(menu._zen_cover_status_preload_fn)
+        assert.is_nil(menu._zen_cover_status_preload_jobs)
+        assert.is_nil(menu._zen_cover_preload_fn)
+        assert.is_nil(menu._zen_cover_preload_jobs)
     end)
 
     it("warms ordinary page covers before prioritizing gallery composites", function()
@@ -588,7 +1096,9 @@ describe("filebrowser cover preloading", function()
         CoverMenu.updateItems(menu)
         while #scheduled > 0 do table.remove(scheduled, 1)() end
 
-        assert.are.same({ "cover:/next.epub", "gallery:/folder" }, preload_order)
+        assert.are.same({
+            "status:/next.epub", "cover:/next.epub", "gallery:/folder",
+        }, preload_order)
     end)
 
     it("delegates generated gallery covers to the composite warmer", function()
@@ -677,8 +1187,11 @@ describe("filebrowser cover preloading", function()
 
         assert.are.equal(0, #scheduled)
         assert.are.same({}, warmed)
-        assert.are.equal("Cover preload skipped", measurements[2][1])
-        assert.are.equal("reason=memory_low", measurements[2][3])
+        assert.are.same({}, status_warmed)
+        local status_preload = measurement_named("Cover status preload skipped")
+        local cover_preload = measurement_named("Cover preload skipped")
+        assert.are.equal("memory_low", metric_value(status_preload, "reason="))
+        assert.are.equal("reason=memory_low", cover_preload[3])
     end)
 
     it("turns adjacent real and generated covers into final-render hits", function()
@@ -717,7 +1230,7 @@ describe("filebrowser cover preloading", function()
         CoverMenu.updateItems(menu)
         while #scheduled > 0 do table.remove(scheduled, 1)() end
 
-        local preload = measurements[2]
+        local preload = measurement_named("Cover preload completed")
         assert.are.equal(1, metric_value(preload, "final_render_warmed="))
         assert.are.equal(1, metric_value(preload, "generated_warmed="))
         assert.are.same({
@@ -750,7 +1263,7 @@ describe("filebrowser cover preloading", function()
         menu.page = 2
         CoverMenu.updateItems(menu)
 
-        local page_update = measurements[3]
+        local page_update = last_measurement_named("Cover page updated")
         assert.are.equal("Cover page updated", page_update[1])
         assert.are.equal(2, metric_value(page_update, "render_cache_hits="))
         assert.are.equal(0, metric_value(page_update, "render_cache_misses="))
@@ -789,7 +1302,8 @@ describe("filebrowser cover preloading", function()
         assert.are.same({
             { path = "/next.epub", width = 91, height = 137 },
         }, render_calls)
-        assert.are.equal(1, metric_value(measurements[2], "lookahead_pages="))
+        local preload = measurement_named("Cover preload completed")
+        assert.are.equal(1, metric_value(preload, "lookahead_pages="))
     end)
 
     it("warms non-uniform real covers at their natural aspect ratio", function()
@@ -926,9 +1440,12 @@ describe("filebrowser cover preloading", function()
         assert.are.equal("Cover page updated", measurements[1][1])
         assert.are.equal("next", metric_value(measurements[1], "page_turn_direction="))
         assert.is_true(metric_value(measurements[1], "input_to_update_ms=") > 0)
-        assert.are.equal("Cover page painted", measurements[2][1])
+        assert.are.equal("Cover first tile painted", measurements[2][1])
         assert.are.equal("next", metric_value(measurements[2], "page_turn_direction="))
-        assert.is_true(metric_value(measurements[2], "input_to_last_tile_ms=") > 0)
+        assert.is_true(metric_value(measurements[2], "input_to_first_tile_ms=") > 0)
+        assert.are.equal("Cover page painted", measurements[3][1])
+        assert.are.equal("next", metric_value(measurements[3], "page_turn_direction="))
+        assert.is_true(metric_value(measurements[3], "input_to_last_tile_ms=") > 0)
     end)
 
     it("measures FileChooser's concrete page-turn handler", function()
@@ -1054,7 +1571,101 @@ describe("filebrowser cover preloading", function()
         assert.is_nil(menu._zen_cover_direct_jump_active)
     end)
 
-    it("reveals a cold mosaic page once after all first-pass hydration", function()
+    it("reveals ordinary page turns before top-left hydration", function()
+        local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
+        local Menu = require("ui/widget/menu")
+        local UIManager = require("ui/uimanager")
+        local hydrated = {}
+        next_page = function(menu)
+            menu.page = menu.page + 1
+            return CoverMenu.updateItems(menu)
+        end
+        update_items = function(menu)
+            UIManager:setDirty(menu.show_parent, "ui")
+            local positions = { 200, 100 }
+            for index = 1, 2 do
+                local item = {
+                    menu = menu,
+                    _zen_cover_hydration_queued = true,
+                    dimen = Geom:new{ x = positions[index], y = 100, w = 90, h = 120 },
+                }
+                item.update = function(self)
+                    hydrated[#hydrated + 1] = positions[index]
+                    self._has_cover_image = true
+                end
+                menu._zen_cover_hydration_items[#menu._zen_cover_hydration_items + 1] = item
+            end
+            menu:_zen_request_cover_hydration()
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = {
+                { is_file = true, path = "/one.epub" },
+                { is_file = true, path = "/two.epub" },
+            },
+            page = 1, page_num = 2, perpage = 1,
+            display_mode_type = "mosaic", show_parent = {},
+            dimen = Geom:new{ x = 0, y = 0, w = 600, h = 800 },
+            title_bar = { dimen = { h = 50 } },
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        Menu.onNextPage(menu)
+
+        assert.are.equal(1, #dirty)
+        assert.are.same({}, hydrated)
+        assert.are.equal("immediate_turn",
+            metric_value(measurements[#measurements], "reason="))
+        assert.are.equal(0, scheduled_delays[1])
+
+        table.remove(scheduled, 1)()
+
+        assert.are.same({ 100, 200 }, hydrated)
+        assert.are.equal(2, #dirty)
+        assert.are.same({ x = 100, y = 100, w = 190, h = 120 }, dirty[2].region)
+    end)
+
+    it("clears the prior full grid on a turn to a partial last page", function()
+        local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
+        local Menu = require("ui/widget/menu")
+        local UIManager = require("ui/uimanager")
+        next_page = function(menu)
+            menu.page = menu.page + 1
+            return CoverMenu.updateItems(menu)
+        end
+        update_items = function(menu)
+            UIManager:setDirty(menu.show_parent, "ui")
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = {
+                { is_file = true, path = "/one.epub" },
+                { is_file = true, path = "/two.epub" },
+                { is_file = true, path = "/three.epub" },
+                { is_file = true, path = "/four.epub" },
+                { is_file = true, path = "/five.epub" },
+            },
+            page = 1, page_num = 2, perpage = 4, nb_cols = 2,
+            item_height = 200, item_margin = 10,
+            display_mode_type = "mosaic", show_parent = {},
+            dimen = Geom:new{ x = 0, y = 0, w = 600, h = 760 },
+            title_bar = { dimen = { h = 50 } },
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        dirty = {}
+        Menu.onNextPage(menu)
+
+        assert.are.equal(1, #dirty)
+        assert.are.same({ x = 0, y = 50, w = 600, h = 430 }, dirty[1].region)
+        assert.are.equal(56.6, metric_value(measurements[#measurements - 1],
+            "refresh_region_pct="))
+    end)
+
+    it("reveals a cold mosaic page before one combined hydration repaint", function()
         local CoverMenu = require("covermenu")
         local Geom = require("ui/geometry")
         local UIManager = require("ui/uimanager")
@@ -1090,23 +1701,22 @@ describe("filebrowser cover preloading", function()
         }
 
         CoverMenu.updateItems(menu)
-        assert.are.same({}, dirty)
+        assert.are.equal(1, #dirty)
+        assert.are.equal("Cover page revealed", measurements[2][1])
+        assert.are.equal("immediate", metric_value(measurements[2], "reason="))
 
         table.remove(scheduled, 1)()
         assert.are.same({ 1 }, hydrated)
-        assert.are.same({}, dirty)
+        assert.are.equal(1, #dirty)
 
         table.remove(scheduled, 1)()
         assert.are.same({ 1, 2 }, hydrated)
-        assert.are.equal(1, #dirty)
-        assert.are.equal("ui", dirty[1].mode)
-        assert.is_true(dirty[1].dither)
-        assert.are.equal("Cover page revealed", measurements[#measurements][1])
-        assert.are.equal("hydrated", metric_value(measurements[#measurements], "reason="))
-        assert.are.equal(2, metric_value(measurements[#measurements], "queued="))
+        assert.are.equal(2, #dirty)
+        assert.are.equal("ui", dirty[2].mode)
+        assert.is_true(dirty[2].dither)
+        assert.are.equal("Cover hydration refresh submitted", measurements[#measurements][1])
         assert.are.equal(2, metric_value(measurements[#measurements], "hydrated="))
-        assert.are.equal(0, metric_value(measurements[#measurements], "fallbacks="))
-        assert.is_true(metric_value(measurements[#measurements], "combined_refresh="))
+        assert.are.same({ x = 100, y = 100, w = 190, h = 120 }, dirty[2].region)
     end)
 
     it("reveals generated fallbacks without waiting for missing metadata", function()
@@ -1155,13 +1765,13 @@ describe("filebrowser cover preloading", function()
         }
 
         CoverMenu.updateItems(menu)
-        assert.are.same({}, dirty)
+        assert.are.equal(1, #dirty)
+        assert.are.equal("immediate", metric_value(measurements[2], "reason="))
         table.remove(scheduled, 1)()
 
         assert.are.equal(1, #dirty)
-        assert.are.equal("Cover page revealed", measurements[#measurements][1])
-        assert.are.equal("fallback", metric_value(measurements[#measurements], "reason="))
-        assert.are.equal(1, metric_value(measurements[#measurements], "fallbacks="))
+        assert.are.equal("Cover hydration completed", measurements[#measurements][1])
+        assert.are.equal(1, metric_value(measurements[#measurements], "failed="))
     end)
 
     it("batches extracted-cover hydration into one later repaint", function()
@@ -1207,8 +1817,91 @@ describe("filebrowser cover preloading", function()
         assert.are.equal("ui", dirty[2].mode)
     end)
 
+    it("combines initial hydration and extraction into one follow-up refresh", function()
+        local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
+        local UIManager = require("ui/uimanager")
+        local hydrated = {}
+        update_items = function(menu)
+            UIManager:setDirty(menu.show_parent, "ui")
+            local initial = {
+                menu = menu,
+                dimen = Geom:new{ x = 10, y = 20, w = 90, h = 120 },
+                _zen_cover_hydration_queued = true,
+            }
+            initial.update = function(self)
+                hydrated[#hydrated + 1] = "initial"
+                self._has_cover_image = true
+            end
+            menu._zen_cover_hydration_items[1] = initial
+            menu:_zen_request_cover_hydration()
+
+            local extracted = {
+                menu = menu,
+                filepath = "/extracted.epub",
+                dimen = Geom:new{ x = 200, y = 20, w = 90, h = 120 },
+            }
+            extracted.update = function(self)
+                hydrated[#hydrated + 1] = "extracted"
+                self._has_cover_image = true
+            end
+            menu.items_to_update = { extracted }
+            menu.items_update_action = function()
+                table.remove(menu.items_to_update, 1)
+                extracted._zen_cover_hydration_queued = true
+                menu._zen_cover_hydration_items[1] = extracted
+                menu:_zen_request_cover_hydration()
+                UIManager:setDirty(menu.show_parent, "ui")
+            end
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = { { is_file = true, path = "/book.epub" } },
+            page = 1, page_num = 1, perpage = 1,
+            display_mode_type = "mosaic", show_parent = {},
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        table.remove(scheduled, 2)()
+
+        assert.are.same({ "initial" }, hydrated)
+        assert.are.equal(1, #dirty)
+        assert.are.equal("Cover hydration refresh deferred", measurements[#measurements][1])
+
+        table.remove(scheduled, 1)()
+        table.remove(scheduled, 1)()
+
+        assert.are.same({ "initial", "extracted" }, hydrated)
+        assert.are.equal(2, #dirty)
+        assert.are.same({ x = 10, y = 20, w = 280, h = 120 }, dirty[2].region)
+        local submissions = 0
+        for index = 1, #measurements do
+            if measurements[index][1] == "Cover hydration refresh submitted" then
+                submissions = submissions + 1
+            end
+        end
+        assert.are.equal(1, submissions)
+
+        local late = {
+            menu = menu,
+            dimen = Geom:new{ x = 400, y = 20, w = 90, h = 120 },
+            _zen_cover_hydration_queued = true,
+        }
+        late.update = function(self) self._has_cover_image = true end
+        menu._zen_cover_hydration_items[1] = late
+        menu:_zen_request_cover_hydration()
+        table.remove(scheduled, 1)()
+
+        assert.is_true(late._has_cover_image)
+        assert.are.equal(2, #dirty)
+        assert.are.equal("Cover hydration refresh skipped", measurements[#measurements][1])
+        assert.are.equal("reason=already_submitted", measurements[#measurements][7])
+    end)
+
     it("discards a superseded staged reveal", function()
         local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
         local UIManager = require("ui/uimanager")
         local hydrated_pages = {}
         update_items = function(menu)
@@ -1217,6 +1910,7 @@ describe("filebrowser cover preloading", function()
             local item = {
                 menu = menu,
                 _zen_cover_hydration_queued = true,
+                dimen = Geom:new{ x = 20, y = page * 100, w = 90, h = 120 },
                 update = function(self)
                     hydrated_pages[#hydrated_pages + 1] = page
                     self._has_cover_image = true
@@ -1244,11 +1938,11 @@ describe("filebrowser cover preloading", function()
 
         stale()
         assert.are.same({}, hydrated_pages)
-        assert.are.same({}, dirty)
+        assert.are.equal(2, #dirty)
 
         current()
         assert.are.same({ 2 }, hydrated_pages)
-        assert.are.equal(1, #dirty)
+        assert.are.equal(3, #dirty)
     end)
 
     it("cancels a staged reveal when the cover menu closes", function()
@@ -1276,7 +1970,7 @@ describe("filebrowser cover preloading", function()
         CoverMenu.onCloseWidget(menu)
         stale()
 
-        assert.are.same({}, dirty)
+        assert.are.equal(1, #dirty)
         assert.is_nil(menu._zen_cover_reveal)
     end)
 
@@ -1321,7 +2015,7 @@ describe("filebrowser cover preloading", function()
         CoverMenu.updateItems(menu)
 
         assert.are.equal(1, #scheduled)
-        assert.are.equal(0.05, scheduled_delays[#scheduled_delays])
+        assert.are.equal(0, scheduled_delays[#scheduled_delays])
         extracting = true
         table.remove(scheduled, 1)()
 
@@ -1329,7 +2023,7 @@ describe("filebrowser cover preloading", function()
         assert.are.equal(0, #scheduled)
         assert.are.same({ x = 20, y = 200, w = 200, h = 90 }, dirty[1].region)
         assert.is_true(dirty[1].dither)
-        assert.are.equal("Cover hydration completed", measurements[#measurements][1])
+        assert.are.equal("Cover hydration refresh submitted", measurements[#measurements][1])
         assert.are.equal(1, metric_value(measurements[#measurements], "hydrated="))
     end)
 
@@ -1371,14 +2065,14 @@ describe("filebrowser cover preloading", function()
         table.remove(scheduled, 1)()
         assert.are.same({ 1 }, hydrated)
         assert.are.equal(1, #scheduled)
-        assert.are.equal(0.05, scheduled_delays[#scheduled_delays])
+        assert.are.equal(0, scheduled_delays[#scheduled_delays])
         assert.are.same({}, dirty)
 
         table.remove(scheduled, 1)()
         assert.are.same({ 1, 2 }, hydrated)
         assert.are.equal(1, #dirty)
         assert.are.same({ x = 100, y = 100, w = 190, h = 120 }, dirty[1].region)
-        assert.are.equal(2, metric_value(measurements[#measurements], "chunks="))
+        assert.are.equal(2, metric_value(measurements[#measurements - 1], "chunks="))
     end)
 
     it("bounds ordinary cover hydration across scheduled ticks", function()
@@ -1418,23 +2112,31 @@ describe("filebrowser cover preloading", function()
         table.remove(scheduled, 1)()
         assert.are.same({ 1, 2, 3, 4 }, hydrated)
         assert.are.equal(1, #scheduled)
-        assert.are.equal(0.05, scheduled_delays[#scheduled_delays])
+        assert.are.equal(0, scheduled_delays[#scheduled_delays])
 
         table.remove(scheduled, 1)()
         assert.are.same({ 1, 2, 3, 4, 5 }, hydrated)
-        assert.are.equal(2, metric_value(measurements[#measurements], "chunks="))
+        assert.are.equal(2, metric_value(measurements[#measurements - 1], "chunks="))
     end)
 
-    it("cancels cover work while FileManager is hidden under startup Home", function()
+    it("retains startup Home hydration until FileManager is revealed", function()
         local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
+        local hydrated = {}
         update_items = function(menu)
-            local item = {
-                menu = menu,
-                _zen_cover_hydration_queued = true,
-                update = function() error("hidden hydration ran") end,
-            }
-            menu._zen_cover_hydration_items[1] = item
-            menu:_zen_request_cover_hydration()
+            for index = 1, 2 do
+                local item = {
+                    menu = menu,
+                    _zen_cover_hydration_queued = true,
+                    dimen = Geom:new{ x = index * 100, y = 20, w = 90, h = 120 },
+                    update = function(self)
+                        hydrated[#hydrated + 1] = index
+                        self._has_cover_image = true
+                    end,
+                }
+                menu._zen_cover_hydration_items[1] = item
+                menu:_zen_request_cover_hydration()
+            end
         end
         require("modules/filebrowser/patches/cover_preload")()
         local menu = {
@@ -1448,9 +2150,572 @@ describe("filebrowser cover preloading", function()
         CoverMenu.updateItems(menu)
 
         assert.are.same({}, scheduled)
+        assert.are.same({}, hydrated)
         assert.are.same({}, menu._zen_cover_hydration_items)
+        assert.are.equal(2, #menu._zen_cover_suspended_hydration_items)
+        local page_update = measurement_named("Cover page updated")
+        assert.are.equal(2, metric_value(page_update, "hydration_queued="))
         assert.are.equal("Cover preload skipped", measurements[#measurements][1])
         assert.are.equal("reason=hidden_home_startup", measurements[#measurements][3])
+
+        menu._zen_hidden_home_startup = nil
+        assert.is_true(menu:_zen_resume_visible_cover_work())
+        table.remove(scheduled, 1)()
+
+        assert.are.same({ 1, 2 }, hydrated)
+        assert.is_nil(menu._zen_cover_suspended_hydration_items)
+        assert.are.equal(1, #dirty)
+    end)
+
+    it("prewarms real and virtual folder tiles behind startup Home", function()
+        local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
+        local UIManager = require("ui/uimanager")
+        local hydrated = {}
+        local parent = { invisible = true }
+        update_items = function(menu)
+            local cases = {
+                {
+                    label = "physical",
+                    entry = { path = "/folder", attr = { mode = "directory" } },
+                },
+                {
+                    label = "virtual",
+                    entry = { is_series_group = true, series_items = {} },
+                },
+                {
+                    label = "book",
+                    entry = { is_file = true, path = "/book.epub" },
+                    kind = "book",
+                },
+            }
+            for index, case in ipairs(cases) do
+                local label = case.label
+                local item = {
+                    menu = menu,
+                    entry = case.entry,
+                    _zen_cover_hydration_queued = true,
+                    _zen_cover_hydration_kind = case.kind or "folder",
+                    dimen = Geom:new{ x = index * 100, y = 20, w = 90, h = 120 },
+                    update = function(self)
+                        if label == "book" then error("book prewarmed behind Home") end
+                        assert.is_true(self._zen_folder_hydrating)
+                        hydrated[#hydrated + 1] = label
+                        self._has_cover_image = true
+                        UIManager:setDirty(menu.show_parent, "ui")
+                    end,
+                }
+                menu._zen_cover_hydration_items[1] = item
+                menu:_zen_request_cover_hydration()
+            end
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            _zen_hidden_home_startup = true,
+            item_table = { { is_file = true, path = "/book.epub" } },
+            page = 1, page_num = 1, perpage = 1,
+            display_mode_type = "mosaic", show_parent = parent,
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        local started, jobs = menu:_zen_start_hidden_folder_prewarm(function()
+            return true
+        end)
+
+        assert.is_true(started)
+        assert.are.equal(2, jobs)
+        assert.are.equal(1, #scheduled)
+        assert.are.equal(0.05, scheduled_delays[#scheduled_delays])
+        table.remove(scheduled, 1)()
+        assert.are.same({ "physical" }, hydrated)
+        assert.are.same({}, dirty)
+        assert.are.equal(1, #scheduled)
+        table.remove(scheduled, 1)()
+
+        assert.are.same({ "physical", "virtual" }, hydrated)
+        assert.are.same({}, dirty)
+        assert.is_true(parent.dithered)
+        assert.is_nil(menu._zen_hidden_folder_prewarm_state)
+        assert.is_nil(menu._zen_cover_pending_refresh)
+        assert.are.equal(1, #menu._zen_cover_suspended_hydration_items)
+        assert.are.equal("book",
+            menu._zen_cover_suspended_hydration_items[1]._zen_cover_hydration_kind)
+    end)
+
+    it("preserves unfinished hidden folder work for an early Library reveal", function()
+        local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
+        local hydrated = {}
+        local parent = { invisible = true }
+        update_items = function(menu)
+            for index = 1, 2 do
+                local item_index = index
+                local item = {
+                    menu = menu,
+                    _zen_cover_hydration_queued = true,
+                    _zen_cover_hydration_kind = "folder",
+                    dimen = Geom:new{ x = index * 100, y = 20, w = 90, h = 120 },
+                    update = function(self)
+                        assert.is_true(self._zen_folder_hydrating)
+                        hydrated[#hydrated + 1] = item_index
+                        self._has_cover_image = true
+                    end,
+                }
+                menu._zen_cover_hydration_items[1] = item
+                menu:_zen_request_cover_hydration()
+            end
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            _zen_hidden_home_startup = true,
+            item_table = { { attr = { mode = "directory" }, path = "/folder" } },
+            page = 1, page_num = 1, perpage = 1,
+            display_mode_type = "mosaic", show_parent = parent,
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        assert.is_true(menu:_zen_start_hidden_folder_prewarm(function() return true end))
+        table.remove(scheduled, 1)()
+        assert.are.same({ 1 }, hydrated)
+        assert.are.same({}, dirty)
+
+        assert.is_true(menu:_zen_cancel_hidden_folder_prewarm("library_reveal"))
+        menu._zen_hidden_home_startup = nil
+        parent.invisible = nil
+        assert.is_true(menu:_zen_resume_visible_cover_work())
+        table.remove(scheduled, 1)()
+
+        assert.are.same({ 1, 2 }, hydrated)
+        assert.are.equal(1, #dirty)
+        assert.is_nil(menu._zen_cover_suspended_hydration_items)
+    end)
+
+    it("retries a coverless hidden folder when Library becomes visible", function()
+        local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
+        local attempts = 0
+        local parent = { invisible = true }
+        update_items = function(menu)
+            local item = {
+                menu = menu,
+                _zen_cover_hydration_queued = true,
+                _zen_cover_hydration_kind = "folder",
+                dimen = Geom:new{ x = 100, y = 20, w = 90, h = 120 },
+                update = function(self)
+                    attempts = attempts + 1
+                    self._has_cover_image = attempts > 1
+                end,
+            }
+            menu._zen_cover_hydration_items[1] = item
+            menu:_zen_request_cover_hydration()
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            _zen_hidden_home_startup = true,
+            item_table = { { attr = { mode = "directory" }, path = "/folder" } },
+            page = 1, page_num = 1, perpage = 1,
+            display_mode_type = "mosaic", show_parent = parent,
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        assert.is_true(menu:_zen_start_hidden_folder_prewarm(function() return true end))
+        table.remove(scheduled, 1)()
+
+        assert.are.equal(1, attempts)
+        assert.are.same({}, dirty)
+        assert.are.equal(1, #menu._zen_cover_suspended_hydration_items)
+        local retry = menu._zen_cover_suspended_hydration_items[1]
+        assert.is_true(retry._zen_cover_hydration_queued)
+        assert.are.equal("folder", retry._zen_cover_hydration_kind)
+
+        menu._zen_hidden_home_startup = nil
+        parent.invisible = nil
+        assert.is_true(menu:_zen_resume_visible_cover_work())
+        table.remove(scheduled, 1)()
+
+        assert.are.equal(2, attempts)
+        assert.are.equal(1, #dirty)
+        assert.is_nil(menu._zen_cover_suspended_hydration_items)
+    end)
+
+    it("suppresses every dirty target during hidden folder work", function()
+        local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
+        local UIManager = require("ui/uimanager")
+        local parent = { invisible = true }
+        update_items = function(menu)
+            local item = {
+                menu = menu,
+                _zen_cover_hydration_queued = true,
+                _zen_cover_hydration_kind = "folder",
+                dimen = Geom:new{ x = 100, y = 20, w = 90, h = 120 },
+                update = function(self)
+                    self._has_cover_image = true
+                    UIManager:setDirty(menu.show_parent, "ui")
+                    UIManager:setDirty(menu, "ui")
+                    UIManager:setDirty(nil, "full")
+                    UIManager:setDirty("all", "full")
+                end,
+            }
+            menu._zen_cover_hydration_items[1] = item
+            menu:_zen_request_cover_hydration()
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            _zen_hidden_home_startup = true,
+            item_table = { { attr = { mode = "directory" }, path = "/folder" } },
+            page = 1, page_num = 1, perpage = 1,
+            display_mode_type = "mosaic", show_parent = parent,
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        assert.is_true(menu:_zen_start_hidden_folder_prewarm(function() return true end))
+        table.remove(scheduled, 1)()
+
+        assert.are.same({}, dirty)
+        local completed = measurement_named("Hidden folder cover prewarm completed")
+        assert.are.equal(4, metric_value(completed, "suppressed_dirty="))
+    end)
+
+    it("finishes hidden folder work after yielding between bursts", function()
+        local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
+        local hydrated = {}
+        local parent = { invisible = true }
+        local advance
+        update_items = function(menu)
+            for index = 1, 4 do
+                local item_index = index
+                local item = {
+                    menu = menu,
+                    _zen_cover_hydration_queued = true,
+                    _zen_cover_hydration_kind = "folder",
+                    -- Monotonic coordinates keep the hydration sort deterministic.
+                    dimen = Geom:new{ x = index * 100, y = 20, w = 90, h = 120 },
+                    update = function(self)
+                        hydrated[#hydrated + 1] = item_index
+                        self._has_cover_image = true
+                        for _tick_index = 1, 80 do advance() end
+                    end,
+                }
+                menu._zen_cover_hydration_items[1] = item
+                menu:_zen_request_cover_hydration()
+            end
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        advance = require("common/zen_logger").now
+        local menu = {
+            _zen_hidden_home_startup = true,
+            item_table = { { attr = { mode = "directory" }, path = "/folder" } },
+            page = 1, page_num = 1, perpage = 1,
+            display_mode_type = "mosaic", show_parent = parent,
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        assert.is_true(menu:_zen_start_hidden_folder_prewarm(function() return true end))
+        local iterations = 0
+        while #scheduled > 0 and iterations < 24 do
+            iterations = iterations + 1
+            table.remove(scheduled, 1)()
+        end
+
+        assert.are.same({ 1, 2, 3, 4 }, hydrated)
+        assert.is_true(iterations < 24)
+        assert.are.same({}, dirty)
+        assert.is_nil(menu._zen_hidden_folder_prewarm_state)
+        assert.is_nil(menu._zen_cover_suspended_hydration_items)
+        local yielded = false
+        for _i, delay in ipairs(scheduled_delays) do
+            if delay > 0.05 then yielded = true; break end
+        end
+        assert.is_true(yielded)
+    end)
+
+    it("defers hidden folder work until background extraction settles", function()
+        local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
+        local attempts = 0
+        update_items = function(menu)
+            menu._zen_cover_hydration_items[1] = {
+                menu = menu,
+                _zen_cover_hydration_queued = true,
+                _zen_cover_hydration_kind = "folder",
+                dimen = Geom:new{ x = 100, y = 20, w = 90, h = 120 },
+                update = function(self)
+                    attempts = attempts + 1
+                    self._has_cover_image = true
+                end,
+            }
+            menu:_zen_request_cover_hydration()
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            _zen_hidden_home_startup = true,
+            item_table = { { attr = { mode = "directory" }, path = "/folder" } },
+            page = 1, page_num = 1, perpage = 1,
+            display_mode_type = "mosaic", show_parent = { invisible = true },
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        extracting = true
+        assert.is_true(menu:_zen_start_hidden_folder_prewarm(function() return true end))
+        assert.are.equal(0.5, scheduled_delays[#scheduled_delays])
+        table.remove(scheduled, 1)()
+
+        assert.are.equal(0, attempts)
+        assert.is_table(menu._zen_hidden_folder_prewarm_state)
+        assert.are.equal(0.5, scheduled_delays[#scheduled_delays])
+        extracting = false
+        table.remove(scheduled, 1)()
+
+        assert.are.equal(1, attempts)
+        assert.is_nil(menu._zen_hidden_folder_prewarm_state)
+        assert.are.same({}, dirty)
+        assert.is_table(measurement_named("Hidden folder cover prewarm deferred"))
+    end)
+
+    it("discards hidden folder jobs when cancellation is non-preserving", function()
+        local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
+        local hydrated = {}
+        local items = {}
+        local parent = { invisible = true }
+        update_items = function(menu)
+            local kinds = { "folder", "folder", "book" }
+            for index, kind in ipairs(kinds) do
+                local item_index = index
+                local item = {
+                    menu = menu,
+                    _zen_cover_hydration_queued = true,
+                    _zen_cover_hydration_kind = kind,
+                    dimen = Geom:new{ x = index * 100, y = 20, w = 90, h = 120 },
+                    update = function(self)
+                        hydrated[#hydrated + 1] = item_index
+                        self._has_cover_image = true
+                    end,
+                }
+                items[index] = item
+                menu._zen_cover_hydration_items[1] = item
+                menu:_zen_request_cover_hydration()
+            end
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            _zen_hidden_home_startup = true,
+            item_table = { { attr = { mode = "directory" }, path = "/folder" } },
+            page = 1, page_num = 1, perpage = 1,
+            display_mode_type = "mosaic", show_parent = parent,
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        assert.is_true(menu:_zen_start_hidden_folder_prewarm(function() return true end))
+        table.remove(scheduled, 1)()
+        local stale_tick = scheduled[1]
+        assert.are.same({ 1 }, hydrated)
+
+        assert.is_true(menu:_zen_cancel_hidden_folder_prewarm("left_home", "discard"))
+        assert.are.equal(0, #scheduled)
+        stale_tick()
+
+        assert.are.same({ 1 }, hydrated)
+        assert.are.same({}, dirty)
+        assert.is_nil(menu._zen_hidden_folder_prewarm_state)
+        assert.is_nil(menu._zen_cover_suspended_hydration_items)
+        assert.is_nil(menu._zen_cover_suspended_hydration_generation)
+        for _i, item in ipairs(items) do
+            assert.is_nil(item._zen_cover_hydration_queued)
+            assert.is_nil(item._zen_cover_hydration_kind)
+        end
+        local cancelled = measurement_named("Hidden folder cover prewarm cancelled")
+        assert.are.equal("discard", metric_value(cancelled, "mode="))
+        assert.are.equal("left_home", metric_value(cancelled, "reason="))
+    end)
+
+    it("refuses hydration and preload while covers are globally suppressed", function()
+        local CoverMenu = require("covermenu")
+        local UIManager = require("ui/uimanager")
+        local hydrated = false
+        update_items = function(menu)
+            UIManager:setDirty(menu.show_parent, "ui")
+            menu._zen_cover_hydration_items[1] = {
+                menu = menu,
+                _zen_cover_hydration_queued = true,
+                update = function(self)
+                    hydrated = true
+                    self._has_cover_image = true
+                end,
+            }
+            menu:_zen_request_cover_hydration()
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = {
+                { is_file = true, path = "/current.epub" },
+                { is_file = true, path = "/next.epub" },
+            },
+            page = 1, page_num = 2, perpage = 1,
+            display_mode_type = "mosaic", show_parent = {},
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+        _G.__ZEN_UI_SUPPRESS_FILEMANAGER_COVERS = true
+
+        CoverMenu.updateItems(menu)
+
+        assert.is_false(hydrated)
+        assert.are.same({}, scheduled)
+        assert.are.same({}, menu._zen_cover_hydration_items)
+        assert.are.equal("Cover preload skipped", measurements[#measurements][1])
+        assert.are.equal("reason=covers_suppressed", measurements[#measurements][3])
+    end)
+
+    it("suspends and resumes visible hydration across a Home overlay", function()
+        local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
+        local UIManager = require("ui/uimanager")
+        local parent = {}
+        local hydrated = false
+        update_items = function(menu)
+            menu._zen_cover_hydration_items[1] = {
+                menu = menu,
+                _zen_cover_hydration_queued = true,
+                dimen = Geom:new{ x = 10, y = 20, w = 90, h = 120 },
+                update = function(self)
+                    hydrated = true
+                    self._has_cover_image = true
+                end,
+            }
+            menu:_zen_request_cover_hydration()
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = { { is_file = true, path = "/book.epub" } },
+            page = 1, page_num = 1, perpage = 1,
+            display_mode_type = "mosaic", show_parent = parent,
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        local hydration = table.remove(scheduled, 1)
+        UIManager._window_stack = {
+            { widget = parent },
+            { widget = { name = "home" } },
+        }
+        hydration()
+
+        assert.is_false(hydrated)
+        assert.are.same({}, menu._zen_cover_hydration_items)
+        assert.are.equal(1, #menu._zen_cover_suspended_hydration_items)
+        assert.are.equal("Cover hydration skipped", measurements[#measurements][1])
+        assert.are.equal("reason=hidden_under_home", measurements[#measurements][3])
+
+        UIManager._window_stack = { { widget = parent } }
+        assert.is_true(menu:_zen_resume_visible_cover_work())
+        table.remove(scheduled, 1)()
+
+        assert.is_true(hydrated)
+        assert.is_nil(menu._zen_cover_suspended_hydration_items)
+        assert.are.equal(1, #dirty)
+        assert.are.equal("Cover hydration refresh submitted", measurements[#measurements][1])
+    end)
+
+    it("restarts extracted-cover polling after returning from Home", function()
+        local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
+        local UIManager = require("ui/uimanager")
+        local parent = {}
+        update_items = function(menu)
+            local item = {
+                filepath = "/pending.epub",
+                dimen = Geom:new{ x = 10, y = 20, w = 90, h = 120 },
+            }
+            menu.items_to_update = { item }
+            menu.items_update_action = function()
+                table.remove(menu.items_to_update, 1)
+                UIManager:setDirty(menu.show_parent, "ui")
+            end
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = { { is_file = true, path = "/pending.epub" } },
+            page = 1, page_num = 1, perpage = 1,
+            display_mode_type = "mosaic", show_parent = parent,
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        UIManager._window_stack = {
+            { widget = parent },
+            { widget = { name = "home" } },
+        }
+        table.remove(scheduled, 1)()
+
+        assert.are.equal(1, #menu.items_to_update)
+        assert.is_nil(menu._zen_cover_poll_action)
+
+        UIManager._window_stack = { { widget = parent } }
+        assert.is_true(menu:_zen_resume_visible_cover_work())
+        table.remove(scheduled, 1)()
+
+        assert.are.equal(0, #menu.items_to_update)
+        assert.are.equal(1, #dirty)
+        assert.are.same({ x = 10, y = 20, w = 90, h = 120 }, dirty[1].region)
+    end)
+
+    it("resumes a delayed extraction when Home arrives before launch", function()
+        local BookInfoManager = require("bookinfomanager")
+        local CoverMenu = require("covermenu")
+        local UIManager = require("ui/uimanager")
+        local parent = {}
+        update_items = function(menu)
+            local item = { filepath = "/pending.epub" }
+            menu.items_to_update = { item }
+            UIManager:nextTick(function()
+                BookInfoManager:extractInBackground({ {
+                    filepath = item.filepath,
+                    cover_specs = menu.cover_specs,
+                } })
+            end)
+            menu.items_update_action = function() end
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = { { is_file = true, path = "/pending.epub" } },
+            page = 1, page_num = 1, perpage = 1,
+            display_mode_type = "mosaic", show_parent = parent,
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        assert.are.same({ 0.15, 0.4 }, scheduled_delays)
+        UIManager._window_stack = {
+            { widget = parent },
+            { widget = { name = "home" } },
+        }
+        table.remove(scheduled, 1)()
+
+        assert.are.equal(0, #extraction_launches)
+        assert.is_table(menu._zen_cover_suspended_extract_launch)
+        assert.are.equal("Cover extraction suspended", measurements[#measurements][1])
+
+        UIManager._window_stack = { { widget = parent } }
+        assert.is_true(menu:_zen_resume_visible_cover_work())
+        assert.are.equal(0, #extraction_launches)
+        assert.are.equal(2, #scheduled)
+
+        table.remove(scheduled, 2)()
+
+        assert.are.equal(1, #extraction_launches)
+        assert.are.equal("/pending.epub", extraction_launches[1][1].filepath)
+        assert.is_nil(menu._zen_cover_suspended_extract_launch)
+        assert.are.equal(0, #dirty)
+        assert.are.equal("Cover extraction launched", measurements[#measurements][1])
     end)
 
     it("does not compete with extraction that starts during its delay", function()
@@ -1471,15 +2736,23 @@ describe("filebrowser cover preloading", function()
         CoverMenu.updateItems(menu)
         extracting = true
         table.remove(scheduled, 1)()
+        table.remove(scheduled, 1)()
 
         assert.are.same({}, warmed)
-        assert.are.equal("Cover preload skipped", measurements[2][1])
-        assert.are.equal("reason=background_extraction_after_delay", measurements[2][3])
+        local status_preload = measurement_named("Cover status preload skipped")
+        local cover_preload = measurement_named("Cover preload skipped")
+        assert.are.equal("background_extraction",
+            metric_value(status_preload, "reason="))
+        assert.are.equal("reason=background_extraction_after_delay", cover_preload[3])
     end)
 
     it("polls a visible extraction before CoverMenu's one-second interval", function()
+        local Geom = require("ui/geometry")
         update_items = function(menu)
-            menu.items_to_update = { { filepath = "/next.epub" } }
+            menu.items_to_update = { {
+                filepath = "/next.epub",
+                dimen = Geom:new{ x = 10, y = 20, w = 90, h = 120 },
+            } }
             menu.items_update_action = function()
                 require("ui/uimanager"):setDirty(menu.show_parent, "fast")
                 table.remove(menu.items_to_update, 1)
@@ -1545,8 +2818,12 @@ describe("filebrowser cover preloading", function()
         local BookInfoManager = require("bookinfomanager")
         local CoverMenu = require("covermenu")
         local UIManager = require("ui/uimanager")
+        local Geom = require("ui/geometry")
         update_items = function(menu)
-            local item = { filepath = "/final.epub" }
+            local item = {
+                filepath = "/final.epub",
+                dimen = Geom:new{ x = 10, y = 20, w = 90, h = 120 },
+            }
             menu.items_to_update = { item }
             UIManager:nextTick(function()
                 BookInfoManager:extractInBackground({ {
@@ -1586,6 +2863,57 @@ describe("filebrowser cover preloading", function()
         assert.are.equal("ui", dirty[1].mode)
         table.remove(scheduled, 1)()
         assert.are.equal(0, #scheduled)
+    end)
+
+    it("preserves a cover populated before the extraction watcher settles", function()
+        local BookInfoManager = require("bookinfomanager")
+        local CoverMenu = require("covermenu")
+        local Geom = require("ui/geometry")
+        local UIManager = require("ui/uimanager")
+        local path = "/early.epub"
+        update_items = function(menu)
+            local item = {
+                filepath = path,
+                dimen = Geom:new{ x = 10, y = 20, w = 90, h = 120 },
+            }
+            menu.items_to_update = { item }
+            UIManager:nextTick(function()
+                BookInfoManager:extractInBackground({ {
+                    filepath = path,
+                    cover_specs = menu.cover_specs,
+                } })
+            end)
+            menu.items_update_action = function()
+                decoded[path] = true
+                render_entries[render_key(path, 100, 150)] = true
+                table.remove(menu.items_to_update, 1)
+            end
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = { { is_file = true, path = path } },
+            page = 1, page_num = 1, perpage = 1,
+            display_mode_type = "mosaic", show_parent = {},
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        table.remove(scheduled, 1)()
+        table.remove(scheduled, 1)()
+
+        assert.is_true(extracting)
+        assert.is_true(decoded[path])
+        assert.are.equal(0, #menu.items_to_update)
+
+        extracting = false
+        table.remove(scheduled, 1)()
+
+        assert.is_true(decoded[path])
+        assert.are.same({}, decode_drops)
+        assert.are.same({}, render_drops)
+        assert.is_nil(BookInfoManager._zen_cover_extract_active)
+        assert.are.equal("Cover extraction reconciled", measurements[#measurements][1])
+        assert.are.equal(1, metric_value(measurements[#measurements], "preserved="))
     end)
 
     it("stops polling a permanently unresolved page after the settle limit", function()

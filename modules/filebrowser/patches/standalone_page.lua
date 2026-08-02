@@ -305,10 +305,10 @@ function M.apply_status_row(menu, params)
         set_title_row(build_row())
     end
 
-    menu._zen_status_refresh = function()
+    menu._zen_status_refresh = function(_self, suppress_repaint)
         if tb.title_group and #tb.title_group >= 2 then
             set_title_row(build_row())
-            if repaintTitleBar then repaintTitleBar(tb) end
+            if repaintTitleBar and suppress_repaint ~= true then repaintTitleBar(tb) end
         end
     end
 

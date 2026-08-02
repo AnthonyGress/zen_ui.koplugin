@@ -5,6 +5,7 @@ describe("automatic series grouping patch", function()
     local original_select_calls
     local cached_rows
     local doc_props_lookups
+    local original_refresh_calls
 
     local function item(path, title, access)
         return {
@@ -34,6 +35,7 @@ describe("automatic series grouping patch", function()
         original_select_calls = 0
         cached_rows = {}
         doc_props_lookups = 0
+        original_refresh_calls = 0
         G_reader_settings = ZenSpec.memorySettings({
             reverse_collate = false,
             collate_mixed = false,
@@ -59,7 +61,9 @@ describe("automatic series grouping patch", function()
                 self.changed_to = path
                 return "changed"
             end,
-            refreshPath = function() end,
+            refreshPath = function()
+                original_refresh_calls = original_refresh_calls + 1
+            end,
             goHome = function() return "home" end,
             switchItemTable = function(self, _title, new_items, itemnumber, itemmatch, subtitle)
                 self.item_table = new_items
@@ -253,6 +257,10 @@ describe("automatic series grouping patch", function()
 
     it("leaves ordinary selection and disabled grouping to KOReader", function()
         local fc = chooser()
+        local cache_clear_calls = 0
+        fc._zen_clear_item_table_cache = function()
+            cache_clear_calls = cache_clear_calls + 1
+        end
         local ordinary = item("/library/Plain.epub", "Plain")
         assert.are.equal("selected", FileChooser.onMenuSelect(fc, ordinary))
         assert.are.equal(1, original_select_calls)
@@ -261,5 +269,9 @@ describe("automatic series grouping patch", function()
         metadata[ordinary.path] = { series = "Saga", series_index = 1 }
         FileChooser.switchItemTable(fc, nil, { ordinary })
         assert.are.same({ ordinary }, fc.item_table)
+
+        FileChooser.refreshPath(fc)
+        assert.are.equal(1, original_refresh_calls)
+        assert.are.equal(0, cache_clear_calls)
     end)
 end)

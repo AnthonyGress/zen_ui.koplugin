@@ -800,7 +800,16 @@ local function close_zen_standalone_views(shared)
     end
 end
 
+local function cancel_item_table_cache_persist()
+    local ok, FileChooser = pcall(require, "ui/widget/filechooser")
+    if ok and FileChooser
+            and type(FileChooser._zen_cancel_item_table_cache_persist) == "function" then
+        FileChooser:_zen_cancel_item_table_cache_persist()
+    end
+end
+
 function ZenUI:onCloseWidget()
+    cancel_item_table_cache_persist()
     close_zen_standalone_views(self._zen_shared)
     i18n.uninstall()
 end
@@ -810,6 +819,7 @@ end
 function ZenUI:deletePluginSettings()
     zen_updater.cancel_wakeup_check()
     zen_updater._on_update_found = nil
+    cancel_item_table_cache_persist()
 
     -- Delete the dedicated settings folder.
     pcall(function()

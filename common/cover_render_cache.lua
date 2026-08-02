@@ -11,6 +11,8 @@ local M = {
     _retired = {},
     _hits = 0,
     _shared_hits = 0,
+    _exact_copy_hits = 0,
+    _resized_hits = 0,
     _misses = 0,
     _puts = 0,
     _evictions = 0,
@@ -27,8 +29,12 @@ local function free(bb)
     if bb and bb.free then pcall(bb.free, bb) end
 end
 
-local function key(path)
+local function path_key(path)
     return tostring(path)
+end
+
+local function exact_key(path, width, height)
+    return table.concat({ path_key(path), tostring(width), tostring(height) }, "\31")
 end
 
 local function same_aspect(width_a, height_a, width_b, height_b)
@@ -40,6 +46,25 @@ end
 local function is_reusable(entry, width, height)
     return entry ~= nil and entry.width >= width and entry.height >= height
         and same_aspect(entry.width, entry.height, width, height)
+end
+
+local function find_reusable(self, path, width, height)
+    local wanted_path = path_key(path)
+    local wanted_key = exact_key(path, width, height)
+    local exact = self._entries[wanted_key]
+    if exact then return exact, wanted_key end
+    local best
+    local best_area
+    local best_key
+    for cache_key, entry in pairs(self._entries) do
+        if entry.path_key == wanted_path and is_reusable(entry, width, height) then
+            local area = entry.width * entry.height
+            if not best_area or area < best_area then
+                best, best_area, best_key = entry, area, cache_key
+            end
+        end
+    end
+    return best, best_key
 end
 
 -- Takes ownership of source and returns an exact-size crop.
@@ -117,7 +142,7 @@ function M:_makeRoom(needed)
 end
 
 function M:get(path, width, height)
-    local entry = self._entries[key(path)]
+    local entry, cache_key = find_reusable(self, path, width, height)
     if not is_reusable(entry, width, height) then
         self._misses = self._misses + 1
         return nil
@@ -129,28 +154,35 @@ function M:get(path, width, height)
     end
     local resized = resize(copy, width, height)
     if not resized then
-        self:_drop(key(path), true)
+        self:_drop(cache_key, true)
         self._misses = self._misses + 1
         return nil
     end
     self._clock = self._clock + 1
     entry.touch = self._clock
     self._hits = self._hits + 1
+    if entry.width == width and entry.height == height then
+        self._exact_copy_hits = self._exact_copy_hits + 1
+    else
+        self._resized_hits = self._resized_hits + 1
+        -- Keep the first cross-layout resize so Home and Library can each hit
+        -- their exact size on subsequent renders, within the same byte budget.
+        self:put(path, width, height, resized)
+    end
     return resized
 end
 
 function M:hasReusable(path, width, height)
-    return is_reusable(self._entries[key(path)], width, height)
+    return find_reusable(self, path, width, height) ~= nil
 end
 
 function M:hasExact(path, width, height)
-    local entry = self._entries[key(path)]
-    return entry ~= nil and entry.width == width and entry.height == height
+    return self._entries[exact_key(path, width, height)] ~= nil
 end
 
 function M:touchExact(path, width, height)
-    local entry = self._entries[key(path)]
-    if not entry or entry.width ~= width or entry.height ~= height then return false end
+    local entry = self._entries[exact_key(path, width, height)]
+    if not entry then return false end
     self._clock = self._clock + 1
     entry.touch = self._clock
     return true
@@ -159,8 +191,8 @@ end
 -- Returns an immutable cache-owned bitmap. Callers must keep it
 -- non-disposable, never modify it, and pair the lease with releaseShared().
 function M:getShared(path, width, height)
-    local entry = self._entries[key(path)]
-    if not entry or entry.width ~= width or entry.height ~= height then
+    local entry = self._entries[exact_key(path, width, height)]
+    if not entry then
         self._misses = self._misses + 1
         return nil
     end
@@ -173,15 +205,16 @@ function M:getShared(path, width, height)
 end
 
 function M:releaseShared(path, bb)
-    local cache_key = key(path)
-    local entry = self._entries[cache_key]
-    if entry and entry.bb == bb and (entry.refs or 0) > 0 then
-        entry.refs = entry.refs - 1
-        return true
+    local wanted_path = path_key(path)
+    for _cache_key, entry in pairs(self._entries) do
+        if entry.path_key == wanted_path and entry.bb == bb and (entry.refs or 0) > 0 then
+            entry.refs = entry.refs - 1
+            return true
+        end
     end
     for index = #self._retired, 1, -1 do
-        entry = self._retired[index]
-        if entry.cache_key == cache_key and entry.bb == bb and (entry.refs or 0) > 0 then
+        local entry = self._retired[index]
+        if entry.path_key == wanted_path and entry.bb == bb and (entry.refs or 0) > 0 then
             entry.refs = entry.refs - 1
             if entry.refs == 0 then
                 table.remove(self._retired, index)
@@ -196,10 +229,9 @@ end
 
 function M:put(path, width, height, bb)
     if not path or not bb then return nil end
-    local cache_key = key(path)
+    local cache_key = exact_key(path, width, height)
     local existing = self._entries[cache_key]
-    if existing and existing.width >= width and existing.height >= height
-            and same_aspect(existing.width, existing.height, width, height) then
+    if existing then
         self._clock = self._clock + 1
         existing.touch = self._clock
         return bb
@@ -224,6 +256,7 @@ function M:put(path, width, height, bb)
     self._entries[cache_key] = {
         bb = stored,
         bytes = size,
+        path_key = path_key(path),
         touch = self._clock,
         width = width,
         height = height,
@@ -241,7 +274,7 @@ function M:putShared(path, width, height, bb)
     if size <= 0 or size > self._byte_budget then
         return bb, false
     end
-    local cache_key = key(path)
+    local cache_key = exact_key(path, width, height)
     if not self:_drop(cache_key) or not self:_makeRoom(size) then
         return bb, false
     end
@@ -249,6 +282,7 @@ function M:putShared(path, width, height, bb)
     self._entries[cache_key] = {
         bb = bb,
         bytes = size,
+        path_key = path_key(path),
         touch = self._clock,
         width = width,
         height = height,
@@ -296,7 +330,13 @@ function M:setByteBudget(value)
 end
 
 function M:drop(path)
-    return self:_drop(key(path))
+    local wanted_path = path_key(path)
+    local keys = {}
+    for cache_key, entry in pairs(self._entries) do
+        if entry.path_key == wanted_path then keys[#keys + 1] = cache_key end
+    end
+    for _i, cache_key in ipairs(keys) do self:_drop(cache_key) end
+    return true
 end
 
 function M:clear()
@@ -304,6 +344,7 @@ function M:clear()
     for cache_key in pairs(self._entries) do keys[#keys + 1] = cache_key end
     for _i, cache_key in ipairs(keys) do self:_drop(cache_key) end
     self._clock, self._hits, self._shared_hits, self._misses = 0, 0, 0, 0
+    self._exact_copy_hits, self._resized_hits = 0, 0
     self._puts, self._evictions = 0, 0
 end
 
@@ -313,6 +354,8 @@ function M:stats()
         byte_budget = self._byte_budget,
         hits = self._hits,
         shared_hits = self._shared_hits,
+        exact_copy_hits = self._exact_copy_hits,
+        resized_hits = self._resized_hits,
         misses = self._misses,
         puts = self._puts,
         evictions = self._evictions,

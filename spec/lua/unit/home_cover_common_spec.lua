@@ -169,6 +169,26 @@ describe("home cover rendering", function()
         assert.are.equal(1, releases)
     end)
 
+    it("keeps a near-exact cached bitmap at its native size", function()
+        local shared = {
+            getWidth = function() return 100 end,
+            getHeight = function() return 149 end,
+            free = function() end,
+        }
+        local RenderCache = require("common/cover_render_cache")
+        RenderCache.getShared = function() return shared end
+        local Cover = require("modules/filebrowser/patches/home/widgets/cover_common")
+        local frame = Cover.make_cover_widget({
+            path = "/library/rounded.epub",
+            cover_w = 600,
+            cover_h = 900,
+            has_real_cover = true,
+        }, 100, 150, { uniform = false })
+
+        assert.are.equal(100, frame[1][1].width)
+        assert.are.equal(149, frame[1][1].height)
+    end)
+
     it("reuses a compatible larger cached render without decoding the source", function()
         local compatible = { free = function() end }
         local RenderCache = require("common/cover_render_cache")
@@ -219,19 +239,21 @@ describe("home cover rendering", function()
         assert.are.equal(1, source_frees)
     end)
 
-    it("uses a cheap blank tile while a real cover is pending", function()
+    it("uses one cheap generated fallback while a real cover is pending", function()
         local Cover = require("modules/filebrowser/patches/home/widgets/cover_common")
-        local frame = Cover.make_cover_widget({
+        local result = { Cover.make_cover_widget({
             path = "/library/pending.epub",
             cover_w = 600,
             cover_h = 900,
             is_cover_pending = true,
-        }, 100, 150, { uniform = false })
+        }, 100, 150, { uniform = false }) }
+        local frame, needs_hydration = result[1], result[4]
         local placeholder = frame[1][1]
 
-        assert.is_nil(placeholder.image)
-        assert.are.equal(100, placeholder.dimen.w)
-        assert.are.equal(150, placeholder.dimen.h)
-        assert.are.equal(0, generated_calls)
+        assert.is_not_nil(placeholder.image)
+        assert.are.equal(100, placeholder.width)
+        assert.are.equal(150, placeholder.height)
+        assert.is_true(needs_hydration)
+        assert.are.equal(1, generated_calls)
     end)
 end)

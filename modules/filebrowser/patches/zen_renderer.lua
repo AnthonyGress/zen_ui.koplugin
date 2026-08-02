@@ -472,6 +472,15 @@ local function apply_zen_renderer()
     end
 
     function ZenMosaicItem:update()
+        local build_measure = self.menu and self.menu._zen_cover_build_measure
+        local function load_metadata()
+            if not build_measure then return metadata_without_cover(self.filepath) end
+            local started_at = now()
+            local result = metadata_without_cover(self.filepath)
+            build_measure.metadata_ms = (build_measure.metadata_ms or 0)
+                + (now() - started_at) * 1000
+            return result
+        end
         local hydrating_cover = self._zen_cover_hydrating == true
         local preserve_metadata_state = hydrating_cover and self._zen_metadata_ready == true
         local show_title, show_author = strip_options()
@@ -523,7 +532,7 @@ local function apply_zen_renderer()
             if uniform then
                 render_w, render_h = CoverUtils.calcDims(target_w, target_h)
             else
-                metadata = metadata_without_cover(self.filepath)
+                metadata = load_metadata()
                 if valid_real_cover(metadata, specs)
                         and tonumber(metadata.cover_w) and tonumber(metadata.cover_h) then
                     render_w, render_h = CoverUtils.fitDims(
@@ -532,7 +541,7 @@ local function apply_zen_renderer()
             end
             if render_w and render_h and RenderCache:hasReusable(
                     self.filepath, render_w, render_h) then
-                metadata = metadata or metadata_without_cover(self.filepath)
+                metadata = metadata or load_metadata()
                 if valid_real_cover(metadata, specs) then
                     info = metadata
                     cached_final = true
@@ -542,7 +551,7 @@ local function apply_zen_renderer()
             end
         end
         if not info then
-            metadata = metadata or metadata_without_cover(self.filepath)
+            metadata = metadata or load_metadata()
             if hydrating_cover and want_cover and not self.file_deleted
                     and valid_real_cover(metadata, specs) then
                 metadata = BookInfoManager:getBookInfo(self.filepath, true)
@@ -569,6 +578,7 @@ local function apply_zen_renderer()
         end
         local cover
         if metadata and not preserve_metadata_state then
+            local status_started_at = build_measure and now()
             local status_data = book_status.getFileStatusData(self.filepath)
             self.status = status_data.status
             self.percent_finished = status_data.percent_finished
@@ -582,13 +592,24 @@ local function apply_zen_renderer()
                 self._zen_is_fav = ReadCollection:isFileInCollection(self.filepath, favorites)
             end
             if config.browser_page_count and config.browser_page_count.show_page_count then
+                local page_count_trace = build_measure and {} or nil
                 local pages = utils.getStablePageCount(self.filepath, metadata.pages, {
                     doc_settings = status_data.doc_settings,
                     sidecar_checked = status_data.sidecar_checked,
                     book_info = status_data.book_info,
-                    book_info_checked = true,
+                    book_info_checked = status_data.book_info ~= nil
+                        or status_data.doc_settings ~= nil,
+                    trace = page_count_trace,
                 })
                 if pages then self._zen_page_label = utils.formatPageCount(pages) end
+                if build_measure then
+                    build_measure.stable_page_sidecar_opens =
+                        (build_measure.stable_page_sidecar_opens or 0)
+                        + (page_count_trace.sidecar_opens or 0)
+                    build_measure.stable_page_booklist_reads =
+                        (build_measure.stable_page_booklist_reads or 0)
+                        + (page_count_trace.booklist_reads or 0)
+                end
             end
             if config.browser_series_badge and config.browser_series_badge.show_series_badge then
                 local index = tonumber(metadata.series_index)
@@ -598,6 +619,10 @@ local function apply_zen_renderer()
                 end
             end
             self._zen_metadata_ready = true
+            if build_measure then
+                build_measure.status_ms = (build_measure.status_ms or 0)
+                    + (now() - status_started_at) * 1000
+            end
         end
         if info then
             self.bookinfo_found = true
@@ -624,10 +649,20 @@ local function apply_zen_renderer()
             metadata.cover_bb:free()
             metadata.cover_bb = nil
         end
+        local cover_widget_started_at = build_measure and now()
         local frame = CoverWidget.make_cover_widget(book, target_w, target_h, {
             border = border,
             uniform = uniform,
         })
+        if build_measure then
+            local cover_widget_ms = (now() - cover_widget_started_at) * 1000
+            build_measure.cover_widget_ms = (build_measure.cover_widget_ms or 0)
+                + cover_widget_ms
+            if hydrate_later then
+                build_measure.pending_fallback_ms =
+                    (build_measure.pending_fallback_ms or 0) + cover_widget_ms
+            end
+        end
         frame.dim = self.file_deleted and true or nil
         if metadata then metadata.cover_bb = nil end
         cover = CenterContainer:new{

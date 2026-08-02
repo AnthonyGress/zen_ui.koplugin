@@ -115,11 +115,12 @@ describe("reader interaction patches", function()
     end)
 
     it("starts explicit TBR books as reading and removes them from the collection", function()
-        local saved, cached, removed = {}, {}, 0
+        local saved, cached, invalidated, removed = {}, {}, {}, 0
         local ReaderUI = { onReaderReady = function() end }
         ZenSpec.replace("apps/reader/readerui", ReaderUI)
         ZenSpec.replace("common/book_status", {
             acknowledgeNewVersion = function() return false end,
+            invalidate = function(file) invalidated[#invalidated + 1] = file end,
         })
         ZenSpec.replace("common/tbr_index", {
             isExplicit = function() return true end,
@@ -152,16 +153,18 @@ describe("reader interaction patches", function()
         assert.are.equal(1, removed)
         assert.same({ "reading" }, saved)
         assert.same({ { "/books/tbr.epub", "status", "reading" } }, cached)
+        assert.same({ "/books/tbr.epub" }, invalidated)
         assert.are.equal("reading", summary.status)
         assert.are.equal(1, flushes)
     end)
 
     it("starts on-hold books as reading", function()
-        local saved, cached = {}, {}
+        local saved, cached, invalidated = {}, {}, {}
         local ReaderUI = { onReaderReady = function() end }
         ZenSpec.replace("apps/reader/readerui", ReaderUI)
         ZenSpec.replace("common/book_status", {
             acknowledgeNewVersion = function() return false end,
+            invalidate = function(file) invalidated[#invalidated + 1] = file end,
         })
         ZenSpec.replace("common/tbr_index", {
             isExplicit = function() return false end,
@@ -188,6 +191,7 @@ describe("reader interaction patches", function()
 
         assert.same({ "reading" }, saved)
         assert.same({ { "/books/on-hold.epub", "status", "reading" } }, cached)
+        assert.same({ "/books/on-hold.epub" }, invalidated)
         assert.are.equal("reading", summary.status)
     end)
 

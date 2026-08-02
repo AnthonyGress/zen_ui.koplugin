@@ -31,6 +31,7 @@ local function apply_status_on_open()
             summary.status = "reading"
             filemanagerutil.saveSummary(doc_settings, summary)
             BookList.setBookInfoCacheProperty(file, "status", "reading")
+            book_status.invalidate(file)
         elseif acknowledged and type(doc_settings.flush) == "function" then
             doc_settings:flush()
         end

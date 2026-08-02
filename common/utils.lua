@@ -360,33 +360,56 @@ function M.getStablePageCount(filepath, fallback, context)
     end
 
     context = type(context) == "table" and context or {}
+    local trace = type(context.trace) == "table" and context.trace or nil
+    local function trace_read(key)
+        if trace then trace[key] = (tonumber(trace[key]) or 0) + 1 end
+    end
     local doc = context.doc_settings
     if not doc and context.sidecar_checked ~= true then
         local ok_ds, DocSettings = pcall(require, "docsettings")
         if ok_ds and DocSettings and DocSettings:hasSidecarFile(filepath) then
+            trace_read("sidecar_opens")
             local ok_doc, opened_doc = pcall(DocSettings.open, DocSettings, filepath)
             if ok_doc then doc = opened_doc end
         end
     end
+    local function read_doc_number(key)
+        if not (doc and type(doc.readSetting) == "function") then return nil end
+        local value = tonumber(doc:readSetting(key))
+        return value and value > 0 and value or nil
+    end
+
     if doc and doc:readSetting("pagemap_use_page_labels") == true then
-        local pages = tonumber(doc:readSetting("pagemap_doc_pages"))
-            or tonumber(doc:readSetting("pagemap_last_page_label"))
+        local pages = read_doc_number("pagemap_doc_pages")
+            or read_doc_number("pagemap_last_page_label")
         if pages and pages > 0 then return pages end
     end
 
+    local pages = read_doc_number("doc_pages")
+    if not pages and doc and type(doc.readSetting) == "function" then
+        local stats = doc:readSetting("stats")
+        pages = type(stats) == "table" and tonumber(stats.pages) or nil
+    end
+    if pages and pages > 0 then return pages end
+
     local book = context.book_info
+    pages = type(book) == "table" and tonumber(book.pages) or nil
+    if pages and pages > 0 then return pages end
+
+    fallback = tonumber(fallback)
+    if fallback and fallback > 0 then return fallback end
+
     if type(book) ~= "table" and context.book_info_checked ~= true then
         local ok_bl, BookList = pcall(require, "ui/widget/booklist")
         if ok_bl and BookList then
+            trace_read("booklist_reads")
             local ok_book, loaded_book = pcall(BookList.getBookInfo, filepath)
             if ok_book then book = loaded_book end
         end
     end
-    local pages = book and tonumber(book.pages)
+    pages = book and tonumber(book.pages)
     if pages and pages > 0 then return pages end
-
-    fallback = tonumber(fallback)
-    return fallback and fallback > 0 and fallback or nil
+    return nil
 end
 
 --- Scale multiplier for mosaic cover badge sizes (compact=1.0, normal=1.10, large=1.20).

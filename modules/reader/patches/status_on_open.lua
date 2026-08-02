@@ -27,6 +27,7 @@ local function apply_status_on_open()
             summary.status = "reading"
             require("apps/filemanager/filemanagerutil").saveSummary(doc_settings, summary)
             require("ui/widget/booklist").setBookInfoCacheProperty(file, "status", "reading")
+            book_status.invalidate(file)
         end
         local acknowledged = book_status.acknowledgeNewVersion(doc_settings)
         if (was_tbr or was_on_hold or acknowledged)

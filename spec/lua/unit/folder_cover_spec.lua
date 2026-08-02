@@ -73,6 +73,7 @@ describe("shared folder cover provider", function()
                     need_copy = need_copy, entries = entries, specs = specs,
                     cover_offset = cover_offset, cached_only = cached_only,
                 }
+                if calls.collect_cold and cached_only then return {}, true end
                 return entries and #entries > 0 and { { data = "cover" } } or {},
                     calls.collect_pending == true
             end,
@@ -364,6 +365,59 @@ describe("shared folder cover provider", function()
         assert.are.equal(1, result.cover_count)
     end)
 
+    it("hydrates cold physical and virtual folders through the shared provider", function()
+        install_lfs(function(path)
+            if path == "/library/folder" then return { { name = "inside.epub" } } end
+            return {}
+        end)
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        calls.collect_cold = true
+        local cases = {
+            {
+                title = "Physical",
+                entry = {
+                    path = "/library/folder",
+                    attr = { mode = "directory" },
+                    mandatory = "1 book",
+                },
+                member = "/library/folder/inside.epub",
+                path = "/library/folder",
+            },
+            {
+                title = "Virtual",
+                entry = {
+                    path = "/library/Series",
+                    is_series_group = true,
+                    series_items = {
+                        { is_file = true, path = "/library/series-1.epub" },
+                    },
+                },
+                member = "/library/series-1.epub",
+            },
+        }
+
+        for _i, case in ipairs(cases) do
+            local first_call = #calls.collect + 1
+            local cold = FolderCover.build(
+                { name = "filemanager" }, case.entry, case.title, 80, 120,
+                { cached_only = true })
+            local hydrated = FolderCover.build(
+                { name = "filemanager" }, case.entry, case.title, 80, 120,
+                { cached_only = false })
+
+            assert.is_true(cold.needs_hydration)
+            assert.are.equal(0, cold.cover_count)
+            assert.are.equal("placeholder", cold.frame.kind)
+            assert.is_false(hydrated.needs_hydration)
+            assert.are.equal(1, hydrated.cover_count)
+            assert.are.equal("gallery", hydrated.frame.kind)
+            assert.is_true(calls.collect[first_call].cached_only)
+            assert.is_false(calls.collect[first_call + 1].cached_only)
+            assert.are.equal(case.path, calls.collect[first_call].path)
+            assert.are.equal(case.member, calls.collect[first_call].entries[1].path)
+        end
+    end)
+
     it("reuses a complete gallery bitmap without loading its child covers", function()
         local FolderCover = require("modules/filebrowser/folder_cover")
         calls.gallery_cache_key = "gallery:key"
@@ -543,6 +597,31 @@ describe("shared folder cover provider", function()
         assert.is_nil(calls.collect[1].path)
         assert.are.equal("/library/b.epub", calls.collect[1].entries[1].path)
         assert.are.equal("/library/a.epub", calls.collect[1].entries[2].path)
+    end)
+
+    it("uses automatic-series members instead of scanning its synthetic path", function()
+        local scans = 0
+        install_lfs(function() return {} end, function() scans = scans + 1 end)
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local first = { is_file = true, path = "/library/saga-1.epub" }
+        local second = { is_file = true, path = "/library/saga-2.epub" }
+        local result = FolderCover.build({ name = "filemanager" }, {
+            text = "Saga",
+            path = "/library/Saga",
+            is_file = false,
+            is_directory = true,
+            is_series_group = true,
+            series_items = { first, second },
+            attr = { mode = "directory" },
+            mode = "directory",
+        }, "Saga", 80, 120)
+
+        assert.are.equal(0, scans)
+        assert.are.equal(2, result.count)
+        assert.are.same({ first, second }, result.entries)
+        assert.is_nil(calls.collect[1].path)
+        assert.are.equal("series\30/library/Saga", calls.gallery_key_args[1])
+        assert.are.equal("gallery", result.frame.kind)
     end)
 
     it("counts all virtual members while retaining only preview candidates", function()

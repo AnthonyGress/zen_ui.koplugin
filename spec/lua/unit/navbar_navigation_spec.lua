@@ -8,6 +8,12 @@ describe("file browser navbar navigation", function()
     local allow_group_prewarm
     local original_memory_policy
     local base_observation
+    local measurements
+    local dir_entries
+    local dir_mtimes
+    local dir_scan_calls
+    local home_show_callback
+    local setup_observation
 
     local function class(methods)
         methods = methods or {}
@@ -26,18 +32,36 @@ describe("file browser navbar navigation", function()
         return methods
     end
 
+    local function measurement_detail(measurement, key)
+        for index = 1, #(measurement and measurement.details or {}) - 1 do
+            if measurement.details[index] == key then
+                return measurement.details[index + 1]
+            end
+        end
+    end
+
     before_each(function()
         calls = {}
         library_font_sizes = {}
         home_widget = {}
         allow_group_prewarm = true
         base_observation = nil
+        measurements = {}
+        dir_entries = {}
+        dir_mtimes = {}
+        dir_scan_calls = 0
+        home_show_callback = nil
+        setup_observation = nil
         original_memory_policy = package.loaded["common/memory_policy"]
         shared = {
             home = {
-                showHomeView = function() calls[#calls + 1] = "home" end,
+                showHomeView = function(inject)
+                    calls[#calls + 1] = "home"
+                    if home_show_callback then home_show_callback(inject) end
+                end,
                 closeAll = function() calls[#calls + 1] = "close_home" end,
                 getActiveWidgets = function() return { home_widget } end,
+                isActiveOnTop = function() return true end,
             },
             group_view = {
                 showAuthorsView = function() calls[#calls + 1] = "authors" end,
@@ -51,7 +75,16 @@ describe("file browser navbar navigation", function()
             },
         }
         FileManager = class({
-            setupLayout = function() end,
+            setupLayout = function(self)
+                setup_observation = {
+                    hidden = rawget(_G, "__ZEN_UI_HIDDEN_HOME_BOOTSTRAP"),
+                    deferred = rawget(_G, "__ZEN_UI_DEFER_FILEMANAGER_LISTING"),
+                    invisible = self.invisible,
+                }
+                if self._test_setup_file_chooser then
+                    self.file_chooser = self._test_setup_file_chooser
+                end
+            end,
             showFiles = function(self, path, focused)
                 base_observation = {
                     hidden = rawget(_G, "__ZEN_UI_HIDDEN_HOME_BOOTSTRAP"),
@@ -115,6 +148,7 @@ describe("file browser navbar navigation", function()
             forceRePaint = function() end,
             nextTick = function(_, callback) callback() end,
             scheduleIn = function() end,
+            unschedule = function() end,
             show = function() end,
             close = function() end,
             closeWidgetsAbove = function() end,
@@ -155,13 +189,37 @@ describe("file browser navbar navigation", function()
         })
         ZenSpec.replace("libs/libkoreader-lfs", {
             attributes = function(path, field)
-                if field == "mode" and path == "/library" then return "directory" end
+                if field == "mode" and (path == "/library" or dir_mtimes[path]) then
+                    return "directory"
+                end
+                if field == "modification" then return dir_mtimes[path] end
             end,
-            dir = function() return function() end end,
+            dir = function(path)
+                dir_scan_calls = dir_scan_calls + 1
+                local entries = dir_entries[path] or {}
+                local index = 0
+                return function()
+                    index = index + 1
+                    return entries[index]
+                end
+            end,
         })
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("common/zen_logger", {
-            new = function() return { dbg = function() end, perf = function() end, warn = function() end } end,
+            new = function()
+                return {
+                    dbg = function() end,
+                    perf = function() end,
+                    warn = function() end,
+                    measure = function(message, elapsed, ...)
+                        measurements[#measurements + 1] = {
+                            message = message,
+                            elapsed = elapsed,
+                            details = { ... },
+                        }
+                    end,
+                }
+            end,
         })
         _G.G_reader_settings = ZenSpec.memorySettings()
         _G.__ZEN_UI_PLUGIN = {
@@ -197,6 +255,7 @@ describe("file browser navbar navigation", function()
             "__ZEN_UI_ACTIVE_TAB_LABEL",
             "__ZEN_UI_REINJECT_FM_NAVBAR", "__ZEN_UI_REINJECT_NAVBARS",
             "__ZEN_UI_LIBRARY_STATE", "__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER",
+            "__ZEN_UI_OPEN_TARGET_TAB", "__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB",
             "__ZEN_UI_HIDDEN_HOME_BOOTSTRAP", "__ZEN_UI_DEFER_FILEMANAGER_LISTING",
         }) do
             _G[name] = nil
@@ -281,7 +340,9 @@ describe("file browser navbar navigation", function()
     it("defers hidden FileManager construction for a default Home startup", function()
         _G.__ZEN_UI_PLUGIN.config.features.restore_library_view = true
         local fm = make_instance()
+        FileManager.onPathChanged(fm, "/library")
         calls = {}
+        measurements = {}
         FileManager._test_next_instance = fm
 
         FileManager.showFiles(FileManager, "/library", nil)
@@ -293,6 +354,9 @@ describe("file browser navbar navigation", function()
         assert.is_true(fm.file_chooser._zen_needs_full_listing)
         assert.is_nil(_G.__ZEN_UI_HIDDEN_HOME_BOOTSTRAP)
         assert.is_nil(_G.__ZEN_UI_DEFER_FILEMANAGER_LISTING)
+        for _i, measurement in ipairs(measurements) do
+            assert.are_not.equal("Library to Home first reveal", measurement.message)
+        end
 
         calls = {}
         assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
@@ -300,6 +364,487 @@ describe("file browser navbar navigation", function()
         assert.is_nil(fm.invisible)
         assert.is_nil(fm.file_chooser._zen_needs_full_listing)
         assert.is_nil(fm.file_chooser._zen_hidden_home_startup)
+    end)
+
+    it("defers cold default-Home construction from the initial setupLayout seam", function()
+        local injected_update
+        local file_chooser = {
+            path_items = {},
+            height = 600,
+            dimen = { h = 600 },
+            inner_dimen = { h = 600 },
+            updateItems = function()
+                injected_update = {
+                    hidden = rawget(_G, "__ZEN_UI_HIDDEN_HOME_BOOTSTRAP"),
+                    deferred = rawget(_G, "__ZEN_UI_DEFER_FILEMANAGER_LISTING"),
+                }
+            end,
+        }
+        local fm = {
+            root_path = "/library/subfolder",
+            focused_file = nil,
+            _test_setup_file_chooser = file_chooser,
+        }
+        fm[1] = { file_chooser }
+        FileManager.instance = nil
+
+        FileManager.setupLayout(fm)
+
+        assert.is_true(setup_observation.hidden)
+        assert.are.equal("/library", setup_observation.deferred.path)
+        assert.is_true(setup_observation.invisible)
+        assert.are.equal("/library", fm.root_path)
+        assert.is_true(fm.invisible)
+        assert.is_true(fm._zen_hidden_home_startup)
+        assert.is_true(file_chooser._zen_hidden_home_startup)
+        assert.is_true(file_chooser._zen_needs_full_listing)
+        assert.is_true(injected_update.hidden)
+        assert.are.equal("/library", injected_update.deferred.path)
+        assert.is_nil(_G.__ZEN_UI_HIDDEN_HOME_BOOTSTRAP)
+        assert.is_nil(_G.__ZEN_UI_DEFER_FILEMANAGER_LISTING)
+        assert.are.equal("Cold Home setup deferred", measurements[1].message)
+        assert.are.equal("/library", measurement_detail(measurements[1], "path="))
+        assert.is_true(measurement_detail(measurements[1], "listing_deferred="))
+        assert.is_true(measurement_detail(measurements[1], "covers_suppressed="))
+    end)
+
+    it("does not defer initial setupLayout when Library is the default", function()
+        _G.__ZEN_UI_PLUGIN.config.navbar.default_tab = "books"
+        local fm = {
+            root_path = "/library/subfolder",
+            _test_setup_file_chooser = { path_items = {} },
+        }
+        FileManager.instance = nil
+
+        FileManager.setupLayout(fm)
+
+        assert.is_nil(setup_observation.hidden)
+        assert.is_nil(setup_observation.deferred)
+        assert.is_nil(fm.invisible)
+        assert.is_nil(fm._zen_hidden_home_startup)
+    end)
+
+    it("defers hidden FileManager construction when restoring Home", function()
+        _G.__ZEN_UI_PLUGIN.config.features.restore_library_view = true
+        _G.__ZEN_UI_LIBRARY_STATE = { tab = "home", page = 2 }
+        local fm = make_instance()
+        calls = {}
+        FileManager._test_next_instance = fm
+
+        FileManager.showFiles(FileManager, "/library/subfolder", "/library/Book.epub")
+
+        assert.are.same({
+            "base:/library/subfolder:/library/Book.epub",
+            "home",
+        }, calls)
+        assert.is_true(base_observation.hidden)
+        assert.are.equal("/library/subfolder", base_observation.deferred.path)
+        assert.is_true(fm.invisible)
+        assert.is_true(fm.file_chooser._zen_needs_full_listing)
+
+        calls = {}
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        assert.are.same({ "books:/library" }, calls)
+        assert.is_nil(fm.invisible)
+        assert.is_nil(fm.file_chooser._zen_needs_full_listing)
+    end)
+
+    it("idle-warms only the deferred Library listing while Home remains visible", function()
+        local fm = make_instance()
+        fm.file_chooser._zen_needs_full_listing = true
+        fm.file_chooser._zen_warm_item_table = function(_, path)
+            calls[#calls + 1] = "warm:" .. path
+            return { { path = "/library/Book.epub" } },
+                { cache = "disk_hit", items = 42 }
+        end
+        fm.file_chooser._zen_warm_cover_page = function(_, items, page)
+            calls[#calls + 1] = "warm_covers:" .. tostring(page) .. ":" .. #items
+            return true
+        end
+        local scheduled = {}
+        UIManager.scheduleIn = function(_self, delay, callback)
+            scheduled[#scheduled + 1] = { delay = delay, callback = callback }
+        end
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        local listing_warm
+        for _i, entry in ipairs(scheduled) do
+            if entry.delay == 0.9 then listing_warm = entry.callback end
+        end
+        assert.is_function(listing_warm)
+        listing_warm()
+
+        assert.are.same({ "home", "warm:/library", "warm_covers:1:1" }, calls)
+        assert.are.equal("Hidden Library listing warmed", measurements[1].message)
+        assert.are.equal("true", measurement_detail(measurements[1], "cover_page_warm="))
+        assert.are.equal("scheduled",
+            measurement_detail(measurements[1], "cover_page_warm_reason="))
+        assert.is_true(fm.file_chooser._zen_needs_full_listing)
+    end)
+
+    it("retries hidden Library warming after a temporary Home overlay", function()
+        local fm = make_instance()
+        local home_on_top = false
+        local warm_calls = 0
+        fm.file_chooser._zen_needs_full_listing = true
+        fm.file_chooser._zen_warm_item_table = function()
+            warm_calls = warm_calls + 1
+            return {}, { cache = "disk_hit", items = 0 }
+        end
+        shared.home.isActiveOnTop = function() return home_on_top end
+        local scheduled = {}
+        UIManager.scheduleIn = function(_self, delay, callback)
+            scheduled[#scheduled + 1] = { delay = delay, callback = callback }
+        end
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        local first_warm
+        for _i, entry in ipairs(scheduled) do
+            if entry.delay == 0.9 then first_warm = entry.callback end
+        end
+        assert.is_function(first_warm)
+        first_warm()
+
+        assert.are.equal(0, warm_calls)
+        local retry = scheduled[#scheduled]
+        assert.are.equal(0.5, retry.delay)
+        assert.are.equal(first_warm, retry.callback)
+        assert.are.equal(retry.callback, fm._zen_hidden_library_warm_fn)
+
+        home_on_top = true
+        retry.callback()
+
+        assert.are.equal(1, warm_calls)
+        assert.is_nil(fm._zen_hidden_library_warm_fn)
+        local warmed
+        for _i, measurement in ipairs(measurements) do
+            if measurement.message == "Hidden Library listing warmed" then
+                warmed = measurement
+            end
+        end
+        assert.is_table(warmed)
+    end)
+
+    it("materializes page one under Home and reveals it without a second refresh", function()
+        local fm = make_instance()
+        local fc = fm.file_chooser
+        local warmed_items = { { path = "/library/Book.epub", is_file = true } }
+        fm.invisible = true
+        fm._zen_hidden_home_startup = true
+        fc.path = "/library"
+        fc.page = 1
+        fc.item_table = {}
+        fc._zen_hidden_home_startup = true
+        fc._zen_needs_full_listing = true
+        dir_mtimes["/library"] = 10
+        local hidden_dirty = 0
+        UIManager.setDirty = function() hidden_dirty = hidden_dirty + 1 end
+        fc._zen_warm_item_table = function(_, path)
+            calls[#calls + 1] = "warm:" .. path
+            return warmed_items, { cache = "disk_hit", items = 1 }
+        end
+        fc._zen_prepare_item_table = function(_, path, items)
+            calls[#calls + 1] = "prepare:" .. path
+            return items == warmed_items
+        end
+        fc.refreshPath = function(self)
+            calls[#calls + 1] = "refresh"
+            UIManager:setDirty(fm, "ui")
+            self.item_table = warmed_items
+            self.page = 1
+            self._zen_last_item_table_cache_result = { cache = "prepared" }
+        end
+        fc._zen_warm_cover_page = function(_, items, page, on_complete)
+            calls[#calls + 1] = "warm_covers:" .. tostring(page) .. ":" .. #items
+            on_complete()
+            return true
+        end
+        fc._zen_start_hidden_folder_prewarm = function(_, guard)
+            calls[#calls + 1] = "prewarm_folders:" .. tostring(guard())
+            fc._zen_hidden_folder_prewarm_state = {}
+            return true, 2
+        end
+        fc._zen_cancel_hidden_folder_prewarm = function(_, reason, mode)
+            calls[#calls + 1] = "cancel_folder_prewarm:"
+                .. tostring(reason) .. ":" .. tostring(mode)
+            fc._zen_hidden_folder_prewarm_state = nil
+            return true
+        end
+        local scheduled = {}
+        UIManager.scheduleIn = function(_self, delay, callback)
+            scheduled[#scheduled + 1] = { delay = delay, callback = callback }
+        end
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        local listing_warm
+        for _i, entry in ipairs(scheduled) do
+            if entry.delay == 0.9 then listing_warm = entry.callback end
+        end
+        assert.is_function(listing_warm)
+        listing_warm()
+
+        assert.are.same({
+            "home", "cancel_folder_prewarm:left_home:discard",
+            "warm:/library", "prepare:/library",
+            "warm_covers:1:1", "refresh", "prewarm_folders:true",
+        }, calls)
+        assert.is_table(fc._zen_idle_materialized_library)
+        assert.is_true(rawequal(warmed_items, fc.item_table))
+        assert.is_true(fc._zen_needs_full_listing)
+        assert.is_true(fm.invisible)
+        assert.are.equal(0, hidden_dirty)
+
+        shared.home.suspendActive = function() return true end
+        UIManager._window_stack = {
+            { widget = fm },
+            { widget = home_widget },
+        }
+        local reveal_dirty
+        UIManager.setDirty = function(_self, widget, mode)
+            if widget and widget.invisible ~= true then
+                local top = UIManager._window_stack[#UIManager._window_stack]
+                reveal_dirty = { widget = widget, mode = mode, top = top and top.widget }
+            end
+        end
+        calls = {}
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+
+        assert.are.same({
+            "cancel_folder_prewarm:library_reveal:preserve",
+        }, calls)
+        assert.are.same({ widget = fm, mode = "ui", top = fm }, reveal_dirty)
+        assert.is_true(rawequal(warmed_items, fc.item_table))
+        assert.is_nil(fc._zen_idle_materialized_library)
+        assert.is_nil(fc._zen_needs_full_listing)
+        assert.is_nil(fc._zen_hidden_home_startup)
+        assert.is_nil(fm._zen_hidden_home_startup)
+        assert.is_nil(fm.invisible)
+        local materialized
+        for _i, measurement in ipairs(measurements) do
+            if measurement.message == "Hidden Library page materialized" then
+                materialized = measurement
+            end
+        end
+        assert.is_table(materialized)
+        assert.are.equal("prepared",
+            measurement_detail(materialized, "listing_cache="))
+        assert.are.equal(1,
+            measurement_detail(materialized, "suppressed_dirty="))
+    end)
+
+    it("cancels a pending hidden Library warm when leaving Home", function()
+        local fm = make_instance()
+        fm.file_chooser._zen_needs_full_listing = true
+        local warmed = false
+        fm.file_chooser._zen_warm_item_table = function()
+            warmed = true
+            return {}, { cache = "miss", items = 0 }
+        end
+        local listing_warm
+        local unscheduled
+        UIManager.scheduleIn = function(_self, delay, callback)
+            if delay == 0.9 then listing_warm = callback end
+        end
+        UIManager.unschedule = function(_self, callback)
+            unscheduled = callback
+        end
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        assert.is_function(listing_warm)
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        assert.are.equal(listing_warm, unscheduled)
+        listing_warm()
+        assert.is_false(warmed)
+    end)
+
+    it("cancels active page-one cover warming when leaving Home", function()
+        local fm = make_instance()
+        fm.file_chooser._zen_needs_full_listing = true
+        local cover_warm_active = false
+        local cover_warm_cancelled = 0
+        fm.file_chooser._zen_warm_item_table = function()
+            return { { path = "/library/Book.epub" } },
+                { cache = "disk_hit", items = 1 }
+        end
+        fm.file_chooser._zen_warm_cover_page = function()
+            cover_warm_active = true
+            return true
+        end
+        fm.file_chooser._zen_cancel_warm_cover_page = function()
+            if cover_warm_active then
+                cover_warm_active = false
+                cover_warm_cancelled = cover_warm_cancelled + 1
+            end
+        end
+        local listing_warm
+        UIManager.scheduleIn = function(_self, delay, callback)
+            if delay == 0.9 then listing_warm = callback end
+        end
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        listing_warm()
+        assert.is_true(cover_warm_active)
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        assert.is_false(cover_warm_active)
+        assert.are.equal(1, cover_warm_cancelled)
+    end)
+
+    it("reveals a retained Library page before validating it", function()
+        local fm = make_instance()
+        fm.file_chooser.path = "/library"
+        fm.file_chooser.page = 3
+        fm.file_chooser._zen_lib_mtime_snapshot = { ["/library"] = 10 }
+        fm.file_chooser._zen_lib_mtime_snapshot_at = os.clock()
+        local cover_resume_calls = 0
+        local status_updates = 0
+        fm.file_chooser._zen_resume_visible_cover_work = function()
+            cover_resume_calls = cover_resume_calls + 1
+            return true
+        end
+        fm._updateStatusBar = function()
+            status_updates = status_updates + 1
+        end
+        dir_mtimes["/library"] = 10
+
+        local next_ticks = {}
+        UIManager.nextTick = function(_self, callback)
+            next_ticks[#next_ticks + 1] = callback
+        end
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        assert.are.equal(0, #next_ticks)
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        assert.are.same({}, calls)
+        assert.are.equal(3, fm.file_chooser.page)
+        assert.are.equal(1, cover_resume_calls)
+        assert.are.equal(1, #next_ticks)
+
+        table.remove(next_ticks, 1)()
+        assert.are.same({}, calls)
+        assert.is_nil(fm.file_chooser._zen_home_retained_library)
+        assert.are.equal(0, dir_scan_calls)
+        assert.are.equal(0, status_updates)
+        assert.are.equal("Home to Library first reveal", measurements[1].message)
+        assert.are.equal("Home to Library validation completed", measurements[2].message)
+        assert.are.equal("skipped",
+            measurement_detail(measurements[2], "recursive_validation="))
+    end)
+
+    it("routes Back from a live Home overlay through Library validation", function()
+        local fm = make_instance()
+        fm.file_chooser.path = "/library"
+        fm.file_chooser.page = 2
+        local cover_resume_calls = 0
+        fm.file_chooser._zen_resume_visible_cover_work = function()
+            cover_resume_calls = cover_resume_calls + 1
+            return true
+        end
+        local home_menu
+        home_show_callback = function(inject)
+            local body = {
+                dimen = { w = 800, h = 560 },
+                inner_dimen = { w = 800, h = 560 },
+                resetLayout = function() end,
+            }
+            home_menu = {
+                name = "home",
+                dimen = { w = 800, h = 600 },
+                inner_dimen = { w = 800, h = 600 },
+                close_callback = function() calls[#calls + 1] = "home_close" end,
+                [1] = body,
+            }
+            inject(home_menu, "home")
+        end
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        assert.is_table(home_menu)
+        calls = {}
+
+        assert.is_true(home_menu:onBack())
+        assert.are.same({ "home_close" }, calls)
+        assert.are.equal("Library", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+        assert.are.equal(1, cover_resume_calls)
+        assert.is_nil(fm.file_chooser._zen_home_retained_library)
+    end)
+
+    it("refreshes after first reveal when recursive Library validation changes", function()
+        local fm = make_instance()
+        fm.file_chooser.path = "/library"
+        fm.file_chooser.page = 2
+        fm.file_chooser._zen_lib_mtime_snapshot = {
+            ["/library"] = 10,
+            ["/library/sub"] = 20,
+        }
+        fm.file_chooser._zen_invalidate_item_table_path = function(_, path)
+            calls[#calls + 1] = "invalidate:" .. path
+        end
+        dir_mtimes["/library"] = 10
+        dir_mtimes["/library/sub"] = 20
+        dir_entries["/library"] = { "sub" }
+
+        local next_ticks = {}
+        UIManager.nextTick = function(_self, callback)
+            next_ticks[#next_ticks + 1] = callback
+        end
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        dir_mtimes["/library/sub"] = 21
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        assert.are.same({}, calls)
+        table.remove(next_ticks, 1)()
+        assert.are.same({ "invalidate:/library", "books:/library" }, calls)
+        assert.are.equal("scanned",
+            measurement_detail(measurements[2], "recursive_validation="))
+        assert.are.equal("true", measurement_detail(measurements[2], "listing_changed="))
+        assert.are.equal("true", measurement_detail(measurements[2], "refreshed="))
+    end)
+
+    it("ignores sidecar directories during recursive Library validation", function()
+        local fm = make_instance()
+        fm.file_chooser.path = "/library"
+        fm.file_chooser.page = 2
+        fm.file_chooser._zen_lib_mtime_snapshot = { ["/library"] = 10 }
+        dir_mtimes["/library"] = 10
+        dir_mtimes["/library/Book.sdr"] = 20
+        dir_entries["/library"] = { "Book.sdr" }
+
+        local next_ticks = {}
+        UIManager.nextTick = function(_self, callback)
+            next_ticks[#next_ticks + 1] = callback
+        end
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        dir_mtimes["/library/Book.sdr"] = 21
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        table.remove(next_ticks, 1)()
+        assert.are.same({}, calls)
+        assert.are.equal(1, dir_scan_calls)
+    end)
+
+    it("rebuilds before reveal when retained Library sorting changed", function()
+        local fm = make_instance()
+        fm.file_chooser.path = "/library"
+        fm.file_chooser.page = 2
+        dir_mtimes["/library"] = 10
+        local next_ticks = {}
+        UIManager.nextTick = function(_self, callback)
+            next_ticks[#next_ticks + 1] = callback
+        end
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        _G.G_reader_settings:saveSetting("collate", "date")
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        assert.are.same({ "books:/library" }, calls)
     end)
 
     it("dispatches persistent tabs to their intended library views and tracks active state", function()
@@ -419,6 +964,131 @@ describe("file browser navbar navigation", function()
         assert.are.same({}, calls)
     end)
 
+    it("retains Home below Library and resumes the same view", function()
+        local fm = make_instance()
+        fm.file_chooser.path = "/library"
+        fm.file_chooser.page = 2
+        fm.file_chooser.item_table = { { path = "/library/Book.epub" } }
+        dir_mtimes["/library"] = 10
+        shared.home.isActiveOnTop = function()
+            local top = UIManager._window_stack[#UIManager._window_stack]
+            return top and top.widget == home_widget
+        end
+        shared.home.suspendActive = function()
+            calls[#calls + 1] = "suspend_home"
+            return true
+        end
+        shared.home.resumeActive = function()
+            calls[#calls + 1] = "resume_home"
+            return true, "reused"
+        end
+        UIManager._window_stack = {
+            { widget = fm },
+            { widget = home_widget },
+        }
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        assert.are.equal(fm, UIManager._window_stack[#UIManager._window_stack].widget)
+        assert.are.same({ "suspend_home" }, calls)
+
+        calls = {}
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        assert.are.equal(home_widget,
+            UIManager._window_stack[#UIManager._window_stack].widget)
+        assert.are.same({ "resume_home" }, calls)
+
+        local reveal
+        for _i, measurement in ipairs(measurements) do
+            if measurement.message == "Library to Home first reveal" then
+                reveal = measurement
+            end
+        end
+        assert.is_table(reveal)
+        assert.are.same({ "mode=", "retained", "view_reused=", "true" },
+            reveal.details)
+    end)
+
+    it("uses the wrapped FileManager stack anchor when preserving Home", function()
+        local fm = make_instance()
+        local wrapper = {}
+        fm.show_parent = wrapper
+        fm.file_chooser.path = "/library"
+        fm.file_chooser.page = 1
+        fm.file_chooser.item_table = { { path = "/library/Book.epub" } }
+        dir_mtimes["/library"] = 10
+        shared.home.isActiveOnTop = function()
+            local top = UIManager._window_stack[#UIManager._window_stack]
+            return top and top.widget == home_widget
+        end
+        shared.home.suspendActive = function() return true end
+        UIManager._window_stack = {
+            { widget = wrapper },
+            { widget = home_widget },
+        }
+        local close_anchor
+        package.loaded["common/utils"].closeWidgetsAbove = function(anchor)
+            close_anchor = anchor
+        end
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+
+        assert.are.equal(wrapper, close_anchor)
+        assert.are.equal(home_widget, UIManager._window_stack[1].widget)
+        assert.are.equal(wrapper, UIManager._window_stack[2].widget)
+    end)
+
+    it("records a real navbar tap to retained Home without a forced full repaint", function()
+        local fm = make_instance()
+        fm.file_chooser.path = "/library"
+        fm.file_chooser.page = 1
+        fm.file_chooser.item_table = { { path = "/library/Book.epub" } }
+        fm[1] = { fm.file_chooser }
+        dir_mtimes["/library"] = 10
+        shared.home.isActiveOnTop = function()
+            local top = UIManager._window_stack[#UIManager._window_stack]
+            return top and top.widget == home_widget
+        end
+        shared.home.suspendActive = function() return true end
+        shared.home.resumeActive = function()
+            calls[#calls + 1] = "resume_home"
+            UIManager:setDirty(home_widget, "ui")
+            return true, "reused"
+        end
+        UIManager._window_stack = {
+            { widget = fm },
+            { widget = home_widget },
+        }
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        _G.__ZEN_UI_REINJECT_FM_NAVBAR()
+        local navbar = fm[1][1][2]
+        assert.is_table(navbar)
+        assert.is_function(navbar.onTapNavBar)
+
+        local dirty = {}
+        local force_repaints = 0
+        UIManager.setDirty = function(_self, widget, mode)
+            dirty[#dirty + 1] = { widget = widget, mode = mode }
+        end
+        UIManager.forceRePaint = function() force_repaints = force_repaints + 1 end
+        calls = {}
+        assert.is_true(navbar:onTapNavBar(nil, { pos = { x = 50, y = 1 } }))
+
+        assert.are.same({ "resume_home" }, calls)
+        assert.are.equal(0, force_repaints)
+        for _i, entry in ipairs(dirty) do
+            assert.is_false(entry.widget == nil and entry.mode == "full")
+        end
+        local reveal
+        for _i, measurement in ipairs(measurements) do
+            if measurement.message == "Library to Home first reveal" then
+                reveal = measurement
+            end
+        end
+        assert.is_table(reveal)
+        assert.are.equal("retained", measurement_detail(reveal, "mode="))
+    end)
+
     it("dispatches books and stock file-browser tabs to their intended actions", function()
         make_instance()
         for _i, id in ipairs({
@@ -491,7 +1161,7 @@ describe("file browser navbar navigation", function()
         assert.are.equal(1, _G.__ZEN_UI_LIBRARY_STATE.page)
     end)
 
-    it("rebuilds FileManager before opening Home after Reader closes", function()
+    it("defers FileManager listing before opening Home after Reader closes", function()
         local fm = make_instance()
         _G.__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER = true
         calls = {}
@@ -499,7 +1169,11 @@ describe("file browser navbar navigation", function()
         FileManager.showFiles(fm, "/library/subfolder", "/library/Book.epub")
 
         assert.are.same({ "base:/library:nil", "home" }, calls)
-        assert.is_true(fm.file_chooser._zen_needs_cover_refresh)
+        assert.is_true(base_observation.hidden)
+        assert.are.equal("/library", base_observation.deferred.path)
+        assert.is_true(fm.invisible)
+        assert.is_true(fm.file_chooser._zen_needs_full_listing)
+        assert.is_nil(fm.file_chooser._zen_needs_cover_refresh)
         assert.are.equal("Home", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
     end)
 end)

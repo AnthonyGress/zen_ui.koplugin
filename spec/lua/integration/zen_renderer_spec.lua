@@ -871,7 +871,6 @@ describe("Zen renderer", function()
                 metadata_call("bookinfo")
                 return {
                     series_index = 4,
-                    pages = 321,
                     cover_fetched = true,
                     has_cover = false,
                 }
@@ -883,6 +882,7 @@ describe("Zen renderer", function()
             percent_finished = 0.25,
             zen_new_mtime = 200,
             pagemap_use_page_labels = false,
+            doc_pages = 999,
         }
         local doc = {
             readSetting = function(_self, key)
@@ -957,7 +957,7 @@ describe("Zen renderer", function()
         }, 0, 0)
 
         assert.are.same(before_paint, calls)
-        assert.matches("321", item._zen_page_label)
+        assert.matches("999", item._zen_page_label)
         assert.are.equal("#4", item._zen_series_label)
         assert.is_true(item._zen_is_fav)
         assert.are.equal(1, calls.favorite)

@@ -684,4 +684,91 @@ describe("home data and book caches", function()
         assert.are.equal(1, favorite_lookup_count)
     end)
 
+    it("suspends retained Home without rebuilding it in the background", function()
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local UIManager = require("ui/uimanager")
+        local rebuilds = 0
+        local resumes = 0
+        local menu = {
+            _home_rebuild = function() rebuilds = rebuilds + 1 end,
+            _zen_home_resume = function(self)
+                resumes = resumes + 1
+                self._zen_home_suspended = nil
+                return true, "reused"
+            end,
+        }
+        set_home_menu(Home, menu)
+        UIManager._window_stack = { { widget = menu } }
+        UIManager._dirty = { [menu] = "ui" }
+
+        assert.is_true(Home.suspendActive())
+        assert.is_true(menu._zen_home_suspended)
+        assert.is_nil(UIManager._dirty[menu])
+        assert.is_true(Home.rebuildActive())
+        assert.are.equal(0, rebuilds)
+        assert.is_true(menu._zen_home_needs_rebuild)
+        assert.is_true(menu._zen_home_refresh_stats)
+        assert.is_true(menu._zen_home_reload_config)
+
+        assert.are.same({ true, "reused" }, { Home.resumeActive() })
+        assert.are.equal(1, resumes)
+    end)
+
+    it("requires retained Home to be raised before resuming it", function()
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local UIManager = require("ui/uimanager")
+        local menu = {
+            _home_rebuild = function() end,
+            _zen_home_resume = function() return true, "reused" end,
+        }
+        set_home_menu(Home, menu)
+        UIManager._window_stack = { { widget = {} } }
+
+        assert.are.same({ false, "not_top" }, { Home.resumeActive() })
+        UIManager._window_stack[#UIManager._window_stack + 1] = { widget = menu }
+        assert.are.same({ true, "reused" }, { Home.resumeActive() })
+    end)
+
+    it("defers queued Home cover work after Home is hidden", function()
+        local scheduled = {}
+        local extraction_calls = 0
+        local UIManager = require("ui/uimanager")
+        UIManager.scheduleIn = function(_self, delay, callback)
+            scheduled[#scheduled + 1] = { delay = delay, callback = callback }
+        end
+        require("bookinfomanager").getBookInfo = function()
+            return {
+                title = "Alpha",
+                cover_fetched = false,
+                has_cover = false,
+            }
+        end
+        require("bookinfomanager").isExtractingInBackground = function() return false end
+        require("bookinfomanager").extractInBackground = function()
+            extraction_calls = extraction_calls + 1
+            return true
+        end
+
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local menu = { _home_rebuild = function() end }
+        set_home_menu(Home, menu)
+        UIManager._window_stack = { { widget = menu } }
+        local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, {
+            rows = {
+                order = { "featured_recent" },
+                enabled = { featured_recent = true },
+                max_rows = 1,
+            },
+            modules = { featured_recent = {} },
+        })
+
+        provider:getFeaturedBook("recently_read", "default")
+        assert.are.equal(0.3, scheduled[1].delay)
+        UIManager._window_stack = { { widget = {} } }
+        table.remove(scheduled, 1).callback()
+
+        assert.are.equal(0, extraction_calls)
+        assert.is_true(menu._zen_home_needs_rebuild)
+    end)
+
 end)

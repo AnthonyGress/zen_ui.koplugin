@@ -189,6 +189,21 @@ local function free_bitmap(bb)
     if bb and bb.free then pcall(bb.free, bb) end
 end
 
+-- Avoid an ImageWidget rescale when a decoded buffer differs from its target
+-- only because two cover paths rounded the same aspect ratio differently.
+local function image_dims(bb, target_w, target_h)
+    if not bb then return target_w, target_h end
+    local ok, width, height = pcall(function()
+        return bb:getWidth(), bb:getHeight()
+    end)
+    if ok and width and height
+            and math.abs(width - target_w) <= 1
+            and math.abs(height - target_h) <= 1 then
+        return width, height
+    end
+    return target_w, target_h
+end
+
 function M.make_cover_widget(book, max_w, max_h, opts)
     opts = opts or {}
     local border = tonumber(opts.border) or M.BORDER_SIZE
@@ -245,19 +260,33 @@ function M.make_cover_widget(book, max_w, max_h, opts)
         end
     end
     if cover_bb then
+        local image_w, image_h = image_dims(cover_bb, target_w, target_h)
         child = ImageWidget:new{
             image = cover_bb,
             image_disposable = not cache_owned,
-            width = target_w,
-            height = target_h,
+            width = image_w,
+            height = image_h,
             scale_factor = 1,
         }
         if cache_owned then release_shared_on_free(child, cache_key, cover_bb) end
     elseif book and book.is_cover_pending then
         needs_hydration = true
-        child = Widget:new{
-            dimen = Geom:new{ w = target_w, h = target_h },
-        }
+        local generated = { CoverUtils.genCoverShared(
+            "zen-cover-pending", target_w, target_h, true,
+            { title = "", authors = "", title_only = true }
+        ) }
+        local fallback, fallback_w, fallback_h = generated[1], generated[2], generated[3]
+        local shared, generated_key = generated[4], generated[5]
+        if fallback then
+            child = ImageWidget:new{
+                image = fallback,
+                image_disposable = not shared,
+                width = fallback_w or target_w,
+                height = fallback_h or target_h,
+                scale_factor = 1,
+            }
+            if shared then release_shared_on_free(child, generated_key, fallback) end
+        end
     elseif book and book.is_empty_placeholder then
         local generated = { CoverUtils.genCoverShared(
             "zen-empty-placeholder", target_w, target_h, true,
