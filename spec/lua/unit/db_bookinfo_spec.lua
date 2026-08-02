@@ -4,11 +4,13 @@ describe("book info grouping cache", function()
     local now_value
     local limit_group_cache
     local original_memory_policy
+    local prepared_queries
 
     before_each(function()
         exec_calls = 0
         now_value = 0
         limit_group_cache = false
+        prepared_queries = {}
         original_memory_policy = package.loaded["common/memory_policy"]
         ZenSpec.replace("common/memory_policy", {
             limitGroupCache = function() return limit_group_cache end,
@@ -34,15 +36,32 @@ describe("book info grouping cache", function()
         ZenSpec.replace("bookinfomanager", {
             db_location = "/settings/bookinfo.sqlite3",
             db_conn = {
+                prepare = function(_self, sql)
+                    local query = { sql = sql, binds = {}, rows = {} }
+                    prepared_queries[#prepared_queries + 1] = query
+                    return {
+                        bind = function(_stmt, ...)
+                            query.binds = { ... }
+                        end,
+                        step = function()
+                            return table.remove(query.rows, 1)
+                        end,
+                        clearbind = function() end,
+                        reset = function() end,
+                        close = function() end,
+                    }
+                end,
                 exec = function(_self, sql)
                     exec_calls = exec_calls + 1
-                    if sql:find("title, series", 1, true) then
+                    if sql:find("title, authors, series", 1, true) then
                         return {
                             { "/books/", "/books/" },
                             { "a.epub", "b.epub" },
                             { "Title A", "Title B" },
+                            { "Author A", "Author B" },
                             { "Series A", "Series B" },
                             { 2, 1 },
+                            { "Tag A", "Tag B" },
                         }
                     end
                     return {
@@ -125,8 +144,66 @@ describe("book info grouping cache", function()
         local metadata = DbBookInfo.getLightMetadata()
 
         assert.are.equal("Title A", metadata["/books/a.epub"].title)
+        assert.are.equal("Author A", metadata["/books/a.epub"].authors)
         assert.are.equal("Series B", metadata["/books/b.epub"].series)
         assert.are.equal(1, metadata["/books/b.epub"].series_index)
         assert.are.equal(1, exec_calls)
+    end)
+
+    it("loads and caches one directory with bound normalized paths", function()
+        local conn = require("bookinfomanager").db_conn
+        local original_prepare = conn.prepare
+        conn.prepare = function(self, sql)
+            local stmt = original_prepare(self, sql)
+            local query = prepared_queries[#prepared_queries]
+            query.rows = {
+                { "/books/shelf/", "a.epub", "Title A", "Author A", "Series A", 2, "Tag A" },
+            }
+            return stmt
+        end
+
+        local first = DbBookInfo.getLightMetadata("/books/shelf")
+        local second = DbBookInfo.getLightMetadata("/books/shelf/")
+
+        assert.are.equal("Title A", first["/books/shelf/a.epub"].title)
+        assert.are.equal("Author A", first["/books/shelf/a.epub"].authors)
+        assert.are.equal("Tag A", first["/books/shelf/a.epub"].keywords)
+        assert.are.equal(first, second)
+        assert.are.equal(1, #prepared_queries)
+        assert.matches("WHERE directory = %? OR directory = %? OR directory = %?",
+            prepared_queries[1].sql)
+        assert.are.same({ "/books/shelf/", "/books/shelf/", "/books/shelf/" },
+            prepared_queries[1].binds)
+        assert.are.equal(0, exec_calls)
+    end)
+
+    it("binds directory text instead of interpolating it into SQL", function()
+        DbBookInfo.getLightMetadata("/books/O'Brien")
+
+        assert.are.equal(1, #prepared_queries)
+        assert.is_nil(prepared_queries[1].sql:find("O'Brien", 1, true))
+        assert.are.equal("/books/O'Brien/", prepared_queries[1].binds[1])
+    end)
+
+    it("queries raw and normalized Android directory aliases", function()
+        require("common/paths").normPath = function(path)
+            return path:gsub("^/sdcard/", "/storage/emulated/0/")
+        end
+
+        DbBookInfo.getLightMetadata("/sdcard/shelf")
+
+        assert.are.same({
+            "/sdcard/shelf/", "/storage/emulated/0/shelf/", "/sdcard/shelf/",
+        }, prepared_queries[1].binds)
+    end)
+
+    it("bounds cached directories on constrained devices", function()
+        limit_group_cache = true
+        for index = 1, 5 do
+            DbBookInfo.getLightMetadata("/books/shelf-" .. index)
+        end
+        DbBookInfo.getLightMetadata("/books/shelf-1")
+
+        assert.are.equal(6, #prepared_queries)
     end)
 end)

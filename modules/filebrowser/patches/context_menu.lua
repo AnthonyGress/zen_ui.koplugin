@@ -867,14 +867,40 @@ local function apply_context_menu()
                 refresh()
             end
 
-            local function refresh_after_sort_change()
-                if self_fc._zen_clear_item_table_cache then
-                    self_fc:_zen_clear_item_table_cache()
+            local function refresh_after_sort_change(folder_path)
+                if not folder_path then
+                    if self_fc._zen_clear_item_table_cache then
+                        self_fc:_zen_clear_item_table_cache()
+                    end
+                    if self_fc.clearSortingCache then self_fc:clearSortingCache() end
+                    self_fc:refreshPath()
+                    return
                 end
-                if self_fc.clearSortingCache then
-                    self_fc:clearSortingCache()
+
+                if is_virtual_folder
+                        and type(self_fc._zen_resort_series_group) == "function"
+                        and self_fc:_zen_resort_series_group(item, is_current_view) then
+                    if not is_current_view and type(self_fc.updateItems) == "function" then
+                        self_fc:updateItems()
+                    end
+                    return
                 end
-                self_fc:refreshPath()
+
+                if self_fc._zen_invalidate_item_table_path then
+                    self_fc:_zen_invalidate_item_table_path(folder_path)
+                else
+                    local ok_folder, FolderCover = pcall(
+                        require, "modules/filebrowser/folder_cover")
+                    if ok_folder and type(FolderCover.clear) == "function" then
+                        FolderCover.clear(folder_path)
+                    end
+                end
+                if self_fc.clearSortingCache then self_fc:clearSortingCache() end
+                if is_current_view then
+                    self_fc:refreshPath()
+                elseif type(self_fc.updateItems) == "function" then
+                    self_fc:updateItems()
+                end
             end
 
             local dialog_title, dialog_cover_widget, book_description
@@ -2110,7 +2136,7 @@ local function apply_context_menu()
                                             callback = function()
                                                 fsd_api.set(real_folder, opt.key, cur_reverse)
                                                 UIManager:close(sort_dialog)
-                                                refresh_after_sort_change()
+                                                refresh_after_sort_change(real_folder)
                                             end,
                                         }})
                                     end
@@ -2124,7 +2150,7 @@ local function apply_context_menu()
                                                 on_select = function(reverse)
                                                     if cur_collate then
                                                         fsd_api.set(real_folder, cur_collate, reverse)
-                                                        refresh_after_sort_change()
+                                                        refresh_after_sort_change(real_folder)
                                                     end
                                                 end,
                                             })
@@ -2138,7 +2164,7 @@ local function apply_context_menu()
                                             callback = function()
                                                 fsd_api.clear(real_folder)
                                                 UIManager:close(sort_dialog)
-                                                refresh_after_sort_change()
+                                                refresh_after_sort_change(real_folder)
                                             end,
                                         }})
                                     end

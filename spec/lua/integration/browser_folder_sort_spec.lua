@@ -55,4 +55,14 @@ describe("browser folder sort patch", function()
         local items = FileChooser:genItemTableFromPath("/library")
         assert.are.equal("A/", items[1].text)
     end)
+
+    it("uses a deterministic path tie-break inside an overridden folder", function()
+        FileChooser._zen_sort_override = { collate = "title", reverse = false }
+        local sorting = FileChooser:getSortingFunction(FileChooser.collates.title, false)
+        local alpha = { text = "Same", path = "/library/folder/Alpha.epub" }
+        local zulu = { text = "Same", path = "/library/folder/Zulu.epub" }
+
+        assert.is_true(sorting(alpha, zulu))
+        assert.is_false(sorting(zulu, alpha))
+    end)
 end)

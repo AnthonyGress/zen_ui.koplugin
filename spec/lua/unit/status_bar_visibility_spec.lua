@@ -97,4 +97,44 @@ describe("file manager status bar visibility", function()
 
         assert.are.equal(existing_row, title_group[2])
     end)
+
+    it("routes the real-folder chevron through onFolderUp", function()
+        local status_api
+        local back_callback
+        ZenSpec.replace("common/paths", {
+            getHomeDir = function() return "/library" end,
+            normPath = function(path) return path end,
+            isHomeLocked = function() return true end,
+        })
+        ZenSpec.replace("common/shared_state", {
+            register = function(_plugin, api) status_api = api end,
+            registerLoader = function() end,
+        })
+        ZenSpec.replace("ui/widget/button", {
+            new = function(_, options)
+                back_callback = options.callback
+                error("back callback captured")
+            end,
+        })
+        UIManager.scheduleIn = function(_, _, callback) callback() end
+
+        require("modules/filebrowser/patches/status_bar")()
+
+        local folder_up_calls = 0
+        local direct_change_calls = 0
+        local file_manager = {
+            file_chooser = {
+                item_table = {},
+                onFolderUp = function() folder_up_calls = folder_up_calls + 1 end,
+                changeToPath = function() direct_change_calls = direct_change_calls + 1 end,
+            },
+        }
+        local ok = pcall(status_api.createStatusRow, "/library/folder", file_manager)
+        assert.is_false(ok)
+        assert.is_function(back_callback)
+        back_callback()
+
+        assert.are.equal(1, folder_up_calls)
+        assert.are.equal(0, direct_change_calls)
+    end)
 end)

@@ -12,6 +12,8 @@ local bimOk, BookInfoManager = pcall(require, "bookinfomanager")
 
 local M = {}
 local GROUP_CACHE_TTL_S = 300
+local DIRECTORY_METADATA_CACHE_MAX = 32
+local DIRECTORY_METADATA_CACHE_MAX_CONSTRAINED = 4
 local group_cache = {}
 local cache_hits = 0
 local cache_misses = 0
@@ -238,10 +240,125 @@ function M.getGroupedBySeries()
     return groups
 end
 
--- Lightweight metadata for path-list sorting. This is one batched SQLite
--- query and never asks BookInfoManager to decode covers or open documents.
-function M.getLightMetadata()
+local LIGHT_METADATA_COLUMNS = [[
+    directory, filename, title, authors, series, series_index, keywords
+]]
+
+local function light_metadata_info(result, index)
+    return {
+        title = result[3] and result[3][index],
+        authors = result[4] and result[4][index],
+        series = result[5] and result[5][index],
+        series_index = tonumber(result[6] and result[6][index]),
+        keywords = result[7] and result[7][index],
+    }
+end
+
+local function put_metadata(metadata, filepath, info)
+    metadata[filepath] = info
+    metadata[paths.normPath(filepath)] = info
+end
+
+local function directory_variants(directory)
+    if type(directory) ~= "string" or directory == "" then return nil end
+    local function with_trailing_slash(path)
+        path = path:gsub("/+$", "")
+        return path == "" and "/" or path .. "/"
+    end
+    local raw = with_trailing_slash(directory)
+    local normalized = with_trailing_slash(paths.normPath(raw))
+    local legacy = normalized:gsub("^/storage/emulated/0/", "/sdcard/")
+    return normalized, raw, legacy
+end
+
+local function get_directory_metadata_cache()
+    local cache = get_cached("light_metadata_directories")
+    if cache then return cache end
+    cache = { values = {}, order = {} }
+    save_cached("light_metadata_directories", cache)
+    return cache
+end
+
+local function touch_directory_cache(cache, key)
+    for index = #cache.order, 1, -1 do
+        if cache.order[index] == key then
+            table.remove(cache.order, index)
+            break
+        end
+    end
+    cache.order[#cache.order + 1] = key
+end
+
+local function cache_directory_metadata(key, metadata)
+    local cache = get_directory_metadata_cache()
+    cache.values[key] = metadata
+    touch_directory_cache(cache, key)
+    local limit = MemoryPolicy.limitGroupCache()
+        and DIRECTORY_METADATA_CACHE_MAX_CONSTRAINED or DIRECTORY_METADATA_CACHE_MAX
+    while #cache.order > limit do
+        cache.values[table.remove(cache.order, 1)] = nil
+    end
+end
+
+local function get_cached_directory_metadata(key)
+    local cache = get_directory_metadata_cache()
+    local metadata = cache.values[key]
+    if metadata then touch_directory_cache(cache, key) end
+    return metadata
+end
+
+local function load_directory_metadata(directory)
+    local key, raw, legacy = directory_variants(directory)
+    if not key then return {} end
+    local cached = get_cached_directory_metadata(key)
+    if cached then return cached end
+
+    BookInfoManager:openDbConnection()
+    local metadata = {}
+    local home_dir = paths.getHomeDir()
+    local stmt
+    local ok_query, err = pcall(function()
+        stmt = BookInfoManager.db_conn:prepare(([[
+            SELECT %s
+            FROM bookinfo
+            WHERE directory = ? OR directory = ? OR directory = ?
+        ]]):format(LIGHT_METADATA_COLUMNS))
+        if not stmt then error("failed to prepare directory metadata query") end
+        stmt:bind(raw, key, legacy)
+        while true do
+            local row = stmt:step()
+            if not row then break end
+            local filepath = row[1] and row[2] and (row[1] .. row[2])
+            local normalized = filepath and paths.normPath(filepath)
+            if normalized and (not home_dir or paths.isInHomeDir(normalized)) then
+                put_metadata(metadata, filepath, {
+                    title = row[3],
+                    authors = row[4],
+                    series = row[5],
+                    series_index = tonumber(row[6]),
+                    keywords = row[7],
+                })
+            end
+        end
+    end)
+    if stmt then
+        pcall(stmt.clearbind, stmt)
+        pcall(stmt.reset, stmt)
+        if type(stmt.close) == "function" then pcall(stmt.close, stmt) end
+    end
+    if not ok_query then
+        logger.warn("directory metadata query error:", err)
+        return {}
+    end
+    cache_directory_metadata(key, metadata)
+    return metadata
+end
+
+-- Lightweight metadata for path-list sorting. With no directory this keeps the
+-- existing whole-library result; a directory uses a bounded, parameterized query.
+function M.getLightMetadata(directory)
     if not bimOk then return {} end
+    if directory ~= nil then return load_directory_metadata(directory) end
     local cached = get_cached("light_metadata")
     if cached then return cached end
 
@@ -249,18 +366,12 @@ function M.getLightMetadata()
     local metadata = {}
     local ok_query, err = pcall(function()
         local sql = [[
-            SELECT directory, filename, title, series, series_index
+            SELECT directory, filename, title, authors, series, series_index, keywords
             FROM bookinfo
         ]]
         for_each_valid_book_row(BookInfoManager.db_conn, sql,
             function(filepath, _filename, result, index)
-                local info = {
-                    title = result[3] and result[3][index],
-                    series = result[4] and result[4][index],
-                    series_index = tonumber(result[5] and result[5][index]),
-                }
-                metadata[filepath] = info
-                metadata[paths.normPath(filepath)] = info
+                put_metadata(metadata, filepath, light_metadata_info(result, index))
             end)
     end)
     if not ok_query then

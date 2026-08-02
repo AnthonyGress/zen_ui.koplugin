@@ -687,7 +687,7 @@ local function apply_browser_item_table_cache()
         self._zen_folder_aggregate_cache = nil
         local FolderCover = package.loaded["modules/filebrowser/folder_cover"]
         if FolderCover and type(FolderCover.clear) == "function" then
-            FolderCover.clear()
+            FolderCover.clear(path)
         end
         return drop_persisted_path(path) or dropped
     end

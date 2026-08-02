@@ -395,6 +395,7 @@ local function apply_zen_renderer()
         local result = FolderCover.build(item.menu, item.entry, item.text, max_w, max_h, {
             load_covers = wants_preview,
             cached_only = wants_preview and not hydrating_folder,
+            allow_expensive = hydrating_folder,
             cover_specs = specs,
             uniform = uniform,
         })

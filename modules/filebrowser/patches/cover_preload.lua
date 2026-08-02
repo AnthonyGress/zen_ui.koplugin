@@ -1304,7 +1304,8 @@ local function apply_cover_preload()
             deferred_stack_jobs)
         if folder_max_covers <= 0 or not FolderCover.isSupported(item, menu) then return end
         if max_jobs and #jobs + #gallery_jobs >= max_jobs then return end
-        local entries, physical, count, descriptor_cache_hit, enumeration_ms =
+        local entries, physical, count, descriptor_cache_hit, enumeration_ms,
+            descriptor_exact =
             FolderCover.previewEntries(menu, item, folder_max_covers)
         if folder_mode == "gallery" and #entries > 0 then
             gallery_jobs[#gallery_jobs + 1] = {
@@ -1316,6 +1317,7 @@ local function apply_cover_preload()
                 count = count,
                 descriptor_cache_hit = descriptor_cache_hit,
                 enumeration_ms = enumeration_ms,
+                descriptor_exact = descriptor_exact,
                 menu_text = item.text or item.title,
                 width = width,
                 height = height,
@@ -1518,6 +1520,7 @@ local function apply_cover_preload()
                     count = job.count,
                     descriptor_cache_hit = job.descriptor_cache_hit,
                     enumeration_ms = job.enumeration_ms,
+                    descriptor_exact = job.descriptor_exact,
                 })
             if not ok then
                 outcomes.failed = outcomes.failed + 1

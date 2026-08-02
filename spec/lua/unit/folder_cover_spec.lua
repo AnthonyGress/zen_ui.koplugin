@@ -13,7 +13,7 @@ describe("shared folder cover provider", function()
                 return function()
                     index = index + 1
                     local name = names[index]
-                    if on_yield and name ~= "." and name ~= ".." then on_yield(name) end
+                    if on_yield and name and name ~= "." and name ~= ".." then on_yield(name) end
                     return name
                 end
             end,
@@ -39,6 +39,7 @@ describe("shared folder cover provider", function()
     before_each(function()
         calls = { collect = {}, decorate = 0 }
         cover_mode = "gallery"
+        _G.__ZEN_FOLDER_SORT = nil
         ZenSpec.replace("common/cover_utils", {
             BORDER_SIZE = 2,
             getMode = function()
@@ -107,6 +108,7 @@ describe("shared folder cover provider", function()
     end)
 
     after_each(function()
+        _G.__ZEN_FOLDER_SORT = nil
         ZenSpec.unload("modules/filebrowser/folder_cover")
     end)
 
@@ -167,7 +169,7 @@ describe("shared folder cover provider", function()
         assert.are.equal("none", result.mode)
     end)
 
-    it("scans a folder without constructing child FileChooser items", function()
+    it("orders a folder without constructing child FileChooser items", function()
         local scans = 0
         install_lfs(function()
             return {
@@ -191,8 +193,8 @@ describe("shared folder cover provider", function()
         assert.are.equal("/library/folder", calls.explicit)
         assert.are.equal(1, #calls.collect)
         assert.are.equal(2, #calls.collect[1].entries)
-        assert.are.equal("/library/folder/b.epub", calls.collect[1].entries[1].path)
-        assert.are.equal("/library/folder/a.epub", calls.collect[1].entries[2].path)
+        assert.are.equal("/library/folder/a.epub", calls.collect[1].entries[1].path)
+        assert.are.equal("/library/folder/b.epub", calls.collect[1].entries[2].path)
         assert.are.equal(specs, calls.collect[1].specs)
         assert.are.equal(2, result.count)
         assert.are.equal("gallery", result.frame.kind)
@@ -239,8 +241,8 @@ describe("shared folder cover provider", function()
         local gallery = FolderCover.build(menu, entry, "Folder", 80, 120)
         assert.are.equal(6, gallery.count)
         assert.are.equal(4, #gallery.entries)
-        assert.are.equal("/library/folder/f.epub", gallery.entries[1].path)
-        assert.are.equal(4, yielded)
+        assert.are.equal("/library/folder/a.epub", gallery.entries[1].path)
+        assert.are.equal(6, yielded)
 
         cover_mode = "normal"
         local single = FolderCover.build(menu, entry, "Folder", 80, 120)
@@ -249,7 +251,7 @@ describe("shared folder cover provider", function()
         assert.are.equal(1, calls.collect[#calls.collect].limit)
     end)
 
-    it("stops after one candidate in single mode when the parent supplied the count", function()
+    it("retains one candidate in single mode when the parent supplied the count", function()
         local yielded = 0
         cover_mode = "normal"
         install_lfs(function()
@@ -265,7 +267,7 @@ describe("shared folder cover provider", function()
             mandatory = "4 \xef\x80\x96",
         }, "Folder", 80, 120)
 
-        assert.are.equal(1, yielded)
+        assert.are.equal(4, yielded)
         assert.are.equal(4, result.count)
         assert.are.equal(1, #result.entries)
         assert.are.equal(1, calls.collect[1].limit)
@@ -291,6 +293,144 @@ describe("shared folder cover provider", function()
         assert.are.equal("/library/folder/first.epub", single[1].path)
         assert.are.equal(single[1].path, gallery[1].path)
         assert.are.equal(4, #gallery)
+    end)
+
+    it("invalidates ordered descriptors when a folder sort is reversed", function()
+        local reverse = false
+        local scans = 0
+        _G.__ZEN_FOLDER_SORT = {
+            get = function()
+                return { collate = "title", reverse = reverse }
+            end,
+        }
+        ZenSpec.replace("common/db_bookinfo", {
+            getLightMetadata = function()
+                return {
+                    ["/library/folder/a.epub"] = { title = "Alpha" },
+                    ["/library/folder/z.epub"] = { title = "Zulu" },
+                }
+            end,
+        })
+        install_lfs(function()
+            return { { name = "z.epub" }, { name = "a.epub" } }
+        end, function() scans = scans + 1 end)
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local menu = {
+            name = "filemanager",
+            collates = {
+                title = {
+                    init_sort_func = function()
+                        return function(a, b)
+                            return a.doc_props.display_title < b.doc_props.display_title
+                        end
+                    end,
+                },
+            },
+            getSortingFunction = function(_self, collate, sort_reverse)
+                local less = collate.init_sort_func()
+                if sort_reverse then
+                    return function(a, b) return less(b, a) end
+                end
+                return less
+            end,
+        }
+        local entry = {
+            path = "/library/folder",
+            attr = { mode = "directory" },
+            mandatory = "2 books",
+        }
+
+        local ascending = FolderCover.previewEntries(menu, entry, 1)
+        reverse = true
+        local descending = FolderCover.previewEntries(menu, entry, 1)
+
+        assert.are.equal("/library/folder/a.epub", ascending[1].path)
+        assert.are.equal("/library/folder/z.epub", descending[1].path)
+        assert.are.equal(2, scans)
+    end)
+
+    it("shares one history snapshot across folder descriptors", function()
+        local history_loads = 0
+        _G.__ZEN_FOLDER_SORT = {
+            get = function() return { collate = "access", reverse = false } end,
+        }
+        ZenSpec.replace("readhistory", {
+            hist = {
+                { file = "/library/one/b.epub", time = 20 },
+                { file = "/library/one/a.epub", time = 10 },
+            },
+            last_read_time = 1,
+        })
+        ZenSpec.replace("common/history_index", {
+            load = function()
+                history_loads = history_loads + 1
+                return { marker = true }
+            end,
+            fileTime = function(_history, path)
+                if path == "/library/one/b.epub" then return 20 end
+                if path == "/library/one/a.epub" then return 10 end
+            end,
+        })
+        install_lfs(function(path)
+            if path == "/library/one" then
+                return { { name = "a.epub" }, { name = "b.epub" } }
+            end
+            return { { name = "c.epub" } }
+        end)
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local collate = {
+            init_sort_func = function()
+                return function(a, b) return a.attr.access > b.attr.access end
+            end,
+        }
+        local menu = { name = "filemanager", collates = { access = collate } }
+
+        local first = FolderCover.previewEntries(menu, {
+            path = "/library/one", attr = { mode = "directory" },
+        }, 1)
+        FolderCover.previewEntries(menu, {
+            path = "/library/two", attr = { mode = "directory" },
+        }, 1)
+
+        assert.are.equal("/library/one/b.epub", first[1].path)
+        assert.are.equal(1, history_loads)
+    end)
+
+    it("defers expensive sort item hydration until the folder queue runs", function()
+        local item_hydrations = 0
+        _G.__ZEN_FOLDER_SORT = {
+            get = function() return { collate = "rating", reverse = false } end,
+        }
+        install_lfs(function()
+            return { { name = "b.epub" }, { name = "a.epub" } }
+        end)
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local menu = {
+            name = "filemanager",
+            collates = {
+                rating = {
+                    item_func = function(item)
+                        item_hydrations = item_hydrations + 1
+                        item.rating = item.text == "b.epub" and 5 or 1
+                        item.doc_props = { display_title = item.text }
+                    end,
+                    init_sort_func = function()
+                        return function(a, b) return a.rating > b.rating end
+                    end,
+                },
+            },
+        }
+        local entry = {
+            path = "/library/folder", attr = { mode = "directory" },
+        }
+
+        local synchronous = FolderCover.previewEntries(menu, entry, 1)
+        local hydrated = FolderCover.previewEntries(
+            menu, entry, 1, { allow_expensive = true })
+
+        assert.are.equal("/library/folder/a.epub", synchronous[1].path)
+        assert.are.equal("/library/folder/b.epub", hydrated[1].path)
+        assert.are.equal(2, item_hydrations)
     end)
 
     it("reuses bounded physical-folder descriptors until invalidated", function()

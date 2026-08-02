@@ -3,7 +3,14 @@ local function apply_search()
     local InputDialog = require("ui/widget/inputdialog")
     local UIManager = require("ui/uimanager")
     local paths = require("common/paths")
+    local utils = require("common/utils")
     local _ = require("gettext")
+
+    local _icons_dir
+    do
+        local root = require("common/plugin_root")
+        if root then _icons_dir = root .. "/icons/" end
+    end
 
     -- Capture plugin reference at apply time (global is only set transiently)
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
@@ -58,7 +65,7 @@ local function apply_search()
             title = _("Search Library"),
             input = search_string or FileManagerFileSearcher.search_string,
             -- X close icon in top left
-            title_bar_left_icon = "close",
+            title_bar_left_icon = utils.resolveLocalIcon(_icons_dir, "close"),
             title_bar_left_icon_tap_callback = function()
                 UIManager:close(search_dialog)
             end,

@@ -482,7 +482,7 @@ describe("page browser entry", function()
         expect(ReaderSearch.current_search_type == default_search_type)
     end)
 
-    it("routes page-browser title-bar actions and keeps TOC returnable", function()
+    it("routes page-browser title-bar actions and keeps nested views returnable", function()
         local ReaderMenu = { initGesListener = function() end }
         local ReaderConfig = { onSwipeShowConfigMenu = function() end }
         local close_button_taps = 0
@@ -671,17 +671,17 @@ describe("page browser entry", function()
         by_file["/icons/appbar.search.svg"]()
         expect(closes == 1 and action_events[#action_events].name == "ShowFulltextSearchInput")
         by_file["/icons/bookmark.svg"]()
-        expect(closes == 2 and bookmarks == 1)
+        expect(closes == 1 and bookmarks == 1)
 
         by_file["/icons/toc.svg"]()
-        expect(closes == 2 and toc_spec.focus_page == 12)
+        expect(closes == 1 and toc_spec.focus_page == 12)
         toc_spec.on_goto(27)
-        expect(closes == 3 and stack_adds == 1)
+        expect(closes == 2 and stack_adds == 1)
         expect(action_events[#action_events].name == "GotoPage"
             and action_events[#action_events].args[1] == 27)
 
         by_file["/icons/info.svg"]()
-        expect(closes == 3 and info_spec ~= nil and info_spec.title == "Book details")
+        expect(closes == 2 and info_spec ~= nil and info_spec.title == "Book details")
         expect(info_spec.cover ~= nil and info_spec.cover_width == 120 and info_spec.cover_height == 180)
         expect(#info_spec.details == 8)
         expect(info_spec.details[1].text == "Test title" and info_spec.details[1].bold == true
@@ -701,7 +701,7 @@ describe("page browser entry", function()
         expect(info_spec.description == "Test description")
 
         by_file["/icons/appbar.textsize.svg"]()
-        expect(closes == 4)
+        expect(closes == 3)
         expect(config_dialog ~= nil and ui.config.config_dialog == config_dialog)
         expect(config_dialog.shown_panel == 4 and stopped == 1)
         expect(action_events[#action_events].name == "DisableHinting")
@@ -709,5 +709,152 @@ describe("page browser entry", function()
         config_dialog.close_callback()
         expect(ui.config.config_dialog == nil and ui.config.last_panel_index == 2)
         expect(action_events[#action_events].name == "RestoreHinting")
+    end)
+
+    it("closes book search with hardware Back and focuses its X on non-touch devices", function()
+        local ReaderSearch = {}
+        local close_button = { name = "close" }
+        local input_widget = {
+            name = "input",
+            keyboard = {
+                key_events = { Close = { { "Back" } } },
+            },
+        }
+        local search_button = { name = "search" }
+        local dialog
+        local InputDialog = {
+            onTap = function() end,
+            new = function(_, spec)
+                dialog = spec
+                dialog.title_bar = { left_button = close_button }
+                dialog._input_widget = input_widget
+                dialog.layout = { { input_widget }, { search_button } }
+                dialog.selected = { x = 1, y = 1 }
+                dialog.isKeyboardVisible = function() return false end
+                dialog.onShowKeyboard = function() end
+                return dialog
+            end,
+        }
+        local closes, shown_dialog = 0, nil
+        ZenSpec.replace("device", {
+            screen = {
+                getWidth = function() return 600 end,
+                getHeight = function() return 800 end,
+            },
+            isTouchDevice = function() return false end,
+        })
+        ZenSpec.replace("apps/reader/modules/readersearch", ReaderSearch)
+        ZenSpec.replace("apps/reader/modules/readermenu", { initGesListener = function() end })
+        ZenSpec.replace("apps/reader/modules/readerconfig", { onSwipeShowConfigMenu = function() end })
+        ZenSpec.replace("ui/widget/inputdialog", InputDialog)
+        ZenSpec.replace("ui/uimanager", {
+            close = function(_, closed)
+                expect(closed == dialog)
+                closes = closes + 1
+            end,
+            show = function(_, widget) shown_dialog = widget end,
+            scheduleIn = function() end,
+            setDirty = function() end,
+            unschedule = function() end,
+        })
+        ZenSpec.replace("common/utils", {
+            resolveLocalIcon = function(_, name) return "/icons/" .. name .. ".svg" end,
+        })
+        _G.__ZEN_UI_PLUGIN = { config = { features = { page_browser = false } } }
+        require("modules/reader/patches/page_browser")()
+
+        ReaderSearch:onShowFulltextSearchInput("needle")
+        expect(shown_dialog == dialog)
+        expect(dialog.title_bar_left_icon == "/icons/close.svg")
+        expect(dialog.layout[1][1] == close_button)
+        expect(dialog.layout[2][1] == input_widget)
+        expect(dialog.selected.x == 1 and dialog.selected.y == 2)
+
+        expect(dialog:onCloseDialog() == true)
+        expect(closes == 1)
+        expect(input_widget.keyboard.key_events.Close == nil)
+        expect(input_widget.keyboard.key_events.ZenCloseSearchDialog.event == "ZenCloseSearchDialog")
+        expect(input_widget.keyboard:onZenCloseSearchDialog() == true)
+        expect(closes == 2)
+
+        dialog.title_bar_left_icon_tap_callback()
+        expect(closes == 3)
+    end)
+
+    it("makes both book-search result header buttons reachable on non-touch devices", function()
+        local left_button = { name = "menu" }
+        local right_button = { name = "close" }
+        local first_result = { name = "first" }
+        local second_result = { name = "second" }
+        local focus_moves, presses = {}, 0
+        local menu = {
+            dimen = { h = 800 },
+            [1] = {},
+            selected = { x = 1, y = 1 },
+            title_bar = {
+                generateHorizontalLayout = function()
+                    return { { left_button, right_button } }
+                end,
+            },
+            close_callback = function() end,
+            updateItems = function(self)
+                self.layout = { { first_result }, { second_result } }
+                self.selected = { x = 1, y = 1 }
+                self:mergeTitleBarIntoLayout()
+            end,
+            onFocusMove = function(_, args)
+                focus_moves[#focus_moves + 1] = args
+                return true
+            end,
+            onPress = function()
+                presses = presses + 1
+                return true
+            end,
+        }
+        local ReaderSearch = {
+            onShowFindAllResults = function(self)
+                self.result_menu = menu
+            end,
+        }
+        ZenSpec.replace("device", {
+            screen = {
+                getWidth = function() return 600 end,
+                getHeight = function() return 800 end,
+            },
+            isTouchDevice = function() return false end,
+            hasDPad = function() return true end,
+            hasKeyboard = function() return false end,
+        })
+        ZenSpec.replace("apps/reader/modules/readersearch", ReaderSearch)
+        ZenSpec.replace("apps/reader/modules/readermenu", { initGesListener = function() end })
+        ZenSpec.replace("apps/reader/modules/readerconfig", { onSwipeShowConfigMenu = function() end })
+        ZenSpec.replace("ui/widget/inputdialog", { onTap = function() end })
+        ZenSpec.replace("ui/uimanager", {
+            isWidgetShown = function(_, shown_menu) return shown_menu == menu end,
+            setDirty = function() end,
+            scheduleIn = function() end,
+            unschedule = function() end,
+        })
+        _G.__ZEN_UI_PLUGIN = { config = { features = { page_browser = false } } }
+        require("modules/reader/patches/page_browser")()
+
+        ReaderSearch:onShowFindAllResults(true)
+        expect(menu.layout[1][1] == left_button and menu.layout[1][2] == right_button)
+        expect(menu.layout[2][1] == first_result)
+        expect(menu.selected.x == 1 and menu.selected.y == 2)
+
+        local function key(name)
+            return {
+                match = function(_, sequence) return sequence[1] == name end,
+            }
+        end
+        expect(menu:onKeyPress(key("Up")) == true)
+        expect(menu:onKeyPress(key("Right")) == true)
+        expect(menu:onKeyPress(key("Return")) == true)
+        expect(menu:onKeyRepeat(key("Left")) == true)
+        expect(focus_moves[1][2] == -1)
+        expect(focus_moves[2][1] == 1)
+        expect(focus_moves[3][1] == -1)
+        expect(presses == 1)
     end)
 end)

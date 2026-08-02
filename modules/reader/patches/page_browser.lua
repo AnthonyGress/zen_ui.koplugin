@@ -981,7 +981,7 @@ local function apply_page_browser()
                 pbw_ref.ui:handleEvent(Event:new("ShowFulltextSearchInput"))
             end
             local function open_bookmarks()
-                pbw_ref:onClose()
+                -- Keep the page browser underneath so closing bookmarks returns here.
                 if pbw_ref.ui.bookmark then
                     pbw_ref.ui.bookmark:onShowBookmark()
                 end
@@ -2520,6 +2520,33 @@ local function apply_page_browser()
 
         local SEARCH_ICON = "\u{F002}"
 
+        local function enable_search_dialog_close(dialog)
+            local function close_dialog()
+                UIManager:close(dialog)
+                return true
+            end
+
+            dialog.onCloseDialog = close_dialog
+
+            -- The virtual keyboard otherwise consumes Back and only hides itself.
+            local keyboard = dialog._input_widget and dialog._input_widget.keyboard
+            local keyboard_back = keyboard and keyboard.key_events and keyboard.key_events.Close
+            if keyboard_back then
+                keyboard.key_events.Close = nil
+                keyboard.key_events.ZenCloseSearchDialog = keyboard_back
+                keyboard_back.event = "ZenCloseSearchDialog"
+                keyboard.onZenCloseSearchDialog = close_dialog
+            end
+
+            if not is_non_touch_device() then return end
+            local close_button = dialog.title_bar and dialog.title_bar.left_button
+            if not (close_button and dialog.layout) then return end
+            table.insert(dialog.layout, 1, { close_button })
+            if dialog.selected then
+                dialog.selected.y = dialog.selected.y + 1
+            end
+        end
+
         ReaderSearch.onShowFulltextSearchInput = function(self, search_string)
             self.input_dialog = InputDialog:new{
                 title = _("Search Book"),
@@ -2529,7 +2556,7 @@ local function apply_page_browser()
                     or (self.ui.doc_settings
                         and self.ui.doc_settings:readSetting("fulltext_search_last_search_text")),
                 -- X in the title bar (top left)
-                title_bar_left_icon = "close",
+                title_bar_left_icon = utils.resolveLocalIcon(_stock_icons_dir, "close"),
                 title_bar_left_icon_tap_callback = function()
                     UIManager:close(self.input_dialog)
                 end,
@@ -2545,6 +2572,7 @@ local function apply_page_browser()
                     },
                 },
             }
+            enable_search_dialog_close(self.input_dialog)
             -- Always case insensitive, whole-word via regex
             self.case_insensitive = true
             self._zen_whole_word = true
@@ -2629,6 +2657,58 @@ local function apply_page_browser()
             return _orig_rs_findAllText(self, search_text)
         end
 
+        local function enable_search_results_focus(menu)
+            if not supports_page_browser_focus() then return end
+
+            menu.mergeTitleBarIntoLayout = function(menu_self)
+                local title_layout = menu_self.title_bar
+                    and menu_self.title_bar:generateHorizontalLayout() or {}
+                for i, row in ipairs(title_layout) do
+                    table.insert(menu_self.layout, i, row)
+                end
+                if menu_self.selected then
+                    menu_self.selected.y = menu_self.selected.y + #title_layout
+                end
+            end
+
+            local orig_on_key_press = menu.onKeyPress
+            menu.onKeyPress = function(menu_self, key)
+                if key and type(key.match) == "function" then
+                    if key:match({ "Up" }) then
+                        return menu_self:onFocusMove({ 0, -1 })
+                    elseif key:match({ "Right" }) then
+                        return menu_self:onFocusMove({ 1, 0 })
+                    elseif key:match({ "Down" }) then
+                        return menu_self:onFocusMove({ 0, 1 })
+                    elseif key:match({ "Left" }) then
+                        return menu_self:onFocusMove({ -1, 0 })
+                    elseif key:match({ "Press" }) or key:match({ "Return" })
+                            or key:match({ "Enter" }) then
+                        return menu_self:onPress()
+                    end
+                end
+                return orig_on_key_press and orig_on_key_press(menu_self, key)
+            end
+
+            local orig_on_key_repeat = menu.onKeyRepeat
+            menu.onKeyRepeat = function(menu_self, key)
+                if key and type(key.match) == "function" then
+                    if key:match({ "Up" }) then
+                        return menu_self:onFocusMove({ 0, -1 })
+                    elseif key:match({ "Right" }) then
+                        return menu_self:onFocusMove({ 1, 0 })
+                    elseif key:match({ "Down" }) then
+                        return menu_self:onFocusMove({ 0, 1 })
+                    elseif key:match({ "Left" }) then
+                        return menu_self:onFocusMove({ -1, 0 })
+                    end
+                end
+                return orig_on_key_repeat and orig_on_key_repeat(menu_self, key)
+            end
+
+            menu:updateItems(1, true)
+        end
+
         -- Patch onShowFindAllResults: fix reader-content ghosting at the bottom
         -- of the screen when search results are shown.
         --
@@ -2664,6 +2744,8 @@ local function apply_page_browser()
             _orig_onShowFindAllResults(self, not_cached)
             local menu = self.result_menu
             if not menu or not UIManager:isWidgetShown(menu) then return end
+
+            enable_search_results_focus(menu)
 
             local real_h = Screen_s:getHeight()
 

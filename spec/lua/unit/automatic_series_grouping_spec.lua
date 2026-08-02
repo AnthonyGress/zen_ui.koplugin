@@ -59,10 +59,18 @@ describe("automatic series grouping patch", function()
             onFolderUp = function() return "folder-up" end,
             changeToPath = function(self, path)
                 self.changed_to = path
+                if self._test_parent_items then
+                    self.page = 1
+                    self:switchItemTable(nil, self._test_parent_items)
+                end
                 return "changed"
             end,
-            refreshPath = function()
+            refreshPath = function(self)
                 original_refresh_calls = original_refresh_calls + 1
+                if self._test_refresh_items then
+                    self.page = 1
+                    self:switchItemTable(nil, self._test_refresh_items)
+                end
             end,
             goHome = function() return "home" end,
             switchItemTable = function(self, _title, new_items, itemnumber, itemmatch, subtitle)
@@ -150,6 +158,65 @@ describe("automatic series grouping patch", function()
         assert.are.equal("2 \u{F016}", group.mandatory)
         assert.are.same({ second, first }, group.series_items)
         assert.are.equal(loose, fc.item_table[2])
+    end)
+
+    it("opens virtual members in the same canonical order as their folder cover", function()
+        local members = {
+            item("/library/Four.epub", "Four"),
+            item("/library/One.epub", "One"),
+            item("/library/Three.epub", "Three"),
+            item("/library/Two.epub", "Two"),
+        }
+        local loose = item("/library/Loose.epub", "Loose")
+        for _i, member in ipairs(members) do
+            metadata[member.path] = { series = "Saga" }
+        end
+        metadata[loose.path] = { title = "Loose" }
+        local fc = chooser()
+
+        FileChooser.switchItemTable(fc, nil, {
+            members[1], members[2], members[3], members[4], loose,
+        })
+        local group = fc.item_table[1]
+        local canonical = {
+            group.series_items[1], group.series_items[2],
+            group.series_items[3], group.series_items[4],
+        }
+        FileChooser.onMenuSelect(fc, group)
+
+        assert.are.same(canonical, {
+            fc.item_table[2], fc.item_table[3],
+            fc.item_table[4], fc.item_table[5],
+        })
+    end)
+
+    it("uses a deterministic path tie-break for equal override sort keys", function()
+        local zulu = item("/library/Zulu.epub", "Zulu")
+        local alpha = item("/library/Alpha.epub", "Alpha")
+        local loose = item("/library/Loose.epub", "Loose")
+        metadata[zulu.path] = { series = "Saga" }
+        metadata[alpha.path] = { series = "Saga" }
+        metadata[loose.path] = { title = "Loose" }
+        _G.__ZEN_FOLDER_SORT = {
+            get = function() return { collate = "title", reverse = false } end,
+        }
+        local equal_title = {
+            item_func = function(member)
+                member.doc_props = { display_title = "Same title" }
+            end,
+        }
+        local fc = chooser()
+        fc.getCollate = function(self)
+            if self._zen_sort_override then return equal_title, "title" end
+            return { can_collate_mixed = false }, "natural"
+        end
+        fc.getSortingFunction = function(_self, _collate, _reverse)
+            return function() return false end
+        end
+
+        FileChooser.switchItemTable(fc, nil, { zulu, alpha, loose })
+
+        assert.are.same({ alpha, zulu }, fc.item_table[1].series_items)
     end)
 
     it("uses the newest member when sorting virtual folders by recently read", function()
@@ -253,6 +320,80 @@ describe("automatic series grouping patch", function()
 
         assert.is_true(FileChooser.onFolderUp(fc))
         assert.are.equal("/library", fc.changed_to)
+    end)
+
+    it("preserves the parent page while reordering an open virtual folder", function()
+        local first = item("/library/One.epub", "One")
+        local second = item("/library/Two.epub", "Two")
+        local loose = item("/library/Loose.epub", "Loose")
+        metadata[first.path] = { series = "Saga", series_index = 1 }
+        metadata[second.path] = { series = "Saga", series_index = 2 }
+        metadata[loose.path] = { title = "Loose" }
+        local parent_items = { first, second, loose }
+        local fc = chooser()
+        fc.page = 4
+        fc.perpage = 9
+        fc.path_items["/library"] = 28
+        FileChooser.switchItemTable(fc, nil, parent_items)
+        local group = fc.item_table[1]
+        FileChooser.onMenuSelect(fc, group)
+
+        fc.page = 2
+        fc.perpage = 3
+        fc._test_parent_items = parent_items
+        assert.is_true(fc:_zen_resort_series_group(group, true))
+        assert.are.equal(2, fc.page)
+
+        assert.is_true(FileChooser.onFolderUp(fc))
+        assert.are.equal(4, fc.page)
+        assert.are.equal(-1, fc.switched_itemnumber)
+        assert.are.equal("/library", fc.changed_to)
+    end)
+
+    it("preserves the captured parent page across a virtual refresh and reopen", function()
+        local first = item("/library/One.epub", "One")
+        local second = item("/library/Two.epub", "Two")
+        local loose = item("/library/Loose.epub", "Loose")
+        metadata[first.path] = { series = "Saga", series_index = 1 }
+        metadata[second.path] = { series = "Saga", series_index = 2 }
+        metadata[loose.path] = { title = "Loose" }
+        local parent_items = { first, second, loose }
+        local fc = chooser()
+        fc.page = 4
+        FileChooser.switchItemTable(fc, nil, parent_items)
+        FileChooser.onMenuSelect(fc, fc.item_table[1])
+        fc._test_refresh_items = parent_items
+        fc._test_parent_items = parent_items
+
+        FileChooser.refreshPath(fc)
+        assert.is_true(fc.item_table.is_in_series_view)
+        assert.is_true(FileChooser.onFolderUp(fc))
+
+        assert.are.equal(4, fc.page)
+        assert.are.equal("/library", fc.changed_to)
+    end)
+
+    it("clears virtual state when refresh dissolves the series group", function()
+        local first = item("/library/One.epub", "One")
+        local second = item("/library/Two.epub", "Two")
+        local loose = item("/library/Loose.epub", "Loose")
+        metadata[first.path] = { series = "Saga", series_index = 1 }
+        metadata[second.path] = { series = "Saga", series_index = 2 }
+        metadata[loose.path] = { title = "Loose" }
+        local fc = chooser()
+        FileChooser.switchItemTable(fc, nil, { first, second, loose })
+        FileChooser.onMenuSelect(fc, fc.item_table[1])
+        fc._test_refresh_items = { loose }
+        local file_manager = require("apps/filemanager/filemanager").instance
+        file_manager.updated = nil
+
+        FileChooser.refreshPath(fc)
+        local title_bar = {}
+        TitleBar.setSubTitle(title_bar, "Library")
+
+        assert.are.same({ loose }, fc.item_table)
+        assert.are.equal("Library", title_bar.subtitle)
+        assert.is_true(file_manager.updated)
     end)
 
     it("leaves ordinary selection and disabled grouping to KOReader", function()

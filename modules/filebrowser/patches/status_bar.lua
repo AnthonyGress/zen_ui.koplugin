@@ -574,8 +574,7 @@ local function apply_status_bar()
             local ffiUtil = require("ffi/util")
             back_callback = function()
                 local file_chooser = file_manager and file_manager.file_chooser
-                local bw_item_table = file_chooser and file_chooser.item_table
-                if bw_item_table and bw_item_table.is_in_series_view and file_chooser.onFolderUp then
+                if file_chooser and file_chooser.onFolderUp then
                     UIManager:scheduleIn(0.1, function()
                         if file_manager.file_chooser then
                             file_manager.file_chooser:onFolderUp()
