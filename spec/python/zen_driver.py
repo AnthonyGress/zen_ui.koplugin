@@ -143,6 +143,7 @@ def launch(
     socket_path: Path,
     library_dir: Path | None = None,
     zen_config_source: str | None = None,
+    env_overrides: dict[str, str] | None = None,
 ) -> subprocess.Popen[str]:
     settings_dir = ko_home / "settings" / "Zen UI"
     settings_dir.mkdir(parents=True, exist_ok=True)
@@ -163,6 +164,8 @@ def launch(
         "ZEN_UI_TEST_SOCKET": str(socket_path),
         "ZEN_UI_TESTING": "1",
     })
+    if env_overrides:
+        env.update(env_overrides)
     return subprocess.Popen([str(koreader_dir / "reader.lua")], cwd=koreader_dir, env=env, text=True)
 
 

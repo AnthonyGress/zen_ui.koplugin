@@ -12,6 +12,7 @@ local paths = require("common/paths")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
+local DispatcherMenu = require("common/dispatcher_menu")
 
 local M = {}
 
@@ -43,38 +44,17 @@ function M.build(ctx)
         end
     end
 
-    local pending_navbar_refresh = false
-    local pending_navbar_poll_active = false
-
-    local function is_filemanager_menu_open()
-        local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
-        if not ok_fm or not FileManager or not FileManager.instance then return false end
-        local fm = FileManager.instance
-        return fm.menu ~= nil and fm.menu.menu_container ~= nil
-    end
-
-    local function refresh_navbar_after_menu_close()
-        if is_filemanager_menu_open() then
-            UIManager:scheduleIn(0.25, refresh_navbar_after_menu_close)
+    local function queue_deferred_navbar_refresh()
+        if settings_apply and settings_apply.refresh_navbar_on_menu_close then
+            settings_apply.refresh_navbar_on_menu_close()
             return
         end
-        pending_navbar_poll_active = false
-        if not pending_navbar_refresh then return end
-        pending_navbar_refresh = false
         local reinject = rawget(_G, "__ZEN_UI_REINJECT_NAVBARS")
             or rawget(_G, "__ZEN_UI_REINJECT_FM_NAVBAR")
-        if reinject then
-            reinject()
+        if type(reinject) == "function" then
+            UIManager:scheduleIn(0, reinject)
         else
             save_and_apply("navbar")
-        end
-    end
-
-    local function queue_deferred_navbar_refresh()
-        pending_navbar_refresh = true
-        if not pending_navbar_poll_active then
-            pending_navbar_poll_active = true
-            UIManager:scheduleIn(0.25, refresh_navbar_after_menu_close)
         end
     end
 
@@ -291,6 +271,7 @@ function M.build(ctx)
     local ok_disp, Dispatcher = pcall(require, "dispatcher")
     local build_ct_sub_items
     local build_builtin_tab_items
+    local addTagTab
 
     local function is_draft_tab(ct)
         return type(ct) == "table" and type(ct._zen_draft_commit) == "function"
@@ -298,6 +279,9 @@ function M.build(ctx)
 
     local function get_ct_label(ct)
         if ct.label and ct.label ~= "" then return ct.label end
+        if ct.type == "tag" then
+            return ct.tag or _("Tag")
+        end
         if ct.type == "plugin" then
             return ct.plugin_title or _("Plugin")
         end
@@ -329,35 +313,6 @@ function M.build(ctx)
         end
     end
 
-    local function has_valid_custom_tab_target(ct)
-        if ct.type == "action" then
-            return type(ct.action) == "table" and next(ct.action) ~= nil
-        end
-        if ct.type == "quick_setting" then
-            return type(ct.quick_setting_id) == "string" and ct.quick_setting_id ~= ""
-        end
-        return ct.type == "plugin"
-            and type(ct.plugin) == "table"
-            and ct.plugin.key ~= nil
-            and ct.plugin.method ~= nil
-    end
-
-    local function add_done_metadata(items, ct)
-        items._zen_arrange_done_func = function()
-            if ct.type == "action" then
-                sync_ct_action_label(ct)
-            end
-            if is_draft_tab(ct) then
-                ct._zen_draft_commit()
-            elseif has_valid_custom_tab_target(ct) then
-                save_and_defer_navbar_refresh()
-            end
-        end
-        items._zen_arrange_done_enabled_func = function()
-            return has_valid_custom_tab_target(ct)
-        end
-    end
-
     local function ensureTabOrder(id)
         for _i, ordered_id in ipairs(config.navbar.tab_order) do
             if ordered_id == id then return end
@@ -385,16 +340,25 @@ function M.build(ctx)
             if not selected[tab.id] then
                 picker_items[#picker_items + 1] = {
                     id = tab.id,
-                    text = get_tab_item_text(tab),
+                    text = tab.id == "tags" and _("All tags") or get_tab_item_text(tab),
                 }
             end
         end
+        picker_items[#picker_items + 1] = {
+            id = "tag",
+            text = _("Single tag"),
+        }
         table.sort(picker_items, function(a, b) return a.text < b.text end)
         if #picker_items == 0 then return end
         require("common/ui/zen_menu_picker"){
             title = _("Choose tab"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
+                if item.id == "tag" then
+                    addTagTab(touch_menu)
+                    return
+                end
                 ensureTabOrder(item.id)
                 config.navbar.show_tabs[item.id] = countEnabledTabs() < navbar_max_tabs
                 save_and_defer_navbar_refresh()
@@ -429,48 +393,10 @@ function M.build(ctx)
     end
 
     local function wrap_dispatch_callbacks(items, caller, on_update)
-        if type(items) ~= "table" then return end
-        for _i, item in ipairs(items) do
-            if type(item.callback) == "function" and not item._zen_nav_dispatch_wrapped then
-                local orig_callback = item.callback
-                item.callback = function(touch_menu, ...)
-                    caller.updated = false
-                    local result = orig_callback(touch_menu, ...)
-                    if caller.updated then
-                        caller.updated = false
-                        on_update(touch_menu)
-                    end
-                    return result
-                end
-                item._zen_nav_dispatch_wrapped = true
-            end
-            if type(item.hold_callback) == "function" and not item._zen_nav_dispatch_hold_wrapped then
-                local orig_hold_callback = item.hold_callback
-                item.hold_callback = function(touch_menu, ...)
-                    caller.updated = false
-                    local result = orig_hold_callback(touch_menu, ...)
-                    if caller.updated then
-                        caller.updated = false
-                        on_update(touch_menu)
-                    end
-                    return result
-                end
-                item._zen_nav_dispatch_hold_wrapped = true
-            end
-            if type(item.sub_item_table_func) == "function" and not item._zen_nav_dispatch_func_wrapped then
-                local orig_sub_item_table_func = item.sub_item_table_func
-                item.sub_item_table_func = function(...)
-                    local sub_items = orig_sub_item_table_func(...)
-                    wrap_dispatch_callbacks(sub_items, caller, on_update)
-                    return sub_items
-                end
-                item._zen_nav_dispatch_func_wrapped = true
-            end
-            wrap_dispatch_callbacks(item.sub_item_table, caller, on_update)
-        end
+        DispatcherMenu.wrap(items, caller, on_update, "_zen_nav_dispatch")
     end
 
-    local function showPluginPicker(on_select)
+    local function showPluginPicker(on_select, touch_menu)
         local found = PluginScan.scan()
         if #found == 0 then
             local InfoMessage = require("ui/widget/infomessage")
@@ -487,7 +413,31 @@ function M.build(ctx)
         require("common/ui/zen_menu_picker"){
             title = _("Choose plugin menu"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = on_select,
+        }
+    end
+
+    local function showTagPicker(on_select, touch_menu)
+        local ok_db, db = pcall(require, "common/db_bookinfo")
+        local groups = ok_db and db and type(db.getGroupedByTags) == "function"
+            and db.getGroupedByTags() or {}
+        if #groups == 0 then
+            local InfoMessage = require("ui/widget/infomessage")
+            UIManager:show(InfoMessage:new{ text = _("No tags found") })
+            return
+        end
+        local items = {}
+        for _i, group in ipairs(groups) do
+            items[#items + 1] = { text = group.tag, tag = group.tag }
+        end
+        require("common/ui/zen_menu_picker"){
+            title = _("Choose tag"),
+            items = items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
+            on_select = function(item)
+                if item and item.tag then on_select(item) end
+            end,
         }
     end
 
@@ -510,7 +460,7 @@ function M.build(ctx)
             if touch_menu and touch_menu.updateItems then
                 touch_menu:updateItems(1)
             end
-        end)
+        end, touch_menu)
     end
 
     local function addActionTab(touch_menu)
@@ -558,7 +508,38 @@ function M.build(ctx)
             }
             commitCustomTab(new_ct)
             openCustomTabSettings(touch_menu, new_ct)
-        end)
+        end, touch_menu)
+    end
+
+    addTagTab = function(touch_menu)
+        showTagPicker(function(item)
+            local ct = {
+                type = "tag",
+                tag = item.tag,
+                label = item.tag,
+                label_auto = true,
+                icon = "tab_tags",
+            }
+            commitCustomTab(ct)
+            openCustomTabSettings(touch_menu, ct)
+        end, touch_menu)
+    end
+
+    local function chooseTagTab(ct, touch_menu)
+        showTagPicker(function(item)
+            local old_tag = ct.tag
+            ct.tag = item.tag
+            if ct.label_auto == true or not ct.label or ct.label == "" or ct.label == old_tag then
+                ct.label = item.tag
+                ct.label_auto = true
+            end
+            if not is_draft_tab(ct) then
+                save_and_defer_navbar_refresh()
+            end
+            if touch_menu and touch_menu.updateItems then
+                touch_menu:updateItems(1)
+            end
+        end, touch_menu)
     end
 
     local function addQuickSettingTab(touch_menu)
@@ -569,6 +550,7 @@ function M.build(ctx)
         require("common/ui/zen_menu_picker"){
             title = _("Choose control"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
                 local ct = {
                     type = "quick_setting",
@@ -590,6 +572,7 @@ function M.build(ctx)
         require("common/ui/zen_menu_picker"){
             title = _("Choose control"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
                 ct.quick_setting_id = item.id
                 ct.label = item.label
@@ -619,7 +602,17 @@ function M.build(ctx)
     build_ct_sub_items = function(ct)
         local items = {}
 
-        if ct.type == "quick_setting" then
+        if ct.type == "tag" then
+            table.insert(items, IconItem.decorate({
+                text_func = function()
+                    return T(_("Tag: %1"), ct.tag or _("(none)"))
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    chooseTagTab(ct, touch_menu)
+                end,
+            }, icons.keywords))
+        elseif ct.type == "quick_setting" then
             table.insert(items, IconItem.decorate({
                 text_func = function()
                     return T(_("Control: %1"), ct.label or _("(none)"))
@@ -715,6 +708,9 @@ function M.build(ctx)
                                 if txt and txt ~= "" then
                                     ct.label = txt
                                     ct.label_auto = false
+                                elseif ct.type == "tag" then
+                                    ct.label = ct.tag
+                                    ct.label_auto = true
                                 else
                                     ct.label = nil
                                     ct.label_auto = true
@@ -770,9 +766,6 @@ function M.build(ctx)
             end,
         }, icons.delete))
 
-        if ct.type == "action" or ct.type == "plugin" or ct.type == "quick_setting" then
-            add_done_metadata(items, ct)
-        end
         return items
     end
 
@@ -1137,7 +1130,7 @@ function M.build(ctx)
         sort_items = build_sort_items()
 
         ZenArrangeList.show{
-            title = _("Tabs") .. " (" .. _("Hold to arrange") .. ")",
+            title = _("Tabs"),
             item_table = sort_items,
             add_title = _("Add"),
             hide_footer_cancel = true,
@@ -1180,19 +1173,60 @@ function M.build(ctx)
         }
     end
 
+    local function open_tab_settings(id)
+        local ct = getCustomTabById(id)
+        local tab = tab_item_by_id[id]
+        if not ct and not tab then
+            showTabsArrange()
+            return true
+        end
+        local items = ct and build_ct_sub_items(ct) or build_builtin_tab_items(id)
+        if type(items) ~= "table" or #items == 0 then
+            showTabsArrange()
+            return true
+        end
+        require("common/ui/zen_arrange_list").show{
+            title = ct and get_ct_label(ct) or get_tab_item_text(tab),
+            item_table = items,
+            hide_footer_cancel = true,
+        }
+        return true
+    end
+
+    local function arrange_search_items()
+        local items = {}
+        local seen = {}
+        for _i, id in ipairs(config.navbar.tab_order) do
+            local ct = getCustomTabById(id)
+            local tab = tab_item_by_id[id]
+            if not seen[id] and (ct or tab) then
+                seen[id] = true
+                local tab_id = id
+                items[#items + 1] = {
+                    text = ct and get_ct_label(ct) or get_tab_item_text(tab),
+                    _zen_search_open = function()
+                        return open_tab_settings(tab_id)
+                    end,
+                }
+            end
+        end
+        return items
+    end
+
     -- -------------------------------------------------------------------------
     -- Navbar item
     -- -------------------------------------------------------------------------
 
     return IconItem.decorate({
         text = _("Navbar"),
+        _zen_search_items_func = arrange_search_items,
         sub_item_table = {
-            {
+            IconItem.decorate({
                 text = _("Tabs") .. " \u{25B8}",
                 keep_menu_open = true,
                 callback = showTabsArrange,
-            },
-            {
+            }, icons.navbar_tabs),
+            IconItem.decorate({
                 text = _("Styling"),
                 sub_item_table = {
                     {
@@ -1355,15 +1389,15 @@ function M.build(ctx)
                         end,
                     },
                 },
-            },
-            {
+            }, icons.navbar_styling),
+            IconItem.decorate({
                 text_func = function()
                     local current = config.navbar.default_tab or "books"
                     return _("Default tab: ") .. get_default_tab_label(current)
                 end,
                 keep_menu_open = true,
                 sub_item_table_func = build_default_tab_items,
-            },
+            }, icons.settings_home),
         },
     }, icons.settings_navbar)
 end

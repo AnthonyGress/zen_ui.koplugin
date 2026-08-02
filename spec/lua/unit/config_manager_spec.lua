@@ -33,6 +33,7 @@ describe("config manager folder-path migration", function()
         })
         ZenSpec.unload("config/manager")
         Manager = require("config/manager")
+        _G.G_reader_settings = ZenSpec.memorySettings()
     end)
 
     it("moves sort and display overrides for a renamed folder subtree", function()
@@ -62,7 +63,10 @@ describe("config manager folder-path migration", function()
 
     it("migrates missing and legacy quote font sizes to 12", function()
         stores.home = {
-            settings = { font_size = 18, quotes = { font_size = 18 } },
+            settings = {
+                font_size = 18,
+                quotes = { day_seed = 123, font_size = 18, manual_index = 4 },
+            },
             presets = {
                 missing = { quotes = {} },
                 explicit = { quotes = { font_size = 18, font_size_override = true } },
@@ -72,7 +76,48 @@ describe("config manager folder-path migration", function()
         Manager.load()
 
         assert.are.equal(12, stores.home.settings.quotes.font_size)
+        assert.is_true(stores.home.settings.quotes.automatic_font_size)
+        assert.are.equal(14, stores.home.settings.quotes.max_font_size)
+        assert.are.equal("daily", stores.home.settings.quotes.rotation)
+        assert.are.same({ default = true }, stores.home.settings.quotes.sources)
+        assert.is_nil(stores.home.settings.quotes.day_seed)
+        assert.is_nil(stores.home.settings.quotes.manual_index)
         assert.are.equal(12, stores.home.presets.missing.quotes.font_size)
+        assert.is_true(stores.home.presets.missing.quotes.automatic_font_size)
+        assert.are.equal(14, stores.home.presets.missing.quotes.max_font_size)
         assert.are.equal(18, stores.home.presets.explicit.quotes.font_size)
+    end)
+
+    it("removes obsolete folder-cover lifecycle settings", function()
+        settings_file.data = {
+            features = { browser_folder_cover = true },
+            browser_folder_cover = { crop_to_fit = false, cover_mode = "stack" },
+            _meta = { gallery_mode_defaulted = true },
+        }
+
+        local config = Manager.load()
+
+        assert.is_nil(config.features.browser_folder_cover)
+        assert.is_nil(config.browser_folder_cover.crop_to_fit)
+        assert.are.equal("stack", config.browser_folder_cover.cover_mode)
+        assert.is_nil(config._meta.gallery_mode_defaulted)
+    end)
+
+    it("moves global search and page-browser layout into their Zen settings", function()
+        settings_file.data = {
+            reader_page_browser = { layout = "single" },
+        }
+        _G.G_reader_settings = ZenSpec.memorySettings({
+            substring_search = false,
+            zen_page_browser_layout = "grid",
+        })
+
+        local config = Manager.load()
+
+        assert.is_false(config.search.substring)
+        assert.is_nil(config.reader_page_browser)
+        assert.are.equal("single", stores.reader.settings.page_browser_layout)
+        assert.is_nil(G_reader_settings:readSetting("substring_search"))
+        assert.is_nil(G_reader_settings:readSetting("zen_page_browser_layout"))
     end)
 end)

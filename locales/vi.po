@@ -168,8 +168,11 @@ msgstr "Tất cả thời gian"
 msgid "All time"
 msgstr "Mọi lúc"
 
-msgid "Allow custom icons"
-msgstr "Cho phép biểu tượng tùy chỉnh"
+msgid "Custom icons"
+msgstr "Biểu tượng tùy chỉnh"
+
+msgid "Enable custom icons"
+msgstr "Bật biểu tượng tùy chỉnh"
 
 msgid "Allow delete"
 msgstr "Cho phép xóa"
@@ -792,8 +795,8 @@ msgstr "Bên ghi gỡ lỗi chi tiết KOReader. Nhật ký được ghi vào ko
 msgid "Enable night mode schedule"
 msgstr "Bên lịch chế độ ban đêm"
 
-msgid "Enable page browser"
-msgstr "Bật trình duyệt trang"
+msgid "Zen page browser"
+msgstr "Trình duyệt trang Zen"
 
 msgid "Enable top status bar"
 msgstr "Bật thanh trạng thái trên"
@@ -969,8 +972,8 @@ msgstr "Ẩn viền danh sách"
 msgid "Hide reader actions in library"
 msgstr "Ẩn hành động đọc trong thư viện"
 
-msgid "Hide TBR books"
-msgstr "Ẩn sách cần đọc"
+msgid "Hide on-hold books"
+msgstr "Ẩn sách đang tạm dừng"
 
 msgid "Hide unread books"
 msgstr "Ẩn sách chưa đọc"
@@ -2406,47 +2409,47 @@ msgstr "Tra cứu nhanh Zen"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - Tác giả"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: Tác giả"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - Trang chủ"
+msgid "Zen UI: Home"
+msgstr "Zen UI: Trang chủ"
 
-msgid "Zen UI - Library"
-msgstr "Zen UI - Thư viện"
+msgid "Zen UI: Library"
+msgstr "Zen UI: Thư viện"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - Mở thư mục"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: Mở thư mục"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - Bộ sách"
+msgid "Zen UI: Series"
+msgstr "Zen UI: Bộ sách"
 
-msgid "Zen UI - Sync progress (pull + push)"
-msgstr "Zen UI - Tiến trình đồng bộ (nhận + gửi)"
+msgid "Zen UI: Sync progress (pull + push)"
+msgstr "Zen UI: Tiến trình đồng bộ (nhận + gửi)"
 
-msgid "Zen UI - Table of contents"
-msgstr "Zen UI - Mục lục"
+msgid "Zen UI: Table of contents"
+msgstr "Zen UI: Mục lục"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - Thẻ"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: Thẻ"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - Bật/tắt thanh trạng thái dưới khi đọc"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: Bật/tắt thanh trạng thái dưới khi đọc"
 
-msgid "Zen UI - Toggle Incognito Mode"
-msgstr "Zen UI - Chuyển đổi chế độ ẩn danh"
+msgid "Zen UI: Toggle Incognito Mode"
+msgstr "Zen UI: Chuyển đổi chế độ ẩn danh"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - Bật/tắt chế độ khóa"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: Bật/tắt chế độ khóa"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - Bật/tắt các thanh trạng thái khi đọc"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: Bật/tắt các thanh trạng thái khi đọc"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - Bật/tắt thanh trạng thái trên khi đọc"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: Bật/tắt thanh trạng thái trên khi đọc"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Bật/tắt chế độ Zen"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: Bật/tắt chế độ Zen"
 
 msgid "Zen UI defaults"
 msgstr "Cài đặt mặc định của Zen UI"

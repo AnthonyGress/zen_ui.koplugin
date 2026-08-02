@@ -30,10 +30,37 @@ local function page_browser()
     end)
 end
 
+local function toc_overlay()
+    return find_widget(function(widget)
+        return type(widget._entries) == "table"
+            and type(widget._gotoTocPage) == "function"
+            and type(widget._moveFocus) == "function"
+    end)
+end
+
+local function book_info_overlay()
+    return find_widget(function(widget)
+        return widget._description_widget ~= nil
+            and widget._L and widget._L.description_h ~= nil
+            and widget._zen_focus_area ~= nil
+    end)
+end
+
+local function bookmark_menu()
+    local ui = reader()
+    local bookmark = ui and ui.bookmark
+    local container = bookmark and bookmark.bookmark_menu
+    return container and container[1], container
+end
+
 local function find_control(widget, icon, seen, depth)
     if type(widget) ~= "table" or depth > 16 or seen[widget] then return end
     seen[widget] = true
-    if widget.icon == icon and type(widget.callback) == "function" then return widget end
+    local file = widget.file
+    local filename = type(file) == "string" and (file:match("([^/]+)$") or file) or ""
+    local matches_icon = widget.icon == icon
+        or (filename:sub(1, #icon) == icon and filename:sub(#icon + 1, #icon + 1) == ".")
+    if matches_icon and type(widget.callback) == "function" then return widget end
     for _i, child in ipairs(widget) do
         local found = find_control(child, icon, seen, depth + 1)
         if found then return found end
@@ -50,6 +77,9 @@ end
 function M.page_browser_state()
     local browser = page_browser()
     if not browser then return nil end
+    local selected = browser.selected
+    local row = selected and browser.layout and browser.layout[selected.y]
+    local focused = row and row[selected.x]
     local controls = { "single", "grid" }
     if find_control(browser.title_bar or browser, "appbar.textsize", {}, 0) then
         controls[#controls + 1] = "aa"
@@ -58,8 +88,54 @@ function M.page_browser_state()
         layout = browser.nb_cols == 1 and browser.nb_rows == 1 and "single" or "grid",
         thumbnail_count = browser.nb_grid_items or 0,
         focus_page = browser.focus_page or browser.cur_page,
+        focused = focused and focused._zen_focus_id,
         controls = controls,
     }
+end
+
+function M.page_browser_key(key)
+    local browser = page_browser()
+    if not browser then return false, "page browser unavailable" end
+    local Event = require("ui/event")
+    local Key = require("device/key")
+    return browser:handleEvent(Event:new("KeyPress", Key:new(key, {}))) == true
+end
+
+function M.hardware_overlay_state()
+    local toc = toc_overlay()
+    if toc then
+        return {
+            kind = "toc",
+            focused = toc._zen_focus_area,
+            entry = toc._zen_focus_entry_idx,
+            footer = toc._zen_footer_side,
+        }
+    end
+    local info = book_info_overlay()
+    if info then
+        return { kind = "book_info", focused = info._zen_focus_area }
+    end
+    local menu, container = bookmark_menu()
+    if menu and is_visible(container) then
+        local selected = menu.selected
+        local row = selected and menu.layout and menu.layout[selected.y]
+        local focused = row and row[selected.x]
+        local title_bar = menu.title_bar
+        local area = focused == (title_bar and title_bar.left_button) and "back"
+            or focused == (title_bar and title_bar.right_button) and "filter"
+            or focused and "bookmark" or nil
+        return { kind = "bookmarks", focused = area }
+    end
+end
+
+function M.hardware_overlay_key(key)
+    local menu, container = bookmark_menu()
+    local target = toc_overlay() or book_info_overlay()
+        or (menu and is_visible(container) and menu)
+    if not target then return false, "hardware overlay unavailable" end
+    local Event = require("ui/event")
+    local Key = require("device/key")
+    return target:handleEvent(Event:new("KeyPress", Key:new(key, {}))) == true
 end
 
 function M.overlay_state()
@@ -113,7 +189,16 @@ function M.activate(name)
         }) == true
     end
     local browser = page_browser()
-    if name == "page_browser_single" then
+    if name == "page_browser_toc" then
+        if not browser then return false, "page browser unavailable" end
+        return activate_icon(browser.title_bar or browser, "toc")
+    elseif name == "page_browser_bookmarks" then
+        if not browser then return false, "page browser unavailable" end
+        return activate_icon(browser.title_bar or browser, "bookmark")
+    elseif name == "page_browser_book_info" then
+        if not browser then return false, "page browser unavailable" end
+        return activate_icon(browser.title_bar or browser, "info")
+    elseif name == "page_browser_single" then
         if not browser then return false, "page browser unavailable" end
         browser._zen_switch_single()
         return true

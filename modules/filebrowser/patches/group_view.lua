@@ -1,15 +1,13 @@
 local ConfigManager = require("config/manager")
 local book_status = require("common/book_status")
+local HistoryIndex = require("common/history_index")
+local paths = require("common/paths")
 local StandalonePage = require("modules/filebrowser/patches/standalone_page")
 local SharedState = require("common/shared_state")
 local title_sort = require("common/title_sort")
 local zen_utils = require("common/utils")
 
 local M = {}
-
--- One-time patch guards
-local _mosaic_item_patched = false
-local _list_item_patched   = false
 
 -- Active group view menus (so we can refresh them)
 local _authors_menu = nil
@@ -18,6 +16,34 @@ local _tbr_menu     = nil
 local _tags_menu    = nil
 -- Detail view menus layered on top of the group menu
 local _detail_menus = {}
+
+local function get_root_menu(tab_id)
+    if tab_id == "authors" then return _authors_menu end
+    if tab_id == "series" then return _series_menu end
+    if tab_id == "tags" then return _tags_menu end
+    if tab_id == "to_be_read" then return _tbr_menu end
+end
+
+local function clear_root_menu(tab_id, menu)
+    if tab_id == "authors" and _authors_menu == menu then
+        _authors_menu = nil
+    elseif tab_id == "series" and _series_menu == menu then
+        _series_menu = nil
+    elseif tab_id == "tags" and _tags_menu == menu then
+        _tags_menu = nil
+    elseif tab_id == "to_be_read" and _tbr_menu == menu then
+        _tbr_menu = nil
+    end
+end
+
+local function remove_detail_menu(menu)
+    for i = #_detail_menus, 1, -1 do
+        if _detail_menus[i] == menu then
+            table.remove(_detail_menus, i)
+            return
+        end
+    end
+end
 
 -- Set during apply (called at init while __ZEN_UI_PLUGIN is set)
 local _zen_shared    = nil
@@ -237,18 +263,6 @@ local function should_show_up_folder()
 end
 
 -------------------------------------------------------------------------------
--- Utility: walk upvalue chain to find a named upvalue
--------------------------------------------------------------------------------
-local function get_upvalue(fn, name)
-    if type(fn) ~= "function" then return nil end
-    for i = 1, 64 do
-        local upname, value = debug.getupvalue(fn, i)
-        if not upname then break end
-        if upname == name then return value end
-    end
-end
-
--------------------------------------------------------------------------------
 -- setup_display_mode: mirror fi CoverMenu/MosaicMenu/ListMenu onto menu
 -- Returns "mosaic", "list", or "classic"
 -------------------------------------------------------------------------------
@@ -342,545 +356,6 @@ local function setup_display_mode(menu, is_group_view, tab_id)
     return display_mode_type
 end
 
--------------------------------------------------------------------------------
--- patch_mosaic_item: one-time install of MosaicMenuItem.update override
--- Uses self.entry._zen_files (list of absolute file paths)
--------------------------------------------------------------------------------
-local function patch_mosaic_item()
-    if _mosaic_item_patched then return end
-
-    local ok, MosaicMenu = pcall(require, "mosaicmenu")
-    if not ok then return end
-    local MosaicMenuItem = get_upvalue(MosaicMenu._updateItemsBuildUI, "MosaicMenuItem")
-    if not MosaicMenuItem then return end
-    _mosaic_item_patched = true
-
-    local BookInfoManager = require("bookinfomanager")
-    local CoverUtils      = require("common/cover_utils")
-
-    -- Keep underlines hidden on focus (same guard as collections.lua)
-    local Blitbuffer_uc = require("ffi/blitbuffer")
-    if not MosaicMenuItem._zen_as_focus_patched then
-        MosaicMenuItem._zen_as_focus_patched = true
-        local orig_onFocus = MosaicMenuItem.onFocus
-        function MosaicMenuItem:onFocus()
-            if self._underline_container then
-                self._underline_container.color = Blitbuffer_uc.COLOR_WHITE
-            end
-            if orig_onFocus then return orig_onFocus(self) end
-            return true
-        end
-    end
-
-    local orig_update = MosaicMenuItem.update
-    function MosaicMenuItem:update(...)
-        -- Up-folder item in a group view: render as a folder-cover-style placeholder.
-        if self.menu and self.menu._zen_group_view and self.entry and self.entry.is_go_up then
-            self._foldercover_processed = true
-            if self._setFolderCover then
-                self:_setFolderCover { no_image = true }
-            else
-                -- Inline fallback: portrait-shaped gray placeholder.
-                local Blitbuffer2     = require("ffi/blitbuffer")
-                local CenterContainer2 = require("ui/widget/container/centercontainer")
-                local FrameContainer2  = require("ui/widget/container/framecontainer")
-                local OverlapGroup2    = require("ui/widget/overlapgroup")
-                local Size2            = require("ui/size")
-                local VerticalGroup2   = require("ui/widget/verticalgroup")
-                local VerticalSpan2    = require("ui/widget/verticalspan")
-                local border   = Size2.border.thin
-                local max_w    = self.width  - 2 * border
-                local bh       = self.height - 2 * border
-                local pw, ph
-                local _ratio = CoverUtils.getRatio()
-                if bh * _ratio <= max_w then
-                    ph = bh; pw = math.floor(bh * _ratio)
-                else
-                    pw = max_w; ph = math.min(math.floor(max_w / _ratio), bh)
-                end
-                local frame = FrameContainer2:new{
-                    padding = 0, bordersize = border,
-                    width = pw + 2 * border, height = ph + 2 * border,
-                    background = Blitbuffer2.COLOR_LIGHT_GRAY,
-                    overlap_align = "center",
-                    CenterContainer2:new{
-                        dimen = { w = pw, h = ph },
-                        VerticalSpan2:new{ width = 1 },
-                    },
-                }
-                local top = math.floor((self.height - ph - 2 * border) / 2)
-                if self._underline_container[1] then
-                    self._underline_container[1]:free()
-                end
-                self._underline_container[1] = OverlapGroup2:new{
-                    dimen = { w = self.width, h = self.height },
-                    VerticalGroup2:new{
-                        VerticalSpan2:new{ width = top },
-                        CenterContainer2:new{
-                            dimen = { w = self.width, h = ph + 2 * border },
-                            frame,
-                        },
-                    },
-                }
-            end
-            return
-        end
-
-        if not (self.menu and self.menu._zen_group_view
-                and self.entry and self.entry._zen_files) then
-            return orig_update(self, ...)
-        end
-
-        self.is_directory = true
-
-        local files      = self.entry._zen_files
-        local book_count = #files
-        local mode, max_covers = CoverUtils.getMode()
-        local is_gallery = mode == "gallery"
-        local is_stack   = mode == "stack"
-        -- Pre-compute portrait dims for per-slot fake cover generation
-        local _Size_pre = require("ui/size")
-        local _bdr_pre  = _Size_pre.border.thin
-        local _mw_pre   = self.width  - 2 * _bdr_pre
-        local _bh_pre   = self.height - 2 * _bdr_pre
-        local _rat_pre  = CoverUtils.getRatio()
-        local _pw_pre, _ph_pre
-        if _bh_pre * _rat_pre <= _mw_pre then
-            _ph_pre = _bh_pre; _pw_pre = math.floor(_bh_pre * _rat_pre)
-        else
-            _pw_pre = _mw_pre; _ph_pre = math.min(math.floor(_mw_pre / _rat_pre), _bh_pre)
-        end
-
-        local covers = {}
-        for i = 1, math.min(book_count, max_covers) do
-            local bi = BookInfoManager:getBookInfo(files[i], true)
-            if bi and bi.cover_bb and bi.has_cover
-                    and bi.cover_fetched and not bi.ignore_cover then
-                table.insert(covers, {
-                    data = bi.cover_bb:copy(),
-                    w    = bi.cover_w,
-                    h    = bi.cover_h,
-                })
-            else
-                local gen_bb, gen_w, gen_h = CoverUtils.genCover(files[i], _pw_pre, _ph_pre)
-                if gen_bb then
-                    table.insert(covers, { data = gen_bb, w = gen_w, h = gen_h })
-                end
-            end
-        end
-
-        -- Delegate to browser_folder_cover's method when available.
-        if self._setFolderCover then
-            if is_gallery then
-                self:_setFolderCover{ gallery = covers, book_count = book_count }
-            elseif is_stack then
-                self:_setFolderCover{ stack = covers, book_count = book_count }
-            elseif #covers > 0 then
-                self:_setFolderCover{ data = covers[1].data, w = covers[1].w, h = covers[1].h, book_count = book_count }
-            else
-                self:_setFolderCover{ no_image = true, book_count = book_count }
-            end
-            return
-        end
-
-        -- Inline fallback gallery (matches collections.lua)
-        local Blitbuffer      = require("ffi/blitbuffer")
-        local CenterContainer = require("ui/widget/container/centercontainer")
-        local FrameContainer  = require("ui/widget/container/framecontainer")
-        local HorizontalGroup = require("ui/widget/horizontalgroup")
-        local ImageWidget     = require("ui/widget/imagewidget")
-        local LineWidget      = require("ui/widget/linewidget")
-        local OverlapGroup    = require("ui/widget/overlapgroup")
-        local Size            = require("ui/size")
-        local VerticalGroup   = require("ui/widget/verticalgroup")
-        local VerticalSpan    = require("ui/widget/verticalspan")
-
-        local border = Size.border.thin
-        local max_w  = self.width  - 2 * border
-        local bh     = self.height - 2 * border
-        local portrait_w, portrait_h
-        local _ratio = CoverUtils.getRatio()
-        if bh * _ratio <= max_w then
-            portrait_h = bh
-            portrait_w = math.floor(bh * _ratio)
-        else
-            portrait_w = max_w
-            portrait_h = math.min(math.floor(max_w / _ratio), bh)
-        end
-
-        local sep     = 1
-        local half_w  = math.floor((portrait_w - sep) / 2)
-        local half_w2 = portrait_w - sep - half_w
-        local half_h  = math.floor((portrait_h - sep) / 2)
-        local half_h2 = portrait_h - sep - half_h
-        local cell_dims = {
-            { w = half_w,  h = half_h  },
-            { w = half_w2, h = half_h  },
-            { w = half_w,  h = half_h2 },
-            { w = half_w2, h = half_h2 },
-        }
-        local cells = {}
-        for i = 1, 4 do
-            local c  = covers[i]
-            local cd = cell_dims[i]
-            if c then
-                cells[i] = CenterContainer:new{
-                    dimen = { w = cd.w, h = cd.h },
-                    ImageWidget:new{ image = c.data, width = cd.w, height = cd.h },
-                }
-            else
-                cells[i] = CenterContainer:new{
-                    dimen = { w = cd.w, h = cd.h },
-                    VerticalSpan:new{ width = 1 },
-                }
-            end
-        end
-        local dimen = { w = portrait_w + 2 * border, h = portrait_h + 2 * border }
-        local image_widget
-        if is_stack then
-            image_widget = CoverUtils.drawStack(covers, portrait_w, portrait_h, border)
-        else
-            image_widget = FrameContainer:new{
-                padding = 0, bordersize = border,
-                width = dimen.w, height = dimen.h,
-                background = Blitbuffer.COLOR_LIGHT_GRAY,
-                CenterContainer:new{
-                    dimen = { w = portrait_w, h = portrait_h },
-                    VerticalGroup:new{
-                        HorizontalGroup:new{
-                            cells[1],
-                            LineWidget:new{
-                                background = Blitbuffer.COLOR_WHITE,
-                                dimen = { w = sep, h = half_h },
-                            },
-                            cells[2],
-                        },
-                        LineWidget:new{
-                            background = Blitbuffer.COLOR_WHITE,
-                            dimen = { w = portrait_w, h = sep },
-                        },
-                        HorizontalGroup:new{
-                            cells[3],
-                            LineWidget:new{
-                                background = Blitbuffer.COLOR_WHITE,
-                                dimen = { w = sep, h = half_h2 },
-                            },
-                            cells[4],
-                        },
-                    },
-                },
-                overlap_align = "center",
-            }
-        end
-        local centered_top = math.floor((self.height - dimen.h) / 2)
-        local widget = OverlapGroup:new{
-            dimen = { w = self.width, h = self.height },
-            VerticalGroup:new{
-                VerticalSpan:new{ width = centered_top },
-                CenterContainer:new{
-                    dimen = { w = self.width, h = dimen.h },
-                    image_widget,
-                },
-            },
-        }
-        if self._underline_container[1] then
-            self._underline_container[1]:free()
-        end
-        self._underline_container[1] = widget
-    end
-end
-
--------------------------------------------------------------------------------
--- patch_list_item: one-time install of ListMenuItem.update override
--------------------------------------------------------------------------------
-local function patch_list_item()
-    if _list_item_patched then return end
-
-    local ok, ListMenu = pcall(require, "listmenu")
-    if not ok then return end
-    local ListMenuItem = get_upvalue(ListMenu._updateItemsBuildUI, "ListMenuItem")
-    if not ListMenuItem then return end
-    _list_item_patched = true
-
-    local BD              = require("ui/bidi")
-    local Blitbuffer      = require("ffi/blitbuffer")
-    local BookInfoManager = require("bookinfomanager")
-    local CoverUtils      = require("common/cover_utils")
-    local CenterContainer = require("ui/widget/container/centercontainer")
-    local Device          = require("device")
-    local library_font    = require("modules/filebrowser/patches/library_font")
-    local FrameContainer  = require("ui/widget/container/framecontainer")
-    local HorizontalGroup = require("ui/widget/horizontalgroup")
-    local HorizontalSpan  = require("ui/widget/horizontalspan")
-    local ImageWidget     = require("ui/widget/imagewidget")
-    local LeftContainer   = require("ui/widget/container/leftcontainer")
-    local LineWidget      = require("ui/widget/linewidget")
-    local OverlapGroup    = require("ui/widget/overlapgroup")
-    local RightContainer  = require("ui/widget/container/rightcontainer")
-    local Size            = require("ui/size")
-    local TextBoxWidget   = require("ui/widget/textboxwidget")
-    local TextWidget      = require("ui/widget/textwidget")
-    local VerticalGroup   = require("ui/widget/verticalgroup")
-    local VerticalSpan    = require("ui/widget/verticalspan")
-    local _               = require("gettext")
-
-    local Screen = Device.screen
-    local scale_by_size = Screen:scaleBySize(1000000) * (1 / 1000000)
-
-    -- Save pre-patch update so BLL (if it runs later and wraps our function)
-    -- is still called for non-group items regardless of init order.
-    ListMenuItem._zen_gv_orig = ListMenuItem.update
-
-    function ListMenuItem:update(...)
-        if not (self.menu and self.menu._zen_group_view
-                and self.entry and self.entry._zen_files) then
-            -- Use the live fallthrough so BLL's patch is honoured even if it
-            -- ran after our install (Android timing issue).
-            local fallthrough = ListMenuItem._zen_gv_orig
-            return fallthrough(self, ...)
-        end
-
-        self.is_directory = true
-
-        local files      = self.entry._zen_files
-        local book_count = #files
-        local display_name = self.entry.text or ""
-
-        local underline_h  = 1
-        local dimen_h      = self.height - 2 * underline_h
-        local border_size  = Size.border.thin
-        local cover_v_pad  = Screen:scaleBySize(4)  -- matches bll top+bottom padding
-        local cover_zone_w = dimen_h
-        local max_img      = dimen_h - 2 * border_size - 2 * cover_v_pad
-        local cover_w      = math.floor(max_img * CoverUtils.getRatio())
-
-        local function _fontSize(nominal, max_size)
-            local scale = library_font.getScale(18)
-            local fs = math.floor(nominal * dimen_h * (1 / 64) / scale_by_size * scale + 0.5)
-            if max_size then
-                local max_scaled = math.max(1, math.floor(max_size * scale + 0.5))
-                if fs >= max_scaled then return max_scaled end
-            end
-            return fs
-        end
-
-        local wleft
-        if self.do_cover_image then
-            local mode, max_covers = CoverUtils.getMode()
-            local gallery_mode = mode == "gallery"
-            local stack_mode   = mode == "stack"
-            local covers       = {}
-            for i = 1, #files do
-                local bi = BookInfoManager:getBookInfo(files[i], true)
-                if bi and bi.cover_bb and bi.has_cover
-                        and bi.cover_fetched and not bi.ignore_cover then
-                    table.insert(covers, { data = bi.cover_bb:copy() })
-                else
-                    local gen_bb = CoverUtils.genCover(files[i], cover_w, max_img)
-                    if gen_bb then
-                        table.insert(covers, { data = gen_bb })
-                    end
-                end
-                if #covers >= max_covers then break end
-            end
-
-            local cover_frame
-            if gallery_mode then
-                local gall_w = cover_w
-                local gall_h = max_img
-                if #covers > 0 then
-                    local sep     = 1
-                    local half_w  = math.floor((gall_w - sep) / 2)
-                    local half_w2 = gall_w - sep - half_w
-                    local half_h  = math.floor((gall_h - sep) / 2)
-                    local half_h2 = gall_h - sep - half_h
-                    local cell_dims = {
-                        { w = half_w,  h = half_h  },
-                        { w = half_w2, h = half_h  },
-                        { w = half_w,  h = half_h2 },
-                        { w = half_w2, h = half_h2 },
-                    }
-                    local cells = {}
-                    for i = 1, 4 do
-                        local c  = covers[i]
-                        local cd = cell_dims[i]
-                        if c then
-                            cells[i] = CenterContainer:new{
-                                dimen = { w = cd.w, h = cd.h },
-                                ImageWidget:new{ image = c.data, width = cd.w, height = cd.h },
-                            }
-                        else
-                            cells[i] = CenterContainer:new{
-                                dimen = { w = cd.w, h = cd.h },
-                                VerticalSpan:new{ width = 1 },
-                            }
-                        end
-                    end
-                    cover_frame = FrameContainer:new{
-                        width = gall_w + 2 * border_size,
-                        height = gall_h + 2 * border_size,
-                        margin = 0, padding = 0, bordersize = border_size,
-                        background = Blitbuffer.COLOR_LIGHT_GRAY,
-                        CenterContainer:new{
-                            dimen = { w = gall_w, h = gall_h },
-                            VerticalGroup:new{
-                                HorizontalGroup:new{
-                                    cells[1],
-                                    LineWidget:new{
-                                        background = Blitbuffer.COLOR_WHITE,
-                                        dimen = { w = sep, h = half_h },
-                                    },
-                                    cells[2],
-                                },
-                                LineWidget:new{
-                                    background = Blitbuffer.COLOR_WHITE,
-                                    dimen = { w = gall_w, h = sep },
-                                },
-                                HorizontalGroup:new{
-                                    cells[3],
-                                    LineWidget:new{
-                                        background = Blitbuffer.COLOR_WHITE,
-                                        dimen = { w = sep, h = half_h2 },
-                                    },
-                                    cells[4],
-                                },
-                            },
-                        },
-                    }
-                    self.menu._has_cover_images = true
-                    self._has_cover_image = true
-                else
-                    cover_frame = FrameContainer:new{
-                        width = gall_w + 2 * border_size,
-                        height = gall_h + 2 * border_size,
-                        margin = 0, padding = 0, bordersize = border_size,
-                        background = Blitbuffer.COLOR_LIGHT_GRAY,
-                        CenterContainer:new{
-                            dimen = { w = gall_w, h = gall_h },
-                            VerticalSpan:new{ width = 1 },
-                        },
-                    }
-                end
-            elseif stack_mode then
-                cover_frame = CoverUtils.drawStack(covers, cover_w, max_img, border_size)
-                if #covers > 0 then
-                    self.menu._has_cover_images = true
-                    self._has_cover_image = true
-                end
-            elseif #covers > 0 then
-                local bb       = covers[1].data
-                local bb_w     = bb:getWidth()
-                local bb_h     = bb:getHeight()
-                local sf       = math.max(cover_w / bb_w, max_img / bb_h)
-                local scaled_w = math.max(cover_w,  math.ceil(bb_w * sf))
-                local scaled_h = math.max(max_img, math.ceil(bb_h * sf))
-                local x_off    = math.floor((scaled_w - cover_w) / 2)
-                local y_off    = math.floor((scaled_h - max_img) / 2)
-                local scaled_bb = bb:scale(scaled_w, scaled_h)
-                local fill_bb   = Blitbuffer.new(cover_w, max_img, scaled_bb:getType())
-                fill_bb:blitFrom(scaled_bb, 0, 0, x_off, y_off, cover_w, max_img)
-                scaled_bb:free()
-                bb:free()
-                local wimage = ImageWidget:new{
-                    image = fill_bb, scale_factor = 1, _free_image = true,
-                }
-                wimage:_render()
-                cover_frame = FrameContainer:new{
-                    width = cover_w + 2 * border_size,
-                    height = max_img + 2 * border_size,
-                    margin = 0, padding = 0, bordersize = border_size,
-                    CenterContainer:new{
-                        dimen = { w = cover_w, h = max_img },
-                        wimage,
-                    },
-                }
-                self.menu._has_cover_images = true
-                self._has_cover_image = true
-            else
-                cover_frame = FrameContainer:new{
-                    width = cover_w + 2 * border_size,
-                    height = max_img + 2 * border_size,
-                    margin = 0, padding = 0, bordersize = border_size,
-                    background = Blitbuffer.COLOR_LIGHT_GRAY,
-                    CenterContainer:new{
-                        dimen = { w = cover_w, h = max_img },
-                        VerticalSpan:new{ width = 1 },
-                    },
-                }
-            end
-            wleft = CenterContainer:new{
-                dimen = { w = cover_zone_w, h = dimen_h },
-                cover_frame,
-            }
-            self._cover_frame = cover_frame
-        end
-
-        local pad_left    = self.do_cover_image and Screen:scaleBySize(6) or Screen:scaleBySize(10)
-        local pad_right   = Screen:scaleBySize(10)
-        local fs_title    = _fontSize(18, 21)
-        local fs_meta     = _fontSize(14, 18)
-        local left_offset = self.do_cover_image and (cover_zone_w + pad_left) or pad_left
-
-        local count_str = tostring(book_count) .. " " .. (book_count == 1 and _("Book") or _("Books"))
-        local wright_status = TextWidget:new{
-            text    = count_str,
-            face    = library_font.getFace(fs_meta),
-            fgcolor = Blitbuffer.COLOR_GRAY_3,
-            padding = 0,
-        }
-        local wright_w = wright_status:getWidth()
-        local main_w = math.max(1, self.width - left_offset - wright_w - 2 * pad_right)
-
-        local wtitle = TextBoxWidget:new{
-            text      = BD.auto(display_name),
-            face      = library_font.getFace(fs_title),
-            width     = main_w,
-            height    = dimen_h,
-            height_adjust = true,
-            height_overflow_show_ellipsis = true,
-            alignment = "left",
-            bold      = true,
-        }
-
-        local wmain = LeftContainer:new{
-            dimen = { w = self.width, h = dimen_h },
-            HorizontalGroup:new{
-                HorizontalSpan:new{ width = left_offset },
-                LeftContainer:new{
-                    dimen = { w = main_w, h = dimen_h },
-                    wtitle,
-                },
-            },
-        }
-
-        local row_dimen = { w = self.width, h = dimen_h }
-        local widget = OverlapGroup:new{
-            dimen = row_dimen,
-            wmain,
-        }
-        if wleft then
-            table.insert(widget, 1, wleft)
-        end
-        table.insert(widget, RightContainer:new{
-            dimen = row_dimen,
-            HorizontalGroup:new{
-                wright_status,
-                HorizontalSpan:new{ width = pad_right },
-            },
-        })
-
-        if self._underline_container[1] then
-            self._underline_container[1]:free()
-        end
-        self._underline_container[1] = VerticalGroup:new{
-            VerticalSpan:new{ width = underline_h },
-            widget,
-        }
-        self.bookinfo_found = true
-        self.init_done = true
-    end
-end
-
 -- clean_nav: suppress back arrow, inject status bar row, set display mode
 -- back_callback: optional function for the status bar back chevron
 -------------------------------------------------------------------------------
@@ -914,6 +389,7 @@ local function group_empty_message(data_type)
         authors = _("No books with author metadata found"),
         series = _("No books with series metadata found"),
         tags = _("No books with tags metadata found"),
+        to_be_read = _("No TBR books found"),
     })[data_type] or _("No books found")
 end
 
@@ -943,9 +419,10 @@ local function build_group_item_table(groups, data_type)
     end
     if #items == 0 then
         table.insert(items, {
-            text     = empty_message,
-            dim      = true,
-            callback = function() end,
+            text                    = empty_message,
+            dim                     = true,
+            callback                = function() end,
+            _zen_empty_placeholder  = true,
         })
     end
 
@@ -1006,11 +483,7 @@ local function showDisplayModeDialog(menu, tab_id)
         -- Rebuild in-place: swap methods for the new mode, then redraw once.
         local function _rebuild_menu(m, is_group, t_id)
             local new_mode_type = setup_display_mode(m, is_group, t_id)
-            if new_mode_type == "mosaic" then
-                patch_mosaic_item()
-            elseif new_mode_type == "list" then
-                patch_list_item()
-            else
+            if new_mode_type ~= "mosaic" and new_mode_type ~= "list" then
                 -- Classic mode: restore base Menu methods
                 local Menu_class = require("ui/widget/menu")
                 m.updateItems         = Menu_class.updateItems
@@ -1189,8 +662,10 @@ local function sortDetailFiles(files, collate, reverse)
 
     -- Build sortable array with metadata
     local items = {}
+    local normalize_path = paths.normPath
+    local history = collate == "access" and HistoryIndex.load(normalize_path) or nil
     for _i, fpath in ipairs(files) do
-        local bookinfo = BookInfoManager:getBookInfo(fpath, true)
+        local bookinfo = BookInfoManager:getBookInfo(fpath, false)
         local sort_key
 
         if collate == "title" or collate == "title_natural" then
@@ -1201,9 +676,9 @@ local function sortDetailFiles(files, collate, reverse)
         elseif collate == "series" then
             sort_key = (bookinfo and bookinfo.series) or ""
         elseif collate == "access" then
-            -- Use file access time, which KOReader updates via lfs.touch() on each open.
             local lfs = require("libs/libkoreader-lfs")
-            sort_key = lfs.attributes(fpath, "access") or 0
+            sort_key = HistoryIndex.fileTime(history, fpath, normalize_path)
+                or lfs.attributes(fpath, "access") or 0
         else
             sort_key = fpath:match("([^/]+)$") or fpath
         end
@@ -1257,9 +732,11 @@ local function apply_status_filter(files)
     local status_filter = FileChooser.show_filter and FileChooser.show_filter.status
     if not status_filter then return files end
     local filtered = {}
+    local get_status = book_status.getDisplayStatusFromFile
+        or book_status.getEffectiveStatusFromFile
     for _i, fpath in ipairs(files) do
-        local effective_status = book_status.getEffectiveStatusFromFile(fpath)
-        if status_filter[effective_status] then
+        local display_status = get_status(fpath)
+        if status_filter[display_status] then
             table.insert(filtered, fpath)
         end
     end
@@ -1273,7 +750,7 @@ end
 -- menu: the Menu instance to refresh after sort change
 -- files: list of file paths
 -------------------------------------------------------------------------------
-local function showDetailSortDialog(group_name, tab_id, menu, files)
+local function showDetailSortDialog(group_name, tab_id, menu, files, reload_files)
     local _ = require("gettext")
     local ButtonDialog = require("ui/widget/buttondialog")
     local UIManager = require("ui/uimanager")
@@ -1300,7 +777,8 @@ local function showDetailSortDialog(group_name, tab_id, menu, files)
     local function rebuildMenu(collate, reverse)
         if not (menu and files) then return end
 
-        local sorted_files = sortDetailFiles(files, collate, reverse)
+        local sorted_files = reload_files and reload_files(collate, reverse)
+            or sortDetailFiles(files, collate, reverse)
         sorted_files = apply_status_filter(sorted_files)
 
         local lfs_mod  = require("libs/libkoreader-lfs")
@@ -1422,11 +900,43 @@ local function show_file_dialog_with_refresh(fc, menu_self, item)
     fc:showFileDialog(item)
 end
 
+local function get_file_manager()
+    local FileManager = require("apps/filemanager/filemanager")
+    return FileManager.instance
+end
+
+local function is_file_selected(path)
+    local file_manager = get_file_manager()
+    return file_manager and file_manager.selected_files
+        and file_manager.selected_files[path] == true or nil
+end
+
+local function toggle_file_selection(menu, item)
+    local file_manager = get_file_manager()
+    if not (file_manager and file_manager.selected_files ~= nil and item.path) then
+        return false
+    end
+    item.dim = not item.dim and true or nil
+    file_manager.selected_files[item.path] = item.dim
+    menu:updateItems()
+    return true
+end
+
+local function show_select_mode_menu()
+    local file_manager = get_file_manager()
+    if file_manager and file_manager.selected_files ~= nil
+            and type(file_manager.onShowPlusMenu) == "function" then
+        file_manager:onShowPlusMenu()
+        return true
+    end
+    return false
+end
+
 -------------------------------------------------------------------------------
 -- showDetailView: book list for one author/series group
 -- Called from onMenuSelect on the group list menu
 -------------------------------------------------------------------------------
-local function showDetailView(group_item, injectNavbar, tab_id)
+local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
     local _ = require("gettext")
     local UIManager = require("ui/uimanager")
 
@@ -1439,6 +949,11 @@ local function showDetailView(group_item, injectNavbar, tab_id)
         detail_name = "tags_detail"
     else
         detail_name = "series_detail"
+    end
+    for _i, active_menu in ipairs(_detail_menus) do
+        if active_menu.name == detail_name then
+            return active_menu, false
+        end
     end
 
     -- Get sort settings for this group
@@ -1473,14 +988,16 @@ local function showDetailView(group_item, injectNavbar, tab_id)
             path      = fpath,
             filepath  = fpath,
             is_file   = true,
+            dim       = is_file_selected(fpath),
             mandatory = attr and util_mod.getFriendlySize(attr.size or 0) or "",
         })
     end
     if #book_items == 0 then
         table.insert(book_items, {
-            text = group_empty_message(tab_id),
-            dim  = true,
-            callback = function() end,
+            text                   = group_empty_message(tab_id),
+            dim                    = true,
+            callback               = function() end,
+            _zen_empty_placeholder = true,
         })
     end
     if should_show_up_folder() then
@@ -1498,8 +1015,8 @@ local function showDetailView(group_item, injectNavbar, tab_id)
                 return
             end
             if item.path then
-                local FileManager = require("apps/filemanager/filemanager")
-                local fm = FileManager.instance
+                if toggle_file_selection(menu_self, item) then return end
+                local fm = get_file_manager()
                 local fmu = require("apps/filemanager/filemanagerutil")
                 if fmu.openFile then
                     fmu.openFile(fm, item.path)
@@ -1509,14 +1026,17 @@ local function showDetailView(group_item, injectNavbar, tab_id)
             end
         end,
         onMenuHold = function(menu_self, item)
+            if show_select_mode_menu() then return true end
             if not item.path then return end
-            local FileManager = require("apps/filemanager/filemanager")
-            local fm = FileManager.instance
+            local fm = get_file_manager()
             if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
                 show_file_dialog_with_refresh(fm.file_chooser, menu_self, {
                     path = item.path,
                     is_file = true,
                     text = item.text,
+                    _zen_select_cb = function()
+                        return toggle_file_selection(menu_self, item)
+                    end,
                 })
             end
         end,
@@ -1526,11 +1046,7 @@ local function showDetailView(group_item, injectNavbar, tab_id)
 
     -- Install same display mode as the library (mosaic/list/classic)
     local mode_type = setup_display_mode(detail_menu, false, tab_id)
-    if mode_type == "mosaic" then
-        patch_mosaic_item()
-    elseif mode_type == "list" then
-        patch_list_item()
-    elseif mode_type == "classic" or not mode_type then
+    if mode_type == "classic" or not mode_type then
         local Menu_class = require("ui/widget/menu")
         detail_menu.updateItems = Menu_class.updateItems
     end
@@ -1540,8 +1056,13 @@ local function showDetailView(group_item, injectNavbar, tab_id)
     detail_menu._zen_tab_id     = tab_id
     detail_menu.close_callback = function()
         UIManager:close(detail_menu)
-        for i, m in ipairs(_detail_menus) do
-            if m == detail_menu then table.remove(_detail_menus, i); break end
+        remove_detail_menu(detail_menu)
+    end
+    local orig_detail_on_close_widget = detail_menu.onCloseWidget
+    function detail_menu:onCloseWidget(...)
+        remove_detail_menu(self)
+        if orig_detail_on_close_widget then
+            return orig_detail_on_close_widget(self, ...)
         end
     end
 
@@ -1567,7 +1088,7 @@ local function showDetailView(group_item, injectNavbar, tab_id)
     clean_nav(detail_menu, group_name, back_to_group)
 
     if injectNavbar then
-        injectNavbar(detail_menu, tab_id)  -- keep authors/series tab active
+        injectNavbar(detail_menu, navbar_tab_id or tab_id)
     end
 
     -- Add blank-space hold gesture handler for context menu
@@ -1589,8 +1110,8 @@ local function showDetailView(group_item, injectNavbar, tab_id)
             },
         }
         function detail_menu:onZenDetailBlankHold(arg, ges)
-            local FileManager = require("apps/filemanager/filemanager")
-            local fm = FileManager.instance
+            if show_select_mode_menu() then return true end
+            local fm = get_file_manager()
             if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
                 fm.file_chooser:showFileDialog({
                     _zen_group_files       = sorted_files,
@@ -1605,7 +1126,7 @@ local function showDetailView(group_item, injectNavbar, tab_id)
                     _zen_filter_refresh_cb = function()
                         -- Rebuild item_table with new filter: close and reopen.
                         UIManager:close(detail_menu)
-                        showDetailView(group_item, injectNavbar, tab_id)
+                        showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
                     end,
                 })
             end
@@ -1631,6 +1152,7 @@ local function showDetailView(group_item, injectNavbar, tab_id)
             if repaintTB2 then repaintTB2(tb2) end
         end
     end)
+    return detail_menu, true
 end
 
 -------------------------------------------------------------------------------
@@ -1640,6 +1162,8 @@ end
 -- groups: pre-loaded data from db_bookinfo
 -------------------------------------------------------------------------------
 showGroupView = function(tab_id, injectNavbar, groups)
+    local active_menu = get_root_menu(tab_id)
+    if active_menu then return active_menu, false end
     local _ = require("gettext")
     local UIManager = require("ui/uimanager")
 
@@ -1669,9 +1193,9 @@ showGroupView = function(tab_id, injectNavbar, groups)
             end
         end,
         onMenuHold = function(menu_self, item)
+            if show_select_mode_menu() then return true end
             if item._zen_files then
-                local FileManager = require("apps/filemanager/filemanager")
-                local fm = FileManager.instance
+                local fm = get_file_manager()
                 if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
                     fm.file_chooser:showFileDialog({
                         _zen_group_files = item._zen_files,
@@ -1692,12 +1216,6 @@ showGroupView = function(tab_id, injectNavbar, groups)
 
     -- Install display mode (mosaic/list) and set _zen_group_view sentinel
     local mode_type = setup_display_mode(menu, true, tab_id)
-    if mode_type == "mosaic" then
-        patch_mosaic_item()
-    elseif mode_type == "list" then
-        patch_list_item()
-    end
-
     -- For classic mode (no CoverBrowser), restore the base updateItems
     if mode_type == "classic" or not mode_type then
         local Menu_class = require("ui/widget/menu")
@@ -1706,12 +1224,13 @@ showGroupView = function(tab_id, injectNavbar, groups)
 
     menu.close_callback = function()
         UIManager:close(menu)
-        if tab_id == "authors" then
-            _authors_menu = nil
-        elseif tab_id == "tags" then
-            _tags_menu = nil
-        else
-            _series_menu = nil
+        clear_root_menu(tab_id, menu)
+    end
+    local orig_group_on_close_widget = menu.onCloseWidget
+    function menu:onCloseWidget(...)
+        clear_root_menu(tab_id, self)
+        if orig_group_on_close_widget then
+            return orig_group_on_close_widget(self, ...)
         end
     end
 
@@ -1748,8 +1267,8 @@ showGroupView = function(tab_id, injectNavbar, groups)
             },
         }
         function menu:onZenGroupBlankHold(arg, ges)
-            local FileManager = require("apps/filemanager/filemanager")
-            local fm = FileManager.instance
+            if show_select_mode_menu() then return true end
+            local fm = get_file_manager()
             if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
                 local n = self.item_table and #self.item_table or 0
                 local subtitle
@@ -1824,46 +1343,58 @@ showGroupView = function(tab_id, injectNavbar, groups)
             end
         end
     end)
+    return menu, true
 end
 
 -------------------------------------------------------------------------------
 -- Public API called by navbar.lua tab callbacks
 -------------------------------------------------------------------------------
 function M.showAuthorsView(injectNavbar)
+    if _authors_menu then return _authors_menu, false end
     refresh_shared_state()
     local ok, db = pcall(require, "common/db_bookinfo")
     if not ok then return end
     local groups = db.getGroupedByAuthor()
-    showGroupView("authors", injectNavbar, groups)
+    return showGroupView("authors", injectNavbar, groups)
 end
 
 function M.showSeriesView(injectNavbar)
+    if _series_menu then return _series_menu, false end
     refresh_shared_state()
     local ok, db = pcall(require, "common/db_bookinfo")
     if not ok then return end
     local groups = db.getGroupedBySeries()
-    showGroupView("series", injectNavbar, groups)
+    return showGroupView("series", injectNavbar, groups)
 end
 
 function M.showTagsView(injectNavbar)
+    if _tags_menu then return _tags_menu, false end
     refresh_shared_state()
     local ok, db = pcall(require, "common/db_bookinfo")
     if not ok then return end
     local groups = db.getGroupedByTags()
-    showGroupView("tags", injectNavbar, groups)
+    return showGroupView("tags", injectNavbar, groups)
+end
+
+-- Opens one tag directly, for custom navbar tabs that target a specific tag.
+function M.showTagDetail(tag_name, injectNavbar, navbar_tab_id)
+    if type(tag_name) ~= "string" or tag_name == "" then return end
+    refresh_shared_state()
+    local ok, db = pcall(require, "common/db_bookinfo")
+    if not ok then return end
+    local files = type(db.getTagBooks) == "function" and db.getTagBooks(tag_name) or {}
+    return showDetailView(
+        { text = tag_name, _zen_files = files }, injectNavbar, "tags", navbar_tab_id)
 end
 
 -------------------------------------------------------------------------------
--- M.showTBRView: flat book list filtered to "To Be Read" (abandoned) status
+-- M.showTBRView: flat view of the To Be Read collection plus optional new books
 -------------------------------------------------------------------------------
 function M.showTBRView(injectNavbar)
+    if _tbr_menu then return _tbr_menu, false end
     refresh_shared_state()
     local _          = require("gettext")
     local UIManager  = require("ui/uimanager")
-
-    local ok, db = pcall(require, "common/db_bookinfo")
-    if not ok then return end
-    local files = db.getTBRBooks()
 
     local tab_id     = "to_be_read"
     local SORT_GROUP = "to_be_read"
@@ -1872,10 +1403,37 @@ function M.showTBRView(injectNavbar)
     local cur_collate = get_detail_collate(tab_id, SORT_GROUP, "title")
     local cur_reverse = get_detail_reverse(tab_id, SORT_GROUP, false)
 
-    local sorted_files = sortDetailFiles(files, cur_collate, cur_reverse)
-    sorted_files = apply_status_filter(sorted_files)
+    local ok_index, tbr_index = pcall(require, "common/tbr_index")
+    if not ok_index or type(tbr_index.getAll) ~= "function" then return end
 
-    local function buildItems(flist)
+    local function loadFiles()
+        local loaded = tbr_index.getAll({
+            include_new = book_status.includeNewInTBREnabled(),
+            collate = cur_collate,
+            reverse = cur_reverse,
+        })
+        return apply_status_filter(loaded)
+    end
+
+    local files = loadFiles()
+    local menu
+    local buildItems
+
+    local function refreshCollectionView()
+        tbr_index.collectionChanged(tbr_index.collectionName())
+        files = loadFiles()
+        if menu then
+            local refreshed = buildItems(files)
+            if should_show_up_folder() then
+                table.insert(refreshed, 1,
+                    { text = "\u{2B06} ..", is_go_up = true, mandatory = "" })
+            end
+            menu.item_table = refreshed
+            menu:updateItems()
+        end
+    end
+
+    buildItems = function(flist)
         local lfs_mod  = require("libs/libkoreader-lfs")
         local util_mod = require("util")
         local items = {}
@@ -1888,25 +1446,30 @@ function M.showTBRView(injectNavbar)
                 path      = fpath,
                 filepath  = fpath,
                 is_file   = true,
+                dim       = is_file_selected(fpath),
                 mandatory = attr and util_mod.getFriendlySize(attr.size or 0) or "",
+                _zen_collection_name = tbr_index.isExplicit(fpath)
+                    and tbr_index.collectionName() or nil,
+                _zen_collection_refresh = refreshCollectionView,
             })
         end
         if #items == 0 then
             table.insert(items, {
-                text     = _("No books found"),
-                dim      = true,
-                callback = function() end,
+                text                   = group_empty_message(tab_id),
+                dim                    = true,
+                callback               = function() end,
+                _zen_empty_placeholder = true,
             })
         end
         return items
     end
 
-    local items = buildItems(sorted_files)
+    local items = buildItems(files)
     if should_show_up_folder() then
         table.insert(items, 1, { text = "\u{2B06} ..", is_go_up = true, mandatory = "" })
     end
 
-    local menu = StandalonePage.create_menu{
+    menu = StandalonePage.create_menu{
         name = "to_be_read",
         title = group_name,
         item_table = items,
@@ -1917,8 +1480,8 @@ function M.showTBRView(injectNavbar)
                 return
             end
             if item.path then
-                local FileManager = require("apps/filemanager/filemanager")
-                local fm = FileManager.instance
+                if toggle_file_selection(menu_self, item) then return end
+                local fm = get_file_manager()
                 local fmu = require("apps/filemanager/filemanagerutil")
                 if fmu.openFile then
                     fmu.openFile(fm, item.path)
@@ -1928,14 +1491,19 @@ function M.showTBRView(injectNavbar)
             end
         end,
         onMenuHold = function(menu_self, item)
+            if show_select_mode_menu() then return true end
             if not item.path then return end
-            local FileManager = require("apps/filemanager/filemanager")
-            local fm = FileManager.instance
+            local fm = get_file_manager()
             if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
                 show_file_dialog_with_refresh(fm.file_chooser, menu_self, {
                     path    = item.path,
                     is_file = true,
                     text    = item.text,
+                    _zen_select_cb = function()
+                        return toggle_file_selection(menu_self, item)
+                    end,
+                    _zen_collection_name = item._zen_collection_name,
+                    _zen_collection_refresh = item._zen_collection_refresh,
                 })
             end
         end,
@@ -1943,23 +1511,25 @@ function M.showTBRView(injectNavbar)
     }
     StandalonePage.prepare_shell(menu)
 
-    -- Tag TBR as a real-book-list menu so _zen_update_impl in browser_folder_cover
-    -- doesn't suppress covers the way it does for non-FM dialogs (e.g. screensaver picker).
+    -- Tag TBR as a library menu for Zen's renderer and preload pipeline.
     menu._zen_tab_id = tab_id
 
-    local mode_type = setup_display_mode(menu, false, tab_id)
-    if mode_type == "mosaic" then
-        patch_mosaic_item()
-    elseif mode_type == "list" then
-        patch_list_item()
-    elseif mode_type == "classic" or not mode_type then
+    local mode_type = setup_display_mode(menu, true, tab_id)
+    if mode_type == "classic" or not mode_type then
         local Menu_class = require("ui/widget/menu")
         menu.updateItems = Menu_class.updateItems
     end
 
     menu.close_callback = function()
         UIManager:close(menu)
-        _tbr_menu = nil
+        clear_root_menu(tab_id, menu)
+    end
+    local orig_tbr_on_close_widget = menu.onCloseWidget
+    function menu:onCloseWidget(...)
+        clear_root_menu(tab_id, self)
+        if orig_tbr_on_close_widget then
+            return orig_tbr_on_close_widget(self, ...)
+        end
     end
 
     clean_nav(menu, group_name)
@@ -1988,8 +1558,8 @@ function M.showTBRView(injectNavbar)
             },
         }
         function menu:onZenTBRBlankHold(arg, ges)
-            local FileManager = require("apps/filemanager/filemanager")
-            local fm = FileManager.instance
+            if show_select_mode_menu() then return true end
+            local fm = get_file_manager()
             if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
                 local n = self.item_table and #self.item_table or 0
                 fm.file_chooser:showFileDialog({
@@ -1997,7 +1567,12 @@ function M.showTBRView(injectNavbar)
                     _zen_group_name     = group_name,
                     _zen_group_subtitle = n == 1 and _("1 book") or (tostring(n) .. " " .. _("books")),
                     _zen_sort_cb        = function()
-                        showDetailSortDialog(SORT_GROUP, tab_id, self, files)
+                        showDetailSortDialog(SORT_GROUP, tab_id, self, files,
+                            function(collate, reverse)
+                                cur_collate, cur_reverse = collate, reverse
+                                files = loadFiles()
+                                return files
+                            end)
                     end,
                     _zen_display_cb     = function()
                         showDisplayModeDialog(self, tab_id)
@@ -2027,6 +1602,7 @@ function M.showTBRView(injectNavbar)
             if repaintTB2 then repaintTB2(tb2) end
         end
     end)
+    return menu, true
 end
 
 -- Open a detail view synchronously by group name (used by navbar.showFiles post-hook).

@@ -17,7 +17,8 @@ local function apply_search()
     end
 
     local function is_substring_enabled()
-        return G_reader_settings:readSetting("substring_search") ~= false  -- default: substring (whole-word off)
+        local search = zen_plugin.config.search
+        return type(search) ~= "table" or search.substring ~= false
     end
 
     local orig_onShowFileSearch = FileManagerFileSearcher.onShowFileSearch

@@ -25,9 +25,11 @@ M.DOT_DIAM    = Screen:scaleBySize(10)
 M.DOT_GAP     = Screen:scaleBySize(12)
 M.BAR_PAD     = Screen:scaleBySize(5)
 M.CHEV_W      = Screen:scaleBySize(60)
+M.CHEV_HIT_W  = Screen:scaleBySize(96)
 M.PN_ICON_SZ  = Screen:scaleBySize(36)
 M.FOOTER_H    = math.max(M.BAR_H, M.DOT_DIAM) + M.BAR_PAD * 2
 M.PN_FOOTER_H = math.max(M.FOOTER_H, M.PN_ICON_SZ + Screen:scaleBySize(6))
+M.FOOTER_WIDTH_PCT = 0.92
 
 local TRACK_COLOR = Blitbuffer.COLOR_LIGHT_GRAY
 local THUMB_COLOR = Blitbuffer.COLOR_BLACK
@@ -83,6 +85,25 @@ function M.getHoldSkip()
         return p.config.zen_scroll_bar.hold_skip or "10"
     end
     return "10"
+end
+
+function M.getCenteredFooterY(content_bottom, footer_y, footer_h, should_center)
+    if not should_center
+            or type(content_bottom) ~= "number"
+            or type(footer_y) ~= "number"
+            or type(footer_h) ~= "number" then
+        return footer_y
+    end
+    local gap_h = footer_y + footer_h - content_bottom
+    if gap_h > footer_h then
+        return content_bottom + math.floor((gap_h - footer_h) / 2)
+    end
+    return footer_y
+end
+
+function M.getFooterGeometry(container_x, container_w)
+    local width = math.floor(container_w * M.FOOTER_WIDTH_PCT)
+    return container_x + math.floor((container_w - width) / 2), width
 end
 
 -- Filled pill (stadium) shape via scanline paintRect.

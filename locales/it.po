@@ -168,8 +168,11 @@ msgstr "Da sempre"
 msgid "All time"
 msgstr "Tutto il tempo"
 
-msgid "Allow custom icons"
-msgstr "Consenti icone personalizzate"
+msgid "Custom icons"
+msgstr "Icone personalizzate"
+
+msgid "Enable custom icons"
+msgstr "Abilita icone personalizzate"
 
 msgid "Allow delete"
 msgstr "Consenti eliminazione"
@@ -795,8 +798,8 @@ msgstr "Abilita la registrazione di debug dettagliata di KOReader. I log vengono
 msgid "Enable night mode schedule"
 msgstr "Attiva pianificazione modalità notte"
 
-msgid "Enable page browser"
-msgstr "Abilita navigatore di pagine"
+msgid "Zen page browser"
+msgstr "Navigatore di pagine Zen"
 
 msgid "Enable top status bar"
 msgstr "Attiva barra di stato superiore"
@@ -972,8 +975,8 @@ msgstr "Nascondi bordi lista"
 msgid "Hide reader actions in library"
 msgstr "Nascondi azioni del lettore nella libreria"
 
-msgid "Hide TBR books"
-msgstr "Nascondi i libri da leggere"
+msgid "Hide on-hold books"
+msgstr "Nascondi i libri in sospeso"
 
 msgid "Hide unread books"
 msgstr "Nascondi i libri non letti"
@@ -1701,6 +1704,9 @@ msgstr "Ricomincia libro"
 msgid "Restart now"
 msgstr "Riavvia ora"
 
+msgid "Restarting"
+msgstr "Riavvio in corso"
+
 msgid "Restore library location on exit"
 msgstr "Ripristina posizione della libreria all'uscita"
 
@@ -1893,8 +1899,8 @@ msgstr "Mostra numero elementi"
 msgid "Show item underline"
 msgstr "Mostra sottolineatura degli elementi"
 
-msgid "Show KOReader progress bar"
-msgstr "Mostra la barra di avanzamento di KOReader"
+msgid "Show progress bar"
+msgstr "Mostra la barra di avanzamento"
 
 msgid "Show labels"
 msgstr "Mostra etichette"
@@ -1911,8 +1917,8 @@ msgstr "Mostra altre opzioni di ricerca rapida di KOReader accanto ai pulsanti Z
 msgid "Show page count"
 msgstr "Mostra il numero di pagine"
 
-msgid "Show progress % on mosaic covers"
-msgstr "Mostra % avanzamento sulle copertine mosaico"
+msgid "Show reading progress"
+msgstr "Mostra avanzamento lettura"
 
 msgid "Show separator"
 msgstr "Mostra separatore"
@@ -2415,47 +2421,47 @@ msgstr "Ricerca rapida Zen"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - Autori"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: Autori"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - Home"
+msgid "Zen UI: Home"
+msgstr "Zen UI: Home"
 
-msgid "Zen UI - Library"
-msgstr "Zen UI - Biblioteca"
+msgid "Zen UI: Library"
+msgstr "Zen UI: Biblioteca"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - Apri cartella"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: Apri cartella"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - Serie"
+msgid "Zen UI: Series"
+msgstr "Zen UI: Serie"
 
-msgid "Zen UI - Sync progress (pull + push)"
-msgstr "Zen UI - Avanzamento sincronizzazione (ricezione + invio)"
+msgid "Zen UI: Sync progress (pull + push)"
+msgstr "Zen UI: Avanzamento sincronizzazione (ricezione + invio)"
 
-msgid "Zen UI - Table of contents"
-msgstr "Zen UI - Indice"
+msgid "Zen UI: Table of contents"
+msgstr "Zen UI: Indice"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - Etichette"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: Etichette"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - Attiva/disattiva barra di stato inferiore del lettore"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: Attiva/disattiva barra di stato inferiore del lettore"
 
-msgid "Zen UI - Toggle Incognito Mode"
-msgstr "Zen UI - Attiva/disattiva modalità incognito"
+msgid "Zen UI: Toggle Incognito Mode"
+msgstr "Zen UI: Attiva/disattiva modalità incognito"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - Attiva/disattiva modalità blocco"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: Attiva/disattiva modalità blocco"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - Attiva/disattiva barre di stato del lettore"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: Attiva/disattiva barre di stato del lettore"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - Attiva/disattiva barra di stato superiore del lettore"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: Attiva/disattiva barra di stato superiore del lettore"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Attiva/disattiva modalità Zen"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: Attiva/disattiva modalità Zen"
 
 msgid "Zen UI defaults"
 msgstr "Impostazioni predefinite di Zen UI"
@@ -2490,8 +2496,8 @@ msgstr "Seppia chiara"
 msgid "Light tan"
 msgstr "Beige chiaro"
 
-msgid "Zen UI - Toggle reader themes"
-msgstr "Zen UI - Attiva/disattiva temi di lettura"
+msgid "Zen UI: Toggle reader themes"
+msgstr "Zen UI: Attiva/disattiva temi di lettura"
 
 msgid "Dark mode"
 msgstr "Modalità scura"
@@ -2525,3 +2531,36 @@ msgstr "Eliminare questo tema personalizzato?"
 
 msgid "Custom theme"
 msgstr "Tema personalizzato"
+
+msgid "%1 (%2/%3 icons)"
+msgstr "%1 (%2/%3 icone)"
+
+msgid "By %1"
+msgstr "Di %1"
+
+msgid "Could not install %1: %2"
+msgstr "Impossibile installare %1: %2"
+
+msgid "Custom icon pack: %1"
+msgstr "Pacchetto di icone personalizzato: %1"
+
+msgid "Loose icons"
+msgstr "Icone singole"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Icone singole in /koreader/icons"
+
+msgid "Missing: %1"
+msgstr "Mancante: %1"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Inserisci le cartelle dei pacchetti o i file ZIP in /koreader/icons/zen. I file ZIP vengono installati automaticamente."
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Riavvia KOReader per applicare il pacchetto attivo aggiornato"
+
+msgid "Unavailable pack: %1"
+msgstr "Pacchetto non disponibile: %1"
+
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "Se abilitata, le icone singole o un pacchetto di icone Zen UI selezionato sostituiscono le icone supportate. Le icone mancanti usano prima Zen UI, poi KOReader."

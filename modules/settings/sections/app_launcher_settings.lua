@@ -7,6 +7,7 @@ local icon_utils = require("common/utils")
 
 local Model = require("modules/menu/app_launcher/model")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
+local DispatcherMenu = require("common/dispatcher_menu")
 
 local M = {}
 local DEFAULT_ENTRY_ICON = "lightning"
@@ -55,45 +56,7 @@ function M.build(ctx)
     local ok_disp, Dispatcher = pcall(require, "dispatcher")
 
     local function wrap_dispatch_callbacks(items, caller, on_update)
-        if type(items) ~= "table" then return end
-        for _i, item in ipairs(items) do
-            if type(item.callback) == "function" and not item._zen_launcher_dispatch_wrapped then
-                local orig_callback = item.callback
-                item.callback = function(touch_menu, ...)
-                    caller.updated = false
-                    local result = orig_callback(touch_menu, ...)
-                    if caller.updated then
-                        caller.updated = false
-                        on_update(touch_menu)
-                    end
-                    return result
-                end
-                item._zen_launcher_dispatch_wrapped = true
-            end
-            if type(item.hold_callback) == "function" and not item._zen_launcher_dispatch_hold_wrapped then
-                local orig_hold_callback = item.hold_callback
-                item.hold_callback = function(touch_menu, ...)
-                    caller.updated = false
-                    local result = orig_hold_callback(touch_menu, ...)
-                    if caller.updated then
-                        caller.updated = false
-                        on_update(touch_menu)
-                    end
-                    return result
-                end
-                item._zen_launcher_dispatch_hold_wrapped = true
-            end
-            if type(item.sub_item_table_func) == "function" and not item._zen_launcher_dispatch_func_wrapped then
-                local orig_sub_item_table_func = item.sub_item_table_func
-                item.sub_item_table_func = function(...)
-                    local sub_items = orig_sub_item_table_func(...)
-                    wrap_dispatch_callbacks(sub_items, caller, on_update)
-                    return sub_items
-                end
-                item._zen_launcher_dispatch_func_wrapped = true
-            end
-            wrap_dispatch_callbacks(item.sub_item_table, caller, on_update)
-        end
+        DispatcherMenu.wrap(items, caller, on_update, "_zen_launcher_dispatch")
     end
 
     local ICONS
@@ -127,35 +90,6 @@ function M.build(ctx)
             end
         end
         return nil
-    end
-
-    local function has_valid_target(entry)
-        if entry.type == "action" then
-            return type(entry.action) == "table" and next(entry.action) ~= nil
-        end
-        if entry.type == "quick_setting" then
-            return type(entry.quick_setting_id) == "string" and entry.quick_setting_id ~= ""
-        end
-        return entry.type == "plugin"
-            and type(entry.plugin) == "table"
-            and entry.plugin.key ~= nil
-            and entry.plugin.method ~= nil
-    end
-
-    local function add_done_metadata(items, entry)
-        items._zen_arrange_done_func = function()
-            if entry.type == "action" then
-                sync_action_label(entry)
-            end
-            if is_draft_entry(entry) then
-                entry._zen_draft_commit()
-            elseif has_valid_target(entry) then
-                save_app_launcher()
-            end
-        end
-        items._zen_arrange_done_enabled_func = function()
-            return has_valid_target(entry)
-        end
     end
 
     sync_action_label = function(entry)
@@ -315,6 +249,7 @@ function M.build(ctx)
         show_menu_picker{
             title = _("Choose plugin menu"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
                 local plugin = item.plugin
                 local entry = {
@@ -350,6 +285,7 @@ function M.build(ctx)
         show_menu_picker{
             title = _("Choose plugin menu"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
                 local plugin = item.plugin
                 entry.type = "plugin"
@@ -379,7 +315,7 @@ function M.build(ctx)
         open_entry_settings(touch_menu, entry, folder)
     end
 
-    local function show_quick_setting_picker(on_select)
+    local function show_quick_setting_picker(on_select, touch_menu)
         local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
         if not controls or type(controls.getItems) ~= "function" then return end
         local picker_items = controls.getItems()
@@ -387,6 +323,7 @@ function M.build(ctx)
         require("common/ui/zen_menu_picker"){
             title = _("Choose control"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = on_select,
         }
     end
@@ -400,7 +337,7 @@ function M.build(ctx)
             if touch_menu and touch_menu.updateItems then
                 touch_menu:updateItems(1)
             end
-        end)
+        end, touch_menu)
     end
 
     local function add_quick_setting(folder, touch_menu)
@@ -416,7 +353,7 @@ function M.build(ctx)
                 UIManager:nextTick(function()
                     open_entry_settings(touch_menu, entry, folder)
                 end)
-        end)
+        end, touch_menu)
     end
 
     local function add_items(folder)
@@ -682,9 +619,6 @@ function M.build(ctx)
                 })
             end,
         }, icons.delete)
-        if entry.type == "action" or entry.type == "plugin" or entry.type == "quick_setting" then
-            add_done_metadata(items, entry)
-        end
         return items
     end
 
@@ -720,7 +654,7 @@ function M.build(ctx)
         end
         sort_items = build_sort_items()
         ZenArrangeList.show{
-            title = (parent and parent.label or _("Buttons")) .. " (" .. _("Hold to arrange") .. ")",
+            title = parent and parent.label or _("Buttons"),
             item_table = sort_items,
             add_title = _("Add"),
             add_item_table = arrange_add_items(parent),
@@ -757,12 +691,9 @@ function M.build(ctx)
             checked_func = function()
                 return config.features.app_launcher == true
             end,
-            callback = function(touch_menu)
+            callback = function()
                 config.features.app_launcher = config.features.app_launcher ~= true
                 save_and_apply("app_launcher")
-                if touch_menu and touch_menu.closeMenu then
-                    touch_menu:closeMenu()
-                end
             end,
         },
         {
@@ -814,10 +745,54 @@ function M.build(ctx)
             end,
         },
     }
+    IconItem.decorate(root_items[1], icons.enable)
     IconItem.decorate(root_items[2], icons.action)
+    IconItem.decorate(root_items[3], icons.keywords)
+    IconItem.decorate(root_items[4], icons.open_menu)
+    IconItem.decorate(root_items[5], icons.hide_reader_actions)
+
+    local function open_entry_settings_from_search(entry, parent)
+        local items = build_entry_items(entry, parent)
+        if type(items) ~= "table" or #items == 0 then
+            show_entries_arrange(parent)
+            return true
+        end
+        require("common/ui/zen_arrange_list").show{
+            title = Model.display_label(entry),
+            item_table = items,
+            hide_footer_cancel = true,
+        }
+        return true
+    end
+
+    local function arrange_search_items()
+        local items = {}
+        local function add_entries(entries, parent, breadcrumb)
+            for _i, entry in ipairs(entries or {}) do
+                local label = Model.display_label(entry)
+                if type(label) == "string" and label ~= "" then
+                    local search_entry = entry
+                    local search_parent = parent
+                    items[#items + 1] = {
+                        text = label,
+                        _zen_search_breadcrumb = breadcrumb,
+                        _zen_search_open = function()
+                            return open_entry_settings_from_search(search_entry, search_parent)
+                        end,
+                    }
+                    if entry.type == "folder" then
+                        add_entries(entry.children, entry, breadcrumb .. " › " .. label)
+                    end
+                end
+            end
+        end
+        add_entries(cfg.entries, nil, _("Launcher"))
+        return items
+    end
 
     return {
         text = _("Launcher"),
+        _zen_search_items_func = arrange_search_items,
         sub_item_table = root_items,
     }
 end

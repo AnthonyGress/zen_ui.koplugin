@@ -78,6 +78,79 @@ local function apply_opening_banner()
     local Widget  = require("ui/widget/widget")
     local logger  = require("common/zen_logger").new("opening_banner")
     local _       = require("gettext")
+    local pending_banner
+    local pending_banner_seq
+    local show_prepared_banner
+
+    local function is_book_item(item)
+        if not item or item.is_directory then return false end
+        local entry = item.entry
+        if type(entry) == "table" then
+            if entry._zen_files or entry.series_items or entry.is_series_group
+                    or entry.is_go_up or entry._zen_empty_placeholder then
+                return false
+            end
+            local attr_mode = type(entry.attr) == "table" and entry.attr.mode or nil
+            if entry.is_directory or entry.mode == "directory" or attr_mode == "directory" then
+                return false
+            end
+            if entry.is_file == true or type(entry.file) == "string"
+                    or type(entry.filepath) == "string" or attr_mode == "file" then
+                return true
+            end
+        end
+        return type(item.filepath) == "string" and item.filepath ~= ""
+    end
+
+    local function is_select_mode(item)
+        local menu = item and item.menu
+        if menu and menu.ui and menu.ui.selected_files ~= nil then return true end
+        local ok, FileManager = pcall(require, "apps/filemanager/filemanager")
+        return ok and FileManager.instance and FileManager.instance.selected_files ~= nil
+    end
+
+    local function set_opening_banner_dimen(dimen, cover_widget, is_list, advance_tap)
+        if not (dimen and dimen.x and dimen.y and dimen.w and dimen.h
+                and dimen.w > 0 and dimen.h > 0) then
+            return false
+        end
+        if advance_tap ~= false then _tap_seq = _tap_seq + 1 end
+        _last_cover_dimen = {
+            x = dimen.x,
+            y = dimen.y,
+            w = dimen.w,
+            h = dimen.h,
+            is_list = is_list == true,
+        }
+        if is_list then
+            local night_mode = G_reader_settings and G_reader_settings:isTrue("night_mode") or false
+            _last_cover_dimen.dark_banner = not night_mode
+        else
+            local cover_bb = _find_cover_bb(cover_widget, 0)
+            local lum = cover_bb and _sample_bottom_luminance(cover_bb) or nil
+            _last_cover_dimen.dark_banner = lum == nil or lum >= 128
+        end
+        if show_prepared_banner then show_prepared_banner() end
+        return true
+    end
+
+    local function set_opening_banner_cover(cover_widget)
+        return set_opening_banner_dimen(cover_widget and cover_widget.dimen, cover_widget, false, true)
+    end
+
+    local ok_highlight, ReaderHighlight = pcall(require, "apps/reader/modules/readerhighlight")
+    if ok_highlight and type(ReaderHighlight.onTap) == "function"
+            and not ReaderHighlight._zen_visible_boxes_guard then
+        ReaderHighlight._zen_visible_boxes_guard = true
+        local orig_onTap = ReaderHighlight.onTap
+        ReaderHighlight.onTap = function(self, arg, ges)
+            local highlight = self.view and self.view.highlight
+            if not self.hold_pos and ges and highlight and highlight.visible_boxes == nil then
+                return
+            end
+            return orig_onTap(self, arg, ges)
+        end
+    end
 
     -- Hook MosaicMenuItem.onTapSelect to capture cover cell geometry
     local function try_hook_mosaic()
@@ -99,8 +172,7 @@ local function apply_opening_banner()
         if type(MosaicMenuItem.onTapSelect) ~= "function" then return end
 
         -- Match browser_cover_mosaic_uniform constants (kept in sync).
-        local Size = require("ui/size")
-        local _UNIFORM_BORDER = Size.border.thin or 1
+        local _UNIFORM_BORDER = require("common/cover_utils").BORDER_SIZE
         local _UNIFORM_UNDERLINE_RESERVE = 6
         local function _uniform_aspect()
             local s = _G.G_reader_settings and G_reader_settings:readSetting("uniform_cover_ratio") or "2:3"
@@ -204,10 +276,13 @@ local function apply_opening_banner()
         local orig_tap = MosaicMenuItem.onTapSelect
         MosaicMenuItem.onTapSelect = function(self_item, ...)
             _tap_seq = _tap_seq + 1
-            -- Skip directories: a folder tap navigates the browser with no reader
-            -- opening, so storing the dimen leaves a stale value that bleeds into
-            -- the next book open (especially with folder-profile list mode).
-            if not self_item.is_directory then
+            if is_select_mode(self_item) then
+                _last_cover_dimen = nil
+                return orig_tap(self_item, ...)
+            end
+            -- Only book taps may prepare a banner. Virtual group rows do not
+            -- always carry KOReader's is_directory marker.
+            if is_book_item(self_item) then
                 -- self[1][1][1]: FrameContainer/FakeCover inside CenterContainer.
                 local cover_frame = self_item[1] and self_item[1][1] and self_item[1][1][1]
 
@@ -215,21 +290,8 @@ local function apply_opening_banner()
                 -- with flag+cell-math as fallback for items not yet painted.
                 local strip_h = self_item._zen_strip_h or 0
                 local rect = _cover_rect(self_item, strip_h)
-                if rect then
-                    _last_cover_dimen = { x = rect.x, y = rect.y, w = rect.w, h = rect.h }
-                end
-
-                -- Require high contrast: if the cover's bottom is bright (lum >= 128),
-                -- use a dark banner. If it's dark, use a light banner.
-                -- Default to dark when no cover bb is available (placeholder cell).
-                if _last_cover_dimen then
-                    local cover_bb = _find_cover_bb(cover_frame or self_item, 0)
-                    if cover_bb then
-                        local lum = _sample_bottom_luminance(cover_bb)
-                        _last_cover_dimen.dark_banner = lum == nil or lum >= 128
-                    else
-                        _last_cover_dimen.dark_banner = true
-                    end
+                if not set_opening_banner_dimen(rect, cover_frame or self_item, false, false) then
+                    _last_cover_dimen = nil
                 end
             else
                 -- Navigating into a folder: discard any previously stored dimen
@@ -262,18 +324,14 @@ local function apply_opening_banner()
         local orig_tap = ListMenuItem.onTapSelect
         ListMenuItem.onTapSelect = function(self_item, ...)
             _tap_seq = _tap_seq + 1
-            if not self_item.is_directory and self_item.dimen then
-                -- Pin the banner to the bottom edge of the tapped list row.
-                -- Flag as list mode so the banner can be offset past the cover art.
-                local _nm = G_reader_settings and G_reader_settings:isTrue("night_mode") or false
-                _last_cover_dimen = {
-                    x = self_item.dimen.x,
-                    y = self_item.dimen.y,
-                    w = self_item.dimen.w,
-                    h = self_item.dimen.h,
-                    is_list     = true,
-                    dark_banner = not _nm,  -- XOR in paintTo needs not(night_mode) to always draw black
-                }
+            if is_select_mode(self_item) then
+                _last_cover_dimen = nil
+                return orig_tap(self_item, ...)
+            end
+            if is_book_item(self_item) then
+                if not set_opening_banner_dimen(self_item.dimen, self_item, true, false) then
+                    _last_cover_dimen = nil
+                end
             else
                 _last_cover_dimen = nil
             end
@@ -284,15 +342,16 @@ local function apply_opening_banner()
     pcall(try_hook_mosaic)
     pcall(try_hook_list)
 
-    -- Bottom-corner masking for the banner
-    local function _mask_bottom_corners(bb, x, y, w, h, r)
-        local color = Blitbuffer.COLOR_WHITE
+    -- Restore the covered pixels in the rounded bottom-corner cut-outs.
+    local function _mask_bottom_corners(bb, x, y, w, h, r, background)
         for j = 0, r - 1 do
             local inner = math.sqrt(r * r - (r - j) * (r - j))
             local cut   = math.ceil(r - inner)
             if cut > 0 then
-                bb:paintRect(x,           y + h - 1 - j, cut, 1, color)
-                bb:paintRect(x + w - cut, y + h - 1 - j, cut, 1, color)
+                local source_y = r - 1 - j
+                bb:blitFrom(background, x, y + h - 1 - j, 0, source_y, cut, 1)
+                bb:blitFrom(background, x + w - cut, y + h - 1 - j,
+                    2 * r - cut, source_y, cut, 1)
             end
         end
     end
@@ -344,12 +403,22 @@ local function apply_opening_banner()
         local fg = use_dark and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK
         local w, h = self.dimen.w, self.dimen.h
         local r    = self.round_bottom_corners and Screen:scaleBySize(8) or 0
+        local background
+        if r > 0 then
+            background = Blitbuffer.new(r * 2, r, bb:getType())
+            if background then
+                background:blitFrom(bb, 0, 0, x, y + h - r, r, r)
+                background:blitFrom(bb, r, 0, x + w - r, y + h - r, r, r)
+            else
+                r = 0
+            end
+        end
 
         -- 1. Fill background
         bb:paintRect(x, y, w, h, bg)
         -- 2. Clip bottom corners (before border so the border draws on top)
         if r > 0 then
-            _mask_bottom_corners(bb, x, y, w, h, r)
+            _mask_bottom_corners(bb, x, y, w, h, r, background)
         end
         -- 3. Border contrasts with bg (fg color), consistent with night mode.
         _draw_border(bb, x, y, w, h, r, fg)
@@ -365,48 +434,111 @@ local function apply_opening_banner()
             x + math.floor((w - tsz.w) / 2),
             y + math.floor((h - tsz.h) / 2))
         tw:free()
+        if background then background:free() end
     end
 
+    local function build_banner(cover)
+        local banner_h = Screen:scaleBySize(28)
+        local bx, by, bw
+        if cover then
+            by = cover.y + cover.h - banner_h
+            if cover.is_list then
+                bx = cover.x + cover.h
+                bw = cover.w - cover.h
+            else
+                bx = cover.x
+                bw = cover.w
+            end
+        else
+            bx = 0
+            by = Screen:getHeight() - banner_h
+            bw = Screen:getWidth()
+        end
+
+        local plug = _plugin or rawget(_G, "__ZEN_UI_PLUGIN")
+        local round_bottom = cover and not cover.is_list
+            and plug
+            and type(plug.config) == "table"
+            and type(plug.config.features) == "table"
+            and plug.config.features.browser_cover_rounded_corners == true
+        local night_mode = G_reader_settings and G_reader_settings:isTrue("night_mode") or false
+        local dark_banner = cover and cover.dark_banner
+        if dark_banner == nil then dark_banner = not night_mode end
+
+        local dimen = Geom:new{ x = bx, y = by, w = bw, h = banner_h }
+        return OpeningBanner:new{
+            dimen                = dimen,
+            dark_banner          = dark_banner,
+            round_bottom_corners = round_bottom and true or false,
+        }, dimen
+    end
+
+    local function show_banner(banner, dimen)
+        UIManager:show(banner, "ui", dimen, dimen.x, dimen.y)
+        UIManager:forceRePaint()
+    end
+
+    local function clear_pending_banner()
+        if pending_banner then UIManager:close(pending_banner) end
+        pending_banner = nil
+        pending_banner_seq = nil
+    end
+
+    show_prepared_banner = function()
+        if _banner_active or not _last_cover_dimen then return end
+        clear_pending_banner()
+        local banner, dimen = build_banner(_last_cover_dimen)
+        pending_banner = banner
+        pending_banner_seq = _tap_seq
+        show_banner(banner, dimen)
+    end
+
+    -- Home and Zen Mosaic book widgets bypass KOReader's stock item hooks.
+    rawset(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER", set_opening_banner_cover)
+
     -- Patch showReaderCoroutine.
-    -- We do NOT call the original on the duplicate-tap path: the original
-    -- shows its own "Opening file '%1'." InfoMessage which the user would
-    -- perceive as a second banner overlapping ours. Instead, on a duplicate
-    -- same-tap call we run doShowReader directly (no InfoMessage).
+    -- Do not show the stock opening message on duplicate opens, but preserve
+    -- its next-tick transition: replacing ReaderUI during the current gesture
+    -- lets that gesture reach the unpainted reader.
     local function _show_reader_no_banner(self, file, provider, seamless)
         logger.info("_show_reader_no_banner called, file=", tostring(file))
-        -- do NOT defer with nextTick: a deferred doShowReader allows UIManager
-        -- to exit before the reader widget is shown (e.g. rakuyomi where the
-        -- caller's widget tree unwinds before the next tick fires).
-        logger.info("_show_reader_no_banner creating doShowReader coroutine, file=", tostring(file), "provider=", tostring(provider))
-        local co = coroutine.create(function()
-            logger.info("_show_reader_no_banner doShowReader coroutine starting")
-            local started_at = os.clock()
-            local doc_ok, doc_err = pcall(function()
-                self:doShowReader(file, provider, seamless)
+        -- Keep UIManager alive for callers that unwind their widget tree before
+        -- the next tick (notably Rakuyomi), without displaying a second banner.
+        local pending = Widget:new{ invisible = true }
+        UIManager:show(pending)
+        UIManager:nextTick(function()
+            UIManager:close(pending)
+            logger.info("_show_reader_no_banner creating doShowReader coroutine, file=", tostring(file), "provider=", tostring(provider))
+            local co = coroutine.create(function()
+                logger.info("_show_reader_no_banner doShowReader coroutine starting")
+                local started_at = os.clock()
+                local doc_ok, doc_err = pcall(function()
+                    self:doShowReader(file, provider, seamless)
+                end)
+                if not doc_ok then
+                    logger.err("_show_reader_no_banner doShowReader threw error:", tostring(doc_err))
+                    logger.err("_show_reader_no_banner doShowReader traceback:", debug.traceback())
+                end
+                logger.info("_show_reader_no_banner doShowReader coroutine finished, ok=", tostring(doc_ok))
+                logger.perf("Book open completed", (os.clock() - started_at) * 1000,
+                    "file=", tostring(file), "ok=", tostring(doc_ok))
             end)
-            if not doc_ok then
-                logger.err("_show_reader_no_banner doShowReader threw error:", tostring(doc_err))
-                logger.err("_show_reader_no_banner doShowReader traceback:", debug.traceback())
+            logger.info("_show_reader_no_banner resuming doShowReader coroutine")
+            local ok, err = coroutine.resume(co)
+            logger.info("_show_reader_no_banner doShowReader coroutine resumed, ok=", tostring(ok), "err=", tostring(err))
+            if err ~= nil or ok == false then
+                logger.err("_show_reader_no_banner coroutine crashed, err=", tostring(err), "ok=", tostring(ok))
+                logger.err("doShowReader coroutine crash traceback:", debug.traceback(co, err, 1))
+                Device:setIgnoreInput(false)
+                local Input = require("device/input")
+                Input:inhibitInputUntil(0.2)
+                local InfoMessage = require("ui/widget/infomessage")
+                UIManager:show(InfoMessage:new{
+                    text = _("No reader engine for this file or invalid file."),
+                })
+                self:showFileManager(file)
             end
-            logger.info("_show_reader_no_banner doShowReader coroutine finished, ok=", tostring(doc_ok))
-            logger.perf("Book open completed", (os.clock() - started_at) * 1000,
-                "file=", tostring(file), "ok=", tostring(doc_ok))
         end)
-        logger.info("_show_reader_no_banner resuming doShowReader coroutine")
-        local ok, err = coroutine.resume(co)
-        logger.info("_show_reader_no_banner doShowReader coroutine resumed, ok=", tostring(ok), "err=", tostring(err))
-        if err ~= nil or ok == false then
-            logger.err("_show_reader_no_banner coroutine crashed, err=", tostring(err), "ok=", tostring(ok))
-            logger.err("doShowReader coroutine crash traceback:", debug.traceback(co, err, 1))
-            Device:setIgnoreInput(false)
-            local Input = require("device/input")
-            Input:inhibitInputUntil(0.2)
-            local InfoMessage = require("ui/widget/infomessage")
-            UIManager:show(InfoMessage:new{
-                text = _("No reader engine for this file or invalid file."),
-            })
-            self:showFileManager(file)
-        end
     end
 
         ReaderUI.showReaderCoroutine = function(self, file, provider, seamless)
@@ -414,6 +546,7 @@ local function apply_opening_banner()
         if seamless then
             -- Seamless reloads must keep KOReader's behavior (invisible InfoMessage).
             logger.info("seamless reload, delegating to _show_reader_no_banner")
+            clear_pending_banner()
             return _show_reader_no_banner(self, file, provider, seamless)
         end
         -- While the banner is already on screen + doShowReader is running,
@@ -431,51 +564,19 @@ local function apply_opening_banner()
         _last_banner_seq = _tap_seq
         _banner_active = true
 
-        local banner_h = Screen:scaleBySize(28)
         local cover    = _last_cover_dimen
         _last_cover_dimen = nil     -- consume immediately
-
-        local bx, by, bw
-        if cover then
-            by = cover.y + cover.h - banner_h
-            if cover.is_list then
-                -- In list mode the cover art is a square thumbnail whose width
-                -- equals the row height.  Start the banner just to the right of
-                -- it so it never draws over the cover image.
-                bx = cover.x + cover.h
-                bw = cover.w - cover.h
-            else
-                -- Mosaic mode: banner spans the full cover cell width
-                bx = cover.x
-                bw = cover.w
-            end
+        local banner
+        if pending_banner and pending_banner_seq == _tap_seq then
+            banner = pending_banner
+            pending_banner = nil
+            pending_banner_seq = nil
         else
-            -- Fallback: full-width strip at the bottom of the screen
-            bx = 0
-            by = Screen:getHeight() - banner_h
-            bw = Screen:getWidth()
+            clear_pending_banner()
+            local dimen
+            banner, dimen = build_banner(cover)
+            show_banner(banner, dimen)
         end
-
-        local plug = _plugin or rawget(_G, "__ZEN_UI_PLUGIN")
-        local round_bottom = cover and not cover.is_list
-            and plug
-            and type(plug.config) == "table"
-            and type(plug.config.features) == "table"
-            and plug.config.features.browser_cover_rounded_corners == true
-
-        local _nm = G_reader_settings and G_reader_settings:isTrue("night_mode") or false
-        local dark_banner = not _nm
-        if cover and cover.dark_banner ~= nil then
-            dark_banner = cover.dark_banner
-        end
-        local banner = OpeningBanner:new{
-            dimen                = Geom:new{ x = bx, y = by, w = bw, h = banner_h },
-            dark_banner          = dark_banner,
-            round_bottom_corners = round_bottom and true or false,
-        }
-
-        UIManager:show(banner, "ui", Geom:new{x=bx, y=by, w=bw, h=banner_h}, bx, by)
-        UIManager:forceRePaint()
 
         UIManager:nextTick(function()
             -- Close the banner before opening the reader: an orphaned banner

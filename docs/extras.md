@@ -40,7 +40,14 @@ To include every new book automatically, enable **Extras > Include new books in 
 
 ## Custom Icons
 
-Enable **Extras > Allow custom icons**, then place your icons in the `/koreader/icons` folder. Any icon that Zen UI uses will prefer the icons placed in `/koreader/icons` when enabled.
+The bundled Zen UI and KOReader icons remain the default. To use loose icon
+overrides, enable **Extras > Allow custom icons** and place them directly in
+`/koreader/icons` as before.
+
+For a named pack, copy its folder or ZIP into `/koreader/icons/zen`, enable
+custom icons, and select it under **Extras > Custom icon pack**. Valid ZIPs are
+installed automatically. See [Custom Icon Packs](/icon-packs) for the complete
+installation and authoring guide.
 
 > Note: Icons placed directly inside `/koreader/plugins/zen_ui.koplugin/icons` are erased on updates, so do not put custom icons there.
 
@@ -73,7 +80,8 @@ Use **Extras > Lockdown mode** to configure library, Controls, and reader restri
 | Extras > Zen OPDS | Enables Zen UI OPDS enhancements, including cover art, list/mosaic view, hold menu, and navigation changes. |
 | Extras > Zen OPDS > Display mode | Selects mosaic, list, or classic OPDS display mode. |
 | Extras > Include new books in TBR | Adds books with the New status to the To Be Read tab and Home widgets. New includes unread books and books modified since they were last opened. |
-| Extras > Allow custom icons | Lets KOReader user icons override bundled Zen UI icons, with fallback to bundled and built-in icons. |
+| Extras > Allow custom icons | Enables loose icon overrides or the selected Zen UI icon pack. |
+| Extras > Custom icon pack | Installs ZIPs from `/koreader/icons/zen` and selects an unpacked pack. |
 | Extras > Rakuyomi > Return to chapter list on exit | Returns Rakuyomi-owned books to their manga chapter list when exiting the reader. Disable this to return to Rakuyomi library view. |
 | Extras > Search > Match whole words | Uses whole-word search instead of substring search. |
 | Extras > Schedules > Brightness schedule | Enables automatic frontlight brightness changes and sets day/night times and values. |

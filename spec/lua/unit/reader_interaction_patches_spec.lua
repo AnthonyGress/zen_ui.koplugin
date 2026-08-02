@@ -114,6 +114,83 @@ describe("reader interaction patches", function()
         assert.are.equal(0, flushes)
     end)
 
+    it("starts explicit TBR books as reading and removes them from the collection", function()
+        local saved, cached, removed = {}, {}, 0
+        local ReaderUI = { onReaderReady = function() end }
+        ZenSpec.replace("apps/reader/readerui", ReaderUI)
+        ZenSpec.replace("common/book_status", {
+            acknowledgeNewVersion = function() return false end,
+        })
+        ZenSpec.replace("common/tbr_index", {
+            isExplicit = function() return true end,
+            setExplicit = function(_, enabled)
+                if not enabled then removed = removed + 1 end
+                return true
+            end,
+            refreshPath = function() end,
+        })
+        ZenSpec.replace("apps/filemanager/filemanagerutil", {
+            saveSummary = function(_, summary) saved[#saved + 1] = summary.status end,
+        })
+        ZenSpec.replace("ui/widget/booklist", {
+            setBookInfoCacheProperty = function(file, key, value)
+                cached[#cached + 1] = { file, key, value }
+            end,
+        })
+        apply_patch("modules/reader/patches/status_on_open")
+
+        local summary = { status = "complete" }
+        local flushes = 0
+        ReaderUI.onReaderReady({
+            doc_settings = {
+                data = { doc_path = "/books/tbr.epub" },
+                readSetting = function(_, key) return key == "summary" and summary or nil end,
+                flush = function() flushes = flushes + 1 end,
+            },
+        })
+
+        assert.are.equal(1, removed)
+        assert.same({ "reading" }, saved)
+        assert.same({ { "/books/tbr.epub", "status", "reading" } }, cached)
+        assert.are.equal("reading", summary.status)
+        assert.are.equal(1, flushes)
+    end)
+
+    it("starts on-hold books as reading", function()
+        local saved, cached = {}, {}
+        local ReaderUI = { onReaderReady = function() end }
+        ZenSpec.replace("apps/reader/readerui", ReaderUI)
+        ZenSpec.replace("common/book_status", {
+            acknowledgeNewVersion = function() return false end,
+        })
+        ZenSpec.replace("common/tbr_index", {
+            isExplicit = function() return false end,
+            refreshPath = function() end,
+        })
+        ZenSpec.replace("apps/filemanager/filemanagerutil", {
+            saveSummary = function(_, summary) saved[#saved + 1] = summary.status end,
+        })
+        ZenSpec.replace("ui/widget/booklist", {
+            setBookInfoCacheProperty = function(file, key, value)
+                cached[#cached + 1] = { file, key, value }
+            end,
+        })
+        apply_patch("modules/reader/patches/status_on_open")
+
+        local summary = { status = "abandoned" }
+        ReaderUI.onReaderReady({
+            doc_settings = {
+                data = { doc_path = "/books/on-hold.epub" },
+                readSetting = function(_, key) return key == "summary" and summary or nil end,
+                flush = function() end,
+            },
+        })
+
+        assert.same({ "reading" }, saved)
+        assert.same({ { "/books/on-hold.epub", "status", "reading" } }, cached)
+        assert.are.equal("reading", summary.status)
+    end)
+
     it("routes Home through library navigation only while a document is open", function()
         local stock_calls, routed = 0, 0
         local ReaderUI = {
@@ -185,5 +262,99 @@ describe("reader interaction patches", function()
         menu:updateItems()
         assert.is_nil(menu.item_table[1].mandatory_dim)
         assert.are.equal(2, update_calls)
+    end)
+
+    it("focuses bookmark header actions and routes hardware arrows to the list", function()
+        local focus_moves, press_calls = 0, 0
+        local focus_rect
+        local left, right = {
+            callback = function() end,
+            setIcon = function(self, icon) self.icon = icon end,
+            image = { dimen = { x = 12, y = 14, w = 24, h = 24 } },
+            dimen = { w = 60, h = 60 },
+            paintTo = function() end,
+            handleEvent = function(self, event)
+                if event.name == "Focus" then return self:onFocus() end
+                if event.name == "Unfocus" then return self:onUnfocus() end
+            end,
+        }, {
+            callback = function() end,
+            setIcon = function(self, icon) self.icon = icon end,
+            handleEvent = function(self, event)
+                if event.name == "Focus" then return self:onFocus() end
+                if event.name == "Unfocus" then return self:onUnfocus() end
+            end,
+        }
+        local title_bar = {
+            left_button = left,
+            right_button = right,
+            generateHorizontalLayout = function(self)
+                return { { self.left_button, self.right_button } }
+            end,
+        }
+        local first_item = { handleEvent = function() end }
+        local second_item = { handleEvent = function() end }
+        local menu = {
+            font_size = 20,
+            item_table = { {}, {} },
+            key_events = { Close = { { "Back" }, event = "Close" } },
+            selected = { x = 1, y = 1 },
+            title_bar = title_bar,
+            show_parent = {},
+            updateItems = function(self)
+                self.layout = { { first_item }, { second_item } }
+                self.selected = { x = 1, y = 1 }
+                self:mergeTitleBarIntoLayout()
+            end,
+            onFocusMove = function(self, args)
+                focus_moves = focus_moves + 1
+                if args[2] > 0 then self.selected = { x = 1, y = 2 } end
+                return true
+            end,
+            onPress = function()
+                press_calls = press_calls + 1
+                return true
+            end,
+        }
+        local ReaderBookmark = {
+            onShowBookmark = function(self)
+                self.bookmark_menu = { menu }
+            end,
+        }
+        ZenSpec.replace("device", {
+            screen = { scaleBySize = function(_self, value) return value end },
+            hasDPad = function() return true end,
+            hasKeyboard = function() return false end,
+        })
+        ZenSpec.replace("ui/event", {
+            new = function(_self, name) return { name = name } end,
+        })
+        ZenSpec.replace("ui/uimanager", { setDirty = function() end })
+        ZenSpec.replace("apps/reader/modules/readerbookmark", ReaderBookmark)
+        apply_patch("modules/reader/patches/bookmarks")
+
+        ReaderBookmark.onShowBookmark({})
+        assert.are.equal(2, #menu.layout[1])
+        assert.are.equal(left, menu.layout[1][1])
+        assert.are.same({ x = 1, y = 1 }, menu.selected)
+        assert.is_true(left._zen_keyboard_focused)
+        assert.are.equal("Close", menu.key_events.Close.event)
+        left:paintTo({
+            invertRect = function(_bb, x, y, w, h)
+                focus_rect = { x = x, y = y, w = w, h = h }
+            end,
+        }, 0, 0)
+        assert.are.same({ x = 9, y = 11, w = 30, h = 30 }, focus_rect)
+
+        local function key(name)
+            return {
+                match = function(_self, sequence) return sequence[1] == name end,
+            }
+        end
+        assert.is_true(menu:onKeyPress(key("Down")))
+        assert.are.equal(1, focus_moves)
+        assert.are.same({ x = 1, y = 2 }, menu.selected)
+        assert.is_true(menu:onKeyPress(key("Return")))
+        assert.are.equal(1, press_calls)
     end)
 end)

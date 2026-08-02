@@ -2,6 +2,69 @@ local M = {}
 
 local LEGACY_NEW_MTIME_KEY = "zen_auto_tbr_mtime"
 local NEW_MTIME_KEY = "zen_new_mtime"
+local STATUS_CACHE_MAX = 32
+local status_cache = {}
+local status_cache_order = {}
+
+local function copy_status_data(data)
+    local copy = {}
+    for key, value in pairs(data or {}) do copy[key] = value end
+    return copy
+end
+
+local function remove_cached_status(file_path)
+    status_cache[file_path] = nil
+    for i = #status_cache_order, 1, -1 do
+        if status_cache_order[i] == file_path then
+            table.remove(status_cache_order, i)
+        end
+    end
+end
+
+local function status_signature(DocSettings, file_path)
+    local ok_lfs, lfs = pcall(require, "libs/libkoreader-lfs")
+    if not ok_lfs or type(DocSettings.findSidecarFile) ~= "function" then return end
+    local file_mtime = lfs.attributes(file_path, "modification")
+    local ok_sidecar, sidecar_file = pcall(DocSettings.findSidecarFile, DocSettings, file_path)
+    if not ok_sidecar or not sidecar_file then return end
+    local sidecar_mtime = lfs.attributes(sidecar_file, "modification")
+    if file_mtime == nil or sidecar_mtime == nil then return end
+    return tostring(file_mtime) .. "|" .. tostring(sidecar_mtime)
+end
+
+local function remember_status(file_path, signature, data)
+    if not signature then return end
+    remove_cached_status(file_path)
+    status_cache[file_path] = { signature = signature, data = copy_status_data(data) }
+    status_cache_order[#status_cache_order + 1] = file_path
+    while #status_cache_order > STATUS_CACHE_MAX do
+        status_cache[table.remove(status_cache_order, 1)] = nil
+    end
+end
+
+local function get_cached_status(file_path, signature)
+    local cached = signature and status_cache[file_path]
+    if not cached then return end
+    if cached.signature ~= signature then
+        remove_cached_status(file_path)
+        return
+    end
+    remove_cached_status(file_path)
+    status_cache[file_path] = cached
+    status_cache_order[#status_cache_order + 1] = file_path
+    return copy_status_data(cached.data)
+end
+
+function M.invalidate(file_path)
+    if type(file_path) == "string" and file_path ~= "" then
+        remove_cached_status(file_path)
+    end
+end
+
+function M.clearCache()
+    status_cache = {}
+    status_cache_order = {}
+end
 
 local function is_explicit_status(status)
     return status == "reading" or status == "complete" or status == "abandoned"
@@ -27,6 +90,20 @@ function M.includeNewInTBREnabled()
     local cfg = ConfigManager.get()
     return cfg and cfg.group_view
         and cfg.group_view.include_new_in_tbr == true
+end
+
+function M.getDisplayStatus(file_path, effective_status)
+    if effective_status == "new" and M.includeNewInTBREnabled() then
+        return "tbr"
+    end
+    if type(file_path) ~= "string" or file_path == "" then return effective_status end
+
+    local ok, TBRIndex = pcall(require, "common/tbr_index")
+    if ok and type(TBRIndex.isExplicit) == "function"
+            and TBRIndex.isExplicit(file_path) then
+        return "tbr"
+    end
+    return effective_status
 end
 
 local IMAGE_EXTS = {
@@ -127,11 +204,14 @@ function M.acknowledgeNewVersion(doc_settings)
         if prev_acked ~= nil then
             doc_settings:delSetting(NEW_MTIME_KEY)
         end
+        if changed then M.invalidate(file_path) end
         return changed
     end
 
     doc_settings:saveSetting(NEW_MTIME_KEY, current_mtime)
-    return prev_acked ~= current_mtime or had_legacy
+    local changed = prev_acked ~= current_mtime or had_legacy
+    if changed then M.invalidate(file_path) end
+    return changed
 end
 
 function M.migrateLegacyMarker(file_path, status, doc_settings)
@@ -144,6 +224,7 @@ function M.migrateLegacyMarker(file_path, status, doc_settings)
     -- (writing NEW_MTIME_KEY now would record the version as *acknowledged*).
     local summary_changed = status == "abandoned"
     doc_settings:delSetting(LEGACY_NEW_MTIME_KEY)
+    M.invalidate(file_path)
 
     if summary_changed then
         local summary = doc_settings:readSetting("summary") or {}
@@ -164,26 +245,63 @@ function M.getEffectiveStatusFromInfo(book_info)
     return M.getEffectiveStatus(book_info.status, book_info.percent_finished)
 end
 
-function M.getEffectiveStatusFromFile(file_path)
+local function getBookListInfo(file_path)
     local ok_bl, BookList = pcall(require, "ui/widget/booklist")
-    local book_info
     if ok_bl and type(BookList) == "table" and type(BookList.getBookInfo) == "function" then
-        book_info = BookList.getBookInfo(file_path)
+        local ok_info, book_info = pcall(BookList.getBookInfo, file_path)
+        if ok_info then return book_info end
     end
+end
 
-    local status = book_info and book_info.status
-    local percent_finished = book_info and book_info.percent_finished
+-- Read status metadata from one authoritative source. A sidecar, when present
+-- and readable, wins; BookList is only consulted as the fallback path.
+function M.getFileStatusData(file_path, fallback_info)
     local ok_ds, DocSettings = pcall(require, "docsettings")
     if ok_ds and DocSettings and DocSettings:hasSidecarFile(file_path) then
+        local signature = status_signature(DocSettings, file_path)
+        local cached = get_cached_status(file_path, signature)
+        if cached then return cached end
         local ok_doc, doc = pcall(DocSettings.open, DocSettings, file_path)
         if ok_doc and doc then
             local summary = doc:readSetting("summary")
-            status = summary and summary.status
-            percent_finished = doc:readSetting("percent_finished")
-            return M.getComputedStatus(file_path, status, percent_finished, doc)
+            local status = summary and summary.status
+            local percent_finished = doc:readSetting("percent_finished")
+            local effective_status = M.getComputedStatus(
+                file_path, status, percent_finished, doc)
+            local data = {
+                status = status,
+                percent_finished = percent_finished,
+                effective_status = effective_status,
+                display_status = M.getDisplayStatus(file_path, effective_status),
+                doc_settings = doc,
+                sidecar_checked = true,
+            }
+            remember_status(file_path, signature, data)
+            return data
         end
     end
-    return M.getComputedStatus(file_path, status, percent_finished)
+
+    local book_info = type(fallback_info) == "table" and fallback_info
+        or getBookListInfo(file_path)
+    local status = book_info and book_info.status
+    local percent_finished = book_info and book_info.percent_finished
+    local effective_status = M.getEffectiveStatus(status, percent_finished)
+    return {
+        status = status,
+        percent_finished = percent_finished,
+        effective_status = effective_status,
+        display_status = M.getDisplayStatus(file_path, effective_status),
+        book_info = book_info,
+        sidecar_checked = true,
+    }
+end
+
+function M.getEffectiveStatusFromFile(file_path)
+    return M.getFileStatusData(file_path).effective_status
+end
+
+function M.getDisplayStatusFromFile(file_path)
+    return M.getFileStatusData(file_path).display_status
 end
 
 return M

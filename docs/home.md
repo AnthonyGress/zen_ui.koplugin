@@ -69,7 +69,10 @@ Add widgets like featured books, cover strips, reading goals, reading stats, quo
 | Reading stats widget > Stat separators | Selects dividing lines, outlined boxes, or no stat separators. |
 | Reading stats widget > Font size | Sets a per-widget text size or uses the Home default. |
 | Quotes widget > Show widget title | Shows the quotes widget title. |
-| Quotes widget > Show author | Shows quote author text. |
+| Quotes widget > Quote sources | Selects any combination of default quotes, custom quotes, and annotations. |
+| Quotes widget > New quote | Changes the quote daily or whenever Home refreshes. |
+| Quotes widget > Show author | Shows the quote author when available. |
+| Quotes widget > Show title | Shows the book title when available. |
 
 ## Stable Page Labels
 
@@ -77,12 +80,21 @@ Home featured widgets use KOReader page-map data when it is available. That mean
 
 ## Custom quotes
 
-Override the default Zen UI quotes by editing `settings/Zen UI/quotes.lua`. Return a list of quotes; when the list is not empty it replaces the Zen UI defaults entirely. Each entry is either a `{ text, author }` table or a plain string without an author.
+Add personal quotes by editing `settings/Zen UI/quotes.lua`, then enable **Custom quotes** under **Quotes widget > Quote sources**. Custom quotes can be combined with the default list and annotations. Each entry can be a `{ text, author, title }` table, the older `{ text, author }` form, or a plain string without attribution.
 
 ```lua
 return {
-    -- Add your quotes here. When this list is not empty, it replaces Zen UI defaults.
+    -- Existing formats remain supported:
     -- { text = "Quote text", author = "Author" },
     -- "Plain quote without author",
+
+    -- The title field is optional:
+    -- { text = "Quote text", author = "Author", title = "Book title" },
 }
 ```
+
+Annotation quotes are collected from books in KOReader's reading history and
+book-information cache. Tap an annotation quote to open its book at the saved
+location. Swipe horizontally on the widget to move between quotes. Quotes use a
+persistent shuffled deck, so every enabled quote is shown before the list is
+reshuffled.

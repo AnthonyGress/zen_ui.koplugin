@@ -1,7 +1,9 @@
 local _ = require("gettext")
+local T = require("ffi/util").template
 local UIManager = require("ui/uimanager")
 
 local HomePresets = require("modules/filebrowser/patches/home/home_presets")
+local HomeQuotes = require("modules/filebrowser/patches/home/home_quotes")
 local PresetStore = require("config/preset_store")
 local Registry = require("modules/filebrowser/patches/home/components/registry")
 local library_font = require("modules/filebrowser/patches/library_font")
@@ -37,14 +39,15 @@ local DEFAULT_ORDER = {
     "reading_goals",
     "strip_recent",
     "strip_custom",
+    "strip_tag",
     "strip_tbr",
     "quotes",
 }
 
 local DEFAULT_ENABLED = {
-    datetime = true,
     featured_recent = true,
     quotes = true,
+    stats_triplet = true,
     strip_recent = true,
 }
 
@@ -58,6 +61,7 @@ local FEATURED_TEXT_STYLE_DEFAULTS = {
     author = { font_face = "default", font_size = 9, bold = false },
     series = { font_face = "default", font_size = 7, bold = false },
     description = { font_face = "default", font_size = 16, bold = false },
+    progress = { font_face = "default", font_size = 7, bold = false },
 }
 
 local function normalize_order(order)
@@ -185,6 +189,8 @@ local function ensure_home_widget_cfg(dcfg)
     reading_goals.font_size_override = reading_goals.font_size and true or nil
     local strip_custom = ensure_strip_cfg(dcfg, "strip_custom")
     if type(strip_custom.paths) ~= "table" then strip_custom.paths = {} end
+    local strip_tag = ensure_strip_cfg(dcfg, "strip_tag")
+    if type(strip_tag.tag) ~= "string" then strip_tag.tag = nil end
     ensure_strip_cfg(dcfg, "strip_tbr")
     ensure_strip_cfg(dcfg, "strip_recent")
 end
@@ -212,6 +218,15 @@ local function ensure_cfg(_config)
 
     if type(dcfg.quotes) ~= "table" then dcfg.quotes = {} end
     if dcfg.quotes.show_author == nil then dcfg.quotes.show_author = true end
+    if dcfg.quotes.show_title == nil then dcfg.quotes.show_title = true end
+    if type(dcfg.quotes.sources) ~= "table" then
+        dcfg.quotes.sources = { default = true }
+    end
+    if dcfg.quotes.rotation ~= "refresh" then dcfg.quotes.rotation = "daily" end
+    dcfg.quotes.automatic_font_size = dcfg.quotes.automatic_font_size == true
+    dcfg.quotes.max_font_size = math.max(
+        4, math.min(32, tonumber(dcfg.quotes.max_font_size) or 14)
+    )
     dcfg.quotes.use_home_font_size = dcfg.quotes.use_home_font_size == true or nil
     local quote_font_size = tonumber(dcfg.quotes.font_size)
     local quote_font_override = dcfg.quotes.font_size_override == true
@@ -228,16 +243,7 @@ local function ensure_cfg(_config)
     return dcfg
 end
 
-local function enabled_count(enabled)
-    local n = 0
-    for _k, v in pairs(enabled) do
-        if v == true then n = n + 1 end
-    end
-    return n
-end
-
-local home_max_widgets = 5
-local custom_strip_max_books = 50
+local custom_strip_max_books = 40
 
 function M.build(ctx)
     local config = ctx.config
@@ -337,6 +343,52 @@ function M.build(ctx)
         local comp = Registry.get(id)
         if comp and comp.label then return comp.label end
         return tostring(id) .. " (" .. _("Unavailable") .. ")"
+    end
+
+    local function used_home_units()
+        return Registry.totalUnits(dcfg.rows.enabled, dcfg.modules)
+    end
+
+    local function enabled_widget_count()
+        local count = 0
+        for _id, value in pairs(dcfg.rows.enabled) do
+            if value == true then count = count + 1 end
+        end
+        return count
+    end
+
+    local function component_units(id, module_cfg)
+        local comp = Registry.get(id)
+        return comp and Registry.sizeUnits(comp, module_cfg or dcfg.modules[id]) or 0
+    end
+
+    local function show_capacity_message(used, needed)
+        local InfoMessage = require("ui/widget/infomessage")
+        UIManager:show(InfoMessage:new{
+            text = T(
+                _("Not enough Home space: %1/%2 units used; this widget needs %3."),
+                used,
+                Registry.CAPACITY_UNITS,
+                needed
+            ),
+        })
+    end
+
+    local function toggle_strip_rows(module_id, mcfg)
+        local enable_two_rows = mcfg.two_rows ~= true
+        if enable_two_rows and dcfg.rows.enabled[module_id] == true then
+            local used = used_home_units()
+            local current_units = component_units(module_id, mcfg)
+            local next_units = component_units(module_id, { two_rows = true })
+            if used - current_units + next_units > Registry.CAPACITY_UNITS then
+                show_capacity_message(used - current_units, next_units)
+                return false
+            end
+        end
+        mcfg.two_rows = enable_two_rows
+        mcfg.count = enable_two_rows and 8 or 4
+        save_home("reinit")
+        return true
     end
 
     local order_options = {
@@ -557,6 +609,13 @@ function M.build(ctx)
             end,
             sub_item_table = build_featured_text_style_items(mcfg, "description", _("Description")),
         }
+        items[#items + 1] = {
+            sub_title = _("Progress labels"),
+            text_func = function()
+                return _("Progress labels") .. ": " .. featured_text_style_summary(mcfg, "progress")
+            end,
+            sub_item_table = build_featured_text_style_items(mcfg, "progress", _("Progress labels")),
+        }
         return items
     end
 
@@ -674,6 +733,28 @@ function M.build(ctx)
         })
     end
 
+    local function choose_tag(callback)
+        local ok_db, db = pcall(require, "common/db_bookinfo")
+        local groups = ok_db and db and type(db.getGroupedByTags) == "function"
+            and db.getGroupedByTags() or {}
+        if #groups == 0 then
+            local InfoMessage = require("ui/widget/infomessage")
+            UIManager:show(InfoMessage:new{ text = _("No tags found") })
+            return
+        end
+        local items = {}
+        for _i, group in ipairs(groups) do
+            items[#items + 1] = { text = group.tag, tag = group.tag }
+        end
+        require("common/ui/zen_menu_picker"){
+            title = _("Choose tag"),
+            items = items,
+            on_select = function(item)
+                if item and item.tag then callback(item.tag) end
+            end,
+        }
+    end
+
     local function build_featured_custom_items(mcfg)
         return {
             {
@@ -788,13 +869,7 @@ function M.build(ctx)
                     return mcfg.two_rows == true
                 end,
                 callback = function()
-                    mcfg.two_rows = mcfg.two_rows ~= true
-                    if mcfg.two_rows then
-                        mcfg.count = 8
-                    else
-                        mcfg.count = 4
-                    end
-                    save_home("reinit")
+                    toggle_strip_rows("strip_custom", mcfg)
                 end,
             },
             {
@@ -958,13 +1033,7 @@ function M.build(ctx)
                     return mcfg.two_rows == true
                 end,
                 callback = function()
-                    mcfg.two_rows = mcfg.two_rows ~= true
-                    if mcfg.two_rows then
-                        mcfg.count = 8
-                    else
-                        mcfg.count = 4
-                    end
-                    save_home("reinit")
+                    toggle_strip_rows(module_id, mcfg)
                 end,
             },
             {
@@ -994,25 +1063,39 @@ function M.build(ctx)
         }
         if module_id == "strip_recent" then
             table.insert(items, 3, filter_status_item(mcfg, "filter_unread", _("Hide unread books")))
-            table.insert(items, 4, filter_status_item(mcfg, "filter_tbr", _("Hide TBR books")))
+            table.insert(items, 4, filter_status_item(mcfg, "filter_tbr", _("Hide on-hold books")))
             table.insert(items, 5, filter_status_item(mcfg, "filter_finished", _("Hide finished books")))
+        elseif module_id == "strip_tag" then
+            table.insert(items, 2, {
+                text_func = function()
+                    return _("Tag: ") .. (mcfg.tag or _("None"))
+                end,
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    choose_tag(function(tag)
+                        mcfg.tag = tag
+                        save_home("reinit")
+                        if touchmenu_instance then touchmenu_instance:updateItems() end
+                    end)
+                end,
+            })
         end
         return items
     end
 
     local function toggle_widget_enabled(cid)
         if dcfg.rows.enabled[cid] == true then
-            if enabled_count(dcfg.rows.enabled) <= 1 and Registry.get(cid) then
+            if enabled_widget_count() <= 1 and Registry.get(cid) then
                 return false
             end
             dcfg.rows.enabled[cid] = false
         else
-            if not Registry.get(cid) then return false end
-            if enabled_count(dcfg.rows.enabled) >= home_max_widgets then
-                local InfoMessage = require("ui/widget/infomessage")
-                UIManager:show(InfoMessage:new{
-                    text = _("Maximum 5 widgets allowed"),
-                })
+            local comp = Registry.get(cid)
+            if not comp then return false end
+            local used = used_home_units()
+            local needed = component_units(cid)
+            if used + needed > Registry.CAPACITY_UNITS then
+                show_capacity_message(used, needed)
                 return false
             end
             dcfg.rows.enabled[cid] = true
@@ -1029,10 +1112,29 @@ function M.build(ctx)
         stats_triplet = true,
         reading_goals = true,
         strip_custom = true,
+        strip_tag = true,
         strip_tbr = true,
         strip_recent = true,
         quotes = true,
     }
+
+    local function arrange_search_items()
+        dcfg.rows = Registry.normalizeRows(dcfg.rows, DEFAULT_ORDER, DEFAULT_ENABLED)
+        local items = {}
+        for _i, id in ipairs(dcfg.rows.order) do
+            if widget_ids_with_settings[id] then
+                local widget_id = id
+                items[#items + 1] = {
+                    text = component_label(widget_id),
+                    _zen_search_breadcrumb = _("Home"),
+                    _zen_search_open = function()
+                        return open_widget_settings(widget_id)
+                    end,
+                }
+            end
+        end
+        return items
+    end
 
     local function arrange_widgets()
         local ZenArrangeList = require("common/ui/zen_arrange_list")
@@ -1040,9 +1142,10 @@ function M.build(ctx)
         local order = dcfg.rows.order
         local sort_items = {}
         local function should_dim_widget(id)
-            if not Registry.get(id) then return true end
+            local comp = Registry.get(id)
+            if not comp then return true end
             return dcfg.rows.enabled[id] ~= true
-                and enabled_count(dcfg.rows.enabled) >= home_max_widgets
+                and used_home_units() + component_units(id) > Registry.CAPACITY_UNITS
         end
         local function update_dim_states()
             for _i, sort_item in ipairs(sort_items) do
@@ -1072,7 +1175,7 @@ function M.build(ctx)
             sort_items[#sort_items + 1] = item
         end
         ZenArrangeList.show{
-            title = _("Widgets") .. " (" .. _("Hold to arrange") .. ")",
+            title = _("Widgets"),
             item_table = sort_items,
             callback = function()
                 local new_order = {}
@@ -1372,6 +1475,9 @@ function M.build(ctx)
                             stats_cfg.font_size = spin.value
                             stats_cfg.font_size_override = true
                             save_home("reinit")
+                            if touchmenu_instance and touchmenu_instance.updateItems then
+                                touchmenu_instance:updateItems()
+                            end
                         end,
                     })
                 end,
@@ -1455,11 +1561,97 @@ function M.build(ctx)
 
     local function build_quotes_items()
         local quotes_cfg = ensure_module_cfg(dcfg, "quotes")
+        local function quote_sources()
+            if type(dcfg.quotes.sources) ~= "table" then
+                dcfg.quotes.sources = { default = true }
+            end
+            return dcfg.quotes.sources
+        end
+        local function source_item(label, key, options)
+            local item = {
+                text = label,
+                keep_menu_open = true,
+                checked_func = function()
+                    return quote_sources()[key] == true
+                end,
+                callback = function()
+                    if options and options.enabled_func
+                            and options.enabled_func() == false then
+                        return
+                    end
+                    local sources = quote_sources()
+                    sources[key] = sources[key] ~= true
+                    if not sources.default and not sources.custom and not sources.annotations then
+                        sources.default = true
+                    end
+                    save_home("reinit")
+                end,
+            }
+            if options then
+                item.enabled_func = options.enabled_func
+                item.help_text = options.help_text
+                item.dim = options.enabled_func and options.enabled_func() == false or nil
+            end
+            return item
+        end
         local function quote_font_size()
             if dcfg.quotes.use_home_font_size then return dcfg.font_size end
             return dcfg.quotes.font_size or 12
         end
-        return {
+        local custom_quotes_available = HomeQuotes.hasCustomQuotes()
+        if not custom_quotes_available then
+            local sources = quote_sources()
+            sources.custom = false
+            if not sources.default and not sources.annotations then
+                sources.default = true
+            end
+        end
+        local source_items = {
+            source_item(_("Default quotes"), "default"),
+            source_item(_("Custom quotes"), "custom", {
+                enabled_func = HomeQuotes.hasCustomQuotes,
+                help_text = _("Add at least one quote to settings/Zen UI/quotes.lua to enable this source."),
+            }),
+        }
+        if not custom_quotes_available then
+            source_items[#source_items + 1] = {
+                text = _("quotes.lua is empty"),
+                enabled = false,
+                dim = true,
+            }
+        end
+        source_items[#source_items + 1] =
+            source_item(_("Annotations"), "annotations")
+        local items = {
+            {
+                text = _("Quote sources"),
+                sub_item_table = source_items,
+            },
+            {
+                text = _("New quote"),
+                sub_item_table = {
+                    {
+                        text = _("Daily"),
+                        checked_func = function()
+                            return dcfg.quotes.rotation ~= "refresh"
+                        end,
+                        callback = function()
+                            dcfg.quotes.rotation = "daily"
+                            save_home("reinit")
+                        end,
+                    },
+                    {
+                        text = _("On Home refresh"),
+                        checked_func = function()
+                            return dcfg.quotes.rotation == "refresh"
+                        end,
+                        callback = function()
+                            dcfg.quotes.rotation = "refresh"
+                            save_home("reinit")
+                        end,
+                    },
+                },
+            },
             {
                 text = _("Show widget title"),
                 checked_func = function()
@@ -1471,12 +1663,51 @@ function M.build(ctx)
                 end,
             },
             {
-                text_func = function()
-                    return string.format("%s %s", _("Font size:"), tostring(quote_font_size()))
+                text = _("Automatic font size"),
+                checked_func = function()
+                    return dcfg.quotes.automatic_font_size == true
                 end,
-                keep_menu_open = true,
-                callback = function()
-                    local SpinWidget = require("ui/widget/spinwidget")
+                callback = function(touchmenu_instance)
+                    dcfg.quotes.automatic_font_size =
+                        dcfg.quotes.automatic_font_size ~= true
+                    save_home("reinit")
+                    if touchmenu_instance and touchmenu_instance.updateItems then
+                        touchmenu_instance:updateItems()
+                    end
+                end,
+            },
+        }
+
+        items[#items + 1] = {
+            text_func = function()
+                if dcfg.quotes.automatic_font_size == true then
+                    return string.format(
+                        "%s %s",
+                        _("Maximum font size:"),
+                        tostring(dcfg.quotes.max_font_size or 14)
+                    )
+                end
+                return string.format("%s %s", _("Font size:"), tostring(quote_font_size()))
+            end,
+            keep_menu_open = true,
+            callback = function(touchmenu_instance)
+                local SpinWidget = require("ui/widget/spinwidget")
+                if dcfg.quotes.automatic_font_size == true then
+                    UIManager:show(SpinWidget:new{
+                        title_text = _("Maximum quote font size"),
+                        value = dcfg.quotes.max_font_size or 14,
+                        value_min = 4,
+                        value_max = 32,
+                        default_value = 14,
+                        callback = function(spin)
+                            dcfg.quotes.max_font_size = spin.value
+                            save_home("reinit")
+                            if touchmenu_instance and touchmenu_instance.updateItems then
+                                touchmenu_instance:updateItems()
+                            end
+                        end,
+                    })
+                else
                     UIManager:show(SpinWidget:new{
                         title_text = _("Quote font size"),
                         value = quote_font_size(),
@@ -1488,37 +1719,56 @@ function M.build(ctx)
                             dcfg.quotes.font_size_override = true
                             dcfg.quotes.use_home_font_size = nil
                             save_home("reinit")
+                            if touchmenu_instance and touchmenu_instance.updateItems then
+                                touchmenu_instance:updateItems()
+                            end
                         end,
                     })
-                end,
-            },
-            {
-                text = _("Use Home default font size"),
-                callback = function()
-                    dcfg.quotes.font_size = nil
-                    dcfg.quotes.font_size_override = nil
-                    dcfg.quotes.use_home_font_size = true
-                    save_home("reinit")
-                end,
-            },
-            {
-                text = _("Show author"),
-                checked_func = function()
-                    return dcfg.quotes.show_author ~= false
-                end,
-                callback = function()
-                    dcfg.quotes.show_author = dcfg.quotes.show_author == false
-                    save_home("reinit")
-                end,
-            },
+                end
+            end,
         }
+        items[#items + 1] = {
+            text = _("Use Home default font size"),
+            enabled_func = function()
+                return dcfg.quotes.automatic_font_size ~= true
+            end,
+            callback = function()
+                dcfg.quotes.font_size = nil
+                dcfg.quotes.font_size_override = nil
+                dcfg.quotes.use_home_font_size = true
+                save_home("reinit")
+            end,
+        }
+
+        items[#items + 1] = {
+            text = _("Show author"),
+            checked_func = function()
+                return dcfg.quotes.show_author ~= false
+            end,
+            callback = function()
+                dcfg.quotes.show_author = dcfg.quotes.show_author == false
+                save_home("reinit")
+            end,
+        }
+        items[#items + 1] = {
+            text = _("Show title"),
+            checked_func = function()
+                return dcfg.quotes.show_title ~= false
+            end,
+            callback = function()
+                dcfg.quotes.show_title = dcfg.quotes.show_title == false
+                save_home("reinit")
+            end,
+        }
+        return items
     end
 
     build_widget_settings_items = function(id)
         local items
         if id == "featured_custom" or id == "featured_tbr" or id == "featured_recent" then
             items = build_featured_widget_items(id)
-        elseif id == "strip_custom" or id == "strip_tbr" or id == "strip_recent" then
+        elseif id == "strip_custom" or id == "strip_tag" or id == "strip_tbr"
+                or id == "strip_recent" then
             items = build_strip_widget_items(id)
         elseif id == "reading_goals" then
             items = build_goals_items()
@@ -1527,11 +1777,14 @@ function M.build(ctx)
         elseif id == "quotes" then
             items = build_quotes_items()
         end
-        if items then items._zen_arrange_done_func = function() end end
         return items
     end
 
     open_widget_settings = function(id)
+        local settings_page = require("modules/settings/zen_settings_page")
+        local standalone_route = settings_page.rememberStandaloneArrangeRoute({
+            { text = _("Home"), occurrence = 1 },
+        }, _("Widgets"), { id })
         local items = build_widget_settings_items(id)
         if type(items) ~= "table" or #items == 0 then
             arrange_widgets()
@@ -1540,7 +1793,18 @@ function M.build(ctx)
         require("common/ui/zen_arrange_list").show{
             title = component_label(id),
             item_table = items,
+            allow_arrange = false,
             hide_footer_cancel = true,
+            back_callback = standalone_route and function()
+                settings_page.rememberStandaloneArrangeRoute({
+                    { text = _("Home"), occurrence = 1 },
+                }, _("Widgets"), {})
+                UIManager:nextTick(function()
+                    local plugin = ctx.plugin or rawget(_G, "__ZEN_UI_PLUGIN")
+                    if plugin then settings_page.show(plugin) end
+                end)
+                return true
+            end or nil,
         }
         return true
     end
@@ -1638,6 +1902,10 @@ function M.build(ctx)
                                 sub_item_table_func = function() return build_strip_widget_items("strip_custom") end,
                             },
                             {
+                                text = _("Tag strip widget"),
+                                sub_item_table_func = function() return build_strip_widget_items("strip_tag") end,
+                            },
+                            {
                                 text = _("To Be Read strip widget"),
                                 sub_item_table_func = function() return build_strip_widget_items("strip_tbr") end,
                             },
@@ -1663,13 +1931,16 @@ function M.build(ctx)
             },
             ]]
     }
-    IconItem.decorate(home_items[1], icons.display)
+    IconItem.decorate(home_items[1], icons.widgets)
+    IconItem.decorate(home_items[2], icons.edit)
     IconItem.decorate(home_items[3], icons.save)
     IconItem.decorate(home_items[4], icons.title)
+    IconItem.decorate(home_items[5], icons.settings_status)
 
     return {
         text = _("Home"),
         sub_item_table = home_items,
+        _zen_search_items_func = arrange_search_items,
     }
 end
 

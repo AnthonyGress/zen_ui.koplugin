@@ -146,6 +146,7 @@ function M.build(ctx)
                 end,
             })
         end,
+        keep_menu_open = true,
     })
 
     table.insert(items, {

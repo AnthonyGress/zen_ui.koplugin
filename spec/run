@@ -198,7 +198,7 @@ package_check() {
     bash build.sh
     local listing
     listing="$(unzip -Z1 dist/zen_ui.koplugin.zip)"
-    if printf '%s\n' "$listing" | grep -Eq '/spec/|_spec\.lua$|\.py$|zen_ui_test_driver'; then
+    if printf '%s\n' "$listing" | grep -Eq '/spec/|/icon-packs/|_spec\.lua$|\.py$|zen_ui_test_driver|/ICON-LIST\.md$|/included-icons\.json$|/zen-icon-pack/'; then
       echo "Test asset leaked into release ZIP" >&2
       exit 1
     fi

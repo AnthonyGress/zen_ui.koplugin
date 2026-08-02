@@ -225,13 +225,14 @@ local function apply_opds()
         end
     end
 
-    local function paintCornerBorderArcs(bb, tx, ty, tw, th, r, color)
+    local function paintCornerBorderArcs(bb, tx, ty, tw, th, r, bsz, color)
+        local r_inner = r - bsz
         for j = 0, r - 1 do
             for c = 0, r - 1 do
                 local dx   = r - c - 0.5
                 local dy   = r - j - 0.5
                 local dist = math.sqrt(dx * dx + dy * dy)
-                if dist >= r - 1 and dist <= r then
+                if dist >= r_inner and dist <= r then
                     bb:paintRect(tx + c,          ty + j,           1, 1, color)
                     bb:paintRect(tx + tw - 1 - c, ty + j,           1, 1, color)
                     bb:paintRect(tx + c,          ty + th - 1 - j,  1, 1, color)
@@ -240,10 +241,12 @@ local function apply_opds()
             end
         end
         -- straight edges connecting the corner arcs
-        bb:paintRect(tx + r,      ty,           tw - 2*r, 1, color)  -- top
-        bb:paintRect(tx + r,      ty + th - 1,  tw - 2*r, 1, color)  -- bottom
-        bb:paintRect(tx,          ty + r,       1, th - 2*r, color)  -- left
-        bb:paintRect(tx + tw - 1, ty + r,       1, th - 2*r, color)  -- right
+        for i = 0, bsz - 1 do
+            bb:paintRect(tx + r, ty + i, tw - 2 * r, 1, color)
+            bb:paintRect(tx + r, ty + th - 1 - i, tw - 2 * r, 1, color)
+            bb:paintRect(tx + i, ty + r, 1, th - 2 * r, color)
+            bb:paintRect(tx + tw - 1 - i, ty + r, 1, th - 2 * r, color)
+        end
     end
 
     -- Proportional font size matching browser_list_item_layout's _fontSize formula.
@@ -254,7 +257,7 @@ local function apply_opds()
         return fs
     end
 
-    local COVER_BORDER = Size.border.thin
+    local COVER_BORDER = CoverUtils.BORDER_SIZE
 
     local function build_cover_widget(entry, cover_w, cover_h)
         if entry._zen_opds_folder then
@@ -263,17 +266,43 @@ local function apply_opds()
             return CoverUtils.drawNoImage(
                 entry.title or entry.text or "", inner_w, inner_h, COVER_BORDER)
         elseif entry.cover_bb then
-            return ImageWidget:new{
-                image = entry.cover_bb,
-                image_disposable = false,
+            local inner_w = math.max(1, cover_w - 2 * COVER_BORDER)
+            local inner_h = math.max(1, cover_h - 2 * COVER_BORDER)
+            return FrameContainer:new{
                 width = cover_w,
                 height = cover_h,
+                padding = 0,
+                bordersize = COVER_BORDER,
+                color = Blitbuffer.COLOR_BLACK,
+                background = Blitbuffer.COLOR_LIGHT_GRAY,
+                CenterContainer:new{
+                    dimen = Geom:new{ w = inner_w, h = inner_h },
+                    ImageWidget:new{
+                        image = entry.cover_bb,
+                        image_disposable = false,
+                        width = inner_w,
+                        height = inner_h,
+                    },
+                },
             }
         end
 
-        return LineWidget:new{
-            dimen = Geom:new{ w = cover_w, h = cover_h },
+        local inner_w = math.max(1, cover_w - 2 * COVER_BORDER)
+        local inner_h = math.max(1, cover_h - 2 * COVER_BORDER)
+        return FrameContainer:new{
+            width = cover_w,
+            height = cover_h,
+            padding = 0,
+            bordersize = COVER_BORDER,
+            color = Blitbuffer.COLOR_BLACK,
             background = Blitbuffer.COLOR_LIGHT_GRAY,
+            CenterContainer:new{
+                dimen = Geom:new{ w = inner_w, h = inner_h },
+                LineWidget:new{
+                    dimen = Geom:new{ w = inner_w, h = inner_h },
+                    background = Blitbuffer.COLOR_LIGHT_GRAY,
+                },
+            },
         }
     end
 
@@ -351,7 +380,8 @@ local function apply_opds()
         if not rounded_corners_enabled() then return end
         -- cover is at PAD from left, PAD_V from top
         paintCornerMasks(bb, x + PAD, y + PAD_V, self.cover_w, self.cover_h, _corner_radius)
-        paintCornerBorderArcs(bb, x + PAD, y + PAD_V, self.cover_w, self.cover_h, _corner_radius, Blitbuffer.COLOR_BLACK)
+        paintCornerBorderArcs(bb, x + PAD, y + PAD_V, self.cover_w, self.cover_h,
+            _corner_radius, COVER_BORDER, Blitbuffer.COLOR_BLACK)
     end
 
     function OPDSItem:update()
@@ -471,7 +501,8 @@ local function apply_opds()
         local cx = x + math.floor((self.cell_w - self.cover_w) / 2)
         local cy = y + math.floor((cover_area_h - self.cover_h) / 2)
         paintCornerMasks(bb, cx, cy, self.cover_w, self.cover_h, _corner_radius)
-        paintCornerBorderArcs(bb, cx, cy, self.cover_w, self.cover_h, _corner_radius, Blitbuffer.COLOR_BLACK)
+        paintCornerBorderArcs(bb, cx, cy, self.cover_w, self.cover_h,
+            _corner_radius, COVER_BORDER, Blitbuffer.COLOR_BLACK)
     end
 
     function OPDSMosaicItem:update()
@@ -1062,7 +1093,7 @@ local function apply_opds()
         local is_default     = default_url == item.url
 
         -- Build the same cover+title header as showDownloads.
-        local border      = Size.border.thin or 1
+        local border      = CoverUtils.BORDER_SIZE
         local gap         = Screen:scaleBySize(8)
         local dlg_w       = math.floor(math.min(Screen:getWidth(), Screen:getHeight()) * 0.9)
         local avail_w     = dlg_w - 2 * (Size.border.window + Size.padding.button)
@@ -1086,7 +1117,8 @@ local function apply_opds()
             InputContainer.paintTo(self, bb, x, y)
             if not rounded_corners_enabled() then return end
             paintCornerMasks(bb, x, y, cover_w, cover_h, _corner_radius)
-            paintCornerBorderArcs(bb, x, y, cover_w, cover_h, _corner_radius, Blitbuffer.COLOR_BLACK)
+            paintCornerBorderArcs(bb, x, y, cover_w, cover_h,
+                _corner_radius, border, Blitbuffer.COLOR_BLACK)
         end
         local framed_cover = CoverPlaceholder:new{}
         local vstack = VGroup:new{ align = "left" }
@@ -1247,7 +1279,7 @@ local function apply_opds()
         local current_dir = self:getCurrentDownloadDir()
 
         -- Header geometry: exact inner-content width formula matching context_menu.lua.
-        local border  = Size.border.thin or 1
+        local border  = CoverUtils.BORDER_SIZE
         local gap     = Screen:scaleBySize(8)
         local dlg_w   = math.floor(math.min(Screen:getWidth(), Screen:getHeight()) * 0.9)
         local avail_w = dlg_w - 2 * (Size.border.window + Size.padding.button)

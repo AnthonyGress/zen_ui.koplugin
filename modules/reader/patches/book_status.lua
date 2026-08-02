@@ -49,13 +49,39 @@ local function apply_book_status()
             end
         end
 
-        -- On key devices, a page-turn forward from this end-of-book screen opens
-        -- the library (same as tapping the home button).
+        -- "Open next file" is only offered by KOReader when the folder collate
+        -- order supports sequential navigation (not by access/date).
+        local collate = G_reader_settings:readSetting("collate")
+        local next_file_enabled = collate ~= "access" and collate ~= "date"
+
+        local open_next_file_callback = function()
+            local ui = self.ui
+            if self.updated then
+                ui.doc_settings:flush()
+            end
+            UIManager:close(self)
+            UIManager:scheduleIn(0, function()
+                if ui and ui.status then
+                    ui.status:onOpenNextOrPreviousFileInFolder()
+                end
+            end)
+        end
+
+        -- On key devices, page-forward opens the next sequential file when
+        -- available; otherwise it returns to the library.
         if Device:hasKeys() then
-            self.key_events.ZenGoLibrary = { { Device.input.group.PgFwd } }
-            self.onZenGoLibrary = function()
-                home_callback()
-                return true
+            if next_file_enabled then
+                self.key_events.ZenOpenNextFile = { { Device.input.group.PgFwd } }
+                self.onZenOpenNextFile = function()
+                    open_next_file_callback()
+                    return true
+                end
+            else
+                self.key_events.ZenGoLibrary = { { Device.input.group.PgFwd } }
+                self.onZenGoLibrary = function()
+                    home_callback()
+                    return true
+                end
             end
         end
 
@@ -98,11 +124,6 @@ local function apply_book_status()
         -- normal Lua method dispatch without duplicating genBookInfoGroup.
         -- genBookInfoGroup already has a large top gap (height * 0.2 ≈ 55px+) so the
         -- slightly taller content just shifts title/author up slightly — no overflow.
-        -- "Open next file" is only offered by KOReader when the folder collate
-        -- order supports sequential navigation (not by access/date).
-        local collate = G_reader_settings:readSetting("collate")
-        local next_file_enabled = collate ~= "access" and collate ~= "date"
-
         local restart_book_btn = Button:new{
             text = _("Restart Book"),
             width = next_file_enabled and math.floor(width * 0.27) or math.floor(width * 0.55),
@@ -125,18 +146,7 @@ local function apply_book_status()
                 width = math.floor(width * 0.27),
                 preselect = true, -- inverts colors: black bg, white text
                 show_parent = self,
-                callback = function()
-                    local ui = self.ui
-                    if self.updated then
-                        ui.doc_settings:flush()
-                    end
-                    UIManager:close(self)
-                    UIManager:scheduleIn(0, function()
-                        if ui and ui.status then
-                            ui.status:onOpenNextOrPreviousFileInFolder()
-                        end
-                    end)
-                end,
+                callback = open_next_file_callback,
             }
         end
         local orig_generateRateGroup = BookStatusWidget.generateRateGroup

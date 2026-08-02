@@ -168,8 +168,11 @@ msgstr "Tout le temps"
 msgid "All time"
 msgstr "Tout le temps"
 
-msgid "Allow custom icons"
-msgstr "Autoriser les icônes personnalisées"
+msgid "Custom icons"
+msgstr "Icônes personnalisées"
+
+msgid "Enable custom icons"
+msgstr "Activer les icônes personnalisées"
 
 msgid "Allow delete"
 msgstr "Autoriser la suppression"
@@ -795,8 +798,8 @@ msgstr "Activer la journalisation de débogage détaillée de KOReader. Les jour
 msgid "Enable night mode schedule"
 msgstr "Activer la planification du mode nuit"
 
-msgid "Enable page browser"
-msgstr "Activer le navigateur de pages"
+msgid "Zen page browser"
+msgstr "Navigateur de pages Zen"
 
 msgid "Enable top status bar"
 msgstr "Activer la barre d'état supérieure"
@@ -972,8 +975,8 @@ msgstr "Masquer les bordures de liste"
 msgid "Hide reader actions in library"
 msgstr "Masquer les actions du lecteur dans la bibliothèque"
 
-msgid "Hide TBR books"
-msgstr "Masquer les livres à lire"
+msgid "Hide on-hold books"
+msgstr "Masquer les livres en pause"
 
 msgid "Hide unread books"
 msgstr "Masquer les livres non lus"
@@ -1701,6 +1704,9 @@ msgstr "Recommencer le livre"
 msgid "Restart now"
 msgstr "Redémarrer maintenant"
 
+msgid "Restarting"
+msgstr "Redémarrage"
+
 msgid "Restore library location on exit"
 msgstr "Restaurer l'emplacement de la bibliothèque à la sortie"
 
@@ -1893,8 +1899,8 @@ msgstr "Afficher le nombre d'éléments"
 msgid "Show item underline"
 msgstr "Afficher le soulignement des éléments"
 
-msgid "Show KOReader progress bar"
-msgstr "Afficher la barre de progression de KOReader"
+msgid "Show progress bar"
+msgstr "Afficher la barre de progression"
 
 msgid "Show labels"
 msgstr "Afficher les étiquettes"
@@ -1911,8 +1917,8 @@ msgstr "Afficher les autres options de recherche rapide de KOReader à côté de
 msgid "Show page count"
 msgstr "Afficher le nombre de pages"
 
-msgid "Show progress % on mosaic covers"
-msgstr "Afficher le % de progression sur les couvertures mosaïque"
+msgid "Show reading progress"
+msgstr "Afficher la progression de lecture"
 
 msgid "Show separator"
 msgstr "Afficher le séparateur"
@@ -2415,47 +2421,47 @@ msgstr "Recherche rapide Zen"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - Auteurs"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: Auteurs"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - Accueil"
+msgid "Zen UI: Home"
+msgstr "Zen UI: Accueil"
 
-msgid "Zen UI - Library"
-msgstr "Zen UI - Bibliothèque"
+msgid "Zen UI: Library"
+msgstr "Zen UI: Bibliothèque"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - Ouvrir le dossier"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: Ouvrir le dossier"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - Séries"
+msgid "Zen UI: Series"
+msgstr "Zen UI: Séries"
 
-msgid "Zen UI - Sync progress (pull + push)"
-msgstr "Zen UI - Progression de la synchronisation (réception + envoi)"
+msgid "Zen UI: Sync progress (pull + push)"
+msgstr "Zen UI: Progression de la synchronisation (réception + envoi)"
 
-msgid "Zen UI - Table of contents"
-msgstr "Zen UI - Table des matières"
+msgid "Zen UI: Table of contents"
+msgstr "Zen UI: Table des matières"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - Étiquettes"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: Étiquettes"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - Basculer la barre d'état inférieure du lecteur"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: Basculer la barre d'état inférieure du lecteur"
 
-msgid "Zen UI - Toggle Incognito Mode"
-msgstr "Zen UI - Activer ou désactiver le mode navigation privée"
+msgid "Zen UI: Toggle Incognito Mode"
+msgstr "Zen UI: Activer ou désactiver le mode navigation privée"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - Basculer le mode verrouillage"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: Basculer le mode verrouillage"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - Basculer les barres d'état du lecteur"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: Basculer les barres d'état du lecteur"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - Basculer la barre d'état supérieure du lecteur"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: Basculer la barre d'état supérieure du lecteur"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Basculer le mode Zen"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: Basculer le mode Zen"
 
 msgid "Zen UI defaults"
 msgstr "Paramètres par défaut de Zen UI"
@@ -2490,8 +2496,8 @@ msgstr "Sépia clair"
 msgid "Light tan"
 msgstr "Beige clair"
 
-msgid "Zen UI - Toggle reader themes"
-msgstr "Zen UI - Basculer les thèmes de lecture"
+msgid "Zen UI: Toggle reader themes"
+msgstr "Zen UI: Basculer les thèmes de lecture"
 
 msgid "Dark mode"
 msgstr "Mode sombre"
@@ -2525,3 +2531,36 @@ msgstr "Supprimer ce thème personnalisé ?"
 
 msgid "Custom theme"
 msgstr "Thème personnalisé"
+
+msgid "%1 (%2/%3 icons)"
+msgstr "%1 (%2/%3 icônes)"
+
+msgid "By %1"
+msgstr "Par %1"
+
+msgid "Could not install %1: %2"
+msgstr "Impossible d’installer %1 : %2"
+
+msgid "Custom icon pack: %1"
+msgstr "Pack d’icônes personnalisé : %1"
+
+msgid "Loose icons"
+msgstr "Icônes individuelles"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Icônes individuelles dans /koreader/icons"
+
+msgid "Missing: %1"
+msgstr "Manquant : %1"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Placez les dossiers de packs ou les fichiers ZIP dans /koreader/icons/zen. Les fichiers ZIP sont installés automatiquement."
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Redémarrez KOReader pour appliquer la mise à jour du pack actif"
+
+msgid "Unavailable pack: %1"
+msgstr "Pack indisponible : %1"
+
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "Lorsque cette option est activée, les icônes individuelles ou le pack d’icônes Zen UI sélectionné remplacent les icônes prises en charge. Les icônes manquantes utilisent d’abord Zen UI, puis KOReader."

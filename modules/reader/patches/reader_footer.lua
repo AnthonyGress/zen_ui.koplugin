@@ -42,6 +42,22 @@ local function apply_reader_footer()
         ReaderFooter._zen_battery_patched = true
     end
 
+    -- KOReader formats hidden-flow pages as "current // total". Use the
+    -- same current/total format as ordinary documents.
+    if not ReaderFooter._zen_page_progress_patched then
+        local orig_page_progress = ReaderFooter.textGeneratorMap.page_progress
+        ReaderFooter.textGeneratorMap.page_progress = function(footer)
+            local document = footer.ui and footer.ui.document
+            if document and document:hasHiddenFlows() then
+                local page = document:getPageNumberInFlow(footer.pageno)
+                local pages = document:getTotalPagesInFlow(document:getPageFlow(footer.pageno))
+                if page and pages then return ("%d / %d"):format(page, pages) end
+            end
+            return orig_page_progress(footer)
+        end
+        ReaderFooter._zen_page_progress_patched = true
+    end
+
     -- Register as a generator (alias of dynamic_filler; only layout differs).
     if not ReaderFooter.textGeneratorMap.dynamic_filler_2 then
         ReaderFooter.textGeneratorMap.dynamic_filler_2 =

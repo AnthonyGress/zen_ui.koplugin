@@ -88,6 +88,7 @@ rsync -a \
   --exclude 'dist/' \
   --exclude 'spec/' \
   --exclude 'docs/' \
+  --exclude 'icon-packs/' \
   --exclude '.DS_Store' \
   --exclude '.gitignore' \
   --exclude '*.zip' \
@@ -97,7 +98,9 @@ rsync -a \
   --exclude '*_includes/' \
   --exclude '_config.yml' \
   --exclude '*.yml/' \
-  --exclude 'images/' \
+  --include '/images/' \
+  --include '/images/ornate-cover-frame.svg' \
+  --exclude '/images/***' \
   --exclude '.venv/' \
   --exclude '*.py' \
   --exclude '*.luarocks' \
@@ -174,8 +177,15 @@ if [[ "$DEV_MODE" == true ]]; then
           -e "tell (first process whose unix id is $reader_pid)" \
           -e 'if not (exists window 1) then error "KOReader window not ready"' \
           -e 'set visible to true' \
+          -e 'repeat 3 times' \
           -e 'set frontmost to true' \
           -e 'perform action "AXRaise" of window 1' \
+          -e 'try' \
+          -e 'set value of attribute "AXMain" of window 1 to true' \
+          -e 'set value of attribute "AXFocused" of window 1 to true' \
+          -e 'end try' \
+          -e 'delay 0.25' \
+          -e 'end repeat' \
           -e 'end tell' \
           -e 'end tell' \
           >/dev/null 2>&1 && return
@@ -202,9 +212,8 @@ if [[ "$DEV_MODE" == true ]]; then
 
   (
     cd "$KOREADER_DIR"
-    nohup "$KOREADER_DIR/kodev" run > /dev/null 2>&1 &
-    printf '%s\n' "$!" > "$REPO_ROOT/.dev-kodev.pid"
-    focus_koreader "$!" &
+    printf '%s\n' "$BASHPID" > "$REPO_ROOT/.dev-kodev.pid"
+    focus_koreader "$BASHPID" &
+    exec "$KOREADER_DIR/kodev" run
   )
-  echo "Restarted KOReader development build"
 fi

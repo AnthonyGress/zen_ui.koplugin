@@ -36,26 +36,29 @@ def _seed_home_settings(ko_home: Path) -> None:
   settings = {
     show_status_bar = false,
     rows = {
-      max_rows = 4,
-      order = { "datetime", "featured_recent", "strip_recent", "quotes" },
+      capacity_units = 10,
+      order = { "featured_recent", "stats_triplet", "strip_recent", "quotes" },
       enabled = {
-        datetime = true, featured_recent = true, strip_recent = true, quotes = true,
+        featured_recent = true, stats_triplet = true, strip_recent = true, quotes = true,
       },
     },
     modules = {
-      datetime = { show_module_title = false },
       featured_recent = {
         interactive = true, show_description = true, show_module_title = false,
         show_status_bar = false,
         progress_meta = { left = "percent", right = "total_pages" },
       },
+      stats_triplet = { show_module_title = false },
       strip_recent = {
         count = 4, interactive = true, order = "default",
         show_module_title = false, show_strip_titles = true, two_rows = false,
       },
       quotes = { show_module_title = false },
     },
-    quotes = { manual_index = 1, show_author = true },
+    quotes = {
+      rotation = "daily", show_author = true, show_title = true,
+      sources = { default = true },
+    },
   },
 }
 """,
@@ -106,6 +109,16 @@ def _seed_bookinfo(ko_home: Path, book: Path) -> None:
         )
 
 
+def _seed_page_count_sidecar(book: Path) -> None:
+    sidecar = book.with_suffix(".sdr")
+    sidecar.mkdir()
+    sidecar.joinpath("metadata.epub.lua").write_text(
+        "return { doc_pages = 120, pagemap_use_page_labels = true, "
+        "pagemap_doc_pages = 85 }\n",
+        encoding="utf-8",
+    )
+
+
 def _wait_for_home(driver: ZenDriver) -> dict[str, object]:
     deadline = time.monotonic() + 30
     latest: dict[str, object] = {}
@@ -125,8 +138,9 @@ def test_home_renders_all_core_widgets_with_and_without_history(with_history: bo
         root = Path(temporary)
         ko_home = root / "home"
         ko_home.mkdir()
-        fixture = build_library(root / "library")
-        book = root / "library" / "Alpha Home.epub"
+        library = root / "library"
+        fixture = build_library(library)
+        book = library / "Alpha Home.epub"
         fixture["epub"].replace(book)
         fixture["epub"] = book
         _seed_home_settings(ko_home)
@@ -134,7 +148,7 @@ def test_home_renders_all_core_widgets_with_and_without_history(with_history: bo
         if with_history:
             _seed_history(ko_home, fixture["epub"])
         socket_path = root / "driver.sock"
-        process = launch(runtime, ko_home, socket_path, root / "library")
+        process = launch(runtime, ko_home, socket_path, library.resolve())
         try:
             wait_for_socket(socket_path)
             driver = ZenDriver(socket_path)
@@ -142,20 +156,26 @@ def test_home_renders_all_core_widgets_with_and_without_history(with_history: bo
             home = _wait_for_home(driver)
             assert home["active_tab_label"] == "Home"
             assert set(home["widget_ids"]) >= {
-                "datetime", "featured_recent", "strip_recent", "quotes",
+                "featured_recent", "stats_triplet", "strip_recent", "quotes",
             }
-            assert home["clock_refreshers"] >= 1
-
+            assert home["page_padding"] > 0
+            visual_gaps = home["visual_gaps"]
+            assert len(visual_gaps) == 3
+            assert max(visual_gaps) - min(visual_gaps) <= 1, visual_gaps
             screenshot = root / "home.png"
             driver.screenshot(screenshot)
             assert screenshot.stat().st_size > 0
-            assert "Alpha Home" in home["visible_texts"]
+            if with_history:
+                assert "Alpha Home" in home["visible_texts"]
+            else:
+                assert "Alpha Home" not in home["visible_texts"]
+                assert "Start reading a book to fill this space." in home["visible_texts"]
         finally:
             process.send_signal(signal.SIGTERM)
             process.wait(timeout=15)
 
 
-def test_home_edit_mode_reopens_widget_settings_after_finish() -> None:
+def test_home_edit_mode_reopens_widget_settings_after_close() -> None:
     runtime = Path(os.environ["KOREADER_DIR"])
     with tempfile.TemporaryDirectory(prefix="zen-ui-home-edit-") as temporary:
         root = Path(temporary)
@@ -182,13 +202,16 @@ def test_home_edit_mode_reopens_widget_settings_after_finish() -> None:
             first = driver.command("open_widget_settings", page="home", id="quotes")
             assert first["opened"] is True, first
             deadline = time.monotonic() + 5
-            finish: dict[str, object] = {}
+            quotes: dict[str, object] = {}
             while time.monotonic() < deadline:
-                finish = driver.command("activate_arrange_finish")
-                if finish.get("ok") is True:
+                response = driver.command("arrange_page_state")
+                if response.get("ok"):
+                    quotes = response["arrange"]
                     break
                 time.sleep(0.1)
-            assert finish.get("ok") is True, finish
+            assert quotes.get("title") == "Quotes widget"
+            assert quotes.get("row_style") == quotes.get("standard_style")
+            assert driver.command("close_arrange_page")["ok"] is True
 
             second = driver.command("open_widget_settings", page="home", id="quotes")
             assert second["opened"] is True, second
@@ -220,12 +243,19 @@ def test_navbar_tabs_navigate_to_real_library_views() -> None:
         _seed_home_settings(ko_home)
         _seed_bookinfo(ko_home, fixture["epub"])
         socket_path = root / "driver.sock"
-        process = launch(runtime, ko_home, socket_path, root / "library")
+        process = launch(
+            runtime, ko_home, socket_path, root / "library",
+            zen_config_source="""return {
+  updater = { update_auto_check = false },
+  navbar = { default_tab = "home" },
+}
+""",
+        )
         try:
             wait_for_socket(socket_path)
             driver = ZenDriver(socket_path)
-            assert driver.command("activate_navbar_tab", id="home")["ok"] is True
-            _wait_for_home(driver)
+            home = _wait_for_home(driver)
+            assert home["active_tab_label"] == "Home"
 
             assert driver.command("activate_navbar_tab", id="books")["ok"] is True
             books = _wait_for_navbar(driver, "Library", None)
@@ -260,6 +290,7 @@ def test_mosaic_title_strip_renders_metadata_and_cover_cells() -> None:
         book = root / "library" / "Alpha Home.epub"
         fixture["epub"].replace(book)
         _seed_bookinfo(ko_home, book)
+        _seed_page_count_sidecar(book)
         with sqlite3.connect(ko_home / "settings" / "bookinfo_cache.sqlite3") as connection:
             connection.execute(
                 "INSERT INTO config (key, value) VALUES (?, ?)",
@@ -272,6 +303,7 @@ def test_mosaic_title_strip_renders_metadata_and_cover_cells() -> None:
   features = { automatic_series_grouping = false },
   navbar = { default_tab = "books" },
   mosaic_title_strip = { show_title = true, show_author = true },
+  browser_page_count = { show_page_count = true },
 }
 """
         process = launch(
@@ -295,6 +327,7 @@ def test_mosaic_title_strip_renders_metadata_and_cover_cells() -> None:
                 if (
                     chooser.get("display_mode_type") == "mosaic"
                     and {"Alpha Home", "Zen Author"} <= visible
+                    and "85\N{NO-BREAK SPACE}p." in chooser.get("page_badges", [])
                     and chooser.get("item_widget_count", 0) > 0
                     and chooser.get("image_widget_count", 0) > 0
                 ):
@@ -303,6 +336,7 @@ def test_mosaic_title_strip_renders_metadata_and_cover_cells() -> None:
 
             assert chooser["display_mode_type"] == "mosaic"
             assert {"Alpha Home", "Zen Author"} <= visible
+            assert "85\N{NO-BREAK SPACE}p." in chooser["page_badges"]
             assert chooser["item_widget_count"] > 0
             assert chooser["image_widget_count"] > 0
             driver.screenshot(screenshot)

@@ -10,6 +10,7 @@ local defaults = {
         bim_fbc_migrated = false,
         reader_footer_hide_cbz_default_migrated = false,
         context_menu_allow_delete_default_migrated = false,
+        tbr_collection_migrated = false,
     },
     updater = {
         just_updated_version = "",
@@ -20,6 +21,9 @@ local defaults = {
     },
     rakuyomi = {
         return_to_chapter_list_on_exit = false,
+    },
+    custom_icons = {
+        active_pack = "",
     },
     localization = {
         default_locale = "en",
@@ -44,7 +48,6 @@ local defaults = {
         zen_mode = true,
         status_bar = true,
         disable_top_menu_swipe_zones = true,
-        browser_folder_cover = true,
         browser_hide_underline = true,
         browser_hide_up_folder = true,
         favorites = true,
@@ -69,6 +72,9 @@ local defaults = {
         lockdown_mode        = false,
         incognito_mode       = false,
         zen_opds             = true,
+    },
+    search = {
+        substring = false,
     },
     navbar = {
         show_tabs = {
@@ -130,8 +136,10 @@ local defaults = {
             notion = false,
             streak = false,
             opds = false,
+            tailscale = false,
             filebrowser = false,
         },
+        show_labels = true,
         show_frontlight = true,
         show_warmth = true,
         flip_lh_rh_icon = false,
@@ -185,7 +193,6 @@ local defaults = {
         name_opaque = false,      -- false = transparent bg
         show_spine_lines = false,
         show_item_count = true,
-        crop_to_fit = true,
     },
     browser_series_badge = {
         show_series_badge = false,
@@ -288,9 +295,6 @@ local defaults = {
             tags = {},
             to_be_read = {},
         },
-    },
-    reader_page_browser = {
-        layout = "grid",
     },
     lockdown = {
         disable_context_menu      = false,

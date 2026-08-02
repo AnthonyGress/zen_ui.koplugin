@@ -118,11 +118,7 @@ if register then
         -- Return a KOReader widget sized to ctx.width and ctx.height.
     end, {
         label = "My summary",
-        size = {
-            preferred_pct = 0.20,
-            min_pct = 0.12,
-            max_pct = 0.30,
-        },
+        size = "s",
     })
 end
 ```
@@ -132,6 +128,11 @@ The builder receives `width`, `height`, `is_first_row`, and an item-specific
 positioned under **Home > Widgets**. Plugins loaded before Zen UI should register
 when they receive `ZenUIReady`; unregister with
 `_G.__ZEN_UI_UNREGISTER_HOME_ITEM(id)`.
+
+Home uses a 10-unit height grid: `xs=1`, `s=2`, `m=3`, `l=4`, and
+`xl=10` (full screen). Enabled widgets must total at most 10 units. Legacy
+`preferred_pct` size tables are still accepted and rounded to the nearest
+grid unit.
 
 Registration returns `false` for invalid arguments or a built-in ID collision.
 Registering an existing external ID replaces its builder and options.

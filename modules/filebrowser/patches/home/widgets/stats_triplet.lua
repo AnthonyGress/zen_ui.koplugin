@@ -53,7 +53,7 @@ local function metric_content(width, height, value_widget, label_widget)
     local content_h = value_h - overlap + gap + label_h
     local top = math.floor(math.max(0, height - content_h) / 2)
 
-    return WidgetResources.managedPaintWidget{
+    local content = WidgetResources.managedPaintWidget{
         dimen = Geom:new{ w = width, h = height },
         resources = { value_widget, label_widget },
         paintTo = function(_self, bb, x, y)
@@ -69,12 +69,13 @@ local function metric_content(width, height, value_widget, label_widget)
             label_widget = nil
         end,
     }
+    return content, top, content_h
 end
 
 return {
     id = "stats_triplet",
     label = "Reading stats widget",
-    size = { preferred_pct = 0.14, min_pct = 0.10, max_pct = 0.24, grow_priority = 4 },
+    size = "xs",
     build = function(ctx)
         local width = ctx.width
         local height = ctx.height
@@ -107,6 +108,9 @@ return {
         local value_face = Font:getFace("smallinfofont", Screen:scaleBySize(font_size))
         local label_face = Font:getFace("smallinfofont", Screen:scaleBySize(math.max(6, math.floor(font_size * 0.6))))
         local row = HorizontalGroup:new{ align = "center" }
+        local visual_top = height
+        local visual_bottom = 0
+        local divider_visual_top
 
         for _i, field in ipairs(fields) do
             local value_widget = TextWidget:new{
@@ -132,8 +136,10 @@ return {
             end
             local inner_w = cell_w - 12
             local inner_h = math.max(1, card_h - 12)
-            local content = metric_content(inner_w, inner_h, value_widget,
+            local content, metric_top, metric_h = metric_content(inner_w, inner_h, value_widget,
                 TextWidget:new{ text = field.label, face = label_face, fgcolor = Blitbuffer.COLOR_BLACK })
+            visual_top = math.min(visual_top, 6 + metric_top)
+            visual_bottom = math.max(visual_bottom, 6 + metric_top + metric_h)
             local card = FrameContainer:new{
                 width = cell_w,
                 height = card_h,
@@ -152,17 +158,57 @@ return {
                 if stat_style == "outline" then
                     table.insert(row, HorizontalSpan:new{ width = gap_w })
                 elseif stat_style == "divider" then
-                    table.insert(row, CenterContainer:new{
+                    local divider_trim = math.min(
+                        math.max(0, metric_h - 1),
+                        math.max(1, Screen:scaleBySize(4))
+                    )
+                    local divider_h = math.min(card_h, math.max(1, metric_h - divider_trim))
+                    local divider_bottom = 6 + metric_top + metric_h
+                    local divider_top = divider_bottom - divider_h
+                    local divider_shift = divider_top - math.floor((card_h - divider_h) / 2)
+                    divider_visual_top = math.min(divider_visual_top or divider_top, divider_top)
+                    visual_bottom = math.max(visual_bottom, divider_top + divider_h)
+                    local divider_container = CenterContainer:new{
                         dimen = Geom:new{ w = gap_w, h = card_h },
                         LineWidget:new{
-                            dimen = Geom:new{ w = 2, h = math.max(1, card_h - 18) },
+                            dimen = Geom:new{ w = 2, h = divider_h },
                             background = Blitbuffer.COLOR_DARK_GRAY,
                         },
-                    })
+                    }
+                    local original_divider_paint = divider_container.paintTo
+                    divider_container.paintTo = function(self, bb, x, y)
+                        return original_divider_paint(self, bb, x, y + divider_shift)
+                    end
+                    table.insert(row, divider_container)
                 else
                     table.insert(row, HorizontalSpan:new{ width = gap_w })
                 end
             end
+        end
+
+        if stat_style == "outline" then
+            visual_top = 0
+            visual_bottom = height
+        elseif stat_style == "divider" and divider_visual_top then
+            visual_top = divider_visual_top
+        end
+        local visual_shift = 0
+        local row_container = CenterContainer:new{
+            dimen = Geom:new{ w = width, h = height },
+            row,
+        }
+        local original_row_paint = row_container.paintTo
+        row_container.paintTo = function(self, bb, x, y)
+            return original_row_paint(self, bb, x, y + visual_shift)
+        end
+        if type(ctx.setContentBounds) == "function" then
+            ctx.setContentBounds{
+                top = visual_top,
+                bottom = visual_bottom,
+                min_shift = -visual_top,
+                max_shift = height - visual_bottom,
+                set_shift = function(shift) visual_shift = shift end,
+            }
         end
 
         return FrameContainer:new{
@@ -171,7 +217,7 @@ return {
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
-            CenterContainer:new{ dimen = Geom:new{ w = width, h = height }, row },
+            row_container,
         }
     end,
 }

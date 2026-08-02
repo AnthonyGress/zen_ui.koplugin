@@ -650,10 +650,7 @@ local function is_check_due()
     local now = os.time()
     local last = updater and updater[UP_KEY_TIME] or 0
     local last_num = type(last) == "number" and last or 0
-    local delta = now - last_num
-    local due = delta >= CHECK_INTERVAL
-    logger.info("is_check_due last=", last_num, "now=", now, "delta=", delta, "due=", tostring(due))
-    return due
+    return now - last_num >= CHECK_INTERVAL
 end
 
 local function get_channel()
@@ -678,15 +675,28 @@ local function persist_state(now)
     save_updater_config(cfg)
 end
 
---- Clear all persisted update state (called after a successful install).
-local function clear_update_state()
+--- Clear all persisted update state after an install or version-change acknowledgement.
+local function clear_update_state(cfg)
     reset_release_state()
     M._last_error = nil
-    local cfg, updater = load_updater_config()
+    local updater
+    if type(cfg) == "table" then
+        if type(cfg.updater) ~= "table" then
+            cfg.updater = {}
+        end
+        updater = cfg.updater
+    else
+        cfg, updater = load_updater_config()
+    end
     if not updater then return end
     updater[UP_KEY_AVAIL] = false
     clear_persisted_release_state(updater)
     save_updater_config(cfg)
+end
+
+--- Acknowledge a version change detected outside Zen UI's updater.
+function M.clear_update_state(cfg)
+    clear_update_state(cfg)
 end
 
 --- Perform an actual network check; returns true on success.
@@ -823,12 +833,24 @@ local function is_sdl_wayland_desktop()
     return call_device_bool("isSDL") or call_device_bool("isDesktop")
 end
 
-local function dismissable_or_in_process(Trapper, task, trap_widget, task_returns_simple_string)
+local function dismissable_or_in_process(Trapper, task, trap_widget, task_returns_simple_string, quiet)
     if is_sdl_wayland_desktop() then
-        logger.warn("running update task in-process on SDL/Wayland to avoid EGL fork crash")
+        if not quiet then
+            logger.warn("running update task in-process on SDL/Wayland to avoid EGL fork crash")
+        end
         return true, task()
     end
     return Trapper:dismissableRunInSubprocess(task, trap_widget, task_returns_simple_string)
+end
+
+local function run_without_updater_logs(fn)
+    local dbg, info, warn, err = logger.dbg, logger.info, logger.warn, logger.err
+    local function discard() end
+    logger.dbg, logger.info, logger.warn, logger.err = discard, discard, discard, discard
+    local ok, a, b, c, d, e, f, g = pcall(fn)
+    logger.dbg, logger.info, logger.warn, logger.err = dbg, info, warn, err
+    if not ok then error(a, 0) end
+    return a, b, c, d, e, f, g
 end
 
 --- Run do_network_check() in a non-blocking subprocess via Trapper.
@@ -838,16 +860,20 @@ end
 ---                  a cancel button via coroutine.resume(co, false).
 --- on_done(net_ok) -- called when the subprocess completes.
 --- on_cancelled()  -- called when dismissed before completion; may be nil.
-local function network_check_async(trap_widget, setup_fn, on_done, on_cancelled)
+local function network_check_async(trap_widget, setup_fn, on_done, on_cancelled, quiet)
     local Trapper = require("ui/trapper")
     Trapper:wrap(function()
         local co = coroutine.running()
         if setup_fn then setup_fn(co) end
         local completed, net_ok, has_upd, latest_ver, dl_url, latest_sha256, latest_notes, last_error =
             dismissable_or_in_process(Trapper, function()
-                local ok = do_network_check()
-                return ok, M._has_update, M._latest_ver, M._dl_url, M._latest_sha256, M._latest_notes, M._last_error
-            end, trap_widget)
+                local function check()
+                    local ok = do_network_check()
+                    return ok, M._has_update, M._latest_ver, M._dl_url, M._latest_sha256, M._latest_notes, M._last_error
+                end
+                if quiet then return run_without_updater_logs(check) end
+                return check()
+            end, trap_widget, nil, quiet)
         if completed and net_ok then
             M._has_update = has_upd
             M._latest_ver = latest_ver
@@ -890,7 +916,6 @@ function M.cancel_wakeup_check()
         UIManager:unschedule(M._wakeup_timer)
     end
     M._wakeup_timer = nil
-    logger.dbg("wakeup check cancelled")
 end
 
 --- Schedule a background update check on device resume.
@@ -901,21 +926,20 @@ end
 --- (NET_ERROR_BASE_DELAY doubling each attempt, up to NET_ERROR_MAX_RETRIES).
 --- Cancelled on suspend so nothing fires while asleep.
 function M.schedule_wakeup_check()
-    logger.info("schedule_wakeup_check called")
     M.cancel_wakeup_check()  -- reset on every resume
     if not is_auto_check_enabled() then
-        logger.info("background check disabled in settings")
+        logger.info("automatic update check status=disabled")
         return
     end
     M._check_cancelled = false
     if not is_check_due() then
-        logger.info("background check skipped, within 24h window")
+        logger.info("automatic update check status=skipped reason=interval")
         return
     end
 
     local ok_um, UIManager = pcall(require, "ui/uimanager")
     if not ok_um or not UIManager then
-        logger.warn("UIManager not available, aborting")
+        logger.warn("automatic update check status=failed reason=uimanager_unavailable")
         return
     end
 
@@ -928,7 +952,6 @@ function M.schedule_wakeup_check()
     -- Uses a subprocess so the UI thread is never blocked.
     local function run_check_with_retry(retry_count, error_delay)
         if M._check_cancelled then return end
-        logger.info("starting background network check")
         network_check_async(
             nil,  -- invisible trap: taps pass through normally
             nil,
@@ -937,12 +960,11 @@ function M.schedule_wakeup_check()
                 if net_ok then
                     persist_state(os.time())
                     M._banner_loaded = true
-                    logger.info("background check done, has_update=", tostring(M._has_update))
+                    logger.info("automatic update check status=ok has_update=", tostring(M._has_update), "latest=", tostring(M._latest_ver))
                     if M._has_update and type(M._on_update_found) == "function" then
                         M._on_update_found()
                     end
                 elseif retry_count < NET_ERROR_MAX_RETRIES then
-                    logger.warn("check failed, retry", retry_count + 1, "of", NET_ERROR_MAX_RETRIES, "in", error_delay, "s")
                     local next_count = retry_count + 1
                     local next_delay = error_delay * 2
                     local function error_retry()
@@ -952,9 +974,11 @@ function M.schedule_wakeup_check()
                     M._wakeup_timer = error_retry
                     UIManager:scheduleIn(error_delay, error_retry)
                 else
-                    logger.warn("background check failed after", NET_ERROR_MAX_RETRIES, "retries, giving up")
+                    logger.warn("automatic update check status=failed attempts=", NET_ERROR_MAX_RETRIES + 1, "error=", tostring(M._last_error))
                 end
-            end
+            end,
+            nil,
+            true
         )
     end
 
@@ -963,17 +987,14 @@ function M.schedule_wakeup_check()
         M._wakeup_timer = nil
         if M._check_cancelled then return end
         local net_up = has_network()
-        logger.info("attempt fired, network=", tostring(net_up))
         if not net_up then
             -- No network after settle delay -- retry once after NET_RETRY_DELAY.
-            logger.info("no network, scheduling retry in ", NET_RETRY_DELAY, "s")
             local function retry_check()
                 M._wakeup_timer = nil
                 if M._check_cancelled then return end
                 local retry_net = has_network()
-                logger.info("retry fired, network=", tostring(retry_net))
                 if not retry_net then
-                    logger.info("retry: still no network, giving up")
+                    logger.info("automatic update check status=skipped reason=network_unavailable")
                     return
                 end
                 run_check_with_retry(0, NET_ERROR_BASE_DELAY)
@@ -987,7 +1008,6 @@ function M.schedule_wakeup_check()
 
     M._wakeup_timer = attempt
     UIManager:scheduleIn(NET_SETTLE_DELAY, attempt)
-    logger.info("wakeup check scheduled in ", NET_SETTLE_DELAY, "s")
 end
 
 --- Check for updates with a live network request.
@@ -1485,15 +1505,7 @@ local function _do_install(screen, plugin_root, plugins_dir)
             save_updater_config(cfg2)
         end
 
-        screen:update{ subtitle = _("Rebooting") .. "...", button = false }
-        UIManager:forceRePaint()
-        UIManager:scheduleIn(1, function()
-            if type(UIManager.restartKOReader) == "function" then
-                UIManager:restartKOReader()
-            else
-                UIManager:broadcastEvent(require("ui/event"):new("Restart"))
-            end
-        end)
+        require("common/restart").request()
     end)
 end
 

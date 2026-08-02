@@ -168,8 +168,11 @@ msgstr "歷史總計"
 msgid "All time"
 msgstr "所有時間"
 
-msgid "Allow custom icons"
-msgstr "允許自訂圖示"
+msgid "Custom icons"
+msgstr "自訂圖示"
+
+msgid "Enable custom icons"
+msgstr "啟用自訂圖示"
 
 msgid "Allow delete"
 msgstr "允許刪除"
@@ -795,8 +798,8 @@ msgstr "啟用 KOReader 詳細除錯記錄。記錄寫入 koreader.log，立即�
 msgid "Enable night mode schedule"
 msgstr "啟用夜間模式排程"
 
-msgid "Enable page browser"
-msgstr "啟用頁面瀏覽器"
+msgid "Zen page browser"
+msgstr "Zen 頁面瀏覽器"
 
 msgid "Enable top status bar"
 msgstr "啟用頂端狀態列"
@@ -972,8 +975,8 @@ msgstr "隱藏列表邊框"
 msgid "Hide reader actions in library"
 msgstr "在書庫中隱藏閱讀器操作"
 
-msgid "Hide TBR books"
-msgstr "隱藏待讀書籍"
+msgid "Hide on-hold books"
+msgstr "隱藏暫停閱讀的書籍"
 
 msgid "Hide unread books"
 msgstr "隱藏未讀書籍"
@@ -1701,6 +1704,9 @@ msgstr "重新開始閱讀"
 msgid "Restart now"
 msgstr "立即重新啟動"
 
+msgid "Restarting"
+msgstr "正在重新啟動"
+
 msgid "Restore library location on exit"
 msgstr "離開時還原書庫位置"
 
@@ -1893,8 +1899,8 @@ msgstr "顯示項目數"
 msgid "Show item underline"
 msgstr "顯示項目底線"
 
-msgid "Show KOReader progress bar"
-msgstr "顯示 KOReader 進度條"
+msgid "Show progress bar"
+msgstr "顯示進度條"
 
 msgid "Show labels"
 msgstr "顯示標籤"
@@ -1911,8 +1917,8 @@ msgstr "在 禪 按鈕旁顯示其他 KOReader 快速查詢選項。"
 msgid "Show page count"
 msgstr "顯示頁數"
 
-msgid "Show progress % on mosaic covers"
-msgstr "在封面拼貼上顯示進度%"
+msgid "Show reading progress"
+msgstr "顯示閱讀進度"
 
 msgid "Show separator"
 msgstr "顯示分隔符"
@@ -2415,47 +2421,47 @@ msgstr "禪 快速查詢"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - 作者"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: 作者"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - 首頁"
+msgid "Zen UI: Home"
+msgstr "Zen UI: 主頁"
 
-msgid "Zen UI - Library"
-msgstr "Zen UI - 書庫"
+msgid "Zen UI: Library"
+msgstr "Zen UI: 書庫"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - 開啟資料夾"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: 開啟資料夾"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - 系列"
+msgid "Zen UI: Series"
+msgstr "Zen UI: 系列"
 
-msgid "Zen UI - Sync progress (pull + push)"
-msgstr "Zen UI - 同步進度（拉取 + 推送）"
+msgid "Zen UI: Sync progress (pull + push)"
+msgstr "Zen UI: 同步進度（拉取 + 推送）"
 
-msgid "Zen UI - Table of contents"
-msgstr "Zen UI - 目錄"
+msgid "Zen UI: Table of contents"
+msgstr "Zen UI: 目錄"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - 標籤"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: 標籤"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - 切換底部閱讀器狀態列"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: 切換底部閱讀器狀態列"
 
-msgid "Zen UI - Toggle Incognito Mode"
-msgstr "Zen UI - 切換無痕模式"
+msgid "Zen UI: Toggle Incognito Mode"
+msgstr "Zen UI: 切換無痕模式"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - 切換鎖定模式"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: 切換鎖定模式"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - 切換閱讀器狀態列"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: 切換閱讀器狀態列"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - 切換頂端閱讀器狀態列"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: 切換頂部閱讀器狀態列"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - 切換禪模式"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: 切換禪模式"
 
 msgid "Zen UI defaults"
 msgstr "Zen UI 預設設定"
@@ -2490,8 +2496,8 @@ msgstr "淺褐色"
 msgid "Light tan"
 msgstr "淺棕色"
 
-msgid "Zen UI - Toggle reader themes"
-msgstr "Zen UI - 切換閱讀主題"
+msgid "Zen UI: Toggle reader themes"
+msgstr "Zen UI: 切換閱讀主題"
 
 msgid "Dark mode"
 msgstr "深色模式"
@@ -2525,3 +2531,36 @@ msgstr "刪除此自訂主題？"
 
 msgid "Custom theme"
 msgstr "自訂主題"
+
+msgid "%1 (%2/%3 icons)"
+msgstr "%1（%2/%3 個圖示）"
+
+msgid "By %1"
+msgstr "作者：%1"
+
+msgid "Could not install %1: %2"
+msgstr "無法安裝 %1：%2"
+
+msgid "Custom icon pack: %1"
+msgstr "自訂圖示包：%1"
+
+msgid "Loose icons"
+msgstr "獨立圖示"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "/koreader/icons 中的獨立圖示"
+
+msgid "Missing: %1"
+msgstr "缺少：%1"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "將圖示包資料夾或 ZIP 檔案放入 /koreader/icons/zen。ZIP 檔案會自動安裝。"
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "重新啟動 KOReader 以套用已更新的目前圖示包"
+
+msgid "Unavailable pack: %1"
+msgstr "無法使用的圖示包：%1"
+
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "啟用後，獨立圖示或選取的 Zen UI 圖示包會取代支援的圖示。缺少的圖示將依序回退到 Zen UI 和 KOReader。"

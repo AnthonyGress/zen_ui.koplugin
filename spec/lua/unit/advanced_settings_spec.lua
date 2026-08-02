@@ -39,4 +39,21 @@ describe("Advanced settings", function()
         assert.are.equal(30, G_reader_settings:readSetting("copt_b_page_margin"))
         assert.are.equal("Zen UI Reader margins enabled", shown_message.text)
     end)
+
+    it("keeps settings open when clearing gestures", function()
+        local items = require("modules/settings/sections/advanced_settings").build({
+            config = { features = {}, developer = {} },
+            plugin = { saveConfig = function() end },
+            settings_apply = { prompt_restart = function() end },
+        })
+        local clear_gestures
+        for _i, item in ipairs(items) do
+            if item.text == "Clear all gestures" then
+                clear_gestures = item
+                break
+            end
+        end
+
+        assert.is_true(clear_gestures.keep_menu_open)
+    end)
 end)

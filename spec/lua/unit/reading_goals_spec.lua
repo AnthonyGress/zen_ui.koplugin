@@ -123,6 +123,7 @@ describe("reading goals widget", function()
 
     it("stacks every selected goal period", function()
         local widget = require("modules/filebrowser/patches/home/widgets/reading_goals")
+        assert.are.equal("xs", widget.size)
         local opened_settings = 0
         local goal_widget = widget.build({
             width = 600,

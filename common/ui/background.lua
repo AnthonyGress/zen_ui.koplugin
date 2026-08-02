@@ -178,7 +178,7 @@ function M.clearWhiteBackgrounds(widget, max_depth)
 
     local function walk(w, depth)
         if type(w) ~= "table" or depth > max_depth then return end
-        if is_white(w.background) then
+        if is_white(w.background) and not w._zen_keep_background then
             w.background = nil
         end
         for i = 1, #w do

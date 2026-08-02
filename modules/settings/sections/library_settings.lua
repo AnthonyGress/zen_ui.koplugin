@@ -137,14 +137,13 @@ function M.build(ctx)
         end
         return config.browser_folder_cover
     end
-    local function save_fbc()
-        plugin:saveConfig()
-        UIManager:setDirty(nil, "full")
+    local function rebuild_filechooser()
+        local ui = require("apps/filemanager/filemanager").instance
+        if ui and ui.file_chooser then ui.file_chooser:updateItems() end
     end
     local function save_fbc_and_update()
         plugin:saveConfig()
-        local ui = require("apps/filemanager/filemanager").instance
-        if ui and ui.file_chooser then ui.file_chooser:updateItems() end
+        rebuild_filechooser()
     end
     local function get_home_lock_mode()
         local cfg = config.browser_hide_up_folder
@@ -282,6 +281,10 @@ function M.build(ctx)
                     config.features.automatic_series_grouping =
                         config.features.automatic_series_grouping == false
                     plugin:saveConfig()
+                    local home = SharedState.get(plugin, "home")
+                    if home and type(home.invalidateLibraryCache) == "function" then
+                        home.invalidateLibraryCache()
+                    end
                     local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
                     local fc = ok_fm and FileManager and FileManager.instance
                         and FileManager.instance.file_chooser
@@ -340,7 +343,7 @@ function M.build(ctx)
                         checked_func = function() return fbc().show_spine_lines ~= false end,
                         callback = function()
                             fbc().show_spine_lines = fbc().show_spine_lines == false
-                            save_fbc()
+                            save_fbc_and_update()
                         end,
                     },
                     {
@@ -348,7 +351,7 @@ function M.build(ctx)
                         checked_func = function() return fbc().show_item_count ~= false end,
                         callback = function()
                             fbc().show_item_count = fbc().show_item_count == false
-                            save_fbc()
+                            save_fbc_and_update()
                         end,
                     },
                 },
@@ -362,7 +365,7 @@ function M.build(ctx)
                         checked_func = function() return fbc().name_opaque == true end,
                         callback = function()
                             fbc().name_opaque = fbc().name_opaque ~= true
-                            save_fbc()
+                            save_fbc_and_update()
                         end,
                     },
                     {
@@ -374,7 +377,7 @@ function M.build(ctx)
                                 checked_func = function() return fbc().name_centered == true end,
                                 callback = function()
                                     fbc().name_centered = true
-                                    save_fbc()
+                                    save_fbc_and_update()
                                 end,
                             },
                             {
@@ -383,7 +386,7 @@ function M.build(ctx)
                                 checked_func = function() return fbc().name_centered ~= true end,
                                 callback = function()
                                     fbc().name_centered = false
-                                    save_fbc()
+                                    save_fbc_and_update()
                                 end,
                             },
                         },
@@ -393,7 +396,7 @@ function M.build(ctx)
                         checked_func = function() return fbc().show_folder_name ~= false end,
                         callback = function()
                             fbc().show_folder_name = fbc().show_folder_name == false
-                            save_fbc()
+                            save_fbc_and_update()
                         end,
                     },
                 },
@@ -488,7 +491,7 @@ function M.build(ctx)
                             config.browser_page_count.show_page_count =
                                 config.browser_page_count.show_page_count ~= true
                             plugin:saveConfig()
-                            UIManager:setDirty(nil, "full")
+                            rebuild_filechooser()
                         end,
                     },
                     {
@@ -504,7 +507,7 @@ function M.build(ctx)
                             config.browser_series_badge.show_series_badge =
                                 config.browser_series_badge.show_series_badge ~= true
                             plugin:saveConfig()
-                            UIManager:setDirty(nil, "full")
+                            rebuild_filechooser()
                         end,
                     },
                     {
@@ -520,7 +523,7 @@ function M.build(ctx)
                             config.browser_cover_badges.show_favorite_badge =
                                 config.browser_cover_badges.show_favorite_badge ~= true
                             plugin:saveConfig()
-                            UIManager:setDirty(nil, "full")
+                            rebuild_filechooser()
                         end,
                     },
                     {
@@ -540,7 +543,23 @@ function M.build(ctx)
                         end,
                     },
                     {
-                        text = _("Show progress % on mosaic covers"),
+                        text = _("Show progress bar"),
+                        checked_func = function()
+                            return type(config.browser_cover_badges) == "table"
+                                and config.browser_cover_badges.show_native_progress_bar == true
+                        end,
+                        callback = function()
+                            if type(config.browser_cover_badges) ~= "table" then
+                                config.browser_cover_badges = {}
+                            end
+                            config.browser_cover_badges.show_native_progress_bar =
+                                config.browser_cover_badges.show_native_progress_bar ~= true
+                            plugin:saveConfig()
+                            UIManager:setDirty(nil, "full")
+                        end,
+                    },
+                    {
+                        text = _("Show reading progress"),
                         checked_func = function()
                             return type(config.browser_cover_badges) == "table"
                                 and config.browser_cover_badges.show_mosaic_progress == true
@@ -629,7 +648,7 @@ function M.build(ctx)
                     config.features.browser_cover_rounded_corners =
                         config.features.browser_cover_rounded_corners ~= true
                     plugin:saveConfig()
-                    UIManager:setDirty(nil, "full")
+                    rebuild_filechooser()
                 end,
             },
             {
@@ -645,7 +664,7 @@ function M.build(ctx)
                     config.mosaic_title_strip.show_title =
                         config.mosaic_title_strip.show_title ~= true
                     plugin:saveConfig()
-                    settings_apply.prompt_restart()
+                    rebuild_filechooser()
                 end,
             },
             {
@@ -661,7 +680,7 @@ function M.build(ctx)
                     config.mosaic_title_strip.show_author =
                         config.mosaic_title_strip.show_author ~= true
                     plugin:saveConfig()
-                    settings_apply.prompt_restart()
+                    rebuild_filechooser()
                 end,
             },
         },
@@ -1297,6 +1316,7 @@ function M.build(ctx)
                         end
                     end, current_path, default_path)
                 end,
+                keep_menu_open = true,
             },
             {
                 text = _("Lock home folder"),
@@ -1343,6 +1363,7 @@ function M.build(ctx)
             plugin:saveConfig()
         end,
     })
+    IconItem.decorate(items[#items], icons.delete)
 
     IconItem.decorate(items[1], icons.settings_status)
     IconItem.decorate(items[2], icons.settings_layout)

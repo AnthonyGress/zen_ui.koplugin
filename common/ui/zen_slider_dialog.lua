@@ -29,6 +29,7 @@ local TitleBar        = require("ui/widget/titlebar")
 local UIManager       = require("ui/uimanager")
 local VerticalGroup   = require("ui/widget/verticalgroup")
 local VerticalSpan    = require("ui/widget/verticalspan")
+local ModalBorder     = require("common/ui/modal_border")
 local ZenSlider       = require("common/ui/zen_slider")
 local _               = require("gettext")
 local Screen          = Device.screen
@@ -183,6 +184,7 @@ function ZenSliderDialog:init()
         background = Blitbuffer.COLOR_WHITE,
         vgroup,
     }
+    ModalBorder.apply(self._frame)
 
     self[1] = CenterContainer:new{
         dimen = Geom:new{ w = sw, h = sh },

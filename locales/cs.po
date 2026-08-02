@@ -168,7 +168,10 @@ msgstr "Za celou dobu"
 msgid "All time"
 msgstr "Celou dobu"
 
-msgid "Allow custom icons"
+msgid "Custom icons"
+msgstr "Vlastní ikony"
+
+msgid "Enable custom icons"
 msgstr "Povolit vlastní ikony"
 
 msgid "Allow delete"
@@ -792,8 +795,8 @@ msgstr "Zapnout protokolování KOReaderu pro ladění. Protokol se zapisuje do 
 msgid "Enable night mode schedule"
 msgstr "Zapnout noční časový plán"
 
-msgid "Enable page browser"
-msgstr "Povolit prohlížeč stránek"
+msgid "Zen page browser"
+msgstr "Prohlížeč stránek Zen"
 
 msgid "Enable top status bar"
 msgstr "Zapnout horní stavový řádek"
@@ -969,8 +972,8 @@ msgstr "Skrýt okraje seznamu"
 msgid "Hide reader actions in library"
 msgstr "Skrýt akce čtečky v knihovně"
 
-msgid "Hide TBR books"
-msgstr "Skrýt knihy k přečtení"
+msgid "Hide on-hold books"
+msgstr "Skrýt odložené knihy"
 
 msgid "Hide unread books"
 msgstr "Skrýt nepřečtené knihy"
@@ -2406,47 +2409,47 @@ msgstr "Rychle vyhedání Zen"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - Autoři"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: Autoři"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - Domov"
+msgid "Zen UI: Home"
+msgstr "Zen UI: Domov"
 
-msgid "Zen UI - Library"
+msgid "Zen UI: Library"
 msgstr "Zen UI – Knihovna"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - Otevřít složku"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: Otevřít složku"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - Série"
+msgid "Zen UI: Series"
+msgstr "Zen UI: Série"
 
-msgid "Zen UI - Sync progress (pull + push)"
+msgid "Zen UI: Sync progress (pull + push)"
 msgstr "Zen UI – Průběh synchronizace (stažení + odeslání)"
 
-msgid "Zen UI - Table of contents"
+msgid "Zen UI: Table of contents"
 msgstr "Zen UI – Obsah"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - Jmenovky"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: Jmenovky"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - Přepnout spodní stavový řádek čtečky"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: Přepnout spodní stavový řádek čtečky"
 
-msgid "Zen UI - Toggle Incognito Mode"
+msgid "Zen UI: Toggle Incognito Mode"
 msgstr "Zen UI – Přepnout anonymní režim"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - Přepnout režim uzamčení"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: Přepnout režim uzamčení"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - Přepnout stavové řádky čtečky"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: Přepnout stavové řádky čtečky"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - Přepnout horní stavový řádek čtečky"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: Přepnout horní stavový řádek čtečky"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Přepnout režim Zen"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: Přepnout režim Zen"
 
 msgid "Zen UI defaults"
 msgstr "Výchozí hodnoty Zen UI"

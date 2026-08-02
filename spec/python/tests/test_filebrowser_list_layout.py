@@ -60,7 +60,9 @@ def _write_page_count_cbz(path: Path, temporary: Path) -> None:
         archive.write(image_path, "002.png")
 
 
-def _seed_bookinfo(ko_home: Path, book: Path) -> None:
+def _seed_bookinfo(
+    ko_home: Path, book: Path, page_count_book: Path | None = None
+) -> None:
     database = ko_home / "settings" / "bookinfo_cache.sqlite3"
     database.parent.mkdir(parents=True, exist_ok=True)
     canonical = book.resolve()
@@ -100,6 +102,21 @@ def _seed_bookinfo(ko_home: Path, book: Path) -> None:
                 "Focus, Testing",
             ),
         )
+        if page_count_book:
+            page_count_canonical = page_count_book.resolve()
+            page_count_stat = page_count_canonical.stat()
+            connection.execute(
+                """INSERT INTO bookinfo (
+                    directory, filename, filesize, filemtime, in_progress,
+                    cover_fetched, has_meta, pages
+                ) VALUES (?, ?, ?, ?, 0, 'Y', 'Y', 2)""",
+                (
+                    str(page_count_canonical.parent) + "/",
+                    page_count_canonical.name,
+                    page_count_stat.st_size,
+                    int(page_count_stat.st_mtime),
+                ),
+            )
         connection.execute(
             "INSERT INTO config (key, value) VALUES (?, ?)",
             ("filemanager_display_mode", "list_image_meta"),
@@ -130,8 +147,9 @@ def test_metadata_list_rows_render_all_semantic_values() -> None:
         library.mkdir()
         semantic_book = library / "semantic.epub"
         _write_metadata_epub(semantic_book)
-        _write_page_count_cbz(library / "pages.cbz", root)
-        _seed_bookinfo(ko_home, semantic_book)
+        page_count_book = library / "pages.cbz"
+        _write_page_count_cbz(page_count_book, root)
+        _seed_bookinfo(ko_home, semantic_book, page_count_book)
         socket_path = root / "driver.sock"
         process = launch(runtime, ko_home, socket_path, library)
         try:

@@ -5,7 +5,6 @@ local initialized = false
 local FEATURES = {
     "navbar",
     "status_bar",
-    "browser_folder_cover",
     "browser_hide_underline",
     "browser_hide_up_folder",
     "favorites",
@@ -19,9 +18,12 @@ local PATCH_MODULES = {
     add_sort_title_natural = "modules/filebrowser/patches/add_sort_title_natural",
     coverbrowser_check = "modules/filebrowser/patches/coverbrowser_check",
     coverbrowser_subprocess_compat = "modules/filebrowser/patches/coverbrowser_subprocess_compat",
+    cover_decode_cache = "modules/filebrowser/patches/cover_decode_cache",
+    cover_preload = "modules/filebrowser/patches/cover_preload",
     context_menu = "modules/filebrowser/patches/context_menu",
     browser_flat_view_compat = "modules/filebrowser/patches/browser_flat_view_compat",
     browser_folder_sort = "modules/filebrowser/patches/browser_folder_sort",
+    browser_item_table_cache = "modules/filebrowser/patches/browser_item_table_cache",
     disable_modal_drag = "modules/filebrowser/patches/disable_modal_drag",
     menu_single_page_scroll_guard = "modules/filebrowser/patches/menu_single_page_scroll_guard",
     partial_page_repaint = "modules/filebrowser/patches/partial_page_repaint",
@@ -29,21 +31,15 @@ local PATCH_MODULES = {
     navbar = "modules/filebrowser/patches/navbar",
     status_bar = "modules/filebrowser/patches/status_bar",
     zen_scroll_bar = "common/ui/zen_scroll_bar",
-    browser_folder_cover = "modules/filebrowser/patches/browser_folder_cover",
     browser_list_item_layout = "modules/filebrowser/patches/browser_list_item_layout",
     browser_hide_underline = "modules/filebrowser/patches/browser_hide_underline",
     browser_hide_up_folder = "modules/filebrowser/patches/browser_hide_up_folder",
     favorites = "modules/filebrowser/patches/favorites",
     collections = "modules/filebrowser/patches/collections",
     history = "modules/filebrowser/patches/history",
-    browser_cover_badges = "modules/filebrowser/patches/browser_cover_badges",
-    browser_cover_mosaic_uniform = "modules/filebrowser/patches/browser_cover_mosaic_uniform",
-    mosaic_title_strip = "modules/filebrowser/patches/mosaic_title_strip",
-    browser_cover_rounded_corners = "modules/filebrowser/patches/browser_cover_rounded_corners",
+    zen_renderer = "modules/filebrowser/patches/zen_renderer",
     browser_show_hidden = "modules/filebrowser/patches/browser_show_hidden",
     cache_bookinfo_get_doc_props = "modules/filebrowser/patches/cache_bookinfo_get_doc_props",
-    browser_page_count = "modules/filebrowser/patches/browser_page_count",
-    browser_series_badge = "modules/filebrowser/patches/browser_series_badge",
     automatic_series_grouping = "modules/filebrowser/patches/automatic_series_grouping",
     browser_display_mode_by_path = "modules/filebrowser/patches/browser_display_mode_by_path",
     search = "modules/filebrowser/patches/search",
@@ -118,6 +114,11 @@ function M.init(logger, plugin)
         run_feature(logger, plugin, "coverbrowser_subprocess_compat", coverbrowser_subprocess_compat_fn)
     end
 
+    local cover_decode_cache_fn = load_patch("cover_decode_cache")
+    if cover_decode_cache_fn then
+        run_feature(logger, plugin, "cover_decode_cache", cover_decode_cache_fn)
+    end
+
     local disable_modal_drag_fn = load_patch("disable_modal_drag")
     if disable_modal_drag_fn then
         run_feature(logger, plugin, "disable_modal_drag", disable_modal_drag_fn)
@@ -139,6 +140,11 @@ function M.init(logger, plugin)
         run_feature(logger, plugin, "browser_folder_sort", browser_folder_sort_fn)
     end
 
+    local browser_item_table_cache_fn = load_patch("browser_item_table_cache")
+    if browser_item_table_cache_fn then
+        run_feature(logger, plugin, "browser_item_table_cache", browser_item_table_cache_fn)
+    end
+
     local context_menu_fn = load_patch("context_menu")
     if context_menu_fn then
         run_feature(logger, plugin, "context_menu", context_menu_fn)
@@ -154,43 +160,6 @@ function M.init(logger, plugin)
         run_feature(logger, plugin, "browser_display_mode_by_path", browser_display_mode_by_path_fn)
     end
 
-    local browser_cover_badges_fn = load_patch("browser_cover_badges")
-    if browser_cover_badges_fn then
-        run_feature(logger, plugin, "browser_cover_badges", browser_cover_badges_fn)
-    end
-
-    if is_feature_enabled(plugin, "browser_cover_mosaic_uniform") then
-        local browser_cover_mosaic_uniform_fn = load_patch("browser_cover_mosaic_uniform")
-        if browser_cover_mosaic_uniform_fn then
-            run_feature(logger, plugin, "browser_cover_mosaic_uniform", browser_cover_mosaic_uniform_fn)
-            -- Items already visible when the patch runs won't reflect uniform sizing.
-            -- Defer a rebuild so they are reconstructed with the patched MosaicMenuItem.
-            local ok_um, UIManager = pcall(require, "ui/uimanager")
-            if ok_um then
-                UIManager:nextTick(function()
-                    local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
-                    local fm = ok_fm and FileManager and FileManager.instance
-                    local fc = fm and fm.file_chooser
-                    if fc and fc.display_mode_type == "mosaic" then
-                        fc:updateItems(1, true)
-                    end
-                end)
-            end
-        end
-    end
-
-    -- Must run after browser_cover_mosaic_uniform so we wrap its already-patched init.
-    local mosaic_title_strip_fn = load_patch("mosaic_title_strip")
-    if mosaic_title_strip_fn then
-        run_feature(logger, plugin, "mosaic_title_strip", mosaic_title_strip_fn)
-    end
-
-    -- Per-paint guard reads live config; no restart needed to toggle.
-    local browser_cover_rounded_corners_fn = load_patch("browser_cover_rounded_corners")
-    if browser_cover_rounded_corners_fn then
-        run_feature(logger, plugin, "browser_cover_rounded_corners", browser_cover_rounded_corners_fn)
-    end
-
     local browser_show_hidden_fn = load_patch("browser_show_hidden")
     if browser_show_hidden_fn then
         run_feature(logger, plugin, "browser_show_hidden", browser_show_hidden_fn)
@@ -199,16 +168,6 @@ function M.init(logger, plugin)
     local cache_bookinfo_get_doc_props = load_patch("cache_bookinfo_get_doc_props")
     if cache_bookinfo_get_doc_props then
         run_feature(logger, plugin, "cache_bookinfo_get_doc_props", cache_bookinfo_get_doc_props)
-    end
-
-    local browser_page_count_fn = load_patch("browser_page_count")
-    if browser_page_count_fn then
-        run_feature(logger, plugin, "browser_page_count", browser_page_count_fn)
-    end
-
-    local browser_series_badge_fn = load_patch("browser_series_badge")
-    if browser_series_badge_fn then
-        run_feature(logger, plugin, "browser_series_badge", browser_series_badge_fn)
     end
 
     local automatic_series_grouping_fn = load_patch("automatic_series_grouping")
@@ -269,6 +228,17 @@ function M.init(logger, plugin)
                 logger.warn("grouped filebrowser patch load failed", feature, err)
             end
         end
+    end
+
+    local zen_renderer_fn = load_patch("zen_renderer")
+    if zen_renderer_fn then
+        run_feature(logger, plugin, "zen_renderer", zen_renderer_fn)
+    end
+
+    -- Apply last so measurements wrap the final CoverMenu implementation.
+    local cover_preload_fn = load_patch("cover_preload")
+    if cover_preload_fn then
+        run_feature(logger, plugin, "cover_preload", cover_preload_fn)
     end
 
     initialized = true

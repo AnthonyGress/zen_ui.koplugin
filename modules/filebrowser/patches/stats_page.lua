@@ -527,9 +527,9 @@ local function showCalendarDaySummary(stats_plugin, visible_day_ts, stat_style)
         align = "left",
         title = title_text,
         title_face = Font:getFace("smallinfofontbold", Screen:scaleBySize(10)),
-        left_icon = "close",
-        left_icon_allow_flash = false,
-        left_icon_tap_callback = function() UIManager:close(dialog) end,
+        right_icon = "close",
+        right_icon_allow_flash = false,
+        right_icon_tap_callback = function() UIManager:close(dialog) end,
         show_parent = dialog,
     })
     dialog:addWidget(VerticalSpan:new{ width = Screen:scaleBySize(6) })
@@ -1165,6 +1165,9 @@ local function buildContent(blocks_config, data, page_w, h_padding, top_padding,
 end
 
 function StatsPage.create(createStatusRow, repaintTitleBar)
+    if #active_stats_menus > 0 then
+        return active_stats_menus[#active_stats_menus], false
+    end
     local stats_settings = StatsSettings.load()
     local blocks_config = StatsSettings.enabledBlocks(stats_settings)
     local stat_style = stats_settings.stat_style
@@ -1536,7 +1539,7 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
         UIManager:setDirty(menu, "flashui")
     end)
 
-    return menu
+    return menu, true
 end
 
 function StatsPage.closeAll()

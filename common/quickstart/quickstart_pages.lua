@@ -11,6 +11,7 @@ local M = {}
 local _ = require("gettext")
 local T = require("ffi/util").template
 local ConfigManager = require("config/manager")
+local CoverUtils = require("common/cover_utils")
 local paths = require("common/paths")
 local PresetStore = require("config/preset_store")
 local ReaderMargins = require("common/reader_margins")
@@ -117,9 +118,10 @@ end
 local function paintCoverBadge(canvas, Blitbuffer, Font, TextWidget, Screen,
                                cell_x, cell_y, cell_w, progress, status)
     local do_check = (status == "complete") or (progress and progress >= 1.0)
+    local do_tbr = not do_check and (status == "tbr")
     local do_pause = not do_check and (status == "abandoned")
-    local do_pct   = not do_check and not do_pause and (progress and progress > 0)
-    if not (do_check or do_pause or do_pct) then return end
+    local do_pct   = not do_check and not do_tbr and not do_pause and (progress and progress > 0)
+    if not (do_check or do_tbr or do_pause or do_pct) then return end
     local badge_size = math.max(Screen:scaleBySize(16), math.floor(cell_w * 0.14))
     local bw = math.floor(badge_size * 1.2)
     local bh = math.floor(badge_size * 1.1)
@@ -139,13 +141,14 @@ local function paintCoverBadge(canvas, Blitbuffer, Font, TextWidget, Screen,
             bdg_y + pad_y + math.floor((icon_h - sq) / 2),
             sq, sq, Blitbuffer.COLOR_BLACK)
     elseif Font and TextWidget then
-        local font_sz = do_pause
+        local font_sz = (do_tbr or do_pause)
             and math.max(7, math.floor(badge_size * 0.40))
             or  math.max(7, math.floor(badge_size * 0.24))
         local tw = TextWidget:new{
-            text    = do_pause and "\u{F0150}" or (math.floor(100 * progress) .. "%"),
+            text    = do_tbr and "\u{F0150}"
+                or (do_pause and "\u{F03E4}" or (math.floor(100 * progress) .. "%")),
             face    = Font:getFace("cfont", font_sz),
-            bold    = not do_pause,
+            bold    = not do_tbr and not do_pause,
             fgcolor = Blitbuffer.COLOR_BLACK,
             padding = 0,
         }
@@ -230,7 +233,7 @@ local function buildContextMenuBB(slot_w, slot_h, cover_info)
         local VerticalSpan    = require("ui/widget/verticalspan")
         local Widget          = require("ui/widget/widget")
 
-        local border      = SizeR.border.thin
+        local border      = CoverUtils.BORDER_SIZE
         local gap         = Screen:scaleBySize(8)
         local avail_inner = dlg_w
             - 2 * (SizeR.border.window + SizeR.padding.button)
@@ -689,7 +692,7 @@ function M.build_install_pages(ctx)
         -- 1. Welcome (static)
         {
             title       = _("Welcome to Zen UI"),
-            icon        = "zen_ui",
+            icon        = "_zen_quickstart",
             description = _("A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."),
         },
 
@@ -866,7 +869,7 @@ function M.build_install_pages(ctx)
         -- 11. Settings & Updates (static)
         {
             title       = _("Settings & Updates"),
-            icon        = "zen_ui_update",
+            icon        = "_zen_quickstart_update",
             icon_size   = 120,
             description = _("All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall Zen UI updates directly from your device."),
         },
@@ -874,7 +877,7 @@ function M.build_install_pages(ctx)
         -- 12. Finale
         {
             title       = _("You're All Set"),
-            icon        = "zen_ui",
+            icon        = "_zen_quickstart",
             finale      = true,
             description = _("The best interface is the one you forget is there.\nNow go get lost in a good book."),
         },

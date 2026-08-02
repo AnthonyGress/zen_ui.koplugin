@@ -168,8 +168,11 @@ msgstr "全期間"
 msgid "All time"
 msgstr "ずっと"
 
-msgid "Allow custom icons"
-msgstr "カスタムアイコンを許可"
+msgid "Custom icons"
+msgstr "カスタムアイコン"
+
+msgid "Enable custom icons"
+msgstr "カスタムアイコンを有効化"
 
 msgid "Allow delete"
 msgstr "削除を許可"
@@ -792,8 +795,8 @@ msgstr "KOReaderの詳細デバッグログを有効にします。ログはkore
 msgid "Enable night mode schedule"
 msgstr "夜間モードスケジュールを有効化"
 
-msgid "Enable page browser"
-msgstr "ページブラウザを有効化"
+msgid "Zen page browser"
+msgstr "Zenページブラウザ"
 
 msgid "Enable top status bar"
 msgstr "上部ステータスバーを有効化"
@@ -969,8 +972,8 @@ msgstr "リストの境界線を非表示"
 msgid "Hide reader actions in library"
 msgstr "ライブラリでリーダーアクションを非表示"
 
-msgid "Hide TBR books"
-msgstr "未読リストの本を非表示"
+msgid "Hide on-hold books"
+msgstr "保留中の本を非表示"
 
 msgid "Hide unread books"
 msgstr "未読の本を非表示"
@@ -2406,47 +2409,47 @@ msgstr "Zenクイック検索"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - 著者"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: 著者"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - ホーム"
+msgid "Zen UI: Home"
+msgstr "Zen UI: ホーム"
 
-msgid "Zen UI - Library"
-msgstr "Zen UI - ライブラリ"
+msgid "Zen UI: Library"
+msgstr "Zen UI: ライブラリ"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - フォルダを開く"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: フォルダを開く"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - シリーズ"
+msgid "Zen UI: Series"
+msgstr "Zen UI: シリーズ"
 
-msgid "Zen UI - Sync progress (pull + push)"
-msgstr "Zen UI - 同期の進行状況（取得 + 送信）"
+msgid "Zen UI: Sync progress (pull + push)"
+msgstr "Zen UI: 同期の進行状況（取得 + 送信）"
 
-msgid "Zen UI - Table of contents"
-msgstr "Zen UI - 目次"
+msgid "Zen UI: Table of contents"
+msgstr "Zen UI: 目次"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - タグ"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: タグ"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - 下部リーダーステータスバーの表示切替"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: 下部リーダーステータスバーの表示切替"
 
-msgid "Zen UI - Toggle Incognito Mode"
-msgstr "Zen UI - シークレットモードを切り替え"
+msgid "Zen UI: Toggle Incognito Mode"
+msgstr "Zen UI: シークレットモードを切り替え"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - ロックダウンモードの切替"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: ロックダウンモードの切替"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - リーダーステータスバーの表示切替"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: リーダーステータスバーの表示切替"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - 上部リーダーステータスバーの表示切替"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: 上部リーダーステータスバーの表示切替"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Zenモードの切替"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: Zenモードの切替"
 
 msgid "Zen UI defaults"
 msgstr "Zen UIデフォルト"

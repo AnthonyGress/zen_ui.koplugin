@@ -168,8 +168,11 @@ msgstr "За всё время"
 msgid "All time"
 msgstr "Все время"
 
-msgid "Allow custom icons"
-msgstr "Разрешить пользовательские значки"
+msgid "Custom icons"
+msgstr "Пользовательские значки"
+
+msgid "Enable custom icons"
+msgstr "Включить пользовательские значки"
 
 msgid "Allow delete"
 msgstr "Разрешить удаление"
@@ -795,8 +798,8 @@ msgstr "Включить подробное журналирование отл�
 msgid "Enable night mode schedule"
 msgstr "Включить расписание ночного режима"
 
-msgid "Enable page browser"
-msgstr "Включить просмотр страниц"
+msgid "Zen page browser"
+msgstr "Просмотр страниц Zen"
 
 msgid "Enable top status bar"
 msgstr "Включить верхнюю строку состояния"
@@ -972,8 +975,8 @@ msgstr "Скрыть границы списка"
 msgid "Hide reader actions in library"
 msgstr "Скрыть действия читалки в библиотеке"
 
-msgid "Hide TBR books"
-msgstr "Скрыть книги к прочтению"
+msgid "Hide on-hold books"
+msgstr "Скрыть отложенные книги"
 
 msgid "Hide unread books"
 msgstr "Скрыть непрочитанные книги"
@@ -1701,6 +1704,9 @@ msgstr "Начать книгу заново"
 msgid "Restart now"
 msgstr "Перезапустить сейчас"
 
+msgid "Restarting"
+msgstr "Перезагрузка"
+
 msgid "Restore library location on exit"
 msgstr "Восстанавливать расположение библиотеки при выходе"
 
@@ -1893,8 +1899,8 @@ msgstr "Показывать число элементов"
 msgid "Show item underline"
 msgstr "Показывать подчёркивание элемента"
 
-msgid "Show KOReader progress bar"
-msgstr "Показывать полосу прогресса KOReader"
+msgid "Show progress bar"
+msgstr "Показывать полосу прогресса"
 
 msgid "Show labels"
 msgstr "Показать метки"
@@ -1911,8 +1917,8 @@ msgstr "Показывать другие варианты быстрого по
 msgid "Show page count"
 msgstr "Показывать количество страниц"
 
-msgid "Show progress % on mosaic covers"
-msgstr "Показать % прогресса на обложках мозаики"
+msgid "Show reading progress"
+msgstr "Показывать прогресс чтения"
 
 msgid "Show separator"
 msgstr "Показывать разделитель"
@@ -2415,47 +2421,47 @@ msgstr "Быстрый поиск Zen"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - Авторы"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: Авторы"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - Главная"
+msgid "Zen UI: Home"
+msgstr "Zen UI: Главная"
 
-msgid "Zen UI - Library"
+msgid "Zen UI: Library"
 msgstr "Zen UI — Библиотека"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - Открыть папку"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: Открыть папку"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - Серии"
+msgid "Zen UI: Series"
+msgstr "Zen UI: Серии"
 
-msgid "Zen UI - Sync progress (pull + push)"
+msgid "Zen UI: Sync progress (pull + push)"
 msgstr "Zen UI — Ход синхронизации (получение + отправка)"
 
-msgid "Zen UI - Table of contents"
+msgid "Zen UI: Table of contents"
 msgstr "Zen UI — Оглавление"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - Теги"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: Теги"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - Переключить нижнюю строку состояния читалки"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: Переключить нижнюю строку состояния читалки"
 
-msgid "Zen UI - Toggle Incognito Mode"
+msgid "Zen UI: Toggle Incognito Mode"
 msgstr "Zen UI — Переключить режим инкогнито"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - Переключить режим блокировки"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: Переключить режим блокировки"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - Переключить строки состояния читалки"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: Переключить строки состояния читалки"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - Переключить верхнюю строку состояния читалки"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: Переключить верхнюю строку состояния читалки"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Переключить режим Zen"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: Переключить режим Zen"
 
 msgid "Zen UI defaults"
 msgstr "Настройки по умолчанию Zen UI"
@@ -2490,8 +2496,8 @@ msgstr "Светлая сепия"
 msgid "Light tan"
 msgstr "Светло-бежевый"
 
-msgid "Zen UI - Toggle reader themes"
-msgstr "Zen UI - Переключить темы чтения"
+msgid "Zen UI: Toggle reader themes"
+msgstr "Zen UI: Переключить темы чтения"
 
 msgid "Dark mode"
 msgstr "Темный режим"
@@ -2525,3 +2531,36 @@ msgstr "Удалить эту пользовательскую тему?"
 
 msgid "Custom theme"
 msgstr "Пользовательская тема"
+
+msgid "%1 (%2/%3 icons)"
+msgstr "%1 (%2/%3 значков)"
+
+msgid "By %1"
+msgstr "Автор: %1"
+
+msgid "Could not install %1: %2"
+msgstr "Не удалось установить %1: %2"
+
+msgid "Custom icon pack: %1"
+msgstr "Пользовательский набор значков: %1"
+
+msgid "Loose icons"
+msgstr "Отдельные значки"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Отдельные значки в /koreader/icons"
+
+msgid "Missing: %1"
+msgstr "Отсутствует: %1"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Поместите папки наборов или ZIP-файлы в /koreader/icons/zen. ZIP-файлы устанавливаются автоматически."
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Перезапустите KOReader, чтобы применить обновлённый активный набор"
+
+msgid "Unavailable pack: %1"
+msgstr "Недоступный набор: %1"
+
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "Если параметр включён, отдельные значки или выбранный набор значков Zen UI заменяют поддерживаемые значки. Для отсутствующих значков сначала используется Zen UI, затем KOReader."

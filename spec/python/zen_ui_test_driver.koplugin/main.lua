@@ -1,9 +1,154 @@
 -- This companion plugin is copied only into the isolated test runtime.
 local WidgetContainer = require("ui/widget/container/widgetcontainer")
+local Event = require("ui/event")
 local ffi = require("ffi")
 local C = ffi.C
 local rapidjson = require("rapidjson")
 local UIManager = require("ui/uimanager")
+
+local original_set_dirty = UIManager.setDirty
+UIManager.setDirty = function(self, widget, refresh_type, ...)
+    if type(widget) == "table" and widget._zen_test_capture_refresh_modes
+            and type(refresh_type) == "string" then
+        local modes = widget._zen_test_refresh_modes or {}
+        modes[#modes + 1] = refresh_type
+        widget._zen_test_refresh_modes = modes
+    end
+    return original_set_dirty(self, widget, refresh_type, ...)
+end
+
+local function find_settings_row_style(widget, seen)
+    if type(widget) ~= "table" then return nil end
+    seen = seen or {}
+    if seen[widget] then return nil end
+    seen[widget] = true
+    if type(widget._zen_settings_style) == "table" then
+        return widget._zen_settings_style
+    end
+    for _i, child in ipairs(widget) do
+        local style = find_settings_row_style(child, seen)
+        if style then return style end
+    end
+end
+
+local function find_descendant(widget, predicate, seen)
+    if type(widget) ~= "table" then return nil end
+    seen = seen or {}
+    if seen[widget] then return nil end
+    seen[widget] = true
+    if predicate(widget) then return widget end
+    for _i, child in ipairs(widget) do
+        local found = find_descendant(child, predicate, seen)
+        if found then return found end
+    end
+end
+
+local function settings_row_alignment(rows)
+    local alignment = {}
+    local IconItem = require("common/ui/icon_menu_item")
+    local Size = require("ui/size")
+    for _i, row in ipairs(rows or {}) do
+        local entry = row.entry or row.item
+        if entry then
+            local toggle = find_descendant(row, function(widget)
+                return widget.dimen and widget._knob_r ~= nil and widget._border ~= nil
+            end)
+            local caret = find_descendant(row, function(widget)
+                return widget.dimen and (widget.icon == "chevron.right"
+                    or widget.icon == "chevron.left")
+            end)
+            if alignment.text_x == nil then
+                local handle = row._zen_arrange_handle
+                if handle and handle.dimen then
+                    alignment.text_x = handle.dimen.x + handle.dimen.w
+                        + Size.padding.default
+                elseif row.entry then
+                    alignment.text_x = Size.padding.large + Size.padding.fullscreen
+                        + IconItem.SETTINGS_ICON_WIDTH + Size.padding.default
+                end
+            end
+            if toggle and alignment.toggle_x == nil then
+                alignment.toggle_x = toggle.dimen.x
+                alignment.toggle_right = toggle.dimen.x + toggle.dimen.w
+            end
+            if caret and alignment.caret_x == nil then
+                alignment.caret_x = caret.dimen.x
+                alignment.caret_right = caret.dimen.x + caret.dimen.w
+            end
+        end
+    end
+    return alignment
+end
+
+local function settings_row_standard()
+    local IconItem = require("common/ui/icon_menu_item")
+    return {
+        row_height = IconItem.getSettingsRowHeight(),
+        font_size = IconItem.getSettingsFontSize(),
+        icon_width = IconItem.SETTINGS_ICON_WIDTH,
+        toggle_width = IconItem.SETTINGS_TOGGLE_WIDTH,
+        toggle_height = IconItem.SETTINGS_TOGGLE_HEIGHT,
+        caret_size = IconItem.SETTINGS_CARET_SIZE,
+    }
+end
+
+local function active_arrange_widget()
+    for index = #UIManager._window_stack, 1, -1 do
+        local window = UIManager._window_stack[index]
+        local widget = window and window.widget
+        local title_bar = widget and widget.title_bar
+        if title_bar and title_bar._zen_settings_header then return widget end
+    end
+end
+
+local function widget_height(widget)
+    local size = widget and widget.getSize and widget:getSize()
+    return size and size.h or 0
+end
+
+local function widget_y(widget)
+    return widget and widget.dimen and widget.dimen.y or 0
+end
+
+local function filemanager_status_height()
+    local FileManager = require("apps/filemanager/filemanager")
+    local title_group = FileManager.instance and FileManager.instance.title_bar
+        and FileManager.instance.title_bar.title_group
+    return widget_height(title_group and title_group[2])
+end
+
+local function filemanager_status_y()
+    local FileManager = require("apps/filemanager/filemanager")
+    local title_group = FileManager.instance and FileManager.instance.title_bar
+        and FileManager.instance.title_bar.title_group
+    return widget_y(title_group and title_group[2])
+end
+
+local function focus_position(widget, target)
+    if not (widget and target) then return nil end
+    for row_i, row in ipairs(widget.layout or {}) do
+        for column_i, control in ipairs(row) do
+            if control == target then return column_i, row_i end
+        end
+    end
+    return nil
+end
+
+local function is_focus_target(widget, target)
+    return focus_position(widget, target) ~= nil
+end
+
+local function has_focus_feedback(control)
+    if not (control and control.handleEvent) then return false end
+    control:handleEvent(Event:new("Focus"))
+    local focused = control.invert == true
+        or control._focused == true
+        or (control.inner_bordersize or 0) > 0
+        or control.image and control.image.invert == true
+        or control.frame and control.frame.invert == true
+    control:handleEvent(Event:new("Unfocus"))
+    return focused
+end
 
 ffi.cdef[[
 struct zen_test_sockaddr_un { unsigned short sun_family; char sun_path[108]; };
@@ -75,6 +220,22 @@ end
 
 local count_image_widgets
 
+local function collect_folder_widgets(widget, states, seen, depth)
+    if type(widget) ~= "table" or seen[widget] or depth > 64 then return end
+    seen[widget] = true
+    local entry = widget.entry
+    if type(entry) == "table" and not (entry.is_file or entry.file) and entry.path then
+        states[#states + 1] = {
+            path = entry.path,
+            processed = widget._foldercover_processed == true,
+            has_cover_frame = widget._cover_frame ~= nil,
+        }
+    end
+    for _i, child in ipairs(widget) do
+        collect_folder_widgets(child, states, seen, depth + 1)
+    end
+end
+
 local function file_chooser_items()
     local FileManager = require("apps/filemanager/filemanager")
     local file_chooser = FileManager.instance and FileManager.instance.file_chooser
@@ -100,6 +261,16 @@ local function file_chooser_items()
     end
     local visible_texts = {}
     collect_texts(file_chooser.item_group or file_chooser, visible_texts, {}, 0)
+    local page_badges = {}
+    for _row_i, row in ipairs(file_chooser.layout or {}) do
+        for _column_i, widget in ipairs(row) do
+            if type(widget._zen_page_label) == "string" then
+                page_badges[#page_badges + 1] = widget._zen_page_label
+            end
+        end
+    end
+    local folder_widgets = {}
+    collect_folder_widgets(file_chooser.item_group or file_chooser, folder_widgets, {}, 0)
     local focused_item
     local focused_index = file_chooser.itemnumber or file_chooser.prev_itemnumber
     if focused_index and file_chooser.item_table then
@@ -121,8 +292,28 @@ local function file_chooser_items()
             and count_image_widgets(file_chooser.item_group or file_chooser, {}, 0) or 0,
         item_widget_count = type(file_chooser.item_group) == "table" and #file_chooser.item_group or 0,
         items = items,
+        page_badges = page_badges,
+        folder_widgets = folder_widgets,
         visible_texts = visible_texts,
     }
+end
+
+local function file_chooser_cover_state()
+    local FileManager = require("apps/filemanager/filemanager")
+    local chooser = FileManager.instance and FileManager.instance.file_chooser
+    if not chooser then return nil end
+    local BookInfoManager = require("bookinfomanager")
+    local files = 0
+    local fetched = 0
+    for _i, item in ipairs(chooser.item_table or {}) do
+        local path = item.path or item.file
+        if path and (item.is_file or item.file) then
+            files = files + 1
+            local info = BookInfoManager:getBookInfo(path, false)
+            if info and info.cover_fetched then fetched = fetched + 1 end
+        end
+    end
+    return { files = files, fetched = fetched }
 end
 
 local function open_book(path)
@@ -219,6 +410,8 @@ local function home_state()
         menu_name = menu and menu.name or nil,
         widget_ids = widget_ids,
         book_paths = book_paths,
+        page_padding = menu and menu._zen_home_page_padding or 0,
+        visual_gaps = menu and menu._zen_home_visual_gaps or {},
         clock_refreshers = #(menu and menu._zen_home_clock_refreshers or {}),
         visible_texts = visible_texts,
         image_widget_count = menu and count_image_widgets(menu, {}, 0) or 0,
@@ -240,6 +433,116 @@ local function navbar_state()
         top_name = widget and widget.name or nil,
         top_tab_id = widget and widget._zen_tab_id or nil,
         visible_texts = visible_texts,
+    }
+end
+
+local function find_text_widget(widget, text, seen, depth)
+    if type(widget) ~= "table" or seen[widget] or depth > 64 then return end
+    seen[widget] = true
+    if widget.text == text then return widget end
+    for _i, child in ipairs(widget) do
+        local found = find_text_widget(child, text, seen, depth + 1)
+        if found then return found end
+    end
+end
+
+local function tap_navbar_tab(label)
+    local stack = UIManager._window_stack
+    local top = stack and stack[#stack] and stack[#stack].widget
+    if not top then return false, "top widget unavailable" end
+
+    local navbar
+    local function find_navbar(widget, seen, depth)
+        if type(widget) ~= "table" or seen[widget] or depth > 64 then return end
+        seen[widget] = true
+        if type(widget.onTapNavBar) == "function"
+                and find_text_widget(widget, label, {}, 0) then
+            navbar = widget
+            return
+        end
+        for _i, child in ipairs(widget) do
+            find_navbar(child, seen, depth + 1)
+            if navbar then return end
+        end
+    end
+    find_navbar(top, {}, 0)
+    if not navbar then return false, "navbar tab unavailable: " .. tostring(label) end
+
+    local labels = {}
+    collect_texts(navbar, labels, {}, 0)
+    local label_index
+    for i, value in ipairs(labels) do
+        if value == label then
+            label_index = i
+            break
+        end
+    end
+    local dimen = navbar.dimen
+    if not label_index or not dimen or #labels == 0 then
+        return false, "navbar label geometry unavailable"
+    end
+    local pos = {
+        x = (dimen.x or 0)
+            + math.floor((dimen.w or 1) * (label_index - 0.5) / #labels),
+        y = (dimen.y or 0) + math.floor((dimen.h or 1) / 2),
+        w = 0,
+        h = 0,
+    }
+    return navbar:onTapNavBar(nil, { pos = pos }) == true
+end
+
+local function cover_cache_comparison()
+    local FileManager = require("apps/filemanager/filemanager")
+    local chooser = FileManager.instance and FileManager.instance.file_chooser
+    if not chooser then
+        return nil, "file chooser unavailable"
+    end
+    local cache = require("common/cover_decode_cache")
+    local path
+    for _i, item in ipairs(chooser.item_table or {}) do
+        local candidate = item.path or item.file
+        if candidate and cache:has(candidate) then
+            path = candidate
+            break
+        end
+    end
+    if not path then return nil, "no visible cached cover" end
+    local BookInfoManager = require("bookinfomanager")
+    local now = require("common/zen_logger").now
+    local function delta(after, before)
+        local result = {}
+        for key, value in pairs(after) do
+            if type(value) == "number" then
+                result[key] = value - (before[key] or 0)
+            end
+        end
+        return result
+    end
+
+    cache:drop(path)
+    local before_cold = cache:stats()
+    local cold_started_at = now()
+    local info = BookInfoManager:getBookInfo(path, true)
+    local cold_elapsed_ms = (now() - cold_started_at) * 1000
+    if info and info.cover_bb then info.cover_bb:free() end
+    local after_cold = cache:stats()
+
+    local warm_started_at = now()
+    info = BookInfoManager:getBookInfo(path, true)
+    local warm_elapsed_ms = (now() - warm_started_at) * 1000
+    if info and info.cover_bb then info.cover_bb:free() end
+    local after_warm = cache:stats()
+    return {
+        path = path,
+        cold = {
+            elapsed_ms = cold_elapsed_ms,
+            delta = delta(after_cold, before_cold),
+        },
+        warm = {
+            elapsed_ms = warm_elapsed_ms,
+            delta = delta(after_warm, after_cold),
+        },
+        total = after_warm,
     }
 end
 
@@ -288,6 +591,11 @@ function Driver:handleCommand(command)
         return state and { ok = true, file_chooser = state }
             or { ok = false, error = "file chooser unavailable" }
     end
+    if kind == "file_chooser_cover_state" then
+        local state = file_chooser_cover_state()
+        return state and { ok = true, covers = state }
+            or { ok = false, error = "file chooser unavailable" }
+    end
     if kind == "open_book" and type(params.path) == "string" then
         local ok, err = open_book(params.path)
         return { ok = ok, error = err }
@@ -300,6 +608,19 @@ function Driver:handleCommand(command)
         return state and { ok = true, page_browser = state }
             or { ok = false, error = "page browser unavailable" }
     end
+    if kind == "page_browser_key" and type(params.key) == "string" then
+        local handled, err = require("reader_tools").page_browser_key(params.key)
+        return { ok = handled == true, handled = handled == true, error = err }
+    end
+    if kind == "hardware_overlay_state" then
+        local state = require("reader_tools").hardware_overlay_state()
+        return state and { ok = true, overlay = state }
+            or { ok = false, error = "hardware overlay unavailable" }
+    end
+    if kind == "hardware_overlay_key" and type(params.key) == "string" then
+        local handled, err = require("reader_tools").hardware_overlay_key(params.key)
+        return { ok = handled == true, handled = handled == true, error = err }
+    end
     if kind == "reader_overlay_state" then
         return { ok = true, overlays = require("reader_tools").overlay_state() }
     end
@@ -309,6 +630,816 @@ function Driver:handleCommand(command)
     end
     if kind == "home_state" then
         return { ok = true, home = home_state() }
+    end
+    if kind == "open_settings_page" then
+        local FileManager = require("apps/filemanager/filemanager")
+        local menu = FileManager.instance and FileManager.instance.menu
+        if not menu then return { ok = false, error = "file manager menu unavailable" } end
+        local item = menu._zen_tab_item
+        if not item and type(menu.setUpdateItemTable) == "function" then
+            menu:setUpdateItemTable()
+            item = menu._zen_tab_item
+        end
+        if not (item and type(item.callback) == "function") then
+            return { ok = false, error = "Zen settings tab unavailable" }
+        end
+        if not menu.menu_container and type(menu.onShowMenu) == "function" then
+            menu:onShowMenu()
+        end
+        local touch_menu = menu.menu_container and menu.menu_container[1]
+        local tab_index
+        for i, tab in ipairs(menu.tab_item_table or {}) do
+            if tab == item then
+                tab_index = i
+                break
+            end
+        end
+        if touch_menu and tab_index and type(touch_menu.switchMenuTab) == "function" then
+            touch_menu:switchMenuTab(tab_index)
+        else
+            item.callback()
+        end
+        return { ok = true }
+    end
+    if kind == "settings_page_state" then
+        local page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
+        if not page then return { ok = false, error = "settings page unavailable" } end
+        local first_row = page.item_group and page.item_group[1]
+        local focus_frame = first_row and first_row.item_frame
+        local left_zone = page._zones and page._zones.zen_pn_left_tap
+        local right_zone = page._zones and page._zones.zen_pn_right_tap
+        local left_range = left_zone and left_zone.gs_range and left_zone.gs_range.range
+        local right_range = right_zone and right_zone.gs_range and right_zone.gs_range.range
+        local labels = {}
+        local items = {}
+        for _i, item in ipairs(page.item_table or {}) do
+            local label = item._zen_display_text or item.text or ""
+            local checked
+            if type(item.checked_func) == "function" then
+                local ok_checked, value = pcall(item.checked_func)
+                if ok_checked then checked = value == true end
+            end
+            labels[#labels + 1] = label
+            items[#items + 1] = {
+                label = label,
+                breadcrumb = item._zen_settings_breadcrumb,
+                radio = item.radio == true,
+                checked = checked,
+            }
+        end
+        return {
+            ok = true,
+            settings = {
+                title = page.title_bar and page.title_bar.title,
+                back_visible = page.title_bar and page.title_bar.back_visible == true,
+                status_visible = page.title_bar and page.title_bar.status_widget ~= nil,
+                status_height = widget_height(page.title_bar and page.title_bar.status_widget),
+                status_spacer_height = widget_height(page.title_bar and page.title_bar._vertical_group
+                    and page.title_bar._vertical_group[3]),
+                status_y = widget_y(page.title_bar and page.title_bar.status_widget),
+                status_identity = tostring(page.title_bar and page.title_bar.status_widget),
+                page = page.page,
+                page_count = page.page_num,
+                pager_x = left_range and left_range.x,
+                pager_y = right_range and right_range.y,
+                pager_width = left_range and right_range
+                    and right_range.x + right_range.w - left_range.x,
+                screen_width = page.width,
+                title_font_size = page.title_bar and page.title_bar.title_widget
+                    and page.title_bar.title_widget.face.orig_size or nil,
+                title_bold = page.title_bar and page.title_bar.title_widget
+                    and page.title_bar.title_widget.bold == true or false,
+                search_active = page._search_active == true,
+                has_search_input = page.title_bar and page.title_bar.search_input ~= nil,
+                has_search_button = page.title_bar and page.title_bar.search_button ~= nil,
+                has_more = page.title_bar and page.title_bar.more_button ~= nil,
+                search_text = page.title_bar and page.title_bar.search_input
+                    and page.title_bar.search_input:getText() or "",
+                search_focused = page.title_bar and page.title_bar.search_input
+                    and page.title_bar.search_input.focused == true or false,
+                search_keyboard_visible = page.title_bar and page.title_bar.search_input
+                    and page.title_bar.search_input:isKeyboardVisible() or false,
+                search_text_inset = page.title_bar and page.title_bar.search_frame
+                    and page.title_bar.search_frame.dimen
+                    and page.title_bar.search_input.dimen
+                    and page.title_bar.search_input.dimen.x
+                        + page.title_bar.search_input.padding
+                        - page.title_bar.search_frame.dimen.x or 0,
+                search_radius = page.title_bar and page.title_bar.search_frame
+                    and page.title_bar.search_frame.radius or 0,
+                shortcuts_enabled = page.is_enable_shortcut == true
+                    or page.key_events and page.key_events.SelectByShortCut ~= nil,
+                row_focusable = focus_frame and focus_frame.focusable == true,
+                row_focus_border_size = focus_frame and focus_frame.focus_border_size,
+                row_focus_inner_border = focus_frame and focus_frame.focus_inner_border == true,
+                row_focus_feedback = has_focus_feedback(focus_frame),
+                row_style = find_settings_row_style(page.item_group),
+                row_alignment = settings_row_alignment(page.item_group),
+                standard_style = settings_row_standard(),
+                labels = labels,
+                items = items,
+            },
+        }
+    end
+    if kind == "settings_page_footer_tap" then
+        local page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
+        if not page then return { ok = false, error = "settings page unavailable" } end
+        local pager = require("common/ui/zen_pager")
+        local Screen = require("device").screen
+        local Geom = require("ui/geometry")
+        local width = Screen:getWidth()
+        local height = Screen:getHeight()
+        local bar_width = math.floor(width * 0.92)
+        local bar_x = math.floor((width - bar_width) / 2)
+        local zone = params.zone or "right"
+        local x = bar_x + math.floor(bar_width / 2)
+        if zone == "left" then
+            x = bar_x + math.floor(pager.CHEV_W / 2)
+        elseif zone == "right" then
+            x = bar_x + bar_width - math.floor(pager.CHEV_W / 2)
+        end
+        local footer_height = pager.getStyle() == "page_number"
+            and pager.PN_FOOTER_H or pager.FOOTER_H
+        local pager_zone = page._zones and page._zones["zen_pn_" .. zone .. "_tap"]
+        local pager_range = pager_zone and pager_zone.gs_range and pager_zone.gs_range.range
+        local gesture = {
+            ges = "tap",
+            pos = Geom:new{
+                x = x,
+                y = pager_range
+                    and pager_range.y + math.floor(pager_range.h / 2)
+                    or height - math.floor(footer_height / 2),
+                w = 0,
+                h = 0,
+            },
+        }
+        local handled = page:handleEvent(Event:new("Gesture", gesture))
+        return {
+            ok = handled == true,
+            page = page.page,
+            page_count = page.page_num,
+        }
+    end
+    if kind == "settings_page_titlebar_tap" then
+        local page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
+        local button = page and page.title_bar
+            and page.title_bar[(params.button or "search") .. "_button"]
+        if not (page and button and button.dimen) then
+            return { ok = false, error = "settings titlebar button unavailable" }
+        end
+        local Geom = require("ui/geometry")
+        local dimen = button.dimen
+        local handled = page:handleEvent(Event:new("Gesture", {
+            ges = "tap",
+            pos = Geom:new{
+                x = dimen.x + math.floor(dimen.w / 2),
+                y = dimen.y + math.floor(dimen.h / 2),
+                w = 0,
+                h = 0,
+            },
+        }))
+        return { ok = handled == true }
+    end
+    if kind == "settings_modal_enter_behavior" then
+        if not rawget(_G, "__ZEN_UI_SETTINGS_PAGE") then
+            return { ok = false, error = "settings page unavailable" }
+        end
+        local InputDialog = require("ui/widget/inputdialog")
+        local submitted = false
+        local dialog = InputDialog:new{
+            title = "Keyboard test",
+            buttons = {{
+                {
+                    text = "Set",
+                    is_enter_default = true,
+                    callback = function() submitted = true end,
+                },
+            }},
+        }
+        local input = dialog._input_widget
+        local keyboard_closed = false
+        local unfocused = false
+        input.isKeyboardVisible = function() return true end
+        input.onCloseKeyboard = function() keyboard_closed = true end
+        input.unfocus = function() unfocused = true end
+        local ok_enter, err = pcall(input.enter_callback)
+        input:onCloseWidget()
+        return {
+            ok = ok_enter,
+            error = ok_enter and nil or tostring(err),
+            dismissed = keyboard_closed and unfocused,
+            submitted = submitted,
+        }
+    end
+    if kind == "settings_page_select" and type(params.label) == "string" then
+        local page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
+        if not page then return { ok = false, error = "settings page unavailable" } end
+        for _i, item in ipairs(page.item_table or {}) do
+            local label = item._zen_display_text or item.text or ""
+            if label == params.label then
+                local ok_select, err = pcall(page.onMenuSelect, page, item)
+                return { ok = ok_select, error = ok_select and nil or tostring(err) }
+            end
+        end
+        return { ok = false, error = "settings item unavailable" }
+    end
+    if kind == "settings_page_back" then
+        local page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
+        if not page then return { ok = false, error = "settings page unavailable" } end
+        local ok_back, err = pcall(page.backToUpperMenu, page, true)
+        return { ok = ok_back, error = ok_back and nil or tostring(err) }
+    end
+    if kind == "settings_page_search" and type(params.query) == "string" then
+        local page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
+        if not page then return { ok = false, error = "settings page unavailable" } end
+        local ok_search, err = pcall(page._onSearchChanged, page, params.query)
+        return { ok = ok_search, error = ok_search and nil or tostring(err) }
+    end
+    if kind == "settings_page_type_search" and type(params.text) == "string" then
+        local page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
+        local title_bar = page and page.title_bar
+        local input = title_bar and title_bar.search_input
+        if not input and title_bar and type(title_bar.openSearch) == "function" then
+            title_bar:openSearch()
+            input = title_bar.search_input
+        end
+        if not input then return { ok = false, error = "settings search unavailable" } end
+        local ok_type, err = pcall(function()
+            local dimen = title_bar.search_frame and title_bar.search_frame.dimen
+            if title_bar.onTapSearch and dimen then
+                title_bar:onTapSearch(nil, {
+                    pos = {
+                        x = dimen.x + math.floor(dimen.w / 2),
+                        y = dimen.y + math.floor(dimen.h / 2),
+                    },
+                })
+            else
+                input:focus()
+            end
+            for character in params.text:gmatch(".") do
+                UIManager:sendEvent(Event:new("TextInput", character))
+            end
+        end)
+        return { ok = ok_type, error = ok_type and nil or tostring(err) }
+    end
+    if kind == "settings_page_submit_search" then
+        local page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
+        local input = page and page.title_bar and page.title_bar.search_input
+        if not input then return { ok = false, error = "settings search unavailable" } end
+        local ok_submit, err = pcall(input.onTextInput, input, "\n")
+        return { ok = ok_submit, error = ok_submit and nil or tostring(err) }
+    end
+    if kind == "settings_page_non_touch_search" then
+        local page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
+        local title_bar = page and page.title_bar
+        local search_button = title_bar and title_bar.search_button
+        local button_x, button_y = focus_position(page, search_button)
+        local initial_close_x, initial_close_y = focus_position(page, title_bar and title_bar.close_button)
+        if not (title_bar and button_x and button_y and initial_close_x and initial_close_y) then
+            return { ok = false, error = "settings search button unavailable" }
+        end
+        page.selected = { x = button_x, y = button_y }
+        local search_button_focused = page.selected.x == button_x and page.selected.y == button_y
+        page:onZenSettingsFocusRight()
+        local close_focused_from_search = page.selected.x == initial_close_x
+            and page.selected.y == initial_close_y
+        page:onZenSettingsFocusLeft()
+        local search_focused_from_close = page.selected.x == button_x and page.selected.y == button_y
+        title_bar:openSearch()
+        local input = title_bar.search_input
+        local input_x, input_y = focus_position(page, input)
+        local close_x, close_y = focus_position(page, title_bar.close_button)
+        if not (input and input_x and input_y and close_x and close_y) then
+            return { ok = false, error = "settings search input unavailable" }
+        end
+        local search_input_focused = input_x == page.selected.x and input_y == page.selected.y
+        input.focused = true
+        input.charpos = #(input.charlist or {}) + 1
+        local exited = input:onKeyPress({ Right = true })
+        local close_focused = page.selected.x == close_x and page.selected.y == close_y
+        title_bar:setQuery("term")
+        page:_onSearchChanged("term")
+        title_bar.close_button.callback()
+        local collapsed_search_x, collapsed_search_y = focus_position(page, title_bar.search_button)
+        return {
+            ok = true,
+            search_button_focused = search_button_focused,
+            close_focused_from_search = close_focused_from_search,
+            search_focused_from_close = search_focused_from_close,
+            search_input_focused = search_input_focused,
+            exited = exited == true,
+            close_focused = close_focused,
+            search_input_focused_after_exit = input.focused == true,
+            search_closed = title_bar.search_input == nil and title_bar.query == ""
+                and page._search_active == false,
+            search_button_focused_after_close = page.selected.x == collapsed_search_x
+                and page.selected.y == collapsed_search_y,
+        }
+    end
+    if kind == "arrange_page_state" then
+        local widget = active_arrange_widget()
+        local title_bar = widget and widget.title_bar
+        if not (title_bar and title_bar._zen_settings_header) then
+            return { ok = false, error = "arrange page unavailable" }
+        end
+        local labels = {}
+        local checked = {}
+        local submenu_indices = {}
+        for item_i, item in ipairs(widget.item_table or {}) do
+            local label = item._zen_arrange_base_text or item.text or ""
+            if type(item.text_func) == "function" then
+                local ok_text, value = pcall(item.text_func)
+                if ok_text and type(value) == "string" then label = value end
+            end
+            labels[#labels + 1] = label
+            local value = false
+            if type(item.checked_func) == "function" then
+                local ok_checked, is_checked = pcall(item.checked_func)
+                if ok_checked then value = is_checked == true end
+            end
+            checked[#checked + 1] = value
+            if type(item.sub_item_table) == "table"
+                    or type(item.sub_item_table_func) == "function" then
+                submenu_indices[#submenu_indices + 1] = item_i
+            end
+        end
+        local first_row = widget.main_content and widget.main_content[2]
+        local focus_frame = first_row and first_row[1] and first_row[1][1]
+        local focused = widget.getFocusItem and widget:getFocusItem()
+        local drop_refresh_modes = widget._zen_test_refresh_modes
+        widget._zen_test_capture_refresh_modes = false
+        local handle_focus_visible = false
+        for _row_i, row in ipairs(widget.main_content or {}) do
+            local handle = row._zen_arrange_handle
+            if handle and (handle.invert == true or handle._focused == true
+                    or (handle.inner_bordersize or 0) > 0) then
+                handle_focus_visible = true
+                break
+            end
+        end
+        return {
+            ok = true,
+            arrange = {
+                title = title_bar.title,
+                back_visible = title_bar.back_button ~= nil,
+                has_search = title_bar.search_input ~= nil,
+                has_more = title_bar.more_button ~= nil,
+                has_close = title_bar.close_button ~= nil,
+                has_action = title_bar.action_button ~= nil,
+                status_visible = title_bar.status_widget ~= nil,
+                status_height = widget_height(title_bar.status_widget),
+                status_y = widget_y(title_bar.status_widget),
+                status_identity = tostring(title_bar.status_widget),
+                filemanager_status_height = filemanager_status_height(),
+                filemanager_status_y = filemanager_status_y(),
+                marked = widget.marked,
+                handle_focused = focused and focused._zen_arrange_handle == true,
+                handle_focus_visible = handle_focus_visible,
+                item_focused = focused and focused._zen_arrange_content == true,
+                toggle_focused = focused and focused._zen_arrange_toggle == true,
+                focused_index = focused and focused.index,
+                handle_active = widget._zen_handle_active == true,
+                dragging = widget._zen_dragging == true,
+                drag_unfocus_pending = widget._zen_drag_unfocus ~= nil,
+                drop_refresh_modes = drop_refresh_modes,
+                handle_visible = first_row and first_row._zen_arrange_handle ~= nil,
+                item_focusable = first_row
+                    and is_focus_target(widget, first_row._zen_arrange_content_focus),
+                toggle_focusable = first_row
+                    and is_focus_target(widget, first_row._zen_arrange_toggle_focus),
+                toggle_focus_border_size = first_row
+                    and first_row._zen_arrange_toggle_focus
+                    and first_row._zen_arrange_toggle_focus.focus_border_size,
+                toggle_focus_feedback = first_row
+                    and has_focus_feedback(first_row._zen_arrange_toggle_focus),
+                page_count = widget.pages,
+                items_per_page = widget.items_per_page,
+                pagination_visible = widget.page_info
+                    and widget.page_info._zen_arrange_footer_visible == true,
+                footer_cancel_hidden = widget.footer_cancel
+                    and widget.footer_cancel.skip_paint == true,
+                footer_first_hidden = widget.footer_first_up
+                    and widget.footer_first_up.skip_paint == true,
+                footer_last_hidden = widget.footer_last_down
+                    and widget.footer_last_down.skip_paint == true,
+                footer_ok_hidden = widget.footer_ok
+                    and widget.footer_ok.skip_paint == true,
+                row_focusable = focus_frame and focus_frame.focusable == true,
+                row_focus_border_size = focus_frame and focus_frame.focus_border_size,
+                row_focus_inner_border = focus_frame and focus_frame.focus_inner_border == true,
+                row_focus_feedback = has_focus_feedback(focus_frame),
+                action_focusable = is_focus_target(widget, title_bar.action_button),
+                close_focusable = is_focus_target(widget, title_bar.close_button),
+                action_focus_feedback = has_focus_feedback(title_bar.action_button),
+                close_focus_feedback = has_focus_feedback(title_bar.close_button),
+                row_style = find_settings_row_style(widget.main_content),
+                row_alignment = settings_row_alignment(widget.main_content),
+                standard_style = settings_row_standard(),
+                labels = labels,
+                checked = checked,
+                submenu_indices = submenu_indices,
+            },
+        }
+    end
+    if kind == "arrange_page_focus_header" then
+        local widget = active_arrange_widget()
+        local title_bar = widget and widget.title_bar
+        local controls = title_bar and title_bar.generateHorizontalLayout
+            and title_bar:generateHorizontalLayout()[1]
+        local back_x, back_y = focus_position(widget, title_bar and title_bar.back_button)
+        local action_x, action_y = focus_position(widget, title_bar and title_bar.action_button)
+        local close_x, close_y = focus_position(widget, title_bar and title_bar.close_button)
+        if not (back_x and action_x and close_x and controls) then
+            return { ok = false, error = "arrange header controls unavailable" }
+        end
+        widget.selected = { x = back_x, y = back_y }
+        widget:onZenArrangeOpenSubmenu()
+        local action_focused = widget.selected.x == action_x and widget.selected.y == action_y
+        widget:onZenArrangeOpenSubmenu()
+        local close_focused = widget.selected.x == close_x and widget.selected.y == close_y
+        title_bar.close_button:handleEvent(Event:new("Unfocus"))
+        widget.selected = { x = 1, y = back_y + 1 }
+        return { ok = true, action_focused = action_focused, close_focused = close_focused }
+    end
+    if kind == "arrange_page_key" then
+        local widget = active_arrange_widget()
+        if not widget then return { ok = false, error = "arrange page unavailable" } end
+        local Key = require("device/key")
+        local event_name = params.phase == "release" and "KeyRelease"
+            or params.phase == "repeat" and "KeyRepeat"
+            or "KeyPress"
+        local handled = widget:handleEvent(Event:new(
+            event_name,
+            Key:new(params.key or "Press", {})
+        ))
+        return { ok = handled == true, marked = widget.marked }
+    end
+    if kind == "arrange_page_menu" then
+        local widget = active_arrange_widget()
+        if not widget then return { ok = false, error = "arrange page unavailable" } end
+        local FileManager = require("apps/filemanager/filemanager")
+        local menu = FileManager.instance and FileManager.instance.menu
+        local Key = require("device/key")
+        local handled = widget:handleEvent(Event:new(
+            "KeyPress",
+            Key:new("Menu", {})
+        ))
+        local menu_open = menu and menu.menu_container ~= nil
+        if menu_open and params.close_menu == true
+                and type(menu.onCloseFileManagerMenu) == "function" then
+            menu:onCloseFileManagerMenu()
+        end
+        return {
+            ok = handled == true,
+            marked = widget.marked,
+            handle_active = widget._zen_handle_active == true,
+            menu_open = menu_open,
+        }
+    end
+    if kind == "arrange_page_drag" then
+        local widget = active_arrange_widget()
+        if not widget then return { ok = false, error = "arrange page unavailable" } end
+        if params.track_refresh_modes == true then
+            widget._zen_test_refresh_modes = {}
+            widget._zen_test_capture_refresh_modes = true
+        end
+        local rows = {}
+        for _i, row in ipairs(widget.main_content or {}) do
+            if row._zen_arrange_handle and row._zen_arrange_handle.dimen then
+                rows[#rows + 1] = row
+            end
+        end
+        local from_row = rows[tonumber(params.from) or 1]
+        local to_row = rows[tonumber(params.to) or 2]
+        if not from_row or (not to_row and not params.edge) then
+            return { ok = false, error = "arrange handles unavailable" }
+        end
+        local Geom = require("ui/geometry")
+        local function center(dimen)
+            return Geom:new{
+                x = dimen.x + math.floor(dimen.w / 2),
+                y = dimen.y + math.floor(dimen.h / 2),
+                w = 0,
+                h = 0,
+            }
+        end
+        local from_pos = center(from_row._zen_arrange_handle.dimen)
+        local to_pos = to_row and center(to_row._zen_arrange_handle.dimen)
+            or from_pos:copy()
+        if params.edge == "left" then
+            to_pos.x = widget.dimen.x
+        elseif params.edge == "right" then
+            to_pos.x = widget.dimen.x + widget.dimen.w - 1
+        elseif params.edge == "up" then
+            to_pos.y = rows[1]._zen_arrange_handle.dimen.y - 1
+        elseif params.edge == "down" then
+            local last = rows[#rows]._zen_arrange_handle.dimen
+            to_pos.y = last.y + last.h
+        end
+        local relative = Geom:new{
+            x = to_pos.x - from_pos.x,
+            y = to_pos.y - from_pos.y,
+            w = 0,
+            h = 0,
+        }
+        local started
+        local moved = true
+        if params.edge then
+            started = widget:handleEvent(Event:new("Gesture", {
+                ges = "pan",
+                pos = to_pos,
+                start_pos = from_pos,
+                relative = relative,
+            }))
+        else
+            started = widget:handleEvent(Event:new("Gesture", {
+                ges = "pan",
+                pos = from_pos,
+            }))
+            moved = widget:handleEvent(Event:new("Gesture", {
+                ges = "pan",
+                pos = to_pos,
+                start_pos = from_pos,
+                relative = relative,
+            }))
+        end
+        local released = true
+        if params.release_gesture == "swipe" then
+            released = widget:handleEvent(Event:new("Gesture", {
+                ges = "swipe",
+                direction = to_pos.y >= from_pos.y and "south" or "north",
+                pos = from_pos,
+                end_pos = to_pos,
+                start_pos = from_pos,
+                relative = relative,
+            }))
+        elseif params.release ~= false then
+            released = widget:handleEvent(Event:new("Gesture", {
+                ges = "pan_release",
+                pos = to_pos,
+                start_pos = from_pos,
+                relative = relative,
+            }))
+        end
+        if params.focus_without_unfocus == true then
+            local focused = widget.getFocusItem and widget:getFocusItem()
+            if focused then focused.onUnfocus = false end
+        end
+        return {
+            ok = started == true and moved == true and released == true,
+            marked = widget.marked,
+            page = widget.show_page,
+            dragging = widget._zen_dragging == true,
+            drag_unfocus_pending = widget._zen_drag_unfocus ~= nil,
+        }
+    end
+    if kind == "arrange_page_turn" then
+        local widget = active_arrange_widget()
+        if not widget then return { ok = false, error = "arrange page unavailable" } end
+        if params.direction == "previous" then
+            widget:onPrevPage()
+        else
+            widget:onNextPage()
+        end
+        return {
+            ok = true,
+            marked = widget.marked,
+            page = widget.show_page,
+            dragging = widget._zen_dragging == true,
+            handle_active = widget._zen_handle_active == true,
+        }
+    end
+    if kind == "arrange_page_select" then
+        local widget = active_arrange_widget()
+        local index = tonumber(params.index) or 1
+        if not widget then return { ok = false, error = "arrange page unavailable" } end
+        for _i, row in ipairs(widget.main_content or {}) do
+            if row.index == index and type(row.onTap) == "function" then
+                local handled = row:onTap(nil, {})
+                return { ok = handled == true }
+            end
+        end
+        return { ok = false, error = "arrange row unavailable" }
+    end
+    if kind == "arrange_page_back" then
+        local widget = active_arrange_widget()
+        local button = widget and widget.title_bar and widget.title_bar.back_button
+        if not (button and type(button.callback) == "function") then
+            return { ok = false, error = "arrange back unavailable" }
+        end
+        button.callback()
+        return { ok = true }
+    end
+    if kind == "arrange_page_hardware_back" then
+        local widget = active_arrange_widget()
+        if not widget then
+            return { ok = false, error = "arrange page unavailable" }
+        end
+        local Key = require("device/key")
+        local handled = widget:handleEvent(Event:new(
+            "KeyPress",
+            Key:new("Back", {})
+        ))
+        return { ok = handled == true }
+    end
+    if kind == "arrange_page_close_button" then
+        local widget = active_arrange_widget()
+        local button = widget and widget.title_bar and widget.title_bar.close_button
+        if not (button and type(button.callback) == "function") then
+            return { ok = false, error = "arrange close unavailable" }
+        end
+        button.callback()
+        return { ok = true }
+    end
+    if kind == "arrange_page_go_to" then
+        local widget = active_arrange_widget()
+        local page = tonumber(params.page)
+        if not (widget and page and page >= 1 and page <= widget.pages) then
+            return { ok = false, error = "arrange page unavailable" }
+        end
+        widget:onGoToPage(page)
+        return { ok = true, page = widget.show_page }
+    end
+    if kind == "arrange_page_top_tap" then
+        local widget = active_arrange_widget()
+        if not widget then return { ok = false, error = "arrange page unavailable" } end
+        local Device = require("device")
+        local Geom = require("ui/geometry")
+        local FileManager = require("apps/filemanager/filemanager")
+        local menu = FileManager.instance and FileManager.instance.menu
+        local gesture = {
+            ges = "tap",
+            pos = Geom:new{
+                x = math.floor(Device.screen:getWidth() * (tonumber(params.x_ratio) or 0.5)),
+                y = math.floor(Device.screen:getHeight() * (tonumber(params.y_ratio) or 0.01)),
+                w = 0,
+                h = 0,
+            },
+        }
+        local handled = widget:handleEvent(Event:new("Gesture", gesture))
+        local current = active_arrange_widget()
+        local menu_open = menu and menu.menu_container ~= nil
+        if menu_open and params.close_menu == true
+                and type(menu.onCloseFileManagerMenu) == "function" then
+            menu:onCloseFileManagerMenu()
+        end
+        return {
+            ok = handled == true,
+            same_widget = current == widget,
+            marked = current and current.marked,
+            title = current and current.title_bar and current.title_bar.title,
+            menu_open = menu_open,
+        }
+    end
+    if kind == "arrange_page_top_swipe" then
+        local widget = active_arrange_widget()
+        if not widget then return { ok = false, error = "arrange page unavailable" } end
+        local Device = require("device")
+        local Geom = require("ui/geometry")
+        local FileManager = require("apps/filemanager/filemanager")
+        local menu = FileManager.instance and FileManager.instance.menu
+        local pos = Geom:new{
+            x = math.floor(Device.screen:getWidth() * 0.5),
+            y = math.floor(Device.screen:getHeight() * 0.01),
+            w = 0,
+            h = 0,
+        }
+        local handled = widget:handleEvent(Event:new("Gesture", {
+            ges = "swipe",
+            direction = "south",
+            pos = pos,
+            start_pos = pos,
+        }))
+        local menu_open = menu and menu.menu_container ~= nil
+        if menu_open and params.close_menu == true
+                and type(menu.onCloseFileManagerMenu) == "function" then
+            menu:onCloseFileManagerMenu()
+        end
+        return {
+            ok = handled == true,
+            marked = widget.marked,
+            dragging = widget._zen_dragging == true,
+            menu_open = menu_open,
+        }
+    end
+    if kind == "arrange_page_action" then
+        local widget = active_arrange_widget()
+        local title_bar = widget and widget.title_bar
+        local button = title_bar and title_bar.action_button
+        if not (button and type(button.callback) == "function") then
+            return { ok = false, error = "arrange action unavailable" }
+        end
+        button.callback()
+        return { ok = true }
+    end
+    if kind == "arrange_page_search" and type(params.query) == "string" then
+        local widget = active_arrange_widget()
+        local title_bar = widget and widget.title_bar
+        if not (title_bar and type(title_bar.search_callback) == "function") then
+            return { ok = false, error = "arrange search unavailable" }
+        end
+        title_bar.search_callback(params.query)
+        return { ok = true }
+    end
+    if kind == "close_arrange_page" then
+        local widget = active_arrange_widget()
+        if not widget then return { ok = false, error = "arrange page unavailable" } end
+        if type(widget._zen_arrange_close_all) == "function" then
+            widget:_zen_arrange_close_all()
+        else
+            UIManager:close(widget)
+        end
+        return { ok = true }
+    end
+    if kind == "refresh_clock" then
+        require("common/clock_timer").refreshNow()
+        return { ok = true }
+    end
+    if kind == "close_settings_page" then
+        local page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
+        if not page then return { ok = false, error = "settings page unavailable" } end
+        page:closeMenu()
+        return { ok = true }
+    end
+    if kind == "zen_settings_stack_state" then
+        local arrange_count = 0
+        for index = #UIManager._window_stack, 1, -1 do
+            local widget = UIManager._window_stack[index].widget
+            if widget and widget.title_bar and widget.title_bar._zen_settings_header then
+                arrange_count = arrange_count + 1
+            end
+        end
+        return {
+            ok = true,
+            settings_open = rawget(_G, "__ZEN_UI_SETTINGS_PAGE") ~= nil,
+            arrange_count = arrange_count,
+        }
+    end
+    if kind == "custom_action_state" then
+        local settings_page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
+        local plugin = settings_page and settings_page.plugin
+        if not plugin then
+            local loader = require("pluginloader")
+            local ok_plugin, loaded = pcall(loader.getPluginInstance, loader, "zen_ui")
+            if ok_plugin then plugin = loaded end
+        end
+        local config = plugin and plugin.config or {}
+        local buttons = config.quick_settings and config.quick_settings.custom_buttons or {}
+        local actions = {}
+        for _i, button in ipairs(buttons) do
+            actions[#actions + 1] = {
+                id = button.id,
+                label = button.label,
+                history = type(button.action) == "table" and button.action.history ~= nil,
+                filebrowser = type(button.action) == "table"
+                    and button.action.filemanager ~= nil,
+            }
+        end
+        return { ok = true, actions = actions }
+    end
+    if kind == "activate_custom_control" and type(params.id) == "string" then
+        local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
+        if not (controls and type(controls.activate) == "function") then
+            return { ok = false, error = "controls unavailable" }
+        end
+        local host = {
+            item_table = { panel = true },
+            closeMenu = function() end,
+            updateItems = function() end,
+        }
+        return { ok = controls.activate(params.id, host) == true }
+    end
+    if kind == "open_koreader_history" then
+        local FileManager = require("apps/filemanager/filemanager")
+        local fm = FileManager.instance
+        local history = fm and fm.history
+        local menu_items = {}
+        if history and type(history.addToMainMenu) == "function" then
+            history:addToMainMenu(menu_items)
+        end
+        local item = menu_items.history
+        if not (item and type(item.callback) == "function") then
+            return { ok = false, error = "history menu item unavailable" }
+        end
+        item.callback()
+        return { ok = true }
+    end
+    if kind == "history_state" then
+        local FileManager = require("apps/filemanager/filemanager")
+        local fm = FileManager.instance
+        return {
+            ok = true,
+            open = fm and fm.history and fm.history.booklist_menu ~= nil,
+            settings_open = rawget(_G, "__ZEN_UI_SETTINGS_PAGE") ~= nil,
+        }
+    end
+    if kind == "close_history" then
+        local FileManager = require("apps/filemanager/filemanager")
+        local history = FileManager.instance and FileManager.instance.history
+        local menu = history and history.booklist_menu
+        if not menu then return { ok = false, error = "history unavailable" } end
+        menu:onCloseAllMenus()
+        return { ok = true }
     end
     if kind == "open_widget_settings" and type(params.id) == "string" then
         local module_name = params.page == "stats"
@@ -330,17 +1461,6 @@ function Driver:handleCommand(command)
             error = ok_call and nil or tostring(opened),
         }
     end
-    if kind == "activate_arrange_finish" then
-        local stack = UIManager._window_stack
-        local top = stack and stack[#stack]
-        local widget = top and top.widget
-        local button = widget and widget.title_bar and widget.title_bar._zen_arrange_done_button
-        if not (button and type(button.callback) == "function") then
-            return { ok = false, error = "Finish button unavailable" }
-        end
-        button.callback()
-        return { ok = true }
-    end
     if kind == "navbar_state" then
         return { ok = true, navbar = navbar_state() }
     end
@@ -357,6 +1477,18 @@ function Driver:handleCommand(command)
             return { ok = false, error = "navbar callback unavailable" }
         end
         return { ok = open_tab(params.id) == true }
+    end
+    if kind == "tap_navbar_tab" and type(params.label) == "string" then
+        local ok, err = tap_navbar_tab(params.label)
+        return { ok = ok == true, error = err }
+    end
+    if kind == "race_home_to_books" then
+        local open_tab = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_TAB")
+        if type(open_tab) ~= "function" or open_tab("home") ~= true then
+            return { ok = false, error = "Home tab unavailable" }
+        end
+        UIManager:scheduleIn(0.05, function() open_tab("books") end)
+        return { ok = true }
     end
     if kind == "reader_menu_home" then
         local ReaderUI = require("apps/reader/readerui")
@@ -383,6 +1515,14 @@ function Driver:handleCommand(command)
         end
         chooser:onNextPage()
         return { ok = true, page = chooser.page }
+    end
+    if kind == "cover_cache_stats" then
+        return { ok = true, stats = require("common/cover_decode_cache"):stats() }
+    end
+    if kind == "cover_cache_comparison" then
+        local result, err = cover_cache_comparison()
+        return result and { ok = true, measurement = result }
+            or { ok = false, error = err }
     end
     if kind == "checkpoint" then return { ok = true, name = params.name } end
     if kind == "screenshot" and type(params.output) == "string" then

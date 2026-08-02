@@ -1,6 +1,7 @@
 describe("global schedule resume hook", function()
     local global
     local ui_manager
+    local original_reader_settings
     local patched_modules = {
         "modules/global/patches/night_mode_schedule",
         "modules/global/patches/warmth_schedule",
@@ -14,6 +15,7 @@ describe("global schedule resume hook", function()
     }
 
     before_each(function()
+        original_reader_settings = _G.G_reader_settings
         _G.__ZEN_UI_NIGHT_SCHEDULE = { force_reschedule = function()
             _G.night_reschedules = (_G.night_reschedules or 0) + 1
         end }
@@ -57,6 +59,7 @@ describe("global schedule resume hook", function()
         _G.night_reschedules = nil
         _G.brightness_reschedules = nil
         _G.warmth_reschedules = nil
+        _G.G_reader_settings = original_reader_settings
     end)
 
     it("reapplies schedules after Resume even when another widget handled it", function()
@@ -75,5 +78,26 @@ describe("global schedule resume hook", function()
         assert.is_nil(_G.night_reschedules)
         assert.is_nil(_G.brightness_reschedules)
         assert.is_nil(_G.warmth_reschedules)
+    end)
+
+    it("disables Zen OPDS when KOReader OPDS is disabled", function()
+        local opds_applies = 0
+        local config = { features = {} }
+        local saved = 0
+        _G.G_reader_settings = ZenSpec.memorySettings({
+            plugins_disabled = { opds = true },
+        })
+        ZenSpec.replace("modules/global/patches/opds", function()
+            opds_applies = opds_applies + 1
+        end)
+
+        assert.is_true(global.init(nil, {
+            config = config,
+            saveConfig = function() saved = saved + 1 end,
+        }))
+
+        assert.are.equal(0, opds_applies)
+        assert.is_false(config.features.zen_opds)
+        assert.are.equal(1, saved)
     end)
 end)

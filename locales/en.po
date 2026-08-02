@@ -168,8 +168,11 @@ msgstr "All Time"
 msgid "All time"
 msgstr "All time"
 
-msgid "Allow custom icons"
-msgstr "Allow custom icons"
+msgid "Custom icons"
+msgstr "Custom icons"
+
+msgid "Enable custom icons"
+msgstr "Enable custom icons"
 
 msgid "Allow delete"
 msgstr "Allow delete"
@@ -795,8 +798,8 @@ msgstr "Enable KOReader verbose debug logging. Logs are written to koreader.log.
 msgid "Enable night mode schedule"
 msgstr "Enable night mode schedule"
 
-msgid "Enable page browser"
-msgstr "Enable page browser"
+msgid "Zen page browser"
+msgstr "Zen page browser"
 
 msgid "Enable top status bar"
 msgstr "Enable top status bar"
@@ -972,8 +975,8 @@ msgstr "Hide list borders"
 msgid "Hide reader actions in library"
 msgstr "Hide reader actions in library"
 
-msgid "Hide TBR books"
-msgstr "Hide TBR books"
+msgid "Hide on-hold books"
+msgstr "Hide on-hold books"
 
 msgid "Hide unread books"
 msgstr "Hide unread books"
@@ -1701,6 +1704,9 @@ msgstr "Restart Book"
 msgid "Restart now"
 msgstr "Restart now"
 
+msgid "Restarting"
+msgstr "Restarting"
+
 msgid "Restore library location on exit"
 msgstr "Restore library location on exit"
 
@@ -1893,8 +1899,8 @@ msgstr "Show item count"
 msgid "Show item underline"
 msgstr "Show item underline"
 
-msgid "Show KOReader progress bar"
-msgstr "Show KOReader progress bar"
+msgid "Show progress bar"
+msgstr "Show progress bar"
 
 msgid "Show labels"
 msgstr "Show labels"
@@ -1911,8 +1917,8 @@ msgstr "Show other KOReader quick lookup options alongside Zen buttons."
 msgid "Show page count"
 msgstr "Show page count"
 
-msgid "Show progress % on mosaic covers"
-msgstr "Show progress % on mosaic covers"
+msgid "Show reading progress"
+msgstr "Show reading progress"
 
 msgid "Show separator"
 msgstr "Show separator"
@@ -2400,6 +2406,12 @@ msgstr "Zen highlight menu"
 msgid "Zen Mode"
 msgstr "Zen Mode"
 
+msgid "Zen Mode Disabled"
+msgstr "Zen Mode Disabled"
+
+msgid "Zen Mode Enabled"
+msgstr "Zen Mode Enabled"
+
 msgid "Zen mode"
 msgstr "Zen mode"
 
@@ -2415,47 +2427,47 @@ msgstr "Zen quick lookup"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - Authors"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: Authors"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - Home"
+msgid "Zen UI: Home"
+msgstr "Zen UI: Home"
 
-msgid "Zen UI - Library"
-msgstr "Zen UI - Library"
+msgid "Zen UI: Library"
+msgstr "Zen UI: Library"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - Open folder"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: Open folder"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - Series"
+msgid "Zen UI: Series"
+msgstr "Zen UI: Series"
 
-msgid "Zen UI - Sync progress (pull + push)"
-msgstr "Zen UI - Sync progress (pull + push)"
+msgid "Zen UI: Sync progress (pull + push)"
+msgstr "Zen UI: Sync progress (pull + push)"
 
-msgid "Zen UI - Table of contents"
-msgstr "Zen UI - Table of contents"
+msgid "Zen UI: Table of contents"
+msgstr "Zen UI: Table of contents"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - Tags"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: Tags"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - Toggle bottom reader status bar"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: Toggle bottom reader status bar"
 
-msgid "Zen UI - Toggle Incognito Mode"
-msgstr "Zen UI - Toggle Incognito Mode"
+msgid "Zen UI: Toggle Incognito Mode"
+msgstr "Zen UI: Toggle Incognito Mode"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - Toggle Lockdown Mode"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: Toggle Lockdown Mode"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - Toggle reader status bars"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: Toggle reader status bars"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - Toggle top reader status bar"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: Toggle top reader status bar"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Toggle Zen Mode"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: Toggle Zen Mode"
 
 msgid "Zen UI defaults"
 msgstr "Zen UI defaults"
@@ -2490,8 +2502,8 @@ msgstr "Light sepia"
 msgid "Light tan"
 msgstr "Light tan"
 
-msgid "Zen UI - Toggle reader themes"
-msgstr "Zen UI - Toggle reader themes"
+msgid "Zen UI: Toggle reader themes"
+msgstr "Zen UI: Toggle reader themes"
 
 msgid "Dark mode"
 msgstr "Dark mode"
@@ -2525,3 +2537,36 @@ msgstr "Delete this custom theme?"
 
 msgid "Custom theme"
 msgstr "Custom theme"
+
+msgid "%1 (%2/%3 icons)"
+msgstr "%1 (%2/%3 icons)"
+
+msgid "By %1"
+msgstr "By %1"
+
+msgid "Could not install %1: %2"
+msgstr "Could not install %1: %2"
+
+msgid "Custom icon pack: %1"
+msgstr "Custom icon pack: %1"
+
+msgid "Loose icons"
+msgstr "Loose icons"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Loose icons in /koreader/icons"
+
+msgid "Missing: %1"
+msgstr "Missing: %1"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Restart KOReader to apply the updated active pack"
+
+msgid "Unavailable pack: %1"
+msgstr "Unavailable pack: %1"
+
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."

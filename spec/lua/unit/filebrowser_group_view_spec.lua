@@ -11,14 +11,19 @@ describe("file browser group views", function()
     local opened
     local file_dialog_args
     local sort_dialog_args
+    local legacy_tbr_calls
+    local select_menu_calls
     local saved_modules
     local replaced_modules = {
         "gettext",
         "config/manager",
         "common/book_status",
+        "common/history_index",
+        "common/paths",
         "common/shared_state",
         "modules/filebrowser/patches/standalone_page",
         "common/db_bookinfo",
+        "common/tbr_index",
         "bookinfomanager",
         "covermenu",
         "listmenu",
@@ -51,6 +56,8 @@ describe("file browser group views", function()
         menus, shown, closed, dialogs = {}, {}, {}, {}
         metadata, statuses, opened = {}, {}, {}
         saved, file_dialog_args, sort_dialog_args = 0, nil, nil
+        legacy_tbr_calls = 0
+        select_menu_calls = 0
 
         local plugin = {
             config = config,
@@ -66,7 +73,13 @@ describe("file browser group views", function()
         })
         ZenSpec.replace("common/book_status", {
             getEffectiveStatusFromFile = function(path) return statuses[path] end,
+            includeNewInTBREnabled = function() return false end,
         })
+        ZenSpec.replace("common/history_index", {
+            load = function() return groups.history or {} end,
+            fileTime = function(index, path) return index[path] end,
+        })
+        ZenSpec.replace("common/paths", { normPath = function(path) return path end })
         ZenSpec.replace("common/shared_state", {
             registerLoader = function() end,
             register = function(_, exports)
@@ -94,7 +107,14 @@ describe("file browser group views", function()
             getGroupedByAuthor = function() return groups.authors or {} end,
             getGroupedBySeries = function() return groups.series or {} end,
             getGroupedByTags = function() return groups.tags or {} end,
-            getTBRBooks = function() return groups.tbr or {} end,
+            getTBRBooks = function()
+                legacy_tbr_calls = legacy_tbr_calls + 1
+                return groups.tbr or {}
+            end,
+        })
+        ZenSpec.replace("common/tbr_index", {
+            getAll = function() return groups.tbr or {} end,
+            isAuditComplete = function() return true end,
         })
         ZenSpec.replace("bookinfomanager", {
             getSetting = function() return nil end,
@@ -154,6 +174,7 @@ describe("file browser group views", function()
         })
         ZenSpec.replace("apps/filemanager/filemanager", {
             instance = {
+                onShowPlusMenu = function() select_menu_calls = select_menu_calls + 1 end,
                 file_chooser = {
                     showFileDialog = function(_, args) file_dialog_args = args end,
                     showSortOrderDialog = function(_, args) sort_dialog_args = args end,
@@ -215,6 +236,27 @@ describe("file browser group views", function()
         assert.are.equal(1, tags.update_count)
     end)
 
+    it("reuses an open group page", function()
+        install_group_view({
+            authors = {
+                { author = "Ada", files = { "/a.epub" } },
+            },
+        })
+
+        local first = api.showAuthorsView()
+        local second = api.showAuthorsView()
+
+        assert.are.equal(first, second)
+        assert.are.equal(1, #menus)
+        assert.are.equal(1, #shown)
+
+        first.close_callback()
+        local reopened = api.showAuthorsView()
+        assert.are_not.equal(first, reopened)
+        assert.are.equal(2, #menus)
+        assert.are.equal(2, #shown)
+    end)
+
     it("names the missing metadata in an empty group page", function()
         install_group_view({})
 
@@ -232,7 +274,21 @@ describe("file browser group views", function()
             assert.are.equal(message, item.text)
             assert.is_true(item.dim)
             assert.is_function(item.callback)
+            assert.is_true(item._zen_empty_placeholder)
         end
+    end)
+
+    it("names an empty TBR page", function()
+        install_group_view({ tbr = {} })
+
+        api.showTBRView()
+
+        local item = assert(find_menu("to_be_read")).item_table[1]
+        assert.are.equal("No TBR books found", item.text)
+        assert.is_true(item.dim)
+        assert.is_true(item._zen_empty_placeholder)
+        assert.is_true(find_menu("to_be_read")._zen_group_view)
+        assert.are.equal(0, legacy_tbr_calls)
     end)
 
     it("names the group metadata when a detail page has no books", function()
@@ -308,6 +364,29 @@ describe("file browser group views", function()
         })
         assert.are.equal("20 B", detail.item_table[2].mandatory)
         assert.are.same({ group_name = "Saga", tab_id = "series", page = 1 }, api.getActiveDetail())
+    end)
+
+    it("sorts recently read detail books from read history", function()
+        local groups = {
+            history = { ["/older.epub"] = 100, ["/newer.epub"] = 200 },
+            authors = {
+                { author = "Writer", files = { "/older.epub", "/newer.epub" } },
+            },
+        }
+        install_group_view(groups)
+        config.group_view.detail_collate = { authors = { Writer = "access" } }
+        metadata["/older.epub"] = { access = 300 }
+        metadata["/newer.epub"] = { access = 100 }
+
+        api.showAuthorsView()
+        local root = assert(find_menu("authors"))
+        root.onMenuSelect(root, root.item_table[1])
+
+        local detail = assert(find_menu("authors_detail"))
+        assert.are.same({ "newer", "older" }, {
+            detail.item_table[1].text,
+            detail.item_table[2].text,
+        })
     end)
 
     it("applies saved title sort, reverse state, and status filtering to author details", function()
@@ -445,5 +524,55 @@ describe("file browser group views", function()
         assert.is_nil(api.getActivePage("authors"))
         assert.is_true(#closed >= 4)
         assert.are.equal("authors_detail", second_detail.name)
+    end)
+
+    it("selects group-detail books without opening them", function()
+        install_group_view({
+            authors = { { author = "Writer", files = { "/book.epub" } } },
+        })
+        local file_manager = package.loaded["apps/filemanager/filemanager"].instance
+        file_manager.selected_files = {}
+
+        api.showAuthorsView()
+        local root = assert(find_menu("authors"))
+        root.onMenuSelect(root, root.item_table[1])
+        local detail = assert(find_menu("authors_detail"))
+        local book = detail.item_table[1]
+
+        detail.onMenuSelect(detail, book)
+        assert.is_true(book.dim)
+        assert.is_true(file_manager.selected_files["/book.epub"])
+        assert.are.equal(0, #opened)
+
+        detail.onMenuSelect(detail, book)
+        assert.is_nil(book.dim)
+        assert.is_nil(file_manager.selected_files["/book.epub"])
+        assert.are.equal(0, #opened)
+
+        detail.onMenuHold(detail, book)
+        assert.are.equal(1, select_menu_calls)
+        assert.is_nil(file_dialog_args)
+    end)
+
+    it("marks the held group-detail book when Select enters selection mode", function()
+        install_group_view({
+            authors = { { author = "Writer", files = { "/book.epub" } } },
+        })
+
+        api.showAuthorsView()
+        local root = assert(find_menu("authors"))
+        root.onMenuSelect(root, root.item_table[1])
+        local detail = assert(find_menu("authors_detail"))
+        local book = detail.item_table[1]
+
+        detail.onMenuHold(detail, book)
+        assert.is_function(file_dialog_args._zen_select_cb)
+
+        local file_manager = package.loaded["apps/filemanager/filemanager"].instance
+        file_manager.selected_files = {}
+        assert.is_true(file_dialog_args._zen_select_cb())
+        assert.is_true(book.dim)
+        assert.is_true(file_manager.selected_files["/book.epub"])
+        assert.are.equal(0, #opened)
     end)
 end)

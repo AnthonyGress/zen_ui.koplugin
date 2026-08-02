@@ -33,6 +33,56 @@ function M.rootTapAction(item, toggle_tap)
     return "consume"
 end
 
+function M.confirmKeyName(key)
+    for _i, name in ipairs({ "Press", "Return" }) do
+        if key == name then return name end
+        if type(key) == "table" and type(key.match) == "function"
+                and key:match({ name }) then
+            return name
+        end
+    end
+end
+
+function M.dragTargetIndex(show_page, items_per_page, item_count, top, row_height, y)
+    if type(show_page) ~= "number" or type(items_per_page) ~= "number"
+            or type(item_count) ~= "number" or type(top) ~= "number"
+            or type(row_height) ~= "number" or row_height <= 0
+            or type(y) ~= "number" or show_page < 1
+            or items_per_page < 1 or item_count < 1 then
+        return nil
+    end
+    local first = (show_page - 1) * items_per_page + 1
+    local visible = math.min(items_per_page, item_count - first + 1)
+    local slot = math.floor((y - top) / row_height) + 1
+    if slot < 1 then return math.max(1, first - 1) end
+    if slot > visible then return math.min(item_count, first + visible) end
+    return first + slot - 1
+end
+
+function M.dragPageDirection(relative_x, threshold, y, top, bottom)
+    if type(y) == "number" and type(top) == "number" and type(bottom) == "number" then
+        if y < top then return -1 end
+        if y >= bottom then return 1 end
+    end
+    if type(relative_x) == "number" and type(threshold) == "number" then
+        if relative_x <= -threshold then return -1 end
+        if relative_x >= threshold then return 1 end
+    end
+    return 0
+end
+
+function M.moveTableItem(items, from, target)
+    if type(items) ~= "table" or type(from) ~= "number" or type(target) ~= "number"
+            or from % 1 ~= 0 or target % 1 ~= 0
+            or from < 1 or from > #items or target < 1 or target > #items
+            or type(items[from]) ~= "table" then
+        return false
+    end
+    local item = table.remove(items, from)
+    table.insert(items, target, item)
+    return true
+end
+
 function M.stripSubmenuCaret(text)
     if type(text) ~= "string" then return text end
     local ascii_caret = " >"

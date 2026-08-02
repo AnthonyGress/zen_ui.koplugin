@@ -168,8 +168,11 @@ msgstr "Tot timpul"
 msgid "All time"
 msgstr "Tot timpul"
 
-msgid "Allow custom icons"
-msgstr "Permite pictograme personalizate"
+msgid "Custom icons"
+msgstr "Pictograme personalizate"
+
+msgid "Enable custom icons"
+msgstr "Activează pictogramele personalizate"
 
 msgid "Allow delete"
 msgstr "Permite ștergerea"
@@ -795,8 +798,8 @@ msgstr "Activați jurnalizarea detaliată de depanare KOReader. Jurnalele sunt s
 msgid "Enable night mode schedule"
 msgstr "Activare planificare mod noapte"
 
-msgid "Enable page browser"
-msgstr "Activează browserul de pagini"
+msgid "Zen page browser"
+msgstr "Browser de pagini Zen"
 
 msgid "Enable top status bar"
 msgstr "Activează bara de stare de sus"
@@ -972,8 +975,8 @@ msgstr "Ascunde marginile listei"
 msgid "Hide reader actions in library"
 msgstr "Ascunde acțiunile cititorului în bibliotecă"
 
-msgid "Hide TBR books"
-msgstr "Ascunde cărțile de citit"
+msgid "Hide on-hold books"
+msgstr "Ascunde cărțile în așteptare"
 
 msgid "Hide unread books"
 msgstr "Ascunde cărțile necitite"
@@ -1701,6 +1704,9 @@ msgstr "Repornește cartea"
 msgid "Restart now"
 msgstr "Repornește acum"
 
+msgid "Restarting"
+msgstr "Se repornește"
+
 msgid "Restore library location on exit"
 msgstr "Restaurează locația bibliotecii la ieșire"
 
@@ -1893,8 +1899,8 @@ msgstr "Arată numărul de elemente"
 msgid "Show item underline"
 msgstr "Afișează sublinierea elementului"
 
-msgid "Show KOReader progress bar"
-msgstr "Afișează bara de progres KOReader"
+msgid "Show progress bar"
+msgstr "Afișează bara de progres"
 
 msgid "Show labels"
 msgstr "Afișează etichete"
@@ -1911,8 +1917,8 @@ msgstr "Afișează alte opțiuni de căutare rapidă KOReader alături de butoan
 msgid "Show page count"
 msgstr "Afișează numărul de pagini"
 
-msgid "Show progress % on mosaic covers"
-msgstr "Afișează % progres pe copertele mozaicului"
+msgid "Show reading progress"
+msgstr "Afișează progresul de citire"
 
 msgid "Show separator"
 msgstr "Arată separatorul"
@@ -2415,47 +2421,47 @@ msgstr "Căutare rapidă Zen"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - Autori"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: Autori"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - Acasă"
+msgid "Zen UI: Home"
+msgstr "Zen UI: Acasă"
 
-msgid "Zen UI - Library"
+msgid "Zen UI: Library"
 msgstr "Zen UI – Bibliotecă"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - Deschide dosar"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: Deschide dosar"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - Serii"
+msgid "Zen UI: Series"
+msgstr "Zen UI: Serii"
 
-msgid "Zen UI - Sync progress (pull + push)"
+msgid "Zen UI: Sync progress (pull + push)"
 msgstr "Zen UI – Progresul sincronizării (descărcare + încărcare)"
 
-msgid "Zen UI - Table of contents"
+msgid "Zen UI: Table of contents"
 msgstr "Zen UI – Cuprins"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - Etichete"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: Etichete"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - Comută bara de stare inferioară a cititorului"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: Comută bara de stare inferioară a cititorului"
 
-msgid "Zen UI - Toggle Incognito Mode"
+msgid "Zen UI: Toggle Incognito Mode"
 msgstr "Zen UI – Comută modul incognito"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - Comută modul restricție"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: Comută modul restricție"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - Comută barele de stare ale cititorului"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: Comută barele de stare ale cititorului"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - Comută bara de stare superioară a cititorului"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: Comută bara de stare superioară a cititorului"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Comută modul Zen"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: Comută modul Zen"
 
 msgid "Zen UI defaults"
 msgstr "Setări implicite Zen UI"
@@ -2490,8 +2496,8 @@ msgstr "Sepia deschis"
 msgid "Light tan"
 msgstr "Bej deschis"
 
-msgid "Zen UI - Toggle reader themes"
-msgstr "Zen UI - Comută temele de lectură"
+msgid "Zen UI: Toggle reader themes"
+msgstr "Zen UI: Comută temele de lectură"
 
 msgid "Dark mode"
 msgstr "Mod întunecat"
@@ -2525,3 +2531,36 @@ msgstr "Ștergeți această temă personalizată?"
 
 msgid "Custom theme"
 msgstr "Temă personalizată"
+
+msgid "%1 (%2/%3 icons)"
+msgstr "%1 (%2/%3 pictograme)"
+
+msgid "By %1"
+msgstr "De %1"
+
+msgid "Could not install %1: %2"
+msgstr "Nu s-a putut instala %1: %2"
+
+msgid "Custom icon pack: %1"
+msgstr "Pachet de pictograme personalizat: %1"
+
+msgid "Loose icons"
+msgstr "Pictograme separate"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Pictograme separate în /koreader/icons"
+
+msgid "Missing: %1"
+msgstr "Lipsește: %1"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Plasează dosarele pachetelor sau fișierele ZIP în /koreader/icons/zen. Fișierele ZIP sunt instalate automat."
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Repornește KOReader pentru a aplica pachetul activ actualizat"
+
+msgid "Unavailable pack: %1"
+msgstr "Pachet indisponibil: %1"
+
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "Când opțiunea este activată, pictogramele separate sau un pachet de pictograme Zen UI selectat înlocuiesc pictogramele acceptate. Pictogramele lipsă folosesc mai întâi Zen UI, apoi KOReader."

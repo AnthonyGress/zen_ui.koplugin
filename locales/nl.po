@@ -168,8 +168,11 @@ msgstr "Totaaltijd"
 msgid "All time"
 msgstr "Altijd"
 
-msgid "Allow custom icons"
-msgstr "Aangepaste pictogrammen toestaan"
+msgid "Custom icons"
+msgstr "Aangepaste pictogrammen"
+
+msgid "Enable custom icons"
+msgstr "Aangepaste pictogrammen inschakelen"
 
 msgid "Allow delete"
 msgstr "Verwijderen toestaan"
@@ -795,8 +798,8 @@ msgstr "KOReader uitgebreide debug-logregistratie inschakelen. Logbestanden word
 msgid "Enable night mode schedule"
 msgstr "Nachtmodus planning inschakelen"
 
-msgid "Enable page browser"
-msgstr "Paginabrowser inschakelen"
+msgid "Zen page browser"
+msgstr "Zen-paginabrowser"
 
 msgid "Enable top status bar"
 msgstr "Bovenste statusbalk inschakelen"
@@ -972,8 +975,8 @@ msgstr "Lijstranden verbergen"
 msgid "Hide reader actions in library"
 msgstr "Leesacties in bibliotheek verbergen"
 
-msgid "Hide TBR books"
-msgstr "Boeken op de leeslijst verbergen"
+msgid "Hide on-hold books"
+msgstr "Boeken in de wacht verbergen"
 
 msgid "Hide unread books"
 msgstr "Ongelezen boeken verbergen"
@@ -1701,6 +1704,9 @@ msgstr "Boek herstarten"
 msgid "Restart now"
 msgstr "Nu herstarten"
 
+msgid "Restarting"
+msgstr "Herstarten"
+
 msgid "Restore library location on exit"
 msgstr "Bibliotheeklocatie herstellen bij afsluiten"
 
@@ -1893,8 +1899,8 @@ msgstr "Aantal items weergeven"
 msgid "Show item underline"
 msgstr "Itemonderstreping weergeven"
 
-msgid "Show KOReader progress bar"
-msgstr "KOReader-voortgangsbalk weergeven"
+msgid "Show progress bar"
+msgstr "Voortgangsbalk weergeven"
 
 msgid "Show labels"
 msgstr "Labels weergeven"
@@ -1911,8 +1917,8 @@ msgstr "Andere snelle KOReader-opzoekopties naast Zen-knoppen weergeven."
 msgid "Show page count"
 msgstr "Paginatelling weergeven"
 
-msgid "Show progress % on mosaic covers"
-msgstr "Voortgang % op mozaïekomslagen weergeven"
+msgid "Show reading progress"
+msgstr "Leesvoortgang tonen"
 
 msgid "Show separator"
 msgstr "Scheidingsteken weergeven"
@@ -2415,47 +2421,47 @@ msgstr "Zen snel opzoeken"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - Auteurs"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: Auteurs"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - Startpagina"
+msgid "Zen UI: Home"
+msgstr "Zen UI: Startpagina"
 
-msgid "Zen UI - Library"
-msgstr "Zen UI - Bibliotheek"
+msgid "Zen UI: Library"
+msgstr "Zen UI: Bibliotheek"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - Map openen"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: Map openen"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - Reeksen"
+msgid "Zen UI: Series"
+msgstr "Zen UI: Reeksen"
 
-msgid "Zen UI - Sync progress (pull + push)"
-msgstr "Zen UI - Synchronisatievoortgang (ophalen + verzenden)"
+msgid "Zen UI: Sync progress (pull + push)"
+msgstr "Zen UI: Synchronisatievoortgang (ophalen + verzenden)"
 
-msgid "Zen UI - Table of contents"
-msgstr "Zen UI - Inhoudsopgave"
+msgid "Zen UI: Table of contents"
+msgstr "Zen UI: Inhoudsopgave"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - Labels"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: Labels"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - Onderste leesstatusbalk schakelen"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: Onderste leesstatusbalk schakelen"
 
-msgid "Zen UI - Toggle Incognito Mode"
-msgstr "Zen UI - Incognitomodus omschakelen"
+msgid "Zen UI: Toggle Incognito Mode"
+msgstr "Zen UI: Incognitomodus omschakelen"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - Lockdown-modus schakelen"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: Lockdown-modus schakelen"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - Leesstatusbalken schakelen"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: Leesstatusbalken schakelen"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - Bovenste leesstatusbalk schakelen"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: Bovenste leesstatusbalk schakelen"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Zen-modus schakelen"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: Zen-modus schakelen"
 
 msgid "Zen UI defaults"
 msgstr "Zen UI-standaardinstellingen"
@@ -2490,8 +2496,8 @@ msgstr "Licht sepia"
 msgid "Light tan"
 msgstr "Licht beige"
 
-msgid "Zen UI - Toggle reader themes"
-msgstr "Zen UI - Leesthema's wisselen"
+msgid "Zen UI: Toggle reader themes"
+msgstr "Zen UI: Leesthema's wisselen"
 
 msgid "Dark mode"
 msgstr "Donkere modus"
@@ -2525,3 +2531,36 @@ msgstr "Dit aangepaste thema verwijderen?"
 
 msgid "Custom theme"
 msgstr "Aangepast thema"
+
+msgid "%1 (%2/%3 icons)"
+msgstr "%1 (%2/%3 pictogrammen)"
+
+msgid "By %1"
+msgstr "Door %1"
+
+msgid "Could not install %1: %2"
+msgstr "Kan %1 niet installeren: %2"
+
+msgid "Custom icon pack: %1"
+msgstr "Aangepast pictogrampakket: %1"
+
+msgid "Loose icons"
+msgstr "Losse pictogrammen"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Losse pictogrammen in /koreader/icons"
+
+msgid "Missing: %1"
+msgstr "Ontbreekt: %1"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Plaats pakketmappen of ZIP-bestanden in /koreader/icons/zen. ZIP-bestanden worden automatisch geïnstalleerd."
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Herstart KOReader om het bijgewerkte actieve pakket toe te passen"
+
+msgid "Unavailable pack: %1"
+msgstr "Niet-beschikbaar pakket: %1"
+
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "Indien ingeschakeld vervangen losse pictogrammen of een geselecteerd Zen UI-pictogrampakket de ondersteunde pictogrammen. Ontbrekende pictogrammen vallen eerst terug op Zen UI en daarna op KOReader."

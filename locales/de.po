@@ -168,8 +168,11 @@ msgstr "Gesamte Zeit"
 msgid "All time"
 msgstr "Alle Zeiten"
 
-msgid "Allow custom icons"
-msgstr "Benutzerdefinierte Icons erlauben"
+msgid "Custom icons"
+msgstr "Benutzerdefinierte Symbole"
+
+msgid "Enable custom icons"
+msgstr "Benutzerdefinierte Icons aktivieren"
 
 msgid "Allow delete"
 msgstr "Löschen erlauben"
@@ -792,8 +795,8 @@ msgstr "Ausführliche KOReader-Debug-Protokollierung aktivieren. Protokolle werd
 msgid "Enable night mode schedule"
 msgstr "Nachtmodus-Zeitplan aktivieren"
 
-msgid "Enable page browser"
-msgstr "Seiten-Browser aktivieren"
+msgid "Zen page browser"
+msgstr "Zen-Seitenbrowser"
 
 msgid "Enable top status bar"
 msgstr "Obere Statusleiste aktivieren"
@@ -969,8 +972,8 @@ msgstr "Listenränder ausblenden"
 msgid "Hide reader actions in library"
 msgstr "Reader-Aktionen in Bibliothek ausblenden"
 
-msgid "Hide TBR books"
-msgstr "Bücher auf der Leseliste ausblenden"
+msgid "Hide on-hold books"
+msgstr "Zurückgestellte Bücher ausblenden"
 
 msgid "Hide unread books"
 msgstr "Ungelesene Bücher ausblenden"
@@ -2406,47 +2409,47 @@ msgstr "Zen-Schnellsuche"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - Autoren"
+msgid "Zen UI: Authors"
+msgstr "Zen UI: Autoren"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - Startseite"
+msgid "Zen UI: Home"
+msgstr "Zen UI: Startseite"
 
-msgid "Zen UI - Library"
+msgid "Zen UI: Library"
 msgstr "Zen UI – Bibliothek"
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - Ordner öffnen"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI: Ordner öffnen"
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - Serien"
+msgid "Zen UI: Series"
+msgstr "Zen UI: Serien"
 
-msgid "Zen UI - Sync progress (pull + push)"
+msgid "Zen UI: Sync progress (pull + push)"
 msgstr "Zen UI – Synchronisierungsfortschritt (Abrufen + Übertragen)"
 
-msgid "Zen UI - Table of contents"
+msgid "Zen UI: Table of contents"
 msgstr "Zen UI – Inhaltsverzeichnis"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - Tags"
+msgid "Zen UI: Tags"
+msgstr "Zen UI: Tags"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - Untere Reader-Statusleiste umschalten"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI: Untere Reader-Statusleiste umschalten"
 
-msgid "Zen UI - Toggle Incognito Mode"
+msgid "Zen UI: Toggle Incognito Mode"
 msgstr "Zen UI – Inkognitomodus umschalten"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - Sperrmodus umschalten"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI: Sperrmodus umschalten"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - Reader-Statusleisten umschalten"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI: Reader-Statusleisten umschalten"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - Obere Reader-Statusleiste umschalten"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI: Obere Reader-Statusleiste umschalten"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Zen-Modus umschalten"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI: Zen-Modus umschalten"
 
 msgid "Zen UI defaults"
 msgstr "Zen-UI-Standardwerte"

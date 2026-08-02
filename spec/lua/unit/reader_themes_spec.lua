@@ -3,11 +3,13 @@ describe("reader themes", function()
     local dirty_calls
     local next_tick_callback
     local promote_partial
+    local force_repaints
 
     before_each(function()
         dirty_calls = {}
         next_tick_callback = nil
         promote_partial = false
+        force_repaints = 0
         _G.G_reader_settings = ZenSpec.memorySettings()
         _G.G_reader_settings.has = function(self, key) return self.data[key] ~= nil end
         ZenSpec.replace("ui/uimanager", {
@@ -21,6 +23,7 @@ describe("reader themes", function()
                 return self:_refresh(select(2, ...))
             end,
             nextTick = function(_, callback) next_tick_callback = callback end,
+            forceRePaint = function() force_repaints = force_repaints + 1 end,
         })
         ZenSpec.replace("device", {
             screen = {
@@ -198,6 +201,7 @@ describe("reader themes", function()
         local ReaderFooter = {
             updateFooterContainer = function() end,
             updateFooterFont = function() end,
+            shouldBeRepainted = function() return true end,
         }
         local plugin = {
             config = {
@@ -214,6 +218,9 @@ describe("reader themes", function()
         ZenSpec.replace("apps/reader/modules/readerfooter", ReaderFooter)
         local ReaderUI = {
             onClose = function() end,
+            doShowReader = function(self, file)
+                self.instance = { document = { file = file } }
+            end,
         }
         ZenSpec.replace("apps/reader/readerui", ReaderUI)
         ZenSpec.unload("modules/reader/patches/reader_themes")
@@ -221,6 +228,29 @@ describe("reader themes", function()
         assert.is_true(require("modules/reader/patches/reader_themes")())
         CreDocument:setStyleSheet("epub.css", "base")
         assert.matches("#252525", received_css, 1, true)
+
+        local repaint, full_repaint = ReaderFooter:shouldBeRepainted()
+        assert.is_true(repaint)
+        assert.is_true(full_repaint)
+        plugin.config.features.reader_themes = false
+        repaint, full_repaint = ReaderFooter:shouldBeRepainted()
+        assert.is_true(repaint)
+        assert.is_nil(full_repaint)
+        plugin.config.features.reader_themes = true
+
+        ReaderUI:doShowReader("themed.epub")
+        assert.is_nil(dirty_calls[1][2])
+        assert.are.equal("full", dirty_calls[1][3])
+        assert.are.equal(1, force_repaints)
+        dirty_calls = {}
+        require("ui/uimanager")._refresh_stack = {}
+        force_repaints = 0
+
+        plugin.config.features.reader_themes = false
+        ReaderUI:doShowReader("plain.epub")
+        assert.are.equal(0, #dirty_calls)
+        assert.are.equal(0, force_repaints)
+        plugin.config.features.reader_themes = true
 
         ReaderUI.instance = {}
         require("ui/uimanager"):setDirty(ReaderUI.instance, "partial")
