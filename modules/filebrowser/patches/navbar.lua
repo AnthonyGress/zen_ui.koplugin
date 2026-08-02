@@ -25,6 +25,11 @@ local function apply_navbar()
     local Screen = Device.screen
     local _ = require("gettext")
     local lfs = require("libs/libkoreader-lfs")
+    local logger = require("common/zen_logger").new("navbar")
+
+    local function getRakuyomi()
+        return rawget(_G, "__ZEN_UI_RAKUYOMI") or {}
+    end
 
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
     if not zen_plugin or type(zen_plugin.config) ~= "table" then
@@ -49,6 +54,18 @@ local function apply_navbar()
     local function is_restore_enabled()
         local features = zen_plugin.config and zen_plugin.config.features
         return type(features) == "table" and features.restore_library_view == true
+    end
+
+    local function rakuyomi_return_to_chapter_list_on_exit_enabled()
+        local rakuyomi = zen_plugin.config and zen_plugin.config.rakuyomi
+        if type(rakuyomi) ~= "table" then return true end
+        if rakuyomi.return_to_chapter_list_on_exit ~= nil then
+            return rakuyomi.return_to_chapter_list_on_exit ~= false
+        end
+        if rakuyomi.return_to_chapter_list_on_reader_exit ~= nil then
+            return rakuyomi.return_to_chapter_list_on_reader_exit ~= false
+        end
+        return true
     end
 
     -- === Layout constants ===
@@ -92,7 +109,7 @@ local function apply_navbar()
             page_right = false,
             menu = false,
         },
-        tab_order = { "page_left", "books", "manga", "news", "continue", "authors", "series", "tags", "to_be_read", "home", "history", "favorites", "collections", "stats", "search", "calibre_search", "exit", "page_right", "menu" },
+        tab_order = { "books", "manga", "news", "continue", "home" },
         show_icons = true,
         show_labels = true,
         icon_size = navbar_icon_size_default,
@@ -109,10 +126,12 @@ local function apply_navbar()
         active_tab_underline = true,
         underline_above = false,
         show_top_border = false,
+        layout_version = 2,
     }
 
     local function loadConfig()
         local config = zen_plugin.config.navbar or {}
+        local legacy_layout = config.layout_version ~= 2
         for k, v in pairs(config_default) do
             if config[k] == nil then
                 config[k] = utils.deepcopy(v)
@@ -127,17 +146,33 @@ local function apply_navbar()
         else
             config.show_tabs = config_default.show_tabs
         end
-        -- Ensure tab_order contains all known tabs
-        if type(config.tab_order) ~= "table" then
+        if legacy_layout then
+            local selected = {}
+            local seen = {}
+            local custom_ids = {}
+            for _i, tab in ipairs(config.custom_tabs or {}) do
+                if type(tab.id) == "string" then custom_ids[tab.id] = true end
+            end
+            for _i, id in ipairs(config.tab_order or {}) do
+                if (config.show_tabs[id] == true or custom_ids[id]) and not seen[id] then
+                    selected[#selected + 1] = id
+                    seen[id] = true
+                end
+            end
+            config.tab_order = selected
+            config.layout_version = 2
+        elseif type(config.tab_order) ~= "table" then
             config.tab_order = config_default.tab_order
         else
             local order_set = {}
-            for _i, v in ipairs(config.tab_order) do order_set[v] = true end
-            for _i, v in ipairs(config_default.tab_order) do
-                if not order_set[v] then
-                    table.insert(config.tab_order, v)
+            local deduped = {}
+            for _i, id in ipairs(config.tab_order) do
+                if not order_set[id] then
+                    order_set[id] = true
+                    deduped[#deduped + 1] = id
                 end
             end
+            config.tab_order = deduped
         end
         config.icon_size = clampNavbarSize(
             config.icon_size,
@@ -149,19 +184,12 @@ local function apply_navbar()
             navbar_label_size_min,
             navbar_label_size_max,
             navbar_label_size_default)
-        -- Add custom tab IDs to tab_order if not already present
-        if type(config.custom_tabs) == "table" then
-            local ct_order_set = {}
-            for _i, v in ipairs(config.tab_order) do ct_order_set[v] = true end
-            for _i, ct in ipairs(config.custom_tabs) do
-                if type(ct.id) == "string" and not ct_order_set[ct.id] then
-                    table.insert(config.tab_order, ct.id)
-                end
-            end
-        end
         -- migrate old hard-coded English default
         if config.books_label == "Library" then config.books_label = "" end
         zen_plugin.config.navbar = config
+        if legacy_layout and type(zen_plugin.saveConfig) == "function" then
+            zen_plugin:saveConfig()
+        end
         return config
     end
 
@@ -470,15 +498,9 @@ local function apply_navbar()
             return
         end
 
-        -- Default: open Rakuyomi
-        local rakuyomi = fm.rakuyomi
-        if rakuyomi then
-            rakuyomi:openLibraryView()
-        else
-            local InfoMessage = require("ui/widget/infomessage")
-            UIManager:show(InfoMessage:new{
-                text = _("Rakuyomi plugin is not installed."),
-            })
+        local Rakuyomi = getRakuyomi()
+        if type(Rakuyomi.openLibraryView) == "function" then
+            Rakuyomi.openLibraryView({ hideTopClose = true, forceLibraryView = true })
         end
     end
 
@@ -533,7 +555,23 @@ local function apply_navbar()
             })
             return
         end
-        if is_restore_enabled() and not skip_tabs_for_state[active_tab] then
+        local Rakuyomi = getRakuyomi()
+        local resume_rakuyomi = type(Rakuyomi.isChapterFile) == "function"
+            and Rakuyomi.isChapterFile(last_file)
+        local rakuyomi_return_file = resume_rakuyomi
+            and rakuyomi_return_to_chapter_list_on_exit_enabled()
+            and last_file or nil
+        logger.dbg(
+            "Rakuyomi return: Continue:",
+            "file=", last_file,
+            "detected=", tostring(resume_rakuyomi))
+        _G.__ZEN_UI_FORCE_SOURCE_TAB_RESTORE = nil
+        _G.__ZEN_UI_RAKUYOMI_RETURN_FILE = nil
+        if resume_rakuyomi then
+            _G.__ZEN_UI_LIBRARY_SOURCE_TAB = "manga"
+            _G.__ZEN_UI_FORCE_SOURCE_TAB_RESTORE = true
+            _G.__ZEN_UI_RAKUYOMI_RETURN_FILE = rakuyomi_return_file
+        elseif is_restore_enabled() and not skip_tabs_for_state[active_tab] then
             _G.__ZEN_UI_LIBRARY_SOURCE_TAB = active_tab
         else
             _G.__ZEN_UI_LIBRARY_SOURCE_TAB = nil
@@ -1129,6 +1167,14 @@ local function apply_navbar()
                             local launch = PluginScan.resolve(plugin.key, plugin.method)
                             if launch then pcall(launch) end
                         end
+                    elseif ct.type == "quick_setting" then
+                        local quick_setting_id = ct.quick_setting_id
+                        tab_callbacks[ct.id] = function()
+                            local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
+                            if controls and controls.activate then
+                                controls.activate(quick_setting_id)
+                            end
+                        end
                     elseif ok_disp_ct and ct.action and next(ct.action) then
                         local action = ct.action
                         tab_callbacks[ct.id] = function() Dispatcher_ct:execute(action) end
@@ -1298,7 +1344,7 @@ local function apply_navbar()
         return h
     end
 
-    -- Standalone views (History, Favorites, Collections, Stats, Rakuyomi) that should get navbar
+    -- Standalone views (History, Favorites, Collections, Stats) that should get navbar
     local standalone_view_names = {
         history = true,
         collections = true,
@@ -1311,17 +1357,73 @@ local function apply_navbar()
         series_detail = true,
         tags_detail = true,
         stats = true,
-        library_view = true, -- Rakuyomi
     }
 
-    -- Views where we inject navbar via nextTick in Menu:init
-    -- (plugin views that can't be hooked via show functions)
-    local standalone_nexttick_tab_ids = {
-        library_view = "manga",
-    }
+    local function isRakuyomiView(menu)
+        local Rakuyomi = getRakuyomi()
+        return type(Rakuyomi.isLibraryView) == "function" and Rakuyomi.isLibraryView(menu)
+    end
+
+    local function closeStandaloneView(menu)
+        if not menu then return end
+        local Rakuyomi = getRakuyomi()
+        local closed = type(Rakuyomi.closeLibraryView) == "function"
+            and Rakuyomi.closeLibraryView(menu)
+        if not closed then
+            if menu.close_callback then
+                menu.close_callback()
+            elseif menu.onClose then
+                menu:onClose()
+            else
+                UIManager:close(menu)
+            end
+        end
+        if menu._zen_close_stack then menu._zen_close_stack() end
+    end
+
+    local function isStandaloneExitTarget(widget)
+        if not widget then return false end
+        local fm = FileManager.instance
+        if fm and (widget == fm or widget == fm.show_parent) then return true end
+        local ok_rui, RUI = pcall(require, "apps/reader/readerui")
+        if ok_rui and RUI and RUI.instance
+                and (widget == RUI.instance or widget == RUI.instance.show_parent) then
+            return true
+        end
+        return standalone_view_names[widget.name] == true
+            or isRakuyomiView(widget)
+            or widget._zen_standalone_navbar_injected == true
+    end
+
+    local function getStandaloneNextTickTabId(menu)
+        local Rakuyomi = getRakuyomi()
+        if type(Rakuyomi.getStandaloneTabId) == "function" then
+            return Rakuyomi.getStandaloneTabId(menu)
+        end
+    end
+
+    local function shouldCloseStandaloneBeforeAction(menu, tab_id)
+        local Rakuyomi = getRakuyomi()
+        return type(Rakuyomi.shouldCloseBeforeActionTab) == "function"
+            and Rakuyomi.shouldCloseBeforeActionTab(menu, tab_id)
+    end
+
+    local function onStandaloneNavbarInjected(menu)
+        local Rakuyomi = getRakuyomi()
+        if type(Rakuyomi.onStandaloneNavbarInjected) == "function" then
+            Rakuyomi.onStandaloneNavbarInjected(menu, isStandaloneExitTarget)
+        end
+    end
+
+    local function refreshStandaloneAfterResize(menu)
+        local Rakuyomi = getRakuyomi()
+        return type(Rakuyomi.refreshAfterResize) == "function"
+            and Rakuyomi.refreshAfterResize(menu)
+    end
 
     local function isStandaloneNavbarView(menu)
         if standalone_view_names[menu.name] then return true end
+        if isRakuyomiView(menu) then return true end
         -- Collections list has no name but has these flags
         if not menu.name and menu.covers_fullscreen and menu.is_borderless and menu.title_bar_fm_style then
             return true
@@ -1367,10 +1469,10 @@ local function apply_navbar()
         if not _skip_standalone_navbar and isStandaloneNavbarView(self) then
             preventStandaloneSwipeClose(self)
         end
-        -- Plugin views (e.g. Rakuyomi) can't be hooked via show functions,
+        -- Plugin views can need delayed injection when they can't be hooked via show functions.
         -- so inject navbar via nextTick from here. Hide-pagination doesn't
         -- apply to these views so there's no ordering conflict.
-        local nexttick_tab_id = standalone_nexttick_tab_ids[self.name]
+        local nexttick_tab_id = getStandaloneNextTickTabId(self)
         if nexttick_tab_id and not self._zen_standalone_navbar_pending
                 and not self._zen_standalone_navbar_injected then
             self._zen_standalone_navbar_pending = true
@@ -1825,6 +1927,9 @@ local function apply_navbar()
             end
 
             if not shouldTrackActiveTab(tapped_id) then
+                if shouldCloseStandaloneBeforeAction(menu, tapped_id) then
+                    closeStandaloneView(menu)
+                end
                 runTabCallback(tapped_id)
                 return true
             end
@@ -1832,23 +1937,12 @@ local function apply_navbar()
             -- Close this standalone view first
             if tapped_id == "books" then
                 setActiveTab(tapped_id)
+                closeStandaloneView(menu)
                 runTabCallback(tapped_id)
-                UIManager:close(menu)
-                if menu._zen_close_stack then menu._zen_close_stack() end
                 return true
             end
 
-            if menu.close_callback then
-                menu.close_callback()
-            elseif menu.onClose then
-                menu:onClose()
-            else
-                UIManager:close(menu)
-            end
-            -- Unwind any parent stack (e.g. authors/series group view under a detail view)
-            if menu._zen_close_stack then
-                menu._zen_close_stack()
-            end
+            closeStandaloneView(menu)
 
             -- Update FM navbar active tab only for persistent views.
             if shouldTrackActiveTab(tapped_id) then
@@ -1863,6 +1957,7 @@ local function apply_navbar()
 
         -- Expand dimen to full screen so gestures and repaints cover the navbar area
         menu.dimen.h = Screen:getHeight()
+        onStandaloneNavbarInjected(menu)
         -- Suppress the spurious partial_page_repaint nextTick forceRePaint that fires
         -- after updateItems on initial load — the UIManager:show() paint already covers it.
         menu._zen_no_forced_repaint = true
@@ -1919,10 +2014,8 @@ local function apply_navbar()
                 end
                 if body_widget.resetLayout then body_widget:resetLayout() end
             end
-            if menu.name == "library_view" and type(menu.updateItems) == "function"
-                    and menu.item_group and menu.content_group then
-                menu:updateItems(menu.itemnumber)
-            end
+            if menu._zen_stats_rebuild then menu:_zen_stats_rebuild() end
+            refreshStandaloneAfterResize(menu)
             if vg.resetLayout then vg:resetLayout() end
             if menu[1] and menu[1].resetLayout then menu[1]:resetLayout() end
         end
@@ -2065,20 +2158,19 @@ local function apply_navbar()
                     menu.page = 1; menu:updateItems(); return
                 end
                 if not shouldTrackActiveTab(tapped_id) then
+                    if shouldCloseStandaloneBeforeAction(menu, tapped_id) then
+                        closeStandaloneView(menu)
+                    end
                     runTabCallback(tapped_id)
                     return
                 end
                 if tapped_id == "books" then
                     setActiveTab(tapped_id)
+                    closeStandaloneView(menu)
                     runTabCallback(tapped_id)
-                    UIManager:close(menu)
-                    if menu._zen_close_stack then menu._zen_close_stack() end
                     return
                 end
-                if menu.close_callback then menu.close_callback()
-                elseif menu.onClose then menu:onClose()
-                else UIManager:close(menu) end
-                if menu._zen_close_stack then menu._zen_close_stack() end
+                closeStandaloneView(menu)
                 if shouldTrackActiveTab(tapped_id) then
                     setActiveTab(tapped_id)
                 end
@@ -2176,10 +2268,23 @@ local function apply_navbar()
     -- showFileManager() recreates it we can scroll back to the right place.
     local orig_fm_onShowingReader = FileManager.onShowingReader
     function FileManager:onShowingReader()
+        local started_at = os.clock()
         local gv = get_shared("group_view")
         local source_tab = rawget(_G, "__ZEN_UI_LIBRARY_SOURCE_TAB") or active_tab
+        local force_source_restore = rawget(_G, "__ZEN_UI_FORCE_SOURCE_TAB_RESTORE") == true
+        local rakuyomi_return_file = rawget(_G, "__ZEN_UI_RAKUYOMI_RETURN_FILE")
+        if force_source_restore or rakuyomi_return_file then
+            logger.dbg(
+                "Rakuyomi return: onShowingReader capture:",
+                "source_tab=", tostring(source_tab),
+                "force=", tostring(force_source_restore),
+                "file=", tostring(rakuyomi_return_file))
+        end
         _G.__ZEN_UI_LIBRARY_SOURCE_TAB = nil
-        if is_restore_enabled() and not skip_tabs_for_state[source_tab] then
+        _G.__ZEN_UI_FORCE_SOURCE_TAB_RESTORE = nil
+        _G.__ZEN_UI_RAKUYOMI_RETURN_FILE = nil
+        if (is_restore_enabled() or force_source_restore)
+                and (force_source_restore or not skip_tabs_for_state[source_tab]) then
             local page = 1
             -- Group views expose page via M.getActivePage
             if gv and gv.getActivePage then
@@ -2212,6 +2317,8 @@ local function apply_navbar()
                 page         = page,
                 detail_group = detail_group,
                 detail_page  = detail_page,
+                force_restore = force_source_restore,
+                rakuyomi_return_file = rakuyomi_return_file,
             }
         else
             _G.__ZEN_UI_LIBRARY_STATE = nil
@@ -2238,6 +2345,8 @@ local function apply_navbar()
             end
         end
         if orig_fm_onShowingReader then orig_fm_onShowingReader(self) end
+        logger.perf("Library state captured for reader", (os.clock() - started_at) * 1000,
+            "tab=", tostring(source_tab))
     end
 
     local orig_setupLayout = FileManager.setupLayout
@@ -2277,19 +2386,40 @@ local function apply_navbar()
     end
 
     function FileManager:showFiles(path, focused_file, selected_files)
+        local started_at = os.clock()
         local open_home_after_filemanager = rawget(_G, "__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER") == true
         _G.__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER = nil
         local open_target_tab = rawget(_G, "__ZEN_UI_OPEN_TARGET_TAB")
         _G.__ZEN_UI_OPEN_TARGET_TAB = nil
         local open_target_folder = rawget(_G, "__ZEN_UI_OPEN_TARGET_FOLDER")
         _G.__ZEN_UI_OPEN_TARGET_FOLDER = nil
-        local keep_book_location = rawget(_G, "__ZEN_UI_KEEP_BOOK_LOCATION") == true
+        local keep_book_location_requested = rawget(_G, "__ZEN_UI_KEEP_BOOK_LOCATION") == true
         _G.__ZEN_UI_KEEP_BOOK_LOCATION = nil
         local restore_enabled = is_restore_enabled()
-        local forced_default_tab = not open_home_after_filemanager
+        local state_before_show = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
+        local force_source_restore = state_before_show and state_before_show.force_restore == true
+        local hide_rakuyomi_filemanager = force_source_restore
+            and state_before_show.tab == "manga"
+            and rakuyomi_return_to_chapter_list_on_exit_enabled()
+        local keep_book_location = keep_book_location_requested and not force_source_restore
+        if force_source_restore then
+            logger.dbg(
+                "Rakuyomi return: showFiles restore state:",
+                "path=", tostring(path),
+                "focused_file=", tostring(focused_file),
+                "file=", tostring(state_before_show.rakuyomi_return_file),
+                "keep_requested=", tostring(keep_book_location_requested),
+                "open_home=", tostring(open_home_after_filemanager),
+                "open_target_tab=", tostring(open_target_tab),
+                "open_target_folder=", tostring(open_target_folder))
+        end
+        if force_source_restore then
+            _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = nil
+        end
+        local forced_default_tab = not force_source_restore
+            and not open_home_after_filemanager
             and rawget(_G, "__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB") == true
             and resolve_default_tab() or nil
-        local state_before_show = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
         local default_tab = forced_default_tab or resolve_default_tab()
         -- When restore is disabled, open at library root immediately (no double render).
         local effective_focused = (restore_enabled or keep_book_location) and focused_file or nil
@@ -2306,6 +2436,7 @@ local function apply_navbar()
             or open_home_after_filemanager
             or open_target_tab
             or open_target_folder
+            or (state_before_show and state_before_show.force_restore)
             or (not restore_enabled
                 and not keep_book_location
                 and default_tab ~= "books")
@@ -2321,6 +2452,14 @@ local function apply_navbar()
         else
             orig_showFiles(self, path, effective_focused, selected_files)
         end
+        local filemanager = FileManager.instance
+        if hide_rakuyomi_filemanager and filemanager then
+            filemanager.invisible = true
+            UIManager._dirty[filemanager] = nil
+        end
+        logger.perf("File manager base restore completed", (os.clock() - started_at) * 1000,
+            "restore_tab=", tostring(state_before_show and state_before_show.tab),
+            "path=", tostring(path))
         if suppress_initial_covers and self.file_chooser then
             self.file_chooser._zen_needs_cover_refresh = true
         end
@@ -2365,7 +2504,7 @@ local function apply_navbar()
             return
         end
         local state = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
-        if not restore_enabled then
+        if not restore_enabled and not (state and state.force_restore) then
             _G.__ZEN_UI_LIBRARY_STATE = nil
             if not keep_book_location then
                 maybe_open_startup_default_tab(self)
@@ -2385,8 +2524,51 @@ local function apply_navbar()
         syncActiveTabLabel()
         -- Open group/standalone view synchronously (stack: [fm, group_menu])
         withBgTabRefreshSuppressed(function()
-            tab_callbacks[state.tab]()
+            local Rakuyomi = getRakuyomi()
+            local return_enabled = rakuyomi_return_to_chapter_list_on_exit_enabled()
+            local return_file = return_enabled and state.rakuyomi_return_file or nil
+            if not return_enabled then
+                state.rakuyomi_return_file = nil
+            end
+            if state.tab == "manga" and not return_enabled then
+                local opened_library = type(Rakuyomi.openLibraryView) == "function"
+                    and Rakuyomi.openLibraryView({ hideTopClose = true })
+                logger.dbg(
+                    "Rakuyomi return: restore library:",
+                    "opened_library=", tostring(opened_library),
+                    "manga_action=", tostring(config.manga_action),
+                    "manga_destination=", tostring(config.manga_action == "folder"
+                        and config.manga_folder or config.manga_action))
+                return
+            end
+            if not return_file and state.tab == "manga" and return_enabled
+                    and type(focused_file) == "string" then
+                return_file = focused_file
+                state.rakuyomi_return_file = return_file
+            end
+            local has_file_opener = return_enabled
+                and type(Rakuyomi.openChapterListingFromFile) == "function"
+            local opened_chapters = return_file and has_file_opener
+                and Rakuyomi.openChapterListingFromFile(return_file, true)
+            if opened_chapters then
+                _G.__ZEN_UI_RAKUYOMI_CHAPTER_LIST_RESTORED = true
+            end
+            logger.dbg(
+                "Rakuyomi return: restore dispatch:",
+                "has_file=", tostring(return_file ~= nil),
+                "has_file_opener=", tostring(has_file_opener),
+                "opened_chapters=", tostring(opened_chapters),
+                "fallback_tab=", tostring(state.tab),
+                "manga_action=", tostring(config.manga_action),
+                "manga_destination=", tostring(config.manga_action == "folder"
+                    and config.manga_folder or config.manga_action))
+            if not opened_chapters then
+                tab_callbacks[state.tab]()
+            end
         end)
+        if filemanager then
+            filemanager.invisible = nil
+        end
         -- If a detail view was open, open it synchronously too (stack: [fm, group_menu, detail_menu]).
         -- _repaint will then start from detail_menu and never show the intermediate views.
         if state.detail_group and gv and gv.restoreDetail then
@@ -2594,6 +2776,10 @@ local function apply_navbar()
     _G.__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB = open_default_tab
     _G.__ZEN_UI_NAVBAR_OPEN_TAB = open_tab
     _G.__ZEN_UI_NAVBAR_RESOLVE_DEFAULT_TAB = resolve_default_tab
+    _G.__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON = function()
+        local tab = tabs_by_id[resolve_default_tab()]
+        return tab and tab.icon
+    end
 
     _G.__ZEN_UI_REINJECT_FM_NAVBAR = function()
         local fm = FileManager.instance

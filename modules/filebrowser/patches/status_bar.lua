@@ -24,7 +24,10 @@ local function apply_status_bar()
     local utils = require("common/utils")
     local paths = require("common/paths")
     local SharedState = require("common/shared_state")
+    local status_bar_registry = require("common/status_bar_registry")
     local Background = require("common/ui/background")
+    local Bluetooth = require("common/bluetooth")
+    local inline_icons = require("common/inline_icon_map")
     local _ = require("gettext")
 
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
@@ -50,10 +53,10 @@ local function apply_status_bar()
         none            = "",
     }
 
-    -- Known item keys; determines what can be placed on either side
-    local known_item_keys = { "wifi", "disk", "ram", "frontlight", "battery", "time", "custom_text" }
-    local known_item_set = {}
-    for _i, k in ipairs(known_item_keys) do known_item_set[k] = true end
+    local function getRegistryFetcher(key)
+        local entry = status_bar_registry.get(key)
+        return type(entry) == "table" and entry.fetch or nil
+    end
 
     local config_default = {
         custom_text = "",  -- shown by the "custom_text" item; empty = device model name
@@ -68,7 +71,7 @@ local function apply_status_bar()
         hide_browser_bar = true,
     }
 
-    local logger = require("logger")
+    local logger = require("common/zen_logger").new("status_bar")
 
     local function _serializeOrder(t)
         if type(t) ~= "table" then return tostring(t) end
@@ -77,13 +80,13 @@ local function apply_status_bar()
 
     local function loadConfig()
         local config = zen_plugin.config.status_bar or {}
-        logger.dbg("ZenUI [status_bar] loadConfig raw: left_order=",
+        logger.dbg("loadConfig raw: left_order=",
             _serializeOrder(config.left_order),
             "center_order=", _serializeOrder(config.center_order),
             "right_order=",  _serializeOrder(config.right_order))
         -- Migration: convert old show/order/show_time format to left_order/right_order
         if config.left_order == nil and config.right_order == nil then
-            logger.info("ZenUI [status_bar] migrating legacy status bar config to left/center/right order")
+            logger.info("migrating legacy status bar config to left/center/right order")
             local old_order = type(config.order) == "table" and config.order
                               or { "wifi", "disk", "ram", "frontlight", "battery" }
             local old_show  = type(config.show) == "table" and config.show or {}
@@ -118,24 +121,24 @@ local function apply_status_bar()
         -- Merge scalar defaults
         for k, v in pairs(config_default) do
             if config[k] == nil then
-                logger.dbg("ZenUI [status_bar] merging default for nil key:", k,
+                logger.dbg("merging default for nil key:", k,
                     "->", type(v) == "table" and _serializeOrder(v) or tostring(v))
                 config[k] = utils.deepcopy(v)
             end
         end
-        logger.dbg("ZenUI [status_bar] post-defaults: left_order=",
+        logger.dbg("post-defaults: left_order=",
             _serializeOrder(config.left_order),
             "center_order=", _serializeOrder(config.center_order),
             "right_order=",  _serializeOrder(config.right_order))
-        -- Validate: only known keys, no cross-side duplicates
+        -- Preserve dormant external keys: their plugins may register after Zen UI.
         local seen = {}
         local function clean_order(list, side_name)
             local out = {}
             for _i, v in ipairs(type(list) == "table" and list or {}) do
-                if not known_item_set[v] then
-                    logger.warn("ZenUI [status_bar] dropping unknown item on", side_name, ":", tostring(v))
+                if type(v) ~= "string" or v == "" then
+                    logger.warn("dropping invalid item on", side_name, ":", tostring(v))
                 elseif seen[v] then
-                    logger.warn("ZenUI [status_bar] dropping duplicate item across sides:", tostring(v), "on", side_name)
+                    logger.warn("dropping duplicate item across sides:", tostring(v), "on", side_name)
                 else
                     seen[v] = true
                     table.insert(out, v)
@@ -146,7 +149,7 @@ local function apply_status_bar()
         config.left_order   = clean_order(config.left_order, "left_order")
         config.center_order = clean_order(config.center_order, "center_order")
         config.right_order  = clean_order(config.right_order, "right_order")
-        logger.dbg("ZenUI [status_bar] final: left_order=",
+        logger.dbg("final: left_order=",
             _serializeOrder(config.left_order),
             "center_order=", _serializeOrder(config.center_order),
             "right_order=",  _serializeOrder(config.right_order))
@@ -301,6 +304,7 @@ local function apply_status_bar()
 
     local colors = {
         wifi_on = Blitbuffer.ColorRGB32(0x33, 0x99, 0xFF, 0xFF),     -- blue
+        wifi_searching = Blitbuffer.COLOR_DARK_GRAY,
         wifi_off = Blitbuffer.ColorRGB32(0xDD, 0x33, 0x33, 0xFF),   -- red
         disk = Blitbuffer.ColorRGB32(0x33, 0xAA, 0x55, 0xFF),       -- green
         ram = Blitbuffer.ColorRGB32(0x33, 0xAA, 0x55, 0xFF),        -- green
@@ -321,10 +325,25 @@ local function apply_status_bar()
 
     local function getWifiInfo()
         if NetworkMgr:isWifiOn() then
-            return "\u{ECA8}", nil, colors.wifi_on
+            -- Gate on isConnected() (has IP), the same signal that fires
+            -- NetworkConnected -> onNetworkConnected -> status bar refresh.
+            -- ssid presence lags/mismatches that event, leaving a stuck gray icon.
+            if NetworkMgr:isConnected() then
+                return "\u{ECA8}", nil, colors.wifi_on
+            end
+            return "\u{ECA8}", nil, colors.wifi_searching, nil, true
         else
             return "\u{ECA9}", nil, colors.wifi_off
         end
+    end
+
+    local function getBluetoothInfo()
+        local enabled = Bluetooth.getState()
+        if enabled == nil then return nil end
+        if enabled then
+            return inline_icons.bluetooth_on, nil, colors.wifi_on
+        end
+        return nil
     end
 
     local function getRamInfo()
@@ -425,6 +444,7 @@ local function apply_status_bar()
     -- === Item registry ===
 
     local item_fetchers = {
+        bluetooth   = getBluetoothInfo,
         wifi        = getWifiInfo,
         disk        = getDiskInfo,
         ram         = getRamInfo,
@@ -446,24 +466,67 @@ local function apply_status_bar()
         local bold      = bold_override ~= nil and bold_override or config.bold_text or false
         local first     = true
         local function f() return face or getBarFont() end
+        local function iconFace()
+            local text_face = f()
+            local size = text_face.orig_size or text_face.size or 14
+            return Font:getFace("nerdfonts/symbols.ttf", size)
+                or Font:getFace("SymbolsNerdFont-Regular.ttf", size)
+                or text_face
+        end
         for _i, key in ipairs(order) do
-            local fn = item_fetchers[key]
+            local builtin = item_fetchers[key]
+            local fn = builtin or getRegistryFetcher(key)
             if fn then
-                local icon, label, color = fn()
-                if icon ~= nil then
+                local icon, label, color, icon_image, force_color
+                if builtin then
+                    icon, label, color, icon_image, force_color = fn()
+                else
+                    -- External fetchers are untrusted; a throw must not break the bar.
+                    local ok, a, b, c, d = pcall(fn)
+                    if ok then icon, label, color, icon_image = a, b, c, d end
+                end
+                local effective_color = color and (use_color or force_color) and color or nil
+                local has_icon = icon ~= nil and icon ~= ""
+                local has_label = label ~= nil and label ~= ""
+                if has_icon or has_label then
                     if not first and sep ~= "" then
                         table.insert(group, TextWidget:new{ text = sep, face = f(), bold = bold })
                     end
-                    if use_color and color then
-                        table.insert(group, ColorTextWidget:new{
-                            text = icon, face = f(), fgcolor = color, bold = bold,
-                        })
-                        if label and label ~= "" then
+                    if not builtin and has_icon then
+                        local widget_class = effective_color and ColorTextWidget or TextWidget
+                        local icon_opts = {
+                            text = icon, face = iconFace(), bold = bold,
+                        }
+                        if effective_color then icon_opts.fgcolor = effective_color end
+
+                        local ImageWidget = require("ui/widget/imagewidget")
+                        table.insert(group, icon_image and ImageWidget:new {
+                            file = icon,
+                            width = Screen:scaleBySize(f().size * 1.5),
+                            height = Screen:scaleBySize(f().size * 1.5),
+                            alpha = true, is_icon = true
+                        } or widget_class:new(icon_opts))
+                        if has_label then
                             table.insert(group, TextWidget:new{ text = label, face = f(), bold = bold })
                         end
-                    else
-                        local text = label and (icon .. label) or icon
+                    elseif effective_color and has_icon then
+                        local ImageWidget = require("ui/widget/imagewidget")
+                        table.insert(group, icon_image and ImageWidget:new {
+                            file = icon,
+                            width = Screen:scaleBySize(f().size * 1.5),
+                            height = Screen:scaleBySize(f().size * 1.5),
+                            alpha = true, is_icon = true
+                        } or ColorTextWidget:new {
+                            text = icon, face = f(), fgcolor = effective_color, bold = bold,
+                        })
+                        if has_label then
+                            table.insert(group, TextWidget:new{ text = label, face = f(), bold = bold })
+                        end
+                    elseif has_icon then
+                        local text = has_label and (icon .. label) or icon
                         table.insert(group, TextWidget:new{ text = text, face = f(), bold = bold })
+                    else
+                        table.insert(group, TextWidget:new{ text = label, face = f(), bold = bold })
                     end
                     first = false
                 end
@@ -576,7 +639,7 @@ local function apply_status_bar()
         -- then double it for the full available span.
         local left_w = left_group:getSize().w
         local half_avail = math.floor(screen_w / 2) - math.max(left_w, right_w)
-        local center_max_w = math.max(0, half_avail * 2)
+        local center_max_w = math.max(1, half_avail * 2)
 
         -- Center: nav_title override > folder name when in subfolder > configured center items
         local center_content
@@ -796,7 +859,7 @@ local function apply_status_bar()
         local left_w  = left_group:getSize().w
         local right_w = h_padding + (right_content and right_content:getSize().w or 0)
         local half_avail = math.floor(screen_w / 2) - math.max(left_w, right_w)
-        local center_max_w = math.max(0, half_avail * 2)
+        local center_max_w = math.max(1, half_avail * 2)
 
         local center_content
         if title then
@@ -951,7 +1014,7 @@ local function apply_status_bar()
         if #title_group < 2 then return end
 
         local current_path = self.file_chooser and self.file_chooser.path
-        logger.dbg("ZenUI [status_bar] _updateStatusBar: left=",
+        logger.dbg("_updateStatusBar: left=",
             _serializeOrder(config.left_order),
             "center=", _serializeOrder(config.center_order),
             "right=",  _serializeOrder(config.right_order))

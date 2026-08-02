@@ -10,6 +10,7 @@ jobs:
   luacheck:
     name: LuaCheck
     runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, 'ci-skip') }}
 
     steps:
       - name: Checkout

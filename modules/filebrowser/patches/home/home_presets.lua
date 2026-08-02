@@ -7,6 +7,7 @@ local function featured_text_styles()
     return {
         title = { font_face = "default", font_size = 11, bold = true },
         author = { font_face = "default", font_size = 9, bold = false },
+        series = { font_face = "default", font_size = 7, bold = false },
         description = { font_face = "default", font_size = 16, bold = false },
     }
 end
@@ -40,6 +41,7 @@ local DEFAULT_HOME_PAGE = {
             strip_tbr = false,
         },
     },
+    font_size = 18,
     middle_stats_triplet = {
         "today_pages",
         "today_duration",
@@ -50,10 +52,18 @@ local DEFAULT_HOME_PAGE = {
         daily_target = 30,
         daily_time_target_min = 30,
         metric = "pages",
+        metrics = { daily = "pages", weekly = "pages", monthly = "pages", yearly = "pages" },
         period = "daily",
+        periods = { "daily" },
         weekly_pages_target = 210,
         weekly_target = 210,
         weekly_time_target_min = 210,
+        monthly_pages_target = 900,
+        monthly_time_target_min = 900,
+        monthly_books_target = 1,
+        yearly_pages_target = 1000,
+        yearly_time_target_min = 1000,
+        yearly_books_target = 12,
     },
     show_status_bar = false,
     modules = {
@@ -114,6 +124,7 @@ local DEFAULT_HOME_PAGE = {
             show_module_title = false,
         },
         strip_custom = {
+            center_books = false,
             count = 4,
             interactive = true,
             order = "default",
@@ -124,7 +135,11 @@ local DEFAULT_HOME_PAGE = {
             two_rows = false,
         },
         strip_recent = {
+            center_books = false,
             count = 4,
+            filter_finished = false,
+            filter_tbr = false,
+            filter_unread = false,
             interactive = true,
             order = "default",
             show_badges = false,
@@ -133,6 +148,7 @@ local DEFAULT_HOME_PAGE = {
             two_rows = false,
         },
         strip_tbr = {
+            center_books = false,
             count = 4,
             interactive = true,
             order = "default",
@@ -144,6 +160,7 @@ local DEFAULT_HOME_PAGE = {
     },
     quotes = {
         day_seed = 741666,
+        font_size = 12,
         manual_index = 11,
         show_author = true,
     },
@@ -178,6 +195,7 @@ local BOOKSHELF_HOME_PAGE = {
             strip_tbr = false,
         },
     },
+    font_size = 18,
     middle_stats_triplet = {
         "today_pages",
         "today_duration",
@@ -188,10 +206,18 @@ local BOOKSHELF_HOME_PAGE = {
         daily_target = 30,
         daily_time_target_min = 30,
         metric = "pages",
+        metrics = { daily = "pages", weekly = "pages", monthly = "pages", yearly = "pages" },
         period = "daily",
+        periods = { "daily" },
         weekly_pages_target = 210,
         weekly_target = 210,
         weekly_time_target_min = 210,
+        monthly_pages_target = 900,
+        monthly_time_target_min = 900,
+        monthly_books_target = 1,
+        yearly_pages_target = 1000,
+        yearly_time_target_min = 1000,
+        yearly_books_target = 12,
     },
     show_status_bar = false,
     modules = {
@@ -251,6 +277,7 @@ local BOOKSHELF_HOME_PAGE = {
             show_module_title = false,
         },
         strip_custom = {
+            center_books = false,
             count = 4,
             interactive = true,
             order = "default",
@@ -261,7 +288,11 @@ local BOOKSHELF_HOME_PAGE = {
             two_rows = false,
         },
         strip_recent = {
+            center_books = false,
             count = 8,
+            filter_finished = false,
+            filter_tbr = false,
+            filter_unread = false,
             interactive = true,
             order = "default",
             show_badges = false,
@@ -270,6 +301,7 @@ local BOOKSHELF_HOME_PAGE = {
             two_rows = true,
         },
         strip_tbr = {
+            center_books = false,
             count = 4,
             interactive = true,
             order = "default",
@@ -281,6 +313,7 @@ local BOOKSHELF_HOME_PAGE = {
     },
     quotes = {
         day_seed = 741666,
+        font_size = 12,
         manual_index = 11,
         show_author = true,
     },

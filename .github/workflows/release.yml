@@ -7,9 +7,16 @@ on:
   workflow_dispatch:
 
 jobs:
+  tests:
+    name: Full test suite
+    uses: ./.github/workflows/test.yml
+    with:
+      suite: full
+
   luacheck:
     name: LuaCheck
     runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, 'ci-skip') }}
 
     steps:
       - name: Checkout
@@ -23,7 +30,7 @@ jobs:
 
   release:
     name: Build & Release
-    needs: luacheck
+    needs: [luacheck, tests]
     runs-on: ubuntu-latest
     permissions:
       contents: write

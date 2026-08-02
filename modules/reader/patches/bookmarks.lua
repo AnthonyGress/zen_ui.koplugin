@@ -24,7 +24,7 @@ local function apply_bookmarks()
             bm_menu._zen_bm_patched = true
             local _orig_updateItems = bm_menu.updateItems
             bm_menu.updateItems = function(self_m, ...)
-                for _, item in ipairs(self_m.item_table or {}) do
+                for _i, item in ipairs(self_m.item_table or {}) do
                     item.mandatory_dim = nil
                 end
                 return _orig_updateItems(self_m, ...)
@@ -32,7 +32,7 @@ local function apply_bookmarks()
         end
 
         -- Apply immediately to items already built by onShowBookmark.
-        for _, item in ipairs(bm_menu.item_table) do
+        for _i, item in ipairs(bm_menu.item_table) do
             item.mandatory_dim = nil
         end
         bm_menu:updateItems(1, true)

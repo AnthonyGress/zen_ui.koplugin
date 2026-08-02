@@ -32,8 +32,10 @@ local function apply_opds()
     local UIManager       = require("ui/uimanager")
     local VGroup          = require("ui/widget/verticalgroup")
     local VSpan           = require("ui/widget/verticalspan")
-    local logger          = require("logger")
+    local logger          = require("common/zen_logger").new("opds")
     local Device          = require("device")
+    local OPDSParser      = require("opdsparser")
+    local CoverUtils      = require("common/cover_utils")
     local Screen          = Device.screen
 
     -- Cover cache: [url] → { bb } | { failed = true }  (session-scoped)
@@ -164,6 +166,15 @@ local function apply_opds()
     local _corner_radius = Screen:scaleBySize(8)
     local _plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
+    local function get_opds_display_mode()
+        local plug = _plugin or rawget(_G, "__ZEN_UI_PLUGIN")
+        local mode = plug and type(plug.config) == "table"
+            and type(plug.config.opds) == "table"
+            and plug.config.opds.display_mode
+        if mode == "list" or mode == "classic" then return mode end
+        return "mosaic"
+    end
+
     -- Mosaic title strip: read at apply time; mirrors mosaic_title_strip.lua logic.
     local _strip_show_title, _strip_show_author, _strip_h
     do
@@ -243,6 +254,29 @@ local function apply_opds()
         return fs
     end
 
+    local COVER_BORDER = Size.border.thin
+
+    local function build_cover_widget(entry, cover_w, cover_h)
+        if entry._zen_opds_folder then
+            local inner_w = math.max(1, cover_w - 2 * COVER_BORDER)
+            local inner_h = math.max(1, cover_h - 2 * COVER_BORDER)
+            return CoverUtils.drawNoImage(
+                entry.title or entry.text or "", inner_w, inner_h, COVER_BORDER)
+        elseif entry.cover_bb then
+            return ImageWidget:new{
+                image = entry.cover_bb,
+                image_disposable = false,
+                width = cover_w,
+                height = cover_h,
+            }
+        end
+
+        return LineWidget:new{
+            dimen = Geom:new{ w = cover_w, h = cover_h },
+            background = Blitbuffer.COLOR_LIGHT_GRAY,
+        }
+    end
+
     local OPDSItem = InputContainer:extend{
         entry = nil, cover_w = nil, cover_h = nil,
         item_w = nil, item_h = nil,
@@ -258,21 +292,7 @@ local function apply_opds()
         local entry  = self.entry
         local text_w = self.item_w - self.cover_w - PAD * 3
         local text_h = self.item_h - PAD_V * 2
-        local cover_inner
-        if entry.cover_bb then
-            logger.dbg("OPDSItem: rendering cover image for", entry.title or "?")
-            cover_inner = ImageWidget:new{
-                image = entry.cover_bb, width = self.cover_w, height = self.cover_h,
-                image_disposable = false,
-            }
-        else
-            -- LineWidget has a proper getSize(); bare FrameContainer without a child crashes
-            -- when CenterContainer:paintTo calls getSize() on it.
-            cover_inner = LineWidget:new{
-                dimen = Geom:new{ w = self.cover_w, h = self.cover_h },
-                background = Blitbuffer.COLOR_LIGHT_GRAY,
-            }
-        end
+        local cover_inner = build_cover_widget(entry, self.cover_w, self.cover_h)
         local text_group = VGroup:new{ align = "left" }
         local title = entry.title or entry.text or ""
         local fs_title = opds_fontSize(18, 21, self.item_h)
@@ -383,18 +403,7 @@ local function apply_opds()
         }
         local entry = self.entry
         local cover_area_h = self.cell_h - self.strip_h
-        local cover_inner
-        if entry.cover_bb then
-            cover_inner = ImageWidget:new{
-                image = entry.cover_bb, width = self.cover_w, height = self.cover_h,
-                image_disposable = false,
-            }
-        else
-            cover_inner = LineWidget:new{
-                dimen = Geom:new{ w = self.cover_w, h = self.cover_h },
-                background = Blitbuffer.COLOR_LIGHT_GRAY,
-            }
-        end
+        local cover_inner = build_cover_widget(entry, self.cover_w, self.cover_h)
         local inner
         if self.strip_h > 0 then
             local TITLE_FONT  = 16
@@ -483,11 +492,29 @@ local function apply_opds()
         self.menu:onMenuSelect(self.entry); return true
     end
 
+    local ROOT_PERPAGE = 8
+
+    local orig_getPageNumber = OPDSBrowser.getPageNumber
+    function OPDSBrowser:getPageNumber(item_number)
+        if get_opds_display_mode() ~= "classic" and #(self.paths or {}) == 0 then
+            if #self.item_table == 0 or item_number == 0 then
+                return 1
+            end
+            return math.ceil(math.min(item_number, #self.item_table) / ROOT_PERPAGE)
+        end
+        return orig_getPageNumber(self, item_number)
+    end
+
     -- Cover-aware updateItems; supports mosaic grid and list layouts matched to library mode.
     -- The root catalog list (paths empty) always uses a fixed list with placeholder covers.
     function OPDSBrowser:updateItems(select_number, no_recalculate_dimen)
         local _ratio_str = G_reader_settings and G_reader_settings:readSetting("uniform_cover_ratio") or "2:3"
         local _cover_ratio = _ratio_str == "3:4" and 3/4 or 2/3
+        local display_mode = get_opds_display_mode()
+        if display_mode == "classic" then
+            if self._zen_halt then self._zen_halt(); self._zen_halt = nil end
+            return Menu.updateItems(self, select_number, no_recalculate_dimen)
+        end
         -- Root screen: always list, 10 per page, grey placeholder covers.
         if #(self.paths or {}) == 0 then
             if self._zen_halt then self._zen_halt(); self._zen_halt = nil end
@@ -509,13 +536,16 @@ local function apply_opds()
                                self.page_info_text:getSize().h)
                     - Size.padding.button
             end
-            local list_perpage = 8
-            self.item_height = math.floor(avail_h / list_perpage)
-            local cover_h = math.max(1, self.item_height - PAD_V * 2)
-            local cover_w = math.floor(cover_h * _cover_ratio)
+            local list_perpage = ROOT_PERPAGE
             self.perpage    = list_perpage
             self.page_num   = math.max(1, math.ceil(#self.item_table / self.perpage))
             if self.page > self.page_num then self.page = self.page_num end
+            local visible_items = math.min(self.perpage,
+                math.max(0, #self.item_table - (self.page - 1) * self.perpage))
+            local separators_h = math.max(0, visible_items - 1)
+            self.item_height = math.max(1, math.floor((avail_h - separators_h) / list_perpage))
+            local cover_h = math.max(1, self.item_height - PAD_V * 2)
+            local cover_w = math.floor(cover_h * _cover_ratio)
             self.item_width = self.inner_dimen.w
             self.item_dimen = Geom:new{ x = 0, y = 0, w = self.item_width, h = self.item_height }
 
@@ -551,21 +581,11 @@ local function apply_opds()
             return
         end
 
-        -- Deeper catalog pages: original cover-aware logic below.
-        local has_covers = false
-        for _, item in ipairs(self.item_table or {}) do
-            if item.cover_url then has_covers = true; break end
-        end
-        if not has_covers then
-            return Menu.updateItems(self, select_number, no_recalculate_dimen)
-        end
+        -- Deeper catalog pages: cover-aware mosaic/list rendering.
         if self._zen_halt then self._zen_halt(); self._zen_halt = nil end
 
-        -- Mirror library display mode (mosaic grid vs cover list)
-        local display_mode
+        local mosaic_mode = display_mode == "mosaic"
         local ok_bim, BIM = pcall(require, "bookinfomanager")
-        if ok_bim then display_mode = BIM:getSetting("filemanager_display_mode") end
-        local mosaic_mode = display_mode and display_mode:sub(1, 6) == "mosaic"
         local portrait_mode = Screen:getWidth() < Screen:getHeight()
         local nb_cols_setting, nb_rows_setting, perpage_setting
         if ok_bim then
@@ -615,8 +635,11 @@ local function apply_opds()
             if num_rows > num_rows_max then num_rows = num_rows_max end
             local cell_h = math.floor((avail_h - (1 + num_rows) * item_margin) / num_rows)
             local cover_area_h = cell_h - _strip_h
-            local cover_h = math.max(1, cover_area_h - PAD_V * 2)
-            local cover_w = math.floor(cover_h * _cover_ratio)
+            local inner_w, inner_h = CoverUtils.calcDims(
+                math.max(1, cell_w - 2 * COVER_BORDER),
+                math.max(1, cover_area_h - 2 * COVER_BORDER))
+            local cover_w = inner_w + 2 * COVER_BORDER
+            local cover_h = inner_h + 2 * COVER_BORDER
             self.item_height = cell_h
             self.perpage     = num_cols * num_rows
             self.page_num    = math.max(1, math.ceil(#self.item_table / self.perpage))
@@ -648,7 +671,8 @@ local function apply_opds()
                             cell_w = cell_w, cell_h = cell_h,
                             show_parent = self.show_parent, menu = self,
                             strip_h = _strip_h,
-                            show_title = _strip_show_title, show_author = _strip_show_author,
+                            show_title = _strip_show_title,
+                            show_author = _strip_show_author and not entry._zen_opds_folder,
                         }
                         table.insert(row_group, w)
                         table.insert(row_widgets, w)
@@ -680,13 +704,18 @@ local function apply_opds()
                 local est_cover_h = math.max(56, math.min(180, math.floor(avail_h / 6) - PAD_V * 2))
                 list_perpage = math.max(1, math.floor(avail_h / (est_cover_h + PAD_V * 2)))
             end
-            -- derive item_height to fill avail_h exactly (no gap at bottom)
-            self.item_height = math.floor(avail_h / list_perpage)
-            cover_h = math.max(1, self.item_height - PAD_V * 2)
-            local cover_w = math.floor(cover_h * _cover_ratio)
             self.perpage     = list_perpage
             self.page_num    = math.max(1, math.ceil(#self.item_table / self.perpage))
             if self.page > self.page_num then self.page = self.page_num end
+            local visible_items = math.min(self.perpage,
+                math.max(0, #self.item_table - (self.page - 1) * self.perpage))
+            local separators_h = math.max(0, visible_items - 1)
+            self.item_height = math.max(1, math.floor((avail_h - separators_h) / list_perpage))
+            local inner_w, inner_h = CoverUtils.calcDims(
+                math.max(1, self.item_height - PAD_V * 2 - 2 * COVER_BORDER),
+                math.max(1, self.item_height - PAD_V * 2 - 2 * COVER_BORDER))
+            local cover_w = inner_w + 2 * COVER_BORDER
+            cover_h = inner_h + 2 * COVER_BORDER
             self.item_width  = self.inner_dimen.w
             self.item_dimen  = Geom:new{ x = 0, y = 0, w = self.item_width, h = self.item_height }
             logger.dbg("OPDS list: perpage=", self.perpage,
@@ -747,7 +776,7 @@ local function apply_opds()
     function OPDSBrowser:onCloseWidget()
         if self._zen_halt then self._zen_halt(); self._zen_halt = nil end
         -- Owned by _cover_cache; free them here since image_disposable=false means widgets didn't.
-        for _, v in pairs(_cover_cache) do
+        for _u, v in pairs(_cover_cache) do
             if v.bb then v.bb:free() end
         end
         _cover_cache = {}
@@ -767,9 +796,17 @@ local function apply_opds()
         end
     end
 
+    local function shrink_title_button_bottom(button)
+        if not button or type(button.update) ~= "function" then return end
+        button.padding_bottom = 0
+        button:update()
+    end
+
     local function fix_buttons(browser)
+        browser._zen_opds_browser = true
         if browser.title_bar then
             browser.title_bar:setLeftIcon("chevron.left")
+            shrink_title_button_bottom(browser.title_bar.left_button)
         end
         browser.onLeftButtonTap = function()
             if #browser.paths > 0 then
@@ -788,6 +825,7 @@ local function apply_opds()
             local has_search = browser.search_url ~= nil
             local right_icon = (in_catalog and has_search) and "appbar.search" or "appbar.menu"
             browser.title_bar:setRightIcon(right_icon)
+            shrink_title_button_bottom(browser.title_bar.right_button)
             browser.title_bar.right_button.callback = function()
                 activate_right_button(browser)
             end
@@ -860,11 +898,16 @@ local function apply_opds()
     end
 
     -- Tag book items with cover_url for async cover loading.
+    function OPDSBrowser:parseFeed(item_url)
+        local feed = self:fetchFeed(item_url)
+        if feed then return OPDSParser:parse(feed) end
+    end
+
     local orig_genItemTableFromCatalog = OPDSBrowser.genItemTableFromCatalog
     function OPDSBrowser:genItemTableFromCatalog(catalog, item_url)
         local item_table = orig_genItemTableFromCatalog(self, catalog, item_url)
         local with_cover = 0
-        for _, item in ipairs(item_table) do
+        for _i, item in ipairs(item_table) do
             if item.acquisitions and #item.acquisitions > 0 then
                 local thumb = item.thumbnail or item.image
                 if thumb then
@@ -872,6 +915,8 @@ local function apply_opds()
                     with_cover = with_cover + 1
                     logger.dbg("OPDS cover_url set:", item.title or "?", "->", thumb)
                 end
+            elseif item.url then
+                item._zen_opds_folder = true
             end
         end
         logger.dbg("OPDS genItemTableFromCatalog: total=", #item_table, "with_cover=", with_cover)
@@ -1292,8 +1337,13 @@ local function apply_opds()
                 end,
                 ok_text      = "\u{F012C}  " .. _("Done"),
                 ok_callback  = function() end,
-                dismissable  = false,
             }
+            -- Tapping outside (or Back) should just dismiss the dialog,
+            -- not trigger the "Read now" cancel_callback.
+            function dlg:onClose()
+                UIManager:close(self)
+                return true
+            end
             UIManager:nextTick(function() UIManager:show(dlg) end)
         end
 

@@ -65,6 +65,16 @@ local function apply_menu_top_swipe()
     end
 
     Menu.onTap = function(self, arg, ges_ev)
+        if self._zen_opds_browser and self.title_bar and ges_ev and ges_ev.pos then
+            local left_button = self.title_bar.left_button
+            local right_button = self.title_bar.right_button
+            local left_dimen = left_button and left_button.dimen
+            local right_dimen = right_button and right_button.dimen
+            if (left_dimen and ges_ev.pos:intersectWith(left_dimen))
+                    or (right_dimen and ges_ev.pos:intersectWith(right_dimen)) then
+                return nil
+            end
+        end
         if ges_ev.pos.y < Device.screen:getHeight() * 0.05 then
             local fm = require("apps/filemanager/filemanager").instance
             if fm and fm.menu then

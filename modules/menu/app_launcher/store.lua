@@ -11,6 +11,7 @@ local function default_config()
         entries = {},
         next_id = 0,
         show_labels = true,
+        open_first = false,
         hide_reader_actions_in_library = false,
     }
 end
@@ -31,6 +32,7 @@ local function normalize(cfg)
     if type(cfg.entries) ~= "table" then cfg.entries = {} end
     if type(cfg.next_id) ~= "number" then cfg.next_id = 0 end
     if type(cfg.show_labels) ~= "boolean" then cfg.show_labels = true end
+    if type(cfg.open_first) ~= "boolean" then cfg.open_first = false end
     cfg.center_icons = nil
     if type(cfg.hide_reader_actions_in_library) ~= "boolean" then
         cfg.hide_reader_actions_in_library = false

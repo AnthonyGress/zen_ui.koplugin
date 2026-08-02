@@ -12,6 +12,9 @@
 
 <p align="center">A clean, minimal UI for KOReader. </p>
 
+## Documentation
+For the most complete and up to date documentation, visit [https://zen-labs.org/zen-ui](https://zen-labs.org/zen-ui)
+
 ## Philosophy
 
 Zen UI is built around the simple idea that **less is more.** Everything in Zen UI was designed either to remove clutter or add clear value. The interface stays fast, light, and focused on making reading more enjoyable.
@@ -98,11 +101,40 @@ Browse your favorite OPDS sources with the same clean, consistent interface you'
 
 ## Unified Settings 
 - Pulled the most important settings into a single, more streamlined settings tab
-- Settings are grouped by feature area (Library, Navbar, Quick Settings, Status Bar, Reader).
+- Settings are grouped by feature area (Library, Controls, Launcher, Reader, Extras, About).
 - Most features can be toggled independently, some reasonable defaults have been selected.
 - Update Zen UI directly from settings without ever leaving KOReader or plugging in to a computer.
 
 <img src="./images/quickstart/onboarding/zen_ui_settings.png" width="500" alt="Zen UI Settings">
+
+## Plugin integration
+
+External plugins can add widgets to the Home page:
+
+```lua
+local register = rawget(_G, "__ZEN_UI_REGISTER_HOME_ITEM")
+if register then
+    register("my_plugin.summary", function(ctx)
+        -- Return a KOReader widget sized to ctx.width and ctx.height.
+    end, {
+        label = "My summary",
+        size = {
+            preferred_pct = 0.20,
+            min_pct = 0.12,
+            max_pct = 0.30,
+        },
+    })
+end
+```
+
+The builder receives `width`, `height`, `is_first_row`, and an item-specific
+`module_cfg` table. New items are disabled by default and can be enabled and
+positioned under **Home > Widgets**. Plugins loaded before Zen UI should register
+when they receive `ZenUIReady`; unregister with
+`_G.__ZEN_UI_UNREGISTER_HOME_ITEM(id)`.
+
+Registration returns `false` for invalid arguments or a built-in ID collision.
+Registering an existing external ID replaces its builder and options.
 
 ## Prerequistes
 
@@ -158,6 +190,7 @@ Zen UI is currently translated into:
 | `pt_PT` | European Portuguese |
 | `ro` | Romanian |
 | `ru` | Russian |
+| `uk` | Ukrainian |
 | `zh_CN` | Simplified Chinese |
 | `zh_TW` | Traditional Chinese |
 
@@ -190,7 +223,7 @@ Please follow these guidelines:
 
 ## FAQ/Community
 
-Feel free to join the [Discord Community](https://discord.gg/GGUEXctJT) if you want to get help/chat/contribute
+Feel free to join the [Discord Community](https://discord.gg/Tv2PhrCPQ8) if you want to get help/chat/contribute
 
 ## Security
 

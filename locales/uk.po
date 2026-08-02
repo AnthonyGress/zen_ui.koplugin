@@ -1,0 +1,2326 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: zen-ui 0.1.0\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: uk\n"
+
+msgid "%1 (%2)"
+msgstr "%1 (%2)"
+
+msgid "%1 mins left in chapter"
+msgstr "%1 хв до кінця розділу"
+
+msgid "%d%% Read"
+msgstr "Прочитано %d%%"
+
+msgid "%s left"
+msgstr "Залишилося %s"
+
+msgid "(auto)"
+msgstr "(авто)"
+
+msgid "(Kindle)"
+msgstr "(Kindle)"
+
+msgid "(none)"
+msgstr "(немає)"
+
+msgid "(standard)"
+msgstr "(стандарт)"
+
+msgid "1 author"
+msgstr "1 автор"
+
+msgid "1 book"
+msgstr "1 книга"
+
+msgid "1 min left in chapter"
+msgstr "1 хв до кінця розділу"
+
+msgid "1 series"
+msgstr "1 серія"
+
+msgid "1 tag"
+msgstr "1 тег"
+
+msgid "12-hour  (3:30 PM)"
+msgstr "12-годинний (3:30 PM)"
+
+msgid "12-hour time"
+msgstr "12-годинний формат"
+
+msgid "180°"
+msgstr "180°"
+
+msgid "24-hour  (15:30)"
+msgstr "24-годинний (15:30)"
+
+msgid "270°"
+msgstr "270°"
+
+msgid "90°"
+msgstr "90°"
+
+msgid "< 1 min left in chapter"
+msgstr "< 1 хв до кінця розділу"
+
+msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
+msgstr "Мінімалістичний, чистий та простий інтерфейс для вашої електронної книжки.\n\nПроведіть пальцем або натисніть Далі, щоб продовжити."
+
+msgid "A short summary of what went wrong"
+msgstr "Короткий опис проблеми"
+
+msgid "About"
+msgstr "Про програму"
+
+msgid "Action"
+msgstr "Дія"
+
+msgid "Action: %1"
+msgstr "Дія: %1"
+
+msgid "Action: (none)"
+msgstr "Дія: (немає)"
+
+msgid "Active tab"
+msgstr "Активна вкладка"
+
+msgid "Active tab color"
+msgstr "Колір активної вкладки"
+
+msgid "Active tab color: "
+msgstr "Колір активної вкладки: "
+
+msgid "Active tab RGB"
+msgstr "Колір активної вкладки RGB"
+
+msgid "Add"
+msgstr "Додати"
+
+msgid "Add action"
+msgstr "Додати дію"
+
+msgid "Add book"
+msgstr "Додати книгу"
+
+msgid "Add buttons"
+msgstr "Додати кнопки"
+
+msgid "Add catalog"
+msgstr "Додати каталог"
+
+msgid "Add custom buttons for other plugins or actions."
+msgstr "Додайте власні кнопки для інших плагінів або дій."
+
+msgid "Add folder…"
+msgstr "Додати теку…"
+
+msgid "Add plugin"
+msgstr "Додати плагін"
+
+msgid "Add to collection"
+msgstr "Додати до колекції"
+
+msgid "added"
+msgstr "додано"
+
+msgid "Additional home folders"
+msgstr "Додаткові домашні теки"
+
+msgid "Advanced"
+msgstr "Розширені"
+
+msgid "Alexandre Dumas"
+msgstr "Александр Дюма"
+
+msgid "All"
+msgstr "Усі"
+
+msgid "All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall Zen UI updates directly from your device."
+msgstr "Усі налаштування в одній вкладці. Ця позначка з крапкою вказує на доступне оновлення.\n\nВстановлюйте оновлення Zen UI безпосередньо з пристрою."
+
+msgid "All Time"
+msgstr "За весь час"
+
+msgid "Allow custom icons"
+msgstr "Дозволити власні іконки"
+
+msgid "Allow delete"
+msgstr "Дозволити видалення"
+
+msgid "Amber"
+msgstr "Бурштиновий"
+
+msgid "An item with that name already exists."
+msgstr "Елемент із таким ім'ям уже існує."
+
+msgid "App"
+msgstr "Додаток"
+
+msgid "Apply"
+msgstr "Застосувати"
+
+msgid "Are you sure you want to exit KOReader?"
+msgstr "Ви впевнені, що хочете вийти з KOReader?"
+
+msgid "Are you sure you want to quit KOReader?"
+msgstr "Ви впевнені, що хочете закрити KOReader?"
+
+msgid "Are you sure you want to restart KOReader?"
+msgstr "Ви впевнені, що хочете перезапустити KOReader?"
+
+msgid "Arrange"
+msgstr "Впорядкувати"
+
+msgid "Arrange center items"
+msgstr "Впорядкувати центральні елементи"
+
+msgid "Arrange left items"
+msgstr "Впорядкувати ліві елементи"
+
+msgid "Arrange right items"
+msgstr "Впорядкувати праві елементи"
+
+msgid "Ascending"
+msgstr "За зростанням"
+
+msgid "At least one tab must be visible"
+msgstr "Принаймні одна вкладка має бути видимою"
+
+msgid "Author"
+msgstr "Автор"
+
+msgid "authors"
+msgstr "автори"
+
+msgid "Authors"
+msgstr "Автори"
+
+msgid "Automatic suspend"
+msgstr "Автоматичне присипляння"
+
+msgid "avg pages/day"
+msgstr "сер. стор./день"
+
+msgid "avg time/book"
+msgstr "сер. час/книга"
+
+msgid "avg time/day"
+msgstr "сер. час/день"
+
+msgid "Back"
+msgstr "Назад"
+
+msgid "Background"
+msgstr "Фон"
+
+msgid "Background image could not be loaded. It may be corrupt or unsupported."
+msgstr "Не вдалося завантажити фонове зображення. Можливо, воно пошкоджене або не підтримується."
+
+msgid "Background image file not found."
+msgstr "Файл фонового зображення не знайдено."
+
+msgid "Background image must be a JPG or JPEG file."
+msgstr "Фонове зображення має бути у форматі JPG або JPEG."
+
+msgid "Badge color RGB"
+msgstr "Колір значка RGB"
+
+msgid "Badge color: "
+msgstr "Колір значка: "
+
+msgid "Badge size"
+msgstr "Розмір значка"
+
+msgid "Badges"
+msgstr "Значки"
+
+msgid "Bar"
+msgstr "Смуга"
+
+msgid "Battery"
+msgstr "Батарея"
+
+msgid "Battery Stats"
+msgstr "Статистика батареї"
+
+msgid "Beginning / End"
+msgstr "Початок / Кінець"
+
+msgid "best day"
+msgstr "найкращий день"
+
+msgid "best month"
+msgstr "найкращий місяць"
+
+msgid "best week"
+msgstr "найкращий тиждень"
+
+msgid "Beta"
+msgstr "Бета"
+
+msgid "Black"
+msgstr "Чорний"
+
+msgid "Blue"
+msgstr "Синій"
+
+msgid "Bold"
+msgstr "Жирний"
+
+msgid "bold"
+msgstr "жирний"
+
+msgid "Bold text"
+msgstr "Жирний текст"
+
+msgid "book"
+msgstr "книга"
+
+msgid "Book"
+msgstr "Книга"
+
+msgid "Book added to download list"
+msgstr "Книгу додано до списку завантажень"
+
+msgid "Book information"
+msgstr "Інформація про книгу"
+
+msgid "Book Status"
+msgstr "Статус книги"
+
+msgid "Book title"
+msgstr "Назва книги"
+
+msgid "Book Title"
+msgstr "Назва книги"
+
+msgid "Book: "
+msgstr "Книга: "
+
+msgid "books"
+msgstr "книги"
+
+msgid "Books"
+msgstr "Книги"
+
+msgid "books finished"
+msgstr "книг прочитано"
+
+msgid "books read"
+msgstr "книг прочитано"
+
+msgid "Books shown"
+msgstr "Показано книг"
+
+msgid "Books shown: "
+msgstr "Показано книг: "
+
+msgid "Books tab label"
+msgstr "Підпис вкладки книг"
+
+msgid "Bottom"
+msgstr "Вниз"
+
+msgid "Bottom status bar"
+msgstr "Нижній рядок статусу"
+
+msgid "Brief description of the bug"
+msgstr "Короткий опис помилки"
+
+msgid "Brightness"
+msgstr "Яскравість"
+
+msgid "Brightness schedule"
+msgstr "Розклад яскравості"
+
+msgid "Bug description (optional)"
+msgstr "Опис помилки (необов'язково)"
+
+msgid "Bug report submitted!"
+msgstr "Звіт про помилку надіслано!"
+
+msgid "Bug report title"
+msgstr "Заголовок звіту про помилку"
+
+msgid "Buttons"
+msgstr "Кнопки"
+
+msgid "Calendar"
+msgstr "Календар"
+
+msgid "Calibre"
+msgstr "Calibre"
+
+msgid "Calibre plugin is not installed."
+msgstr "Плагін Calibre не встановлено."
+
+msgid "Calibre Search"
+msgstr "Пошук Calibre"
+
+msgid "Cancel"
+msgstr "Скасувати"
+
+msgid "Cannot open last document"
+msgstr "Не вдається відкрити останній документ"
+
+msgid "Casual Chess"
+msgstr "Казуальні шахи"
+
+msgid "Center"
+msgstr "По центру"
+
+msgid "Center books"
+msgstr "Книги по центру"
+
+msgid "Center items"
+msgstr "Центральні елементи"
+
+msgid "Centered Pages"
+msgstr "Сторінки по центру"
+
+msgid "Change folder"
+msgstr "Змінити теку"
+
+msgid "Change Row"
+msgstr "Змінити рядок"
+
+msgid "Changelog"
+msgstr "Список змін"
+
+msgid "Chapter"
+msgstr "Розділ"
+
+msgid "Chapter Time + %"
+msgstr "Час розділу + %"
+
+msgid "Check for updates"
+msgstr "Перевірити оновлення"
+
+msgid "Check for updates automatically"
+msgstr "Автоматично перевіряти оновлення"
+
+msgid "Checking for updates"
+msgstr "Перевірка оновлень"
+
+msgid "Chess"
+msgstr "Шахи"
+
+msgid "Choose a different folder"
+msgstr "Вибрати іншу теку"
+
+msgid "Choose a preset for your reading progress bar."
+msgstr "Виберіть шаблон для смуги прогресу читання."
+
+msgid "Choose item"
+msgstr "Вибрати елемент"
+
+msgid "Choose plugin menu"
+msgstr "Вибрати меню плагіна"
+
+msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
+msgstr "Виберіть, які вкладки відображатимуться на панелі навігації.\nЇх можна змінити в будь-який час у Налаштуваннях."
+
+msgid "Classic"
+msgstr "Класичний"
+
+msgid "Classic (filename only)"
+msgstr "Класичний (лише ім'я файлу)"
+
+msgid "Clear"
+msgstr "Очистити"
+
+msgid "Clear all gestures"
+msgstr "Очистити всі жести"
+
+msgid "Clear book"
+msgstr "Очистити книгу"
+
+msgid "Clear books"
+msgstr "Очистити книги"
+
+msgid "Close"
+msgstr "Закрити"
+
+msgid "Cloud"
+msgstr "Хмара"
+
+msgid "Cloud storage"
+msgstr "Хмарне сховище"
+
+msgid "Collections"
+msgstr "Колекції"
+
+msgid "Colored"
+msgstr "Кольоровий"
+
+msgid "Colored status icons"
+msgstr "Кольорові значки статусу"
+
+msgid "Columns"
+msgstr "Колонки"
+
+msgid "Compact"
+msgstr "Компактний"
+
+msgid "Connect folders"
+msgstr "Під'єднати теки"
+
+msgid "Connections"
+msgstr "Підключення"
+
+msgid "Context Menu"
+msgstr "Контекстне меню"
+
+msgid "Continue"
+msgstr "Продовжити"
+
+msgid "Controls"
+msgstr "Керування"
+
+msgid "Copy"
+msgstr "Копіювати"
+
+msgid "Could not determine update status."
+msgstr "Не вдалося визначити статус оновлення."
+
+msgid "Could not get release from update server."
+msgstr "Не вдалося отримати реліз із сервера оновлень."
+
+msgid "Could not reach update server."
+msgstr "Не вдалося з'єднатися з сервером оновлень."
+
+msgid "Could not reach update server. Check your internet connection."
+msgstr "Не вдалося з'єднатися з сервером оновлень. Перевірте підключення до інтернету."
+
+msgid "Could not reach update server. Check your internet connection.\n\nUnable to load changelog."
+msgstr "Не вдалося з'єднатися з сервером оновлень. Перевірте підключення до інтернету.\n\nНе вдалося завантажити список змін."
+
+msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
+msgstr "Не вдалося просканувати мережі Wi-Fi. Спробуйте ще раз після пробудження пристрою."
+
+msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
+msgstr "Плагін CoverBrowser не ввімкнено, деякі функції працюватимуть некоректно."
+
+msgid "Covers"
+msgstr "Обкладинки"
+
+msgid "crash.log will be embedded in a public GitHub issue. It may contain file paths and book titles."
+msgstr "crash.log буде додано до публічного звіту GitHub. Він може містити шляхи до файлів та назви книг."
+
+msgid "Create this folder and use as home"
+msgstr "Створити цю теку та використовувати як домашню"
+
+msgid "Crossword"
+msgstr "Кросворд"
+
+msgid "Current / total pages"
+msgstr "Поточна / всього сторінок"
+
+msgid "Current home folder:"
+msgstr "Поточна домашня тека:"
+
+msgid "Current only"
+msgstr "Лише поточна"
+
+msgid "Current/total pages"
+msgstr "Поточна/всього сторінок"
+
+msgid "Custom"
+msgstr "Власний"
+
+msgid "Custom button label"
+msgstr "Підпис власної кнопки"
+
+msgid "Custom featured widget"
+msgstr "Власний головний віджет"
+
+msgid "Custom RGB"
+msgstr "Власний RGB"
+
+msgid "Custom separator"
+msgstr "Власний роздільник"
+
+msgid "Custom strip widget"
+msgstr "Власний рядковий віджет"
+
+msgid "Custom tab label"
+msgstr "Підпис власної вкладки"
+
+msgid "Custom text"
+msgstr "Власний текст"
+
+msgid "Custom text: "
+msgstr "Власний текст: "
+
+msgid "Custom: "
+msgstr "Власний: "
+
+msgid "Customizable top status bar and bottom progress bar."
+msgstr "Налаштовувані верхній рядок статусу та нижня смуга прогресу."
+
+msgid "Cut"
+msgstr "Вирізати"
+
+msgid "Cycle"
+msgstr "Цикл"
+
+msgid "Daily pages goal"
+msgstr "Щоденна ціль сторінок"
+
+msgid "Daily pages goal: "
+msgstr "Щоденна ціль сторінок: "
+
+msgid "Daily time goal (min)"
+msgstr "Щоденна ціль часу (хв)"
+
+msgid "Daily time goal (min): "
+msgstr "Щоденна ціль часу (хв): "
+
+msgid "Day brightness"
+msgstr "Денна яскравість"
+
+msgid "Day brightness time"
+msgstr "Час денної яскравості"
+
+msgid "Day brightness time: "
+msgstr "Час денної яскравості: "
+
+msgid "Day brightness: "
+msgstr "Денна яскравість: "
+
+msgid "day streak"
+msgstr "серія днів"
+
+msgid "Day warmth"
+msgstr "Денний теплий відтінок"
+
+msgid "Day warmth time"
+msgstr "Час денного теплого відтінку"
+
+msgid "Day warmth time: "
+msgstr "Час денного теплого відтінку: "
+
+msgid "Day warmth: "
+msgstr "Денний теплий відтінок: "
+
+msgid "Debug logging"
+msgstr "Логування налагодження"
+
+msgid "Debug logging must be enabled to submit bug reports."
+msgstr "Для надсилання звітів про помилки потрібно ввімкнути логування налагодження."
+
+msgid "default"
+msgstr "типово"
+
+msgid "Default"
+msgstr "Типово"
+
+msgid "Default (black)"
+msgstr "Типово (чорний)"
+
+msgid "Default tab: "
+msgstr "Типова вкладка: "
+
+msgid "Default: Home"
+msgstr "Типово: Головна"
+
+msgid "Delete"
+msgstr "Видалити"
+
+msgid "Delete collection"
+msgstr "Видалити колекцію"
+
+msgid "Delete OPDS catalog?"
+msgstr "Видалити каталог OPDS?"
+
+msgid "Delete preset?"
+msgstr "Видалити шаблон?"
+
+msgid "Delete this button?"
+msgstr "Видалити цю кнопку?"
+
+msgid "Delete this folder and its buttons?"
+msgstr "Видалити цю теку та її кнопки?"
+
+msgid "Delete this row break?"
+msgstr "Видалити цей розрив рядка?"
+
+msgid "Delete this tab?"
+msgstr "Видалити цю вкладку?"
+
+msgid "Descending"
+msgstr "За спаданням"
+
+msgid "Description"
+msgstr "Опис"
+
+msgid "Detailed list with cover images and filenames"
+msgstr "Детальний список з обкладинками та назвами файлів"
+
+msgid "Detailed list with cover images and metadata"
+msgstr "Детальний список з обкладинками та метаданими"
+
+msgid "Detailed list with metadata, no images"
+msgstr "Детальний список з метаданими, без зображень"
+
+msgid "Details"
+msgstr "Деталі"
+
+msgid "Device"
+msgstr "Пристрій"
+
+msgid "Device: "
+msgstr "Пристрій: "
+
+msgid "Dictionary lookup"
+msgstr "Пошук у словнику"
+
+msgid "Dim finished books"
+msgstr "Затемнити прочитані книги"
+
+msgid "Disable bottom menu swipe"
+msgstr "Вимкнути нижнє меню свайпом"
+
+msgid "Disable context menu"
+msgstr "Вимкнути контекстне меню"
+
+msgid "Disable multi-word selection"
+msgstr "Вимкнути багатослівне виділення"
+
+msgid "Disable settings panel"
+msgstr "Вимкнути панель налаштувань"
+
+msgid "Disable word search on hold"
+msgstr "Вимкнути пошук слова при утриманні"
+
+msgid "Disable zen mode to access default KOReader menus."
+msgstr "Вимкніть режим Zen, щоб отримати доступ до типових меню KOReader."
+
+msgid "Disk space"
+msgstr "Місце на диску"
+
+msgid "Display"
+msgstr "Дисплей"
+
+msgid "Display mode"
+msgstr "Режим відображення"
+
+msgid "Dividing lines"
+msgstr "Роздільні лінії"
+
+msgid "Done"
+msgstr "Готово"
+
+msgid "Dots"
+msgstr "Крапки"
+
+msgid "Download"
+msgstr "Завантажити"
+
+msgid "Download failed: "
+msgstr "Завантаження не вдалося: "
+
+msgid "Downloaded"
+msgstr "Завантажено"
+
+msgid "Downloading"
+msgstr "Завантаження"
+
+msgid "Dynamic filler 2"
+msgstr "Динамічний заповнювач 2"
+
+msgid "Edit"
+msgstr "Редагувати"
+
+msgid "Enable"
+msgstr "Увімкнути"
+
+msgid "Enable bottom status bar"
+msgstr "Увімкнути нижній рядок статусу"
+
+msgid "Enable bottom swipe"
+msgstr "Увімкнути нижній свайп"
+
+msgid "Enable brightness schedule"
+msgstr "Увімкнути розклад яскравості"
+
+msgid "Enable custom status bar"
+msgstr "Увімкнути власний рядок статусу"
+
+msgid "Enable KOReader verbose debug logging. Logs are written to koreader.log. Takes effect immediately."
+msgstr "Увімкнути детальне логування налагодження KOReader. Журнали записуються до koreader.log. Набуває чинності негайно."
+
+msgid "Enable night mode schedule"
+msgstr "Увімкнути розклад нічного режиму"
+
+msgid "Enable page browser"
+msgstr "Увімкнути браузер сторінок"
+
+msgid "Enable top status bar"
+msgstr "Увімкнути верхній рядок статусу"
+
+msgid "Enable warmth schedule"
+msgstr "Увімкнути розклад теплого відтінку"
+
+msgid "Enable Zen OPDS"
+msgstr "Увімкнути Zen OPDS"
+
+msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
+msgstr "Увімкнути покращення Zen UI для браузера OPDS: обкладинки, список, меню утримання та навігаційні вдосконалення."
+
+msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
+msgstr "Увімкнення логування налагодження, потрібен перезапуск. Будь ласка, відтворіть проблему, а потім надішліть звіт."
+
+msgid "Enter your GitHub username to be tagged in the issue"
+msgstr "Введіть своє ім'я користувача GitHub, щоб вас згадали в звіті"
+
+msgid "Exit"
+msgstr "Вихід"
+
+msgid "Extra large"
+msgstr "Дуже великий"
+
+msgid "Extract and cache book metadata and cover images for books in the current directory. Requires CoverBrowser plugin."
+msgstr "Видобути та кешувати метадані книг та обкладинки для книг у поточній теці. Потребує плагін CoverBrowser."
+
+msgid "Extract metadata"
+msgstr "Видобути метадані"
+
+msgid "Extras"
+msgstr "Додатково"
+
+msgid "Failed to submit report: "
+msgstr "Не вдалося надіслати звіт: "
+
+msgid "Favorites"
+msgstr "Улюблене"
+
+msgid "Featured widgets"
+msgstr "Головні віджети"
+
+msgid "File search"
+msgstr "Пошук файлів"
+
+msgid "Filebrowser"
+msgstr "Файловий менеджер"
+
+msgid "Filebrowser plugin is not installed."
+msgstr "Плагін файлового менеджера не встановлено."
+
+msgid "Filter"
+msgstr "Фільтр"
+
+msgid "Filter by status"
+msgstr "Фільтрувати за статусом"
+
+msgid "Finish"
+msgstr "Завершити"
+
+msgid "Finished"
+msgstr "Завершено"
+
+msgid "finished"
+msgstr "завершено"
+
+msgid "Firmware: "
+msgstr "Прошивка: "
+
+msgid "First cover image"
+msgstr "Перше зображення обкладинки"
+
+msgid "Fixed layout documents (pdf, djvu, pics…)"
+msgstr "Документи з фіксованим макетом (pdf, djvu, зображення…)"
+
+msgid "Flip LH/RH icon"
+msgstr "Перевернути значок ЛК/ПК"
+
+msgid "Folder"
+msgstr "Тека"
+
+msgid "Folder buttons"
+msgstr "Кнопки теки"
+
+msgid "Folder name"
+msgstr "Назва теки"
+
+msgid "Folder name position"
+msgstr "Позиція назви теки"
+
+msgid "Folder presets"
+msgstr "Шаблони тек"
+
+msgid "Folders"
+msgstr "Теки"
+
+msgid "font"
+msgstr "шрифт"
+
+msgid "Font"
+msgstr "Шрифт"
+
+msgid "Font size"
+msgstr "Розмір шрифту"
+
+msgid "font size"
+msgstr "розмір шрифту"
+
+msgid "Font size:"
+msgstr "Розмір шрифту:"
+
+msgid "Font:"
+msgstr "Шрифт:"
+
+msgid "Force sync"
+msgstr "Примусова синхронізація"
+
+msgid "Force sync all catalogs"
+msgstr "Примусово синхронізувати всі каталоги"
+
+msgid "Format: R,G,B (0-255)"
+msgstr "Формат: R,G,B (0-255)"
+
+msgid "Frontlight"
+msgstr "Підсвітка"
+
+msgid "Gallery"
+msgstr "Галерея"
+
+msgid "Gallery view (4-grid)"
+msgstr "Галерея (4 сітки)"
+
+msgid "Get Started"
+msgstr "Почати"
+
+msgid "GitHub username (optional)"
+msgstr "Ім'я користувача GitHub (необов'язково)"
+
+msgid "Go"
+msgstr "Перейти"
+
+msgid "Go to page"
+msgstr "Перейти до сторінки"
+
+msgid "Goal shown: Daily"
+msgstr "Показувати ціль: щодня"
+
+msgid "Goal shown: Weekly"
+msgstr "Показувати ціль: щотижня"
+
+msgid "Goals metric: Pages"
+msgstr "Метрика цілей: Сторінки"
+
+msgid "Goals metric: Time"
+msgstr "Метрика цілей: Час"
+
+msgid "Gray"
+msgstr "Сірий"
+
+msgid "Green"
+msgstr "Зелений"
+
+msgid "Group book series into folders"
+msgstr "Групувати серії книг у теки"
+
+msgid "Gyro"
+msgstr "Гіроскоп"
+
+msgid "Gyroscope"
+msgstr "Гіроскоп"
+
+msgid "Hide finished books"
+msgstr "Приховати прочитані книги"
+
+msgid "Hide in CBZ/PDF files"
+msgstr "Приховати у файлах CBZ/PDF"
+
+msgid "Hide list borders"
+msgstr "Приховати межі списку"
+
+msgid "Hide reader actions in library"
+msgstr "Приховати дії читалки в бібліотеці"
+
+msgid "Hide TBR books"
+msgstr "Приховати книги для читання"
+
+msgid "Hide unread books"
+msgstr "Приховати непрочитані книги"
+
+msgid "Hide up folder"
+msgstr "Приховати теку вгору"
+
+msgid "Highlight / Lookup"
+msgstr "Виділення / Пошук"
+
+msgid "History"
+msgstr "Історія"
+
+msgid "Hold to arrange"
+msgstr "Утримуйте для впорядкування"
+
+msgid "Hold to skip"
+msgstr "Утримуйте, щоб пропустити"
+
+msgid "Home"
+msgstr "Головна"
+
+msgid "Home Folder"
+msgstr "Домашня тека"
+
+msgid "Home folder"
+msgstr "Домашня тека"
+
+msgid "Home page preset"
+msgstr "Шаблон домашньої сторінки"
+
+msgid "Home tab label"
+msgstr "Підпис вкладки Головна"
+
+msgid "Hour"
+msgstr "Година"
+
+msgid "Icon size:"
+msgstr "Розмір іконки:"
+
+msgid "Icon: %1"
+msgstr "Іконка: %1"
+
+msgid "Icons"
+msgstr "Іконки"
+
+msgid "Image support is unavailable on this device."
+msgstr "Підтримка зображень недоступна на цьому пристрої."
+
+msgid "Image: "
+msgstr "Зображення: "
+
+msgid "Image: none"
+msgstr "Зображення: немає"
+
+msgid "Include new books in TBR"
+msgstr "Додавати нові книги до списку для читання"
+
+msgid "Incognito"
+msgstr "Інкогніто"
+
+msgid "Incognito mode disabled"
+msgstr "Режим інкогніто вимкнено"
+
+msgid "Incognito mode enabled"
+msgstr "Режим інкогніто ввімкнено"
+
+msgid "Incompatible plugins have been disabled:"
+msgstr "Несумісні плагіни вимкнено:"
+
+msgid "Installed version is newer than the latest release."
+msgstr "Встановлена версія новіша за останній реліз."
+
+msgid "Installing"
+msgstr "Встановлення"
+
+msgid "Interactive"
+msgstr "Інтерактивний"
+
+msgid "Items per page"
+msgstr "Елементів на сторінку"
+
+msgid "items per page"
+msgstr "елементів на сторінку"
+
+msgid "Keep existing settings"
+msgstr "Зберегти поточні налаштування"
+
+msgid "KOReader: "
+msgstr "KOReader: "
+
+msgid "Label"
+msgstr "Підпис"
+
+msgid "Label size:"
+msgstr "Розмір підпису:"
+
+msgid "Label: "
+msgstr "Підпис: "
+
+msgid "Label: %1"
+msgstr "Підпис: %1"
+
+msgid "Labels"
+msgstr "Підписи"
+
+msgid "Landscape mosaic mode"
+msgstr "Ландшафтний мозаїчний режим"
+
+msgid "Landscape mosaic: "
+msgstr "Ландшафтна мозаїка: "
+
+msgid "Large"
+msgstr "Великий"
+
+msgid "Later"
+msgstr "Пізніше"
+
+msgid "latest"
+msgstr "остання"
+
+msgid "Launcher"
+msgstr "Запускач"
+
+msgid "Launcher entry is unavailable"
+msgstr "Елемент запускача недоступний"
+
+msgid "Launcher label"
+msgstr "Підпис запускача"
+
+msgid "Layout"
+msgstr "Макет"
+
+msgid "Leave empty to use action title"
+msgstr "Залиште порожнім, щоб використовувати назву дії"
+
+msgid "Left"
+msgstr "Ліворуч"
+
+msgid "Left items"
+msgstr "Ліві елементи"
+
+msgid "Library"
+msgstr "Бібліотека"
+
+msgid "Library font"
+msgstr "Шрифт бібліотеки"
+
+msgid "Library font size"
+msgstr "Розмір шрифту бібліотеки"
+
+msgid "Library View"
+msgstr "Вид бібліотеки"
+
+msgid "Light"
+msgstr "Світлий"
+
+msgid "List"
+msgstr "Список"
+
+msgid "List (basic)"
+msgstr "Список (базовий)"
+
+msgid "List (detailed)"
+msgstr "Список (детальний)"
+
+msgid "List - detailed titles and metadata"
+msgstr "Список — детальні назви та метадані"
+
+msgid "List: "
+msgstr "Список: "
+
+msgid "Load more"
+msgstr "Завантажити більше"
+
+msgid "Loading changelog"
+msgstr "Завантаження списку змін"
+
+msgid "LocalSend"
+msgstr "LocalSend"
+
+msgid "Lock home folder"
+msgstr "Заблокувати домашню теку"
+
+msgid "Lockdown"
+msgstr "Блокування"
+
+msgid "Lockdown mode"
+msgstr "Режим блокування"
+
+msgid "Magnify UI"
+msgstr "Збільшити інтерфейс"
+
+msgid "Manga"
+msgstr "Манґа"
+
+msgid "Manga folder not found: "
+msgstr "Теку манґи не знайдено: "
+
+msgid "Match whole words"
+msgstr "Цілі слова"
+
+msgid "Maximum 5 widgets allowed"
+msgstr "Максимум 5 віджетів"
+
+msgid "Maximum 7 tabs allowed"
+msgstr "Максимум 7 вкладок"
+
+msgid "Maximum 9 buttons allowed"
+msgstr "Максимум 9 кнопок"
+
+msgid "Menu"
+msgstr "Меню"
+
+msgid "Minute"
+msgstr "Хвилина"
+
+msgid "Mosaic"
+msgstr "Мозаїка"
+
+msgid "Mosaic - large cover thumbnails"
+msgstr "Мозаїка — великі мініатюри обкладинок"
+
+msgid "Mosaic and detailed list settings"
+msgstr "Налаштування мозаїки та детального списку"
+
+msgid "Mosaic with cover images"
+msgstr "Мозаїка з обкладинками"
+
+msgid "Mosaic with text"
+msgstr "Мозаїка з текстом"
+
+msgid "Move"
+msgstr "Перемістити"
+
+msgid "Move failed."
+msgstr "Не вдалося перемістити."
+
+msgid "Move out of folder"
+msgstr "Перемістити з теки"
+
+msgid "Move to folder"
+msgstr "Перемістити до теки"
+
+msgid "Move to…"
+msgstr "Перемістити до…"
+
+msgid "Navbar"
+msgstr "Панель навігації"
+
+msgid "Navbar icon size"
+msgstr "Розмір іконок панелі навігації"
+
+msgid "Navbar label size"
+msgstr "Розмір підписів панелі навігації"
+
+msgid "Navbar Tabs"
+msgstr "Вкладки панелі навігації"
+
+msgid "Network unavailable."
+msgstr "Мережа недоступна."
+
+msgid "New"
+msgstr "Новинки"
+
+msgid "New collection"
+msgstr "Нова колекція"
+
+msgid "New folder"
+msgstr "Нова тека"
+
+msgid "New includes unread books and books modified since they were last opened."
+msgstr "\"Новинки\" включають непрочитані книги та книги, змінені після останнього відкриття."
+
+msgid "News"
+msgstr "Новини"
+
+msgid "News folder not found: "
+msgstr "Теку новин не знайдено: "
+
+msgid "Next"
+msgstr "Далі"
+
+msgid "Next page"
+msgstr "Наступна сторінка"
+
+msgid "Night"
+msgstr "Ніч"
+
+msgid "Night brightness"
+msgstr "Нічна яскравість"
+
+msgid "Night brightness time"
+msgstr "Час нічної яскравості"
+
+msgid "Night brightness time: "
+msgstr "Час нічної яскравості: "
+
+msgid "Night brightness: "
+msgstr "Нічна яскравість: "
+
+msgid "Night mode"
+msgstr "Нічний режим"
+
+msgid "Night mode off time"
+msgstr "Час вимкнення нічного режиму"
+
+msgid "Night mode off: "
+msgstr "Вимкнення нічного режиму: "
+
+msgid "Night mode on time"
+msgstr "Час увімкнення нічного режиму"
+
+msgid "Night mode on: "
+msgstr "Увімкнення нічного режиму: "
+
+msgid "Night mode schedule"
+msgstr "Розклад нічного режиму"
+
+msgid "Night warmth"
+msgstr "Нічний теплий відтінок"
+
+msgid "Night warmth time"
+msgstr "Час нічного теплого відтінку"
+
+msgid "Night warmth time: "
+msgstr "Час нічного теплого відтінку: "
+
+msgid "Night warmth: "
+msgstr "Нічний теплий відтінок: "
+
+msgid "No background image selected."
+msgstr "Фонове зображення не вибрано."
+
+msgid "No books found"
+msgstr "Книг не знайдено"
+
+msgid "No changelog entries found.\n\nNo releases are available for this channel."
+msgstr "Записів списку змін не знайдено.\n\nДля цього каналу немає доступних релізів."
+
+msgid "No changelog provided."
+msgstr "Список змін не надано."
+
+msgid "No description."
+msgstr "Без опису."
+
+msgid "No launchable plugin menus found"
+msgstr "Меню плагінів, які можна запустити, не знайдено"
+
+msgid "No network connection. Please connect to Wi-Fi and try again."
+msgstr "Немає підключення до мережі. Будь ласка, підключіться до Wi-Fi та спробуйте ще раз."
+
+msgid "No reader engine for this file or invalid file."
+msgstr "Немає рушія читання для цього файлу або файл пошкоджено."
+
+msgid "No table of contents available."
+msgstr "Зміст недоступний."
+
+msgid "No update asset found."
+msgstr "Файл оновлення не знайдено."
+
+msgid "None"
+msgstr "Немає"
+
+msgid "None (folder name only)"
+msgstr "Немає (лише назва теки)"
+
+msgid "Normal"
+msgstr "Звичайний"
+
+msgid "Nothing"
+msgstr "Нічого"
+
+msgid "Notion"
+msgstr "Notion"
+
+msgid "NotionSync"
+msgstr "NotionSync"
+
+msgid "Off"
+msgstr "Вимк."
+
+msgid "OK"
+msgstr "Гаразд"
+
+msgid "On"
+msgstr "Увімк."
+
+msgid "Only in Zen mode"
+msgstr "Лише в режимі Zen"
+
+msgid "Opaque background"
+msgstr "Непрозорий фон"
+
+msgid "OPDS"
+msgstr "OPDS"
+
+msgid "Open folder"
+msgstr "Відкрити теку"
+
+msgid "Open next file"
+msgstr "Відкрити наступний файл"
+
+msgid "Open QuickRSS"
+msgstr "Відкрити QuickRSS"
+
+msgid "Open Rakuyomi"
+msgstr "Відкрити Rakuyomi"
+
+msgid "Open RSS Reader"
+msgstr "Відкрити RSS Reader"
+
+msgid "Opening"
+msgstr "Відкриття"
+
+msgid "Order"
+msgstr "Порядок"
+
+msgid "Outlined boxes"
+msgstr "Контурні рамки"
+
+msgid "Page %1 of %2"
+msgstr "Сторінка %1 з %2"
+
+msgid "Page Browser"
+msgstr "Браузер сторінок"
+
+msgid "Page number"
+msgstr "Номер сторінки"
+
+msgid "Page number format"
+msgstr "Формат номера сторінки"
+
+msgid "Page stream"
+msgstr "Потік сторінок"
+
+msgid "Page x / y"
+msgstr "Стор. x / y"
+
+msgid "pages"
+msgstr "сторінки"
+
+msgid "Pages + Chapter Time + %"
+msgstr "Сторінки + час розділу + %"
+
+msgid "Pages and %"
+msgstr "Сторінки та %"
+
+msgid "pages today"
+msgstr "сторінок сьогодні"
+
+msgid "Partial pages refresh"
+msgstr "Часткове оновлення сторінок"
+
+msgid "Paste"
+msgstr "Вставити"
+
+msgid "Percent"
+msgstr "Відсоток"
+
+msgid "Personal Records"
+msgstr "Особисті рекорди"
+
+msgid "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
+msgstr "Будь ласка, видаліть плагін Project: Title з теки плагінів та перезапустіть KOReader."
+
+msgid "Plugin"
+msgstr "Плагін"
+
+msgid "Plugin management"
+msgstr "Керування плагінами"
+
+msgid "Plugin: %1"
+msgstr "Плагін: %1"
+
+msgid "Portrait list mode"
+msgstr "Портретний режим списку"
+
+msgid "Portrait mosaic mode"
+msgstr "Портретний мозаїчний режим"
+
+msgid "Portrait mosaic: "
+msgstr "Портретна мозаїка: "
+
+msgid "Preset name"
+msgstr "Назва шаблону"
+
+msgid "Presets"
+msgstr "Шаблони"
+
+msgid "Prev"
+msgstr "Назад"
+
+msgid "Previous page"
+msgstr "Попередня сторінка"
+
+msgid "Progress"
+msgstr "Прогрес"
+
+msgid "Progress %"
+msgstr "Прогрес %"
+
+msgid "Progress bar"
+msgstr "Смуга прогресу"
+
+msgid "Progress labels"
+msgstr "Підписи прогресу"
+
+msgid "Project: Title is not compatible with Zen UI."
+msgstr "Project: Title несумісний з Zen UI."
+
+msgid "Puzzle"
+msgstr "Головоломка"
+
+msgid "Quick Settings"
+msgstr "Швидкі налаштування"
+
+msgid "Quick settings button is unavailable"
+msgstr "Кнопка швидких налаштувань недоступна"
+
+msgid "QuickRSS"
+msgstr "QuickRSS"
+
+msgid "QuickRSS plugin is not installed."
+msgstr "Плагін QuickRSS не встановлено."
+
+msgid "Quit"
+msgstr "Завершити"
+
+msgid "Quit KOReader"
+msgstr "Завершити KOReader"
+
+msgid "Quotes widget"
+msgstr "Віджет цитат"
+
+msgid "Rakuyomi"
+msgstr "Rakuyomi"
+
+msgid "Rakuyomi plugin is not installed."
+msgstr "Плагін Rakuyomi не встановлено."
+
+msgid "RAM usage"
+msgstr "Використання RAM"
+
+msgid "Read now"
+msgstr "Читати зараз"
+
+msgid "Read status"
+msgstr "Статус читання"
+
+msgid "read today"
+msgstr "прочитано сьогодні"
+
+msgid "Reader"
+msgstr "Читалка"
+
+msgid "Reader Progress"
+msgstr "Прогрес читання"
+
+msgid "Reading"
+msgstr "Читаю"
+
+msgid "reading"
+msgstr "читаю"
+
+msgid "Reading goals"
+msgstr "Цілі читання"
+
+msgid "Reading stats widget"
+msgstr "Віджет статистики читання"
+
+msgid "Rebooting"
+msgstr "Перезавантаження"
+
+msgid "Recently read"
+msgstr "Нещодавно прочитане"
+
+msgid "Recently read featured widget"
+msgstr "Головний віджет нещодавно прочитаного"
+
+msgid "Recently read strip widget"
+msgstr "Рядковий віджет нещодавно прочитаного"
+
+msgid "Red"
+msgstr "Червоний"
+
+msgid "Reflowable documents (epub, fb2, txt…)"
+msgstr "Документи з гнучким макетом (epub, fb2, txt…)"
+
+msgid "Refresh"
+msgstr "Оновити"
+
+msgid "regular"
+msgstr "звичайний"
+
+msgid "Release metadata is invalid or incomplete."
+msgstr "Метадані релізу недійсні або неповні."
+
+msgid "Remove"
+msgstr "Вилучити"
+
+msgid "Remove default"
+msgstr "Вилучити типове"
+
+msgid "Remove from collection"
+msgstr "Вилучити з колекції"
+
+msgid "Remove from history"
+msgstr "Вилучити з історії"
+
+msgid "Remove this book from history?"
+msgstr "Вилучити цю книгу з історії?"
+
+msgid "Remove this folder from additional home folders?"
+msgstr "Вилучити цю теку з додаткових домашніх тек?"
+
+msgid "Remove: "
+msgstr "Вилучити: "
+
+msgid "Rename"
+msgstr "Перейменувати"
+
+msgid "Report a Bug"
+msgstr "Повідомити про помилку"
+
+msgid "Require hold to toggle buttons"
+msgstr "Для перемикання кнопок потрібно утримувати"
+
+msgid "Reset"
+msgstr "Скинути"
+
+msgid "Reset Controls to defaults?"
+msgstr "Скинути налаштування керування до типових?"
+
+msgid "Reset font"
+msgstr "Скинути шрифт"
+
+msgid "Reset font family and size to default?"
+msgstr "Скинути гарнітуру та розмір шрифту до типових?"
+
+msgid "Reset to defaults"
+msgstr "Скинути до типових"
+
+msgid "Restart"
+msgstr "Перезапуск"
+
+msgid "Restart Book"
+msgstr "Перезапустити книгу"
+
+msgid "Restart now"
+msgstr "Перезапустити зараз"
+
+msgid "Restore library location on exit"
+msgstr "Відновлювати розташування в бібліотеці при виході"
+
+msgid "Resume from page"
+msgstr "Продовжити зі сторінки"
+
+msgid "Return to chapter list on exit"
+msgstr "Повертатися до списку розділів при виході"
+
+msgid "Reverse"
+msgstr "Обернути"
+
+msgid "Review"
+msgstr "Огляд"
+
+msgid "Right"
+msgstr "Праворуч"
+
+msgid "Right items"
+msgstr "Праві елементи"
+
+msgid "Rotate"
+msgstr "Повернути"
+
+msgid "Rotate: %1"
+msgstr "Повернути: %1"
+
+msgid "Rounded cover corners"
+msgstr "Заокруглені кути обкладинок"
+
+msgid "Row break"
+msgstr "Розрив рядка"
+
+msgid "Rows"
+msgstr "Рядки"
+
+msgid "RSS Reader plugin is not installed."
+msgstr "Плагін RSS Reader не встановлено."
+
+msgid "Save"
+msgstr "Зберегти"
+
+msgid "Save current home page as preset"
+msgstr "Зберегти поточну домашню сторінку як шаблон"
+
+msgid "Save current settings as preset"
+msgstr "Зберегти поточні налаштування як шаблон"
+
+msgid "Schedules"
+msgstr "Розклади"
+
+msgid "Screenshot"
+msgstr "Знімок екрана"
+
+msgid "Screenshot saved to:"
+msgstr "Знімок екрана збережено до:"
+
+msgid "Screenshot timer"
+msgstr "Таймер знімка екрана"
+
+msgid "Screenshot: %1 s"
+msgstr "Знімок екрана: %1 с"
+
+msgid "Scroll bar"
+msgstr "Смуга прокручування"
+
+msgid "Search"
+msgstr "Пошук"
+
+msgid "Search Book"
+msgstr "Пошук книги"
+
+msgid "Search Library"
+msgstr "Пошук у бібліотеці"
+
+msgid "Search results"
+msgstr "Результати пошуку"
+
+msgid "Select"
+msgstr "Вибрати"
+
+msgid "Select icon"
+msgstr "Вибрати іконку"
+
+msgid "Send with LocalSend"
+msgstr "Надіслати через LocalSend"
+
+msgid "Separator"
+msgstr "Роздільник"
+
+msgid "Separator: "
+msgstr "Роздільник: "
+
+msgid "Series"
+msgstr "Серії"
+
+msgid "series"
+msgstr "серії"
+
+msgid "Series number"
+msgstr "Номер серії"
+
+msgid "Set"
+msgstr "Встановити"
+
+msgid "Set all gestures to pass-through? Top-right corner in reader will be kept as Toggle bookmark."
+msgstr "Встановити всі жести як наскрізні? Правий верхній кут у читалці залишиться як перемикання закладки."
+
+msgid "Set as default"
+msgstr "Встановити типовим"
+
+msgid "Set as wallpaper"
+msgstr "Встановити як шпалери"
+
+msgid "Set file types to sync"
+msgstr "Встановити типи файлів для синхронізації"
+
+msgid "Set home folder"
+msgstr "Встановити домашню теку"
+
+msgid "Set max number of files to sync"
+msgstr "Встановити макс. кількість файлів для синхронізації"
+
+msgid "Set sync folder"
+msgstr "Встановити теку синхронізації"
+
+msgid "Settings"
+msgstr "Налаштування"
+
+msgid "Settings & Updates"
+msgstr "Налаштування та оновлення"
+
+msgid "Setup Guide"
+msgstr "Посібник з налаштування"
+
+msgid "Show a button for the Assistant plugin, if installed."
+msgstr "Показувати кнопку для плагіна Assistant, якщо встановлено."
+
+msgid "Show AI assistant"
+msgstr "Показати AI асистента"
+
+msgid "Show all files from subfolders"
+msgstr "Показувати всі файли з підтек"
+
+msgid "Show author"
+msgstr "Показати автора"
+
+msgid "Show author below cover (mosaic)"
+msgstr "Показати автора під обкладинкою (мозаїка)"
+
+msgid "Show badges"
+msgstr "Показати значки"
+
+msgid "Show Book cover"
+msgstr "Показати обкладинку книги"
+
+msgid "Show book titles"
+msgstr "Показати назви книг"
+
+msgid "Show bottom border"
+msgstr "Показати нижню межу"
+
+msgid "Show brightness slider"
+msgstr "Показати повзунок яскравості"
+
+msgid "Show description"
+msgstr "Показати опис"
+
+msgid "Show favorite badge"
+msgstr "Показати значок улюбленого"
+
+msgid "Show folder name"
+msgstr "Показати назву теки"
+
+msgid "Show hidden files"
+msgstr "Показати приховані файли"
+
+msgid "Show icons"
+msgstr "Показати іконки"
+
+msgid "Show item count"
+msgstr "Показати кількість елементів"
+
+msgid "Show item underline"
+msgstr "Показати підкреслення елемента"
+
+msgid "Show KOReader progress bar"
+msgstr "Показати смугу прогресу KOReader"
+
+msgid "Show labels"
+msgstr "Показати підписи"
+
+msgid "Show new banner"
+msgstr "Показати позначку нового"
+
+msgid "Show other items"
+msgstr "Показати інші елементи"
+
+msgid "Show other KOReader quick lookup options alongside Zen buttons."
+msgstr "Показувати інші опції швидкого пошуку KOReader поруч із кнопками Zen."
+
+msgid "Show page count"
+msgstr "Показати кількість сторінок"
+
+msgid "Show progress % on mosaic covers"
+msgstr "Показати % прогресу на мозаїчних обкладинках"
+
+msgid "Show separator"
+msgstr "Показати роздільник"
+
+msgid "Show series number on covers"
+msgstr "Показати номер серії на обкладинках"
+
+msgid "Show spine lines"
+msgstr "Показати лінії корінців"
+
+msgid "Show title below cover (mosaic)"
+msgstr "Показати назву під обкладинкою (мозаїка)"
+
+msgid "Show top border"
+msgstr "Показати верхню межу"
+
+msgid "Show top status bar"
+msgstr "Показати верхній рядок статусу"
+
+msgid "Show warmth slider"
+msgstr "Показати повзунок теплого відтінку"
+
+msgid "Show widget title"
+msgstr "Показати заголовок віджета"
+
+msgid "Show Wikipedia"
+msgstr "Показати Вікіпедію"
+
+msgid "Show Zen icon - black background"
+msgstr "Показати іконку Zen — чорний фон"
+
+msgid "Show Zen icon - white background"
+msgstr "Показати іконку Zen — білий фон"
+
+msgid "Skip"
+msgstr "Пропустити"
+
+msgid "Skip 10 pages"
+msgstr "Пропустити 10 сторінок"
+
+msgid "Skip 20 pages"
+msgstr "Пропустити 20 сторінок"
+
+msgid "Sleep"
+msgstr "Сон"
+
+msgid "Sleep Screen"
+msgstr "Екран сну"
+
+msgid "Slide Puzzle"
+msgstr "Пазл-слайдер"
+
+msgid "Sort"
+msgstr "Сортувати"
+
+msgid "Sort authors"
+msgstr "Сортувати авторів"
+
+msgid "Sort books by"
+msgstr "Сортувати книги за"
+
+msgid "Sort by"
+msgstr "Сортувати за"
+
+msgid "Sort folder"
+msgstr "Сортувати теку"
+
+msgid "Sort folder by"
+msgstr "Сортувати теку за"
+
+msgid "Sort library"
+msgstr "Сортувати бібліотеку"
+
+msgid "Sort library by"
+msgstr "Сортувати бібліотеку за"
+
+msgid "Sort order"
+msgstr "Порядок сортування"
+
+msgid "Sort series"
+msgstr "Сортувати серії"
+
+msgid "Stable"
+msgstr "Стабільна"
+
+msgid "Stack"
+msgstr "Стопка"
+
+msgid "Stack effect (overlapping covers)"
+msgstr "Ефект стопки (перекриття обкладинок)"
+
+msgid "Stat separators"
+msgstr "Роздільники статистики"
+
+msgid "Stat slot "
+msgstr "Слот статистики "
+
+msgid "Statistics"
+msgstr "Статистика"
+
+msgid "Stats"
+msgstr "Статистика"
+
+msgid "Stats: Calendar"
+msgstr "Статистика: Календар"
+
+msgid "Stats: Progress"
+msgstr "Статистика: Прогрес"
+
+msgid "Status bar"
+msgstr "Рядок статусу"
+
+msgid "Status bar items"
+msgstr "Елементи рядка статусу"
+
+msgid "Steps to reproduce, expected vs. actual behavior"
+msgstr "Кроки для відтворення, очікувана та фактична поведінка"
+
+msgid "Streak"
+msgstr "Серія"
+
+msgid "Stream from page"
+msgstr "Потік зі сторінки"
+
+msgid "Strip widgets"
+msgstr "Рядкові віджети"
+
+msgid "Styling"
+msgstr "Стилізація"
+
+msgid "Subfolder flat view was disabled because the home folder is the device storage root."
+msgstr "Плоский перегляд підтек вимкнено, оскільки домашня тека є коренем сховища пристрою."
+
+msgid "Submit"
+msgstr "Надіслати"
+
+msgid "Submitting report…"
+msgstr "Надсилання звіту…"
+
+msgid "Swipe down from the top to reach quick settings like brightness, Wi-Fi, night mode, zen mode and more."
+msgstr "Проведіть униз від верхнього краю, щоб отримати доступ до швидких налаштувань: яскравості, Wi-Fi, нічного режиму, режиму Zen тощо."
+
+msgid "Swipe up from the bottom while reading to open the Page Browser.\n\nSkim through pages or skip chapters, browse the table of contents, manage bookmarks, adjust fonts and more."
+msgstr "Проведіть вгору знизу під час читання, щоб відкрити Браузер сторінок.\n\nГортайте сторінки або пропускайте розділи, переглядайте зміст, керуйте закладками, змінюйте шрифти тощо."
+
+msgid "Sync"
+msgstr "Синхронізація"
+
+msgid "Sync all catalogs"
+msgstr "Синхронізувати всі каталоги"
+
+msgid "Tabs"
+msgstr "Вкладки"
+
+msgid "tags"
+msgstr "теги"
+
+msgid "Tags"
+msgstr "Теги"
+
+msgid "Tap and hold any book or folder in your library to reveal details."
+msgstr "Натисніть та утримуйте будь-яку книгу або теку в бібліотеці, щоб побачити деталі."
+
+msgid "Text styles"
+msgstr "Стилі тексту"
+
+msgid "The best interface is the one you forget is there.\nNow go get lost in a good book."
+msgstr "Найкращий інтерфейс — той, про який ви забуваєте.\nА тепер поринайте в хорошу книгу."
+
+msgid "The default KOReader reader menu is inside the Aa icon."
+msgstr "Типове меню читалки KOReader знаходиться всередині іконки Aa."
+
+msgid "The place for all your books %1"
+msgstr "Місце для всіх ваших книг %1"
+
+msgid "This change requires a restart to take effect."
+msgstr "Ця зміна потребує перезапуску, щоб набути чинності."
+
+msgid "This Month"
+msgstr "Цього місяця"
+
+msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
+msgstr "Ця опція вимкнена, коли домашня тека є коренем сховища пристрою. Спочатку встановіть вужчі теки з книгами як домашні."
+
+msgid "This Week"
+msgstr "Цього тижня"
+
+msgid "This Year"
+msgstr "Цього року"
+
+msgid "Time"
+msgstr "Час"
+
+msgid "Time Format"
+msgstr "Формат часу"
+
+msgid "Time to book end"
+msgstr "Час до кінця книги"
+
+msgid "Timer: %1 s"
+msgstr "Таймер: %1 с"
+
+msgid "Title"
+msgstr "Назва"
+
+msgid "Title natural"
+msgstr "Назва (природна)"
+
+msgid "To Be Read"
+msgstr "До читання"
+
+msgid "To Be Read featured widget"
+msgstr "Головний віджет \"До читання\""
+
+msgid "To Be Read strip widget"
+msgstr "Рядковий віджет \"До читання\""
+
+msgid "Today"
+msgstr "Сьогодні"
+
+msgid "Too many requests. Please try again later."
+msgstr "Забагато запитів. Будь ласка, спробуйте пізніше."
+
+msgid "Top bar font"
+msgstr "Шрифт верхньої панелі"
+
+msgid "Top status bar"
+msgstr "Верхній рядок статусу"
+
+msgid "total books"
+msgstr "всього книг"
+
+msgid "Total pages"
+msgstr "Всього сторінок"
+
+msgid "total pages read"
+msgstr "всього прочитано сторінок"
+
+msgid "total read time"
+msgstr "загальний час читання"
+
+msgid "total time"
+msgstr "загальний час"
+
+msgid "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
+msgstr "Увімкніть режим Zen, щоб спростити KOReader до найнеобхіднішого.\n\nПриберіть візуальний шум для зосередженого читання без відволікань. Вийти можна в будь-який час у Налаштуваннях."
+
+msgid "Two rows"
+msgstr "Два рядки"
+
+msgid "Unavailable"
+msgstr "Недоступно"
+
+msgid "Underline"
+msgstr "Підкреслення"
+
+msgid "Underline above icon"
+msgstr "Підкреслення над іконкою"
+
+msgid "Uniform covers"
+msgstr "Рівномірні обкладинки"
+
+msgid "Unknown"
+msgstr "Невідомо"
+
+msgid "unknown"
+msgstr "невідомо"
+
+msgid "Unknown Author"
+msgstr "Невідомий автор"
+
+msgid "unknown error"
+msgstr "невідома помилка"
+
+msgid "Unnamed preset"
+msgstr "Шаблон без назви"
+
+msgid "Unread"
+msgstr "Непрочитане"
+
+msgid "Update available"
+msgstr "Доступне оновлення"
+
+msgid "Update available: "
+msgstr "Доступне оновлення: "
+
+msgid "Update cancelled."
+msgstr "Оновлення скасовано."
+
+msgid "Update channel"
+msgstr "Канал оновлень"
+
+msgid "Update failed and rollback failed."
+msgstr "Оновлення не вдалося, і відкат також не вдався."
+
+msgid "Update failed: active plugin folder not found."
+msgstr "Оновлення не вдалося: теку активного плагіна не знайдено."
+
+msgid "Update failed: corrupted update package."
+msgstr "Оновлення не вдалося: пошкоджений пакет оновлення."
+
+msgid "Update failed: could not activate new version."
+msgstr "Оновлення не вдалося: не вдалося активувати нову версію."
+
+msgid "Update failed: could not create backup."
+msgstr "Оновлення не вдалося: не вдалося створити резервну копію."
+
+msgid "Update failed: could not prepare staging area."
+msgstr "Оновлення не вдалося: не вдалося підготувати проміжну зону."
+
+msgid "Update failed: could not restore previous plugin backup."
+msgstr "Оновлення не вдалося: не вдалося відновити попередню резервну копію плагіна."
+
+msgid "Update failed: could not unpack update package."
+msgstr "Оновлення не вдалося: не вдалося розпакувати пакет оновлення."
+
+msgid "Update failed: invalid package layout."
+msgstr "Оновлення не вдалося: неправильна структура пакета."
+
+msgid "Update failed: missing checksum."
+msgstr "Оновлення не вдалося: відсутня контрольна сума."
+
+msgid "Update failed: network connection lost."
+msgstr "Оновлення не вдалося: втрачено з'єднання з мережею."
+
+msgid "Update failed: new version is invalid."
+msgstr "Оновлення не вдалося: нова версія недійсна."
+
+msgid "Update failed: plugin directory is not writable."
+msgstr "Оновлення не вдалося: теку плагіна недоступна для запису."
+
+msgid "Update failed: staged plugin validation failed."
+msgstr "Оновлення не вдалося: перевірка підготовленого плагіна не пройшла."
+
+msgid "Update failed: timed out."
+msgstr "Оновлення не вдалося: час очікування вичерпано."
+
+msgid "Update now"
+msgstr "Оновити зараз"
+
+msgid "Update Status"
+msgstr "Статус оновлення"
+
+msgid "Updated to %1"
+msgstr "Оновлено до %1"
+
+msgid "Updates"
+msgstr "Оновлення"
+
+msgid "USB"
+msgstr "USB"
+
+msgid "Use a narrower books folder instead of the device storage root."
+msgstr "Використовуйте вужчу теку книг замість кореня сховища пристрою."
+
+msgid "Use border as progress bar"
+msgstr "Використовувати межу як смугу прогресу"
+
+msgid "Use current folder"
+msgstr "Використовувати поточну теку"
+
+msgid "Use default font"
+msgstr "Використовувати типовий шрифт"
+
+msgid "Use default style"
+msgstr "Використовувати типовий стиль"
+
+msgid "Use home folder"
+msgstr "Використовувати домашню теку"
+
+msgid "Use last folder"
+msgstr "Використовувати останню теку"
+
+msgid "username"
+msgstr "ім'я користувача"
+
+msgid "Verbose time to chapter end"
+msgstr "Детальний час до кінця розділу"
+
+msgid "View"
+msgstr "Вид"
+
+msgid "Virtual folder"
+msgstr "Віртуальна тека"
+
+msgid "Warmth"
+msgstr "Теплий відтінок"
+
+msgid "Warmth schedule"
+msgstr "Розклад теплого відтінку"
+
+msgid "Weekly pages goal"
+msgstr "Тижнева ціль сторінок"
+
+msgid "Weekly pages goal: "
+msgstr "Тижнева ціль сторінок: "
+
+msgid "Weekly time goal (min)"
+msgstr "Тижнева ціль часу (хв)"
+
+msgid "Weekly time goal (min): "
+msgstr "Тижнева ціль часу (хв): "
+
+msgid "Welcome to Zen UI"
+msgstr "Ласкаво просимо до Zen UI"
+
+msgid "What should your device show when it goes to sleep?"
+msgstr "Що має показувати ваш пристрій під час сну?"
+
+msgid "What's changed"
+msgstr "Що змінилося"
+
+msgid "What's New"
+msgstr "Що нового"
+
+msgid "When enabled, icons placed in KOReader's user icons folder override the bundled Zen UI icons. Falls back to Zen UI icons, then KOReader built-ins."
+msgstr "Коли ввімкнено, іконки в теці користувацьких іконок KOReader замінюють вбудовані іконки Zen UI. Якщо немає, використовуються іконки Zen UI, а потім вбудовані в KOReader."
+
+msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
+msgstr "Коли ввімкнено, пошук знаходить лише цілі слова. Коли вимкнено, використовується пошук за підрядком (напр., 'риба' знаходить 'рибалка')."
+
+msgid "Which time format do you prefer?"
+msgstr "Якому формату часу ви віддаєте перевагу?"
+
+msgid "White"
+msgstr "Білий"
+
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
+
+msgid "Widgets"
+msgstr "Віджети"
+
+msgid "You're All Set"
+msgstr "Усе готово"
+
+msgid "Z-Lib"
+msgstr "Z-Lib"
+
+msgid "Z-Library"
+msgstr "Z-Library"
+
+msgid "Zen"
+msgstr "Zen"
+
+msgid "Zen highlight menu"
+msgstr "Меню виділення Zen"
+
+msgid "Zen Mode"
+msgstr "Режим Zen"
+
+msgid "Zen mode"
+msgstr "Режим Zen"
+
+msgid "Zen OPDS"
+msgstr "Zen OPDS"
+
+msgid "Zen Presets"
+msgstr "Шаблони Zen"
+
+msgid "Zen quick lookup"
+msgstr "Швидкий пошук Zen"
+
+msgid "Zen UI"
+msgstr "Zen UI"
+
+msgid "Zen UI - Authors"
+msgstr "Zen UI — Автори"
+
+msgid "Zen UI - Home"
+msgstr "Zen UI — Головна"
+
+msgid "Zen UI - Library"
+msgstr "Zen UI — Бібліотека"
+
+msgid "Zen UI - Open folder"
+msgstr "Zen UI — Відкрити теку"
+
+msgid "Zen UI - Series"
+msgstr "Zen UI — Серії"
+
+msgid "Zen UI - Sync progress (pull + push)"
+msgstr "Zen UI — Синхронізація прогресу (отримати + надіслати)"
+
+msgid "Zen UI - Table of contents"
+msgstr "Zen UI — Зміст"
+
+msgid "Zen UI - Tags"
+msgstr "Zen UI — Теги"
+
+msgid "Zen UI - Toggle bottom reader status bar"
+msgstr "Zen UI — Перемкнути нижній рядок статусу читалки"
+
+msgid "Zen UI - Toggle Incognito Mode"
+msgstr "Zen UI — Перемкнути режим інкогніто"
+
+msgid "Zen UI - Toggle Lockdown Mode"
+msgstr "Zen UI — Перемкнути режим блокування"
+
+msgid "Zen UI - Toggle reader status bars"
+msgstr "Zen UI — Перемкнути рядки статусу читалки"
+
+msgid "Zen UI - Toggle top reader status bar"
+msgstr "Zen UI — Перемкнути верхній рядок статусу читалки"
+
+msgid "Zen UI - Toggle Zen Mode"
+msgstr "Zen UI — Перемкнути режим Zen"
+
+msgid "Zen UI defaults"
+msgstr "Типові налаштування Zen UI"
+
+msgid "Zen UI is up to date."
+msgstr "Zen UI має останню версію."
+
+msgid "Zen UI: "
+msgstr "Zen UI: "
+
+msgid "Zen UI: folder not found: "
+msgstr "Zen UI: теку не знайдено: "
+
+msgid "Zen UI: no folder set for this action."
+msgstr "Zen UI: для цієї дії не встановлено теку."

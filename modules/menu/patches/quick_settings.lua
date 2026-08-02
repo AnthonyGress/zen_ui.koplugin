@@ -4,11 +4,13 @@ local function apply_quick_settings()
     -- Reading Streak (advokatb/readingstreak.koplugin), OPDS Catalog (built-in KOReader).
 
     local Blitbuffer = require("ffi/blitbuffer")
+    local ffiUtil = require("ffi/util")
+    local T = ffiUtil.template
     local CenterContainer = require("ui/widget/container/centercontainer")
     local Device = require("device")
     local Event = require("ui/event")
     local Font = require("ui/font")
-    local FrameContainer = require("ui/widget/container/framecontainer")
+    local SolidCircle = require("common/ui/zen_solid_circle")
     local Geom = require("ui/geometry")
     local HorizontalGroup = require("ui/widget/horizontalgroup")
     local HorizontalSpan = require("ui/widget/horizontalspan")
@@ -23,11 +25,13 @@ local function apply_quick_settings()
     local utils = require("common/utils")
     local shutdown = require("common/shutdown")
     local SharedState = require("common/shared_state")
+    local Bluetooth = require("common/bluetooth")
     local build_brightness_slider = require("modules/menu/patches/brightness_slider")
     local build_warmth_slider     = require("modules/menu/patches/warmth_slider")
     local _ = require("gettext")
     local Screen = Device.screen
     local Dispatcher = require("dispatcher")
+    local DispatchAction = require("common/dispatch_action")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
 
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
@@ -63,20 +67,35 @@ local function apply_quick_settings()
         return 1
     end
 
+    local function getLauncherTabIndex(touch_menu)
+        for i, tab in ipairs((touch_menu and touch_menu.tab_item_table) or {}) do
+            if tab.id == "app_launcher" then return i end
+        end
+    end
+
+    local function launcher_opens_first()
+        local features = zen_plugin.config and zen_plugin.config.features
+        if type(features) ~= "table" or features.app_launcher ~= true then return false end
+        local ok, Model = pcall(require, "modules/menu/app_launcher/model")
+        return ok and Model.ensure().open_first == true
+    end
+
     -- ============================================================
     -- Configuration
     -- ============================================================
 
     local config_default = {
-        button_order = { "wifi", "night", "frontlight", "gyro", "rotate", "zen", "lockdown", "usb", "search", "quickrss", "cloud", "zlibrary", "calibre", "calibre_search", "notion", "streak", "opds", "localsend", "filebrowser", "puzzle", "crossword", "connections", "chess", "casualchess", "stats_progress", "stats_calendar", "battery_stats", "kosync", "restart", "exit", "sleep", "screenshot" },
+        button_order = { "wifi", "night", "rotate", "zen", "restart", "sleep" },
         show_buttons = {
             wifi = true,
+            bluetooth = false,
             night = true,
             frontlight = false,
             gyro = false,
             rotate = true,
             zen = true,
             lockdown = false,
+            incognito = false,
             search = false,
             usb = false,
             quickrss = false,
@@ -110,12 +129,17 @@ local function apply_quick_settings()
         screenshot_timer_seconds = 3,
         custom_buttons = {},  -- array of { id, label, icon, action }
         next_custom_id = 0,
+        layout_version = 2,
     }
+
+    local filebrowser_slots = { "filebrowser", "FilebrowserPlus", "filebrowserplus" }
+    local filebrowserplus_slots = { "FilebrowserPlus", "filebrowserplus" }
 
     local config
 
     local function loadConfig()
         config = zen_plugin.config.quick_settings or {}
+        local legacy_layout = config.layout_version ~= 2
         for k, v in pairs(config_default) do
             if config[k] == nil then
                 config[k] = utils.deepcopy(v)
@@ -131,17 +155,22 @@ local function apply_quick_settings()
                 end
             end
             -- Auto-enable plugin-dependent buttons on first run if the plugin is installed
-            local function autoEnable(key, slot)
+            local function autoEnable(key, slots)
                 if first_time[key] then
                     local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
                     local ok_ru, ReaderUI    = pcall(require, "apps/reader/readerui")
                     local ui = (ok_fm and FileManager.instance) or (ok_ru and ReaderUI.instance)
-                    if ui and ui[slot] then
-                        config.show_buttons[key] = true
+                    if ui then
+                        for _i, slot in ipairs(slots) do
+                            if ui[slot] then
+                                config.show_buttons[key] = true
+                                break
+                            end
+                        end
                     end
                 end
             end
-            autoEnable("filebrowser",    "filebrowser")
+            autoEnable("filebrowser", filebrowser_slots)
         else
             config.show_buttons = utils.deepcopy(config_default.show_buttons)
             -- Auto-enable plugin-dependent buttons on first ever config creation
@@ -149,13 +178,32 @@ local function apply_quick_settings()
             local ok_ru, ReaderUI    = pcall(require, "apps/reader/readerui")
             local ui = (ok_fm and FileManager.instance) or (ok_ru and ReaderUI.instance)
             if ui then
-                if ui.filebrowser then config.show_buttons.filebrowser    = true end
+                for _i, slot in ipairs(filebrowser_slots) do
+                    if ui[slot] then
+                        config.show_buttons.filebrowser = true
+                        break
+                    end
+                end
             end
         end
-        if type(config.button_order) ~= "table" then
+        if legacy_layout then
+            local selected = {}
+            local seen = {}
+            local custom_ids = {}
+            for _i, button in ipairs(config.custom_buttons or {}) do
+                if type(button.id) == "string" then custom_ids[button.id] = true end
+            end
+            for _i, id in ipairs(config.button_order or {}) do
+                if (config.show_buttons[id] == true or custom_ids[id]) and not seen[id] then
+                    selected[#selected + 1] = id
+                    seen[id] = true
+                end
+            end
+            config.button_order = selected
+            config.layout_version = 2
+        elseif type(config.button_order) ~= "table" then
             config.button_order = utils.deepcopy(config_default.button_order)
         else
-            -- Deduplicate existing entries, then append any new buttons from the default order
             local seen = {}
             local deduped = {}
             for _i, id in ipairs(config.button_order) do
@@ -165,12 +213,6 @@ local function apply_quick_settings()
                 end
             end
             config.button_order = deduped
-            for _i, id in ipairs(config_default.button_order) do
-                if not seen[id] then
-                    seen[id] = true
-                    table.insert(config.button_order, id)
-                end
-            end
         end
         -- Sync custom button IDs into button_order and show_buttons
         if type(config.custom_buttons) ~= "table" then config.custom_buttons = {} end
@@ -192,14 +234,6 @@ local function apply_quick_settings()
             end
         end
         config.button_order = clean_order
-        -- Append new custom button IDs not yet in button_order
-        local in_order = {}
-        for _i, id in ipairs(config.button_order) do in_order[id] = true end
-        for _i, cb in ipairs(config.custom_buttons) do
-            if type(cb.id) == "string" and not in_order[cb.id] then
-                table.insert(config.button_order, cb.id)
-            end
-        end
         -- Remove stale cb_ entries from show_buttons
         for key in pairs(config.show_buttons) do
             if key:sub(1, 3) == "cb_" and not cb_ids[key] then
@@ -207,11 +241,24 @@ local function apply_quick_settings()
             end
         end
         zen_plugin.config.quick_settings = config
+        if legacy_layout and type(zen_plugin.saveConfig) == "function" then
+            zen_plugin:saveConfig()
+        end
     end
 
     loadConfig()
 
+    local function isFileManagerMenu(touch_menu)
+        local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
+        local fm = ok_fm and FileManager and FileManager.instance
+        return fm and fm.menu and touch_menu
+            and touch_menu.show_parent == fm.menu.menu_container
+    end
+
     local function setRotationMode(touch_menu, mode)
+        if isFileManagerMenu(touch_menu) then
+            G_reader_settings:saveSetting("fm_rotation_mode", mode)
+        end
         if touch_menu and touch_menu.closeMenu then
             touch_menu:closeMenu()
         end
@@ -245,6 +292,121 @@ local function apply_quick_settings()
         return ui == nil or ui[slot] ~= nil
     end
 
+    local function hasAnyPlugin(slots)
+        for _i, slot in ipairs(slots) do
+            if hasPlugin(slot) then return true end
+        end
+        return false
+    end
+
+    local filebrowser_plugins = {
+        {
+            slots = { "filebrowser" },
+            key = "filebrowser",
+            pid_path = "/tmp/filebrowser_koreader.pid",
+            toggle = "onToggleFilebrowser",
+        },
+        {
+            slots = filebrowserplus_slots,
+            key = "filebrowserplus",
+            pid_path = "/tmp/filebrowserplus_koreader.pid",
+            toggle = "onToggleFilebrowserPlusServer",
+            event = "ToggleFilebrowserPlusServer",
+        },
+    }
+
+    local function getActiveUI()
+        local ok_f, FileManager = pcall(require, "apps/filemanager/filemanager")
+        local ok_r, ReaderUI = pcall(require, "apps/reader/readerui")
+        return (ok_f and FileManager.instance) or (ok_r and ReaderUI.instance)
+    end
+
+    local function hasLoadedPluginSlot(slots)
+        local ui = getActiveUI()
+        if not ui then return false end
+        for _i, slot in ipairs(slots) do
+            if ui[slot] ~= nil then return true end
+        end
+        return false
+    end
+
+    local function isCallable(value)
+        if type(value) == "function" then return true end
+        local mt = type(value) == "table" and getmetatable(value) or nil
+        return type(mt) == "table" and type(mt.__call) == "function"
+    end
+
+    local function getLoadedPlugin(candidate)
+        local ok_loader, loader = pcall(require, "pluginloader")
+        if not ok_loader or not loader then return nil end
+        local loaded = loader.loaded_plugins
+        if type(loaded) == "table" then
+            local plugin = loaded[candidate.key]
+            for _i, slot in ipairs(candidate.slots) do
+                plugin = plugin or loaded[slot]
+            end
+            if type(plugin) == "table" then return plugin end
+        end
+        if type(loader.getPluginInstance) == "function" then
+            local ok_plugin, plugin = pcall(loader.getPluginInstance, loader, candidate.key)
+            if ok_plugin and type(plugin) == "table" then return plugin end
+        end
+        return nil
+    end
+
+    local function getCandidatePlugin(candidate)
+        local ui = getActiveUI()
+        if ui then
+            for _i, slot in ipairs(candidate.slots) do
+                if ui[slot] then return ui[slot] end
+            end
+        end
+        return getLoadedPlugin(candidate)
+    end
+
+    local function getFilebrowserPlugin(prefer_running)
+        local prefer_plus = hasLoadedPluginSlot(filebrowserplus_slots)
+        local fallback
+        local plus_fallback
+        for _i, candidate in ipairs(filebrowser_plugins) do
+            local plugin = getCandidatePlugin(candidate)
+            if plugin then
+                if prefer_running and type(plugin.isRunning) == "function" and plugin:isRunning() then
+                    return plugin, candidate
+                end
+                if isCallable(plugin[candidate.toggle]) then
+                    if candidate.key == "filebrowserplus" then
+                        plus_fallback = plus_fallback or { plugin, candidate }
+                    elseif fallback == nil then
+                        fallback = { plugin, candidate }
+                    end
+                end
+            end
+        end
+        if prefer_plus and plus_fallback then
+            return plus_fallback[1], plus_fallback[2]
+        end
+        if fallback then
+            return fallback[1], fallback[2]
+        end
+        if plus_fallback then
+            return plus_fallback[1], plus_fallback[2]
+        end
+        return nil
+    end
+
+    local function toggleFilebrowserPlugin(plugin, candidate)
+        if plugin and candidate and isCallable(plugin[candidate.toggle]) then
+            plugin[candidate.toggle](plugin)
+            return true
+        end
+        if candidate and candidate.event then
+            UIManager:broadcastEvent(Event:new(candidate.event))
+            return true
+        end
+        return false
+    end
+
     local function showUnavailable()
         local InfoMessage = require("ui/widget/infomessage")
         UIManager:show(InfoMessage:new{ text = _("Quick settings button is unavailable") })
@@ -276,6 +438,22 @@ local function apply_quick_settings()
     -- ============================================================
 
     local button_defs = {
+        bluetooth = {
+            icon = "quick_bluetooth",
+            label = _("Bluetooth"),
+            visible_func = Bluetooth.isAvailable,
+            active_func = Bluetooth.isEnabled,
+            callback = function(touch_menu)
+                if Bluetooth.toggle() then
+                    UIManager:scheduleIn(0.5, function()
+                        Bluetooth.logState("0.5 s after control toggle")
+                        if touch_menu.item_table and touch_menu.item_table.panel then
+                            touch_menu:updateItems(1)
+                        end
+                    end)
+                end
+            end,
+        },
         wifi = {
             icon = "quick_wifi",
             label = _("Wi-Fi"),
@@ -599,6 +777,22 @@ local function apply_quick_settings()
                 end
             end,
         },
+        incognito = {
+            icon = "quick_incognito",
+            label = _("Incognito"),
+            active_func = function()
+                local features = zen_plugin.config and zen_plugin.config.features
+                return type(features) == "table" and features.incognito_mode == true
+            end,
+            callback = function(touch_menu)
+                if zen_plugin.onToggleIncognitoMode then
+                    zen_plugin:onToggleIncognitoMode()
+                end
+                if touch_menu and touch_menu.updateItems then
+                    touch_menu:updateItems(1)
+                end
+            end,
+        },
         connections = {
             icon = "quick_connections",
             label = _("Connections"),
@@ -674,32 +868,25 @@ local function apply_quick_settings()
             visible_func = function() return hasPlugin("kosync") end,
             callback = function(touch_menu)
                 touch_menu:closeMenu()
-                NetworkMgr:runWhenOnline(function()
-                    UIManager:broadcastEvent(Event:new("KOSyncPullProgress"))
-                    -- Push after a short delay to let the pull complete first.
-                    UIManager:scheduleIn(1, function()
-                        UIManager:broadcastEvent(Event:new("KOSyncPushProgress"))
-                    end)
-                end)
+                if zen_plugin.onZenUIKOSyncSync then
+                    zen_plugin:onZenUIKOSyncSync()
+                end
             end,
         },
         filebrowser = {
             icon = "quick_filebrowser",
             label = _("Filebrowser"),
-            visible_func = function() return hasPlugin("filebrowser") end,
+            visible_func = function() return hasAnyPlugin(filebrowser_slots) end,
             active_func = function()
-                -- Fast check: just test if the pidfile exists
-                local pid_path = "/tmp/filebrowser_koreader.pid"
-                local f = io.open(pid_path, "r")
-                if f then f:close() return true end
+                for _i, candidate in ipairs(filebrowser_plugins) do
+                    local f = io.open(candidate.pid_path, "r")
+                    if f then f:close() return true end
+                end
                 return false
             end,
             callback = function(touch_menu)
-                local ok_f, FileManager = pcall(require, "apps/filemanager/filemanager")
-                local ok_r, ReaderUI = pcall(require, "apps/reader/readerui")
-                local ui = (ok_f and FileManager.instance) or (ok_r and ReaderUI.instance)
-                if ui and ui.filebrowser then
-                    ui.filebrowser:onToggleFilebrowser()
+                local plugin, candidate = getFilebrowserPlugin(true)
+                if toggleFilebrowserPlugin(plugin, candidate) then
                     UIManager:scheduleIn(1.5, function()
                         if touch_menu.item_table and touch_menu.item_table.panel then
                             touch_menu:updateItems(1)
@@ -745,6 +932,140 @@ local function apply_quick_settings()
 
     }
 
+    local function install_custom_button_defs()
+        if type(config.custom_buttons) ~= "table" then return end
+        for _i, cb in ipairs(config.custom_buttons) do
+            if cb.type == "plugin" and type(cb.plugin) == "table" then
+                local plugin = cb.plugin
+                button_defs[cb.id] = {
+                    icon = cb.icon or "lightning",
+                    label = (cb.label and cb.label ~= "") and cb.label
+                        or cb.plugin_title
+                        or _("Plugin"),
+                    visible_func = function()
+                        return PluginScan.exists(plugin.key, plugin.method)
+                    end,
+                    callback = function(tm)
+                        local launch = PluginScan.resolve(plugin.key, plugin.method)
+                        if not launch then
+                            showUnavailable()
+                            return
+                        end
+                        tm:closeMenu()
+                        UIManager:nextTick(function()
+                            pcall(launch)
+                        end)
+                    end,
+                }
+            else
+                local cb_action = cb.action
+                button_defs[cb.id] = {
+                    icon = cb.icon or "lightning",
+                    label = (cb.label and cb.label ~= "") and cb.label
+                        or (cb_action and next(cb_action) and Dispatcher:menuTextFunc(cb_action))
+                        or _("Custom"),
+                    active_func = function()
+                        return DispatchAction.isActionActive(cb_action, zen_plugin)
+                    end,
+                    callback = function(tm)
+                        tm:closeMenu()
+                        if type(cb_action) == "table" and next(cb_action) then
+                            Dispatcher:execute(cb_action)
+                        end
+                    end,
+                }
+            end
+        end
+    end
+
+    local function quick_setting_items()
+        install_custom_button_defs()
+        local items = {}
+        for _i, id in ipairs(config.button_order or {}) do
+            local def = button_defs[id]
+            if config.show_buttons[id] == true
+                    and def and (not def.visible_func or def.visible_func()) then
+                local label = def.label
+                items[#items + 1] = { id = id, text = label, label = label, icon = def.icon }
+            end
+        end
+        table.sort(items, function(a, b)
+            return ffiUtil.strcoll(a.label or "", b.label or "")
+        end)
+        return items
+    end
+
+    local function quick_setting_config_items(id)
+        if id == "rotate" then
+            local items = {}
+            for _i, item in ipairs({
+                { id = "cycle", text = _("Cycle") },
+                { id = "90", text = _("90°") },
+                { id = "180", text = _("180°") },
+                { id = "270", text = _("270°") },
+            }) do
+                local option = item
+                items[#items + 1] = {
+                    text = option.text,
+                    radio = true,
+                    checked_func = function()
+                        return config.rotate_action == option.id
+                    end,
+                    callback = function()
+                        config.rotate_action = option.id
+                        zen_plugin:saveConfig()
+                    end,
+                }
+            end
+            return items
+        end
+        if id == "screenshot" then
+            return {{
+                text_func = function()
+                    return T(_("Timer: %1 s"), getScreenshotTimerSeconds())
+                end,
+                keep_menu_open = true,
+                callback = showScreenshotTimerDialog,
+            }}
+        end
+        return {}
+    end
+
+    rawset(_G, "__ZEN_UI_QUICK_SETTINGS", {
+        getItems = quick_setting_items,
+        getSettingsItems = quick_setting_config_items,
+        has = function(id)
+            install_custom_button_defs()
+            local def = button_defs[id]
+            return def ~= nil and (not def.visible_func or def.visible_func())
+        end,
+        isActive = function(id)
+            install_custom_button_defs()
+            local def = button_defs[id]
+            return def and (not def.disabled_func or not def.disabled_func())
+                and def.active_func and def.active_func() or false
+        end,
+        isDisabled = function(id)
+            install_custom_button_defs()
+            local def = button_defs[id]
+            return def and def.disabled_func and def.disabled_func() or false
+        end,
+        activate = function(id, touch_menu)
+            install_custom_button_defs()
+            local def = button_defs[id]
+            if not def or (def.visible_func and not def.visible_func()) then return false end
+            local host = touch_menu or {
+                closeMenu = function() end,
+                updateItems = function() end,
+                item_table = { panel = true },
+                _zen_panel_refs = true,
+            }
+            if def.disabled_func and def.disabled_func() then return false end
+            def.callback(host)
+            return true
+        end,
+    })
+
     -- ============================================================
     -- Panel builder — returns panel widget + refs for tap handling
     -- ============================================================
@@ -771,49 +1092,8 @@ local function apply_quick_settings()
 
         -- ----- Top row: action buttons -----
 
-        -- Inject custom button defs at render time so changes take effect
-        -- without a restart (config is always current at this point).
-        if type(config.custom_buttons) == "table" then
-            for _i, cb in ipairs(config.custom_buttons) do
-                if cb.type == "plugin" and type(cb.plugin) == "table" then
-                    local plugin = cb.plugin
-                    button_defs[cb.id] = {
-                        icon = cb.icon or "lightning",
-                        label = (cb.label and cb.label ~= "") and cb.label
-                            or cb.plugin_title
-                            or _("Plugin"),
-                        visible_func = function()
-                            return PluginScan.exists(plugin.key, plugin.method)
-                        end,
-                        callback = function(tm)
-                            local launch = PluginScan.resolve(plugin.key, plugin.method)
-                            if not launch then
-                                showUnavailable()
-                                return
-                            end
-                            tm:closeMenu()
-                            UIManager:nextTick(function()
-                                pcall(launch)
-                            end)
-                        end,
-                    }
-                else
-                    local cb_action = cb.action
-                    button_defs[cb.id] = {
-                        icon = cb.icon or "zen_ui",
-                        label = (cb.label and cb.label ~= "") and cb.label
-                            or (cb_action and next(cb_action) and Dispatcher:menuTextFunc(cb_action))
-                            or _("Custom"),
-                        callback = function(tm)
-                            tm:closeMenu()
-                            if type(cb_action) == "table" and next(cb_action) then
-                                Dispatcher:execute(cb_action)
-                            end
-                        end,
-                    }
-                end
-            end
-        end
+        -- Custom definitions are rebuilt on every render so edits are immediate.
+        install_custom_button_defs()
 
         local visible_buttons = {}
         for _i, id in ipairs(config.button_order) do
@@ -859,7 +1139,7 @@ local function apply_quick_settings()
             local bg = active and Blitbuffer.COLOR_BLACK
                 or dim  and Blitbuffer.COLOR_LIGHT_GRAY
                 or       Blitbuffer.COLOR_WHITE
-            local circle = FrameContainer:new{
+            local circle = SolidCircle:new{
                 width      = action_btn_size,
                 height     = action_btn_size,
                 radius     = math.floor(action_btn_size / 2),
@@ -1021,10 +1301,12 @@ local function apply_quick_settings()
 
     local TouchMenu = require("ui/widget/touchmenu")
 
-    -- Always open to the quick settings tab regardless of last-used tab.
+    -- Open launcher first when requested; otherwise Controls remains the default.
     local orig_init = TouchMenu.init
     function TouchMenu:init()
-        if is_enabled() then
+        if launcher_opens_first() then
+            self.last_index = getLauncherTabIndex(self) or getQuickSettingsTabIndex(self)
+        elseif is_enabled() then
             self.last_index = getQuickSettingsTabIndex(self)
         end
         orig_init(self)
@@ -1038,8 +1320,9 @@ local function apply_quick_settings()
         if not is_enabled() then
             return
         end
-        -- Always reset last_index so next open returns to quick settings tab.
-        self.last_index = getQuickSettingsTabIndex(self)
+        self.last_index = launcher_opens_first()
+            and (getLauncherTabIndex(self) or getQuickSettingsTabIndex(self))
+            or getQuickSettingsTabIndex(self)
     end
 
     -- ============================================================

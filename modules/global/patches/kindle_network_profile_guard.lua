@@ -8,7 +8,7 @@ local function apply_kindle_network_profile_guard()
     if not ok_nm or not NetworkMgr or type(NetworkMgr.getNetworkList) ~= "function" then return end
 
     _G.__ZEN_UI_KINDLE_NETWORK_PROFILE_GUARD = true
-    local logger = require("logger")
+    local logger = require("common/zen_logger").new("kindle_network_profile_guard")
     local _ = require("gettext")
     local orig_getNetworkList = NetworkMgr.getNetworkList
 
@@ -21,7 +21,7 @@ local function apply_kindle_network_profile_guard()
         local err = tostring(results[2])
         if err:find("device/kindle/device.lua", 1, true)
                 and (err:find("current_profile", 1, true) or err:find("saved_profiles", 1, true)) then
-            logger.warn("ZenUI: suppressed Kindle Wi-Fi profile scan crash", err)
+            logger.warn("suppressed Kindle Wi-Fi profile scan crash", err)
             return nil, _("Could not scan Wi-Fi networks. Please try again after waking the device.")
         end
 

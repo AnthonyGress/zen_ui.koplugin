@@ -1,5 +1,6 @@
 local Background = require("common/ui/background")
 local Blitbuffer = require("ffi/blitbuffer")
+local CornerBanner = require("common/ui/corner_banner")
 local Geom = require("ui/geometry")
 local HorizontalGroup = require("ui/widget/horizontalgroup")
 local HorizontalSpan = require("ui/widget/horizontalspan")
@@ -19,6 +20,7 @@ local Font = require("ui/font")
 local Device = require("device")
 local utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
+local _ = require("gettext")
 
 local M = {}
 M.SIZE = { preferred_pct = 0.20, min_pct = 0.12, max_pct = 0.50, grow_priority = 1 }
@@ -144,6 +146,7 @@ local function apply_strip_badges(frame, book, plugin)
         local cover_badges = type(config) == "table" and type(config.browser_cover_badges) == "table"
             and config.browser_cover_badges or {}
         local show_favorite = cover_badges.show_favorite_badge == true
+        local show_new = cover_badges.show_new_banner == true
         local show_progress = cover_badges.show_mosaic_progress == true
         local show_pages = type(config) == "table"
             and type(config.browser_page_count) == "table"
@@ -182,9 +185,10 @@ local function apply_strip_badges(frame, book, plugin)
         -- progress/status: top-right pentagon
         local pct    = type(book.percent) == "number" and book.percent or 0
         local status = book.status
+        local is_new = status == "new"
         local do_check = (status == "complete")
         local do_pause = (status == "abandoned")
-        local do_pct   = not do_check and not do_pause and pct > 0
+        local do_pct   = not is_new and not do_check and not do_pause and pct > 0
 
         if show_progress and (do_check or do_pause or do_pct) then
             local bw  = math.floor(base_sz * 1.2)
@@ -233,8 +237,9 @@ local function apply_strip_badges(frame, book, plugin)
         end
 
         -- page count: bottom-left pill
-        if show_pages and book.pages and book.pages > 0 then
-            local page_str = utils.formatPageCount(book.pages)
+        local pages = tonumber(book.stable_pages) or tonumber(book.pages)
+        if show_pages and pages and pages > 0 then
+            local page_str = utils.formatPageCount(pages)
             local fs = math.max(7, math.floor(base_sz * 0.24))
             if not _cached_pages_tw or _cached_pages_str ~= page_str or _cached_pages_fs ~= fs or _cached_pages_dark ~= is_dark then
                 WidgetResources.free(_cached_pages_tw)
@@ -310,13 +315,31 @@ local function apply_strip_badges(frame, book, plugin)
                 end
             end
         end
+
+        if show_new and is_new then
+            local span = math.floor(base_sz * 2.5)
+            local band_thick = math.floor(span * 0.35)
+            local font_size = math.max(6, math.floor(base_sz * 0.25))
+            CornerBanner.paint(
+                bb, x, x + d.w, y, d.h,
+                span, band_thick, _("New"), font_size, badge_col, badge_fg
+            )
+            if border > 0 then
+                local border_color = self.bordercolor or Blitbuffer.COLOR_BLACK
+                bb:paintRect(x, y, d.w, border, border_color)
+                bb:paintRect(x + d.w - border, y, border, d.h, border_color)
+            end
+        end
     end
 end
 
 function M.build_strip(ctx, source_key)
-    local width = ctx.width
-    local height = ctx.height
+    local outer_width = ctx.width
+    local outer_height = ctx.height
     local Screen = Device.screen
+    local padding = Screen:scaleBySize(8)
+    local width = math.max(1, outer_width - padding * 2)
+    local height = math.max(1, outer_height - padding * 2)
     local module_cfg = type(ctx.module_cfg) == "table" and ctx.module_cfg or {}
     local source = source_key or "recently_read"
     local order = module_cfg.order or "default"
@@ -336,18 +359,19 @@ function M.build_strip(ctx, source_key)
     end
     local show_strip_titles = module_cfg.show_strip_titles == true
     local show_badges = module_cfg.show_badges == true
+    local center_books = module_cfg.center_books == true
     local interactive = module_cfg.interactive ~= false
 
     local books = ctx.data:getBooksForStrip(source, count, order, ctx.component_id)
     if #books == 0 then
         return FrameContainer:new{
-            width = width,
-            height = height,
+            width = outer_width,
+            height = outer_height,
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
             CenterContainer:new{
-                dimen = Geom:new{ w = width, h = height },
+                dimen = Geom:new{ w = outer_width, h = outer_height },
                 TextWidget:new{ text = "No books found", face = ctx.face_label },
             },
         }
@@ -415,7 +439,8 @@ function M.build_strip(ctx, source_key)
     local function build_row_widget(row_list, row_num)
         local n = #row_list
         local row_capacity = two_rows and per_row or n
-        local left_align_partial = two_rows and row_num == 2 and n < per_row
+        local center_short_row = center_books and n <= 3
+        local left_align_partial = not center_short_row and two_rows and row_num == 2 and n < per_row
         local min_gap = math.max(6, math.min(Screen:scaleBySize(14), math.floor(width * 0.018)))
         local max_cover_w = math.max(24, math.floor((width - min_gap * (row_capacity - 1)) / row_capacity))
         local cover_h = math.min(max_cover_h_per_row, math.floor(max_cover_w * 1.62))
@@ -429,11 +454,14 @@ function M.build_strip(ctx, source_key)
                 book,
                 max_cover_w,
                 cover_h,
-                { border = 1, background = Blitbuffer.COLOR_LIGHT_GRAY }
+                {
+                    border = 1,
+                    background = Blitbuffer.COLOR_LIGHT_GRAY,
+                    decorate = show_badges and function(frame)
+                        apply_strip_badges(frame, book, rawget(_G, "__ZEN_UI_PLUGIN"))
+                    end or nil,
+                }
             )
-            if show_badges then
-                apply_strip_badges(cover, book, rawget(_G, "__ZEN_UI_PLUGIN"))
-            end
             cover_w = cover_w or max_cover_w
             local cover_size = cover.getSize and cover:getSize() or nil
             local actual_cover_h = (cover_size and cover_size.h) or cover_h
@@ -455,7 +483,9 @@ function M.build_strip(ctx, source_key)
             local gap_slots = left_align_partial and math.max(1, row_capacity - 1) or (#items - 1)
             local avg_cover_w = math.floor(covers_w / #items)
             local cover_slots_w = left_align_partial and (avg_cover_w * row_capacity) or covers_w
-            local available_gap = math.max(min_gap * gap_slots, width - cover_slots_w)
+            local available_gap = center_short_row
+                and (min_gap * gap_slots)
+                or math.max(min_gap * gap_slots, width - cover_slots_w)
             gap = math.floor(available_gap / gap_slots)
             extra_gap_px = left_align_partial and 0 or (available_gap - gap * gap_slots)
         end
@@ -565,6 +595,7 @@ function M.build_strip(ctx, source_key)
             local row_widget, row_h = build_row_widget(row_books[r], r)
             total_row_h = total_row_h + row_h
             local container = two_rows and r == 2 and #row_books[r] < per_row
+                and not (center_books and #row_books[r] <= 3)
                 and LeftContainer or CenterContainer
             table.insert(vgroup, container:new{ dimen = Geom:new{ w = width, h = row_h }, row_widget })
             if row_inner_bottom_pad > 0 then
@@ -578,14 +609,17 @@ function M.build_strip(ctx, source_key)
     table.insert(vgroup, VerticalSpan:new{ width = row_bottom_pad })
 
     local frame = FrameContainer:new{
-        width = width,
-        height = height,
+        width = outer_width,
+        height = outer_height,
         padding = 0,
         bordersize = 0,
         background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
-        TopContainer:new{
+        CenterContainer:new{
+            dimen = Geom:new{ w = outer_width, h = outer_height },
+            TopContainer:new{
             dimen = Geom:new{ w = width, h = height },
             vgroup,
+            },
         },
     }
 
@@ -594,7 +628,7 @@ function M.build_strip(ctx, source_key)
     end
 
     local swipe = InputContainer:new{
-        dimen = Geom:new{ w = width, h = height },
+        dimen = Geom:new{ w = outer_width, h = outer_height },
         ges_events = {
             SwipeStrip = {
                 GestureRange:new{ ges = "swipe", range = Geom:new{

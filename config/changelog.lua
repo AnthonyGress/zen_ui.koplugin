@@ -132,5 +132,97 @@ return {
         "Fix some untranslated strings falling back to English",
         "Bug fixes",
     },
-
+    ["2.2.0"] = {
+        "Improve integration with Rakuyomi",
+        "Add new action Zen UI - Library (Respects Restore last location)",
+        "Add toggles in recently read strip widget to hide unread/finished books",
+        "Add mark new and updated books as TBR (Advanced > Mark new and updated books as TBR)",
+        "Update: Folder covers match order inside",
+        "Add display mode per folder & collections",
+        "Add separate display modes for OPDS (Advanced > Zen OPDS)",
+        "Fixed a bug in Launcher settings showing reader actions",
+        "Fixed a bug in reader top status bar showing after being hidden with action",
+        "Fixed a bug in reader bottom status bar on starting KOReader with last file",
+        "Bug fixes"
+    },
+    ["2.2.1"] = {
+        "Fixed a bug with per folder display modes not applying",
+        "Fixed a bug with per folder display mode not showing on real folders",
+        "Fixed a bug multi page automatic series folders",
+    },
+    ["2.2.2"] = {
+        "Better support for OPDS folders",
+        "Status bar API for 3rd party plugins",
+        "Bug fixes",
+    },
+    ["2.4.0"] = {
+        "Even better Rakuyomi integration (Extras > Rakuyomi)",
+        "Add row break in Launcher",
+        "Add unified push/pull sync button to Actions",
+        "Add Incognito mode to Controls/Actions",
+        "Add AI Assistant icon in lookup/highlight",
+        "Add Zen TOC action for gestures/launcher",
+        "Add option to center books in Home strip widgets",
+        "Add home API for plugin developers",
+        "Update status bar API to allow images",
+        "Update Zen Updater plumbing",
+        "Update Zen Bug Reporter to send Android crash logs",
+        "Update dim automatic folder covers when all books read (and dim enabled)",
+        "Moved Navbar settings to Library > Navbar",
+        "Moved Advanced settings to About > Advanced",
+        "Moved Global settings to Extras",
+        "Ignore English articles in title sort",
+        "Persist library rotation state",
+        "Bug fixes"
+    },
+    ["2.4.1"] = {
+        "Fix reverse page scrolling applying to non Rakuyomi books"
+    },
+    ["2.4.2"] = {
+        "Fix flat library layout",
+        "Fix No Books Found using fallback if history is empty",
+        "Improved logging",
+        "Bug fixes"
+    },
+    ["2.4.3"] = {
+        "Update quotes"
+    },
+    ["2.4.4"] = {
+        "Fix time to book finished incorrect with stable pages"
+    },
+    ["2.5.1"] = {
+        "Add testing framework",
+        "Add Zen UI Reader margins to Advanced settings (About > Advanced)",
+        "Add Reader themes (Reader > Reader themes)",
+        "Add Control buttons to Launcher/Navbar",
+        "Add Edit mode to Home/Stats",
+        "Allow setting Launcher to be the default when you open the top Menu (Launcher > Open menu to Launcher)",
+        "Auto suggest icons for Controls/Launcher/Navbar",
+        "Standardize buttons menu for Controls/Launcher/Navbar",
+        "Better sizing/spacing on home widgets",
+        "Update menu icons",
+        "Updated stats page + widgets (Extras > Stats)",
+        "Updated ZenUpdater",
+        "Add Ukrainian translation",
+        "Bug fixes"
+    },
+    ["2.5.2"] = {
+        "Allow top status bar in CBZ/PDF (Reader > Top status bar)",
+        "Match top Menu icon to default Navbar tab",
+        "Fix prevent auto night mode schedule from inverting Reader theme color"
+    },
+    ["2.5.3"] = {
+        "Run plugin compat check immediately to prevent user install issues",
+        "Improve Reader Themes in dark mode",
+        "Fix line graph y-axis truncating too early",
+        "Add Bluetooth toggle for supported Kindles in Controls/Navbar/Launcher + status bar icon",
+        "Add TBR instructions to docs",
+        "Fix translation bug",
+        "Fix custom icon in menu for default tab"
+    },
+    ["2.5.4"] = {
+        "Ensure wifi before showing ZenPM installer",
+        "Adjust Zen screensaver book cover resolution",
+        "Update testing emulator to KOReader 2026.07"
+    }
 }

@@ -2,6 +2,7 @@ local function apply_browser_list_item_layout()
     -- Capture plugin reference while __ZEN_UI_PLUGIN is still set by run_feature.
     local _plugin_ref = rawget(_G, "__ZEN_UI_PLUGIN")
     local Cover = require("common/cover_utils")
+    local logger = require("common/zen_logger").new("browser_list_item_layout")
 
     local BD = require("ui/bidi")
     local Blitbuffer = require("ffi/blitbuffer")
@@ -449,18 +450,22 @@ local function apply_browser_list_item_layout()
             -- ── Progress / right widget ───────────────────────────────────────
             local percent_finished = book_info.percent_finished
             local status = book_info.status
-            local pages = book_info.pages or bookinfo.pages
-            local is_new = book_status.isNewStatus(status, percent_finished)
+            local pages = zen_utils.getStablePageCount(filepath, book_info.pages or bookinfo.pages)
+            local effective_status = book_status.getComputedStatus(
+                filepath, status, percent_finished
+            )
+            local is_new = effective_status == "new"
+            self._zen_effective_status = effective_status
 
             local status_label, progress_str
-            if status == "complete" then
+            if is_new then
+                status_label = _("New")
+            elseif effective_status == "complete" then
                 status_label = _("Finished")
                 progress_str = "\u{F012C}"  -- MD check
-            elseif status == "abandoned" then
+            elseif effective_status == "abandoned" then
                 status_label = _("To Be Read")
                 progress_str = "\u{F0150}"  -- MD Clock icon
-            elseif is_new then
-                status_label = _("New")
             elseif percent_finished then
                 -- has recorded progress
                 status_label = string.format(_("%d%% Read"), math.floor(100 * percent_finished))
@@ -652,7 +657,7 @@ local function apply_browser_list_item_layout()
             if wseries then table.insert(optional_widgets, wseries) end
             if wtags_left then table.insert(optional_widgets, wtags_left) end
 
-            local title_min_h = math.max(1, math.floor(content_h * 0.45))
+            local title_min_h = math.max(1, math.min(content_h, wtitle:getSize().h))
             local optional_budget = math.max(0, content_h - title_min_h)
             local used_optional_h = 0
             local visible_optional = {}
@@ -910,8 +915,12 @@ local function apply_browser_list_item_layout()
         if fc and fc.updateItems then
             if fc._zen_strip_list_borders_fn ~= fc.updateItems then
                 local function zen_fc_updateItems(s, ...)
+                    local started_at = os.clock()
                     FileChooser.updateItems(s, ...)
                     stripListBorders(s)
+                    logger.perf("File chooser update completed", (os.clock() - started_at) * 1000,
+                        "mode=", tostring(s.display_mode_type),
+                        "items=", #(s.item_table or {}))
                 end
                 fc._zen_strip_list_borders_fn = zen_fc_updateItems
                 fc.updateItems = zen_fc_updateItems

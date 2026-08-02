@@ -3,7 +3,7 @@
 -- Returns aggregated reading stats without touching library status,
 -- which is handled by db_library.lua.
 
-local logger = require("logger")
+local logger = require("common/zen_logger").new("db_stats")
 local DBConn = require("common/db_connection")
 
 local StatsDB = {}
@@ -95,7 +95,7 @@ local function query_streak(conn, one_day)
     ]]
     local ok_streak, streak_result = pcall(conn.exec, conn, sql_streak)
     if not ok_streak then
-        logger.warn("zen-ui db_stats: streak query error:", streak_result)
+        logger.warn("streak query error:", streak_result)
         return 0
     end
     if not (streak_result and streak_result.day) then return 0 end
@@ -143,12 +143,74 @@ local function field_set(fields)
     return set
 end
 
+function StatsDB.queryBookAveragePageTime(path, md5)
+    if type(md5) ~= "string" or md5 == "" then
+        local ok_util, util = pcall(require, "util")
+        if not ok_util or not util or type(util.partialMD5) ~= "function" then return nil end
+        local ok_md5, computed_md5 = pcall(util.partialMD5, path)
+        if not ok_md5 then return nil end
+        md5 = computed_md5
+    end
+    if type(md5) ~= "string" or md5 == "" then return nil end
+
+    flush_pending_stats()
+
+    local db_path = DBConn.getStatsDbPath()
+    local conn, err = DBConn.open(db_path)
+    if not conn then
+        logger.warn("cannot open DB:", err)
+        return nil
+    end
+
+    local settings = G_reader_settings:readSetting("statistics")
+    local max_sec = type(settings) == "table" and tonumber(settings.max_sec) or 120
+    local stmt
+    local ok, result = pcall(function()
+        stmt = conn:prepare([[
+            SELECT count(*), sum(page_duration), (
+                SELECT pages FROM book
+                WHERE md5 = ?
+                ORDER BY last_open DESC
+                LIMIT 1
+            )
+            FROM (
+                SELECT min(sum(duration), ?) AS page_duration
+                FROM page_stat
+                WHERE id_book = (
+                    SELECT id FROM book
+                    WHERE md5 = ?
+                    ORDER BY last_open DESC
+                    LIMIT 1
+                )
+                GROUP BY page
+            );
+        ]])
+        return stmt:reset():bind(md5, max_sec, md5):step()
+    end)
+    if stmt then stmt:close() end
+    conn:close()
+
+    if not ok then
+        logger.warn("book timing query failed:", result)
+        return nil
+    end
+    local pages = result and tonumber(result[1]) or 0
+    local duration = result and tonumber(result[2]) or 0
+    local total_pages = result and tonumber(result[3]) or nil
+    if pages <= 0 or duration <= 0 then return nil, total_pages end
+    return duration / pages, total_pages
+end
+
 function StatsDB.queryHomeStats(fields)
     local stats = {
         today_pages = 0,
         today_duration = 0,
         week_pages = 0,
         week_duration = 0,
+        month_pages = 0,
+        month_duration = 0,
+        year_pages = 0,
+        year_duration = 0,
         streak = 0,
     }
     local requested = field_set(fields)
@@ -158,7 +220,7 @@ function StatsDB.queryHomeStats(fields)
     local db_path = DBConn.getStatsDbPath()
     local conn, err = DBConn.open(db_path)
     if not conn then
-        logger.warn("zen-ui db_stats: cannot open DB:", err)
+        logger.warn("cannot open DB:", err)
         return stats
     end
 
@@ -174,12 +236,22 @@ function StatsDB.queryHomeStats(fields)
                 query_period_stats(conn, starts.period_begin,
                     requested.week_pages, requested.week_duration)
         end
+        if requested.month_pages or requested.month_duration then
+            stats.month_pages, stats.month_duration =
+                query_period_stats(conn, starts.start_month,
+                    requested.month_pages, requested.month_duration)
+        end
+        if requested.year_pages or requested.year_duration then
+            stats.year_pages, stats.year_duration =
+                query_period_stats(conn, starts.start_year,
+                    requested.year_pages, requested.year_duration)
+        end
         if requested.streak then
             stats.streak = query_streak(conn, starts.one_day)
         end
     end)
     if not ok then
-        logger.warn("zen-ui db_stats: home query failed:", query_err)
+        logger.warn("home query failed:", query_err)
     end
 
     conn:close()
@@ -233,7 +305,7 @@ function StatsDB.queryStats()
     local db_path = DBConn.getStatsDbPath()
     local conn, err = DBConn.open(db_path)
     if not conn then
-        logger.warn("zen-ui db_stats: cannot open DB:", err)
+        logger.warn("cannot open DB:", err)
         return stats
     end
 
@@ -268,7 +340,7 @@ function StatsDB.queryStats()
         local p, d = conn:rowexec(string.format(sql_today, start_today))
         stats.today_pages    = tonumber(p) or 0
         stats.today_duration = tonumber(d) or 0
-        logger.info("zen-ui db_stats: today pages=", stats.today_pages,
+        logger.info("today pages=", stats.today_pages,
                     "duration=", stats.today_duration)
 
         -- Last 7 days (totals)
@@ -284,7 +356,7 @@ function StatsDB.queryStats()
         local wp, wd = conn:rowexec(string.format(sql_week, period_begin))
         stats.week_pages    = tonumber(wp) or 0
         stats.week_duration = tonumber(wd) or 0
-        logger.info("zen-ui db_stats: week pages=", stats.week_pages,
+        logger.info("week pages=", stats.week_pages,
                     "duration=", stats.week_duration)
 
         -- Last 7 days (daily breakdown)
@@ -317,10 +389,10 @@ function StatsDB.queryStats()
         local sql_total = "SELECT count(DISTINCT id_book) FROM page_stat;"
         local ok_tot, total = pcall(conn.rowexec, conn, sql_total)
         if not ok_tot then
-            logger.warn("zen-ui db_stats: total_books query error:", total)
+            logger.warn("total_books query error:", total)
         end
         stats.total_books = tonumber(total) or 0
-        logger.info("zen-ui db_stats: total_books=", stats.total_books)
+        logger.info("total_books=", stats.total_books)
 
         -- ── Reading streak ───────────────────────────────────────────────────
         -- Static SQL — no string.format(), so % is passed to SQLite directly.
@@ -332,7 +404,7 @@ function StatsDB.queryStats()
         ]]
         local ok_streak, streak_result = pcall(conn.exec, conn, sql_streak)
         if not ok_streak then
-            logger.warn("zen-ui db_stats: streak query error:", streak_result)
+            logger.warn("streak query error:", streak_result)
             streak_result = nil
         end
         if streak_result and streak_result.day then
@@ -360,7 +432,7 @@ function StatsDB.queryStats()
                 stats.streak = streak
             end
         end
-        logger.info("zen-ui db_stats: streak=", stats.streak)
+        logger.info("streak=", stats.streak)
 
         -- ── Lifetime aggregates (book table) ─────────────────────────────────
         -- Four columns in one query: total_read_time sum, total_read_pages sum,
@@ -382,9 +454,9 @@ function StatsDB.queryStats()
             stats.books_read         = tonumber(lt3) or 0
             stats.avg_time_per_book  = math.floor(tonumber(lt4) or 0)
         else
-            logger.warn("zen-ui db_stats: lifetime query error:", lt1)
+            logger.warn("lifetime query error:", lt1)
         end
-        logger.info("zen-ui db_stats: lifetime_read_time=", stats.lifetime_read_time,
+        logger.info("lifetime_read_time=", stats.lifetime_read_time,
                     "books_read=", stats.books_read)
 
         -- ── Personal records (peak daily / weekly / monthly duration) ─────────
@@ -435,7 +507,7 @@ function StatsDB.queryStats()
         local ok_pm, pm_dur, pm_ts = pcall(conn.rowexec, conn, sql_peak_month)
         stats.peak_month_duration = ok_pm and (tonumber(pm_dur) or 0) or 0
         stats.peak_month_ts       = ok_pm and tonumber(pm_ts) or nil
-        logger.info("zen-ui db_stats: peak_day=", stats.peak_day_duration,
+        logger.info("peak_day=", stats.peak_day_duration,
                     "peak_week=", stats.peak_week_duration,
                     "peak_month=", stats.peak_month_duration)
 
@@ -485,10 +557,10 @@ function StatsDB.queryStats()
             start_year))
         stats.books_this_year = ok_by and (tonumber(by_v) or 0) or 0
 
-        logger.info("zen-ui db_stats: page totals:",
+        logger.info("page totals:",
             "today=", stats.today_pages,
             "week=", stats.week_pages)
-        logger.info("zen-ui db_stats: month_pages=", stats.month_pages,
+        logger.info("month_pages=", stats.month_pages,
                     "year_pages=", stats.year_pages,
                     "books_this_week=", stats.books_this_week,
                     "books_this_month=", stats.books_this_month,
@@ -496,11 +568,129 @@ function StatsDB.queryStats()
     end)
 
     if not ok then
-        logger.warn("zen-ui db_stats: query failed:", query_err)
+        logger.warn("query failed:", query_err)
     end
 
     conn:close()
     return stats
+end
+
+local function start_of_day(ts)
+    local t = os.date("*t", ts or os.time())
+    return os.time({
+        year = t.year, month = t.month, day = t.day,
+        hour = 0, min = 0, sec = 0,
+    })
+end
+
+local function valid_series_days(days)
+    days = tonumber(days) or 14
+    if days == 7 or days == 14 or days == 30 or days == 90 then
+        return days
+    end
+    return 14
+end
+
+function StatsDB.queryDailySeries(days)
+    days = valid_series_days(days)
+    local today_start = start_of_day()
+    local start_time = today_start - (days - 1) * 86400
+    local series = {}
+    local by_date = {}
+
+    for offset = days - 1, 0, -1 do
+        local date = os.date("%Y-%m-%d", today_start - offset * 86400)
+        local row = { date = date, pages = 0, duration = 0, books = 0 }
+        series[#series + 1] = row
+        by_date[date] = row
+    end
+
+    flush_pending_stats()
+
+    local db_path = DBConn.getStatsDbPath()
+    local conn, err = DBConn.open(db_path)
+    if not conn then
+        logger.warn("zen-ui db_stats: cannot open DB:", err)
+        return series
+    end
+
+    local ok, query_err = pcall(function()
+        local sql = [[
+            SELECT dates, count(*) AS pages, sum(sum_duration) AS durations,
+                   count(DISTINCT id_book) AS books
+            FROM (
+                SELECT id_book, page,
+                       strftime('%%Y-%%m-%%d', start_time, 'unixepoch', 'localtime') AS dates,
+                       sum(duration) AS sum_duration
+                FROM page_stat
+                WHERE start_time >= %d
+                GROUP BY id_book, page, dates
+            )
+            GROUP BY dates
+            ORDER BY dates;
+        ]]
+        local result = conn:exec(string.format(sql, start_time))
+        if not (result and result.dates) then return end
+        for i = 1, #result.dates do
+            local row = by_date[result.dates[i]]
+            if row then
+                row.pages = tonumber(result.pages and result.pages[i] or result[2] and result[2][i]) or 0
+                row.duration = tonumber(result.durations and result.durations[i] or result[3] and result[3][i]) or 0
+                row.books = tonumber(result.books and result.books[i] or result[4] and result[4][i]) or 0
+            end
+        end
+    end)
+    if not ok then
+        logger.warn("zen-ui db_stats: daily series query failed:", query_err)
+    end
+
+    conn:close()
+    return series
+end
+
+function StatsDB.queryBooksForPeriod(period_begin, period_end)
+    period_begin = tonumber(period_begin) or 0
+    period_end = tonumber(period_end) or period_begin
+
+    flush_pending_stats()
+
+    local db_path = DBConn.getStatsDbPath()
+    local conn, err = DBConn.open(db_path)
+    if not conn then
+        logger.warn("zen-ui db_stats: cannot open DB:", err)
+        return {}
+    end
+
+    local books = {}
+    local ok, query_err = pcall(function()
+        local sql = [[
+            SELECT book_tbl.title AS title,
+                   count(DISTINCT page_stat_tbl.page) AS pages,
+                   sum(page_stat_tbl.duration) AS duration,
+                   book_tbl.id AS book_id
+            FROM page_stat AS page_stat_tbl, book AS book_tbl
+            WHERE page_stat_tbl.id_book = book_tbl.id
+              AND page_stat_tbl.start_time BETWEEN %d AND %d
+            GROUP BY book_tbl.id
+            ORDER BY duration DESC, title;
+        ]]
+        local result = conn:exec(string.format(sql, period_begin + 1, period_end))
+        if not (result and result.title) then return end
+        for i = 1, #result.title do
+            books[#books + 1] = {
+                title = tostring(result.title[i] or ""),
+                pages = tonumber(result.pages and result.pages[i] or result[2] and result[2][i]) or 0,
+                duration = tonumber(result.duration and result.duration[i] or result[3] and result[3][i]) or 0,
+                book_id = tonumber(result.book_id and result.book_id[i] or result[4] and result[4][i]) or nil,
+            }
+        end
+    end)
+    if not ok then
+        logger.warn("zen-ui db_stats: books for period query failed:", query_err)
+    end
+
+    conn:close()
+    return books
 end
 
 return StatsDB

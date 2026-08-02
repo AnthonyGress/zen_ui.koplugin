@@ -1,4 +1,5 @@
 local M = {}
+local Rakuyomi = require("modules/filebrowser/patches/rakuyomi")
 local initialized = false
 
 local FEATURES = {
@@ -19,10 +20,12 @@ local PATCH_MODULES = {
     coverbrowser_check = "modules/filebrowser/patches/coverbrowser_check",
     coverbrowser_subprocess_compat = "modules/filebrowser/patches/coverbrowser_subprocess_compat",
     context_menu = "modules/filebrowser/patches/context_menu",
+    browser_flat_view_compat = "modules/filebrowser/patches/browser_flat_view_compat",
     browser_folder_sort = "modules/filebrowser/patches/browser_folder_sort",
     disable_modal_drag = "modules/filebrowser/patches/disable_modal_drag",
     menu_single_page_scroll_guard = "modules/filebrowser/patches/menu_single_page_scroll_guard",
     partial_page_repaint = "modules/filebrowser/patches/partial_page_repaint",
+    rakuyomi = "modules/filebrowser/patches/rakuyomi",
     navbar = "modules/filebrowser/patches/navbar",
     status_bar = "modules/filebrowser/patches/status_bar",
     zen_scroll_bar = "common/ui/zen_scroll_bar",
@@ -38,6 +41,7 @@ local PATCH_MODULES = {
     mosaic_title_strip = "modules/filebrowser/patches/mosaic_title_strip",
     browser_cover_rounded_corners = "modules/filebrowser/patches/browser_cover_rounded_corners",
     browser_show_hidden = "modules/filebrowser/patches/browser_show_hidden",
+    cache_bookinfo_get_doc_props = "modules/filebrowser/patches/cache_bookinfo_get_doc_props",
     browser_page_count = "modules/filebrowser/patches/browser_page_count",
     browser_series_badge = "modules/filebrowser/patches/browser_series_badge",
     automatic_series_grouping = "modules/filebrowser/patches/automatic_series_grouping",
@@ -62,7 +66,7 @@ local function run_feature(logger, plugin, feature, fn)
     local ok, err = pcall(fn)
     _G.__ZEN_UI_PLUGIN = prev_plugin
     if not ok and logger then
-        logger.warn("zen-ui: grouped filebrowser feature failed", feature, err)
+        logger.warn("grouped filebrowser feature failed", feature, err)
     end
     return ok
 end
@@ -78,6 +82,10 @@ local function load_patch(feature)
         return nil, patch_or_err
     end
 
+    if feature == "rakuyomi" and type(patch_or_err) == "table" then
+        return patch_or_err.apply
+    end
+
     if type(patch_or_err) ~= "function" then
         return nil, "patch module did not return a function"
     end
@@ -88,6 +96,11 @@ end
 function M.init(logger, plugin)
     if initialized then
         return true
+    end
+
+    local ok_metadata, metadata_err = pcall(Rakuyomi.installMetadataIntegration)
+    if not ok_metadata and logger then
+        logger.warn("Rakuyomi metadata integration failed", metadata_err)
     end
 
     local add_sort_title_natural_fn = load_patch("add_sort_title_natural")
@@ -108,6 +121,11 @@ function M.init(logger, plugin)
     local disable_modal_drag_fn = load_patch("disable_modal_drag")
     if disable_modal_drag_fn then
         run_feature(logger, plugin, "disable_modal_drag", disable_modal_drag_fn)
+    end
+
+    local browser_flat_view_compat_fn = load_patch("browser_flat_view_compat")
+    if browser_flat_view_compat_fn then
+        run_feature(logger, plugin, "browser_flat_view_compat", browser_flat_view_compat_fn)
     end
 
     local menu_single_page_scroll_guard_fn = load_patch("menu_single_page_scroll_guard")
@@ -178,6 +196,11 @@ function M.init(logger, plugin)
         run_feature(logger, plugin, "browser_show_hidden", browser_show_hidden_fn)
     end
 
+    local cache_bookinfo_get_doc_props = load_patch("cache_bookinfo_get_doc_props")
+    if cache_bookinfo_get_doc_props then
+        run_feature(logger, plugin, "cache_bookinfo_get_doc_props", cache_bookinfo_get_doc_props)
+    end
+
     local browser_page_count_fn = load_patch("browser_page_count")
     if browser_page_count_fn then
         run_feature(logger, plugin, "browser_page_count", browser_page_count_fn)
@@ -214,15 +237,23 @@ function M.init(logger, plugin)
         run_feature(logger, plugin, "library_background", library_background_fn)
     end
 
-    local zen_scroll_bar_fn = load_patch("zen_scroll_bar")
-    if zen_scroll_bar_fn then
-        run_feature(logger, plugin, "zen_scroll_bar", zen_scroll_bar_fn)
-    end
-
     local runtime_patches = rawget(_G, "__ZEN_UI_RUNTIME_PATCHES")
     if type(runtime_patches) ~= "table" then
         runtime_patches = {}
         _G.__ZEN_UI_RUNTIME_PATCHES = runtime_patches
+    end
+
+    local rakuyomi_fn = Rakuyomi.is_available() and load_patch("rakuyomi") or nil
+    if rakuyomi_fn then
+        local ok = run_feature(logger, plugin, "rakuyomi", rakuyomi_fn)
+        if ok then
+            runtime_patches["rakuyomi"] = true
+        end
+    end
+
+    local zen_scroll_bar_fn = load_patch("zen_scroll_bar")
+    if zen_scroll_bar_fn then
+        run_feature(logger, plugin, "zen_scroll_bar", zen_scroll_bar_fn)
     end
 
     for _i, feature in ipairs(FEATURES) do
@@ -235,7 +266,7 @@ function M.init(logger, plugin)
                     runtime_patches[feature] = true
                 end
             elseif logger then
-                logger.warn("zen-ui: grouped filebrowser patch load failed", feature, err)
+                logger.warn("grouped filebrowser patch load failed", feature, err)
             end
         end
     end

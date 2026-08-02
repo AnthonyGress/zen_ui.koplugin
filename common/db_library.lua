@@ -10,7 +10,7 @@
 -- This module iterates ReadHistory, checks each book's DocSettings sidecar,
 -- and counts entries whose summary.status == "complete".
 
-local logger = require("logger")
+local logger = require("common/zen_logger").new("db_library")
 local paths = require("common/paths")
 
 local LibraryDB = {}
@@ -27,7 +27,7 @@ function LibraryDB.invalidateCache()
     _cache.cache_time  = 0
 end
 
--- Returns { finished = N, reading = N, total = N }
+-- Returns { finished = N, reading = N, total = N, finished_this_month = N, finished_this_year = N }
 --   finished  books whose sidecar summary.status is "complete"
 --   reading   books whose sidecar summary.status is "reading"
 --   total     all books in ReadHistory that have a sidecar file
@@ -37,11 +37,19 @@ end
 function LibraryDB.getBookCounts()
     local now = os.time()
     if _cache.book_counts and (now - _cache.cache_time) < CACHE_TTL then
-        logger.info("zen-ui db_library: returning cached book counts")
+        logger.info("returning cached book counts")
         return _cache.book_counts
     end
 
-    local counts = { finished = 0, reading = 0, total = 0 }
+    local counts = {
+        finished = 0,
+        reading = 0,
+        total = 0,
+        finished_this_month = 0,
+        finished_this_year = 0,
+    }
+    local month = os.date("%Y-%m")
+    local year = os.date("%Y")
 
     -- Count finished books from sidecar status
     local ok, err = pcall(function()
@@ -57,7 +65,7 @@ function LibraryDB.getBookCounts()
         local home_dir = paths.getHomeDir()
 
         local hist = ReadHistory.hist or {}
-        for _, entry in ipairs(hist) do
+        for _i, entry in ipairs(hist) do
             local file = entry.file
             -- Skip books outside home_dir (SD card, other folders, etc.)
             if file and home_dir and not paths.isInHomeDir(file) then
@@ -70,6 +78,15 @@ function LibraryDB.getBookCounts()
                 local status  = summary.status
                 if status == "complete" then
                     counts.finished = counts.finished + 1
+                    local modified = summary.modified
+                    if type(modified) == "string" then
+                        if modified:sub(1, 7) == month then
+                            counts.finished_this_month = counts.finished_this_month + 1
+                        end
+                        if modified:sub(1, 4) == year then
+                            counts.finished_this_year = counts.finished_this_year + 1
+                        end
+                    end
                 elseif status == "reading" then
                     counts.reading = counts.reading + 1
                 end
@@ -81,10 +98,10 @@ function LibraryDB.getBookCounts()
     end)
 
     if not ok then
-        logger.warn("zen-ui db_library: finished count failed:", err)
+        logger.warn("finished count failed:", err)
     end
 
-    logger.info("zen-ui db_library: finished=", counts.finished,
+    logger.info("finished=", counts.finished,
                 "reading=", counts.reading,
                 "total=", counts.total)
     _cache.book_counts = counts

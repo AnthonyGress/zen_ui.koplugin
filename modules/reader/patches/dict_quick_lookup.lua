@@ -10,7 +10,7 @@ local function apply()
     local Translator = require("ui/translator")
     local Event = require("ui/event")
     local UIManager = require("ui/uimanager")
-    local logger = require("logger")
+    local logger = require("common/zen_logger").new("dict_quick_lookup")
     local _ = require("gettext")
 
     local _plugin_ref = rawget(_G, "__ZEN_UI_PLUGIN")
@@ -36,11 +36,22 @@ local function apply()
         return type(cfg) == "table" and cfg.allow_unknown_items == true
     end
 
+    local function show_ai_assistant()
+        local cfg = _plugin_ref
+            and _plugin_ref.config
+            and _plugin_ref.config.highlight_lookup
+        return type(cfg) == "table" and cfg.show_ai_assistant == true
+    end
+
     -- IDs we handle explicitly; everything else is "unknown".
+    -- assistant_* are the dict-popup buttons of assistant.koplugin; the Zen
+    -- AI icon replaces them (see ai_dict_button).
     local KNOWN_IDS = {
         highlight = true, search = true, wikipedia = true,
         translate = true, close = true, save = true,
         vocabulary = true, prev_dict = true, next_dict = true,
+        assistant_dictionary = true, assistant_wikipedia = true,
+        assistant_term_xray = true,
     }
 
     -- Icon mapping for pool button ids.
@@ -54,6 +65,28 @@ local function apply()
         next_dict = "next_dict",
     }
 
+    -- AI assistant icon (assistant.koplugin). Built directly against the
+    -- plugin, like the other Zen icons, so it shows whenever the plugin is
+    -- loaded regardless of which buttons it registered itself. Opens the
+    -- main AI dialog with the looked-up word.
+    local function ai_dict_button(dict_widget)
+        local assistant = dict_widget.ui and dict_widget.ui.assistant
+        if not assistant or not assistant.assistant_dialog then return nil end
+        return {
+            id = "zen_ai_assistant",
+            icon = "lookup.ai",
+            callback = function()
+                if not assistant:isConfigured() then return end
+                local NetworkMgr = require("ui/network/manager")
+                NetworkMgr:runWhenOnline(function()
+                    UIManager:nextTick(function()
+                        assistant.assistant_dialog:show(dict_widget.word)
+                    end)
+                end)
+            end,
+        }
+    end
+
     -- Build a minimal icon-only spec from an original button.
     local function icon_btn(orig, icon)
         if not orig then return nil end
@@ -64,6 +97,22 @@ local function apply()
             enabled_func  = orig.enabled_func,
             callback      = orig.callback,
             hold_callback = orig.hold_callback,
+        }
+    end
+
+    -- KOReader 2026.07 removed Translate from the default dictionary layout,
+    -- while keeping the action in the button pool.
+    local function translate_btn(dict_widget, orig)
+        if orig then
+            return icon_btn(orig, ICON_MAP.translate)
+        end
+        return {
+            id = "translate",
+            icon = ICON_MAP.translate,
+            enabled = not dict_widget.isDocless or not dict_widget:isDocless(),
+            callback = function()
+                Translator:showTranslation(dict_widget.lookupword or dict_widget.word, true)
+            end,
         }
     end
 
@@ -119,8 +168,8 @@ local function apply()
             -- Flatten all rows and index by id.
             local by_id = {}
             local unknown = {}
-            for _, row in ipairs(buttons) do
-                for _, btn in ipairs(row) do
+            for _i, row in ipairs(buttons) do
+                for _j, btn in ipairs(row) do
                     if btn.id and KNOWN_IDS[btn.id] then
                         by_id[btn.id] = btn
                     elseif btn.id then
@@ -152,7 +201,7 @@ local function apply()
             -- Look for vocabulary in flattened buttons or in unknown.
             local vocab_btn = by_id["vocabulary"]
             if not vocab_btn then
-                for _, btn in ipairs(unknown) do
+                for _i, btn in ipairs(unknown) do
                     local t = type(btn.text) == "string" and btn.text
                         or (type(btn.text_func) == "function" and btn.text_func())
                     if type(t) == "string" and t:lower():find("vocabulary") then
@@ -209,8 +258,14 @@ local function apply()
             end
 
             -- Translate.
-            if by_id["translate"] then
-                table.insert(icon_row, icon_btn(by_id["translate"], ICON_MAP.translate))
+            table.insert(icon_row, translate_btn(self_dql, by_id["translate"]))
+
+            -- AI assistant.
+            if show_ai_assistant() then
+                local ai = ai_dict_button(self_dql)
+                if ai then
+                    table.insert(icon_row, ai)
+                end
             end
 
             -- Search.
@@ -226,12 +281,12 @@ local function apply()
 
             -- Preserve unknown buttons as text rows when enabled.
             if allow_unknown() then
-                for _, btn in ipairs(unknown) do
+                for _i, btn in ipairs(unknown) do
                     if btn.id ~= "vocabulary" then
                         -- Put each unknown in its own row.
                         local found = false
-                        for _, row in ipairs(result) do
-                            for _, rb in ipairs(row) do
+                        for _j, row in ipairs(result) do
+                            for _k, rb in ipairs(row) do
                                 if rb.id == btn.id then found = true; break end
                             end
                             if found then break end
@@ -243,22 +298,22 @@ local function apply()
                 end
             end
 
-            logger.dbg("zen-ui[dict_quick_lookup]: new-api icon_row=",
+            logger.dbg("new-api icon_row=",
                 #icon_row, "unknown=", #unknown)
             return #result > 0 and result or buttons
         end
 
-        logger.dbg("zen-ui[dict_quick_lookup]: installed new-API buildButtonLayout override")
+        logger.dbg("installed new-API buildButtonLayout override")
         return
     end
 
     -- =========================================================================
     -- Old KOReader API (DictButtonsReady event)
     -- =========================================================================
-    logger.dbg("zen-ui[dict_quick_lookup]: using legacy DictButtonsReady API")
+    logger.dbg("using legacy DictButtonsReady API")
 
     ReaderHighlight.onDictButtonsReady = function(self, dict_widget, buttons)
-        logger.dbg("zen-ui[dict_quick_lookup]: onDictButtonsReady, is_enabled=",
+        logger.dbg("onDictButtonsReady, is_enabled=",
             tostring(is_enabled()), "is_wiki=", tostring(dict_widget.is_wiki),
             "is_wiki_fullpage=", tostring(dict_widget.is_wiki_fullpage))
         if not is_enabled() then return end
@@ -266,8 +321,8 @@ local function apply()
 
         local by_id = {}
         local unknown = {}
-        for _, row in ipairs(buttons) do
-            for _, btn in ipairs(row) do
+        for _i, row in ipairs(buttons) do
+            for _j, btn in ipairs(row) do
                 if btn.id then
                     if KNOWN_IDS[btn.id] then
                         by_id[btn.id] = btn
@@ -279,13 +334,7 @@ local function apply()
         end
 
         -- Translate is not included in the DictButtonsReady event; build manually.
-        local translate_btn = {
-            id   = "translate",
-            icon = "lookup.translate",
-            callback = function()
-                Translator:showTranslation(dict_widget.word, true)
-            end,
-        }
+        local translation = translate_btn(dict_widget)
 
         local icon_row = {}
         local h = icon_btn(by_id["highlight"], "lookup.highlight")
@@ -305,14 +354,16 @@ local function apply()
         -- vocab button built below after post-processing catches VocabBuilder's row
         local w = show_wikipedia() and icon_btn(by_id["wikipedia"], "lookup.wikipedia") or nil
         local s = icon_btn(by_id["search"],    "lookup.search")
+        local ai = show_ai_assistant() and ai_dict_button(dict_widget) or nil
         if h then table.insert(icon_row, h) end
         -- vocab slot placeholder: filled in post-process below
         if w then table.insert(icon_row, w) end
-        table.insert(icon_row, translate_btn)
+        table.insert(icon_row, translation)
+        if ai then table.insert(icon_row, ai) end
         if s then table.insert(icon_row, s) end
 
         if #icon_row == 0 then
-            logger.dbg("zen-ui[dict_quick_lookup]: no known button ids found, leaving unchanged")
+            logger.dbg("no known button ids found, leaving unchanged")
             return
         end
 
@@ -331,7 +382,7 @@ local function apply()
         dict_widget._zen_icon_row = icon_row
         dict_widget._zen_allow_unknown = allow_unknown()
 
-        logger.dbg("zen-ui[dict_quick_lookup]: replaced buttons, icon_row=",
+        logger.dbg("replaced buttons, icon_row=",
             #icon_row, "unknown=", #unknown)
     end
 
@@ -356,7 +407,7 @@ local function apply()
                     for ri = #buttons, 1, -1 do
                         local row = buttons[ri]
                         if row ~= icon_row then
-                            for _, btn in ipairs(row) do
+                            for _i, btn in ipairs(row) do
                                 local t = type(btn.text) == "string" and btn.text
                                     or (type(btn.text_func) == "function" and btn.text_func())
                                 if type(t) == "string" and t:lower():find("vocabulary") then
@@ -417,7 +468,7 @@ local function apply()
                             end,
                         }
                         table.insert(icon_row, 2, v)
-                        logger.dbg("zen-ui[dict_quick_lookup]: vocab icon inserted")
+                        logger.dbg("vocab icon inserted")
                     end
                 end
                 return result
@@ -430,7 +481,7 @@ local function apply()
         end
     end
 
-    logger.dbg("zen-ui[dict_quick_lookup]: onDictButtonsReady handler installed")
+    logger.dbg("onDictButtonsReady handler installed")
 end
 
 return apply

@@ -139,9 +139,7 @@ presets[1] = {
     reader_footer_custom_text = "Zen UI",
     reader_footer_custom_text_repetitions = 1,
     reader_footer_mode = 1,
-    zen = {
-        verbose_chapter_time = true,
-    },
+    verbose_chapter_time = true,
 }
 
 presets[2] = {
@@ -266,9 +264,7 @@ presets[3] = {
     reader_footer_custom_text = "Zen UI",
     reader_footer_custom_text_repetitions = 1,
     reader_footer_mode = 1,
-    zen = {
-        verbose_chapter_time = true,
-    },
+    verbose_chapter_time = true,
 }
 
 presets[4] = {
@@ -394,9 +390,7 @@ presets[5] = {
     reader_footer_custom_text = "Zen UI",
     reader_footer_custom_text_repetitions = 1,
     reader_footer_mode = 1,
-    zen = {
-        verbose_chapter_time = true,
-    },
+    verbose_chapter_time = true,
 }
 
 presets[6] = {

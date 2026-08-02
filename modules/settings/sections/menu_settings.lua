@@ -10,8 +10,15 @@ local defaults = require("config/defaults")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
+local icon_utils = require("common/utils")
+local Bluetooth = require("common/bluetooth")
 
 local M = {}
+
+local function suggest_icon(label, strip_zen_prefix)
+    local ok_root, root = pcall(require, "common/plugin_root")
+    return icon_utils.suggestIcon(ok_root and root or nil, label, "lightning", strip_zen_prefix)
+end
 
 function M.build(ctx)
     local config = ctx.config
@@ -36,13 +43,24 @@ function M.build(ctx)
         return _ui == nil or _ui[slot] ~= nil
     end
 
+    local function hasAnyPlugin(slots)
+        for _i, slot in ipairs(slots) do
+            if hasPlugin(slot) then return true end
+        end
+        return false
+    end
+
+    local filebrowser_slots = { "filebrowser", "FilebrowserPlus", "filebrowserplus" }
+
     local quick_button_items = {
         { key = "wifi",    text = _("Wi-Fi")       },
+        { key = "bluetooth", text = _("Bluetooth"), detect = Bluetooth.isAvailable },
         { key = "night",   text = _("Night mode")  },
         { key = "frontlight", text = _("Frontlight"), detect = function() return Device:hasFrontlight() end },
         { key = "gyro", text = _("Gyroscope"), detect = function() return Device:hasGSensor() end },
         { key = "zen",     text = _("Zen mode")    },
         { key = "lockdown",text = _("Lockdown")    },
+        { key = "incognito", text = _("Incognito")  },
         { key = "rotate",  text = _("Rotate")      },
         { key = "usb",     text = _("USB")         },
         { key = "search",  text = _("File search") },
@@ -59,7 +77,7 @@ function M.build(ctx)
         { key = "streak",         text = _("Streak"),          detect = function() return hasPlugin("readingstreak") end },
         { key = "opds",           text = _("OPDS"),            detect = function() return hasPlugin("opds") end },
         { key = "localsend",      text = _("LocalSend"),       detect = function() return hasPlugin("localsend") end },
-        { key = "filebrowser",    text = _("Filebrowser"),     detect = function() return hasPlugin("filebrowser") end },
+        { key = "filebrowser",    text = _("Filebrowser"),     detect = function() return hasAnyPlugin(filebrowser_slots) end },
         { key = "puzzle",         text = _("Slide Puzzle"),    detect = function() return hasPlugin("slidepuzzle") end },
         { key = "crossword",      text = _("Crossword"),       detect = function() return hasPlugin("crossword") end },
         { key = "connections",    text = _("Connections"),      detect = function() return hasPlugin("nytconnections") end },
@@ -147,8 +165,10 @@ function M.build(ctx)
 
     local function countEnabledButtons()
         local count = 0
-        for key, v in pairs(config.quick_settings.show_buttons) do
-            if v == true and quick_button_key_set[key] then count = count + 1 end
+        for _i, id in ipairs(config.quick_settings.button_order) do
+            if config.quick_settings.show_buttons[id] == true and quick_button_key_set[id] then
+                count = count + 1
+            end
         end
         return count
     end
@@ -216,6 +236,7 @@ function M.build(ctx)
     end
 
     local build_cb_sub_items
+    local build_control_sub_items
     local get_cb_label
     local sync_cb_action_label
 
@@ -290,7 +311,7 @@ function M.build(ctx)
             type   = "action",
             label  = default_label,
             label_auto = true,
-            icon   = "zen_ui",
+            icon   = "lightning",
             action = {},
         }
         local committed = false
@@ -340,6 +361,32 @@ function M.build(ctx)
         }
     end
 
+    local function addControlButton(touch_menu)
+        local selected = {}
+        for _i, id in ipairs(config.quick_settings.button_order) do
+            selected[id] = true
+        end
+        local picker_items = {}
+        for _i, item in ipairs(quick_button_items) do
+            if not selected[item.key] then
+                picker_items[#picker_items + 1] = { id = item.key, text = item.text }
+            end
+        end
+        if #picker_items == 0 then return end
+        require("common/ui/zen_menu_picker"){
+            title = _("Choose control"),
+            items = picker_items,
+            on_select = function(item)
+                ensureButtonOrder(item.id)
+                config.quick_settings.show_buttons[item.id] = countEnabledButtons() < quick_buttons_max
+                save_and_apply_quick_settings()
+                if touch_menu and touch_menu.backToUpperMenu then
+                    touch_menu:backToUpperMenu()
+                end
+            end,
+        }
+    end
+
     local function choosePluginButton(cb, touch_menu, open_settings)
         showPluginPicker(function(item)
             local plugin = item.plugin
@@ -382,7 +429,7 @@ function M.build(ctx)
                 type         = "plugin",
                 label        = plugin.title,
                 plugin_title = plugin.title,
-                icon         = "lightning",
+                icon         = suggest_icon(plugin.title),
                 plugin       = { key = plugin.key, method = plugin.method },
             }
             table.insert(cbs, new_cb)
@@ -439,13 +486,17 @@ function M.build(ctx)
                             return T(_("Rotate: %1"), getRotateActionLabel()) .. " \u{25B8}"
                         end
                         item.sub_title = _("Rotate")
-                        item.sub_item_table_func = buildRotateButtonSubItems
+                        item.sub_item_table_func = function()
+                            return build_control_sub_items(id)
+                        end
                     elseif id == "screenshot" then
                         item.text_func = function()
                             return T(_("Screenshot: %1 s"), getScreenshotTimerSeconds()) .. " \u{25B8}"
                         end
                         item.sub_title = _("Screenshot")
-                        item.sub_item_table_func = buildScreenshotButtonSubItems
+                        item.sub_item_table_func = function()
+                            return build_control_sub_items(id)
+                        end
                     elseif quick_button_custom_by_id[id] then
                         local cb = quick_button_custom_by_id[id]
                         item.text_func = function()
@@ -454,6 +505,11 @@ function M.build(ctx)
                         item.sub_title = get_cb_label(cb)
                         item.sub_item_table_func = function()
                             return build_cb_sub_items(cb)
+                        end
+                    else
+                        item.sub_title = label
+                        item.sub_item_table_func = function()
+                            return build_control_sub_items(id)
                         end
                     end
                     table.insert(items, item)
@@ -469,6 +525,11 @@ function M.build(ctx)
             add_title = _("Add"),
             hide_footer_cancel = true,
             add_item_table = {
+                IconItem.decorate({
+                    text = _("Control"),
+                    keep_menu_open = true,
+                    callback = addControlButton,
+                }, icons.settings_quick),
                 IconItem.decorate({
                     text = _("Action"),
                     keep_menu_open = true,
@@ -505,7 +566,6 @@ function M.build(ctx)
     local CUSTOM_BUTTON_ICONS
     local function getCustomButtonIcons()
         if CUSTOM_BUTTON_ICONS then return CUSTOM_BUTTON_ICONS end
-        local icon_utils = require("common/utils")
         local ok_root, root = pcall(require, "common/plugin_root")
         local excluded = { zen_ui_light = true, zen_ui_update = true }
         CUSTOM_BUTTON_ICONS = icon_utils.getIconPickerList(ok_root and root or nil, excluded)
@@ -544,6 +604,9 @@ function M.build(ctx)
                 label = nil,
             })
             cb.label_auto = true
+        end
+        if cb.icon == "lightning" then
+            cb.icon = suggest_icon(cb.label, true)
         end
     end
 
@@ -724,12 +787,44 @@ function M.build(ctx)
         return items
     end
 
-    -- Reset only the enable/disable state of built-in options to defaults.
-    -- Custom buttons and their enabled states are preserved.
+    build_control_sub_items = function(id)
+        local items = {}
+        if id == "rotate" then
+            items = buildRotateButtonSubItems()
+        elseif id == "screenshot" then
+            items = buildScreenshotButtonSubItems()
+        end
+        items[#items + 1] = IconItem.decorate({
+            text = _("Delete"),
+            separator = true,
+            callback = function(touch_menu)
+                local ConfirmBox = require("ui/widget/confirmbox")
+                UIManager:show(ConfirmBox:new{
+                    text = _("Delete this control?"),
+                    ok_text = _("Delete"),
+                    ok_callback = function()
+                        local new_order = {}
+                        for _i, saved_id in ipairs(config.quick_settings.button_order) do
+                            if saved_id ~= id then
+                                new_order[#new_order + 1] = saved_id
+                            end
+                        end
+                        config.quick_settings.button_order = new_order
+                        config.quick_settings.show_buttons[id] = false
+                        save_and_apply_quick_settings()
+                        if touch_menu then touch_menu:backToUpperMenu() end
+                    end,
+                })
+            end,
+        }, icons.delete)
+        return items
+    end
+
+    -- Restore the default controls while retaining custom buttons as disabled items.
     local function resetQuickSettings()
         local def = defaults.quick_settings
-        -- Rebuild show_buttons from defaults so only default buttons remain enabled.
         local new_show = {}
+        local new_order = icon_utils.deepcopy(def.button_order)
         for key, val in pairs(def.show_buttons) do
             new_show[key] = val
         end
@@ -737,9 +832,11 @@ function M.build(ctx)
         if type(config.quick_settings.custom_buttons) == "table" then
             for _i, cb in ipairs(config.quick_settings.custom_buttons) do
                 new_show[cb.id] = false
+                new_order[#new_order + 1] = cb.id
             end
         end
         config.quick_settings.show_buttons = new_show
+        config.quick_settings.button_order = new_order
         config.quick_settings.show_frontlight = def.show_frontlight
         config.quick_settings.show_warmth = def.show_warmth
         config.quick_settings.flip_lh_rh_icon = def.flip_lh_rh_icon
@@ -750,11 +847,11 @@ function M.build(ctx)
     return {
         text = _("Controls"),
         sub_item_table = {
-            {
+            IconItem.decorate({
                 text = _("Buttons") .. " \u{25B8}",
                 keep_menu_open = true,
                 callback = showButtonsArrange,
-            },
+            }, icons.action),
             {
                 text = _("Show brightness slider"),
                 checked_func = function() return config.quick_settings.show_frontlight == true end,
@@ -779,7 +876,7 @@ function M.build(ctx)
                     save_and_apply_quick_settings()
                 end,
             },
-            {
+            IconItem.decorate({
                 text = _("Reset to defaults"),
                 separator = true,
                 keep_menu_open = true,
@@ -794,7 +891,7 @@ function M.build(ctx)
                         end,
                     })
                 end,
-            },
+            }, icons.restart),
         },
     }
 end

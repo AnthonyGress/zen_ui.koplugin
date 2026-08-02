@@ -487,6 +487,46 @@ local function apply_reader_footer()
 
         return table.concat(result)
     end
+
+    local function refresh_live_footer_modes(footer)
+        if not (footer and footer.settings and footer.mode_index) then return end
+        if footer.mode_list and footer.mode_list.dynamic_filler_2
+                and footer.mode_list.progress_bar then
+            return
+        end
+        footer:set_mode_index()
+        footer.mode_list = {}
+        for i = 0, #footer.mode_index do
+            footer.mode_list[footer.mode_index[i]] = i
+        end
+        if footer.settings.disabled then return end
+        footer:set_has_no_mode()
+
+        local mode = G_reader_settings:readSetting("reader_footer_mode")
+        if type(mode) == "number" then
+            footer.mode = mode
+        end
+        if footer.settings.all_at_once and type(footer.updateFooterTextGenerator) == "function" then
+            footer:updateFooterTextGenerator()
+        elseif type(footer.applyFooterMode) == "function" then
+            footer:applyFooterMode(footer.mode)
+        end
+        if type(footer.refreshFooter) == "function" then
+            footer:refreshFooter(true, true)
+        end
+    end
+
+    local function refresh_reader_footer()
+        local ok_rui, ReaderUI = pcall(require, "apps/reader/readerui")
+        local ui = ok_rui and ReaderUI and ReaderUI.instance or nil
+        local footer = ui and ui.view and ui.view.footer
+        if footer then
+            pcall(refresh_live_footer_modes, footer)
+        end
+    end
+
+    refresh_reader_footer()
+    UIManager:scheduleIn(0, refresh_reader_footer)
 end
 
 return apply_reader_footer

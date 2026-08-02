@@ -13,6 +13,7 @@ local T = require("ffi/util").template
 local ConfigManager = require("config/manager")
 local paths = require("common/paths")
 local PresetStore = require("config/preset_store")
+local ReaderMargins = require("common/reader_margins")
 
 local _plugin_root = require("common/plugin_root") or ""
 
@@ -642,11 +643,13 @@ function M.build_install_pages(ctx)
             G_reader_settings:saveSetting("reader_footer_custom_text_repetitions",
                 preset.reader_footer_custom_text_repetitions)
         end
-        if preset.zen then
+        local verbose_chapter_time = preset.verbose_chapter_time
+        if verbose_chapter_time == nil and type(preset.zen) == "table" then
+            verbose_chapter_time = preset.zen.verbose_chapter_time
+        end
+        if verbose_chapter_time ~= nil then
             if type(config.reader_footer) ~= "table" then config.reader_footer = {} end
-            if preset.zen.verbose_chapter_time ~= nil then
-                config.reader_footer.verbose_chapter_time = preset.zen.verbose_chapter_time
-            end
+            config.reader_footer.verbose_chapter_time = verbose_chapter_time
             save_zen_config()
         end
     end
@@ -816,10 +819,7 @@ function M.build_install_pages(ctx)
             },
             on_apply = function(sel)
                 if sel["keep"] then return end
-                G_reader_settings:saveSetting("copt_h_page_margins", {30, 30})
-                G_reader_settings:saveSetting("copt_sync_t_b_page_margins", 1)
-                G_reader_settings:saveSetting("copt_t_page_margin", 30)
-                G_reader_settings:saveSetting("copt_b_page_margin", 30)
+                ReaderMargins.applyZenDefaults(G_reader_settings)
                 G_reader_settings:saveSetting("copt_word_spacing", {100, 90})
                 G_reader_settings:saveSetting("copt_line_spacing", 110)
                 G_reader_settings:saveSetting("copt_font_gamma", 25)  -- gamma index for 1.45
@@ -988,8 +988,8 @@ function M.build_install_pages(ctx)
         end
     end)
     if not ok_inject then
-        local logger = require("logger")
-        logger.warn("ZenUI quickstart: cover injection failed:", err_inject)
+        local logger = require("common/zen_logger").new("quickstart_pages")
+        logger.warn("cover injection failed:", err_inject)
     end
 
     return pages

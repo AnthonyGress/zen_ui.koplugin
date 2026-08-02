@@ -80,8 +80,8 @@ local function apply_browser_hide_underline()
             function CoverMenu:updateItems(...)
                 orig_cover_updateItems(self, ...)
                 if self.layout then
-                    for _, row in ipairs(self.layout) do
-                        for _, item in ipairs(row) do
+                    for _i, row in ipairs(self.layout) do
+                        for _j, item in ipairs(row) do
                             if item._underline_container then
                                 item._underline_container.color = Blitbuffer.COLOR_WHITE
                             end
@@ -113,8 +113,8 @@ local function apply_browser_hide_underline()
             -- Classic mode menus (file browser or group view): leave underlines visible.
             if self.name == "filemanager" or self.display_mode_type == "classic" then return end
             if self.layout then
-                for _, row in ipairs(self.layout) do
-                    for _, item in ipairs(row) do
+                for _i, row in ipairs(self.layout) do
+                    for _j, item in ipairs(row) do
                         if item._underline_container then
                             item._underline_container.color = Blitbuffer.COLOR_WHITE
                         end

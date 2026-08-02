@@ -162,7 +162,7 @@ local function apply_search()
             local book_props = self.ui.bookinfo:getDocProps(fullpath, nil, true)
             if next(book_props) ~= nil then
                 local props = {"title", "authors", "series", "series_index", "language", "keywords"}
-                for _, key in ipairs(props) do
+                for _i, key in ipairs(props) do
                     local prop = book_props[key]
                     if prop then
                         if key == "series_index" then prop = tostring(prop) end

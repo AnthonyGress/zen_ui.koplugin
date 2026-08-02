@@ -1,6 +1,14 @@
 local _ = require("gettext")
 
 local M = {}
+local _plugin
+local zen_action_active
+
+local function feature_enabled(key, plugin)
+    local active_plugin = plugin or _plugin
+    local features = active_plugin and active_plugin.config and active_plugin.config.features
+    return type(features) == "table" and features[key] == true
+end
 
 local function save_config(plugin)
     if plugin and type(plugin.saveConfig) == "function" then
@@ -76,6 +84,34 @@ local function show_zen_tab(plugin, tab_id, opts)
         return require("common/library_navigation").showFromReader(reader, plugin, opts)
     end
     return show_tab_from_filemanager(plugin, tab_id)
+end
+
+local function show_library_from_filemanager()
+    local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
+    local fm = ok_fm and FileManager and FileManager.instance
+    if fm then require("common/utils").closeWidgetsAbove(fm) end
+
+    local open_default = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB")
+    if type(open_default) == "function" then
+        open_default()
+        return true
+    end
+
+    local home_dir = require("common/paths").getHomeDir()
+    if fm and fm.file_chooser and home_dir then
+        fm.file_chooser.path_items[home_dir] = nil
+        fm.file_chooser:changeToPath(home_dir)
+        return true
+    end
+    return false
+end
+
+local function show_library(plugin)
+    local reader = get_reader()
+    if reader and reader.document then
+        return require("common/library_navigation").showFromReader(reader, plugin)
+    end
+    return show_library_from_filemanager()
 end
 
 local function show_folder_from_filemanager(folder)
@@ -184,6 +220,78 @@ local function set_bottom_status_bar(plugin, enabled)
     return true
 end
 
+zen_action_active = {
+    zen_ui_toggle_zen_mode = function(plugin)
+        return feature_enabled("zen_mode", plugin)
+    end,
+    zen_ui_toggle_lockdown_mode = function(plugin)
+        return feature_enabled("lockdown_mode", plugin)
+    end,
+    zen_ui_toggle_incognito_mode = function(plugin)
+        return feature_enabled("incognito_mode", plugin)
+    end,
+    zen_ui_toggle_reader_top_status_bar = function(plugin)
+        return is_top_status_bar_enabled(plugin or _plugin)
+    end,
+    zen_ui_toggle_reader_themes = function(plugin)
+        return feature_enabled("reader_themes", plugin or _plugin)
+    end,
+    zen_ui_toggle_reader_bottom_status_bar = is_bottom_status_bar_visible,
+    zen_ui_toggle_reader_status_bars = function(plugin)
+        return is_top_status_bar_enabled(plugin or _plugin) or is_bottom_status_bar_visible()
+    end,
+}
+
+-- Combines KOReader's built-in pull-then-push progress sync (previously the
+-- "Sync" quick settings button) into a single bindable action.
+local function sync_reading_progress()
+    local NetworkMgr = require("ui/network/manager")
+    local UIManager = require("ui/uimanager")
+    local Event = require("ui/event")
+    NetworkMgr:runWhenOnline(function()
+        UIManager:broadcastEvent(Event:new("KOSyncPullProgress"))
+        -- Push after a short delay to let the pull complete first.
+        UIManager:scheduleIn(1, function()
+            UIManager:broadcastEvent(Event:new("KOSyncPushProgress"))
+        end)
+    end)
+    return true
+end
+
+local function show_zen_toc(plugin)
+    local reader = get_reader()
+    if not (reader and reader.document and reader.toc) then return false end
+    if type(reader.toc.toc) ~= "table" or #reader.toc.toc == 0 then
+        require("ui/uimanager"):show(require("ui/widget/infomessage"):new{
+            text = _("No table of contents available."),
+        })
+        return true
+    end
+
+    local ZenTocWidget = require("modules/reader/zen_toc_widget")
+    ZenTocWidget.set_plugin(plugin)
+
+    local focus_page = 1
+    if type(reader.getCurrentPage) == "function" then
+        local ok, page = pcall(reader.getCurrentPage, reader)
+        if ok and type(page) == "number" then
+            focus_page = page
+        end
+    end
+
+    require("ui/uimanager"):show(ZenTocWidget:new{
+        ui = reader,
+        focus_page = focus_page,
+        on_goto = function(page)
+            if reader.link then
+                reader.link:addCurrentLocationToStack()
+            end
+            reader:handleEvent(require("ui/event"):new("GotoPage", page))
+        end,
+    })
+    return true
+end
+
 local _folder_picker_patched = false
 
 -- Render a per-action folder picker for zen_ui_show_folder. The default Dispatcher
@@ -256,35 +364,66 @@ function M.onDispatcherRegisterActions()
         event = "ToggleZenMode",
         title = _("Zen UI - Toggle Zen Mode"),
         general = true,
+        active_func = zen_action_active.zen_ui_toggle_zen_mode,
     })
     Dispatcher:registerAction("zen_ui_toggle_lockdown_mode", {
         category = "none",
         event = "ToggleLockdownMode",
         title = _("Zen UI - Toggle Lockdown Mode"),
         general = true,
+        active_func = zen_action_active.zen_ui_toggle_lockdown_mode,
+    })
+    Dispatcher:registerAction("zen_ui_toggle_incognito_mode", {
+        category = "none",
+        event = "ToggleIncognitoMode",
+        title = _("Zen UI - Toggle Incognito Mode"),
+        general = true,
+        active_func = zen_action_active.zen_ui_toggle_incognito_mode,
     })
     Dispatcher:registerAction("zen_ui_toggle_reader_top_status_bar", {
         category = "none",
         event = "ToggleReaderTopStatusBar",
         title = _("Zen UI - Toggle top reader status bar"),
         reader = true,
+        active_func = zen_action_active.zen_ui_toggle_reader_top_status_bar,
+    })
+    Dispatcher:registerAction("zen_ui_toggle_reader_themes", {
+        category = "none",
+        event = "ToggleReaderThemes",
+        title = _("Zen UI - Toggle reader themes"),
+        reader = true,
+        active_func = zen_action_active.zen_ui_toggle_reader_themes,
     })
     Dispatcher:registerAction("zen_ui_toggle_reader_bottom_status_bar", {
         category = "none",
         event = "ToggleReaderBottomStatusBar",
         title = _("Zen UI - Toggle bottom reader status bar"),
         reader = true,
+        active_func = zen_action_active.zen_ui_toggle_reader_bottom_status_bar,
     })
     Dispatcher:registerAction("zen_ui_toggle_reader_status_bars", {
         category = "none",
         event = "ToggleReaderStatusBars",
         title = _("Zen UI - Toggle reader status bars"),
         reader = true,
+        active_func = zen_action_active.zen_ui_toggle_reader_status_bars,
+    })
+    Dispatcher:registerAction("zen_ui_show_toc", {
+        category = "none",
+        event = "ShowZenUIToc",
+        title = _("Zen UI - Table of contents"),
+        reader = true,
     })
     Dispatcher:registerAction("zen_ui_show_home", {
         category = "none",
         event = "ShowZenUIHome",
         title = _("Zen UI - Home"),
+        general = true,
+    })
+    Dispatcher:registerAction("zen_ui_show_library", {
+        category = "none",
+        event = "ShowZenUILibrary",
+        title = _("Zen UI - Library"),
         general = true,
     })
     Dispatcher:registerAction("zen_ui_show_authors", {
@@ -319,6 +458,12 @@ function M.onDispatcherRegisterActions()
         toggle = {},
         zen_folder_picker = true,
     })
+    Dispatcher:registerAction("zen_ui_kosync_sync", {
+        category = "none",
+        event = "ZenUIKOSyncSync",
+        title = _("Zen UI - Sync progress (pull + push)"),
+        general = true,
+    })
     patch_folder_picker_menu(Dispatcher)
 end
 
@@ -332,6 +477,24 @@ function M.onToggleZenMode(plugin)
     save_config(plugin)
     require("modules/settings/zen_settings_apply").prompt_restart()
     return true
+end
+
+function M.isActionActive(actions, plugin)
+    if type(actions) ~= "table" then return false end
+    local action_name
+    for key, value in pairs(actions) do
+        if key ~= "settings" then
+            local name = type(key) == "number" and value or key
+            if type(name) == "string" then
+                if action_name then return false end
+                action_name = name
+            end
+        end
+    end
+    local active_func = action_name and zen_action_active[action_name]
+    if type(active_func) ~= "function" then return false end
+    local ok, active = pcall(active_func, plugin)
+    return ok and active == true
 end
 
 function M.onToggleLockdownMode(plugin)
@@ -349,9 +512,35 @@ function M.onToggleLockdownMode(plugin)
     return true
 end
 
+function M.onToggleIncognitoMode(plugin)
+    local features = plugin and plugin.config and plugin.config.features
+    if type(features) ~= "table" then return false end
+    local enabling = not features.incognito_mode
+    features.incognito_mode = enabling
+    save_config(plugin)
+    require("ui/uimanager"):show(require("ui/widget/infomessage"):new{
+        text = enabling and _("Incognito mode enabled") or _("Incognito mode disabled"),
+        timeout = 3,
+    })
+    return true
+end
+
 function M.onToggleReaderTopStatusBar(plugin)
     return set_top_status_bar(plugin, not is_top_status_bar_enabled(plugin))
 end
+
+function M.onToggleReaderThemes(plugin)
+    local features = plugin and plugin.config and plugin.config.features
+    if type(features) ~= "table" then return false end
+    features.reader_themes = features.reader_themes ~= true
+    save_config(plugin)
+    local settings_apply = require("modules/settings/zen_settings_apply")
+    settings_apply.apply_feature_toggle(plugin, "reader_themes", features.reader_themes)
+    return true
+end
+
+M.isBottomStatusBarVisible = is_bottom_status_bar_visible
+M.setBottomStatusBar = set_bottom_status_bar
 
 function M.onToggleReaderBottomStatusBar(plugin)
     return set_bottom_status_bar(plugin, not is_bottom_status_bar_visible())
@@ -366,6 +555,10 @@ end
 
 function M.onShowZenUIHome(plugin)
     return show_zen_tab(plugin, "home", { open_home = true })
+end
+
+function M.onShowZenUILibrary(plugin)
+    return show_library(plugin)
 end
 
 function M.onShowZenUIAuthors(plugin)
@@ -385,18 +578,32 @@ function M.onShowZenUIFolder(plugin, folder)
     return show_zen_folder(plugin, folder)
 end
 
+function M.onZenUIKOSyncSync()
+    return sync_reading_progress()
+end
+
+function M.onShowZenUIToc(plugin)
+    return show_zen_toc(plugin)
+end
+
 function M.install(target)
+    _plugin = target
     target.onDispatcherRegisterActions = M.onDispatcherRegisterActions
     target.onToggleZenMode = M.onToggleZenMode
     target.onToggleLockdownMode = M.onToggleLockdownMode
+    target.onToggleIncognitoMode = M.onToggleIncognitoMode
     target.onToggleReaderTopStatusBar = M.onToggleReaderTopStatusBar
+    target.onToggleReaderThemes = M.onToggleReaderThemes
     target.onToggleReaderBottomStatusBar = M.onToggleReaderBottomStatusBar
     target.onToggleReaderStatusBars = M.onToggleReaderStatusBars
     target.onShowZenUIHome = M.onShowZenUIHome
+    target.onShowZenUILibrary = M.onShowZenUILibrary
     target.onShowZenUIAuthors = M.onShowZenUIAuthors
     target.onShowZenUISeries = M.onShowZenUISeries
     target.onShowZenUITags = M.onShowZenUITags
     target.onShowZenUIFolder = M.onShowZenUIFolder
+    target.onZenUIKOSyncSync = M.onZenUIKOSyncSync
+    target.onShowZenUIToc = M.onShowZenUIToc
 end
 
 return M

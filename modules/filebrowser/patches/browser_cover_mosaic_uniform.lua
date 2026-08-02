@@ -56,6 +56,7 @@ local function apply_browser_cover_mosaic_uniform()
 
     -- Capture cell inner dimensions per-init so the subclass can reference them.
     local UNDERLINE_RESERVE = 6
+    MosaicMenuItem._zen_uniform_underline_reserve = UNDERLINE_RESERVE
     local max_img_w, max_img_h
     local orig_init = MosaicMenuItem.init
     function MosaicMenuItem:init()

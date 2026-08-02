@@ -13,16 +13,20 @@ local function apply_status_on_open()
     filemanagerutil.openFile = function(ui, file, caller_pre_callback, no_dialog)
         local DocSettings = require("docsettings")
         local BookList = require("ui/widget/booklist")
+        local book_status = require("common/book_status")
 
         -- Safely open doc settings for this file, without creating sidecar files unnecessarily yet?
         -- Well, if it's being opened, it will create one anyway.
         local doc_settings = DocSettings:open(file)
         local summary = doc_settings:readSetting("summary") or {}
+        local acknowledged = book_status.acknowledgeNewVersion(doc_settings)
 
         if not summary.status or summary.status == "new" or summary.status == "abandoned" then
             summary.status = "reading"
             filemanagerutil.saveSummary(doc_settings, summary)
             BookList.setBookInfoCacheProperty(file, "status", "reading")
+        elseif acknowledged and type(doc_settings.flush) == "function" then
+            doc_settings:flush()
         end
 
         return _orig_openFile(ui, file, caller_pre_callback, no_dialog)

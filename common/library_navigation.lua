@@ -15,7 +15,19 @@ function M.restoreEnabled(plugin)
     return type(features) == "table" and features.restore_library_view == true
 end
 
-function M.returnToRakuyomiReader(restore)
+local function rakuyomiReturnToChapterListEnabled(plugin)
+    local rakuyomi = plugin and plugin.config and plugin.config.rakuyomi
+    if type(rakuyomi) ~= "table" then return true end
+    if rakuyomi.return_to_chapter_list_on_exit ~= nil then
+        return rakuyomi.return_to_chapter_list_on_exit ~= false
+    end
+    return true
+end
+
+function M.returnToRakuyomiReader(restore, plugin)
+    if not rakuyomiReturnToChapterListEnabled(plugin) then
+        return false
+    end
     if not restore and not G_reader_settings:isTrue("allow_commaneer_filemanager") then
         return false
     end
@@ -43,7 +55,7 @@ function M.showFromReader(ui, plugin, opts)
     syncBookListCache(ui, file)
 
     ui:handleEvent(require("ui/event"):new("CloseConfigMenu"))
-    if M.returnToRakuyomiReader(restore) then
+    if M.returnToRakuyomiReader(restore, plugin) then
         return true
     end
 

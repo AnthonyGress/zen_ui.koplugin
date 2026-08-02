@@ -35,20 +35,11 @@ local function apply_browser_page_count()
         end
     end
 
-    -- Resolve page count: try BookList first (sidecar, any opened book), then
-    -- BookInfoManager DB (indexed PDFs / CBZ, even if never opened).
+    -- Resolve page count: prefer stable sidecar pages after a book has opened,
+    -- then fall back to the raw BookInfoManager count for unread books.
     local function get_pages(filepath)
-        -- BookList sidecar — fastest path for any previously opened book.
-        local ok_bl, BookList = pcall(require, "ui/widget/booklist")
-        if ok_bl and BookList then
-            local bi = BookList.getBookInfo(filepath)
-            if bi and bi.pages and bi.pages > 0 then
-                return bi.pages
-            end
-        end
-        -- SQLite DB fallback (accurate for PDF/CBZ; nil for epub/fb2 unread).
         local bookinfo = BookInfoManager:getBookInfo(filepath, false)
-        return bookinfo and bookinfo.pages and bookinfo.pages > 0 and bookinfo.pages or nil
+        return utils.getStablePageCount(filepath, bookinfo and bookinfo.pages)
     end
 
     -- Pill drawing helper: draws a horizontal capsule shape row-by-row using scanline fill.
@@ -155,8 +146,8 @@ local function apply_browser_page_count()
 
             if not _page_count_log_done then
                 _page_count_log_done = true
-                local logger = require("logger")
-                logger.dbg("zen-ui:browser_page_count:paintTo: x=", x, "y=", y,
+                local logger = require("common/zen_logger").new("browser_page_count")
+                logger.dbg("paintTo: x=", x, "y=", y,
                     "self.height=", self.height, "self.width=", self.width,
                     "target.dimen.h=", target.dimen.h, "target.dimen.w=", target.dimen.w,
                     "target.dimen.y=", target.dimen.y,

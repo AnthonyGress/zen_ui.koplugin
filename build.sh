@@ -4,10 +4,50 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$SCRIPT_DIR"
 PLUGIN_DIR_NAME="$(basename "$REPO_ROOT")"
+DEV_MODE=false
+
+case "${1:-}" in
+  --dev)
+    DEV_MODE=true
+    shift
+    ;;
+  "")
+    ;;
+  *)
+    echo "Usage: $0 [--dev]" >&2
+    exit 1
+    ;;
+esac
+
+if [[ $# -ne 0 ]]; then
+  echo "Usage: $0 [--dev]" >&2
+  exit 1
+fi
 
 if [[ "$PLUGIN_DIR_NAME" != *.koplugin ]]; then
   echo "Error: repository folder name must end with .koplugin (found: $PLUGIN_DIR_NAME)" >&2
   exit 1
+fi
+
+if [[ "$DEV_MODE" == true ]]; then
+  ENV_FILE="$REPO_ROOT/.env"
+  if [[ ! -f "$ENV_FILE" ]]; then
+    echo "Error: missing development configuration: $ENV_FILE" >&2
+    exit 1
+  fi
+
+  # shellcheck disable=SC1090
+  source "$ENV_FILE"
+  if [[ -z "${KOREADER_DIR:-}" || ! -d "$KOREADER_DIR" ]]; then
+    echo "Error: KOREADER_DIR must point to a KOReader checkout" >&2
+    exit 1
+  fi
+  if [[ ! -x "$KOREADER_DIR/kodev" ]]; then
+    echo "Error: KOReader development command not found: $KOREADER_DIR/kodev" >&2
+    exit 1
+  fi
+
+  DEV_PLUGIN_DIR="$KOREADER_DIR/plugins/$PLUGIN_DIR_NAME"
 fi
 
 for cmd in rsync zip mktemp; do
@@ -46,6 +86,8 @@ rsync -a \
   --exclude '.github/' \
   --exclude '.vscode/' \
   --exclude 'dist/' \
+  --exclude 'spec/' \
+  --exclude 'docs/' \
   --exclude '.DS_Store' \
   --exclude '.gitignore' \
   --exclude '*.zip' \
@@ -93,3 +135,76 @@ rm -f "$OUT_ZIP"
 )
 
 echo "Created KOReader plugin zip: $OUT_ZIP"
+
+if [[ "$DEV_MODE" == true ]]; then
+  mkdir -p "$DEV_PLUGIN_DIR"
+  rsync -a --delete "$STAGE_DIR/" "$DEV_PLUGIN_DIR/"
+  echo "Deployed plugin to: $DEV_PLUGIN_DIR"
+
+  find_luajit_child() {
+    local parent_pid="$1"
+    local child_pid
+    local command
+    local result
+    for child_pid in $(pgrep -P "$parent_pid" 2>/dev/null || true); do
+      command="$(ps -p "$child_pid" -o comm= 2>/dev/null || true)"
+      if [[ "$command" == *luajit* ]]; then
+        printf '%s\n' "$child_pid"
+        return
+      fi
+      result="$(find_luajit_child "$child_pid")"
+      if [[ -n "$result" ]]; then
+        printf '%s\n' "$result"
+        return
+      fi
+    done
+  }
+
+  focus_koreader() {
+    local kodev_pid="$1"
+    local reader_pid
+    local attempt
+    [[ "$(uname)" == Darwin ]] || return
+
+    for attempt in {1..120}; do
+      reader_pid="$(find_luajit_child "$kodev_pid")"
+      if [[ -n "$reader_pid" ]]; then
+        osascript \
+          -e "tell application \"System Events\"" \
+          -e "tell (first process whose unix id is $reader_pid)" \
+          -e 'if not (exists window 1) then error "KOReader window not ready"' \
+          -e 'set visible to true' \
+          -e 'set frontmost to true' \
+          -e 'perform action "AXRaise" of window 1' \
+          -e 'end tell' \
+          -e 'end tell' \
+          >/dev/null 2>&1 && return
+      fi
+      sleep 0.5
+    done
+  }
+
+  terminate_process_tree() {
+    local pid="$1"
+    local child_pid
+    for child_pid in $(pgrep -P "$pid" 2>/dev/null || true); do
+      terminate_process_tree "$child_pid"
+    done
+    kill "$pid" 2>/dev/null || true
+  }
+
+  if [[ -f "$REPO_ROOT/.dev-kodev.pid" ]]; then
+    kodev_pid="$(<"$REPO_ROOT/.dev-kodev.pid")"
+    if [[ "$kodev_pid" =~ ^[0-9]+$ ]] && kill -0 "$kodev_pid" 2>/dev/null; then
+      terminate_process_tree "$kodev_pid"
+    fi
+  fi
+
+  (
+    cd "$KOREADER_DIR"
+    nohup "$KOREADER_DIR/kodev" run > /dev/null 2>&1 &
+    printf '%s\n' "$!" > "$REPO_ROOT/.dev-kodev.pid"
+    focus_koreader "$!" &
+  )
+  echo "Restarted KOReader development build"
+fi

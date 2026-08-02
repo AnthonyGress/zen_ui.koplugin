@@ -27,18 +27,23 @@ local function apply_reader_top_status_bar()
     local UIManager = require("ui/uimanager")
     local zen_utils = require("common/utils")
     local _ = require("gettext")
+    local ReaderThemes = require("common/reader_themes")
     local Screen = Device.screen
     local ReaderView = require("apps/reader/modules/readerview")
     local _ReaderView_paintTo_orig = ReaderView.paintTo
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
-    local logger = require("logger")
-    local DBG = function(...) logger.dbg("ZenHeader:", ...) end
+    local logger = require("common/zen_logger").new("reader_top_status_bar")
+    local DBG = function(...) logger.dbg("", ...) end
 
     local function is_enabled()
         local plugin = zen_plugin or rawget(_G, "__ZEN_UI_PLUGIN")
         local features = plugin and plugin.config and plugin.config.features
         return type(features) == "table" and features.reader_top_status_bar == true
+    end
+
+    local function header_text_color()
+        return ReaderThemes.getTextColor(zen_plugin) or Blitbuffer.COLOR_BLACK
     end
 
     local function is_view_active_top(view)
@@ -79,7 +84,16 @@ local function apply_reader_top_status_bar()
     local function getWifiItem()
         local ok, NetworkMgr = pcall(require, "ui/network/manager")
         if not ok then return nil end
-        return NetworkMgr:isWifiOn() and "\u{ECA8}" or "\u{ECA9}", nil
+        if NetworkMgr:isWifiOn() then
+            -- Gray while Wi-Fi is on but has no IP yet (searching); gate on
+            -- isConnected() -- the same signal that fires onNetworkConnected ->
+            -- header refresh. ssid presence lags that event, leaving a stuck icon.
+            if NetworkMgr:isConnected() then
+                return "\u{ECA8}", nil
+            end
+            return "\u{ECA8}", nil, Blitbuffer.COLOR_DARK_GRAY
+        end
+        return "\u{ECA9}", nil
     end
 
     local function getRamItem()
@@ -275,16 +289,17 @@ local function apply_reader_top_status_bar()
         page_progress    = getPageProgressItem,
     }
 
+    -- Returns a list of { text = string, color = Blitbuffer color or nil }.
     local function collectItemTexts(order, doc_ctx)
         if type(order) ~= "table" or #order == 0 then return {} end
         local texts = {}
         for _i, key in ipairs(order) do
             local fn = item_fetchers[key]
             if fn then
-                local icon, label = fn(doc_ctx)
+                local icon, label, color = fn(doc_ctx)
                 if icon ~= nil then
                     local text = label and (icon .. label) or icon
-                    table.insert(texts, text)
+                    table.insert(texts, { text = text, color = color })
                 end
             end
         end
@@ -305,9 +320,9 @@ local function apply_reader_top_status_bar()
                 sep_w:free()
             end
             local tw = TextWidget:new{
-                text = texts[i],
+                text = texts[i].text,
                 face = face,
-                fgcolor = Blitbuffer.COLOR_BLACK,
+                fgcolor = header_text_color(),
                 padding = 0,
             }
             total = total + tw:getSize().w
@@ -330,15 +345,16 @@ local function apply_reader_top_status_bar()
                 local sep_w = TextWidget:new{
                     text = sep,
                     face = face,
+                    fgcolor = header_text_color(),
                     padding = 0,
                 }
                 table.insert(group, sep_w)
                 table.insert(widgets, sep_w)
             end
             local tw = TextWidget:new{
-                text = texts[i],
+                text = texts[i].text,
                 face = face,
-                fgcolor = Blitbuffer.COLOR_BLACK,
+                fgcolor = header_text_color(),
                 padding = 0,
             }
             table.insert(group, tw)
@@ -347,12 +363,12 @@ local function apply_reader_top_status_bar()
 
         if max_width and natural_w > max_width then
             for _i, w in ipairs(widgets) do if w.free then w:free() end end
-            local joined = texts[1] or ""
-            for i = 2, #texts do joined = joined .. sep .. texts[i] end
+            local joined = texts[1] and texts[1].text or ""
+            for i = 2, #texts do joined = joined .. sep .. texts[i].text end
             local tw = TextWidget:new{
                 text      = joined,
                 face      = face,
-                fgcolor   = Blitbuffer.COLOR_BLACK,
+                fgcolor   = header_text_color(),
                 padding   = 0,
                 max_width = max_width,
             }
@@ -589,6 +605,7 @@ local function apply_reader_top_status_bar()
     -- ReaderView:paintTo (full page repaint) on every clock tick -- critical on
     -- color e-ink devices (e.g. Kobo Libre Color).
     local function repaintHeader(view)
+        if not is_enabled() then return end
         -- Strict guard: only repaint if the reader itself is the top window.
         -- is_view_active_top() allows child overlays (e.g. quick settings), which
         -- would cause repaintHeader to paint over them. Check the stack directly.
@@ -606,6 +623,10 @@ local function apply_reader_top_status_bar()
         end
         if not view.ui then
             DBG("repaintHeader SKIP: view.ui is nil")
+            return
+        end
+        if ReaderThemes.isActive(zen_plugin) then
+            UIManager:setDirty(view.ui, "ui")
             return
         end
         local header, all_widgets, header_h, screen_width = buildHeader(view)
@@ -638,7 +659,8 @@ local function apply_reader_top_status_bar()
         _ReaderView_paintTo_orig(self, bb, x, y)
         if not is_enabled() then return end
         if bb ~= Screen.bb then return end -- offscreen renders, e.g. page-browser thumbnails
-        if self.render_mode ~= nil then return end -- pdf-like; skip
+        local cfg2 = zen_plugin and zen_plugin.config and zen_plugin.config.reader_top_status_bar
+        if self.render_mode ~= nil and (type(cfg2) ~= "table" or cfg2.hide_in_cbz) then return end -- pdf-like; skip
         if not self.document then return end
         -- Guard: don't paint when reader is not active (allow overlays that
         -- belong to this ReaderUI via show_parent, e.g., AutoDim on resume).
@@ -654,7 +676,6 @@ local function apply_reader_top_status_bar()
 
         header:paintTo(bb, x, y)
 
-        local cfg2 = zen_plugin and zen_plugin.config and zen_plugin.config.reader_top_status_bar
         if type(cfg2) == "table" and cfg2.show_bottom_border then
             paintBottomBorder(bb, x, y + header_h, screen_width, cfg2, self)
             header_h = header_h + Size.line.medium
@@ -676,6 +697,11 @@ local function apply_reader_top_status_bar()
             local _autoRefreshFn
             _autoRefreshFn = function()
                 if not (view.ui and view.ui.document) then
+                    _autoRefresh = nil
+                    return
+                end
+                if not is_enabled() then
+                    view._header_clock_refresh = nil
                     _autoRefresh = nil
                     return
                 end
@@ -773,6 +799,25 @@ local function apply_reader_top_status_bar()
             ReaderUI.onNotCharging = function(rui, ...)
                 if orig_onNotCharging then orig_onNotCharging(rui, ...) end
                 scheduleChargingRefresh()
+            end
+
+            -- Repaint on network state changes so the Wi-Fi icon flips
+            -- gray (searching) -> blue/red (connected/off) without a page turn.
+            local function repaintOnNetwork()
+                if not (view.ui and view.ui.document) then return end
+                if is_view_active_top(view) then
+                    repaintHeader(view)
+                end
+            end
+            local orig_onNetworkConnected    = ReaderUI.onNetworkConnected
+            local orig_onNetworkDisconnected = ReaderUI.onNetworkDisconnected
+            ReaderUI.onNetworkConnected = function(rui, ...)
+                if orig_onNetworkConnected then orig_onNetworkConnected(rui, ...) end
+                repaintOnNetwork()
+            end
+            ReaderUI.onNetworkDisconnected = function(rui, ...)
+                if orig_onNetworkDisconnected then orig_onNetworkDisconnected(rui, ...) end
+                repaintOnNetwork()
             end
         end
     end

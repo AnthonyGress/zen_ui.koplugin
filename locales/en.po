@@ -6,6 +6,9 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Language: en\n"
 
+msgid " days"
+msgstr " days"
+
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
@@ -15,8 +18,23 @@ msgstr "%1 mins left in chapter"
 msgid "%d%% Read"
 msgstr "%d%% Read"
 
+msgid "%s books goal"
+msgstr "%s books goal"
+
+msgid "%s goal"
+msgstr "%s goal"
+
+msgid "%s goal (%s)"
+msgstr "%s goal (%s)"
+
 msgid "%s left"
 msgstr "%s left"
+
+msgid "%s pages goal"
+msgstr "%s pages goal"
+
+msgid "%s time goal (min)"
+msgstr "%s time goal (min)"
 
 msgid "(auto)"
 msgstr "(auto)"
@@ -111,6 +129,9 @@ msgstr "Add buttons"
 msgid "Add catalog"
 msgstr "Add catalog"
 
+msgid "Add control"
+msgstr "Add control"
+
 msgid "Add custom buttons for other plugins or actions."
 msgstr "Add custom buttons for other plugins or actions."
 
@@ -143,6 +164,9 @@ msgstr "All settings are in one unified tab. This icon with the dot indicates an
 
 msgid "All Time"
 msgstr "All Time"
+
+msgid "All time"
+msgstr "All time"
 
 msgid "Allow custom icons"
 msgstr "Allow custom icons"
@@ -201,20 +225,17 @@ msgstr "authors"
 msgid "Automatic suspend"
 msgstr "Automatic suspend"
 
-msgid "avg pages/day"
-msgstr "avg pages/day"
-
-msgid "avg time/book"
-msgstr "avg time/book"
-
-msgid "avg time/day"
-msgstr "avg time/day"
-
 msgid "Back"
 msgstr "Back"
 
 msgid "Background"
 msgstr "Background"
+
+msgid "Background image could not be loaded. It may be corrupt or unsupported."
+msgstr "Background image could not be loaded. It may be corrupt or unsupported."
+
+msgid "Background image file not found."
+msgstr "Background image file not found."
 
 msgid "Background image must be a JPG or JPEG file."
 msgstr "Background image must be a JPG or JPEG file."
@@ -243,14 +264,14 @@ msgstr "Battery Stats"
 msgid "Beginning / End"
 msgstr "Beginning / End"
 
-msgid "best day"
-msgstr "best day"
+msgid "Best day"
+msgstr "Best day"
 
-msgid "best month"
-msgstr "best month"
+msgid "Best month"
+msgstr "Best month"
 
-msgid "best week"
-msgstr "best week"
+msgid "Best week"
+msgstr "Best week"
 
 msgid "Beta"
 msgstr "Beta"
@@ -261,20 +282,23 @@ msgstr "Black"
 msgid "Blue"
 msgstr "Blue"
 
-msgid "Bold"
-msgstr "Bold"
+msgid "Bluetooth"
+msgstr "Bluetooth"
 
 msgid "bold"
 msgstr "bold"
 
+msgid "Bold"
+msgstr "Bold"
+
 msgid "Bold text"
 msgstr "Bold text"
 
-msgid "Book"
-msgstr "Book"
-
 msgid "book"
 msgstr "book"
+
+msgid "Book"
+msgstr "Book"
 
 msgid "Book added to download list"
 msgstr "Book added to download list"
@@ -285,26 +309,23 @@ msgstr "Book information"
 msgid "Book Status"
 msgstr "Book Status"
 
-msgid "Book Title"
-msgstr "Book Title"
-
 msgid "Book title"
 msgstr "Book title"
+
+msgid "Book Title"
+msgstr "Book Title"
 
 msgid "Book: "
 msgstr "Book: "
 
-msgid "books"
-msgstr "books"
-
 msgid "Books"
 msgstr "Books"
 
-msgid "books finished"
-msgstr "books finished"
+msgid "books"
+msgstr "books"
 
-msgid "books read"
-msgstr "books read"
+msgid "Books read"
+msgstr "Books read"
 
 msgid "Books shown"
 msgstr "Books shown"
@@ -366,8 +387,8 @@ msgstr "Casual Chess"
 msgid "Center"
 msgstr "Center"
 
-msgid "Center align buttons"
-msgstr "Center align buttons"
+msgid "Center books"
+msgstr "Center books"
 
 msgid "Center items"
 msgstr "Center items"
@@ -378,9 +399,6 @@ msgstr "Centered Pages"
 msgid "Change folder"
 msgstr "Change folder"
 
-msgid "Change Row"
-msgstr "Change Row"
-
 msgid "Changelog"
 msgstr "Changelog"
 
@@ -390,8 +408,8 @@ msgstr "Chapter"
 msgid "Chapter Time + %"
 msgstr "Chapter Time + %"
 
-msgid "Check for updates"
-msgstr "Check for updates"
+msgid "Update Zen UI"
+msgstr "Update Zen UI"
 
 msgid "Check for updates automatically"
 msgstr "Check for updates automatically"
@@ -408,14 +426,23 @@ msgstr "Choose a different folder"
 msgid "Choose a preset for your reading progress bar."
 msgstr "Choose a preset for your reading progress bar."
 
+msgid "Choose control"
+msgstr "Choose control"
+
 msgid "Choose item"
 msgstr "Choose item"
 
 msgid "Choose plugin menu"
 msgstr "Choose plugin menu"
 
+msgid "Choose tab"
+msgstr "Choose tab"
+
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 msgstr "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
+
+msgid "Classic"
+msgstr "Classic"
 
 msgid "Classic (filename only)"
 msgstr "Classic (filename only)"
@@ -468,6 +495,15 @@ msgstr "Context Menu"
 msgid "Continue"
 msgstr "Continue"
 
+msgid "Control"
+msgstr "Control"
+
+msgid "Control settings"
+msgstr "Control settings"
+
+msgid "Control: %1"
+msgstr "Control: %1"
+
 msgid "Controls"
 msgstr "Controls"
 
@@ -477,6 +513,9 @@ msgstr "Copy"
 msgid "Could not determine update status."
 msgstr "Could not determine update status."
 
+msgid "Could not get release from update server."
+msgstr "Could not get release from update server."
+
 msgid "Could not reach update server."
 msgstr "Could not reach update server."
 
@@ -485,9 +524,6 @@ msgstr "Could not reach update server. Check your internet connection."
 
 msgid "Could not reach update server. Check your internet connection.\n\nUnable to load changelog."
 msgstr "Could not reach update server. Check your internet connection.\n\nUnable to load changelog."
-
-msgid "Could not read release data from update server."
-msgstr "Could not read release data from update server."
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
 msgstr "Could not scan Wi-Fi networks. Please try again after waking the device."
@@ -509,6 +545,12 @@ msgstr "Crossword"
 
 msgid "Current / total pages"
 msgstr "Current / total pages"
+
+msgid "Current Book"
+msgstr "Current Book"
+
+msgid "Current book"
+msgstr "Current book"
 
 msgid "Current home folder:"
 msgstr "Current home folder:"
@@ -552,23 +594,20 @@ msgstr "Custom: "
 msgid "Customizable top status bar and bottom progress bar."
 msgstr "Customizable top status bar and bottom progress bar."
 
+msgid "Customize widget"
+msgstr "Customize widget"
+
 msgid "Cut"
 msgstr "Cut"
 
 msgid "Cycle"
 msgstr "Cycle"
 
-msgid "Daily pages goal"
-msgstr "Daily pages goal"
+msgid "Daily"
+msgstr "Daily"
 
-msgid "Daily pages goal: "
-msgstr "Daily pages goal: "
-
-msgid "Daily time goal (min)"
-msgstr "Daily time goal (min)"
-
-msgid "Daily time goal (min): "
-msgstr "Daily time goal (min): "
+msgid "Date"
+msgstr "Date"
 
 msgid "Day brightness"
 msgstr "Day brightness"
@@ -582,8 +621,8 @@ msgstr "Day brightness time: "
 msgid "Day brightness: "
 msgstr "Day brightness: "
 
-msgid "day streak"
-msgstr "day streak"
+msgid "Day streak"
+msgstr "Day streak"
 
 msgid "Day warmth"
 msgstr "Day warmth"
@@ -603,14 +642,17 @@ msgstr "Debug logging"
 msgid "Debug logging must be enabled to submit bug reports."
 msgstr "Debug logging must be enabled to submit bug reports."
 
-msgid "default"
-msgstr "default"
-
 msgid "Default"
 msgstr "Default"
 
+msgid "default"
+msgstr "default"
+
 msgid "Default (black)"
 msgstr "Default (black)"
+
+msgid "Default font size:"
+msgstr "Default font size:"
 
 msgid "Default tab: "
 msgstr "Default tab: "
@@ -633,8 +675,14 @@ msgstr "Delete preset?"
 msgid "Delete this button?"
 msgstr "Delete this button?"
 
+msgid "Delete this control?"
+msgstr "Delete this control?"
+
 msgid "Delete this folder and its buttons?"
 msgstr "Delete this folder and its buttons?"
+
+msgid "Delete this row break?"
+msgstr "Delete this row break?"
 
 msgid "Delete this tab?"
 msgstr "Delete this tab?"
@@ -696,6 +744,9 @@ msgstr "Display"
 msgid "Display mode"
 msgstr "Display mode"
 
+msgid "Divider"
+msgstr "Divider"
+
 msgid "Dividing lines"
 msgstr "Dividing lines"
 
@@ -726,6 +777,9 @@ msgstr "Edit"
 msgid "Enable"
 msgstr "Enable"
 
+msgid "Enable bottom status bar"
+msgstr "Enable bottom status bar"
+
 msgid "Enable bottom swipe"
 msgstr "Enable bottom swipe"
 
@@ -750,6 +804,9 @@ msgstr "Enable top status bar"
 msgid "Enable warmth schedule"
 msgstr "Enable warmth schedule"
 
+msgid "Enable Zen OPDS"
+msgstr "Enable Zen OPDS"
+
 msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 
@@ -770,6 +827,9 @@ msgstr "Extract and cache book metadata and cover images for books in the curren
 
 msgid "Extract metadata"
 msgstr "Extract metadata"
+
+msgid "Extras"
+msgstr "Extras"
 
 msgid "Failed to submit report: "
 msgstr "Failed to submit report: "
@@ -800,9 +860,6 @@ msgstr "Finish"
 
 msgid "Finished"
 msgstr "Finished"
-
-msgid "finished"
-msgstr "finished"
 
 msgid "Firmware: "
 msgstr "Firmware: "
@@ -840,11 +897,11 @@ msgstr "Font"
 msgid "font"
 msgstr "font"
 
-msgid "Font size"
-msgstr "Font size"
-
 msgid "font size"
 msgstr "font size"
+
+msgid "Font size"
+msgstr "Font size"
 
 msgid "Font size:"
 msgstr "Font size:"
@@ -876,26 +933,17 @@ msgstr "Get Started"
 msgid "GitHub username (optional)"
 msgstr "GitHub username (optional)"
 
-msgid "Global"
-msgstr "Global"
-
 msgid "Go"
 msgstr "Go"
 
 msgid "Go to page"
 msgstr "Go to page"
 
-msgid "Goal shown: Daily"
-msgstr "Goal shown: Daily"
+msgid "Graph metric"
+msgstr "Graph metric"
 
-msgid "Goal shown: Weekly"
-msgstr "Goal shown: Weekly"
-
-msgid "Goals metric: Pages"
-msgstr "Goals metric: Pages"
-
-msgid "Goals metric: Time"
-msgstr "Goals metric: Time"
+msgid "Graph range"
+msgstr "Graph range"
 
 msgid "Gray"
 msgstr "Gray"
@@ -912,6 +960,9 @@ msgstr "Gyro"
 msgid "Gyroscope"
 msgstr "Gyroscope"
 
+msgid "Hide finished books"
+msgstr "Hide finished books"
+
 msgid "Hide in CBZ/PDF files"
 msgstr "Hide in CBZ/PDF files"
 
@@ -920,6 +971,12 @@ msgstr "Hide list borders"
 
 msgid "Hide reader actions in library"
 msgstr "Hide reader actions in library"
+
+msgid "Hide TBR books"
+msgstr "Hide TBR books"
+
+msgid "Hide unread books"
+msgstr "Hide unread books"
 
 msgid "Hide up folder"
 msgstr "Hide up folder"
@@ -938,6 +995,9 @@ msgstr "Hold to skip"
 
 msgid "Home"
 msgstr "Home"
+
+msgid "Home default font size"
+msgstr "Home default font size"
 
 msgid "Home Folder"
 msgstr "Home Folder"
@@ -963,11 +1023,29 @@ msgstr "Icon: %1"
 msgid "Icons"
 msgstr "Icons"
 
+msgid "Image support is unavailable on this device."
+msgstr "Image support is unavailable on this device."
+
+msgid "IP address: %1"
+msgstr "IP address: %1"
+
 msgid "Image: "
 msgstr "Image: "
 
 msgid "Image: none"
 msgstr "Image: none"
+
+msgid "Include new books in TBR"
+msgstr "Include new books in TBR"
+
+msgid "Incognito"
+msgstr "Incognito"
+
+msgid "Incognito mode disabled"
+msgstr "Incognito mode disabled"
+
+msgid "Incognito mode enabled"
+msgstr "Incognito mode enabled"
 
 msgid "Incompatible plugins have been disabled:"
 msgstr "Incompatible plugins have been disabled:"
@@ -981,11 +1059,11 @@ msgstr "Installing"
 msgid "Interactive"
 msgstr "Interactive"
 
-msgid "items per page"
-msgstr "items per page"
-
 msgid "Items per page"
 msgstr "Items per page"
+
+msgid "items per page"
+msgstr "items per page"
 
 msgid "Keep existing settings"
 msgstr "Keep existing settings"
@@ -1059,6 +1137,9 @@ msgstr "Library View"
 msgid "Light"
 msgstr "Light"
 
+msgid "List"
+msgstr "List"
+
 msgid "List (basic)"
 msgstr "List (basic)"
 
@@ -1113,8 +1194,26 @@ msgstr "Maximum 9 buttons allowed"
 msgid "Menu"
 msgstr "Menu"
 
+msgid "Metric"
+msgstr "Metric"
+
+msgid "min"
+msgstr "min"
+
 msgid "Minute"
 msgstr "Minute"
+
+msgid "Minutes"
+msgstr "Minutes"
+
+msgid "minutes"
+msgstr "minutes"
+
+msgid "Monthly"
+msgstr "Monthly"
+
+msgid "Months"
+msgstr "Months"
 
 msgid "Mosaic"
 msgstr "Mosaic"
@@ -1158,6 +1257,9 @@ msgstr "Navbar label size"
 msgid "Navbar Tabs"
 msgstr "Navbar Tabs"
 
+msgid "Network unavailable."
+msgstr "Network unavailable."
+
 msgid "New"
 msgstr "New"
 
@@ -1166,6 +1268,9 @@ msgstr "New collection"
 
 msgid "New folder"
 msgstr "New folder"
+
+msgid "New includes unread books and books modified since they were last opened."
+msgstr "New includes unread books and books modified since they were last opened."
 
 msgid "News"
 msgstr "News"
@@ -1224,8 +1329,20 @@ msgstr "Night warmth time: "
 msgid "Night warmth: "
 msgstr "Night warmth: "
 
+msgid "No background image selected."
+msgstr "No background image selected."
+
 msgid "No books found"
 msgstr "No books found"
+
+msgid "No books with author metadata found"
+msgstr "No books with author metadata found"
+
+msgid "No books with series metadata found"
+msgstr "No books with series metadata found"
+
+msgid "No books with tags metadata found"
+msgstr "No books with tags metadata found"
 
 msgid "No changelog entries found.\n\nNo releases are available for this channel."
 msgstr "No changelog entries found.\n\nNo releases are available for this channel."
@@ -1239,14 +1356,17 @@ msgstr "No description."
 msgid "No launchable plugin menus found"
 msgstr "No launchable plugin menus found"
 
-msgid "No network connection."
-msgstr "No network connection."
-
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "No network connection. Please connect to Wi-Fi and try again."
 
 msgid "No reader engine for this file or invalid file."
 msgstr "No reader engine for this file or invalid file."
+
+msgid "No reading data"
+msgstr "No reading data"
+
+msgid "No table of contents available."
+msgstr "No table of contents available."
 
 msgid "No update asset found."
 msgstr "No update asset found."
@@ -1275,6 +1395,12 @@ msgstr "Off"
 msgid "OK"
 msgstr "OK"
 
+msgid "On"
+msgstr "On"
+
+msgid "Only in Zen mode"
+msgstr "Only in Zen mode"
+
 msgid "Opaque background"
 msgstr "Opaque background"
 
@@ -1283,6 +1409,12 @@ msgstr "OPDS"
 
 msgid "Open folder"
 msgstr "Open folder"
+
+msgid "Open menu to Launcher"
+msgstr "Open menu to Launcher"
+
+msgid "Open next file"
+msgstr "Open next file"
 
 msgid "Open QuickRSS"
 msgstr "Open QuickRSS"
@@ -1298,6 +1430,9 @@ msgstr "Opening"
 
 msgid "Order"
 msgstr "Order"
+
+msgid "Outline"
+msgstr "Outline"
 
 msgid "Outlined boxes"
 msgstr "Outlined boxes"
@@ -1323,14 +1458,26 @@ msgstr "Page x / y"
 msgid "pages"
 msgstr "pages"
 
+msgid "Pages"
+msgstr "Pages"
+
 msgid "Pages + Chapter Time + %"
 msgstr "Pages + Chapter Time + %"
 
 msgid "Pages and %"
 msgstr "Pages and %"
 
-msgid "pages today"
-msgstr "pages today"
+msgid "Pages read"
+msgstr "Pages read"
+
+msgid "Pages this week"
+msgstr "Pages this week"
+
+msgid "Pages today"
+msgstr "Pages today"
+
+msgid "Pages/day"
+msgstr "Pages/day"
 
 msgid "Partial pages refresh"
 msgstr "Partial pages refresh"
@@ -1343,6 +1490,9 @@ msgstr "Percent"
 
 msgid "Personal Records"
 msgstr "Personal Records"
+
+msgid "Personal records"
+msgstr "Personal records"
 
 msgid "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
 msgstr "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
@@ -1413,8 +1563,14 @@ msgstr "Quit"
 msgid "Quit KOReader"
 msgstr "Quit KOReader"
 
+msgid "Quote font size"
+msgstr "Quote font size"
+
 msgid "Quotes widget"
 msgstr "Quotes widget"
+
+msgid "Rakuyomi"
+msgstr "Rakuyomi"
 
 msgid "Rakuyomi plugin is not installed."
 msgstr "Rakuyomi plugin is not installed."
@@ -1422,14 +1578,20 @@ msgstr "Rakuyomi plugin is not installed."
 msgid "RAM usage"
 msgstr "RAM usage"
 
+msgid "Range"
+msgstr "Range"
+
 msgid "Read now"
 msgstr "Read now"
 
 msgid "Read status"
 msgstr "Read status"
 
-msgid "read today"
-msgstr "read today"
+msgid "Read time"
+msgstr "Read time"
+
+msgid "Read today"
+msgstr "Read today"
 
 msgid "Reader"
 msgstr "Reader"
@@ -1440,14 +1602,23 @@ msgstr "Reader Progress"
 msgid "Reading"
 msgstr "Reading"
 
-msgid "reading"
-msgstr "reading"
+msgid "Reading Calendar"
+msgstr "Reading Calendar"
+
+msgid "Reading calendar"
+msgstr "Reading calendar"
 
 msgid "Reading goals"
 msgstr "Reading goals"
 
 msgid "Reading stats widget"
 msgstr "Reading stats widget"
+
+msgid "Reading Trend"
+msgstr "Reading Trend"
+
+msgid "Reading trend"
+msgstr "Reading trend"
 
 msgid "Rebooting"
 msgstr "Rebooting"
@@ -1536,6 +1707,9 @@ msgstr "Restore library location on exit"
 msgid "Resume from page"
 msgstr "Resume from page"
 
+msgid "Return to chapter list on exit"
+msgstr "Return to chapter list on exit"
+
 msgid "Reverse"
 msgstr "Reverse"
 
@@ -1557,6 +1731,9 @@ msgstr "Rotate: %1"
 msgid "Rounded cover corners"
 msgstr "Rounded cover corners"
 
+msgid "Row break"
+msgstr "Row break"
+
 msgid "Rows"
 msgstr "Rows"
 
@@ -1571,6 +1748,9 @@ msgstr "Save current home page as preset"
 
 msgid "Save current settings as preset"
 msgstr "Save current settings as preset"
+
+msgid "Schedules"
+msgstr "Schedules"
 
 msgid "Screenshot"
 msgstr "Screenshot"
@@ -1623,6 +1803,9 @@ msgstr "series"
 msgid "Series number"
 msgstr "Series number"
 
+msgid "Session pages"
+msgstr "Session pages"
+
 msgid "Set"
 msgstr "Set"
 
@@ -1656,6 +1839,15 @@ msgstr "Settings & Updates"
 msgid "Setup Guide"
 msgstr "Setup Guide"
 
+msgid "Show a button for the Assistant plugin, if installed."
+msgstr "Show a button for the Assistant plugin, if installed."
+
+msgid "Show AI assistant"
+msgstr "Show AI assistant"
+
+msgid "Show all files from subfolders"
+msgstr "Show all files from subfolders"
+
 msgid "Show author"
 msgstr "Show author"
 
@@ -1685,6 +1877,9 @@ msgstr "Show favorite badge"
 
 msgid "Show folder name"
 msgstr "Show folder name"
+
+msgid "Show goal"
+msgstr "Show goal"
 
 msgid "Show hidden files"
 msgstr "Show hidden files"
@@ -1818,8 +2013,17 @@ msgstr "Stat slot "
 msgid "Statistics"
 msgstr "Statistics"
 
+msgid "Statistics calendar is unavailable"
+msgstr "Statistics calendar is unavailable"
+
 msgid "Stats"
 msgstr "Stats"
+
+msgid "Stats default font size"
+msgstr "Stats default font size"
+
+msgid "Stats font size"
+msgstr "Stats font size"
 
 msgid "Stats: Calendar"
 msgstr "Stats: Calendar"
@@ -1848,6 +2052,9 @@ msgstr "Strip widgets"
 msgid "Styling"
 msgstr "Styling"
 
+msgid "Subfolder flat view was disabled because the home folder is the device storage root."
+msgstr "Subfolder flat view was disabled because the home folder is the device storage root."
+
 msgid "Submit"
 msgstr "Submit"
 
@@ -1866,14 +2073,17 @@ msgstr "Sync"
 msgid "Sync all catalogs"
 msgstr "Sync all catalogs"
 
+msgid "Tab"
+msgstr "Tab"
+
 msgid "Tabs"
 msgstr "Tabs"
 
-msgid "Tags"
-msgstr "Tags"
-
 msgid "tags"
 msgstr "tags"
+
+msgid "Tags"
+msgstr "Tags"
 
 msgid "Tap and hold any book or folder in your library to reveal details."
 msgstr "Tap and hold any book or folder in your library to reveal details."
@@ -1896,8 +2106,20 @@ msgstr "This change requires a restart to take effect."
 msgid "This Month"
 msgstr "This Month"
 
+msgid "This month"
+msgstr "This month"
+
+msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
+msgstr "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
+
+msgid "This week"
+msgstr "This week"
+
 msgid "This Week"
 msgstr "This Week"
+
+msgid "This year"
+msgstr "This year"
 
 msgid "This Year"
 msgstr "This Year"
@@ -1908,8 +2130,23 @@ msgstr "Time"
 msgid "Time Format"
 msgstr "Time Format"
 
+msgid "Time this week"
+msgstr "Time this week"
+
 msgid "Time to book end"
 msgstr "Time to book end"
+
+msgid "Time today"
+msgstr "Time today"
+
+msgid "Time/book"
+msgstr "Time/book"
+
+msgid "Time/day"
+msgstr "Time/day"
+
+msgid "Time/page"
+msgstr "Time/page"
 
 msgid "Timer: %1 s"
 msgstr "Timer: %1 s"
@@ -1941,26 +2178,26 @@ msgstr "Top bar font"
 msgid "Top status bar"
 msgstr "Top status bar"
 
-msgid "total books"
-msgstr "total books"
+msgid "Total"
+msgstr "Total"
+
+msgid "Total books"
+msgstr "Total books"
 
 msgid "Total pages"
 msgstr "Total pages"
 
-msgid "total pages read"
-msgstr "total pages read"
-
-msgid "total read time"
-msgstr "total read time"
-
-msgid "total time"
-msgstr "total time"
+msgid "Total time"
+msgstr "Total time"
 
 msgid "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
 msgstr "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
 
 msgid "Two rows"
 msgstr "Two rows"
+
+msgid "Unavailable"
+msgstr "Unavailable"
 
 msgid "Underline"
 msgstr "Underline"
@@ -1971,11 +2208,11 @@ msgstr "Underline above icon"
 msgid "Uniform covers"
 msgstr "Uniform covers"
 
-msgid "Unknown"
-msgstr "Unknown"
-
 msgid "unknown"
 msgstr "unknown"
+
+msgid "Unknown"
+msgstr "Unknown"
 
 msgid "Unknown Author"
 msgstr "Unknown Author"
@@ -2049,6 +2286,9 @@ msgstr "Update failed: timed out."
 msgid "Update now"
 msgstr "Update now"
 
+msgid "Update KOReader"
+msgstr "Update KOReader"
+
 msgid "Update Status"
 msgstr "Update Status"
 
@@ -2060,6 +2300,9 @@ msgstr "Updates"
 
 msgid "USB"
 msgstr "USB"
+
+msgid "Use a narrower books folder instead of the device storage root."
+msgstr "Use a narrower books folder instead of the device storage root."
 
 msgid "Use border as progress bar"
 msgstr "Use border as progress bar"
@@ -2073,11 +2316,17 @@ msgstr "Use default font"
 msgid "Use default style"
 msgstr "Use default style"
 
+msgid "Use Home default font size"
+msgstr "Use Home default font size"
+
 msgid "Use home folder"
 msgstr "Use home folder"
 
 msgid "Use last folder"
 msgstr "Use last folder"
+
+msgid "Use Stats default font size"
+msgstr "Use Stats default font size"
 
 msgid "username"
 msgstr "username"
@@ -2097,17 +2346,8 @@ msgstr "Warmth"
 msgid "Warmth schedule"
 msgstr "Warmth schedule"
 
-msgid "Weekly pages goal"
-msgstr "Weekly pages goal"
-
-msgid "Weekly pages goal: "
-msgstr "Weekly pages goal: "
-
-msgid "Weekly time goal (min)"
-msgstr "Weekly time goal (min)"
-
-msgid "Weekly time goal (min): "
-msgstr "Weekly time goal (min): "
+msgid "Weekly"
+msgstr "Weekly"
 
 msgid "Welcome to Zen UI"
 msgstr "Welcome to Zen UI"
@@ -2138,6 +2378,9 @@ msgstr "Wi-Fi"
 
 msgid "Widgets"
 msgstr "Widgets"
+
+msgid "Yearly"
+msgstr "Yearly"
 
 msgid "You're All Set"
 msgstr "You're All Set"
@@ -2178,17 +2421,29 @@ msgstr "Zen UI - Authors"
 msgid "Zen UI - Home"
 msgstr "Zen UI - Home"
 
+msgid "Zen UI - Library"
+msgstr "Zen UI - Library"
+
 msgid "Zen UI - Open folder"
 msgstr "Zen UI - Open folder"
 
 msgid "Zen UI - Series"
 msgstr "Zen UI - Series"
 
+msgid "Zen UI - Sync progress (pull + push)"
+msgstr "Zen UI - Sync progress (pull + push)"
+
+msgid "Zen UI - Table of contents"
+msgstr "Zen UI - Table of contents"
+
 msgid "Zen UI - Tags"
 msgstr "Zen UI - Tags"
 
 msgid "Zen UI - Toggle bottom reader status bar"
 msgstr "Zen UI - Toggle bottom reader status bar"
+
+msgid "Zen UI - Toggle Incognito Mode"
+msgstr "Zen UI - Toggle Incognito Mode"
 
 msgid "Zen UI - Toggle Lockdown Mode"
 msgstr "Zen UI - Toggle Lockdown Mode"
@@ -2216,3 +2471,57 @@ msgstr "Zen UI: folder not found: "
 
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI: no folder set for this action."
+
+msgid "Reader themes"
+msgstr "Reader themes"
+
+msgid "Enable reader themes"
+msgstr "Enable reader themes"
+
+msgid "Dark warm gray"
+msgstr "Dark warm gray"
+
+msgid "Dark graphite"
+msgstr "Dark graphite"
+
+msgid "Light sepia"
+msgstr "Light sepia"
+
+msgid "Light tan"
+msgstr "Light tan"
+
+msgid "Zen UI - Toggle reader themes"
+msgstr "Zen UI - Toggle reader themes"
+
+msgid "Dark mode"
+msgstr "Dark mode"
+
+msgid "Light mode"
+msgstr "Light mode"
+
+msgid "Custom themes"
+msgstr "Custom themes"
+
+msgid "New custom theme"
+msgstr "New custom theme"
+
+msgid "Theme name"
+msgstr "Theme name"
+
+msgid "Background color"
+msgstr "Background color"
+
+msgid "Text color"
+msgstr "Text color"
+
+msgid "Theme font"
+msgstr "Theme font"
+
+msgid "Delete theme"
+msgstr "Delete theme"
+
+msgid "Delete this custom theme?"
+msgstr "Delete this custom theme?"
+
+msgid "Custom theme"
+msgstr "Custom theme"

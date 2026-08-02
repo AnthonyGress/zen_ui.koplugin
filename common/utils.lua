@@ -140,6 +140,49 @@ function M.getUserIconsDir()
     return DataStorage:getDataDir() .. "/icons/"
 end
 
+--- Copy the selected custom default-tab icon into KOReader's user icons dir.
+--- Existing user icons are left untouched so a user's override always wins.
+function M.copyDefaultCustomTabIcon(plugin_icons_dir, navbar)
+    if type(navbar) ~= "table" or type(navbar.default_tab) ~= "string"
+        or type(navbar.custom_tabs) ~= "table" then
+        return false
+    end
+
+    local icon_name
+    for _i, tab in ipairs(navbar.custom_tabs) do
+        if type(tab) == "table" and tab.id == navbar.default_tab then
+            icon_name = tab.icon
+            break
+        end
+    end
+    if type(icon_name) ~= "string" or not icon_name:match("^[%w._-]+$") then
+        return false
+    end
+
+    local ok, lfs = pcall(require, "libs/libkoreader-lfs")
+    local user_dir = M.getUserIconsDir()
+    if not ok or not lfs or not user_dir then return false end
+    if M.resolveLocalIcon(user_dir, icon_name) then return true end
+
+    local source
+    if plugin_icons_dir then
+        source = M.resolveLocalIcon(plugin_icons_dir, icon_name)
+    end
+    if not source then
+        source = M.resolveLocalIcon(lfs.currentdir() .. "/resources/icons/mdlight/", icon_name)
+    end
+    if not source then return false end
+
+    local parent_dir = user_dir:sub(1, -2)
+    if lfs.attributes(parent_dir, "mode") ~= "directory" and not lfs.mkdir(parent_dir) then
+        return false
+    end
+    local ext = source:match("(%.[^./]+)$") or ".svg"
+    local ok_copy, ffiutil = pcall(require, "ffi/util")
+    if not ok_copy or not ffiutil then return false end
+    return ffiutil.copyFile(source, user_dir .. icon_name .. ext) == true
+end
+
 local _custom_icons_enabled
 function M.isCustomIconsEnabled()
     if _custom_icons_enabled ~= nil then return _custom_icons_enabled end
@@ -303,6 +346,33 @@ function M.formatPageCount(pages, long)
     return tostring(pages) .. "\u{00A0}" .. _C(ctx, msgid)
 end
 
+function M.getStablePageCount(filepath, fallback)
+    if type(filepath) ~= "string" or filepath == "" then
+        return fallback
+    end
+
+    local ok_ds, DocSettings = pcall(require, "docsettings")
+    if ok_ds and DocSettings and DocSettings:hasSidecarFile(filepath) then
+        local ok_doc, doc = pcall(DocSettings.open, DocSettings, filepath)
+        if ok_doc and doc and doc:readSetting("pagemap_use_page_labels") == true then
+            local pages = tonumber(doc:readSetting("pagemap_doc_pages"))
+                or tonumber(doc:readSetting("pagemap_last_page_label"))
+            if pages and pages > 0 then return pages end
+        end
+    end
+
+    local ok_bl, BookList = pcall(require, "ui/widget/booklist")
+    if ok_bl and BookList then
+        local ok_book, book = pcall(BookList.getBookInfo, filepath)
+        if not ok_book then book = nil end
+        local pages = book and tonumber(book.pages)
+        if pages and pages > 0 then return pages end
+    end
+
+    fallback = tonumber(fallback)
+    return fallback and fallback > 0 and fallback or nil
+end
+
 --- Scale multiplier for mosaic cover badge sizes (compact=1.0, normal=1.10, large=1.20).
 --- Returns the corner inset for badge positioning (same value for all 4 corners).
 --- Changing the factor here moves all badges in/out uniformly.
@@ -401,6 +471,45 @@ function M.getIconPickerList(plugin_root, excluded)
     addDir(M.getUserIconsDir(), nil)
     addDir(lfs.currentdir() .. "/resources/icons/mdlight", nil)
     return all
+end
+
+--- Suggest an icon whose filename matches a label. Falls back when none do.
+function M.suggestIcon(plugin_root, label, fallback, strip_zen_prefix)
+    local text = type(label) == "string" and label or ""
+    if strip_zen_prefix then
+        text = text:gsub("^Zen UI%s*%-%s*", "")
+    end
+    local needle = text:lower():gsub("[^%w]", "")
+    if #needle < 3 then return fallback or "lightning" end
+    local best, best_score
+    local tokens = {}
+    for token in text:lower():gmatch("[%w]+") do
+        if #token >= 3 then tokens[#tokens + 1] = token end
+    end
+    for _i, item in ipairs(M.getIconPickerList(plugin_root)) do
+        local name = item.name:lower():gsub("[^%w]", "")
+        local score
+        if name == needle then
+            score = 3
+        elseif name:find(needle, 1, true) then
+            score = 2
+        elseif needle:find(name, 1, true) then
+            score = 1
+        end
+        if not score then
+            local token_score
+            for _j, token in ipairs(tokens) do
+                if name:find(token, 1, true) and (not token_score or #token > token_score) then
+                    token_score = #token
+                end
+            end
+            score = token_score and token_score / 100 or nil
+        end
+        if score and (not best_score or score > best_score) then
+            best, best_score = item.name, score
+        end
+    end
+    return best or fallback or "lightning"
 end
 
 -- Close all UIManager window-stack entries above `anchor_widget`.

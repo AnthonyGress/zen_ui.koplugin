@@ -85,7 +85,7 @@ function QuickstartScreen:init()
     for i, page in ipairs(self.pages) do
         if page.choices then
             local sel = {}
-            for _, choice in ipairs(page.choices) do
+            for _i, choice in ipairs(page.choices) do
                 if choice.checked then
                     sel[choice.id] = true
                 end
@@ -706,7 +706,7 @@ function QuickstartScreen:_onTap(ges)
                 else
                     if sel[choice.id] ~= true and page.max_selections then
                         local count = 0
-                        for _, v in pairs(sel) do if v == true then count = count + 1 end end
+                        for _k, v in pairs(sel) do if v == true then count = count + 1 end end
                         if count >= page.max_selections then return true end
                     end
                     sel[choice.id] = sel[choice.id] ~= true
@@ -723,12 +723,12 @@ end
 
 function QuickstartScreen:onCloseWidget()
     -- Free any dynamically composed cover blitbuffers.
-    for _, page in ipairs(self.pages or {}) do
+    for _i, page in ipairs(self.pages or {}) do
         if page.image_bb then
             page.image_bb:free()
             page.image_bb = nil
         end
-        for _, choice in ipairs(page.choices or {}) do
+        for _j, choice in ipairs(page.choices or {}) do
             if choice.image_bb then
                 choice.image_bb:free()
                 choice.image_bb = nil

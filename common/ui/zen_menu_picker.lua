@@ -144,7 +144,7 @@ local function showMenuPicker(opts)
                                     on_select(item)
                                 end, debug.traceback)
                                 if not ok_select then
-                                    require("logger").warn("zen-ui menu picker select failed:", err)
+                                    require("common/zen_logger").new("zen_menu_picker").warn("Selection failed:", err)
                                 end
                             end)
                         end

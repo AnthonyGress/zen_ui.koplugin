@@ -15,6 +15,7 @@ local function apply_browser_cover_badges()
     local Screen         = require("device").screen
     local TextWidget     = require("ui/widget/textwidget")
     local Background     = require("common/ui/background")
+    local CornerBanner   = require("common/ui/corner_banner")
     local book_status    = require("common/book_status")
     local utils          = require("common/utils")
     local _              = require("gettext")
@@ -72,96 +73,6 @@ local function apply_browser_cover_badges()
         end
     end
 
-    local _banner_cache = {}
-
-    -- Diagonal ribbon banner across the top-right corner.
-    -- Renders a narrow band at 45 degrees with label text rotated inside it.
-    -- Uses destination-driven inverse-map blitting from a temp buffer.
-    local function paintCornerBanner(bb, cover_left, cover_right, cover_top, cover_h,
-                                        span, band_thick, label, font_sz,
-                                        fill_color, border_color)
-        local C  = 0.70711  -- cos/sin 45 degrees
-        -- Extend ribbon so ends protrude past cover top/right borders;
-        -- cover-bounds clipping hides the ends cleanly (no visible end-cuts).
-        local tw = math.ceil((span + band_thick * 2) * 1.41422)
-        local th = band_thick
-        if tw <= 0 or th <= 0 then return end
-
-        local bb_type = bb:getType()
-        -- Use actual RGB bytes so distinct colors don't collide in the cache.
-        local _fc = fill_color:getColorRGB32()
-        local cache_key = string.format("%d|%d|%d|%s|%d|%d|%d|%d|%d",
-            tw, th, bb_type, label, font_sz,
-            _fc.r, _fc.g, _fc.b, border_color:getColor8().a)
-        local tmp = _banner_cache[cache_key]
-
-        if not tmp then
-            tmp = Blitbuffer.new(tw, th, bb_type)
-            if not tmp then return end
-
-            -- 1px border on long edges, fill_color interior
-            tmp:paintRectRGB32(0, 0, tw, th, border_color)
-            local bw = 1
-            if bw * 2 < th then
-                tmp:paintRectRGB32(0, bw, tw, th - 2 * bw, fill_color)
-            end
-
-            -- Render text; step font down 1pt at a time until it fits, min 6pt
-            local inner_h = math.max(1, th - bw * 2)
-            local max_w   = math.floor(tw * 0.82)
-            local lbl, lsz
-            local fs = font_sz
-            repeat
-                if lbl and lbl.free then lbl:free() end
-                lbl = TextWidget:new{
-                    text    = label,
-                    face    = Font:getFace("cfont", fs),
-                    bold    = true,
-                    fgcolor = border_color,
-                    padding = 0,
-                }
-                lsz = lbl:getSize()
-                if lsz.w <= max_w and lsz.h <= inner_h then break end
-                fs = fs - 1
-            until fs < 6
-            -- If still too large at minimum size, let it clip rather than disappear
-            -- Clamp offsets: glyph metrics may exceed font_sz (line spacing etc.)
-            local lx = math.max(0, math.floor((tw - lsz.w) / 2))
-            local ly = math.max(0, math.floor((th - lsz.h) / 2))
-            lbl:paintTo(tmp, lx, ly)
-            if lbl.free then lbl:free() end
-
-            _banner_cache[cache_key] = tmp
-        end
-
-        -- Destination-driven inverse-map: for each screen pixel in the ribbon's
-        -- bounding box, reverse-rotate to find the source pixel in tmp.
-        local cx       = cover_right - math.floor(span / 2)
-        local cy       = cover_top   + math.floor(span / 2)
-        local half_box = math.ceil((tw + th) * C / 2) + 1
-        local bb_w     = bb:getWidth()
-        local bb_h     = bb:getHeight()
-        local tw_half  = tw / 2
-        local th_half  = th / 2
-        for dy = cy - half_box, cy + half_box do
-            if dy >= cover_top and dy < cover_top + cover_h and dy >= 0 and dy < bb_h then
-                local dy_rel = dy - cy
-                for dx = cx - half_box, cx + half_box do
-                    if dx >= cover_left and dx < cover_right and dx >= 0 and dx < bb_w then
-                        local dx_rel = dx - cx
-                        -- inverse of +45 deg rotation ("\" band: top border -> right border)
-                        local sx = math.floor(tw_half + (dx_rel + dy_rel) * C)
-                        local sy = math.floor(th_half + (dy_rel - dx_rel) * C)
-                        if sx >= 0 and sx < tw and sy >= 0 and sy < th then
-                            bb:setPixel(dx, dy, tmp:getPixel(sx, sy))
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-
     local function get_upvalue(fn, name)
         if type(fn) ~= "function" then return nil end
         for i = 1, 128 do
@@ -169,6 +80,18 @@ local function apply_browser_cover_badges()
             if not upname then break end
             if upname == name then return value end
         end
+    end
+
+    local function get_effective_item_status(item)
+        local entry = item and item.entry
+        if entry and entry._zen_effective_status then return entry._zen_effective_status end
+        if item and item._zen_effective_status then return item._zen_effective_status end
+
+        local status = item and item.status
+        local percent_finished = item and item.percent_finished
+        if status == nil and entry then status = entry.status end
+        if percent_finished == nil and entry then percent_finished = entry.percent_finished end
+        return book_status.getEffectiveStatus(status, percent_finished)
     end
 
 
@@ -184,7 +107,16 @@ local function apply_browser_cover_badges()
         if orig_update then
             function MosaicMenuItem:update(...)
                 orig_update(self, ...)
-                if self.is_go_up or (not self.filepath) then return end
+                if self.is_go_up then return end
+                if not self.filepath then
+                    if self.entry and self.entry._zen_effective_status then
+                        self._zen_effective_status = self.entry._zen_effective_status
+                    end
+                    return
+                end
+                self._zen_effective_status = book_status.getComputedStatus(
+                    self.filepath, self.status, self.percent_finished
+                )
 
                 local show_fav_badge = _plugin
                     and _plugin.config
@@ -290,8 +222,8 @@ local function apply_browser_cover_badges()
             if _is_fm and self.width and self.height then
                 if not _badges_log_done then
                     _badges_log_done = true
-                    local logger = require("logger")
-                    logger.dbg("zen-ui:browser_cover_badges:paintTo: white fill x=", x, "y=", y,
+                    local logger = require("common/zen_logger").new("browser_cover_badges")
+                    logger.dbg("paintTo: white fill x=", x, "y=", y,
                         "w=", self.width, "h=", self.height,
                         "strip_patched=", tostring(MosaicMenuItem._zen_title_strip_patched),
                         "is_directory=", tostring(self.is_directory))
@@ -313,6 +245,25 @@ local function apply_browser_cover_badges()
                 self.shortcut_icon:paintTo(bb, x + ix, y)
             end
 
+            -- Dim finished series/folder covers. Folders have no cover frame, so
+            -- they can't ride the book dimming path below (which runs after the
+            -- target guard and keys off _cover_frame). Use the tracked cover rect
+            -- (_zen_cover_dimen/_zen_cover_top) -- the same source the folder count
+            -- badge uses -- so the lighten lands exactly on the drawn cover.
+            do
+                local cd = rawget(self, "_zen_cover_dimen")
+                if _is_fm and cd and cd.w and cd.w > 0
+                        and _plugin and _plugin.config
+                        and type(_plugin.config.browser_cover_badges) == "table"
+                        and _plugin.config.browser_cover_badges.dim_finished_books == true
+                        and get_effective_item_status(self) == "complete" then
+                    local fx = x + math.floor((self.width - cd.w) / 2)
+                    local fy = y + (rawget(self, "_zen_cover_top")
+                        or math.floor((self.height - cd.h) / 2))
+                    bb:lightenRect(fx, fy, cd.w, cd.h, 0.4)
+                end
+            end
+
             -- Resolve inner cover-frame sub-widget and current mark size
             -- Resolve inner cover-frame sub-widget
             local target = pre_target or (self[1] and self[1][1] and self[1][1][1])
@@ -320,8 +271,8 @@ local function apply_browser_cover_badges()
             if not (target and target.dimen and target.dimen.y) then
                 if not _badges_target_missing_log_done then
                     _badges_target_missing_log_done = true
-                    local logger = require("logger")
-                    logger.dbg("zen-ui:browser_cover_badges:paintTo: target not found, self[1]=",
+                    local logger = require("common/zen_logger").new("browser_cover_badges")
+                    logger.dbg("paintTo: target not found, self[1]=",
                         tostring(self[1] ~= nil), "self[1][1]=", tostring(self[1] and self[1][1] ~= nil),
                         "self[1][1][1]=", tostring(self[1] and self[1][1] and self[1][1][1] ~= nil))
                 end
@@ -330,8 +281,8 @@ local function apply_browser_cover_badges()
             do
                 if not _badges_target_log_done then
                     _badges_target_log_done = true
-                    local logger = require("logger")
-                    logger.dbg("zen-ui:browser_cover_badges:paintTo: target.dimen x=", target.dimen.x,
+                    local logger = require("common/zen_logger").new("browser_cover_badges")
+                    logger.dbg("paintTo: target.dimen x=", target.dimen.x,
                         "y=", target.dimen.y, "w=", target.dimen.w, "h=", target.dimen.h,
                         "self.height=", self.height, "self.width=", self.width)
                 end
@@ -348,6 +299,8 @@ local function apply_browser_cover_badges()
                 and _plugin.config.browser_cover_badges.badge_color
             local badge_is_dark = _bc == nil or (type(_bc) == "table" and _bc[1] == 0 and _bc[2] == 0 and _bc[3] == 0)
             local badge_fg = badge_is_dark and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK
+            local effective_status = get_effective_item_status(self)
+            local is_new = effective_status == "new"
 
             local cover_left = x + math.floor((self.width - target.dimen.w) / 2)
             local cov_w = target.dimen.w - 2 * border
@@ -358,7 +311,7 @@ local function apply_browser_cover_badges()
                 and _plugin.config
                 and type(_plugin.config.browser_cover_badges) == "table"
                 and _plugin.config.browser_cover_badges.dim_finished_books == true
-                and self.status == "complete"
+                and effective_status == "complete"
             if cov_w > 0 and cov_h > 0 then
                 if dim_finished then
                     bb:lightenRect(cover_left + border, target.dimen.y + border, cov_w, cov_h, 0.4)
@@ -410,7 +363,7 @@ local function apply_browser_cover_badges()
                 and _plugin.config
                 and type(_plugin.config.browser_cover_badges) == "table"
                 and _plugin.config.browser_cover_badges.show_native_progress_bar == true
-            if self.show_progress_bar and show_native then
+            if self.show_progress_bar and show_native and not is_new then
                 local progress_widget = uv("progress_widget")
                 if progress_widget then
                     local margin  = math.floor((corner_mark_size - progress_widget.height) / 2)
@@ -423,7 +376,7 @@ local function apply_browser_cover_badges()
                     local pos_y = y + self.height
                         - math.ceil((self.height - target.height) / 2)
                         - corner_mark_size + margin
-                    progress_widget.fillcolor = (self.status == "abandoned")
+                    progress_widget.fillcolor = (effective_status == "abandoned")
                         and Blitbuffer.COLOR_GRAY_6 or Blitbuffer.COLOR_BLACK
                     progress_widget:setPercentage(self.percent_finished)
                     progress_widget:paintTo(bb, pos_x, pos_y)
@@ -437,9 +390,10 @@ local function apply_browser_cover_badges()
                 and _plugin.config.browser_cover_badges.show_mosaic_progress == true
 
             if show_badge and self.filepath then
-                local do_check = (self.status == "complete") and not dim_finished
-                local do_pause = (self.status == "abandoned")
-                local do_pct   = not dim_finished and not do_check and not do_pause and self.percent_finished ~= nil
+                local do_check = (effective_status == "complete") and not dim_finished
+                local do_pause = (effective_status == "abandoned")
+                local do_pct   = not is_new and not dim_finished and not do_check
+                    and not do_pause and self.percent_finished ~= nil
 
                 if do_check or do_pause or do_pct then
                     local eff_size = math.floor(math.max(corner_mark_size, math.floor((target.dimen.w or 0) * 0.14)) * _badge_scale)
@@ -561,14 +515,13 @@ local function apply_browser_cover_badges()
                 bb:paintBorder(target.dimen.x + ix, target.dimen.y, d_w, d_h, 1)
             end
 
-            -- 8. "New" corner ribbon for never-opened books
+            -- 8. "New" corner ribbon for unread or modified books
             local show_new_banner = in_fm and _plugin
                 and _plugin.config
                 and type(_plugin.config.browser_cover_badges) == "table"
                 and _plugin.config.browser_cover_badges.show_new_banner == true
             if show_new_banner and self.filepath and not self.is_go_up and not self.is_directory
                     and self.bookinfo_found then
-                local is_new = book_status.isNewStatus(self.status, self.percent_finished)
                 if is_new then
                     local eff_size   = math.floor(math.max(corner_mark_size, math.floor((target.dimen.w or 0) * 0.14)) * _badge_scale)
                     local span       = math.floor(eff_size * 2.5)
@@ -576,7 +529,7 @@ local function apply_browser_cover_badges()
                     -- Font tied to cover size, not band thickness, so it stays small regardless of ribbon scale
                     local font_sz    = math.max(6, math.floor(eff_size * 0.25))
                     local cover_left_new = x + math.floor((self.width - target.dimen.w) / 2)
-                    paintCornerBanner(bb,
+                    CornerBanner.paint(bb,
                         cover_left_new, cover_left_new + target.dimen.w,
                         target.dimen.y, target.dimen.h,
                         span, band_thick, _("New"), font_sz,
@@ -611,7 +564,9 @@ local function apply_browser_cover_badges()
                 and _plugin.config
                 and type(_plugin.config.browser_cover_badges) == "table"
                 and _plugin.config.browser_cover_badges.dim_finished_books == true
-            if dim_finished and self.status == "complete" and self.width and self.height then
+            if dim_finished
+                    and get_effective_item_status(self) == "complete"
+                    and self.width and self.height then
                 bb:lightenRect(x, y, self.width, self.height, 0.3)
             end
         end

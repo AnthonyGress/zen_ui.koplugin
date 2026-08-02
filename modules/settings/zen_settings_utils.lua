@@ -38,7 +38,7 @@ end
 
 function M.get_path(tbl, path)
     local node = tbl
-    for _, key in ipairs(path) do
+    for _i, key in ipairs(path) do
         node = node and node[key]
     end
     return node
@@ -208,7 +208,7 @@ function M.get_device_firmware_info()
             function() return Device.getFirmwareVersion(Device) end,
             function() return Device.getFirmwareVersion() end,
         }
-        for _, get_fw in ipairs(calls) do
+        for _i, get_fw in ipairs(calls) do
             local ok, value = pcall(get_fw)
             value = ok and normalize_fw_value(value) or nil
             if value then
@@ -265,6 +265,54 @@ function M.get_device_firmware_display()
         return fw
     end
     return fw
+end
+
+function M.get_device_ip_address()
+    local ok_ffi, ffi = pcall(require, "ffi")
+    if not ok_ffi then return nil end
+    local ok_posix = pcall(require, "ffi/posix_h")
+    if not ok_posix then return nil end
+
+    local C = ffi.C
+    local ok_network, NetworkMgr = pcall(require, "ui/network/manager")
+    local interface = ok_network and NetworkMgr and NetworkMgr.interface or nil
+    if not interface and ok_network and NetworkMgr and type(NetworkMgr.getNetworkInterfaceName) == "function" then
+        local ok_interface, value = pcall(NetworkMgr.getNetworkInterfaceName, NetworkMgr)
+        interface = ok_interface and value or nil
+    end
+
+    local ifaddrs = ffi.new("struct ifaddrs *[1]")
+    if C.getifaddrs(ifaddrs) ~= 0 then return nil end
+
+    local selected
+    local fallback
+    local ifa = ifaddrs[0]
+    while ifa ~= nil do
+        if ifa.ifa_addr ~= nil and ifa.ifa_addr.sa_family == C.AF_INET then
+            local host = ffi.new("char[?]", C.NI_MAXHOST)
+            local result = C.getnameinfo(
+                ifa.ifa_addr,
+                ffi.sizeof("struct sockaddr_in"),
+                host,
+                C.NI_MAXHOST,
+                nil,
+                0,
+                C.NI_NUMERICHOST
+            )
+            local address = result == 0 and M.normalize_value(ffi.string(host)) or nil
+            if address and address:sub(1, 4) ~= "127." then
+                local name = ffi.string(ifa.ifa_name)
+                if name == interface then
+                    selected = address
+                    break
+                end
+                fallback = fallback or address
+            end
+        end
+        ifa = ifa.ifa_next
+    end
+    C.freeifaddrs(ifaddrs[0])
+    return selected or fallback
 end
 
 function M.get_device_language()
@@ -377,7 +425,7 @@ function M.order_items_by_text(item_table, preferred_order)
     local ordered = {}
     local used = {}
 
-    for _, item in ipairs(item_table) do
+    for _i, item in ipairs(item_table) do
         if type(item.text) == "string" and item.text ~= "" then
             if by_text[item.text] == nil then
                 by_text[item.text] = item
@@ -385,7 +433,7 @@ function M.order_items_by_text(item_table, preferred_order)
         end
     end
 
-    for _, text in ipairs(preferred_order) do
+    for _i, text in ipairs(preferred_order) do
         local item = by_text[text]
         if item then
             table.insert(ordered, item)
@@ -393,7 +441,7 @@ function M.order_items_by_text(item_table, preferred_order)
         end
     end
 
-    for _, item in ipairs(item_table) do
+    for _i, item in ipairs(item_table) do
         if not used[item] then
             table.insert(ordered, item)
         end
@@ -403,7 +451,7 @@ function M.order_items_by_text(item_table, preferred_order)
 end
 
 function M.reorder_nested_items_by_text(item_table, target_text, preferred_order)
-    for _, item in ipairs(item_table) do
+    for _i, item in ipairs(item_table) do
         if item.text == target_text and type(item.sub_item_table) == "table" then
             item.sub_item_table = M.order_items_by_text(item.sub_item_table, preferred_order)
             return true

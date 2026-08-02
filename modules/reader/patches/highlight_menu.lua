@@ -7,16 +7,16 @@ local function apply()
     local ButtonDialog = require("ui/widget/buttondialog")
     local UIManager = require("ui/uimanager")
     local Event = require("ui/event")
-    local logger = require("logger")
+    local logger = require("common/zen_logger").new("highlight_menu")
 
     local _plugin_ref = rawget(_G, "__ZEN_UI_PLUGIN")
 
-    logger.dbg("zen-ui[highlight_menu]: apply() called, _plugin_ref=", tostring(_plugin_ref))
+    logger.dbg("apply() called, _plugin_ref=", tostring(_plugin_ref))
     if _plugin_ref then
         local cfg = _plugin_ref.config
-        logger.dbg("zen-ui[highlight_menu]: config=", tostring(cfg))
+        logger.dbg("config=", tostring(cfg))
         if type(cfg) == "table" and type(cfg.features) == "table" then
-            logger.dbg("zen-ui[highlight_menu]: features.highlight_lookup=",
+            logger.dbg("features.highlight_lookup=",
                 tostring(cfg.features.highlight_lookup))
         end
     end
@@ -42,10 +42,35 @@ local function apply()
         return type(cfg) == "table" and cfg.show_wikipedia == true
     end
 
+    local function show_ai_assistant()
+        local cfg = _plugin_ref
+            and _plugin_ref.config
+            and _plugin_ref.config.highlight_lookup
+        return type(cfg) == "table" and cfg.show_ai_assistant == true
+    end
+
+    -- Find the main button registered by assistant.koplugin (AI helper).
+    local function find_ai_button(self, index)
+        if not self._highlight_buttons then return nil end
+        for key, fn_button in pairs(self._highlight_buttons) do
+            local key_name = key:match("^%d+_(.*)$") or key
+            if key_name == "ai_assistant" then
+                local ok, btn = pcall(fn_button, self, index)
+                if ok and type(btn) == "table" and btn.callback then
+                    return btn
+                end
+                return nil
+            end
+        end
+        return nil
+    end
+
     -- Only the keys we explicitly convert to icons; everything else is "other".
+    -- ai_assistant is the main button registered by assistant.koplugin.
     local KNOWN_KEYS = {
         highlight = true, search = true, translate = true,
         wikipedia = true, dictionary = true,
+        ai_assistant = true,
     }
 
     -- -------------------------------------------------------------------------
@@ -54,17 +79,17 @@ local function apply()
     -- -------------------------------------------------------------------------
     local orig_onShowHighlightMenu = ReaderHighlight.onShowHighlightMenu
 
-    logger.dbg("zen-ui[highlight_menu]: orig_onShowHighlightMenu=", tostring(orig_onShowHighlightMenu))
+    logger.dbg("orig_onShowHighlightMenu=", tostring(orig_onShowHighlightMenu))
 
     ReaderHighlight.onShowHighlightMenu = function(self, index)
-        logger.dbg("zen-ui[highlight_menu]: onShowHighlightMenu called, is_enabled=",
+        logger.dbg("onShowHighlightMenu called, is_enabled=",
             tostring(is_enabled()), "selected_text=", tostring(self.selected_text ~= nil))
         if not is_enabled() then
-            logger.dbg("zen-ui[highlight_menu]: disabled, falling back to orig")
+            logger.dbg("disabled, falling back to orig")
             return orig_onShowHighlightMenu(self, index)
         end
         if not self.selected_text then
-            logger.dbg("zen-ui[highlight_menu]: no selected_text, aborting")
+            logger.dbg("no selected_text, aborting")
             return
         end
 
@@ -103,6 +128,18 @@ local function apply()
                 self:translate(index)
             end,
         })
+
+        if show_ai_assistant() then
+            local ai_btn = find_ai_button(self, index)
+            if ai_btn then
+                table.insert(buttons[1], {
+                    icon = "lookup.ai",
+                    enabled = ai_btn.enabled ~= false,
+                    callback = ai_btn.callback,
+                })
+            end
+        end
+
         table.insert(buttons[1], {
             icon = "lookup.search",
             callback = function()
@@ -148,11 +185,11 @@ local function apply()
                 end
             end,
         }
-        logger.dbg("zen-ui[highlight_menu]: showing custom highlight_dialog")
+        logger.dbg("showing custom highlight_dialog")
         UIManager:show(self.highlight_dialog, "[ui]")
     end
 
-    logger.dbg("zen-ui[highlight_menu]: onShowHighlightMenu override installed, new fn=",
+    logger.dbg("onShowHighlightMenu override installed, new fn=",
         tostring(ReaderHighlight.onShowHighlightMenu))
 
 end

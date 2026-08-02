@@ -1,2 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?><!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
-<svg width="800px" height="800px" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><title>ionicons-v5-c</title><polyline points="352 144 464 144 464 256" style="fill:none;stroke:#000000;stroke-linecap:round;stroke-linejoin:round;stroke-width:20px"/><path d="M48,368,169.37,246.63a32,32,0,0,1,45.26,0l50.74,50.74a32,32,0,0,0,45.26,0L448,160" style="fill:none;stroke:#000000;stroke-linecap:round;stroke-linejoin:round;stroke-width:20px"/></svg>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+<svg width="800px" height="800px" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg">
+<g fill="none" fill-rule="evenodd" stroke="#000000" stroke-linecap="round" stroke-linejoin="round" transform="translate(3 3)">
+<path d="m.5.5v12c0 1.1045695.8954305 2 2 2h11.5"/>
+<path d="m3.5 8.5v3"/>
+<path d="m7.5 5.5v6"/>
+<path d="m11.5 2.5v9"/>
+</g>
+</svg>

@@ -28,7 +28,7 @@ end
 return {
     id = "datetime",
     label = "Date/time widget",
-    size = { preferred_pct = 0.18, min_pct = 0.10, max_pct = 0.40, grow_priority = 2 },
+    size = { preferred_pct = 0.15, min_pct = 0.10, max_pct = 0.26, grow_priority = 2 },
     build = function(ctx)
         local width = ctx.width
         local height = ctx.height
@@ -46,8 +46,8 @@ return {
         local top = 0
         local resources = {}
 
-        local max_time_px = math.max(22, math.min(56, math.floor(height * 0.48)))
         local min_time_px = 4
+        local max_time_px = math.max(22, math.min(480, height * 2))
 
         local function rebuild_clock_widgets()
             WidgetResources.free(time_widget)
@@ -59,8 +59,8 @@ return {
 
             local time_str = time_text()
             local date_str = date_text()
-            for time_px = max_time_px, min_time_px, -1 do
-                local date_px = math.max(8, math.min(18, math.floor(time_px * 0.36)))
+            local function make_clock_widgets(time_px)
+                local date_px = math.max(8, math.floor(time_px * 0.36))
                 local tw = TextWidget:new{
                     text = time_str,
                     face = Font:getFace("smallinfofont", Screen:scaleBySize(time_px)),
@@ -77,28 +77,51 @@ return {
                 local dh = ds.h or 10
                 local overlap = math.floor(th * 0.16)
                 local ch = th - overlap + date_gap + dh
-                if ch <= max_content_h or time_px == min_time_px then
-                    time_widget = tw
-                    date_widget = dw
-                    time_size = ts
-                    date_size = ds
-                    time_h = th
-                    date_h = dh
-                    content_h = ch
-                    time_date_overlap = overlap
-                    break
-                end
-                WidgetResources.free(tw)
-                WidgetResources.free(dw)
+                return tw, dw, ts, ds, th, dh, overlap, ch
             end
+
+            local low, high = min_time_px, max_time_px
+            local best
+            while low <= high do
+                local time_px = math.floor((low + high) / 2)
+                local tw, dw, ts, ds, th, dh, overlap, ch = make_clock_widgets(time_px)
+                if ch <= max_content_h then
+                    WidgetResources.free(best and best.tw)
+                    WidgetResources.free(best and best.dw)
+                    best = {
+                        tw = tw, dw = dw, ts = ts, ds = ds,
+                        th = th, dh = dh, overlap = overlap, ch = ch,
+                    }
+                    low = time_px + 1
+                else
+                    WidgetResources.free(tw)
+                    WidgetResources.free(dw)
+                    high = time_px - 1
+                end
+            end
+
+            if not best then
+                local tw, dw, ts, ds, th, dh, overlap, ch = make_clock_widgets(min_time_px)
+                best = {
+                    tw = tw, dw = dw, ts = ts, ds = ds,
+                    th = th, dh = dh, overlap = overlap, ch = ch,
+                }
+            end
+
+            time_widget = best.tw
+            date_widget = best.dw
+            time_size = best.ts
+            date_size = best.ds
+            time_h = best.th
+            date_h = best.dh
+            content_h = best.ch
+            time_date_overlap = best.overlap
 
             resources[1] = time_widget
             resources[2] = date_widget
 
-            local first_row_trim = math.floor((time_h or 0) * 0.20)
-            top = ctx.is_first_row
-                and math.floor((height - content_h - first_row_trim) / 2)
-                or math.floor((height - content_h) / 2)
+            local spare_h = math.max(0, height - content_h)
+            top = math.floor(spare_h * 0.70)
         end
 
         rebuild_clock_widgets()

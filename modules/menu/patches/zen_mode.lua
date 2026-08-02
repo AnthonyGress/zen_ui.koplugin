@@ -92,17 +92,17 @@ local function apply_zen_mode()
             return true
         end
 
-        for _, value in ipairs(values) do
+        for _i, value in ipairs(values) do
             if allow_exact[value] then
                 return true
             end
         end
 
-        for _, value in ipairs(values) do
+        for _i, value in ipairs(values) do
             if blocked_exact[value] then
                 return false
             end
-            for _, token in ipairs(blocked_contains) do
+            for _j, token in ipairs(blocked_contains) do
                 if value:find(token, 1, true) then
                     return false
                 end
@@ -118,7 +118,7 @@ local function apply_zen_mode()
         end
 
         local filtered = {}
-        for _, tab in ipairs(tab_item_table) do
+        for _i, tab in ipairs(tab_item_table) do
             if should_keep_tab(tab) then
                 table.insert(filtered, tab)
             end

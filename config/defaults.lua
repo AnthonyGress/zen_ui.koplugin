@@ -18,6 +18,9 @@ local defaults = {
         update_channel = "stable",
         update_auto_check = true,
     },
+    rakuyomi = {
+        return_to_chapter_list_on_exit = false,
+    },
     localization = {
         default_locale = "en",
         locales = {
@@ -53,6 +56,7 @@ local defaults = {
         automatic_series_grouping = true,
         partial_page_repaint = false,
         reader_top_status_bar = true,
+        reader_themes = false,
         reader_bottom_menu = false,
         night_mode_schedule = false,
         warmth_schedule     = false,
@@ -63,6 +67,7 @@ local defaults = {
         dict_quick_lookup    = true,
         custom_icons_enabled = false,
         lockdown_mode        = false,
+        incognito_mode       = false,
         zen_opds             = true,
     },
     navbar = {
@@ -83,7 +88,7 @@ local defaults = {
             page_right = false,
             menu = false,
         },
-        tab_order = { "page_left", "books", "manga", "news", "authors", "series", "home", "continue", "favorites", "history", "collections", "stats", "exit", "page_right", "menu" },
+        tab_order = { "books", "authors", "series", "home", "continue", "favorites" },
         show_icons = true,
         show_labels = true,
         icon_size = 34,
@@ -102,15 +107,17 @@ local defaults = {
         show_top_border = false,
     },
     quick_settings = {
-        button_order = { "wifi", "night", "frontlight", "gyro", "rotate", "zen", "lockdown", "usb", "search", "quickrss", "cloud", "zlibrary", "calibre", "notion", "streak", "opds", "filebrowser", "restart", "exit", "sleep" },
+        button_order = { "wifi", "night", "rotate", "zen", "restart", "sleep" },
         show_buttons = {
             wifi = true,
+            bluetooth = false,
             night = true,
             frontlight = false,
             gyro = false,
             rotate = true,
             zen = true,
             lockdown = false,
+            incognito = false,
             usb = false,
             search = false,
             quickrss = false,
@@ -148,6 +155,11 @@ local defaults = {
         hide_up_folder = true,
         lock_home_folder = "zen", -- "off" | "zen" | "on"
     },
+    browser_flat_view = {
+        enabled = false,
+    },
+    folder_sort = {},
+    folder_display_mode = {},
     library_background = {
         enabled = false,
         path = "",  -- "" = none; absolute image path otherwise
@@ -178,6 +190,9 @@ local defaults = {
     browser_series_badge = {
         show_series_badge = false,
     },
+    opds = {
+        display_mode = "mosaic", -- "mosaic" | "list" | "classic"
+    },
     mosaic_title_strip = {
         show_title  = false,
         show_author = false,
@@ -205,6 +220,12 @@ local defaults = {
         custom_text      = "",
         show_bottom_border = false,
         bottom_border_progress = false,
+        hide_in_cbz = true,
+    },
+    reader_themes = {
+        dark_mode = "dark_warm_gray",
+        light_mode = "default",
+        custom = {},
     },
     reader_footer = {
         verbose_chapter_time = false,
@@ -213,6 +234,7 @@ local defaults = {
     highlight_lookup = {
         allow_unknown_items = false,
         show_wikipedia      = false,
+        show_ai_assistant   = false,
     },
     dict_quick_lookup = {},
 
@@ -238,10 +260,8 @@ local defaults = {
         night_m     = 0,
         night_value = 5,
     },
-    stats_page = {
-        rows = { "today", "this_month", "this_year", "all_time", "library" },
-    },
     group_view = {
+        include_new_in_tbr = false,
         display_mode = {
             authors = "list_image_meta",
             series = "list_image_meta",

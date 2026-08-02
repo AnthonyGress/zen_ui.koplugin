@@ -14,7 +14,9 @@ local function apply_context_menu()
     local _            = require("gettext")
     local C_           = _.pgettext
     local book_status  = require("common/book_status")
+    local ConfigManager = require("config/manager")
     local paths        = require("common/paths")
+    local SharedState  = require("common/shared_state")
     local icons        = require("common/inline_icon_map")
     local submenu_arrow = icons.arrow_right
     local zen_plugin   = rawget(_G, "__ZEN_UI_PLUGIN")
@@ -94,6 +96,26 @@ local function apply_context_menu()
         if type(tv.textw) == "table" then
             tv.textw[1] = new_scroll
         end
+    end
+
+    -- Keep Zen's path-keyed folder settings aligned with successful moves.
+    local orig_FileManager_moveFile = FileManager.moveFile
+    FileManager.moveFile = function(self, from, to, ...)
+        local ffiUtil = require("ffi/util")
+        local lfs = require("libs/libkoreader-lfs")
+        local source_is_folder = lfs.attributes(from, "mode") == "directory"
+        local source = source_is_folder and (ffiUtil.realpath(from) or from)
+        local destination = to
+        if source_is_folder and lfs.attributes(to, "mode") == "directory" then
+            destination = ffiUtil.joinPath(to, ffiUtil.basename(source))
+        end
+
+        local moved = orig_FileManager_moveFile(self, from, to, ...)
+        if moved and source_is_folder then
+            destination = ffiUtil.realpath(destination) or destination
+            pcall(ConfigManager.moveFolderPathSettings, source, destination)
+        end
+        return moved
     end
 
     -- MoveChooser
@@ -244,7 +266,7 @@ local function apply_context_menu()
 
         local file_chooser = self.file_chooser
         local file_manager = self
-        local logger = require("logger")
+        local logger = require("common/zen_logger").new("context_menu")
         local ffiUtil_sel = require("ffi/util")
 
         local orig_showFileDialog = file_chooser.showFileDialog
@@ -312,7 +334,7 @@ local function apply_context_menu()
 
         if type(orig_onFileSelect) == "function" then
             file_chooser.onFileSelect = function(self_fc, item)
-                logger.dbg("zen-ui:context_menu:onFileSelect",
+                logger.dbg("onFileSelect",
                     "select_mode=", tostring(file_manager.selected_files ~= nil),
                     "is_file=", tostring(item and item.is_file),
                     "path=", tostring(item and item.path),
@@ -323,12 +345,12 @@ local function apply_context_menu()
                 if file_manager.selected_files then
                     local item_key = resolveItemKey(item)
                     if not item_key then
-                        logger.dbg("zen-ui:context_menu:onFileSelect", "no item key, fallback to original")
+                        logger.dbg("onFileSelect", "no item key, fallback to original")
                         return orig_onFileSelect(self_fc, item)
                     end
 
                     local widget, source, i1, i2 = findVisibleWidgetByKey(self_fc, item_key)
-                    logger.dbg("zen-ui:context_menu:onFileSelect",
+                    logger.dbg("onFileSelect",
                         "item_key=", tostring(item_key),
                         "layout_rows=", tostring(self_fc and self_fc.layout and #self_fc.layout or 0),
                         "visible_items=", tostring(self_fc and self_fc.item_group and #self_fc.item_group or 0),
@@ -337,9 +359,9 @@ local function apply_context_menu()
                         "idx2=", tostring(i2))
 
                     if not widget then
-                        logger.dbg("zen-ui:context_menu:onFileSelect", "no visible match, fallback to original (single toggle)")
+                        logger.dbg("onFileSelect", "no visible match, fallback to original (single toggle)")
                         local ret = orig_onFileSelect(self_fc, item)
-                        logger.dbg("zen-ui:context_menu:onFileSelect",
+                        logger.dbg("onFileSelect",
                             "fallback_return=", tostring(ret),
                             "dim_after_fallback=", tostring(item and item.dim),
                             "selected_after_fallback=", tostring(file_manager.selected_files[item_key]))
@@ -348,7 +370,7 @@ local function apply_context_menu()
 
                     item.dim = not item.dim and true or nil
                     file_manager.selected_files[item_key] = item.dim
-                    logger.dbg("zen-ui:context_menu:onFileSelect",
+                    logger.dbg("onFileSelect",
                         "dim_after=", tostring(item.dim),
                         "selected_entry=", tostring(file_manager.selected_files[item_key]))
 
@@ -362,6 +384,17 @@ local function apply_context_menu()
                     end
                     widget.dim = item.dim
 
+                    -- List layout bakes the dim/selection state into its widget
+                    -- subtree at update() time (listmenu.lua: self.file_deleted =
+                    -- self.entry.dim), unlike mosaic which reads self.dim live in
+                    -- paintTo. Without re-running update() the list repaints its
+                    -- stale tree, so the highlight only appears after a page turn
+                    -- rebuilds all items. Re-baking one item is cheaper than the
+                    -- stock full updateItems(1, true).
+                    if type(widget.update) == "function" then
+                        pcall(function() widget:update() end)
+                    end
+
                     local d = (widget[1] and widget[1].dimen) or widget.dimen
                     if d then
                         local dirty_owner = self_fc.show_parent or self_fc
@@ -369,11 +402,11 @@ local function apply_context_menu()
                             return "ui", d, dirty_owner.dithered
                         end)
                     end
-                    logger.dbg("zen-ui:context_menu:onFileSelect", "fast-path return true")
+                    logger.dbg("onFileSelect", "fast-path return true")
                     return true
                 end
                 local ret = orig_onFileSelect(self_fc, item)
-                logger.dbg("zen-ui:context_menu:onFileSelect",
+                logger.dbg("onFileSelect",
                     "not_in_select_mode_return=", tostring(ret),
                     "dim_after=", tostring(item and item.dim))
                 return ret
@@ -425,6 +458,10 @@ local function apply_context_menu()
                 end
             end
 
+            -- True when the held item is the folder currently being viewed
+            -- (blank-hold), false when holding a sub-folder from its parent list.
+            -- Captured before the series-view reassignment below overwrites item.
+            local is_current_view = item._is_current_dir == true
             if item._is_current_dir
                     and self_fc.item_table
                     and self_fc.item_table.is_in_series_view
@@ -685,6 +722,9 @@ local function apply_context_menu()
             local is_file            = item.is_file
             local is_not_parent_folder = not item.is_go_up
             local is_home_dir = (not is_file) and paths.isHomeRoot(file)
+            -- Only the primary library root uses global sort/display; additional
+            -- home dirs behave like ordinary folders with per-folder overrides.
+            local is_primary_home = (not is_file) and paths.isPrimaryHomeRoot(file)
 
             local function close_dialog()
                 UIManager:close(self_fc.file_dialog)
@@ -694,6 +734,23 @@ local function apply_context_menu()
                 UIManager:nextTick(function()
                     self_fc:refreshPath()
                 end)
+            end
+
+            local function refresh_book_info()
+                local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
+                if not ok_bim then return end
+                BookInfoManager:deleteBookInfo(file)
+                local home = zen_plugin and SharedState.get(zen_plugin, "home")
+                if home and type(home.invalidateBookCache) == "function" then
+                    home.invalidateBookCache(file)
+                end
+                if home and type(home.rebuildActive) == "function" then
+                    home.rebuildActive()
+                end
+                if self_fc.filemanager_menu then
+                    self_fc.filemanager_menu.files_updated = true
+                end
+                refresh()
             end
 
             local function refresh_after_sort_change()
@@ -913,7 +970,7 @@ local function apply_context_menu()
                                 if bookinfo.series then
                                     local s = BD.auto(bookinfo.series)
                                     if bookinfo.series_index then
-                                        series_str_local = string.format("#%.4g – %s", bookinfo.series_index, s)
+                                        series_str_local = string.format("%s #%.4g", s, bookinfo.series_index)
                                     else
                                         series_str_local = s
                                     end
@@ -1262,6 +1319,43 @@ local function apply_context_menu()
                 if is_virtual_folder then return end
                 close_dialog()
                 local edit_dialog
+                local has_selected_files = file_manager.selected_files
+                    and next(file_manager.selected_files) ~= nil
+
+                local function showSelectedFilesPasteDialog()
+                    local action_dialog
+                    local function paste_selected(cutfile)
+                        UIManager:close(action_dialog)
+                        file_manager.cutfile = cutfile
+                        file_manager:showCopyMoveSelectedFilesDialog(function() end, file)
+                    end
+                    action_dialog = ButtonDialog:new{
+                        title = _("Paste selected files"),
+                        title_align = "center",
+                        buttons = apply_button_group_font({{
+                            {
+                                text = icons.copy .. "  " .. C_("File", "Copy"),
+                                align = "left",
+                                callback = function() paste_selected(false) end,
+                            },
+                            {
+                                text = icons.move .. "  " .. _("Move"),
+                                align = "left",
+                                callback = function() paste_selected(true) end,
+                            },
+                        }}),
+                    }
+                    UIManager:show(action_dialog)
+                end
+
+                local function paste()
+                    UIManager:close(edit_dialog)
+                    if file_manager.clipboard then
+                        file_manager:pasteFileFromClipboard(file)
+                    elseif has_selected_files then
+                        showSelectedFilesPasteDialog()
+                    end
+                end
 
                 if is_home_dir then
                     edit_dialog = ButtonDialog:new{
@@ -1269,11 +1363,8 @@ local function apply_context_menu()
                             {{
                                 text = "\u{F0192}  " .. C_("File", "Paste"),
                                 align = "left",
-                                enabled = file_manager.clipboard and true or false,
-                                callback = function()
-                                    UIManager:close(edit_dialog)
-                                    file_manager:pasteFileFromClipboard(file)
-                                end,
+                                enabled = (file_manager.clipboard or has_selected_files) and true or false,
+                                callback = paste,
                             }},
                         }),
                     }
@@ -1308,11 +1399,8 @@ local function apply_context_menu()
                         {
                             text = "\u{F0192}  " .. C_("File", "Paste"),
                             align = "left",
-                            enabled = file_manager.clipboard and true or false,
-                            callback = function()
-                                UIManager:close(edit_dialog)
-                                file_manager:pasteFileFromClipboard(file)
-                            end,
+                            enabled = (file_manager.clipboard or has_selected_files) and true or false,
+                            callback = paste,
                         },
                     },
                 }
@@ -1338,14 +1426,7 @@ local function apply_context_menu()
                             align = "left",
                             callback = function()
                                 UIManager:close(edit_dialog)
-                                local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
-                                if ok_bim then
-                                    BookInfoManager:deleteBookInfo(file)
-                                    if self_fc.filemanager_menu then
-                                        self_fc.filemanager_menu.files_updated = true
-                                    end
-                                    refresh()
-                                end
+                                refresh_book_info()
                             end,
                         },
                     })
@@ -1624,6 +1705,7 @@ local function apply_context_menu()
                             local status_dialog
 
                             local function setStatus(to_status)
+                                book_status.acknowledgeNewVersion(doc_settings)
                                 if to_status == nil then
                                     summary.status = nil
                                     doc_settings:delSetting("percent_finished")
@@ -1646,7 +1728,13 @@ local function apply_context_menu()
                                     end
                                 end
                                 UIManager:close(status_dialog)
-                                refresh()
+                                if type(item._zen_after_status_change) == "function" then
+                                    UIManager:nextTick(function()
+                                        item._zen_after_status_change(file)
+                                    end)
+                                else
+                                    refresh()
+                                end
                             end
 
                             local function statusBtn(icon, label, to_status)
@@ -1676,21 +1764,55 @@ local function apply_context_menu()
                 })
             end
 
-            if item._is_current_dir then
+            if is_file and is_not_parent_folder and item._zen_home_context then
+                table.insert(buttons, {
+                    {
+                        text = icons.refresh .. "  " .. _("Refresh"),
+                        align = "left",
+                        callback = function()
+                            close_dialog()
+                            refresh_book_info()
+                        end,
+                    },
+                })
+            end
+
+            if is_virtual_folder or (not is_file and is_not_parent_folder) then
                 local function showViewSubmenu()
                     close_dialog()
                     local ok_fm, FM = pcall(require, "apps/filemanager/filemanager")
                     local fm = ok_fm and FM and FM.instance
                     local ok_bim, bim = pcall(require, "bookinfomanager")
+                    local fdm_api = rawget(_G, "__ZEN_FOLDER_DISPLAY_MODE")
+                    local ffiUtil_view = require("ffi/util")
+                    local display_folder = (is_virtual_folder and item._zen_sort_key) or file
+                    local real_folder = ffiUtil_view.realpath(display_folder) or display_folder
+                    local folder_override = (not is_primary_home) and fdm_api
+                        and fdm_api.get(real_folder) or nil
                     local cur_mode
-                    if ok_bim and bim then
+                    if folder_override then
+                        cur_mode = folder_override
+                    elseif is_virtual_folder and fdm_api
+                            and type(fdm_api.current) == "function" then
+                        cur_mode = fdm_api.current()
+                    end
+                    if not cur_mode and ok_bim and bim then
                         local ok3, m = pcall(function()
                             return bim:getSetting("filemanager_display_mode")
                         end)
                         if ok3 then cur_mode = m end
                     end
                     local function apply_mode(mode)
-                        if fm and type(fm.onSetDisplayMode) == "function" then
+                        if not is_primary_home and fdm_api then
+                            fdm_api.set(real_folder, mode)
+                            -- Only re-render the live view when the override is for
+                            -- the folder currently open. Holding a sub-folder from
+                            -- its parent stores the override; it applies on entry.
+                            if is_current_view and type(fdm_api.apply) == "function" then
+                                fdm_api.apply(real_folder)
+                                refresh()
+                            end
+                        elseif fm and type(fm.onSetDisplayMode) == "function" then
                             pcall(fm.onSetDisplayMode, fm, mode)
                         elseif ok_bim and bim then
                             pcall(bim.saveSetting, bim, "filemanager_display_mode", mode)
@@ -1739,7 +1861,7 @@ local function apply_context_menu()
                     { key = "access", text = "\u{F02DA}  " .. _("Recently read") },
                 }
 
-                if is_home_dir then
+                if is_primary_home then
                     local g_sort = rawget(_G, "G_reader_settings")
                     if g_sort then
                         table.insert(buttons, {
@@ -1798,7 +1920,7 @@ local function apply_context_menu()
                     local fsd_api = rawget(_G, "__ZEN_FOLDER_SORT")
                     if fsd_api then
                         local ffiUtil_fsd = require("ffi/util")
-                        local real_folder = item._zen_sort_key
+                        local real_folder = (is_virtual_folder and item._zen_sort_key)
                             or ffiUtil_fsd.realpath(file)
                             or file
 
@@ -1983,7 +2105,6 @@ local function apply_context_menu()
                                 ok_callback = function()
                                     local ReadHistory = require("readhistory")
                                     ReadHistory:removeItemByPath(file)
-                                    local SharedState = require("common/shared_state")
                                     local plug = zen_plugin or rawget(_G, "__ZEN_UI_PLUGIN")
                                     local home = plug and SharedState.get(plug, "home")
                                     if home and home.rebuildActive then
@@ -1999,6 +2120,18 @@ local function apply_context_menu()
             end
 
             local dlg_title = dialog_cover_widget and "" or dialog_title
+            if type(item._zen_widget_settings) == "function" then
+                table.insert(buttons, {
+                    {
+                        text = icons.settings .. "  " .. _("Widget settings"),
+                        align = "left",
+                        callback = function()
+                            close_dialog()
+                            UIManager:nextTick(item._zen_widget_settings)
+                        end,
+                    },
+                })
+            end
             self_fc.file_dialog = ButtonDialog:new{
                 title = dlg_title ~= "" and dlg_title or nil,
                 title_align = "center",

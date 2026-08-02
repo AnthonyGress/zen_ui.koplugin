@@ -6,6 +6,7 @@ local _ = require("gettext")
 local UIManager = require("ui/uimanager")
 local utils = require("modules/settings/zen_settings_utils")
 local paths = require("common/paths")
+local ReaderMargins = require("common/reader_margins")
 
 local M = {}
 
@@ -35,16 +36,16 @@ function M.build(ctx)
     })
 
     table.insert(items, {
-        text = _("Zen OPDS"),
-        help_text = _("Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."),
-        checked_func = function()
-            return config.features.zen_opds ~= false
-        end,
+        text = _("Enable Zen UI Reader margins"),
+        help_text = _("Apply the 30-unit Reader margin defaults used by the Setup Guide. Books with their own margin settings are unchanged."),
         callback = function()
-            config.features.zen_opds = config.features.zen_opds == false
-            plugin:saveConfig()
-            settings_apply.prompt_restart()
+            ReaderMargins.applyZenDefaults(G_reader_settings)
+            local InfoMessage = require("ui/widget/infomessage")
+            UIManager:show(InfoMessage:new{
+                text = _("Zen UI Reader margins enabled"),
+            })
         end,
+        keep_menu_open = true,
     })
 
     table.insert(items, {
@@ -54,19 +55,6 @@ function M.build(ctx)
         end,
         callback = function()
             config.features.partial_page_repaint = config.features.partial_page_repaint ~= true
-            plugin:saveConfig()
-            settings_apply.prompt_restart()
-        end,
-    })
-
-    table.insert(items, {
-        text = _("Allow custom icons"),
-        help_text = _("When enabled, icons placed in KOReader's user icons folder override the bundled Zen UI icons. Falls back to Zen UI icons, then KOReader built-ins."),
-        checked_func = function()
-            return config.features.custom_icons_enabled == true
-        end,
-        callback = function()
-            config.features.custom_icons_enabled = config.features.custom_icons_enabled ~= true
             plugin:saveConfig()
             settings_apply.prompt_restart()
         end,
@@ -143,7 +131,7 @@ function M.build(ctx)
                     if not ok_ds or not ok_ls then return end
                     local gestures_path = DataStorage:getSettingsDir() .. "/gestures.lua"
                     local settings = LuaSettings:open(gestures_path)
-                    for _, section in ipairs({ "gesture_fm", "gesture_reader" }) do
+                    for _i, section in ipairs({ "gesture_fm", "gesture_reader" }) do
                         if type(settings.data[section]) == "table" then
                             for k in pairs(settings.data[section]) do
                                 settings.data[section][k] = nil

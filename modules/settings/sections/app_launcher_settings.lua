@@ -3,14 +3,19 @@ local T = require("ffi/util").template
 local UIManager = require("ui/uimanager")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
+local icon_utils = require("common/utils")
 
 local Model = require("modules/menu/app_launcher/model")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
-local ActionFilter = require("modules/menu/app_launcher/action_filter")
 
 local M = {}
 local DEFAULT_ENTRY_ICON = "lightning"
 local DEFAULT_FOLDER_ICON = "folder_open"
+
+local function suggest_icon(label, strip_zen_prefix)
+    local ok_root, root = pcall(require, "common/plugin_root")
+    return icon_utils.suggestIcon(ok_root and root or nil, label, DEFAULT_ENTRY_ICON, strip_zen_prefix)
+end
 
 local function trim(text)
     return (text or ""):gsub("^%s+", ""):gsub("%s+$", "")
@@ -94,7 +99,6 @@ function M.build(ctx)
     local ICONS
     local function get_icons()
         if ICONS then return ICONS end
-        local icon_utils = require("common/utils")
         local ok_root, root = pcall(require, "common/plugin_root")
         ICONS = icon_utils.getIconPickerList(ok_root and root or nil, {
             zen_ui_light = true,
@@ -129,6 +133,9 @@ function M.build(ctx)
         if entry.type == "action" then
             return type(entry.action) == "table" and next(entry.action) ~= nil
         end
+        if entry.type == "quick_setting" then
+            return type(entry.quick_setting_id) == "string" and entry.quick_setting_id ~= ""
+        end
         return entry.type == "plugin"
             and type(entry.plugin) == "table"
             and entry.plugin.key ~= nil
@@ -157,6 +164,9 @@ function M.build(ctx)
         if entry.label_auto == true or current == "" or current == _("Action") then
             entry.label = action_label(entry) or _("Action")
             entry.label_auto = true
+        end
+        if entry.icon == DEFAULT_ENTRY_ICON then
+            entry.icon = suggest_icon(entry.label, true)
         end
     end
 
@@ -311,7 +321,7 @@ function M.build(ctx)
                     id = Model.next_id(cfg),
                     type = "plugin",
                     label = plugin.title,
-                    icon = DEFAULT_ENTRY_ICON,
+                    icon = suggest_icon(plugin.title),
                     plugin = { key = plugin.key, method = plugin.method },
                 }
                 insert_entry(entry, folder)
@@ -369,6 +379,46 @@ function M.build(ctx)
         open_entry_settings(touch_menu, entry, folder)
     end
 
+    local function show_quick_setting_picker(on_select)
+        local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
+        if not controls or type(controls.getItems) ~= "function" then return end
+        local picker_items = controls.getItems()
+        if #picker_items == 0 then return end
+        require("common/ui/zen_menu_picker"){
+            title = _("Choose control"),
+            items = picker_items,
+            on_select = on_select,
+        }
+    end
+
+    local function choose_quick_setting_entry(entry, touch_menu)
+        show_quick_setting_picker(function(item)
+            entry.quick_setting_id = item.id
+            entry.label = item.label
+            entry.icon = item.icon or suggest_icon(item.label)
+            save_app_launcher()
+            if touch_menu and touch_menu.updateItems then
+                touch_menu:updateItems(1)
+            end
+        end)
+    end
+
+    local function add_quick_setting(folder, touch_menu)
+        show_quick_setting_picker(function(item)
+                local entry = {
+                    id = Model.next_id(cfg),
+                    type = "quick_setting",
+                    label = item.label,
+                    icon = item.icon or suggest_icon(item.label),
+                    quick_setting_id = item.id,
+                }
+                insert_entry(entry, folder)
+                UIManager:nextTick(function()
+                    open_entry_settings(touch_menu, entry, folder)
+                end)
+        end)
+    end
+
     local function add_items(folder)
         return {
             IconItem.decorate({
@@ -378,6 +428,13 @@ function M.build(ctx)
                     open_new_action_picker(folder, touch_menu)
                 end,
             }, icons.action),
+            IconItem.decorate({
+                text = _("Add control"),
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    add_quick_setting(folder, touch_menu)
+                end,
+            }, icons.settings_quick),
             IconItem.decorate({
                 text = _("Add plugin"),
                 keep_menu_open = true,
@@ -398,6 +455,13 @@ function M.build(ctx)
                 end,
             }, icons.action),
             IconItem.decorate({
+                text = _("Control"),
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    add_quick_setting(folder, touch_menu)
+                end,
+            }, icons.settings_quick),
+            IconItem.decorate({
                 text = _("Plugin"),
                 keep_menu_open = true,
                 callback = function(touch_menu)
@@ -412,6 +476,18 @@ function M.build(ctx)
                 callback = add_folder,
             }, icons.new_folder)
         end
+        items[#items + 1] = IconItem.decorate({
+            text = _("Row break"),
+            keep_menu_open = true,
+            callback = function(touch_menu)
+                local entry = {
+                    id = Model.next_id(cfg),
+                    type = "break",
+                }
+                insert_entry(entry, folder)
+                if touch_menu then touch_menu:backToUpperMenu() end
+            end,
+        }, icons.move)
         return items
     end
 
@@ -420,9 +496,6 @@ function M.build(ctx)
         local dispatch_items = {}
         local caller = {}
         Dispatcher:addSubMenu(caller, dispatch_items, entry, "action")
-        if cfg.hide_reader_actions_in_library == true then
-            ActionFilter.filter_dispatch_menu(dispatch_items)
-        end
         wrap_dispatch_callbacks(dispatch_items, caller, function(touch_menu)
             sync_action_label(entry)
             if is_draft_entry(entry) then
@@ -544,7 +617,29 @@ function M.build(ctx)
             for _i, item in ipairs(add_sub) do
                 items[#items + 1] = item
             end
-        else
+        elseif entry.type == "quick_setting" then
+            items[#items + 1] = IconItem.decorate({
+                text_func = function()
+                    return T(_("Control: %1"), entry.label or _("(none)"))
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    choose_quick_setting_entry(entry, touch_menu)
+                end,
+            }, icons.settings_quick)
+            local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
+            local settings_items = controls and controls.getSettingsItems
+                and controls.getSettingsItems(entry.quick_setting_id)
+            if settings_items and #settings_items > 0 then
+                items[#items + 1] = IconItem.decorate({
+                    text = _("Control settings"),
+                    keep_menu_open = true,
+                    sub_item_table = settings_items,
+                }, icons.settings_quick)
+            end
+            add_label_item()
+            add_icon_item()
+        elseif entry.type ~= "break" then
             items[#items + 1] = IconItem.decorate({
                 text_func = function()
                     return T(_("Plugin: %1"), entry.label or _("(none)"))
@@ -579,13 +674,15 @@ function M.build(ctx)
                 end
                 UIManager:show(ConfirmBox:new{
                     text = entry.type == "folder" and entry.children and #entry.children > 0
-                        and _("Delete this folder and its buttons?") or _("Delete this button?"),
+                            and _("Delete this folder and its buttons?")
+                        or entry.type == "break" and _("Delete this row break?")
+                        or _("Delete this button?"),
                     ok_text = _("Delete"),
                     ok_callback = remove,
                 })
             end,
         }, icons.delete)
-        if entry.type == "action" or entry.type == "plugin" then
+        if entry.type == "action" or entry.type == "plugin" or entry.type == "quick_setting" then
             add_done_metadata(items, entry)
         end
         return items
@@ -607,6 +704,14 @@ function M.build(ctx)
                     sub_title = Model.display_label(entry),
                     sub_item_table_func = function()
                         return build_entry_items(entry, parent)
+                    end,
+                    dim = entry.enabled == false,
+                    checked_func = function()
+                        return entry.enabled ~= false
+                    end,
+                    callback = function()
+                        entry.enabled = entry.enabled == false and true or false
+                        save_app_launcher()
                     end,
                 }
             end
@@ -683,6 +788,19 @@ function M.build(ctx)
             end,
         },
         {
+            text = _("Open menu to Launcher"),
+            checked_func = function()
+                return cfg.open_first == true
+            end,
+            callback = function(touch_menu)
+                cfg.open_first = cfg.open_first ~= true
+                save_app_launcher()
+                if touch_menu and touch_menu.updateItems then
+                    touch_menu:updateItems(1)
+                end
+            end,
+        },
+        {
             text = _("Hide reader actions in library"),
             checked_func = function()
                 return cfg.hide_reader_actions_in_library == true
@@ -696,6 +814,7 @@ function M.build(ctx)
             end,
         },
     }
+    IconItem.decorate(root_items[2], icons.action)
 
     return {
         text = _("Launcher"),

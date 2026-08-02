@@ -6,6 +6,9 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Language: cs\n"
 
+msgid " days"
+msgstr " dní"
+
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
@@ -15,8 +18,23 @@ msgstr "%1 min do konce kapitoly"
 msgid "%d%% Read"
 msgstr "%d%% přečteno"
 
+msgid "%s books goal"
+msgstr "Cíl %s knih"
+
+msgid "%s goal"
+msgstr "Cíl %s"
+
+msgid "%s goal (%s)"
+msgstr "Cíl %s (%s)"
+
 msgid "%s left"
-msgstr "zbývá %s"
+msgstr "%s zbývá"
+
+msgid "%s pages goal"
+msgstr "Cíl %s stránek"
+
+msgid "%s time goal (min)"
+msgstr "%s časový cíl (min)"
 
 msgid "(auto)"
 msgstr "(auto)"
@@ -111,14 +129,17 @@ msgstr "Přidat tlačítka"
 msgid "Add catalog"
 msgstr "Přidat katalog"
 
+msgid "Add control"
+msgstr "Přidat kontrolu"
+
 msgid "Add custom buttons for other plugins or actions."
-msgstr "Přidejte vlastní tlačítka pro jiné pluginy nebo akce."
+msgstr "Přidat vlastní tlačítka pro ostatní doplňky nebo akce"
 
 msgid "Add folder…"
 msgstr "Přidat složku…"
 
 msgid "Add plugin"
-msgstr "Přidat plugin"
+msgstr "Přidat doplněk"
 
 msgid "Add to collection"
 msgstr "Přidat do kolekce"
@@ -139,16 +160,19 @@ msgid "All"
 msgstr "Vše"
 
 msgid "All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall Zen UI updates directly from your device."
-msgstr "Všechna nastavení jsou na jedné sjednocené kartě. Tato ikona s tečkou označuje dostupnou aktualizaci.\n\nInstalujte aktualizace Zen UI přímo ze svého zařízení."
+msgstr "Všechna nastavení jsou na jedné kartě.\nTato ikona s tečkou indikuje, že je dostupná aktualizace.\n\nAktualizace Zen UI nainstalujte přímo z vaší čtečky."
 
 msgid "All Time"
 msgstr "Za celou dobu"
+
+msgid "All time"
+msgstr "Celou dobu"
 
 msgid "Allow custom icons"
 msgstr "Povolit vlastní ikony"
 
 msgid "Allow delete"
-msgstr "Povolit mazání"
+msgstr "Povolit odstranění"
 
 msgid "Amber"
 msgstr "Jantar"
@@ -187,7 +211,7 @@ msgid "Ascending"
 msgstr "Vzestupně"
 
 msgid "At least one tab must be visible"
-msgstr "Musí být viditelná alespoň jedna karta"
+msgstr "Alespoň jedna karta musí být viditelná"
 
 msgid "Author"
 msgstr "Autor"
@@ -201,26 +225,23 @@ msgstr "autoři"
 msgid "Automatic suspend"
 msgstr "Automaticky potlačit"
 
-msgid "avg pages/day"
-msgstr "průměr stránek/den"
-
-msgid "avg time/book"
-msgstr "průměrný čas/knihu"
-
-msgid "avg time/day"
-msgstr "průměrný čas/den"
-
 msgid "Back"
 msgstr "Zpět"
 
 msgid "Background"
 msgstr "Pozadí"
 
+msgid "Background image could not be loaded. It may be corrupt or unsupported."
+msgstr "Obrázek na pozadí se nepodařilo načíst. Může být poškozený nebo nepodporovaný."
+
+msgid "Background image file not found."
+msgstr "Soubor obrázku na pozadí nebyl nalezen."
+
 msgid "Background image must be a JPG or JPEG file."
-msgstr "Obrázek pozadí musí být soubor JPG nebo JPEG."
+msgstr "Obrázek pozadí musí být soubor typu JPG nebo JPEG."
 
 msgid "Badge color RGB"
-msgstr "RGB barva značky"
+msgstr "RGB hodnota barvy značky"
 
 msgid "Badge color: "
 msgstr "Barva značky: "
@@ -243,14 +264,14 @@ msgstr "Statistiky baterie"
 msgid "Beginning / End"
 msgstr "Začátek / Konec"
 
-msgid "best day"
-msgstr "nejlepší den"
+msgid "Best day"
+msgstr "Nejlepší den"
 
-msgid "best month"
-msgstr "nejlepší měsíc"
+msgid "Best month"
+msgstr "Nejlepší měsíc"
 
-msgid "best week"
-msgstr "nejlepší týden"
+msgid "Best week"
+msgstr "Nejlepší týden"
 
 msgid "Beta"
 msgstr "Beta"
@@ -261,20 +282,20 @@ msgstr "Černá"
 msgid "Blue"
 msgstr "Modrá"
 
+msgid "bold"
+msgstr "tučně"
+
 msgid "Bold"
 msgstr "Tučně"
-
-msgid "bold"
-msgstr "tučné"
 
 msgid "Bold text"
 msgstr "Tučný text"
 
-msgid "Book"
-msgstr "Kniha"
-
 msgid "book"
 msgstr "kniha"
+
+msgid "Book"
+msgstr "Kniha"
 
 msgid "Book added to download list"
 msgstr "Kniha přidána do seznamu pro stažení"
@@ -285,26 +306,23 @@ msgstr "Informace o knize"
 msgid "Book Status"
 msgstr "Stav knihy"
 
-msgid "Book Title"
+msgid "Book title"
 msgstr "Název knihy"
 
-msgid "Book title"
+msgid "Book Title"
 msgstr "Název knihy"
 
 msgid "Book: "
 msgstr "Kniha: "
 
-msgid "books"
-msgstr "knihy"
-
 msgid "Books"
 msgstr "Knihy"
 
-msgid "books finished"
-msgstr "dočtených knih"
+msgid "books"
+msgstr "knihy"
 
-msgid "books read"
-msgstr "přečtené knihy"
+msgid "Books read"
+msgstr "Přečtené knihy"
 
 msgid "Books shown"
 msgstr "Zobrazené knihy"
@@ -366,8 +384,8 @@ msgstr "Neformální šachy"
 msgid "Center"
 msgstr "Střed"
 
-msgid "Center align buttons"
-msgstr "Zarovnat tlačítka na střed"
+msgid "Center books"
+msgstr "Vystředit knihy"
 
 msgid "Center items"
 msgstr "Položky uprostřed"
@@ -378,9 +396,6 @@ msgstr "Stránky na střed"
 msgid "Change folder"
 msgstr "Změnit složku"
 
-msgid "Change Row"
-msgstr "Změnit řádek"
-
 msgid "Changelog"
 msgstr "Seznam změn"
 
@@ -390,14 +405,14 @@ msgstr "Kapitola"
 msgid "Chapter Time + %"
 msgstr "Čas kapitoly + %"
 
-msgid "Check for updates"
-msgstr "Zkontrolovat aktualizace"
+msgid "Update Zen UI"
+msgstr "Aktualizovat Zen UI"
 
 msgid "Check for updates automatically"
-msgstr "Automaticky kontrolovat aktualizace"
+msgstr "Kontrolovat aktualizace automaticky"
 
 msgid "Checking for updates"
-msgstr "Kontrola aktualizací"
+msgstr "Kontrola aktualizací…"
 
 msgid "Chess"
 msgstr "Šachy"
@@ -408,14 +423,23 @@ msgstr "Vybrat jinou složku"
 msgid "Choose a preset for your reading progress bar."
 msgstr "Vyberte předvolbu pro lištu s postupem čtení."
 
+msgid "Choose control"
+msgstr "Zvolte ovládání"
+
 msgid "Choose item"
-msgstr "Vybrat položku"
+msgstr "Vyberte položku"
 
 msgid "Choose plugin menu"
-msgstr "Vybrat nabídku pluginu"
+msgstr "Vyberte nabídku doplňků"
+
+msgid "Choose tab"
+msgstr "Vyberte kartu"
 
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 msgstr "Vyberte, které karty se objeví v navigační liště.\nTyto si můžete kdykoli uspořádat v Nastavení."
+
+msgid "Classic"
+msgstr "Klasické"
 
 msgid "Classic (filename only)"
 msgstr "Klasické (pouze název souboru)"
@@ -445,7 +469,7 @@ msgid "Collections"
 msgstr "Kolekce"
 
 msgid "Colored"
-msgstr "Barevné"
+msgstr "Barevně"
 
 msgid "Colored status icons"
 msgstr "Barevné stavové ikony"
@@ -468,6 +492,15 @@ msgstr "Kontextová nabídka"
 msgid "Continue"
 msgstr "Pokračovat"
 
+msgid "Control"
+msgstr "Řízení"
+
+msgid "Control settings"
+msgstr "Nastavení ovládání"
+
+msgid "Control: %1"
+msgstr "Ovládání: %1"
+
 msgid "Controls"
 msgstr "Ovládací prvky"
 
@@ -475,22 +508,22 @@ msgid "Copy"
 msgstr "Kopírovat"
 
 msgid "Could not determine update status."
-msgstr "Nelze zjistit stav aktualizace."
+msgstr "Stav aktualizace nalze určit."
+
+msgid "Could not get release from update server."
+msgstr "Ze serveru aktualizací se nepodařilo získat vydání."
 
 msgid "Could not reach update server."
-msgstr "Nelze se spojit s aktualizačním serverem."
+msgstr "Server s aktualizacemi není dostupný."
 
 msgid "Could not reach update server. Check your internet connection."
 msgstr "Server s aktualizacemi je nedostupný. Zkontrolujte připojení k internetu."
 
 msgid "Could not reach update server. Check your internet connection.\n\nUnable to load changelog."
-msgstr "Nelze se připojit k aktualizačnímu serveru. Zkontrolujte připojení k internetu.\n\nSeznam změn nelze načíst."
-
-msgid "Could not read release data from update server."
-msgstr "Nelze přečíst data vydání z aktualizačního serveru."
+msgstr "Server s aktualizacemi je nedostupný. Zkontrolujte připojení k internetu.\n\nNelze načíst seznam změn."
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
-msgstr "Nelze vyhledat sítě Wi-Fi. Zkuste to prosím znovu po probuzení zařízení."
+msgstr "Sítě Wi-Fi nelze prohledat. Zkuste to prosím po probuzení zařízení."
 
 msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
 msgstr "Doplněk Prohlížeč obálek není povolen, některé funkce nebudou správně pracovat."
@@ -508,7 +541,13 @@ msgid "Crossword"
 msgstr "Křížovka"
 
 msgid "Current / total pages"
-msgstr "Aktuální / celkové stránky"
+msgstr "Aktuální / celkem stránek"
+
+msgid "Current Book"
+msgstr "Aktuální kniha"
+
+msgid "Current book"
+msgstr "Aktuální kniha"
 
 msgid "Current home folder:"
 msgstr "Aktuální domovská složka:"
@@ -517,7 +556,7 @@ msgid "Current only"
 msgstr "Pouze aktuální"
 
 msgid "Current/total pages"
-msgstr "Aktuální/celkové stránky"
+msgstr "Aktuální/celkem stránek"
 
 msgid "Custom"
 msgstr "Vlastní"
@@ -526,7 +565,7 @@ msgid "Custom button label"
 msgstr "Vlastní popis tlačítka"
 
 msgid "Custom featured widget"
-msgstr "Vlastní hlavní widget"
+msgstr "Vlastní doporučený widget"
 
 msgid "Custom RGB"
 msgstr "Vlastní RGB"
@@ -535,10 +574,10 @@ msgid "Custom separator"
 msgstr "Vlastní oddělovač"
 
 msgid "Custom strip widget"
-msgstr "Vlastní widget v pásu"
+msgstr "Vlastní proužkový widget"
 
 msgid "Custom tab label"
-msgstr "Popisek vlastní karty"
+msgstr "Vlastní popisek karty"
 
 msgid "Custom text"
 msgstr "Vlastní text"
@@ -550,25 +589,22 @@ msgid "Custom: "
 msgstr "Vlastní: "
 
 msgid "Customizable top status bar and bottom progress bar."
-msgstr "Přizpůsobitelná horní stavová lišta a dolní lišta průběhu."
+msgstr "Přizpůsobitelný horní stavový řádek a spodní ukazatel průběhu."
+
+msgid "Customize widget"
+msgstr "Přizpůsobte si widget"
 
 msgid "Cut"
 msgstr "Vyjmout"
 
 msgid "Cycle"
-msgstr "Cyklicky"
+msgstr "Cyklus"
 
-msgid "Daily pages goal"
-msgstr "Denní cíl stránek"
+msgid "Daily"
+msgstr "Denní"
 
-msgid "Daily pages goal: "
-msgstr "Denní cíl stránek: "
-
-msgid "Daily time goal (min)"
-msgstr "Denní časový cíl (min)"
-
-msgid "Daily time goal (min): "
-msgstr "Denní časový cíl (min): "
+msgid "Date"
+msgstr "Datum"
 
 msgid "Day brightness"
 msgstr "Denní jas"
@@ -582,8 +618,8 @@ msgstr "Čas pro denní jas: "
 msgid "Day brightness: "
 msgstr "Denní jas: "
 
-msgid "day streak"
-msgstr "denní pruh"
+msgid "Day streak"
+msgstr "Denní pruh"
 
 msgid "Day warmth"
 msgstr "Denní teplota"
@@ -603,14 +639,17 @@ msgstr "Protokolování pro ladění"
 msgid "Debug logging must be enabled to submit bug reports."
 msgstr "K odesílání zpráv o chybách musíte zapnout protokolování pro ladění."
 
-msgid "default"
-msgstr "výchozí"
-
 msgid "Default"
 msgstr "Výchozí"
 
+msgid "default"
+msgstr "výchozí"
+
 msgid "Default (black)"
 msgstr "Výchozí (černá)"
+
+msgid "Default font size:"
+msgstr "Výchozí velikost písma:"
 
 msgid "Default tab: "
 msgstr "Výchozí karta: "
@@ -631,13 +670,19 @@ msgid "Delete preset?"
 msgstr "Odstranit předvolbu?"
 
 msgid "Delete this button?"
-msgstr "Smazat toto tlačítko?"
+msgstr "Odstranit toto tlačítko?"
+
+msgid "Delete this control?"
+msgstr "Smazat tento ovládací prvek?"
 
 msgid "Delete this folder and its buttons?"
-msgstr "Smazat tuto složku a její tlačítka?"
+msgstr "Odstranit tuto složku a její tlačítka?"
+
+msgid "Delete this row break?"
+msgstr "Odstranit toto zalomení řádku?"
 
 msgid "Delete this tab?"
-msgstr "Smazat tuto kartu?"
+msgstr "Odstranit tuto kartu?"
 
 msgid "Descending"
 msgstr "Sestupně"
@@ -685,7 +730,7 @@ msgid "Disable word search on hold"
 msgstr "Zakázat vyhledávání slov při pozastavení"
 
 msgid "Disable zen mode to access default KOReader menus."
-msgstr "Vypněte režim Zen, abyste získali přístup k výchozím nabídkám KOReader."
+msgstr "Pro přístup k výchozím nabídkám KOReader vypněte režim Zen."
 
 msgid "Disk space"
 msgstr "Místo na disku"
@@ -695,6 +740,9 @@ msgstr "Obrazovka"
 
 msgid "Display mode"
 msgstr "Režim zobrazení"
+
+msgid "Divider"
+msgstr "Dělič"
 
 msgid "Dividing lines"
 msgstr "Dělicí čáry"
@@ -726,6 +774,9 @@ msgstr "Upravit"
 msgid "Enable"
 msgstr "Povolit"
 
+msgid "Enable bottom status bar"
+msgstr "Povolit dolní stavový řádek"
+
 msgid "Enable bottom swipe"
 msgstr "Povolit přejetí prstem zdola"
 
@@ -745,10 +796,13 @@ msgid "Enable page browser"
 msgstr "Povolit prohlížeč stránek"
 
 msgid "Enable top status bar"
-msgstr "Povolit horní stavový řádek"
+msgstr "Zapnout horní stavový řádek"
 
 msgid "Enable warmth schedule"
 msgstr "Zapnout časový plán teploty"
+
+msgid "Enable Zen OPDS"
+msgstr "Povolit Zen OPDS"
 
 msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "Povolit rozšíření Zen UI pro prohlížeč OPDS: vylepšení zobrazení obálek, seznamu, nabídky zadržení a navigace."
@@ -771,6 +825,9 @@ msgstr "Extrahovat a uložit metadata knih a obrázky obálek do aktuálního ad
 msgid "Extract metadata"
 msgstr "Extrahovat metadata"
 
+msgid "Extras"
+msgstr "Doplňky"
+
 msgid "Failed to submit report: "
 msgstr "Zprávu se nepodařilo odeslat: "
 
@@ -778,7 +835,7 @@ msgid "Favorites"
 msgstr "Oblíbené"
 
 msgid "Featured widgets"
-msgstr "Hlavní widgety"
+msgstr "Doporučené widgety"
 
 msgid "File search"
 msgstr "Vyhledání souboru"
@@ -801,9 +858,6 @@ msgstr "Dokončit"
 msgid "Finished"
 msgstr "Dokončeno"
 
-msgid "finished"
-msgstr "dokončeno"
-
 msgid "Firmware: "
 msgstr "Firmware: "
 
@@ -811,10 +865,10 @@ msgid "First cover image"
 msgstr "První obrázek obálky"
 
 msgid "Fixed layout documents (pdf, djvu, pics…)"
-msgstr "Dokumenty s pevným rozložením (pdf, djvu, pics…)"
+msgstr "Dokumenty s pevným rozvržením (pdf, djvu, pics…)"
 
 msgid "Flip LH/RH icon"
-msgstr "Prohodit ikonu LH/RH"
+msgstr "Přepnout ikonu LH/RH"
 
 msgid "Folder"
 msgstr "Složka"
@@ -829,7 +883,7 @@ msgid "Folder name position"
 msgstr "Umístění názvu složky"
 
 msgid "Folder presets"
-msgstr "Předvolby složky"
+msgstr "Předvolby složek"
 
 msgid "Folders"
 msgstr "Složky"
@@ -840,11 +894,11 @@ msgstr "Písmo"
 msgid "font"
 msgstr "písmo"
 
-msgid "Font size"
-msgstr "Velikost písma"
-
 msgid "font size"
 msgstr "velikost písma"
+
+msgid "Font size"
+msgstr "Velikost písma"
 
 msgid "Font size:"
 msgstr "Velikost písma:"
@@ -862,7 +916,7 @@ msgid "Format: R,G,B (0-255)"
 msgstr "Formát: R,G,B (0-255)"
 
 msgid "Frontlight"
-msgstr "Osvětlení"
+msgstr "Přední osvětlení"
 
 msgid "Gallery"
 msgstr "Galerie"
@@ -871,13 +925,10 @@ msgid "Gallery view (4-grid)"
 msgstr "Zobrazení galerie (mřížka 4)"
 
 msgid "Get Started"
-msgstr "Začínáme"
+msgstr "Začít"
 
 msgid "GitHub username (optional)"
 msgstr "Jméno uživatele GitHub (volitelné)"
-
-msgid "Global"
-msgstr "Globální"
 
 msgid "Go"
 msgstr "Přejít"
@@ -885,17 +936,11 @@ msgstr "Přejít"
 msgid "Go to page"
 msgstr "Přejít na stránku"
 
-msgid "Goal shown: Daily"
-msgstr "Zobrazený cíl: denní"
+msgid "Graph metric"
+msgstr "Metrika grafu"
 
-msgid "Goal shown: Weekly"
-msgstr "Zobrazený cíl: týdenní"
-
-msgid "Goals metric: Pages"
-msgstr "Metrika cílů: stránky"
-
-msgid "Goals metric: Time"
-msgstr "Metrika cílů: čas"
+msgid "Graph range"
+msgstr "Rozsah grafu"
 
 msgid "Gray"
 msgstr "Šedá"
@@ -904,13 +949,16 @@ msgid "Green"
 msgstr "Zelená"
 
 msgid "Group book series into folders"
-msgstr "Seskupit knižní série do složek"
+msgstr "Seskupit série knih do složek"
 
 msgid "Gyro"
 msgstr "Gyro"
 
 msgid "Gyroscope"
 msgstr "Gyroskop"
+
+msgid "Hide finished books"
+msgstr "Skrýt dočtené knihy"
 
 msgid "Hide in CBZ/PDF files"
 msgstr "Skrýt v souborech CBZ/PDF"
@@ -920,6 +968,12 @@ msgstr "Skrýt okraje seznamu"
 
 msgid "Hide reader actions in library"
 msgstr "Skrýt akce čtečky v knihovně"
+
+msgid "Hide TBR books"
+msgstr "Skrýt knihy k přečtení"
+
+msgid "Hide unread books"
+msgstr "Skrýt nepřečtené knihy"
 
 msgid "Hide up folder"
 msgstr "Skrýt složku"
@@ -931,13 +985,16 @@ msgid "History"
 msgstr "Historie"
 
 msgid "Hold to arrange"
-msgstr "Přidržením uspořádat"
+msgstr "Přidržením uspořádejte"
 
 msgid "Hold to skip"
 msgstr "Přidržením vynechat"
 
 msgid "Home"
-msgstr "Domů"
+msgstr "Domov"
+
+msgid "Home default font size"
+msgstr "Výchozí velikost písma Home"
 
 msgid "Home Folder"
 msgstr "Domovská složka"
@@ -946,10 +1003,10 @@ msgid "Home folder"
 msgstr "Domovská složka"
 
 msgid "Home page preset"
-msgstr "Předvolba přehledu"
+msgstr "Předvolba domovské stránky"
 
 msgid "Home tab label"
-msgstr "Popisek karty Domů"
+msgstr "Popisek domovské karty"
 
 msgid "Hour"
 msgstr "Hodina"
@@ -963,11 +1020,26 @@ msgstr "Ikona: %1"
 msgid "Icons"
 msgstr "Ikony"
 
+msgid "Image support is unavailable on this device."
+msgstr "Obrázky nejsou na tomto zařízení podporovány."
+
 msgid "Image: "
 msgstr "Obrázek: "
 
 msgid "Image: none"
 msgstr "Obrázek: žádný"
+
+msgid "Include new books in TBR"
+msgstr "Zahrnout nové knihy mezi knihy k přečtení"
+
+msgid "Incognito"
+msgstr "Anonymní režim"
+
+msgid "Incognito mode disabled"
+msgstr "Anonymní režim zakázán"
+
+msgid "Incognito mode enabled"
+msgstr "Anonymní režim povolen"
 
 msgid "Incompatible plugins have been disabled:"
 msgstr "Nekompatibilní doplňky byly zakázány:"
@@ -981,11 +1053,11 @@ msgstr "Instalace"
 msgid "Interactive"
 msgstr "Interaktivní"
 
-msgid "items per page"
-msgstr "položek na stránku"
-
 msgid "Items per page"
 msgstr "Položek na stránku"
+
+msgid "items per page"
+msgstr "položek na stránku"
 
 msgid "Keep existing settings"
 msgstr "Zachovat stávající nastavení"
@@ -1027,13 +1099,13 @@ msgid "Launcher"
 msgstr "Spouštěč"
 
 msgid "Launcher entry is unavailable"
-msgstr "Položka spouštěče není dostupná"
+msgstr "Položka spouštěče je nedostupná"
 
 msgid "Launcher label"
 msgstr "Popisek spouštěče"
 
 msgid "Layout"
-msgstr "Rozložení"
+msgstr "Rozvržení"
 
 msgid "Leave empty to use action title"
 msgstr "Pro použití názvu akce nechte prázdné"
@@ -1057,7 +1129,10 @@ msgid "Library View"
 msgstr "Zobrazení knihovny"
 
 msgid "Light"
-msgstr "Světlo"
+msgstr "Osvětlení"
+
+msgid "List"
+msgstr "Seznam"
 
 msgid "List (basic)"
 msgstr "Seznam (základní)"
@@ -1099,7 +1174,7 @@ msgid "Manga folder not found: "
 msgstr "Složka Manga nenalezena: "
 
 msgid "Match whole words"
-msgstr "Hledat celá slova"
+msgstr "Porovnávat celá slova"
 
 msgid "Maximum 5 widgets allowed"
 msgstr "Povoleno je maximálně 5 widgetů"
@@ -1108,13 +1183,31 @@ msgid "Maximum 7 tabs allowed"
 msgstr "Povoleno je maximálně 7 karet"
 
 msgid "Maximum 9 buttons allowed"
-msgstr "Povoleno je maximálně 9 tlačítek"
+msgstr "Povoleno je maximálně Akce karty Manga: "
 
 msgid "Menu"
 msgstr "Nabídka"
 
+msgid "Metric"
+msgstr "Metrický"
+
+msgid "min"
+msgstr "min"
+
 msgid "Minute"
 msgstr "Minuta"
+
+msgid "Minutes"
+msgstr "Zápis"
+
+msgid "minutes"
+msgstr "zápis"
+
+msgid "Monthly"
+msgstr "Měsíční"
+
+msgid "Months"
+msgstr "měsíce"
 
 msgid "Mosaic"
 msgstr "Dlaždice"
@@ -1150,13 +1243,16 @@ msgid "Navbar"
 msgstr "Lišta navigace"
 
 msgid "Navbar icon size"
-msgstr "Velikost ikon navigační lišty"
+msgstr "Velikost ikon lišty navigace"
 
 msgid "Navbar label size"
-msgstr "Velikost popisků navigační lišty"
+msgstr "Velikost popisku lišty navigace"
 
 msgid "Navbar Tabs"
 msgstr "Karty navigace"
+
+msgid "Network unavailable."
+msgstr "Síť není dostupná."
 
 msgid "New"
 msgstr "Nový"
@@ -1167,11 +1263,14 @@ msgstr "Nová kolekce"
 msgid "New folder"
 msgstr "Nová složka"
 
+msgid "New includes unread books and books modified since they were last opened."
+msgstr "Za Nové jsou považovány nepřečtené knihy a knihy upravené od jejich posledního tevření."
+
 msgid "News"
 msgstr "Novinky"
 
 msgid "News folder not found: "
-msgstr "Složka Novinky nebla nalezena: "
+msgstr "Složka novinek nebla nalezena: "
 
 msgid "Next"
 msgstr "Další"
@@ -1224,23 +1323,32 @@ msgstr "Čas pro noční teplotu: "
 msgid "Night warmth: "
 msgstr "Noční teplota: "
 
+msgid "No background image selected."
+msgstr "Není vybrán žádný obrázek na pozadí."
+
 msgid "No books found"
 msgstr "Nenalezeny žádné knihy"
+
+msgid "No books with author metadata found"
+msgstr "Nebyly nalezeny žádné knihy s metadaty autora"
+
+msgid "No books with series metadata found"
+msgstr "Nebyly nalezeny žádné knihy s metadaty seriálu"
+
+msgid "No books with tags metadata found"
+msgstr "Nebyly nalezeny žádné knihy s metadaty značek"
 
 msgid "No changelog entries found.\n\nNo releases are available for this channel."
 msgstr "Nebyly nalezeny žádné položky seznamu změn.\n\nPro tento kanál nejsou dostupná žádná vydání."
 
 msgid "No changelog provided."
-msgstr "Seznam změn není k dispozici."
+msgstr "Nebyl poskytnut žádný seznam změn."
 
 msgid "No description."
 msgstr "Žádný popis."
 
 msgid "No launchable plugin menus found"
-msgstr "Nenalezeny žádné spustitelné nabídky pluginů"
-
-msgid "No network connection."
-msgstr "Bez připojení k síti."
+msgstr "Nenalezeny žádné spustitelné nabídky doplňků"
 
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Nepřipojeno. Připojte se k síti Wi-Fi a zkuste to znovu."
@@ -1248,14 +1356,20 @@ msgstr "Nepřipojeno. Připojte se k síti Wi-Fi a zkuste to znovu."
 msgid "No reader engine for this file or invalid file."
 msgstr "Pro tento soubor neexistuje čtecí modul nebo je soubor neplatný."
 
+msgid "No reading data"
+msgstr "Žádná data čtení"
+
+msgid "No table of contents available."
+msgstr "Není dostupný žádný obsah."
+
 msgid "No update asset found."
 msgstr "Nenalezen zdroj pro aktualizaci."
 
 msgid "None"
-msgstr "Žádné"
+msgstr "Žádný"
 
 msgid "None (folder name only)"
-msgstr "Žádné (jen název složky)"
+msgstr "Žádný (pouze název složky)"
 
 msgid "Normal"
 msgstr "Normální"
@@ -1275,6 +1389,12 @@ msgstr "Vypnuto"
 msgid "OK"
 msgstr "OK"
 
+msgid "On"
+msgstr "Zapnuto"
+
+msgid "Only in Zen mode"
+msgstr "Pouze v režimu Zen"
+
 msgid "Opaque background"
 msgstr "Neprůhledné pozadí"
 
@@ -1283,6 +1403,12 @@ msgstr "OPDS"
 
 msgid "Open folder"
 msgstr "Otevřít složku"
+
+msgid "Open menu to Launcher"
+msgstr "Otevřete nabídku spouštěče"
+
+msgid "Open next file"
+msgstr "Otevřít další soubor"
 
 msgid "Open QuickRSS"
 msgstr "Otevřít QuickRSS"
@@ -1299,11 +1425,14 @@ msgstr "Otevírání"
 msgid "Order"
 msgstr "Pořadí"
 
+msgid "Outline"
+msgstr "Obrys"
+
 msgid "Outlined boxes"
-msgstr "Orámovaná pole"
+msgstr "Označené rámečky"
 
 msgid "Page %1 of %2"
-msgstr "Strana %1 z %2"
+msgstr "Stránka %1 z %2"
 
 msgid "Page Browser"
 msgstr "Prohlížeč stránek"
@@ -1318,10 +1447,13 @@ msgid "Page stream"
 msgstr "Proud stránek"
 
 msgid "Page x / y"
-msgstr "Strana x / y"
+msgstr "Stránka x / y"
 
 msgid "pages"
 msgstr "stránky"
+
+msgid "Pages"
+msgstr "Stránky"
 
 msgid "Pages + Chapter Time + %"
 msgstr "Stránky + Čas kapitoly + %"
@@ -1329,8 +1461,17 @@ msgstr "Stránky + Čas kapitoly + %"
 msgid "Pages and %"
 msgstr "Stránky a %"
 
-msgid "pages today"
-msgstr "stránek dnes"
+msgid "Pages read"
+msgstr "Stránky přečteny"
+
+msgid "Pages this week"
+msgstr "Stránky tento týden"
+
+msgid "Pages today"
+msgstr "Stránky dnes"
+
+msgid "Pages/day"
+msgstr "Stránky/den"
 
 msgid "Partial pages refresh"
 msgstr "Částečné obnovení stránek"
@@ -1343,6 +1484,9 @@ msgstr "Procenta"
 
 msgid "Personal Records"
 msgstr "Osobní záznamy"
+
+msgid "Personal records"
+msgstr "Osobní rekordy"
 
 msgid "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
 msgstr "Odstraňte prosím doplněk Project: Title ze složky plugins a restartujte KOReader."
@@ -1384,10 +1528,10 @@ msgid "Progress %"
 msgstr "Postup %"
 
 msgid "Progress bar"
-msgstr "Ukazatel průběhu"
+msgstr "Ukazatel postupu"
 
 msgid "Progress labels"
-msgstr "Popisky průběhu"
+msgstr "Popisky postupu"
 
 msgid "Project: Title is not compatible with Zen UI."
 msgstr "Project: Title není kompatibilní s rozhraním Zen UI."
@@ -1399,7 +1543,7 @@ msgid "Quick Settings"
 msgstr "Rychlá nastavení"
 
 msgid "Quick settings button is unavailable"
-msgstr "Tlačítko rychlých nastavení není dostupné"
+msgstr "Tlačítko rychlého nastavení není dostupné"
 
 msgid "QuickRSS"
 msgstr "QuickRSS"
@@ -1413,8 +1557,14 @@ msgstr "Ukončit"
 msgid "Quit KOReader"
 msgstr "Ukončit KOReader"
 
+msgid "Quote font size"
+msgstr "Velikost písma nabídky"
+
 msgid "Quotes widget"
-msgstr "Widget citátů"
+msgstr "Widget citací"
+
+msgid "Rakuyomi"
+msgstr "Rakuyomi"
 
 msgid "Rakuyomi plugin is not installed."
 msgstr "Doplněk Rakuyomi není nainstalován."
@@ -1422,14 +1572,20 @@ msgstr "Doplněk Rakuyomi není nainstalován."
 msgid "RAM usage"
 msgstr "Využití RAM"
 
+msgid "Range"
+msgstr "Rozsah"
+
 msgid "Read now"
 msgstr "Přečteno nyní"
 
 msgid "Read status"
 msgstr "Stav čtení"
 
-msgid "read today"
-msgstr "přečteno dnes"
+msgid "Read time"
+msgstr "Čas čtení"
+
+msgid "Read today"
+msgstr "Přečtěte si dnes"
 
 msgid "Reader"
 msgstr "Čtečka"
@@ -1440,14 +1596,23 @@ msgstr "Postup čtení"
 msgid "Reading"
 msgstr "Čtení"
 
-msgid "reading"
-msgstr "čtení"
+msgid "Reading Calendar"
+msgstr "Čtení kalendáře"
+
+msgid "Reading calendar"
+msgstr "Čtecí kalendář"
 
 msgid "Reading goals"
 msgstr "Cíle čtení"
 
 msgid "Reading stats widget"
 msgstr "Widget statistik čtení"
+
+msgid "Reading Trend"
+msgstr "Trend čtení"
+
+msgid "Reading trend"
+msgstr "Trend čtení"
 
 msgid "Rebooting"
 msgstr "Restartování"
@@ -1456,22 +1621,22 @@ msgid "Recently read"
 msgstr "Právě přečteno"
 
 msgid "Recently read featured widget"
-msgstr "Hlavní widget nedávno čtených"
+msgstr "Doporučený widget Právě přečteno"
 
 msgid "Recently read strip widget"
-msgstr "Widget nedávno čtených v pásu"
+msgstr "Proužkový widget Právě přečteno"
 
 msgid "Red"
 msgstr "Červená"
 
 msgid "Reflowable documents (epub, fb2, txt…)"
-msgstr "Dokumenty s proměnlivým rozložením (epub, fb2, txt…)"
+msgstr "Dynamicky zobrazované dokumenty (epub, fb2, txt…)"
 
 msgid "Refresh"
 msgstr "Obnovit"
 
 msgid "regular"
-msgstr "běžné"
+msgstr "běžný"
 
 msgid "Release metadata is invalid or incomplete."
 msgstr "Metadata vydání jsou neplatná nebo neúplná."
@@ -1516,10 +1681,10 @@ msgid "Reset font"
 msgstr "Resetovat písmo"
 
 msgid "Reset font family and size to default?"
-msgstr "Resetovat typ a velikost písma na výchozí?"
+msgstr "Resetovat druh a velikost písma na výchozí hodnoty?"
 
 msgid "Reset to defaults"
-msgstr "Obnovit výchozí"
+msgstr "Resetovat na výchozí hodnoty"
 
 msgid "Restart"
 msgstr "Restartovat"
@@ -1536,8 +1701,11 @@ msgstr "Při ukončení obnovit umístění knihovny"
 msgid "Resume from page"
 msgstr "Pokračovat od stránky"
 
+msgid "Return to chapter list on exit"
+msgstr "Při ukončení se vrátit na seznam kapitol"
+
 msgid "Reverse"
-msgstr "Obráceně"
+msgstr "Opačně"
 
 msgid "Review"
 msgstr "Prohlédnout"
@@ -1557,20 +1725,26 @@ msgstr "Otočit: %1"
 msgid "Rounded cover corners"
 msgstr "Zaoblené rohy obálek"
 
+msgid "Row break"
+msgstr "Zalomení řádku"
+
 msgid "Rows"
 msgstr "Řádky"
 
 msgid "RSS Reader plugin is not installed."
-msgstr "Doplněk čtečky RSS není nainstalován."
+msgstr "Doplněk Čtečka RSS není nainstalován."
 
 msgid "Save"
 msgstr "Uložit"
 
 msgid "Save current home page as preset"
-msgstr "Uložit aktuální přehled jako předvolbu"
+msgstr "Uložit aktuální domovskou stránku jako předvolbu"
 
 msgid "Save current settings as preset"
 msgstr "Uložit aktuální nastavení jako předvolbu"
+
+msgid "Schedules"
+msgstr "Plány"
 
 msgid "Screenshot"
 msgstr "Snímek obrazovky"
@@ -1579,13 +1753,13 @@ msgid "Screenshot saved to:"
 msgstr "Snímek byl uložen do:"
 
 msgid "Screenshot timer"
-msgstr "Časovač snímku obrazovky"
+msgstr "Časovač snímku"
 
 msgid "Screenshot: %1 s"
-msgstr "Snímek obrazovky: %1 s"
+msgstr "Snímek: %1 s"
 
 msgid "Scroll bar"
-msgstr "Posuvník"
+msgstr "Posuvná lišta"
 
 msgid "Search"
 msgstr "Vyhledat"
@@ -1623,6 +1797,9 @@ msgstr "série"
 msgid "Series number"
 msgstr "Číslo v sérii"
 
+msgid "Session pages"
+msgstr "Stránky relací"
+
 msgid "Set"
 msgstr "Nastavit"
 
@@ -1656,6 +1833,15 @@ msgstr "Nastavení & Aktualizace"
 msgid "Setup Guide"
 msgstr "Instalační příručka"
 
+msgid "Show a button for the Assistant plugin, if installed."
+msgstr "Zobrazit tlačítko pro doplněk Assistant, pokud je nainstalován."
+
+msgid "Show AI assistant"
+msgstr "Zobrazit asistenta s umělou inteligencí"
+
+msgid "Show all files from subfolders"
+msgstr "Zobrazit všechny soubory z podsložek"
+
 msgid "Show author"
 msgstr "Zobrazit autora"
 
@@ -1663,7 +1849,7 @@ msgid "Show author below cover (mosaic)"
 msgstr "Zobrazit autora pod obálkou (dlaždice)"
 
 msgid "Show badges"
-msgstr "Zobrazit odznaky"
+msgstr "Zobrazit značky"
 
 msgid "Show Book cover"
 msgstr "Zobrazit obálku knihy"
@@ -1686,6 +1872,9 @@ msgstr "Zobrazit značku oblíbené"
 msgid "Show folder name"
 msgstr "Zobrazit název složky"
 
+msgid "Show goal"
+msgstr "Zobrazit cíl"
+
 msgid "Show hidden files"
 msgstr "Zobrazit skryté soubory"
 
@@ -1699,7 +1888,7 @@ msgid "Show item underline"
 msgstr "Zobrazit podrtžení položek"
 
 msgid "Show KOReader progress bar"
-msgstr "Zobrazit proužek postupu KOReader"
+msgstr "Zobrazit ukazatel postupu KOReader"
 
 msgid "Show labels"
 msgstr "Zobrazit popisky"
@@ -1726,7 +1915,7 @@ msgid "Show series number on covers"
 msgstr "Zobrazit číslo série na obálkách"
 
 msgid "Show spine lines"
-msgstr "Zobrazit linky hřbetů"
+msgstr "Zobrazit čáry hřbetů"
 
 msgid "Show title below cover (mosaic)"
 msgstr "Zobrazit název pod obálkou (dlaždice)"
@@ -1768,7 +1957,7 @@ msgid "Sleep Screen"
 msgstr "Obrazovka v režimu spánku"
 
 msgid "Slide Puzzle"
-msgstr "Slide Puzzle"
+msgstr "Posuvné puzzle"
 
 msgid "Sort"
 msgstr "Seřadit"
@@ -1804,22 +1993,31 @@ msgid "Stable"
 msgstr "Stabilní"
 
 msgid "Stack"
-msgstr "Stoh"
+msgstr "Vrstvení"
 
 msgid "Stack effect (overlapping covers)"
-msgstr "Efekt stohu (překrývající se obálky)"
+msgstr "Efekt vrstvení (překrývání obálek)"
 
 msgid "Stat separators"
 msgstr "Oddělovače statistik"
 
 msgid "Stat slot "
-msgstr "Pozice statistiky "
+msgstr "Slot statistik "
 
 msgid "Statistics"
 msgstr "Statistiky"
 
+msgid "Statistics calendar is unavailable"
+msgstr "Kalendář statistik není k dispozici"
+
 msgid "Stats"
 msgstr "Statistiky"
+
+msgid "Stats default font size"
+msgstr "Výchozí velikost písma statistiky"
+
+msgid "Stats font size"
+msgstr "Statistická velikost písma"
 
 msgid "Stats: Calendar"
 msgstr "Statistiky: Kalendář"
@@ -1843,10 +2041,13 @@ msgid "Stream from page"
 msgstr "Proud od stránky"
 
 msgid "Strip widgets"
-msgstr "Widgety v pásu"
+msgstr "Proužkové widgety"
 
 msgid "Styling"
 msgstr "Styl"
+
+msgid "Subfolder flat view was disabled because the home folder is the device storage root."
+msgstr "Plochý pohled na podsložky byl zakázán, protože domovská složka je kořenem úložiště zařízení."
 
 msgid "Submit"
 msgstr "Odeslat"
@@ -1855,10 +2056,10 @@ msgid "Submitting report…"
 msgstr "Odesílání zprávy…"
 
 msgid "Swipe down from the top to reach quick settings like brightness, Wi-Fi, night mode, zen mode and more."
-msgstr "Přejetím dolů od horního okraje otevřete rychlá nastavení, jako je jas, Wi-Fi, noční režim, režim Zen a další."
+msgstr "Přejetím prstem dolů zobrazíte rychlá nastavení, jako je jas, Wi-Fi, noční režim, režim Zen a další."
 
 msgid "Swipe up from the bottom while reading to open the Page Browser.\n\nSkim through pages or skip chapters, browse the table of contents, manage bookmarks, adjust fonts and more."
-msgstr "Přejetím prstem zdola nahoru při čtení otevřete Prohlížeč stránek.\n\nPak lze procházet stránky nebo přeskakovat kapitoly, procházet obsah, spravovat záložky, upravit písmo a další."
+msgstr "Přejetím zdola nahoru při čtení otevřete Prohlížeč stránek.\n\nTam lze procházet stránky nebo přeskakovat kapitoly, procházet obsah, spravovat záložky, upravit písmo a další."
 
 msgid "Sync"
 msgstr "Synchronizovat"
@@ -1866,14 +2067,17 @@ msgstr "Synchronizovat"
 msgid "Sync all catalogs"
 msgstr "Synchronizovat všechny katalogy"
 
+msgid "Tab"
+msgstr "Tab"
+
 msgid "Tabs"
 msgstr "Karty"
 
-msgid "Tags"
-msgstr "Jmenovky"
-
 msgid "tags"
 msgstr "jmenovky"
+
+msgid "Tags"
+msgstr "Jmenovky"
 
 msgid "Tap and hold any book or folder in your library to reveal details."
 msgstr "Klepnutím a podržením libovolné knihy nebo složky v knihovně zobrazíte podrobnosti."
@@ -1885,7 +2089,7 @@ msgid "The best interface is the one you forget is there.\nNow go get lost in a 
 msgstr "Nejlepší rozhraní je to, na které zapomenete.\nA teď se ponořte do dobré knihy."
 
 msgid "The default KOReader reader menu is inside the Aa icon."
-msgstr "Výchozí čtecí nabídka KOReader je pod ikonou Aa."
+msgstr "Výchozí nabídka čtečky KOReader je uvnitř ikony Aa."
 
 msgid "The place for all your books %1"
 msgstr "Místo pro všechny vaše knihy %1"
@@ -1896,8 +2100,20 @@ msgstr "Aby se tato změna projevila, je nutný restart."
 msgid "This Month"
 msgstr "Tento měsíc"
 
+msgid "This month"
+msgstr "Tento měsíc"
+
+msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
+msgstr "Tato možnost je zakázána, pokud je domovská složka kořenem úložiště zařízení. Nejprve nastavte užší složky s knihami jako domovské složky."
+
+msgid "This week"
+msgstr "Tento týden"
+
 msgid "This Week"
 msgstr "Tento týden"
+
+msgid "This year"
+msgstr "Letos"
 
 msgid "This Year"
 msgstr "Tento rok"
@@ -1908,8 +2124,23 @@ msgstr "Čas"
 msgid "Time Format"
 msgstr "Formát času"
 
+msgid "Time this week"
+msgstr "Čas tento týden"
+
 msgid "Time to book end"
 msgstr "Čas do konce knihy"
+
+msgid "Time today"
+msgstr "Dnešní čas"
+
+msgid "Time/book"
+msgstr "Čas/kniha"
+
+msgid "Time/day"
+msgstr "Čas/den"
+
+msgid "Time/page"
+msgstr "Čas/stránka"
 
 msgid "Timer: %1 s"
 msgstr "Časovač: %1 s"
@@ -1918,16 +2149,16 @@ msgid "Title"
 msgstr "Název"
 
 msgid "Title natural"
-msgstr "Název (přirozeně)"
+msgstr "Přirozený název"
 
 msgid "To Be Read"
 msgstr "K přečtení"
 
 msgid "To Be Read featured widget"
-msgstr "Hlavní widget K přečtení"
+msgstr "Doporučený widget K přečtení"
 
 msgid "To Be Read strip widget"
-msgstr "Widget K přečtení v pásu"
+msgstr "Proužkový widget K přečtení"
 
 msgid "Today"
 msgstr "Dnes"
@@ -1936,25 +2167,22 @@ msgid "Too many requests. Please try again later."
 msgstr "Příliš mnoho požadavků. Zkuste to prosím později."
 
 msgid "Top bar font"
-msgstr "Písmo horní lišty"
+msgstr "Písmo horního řádku"
 
 msgid "Top status bar"
 msgstr "Horní stavový řádek"
 
-msgid "total books"
-msgstr "celkem knih"
+msgid "Total"
+msgstr "Celkový"
+
+msgid "Total books"
+msgstr "Celkem knih"
 
 msgid "Total pages"
-msgstr "Celkový počet stránek"
+msgstr "Celkem stránek"
 
-msgid "total pages read"
-msgstr "celkem přečteno stránek"
-
-msgid "total read time"
-msgstr "celková doba čtení"
-
-msgid "total time"
-msgstr "celková doba"
+msgid "Total time"
+msgstr "Celkový čas"
 
 msgid "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
 msgstr "Zapněte režim Zen a omezte KOReader na nejnutnější funkce.\n\nOdstraňte vizuální nepořádek a soustřeďte se na čtenářský zážitek bez rušivých prvků. Funkci můžete ukončit v nastavení."
@@ -1962,8 +2190,11 @@ msgstr "Zapněte režim Zen a omezte KOReader na nejnutnější funkce.\n\nOdstr
 msgid "Two rows"
 msgstr "Dva řádky"
 
+msgid "Unavailable"
+msgstr "Nedostupné"
+
 msgid "Underline"
-msgstr "Podtržení"
+msgstr "Podrtžení"
 
 msgid "Underline above icon"
 msgstr "Podtržení nad ikonou"
@@ -1971,11 +2202,11 @@ msgstr "Podtržení nad ikonou"
 msgid "Uniform covers"
 msgstr "Jednotné obálky"
 
-msgid "Unknown"
-msgstr "Neznámé"
-
 msgid "unknown"
-msgstr "neznámé"
+msgstr "neznámý"
+
+msgid "Unknown"
+msgstr "Neznámý"
 
 msgid "Unknown Author"
 msgstr "Neznámý autor"
@@ -1990,25 +2221,25 @@ msgid "Unread"
 msgstr "Nečteno"
 
 msgid "Update available"
-msgstr "Aktualizace je dostupná"
+msgstr "Je dostupná aktualizace"
 
 msgid "Update available: "
-msgstr "Aktualizace k dispozici: "
+msgstr "Dostupná aktualizace: "
 
 msgid "Update cancelled."
-msgstr "Aktualizace zrušena."
+msgstr "Aktualizace byla zrušena."
 
 msgid "Update channel"
 msgstr "Kanál pro aktualizace"
 
 msgid "Update failed and rollback failed."
-msgstr "Aktualizace selhala a návrat také selhal."
+msgstr "Aktualizace selhala a vrácení zpět také selhalo."
 
 msgid "Update failed: active plugin folder not found."
-msgstr "Aktualizace selhala: aktivní složka pluginu nebyla nalezena."
+msgstr "Aktualizace selhala: nenalezena složka pro aktivní doplňky."
 
 msgid "Update failed: corrupted update package."
-msgstr "Aktualizace selhala: poškozený balíček aktualizace."
+msgstr "Aktualizace selhala: poškozený balík aktualizace."
 
 msgid "Update failed: could not activate new version."
 msgstr "Aktualizace selhala: novou verzi nelze aktivovat."
@@ -2017,31 +2248,31 @@ msgid "Update failed: could not create backup."
 msgstr "Aktualizace selhala: nelze vytvořit zálohu."
 
 msgid "Update failed: could not prepare staging area."
-msgstr "Aktualizace selhala: nelze připravit pracovní oblast."
+msgstr "Aktualizace selhala: nelze připravit přípravný prostor."
 
 msgid "Update failed: could not restore previous plugin backup."
-msgstr "Aktualizace selhala: nelze obnovit předchozí zálohu pluginu."
+msgstr "Aktualizace selhala: nelze obnovit zálohu předchozího doplňku."
 
 msgid "Update failed: could not unpack update package."
-msgstr "Aktualizace selhala: nelze rozbalit balíček aktualizace."
+msgstr "Aktualizace selhala: nelze rozbalit balík aktualizace."
 
 msgid "Update failed: invalid package layout."
-msgstr "Aktualizace selhala: neplatné rozložení balíčku."
+msgstr "Aktualizace selhala: neplatné rozvržení balíku."
 
 msgid "Update failed: missing checksum."
 msgstr "Aktualizace selhala: chybí kontrolní součet."
 
 msgid "Update failed: network connection lost."
-msgstr "Aktualizace selhala: síťové připojení bylo ztraceno."
+msgstr "Aktualizace selhala: ztráta síťového připojení."
 
 msgid "Update failed: new version is invalid."
-msgstr "Aktualizace selhala: nová verze je neplatná."
+msgstr "Aktualizace selhala: neplatné nová verze."
 
 msgid "Update failed: plugin directory is not writable."
-msgstr "Aktualizace selhala: do adresáře pluginu nelze zapisovat."
+msgstr "Aktualizace selhala: do adresáře doplňků nelze zapisovat."
 
 msgid "Update failed: staged plugin validation failed."
-msgstr "Aktualizace selhala: ověření připraveného pluginu selhalo."
+msgstr "Aktualizace selhala: ověření připraveného doplňku se nezdařilo."
 
 msgid "Update failed: timed out."
 msgstr "Aktualizace selhala: vypršel časový limit."
@@ -2061,8 +2292,11 @@ msgstr "Aktualizace"
 msgid "USB"
 msgstr "USB"
 
+msgid "Use a narrower books folder instead of the device storage root."
+msgstr "Použijte užší složku s knihami namísto kořene úložiště zařízení."
+
 msgid "Use border as progress bar"
-msgstr "Použít okraj jako ukazatel průběhu"
+msgstr "Použít rámeček jako ukazatel průběhu"
 
 msgid "Use current folder"
 msgstr "Použít aktuální složku"
@@ -2073,11 +2307,17 @@ msgstr "Použít výchozí písmo"
 msgid "Use default style"
 msgstr "Použít výchozí styl"
 
+msgid "Use Home default font size"
+msgstr "Použít výchozí velikost písma Domů"
+
 msgid "Use home folder"
 msgstr "Použít domovskou složku"
 
 msgid "Use last folder"
 msgstr "Použít poslední složku"
+
+msgid "Use Stats default font size"
+msgstr "Použít výchozí velikost písma Statistiky"
 
 msgid "username"
 msgstr "jméno uživatele"
@@ -2097,17 +2337,8 @@ msgstr "Teplota"
 msgid "Warmth schedule"
 msgstr "Časový plán teploty"
 
-msgid "Weekly pages goal"
-msgstr "Týdenní cíl stránek"
-
-msgid "Weekly pages goal: "
-msgstr "Týdenní cíl stránek: "
-
-msgid "Weekly time goal (min)"
-msgstr "Týdenní časový cíl (min)"
-
-msgid "Weekly time goal (min): "
-msgstr "Týdenní časový cíl (min): "
+msgid "Weekly"
+msgstr "Týdně"
 
 msgid "Welcome to Zen UI"
 msgstr "Vítejte v rozhraní Zen UI"
@@ -2125,7 +2356,7 @@ msgid "When enabled, icons placed in KOReader's user icons folder override the b
 msgstr "Pokud je povoleno, ikony ve složce uživatelských ikon KOReaderu přepíší ikony dodané se Zen UI. Vrací se k ikonám Zen UI, pak k vestavěným v KOReaderu."
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
-msgstr "Je-li zapnuto, hledání odpovídá jen celým slovům. Je-li vypnuto, používá se shoda podřetězce (např. „fish“ najde „fishing“)."
+msgstr "Je-li zapnuto, hledání porovnává pouze celá slova. Je-li vypnuto, porovnávají se podřetězce (např. 'ryba' vyhledá 'rybaření')."
 
 msgid "Which time format do you prefer?"
 msgstr "Jaký formát času upřednostňujete?"
@@ -2138,6 +2369,9 @@ msgstr "Wi-Fi"
 
 msgid "Widgets"
 msgstr "Widgety"
+
+msgid "Yearly"
+msgstr "Roční"
 
 msgid "You're All Set"
 msgstr "Máte vše nastaveno"
@@ -2164,19 +2398,22 @@ msgid "Zen OPDS"
 msgstr "Zen OPDS"
 
 msgid "Zen Presets"
-msgstr "Zen Presets"
+msgstr "Předvolby Zen"
 
 msgid "Zen quick lookup"
 msgstr "Rychle vyhedání Zen"
 
 msgid "Zen UI"
-msgstr "Rozhraní Zen UI"
+msgstr "Zen UI"
 
 msgid "Zen UI - Authors"
 msgstr "Zen UI - Autoři"
 
 msgid "Zen UI - Home"
-msgstr "Zen UI - Domů"
+msgstr "Zen UI - Domov"
+
+msgid "Zen UI - Library"
+msgstr "Zen UI – Knihovna"
 
 msgid "Zen UI - Open folder"
 msgstr "Zen UI - Otevřít složku"
@@ -2184,11 +2421,20 @@ msgstr "Zen UI - Otevřít složku"
 msgid "Zen UI - Series"
 msgstr "Zen UI - Série"
 
+msgid "Zen UI - Sync progress (pull + push)"
+msgstr "Zen UI – Průběh synchronizace (stažení + odeslání)"
+
+msgid "Zen UI - Table of contents"
+msgstr "Zen UI – Obsah"
+
 msgid "Zen UI - Tags"
 msgstr "Zen UI - Jmenovky"
 
 msgid "Zen UI - Toggle bottom reader status bar"
 msgstr "Zen UI - Přepnout spodní stavový řádek čtečky"
+
+msgid "Zen UI - Toggle Incognito Mode"
+msgstr "Zen UI – Přepnout anonymní režim"
 
 msgid "Zen UI - Toggle Lockdown Mode"
 msgstr "Zen UI - Přepnout režim uzamčení"
@@ -2206,13 +2452,13 @@ msgid "Zen UI defaults"
 msgstr "Výchozí hodnoty Zen UI"
 
 msgid "Zen UI is up to date."
-msgstr "Rozhraní Zen UI je aktuální."
+msgstr "Zen UI je aktuální."
 
 msgid "Zen UI: "
 msgstr "Zen UI: "
 
 msgid "Zen UI: folder not found: "
-msgstr "Zen UI: složka nenalezena: "
+msgstr "Zen UI: Nenalezena složka: "
 
 msgid "Zen UI: no folder set for this action."
-msgstr "Zen UI: pro tuto akci není nastavena žádná složka."
+msgstr "Zen UI: Pro tuto akci není nastavena žádná složka."

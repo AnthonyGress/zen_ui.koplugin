@@ -22,7 +22,6 @@ return {
     { text = "The opposite of love is not hate, it's indifference.", author = "Elie Wiesel" },
     { text = "You only live once, but if you do it right, once is enough.", author = "Mae West" },
     { text = "In three words I can sum up everything I've learned about life: it goes on.", author = "Robert Frost" },
-    { text = "It does not do to dwell on dreams and forget to live.", author = "J.K. Rowling" },
     { text = "Life is what happens to us while we are making other plans.", author = "Allen Saunders" },
     { text = "Everything you can imagine is real.", author = "Pablo Picasso" },
     { text = "Life isn't about finding yourself. Life is about creating yourself.", author = "George Bernard Shaw" },
@@ -70,7 +69,6 @@ return {
     { text = "There is nothing to writing. All you do is sit down at a typewriter and bleed.", author = "Ernest Hemingway" },
     { text = "We write to taste life twice, in the moment and in retrospect.", author = "Anaïs Nin" },
     { text = "Fiction is the truth inside the lie.", author = "Stephen King" },
-    { text = "It takes a great deal of bravery to stand up to our enemies, but just as much to stand up to our friends.", author = "J.K. Rowling" },
     { text = "Success is not final, failure is not fatal: it is the courage to continue that counts.", author = "Winston Churchill" },
     { text = "A ship is safe in harbor, but that's not what ships are for.", author = "John A. Shedd" },
     { text = "Logic will get you from A to Z; imagination will get you everywhere.", author = "Albert Einstein" },
@@ -92,6 +90,7 @@ return {
     { text = "All we have to decide is what to do with the time that is given us.", author = "J.R.R. Tolkien" },
     { text = "It is the time you have wasted for your rose that makes your rose so important.", author = "Antoine de Saint-Exupéry" },
     { text = "The mountains are calling and I must go.", author = "John Muir" },
+    { text = "The only thing that ever stopped me being exactly who I wanted, she said, was the worry that I would soon be dead … and now I am dead, Reverend Daughter, and I am sick of roses, and I am horny for revenge.", author = "Tamsyn Muir" },
     -- love
     { text = "You've gotta dance like there's nobody watching, love like you'll never be hurt, sing like there's nobody listening, and live like it's heaven on earth.", author = "William W. Purkey" },
     { text = "The truth is, everyone is going to hurt you. You just got to find the ones worth suffering for.", author = "Bob Marley" },
@@ -99,6 +98,8 @@ return {
     { text = "Have you ever been in love? Horrible isn't it? It makes you so vulnerable.", author = "Neil Gaiman" },
     { text = "I love you without knowing how, or when, or from where.", author = "Pablo Neruda" },
     { text = "I love you as certain dark things are to be loved, in secret, between the shadow and the soul.", author = "Pablo Neruda" },
+    { text = "Your parents do love you, but they haven’t tried to understand you, and yeah, that sucks. You’re allowed to be sad about it. You’re allowed to be angry about it. If it helps, break something!", author = "Sangu Mandanna" },
+    { text = "Hate is loud, but I think you’ll learn it’s because it’s only a few people shouting, desperate to be heard. You might not ever be able to change their minds, but so long as you remember you’re not alone, you will overcome.", author = "TJ Klune" },
     -- life
     { text = "There are only two ways to live your life. One is as though nothing is a miracle. The other is as though everything is a miracle.", author = "Albert Einstein" },
     { text = "I may not have gone where I intended to go, but I think I have ended up where I needed to be.", author = "Douglas Adams" },
@@ -106,6 +107,8 @@ return {
     { text = "The purpose of life is to live it, to taste experience to the utmost, to reach out eagerly and without fear for newer and richer experience.", author = "Eleanor Roosevelt" },
     { text = "We must be willing to let go of the life we planned so as to have the life that is waiting for us.", author = "Joseph Campbell" },
     { text = "Nothing is so painful to the human mind as a great and sudden change.", author = "Mary Wollstonecraft Shelley" },
+    { text = "Just because you don’t experience prejudice in your everyday doesn’t stop it from existing for the rest of us.", author = "TJ Klune" },
+    { text = "This one is for Past Me, for all those times she kept going. Future Me finally gets it.", author = "Sangu Mandanna" },
     -- humor
     { text = "Outside of a dog, a book is man's best friend. Inside of a dog it's too dark to read.", author = "Groucho Marx" },
     { text = "All you need is love. But a little chocolate now and then doesn't hurt.", author = "Charles M. Schulz" },
@@ -118,6 +121,7 @@ return {
     { text = "I am not young enough to know everything.", author = "Oscar Wilde" },
     { text = "My grandmother started walking five miles a day when she was sixty. She's ninety-seven now, and we don't know where the heck she is.", author = "Ellen DeGeneres" },
     { text = "God created war so that Americans would learn geography.", author = "Mark Twain" },
+    { text = "Gideon rolled her eyes so hard that she felt in danger of twisting the optic nerve.", author = "Tamsyn Muir" },
     -- wisdom
     { text = "Better to remain silent and be thought a fool than to speak and remove all doubt.", author = "Maurice Switzer" },
     { text = "Fall seven times, stand up eight.", author = "Paulo Coelho" },
@@ -135,6 +139,7 @@ return {
     { text = "If you're lonely when you're alone, you're in bad company.", author = "Jean-Paul Sartre" },
     { text = "Reality exists in the human mind, and nowhere else.", author = "George Orwell" },
     { text = "The soul becomes dyed with the colour of its thoughts.", author = "Marcus Aurelius" },
+    { text = "Why was I born so attractive? Because everyone would have throttled you within the first five minutes otherwise,", author = "Tamsyn Muir" },
     -- inspirational
     { text = "It takes courage to grow up and become who you really are.", author = "E.E. Cummings" },
     { text = "The future belongs to those who believe in the beauty of their dreams.", author = "Eleanor Roosevelt" },
@@ -145,6 +150,7 @@ return {
     { text = "Everyone has talent. What's rare is the courage to follow it to the dark places where it leads.", author = "Erica Jong" },
     { text = "The most courageous act is still to think for yourself. Aloud.", author = "Coco Chanel" },
     { text = "Don't be pushed around by the fears in your mind. Be led by the dreams in your heart.", author = "Roy T. Bennett" },
+    { text = "There’s no such thing as normal people, I said, a desperate flailing. There’s just people, and some of them are miserable, and some of them are happy, and you’ve the same right to be happy as any of them—no more and no less.", author = "Naomi Novik" },
     -- truth
     { text = "The truth will set you free, but first it will piss you off.", author = "Joe Klaas" },
     { text = "When I despair, I remember that all through history the way of truth and love have always won.", author = "Mahatma Gandhi" },
@@ -215,7 +221,6 @@ return {
     { text = "Art and love are the same thing: It's the process of seeing yourself in things that are not you.", author = "Chuck Klosterman" },
     { text = "A great fire burns within me, but no one stops to warm themselves at it, and passers-by only see a wisp of smoke.", author = "Vincent van Gogh" },
     -- death
-    { text = "To the well-organized mind, death is but the next great adventure.", author = "J.K. Rowling" },
     { text = "The fear of death follows from the fear of life. A man who lives fully is prepared to die at any time.", author = "Mark Twain" },
     { text = "Death ends a life, not a relationship.", author = "Mitch Albom" },
     { text = "I seek the Great Perhaps.", author = "François Rabelais" },
@@ -250,7 +255,6 @@ return {
     { text = "Some say the world will end in fire, some say in ice.", author = "Robert Frost" },
     { text = "Music expresses that which cannot be put into words and that which cannot remain silent.", author = "Victor Hugo" },
     -- kindness
-    { text = "Indifference and neglect often do much more damage than outright dislike.", author = "J.K. Rowling" },
     { text = "No one has ever become poor by giving.", author = "Anne Frank" },
     { text = "Do your little bit of good where you are; it's those little bits of good put together that overwhelm the world.", author = "Desmond Tutu" },
     -- music
@@ -310,7 +314,6 @@ return {
     { text = "I know not all that may be coming, but be it what it will, I'll go to it laughing.", author = "Herman Melville" },
     { text = "No, no! The adventures first, explanations take such a dreadful time.", author = "Lewis Carroll" },
     { text = "An adventure is only an inconvenience rightly considered.", author = "G.K. Chesterton" },
-    { text = "Let us step into the night and pursue that flighty temptress, adventure.", author = "J.K. Rowling" },
     -- peace
     { text = "An eye for an eye will only make the whole world blind.", author = "Mahatma Gandhi" },
     { text = "Peace begins with a smile.", author = "Mother Teresa" },
@@ -369,7 +372,6 @@ return {
     { text = "And above all, watch with glittering eyes the whole world around you because the greatest secrets are always hidden in the most unlikely places.", author = "Roald Dahl" },
     { text = "The world is full of magic things, patiently waiting for our senses to grow sharper.", author = "W.B. Yeats" },
     { text = "Any sufficiently advanced technology is indistinguishable from magic.", author = "Arthur C. Clarke" },
-    { text = "We do not need magic to transform our world. We carry all of the power we need inside ourselves already.", author = "J.K. Rowling" },
     { text = "The magic is only in what books say, how they stitched the patches of the universe together into one garment for us.", author = "Ray Bradbury" },
     -- family
     { text = "All happy families are alike; each unhappy family is unhappy in its own way.", author = "Leo Tolstoy" },
@@ -482,7 +484,7 @@ return {
     { text = "Poets have been mysteriously silent on the subject of cheese.", author = "G.K. Chesterton" },
     -- more philosophy
     { text = "You are not your job, your money, your car, or your possessions.", author = "Chuck Palahniuk" },
-    { text = "Everyone tells a story about themselves inside their own head. That story makes you what you are.", author = "Patrick Rothfuss" },
+        { text = "Everyone tells a story about themselves inside their own head. That story makes you what you are.", author = "Patrick Rothfuss" },
     { text = "We can spend our lives letting the world tell us who we are, or we can decide for ourselves.", author = "Chuck Palahniuk" },
     { text = "Biology gives you a brain. Life turns it into a mind.", author = "Jeffrey Eugenides" },
     { text = "The snake which cannot cast its skin has to die. As well the minds which are prevented from changing their opinions; they cease to be mind.", author = "Friedrich Nietzsche" },
@@ -649,7 +651,6 @@ return {
     { text = "The soul is placed in the body like a rough diamond, and must be polished, or the luster of it will never appear.", author = "Daniel Defoe" },
     { text = "Grief does not change you. It reveals you.", author = "John Green" },
     { text = "Scars have the strange power to remind us that our past is real.", author = "Cormac McCarthy" },
-    { text = "Well-organized mind sees death as the next great adventure.", author = "J.K. Rowling" },
     { text = "Books become friends; where all your yesteryears are buried deep.", author = "Joshua Slocum" },
     { text = "Never doubt that a small group of thoughtful, committed citizens can change the world. Indeed, it is the only thing that ever has.", author = "Margaret Mead" },
     { text = "Some men are so worried about the next world they never learn to live in this one.", author = "Harper Lee" },

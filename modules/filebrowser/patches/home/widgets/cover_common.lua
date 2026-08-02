@@ -154,20 +154,14 @@ function M.make_cover_widget(book, max_w, max_h, opts)
 
     local child
     if book and book.cover_bb then
-        local scaled = book.cover_bb:scale(target_w, target_h)
-        -- :scale() returns a new BlitBuffer; the source copy (made in get_book)
-        -- is no longer needed. Free it now so it doesn't leak FFI memory.
-        if book.cover_bb.free then book.cover_bb:free() end
+        local cover_bb = book.cover_bb
         book.cover_bb = nil
-        if scaled then
-            child = ImageWidget:new{
-                image = scaled,
-                image_disposable = true,
-                width = target_w,
-                height = target_h,
-                scale_factor = 1,
-            }
-        end
+        child = ImageWidget:new{
+            image = cover_bb,
+            image_disposable = true,
+            width = target_w,
+            height = target_h,
+        }
     elseif book and type(book.path) == "string" and book.path ~= "" then
         local fake_cover = CoverUtils.genCover(book.path, target_w, target_h)
         if fake_cover then
@@ -198,6 +192,9 @@ function M.make_cover_widget(book, max_w, max_h, opts)
         },
     }
 
+    if type(opts.decorate) == "function" then
+        opts.decorate(frame)
+    end
     if border > 0 then
         apply_cover_border(frame, rounded_enabled())
     end

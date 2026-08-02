@@ -2,9 +2,11 @@ local M = {}
 local initialized = false
 
 local PATCH_MODULES = {
+    library_navigation = "modules/reader/patches/library_navigation",
     opening_banner = "modules/reader/patches/opening_banner",
     book_status = "modules/reader/patches/book_status",
     reader_top_status_bar = "modules/reader/patches/reader_top_status_bar",
+    reader_themes = "modules/reader/patches/reader_themes",
     screensaver_cover = "modules/reader/patches/screensaver_cover",
     reader_footer = "modules/reader/patches/reader_footer",
     reader_footer_time_format = "modules/reader/patches/reader_footer_time_format",
@@ -30,7 +32,7 @@ local function run_feature(logger, plugin, feature, fn)
     local ok, err = pcall(fn)
     _G.__ZEN_UI_PLUGIN = prev_plugin
     if not ok and logger then
-        logger.warn("zen-ui: grouped reader feature failed", feature, err)
+        logger.warn("grouped reader feature failed", feature, err)
     end
     return ok
 end
@@ -52,6 +54,12 @@ function M.init(logger, plugin)
         return true
     end
 
+    -- Route KOReader's File browser gesture through the same transition as Zen UI.
+    local library_navigation_fn = load_patch("library_navigation")
+    if library_navigation_fn then
+        run_feature(logger, plugin, "library_navigation", library_navigation_fn)
+    end
+
     -- Always apply: page browser (self-disables when feature is off).
     local page_browser_fn = load_patch("page_browser")
     if page_browser_fn then
@@ -68,6 +76,11 @@ function M.init(logger, plugin)
     local book_status_fn = load_patch("book_status")
     if book_status_fn then
         run_feature(logger, plugin, "book_status", book_status_fn)
+    end
+
+    local status_on_open_fn = load_patch("status_on_open")
+    if status_on_open_fn then
+        run_feature(logger, plugin, "status_on_open", status_on_open_fn)
     end
 
     -- Always apply: replace koreader.png fallback screensaver with zen_ui.svg
@@ -114,10 +127,10 @@ function M.init(logger, plugin)
 
     -- Always apply: custom highlight/lookup popup (self-disables when feature is off).
     local highlight_menu_fn = load_patch("highlight_menu")
-    logger.dbg("zen-ui[reader]: load_patch(highlight_menu)=", tostring(highlight_menu_fn))
+    logger.dbg("load_patch(highlight_menu)=", tostring(highlight_menu_fn))
     if highlight_menu_fn then
         local ok = run_feature(logger, plugin, "highlight_menu", highlight_menu_fn)
-        logger.dbg("zen-ui[reader]: run_feature(highlight_menu) ok=", tostring(ok))
+        logger.dbg("run_feature(highlight_menu) ok=", tostring(ok))
     end
 
     -- Ensure the runtime-patches registry exists.
@@ -135,7 +148,19 @@ function M.init(logger, plugin)
                 runtime_patches["reader_top_status_bar"] = true
             end
         elseif logger then
-            logger.warn("zen-ui: reader patch module missing", "reader_top_status_bar")
+            logger.warn("reader patch module missing", "reader_top_status_bar")
+        end
+    end
+
+    if is_feature_enabled(plugin, "reader_themes") then
+        local fn = load_patch("reader_themes")
+        if fn then
+            local ok = run_feature(logger, plugin, "reader_themes", fn)
+            if ok then
+                runtime_patches["reader_themes"] = true
+            end
+        elseif logger then
+            logger.warn("reader patch module missing", "reader_themes")
         end
     end
 

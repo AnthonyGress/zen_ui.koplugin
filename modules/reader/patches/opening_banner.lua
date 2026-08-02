@@ -76,7 +76,7 @@ local function apply_opening_banner()
     local Geom    = require("ui/geometry")
     local TextWidget = require("ui/widget/textwidget")
     local Widget  = require("ui/widget/widget")
-    local logger  = require("logger")
+    local logger  = require("common/zen_logger").new("opening_banner")
     local _       = require("gettext")
 
     -- Hook MosaicMenuItem.onTapSelect to capture cover cell geometry
@@ -373,29 +373,31 @@ local function apply_opening_banner()
     -- perceive as a second banner overlapping ours. Instead, on a duplicate
     -- same-tap call we run doShowReader directly (no InfoMessage).
     local function _show_reader_no_banner(self, file, provider, seamless)
-        logger.info("zen-ui opening_banner: _show_reader_no_banner called, file=", tostring(file))
+        logger.info("_show_reader_no_banner called, file=", tostring(file))
         -- do NOT defer with nextTick: a deferred doShowReader allows UIManager
         -- to exit before the reader widget is shown (e.g. rakuyomi where the
         -- caller's widget tree unwinds before the next tick fires).
-        logger.info("zen-ui opening_banner: _show_reader_no_banner creating doShowReader coroutine, file=", tostring(file), "provider=", tostring(provider))
+        logger.info("_show_reader_no_banner creating doShowReader coroutine, file=", tostring(file), "provider=", tostring(provider))
         local co = coroutine.create(function()
-            logger.info("zen-ui opening_banner: _show_reader_no_banner doShowReader coroutine starting")
+            logger.info("_show_reader_no_banner doShowReader coroutine starting")
+            local started_at = os.clock()
             local doc_ok, doc_err = pcall(function()
                 self:doShowReader(file, provider, seamless)
             end)
             if not doc_ok then
-                logger.err("zen-ui opening_banner: _show_reader_no_banner doShowReader threw error:", tostring(doc_err))
-                logger.err("zen-ui opening_banner: _show_reader_no_banner doShowReader traceback:", debug.traceback())
+                logger.err("_show_reader_no_banner doShowReader threw error:", tostring(doc_err))
+                logger.err("_show_reader_no_banner doShowReader traceback:", debug.traceback())
             end
-            logger.info("zen-ui opening_banner: _show_reader_no_banner doShowReader coroutine finished, ok=", tostring(doc_ok))
+            logger.info("_show_reader_no_banner doShowReader coroutine finished, ok=", tostring(doc_ok))
+            logger.perf("Book open completed", (os.clock() - started_at) * 1000,
+                "file=", tostring(file), "ok=", tostring(doc_ok))
         end)
-        logger.info("zen-ui opening_banner: _show_reader_no_banner resuming doShowReader coroutine")
+        logger.info("_show_reader_no_banner resuming doShowReader coroutine")
         local ok, err = coroutine.resume(co)
-        logger.info("zen-ui opening_banner: _show_reader_no_banner doShowReader coroutine resumed, ok=", tostring(ok), "err=", tostring(err))
+        logger.info("_show_reader_no_banner doShowReader coroutine resumed, ok=", tostring(ok), "err=", tostring(err))
         if err ~= nil or ok == false then
-            logger.err("zen-ui opening_banner: _show_reader_no_banner coroutine crashed, err=", tostring(err), "ok=", tostring(ok))
-            io.stderr:write("[!] doShowReader coroutine crashed:\n")
-            io.stderr:write(debug.traceback(co, err, 1))
+            logger.err("_show_reader_no_banner coroutine crashed, err=", tostring(err), "ok=", tostring(ok))
+            logger.err("doShowReader coroutine crash traceback:", debug.traceback(co, err, 1))
             Device:setIgnoreInput(false)
             local Input = require("device/input")
             Input:inhibitInputUntil(0.2)
@@ -408,10 +410,10 @@ local function apply_opening_banner()
     end
 
         ReaderUI.showReaderCoroutine = function(self, file, provider, seamless)
-        logger.info("zen-ui opening_banner: showReaderCoroutine called, file=", tostring(file), "provider=", tostring(provider), "seamless=", tostring(seamless))
+        logger.info("showReaderCoroutine called, file=", tostring(file), "provider=", tostring(provider), "seamless=", tostring(seamless))
         if seamless then
             -- Seamless reloads must keep KOReader's behavior (invisible InfoMessage).
-            logger.info("zen-ui opening_banner: seamless reload, delegating to _show_reader_no_banner")
+            logger.info("seamless reload, delegating to _show_reader_no_banner")
             return _show_reader_no_banner(self, file, provider, seamless)
         end
         -- While the banner is already on screen + doShowReader is running,
@@ -480,23 +482,26 @@ local function apply_opening_banner()
             -- prevents _gated_quit from firing (UIManager stack never empties),
             -- causing KOReader to hang when the user quits from any menu.
             UIManager:close(banner)
-            logger.warn("zen-ui opening_banner: nextTick fired, creating doShowReader coroutine")
+            logger.warn("nextTick fired, creating doShowReader coroutine")
 
             -- Keep _banner_active=true until doShowReader completes so any
             -- spurious second showReaderCoroutine call is blocked by the guard.
-            logger.info("zen-ui opening_banner: creating coroutine for doShowReader, file=", tostring(file), "provider=", tostring(provider))
+            logger.info("creating coroutine for doShowReader, file=", tostring(file), "provider=", tostring(provider))
             local co = coroutine.create(function()
-                logger.info("zen-ui opening_banner: doShowReader coroutine starting")
+                logger.info("doShowReader coroutine starting")
+                local started_at = os.clock()
                 local doc_ok, doc_err = pcall(function()
                     self:doShowReader(file, provider, seamless)
                 end)
                 if not doc_ok then
-                    logger.err("zen-ui opening_banner: doShowReader threw error:", tostring(doc_err))
-                    logger.err("zen-ui opening_banner: doShowReader traceback:", debug.traceback())
+                    logger.err("doShowReader threw error:", tostring(doc_err))
+                    logger.err("doShowReader traceback:", debug.traceback())
                 end
-                logger.info("zen-ui opening_banner: doShowReader coroutine finished, ok=", tostring(doc_ok))
+                logger.info("doShowReader coroutine finished, ok=", tostring(doc_ok))
+                logger.perf("Book open completed", (os.clock() - started_at) * 1000,
+                    "file=", tostring(file), "ok=", tostring(doc_ok))
             end)
-            logger.info("zen-ui opening_banner: resuming doShowReader coroutine")
+            logger.info("resuming doShowReader coroutine")
             local ok, err = coroutine.resume(co)
             -- Reset AFTER doShowReader finishes. Sync _last_banner_seq to the
             -- CURRENT _tap_seq (not just the value when the banner was shown) so
@@ -506,11 +511,10 @@ local function apply_opening_banner()
             _banner_active = false
             _last_banner_seq = _tap_seq
             _last_cover_dimen = nil
-            logger.info("zen-ui opening_banner: doShowReader coroutine resumed, ok=", tostring(ok), "err=", tostring(err))
+            logger.info("doShowReader coroutine resumed, ok=", tostring(ok), "err=", tostring(err))
             if err ~= nil or ok == false then
-                logger.err("zen-ui opening_banner: doShowReader coroutine crashed in showReaderCoroutine, err=", tostring(err), "ok=", tostring(ok))
-                io.stderr:write("[!] doShowReader coroutine crashed:\n")
-                io.stderr:write(debug.traceback(co, err, 1))
+                logger.err("doShowReader coroutine crashed in showReaderCoroutine, err=", tostring(err), "ok=", tostring(ok))
+                logger.err("doShowReader coroutine crash traceback:", debug.traceback(co, err, 1))
                 Device:setIgnoreInput(false)
                 local Input = require("device/input")
                 Input:inhibitInputUntil(0.2)

@@ -6,6 +6,9 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Language: ru\n"
 
+msgid " days"
+msgstr " дни"
+
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
@@ -15,8 +18,23 @@ msgstr "%1 мин до конца главы"
 msgid "%d%% Read"
 msgstr "%d%% прочитано"
 
+msgid "%s books goal"
+msgstr "%s цель книги"
+
+msgid "%s goal"
+msgstr "%s цель"
+
+msgid "%s goal (%s)"
+msgstr "Цель %s (%s)"
+
 msgid "%s left"
 msgstr "Осталось %s"
+
+msgid "%s pages goal"
+msgstr "%s цель страниц"
+
+msgid "%s time goal (min)"
+msgstr "%s целевое время (мин)"
 
 msgid "(auto)"
 msgstr "(авто)"
@@ -111,6 +129,9 @@ msgstr "Добавить кнопки"
 msgid "Add catalog"
 msgstr "Добавить каталог"
 
+msgid "Add control"
+msgstr "Добавить элемент управления"
+
 msgid "Add custom buttons for other plugins or actions."
 msgstr "Добавьте пользовательские кнопки для других плагинов или действий."
 
@@ -143,6 +164,9 @@ msgstr "Все настройки находятся на одной общей 
 
 msgid "All Time"
 msgstr "За всё время"
+
+msgid "All time"
+msgstr "Все время"
 
 msgid "Allow custom icons"
 msgstr "Разрешить пользовательские значки"
@@ -201,20 +225,17 @@ msgstr "авторы"
 msgid "Automatic suspend"
 msgstr "Автоматическое отключение"
 
-msgid "avg pages/day"
-msgstr "сред. стр./день"
-
-msgid "avg time/book"
-msgstr "сред. время/книга"
-
-msgid "avg time/day"
-msgstr "сред. время/день"
-
 msgid "Back"
 msgstr "Назад"
 
 msgid "Background"
 msgstr "Фон"
+
+msgid "Background image could not be loaded. It may be corrupt or unsupported."
+msgstr "Не удалось загрузить фоновое изображение. Возможно, оно повреждено или не поддерживается."
+
+msgid "Background image file not found."
+msgstr "Файл фонового изображения не найден."
 
 msgid "Background image must be a JPG or JPEG file."
 msgstr "Фоновое изображение должно быть файлом JPG или JPEG."
@@ -243,14 +264,14 @@ msgstr "Статистика батареи"
 msgid "Beginning / End"
 msgstr "Начало / Конец"
 
-msgid "best day"
-msgstr "лучший день"
+msgid "Best day"
+msgstr "Лучший день"
 
-msgid "best month"
-msgstr "лучший месяц"
+msgid "Best month"
+msgstr "Лучший месяц"
 
-msgid "best week"
-msgstr "лучшая неделя"
+msgid "Best week"
+msgstr "Лучшая неделя"
 
 msgid "Beta"
 msgstr "Beta"
@@ -261,20 +282,23 @@ msgstr "Чёрный"
 msgid "Blue"
 msgstr "Синий"
 
-msgid "Bold"
-msgstr "Жирный"
+msgid "Bluetooth"
+msgstr "Bluetooth"
 
 msgid "bold"
 msgstr "полужирный"
 
+msgid "Bold"
+msgstr "Жирный"
+
 msgid "Bold text"
 msgstr "Жирный текст"
 
-msgid "Book"
-msgstr "Книга"
-
 msgid "book"
 msgstr "книга"
+
+msgid "Book"
+msgstr "Книга"
 
 msgid "Book added to download list"
 msgstr "Книга добавлена в список загрузок"
@@ -285,26 +309,23 @@ msgstr "Информация о книге"
 msgid "Book Status"
 msgstr "Статус книги"
 
-msgid "Book Title"
+msgid "Book title"
 msgstr "Название книги"
 
-msgid "Book title"
+msgid "Book Title"
 msgstr "Название книги"
 
 msgid "Book: "
 msgstr "Книга: "
 
-msgid "books"
-msgstr "книги"
-
 msgid "Books"
 msgstr "Книги"
 
-msgid "books finished"
-msgstr "книг прочитано"
+msgid "books"
+msgstr "книги"
 
-msgid "books read"
-msgstr "прочитано книг"
+msgid "Books read"
+msgstr "Книги прочитаны"
 
 msgid "Books shown"
 msgstr "Показано книг"
@@ -366,8 +387,8 @@ msgstr "Шахматы для отдыха"
 msgid "Center"
 msgstr "Центр"
 
-msgid "Center align buttons"
-msgstr "Выровнять кнопки по центру"
+msgid "Center books"
+msgstr "Книги по центру"
 
 msgid "Center items"
 msgstr "Центральные элементы"
@@ -378,9 +399,6 @@ msgstr "Страницы по центру"
 msgid "Change folder"
 msgstr "Изменить папку"
 
-msgid "Change Row"
-msgstr "Изменить строку"
-
 msgid "Changelog"
 msgstr "Список изменений"
 
@@ -390,8 +408,8 @@ msgstr "Глава"
 msgid "Chapter Time + %"
 msgstr "Время главы + %"
 
-msgid "Check for updates"
-msgstr "Проверить обновления"
+msgid "Update Zen UI"
+msgstr "Обновить Zen UI"
 
 msgid "Check for updates automatically"
 msgstr "Проверять обновления автоматически"
@@ -408,14 +426,23 @@ msgstr "Выбрать другую папку"
 msgid "Choose a preset for your reading progress bar."
 msgstr "Выберите пресет для полосы прогресса чтения."
 
+msgid "Choose control"
+msgstr "Выберите элемент управления"
+
 msgid "Choose item"
 msgstr "Выбрать элемент"
 
 msgid "Choose plugin menu"
 msgstr "Выбрать меню плагина"
 
+msgid "Choose tab"
+msgstr "Выберите вкладку"
+
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 msgstr "Выберите, какие вкладки отображать в панели навигации.\nВы можете перестроить или настроить их в любое время в Настройках."
+
+msgid "Classic"
+msgstr "Классический"
 
 msgid "Classic (filename only)"
 msgstr "Классический (только имя файла)"
@@ -468,6 +495,15 @@ msgstr "Контекстное меню"
 msgid "Continue"
 msgstr "Продолжить"
 
+msgid "Control"
+msgstr "Контроль"
+
+msgid "Control settings"
+msgstr "Настройки управления"
+
+msgid "Control: %1"
+msgstr "Управление: %1"
+
 msgid "Controls"
 msgstr "Управление"
 
@@ -477,6 +513,9 @@ msgstr "Копировать"
 msgid "Could not determine update status."
 msgstr "Не удалось определить статус обновления."
 
+msgid "Could not get release from update server."
+msgstr "Не удалось получить выпуск с сервера обновлений."
+
 msgid "Could not reach update server."
 msgstr "Не удалось связаться с сервером обновлений."
 
@@ -485,9 +524,6 @@ msgstr "Не удалось связаться с сервером обновл�
 
 msgid "Could not reach update server. Check your internet connection.\n\nUnable to load changelog."
 msgstr "Не удалось подключиться к серверу обновлений. Проверьте подключение к интернету.\n\nНе удалось загрузить список изменений."
-
-msgid "Could not read release data from update server."
-msgstr "Не удалось прочитать данные выпуска с сервера обновлений."
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
 msgstr "Не удалось просканировать сети Wi-Fi. Попробуйте ещё раз после пробуждения устройства."
@@ -509,6 +545,12 @@ msgstr "Кроссворд"
 
 msgid "Current / total pages"
 msgstr "Текущая / всего страниц"
+
+msgid "Current Book"
+msgstr "Текущая книга"
+
+msgid "Current book"
+msgstr "Текущая книга"
 
 msgid "Current home folder:"
 msgstr "Текущая домашняя папка:"
@@ -552,23 +594,20 @@ msgstr "Настраиваемый: "
 msgid "Customizable top status bar and bottom progress bar."
 msgstr "Настраиваемая верхняя строка состояния и нижняя полоса прогресса."
 
+msgid "Customize widget"
+msgstr "Настроить виджет"
+
 msgid "Cut"
 msgstr "Вырезать"
 
 msgid "Cycle"
 msgstr "Цикл"
 
-msgid "Daily pages goal"
-msgstr "Дневная цель по страницам"
+msgid "Daily"
+msgstr "Ежедневно"
 
-msgid "Daily pages goal: "
-msgstr "Дневная цель по страницам: "
-
-msgid "Daily time goal (min)"
-msgstr "Дневная цель по времени (мин)"
-
-msgid "Daily time goal (min): "
-msgstr "Дневная цель по времени (мин): "
+msgid "Date"
+msgstr "Дата"
 
 msgid "Day brightness"
 msgstr "Яркость (день)"
@@ -582,8 +621,8 @@ msgstr "Время яркости (день): "
 msgid "Day brightness: "
 msgstr "Яркость (день): "
 
-msgid "day streak"
-msgstr "серия дней"
+msgid "Day streak"
+msgstr "Дневная полоса"
 
 msgid "Day warmth"
 msgstr "Тёплый свет (день)"
@@ -603,14 +642,17 @@ msgstr "Журнал отладки"
 msgid "Debug logging must be enabled to submit bug reports."
 msgstr "Для отправки отчётов необходимо включить журналирование отладки."
 
-msgid "default"
-msgstr "по умолчанию"
-
 msgid "Default"
 msgstr "По умолчанию"
 
+msgid "default"
+msgstr "по умолчанию"
+
 msgid "Default (black)"
 msgstr "По умолчанию (чёрный)"
+
+msgid "Default font size:"
+msgstr "Размер шрифта по умолчанию:"
 
 msgid "Default tab: "
 msgstr "Вкладка по умолчанию: "
@@ -633,8 +675,14 @@ msgstr "Удалить предустановку?"
 msgid "Delete this button?"
 msgstr "Удалить эту кнопку?"
 
+msgid "Delete this control?"
+msgstr "Удалить этот элемент управления?"
+
 msgid "Delete this folder and its buttons?"
 msgstr "Удалить эту папку и ее кнопки?"
+
+msgid "Delete this row break?"
+msgstr "Удалить этот разрыв строки?"
 
 msgid "Delete this tab?"
 msgstr "Удалить эту вкладку?"
@@ -696,6 +744,9 @@ msgstr "Отображение"
 msgid "Display mode"
 msgstr "Режим отображения"
 
+msgid "Divider"
+msgstr "Разделитель"
+
 msgid "Dividing lines"
 msgstr "Разделительные линии"
 
@@ -726,6 +777,9 @@ msgstr "Редактировать"
 msgid "Enable"
 msgstr "Включить"
 
+msgid "Enable bottom status bar"
+msgstr "Включить нижнюю строку состояния"
+
 msgid "Enable bottom swipe"
 msgstr "Включить смахивание снизу"
 
@@ -750,6 +804,9 @@ msgstr "Включить верхнюю строку состояния"
 msgid "Enable warmth schedule"
 msgstr "Включить расписание тёплого света"
 
+msgid "Enable Zen OPDS"
+msgstr "Включить Zen OPDS"
+
 msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "Включить улучшения Zen UI для браузера OPDS: обложки, вид списка, меню удержания и улучшения навигации."
 
@@ -770,6 +827,9 @@ msgstr "Извлечь и кешировать метаданные и обло�
 
 msgid "Extract metadata"
 msgstr "Извлечь метаданные"
+
+msgid "Extras"
+msgstr "Дополнительно"
 
 msgid "Failed to submit report: "
 msgstr "Не удалось отправить отчёт: "
@@ -800,9 +860,6 @@ msgstr "Завершить"
 
 msgid "Finished"
 msgstr "Прочитано"
-
-msgid "finished"
-msgstr "прочитано"
 
 msgid "Firmware: "
 msgstr "Прошивка: "
@@ -840,11 +897,11 @@ msgstr "Шрифт"
 msgid "font"
 msgstr "шрифт"
 
-msgid "Font size"
-msgstr "Размер шрифта"
-
 msgid "font size"
 msgstr "размер шрифта"
+
+msgid "Font size"
+msgstr "Размер шрифта"
 
 msgid "Font size:"
 msgstr "Размер шрифта:"
@@ -876,26 +933,17 @@ msgstr "Начать"
 msgid "GitHub username (optional)"
 msgstr "Имя пользователя GitHub (необязательно)"
 
-msgid "Global"
-msgstr "Глобальные"
-
 msgid "Go"
 msgstr "Перейти"
 
 msgid "Go to page"
 msgstr "Перейти на страницу"
 
-msgid "Goal shown: Daily"
-msgstr "Показ цели: дневная"
+msgid "Graph metric"
+msgstr "Метрика графика"
 
-msgid "Goal shown: Weekly"
-msgstr "Показ цели: недельная"
-
-msgid "Goals metric: Pages"
-msgstr "Метрика целей: страницы"
-
-msgid "Goals metric: Time"
-msgstr "Метрика целей: время"
+msgid "Graph range"
+msgstr "Диапазон графика"
 
 msgid "Gray"
 msgstr "Серый"
@@ -912,6 +960,9 @@ msgstr "Гироскоп"
 msgid "Gyroscope"
 msgstr "Гироскоп"
 
+msgid "Hide finished books"
+msgstr "Скрыть прочитанные книги"
+
 msgid "Hide in CBZ/PDF files"
 msgstr "Скрыть в файлах CBZ/PDF"
 
@@ -920,6 +971,12 @@ msgstr "Скрыть границы списка"
 
 msgid "Hide reader actions in library"
 msgstr "Скрыть действия читалки в библиотеке"
+
+msgid "Hide TBR books"
+msgstr "Скрыть книги к прочтению"
+
+msgid "Hide unread books"
+msgstr "Скрыть непрочитанные книги"
 
 msgid "Hide up folder"
 msgstr "Скрыть папку вверх"
@@ -938,6 +995,9 @@ msgstr "Удерживать для пропуска"
 
 msgid "Home"
 msgstr "Главная"
+
+msgid "Home default font size"
+msgstr "Размер шрифта дома по умолчанию"
 
 msgid "Home Folder"
 msgstr "Домашняя папка"
@@ -963,11 +1023,29 @@ msgstr "Значок: %1"
 msgid "Icons"
 msgstr "Значки"
 
+msgid "Image support is unavailable on this device."
+msgstr "Изображения не поддерживаются на этом устройстве."
+
+msgid "IP address: %1"
+msgstr "IP-адрес: %1"
+
 msgid "Image: "
 msgstr "Изображение: "
 
 msgid "Image: none"
 msgstr "Изображение: нет"
+
+msgid "Include new books in TBR"
+msgstr "Добавлять новые книги в список к прочтению"
+
+msgid "Incognito"
+msgstr "Инкогнито"
+
+msgid "Incognito mode disabled"
+msgstr "Режим инкогнито выключен"
+
+msgid "Incognito mode enabled"
+msgstr "Режим инкогнито включён"
 
 msgid "Incompatible plugins have been disabled:"
 msgstr "Несовместимые плагины отключены:"
@@ -981,11 +1059,11 @@ msgstr "Установка"
 msgid "Interactive"
 msgstr "Интерактивный"
 
-msgid "items per page"
-msgstr "элементов на странице"
-
 msgid "Items per page"
 msgstr "Элементов на странице"
+
+msgid "items per page"
+msgstr "элементов на странице"
 
 msgid "Keep existing settings"
 msgstr "Оставить текущие настройки"
@@ -1059,6 +1137,9 @@ msgstr "Вид библиотеки"
 msgid "Light"
 msgstr "Свет"
 
+msgid "List"
+msgstr "Список"
+
 msgid "List (basic)"
 msgstr "Список (простой)"
 
@@ -1113,8 +1194,26 @@ msgstr "Разрешено не более 9 кнопок"
 msgid "Menu"
 msgstr "Меню"
 
+msgid "Metric"
+msgstr "Метрика"
+
+msgid "min"
+msgstr "мин"
+
 msgid "Minute"
 msgstr "Минута"
+
+msgid "Minutes"
+msgstr "Минуты"
+
+msgid "minutes"
+msgstr "минуты"
+
+msgid "Monthly"
+msgstr "Ежемесячно"
+
+msgid "Months"
+msgstr "Месяцы"
 
 msgid "Mosaic"
 msgstr "Мозаика"
@@ -1158,6 +1257,9 @@ msgstr "Размер меток панели навигации"
 msgid "Navbar Tabs"
 msgstr "Вкладки навигации"
 
+msgid "Network unavailable."
+msgstr "Сеть недоступна."
+
 msgid "New"
 msgstr "Новое"
 
@@ -1166,6 +1268,9 @@ msgstr "Новая коллекция"
 
 msgid "New folder"
 msgstr "Новая папка"
+
+msgid "New includes unread books and books modified since they were last opened."
+msgstr "К новым относятся непрочитанные книги и книги, изменённые после последнего открытия."
 
 msgid "News"
 msgstr "Новости"
@@ -1224,8 +1329,20 @@ msgstr "Время тёплого света (ночь): "
 msgid "Night warmth: "
 msgstr "Тёплый свет (ночь): "
 
+msgid "No background image selected."
+msgstr "Фоновое изображение не выбрано."
+
 msgid "No books found"
 msgstr "Книги не найдены"
+
+msgid "No books with author metadata found"
+msgstr "Книг с метаданными автора не найдено."
+
+msgid "No books with series metadata found"
+msgstr "Книг с метаданными серий не найдено."
+
+msgid "No books with tags metadata found"
+msgstr "Книг с метаданными тегов не найдено."
 
 msgid "No changelog entries found.\n\nNo releases are available for this channel."
 msgstr "Записи об изменениях не найдены.\n\nДля этого канала нет доступных выпусков."
@@ -1239,14 +1356,17 @@ msgstr "Нет описания."
 msgid "No launchable plugin menus found"
 msgstr "Не найдено запускаемых меню плагинов"
 
-msgid "No network connection."
-msgstr "Нет подключения к сети."
-
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Нет подключения к сети. Подключитесь к Wi-Fi и повторите попытку."
 
 msgid "No reader engine for this file or invalid file."
 msgstr "Нет движка чтения для этого файла или файл недействителен."
+
+msgid "No reading data"
+msgstr "Нет данных для чтения"
+
+msgid "No table of contents available."
+msgstr "Оглавление недоступно."
 
 msgid "No update asset found."
 msgstr "Файл обновления не найден."
@@ -1275,6 +1395,12 @@ msgstr "Выкл"
 msgid "OK"
 msgstr "ОК"
 
+msgid "On"
+msgstr "Включено"
+
+msgid "Only in Zen mode"
+msgstr "Только в режиме Zen"
+
 msgid "Opaque background"
 msgstr "Непрозрачный фон"
 
@@ -1283,6 +1409,12 @@ msgstr "OPDS"
 
 msgid "Open folder"
 msgstr "Открыть папку"
+
+msgid "Open menu to Launcher"
+msgstr "Открыть меню для запуска"
+
+msgid "Open next file"
+msgstr "Открыть следующий файл"
 
 msgid "Open QuickRSS"
 msgstr "Открыть QuickRSS"
@@ -1298,6 +1430,9 @@ msgstr "Открывается"
 
 msgid "Order"
 msgstr "Порядок"
+
+msgid "Outline"
+msgstr "Контур"
 
 msgid "Outlined boxes"
 msgstr "Контурные рамки"
@@ -1323,14 +1458,26 @@ msgstr "Стр. x / y"
 msgid "pages"
 msgstr "стр."
 
+msgid "Pages"
+msgstr "Страницы"
+
 msgid "Pages + Chapter Time + %"
 msgstr "Страницы + Время главы + %"
 
 msgid "Pages and %"
 msgstr "Страницы и %"
 
-msgid "pages today"
-msgstr "страниц сегодня"
+msgid "Pages read"
+msgstr "Прочитано страниц"
+
+msgid "Pages this week"
+msgstr "Страницы на этой неделе"
+
+msgid "Pages today"
+msgstr "Страницы сегодня"
+
+msgid "Pages/day"
+msgstr "Страниц/день"
 
 msgid "Partial pages refresh"
 msgstr "Частичное обновление страниц"
@@ -1342,6 +1489,9 @@ msgid "Percent"
 msgstr "Процент"
 
 msgid "Personal Records"
+msgstr "Личные рекорды"
+
+msgid "Personal records"
 msgstr "Личные рекорды"
 
 msgid "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
@@ -1413,8 +1563,14 @@ msgstr "Закрыть"
 msgid "Quit KOReader"
 msgstr "Закрыть KOReader"
 
+msgid "Quote font size"
+msgstr "Размер шрифта цитаты"
+
 msgid "Quotes widget"
 msgstr "Виджет цитат"
+
+msgid "Rakuyomi"
+msgstr "Rakuyomi"
 
 msgid "Rakuyomi plugin is not installed."
 msgstr "Плагин Rakuyomi не установлен."
@@ -1422,14 +1578,20 @@ msgstr "Плагин Rakuyomi не установлен."
 msgid "RAM usage"
 msgstr "Использование ОЗУ"
 
+msgid "Range"
+msgstr "Диапазон"
+
 msgid "Read now"
 msgstr "Читать сейчас"
 
 msgid "Read status"
 msgstr "Статус чтения"
 
-msgid "read today"
-msgstr "прочитано сегодня"
+msgid "Read time"
+msgstr "Время чтения"
+
+msgid "Read today"
+msgstr "Прочтите сегодня"
 
 msgid "Reader"
 msgstr "Читалка"
@@ -1440,14 +1602,23 @@ msgstr "Прогресс чтения"
 msgid "Reading"
 msgstr "Читается"
 
-msgid "reading"
-msgstr "читается"
+msgid "Reading Calendar"
+msgstr "Чтение календаря"
+
+msgid "Reading calendar"
+msgstr "Чтение календаря"
 
 msgid "Reading goals"
 msgstr "Цели чтения"
 
 msgid "Reading stats widget"
 msgstr "Виджет статистики чтения"
+
+msgid "Reading Trend"
+msgstr "Тенденция чтения"
+
+msgid "Reading trend"
+msgstr "Тенденция чтения"
 
 msgid "Rebooting"
 msgstr "Перезагрузка"
@@ -1536,6 +1707,9 @@ msgstr "Восстанавливать расположение библиоте
 msgid "Resume from page"
 msgstr "Продолжить со страницы"
 
+msgid "Return to chapter list on exit"
+msgstr "При выходе возвращаться к списку глав"
+
 msgid "Reverse"
 msgstr "Обратный порядок"
 
@@ -1557,6 +1731,9 @@ msgstr "Повернуть: %1"
 msgid "Rounded cover corners"
 msgstr "Закруглённые углы обложек"
 
+msgid "Row break"
+msgstr "Разрыв строки"
+
 msgid "Rows"
 msgstr "Строки"
 
@@ -1571,6 +1748,9 @@ msgstr "Сохранить текущую панель как пресет"
 
 msgid "Save current settings as preset"
 msgstr "Сохранить текущие настройки как предустановку"
+
+msgid "Schedules"
+msgstr "Расписания"
 
 msgid "Screenshot"
 msgstr "Скриншот"
@@ -1623,6 +1803,9 @@ msgstr "серии"
 msgid "Series number"
 msgstr "Номер серии"
 
+msgid "Session pages"
+msgstr "Страницы сеанса"
+
 msgid "Set"
 msgstr "Установить"
 
@@ -1656,6 +1839,15 @@ msgstr "Настройки и обновления"
 msgid "Setup Guide"
 msgstr "Руководство по настройке"
 
+msgid "Show a button for the Assistant plugin, if installed."
+msgstr "Показывать кнопку плагина Assistant, если он установлен."
+
+msgid "Show AI assistant"
+msgstr "Показывать ИИ-ассистента"
+
+msgid "Show all files from subfolders"
+msgstr "Показывать все файлы из подпапок"
+
 msgid "Show author"
 msgstr "Показывать автора"
 
@@ -1685,6 +1877,9 @@ msgstr "Показывать значок избранного"
 
 msgid "Show folder name"
 msgstr "Показать имя папки"
+
+msgid "Show goal"
+msgstr "Показать цель"
 
 msgid "Show hidden files"
 msgstr "Показывать скрытые файлы"
@@ -1818,8 +2013,17 @@ msgstr "Ячейка статистики "
 msgid "Statistics"
 msgstr "Статистика"
 
+msgid "Statistics calendar is unavailable"
+msgstr "Календарь статистики недоступен."
+
 msgid "Stats"
 msgstr "Статистика"
+
+msgid "Stats default font size"
+msgstr "Размер шрифта статистики по умолчанию"
+
+msgid "Stats font size"
+msgstr "Размер шрифта статистики"
 
 msgid "Stats: Calendar"
 msgstr "Статистика: Календарь"
@@ -1848,6 +2052,9 @@ msgstr "Виджеты ленты"
 msgid "Styling"
 msgstr "Стиль"
 
+msgid "Subfolder flat view was disabled because the home folder is the device storage root."
+msgstr "Плоский просмотр подпапок был отключён, поскольку домашняя папка является корнем хранилища устройства."
+
 msgid "Submit"
 msgstr "Отправить"
 
@@ -1866,14 +2073,17 @@ msgstr "Синхронизация"
 msgid "Sync all catalogs"
 msgstr "Синхронизировать все каталоги"
 
+msgid "Tab"
+msgstr "Вкладка"
+
 msgid "Tabs"
 msgstr "Вкладки"
 
-msgid "Tags"
-msgstr "Теги"
-
 msgid "tags"
 msgstr "теги"
+
+msgid "Tags"
+msgstr "Теги"
 
 msgid "Tap and hold any book or folder in your library to reveal details."
 msgstr "Нажмите и удерживайте книгу или папку в библиотеке, чтобы увидеть подробности."
@@ -1896,8 +2106,20 @@ msgstr "Для применения этого изменения необход
 msgid "This Month"
 msgstr "Этот месяц"
 
+msgid "This month"
+msgstr "В этом месяце"
+
+msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
+msgstr "Этот параметр отключён, если домашняя папка является корнем хранилища устройства. Сначала выберите более узкие папки с книгами в качестве домашних."
+
+msgid "This week"
+msgstr "На этой неделе"
+
 msgid "This Week"
 msgstr "Эта неделя"
+
+msgid "This year"
+msgstr "В этом году"
 
 msgid "This Year"
 msgstr "Этот год"
@@ -1908,8 +2130,23 @@ msgstr "Время"
 msgid "Time Format"
 msgstr "Формат времени"
 
+msgid "Time this week"
+msgstr "Время на этой неделе"
+
 msgid "Time to book end"
 msgstr "Время до конца книги"
+
+msgid "Time today"
+msgstr "Время сегодня"
+
+msgid "Time/book"
+msgstr "Время/книга"
+
+msgid "Time/day"
+msgstr "Время/день"
+
+msgid "Time/page"
+msgstr "Время/страница"
 
 msgid "Timer: %1 s"
 msgstr "Таймер: %1 s"
@@ -1941,26 +2178,26 @@ msgstr "Шрифт верхней панели"
 msgid "Top status bar"
 msgstr "Верхняя строка состояния"
 
-msgid "total books"
-msgstr "всего книг"
+msgid "Total"
+msgstr "Общий"
+
+msgid "Total books"
+msgstr "Всего книг"
 
 msgid "Total pages"
 msgstr "Всего страниц"
 
-msgid "total pages read"
-msgstr "всего страниц"
-
-msgid "total read time"
-msgstr "всего прочитано"
-
-msgid "total time"
-msgstr "всего времени"
+msgid "Total time"
+msgstr "Общее время"
 
 msgid "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
 msgstr "Включите режим Zen, чтобы свести KOReader к минимуму.\n\nУберите визуальные отвлекающие факторы для сосредоточенного чтения без помех. Выйти можно в любое время из Настроек."
 
 msgid "Two rows"
 msgstr "Две строки"
+
+msgid "Unavailable"
+msgstr "Недоступно"
 
 msgid "Underline"
 msgstr "Подчёркивание"
@@ -1971,11 +2208,11 @@ msgstr "Подчёркивание над значком"
 msgid "Uniform covers"
 msgstr "Единый вид обложек"
 
-msgid "Unknown"
-msgstr "Неизвестно"
-
 msgid "unknown"
 msgstr "неизвестно"
+
+msgid "Unknown"
+msgstr "Неизвестно"
 
 msgid "Unknown Author"
 msgstr "Неизвестный автор"
@@ -2049,6 +2286,9 @@ msgstr "Обновление не удалось: истекло время ож
 msgid "Update now"
 msgstr "Обновить сейчас"
 
+msgid "Update KOReader"
+msgstr "Обновить KOReader"
+
 msgid "Update Status"
 msgstr "Статус обновления"
 
@@ -2060,6 +2300,9 @@ msgstr "Обновления"
 
 msgid "USB"
 msgstr "USB"
+
+msgid "Use a narrower books folder instead of the device storage root."
+msgstr "Используйте более узкую папку с книгами вместо корня хранилища устройства."
 
 msgid "Use border as progress bar"
 msgstr "Использовать границу как индикатор прогресса"
@@ -2073,11 +2316,17 @@ msgstr "Использовать шрифт по умолчанию"
 msgid "Use default style"
 msgstr "Использовать стиль по умолчанию"
 
+msgid "Use Home default font size"
+msgstr "Использовать размер шрифта Home по умолчанию"
+
 msgid "Use home folder"
 msgstr "Использовать домашнюю папку"
 
 msgid "Use last folder"
 msgstr "Использовать последнюю папку"
+
+msgid "Use Stats default font size"
+msgstr "Использовать размер шрифта статистики по умолчанию"
 
 msgid "username"
 msgstr "имя пользователя"
@@ -2097,17 +2346,8 @@ msgstr "Тепло"
 msgid "Warmth schedule"
 msgstr "Расписание тёплого света"
 
-msgid "Weekly pages goal"
-msgstr "Недельная цель по страницам"
-
-msgid "Weekly pages goal: "
-msgstr "Недельная цель по страницам: "
-
-msgid "Weekly time goal (min)"
-msgstr "Недельная цель по времени (мин)"
-
-msgid "Weekly time goal (min): "
-msgstr "Недельная цель по времени (мин): "
+msgid "Weekly"
+msgstr "Еженедельно"
 
 msgid "Welcome to Zen UI"
 msgstr "Добро пожаловать в Zen UI"
@@ -2138,6 +2378,9 @@ msgstr "Wi-Fi"
 
 msgid "Widgets"
 msgstr "Виджеты"
+
+msgid "Yearly"
+msgstr "Ежегодно"
 
 msgid "You're All Set"
 msgstr "Всё готово"
@@ -2178,17 +2421,29 @@ msgstr "Zen UI - Авторы"
 msgid "Zen UI - Home"
 msgstr "Zen UI - Главная"
 
+msgid "Zen UI - Library"
+msgstr "Zen UI — Библиотека"
+
 msgid "Zen UI - Open folder"
 msgstr "Zen UI - Открыть папку"
 
 msgid "Zen UI - Series"
 msgstr "Zen UI - Серии"
 
+msgid "Zen UI - Sync progress (pull + push)"
+msgstr "Zen UI — Ход синхронизации (получение + отправка)"
+
+msgid "Zen UI - Table of contents"
+msgstr "Zen UI — Оглавление"
+
 msgid "Zen UI - Tags"
 msgstr "Zen UI - Теги"
 
 msgid "Zen UI - Toggle bottom reader status bar"
 msgstr "Zen UI - Переключить нижнюю строку состояния читалки"
+
+msgid "Zen UI - Toggle Incognito Mode"
+msgstr "Zen UI — Переключить режим инкогнито"
 
 msgid "Zen UI - Toggle Lockdown Mode"
 msgstr "Zen UI - Переключить режим блокировки"
@@ -2216,3 +2471,57 @@ msgstr "Zen UI: папка не найдена: "
 
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI: для этого действия папка не задана."
+
+msgid "Reader themes"
+msgstr "Темы чтения"
+
+msgid "Enable reader themes"
+msgstr "Включить темы чтения"
+
+msgid "Dark warm gray"
+msgstr "Тёмный тёплый серый"
+
+msgid "Dark graphite"
+msgstr "Тёмный графит"
+
+msgid "Light sepia"
+msgstr "Светлая сепия"
+
+msgid "Light tan"
+msgstr "Светло-бежевый"
+
+msgid "Zen UI - Toggle reader themes"
+msgstr "Zen UI - Переключить темы чтения"
+
+msgid "Dark mode"
+msgstr "Темный режим"
+
+msgid "Light mode"
+msgstr "Светлый режим"
+
+msgid "Custom themes"
+msgstr "Пользовательские темы"
+
+msgid "New custom theme"
+msgstr "Новая пользовательская тема"
+
+msgid "Theme name"
+msgstr "Название темы"
+
+msgid "Background color"
+msgstr "Цвет фона"
+
+msgid "Text color"
+msgstr "Цвет текста"
+
+msgid "Theme font"
+msgstr "Шрифт темы"
+
+msgid "Delete theme"
+msgstr "Удалить тему"
+
+msgid "Delete this custom theme?"
+msgstr "Удалить эту пользовательскую тему?"
+
+msgid "Custom theme"
+msgstr "Пользовательская тема"

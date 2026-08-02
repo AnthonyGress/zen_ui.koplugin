@@ -26,7 +26,7 @@ local Screen         = Device.screen
 local _              = require("gettext")
 local ok_stw, ScrollTextWidget = pcall(require, "ui/widget/scrolltextwidget")
 
-local logger           = require("logger")
+local logger           = require("common/zen_logger").new("zen_screen")
 local ok_iw, ImageWidget = pcall(require, "ui/widget/imagewidget")
 if not ok_iw then ImageWidget = nil end
 
@@ -52,8 +52,18 @@ function ZenScreen:_computeLayout()
     local PAD        = Screen:scaleBySize(20)
     local TITLE_H    = self.title and Screen:scaleBySize(60) or 0
     local SEP_H      = 0
-    -- Tight subtitle band: just enough for one line + small breathing room.
-    local SUBTITLE_H = self.subtitle and Screen:scaleBySize(44) or 0
+    -- Subtitle band grows to fit wrapped text so long strings don't run off-page.
+    local SUBTITLE_H = 0
+    if self.subtitle then
+        local box = TextBoxWidget:new{
+            text      = self.subtitle,
+            face      = Font:getFace("cfont", 22),
+            width     = sw - PAD * 2,
+            alignment = "center",
+        }
+        SUBTITLE_H = box:getSize().h + Screen:scaleBySize(12)
+        box:free()
+    end
     local BTN_H      = Screen:scaleBySize(80)
     self._L = {
         sw         = sw,
@@ -71,7 +81,7 @@ function ZenScreen:_computeLayout()
 end
 
 function ZenScreen:init()
-    logger.info("ZenScreen:init title=", self.title)
+    logger.info("init title=", self.title)
     local sw = Screen:getWidth()
     local sh = Screen:getHeight()
     self.dimen = Geom:new{ x = 0, y = 0, w = sw, h = sh }
@@ -301,18 +311,18 @@ function ZenScreen:paintTo(bb, x, y)
         tw:free()
     end
 
-    -- Subtitle above icon
+    -- Subtitle above icon (wraps to fit width so long strings don't run off-page).
     if self.subtitle and L.subtitle_h > 0 then
         local sub_y = y + L.title_h + L.sep_h
-        local sw2 = TextWidget:new{
-            text    = self.subtitle,
-            face    = Font:getFace("cfont", 22),
-            bold    = false,
-            padding = 0,
+        local sw2 = TextBoxWidget:new{
+            text      = self.subtitle,
+            face      = Font:getFace("cfont", 22),
+            width     = L.sw - L.pad * 2,
+            alignment = "center",
         }
         local ssz = sw2:getSize()
         sw2:paintTo(bb,
-            x + math.floor((L.sw - ssz.w) / 2),
+            x + L.pad,
             sub_y + math.floor((L.subtitle_h - ssz.h) / 2))
         sw2:free()
     end
@@ -382,12 +392,21 @@ function ZenScreen:paintTo(bb, x, y)
     -- Button(s)
     self._btn_rect       = nil
     self._later_btn_rect = nil
-    if self.button ~= false and L.btn_h > 0 then
+    if (self.button ~= false or self.later_button) and L.btn_h > 0 then
         local btn_h    = Screen:scaleBySize(54)
         local corner_r = Screen:scaleBySize(10)
         local btn_y    = y + L.btn_y + math.floor((L.btn_h - btn_h) / 2)
 
-        if self.later_button then
+        if self.button == false and self.later_button then
+            -- Later-only: single centered outlined button.
+            local bw        = Screen:scaleBySize(2)
+            local btn_w     = Screen:scaleBySize(240)
+            local btn_x     = x + math.floor((L.sw - btn_w) / 2)
+            local later_lbl = (type(self.later_button) == "string" and self.later_button ~= "")
+                and self.later_button or _("Later")
+            self._later_btn_rect = ZenButton.paintOutlined(
+                bb, btn_x, btn_y, btn_w, btn_h, later_lbl, 22, corner_r, bw)
+        elseif self.later_button then
             -- Two buttons: outlined "Later" left, filled primary right.
             local gap    = Screen:scaleBySize(16)
             local btn_w  = Screen:scaleBySize(200)
@@ -499,7 +518,7 @@ function ZenScreen:update(opts)
 end
 
 function ZenScreen:onShow()
-    logger.info("ZenScreen:onShow dimen=", self.dimen)
+    logger.info("onShow dimen=", self.dimen)
     UIManager:setDirty(self, function()
         return "flashui", self.dimen
     end)

@@ -2,6 +2,8 @@ local ConfigManager = require("config/manager")
 local book_status = require("common/book_status")
 local StandalonePage = require("modules/filebrowser/patches/standalone_page")
 local SharedState = require("common/shared_state")
+local title_sort = require("common/title_sort")
+local zen_utils = require("common/utils")
 
 local M = {}
 
@@ -315,18 +317,20 @@ local function setup_display_mode(menu, is_group_view, tab_id)
             -- Called as menu.getBookInfo(filepath) — dot syntax, ONE arg only.
             menu.getBookInfo = function(file_path)
                 if not file_path then return {} end
+                local pages = zen_utils.getStablePageCount(file_path)
                 local ok_ds, DocSettings = pcall(require, "docsettings")
-                if not ok_ds then return {} end
-                if not DocSettings:hasSidecarFile(file_path) then return {} end
+                if not ok_ds then return { pages = pages } end
+                if not DocSettings:hasSidecarFile(file_path) then return { pages = pages } end
                 local ok2, doc = pcall(DocSettings.open, DocSettings, file_path)
-                if not ok2 or not doc then return {} end
+                if not ok2 or not doc then return { pages = pages } end
                 local summary = doc:readSetting("summary")
                 local stats   = doc:readSetting("stats")
+                pages = pages or zen_utils.getStablePageCount(file_path, stats and stats.pages)
                 return {
                     been_opened      = true,
                     percent_finished = doc:readSetting("percent_finished"),
                     status           = summary and summary.status,
-                    pages            = stats and stats.pages,
+                    pages            = pages,
                 }
             end
         end
@@ -817,7 +821,7 @@ local function patch_list_item()
         local fs_meta     = _fontSize(14, 18)
         local left_offset = self.do_cover_image and (cover_zone_w + pad_left) or pad_left
 
-        local count_str = tostring(book_count) .. " " .. (book_count == 1 and _("book") or _("books"))
+        local count_str = tostring(book_count) .. " " .. (book_count == 1 and _("Book") or _("Books"))
         local wright_status = TextWidget:new{
             text    = count_str,
             face    = library_font.getFace(fs_meta),
@@ -904,8 +908,17 @@ end
 -- data_type: "authors" or "series"
 -- groups: output of db_bookinfo.getGroupedByAuthor() / getGroupedBySeries()
 -------------------------------------------------------------------------------
-local function build_group_item_table(groups, data_type)
+local function group_empty_message(data_type)
     local _ = require("gettext")
+    return ({
+        authors = _("No books with author metadata found"),
+        series = _("No books with series metadata found"),
+        tags = _("No books with tags metadata found"),
+    })[data_type] or _("No books found")
+end
+
+local function build_group_item_table(groups, data_type)
+    local empty_message = group_empty_message(data_type)
     local items = {}
     for _i, group in ipairs(groups) do
         local files
@@ -919,8 +932,10 @@ local function build_group_item_table(groups, data_type)
             end
         end
         local display = (group.author or group.series or group.tag or "?"):gsub("\n", ", ")
+        local count = #files
         table.insert(items, {
             text        = display,
+            mandatory   = tostring(count) .. " \u{F016}",
             _zen_files  = files,
             _zen_type   = data_type,
             _zen_group  = (data_type == "series") and group or nil,
@@ -928,7 +943,7 @@ local function build_group_item_table(groups, data_type)
     end
     if #items == 0 then
         table.insert(items, {
-            text     = _("No books found"),
+            text     = empty_message,
             dim      = true,
             callback = function() end,
         })
@@ -937,7 +952,7 @@ local function build_group_item_table(groups, data_type)
     -- Apply reverse sort if enabled (authors / series only; tags use per-group or global book sort)
     if (data_type == "authors" or data_type == "series") and get_group_reverse(data_type) and #items > 0 then
         -- Reverse the array (skip the placeholder)
-        if items[1].text ~= _("No books found") then
+        if items[1].text ~= empty_message then
             local reversed = {}
             for i = #items, 1, -1 do
                 table.insert(reversed, items[i])
@@ -1209,9 +1224,10 @@ local function sortDetailFiles(files, collate, reverse)
                     if reverse then return a_n > b_n else return a_n < b_n end
                 end
             else
-                -- Alphabetical for title/series
-                local a_lower = type(a.key) == "string" and a.key:lower() or tostring(a.key)
-                local b_lower = type(b.key) == "string" and b.key:lower() or tostring(b.key)
+                local a_key = collate == "title" and title_sort.key(a.key) or tostring(a.key)
+                local b_key = collate == "title" and title_sort.key(b.key) or tostring(b.key)
+                local a_lower = a_key:lower()
+                local b_lower = b_key:lower()
                 if reverse then return a_lower > b_lower else return a_lower < b_lower end
             end
         end)
@@ -1287,15 +1303,20 @@ local function showDetailSortDialog(group_name, tab_id, menu, files)
         local sorted_files = sortDetailFiles(files, collate, reverse)
         sorted_files = apply_status_filter(sorted_files)
 
+        local lfs_mod  = require("libs/libkoreader-lfs")
+        local util_mod = require("util")
         local book_items = {}
         for _i, fpath in ipairs(sorted_files) do
             local fname = fpath:match("([^/]+)$") or fpath
             local display = fname:gsub("%.[^%.]+$", "")
+            local attr = lfs_mod.attributes(fpath)
 
             table.insert(book_items, {
-                text = display,
-                path = fpath,
-                is_file = true,
+                text      = display,
+                path      = fpath,
+                filepath  = fpath,
+                is_file   = true,
+                mandatory = attr and util_mod.getFriendlySize(attr.size or 0) or "",
             })
         end
 
@@ -1457,7 +1478,7 @@ local function showDetailView(group_item, injectNavbar, tab_id)
     end
     if #book_items == 0 then
         table.insert(book_items, {
-            text = _("No books found"),
+            text = group_empty_message(tab_id),
             dim  = true,
             callback = function() end,
         })
