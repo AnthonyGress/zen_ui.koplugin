@@ -207,6 +207,19 @@ describe("Zen settings page", function()
         assert.is_false(settings.title_bar.back_visible)
     end)
 
+    it("ignores ordinary row holds while preserving explicit help", function()
+        local plain = { text = "Plain setting" }
+        local help = { text = "Helped setting", help_text = "Helpful details" }
+        local settings = make_page({ plain, help })
+
+        assert.is_true(settings:onMenuHold(plain, true))
+        assert.are.equal(0, #shown_widgets)
+
+        assert.is_true(settings:onMenuHold(help, true))
+        assert.are.equal(1, #shown_widgets)
+        assert.are.equal("Helpful details", shown_widgets[1].text)
+    end)
+
     it("reuses the active settings page", function()
         local plugin = { config = {} }
         local first = PageModule.show(plugin)

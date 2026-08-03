@@ -426,7 +426,7 @@ function ZenSettingsPage:onMenuSelect(item)
     return true
 end
 
-function ZenSettingsPage:onMenuHold(item, text_truncated)
+function ZenSettingsPage:onMenuHold(item)
     if not enabled(item) then return true end
     local hold_callback = type(item.hold_callback_func) == "function"
         and item.hold_callback_func() or item.hold_callback
@@ -442,9 +442,6 @@ function ZenSettingsPage:onMenuHold(item, text_truncated)
     if help_text then
         UIManager:show(InfoMessage:new{ text = help_text })
         return true
-    end
-    if text_truncated then
-        UIManager:show(InfoMessage:new{ text = item_text(item), show_icon = false })
     end
     return true
 end
