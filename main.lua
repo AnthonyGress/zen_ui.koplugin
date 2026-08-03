@@ -543,6 +543,12 @@ function ZenUI:init()
         return type(_ft) == "table" and _ft.app_launcher == true
     end
 
+    local function zen_mode_enabled()
+        local _cfg = _zen_plugin_ref and _zen_plugin_ref.config
+        local _ft = _cfg and _cfg.features
+        return type(_ft) == "table" and _ft.zen_mode == true
+    end
+
     local function make_zen_settings_tab(m_self)
         local tab = {
             id = "zen_ui",
@@ -584,7 +590,7 @@ function ZenUI:init()
         end
         local insert_pos = m_self._zen_qs_insert_pos or qs_pos or 1
         insert_pos = math.min(insert_pos, #m_self.tab_item_table + 1)
-        if flip_lh_rh_icons() then
+        if flip_lh_rh_icons() and not zen_mode_enabled() then
             table.insert(m_self.tab_item_table, insert_pos, m_self._zen_home_tab_item)
             if not panel_hidden then
                 table.insert(m_self.tab_item_table, insert_pos + 1, m_self._zen_tab_item)
@@ -601,12 +607,12 @@ function ZenUI:init()
                 table.insert(m_self.tab_item_table, insert_pos, qs_tab)
             end
             local next_pos = qs_tab and (insert_pos + 1) or insert_pos
-            if not panel_hidden then
-                table.insert(m_self.tab_item_table, next_pos, m_self._zen_tab_item)
-                next_pos = next_pos + 1
-            end
             if app_tab then
                 table.insert(m_self.tab_item_table, next_pos, app_tab)
+            end
+            -- Keep Settings beside Library at the far right.
+            if not panel_hidden then
+                table.insert(m_self.tab_item_table, m_self._zen_tab_item)
             end
             -- Last tab is pushed to far-right by TouchMenuBar's stretch spacer.
             table.insert(m_self.tab_item_table, m_self._zen_home_tab_item)
@@ -626,6 +632,45 @@ function ZenUI:init()
         end
         remove_zen_menu_tabs(m_self)
         insert_zen_menu_tabs(m_self, panel_hidden)
+    end
+
+    local function keep_zen_tabs_right(touch_menu)
+        local tabs = touch_menu.tab_item_table
+        local bar = touch_menu.bar
+        local group = bar and bar.bar_icon_group
+        local icons = bar and bar.icon_widgets
+        local count = type(tabs) == "table" and #tabs or 0
+        if count < 2 or type(group) ~= "table" or type(icons) ~= "table"
+                or tabs[count - 1].id ~= "zen_ui" or tabs[count].id ~= "zen_library_home" then
+            return
+        end
+
+        local settings_pos
+        local home_pos
+        for i, widget in ipairs(group) do
+            if widget == icons[count - 1] then
+                settings_pos = i
+            elseif widget == icons[count] then
+                home_pos = i
+            end
+        end
+        if not settings_pos or home_pos ~= settings_pos + 4 then return end
+
+        local stretch = table.remove(group, settings_pos + 2)
+        local stretch_sep = table.remove(group, settings_pos + 2)
+        table.insert(group, settings_pos, stretch)
+        table.insert(group, settings_pos + 1, stretch_sep)
+        if type(group.resetLayout) == "function" then group:resetLayout() end
+    end
+
+    local TouchMenu = require("ui/widget/touchmenu")
+    if not TouchMenu.__zen_right_tabs_patched then
+        TouchMenu.__zen_right_tabs_patched = true
+        local orig_touch_menu_init = TouchMenu.init
+        TouchMenu.init = function(t_self, ...)
+            orig_touch_menu_init(t_self, ...)
+            keep_zen_tabs_right(t_self)
+        end
     end
 
     local function inject_zen_tab(menu_class)
