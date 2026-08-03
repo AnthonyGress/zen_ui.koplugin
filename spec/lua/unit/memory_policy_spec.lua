@@ -40,14 +40,29 @@ describe("adaptive memory policy", function()
         assert.are.equal(math.floor(profile.cover_bytes * 0.8), profile.render_bytes)
     end)
 
-    it("caps large devices at the existing thirty MiB cover budget", function()
+    it("raises the cover budget when total and available memory allow it", function()
         local policy = load_with_memory(800, 1024)
         local profile = policy.getProfile()
 
         assert.is_false(profile.low_memory)
-        assert.are.equal(30 * 1024 * 1024, profile.cover_bytes)
-        assert.are.equal(24 * 1024 * 1024, profile.render_bytes)
-        assert.are.equal(6 * 1024 * 1024, profile.decode_bytes)
+        assert.are.equal(math.floor(1024 * 1024 * 1024 * 0.05), profile.cover_bytes)
+        assert.are.equal(profile.cover_bytes, profile.render_bytes + profile.decode_bytes)
+    end)
+
+    it("bounds cover growth by currently available memory", function()
+        local policy = load_with_memory(800, 2000)
+        local profile = policy.getProfile()
+
+        assert.are.equal("normal", profile.pressure)
+        assert.are.equal(80 * 1024 * 1024, profile.cover_bytes)
+    end)
+
+    it("caps the cover budget on very large devices", function()
+        local policy = load_with_memory(7000, 8192)
+        local profile = policy.getProfile()
+
+        assert.are.equal(128 * 1024 * 1024, profile.cover_bytes)
+        assert.are.equal(6 * 1024 * 1024, profile.home_bytes)
     end)
 
     it("stops speculative work and halves caches under pressure", function()

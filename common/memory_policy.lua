@@ -6,10 +6,12 @@ local M = {}
 local MIB = 1024 * 1024
 local DEFAULT_COVER_BUDGET = 30 * MIB
 local MIN_COVER_BUDGET = 4 * MIB
-local MAX_COVER_BUDGET = 30 * MIB
+local MAX_COVER_BUDGET = 128 * MIB
 local DEFAULT_HOME_BUDGET = 6 * MIB
 local MIN_HOME_BUDGET = 512 * 1024
 local MAX_HOME_BUDGET = 6 * MIB
+local COVER_TOTAL_FRACTION = 0.05
+local COVER_AVAILABLE_FRACTION = 0.10
 local LOW_MEMORY_TOTAL = 256 * MIB
 local LOW_AVAILABLE_FRACTION = 0.25
 local CRITICAL_AVAILABLE_FRACTION = 0.20
@@ -39,7 +41,10 @@ function M.getProfile()
     local available_fraction
 
     if total then
-        cover_budget = clamp(math.floor(total * 0.05), MIN_COVER_BUDGET, MAX_COVER_BUDGET)
+        cover_budget = clamp(math.floor(math.min(
+            total * COVER_TOTAL_FRACTION,
+            available * COVER_AVAILABLE_FRACTION
+        )), MIN_COVER_BUDGET, MAX_COVER_BUDGET)
         home_budget = clamp(math.floor(total * 0.01), MIN_HOME_BUDGET, MAX_HOME_BUDGET)
         available_fraction = available / total
         if available_fraction < CRITICAL_AVAILABLE_FRACTION then
