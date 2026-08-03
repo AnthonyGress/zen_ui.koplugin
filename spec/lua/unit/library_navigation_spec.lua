@@ -18,6 +18,12 @@ describe("library navigation", function()
         })
         ZenSpec.replace("config/manager", { get = function() return {} end })
         ZenSpec.replace("MangaReader", { is_showing = false })
+        ZenSpec.replace("common/utils", {
+            closeWidgetsAbove = function(anchor)
+                assert.is_true(anchor.tearing_down)
+                anchor.overlays_closed = true
+            end,
+        })
         ZenSpec.unload("common/paths")
         ZenSpec.unload("common/library_navigation")
         Navigation = require("common/library_navigation")
@@ -35,6 +41,7 @@ describe("library navigation", function()
         end
         function state:onClose()
             assert.is_false(self.tearing_down)
+            assert.is_true(self.overlays_closed)
             self.closed = true
         end
         function state:showFileManager(file_path)
@@ -42,6 +49,26 @@ describe("library navigation", function()
         end
         return state
     end
+
+    it("closes reader overlays before rebuilding the library", function()
+        local ui = reader()
+        local dialog = {}
+        ui.dialog = dialog
+        ZenSpec.replace("common/utils", {
+            closeWidgetsAbove = function(anchor)
+                assert.are.equal(dialog, anchor)
+                assert.is_true(ui.tearing_down)
+                ui.overlays_closed = true
+            end,
+        })
+
+        Navigation.showFromReader(ui, {
+            config = { features = { restore_library_view = false } },
+        })
+
+        assert.is_true(ui.closed)
+        assert.is_true(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+    end)
 
     it("returns to the file manager with a requested non-retained tab", function()
         local ui = reader()

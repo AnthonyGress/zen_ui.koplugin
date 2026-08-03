@@ -1367,7 +1367,7 @@ local function apply_navbar()
             return first_enabled_default_tab()
         end
         if tab_id:sub(1, 3) == "ct_" then
-            if tab_callbacks[tab_id] and is_tab_enabled(tab_id) then
+            if tab_callbacks[tab_id] then
                 return tab_id
             end
             return first_enabled_default_tab()
@@ -1375,7 +1375,7 @@ local function apply_navbar()
         if not default_tab_whitelist[tab_id] then
             return first_enabled_default_tab()
         end
-        if tab_callbacks[tab_id] and is_tab_enabled(tab_id) then
+        if tab_callbacks[tab_id] then
             return tab_id
         end
         return first_enabled_default_tab()

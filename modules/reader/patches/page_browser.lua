@@ -124,11 +124,19 @@ local function apply_page_browser()
         canvas:paintRect(0, title_h - 1, slot_w, 1, Blitbuffer.COLOR_LIGHT_GRAY)
         local stock_icons_dir = _stock_icons_dir
         local header_icons = {
-            "appbar.search", "info", "appbar.textsize", "bookmark",
+            { "appbar.search", stock_icons_dir },
+            { "info", _icons_dir },
+            { "appbar.textsize", stock_icons_dir },
+            { "bookmark", stock_icons_dir },
         }
-        for i, icon_name in ipairs(header_icons) do
-            local icon_dir = icon_name == "info" and _icons_dir or stock_icons_dir
-            local icon_path = icon_dir and utils.resolveLocalIcon(icon_dir, icon_name)
+        local vocab_icon_path = package.loaded["db"]
+            and _icons_dir and utils.resolveLocalIcon(_icons_dir, "tab_vocab")
+        if vocab_icon_path then
+            table.insert(header_icons, 4, { nil, nil, vocab_icon_path })
+        end
+        for i, icon in ipairs(header_icons) do
+            local icon_path = icon[3]
+                or (icon[2] and utils.resolveLocalIcon(icon[2], icon[1]))
             paint_icon(nil, icon_path, slot_btn_w * (i - 1) + btn_pad, title_y, btn_sz)
         end
         local toc_icon_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "toc")
@@ -983,8 +991,16 @@ local function apply_page_browser()
             local function open_bookmarks()
                 -- Keep the page browser underneath so closing bookmarks returns here.
                 if pbw_ref.ui.bookmark then
-                    pbw_ref.ui.bookmark:onShowBookmark()
+                    local bookmark = pbw_ref.ui.bookmark
+                    bookmark:onShowBookmark()
+                    local bm_menu = bookmark.bookmark_menu and bookmark.bookmark_menu[1]
+                    if bm_menu then bm_menu._zen_page_browser_parent = pbw_ref end
                 end
+            end
+
+            local function open_vocab()
+                pbw_ref:onClose()
+                pbw_ref.ui:handleEvent(Event:new("ShowVocabBuilder"))
             end
 
             local function open_reader_menu()
@@ -1039,8 +1055,13 @@ local function apply_page_browser()
                 { "bookmark", open_bookmarks, true },
                 { "toc", open_toc },
             }
+            local vocab_icon_path = package.loaded["db"]
+                and _icons_dir and utils.resolveLocalIcon(_icons_dir, "tab_vocab")
+            if vocab_icon_path then
+                table.insert(action_icons, 4, { nil, open_vocab, nil, vocab_icon_path })
+            end
             for i, action in ipairs(action_icons) do
-                local icon_path = action[3] and resolve_stock_icon(action[1])
+                local icon_path = action[4] or (action[3] and resolve_stock_icon(action[1]))
                     or (_icons_dir and utils.resolveLocalIcon(_icons_dir, action[1]))
                 local button = make_header_btn(icon_path, slot_w * (i - 1), action[2])
                 table.insert(self.title_bar, button)

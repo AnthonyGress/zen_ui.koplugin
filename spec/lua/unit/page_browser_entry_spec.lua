@@ -284,7 +284,7 @@ describe("page browser entry", function()
             }
         end
         local headers = {}
-        for i = 1, 6 do
+        for i = 1, 7 do
             headers[i] = focus_widget(function() end)
         end
         local grid = {}
@@ -307,9 +307,9 @@ describe("page browser entry", function()
         setmetatable(browser, { __index = PageBrowserWidget })
         PageBrowserWidget._zenRebuildFocusLayout(browser)
         expect(#browser.layout == 4)
-        expect(#browser.layout[1] == 6 and #browser.layout[2] == 3)
+        expect(#browser.layout[1] == 7 and #browser.layout[2] == 3)
         expect(#browser.layout[3] == 3 and #browser.layout[4] == 4)
-        expect(browser.layout[1][6]._zen_focus_id == "header:6")
+        expect(browser.layout[1][7]._zen_focus_id == "header:7")
         expect(browser.layout[3][3]._zen_focus_id == "page:6")
         expect(browser.layout[4][1]._zen_focus_id == "footer:previous")
         expect(browser.layout[4][4]._zen_focus_id == "footer:next")
@@ -321,8 +321,8 @@ describe("page browser entry", function()
         expect(browser.layout[browser.selected.y][browser.selected.x]._zen_focus_id == "page:1")
         expect(browser.stock_key_called == nil)
         PageBrowserWidget.onFocusMove(browser, { 0, -1 })
-        for _i = 1, 5 do PageBrowserWidget.onFocusMove(browser, { 1, 0 }) end
-        expect(browser.layout[browser.selected.y][browser.selected.x]._zen_focus_id == "header:6")
+        for _i = 1, 6 do PageBrowserWidget.onFocusMove(browser, { 1, 0 }) end
+        expect(browser.layout[browser.selected.y][browser.selected.x]._zen_focus_id == "header:7")
         for _i = 1, 3 do PageBrowserWidget.onFocusMove(browser, { 0, 1 }) end
         expect(browser.layout[browser.selected.y][browser.selected.x]._zen_focus_id == "footer:next")
     end)
@@ -587,6 +587,7 @@ describe("page browser entry", function()
             config = { features = { page_browser = true, browser_cover_rounded_corners = true } },
             saveConfig = function() end,
         }
+        package.loaded["db"] = {}
         require("modules/reader/patches/page_browser")()
 
         local bootstrap_ui = { handleEvent = function() end }
@@ -647,14 +648,16 @@ describe("page browser entry", function()
         end
         expect(type(by_file["/icons/appbar.search.svg"]) == "function")
         expect(type(by_file["/icons/appbar.textsize.svg"]) == "function")
+        expect(type(by_file["/icons/tab_vocab.svg"]) == "function")
         expect(type(by_file["/icons/bookmark.svg"]) == "function")
         expect(type(by_file["/icons/toc.svg"]) == "function")
         expect(type(by_file["/icons/info.svg"]) == "function")
         expect(positions["/icons/appbar.search.svg"] == 0)
         expect(positions["/icons/info.svg"] == 54)
         expect(positions["/icons/appbar.textsize.svg"] == 108)
-        expect(positions["/icons/bookmark.svg"] == 162)
-        expect(positions["/icons/toc.svg"] == 216)
+        expect(positions["/icons/tab_vocab.svg"] == 162)
+        expect(positions["/icons/bookmark.svg"] == 216)
+        expect(positions["/icons/toc.svg"] == 270)
         expect(browser._zen_orig_nb_cols == 3 and browser._zen_orig_nb_rows == 2)
         local close_button = browser.title_bar.right_button
         expect(close_button.file == "/icons/close.svg")
@@ -672,16 +675,25 @@ describe("page browser entry", function()
         expect(closes == 1 and action_events[#action_events].name == "ShowFulltextSearchInput")
         by_file["/icons/bookmark.svg"]()
         expect(closes == 1 and bookmarks == 1)
+        expect(ui.bookmark.bookmark_menu == nil)
+
+        ui.bookmark.bookmark_menu = { {} }
+        by_file["/icons/bookmark.svg"]()
+        expect(closes == 1 and bookmarks == 2)
+        expect(ui.bookmark.bookmark_menu[1]._zen_page_browser_parent == browser)
+
+        by_file["/icons/tab_vocab.svg"]()
+        expect(closes == 2 and action_events[#action_events].name == "ShowVocabBuilder")
 
         by_file["/icons/toc.svg"]()
-        expect(closes == 1 and toc_spec.focus_page == 12)
+        expect(closes == 2 and toc_spec.focus_page == 12)
         toc_spec.on_goto(27)
-        expect(closes == 2 and stack_adds == 1)
+        expect(closes == 3 and stack_adds == 1)
         expect(action_events[#action_events].name == "GotoPage"
             and action_events[#action_events].args[1] == 27)
 
         by_file["/icons/info.svg"]()
-        expect(closes == 2 and info_spec ~= nil and info_spec.title == "Book details")
+        expect(closes == 3 and info_spec ~= nil and info_spec.title == "Book details")
         expect(info_spec.cover ~= nil and info_spec.cover_width == 120 and info_spec.cover_height == 180)
         expect(#info_spec.details == 8)
         expect(info_spec.details[1].text == "Test title" and info_spec.details[1].bold == true
@@ -701,7 +713,7 @@ describe("page browser entry", function()
         expect(info_spec.description == "Test description")
 
         by_file["/icons/appbar.textsize.svg"]()
-        expect(closes == 3)
+        expect(closes == 4)
         expect(config_dialog ~= nil and ui.config.config_dialog == config_dialog)
         expect(config_dialog.shown_panel == 4 and stopped == 1)
         expect(action_events[#action_events].name == "DisableHinting")

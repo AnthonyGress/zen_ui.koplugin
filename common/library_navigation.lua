@@ -11,6 +11,15 @@ local function closeConfigMenuForTransition(ui)
     if not ok then error(err) end
 end
 
+local function closeReaderOverlays(ui)
+    local was_tearing_down = ui.tearing_down
+    ui.tearing_down = true
+    local ok, err = pcall(
+        require("common/utils").closeWidgetsAbove, ui.dialog or ui)
+    ui.tearing_down = was_tearing_down
+    if not ok then error(err) end
+end
+
 function M.restoreEnabled(plugin)
     local features = plugin and plugin.config and plugin.config.features
     return type(features) == "table" and features.restore_library_view == true
@@ -56,6 +65,7 @@ function M.showFromReader(ui, plugin, opts)
     _G.__ZEN_UI_LAST_READ_FILE = file
 
     closeConfigMenuForTransition(ui)
+    closeReaderOverlays(ui)
     if M.returnToRakuyomiReader(restore, plugin) then
         return true
     end
