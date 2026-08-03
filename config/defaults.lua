@@ -187,7 +187,7 @@ local defaults = {
         show_page_count = false,
     },
     browser_folder_cover = {
-        cover_mode = "gallery",   -- "gallery" | "stack" | "normal" | "none"
+        cover_mode = "normal",   -- "gallery" | "stack" | "normal" | "none"
         show_folder_name = true,
         name_centered = false,    -- false = bottom placement
         name_opaque = false,      -- false = transparent bg

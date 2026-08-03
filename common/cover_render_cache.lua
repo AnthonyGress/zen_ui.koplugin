@@ -188,6 +188,14 @@ function M:touchExact(path, width, height)
     return true
 end
 
+function M:touchReusable(path, width, height)
+    local entry = find_reusable(self, path, width, height)
+    if not is_reusable(entry, width, height) then return false end
+    self._clock = self._clock + 1
+    entry.touch = self._clock
+    return true
+end
+
 -- Returns an immutable cache-owned bitmap. Callers must keep it
 -- non-disposable, never modify it, and pair the lease with releaseShared().
 function M:getShared(path, width, height)

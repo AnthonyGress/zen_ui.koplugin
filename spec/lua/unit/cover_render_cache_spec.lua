@@ -142,6 +142,19 @@ describe("final cover render cache", function()
         assert.is_true(Cache:hasExact("next", 5, 10))
     end)
 
+    it("prioritizes a touched reusable bitmap without copying it", function()
+        Cache:put("wanted", 5, 10, bb(5, 10))
+        Cache:put("old", 5, 10, bb(5, 10))
+
+        assert.is_true(Cache:touchReusable("wanted", 4, 8))
+        assert.are.equal(0, Cache:stats().hits)
+        Cache:put("next", 5, 10, bb(5, 10))
+
+        assert.is_true(Cache:hasExact("wanted", 5, 10))
+        assert.is_false(Cache:hasExact("old", 5, 10))
+        assert.is_true(Cache:hasExact("next", 5, 10))
+    end)
+
     it("replaces an undersized bitmap for a larger layout", function()
         Cache:put("/book.epub", 5, 8, bb(5, 8))
         assert.is_nil(Cache:get("/book.epub", 8, 12))

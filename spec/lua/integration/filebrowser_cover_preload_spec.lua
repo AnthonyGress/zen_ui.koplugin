@@ -966,6 +966,43 @@ describe("filebrowser cover preloading", function()
         }, render_calls)
     end)
 
+    it("rechecks a cached folder candidate after visible hydration can evict it", function()
+        local CoverMenu = require("covermenu")
+        local path = "/folder/first.epub"
+        local key = render_key(path, 100, 150)
+        folder_preview_entries["/folder"] = { path }
+        render_entries[key] = true
+        update_items = function(menu)
+            menu._zen_cover_hydration_items = { {
+                menu = menu,
+                _zen_cover_hydration_kind = "folder",
+                update = function(item)
+                    render_entries[key] = nil
+                    item._has_cover_image = true
+                end,
+            } }
+        end
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = {
+                { is_file = true, path = "/current.epub" },
+                { path = "/folder", attr = { mode = "directory" } },
+            },
+            page = 1, page_num = 2, perpage = 1,
+            display_mode_type = "mosaic",
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+            show_parent = {},
+        }
+
+        CoverMenu.updateItems(menu)
+        while #scheduled > 0 do table.remove(scheduled, 1)() end
+
+        assert.are.same({ path }, warmed)
+        assert.is_true(render_entries[key])
+        assert.are.equal(1, metric_value(
+            measurement_named("Cover preload completed"), "final_render_warmed="))
+    end)
+
     it("pre-renders one gallery bitmap instead of warming four child jobs", function()
         local CoverMenu = require("covermenu")
         folder_cover_mode = "gallery"

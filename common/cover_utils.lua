@@ -72,7 +72,7 @@ function CoverUtils.getMode()
     local cfg = (type(p) == "table" and type(p.config) == "table" and p.config)
         or require("config/manager").get()
     local fbc = type(cfg) == "table" and cfg.browser_folder_cover or nil
-    local mode = type(fbc) == "table" and fbc.cover_mode or "gallery"
+    local mode = type(fbc) == "table" and fbc.cover_mode or "normal"
     if mode == "gallery" then
         return "gallery", 4, true
     elseif mode == "stack" then
@@ -571,29 +571,44 @@ function CoverUtils.collect(dir_path, chooser, max_covers, _need_copy, entries, 
                     max_cover_w = preview_w,
                     max_cover_h = preview_h,
                 } or cover_specs
-                local bookinfo = type(DecodeCache.getFreshMetadata) == "function"
-                    and DecodeCache:getFreshMetadata(fpath, now(), 30) or nil
-                local invalid = has_real_cover(bookinfo) and type(preview_specs) == "table"
-                    and type(BookInfoManager.isCachedCoverInvalid) == "function"
-                    and BookInfoManager.isCachedCoverInvalid(bookinfo, preview_specs)
                 local cached_cover
-                if has_real_cover(bookinfo) and not invalid and preview_w and preview_h then
-                    local cached_w, cached_h
-                    if cover_specs.uniform == false then
-                        cached_w, cached_h = CoverUtils.fitDims(
-                            preview_w, preview_h, bookinfo.cover_w, bookinfo.cover_h)
-                    elseif mode == "normal" then
-                        cached_w, cached_h = preview_w, preview_h
-                    else
-                        cached_w, cached_h = CoverUtils.calcDims(preview_w, preview_h)
-                    end
-                    cached_cover = RenderCache:get(fpath, cached_w, cached_h)
+                if cached_only and mode == "normal" and preview_w and preview_h
+                        and type(cover_specs) == "table" and cover_specs.uniform ~= false then
+                    cached_cover = RenderCache:get(fpath, preview_w, preview_h)
                     if cached_cover then
                         table.insert(covers, {
                             data = cached_cover,
-                            w = cached_w,
-                            h = cached_h,
+                            w = preview_w,
+                            h = preview_h,
                         })
+                    end
+                end
+                local bookinfo
+                local invalid = false
+                if not cached_cover then
+                    bookinfo = type(DecodeCache.getFreshMetadata) == "function"
+                        and DecodeCache:getFreshMetadata(fpath, now(), 30) or nil
+                    invalid = has_real_cover(bookinfo) and type(preview_specs) == "table"
+                        and type(BookInfoManager.isCachedCoverInvalid) == "function"
+                        and BookInfoManager.isCachedCoverInvalid(bookinfo, preview_specs)
+                    if has_real_cover(bookinfo) and not invalid and preview_w and preview_h then
+                        local cached_w, cached_h
+                        if cover_specs.uniform == false then
+                            cached_w, cached_h = CoverUtils.fitDims(
+                                preview_w, preview_h, bookinfo.cover_w, bookinfo.cover_h)
+                        elseif mode == "normal" then
+                            cached_w, cached_h = preview_w, preview_h
+                        else
+                            cached_w, cached_h = CoverUtils.calcDims(preview_w, preview_h)
+                        end
+                        cached_cover = RenderCache:get(fpath, cached_w, cached_h)
+                        if cached_cover then
+                            table.insert(covers, {
+                                data = cached_cover,
+                                w = cached_w,
+                                h = cached_h,
+                            })
+                        end
                     end
                 end
                 if not cached_cover and cached_only then

@@ -1509,6 +1509,16 @@ local function apply_cover_preload()
         if bb and type(bb.free) == "function" then pcall(bb.free, bb) end
     end
 
+    local function touch_cached_render(path, width, height)
+        if type(render_cache.touchReusable) == "function" then
+            return render_cache:touchReusable(path, width, height)
+        end
+        return (type(render_cache.hasReusable) == "function"
+                and render_cache:hasReusable(path, width, height))
+            or (type(render_cache.hasExact) == "function"
+                and render_cache:hasExact(path, width, height))
+    end
+
     local function warm_job(job, outcomes)
         if job.kind == "gallery" then
             local ok, warmed, cached = pcall(FolderCover.warmGallery,
@@ -1534,10 +1544,7 @@ local function apply_cover_preload()
             return
         end
         if job.final_render and not job.preserve_aspect
-                and ((type(render_cache.hasReusable) == "function"
-                    and render_cache:hasReusable(job.path, job.render_width, job.render_height))
-                or (type(render_cache.hasExact) == "function"
-                    and render_cache:hasExact(job.path, job.render_width, job.render_height))) then
+                and touch_cached_render(job.path, job.render_width, job.render_height) then
             outcomes.final_render_cached = outcomes.final_render_cached + 1
             return
         end
@@ -1839,25 +1846,24 @@ local function apply_cover_preload()
         local already_generated = 0
         local already_gallery = 0
         local pending = {}
+        local hydration_active = menu._zen_cover_hydrate_fn ~= nil
         for _i, job in ipairs(jobs) do
             local cached_job = false
-            if job.kind == "gallery" and type(FolderCover.isGalleryCached) == "function" then
+            if not hydration_active and job.kind == "gallery"
+                    and type(FolderCover.isGalleryCached) == "function" then
                 cached_job = FolderCover.isGalleryCached(
                     job.menu, job.entry, job.menu_text, job.width, job.height, {
                         entries = job.entries,
                         uniform = job.uniform,
                     })
                 if cached_job then already_gallery = already_gallery + 1 end
-            elseif job.final_render and not job.preserve_aspect
-                    and ((type(render_cache.hasReusable) == "function"
-                        and render_cache:hasReusable(
-                            job.path, job.render_width, job.render_height))
-                    or (type(render_cache.hasExact) == "function"
-                        and render_cache:hasExact(
-                            job.path, job.render_width, job.render_height))) then
+            elseif not hydration_active and job.final_render and not job.preserve_aspect
+                    and touch_cached_render(
+                        job.path, job.render_width, job.render_height) then
                 cached_job = true
                 already_final = already_final + 1
-            elseif type(CoverUtils.hasCachedGeneratedCover) == "function" then
+            elseif not hydration_active
+                    and type(CoverUtils.hasCachedGeneratedCover) == "function" then
                 local metadata = type(cache.getFreshMetadata) == "function"
                     and cache:getFreshMetadata(job.path, now(), 30) or nil
                 if type(metadata) == "table" and metadata.cover_fetched

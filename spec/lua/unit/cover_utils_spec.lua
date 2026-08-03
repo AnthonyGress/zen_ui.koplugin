@@ -104,6 +104,14 @@ describe("cover utility policy", function()
         assert.are.same({ "none", 0, false }, { CoverUtils.getMode() })
     end)
 
+    it("defaults folder previews to the first cover image", function()
+        _G.__ZEN_UI_PLUGIN = { config = { browser_folder_cover = {} } }
+
+        assert.are.equal("normal",
+            require("config/defaults").browser_folder_cover.cover_mode)
+        assert.are.same({ "normal", 1, false }, { CoverUtils.getMode() })
+    end)
+
     it("keeps tiny synthetic covers to one bulk fill", function()
         local paints = {}
         local pixels = 0
@@ -255,6 +263,37 @@ describe("cover utility policy", function()
         ZenSpec.replace("bookinfomanager", {
             getBookInfo = function() error("unexpected decoded-cover lookup") end,
             isCachedCoverInvalid = function() return false end,
+        })
+        ZenSpec.unload("common/cover_utils")
+        CoverUtils = require("common/cover_utils")
+
+        local covers, needs_hydration = CoverUtils.collect(nil, nil, 1, false, {
+            { path = "/cached.epub", is_file = true },
+        }, { max_cover_w = 275, max_cover_h = 413, uniform = true }, 0, true)
+
+        assert.are.same({
+            path = "/cached.epub", width = 275, height = 412,
+        }, cache_request)
+        assert.is_false(needs_hydration)
+        assert.are.equal("cached-preview", covers[1].data)
+    end)
+
+    it("reuses a cached normal folder preview after decoded metadata is evicted", function()
+        local cache_request
+        _G.__ZEN_UI_PLUGIN = {
+            config = { browser_folder_cover = { cover_mode = "normal" } },
+        }
+        ZenSpec.replace("common/cover_decode_cache", {
+            getFreshMetadata = function() end,
+        })
+        ZenSpec.replace("common/cover_render_cache", {
+            get = function(_self, path, width, height)
+                cache_request = { path = path, width = width, height = height }
+                return "cached-preview"
+            end,
+        })
+        ZenSpec.replace("bookinfomanager", {
+            getBookInfo = function() error("unexpected decoded-cover lookup") end,
         })
         ZenSpec.unload("common/cover_utils")
         CoverUtils = require("common/cover_utils")

@@ -587,7 +587,7 @@ local function migrate_folder_cover_keys(cfg)
 
     if has_legacy then
         -- Existing user: override cover_mode from their legacy selection.
-        -- merged_with_defaults already ran so fbc.cover_mode is "gallery"; we must overwrite.
+        -- merged_with_defaults already ran, so the legacy value must overwrite it.
         -- New installs never have these keys so defaults.lua applies cleanly.
         if none_val then
             fbc.cover_mode = "none"

@@ -92,15 +92,26 @@ describe("decoded cover cache", function()
     end)
 
     it("evicts the least-recently-used cover to honor the byte budget", function()
-        Cache:put("/one.epub", "v1", fake_bb(6, "one"))
+        Cache:put("/one.epub", "v1", fake_bb(6, "one"), { title = "One" }, 100)
         Cache:put("/two.epub", "v1", fake_bb(6, "two"))
 
         assert.is_nil(Cache:get("/one.epub", "v1"))
+        assert.are.equal("One", Cache:getFreshMetadata("/one.epub", 110, 30).title)
         assert.is_not_nil(Cache:get("/two.epub", "v1"))
         local stats = Cache:stats()
         assert.are.equal(1, stats.count)
+        assert.are.equal(1, stats.metadata_count)
         assert.are.equal(6, stats.bytes)
         assert.are.equal(1, stats.evictions)
+    end)
+
+    it("removes retained metadata on an explicit drop", function()
+        Cache:put("/book.epub", "v1", fake_bb(6, "book"), { title = "Book" }, 100)
+        Cache:put("/other.epub", "v1", fake_bb(6, "other"))
+
+        Cache:drop("/book.epub")
+
+        assert.is_nil(Cache:getFreshMetadata("/book.epub", 110, 30))
     end)
 
     it("drops stale entries when the metadata signature changes", function()

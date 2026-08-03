@@ -93,6 +93,9 @@ function M:_drop(key, evicted)
     if not entry then return end
     self._entries[key] = nil
     self._bytes = math.max(0, self._bytes - entry.bytes)
+    if evicted and entry.metadata then
+        self:putMetadata(key, entry.metadata, entry.validated_at)
+    end
     free_bb(entry.bb)
     if evicted then self._evictions = self._evictions + 1 end
 end
