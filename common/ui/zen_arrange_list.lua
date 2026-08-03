@@ -36,7 +36,9 @@ local M = {}
 local show_submenu
 local repopulate
 local plus_icon_path
+local cancel_item_drag_hold
 local DRAG_UNFOCUS_DELAY = 0.1
+local ITEM_DRAG_HOLD_DELAY = 0.25
 
 local function background_refresh_count()
     local refreshes = UIManager._refresh_func_stack
@@ -471,6 +473,10 @@ end
 local function is_arrange_handle_tap(row, pos)
     local handle = row and row._zen_arrange_handle
     return handle and handle.dimen and pos and pos:intersectWith(handle.dimen) or false
+end
+
+local function is_arrange_row_tap(row, pos)
+    return row and row.dimen and pos and pos:intersectWith(row.dimen) or false
 end
 
 local function is_toggle_tap(row, pos)
@@ -986,17 +992,17 @@ local function install_arrange_movement(sort_widget)
 end
 
 local function release_arrange_item(sort_widget)
-    if not sort_widget or ((sort_widget.marked or 0) == 0
+    if not sort_widget then return false end
+    cancel_item_drag_hold(sort_widget)
+    if (sort_widget.marked or 0) == 0
             and not sort_widget._zen_handle_active
-            and not sort_widget._zen_dragging) then
+            and not sort_widget._zen_dragging then
         return false
     end
     sort_widget._zen_handle_active = false
     sort_widget._zen_dragging = false
     sort_widget._zen_drag_top = nil
-    sort_widget._zen_drag_start_x = nil
     sort_widget._zen_drag_last_pos = nil
-    sort_widget._zen_drag_horizontal_threshold = nil
     sort_widget._zen_drag_page_latch = nil
     sort_widget._zen_arrange_focus_column = 2
     sort_widget.marked = 0
@@ -1086,11 +1092,7 @@ local function move_dragged_item(sort_widget, ges)
     local visible = math.min(sort_widget.items_per_page, item_count - first + 1)
     local row_height = sort_widget.item_height + sort_widget.item_margin
     local bottom = sort_widget._zen_drag_top + visible * row_height
-    local relative_x = ges.relative and ges.relative.x
-        or sort_widget._zen_drag_start_x and pos.x - sort_widget._zen_drag_start_x
     local page_direction = ArrangeState.dragPageDirection(
-        relative_x,
-        sort_widget._zen_drag_horizontal_threshold,
         pos.y,
         sort_widget._zen_drag_top,
         bottom
@@ -1121,6 +1123,13 @@ local function cancel_drag_unfocus(sort_widget)
     if not pending then return end
     UIManager:unschedule(pending)
     sort_widget._zen_drag_unfocus = nil
+end
+
+cancel_item_drag_hold = function(sort_widget)
+    local pending = sort_widget and sort_widget._zen_item_drag_hold
+    if not pending then return end
+    UIManager:unschedule(pending)
+    sort_widget._zen_item_drag_hold = nil
 end
 
 local function unfocus_widget(widget)
@@ -1154,6 +1163,7 @@ local function schedule_drag_unfocus(sort_widget, dropped_index, focused_after_d
 end
 
 local function finish_touch_drag(sort_widget, ges)
+    cancel_item_drag_hold(sort_widget)
     if not sort_widget._zen_dragging then return false end
     local drop_pos = ges and ges.pos
     if ges and ges.ges == "swipe" then
@@ -1168,9 +1178,7 @@ local function finish_touch_drag(sort_widget, ges)
     local dropped_index = sort_widget.marked
     sort_widget._zen_dragging = false
     sort_widget._zen_drag_top = nil
-    sort_widget._zen_drag_start_x = nil
     sort_widget._zen_drag_last_pos = nil
-    sort_widget._zen_drag_horizontal_threshold = nil
     sort_widget._zen_drag_page_latch = nil
     sort_widget._zen_arrange_focus_column = 2
     sort_widget.marked = 0
@@ -1184,10 +1192,72 @@ local function finish_touch_drag(sort_widget, ges)
     return true
 end
 
+local function start_touch_drag(sort_widget, pos, handle_only)
+    if not pos then return false end
+    for _row_i, row in ipairs(sort_widget.main_content or {}) do
+        local matches = handle_only and is_arrange_handle_tap(row, pos)
+            or not handle_only and is_arrange_row_tap(row, pos)
+        if row.index and matches then
+            cancel_item_drag_hold(sort_widget)
+            cancel_drag_unfocus(sort_widget)
+            local first = (sort_widget.show_page - 1) * sort_widget.items_per_page + 1
+            local row_height = sort_widget.item_height + sort_widget.item_margin
+            sort_widget._zen_drag_top = row._zen_arrange_handle.dimen.y
+                - (row.index - first) * row_height
+            sort_widget._zen_drag_last_pos = pos
+            sort_widget._zen_drag_page_latch = nil
+            sort_widget._zen_dragging = true
+            sort_widget.marked = row.index
+            sort_widget:_populateItems()
+            return true
+        end
+    end
+    return false
+end
+
+local function schedule_item_drag_hold(sort_widget, pos)
+    if not pos then return false end
+    local item_pos = false
+    for _row_i, row in ipairs(sort_widget.main_content or {}) do
+        if row.index and is_arrange_row_tap(row, pos)
+                and not is_arrange_handle_tap(row, pos)
+                and not is_toggle_tap(row, pos) then
+            item_pos = true
+            break
+        end
+    end
+    if not item_pos then return false end
+
+    cancel_item_drag_hold(sort_widget)
+    local pending
+    pending = function()
+        if sort_widget._zen_item_drag_hold ~= pending then return end
+        sort_widget._zen_item_drag_hold = nil
+        if sort_widget._zen_arrange_closing or sort_widget._zen_dragging then return end
+        start_touch_drag(sort_widget, pos, false)
+    end
+    sort_widget._zen_item_drag_hold = pending
+    UIManager:scheduleIn(ITEM_DRAG_HOLD_DELAY, pending)
+    return true
+end
+
 local function install_touch_handle_drag(sort_widget)
     if not Device:isTouchDevice() or not sort_widget._zen_arrange_enabled then return end
 
     local full = sort_widget.dimen
+    sort_widget._zen_item_drag_hold_delay = ITEM_DRAG_HOLD_DELAY
+    sort_widget.ges_events.ZenArrangeItemTouch = {
+        GestureRange:new{ ges = "touch", range = full },
+    }
+    sort_widget.ges_events.ZenArrangeHold = {
+        GestureRange:new{ ges = "hold", range = full },
+    }
+    sort_widget.ges_events.ZenArrangeHoldPan = {
+        GestureRange:new{ ges = "hold_pan", range = full },
+    }
+    sort_widget.ges_events.ZenArrangeHoldRelease = {
+        GestureRange:new{ ges = "hold_release", range = full },
+    }
     sort_widget.ges_events.ZenArrangeHandlePan = {
         GestureRange:new{ ges = "pan", range = full },
     }
@@ -1197,48 +1267,41 @@ local function install_touch_handle_drag(sort_widget)
     sort_widget.onZenArrangeHandlePan = function(self, _arg, ges)
         local pos = ges and ges.pos
         if not pos then return false end
-        self._zen_drag_last_pos = pos
         if not self._zen_dragging then
             local start_pos = ges.start_pos or pos
-            for _row_i, row in ipairs(self.main_content or {}) do
-                if row.index and is_arrange_handle_tap(row, start_pos) then
-                    cancel_drag_unfocus(self)
-                    local first = (self.show_page - 1) * self.items_per_page + 1
-                    local row_height = self.item_height + self.item_margin
-                    self._zen_drag_top = row._zen_arrange_handle.dimen.y
-                        - (row.index - first) * row_height
-                    self._zen_drag_horizontal_threshold = math.max(
-                        Size.padding.default,
-                        math.floor(row._zen_arrange_handle.dimen.w / 2)
-                    )
-                    self._zen_drag_start_x = start_pos.x
-                    self._zen_drag_page_latch = nil
-                    self._zen_dragging = true
-                    self.marked = row.index
-                    self:_populateItems()
-                    move_dragged_item(self, ges)
-                    return true
-                end
-            end
-            return false
+            if not start_touch_drag(self, start_pos, true) then return false end
         end
+        self._zen_drag_last_pos = pos
         move_dragged_item(self, ges)
         return true
     end
     sort_widget.onZenArrangeHandlePanRelease = function(self, _arg, ges)
         return finish_touch_drag(self, ges)
     end
+    sort_widget.onZenArrangeHold = function(self, _arg, ges)
+        if self._zen_dragging then return true end
+        return start_touch_drag(self, ges and ges.pos, false)
+    end
+    sort_widget.onZenArrangeHoldPan = function(self, _arg, ges)
+        local pos = ges and ges.pos
+        if not pos then return false end
+        if not self._zen_dragging then
+            local start_pos = ges.start_pos or pos
+            if not start_touch_drag(self, start_pos, false) then return false end
+        end
+        self._zen_drag_last_pos = pos
+        move_dragged_item(self, ges)
+        return true
+    end
+    sort_widget.onZenArrangeHoldRelease = function(self, _arg, ges)
+        return finish_touch_drag(self, ges)
+    end
 
     local orig_on_swipe = sort_widget.onSwipe
     sort_widget.onSwipe = function(self, arg, ges)
-        if not self._zen_dragging then
-            local start_pos = ges and (ges.start_pos or ges.pos)
-            for _row_i, row in ipairs(self.main_content or {}) do
-                if is_arrange_handle_tap(row, start_pos) then
-                    self:onZenArrangeHandlePan(nil, ges)
-                    break
-                end
-            end
+        cancel_item_drag_hold(self)
+        if not self._zen_dragging and ges then
+            self:onZenArrangeHandlePan(nil, ges)
         end
         if self._zen_dragging then return finish_touch_drag(self, ges) end
         return orig_on_swipe and orig_on_swipe(self, arg, ges)
@@ -1248,16 +1311,22 @@ local function install_touch_handle_drag(sort_widget)
     sort_widget.handleEvent = function(self, event)
         if event.handler == "onGesture" then
             local ges = event.args[1]
-            if ges and ges.ges == "pan" then
-                if self._zen_dragging then
-                    return self:onZenArrangeHandlePan(nil, ges)
-                end
-                local start_pos = ges.start_pos or ges.pos
-                for _row_i, row in ipairs(self.main_content or {}) do
-                    if is_arrange_handle_tap(row, start_pos) then
-                        return self:onZenArrangeHandlePan(nil, ges)
-                    end
-                end
+            if ges and ges.ges == "touch" then
+                if schedule_item_drag_hold(self, ges.pos) then return true end
+            elseif ges and ges.ges == "tap" then
+                if self._zen_dragging then return finish_touch_drag(self, ges) end
+                cancel_item_drag_hold(self)
+            elseif ges and ges.ges == "hold" then
+                cancel_item_drag_hold(self)
+                if self:onZenArrangeHold(nil, ges) then return true end
+            elseif ges and ges.ges == "hold_pan" then
+                cancel_item_drag_hold(self)
+                if self:onZenArrangeHoldPan(nil, ges) then return true end
+            elseif ges and ges.ges == "hold_release" and self._zen_dragging then
+                return self:onZenArrangeHoldRelease(nil, ges)
+            elseif ges and ges.ges == "pan" then
+                cancel_item_drag_hold(self)
+                if self:onZenArrangeHandlePan(nil, ges) then return true end
             elseif ges and ges.ges == "pan_release" and self._zen_dragging then
                 return self:onZenArrangeHandlePanRelease(nil, ges)
             end
@@ -1677,6 +1746,7 @@ function M.show(opts)
         if sort_widget._zen_arrange_closing then return true end
         sort_widget._zen_arrange_closing = true
         if restore_parent then show_deferred_parent() end
+        cancel_item_drag_hold(sort_widget)
         cancel_drag_unfocus(sort_widget)
         DispatcherMenu.flush(menu_proxy)
         commit_arrange_order(sort_widget)

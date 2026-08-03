@@ -1000,6 +1000,8 @@ function Driver:handleCommand(command)
                 focused_index = focused and focused.index,
                 handle_active = widget._zen_handle_active == true,
                 dragging = widget._zen_dragging == true,
+                item_drag_hold_pending = widget._zen_item_drag_hold ~= nil,
+                item_drag_hold_delay = widget._zen_item_drag_hold_delay,
                 drag_unfocus_pending = widget._zen_drag_unfocus ~= nil,
                 drop_refresh_modes = drop_refresh_modes,
                 handle_visible = first_row and first_row._zen_arrange_handle ~= nil,
@@ -1123,12 +1125,16 @@ function Driver:handleCommand(command)
                 h = 0,
             }
         end
-        local from_pos = center(from_row._zen_arrange_handle.dimen)
-        local to_pos = to_row and center(to_row._zen_arrange_handle.dimen)
+        local from_pos = center(params.start_area == "row"
+            and from_row.dimen or from_row._zen_arrange_handle.dimen)
+        local to_pos = to_row and center(params.start_area == "row"
+            and to_row.dimen or to_row._zen_arrange_handle.dimen)
             or from_pos:copy()
         if params.edge == "left" then
+            to_pos = from_pos:copy()
             to_pos.x = widget.dimen.x
         elseif params.edge == "right" then
+            to_pos = from_pos:copy()
             to_pos.x = widget.dimen.x + widget.dimen.w - 1
         elseif params.edge == "up" then
             to_pos.y = rows[1]._zen_arrange_handle.dimen.y - 1
@@ -1144,7 +1150,39 @@ function Driver:handleCommand(command)
         }
         local started
         local moved = true
-        if params.edge then
+        if params.start_gesture == "touch" then
+            started = widget:handleEvent(Event:new("Gesture", {
+                ges = "touch",
+                pos = from_pos,
+            }))
+        elseif params.start_gesture == "continue" then
+            started = widget._zen_dragging == true
+            moved = started and widget:handleEvent(Event:new("Gesture", {
+                ges = "pan",
+                pos = to_pos,
+                start_pos = from_pos,
+                relative = relative,
+            })) or false
+        elseif params.start_gesture == "hold" then
+            if params.touch_first == true then
+                widget:handleEvent(Event:new("Gesture", {
+                    ges = "touch",
+                    pos = from_pos,
+                }))
+            end
+            started = widget:handleEvent(Event:new("Gesture", {
+                ges = "hold",
+                pos = from_pos,
+            }))
+            if params.edge or to_pos.x ~= from_pos.x or to_pos.y ~= from_pos.y then
+                moved = widget:handleEvent(Event:new("Gesture", {
+                    ges = "hold_pan",
+                    pos = to_pos,
+                    start_pos = from_pos,
+                    relative = relative,
+                }))
+            end
+        elseif params.edge then
             started = widget:handleEvent(Event:new("Gesture", {
                 ges = "pan",
                 pos = to_pos,
@@ -1175,7 +1213,7 @@ function Driver:handleCommand(command)
             }))
         elseif params.release ~= false then
             released = widget:handleEvent(Event:new("Gesture", {
-                ges = "pan_release",
+                ges = params.start_gesture == "hold" and "hold_release" or "pan_release",
                 pos = to_pos,
                 start_pos = from_pos,
                 relative = relative,
@@ -1190,6 +1228,8 @@ function Driver:handleCommand(command)
             marked = widget.marked,
             page = widget.show_page,
             dragging = widget._zen_dragging == true,
+            item_drag_hold_pending = widget._zen_item_drag_hold ~= nil,
+            item_drag_hold_delay = widget._zen_item_drag_hold_delay,
             drag_unfocus_pending = widget._zen_drag_unfocus ~= nil,
         }
     end

@@ -635,18 +635,25 @@ def test_touch_arrange_drag_crosses_to_previous_page() -> None:
             assert arrange["labels"] == initial_labels
 
             first_index = (last_page - 1) * items_per_page
-            expected_labels = list(initial_labels)
-            expected_labels.insert(first_index - 1, expected_labels.pop(first_index))
             assert driver.command("arrange_page_go_to", page=last_page)["ok"] is True
             dragged = driver.command("arrange_page_drag", **{"from": 1, "edge": "left"})
             assert dragged.get("ok") is True, dragged
             assert dragged.get("marked") == 0
-            assert dragged.get("page") == last_page - 1, dragged
+            assert dragged.get("page") == last_page, dragged
             arrange = driver.command("arrange_page_state")["arrange"]
             assert arrange["handle_focus_visible"] is False
-            assert arrange["labels"] == expected_labels
+            assert arrange["labels"] == initial_labels
 
-            expected_labels = list(arrange["labels"])
+            assert driver.command("arrange_page_go_to", page=1)["ok"] is True
+            dragged = driver.command("arrange_page_drag", **{"from": 1, "edge": "right"})
+            assert dragged.get("ok") is True, dragged
+            assert dragged.get("marked") == 0
+            assert dragged.get("page") == 1, dragged
+            arrange = driver.command("arrange_page_state")["arrange"]
+            assert arrange["handle_focus_visible"] is False
+            assert arrange["labels"] == initial_labels
+
+            expected_labels = list(initial_labels)
             expected_labels.insert(first_index - 1, expected_labels.pop(first_index))
             assert driver.command("arrange_page_go_to", page=last_page)["ok"] is True
             dragged = driver.command("arrange_page_drag", **{"from": 1, "edge": "up"})
@@ -666,6 +673,88 @@ def test_touch_arrange_drag_crosses_to_previous_page() -> None:
             assert driver.command("arrange_page_back")["ok"] is True
             arrange = driver.command("arrange_page_state")["arrange"]
             assert arrange["labels"] == expected_labels
+        finally:
+            process.send_signal(signal.SIGTERM)
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+
+
+def test_touch_arrange_hold_drag_supports_rows_and_handles() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-arrange-hold-drag-") as temporary:
+        root = Path(temporary)
+        ko_home, library = root / "home", root / "library"
+        ko_home.mkdir()
+        library.mkdir()
+        socket_path = root / "driver.sock"
+        process = launch(runtime, ko_home, socket_path, library)
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            _open_buttons_arrange(driver)
+            time.sleep(0.2)
+
+            initial_labels = driver.command("arrange_page_state")["arrange"]["labels"]
+            assert len(initial_labels) > 1
+
+            touched = driver.command(
+                "arrange_page_drag",
+                **{
+                    "from": 1,
+                    "to": 2,
+                    "start_area": "row",
+                    "start_gesture": "touch",
+                    "release": False,
+                },
+            )
+            assert touched.get("ok") is True, touched
+            assert touched.get("dragging") is False
+            assert touched.get("item_drag_hold_pending") is True
+            assert touched.get("item_drag_hold_delay") == 0.25
+
+            time.sleep(0.35)
+            armed = driver.command("arrange_page_state")["arrange"]
+            assert armed.get("dragging") is True
+            assert armed.get("marked") == 1
+            assert armed.get("item_drag_hold_pending") is False
+
+            dragged = driver.command(
+                "arrange_page_drag",
+                **{
+                    "from": 1,
+                    "to": 2,
+                    "start_area": "row",
+                    "start_gesture": "continue",
+                },
+            )
+            assert dragged.get("ok") is True, dragged
+            labels = driver.command("arrange_page_state")["arrange"]["labels"]
+            assert labels[:2] == initial_labels[1::-1]
+
+            dragged = driver.command(
+                "arrange_page_drag",
+                **{
+                    "from": 1,
+                    "to": 2,
+                    "start_area": "handle",
+                    "start_gesture": "hold",
+                },
+            )
+            assert dragged.get("ok") is True, dragged
+            labels = driver.command("arrange_page_state")["arrange"]["labels"]
+            assert labels[:2] == initial_labels[:2]
+
+            rejected = driver.command(
+                "arrange_page_drag",
+                **{"from": 1, "to": 2, "start_area": "row"},
+            )
+            assert rejected.get("ok") is False, rejected
+            assert rejected.get("dragging") is False
+            labels = driver.command("arrange_page_state")["arrange"]["labels"]
+            assert labels[:2] == initial_labels[:2]
         finally:
             process.send_signal(signal.SIGTERM)
             try:
