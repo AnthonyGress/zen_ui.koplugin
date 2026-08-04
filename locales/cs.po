@@ -666,6 +666,9 @@ msgstr "Tmavě teplá šedá"
 msgid "Date"
 msgstr "Datum"
 
+msgid "Date/time widget"
+msgstr "Widget Datum/čas"
+
 msgid "Day brightness"
 msgstr "Denní jas"
 
@@ -917,6 +920,15 @@ msgstr "Zprávu se nepodařilo odeslat: "
 
 msgid "Favorites"
 msgstr "Oblíbené"
+
+msgid "Featured Book"
+msgstr "Doporučená kniha"
+
+msgid "Featured Books"
+msgstr "Doporučené knihy"
+
+msgid "Featured widget"
+msgstr "Doporučený widget"
 
 msgid "Featured widgets"
 msgstr "Doporučené widgety"
@@ -1473,6 +1485,9 @@ msgstr "Nenalezeny žádné spustitelné nabídky doplňků"
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Nepřipojeno. Připojte se k síti Wi-Fi a zkuste to znovu."
 
+msgid "No quote available."
+msgstr "Není k dispozici žádný citát."
+
 msgid "No reader engine for this file or invalid file."
 msgstr "Pro tento soubor neexistuje čtecí modul nebo je soubor neplatný."
 
@@ -1707,6 +1722,9 @@ msgstr "Ukončit"
 msgid "Quit KOReader"
 msgstr "Ukončit KOReader"
 
+msgid "Quote"
+msgstr "Citát"
+
 msgid "Quote font size"
 msgstr "Velikost písma nabídky"
 
@@ -1766,6 +1784,12 @@ msgstr "Cíle čtení"
 
 msgid "Reading goals font size"
 msgstr "Velikost písma pro čtení cílů"
+
+msgid "Reading goals widget"
+msgstr "Widget pro čtení cílů"
+
+msgid "Reading stats"
+msgstr "Statistiky čtení"
 
 msgid "Reading stats widget"
 msgstr "Widget statistik čtení"
@@ -2214,6 +2238,9 @@ msgstr "Pruh"
 msgid "Stream from page"
 msgstr "Proud od stránky"
 
+msgid "Strip widget"
+msgstr "Widget Strip"
+
 msgid "Strip widgets"
 msgstr "Proužkové widgety"
 
@@ -2249,6 +2276,9 @@ msgstr "Karty"
 
 msgid "Tag"
 msgstr "Štítek"
+
+msgid "Tag books"
+msgstr "Knihy se štítky"
 
 msgid "Tag strip widget"
 msgstr "Widget proužku značek"

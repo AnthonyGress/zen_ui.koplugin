@@ -666,6 +666,9 @@ msgstr "Màu xám đậm ấm áp"
 msgid "Date"
 msgstr "Ngày"
 
+msgid "Date/time widget"
+msgstr "Tiện ích ngày/giờ"
+
 msgid "Day brightness"
 msgstr "Độ sáng ban ngày"
 
@@ -917,6 +920,15 @@ msgstr "Không thể gửi báo cáo: "
 
 msgid "Favorites"
 msgstr "Yêu thích"
+
+msgid "Featured Book"
+msgstr "Sách nổi bật"
+
+msgid "Featured Books"
+msgstr "Sách nổi bật"
+
+msgid "Featured widget"
+msgstr "Tiện ích nổi bật"
 
 msgid "Featured widgets"
 msgstr "Widget nổi bật"
@@ -1473,6 +1485,9 @@ msgstr "Không tìm thấy menu plugin nào có thể khởi chạy"
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Không có kết nối mạng. Vui lòng kết nối Wi-Fi và thử lại."
 
+msgid "No quote available."
+msgstr "Không có trích dẫn nào."
+
 msgid "No reader engine for this file or invalid file."
 msgstr "Không có trình đọc cho tệp này hoặc tệp không hợp lệ."
 
@@ -1707,6 +1722,9 @@ msgstr "Thoát"
 msgid "Quit KOReader"
 msgstr "Thoát KOReader"
 
+msgid "Quote"
+msgstr "Trích dẫn"
+
 msgid "Quote font size"
 msgstr "Cỡ chữ trích dẫn"
 
@@ -1766,6 +1784,12 @@ msgstr "Mục tiêu đọc"
 
 msgid "Reading goals font size"
 msgstr "Kích thước phông chữ mục tiêu đọc"
+
+msgid "Reading goals widget"
+msgstr "Tiện ích đọc mục tiêu"
+
+msgid "Reading stats"
+msgstr "Thống kê đọc"
 
 msgid "Reading stats widget"
 msgstr "Widget thống kê đọc"
@@ -2214,6 +2238,9 @@ msgstr "Chuỗi"
 msgid "Stream from page"
 msgstr "Phát từ trang"
 
+msgid "Strip widget"
+msgstr "Dải tiện ích"
+
 msgid "Strip widgets"
 msgstr "Widget dải"
 
@@ -2249,6 +2276,9 @@ msgstr "Tab"
 
 msgid "Tag"
 msgstr "Nhãn"
+
+msgid "Tag books"
+msgstr "Sách được gắn thẻ"
 
 msgid "Tag strip widget"
 msgstr "Tiện ích dải thẻ"

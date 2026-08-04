@@ -666,6 +666,9 @@ msgstr "Тёмный тёплый серый"
 msgid "Date"
 msgstr "Дата"
 
+msgid "Date/time widget"
+msgstr "Виджет даты/времени"
+
 msgid "Day brightness"
 msgstr "Яркость (день)"
 
@@ -917,6 +920,15 @@ msgstr "Не удалось отправить отчёт: "
 
 msgid "Favorites"
 msgstr "Избранное"
+
+msgid "Featured Book"
+msgstr "Рекомендуемая книга"
+
+msgid "Featured Books"
+msgstr "Рекомендуемые книги"
+
+msgid "Featured widget"
+msgstr "Рекомендуемый виджет"
 
 msgid "Featured widgets"
 msgstr "Главные виджеты"
@@ -1473,6 +1485,9 @@ msgstr "Не найдено запускаемых меню плагинов"
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Нет подключения к сети. Подключитесь к Wi-Fi и повторите попытку."
 
+msgid "No quote available."
+msgstr "Нет доступной цитаты."
+
 msgid "No reader engine for this file or invalid file."
 msgstr "Нет движка чтения для этого файла или файл недействителен."
 
@@ -1707,6 +1722,9 @@ msgstr "Закрыть"
 msgid "Quit KOReader"
 msgstr "Закрыть KOReader"
 
+msgid "Quote"
+msgstr "Цитата"
+
 msgid "Quote font size"
 msgstr "Размер шрифта цитаты"
 
@@ -1766,6 +1784,12 @@ msgstr "Цели чтения"
 
 msgid "Reading goals font size"
 msgstr "Размер шрифта целей чтения"
+
+msgid "Reading goals widget"
+msgstr "Виджет целей чтения"
+
+msgid "Reading stats"
+msgstr "Статистика чтения"
 
 msgid "Reading stats widget"
 msgstr "Виджет статистики чтения"
@@ -2214,6 +2238,9 @@ msgstr "Серия"
 msgid "Stream from page"
 msgstr "Поток со страницы"
 
+msgid "Strip widget"
+msgstr "Виджет полосы"
+
 msgid "Strip widgets"
 msgstr "Виджеты ленты"
 
@@ -2249,6 +2276,9 @@ msgstr "Вкладки"
 
 msgid "Tag"
 msgstr "Тег"
+
+msgid "Tag books"
+msgstr "Книги с тегами"
 
 msgid "Tag strip widget"
 msgstr "Виджет полосы тегов"

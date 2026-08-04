@@ -24,6 +24,13 @@ local _ = require("gettext")
 local M = {}
 M.SIZE = "l"
 
+local function time_unit(unit)
+    if type(_) == "table" and type(_.pgettext) == "function" then
+        return _.pgettext("Time", unit)
+    end
+    return _(unit)
+end
+
 local DEFAULT_TEXT_STYLES = {
     title = { font_face = "default", font_size = 11, bold = true },
     author = { font_face = "default", font_size = 9, bold = false },
@@ -115,9 +122,10 @@ local function fmt_duration(secs)
     local hours = math.floor(secs / 3600)
     local mins = math.floor((secs % 3600) / 60)
     if hours > 0 then
-        return tostring(hours) .. "h " .. tostring(mins) .. "m"
+        return tostring(hours) .. time_unit("h") .. " "
+            .. tostring(mins) .. time_unit("m")
     end
-    return tostring(math.max(1, mins)) .. "m"
+    return tostring(math.max(1, mins)) .. time_unit("m")
 end
 
 local function format_series(book)

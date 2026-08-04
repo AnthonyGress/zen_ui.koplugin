@@ -675,6 +675,9 @@ msgstr "Тъмно топло сиво"
 msgid "Date"
 msgstr "Дата"
 
+msgid "Date/time widget"
+msgstr "Джаджа за дата/час"
+
 msgid "Day brightness"
 msgstr "Дневна яркост"
 
@@ -926,6 +929,15 @@ msgstr "Неуспешно изпращане на доклада: "
 
 msgid "Favorites"
 msgstr "Любими"
+
+msgid "Featured Book"
+msgstr "Представена книга"
+
+msgid "Featured Books"
+msgstr "Представени книги"
+
+msgid "Featured widget"
+msgstr "Представена джаджа"
 
 msgid "Featured widgets"
 msgstr "Избрани уиджети"
@@ -1482,6 +1494,9 @@ msgstr "Не са намерени менюта на плъгини за ста�
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Няма мрежова връзка. Моля, свържете се с Wi-Fi и опитайте отново."
 
+msgid "No quote available."
+msgstr "Няма наличен цитат."
+
 msgid "No reader engine for this file or invalid file."
 msgstr "Няма четец за този файл или файлът е невалиден."
 
@@ -1716,6 +1731,9 @@ msgstr "Затваряне"
 msgid "Quit KOReader"
 msgstr "Затваряне на KOReader"
 
+msgid "Quote"
+msgstr "Цитат"
+
 msgid "Quote font size"
 msgstr "Размер на шрифта на офертата"
 
@@ -1775,6 +1793,12 @@ msgstr "Цели за четене"
 
 msgid "Reading goals font size"
 msgstr "Размер на шрифта на цели за четене"
+
+msgid "Reading goals widget"
+msgstr "Приспособление за цели за четене"
+
+msgid "Reading stats"
+msgstr "Статистика за четене"
 
 msgid "Reading stats widget"
 msgstr "Уиджет за статистика на четенето"
@@ -2223,6 +2247,9 @@ msgstr "Серия"
 msgid "Stream from page"
 msgstr "Поток от страница"
 
+msgid "Strip widget"
+msgstr "Джаджа за ленти"
+
 msgid "Strip widgets"
 msgstr "Лентови уиджети"
 
@@ -2258,6 +2285,9 @@ msgstr "Раздели"
 
 msgid "Tag"
 msgstr "Етикет"
+
+msgid "Tag books"
+msgstr "Книги с етикети"
 
 msgid "Tag strip widget"
 msgstr "Приспособление за лента с етикети"

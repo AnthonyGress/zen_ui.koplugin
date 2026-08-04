@@ -666,6 +666,9 @@ msgstr "Dunkles warmes Grau"
 msgid "Date"
 msgstr "Datum"
 
+msgid "Date/time widget"
+msgstr "Datum/Uhrzeit-Widget"
+
 msgid "Day brightness"
 msgstr "Tageshelligkeit"
 
@@ -917,6 +920,15 @@ msgstr "Bericht konnte nicht gesendet werden: "
 
 msgid "Favorites"
 msgstr "Favoriten"
+
+msgid "Featured Book"
+msgstr "Empfohlenes Buch"
+
+msgid "Featured Books"
+msgstr "Ausgewählte Bücher"
+
+msgid "Featured widget"
+msgstr "Empfohlenes Widget"
 
 msgid "Featured widgets"
 msgstr "Hervorgehobene Widgets"
@@ -1473,6 +1485,9 @@ msgstr "Keine startbaren Plugin-Menüs gefunden"
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Keine Netzwerkverbindung. Bitte mit dem WLAN verbinden und erneut versuchen."
 
+msgid "No quote available."
+msgstr "Kein Zitat verfügbar."
+
 msgid "No reader engine for this file or invalid file."
 msgstr "Keine Lese-Engine für diese Datei oder ungültige Datei."
 
@@ -1707,6 +1722,9 @@ msgstr "Verlassen"
 msgid "Quit KOReader"
 msgstr "KOReader verlassen"
 
+msgid "Quote"
+msgstr "Zitat"
+
 msgid "Quote font size"
 msgstr "Schriftgröße des Zitats"
 
@@ -1766,6 +1784,12 @@ msgstr "Leseziele"
 
 msgid "Reading goals font size"
 msgstr "Schriftgröße für Leseziele"
+
+msgid "Reading goals widget"
+msgstr "Widget „Leseziele“."
+
+msgid "Reading stats"
+msgstr "Lesestatistik"
 
 msgid "Reading stats widget"
 msgstr "Lesestatistik-Widget"
@@ -2214,6 +2238,9 @@ msgstr "Strähne"
 msgid "Stream from page"
 msgstr "Stream ab Seite"
 
+msgid "Strip widget"
+msgstr "Strip-Widget"
+
 msgid "Strip widgets"
 msgstr "Streifen-Widgets"
 
@@ -2249,6 +2276,9 @@ msgstr "Tabs"
 
 msgid "Tag"
 msgstr "Etikett"
+
+msgid "Tag books"
+msgstr "Bücher mit Tags"
 
 msgid "Tag strip widget"
 msgstr "Tag-Strip-Widget"

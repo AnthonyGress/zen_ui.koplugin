@@ -666,6 +666,9 @@ msgstr "ダークウォームグレー"
 msgid "Date"
 msgstr "日付"
 
+msgid "Date/time widget"
+msgstr "日付/時刻ウィジェット"
+
 msgid "Day brightness"
 msgstr "日中明るさ"
 
@@ -917,6 +920,15 @@ msgstr "レポート送信に失敗しました: "
 
 msgid "Favorites"
 msgstr "お気に入り"
+
+msgid "Featured Book"
+msgstr "注目の本"
+
+msgid "Featured Books"
+msgstr "注目の書籍"
+
+msgid "Featured widget"
+msgstr "注目のウィジェット"
 
 msgid "Featured widgets"
 msgstr "注目ウィジェット"
@@ -1473,6 +1485,9 @@ msgstr "起動可能なプラグインメニューが見つかりません"
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "ネットワーク接続がありません。Wi-Fiに接続して再試行してください。"
 
+msgid "No quote available."
+msgstr "利用できる引用はありません。"
+
 msgid "No reader engine for this file or invalid file."
 msgstr "このファイルに対応するリーダーエンジンがないか、無効なファイルです。"
 
@@ -1707,6 +1722,9 @@ msgstr "終了"
 msgid "Quit KOReader"
 msgstr "KOReaderを終了"
 
+msgid "Quote"
+msgstr "引用"
+
 msgid "Quote font size"
 msgstr "引用のフォントサイズ"
 
@@ -1766,6 +1784,12 @@ msgstr "読書目標"
 
 msgid "Reading goals font size"
 msgstr "読書目標のフォントサイズ"
+
+msgid "Reading goals widget"
+msgstr "読書目標ウィジェット"
+
+msgid "Reading stats"
+msgstr "読書統計"
 
 msgid "Reading stats widget"
 msgstr "読書統計ウィジェット"
@@ -2214,6 +2238,9 @@ msgstr "連続記録"
 msgid "Stream from page"
 msgstr "ページからストリーム"
 
+msgid "Strip widget"
+msgstr "ストリップウィジェット"
+
 msgid "Strip widgets"
 msgstr "ストリップウィジェット"
 
@@ -2249,6 +2276,9 @@ msgstr "タブ"
 
 msgid "Tag"
 msgstr "タグ"
+
+msgid "Tag books"
+msgstr "タグ付きの本"
 
 msgid "Tag strip widget"
 msgstr "タグストリップウィジェット"

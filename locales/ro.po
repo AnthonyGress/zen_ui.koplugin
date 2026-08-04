@@ -666,6 +666,9 @@ msgstr "Gri cald închis"
 msgid "Date"
 msgstr "Data"
 
+msgid "Date/time widget"
+msgstr "Widget data/ora"
+
 msgid "Day brightness"
 msgstr "Luminozitate zi"
 
@@ -917,6 +920,15 @@ msgstr "Trimiterea raportului a eșuat: "
 
 msgid "Favorites"
 msgstr "Favorite"
+
+msgid "Featured Book"
+msgstr "Carte recomandată"
+
+msgid "Featured Books"
+msgstr "Cărți recomandate"
+
+msgid "Featured widget"
+msgstr "Widget recomandat"
 
 msgid "Featured widgets"
 msgstr "Widgeturi principale"
@@ -1473,6 +1485,9 @@ msgstr "Nu au fost găsite meniuri de pluginuri lansabile"
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Fără conexiune la rețea. Conectați-vă la Wi-Fi și încercați din nou."
 
+msgid "No quote available."
+msgstr "Nu este disponibil niciun citat."
+
 msgid "No reader engine for this file or invalid file."
 msgstr "Niciun motor de citire pentru acest fișier sau fișier invalid."
 
@@ -1707,6 +1722,9 @@ msgstr "Închide"
 msgid "Quit KOReader"
 msgstr "Închide KOReader"
 
+msgid "Quote"
+msgstr "Citat"
+
 msgid "Quote font size"
 msgstr "Dimensiunea fontului citat"
 
@@ -1766,6 +1784,12 @@ msgstr "Obiective de lectură"
 
 msgid "Reading goals font size"
 msgstr "Dimensiunea fontului obiectivelor de citire"
+
+msgid "Reading goals widget"
+msgstr "Widget pentru obiective de citire"
+
+msgid "Reading stats"
+msgstr "Statistici de lectură"
 
 msgid "Reading stats widget"
 msgstr "Widget statistici de lectură"
@@ -2214,6 +2238,9 @@ msgstr "Serie"
 msgid "Stream from page"
 msgstr "Flux de la pagina"
 
+msgid "Strip widget"
+msgstr "Widget bandă"
+
 msgid "Strip widgets"
 msgstr "Widgeturi bandă"
 
@@ -2249,6 +2276,9 @@ msgstr "File"
 
 msgid "Tag"
 msgstr "Etichetă"
+
+msgid "Tag books"
+msgstr "Cărți etichetate"
 
 msgid "Tag strip widget"
 msgstr "Widget cu bandă de etichete"

@@ -666,6 +666,9 @@ msgstr "Donker warmgrijs"
 msgid "Date"
 msgstr "Datum"
 
+msgid "Date/time widget"
+msgstr "Datum/tijd-widget"
+
 msgid "Day brightness"
 msgstr "Dagheldheid"
 
@@ -917,6 +920,15 @@ msgstr "Indienen van rapport mislukt: "
 
 msgid "Favorites"
 msgstr "Favorieten"
+
+msgid "Featured Book"
+msgstr "Uitgelicht boek"
+
+msgid "Featured Books"
+msgstr "Uitgelichte boeken"
+
+msgid "Featured widget"
+msgstr "Uitgelichte widget"
 
 msgid "Featured widgets"
 msgstr "Uitgelichte widgets"
@@ -1473,6 +1485,9 @@ msgstr "Geen startbare plug-inmenu's gevonden"
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Geen netwerkverbinding. Maak verbinding met Wi-Fi en probeer opnieuw."
 
+msgid "No quote available."
+msgstr "Geen citaat beschikbaar."
+
 msgid "No reader engine for this file or invalid file."
 msgstr "Geen leesmotor voor dit bestand of ongeldig bestand."
 
@@ -1707,6 +1722,9 @@ msgstr "Afsluiten"
 msgid "Quit KOReader"
 msgstr "KOReader sluiten"
 
+msgid "Quote"
+msgstr "Citaat"
+
 msgid "Quote font size"
 msgstr "Citeer de lettergrootte"
 
@@ -1766,6 +1784,12 @@ msgstr "Leesdoelen"
 
 msgid "Reading goals font size"
 msgstr "Lettergrootte van leesdoelen"
+
+msgid "Reading goals widget"
+msgstr "Widget voor leesdoelen"
+
+msgid "Reading stats"
+msgstr "Leesstatistieken"
 
 msgid "Reading stats widget"
 msgstr "Leesstatistiekenwidget"
@@ -2214,6 +2238,9 @@ msgstr "Reeks"
 msgid "Stream from page"
 msgstr "Streamen vanaf pagina"
 
+msgid "Strip widget"
+msgstr "Strip-widget"
+
 msgid "Strip widgets"
 msgstr "Strookwidgets"
 
@@ -2249,6 +2276,9 @@ msgstr "Tabbladen"
 
 msgid "Tag"
 msgstr "Label"
+
+msgid "Tag books"
+msgstr "Getagde boeken"
 
 msgid "Tag strip widget"
 msgstr "Tagstrip-widget"

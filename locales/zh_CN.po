@@ -666,6 +666,9 @@ msgstr "深暖灰"
 msgid "Date"
 msgstr "日期"
 
+msgid "Date/time widget"
+msgstr "日期/时间小部件"
+
 msgid "Day brightness"
 msgstr "白天亮度"
 
@@ -917,6 +920,15 @@ msgstr "提交报告失败："
 
 msgid "Favorites"
 msgstr "收藏夹"
+
+msgid "Featured Book"
+msgstr "精选书籍"
+
+msgid "Featured Books"
+msgstr "特色书籍"
+
+msgid "Featured widget"
+msgstr "特色小部件"
 
 msgid "Featured widgets"
 msgstr "精选小组件"
@@ -1473,6 +1485,9 @@ msgstr "未找到可启动的插件菜单"
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "无网络连接。请连接 Wi-Fi 后重试。"
 
+msgid "No quote available."
+msgstr "没有可用的引文。"
+
 msgid "No reader engine for this file or invalid file."
 msgstr "此文件没有可用的阅读引擎或文件无效。"
 
@@ -1707,6 +1722,9 @@ msgstr "退出"
 msgid "Quit KOReader"
 msgstr "退出 KOReader"
 
+msgid "Quote"
+msgstr "引文"
+
 msgid "Quote font size"
 msgstr "报价字体大小"
 
@@ -1766,6 +1784,12 @@ msgstr "阅读目标"
 
 msgid "Reading goals font size"
 msgstr "阅读目标字体大小"
+
+msgid "Reading goals widget"
+msgstr "阅读目标小部件"
+
+msgid "Reading stats"
+msgstr "阅读统计数据"
 
 msgid "Reading stats widget"
 msgstr "阅读统计小组件"
@@ -2214,6 +2238,9 @@ msgstr "连续阅读"
 msgid "Stream from page"
 msgstr "从页面串流"
 
+msgid "Strip widget"
+msgstr "条带小部件"
+
 msgid "Strip widgets"
 msgstr "横条小组件"
 
@@ -2249,6 +2276,9 @@ msgstr "标签"
 
 msgid "Tag"
 msgstr "标签"
+
+msgid "Tag books"
+msgstr "带标签的书籍"
 
 msgid "Tag strip widget"
 msgstr "标签条小部件"

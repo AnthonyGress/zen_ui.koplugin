@@ -666,6 +666,9 @@ msgstr "Dark warm gray"
 msgid "Date"
 msgstr "Date"
 
+msgid "Date/time widget"
+msgstr "Date/time widget"
+
 msgid "Day brightness"
 msgstr "Day brightness"
 
@@ -917,6 +920,15 @@ msgstr "Failed to submit report: "
 
 msgid "Favorites"
 msgstr "Favorites"
+
+msgid "Featured Book"
+msgstr "Featured Book"
+
+msgid "Featured Books"
+msgstr "Featured Books"
+
+msgid "Featured widget"
+msgstr "Featured widget"
 
 msgid "Featured widgets"
 msgstr "Featured widgets"
@@ -1473,6 +1485,9 @@ msgstr "No launchable plugin menus found"
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "No network connection. Please connect to Wi-Fi and try again."
 
+msgid "No quote available."
+msgstr "No quote available."
+
 msgid "No reader engine for this file or invalid file."
 msgstr "No reader engine for this file or invalid file."
 
@@ -1707,6 +1722,9 @@ msgstr "Quit"
 msgid "Quit KOReader"
 msgstr "Quit KOReader"
 
+msgid "Quote"
+msgstr "Quote"
+
 msgid "Quote font size"
 msgstr "Quote font size"
 
@@ -1766,6 +1784,12 @@ msgstr "Reading goals"
 
 msgid "Reading goals font size"
 msgstr "Reading goals font size"
+
+msgid "Reading goals widget"
+msgstr "Reading goals widget"
+
+msgid "Reading stats"
+msgstr "Reading stats"
 
 msgid "Reading stats widget"
 msgstr "Reading stats widget"
@@ -2214,6 +2238,9 @@ msgstr "Streak"
 msgid "Stream from page"
 msgstr "Stream from page"
 
+msgid "Strip widget"
+msgstr "Strip widget"
+
 msgid "Strip widgets"
 msgstr "Strip widgets"
 
@@ -2249,6 +2276,9 @@ msgstr "Tabs"
 
 msgid "Tag"
 msgstr "Tag"
+
+msgid "Tag books"
+msgstr "Tag books"
 
 msgid "Tag strip widget"
 msgstr "Tag strip widget"

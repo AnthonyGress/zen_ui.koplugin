@@ -666,6 +666,9 @@ msgstr "Темно теплий сірий"
 msgid "Date"
 msgstr "Дата"
 
+msgid "Date/time widget"
+msgstr "Віджет дати/часу"
+
 msgid "Day brightness"
 msgstr "Денна яскравість"
 
@@ -917,6 +920,15 @@ msgstr "Не вдалося надіслати звіт: "
 
 msgid "Favorites"
 msgstr "Улюблене"
+
+msgid "Featured Book"
+msgstr "Рекомендована книга"
+
+msgid "Featured Books"
+msgstr "Рекомендовані книги"
+
+msgid "Featured widget"
+msgstr "Рекомендований віджет"
 
 msgid "Featured widgets"
 msgstr "Головні віджети"
@@ -1473,6 +1485,9 @@ msgstr "Меню плагінів, які можна запустити, не з
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Немає підключення до мережі. Будь ласка, підключіться до Wi-Fi та спробуйте ще раз."
 
+msgid "No quote available."
+msgstr "Немає доступної цитати."
+
 msgid "No reader engine for this file or invalid file."
 msgstr "Немає рушія читання для цього файлу або файл пошкоджено."
 
@@ -1707,6 +1722,9 @@ msgstr "Завершити"
 msgid "Quit KOReader"
 msgstr "Завершити KOReader"
 
+msgid "Quote"
+msgstr "Цитата"
+
 msgid "Quote font size"
 msgstr "Розмір шрифту цитати"
 
@@ -1766,6 +1784,12 @@ msgstr "Цілі читання"
 
 msgid "Reading goals font size"
 msgstr "Розмір шрифту цілей читання"
+
+msgid "Reading goals widget"
+msgstr "Віджет цілей читання"
+
+msgid "Reading stats"
+msgstr "Статистика читання"
 
 msgid "Reading stats widget"
 msgstr "Віджет статистики читання"
@@ -2214,6 +2238,9 @@ msgstr "Серія"
 msgid "Stream from page"
 msgstr "Потік зі сторінки"
 
+msgid "Strip widget"
+msgstr "Віджет Strip"
+
 msgid "Strip widgets"
 msgstr "Рядкові віджети"
 
@@ -2249,6 +2276,9 @@ msgstr "Вкладки"
 
 msgid "Tag"
 msgstr "Тег"
+
+msgid "Tag books"
+msgstr "Книги з тегами"
 
 msgid "Tag strip widget"
 msgstr "Віджет стрічки тегів"

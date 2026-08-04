@@ -666,6 +666,9 @@ msgstr "深暖灰"
 msgid "Date"
 msgstr "日期"
 
+msgid "Date/time widget"
+msgstr "日期/時間小工具"
+
 msgid "Day brightness"
 msgstr "白天亮度"
 
@@ -917,6 +920,15 @@ msgstr "送出報告失敗："
 
 msgid "Favorites"
 msgstr "我的最愛"
+
+msgid "Featured Book"
+msgstr "精選書籍"
+
+msgid "Featured Books"
+msgstr "特色書籍"
+
+msgid "Featured widget"
+msgstr "特色小部件"
 
 msgid "Featured widgets"
 msgstr "精選小工具"
@@ -1473,6 +1485,9 @@ msgstr "找不到可啟動的外掛程式選單"
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "無網路連線。請連接 Wi-Fi 後再試一次。"
 
+msgid "No quote available."
+msgstr "沒有可用的引文。"
+
 msgid "No reader engine for this file or invalid file."
 msgstr "此檔案沒有可用的閱讀引擎或檔案無效。"
 
@@ -1707,6 +1722,9 @@ msgstr "結束"
 msgid "Quit KOReader"
 msgstr "結束 KOReader"
 
+msgid "Quote"
+msgstr "引文"
+
 msgid "Quote font size"
 msgstr "報價字體大小"
 
@@ -1766,6 +1784,12 @@ msgstr "閱讀目標"
 
 msgid "Reading goals font size"
 msgstr "閱讀目標字體大小"
+
+msgid "Reading goals widget"
+msgstr "閱讀目標小工具"
+
+msgid "Reading stats"
+msgstr "閱讀統計數據"
 
 msgid "Reading stats widget"
 msgstr "閱讀統計小工具"
@@ -2214,6 +2238,9 @@ msgstr "連續閱讀"
 msgid "Stream from page"
 msgstr "從頁面串流"
 
+msgid "Strip widget"
+msgstr "條帶小部件"
+
 msgid "Strip widgets"
 msgstr "橫列小工具"
 
@@ -2249,6 +2276,9 @@ msgstr "標籤"
 
 msgid "Tag"
 msgstr "標籤"
+
+msgid "Tag books"
+msgstr "帶標籤的書籍"
 
 msgid "Tag strip widget"
 msgstr "標籤條小工具"

@@ -666,6 +666,9 @@ msgstr "Cinza quente escuro"
 msgid "Date"
 msgstr "Data"
 
+msgid "Date/time widget"
+msgstr "Widget de data/hora"
+
 msgid "Day brightness"
 msgstr "Brilho diurno"
 
@@ -917,6 +920,15 @@ msgstr "Falha ao enviar o relatório: "
 
 msgid "Favorites"
 msgstr "Favoritos"
+
+msgid "Featured Book"
+msgstr "Livro em destaque"
+
+msgid "Featured Books"
+msgstr "Livros em destaque"
+
+msgid "Featured widget"
+msgstr "Widget em destaque"
 
 msgid "Featured widgets"
 msgstr "Widgets destacados"
@@ -1473,6 +1485,9 @@ msgstr "Nenhum menu de plugin iniciável encontrado"
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Sem conexão de rede. Conecte-se ao Wi-Fi e tente novamente."
 
+msgid "No quote available."
+msgstr "Nenhuma citação disponível."
+
 msgid "No reader engine for this file or invalid file."
 msgstr "Nenhum mecanismo de leitura para este arquivo ou arquivo inválido."
 
@@ -1707,6 +1722,9 @@ msgstr "Fechar"
 msgid "Quit KOReader"
 msgstr "Fechar KOReader"
 
+msgid "Quote"
+msgstr "Citação"
+
 msgid "Quote font size"
 msgstr "Citação do tamanho da fonte"
 
@@ -1766,6 +1784,12 @@ msgstr "Metas de leitura"
 
 msgid "Reading goals font size"
 msgstr "Tamanho da fonte das metas de leitura"
+
+msgid "Reading goals widget"
+msgstr "Widget de metas de leitura"
+
+msgid "Reading stats"
+msgstr "Estatísticas de leitura"
 
 msgid "Reading stats widget"
 msgstr "Widget de estatísticas de leitura"
@@ -2214,6 +2238,9 @@ msgstr "Sequência"
 msgid "Stream from page"
 msgstr "Transmitir da página"
 
+msgid "Strip widget"
+msgstr "Widget de tira"
+
 msgid "Strip widgets"
 msgstr "Widgets de faixa"
 
@@ -2249,6 +2276,9 @@ msgstr "Abas"
 
 msgid "Tag"
 msgstr "Etiqueta"
+
+msgid "Tag books"
+msgstr "Livros com etiquetas"
 
 msgid "Tag strip widget"
 msgstr "Widget de faixa de tags"
