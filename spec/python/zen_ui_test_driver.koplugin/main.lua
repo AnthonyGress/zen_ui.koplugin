@@ -631,6 +631,12 @@ function Driver:handleCommand(command)
     if kind == "home_state" then
         return { ok = true, home = home_state() }
     end
+    if kind == "set_language" and type(params.language) == "string" then
+        G_reader_settings:saveSetting("language", params.language)
+        local GetText = require("gettext")
+        local result = GetText.changeLang(params.language)
+        return { ok = result ~= false, language = GetText.current_lang }
+    end
     if kind == "open_settings_page" then
         local FileManager = require("apps/filemanager/filemanager")
         local menu = FileManager.instance and FileManager.instance.menu

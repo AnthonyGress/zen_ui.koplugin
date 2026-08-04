@@ -80,6 +80,32 @@ def _open_buttons_arrange(driver: ZenDriver) -> None:
     raise AssertionError("Buttons arrange page did not open")
 
 
+def test_pt_br_settings_root_labels_are_localized() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-pt-br-") as temporary:
+        root = Path(temporary)
+        ko_home, library = root / "home", root / "library"
+        ko_home.mkdir()
+        library.mkdir()
+        socket_path = root / "driver.sock"
+        process = launch(runtime, ko_home, socket_path, library)
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            assert driver.command("set_language", language="pt_BR")["ok"] is True
+            assert driver.command("open_settings_page")["ok"] is True
+            labels = driver.command("settings_page_state")["settings"]["labels"]
+            assert {"Biblioteca", "Barra de navegação", "Adicionais"}.issubset(labels)
+            assert {"Library", "Navbar", "Extras"}.isdisjoint(labels)
+        finally:
+            process.send_signal(signal.SIGTERM)
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+
+
 def test_action_selection_saves_immediately_and_x_closes_settings_stack() -> None:
     runtime = Path(os.environ["KOREADER_DIR"])
     with tempfile.TemporaryDirectory(prefix="zen-ui-action-save-") as temporary:

@@ -8,6 +8,7 @@ local util = require("util")
 local _ = require("gettext")
 
 local ArrangeState = require("common/arrange_state")
+local I18n = require("common/i18n")
 local IconItem = require("common/ui/icon_menu_item")
 local SettingsTitleBar = require("common/ui/zen_settings_titlebar")
 local TopMenu = require("modules/global/patches/menu_top_swipe")
@@ -813,6 +814,7 @@ function M.show(plugin, opts)
     pending_arrange_resume = nil
     restoring_arrange_resume = resume and resume.arrange or nil
     arrange_open_context = nil
+    I18n.refresh()
     local root_items = zen_settings.build(plugin).sub_item_table
     root_items._zen_title = _("Settings")
     local page = ZenSettingsPage:new{

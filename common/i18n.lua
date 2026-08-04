@@ -190,6 +190,16 @@ local function install()
     logger.info("installed for lang=" .. (detectLang() or "?"))
 end
 
+local function refresh()
+    if not _installed then
+        install()
+        return _installed
+    end
+    if not _orig_gettext then return false end
+    applyZenTranslations(_orig_gettext, detectLang())
+    return true
+end
+
 local function uninstall()
     if not _installed then return end
     if _orig_gettext and _orig_changeLang then
@@ -213,6 +223,7 @@ end
 
 return {
     install   = install,
+    refresh   = refresh,
     uninstall = uninstall,
     getLang   = detectLang,
 }

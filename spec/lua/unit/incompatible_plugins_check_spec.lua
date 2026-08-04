@@ -7,10 +7,12 @@ describe("incompatible plugin and patch check", function()
     local original_ptutil
     local original_sui_core
     local original_quickmenu
+    local original_readermenuredesign_installer
     local original_suntime
     local original_appearance_setting
     local UIManager
     local settings
+    local logs
     local data_dir
     local patch_dir
 
@@ -41,11 +43,13 @@ describe("incompatible plugin and patch check", function()
         original_ptutil = package.loaded["ptutil"]
         original_sui_core = package.loaded["sui_core"]
         original_quickmenu = package.loaded["quickmenu"]
+        original_readermenuredesign_installer = package.loaded["readermenuredesign_installer"]
         original_suntime = package.loaded["suntime"]
         original_appearance_setting = package.loaded["lib/setting"]
         package.loaded["ptutil"] = nil
         package.loaded["sui_core"] = nil
         package.loaded["quickmenu"] = nil
+        package.loaded["readermenuredesign_installer"] = nil
         package.loaded["suntime"] = nil
         package.loaded["lib/setting"] = nil
         _G.__ZEN_UI_PLUGIN = nil
@@ -64,6 +68,7 @@ describe("incompatible plugin and patch check", function()
             flushes = 0,
             readSetting = function(self, key)
                 if key == "plugins_disabled" then return self.disabled end
+                if key == "extra_plugin_paths" then return self.extra_plugin_paths end
             end,
             saveSetting = function(self, key, value)
                 self.saves = self.saves + 1
@@ -73,9 +78,16 @@ describe("incompatible plugin and patch check", function()
             flush = function(self) self.flushes = self.flushes + 1 end,
         }
         _G.G_reader_settings = settings
+        logs = { dbg = {}, info = {}, warn = {} }
         ZenSpec.replace("common/zen_logger", {
             new = function()
-                return { info = function() end, warn = function() end }
+                local logger = {}
+                for _i, level in ipairs({ "dbg", "info", "warn" }) do
+                    logger[level] = function(...)
+                        logs[level][#logs[level] + 1] = { ... }
+                    end
+                end
+                return logger
             end,
         })
         ZenSpec.replace("datastorage", {
@@ -106,6 +118,7 @@ describe("incompatible plugin and patch check", function()
         package.loaded["ptutil"] = original_ptutil
         package.loaded["sui_core"] = original_sui_core
         package.loaded["quickmenu"] = original_quickmenu
+        package.loaded["readermenuredesign_installer"] = original_readermenuredesign_installer
         package.loaded["suntime"] = original_suntime
         package.loaded["lib/setting"] = original_appearance_setting
         _G.__ZEN_UI_PLUGIN = original_plugin
@@ -137,6 +150,9 @@ describe("incompatible plugin and patch check", function()
         assert.are.equal("plugins_disabled", settings.saved_key)
         assert.are.equal(1, settings.flushes)
         assert.are.equal(1, #UIManager.scheduled)
+        assert.are.equal(0, #logs.info)
+        assert.are.equal(1, #logs.warn)
+        assert.are.equal("Incompatible plugins or patches detected", logs.warn[1][1])
 
         UIManager.scheduled[1].callback()
         assert.are.equal(
@@ -152,6 +168,9 @@ describe("incompatible plugin and patch check", function()
         assert.are.equal("file", lfs.attributes(patch_dir .. "/2-quick-settings.lua", "mode"))
         assert.are.equal(0, settings.flushes)
         assert.are.same({}, UIManager.scheduled)
+        assert.are.equal(1, #logs.info)
+        assert.are.equal(0, #logs.warn)
+        assert.are.equal("No incompatible plugins or patches detected", logs.info[1][1])
     end)
 
     it("disables Appearance when its settings module is loaded", function()
@@ -168,6 +187,49 @@ describe("incompatible plugin and patch check", function()
         assert.are.equal(
             "Incompatible plugins and patches have been disabled:\nAppearance",
             UIManager.shown[1].text)
+    end)
+
+    it("records installed incompatible plugins before their main modules load", function()
+        local plugins_dir = data_dir .. "/plugins"
+        local simpleui_dir = plugins_dir .. "/simpleui.koplugin"
+        local reader_menu_dir = plugins_dir .. "/zzz-readermenuredesign.koplugin"
+        assert.is_true(lfs.mkdir(plugins_dir))
+        assert.is_true(lfs.mkdir(simpleui_dir))
+        assert.is_true(lfs.mkdir(reader_menu_dir))
+        settings.extra_plugin_paths = { plugins_dir }
+        ZenSpec.replace("userpatch", { execution_status = {} })
+
+        assert.is_true(require("modules/filebrowser/patches/incompatible_plugins_check")())
+        assert.is_true(settings.disabled.simpleui)
+        assert.is_true(settings.disabled["zzz-readermenuredesign"])
+        assert.are.equal(1, settings.flushes)
+
+        UIManager.scheduled[1].callback()
+        assert.are.equal(
+            "Incompatible plugins and patches have been disabled:\n"
+                .. "Simple UI\nReader Menu Redesign",
+            UIManager.shown[1].text)
+
+        lfs.rmdir(simpleui_dir)
+        lfs.rmdir(reader_menu_dir)
+        lfs.rmdir(plugins_dir)
+    end)
+
+    it("does not restart for an installed plugin that is already disabled", function()
+        local plugins_dir = data_dir .. "/plugins"
+        local reader_menu_dir = plugins_dir .. "/zzz-readermenuredesign.koplugin"
+        assert.is_true(lfs.mkdir(plugins_dir))
+        assert.is_true(lfs.mkdir(reader_menu_dir))
+        settings.extra_plugin_paths = plugins_dir
+        settings.disabled["zzz-readermenuredesign"] = true
+        ZenSpec.replace("userpatch", { execution_status = {} })
+
+        assert.is_false(require("modules/filebrowser/patches/incompatible_plugins_check")())
+        assert.are.equal(0, settings.flushes)
+        assert.are.same({}, UIManager.scheduled)
+
+        lfs.rmdir(reader_menu_dir)
+        lfs.rmdir(plugins_dir)
     end)
 
     it("does not mistake another plugin's settings module for Appearance", function()

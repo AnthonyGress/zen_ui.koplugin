@@ -84,6 +84,9 @@ msgstr "90°"
 msgid "< 1 min left in chapter"
 msgstr "本章剩餘 < 1 分鐘"
 
+msgid "A launcher button has been added for ZenPM."
+msgstr "為 ZenPM 新增了啟動器按鈕。"
+
 msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "為您的電子書閱讀器打造的極簡、整潔介面。\n\n向左滑動或點擊「下一步」繼續。"
 
@@ -119,6 +122,9 @@ msgstr "新增"
 
 msgid "Add action"
 msgstr "新增操作"
+
+msgid "Add at least one quote to settings/Zen UI/quotes.lua to enable this source."
+msgstr "在 settings/Zen UI/quotes.lua 中新增至少一個參考以啟用此來源。"
 
 msgid "Add book"
 msgstr "新增書籍"
@@ -162,14 +168,14 @@ msgstr "全部"
 msgid "All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall Zen UI updates directly from your device."
 msgstr "所有設定都在一個統一分頁中。此帶點圖示表示有可用更新。\n\n可直接從裝置安裝 Zen UI 更新。"
 
+msgid "All tags"
+msgstr "所有標籤"
+
 msgid "All Time"
 msgstr "歷史總計"
 
 msgid "All time"
 msgstr "所有時間"
-
-msgid "Allow custom icons"
-msgstr "允許自訂圖示"
 
 msgid "Allow delete"
 msgstr "允許刪除"
@@ -180,14 +186,23 @@ msgstr "琥珀色"
 msgid "An item with that name already exists."
 msgstr "已存在同名項目。"
 
+msgid "Annotations"
+msgstr "註解"
+
 msgid "App"
 msgstr "應用程式"
 
 msgid "Apply"
 msgstr "套用"
 
+msgid "Apply the 30-unit Reader margin defaults used by the Setup Guide. Books with their own margin settings are unchanged."
+msgstr "應用設定指南使用的 30 單位 Reader 頁邊距預設值。具有自己的邊距設定的書籍不變。"
+
 msgid "Are you sure you want to exit KOReader?"
 msgstr "確定要結束 KOReader 嗎？"
+
+msgid "Are you sure you want to install the ZenPM plugin?"
+msgstr "您確定要安裝 ZenPM 外掛嗎？"
 
 msgid "Are you sure you want to quit KOReader?"
 msgstr "確定要關閉 KOReader 嗎？"
@@ -222,6 +237,9 @@ msgstr "作者"
 msgid "authors"
 msgstr "位作者"
 
+msgid "Automatic font size"
+msgstr "自動字體大小"
+
 msgid "Automatic suspend"
 msgstr "自動暫停"
 
@@ -230,6 +248,9 @@ msgstr "返回"
 
 msgid "Background"
 msgstr "背景"
+
+msgid "Background color"
+msgstr "背景顏色"
 
 msgid "Background image could not be loaded. It may be corrupt or unsupported."
 msgstr "無法載入背景圖片。圖片可能已損毀或不受支援。"
@@ -294,14 +315,14 @@ msgstr "粗體"
 msgid "Bold text"
 msgstr "粗體文字"
 
-msgid "book"
-msgstr "本書"
-
 msgid "Book"
 msgstr "書籍"
 
 msgid "Book added to download list"
 msgstr "書籍已加入下載清單"
+
+msgid "Book details"
+msgstr "書籍詳情"
 
 msgid "Book information"
 msgstr "書籍資料"
@@ -363,6 +384,9 @@ msgstr "問題報告標題"
 msgid "Buttons"
 msgstr "按鈕"
 
+msgid "By %1"
+msgstr "作者：%1"
+
 msgid "Calendar"
 msgstr "日曆"
 
@@ -408,9 +432,6 @@ msgstr "章節"
 msgid "Chapter Time + %"
 msgstr "章節時間 + %"
 
-msgid "Update Zen UI"
-msgstr "更新 Zen UI"
-
 msgid "Check for updates automatically"
 msgstr "自動檢查更新"
 
@@ -437,6 +458,9 @@ msgstr "選擇外掛程式選單"
 
 msgid "Choose tab"
 msgstr "選擇分頁"
+
+msgid "Choose tag"
+msgstr "選擇標籤"
 
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 msgstr "選擇導航列顯示的分頁。\n您可以隨時在設定中重新排列或調整。"
@@ -513,8 +537,17 @@ msgstr "複製"
 msgid "Could not determine update status."
 msgstr "無法判斷更新狀態。"
 
+msgid "Could not find a ZenPM release."
+msgstr "找不到 ZenPM 版本。"
+
 msgid "Could not get release from update server."
 msgstr "無法從更新伺服器取得版本。"
+
+msgid "Could not install %1: %2"
+msgstr "無法安裝%1：%2"
+
+msgid "Could not install ZenPM."
+msgstr "無法安裝 ZenPM。"
 
 msgid "Could not reach update server."
 msgstr "無法連線到更新伺服器。"
@@ -570,6 +603,15 @@ msgstr "自訂按鈕標籤"
 msgid "Custom featured widget"
 msgstr "自訂精選小工具"
 
+msgid "Custom icon pack: %1"
+msgstr "自訂圖示套件：%1"
+
+msgid "Custom icons"
+msgstr "自訂圖示"
+
+msgid "Custom quotes"
+msgstr "客製報價"
+
 msgid "Custom RGB"
 msgstr "自訂 RGB"
 
@@ -588,6 +630,12 @@ msgstr "自訂文字"
 msgid "Custom text: "
 msgstr "自訂文字: "
 
+msgid "Custom theme"
+msgstr "自訂主題"
+
+msgid "Custom themes"
+msgstr "自訂主題"
+
 msgid "Custom: "
 msgstr "自訂: "
 
@@ -605,6 +653,15 @@ msgstr "循環"
 
 msgid "Daily"
 msgstr "日常的"
+
+msgid "Dark graphite"
+msgstr "深石墨灰"
+
+msgid "Dark mode"
+msgstr "深色模式"
+
+msgid "Dark warm gray"
+msgstr "深暖灰"
 
 msgid "Date"
 msgstr "日期"
@@ -654,6 +711,9 @@ msgstr "預設（黑色）"
 msgid "Default font size:"
 msgstr "預設字體大小："
 
+msgid "Default quotes"
+msgstr "預設報價"
+
 msgid "Default tab: "
 msgstr "預設標籤： "
 
@@ -672,11 +732,17 @@ msgstr "刪除 OPDS 目錄？"
 msgid "Delete preset?"
 msgstr "刪除預設？"
 
+msgid "Delete theme"
+msgstr "刪除主題"
+
 msgid "Delete this button?"
 msgstr "刪除此按鈕？"
 
 msgid "Delete this control?"
 msgstr "刪除這個控制項？"
+
+msgid "Delete this custom theme?"
+msgstr "刪除此自訂主題？"
 
 msgid "Delete this folder and its buttons?"
 msgstr "刪除此資料夾及其按鈕？"
@@ -759,6 +825,9 @@ msgstr "圓點"
 msgid "Download"
 msgstr "下載"
 
+msgid "Download and install the Zen Package Manager for this device."
+msgstr "下載並安裝適用於此裝置的 Zen Package Manager。"
+
 msgid "Download failed: "
 msgstr "下載失敗: "
 
@@ -768,11 +837,17 @@ msgstr "已下載"
 msgid "Downloading"
 msgstr "正在下載"
 
+msgid "Downloading ZenPM"
+msgstr "下載 ZenPM"
+
 msgid "Dynamic filler 2"
 msgstr "動態填充 2"
 
 msgid "Edit"
 msgstr "編輯"
+
+msgid "Edit mode"
+msgstr "編輯模式"
 
 msgid "Enable"
 msgstr "啟用"
@@ -786,6 +861,9 @@ msgstr "啟用底部上滑"
 msgid "Enable brightness schedule"
 msgstr "啟用亮度排程"
 
+msgid "Enable custom icons"
+msgstr "啟用自訂圖標"
+
 msgid "Enable custom status bar"
 msgstr "啟用自訂狀態列"
 
@@ -795,8 +873,8 @@ msgstr "啟用 KOReader 詳細除錯記錄。記錄寫入 koreader.log，立即�
 msgid "Enable night mode schedule"
 msgstr "啟用夜間模式排程"
 
-msgid "Enable page browser"
-msgstr "啟用頁面瀏覽器"
+msgid "Enable reader themes"
+msgstr "啟用閱讀主題"
 
 msgid "Enable top status bar"
 msgstr "啟用頂部狀態列"
@@ -809,6 +887,9 @@ msgstr "啟用 Zen OPDS"
 
 msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "啟用 Zen UI 對 OPDS 瀏覽器的增強：封面圖、清單視圖、長按選單及導航改進。"
+
+msgid "Enable Zen UI Reader margins"
+msgstr "啟用 Zen UI Reader 頁邊距"
 
 msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
 msgstr "正在啟用除錯記錄，需要重新啟動。請重現問題後再送出報告。"
@@ -855,9 +936,6 @@ msgstr "篩選"
 msgid "Filter by status"
 msgstr "依狀態篩選"
 
-msgid "Finish"
-msgstr "完成"
-
 msgid "Finished"
 msgstr "已讀完"
 
@@ -897,10 +975,10 @@ msgstr "字體"
 msgid "font"
 msgstr "字體"
 
-msgid "font size"
+msgid "Font size"
 msgstr "字體大小"
 
-msgid "Font size"
+msgid "font size"
 msgstr "字體大小"
 
 msgid "Font size:"
@@ -923,9 +1001,6 @@ msgstr "前光"
 
 msgid "Gallery"
 msgstr "圖庫"
-
-msgid "Gallery view (4-grid)"
-msgstr "圖庫視圖（4 宮格）"
 
 msgid "Get Started"
 msgstr "開始使用"
@@ -969,11 +1044,11 @@ msgstr "在 CBZ/PDF 檔案中隱藏"
 msgid "Hide list borders"
 msgstr "隱藏列表邊框"
 
+msgid "Hide on-hold books"
+msgstr "隱藏保留的書籍"
+
 msgid "Hide reader actions in library"
 msgstr "在書庫中隱藏閱讀器操作"
-
-msgid "Hide TBR books"
-msgstr "隱藏待讀書籍"
 
 msgid "Hide unread books"
 msgstr "隱藏未讀書籍"
@@ -986,9 +1061,6 @@ msgstr "醒目標示 / 查詢"
 
 msgid "History"
 msgstr "歷史記錄"
-
-msgid "Hold to arrange"
-msgstr "按住以排列"
 
 msgid "Hold to skip"
 msgstr "長按跳過"
@@ -1026,9 +1098,6 @@ msgstr "圖示"
 msgid "Image support is unavailable on this device."
 msgstr "此裝置不支援圖片。"
 
-msgid "IP address: %1"
-msgstr "IP 位址：%1"
-
 msgid "Image: "
 msgstr "圖片: "
 
@@ -1047,8 +1116,17 @@ msgstr "無痕模式已停用"
 msgid "Incognito mode enabled"
 msgstr "無痕模式已啟用"
 
+msgid "Incompatible plugins and patches have been disabled:"
+msgstr "不相容的插件和補丁已停用："
+
 msgid "Incompatible plugins have been disabled:"
 msgstr "不相容的外掛程式已被停用："
+
+msgid "Install"
+msgstr "安裝"
+
+msgid "Install ZenPM"
+msgstr "安裝 ZenPM"
 
 msgid "Installed version is newer than the latest release."
 msgstr "已安裝版本高於最新發行版本。"
@@ -1056,8 +1134,14 @@ msgstr "已安裝版本高於最新發行版本。"
 msgid "Installing"
 msgstr "正在安裝"
 
+msgid "Installing ZenPM"
+msgstr "安裝 ZenPM"
+
 msgid "Interactive"
 msgstr "互動式"
+
+msgid "IP address: %1"
+msgstr "IP 位址：%1"
 
 msgid "Items per page"
 msgstr "每頁項目數"
@@ -1137,6 +1221,15 @@ msgstr "書庫檢視"
 msgid "Light"
 msgstr "淺色"
 
+msgid "Light mode"
+msgstr "淺色模式"
+
+msgid "Light sepia"
+msgstr "淺褐色"
+
+msgid "Light tan"
+msgstr "淺棕色"
+
 msgid "List"
 msgstr "清單"
 
@@ -1170,6 +1263,12 @@ msgstr "鎖定模式"
 msgid "Lockdown mode"
 msgstr "鎖定模式"
 
+msgid "Loose icons"
+msgstr "鬆散的圖標"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "/koreader/icons 中的圖示鬆動"
+
 msgid "Magnify UI"
 msgstr "放大介面"
 
@@ -1179,17 +1278,23 @@ msgstr "漫畫"
 msgid "Manga folder not found: "
 msgstr "找不到漫畫資料夾："
 
+msgid "Manually download and sideload %1 from the same ZenPM release."
+msgstr "從相同 ZenPM 版本手動下載並旁加載%1。"
+
 msgid "Match whole words"
 msgstr "比對完整字詞"
-
-msgid "Maximum 5 widgets allowed"
-msgstr "最多允許 5 個小工具"
 
 msgid "Maximum 7 tabs allowed"
 msgstr "最多允許 7 個分頁"
 
 msgid "Maximum 9 buttons allowed"
 msgstr "最多允許 9 個按鈕"
+
+msgid "Maximum font size:"
+msgstr "最大字體大小："
+
+msgid "Maximum quote font size"
+msgstr "最大報價字體大小"
 
 msgid "Menu"
 msgstr "選單"
@@ -1209,6 +1314,9 @@ msgstr "分鐘"
 msgid "minutes"
 msgstr "分鐘"
 
+msgid "Missing: %1"
+msgstr "缺失：%1"
+
 msgid "Monthly"
 msgstr "每月"
 
@@ -1220,9 +1328,6 @@ msgstr "拼貼"
 
 msgid "Mosaic - large cover thumbnails"
 msgstr "拼貼 — 大封面縮圖"
-
-msgid "Mosaic and detailed list settings"
-msgstr "拼貼與詳細清單設定"
 
 msgid "Mosaic with cover images"
 msgstr "封面拼貼"
@@ -1266,11 +1371,17 @@ msgstr "新"
 msgid "New collection"
 msgstr "新增收藏集"
 
+msgid "New custom theme"
+msgstr "新增自訂主題"
+
 msgid "New folder"
 msgstr "新增資料夾"
 
 msgid "New includes unread books and books modified since they were last opened."
 msgstr "「新」包括未讀書籍，以及自上次開啟後修改過的書籍。"
+
+msgid "New quote"
+msgstr "新報價"
 
 msgid "News"
 msgstr "新聞"
@@ -1335,6 +1446,9 @@ msgstr "未選擇背景圖片。"
 msgid "No books found"
 msgstr "找不到書籍"
 
+msgid "No books found in the selected folder"
+msgstr "在所選資料夾中找不到書籍"
+
 msgid "No books with author metadata found"
 msgstr "找不到包含作者元數據的書籍"
 
@@ -1368,8 +1482,17 @@ msgstr "沒有閱讀資料"
 msgid "No table of contents available."
 msgstr "沒有可用的目錄。"
 
+msgid "No tags found"
+msgstr "沒有找到標籤"
+
+msgid "No TBR books found"
+msgstr "未找到 TBR 書籍"
+
 msgid "No update asset found."
 msgstr "找不到更新資源。"
+
+msgid "No ZenPM package is available for this device."
+msgstr "此設備沒有可用的 ZenPM 軟體包。"
 
 msgid "None"
 msgstr "無"
@@ -1379,6 +1502,9 @@ msgstr "無（只顯示資料夾名稱）"
 
 msgid "Normal"
 msgstr "正常"
+
+msgid "Not enough Home space: %1/%2 units used; this widget needs %3."
+msgstr "家庭空間不足：已使用%1/%2單位；這個小部件需要%3。"
 
 msgid "Nothing"
 msgstr "無"
@@ -1398,6 +1524,12 @@ msgstr "確定"
 msgid "On"
 msgstr "開啟"
 
+msgid "On hold"
+msgstr "等候接聽"
+
+msgid "On Home refresh"
+msgstr "主頁刷新時"
+
 msgid "Only in Zen mode"
 msgstr "僅限 Zen 模式"
 
@@ -1406,6 +1538,9 @@ msgstr "不透明背景"
 
 msgid "OPDS"
 msgstr "OPDS"
+
+msgid "Open"
+msgstr "打開"
 
 msgid "Open folder"
 msgstr "開啟資料夾"
@@ -1424,6 +1559,9 @@ msgstr "開啟 Rakuyomi"
 
 msgid "Open RSS Reader"
 msgstr "開啟RSS閱讀器"
+
+msgid "Open this file?"
+msgstr "打開這個檔案？"
 
 msgid "Opening"
 msgstr "正在開啟"
@@ -1485,14 +1623,20 @@ msgstr "局部頁面重新整理"
 msgid "Paste"
 msgstr "貼上"
 
+msgid "Paste selected files"
+msgstr "貼上選定的文件"
+
 msgid "Percent"
 msgstr "百分比"
+
+msgid "Personal records"
+msgstr "個人記錄"
 
 msgid "Personal Records"
 msgstr "個人紀錄"
 
-msgid "Personal records"
-msgstr "個人記錄"
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "將套件資料夾或 ZIP 檔案放在 /koreader/icons/zen 中。 ZIP 檔案會自動安裝。"
 
 msgid "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
 msgstr "請從外掛程式資料夾中刪除 Project: Title 外掛程式並重新啟動 KOReader。"
@@ -1566,8 +1710,14 @@ msgstr "結束 KOReader"
 msgid "Quote font size"
 msgstr "報價字體大小"
 
+msgid "Quote sources"
+msgstr "報價來源"
+
 msgid "Quotes widget"
 msgstr "引文小工具"
+
+msgid "quotes.lua is empty"
+msgstr "quotes.lua 為空"
 
 msgid "Rakuyomi"
 msgstr "Rakuyomi"
@@ -1599,6 +1749,9 @@ msgstr "閱讀器"
 msgid "Reader Progress"
 msgstr "閱讀進度"
 
+msgid "Reader themes"
+msgstr "閱讀主題"
+
 msgid "Reading"
 msgstr "閱讀中"
 
@@ -1611,17 +1764,17 @@ msgstr "讀日曆"
 msgid "Reading goals"
 msgstr "閱讀目標"
 
+msgid "Reading goals font size"
+msgstr "閱讀目標字體大小"
+
 msgid "Reading stats widget"
 msgstr "閱讀統計小工具"
-
-msgid "Reading Trend"
-msgstr "閱讀趨勢"
 
 msgid "Reading trend"
 msgstr "閱讀趨勢"
 
-msgid "Rebooting"
-msgstr "正在重新啟動"
+msgid "Reading Trend"
+msgstr "閱讀趨勢"
 
 msgid "Recently read"
 msgstr "最近閱讀"
@@ -1698,8 +1851,14 @@ msgstr "重新啟動"
 msgid "Restart Book"
 msgstr "重新開始閱讀"
 
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "重新啟動 KOReader 以套用更新的活動包"
+
 msgid "Restart now"
 msgstr "立即重新啟動"
+
+msgid "Restarting"
+msgstr "正在重啟"
 
 msgid "Restore library location on exit"
 msgstr "離開時還原書庫位置"
@@ -1778,6 +1937,9 @@ msgstr "搜尋書庫"
 
 msgid "Search results"
 msgstr "搜尋結果"
+
+msgid "Search settings"
+msgstr "搜尋設定"
 
 msgid "Select"
 msgstr "選取"
@@ -1893,9 +2055,6 @@ msgstr "顯示項目數"
 msgid "Show item underline"
 msgstr "顯示項目底線"
 
-msgid "Show KOReader progress bar"
-msgstr "顯示 KOReader 進度條"
-
 msgid "Show labels"
 msgstr "顯示標籤"
 
@@ -1911,8 +2070,11 @@ msgstr "在 禪 按鈕旁顯示其他 KOReader 快速查詢選項。"
 msgid "Show page count"
 msgstr "顯示頁數"
 
-msgid "Show progress % on mosaic covers"
-msgstr "在封面拼貼上顯示進度%"
+msgid "Show progress bar"
+msgstr "顯示進度條"
+
+msgid "Show reading progress"
+msgstr "顯示閱讀進度"
 
 msgid "Show separator"
 msgstr "顯示分隔符"
@@ -1922,6 +2084,9 @@ msgstr "在封面上顯示系列編號"
 
 msgid "Show spine lines"
 msgstr "顯示書脊線"
+
+msgid "Show title"
+msgstr "顯示標題"
 
 msgid "Show title below cover (mosaic)"
 msgstr "Show title below cover (mosaic)"
@@ -1946,6 +2111,9 @@ msgstr "顯示 Zen 圖示 - 黑色背景"
 
 msgid "Show Zen icon - white background"
 msgstr "顯示 Zen 圖示 - 白色背景"
+
+msgid "Single tag"
+msgstr "單一標籤"
 
 msgid "Skip"
 msgstr "略過"
@@ -2001,8 +2169,8 @@ msgstr "Stable"
 msgid "Stack"
 msgstr "堆疊"
 
-msgid "Stack effect (overlapping covers)"
-msgstr "堆疊效果（封面重疊）"
+msgid "Start reading a book to fill this space."
+msgstr "開始閱讀一本書來填補這個空間。"
 
 msgid "Stat separators"
 msgstr "統計分隔符"
@@ -2079,14 +2247,32 @@ msgstr "分頁"
 msgid "Tabs"
 msgstr "標籤"
 
-msgid "tags"
+msgid "Tag"
 msgstr "標籤"
+
+msgid "Tag strip widget"
+msgstr "標籤條小工具"
+
+msgid "Tag: "
+msgstr "標籤："
+
+msgid "Tag: %1"
+msgstr "標籤：%1"
 
 msgid "Tags"
 msgstr "標籤"
 
+msgid "tags"
+msgstr "標籤"
+
+msgid "Tailscale"
+msgstr "尾鱗"
+
 msgid "Tap and hold any book or folder in your library to reveal details."
 msgstr "長按書庫中的任一本書或資料夾以查看詳細資料。"
+
+msgid "Text color"
+msgstr "文字顏色"
 
 msgid "Text styles"
 msgstr "文字樣式"
@@ -2100,6 +2286,12 @@ msgstr "預設的 KOReader 閱讀器選單位於 Aa 圖示中。"
 msgid "The place for all your books %1"
 msgstr "您所有書籍的存放位置 %1"
 
+msgid "Theme font"
+msgstr "主題字體"
+
+msgid "Theme name"
+msgstr "主題名稱"
+
 msgid "This change requires a restart to take effect."
 msgstr "此變更需要重新啟動才會生效。"
 
@@ -2112,10 +2304,10 @@ msgstr "本月"
 msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
 msgstr "當主資料夾是裝置儲存空間的根目錄時，此選項會停用。請先將範圍較小的書籍資料夾設為主資料夾。"
 
-msgid "This week"
+msgid "This Week"
 msgstr "本週"
 
-msgid "This Week"
+msgid "This week"
 msgstr "本週"
 
 msgid "This year"
@@ -2199,6 +2391,9 @@ msgstr "兩欄"
 msgid "Unavailable"
 msgstr "無法使用"
 
+msgid "Unavailable pack: %1"
+msgstr "不可用套件：%1"
+
 msgid "Underline"
 msgstr "底線"
 
@@ -2208,10 +2403,10 @@ msgstr "圖示上方加底線"
 msgid "Uniform covers"
 msgstr "統一封面"
 
-msgid "unknown"
+msgid "Unknown"
 msgstr "未知"
 
-msgid "Unknown"
+msgid "unknown"
 msgstr "未知"
 
 msgid "Unknown Author"
@@ -2283,14 +2478,17 @@ msgstr "更新失敗：暫存外掛驗證失敗。"
 msgid "Update failed: timed out."
 msgstr "更新失敗：已逾時。"
 
-msgid "Update now"
-msgstr "立即更新"
-
 msgid "Update KOReader"
 msgstr "更新 KOReader"
 
+msgid "Update now"
+msgstr "立即更新"
+
 msgid "Update Status"
 msgstr "更新狀態"
+
+msgid "Update Zen UI"
+msgstr "更新 Zen UI"
 
 msgid "Updated to %1"
 msgstr "已更新至 %1"
@@ -2313,6 +2511,9 @@ msgstr "使用目前資料夾"
 msgid "Use default font"
 msgstr "使用預設字體"
 
+msgid "Use default font size"
+msgstr "使用預設字體大小"
+
 msgid "Use default style"
 msgstr "使用預設樣式"
 
@@ -2324,9 +2525,6 @@ msgstr "使用主資料夾"
 
 msgid "Use last folder"
 msgstr "使用上次資料夾"
-
-msgid "Use Stats default font size"
-msgstr "使用統計預設字體大小"
 
 msgid "username"
 msgstr "使用者名稱"
@@ -2361,8 +2559,8 @@ msgstr "更新內容"
 msgid "What's New"
 msgstr "新功能"
 
-msgid "When enabled, icons placed in KOReader's user icons folder override the bundled Zen UI icons. Falls back to Zen UI icons, then KOReader built-ins."
-msgstr "啟用後，放置在 KOReader 使用者圖示資料夾中的圖示將覆寫內建的 Zen UI 圖示。回退順序為 Zen UI 圖示，再到 KOReader 內建圖示。"
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "啟用後，鬆散圖示或選定的 Zen UI 圖示包會覆蓋支援的圖示。遺失的圖示會回退到 Zen UI，然後是 KOReader。"
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "啟用後，搜尋只會比對完整字詞。停用後，會使用子字串比對（例如「fish」會比對到「fishing」）。"
@@ -2375,6 +2573,9 @@ msgstr "白色"
 
 msgid "Wi-Fi"
 msgstr "Wi-Fi"
+
+msgid "Widget settings"
+msgstr "小部件設定"
 
 msgid "Widgets"
 msgstr "小工具"
@@ -2397,14 +2598,23 @@ msgstr "禪"
 msgid "Zen highlight menu"
 msgstr "禪 醒目標示選單"
 
-msgid "Zen Mode"
-msgstr "禪模式"
-
 msgid "Zen mode"
 msgstr "禪 模式"
 
+msgid "Zen Mode"
+msgstr "禪模式"
+
+msgid "Zen Mode: Disabled"
+msgstr "禪宗模式：禁用"
+
+msgid "Zen Mode: Enabled"
+msgstr "禪宗模式：啟用"
+
 msgid "Zen OPDS"
 msgstr "禪 OPDS"
+
+msgid "Zen page browser"
+msgstr "Zen 頁面瀏覽器"
 
 msgid "Zen Presets"
 msgstr "Zen Presets"
@@ -2415,113 +2625,71 @@ msgstr "禪 快速查詢"
 msgid "Zen UI"
 msgstr "Zen UI"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - 作者"
-
-msgid "Zen UI - Home"
-msgstr "Zen UI - 首頁"
-
-msgid "Zen UI - Library"
-msgstr "Zen UI - 書庫"
-
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - 開啟資料夾"
-
-msgid "Zen UI - Series"
-msgstr "Zen UI - 系列"
-
-msgid "Zen UI - Sync progress (pull + push)"
-msgstr "Zen UI - 同步進度（拉取 + 推送）"
-
-msgid "Zen UI - Table of contents"
-msgstr "Zen UI - 目錄"
-
-msgid "Zen UI - Tags"
-msgstr "Zen UI - 標籤"
-
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - 切換底部閱讀器狀態列"
-
-msgid "Zen UI - Toggle Incognito Mode"
-msgstr "Zen UI - 切換無痕模式"
-
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - 切換鎖定模式"
-
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - 切換閱讀器狀態列"
-
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - 切換頂部閱讀器狀態列"
-
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - 切換禪模式"
-
 msgid "Zen UI defaults"
 msgstr "Zen UI 預設設定"
 
 msgid "Zen UI is up to date."
 msgstr "Zen UI 已是最新版本。"
 
+msgid "Zen UI Reader margins enabled"
+msgstr "Zen UI Reader 已啟用邊距"
+
 msgid "Zen UI: "
 msgstr "Zen UI: "
+
+msgid "Zen UI: Authors"
+msgstr "Zen UI：作者"
 
 msgid "Zen UI: folder not found: "
 msgstr "Zen UI: 找不到資料夾: "
 
+msgid "Zen UI: Home"
+msgstr "Zen UI：首頁"
+
+msgid "Zen UI: Library"
+msgstr "Zen UI：庫"
+
 msgid "Zen UI: no folder set for this action."
 msgstr "Zen UI: 未為此操作設定資料夾。"
 
-msgid "Reader themes"
-msgstr "閱讀主題"
+msgid "Zen UI: Open folder"
+msgstr "Zen UI：打開資料夾"
 
-msgid "Enable reader themes"
-msgstr "啟用閱讀主題"
+msgid "Zen UI: Series"
+msgstr "Zen UI：系列"
 
-msgid "Dark warm gray"
-msgstr "深暖灰"
+msgid "Zen UI: Sync progress (pull + push)"
+msgstr "Zen UI：同步進度（拉+推）"
 
-msgid "Dark graphite"
-msgstr "深石墨灰"
+msgid "Zen UI: Table of contents"
+msgstr "Zen UI：目錄"
 
-msgid "Light sepia"
-msgstr "淺褐色"
+msgid "Zen UI: Tags"
+msgstr "Zen UI：標籤"
 
-msgid "Light tan"
-msgstr "淺棕色"
+msgid "Zen UI: Toggle bottom reader status bar"
+msgstr "Zen UI：切換底部閱讀器狀態列"
 
-msgid "Zen UI - Toggle reader themes"
-msgstr "Zen UI - 切換閱讀主題"
+msgid "Zen UI: Toggle Incognito Mode"
+msgstr "Zen UI：切換隱身模式"
 
-msgid "Dark mode"
-msgstr "深色模式"
+msgid "Zen UI: Toggle Lockdown Mode"
+msgstr "Zen UI：切換鎖定模式"
 
-msgid "Light mode"
-msgstr "淺色模式"
+msgid "Zen UI: Toggle reader status bars"
+msgstr "Zen UI：切換閱讀器狀態列"
 
-msgid "Custom themes"
-msgstr "自訂主題"
+msgid "Zen UI: Toggle reader themes"
+msgstr "Zen UI：切換閱讀器主題"
 
-msgid "New custom theme"
-msgstr "新增自訂主題"
+msgid "Zen UI: Toggle top reader status bar"
+msgstr "Zen UI：切換頂部閱讀器狀態列"
 
-msgid "Theme name"
-msgstr "主題名稱"
+msgid "Zen UI: Toggle Zen Mode"
+msgstr "Zen UI：切換 Zen 模式"
 
-msgid "Background color"
-msgstr "背景顏色"
+msgid "ZenPM"
+msgstr "禪PM"
 
-msgid "Text color"
-msgstr "文字顏色"
-
-msgid "Theme font"
-msgstr "主題字體"
-
-msgid "Delete theme"
-msgstr "刪除主題"
-
-msgid "Delete this custom theme?"
-msgstr "刪除此自訂主題？"
-
-msgid "Custom theme"
-msgstr "自訂主題"
+msgid "ZenPM has been installed. Restart KOReader to use it."
+msgstr "ZenPM 已安裝。重新啟動 KOReader 使用。"

@@ -2932,6 +2932,7 @@ local function apply_navbar()
 
             -- Physical Home button: close this standalone view and return to
             -- the default navbar tab, same as pressing Home from the main FM.
+            menu.key_events = menu.key_events or {}
             menu.key_events.Home = { { "Home" } }
             function menu:onHome()
                 _navbar_focused_idx = nil

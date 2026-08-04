@@ -126,6 +126,7 @@ modules/filebrowser/patches/status_bar.lua|integration
 modules/filebrowser/patches/status_on_open.lua|integration
 modules/global/global.lua|integration
 modules/global/patches/brightness_schedule.lua|integration
+modules/global/patches/cloud_storage_home.lua|integration
 modules/global/patches/incognito_mode.lua|integration
 modules/global/patches/kindle_network_profile_guard.lua|integration
 modules/global/patches/lockdown_mode.lua|integration

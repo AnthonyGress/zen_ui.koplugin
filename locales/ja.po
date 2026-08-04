@@ -84,6 +84,9 @@ msgstr "90°"
 msgid "< 1 min left in chapter"
 msgstr "この章の残り1分未満"
 
+msgid "A launcher button has been added for ZenPM."
+msgstr "ZenPM のランチャー ボタンが追加されました。"
+
 msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "電子書籍リーダーのための最小限でクリーン、シンプルなインターフェース。\n\nスワイプまたは「次へ」をタップして続けてください。"
 
@@ -119,6 +122,9 @@ msgstr "追加"
 
 msgid "Add action"
 msgstr "アクションを追加"
+
+msgid "Add at least one quote to settings/Zen UI/quotes.lua to enable this source."
+msgstr "このソースを有効にするには、少なくとも 1 つの引用符を settings/Zen UI/quotes.lua に追加します。"
 
 msgid "Add book"
 msgstr "本を追加"
@@ -162,17 +168,14 @@ msgstr "すべて"
 msgid "All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall Zen UI updates directly from your device."
 msgstr "すべての設定は1つの統合タブにあります。ドット付きのこのアイコンは、更新が利用可能であることを示します。\n\nZen UIの更新をデバイスから直接インストールできます。"
 
+msgid "All tags"
+msgstr "すべてのタグ"
+
 msgid "All Time"
 msgstr "全期間"
 
 msgid "All time"
 msgstr "ずっと"
-
-msgid "Custom icons"
-msgstr "カスタムアイコン"
-
-msgid "Enable custom icons"
-msgstr "カスタムアイコンを有効化"
 
 msgid "Allow delete"
 msgstr "削除を許可"
@@ -183,14 +186,23 @@ msgstr "アンバー"
 msgid "An item with that name already exists."
 msgstr "その名前のアイテムは既に存在します。"
 
+msgid "Annotations"
+msgstr "注釈"
+
 msgid "App"
 msgstr "アプリ"
 
 msgid "Apply"
 msgstr "適用"
 
+msgid "Apply the 30-unit Reader margin defaults used by the Setup Guide. Books with their own margin settings are unchanged."
+msgstr "セットアップ ガイドで使用される 30 単位のリーダー マージンのデフォルトを適用します。独自の余白設定を持つブックは変更されません。"
+
 msgid "Are you sure you want to exit KOReader?"
 msgstr "KOReaderを終了してもよろしいですか？"
+
+msgid "Are you sure you want to install the ZenPM plugin?"
+msgstr "ZenPM プラグインをインストールしてもよろしいですか?"
 
 msgid "Are you sure you want to quit KOReader?"
 msgstr "KOReaderを終了してもよろしいですか？"
@@ -225,6 +237,9 @@ msgstr "著者"
 msgid "authors"
 msgstr "著者"
 
+msgid "Automatic font size"
+msgstr "自動フォントサイズ"
+
 msgid "Automatic suspend"
 msgstr "自動サスペンド"
 
@@ -233,6 +248,9 @@ msgstr "戻る"
 
 msgid "Background"
 msgstr "背景"
+
+msgid "Background color"
+msgstr "背景色"
 
 msgid "Background image could not be loaded. It may be corrupt or unsupported."
 msgstr "背景画像を読み込めませんでした。破損しているか、対応していない可能性があります。"
@@ -285,6 +303,9 @@ msgstr "黒"
 msgid "Blue"
 msgstr "ブルー"
 
+msgid "Bluetooth"
+msgstr "ブルートゥース"
+
 msgid "bold"
 msgstr "太字"
 
@@ -294,14 +315,14 @@ msgstr "太字"
 msgid "Bold text"
 msgstr "太字テキスト"
 
-msgid "book"
-msgstr "本"
-
 msgid "Book"
 msgstr "本"
 
 msgid "Book added to download list"
 msgstr "ダウンロードリストに本を追加しました"
+
+msgid "Book details"
+msgstr "本の詳細"
 
 msgid "Book information"
 msgstr "本の情報"
@@ -363,6 +384,9 @@ msgstr "バグレポートのタイトル"
 msgid "Buttons"
 msgstr "ボタン"
 
+msgid "By %1"
+msgstr "投稿者: %1"
+
 msgid "Calendar"
 msgstr "カレンダー"
 
@@ -408,9 +432,6 @@ msgstr "章"
 msgid "Chapter Time + %"
 msgstr "チャプター時間 + %"
 
-msgid "Update Zen UI"
-msgstr "Zen UIを更新"
-
 msgid "Check for updates automatically"
 msgstr "アップデートを自動確認"
 
@@ -437,6 +458,9 @@ msgstr "プラグインメニューを選択"
 
 msgid "Choose tab"
 msgstr "タブを選択"
+
+msgid "Choose tag"
+msgstr "タグを選択してください"
 
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 msgstr "ナビゲーションバーに表示するタブを選択します。\n設定からいつでも並べ替えや調整が可能です。"
@@ -513,8 +537,17 @@ msgstr "コピー"
 msgid "Could not determine update status."
 msgstr "アップデート状況を確認できませんでした。"
 
+msgid "Could not find a ZenPM release."
+msgstr "ZenPM リリースが見つかりませんでした。"
+
 msgid "Could not get release from update server."
 msgstr "更新サーバーからリリースを取得できませんでした。"
+
+msgid "Could not install %1: %2"
+msgstr "%1をインストールできませんでした: %2"
+
+msgid "Could not install ZenPM."
+msgstr "ZenPM をインストールできませんでした。"
 
 msgid "Could not reach update server."
 msgstr "更新サーバーに接続できませんでした。"
@@ -570,6 +603,15 @@ msgstr "カスタムボタンラベル"
 msgid "Custom featured widget"
 msgstr "カスタム注目ウィジェット"
 
+msgid "Custom icon pack: %1"
+msgstr "カスタムアイコンパック: %1"
+
+msgid "Custom icons"
+msgstr "カスタムアイコン"
+
+msgid "Custom quotes"
+msgstr "カスタム見積もり"
+
 msgid "Custom RGB"
 msgstr "カスタムRGB"
 
@@ -588,6 +630,12 @@ msgstr "カスタムテキスト"
 msgid "Custom text: "
 msgstr "カスタムテキスト: "
 
+msgid "Custom theme"
+msgstr "カスタムテーマ"
+
+msgid "Custom themes"
+msgstr "カスタムテーマ"
+
 msgid "Custom: "
 msgstr "カスタム: "
 
@@ -605,6 +653,15 @@ msgstr "順送り"
 
 msgid "Daily"
 msgstr "毎日"
+
+msgid "Dark graphite"
+msgstr "ダークグラファイト"
+
+msgid "Dark mode"
+msgstr "ダークモード"
+
+msgid "Dark warm gray"
+msgstr "ダークウォームグレー"
 
 msgid "Date"
 msgstr "日付"
@@ -654,6 +711,9 @@ msgstr "デフォルト (黒)"
 msgid "Default font size:"
 msgstr "デフォルトのフォントサイズ:"
 
+msgid "Default quotes"
+msgstr "デフォルトの引用符"
+
 msgid "Default tab: "
 msgstr "デフォルトタブ: "
 
@@ -672,11 +732,17 @@ msgstr "OPDSカタログを削除しますか？"
 msgid "Delete preset?"
 msgstr "プリセットを削除しますか？"
 
+msgid "Delete theme"
+msgstr "テーマの削除"
+
 msgid "Delete this button?"
 msgstr "このボタンを削除しますか？"
 
 msgid "Delete this control?"
 msgstr "このコントロールを削除しますか?"
+
+msgid "Delete this custom theme?"
+msgstr "このカスタムテーマを削除しますか?"
 
 msgid "Delete this folder and its buttons?"
 msgstr "このフォルダとそのボタンを削除しますか？"
@@ -759,6 +825,9 @@ msgstr "ドット"
 msgid "Download"
 msgstr "ダウンロード"
 
+msgid "Download and install the Zen Package Manager for this device."
+msgstr "このデバイス用の Zen Package Manager をダウンロードしてインストールします。"
+
 msgid "Download failed: "
 msgstr "ダウンロード失敗: "
 
@@ -768,11 +837,17 @@ msgstr "ダウンロード済み"
 msgid "Downloading"
 msgstr "ダウンロード中"
 
+msgid "Downloading ZenPM"
+msgstr "ZenPM のダウンロード"
+
 msgid "Dynamic filler 2"
 msgstr "動的フィラー 2"
 
 msgid "Edit"
 msgstr "編集"
+
+msgid "Edit mode"
+msgstr "編集モード"
 
 msgid "Enable"
 msgstr "有効"
@@ -786,6 +861,9 @@ msgstr "下部スワイプを有効化"
 msgid "Enable brightness schedule"
 msgstr "明るさスケジュールを有効化"
 
+msgid "Enable custom icons"
+msgstr "カスタムアイコンを有効化"
+
 msgid "Enable custom status bar"
 msgstr "カスタムステータスバーを有効化"
 
@@ -795,8 +873,8 @@ msgstr "KOReaderの詳細デバッグログを有効にします。ログはkore
 msgid "Enable night mode schedule"
 msgstr "夜間モードスケジュールを有効化"
 
-msgid "Zen page browser"
-msgstr "Zenページブラウザ"
+msgid "Enable reader themes"
+msgstr "リーダーテーマを有効にする"
 
 msgid "Enable top status bar"
 msgstr "上部ステータスバーを有効化"
@@ -809,6 +887,9 @@ msgstr "Zen OPDSを有効にする"
 
 msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "OPDSブラウザのZen UI拡張を有効にします: 表紙アート、リスト表示、長押しメニュー、ナビゲーションの改善。"
+
+msgid "Enable Zen UI Reader margins"
+msgstr "Zen UI リーダーのマージンを有効にする"
 
 msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
 msgstr "デバッグログを有効にするには再起動が必要です。問題を再現してからレポートを送信してください。"
@@ -855,9 +936,6 @@ msgstr "フィルター"
 msgid "Filter by status"
 msgstr "ステータスでフィルター"
 
-msgid "Finish"
-msgstr "完了"
-
 msgid "Finished"
 msgstr "読了"
 
@@ -897,10 +975,10 @@ msgstr "フォント"
 msgid "font"
 msgstr "フォント"
 
-msgid "font size"
+msgid "Font size"
 msgstr "フォントサイズ"
 
-msgid "Font size"
+msgid "font size"
 msgstr "フォントサイズ"
 
 msgid "Font size:"
@@ -923,9 +1001,6 @@ msgstr "フロントライト"
 
 msgid "Gallery"
 msgstr "ギャラリー"
-
-msgid "Gallery view (4-grid)"
-msgstr "ギャラリー表示 (4グリッド)"
 
 msgid "Get Started"
 msgstr "はじめる"
@@ -969,11 +1044,11 @@ msgstr "CBZ/PDFファイルで非表示"
 msgid "Hide list borders"
 msgstr "リストの境界線を非表示"
 
-msgid "Hide reader actions in library"
-msgstr "ライブラリでリーダーアクションを非表示"
-
 msgid "Hide on-hold books"
 msgstr "保留中の本を非表示"
+
+msgid "Hide reader actions in library"
+msgstr "ライブラリでリーダーアクションを非表示"
 
 msgid "Hide unread books"
 msgstr "未読の本を非表示"
@@ -986,9 +1061,6 @@ msgstr "ハイライト / 検索"
 
 msgid "History"
 msgstr "履歴"
-
-msgid "Hold to arrange"
-msgstr "長押しして配置"
 
 msgid "Hold to skip"
 msgstr "長押しでスキップ"
@@ -1044,8 +1116,17 @@ msgstr "シークレットモードを無効にしました"
 msgid "Incognito mode enabled"
 msgstr "シークレットモードを有効にしました"
 
+msgid "Incompatible plugins and patches have been disabled:"
+msgstr "互換性のないプラグインとパッチは無効になっています。"
+
 msgid "Incompatible plugins have been disabled:"
 msgstr "互換性のないプラグインが無効化されました:"
+
+msgid "Install"
+msgstr "インストール"
+
+msgid "Install ZenPM"
+msgstr "ZenPM をインストールする"
 
 msgid "Installed version is newer than the latest release."
 msgstr "インストール済みのバージョンは最新リリースより新しいです。"
@@ -1053,8 +1134,14 @@ msgstr "インストール済みのバージョンは最新リリースより新
 msgid "Installing"
 msgstr "インストール中"
 
+msgid "Installing ZenPM"
+msgstr "ZenPM のインストール"
+
 msgid "Interactive"
 msgstr "インタラクティブ"
+
+msgid "IP address: %1"
+msgstr "IPアドレス: %1"
 
 msgid "Items per page"
 msgstr "ページあたりのアイテム数"
@@ -1134,6 +1221,15 @@ msgstr "ライブラリビュー"
 msgid "Light"
 msgstr "ライト"
 
+msgid "Light mode"
+msgstr "ライトモード"
+
+msgid "Light sepia"
+msgstr "ライトセピア"
+
+msgid "Light tan"
+msgstr "ライトタン"
+
 msgid "List"
 msgstr "リスト"
 
@@ -1167,6 +1263,12 @@ msgstr "ロックダウン"
 msgid "Lockdown mode"
 msgstr "ロックダウンモード"
 
+msgid "Loose icons"
+msgstr "ゆるいアイコン"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "/koreader/icons のゆるいアイコン"
+
 msgid "Magnify UI"
 msgstr "UIを拡大"
 
@@ -1176,17 +1278,23 @@ msgstr "マンガ"
 msgid "Manga folder not found: "
 msgstr "マンガフォルダが見つかりません: "
 
+msgid "Manually download and sideload %1 from the same ZenPM release."
+msgstr "同じ ZenPM リリースから %1 を手動でダウンロードしてサイドロードします。"
+
 msgid "Match whole words"
 msgstr "単語全体に一致"
-
-msgid "Maximum 5 widgets allowed"
-msgstr "ウィジェットは最大5個までです"
 
 msgid "Maximum 7 tabs allowed"
 msgstr "タブは最大7個までです"
 
 msgid "Maximum 9 buttons allowed"
 msgstr "ボタンは最大9個までです"
+
+msgid "Maximum font size:"
+msgstr "最大フォントサイズ:"
+
+msgid "Maximum quote font size"
+msgstr "引用フォントの最大サイズ"
 
 msgid "Menu"
 msgstr "メニュー"
@@ -1206,6 +1314,9 @@ msgstr "分"
 msgid "minutes"
 msgstr "分"
 
+msgid "Missing: %1"
+msgstr "欠落: %1"
+
 msgid "Monthly"
 msgstr "毎月"
 
@@ -1217,9 +1328,6 @@ msgstr "モザイク"
 
 msgid "Mosaic - large cover thumbnails"
 msgstr "モザイク - 大きな表紙サムネイル"
-
-msgid "Mosaic and detailed list settings"
-msgstr "モザイクと詳細リストの設定"
 
 msgid "Mosaic with cover images"
 msgstr "表紙画像付きモザイク"
@@ -1263,11 +1371,17 @@ msgstr "新規"
 msgid "New collection"
 msgstr "新しいコレクション"
 
+msgid "New custom theme"
+msgstr "新しいカスタムテーマ"
+
 msgid "New folder"
 msgstr "新しいフォルダ"
 
 msgid "New includes unread books and books modified since they were last opened."
 msgstr "「新規」には、未読の本と、最後に開いてから変更された本が含まれます。"
+
+msgid "New quote"
+msgstr "新しい見積書"
 
 msgid "News"
 msgstr "ニュース"
@@ -1332,6 +1446,9 @@ msgstr "背景画像が選択されていません。"
 msgid "No books found"
 msgstr "本が見つかりません"
 
+msgid "No books found in the selected folder"
+msgstr "選択したフォルダーに書籍が見つかりませんでした"
+
 msgid "No books with author metadata found"
 msgstr "著者メタデータを含む書籍が見つかりませんでした"
 
@@ -1365,8 +1482,17 @@ msgstr "読み取りデータがありません"
 msgid "No table of contents available."
 msgstr "目次を利用できません。"
 
+msgid "No tags found"
+msgstr "タグが見つかりませんでした"
+
+msgid "No TBR books found"
+msgstr "TBR ブックが見つかりませんでした"
+
 msgid "No update asset found."
 msgstr "アップデートアセットが見つかりません。"
+
+msgid "No ZenPM package is available for this device."
+msgstr "このデバイスで使用できる ZenPM パッケージはありません。"
 
 msgid "None"
 msgstr "なし"
@@ -1376,6 +1502,9 @@ msgstr "なし (フォルダ名のみ)"
 
 msgid "Normal"
 msgstr "標準"
+
+msgid "Not enough Home space: %1/%2 units used; this widget needs %3."
+msgstr "ホームスペースが不十分です: %1/%2 ユニットが使用されています。このウィジェットには %3 が必要です。"
 
 msgid "Nothing"
 msgstr "なし"
@@ -1395,6 +1524,12 @@ msgstr "OK"
 msgid "On"
 msgstr "オン"
 
+msgid "On hold"
+msgstr "保留中"
+
+msgid "On Home refresh"
+msgstr "ホーム更新時"
+
 msgid "Only in Zen mode"
 msgstr "Zenモード時のみ"
 
@@ -1403,6 +1538,9 @@ msgstr "不透明な背景"
 
 msgid "OPDS"
 msgstr "OPDS"
+
+msgid "Open"
+msgstr "開ける"
 
 msgid "Open folder"
 msgstr "フォルダを開く"
@@ -1421,6 +1559,9 @@ msgstr "Rakuyomiを開く"
 
 msgid "Open RSS Reader"
 msgstr "RSS Readerを開く"
+
+msgid "Open this file?"
+msgstr "このファイルを開きますか?"
 
 msgid "Opening"
 msgstr "開く"
@@ -1482,14 +1623,20 @@ msgstr "部分ページリフレッシュ"
 msgid "Paste"
 msgstr "貼り付け"
 
+msgid "Paste selected files"
+msgstr "選択したファイルを貼り付けます"
+
 msgid "Percent"
 msgstr "パーセント"
+
+msgid "Personal records"
+msgstr "個人記録"
 
 msgid "Personal Records"
 msgstr "個人記録"
 
-msgid "Personal records"
-msgstr "個人記録"
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "パック フォルダーまたは ZIP ファイルを /koreader/icons/zen に配置します。 ZIP ファイルは自動的にインストールされます。"
 
 msgid "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
 msgstr "プラグインフォルダから「Project: Title」プラグインを削除し、KOReaderを再起動してください。"
@@ -1563,8 +1710,14 @@ msgstr "KOReaderを終了"
 msgid "Quote font size"
 msgstr "引用のフォントサイズ"
 
+msgid "Quote sources"
+msgstr "引用元"
+
 msgid "Quotes widget"
 msgstr "引用ウィジェット"
+
+msgid "quotes.lua is empty"
+msgstr "quotes.lua は空です"
 
 msgid "Rakuyomi"
 msgstr "Rakuyomi"
@@ -1596,6 +1749,9 @@ msgstr "リーダー"
 msgid "Reader Progress"
 msgstr "リーダー進行状況"
 
+msgid "Reader themes"
+msgstr "読者のテーマ"
+
 msgid "Reading"
 msgstr "読書中"
 
@@ -1608,17 +1764,17 @@ msgstr "読書カレンダー"
 msgid "Reading goals"
 msgstr "読書目標"
 
+msgid "Reading goals font size"
+msgstr "読書目標のフォントサイズ"
+
 msgid "Reading stats widget"
 msgstr "読書統計ウィジェット"
-
-msgid "Reading Trend"
-msgstr "読書傾向"
 
 msgid "Reading trend"
 msgstr "読書傾向"
 
-msgid "Rebooting"
-msgstr "再起動中"
+msgid "Reading Trend"
+msgstr "読書傾向"
 
 msgid "Recently read"
 msgstr "最近読んだ"
@@ -1695,8 +1851,14 @@ msgstr "再起動"
 msgid "Restart Book"
 msgstr "本を再起動"
 
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "KOReader を再起動して、更新されたアクティブ パックを適用します。"
+
 msgid "Restart now"
 msgstr "今すぐ再起動"
+
+msgid "Restarting"
+msgstr "再起動中"
 
 msgid "Restore library location on exit"
 msgstr "終了時にライブラリの場所を復元"
@@ -1775,6 +1937,9 @@ msgstr "ライブラリを検索"
 
 msgid "Search results"
 msgstr "検索結果"
+
+msgid "Search settings"
+msgstr "検索設定"
 
 msgid "Select"
 msgstr "選択"
@@ -1890,9 +2055,6 @@ msgstr "項目数を表示"
 msgid "Show item underline"
 msgstr "アイテムの下線を表示"
 
-msgid "Show KOReader progress bar"
-msgstr "KOReader進行状況バーを表示"
-
 msgid "Show labels"
 msgstr "ラベルを表示"
 
@@ -1908,8 +2070,11 @@ msgstr "Zenボタンと共に他のKOReaderクイック検索オプションを�
 msgid "Show page count"
 msgstr "ページ数を表示"
 
-msgid "Show progress % on mosaic covers"
-msgstr "モザイク表紙に進捗%を表示"
+msgid "Show progress bar"
+msgstr "進行状況バーを表示する"
+
+msgid "Show reading progress"
+msgstr "読み取りの進行状況を表示する"
 
 msgid "Show separator"
 msgstr "区切りを表示"
@@ -1919,6 +2084,9 @@ msgstr "表紙にシリーズ番号を表示"
 
 msgid "Show spine lines"
 msgstr "背表紙の線を表示"
+
+msgid "Show title"
+msgstr "番組タイトル"
 
 msgid "Show title below cover (mosaic)"
 msgstr "表紙の下にタイトルを表示 (モザイク)"
@@ -1943,6 +2111,9 @@ msgstr "Zenアイコンを表示 - 黒背景"
 
 msgid "Show Zen icon - white background"
 msgstr "Zenアイコンを表示 - 白背景"
+
+msgid "Single tag"
+msgstr "単一タグ"
 
 msgid "Skip"
 msgstr "スキップ"
@@ -1998,8 +2169,8 @@ msgstr "安定版"
 msgid "Stack"
 msgstr "スタック"
 
-msgid "Stack effect (overlapping covers)"
-msgstr "スタック効果 (重なる表紙)"
+msgid "Start reading a book to fill this space."
+msgstr "このスペースを埋めるために本を読み始めます。"
 
 msgid "Stat separators"
 msgstr "統計の区切り"
@@ -2076,14 +2247,32 @@ msgstr "タブ"
 msgid "Tabs"
 msgstr "タブ"
 
-msgid "tags"
+msgid "Tag"
 msgstr "タグ"
+
+msgid "Tag strip widget"
+msgstr "タグストリップウィジェット"
+
+msgid "Tag: "
+msgstr "タグ："
+
+msgid "Tag: %1"
+msgstr "タグ: %1"
 
 msgid "Tags"
 msgstr "タグ"
 
+msgid "tags"
+msgstr "タグ"
+
+msgid "Tailscale"
+msgstr "テールスケール"
+
 msgid "Tap and hold any book or folder in your library to reveal details."
 msgstr "ライブラリ内の本やフォルダを長押しすると詳細が表示されます。"
+
+msgid "Text color"
+msgstr "文字の色"
 
 msgid "Text styles"
 msgstr "テキストスタイル"
@@ -2097,6 +2286,12 @@ msgstr "デフォルトのKOReader読書メニューはAaアイコン内にあ�
 msgid "The place for all your books %1"
 msgstr "あなたのすべての本の場所 %1"
 
+msgid "Theme font"
+msgstr "テーマフォント"
+
+msgid "Theme name"
+msgstr "テーマ名"
+
 msgid "This change requires a restart to take effect."
 msgstr "この変更を有効にするには再起動が必要です。"
 
@@ -2109,10 +2304,10 @@ msgstr "今月"
 msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
 msgstr "ホームフォルダーが端末ストレージのルートの場合、このオプションは無効になります。先に、より限定された本のフォルダーをホームフォルダーに設定してください。"
 
-msgid "This week"
+msgid "This Week"
 msgstr "今週"
 
-msgid "This Week"
+msgid "This week"
 msgstr "今週"
 
 msgid "This year"
@@ -2196,6 +2391,9 @@ msgstr "2行"
 msgid "Unavailable"
 msgstr "利用できません"
 
+msgid "Unavailable pack: %1"
+msgstr "利用できないパック: %1"
+
 msgid "Underline"
 msgstr "下線"
 
@@ -2205,10 +2403,10 @@ msgstr "アイコンの上に下線"
 msgid "Uniform covers"
 msgstr "均一な表紙"
 
-msgid "unknown"
+msgid "Unknown"
 msgstr "不明"
 
-msgid "Unknown"
+msgid "unknown"
 msgstr "不明"
 
 msgid "Unknown Author"
@@ -2280,11 +2478,17 @@ msgstr "アップデートに失敗しました: 準備済みプラグインの�
 msgid "Update failed: timed out."
 msgstr "アップデートに失敗しました: タイムアウトしました。"
 
+msgid "Update KOReader"
+msgstr "KOReader を更新する"
+
 msgid "Update now"
 msgstr "今すぐアップデート"
 
 msgid "Update Status"
 msgstr "アップデート状況"
+
+msgid "Update Zen UI"
+msgstr "Zen UIを更新"
 
 msgid "Updated to %1"
 msgstr "%1 にアップデートしました"
@@ -2307,6 +2511,9 @@ msgstr "現在のフォルダを使用"
 msgid "Use default font"
 msgstr "デフォルトフォントを使用"
 
+msgid "Use default font size"
+msgstr "デフォルトのフォントサイズを使用する"
+
 msgid "Use default style"
 msgstr "デフォルトスタイルを使用"
 
@@ -2318,9 +2525,6 @@ msgstr "ホームフォルダを使用"
 
 msgid "Use last folder"
 msgstr "最後のフォルダを使用"
-
-msgid "Use Stats default font size"
-msgstr "統計のデフォルトのフォント サイズを使用する"
 
 msgid "username"
 msgstr "ユーザー名"
@@ -2355,8 +2559,8 @@ msgstr "変更内容"
 msgid "What's New"
 msgstr "新着情報"
 
-msgid "When enabled, icons placed in KOReader's user icons folder override the bundled Zen UI icons. Falls back to Zen UI icons, then KOReader built-ins."
-msgstr "有効にすると、KOReaderのユーザーアイコンフォルダに配置されたアイコンが同梱のZen UIアイコンを上書きします。Zen UIアイコン、その後KOReader内蔵アイコンの順にフォールバックします。"
+msgid "When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."
+msgstr "有効にすると、ルース アイコンまたは選択した Zen UI アイコン パックがサポートされているアイコンをオーバーライドします。アイコンが見つからない場合は、Zen UI、次に KOReader にフォールバックします。"
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "有効にすると、検索は単語全体にのみ一致します。無効にすると、部分一致を使用します (例: 'fish' は 'fishing' に一致)。"
@@ -2369,6 +2573,9 @@ msgstr "白"
 
 msgid "Wi-Fi"
 msgstr "Wi-Fi"
+
+msgid "Widget settings"
+msgstr "ウィジェットの設定"
 
 msgid "Widgets"
 msgstr "ウィジェット"
@@ -2391,14 +2598,23 @@ msgstr "Zen"
 msgid "Zen highlight menu"
 msgstr "Zenハイライトメニュー"
 
-msgid "Zen Mode"
-msgstr "Zenモード"
-
 msgid "Zen mode"
 msgstr "Zenモード"
 
+msgid "Zen Mode"
+msgstr "Zenモード"
+
+msgid "Zen Mode: Disabled"
+msgstr "Zen モード: 無効"
+
+msgid "Zen Mode: Enabled"
+msgstr "禅モード: 有効"
+
 msgid "Zen OPDS"
 msgstr "Zen OPDS"
+
+msgid "Zen page browser"
+msgstr "Zenページブラウザ"
 
 msgid "Zen Presets"
 msgstr "Zen Presets"
@@ -2409,14 +2625,32 @@ msgstr "Zenクイック検索"
 msgid "Zen UI"
 msgstr "Zen UI"
 
+msgid "Zen UI defaults"
+msgstr "Zen UIデフォルト"
+
+msgid "Zen UI is up to date."
+msgstr "Zen UIは最新です。"
+
+msgid "Zen UI Reader margins enabled"
+msgstr "Zen UI Reader のマージンが有効になりました"
+
+msgid "Zen UI: "
+msgstr "Zen UI: "
+
 msgid "Zen UI: Authors"
 msgstr "Zen UI: 著者"
+
+msgid "Zen UI: folder not found: "
+msgstr "Zen UI: フォルダが見つかりません: "
 
 msgid "Zen UI: Home"
 msgstr "Zen UI: ホーム"
 
 msgid "Zen UI: Library"
 msgstr "Zen UI: ライブラリ"
+
+msgid "Zen UI: no folder set for this action."
+msgstr "Zen UI: このアクションにフォルダが設定されていません。"
 
 msgid "Zen UI: Open folder"
 msgstr "Zen UI: フォルダを開く"
@@ -2445,23 +2679,17 @@ msgstr "Zen UI: ロックダウンモードの切替"
 msgid "Zen UI: Toggle reader status bars"
 msgstr "Zen UI: リーダーステータスバーの表示切替"
 
+msgid "Zen UI: Toggle reader themes"
+msgstr "Zen UI: リーダーのテーマを切り替えます"
+
 msgid "Zen UI: Toggle top reader status bar"
 msgstr "Zen UI: 上部リーダーステータスバーの表示切替"
 
 msgid "Zen UI: Toggle Zen Mode"
 msgstr "Zen UI: Zenモードの切替"
 
-msgid "Zen UI defaults"
-msgstr "Zen UIデフォルト"
+msgid "ZenPM"
+msgstr "ZenPM"
 
-msgid "Zen UI is up to date."
-msgstr "Zen UIは最新です。"
-
-msgid "Zen UI: "
-msgstr "Zen UI: "
-
-msgid "Zen UI: folder not found: "
-msgstr "Zen UI: フォルダが見つかりません: "
-
-msgid "Zen UI: no folder set for this action."
-msgstr "Zen UI: このアクションにフォルダが設定されていません。"
+msgid "ZenPM has been installed. Restart KOReader to use it."
+msgstr "ZenPMがインストールされています。 KOReader を使用するには、KOReader を再起動します。"
