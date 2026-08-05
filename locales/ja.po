@@ -913,7 +913,7 @@ msgid "Extract metadata"
 msgstr "メタデータを抽出"
 
 msgid "Extras"
-msgstr "その他"
+msgstr "追加機能"
 
 msgid "Failed to submit report: "
 msgstr "レポート送信に失敗しました: "
@@ -1220,6 +1220,9 @@ msgstr "左アイテム"
 
 msgid "Library"
 msgstr "ライブラリ"
+
+msgid "Library background was disabled because the image file was not found."
+msgstr "画像ファイルが見つからなかったため、ライブラリの背景を無効にしました。"
 
 msgid "Library font"
 msgstr "ライブラリのフォント"

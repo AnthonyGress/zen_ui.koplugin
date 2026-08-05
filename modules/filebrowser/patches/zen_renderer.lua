@@ -1044,7 +1044,7 @@ local function apply_zen_renderer()
             or menu._zen_tab_id or menu._zen_coll_list or menu._zen_group_view
             or menu._zen_renderer == true)
         if is_library and self.width and self.height then
-            local background_path = Background.library_path()
+            local background_path = Background.library_path(plugin_ref)
             if background_path == "" or not Background.paintScreenRegion(bb, x, y,
                     x, y, self.width, self.height, background_path) then
                 bb:paintRect(x, y, self.width, self.height, Blitbuffer.COLOR_WHITE)

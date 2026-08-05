@@ -913,7 +913,7 @@ msgid "Extract metadata"
 msgstr "Видобути метадані"
 
 msgid "Extras"
-msgstr "Додатково"
+msgstr "Доповнення"
 
 msgid "Failed to submit report: "
 msgstr "Не вдалося надіслати звіт: "
@@ -1220,6 +1220,9 @@ msgstr "Ліві елементи"
 
 msgid "Library"
 msgstr "Бібліотека"
+
+msgid "Library background was disabled because the image file was not found."
+msgstr "Тло бібліотеки було вимкнено, оскільки файл зображення не знайдено."
 
 msgid "Library font"
 msgstr "Шрифт бібліотеки"

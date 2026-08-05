@@ -913,7 +913,7 @@ msgid "Extract metadata"
 msgstr "Extraire les métadonnées"
 
 msgid "Extras"
-msgstr "Extras"
+msgstr "Suppléments"
 
 msgid "Failed to submit report: "
 msgstr "Échec de l'envoi du rapport : "
@@ -1220,6 +1220,9 @@ msgstr "Éléments de gauche"
 
 msgid "Library"
 msgstr "Bibliothèque"
+
+msgid "Library background was disabled because the image file was not found."
+msgstr "L’arrière-plan de la bibliothèque a été désactivé, car le fichier image est introuvable."
 
 msgid "Library font"
 msgstr "Police de la bibliothèque"

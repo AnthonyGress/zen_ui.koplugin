@@ -65,4 +65,32 @@ describe("Zen UI translations", function()
         assert.are.equal("Barra de navegação", GetText("Navbar"))
         assert.are.equal("Adicionais", GetText("Extras"))
     end)
+
+    it("reapplies translations when install is called after a shared-table reset", function()
+        local I18n = require("common/i18n")
+        I18n.install()
+        GetText.translation = {}
+
+        assert.is_true(I18n.install())
+        assert.are.equal("Biblioteca", GetText("Library"))
+    end)
+
+    it("patches KOReader gettext behind another plugin wrapper", function()
+        local wrapper = setmetatable({}, {
+            __call = function(_self, msgid)
+                if msgid == "About" then return "Sobre" end
+                return GetText(msgid)
+            end,
+            __index = GetText,
+        })
+        package.loaded["gettext"] = wrapper
+
+        local I18n = require("common/i18n")
+        I18n.install()
+        assert.are.equal("Sobre", wrapper("About"))
+        assert.are.equal("Biblioteca", wrapper("Library"))
+
+        methods.changeLang("pt_BR")
+        assert.are.equal("Biblioteca", wrapper("Library"))
+    end)
 end)

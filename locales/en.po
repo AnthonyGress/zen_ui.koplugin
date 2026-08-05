@@ -1221,6 +1221,9 @@ msgstr "Left items"
 msgid "Library"
 msgstr "Library"
 
+msgid "Library background was disabled because the image file was not found."
+msgstr "Library background was disabled because the image file was not found."
+
 msgid "Library font"
 msgstr "Library font"
 

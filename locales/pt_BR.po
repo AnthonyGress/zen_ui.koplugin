@@ -1221,6 +1221,9 @@ msgstr "Itens à esquerda"
 msgid "Library"
 msgstr "Biblioteca"
 
+msgid "Library background was disabled because the image file was not found."
+msgstr "O plano de fundo da biblioteca foi desativado porque o arquivo de imagem não foi encontrado."
+
 msgid "Library font"
 msgstr "Fonte da biblioteca"
 

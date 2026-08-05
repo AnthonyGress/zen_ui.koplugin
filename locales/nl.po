@@ -913,7 +913,7 @@ msgid "Extract metadata"
 msgstr "Metagegevens extraheren"
 
 msgid "Extras"
-msgstr "Extra’s"
+msgstr "Aanvullingen"
 
 msgid "Failed to submit report: "
 msgstr "Indienen van rapport mislukt: "
@@ -1220,6 +1220,9 @@ msgstr "Linker items"
 
 msgid "Library"
 msgstr "Bibliotheek"
+
+msgid "Library background was disabled because the image file was not found."
+msgstr "De bibliotheekachtergrond is uitgeschakeld omdat het afbeeldingsbestand niet is gevonden."
 
 msgid "Library font"
 msgstr "Bibliotheeklettertype"

@@ -16,17 +16,7 @@ local function apply_library_background()
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
     local function background_path()
-        local cfg = zen_plugin and zen_plugin.config
-        if type(cfg) ~= "table" then
-            local ok, loaded = pcall(function()
-                return require("config/manager").load()
-            end)
-            cfg = ok and loaded or nil
-        end
-        local bg = type(cfg) == "table" and cfg.library_background
-        if not (type(bg) == "table" and bg.enabled == true) then return "" end
-        local path = type(bg.path) == "string" and bg.path or ""
-        return Background.isJpegPath(path) and path or ""
+        return Background.library_path(zen_plugin)
     end
 
     local function clear_backgrounds(fm)

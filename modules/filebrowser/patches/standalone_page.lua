@@ -9,17 +9,7 @@ local M = {}
 local _zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
 local function library_background_path()
-    local cfg = _zen_plugin and _zen_plugin.config
-    if type(cfg) ~= "table" then
-        local ok, loaded = pcall(function()
-            return require("config/manager").load()
-        end)
-        cfg = ok and loaded or nil
-    end
-    local bg = type(cfg) == "table" and cfg.library_background
-    if not (type(bg) == "table" and bg.enabled == true) then return "" end
-    local path = type(bg.path) == "string" and bg.path or ""
-    return Background.isJpegPath(path) and path or ""
+    return Background.library_path(_zen_plugin)
 end
 
 local SKIP_FM_DISPATCH = {

@@ -913,7 +913,7 @@ msgid "Extract metadata"
 msgstr "Извлечь метаданные"
 
 msgid "Extras"
-msgstr "Дополнительно"
+msgstr "Дополнения"
 
 msgid "Failed to submit report: "
 msgstr "Не удалось отправить отчёт: "
@@ -1220,6 +1220,9 @@ msgstr "Левые элементы"
 
 msgid "Library"
 msgstr "Библиотека"
+
+msgid "Library background was disabled because the image file was not found."
+msgstr "Фон библиотеки был отключен, так как файл изображения не найден."
 
 msgid "Library font"
 msgstr "Шрифт библиотеки"

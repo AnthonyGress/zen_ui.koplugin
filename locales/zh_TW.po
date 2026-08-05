@@ -913,7 +913,7 @@ msgid "Extract metadata"
 msgstr "擷取中繼資料"
 
 msgid "Extras"
-msgstr "其他"
+msgstr "附加功能"
 
 msgid "Failed to submit report: "
 msgstr "送出報告失敗："
@@ -1220,6 +1220,9 @@ msgstr "左側項目"
 
 msgid "Library"
 msgstr "書庫"
+
+msgid "Library background was disabled because the image file was not found."
+msgstr "由於找不到圖片檔案，書庫背景已停用。"
 
 msgid "Library font"
 msgstr "書庫字型"

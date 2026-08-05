@@ -1221,6 +1221,9 @@ msgstr "Elemente stânga"
 msgid "Library"
 msgstr "Bibliotecă"
 
+msgid "Library background was disabled because the image file was not found."
+msgstr "Fundalul bibliotecii a fost dezactivat deoarece fișierul imagine nu a fost găsit."
+
 msgid "Library font"
 msgstr "Font bibliotecă"
 

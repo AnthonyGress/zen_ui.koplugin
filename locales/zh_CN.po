@@ -913,7 +913,7 @@ msgid "Extract metadata"
 msgstr "提取元数据"
 
 msgid "Extras"
-msgstr "其他"
+msgstr "附加功能"
 
 msgid "Failed to submit report: "
 msgstr "提交报告失败："
@@ -1220,6 +1220,9 @@ msgstr "左侧项目"
 
 msgid "Library"
 msgstr "书库"
+
+msgid "Library background was disabled because the image file was not found."
+msgstr "由于找不到图像文件，书库背景已被禁用。"
 
 msgid "Library font"
 msgstr "书库字体"

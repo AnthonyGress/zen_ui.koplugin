@@ -15,12 +15,11 @@ do
     end
 end
 
--- i18n must be installed before any other require() so every subsequent
--- require("gettext") in every sub-module receives the wrapped version.
+-- Install i18n before Zen modules capture gettext-backed labels.
 local i18n
 if _incompatible_plugins_restart_required then
     -- KOReader may still call onCloseWidget on this inert plugin instance.
-    i18n = { install = function() end, uninstall = function() end }
+    i18n = { install = function() end, refresh = function() end }
 else
     i18n = require("common/i18n")
     i18n.install()
@@ -185,7 +184,7 @@ function ZenUI:init()
         logger.warn("Zen UI initialization skipped; restart required after disabling incompatible plugins")
         return
     end
-    i18n.install()  -- reinstall after any context-switch uninstall (onCloseWidget removes it)
+    i18n.refresh()
     self.config = ConfigManager.load()
     if _plugin_root then
         require("common/utils").copyDefaultCustomTabIcon(
@@ -811,7 +810,6 @@ end
 function ZenUI:onCloseWidget()
     cancel_item_table_cache_persist()
     close_zen_standalone_views(self._zen_shared)
-    i18n.uninstall()
 end
 
 -- KOReader PluginLoader calls this only when the user explicitly chooses

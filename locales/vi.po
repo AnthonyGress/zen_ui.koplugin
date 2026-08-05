@@ -1221,6 +1221,9 @@ msgstr "Các mục còn lại"
 msgid "Library"
 msgstr "Thư viện"
 
+msgid "Library background was disabled because the image file was not found."
+msgstr "Nền thư viện đã bị tắt vì không tìm thấy tệp hình ảnh."
+
 msgid "Library font"
 msgstr "Phông chữ thư viện"
 

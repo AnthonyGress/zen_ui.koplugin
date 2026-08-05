@@ -1221,6 +1221,9 @@ msgstr "Položky vlevo"
 msgid "Library"
 msgstr "Knihovna"
 
+msgid "Library background was disabled because the image file was not found."
+msgstr "Pozadí knihovny bylo zakázáno, protože soubor obrázku nebyl nalezen."
+
 msgid "Library font"
 msgstr "Písmo knihovny"
 

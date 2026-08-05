@@ -1230,6 +1230,9 @@ msgstr "Леви елементи"
 msgid "Library"
 msgstr "Библиотека"
 
+msgid "Library background was disabled because the image file was not found."
+msgstr "Фонът на библиотеката беше деактивиран, защото файлът с изображението не беше намерен."
+
 msgid "Library font"
 msgstr "Шрифт на библиотеката"
 

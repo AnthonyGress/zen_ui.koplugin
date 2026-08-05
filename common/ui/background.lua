@@ -10,6 +10,7 @@
 local Device = require("device")
 local Blitbuffer = require("ffi/blitbuffer")
 local logger = require("common/zen_logger").new("background")
+local _ = require("gettext")
 local Screen = Device.screen
 
 local ok_iw, ImageWidget = pcall(require, "ui/widget/imagewidget")
@@ -28,6 +29,37 @@ local function file_exists(path)
     if type(path) ~= "string" or path == "" then return false end
     if not lfs then return true end  -- can't check; assume present
     return lfs.attributes(path, "mode") == "file"
+end
+
+local function disable_missing_library_background(plugin, cfg, bg, path)
+    bg.enabled = false
+    if plugin and plugin.config == cfg and type(plugin.saveConfig) == "function" then
+        pcall(plugin.saveConfig, plugin)
+    else
+        local ok_config, ConfigManager = pcall(require, "config/manager")
+        if ok_config and type(ConfigManager.save) == "function" then
+            pcall(ConfigManager.save, cfg)
+        end
+    end
+    M.clearCache()
+    logger.warn("disabled missing library background", path)
+
+    local ok_ui, UIManager = pcall(require, "ui/uimanager")
+    local ok_info, InfoMessage = pcall(require, "ui/widget/infomessage")
+    if not (ok_ui and ok_info and type(UIManager.show) == "function"
+            and type(InfoMessage.new) == "function") then
+        return
+    end
+    local function show_notice()
+        UIManager:show(InfoMessage:new{
+            text = _("Library background was disabled because the image file was not found."),
+        })
+    end
+    if type(UIManager.nextTick) == "function" then
+        UIManager:nextTick(show_notice)
+    else
+        show_notice()
+    end
 end
 
 local function is_jpeg_path(path)
@@ -224,18 +256,23 @@ end
 -- True when a library background image is configured. Home/standalone widget
 -- tiles use this to switch their opaque fill to nil (transparent) so the
 -- background painted behind the page shows through.
-function M.library_path()
-    local plugin = rawget(_G, "__ZEN_UI_PLUGIN")
+function M.library_path(plugin)
+    plugin = plugin or rawget(_G, "__ZEN_UI_PLUGIN")
     local cfg = plugin and plugin.config
     if type(cfg) ~= "table" then
         local ok, loaded = pcall(function()
-            return require("config/manager").load()
+            local ConfigManager = require("config/manager")
+            return ConfigManager.get() or ConfigManager.load()
         end)
         cfg = ok and loaded or nil
     end
     local bg = type(cfg) == "table" and cfg.library_background
     local path = type(bg) == "table" and type(bg.path) == "string" and bg.path or ""
     if type(bg) == "table" and bg.enabled == true and is_jpeg_path(path) then
+        if not file_exists(path) then
+            disable_missing_library_background(plugin, cfg, bg, path)
+            return ""
+        end
         return path
     end
     return ""
