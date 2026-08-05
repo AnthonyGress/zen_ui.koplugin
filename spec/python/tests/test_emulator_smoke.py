@@ -30,6 +30,19 @@ def _wait_for_library(driver: ZenDriver, library: Path) -> dict[str, object]:
     raise AssertionError(f"file browser did not load fixture library: {latest}")
 
 
+def _wait_command(
+    driver: ZenDriver, kind: str, predicate, timeout: float = 10, **params: object
+) -> dict[str, object]:
+    deadline = time.monotonic() + timeout
+    latest: dict[str, object] = {}
+    while time.monotonic() < deadline:
+        latest = driver.command(kind, **params)
+        if predicate(latest):
+            return latest
+        time.sleep(0.1)
+    raise AssertionError(f"{kind} did not reach expected state: {latest}")
+
+
 def _golden_root() -> Path:
     default_dir = "macos-1200x1600" if platform.system() == "Darwin" else "linux-800x600"
     return Path(os.environ.get(
@@ -189,7 +202,12 @@ def test_action_selection_saves_immediately_and_x_closes_settings_stack() -> Non
             assert driver.command(
                 "activate_custom_control", id=actions[0]["id"]
             )["ok"] is True
-            history = driver.command("history_state")
+            history = _wait_command(
+                driver,
+                "history_state",
+                lambda result: result.get("open") is True
+                and result.get("settings_open") is False,
+            )
             assert history["open"] is True
             assert history["settings_open"] is False
             assert driver.command("close_history")["ok"] is True
@@ -210,13 +228,23 @@ def test_action_selection_saves_immediately_and_x_closes_settings_stack() -> Non
             assert driver.command(
                 "activate_custom_control", id=actions[0]["id"]
             )["ok"] is True
-            stack = driver.command("zen_settings_stack_state")
+            stack = _wait_command(
+                driver,
+                "zen_settings_stack_state",
+                lambda result: result.get("settings_open") is False
+                and result.get("arrange_count") == 0,
+            )
             assert stack["settings_open"] is False
             assert stack["arrange_count"] == 0
 
             assert driver.command("open_settings_page")["ok"] is True
             assert driver.command("open_koreader_history")["ok"] is True
-            history = driver.command("history_state")
+            history = _wait_command(
+                driver,
+                "history_state",
+                lambda result: result.get("open") is True
+                and result.get("settings_open") is False,
+            )
             assert history["open"] is True
             assert history["settings_open"] is False
         finally:
@@ -448,8 +476,12 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             time.sleep(0.2)
             assert driver.command("settings_page_select", label="Launcher")["ok"] is True
             assert driver.command("settings_page_select", label="Buttons")["ok"] is True
-            time.sleep(0.2)
-            arrange = driver.command("arrange_page_state")["arrange"]
+            arrange = _wait_command(
+                driver,
+                "arrange_page_state",
+                lambda result: result.get("arrange", {}).get("row_alignment")
+                == settings_row_alignment,
+            )["arrange"]
             assert arrange.get("back_visible") is True
             assert arrange.get("has_search") is False
             assert arrange.get("has_more") is False

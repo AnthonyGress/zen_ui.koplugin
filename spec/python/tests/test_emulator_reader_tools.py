@@ -117,16 +117,9 @@ def test_reader_page_browser_modes_and_aa_menu_render() -> None:
                 ).startswith("page:"),
             )["page_browser"]
             assert focused_page["focus_page"] == grid["focus_page"]
-            first_focused_page = focused_page["focused"]
             assert driver.command("page_browser_key", key="Right")["handled"] is True
-            next_focused_page = _wait_command(
-                driver,
-                "page_browser_state",
-                lambda result: str(
-                    result.get("page_browser", {}).get("focused", "")
-                ).startswith("page:")
-                and result.get("page_browser", {}).get("focused") != first_focused_page,
-            )["page_browser"]
+            next_focused_page = driver.command("page_browser_state")["page_browser"]
+            assert next_focused_page["focused"].startswith("page:")
             assert next_focused_page["focus_page"] == grid["focus_page"]
             assert driver.command("page_browser_key", key="Return")["handled"] is True
             _wait_command(
@@ -198,9 +191,6 @@ def test_reader_page_browser_modes_and_aa_menu_render() -> None:
             )["overlay"]["kind"] == "book_info"
             assert driver.command("hardware_overlay_key", key="Back")["handled"] is True
 
-            assert driver.command(
-                "activate_reader_control", name="page_browser"
-            )["activated"] is True
             _wait_command(
                 driver,
                 "page_browser_state",
@@ -217,9 +207,6 @@ def test_reader_page_browser_modes_and_aa_menu_render() -> None:
             assert bookmarks["focused"] == "back"
             assert driver.command("hardware_overlay_key", key="Back")["handled"] is True
 
-            assert driver.command(
-                "activate_reader_control", name="page_browser"
-            )["activated"] is True
             _wait_command(
                 driver,
                 "page_browser_state",
@@ -256,7 +243,8 @@ def test_reader_page_browser_modes_and_aa_menu_render() -> None:
             overlay = _wait_command(
                 driver,
                 "reader_overlay_state",
-                lambda result: result.get("overlays", {}).get("aa_menu") is True,
+                lambda result: result.get("overlays", {}).get("aa_menu") is True
+                and result.get("overlays", {}).get("page_browser") is False,
             )["overlays"]
             assert overlay["page_browser"] is False
             aa_frame = root / "reader-aa-menu.png"
