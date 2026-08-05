@@ -16,17 +16,7 @@ local function apply_library_background()
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
     local function background_path()
-        local cfg = zen_plugin and zen_plugin.config
-        if type(cfg) ~= "table" then
-            local ok, loaded = pcall(function()
-                return require("config/manager").load()
-            end)
-            cfg = ok and loaded or nil
-        end
-        local bg = type(cfg) == "table" and cfg.library_background
-        if not (type(bg) == "table" and bg.enabled == true) then return "" end
-        local path = type(bg.path) == "string" and bg.path or ""
-        return Background.isJpegPath(path) and path or ""
+        return Background.library_path(zen_plugin)
     end
 
     local function clear_backgrounds(fm)
@@ -35,6 +25,23 @@ local function apply_library_background()
         if fm.file_chooser then
             Background.clearWhiteBackgrounds(fm.file_chooser, 14)
         end
+    end
+
+    local function restore_backgrounds(fm)
+        if not fm then return end
+        Background.restoreWhiteBackgrounds(fm[1], 14)
+        if fm.file_chooser then
+            Background.restoreWhiteBackgrounds(fm.file_chooser, 14)
+        end
+    end
+
+    local function sync_backgrounds(fm, active)
+        if active then
+            clear_backgrounds(fm)
+        elseif fm and fm._zen_library_bg_active then
+            restore_backgrounds(fm)
+        end
+        if fm then fm._zen_library_bg_active = active end
     end
 
     local function is_active()
@@ -134,17 +141,16 @@ local function apply_library_background()
     local orig_setupLayout = FileManager.setupLayout
     function FileManager:setupLayout(...)
         local ret = orig_setupLayout(self, ...)
-        if is_active() then
-            clear_backgrounds(self)
-        end
+        sync_backgrounds(self, is_active())
         return ret
     end
 
     local orig_paintTo = FileManager.paintTo
     function FileManager:paintTo(bb, x, y)
         local path = background_path()
-        if path ~= "" then
-            clear_backgrounds(self)
+        local active = path ~= ""
+        sync_backgrounds(self, active)
+        if active then
             Background.paint(bb, 0, 0, Screen:getWidth(), Screen:getHeight(), path)
         end
         if orig_paintTo then

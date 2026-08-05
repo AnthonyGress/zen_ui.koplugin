@@ -1367,7 +1367,7 @@ local function apply_navbar()
             return first_enabled_default_tab()
         end
         if tab_id:sub(1, 3) == "ct_" then
-            if tab_callbacks[tab_id] and is_tab_enabled(tab_id) then
+            if tab_callbacks[tab_id] then
                 return tab_id
             end
             return first_enabled_default_tab()
@@ -1375,7 +1375,7 @@ local function apply_navbar()
         if not default_tab_whitelist[tab_id] then
             return first_enabled_default_tab()
         end
-        if tab_callbacks[tab_id] and is_tab_enabled(tab_id) then
+        if tab_callbacks[tab_id] then
             return tab_id
         end
         return first_enabled_default_tab()
@@ -2156,6 +2156,21 @@ local function apply_navbar()
         end
     end
 
+    -- === Physical Home button: return to the default navbar tab ===
+
+    local orig_onHome = FileManager.onHome
+
+    function FileManager:onHome()
+        if is_navbar_enabled() then
+            utils.closeWidgetsAbove(self)
+            open_default_tab()
+            return true
+        end
+        if orig_onHome then
+            return orig_onHome(self)
+        end
+    end
+
     -- Inject navbar into FM after all plugins finish init.
 
     local function resizeFileChooser(file_chooser, target_height)
@@ -2914,6 +2929,17 @@ local function apply_navbar()
                 else UIManager:close(m) end
                 return true
             end
+
+            -- Physical Home button: close this standalone view and return to
+            -- the default navbar tab, same as pressing Home from the main FM.
+            menu.key_events = menu.key_events or {}
+            menu.key_events.Home = { { "Home" } }
+            function menu:onHome()
+                _navbar_focused_idx = nil
+                closeStandaloneView(self)
+                open_default_tab()
+                return true
+            end
         end
 
         -- Top south swipe → open KOReader menu is handled globally by
@@ -3070,14 +3096,70 @@ local function apply_navbar()
     -- *above* fm in the window stack, so _repaint starts from the overlay (topmost
     -- covers_fullscreen) and never paints the FM books view at all -- no flash, no artifacts.
     local orig_showFiles = FileManager.showFiles
-    local function maybe_open_startup_default_tab(fm)
-        if not fm or fm._zen_default_tab_bootstrapped then return false end
+    local STARTUP_DEFAULT_TAB_RETRY_S = 0.25
+    local STARTUP_DEFAULT_TAB_MAX_RETRIES = 40
+    local maybe_open_startup_default_tab
+
+    local function filemanager_is_on_top(fm)
         local stack = UIManager._window_stack
         local top = stack and stack[#stack]
         local top_widget = top and top.widget
-        if top_widget ~= fm and top_widget ~= fm.show_parent then
+        return top_widget == fm or top_widget == fm.show_parent
+    end
+
+    local function cancel_startup_default_tab_retry(fm)
+        local pending = fm and fm._zen_default_tab_retry_fn
+        if not pending then return end
+        fm._zen_default_tab_retry_fn = nil
+        if type(UIManager.unschedule) == "function" then
+            UIManager:unschedule(pending)
+        end
+    end
+
+    local function schedule_startup_default_tab_retry(fm)
+        if fm._zen_default_tab_retry_fn
+                or type(UIManager.scheduleIn) ~= "function" then
+            return
+        end
+        local retry_count = 0
+        local retry
+        retry = function()
+            if fm._zen_default_tab_retry_fn ~= retry then return end
+            if FileManager.instance ~= fm or fm._zen_default_tab_bootstrapped
+                    or fm._zen_hidden_home_startup ~= true then
+                fm._zen_default_tab_retry_fn = nil
+                return
+            end
+            if filemanager_is_on_top(fm) then
+                fm._zen_default_tab_retry_fn = nil
+                maybe_open_startup_default_tab(fm)
+                return
+            end
+            retry_count = retry_count + 1
+            if retry_count >= STARTUP_DEFAULT_TAB_MAX_RETRIES then
+                fm._zen_default_tab_retry_fn = nil
+                logger.warn("Startup default tab retry expired:",
+                    "retries=", retry_count)
+                return
+            end
+            UIManager:scheduleIn(STARTUP_DEFAULT_TAB_RETRY_S, retry)
+        end
+        fm._zen_default_tab_retry_fn = retry
+        UIManager:scheduleIn(STARTUP_DEFAULT_TAB_RETRY_S, retry)
+    end
+
+    maybe_open_startup_default_tab = function(fm)
+        if not fm or fm._zen_default_tab_bootstrapped then
+            cancel_startup_default_tab_retry(fm)
             return false
         end
+        if not filemanager_is_on_top(fm) then
+            if fm._zen_hidden_home_startup == true then
+                schedule_startup_default_tab_retry(fm)
+            end
+            return false
+        end
+        cancel_startup_default_tab_retry(fm)
         fm._zen_default_tab_bootstrapped = true
         if resolve_default_tab() == "books" then return false end
         if FileManager.instance == fm then

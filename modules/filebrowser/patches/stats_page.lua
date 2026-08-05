@@ -37,6 +37,7 @@ local HomeGoals = require("modules/filebrowser/patches/home/widgets/reading_goal
 local ZenModalClose = require("common/ui/zen_modal_close")
 local icons = require("common/inline_icon_map")
 local utils = require("common/utils")
+local datetime = require("datetime")
 local Screen = Device.screen
 local _ = require("gettext")
 
@@ -85,6 +86,14 @@ local function statsFrameBg()
     return Background.tile_bg(Blitbuffer.COLOR_WHITE)
 end
 
+local function syncStatsBackgrounds(widget)
+    if Background.library_active() then
+        Background.clearWhiteBackgrounds(widget, 40)
+    else
+        Background.restoreWhiteBackgrounds(widget, 40)
+    end
+end
+
 local function displayBlockTitle(block)
     local title = blockTitle(block)
     if block.id == "trend_graph" then
@@ -114,29 +123,37 @@ local function loadCalendarMonthConfig(settings)
     if isCalendarMonth(month) then return month end
 end
 
+local function time_unit(unit)
+    if type(_) == "table" and type(_.pgettext) == "function" then
+        return _.pgettext("Time", unit)
+    end
+    return _(unit)
+end
+
 local function formatTime(secs)
     secs = math.floor(secs or 0)
-    if secs <= 0 then return "0m" end
+    if secs <= 0 then return "0" .. time_unit("m") end
     local h = math.floor(secs / 3600)
     local m = math.floor((secs % 3600) / 60)
     if h > 0 then
-        return h .. "h " .. m .. "m"
+        return h .. time_unit("h") .. " " .. m .. time_unit("m")
     end
-    return m .. "m"
+    return m .. time_unit("m")
 end
 
 local function formatLongTime(secs)
     secs = math.floor(secs or 0)
-    if secs <= 0 then return "0m" end
+    if secs <= 0 then return "0" .. time_unit("m") end
     local d = math.floor(secs / 86400)
     local h = math.floor((secs % 86400) / 3600)
     local m = math.floor((secs % 3600) / 60)
     if d > 0 then
-        return h > 0 and (d .. "d " .. h .. "h") or (d .. "d")
+        return h > 0 and (d .. time_unit("d") .. " " .. h .. time_unit("h"))
+            or (d .. time_unit("d"))
     elseif h > 0 then
-        return h .. "h " .. m .. "m"
+        return h .. time_unit("h") .. " " .. m .. time_unit("m")
     end
-    return m .. "m"
+    return m .. time_unit("m")
 end
 
 local function minuteCount(secs)
@@ -145,7 +162,8 @@ end
 
 local function fmtPeakDay(ts)
     if not ts then return "" end
-    return os.date("%b %d", ts):gsub(" 0(%d)", " %1")
+    local month = datetime.shortMonthTranslation[os.date("%b", ts)] or os.date("%b", ts)
+    return month .. " " .. tostring(os.date("*t", ts).day)
 end
 
 local function fmtPeakWeek(ts)
@@ -154,16 +172,19 @@ local function fmtPeakWeek(ts)
     local days_to_mon = (t.wday - 2) % 7
     local mon_ts = ts - days_to_mon * 86400
     local sun_ts = mon_ts + 6 * 86400
-    local mon_str = os.date("%b %d", mon_ts):gsub(" 0(%d)", " %1")
+    local mon_month = datetime.shortMonthTranslation[os.date("%b", mon_ts)] or os.date("%b", mon_ts)
+    local sun_month = datetime.shortMonthTranslation[os.date("%b", sun_ts)] or os.date("%b", sun_ts)
+    local mon_str = mon_month .. " " .. tostring(os.date("*t", mon_ts).day)
     if os.date("%m", mon_ts) == os.date("%m", sun_ts) then
-        return mon_str .. "-" .. os.date("%d", sun_ts):gsub("^0", "")
+        return mon_str .. "-" .. tostring(os.date("*t", sun_ts).day)
     end
-    return mon_str .. "-" .. os.date("%b %d", sun_ts):gsub(" 0(%d)", " %1")
+    return mon_str .. "-" .. sun_month .. " " .. tostring(os.date("*t", sun_ts).day)
 end
 
 local function fmtPeakMonth(ts)
     if not ts then return "" end
-    return os.date("%b %Y", ts)
+    local month = datetime.shortMonthTranslation[os.date("%b", ts)] or os.date("%b", ts)
+    return month .. " " .. os.date("%Y", ts)
 end
 
 local function shortDate(date)
@@ -192,14 +213,16 @@ local function monthLabel(month_s)
     year = tonumber(year)
     month = tonumber(month)
     if not year or not month then return tostring(month_s or "") end
-    return os.date("%B %Y", os.time{
+    local ts = os.time{
         year = year,
         month = month,
         day = 15,
         hour = 12,
         min = 0,
         sec = 0,
-    })
+    }
+    local month_name = datetime.longMonthTranslation[os.date("%B", ts)] or os.date("%B", ts)
+    return month_name .. " " .. tostring(year)
 end
 
 local function graphDateLabels(series, max_labels)
@@ -342,6 +365,7 @@ local function createCard(opts)
         radius = stat_style == "outline" and Screen:scaleBySize(6) or 0,
         color = Blitbuffer.COLOR_BLACK,
         background = statsFrameBg(),
+        _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
         CenterContainer:new{
             dimen = Geom:new{ w = inner_w, h = actual_h - chrome_h },
             content,
@@ -427,6 +451,7 @@ local function createDayBookCard(width, title_text, minutes, pages, stat_style)
         radius = 0,
         color = Blitbuffer.COLOR_BLACK,
         background = statsFrameBg(),
+        _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
         content,
     }
 end
@@ -460,6 +485,7 @@ local function makeBlockPanel(page_w, content_w, title, body, height)
         radius = 0,
         color = Blitbuffer.COLOR_BLACK,
         background = statsFrameBg(),
+        _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
         VerticalGroup:new(panel_items),
     }
     return CenterContainer:new{
@@ -522,7 +548,7 @@ local function showCalendarDaySummary(stats_plugin, visible_day_ts, stat_style)
         Screen:scaleBySize(120),
         width - ScrollableContainer:getScrollbarWidth() - Screen:scaleBySize(4)
     )
-    local title_text = os.date("%B %d, %Y", visible_day_ts):gsub(" 0(%d)", " %1")
+    local title_text = datetime.secondsToDate(visible_day_ts, true)
     local title_bar = TitleBar:new{
         width = width,
         align = "left",
@@ -1042,7 +1068,7 @@ local function buildContent(blocks_config, data, page_w, h_padding, top_padding,
             browse_future_months = settings.calendar_browse_future_months,
         }
         tuneEmbeddedCalendar(calendar)
-        Background.clearWhiteBackgrounds(calendar, 40)
+        syncStatsBackgrounds(calendar)
         local orig_go_to_month = calendar.goToMonth
         calendar.goToMonth = function(self_cal, month, ...)
             local result = orig_go_to_month(self_cal, month, ...)
@@ -1068,7 +1094,7 @@ local function buildContent(blocks_config, data, page_w, h_padding, top_padding,
             local result = orig_populate_items(self_cal, ...)
             hideCalendarPageInfo(self_cal)
             installCalendarDaySummary(self_cal, stats_plugin, stat_style)
-            Background.clearWhiteBackgrounds(self_cal, 40)
+            syncStatsBackgrounds(self_cal)
             refreshEmbeddedCalendarLayout(self_cal)
             UIManager:setDirty(self_cal, "ui")
             return result
@@ -1081,7 +1107,7 @@ local function buildContent(blocks_config, data, page_w, h_padding, top_padding,
         calendar.onMultiSwipe = function() return false end
         local orig_calendar_paintTo = calendar.paintTo
         calendar.paintTo = function(self_cal, bb, x, y)
-            Background.clearWhiteBackgrounds(self_cal, 40)
+            syncStatsBackgrounds(self_cal)
             return orig_calendar_paintTo(self_cal, bb, x, y)
         end
         calendar.onSwipe = function(_self, _arg, ges_ev)
@@ -1237,6 +1263,7 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
                     padding = 0,
                     bordersize = 0,
                     background = statsFrameBg(),
+                    _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
                     content,
                 }, hits
             end
@@ -1262,6 +1289,7 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
             padding = 0,
             bordersize = 0,
             background = statsFrameBg(),
+            _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
             VerticalSpan:new{ width = math.max(1, body_h) },
         }, {}
     end
@@ -1409,7 +1437,8 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
         if current.id == "calendar" then
             local calendar = calendar_widgets[block_idx]
             buttons[#buttons + 1] = {{
-                text = _("Date") .. ": " .. tostring(calendar and calendar.cur_month or ""),
+                text = _("Date") .. ": "
+                    .. (calendar and monthLabel(calendar.cur_month) or ""),
                 callback = function() showCalendarMonthMenu(block_idx) end,
             }}
         end

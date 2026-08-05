@@ -122,6 +122,7 @@ local function create_goal_summary_card(width, row)
         padding = padding,
         bordersize = 0,
         background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
+        _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
         content,
     }
 end
@@ -181,7 +182,7 @@ end
 
 return {
     id = "reading_goals",
-    label = "Reading goals widget",
+    label = _("Reading goals widget"),
     size = "xs",
     build = function(ctx)
         local width = ctx.width
@@ -227,11 +228,14 @@ return {
             monthly = _("Monthly"),
             yearly = _("Yearly"),
         }
+        local today = os.time()
+        local month = _(os.date("%B", today))
         local summary_labels = {
-            daily = string.format(_("%s goal (%s)"), labels.daily, os.date("%B %d")),
+            daily = string.format(_("%s goal (%s)"), labels.daily,
+                month .. " " .. os.date("%d", today)),
             weekly = string.format(_("%s goal"), labels.weekly),
-            monthly = string.format(_("%s goal (%s)"), labels.monthly, os.date("%B")),
-            yearly = string.format(_("%s goal (%s)"), labels.yearly, os.date("%Y")),
+            monthly = string.format(_("%s goal (%s)"), labels.monthly, month),
+            yearly = string.format(_("%s goal (%s)"), labels.yearly, os.date("%Y", today)),
         }
         for _i, period in ipairs(periods) do
             local metric = (period == "monthly" or period == "yearly") and metrics[period] == "books"
@@ -398,6 +402,7 @@ return {
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
+            _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
             body_container,
         }
         local tap = InputContainer:new{

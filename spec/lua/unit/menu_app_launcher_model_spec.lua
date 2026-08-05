@@ -83,6 +83,16 @@ describe("app launcher model", function()
         assert.is_false(Model.remove_by_id(entries, "missing"))
     end)
 
+    it("omits buttons disabled in launcher settings", function()
+        local Model = require("modules/menu/app_launcher/model")
+        local first = { id = "first", enabled = true }
+        local disabled = { id = "disabled", enabled = false }
+        local default_enabled = { id = "default" }
+
+        assert.are.same({ first, default_enabled },
+            Model.enabled_entries({ first, disabled, default_enabled }))
+    end)
+
     it("adds enabled ZenPM once without replacing an existing launcher entry", function()
         ZenSpec.replace("pluginloader", {
             loadPlugins = function()
@@ -166,6 +176,29 @@ describe("app launcher action filter", function()
         assert.is_true(Filter.has_reader_action(Dispatcher, { settings = {}, reader_action = {} }))
         assert.is_false(Filter.has_reader_action(Dispatcher, { settings = {}, library_action = {} }))
         assert.is_false(Filter.has_reader_action(Dispatcher, "invalid"))
+    end)
+
+    it("detects actions that are no longer registered", function()
+        local settingsList = {
+            available_action = { category = "none" },
+        }
+        local function registerAction()
+            return settingsList
+        end
+        local Dispatcher = { registerAction = registerAction }
+        local Filter = require("modules/menu/app_launcher/action_filter")
+
+        assert.is_true(Filter.has_registered_action(Dispatcher, {
+            available_action = {},
+        }))
+        assert.is_true(Filter.has_registered_action(Dispatcher, {
+            missing_action = {},
+            available_action = {},
+        }))
+        assert.is_false(Filter.has_registered_action(Dispatcher, {
+            missing_action = {},
+        }))
+        assert.is_false(Filter.has_registered_action(Dispatcher, { settings = {} }))
     end)
 
     it("removes reader dispatcher sections in place", function()

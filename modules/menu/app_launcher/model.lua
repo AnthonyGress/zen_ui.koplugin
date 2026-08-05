@@ -195,4 +195,14 @@ function M.display_label(entry)
     return entry.label or _("App")
 end
 
+function M.enabled_entries(entries)
+    local enabled = {}
+    for _i, entry in ipairs(entries or {}) do
+        if entry.enabled ~= false then
+            enabled[#enabled + 1] = entry
+        end
+    end
+    return enabled
+end
+
 return M

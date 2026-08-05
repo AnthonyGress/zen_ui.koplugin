@@ -303,6 +303,9 @@
 
     local function entry_available(entry, touch_menu, cfg)
         if entry_hidden_in_context(entry, touch_menu, cfg) then return false end
+        if entry.type == "action" then
+            return ActionFilter.has_registered_action(Dispatcher, entry.action)
+        end
         if entry.type == "quick_setting" then
             local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
             return controls and controls.has and controls.has(entry.quick_setting_id)
@@ -324,7 +327,6 @@
     end
 
     local function entry_disabled(entry)
-        if entry.enabled == false then return true end
         if entry.type ~= "quick_setting" then return false end
         local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
         return controls and controls.isDisabled and controls.isDisabled(entry.quick_setting_id)
@@ -362,7 +364,7 @@
                 _app_back = true,
             }
         end
-        for _i, entry in ipairs(entries or {}) do
+        for _i, entry in ipairs(Model.enabled_entries(entries)) do
             if not entry_hidden_in_context(entry, touch_menu, cfg) then
                 visible[#visible + 1] = entry
             end

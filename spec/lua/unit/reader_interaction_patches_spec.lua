@@ -268,6 +268,31 @@ describe("reader interaction patches", function()
         assert.are.equal(2, update_calls)
     end)
 
+    it("closes a page browser parent before jumping to a bookmark", function()
+        local parent_closes, goto_calls = 0, 0
+        local ReaderBookmark = {
+            onShowBookmark = function() end,
+            gotoBookmark = function(_, page, pos0)
+                goto_calls = goto_calls + 1
+                assert.are.equal(42, page)
+                assert.are.equal("xp", pos0)
+            end,
+        }
+        ZenSpec.replace("apps/reader/modules/readerbookmark", ReaderBookmark)
+        apply_patch("modules/reader/patches/bookmarks")
+
+        local menu = {
+            _zen_page_browser_parent = {
+                onClose = function() parent_closes = parent_closes + 1 end,
+            },
+        }
+        ReaderBookmark.gotoBookmark({ bookmark_menu = { menu } }, 42, "xp")
+
+        assert.are.equal(1, parent_closes)
+        assert.are.equal(1, goto_calls)
+        assert.is_nil(menu._zen_page_browser_parent)
+    end)
+
     it("focuses bookmark header actions and routes hardware arrows to the list", function()
         local focus_moves, press_calls = 0, 0
         local focus_rect

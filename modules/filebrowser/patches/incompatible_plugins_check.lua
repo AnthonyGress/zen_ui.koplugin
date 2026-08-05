@@ -33,6 +33,30 @@ local function get_folder_key(dir)
     return dir:match("^.*/([^/]+)%.koplugin/")
 end
 
+local function plugin_folder_exists(folder_key)
+    local ok_lfs, lfs = pcall(require, "libs/libkoreader-lfs")
+    if not ok_lfs then return false end
+
+    local paths = { "plugins" }
+    local extra_paths = G_reader_settings:readSetting("extra_plugin_paths")
+    if type(extra_paths) == "string" then extra_paths = { extra_paths } end
+    if type(extra_paths) == "table" then
+        for _i, path in ipairs(extra_paths) do
+            paths[#paths + 1] = path
+        end
+    end
+
+    for _i, path in ipairs(paths) do
+        if type(path) == "string" then
+            path = path:gsub("/+$", "")
+            if lfs.attributes(path .. "/" .. folder_key .. ".koplugin", "mode") == "directory" then
+                return true
+            end
+        end
+    end
+    return false
+end
+
 local function any_zen_schedule_enabled()
     local plugin = rawget(_G, "__ZEN_UI_PLUGIN")
     local features = plugin and plugin.config and plugin.config.features
@@ -54,13 +78,24 @@ end
 
 -- Plugins that Zen UI will auto-disable (writes plugins_disabled, requires restart).
 local AUTO_DISABLE = {
-    { sentinel = "sui_core", label = "Simple UI", fallback_key = "simpleui" },
+    {
+        sentinel = "sui_core",
+        label = "Simple UI",
+        fallback_key = "simpleui",
+        folder_key = "simpleui",
+    },
     { sentinel = "quickmenu", label = "QuickMenu", fallback_key = "quickmenu" },
     {
         sentinel = "lib/setting",
         label = "Appearance",
         fallback_key = "appearance",
         expected_folder_key = "appearance",
+    },
+    {
+        sentinel = "readermenuredesign_installer",
+        label = "Reader Menu Redesign",
+        fallback_key = "zzz-readermenuredesign",
+        folder_key = "zzz-readermenuredesign",
     },
 }
 
@@ -77,7 +112,7 @@ local function apply_incompatible_plugins_check()
 
     -- Manual-block check: inform user and halt init without touching anything.
     if is_pt_active() then
-        logger.warn("Project: Title is active; initialization stopped")
+        logger.warn("Incompatible plugins or patches detected")
         local UIManager = require("ui/uimanager")
         UIManager:scheduleIn(0.5, function()
             local _ = require("gettext")
@@ -91,43 +126,43 @@ local function apply_incompatible_plugins_check()
         return true
     end
     if not G_reader_settings then
-        logger.warn("Unable to determine Project: Title status: G_reader_settings is nil")
+        logger.warn("Incompatible plugin check could not run")
         return false
-    end
-
-    if package.loaded["ptutil"] ~= nil then
-        logger.info("Project: Title is loaded but inactive")
-    else
-        logger.info("Project: Title is not active")
     end
 
     local disabled_list = G_reader_settings:readSetting("plugins_disabled")
     if type(disabled_list) ~= "table" then disabled_list = {} end
 
     local needs_restart = false
+    local incompatibility_detected = false
     local disabled_labels = {}
 
     for _i, entry in ipairs(AUTO_DISABLE) do
         local sentinel_loaded = package.loaded[entry.sentinel] ~= nil
-        if sentinel_loaded then
+        local folder_installed = entry.folder_key and plugin_folder_exists(entry.folder_key)
+        local folder_enabled = folder_installed and disabled_list[entry.folder_key] == nil
+        if sentinel_loaded or folder_enabled then
             local dir = get_dir_from_loaded(entry.sentinel)
             local folder_key = get_folder_key(dir)
             if entry.expected_folder_key and folder_key ~= entry.expected_folder_key then
-                logger.info("Compatibility state", entry.label,
+                logger.dbg("Compatibility state", entry.label,
                     "| loaded=false | source=" .. tostring(dir))
             else
-                folder_key = folder_key or entry.fallback_key
+                incompatibility_detected = true
+                folder_key = folder_key or entry.folder_key or entry.fallback_key
                 local already_disabled = disabled_list[folder_key] ~= nil
-                logger.info("Compatibility state", entry.label,
-                    "| loaded=true | folder_key=" .. tostring(folder_key),
+                logger.dbg("Compatibility state", entry.label,
+                    "| loaded=" .. tostring(sentinel_loaded),
+                    "| installed=" .. tostring(folder_installed),
+                    "| folder_key=" .. tostring(folder_key),
                     "| already_disabled=" .. tostring(already_disabled))
                 if already_disabled then
                     -- In disabled_list but still loaded: bad state, force restart.
-                    logger.warn(entry.label, "is disabled but still loaded; forcing restart")
+                    logger.dbg(entry.label, "is disabled but still loaded; forcing restart")
                     disabled_labels[#disabled_labels + 1] = entry.label
                     needs_restart = true
                 else
-                    logger.warn("Disabling", entry.label, "| key=" .. folder_key)
+                    logger.dbg("Disabling", entry.label, "| key=" .. folder_key)
                     disabled_list[folder_key] = true
                     disabled_labels[#disabled_labels + 1] = entry.label
                     needs_restart = true
@@ -142,13 +177,14 @@ local function apply_incompatible_plugins_check()
         local patch_dir = require("datastorage"):getDataDir() .. "/patches"
         for _i, filename in ipairs(AUTO_DISABLE_PATCHES) do
             if execution_status[filename] ~= nil then
+                incompatibility_detected = true
                 local source = patch_dir .. "/" .. filename
                 if os.rename(source, source .. ".disabled") then
-                    logger.warn("Disabling incompatible user patch", filename)
+                    logger.dbg("Disabling incompatible user patch", filename)
                     disabled_labels[#disabled_labels + 1] = filename
                     needs_restart = true
                 else
-                    logger.warn("Unable to disable incompatible user patch", filename)
+                    logger.dbg("Unable to disable incompatible user patch", filename)
                 end
             end
         end
@@ -157,12 +193,19 @@ local function apply_incompatible_plugins_check()
     -- Disable autowarmth when a Zen schedule is active (they conflict).
     if package.loaded["suntime"] ~= nil and disabled_list["autowarmth"] == nil
             and any_zen_schedule_enabled() then
+        incompatibility_detected = true
         local dir = get_dir_from_loaded("suntime")
         local folder_key = get_folder_key(dir) or "autowarmth"
-        logger.warn("Disabling autowarmth | key=" .. folder_key)
+        logger.dbg("Disabling autowarmth | key=" .. folder_key)
         disabled_list[folder_key] = true
         disabled_labels[#disabled_labels + 1] = "Auto warmth and night mode"
         needs_restart = true
+    end
+
+    if incompatibility_detected then
+        logger.warn("Incompatible plugins or patches detected")
+    else
+        logger.info("No incompatible plugins or patches detected")
     end
 
     if not needs_restart then return false end

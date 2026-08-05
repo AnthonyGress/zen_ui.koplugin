@@ -446,7 +446,7 @@ local function find_text_widget(widget, text, seen, depth)
     end
 end
 
-local function tap_navbar_tab(label)
+local function tap_navbar_tab(label, y_ratio)
     local stack = UIManager._window_stack
     local top = stack and stack[#stack] and stack[#stack].widget
     if not top then return false, "top widget unavailable" end
@@ -484,11 +484,15 @@ local function tap_navbar_tab(label)
     local pos = {
         x = (dimen.x or 0)
             + math.floor((dimen.w or 1) * (label_index - 0.5) / #labels),
-        y = (dimen.y or 0) + math.floor((dimen.h or 1) / 2),
+        y = y_ratio and math.floor(require("device").screen:getHeight() * y_ratio)
+            or (dimen.y or 0) + math.floor((dimen.h or 1) / 2),
         w = 0,
         h = 0,
     }
-    return navbar:onTapNavBar(nil, { pos = pos }) == true
+    return top:handleEvent(Event:new("Gesture", {
+        ges = "tap",
+        pos = require("ui/geometry"):new(pos),
+    })) == true
 end
 
 local function cover_cache_comparison()
@@ -630,6 +634,12 @@ function Driver:handleCommand(command)
     end
     if kind == "home_state" then
         return { ok = true, home = home_state() }
+    end
+    if kind == "set_language" and type(params.language) == "string" then
+        G_reader_settings:saveSetting("language", params.language)
+        local GetText = require("gettext")
+        local result = GetText.changeLang(params.language)
+        return { ok = result ~= false, language = GetText.current_lang }
     end
     if kind == "open_settings_page" then
         local FileManager = require("apps/filemanager/filemanager")
@@ -1000,6 +1010,8 @@ function Driver:handleCommand(command)
                 focused_index = focused and focused.index,
                 handle_active = widget._zen_handle_active == true,
                 dragging = widget._zen_dragging == true,
+                item_drag_hold_pending = widget._zen_item_drag_hold ~= nil,
+                item_drag_hold_delay = widget._zen_item_drag_hold_delay,
                 drag_unfocus_pending = widget._zen_drag_unfocus ~= nil,
                 drop_refresh_modes = drop_refresh_modes,
                 handle_visible = first_row and first_row._zen_arrange_handle ~= nil,
@@ -1123,12 +1135,16 @@ function Driver:handleCommand(command)
                 h = 0,
             }
         end
-        local from_pos = center(from_row._zen_arrange_handle.dimen)
-        local to_pos = to_row and center(to_row._zen_arrange_handle.dimen)
+        local from_pos = center(params.start_area == "row"
+            and from_row.dimen or from_row._zen_arrange_handle.dimen)
+        local to_pos = to_row and center(params.start_area == "row"
+            and to_row.dimen or to_row._zen_arrange_handle.dimen)
             or from_pos:copy()
         if params.edge == "left" then
+            to_pos = from_pos:copy()
             to_pos.x = widget.dimen.x
         elseif params.edge == "right" then
+            to_pos = from_pos:copy()
             to_pos.x = widget.dimen.x + widget.dimen.w - 1
         elseif params.edge == "up" then
             to_pos.y = rows[1]._zen_arrange_handle.dimen.y - 1
@@ -1144,7 +1160,39 @@ function Driver:handleCommand(command)
         }
         local started
         local moved = true
-        if params.edge then
+        if params.start_gesture == "touch" then
+            started = widget:handleEvent(Event:new("Gesture", {
+                ges = "touch",
+                pos = from_pos,
+            }))
+        elseif params.start_gesture == "continue" then
+            started = widget._zen_dragging == true
+            moved = started and widget:handleEvent(Event:new("Gesture", {
+                ges = "pan",
+                pos = to_pos,
+                start_pos = from_pos,
+                relative = relative,
+            })) or false
+        elseif params.start_gesture == "hold" then
+            if params.touch_first == true then
+                widget:handleEvent(Event:new("Gesture", {
+                    ges = "touch",
+                    pos = from_pos,
+                }))
+            end
+            started = widget:handleEvent(Event:new("Gesture", {
+                ges = "hold",
+                pos = from_pos,
+            }))
+            if params.edge or to_pos.x ~= from_pos.x or to_pos.y ~= from_pos.y then
+                moved = widget:handleEvent(Event:new("Gesture", {
+                    ges = "hold_pan",
+                    pos = to_pos,
+                    start_pos = from_pos,
+                    relative = relative,
+                }))
+            end
+        elseif params.edge then
             started = widget:handleEvent(Event:new("Gesture", {
                 ges = "pan",
                 pos = to_pos,
@@ -1175,7 +1223,7 @@ function Driver:handleCommand(command)
             }))
         elseif params.release ~= false then
             released = widget:handleEvent(Event:new("Gesture", {
-                ges = "pan_release",
+                ges = params.start_gesture == "hold" and "hold_release" or "pan_release",
                 pos = to_pos,
                 start_pos = from_pos,
                 relative = relative,
@@ -1190,6 +1238,8 @@ function Driver:handleCommand(command)
             marked = widget.marked,
             page = widget.show_page,
             dragging = widget._zen_dragging == true,
+            item_drag_hold_pending = widget._zen_item_drag_hold ~= nil,
+            item_drag_hold_delay = widget._zen_item_drag_hold_delay,
             drag_unfocus_pending = widget._zen_drag_unfocus ~= nil,
         }
     end
@@ -1479,7 +1529,7 @@ function Driver:handleCommand(command)
         return { ok = open_tab(params.id) == true }
     end
     if kind == "tap_navbar_tab" and type(params.label) == "string" then
-        local ok, err = tap_navbar_tab(params.label)
+        local ok, err = tap_navbar_tab(params.label, tonumber(params.y_ratio))
         return { ok = ok == true, error = err }
     end
     if kind == "race_home_to_books" then

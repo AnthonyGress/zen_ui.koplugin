@@ -8,6 +8,7 @@ import time
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from fixtures import build_library
 from zen_driver import ZenDriver, launch, normalize_visible_text, wait_for_socket
@@ -275,6 +276,102 @@ def test_navbar_tabs_navigate_to_real_library_views() -> None:
                     assert state["top_name"] == "home"
                 else:
                     assert state.get("top_tab_id") == tab_id or state.get("top_name") == tab_id
+        finally:
+            process.send_signal(signal.SIGTERM)
+            process.wait(timeout=15)
+
+
+def test_navbar_tabs_remain_tappable_with_library_background() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-background-tabs-") as temporary:
+        root = Path(temporary)
+        ko_home = root / "home"
+        ko_home.mkdir()
+        library = root / "library"
+        fixture = build_library(library)
+        _seed_home_settings(ko_home)
+        _seed_bookinfo(ko_home, fixture["epub"])
+        background = root / "background.jpg"
+        Image.new("RGB", (600, 800), "gray").save(background)
+        socket_path = root / "driver.sock"
+        process = launch(
+            runtime, ko_home, socket_path, library,
+            zen_config_source=f"""return {{
+  updater = {{ update_auto_check = false }},
+  navbar = {{
+    default_tab = "home", show_icons = true, show_labels = true,
+    show_tabs = {{
+      books = true, home = false, authors = true, series = true,
+      stats = true, to_be_read = true, collections = true,
+    }},
+    tab_order = {{
+      "books", "series", "authors", "stats", "to_be_read", "collections",
+    }},
+  }},
+  library_background = {{ enabled = true, path = {json.dumps(str(background))} }},
+}}
+""",
+        )
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            _wait_for_home(driver)
+
+            for label, tab_id in (
+                ("Library", None),
+                ("Series", "series"),
+                ("Authors", "authors"),
+                ("Stats", "stats"),
+                ("To Be Read", "to_be_read"),
+                ("Collections", None),
+                ("Library", None),
+                ("Series", "series"),
+            ):
+                response = driver.command(
+                    "tap_navbar_tab", label=label, y_ratio=1384 / 1440,
+                )
+                assert response["ok"] is True, response
+                _wait_for_navbar(driver, label, tab_id)
+        finally:
+            process.send_signal(signal.SIGTERM)
+            process.wait(timeout=15)
+
+
+def test_navbar_recovers_when_the_library_background_disappears() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-missing-background-") as temporary:
+        root = Path(temporary)
+        ko_home = root / "home"
+        ko_home.mkdir()
+        library = root / "library"
+        fixture = build_library(library)
+        _seed_home_settings(ko_home)
+        _seed_bookinfo(ko_home, fixture["epub"])
+        background = root / "background.jpg"
+        Image.new("RGB", (600, 800), "gray").save(background)
+        socket_path = root / "driver.sock"
+        process = launch(
+            runtime, ko_home, socket_path, library,
+            zen_config_source=f"""return {{
+  updater = {{ update_auto_check = false }},
+  navbar = {{ default_tab = "home" }},
+  library_background = {{ enabled = true, path = {json.dumps(str(background))} }},
+}}
+""",
+        )
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            _wait_for_home(driver)
+
+            background.rename(root / "renamed.jpg")
+
+            assert driver.command("activate_navbar_tab", id="books")["ok"] is True
+            _wait_for_navbar(driver, "Library", None)
+            assert driver.command("activate_navbar_tab", id="authors")["ok"] is True
+            _wait_for_navbar(driver, "Authors", "authors")
+            assert driver.command("activate_navbar_tab", id="home")["ok"] is True
+            _wait_for_navbar(driver, "Home", None)
         finally:
             process.send_signal(signal.SIGTERM)
             process.wait(timeout=15)

@@ -6,6 +6,19 @@ local function apply_bookmarks()
     local ReaderBookmark = require("apps/reader/modules/readerbookmark")
     local Device = require("device")
 
+    local _orig_gotoBookmark = ReaderBookmark.gotoBookmark
+    if type(_orig_gotoBookmark) == "function" then
+        ReaderBookmark.gotoBookmark = function(self, ...)
+            local bm_menu = self.bookmark_menu and self.bookmark_menu[1]
+            local page_browser = bm_menu and bm_menu._zen_page_browser_parent
+            if page_browser then
+                bm_menu._zen_page_browser_parent = nil
+                page_browser:onClose()
+            end
+            return _orig_gotoBookmark(self, ...)
+        end
+    end
+
     local function supports_hardware_focus()
         local has_dpad = type(Device.hasDPad) == "function" and Device:hasDPad()
         local has_keyboard = type(Device.hasKeyboard) == "function" and Device:hasKeyboard()

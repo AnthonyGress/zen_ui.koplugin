@@ -12,6 +12,7 @@ local Device = require("device")
 local Font = require("ui/font")
 local utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
+local _ = require("gettext")
 
 local _icons_dir
 do
@@ -24,23 +25,30 @@ end
 
 local flame_icon_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "flame") or nil
 
+local function time_unit(unit)
+    if type(_) == "table" and type(_.pgettext) == "function" then
+        return _.pgettext("Time", unit)
+    end
+    return _(unit)
+end
+
 local function fmt_time(secs)
     secs = math.floor(secs or 0)
-    if secs <= 0 then return "0m" end
+    if secs <= 0 then return "0" .. time_unit("m") end
     local h = math.floor(secs / 3600)
     local m = math.floor((secs % 3600) / 60)
     if h > 0 then
-        return h .. "h " .. m .. "m"
+        return h .. time_unit("h") .. " " .. m .. time_unit("m")
     end
-    return m .. "m"
+    return m .. time_unit("m")
 end
 
 local FIELD_MAP = {
-    today_pages = { id = "today_pages", label = "Pages today", get = function(s) return tostring(s.today_pages or 0) end },
-    today_duration = { id = "today_duration", label = "Read today", get = function(s) return fmt_time(s.today_duration or 0) end },
-    streak = { id = "streak", label = "Day streak", get = function(s) return tostring(s.streak or 0) end },
-    week_pages = { id = "week_pages", label = "Week pages", get = function(s) return tostring(s.week_pages or 0) end },
-    week_duration = { id = "week_duration", label = "Week time", get = function(s) return fmt_time(s.week_duration or 0) end },
+    today_pages = { id = "today_pages", label = _("Pages today"), get = function(s) return tostring(s.today_pages or 0) end },
+    today_duration = { id = "today_duration", label = _("Read today"), get = function(s) return fmt_time(s.today_duration or 0) end },
+    streak = { id = "streak", label = _("Day streak"), get = function(s) return tostring(s.streak or 0) end },
+    week_pages = { id = "week_pages", label = _("Pages this week"), get = function(s) return tostring(s.week_pages or 0) end },
+    week_duration = { id = "week_duration", label = _("Time this week"), get = function(s) return fmt_time(s.week_duration or 0) end },
 }
 
 local function metric_content(width, height, value_widget, label_widget)
@@ -74,7 +82,7 @@ end
 
 return {
     id = "stats_triplet",
-    label = "Reading stats widget",
+    label = _("Reading stats widget"),
     size = "xs",
     build = function(ctx)
         local width = ctx.width
@@ -148,6 +156,7 @@ return {
                 color = Blitbuffer.COLOR_DARK_GRAY,
                 radius = stat_style == "outline" and 8 or 0,
                 background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
+                _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
                 CenterContainer:new{
                     dimen = Geom:new{ w = inner_w, h = inner_h },
                     content,
@@ -217,6 +226,7 @@ return {
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
+            _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
             row_container,
         }
     end,

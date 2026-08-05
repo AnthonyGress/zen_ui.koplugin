@@ -932,7 +932,7 @@ local function apply_status_bar()
         if not tb or not tb.dimen then return end
         local bb = Screen.bb
         if bb then
-            local bg_path = Background.library_path()
+            local bg_path = Background.library_path(zen_plugin)
             if bg_path == "" or not Background.paintScreenRegion(bb,
                     tb.dimen.x, tb.dimen.y, tb.dimen.x, tb.dimen.y,
                     tb.dimen.w, tb.dimen.h, bg_path) then

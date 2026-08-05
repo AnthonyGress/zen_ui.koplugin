@@ -393,6 +393,28 @@ local function apply_opening_banner()
     -- Tiny inline widget: black rect + centred "Opening" text
     local OpeningBanner = Widget:extend{}
 
+    function OpeningBanner:onShow()
+        self._timeout_func = function()
+            self._timeout_func = nil
+            UIManager:close(self)
+        end
+        UIManager:scheduleIn(10, self._timeout_func)
+    end
+
+    function OpeningBanner:onCloseWidget()
+        if self._timeout_func then
+            UIManager:unschedule(self._timeout_func)
+            self._timeout_func = nil
+        end
+        if pending_banner == self then
+            pending_banner = nil
+            pending_banner_seq = nil
+        end
+        UIManager:setDirty(nil, function()
+            return "ui", self.dimen
+        end)
+    end
+
     function OpeningBanner:paintTo(bb, x, y)
         self.dimen.x = x
         self.dimen.y = y
@@ -482,6 +504,36 @@ local function apply_opening_banner()
         if pending_banner then UIManager:close(pending_banner) end
         pending_banner = nil
         pending_banner_seq = nil
+    end
+
+    rawset(_G, "__ZEN_UI_CANCEL_OPENING_BANNER", function()
+        if pending_banner then
+            clear_pending_banner()
+            _last_cover_dimen = nil
+        end
+    end)
+
+    local ok_confirm, ConfirmBox = pcall(require, "ui/widget/confirmbox")
+    if ok_confirm and type(ConfirmBox.new) == "function"
+            and not ConfirmBox._zen_opening_banner_cancel_callback_patched then
+        ConfirmBox._zen_opening_banner_cancel_callback_patched = true
+        local orig_new = ConfirmBox.new
+        local prompt_prefix = _("Open this file?") .. "\n\n"
+        local open_text = _("Open")
+        ConfirmBox.new = function(class, props, ...)
+            if type(props) == "table" and type(props.text) == "string"
+                    and props.text:sub(1, #prompt_prefix) == prompt_prefix
+                    and props.ok_text == open_text
+                    and G_reader_settings and G_reader_settings:isTrue("file_ask_to_open") then
+                local orig_cancel = props.cancel_callback
+                props.cancel_callback = function(...)
+                    if orig_cancel then orig_cancel(...) end
+                    local cancel_banner = rawget(_G, "__ZEN_UI_CANCEL_OPENING_BANNER")
+                    if type(cancel_banner) == "function" then cancel_banner() end
+                end
+            end
+            return orig_new(class, props, ...)
+        end
     end
 
     show_prepared_banner = function()

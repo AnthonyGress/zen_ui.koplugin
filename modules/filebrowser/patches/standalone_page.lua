@@ -9,17 +9,7 @@ local M = {}
 local _zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
 local function library_background_path()
-    local cfg = _zen_plugin and _zen_plugin.config
-    if type(cfg) ~= "table" then
-        local ok, loaded = pcall(function()
-            return require("config/manager").load()
-        end)
-        cfg = ok and loaded or nil
-    end
-    local bg = type(cfg) == "table" and cfg.library_background
-    if not (type(bg) == "table" and bg.enabled == true) then return "" end
-    local path = type(bg.path) == "string" and bg.path or ""
-    return Background.isJpegPath(path) and path or ""
+    return Background.library_path(_zen_plugin)
 end
 
 local SKIP_FM_DISPATCH = {
@@ -224,6 +214,7 @@ end
 function M.apply_background(menu)
     if not menu or menu._zen_bg_applied then return end
     menu._zen_bg_applied = true
+    menu._zen_library_bg_active = library_background_path() ~= ""
 
     local orig_paintTo = menu.paintTo
     function menu:paintTo(bb, x, y)
@@ -236,7 +227,10 @@ function M.apply_background(menu)
             if self.dimen then
                 Background.paint(bb, 0, 0, self.dimen.w, self.dimen.h, path)
             end
+        elseif self._zen_library_bg_active then
+            Background.restoreWhiteBackgrounds(self[1], 40)
         end
+        self._zen_library_bg_active = path ~= ""
         if orig_paintTo then
             return orig_paintTo(self, bb, x, y)
         end

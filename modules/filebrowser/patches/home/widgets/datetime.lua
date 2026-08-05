@@ -6,6 +6,7 @@ local Geom = require("ui/geometry")
 local FrameContainer = require("ui/widget/container/framecontainer")
 local TextWidget = require("ui/widget/textwidget")
 local WidgetResources = require("common/widget_resources")
+local _ = require("gettext")
 
 local function time_text()
     local gs = rawget(_G, "G_reader_settings")
@@ -27,7 +28,7 @@ end
 
 return {
     id = "datetime",
-    label = "Date/time widget",
+    label = _("Date/time widget"),
     size = "s",
     build = function(ctx)
         local width = ctx.width
@@ -175,6 +176,7 @@ return {
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
+            _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
             content,
         }
     end,

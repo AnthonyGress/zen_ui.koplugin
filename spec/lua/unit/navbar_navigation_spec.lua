@@ -14,6 +14,7 @@ describe("file browser navbar navigation", function()
     local dir_scan_calls
     local home_show_callback
     local setup_observation
+    local initial_reinject_callback
 
     local function class(methods)
         methods = methods or {}
@@ -52,6 +53,7 @@ describe("file browser navbar navigation", function()
         dir_scan_calls = 0
         home_show_callback = nil
         setup_observation = nil
+        initial_reinject_callback = nil
         original_memory_policy = package.loaded["common/memory_policy"]
         shared = {
             home = {
@@ -146,7 +148,10 @@ describe("file browser navbar navigation", function()
             _window_stack = {},
             setDirty = function() end,
             forceRePaint = function() end,
-            nextTick = function(_, callback) callback() end,
+            nextTick = function(_, callback)
+                initial_reinject_callback = initial_reinject_callback or callback
+                callback()
+            end,
             scheduleIn = function() end,
             unschedule = function() end,
             show = function() end,
@@ -252,6 +257,7 @@ describe("file browser navbar navigation", function()
         for _i, name in ipairs({
             "__ZEN_UI_PLUGIN", "__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB", "__ZEN_UI_NAVBAR_OPEN_TAB",
             "__ZEN_UI_NAVBAR_RESOLVE_DEFAULT_TAB", "__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE",
+            "__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON",
             "__ZEN_UI_ACTIVE_TAB_LABEL",
             "__ZEN_UI_REINJECT_FM_NAVBAR", "__ZEN_UI_REINJECT_NAVBARS",
             "__ZEN_UI_LIBRARY_STATE", "__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER",
@@ -294,6 +300,15 @@ describe("file browser navbar navigation", function()
             "page_left", "page_right", "menu",
         }, { unpack(_G.__ZEN_UI_PLUGIN.config.navbar.tab_order, 1, 13) })
         assert.are.equal("Home", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+    end)
+
+    it("opens a hidden default tab and keeps its top-menu icon", function()
+        _G.__ZEN_UI_PLUGIN.config.navbar.show_tabs.home = false
+
+        assert.are.equal("home", _G.__ZEN_UI_NAVBAR_RESOLVE_DEFAULT_TAB())
+        assert.are.equal("home", _G.__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON())
+        assert.are.equal("home", _G.__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB())
+        assert.are.same({ "home" }, calls)
     end)
 
     it("recognizes an already-active default tab", function()
@@ -406,6 +421,39 @@ describe("file browser navbar navigation", function()
         assert.are.equal("/library", measurement_detail(measurements[1], "path="))
         assert.is_true(measurement_detail(measurements[1], "listing_deferred="))
         assert.is_true(measurement_detail(measurements[1], "covers_suppressed="))
+    end)
+
+    it("retries opening deferred Home after a startup notification closes", function()
+        local fm = make_instance()
+        fm.invisible = true
+        fm._zen_hidden_home_startup = true
+        fm.file_chooser._zen_hidden_home_startup = true
+        fm.file_chooser._zen_needs_full_listing = true
+        local notification = {}
+        UIManager._window_stack = {
+            { widget = fm },
+            { widget = notification },
+        }
+        local scheduled = {}
+        UIManager.scheduleIn = function(_self, delay, callback)
+            scheduled[#scheduled + 1] = { delay = delay, callback = callback }
+        end
+        calls = {}
+
+        initial_reinject_callback()
+        initial_reinject_callback()
+
+        assert.are.same({}, calls)
+        assert.are.equal(1, #scheduled)
+        assert.are.equal(0.25, scheduled[1].delay)
+        assert.are.equal(scheduled[1].callback, fm._zen_default_tab_retry_fn)
+
+        table.remove(UIManager._window_stack)
+        scheduled[1].callback()
+
+        assert.are.same({ "home" }, calls)
+        assert.is_true(fm._zen_default_tab_bootstrapped)
+        assert.is_nil(fm._zen_default_tab_retry_fn)
     end)
 
     it("does not defer initial setupLayout when Library is the default", function()

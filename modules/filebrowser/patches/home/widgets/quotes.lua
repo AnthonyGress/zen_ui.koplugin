@@ -8,6 +8,7 @@ local FrameContainer = require("ui/widget/container/framecontainer")
 local InputContainer = require("ui/widget/container/inputcontainer")
 local GestureRange = require("ui/gesturerange")
 local WidgetResources = require("common/widget_resources")
+local _ = require("gettext")
 
 local AUTOMATIC_MIN_LINE_HEIGHT = 0.1
 local LAYOUT_CACHE_MAX = 32
@@ -30,12 +31,12 @@ end
 local function get_quote(ctx)
     local q = ctx.data:getCurrentQuote()
     if q then return q end
-    return { text = "No quote available.", author = "" }
+    return { text = _("No quote available."), author = "" }
 end
 
 return {
     id = "quotes",
-    label = "Quotes widget",
+    label = _("Quotes widget"),
     size = { units = 1.5 },
     build = function(ctx)
         local width = ctx.width
@@ -297,6 +298,7 @@ return {
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
+            _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
             content,
         }
 

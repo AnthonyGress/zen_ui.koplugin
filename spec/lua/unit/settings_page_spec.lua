@@ -4,6 +4,7 @@ describe("Zen settings page", function()
     local saved_modules
     local shown_widgets
     local deferred_apply_flushes
+    local translation_refreshes
 
     local dependency_names = {
         "gettext",
@@ -17,6 +18,7 @@ describe("Zen settings page", function()
         "ui/size",
         "ffi/blitbuffer",
         "ui/widget/inputdialog",
+        "common/i18n",
         "common/ui/icon_menu_item",
         "modules/global/patches/menu_top_swipe",
         "modules/settings/zen_settings",
@@ -73,6 +75,7 @@ describe("Zen settings page", function()
         saved_modules = {}
         shown_widgets = {}
         deferred_apply_flushes = 0
+        translation_refreshes = 0
         for _i, name in ipairs(dependency_names) do
             saved_modules[name] = package.loaded[name] or false
         end
@@ -98,6 +101,11 @@ describe("Zen settings page", function()
         ZenSpec.replace("ui/size", { line = { thin = 1 } })
         ZenSpec.replace("ffi/blitbuffer", { COLOR_LIGHT_GRAY = 1 })
         ZenSpec.replace("ui/widget/inputdialog", { init = function() end })
+        ZenSpec.replace("common/i18n", {
+            refresh = function()
+                translation_refreshes = translation_refreshes + 1
+            end,
+        })
         ZenSpec.replace("common/ui/icon_menu_item", {
             getSettingsFontSize = function() return 18 end,
             getSettingsRowHeight = function() return 64 end,
@@ -207,6 +215,19 @@ describe("Zen settings page", function()
         assert.is_false(settings.title_bar.back_visible)
     end)
 
+    it("ignores ordinary row holds while preserving explicit help", function()
+        local plain = { text = "Plain setting" }
+        local help = { text = "Helped setting", help_text = "Helpful details" }
+        local settings = make_page({ plain, help })
+
+        assert.is_true(settings:onMenuHold(plain, true))
+        assert.are.equal(0, #shown_widgets)
+
+        assert.is_true(settings:onMenuHold(help, true))
+        assert.are.equal(1, #shown_widgets)
+        assert.are.equal("Helpful details", shown_widgets[1].text)
+    end)
+
     it("reuses the active settings page", function()
         local plugin = { config = {} }
         local first = PageModule.show(plugin)
@@ -214,11 +235,13 @@ describe("Zen settings page", function()
 
         assert.are.equal(first, second)
         assert.are.equal(1, #shown_widgets)
+        assert.are.equal(1, translation_refreshes)
 
         first:closeMenu()
         local reopened = PageModule.show(plugin)
         assert.are_not.equal(first, reopened)
         assert.are.equal(2, #shown_widgets)
+        assert.are.equal(2, translation_refreshes)
     end)
 
     it("closes the active arrange stack before the settings page", function()

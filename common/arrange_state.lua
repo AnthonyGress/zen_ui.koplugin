@@ -59,14 +59,10 @@ function M.dragTargetIndex(show_page, items_per_page, item_count, top, row_heigh
     return first + slot - 1
 end
 
-function M.dragPageDirection(relative_x, threshold, y, top, bottom)
+function M.dragPageDirection(y, top, bottom)
     if type(y) == "number" and type(top) == "number" and type(bottom) == "number" then
         if y < top then return -1 end
         if y >= bottom then return 1 end
-    end
-    if type(relative_x) == "number" and type(threshold) == "number" then
-        if relative_x <= -threshold then return -1 end
-        if relative_x >= threshold then return 1 end
     end
     return 0
 end

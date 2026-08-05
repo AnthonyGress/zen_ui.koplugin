@@ -449,17 +449,17 @@ local FEATURED_TEXT_STYLE_DEFAULTS = {
 }
 
 local MODULE_TITLES = {
-    datetime = "Today",
-    featured_custom = "Featured Book",
-    featured_tbr = "To be Read",
-    featured_recent = "Recently read",
-    reading_goals = "Reading goals",
-    strip_custom = "Featured Books",
-    strip_tag = "Tag books",
-    strip_tbr = "To be Read",
-    strip_recent = "Recently read",
-    stats_triplet = "Reading stats",
-    quotes = "Quote",
+    datetime = _("Today"),
+    featured_custom = _("Featured Book"),
+    featured_tbr = _("To Be Read"),
+    featured_recent = _("Recently read"),
+    reading_goals = _("Reading goals"),
+    strip_custom = _("Featured Books"),
+    strip_tag = _("Tag books"),
+    strip_tbr = _("To Be Read"),
+    strip_recent = _("Recently read"),
+    stats_triplet = _("Reading stats"),
+    quotes = _("Quote"),
 }
 
 local function normalize_order(order)
@@ -1887,6 +1887,7 @@ local function wrap_home_focus_target(menu, target, widget, defer_registration)
         padding = 0,
         bordersize = 0,
         background = home_frame_bg(),
+        _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
         widget,
     }
     local orig_paintTo = frame.paintTo
@@ -2509,6 +2510,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
                 padding = 0,
                 bordersize = 0,
                 background = home_frame_bg(),
+                _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
                 final_widget,
             })
             if not title_widget and content_bounds then
@@ -2578,6 +2580,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             padding = 0,
             bordersize = 0,
             background = home_frame_bg(),
+            _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
             VerticalGroup:new(children),
         },
         HorizontalSpan:new{ width = right_pad },
