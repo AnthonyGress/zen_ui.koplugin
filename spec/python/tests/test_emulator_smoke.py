@@ -80,6 +80,52 @@ def _open_buttons_arrange(driver: ZenDriver) -> None:
     raise AssertionError("Buttons arrange page did not open")
 
 
+def test_flip_lh_rh_swaps_both_menu_tab_pairs() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-flip-tabs-") as temporary:
+        root = Path(temporary)
+        ko_home, library = root / "home", root / "library"
+        ko_home.mkdir()
+        library.mkdir()
+        socket_path = root / "driver.sock"
+        process = launch(
+            runtime,
+            ko_home,
+            socket_path,
+            library,
+            zen_config_source="""return {
+  updater = { update_auto_check = false },
+  quick_settings = { flip_lh_rh_icon = true },
+}
+""",
+        )
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            layout = driver.command("menu_tab_layout")
+            assert layout["ok"] is True
+            assert layout["tabs"][:2] == ["zen_library_home", "zen_ui"]
+            assert layout["tabs"][-2:] == ["app_launcher", "quicksettings"]
+            assert layout["group_positions"][-1] - layout["group_positions"][-2] == 2
+
+            for tab_offset, expected_separator_offsets in ((-2, (-1, 1)), (-1, (-1,))):
+                active_tab = layout["tabs"][tab_offset]
+                active = driver.command("menu_tab_layout", tab_id=active_tab)
+                icon_group_position = active["group_positions"][tab_offset]
+                assert active["active_tab"] == active_tab
+                assert active["solid_separator_positions"] == [
+                    icon_group_position + offset for offset in expected_separator_offsets
+                ]
+                assert active["empty_segment"] == active["tab_segments"][tab_offset]
+        finally:
+            process.send_signal(signal.SIGTERM)
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+
+
 def test_pt_br_settings_root_labels_are_localized() -> None:
     runtime = Path(os.environ["KOREADER_DIR"])
     with tempfile.TemporaryDirectory(prefix="zen-ui-pt-br-") as temporary:

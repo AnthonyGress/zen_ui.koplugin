@@ -542,12 +542,6 @@ function ZenUI:init()
         return type(_ft) == "table" and _ft.app_launcher == true
     end
 
-    local function zen_mode_enabled()
-        local _cfg = _zen_plugin_ref and _zen_plugin_ref.config
-        local _ft = _cfg and _cfg.features
-        return type(_ft) == "table" and _ft.zen_mode == true
-    end
-
     local function make_zen_settings_tab(m_self)
         local tab = {
             id = "zen_ui",
@@ -589,7 +583,7 @@ function ZenUI:init()
         end
         local insert_pos = m_self._zen_qs_insert_pos or qs_pos or 1
         insert_pos = math.min(insert_pos, #m_self.tab_item_table + 1)
-        if flip_lh_rh_icons() and not zen_mode_enabled() then
+        if flip_lh_rh_icons() then
             table.insert(m_self.tab_item_table, insert_pos, m_self._zen_home_tab_item)
             if not panel_hidden then
                 table.insert(m_self.tab_item_table, insert_pos + 1, m_self._zen_tab_item)
@@ -633,33 +627,76 @@ function ZenUI:init()
         insert_zen_menu_tabs(m_self, panel_hidden)
     end
 
-    local function keep_zen_tabs_right(touch_menu)
+    local function keep_tab_pair_right(touch_menu)
         local tabs = touch_menu.tab_item_table
         local bar = touch_menu.bar
         local group = bar and bar.bar_icon_group
         local icons = bar and bar.icon_widgets
         local count = type(tabs) == "table" and #tabs or 0
-        if count < 2 or type(group) ~= "table" or type(icons) ~= "table"
-                or tabs[count - 1].id ~= "zen_ui" or tabs[count].id ~= "zen_library_home" then
+        if count < 2 or type(group) ~= "table" or type(icons) ~= "table" then
             return
         end
+        local left_id = tabs[count - 1].id
+        local right_id = tabs[count].id
+        if not (left_id == "zen_ui" and right_id == "zen_library_home")
+                and not (left_id == "app_launcher" and right_id == "quicksettings") then return end
 
-        local settings_pos
-        local home_pos
+        local left_pos
+        local right_pos
         for i, widget in ipairs(group) do
             if widget == icons[count - 1] then
-                settings_pos = i
+                left_pos = i
             elseif widget == icons[count] then
-                home_pos = i
+                right_pos = i
             end
         end
-        if not settings_pos or home_pos ~= settings_pos + 4 then return end
+        if not left_pos or right_pos ~= left_pos + 4 then return end
 
-        local stretch = table.remove(group, settings_pos + 2)
-        local stretch_sep = table.remove(group, settings_pos + 2)
-        table.insert(group, settings_pos, stretch)
-        table.insert(group, settings_pos + 1, stretch_sep)
+        local stretch = table.remove(group, left_pos + 2)
+        local stretch_sep = table.remove(group, left_pos + 2)
+        table.insert(group, left_pos, stretch)
+        table.insert(group, left_pos + 1, stretch_sep)
         if type(group.resetLayout) == "function" then group:resetLayout() end
+
+        local BD = require("ui/bidi")
+        local function sync_tab_borders(tab_index)
+            local icon = icons[tab_index]
+            local icon_pos
+            local start_seg = 0
+            for i, widget in ipairs(group) do
+                if widget == icon then
+                    icon_pos = i
+                    break
+                end
+                start_seg = start_seg + widget:getSize().w
+            end
+            if not icon_pos then return end
+
+            local end_seg = start_seg + icon:getSize().w
+            if BD.mirroredUILayout() then
+                start_seg, end_seg = bar.width - end_seg, bar.width - start_seg
+            end
+            bar.bar_sep.empty_segments = { { s = start_seg, e = end_seg } }
+
+            local before = group[icon_pos - 1]
+            local after = group[icon_pos + 1]
+            for _i, sep in ipairs(bar.icon_seps) do
+                sep.style = (sep == before or sep == after) and "solid" or "none"
+            end
+        end
+
+        for _i, tab_index in ipairs({ count - 1, count }) do
+            local icon = icons[tab_index]
+            local orig_callback = icon.callback
+            icon.callback = function(...)
+                local result = orig_callback(...)
+                sync_tab_borders(tab_index)
+                return result
+            end
+        end
+        if touch_menu.cur_tab == count - 1 or touch_menu.cur_tab == count then
+            sync_tab_borders(touch_menu.cur_tab)
+        end
     end
 
     local TouchMenu = require("ui/widget/touchmenu")
@@ -668,7 +705,7 @@ function ZenUI:init()
         local orig_touch_menu_init = TouchMenu.init
         TouchMenu.init = function(t_self, ...)
             orig_touch_menu_init(t_self, ...)
-            keep_zen_tabs_right(t_self)
+            keep_tab_pair_right(t_self)
         end
     end
 
