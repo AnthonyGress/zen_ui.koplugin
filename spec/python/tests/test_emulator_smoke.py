@@ -199,6 +199,9 @@ def test_action_selection_saves_immediately_and_x_closes_settings_stack() -> Non
             assert stack["arrange_count"] == 0
 
             assert driver.command("open_settings_page")["ok"] is True
+            _wait_command(
+                driver, "settings_page_state", lambda result: result.get("ok") is True
+            )
             assert driver.command(
                 "activate_custom_control", id=actions[0]["id"]
             )["ok"] is True
@@ -225,6 +228,9 @@ def test_action_selection_saves_immediately_and_x_closes_settings_stack() -> Non
             assert driver.command("arrange_page_close_button")["ok"] is True
 
             assert driver.command("open_settings_page")["ok"] is True
+            _wait_command(
+                driver, "settings_page_state", lambda result: result.get("ok") is True
+            )
             assert driver.command(
                 "activate_custom_control", id=actions[0]["id"]
             )["ok"] is True
@@ -238,6 +244,9 @@ def test_action_selection_saves_immediately_and_x_closes_settings_stack() -> Non
             assert stack["arrange_count"] == 0
 
             assert driver.command("open_settings_page")["ok"] is True
+            _wait_command(
+                driver, "settings_page_state", lambda result: result.get("ok") is True
+            )
             assert driver.command("open_koreader_history")["ok"] is True
             history = _wait_command(
                 driver,
