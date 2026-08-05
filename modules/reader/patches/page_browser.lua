@@ -2394,6 +2394,19 @@ local function apply_page_browser()
             end
             if allow_confirm and (key:match({ "Press" })
                     or key:match({ "Return" }) or key:match({ "Enter" })) then
+                local selected = pbw.selected
+                local row = selected and pbw.layout and pbw.layout[selected.y]
+                local focused = row and row[selected.x]
+                local page_index = focused and focused._zen_focus_id
+                    and tonumber(focused._zen_focus_id:match("^page:(%d+)$"))
+                local page = page_index and pbw.grid and pbw.grid[page_index]
+                    and pbw.grid[page_index].page_idx
+                if page then
+                    pbw:onClose(true)
+                    pbw.ui.link:addCurrentLocationToStack()
+                    pbw.ui:handleEvent(Event:new("GotoPage", page))
+                    return true
+                end
                 pbw:onPress()
                 return true
             end

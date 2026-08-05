@@ -1,0 +1,113 @@
+local JSON = require("json")
+
+describe("bug reporter labels", function()
+    local channel
+    local original_modules
+    local payloads
+
+    local module_names = {
+        "android",
+        "common/restart",
+        "common/utils",
+        "common/zen_logger",
+        "datastorage",
+        "gettext",
+        "ltn12",
+        "modules/settings/zen_bugreporter",
+        "modules/settings/zen_settings_utils",
+        "modules/settings/zen_updater",
+        "ssl.https",
+        "ui/uimanager",
+        "ui/widget/confirmbox",
+        "ui/widget/infomessage",
+    }
+
+    before_each(function()
+        original_modules = {}
+        for _i, name in ipairs(module_names) do
+            original_modules[name] = package.loaded[name]
+        end
+
+        channel = "stable"
+        payloads = {}
+        ZenSpec.replace("gettext", function(text) return text end)
+        ZenSpec.replace("common/zen_logger", {
+            new = function()
+                return { dbg = function() end, warn = function() end }
+            end,
+        })
+        ZenSpec.replace("ui/uimanager", {
+            show = function() end,
+            close = function() end,
+            nextTick = function(_, callback) callback() end,
+        })
+        ZenSpec.replace("common/restart", {})
+        ZenSpec.replace("common/utils", {
+            truncateUtf8Bytes = function(value) return value end,
+        })
+        ZenSpec.replace("modules/settings/zen_updater", {
+            get_channel = function() return channel end,
+        })
+        ZenSpec.replace("ui/widget/infomessage", {
+            new = function(_, props) return props end,
+        })
+        ZenSpec.replace("ui/widget/confirmbox", {
+            new = function(_, props) return props end,
+        })
+        ZenSpec.replace("modules/settings/zen_settings_utils", {
+            get_plugin_version = function() return "1.0.0" end,
+            get_koreader_version = function() return "2026.01" end,
+            get_device_model_name = function() return "Test device" end,
+            get_device_firmware_display = function() return "n/a" end,
+            get_device_language = function() return "en" end,
+        })
+        ZenSpec.replace("datastorage", {
+            getDataDir = function() return "/__zen_bugreporter_missing__" end,
+        })
+        ZenSpec.replace("android", {})
+        ZenSpec.replace("ltn12", {
+            source = {
+                string = function(payload) return payload end,
+            },
+            sink = {
+                table = function(target)
+                    return function(chunk)
+                        if chunk then target[#target + 1] = chunk end
+                        return 1
+                    end
+                end,
+            },
+        })
+        ZenSpec.replace("ssl.https", {
+            request = function(request)
+                payloads[#payloads + 1] = JSON.decode(request.source)
+                request.sink('{"url":"https://github.com/example/issue/1"}')
+                return 1, 201
+            end,
+        })
+        ZenSpec.unload("modules/settings/zen_bugreporter")
+    end)
+
+    after_each(function()
+        for _i, name in ipairs(module_names) do
+            package.loaded[name] = original_modules[name]
+        end
+        ZenSpec.unload("modules/settings/zen_bugreporter")
+    end)
+
+    local function submit()
+        require("modules/settings/zen_bugreporter")._do_submit(
+            { plugin = {} }, "Title", "Description", ""
+        )
+        return payloads[#payloads]
+    end
+
+    it("adds the beta label on the beta update channel", function()
+        channel = "beta"
+        assert.are.same({ "bug", "beta" }, submit().labels)
+    end)
+
+    it("keeps stable-channel reports labeled only as bugs", function()
+        assert.are.same({ "bug" }, submit().labels)
+    end)
+end)

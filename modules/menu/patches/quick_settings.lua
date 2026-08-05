@@ -1035,9 +1035,11 @@ local function apply_quick_settings()
                     callback = function(tm)
                         tm:closeMenu()
                         SettingsTransition.close()
-                        if type(cb_action) == "table" and next(cb_action) then
-                            Dispatcher:execute(cb_action)
-                        end
+                        UIManager:nextTick(function()
+                            if type(cb_action) == "table" and next(cb_action) then
+                                Dispatcher:execute(cb_action)
+                            end
+                        end)
                     end,
                 }
             end

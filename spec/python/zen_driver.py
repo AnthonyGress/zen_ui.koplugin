@@ -7,6 +7,7 @@ import shutil
 import json
 import os
 import socket
+import sqlite3
 import subprocess
 import time
 from dataclasses import dataclass
@@ -148,7 +149,11 @@ def launch(
     settings_dir = ko_home / "settings" / "Zen UI"
     settings_dir.mkdir(parents=True, exist_ok=True)
     install_startup_alert_patch(ko_home)
-    home_dir = str(library_dir) if library_dir else ""
+    bookinfo_cache = ko_home / "settings" / "bookinfo_cache.sqlite3"
+    if not bookinfo_cache.exists():
+        with sqlite3.connect(bookinfo_cache) as connection:
+            connection.execute("PRAGMA user_version=20201210")
+    home_dir = str(library_dir.resolve()) if library_dir else ""
     (ko_home / "settings.reader.lua").write_text(
         'return { ["home_dir"] = ' + repr(home_dir) + ' }\n',
         encoding="utf-8",

@@ -10,8 +10,9 @@ local logger = require("common/zen_logger").new("zen_bugreporter")
 local UIManager = require("ui/uimanager")
 local restart = require("common/restart")
 local zen_utils = require("common/utils")
+local updater = require("modules/settings/zen_updater")
 
-local PROXY_URL       = "https://zen-reporter.misty-mud-afb2.workers.dev/"
+local PROXY_URL       = "https://zen-reporter-dev.misty-mud-afb2.workers.dev/"
 local UPLOAD_URL = PROXY_URL .. "upload"
 local MAX_CRASH_LOG = 60000
 local MAX_TITLE     = 500
@@ -112,7 +113,11 @@ end
 -- ---------------------------------------------------------------------------
 
 local function submit_issue(title, body)
-    local payload = JSON.encode({ title = title, body = body, labels = { "bug" } })
+    local labels = { "bug" }
+    if updater.get_channel() == "beta" then
+        labels[#labels + 1] = "beta"
+    end
+    local payload = JSON.encode({ title = title, body = body, labels = labels })
 
     logger.dbg("POSTing to proxy:", PROXY_URL)
     local code, resp = https_post_json(PROXY_URL, payload)

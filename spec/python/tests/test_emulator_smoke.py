@@ -30,6 +30,19 @@ def _wait_for_library(driver: ZenDriver, library: Path) -> dict[str, object]:
     raise AssertionError(f"file browser did not load fixture library: {latest}")
 
 
+def _wait_command(
+    driver: ZenDriver, kind: str, predicate, timeout: float = 10, **params: object
+) -> dict[str, object]:
+    deadline = time.monotonic() + timeout
+    latest: dict[str, object] = {}
+    while time.monotonic() < deadline:
+        latest = driver.command(kind, **params)
+        if predicate(latest):
+            return latest
+        time.sleep(0.1)
+    raise AssertionError(f"{kind} did not reach expected state: {latest}")
+
+
 def _golden_root() -> Path:
     default_dir = "macos-1200x1600" if platform.system() == "Darwin" else "linux-800x600"
     return Path(os.environ.get(
@@ -78,6 +91,52 @@ def _open_buttons_arrange(driver: ZenDriver) -> None:
         target = "Controls" if "Controls" in labels else "Buttons"
         assert driver.command("settings_page_select", label=target)["ok"] is True
     raise AssertionError("Buttons arrange page did not open")
+
+
+def test_flip_lh_rh_swaps_both_menu_tab_pairs() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-flip-tabs-") as temporary:
+        root = Path(temporary)
+        ko_home, library = root / "home", root / "library"
+        ko_home.mkdir()
+        library.mkdir()
+        socket_path = root / "driver.sock"
+        process = launch(
+            runtime,
+            ko_home,
+            socket_path,
+            library,
+            zen_config_source="""return {
+  updater = { update_auto_check = false },
+  quick_settings = { flip_lh_rh_icon = true },
+}
+""",
+        )
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            layout = driver.command("menu_tab_layout")
+            assert layout["ok"] is True
+            assert layout["tabs"][:2] == ["zen_library_home", "zen_ui"]
+            assert layout["tabs"][-2:] == ["app_launcher", "quicksettings"]
+            assert layout["group_positions"][-1] - layout["group_positions"][-2] == 2
+
+            for tab_offset, expected_separator_offsets in ((-2, (-1, 1)), (-1, (-1,))):
+                active_tab = layout["tabs"][tab_offset]
+                active = driver.command("menu_tab_layout", tab_id=active_tab)
+                icon_group_position = active["group_positions"][tab_offset]
+                assert active["active_tab"] == active_tab
+                assert active["solid_separator_positions"] == [
+                    icon_group_position + offset for offset in expected_separator_offsets
+                ]
+                assert active["empty_segment"] == active["tab_segments"][tab_offset]
+        finally:
+            process.send_signal(signal.SIGTERM)
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
 
 
 def test_pt_br_settings_root_labels_are_localized() -> None:
@@ -140,10 +199,18 @@ def test_action_selection_saves_immediately_and_x_closes_settings_stack() -> Non
             assert stack["arrange_count"] == 0
 
             assert driver.command("open_settings_page")["ok"] is True
+            _wait_command(
+                driver, "settings_page_state", lambda result: result.get("ok") is True
+            )
             assert driver.command(
                 "activate_custom_control", id=actions[0]["id"]
             )["ok"] is True
-            history = driver.command("history_state")
+            history = _wait_command(
+                driver,
+                "history_state",
+                lambda result: result.get("open") is True
+                and result.get("settings_open") is False,
+            )
             assert history["open"] is True
             assert history["settings_open"] is False
             assert driver.command("close_history")["ok"] is True
@@ -161,16 +228,32 @@ def test_action_selection_saves_immediately_and_x_closes_settings_stack() -> Non
             assert driver.command("arrange_page_close_button")["ok"] is True
 
             assert driver.command("open_settings_page")["ok"] is True
+            _wait_command(
+                driver, "settings_page_state", lambda result: result.get("ok") is True
+            )
             assert driver.command(
                 "activate_custom_control", id=actions[0]["id"]
             )["ok"] is True
-            stack = driver.command("zen_settings_stack_state")
+            stack = _wait_command(
+                driver,
+                "zen_settings_stack_state",
+                lambda result: result.get("settings_open") is False
+                and result.get("arrange_count") == 0,
+            )
             assert stack["settings_open"] is False
             assert stack["arrange_count"] == 0
 
             assert driver.command("open_settings_page")["ok"] is True
+            _wait_command(
+                driver, "settings_page_state", lambda result: result.get("ok") is True
+            )
             assert driver.command("open_koreader_history")["ok"] is True
-            history = driver.command("history_state")
+            history = _wait_command(
+                driver,
+                "history_state",
+                lambda result: result.get("open") is True
+                and result.get("settings_open") is False,
+            )
             assert history["open"] is True
             assert history["settings_open"] is False
         finally:
@@ -188,6 +271,21 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
         root = Path(temporary)
         ko_home = root / "home"
         ko_home.mkdir()
+        launcher_settings = ko_home / "settings" / "Zen UI"
+        launcher_settings.mkdir(parents=True)
+        launcher_settings.joinpath("app_launcher.lua").write_text(
+            """return {
+  entries = {
+    {
+      id = "fixture", type = "action", label = "History",
+      action = { history = true },
+    },
+  },
+  next_id = 1,
+}
+""",
+            encoding="utf-8",
+        )
         library = root / "library"
         books = stage_epub_library(library)
         ko_home.joinpath("history.lua").write_text(
@@ -402,8 +500,12 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             time.sleep(0.2)
             assert driver.command("settings_page_select", label="Launcher")["ok"] is True
             assert driver.command("settings_page_select", label="Buttons")["ok"] is True
-            time.sleep(0.2)
-            arrange = driver.command("arrange_page_state")["arrange"]
+            arrange = _wait_command(
+                driver,
+                "arrange_page_state",
+                lambda result: result.get("arrange", {}).get("row_alignment")
+                == settings_row_alignment,
+            )["arrange"]
             assert arrange.get("back_visible") is True
             assert arrange.get("has_search") is False
             assert arrange.get("has_more") is False

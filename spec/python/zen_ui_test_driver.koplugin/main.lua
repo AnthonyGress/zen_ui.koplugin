@@ -150,8 +150,20 @@ local function has_focus_feedback(control)
     return focused
 end
 
-ffi.cdef[[
+if ffi.os == "OSX" then
+    ffi.cdef[[
+struct zen_test_sockaddr_un {
+    unsigned char sun_len;
+    unsigned char sun_family;
+    char sun_path[104];
+};
+]]
+else
+    ffi.cdef[[
 struct zen_test_sockaddr_un { unsigned short sun_family; char sun_path[108]; };
+]]
+end
+ffi.cdef[[
 int socket(int domain, int type, int protocol);
 int bind(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
 int listen(int sockfd, int backlog);
@@ -166,6 +178,7 @@ int poll(struct pollfd *fds, unsigned long nfds, int timeout);
 local AF_UNIX = 1
 local SOCK_STREAM = 1
 local POLLIN = 1
+local SOCKET_PATH_MAX = ffi.os == "OSX" and 104 or 108
 
 local function widget_summary(widget, depth)
     if type(widget) ~= "table" or depth > 6 then return nil end
@@ -555,7 +568,7 @@ local Driver = WidgetContainer:extend{}
 function Driver:init()
     self.socket_path = os.getenv("ZEN_UI_TEST_SOCKET")
     self.testing = os.getenv("ZEN_UI_TESTING") == "1"
-    if self.testing and self.socket_path and #self.socket_path < 108 then
+    if self.testing and self.socket_path and #self.socket_path < SOCKET_PATH_MAX then
         self:startServer()
     end
 end
@@ -565,6 +578,7 @@ function Driver:startServer()
     local fd = C.socket(AF_UNIX, SOCK_STREAM, 0)
     if fd < 0 then return end
     local address = ffi.new("struct zen_test_sockaddr_un")
+    if ffi.os == "OSX" then address.sun_len = ffi.sizeof(address) end
     address.sun_family = AF_UNIX
     ffi.copy(address.sun_path, self.socket_path)
     if C.bind(fd, ffi.cast("struct sockaddr *", address), ffi.sizeof(address)) < 0
@@ -634,6 +648,70 @@ function Driver:handleCommand(command)
     end
     if kind == "home_state" then
         return { ok = true, home = home_state() }
+    end
+    if kind == "menu_tab_layout" then
+        local FileManager = require("apps/filemanager/filemanager")
+        local menu = FileManager.instance and FileManager.instance.menu
+        if not menu then return { ok = false, error = "file manager menu unavailable" } end
+        if menu.tab_item_table == nil and type(menu.setUpdateItemTable) == "function" then
+            menu:setUpdateItemTable()
+        end
+        if not menu.menu_container and type(menu.onShowMenu) == "function" then menu:onShowMenu() end
+
+        local touch_menu = menu.menu_container and menu.menu_container[1]
+        local bar = touch_menu and touch_menu.bar
+        local group = bar and bar.bar_icon_group
+        local tabs = {}
+        local group_positions = {}
+        local tab_segments = {}
+        local group_offset = 0
+        for group_index, widget in ipairs(group or {}) do
+            for tab_index, icon in ipairs(bar.icon_widgets or {}) do
+                if widget == icon then
+                    group_positions[tab_index] = group_index
+                    tab_segments[tab_index] = {
+                        s = group_offset,
+                        e = group_offset + widget:getSize().w,
+                    }
+                    break
+                end
+            end
+            group_offset = group_offset + widget:getSize().w
+        end
+        for tab_index, tab in ipairs(menu.tab_item_table or {}) do
+            tabs[tab_index] = tab.id
+        end
+        if type(params.tab_id) == "string" then
+            for tab_index, tab_id in ipairs(tabs) do
+                if tab_id == params.tab_id then
+                    bar.icon_widgets[tab_index].callback()
+                    break
+                end
+            end
+        end
+
+        local active_tab = touch_menu and tabs[touch_menu.cur_tab]
+        local empty_segment = bar and bar.bar_sep and bar.bar_sep.empty_segments
+            and bar.bar_sep.empty_segments[1]
+        local solid_separator_positions = {}
+        local icon_seps = bar and bar.icon_seps or {}
+        for group_index, widget in ipairs(group or {}) do
+            for _i, sep in ipairs(icon_seps) do
+                if widget == sep and sep.style == "solid" then
+                    table.insert(solid_separator_positions, group_index)
+                    break
+                end
+            end
+        end
+        return {
+            ok = touch_menu ~= nil,
+            tabs = tabs,
+            group_positions = group_positions,
+            tab_segments = tab_segments,
+            active_tab = active_tab,
+            empty_segment = empty_segment,
+            solid_separator_positions = solid_separator_positions,
+        }
     end
     if kind == "set_language" and type(params.language) == "string" then
         G_reader_settings:saveSetting("language", params.language)
