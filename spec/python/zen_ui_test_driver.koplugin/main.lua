@@ -446,7 +446,7 @@ local function find_text_widget(widget, text, seen, depth)
     end
 end
 
-local function tap_navbar_tab(label)
+local function tap_navbar_tab(label, y_ratio)
     local stack = UIManager._window_stack
     local top = stack and stack[#stack] and stack[#stack].widget
     if not top then return false, "top widget unavailable" end
@@ -484,11 +484,15 @@ local function tap_navbar_tab(label)
     local pos = {
         x = (dimen.x or 0)
             + math.floor((dimen.w or 1) * (label_index - 0.5) / #labels),
-        y = (dimen.y or 0) + math.floor((dimen.h or 1) / 2),
+        y = y_ratio and math.floor(require("device").screen:getHeight() * y_ratio)
+            or (dimen.y or 0) + math.floor((dimen.h or 1) / 2),
         w = 0,
         h = 0,
     }
-    return navbar:onTapNavBar(nil, { pos = pos }) == true
+    return top:handleEvent(Event:new("Gesture", {
+        ges = "tap",
+        pos = require("ui/geometry"):new(pos),
+    })) == true
 end
 
 local function cover_cache_comparison()
@@ -1525,7 +1529,7 @@ function Driver:handleCommand(command)
         return { ok = open_tab(params.id) == true }
     end
     if kind == "tap_navbar_tab" and type(params.label) == "string" then
-        local ok, err = tap_navbar_tab(params.label)
+        local ok, err = tap_navbar_tab(params.label, tonumber(params.y_ratio))
         return { ok = ok == true, error = err }
     end
     if kind == "race_home_to_books" then

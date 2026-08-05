@@ -122,6 +122,7 @@ local function create_goal_summary_card(width, row)
         padding = padding,
         bordersize = 0,
         background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
+        _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
         content,
     }
 end
@@ -401,6 +402,7 @@ return {
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
+            _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
             body_container,
         }
         local tap = InputContainer:new{

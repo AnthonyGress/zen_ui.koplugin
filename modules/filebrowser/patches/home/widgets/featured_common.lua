@@ -223,6 +223,7 @@ function M.build(ctx, source_key)
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
+            _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
             empty_container,
         }
     end
@@ -376,6 +377,7 @@ function M.build(ctx, source_key)
                 padding = 0,
                 bordersize = 0,
                 background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
+                _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
                 status_widget,
             }
             if type(ctx.registerClockRefresh) == "function" then
@@ -531,6 +533,7 @@ function M.build(ctx, source_key)
         padding = 0,
         bordersize = 0,
         background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
+        _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
         VerticalGroup:new(detail_children),
     }
 
@@ -575,6 +578,7 @@ function M.build(ctx, source_key)
         padding = 0,
         bordersize = 0,
         background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
+        _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
         CenterContainer:new{
             dimen = Geom:new{ w = outer_width, h = outer_height },
             content_container,

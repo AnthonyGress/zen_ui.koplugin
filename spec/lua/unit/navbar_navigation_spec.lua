@@ -14,6 +14,7 @@ describe("file browser navbar navigation", function()
     local dir_scan_calls
     local home_show_callback
     local setup_observation
+    local initial_reinject_callback
 
     local function class(methods)
         methods = methods or {}
@@ -52,6 +53,7 @@ describe("file browser navbar navigation", function()
         dir_scan_calls = 0
         home_show_callback = nil
         setup_observation = nil
+        initial_reinject_callback = nil
         original_memory_policy = package.loaded["common/memory_policy"]
         shared = {
             home = {
@@ -146,7 +148,10 @@ describe("file browser navbar navigation", function()
             _window_stack = {},
             setDirty = function() end,
             forceRePaint = function() end,
-            nextTick = function(_, callback) callback() end,
+            nextTick = function(_, callback)
+                initial_reinject_callback = initial_reinject_callback or callback
+                callback()
+            end,
             scheduleIn = function() end,
             unschedule = function() end,
             show = function() end,
@@ -416,6 +421,39 @@ describe("file browser navbar navigation", function()
         assert.are.equal("/library", measurement_detail(measurements[1], "path="))
         assert.is_true(measurement_detail(measurements[1], "listing_deferred="))
         assert.is_true(measurement_detail(measurements[1], "covers_suppressed="))
+    end)
+
+    it("retries opening deferred Home after a startup notification closes", function()
+        local fm = make_instance()
+        fm.invisible = true
+        fm._zen_hidden_home_startup = true
+        fm.file_chooser._zen_hidden_home_startup = true
+        fm.file_chooser._zen_needs_full_listing = true
+        local notification = {}
+        UIManager._window_stack = {
+            { widget = fm },
+            { widget = notification },
+        }
+        local scheduled = {}
+        UIManager.scheduleIn = function(_self, delay, callback)
+            scheduled[#scheduled + 1] = { delay = delay, callback = callback }
+        end
+        calls = {}
+
+        initial_reinject_callback()
+        initial_reinject_callback()
+
+        assert.are.same({}, calls)
+        assert.are.equal(1, #scheduled)
+        assert.are.equal(0.25, scheduled[1].delay)
+        assert.are.equal(scheduled[1].callback, fm._zen_default_tab_retry_fn)
+
+        table.remove(UIManager._window_stack)
+        scheduled[1].callback()
+
+        assert.are.same({ "home" }, calls)
+        assert.is_true(fm._zen_default_tab_bootstrapped)
+        assert.is_nil(fm._zen_default_tab_retry_fn)
     end)
 
     it("does not defer initial setupLayout when Library is the default", function()

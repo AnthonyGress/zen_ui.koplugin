@@ -45,13 +45,13 @@ local function disable_missing_library_background(plugin, cfg, bg, path)
     logger.warn("disabled missing library background", path)
 
     local ok_ui, UIManager = pcall(require, "ui/uimanager")
-    local ok_info, InfoMessage = pcall(require, "ui/widget/infomessage")
-    if not (ok_ui and ok_info and type(UIManager.show) == "function"
-            and type(InfoMessage.new) == "function") then
+    local ok_notification, Notification = pcall(require, "ui/widget/notification")
+    if not (ok_ui and ok_notification and type(UIManager.show) == "function"
+            and type(Notification.new) == "function") then
         return
     end
     local function show_notice()
-        UIManager:show(InfoMessage:new{
+        UIManager:show(Notification:new{
             text = _("Library background was disabled because the image file was not found."),
         })
     end
@@ -211,7 +211,25 @@ function M.clearWhiteBackgrounds(widget, max_depth)
     local function walk(w, depth)
         if type(w) ~= "table" or depth > max_depth then return end
         if is_white(w.background) and not w._zen_keep_background then
+            w._zen_library_bg_restore = w.background
             w.background = nil
+        end
+        for i = 1, #w do
+            walk(w[i], depth + 1)
+        end
+    end
+
+    walk(widget, 0)
+end
+
+function M.restoreWhiteBackgrounds(widget, max_depth)
+    max_depth = max_depth or 12
+
+    local function walk(w, depth)
+        if type(w) ~= "table" or depth > max_depth then return end
+        -- BlitBuffer colors are cdata whose __eq crashes when compared with nil.
+        if not w.background and w._zen_library_bg_restore then
+            w.background = w._zen_library_bg_restore
         end
         for i = 1, #w do
             walk(w[i], depth + 1)
@@ -294,6 +312,7 @@ function M.applyToMenu(menu, max_depth)
     if not menu or menu._zen_bg_applied then return end
     menu._zen_bg_applied = true
     max_depth = max_depth or 14
+    menu._zen_library_bg_active = M.library_active()
 
     local orig_paintTo = menu.paintTo
     function menu:paintTo(bb, x, y)
@@ -306,7 +325,10 @@ function M.applyToMenu(menu, max_depth)
             else
                 M.paint(bb, 0, 0, Screen:getWidth(), Screen:getHeight(), path)
             end
+        elseif self._zen_library_bg_active then
+            M.restoreWhiteBackgrounds(self[1], max_depth)
         end
+        self._zen_library_bg_active = path ~= ""
         if orig_paintTo then
             return orig_paintTo(self, bb, x, y)
         end
