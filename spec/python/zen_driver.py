@@ -148,7 +148,7 @@ def launch(
     settings_dir = ko_home / "settings" / "Zen UI"
     settings_dir.mkdir(parents=True, exist_ok=True)
     install_startup_alert_patch(ko_home)
-    home_dir = str(library_dir) if library_dir else ""
+    home_dir = str(library_dir.resolve()) if library_dir else ""
     (ko_home / "settings.reader.lua").write_text(
         'return { ["home_dir"] = ' + repr(home_dir) + ' }\n',
         encoding="utf-8",

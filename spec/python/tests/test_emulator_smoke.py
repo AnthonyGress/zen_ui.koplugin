@@ -262,6 +262,21 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
         root = Path(temporary)
         ko_home = root / "home"
         ko_home.mkdir()
+        launcher_settings = ko_home / "settings" / "Zen UI"
+        launcher_settings.mkdir(parents=True)
+        launcher_settings.joinpath("app_launcher.lua").write_text(
+            """return {
+  entries = {
+    {
+      id = "fixture", type = "action", label = "History",
+      action = { history = true },
+    },
+  },
+  next_id = 1,
+}
+""",
+            encoding="utf-8",
+        )
         library = root / "library"
         books = stage_epub_library(library)
         ko_home.joinpath("history.lua").write_text(

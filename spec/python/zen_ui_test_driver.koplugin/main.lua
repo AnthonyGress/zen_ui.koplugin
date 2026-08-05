@@ -150,8 +150,20 @@ local function has_focus_feedback(control)
     return focused
 end
 
-ffi.cdef[[
+if ffi.os == "OSX" then
+    ffi.cdef[[
+struct zen_test_sockaddr_un {
+    unsigned char sun_len;
+    unsigned char sun_family;
+    char sun_path[104];
+};
+]]
+else
+    ffi.cdef[[
 struct zen_test_sockaddr_un { unsigned short sun_family; char sun_path[108]; };
+]]
+end
+ffi.cdef[[
 int socket(int domain, int type, int protocol);
 int bind(int sockfd, const struct sockaddr *addr, unsigned int addrlen);
 int listen(int sockfd, int backlog);
@@ -166,6 +178,7 @@ int poll(struct pollfd *fds, unsigned long nfds, int timeout);
 local AF_UNIX = 1
 local SOCK_STREAM = 1
 local POLLIN = 1
+local SOCKET_PATH_MAX = ffi.os == "OSX" and 104 or 108
 
 local function widget_summary(widget, depth)
     if type(widget) ~= "table" or depth > 6 then return nil end
@@ -555,7 +568,7 @@ local Driver = WidgetContainer:extend{}
 function Driver:init()
     self.socket_path = os.getenv("ZEN_UI_TEST_SOCKET")
     self.testing = os.getenv("ZEN_UI_TESTING") == "1"
-    if self.testing and self.socket_path and #self.socket_path < 108 then
+    if self.testing and self.socket_path and #self.socket_path < SOCKET_PATH_MAX then
         self:startServer()
     end
 end
@@ -565,6 +578,7 @@ function Driver:startServer()
     local fd = C.socket(AF_UNIX, SOCK_STREAM, 0)
     if fd < 0 then return end
     local address = ffi.new("struct zen_test_sockaddr_un")
+    if ffi.os == "OSX" then address.sun_len = ffi.sizeof(address) end
     address.sun_family = AF_UNIX
     ffi.copy(address.sun_path, self.socket_path)
     if C.bind(fd, ffi.cast("struct sockaddr *", address), ffi.sizeof(address)) < 0
