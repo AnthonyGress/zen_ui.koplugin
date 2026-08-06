@@ -757,15 +757,27 @@ describe("home data and book caches", function()
 
         local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
         local request_home_repaint = get_request_home_repaint(Home)
-        local home = {}
-        local first_overlay = {}
+        local resumes = 0
+        local home = {
+            _zen_home_resume = function(self)
+                resumes = resumes + 1
+                self._zen_home_needs_repaint = nil
+                UIManager:setDirty(self, "ui")
+                return true, "rebuilt"
+            end,
+        }
+        local first_overlay = { invisible = true }
         local last_overlay = {}
+        local passive_helper = { toast = true, invisible = true }
+        local notification = { toast = true }
         local close_region = {}
         set_home_menu(Home, home)
         UIManager._window_stack = {
             { widget = home },
             { widget = first_overlay },
             { widget = last_overlay },
+            { widget = passive_helper },
+            { widget = notification },
         }
 
         assert.is_false(request_home_repaint(home, "partial"))
@@ -783,6 +795,10 @@ describe("home data and book caches", function()
         assert.are.same({
             { widget = home, refresh = "ui" },
         }, dirtied)
+        assert.are.equal(1, resumes)
+        assert.is_true(Home.isActiveOnTop())
+        assert.are.equal(passive_helper, UIManager._window_stack[2].widget)
+        assert.are.equal(notification, UIManager._window_stack[3].widget)
         assert.is_nil(home._zen_home_needs_repaint)
     end)
 

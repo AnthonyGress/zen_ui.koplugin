@@ -46,9 +46,16 @@ local HOME_STATS_TTL = 60
 local _home_stats_cache = { key = nil, value = nil, expires_at = 0 }
 
 local function home_is_on_top(menu)
+    if menu == nil then return false end
     local stack = UIManager._window_stack
-    local top = stack and stack[#stack]
-    return menu ~= nil and top ~= nil and top.widget == menu
+    if type(stack) ~= "table" then return false end
+    for index = #stack, 1, -1 do
+        local widget = stack[index] and stack[index].widget
+        if widget and not widget.toast then
+            return rawequal(widget, menu)
+        end
+    end
+    return false
 end
 
 local function mark_home_rebuild_needed(refresh_stats, reload_config)
@@ -71,8 +78,12 @@ local function install_home_close_hook()
                 and not menu._zen_home_closing
                 and menu._zen_home_suspended ~= true
                 and home_is_on_top(menu) then
-            menu._zen_home_needs_repaint = nil
-            self:setDirty(menu, "ui")
+            local resumed = type(menu._zen_home_resume) == "function"
+                and menu:_zen_home_resume()
+            if not resumed then
+                menu._zen_home_needs_repaint = nil
+                self:setDirty(menu, "ui")
+            end
         end
         return result
     end
@@ -2772,9 +2783,7 @@ function M.showHomeView(injectNavbar)
 
     local function refresh_home_clock_widgets_if_top()
         if menu._zen_home_closing or not rawequal(_home_menu, menu) then return end
-        local stack = UIManager._window_stack
-        local top = stack and stack[#stack]
-        if not top or top.widget ~= menu then return end
+        if not home_is_on_top(menu) then return end
         if menu._zen_home_refresh_clock_widgets then
             menu:_zen_home_refresh_clock_widgets()
         end
@@ -2785,9 +2794,7 @@ function M.showHomeView(injectNavbar)
     -- page is on top.
     local function refresh_home_date_dependent_if_top()
         if menu._zen_home_closing or not rawequal(_home_menu, menu) then return end
-        local stack = UIManager._window_stack
-        local top = stack and stack[#stack]
-        if not top or top.widget ~= menu then return end
+        if not home_is_on_top(menu) then return end
         if menu._zen_home_built_day == os.date("%Y-%j") then return end
         if menu._home_rebuild then menu:_home_rebuild(true) end
     end

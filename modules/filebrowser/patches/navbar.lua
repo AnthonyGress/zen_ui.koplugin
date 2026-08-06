@@ -475,7 +475,7 @@ local function apply_navbar()
 
     local HIDDEN_LIBRARY_WARM_DELAY_S = 0.9
     local HIDDEN_LIBRARY_WARM_RETRY_S = 0.5
-    local HIDDEN_LIBRARY_WARM_MAX_RETRIES = 10
+    local HIDDEN_LIBRARY_WARM_MAX_RETRIES = 5
 
     cancelHiddenLibraryWarm = function(fm, preserve_listing)
         local fc = fm and fm.file_chooser
