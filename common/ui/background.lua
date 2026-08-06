@@ -48,9 +48,29 @@ local function run_missing_background_work()
     local ok_notification, Notification = pcall(require, "ui/widget/notification")
     if ok_ui and ok_notification and type(UIManager.show) == "function"
             and type(Notification.new) == "function" then
-        UIManager:show(Notification:new{
+        local notice = Notification:new{
             text = _("Library background was disabled because the image file was not found."),
-        })
+        }
+        local orig_on_close_widget = notice.onCloseWidget
+        function notice:onCloseWidget(...)
+            local result
+            if orig_on_close_widget then
+                result = orig_on_close_widget(self, ...)
+            end
+            -- Home may finish rebuilding while this toast is on top.
+            local function repaint_rebuilt_surface()
+                if type(UIManager.setDirty) == "function" then
+                    UIManager:setDirty("all", "full")
+                end
+            end
+            if type(UIManager.nextTick) == "function" then
+                UIManager:nextTick(repaint_rebuilt_surface)
+            else
+                repaint_rebuilt_surface()
+            end
+            return result
+        end
+        UIManager:show(notice)
     end
 end
 

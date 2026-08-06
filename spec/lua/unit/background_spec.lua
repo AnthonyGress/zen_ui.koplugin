@@ -155,7 +155,9 @@ describe("library background cleanup", function()
     it("disables a configured background and notifies when its image is missing", function()
         local saved = 0
         local shown
-        local pending_notice
+        local notice_closes = 0
+        local dirty
+        local scheduled = {}
         local path = "/library/removed.jpg"
         local config = {
             library_background = { enabled = true, path = path },
@@ -173,11 +175,20 @@ describe("library background cleanup", function()
             end,
         })
         ZenSpec.replace("ui/widget/notification", {
-            new = function(_self, opts) return opts end,
+            new = function(_self, opts)
+                opts.onCloseWidget = function()
+                    notice_closes = notice_closes + 1
+                    return "closed"
+                end
+                return opts
+            end,
         })
         ZenSpec.replace("ui/uimanager", {
-            nextTick = function(_self, callback) pending_notice = callback end,
+            nextTick = function(_self, callback) scheduled[#scheduled + 1] = callback end,
             show = function(_self, widget) shown = widget end,
+            setDirty = function(_self, widget, refresh)
+                dirty = { widget, refresh }
+            end,
         })
         ZenSpec.unload("common/ui/background")
 
@@ -187,14 +198,21 @@ describe("library background cleanup", function()
         assert.is_false(config.library_background.enabled)
         assert.are.equal(path, config.library_background.path)
         assert.are.equal(1, saved)
-        assert.is_function(pending_notice)
+        assert.are.equal(1, #scheduled)
         assert.is_nil(shown)
 
-        pending_notice()
+        scheduled[1]()
         assert.are.equal(
             "Library background was disabled because the image file was not found.",
             shown.text
         )
+        assert.are.equal("closed", shown:onCloseWidget())
+        assert.are.equal(1, notice_closes)
+        assert.are.equal(2, #scheduled)
+        assert.is_nil(dirty)
+
+        scheduled[2]()
+        assert.are.same({ "all", "full" }, dirty)
         assert.are.equal("", Background.library_path(plugin))
         assert.are.equal(1, saved)
     end)
