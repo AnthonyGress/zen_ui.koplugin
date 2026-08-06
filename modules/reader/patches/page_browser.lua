@@ -141,7 +141,7 @@ local function apply_page_browser()
         end
         local toc_icon_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "toc")
         paint_icon(nil, toc_icon_path, slot_btn_w * #header_icons + btn_pad, title_y, btn_sz)
-        local close_icon_path = utils.resolveLocalIcon(stock_icons_dir, "close")
+        local close_icon_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "close_light")
         paint_icon(nil, close_icon_path, slot_w - slot_btn_w + btn_pad, title_y, btn_sz)
 
         local icon_size            = Screen:scaleBySize(24)
@@ -772,8 +772,9 @@ local function apply_page_browser()
                     end
                 end
                 self.title_bar.right_button = make_header_btn(
-                    resolve_stock_icon("close"), nil, old_right_button.callback,
-                    old_right_button.hold_callback, "right", old_right_button.allow_flash)
+                    utils.resolveLocalIcon(_icons_dir, "close_light"), nil,
+                    old_right_button.callback, old_right_button.hold_callback,
+                    "right", old_right_button.allow_flash)
                 table.insert(self.title_bar, self.title_bar.right_button)
             end
 

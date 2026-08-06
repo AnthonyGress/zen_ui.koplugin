@@ -2,6 +2,8 @@ describe("Zen TOC hardware focus", function()
     local ZenTocWidget
     local close_calls
     local dirty_calls
+    local back_icon
+    local title_spec
 
     local function input_container()
         local InputContainer = {}
@@ -29,6 +31,8 @@ describe("Zen TOC hardware focus", function()
     before_each(function()
         close_calls = 0
         dirty_calls = 0
+        back_icon = nil
+        title_spec = nil
         ZenSpec.replace("device", {
             screen = {
                 getWidth = function() return 600 end,
@@ -54,15 +58,21 @@ describe("Zen TOC hardware focus", function()
         ZenSpec.replace("ui/widget/container/inputcontainer", input_container())
         ZenSpec.replace("ui/widget/iconwidget", {
             new = function(_self, values)
-                values.paintTo = function() end
+                if values.icon == "chevron.left" then back_icon = values end
+                values.paintTo = function(self, _bb, x)
+                    self.paint_x = x
+                end
                 values.free = function() end
                 return values
             end,
         })
         ZenSpec.replace("ui/widget/textwidget", {
             new = function(_self, values)
+                if values.text == "Contents" then title_spec = values end
                 values.getSize = function() return { w = 80, h = 20 } end
-                values.paintTo = function() end
+                values.paintTo = function(self, _bb, x)
+                    self.paint_x = x
+                end
                 values.free = function() end
                 return values
             end,
@@ -91,6 +101,20 @@ describe("Zen TOC hardware focus", function()
             end,
             paint = function() end,
             setPlugin = function() end,
+        })
+        ZenSpec.replace("common/ui/zen_title_style", {
+            ICON_SIZE = 28,
+            BUTTON_SIZE = 44,
+            LEFT_PADDING = 4,
+            ROW_HEIGHT = 44,
+            VERTICAL_PADDING = 6,
+            DIVIDER_HEIGHT = 2,
+            DIVIDER_COLOR = "light_gray",
+            HEADER_CONTENT_HEIGHT = 56,
+            HEADER_HEIGHT = 58,
+            getTitleFace = function() return { name = "settings_title" } end,
+            getLeadingIconX = function(origin) return (origin or 0) + 12 end,
+            getTitleX = function(origin) return (origin or 0) + 54 end,
         })
         ZenSpec.unload("modules/reader/zen_toc_widget")
         ZenTocWidget = require("modules/reader/zen_toc_widget")
@@ -156,5 +180,15 @@ describe("Zen TOC hardware focus", function()
         assert.are.equal(entry.page, selected_page)
         assert.are.equal(1, close_calls)
         assert.is_true(dirty_calls > 0)
+    end)
+
+    it("aligns its title and back icon with the arrange-list header", function()
+        local widget = new_widget()
+        widget:paintTo({ paintRect = function() end }, 0, 0)
+
+        assert.are.equal("settings_title", title_spec.face.name)
+        assert.are.equal(54, title_spec.paint_x)
+        assert.are.equal(28, back_icon.width)
+        assert.are.equal(12, back_icon.paint_x)
     end)
 end)

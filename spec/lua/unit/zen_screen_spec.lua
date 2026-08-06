@@ -21,6 +21,7 @@ describe("Zen screen", function()
         "common/plugin_root",
         "common/zen_screen",
         "common/ui/zen_button",
+        "common/ui/zen_title_style",
         "common/ui/zen_screen",
         "common/zen_logger",
     }
@@ -101,6 +102,16 @@ describe("Zen screen", function()
         ZenSpec.replace("common/ui/zen_button", {
             paintFilled = function(_bb, x, y, w, h) return { x = x, y = y, w = w, h = h } end,
             paintOutlined = function(_bb, x, y, w, h) return { x = x, y = y, w = w, h = h } end,
+        })
+        ZenSpec.replace("common/ui/zen_title_style", {
+            ICON_SIZE = 28,
+            TITLE_LEADING_PADDING = 6,
+            VERTICAL_PADDING = 6,
+            DIVIDER_HEIGHT = 2,
+            DIVIDER_COLOR = "light_gray",
+            HEADER_CONTENT_HEIGHT = 56,
+            HEADER_HEIGHT = 58,
+            getTitleFace = function() return { name = "settings_title" } end,
         })
         ZenSpec.replace("common/zen_logger", {
             new = function()

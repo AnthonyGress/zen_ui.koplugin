@@ -9,6 +9,8 @@ describe("book details", function()
     local description_page_down
     local close_calls
     local saved_modules
+    local icon_specs
+    local text_specs
 
     local dependency_names = {
         "gettext",
@@ -25,6 +27,7 @@ describe("book details", function()
         "ui/widget/textboxwidget",
         "ui/widget/textwidget",
         "common/cover_utils",
+        "common/ui/zen_title_style",
         "common/utils",
         "modules/global/patches/menu_top_swipe",
     }
@@ -65,6 +68,8 @@ describe("book details", function()
         description_page_up = 0
         description_page_down = 0
         close_calls = 0
+        icon_specs = {}
+        text_specs = {}
 
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("device", {
@@ -90,8 +95,12 @@ describe("book details", function()
         ZenSpec.replace("ui/widget/container/inputcontainer", input_container())
         ZenSpec.replace("ui/widget/iconwidget", {
             new = function(_self, values)
-                values.getSize = function() return { w = 26, h = 26 } end
-                values.paintTo = function() end
+                icon_specs[#icon_specs + 1] = values
+                values.getSize = function(self) return { w = self.width, h = self.height } end
+                values.paintTo = function(self, _bb, x, y)
+                    self.paint_x = x
+                    self.paint_y = y
+                end
                 values.free = function() end
                 return values
             end,
@@ -142,13 +151,32 @@ describe("book details", function()
         })
         ZenSpec.replace("ui/widget/textwidget", {
             new = function(_self, values)
+                text_specs[#text_specs + 1] = values
                 values.getSize = function() return { w = 100, h = 20 } end
-                values.paintTo = function() end
+                values.paintTo = function(self, _bb, x, y)
+                    self.paint_x = x
+                    self.paint_y = y
+                end
                 values.free = function() end
                 return values
             end,
         })
         ZenSpec.replace("common/cover_utils", { BORDER_SIZE = 1 })
+        ZenSpec.replace("common/ui/zen_title_style", {
+            ICON_SIZE = 28,
+            BUTTON_SIZE = 44,
+            LEFT_PADDING = 4,
+            RIGHT_PADDING = 20,
+            ROW_HEIGHT = 44,
+            VERTICAL_PADDING = 6,
+            DIVIDER_HEIGHT = 2,
+            DIVIDER_COLOR = "light_gray",
+            HEADER_CONTENT_HEIGHT = 56,
+            HEADER_HEIGHT = 58,
+            getTitleFace = function() return { name = "settings_title" } end,
+            getLeadingIconX = function(origin) return (origin or 0) + 12 end,
+            getTitleX = function(origin) return (origin or 0) + 54 end,
+        })
         ZenSpec.replace("common/utils", { resolveLocalIcon = function() return nil end })
         ZenSpec.replace("modules/global/patches/menu_top_swipe", {
             handleTap = function()
@@ -184,6 +212,19 @@ describe("book details", function()
         new_widget()
 
         assert.are.equal(true, image_specs[1].original_in_nightmode)
+    end)
+
+    it("aligns its title and back icon with the arrange-list header", function()
+        local widget = new_widget()
+        widget:paintTo({
+            paintRect = function() end,
+            paintBorder = function() end,
+        }, 0, 0)
+
+        assert.are.equal("settings_title", text_specs[1].face.name)
+        assert.are.equal(54, text_specs[1].paint_x)
+        assert.are.equal(28, icon_specs[1].width)
+        assert.are.equal(12, icon_specs[1].paint_x)
     end)
 
     it("opens the KOReader menu from an unoccupied top tap", function()

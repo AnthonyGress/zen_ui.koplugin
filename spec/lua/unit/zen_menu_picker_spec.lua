@@ -13,6 +13,8 @@ describe("Zen menu picker", function()
     local pager_page
     local row_font_size
     local text_widgets
+    local back_icon
+    local back_paint_x
 
     local module_names = {
         "gettext",
@@ -26,6 +28,7 @@ describe("Zen menu picker", function()
         "ui/widget/iconwidget",
         "ui/widget/textwidget",
         "common/ui/zen_pager",
+        "common/ui/zen_title_style",
         "common/ui/zen_menu_picker",
     }
 
@@ -75,6 +78,8 @@ describe("Zen menu picker", function()
         pager_page = nil
         row_font_size = nil
         text_widgets = {}
+        back_icon = nil
+        back_paint_x = nil
 
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("device", {
@@ -117,7 +122,11 @@ describe("Zen menu picker", function()
         ZenSpec.replace("ui/widget/focusmanager", focus_manager())
         ZenSpec.replace("ui/widget/iconwidget", {
             new = function(_, values)
-                values.paintTo = function(self) back_inverted = self.invert end
+                back_icon = values
+                values.paintTo = function(self, _bb, x)
+                    back_inverted = self.invert
+                    back_paint_x = x
+                end
                 return values
             end,
         })
@@ -155,6 +164,21 @@ describe("Zen menu picker", function()
                 pager_w = w
                 pager_page = cur_page
             end,
+        })
+        ZenSpec.replace("common/ui/zen_title_style", {
+            ICON_SIZE = 28,
+            BUTTON_SIZE = 44,
+            LEFT_PADDING = 4,
+            RIGHT_PADDING = 20,
+            ROW_HEIGHT = 44,
+            VERTICAL_PADDING = 6,
+            DIVIDER_HEIGHT = 2,
+            DIVIDER_COLOR = "light_gray",
+            HEADER_CONTENT_HEIGHT = 56,
+            HEADER_HEIGHT = 58,
+            getTitleFace = function() return { name = "settings_title" } end,
+            getLeadingIconX = function(origin) return (origin or 0) + 12 end,
+            getTitleX = function(origin) return (origin or 0) + 54 end,
         })
         ZenSpec.unload("common/ui/zen_menu_picker")
     end)
@@ -220,6 +244,19 @@ describe("Zen menu picker", function()
         }, 0, 0)
 
         assert.are.same({ "light_gray" }, dividers)
+    end)
+
+    it("aligns its title and back icon with the arrange-list header", function()
+        require("common/ui/zen_menu_picker"){
+            title = "Choose plugin menu",
+            items = { { text = "Plugin" } },
+        }
+        shown:paintTo({ paintRect = function() end }, 0, 0)
+
+        assert.are.equal(28, back_icon.width)
+        assert.are.equal(12, back_paint_x)
+        assert.are.equal("settings_title", text_widgets[1].face.name)
+        assert.are.equal(54, text_widgets[1].paint_x)
     end)
 
     it("bolds root rows and indents nested rows", function()
@@ -319,7 +356,7 @@ describe("Zen menu picker", function()
         shown:paintTo({ paintRect = function() end }, 0, 0)
 
         assert.are.equal(10, pager_x)
-        assert.are.equal(744, first_page_y)
+        assert.are.equal(745, first_page_y)
         assert.are.equal(580, pager_w)
         assert.are.equal(first_page_y, pager_y)
     end)

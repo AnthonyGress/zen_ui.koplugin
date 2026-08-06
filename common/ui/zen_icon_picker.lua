@@ -32,6 +32,7 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
     local IW         = require("ui/widget/iconwidget")
     local TW         = require("ui/widget/textwidget")
     local pager      = require("common/ui/zen_pager")
+    local TitleStyle = require("common/ui/zen_title_style")
 
     local sw, sh   = Screen:getWidth(), Screen:getHeight()
     local icon_sz  = Screen:scaleBySize(42)
@@ -51,8 +52,7 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
     local bar_area_h = pager.PN_FOOTER_H
 
     -- Close button.
-    local close_sz  = Screen:scaleBySize(24)
-    local close_gap = Screen:scaleBySize(6)
+    local close_sz  = TitleStyle.ICON_SIZE
     local close_iw  = IW:new{ icon = "close", width = close_sz, height = close_sz }
 
     local content_w = sw - 2 * pad
@@ -62,18 +62,20 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
     local label_max_w = cell_w - cell_pad * 2 - max_cell_brd * 2
 
     -- Title on the left, close icon on the right.
-    local title_text_w = content_w - close_sz - close_gap
+    local title_x = TitleStyle.getTitleX(0)
+    local close_slot_x = sw - TitleStyle.RIGHT_PADDING - TitleStyle.BUTTON_SIZE
+    local title_text_w = math.max(1, close_slot_x - title_x)
     local title_tw = TW:new{
         text  = _("Select icon"),
-        face  = Font:getFace("smallinfofont"),
+        face  = TitleStyle.getTitleFace(),
         bold  = true,
         width = title_text_w,
     }
     local title_text_h = title_tw:getSize().h
-    local title_h      = math.max(close_sz, title_text_h)
+    local title_h      = TitleStyle.ROW_HEIGHT
 
     -- Fit as many rows as possible within the available vertical space.
-    local overhead      = 2 * pad + title_h + span + span + bar_area_h
+    local overhead      = TitleStyle.HEADER_HEIGHT + pad + span + span + bar_area_h
     local max_grid_h    = math.max(cell_h, sh - overhead)
     local rows_per_page = math.max(1, math.floor(max_grid_h / cell_h))
     local grid_h        = rows_per_page * cell_h
@@ -145,9 +147,8 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
     end
 
     local content_x = pad
-    local content_y = pad
     local grid_x    = content_x
-    local grid_y    = content_y + title_h + span
+    local grid_y    = TitleStyle.HEADER_HEIGHT + span
     local bar_y = pager.getCenteredFooterY(
         grid_y + grid_h,
         sh - pad - bar_area_h,
@@ -335,9 +336,9 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
                 screen_zone = { ratio_x = 0, ratio_y = 0, ratio_w = 1, ratio_h = 1 },
                 handler     = function(ges)
                     local gx, gy = ges.pos.x, ges.pos.y
-                    local close_x = content_x + content_w - close_sz
-                    if gx >= close_x and gx < close_x + close_sz
-                       and gy >= content_y and gy < content_y + title_h then
+                    if gx >= close_slot_x
+                       and gx < close_slot_x + TitleStyle.BUTTON_SIZE
+                       and gy >= 0 and gy < TitleStyle.HEADER_CONTENT_HEIGHT then
                         closeDialog()
                         return true
                     end
@@ -446,10 +447,12 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
         self._focused_frame = focused_frame
 
         close_iw.invert = show_focus and focus_area == "close"
-        close_iw:paintTo(bb, content_x + content_w - close_sz,
-                         content_y + math.floor((title_h - close_sz) / 2))
-        title_tw:paintTo(bb, content_x,
-                         content_y + math.floor((title_h - title_text_h) / 2))
+        close_iw:paintTo(bb, TitleStyle.getTrailingIconX(sw, 0),
+            TitleStyle.VERTICAL_PADDING + math.floor((title_h - close_sz) / 2))
+        title_tw:paintTo(bb, title_x,
+            TitleStyle.VERTICAL_PADDING + math.floor((title_h - title_text_h) / 2))
+        bb:paintRect(0, TitleStyle.HEADER_CONTENT_HEIGHT, sw,
+            TitleStyle.DIVIDER_HEIGHT, TitleStyle.DIVIDER_COLOR)
         -- Current page grid.
         page_vgs[cur_page]:paintTo(bb, grid_x, grid_y)
         -- Page indicator bar.

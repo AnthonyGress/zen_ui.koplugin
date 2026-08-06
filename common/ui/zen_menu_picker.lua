@@ -13,6 +13,7 @@ local function showMenuPicker(opts)
     local IW         = require("ui/widget/iconwidget")
     local TW         = require("ui/widget/textwidget")
     local pager      = require("common/ui/zen_pager")
+    local TitleStyle = require("common/ui/zen_title_style")
 
     opts = opts or {}
     local items = type(opts.items) == "table" and opts.items or {}
@@ -36,31 +37,28 @@ local function showMenuPicker(opts)
     local indent_step = Screen:scaleBySize(16)
     local content_w = sw - 2 * pad
     local bar_area_h = pager.PN_FOOTER_H
-    local divider_gap = Size.padding.default
-    local divider_pad = Size.padding.large
-    local divider_h   = Screen:scaleBySize(2)
+    local divider_h = TitleStyle.DIVIDER_HEIGHT
 
-    local back_sz  = Screen:scaleBySize(24)
-    local back_gap = Screen:scaleBySize(6)
+    local back_sz  = TitleStyle.ICON_SIZE
     local back_iw  = IW:new{ icon = "chevron.left", width = back_sz, height = back_sz }
 
-    local title_text_w = content_w - back_sz - back_gap
+    local title_x = TitleStyle.getTitleX(0)
+    local title_text_w = sw - title_x - TitleStyle.RIGHT_PADDING
     local title_tw = TW:new{
         text  = opts.title or _("Choose item"),
-        face  = Font:getFace("smallinfofont"),
+        face  = TitleStyle.getTitleFace(),
         bold  = true,
         width = title_text_w,
     }
     local title_text_h = title_tw:getSize().h
-    local title_h      = math.max(back_sz, title_text_h)
-    local title_block_h = title_h + divider_gap + divider_h + divider_gap
+    local title_h      = TitleStyle.ROW_HEIGHT
+    local title_block_h = TitleStyle.HEADER_HEIGHT
 
     local content_x = pad
-    local content_y = pad
     local list_x    = content_x
-    local divider_y = content_y + title_h + divider_gap
-    local list_y    = content_y + title_block_h
-    local overhead  = 2 * pad + title_block_h + span + bar_area_h
+    local divider_y = TitleStyle.HEADER_CONTENT_HEIGHT
+    local list_y    = title_block_h
+    local overhead  = title_block_h + pad + span + bar_area_h
     local list_h    = math.max(row_h, sh - overhead)
     local rows_per_page = math.max(1, math.floor(list_h / row_h))
     local page_h    = rows_per_page * row_h
@@ -203,8 +201,9 @@ local function showMenuPicker(opts)
                 screen_zone = { ratio_x = 0, ratio_y = 0, ratio_w = 1, ratio_h = 1 },
                 handler     = function(ges)
                     local gx, gy = ges.pos.x, ges.pos.y
-                    if gx >= content_x and gx < content_x + back_sz
-                       and gy >= content_y and gy < content_y + title_h then
+                    if gx >= TitleStyle.LEFT_PADDING
+                       and gx < TitleStyle.LEFT_PADDING + TitleStyle.BUTTON_SIZE
+                       and gy >= 0 and gy < TitleStyle.HEADER_CONTENT_HEIGHT then
                         closeDialog()
                         return true
                     end
@@ -224,8 +223,8 @@ local function showMenuPicker(opts)
                 screen_zone = { ratio_x = 0, ratio_y = 0, ratio_w = 1, ratio_h = 1 },
                 handler     = function(ges)
                     local gx, gy = ges.pos.x, ges.pos.y
-                    if gx >= content_x and gx < content_x + content_w
-                            and gy >= content_y and gy < content_y + title_h then
+                    if gx >= 0 and gx < sw
+                            and gy >= 0 and gy < TitleStyle.HEADER_CONTENT_HEIGHT then
                         return backToSettingsRoot()
                     end
                     return handlePageNumberHold(gx, gy)
@@ -287,11 +286,11 @@ local function showMenuPicker(opts)
         bb:paintRect(0, 0, sw, sh, Blitbuffer.COLOR_WHITE)
 
         back_iw.invert = back_focused
-        back_iw:paintTo(bb, content_x, content_y + math.floor((title_h - back_sz) / 2))
-        title_tw:paintTo(bb, content_x + back_sz + back_gap,
-            content_y + math.floor((title_h - title_text_h) / 2))
-        bb:paintRect(divider_pad, divider_y, sw - 2 * divider_pad,
-            divider_h, Blitbuffer.COLOR_LIGHT_GRAY)
+        back_iw:paintTo(bb, TitleStyle.getLeadingIconX(0),
+            TitleStyle.VERTICAL_PADDING + math.floor((title_h - back_sz) / 2))
+        title_tw:paintTo(bb, title_x,
+            TitleStyle.VERTICAL_PADDING + math.floor((title_h - title_text_h) / 2))
+        bb:paintRect(0, divider_y, sw, divider_h, TitleStyle.DIVIDER_COLOR)
 
         local first = (cur_page - 1) * rows_per_page + 1
         local last = math.min(#items, first + rows_per_page - 1)

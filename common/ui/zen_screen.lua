@@ -22,6 +22,7 @@ local TextBoxWidget  = require("ui/widget/textboxwidget")
 local TextWidget     = require("ui/widget/textwidget")
 local UIManager      = require("ui/uimanager")
 local ZenButton      = require("common/ui/zen_button")
+local TitleStyle     = require("common/ui/zen_title_style")
 local Screen         = Device.screen
 local _              = require("gettext")
 local ok_stw, ScrollTextWidget = pcall(require, "ui/widget/scrolltextwidget")
@@ -50,8 +51,8 @@ function ZenScreen:_computeLayout()
     local sw = Screen:getWidth()
     local sh = Screen:getHeight()
     local PAD        = Screen:scaleBySize(20)
-    local TITLE_H    = self.title and Screen:scaleBySize(60) or 0
-    local SEP_H      = 0
+    local TITLE_H    = self.title and TitleStyle.HEADER_CONTENT_HEIGHT or 0
+    local SEP_H      = self.title and TitleStyle.DIVIDER_HEIGHT or 0
     -- Subtitle band grows to fit wrapped text so long strings don't run off-page.
     local SUBTITLE_H = 0
     if self.subtitle then
@@ -348,17 +349,20 @@ function ZenScreen:paintTo(bb, x, y)
     if self.title and L.title_h > 0 then
         local tw = TextWidget:new{
             text    = self.title,
-            face    = Font:getFace("cfont", 26),
+            face    = TitleStyle.getTitleFace(),
             bold    = true,
             padding = 0,
         }
         local tsz = tw:getSize()
         local show_inline_icon = self.title_icon == true or self._show_title_icon
-        local icon_gap = Screen:scaleBySize(8)
-        local icon_sz  = show_inline_icon and tsz.h or 0
+        local icon_gap = TitleStyle.TITLE_LEADING_PADDING
+        local icon_sz  = show_inline_icon and TitleStyle.ICON_SIZE or 0
         local total_w  = tsz.w + (show_inline_icon and (icon_sz + icon_gap) or 0)
         local base_x   = x + math.floor((L.sw - total_w) / 2)
-        local text_y   = y + math.floor((L.title_h - tsz.h) / 2)
+        local text_y   = y + TitleStyle.VERTICAL_PADDING
+            + math.floor((TitleStyle.ROW_HEIGHT - tsz.h) / 2)
+        local icon_y   = y + TitleStyle.VERTICAL_PADDING
+            + math.floor((TitleStyle.ROW_HEIGHT - icon_sz) / 2)
 
         if show_inline_icon and ImageWidget and _plugin_root ~= "" then
             pcall(function()
@@ -368,16 +372,17 @@ function ZenScreen:paintTo(bb, x, y)
                     height = icon_sz,
                     alpha  = true,
                 }
-                iw:paintTo(bb, base_x, text_y)
+                iw:paintTo(bb, base_x, icon_y)
                 iw:free()
                 if Screen.night_mode then
-                    bb:invertRect(base_x, text_y, icon_sz, icon_sz)
+                    bb:invertRect(base_x, icon_y, icon_sz, icon_sz)
                 end
             end)
         end
 
         tw:paintTo(bb, base_x + (show_inline_icon and (icon_sz + icon_gap) or 0), text_y)
         tw:free()
+        bb:paintRect(x, y + L.title_h, L.sw, L.sep_h, TitleStyle.DIVIDER_COLOR)
     end
 
     -- Subtitle above icon (wraps to fit width so long strings don't run off-page).

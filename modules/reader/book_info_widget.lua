@@ -10,6 +10,7 @@ local TextBoxWidget = require("ui/widget/textboxwidget")
 local TextWidget = require("ui/widget/textwidget")
 local UIManager = require("ui/uimanager")
 local Cover = require("common/cover_utils")
+local TitleStyle = require("common/ui/zen_title_style")
 local utils = require("common/utils")
 local TopMenu = require("modules/global/patches/menu_top_swipe")
 local _ = require("gettext")
@@ -45,10 +46,11 @@ function BookInfoWidget:init()
     local sw = Device.screen:getWidth()
     local sh = Device.screen:getHeight()
     local pad = Device.screen:scaleBySize(16)
-    local title_h = Device.screen:scaleBySize(52)
+    local title_h = TitleStyle.HEADER_CONTENT_HEIGHT
+    local title_divider_h = TitleStyle.DIVIDER_HEIGHT
     local gap = Device.screen:scaleBySize(14)
     local metadata_gap = Device.screen:scaleBySize(32)
-    local body_y = title_h + pad
+    local body_y = title_h + title_divider_h + pad
     local cover_w = self.cover and (self.cover_width or 0) or 0
     local cover_h = self.cover and (self.cover_height or 0) or 0
     local max_cover_h = math.max(Device.screen:scaleBySize(100), math.floor(sh * 0.30))
@@ -67,7 +69,10 @@ function BookInfoWidget:init()
         pad = pad,
         gap = gap,
         title_h = title_h,
+        title_divider_h = title_divider_h,
         body_y = body_y,
+        back_x = TitleStyle.LEFT_PADDING,
+        back_w = TitleStyle.BUTTON_SIZE,
         cover_x = pad + border,
         cover_y = body_y,
         cover_w = cover_w,
@@ -81,8 +86,10 @@ function BookInfoWidget:init()
     self._text_faces = self.text_faces or {}
     self._title_widget = TextWidget:new{
         text = self.title or _("Book details"),
-        face = self._text_face,
+        face = TitleStyle.getTitleFace(),
         bold = true,
+        max_width = math.max(1,
+            sw - TitleStyle.getTitleX(0) - TitleStyle.RIGHT_PADDING),
         padding = 0,
     }
     self._description_label = TextWidget:new{
@@ -127,8 +134,8 @@ function BookInfoWidget:init()
 
     self._back_icon = IconWidget:new{
         file = resolve_stock_icon("chevron.left"),
-        width = Device.screen:scaleBySize(26),
-        height = Device.screen:scaleBySize(26),
+        width = TitleStyle.ICON_SIZE,
+        height = TitleStyle.ICON_SIZE,
     }
     if self.cover then
         self._cover_widget = ImageWidget:new{
@@ -292,28 +299,32 @@ end
 function BookInfoWidget:paintTo(bb, x, y)
     local L = self._L
     bb:paintRect(x, y, L.sw, L.sh, Blitbuffer.COLOR_WHITE)
-    bb:paintRect(x, y + L.title_h, L.sw, 1, Blitbuffer.COLOR_LIGHT_GRAY)
+    bb:paintRect(x, y + L.title_h, L.sw, L.title_divider_h,
+        TitleStyle.DIVIDER_COLOR)
 
     local title_size = self._title_widget:getSize()
     self._title_widget:paintTo(bb,
-        x + math.floor((L.sw - title_size.w) / 2),
-        y + math.floor((L.title_h - title_size.h) / 2))
+        TitleStyle.getTitleX(x),
+        y + TitleStyle.VERTICAL_PADDING
+            + math.floor((TitleStyle.ROW_HEIGHT - title_size.h) / 2))
     local back_size = self._back_icon:getSize()
     local back_focused = self._zen_focus_enabled and self._zen_focus_area == "back"
     self._back_icon.invert = back_focused
     if back_focused then
         local focus_pad = Device.screen:scaleBySize(4)
         bb:paintRect(
-            x + math.floor((L.title_h - back_size.w) / 2) - focus_pad,
-            y + math.floor((L.title_h - back_size.h) / 2) - focus_pad,
+            TitleStyle.getLeadingIconX(x) - focus_pad,
+            y + TitleStyle.VERTICAL_PADDING
+                + math.floor((TitleStyle.ROW_HEIGHT - back_size.h) / 2) - focus_pad,
             back_size.w + 2 * focus_pad,
             back_size.h + 2 * focus_pad,
             Blitbuffer.COLOR_BLACK
         )
     end
     self._back_icon:paintTo(bb,
-        x + math.floor((L.title_h - back_size.w) / 2),
-        y + math.floor((L.title_h - back_size.h) / 2))
+        TitleStyle.getLeadingIconX(x),
+        y + TitleStyle.VERTICAL_PADDING
+            + math.floor((TitleStyle.ROW_HEIGHT - back_size.h) / 2))
 
     if self._cover_widget then
         self._cover_widget:paintTo(bb, x + L.cover_x, y + L.cover_y)
@@ -376,7 +387,8 @@ end
 
 function BookInfoWidget:_onTap(ges)
     local pos = ges.pos
-    if pos.x < self._L.title_h and pos.y < self._L.title_h then
+    if pos.x >= self._L.back_x and pos.x < self._L.back_x + self._L.back_w
+            and pos.y >= 0 and pos.y < self._L.title_h then
         return self:onClose()
     end
     local handled = TopMenu.handleTap(nil, ges)

@@ -26,6 +26,7 @@ local TextWidget     = require("ui/widget/textwidget")
 local UIManager      = require("ui/uimanager")
 local Screen         = Device.screen
 local pager          = require("common/ui/zen_pager")
+local TitleStyle     = require("common/ui/zen_title_style")
 
 local function supports_hardware_focus()
     local has_dpad = type(Device.hasDPad) == "function" and Device:hasDPad()
@@ -123,8 +124,8 @@ function ZenTocWidget:init()
     local MODAL_W     = sw
     local BORDER      = 0
     local PAD         = Screen:scaleBySize(16)   -- horizontal content padding
-    local TITLE_H     = Screen:scaleBySize(50)
-    local SEP_H       = 1
+    local TITLE_H     = TitleStyle.HEADER_CONTENT_HEIGHT
+    local SEP_H       = TitleStyle.DIVIDER_HEIGHT
     local ROW_H       = Screen:scaleBySize(48)
     local BAR_PAD_V   = Screen:scaleBySize(7)
     local DOT_DIAM    = Screen:scaleBySize(10)
@@ -149,9 +150,8 @@ function ZenTocWidget:init()
     local MODAL_X    = 0
     local MODAL_Y    = 0
 
-    -- Close-button hit-area: left TITLE_H-wide strip of the title bar.
-    local CLOSE_W = TITLE_H   -- square hit zone
-    local CLOSE_X = 0
+    local CLOSE_W = TitleStyle.BUTTON_SIZE
+    local CLOSE_X = TitleStyle.LEFT_PADDING
     local CLOSE_Y = MODAL_Y
 
     -- Y where entry rows start (absolute screen coords).
@@ -402,23 +402,24 @@ function ZenTocWidget:paintTo(bb, x, y)
     local my = y + L.modal_y
 
     -- -----------------------------------------------------------------------
-    -- Title bar: "Contents" centred, left chevron on the left
+    -- Title bar: aligned with Zen settings and arrange screens.
     -- -----------------------------------------------------------------------
     local title_tw = TextWidget:new{
         text    = "Contents",
-        face    = Font:getFace("cfont", 18),
+        face    = TitleStyle.getTitleFace(),
         fgcolor = Blitbuffer.COLOR_BLACK,
         bold    = true,
         padding = 0,
     }
     local tsz = title_tw:getSize()
     title_tw:paintTo(bb,
-        mx + math.floor((L.modal_w - tsz.w) / 2),
-        my + math.floor((L.title_h - tsz.h) / 2))
+        TitleStyle.getTitleX(mx),
+        my + TitleStyle.VERTICAL_PADDING
+            + math.floor((TitleStyle.ROW_HEIGHT - tsz.h) / 2))
     title_tw:free()
 
     -- Close icon (left chevron, positioned on the left)
-    local icon_sz    = Screen:scaleBySize(26)
+    local icon_sz    = TitleStyle.ICON_SIZE
     local close_icon = IconWidget:new{
         icon   = "chevron.left",
         width  = icon_sz,
@@ -429,20 +430,22 @@ function ZenTocWidget:paintTo(bb, x, y)
     if back_focused then
         local focus_pad = Screen:scaleBySize(4)
         bb:paintRect(
-            mx + L.close_x + math.floor((L.close_w - icon_sz) / 2) - focus_pad,
-            my + math.floor((L.title_h - icon_sz) / 2) - focus_pad,
+            TitleStyle.getLeadingIconX(mx) - focus_pad,
+            my + TitleStyle.VERTICAL_PADDING
+                + math.floor((TitleStyle.ROW_HEIGHT - icon_sz) / 2) - focus_pad,
             icon_sz + 2 * focus_pad,
             icon_sz + 2 * focus_pad,
             Blitbuffer.COLOR_BLACK
         )
     end
     close_icon:paintTo(bb,
-        mx + L.close_x + math.floor((L.close_w - icon_sz) / 2),
-        my + math.floor((L.title_h - icon_sz) / 2))
+        TitleStyle.getLeadingIconX(mx),
+        my + TitleStyle.VERTICAL_PADDING
+            + math.floor((TitleStyle.ROW_HEIGHT - icon_sz) / 2))
     close_icon:free()
 
     -- Title separator line.
-    bb:paintRect(mx, my + L.title_h, L.modal_w, L.sep_h, Blitbuffer.COLOR_LIGHT_GRAY)
+    bb:paintRect(mx, my + L.title_h, L.modal_w, L.sep_h, TitleStyle.DIVIDER_COLOR)
 
     -- -----------------------------------------------------------------------
     -- TOC entry rows

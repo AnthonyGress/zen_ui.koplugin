@@ -57,6 +57,7 @@ common/ui/zen_solid_circle.lua|unit
 common/ui/zen_slider.lua|unit
 common/ui/zen_slider_dialog.lua|unit
 common/ui/zen_settings_titlebar.lua|unit
+common/ui/zen_title_style.lua|unit
 common/ui/zen_toggle.lua|unit
 common/utils.lua|unit
 common/widget_resources.lua|unit
@@ -133,6 +134,7 @@ modules/global/patches/incognito_mode.lua|integration
 modules/global/patches/kindle_network_profile_guard.lua|integration
 modules/global/patches/lockdown_mode.lua|integration
 modules/global/patches/menu_font.lua|integration
+modules/global/patches/unified_title_style.lua|unit
 modules/global/patches/menu_top_swipe.lua|integration
 modules/global/patches/night_mode_schedule.lua|integration
 modules/global/patches/opds.lua|integration

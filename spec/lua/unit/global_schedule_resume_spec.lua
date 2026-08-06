@@ -12,6 +12,7 @@ describe("global schedule resume hook", function()
         "modules/global/patches/lockdown_mode",
         "modules/global/patches/incognito_mode",
         "modules/global/patches/menu_font",
+        "modules/global/patches/unified_title_style",
     }
 
     before_each(function()

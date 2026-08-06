@@ -23,6 +23,7 @@ local SharedState = require("common/shared_state")
 local IconItem = require("common/ui/icon_menu_item")
 local ZenIconButton = require("common/ui/zen_icon_button")
 local SolidCircle = require("common/ui/zen_solid_circle")
+local TitleStyle = require("common/ui/zen_title_style")
 local WidgetResources = require("common/widget_resources")
 local utils = require("common/utils")
 local _ = require("gettext")
@@ -131,20 +132,20 @@ function ZenSettingsTitleBar:init()
     self:clearStatusRefresh()
     self.status_factory = self.status_factory or default_status_factory(self.plugin)
 
-    local icon_size = Screen:scaleBySize(28)
-    local button_padding = Screen:scaleBySize(8)
-    local button_size = icon_size + 2 * button_padding
+    local icon_size = TitleStyle.ICON_SIZE
+    local button_padding = TitleStyle.BUTTON_PADDING
+    local button_size = TitleStyle.BUTTON_SIZE
     local close_hitbox_inset = Screen:scaleBySize(4)
     local close_hitbox_left_inset = Screen:scaleBySize(4)
     local close_hitbox_bottom_inset = Screen:scaleBySize(12)
-    local title_leading_padding = Screen:scaleBySize(6)
+    local title_leading_padding = TitleStyle.TITLE_LEADING_PADDING
     self.title_leading_padding = title_leading_padding
     local root_icon_size = math.min(button_size, Screen:scaleBySize(32))
     local root_icon_inset = button_size - root_icon_size
     local root_icon_inset_start = math.floor(root_icon_inset / 2)
     local root_icon_inset_end = root_icon_inset - root_icon_inset_start
-    local left_padding = Size.padding.small
-    local right_padding = Size.padding.large
+    local left_padding = TitleStyle.LEFT_PADDING
+    local right_padding = TitleStyle.RIGHT_PADDING
     local back_width = button_size
     local show_search = self.search_expanded == true and self.search_visible ~= false
     local show_search_button = self.search_visible ~= false and not show_search
@@ -197,7 +198,7 @@ function ZenSettingsTitleBar:init()
     elseif self.title_expand_to_fit and not show_search then
         local title_probe = TextWidget:new{
             text = self.title,
-            face = IconItem.getSettingsFace(),
+            face = TitleStyle.getTitleFace(),
             bold = true,
         }
         title_cap = math.max(1, math.min(max_title_width, title_probe:getSize().w))
@@ -206,7 +207,7 @@ function ZenSettingsTitleBar:init()
     end
     self.title_widget = TextWidget:new{
         text = self.title,
-        face = IconItem.getSettingsFace(),
+        face = TitleStyle.getTitleFace(),
         bold = true,
         max_width = title_cap,
     }
@@ -214,8 +215,8 @@ function ZenSettingsTitleBar:init()
         self.width - left_padding - right_padding - back_width - title_leading_padding
             - title_width - trailing_width)
     local search_outer_width = math.max(Screen:scaleBySize(100), available_width)
-    local row_height = math.max(button_size, Screen:scaleBySize(42))
-    local vertical_padding = Screen:scaleBySize(6)
+    local row_height = TitleStyle.ROW_HEIGHT
+    local vertical_padding = TitleStyle.VERTICAL_PADDING
 
     local row = HorizontalGroup:new{ align = "center" }
     self._header_row = row
@@ -425,8 +426,8 @@ function ZenSettingsTitleBar:init()
     table.insert(vertical_group, self._header_group)
     table.insert(vertical_group, VerticalSpan:new{ width = vertical_padding })
     table.insert(vertical_group, LineWidget:new{
-        dimen = Geom:new{ w = self.width, h = Screen:scaleBySize(2) },
-        background = Blitbuffer.COLOR_LIGHT_GRAY,
+        dimen = Geom:new{ w = self.width, h = TitleStyle.DIVIDER_HEIGHT },
+        background = TitleStyle.DIVIDER_COLOR,
     })
     self._vertical_group = vertical_group
     self[1] = FrameContainer:new{

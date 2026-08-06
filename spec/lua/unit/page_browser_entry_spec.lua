@@ -660,7 +660,7 @@ describe("page browser entry", function()
         expect(positions["/icons/toc.svg"] == 270)
         expect(browser._zen_orig_nb_cols == 3 and browser._zen_orig_nb_rows == 2)
         local close_button = browser.title_bar.right_button
-        expect(close_button.file == "/icons/close.svg")
+        expect(close_button.file == "/icons/close_light.svg")
         expect(close_button.width == 32 and close_button.height == 32)
         expect(close_button.padding == 11 and close_button.padding_bottom == 32)
         expect(close_button.overlap_align == "right")

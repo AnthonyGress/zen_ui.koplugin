@@ -10,6 +10,9 @@ describe("Zen icon picker", function()
     local device_has_dpad
     local device_has_keyboard
     local device_is_touch
+    local close_icon
+    local close_paint_x
+    local title_spec
 
     local module_names = {
         "gettext",
@@ -27,6 +30,7 @@ describe("Zen icon picker", function()
         "ui/widget/iconwidget",
         "ui/widget/textwidget",
         "common/ui/zen_pager",
+        "common/ui/zen_title_style",
         "common/ui/zen_icon_picker",
     }
 
@@ -112,6 +116,9 @@ describe("Zen icon picker", function()
         device_has_dpad = true
         device_has_keyboard = false
         device_is_touch = false
+        close_icon = nil
+        close_paint_x = nil
+        title_spec = nil
 
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("device", {
@@ -172,16 +179,21 @@ describe("Zen icon picker", function()
         ZenSpec.replace("ui/widget/horizontalgroup", widget_class("horizontal"))
         ZenSpec.replace("ui/widget/iconwidget", {
             new = function(_, values)
-                values.paintTo = function(self)
-                    if self.icon == "close" then close_inverted = self.invert end
+                if values.icon == "close" then close_icon = values end
+                values.paintTo = function(self, _bb, x)
+                    if self.icon == "close" then
+                        close_inverted = self.invert
+                        close_paint_x = x
+                    end
                 end
                 return values
             end,
         })
         ZenSpec.replace("ui/widget/textwidget", {
             new = function(_, values)
+                if values.text == "Select icon" then title_spec = values end
                 values.getSize = function() return { w = 100, h = 20 } end
-                values.paintTo = function() end
+                values.paintTo = function(self, _bb, x) self.paint_x = x end
                 values.free = function() end
                 return values
             end,
@@ -207,6 +219,23 @@ describe("Zen icon picker", function()
             end,
             paint = function(_bb, _x, _y, _w, _h, cur_page)
                 painted_page = cur_page
+            end,
+        })
+        ZenSpec.replace("common/ui/zen_title_style", {
+            ICON_SIZE = 28,
+            BUTTON_SIZE = 44,
+            LEFT_PADDING = 4,
+            RIGHT_PADDING = 20,
+            ROW_HEIGHT = 44,
+            VERTICAL_PADDING = 6,
+            DIVIDER_HEIGHT = 2,
+            DIVIDER_COLOR = "light_gray",
+            HEADER_CONTENT_HEIGHT = 56,
+            HEADER_HEIGHT = 58,
+            getTitleFace = function() return { name = "settings_title" } end,
+            getTitleX = function(origin) return (origin or 0) + 54 end,
+            getTrailingIconX = function(width, origin)
+                return (origin or 0) + width - 56
             end,
         })
         ZenSpec.unload("common/ui/zen_icon_picker")
@@ -253,8 +282,18 @@ describe("Zen icon picker", function()
 
         assert.is_true(tap({ pos = pos(10, 10) }))
         assert.are.equal(0, closed)
-        assert.is_true(tap({ pos = pos(580, 10) }))
+        assert.is_true(tap({ pos = pos(560, 10) }))
         assert.are.equal(1, closed)
+    end)
+
+    it("aligns its title and close icon with the arrange-list header", function()
+        require("common/ui/zen_icon_picker")(icons(2), "icon_01", function() end)
+        paint()
+
+        assert.are.equal("settings_title", title_spec.face.name)
+        assert.are.equal(54, title_spec.paint_x)
+        assert.are.equal(28, close_icon.width)
+        assert.are.equal(544, close_paint_x)
     end)
 
     it("keeps focus on the grid when there is no footer pager", function()

@@ -12,6 +12,7 @@ local PATCH_MODULES = {
     lockdown_mode          = "modules/global/patches/lockdown_mode",
     incognito_mode         = "modules/global/patches/incognito_mode",
     menu_font              = "modules/global/patches/menu_font",
+    unified_title_style    = "modules/global/patches/unified_title_style",
 }
 
 local function run_patch(logger, plugin, feature, fn)
@@ -117,6 +118,11 @@ function M.init(logger, plugin)
     local menu_font_fn = load_patch("menu_font")
     if menu_font_fn then
         run_patch(logger, plugin, "menu_font", menu_font_fn)
+    end
+
+    local unified_title_style_fn = load_patch("unified_title_style")
+    if unified_title_style_fn then
+        run_patch(logger, plugin, "unified_title_style", unified_title_style_fn)
     end
 
     -- Hook the global Resume broadcast so schedules are independent of the
