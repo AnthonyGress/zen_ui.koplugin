@@ -59,11 +59,31 @@ local function mark_home_rebuild_needed(refresh_stats, reload_config)
     if reload_config == true then menu._zen_home_reload_config = true end
 end
 
+local home_close_hook_installed = false
+local function install_home_close_hook()
+    if home_close_hook_installed or type(UIManager.close) ~= "function" then return end
+    home_close_hook_installed = true
+    local orig_close = UIManager.close
+    UIManager.close = function(self, widget, ...)
+        local result = orig_close(self, widget, ...)
+        local menu = _home_menu
+        if menu and menu._zen_home_needs_repaint
+                and not menu._zen_home_closing
+                and menu._zen_home_suspended ~= true
+                and home_is_on_top(menu) then
+            menu._zen_home_needs_repaint = nil
+            self:setDirty(menu, "ui")
+        end
+        return result
+    end
+end
+
 local function request_home_repaint(menu, refresh)
     if not menu or menu._zen_home_closing then return false end
     if not rawequal(menu, _home_menu) or menu._zen_home_suspended == true
             or not home_is_on_top(menu) then
         menu._zen_home_needs_repaint = true
+        install_home_close_hook()
         return false
     end
     menu._zen_home_needs_repaint = nil

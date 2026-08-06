@@ -177,6 +177,15 @@ describe("home data and book caches", function()
         error("build_data_provider upvalue not found")
     end
 
+    local function get_request_home_repaint(Home)
+        for i = 1, 80 do
+            local name, value = debug.getupvalue(Home.showHomeView, i)
+            if not name then break end
+            if name == "request_home_repaint" then return value end
+        end
+        error("request_home_repaint upvalue not found")
+    end
+
     local function set_home_menu(Home, menu)
         for i = 1, 40 do
             local name = debug.getupvalue(Home.isActiveOnTop, i)
@@ -712,6 +721,116 @@ describe("home data and book caches", function()
 
         assert.are.same({ true, "reused" }, { Home.resumeActive() })
         assert.are.equal(1, resumes)
+    end)
+
+    it("repaints Home after the last generic startup overlay closes", function()
+        local closed = {}
+        local dirtied = {}
+        local UIManager = {
+            _window_stack = {},
+            nextTick = function(_self, callback) callback() end,
+            scheduleIn = function() end,
+            setDirty = function(_self, widget, refresh, region)
+                dirtied[#dirtied + 1] = {
+                    widget = widget,
+                    refresh = refresh,
+                    region = region,
+                }
+            end,
+            close = function(self, widget, refresh, region)
+                closed[#closed + 1] = {
+                    widget = widget,
+                    refresh = refresh,
+                    region = region,
+                }
+                for index = #self._window_stack, 1, -1 do
+                    if self._window_stack[index].widget == widget then
+                        table.remove(self._window_stack, index)
+                        break
+                    end
+                end
+                return "closed"
+            end,
+        }
+        ZenSpec.replace("ui/uimanager", UIManager)
+        ZenSpec.unload("modules/filebrowser/patches/home_page")
+
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local request_home_repaint = get_request_home_repaint(Home)
+        local home = {}
+        local first_overlay = {}
+        local last_overlay = {}
+        local close_region = {}
+        set_home_menu(Home, home)
+        UIManager._window_stack = {
+            { widget = home },
+            { widget = first_overlay },
+            { widget = last_overlay },
+        }
+
+        assert.is_false(request_home_repaint(home, "partial"))
+        assert.is_true(home._zen_home_needs_repaint)
+        assert.are.equal("closed",
+            UIManager:close(last_overlay, "flashui", close_region))
+        assert.are.same({}, dirtied)
+
+        assert.are.equal("closed",
+            UIManager:close(first_overlay, "flashui", close_region))
+        assert.are.same({
+            { widget = last_overlay, refresh = "flashui", region = close_region },
+            { widget = first_overlay, refresh = "flashui", region = close_region },
+        }, closed)
+        assert.are.same({
+            { widget = home, refresh = "ui" },
+        }, dirtied)
+        assert.is_nil(home._zen_home_needs_repaint)
+    end)
+
+    it("does not reveal suspended or replaced Home views", function()
+        local dirtied = {}
+        local UIManager = {
+            _window_stack = {},
+            nextTick = function(_self, callback) callback() end,
+            scheduleIn = function() end,
+            setDirty = function(_self, widget, refresh)
+                dirtied[#dirtied + 1] = { widget = widget, refresh = refresh }
+            end,
+            close = function(self, widget)
+                for index = #self._window_stack, 1, -1 do
+                    if self._window_stack[index].widget == widget then
+                        table.remove(self._window_stack, index)
+                        break
+                    end
+                end
+            end,
+        }
+        ZenSpec.replace("ui/uimanager", UIManager)
+        ZenSpec.unload("modules/filebrowser/patches/home_page")
+
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local request_home_repaint = get_request_home_repaint(Home)
+        local suspended_home = { _zen_home_suspended = true }
+        local blocker = {}
+        set_home_menu(Home, suspended_home)
+        UIManager._window_stack = {
+            { widget = suspended_home },
+            { widget = blocker },
+        }
+
+        assert.is_false(request_home_repaint(suspended_home, "ui"))
+        UIManager:close(blocker)
+        assert.are.same({}, dirtied)
+        assert.is_true(suspended_home._zen_home_needs_repaint)
+
+        local replacement = {}
+        local replacement_blocker = {}
+        set_home_menu(Home, replacement)
+        UIManager._window_stack = {
+            { widget = suspended_home },
+            { widget = replacement_blocker },
+        }
+        UIManager:close(replacement_blocker)
+        assert.are.same({}, dirtied)
     end)
 
     it("requires retained Home to be raised before resuming it", function()
