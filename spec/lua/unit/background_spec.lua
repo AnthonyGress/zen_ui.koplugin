@@ -30,39 +30,20 @@ describe("library background cleanup", function()
 
         assert.are.equal("white", protected.background)
         assert.is_nil(ordinary.background)
-
-        Background.restoreWhiteBackgrounds({ protected, ordinary })
-
-        assert.are.equal("white", protected.background)
-        assert.are.equal("white", ordinary.background)
     end)
 
-    it("does not compare opaque cdata backgrounds with nil while restoring", function()
-        local ffi = require("ffi")
-        local Color = ffi.metatype(ffi.typeof("struct { int value; }"), {
-            __eq = function(_color, other) return other.value == 255 end,
-        })
-        local opaque = { background = Color(255) }
-        local transparent = {
-            _zen_library_bg_restore = "white",
-        }
-
-        local Background = require("common/ui/background")
-        Background.restoreWhiteBackgrounds({ opaque, transparent })
-
-        assert.are.equal(255, opaque.background.value)
-        assert.are.equal("white", transparent.background)
-    end)
-
-    it("restores existing transparent tiles when the configured image disappears", function()
+    it("coalesces missing-image recovery without restoring the live widget tree", function()
         local exists = true
+        local saved = 0
+        local recoveries = 0
+        local scheduled = {}
         local path = "/library/background.jpg"
         local config = {
             library_background = { enabled = true, path = path },
         }
         local plugin = {
             config = config,
-            saveConfig = function() end,
+            saveConfig = function() saved = saved + 1 end,
         }
         _G.__ZEN_UI_PLUGIN = plugin
         ZenSpec.replace("libs/libkoreader-lfs", {
@@ -72,16 +53,14 @@ describe("library background cleanup", function()
             new = function(_self, opts) return opts end,
         })
         ZenSpec.replace("ui/uimanager", {
-            nextTick = function() end,
+            nextTick = function(_self, callback) scheduled[#scheduled + 1] = callback end,
             show = function() end,
         })
         ZenSpec.unload("common/ui/background")
 
         local Background = require("common/ui/background")
-        local tile = {
-            background = nil,
-            _zen_library_bg_restore = "white",
-        }
+        Background.paintScreenRegion = function() return true end
+        local tile = { background = nil }
         local root = { background = "white", tile }
         local menu = {
             dimen = { w = 100, h = 100 },
@@ -93,12 +72,84 @@ describe("library background cleanup", function()
         assert.is_nil(root.background)
         assert.is_nil(tile.background)
 
+        Background.setMissingLibraryBackgroundHandler(function()
+            recoveries = recoveries + 1
+            assert.is_nil(root.background)
+            assert.is_nil(tile.background)
+            return true
+        end)
         exists = false
         menu:paintTo({}, 0, 0)
+        assert.are.equal("", Background.library_path(plugin))
 
         assert.is_false(config.library_background.enabled)
-        assert.are.equal("white", root.background)
-        assert.are.equal("white", tile.background)
+        assert.are.equal(1, saved)
+        assert.are.equal(1, #scheduled)
+        assert.are.equal(0, recoveries)
+        assert.is_nil(root.background)
+        assert.is_nil(tile.background)
+
+        scheduled[1]()
+
+        assert.are.equal(1, recoveries)
+        assert.is_nil(root.background)
+        assert.is_nil(tile.background)
+        assert.are.equal("", Background.library_path(plugin))
+        assert.are.equal(1, saved)
+        assert.are.equal(1, #scheduled)
+    end)
+
+    it("retries a deferred recovery after a temporary blocker and then stops", function()
+        local recoveries = 0
+        local saved = 0
+        local notices = 0
+        local scheduled = {}
+        local path = "/library/background.jpg"
+        local config = {
+            library_background = { enabled = true, path = path },
+        }
+        local plugin = {
+            config = config,
+            saveConfig = function() saved = saved + 1 end,
+        }
+        _G.__ZEN_UI_PLUGIN = plugin
+        ZenSpec.replace("libs/libkoreader-lfs", {
+            attributes = function() return nil end,
+        })
+        ZenSpec.replace("ui/widget/notification", {
+            new = function(_self, opts) return opts end,
+        })
+        ZenSpec.replace("ui/uimanager", {
+            nextTick = function(_self, callback) scheduled[#scheduled + 1] = callback end,
+            show = function() notices = notices + 1 end,
+        })
+        ZenSpec.unload("common/ui/background")
+
+        local Background = require("common/ui/background")
+        Background.setMissingLibraryBackgroundHandler(function()
+            recoveries = recoveries + 1
+            return recoveries > 1
+        end)
+
+        assert.are.equal("", Background.library_path(plugin))
+        assert.are.equal("", Background.library_path(plugin))
+        assert.are.equal(1, #scheduled)
+        scheduled[1]()
+
+        assert.are.equal(1, recoveries)
+        assert.are.equal(1, notices)
+        assert.are.equal(1, saved)
+
+        assert.are.equal("", Background.library_path(plugin))
+        assert.are.equal("", Background.library_path(plugin))
+        assert.are.equal(2, #scheduled)
+        scheduled[2]()
+
+        assert.are.equal(2, recoveries)
+        assert.are.equal(1, notices)
+        assert.are.equal(1, saved)
+        assert.are.equal("", Background.library_path(plugin))
+        assert.are.equal(2, #scheduled)
     end)
 
     it("disables a configured background and notifies when its image is missing", function()

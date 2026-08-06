@@ -440,7 +440,6 @@ function M.build_strip(ctx, source_key)
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
-            _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
             empty_container,
         }
         logger.perf("strip frame built", (os.clock() - started_at) * 1000,
@@ -735,7 +734,6 @@ function M.build_strip(ctx, source_key)
         padding = 0,
         bordersize = 0,
         background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
-        _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
         CenterContainer:new{
             dimen = Geom:new{ w = outer_width, h = outer_height },
             content_container,

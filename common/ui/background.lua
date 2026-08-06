@@ -24,6 +24,52 @@ local M = {}
 -- Cache the constructed cover-fit ImageWidget keyed by "path|w|h".
 local _cache = {}
 local _buffer_cache = {}
+local _missing_recovery_handler
+local _missing_recovery_pending = false
+local _missing_recovery_running = false
+local _missing_notice_pending = false
+local _missing_work_scheduled = false
+
+local function run_missing_background_work()
+    _missing_work_scheduled = false
+    if _missing_recovery_pending and type(_missing_recovery_handler) == "function" then
+        _missing_recovery_running = true
+        local ok, recovered = pcall(_missing_recovery_handler)
+        _missing_recovery_running = false
+        if ok and recovered ~= false then
+            _missing_recovery_pending = false
+        elseif not ok then
+            logger.warn("missing library background recovery failed:", tostring(recovered))
+        end
+    end
+    if not _missing_notice_pending then return end
+    _missing_notice_pending = false
+    local ok_ui, UIManager = pcall(require, "ui/uimanager")
+    local ok_notification, Notification = pcall(require, "ui/widget/notification")
+    if ok_ui and ok_notification and type(UIManager.show) == "function"
+            and type(Notification.new) == "function" then
+        UIManager:show(Notification:new{
+            text = _("Library background was disabled because the image file was not found."),
+        })
+    end
+end
+
+local function schedule_missing_background_work()
+    if _missing_work_scheduled or _missing_recovery_running
+            or not (_missing_recovery_pending or _missing_notice_pending) then
+        return
+    end
+    if not _missing_notice_pending and type(_missing_recovery_handler) ~= "function" then
+        return
+    end
+    local ok_ui, UIManager = pcall(require, "ui/uimanager")
+    if ok_ui and type(UIManager.nextTick) == "function" then
+        _missing_work_scheduled = true
+        UIManager:nextTick(run_missing_background_work)
+    else
+        run_missing_background_work()
+    end
+end
 
 local function file_exists(path)
     if type(path) ~= "string" or path == "" then return false end
@@ -43,23 +89,14 @@ local function disable_missing_library_background(plugin, cfg, bg, path)
     end
     M.clearCache()
     logger.warn("disabled missing library background", path)
+    _missing_recovery_pending = true
+    _missing_notice_pending = true
+    schedule_missing_background_work()
+end
 
-    local ok_ui, UIManager = pcall(require, "ui/uimanager")
-    local ok_notification, Notification = pcall(require, "ui/widget/notification")
-    if not (ok_ui and ok_notification and type(UIManager.show) == "function"
-            and type(Notification.new) == "function") then
-        return
-    end
-    local function show_notice()
-        UIManager:show(Notification:new{
-            text = _("Library background was disabled because the image file was not found."),
-        })
-    end
-    if type(UIManager.nextTick) == "function" then
-        UIManager:nextTick(show_notice)
-    else
-        show_notice()
-    end
+function M.setMissingLibraryBackgroundHandler(handler)
+    _missing_recovery_handler = type(handler) == "function" and handler or nil
+    schedule_missing_background_work()
 end
 
 local function is_jpeg_path(path)
@@ -136,6 +173,7 @@ end
 -- Paint the background image filling (x, y, w, h). No-op if path empty/missing.
 function M.paint(bb, x, y, w, h, path)
     if not bb or type(path) ~= "string" or path == "" then return false end
+    local painted = false
     local ok, err = pcall(function()
         local iw = get_widget(path, w, h)
         if not iw then return end
@@ -143,11 +181,12 @@ function M.paint(bb, x, y, w, h, path)
         if Screen.night_mode then
             bb:invertRect(x, y, w, h)
         end
+        painted = true
     end)
     if not ok then
         logger.warn("paint failed for", tostring(path), tostring(err))
     end
-    return ok
+    return ok and painted
 end
 
 local function get_screen_buffer(path, w, h, bb_type)
@@ -211,25 +250,7 @@ function M.clearWhiteBackgrounds(widget, max_depth)
     local function walk(w, depth)
         if type(w) ~= "table" or depth > max_depth then return end
         if is_white(w.background) and not w._zen_keep_background then
-            w._zen_library_bg_restore = w.background
             w.background = nil
-        end
-        for i = 1, #w do
-            walk(w[i], depth + 1)
-        end
-    end
-
-    walk(widget, 0)
-end
-
-function M.restoreWhiteBackgrounds(widget, max_depth)
-    max_depth = max_depth or 12
-
-    local function walk(w, depth)
-        if type(w) ~= "table" or depth > max_depth then return end
-        -- BlitBuffer colors are cdata whose __eq crashes when compared with nil.
-        if not w.background and w._zen_library_bg_restore then
-            w.background = w._zen_library_bg_restore
         end
         for i = 1, #w do
             walk(w[i], depth + 1)
@@ -275,6 +296,7 @@ end
 -- tiles use this to switch their opaque fill to nil (transparent) so the
 -- background painted behind the page shows through.
 function M.library_path(plugin)
+    schedule_missing_background_work()
     plugin = plugin or rawget(_G, "__ZEN_UI_PLUGIN")
     local cfg = plugin and plugin.config
     if type(cfg) ~= "table" then
@@ -312,7 +334,6 @@ function M.applyToMenu(menu, max_depth)
     if not menu or menu._zen_bg_applied then return end
     menu._zen_bg_applied = true
     max_depth = max_depth or 14
-    menu._zen_library_bg_active = M.library_active()
 
     local orig_paintTo = menu.paintTo
     function menu:paintTo(bb, x, y)
@@ -321,14 +342,13 @@ function M.applyToMenu(menu, max_depth)
             -- Menu:updateItems may rebuild self[1] with opaque white fills.
             M.clearWhiteBackgrounds(self[1], max_depth)
             if self.dimen then
-                M.paint(bb, 0, 0, self.dimen.w, self.dimen.h, path)
+                M.paintScreenRegion(bb, 0, 0, 0, 0,
+                    self.dimen.w, self.dimen.h, path)
             else
-                M.paint(bb, 0, 0, Screen:getWidth(), Screen:getHeight(), path)
+                M.paintScreenRegion(bb, 0, 0, 0, 0,
+                    Screen:getWidth(), Screen:getHeight(), path)
             end
-        elseif self._zen_library_bg_active then
-            M.restoreWhiteBackgrounds(self[1], max_depth)
         end
-        self._zen_library_bg_active = path ~= ""
         if orig_paintTo then
             return orig_paintTo(self, bb, x, y)
         end

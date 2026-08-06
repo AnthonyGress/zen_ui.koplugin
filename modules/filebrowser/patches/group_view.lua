@@ -36,6 +36,18 @@ local function clear_root_menu(tab_id, menu)
     end
 end
 
+local root_show_methods = {
+    authors = "showAuthorsView",
+    series = "showSeriesView",
+    tags = "showTagsView",
+    to_be_read = "showTBRView",
+}
+
+local function reopen_root_view(tab_id, injectNavbar)
+    local fn = M[root_show_methods[tab_id]]
+    return type(fn) == "function" and fn(injectNavbar) ~= nil
+end
+
 local function remove_detail_menu(menu)
     for i = #_detail_menus, 1, -1 do
         if _detail_menus[i] == menu then
@@ -1090,6 +1102,12 @@ local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
     if injectNavbar then
         injectNavbar(detail_menu, navbar_tab_id or tab_id)
     end
+    if not navbar_tab_id or navbar_tab_id == tab_id then
+        detail_menu._zen_library_bg_reopen = function()
+            if not reopen_root_view(tab_id, injectNavbar) then return false end
+            return M.restoreDetail(group_name, tab_id, injectNavbar) ~= nil
+        end
+    end
 
     -- Add blank-space hold gesture handler for context menu
     local Device3 = require("device")
@@ -1225,6 +1243,9 @@ showGroupView = function(tab_id, injectNavbar, groups)
     menu.close_callback = function()
         UIManager:close(menu)
         clear_root_menu(tab_id, menu)
+    end
+    menu._zen_library_bg_reopen = function()
+        return reopen_root_view(tab_id, injectNavbar)
     end
     local orig_group_on_close_widget = menu.onCloseWidget
     function menu:onCloseWidget(...)
@@ -1524,6 +1545,9 @@ function M.showTBRView(injectNavbar)
         UIManager:close(menu)
         clear_root_menu(tab_id, menu)
     end
+    menu._zen_library_bg_reopen = function()
+        return reopen_root_view(tab_id, injectNavbar)
+    end
     local orig_tbr_on_close_widget = menu.onCloseWidget
     function menu:onCloseWidget(...)
         clear_root_menu(tab_id, self)
@@ -1620,8 +1644,7 @@ function M.restoreDetail(group_name, tab_id, injectNavbar_fn)
     if not menu or not menu.item_table then return end
     for _i, item in ipairs(menu.item_table) do
         if item.text == group_name and item._zen_files then
-            showDetailView(item, injectNavbar_fn, tab_id)
-            return
+            return showDetailView(item, injectNavbar_fn, tab_id)
         end
     end
 end

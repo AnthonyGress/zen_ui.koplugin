@@ -1887,7 +1887,6 @@ local function wrap_home_focus_target(menu, target, widget, defer_registration)
         padding = 0,
         bordersize = 0,
         background = home_frame_bg(),
-        _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
         widget,
     }
     local orig_paintTo = frame.paintTo
@@ -2510,7 +2509,6 @@ local function build_home_content(menu, dcfg, rows, data_provider)
                 padding = 0,
                 bordersize = 0,
                 background = home_frame_bg(),
-                _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
                 final_widget,
             })
             if not title_widget and content_bounds then
@@ -2580,7 +2578,6 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             padding = 0,
             bordersize = 0,
             background = home_frame_bg(),
-            _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
             VerticalGroup:new(children),
         },
         HorizontalSpan:new{ width = right_pad },
@@ -3006,6 +3003,9 @@ function M.showHomeView(injectNavbar)
             _home_menu = nil
         end
         UIManager:close(menu)
+    end
+    menu._zen_library_bg_reopen = function()
+        return M.showHomeView(_home_inject_navbar) ~= nil
     end
 
     local orig_onCloseWidget = menu.onCloseWidget

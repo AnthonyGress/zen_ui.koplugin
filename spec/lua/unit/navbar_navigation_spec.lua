@@ -15,6 +15,8 @@ describe("file browser navbar navigation", function()
     local home_show_callback
     local setup_observation
     local initial_reinject_callback
+    local ui_close_mutates_stack
+    local ui_close_observer
 
     local function class(methods)
         methods = methods or {}
@@ -54,6 +56,8 @@ describe("file browser navbar navigation", function()
         home_show_callback = nil
         setup_observation = nil
         initial_reinject_callback = nil
+        ui_close_mutates_stack = false
+        ui_close_observer = nil
         original_memory_policy = package.loaded["common/memory_policy"]
         shared = {
             home = {
@@ -155,7 +159,16 @@ describe("file browser navbar navigation", function()
             scheduleIn = function() end,
             unschedule = function() end,
             show = function() end,
-            close = function() end,
+            close = function(_self, widget)
+                if ui_close_observer then ui_close_observer(widget) end
+                if not ui_close_mutates_stack then return end
+                for index = #UIManager._window_stack, 1, -1 do
+                    if UIManager._window_stack[index].widget == widget then
+                        table.remove(UIManager._window_stack, index)
+                        return
+                    end
+                end
+            end,
             closeWidgetsAbove = function() end,
             broadcastEvent = function() end,
         }
@@ -292,6 +305,14 @@ describe("file browser navbar navigation", function()
         return instance
     end
 
+    local function stack_widgets()
+        local widgets = {}
+        for _i, window in ipairs(UIManager._window_stack) do
+            widgets[#widgets + 1] = window.widget
+        end
+        return widgets
+    end
+
     it("keeps configured tab order and resolves the first enabled default", function()
         assert.are.equal("home", _G.__ZEN_UI_NAVBAR_RESOLVE_DEFAULT_TAB())
         assert.are.same({
@@ -423,37 +444,131 @@ describe("file browser navbar navigation", function()
         assert.is_true(measurement_detail(measurements[1], "covers_suppressed="))
     end)
 
-    it("retries opening deferred Home after a startup notification closes", function()
+    it("opens deferred Home below modal and toast widgets without polling", function()
         local fm = make_instance()
         fm.invisible = true
         fm._zen_hidden_home_startup = true
         fm.file_chooser._zen_hidden_home_startup = true
         fm.file_chooser._zen_needs_full_listing = true
-        local notification = {}
+        local lock_modal = { modal = true }
+        local notification = { toast = true }
         UIManager._window_stack = {
             { widget = fm },
+            { widget = lock_modal },
             { widget = notification },
         }
         local scheduled = {}
-        UIManager.scheduleIn = function(_self, delay, callback)
-            scheduled[#scheduled + 1] = { delay = delay, callback = callback }
+        local closed = {}
+        UIManager.scheduleIn = function(_self, delay)
+            scheduled[#scheduled + 1] = delay
+        end
+        ui_close_observer = function(widget)
+            closed[#closed + 1] = widget
+        end
+        home_show_callback = function()
+            table.insert(UIManager._window_stack, 2, { widget = home_widget })
         end
         calls = {}
 
         initial_reinject_callback()
         initial_reinject_callback()
 
-        assert.are.same({}, calls)
-        assert.are.equal(1, #scheduled)
-        assert.are.equal(0.25, scheduled[1].delay)
-        assert.are.equal(scheduled[1].callback, fm._zen_default_tab_retry_fn)
-
-        table.remove(UIManager._window_stack)
-        scheduled[1].callback()
-
         assert.are.same({ "home" }, calls)
         assert.is_true(fm._zen_default_tab_bootstrapped)
         assert.is_nil(fm._zen_default_tab_retry_fn)
+        assert.is_nil(fm._zen_startup_default_tab_close_observer)
+        assert.is_nil(UIManager._zen_startup_default_tab_close_observer)
+        for _i, delay in ipairs(scheduled) do
+            assert.are_not.equal(0.25, delay)
+        end
+        assert.are.same({}, closed)
+        assert.are.same({ fm, home_widget, lock_modal, notification }, stack_widgets())
+    end)
+
+    it("opens deferred Home when visible blockers close without timer polling", function()
+        local fm = make_instance()
+        fm.invisible = true
+        fm._zen_hidden_home_startup = true
+        fm.file_chooser._zen_hidden_home_startup = true
+        fm.file_chooser._zen_needs_full_listing = true
+        local first_blocker = {}
+        local second_blocker = {}
+        local lock_modal = { modal = true }
+        local notification = { toast = true }
+        UIManager._window_stack = {
+            { widget = fm },
+            { widget = first_blocker },
+            { widget = second_blocker },
+            { widget = lock_modal },
+            { widget = notification },
+        }
+        local scheduled = {}
+        local closed = {}
+        local paints = 0
+        fm.paintTo = function() paints = paints + 1 end
+        UIManager.scheduleIn = function(_self, delay)
+            scheduled[#scheduled + 1] = delay
+        end
+        ui_close_mutates_stack = true
+        ui_close_observer = function(widget)
+            closed[#closed + 1] = widget
+        end
+        home_show_callback = function()
+            table.insert(UIManager._window_stack, 2, { widget = home_widget })
+        end
+        calls = {}
+
+        initial_reinject_callback()
+        initial_reinject_callback()
+        assert.are.same({}, calls)
+
+        UIManager:close(second_blocker)
+        assert.are.same({}, calls)
+        UIManager:close(first_blocker)
+
+        assert.are.same({ "home" }, calls)
+        assert.are.equal(0, paints)
+        assert.is_true(fm._zen_default_tab_bootstrapped)
+        assert.is_nil(fm._zen_default_tab_retry_fn)
+        assert.is_nil(fm._zen_startup_default_tab_close_observer)
+        assert.is_nil(UIManager._zen_startup_default_tab_close_observer)
+        for _i, delay in ipairs(scheduled) do
+            assert.are_not.equal(0.25, delay)
+        end
+        assert.are.same({ second_blocker, first_blocker }, closed)
+        assert.are.same({ fm, home_widget, lock_modal, notification }, stack_widgets())
+    end)
+
+    it("ignores invisible startup blockers above FileManager", function()
+        local fm = make_instance()
+        fm.invisible = true
+        fm._zen_hidden_home_startup = true
+        fm.file_chooser._zen_hidden_home_startup = true
+        fm.file_chooser._zen_needs_full_listing = true
+        local invisible_blocker = { invisible = true }
+        local lock_modal = { modal = true }
+        UIManager._window_stack = {
+            { widget = fm },
+            { widget = invisible_blocker },
+            { widget = lock_modal },
+        }
+        local closed = {}
+        ui_close_observer = function(widget)
+            closed[#closed + 1] = widget
+        end
+        home_show_callback = function()
+            table.insert(UIManager._window_stack, 3, { widget = home_widget })
+        end
+        calls = {}
+
+        initial_reinject_callback()
+        initial_reinject_callback()
+
+        assert.are.same({ "home" }, calls)
+        assert.are.same({}, closed)
+        assert.is_true(fm._zen_default_tab_bootstrapped)
+        assert.is_nil(fm._zen_startup_default_tab_close_observer)
+        assert.are.same({ fm, invisible_blocker, home_widget, lock_modal }, stack_widgets())
     end)
 
     it("does not defer initial setupLayout when Library is the default", function()
@@ -1055,6 +1170,56 @@ describe("file browser navbar navigation", function()
         assert.is_table(reveal)
         assert.are.same({ "mode=", "retained", "view_reused=", "true" },
             reveal.details)
+    end)
+
+    it("reveals a reinitialized hidden FileManager before handling Library taps", function()
+        local fm = make_instance()
+        fm.invisible = true
+        fm._zen_hidden_home_startup = true
+        fm.file_chooser = {
+            path = "/library",
+            path_items = {},
+            item_table = { { path = "/library/Book.epub" } },
+            page = 1,
+        }
+        dir_mtimes["/library"] = 10
+        shared.home.isActiveOnTop = function()
+            local top = UIManager._window_stack[#UIManager._window_stack]
+            return top and top.widget == home_widget
+        end
+        shared.home.suspendActive = function() return true end
+        local taps = 0
+        fm.handleEvent = function(_, event)
+            taps = taps + 1
+            return event.name == "Gesture"
+        end
+        UIManager._window_stack = {
+            { widget = fm },
+            { widget = home_widget },
+        }
+        local reveal
+        UIManager.setDirty = function(_self, widget, mode)
+            local top = UIManager._window_stack[#UIManager._window_stack]
+            reveal = {
+                widget = widget,
+                mode = mode,
+                top = top and top.widget,
+                invisible = widget and widget.invisible,
+            }
+        end
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+
+        assert.is_nil(fm.invisible)
+        assert.is_nil(fm._zen_hidden_home_startup)
+        assert.are.same({
+            widget = fm,
+            mode = "ui",
+            top = fm,
+        }, reveal)
+        local top = UIManager._window_stack[#UIManager._window_stack].widget
+        assert.is_true(top:handleEvent({ name = "Gesture" }))
+        assert.are.equal(1, taps)
     end)
 
     it("uses the wrapped FileManager stack anchor when preserving Home", function()

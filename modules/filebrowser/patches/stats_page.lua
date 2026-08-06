@@ -86,11 +86,9 @@ local function statsFrameBg()
     return Background.tile_bg(Blitbuffer.COLOR_WHITE)
 end
 
-local function syncStatsBackgrounds(widget)
+local function clearStatsBackgrounds(widget)
     if Background.library_active() then
         Background.clearWhiteBackgrounds(widget, 40)
-    else
-        Background.restoreWhiteBackgrounds(widget, 40)
     end
 end
 
@@ -365,7 +363,6 @@ local function createCard(opts)
         radius = stat_style == "outline" and Screen:scaleBySize(6) or 0,
         color = Blitbuffer.COLOR_BLACK,
         background = statsFrameBg(),
-        _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
         CenterContainer:new{
             dimen = Geom:new{ w = inner_w, h = actual_h - chrome_h },
             content,
@@ -451,7 +448,6 @@ local function createDayBookCard(width, title_text, minutes, pages, stat_style)
         radius = 0,
         color = Blitbuffer.COLOR_BLACK,
         background = statsFrameBg(),
-        _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
         content,
     }
 end
@@ -485,7 +481,6 @@ local function makeBlockPanel(page_w, content_w, title, body, height)
         radius = 0,
         color = Blitbuffer.COLOR_BLACK,
         background = statsFrameBg(),
-        _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
         VerticalGroup:new(panel_items),
     }
     return CenterContainer:new{
@@ -1068,7 +1063,7 @@ local function buildContent(blocks_config, data, page_w, h_padding, top_padding,
             browse_future_months = settings.calendar_browse_future_months,
         }
         tuneEmbeddedCalendar(calendar)
-        syncStatsBackgrounds(calendar)
+        clearStatsBackgrounds(calendar)
         local orig_go_to_month = calendar.goToMonth
         calendar.goToMonth = function(self_cal, month, ...)
             local result = orig_go_to_month(self_cal, month, ...)
@@ -1094,7 +1089,7 @@ local function buildContent(blocks_config, data, page_w, h_padding, top_padding,
             local result = orig_populate_items(self_cal, ...)
             hideCalendarPageInfo(self_cal)
             installCalendarDaySummary(self_cal, stats_plugin, stat_style)
-            syncStatsBackgrounds(self_cal)
+            clearStatsBackgrounds(self_cal)
             refreshEmbeddedCalendarLayout(self_cal)
             UIManager:setDirty(self_cal, "ui")
             return result
@@ -1107,7 +1102,7 @@ local function buildContent(blocks_config, data, page_w, h_padding, top_padding,
         calendar.onMultiSwipe = function() return false end
         local orig_calendar_paintTo = calendar.paintTo
         calendar.paintTo = function(self_cal, bb, x, y)
-            syncStatsBackgrounds(self_cal)
+            clearStatsBackgrounds(self_cal)
             return orig_calendar_paintTo(self_cal, bb, x, y)
         end
         calendar.onSwipe = function(_self, _arg, ges_ev)
@@ -1263,7 +1258,6 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
                     padding = 0,
                     bordersize = 0,
                     background = statsFrameBg(),
-                    _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
                     content,
                 }, hits
             end
@@ -1289,7 +1283,6 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
             padding = 0,
             bordersize = 0,
             background = statsFrameBg(),
-            _zen_library_bg_restore = Blitbuffer.COLOR_WHITE,
             VerticalSpan:new{ width = math.max(1, body_h) },
         }, {}
     end

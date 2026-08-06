@@ -214,7 +214,6 @@ end
 function M.apply_background(menu)
     if not menu or menu._zen_bg_applied then return end
     menu._zen_bg_applied = true
-    menu._zen_library_bg_active = library_background_path() ~= ""
 
     local orig_paintTo = menu.paintTo
     function menu:paintTo(bb, x, y)
@@ -225,12 +224,10 @@ function M.apply_background(menu)
             -- returns after any refresh and hides the background.
             Background.clearWhiteBackgrounds(self[1], 14)
             if self.dimen then
-                Background.paint(bb, 0, 0, self.dimen.w, self.dimen.h, path)
+                Background.paintScreenRegion(bb, 0, 0, 0, 0,
+                    self.dimen.w, self.dimen.h, path)
             end
-        elseif self._zen_library_bg_active then
-            Background.restoreWhiteBackgrounds(self[1], 40)
         end
-        self._zen_library_bg_active = path ~= ""
         if orig_paintTo then
             return orig_paintTo(self, bb, x, y)
         end

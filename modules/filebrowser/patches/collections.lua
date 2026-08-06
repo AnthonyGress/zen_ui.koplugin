@@ -712,6 +712,12 @@ local function apply_collections()
     local function clean_nav(menu, collection_name, raw_coll_name, fm_coll)
         if not menu then return end
         Background.applyToMenu(menu)
+        if fm_coll then
+            menu._zen_library_bg_reopen = function()
+                fm_coll:onShowColl(raw_coll_name)
+                return fm_coll.booklist_menu ~= nil
+            end
+        end
 
         local UIManager_mod = require("ui/uimanager")
 
@@ -828,6 +834,12 @@ local function apply_collections()
     local function clean_nav_list(menu, fm_coll)
         if not menu then return end
         Background.applyToMenu(menu)
+        if fm_coll then
+            menu._zen_library_bg_reopen = function()
+                fm_coll:onShowCollList()
+                return fm_coll.coll_list ~= nil
+            end
+        end
 
         local UIManager_mod = require("ui/uimanager")
         local Device        = require("device")

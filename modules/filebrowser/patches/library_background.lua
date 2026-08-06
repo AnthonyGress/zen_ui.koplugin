@@ -11,6 +11,7 @@ local function apply_library_background()
 
     local Device = require("device")
     local Background = require("common/ui/background")
+    local UIManager = require("ui/uimanager")
     local WidgetContainer = require("ui/widget/container/widgetcontainer")
     local Screen = Device.screen
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
@@ -27,26 +28,100 @@ local function apply_library_background()
         end
     end
 
-    local function restore_backgrounds(fm)
-        if not fm then return end
-        Background.restoreWhiteBackgrounds(fm[1], 14)
-        if fm.file_chooser then
-            Background.restoreWhiteBackgrounds(fm.file_chooser, 14)
-        end
-    end
-
-    local function sync_backgrounds(fm, active)
-        if active then
-            clear_backgrounds(fm)
-        elseif fm and fm._zen_library_bg_active then
-            restore_backgrounds(fm)
-        end
-        if fm then fm._zen_library_bg_active = active end
-    end
-
     local function is_active()
         return background_path() ~= ""
     end
+
+    local function find_active_library_surface(fm)
+        local stack = UIManager._window_stack
+        if type(stack) ~= "table" then return end
+        for index = #stack, 1, -1 do
+            local widget = stack[index] and stack[index].widget
+            local is_filemanager = widget
+                and (widget == fm or widget == fm.show_parent)
+            if is_filemanager or (widget and (widget._zen_navbar_tab_id
+                    or widget._zen_bg_applied)) then
+                for upper = index + 1, #stack do
+                    local blocker = stack[upper] and stack[upper].widget
+                    if blocker and not blocker.invisible
+                            and not blocker.modal and not blocker.toast then
+                        return
+                    end
+                end
+                return widget, is_filemanager,
+                    not is_filemanager and widget._zen_navbar_tab_id or nil
+            end
+        end
+    end
+
+    local function close_library_view(widget)
+        if type(widget.close_callback) == "function" then
+            widget.close_callback()
+        elseif type(widget.onClose) == "function" then
+            widget:onClose()
+        else
+            UIManager:close(widget)
+        end
+    end
+
+    local function close_zen_library_views(fm)
+        local stack = UIManager._window_stack
+        if type(stack) ~= "table" then return end
+        local to_close = {}
+        for index = #stack, 1, -1 do
+            local widget = stack[index] and stack[index].widget
+            if widget and widget ~= fm and widget ~= fm.show_parent
+                    and (widget._zen_navbar_tab_id or widget._zen_bg_applied) then
+                to_close[#to_close + 1] = widget
+            end
+        end
+        for _i, widget in ipairs(to_close) do
+            local shown = false
+            for index = #stack, 1, -1 do
+                if stack[index] and stack[index].widget == widget then
+                    shown = true
+                    break
+                end
+            end
+            if shown then close_library_view(widget) end
+        end
+    end
+
+    Background.setMissingLibraryBackgroundHandler(function()
+        local fm = FileManager.instance
+        if not fm then return false end
+        local surface, is_filemanager, tab_id = find_active_library_surface(fm)
+        if not surface then return false end
+        local reopen = surface._zen_library_bg_reopen
+        if type(reopen) ~= "function" then
+            local open_tab = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_TAB")
+            if tab_id and type(open_tab) == "function" then
+                reopen = function() return open_tab(tab_id) end
+            end
+        end
+        if not is_filemanager and type(reopen) ~= "function" then
+            return false
+        end
+        local page = tonumber(surface.page)
+
+        close_zen_library_views(fm)
+        if type(fm.reinit) == "function" then
+            fm:reinit()
+        end
+        if is_filemanager then
+            UIManager:setDirty(fm.show_parent or fm, "ui")
+            return true
+        end
+        if reopen() ~= true then return false end
+        if page and page > 1 then
+            local reopened = find_active_library_surface(fm)
+            if reopened and reopened ~= surface and type(reopened.updateItems) == "function" then
+                reopened.page = page
+                reopened:updateItems()
+            end
+        end
+        return true
+    end)
 
     local ok_tbw, TextBoxWidget = pcall(require, "ui/widget/textboxwidget")
     if ok_tbw and TextBoxWidget and not TextBoxWidget._zen_bg_patched then
@@ -141,17 +216,17 @@ local function apply_library_background()
     local orig_setupLayout = FileManager.setupLayout
     function FileManager:setupLayout(...)
         local ret = orig_setupLayout(self, ...)
-        sync_backgrounds(self, is_active())
+        if is_active() then clear_backgrounds(self) end
         return ret
     end
 
     local orig_paintTo = FileManager.paintTo
     function FileManager:paintTo(bb, x, y)
         local path = background_path()
-        local active = path ~= ""
-        sync_backgrounds(self, active)
-        if active then
-            Background.paint(bb, 0, 0, Screen:getWidth(), Screen:getHeight(), path)
+        if path ~= "" then
+            clear_backgrounds(self)
+            Background.paintScreenRegion(bb, 0, 0, 0, 0,
+                Screen:getWidth(), Screen:getHeight(), path)
         end
         if orig_paintTo then
             return orig_paintTo(self, bb, x, y)

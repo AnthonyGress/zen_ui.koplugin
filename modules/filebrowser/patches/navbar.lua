@@ -908,12 +908,17 @@ local function apply_navbar()
         if not (fm and fm.file_chooser) then return false end
         local fc = fm.file_chooser
         local fm_stack_widget = select(2, retainHomeBelowFileManager(fm))
+        local reveal_hidden_filemanager = fm.invisible == true
+        -- A reinit under Home replaces FileChooser but preserves FileManager.invisible.
+        fm.invisible = nil
+        fm._zen_hidden_home_startup = nil
+        fc._zen_hidden_home_startup = nil
         utils.closeWidgetsAbove(fm_stack_widget or fm)
+        if reveal_hidden_filemanager then
+            UIManager:setDirty(fm_stack_widget or fm, "ui")
+        end
         local idle_materialized = fc._zen_idle_materialized_library
         if idle_materialized and _retained_library_valid(fc, idle_materialized, home_dir) then
-            fm.invisible = nil
-            fm._zen_hidden_home_startup = nil
-            fc._zen_hidden_home_startup = nil
             fc._zen_needs_full_listing = nil
             fc._zen_needs_cover_refresh = nil
             fc._zen_idle_materialized_library = nil
@@ -931,9 +936,6 @@ local function apply_navbar()
             fc._zen_home_retained_library = nil
         end
         if fc._zen_needs_full_listing then
-            fm.invisible = nil
-            fm._zen_hidden_home_startup = nil
-            fc._zen_hidden_home_startup = nil
             fc._zen_needs_full_listing = nil
             fc._zen_needs_cover_refresh = nil
             _refresh_library_path(fc, home_dir)
@@ -2501,6 +2503,11 @@ local function apply_navbar()
     injectStandaloneNavbar = function(menu, view_tab_id)
         if not menu or not menu[1] then return end
         menu._zen_navbar_tab_id = view_tab_id
+        if type(menu._zen_library_bg_reopen) ~= "function" then
+            menu._zen_library_bg_reopen = function()
+                return open_tab(view_tab_id)
+            end
+        end
         if menu._zen_standalone_navbar_injected then return end
         _G.__ZEN_UI_ACTIVE_TAB_LABEL = tabs_by_id[view_tab_id] and tabs_by_id[view_tab_id].label or view_tab_id
         preventStandaloneSwipeClose(menu)
@@ -3096,72 +3103,82 @@ local function apply_navbar()
     -- *above* fm in the window stack, so _repaint starts from the overlay (topmost
     -- covers_fullscreen) and never paints the FM books view at all -- no flash, no artifacts.
     local orig_showFiles = FileManager.showFiles
-    local STARTUP_DEFAULT_TAB_RETRY_S = 0.25
-    local STARTUP_DEFAULT_TAB_MAX_RETRIES = 40
     local maybe_open_startup_default_tab
 
-    local function filemanager_is_on_top(fm)
+    if not UIManager._zen_startup_default_tab_close_patched then
+        UIManager._zen_startup_default_tab_close_patched = true
+        local orig_close = UIManager.close
+        UIManager.close = function(self, widget, ...)
+            local result = orig_close(self, widget, ...)
+            local observer = self._zen_startup_default_tab_close_observer
+            if type(observer) == "function" then observer() end
+            return result
+        end
+    end
+
+    local startup_close_check_scheduled = false
+
+    local function clear_startup_close_observer(fm)
+        local observer = fm and fm._zen_startup_default_tab_close_observer
+        if observer and UIManager._zen_startup_default_tab_close_observer == observer then
+            UIManager._zen_startup_default_tab_close_observer = nil
+        end
+        if fm then fm._zen_startup_default_tab_close_observer = nil end
+    end
+
+    local function arm_startup_close_observer(fm)
+        if fm._zen_startup_default_tab_close_observer then return end
+        local observer
+        observer = function()
+            if startup_close_check_scheduled then return end
+            startup_close_check_scheduled = true
+            UIManager:nextTick(function()
+                startup_close_check_scheduled = false
+                if fm._zen_startup_default_tab_close_observer == observer
+                        and UIManager._zen_startup_default_tab_close_observer == observer then
+                    maybe_open_startup_default_tab(fm)
+                end
+            end)
+        end
+        fm._zen_startup_default_tab_close_observer = observer
+        UIManager._zen_startup_default_tab_close_observer = observer
+    end
+
+    local function filemanager_is_top_base_widget(fm)
         local stack = UIManager._window_stack
-        local top = stack and stack[#stack]
-        local top_widget = top and top.widget
-        return top_widget == fm or top_widget == fm.show_parent
-    end
-
-    local function cancel_startup_default_tab_retry(fm)
-        local pending = fm and fm._zen_default_tab_retry_fn
-        if not pending then return end
-        fm._zen_default_tab_retry_fn = nil
-        if type(UIManager.unschedule) == "function" then
-            UIManager:unschedule(pending)
-        end
-    end
-
-    local function schedule_startup_default_tab_retry(fm)
-        if fm._zen_default_tab_retry_fn
-                or type(UIManager.scheduleIn) ~= "function" then
-            return
-        end
-        local retry_count = 0
-        local retry
-        retry = function()
-            if fm._zen_default_tab_retry_fn ~= retry then return end
-            if FileManager.instance ~= fm or fm._zen_default_tab_bootstrapped
-                    or fm._zen_hidden_home_startup ~= true then
-                fm._zen_default_tab_retry_fn = nil
-                return
+        if type(stack) ~= "table" then return false end
+        for index = #stack, 1, -1 do
+            local widget = stack[index] and stack[index].widget
+            if widget == fm or (widget and widget == fm.show_parent) then
+                return true
             end
-            if filemanager_is_on_top(fm) then
-                fm._zen_default_tab_retry_fn = nil
-                maybe_open_startup_default_tab(fm)
-                return
+            if widget and not widget.invisible and not widget.modal and not widget.toast then
+                return false
             end
-            retry_count = retry_count + 1
-            if retry_count >= STARTUP_DEFAULT_TAB_MAX_RETRIES then
-                fm._zen_default_tab_retry_fn = nil
-                logger.warn("Startup default tab retry expired:",
-                    "retries=", retry_count)
-                return
-            end
-            UIManager:scheduleIn(STARTUP_DEFAULT_TAB_RETRY_S, retry)
         end
-        fm._zen_default_tab_retry_fn = retry
-        UIManager:scheduleIn(STARTUP_DEFAULT_TAB_RETRY_S, retry)
+        return false
     end
 
     maybe_open_startup_default_tab = function(fm)
-        if not fm or fm._zen_default_tab_bootstrapped then
-            cancel_startup_default_tab_retry(fm)
+        if not fm or fm._zen_default_tab_bootstrapped
+                or FileManager.instance ~= fm then
+            clear_startup_close_observer(fm)
             return false
         end
-        if not filemanager_is_on_top(fm) then
-            if fm._zen_hidden_home_startup == true then
-                schedule_startup_default_tab_retry(fm)
-            end
+        if resolve_default_tab() == "books" then
+            clear_startup_close_observer(fm)
+            fm._zen_default_tab_bootstrapped = true
             return false
         end
-        cancel_startup_default_tab_retry(fm)
+        -- UIManager inserts non-modal pages below existing modals and toasts.
+        -- Treat FileManager as the top base surface so startup Home can be
+        -- prepared behind long-lived overlays without polling.
+        if not filemanager_is_top_base_widget(fm) then
+            arm_startup_close_observer(fm)
+            return false
+        end
+        clear_startup_close_observer(fm)
         fm._zen_default_tab_bootstrapped = true
-        if resolve_default_tab() == "books" then return false end
         if FileManager.instance == fm then
             open_default_tab()
             return true

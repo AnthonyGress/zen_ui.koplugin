@@ -133,9 +133,15 @@ local function apply_history()
         return true
     end
 
-    local function clean_nav(menu, hist_mgr)
+    local function clean_nav(menu, hist_mgr, search_info)
         if not menu then return end
         Background.applyToMenu(menu)
+        if hist_mgr then
+            menu._zen_library_bg_reopen = function()
+                hist_mgr:onShowHist(search_info)
+                return hist_mgr.booklist_menu ~= nil
+            end
+        end
 
         -- === Fix partial-row left-alignment ===
         menu._do_center_partial_rows = false
@@ -243,7 +249,7 @@ local function apply_history()
         end
         orig_onShowHist(self, search_info)
         if not is_enabled() then return end
-        clean_nav(self.booklist_menu, self)
+        clean_nav(self.booklist_menu, self, search_info)
     end
 
     -- Replace the default hold dialog with the zen context menu.
