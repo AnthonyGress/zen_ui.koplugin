@@ -1739,16 +1739,6 @@ local function apply_navbar()
         return visible
     end
 
-    local function getTabWidth(num_tabs)
-        local inner_w = Screen:getWidth() - navbar_h_padding * 2
-        return math.floor(inner_w / num_tabs)
-    end
-
-    local function tapIndexForTab(tap_x, tab_w, count)
-        local idx = math.floor(tap_x / tab_w) + 1
-        return math.max(1, math.min(count, idx))
-    end
-
     local function createNavBar()
         if not is_navbar_enabled() then
             return nil
@@ -1917,17 +1907,13 @@ local function apply_navbar()
             },
         }
 
-        navbar.onTapNavBar = function(self, _, ges)
-            -- Only handle taps within the navbar's actual screen area
-            if not self.dimen or not self.dimen:contains(ges.pos) then
-                return false
-            end
-            -- Let corner gesture zones pass through
-            if ges.pos.x < corner_dead_zone or ges.pos.x > screen_w - corner_dead_zone then
-                return false
+        navbar.getTappedTabId = function(self, pos)
+            if not self.dimen or not self.dimen:contains(pos) then return nil end
+            if pos.x < corner_dead_zone or pos.x > screen_w - corner_dead_zone then
+                return nil
             end
             -- Find nearest tab by comparing tap position to midpoints between tab centers
-            local tap_x = ges.pos.x - navbar_h_padding
+            local tap_x = pos.x - navbar_h_padding
             local idx = 1
             for i = 1, num_tabs - 1 do
                 local boundary = (tab_centers[i] + tab_centers[i + 1]) / 2
@@ -1937,7 +1923,12 @@ local function apply_navbar()
                     break
                 end
             end
-            local tapped_id = visible_tabs[idx].id
+            return visible_tabs[idx].id
+        end
+
+        navbar.onTapNavBar = function(self, _, ges)
+            local tapped_id = self:getTappedTabId(ges.pos)
+            if not tapped_id then return false end
             -- Track active tab for persistent views only, not launcher/action tabs.
             local track_tab = shouldTrackActiveTab(tapped_id)
             if track_tab and tapped_id ~= active_tab then
@@ -2532,19 +2523,8 @@ local function apply_navbar()
 
         -- Override tap handler for standalone view context
         navbar.onTapNavBar = function(self_nb, _, ges)
-            if not self_nb.dimen or not self_nb.dimen:contains(ges.pos) then
-                return false
-            end
-            local screen_w = Screen:getWidth()
-            if ges.pos.x < corner_dead_zone or ges.pos.x > screen_w - corner_dead_zone then
-                return false
-            end
-            local vis_tabs = getVisibleTabs()
-            if #vis_tabs == 0 then return false end
-            local tab_w_local = getTabWidth(#vis_tabs)
-            local tap_x = ges.pos.x - navbar_h_padding
-            local idx = tapIndexForTab(tap_x, tab_w_local, #vis_tabs)
-            local tapped_id = vis_tabs[idx].id
+            local tapped_id = self_nb:getTappedTabId(ges.pos)
+            if not tapped_id then return false end
 
             -- Already in this view: close detail to return to group, or scroll to first page
             if tapped_id == view_tab_id then
@@ -3103,84 +3083,91 @@ local function apply_navbar()
     -- *above* fm in the window stack, so _repaint starts from the overlay (topmost
     -- covers_fullscreen) and never paints the FM books view at all -- no flash, no artifacts.
     local orig_showFiles = FileManager.showFiles
-    local maybe_open_startup_default_tab
 
-    if not UIManager._zen_startup_default_tab_close_patched then
-        UIManager._zen_startup_default_tab_close_patched = true
-        local orig_close = UIManager.close
-        UIManager.close = function(self, widget, ...)
-            local result = orig_close(self, widget, ...)
-            local observer = self._zen_startup_default_tab_close_observer
-            if type(observer) == "function" then observer() end
-            return result
-        end
-    end
-
-    local startup_close_check_scheduled = false
-
-    local function clear_startup_close_observer(fm)
-        local observer = fm and fm._zen_startup_default_tab_close_observer
-        if observer and UIManager._zen_startup_default_tab_close_observer == observer then
-            UIManager._zen_startup_default_tab_close_observer = nil
-        end
-        if fm then fm._zen_startup_default_tab_close_observer = nil end
-    end
-
-    local function arm_startup_close_observer(fm)
-        if fm._zen_startup_default_tab_close_observer then return end
-        local observer
-        observer = function()
-            if startup_close_check_scheduled then return end
-            startup_close_check_scheduled = true
-            UIManager:nextTick(function()
-                startup_close_check_scheduled = false
-                if fm._zen_startup_default_tab_close_observer == observer
-                        and UIManager._zen_startup_default_tab_close_observer == observer then
-                    maybe_open_startup_default_tab(fm)
-                end
-            end)
-        end
-        fm._zen_startup_default_tab_close_observer = observer
-        UIManager._zen_startup_default_tab_close_observer = observer
-    end
-
-    local function filemanager_is_top_base_widget(fm)
+    local function filemanager_stack_index(fm)
         local stack = UIManager._window_stack
-        if type(stack) ~= "table" then return false end
-        for index = #stack, 1, -1 do
+        if type(stack) ~= "table" then return end
+        for index = 1, #stack do
             local widget = stack[index] and stack[index].widget
             if widget == fm or (widget and widget == fm.show_parent) then
-                return true
-            end
-            if widget and not widget.invisible and not widget.modal and not widget.toast then
-                return false
+                return index
             end
         end
-        return false
     end
 
-    maybe_open_startup_default_tab = function(fm)
+    local function open_default_tab_below_startup_widgets(fm, anchor_index)
+        local stack = UIManager._window_stack
+        local upper_windows = {}
+        local upper_set = {}
+        local protect_input = false
+        for index = anchor_index + 1, #stack do
+            local window = stack[index]
+            upper_windows[#upper_windows + 1] = window
+            upper_set[window] = true
+            if window.widget and not window.widget.toast then
+                protect_input = true
+            end
+        end
+
+        local input = Device.input
+        local input_state = protect_input and {
+            disable_double_tap = input and input.disable_double_tap,
+            tap_interval_override = input and input.tap_interval_override,
+            gestures_disabled = UIManager._input_gestures_disabled == true,
+        } or nil
+
+        open_default_tab()
+
+        local new_windows = {}
+        if #upper_windows > 0 then
+            anchor_index = filemanager_stack_index(fm)
+            if anchor_index then
+                local retained_upper = {}
+                for index = anchor_index + 1, #stack do
+                    local window = stack[index]
+                    if upper_set[window] then
+                        retained_upper[window] = true
+                    else
+                        new_windows[#new_windows + 1] = window
+                    end
+                end
+                while #stack > anchor_index do table.remove(stack) end
+                for _i, window in ipairs(new_windows) do
+                    stack[#stack + 1] = window
+                end
+                for _i, window in ipairs(upper_windows) do
+                    if retained_upper[window] then stack[#stack + 1] = window end
+                end
+            end
+        end
+        if input_state and input then
+            input.disable_double_tap = input_state.disable_double_tap
+            input.tap_interval_override = input_state.tap_interval_override
+        end
+        if input_state and input_state.gestures_disabled
+                and not UIManager._input_gestures_disabled then
+            UIManager:setIgnoreTouchInput(true)
+            for _i, window in ipairs(new_windows) do
+                if window.widget then window.widget._restored_input_gestures = nil end
+            end
+        end
+    end
+
+    local function maybe_open_startup_default_tab(fm)
         if not fm or fm._zen_default_tab_bootstrapped
                 or FileManager.instance ~= fm then
-            clear_startup_close_observer(fm)
             return false
         end
         if resolve_default_tab() == "books" then
-            clear_startup_close_observer(fm)
             fm._zen_default_tab_bootstrapped = true
             return false
         end
-        -- UIManager inserts non-modal pages below existing modals and toasts.
-        -- Treat FileManager as the top base surface so startup Home can be
-        -- prepared behind long-lived overlays without polling.
-        if not filemanager_is_top_base_widget(fm) then
-            arm_startup_close_observer(fm)
-            return false
-        end
-        clear_startup_close_observer(fm)
+        local anchor_index = filemanager_stack_index(fm)
+        if not anchor_index then return false end
         fm._zen_default_tab_bootstrapped = true
         if FileManager.instance == fm then
-            open_default_tab()
+            -- Preserve every widget another plugin already placed above FileManager.
+            open_default_tab_below_startup_widgets(fm, anchor_index)
             return true
         end
         return false
@@ -3299,7 +3286,12 @@ local function apply_navbar()
         if startup_default_home and filemanager and filemanager.file_chooser then
             filemanager._zen_default_tab_bootstrapped = true
             _G.__ZEN_UI_LIBRARY_STATE = nil
-            open_tab("home")
+            local anchor_index = filemanager_stack_index(filemanager)
+            if anchor_index then
+                open_default_tab_below_startup_widgets(filemanager, anchor_index)
+            else
+                open_tab("home")
+            end
             return
         end
         if open_home_after_filemanager then
@@ -3535,19 +3527,8 @@ local function apply_navbar()
 
             -- Override tap handler for standalone view context
             navbar.onTapNavBar = function(self_nb, _, ges)
-                if not self_nb.dimen or not self_nb.dimen:contains(ges.pos) then
-                    return false
-                end
-                local screen_w = Screen:getWidth()
-                if ges.pos.x < corner_dead_zone or ges.pos.x > screen_w - corner_dead_zone then
-                    return false
-                end
-                local vis_tabs = getVisibleTabs()
-                if #vis_tabs == 0 then return false end
-                local tab_w_local = getTabWidth(#vis_tabs)
-                local tap_x = ges.pos.x - navbar_h_padding
-                local idx = tapIndexForTab(tap_x, tab_w_local, #vis_tabs)
-                local tapped_id = vis_tabs[idx].id
+                local tapped_id = self_nb:getTappedTabId(ges.pos)
+                if not tapped_id then return false end
                 if tapped_id == "news" then return true end
                 if not shouldTrackActiveTab(tapped_id) then
                     runTabCallback(tapped_id)

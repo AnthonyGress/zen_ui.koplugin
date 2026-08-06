@@ -15,8 +15,7 @@ describe("file browser navbar navigation", function()
     local home_show_callback
     local setup_observation
     local initial_reinject_callback
-    local ui_close_mutates_stack
-    local ui_close_observer
+    local device_input
 
     local function class(methods)
         methods = methods or {}
@@ -56,8 +55,10 @@ describe("file browser navbar navigation", function()
         home_show_callback = nil
         setup_observation = nil
         initial_reinject_callback = nil
-        ui_close_mutates_stack = false
-        ui_close_observer = nil
+        device_input = {
+            disable_double_tap = true,
+            tap_interval_override = nil,
+        }
         original_memory_policy = package.loaded["common/memory_policy"]
         shared = {
             home = {
@@ -131,6 +132,7 @@ describe("file browser navbar navigation", function()
             COLOR_BLACK = "black", COLOR_DARK_GRAY = "dark", COLOR_WHITE = "white",
         })
         ZenSpec.replace("device", {
+            input = device_input,
             screen = {
                 scaleBySize = function(_, value) return value end,
                 getWidth = function() return 800 end,
@@ -159,16 +161,7 @@ describe("file browser navbar navigation", function()
             scheduleIn = function() end,
             unschedule = function() end,
             show = function() end,
-            close = function(_self, widget)
-                if ui_close_observer then ui_close_observer(widget) end
-                if not ui_close_mutates_stack then return end
-                for index = #UIManager._window_stack, 1, -1 do
-                    if UIManager._window_stack[index].widget == widget then
-                        table.remove(UIManager._window_stack, index)
-                        return
-                    end
-                end
-            end,
+            close = function() end,
             closeWidgetsAbove = function() end,
             broadcastEvent = function() end,
         }
@@ -444,29 +437,30 @@ describe("file browser navbar navigation", function()
         assert.is_true(measurement_detail(measurements[1], "covers_suppressed="))
     end)
 
-    it("opens deferred Home below modal and toast widgets without polling", function()
+    it("opens deferred Home below every existing startup widget without polling", function()
         local fm = make_instance()
         fm.invisible = true
         fm._zen_hidden_home_startup = true
         fm.file_chooser._zen_hidden_home_startup = true
         fm.file_chooser._zen_needs_full_listing = true
+        local plugin_widget = {}
+        local invisible_widget = { invisible = true }
         local lock_modal = { modal = true }
         local notification = { toast = true }
         UIManager._window_stack = {
             { widget = fm },
+            { widget = plugin_widget },
+            { widget = invisible_widget },
             { widget = lock_modal },
             { widget = notification },
         }
         local scheduled = {}
-        local closed = {}
         UIManager.scheduleIn = function(_self, delay)
             scheduled[#scheduled + 1] = delay
         end
-        ui_close_observer = function(widget)
-            closed[#closed + 1] = widget
-        end
         home_show_callback = function()
-            table.insert(UIManager._window_stack, 2, { widget = home_widget })
+            -- UIManager initially places a non-modal Home above non-modal widgets.
+            table.insert(UIManager._window_stack, 4, { widget = home_widget })
         end
         calls = {}
 
@@ -476,88 +470,41 @@ describe("file browser navbar navigation", function()
         assert.are.same({ "home" }, calls)
         assert.is_true(fm._zen_default_tab_bootstrapped)
         assert.is_nil(fm._zen_default_tab_retry_fn)
-        assert.is_nil(fm._zen_startup_default_tab_close_observer)
-        assert.is_nil(UIManager._zen_startup_default_tab_close_observer)
         for _i, delay in ipairs(scheduled) do
             assert.are_not.equal(0.25, delay)
         end
-        assert.are.same({}, closed)
-        assert.are.same({ fm, home_widget, lock_modal, notification }, stack_widgets())
+        assert.are.same({
+            fm, home_widget, plugin_widget, invisible_widget,
+            lock_modal, notification,
+        }, stack_widgets())
     end)
 
-    it("opens deferred Home when visible blockers close without timer polling", function()
+    it("preserves the top plugin widget's input state while preparing Home", function()
         local fm = make_instance()
         fm.invisible = true
         fm._zen_hidden_home_startup = true
         fm.file_chooser._zen_hidden_home_startup = true
         fm.file_chooser._zen_needs_full_listing = true
-        local first_blocker = {}
-        local second_blocker = {}
-        local lock_modal = { modal = true }
-        local notification = { toast = true }
+        local plugin_widget = {}
         UIManager._window_stack = {
             { widget = fm },
-            { widget = first_blocker },
-            { widget = second_blocker },
-            { widget = lock_modal },
-            { widget = notification },
+            { widget = plugin_widget },
         }
-        local scheduled = {}
-        local closed = {}
-        local paints = 0
-        fm.paintTo = function() paints = paints + 1 end
-        UIManager.scheduleIn = function(_self, delay)
-            scheduled[#scheduled + 1] = delay
-        end
-        ui_close_mutates_stack = true
-        ui_close_observer = function(widget)
-            closed[#closed + 1] = widget
+        device_input.disable_double_tap = false
+        device_input.tap_interval_override = "plugin"
+        UIManager._input_gestures_disabled = true
+        local ignore_touch_states = {}
+        UIManager.setIgnoreTouchInput = function(self, state)
+            ignore_touch_states[#ignore_touch_states + 1] = state
+            self._input_gestures_disabled = state == true
         end
         home_show_callback = function()
-            table.insert(UIManager._window_stack, 2, { widget = home_widget })
-        end
-        calls = {}
-
-        initial_reinject_callback()
-        initial_reinject_callback()
-        assert.are.same({}, calls)
-
-        UIManager:close(second_blocker)
-        assert.are.same({}, calls)
-        UIManager:close(first_blocker)
-
-        assert.are.same({ "home" }, calls)
-        assert.are.equal(0, paints)
-        assert.is_true(fm._zen_default_tab_bootstrapped)
-        assert.is_nil(fm._zen_default_tab_retry_fn)
-        assert.is_nil(fm._zen_startup_default_tab_close_observer)
-        assert.is_nil(UIManager._zen_startup_default_tab_close_observer)
-        for _i, delay in ipairs(scheduled) do
-            assert.are_not.equal(0.25, delay)
-        end
-        assert.are.same({ second_blocker, first_blocker }, closed)
-        assert.are.same({ fm, home_widget, lock_modal, notification }, stack_widgets())
-    end)
-
-    it("ignores invisible startup blockers above FileManager", function()
-        local fm = make_instance()
-        fm.invisible = true
-        fm._zen_hidden_home_startup = true
-        fm.file_chooser._zen_hidden_home_startup = true
-        fm.file_chooser._zen_needs_full_listing = true
-        local invisible_blocker = { invisible = true }
-        local lock_modal = { modal = true }
-        UIManager._window_stack = {
-            { widget = fm },
-            { widget = invisible_blocker },
-            { widget = lock_modal },
-        }
-        local closed = {}
-        ui_close_observer = function(widget)
-            closed[#closed + 1] = widget
-        end
-        home_show_callback = function()
-            table.insert(UIManager._window_stack, 3, { widget = home_widget })
+            table.insert(UIManager._window_stack, { widget = home_widget })
+            -- Mirror UIManager:show() side effects before Zen restores the real top widget.
+            device_input.disable_double_tap = true
+            device_input.tap_interval_override = nil
+            UIManager._input_gestures_disabled = false
+            home_widget._restored_input_gestures = true
         end
         calls = {}
 
@@ -565,10 +512,13 @@ describe("file browser navbar navigation", function()
         initial_reinject_callback()
 
         assert.are.same({ "home" }, calls)
-        assert.are.same({}, closed)
         assert.is_true(fm._zen_default_tab_bootstrapped)
-        assert.is_nil(fm._zen_startup_default_tab_close_observer)
-        assert.are.same({ fm, invisible_blocker, home_widget, lock_modal }, stack_widgets())
+        assert.are.same({ fm, home_widget, plugin_widget }, stack_widgets())
+        assert.is_false(device_input.disable_double_tap)
+        assert.are.equal("plugin", device_input.tap_interval_override)
+        assert.is_true(UIManager._input_gestures_disabled)
+        assert.is_nil(home_widget._restored_input_gestures)
+        assert.are.same({ true }, ignore_touch_states)
     end)
 
     it("does not defer initial setupLayout when Library is the default", function()
@@ -1300,6 +1250,45 @@ describe("file browser navbar navigation", function()
         end
         assert.is_table(reveal)
         assert.are.equal("retained", measurement_detail(reveal, "mode="))
+    end)
+
+    it("keeps the screen-edge navbar dead zones", function()
+        local fm = make_instance()
+        fm[1] = { fm.file_chooser }
+        _G.__ZEN_UI_REINJECT_FM_NAVBAR()
+        local navbar = fm[1][1][2]
+
+        calls = {}
+        assert.is_false(navbar:onTapNavBar(nil, { pos = { x = 1, y = 1 } }))
+        assert.is_false(navbar:onTapNavBar(nil, { pos = { x = 799, y = 1 } }))
+        assert.are.same({}, calls)
+    end)
+
+    it("uses rendered tab centers when tapping a standalone navbar background", function()
+        local fm = make_instance()
+        fm[1] = { fm.file_chooser }
+        local navbar_config = _G.__ZEN_UI_PLUGIN.config.navbar
+        navbar_config.show_tabs.stats = true
+        navbar_config.tab_order = { "home", "books", "authors", "stats", "to_be_read" }
+
+        local stats_page = {
+            name = "stats",
+            dimen = { w = 800, h = 600 },
+            inner_dimen = { w = 800, h = 600 },
+            border_size = 0,
+            updateItems = function() calls[#calls + 1] = "stats_reset" end,
+            { dimen = { w = 800, h = 580 } },
+        }
+        ZenSpec.replace("modules/filebrowser/patches/stats_page", {
+            create = function() return stats_page, true end,
+        })
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("stats"))
+        local navbar = stats_page[1][1][2]
+        calls = {}
+
+        assert.is_true(navbar:onTapNavBar(nil, { pos = { x = 620, y = 1 } }))
+        assert.are.same({ "to_be_read" }, calls)
     end)
 
     it("dispatches books and stock file-browser tabs to their intended actions", function()
