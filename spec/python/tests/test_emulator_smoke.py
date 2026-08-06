@@ -215,6 +215,145 @@ def test_launcher_book_switcher_fits_inside_the_panel() -> None:
                 process.wait(timeout=15)
             except subprocess.TimeoutExpired:
                 process.kill()
+            process.wait()
+
+
+def test_native_koreader_menu_shortcuts_open_in_library_and_reader() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-native-menus-") as temporary:
+        root = Path(temporary)
+        ko_home, library = root / "home", root / "library"
+        ko_home.mkdir()
+        books = stage_epub_library(library)
+        launcher_settings = ko_home / "settings" / "Zen UI"
+        launcher_settings.mkdir(parents=True)
+        launcher_settings.joinpath("app_launcher.lua").write_text(
+            """return {
+  entries = {
+    {
+      id = "native_tools", type = "koreader_menu", label = "Tools",
+      koreader_menu = { id = "tools", title = "Tools" },
+    },
+  },
+  next_id = 1,
+}
+""",
+            encoding="utf-8",
+        )
+        socket_path = root / "driver.sock"
+        process = launch(
+            runtime,
+            ko_home,
+            socket_path,
+            library,
+            zen_config_source="""return {
+  updater = { update_auto_check = false },
+  navbar = {
+    default_tab = "books",
+    tab_order = { "books", "ct_network" },
+    show_tabs = { books = true, ct_network = true },
+    custom_tabs = {
+      {
+        id = "ct_network", type = "koreader_menu", label = "Network",
+        koreader_menu = { id = "network", title = "Network" },
+      },
+    },
+  },
+  quick_settings = {
+    button_order = { "native_network", "native_style" },
+    show_buttons = { native_network = true, native_style = true },
+    custom_buttons = {
+      {
+        id = "native_network", type = "koreader_menu", label = "Network",
+        koreader_menu = { id = "network", title = "Network" },
+      },
+      {
+        id = "native_style", type = "koreader_menu", label = "Style tweaks",
+        koreader_menu = { id = "style_tweaks", title = "Style tweaks" },
+      },
+    },
+  },
+}
+""",
+        )
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            _wait_for_library(driver, library)
+            native_network = _wait_command(
+                driver,
+                "native_menu_state",
+                lambda result: result.get("exists") is True
+                and result.get("control_present") is True
+                and result.get("control_disabled") is False,
+                id="network",
+                scope="filemanager",
+                control_id="native_network",
+            )
+            assert "network" in native_network["ids"]
+            root_ids = [
+                item_id
+                for item_id in native_network["ids"]
+                if item_id in {"filemanager_settings", "setting", "tools", "search"}
+            ]
+            assert root_ids == ["filemanager_settings", "setting", "tools", "search"]
+
+            assert driver.command(
+                "activate_custom_control", id="native_network"
+            )["ok"] is True
+            network = _wait_command(
+                driver,
+                "arrange_page_state",
+                lambda result: result.get("arrange", {}).get("title") == "Network",
+            )
+            assert network["arrange"]["title"] == "Network"
+            assert driver.command("close_arrange_page")["ok"] is True
+
+            layout = driver.command("menu_tab_layout", tab_id="app_launcher")
+            assert layout["active_tab"] == "app_launcher"
+            assert driver.command("activate_launcher_entry", index=1)["ok"] is True
+            tools = _wait_command(
+                driver,
+                "arrange_page_state",
+                lambda result: result.get("arrange", {}).get("title") == "Tools",
+            )
+            assert tools["arrange"]["title"] == "Tools"
+            assert driver.command("close_arrange_page")["ok"] is True
+
+            assert driver.command("activate_navbar_tab", id="ct_network")["ok"] is True
+            navbar_network = _wait_command(
+                driver,
+                "arrange_page_state",
+                lambda result: result.get("arrange", {}).get("title") == "Network",
+            )
+            assert navbar_network["arrange"]["title"] == "Network"
+            assert driver.command("close_arrange_page")["ok"] is True
+
+            book = next(iter(books.values()))
+            assert driver.command("open_book", path=str(book.resolve()))["ok"] is True
+            _wait_command(
+                driver,
+                "reader_state",
+                lambda result: result.get("reader", {}).get("file") == str(book.resolve()),
+                timeout=30,
+            )
+            assert driver.command(
+                "activate_custom_control", id="native_style"
+            )["ok"] is True
+            style = _wait_command(
+                driver,
+                "arrange_page_state",
+                lambda result: result.get("arrange", {}).get("title", "").startswith(
+                    "Style tweaks"
+                ),
+            )
+            assert style["arrange"]["title"].startswith("Style tweaks")
+        finally:
+            process.send_signal(signal.SIGTERM)
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                process.kill()
                 process.wait()
 
 

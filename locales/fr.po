@@ -144,6 +144,9 @@ msgstr "Ajoutez des boutons personnalisés pour d'autres plugins ou actions."
 msgid "Add folder…"
 msgstr "Ajouter un dossier…"
 
+msgid "Add KOReader menu"
+msgstr "Ajouter un menu KOReader"
+
 msgid "Add plugin"
 msgstr "Ajouter un plugin"
 
@@ -455,6 +458,9 @@ msgstr "Choisissez le contrôle"
 
 msgid "Choose item"
 msgstr "Choisir un élément"
+
+msgid "Choose KOReader menu"
+msgstr "Choisir un menu KOReader"
 
 msgid "Choose plugin menu"
 msgstr "Choisir un menu de plugin"
@@ -936,6 +942,9 @@ msgstr "Widget en vedette"
 msgid "Featured widgets"
 msgstr "Widgets à la une"
 
+msgid "File browser settings"
+msgstr "Paramètres du navigateur de fichiers"
+
 msgid "File search"
 msgstr "Recherche de fichiers"
 
@@ -1170,6 +1179,12 @@ msgstr "éléments par page"
 msgid "Keep existing settings"
 msgstr "Conserver les réglages actuels"
 
+msgid "KOReader menu"
+msgstr "Menu KOReader"
+
+msgid "KOReader menu: %1"
+msgstr "Menu KOReader : %1"
+
 msgid "KOReader: "
 msgstr "KOReader : "
 
@@ -1293,6 +1308,9 @@ msgstr "Icônes individuelles dans /koreader/icons"
 msgid "Magnify UI"
 msgstr "Agrandir l'interface"
 
+msgid "Main menu"
+msgstr "Menu principal"
+
 msgid "Manga"
 msgstr "Manga"
 
@@ -1382,6 +1400,9 @@ msgstr "Taille des libellés de la barre de navigation"
 
 msgid "Navbar Tabs"
 msgstr "Onglets de navigation"
+
+msgid "Navigation"
+msgstr "Navigation"
 
 msgid "Network unavailable."
 msgstr "Réseau indisponible."
@@ -1490,6 +1511,9 @@ msgstr "Aucun journal des modifications fourni."
 
 msgid "No description."
 msgstr "Aucune description."
+
+msgid "No KOReader submenus found"
+msgstr "Aucun sous-menu KOReader trouvé"
 
 msgid "No launchable plugin menus found"
 msgstr "Aucun menu de plugin lançable trouvé"
@@ -2370,9 +2394,6 @@ msgstr "Cette année"
 msgid "Time"
 msgstr "Temps"
 
-msgid "Timeout"
-msgstr "Délai d’expiration"
-
 msgid "Time Format"
 msgstr "Format d'heure"
 
@@ -2393,6 +2414,9 @@ msgstr "Heure/jour"
 
 msgid "Time/page"
 msgstr "Heure/page"
+
+msgid "Timeout"
+msgstr "Délai d’expiration"
 
 msgid "Timer: %1 s"
 msgstr "Minuteur : %1 s"
@@ -2418,6 +2442,9 @@ msgstr "Aujourd'hui"
 msgid "Too many requests. Please try again later."
 msgstr "Trop de requêtes. Veuillez réessayer plus tard."
 
+msgid "Tools"
+msgstr "Outils"
+
 msgid "Top bar font"
 msgstr "Police de la barre supérieure"
 
@@ -2441,6 +2468,9 @@ msgstr "Activez le mode Zen pour réduire KOReader à l'essentiel.\n\nSupprimez 
 
 msgid "Two rows"
 msgstr "Deux lignes"
+
+msgid "Typesetting"
+msgstr "Mise en page"
 
 msgid "Unavailable"
 msgstr "Indisponible"

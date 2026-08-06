@@ -19,6 +19,7 @@
     local Dispatcher = require("dispatcher")
     local ActionFilter = require("modules/menu/app_launcher/action_filter")
     local Model = require("modules/menu/app_launcher/model")
+    local NativeMenu = require("modules/menu/app_launcher/native_menu")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
     local BookSwitcherPage = require("modules/menu/app_launcher/book_switcher_page")
     local ButtonLabelWidth = require("common/ui/button_label_width")
@@ -299,6 +300,19 @@
             UIManager:nextTick(function()
                 pcall(launch)
             end)
+            return
+        end
+        if entry.type == "koreader_menu" and type(entry.koreader_menu) == "table" then
+            local launch = NativeMenu.resolve(entry.koreader_menu.id, "active")
+            if not launch then
+                show_unavailable()
+                return
+            end
+            touch_menu:closeMenu()
+            SettingsTransition.close()
+            UIManager:nextTick(function()
+                pcall(launch)
+            end)
         end
     end
 
@@ -334,6 +348,10 @@
         if entry.type == "quick_setting" then
             local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
             return controls and controls.has and controls.has(entry.quick_setting_id)
+        end
+        if entry.type == "koreader_menu" then
+            local menu = entry.koreader_menu
+            return type(menu) == "table" and NativeMenu.exists(menu.id, "active")
         end
         if entry.type ~= "plugin" then return true end
         local plugin = entry.plugin

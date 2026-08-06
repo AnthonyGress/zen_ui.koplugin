@@ -144,6 +144,9 @@ msgstr "Voeg aangepaste knoppen toe voor andere plug-ins of acties."
 msgid "Add folder…"
 msgstr "Map toevoegen…"
 
+msgid "Add KOReader menu"
+msgstr "KOReader-menu toevoegen"
+
 msgid "Add plugin"
 msgstr "Plug-in toevoegen"
 
@@ -455,6 +458,9 @@ msgstr "Kies voor controle"
 
 msgid "Choose item"
 msgstr "Item kiezen"
+
+msgid "Choose KOReader menu"
+msgstr "KOReader-menu kiezen"
 
 msgid "Choose plugin menu"
 msgstr "Plug-inmenu kiezen"
@@ -936,6 +942,9 @@ msgstr "Uitgelichte widget"
 msgid "Featured widgets"
 msgstr "Uitgelichte widgets"
 
+msgid "File browser settings"
+msgstr "Bestandsbrowserinstellingen"
+
 msgid "File search"
 msgstr "Bestanden zoeken"
 
@@ -1170,6 +1179,12 @@ msgstr "items per pagina"
 msgid "Keep existing settings"
 msgstr "Huidige instellingen behouden"
 
+msgid "KOReader menu"
+msgstr "KOReader-menu"
+
+msgid "KOReader menu: %1"
+msgstr "KOReader-menu: %1"
+
 msgid "KOReader: "
 msgstr "KOReader: "
 
@@ -1293,6 +1308,9 @@ msgstr "Losse pictogrammen in /koreader/icons"
 msgid "Magnify UI"
 msgstr "Vergroot interface"
 
+msgid "Main menu"
+msgstr "Hoofdmenu"
+
 msgid "Manga"
 msgstr "Manga"
 
@@ -1382,6 +1400,9 @@ msgstr "Labelgrootte navigatiebalk"
 
 msgid "Navbar Tabs"
 msgstr "Navigatietabbladen"
+
+msgid "Navigation"
+msgstr "Navigatie"
 
 msgid "Network unavailable."
 msgstr "Netwerk niet beschikbaar."
@@ -1490,6 +1511,9 @@ msgstr "Geen wijzigingslogboek opgegeven."
 
 msgid "No description."
 msgstr "Geen beschrijving."
+
+msgid "No KOReader submenus found"
+msgstr "Geen KOReader-submenu's gevonden"
 
 msgid "No launchable plugin menus found"
 msgstr "Geen startbare plug-inmenu's gevonden"
@@ -2370,9 +2394,6 @@ msgstr "Dit jaar"
 msgid "Time"
 msgstr "Tijd"
 
-msgid "Timeout"
-msgstr "Time-out"
-
 msgid "Time Format"
 msgstr "Tijdnotatie"
 
@@ -2393,6 +2414,9 @@ msgstr "Tijd/dag"
 
 msgid "Time/page"
 msgstr "Tijd/pagina"
+
+msgid "Timeout"
+msgstr "Time-out"
 
 msgid "Timer: %1 s"
 msgstr "Timer: %1 s"
@@ -2418,6 +2442,9 @@ msgstr "Vandaag"
 msgid "Too many requests. Please try again later."
 msgstr "Te veel verzoeken. Probeer het later opnieuw."
 
+msgid "Tools"
+msgstr "Hulpmiddelen"
+
 msgid "Top bar font"
 msgstr "Lettertype bovenbalk"
 
@@ -2441,6 +2468,9 @@ msgstr "Zet de Zen-modus aan om KOReader terug te brengen tot het essentiële.\n
 
 msgid "Two rows"
 msgstr "Twee rijen"
+
+msgid "Typesetting"
+msgstr "Zetwerk"
 
 msgid "Unavailable"
 msgstr "Niet beschikbaar"

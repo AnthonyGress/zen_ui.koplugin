@@ -138,5 +138,6 @@ return {
     arrow_right  = "\u{25B8}",   -- triangular bullet
     go           = "\u{F124}",   -- nf-fa-location-arrow
     open_menu    = "\u{F073D}",  -- mdi-menu-open
+    koreader_menu = "\u{F035C}",  -- mdi-menu
     bullet       = "\u{2022}",   -- bullet point
 }

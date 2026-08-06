@@ -144,6 +144,9 @@ msgstr "他のプラグインやアクション用のカスタムボタンを追
 msgid "Add folder…"
 msgstr "フォルダを追加…"
 
+msgid "Add KOReader menu"
+msgstr ""
+
 msgid "Add plugin"
 msgstr "プラグインを追加"
 
@@ -330,6 +333,9 @@ msgstr "本の情報"
 msgid "Book Status"
 msgstr "本のステータス"
 
+msgid "Book switcher"
+msgstr ""
+
 msgid "Book title"
 msgstr "書籍タイトル"
 
@@ -452,6 +458,9 @@ msgstr "コントロールの選択"
 
 msgid "Choose item"
 msgstr "項目を選択"
+
+msgid "Choose KOReader menu"
+msgstr ""
 
 msgid "Choose plugin menu"
 msgstr "プラグインメニューを選択"
@@ -933,6 +942,9 @@ msgstr "注目のウィジェット"
 msgid "Featured widgets"
 msgstr "注目ウィジェット"
 
+msgid "File browser settings"
+msgstr ""
+
 msgid "File search"
 msgstr "ファイル検索"
 
@@ -1128,6 +1140,9 @@ msgstr "シークレットモードを無効にしました"
 msgid "Incognito mode enabled"
 msgstr "シークレットモードを有効にしました"
 
+msgid "Incognito mode timed out"
+msgstr ""
+
 msgid "Incompatible plugins and patches have been disabled:"
 msgstr "互換性のないプラグインとパッチは無効になっています。"
 
@@ -1163,6 +1178,12 @@ msgstr "ページあたりのアイテム数"
 
 msgid "Keep existing settings"
 msgstr "既存の設定を保持"
+
+msgid "KOReader menu"
+msgstr ""
+
+msgid "KOReader menu: %1"
+msgstr ""
 
 msgid "KOReader: "
 msgstr "KOReader: "
@@ -1287,6 +1308,9 @@ msgstr "/koreader/icons のゆるいアイコン"
 msgid "Magnify UI"
 msgstr "UIを拡大"
 
+msgid "Main menu"
+msgstr ""
+
 msgid "Manga"
 msgstr "マンガ"
 
@@ -1377,6 +1401,9 @@ msgstr "ナビバーのラベルサイズ"
 msgid "Navbar Tabs"
 msgstr "ナビゲーションバータブ"
 
+msgid "Navigation"
+msgstr ""
+
 msgid "Network unavailable."
 msgstr "ネットワークを利用できません。"
 
@@ -1464,6 +1491,9 @@ msgstr "本が見つかりません"
 msgid "No books found in the selected folder"
 msgstr "選択したフォルダーに書籍が見つかりませんでした"
 
+msgid "No books to switch to"
+msgstr ""
+
 msgid "No books with author metadata found"
 msgstr "著者メタデータを含む書籍が見つかりませんでした"
 
@@ -1481,6 +1511,9 @@ msgstr "変更履歴は提供されていません。"
 
 msgid "No description."
 msgstr "説明なし。"
+
+msgid "No KOReader submenus found"
+msgstr ""
 
 msgid "No launchable plugin menus found"
 msgstr "起動可能なプラグインメニューが見つかりません"
@@ -1550,6 +1583,9 @@ msgstr "ホーム更新時"
 
 msgid "Only in Zen mode"
 msgstr "Zenモード時のみ"
+
+msgid "Only show while reading"
+msgstr ""
 
 msgid "Opaque background"
 msgstr "不透明な背景"
@@ -1854,6 +1890,9 @@ msgstr "名前を変更"
 msgid "Report a Bug"
 msgstr "バグを報告"
 
+msgid "Require double tap to open books"
+msgstr ""
+
 msgid "Require hold to toggle buttons"
 msgstr "ボタンの切り替えに長押しを要求"
 
@@ -2036,6 +2075,9 @@ msgstr "AIアシスタントを表示"
 
 msgid "Show all files from subfolders"
 msgstr "サブフォルダー内のすべてのファイルを表示"
+
+msgid "Show as first page"
+msgstr ""
 
 msgid "Show author"
 msgstr "著者を表示"
@@ -2373,6 +2415,9 @@ msgstr "時間/日"
 msgid "Time/page"
 msgstr "時間/ページ"
 
+msgid "Timeout"
+msgstr ""
+
 msgid "Timer: %1 s"
 msgstr "タイマー: %1 s"
 
@@ -2397,6 +2442,9 @@ msgstr "今日"
 msgid "Too many requests. Please try again later."
 msgstr "リクエストが多すぎます。後でもう一度お試しください。"
 
+msgid "Tools"
+msgstr ""
+
 msgid "Top bar font"
 msgstr "上部バーのフォント"
 
@@ -2420,6 +2468,9 @@ msgstr "Zenモードをオンにすると、KOReaderを必要最小限にそぎ�
 
 msgid "Two rows"
 msgstr "2行"
+
+msgid "Typesetting"
+msgstr ""
 
 msgid "Unavailable"
 msgstr "利用できません"
@@ -2597,6 +2648,9 @@ msgstr "有効にすると、ルース アイコンまたは選択した Zen UI 
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "有効にすると、検索は単語全体にのみ一致します。無効にすると、部分一致を使用します (例: 'fish' は 'fishing' に一致)。"
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr ""
 
 msgid "Which time format do you prefer?"
 msgstr "お好みの時刻形式はどちらですか？"

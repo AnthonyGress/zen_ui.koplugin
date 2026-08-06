@@ -11,6 +11,7 @@ local icon_utils = require("common/utils")
 local paths = require("common/paths")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
+local NativeMenu = require("modules/menu/app_launcher/native_menu")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
 local DispatcherMenu = require("common/dispatcher_menu")
 
@@ -285,6 +286,9 @@ function M.build(ctx)
         if ct.type == "plugin" then
             return ct.plugin_title or _("Plugin")
         end
+        if ct.type == "koreader_menu" then
+            return ct.koreader_menu and ct.koreader_menu.title or _("KOReader menu")
+        end
         if ok_disp and ct.action and next(ct.action) then
             local t = Dispatcher:menuTextFunc(ct.action)
             if t ~= _("Nothing") then return t end
@@ -418,6 +422,21 @@ function M.build(ctx)
         }
     end
 
+    local function showKoreaderMenuPicker(on_select, touch_menu)
+        local found = NativeMenu.scan("filemanager")
+        if #found == 0 then
+            local InfoMessage = require("ui/widget/infomessage")
+            UIManager:show(InfoMessage:new{ text = _("No KOReader submenus found") })
+            return
+        end
+        require("common/ui/zen_menu_picker"){
+            title = _("Choose KOReader menu"),
+            items = found,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
+            on_select = on_select,
+        }
+    end
+
     local function showTagPicker(on_select, touch_menu)
         local ok_db, db = pcall(require, "common/db_bookinfo")
         local groups = ok_db and db and type(db.getGroupedByTags) == "function"
@@ -505,6 +524,38 @@ function M.build(ctx)
                 plugin_title = plugin.title,
                 icon = suggest_icon(plugin.title),
                 plugin = { key = plugin.key, method = plugin.method },
+            }
+            commitCustomTab(new_ct)
+            openCustomTabSettings(touch_menu, new_ct)
+        end, touch_menu)
+    end
+
+    local function chooseKoreaderMenuTab(ct, touch_menu)
+        showKoreaderMenuPicker(function(item)
+            ct.type = "koreader_menu"
+            ct.koreader_menu = { id = item.id, title = item.title }
+            if not ct.label or ct.label == "" or ct.label == _("KOReader menu") then
+                ct.label = item.title
+            end
+            if not ct.icon or ct.icon == "zen_ui" or ct.icon == "lightning" then
+                ct.icon = suggest_icon(item.title)
+            end
+            if not is_draft_tab(ct) then
+                save_and_defer_navbar_refresh()
+            end
+            if touch_menu and touch_menu.updateItems then
+                touch_menu:updateItems(1)
+            end
+        end, touch_menu)
+    end
+
+    local function addKoreaderMenuTab(touch_menu)
+        showKoreaderMenuPicker(function(item)
+            local new_ct = {
+                type = "koreader_menu",
+                label = item.title,
+                icon = suggest_icon(item.title),
+                koreader_menu = { id = item.id, title = item.title },
             }
             commitCustomTab(new_ct)
             openCustomTabSettings(touch_menu, new_ct)
@@ -642,6 +693,18 @@ function M.build(ctx)
                     choosePluginTab(ct, touch_menu)
                 end,
             }, icons.plugin))
+        elseif ct.type == "koreader_menu" then
+            table.insert(items, IconItem.decorate({
+                text_func = function()
+                    local target = ct.koreader_menu
+                    return T(_("KOReader menu: %1"),
+                        type(target) == "table" and target.title or ct.label or _("(none)"))
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    chooseKoreaderMenuTab(ct, touch_menu)
+                end,
+            }, icons.open_menu))
         elseif ok_disp then
             local dispatch_items = {}
             local caller = {}
@@ -1155,6 +1218,11 @@ function M.build(ctx)
                     keep_menu_open = true,
                     callback = addPluginTab,
                 }, icons.plugin),
+                IconItem.decorate({
+                    text = _("KOReader menu"),
+                    keep_menu_open = true,
+                    callback = addKoreaderMenuTab,
+                }, icons.open_menu),
             },
             callback = function()
                 local new_order = {}

@@ -4,6 +4,7 @@ describe("navbar settings", function()
     local saved
     local shown
     local touch_menu
+    local picker_options
 
     local function find_arrange_item(id)
         for _i, item in ipairs(arrange_options.item_table) do
@@ -15,7 +16,10 @@ describe("navbar settings", function()
         arrange_options = nil
         saved = 0
         shown = {}
+        picker_options = nil
         touch_menu = {
+            item_table = {},
+            item_table_stack = {},
             backToSettingsRoot = function() end,
             backToUpperMenu = function(self)
                 self.back_count = (self.back_count or 0) + 1
@@ -71,6 +75,14 @@ describe("navbar settings", function()
         ZenSpec.replace("modules/menu/app_launcher/plugin_scan", {
             scan = function() return {} end,
         })
+        ZenSpec.replace("modules/menu/app_launcher/native_menu", {
+            scan = function(scope)
+                assert.are.equal("filemanager", scope)
+                return {
+                    { id = "network", title = "Network", text = "Settings › Network" },
+                }
+            end,
+        })
         ZenSpec.replace("common/dispatcher_menu", { wrap = function() end })
         ZenSpec.replace("dispatcher", {
             addSubMenu = function() end,
@@ -80,6 +92,9 @@ describe("navbar settings", function()
         ZenSpec.replace("common/ui/zen_arrange_list", {
             show = function(opts) arrange_options = opts end,
         })
+        ZenSpec.replace("common/ui/zen_menu_picker", function(opts)
+            picker_options = opts
+        end)
         ZenSpec.replace("common/plugin_root", "/plugin")
         ZenSpec.unload("modules/settings/sections/library_settings/navbar_settings")
     end)
@@ -118,6 +133,28 @@ describe("navbar settings", function()
         assert.are.same({ "books" }, config.navbar.tab_order)
         assert.are.equal("home", config.navbar.default_tab)
         assert.are.equal(1, touch_menu.back_count)
+        assert.are.equal(1, saved)
+    end)
+
+    it("creates a library-scoped KOReader menu tab", function()
+        local navbar = build_navbar()
+        navbar.sub_item_table[1].callback()
+        local add_item
+        for _i, item in ipairs(arrange_options.add_item_table) do
+            if item.text == "KOReader menu" then add_item = item end
+        end
+
+        add_item.callback(touch_menu)
+        assert.are.equal("Choose KOReader menu", picker_options.title)
+        picker_options.on_select(picker_options.items[1])
+
+        local custom = config.navbar.custom_tabs[1]
+        assert.are.equal("koreader_menu", custom.type)
+        assert.are.same({ id = "network", title = "Network" }, custom.koreader_menu)
+        assert.are.equal("Network", custom.label)
+        assert.are.equal("lightning", custom.icon)
+        assert.is_true(config.navbar.show_tabs[custom.id])
+        assert.are.equal(custom.id, config.navbar.tab_order[#config.navbar.tab_order])
         assert.are.equal(1, saved)
     end)
 end)

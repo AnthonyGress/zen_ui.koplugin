@@ -144,6 +144,9 @@ msgstr "为其他插件或操作添加自定义按钮。"
 msgid "Add folder…"
 msgstr "添加文件夹…"
 
+msgid "Add KOReader menu"
+msgstr "添加 KOReader 菜单"
+
 msgid "Add plugin"
 msgstr "添加插件"
 
@@ -455,6 +458,9 @@ msgstr "选择控制"
 
 msgid "Choose item"
 msgstr "选择项目"
+
+msgid "Choose KOReader menu"
+msgstr "选择 KOReader 菜单"
 
 msgid "Choose plugin menu"
 msgstr "选择插件菜单"
@@ -936,6 +942,9 @@ msgstr "特色小部件"
 msgid "Featured widgets"
 msgstr "精选小组件"
 
+msgid "File browser settings"
+msgstr "文件浏览器设置"
+
 msgid "File search"
 msgstr "文件搜索"
 
@@ -1170,6 +1179,12 @@ msgstr "每页项目数"
 msgid "Keep existing settings"
 msgstr "保持现有设置"
 
+msgid "KOReader menu"
+msgstr "KOReader 菜单"
+
+msgid "KOReader menu: %1"
+msgstr "KOReader 菜单：%1"
+
 msgid "KOReader: "
 msgstr "KOReader: "
 
@@ -1293,6 +1308,9 @@ msgstr "/koreader/icons 中的独立图标"
 msgid "Magnify UI"
 msgstr "放大界面"
 
+msgid "Main menu"
+msgstr "主菜单"
+
 msgid "Manga"
 msgstr "漫画"
 
@@ -1382,6 +1400,9 @@ msgstr "导航栏标签大小"
 
 msgid "Navbar Tabs"
 msgstr "导航标签"
+
+msgid "Navigation"
+msgstr "导航"
 
 msgid "Network unavailable."
 msgstr "网络不可用。"
@@ -1490,6 +1511,9 @@ msgstr "未提供更新日志。"
 
 msgid "No description."
 msgstr "无描述。"
+
+msgid "No KOReader submenus found"
+msgstr "未找到 KOReader 子菜单"
 
 msgid "No launchable plugin menus found"
 msgstr "未找到可启动的插件菜单"
@@ -2370,9 +2394,6 @@ msgstr "今年"
 msgid "Time"
 msgstr "时间"
 
-msgid "Timeout"
-msgstr "超时"
-
 msgid "Time Format"
 msgstr "时间格式"
 
@@ -2393,6 +2414,9 @@ msgstr "时间/天"
 
 msgid "Time/page"
 msgstr "时间/页数"
+
+msgid "Timeout"
+msgstr "超时"
 
 msgid "Timer: %1 s"
 msgstr "计时器：%1 s"
@@ -2418,6 +2442,9 @@ msgstr "今天"
 msgid "Too many requests. Please try again later."
 msgstr "请求过多，请稍后重试。"
 
+msgid "Tools"
+msgstr "工具"
+
 msgid "Top bar font"
 msgstr "顶部栏字体"
 
@@ -2441,6 +2468,9 @@ msgstr "开启禅模式，将 KOReader 精简至最基本功能。\n\n消除视�
 
 msgid "Two rows"
 msgstr "两行"
+
+msgid "Typesetting"
+msgstr "排版"
 
 msgid "Unavailable"
 msgstr "不可用"

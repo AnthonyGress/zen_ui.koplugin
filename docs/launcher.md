@@ -12,7 +12,7 @@ order: 40
 
 ## Overview
 
-Launcher adds a configurable tab to the Zen UI menu. It can create shortcut buttons for Controls, dispatcher actions, and detected launchable plugins. Place these buttons inside folders for more organization.
+Launcher adds a configurable tab to the Zen UI menu. It can create shortcut buttons for Controls, dispatcher actions, detected launchable plugins, and native KOReader submenus. Place these buttons inside folders for more organization.
 
 ## Options
 
@@ -24,10 +24,11 @@ Launcher adds a configurable tab to the Zen UI menu. It can create shortcut butt
 - Add action buttons backed by dispatcher actions.
 - Add buttons that run a chosen Controls control.
 - Add plugin buttons from launchable plugin menus found on the device.
+- Add context-aware KOReader submenu buttons, such as Network, Tools, or Style tweaks.
 - Add folders and arrange buttons inside each folder.
 - Insert a row break to start later buttons on a new row.
 - Configure each button or folder label and icon.
-- Move action and plugin buttons into folders or back to the root launcher.
+- Move action, plugin, and KOReader menu buttons into folders or back to the root launcher.
 
 ## Setting reference
 
@@ -41,6 +42,7 @@ Launcher adds a configurable tab to the Zen UI menu. It can create shortcut butt
 | Buttons > Add > Control | Adds a launcher button that runs a selected Controls control. |
 | Buttons > Add > Action | Adds a launcher button that runs a dispatcher action, with a suggested icon. |
 | Buttons > Add > Plugin | Scans for launchable plugin menus and adds the selected plugin menu as a launcher button with a suggested icon. |
+| Buttons > Add > KOReader menu | Adds a native KOReader submenu available in the current library or reader context. |
 | Buttons > Add > Row break | Inserts a row break in the Launcher button layout. |
 | Control button > Control | Selects the Controls control run by the button. |
 | Buttons > Add > Folder | Adds a launcher folder. |
@@ -50,11 +52,15 @@ Launcher adds a configurable tab to the Zen UI menu. It can create shortcut butt
 | Plugin button > Plugin | Selects the launchable plugin menu run by the button. |
 | Plugin button > Icon | Selects a bundled, KOReader, or user icon. |
 | Plugin button > Label | Sets the plugin button label. |
+| KOReader menu button > KOReader menu | Selects the native submenu opened by the button. |
+| KOReader menu button > Icon | Selects a bundled, KOReader, or user icon. |
+| KOReader menu button > Label | Sets the button label. |
 | Folder > Label | Sets the folder label. |
 | Folder > Icon | Sets the folder icon. |
 | Folder > Folder buttons | Opens the arranger for buttons inside the folder. |
 | Folder buttons > Add > Action | Adds an action button inside the folder. |
 | Folder buttons > Add > Plugin | Adds a detected plugin menu button inside the folder. |
-| Button movement > Move to folder | Moves an action or plugin button into an existing launcher folder. |
+| Folder buttons > Add > KOReader menu | Adds a native KOReader submenu button inside the folder. |
+| Button movement > Move to folder | Moves an action, plugin, or KOReader menu button into an existing launcher folder. |
 | Button movement > Move out of folder | Moves a button from a folder back to the root launcher. |
 | Button or folder > Delete | Deletes a button, or deletes a folder and its buttons after confirmation. |

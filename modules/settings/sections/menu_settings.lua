@@ -9,6 +9,7 @@ local UIManager = require("ui/uimanager")
 local defaults = require("config/defaults")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
+local NativeMenu = require("modules/menu/app_launcher/native_menu")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
 local DispatcherMenu = require("common/dispatcher_menu")
 local icon_utils = require("common/utils")
@@ -157,6 +158,8 @@ function M.build(ctx)
                     lbl = cb.label
                 elseif cb.type == "plugin" then
                     lbl = cb.plugin_title
+                elseif cb.type == "koreader_menu" then
+                    lbl = cb.koreader_menu and cb.koreader_menu.title
                 elseif ok_disp and cb.action and next(cb.action) then
                     lbl = Dispatcher:menuTextFunc(cb.action)
                 end
@@ -327,6 +330,21 @@ function M.build(ctx)
         }
     end
 
+    local function showKoreaderMenuPicker(on_select, touch_menu)
+        local found = NativeMenu.scan("active")
+        if #found == 0 then
+            local InfoMessage = require("ui/widget/infomessage")
+            UIManager:show(InfoMessage:new{ text = _("No KOReader submenus found") })
+            return
+        end
+        require("common/ui/zen_menu_picker"){
+            title = _("Choose KOReader menu"),
+            items = found,
+            on_select = on_select,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
+        }
+    end
+
     local function addControlButton(touch_menu)
         local selected = {}
         for _i, id in ipairs(config.quick_settings.button_order) do
@@ -398,6 +416,65 @@ function M.build(ctx)
                 plugin_title = plugin.title,
                 icon         = suggest_icon(plugin.title),
                 plugin       = { key = plugin.key, method = plugin.method },
+            }
+            table.insert(cbs, new_cb)
+            quick_button_custom_by_id[new_cb.id] = new_cb
+            quick_button_label_by_id[new_cb.id] = get_cb_label(new_cb)
+            quick_button_key_set[new_cb.id] = true
+            config.quick_settings.show_buttons[new_cb.id] = countEnabledButtons() < quick_buttons_max
+            ensureButtonOrder(new_cb.id)
+            save_and_apply_quick_settings()
+            if touch_menu and build_cb_sub_items then
+                local sub_items = build_cb_sub_items(new_cb)
+                if #sub_items > 0 then
+                    table.insert(touch_menu.item_table_stack, touch_menu.item_table)
+                    touch_menu.parent_id = nil
+                    touch_menu.item_table = sub_items
+                    touch_menu:updateItems(1)
+                end
+            end
+        end, touch_menu)
+    end
+
+    local function chooseKoreaderMenuButton(cb, touch_menu, open_settings)
+        showKoreaderMenuPicker(function(item)
+            cb.type = "koreader_menu"
+            cb.koreader_menu = { id = item.id, title = item.title }
+            if not cb.label or cb.label == "" or cb.label == _("KOReader menu") then
+                cb.label = item.title
+            end
+            cb.icon = suggest_icon(item.title)
+            quick_button_label_by_id[cb.id] = get_cb_label(cb)
+            save_and_apply_quick_settings()
+            if touch_menu and build_cb_sub_items and open_settings then
+                local sub_items = build_cb_sub_items(cb)
+                if #sub_items > 0 then
+                    table.insert(touch_menu.item_table_stack, touch_menu.item_table)
+                    touch_menu.parent_id = nil
+                    touch_menu.item_table = sub_items
+                    touch_menu:updateItems(1)
+                end
+            elseif touch_menu and touch_menu.updateItems then
+                touch_menu:updateItems(1)
+            end
+        end, touch_menu)
+    end
+
+    local function addKoreaderMenuButton(touch_menu)
+        showKoreaderMenuPicker(function(item)
+            local cbs = config.quick_settings.custom_buttons
+            if type(cbs) ~= "table" then
+                config.quick_settings.custom_buttons = {}
+                cbs = config.quick_settings.custom_buttons
+            end
+            config.quick_settings.next_custom_id =
+                (config.quick_settings.next_custom_id or 0) + 1
+            local new_cb = {
+                id = "cb_" .. config.quick_settings.next_custom_id,
+                type = "koreader_menu",
+                label = item.title,
+                icon = suggest_icon(item.title),
+                koreader_menu = { id = item.id, title = item.title },
             }
             table.insert(cbs, new_cb)
             quick_button_custom_by_id[new_cb.id] = new_cb
@@ -507,6 +584,11 @@ function M.build(ctx)
                     keep_menu_open = true,
                     callback = addPluginButton,
                 }, icons.plugin),
+                IconItem.decorate({
+                    text = _("KOReader menu"),
+                    keep_menu_open = true,
+                    callback = addKoreaderMenuButton,
+                }, icons.koreader_menu),
             },
             callback = function()
                 -- Replace the table to avoid leaving stale trailing entries
@@ -549,6 +631,9 @@ function M.build(ctx)
         if cb.type == "plugin" then
             return cb.plugin_title or _("Plugin")
         end
+        if cb.type == "koreader_menu" then
+            return cb.koreader_menu and cb.koreader_menu.title or _("KOReader menu")
+        end
         if ok_disp and cb.action and next(cb.action) then
             local t = Dispatcher:menuTextFunc(cb.action)
             if t ~= _("Nothing") then return t end
@@ -590,6 +675,18 @@ function M.build(ctx)
                     choosePluginButton(cb, touch_menu, false)
                 end,
             }, icons.plugin))
+        elseif cb.type == "koreader_menu" then
+            table.insert(items, IconItem.decorate({
+                text_func = function()
+                    local target = cb.koreader_menu
+                    return T(_("KOReader menu: %1"),
+                        type(target) == "table" and target.title or cb.label or _("(none)"))
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    chooseKoreaderMenuButton(cb, touch_menu, false)
+                end,
+            }, icons.open_menu))
         elseif ok_disp then
             -- Action picker via Dispatcher submenu
             local dispatch_items = {}

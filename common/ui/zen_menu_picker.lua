@@ -32,6 +32,8 @@ local function showMenuPicker(opts)
     local span     = Size.span.vertical_default
     local row_pad  = Screen:scaleBySize(12)
     local row_h    = Screen:scaleBySize(48)
+    local row_face = Font:getFace("cfont", 24)
+    local indent_step = Screen:scaleBySize(16)
     local content_w = sw - 2 * pad
     local bar_area_h = pager.PN_FOOTER_H
     local divider_gap = Size.padding.default
@@ -302,6 +304,7 @@ local function showMenuPicker(opts)
             local row_y = list_y + row_i * row_h
             local item = items[idx]
             local text = type(item.text) == "string" and item.text or tostring(item.text or "")
+            local text_indent = math.max(0, tonumber(item.indent_level) or 0) * indent_step
             local selected = not back_focused
                 and (not Device:isTouchDevice() or Device:hasDPad() or Device:hasKeyboard())
                 and idx == selected_idx
@@ -310,13 +313,15 @@ local function showMenuPicker(opts)
             end
             local tw = TW:new{
                 text      = text,
-                face      = Font:getFace("cfont", 20),
-                max_width = content_w - row_pad * 2,
+                face      = row_face,
+                bold      = item.bold == true,
+                max_width = content_w - row_pad * 2 - text_indent,
                 padding   = 0,
                 fgcolor   = selected and Blitbuffer.COLOR_WHITE or nil,
             }
             local sz = tw:getSize()
-            tw:paintTo(bb, list_x + row_pad, row_y + math.floor((row_h - sz.h) / 2))
+            tw:paintTo(bb, list_x + row_pad + text_indent,
+                row_y + math.floor((row_h - sz.h) / 2))
             tw:free()
             bb:paintRect(list_x, row_y + row_h - 1, content_w, 1, Blitbuffer.COLOR_LIGHT_GRAY)
         end

@@ -144,6 +144,9 @@ msgstr "Добавьте пользовательские кнопки для д
 msgid "Add folder…"
 msgstr "Добавить папку…"
 
+msgid "Add KOReader menu"
+msgstr "Добавить меню KOReader"
+
 msgid "Add plugin"
 msgstr "Добавить плагин"
 
@@ -455,6 +458,9 @@ msgstr "Выберите элемент управления"
 
 msgid "Choose item"
 msgstr "Выбрать элемент"
+
+msgid "Choose KOReader menu"
+msgstr "Выбрать меню KOReader"
 
 msgid "Choose plugin menu"
 msgstr "Выбрать меню плагина"
@@ -936,6 +942,9 @@ msgstr "Рекомендуемый виджет"
 msgid "Featured widgets"
 msgstr "Главные виджеты"
 
+msgid "File browser settings"
+msgstr "Настройки файлового браузера"
+
 msgid "File search"
 msgstr "Поиск файлов"
 
@@ -1170,6 +1179,12 @@ msgstr "элементов на странице"
 msgid "Keep existing settings"
 msgstr "Оставить текущие настройки"
 
+msgid "KOReader menu"
+msgstr "Меню KOReader"
+
+msgid "KOReader menu: %1"
+msgstr "Меню KOReader: %1"
+
 msgid "KOReader: "
 msgstr "KOReader: "
 
@@ -1293,6 +1308,9 @@ msgstr "Отдельные значки в /koreader/icons"
 msgid "Magnify UI"
 msgstr "Увеличить интерфейс"
 
+msgid "Main menu"
+msgstr "Главное меню"
+
 msgid "Manga"
 msgstr "Манга"
 
@@ -1382,6 +1400,9 @@ msgstr "Размер меток панели навигации"
 
 msgid "Navbar Tabs"
 msgstr "Вкладки навигации"
+
+msgid "Navigation"
+msgstr "Навигация"
 
 msgid "Network unavailable."
 msgstr "Сеть недоступна."
@@ -1490,6 +1511,9 @@ msgstr "Список изменений не предоставлен."
 
 msgid "No description."
 msgstr "Нет описания."
+
+msgid "No KOReader submenus found"
+msgstr "Подменю KOReader не найдены"
 
 msgid "No launchable plugin menus found"
 msgstr "Не найдено запускаемых меню плагинов"
@@ -2370,9 +2394,6 @@ msgstr "Этот год"
 msgid "Time"
 msgstr "Время"
 
-msgid "Timeout"
-msgstr "Тайм-аут"
-
 msgid "Time Format"
 msgstr "Формат времени"
 
@@ -2393,6 +2414,9 @@ msgstr "Время/день"
 
 msgid "Time/page"
 msgstr "Время/страница"
+
+msgid "Timeout"
+msgstr "Тайм-аут"
 
 msgid "Timer: %1 s"
 msgstr "Таймер: %1 s"
@@ -2418,6 +2442,9 @@ msgstr "Сегодня"
 msgid "Too many requests. Please try again later."
 msgstr "Слишком много запросов. Повторите попытку позже."
 
+msgid "Tools"
+msgstr "Инструменты"
+
 msgid "Top bar font"
 msgstr "Шрифт верхней панели"
 
@@ -2441,6 +2468,9 @@ msgstr "Включите режим Zen, чтобы свести KOReader к м�
 
 msgid "Two rows"
 msgstr "Две строки"
+
+msgid "Typesetting"
+msgstr "Вёрстка"
 
 msgid "Unavailable"
 msgstr "Недоступно"

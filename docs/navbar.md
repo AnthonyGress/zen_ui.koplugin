@@ -12,7 +12,7 @@ order: 35
 
 ## Overview
 
-The Navbar adds a bottom navigation bar to the library. Tabs can open library views, folders, plugin integrations, page controls, menu actions, custom dispatcher actions, or launchable plugin menus.
+The Navbar adds a bottom navigation bar to the library. Tabs can open library views, folders, plugin integrations, page controls, menu actions, custom dispatcher actions, launchable plugin menus, or native KOReader submenus.
 
 Navbar settings live under **Settings > Library > Navbar**.
 
@@ -20,7 +20,7 @@ Navbar settings live under **Settings > Library > Navbar**.
 
 - Show and arrange up to 7 visible tabs.
 - Hide or show icons.
-- Add custom tabs with dispatcher actions, plugin menus, icons, and labels.
+- Add custom tabs with dispatcher actions, controls, plugin menus, native KOReader submenus, icons, and labels.
 - Select the default tab used when the navbar opens.
 - Configure Books, Home, Manga, and News tab labels or actions.
 - Control active-tab styling, top border, label size, and icon size.
@@ -53,9 +53,11 @@ Adjust a grouped view's display and sort from its context menu while that tab is
 | Tabs > Add > Control | Adds a Navbar tab that runs a selected Controls control. |
 | Tabs > Add > Action | Adds a user-defined tab that runs a dispatcher action with a suggested icon. |
 | Tabs > Add > Plugin | Scans for launchable plugin menus and adds the selected plugin menu as a tab with a suggested icon. |
+| Tabs > Add > KOReader menu | Adds a native submenu from the library-valid KOReader menu tree. |
 | Custom tabs > Show in navbar | Shows or hides a custom tab. |
 | Custom tabs > Action | Selects the dispatcher action run by an action tab. |
 | Custom tabs > Plugin | Selects the launchable plugin menu run by a plugin tab. |
+| Custom tabs > KOReader menu | Selects the native KOReader submenu opened by a menu tab. |
 | Custom tabs > Icon | Selects a bundled, KOReader, or user icon for the custom tab. |
 | Custom tabs > Label | Sets a custom label or leaves the label empty to use the action or plugin title. |
 | Custom tabs > Delete | Deletes the custom tab and removes it from the order list. |

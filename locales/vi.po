@@ -144,6 +144,9 @@ msgstr "Thêm nút tùy chỉnh cho các plugin hoặc hành động khác."
 msgid "Add folder…"
 msgstr "Thêm thư mục…"
 
+msgid "Add KOReader menu"
+msgstr ""
+
 msgid "Add plugin"
 msgstr "Thêm plugin"
 
@@ -330,6 +333,9 @@ msgstr "Thông tin sách"
 msgid "Book Status"
 msgstr "Trạng thái sách"
 
+msgid "Book switcher"
+msgstr ""
+
 msgid "Book title"
 msgstr "Tên sách"
 
@@ -452,6 +458,9 @@ msgstr "Chọn điều khiển"
 
 msgid "Choose item"
 msgstr "Chọn mục"
+
+msgid "Choose KOReader menu"
+msgstr ""
 
 msgid "Choose plugin menu"
 msgstr "Chọn menu plugin"
@@ -933,6 +942,9 @@ msgstr "Tiện ích nổi bật"
 msgid "Featured widgets"
 msgstr "Widget nổi bật"
 
+msgid "File browser settings"
+msgstr ""
+
 msgid "File search"
 msgstr "Tìm kiếm tệp"
 
@@ -1128,6 +1140,9 @@ msgstr "Đã tắt chế độ ẩn danh"
 msgid "Incognito mode enabled"
 msgstr "Đã bật chế độ ẩn danh"
 
+msgid "Incognito mode timed out"
+msgstr ""
+
 msgid "Incompatible plugins and patches have been disabled:"
 msgstr "Các plugin và bản vá không tương thích đã bị vô hiệu hóa:"
 
@@ -1163,6 +1178,12 @@ msgstr "mục mỗi trang"
 
 msgid "Keep existing settings"
 msgstr "Giữ cài đặt hiện có"
+
+msgid "KOReader menu"
+msgstr ""
+
+msgid "KOReader menu: %1"
+msgstr ""
 
 msgid "KOReader: "
 msgstr "KOReader: "
@@ -1287,6 +1308,9 @@ msgstr "Biểu tượng lỏng lẻo trong /koreader/icons"
 msgid "Magnify UI"
 msgstr "Phóng to UI"
 
+msgid "Main menu"
+msgstr ""
+
 msgid "Manga"
 msgstr "Manga"
 
@@ -1377,6 +1401,9 @@ msgstr "Kích thước nhãn thanh điều hướng"
 msgid "Navbar Tabs"
 msgstr "Tab thanh điều hướng"
 
+msgid "Navigation"
+msgstr ""
+
 msgid "Network unavailable."
 msgstr "Mạng không khả dụng."
 
@@ -1464,6 +1491,9 @@ msgstr "Không tìm thấy sách"
 msgid "No books found in the selected folder"
 msgstr "Không tìm thấy sách nào trong thư mục đã chọn"
 
+msgid "No books to switch to"
+msgstr ""
+
 msgid "No books with author metadata found"
 msgstr "Không tìm thấy sách có siêu dữ liệu tác giả"
 
@@ -1481,6 +1511,9 @@ msgstr "Không có nhật ký thay đổi."
 
 msgid "No description."
 msgstr "Không mô tả."
+
+msgid "No KOReader submenus found"
+msgstr ""
 
 msgid "No launchable plugin menus found"
 msgstr "Không tìm thấy menu plugin nào có thể khởi chạy"
@@ -1550,6 +1583,9 @@ msgstr "Khi làm mới trang chủ"
 
 msgid "Only in Zen mode"
 msgstr "Chỉ trong chế độ Zen"
+
+msgid "Only show while reading"
+msgstr ""
 
 msgid "Opaque background"
 msgstr "Nền đục"
@@ -1854,6 +1890,9 @@ msgstr "Đổi tên"
 msgid "Report a Bug"
 msgstr "Báo cáo lỗi"
 
+msgid "Require double tap to open books"
+msgstr ""
+
 msgid "Require hold to toggle buttons"
 msgstr "Yêu cầu giữ để chuyển đổi nút"
 
@@ -2036,6 +2075,9 @@ msgstr "Hiển thị trợ lý AI"
 
 msgid "Show all files from subfolders"
 msgstr "Hiển thị tất cả tệp trong các thư mục con"
+
+msgid "Show as first page"
+msgstr ""
 
 msgid "Show author"
 msgstr "Hiển thị tác giả"
@@ -2373,6 +2415,9 @@ msgstr "Thời gian/ngày"
 msgid "Time/page"
 msgstr "Thời gian/trang"
 
+msgid "Timeout"
+msgstr ""
+
 msgid "Timer: %1 s"
 msgstr "Hẹn giờ: %1 s"
 
@@ -2397,6 +2442,9 @@ msgstr "Hôm nay"
 msgid "Too many requests. Please try again later."
 msgstr "Quá nhiều yêu cầu. Vui lòng thử lại sau."
 
+msgid "Tools"
+msgstr ""
+
 msgid "Top bar font"
 msgstr "Phông chữ thanh trên"
 
@@ -2420,6 +2468,9 @@ msgstr "Bật chế độ Zen để tinh chỉnh KOReader về những tính nă
 
 msgid "Two rows"
 msgstr "Hai hàng"
+
+msgid "Typesetting"
+msgstr ""
 
 msgid "Unavailable"
 msgstr "Không khả dụng"
@@ -2597,6 +2648,9 @@ msgstr "Khi được bật, các biểu tượng rời hoặc gói biểu tượ
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "Khi bật, tìm kiếm chỉ khớp cả từ. Khi tắt, sẽ khớp theo chuỗi con (ví dụ: 'fish' khớp với 'fishing')."
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr ""
 
 msgid "Which time format do you prefer?"
 msgstr "Bạn thích định dạng thời gian nào?"

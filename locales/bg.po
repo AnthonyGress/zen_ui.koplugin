@@ -153,6 +153,9 @@ msgstr "Добавете персонализирани бутони за дру
 msgid "Add folder…"
 msgstr "Добавяне на папка…"
 
+msgid "Add KOReader menu"
+msgstr ""
+
 msgid "Add plugin"
 msgstr "Добавяне на плъгин"
 
@@ -339,6 +342,9 @@ msgstr "Информация за книгата"
 msgid "Book Status"
 msgstr "Състояние на книгата"
 
+msgid "Book switcher"
+msgstr ""
+
 msgid "Book title"
 msgstr "Заглавие на книга"
 
@@ -461,6 +467,9 @@ msgstr "Изберете контрол"
 
 msgid "Choose item"
 msgstr "Избор на елемент"
+
+msgid "Choose KOReader menu"
+msgstr ""
 
 msgid "Choose plugin menu"
 msgstr "Избор на меню на плъгин"
@@ -942,6 +951,9 @@ msgstr "Представена джаджа"
 msgid "Featured widgets"
 msgstr "Избрани уиджети"
 
+msgid "File browser settings"
+msgstr ""
+
 msgid "File search"
 msgstr "Търсене на файл"
 
@@ -1137,6 +1149,9 @@ msgstr "Режимът „Инкогнито“ е изключен"
 msgid "Incognito mode enabled"
 msgstr "Режимът „Инкогнито“ е включен"
 
+msgid "Incognito mode timed out"
+msgstr ""
+
 msgid "Incompatible plugins and patches have been disabled:"
 msgstr "Несъвместимите добавки и пачове са деактивирани:"
 
@@ -1172,6 +1187,12 @@ msgstr "елемента на страница"
 
 msgid "Keep existing settings"
 msgstr "Запазване на текущите настройки"
+
+msgid "KOReader menu"
+msgstr ""
+
+msgid "KOReader menu: %1"
+msgstr ""
 
 msgid "KOReader: "
 msgstr "KOReader: "
@@ -1296,6 +1317,9 @@ msgstr "Разхлабени икони в /koreader/icons"
 msgid "Magnify UI"
 msgstr "Увеличаване на интерфейса"
 
+msgid "Main menu"
+msgstr ""
+
 msgid "Manga"
 msgstr "Манга"
 
@@ -1386,6 +1410,9 @@ msgstr "Размер на етикетите в навигационната л�
 msgid "Navbar Tabs"
 msgstr "Раздели в навигационната лента"
 
+msgid "Navigation"
+msgstr ""
+
 msgid "Network unavailable."
 msgstr "Мрежата не е достъпна."
 
@@ -1473,6 +1500,9 @@ msgstr "Не са намерени книги"
 msgid "No books found in the selected folder"
 msgstr "Няма намерени книги в избраната папка"
 
+msgid "No books to switch to"
+msgstr ""
+
 msgid "No books with author metadata found"
 msgstr "Няма намерени книги с метаданни за автора"
 
@@ -1490,6 +1520,9 @@ msgstr "Няма предоставен списък с промени."
 
 msgid "No description."
 msgstr "Без описание."
+
+msgid "No KOReader submenus found"
+msgstr ""
 
 msgid "No launchable plugin menus found"
 msgstr "Не са намерени менюта на плъгини за стартиране"
@@ -1559,6 +1592,9 @@ msgstr "На Home refresh"
 
 msgid "Only in Zen mode"
 msgstr "Само в режим Zen"
+
+msgid "Only show while reading"
+msgstr ""
 
 msgid "Opaque background"
 msgstr "Непрозрачен фон"
@@ -1863,6 +1899,9 @@ msgstr "Преименуване"
 msgid "Report a Bug"
 msgstr "Докладвай грешка"
 
+msgid "Require double tap to open books"
+msgstr ""
+
 msgid "Require hold to toggle buttons"
 msgstr "Изискване на задържане за превключване на бутони"
 
@@ -2045,6 +2084,9 @@ msgstr "Показване на асистента с ИИ"
 
 msgid "Show all files from subfolders"
 msgstr "Показване на всички файлове от подпапките"
+
+msgid "Show as first page"
+msgstr ""
 
 msgid "Show author"
 msgstr "Показване на автора"
@@ -2382,6 +2424,9 @@ msgstr "Час/ден"
 msgid "Time/page"
 msgstr "Време/страница"
 
+msgid "Timeout"
+msgstr ""
+
 msgid "Timer: %1 s"
 msgstr "Таймер: %1 s"
 
@@ -2406,6 +2451,9 @@ msgstr "Днес"
 msgid "Too many requests. Please try again later."
 msgstr "Твърде много заявки. Моля, опитайте по-късно."
 
+msgid "Tools"
+msgstr ""
+
 msgid "Top bar font"
 msgstr "Шрифт на горната лента"
 
@@ -2429,6 +2477,9 @@ msgstr "Включете режим Zen, за да сведете KOReader до 
 
 msgid "Two rows"
 msgstr "Два реда"
+
+msgid "Typesetting"
+msgstr ""
 
 msgid "Unavailable"
 msgstr "Недостъпно"
@@ -2606,6 +2657,9 @@ msgstr "Когато е активирано, свободните икони и
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "Когато е активирано, търсенето съвпада само с цели думи. Когато е деактивирано, се използва съвпадение на подниз (напр. 'риба' съвпада с 'риболов')."
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr ""
 
 msgid "Which time format do you prefer?"
 msgstr "Кой формат на часа предпочитате?"

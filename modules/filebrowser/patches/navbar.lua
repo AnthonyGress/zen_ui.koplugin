@@ -21,6 +21,7 @@ local function apply_navbar()
     local paths = require("common/paths")
     local MemoryPolicy = require("common/memory_policy")
     local SharedState = require("common/shared_state")
+    local NativeMenu = require("modules/menu/app_launcher/native_menu")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
     local Screen = Device.screen
     local _ = require("gettext")
@@ -1598,7 +1599,7 @@ local function apply_navbar()
     end
 
     local function createTabWidget(tab, label_max_w, is_active, font_size, is_focused)
-        local styled = is_active
+        local styled = is_active and tab.dim ~= true
         local use_color = styled and config.colored and Screen:isColorScreen()
         local active_color
         if use_color then
@@ -1630,6 +1631,7 @@ local function apply_navbar()
                     width  = navbar_icon_size,
                     height = navbar_icon_size,
                     alpha  = true,
+                    dim = tab.dim == true,
                 }
             end
         end
@@ -1649,6 +1651,7 @@ local function apply_navbar()
                 text = tab.label,
                 face = label_face,
                 max_width = label_max_w,
+                fgcolor = tab.dim == true and Blitbuffer.COLOR_DARK_GRAY or Blitbuffer.COLOR_BLACK,
             }
         end
 
@@ -1778,9 +1781,20 @@ local function apply_navbar()
                     entry.label = (ct.label ~= nil and ct.label ~= "") and ct.label
                         or ct.tag
                         or ct.plugin_title
+                        or (ct.koreader_menu and ct.koreader_menu.title)
                         or _("Custom")
                     entry.icon  = ct.icon or "zen_ui"
-                    if ct.type == "plugin" and type(ct.plugin) == "table" then
+                    entry.dim = false
+                    if ct.type == "koreader_menu" and type(ct.koreader_menu) == "table" then
+                        local target = ct.koreader_menu
+                        entry.dim = not NativeMenu.exists(target.id, "filemanager")
+                        tab_callbacks[ct.id] = function()
+                            local launch = NativeMenu.resolve(target.id, "filemanager")
+                            if launch then
+                                UIManager:nextTick(function() pcall(launch) end)
+                            end
+                        end
+                    elseif ct.type == "plugin" and type(ct.plugin) == "table" then
                         local plugin = ct.plugin
                         tab_callbacks[ct.id] = function()
                             local launch = PluginScan.resolve(plugin.key, plugin.method)

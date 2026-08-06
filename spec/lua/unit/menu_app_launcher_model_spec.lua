@@ -25,14 +25,25 @@ describe("app launcher model", function()
             id = "plugin", type = "plugin", label = "Sync",
             plugin = { key = "sync", method = "run" },
         }
+        local valid_koreader_menu = {
+            id = "menu", type = "koreader_menu", label = "Network",
+            koreader_menu = { id = "network", title = "Network" },
+        }
+        local folder_koreader_menu = {
+            id = "folder_menu", type = "koreader_menu", label = "Tools",
+            koreader_menu = { id = "tools", title = "Tools" },
+        }
         saved_configs.loaded = {
             entries = {
                 valid_action,
+                valid_koreader_menu,
+                { id = "bad_menu", type = "koreader_menu", label = "Bad" },
                 { id = "bad_action", type = "action", label = "Bad" },
                 {
                     id = "folder", type = "folder", label = "Tools",
                     children = {
                         valid_plugin,
+                        folder_koreader_menu,
                         { id = "nested", type = "folder", label = "Nested", children = {} },
                     },
                 },
@@ -42,8 +53,9 @@ describe("app launcher model", function()
 
         local cfg = require("modules/menu/app_launcher/model").ensure()
 
-        assert.are.same({ valid_action, {
-            id = "folder", type = "folder", label = "Tools", children = { valid_plugin },
+        assert.are.same({ valid_action, valid_koreader_menu, {
+            id = "folder", type = "folder", label = "Tools",
+            children = { valid_plugin, folder_koreader_menu },
         } }, cfg.entries)
         assert.are.equal(cfg, saved_configs.saved)
     end)

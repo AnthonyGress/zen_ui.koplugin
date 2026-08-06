@@ -144,6 +144,9 @@ msgstr "Додайте власні кнопки для інших плагін�
 msgid "Add folder…"
 msgstr "Додати теку…"
 
+msgid "Add KOReader menu"
+msgstr ""
+
 msgid "Add plugin"
 msgstr "Додати плагін"
 
@@ -330,6 +333,9 @@ msgstr "Інформація про книгу"
 msgid "Book Status"
 msgstr "Статус книги"
 
+msgid "Book switcher"
+msgstr ""
+
 msgid "Book title"
 msgstr "Назва книги"
 
@@ -452,6 +458,9 @@ msgstr "Виберіть контроль"
 
 msgid "Choose item"
 msgstr "Вибрати елемент"
+
+msgid "Choose KOReader menu"
+msgstr ""
 
 msgid "Choose plugin menu"
 msgstr "Вибрати меню плагіна"
@@ -933,6 +942,9 @@ msgstr "Рекомендований віджет"
 msgid "Featured widgets"
 msgstr "Головні віджети"
 
+msgid "File browser settings"
+msgstr ""
+
 msgid "File search"
 msgstr "Пошук файлів"
 
@@ -1128,6 +1140,9 @@ msgstr "Режим інкогніто вимкнено"
 msgid "Incognito mode enabled"
 msgstr "Режим інкогніто ввімкнено"
 
+msgid "Incognito mode timed out"
+msgstr ""
+
 msgid "Incompatible plugins and patches have been disabled:"
 msgstr "Несумісні плагіни та патчі вимкнено:"
 
@@ -1163,6 +1178,12 @@ msgstr "елементів на сторінку"
 
 msgid "Keep existing settings"
 msgstr "Зберегти поточні налаштування"
+
+msgid "KOReader menu"
+msgstr ""
+
+msgid "KOReader menu: %1"
+msgstr ""
 
 msgid "KOReader: "
 msgstr "KOReader: "
@@ -1287,6 +1308,9 @@ msgstr "Відсутні значки в /koreader/icons"
 msgid "Magnify UI"
 msgstr "Збільшити інтерфейс"
 
+msgid "Main menu"
+msgstr ""
+
 msgid "Manga"
 msgstr "Манґа"
 
@@ -1377,6 +1401,9 @@ msgstr "Розмір підписів панелі навігації"
 msgid "Navbar Tabs"
 msgstr "Вкладки панелі навігації"
 
+msgid "Navigation"
+msgstr ""
+
 msgid "Network unavailable."
 msgstr "Мережа недоступна."
 
@@ -1393,7 +1420,7 @@ msgid "New folder"
 msgstr "Нова тека"
 
 msgid "New includes unread books and books modified since they were last opened."
-msgstr "\\\"Новинки\\\" включають непрочитані книги та книги, змінені після останнього відкриття."
+msgstr "\\\\\\\"Новинки\\\\\\\" включають непрочитані книги та книги, змінені після останнього відкриття."
 
 msgid "New quote"
 msgstr "Нова цитата"
@@ -1464,6 +1491,9 @@ msgstr "Книг не знайдено"
 msgid "No books found in the selected folder"
 msgstr "У вибраній папці не знайдено книг"
 
+msgid "No books to switch to"
+msgstr ""
+
 msgid "No books with author metadata found"
 msgstr "Книг із метаданими автора не знайдено"
 
@@ -1481,6 +1511,9 @@ msgstr "Список змін не надано."
 
 msgid "No description."
 msgstr "Без опису."
+
+msgid "No KOReader submenus found"
+msgstr ""
 
 msgid "No launchable plugin menus found"
 msgstr "Меню плагінів, які можна запустити, не знайдено"
@@ -1550,6 +1583,9 @@ msgstr "Увімкнено Home refresh"
 
 msgid "Only in Zen mode"
 msgstr "Лише в режимі Zen"
+
+msgid "Only show while reading"
+msgstr ""
 
 msgid "Opaque background"
 msgstr "Непрозорий фон"
@@ -1854,6 +1890,9 @@ msgstr "Перейменувати"
 msgid "Report a Bug"
 msgstr "Повідомити про помилку"
 
+msgid "Require double tap to open books"
+msgstr ""
+
 msgid "Require hold to toggle buttons"
 msgstr "Для перемикання кнопок потрібно утримувати"
 
@@ -2036,6 +2075,9 @@ msgstr "Показати AI асистента"
 
 msgid "Show all files from subfolders"
 msgstr "Показувати всі файли з підтек"
+
+msgid "Show as first page"
+msgstr ""
 
 msgid "Show author"
 msgstr "Показати автора"
@@ -2373,6 +2415,9 @@ msgstr "Час/день"
 msgid "Time/page"
 msgstr "Час/сторінка"
 
+msgid "Timeout"
+msgstr ""
+
 msgid "Timer: %1 s"
 msgstr "Таймер: %1 с"
 
@@ -2386,16 +2431,19 @@ msgid "To Be Read"
 msgstr "До читання"
 
 msgid "To Be Read featured widget"
-msgstr "Головний віджет \\\"До читання\\\""
+msgstr "Головний віджет \\\\\\\"До читання\\\\\\\""
 
 msgid "To Be Read strip widget"
-msgstr "Рядковий віджет \\\"До читання\\\""
+msgstr "Рядковий віджет \\\\\\\"До читання\\\\\\\""
 
 msgid "Today"
 msgstr "Сьогодні"
 
 msgid "Too many requests. Please try again later."
 msgstr "Забагато запитів. Будь ласка, спробуйте пізніше."
+
+msgid "Tools"
+msgstr ""
 
 msgid "Top bar font"
 msgstr "Шрифт верхньої панелі"
@@ -2420,6 +2468,9 @@ msgstr "Увімкніть режим Zen, щоб спростити KOReader д
 
 msgid "Two rows"
 msgstr "Два рядки"
+
+msgid "Typesetting"
+msgstr ""
 
 msgid "Unavailable"
 msgstr "Недоступно"
@@ -2597,6 +2648,9 @@ msgstr "Якщо ввімкнено, незакріплені значки аб�
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "Коли ввімкнено, пошук знаходить лише цілі слова. Коли вимкнено, використовується пошук за підрядком (напр., 'риба' знаходить 'рибалка')."
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr ""
 
 msgid "Which time format do you prefer?"
 msgstr "Якому формату часу ви віддаєте перевагу?"

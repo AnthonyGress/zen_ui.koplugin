@@ -144,6 +144,9 @@ msgstr "Add custom buttons for other plugins or actions."
 msgid "Add folder…"
 msgstr "Add folder…"
 
+msgid "Add KOReader menu"
+msgstr "Add KOReader menu"
+
 msgid "Add plugin"
 msgstr "Add plugin"
 
@@ -455,6 +458,9 @@ msgstr "Choose control"
 
 msgid "Choose item"
 msgstr "Choose item"
+
+msgid "Choose KOReader menu"
+msgstr "Choose KOReader menu"
 
 msgid "Choose plugin menu"
 msgstr "Choose plugin menu"
@@ -936,6 +942,9 @@ msgstr "Featured widget"
 msgid "Featured widgets"
 msgstr "Featured widgets"
 
+msgid "File browser settings"
+msgstr "File browser settings"
+
 msgid "File search"
 msgstr "File search"
 
@@ -1170,6 +1179,12 @@ msgstr "items per page"
 msgid "Keep existing settings"
 msgstr "Keep existing settings"
 
+msgid "KOReader menu"
+msgstr "KOReader menu"
+
+msgid "KOReader menu: %1"
+msgstr "KOReader menu: %1"
+
 msgid "KOReader: "
 msgstr "KOReader: "
 
@@ -1293,6 +1308,9 @@ msgstr "Loose icons in /koreader/icons"
 msgid "Magnify UI"
 msgstr "Magnify UI"
 
+msgid "Main menu"
+msgstr "Main menu"
+
 msgid "Manga"
 msgstr "Manga"
 
@@ -1382,6 +1400,9 @@ msgstr "Navbar label size"
 
 msgid "Navbar Tabs"
 msgstr "Navbar Tabs"
+
+msgid "Navigation"
+msgstr "Navigation"
 
 msgid "Network unavailable."
 msgstr "Network unavailable."
@@ -1490,6 +1511,9 @@ msgstr "No changelog provided."
 
 msgid "No description."
 msgstr "No description."
+
+msgid "No KOReader submenus found"
+msgstr "No KOReader submenus found"
 
 msgid "No launchable plugin menus found"
 msgstr "No launchable plugin menus found"
@@ -2370,9 +2394,6 @@ msgstr "This Year"
 msgid "Time"
 msgstr "Time"
 
-msgid "Timeout"
-msgstr "Timeout"
-
 msgid "Time Format"
 msgstr "Time Format"
 
@@ -2393,6 +2414,9 @@ msgstr "Time/day"
 
 msgid "Time/page"
 msgstr "Time/page"
+
+msgid "Timeout"
+msgstr "Timeout"
 
 msgid "Timer: %1 s"
 msgstr "Timer: %1 s"
@@ -2418,6 +2442,9 @@ msgstr "Today"
 msgid "Too many requests. Please try again later."
 msgstr "Too many requests. Please try again later."
 
+msgid "Tools"
+msgstr "Tools"
+
 msgid "Top bar font"
 msgstr "Top bar font"
 
@@ -2441,6 +2468,9 @@ msgstr "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemov
 
 msgid "Two rows"
 msgstr "Two rows"
+
+msgid "Typesetting"
+msgstr "Typesetting"
 
 msgid "Unavailable"
 msgstr "Unavailable"

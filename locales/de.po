@@ -144,6 +144,9 @@ msgstr "Benutzerdefinierte Buttons für andere Plugins oder Aktionen hinzufügen
 msgid "Add folder…"
 msgstr "Ordner hinzufügen…"
 
+msgid "Add KOReader menu"
+msgstr ""
+
 msgid "Add plugin"
 msgstr "Plugin hinzufügen"
 
@@ -330,6 +333,9 @@ msgstr "Buchinformationen"
 msgid "Book Status"
 msgstr "Buchstatus"
 
+msgid "Book switcher"
+msgstr ""
+
 msgid "Book title"
 msgstr "Buchtitel"
 
@@ -452,6 +458,9 @@ msgstr "Wählen Sie Kontrolle"
 
 msgid "Choose item"
 msgstr "Element auswählen"
+
+msgid "Choose KOReader menu"
+msgstr ""
 
 msgid "Choose plugin menu"
 msgstr "Plugin-Menü auswählen"
@@ -933,6 +942,9 @@ msgstr "Empfohlenes Widget"
 msgid "Featured widgets"
 msgstr "Hervorgehobene Widgets"
 
+msgid "File browser settings"
+msgstr ""
+
 msgid "File search"
 msgstr "Dateisuche"
 
@@ -1128,6 +1140,9 @@ msgstr "Inkognitomodus deaktiviert"
 msgid "Incognito mode enabled"
 msgstr "Inkognitomodus aktiviert"
 
+msgid "Incognito mode timed out"
+msgstr ""
+
 msgid "Incompatible plugins and patches have been disabled:"
 msgstr "Inkompatible Plugins und Patches wurden deaktiviert:"
 
@@ -1163,6 +1178,12 @@ msgstr "Elemente pro Seite"
 
 msgid "Keep existing settings"
 msgstr "Bestehende Einstellungen beibehalten"
+
+msgid "KOReader menu"
+msgstr ""
+
+msgid "KOReader menu: %1"
+msgstr ""
 
 msgid "KOReader: "
 msgstr "KOReader: "
@@ -1287,6 +1308,9 @@ msgstr "Lose Symbole in /koreader/icons"
 msgid "Magnify UI"
 msgstr "UI vergrößern"
 
+msgid "Main menu"
+msgstr ""
+
 msgid "Manga"
 msgstr "Manga"
 
@@ -1377,6 +1401,9 @@ msgstr "Label-Größe der Navigationsleiste"
 msgid "Navbar Tabs"
 msgstr "Navigationsleisten-Tabs"
 
+msgid "Navigation"
+msgstr ""
+
 msgid "Network unavailable."
 msgstr "Netzwerk nicht verfügbar."
 
@@ -1464,6 +1491,9 @@ msgstr "Keine Bücher gefunden"
 msgid "No books found in the selected folder"
 msgstr "Im ausgewählten Ordner wurden keine Bücher gefunden"
 
+msgid "No books to switch to"
+msgstr ""
+
 msgid "No books with author metadata found"
 msgstr "Es wurden keine Bücher mit Autorenmetadaten gefunden"
 
@@ -1481,6 +1511,9 @@ msgstr "Kein Änderungsprotokoll vorhanden."
 
 msgid "No description."
 msgstr "Keine Beschreibung."
+
+msgid "No KOReader submenus found"
+msgstr ""
 
 msgid "No launchable plugin menus found"
 msgstr "Keine startbaren Plugin-Menüs gefunden"
@@ -1550,6 +1583,9 @@ msgstr "Auf Startseite aktualisieren"
 
 msgid "Only in Zen mode"
 msgstr "Nur im Zen-Modus"
+
+msgid "Only show while reading"
+msgstr ""
 
 msgid "Opaque background"
 msgstr "Deckender Hintergrund"
@@ -1854,6 +1890,9 @@ msgstr "Umbenennen"
 msgid "Report a Bug"
 msgstr "Fehler melden"
 
+msgid "Require double tap to open books"
+msgstr ""
+
 msgid "Require hold to toggle buttons"
 msgstr "Gedrückthalten zum Umschalten der Buttons erforderlich"
 
@@ -2036,6 +2075,9 @@ msgstr "KI-Assistenten anzeigen"
 
 msgid "Show all files from subfolders"
 msgstr "Alle Dateien aus Unterordnern anzeigen"
+
+msgid "Show as first page"
+msgstr ""
 
 msgid "Show author"
 msgstr "Autor anzeigen"
@@ -2373,6 +2415,9 @@ msgstr "Uhrzeit/Tag"
 msgid "Time/page"
 msgstr "Zeit/Seite"
 
+msgid "Timeout"
+msgstr ""
+
 msgid "Timer: %1 s"
 msgstr "Timer: %1 s"
 
@@ -2397,6 +2442,9 @@ msgstr "Heute"
 msgid "Too many requests. Please try again later."
 msgstr "Zu viele Anfragen. Bitte versuchen Sie es später noch einmal."
 
+msgid "Tools"
+msgstr ""
+
 msgid "Top bar font"
 msgstr "Schriftart der oberen Leiste"
 
@@ -2420,6 +2468,9 @@ msgstr "Schalten Sie den Zen-Modus ein, um KOReader auf das Wesentliche zu reduz
 
 msgid "Two rows"
 msgstr "Zwei Zeilen"
+
+msgid "Typesetting"
+msgstr ""
 
 msgid "Unavailable"
 msgstr "Nicht verfügbar"
@@ -2597,6 +2648,9 @@ msgstr "Wenn diese Option aktiviert ist, überschreiben lose Symbole oder ein au
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "Wenn aktiviert, findet die Suche nur ganze Wörter. Wenn deaktiviert, werden auch Teilzeichenfolgen gefunden (z. B. findet „fish“ auch „fishing“)."
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr ""
 
 msgid "Which time format do you prefer?"
 msgstr "Welches Zeitformat bevorzugen Sie?"

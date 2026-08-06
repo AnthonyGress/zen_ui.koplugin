@@ -34,6 +34,7 @@ local function apply_quick_settings()
     local Screen = Device.screen
     local Dispatcher = require("dispatcher")
     local DispatchAction = require("common/dispatch_action")
+    local NativeMenu = require("modules/menu/app_launcher/native_menu")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
 
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
@@ -999,7 +1000,30 @@ local function apply_quick_settings()
     local function install_custom_button_defs()
         if type(config.custom_buttons) ~= "table" then return end
         for _i, cb in ipairs(config.custom_buttons) do
-            if cb.type == "plugin" and type(cb.plugin) == "table" then
+            if cb.type == "koreader_menu" and type(cb.koreader_menu) == "table" then
+                local target = cb.koreader_menu
+                button_defs[cb.id] = {
+                    icon = cb.icon or "lightning",
+                    label = (cb.label and cb.label ~= "") and cb.label
+                        or target.title
+                        or _("KOReader menu"),
+                    disabled_func = function()
+                        return not NativeMenu.exists(target.id, "active")
+                    end,
+                    callback = function(tm)
+                        local launch = NativeMenu.resolve(target.id, "active")
+                        if not launch then
+                            showUnavailable()
+                            return
+                        end
+                        tm:closeMenu()
+                        SettingsTransition.close()
+                        UIManager:nextTick(function()
+                            pcall(launch)
+                        end)
+                    end,
+                }
+            elseif cb.type == "plugin" and type(cb.plugin) == "table" then
                 local plugin = cb.plugin
                 button_defs[cb.id] = {
                     icon = cb.icon or "lightning",

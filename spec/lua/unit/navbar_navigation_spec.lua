@@ -16,6 +16,8 @@ describe("file browser navbar navigation", function()
     local setup_observation
     local initial_reinject_callback
     local device_input
+    local native_available
+    local native_launches
 
     local function class(methods)
         methods = methods or {}
@@ -55,6 +57,8 @@ describe("file browser navbar navigation", function()
         home_show_callback = nil
         setup_observation = nil
         initial_reinject_callback = nil
+        native_available = true
+        native_launches = {}
         device_input = {
             disable_double_tap = true,
             tap_interval_override = nil,
@@ -191,6 +195,19 @@ describe("file browser navbar navigation", function()
             library_active = function() return false end,
         })
         ZenSpec.replace("modules/menu/app_launcher/plugin_scan", {})
+        ZenSpec.replace("modules/menu/app_launcher/native_menu", {
+            exists = function(id, scope)
+                return native_available and id == "network" and scope == "filemanager"
+            end,
+            resolve = function(id, scope)
+                if not native_available or id ~= "network" or scope ~= "filemanager" then
+                    return nil
+                end
+                return function()
+                    native_launches[#native_launches + 1] = id .. ":" .. scope
+                end
+            end,
+        })
         ZenSpec.replace("modules/filebrowser/patches/library_font", {
             getFace = function(size)
                 library_font_sizes[#library_font_sizes + 1] = size
@@ -995,6 +1012,31 @@ describe("file browser navbar navigation", function()
         assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("ct_tag"))
         assert.are.same({ "tag:Science:ct_tag" }, calls)
         assert.are.equal("Science", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+    end)
+
+    it("launches available native menu tabs and retains unavailable ones", function()
+        local navbar = _G.__ZEN_UI_PLUGIN.config.navbar
+        navbar.custom_tabs = {
+            {
+                id = "ct_network",
+                type = "koreader_menu",
+                label = "Network",
+                koreader_menu = { id = "network", title = "Network" },
+            },
+        }
+        navbar.show_tabs.ct_network = true
+        table.insert(navbar.tab_order, "ct_network")
+        local fm = make_instance()
+        fm[1] = { fm.file_chooser }
+        _G.__ZEN_UI_REINJECT_FM_NAVBAR()
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("ct_network"))
+        assert.are.same({ "network:filemanager" }, native_launches)
+
+        native_available = false
+        _G.__ZEN_UI_REINJECT_FM_NAVBAR()
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("ct_network"))
+        assert.are.same({ "network:filemanager" }, native_launches)
     end)
 
     it("does not repaint the covered file manager for overlay tabs", function()

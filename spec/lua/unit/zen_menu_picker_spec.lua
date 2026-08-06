@@ -10,6 +10,8 @@ describe("Zen menu picker", function()
     local pager_x
     local pager_y
     local pager_w
+    local row_font_size
+    local text_widgets
 
     local module_names = {
         "gettext",
@@ -69,6 +71,8 @@ describe("Zen menu picker", function()
         pager_x = nil
         pager_y = nil
         pager_w = nil
+        row_font_size = nil
+        text_widgets = {}
 
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("device", {
@@ -90,7 +94,12 @@ describe("Zen menu picker", function()
             COLOR_LIGHT_GRAY = "light_gray",
             COLOR_WHITE = "white",
         })
-        ZenSpec.replace("ui/font", { getFace = function() return {} end })
+        ZenSpec.replace("ui/font", {
+            getFace = function(_self, _name, size)
+                if size then row_font_size = size end
+                return {}
+            end,
+        })
         ZenSpec.replace("ui/size", {
             line = { thick = 1 },
             padding = { default = 10, large = 20 },
@@ -113,8 +122,9 @@ describe("Zen menu picker", function()
         ZenSpec.replace("ui/widget/textwidget", {
             new = function(_, values)
                 values.getSize = function() return { w = 100, h = 20 } end
-                values.paintTo = function() end
+                values.paintTo = function(self, _bb, x) self.paint_x = x end
                 values.free = function() end
+                text_widgets[#text_widgets + 1] = values
                 return values
             end,
         })
@@ -174,6 +184,30 @@ describe("Zen menu picker", function()
         }, 0, 0)
 
         assert.is_true(table.concat(painted, ","):find("black", 1, true) ~= nil)
+    end)
+
+    it("uses larger text for picker rows", function()
+        require("common/ui/zen_menu_picker"){
+            items = { { text = "Plugin" } },
+        }
+
+        assert.are.equal(24, row_font_size)
+    end)
+
+    it("bolds root rows and indents nested rows", function()
+        require("common/ui/zen_menu_picker"){
+            items = {
+                { text = "Settings", bold = true, indent_level = 0 },
+                { text = "Network", indent_level = 1 },
+            },
+        }
+
+        shown:paintTo({ paintRect = function() end }, 0, 0)
+        local root_row = text_widgets[2]
+        local nested_row = text_widgets[3]
+        assert.is_true(root_row.bold)
+        assert.is_false(nested_row.bold)
+        assert.are.equal(16, nested_row.paint_x - root_row.paint_x)
     end)
 
     it("focuses and activates the back chevron from the first item", function()

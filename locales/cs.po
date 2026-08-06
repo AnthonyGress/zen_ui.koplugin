@@ -144,6 +144,9 @@ msgstr "Přidat vlastní tlačítka pro ostatní doplňky nebo akce"
 msgid "Add folder…"
 msgstr "Přidat složku…"
 
+msgid "Add KOReader menu"
+msgstr ""
+
 msgid "Add plugin"
 msgstr "Přidat doplněk"
 
@@ -330,6 +333,9 @@ msgstr "Informace o knize"
 msgid "Book Status"
 msgstr "Stav knihy"
 
+msgid "Book switcher"
+msgstr ""
+
 msgid "Book title"
 msgstr "Název knihy"
 
@@ -452,6 +458,9 @@ msgstr "Zvolte ovládání"
 
 msgid "Choose item"
 msgstr "Vyberte položku"
+
+msgid "Choose KOReader menu"
+msgstr ""
 
 msgid "Choose plugin menu"
 msgstr "Vyberte nabídku doplňků"
@@ -933,6 +942,9 @@ msgstr "Doporučený widget"
 msgid "Featured widgets"
 msgstr "Doporučené widgety"
 
+msgid "File browser settings"
+msgstr ""
+
 msgid "File search"
 msgstr "Vyhledání souboru"
 
@@ -1128,6 +1140,9 @@ msgstr "Anonymní režim zakázán"
 msgid "Incognito mode enabled"
 msgstr "Anonymní režim povolen"
 
+msgid "Incognito mode timed out"
+msgstr ""
+
 msgid "Incompatible plugins and patches have been disabled:"
 msgstr "Nekompatibilní pluginy a opravy byly zakázány:"
 
@@ -1163,6 +1178,12 @@ msgstr "položek na stránku"
 
 msgid "Keep existing settings"
 msgstr "Zachovat stávající nastavení"
+
+msgid "KOReader menu"
+msgstr ""
+
+msgid "KOReader menu: %1"
+msgstr ""
 
 msgid "KOReader: "
 msgstr "KOReader: "
@@ -1287,6 +1308,9 @@ msgstr "Uvolněné ikony v /koreader/icons"
 msgid "Magnify UI"
 msgstr "Zvětšit UI"
 
+msgid "Main menu"
+msgstr ""
+
 msgid "Manga"
 msgstr "Manga"
 
@@ -1377,6 +1401,9 @@ msgstr "Velikost popisku lišty navigace"
 msgid "Navbar Tabs"
 msgstr "Karty navigace"
 
+msgid "Navigation"
+msgstr ""
+
 msgid "Network unavailable."
 msgstr "Síť není dostupná."
 
@@ -1464,6 +1491,9 @@ msgstr "Nenalezeny žádné knihy"
 msgid "No books found in the selected folder"
 msgstr "Ve vybrané složce nebyly nalezeny žádné knihy"
 
+msgid "No books to switch to"
+msgstr ""
+
 msgid "No books with author metadata found"
 msgstr "Nebyly nalezeny žádné knihy s metadaty autora"
 
@@ -1481,6 +1511,9 @@ msgstr "Nebyl poskytnut žádný seznam změn."
 
 msgid "No description."
 msgstr "Žádný popis."
+
+msgid "No KOReader submenus found"
+msgstr ""
 
 msgid "No launchable plugin menus found"
 msgstr "Nenalezeny žádné spustitelné nabídky doplňků"
@@ -1550,6 +1583,9 @@ msgstr "Při obnově domova"
 
 msgid "Only in Zen mode"
 msgstr "Pouze v režimu Zen"
+
+msgid "Only show while reading"
+msgstr ""
 
 msgid "Opaque background"
 msgstr "Neprůhledné pozadí"
@@ -1854,6 +1890,9 @@ msgstr "Přejmenovat"
 msgid "Report a Bug"
 msgstr "Ohlásit chybu"
 
+msgid "Require double tap to open books"
+msgstr ""
+
 msgid "Require hold to toggle buttons"
 msgstr "Vyžadovat podržení pro přepínání tačítek"
 
@@ -2036,6 +2075,9 @@ msgstr "Zobrazit asistenta s umělou inteligencí"
 
 msgid "Show all files from subfolders"
 msgstr "Zobrazit všechny soubory z podsložek"
+
+msgid "Show as first page"
+msgstr ""
 
 msgid "Show author"
 msgstr "Zobrazit autora"
@@ -2373,6 +2415,9 @@ msgstr "Čas/den"
 msgid "Time/page"
 msgstr "Čas/stránka"
 
+msgid "Timeout"
+msgstr ""
+
 msgid "Timer: %1 s"
 msgstr "Časovač: %1 s"
 
@@ -2397,6 +2442,9 @@ msgstr "Dnes"
 msgid "Too many requests. Please try again later."
 msgstr "Příliš mnoho požadavků. Zkuste to prosím později."
 
+msgid "Tools"
+msgstr ""
+
 msgid "Top bar font"
 msgstr "Písmo horního řádku"
 
@@ -2420,6 +2468,9 @@ msgstr "Zapněte režim Zen a omezte KOReader na nejnutnější funkce.\n\nOdstr
 
 msgid "Two rows"
 msgstr "Dva řádky"
+
+msgid "Typesetting"
+msgstr ""
 
 msgid "Unavailable"
 msgstr "Nedostupné"
@@ -2597,6 +2648,9 @@ msgstr "Pokud je povoleno, uvolněné ikony nebo vybraný balíček ikon Zen UI 
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "Je-li zapnuto, hledání porovnává pouze celá slova. Je-li vypnuto, porovnávají se podřetězce (např. 'ryba' vyhledá 'rybaření')."
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr ""
 
 msgid "Which time format do you prefer?"
 msgstr "Jaký formát času upřednostňujete?"

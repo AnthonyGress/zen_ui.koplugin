@@ -5,6 +5,9 @@ describe("quick settings Wi-Fi", function()
     local NetworkMgr
     local Device
     local UIManager
+    local native_available
+    local native_launches
+    local transition_closes
 
     local module_names = {
         "ffi/blitbuffer",
@@ -35,6 +38,8 @@ describe("quick settings Wi-Fi", function()
         "gettext",
         "dispatcher",
         "common/dispatch_action",
+        "common/settings_transition",
+        "modules/menu/app_launcher/native_menu",
         "modules/menu/app_launcher/plugin_scan",
         "common/plugin_root",
         "modules/menu/patches/touch_menu_panel",
@@ -61,6 +66,9 @@ describe("quick settings Wi-Fi", function()
         end
         original_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
         original_quick_settings = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
+        native_available = true
+        native_launches = {}
+        transition_closes = 0
 
         local no_op = {}
         ZenSpec.replace("ffi/blitbuffer", no_op)
@@ -86,6 +94,22 @@ describe("quick settings Wi-Fi", function()
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("dispatcher", no_op)
         ZenSpec.replace("common/dispatch_action", no_op)
+        ZenSpec.replace("common/settings_transition", {
+            close = function() transition_closes = transition_closes + 1 end,
+        })
+        ZenSpec.replace("modules/menu/app_launcher/native_menu", {
+            exists = function(id, scope)
+                return native_available and id == "network" and scope == "active"
+            end,
+            resolve = function(id, scope)
+                if not native_available or id ~= "network" or scope ~= "active" then
+                    return nil
+                end
+                return function()
+                    native_launches[#native_launches + 1] = id .. ":" .. scope
+                end
+            end,
+        })
         ZenSpec.replace("modules/menu/app_launcher/plugin_scan", no_op)
         ZenSpec.replace("common/plugin_root", "/tmp/zen-ui")
         ZenSpec.replace("common/utils", {
@@ -120,6 +144,7 @@ describe("quick settings Wi-Fi", function()
             scheduleIn = function(self, delay, callback)
                 self.scheduled[#self.scheduled + 1] = { delay = delay, callback = callback }
             end,
+            nextTick = function(_self, callback) callback() end,
         }
         ZenSpec.replace("ui/uimanager", UIManager)
 
@@ -150,10 +175,17 @@ describe("quick settings Wi-Fi", function()
                 features = { quick_settings = true },
                 quick_settings = {
                     layout_version = 2,
-                    button_order = { "wifi" },
-                    show_buttons = { wifi = true },
-                    custom_buttons = {},
-                    next_custom_id = 0,
+                    button_order = { "wifi", "custom_1" },
+                    show_buttons = { wifi = true, custom_1 = true },
+                    custom_buttons = {
+                        {
+                            id = "custom_1",
+                            type = "koreader_menu",
+                            label = "Network",
+                            koreader_menu = { id = "network", title = "Network" },
+                        },
+                    },
+                    next_custom_id = 1,
                 },
             },
         }
@@ -208,5 +240,25 @@ describe("quick settings Wi-Fi", function()
 
         assert.are.equal(0, NetworkMgr.restore_calls)
         assert.are.equal(0, NetworkMgr.stock_calls)
+    end)
+
+    it("defers native menu controls and disables missing targets", function()
+        local closes = 0
+        local touch_menu = {
+            closeMenu = function() closes = closes + 1 end,
+        }
+
+        assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.has("custom_1"))
+        assert.is_false(_G.__ZEN_UI_QUICK_SETTINGS.isDisabled("custom_1"))
+        assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.activate("custom_1", touch_menu))
+        assert.are.equal(1, closes)
+        assert.are.equal(1, transition_closes)
+        assert.are.same({ "network:active" }, native_launches)
+
+        native_available = false
+        assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.has("custom_1"))
+        assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.isDisabled("custom_1"))
+        assert.is_false(_G.__ZEN_UI_QUICK_SETTINGS.activate("custom_1", touch_menu))
+        assert.are.same({ "network:active" }, native_launches)
     end)
 end)

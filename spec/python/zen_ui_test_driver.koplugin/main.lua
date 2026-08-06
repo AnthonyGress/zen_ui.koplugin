@@ -783,6 +783,19 @@ function Driver:handleCommand(command)
         button.callback()
         return { ok = true }
     end
+    if kind == "activate_launcher_entry" then
+        local FileManager = require("apps/filemanager/filemanager")
+        local menu = FileManager.instance and FileManager.instance.menu
+        local touch_menu = menu and menu.menu_container and menu.menu_container[1]
+        local refs = touch_menu and touch_menu._zen_panel_refs
+        local index = math.max(1, math.floor(tonumber(params.index) or 1))
+        local button = refs and refs.buttons and refs.buttons[index]
+        if not button or type(button.callback) ~= "function" then
+            return { ok = false, error = "launcher entry unavailable" }
+        end
+        button.callback()
+        return { ok = true }
+    end
     if kind == "book_switcher_state" then
         local FileManager = require("apps/filemanager/filemanager")
         local menu = FileManager.instance and FileManager.instance.menu
@@ -1651,6 +1664,23 @@ function Driver:handleCommand(command)
         end
         return { ok = true, actions = actions }
     end
+    if kind == "native_menu_state" and type(params.id) == "string" then
+        local scope = type(params.scope) == "string" and params.scope or "active"
+        local NativeMenu = require("modules/menu/app_launcher/native_menu")
+        local items = NativeMenu.scan(scope)
+        local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
+        local ids = {}
+        for _i, item in ipairs(items) do ids[#ids + 1] = item.id end
+        return {
+            ok = true,
+            exists = NativeMenu.exists(params.id, scope),
+            ids = ids,
+            control_present = controls and controls.has
+                and controls.has(params.control_id or "") == true,
+            control_disabled = controls and controls.isDisabled
+                and controls.isDisabled(params.control_id or "") == true,
+        }
+    end
     if kind == "activate_custom_control" and type(params.id) == "string" then
         local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
         if not (controls and type(controls.activate) == "function") then
@@ -1724,7 +1754,7 @@ function Driver:handleCommand(command)
             tags = true, to_be_read = true,
         }
         local open_tab = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_TAB")
-        if not allowed[params.id] then
+        if not allowed[params.id] and params.id:sub(1, 3) ~= "ct_" then
             return { ok = false, error = "navbar tab is not allowed" }
         end
         if type(open_tab) ~= "function" then

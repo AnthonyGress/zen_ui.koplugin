@@ -144,6 +144,9 @@ msgstr "為其他外掛程式或操作新增自訂按鈕。"
 msgid "Add folder…"
 msgstr "新增資料夾…"
 
+msgid "Add KOReader menu"
+msgstr ""
+
 msgid "Add plugin"
 msgstr "新增外掛程式"
 
@@ -330,6 +333,9 @@ msgstr "書籍資料"
 msgid "Book Status"
 msgstr "書籍狀態"
 
+msgid "Book switcher"
+msgstr ""
+
 msgid "Book title"
 msgstr "書名"
 
@@ -452,6 +458,9 @@ msgstr "選擇控制"
 
 msgid "Choose item"
 msgstr "選擇項目"
+
+msgid "Choose KOReader menu"
+msgstr ""
 
 msgid "Choose plugin menu"
 msgstr "選擇外掛程式選單"
@@ -933,6 +942,9 @@ msgstr "特色小部件"
 msgid "Featured widgets"
 msgstr "精選小工具"
 
+msgid "File browser settings"
+msgstr ""
+
 msgid "File search"
 msgstr "檔案搜尋"
 
@@ -1128,6 +1140,9 @@ msgstr "無痕模式已停用"
 msgid "Incognito mode enabled"
 msgstr "無痕模式已啟用"
 
+msgid "Incognito mode timed out"
+msgstr ""
+
 msgid "Incompatible plugins and patches have been disabled:"
 msgstr "不相容的插件和補丁已停用："
 
@@ -1163,6 +1178,12 @@ msgstr "每頁項目數"
 
 msgid "Keep existing settings"
 msgstr "保留現有設定"
+
+msgid "KOReader menu"
+msgstr ""
+
+msgid "KOReader menu: %1"
+msgstr ""
 
 msgid "KOReader: "
 msgstr "KOReader: "
@@ -1220,6 +1241,9 @@ msgstr "左側項目"
 
 msgid "Library"
 msgstr "書庫"
+
+msgid "Library background was disabled because the image file was not found."
+msgstr ""
 
 msgid "Library font"
 msgstr "書庫字體"
@@ -1283,6 +1307,9 @@ msgstr "/koreader/icons 中的圖示鬆動"
 
 msgid "Magnify UI"
 msgstr "放大介面"
+
+msgid "Main menu"
+msgstr ""
 
 msgid "Manga"
 msgstr "漫畫"
@@ -1374,6 +1401,9 @@ msgstr "導航列標籤大小"
 msgid "Navbar Tabs"
 msgstr "導航分頁"
 
+msgid "Navigation"
+msgstr ""
+
 msgid "Network unavailable."
 msgstr "網絡無法使用。"
 
@@ -1461,6 +1491,9 @@ msgstr "找不到書籍"
 msgid "No books found in the selected folder"
 msgstr "在所選資料夾中找不到書籍"
 
+msgid "No books to switch to"
+msgstr ""
+
 msgid "No books with author metadata found"
 msgstr "找不到包含作者元數據的書籍"
 
@@ -1478,6 +1511,9 @@ msgstr "未提供更新記錄。"
 
 msgid "No description."
 msgstr "無描述。"
+
+msgid "No KOReader submenus found"
+msgstr ""
 
 msgid "No launchable plugin menus found"
 msgstr "找不到可啟動的外掛程式選單"
@@ -1547,6 +1583,9 @@ msgstr "主頁刷新時"
 
 msgid "Only in Zen mode"
 msgstr "僅限 Zen 模式"
+
+msgid "Only show while reading"
+msgstr ""
 
 msgid "Opaque background"
 msgstr "不透明背景"
@@ -1851,6 +1890,9 @@ msgstr "重新命名"
 msgid "Report a Bug"
 msgstr "回報問題"
 
+msgid "Require double tap to open books"
+msgstr ""
+
 msgid "Require hold to toggle buttons"
 msgstr "需要長按才能切換按鈕"
 
@@ -2033,6 +2075,9 @@ msgstr "顯示 AI 助理"
 
 msgid "Show all files from subfolders"
 msgstr "顯示子資料夾中的所有檔案"
+
+msgid "Show as first page"
+msgstr ""
 
 msgid "Show author"
 msgstr "顯示作者"
@@ -2370,6 +2415,9 @@ msgstr "時間/日"
 msgid "Time/page"
 msgstr "時間/頁數"
 
+msgid "Timeout"
+msgstr ""
+
 msgid "Timer: %1 s"
 msgstr "計時器：%1 s"
 
@@ -2394,6 +2442,9 @@ msgstr "今天"
 msgid "Too many requests. Please try again later."
 msgstr "請求次數過多，請稍後再試。"
 
+msgid "Tools"
+msgstr ""
+
 msgid "Top bar font"
 msgstr "頂部列字體"
 
@@ -2417,6 +2468,9 @@ msgstr "開啟禪模式，將 KOReader 精簡至最基本功能。\n\n消除視�
 
 msgid "Two rows"
 msgstr "兩欄"
+
+msgid "Typesetting"
+msgstr ""
 
 msgid "Unavailable"
 msgstr "無法使用"
@@ -2594,6 +2648,9 @@ msgstr "啟用後，鬆散圖示或選定的 Zen UI 圖示包會覆蓋支援的�
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "啟用後，搜尋只會比對完整字詞。停用後，會使用子字串比對（例如「fish」會比對到「fishing」）。"
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr ""
 
 msgid "Which time format do you prefer?"
 msgstr "您偏好哪種時間格式？"

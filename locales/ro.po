@@ -144,6 +144,9 @@ msgstr "Adaugă butoane personalizate pentru alte pluginuri sau acțiuni."
 msgid "Add folder…"
 msgstr "Adaugă folder…"
 
+msgid "Add KOReader menu"
+msgstr "Adaugă meniul KOReader"
+
 msgid "Add plugin"
 msgstr "Adaugă plugin"
 
@@ -455,6 +458,9 @@ msgstr "Alege controlul"
 
 msgid "Choose item"
 msgstr "Alege elementul"
+
+msgid "Choose KOReader menu"
+msgstr "Alege meniul KOReader"
 
 msgid "Choose plugin menu"
 msgstr "Alege meniul pluginului"
@@ -936,6 +942,9 @@ msgstr "Widget recomandat"
 msgid "Featured widgets"
 msgstr "Widgeturi principale"
 
+msgid "File browser settings"
+msgstr "Setările navigatorului de fișiere"
+
 msgid "File search"
 msgstr "Căutare fișiere"
 
@@ -1170,6 +1179,12 @@ msgstr "elemente pe pagină"
 msgid "Keep existing settings"
 msgstr "Păstrați setările existente"
 
+msgid "KOReader menu"
+msgstr "Meniu KOReader"
+
+msgid "KOReader menu: %1"
+msgstr "Meniu KOReader: %1"
+
 msgid "KOReader: "
 msgstr "KOReader: "
 
@@ -1293,6 +1308,9 @@ msgstr "Pictograme separate în /koreader/icons"
 msgid "Magnify UI"
 msgstr "Mărire interfață"
 
+msgid "Main menu"
+msgstr "Meniu principal"
+
 msgid "Manga"
 msgstr "Manga"
 
@@ -1382,6 +1400,9 @@ msgstr "Dimensiune etichete bară de navigare"
 
 msgid "Navbar Tabs"
 msgstr "File bare de navigare"
+
+msgid "Navigation"
+msgstr "Navigare"
 
 msgid "Network unavailable."
 msgstr "Rețeaua nu este disponibilă."
@@ -1490,6 +1511,9 @@ msgstr "Nu a fost furnizat niciun jurnal de modificări."
 
 msgid "No description."
 msgstr "Fără descriere."
+
+msgid "No KOReader submenus found"
+msgstr "Nu s-au găsit submeniuri KOReader"
 
 msgid "No launchable plugin menus found"
 msgstr "Nu au fost găsite meniuri de pluginuri lansabile"
@@ -2370,9 +2394,6 @@ msgstr "Anul acesta"
 msgid "Time"
 msgstr "Timp"
 
-msgid "Timeout"
-msgstr "Limită de timp"
-
 msgid "Time Format"
 msgstr "Format oră"
 
@@ -2393,6 +2414,9 @@ msgstr "Timp/zi"
 
 msgid "Time/page"
 msgstr "Timp/pagina"
+
+msgid "Timeout"
+msgstr "Limită de timp"
 
 msgid "Timer: %1 s"
 msgstr "Temporizator: %1 s"
@@ -2418,6 +2442,9 @@ msgstr "Azi"
 msgid "Too many requests. Please try again later."
 msgstr "Prea multe cereri. Încercați din nou mai târziu."
 
+msgid "Tools"
+msgstr "Instrumente"
+
 msgid "Top bar font"
 msgstr "Font bară de sus"
 
@@ -2441,6 +2468,9 @@ msgstr "Activați modul Zen pentru a reduce KOReader la esențial.\n\nEliminați
 
 msgid "Two rows"
 msgstr "Două rânduri"
+
+msgid "Typesetting"
+msgstr "Culegere"
 
 msgid "Unavailable"
 msgstr "Indisponibil"

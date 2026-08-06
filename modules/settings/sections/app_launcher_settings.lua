@@ -6,6 +6,7 @@ local IconItem = require("common/ui/icon_menu_item")
 local icon_utils = require("common/utils")
 
 local Model = require("modules/menu/app_launcher/model")
+local NativeMenu = require("modules/menu/app_launcher/native_menu")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
 local DispatcherMenu = require("common/dispatcher_menu")
 
@@ -299,6 +300,49 @@ function M.build(ctx)
         }
     end
 
+    local function show_koreader_menu_picker(on_select, touch_menu)
+        local found = NativeMenu.scan("active")
+        if #found == 0 then
+            local InfoMessage = require("ui/widget/infomessage")
+            UIManager:show(InfoMessage:new{ text = _("No KOReader submenus found") })
+            return
+        end
+        require("common/ui/zen_menu_picker"){
+            title = _("Choose KOReader menu"),
+            items = found,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
+            on_select = on_select,
+        }
+    end
+
+    local function choose_koreader_menu_entry(entry, touch_menu)
+        show_koreader_menu_picker(function(item)
+            entry.koreader_menu = { id = item.id, title = item.title }
+            entry.label = item.title
+            entry.icon = suggest_icon(item.title)
+            save_app_launcher()
+            if touch_menu and touch_menu.updateItems then
+                touch_menu:updateItems(1)
+            end
+        end, touch_menu)
+    end
+
+    local function add_koreader_menu(folder, touch_menu)
+        show_koreader_menu_picker(function(item)
+            local entry = {
+                id = Model.next_id(cfg),
+                type = "koreader_menu",
+                label = item.title,
+                icon = suggest_icon(item.title),
+                koreader_menu = { id = item.id, title = item.title },
+            }
+            insert_entry(entry, folder)
+            UIManager:nextTick(function()
+                open_entry_settings(touch_menu, entry, folder)
+            end)
+        end, touch_menu)
+    end
+
     local function open_new_action_picker(folder, touch_menu)
         if not ok_disp then return end
         local entry = new_action_entry(nil, true)
@@ -379,6 +423,13 @@ function M.build(ctx)
                     add_plugin(folder, touch_menu)
                 end,
             }, icons.plugin),
+            IconItem.decorate({
+                text = _("Add KOReader menu"),
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    add_koreader_menu(folder, touch_menu)
+                end,
+            }, icons.open_menu),
         }
     end
 
@@ -405,6 +456,13 @@ function M.build(ctx)
                     add_plugin(folder, touch_menu)
                 end,
             }, icons.plugin),
+            IconItem.decorate({
+                text = _("KOReader menu"),
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    add_koreader_menu(folder, touch_menu)
+                end,
+            }, icons.koreader_menu),
         }
         if not folder then
             items[#items + 1] = IconItem.decorate({
@@ -574,6 +632,20 @@ function M.build(ctx)
                     sub_item_table = settings_items,
                 }, icons.settings_quick)
             end
+            add_label_item()
+            add_icon_item()
+        elseif entry.type == "koreader_menu" then
+            items[#items + 1] = IconItem.decorate({
+                text_func = function()
+                    local target = entry.koreader_menu
+                    return T(_("KOReader menu: %1"),
+                        type(target) == "table" and target.title or entry.label or _("(none)"))
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    choose_koreader_menu_entry(entry, touch_menu)
+                end,
+            }, icons.koreader_menu)
             add_label_item()
             add_icon_item()
         elseif entry.type ~= "break" then

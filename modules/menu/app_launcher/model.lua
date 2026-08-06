@@ -9,6 +9,12 @@ local function valid_plugin(plugin)
         and type(plugin.method) == "string"
 end
 
+local function valid_koreader_menu(menu)
+    return type(menu) == "table"
+        and type(menu.id) == "string"
+        and menu.id ~= ""
+end
+
 local function valid_entry(entry, allow_folder)
     if type(entry) ~= "table" or type(entry.id) ~= "string" then
         return false
@@ -23,6 +29,8 @@ local function valid_entry(entry, allow_folder)
         return type(entry.action) == "table"
     elseif entry.type == "plugin" then
         return valid_plugin(entry.plugin)
+    elseif entry.type == "koreader_menu" then
+        return valid_koreader_menu(entry.koreader_menu)
     elseif entry.type == "quick_setting" then
         return type(entry.quick_setting_id) == "string" and entry.quick_setting_id ~= ""
     elseif allow_folder and entry.type == "folder" then
