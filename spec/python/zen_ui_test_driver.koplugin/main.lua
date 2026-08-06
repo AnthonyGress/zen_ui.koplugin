@@ -249,6 +249,28 @@ local function collect_folder_widgets(widget, states, seen, depth)
     end
 end
 
+local function collect_visible_item_widgets(widget, states, seen, depth)
+    if type(widget) ~= "table" or seen[widget] or depth > 64 then return end
+    seen[widget] = true
+    local entry = widget.entry
+    local dimen = widget.dimen
+    local path = type(entry) == "table" and (entry.path or entry.file)
+    if type(path) == "string" and type(dimen) == "table"
+            and dimen.x ~= nil and dimen.y ~= nil and dimen.w and dimen.h then
+        states[#states + 1] = {
+            path = path,
+            x = dimen.x,
+            y = dimen.y,
+            width = dimen.w,
+            height = dimen.h,
+            double_tap_patched = widget._zen_book_double_tap_patched == true,
+        }
+    end
+    for _i, child in ipairs(widget) do
+        collect_visible_item_widgets(child, states, seen, depth + 1)
+    end
+end
+
 local function file_chooser_items()
     local FileManager = require("apps/filemanager/filemanager")
     local file_chooser = FileManager.instance and FileManager.instance.file_chooser
@@ -284,6 +306,8 @@ local function file_chooser_items()
     end
     local folder_widgets = {}
     collect_folder_widgets(file_chooser.item_group or file_chooser, folder_widgets, {}, 0)
+    local visible_items = {}
+    collect_visible_item_widgets(file_chooser.item_group or file_chooser, visible_items, {}, 0)
     local focused_item
     local focused_index = file_chooser.itemnumber or file_chooser.prev_itemnumber
     if focused_index and file_chooser.item_table then
@@ -307,8 +331,33 @@ local function file_chooser_items()
         items = items,
         page_badges = page_badges,
         folder_widgets = folder_widgets,
+        visible_items = visible_items,
         visible_texts = visible_texts,
     }
+end
+
+local function tap_file_chooser_item(path)
+    local FileManager = require("apps/filemanager/filemanager")
+    local file_chooser = FileManager.instance and FileManager.instance.file_chooser
+    if not file_chooser then return false, "file chooser unavailable" end
+    local item = find_descendant(file_chooser.item_group or file_chooser, function(widget)
+        local entry = widget.entry
+        return type(entry) == "table" and (entry.path or entry.file) == path
+            and type(widget.dimen) == "table" and widget.dimen.x ~= nil
+            and type(widget.onTapSelect) == "function"
+    end)
+    if not item then return false, "visible item unavailable: " .. path end
+    local dimen = item.dimen
+    item:onTapSelect(nil, {
+        pos = require("ui/geometry"):new{
+            x = dimen.x + math.floor(dimen.w / 2),
+            y = dimen.y + math.floor(dimen.h / 2),
+            w = 0,
+            h = 0,
+        },
+        time = require("ui/time").now(),
+    })
+    return true
 end
 
 local function file_chooser_cover_state()
@@ -608,6 +657,10 @@ function Driver:handleCommand(command)
         local state = file_chooser_items()
         return state and { ok = true, file_chooser = state }
             or { ok = false, error = "file chooser unavailable" }
+    end
+    if kind == "tap_file_chooser_item" and type(params.path) == "string" then
+        local ok, err = tap_file_chooser_item(params.path)
+        return { ok = ok == true, error = err }
     end
     if kind == "file_chooser_cover_state" then
         local state = file_chooser_cover_state()

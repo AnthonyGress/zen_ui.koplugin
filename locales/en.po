@@ -1866,6 +1866,9 @@ msgstr "Rename"
 msgid "Report a Bug"
 msgstr "Report a Bug"
 
+msgid "Require double tap to open books"
+msgstr "Require double tap to open books"
+
 msgid "Require hold to toggle buttons"
 msgstr "Require hold to toggle buttons"
 
@@ -2615,6 +2618,9 @@ msgstr "When enabled, loose icons or a selected Zen UI icon pack override suppor
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
 
 msgid "Which time format do you prefer?"
 msgstr "Which time format do you prefer?"

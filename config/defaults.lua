@@ -76,6 +76,9 @@ local defaults = {
     search = {
         substring = false,
     },
+    developer = {
+        double_tap_to_open_books = false,
+    },
     navbar = {
         show_tabs = {
             books = true,

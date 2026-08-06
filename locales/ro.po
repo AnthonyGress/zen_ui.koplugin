@@ -1866,6 +1866,9 @@ msgstr "Redenumește"
 msgid "Report a Bug"
 msgstr "Raportează o eroare"
 
+msgid "Require double tap to open books"
+msgstr "Necesită atingere dublă pentru a deschide cărțile"
+
 msgid "Require hold to toggle buttons"
 msgstr "Necesită apăsare lungă pentru a comuta butoanele"
 
@@ -2615,6 +2618,9 @@ msgstr "Când opțiunea este activată, pictogramele separate sau un pachet de p
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "Când este activat, căutarea potrivește doar cuvinte întregi. Când este dezactivat, se folosește potrivirea parțială (ex.: 'pește' se potrivește cu 'pescuit')."
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr "Când este activată, atinge rapid de două ori aceeași carte pentru a o deschide. Comenzile de la tastatură rămân neschimbate."
 
 msgid "Which time format do you prefer?"
 msgstr "Ce format de oră preferați?"

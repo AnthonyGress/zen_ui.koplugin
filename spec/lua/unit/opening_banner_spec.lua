@@ -105,6 +105,9 @@ describe("opening banner", function()
                 return { info = function() end, warn = function() end, err = function() end, perf = function() end }
             end,
         })
+        ZenSpec.replace("common/book_open_tap", {
+            willOpen = function() return true end,
+        })
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("listmenu", { _updateItemsBuildUI = build_list_items })
         ZenSpec.replace("mosaicmenu", { _updateItemsBuildUI = build_mosaic_items })
@@ -301,6 +304,27 @@ describe("opening banner", function()
             filepath = "/book.epub",
             dimen = dimen,
         }))
+        assert.are.equal(1, #shown)
+    end)
+
+    it("does not prepare a list banner until the opening tap is accepted", function()
+        local _, _, shown, _, _, ListMenuItem = install_stubs()
+        local accepted = false
+        ZenSpec.replace("common/book_open_tap", {
+            willOpen = function() return accepted end,
+        })
+        apply_patch()
+
+        local item = {
+            entry = { path = "/book.epub", is_file = true },
+            filepath = "/book.epub",
+            dimen = { x = 10, y = 20, w = 300, h = 60 },
+        }
+        assert.are.equal("selected", ListMenuItem.onTapSelect(item, nil, { time = 1 }))
+        assert.are.equal(0, #shown)
+
+        accepted = true
+        assert.are.equal("selected", ListMenuItem.onTapSelect(item, nil, { time = 1.2 }))
         assert.are.equal(1, #shown)
     end)
 

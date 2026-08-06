@@ -1,4 +1,5 @@
 common/arrange_state.lua|unit
+common/book_open_tap.lua|unit
 _meta.lua|load
 main.lua|integration
 common/book_status.lua|unit
@@ -79,6 +80,7 @@ modules/filebrowser/patches/browser_hide_up_folder.lua|integration
 modules/filebrowser/patches/browser_item_table_cache.lua|integration
 modules/filebrowser/patches/browser_list_item_layout.lua|integration
 modules/filebrowser/patches/browser_show_hidden.lua|integration
+modules/filebrowser/patches/book_double_tap.lua|integration
 modules/filebrowser/patches/collections.lua|integration
 modules/filebrowser/patches/context_menu.lua|integration
 modules/filebrowser/patches/coverbrowser_check.lua|integration

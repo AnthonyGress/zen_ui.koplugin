@@ -56,4 +56,27 @@ describe("Advanced settings", function()
 
         assert.is_true(clear_gestures.keep_menu_open)
     end)
+
+    it("toggles double-tap book opening", function()
+        local saved = 0
+        local config = { features = {}, developer = {} }
+        local items = require("modules/settings/sections/advanced_settings").build({
+            config = config,
+            plugin = { saveConfig = function() saved = saved + 1 end },
+            settings_apply = { prompt_restart = function() end },
+        })
+        local double_tap_item
+        for _i, item in ipairs(items) do
+            if item.text == "Require double tap to open books" then
+                double_tap_item = item
+                break
+            end
+        end
+
+        assert.is_table(double_tap_item)
+        assert.is_false(double_tap_item.checked_func())
+        double_tap_item.callback()
+        assert.is_true(double_tap_item.checked_func())
+        assert.are.equal(1, saved)
+    end)
 end)

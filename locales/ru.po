@@ -1866,6 +1866,9 @@ msgstr "Переименовать"
 msgid "Report a Bug"
 msgstr "Сообщить об ошибке"
 
+msgid "Require double tap to open books"
+msgstr "Открывать книги двойным касанием"
+
 msgid "Require hold to toggle buttons"
 msgstr "Требовать удержание для переключения кнопок"
 
@@ -2615,6 +2618,9 @@ msgstr "Если параметр включён, отдельные значк�
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "Если включено, поиск совпадает только с целыми словами. Если выключено, используется поиск по части слова (например, 'рыб' найдёт 'рыбалка')."
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr "Если включено, для открытия книги быстро коснитесь её дважды. Управление с клавиатуры не изменяется."
 
 msgid "Which time format do you prefer?"
 msgstr "Какой формат времени вы предпочитаете?"

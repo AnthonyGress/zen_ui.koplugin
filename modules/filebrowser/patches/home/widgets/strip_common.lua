@@ -20,6 +20,7 @@ local Device = require("device")
 local MemoryPolicy = require("common/memory_policy")
 local utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
+local BookOpenTap = require("common/book_open_tap")
 local _ = require("gettext")
 local logger = require("common/zen_logger").new("home_strip")
 
@@ -629,6 +630,7 @@ function M.build_strip(ctx, source_key)
                     if not tap_self.dimen or not ges or not ges.pos then return false end
                     if ctx.openTopMenu and ctx.openTopMenu(ges) then return true end
                     if not tap_self.dimen:contains(ges.pos) then return false end
+                    if ges.time ~= nil and not BookOpenTap.shouldOpen(path, ges.time) then return true end
                     set_opening_banner_cover(item.cover)
                     ctx.openBook(path)
                     return true

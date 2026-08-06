@@ -47,6 +47,7 @@ local PATCH_MODULES = {
     home_page = "modules/filebrowser/patches/home_page",
     status_on_open = "modules/filebrowser/patches/status_on_open",
     library_background = "modules/filebrowser/patches/library_background",
+    book_double_tap = "modules/filebrowser/patches/book_double_tap",
 }
 
 local function is_feature_enabled(plugin, key)
@@ -233,6 +234,12 @@ function M.init(logger, plugin)
     local zen_renderer_fn = load_patch("zen_renderer")
     if zen_renderer_fn then
         run_feature(logger, plugin, "zen_renderer", zen_renderer_fn)
+    end
+
+    -- Apply after all three book-item renderers expose their item classes.
+    local book_double_tap_fn = load_patch("book_double_tap")
+    if book_double_tap_fn then
+        run_feature(logger, plugin, "book_double_tap", book_double_tap_fn)
     end
 
     -- Apply last so measurements wrap the final CoverMenu implementation.

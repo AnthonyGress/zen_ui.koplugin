@@ -1866,6 +1866,9 @@ msgstr "Hernoemen"
 msgid "Report a Bug"
 msgstr "Een fout melden"
 
+msgid "Require double tap to open books"
+msgstr "Dubbel tikken vereisen om boeken te openen"
+
 msgid "Require hold to toggle buttons"
 msgstr "Lang indrukken vereist om knoppen te schakelen"
 
@@ -2615,6 +2618,9 @@ msgstr "Indien ingeschakeld vervangen losse pictogrammen of een geselecteerd Zen
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "Wanneer ingeschakeld, zoekt de zoekfunctie alleen hele woorden. Wanneer uitgeschakeld, worden deelovereenkomsten gebruikt (bijv. 'fish' vindt 'fishing')."
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr "Indien ingeschakeld, tik je snel twee keer op hetzelfde boek om het te openen. De toetsenbordbediening blijft ongewijzigd."
 
 msgid "Which time format do you prefer?"
 msgstr "Welk tijdformaat heeft je voorkeur?"

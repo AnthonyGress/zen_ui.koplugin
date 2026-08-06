@@ -1866,6 +1866,9 @@ msgstr "Renommer"
 msgid "Report a Bug"
 msgstr "Signaler un bug"
 
+msgid "Require double tap to open books"
+msgstr "Exiger un double appui pour ouvrir les livres"
+
 msgid "Require hold to toggle buttons"
 msgstr "Appui long requis pour basculer les boutons"
 
@@ -2615,6 +2618,9 @@ msgstr "Lorsque cette option est activée, les icônes individuelles ou le pack 
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "Si activé, la recherche correspond uniquement aux mots entiers. Si désactivé, les correspondances partielles sont utilisées (par ex., 'fish' correspond à 'fishing')."
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr "Lorsque cette option est activée, appuyez rapidement deux fois sur le même livre pour l’ouvrir. Les commandes au clavier restent inchangées."
 
 msgid "Which time format do you prefer?"
 msgstr "Quel format d'heure préférez-vous ?"

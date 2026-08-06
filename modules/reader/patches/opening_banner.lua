@@ -77,6 +77,7 @@ local function apply_opening_banner()
     local TextWidget = require("ui/widget/textwidget")
     local Widget  = require("ui/widget/widget")
     local logger  = require("common/zen_logger").new("opening_banner")
+    local BookOpenTap = require("common/book_open_tap")
     local _       = require("gettext")
     local pending_banner
     local pending_banner_seq
@@ -107,6 +108,15 @@ local function apply_opening_banner()
         if menu and menu.ui and menu.ui.selected_files ~= nil then return true end
         local ok, FileManager = pcall(require, "apps/filemanager/filemanager")
         return ok and FileManager.instance and FileManager.instance.selected_files ~= nil
+    end
+
+    local function should_prepare_for_tap(item, ...)
+        local ges = select(2, ...)
+        if not ges or ges.time == nil then return true end
+        local entry = item and item.entry
+        local path = type(entry) == "table"
+            and (entry.path or entry.file or entry.filepath) or item and item.filepath
+        return BookOpenTap.willOpen(path, ges.time)
     end
 
     local function set_opening_banner_dimen(dimen, cover_widget, is_list, advance_tap)
@@ -282,7 +292,7 @@ local function apply_opening_banner()
             end
             -- Only book taps may prepare a banner. Virtual group rows do not
             -- always carry KOReader's is_directory marker.
-            if is_book_item(self_item) then
+            if is_book_item(self_item) and should_prepare_for_tap(self_item, ...) then
                 -- self[1][1][1]: FrameContainer/FakeCover inside CenterContainer.
                 local cover_frame = self_item[1] and self_item[1][1] and self_item[1][1][1]
 
@@ -328,7 +338,7 @@ local function apply_opening_banner()
                 _last_cover_dimen = nil
                 return orig_tap(self_item, ...)
             end
-            if is_book_item(self_item) then
+            if is_book_item(self_item) and should_prepare_for_tap(self_item, ...) then
                 if not set_opening_banner_dimen(self_item.dimen, self_item, true, false) then
                     _last_cover_dimen = nil
                 end

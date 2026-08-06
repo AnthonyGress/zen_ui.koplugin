@@ -17,6 +17,7 @@ local Font = require("ui/font")
 local util = require("util")
 local zen_utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
+local BookOpenTap = require("common/book_open_tap")
 local cover_common = require("modules/filebrowser/patches/home/widgets/cover_common")
 local library_font = require("modules/filebrowser/patches/library_font")
 local _ = require("gettext")
@@ -605,6 +606,7 @@ function M.build(ctx, source_key)
         if not tap_self.dimen or not ges or not ges.pos then return false end
         if ctx.openTopMenu and ctx.openTopMenu(ges) then return true end
         if not tap_self.dimen:contains(ges.pos) then return false end
+        if ges.time ~= nil and not BookOpenTap.shouldOpen(book.path, ges.time) then return true end
         set_opening_banner_cover(cover_widget)
         ctx.openBook(book.path)
         return true

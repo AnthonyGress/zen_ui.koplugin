@@ -1866,6 +1866,9 @@ msgstr "重新命名"
 msgid "Report a Bug"
 msgstr "回報問題"
 
+msgid "Require double tap to open books"
+msgstr "需要點兩下才能開啟書籍"
+
 msgid "Require hold to toggle buttons"
 msgstr "需要長按才能切換按鈕"
 
@@ -2615,6 +2618,9 @@ msgstr "啟用後，獨立圖示或選取的 Zen UI 圖示包會取代支援的�
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "啟用後，搜尋只會比對完整字詞。停用後，會使用子字串比對（例如「fish」會比對到「fishing」）。"
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr "啟用後，快速連續點選同一本書兩次即可開啟。鍵盤操作不受影響。"
 
 msgid "Which time format do you prefer?"
 msgstr "您偏好哪種時間格式？"

@@ -1866,6 +1866,9 @@ msgstr "Renombrar"
 msgid "Report a Bug"
 msgstr "Informar de un error"
 
+msgid "Require double tap to open books"
+msgstr "Requerir doble toque para abrir libros"
+
 msgid "Require hold to toggle buttons"
 msgstr "Mantener pulsado para activar botones"
 
@@ -2615,6 +2618,9 @@ msgstr "Al activarlo, los iconos sueltos o un paquete de iconos de Zen UI selecc
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "Si está activado, la búsqueda coincide solo con palabras completas. Si está desactivado, se usan coincidencias parciales (p. ej., 'fish' coincide con 'fishing')."
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr "Cuando esté activado, toca rápidamente dos veces el mismo libro para abrirlo. Los controles del teclado no cambian."
 
 msgid "Which time format do you prefer?"
 msgstr "¿Qué formato de hora prefieres?"

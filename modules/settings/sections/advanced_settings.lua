@@ -61,6 +61,21 @@ function M.build(ctx)
     })
 
     table.insert(items, {
+        text = _("Require double tap to open books"),
+        help_text = _("When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."),
+        checked_func = function()
+            return type(config.developer) == "table"
+                and config.developer.double_tap_to_open_books == true
+        end,
+        callback = function()
+            if type(config.developer) ~= "table" then config.developer = {} end
+            config.developer.double_tap_to_open_books =
+                config.developer.double_tap_to_open_books ~= true
+            plugin:saveConfig()
+        end,
+    })
+
+    table.insert(items, {
         text = _("Show hidden files"),
         checked_func = function()
             return type(config.developer) == "table"

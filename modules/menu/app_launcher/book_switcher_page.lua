@@ -1,4 +1,5 @@
 local M = {}
+local BookOpenTap = require("common/book_open_tap")
 
 M.BOOK_COUNT = 4
 
@@ -215,7 +216,9 @@ function M.build(opts)
         end
     end
 
-    function BookCell:onTapSelect()
+    function BookCell:onTapSelect(_arg, ges)
+        if ges and ges.time ~= nil
+                and not BookOpenTap.shouldOpen(self.book_path, ges.time) then return true end
         if self.callback then self.callback() end
         return true
     end
@@ -291,6 +294,7 @@ function M.build(opts)
             height = cell_h,
             dimen = Geom:new{ w = cell_w, h = cell_h },
             callback = callback,
+            book_path = book.path,
             content,
         }
         cell._zen_book_switcher_cover = cover
