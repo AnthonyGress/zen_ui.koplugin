@@ -322,33 +322,15 @@ function M.overrideIcons(overrides, prefer_user_icon)
     end
 end
 
--- Module-level cache so pgettext is resolved only once (lazy, safe for early require).
-local _C_cache
-local function _C(ctx, msgid)
-    if not _C_cache then
-        local _cg = rawget(_G, "C_")
-        if type(_cg) == "function" then
-            _C_cache = _cg
-        else
-            local ok_gt, gt = pcall(require, "gettext")
-            if ok_gt and gt and type(gt.pgettext) == "function" then
-                _C_cache = function(c, m) return gt.pgettext(c, m) end
-            else
-                _C_cache = function(_, m) return m end
-            end
-        end
-    end
-    return _C_cache(ctx, msgid)
-end
+local __ = require("gettext")
 
 --- Localised page-count label (abbreviated or full word form).
 --- @param pages number
 --- @param long  boolean|nil  true for full form ("pages"), false for short ("p.")
 --- @return string
 function M.formatPageCount(pages, long)
-    local ctx = long and "page_count_long" or "page_count"
-    local msgid = long and "pages" or "p."
-    return tostring(pages) .. "\u{00A0}" .. _C(ctx, msgid)
+    local label = long and __("pages") or __("p.")
+    return tostring(pages) .. "\u{00A0}" .. label
 end
 
 --- Resolve the stable page count, optionally reusing metadata already read by
