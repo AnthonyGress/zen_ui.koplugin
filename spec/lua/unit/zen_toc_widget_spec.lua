@@ -75,9 +75,20 @@ describe("Zen TOC hardware focus", function()
             PN_FOOTER_H = 40,
             FOOTER_H = 20,
             CHEV_W = 50,
+            CHEV_HIT_W = 80,
             getStyle = function() return "page_number" end,
             getCenteredFooterY = function(_list_bottom, footer_top) return footer_top end,
             getHoldSkip = function() return 10 end,
+            getPageNumberZone = function(x, y, footer_x, footer_y, footer_w, footer_h, available_bottom)
+                local hit_bottom = math.min(footer_y + footer_h + 24, available_bottom)
+                if x < footer_x or x >= footer_x + footer_w
+                        or y < footer_y or y >= hit_bottom then
+                    return nil
+                end
+                if x < footer_x + 80 then return "left" end
+                if x >= footer_x + footer_w - 80 then return "right" end
+                if y < footer_y + footer_h then return "center" end
+            end,
             paint = function() end,
             setPlugin = function() end,
         })

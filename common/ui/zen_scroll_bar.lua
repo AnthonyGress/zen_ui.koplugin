@@ -87,14 +87,26 @@ local function apply_zen_scroll_bar()
             or  (self.dimen.y + self.dimen.h - footer_area_h)
         local menu_x = is_search and 0 or self.dimen.x
 
+        local function getTouchBottom()
+            local navbar_h = tonumber(menu._zen_navbar_height) or 0
+            if navbar_h > 0 then return scr_h - navbar_h end
+            return math.min(scr_h, menu.dimen.y + menu.dimen.h)
+        end
+
         local function updateTouchZoneY(area_y)
             for _i, zone in ipairs(menu._zen_page_number_zones or {}) do
                 zone.screen_zone.ratio_y = area_y / scr_h
+                local hit_h = zone._zen_extend_down
+                    and pager.getChevronHitBottom(
+                        area_y, footer_area_h, getTouchBottom()
+                    ) - area_y
+                    or footer_area_h
+                zone.screen_zone.ratio_h = hit_h / scr_h
                 local registered = menu._zones and menu._zones[zone.id]
                 local range = registered and registered.gs_range and registered.gs_range.range
                 if range then
                     range.y = area_y
-                    range.h = footer_area_h
+                    range.h = hit_h
                 end
             end
         end
@@ -117,7 +129,7 @@ local function apply_zen_scroll_bar()
         -- screen_zone uses ratio_x/y/w/h (fractions of screen dimensions),
         -- as required by InputContainer:registerTouchZones.
         -- Pre-compute ratios shared across zones.
-        local chev_hit_w  = math.min(bar_w / 2, pager.CHEV_HIT_W or pager.CHEV_W)
+        local chev_hit_w  = pager.getChevronHitWidth(bar_w)
         local rz_left_x   = (menu_x + bar_x) / scr_w
         local rz_right_x  = (menu_x + bar_x + bar_w - chev_hit_w) / scr_w
         local rz_center_x = (menu_x + bar_x + chev_hit_w) / scr_w
@@ -136,6 +148,7 @@ local function apply_zen_scroll_bar()
                 id = "zen_pn_left_tap",
                 ges = "tap",
                 screen_zone = { ratio_x = rz_left_x,   ratio_y = rz_y, ratio_w = rz_chev_w,   ratio_h = rz_h },
+                _zen_extend_down = true,
                 handler = function()
                     if not canUsePageNumber() then return end
                     menu:onPrevPage()
@@ -147,6 +160,7 @@ local function apply_zen_scroll_bar()
                 id = "zen_pn_right_tap",
                 ges = "tap",
                 screen_zone = { ratio_x = rz_right_x,  ratio_y = rz_y, ratio_w = rz_chev_w,   ratio_h = rz_h },
+                _zen_extend_down = true,
                 handler = function()
                     if not canUsePageNumber() then return end
                     menu:onNextPage()

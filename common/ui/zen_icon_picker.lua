@@ -50,10 +50,10 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
     -- Always reserve the tallest bar style height so the layout never resizes on style changes.
     local bar_area_h = pager.PN_FOOTER_H
 
-    -- Back button.
-    local back_sz  = Screen:scaleBySize(24)
-    local back_gap = Screen:scaleBySize(6)
-    local back_iw  = IW:new{ icon = "chevron.left", width = back_sz, height = back_sz }
+    -- Close button.
+    local close_sz  = Screen:scaleBySize(24)
+    local close_gap = Screen:scaleBySize(6)
+    local close_iw  = IW:new{ icon = "close", width = close_sz, height = close_sz }
 
     local content_w = sw - 2 * pad
     local cols      = math.max(4, math.floor(content_w / Screen:scaleBySize(78)))
@@ -61,8 +61,8 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
     local cell_h    = icon_sz + label_h + cell_pad * 2 + max_cell_brd * 2
     local label_max_w = cell_w - cell_pad * 2 - max_cell_brd * 2
 
-    -- Title: back icon on the left, label to its right.
-    local title_text_w = content_w - back_sz - back_gap
+    -- Title on the left, close icon on the right.
+    local title_text_w = content_w - close_sz - close_gap
     local title_tw = TW:new{
         text  = _("Select icon"),
         face  = Font:getFace("smallinfofont"),
@@ -70,7 +70,7 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
         width = title_text_w,
     }
     local title_text_h = title_tw:getSize().h
-    local title_h      = math.max(back_sz, title_text_h)
+    local title_h      = math.max(close_sz, title_text_h)
 
     -- Fit as many rows as possible within the available vertical space.
     local overhead      = 2 * pad + title_h + span + span + bar_area_h
@@ -91,7 +91,7 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
         end
     end
     local show_focus = not Device:isTouchDevice() or Device:hasDPad() or Device:hasKeyboard()
-    local focus_area = selected_idx and "grid" or "back"
+    local focus_area = selected_idx and "grid" or "close"
     local footer_side = "left"
     local cur_page = show_focus and selected_idx
         and math.ceil(selected_idx / per_page) or 1
@@ -175,7 +175,7 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
         cur_page = p
         local first = (p - 1) * per_page + 1
         local last = math.min(#icons_list, first + per_page - 1)
-        if (focus_area == "grid" or focus_area == "back") and selected_idx
+        if (focus_area == "grid" or focus_area == "close") and selected_idx
                 and (selected_idx < first or selected_idx > last) then
             selected_idx = first
         end
@@ -207,7 +207,7 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
         local old_first = (cur_page - 1) * per_page + 1
         local offset = selected_idx and selected_idx - old_first or 0
         local page = ((cur_page - 1 + diff) % total_pages) + 1
-        if focus_area == "grid" or focus_area == "back" then
+        if focus_area == "grid" or focus_area == "close" then
             local first, last = pageBounds(page)
             selected_idx = math.min(first + offset, last)
         end
@@ -233,7 +233,7 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
 
         if dy < 0 then
             if row == 0 then
-                focus_area = "back"
+                focus_area = "close"
             else
                 selected_idx = selected_idx - cols
             end
@@ -255,7 +255,7 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
     end
 
     local function moveFocus(dx, dy)
-        if focus_area == "back" then
+        if focus_area == "close" then
             if dy > 0 and selected_idx then focus_area = "grid" end
             goToPage(cur_page)
             return true
@@ -277,21 +277,17 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
         return total_pages > 1
     end
 
-    local function inPageNumberBar(gx, gy)
-        return canUsePageNumber()
-            and gy >= bar_y and gy < bar_y + bar_area_h
-            and gx >= content_x and gx < content_x + content_w
-    end
-
-    local function pageNumberZone(gx)
-        if gx < content_x + pager.CHEV_W then return "left" end
-        if gx >= content_x + content_w - pager.CHEV_W then return "right" end
-        return "center"
+    local function pageNumberZone(gx, gy, extend_down)
+        if not canUsePageNumber() then return nil end
+        return pager.getPageNumberZone(
+            gx, gy, content_x, bar_y, content_w, bar_area_h,
+            extend_down and sh or bar_y + bar_area_h
+        )
     end
 
     local function handlePageNumberTap(gx, gy)
-        if not inPageNumberBar(gx, gy) then return false end
-        local zone = pageNumberZone(gx)
+        local zone = pageNumberZone(gx, gy, true)
+        if not zone then return false end
         if zone == "left" then
             goToPage(cur_page > 1 and cur_page - 1 or total_pages)
         elseif zone == "right" then
@@ -301,8 +297,8 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
     end
 
     local function handlePageNumberHold(gx, gy)
-        if not inPageNumberBar(gx, gy) then return false end
-        local zone = pageNumberZone(gx)
+        local zone = pageNumberZone(gx, gy, false)
+        if not zone then return false end
         if zone == "left" then
             local skip = pager.getHoldSkip()
             goToPage(skip == "ends" and 1 or math.max(1, cur_page - (tonumber(skip) or 10)))
@@ -339,7 +335,8 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
                 screen_zone = { ratio_x = 0, ratio_y = 0, ratio_w = 1, ratio_h = 1 },
                 handler     = function(ges)
                     local gx, gy = ges.pos.x, ges.pos.y
-                    if gx >= content_x and gx < content_x + back_sz
+                    local close_x = content_x + content_w - close_sz
+                    if gx >= close_x and gx < close_x + close_sz
                        and gy >= content_y and gy < content_y + title_h then
                         closeDialog()
                         return true
@@ -423,7 +420,7 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
     end
 
     function PickerDlg:onPress()
-        if focus_area == "back" then
+        if focus_area == "close" then
             closeDialog()
             return true
         end
@@ -448,10 +445,10 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
         if focused_frame then focused_frame.invert = true end
         self._focused_frame = focused_frame
 
-        back_iw.invert = show_focus and focus_area == "back"
-        back_iw:paintTo(bb, content_x, content_y + math.floor((title_h - back_sz) / 2))
-        -- Title text (offset right of back icon, vertically centred).
-        title_tw:paintTo(bb, content_x + back_sz + back_gap,
+        close_iw.invert = show_focus and focus_area == "close"
+        close_iw:paintTo(bb, content_x + content_w - close_sz,
+                         content_y + math.floor((title_h - close_sz) / 2))
+        title_tw:paintTo(bb, content_x,
                          content_y + math.floor((title_h - title_text_h) / 2))
         -- Current page grid.
         page_vgs[cur_page]:paintTo(bb, grid_x, grid_y)

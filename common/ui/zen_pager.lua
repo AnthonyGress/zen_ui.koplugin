@@ -26,6 +26,7 @@ M.DOT_GAP     = Screen:scaleBySize(12)
 M.BAR_PAD     = Screen:scaleBySize(5)
 M.CHEV_W      = Screen:scaleBySize(60)
 M.CHEV_HIT_W  = Screen:scaleBySize(96)
+M.CHEV_HIT_PAD_BOTTOM = Screen:scaleBySize(24)
 M.PN_ICON_SZ  = Screen:scaleBySize(36)
 M.FOOTER_H    = math.max(M.BAR_H, M.DOT_DIAM) + M.BAR_PAD * 2
 M.PN_FOOTER_H = math.max(M.FOOTER_H, M.PN_ICON_SZ + Screen:scaleBySize(6))
@@ -104,6 +105,30 @@ end
 function M.getFooterGeometry(container_x, container_w)
     local width = math.floor(container_w * M.FOOTER_WIDTH_PCT)
     return container_x + math.floor((container_w - width) / 2), width
+end
+
+function M.getChevronHitWidth(footer_w)
+    return math.min(footer_w / 2, M.CHEV_HIT_W or M.CHEV_W)
+end
+
+function M.getChevronHitBottom(footer_y, footer_h, available_bottom)
+    local footer_bottom = footer_y + footer_h
+    local hit_bottom = footer_bottom + M.CHEV_HIT_PAD_BOTTOM
+    return math.max(footer_bottom, math.min(hit_bottom, available_bottom or hit_bottom))
+end
+
+-- Side hitboxes may extend below the painted footer; the center never does.
+function M.getPageNumberZone(x, y, footer_x, footer_y, footer_w, footer_h, available_bottom)
+    local footer_bottom = footer_y + footer_h
+    local hit_bottom = M.getChevronHitBottom(footer_y, footer_h, available_bottom)
+    if x < footer_x or x >= footer_x + footer_w
+            or y < footer_y or y >= hit_bottom then
+        return nil
+    end
+    local chevron_w = M.getChevronHitWidth(footer_w)
+    if x < footer_x + chevron_w then return "left" end
+    if x >= footer_x + footer_w - chevron_w then return "right" end
+    if y < footer_bottom then return "center" end
 end
 
 -- Filled pill (stadium) shape via scanline paintRect.

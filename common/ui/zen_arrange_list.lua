@@ -126,13 +126,17 @@ local function can_use_arrange_pager(sort_widget)
 end
 
 local function update_arrange_pager_zones(sort_widget, paint_y, footer_h)
+    local hit_h = pager.getChevronHitBottom(
+        paint_y, footer_h, Device.screen:getHeight()
+    ) - paint_y
     for _i, zone in ipairs(sort_widget._zen_arrange_pager_zones or {}) do
         zone.screen_zone.ratio_y = paint_y / Device.screen:getHeight()
+        zone.screen_zone.ratio_h = hit_h / Device.screen:getHeight()
         local registered = sort_widget._zones and sort_widget._zones[zone.id]
         local range = registered and registered.gs_range and registered.gs_range.range
         if range then
             range.y = paint_y
-            range.h = footer_h
+            range.h = hit_h
         end
     end
 end
@@ -142,7 +146,8 @@ local function install_arrange_pager_zones(sort_widget, bar_x, bar_w, footer_h)
     local screen_w = Device.screen:getWidth()
     local screen_h = Device.screen:getHeight()
     local footer_y = sort_widget.dimen.y + sort_widget.dimen.h - footer_h
-    local chevron_w = pager.CHEV_W
+    local chevron_w = pager.getChevronHitWidth(bar_w)
+    local hit_h = pager.getChevronHitBottom(footer_y, footer_h, screen_h) - footer_y
     local function change_page(diff)
         if not can_use_arrange_pager(sort_widget) then return end
         local pages = sort_widget.pages
@@ -158,7 +163,7 @@ local function install_arrange_pager_zones(sort_widget, bar_x, bar_w, footer_h)
                 ratio_x = bar_x / screen_w,
                 ratio_y = footer_y / screen_h,
                 ratio_w = chevron_w / screen_w,
-                ratio_h = footer_h / screen_h,
+                ratio_h = hit_h / screen_h,
             },
             handler = function() return change_page(-1) end,
         },
@@ -169,7 +174,7 @@ local function install_arrange_pager_zones(sort_widget, bar_x, bar_w, footer_h)
                 ratio_x = (bar_x + bar_w - chevron_w) / screen_w,
                 ratio_y = footer_y / screen_h,
                 ratio_w = chevron_w / screen_w,
-                ratio_h = footer_h / screen_h,
+                ratio_h = hit_h / screen_h,
             },
             handler = function() return change_page(1) end,
         },

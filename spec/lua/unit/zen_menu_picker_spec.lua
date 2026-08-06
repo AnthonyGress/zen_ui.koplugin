@@ -10,6 +10,7 @@ describe("Zen menu picker", function()
     local pager_x
     local pager_y
     local pager_w
+    local pager_page
     local row_font_size
     local text_widgets
 
@@ -71,6 +72,7 @@ describe("Zen menu picker", function()
         pager_x = nil
         pager_y = nil
         pager_w = nil
+        pager_page = nil
         row_font_size = nil
         text_widgets = {}
 
@@ -130,16 +132,28 @@ describe("Zen menu picker", function()
         })
         ZenSpec.replace("common/ui/zen_pager", {
             CHEV_W = 20,
+            CHEV_HIT_W = 40,
             PN_FOOTER_H = 30,
             getHoldSkip = function() return "ends" end,
             getCenteredFooterY = function(content_bottom, footer_y, footer_h)
                 local gap_h = footer_y + footer_h - content_bottom
                 return content_bottom + math.floor((gap_h - footer_h) / 2)
             end,
-            paint = function(_bb, x, y, w)
+            getPageNumberZone = function(x, y, footer_x, footer_y, footer_w, footer_h, available_bottom)
+                local hit_bottom = math.min(footer_y + footer_h + 24, available_bottom)
+                if x < footer_x or x >= footer_x + footer_w
+                        or y < footer_y or y >= hit_bottom then
+                    return nil
+                end
+                if x < footer_x + 40 then return "left" end
+                if x >= footer_x + footer_w - 40 then return "right" end
+                if y < footer_y + footer_h then return "center" end
+            end,
+            paint = function(_bb, x, y, w, _h, cur_page)
                 pager_x = x
                 pager_y = y
                 pager_w = w
+                pager_page = cur_page
             end,
         })
         ZenSpec.unload("common/ui/zen_menu_picker")
@@ -192,6 +206,20 @@ describe("Zen menu picker", function()
         }
 
         assert.are.equal(24, row_font_size)
+    end)
+
+    it("matches the arrange-list header divider", function()
+        require("common/ui/zen_menu_picker"){
+            items = { { text = "Plugin" } },
+        }
+        local dividers = {}
+        shown:paintTo({
+            paintRect = function(_bb, _x, _y, _w, h, color)
+                if h == 2 then dividers[#dividers + 1] = color end
+            end,
+        }, 0, 0)
+
+        assert.are.same({ "light_gray" }, dividers)
     end)
 
     it("bolds root rows and indents nested rows", function()
@@ -291,8 +319,25 @@ describe("Zen menu picker", function()
         shown:paintTo({ paintRect = function() end }, 0, 0)
 
         assert.are.equal(10, pager_x)
-        assert.are.equal(743, first_page_y)
+        assert.are.equal(744, first_page_y)
         assert.are.equal(580, pager_w)
         assert.are.equal(first_page_y, pager_y)
+    end)
+
+    it("accepts wider chevron taps briefly below the painted footer", function()
+        local items = {}
+        for item_index = 1, 15 do
+            items[item_index] = { text = "Item " .. tostring(item_index) }
+        end
+        require("common/ui/zen_menu_picker"){ items = items }
+        local tap = shown.touch_zones[1].handler
+
+        assert.is_true(tap({ pos = { x = 40, y = 790 } }))
+        shown:paintTo({ paintRect = function() end }, 0, 0)
+        assert.are.equal(2, pager_page)
+        assert.is_true(tap({ pos = { x = 300, y = 790 } }))
+        assert.is_true(tap({ pos = { x = 40, y = 799 } }))
+        shown:paintTo({ paintRect = function() end }, 0, 0)
+        assert.are.equal(2, pager_page)
     end)
 end)

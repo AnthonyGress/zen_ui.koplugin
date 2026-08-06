@@ -4,7 +4,7 @@ describe("Zen icon picker", function()
     local selected
     local closed
     local focused_cell
-    local back_inverted
+    local close_inverted
     local footer_focus_x
     local painted_page
     local device_has_dpad
@@ -106,7 +106,7 @@ describe("Zen icon picker", function()
         selected = nil
         closed = 0
         focused_cell = nil
-        back_inverted = nil
+        close_inverted = nil
         footer_focus_x = nil
         painted_page = nil
         device_has_dpad = true
@@ -173,7 +173,7 @@ describe("Zen icon picker", function()
         ZenSpec.replace("ui/widget/iconwidget", {
             new = function(_, values)
                 values.paintTo = function(self)
-                    if self.icon == "chevron.left" then back_inverted = self.invert end
+                    if self.icon == "close" then close_inverted = self.invert end
                 end
                 return values
             end,
@@ -188,11 +188,22 @@ describe("Zen icon picker", function()
         })
         ZenSpec.replace("common/ui/zen_pager", {
             CHEV_W = 20,
+            CHEV_HIT_W = 40,
             PN_FOOTER_H = 30,
             getHoldSkip = function() return "ends" end,
             getCenteredFooterY = function(content_bottom, footer_y, footer_h)
                 local gap_h = footer_y + footer_h - content_bottom
                 return content_bottom + math.floor((gap_h - footer_h) / 2)
+            end,
+            getPageNumberZone = function(x, y, footer_x, footer_y, footer_w, footer_h, available_bottom)
+                local hit_bottom = math.min(footer_y + footer_h + 24, available_bottom)
+                if x < footer_x or x >= footer_x + footer_w
+                        or y < footer_y or y >= hit_bottom then
+                    return nil
+                end
+                if x < footer_x + 40 then return "left" end
+                if x >= footer_x + footer_w - 40 then return "right" end
+                if y < footer_y + footer_h then return "center" end
             end,
             paint = function(_bb, _x, _y, _w, _h, cur_page)
                 painted_page = cur_page
@@ -222,14 +233,27 @@ describe("Zen icon picker", function()
         assert.are.equal("icon_09", selected)
     end)
 
-    it("focuses and activates the back chevron from the first row", function()
+    it("focuses and activates the top-right close button from the first row", function()
         require("common/ui/zen_icon_picker")(icons(2), "icon_01", function() end)
 
         assert.is_true(shown:onFocusMove({ 0, -1 }))
         paint()
-        assert.is_true(back_inverted)
+        assert.is_true(close_inverted)
         assert.is_nil(focused_cell)
         assert.is_true(shown:onPress())
+        assert.are.equal(1, closed)
+    end)
+
+    it("closes only when the top-right header button is tapped", function()
+        require("common/ui/zen_icon_picker")(icons(2), "icon_01", function() end)
+        local tap = shown.touch_zones[1].handler
+        local function pos(x, y)
+            return { x = x, y = y, intersectWith = function() return false end }
+        end
+
+        assert.is_true(tap({ pos = pos(10, 10) }))
+        assert.are.equal(0, closed)
+        assert.is_true(tap({ pos = pos(580, 10) }))
         assert.are.equal(1, closed)
     end)
 
@@ -287,5 +311,21 @@ describe("Zen icon picker", function()
         assert.is_not_nil(shown.key_events.IconPickerLeft)
         assert.is_not_nil(shown.key_events.IconPickerRight)
         assert.is_not_nil(shown.key_events.IconPickerSelect)
+    end)
+
+    it("accepts wider chevron taps briefly below the painted footer", function()
+        require("common/ui/zen_icon_picker")(icons(16), "icon_01", function() end)
+        local tap = shown.touch_zones[1].handler
+        local function pos(x, y)
+            return { x = x, y = y, intersectWith = function() return false end }
+        end
+
+        assert.is_true(tap({ pos = pos(40, 270) }))
+        paint()
+        assert.are.equal(2, painted_page)
+        assert.is_true(tap({ pos = pos(300, 270) }))
+        assert.is_true(tap({ pos = pos(40, 290) }))
+        paint()
+        assert.are.equal(2, painted_page)
     end)
 end)

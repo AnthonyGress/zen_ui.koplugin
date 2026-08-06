@@ -84,6 +84,10 @@ describe("Zen scroll bar", function()
             PN_FOOTER_H = 40,
             setPlugin = function() end,
             getFooterGeometry = function() return 24, 552 end,
+            getChevronHitWidth = function() return 72 end,
+            getChevronHitBottom = function(y, h, available_bottom)
+                return math.min(y + h + 24, available_bottom)
+            end,
             getStyle = function() return "page_number" end,
             getHoldSkip = function() return "10" end,
             paint = function(_bb, _x, y) painted_y = y end,
@@ -169,6 +173,31 @@ describe("Zen scroll bar", function()
         assert.are.equal((24 + 72) / 600, center.screen_zone.ratio_x)
         assert.are.equal((552 - 144) / 600, center.screen_zone.ratio_w)
         assert.are.equal(746 / 800, left.screen_zone.ratio_y)
+        assert.are.equal(54 / 800, left.screen_zone.ratio_h)
+    end)
+
+    it("extends only chevron hitboxes a short distance below a raised footer", function()
+        local settings = new_menu("zen_settings")
+        settings.page_info.paintTo(nil, nil, 0, 700)
+
+        local left = find_zone(settings, "zen_pn_left_tap")
+        local center = find_zone(settings, "zen_pn_center_tap")
+        local right_hold = find_zone(settings, "zen_pn_right_hold")
+        assert.are.equal(78 / 800, left.screen_zone.ratio_h)
+        assert.are.equal(54 / 800, center.screen_zone.ratio_h)
+        assert.are.equal(54 / 800, right_hold.screen_zone.ratio_h)
+    end)
+
+    it("stops enlarged chevron hitboxes before a navbar", function()
+        local authors = new_menu("authors", {
+            covers_fullscreen = true,
+            is_borderless = true,
+            title_bar_fm_style = true,
+            _zen_navbar_height = 60,
+        })
+        authors.page_info.paintTo(nil, nil, 0, 686)
+
+        local left = find_zone(authors, "zen_pn_left_tap")
         assert.are.equal(54 / 800, left.screen_zone.ratio_h)
     end)
 

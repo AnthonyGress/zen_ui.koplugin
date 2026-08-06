@@ -343,19 +343,14 @@ end
 -- Footer hit-test for the page_number style: returns "left"|"center"|"right"
 -- when the point falls inside the chevron bar, else nil.
 -- ---------------------------------------------------------------------------
-function ZenTocWidget:_footerZone(p)
+function ZenTocWidget:_footerZone(p, extend_down)
     local L = self._L
     if L.style ~= "page_number" or self._nb_pages <= 1 then return nil end
     local bar_left  = L.modal_x + L.bar_x
-    local bar_right = bar_left + L.bar_w
-    local bar_top   = L.bar_y
-    if p.y < bar_top or p.y >= bar_top + L.scrollbar_h
-            or p.x < bar_left or p.x >= bar_right then
-        return nil
-    end
-    if p.x < bar_left + pager.CHEV_W then return "left" end
-    if p.x >= bar_right - pager.CHEV_W then return "right" end
-    return "center"
+    return pager.getPageNumberZone(
+        p.x, p.y, bar_left, L.bar_y, L.bar_w, L.scrollbar_h,
+        extend_down and L.sh or L.bar_y + L.scrollbar_h
+    )
 end
 
 -- Navigate to a TOC page (clamped) and repaint.
@@ -573,7 +568,7 @@ function ZenTocWidget:_onTap(ges)
     end
 
     -- Tap on the page_number footer chevrons; center label is display-only.
-    local zone = self:_footerZone(p)
+    local zone = self:_footerZone(p, true)
     if zone == "left" then
         self:_gotoTocPage((self._toc_page or 1) - 1)
         return true
@@ -604,7 +599,7 @@ end
 
 -- Hold on a page_number footer chevron → skip back / forward (or to ends).
 function ZenTocWidget:_onHold(ges)
-    local zone = self:_footerZone(ges.pos)
+    local zone = self:_footerZone(ges.pos, false)
     if zone == "center" then return true end
     if not zone then return false end
     local skip = pager.getHoldSkip()

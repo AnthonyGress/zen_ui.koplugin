@@ -38,7 +38,7 @@ local function showMenuPicker(opts)
     local bar_area_h = pager.PN_FOOTER_H
     local divider_gap = Size.padding.default
     local divider_pad = Size.padding.large
-    local divider_h   = Size.line.thick
+    local divider_h   = Screen:scaleBySize(2)
 
     local back_sz  = Screen:scaleBySize(24)
     local back_gap = Screen:scaleBySize(6)
@@ -145,21 +145,17 @@ local function showMenuPicker(opts)
         return total_pages > 1
     end
 
-    local function inPageNumberBar(gx, gy)
-        return canUsePageNumber()
-            and gy >= bar_y and gy < bar_y + bar_area_h
-            and gx >= content_x and gx < content_x + content_w
-    end
-
-    local function pageNumberZone(gx)
-        if gx < content_x + pager.CHEV_W then return "left" end
-        if gx >= content_x + content_w - pager.CHEV_W then return "right" end
-        return "center"
+    local function pageNumberZone(gx, gy, extend_down)
+        if not canUsePageNumber() then return nil end
+        return pager.getPageNumberZone(
+            gx, gy, content_x, bar_y, content_w, bar_area_h,
+            extend_down and sh or bar_y + bar_area_h
+        )
     end
 
     local function handlePageNumberTap(gx, gy)
-        if not inPageNumberBar(gx, gy) then return false end
-        local zone = pageNumberZone(gx)
+        local zone = pageNumberZone(gx, gy, true)
+        if not zone then return false end
         if zone == "left" then
             goToPage(cur_page > 1 and cur_page - 1 or total_pages)
         elseif zone == "right" then
@@ -169,8 +165,8 @@ local function showMenuPicker(opts)
     end
 
     local function handlePageNumberHold(gx, gy)
-        if not inPageNumberBar(gx, gy) then return false end
-        local zone = pageNumberZone(gx)
+        local zone = pageNumberZone(gx, gy, false)
+        if not zone then return false end
         if zone == "left" then
             local skip = pager.getHoldSkip()
             goToPage(skip == "ends" and 1 or math.max(1, cur_page - (tonumber(skip) or 10)))
@@ -295,7 +291,7 @@ local function showMenuPicker(opts)
         title_tw:paintTo(bb, content_x + back_sz + back_gap,
             content_y + math.floor((title_h - title_text_h) / 2))
         bb:paintRect(divider_pad, divider_y, sw - 2 * divider_pad,
-            divider_h, Blitbuffer.COLOR_DARK_GRAY)
+            divider_h, Blitbuffer.COLOR_LIGHT_GRAY)
 
         local first = (cur_page - 1) * rows_per_page + 1
         local last = math.min(#items, first + rows_per_page - 1)
