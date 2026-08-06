@@ -330,6 +330,9 @@ msgstr "Informazioni libro"
 msgid "Book Status"
 msgstr "Stato libro"
 
+msgid "Book switcher"
+msgstr "Selettore di libri"
+
 msgid "Book title"
 msgstr "Titolo libro"
 
@@ -1466,6 +1469,9 @@ msgstr "Nessun libro trovato"
 
 msgid "No books found in the selected folder"
 msgstr "Nessun libro trovato nella cartella selezionata"
+
+msgid "No books to switch to"
+msgstr "Nessun libro a cui passare"
 
 msgid "No books with author metadata found"
 msgstr "Nessun libro con metadati dell'autore trovato"

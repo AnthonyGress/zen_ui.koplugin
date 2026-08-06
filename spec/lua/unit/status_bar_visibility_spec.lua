@@ -89,11 +89,15 @@ describe("file manager status bar visibility", function()
 
     it("does not repaint behind a Home page that hides its status bar", function()
         require("modules/filebrowser/patches/status_bar")()
-        UIManager._window_stack[1] = { widget = { _zen_home_show_status_bar = false } }
+        UIManager._window_stack = {
+            { widget = { _zen_home_show_status_bar = false } },
+            { widget = { toast = true, invisible = true } },
+        }
 
         local existing_row = {}
         local title_group = { {}, existing_row }
-        FileManager:_updateStatusBar({ title_bar = { title_group = title_group } })
+        FileManager.title_bar = { title_group = title_group }
+        FileManager:_updateStatusBar()
 
         assert.are.equal(existing_row, title_group[2])
     end)

@@ -29,6 +29,7 @@ function M.build(ctx)
 
     local status_bar_all_items = {
         { key = "bluetooth",   text = _("Bluetooth"), available = Bluetooth.isAvailable },
+        { key = "incognito",   text = _("Incognito")   },
         { key = "wifi",        text = _("Wi-Fi")       },
         { key = "disk",        text = _("Disk space")  },
         { key = "ram",         text = _("RAM usage")   },
@@ -68,7 +69,7 @@ function M.build(ctx)
     local CANONICAL_ORDERS = {
         left   = { "time", "custom_text" },
         center = {},
-        right  = { "custom_text", "disk", "ram", "frontlight", "bluetooth", "wifi", "battery" },
+        right  = { "custom_text", "disk", "ram", "frontlight", "incognito", "bluetooth", "wifi", "battery" },
     }
 
     local function make_status_bar_slot_items(slot_name, arrange_title)

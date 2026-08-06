@@ -44,6 +44,7 @@ return {
     read_status  = "\u{F00C0}",  -- bookmark
     status       = "\u{F00BA}",  -- mdi-book-open-blank-variant (unread)
     reading      = "\u{F14F7}",  -- mdi-book-open
+    book_switcher = "\u{F0F58}",
     tbr          = "\u{F0150}",  -- mdi-clock (to-be-read)
     on_hold      = "\u{F03E4}",
     finished     = "\u{F012C}",  -- mdi-check-circle

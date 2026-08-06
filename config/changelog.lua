@@ -233,6 +233,7 @@ return {
         "Improved all Settings submenus",
         "Custom icon packs (Extras > Custom icons)",
         "Page browser enhancements + Book Detail button",
+        "New book switcher in Launcher (Launcher > Book switcher)",
         "Quotes improvements (Moments of Zen)",
         "Improved default covers",
         "Accessibility improvements for non-touch devices",

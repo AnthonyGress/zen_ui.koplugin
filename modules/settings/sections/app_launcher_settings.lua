@@ -706,6 +706,47 @@ function M.build(ctx)
             end,
         },
         {
+            text = _("Book switcher"),
+            sub_item_table = {
+                {
+                    text = _("Enable"),
+                    checked_func = function()
+                        return cfg.show_book_switcher == true
+                    end,
+                    callback = function()
+                        cfg.show_book_switcher = cfg.show_book_switcher ~= true
+                        save_app_launcher()
+                    end,
+                },
+                {
+                    text = _("Show as first page"),
+                    enabled_func = function()
+                        return cfg.show_book_switcher == true
+                    end,
+                    checked_func = function()
+                        return cfg.book_switcher_first == true
+                    end,
+                    callback = function()
+                        cfg.book_switcher_first = cfg.book_switcher_first ~= true
+                        save_app_launcher()
+                    end,
+                },
+                {
+                    text = _("Only show while reading"),
+                    enabled_func = function()
+                        return cfg.show_book_switcher == true
+                    end,
+                    checked_func = function()
+                        return cfg.book_switcher_reader_only == true
+                    end,
+                    callback = function()
+                        cfg.book_switcher_reader_only = cfg.book_switcher_reader_only ~= true
+                        save_app_launcher()
+                    end,
+                },
+            },
+        },
+        {
             text = _("Show labels"),
             checked_func = function()
                 return cfg.show_labels ~= false
@@ -747,9 +788,10 @@ function M.build(ctx)
     }
     IconItem.decorate(root_items[1], icons.enable)
     IconItem.decorate(root_items[2], icons.action)
-    IconItem.decorate(root_items[3], icons.keywords)
-    IconItem.decorate(root_items[4], icons.open_menu)
-    IconItem.decorate(root_items[5], icons.hide_reader_actions)
+    IconItem.decorate(root_items[3], icons.book_switcher)
+    IconItem.decorate(root_items[4], icons.keywords)
+    IconItem.decorate(root_items[5], icons.open_menu)
+    IconItem.decorate(root_items[6], icons.hide_reader_actions)
 
     local function open_entry_settings_from_search(entry, parent)
         local items = build_entry_items(entry, parent)

@@ -713,6 +713,79 @@ function Driver:handleCommand(command)
             solid_separator_positions = solid_separator_positions,
         }
     end
+    if kind == "set_open_confirmation" then
+        G_reader_settings:saveSetting("file_ask_to_open", params.enabled == true)
+        return { ok = true }
+    end
+    if kind == "activate_book_switcher" then
+        local FileManager = require("apps/filemanager/filemanager")
+        local menu = FileManager.instance and FileManager.instance.menu
+        local touch_menu = menu and menu.menu_container and menu.menu_container[1]
+        local refs = touch_menu and touch_menu._zen_panel_refs
+        local index = math.max(1, math.floor(tonumber(params.index) or 1))
+        local button = refs and refs.buttons and refs.buttons[index]
+        if not button or type(button.callback) ~= "function" then
+            return { ok = false, error = "book switcher button unavailable" }
+        end
+        button.callback()
+        return { ok = true }
+    end
+    if kind == "book_switcher_state" then
+        local FileManager = require("apps/filemanager/filemanager")
+        local menu = FileManager.instance and FileManager.instance.menu
+        local touch_menu = menu and menu.menu_container and menu.menu_container[1]
+        local refs = touch_menu and touch_menu._zen_panel_refs
+        local covers = {}
+        for _i, button in ipairs(refs and refs.buttons or {}) do
+            local cell = button.widget
+            local cover = cell and cell._zen_book_switcher_cover
+            local cell_dimen = cell and cell.dimen
+            local cover_dimen = cover and cover.dimen
+            if cell_dimen and cover_dimen then
+                covers[#covers + 1] = {
+                    cell = {
+                        x = cell_dimen.x,
+                        y = cell_dimen.y,
+                        w = cell_dimen.w,
+                        h = cell_dimen.h,
+                    },
+                    cover = {
+                        x = cover_dimen.x,
+                        y = cover_dimen.y,
+                        w = cover_dimen.w,
+                        h = cover_dimen.h,
+                    },
+                }
+            end
+        end
+        local opening_banner_count = 0
+        local confirmation_open = false
+        local prompt = require("gettext")("Open this file?")
+        for _i, window in ipairs(UIManager._window_stack or {}) do
+            local widget = window.widget
+            if widget and widget._zen_opening_banner == true then
+                opening_banner_count = opening_banner_count + 1
+            end
+            if widget and type(widget.text) == "string"
+                    and widget.text:sub(1, #prompt) == prompt then
+                confirmation_open = true
+            end
+        end
+        return {
+            ok = true,
+            launcher_open = refs ~= nil and touch_menu.item_table
+                and touch_menu.item_table.id == "app_launcher" or false,
+            confirmation_open = confirmation_open,
+            opening_banner_count = opening_banner_count,
+            page = refs and refs.page or nil,
+            page_num = refs and refs.page_num or nil,
+            divider_bottom = touch_menu and touch_menu.bar and touch_menu.bar.dimen
+                and touch_menu.bar.dimen.y + touch_menu.bar.dimen.h or nil,
+            menu_height = touch_menu and touch_menu.dimen and touch_menu.dimen.h or nil,
+            screen_height = require("device").screen:getHeight(),
+            covers = covers,
+        }
+    end
     if kind == "set_language" and type(params.language) == "string" then
         G_reader_settings:saveSetting("language", params.language)
         local GetText = require("gettext")

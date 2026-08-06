@@ -330,6 +330,9 @@ msgstr "Información del libro"
 msgid "Book Status"
 msgstr "Estado del libro"
 
+msgid "Book switcher"
+msgstr "Selector de libros"
+
 msgid "Book title"
 msgstr "Título del libro"
 
@@ -1466,6 +1469,9 @@ msgstr "No se encontraron libros"
 
 msgid "No books found in the selected folder"
 msgstr "No se encontraron libros en la carpeta seleccionada."
+
+msgid "No books to switch to"
+msgstr "No hay libros a los que cambiar"
 
 msgid "No books with author metadata found"
 msgstr "No se encontraron libros con metadatos de autor."

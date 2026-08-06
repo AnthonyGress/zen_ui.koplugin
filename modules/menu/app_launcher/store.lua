@@ -13,6 +13,9 @@ local function default_config()
         show_labels = true,
         open_first = false,
         hide_reader_actions_in_library = false,
+        show_book_switcher = false,
+        book_switcher_first = false,
+        book_switcher_reader_only = false,
     }
 end
 
@@ -36,6 +39,11 @@ local function normalize(cfg)
     cfg.center_icons = nil
     if type(cfg.hide_reader_actions_in_library) ~= "boolean" then
         cfg.hide_reader_actions_in_library = false
+    end
+    if type(cfg.show_book_switcher) ~= "boolean" then cfg.show_book_switcher = false end
+    if type(cfg.book_switcher_first) ~= "boolean" then cfg.book_switcher_first = false end
+    if type(cfg.book_switcher_reader_only) ~= "boolean" then
+        cfg.book_switcher_reader_only = false
     end
     return cfg
 end

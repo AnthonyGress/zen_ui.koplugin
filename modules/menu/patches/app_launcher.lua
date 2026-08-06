@@ -20,6 +20,7 @@
     local ActionFilter = require("modules/menu/app_launcher/action_filter")
     local Model = require("modules/menu/app_launcher/model")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
+    local BookSwitcherPage = require("modules/menu/app_launcher/book_switcher_page")
     local ButtonLabelWidth = require("common/ui/button_label_width")
     local ZenButton = require("common/ui/zen_button")
     local SettingsTransition = require("common/settings_transition")
@@ -301,6 +302,30 @@
         end
     end
 
+    local function open_book_from_switcher(touch_menu, path, release_cover)
+        if type(release_cover) == "function" then release_cover() end
+        touch_menu:closeMenu()
+        SettingsTransition.close()
+        UIManager:nextTick(function()
+            local ReaderUI = require("apps/reader/readerui")
+            local FileManager = require("apps/filemanager/filemanager")
+            local filemanagerutil = require("apps/filemanager/filemanagerutil")
+            local ui = ReaderUI.instance or FileManager.instance
+            if ui and type(filemanagerutil.openFile) == "function" then
+                filemanagerutil.openFile(ui, path)
+            else
+                ReaderUI:showReader(path)
+            end
+        end)
+    end
+
+    local function current_reader_path(touch_menu)
+        if is_library_launcher(touch_menu) then return nil end
+        local ok_reader, ReaderUI = pcall(require, "apps/reader/readerui")
+        local reader = ok_reader and ReaderUI.instance or nil
+        return reader and reader.document and reader.document.file or nil
+    end
+
     local function entry_available(entry, touch_menu, cfg)
         if entry_hidden_in_context(entry, touch_menu, cfg) then return false end
         if entry.type == "action" then
@@ -410,9 +435,16 @@
         local bar_h = (touch_menu.bar and touch_menu.bar:getSize().h) or 0
         local footer_h = (touch_menu.footer and touch_menu.footer:getSize().h) or 0
         local footer_margin_h = (touch_menu.footer_top_margin and touch_menu.footer_top_margin:getSize().h) or 0
-        local items_height = menu_height - bar_h - footer_h - footer_margin_h - pad * 2
+        local panel_height = math.max(1, menu_height - bar_h - footer_h - footer_margin_h)
+        local items_height = math.max(1, panel_height - pad * 2)
         local rows_per_page = math.max(1, math.floor(items_height / cell_total_h) - 1)
-        local page_num = math.max(1, math.ceil(#all_rows / rows_per_page))
+        local switcher_enabled = not folder
+            and BookSwitcherPage.isEnabled(cfg, is_library_launcher(touch_menu))
+        local button_page_num = #all_rows == 0 and switcher_enabled
+            and 0 or math.max(1, math.ceil(#all_rows / rows_per_page))
+        local switcher_page = switcher_enabled and BookSwitcherPage.pagePosition(
+            cfg, is_library_launcher(touch_menu), button_page_num) or nil
+        local page_num = math.max(1, button_page_num + (switcher_page and 1 or 0))
         local page = touch_menu._app_launcher_page or 1
         if page > page_num then page = page_num end
         if page < 1 then page = 1 end
@@ -420,13 +452,45 @@
         refs.page = page
         refs.page_num = page_num
 
+        local function set_page_refs()
+            refs.goto_page = function(nb)
+                if page_num <= 1 then return false end
+                if nb > page_num then nb = 1 elseif nb < 1 then nb = page_num end
+                if nb == page then return false end
+                touch_menu._app_launcher_page = nb
+                touch_menu:updateItems(1)
+                return true
+            end
+            touch_menu._zen_panel_refs = refs
+        end
+
+        local is_switcher_page = switcher_page == page
+        local button_page = page
+        if switcher_page == 1 then button_page = page - 1 end
+
         local page_rows = {}
-        if #all_rows > 0 then
-            local start_idx = (page - 1) * rows_per_page + 1
+        if not is_switcher_page and #all_rows > 0 then
+            local start_idx = (button_page - 1) * rows_per_page + 1
             local end_idx = math.min(start_idx + rows_per_page - 1, #all_rows)
             for i = start_idx, end_idx do
                 page_rows[#page_rows + 1] = all_rows[i]
             end
+        end
+
+        if is_switcher_page then
+            local panel, switcher_refs = BookSwitcherPage.build{
+                width = panel_width,
+                height = panel_height,
+                config = zen_plugin.config,
+                exclude_path = current_reader_path(touch_menu),
+                open_book = function(path, _cover, release_cover)
+                    open_book_from_switcher(touch_menu, path, release_cover)
+                end,
+            }
+            refs.buttons = switcher_refs.buttons
+            refs.layout_rows = switcher_refs.layout_rows
+            set_page_refs()
+            return panel
         end
 
         if #visible == 0 then
@@ -450,7 +514,7 @@
                     add_button.callback()
                 end,
             }
-            touch_menu._zen_panel_refs = refs
+            set_page_refs()
             return VerticalGroup:new{
                 align = "center",
                 VerticalSpan:new{ width = Screen:scaleBySize(16) },
@@ -522,15 +586,7 @@
             end
         end
         panel[#panel + 1] = VerticalSpan:new{ width = pad }
-        refs.goto_page = function(nb)
-            if page_num <= 1 then return false end
-            if nb > page_num then nb = 1 elseif nb < 1 then nb = page_num end
-            if nb == page then return false end
-            touch_menu._app_launcher_page = nb
-            touch_menu:updateItems(1)
-            return true
-        end
-        touch_menu._zen_panel_refs = refs
+        set_page_refs()
         return panel
     end
 

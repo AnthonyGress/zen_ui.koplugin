@@ -23,6 +23,7 @@ end
 
 function M.build(ctx)
     local config = ctx.config
+    local zen_plugin = ctx.plugin
     local save_and_apply = ctx.save_and_apply
 
     local function save_and_apply_quick_settings() save_and_apply("quick_settings") end
@@ -729,6 +730,8 @@ function M.build(ctx)
             items = buildRotateButtonSubItems()
         elseif id == "screenshot" then
             items = buildScreenshotButtonSubItems()
+        elseif id == "incognito" then
+            items = require("modules/global/patches/incognito_mode").timeoutMenuItems(zen_plugin)
         end
         items[#items + 1] = IconItem.decorate({
             text = _("Delete"),

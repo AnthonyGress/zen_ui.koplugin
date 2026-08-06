@@ -136,6 +136,85 @@ def test_flip_lh_rh_swaps_both_menu_tab_pairs() -> None:
                 process.wait(timeout=15)
             except subprocess.TimeoutExpired:
                 process.kill()
+            process.wait()
+
+
+def test_launcher_book_switcher_fits_inside_the_panel() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-book-switcher-") as temporary:
+        root = Path(temporary)
+        ko_home, library = root / "home", root / "library"
+        ko_home.mkdir()
+        books = stage_epub_library(library)
+        launcher_settings = ko_home / "settings" / "Zen UI"
+        launcher_settings.mkdir(parents=True)
+        launcher_settings.joinpath("app_launcher.lua").write_text(
+            """return {
+  entries = {},
+  show_book_switcher = true,
+  book_switcher_first = true,
+}
+""",
+            encoding="utf-8",
+        )
+        switcher_paths = [path.resolve() for path in list(books.values())[:4]]
+        ko_home.joinpath("history.lua").write_text(
+            "return {\n"
+            + "\n".join(
+                f"  {{ time = {1704067200 - index}, file = {str(path)!r} }},"
+                for index, path in enumerate(switcher_paths)
+            )
+            + "\n}\n",
+            encoding="utf-8",
+        )
+        socket_path = root / "driver.sock"
+        process = launch(
+            runtime,
+            ko_home,
+            socket_path,
+            library,
+            zen_config_source="""return {
+  updater = { update_auto_check = false },
+  features = { browser_cover_mosaic_uniform = true },
+  mosaic_title_strip = { show_title = true, show_author = true },
+}
+""",
+        )
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            layout = driver.command("menu_tab_layout", tab_id="app_launcher")
+            assert layout["active_tab"] == "app_launcher"
+            state = _wait_command(
+                driver,
+                "book_switcher_state",
+                lambda result: len(result.get("covers", [])) == 4,
+            )
+            assert state["page"] == 1
+            assert state["menu_height"] < state["screen_height"] * 0.7
+            for item in state["covers"]:
+                cell, cover = item["cell"], item["cover"]
+                assert cell["y"] > state["divider_bottom"]
+                assert cover["y"] >= cell["y"]
+                assert cover["y"] + cover["h"] <= cell["y"] + cell["h"]
+                assert cell["w"] * 0.70 <= cover["w"] <= cell["w"] * 0.78
+                assert cover["h"] <= cell["h"] * 0.84
+
+            assert driver.command("set_open_confirmation", enabled=True)["ok"] is True
+            assert driver.command("activate_book_switcher", index=1)["ok"] is True
+            confirmation = _wait_command(
+                driver,
+                "book_switcher_state",
+                lambda result: result.get("confirmation_open") is True,
+            )
+            assert confirmation["launcher_open"] is False
+            assert confirmation["opening_banner_count"] == 0
+        finally:
+            process.send_signal(signal.SIGTERM)
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                process.kill()
                 process.wait()
 
 

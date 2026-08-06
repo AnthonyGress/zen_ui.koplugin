@@ -139,6 +139,7 @@ modules/menu/app_launcher/action_filter.lua|integration
 modules/menu/app_launcher/menu_host.lua|integration
 modules/menu/app_launcher/model.lua|integration
 modules/menu/app_launcher/plugin_scan.lua|integration
+modules/menu/app_launcher/book_switcher_page.lua|unit
 modules/menu/app_launcher/store.lua|integration
 modules/menu/menu.lua|integration
 modules/menu/patches/app_launcher.lua|integration

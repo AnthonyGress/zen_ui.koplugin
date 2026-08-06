@@ -42,6 +42,7 @@ function M.build(ctx)
     local header_all_items = {
         { key = "time",        text = _("Time")          },
         { key = "battery",     text = _("Battery")       },
+        { key = "incognito",   text = _("Incognito")     },
         { key = "wifi",        text = _("Wi-Fi")         },
         { key = "frontlight",  text = _("Brightness")    },
         { key = "ram",         text = _("RAM usage")     },
@@ -57,7 +58,7 @@ function M.build(ctx)
     local HEADER_CANONICAL = {
         left   = { "time", "custom_text" },
         center = { "time" },
-        right  = { "progress_percent", "page_progress", "custom_text", "frontlight", "wifi", "battery" },
+        right  = { "progress_percent", "page_progress", "custom_text", "frontlight", "incognito", "wifi", "battery" },
     }
 
     local function save_clock() save_and_apply("reader_top_status_bar") end

@@ -392,6 +392,7 @@ local function apply_opening_banner()
 
     -- Tiny inline widget: black rect + centred "Opening" text
     local OpeningBanner = Widget:extend{}
+    OpeningBanner._zen_opening_banner = true
 
     function OpeningBanner:onShow()
         self._timeout_func = function()
@@ -506,10 +507,11 @@ local function apply_opening_banner()
         pending_banner_seq = nil
     end
 
-    rawset(_G, "__ZEN_UI_CANCEL_OPENING_BANNER", function()
-        if pending_banner then
-            clear_pending_banner()
-            _last_cover_dimen = nil
+    rawset(_G, "__ZEN_UI_CANCEL_OPENING_BANNER", function(suppress_next_open)
+        clear_pending_banner()
+        _last_cover_dimen = nil
+        if suppress_next_open == true then
+            _last_banner_seq = _tap_seq
         end
     end)
 

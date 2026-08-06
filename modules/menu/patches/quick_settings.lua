@@ -1103,6 +1103,9 @@ local function apply_quick_settings()
                 callback = showScreenshotTimerDialog,
             }}
         end
+        if id == "incognito" then
+            return require("modules/global/patches/incognito_mode").timeoutMenuItems(zen_plugin)
+        end
         return {}
     end
 

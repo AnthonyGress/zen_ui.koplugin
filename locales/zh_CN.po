@@ -330,6 +330,9 @@ msgstr "书籍信息"
 msgid "Book Status"
 msgstr "书籍状态"
 
+msgid "Book switcher"
+msgstr "书籍切换器"
+
 msgid "Book title"
 msgstr "书名"
 
@@ -1466,6 +1469,9 @@ msgstr "未找到书籍"
 
 msgid "No books found in the selected folder"
 msgstr "在所选文件夹中找不到书籍"
+
+msgid "No books to switch to"
+msgstr "没有可切换的书籍"
 
 msgid "No books with author metadata found"
 msgstr "未找到包含作者元数据的书籍"

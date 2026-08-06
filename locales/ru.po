@@ -330,6 +330,9 @@ msgstr "Информация о книге"
 msgid "Book Status"
 msgstr "Статус книги"
 
+msgid "Book switcher"
+msgstr "Переключатель книг"
+
 msgid "Book title"
 msgstr "Название книги"
 
@@ -1466,6 +1469,9 @@ msgstr "Книги не найдены"
 
 msgid "No books found in the selected folder"
 msgstr "В выбранной папке книги не найдены"
+
+msgid "No books to switch to"
+msgstr "Нет книг для переключения"
 
 msgid "No books with author metadata found"
 msgstr "Книг с метаданными автора не найдено."
