@@ -145,9 +145,10 @@ function M.build(opts)
     local width = math.max(1, tonumber(opts.width) or Screen:getWidth())
     local height = math.max(1, tonumber(opts.height) or Screen:getHeight())
     local padding = math.max(4, Screen:scaleBySize(8))
-    local gap = math.max(6, Screen:scaleBySize(8))
+    local top_padding = padding + Screen:scaleBySize(8)
+    local gap = math.max(2, Screen:scaleBySize(2))
     local inner_w = math.max(1, width - padding * 2)
-    local max_content_h = math.max(1, height - padding * 2)
+    local max_content_h = math.max(1, height - top_padding - padding)
     local cell_w = math.max(24, math.floor((inner_w - gap * (M.BOOK_COUNT - 1)) / M.BOOK_COUNT))
     local render = M.rendererOptions(opts.config)
     local books = type(opts.books) == "table" and opts.books
@@ -190,10 +191,9 @@ function M.build(opts)
     end
     if strip_h > 0 then strip_h = strip_h + strip_padding * 2 end
     local available_cover_h = math.max(1, max_content_h - strip_h)
-    local cover_area_h = math.min(available_cover_h, Screen:scaleBySize(180))
+    local cover_area_h = math.min(available_cover_h, Screen:scaleBySize(200))
     local cover_border = cover_common.BORDER_SIZE
-    local cover_max_w = math.max(18,
-        math.min(math.floor(cell_w * 0.78), Screen:scaleBySize(112)) - cover_border * 2)
+    local cover_max_w = math.max(18, cell_w - cover_border * 2)
     local cover_max_h = math.max(28, cover_area_h - cover_border * 2)
     local cell_h = cover_area_h + strip_h
 
@@ -307,7 +307,7 @@ function M.build(opts)
 
     return VerticalGroup:new{
         align = "center",
-        VerticalSpan:new{ width = padding },
+        VerticalSpan:new{ width = top_padding },
         CenterContainer:new{ dimen = Geom:new{ w = width, h = cell_h }, row },
         VerticalSpan:new{ width = padding },
     }, refs
