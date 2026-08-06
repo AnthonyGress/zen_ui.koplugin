@@ -1035,6 +1035,13 @@ local function apply_quick_settings()
                     callback = function(tm)
                         tm:closeMenu()
                         SettingsTransition.close()
+                        -- In the reader the touch menu sits above the bottom
+                        -- ConfigDialog. UIManager:sendEvent (which Dispatcher:execute
+                        -- uses for "none"-category actions) only reaches the topmost
+                        -- window, so with the ConfigDialog still open the dispatched
+                        -- event would be swallowed and never reach ReaderUI. Close it
+                        -- before dispatching.
+                        UIManager:broadcastEvent(Event:new("CloseConfigMenu"))
                         UIManager:nextTick(function()
                             if type(cb_action) == "table" and next(cb_action) then
                                 Dispatcher:execute(cb_action)
