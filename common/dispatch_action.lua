@@ -28,6 +28,34 @@ local function refresh_reader()
     end
 end
 
+local function refresh_incognito_indicators()
+    local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
+    local file_manager = ok_fm and FileManager and FileManager.instance
+    local UIManager = require("ui/uimanager")
+    local refreshed = false
+    local stack = UIManager._window_stack
+    for i = type(stack) == "table" and #stack or 0, 1, -1 do
+        local widget = stack[i] and stack[i].widget
+        if widget and type(widget._zen_status_refresh) == "function" then
+            pcall(widget._zen_status_refresh, widget)
+            refreshed = true
+            break
+        elseif widget and type(widget._zen_home_refresh_clock_widgets) == "function" then
+            pcall(widget._zen_home_refresh_clock_widgets, widget)
+            refreshed = true
+            break
+        elseif widget == file_manager and type(file_manager._updateStatusBar) == "function" then
+            pcall(file_manager._updateStatusBar, file_manager)
+            refreshed = true
+            break
+        end
+    end
+    if not refreshed and file_manager and type(file_manager._updateStatusBar) == "function" then
+        pcall(file_manager._updateStatusBar, file_manager)
+    end
+    refresh_reader()
+end
+
 local function open_navbar_tab(tab_id)
     local open = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_TAB")
     if type(open) ~= "function" then return false end
@@ -517,17 +545,36 @@ function M.onToggleLockdownMode(plugin)
     return true
 end
 
-function M.onToggleIncognitoMode(plugin)
+function M.setIncognitoMode(plugin, enabled, opts)
     local features = plugin and plugin.config and plugin.config.features
     if type(features) ~= "table" then return false end
-    local enabling = not features.incognito_mode
-    features.incognito_mode = enabling
+    enabled = enabled == true
+    if features.incognito_mode == enabled then return true end
+    local ok_guard, guard = pcall(require, "modules/global/patches/incognito_mode")
+    if enabled and ok_guard and type(guard.beforeEnable) == "function" then
+        guard.beforeEnable(plugin)
+    end
+    features.incognito_mode = enabled
+    if enabled and ok_guard and type(guard.afterEnable) == "function" then
+        guard.afterEnable(plugin)
+    elseif not enabled and ok_guard and type(guard.afterDisable) == "function" then
+        guard.afterDisable(plugin)
+    end
     save_config(plugin)
+    refresh_incognito_indicators()
+    opts = type(opts) == "table" and opts or {}
     require("ui/uimanager"):show(require("ui/widget/infomessage"):new{
-        text = enabling and _("Incognito mode enabled") or _("Incognito mode disabled"),
+        text = opts.timed_out and _("Incognito mode timed out")
+            or enabled and _("Incognito mode enabled") or _("Incognito mode disabled"),
         timeout = 3,
     })
     return true
+end
+
+function M.onToggleIncognitoMode(plugin)
+    local features = plugin and plugin.config and plugin.config.features
+    if type(features) ~= "table" then return false end
+    return M.setIncognitoMode(plugin, features.incognito_mode ~= true)
 end
 
 function M.onToggleReaderTopStatusBar(plugin)

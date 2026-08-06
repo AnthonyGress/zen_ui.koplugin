@@ -1128,6 +1128,9 @@ msgstr "隐身模式已禁用"
 msgid "Incognito mode enabled"
 msgstr "隐身模式已启用"
 
+msgid "Incognito mode timed out"
+msgstr "隐身模式已超时"
+
 msgid "Incompatible plugins and patches have been disabled:"
 msgstr "不兼容的插件和补丁已被禁用："
 
@@ -1550,6 +1553,9 @@ msgstr "主页刷新时"
 
 msgid "Only in Zen mode"
 msgstr "仅在 Zen 模式下"
+
+msgid "Only show while reading"
+msgstr "仅在阅读时显示"
 
 msgid "Opaque background"
 msgstr "不透明背景"
@@ -2037,6 +2043,9 @@ msgstr "显示 AI 助手"
 msgid "Show all files from subfolders"
 msgstr "显示子文件夹中的所有文件"
 
+msgid "Show as first page"
+msgstr "显示为第一页"
+
 msgid "Show author"
 msgstr "显示作者"
 
@@ -2351,6 +2360,9 @@ msgstr "今年"
 
 msgid "Time"
 msgstr "时间"
+
+msgid "Timeout"
+msgstr "超时"
 
 msgid "Time Format"
 msgstr "时间格式"

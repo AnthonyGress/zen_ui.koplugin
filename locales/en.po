@@ -1128,6 +1128,9 @@ msgstr "Incognito mode disabled"
 msgid "Incognito mode enabled"
 msgstr "Incognito mode enabled"
 
+msgid "Incognito mode timed out"
+msgstr "Incognito mode timed out"
+
 msgid "Incompatible plugins and patches have been disabled:"
 msgstr "Incompatible plugins and patches have been disabled:"
 
@@ -1550,6 +1553,9 @@ msgstr "On Home refresh"
 
 msgid "Only in Zen mode"
 msgstr "Only in Zen mode"
+
+msgid "Only show while reading"
+msgstr "Only show while reading"
 
 msgid "Opaque background"
 msgstr "Opaque background"
@@ -2037,6 +2043,9 @@ msgstr "Show AI assistant"
 msgid "Show all files from subfolders"
 msgstr "Show all files from subfolders"
 
+msgid "Show as first page"
+msgstr "Show as first page"
+
 msgid "Show author"
 msgstr "Show author"
 
@@ -2351,6 +2360,9 @@ msgstr "This Year"
 
 msgid "Time"
 msgstr "Time"
+
+msgid "Timeout"
+msgstr "Timeout"
 
 msgid "Time Format"
 msgstr "Time Format"

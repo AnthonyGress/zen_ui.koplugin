@@ -305,6 +305,9 @@ local defaults = {
         disable_settings_panel    = false,
         magnify_ui                = false,
     },
+    incognito = {
+        timeout_minutes = 0,
+    },
 }
 
 return defaults

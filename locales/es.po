@@ -1128,6 +1128,9 @@ msgstr "Modo incógnito desactivado"
 msgid "Incognito mode enabled"
 msgstr "Modo incógnito activado"
 
+msgid "Incognito mode timed out"
+msgstr "Se agotó el tiempo del modo incógnito"
+
 msgid "Incompatible plugins and patches have been disabled:"
 msgstr "Se han deshabilitado complementos y parches incompatibles:"
 
@@ -1550,6 +1553,9 @@ msgstr "En la actualización de inicio"
 
 msgid "Only in Zen mode"
 msgstr "Solo en modo Zen"
+
+msgid "Only show while reading"
+msgstr "Mostrar solo durante la lectura"
 
 msgid "Opaque background"
 msgstr "Fondo opaco"
@@ -2037,6 +2043,9 @@ msgstr "Mostrar asistente de IA"
 msgid "Show all files from subfolders"
 msgstr "Mostrar todos los archivos de las subcarpetas"
 
+msgid "Show as first page"
+msgstr "Mostrar como primera página"
+
 msgid "Show author"
 msgstr "Mostrar autor"
 
@@ -2351,6 +2360,9 @@ msgstr "Este año"
 
 msgid "Time"
 msgstr "Hora"
+
+msgid "Timeout"
+msgstr "Tiempo de espera"
 
 msgid "Time Format"
 msgstr "Formato de hora"

@@ -828,6 +828,10 @@ end
 -- Also called from init() so a fresh KOReader start triggers the same check.
 function ZenUI:onResume()
     zen_updater.schedule_wakeup_check()
+    local ok_incognito, Incognito = pcall(require, "modules/global/patches/incognito_mode")
+    if ok_incognito and type(Incognito.onResume) == "function" then
+        Incognito.onResume(self)
+    end
     local UIManager = require("ui/uimanager")
     UIManager:scheduleIn(0.5, function()
         refresh_home_date_dependent(self)
@@ -866,6 +870,10 @@ end
 -- On suspend: cancel the pending timer so checks don't run while asleep.
 function ZenUI:onSuspend()
     zen_updater.cancel_wakeup_check()
+    local ok_incognito, Incognito = pcall(require, "modules/global/patches/incognito_mode")
+    if ok_incognito and type(Incognito.onSuspend) == "function" then
+        Incognito.onSuspend()
+    end
 end
 
 local function close_zen_standalone_views(shared)

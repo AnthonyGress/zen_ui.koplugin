@@ -1128,6 +1128,9 @@ msgstr "Mode navigation privée désactivé"
 msgid "Incognito mode enabled"
 msgstr "Mode navigation privée activé"
 
+msgid "Incognito mode timed out"
+msgstr "Le mode navigation privée a expiré"
+
 msgid "Incompatible plugins and patches have been disabled:"
 msgstr "Les plugins et correctifs incompatibles ont été désactivés :"
 
@@ -1550,6 +1553,9 @@ msgstr "Lors de l'actualisation de l'accueil"
 
 msgid "Only in Zen mode"
 msgstr "Uniquement en mode Zen"
+
+msgid "Only show while reading"
+msgstr "Afficher uniquement pendant la lecture"
 
 msgid "Opaque background"
 msgstr "Fond opaque"
@@ -2037,6 +2043,9 @@ msgstr "Afficher l’assistant IA"
 msgid "Show all files from subfolders"
 msgstr "Afficher tous les fichiers des sous-dossiers"
 
+msgid "Show as first page"
+msgstr "Afficher en première page"
+
 msgid "Show author"
 msgstr "Afficher l'auteur"
 
@@ -2351,6 +2360,9 @@ msgstr "Cette année"
 
 msgid "Time"
 msgstr "Temps"
+
+msgid "Timeout"
+msgstr "Délai d’expiration"
 
 msgid "Time Format"
 msgstr "Format d'heure"

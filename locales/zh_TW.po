@@ -1128,6 +1128,9 @@ msgstr "無痕模式已停用"
 msgid "Incognito mode enabled"
 msgstr "無痕模式已啟用"
 
+msgid "Incognito mode timed out"
+msgstr "無痕模式已逾時"
+
 msgid "Incompatible plugins and patches have been disabled:"
 msgstr "不相容的插件和補丁已停用："
 
@@ -1550,6 +1553,9 @@ msgstr "主頁刷新時"
 
 msgid "Only in Zen mode"
 msgstr "僅限 Zen 模式"
+
+msgid "Only show while reading"
+msgstr "僅在閱讀時顯示"
 
 msgid "Opaque background"
 msgstr "不透明背景"
@@ -2037,6 +2043,9 @@ msgstr "顯示 AI 助理"
 msgid "Show all files from subfolders"
 msgstr "顯示子資料夾中的所有檔案"
 
+msgid "Show as first page"
+msgstr "顯示為第一頁"
+
 msgid "Show author"
 msgstr "顯示作者"
 
@@ -2351,6 +2360,9 @@ msgstr "今年"
 
 msgid "Time"
 msgstr "時間"
+
+msgid "Timeout"
+msgstr "逾時"
 
 msgid "Time Format"
 msgstr "時間格式"

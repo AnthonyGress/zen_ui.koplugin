@@ -1128,6 +1128,9 @@ msgstr "Incognitomodus uitgeschakeld"
 msgid "Incognito mode enabled"
 msgstr "Incognitomodus ingeschakeld"
 
+msgid "Incognito mode timed out"
+msgstr "Time-out van incognitomodus"
+
 msgid "Incompatible plugins and patches have been disabled:"
 msgstr "Incompatibele plug-ins en patches zijn uitgeschakeld:"
 
@@ -1550,6 +1553,9 @@ msgstr "Bij vernieuwing van startpagina"
 
 msgid "Only in Zen mode"
 msgstr "Alleen in Zen-modus"
+
+msgid "Only show while reading"
+msgstr "Alleen tijdens het lezen tonen"
 
 msgid "Opaque background"
 msgstr "Ondoorzichtige achtergrond"
@@ -2037,6 +2043,9 @@ msgstr "AI-assistent tonen"
 msgid "Show all files from subfolders"
 msgstr "Alle bestanden uit submappen tonen"
 
+msgid "Show as first page"
+msgstr "Als eerste pagina tonen"
+
 msgid "Show author"
 msgstr "Auteur weergeven"
 
@@ -2351,6 +2360,9 @@ msgstr "Dit jaar"
 
 msgid "Time"
 msgstr "Tijd"
+
+msgid "Timeout"
+msgstr "Time-out"
 
 msgid "Time Format"
 msgstr "Tijdnotatie"

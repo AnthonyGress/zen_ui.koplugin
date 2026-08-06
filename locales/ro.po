@@ -1128,6 +1128,9 @@ msgstr "Modul incognito este dezactivat"
 msgid "Incognito mode enabled"
 msgstr "Modul incognito este activat"
 
+msgid "Incognito mode timed out"
+msgstr "Modul incognito a expirat"
+
 msgid "Incompatible plugins and patches have been disabled:"
 msgstr "Pluginurile și corecțiile incompatibile au fost dezactivate:"
 
@@ -1550,6 +1553,9 @@ msgstr "La reîmprospătarea Acasă"
 
 msgid "Only in Zen mode"
 msgstr "Numai în modul Zen"
+
+msgid "Only show while reading"
+msgstr "Afișează numai în timpul lecturii"
 
 msgid "Opaque background"
 msgstr "Fundal opac"
@@ -2037,6 +2043,9 @@ msgstr "Afișează asistentul IA"
 msgid "Show all files from subfolders"
 msgstr "Afișează toate fișierele din subdosare"
 
+msgid "Show as first page"
+msgstr "Afișează ca prima pagină"
+
 msgid "Show author"
 msgstr "Arată autorul"
 
@@ -2351,6 +2360,9 @@ msgstr "Anul acesta"
 
 msgid "Time"
 msgstr "Timp"
+
+msgid "Timeout"
+msgstr "Limită de timp"
 
 msgid "Time Format"
 msgstr "Format oră"

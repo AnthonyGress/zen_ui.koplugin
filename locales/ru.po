@@ -1128,6 +1128,9 @@ msgstr "Режим инкогнито выключен"
 msgid "Incognito mode enabled"
 msgstr "Режим инкогнито включён"
 
+msgid "Incognito mode timed out"
+msgstr "Время режима инкогнито истекло"
+
 msgid "Incompatible plugins and patches have been disabled:"
 msgstr "Несовместимые плагины и патчи отключены:"
 
@@ -1550,6 +1553,9 @@ msgstr "При обновлении главной страницы"
 
 msgid "Only in Zen mode"
 msgstr "Только в режиме Zen"
+
+msgid "Only show while reading"
+msgstr "Показывать только во время чтения"
 
 msgid "Opaque background"
 msgstr "Непрозрачный фон"
@@ -2037,6 +2043,9 @@ msgstr "Показывать ИИ-ассистента"
 msgid "Show all files from subfolders"
 msgstr "Показывать все файлы из подпапок"
 
+msgid "Show as first page"
+msgstr "Показывать первой страницей"
+
 msgid "Show author"
 msgstr "Показывать автора"
 
@@ -2351,6 +2360,9 @@ msgstr "Этот год"
 
 msgid "Time"
 msgstr "Время"
+
+msgid "Timeout"
+msgstr "Тайм-аут"
 
 msgid "Time Format"
 msgstr "Формат времени"

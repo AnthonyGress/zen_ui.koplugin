@@ -346,6 +346,14 @@ local function apply_status_bar()
         return nil
     end
 
+    local function getIncognitoInfo()
+        local features = zen_plugin.config and zen_plugin.config.features
+        if type(features) == "table" and features.incognito_mode == true then
+            return inline_icons.incognito
+        end
+        return nil
+    end
+
     local function getRamInfo()
         local now = os.time()
         if cached_ram_text and (now - cached_ram_time) < 30 then
@@ -445,6 +453,7 @@ local function apply_status_bar()
 
     local item_fetchers = {
         bluetooth   = getBluetoothInfo,
+        incognito   = getIncognitoInfo,
         wifi        = getWifiInfo,
         disk        = getDiskInfo,
         ram         = getRamInfo,
@@ -793,6 +802,15 @@ local function apply_status_bar()
         return vg
     end
 
+    local function topmost_non_toast_widget()
+        local stack = UIManager._window_stack
+        if type(stack) ~= "table" then return end
+        for index = #stack, 1, -1 do
+            local widget = stack[index] and stack[index].widget
+            if widget and not widget.toast then return widget end
+        end
+    end
+
     -- Refresh TouchMenu panels from the shared minute heartbeat.
     local function schedulePanelRefresh(menu)
         if menu._zen_status_timer then
@@ -804,9 +822,7 @@ local function apply_status_bar()
                 clock_timer.unbind(target)
                 return
             end
-            local stack = UIManager._window_stack
-            local top = stack and stack[#stack]
-            if not top or top.widget ~= target then return end
+            if topmost_non_toast_widget() ~= target then return end
             target:updateItems()
         end
         menu._zen_status_timer = tick
@@ -944,9 +960,8 @@ local function apply_status_bar()
         -- A non-dithered "ui" refresh of this region renders whiter than the
         -- surrounding dithered page, leaving a brighter box. Honor the top
         -- widget's dithering hint so the region matches.
-        local stack = UIManager._window_stack
-        local top = stack and stack[#stack]
-        local refresh_dither = top and top.widget and top.widget.dithered or nil
+        local top_widget = topmost_non_toast_widget()
+        local refresh_dither = top_widget and top_widget.dithered or nil
         UIManager:setDirty(nil, "ui", tb.dimen, refresh_dither)
     end
 
@@ -1002,9 +1017,7 @@ local function apply_status_bar()
     end
 
     local function home_without_status_bar_is_on_top()
-        local stack = UIManager._window_stack
-        local top = stack and stack[#stack]
-        local widget = top and top.widget
+        local widget = topmost_non_toast_widget()
         return widget and widget._zen_home_show_status_bar == false
     end
 
@@ -1105,9 +1118,7 @@ local function apply_status_bar()
 
     local function refreshVisibleStatusBar(fm, clock_tick)
         if FileManager.instance ~= fm then return end
-        local stack = UIManager._window_stack
-        local top = stack and stack[#stack]
-        local top_widget = top and top.widget
+        local top_widget = topmost_non_toast_widget()
 
         if suppresses_status_bar(top_widget) then return end
         if top_widget == fm or top_widget == fm.show_parent then
