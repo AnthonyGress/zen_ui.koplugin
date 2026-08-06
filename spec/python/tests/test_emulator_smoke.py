@@ -147,11 +147,11 @@ def test_pt_br_settings_root_labels_are_localized() -> None:
         ko_home.mkdir()
         library.mkdir()
         socket_path = root / "driver.sock"
-        process = launch(runtime, ko_home, socket_path, library)
+        process = launch(runtime, ko_home, socket_path, library, language="pt_BR")
         try:
             wait_for_socket(socket_path)
             driver = ZenDriver(socket_path)
-            assert driver.command("set_language", language="pt_BR")["ok"] is True
+            assert driver.plugin_loaded("customisablesleepscreen")
             assert driver.command("open_settings_page")["ok"] is True
             labels = driver.command("settings_page_state")["settings"]["labels"]
             assert {"Biblioteca", "Barra de navegação", "Adicionais"}.issubset(labels)

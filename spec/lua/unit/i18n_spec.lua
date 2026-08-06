@@ -79,6 +79,7 @@ describe("Zen UI translations", function()
         local wrapper = setmetatable({}, {
             __call = function(_self, msgid)
                 if msgid == "About" then return "Sobre" end
+                if msgid == "Library" then return "Biblioteca externa" end
                 return GetText(msgid)
             end,
             __index = GetText,
@@ -88,9 +89,10 @@ describe("Zen UI translations", function()
         local I18n = require("common/i18n")
         I18n.install()
         assert.are.equal("Sobre", wrapper("About"))
-        assert.are.equal("Biblioteca", wrapper("Library"))
+        assert.are.equal("Biblioteca externa", wrapper("Library"))
+        assert.are.equal("Biblioteca", package.loaded["gettext"]("Library"))
 
         methods.changeLang("pt_BR")
-        assert.are.equal("Biblioteca", wrapper("Library"))
+        assert.are.equal("Biblioteca", package.loaded["gettext"]("Library"))
     end)
 end)

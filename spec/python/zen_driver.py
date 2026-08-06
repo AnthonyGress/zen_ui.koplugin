@@ -145,6 +145,7 @@ def launch(
     library_dir: Path | None = None,
     zen_config_source: str | None = None,
     env_overrides: dict[str, str] | None = None,
+    language: str | None = None,
 ) -> subprocess.Popen[str]:
     settings_dir = ko_home / "settings" / "Zen UI"
     settings_dir.mkdir(parents=True, exist_ok=True)
@@ -154,8 +155,9 @@ def launch(
         with sqlite3.connect(bookinfo_cache) as connection:
             connection.execute("PRAGMA user_version=20201210")
     home_dir = str(library_dir.resolve()) if library_dir else ""
+    language_setting = ', ["language"] = ' + repr(language) if language else ""
     (ko_home / "settings.reader.lua").write_text(
-        'return { ["home_dir"] = ' + repr(home_dir) + ' }\n',
+        'return { ["home_dir"] = ' + repr(home_dir) + language_setting + ' }\n',
         encoding="utf-8",
     )
     (settings_dir / "config.lua").write_text(

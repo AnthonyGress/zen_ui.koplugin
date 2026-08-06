@@ -1,9 +1,8 @@
 -- common/i18n.lua — Zen UI
--- Injects the plugin's .po translations directly into KOReader's GetText
--- tables so every code path (including modules that captured `local _ =
--- require("gettext")` before the plugin loaded) sees both KOReader's and
--- Zen UI's translations. Also follows plugin wrappers to the backing GetText
--- table and re-injects translations whenever the user switches languages.
+-- Injects the plugin's .po translations into KOReader's GetText tables for
+-- already-loaded code, then installs a composable outer wrapper for Zen UI
+-- modules. This keeps another plugin's catalog from taking priority over Zen
+-- UI while preserving that plugin's own previously captured gettext wrapper.
 --
 -- USAGE: call i18n.install() early in main.lua (before menus are built).
 -- The installation is process-wide; uninstall() is only for explicit teardown.
@@ -11,6 +10,8 @@
 local logger = require("common/zen_logger").new("i18n")
 
 local _dir = (debug.getinfo(1, "S").source:match("^@(.+/)") or "./")
+local _translations = {}
+local _contexts = {}
 
 -- ---------------------------------------------------------------------------
 -- Minimal .po parser — handles msgctxt, msgid, msgstr, multiline continuations
@@ -126,6 +127,8 @@ end
 -- ---------------------------------------------------------------------------
 local function applyZenTranslations(GetText, lang)
     local translations, contexts = loadTranslationsForLang(lang)
+    _translations = translations or {}
+    _contexts = contexts or {}
     if not translations then
         logger.warn("skipping injection — no translations for lang=" .. (lang or "nil"))
         return
@@ -170,6 +173,29 @@ local _gettext_state   = nil
 local _change_methods  = nil
 local _orig_changeLang = nil
 local _patched_changeLang
+local _gettext_wrapper = nil
+local _wrapped_gettext  = nil
+
+local function installWrapper(GetText)
+    local wrapper = setmetatable({
+        pgettext = function(msgctxt, msgid)
+            local translated = _contexts[msgctxt] and _contexts[msgctxt][msgid]
+            if translated then return translated end
+            if type(GetText.pgettext) == "function" then
+                return GetText.pgettext(msgctxt, msgid)
+            end
+            return GetText(msgid)
+        end,
+    }, {
+        __call = function(_self, msgid)
+            return _translations[msgid] or GetText(msgid)
+        end,
+        __index = GetText,
+    })
+    _wrapped_gettext = GetText
+    _gettext_wrapper = wrapper
+    package.loaded["gettext"] = wrapper
+end
 
 local function install()
     if _installed then
@@ -196,6 +222,10 @@ local function install()
 
     -- Inject translations for the current language
     applyZenTranslations(gettext_state, detectLang())
+
+    -- Keep Zen UI's catalog outermost for modules loaded after this point.
+    -- Other plugins that already captured their own wrapper retain it.
+    installWrapper(GetText)
 
     -- Patch changeLang so we re-inject after every language switch.
     -- GetText_mt.__index is the method table; we replace changeLang in-place.
@@ -236,6 +266,9 @@ end
 
 local function uninstall()
     if not _installed then return end
+    if package.loaded["gettext"] == _gettext_wrapper then
+        package.loaded["gettext"] = _wrapped_gettext
+    end
     if _gettext_state and _change_methods and _orig_changeLang then
         if _change_methods.changeLang == _patched_changeLang then
             _change_methods.changeLang = _orig_changeLang
@@ -251,6 +284,10 @@ local function uninstall()
     _orig_changeLang = nil
     _change_methods  = nil
     _gettext_state   = nil
+    _gettext_wrapper = nil
+    _wrapped_gettext  = nil
+    _translations    = {}
+    _contexts        = {}
     _installed       = false
     logger.info("uninstalled")
 end
