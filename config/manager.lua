@@ -837,6 +837,17 @@ local function migrate_home_quote_font_size()
     return changed and PresetStore.saveStore("home", store)
 end
 
+local function migrate_home_strip_config()
+    if type(HomePresets.normalizeStripConfig) ~= "function" then return false end
+    local store = PresetStore.loadStore("home")
+    local changed = HomePresets.normalizeStripConfig(store.settings)
+    for _name, preset in pairs(store.presets) do
+        local page = type(preset) == "table" and (preset.home_page or preset)
+        if HomePresets.normalizeStripConfig(page) then changed = true end
+    end
+    return changed and PresetStore.saveStore("home", store)
+end
+
 local function migrate_settings_files()
     local changed = PresetStore.migrateStores({
         home = HomePresets.defaultHomePage(),
@@ -847,6 +858,9 @@ local function migrate_settings_files()
         changed = true
     end
     if migrate_home_quote_font_size() then
+        changed = true
+    end
+    if migrate_home_strip_config() then
         changed = true
     end
     return changed

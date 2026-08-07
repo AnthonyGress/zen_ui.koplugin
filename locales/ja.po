@@ -489,9 +489,6 @@ msgstr "すべてのジェスチャーをクリア"
 msgid "Clear book"
 msgstr "本をクリア"
 
-msgid "Clear books"
-msgstr "本をクリア"
-
 msgid "Close"
 msgstr "閉じる"
 
@@ -606,6 +603,9 @@ msgstr "現在/総ページ数"
 msgid "Custom"
 msgstr "カスタム"
 
+msgid "Custom books"
+msgstr ""
+
 msgid "Custom button label"
 msgstr "カスタムボタンラベル"
 
@@ -719,6 +719,9 @@ msgstr "デフォルト"
 
 msgid "Default (black)"
 msgstr "デフォルト (黒)"
+
+msgid "Default content: "
+msgstr ""
 
 msgid "Default font size:"
 msgstr "デフォルトのフォントサイズ:"
@@ -933,9 +936,6 @@ msgstr "お気に入り"
 msgid "Featured Book"
 msgstr "注目の本"
 
-msgid "Featured Books"
-msgstr "注目の書籍"
-
 msgid "Featured widget"
 msgstr "注目のウィジェット"
 
@@ -1025,6 +1025,9 @@ msgstr "フロントライト"
 
 msgid "Gallery"
 msgstr "ギャラリー"
+
+msgid "Genres"
+msgstr ""
 
 msgid "Get Started"
 msgstr "はじめる"
@@ -1629,6 +1632,9 @@ msgstr "概要"
 msgid "Outlined boxes"
 msgstr "枠線付きボックス"
 
+msgid "p."
+msgstr ""
+
 msgid "Page %1 of %2"
 msgstr "ページ %1 / %2"
 
@@ -1838,6 +1844,12 @@ msgstr "読書傾向"
 
 msgid "Reading Trend"
 msgstr "読書傾向"
+
+msgid "Recent"
+msgstr ""
+
+msgid "Recent filters"
+msgstr ""
 
 msgid "Recently read"
 msgstr "最近読んだ"
@@ -2100,6 +2112,9 @@ msgstr "下部の境界線を表示"
 msgid "Show brightness slider"
 msgstr "明るさスライダーを表示"
 
+msgid "Show controls"
+msgstr ""
+
 msgid "Show description"
 msgstr "説明を表示"
 
@@ -2232,6 +2247,9 @@ msgstr "並べ替え順序"
 msgid "Sort series"
 msgstr "シリーズの並べ替え"
 
+msgid "Specific tag"
+msgstr ""
+
 msgid "Stable"
 msgstr "安定版"
 
@@ -2322,14 +2340,8 @@ msgstr "タブ"
 msgid "Tag"
 msgstr "タグ"
 
-msgid "Tag books"
-msgstr "タグ付きの本"
-
 msgid "Tag strip widget"
 msgstr "タグストリップウィジェット"
-
-msgid "Tag: "
-msgstr "タグ："
 
 msgid "Tag: %1"
 msgstr "タグ: %1"

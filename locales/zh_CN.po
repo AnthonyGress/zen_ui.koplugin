@@ -489,9 +489,6 @@ msgstr "清除所有手势"
 msgid "Clear book"
 msgstr "清除图书"
 
-msgid "Clear books"
-msgstr "清除图书"
-
 msgid "Close"
 msgstr "关闭"
 
@@ -606,6 +603,9 @@ msgstr "当前/总页数"
 msgid "Custom"
 msgstr "自定义"
 
+msgid "Custom books"
+msgstr "自定义书籍"
+
 msgid "Custom button label"
 msgstr "自定义按钮标签"
 
@@ -719,6 +719,9 @@ msgstr "默认"
 
 msgid "Default (black)"
 msgstr "默认（黑色）"
+
+msgid "Default content: "
+msgstr "默认内容："
 
 msgid "Default font size:"
 msgstr "默认字体大小："
@@ -933,9 +936,6 @@ msgstr "收藏夹"
 msgid "Featured Book"
 msgstr "精选书籍"
 
-msgid "Featured Books"
-msgstr "特色书籍"
-
 msgid "Featured widget"
 msgstr "特色小部件"
 
@@ -1025,6 +1025,9 @@ msgstr "前光"
 
 msgid "Gallery"
 msgstr "画廊"
+
+msgid "Genres"
+msgstr "类型"
 
 msgid "Get Started"
 msgstr "开始使用"
@@ -1629,6 +1632,9 @@ msgstr "大纲"
 msgid "Outlined boxes"
 msgstr "描边方框"
 
+msgid "p."
+msgstr "页"
+
 msgid "Page %1 of %2"
 msgstr "第 %1 页，共 %2 页"
 
@@ -1838,6 +1844,12 @@ msgstr "阅读趋势"
 
 msgid "Reading Trend"
 msgstr "阅读趋势"
+
+msgid "Recent"
+msgstr "最近"
+
+msgid "Recent filters"
+msgstr "最近项目筛选"
 
 msgid "Recently read"
 msgstr "最近阅读"
@@ -2100,6 +2112,9 @@ msgstr "显示底部边框"
 msgid "Show brightness slider"
 msgstr "显示亮度滑块"
 
+msgid "Show controls"
+msgstr "显示控件"
+
 msgid "Show description"
 msgstr "显示描述"
 
@@ -2232,6 +2247,9 @@ msgstr "排序顺序"
 msgid "Sort series"
 msgstr "按系列排序"
 
+msgid "Specific tag"
+msgstr "指定标签"
+
 msgid "Stable"
 msgstr "稳定版"
 
@@ -2322,14 +2340,8 @@ msgstr "标签"
 msgid "Tag"
 msgstr "标签"
 
-msgid "Tag books"
-msgstr "带标签的书籍"
-
 msgid "Tag strip widget"
 msgstr "标签条小部件"
-
-msgid "Tag: "
-msgstr "标签："
 
 msgid "Tag: %1"
 msgstr "标签：%1"

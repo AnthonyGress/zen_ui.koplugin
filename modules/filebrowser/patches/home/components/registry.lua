@@ -5,10 +5,7 @@ local builtin_components = {
     require("modules/filebrowser/patches/home/widgets/featured_recent"),
     require("modules/filebrowser/patches/home/widgets/stats_triplet"),
     require("modules/filebrowser/patches/home/widgets/reading_goals"),
-    require("modules/filebrowser/patches/home/widgets/strip_custom"),
-    require("modules/filebrowser/patches/home/widgets/strip_tag"),
-    require("modules/filebrowser/patches/home/widgets/strip_tbr"),
-    require("modules/filebrowser/patches/home/widgets/strip_recent"),
+    require("modules/filebrowser/patches/home/widgets/strip"),
     require("modules/filebrowser/patches/home/widgets/quotes"),
 }
 
@@ -39,10 +36,7 @@ local LAYOUT_GROWTH = {
     quotes = { max = 3, priority = 3 },
     reading_goals = { max = 2, priority = 4 },
     stats_triplet = { max = 1, priority = 4 },
-    strip_custom = { max = 3.5, priority = 1 },
-    strip_recent = { max = 3.5, priority = 1 },
-    strip_tag = { max = 3.5, priority = 1 },
-    strip_tbr = { max = 3.5, priority = 1 },
+    strip = { max = 3.5, priority = 1 },
 }
 
 local function clamp_units(value)

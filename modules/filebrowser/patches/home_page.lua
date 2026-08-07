@@ -453,10 +453,7 @@ local DEFAULT_ROW_ORDER = {
     "featured_tbr",
     "stats_triplet",
     "reading_goals",
-    "strip_recent",
-    "strip_custom",
-    "strip_tag",
-    "strip_tbr",
+    "strip",
     "quotes",
 }
 
@@ -464,7 +461,7 @@ local DEFAULT_ROW_ENABLED = {
     featured_recent = true,
     quotes = true,
     stats_triplet = true,
-    strip_recent = true,
+    strip = true,
 }
 
 local DEFAULT_FEATURED_PROGRESS_META = {
@@ -485,10 +482,7 @@ local MODULE_TITLES = {
     featured_tbr = _("To Be Read"),
     featured_recent = _("Recently read"),
     reading_goals = _("Reading goals"),
-    strip_custom = _("Featured Books"),
-    strip_tag = _("Tag books"),
-    strip_tbr = _("To Be Read"),
-    strip_recent = _("Recently read"),
+    strip = _("Books"),
     stats_triplet = _("Reading stats"),
     quotes = _("Quote"),
 }
@@ -570,15 +564,10 @@ local function ensure_featured_module_cfg(dcfg, module_id)
     return mcfg
 end
 
-local function ensure_strip_module_cfg(dcfg, module_id)
-    local mcfg = ensure_module_cfg(dcfg, module_id)
+local function ensure_strip_module_cfg(dcfg)
+    local mcfg = ensure_module_cfg(dcfg, "strip")
     mcfg.order = normalize_order(mcfg.order)
     if mcfg.interactive == nil then mcfg.interactive = true end
-    if module_id == "strip_recent" then
-        if mcfg.filter_unread == nil then mcfg.filter_unread = false end
-        if mcfg.filter_tbr == nil then mcfg.filter_tbr = false end
-        if mcfg.filter_finished == nil then mcfg.filter_finished = false end
-    end
     if mcfg.two_rows == nil then mcfg.two_rows = false end
     if type(mcfg.count) ~= "number" then mcfg.count = mcfg.two_rows and 8 or 4 end
     if mcfg.two_rows then
@@ -615,12 +604,7 @@ local function ensure_home_widget_cfg(dcfg)
     reading_goals.font_size = goals_font_size and (goals_font_override or goals_font_size ~= DEFAULT_GOALS_FONT_SIZE)
         and math.max(8, math.min(32, math.floor(goals_font_size + 0.5))) or nil
     reading_goals.font_size_override = reading_goals.font_size and true or nil
-    local strip_custom = ensure_strip_module_cfg(dcfg, "strip_custom")
-    if type(strip_custom.paths) ~= "table" then strip_custom.paths = {} end
-    local strip_tag = ensure_strip_module_cfg(dcfg, "strip_tag")
-    if type(strip_tag.tag) ~= "string" then strip_tag.tag = nil end
-    ensure_strip_module_cfg(dcfg, "strip_tbr")
-    ensure_strip_module_cfg(dcfg, "strip_recent")
+    ensure_strip_module_cfg(dcfg)
 end
 
 local function load_zen_config()
@@ -639,6 +623,7 @@ local function ensure_home_cfg()
         dcfg = HomePresets.defaultHomePage()
     end
     HomePresets.ensurePresetState(dcfg)
+    HomePresets.normalizeStripConfig(dcfg)
 
     dcfg.rows = Registry.normalizeRows(dcfg.rows, DEFAULT_ROW_ORDER, DEFAULT_ROW_ENABLED)
 
@@ -1345,6 +1330,7 @@ local function build_data_provider(cfg, dcfg)
                 and source ~= "custom_strip"
                 and source ~= "currently_reading"
                 and source ~= "to_be_read"
+                and source ~= "favorites"
                 and source ~= "tag" then
             source = "recently_read"
         end
@@ -1356,8 +1342,12 @@ local function build_data_provider(cfg, dcfg)
             return path and { path } or {}
         end
         if source == "custom_strip" then
-            local mcfg = dcfg and dcfg.modules and dcfg.modules.strip_custom or {}
-            local paths = type(mcfg.paths) == "table" and mcfg.paths or {}
+            local mcfg = dcfg and dcfg.modules and dcfg.modules.strip or {}
+            local sources = type(mcfg.sources) == "table" and mcfg.sources or {}
+            local custom = type(sources.custom) == "table" and sources.custom or {}
+            local legacy = dcfg and dcfg.modules and dcfg.modules.strip_custom or {}
+            local paths = type(custom.paths) == "table" and custom.paths
+                or type(legacy.paths) == "table" and legacy.paths or {}
             local out = {}
             for _i, path in ipairs(paths) do
                 if type(path) == "string" and path ~= "" then
@@ -1380,6 +1370,32 @@ local function build_data_provider(cfg, dcfg)
         end
         if source == "currently_reading" then
             return get_paths_by_status("reading", lim)
+        end
+        if source == "favorites" then
+            local ok_collection, ReadCollection = pcall(require, "readcollection")
+            if not ok_collection or not ReadCollection then return {} end
+            local name = ReadCollection.default_collection_name
+            local collection = name and ReadCollection.coll and ReadCollection.coll[name]
+            if type(collection) ~= "table" then return {} end
+            local entries = {}
+            for _key, entry in pairs(collection) do
+                if type(entry) == "table" and type(entry.file) == "string"
+                        and entry.file ~= "" then
+                    entries[#entries + 1] = entry
+                end
+            end
+            table.sort(entries, function(a, b)
+                local ao = tonumber(a.order) or 0
+                local bo = tonumber(b.order) or 0
+                if ao == bo then return a.file < b.file end
+                return ao < bo
+            end)
+            local out = {}
+            for _i, entry in ipairs(entries) do
+                out[#out + 1] = entry.file
+                if #out >= lim then break end
+            end
+            return out
         end
         if source == "to_be_read" then
             local tbr = get_tbr_paths(lim)
@@ -1406,6 +1422,7 @@ local function build_data_provider(cfg, dcfg)
             and source ~= "custom_strip"
             and source ~= "currently_reading"
             and source ~= "to_be_read"
+            and source ~= "favorites"
             and source ~= "tag"
     end
 
@@ -1418,6 +1435,7 @@ local function build_data_provider(cfg, dcfg)
             opts and opts.filter_tbr == true and "tbr" or "",
             opts and opts.filter_finished == true and "finished" or "",
             opts and opts.tag or "",
+            opts and opts.path or "",
         }, "\0")
         local cached = dataset.ordered_paths[cache_key]
         if cached then
@@ -1479,10 +1497,22 @@ local function build_data_provider(cfg, dcfg)
         if n < 1 then n = 1 end
         local source = source_key
         if source ~= "custom_strip" and source ~= "currently_reading"
-                and source ~= "to_be_read" and source ~= "tag" then
+                and source ~= "to_be_read" and source ~= "favorites"
+                and source ~= "tag" then
             source = "recently_read"
         end
         local mcfg = dcfg and dcfg.modules and dcfg.modules[component_id] or {}
+        if component_id == "strip" then
+            local sources = type(mcfg.sources) == "table" and mcfg.sources or {}
+            local recent = type(sources.recent) == "table" and sources.recent or {}
+            local tag = type(sources.tag) == "table" and sources.tag or {}
+            mcfg = {
+                filter_unread = recent.filter_unread,
+                filter_tbr = recent.filter_tbr,
+                filter_finished = recent.filter_finished,
+                tag = tag.tag,
+            }
+        end
         local strip_cache_key = table.concat({
             tostring(component_id or source),
             source,
@@ -1604,6 +1634,222 @@ local function build_data_provider(cfg, dcfg)
 
     function provider:getBooksForStrip(source_key, count, order_key, component_id)
         return self:getBooksForStripPage(source_key, count, order_key, component_id, 0)
+    end
+
+    local function collection_files(name)
+        local ok_collection, ReadCollection = pcall(require, "readcollection")
+        if not ok_collection or not ReadCollection or type(name) ~= "string" then return {} end
+        local collection = ReadCollection.coll and ReadCollection.coll[name]
+        if type(collection) ~= "table" then return {} end
+        local entries = {}
+        for _key, entry in pairs(collection) do
+            if type(entry) == "table" and type(entry.file) == "string"
+                    and entry.file ~= "" then
+                entries[#entries + 1] = entry
+            end
+        end
+        table.sort(entries, function(a, b)
+            local ao = tonumber(a.order) or 0
+            local bo = tonumber(b.order) or 0
+            if ao == bo then return a.file < b.file end
+            return ao < bo
+        end)
+        local files = {}
+        for _i, entry in ipairs(entries) do files[#files + 1] = entry.file end
+        return files
+    end
+
+    local function folder_files(path)
+        if type(path) ~= "string" or path == "" then return {} end
+        local ok_lfs, lfs = pcall(require, "libs/libkoreader-lfs")
+        if not ok_lfs or lfs.attributes(path, "mode") ~= "directory" then return {} end
+        local FileManager = require("apps/filemanager/filemanager")
+        local chooser = FileManager.instance and FileManager.instance.file_chooser
+        if not (chooser and type(chooser.genItemTableFromPath) == "function") then return {} end
+        local ok_items, items = pcall(chooser.genItemTableFromPath, chooser, path)
+        if not ok_items or type(items) ~= "table" then return {} end
+        local DocumentRegistry = require("document/documentregistry")
+        local files = {}
+        for _i, item in ipairs(items) do
+            local item_path = item and (item.path or item.file)
+            local is_file = item and (item.is_file == true
+                or type(item.attr) == "table" and item.attr.mode == "file")
+            if is_file and type(item_path) == "string" then
+                local ok_supported, supported = pcall(
+                    DocumentRegistry.hasProvider, DocumentRegistry, item_path)
+                if ok_supported and supported then files[#files + 1] = item_path end
+            end
+        end
+        return files
+    end
+
+    local function source_groups(kind)
+        if kind == "collections" then
+            local ok_collection, ReadCollection = pcall(require, "readcollection")
+            local groups = {}
+            if ok_collection and ReadCollection and type(ReadCollection.coll) == "table" then
+                for name in pairs(ReadCollection.coll) do
+                    local files = collection_files(name)
+                    if #files > 0 then
+                        groups[#groups + 1] = { label = name, files = files }
+                    end
+                end
+                table.sort(groups, function(a, b) return a.label < b.label end)
+            end
+            return groups
+        end
+        local ok_db, db = pcall(require, "common/db_bookinfo")
+        if not ok_db or not db then return {} end
+        local raw_groups
+        if kind == "authors" and type(db.getGroupedByAuthor) == "function" then
+            raw_groups = db.getGroupedByAuthor()
+        elseif kind == "series" and type(db.getGroupedBySeries) == "function" then
+            raw_groups = db.getGroupedBySeries()
+        elseif kind == "tags" and type(db.getGroupedByTags) == "function" then
+            raw_groups = db.getGroupedByTags()
+        end
+        local groups = {}
+        for _i, group in ipairs(raw_groups or {}) do
+            local files = group.files
+            if kind == "series" then
+                files = {}
+                for _j, item in ipairs(group.items or {}) do
+                    if type(item.file) == "string" then files[#files + 1] = item.file end
+                end
+            end
+            local label = group.author or group.series or group.tag
+            if type(label) == "string" and type(files) == "table" and #files > 0 then
+                groups[#groups + 1] = { label = label, files = files }
+            end
+        end
+        return groups
+    end
+
+    local function descriptor_key(request, order_key)
+        local drill = type(request.drill) == "table" and request.drill.label or ""
+        return table.concat({
+            "strip", tostring(request.kind), tostring(request.value or ""),
+            tostring(drill), normalize_order(order_key),
+        }, ":")
+    end
+
+    local function paginate(values, request, count, order_key, component_id, page_delta)
+        local n = math.max(1, tonumber(count) or 4)
+        local key = tostring(component_id or "strip") .. ":" .. descriptor_key(request, order_key)
+        local offset = tonumber(strip_offsets[key]) or 0
+        if #values > 0 then
+            offset = (offset % #values + (tonumber(page_delta) or 0) * n) % #values
+        else
+            offset = 0
+        end
+        local page = {}
+        for i = 1, math.min(n, #values) do
+            page[#page + 1] = values[((offset + i - 1) % #values) + 1]
+        end
+        return page, #values > n, key
+    end
+
+    local function descriptor_paths(request)
+        if request.kind == "favorites" then
+            local ok_collection, ReadCollection = pcall(require, "readcollection")
+            return ok_collection and ReadCollection
+                and collection_files(ReadCollection.default_collection_name) or {}
+        end
+        if request.kind == "tag" then
+            local ok_db, db = pcall(require, "common/db_bookinfo")
+            return ok_db and db and type(db.getTagBooks) == "function"
+                and db.getTagBooks(request.value) or {}
+        end
+        if request.kind == "custom" then
+            if type(request.paths) == "table" then return copy_paths(request.paths) end
+            local strip = dcfg and dcfg.modules and dcfg.modules.strip or {}
+            local sources = type(strip.sources) == "table" and strip.sources or {}
+            local custom = type(sources.custom) == "table" and sources.custom or {}
+            return copy_paths(custom.paths)
+        end
+    end
+
+    function provider:getStripItemsForPage(request, count, order_key, component_id, page_delta)
+        request = type(request) == "table" and request or { kind = "recent" }
+        local kind = request.kind or "recent"
+        if type(request.drill) == "table" then
+            local paths = copy_paths(request.drill.files)
+            if normalize_order(order_key) == "reverse" then paths = reverse_copy(paths) end
+            local page, adjacent = paginate(
+                paths, request, count, order_key, component_id, page_delta)
+            local books = {}
+            for _i, path in ipairs(page) do
+                local book = get_book(path, false, true)
+                if book then books[#books + 1] = book end
+            end
+            return books, adjacent
+        end
+        if kind == "authors" or kind == "series" or kind == "tags"
+                or kind == "collections" then
+            local groups = source_groups(kind)
+            if normalize_order(order_key) == "reverse" then groups = reverse_copy(groups) end
+            local page, adjacent = paginate(
+                groups, request, count, order_key, component_id, page_delta)
+            local items = {}
+            for _i, group in ipairs(page) do
+                local book = get_book(group.files[1], false, true)
+                if book then
+                    book.is_group = true
+                    book.group_kind = kind
+                    book.group_label = group.label
+                    book.group_count = #group.files
+                    book.group_files = group.files
+                    items[#items + 1] = book
+                end
+            end
+            return items, adjacent
+        end
+        if kind == "folder" then
+            local paths = folder_files(request.value)
+            local page, adjacent = paginate(
+                paths, request, count, order_key, component_id, page_delta)
+            local books = {}
+            for _i, path in ipairs(page) do
+                local book = get_book(path, false, true)
+                if book then books[#books + 1] = book end
+            end
+            return books, adjacent
+        end
+        if kind == "favorites" or kind == "tag" or kind == "custom" then
+            local paths = descriptor_paths(request)
+            if normalize_order(order_key) == "reverse" then paths = reverse_copy(paths) end
+            local page, adjacent = paginate(
+                paths, request, count, order_key, component_id, page_delta)
+            local books = {}
+            for _i, path in ipairs(page) do
+                local book = get_book(path, false, true)
+                if book then books[#books + 1] = book end
+            end
+            return books, adjacent
+        end
+        local source = kind == "to_be_read" and "to_be_read" or "recently_read"
+        return self:getBooksForStripPage(
+            source, count, order_key, component_id, page_delta)
+    end
+
+    function provider:shiftStripItems(request, count, order_key, direction, component_id, refresh)
+        request = type(request) == "table" and request or { kind = "recent" }
+        if request.kind == "recent" or request.kind == "to_be_read" then
+            local source = request.kind == "to_be_read" and "to_be_read"
+                or "recently_read"
+            return self:shiftStrip(source, count, order_key, direction, component_id, refresh)
+        end
+        local values = request.drill and request.drill.files
+            or request.kind == "folder" and folder_files(request.value)
+            or descriptor_paths(request)
+            or source_groups(request.kind)
+        local n = math.max(1, tonumber(count) or 4)
+        if type(values) ~= "table" or #values <= n then return false end
+        local key = tostring(component_id or "strip") .. ":" .. descriptor_key(request, order_key)
+        local cur = tonumber(strip_offsets[key]) or 0
+        strip_offsets[key] = (cur + (direction == "previous" and -n or n)) % #values
+        if type(refresh) == "function" then refresh() end
+        return true
     end
 
     function provider:shiftStrip(source_key, count, order_key, direction, component_id, refresh)
@@ -2342,6 +2588,11 @@ local function build_home_content(menu, dcfg, rows, data_provider)
     end
 
     local function shift_strip(source_key, count, order_key, direction, component_id, _two_rows, refresh)
+        if type(source_key) == "table" and data_provider
+                and type(data_provider.shiftStripItems) == "function" then
+            return data_provider:shiftStripItems(
+                source_key, count, order_key, direction, component_id, refresh)
+        end
         if not (data_provider and type(data_provider.shiftStrip) == "function") then return false end
         return data_provider:shiftStrip(source_key, count, order_key, direction, component_id, refresh)
     end
@@ -2519,9 +2770,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
                 }
             end
             if comp.id ~= "featured_custom" and comp.id ~= "featured_tbr"
-                    and comp.id ~= "featured_recent" and comp.id ~= "strip_custom"
-                    and comp.id ~= "strip_tag" and comp.id ~= "strip_tbr"
-                    and comp.id ~= "strip_recent"
+                    and comp.id ~= "featured_recent" and comp.id ~= "strip"
                     and comp.id ~= "quotes" and comp.id ~= "reading_goals" then
                 final_widget = add_widget_settings_hold(final_widget, comp.id, content_w, h)
             end
@@ -2910,6 +3159,7 @@ function M.showHomeView(injectNavbar)
         end
         refresh_shared_state()
         if reload_config == true then
+            self._zen_home_strip_runtime = nil
             local next_cfg = load_zen_config()
             if type(next_cfg) == "table" then
                 cfg = next_cfg

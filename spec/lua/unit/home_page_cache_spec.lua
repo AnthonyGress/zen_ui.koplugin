@@ -906,4 +906,56 @@ describe("home data and book caches", function()
         assert.is_true(menu._zen_home_needs_rebuild)
     end)
 
+    it("loads Favorites as a first-class strip source", function()
+        ZenSpec.replace("readcollection", {
+            default_collection_name = "favorites",
+            coll = {
+                favorites = {
+                    a = { file = "/library/alpha.epub", order = 2 },
+                    b = { file = "/library/beta.epub", order = 1 },
+                },
+            },
+            coll_settings = {},
+        })
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, {
+            rows = { order = { "strip" }, enabled = { strip = true } },
+            modules = { strip = {} },
+        })
+
+        local books, adjacent = provider:getStripItemsForPage(
+            { kind = "favorites" }, 1, "default", "strip", 0)
+        assert.are.equal("/library/beta.epub", books[1].path)
+        assert.is_true(adjacent)
+    end)
+
+    it("returns tag stacks and drills into their books", function()
+        ZenSpec.replace("common/db_bookinfo", {
+            getGroupedByTags = function()
+                return {{
+                    tag = "Science",
+                    files = { "/library/alpha.epub", "/library/beta.epub" },
+                }}
+            end,
+        })
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, {
+            rows = { order = { "strip" }, enabled = { strip = true } },
+            modules = { strip = {} },
+        })
+
+        local groups = provider:getStripItemsForPage(
+            { kind = "tags" }, 4, "default", "strip", 0)
+        assert.is_true(groups[1].is_group)
+        assert.are.equal("Science", groups[1].group_label)
+        assert.are.equal(2, groups[1].group_count)
+
+        local books = provider:getStripItemsForPage({
+            kind = "tags",
+            drill = { label = "Science", files = groups[1].group_files },
+        }, 4, "default", "strip", 0)
+        assert.are.equal(2, #books)
+        assert.is_nil(books[1].is_group)
+    end)
+
 end)

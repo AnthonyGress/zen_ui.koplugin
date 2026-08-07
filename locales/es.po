@@ -489,9 +489,6 @@ msgstr "Borrar todos los gestos"
 msgid "Clear book"
 msgstr "Limpiar libro"
 
-msgid "Clear books"
-msgstr "Limpiar libros"
-
 msgid "Close"
 msgstr "Cerrar"
 
@@ -606,6 +603,9 @@ msgstr "Páginas actuales/totales"
 msgid "Custom"
 msgstr "Personalizado"
 
+msgid "Custom books"
+msgstr "Libros personalizados"
+
 msgid "Custom button label"
 msgstr "Etiqueta del botón personalizado"
 
@@ -719,6 +719,9 @@ msgstr "predeterminado"
 
 msgid "Default (black)"
 msgstr "Predeterminado (negro)"
+
+msgid "Default content: "
+msgstr "Contenido predeterminado: "
 
 msgid "Default font size:"
 msgstr "Tamaño de fuente predeterminado:"
@@ -933,9 +936,6 @@ msgstr "Favoritos"
 msgid "Featured Book"
 msgstr "Libro destacado"
 
-msgid "Featured Books"
-msgstr "Libros destacados"
-
 msgid "Featured widget"
 msgstr "Widget destacado"
 
@@ -1025,6 +1025,9 @@ msgstr "Luz frontal"
 
 msgid "Gallery"
 msgstr "Galería"
+
+msgid "Genres"
+msgstr "Géneros"
 
 msgid "Get Started"
 msgstr "Comenzar"
@@ -1629,6 +1632,9 @@ msgstr "Describir"
 msgid "Outlined boxes"
 msgstr "Cajas con contorno"
 
+msgid "p."
+msgstr "pág."
+
 msgid "Page %1 of %2"
 msgstr "Página %1 de %2"
 
@@ -1838,6 +1844,12 @@ msgstr "Tendencia de lectura"
 
 msgid "Reading Trend"
 msgstr "Tendencia de lectura"
+
+msgid "Recent"
+msgstr "Recientes"
+
+msgid "Recent filters"
+msgstr "Filtros de recientes"
 
 msgid "Recently read"
 msgstr "Leído recientemente"
@@ -2100,6 +2112,9 @@ msgstr "Mostrar borde inferior"
 msgid "Show brightness slider"
 msgstr "Mostrar control deslizante de brillo"
 
+msgid "Show controls"
+msgstr "Mostrar controles"
+
 msgid "Show description"
 msgstr "Mostrar descripción"
 
@@ -2232,6 +2247,9 @@ msgstr "Orden de clasificación"
 msgid "Sort series"
 msgstr "Ordenar series"
 
+msgid "Specific tag"
+msgstr "Etiqueta específica"
+
 msgid "Stable"
 msgstr "Stable"
 
@@ -2322,14 +2340,8 @@ msgstr "Pestañas"
 msgid "Tag"
 msgstr "Etiqueta"
 
-msgid "Tag books"
-msgstr "Libros etiquetados"
-
 msgid "Tag strip widget"
 msgstr "Widget de tira de etiquetas"
-
-msgid "Tag: "
-msgstr "Etiqueta:"
 
 msgid "Tag: %1"
 msgstr "Etiqueta: %1"

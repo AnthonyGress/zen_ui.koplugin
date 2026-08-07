@@ -24,6 +24,7 @@ common/inject_icons.lua|unit
 common/inline_icon_map.lua|unit
 common/library_navigation.lua|unit
 common/memory_policy.lua|unit
+common/nav_button_model.lua|unit
 common/paths.lua|unit
 common/plugin_root.lua|unit
 common/reading_goals.lua|unit
@@ -107,11 +108,8 @@ modules/filebrowser/patches/home/widgets/quotes.lua|integration
 modules/filebrowser/patches/home/widgets/reading_goals.lua|integration
 modules/filebrowser/patches/home/widgets/stats_triplet.lua|integration
 modules/filebrowser/patches/home/widgets/strip.lua|integration
+modules/filebrowser/patches/home/widgets/strip_controls.lua|integration
 modules/filebrowser/patches/home/widgets/strip_common.lua|integration
-modules/filebrowser/patches/home/widgets/strip_custom.lua|integration
-modules/filebrowser/patches/home/widgets/strip_recent.lua|integration
-modules/filebrowser/patches/home/widgets/strip_tag.lua|integration
-modules/filebrowser/patches/home/widgets/strip_tbr.lua|integration
 modules/filebrowser/patches/home_page.lua|integration
 modules/filebrowser/patches/incompatible_plugins_check.lua|integration
 modules/filebrowser/patches/library_background.lua|integration

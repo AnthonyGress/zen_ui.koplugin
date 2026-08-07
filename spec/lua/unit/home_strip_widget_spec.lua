@@ -1,4 +1,4 @@
-describe("home recent strip widget", function()
+describe("home strip widget", function()
     local created
     local cover_books
     local empty_sources
@@ -40,6 +40,8 @@ describe("home recent strip widget", function()
         created, cover_books, empty_sources, library_font_sizes, scheduled = {}, {}, {}, {}, {}
         scheduled_delays = {}
         touch_device = false
+        rawset(_G, "__ZEN_UI_NAVBAR_OPEN_TAB", nil)
+        rawset(_G, "__ZEN_UI_PLUGIN", nil)
         rawset(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER", nil)
         ZenSpec.replace("common/ui/background", { tile_bg = function(color) return color end })
         ZenSpec.replace("ffi/blitbuffer", {
@@ -59,6 +61,7 @@ describe("home recent strip widget", function()
             "ui/widget/horizontalgroup", "ui/widget/horizontalspan",
             "ui/widget/container/framecontainer", "ui/widget/container/centercontainer",
             "ui/widget/container/leftcontainer", "ui/widget/container/topcontainer",
+            "ui/widget/overlapgroup",
             "ui/widget/textwidget", "ui/widget/textboxwidget",
             "ui/widget/container/inputcontainer", "ui/widget/verticalgroup",
             "ui/widget/verticalspan",
@@ -76,6 +79,12 @@ describe("home recent strip widget", function()
         })
         ZenSpec.replace("ui/font", { getFace = function(_, name, size) return { name = name, size = size } end })
         ZenSpec.replace("common/utils", {
+            deepcopy = function(value)
+                if type(value) ~= "table" then return value end
+                local out = {}
+                for key, item in pairs(value) do out[key] = item end
+                return out
+            end,
             getBadgeColor = function() return "badge" end,
             getBadgeTextColor = function() return "text" end,
             isBadgeDark = function() return false end,
@@ -128,7 +137,7 @@ describe("home recent strip widget", function()
         })
         ZenSpec.unload("common/widget_resources")
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/strip_common")
-        ZenSpec.unload("modules/filebrowser/patches/home/widgets/strip_recent")
+        ZenSpec.unload("modules/filebrowser/patches/home/widgets/strip")
     end)
 
     local function has_text(expected)
@@ -149,13 +158,13 @@ describe("home recent strip widget", function()
         local requested
         local focus_target
         local opened
-        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         assert.are.same({ units = 3.5 }, Strip.size)
         local widget = Strip.build({
             width = 600,
             height = 160,
             face_label = { size = 12 },
-            component_id = "strip_recent",
+            component_id = "strip",
             module_cfg = { count = 4, interactive = true, show_strip_titles = true },
             data = {
                 getBooksForStrip = function(_, source, count, order, component_id)
@@ -173,7 +182,7 @@ describe("home recent strip widget", function()
         assert.is_table(widget)
         assert.are.equal("ui/widget/container/centercontainer", widget[1][1].kind)
         assert.are.equal("ui/widget/container/centercontainer", widget[1][1][1].kind)
-        assert.are.same({ "recently_read", 4, "default", "strip_recent" }, requested)
+        assert.are.same({ "recently_read", 4, "default", "strip" }, requested)
         assert.are.same({ book }, cover_books)
         assert.is_true(has_text("Alpha"))
         assert.are.same({ 16 }, library_font_sizes)
@@ -183,12 +192,12 @@ describe("home recent strip widget", function()
     end)
 
     it("renders an empty recent-history state", function()
-        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         local widget = Strip.build({
             width = 500,
             height = 140,
             face_label = { size = 12 },
-            component_id = "strip_recent",
+            component_id = "strip",
             module_cfg = {},
             data = { getBooksForStrip = function() return {} end },
         })
@@ -199,6 +208,156 @@ describe("home recent strip widget", function()
         assert.is_true(has_text("Start reading a book to fill this space."))
     end)
 
+    it("builds compact segmented tabs inside the strip width", function()
+        rawset(_G, "__ZEN_UI_PLUGIN", {
+            config = { features = { browser_cover_rounded_corners = true } },
+        })
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 300,
+            component_id = "strip",
+            module_cfg = {
+                count = 4,
+                controls = {
+                    enabled = true,
+                    order = { "recent", "to_be_read", "tags" },
+                    show_buttons = { recent = true, to_be_read = true, tags = true },
+                    labels = { tags = "Genres" },
+                    custom_buttons = {},
+                },
+            },
+            data = { getStripItemsForPage = function() return {} end },
+        })
+
+        local tab_frames = {}
+        for _i, widget in ipairs(created) do
+            if widget.kind == "ui/widget/container/framecontainer"
+                    and widget.height == 20 and widget.bordersize == 2 then
+                tab_frames[#tab_frames + 1] = widget
+            end
+        end
+        assert.are.equal(4, #tab_frames)
+        assert.are.same({ 188, 188, 188, 20 }, {
+            tab_frames[1].width,
+            tab_frames[2].width,
+            tab_frames[3].width,
+            tab_frames[4].width,
+        })
+        assert.are.same({ 4, 0, 0, 4 }, {
+            tab_frames[1].radius,
+            tab_frames[2].radius,
+            tab_frames[3].radius,
+            tab_frames[4].radius,
+        })
+        assert.is_true(has_text("Recent"))
+        assert.is_true(has_text("Genres"))
+        assert.is_true(has_text(require("common/inline_icon_map").search))
+    end)
+
+    it("switches source tabs in place and delegates normal actions and Search", function()
+        local menu = {}
+        local rebuilt = 0
+        local resets = 0
+        local opened = {}
+        local targets
+        menu._home_rebuild = function() rebuilt = rebuilt + 1; return true end
+        rawset(_G, "__ZEN_UI_NAVBAR_OPEN_TAB", function(id)
+            opened[#opened + 1] = id
+            return true
+        end)
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 300,
+            menu = menu,
+            component_id = "strip",
+            module_cfg = {
+                count = 4,
+                default_source = { kind = "recent" },
+                controls = {
+                    enabled = true,
+                    order = { "recent", "to_be_read", "books" },
+                    show_buttons = { recent = true, to_be_read = true, books = true },
+                    labels = {}, custom_buttons = {},
+                },
+            },
+            data = {
+                getStripItemsForPage = function() return {} end,
+                resetStripPages = function() resets = resets + 1 end,
+            },
+            registerHomeFocusTarget = function(_target, widget) return widget end,
+            prepareHomeFocusTarget = function(_target, widget) return widget end,
+            activateStripFocusTargets = function(value) targets = value end,
+        })
+
+        local by_key = {}
+        for _i, target in ipairs(targets) do by_key[target.key] = target end
+        assert.are.same({ kind = "recent" }, menu._zen_home_strip_runtime.source)
+        assert.is_true(by_key["strip-control:to_be_read"].activate())
+        assert.are.same({ kind = "to_be_read" }, menu._zen_home_strip_runtime.source)
+        assert.are.equal("to_be_read", menu._zen_home_strip_runtime.active_id)
+        assert.are.equal(1, rebuilt)
+        assert.are.equal(1, resets)
+
+        assert.is_true(by_key["strip-control:books"].activate())
+        assert.is_true(by_key["strip-control:search"].activate())
+        assert.are.same({ "books", "search" }, opened)
+        assert.are.same({ kind = "to_be_read" }, menu._zen_home_strip_runtime.source)
+        assert.are.equal(1, rebuilt)
+        assert.are.equal(1, resets)
+    end)
+
+    it("drills into a stack and resets it from the active tab", function()
+        local menu = {}
+        local rebuilt = 0
+        local resets = 0
+        local targets
+        menu._home_rebuild = function() rebuilt = rebuilt + 1; return true end
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 300,
+            menu = menu,
+            component_id = "strip",
+            module_cfg = {
+                count = 4,
+                default_source = { kind = "tags" },
+                controls = {
+                    enabled = true,
+                    order = { "tags" },
+                    show_buttons = { tags = true },
+                    labels = { tags = "Genres" }, custom_buttons = {},
+                },
+            },
+            data = {
+                getStripItemsForPage = function()
+                    return {{
+                        is_group = true,
+                        group_label = "Fantasy",
+                        group_count = 2,
+                        group_files = { "/books/a.epub", "/books/b.epub" },
+                    }}
+                end,
+                resetStripPages = function() resets = resets + 1 end,
+            },
+            registerHomeFocusTarget = function(_target, widget) return widget end,
+            prepareHomeFocusTarget = function(_target, widget) return widget end,
+            activateStripFocusTargets = function(value) targets = value end,
+        })
+
+        local by_key = {}
+        for _i, target in ipairs(targets) do by_key[target.key] = target end
+        assert.is_true(by_key["group:Fantasy"].activate())
+        assert.are.equal("Fantasy", menu._zen_home_strip_runtime.source.drill.label)
+        assert.are.same({ "/books/a.epub", "/books/b.epub" },
+            menu._zen_home_strip_runtime.source.drill.files)
+        assert.is_true(by_key["strip-control:tags"].activate())
+        assert.is_nil(menu._zen_home_strip_runtime.source.drill)
+        assert.are.equal(2, rebuilt)
+        assert.are.equal(2, resets)
+    end)
+
     it("exposes vertical slack for Home gap balancing", function()
         local books = {
             { path = "/library/a.epub" },
@@ -207,11 +366,11 @@ describe("home recent strip widget", function()
             { path = "/library/d.epub" },
         }
         local content_bounds
-        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         Strip.build({
             width = 600,
             height = 400,
-            component_id = "strip_recent",
+            component_id = "strip",
             module_cfg = { count = 4 },
             data = { getBooksForStrip = function() return books end },
             setContentBounds = function(bounds) content_bounds = bounds end,
@@ -228,12 +387,12 @@ describe("home recent strip widget", function()
         end)
         local book = { path = "/library/alpha.epub", title = "Alpha" }
         local focus_target
-        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         Strip.build({
             width = 600,
             height = 160,
             face_label = { size = 12 },
-            component_id = "strip_recent",
+            component_id = "strip",
             module_cfg = { count = 4, interactive = true },
             data = { getBooksForStrip = function() return { book } end },
             registerHomeFocusTarget = function(target, child)
@@ -254,11 +413,11 @@ describe("home recent strip widget", function()
         local show_second = false
         local shifted = {}
         local refreshed = 0
-        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         local widget = Strip.build({
             width = 600,
             height = 160,
-            component_id = "strip_recent",
+            component_id = "strip",
             module_cfg = { count = 4, interactive = true },
             data = {
                 getBooksForStrip = function()
@@ -275,7 +434,7 @@ describe("home recent strip widget", function()
         })
 
         assert.is_true(widget:onSwipeStrip(nil, { pos = { x = 10, y = 10 }, direction = "west" }))
-        assert.are.same({ "recently_read", 4, "default", "next", "strip_recent", false }, shifted)
+        assert.are.same({ { kind = "recent" }, 4, "default", "next", "strip", false }, shifted)
         assert.are.same({ first, second }, cover_books)
         assert.are.equal(1, refreshed)
     end)
@@ -288,11 +447,11 @@ describe("home recent strip widget", function()
         }
         local warmed
         local refreshed = 0
-        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         local widget = Strip.build({
             width = 600,
             height = 160,
-            component_id = "strip_recent",
+            component_id = "strip",
             module_cfg = { count = 4, interactive = true },
             data = {
                 getBooksForStripPage = function()
@@ -328,11 +487,11 @@ describe("home recent strip widget", function()
         local current_page = 0
         local page_requests = 0
         local requested_deltas = {}
-        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         local widget = Strip.build({
             width = 600,
             height = 160,
-            component_id = "strip_recent",
+            component_id = "strip",
             module_cfg = { count = 4, interactive = true },
             data = {
                 getBooksForStripPage = function(_, _source, _count, _order, _component_id, delta)
@@ -388,11 +547,11 @@ describe("home recent strip widget", function()
             }
         end
         local warmed = 0
-        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         local widget = Strip.build({
             width = 600,
             height = 160,
-            component_id = "strip_recent",
+            component_id = "strip",
             module_cfg = { count = 5, interactive = true },
             data = {
                 getBooksForStripPage = function(_, _source, _count, _order, _component, delta)
@@ -420,11 +579,11 @@ describe("home recent strip widget", function()
     it("skips directional prewarming while cover extraction is active", function()
         touch_device = true
         local page_requests = 0
-        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         local widget = Strip.build({
             width = 600,
             height = 160,
-            component_id = "strip_recent",
+            component_id = "strip",
             module_cfg = { count = 4, interactive = true },
             data = {
                 getBooksForStripPage = function()
@@ -445,11 +604,11 @@ describe("home recent strip widget", function()
         touch_device = true
         local page_requests = 0
         require("common/memory_policy").canPreload = function() return false end
-        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         local widget = Strip.build({
             width = 600,
             height = 160,
-            component_id = "strip_recent",
+            component_id = "strip",
             module_cfg = { count = 4, interactive = true },
             data = {
                 getBooksForStripPage = function()
@@ -473,11 +632,11 @@ describe("home recent strip widget", function()
             title = "Pending",
             is_cover_pending = true,
         }
-        local Strip = require("modules/filebrowser/patches/home/widgets/strip_recent")
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         local widget = Strip.build({
             width = 600,
             height = 160,
-            component_id = "strip_recent",
+            component_id = "strip",
             module_cfg = { count = 4, interactive = true },
             data = {
                 getBooksForStripPage = function()

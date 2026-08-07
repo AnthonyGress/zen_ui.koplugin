@@ -38,9 +38,9 @@ def _seed_home_settings(ko_home: Path) -> None:
     show_status_bar = false,
     rows = {
       capacity_units = 10,
-      order = { "featured_recent", "stats_triplet", "strip_recent", "quotes" },
+      order = { "featured_recent", "stats_triplet", "strip", "quotes" },
       enabled = {
-        featured_recent = true, stats_triplet = true, strip_recent = true, quotes = true,
+        featured_recent = true, stats_triplet = true, strip = true, quotes = true,
       },
     },
     modules = {
@@ -50,9 +50,22 @@ def _seed_home_settings(ko_home: Path) -> None:
         progress_meta = { left = "percent", right = "total_pages" },
       },
       stats_triplet = { show_module_title = false },
-      strip_recent = {
+      strip = {
         count = 4, interactive = true, order = "default",
         show_module_title = false, show_strip_titles = true, two_rows = false,
+        default_source = { kind = "recent" },
+        sources = {
+          recent = {
+            filter_unread = false, filter_tbr = false, filter_finished = false,
+          },
+          custom = { paths = {} }, tag = { tag = nil },
+        },
+        controls = {
+          enabled = true,
+          order = { "recent", "to_be_read", "tags" },
+          show_buttons = { recent = true, to_be_read = true, tags = true },
+          labels = { tags = "Genres" }, custom_buttons = {}, next_custom_id = 0,
+        },
       },
       quotes = { show_module_title = false },
     },
@@ -157,8 +170,9 @@ def test_home_renders_all_core_widgets_with_and_without_history(with_history: bo
             home = _wait_for_home(driver)
             assert home["active_tab_label"] == "Home"
             assert set(home["widget_ids"]) >= {
-                "featured_recent", "stats_triplet", "strip_recent", "quotes",
+                "featured_recent", "stats_triplet", "strip", "quotes",
             }
+            assert {"Recent", "To Be Read", "Genres"} <= set(home["visible_texts"])
             assert home["page_padding"] > 0
             visual_gaps = home["visual_gaps"]
             assert len(visual_gaps) == 3

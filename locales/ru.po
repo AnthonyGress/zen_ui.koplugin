@@ -489,9 +489,6 @@ msgstr "Очистить все жесты"
 msgid "Clear book"
 msgstr "Очистить книгу"
 
-msgid "Clear books"
-msgstr "Очистить книги"
-
 msgid "Close"
 msgstr "Закрыть"
 
@@ -606,6 +603,9 @@ msgstr "Текущие/всего страниц"
 msgid "Custom"
 msgstr "Настраиваемый"
 
+msgid "Custom books"
+msgstr "Пользовательские книги"
+
 msgid "Custom button label"
 msgstr "Метка кнопки"
 
@@ -719,6 +719,9 @@ msgstr "по умолчанию"
 
 msgid "Default (black)"
 msgstr "По умолчанию (чёрный)"
+
+msgid "Default content: "
+msgstr "Содержимое по умолчанию: "
 
 msgid "Default font size:"
 msgstr "Размер шрифта по умолчанию:"
@@ -933,9 +936,6 @@ msgstr "Избранное"
 msgid "Featured Book"
 msgstr "Рекомендуемая книга"
 
-msgid "Featured Books"
-msgstr "Рекомендуемые книги"
-
 msgid "Featured widget"
 msgstr "Рекомендуемый виджет"
 
@@ -1025,6 +1025,9 @@ msgstr "Подсветка"
 
 msgid "Gallery"
 msgstr "Галерея"
+
+msgid "Genres"
+msgstr "Жанры"
 
 msgid "Get Started"
 msgstr "Начать"
@@ -1629,6 +1632,9 @@ msgstr "Контур"
 msgid "Outlined boxes"
 msgstr "Контурные рамки"
 
+msgid "p."
+msgstr "стр."
+
 msgid "Page %1 of %2"
 msgstr "Страница %1 из %2"
 
@@ -1838,6 +1844,12 @@ msgstr "Тенденция чтения"
 
 msgid "Reading Trend"
 msgstr "Тенденция чтения"
+
+msgid "Recent"
+msgstr "Недавние"
+
+msgid "Recent filters"
+msgstr "Фильтры недавних"
 
 msgid "Recently read"
 msgstr "Недавно читаемое"
@@ -2100,6 +2112,9 @@ msgstr "Показать нижнюю границу"
 msgid "Show brightness slider"
 msgstr "Показать ползунок яркости"
 
+msgid "Show controls"
+msgstr "Показывать элементы управления"
+
 msgid "Show description"
 msgstr "Показывать описание"
 
@@ -2232,6 +2247,9 @@ msgstr "Порядок сортировки"
 msgid "Sort series"
 msgstr "Сортировать серии"
 
+msgid "Specific tag"
+msgstr "Конкретный тег"
+
 msgid "Stable"
 msgstr "Stable"
 
@@ -2322,14 +2340,8 @@ msgstr "Вкладки"
 msgid "Tag"
 msgstr "Тег"
 
-msgid "Tag books"
-msgstr "Книги с тегами"
-
 msgid "Tag strip widget"
 msgstr "Виджет полосы тегов"
-
-msgid "Tag: "
-msgstr "Ярлык:"
 
 msgid "Tag: %1"
 msgstr "Тег: %1"

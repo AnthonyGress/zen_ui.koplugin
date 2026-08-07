@@ -6,10 +6,7 @@ describe("home component registry", function()
         "featured_recent",
         "stats_triplet",
         "reading_goals",
-        "strip_custom",
-        "strip_tag",
-        "strip_tbr",
-        "strip_recent",
+        "strip",
         "quotes",
     }
     local module_sizes = {
@@ -19,10 +16,7 @@ describe("home component registry", function()
         featured_recent = "l",
         stats_triplet = "xs",
         reading_goals = "xs",
-        strip_custom = { units = 3.5 },
-        strip_tag = { units = 3.5 },
-        strip_tbr = { units = 3.5 },
-        strip_recent = { units = 3.5 },
+        strip = { units = 3.5 },
         quotes = { units = 1.5 },
     }
 
@@ -66,7 +60,7 @@ describe("home component registry", function()
         assert.are.same({
             "quotes", "external_missing", "datetime", "featured_recent",
             "featured_custom", "featured_tbr", "stats_triplet", "reading_goals",
-            "strip_custom", "strip_tag", "strip_tbr", "strip_recent", "dormant",
+            "strip", "dormant",
         }, rows.order)
         assert.is_true(rows.enabled.quotes)
         assert.is_true(rows.enabled.dormant)
@@ -99,10 +93,10 @@ describe("home component registry", function()
         local Registry = require("modules/filebrowser/patches/home/components/registry")
         assert.are.equal(1, Registry.sizeUnits(Registry.get("stats_triplet")))
         assert.are.equal(1.5, Registry.sizeUnits(Registry.get("quotes")))
-        assert.are.equal(3.5, Registry.sizeUnits(Registry.get("strip_recent")))
+        assert.are.equal(3.5, Registry.sizeUnits(Registry.get("strip")))
         assert.are.equal(4, Registry.sizeUnits(Registry.get("featured_recent")))
         assert.are.equal(6, Registry.sizeUnits(
-            Registry.get("strip_recent"), { two_rows = true }
+            Registry.get("strip"), { two_rows = true }
         ))
         assert.are.equal(10, Registry.sizeUnits({ size = "xl" }))
         assert.are.equal(4, Registry.sizeUnits({
@@ -111,18 +105,18 @@ describe("home component registry", function()
         assert.are.equal(10, Registry.totalUnits({
             featured_recent = true,
             stats_triplet = true,
-            strip_recent = true,
+            strip = true,
             quotes = true,
         }))
         assert.are.same({ 4, 1, 3.5, 1.5 }, Registry.layoutUnits({
             Registry.get("featured_recent"),
             Registry.get("stats_triplet"),
-            Registry.get("strip_recent"),
+            Registry.get("strip"),
             Registry.get("quotes"),
         }))
         assert.are.same({ 5, 3.5 }, Registry.layoutUnits({
             Registry.get("featured_recent"),
-            Registry.get("strip_recent"),
+            Registry.get("strip"),
         }))
         assert.are.same({ 1 }, Registry.layoutUnits({ Registry.get("stats_triplet") }))
         assert.are.same({ 4, 6 }, Registry.layoutUnits({
@@ -130,7 +124,7 @@ describe("home component registry", function()
                 __index = Registry.get("featured_recent"),
             }),
             setmetatable({ _home_units = 6 }, {
-                __index = Registry.get("strip_recent"),
+                __index = Registry.get("strip"),
             }),
         }))
     end)
@@ -141,11 +135,20 @@ describe("home component registry", function()
         local bookshelf = presets[2].home_page
         local Registry = require("modules/filebrowser/patches/home/components/registry")
 
-        assert.is_true(bookshelf.modules.strip_recent.two_rows)
+        assert.is_true(bookshelf.modules.strip.two_rows)
+        assert.is_true(bookshelf.modules.strip.controls.enabled)
         assert.are.equal(10, Registry.totalUnits(
             bookshelf.rows.enabled,
             bookshelf.modules
         ))
+        assert.are.same({ 4, 6 }, Registry.layoutUnits({
+            setmetatable({ _home_units = 4 }, {
+                __index = Registry.get("featured_recent"),
+            }),
+            setmetatable({ _home_units = 6 }, {
+                __index = Registry.get("strip"),
+            }),
+        }))
     end)
 
     it("fills the 10-track grid with equal widget gaps", function()

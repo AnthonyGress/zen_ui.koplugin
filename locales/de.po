@@ -489,9 +489,6 @@ msgstr "Alle Gesten löschen"
 msgid "Clear book"
 msgstr "Buch entfernen"
 
-msgid "Clear books"
-msgstr "Bücher entfernen"
-
 msgid "Close"
 msgstr "Schließen"
 
@@ -606,6 +603,9 @@ msgstr "Aktuelle/Gesamtseiten"
 msgid "Custom"
 msgstr "Benutzerdefiniert"
 
+msgid "Custom books"
+msgstr ""
+
 msgid "Custom button label"
 msgstr "Eigener Button-Name"
 
@@ -719,6 +719,9 @@ msgstr "Standard"
 
 msgid "Default (black)"
 msgstr "Standard (schwarz)"
+
+msgid "Default content: "
+msgstr ""
 
 msgid "Default font size:"
 msgstr "Standardschriftgröße:"
@@ -933,9 +936,6 @@ msgstr "Favoriten"
 msgid "Featured Book"
 msgstr "Empfohlenes Buch"
 
-msgid "Featured Books"
-msgstr "Ausgewählte Bücher"
-
 msgid "Featured widget"
 msgstr "Empfohlenes Widget"
 
@@ -1025,6 +1025,9 @@ msgstr "Frontlicht"
 
 msgid "Gallery"
 msgstr "Galerie"
+
+msgid "Genres"
+msgstr ""
 
 msgid "Get Started"
 msgstr "Erste Schritte"
@@ -1629,6 +1632,9 @@ msgstr "Gliederung"
 msgid "Outlined boxes"
 msgstr "Umrandete Kästen"
 
+msgid "p."
+msgstr ""
+
 msgid "Page %1 of %2"
 msgstr "Seite %1 von %2"
 
@@ -1838,6 +1844,12 @@ msgstr "Lesetrend"
 
 msgid "Reading Trend"
 msgstr "Lesetrend"
+
+msgid "Recent"
+msgstr ""
+
+msgid "Recent filters"
+msgstr ""
 
 msgid "Recently read"
 msgstr "Zuletzt gelesen"
@@ -2100,6 +2112,9 @@ msgstr "Unteren Rand anzeigen"
 msgid "Show brightness slider"
 msgstr "Helligkeitsregler anzeigen"
 
+msgid "Show controls"
+msgstr ""
+
 msgid "Show description"
 msgstr "Beschreibung anzeigen"
 
@@ -2232,6 +2247,9 @@ msgstr "Sortierreihenfolge"
 msgid "Sort series"
 msgstr "Serien sortieren"
 
+msgid "Specific tag"
+msgstr ""
+
 msgid "Stable"
 msgstr "Stabil"
 
@@ -2322,14 +2340,8 @@ msgstr "Tabs"
 msgid "Tag"
 msgstr "Etikett"
 
-msgid "Tag books"
-msgstr "Bücher mit Tags"
-
 msgid "Tag strip widget"
 msgstr "Tag-Strip-Widget"
-
-msgid "Tag: "
-msgstr "Etikett:"
 
 msgid "Tag: %1"
 msgstr "Schlagwort: %1"

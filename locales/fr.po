@@ -489,9 +489,6 @@ msgstr "Effacer tous les gestes"
 msgid "Clear book"
 msgstr "Effacer le livre"
 
-msgid "Clear books"
-msgstr "Effacer les livres"
-
 msgid "Close"
 msgstr "Fermer"
 
@@ -606,6 +603,9 @@ msgstr "Pages actuelles/totales"
 msgid "Custom"
 msgstr "Personnalisé"
 
+msgid "Custom books"
+msgstr "Livres personnalisés"
+
 msgid "Custom button label"
 msgstr "Étiquette du bouton personnalisé"
 
@@ -719,6 +719,9 @@ msgstr "par défaut"
 
 msgid "Default (black)"
 msgstr "Par défaut (noir)"
+
+msgid "Default content: "
+msgstr "Contenu par défaut : "
 
 msgid "Default font size:"
 msgstr "Taille de police par défaut :"
@@ -933,9 +936,6 @@ msgstr "Favoris"
 msgid "Featured Book"
 msgstr "Livre en vedette"
 
-msgid "Featured Books"
-msgstr "Livres en vedette"
-
 msgid "Featured widget"
 msgstr "Widget en vedette"
 
@@ -1025,6 +1025,9 @@ msgstr "Éclairage frontal"
 
 msgid "Gallery"
 msgstr "Galerie"
+
+msgid "Genres"
+msgstr "Genres"
 
 msgid "Get Started"
 msgstr "Commencer"
@@ -1629,6 +1632,9 @@ msgstr "Contour"
 msgid "Outlined boxes"
 msgstr "Boîtes encadrées"
 
+msgid "p."
+msgstr "p."
+
 msgid "Page %1 of %2"
 msgstr "Page %1 sur %2"
 
@@ -1838,6 +1844,12 @@ msgstr "Tendance de lecture"
 
 msgid "Reading Trend"
 msgstr "Tendance de lecture"
+
+msgid "Recent"
+msgstr "Récents"
+
+msgid "Recent filters"
+msgstr "Filtres des éléments récents"
 
 msgid "Recently read"
 msgstr "Lu récemment"
@@ -2100,6 +2112,9 @@ msgstr "Afficher la bordure inférieure"
 msgid "Show brightness slider"
 msgstr "Afficher le curseur de luminosité"
 
+msgid "Show controls"
+msgstr "Afficher les contrôles"
+
 msgid "Show description"
 msgstr "Afficher la description"
 
@@ -2232,6 +2247,9 @@ msgstr "Ordre de tri"
 msgid "Sort series"
 msgstr "Trier les séries"
 
+msgid "Specific tag"
+msgstr "Étiquette spécifique"
+
 msgid "Stable"
 msgstr "Stable"
 
@@ -2322,14 +2340,8 @@ msgstr "Onglets"
 msgid "Tag"
 msgstr "Étiquette"
 
-msgid "Tag books"
-msgstr "Livres étiquetés"
-
 msgid "Tag strip widget"
 msgstr "Widget de bande de balises"
-
-msgid "Tag: "
-msgstr "Étiqueter:"
 
 msgid "Tag: %1"
 msgstr "Étiquette : %1"

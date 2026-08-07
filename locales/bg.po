@@ -498,9 +498,6 @@ msgstr "Изчистване на всички жестове"
 msgid "Clear book"
 msgstr "Изчистване на книгата"
 
-msgid "Clear books"
-msgstr "Изчистване на книгите"
-
 msgid "Close"
 msgstr "Затваряне"
 
@@ -615,6 +612,9 @@ msgstr "Текущи/общо страници"
 msgid "Custom"
 msgstr "По избор"
 
+msgid "Custom books"
+msgstr ""
+
 msgid "Custom button label"
 msgstr "Етикет на персонализирания бутон"
 
@@ -728,6 +728,9 @@ msgstr "по подразбиране"
 
 msgid "Default (black)"
 msgstr "По подразбиране (черно)"
+
+msgid "Default content: "
+msgstr ""
 
 msgid "Default font size:"
 msgstr "Размер на шрифта по подразбиране:"
@@ -942,9 +945,6 @@ msgstr "Любими"
 msgid "Featured Book"
 msgstr "Представена книга"
 
-msgid "Featured Books"
-msgstr "Представени книги"
-
 msgid "Featured widget"
 msgstr "Представена джаджа"
 
@@ -1034,6 +1034,9 @@ msgstr "Подсветка"
 
 msgid "Gallery"
 msgstr "Галерия"
+
+msgid "Genres"
+msgstr ""
 
 msgid "Get Started"
 msgstr "Начало"
@@ -1638,6 +1641,9 @@ msgstr "Контур"
 msgid "Outlined boxes"
 msgstr "Оградени полета"
 
+msgid "p."
+msgstr ""
+
 msgid "Page %1 of %2"
 msgstr "Страница %1 от %2"
 
@@ -1847,6 +1853,12 @@ msgstr "Тенденция на четене"
 
 msgid "Reading Trend"
 msgstr "Тенденция на четене"
+
+msgid "Recent"
+msgstr ""
+
+msgid "Recent filters"
+msgstr ""
 
 msgid "Recently read"
 msgstr "Наскоро прочетени"
@@ -2109,6 +2121,9 @@ msgstr "Показване на долна граница"
 msgid "Show brightness slider"
 msgstr "Показване на плъзгач за яркост"
 
+msgid "Show controls"
+msgstr ""
+
 msgid "Show description"
 msgstr "Показване на описанието"
 
@@ -2241,6 +2256,9 @@ msgstr "Ред на сортиране"
 msgid "Sort series"
 msgstr "Сортиране на поредици"
 
+msgid "Specific tag"
+msgstr ""
+
 msgid "Stable"
 msgstr "Стабилна"
 
@@ -2331,14 +2349,8 @@ msgstr "Раздели"
 msgid "Tag"
 msgstr "Етикет"
 
-msgid "Tag books"
-msgstr "Книги с етикети"
-
 msgid "Tag strip widget"
 msgstr "Приспособление за лента с етикети"
-
-msgid "Tag: "
-msgstr "Етикет:"
 
 msgid "Tag: %1"
 msgstr "Етикет: %1"

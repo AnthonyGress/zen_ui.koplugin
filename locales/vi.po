@@ -489,9 +489,6 @@ msgstr "Xóa tất cả cử chỉ"
 msgid "Clear book"
 msgstr "Xóa sách"
 
-msgid "Clear books"
-msgstr "Xóa sách"
-
 msgid "Close"
 msgstr "Đóng"
 
@@ -606,6 +603,9 @@ msgstr "Trang hiện tại/tổng"
 msgid "Custom"
 msgstr "Tùy chỉnh"
 
+msgid "Custom books"
+msgstr ""
+
 msgid "Custom button label"
 msgstr "Nhãn nút tùy chỉnh"
 
@@ -719,6 +719,9 @@ msgstr "mặc định"
 
 msgid "Default (black)"
 msgstr "Mặc định (đen)"
+
+msgid "Default content: "
+msgstr ""
 
 msgid "Default font size:"
 msgstr "Cỡ chữ mặc định:"
@@ -933,9 +936,6 @@ msgstr "Yêu thích"
 msgid "Featured Book"
 msgstr "Sách nổi bật"
 
-msgid "Featured Books"
-msgstr "Sách nổi bật"
-
 msgid "Featured widget"
 msgstr "Tiện ích nổi bật"
 
@@ -1025,6 +1025,9 @@ msgstr "Đèn trước"
 
 msgid "Gallery"
 msgstr "Thư viện ảnh"
+
+msgid "Genres"
+msgstr ""
 
 msgid "Get Started"
 msgstr "Bắt đầu"
@@ -1629,6 +1632,9 @@ msgstr "phác thảo"
 msgid "Outlined boxes"
 msgstr "Hộp có viền"
 
+msgid "p."
+msgstr ""
+
 msgid "Page %1 of %2"
 msgstr "Trang %1 / %2"
 
@@ -1838,6 +1844,12 @@ msgstr "Xu hướng đọc"
 
 msgid "Reading Trend"
 msgstr "Xu hướng đọc"
+
+msgid "Recent"
+msgstr ""
+
+msgid "Recent filters"
+msgstr ""
 
 msgid "Recently read"
 msgstr "Đã đọc gần đây"
@@ -2100,6 +2112,9 @@ msgstr "Hiển thị viền dưới"
 msgid "Show brightness slider"
 msgstr "Hiển thị thanh trượt độ sáng"
 
+msgid "Show controls"
+msgstr ""
+
 msgid "Show description"
 msgstr "Hiển thị mô tả"
 
@@ -2232,6 +2247,9 @@ msgstr "Thứ tự sắp xếp"
 msgid "Sort series"
 msgstr "Sắp xếp chuỗi"
 
+msgid "Specific tag"
+msgstr ""
+
 msgid "Stable"
 msgstr "Ổn định"
 
@@ -2322,14 +2340,8 @@ msgstr "Tab"
 msgid "Tag"
 msgstr "Nhãn"
 
-msgid "Tag books"
-msgstr "Sách được gắn thẻ"
-
 msgid "Tag strip widget"
 msgstr "Tiện ích dải thẻ"
-
-msgid "Tag: "
-msgstr "Nhãn:"
 
 msgid "Tag: %1"
 msgstr "Thẻ: %1"
