@@ -118,7 +118,7 @@ local function apply_navbar()
         icon_size = navbar_icon_size_default,
         label_size = navbar_label_size_default,
         books_label = "",  -- empty = auto-translated "Library"
-        home_label = "Home",
+        home_label = "",   -- empty = auto-translated "Home"
         default_tab = "books",
         manga_action = "rakuyomi",
         manga_folder = "",
@@ -189,6 +189,7 @@ local function apply_navbar()
             navbar_label_size_default)
         -- migrate old hard-coded English default
         if config.books_label == "Library" then config.books_label = "" end
+        if config.home_label == "Home" then config.home_label = "" end
         zen_plugin.config.navbar = config
         if legacy_layout and type(zen_plugin.saveConfig) == "function" then
             zen_plugin:saveConfig()

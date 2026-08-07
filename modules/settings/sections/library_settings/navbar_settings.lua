@@ -892,7 +892,7 @@ function M.build(ctx)
                                 is_enter_default = true,
                                 callback = function()
                                     local text = dialog:getInputText()
-                                    config.navbar.home_label = (text and text ~= "") and text or "Home"
+                                    config.navbar.home_label = (text and text ~= "") and text or ""
                                     UIManager:close(dialog)
                                     save_and_apply_navbar()
                                     if touch_menu and touch_menu.updateItems then touch_menu:updateItems() end
