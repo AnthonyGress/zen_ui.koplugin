@@ -62,20 +62,39 @@ if _plugin_root then
         ["_zen_quickstart"]   = zen_icon,
         ["_zen_quickstart_update"] = zen_update_icon,
     }, false)
-    -- Register bundled SymbolsNerdFont as last-resort fallback for MDI glyphs.
-    -- Skipped when ProjectTitle is active: crengine fails to register the font
-    -- on some devices, which causes a width=0 crash in ProjectTitle's TextWidget.
-    if not _pt_active then
-        local ok_font, Font = pcall(require, "ui/font")
+    -- Register bundled fonts into KOReader's font system so they appear
+    -- in all font pickers (FontChooser) across the UI.
+    do
         local ok_fl, FontList = pcall(require, "fontlist")
-        if ok_font and Font and Font.fallbacks and ok_fl and FontList then
-            pcall(function()
-                FontList:getFontList()
-                if type(FontList.fontlist) == "table" then
-                    table.insert(FontList.fontlist, _plugin_root .. "/fonts/SymbolsNerdFont-Regular.ttf")
+        if ok_fl and FontList then
+            FontList:getFontList()  -- ensure fontlist + fontinfo initialized
+            -- Scan bundled fonts dir into fontlist/fontinfo for FontChooser.
+            local mark = {}
+            pcall(FontList._readList, FontList, _plugin_root .. "/fonts", mark)
+            if next(mark) then
+                -- Rebuild fontnames so FontChooser groups by family.
+                local names = FontList.fontnames
+                for path in pairs(mark) do
+                    local coll = FontList.fontinfo[path]
+                    if coll then
+                        for _j, v in ipairs(coll) do
+                            local nlist = names[v.name] or {}
+                            names[v.name] = nlist
+                            table.insert(nlist, v)
+                        end
+                    end
                 end
-                table.insert(Font.fallbacks, "SymbolsNerdFont-Regular.ttf")
-            end)
+                table.sort(FontList.fontlist)
+            end
+            -- SymbolsNerdFont also serves as glyph fallback for MDI icons.
+            -- Skipped when ProjectTitle is active: crengine fails to register
+            -- the font on some devices, causing a width=0 crash.
+            if not _pt_active then
+                local ok_font, Font = pcall(require, "ui/font")
+                if ok_font and Font and Font.fallbacks then
+                    pcall(table.insert, Font.fallbacks, "SymbolsNerdFont-Regular.ttf")
+                end
+            end
         end
     end
 end
