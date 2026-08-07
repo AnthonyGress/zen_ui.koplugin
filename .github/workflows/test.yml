@@ -10,7 +10,7 @@ on:
         required: true
         default: smoke
         type: choice
-        options: [smoke, full]
+        options: [lua, smoke, full]
   workflow_call:
     inputs:
       suite:
@@ -71,6 +71,8 @@ jobs:
         run: |
           if [[ "$REQUESTED_SUITE" == "full" || "$BASE_REF" == "main" ]]; then
             ZEN_UI_RUN_EMULATOR=1 xvfb-run -s '-screen 0 800x600x24' ./spec/run full
+          elif [[ "$REQUESTED_SUITE" == "lua" ]]; then
+            ./spec/run lua
           else
             ZEN_UI_RUN_EMULATOR=1 xvfb-run -s '-screen 0 800x600x24' ./spec/run smoke
           fi
