@@ -1,9 +1,12 @@
 local Font = require("ui/font")
+local logger = require("common/zen_logger").new("library_font")
 
 local M = {}
 
 local DEFAULT_FACE = "cfont"
 local DEFAULT_BASE_SIZE = 18
+local checked_face
+local resolved_face
 
 local function get_cfg()
     local cached = rawget(_G, "__ZEN_UI_LIBRARY_FONT_CFG")
@@ -49,10 +52,18 @@ end
 function M.getFontName()
     local cfg = get_cfg()
     local face = cfg and cfg.font_face
-    if not face or face == "" or face == "default" then
+    if not face or face == "" or face == "default" or face == DEFAULT_FACE then
         return DEFAULT_FACE
     end
-    return face
+    if face ~= checked_face then
+        local ok, loaded_face = pcall(Font.getFace, Font, face, DEFAULT_BASE_SIZE)
+        checked_face = face
+        resolved_face = ok and loaded_face and face or DEFAULT_FACE
+        if resolved_face == DEFAULT_FACE then
+            logger.warn("configured library font unavailable; using default", face)
+        end
+    end
+    return resolved_face
 end
 
 function M.getFace(size)
