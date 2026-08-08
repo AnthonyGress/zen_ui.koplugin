@@ -848,6 +848,28 @@ local function migrate_home_strip_config()
     return changed and PresetStore.saveStore("home", store)
 end
 
+local function migrate_home_featured_config()
+    if type(HomePresets.normalizeFeaturedConfig) ~= "function" then return false end
+    local store = PresetStore.loadStore("home")
+    local changed = HomePresets.normalizeFeaturedConfig(store.settings)
+    for _name, preset in pairs(store.presets) do
+        local page = type(preset) == "table" and (preset.home_page or preset)
+        if HomePresets.normalizeFeaturedConfig(page) then changed = true end
+    end
+    return changed and PresetStore.saveStore("home", store)
+end
+
+local function migrate_home_layout_grid()
+    if type(HomePresets.normalizeLayoutGrid) ~= "function" then return false end
+    local store = PresetStore.loadStore("home")
+    local changed = HomePresets.normalizeLayoutGrid(store.settings, true)
+    for _name, preset in pairs(store.presets) do
+        local page = type(preset) == "table" and (preset.home_page or preset)
+        if HomePresets.normalizeLayoutGrid(page, false) then changed = true end
+    end
+    return changed and PresetStore.saveStore("home", store)
+end
+
 local function migrate_settings_files()
     local changed = PresetStore.migrateStores({
         home = HomePresets.defaultHomePage(),
@@ -860,7 +882,13 @@ local function migrate_settings_files()
     if migrate_home_quote_font_size() then
         changed = true
     end
+    if migrate_home_featured_config() then
+        changed = true
+    end
     if migrate_home_strip_config() then
+        changed = true
+    end
+    if migrate_home_layout_grid() then
         changed = true
     end
     return changed

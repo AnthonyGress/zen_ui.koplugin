@@ -16,6 +16,7 @@ local BUILTINS = {
     { id = "continue", label = _("Continue") },
     { id = "history", label = _("History") },
     { id = "home", label = _("Home") },
+    { id = "search", label = _("Search") },
     { id = "calibre_search", label = _("Calibre Search") },
     { id = "stats", label = _("Stats") },
     { id = "exit", label = _("Exit") },

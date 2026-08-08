@@ -448,11 +448,16 @@ count_image_widgets = function(widget, seen, depth)
     return count
 end
 
-local function home_state()
+local function active_home_menu()
     local apply_home = require("modules/filebrowser/patches/home_page")
     local register_home_api = find_upvalue(apply_home, "register_home_api")
     local Home = find_upvalue(register_home_api, "M")
     local menu = Home and find_upvalue(Home.hasActive, "_home_menu") or nil
+    return Home, menu
+end
+
+local function home_state()
+    local Home, menu = active_home_menu()
     local visible_texts = {}
     if menu then collect_texts(menu, visible_texts, {}, 0) end
     local widget_ids = {}
@@ -478,6 +483,18 @@ local function home_state()
         visible_texts = visible_texts,
         image_widget_count = menu and count_image_widgets(menu, {}, 0) or 0,
     }
+end
+
+local function activate_home_target(key, action)
+    local menu = select(2, active_home_menu())
+    for _i, target in ipairs(menu and menu._zen_home_focus_targets or {}) do
+        local callback = action == "context" and target.context or target.activate
+        if target.key == key and type(callback) == "function" then
+            local ok, activated = pcall(callback)
+            return ok and activated == true, ok and nil or tostring(activated)
+        end
+    end
+    return false, "home target unavailable"
 end
 
 local function navbar_state()
@@ -701,6 +718,10 @@ function Driver:handleCommand(command)
     end
     if kind == "home_state" then
         return { ok = true, home = home_state() }
+    end
+    if kind == "activate_home_target" and type(params.key) == "string" then
+        local activated, err = activate_home_target(params.key, params.action)
+        return { ok = activated == true, activated = activated == true, error = err }
     end
     if kind == "menu_tab_layout" then
         local FileManager = require("apps/filemanager/filemanager")

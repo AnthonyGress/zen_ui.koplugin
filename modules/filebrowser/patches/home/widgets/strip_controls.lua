@@ -9,23 +9,12 @@ local Geom = require("ui/geometry")
 local GestureRange = require("ui/gesturerange")
 local HorizontalGroup = require("ui/widget/horizontalgroup")
 local InputContainer = require("ui/widget/container/inputcontainer")
+local LineWidget = require("ui/widget/linewidget")
 local TextWidget = require("ui/widget/textwidget")
 local WidgetResources = require("common/widget_resources")
 local icons = require("common/inline_icon_map")
 
 local M = {}
-
-local function rounded_tabs_enabled()
-    local plugin = rawget(_G, "__ZEN_UI_PLUGIN")
-    if plugin and type(plugin.config) == "table"
-            and type(plugin.config.features) == "table" then
-        return plugin.config.features.browser_cover_rounded_corners == true
-    end
-    local ok, config = pcall(require, "config/manager")
-    local cfg = ok and type(config.get) == "function" and config.get() or nil
-    return type(cfg) == "table" and type(cfg.features) == "table"
-        and cfg.features.browser_cover_rounded_corners == true
-end
 
 local function visible_entries(controls)
     local entries = {}
@@ -42,9 +31,9 @@ local function visible_entries(controls)
     return entries
 end
 
-local function fit_face(labels, width)
-    local size = Device.screen:scaleBySize(10)
-    local minimum = Device.screen:scaleBySize(7)
+local function fit_face(labels, width, maximum, minimum)
+    local size = maximum or Device.screen:scaleBySize(10)
+    minimum = minimum or Device.screen:scaleBySize(7)
     while size > minimum do
         local face = Font:getFace("smallinfofont", size)
         local fits = true
@@ -63,100 +52,123 @@ local function fit_face(labels, width)
     return Font:getFace("smallinfofont", minimum)
 end
 
-local function tap_widget(content, width, height, callback)
+local function control_widget(content, width, height, tap_callback, hold_callback)
     if not Device:isTouchDevice() then return content end
+    local ges_events = {
+        TapStripControl = {
+            GestureRange:new{ ges = "tap", range = Geom:new{
+                x = 0, y = 0, w = Device.screen:getWidth(), h = Device.screen:getHeight(),
+            } },
+        },
+    }
+    if type(hold_callback) == "function" then
+        ges_events.HoldStripControl = {
+            GestureRange:new{ ges = "hold", range = Geom:new{
+                x = 0, y = 0, w = Device.screen:getWidth(), h = Device.screen:getHeight(),
+            } },
+        }
+    end
     local input = InputContainer:new{
         dimen = Geom:new{ w = width, h = height },
-        ges_events = {
-            TapStripControl = {
-                GestureRange:new{ ges = "tap", range = Geom:new{
-                    x = 0, y = 0, w = Device.screen:getWidth(), h = Device.screen:getHeight(),
-                } },
-            },
-        },
+        ges_events = ges_events,
     }
     input.onTapStripControl = function(self, _arg, ges)
         if not (self.dimen and ges and ges.pos and self.dimen:contains(ges.pos)) then
             return false
         end
-        callback()
+        tap_callback()
         return true
+    end
+    if type(hold_callback) == "function" then
+        input.onHoldStripControl = function(self, _arg, ges)
+            if not (self.dimen and ges and ges.pos and self.dimen:contains(ges.pos)) then
+                return false
+            end
+            return hold_callback() == true
+        end
     end
     input[1] = content
     return input
-end
-
-local function square_inner_corners(frame, side, width, height, radius)
-    if radius <= 0 then return frame end
-    local paint_to = frame.paintTo
-    frame.paintTo = function(self, bb, x, y)
-        paint_to(self, bb, x, y)
-        local border = math.max(1, tonumber(self.bordersize) or 1)
-        local color = self.color or Blitbuffer.COLOR_BLACK
-        local corner_x = side == "left" and x or x + width - radius
-        local edge_x = side == "left" and x or x + width - border
-        if self.background then
-            bb:paintRect(corner_x, y, radius, radius, self.background)
-            bb:paintRect(corner_x, y + height - radius, radius, radius, self.background)
-        end
-        bb:paintRect(corner_x, y, radius, border, color)
-        bb:paintRect(corner_x, y + height - border, radius, border, color)
-        bb:paintRect(edge_x, y, border, radius, color)
-        bb:paintRect(edge_x, y + height - radius, border, radius, color)
-    end
-    return frame
 end
 
 function M.build(opts)
     local controls = opts.controls
     local entries = visible_entries(controls)
     local height = opts.height
-    local search_width = height
-    local button_area = math.max(1, opts.width - search_width)
-    local button_width = #entries > 0 and math.floor(button_area / #entries) or 0
-    local remainder = #entries > 0 and button_area - button_width * #entries or button_area
+    local border_size = math.max(2, Device.screen:scaleBySize(1))
+    local inner_width = math.max(1, opts.width - border_size * 2)
+    local inner_height = math.max(1, height - border_size * 2)
+    local divider_size = math.max(1, Device.screen:scaleBySize(1))
+    local divider_width = math.max(0, #entries - 1) * divider_size
+    local search_count = 0
+    for _i, entry in ipairs(entries) do
+        if entry.id == "search" then search_count = search_count + 1 end
+    end
+    local label_count = #entries - search_count
+    local search_padding_x = Device.screen:scaleBySize(4)
+    local search_width = label_count == 0 and inner_width
+        or math.min(inner_height + search_padding_x * 2, inner_width)
+    local button_area = math.max(0,
+        inner_width - search_width * search_count - divider_width)
+    local button_width = label_count > 0 and math.floor(button_area / label_count) or 0
+    local remainder = label_count > 0 and button_area - button_width * label_count or 0
     local labels = {}
     for _i, entry in ipairs(entries) do
-        labels[#labels + 1] = entry.id == opts.active_id and opts.active_group
-            or ButtonModel.label(controls, entry)
+        if entry.id ~= "search" then
+            labels[#labels + 1] = ButtonModel.label(controls, entry)
+        end
     end
     local face = fit_face(labels, math.max(1, button_width))
     local row = HorizontalGroup:new{ align = "center" }
     local targets = {}
-    local radius = rounded_tabs_enabled() and Device.screen:scaleBySize(4) or 0
-    local border_size = math.max(2, Device.screen:scaleBySize(1))
+    local radius = Device.screen:scaleBySize(4)
     local side_padding = Device.screen:scaleBySize(4)
+    local label_index = 0
 
     for index, entry in ipairs(entries) do
-        local cell_width = button_width + (index <= remainder and 1 or 0)
+        local is_search = entry.id == "search"
+        if not is_search then label_index = label_index + 1 end
+        local cell_width = is_search and search_width
+            or button_width + (label_index <= remainder and 1 or 0)
         local active = entry.id == opts.active_id
-        local label = labels[index]
-        local cell = FrameContainer:new{
-            width = cell_width,
-            height = height,
-            padding = 0,
-            bordersize = border_size,
-            color = Blitbuffer.COLOR_BLACK,
-            radius = index == 1 and radius or 0,
-            background = active and Blitbuffer.COLOR_BLACK
-                or Background.tile_bg(Blitbuffer.COLOR_WHITE),
-            CenterContainer:new{
-                dimen = Geom:new{
-                    w = math.max(1, cell_width - border_size * 2),
-                    h = math.max(1, height - border_size * 2),
-                },
+        local content
+        if is_search then
+            content = CenterContainer:new{
+                dimen = Geom:new{ w = cell_width, h = inner_height },
                 TextWidget:new{
-                    text = label,
-                    face = face,
+                    text = icons.search,
+                    face = Font:getFace("smallinfofont", Device.screen:scaleBySize(11)),
                     padding = 0,
-                    max_width = math.max(1, cell_width - side_padding * 2),
-                    truncate_with_ellipsis = true,
-                    fgcolor = active and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK,
                 },
-            },
-        }
-        if index == 1 then
-            square_inner_corners(cell, "right", cell_width, height, radius)
+            }
+        else
+            local label = entry.id == opts.active_id and opts.active_group
+                or labels[label_index]
+            local label_face = face
+            if entry.id == opts.active_id and opts.active_group then
+                local base_size = face.orig_size or face.size or Device.screen:scaleBySize(10)
+                label_face = fit_face({ label }, cell_width, base_size,
+                    math.max(Device.screen:scaleBySize(7), base_size - 1))
+            end
+            content = FrameContainer:new{
+                width = cell_width,
+                height = inner_height,
+                padding = 0,
+                bordersize = 0,
+                background = active and Blitbuffer.COLOR_BLACK
+                    or Background.tile_bg(Blitbuffer.COLOR_WHITE),
+                CenterContainer:new{
+                    dimen = Geom:new{ w = cell_width, h = inner_height },
+                    TextWidget:new{
+                        text = label,
+                        face = label_face,
+                        padding = 0,
+                        max_width = math.max(1, cell_width - side_padding * 2),
+                        truncate_with_ellipsis = true,
+                        fgcolor = active and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK,
+                    },
+                },
+            }
         end
         local activate = function()
             if ButtonModel.isSource(entry) then
@@ -164,60 +176,45 @@ function M.build(opts)
             end
             return opts.on_action(entry)
         end
-        local widget = tap_widget(cell, cell_width, height, activate)
+        local context = type(opts.on_hold) == "function" and function()
+            return opts.on_hold(entry)
+        end or nil
+        local widget = control_widget(
+            content, cell_width, inner_height, activate, context)
         if type(opts.prepare_focus) == "function" then
             local target = {
                 key = "strip-control:" .. tostring(entry.id),
                 subrow = 0,
                 col = index,
                 width = cell_width,
-                height = height,
+                height = inner_height,
+                focus_color = active and Blitbuffer.COLOR_WHITE
+                    or Blitbuffer.COLOR_BLACK,
                 activate = activate,
+                context = context,
             }
             widget = opts.prepare_focus(target, widget)
             targets[#targets + 1] = target
         end
         row[#row + 1] = widget
+        if index < #entries then
+            row[#row + 1] = LineWidget:new{
+                dimen = Geom:new{ w = divider_size, h = inner_height },
+                background = Blitbuffer.COLOR_BLACK,
+            }
+        end
     end
-
-    local search_content = FrameContainer:new{
-        width = search_width,
+    local outer = FrameContainer:new{
+        width = opts.width,
         height = height,
         padding = 0,
         bordersize = border_size,
         color = Blitbuffer.COLOR_BLACK,
         radius = radius,
         background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
-        CenterContainer:new{
-            dimen = Geom:new{
-                w = math.max(1, search_width - border_size * 2),
-                h = math.max(1, height - border_size * 2),
-            },
-            TextWidget:new{
-                text = icons.search,
-                face = Font:getFace("smallinfofont", Device.screen:scaleBySize(12)),
-                padding = 0,
-            },
-        },
+        row,
     }
-    if #entries > 0 then
-        square_inner_corners(search_content, "left", search_width, height, radius)
-    end
-    local search = tap_widget(search_content, search_width, height, opts.on_search)
-    if type(opts.prepare_focus) == "function" then
-        local target = {
-            key = "strip-control:search",
-            subrow = 0,
-            col = #entries + 1,
-            width = search_width,
-            height = height,
-            activate = opts.on_search,
-        }
-        search = opts.prepare_focus(target, search)
-        targets[#targets + 1] = target
-    end
-    row[#row + 1] = search
-    return row, targets
+    return outer, targets
 end
 
 return M

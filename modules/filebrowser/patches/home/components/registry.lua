@@ -1,8 +1,6 @@
 local builtin_components = {
     require("modules/filebrowser/patches/home/widgets/datetime"),
-    require("modules/filebrowser/patches/home/widgets/featured_custom"),
-    require("modules/filebrowser/patches/home/widgets/featured_tbr"),
-    require("modules/filebrowser/patches/home/widgets/featured_recent"),
+    require("modules/filebrowser/patches/home/widgets/featured"),
     require("modules/filebrowser/patches/home/widgets/stats_triplet"),
     require("modules/filebrowser/patches/home/widgets/reading_goals"),
     require("modules/filebrowser/patches/home/widgets/strip"),
@@ -29,20 +27,27 @@ local SIZE_UNITS = {
 }
 
 local LAYOUT_GROWTH = {
-    datetime = { max = 3, priority = 2 },
-    featured_custom = { max = 5, priority = 2 },
-    featured_recent = { max = 5, priority = 2 },
-    featured_tbr = { max = 5, priority = 2 },
+    datetime = { max = 2, priority = 2 },
+    featured = { max = 4, priority = 2 },
     quotes = { max = 3, priority = 3 },
-    reading_goals = { max = 2, priority = 4 },
+    reading_goals = { max = 1, priority = 4 },
     stats_triplet = { max = 1, priority = 4 },
-    strip = { max = 3.5, priority = 1 },
+    strip = { max = 4, expanded_max = 6, priority = 1 },
 }
 
 local function clamp_units(value)
     local units = math.floor((tonumber(value) or 2) + 0.5)
     return math.max(1, math.min(M.CAPACITY_UNITS, units))
 end
+
+local MIN_LAYOUT_UNITS = {
+    datetime = 1,
+    featured = 2,
+    quotes = 1.5,
+    reading_goals = 1,
+    stats_triplet = 1,
+    strip = 1.5,
+}
 
 local function size_value(component)
     if type(component) == "table" and component.size ~= nil then
@@ -112,13 +117,19 @@ end
 function M.layoutUnits(components)
     components = components or {}
     local units = {}
+    local requested = {}
+    local expanded = {}
     local total = 0
+    local requested_total = 0
     local priorities = {}
     local seen_priorities = {}
     for i, component in ipairs(components) do
         local base = M.baseSizeUnits(component)
         units[i] = base
         total = total + base
+        requested[i] = math.max(base, tonumber(component._home_units) or base)
+        expanded[i] = requested[i] > base
+        requested_total = requested_total + requested[i]
         local growth = LAYOUT_GROWTH[component.id]
         if growth and not seen_priorities[growth.priority] then
             seen_priorities[growth.priority] = true
@@ -126,6 +137,35 @@ function M.layoutUnits(components)
         end
     end
     table.sort(priorities)
+
+    if requested_total > M.CAPACITY_UNITS then
+        local minimums = {}
+        local minimum_total = 0
+        for i, component in ipairs(components) do
+            local base = M.baseSizeUnits(component)
+            local multiplier = requested[i] > base and requested[i] / base or 1
+            local minimum = (MIN_LAYOUT_UNITS[component.id] or 1) * multiplier
+            minimums[i] = math.min(requested[i], minimum)
+            minimum_total = minimum_total + minimums[i]
+        end
+
+        if minimum_total >= M.CAPACITY_UNITS then
+            local scale = M.CAPACITY_UNITS / minimum_total
+            for i, minimum in ipairs(minimums) do
+                units[i] = minimum * scale
+            end
+            return units
+        end
+
+        local flexible_total = requested_total - minimum_total
+        local remaining = M.CAPACITY_UNITS - minimum_total
+        for i, value in ipairs(requested) do
+            local flexible = value - minimums[i]
+            units[i] = minimums[i] + (flexible_total > 0
+                and remaining * flexible / flexible_total or 0)
+        end
+        return units
+    end
 
     local remaining = math.max(0, M.CAPACITY_UNITS - total)
     for _i, priority in ipairs(priorities) do
@@ -135,6 +175,9 @@ function M.layoutUnits(components)
                 local growth = LAYOUT_GROWTH[component.id]
                 local max_units = growth
                     and math.max(growth.max, tonumber(component._home_units) or 0) or 0
+                if growth and growth.expanded_max and expanded[i] then
+                    max_units = math.max(max_units, growth.expanded_max)
+                end
                 if growth and growth.priority == priority and units[i] < max_units then
                     local added = math.min(1, remaining, max_units - units[i])
                     units[i] = units[i] + added

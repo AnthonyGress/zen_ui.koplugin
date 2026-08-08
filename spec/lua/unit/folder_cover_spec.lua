@@ -720,6 +720,34 @@ describe("shared folder cover provider", function()
         }, rounded)
     end)
 
+    it("shares rounded spine decoration with embedded folder widgets", function()
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local painted
+        local original_paint_spines = FolderCover.paintSpines
+        FolderCover.paintSpines = function(bb, frame, x, y, options)
+            painted = { bb = bb, frame = frame, x = x, y = y, options = options }
+        end
+        local frame = { dimen = { x = 10, y = 20, w = 80, h = 120 } }
+        local bb = {}
+
+        FolderCover.paintDecorations({
+            _zen_cover_frame = frame,
+            _zen_folder_count = 2,
+        }, bb, {
+            browser_folder_cover = {
+                show_spine_lines = true,
+                show_item_count = false,
+            },
+            features = { browser_cover_rounded_corners = true },
+        }, 3, 4)
+        FolderCover.paintSpines = original_paint_spines
+
+        assert.are.equal(bb, painted.bb)
+        assert.are.equal(frame, painted.frame)
+        assert.are.same({ x = 3, y = 4 }, { x = painted.x, y = painted.y })
+        assert.is_true(painted.options.rounded)
+    end)
+
     it("uses synthetic group and collection members without scanning paths", function()
         local FolderCover = require("modules/filebrowser/folder_cover")
         local menu = {

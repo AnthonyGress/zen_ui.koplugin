@@ -190,6 +190,57 @@ describe("Zen arrange list settings resume", function()
         assert.is_false(shown_widgets[1].invisible)
     end)
 
+    it("inherits an explicit settings route for a nested arrange page", function()
+        local inherited = {
+            opener = { text = "Widgets", occurrence = 1 },
+            path = { "strip", "Controls" },
+        }
+
+        ArrangeList.show{
+            settings_resume = inherited,
+            item_table = {{ text = "Recent" }},
+        }
+
+        assert.are.equal(inherited, shown_widgets[1]._zen_settings_resume)
+        assert.are.equal(inherited,
+            shown_widgets[1]._zen_menu_proxy._zen_settings_resume)
+    end)
+
+    it("restores a callback-backed settings leaf", function()
+        local callback_parent
+        require("modules/settings/zen_settings_page").claimArrangeRoute = function()
+            return {
+                opener = { text = "Arrange" },
+                path = { "First", "Tabs" },
+            }
+        end
+
+        ArrangeList.show{
+            allow_arrange = false,
+            item_table = {
+                {
+                    text = "First",
+                    sub_item_table = {
+                        {
+                            text = "Tabs",
+                            _zen_settings_submenu = true,
+                            keep_menu_open = true,
+                            callback = function(parent)
+                                callback_parent = parent
+                                ui_manager:show({ title = "Tabs" })
+                            end,
+                        },
+                    },
+                },
+            },
+        }
+
+        assert.are.equal(3, #shown_widgets)
+        assert.are.equal("Tabs", shown_widgets[3].title)
+        assert.is_false(shown_widgets[2].invisible)
+        assert.are.same({ "First" }, callback_parent._zen_settings_resume.path)
+    end)
+
     it("does not reveal deferred parents while closing the whole arrange stack", function()
         local settings_parent = { _deferred_arrange_parent = true }
         require("modules/settings/zen_settings_page").claimArrangeRoute = function()

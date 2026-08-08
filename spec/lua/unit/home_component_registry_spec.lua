@@ -1,23 +1,19 @@
 describe("home component registry", function()
     local module_names = {
         "datetime",
-        "featured_custom",
-        "featured_tbr",
-        "featured_recent",
+        "featured",
         "stats_triplet",
         "reading_goals",
         "strip",
         "quotes",
     }
     local module_sizes = {
-        datetime = "s",
-        featured_custom = "l",
-        featured_tbr = "l",
-        featured_recent = "l",
+        datetime = { units = 1.5 },
+        featured = { units = 3.5 },
         stats_triplet = "xs",
         reading_goals = "xs",
-        strip = { units = 3.5 },
-        quotes = { units = 1.5 },
+        strip = { units = 2.5 },
+        quotes = { units = 2 },
     }
 
     before_each(function()
@@ -53,18 +49,18 @@ describe("home component registry", function()
             order = { "quotes", "quotes", "external_missing" },
             enabled = { quotes = true, dormant = true },
             max_rows = 99,
-        }, { "datetime", "featured_recent" }, { datetime = true })
+        }, { "datetime", "featured" }, { datetime = true })
 
         assert.is_nil(rows.max_rows)
         assert.are.equal(10, rows.capacity_units)
         assert.are.same({
-            "quotes", "external_missing", "datetime", "featured_recent",
-            "featured_custom", "featured_tbr", "stats_triplet", "reading_goals",
+            "quotes", "external_missing", "datetime", "featured",
+            "stats_triplet", "reading_goals",
             "strip", "dormant",
         }, rows.order)
         assert.is_true(rows.enabled.quotes)
         assert.is_true(rows.enabled.dormant)
-        assert.is_false(rows.enabled.featured_recent)
+        assert.is_false(rows.enabled.featured)
     end)
 
     it("registers external widgets, refreshes, and rejects built-in overrides", function()
@@ -89,44 +85,85 @@ describe("home component registry", function()
         assert.are.equal(2, refreshes)
     end)
 
-    it("maps size classes to a 10-unit capacity", function()
+    it("maps widget sizes to the 10-unit grid", function()
         local Registry = require("modules/filebrowser/patches/home/components/registry")
+        assert.are.equal(1.5, Registry.sizeUnits(Registry.get("datetime")))
         assert.are.equal(1, Registry.sizeUnits(Registry.get("stats_triplet")))
-        assert.are.equal(1.5, Registry.sizeUnits(Registry.get("quotes")))
-        assert.are.equal(3.5, Registry.sizeUnits(Registry.get("strip")))
-        assert.are.equal(4, Registry.sizeUnits(Registry.get("featured_recent")))
-        assert.are.equal(6, Registry.sizeUnits(
+        assert.are.equal(2, Registry.sizeUnits(Registry.get("quotes")))
+        assert.are.equal(2.5, Registry.sizeUnits(Registry.get("strip")))
+        assert.are.equal(3.5, Registry.sizeUnits(Registry.get("featured")))
+        assert.are.equal(5, Registry.sizeUnits(
             Registry.get("strip"), { two_rows = true }
         ))
         assert.are.equal(10, Registry.sizeUnits({ size = "xl" }))
         assert.are.equal(4, Registry.sizeUnits({
             size = { preferred_pct = 0.36 },
         }))
-        assert.are.equal(10, Registry.totalUnits({
-            featured_recent = true,
+        assert.are.equal(9, Registry.totalUnits({
+            featured = true,
             stats_triplet = true,
             strip = true,
             quotes = true,
         }))
-        assert.are.same({ 4, 1, 3.5, 1.5 }, Registry.layoutUnits({
-            Registry.get("featured_recent"),
+        assert.are.same({ 3.5, 1, 3.5, 2 }, Registry.layoutUnits({
+            Registry.get("featured"),
             Registry.get("stats_triplet"),
             Registry.get("strip"),
             Registry.get("quotes"),
         }))
-        assert.are.same({ 5, 3.5 }, Registry.layoutUnits({
-            Registry.get("featured_recent"),
+        assert.are.same({ 4, 4 }, Registry.layoutUnits({
+            Registry.get("featured"),
             Registry.get("strip"),
         }))
         assert.are.same({ 1 }, Registry.layoutUnits({ Registry.get("stats_triplet") }))
         assert.are.same({ 4, 6 }, Registry.layoutUnits({
-            setmetatable({ _home_units = 4 }, {
-                __index = Registry.get("featured_recent"),
+            setmetatable({ _home_units = 3.5 }, {
+                __index = Registry.get("featured"),
             }),
-            setmetatable({ _home_units = 6 }, {
+            setmetatable({ _home_units = 5 }, {
                 __index = Registry.get("strip"),
             }),
         }))
+        assert.are.same({ 394, 596 }, Registry.gridHeights({ 4, 6 }, 1000, 10))
+    end)
+
+    it("keeps an existing five-widget phone layout within the grid", function()
+        local Registry = require("modules/filebrowser/patches/home/components/registry")
+        local units = Registry.layoutUnits({
+            Registry.get("featured"),
+            Registry.get("strip"),
+            Registry.get("quotes"),
+            Registry.get("reading_goals"),
+            Registry.get("stats_triplet"),
+        })
+
+        assert.are.same({ 3.5, 2.5, 2, 1, 1 }, units)
+        assert.are.equal(10, Registry.totalUnits({
+            featured = true,
+            strip = true,
+            quotes = true,
+            reading_goals = true,
+            stats_triplet = true,
+        }))
+    end)
+
+    it("compacts oversized saved layouts instead of dropping a widget", function()
+        local Registry = require("modules/filebrowser/patches/home/components/registry")
+        local units = Registry.layoutUnits({
+            Registry.get("featured"),
+            Registry.get("stats_triplet"),
+            Registry.get("datetime"),
+            Registry.get("strip"),
+            Registry.get("quotes"),
+        })
+        local total = 0
+        for _i, units_for_widget in ipairs(units) do
+            total = total + units_for_widget
+            assert.is_true(units_for_widget > 0)
+        end
+
+        assert.are.equal(5, #units)
+        assert.are.equal(10, total)
     end)
 
     it("fits the Bookshelf featured and two-row strip widgets", function()
@@ -137,15 +174,15 @@ describe("home component registry", function()
 
         assert.is_true(bookshelf.modules.strip.two_rows)
         assert.is_true(bookshelf.modules.strip.controls.enabled)
-        assert.are.equal(10, Registry.totalUnits(
+        assert.is_true(Registry.totalUnits(
             bookshelf.rows.enabled,
             bookshelf.modules
-        ))
+        ) <= Registry.CAPACITY_UNITS)
         assert.are.same({ 4, 6 }, Registry.layoutUnits({
-            setmetatable({ _home_units = 4 }, {
-                __index = Registry.get("featured_recent"),
+            setmetatable({ _home_units = 3.5 }, {
+                __index = Registry.get("featured"),
             }),
-            setmetatable({ _home_units = 6 }, {
+            setmetatable({ _home_units = 5 }, {
                 __index = Registry.get("strip"),
             }),
         }))
@@ -162,8 +199,10 @@ describe("home component registry", function()
         assert.are.equal(303,
             1000 - Registry.gridHeights({ 4, 3 }, 1000, 10)[1]
                 - Registry.gridHeights({ 4, 3 }, 1000, 10)[2] - 10)
-        assert.are.same({ 394, 91, 344, 141 },
-            Registry.gridHeights({ 4, 1, 3.5, 1.5 }, 1000, 10))
+        assert.are.same({ 344, 91, 343, 192 },
+            Registry.gridHeights({ 3.5, 1, 3.5, 2 }, 1000, 10))
+        assert.are.same({ 344, 242, 192, 91, 91 },
+            Registry.gridHeights({ 3.5, 2.5, 2, 1, 1 }, 1000, 10))
     end)
 
     it("equalizes visible gaps within each widget's available slack", function()

@@ -135,4 +135,57 @@ describe("library settings", function()
         assert.are.equal(2, refreshes)
         assert.are.equal(0, restart_prompts)
     end)
+
+    it("rebuilds Home when the folder cover mode changes", function()
+        local scheduled
+        local saves = 0
+        local refreshes = 0
+        local rebuilds = 0
+        package.loaded["ui/uimanager"].scheduleIn = function(_self, delay, callback)
+            scheduled = { delay = delay, callback = callback }
+        end
+        package.loaded["common/shared_state"].get = function()
+            return { rebuildActive = function() rebuilds = rebuilds + 1 end }
+        end
+        ZenSpec.replace("apps/filemanager/filemanager", {
+            instance = {
+                file_chooser = {
+                    updateItems = function() refreshes = refreshes + 1 end,
+                },
+            },
+        })
+
+        local config = {
+            browser_hide_up_folder = {},
+            browser_folder_cover = { cover_mode = "gallery" },
+            features = {},
+        }
+        local plugin = { saveConfig = function() saves = saves + 1 end }
+        local items = require("modules/settings/sections/library_settings").build({
+            config = config,
+            plugin = plugin,
+            save_and_apply = function() end,
+        })
+
+        local function find_item(item_table, text)
+            for _i, item in ipairs(item_table) do
+                if item.text == text then return item end
+                if type(item.sub_item_table) == "table" then
+                    local found = find_item(item.sub_item_table, text)
+                    if found then return found end
+                end
+            end
+        end
+
+        find_item(items, "First cover image").callback()
+
+        assert.are.equal("normal", config.browser_folder_cover.cover_mode)
+        assert.are.equal(1, saves)
+        assert.are.equal(1, refreshes)
+        assert.are.equal(0, rebuilds)
+        assert.are.equal(0.25, scheduled.delay)
+
+        scheduled.callback()
+        assert.are.equal(1, rebuilds)
+    end)
 end)

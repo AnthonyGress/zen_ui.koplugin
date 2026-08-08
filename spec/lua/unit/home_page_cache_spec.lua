@@ -32,7 +32,14 @@ describe("home data and book caches", function()
             scheduleIn = function() end,
         })
         ZenSpec.replace("modules/filebrowser/patches/home/home_quotes", {})
-        ZenSpec.replace("modules/filebrowser/patches/home/home_presets", {})
+        ZenSpec.replace("modules/filebrowser/patches/home/home_presets", {
+            featuredSourceKey = function(source)
+                local kind = type(source) == "table" and source.kind or source
+                if kind == "custom" then return "custom_featured" end
+                if kind == "to_be_read" then return "to_be_read" end
+                return "recently_read"
+            end,
+        })
         ZenSpec.replace("common/reading_goals", {})
         ZenSpec.replace("common/db_stats", {
             queryHomeStats = function()
@@ -186,6 +193,15 @@ describe("home data and book caches", function()
         error("request_home_repaint upvalue not found")
     end
 
+    local function get_install_home_key_handlers(Home)
+        for i = 1, 80 do
+            local name, value = debug.getupvalue(Home.showHomeView, i)
+            if not name then break end
+            if name == "install_home_key_handlers" then return value end
+        end
+        error("install_home_key_handlers upvalue not found")
+    end
+
     local function set_home_menu(Home, menu)
         for i = 1, 40 do
             local name = debug.getupvalue(Home.isActiveOnTop, i)
@@ -197,6 +213,61 @@ describe("home data and book caches", function()
         end
         error("home menu upvalue not found")
     end
+
+    it("focuses every strip control and activates it with OK or Enter", function()
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local install_home_key_handlers = get_install_home_key_handlers(Home)
+        local activated = {}
+        local targets = {}
+        for index, name in ipairs({ "recent", "to_be_read", "books", "search" }) do
+            targets[index] = {
+                id = index,
+                index = index,
+                key = "strip-control:" .. name,
+                row_order = 10,
+                col = index,
+                activate = function()
+                    activated[#activated + 1] = name
+                    return true
+                end,
+            }
+        end
+        local pending
+        local UIManager = require("ui/uimanager")
+        UIManager.setDirty = function() end
+        UIManager.scheduleIn = function(_self, _delay, callback)
+            pending = callback
+        end
+        UIManager.unschedule = function(_self, callback)
+            if pending == callback then pending = nil end
+        end
+        local menu = { _zen_home_focus_targets = targets }
+        install_home_key_handlers(menu)
+
+        assert.are.same({ "Enter" }, menu.key_events.ZenNavbarConfirm[3])
+        assert.is_true(menu:onZenNavbarFocusRight())
+        assert.are.equal("strip-control:recent", menu._zen_home_focus_key)
+        assert.is_true(menu:onZenNavbarConfirm())
+
+        local function key(name)
+            return {
+                match = function(_self, sequence) return sequence[1] == name end,
+            }
+        end
+        assert.is_true(menu:onKeyPress(key("Right")))
+        assert.are.equal("strip-control:to_be_read", menu._zen_home_focus_key)
+        assert.is_true(menu:onKeyPress(key("Enter")))
+        assert.is_true(menu:onKeyRelease(key("Enter")))
+
+        assert.is_true(menu:onFocusMove({ 1, 0 }))
+        assert.are.equal("strip-control:books", menu._zen_home_focus_key)
+        assert.is_true(menu:onZenNavbarConfirm())
+        assert.is_true(menu:onKeyPress("Right"))
+        assert.are.equal("strip-control:search", menu._zen_home_focus_key)
+        assert.is_true(menu:onKeyPress("Press"))
+        assert.is_true(menu:onKeyRelease("Press"))
+        assert.are.same({ "recent", "to_be_read", "books", "search" }, activated)
+    end)
 
     it("reuses history/status data across providers and opens one sidecar per book miss", function()
         local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
@@ -456,11 +527,11 @@ describe("home data and book caches", function()
         UIManager._window_stack = { { widget = menu } }
         local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, {
             rows = {
-                order = { "featured_recent" },
-                enabled = { featured_recent = true },
+                order = { "featured" },
+                enabled = { featured = true },
                 max_rows = 1,
             },
-            modules = { featured_recent = {} },
+            modules = { featured = { default_source = { kind = "recent" } } },
         })
 
         provider:getFeaturedBook("recently_read", "default")
@@ -890,11 +961,11 @@ describe("home data and book caches", function()
         UIManager._window_stack = { { widget = menu } }
         local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, {
             rows = {
-                order = { "featured_recent" },
-                enabled = { featured_recent = true },
+                order = { "featured" },
+                enabled = { featured = true },
                 max_rows = 1,
             },
-            modules = { featured_recent = {} },
+            modules = { featured = { default_source = { kind = "recent" } } },
         })
 
         provider:getFeaturedBook("recently_read", "default")
@@ -929,6 +1000,60 @@ describe("home data and book caches", function()
         assert.is_true(adjacent)
     end)
 
+    it("restores the active strip page across provider rebuilds", function()
+        ZenSpec.replace("readcollection", {
+            default_collection_name = "favorites",
+            coll = {
+                favorites = {
+                    a = { file = "/library/alpha.epub", order = 2 },
+                    b = { file = "/library/beta.epub", order = 1 },
+                },
+            },
+            coll_settings = {},
+        })
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local build_data_provider = get_build_data_provider(Home)
+        local dcfg = {
+            rows = { order = { "strip" }, enabled = { strip = true } },
+            modules = { strip = {} },
+        }
+        local first = build_data_provider({ browser_cover_badges = {} }, dcfg)
+
+        assert.is_true(first:shiftStripItems(
+            { kind = "favorites" }, 1, "default", "next", "strip"))
+        local restored = build_data_provider(
+            { browser_cover_badges = {} }, dcfg, first:getStripPageState())
+        local books = restored:getStripItemsForPage(
+            { kind = "favorites" }, 1, "default", "strip", 0)
+
+        assert.are.equal("/library/alpha.epub", books[1].path)
+    end)
+
+    it("restores a collection drill from its remembered label", function()
+        ZenSpec.replace("readcollection", {
+            coll = {
+                Adventure = {
+                    a = { file = "/library/alpha.epub", order = 1 },
+                    b = { file = "/library/beta.epub", order = 2 },
+                },
+            },
+            coll_settings = {},
+        })
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, {
+            rows = { order = { "strip" }, enabled = { strip = true } },
+            modules = { strip = {} },
+        })
+
+        local books = provider:getStripItemsForPage({
+            kind = "collections",
+            drill = { label = "Adventure" },
+        }, 4, "default", "strip", 0)
+
+        assert.are.equal(2, #books)
+        assert.are.equal("/library/alpha.epub", books[1].path)
+    end)
+
     it("returns tag stacks and drills into their books", function()
         ZenSpec.replace("common/db_bookinfo", {
             getGroupedByTags = function()
@@ -952,7 +1077,7 @@ describe("home data and book caches", function()
 
         local books = provider:getStripItemsForPage({
             kind = "tags",
-            drill = { label = "Science", files = groups[1].group_files },
+            drill = { label = "Science" },
         }, 4, "default", "strip", 0)
         assert.are.equal(2, #books)
         assert.is_nil(books[1].is_group)

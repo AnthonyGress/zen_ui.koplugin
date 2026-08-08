@@ -720,8 +720,8 @@ msgstr "默认"
 msgid "Default (black)"
 msgstr "默认（黑色）"
 
-msgid "Default content: "
-msgstr "默认内容："
+msgid "Content: "
+msgstr "内容："
 
 msgid "Default font size:"
 msgstr "默认字体大小："
@@ -2792,3 +2792,12 @@ msgstr "ZenPM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM 已安装。重新启动 KOReader 即可使用。"
+
+msgid "Automatic"
+msgstr "自动"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "主页间距已更新。已保留您保存的小组件顺序和选择，并重新适配到新网格。"
+
+msgid "%1, %2 %3"
+msgstr "%2%3日，%1"

@@ -720,8 +720,8 @@ msgstr "mặc định"
 msgid "Default (black)"
 msgstr "Mặc định (đen)"
 
-msgid "Default content: "
-msgstr ""
+msgid "Content: "
+msgstr "Nội dung: "
 
 msgid "Default font size:"
 msgstr "Cỡ chữ mặc định:"
@@ -2792,3 +2792,12 @@ msgstr "ZenPM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM đã được cài đặt. Khởi động lại KOReader để sử dụng."
+
+msgid "Automatic"
+msgstr "Tự động"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "Khoảng cách trên màn hình chính đã được cập nhật. Thứ tự và lựa chọn tiện ích đã lưu được giữ nguyên và điều chỉnh theo lưới mới."
+
+msgid "%1, %2 %3"
+msgstr "%1, ngày %3 %2"

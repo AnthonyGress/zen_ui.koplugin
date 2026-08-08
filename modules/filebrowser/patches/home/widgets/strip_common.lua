@@ -14,6 +14,7 @@ local GestureRange = require("ui/gesturerange")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
 local cover_common = require("modules/filebrowser/patches/home/widgets/cover_common")
+local FolderCover = require("modules/filebrowser/folder_cover")
 local library_font = require("modules/filebrowser/patches/library_font")
 local Font = require("ui/font")
 local Device = require("device")
@@ -26,7 +27,7 @@ local _ = require("gettext")
 local logger = require("common/zen_logger").new("home_strip")
 
 local M = {}
-M.SIZE = { units = 3.5 }
+M.SIZE = { units = 2.5 }
 local HYDRATE_DELAY_S = 0.05
 local COVER_POLL_S = 0.4
 local PRELOAD_DELAY_S = 0.35
@@ -358,6 +359,7 @@ function M.build_strip(ctx, source_key)
     local width = math.max(1, outer_width - padding * 2)
     local height = math.max(1, outer_height - padding * 2)
     local runtime = ctx.menu and ctx.menu._zen_home_strip_runtime
+    local runtime_created = false
     if type(runtime) ~= "table" then
         local configured = type(module_cfg.default_source) == "table"
             and utils.deepcopy(module_cfg.default_source) or { kind = "recent" }
@@ -367,6 +369,7 @@ function M.build_strip(ctx, source_key)
                 or source_key == "custom_strip" and "custom" or source_key }
         end
         if ctx.menu then ctx.menu._zen_home_strip_runtime = runtime end
+        runtime_created = true
     end
     local source = runtime.source or { kind = "recent" }
     if type(source) ~= "table" then source = { kind = "recent" } end
@@ -434,16 +437,58 @@ function M.build_strip(ctx, source_key)
             and a.kind == b.kind and a.value == b.value
     end
 
-    if runtime.active_id == nil then
+    local function parent_descriptor_matches(descriptor, current_source)
+        return type(descriptor) == "table" and type(current_source) == "table"
+            and descriptor.kind == "tags" and current_source.kind == "tag"
+    end
+
+    local function visible_source_entry(id)
+        return controls_cfg.show_buttons and controls_cfg.show_buttons[id]
+            and ButtonModel.find(controls_cfg, id) or nil
+    end
+
+    local function find_source_control(parent_match)
         for _i, id in ipairs(controls_cfg.order or {}) do
-            local entry = controls_cfg.show_buttons and controls_cfg.show_buttons[id]
-                and ButtonModel.find(controls_cfg, id) or nil
+            local entry = visible_source_entry(id)
             local descriptor = entry and ButtonModel.sourceDescriptor(entry)
-            if descriptors_match(descriptor, source) then
-                runtime.active_id = id
-                break
-            end
+            local matches = parent_match and parent_descriptor_matches(descriptor, source)
+                or not parent_match and descriptors_match(descriptor, source)
+            if matches then return id end
         end
+    end
+
+    local runtime_repaired = false
+    if runtime.active_id ~= nil then
+        local entry = visible_source_entry(runtime.active_id)
+        local descriptor = entry and ButtonModel.sourceDescriptor(entry)
+        if not descriptors_match(descriptor, source)
+                and not parent_descriptor_matches(descriptor, source) then
+            runtime.active_id = nil
+            source = type(module_cfg.default_source) == "table"
+                and utils.deepcopy(module_cfg.default_source) or { kind = "recent" }
+            runtime.source = source
+            source_name = source.kind == "recent" and "recently_read"
+                or source.kind == "custom" and "custom_strip" or source.kind
+            runtime_repaired = true
+        end
+    end
+    if runtime.active_id == nil then
+        runtime.active_id = find_source_control(false) or find_source_control(true)
+    end
+
+    local function remember_strip_state()
+        if type(ctx.rememberStripState) == "function" then
+            ctx.rememberStripState(runtime)
+        end
+    end
+
+    if runtime_created or runtime_repaired then
+        remember_strip_state()
+    end
+
+    local active_group = source.drill and source.drill.label or nil
+    if active_group == nil and source.kind == "tag" and runtime.active_id == "tags" then
+        active_group = source.value
     end
 
     ctx.openStripGroup = function(book)
@@ -454,6 +499,7 @@ function M.build_strip(ctx, source_key)
             files = utils.deepcopy(book.group_files or {}),
         }
         runtime.source = source
+        remember_strip_state()
         return rebuild_home()
     end
 
@@ -467,7 +513,7 @@ function M.build_strip(ctx, source_key)
             height = controls_height,
             controls = controls_cfg,
             active_id = runtime.active_id,
-            active_group = source.drill and source.drill.label or nil,
+            active_group = active_group,
             prepare_focus = ctx.prepareHomeFocusTarget,
             on_source = function(entry)
                 if runtime.active_id == entry.id then
@@ -475,6 +521,7 @@ function M.build_strip(ctx, source_key)
                         reset_strip_pages()
                         source.drill = nil
                         runtime.source = source
+                        remember_strip_state()
                         return rebuild_home()
                     end
                     return true
@@ -484,15 +531,16 @@ function M.build_strip(ctx, source_key)
                 reset_strip_pages()
                 runtime.source = utils.deepcopy(descriptor)
                 runtime.active_id = entry.id
+                remember_strip_state()
                 return rebuild_home()
             end,
             on_action = function(entry)
                 return ButtonModel.execute(entry)
             end,
-            on_search = function()
-                local open_tab = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_TAB")
-                return type(open_tab) == "function" and open_tab("search") == true
-            end,
+            on_hold = ctx.editMode == true and function()
+                return type(ctx.openWidgetSettings) == "function"
+                    and ctx.openWidgetSettings() == true
+            end or nil,
         }
     end
 
@@ -508,14 +556,6 @@ function M.build_strip(ctx, source_key)
         local started_at = os.clock()
         local show_strip_titles = wants_strip_titles
         local books = supplied_books or get_page_books(page_delta or 0) or {}
-        local has_groups = false
-        for _i, item in ipairs(books) do
-            if item.is_group == true then
-                show_strip_titles = true
-                has_groups = true
-                break
-            end
-        end
         local cover_plans = {}
         if #books == 0 then
         local empty_cover, cover_w, cover_h = cover_common.make_empty_placeholder_cover(
@@ -574,7 +614,7 @@ function M.build_strip(ctx, source_key)
         end
 
     local num_rows = two_rows and 2 or 1
-    local row_gap = two_rows and math.max(2, Screen:scaleBySize(3)) or 0
+    local row_gap = two_rows and math.max(2, Screen:scaleBySize(7)) or 0
     local row_top_pad = math.max(4, Screen:scaleBySize(4))
     local row_bottom_pad = math.max(4, Screen:scaleBySize(4))
     local row_inner_bottom_pad = two_rows and math.max(2, Screen:scaleBySize(4)) or 0
@@ -622,7 +662,7 @@ function M.build_strip(ctx, source_key)
     local avail_h = height - fixed_h
     -- Covers can't shrink below MIN_COVER_H; if titles won't also fit within `height`,
     -- drop them so the strip never overflows downward into the navbar (2-row / rotation).
-        if show_strip_titles and not has_groups
+    if show_strip_titles
             and avail_h < visible_rows * (MIN_COVER_H + title_gap + title_h) then
         show_strip_titles = false
         title_h = 0
@@ -633,6 +673,63 @@ function M.build_strip(ctx, source_key)
     if per_row_budget > MIN_COVER_H then max_cover_h_per_row = per_row_budget end
     local page_focus_targets = {}
     local hydration_jobs = {}
+
+    local function build_group_cover(book, max_cover_w, cover_h)
+        local config = get_zen_config(rawget(_G, "__ZEN_UI_PLUGIN")) or {}
+        local features = type(config.features) == "table" and config.features or {}
+        local uniform = features.browser_cover_mosaic_uniform == true
+        local border = cover_common.BORDER_SIZE
+        local inner_w = math.max(1, max_cover_w - 2 * border)
+        local inner_h = math.max(1, cover_h - 2 * border)
+        local entry = {
+            _zen_files = book.group_files or {},
+            text = book.group_label,
+            mandatory = book.group_count,
+        }
+        local specs = {
+            max_cover_w = inner_w,
+            max_cover_h = inner_h,
+            uniform = uniform,
+        }
+        local result = FolderCover.build(
+            ctx.menu or {}, entry, book.group_label, inner_w, inner_h, {
+                cached_only = true,
+                cover_specs = specs,
+                uniform = uniform,
+            })
+        local frame = result.frame
+        local frame_size = type(frame.getSize) == "function" and frame:getSize()
+            or frame.dimen or { w = inner_w, h = inner_h }
+        local cover = CenterContainer:new{
+            dimen = Geom:new{ w = max_cover_w, h = cover_h },
+            frame,
+        }
+        cover = FolderCover.overlayName(cover, {
+            width = max_cover_w,
+            height = cover_h,
+            title = result.title,
+            strip_height = show_strip_titles and title_h or 0,
+            cover_dimen = frame_size,
+            config = config,
+        })
+        cover = FolderCover.decorateWidget(cover, frame, result.count, config)
+        local job
+        if result.needs_hydration then
+            job = {
+                folder_entry = entry,
+                title = result.title,
+                path = table.concat({
+                    "group", tostring(book.group_kind), tostring(book.group_label),
+                }, "\30"),
+                width = inner_w,
+                height = inner_h,
+                cover_specs = specs,
+                uniform = uniform,
+                cover_count = result.cover_count or 0,
+            }
+        end
+        return cover, max_cover_w, cover_h, job
+    end
 
     local function build_row_widget(row_list, row_num)
         local n = #row_list
@@ -648,53 +745,44 @@ function M.build_strip(ctx, source_key)
         local covers_w = 0
         local row_h = 0
         for _i, book in ipairs(row_list) do
-            local cover, cover_w, rendered_cover_h, needs_hydration = cover_common.make_cover_widget(
-                book,
-                max_cover_w,
-                cover_h,
-                {
-                    border = cover_common.BORDER_SIZE,
-                    background = Blitbuffer.COLOR_LIGHT_GRAY,
-                    decorate = show_badges and function(frame)
-                        apply_strip_badges(frame, book, rawget(_G, "__ZEN_UI_PLUGIN"))
-                    end or nil,
-                }
-            )
+            local cover, cover_w, rendered_cover_h, hydration_job
+            if book.is_group == true then
+                cover, cover_w, rendered_cover_h, hydration_job =
+                    build_group_cover(book, max_cover_w, cover_h)
+            else
+                local needs_hydration
+                cover, cover_w, rendered_cover_h, needs_hydration =
+                    cover_common.make_cover_widget(
+                        book,
+                        max_cover_w,
+                        cover_h,
+                        {
+                            border = cover_common.BORDER_SIZE,
+                            background = Blitbuffer.COLOR_LIGHT_GRAY,
+                            decorate = show_badges and function(frame)
+                                apply_strip_badges(
+                                    frame, book, rawget(_G, "__ZEN_UI_PLUGIN"))
+                            end or nil,
+                        }
+                    )
+                if needs_hydration and not hydration_failed_paths[book.path] then
+                    hydration_job = {
+                        book = book,
+                        path = book.path,
+                        width = cover_w or max_cover_w,
+                        height = rendered_cover_h or cover_h,
+                    }
+                end
+            end
             cover_w = cover_w or max_cover_w
             local cover_size = cover.getSize and cover:getSize() or nil
             local actual_cover_h = rendered_cover_h or (cover_size and cover_size.h) or cover_h
-            if book.is_group == true then
-                local OverlapGroup = require("ui/widget/overlapgroup")
-                local inset = math.max(2, Screen:scaleBySize(2))
-                local back_w = math.max(1, cover_w - inset)
-                local back_h = math.max(1, actual_cover_h - inset)
-                cover.overlap_offset = { 0, inset }
-                cover = OverlapGroup:new{
-                    dimen = Geom:new{ w = cover_w, h = actual_cover_h },
-                    allow_mirroring = false,
-                    FrameContainer:new{
-                        width = back_w,
-                        height = back_h,
-                        padding = 0,
-                        bordersize = 1,
-                        color = Blitbuffer.COLOR_BLACK,
-                        background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
-                        overlap_offset = { inset, 0 },
-                    },
-                    cover,
-                }
-            end
             cover_plans[#cover_plans + 1] = {
                 width = cover_w,
                 height = actual_cover_h,
             }
-            if needs_hydration and not hydration_failed_paths[book.path] then
-                hydration_jobs[#hydration_jobs + 1] = {
-                    book = book,
-                    path = book.path,
-                    width = cover_w,
-                    height = actual_cover_h,
-                }
+            if hydration_job and not hydration_failed_paths[hydration_job.path] then
+                hydration_jobs[#hydration_jobs + 1] = hydration_job
             end
             local item_h = show_strip_titles and (actual_cover_h + title_gap + title_h) or actual_cover_h
             if item_h > row_h then row_h = item_h end
@@ -738,8 +826,8 @@ function M.build_strip(ctx, source_key)
                     VerticalSpan:new{ width = title_gap },
                     TextBoxWidget:new{
                         text = book.is_group == true
-                            and ((book.group_label or "") .. " · "
-                                .. tostring(book.group_count or 0))
+                            and ((book.group_label or "") .. " ("
+                                .. tostring(book.group_count or 0) .. ")")
                             or book.title or "",
                         width = item_w,
                         height = title_h,
@@ -789,7 +877,12 @@ function M.build_strip(ctx, source_key)
                 tap.onHoldCover = function(tap_self, _, ges)
                     if not tap_self.dimen or not ges or not ges.pos then return false end
                     if not tap_self.dimen:contains(ges.pos) then return false end
-                    if book.is_group == true then return false end
+                    if book.is_group == true then
+                        if type(ctx.showStripGroupMenu) == "function" then
+                            return ctx.showStripGroupMenu(book)
+                        end
+                        return false
+                    end
                     if ctx.showBookMenu then return ctx.showBookMenu(path, source_name) end
                     return false
                 end
@@ -816,7 +909,12 @@ function M.build_strip(ctx, source_key)
                         return true
                     end,
                     context = function()
-                        if book.is_group == true then return false end
+                        if book.is_group == true then
+                            if type(ctx.showStripGroupMenu) == "function" then
+                                return ctx.showStripGroupMenu(book)
+                            end
+                            return false
+                        end
                         if ctx.showBookMenu then return ctx.showBookMenu(path, source_name) end
                         return false
                     end,
@@ -1009,6 +1107,21 @@ function M.build_strip(ctx, source_key)
     end
 
     local function warm_job(job)
+        if job.folder_entry then
+            local result = FolderCover.build(
+                ctx.menu or {}, job.folder_entry, job.title, job.width, job.height, {
+                    cached_only = false,
+                    cover_specs = job.cover_specs,
+                    uniform = job.uniform,
+                    decorate = false,
+                })
+            local previous_count = job.cover_count or 0
+            job.cover_count = result.cover_count or 0
+            local pending = result.needs_hydration == true
+            WidgetResources.free(result.frame)
+            if job.cover_count > previous_count or not pending then return "warmed" end
+            return "pending"
+        end
         if type(ctx.data.warmStripCover) ~= "function" then return "failed" end
         return ctx.data:warmStripCover(job.book, job.width, job.height)
     end

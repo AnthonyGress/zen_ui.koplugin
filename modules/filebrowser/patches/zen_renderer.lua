@@ -28,19 +28,15 @@ local function apply_zen_renderer()
     local Geom = require("ui/geometry")
     local GestureRange = require("ui/gesturerange")
     local InputContainer = require("ui/widget/container/inputcontainer")
-    local BottomContainer = require("ui/widget/container/bottomcontainer")
     local CenterContainer = require("ui/widget/container/centercontainer")
     local HorizontalGroup = require("ui/widget/horizontalgroup")
     local HorizontalSpan = require("ui/widget/horizontalspan")
     local LeftContainer = require("ui/widget/container/leftcontainer")
-    local OverlapGroup = require("ui/widget/overlapgroup")
     local Menu = require("ui/widget/menu")
-    local TextBoxWidget = require("ui/widget/textboxwidget")
     local TextWidget = require("ui/widget/textwidget")
     local UnderlineContainer = require("ui/widget/container/underlinecontainer")
     local VerticalGroup = require("ui/widget/verticalgroup")
     local VerticalSpan = require("ui/widget/verticalspan")
-    local WidgetContainer = require("ui/widget/container/widgetcontainer")
     local Size = require("ui/size")
     local CoverWidget = require("modules/filebrowser/patches/home/widgets/cover_common")
     local CoverUtils = require("common/cover_utils")
@@ -180,91 +176,6 @@ local function apply_zen_renderer()
         return height
     end
 
-    local label_strip_cache = {}
-    local LabelStrip = WidgetContainer:extend{}
-
-    function LabelStrip:paintTo(bb, x, y)
-        bb:colorblitFromRGB32(self.strip.background_mask, x, y, 0, 0,
-            self.dimen.w, self.dimen.h, Blitbuffer.COLOR_WHITE)
-        bb:colorblitFromRGB32(self.strip.border_mask, x, y, 0, 0,
-            self.dimen.w, self.dimen.h, Blitbuffer.COLOR_BLACK)
-    end
-
-    local function cached_label_strip(width, height, radius, opaque)
-        radius = math.max(0, math.min(radius, math.floor((math.min(width, height) - 1) / 2)))
-        local alpha = opaque and 0xFF or math.floor(0.75 * 0xFF + 0.5)
-        local key = table.concat({ width, height, radius, alpha }, ":")
-        if label_strip_cache[key] then return label_strip_cache[key], radius, alpha end
-
-        local background_mask = Blitbuffer.new(width, height, Blitbuffer.TYPE_BB8)
-        local border_mask = Blitbuffer.new(width, height, Blitbuffer.TYPE_BB8)
-        local background = Blitbuffer.Color8(alpha)
-        local border = math.max(1, math.min(CoverUtils.BORDER_SIZE, math.floor(math.min(width, height) / 2)))
-        background_mask:fill(Blitbuffer.COLOR_BLACK)
-        border_mask:fill(Blitbuffer.COLOR_BLACK)
-        background_mask:paintRect(0, 0, width, height, background)
-
-        if radius >= 2 then
-            local inner_radius = math.max(0, radius - border)
-            for row = 0, radius - 1 do
-                local y = height - radius + row
-                for column = 0, radius - 1 do
-                    local dx = radius - column - 0.5
-                    local dy = row + 0.5
-                    local distance = math.sqrt(dx * dx + dy * dy)
-                    if distance > radius then
-                        background_mask:paintRect(column, y, 1, 1, Blitbuffer.COLOR_BLACK)
-                        background_mask:paintRect(width - 1 - column, y, 1, 1, Blitbuffer.COLOR_BLACK)
-                    elseif distance >= inner_radius then
-                        border_mask:paintRect(column, y, 1, 1, Blitbuffer.COLOR_WHITE)
-                        border_mask:paintRect(width - 1 - column, y, 1, 1, Blitbuffer.COLOR_WHITE)
-                    end
-                end
-            end
-            border_mask:paintRect(0, 0, width, border, Blitbuffer.COLOR_WHITE)
-            border_mask:paintRect(0, 0, border, height - radius, Blitbuffer.COLOR_WHITE)
-            border_mask:paintRect(width - border, 0, border, height - radius, Blitbuffer.COLOR_WHITE)
-            border_mask:paintRect(radius, height - border, width - 2 * radius, border, Blitbuffer.COLOR_WHITE)
-        else
-            border_mask:paintRect(0, 0, width, border, Blitbuffer.COLOR_WHITE)
-            border_mask:paintRect(0, height - border, width, border, Blitbuffer.COLOR_WHITE)
-            border_mask:paintRect(0, 0, border, height, Blitbuffer.COLOR_WHITE)
-            border_mask:paintRect(width - border, 0, border, height, Blitbuffer.COLOR_WHITE)
-        end
-
-        local strip = { background_mask = background_mask, border_mask = border_mask }
-        label_strip_cache[key] = strip
-        return strip, radius, alpha
-    end
-
-    local function transparent_folder_label(label)
-        local original_free = label.free
-        function label:paintTo(bb, x, y)
-            if not self._bb then self:_updateLayout() end
-            local width = self.width
-            local height = self._bb:getHeight()
-            if not self._zen_folder_label_mask
-                    or self._zen_folder_label_mask:getWidth() ~= width
-                    or self._zen_folder_label_mask:getHeight() ~= height then
-                if self._zen_folder_label_mask then self._zen_folder_label_mask:free() end
-                self._zen_folder_label_mask = Blitbuffer.new(width, height, Blitbuffer.TYPE_BB8)
-            end
-            local mask = self._zen_folder_label_mask
-            mask:fill(Blitbuffer.COLOR_WHITE)
-            mask:blitFrom(self._bb, 0, 0, 0, 0, width, height)
-            mask:invertRect(0, 0, width, height)
-            bb:colorblitFromRGB32(mask, x, y, 0, 0, width, height, self.fgcolor)
-        end
-        function label:free(...)
-            if self._zen_folder_label_mask then
-                self._zen_folder_label_mask:free()
-                self._zen_folder_label_mask = nil
-            end
-            return original_free(self, ...)
-        end
-        return label
-    end
-
     function ZenMosaicItem:init()
         self.filepath = self.entry.file or self.entry.path
         self.ges_events = {
@@ -283,101 +194,14 @@ local function apply_zen_renderer()
     end
 
     local function folder_name_overlay(item, cover, content_h, title, strip_h, cover_dimen)
-        local config = plugin_config().browser_folder_cover or {}
-        if config.show_folder_name == false or strip_h > 0 then return cover end
-        local border = CoverUtils.BORDER_SIZE
-        local cover_w = math.max(1, (cover_dimen and cover_dimen.w) or item.width)
-        local cover_h = math.max(1, (cover_dimen and cover_dimen.h) or content_h)
-        local rounded = (plugin_config().features or {}).browser_cover_rounded_corners == true
-        local corner_radius = rounded and math.min(Screen:scaleBySize(8),
-            math.floor((math.min(cover_w, cover_h) - 1) / 2)) or 0
-        local label_pad_h = Screen:scaleBySize(5)
-        local label_pad_v = 0
-        local label_w = math.max(1, cover_w - 2 * border - 2 * label_pad_h)
-        local label_h = math.max(1, cover_h - 2 * border)
-        local text = BD.directory(title)
-        local badge_probe = TextWidget:new{
-            text = "0",
-            face = library_font.getFace(library_font.scaleValue(15)),
-            bold = true,
-            padding = 0,
-        }
-        local available_h = math.max(1,
-            label_h - 2 * badge_probe:getSize().h - 2 * label_pad_v)
-        badge_probe:free()
-
-        local max_font_size = library_font.getBaseSize() + 1
-        local min_font_size = library_font.scaleValue(14)
-        local function make_label(font_size, height)
-            return TextBoxWidget:new{
-                text = text,
-                face = library_font.getFace(font_size),
-                width = label_w,
-                height = height,
-                height_adjust = height ~= nil,
-                height_overflow_show_ellipsis = height ~= nil,
-                alignment = "center",
-                bold = true,
-                fgcolor = Blitbuffer.COLOR_BLACK,
-            }
-        end
-
-        local font_size = max_font_size
-        local fits_two_lines = false
-        local line_h
-        while font_size >= min_font_size do
-            local probe = make_label(font_size)
-            local line_count = #probe.vertical_string_list
-            line_h = probe:getLineHeight()
-            probe:free()
-            if line_count <= 2 and line_count * line_h <= available_h then
-                fits_two_lines = true
-                break
-            end
-            font_size = font_size - 1
-        end
-
-        if not fits_two_lines then
-            font_size = min_font_size
-            local probe = make_label(font_size)
-            line_h = probe:getLineHeight()
-            probe:free()
-        end
-        local two_line_h = math.min(available_h, 2 * line_h)
-        local label = make_label(font_size, two_line_h)
-        label = transparent_folder_label(label)
-        local label_dimen = Geom:new{
-            w = label_w + 2 * (label_pad_h + CoverUtils.BORDER_SIZE),
-            h = two_line_h + 2 * (label_pad_v + CoverUtils.BORDER_SIZE),
-        }
-        local strip, strip_radius, strip_alpha = cached_label_strip(
-            label_dimen.w, label_dimen.h, corner_radius, config.name_opaque == true)
-        local label_strip = LabelStrip:new{
-            dimen = label_dimen,
-            strip = strip,
-            radius = strip_radius,
-            alpha = strip_alpha,
-        }
-        local label_widget = OverlapGroup:new{
-            dimen = label_dimen,
-            label_strip,
-            CenterContainer:new{
-                dimen = label_dimen,
-                label,
-            },
-        }
-        local PositionContainer = config.name_centered == true and CenterContainer or BottomContainer
-        return OverlapGroup:new{
-            dimen = Geom:new{ w = item.width, h = content_h },
-            cover,
-            CenterContainer:new{
-                dimen = Geom:new{ w = item.width, h = content_h },
-                PositionContainer:new{
-                    dimen = Geom:new{ w = cover_w, h = cover_h },
-                    label_widget,
-                },
-            },
-        }
+        return FolderCover.overlayName(cover, {
+            width = item.width,
+            height = content_h,
+            title = title,
+            strip_height = strip_h,
+            cover_dimen = cover_dimen,
+            config = plugin_config(),
+        })
     end
 
     local function update_folder(item, show_title, show_author, strip_h, content_h)
@@ -1007,37 +831,6 @@ local function apply_zen_renderer()
         end
     end
 
-    local function paint_folder_count(item, bb, config)
-        local folder = config.browser_folder_cover or {}
-        local count = item._zen_folder_count
-        if folder.show_item_count == false or not count then return end
-        local frame = item._zen_cover_frame
-        if not frame or not frame.dimen then return end
-        local size = badge_size(frame, config)
-        local radius = math.floor(size / 2)
-        local color, foreground = badge_colors(config)
-        local widget = badge_text(item, "_zen_folder_count_badge", tostring(count),
-            math.max(7, math.floor(size * 0.26)), foreground)
-        local widget_size = widget:getSize()
-        local inset = utils.getBadgeInset(radius)
-        local x = frame.dimen.x + frame.dimen.w - radius - inset
-        local y = frame.dimen.y + radius + inset
-        paint_circle(bb, x, y, radius + 2, foreground)
-        paint_circle(bb, x, y, radius, color)
-        widget:paintTo(bb, x - math.floor(widget_size.w / 2), y - math.floor(widget_size.h / 2))
-    end
-
-    local function paint_folder_spines(item, bb, config, x, y)
-        local folder = config.browser_folder_cover or {}
-        if folder.show_spine_lines ~= true then return end
-        local frame = item._zen_cover_frame
-        if not frame or not frame.dimen then return end
-        local features = config.features or {}
-        FolderCover.paintSpines(bb, frame, x, y, {
-            rounded = features.browser_cover_rounded_corners == true,
-        })
-    end
-
     function ZenMosaicItem:paintTo(bb, x, y)
         local menu = self.menu
         local is_library = menu and (menu.name == "filemanager" or menu.name == "history"
@@ -1054,8 +847,7 @@ local function apply_zen_renderer()
         local config = plugin_config()
         dim_finished_cover(self, bb, config)
         if not self._zen_is_book then
-            paint_folder_spines(self, bb, config, x, y)
-            paint_folder_count(self, bb, config)
+            FolderCover.paintDecorations(self, bb, config, x, y)
             return
         end
         paint_favorite_badge(self, bb, config)

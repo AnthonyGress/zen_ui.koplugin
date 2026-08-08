@@ -144,6 +144,7 @@ function M.build(ctx)
     local function save_fbc_and_update()
         plugin:saveConfig()
         rebuild_filechooser()
+        schedule_home_rebuild_on_menu_close(plugin)
     end
     local function get_home_lock_mode()
         local cfg = config.browser_hide_up_folder

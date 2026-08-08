@@ -720,8 +720,8 @@ msgstr "デフォルト"
 msgid "Default (black)"
 msgstr "デフォルト (黒)"
 
-msgid "Default content: "
-msgstr ""
+msgid "Content: "
+msgstr "コンテンツ: "
 
 msgid "Default font size:"
 msgstr "デフォルトのフォントサイズ:"
@@ -2792,3 +2792,12 @@ msgstr "ZenPM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPMがインストールされています。 KOReader を使用するには、KOReader を再起動します。"
+
+msgid "Automatic"
+msgstr "自動"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "ホームの間隔を更新しました。保存済みのウィジェットの順序と選択内容は維持され、新しいグリッドに合わせて調整されました。"
+
+msgid "%1, %2 %3"
+msgstr "%2%3日（%1）"

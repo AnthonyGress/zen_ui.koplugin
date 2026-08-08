@@ -37,7 +37,7 @@ end
 return {
     id = "quotes",
     label = _("Quotes widget"),
-    size = { units = 1.5 },
+    size = { units = 2 },
     build = function(ctx)
         local width = ctx.width
         local height = ctx.height
@@ -266,10 +266,10 @@ return {
         local visual_shift = 0
         if type(ctx.setContentBounds) == "function" then
             ctx.setContentBounds{
-                top = vertical_padding,
-                bottom = height - vertical_padding,
-                min_shift = 0,
-                max_shift = 0,
+                top = content_top,
+                bottom = content_top + content_h,
+                min_shift = -content_top,
+                max_shift = height - content_top - content_h,
                 set_shift = function(shift) visual_shift = shift end,
             }
         end

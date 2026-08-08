@@ -300,6 +300,7 @@ local function rebuild_icon_row(row)
     local content_w = row.width - left_padding - right_padding
     local item_has_submenu = type(item.sub_item_table) == "table"
         or type(item.sub_item_table_func) == "function"
+        or item._zen_settings_submenu == true
     local face = IconItem.getSettingsFace(item.face or row.face)
     local right_items = { align = "center" }
     if item_checkable then
@@ -903,6 +904,19 @@ local function open_submenu_for_item(sort_widget, item, resume_path, resume_in_b
     return submenu ~= nil
 end
 
+local function open_resume_item(sort_widget, item, resume_path)
+    if open_submenu_for_item(sort_widget, item, resume_path, true) then return true end
+    if #resume_path > 0 or item._zen_settings_submenu ~= true then return false end
+    local callback = item.callback
+    if type(callback) ~= "function" and type(item.callback_func) == "function" then
+        callback = item.callback_func()
+    end
+    if type(callback) ~= "function" then return false end
+    sort_widget.invisible = false
+    callback(sort_widget._zen_menu_proxy)
+    return true
+end
+
 local function get_focused_arrange_target(sort_widget)
     local focused = sort_widget and sort_widget.getFocusItem and sort_widget:getFocusItem()
     if focused and (focused._zen_arrange_handle
@@ -1396,6 +1410,7 @@ show_submenu = function(title, items, refresh, opts)
     end
 
     menu_proxy = {
+        _zen_settings_resume = opts.settings_resume,
         item_table_stack = {},
         item_table = items,
         backToUpperMenu = function()
@@ -1540,7 +1555,7 @@ show_submenu = function(title, items, refresh, opts)
         discard_background_refreshes(refresh_count)
         UIManager:show(sort_widget)
         table.remove(opts.resume_path, 1)
-        if not open_submenu_for_item(sort_widget, resume_item, opts.resume_path, true) then
+        if not open_resume_item(sort_widget, resume_item, opts.resume_path) then
             sort_widget.invisible = false
             UIManager:setDirty(sort_widget, "ui")
         end
@@ -1643,8 +1658,9 @@ function M.show(opts)
     update_dynamic_text(item_table)
     ensure_submenu_callbacks(item_table)
 
-    local settings_resume
-    if not menu_mode and rawget(_G, "__ZEN_UI_SETTINGS_PAGE") then
+    local settings_resume = type(opts.settings_resume) == "table"
+        and opts.settings_resume or nil
+    if not settings_resume and not menu_mode and rawget(_G, "__ZEN_UI_SETTINGS_PAGE") then
         local ok_settings_page, settings_page = pcall(require, "modules/settings/zen_settings_page")
         if ok_settings_page and settings_page.claimArrangeRoute then
             settings_resume = settings_page.claimArrangeRoute()
@@ -1701,6 +1717,7 @@ function M.show(opts)
         self:_populateItems()
     end
     menu_proxy = {
+        _zen_settings_resume = settings_resume,
         item_table = item_table,
         updateItems = function(self)
             if type(self.item_table) == "table" and self.item_table ~= item_table then
@@ -1869,7 +1886,7 @@ function M.show(opts)
         discard_background_refreshes(refresh_count)
         UIManager:show(sort_widget)
         table.remove(resume_path, 1)
-        if not open_submenu_for_item(sort_widget, resume_item, resume_path, true) then
+        if not open_resume_item(sort_widget, resume_item, resume_path) then
             sort_widget.invisible = false
             UIManager:setDirty(sort_widget, "ui")
         end

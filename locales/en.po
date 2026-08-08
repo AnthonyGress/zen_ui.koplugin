@@ -720,8 +720,8 @@ msgstr "default"
 msgid "Default (black)"
 msgstr "Default (black)"
 
-msgid "Default content: "
-msgstr "Default content: "
+msgid "Content: "
+msgstr "Content: "
 
 msgid "Default font size:"
 msgstr "Default font size:"
@@ -2792,3 +2792,12 @@ msgstr "ZenPM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM has been installed. Restart KOReader to use it."
+
+msgid "Automatic"
+msgstr "Automatic"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+
+msgid "%1, %2 %3"
+msgstr "%1, %2 %3"

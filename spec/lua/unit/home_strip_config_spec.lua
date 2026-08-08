@@ -61,10 +61,12 @@ describe("unified Home strip configuration", function()
         assert.are.same({ kind = "tag", value = "Fantasy" }, strip.default_source)
         assert.is_true(strip.show_badges)
         assert.is_true(strip.controls.enabled)
-        assert.are.equal(3, #strip.controls.order)
+        assert.are.equal(4, #strip.controls.order)
         assert.are.equal("tag", strip.controls.custom_buttons[1].type)
         assert.are.equal("custom_source", strip.controls.custom_buttons[2].type)
         assert.are.equal("to_be_read", strip.controls.order[3])
+        assert.are.equal("search", strip.controls.order[4])
+        assert.is_true(strip.controls.show_buttons.search)
     end)
 
     it("normalizes the seven-button limit and accepts Favorites as a source", function()
@@ -83,7 +85,42 @@ describe("unified Home strip configuration", function()
         assert.is_true(Presets.normalizeStripConfig(page))
         assert.are.same({ kind = "favorites" }, page.modules.strip.default_source)
         assert.is_false(page.modules.strip.controls.show_buttons.books)
-        assert.are.equal(8, #page.modules.strip.controls.order)
+        assert.are.equal(9, #page.modules.strip.controls.order)
+    end)
+
+    it("adds configurable Search to existing strip controls", function()
+        local Presets = require("modules/filebrowser/patches/home/home_presets")
+        local page = Presets.defaultHomePage()
+        local controls = page.modules.strip.controls
+        page.modules.strip.strip_schema_version = 1
+        controls.order = { "recent", "to_be_read", "tags" }
+        controls.show_buttons.search = nil
+
+        assert.is_true(Presets.normalizeStripConfig(page))
+        assert.are.equal(2, page.modules.strip.strip_schema_version)
+        assert.are.same({ "recent", "to_be_read", "tags", "search" }, controls.order)
+        assert.is_true(controls.show_buttons.search)
+    end)
+
+    it("keeps Search removed after the strip schema is current", function()
+        local Presets = require("modules/filebrowser/patches/home/home_presets")
+        local page = Presets.defaultHomePage()
+        local controls = page.modules.strip.controls
+        controls.order = { "recent", "to_be_read", "tags" }
+        controls.show_buttons.search = nil
+
+        assert.is_false(Presets.normalizeStripConfig(page))
+        assert.are.same({ "recent", "to_be_read", "tags" }, controls.order)
+        assert.is_nil(controls.show_buttons.search)
+    end)
+
+    it("keeps all Tags as a strip source", function()
+        local Presets = require("modules/filebrowser/patches/home/home_presets")
+        local page = Presets.defaultHomePage()
+        page.modules.strip.default_source = { kind = "tags" }
+
+        assert.is_false(Presets.normalizeStripConfig(page))
+        assert.are.same({ kind = "tags" }, page.modules.strip.default_source)
     end)
 
     it("keeps at least one valid tab visible", function()
@@ -98,5 +135,53 @@ describe("unified Home strip configuration", function()
         assert.are.same({ "favorites", "recent" }, page.modules.strip.controls.order)
         assert.is_true(page.modules.strip.controls.show_buttons.favorites)
         assert.is_false(page.modules.strip.controls.show_buttons.recent)
+    end)
+
+    it("migrates legacy five-row layouts without revealing previously hidden widgets", function()
+        local Presets = require("modules/filebrowser/patches/home/home_presets")
+        local page = {
+            rows = {
+                max_rows = 5,
+                order = {
+                    "featured", "strip", "quotes", "reading_goals",
+                    "stats_triplet", "datetime",
+                },
+                enabled = {
+                    featured = true, strip = true, quotes = true,
+                    reading_goals = true, stats_triplet = true, datetime = true,
+                },
+            },
+        }
+
+        assert.is_true(Presets.normalizeLayoutGrid(page, true))
+        assert.is_nil(page.rows.max_rows)
+        assert.are.equal(10, page.rows.capacity_units)
+        assert.are.equal(2, page.rows.layout_schema_version)
+        assert.is_true(page.rows.layout_notice_pending)
+        assert.is_true(page.rows.enabled.stats_triplet)
+        assert.is_false(page.rows.enabled.datetime)
+        assert.is_false(Presets.normalizeLayoutGrid(page, true))
+    end)
+
+    it("preserves all selections from the first spacing-grid version", function()
+        local Presets = require("modules/filebrowser/patches/home/home_presets")
+        local page = {
+            rows = {
+                capacity_units = 10,
+                order = { "featured", "strip", "quotes", "reading_goals", "stats_triplet" },
+                enabled = {
+                    featured = true, strip = true, quotes = true,
+                    reading_goals = true, stats_triplet = true,
+                },
+            },
+        }
+
+        assert.is_true(Presets.normalizeLayoutGrid(page, true))
+        assert.is_true(page.rows.enabled.featured)
+        assert.is_true(page.rows.enabled.strip)
+        assert.is_true(page.rows.enabled.quotes)
+        assert.is_true(page.rows.enabled.reading_goals)
+        assert.is_true(page.rows.enabled.stats_triplet)
+        assert.is_true(page.rows.layout_notice_pending)
     end)
 end)

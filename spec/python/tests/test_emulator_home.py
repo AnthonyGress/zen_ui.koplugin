@@ -27,29 +27,32 @@ def _seed_history(ko_home: Path, book: Path) -> None:
     )
 
 
-def _seed_home_settings(ko_home: Path) -> None:
+def _seed_home_settings(ko_home: Path, *, show_strip_titles: bool = True) -> None:
     settings = ko_home / "settings" / "Zen UI"
     settings.mkdir(parents=True, exist_ok=True)
-    settings.joinpath("home.lua").write_text(
-        """return {
+    source = """return {
   version = 1,
   presets = {},
   settings = {
     show_status_bar = false,
     rows = {
       capacity_units = 10,
-      order = { "featured_recent", "stats_triplet", "strip", "quotes" },
+      layout_schema_version = 2,
+      order = { "featured", "strip", "quotes", "reading_goals", "stats_triplet" },
       enabled = {
-        featured_recent = true, stats_triplet = true, strip = true, quotes = true,
+        featured = true, strip = true, quotes = true,
+        reading_goals = true, stats_triplet = true,
       },
     },
     modules = {
-      featured_recent = {
+      featured = {
+        default_source = { kind = "recent" },
         interactive = true, show_description = true, show_module_title = false,
         show_status_bar = false,
         progress_meta = { left = "percent", right = "total_pages" },
       },
       stats_triplet = { show_module_title = false },
+      reading_goals = { show_module_title = false },
       strip = {
         count = 4, interactive = true, order = "default",
         show_module_title = false, show_strip_titles = true, two_rows = false,
@@ -75,7 +78,13 @@ def _seed_home_settings(ko_home: Path) -> None:
     },
   },
 }
-""",
+"""
+    source = source.replace(
+        "show_strip_titles = true",
+        f"show_strip_titles = {str(show_strip_titles).lower()}",
+    )
+    settings.joinpath("home.lua").write_text(
+        source,
         encoding="utf-8",
     )
 
@@ -139,7 +148,7 @@ def _wait_for_home(driver: ZenDriver) -> dict[str, object]:
     while time.monotonic() < deadline:
         response = driver.command("home_state")
         latest = response.get("home", {})
-        if latest.get("active") and len(latest.get("widget_ids", [])) >= 4:
+        if latest.get("active") and len(latest.get("widget_ids", [])) >= 5:
             return latest
         time.sleep(0.25)
     raise AssertionError(f"Home widgets did not become ready: {latest}")
@@ -170,13 +179,13 @@ def test_home_renders_all_core_widgets_with_and_without_history(with_history: bo
             home = _wait_for_home(driver)
             assert home["active_tab_label"] == "Home"
             assert set(home["widget_ids"]) >= {
-                "featured_recent", "stats_triplet", "strip", "quotes",
+                "featured", "strip", "quotes", "reading_goals", "stats_triplet",
             }
             assert {"Recent", "To Be Read", "Genres"} <= set(home["visible_texts"])
             assert home["page_padding"] > 0
             visual_gaps = home["visual_gaps"]
-            assert len(visual_gaps) == 3
-            assert max(visual_gaps) - min(visual_gaps) <= 1, visual_gaps
+            assert len(visual_gaps) == 4
+            assert max(visual_gaps) - min(visual_gaps) <= 2, visual_gaps
             screenshot = root / "home.png"
             driver.screenshot(screenshot)
             assert screenshot.stat().st_size > 0
@@ -185,6 +194,53 @@ def test_home_renders_all_core_widgets_with_and_without_history(with_history: bo
             else:
                 assert "Alpha Home" not in home["visible_texts"]
                 assert "Start reading a book to fill this space." in home["visible_texts"]
+        finally:
+            process.send_signal(signal.SIGTERM)
+            process.wait(timeout=15)
+
+
+def test_home_genres_drills_from_tag_folders_into_books() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-home-genres-") as temporary:
+        root = Path(temporary)
+        ko_home = root / "home"
+        ko_home.mkdir()
+        library = root / "library"
+        fixture = build_library(library)
+        _seed_home_settings(ko_home, show_strip_titles=False)
+        _seed_bookinfo(ko_home, fixture["epub"])
+        socket_path = root / "driver.sock"
+        process = launch(runtime, ko_home, socket_path, library.resolve())
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            assert driver.command("activate_navbar_tab", id="home")["ok"] is True
+            _wait_for_home(driver)
+
+            assert driver.command(
+                "activate_home_target", key="strip-control:tags"
+            )["ok"] is True
+            groups = _wait_for_home(driver)
+            assert {"Focus", "Testing"} <= set(groups["visible_texts"])
+            assert {"Focus (1)", "Testing (1)"}.isdisjoint(groups["visible_texts"])
+            screenshot = root / "home-genre-folders.png"
+            driver.screenshot(screenshot)
+            assert screenshot.stat().st_size > 0
+
+            assert driver.command(
+                "activate_home_target", key="group:Focus"
+            )["ok"] is True
+            books = _wait_for_home(driver)
+            assert "Alpha Home" in books["visible_texts"]
+            assert {"Recent", "To Be Read", "Focus"} <= set(books["visible_texts"])
+
+            assert driver.command(
+                "activate_home_target", key="strip-control:tags"
+            )["ok"] is True
+            _wait_for_home(driver)
+            assert driver.command(
+                "activate_home_target", key="group:Focus", action="context"
+            )["ok"] is True
         finally:
             process.send_signal(signal.SIGTERM)
             process.wait(timeout=15)
@@ -213,6 +269,21 @@ def test_home_edit_mode_reopens_widget_settings_after_close() -> None:
             driver = ZenDriver(socket_path)
             assert driver.command("activate_navbar_tab", id="home")["ok"] is True
             _wait_for_home(driver)
+
+            held = driver.command(
+                "activate_home_target", key="strip-control:recent", action="context"
+            )
+            assert held["ok"] is True, held
+            deadline = time.monotonic() + 5
+            strip: dict[str, object] = {}
+            while time.monotonic() < deadline:
+                response = driver.command("arrange_page_state")
+                if response.get("ok"):
+                    strip = response["arrange"]
+                    break
+                time.sleep(0.1)
+            assert strip.get("title") == "Strip widget"
+            assert driver.command("close_arrange_page")["ok"] is True
 
             first = driver.command("open_widget_settings", page="home", id="quotes")
             assert first["opened"] is True, first

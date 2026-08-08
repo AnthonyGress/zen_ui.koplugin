@@ -101,9 +101,6 @@ modules/filebrowser/patches/home/widgets/cover_common.lua|integration
 modules/filebrowser/patches/home/widgets/datetime.lua|integration
 modules/filebrowser/patches/home/widgets/featured.lua|integration
 modules/filebrowser/patches/home/widgets/featured_common.lua|integration
-modules/filebrowser/patches/home/widgets/featured_custom.lua|integration
-modules/filebrowser/patches/home/widgets/featured_recent.lua|integration
-modules/filebrowser/patches/home/widgets/featured_tbr.lua|integration
 modules/filebrowser/patches/home/widgets/quotes.lua|integration
 modules/filebrowser/patches/home/widgets/reading_goals.lua|integration
 modules/filebrowser/patches/home/widgets/stats_triplet.lua|integration

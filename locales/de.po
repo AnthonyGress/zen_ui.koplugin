@@ -720,8 +720,8 @@ msgstr "Standard"
 msgid "Default (black)"
 msgstr "Standard (schwarz)"
 
-msgid "Default content: "
-msgstr ""
+msgid "Content: "
+msgstr "Inhalt: "
 
 msgid "Default font size:"
 msgstr "Standardschriftgröße:"
@@ -2792,3 +2792,12 @@ msgstr "ZenPM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM wurde installiert. Starten Sie KOReader neu, um es zu verwenden."
+
+msgid "Automatic"
+msgstr "Automatisch"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "Die Abstände der Startseite wurden aktualisiert. Deine gespeicherte Widget-Reihenfolge und -Auswahl wurden beibehalten und an das neue Raster angepasst."
+
+msgid "%1, %2 %3"
+msgstr "%1, %3. %2"
