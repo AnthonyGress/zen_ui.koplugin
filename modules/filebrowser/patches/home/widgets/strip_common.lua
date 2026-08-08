@@ -684,35 +684,34 @@ function M.build_strip(ctx, source_key)
         local config = get_zen_config(rawget(_G, "__ZEN_UI_PLUGIN")) or {}
         local features = type(config.features) == "table" and config.features or {}
         local uniform = features.browser_cover_mosaic_uniform == true
-        local border = cover_common.BORDER_SIZE
-        local inner_w = math.max(1, max_cover_w - 2 * border)
-        local inner_h = math.max(1, cover_h - 2 * border)
+        -- Match book-cover bounds; spine lines paint outside this box.
+        local target_w, target_h = CoverUtils.calcDims(max_cover_w, cover_h)
         local entry = {
             _zen_files = book.group_files or {},
             text = book.group_label,
             mandatory = book.group_count,
         }
         local specs = {
-            max_cover_w = inner_w,
-            max_cover_h = inner_h,
+            max_cover_w = target_w,
+            max_cover_h = target_h,
             uniform = uniform,
         }
         local result = FolderCover.build(
-            ctx.menu or {}, entry, book.group_label, inner_w, inner_h, {
+            ctx.menu or {}, entry, book.group_label, target_w, target_h, {
                 cached_only = true,
                 cover_specs = specs,
                 uniform = uniform,
             })
         local frame = result.frame
         local frame_size = type(frame.getSize) == "function" and frame:getSize()
-            or frame.dimen or { w = inner_w, h = inner_h }
+            or frame.dimen or { w = target_w, h = target_h }
         local cover = CenterContainer:new{
-            dimen = Geom:new{ w = max_cover_w, h = cover_h },
+            dimen = Geom:new{ w = target_w, h = target_h },
             frame,
         }
         cover = FolderCover.overlayName(cover, {
-            width = max_cover_w,
-            height = cover_h,
+            width = target_w,
+            height = target_h,
             title = result.title,
             strip_height = show_strip_titles and title_h or 0,
             cover_dimen = frame_size,
@@ -727,12 +726,12 @@ function M.build_strip(ctx, source_key)
                 local path = member.path or member.file
                 if type(path) == "string" and path ~= "" then
                     local member_w, member_h = CoverUtils.getFolderPreviewBounds(
-                        result.mode, inner_w, inner_h, #entries, index)
+                        result.mode, target_w, target_h, #entries, index)
                     members[#members + 1] = {
                         book = { path = path },
                         path = path,
-                        width = member_w or inner_w,
-                        height = member_h or inner_h,
+                        width = member_w or target_w,
+                        height = member_h or target_h,
                     }
                 end
             end
@@ -742,15 +741,15 @@ function M.build_strip(ctx, source_key)
                 path = table.concat({
                     "group", tostring(book.group_kind), tostring(book.group_label),
                 }, "\30"),
-                width = inner_w,
-                height = inner_h,
+                width = target_w,
+                height = target_h,
                 cover_specs = specs,
                 uniform = uniform,
                 cover_count = result.cover_count or 0,
                 members = members,
             }
         end
-        return cover, max_cover_w, cover_h, job
+        return cover, target_w, target_h, job
     end
 
     local function build_row_widget(row_list, row_num)

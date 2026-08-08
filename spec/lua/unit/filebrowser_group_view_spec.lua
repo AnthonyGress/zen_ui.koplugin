@@ -247,6 +247,17 @@ describe("file browser group views", function()
         assert.is_function(file_dialog_args._zen_display_cb)
     end)
 
+    it("omits context actions for Home strip group folders", function()
+        install_group_view({})
+
+        assert.is_true(api.showGroupContextMenu(
+            "Focus", { "/focus.epub" }, "tags", nil, { hide_actions = true }))
+        assert.are.equal("Focus", file_dialog_args._zen_group_name)
+        assert.are.same({ "/focus.epub" }, file_dialog_args._zen_group_files)
+        assert.is_nil(file_dialog_args._zen_sort_cb)
+        assert.is_nil(file_dialog_args._zen_display_cb)
+    end)
+
     it("opens root and TBR section context menus without opening their pages", function()
         install_group_view({
             authors = { { author = "Ada", files = { "/a.epub" } } },

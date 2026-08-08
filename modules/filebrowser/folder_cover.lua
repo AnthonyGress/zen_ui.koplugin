@@ -989,7 +989,7 @@ function M.paintSpines(bb, frame, item_x, item_y, options)
     end
     local thickness = math.max(1, Screen:scaleBySize(2))
     local margin = Size.line.medium
-    local cover_gap = math.max(1, Screen:scaleBySize(2))
+    local cover_gap = math.max(1, Screen:scaleBySize(1))
     local spine_gap = 2 * thickness + margin + cover_gap
     local lines_h = 2 * thickness + margin
     local top_h = lines_h + cover_gap

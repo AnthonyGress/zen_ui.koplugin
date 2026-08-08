@@ -184,8 +184,7 @@ function M.build(ctx, source_key)
     local module_cfg = type(ctx.module_cfg) == "table" and ctx.module_cfg or {}
     local interactive = module_cfg.interactive ~= false
     local source = source_key or HomePresets.featuredSourceKey(module_cfg.default_source)
-    local order = module_cfg.order or "default"
-    local book = ctx.data:getFeaturedBook(source, order)
+    local book = ctx.data:getFeaturedBook(source, "default")
     local show_description = module_cfg.show_description ~= false
     local show_status_bar = module_cfg.show_status_bar == true and type(ctx.buildStatusRow) == "function"
     local cover_widget, cover_w, cover_actual_h

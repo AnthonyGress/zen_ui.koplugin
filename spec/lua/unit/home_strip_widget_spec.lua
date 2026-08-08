@@ -123,6 +123,9 @@ describe("home strip widget", function()
             end,
         })
         ZenSpec.replace("common/cover_utils", {
+            calcDims = function(_width, height)
+                return 80, height
+            end,
             getFolderPreviewBounds = function(_mode, width, height)
                 return width, height
             end,
@@ -147,8 +150,8 @@ describe("home strip widget", function()
                 end
                 return {
                     frame = widget_class("folder-cover"):new{
-                        width = width,
-                        height = height,
+                        width = width + 4,
+                        height = height + 4,
                     },
                     title = title,
                     count = #entry._zen_files,
@@ -806,7 +809,7 @@ describe("home strip widget", function()
         assert.are.equal(3, settings_opened)
     end)
 
-    it("drills into a stack and resets it from the active tab", function()
+    it("keeps a group cover at book size, drills into it, and resets it", function()
         rawset(_G, "__ZEN_UI_PLUGIN", {
             config = {
                 browser_folder_cover = {
@@ -885,7 +888,11 @@ describe("home strip widget", function()
         assert.are.same({ "/books/a.epub", "/books/b.epub" },
             folder_calls.build.entry._zen_files)
         assert.are.equal("Fantasy", folder_calls.build.title)
+        assert.are.equal(80, folder_calls.build.width)
         assert.is_true(folder_calls.build.options.uniform)
+        assert.are.equal(80, folder_calls.overlay.options.width)
+        assert.are.equal(folder_calls.build.height,
+            folder_calls.overlay.options.height)
         assert.are.equal(0, folder_calls.overlay.options.strip_height)
         assert.is_true(folder_calls.overlay.options.config.browser_folder_cover.name_centered)
         assert.is_true(folder_calls.overlay.options.config.browser_folder_cover.name_opaque)
@@ -895,6 +902,7 @@ describe("home strip widget", function()
 
         local by_key = {}
         for _i, target in ipairs(targets) do by_key[target.key] = target end
+        assert.are.equal(80, by_key["group:Fantasy"].width)
         assert.is_true(by_key["group:Fantasy"].context())
         assert.are.equal("Fantasy", held_group.group_label)
         assert.is_true(by_key["group:Fantasy"].activate())

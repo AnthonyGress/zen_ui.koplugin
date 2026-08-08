@@ -2806,7 +2806,8 @@ local function build_home_content(menu, dcfg, rows, data_provider)
                     return false
                 end
                 return group_view.showGroupContextMenu(
-                    book.group_label or "", book.group_files or {}, book.group_kind)
+                    book.group_label or "", book.group_files or {}, book.group_kind,
+                    nil, { hide_actions = true })
             end,
             rememberStripState = function(state)
                 return save_home_strip_state(dcfg, state)

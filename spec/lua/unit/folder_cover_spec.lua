@@ -633,10 +633,10 @@ describe("shared folder cover provider", function()
 
         assert.are.equal("top", orientation)
         assert.are.same({
-            { x = 37, y = 12, width = 86, height = 2 },
-            { x = 35, y = 16, width = 89, height = 2 },
+            { x = 37, y = 13, width = 86, height = 2 },
+            { x = 35, y = 17, width = 89, height = 2 },
         }, rects)
-        assert.are.equal(2, 20 - (rects[2].y + rects[2].height))
+        assert.are.equal(1, 20 - (rects[2].y + rects[2].height))
     end)
 
     it("moves spines left when the mosaic has no room above", function()
@@ -660,10 +660,10 @@ describe("shared folder cover provider", function()
 
         assert.are.equal("left", orientation)
         assert.are.same({
-            { x = 22, y = 10, width = 2, height = 133 },
-            { x = 26, y = 8, width = 2, height = 137 },
+            { x = 23, y = 10, width = 2, height = 133 },
+            { x = 27, y = 8, width = 2, height = 137 },
         }, rects)
-        assert.are.equal(2, 30 - (rects[2].x + rects[2].width))
+        assert.are.equal(1, 30 - (rects[2].x + rects[2].width))
     end)
 
     it("matches mosaic spine proportions in list view", function()
@@ -688,8 +688,8 @@ describe("shared folder cover provider", function()
         })
 
         assert.are.same({
-            { x = 22, y = 13, width = 2, height = 76 },
-            { x = 26, y = 11, width = 2, height = 79 },
+            { x = 23, y = 13, width = 2, height = 76 },
+            { x = 27, y = 11, width = 2, height = 79 },
         }, rects)
     end)
 
@@ -715,8 +715,8 @@ describe("shared folder cover provider", function()
         }, 0, 0, { orientation = "left", rounded = true })
 
         assert.are.same({
-            { x = 22, y = 13, width = 2, height = 76, radius = 1 },
-            { x = 26, y = 11, width = 2, height = 79, radius = 1 },
+            { x = 23, y = 13, width = 2, height = 76, radius = 1 },
+            { x = 27, y = 11, width = 2, height = 79, radius = 1 },
         }, rounded)
     end)
 

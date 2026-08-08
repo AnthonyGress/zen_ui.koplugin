@@ -1179,22 +1179,23 @@ end
 -- injectNavbar: the injectStandaloneNavbar function from navbar.lua
 -- groups: pre-loaded data from db_bookinfo
 -------------------------------------------------------------------------------
-function M.showGroupContextMenu(group_name, files, tab_id, menu)
+function M.showGroupContextMenu(group_name, files, tab_id, menu, options)
     if show_select_mode_menu() then return true end
     if type(group_name) ~= "string" or type(files) ~= "table" then return false end
     local fm = get_file_manager()
     if not (fm and fm.file_chooser and fm.file_chooser.showFileDialog) then
         return false
     end
+    local hide_actions = type(options) == "table" and options.hide_actions == true
     fm.file_chooser:showFileDialog({
         _zen_group_files = files,
         _zen_group_name = group_name,
-        _zen_sort_cb = function()
+        _zen_sort_cb = not hide_actions and function()
             showDetailSortDialog(group_name, tab_id, nil, files)
-        end,
-        _zen_display_cb = function()
+        end or nil,
+        _zen_display_cb = not hide_actions and function()
             showDisplayModeDialog(menu, tab_id)
-        end,
+        end or nil,
     })
     return true
 end

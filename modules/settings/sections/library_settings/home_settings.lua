@@ -136,7 +136,7 @@ end
 
 local function ensure_featured_cfg(dcfg, module_id)
     local mcfg = ensure_module_cfg(dcfg, module_id)
-    mcfg.order = normalize_order(mcfg.order)
+    mcfg.order = nil
     if mcfg.show_description == nil then mcfg.show_description = true end
     if mcfg.interactive == nil then mcfg.interactive = true end
     if mcfg.show_status_bar == nil then mcfg.show_status_bar = false end
@@ -424,11 +424,6 @@ function M.build(ctx)
         return true
     end
 
-    local order_options = {
-        { id = "default", text = _("Default") },
-        { id = "reverse", text = _("Reverse") },
-    }
-
     local progress_label_options = {
         { id = "off", text = _("Off") },
         { id = "percent", text = _("Percent") },
@@ -442,25 +437,6 @@ function M.build(ctx)
             if opt.id == metric then return opt.text end
         end
         return _("Off")
-    end
-
-    local function build_order_items(mcfg)
-        local items = {}
-        for _i, opt in ipairs(order_options) do
-            local order_id = opt.id
-            items[#items + 1] = {
-                text = opt.text,
-                radio = true,
-                checked_func = function()
-                    return normalize_order(mcfg.order) == order_id
-                end,
-                callback = function()
-                    mcfg.order = order_id
-                    save_home("reinit")
-                end,
-            }
-        end
-        return items
     end
 
     local function build_progress_meta_items(mcfg)
@@ -999,10 +975,6 @@ function M.build(ctx)
                 sub_item_table = featured_status_bar_options(mcfg),
             },
             featured_text_styles_item(mcfg),
-            {
-                text = _("Order"),
-                sub_item_table = build_order_items(mcfg),
-            },
             {
                 text = _("Progress labels"),
                 sub_item_table = build_progress_meta_items(mcfg),

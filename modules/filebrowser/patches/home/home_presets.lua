@@ -18,7 +18,6 @@ local function featured_defaults()
     return {
         default_source = { kind = "recent" },
         interactive = true,
-        order = "default",
         path = nil,
         progress_meta = {
             left = "percent",
@@ -328,6 +327,10 @@ local function ensure_featured_shape(featured)
     if type(featured.path) ~= "string" or featured.path == "" then
         if featured.path ~= nil then changed = true end
         featured.path = nil
+    end
+    if featured.order ~= nil then
+        featured.order = nil
+        changed = true
     end
     return changed
 end
