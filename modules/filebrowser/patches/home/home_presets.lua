@@ -1,6 +1,7 @@
 local M = {}
 
 M.DEFAULT_PRESET_NAME = "Zen Default"
+M.BOOKSHELF_PRESET_NAME = "Bookshelf"
 M.CUSTOM_PRESET_NAME = "Custom preset"
 
 local function featured_text_styles()
@@ -157,7 +158,7 @@ local DEFAULT_HOME_PAGE = {
 }
 
 local BOOKSHELF_HOME_PAGE = {
-    title = "Bookshelf",
+    title = M.BOOKSHELF_PRESET_NAME,
     rows = {
         capacity_units = 10,
         layout_schema_version = 2,
@@ -272,7 +273,7 @@ function M.getBuiltinPresets()
             home_page = deepcopy(DEFAULT_HOME_PAGE),
         },
         {
-            name = "Bookshelf",
+            name = M.BOOKSHELF_PRESET_NAME,
             builtin = true,
             home_page = deepcopy(BOOKSHELF_HOME_PAGE),
         },

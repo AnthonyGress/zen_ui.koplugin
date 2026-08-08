@@ -25,6 +25,7 @@ local VerticalGroup = require("ui/widget/verticalgroup")
 local _ = require("gettext")
 local IconItem = require("common/ui/icon_menu_item")
 local SettingsTitleBar = require("common/ui/zen_settings_titlebar")
+local TruncatedTextMessage = require("common/ui/truncated_text_message")
 local TopMenu = require("modules/global/patches/menu_top_swipe")
 local ZenToggle = require("common/ui/zen_toggle")
 local pager = require("common/ui/zen_pager")
@@ -365,14 +366,25 @@ local function rebuild_icon_row(row)
         toggle_height = IconItem.SETTINGS_TOGGLE_HEIGHT,
         caret_size = IconItem.SETTINGS_CARET_SIZE,
     }
+    local display_text = ArrangeState.stripSubmenuCaret(item.text)
+    local text_widget = TextWidget:new{
+        text = display_text,
+        max_width = text_max_width,
+        face = face,
+        fgcolor = item.dim and Blitbuffer.COLOR_DARK_GRAY or nil,
+    }
+    row._zen_settings_text_truncated = text_widget:isTruncated()
+    if row._zen_settings_text_truncated then
+        row.onHoldTouch = function(self)
+            local anchor = self._zen_arrange_row_frame
+                and self._zen_arrange_row_frame.dimen
+            TruncatedTextMessage.show(display_text, anchor)
+            return true
+        end
+    end
     table.insert(row_items, VerticalGroup:new{
         align = "left",
-        TextWidget:new{
-            text = ArrangeState.stripSubmenuCaret(item.text),
-            max_width = text_max_width,
-            face = face,
-            fgcolor = item.dim and Blitbuffer.COLOR_DARK_GRAY or nil,
-        },
+        text_widget,
         row.show_parent.underscore_checked_item and item_checked and LineWidget:new{
             dimen = Geom:new{ w = text_max_width, h = Size.line.thick },
             background = Blitbuffer.COLOR_DARK_GRAY,
@@ -855,6 +867,18 @@ local function refresh_after_callbacks(items, refresh, menu_proxy, callback_comp
             item._zen_arrange_orig_callback = orig_callback
             item._zen_arrange_refresh_proxy = menu_proxy
             item._zen_arrange_refresh_wrapped = true
+        end
+        if type(item.hold_callback) == "function"
+                and (not item._zen_arrange_hold_wrapped
+                    or item._zen_arrange_hold_proxy ~= menu_proxy) then
+            local orig_hold_callback = item._zen_arrange_orig_hold_callback
+                or item.hold_callback
+            item.hold_callback = function(_item, callback_refresh, ...)
+                return orig_hold_callback(menu_proxy, callback_refresh, ...)
+            end
+            item._zen_arrange_orig_hold_callback = orig_hold_callback
+            item._zen_arrange_hold_proxy = menu_proxy
+            item._zen_arrange_hold_wrapped = true
         end
         refresh_after_callbacks(item.sub_item_table, refresh, menu_proxy, callback_complete)
     end
@@ -1572,8 +1596,8 @@ install_submenu_tap_handlers = function(sort_widget)
         if item and sort_widget._zen_menu_mode
                 and not child._zen_arrange_menu_hold_patched then
             child._zen_arrange_menu_hold_patched = true
-            child.onHoldTouch = function()
-                return true
+            if not child._zen_settings_text_truncated then
+                child.onHoldTouch = function() return true end
             end
         end
         if item and sort_widget._zen_menu_mode
@@ -1613,7 +1637,9 @@ install_root_tap_handlers = function(sort_widget)
         local item = type(child) == "table" and child.item or nil
         if item and not child._zen_arrange_root_hold_patched then
             child._zen_arrange_root_hold_patched = true
-            child.onHoldTouch = function() return true end
+            if not child._zen_settings_text_truncated then
+                child.onHoldTouch = function() return true end
+            end
         end
         if item and not child._zen_arrange_root_tap_patched then
             child._zen_arrange_root_tap_patched = true

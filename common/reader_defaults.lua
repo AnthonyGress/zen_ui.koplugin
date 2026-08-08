@@ -1,4 +1,5 @@
 local plugin_root = require("common/plugin_root") or ""
+local ReaderStatusBar = require("common/reader_status_bar")
 
 local M = {}
 
@@ -148,9 +149,6 @@ local function apply_to_active_reader(preset)
         typeset.sync_t_b_page_margins = true
         typeset:onSetPageMargins(typeset.unscaled_margins)
     end
-    if reader.rolling and type(reader.rolling.onSetStatusLine) == "function" then
-        reader.rolling:onSetStatusLine(CRE_DEFAULTS.copt_status_line)
-    end
     if type(reader.saveSettings) == "function" then reader:saveSettings() end
 end
 
@@ -160,7 +158,7 @@ function M.apply(settings, config)
     for key, value in pairs(CRE_DEFAULTS) do
         settings:saveSetting(key, copy_value(value))
     end
-    settings:saveSetting("alt_status_bar", false)
+    ReaderStatusBar.disableKoreaderAltStatusBar(settings)
 
     local preset = copy_value(require("modules/reader/patches/reader_footer_presets")[1])
     preset.footer.text_font_face = STATUS_FONT

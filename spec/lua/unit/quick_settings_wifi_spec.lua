@@ -150,10 +150,12 @@ describe("quick settings Wi-Fi", function()
 
         NetworkMgr = {
             wifi_on = false,
+            connected = false,
             restore_calls = 0,
             connectivity_calls = 0,
             stock_calls = 0,
             isWifiOn = function(self) return self.wifi_on end,
+            isConnected = function(self) return self.connected end,
             restoreWifiAsync = function(self) self.restore_calls = self.restore_calls + 1 end,
             scheduleConnectivityCheck = function(self, callback)
                 self.connectivity_calls = self.connectivity_calls + 1
@@ -215,11 +217,20 @@ describe("quick settings Wi-Fi", function()
         assert.are.equal(1, NetworkMgr.connectivity_calls)
         assert.are.equal(0, NetworkMgr.stock_calls)
         assert.is_true(NetworkMgr.pending_connection)
+        assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.isDimmed("wifi"))
+        assert.is_false(_G.__ZEN_UI_QUICK_SETTINGS.isDisabled("wifi"))
+        assert.is_false(_G.__ZEN_UI_QUICK_SETTINGS.isActive("wifi"))
         assert.are.equal("NetworkConnecting", UIManager.events[1].name)
         assert.are.equal(1, #UIManager.scheduled)
-
-        NetworkMgr.connectivity_callback()
         assert.are.equal(1, updates)
+
+        NetworkMgr.wifi_on = true
+        NetworkMgr.connected = true
+        NetworkMgr.connectivity_callback()
+        assert.is_false(_G.__ZEN_UI_QUICK_SETTINGS.isDimmed("wifi"))
+        assert.is_false(_G.__ZEN_UI_QUICK_SETTINGS.isDisabled("wifi"))
+        assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.isActive("wifi"))
+        assert.are.equal(2, updates)
     end)
 
     it("keeps KOReader's normal Wi-Fi action as the fallback", function()

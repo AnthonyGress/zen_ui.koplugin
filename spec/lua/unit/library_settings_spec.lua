@@ -13,6 +13,7 @@ describe("library settings", function()
         "modules/settings/zen_settings_utils",
         "apps/filemanager/filemanager",
         "ui/widget/confirmbox",
+        "ui/widget/infomessage",
     }
 
     before_each(function()
@@ -231,5 +232,49 @@ describe("library settings", function()
         assert.are.equal(require("config/defaults").library_font.font_face, config.library_font.font_face)
         assert.are.equal(18, config.library_font.font_size)
         assert.are.equal(1, saves)
+    end)
+
+    it("shows the selected Library font path on hold without resetting it", function()
+        local message
+        local saves = 0
+        package.loaded["ui/uimanager"].show = function(_self, widget)
+            message = widget
+        end
+        ZenSpec.replace("ui/widget/infomessage", {
+            new = function(_self, options) return options end,
+        })
+
+        local font_path = "/fonts/Custom-Regular.ttf"
+        local config = {
+            browser_hide_up_folder = {},
+            features = {},
+            library_font = { font_face = font_path, font_size = 24 },
+        }
+        local items = require("modules/settings/sections/library_settings").build({
+            config = config,
+            plugin = { saveConfig = function() saves = saves + 1 end },
+            save_and_apply = function() end,
+        })
+
+        local font_item
+        for _i, item in ipairs(items) do
+            if type(item.sub_item_table) == "table" then
+                for _j, sub_item in ipairs(item.sub_item_table) do
+                    if sub_item.text == "Reset font" then
+                        for _k, sibling in ipairs(item.sub_item_table) do
+                            if sibling.hold_callback then font_item = sibling end
+                        end
+                        break
+                    end
+                end
+            end
+        end
+        assert.is_not_nil(font_item)
+        font_item.hold_callback()
+
+        assert.are.equal(font_path, message.text)
+        assert.is_false(message.show_icon)
+        assert.are.equal(font_path, config.library_font.font_face)
+        assert.are.equal(0, saves)
     end)
 end)

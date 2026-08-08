@@ -9,6 +9,7 @@ describe("Reader defaults", function()
             "apps/reader/readerui",
             "common/plugin_root",
             "common/reader_defaults",
+            "common/reader_status_bar",
             "config/preset_store",
             "device",
             "document/credocument",
@@ -41,6 +42,7 @@ describe("Reader defaults", function()
             "apps/reader/readerui",
             "common/plugin_root",
             "common/reader_defaults",
+            "common/reader_status_bar",
             "config/preset_store",
             "device",
             "document/credocument",
@@ -171,6 +173,10 @@ describe("Reader defaults", function()
                     end,
                 },
             },
+            handleEvent = function(_self, event)
+                assert.are.equal("onSetStatusLine", event.handler)
+                document_calls.status_line = event.args[1]
+            end,
             saveSettings = function() saved = true end,
         }
         ZenSpec.replace("apps/reader/readerui", { instance = reader })
@@ -201,6 +207,8 @@ describe("Reader defaults", function()
         assert.are.same({30, 30, 30, 30}, document_calls.page_margins)
         assert.are.same({30, 30}, document.configurable.h_page_margins)
         assert.are.equal(1, document.configurable.sync_t_b_page_margins)
+        assert.are.equal(1, document.configurable.status_line)
+        assert.are.equal(1, document_calls.status_line)
         assert.is_true(saved)
     end)
 

@@ -226,12 +226,11 @@ function M.build(ctx)
                         end,
                     })
                 end,
-                hold_callback = function(touchmenu_instance)
+                hold_callback = function()
                     local cfg = ensure_library_font_cfg(config)
-                    if cfg.font_face ~= DEFAULT_LIBRARY_FONT then
-                        cfg.font_face = DEFAULT_LIBRARY_FONT
-                        save_library_font(config, plugin, touchmenu_instance, true)
-                    end
+                    local font_file = cfg.font_face == "default" and DEFAULT_LIBRARY_FONT or cfg.font_face
+                    local InfoMessage = require("ui/widget/infomessage")
+                    UIManager:show(InfoMessage:new{ text = font_file, show_icon = false })
                 end,
             },
             {

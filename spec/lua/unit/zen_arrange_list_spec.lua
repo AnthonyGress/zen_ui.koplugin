@@ -31,6 +31,7 @@ describe("Zen arrange list settings resume", function()
         "ui/widget/verticalgroup",
         "gettext",
         "common/ui/icon_menu_item",
+        "common/ui/truncated_text_message",
         "common/ui/zen_settings_titlebar",
         "modules/global/patches/menu_top_swipe",
         "common/ui/zen_toggle",
@@ -122,6 +123,7 @@ describe("Zen arrange list settings resume", function()
         ZenSpec.replace("ui/widget/verticalgroup", {})
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("common/ui/icon_menu_item", {})
+        ZenSpec.replace("common/ui/truncated_text_message", { show = function() end })
         ZenSpec.replace("common/ui/zen_settings_titlebar", {})
         ZenSpec.replace("modules/global/patches/menu_top_swipe", {
             getTapHeight = function() return 0 end,
@@ -204,6 +206,27 @@ describe("Zen arrange list settings resume", function()
         assert.are.equal(inherited, shown_widgets[1]._zen_settings_resume)
         assert.are.equal(inherited,
             shown_widgets[1]._zen_menu_proxy._zen_settings_resume)
+    end)
+
+    it("passes the menu proxy to SortWidget hold callbacks", function()
+        local callback_host
+        local item = {
+            text = "General",
+            hold_callback = function(menu)
+                callback_host = menu
+                menu:updateItems()
+            end,
+        }
+
+        ArrangeList.show{
+            allow_arrange = false,
+            item_table = { item },
+        }
+        local picker = shown_widgets[1]
+
+        item:hold_callback(function() end)
+
+        assert.are.equal(picker._zen_menu_proxy, callback_host)
     end)
 
     it("restores a callback-backed settings leaf", function()

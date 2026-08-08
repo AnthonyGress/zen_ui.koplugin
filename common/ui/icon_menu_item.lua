@@ -280,6 +280,7 @@ local function rebuild_settings_menu_item(row)
         padding = has_breadcrumb and 0 or nil,
     }
     row.text_truncated = text_widget:isTruncated()
+    item._zen_settings_text_truncated = row.text_truncated
     row._zen_settings_style = {
         row_height = row.dimen.h,
         font_size = face.orig_size,

@@ -841,6 +841,20 @@ local function migrate_home_strip_config()
     if type(HomePresets.normalizeStripConfig) ~= "function" then return false end
     local store = PresetStore.loadStore("home")
     local changed = HomePresets.normalizeStripConfig(store.settings)
+    local active_preset = type(store.settings) == "table"
+        and store.settings.active_preset or nil
+    if type(active_preset) ~= "string" or active_preset == "" then
+        active_preset = store.active_preset
+    end
+    local strip = type(store.settings) == "table"
+        and type(store.settings.modules) == "table"
+        and store.settings.modules.strip or nil
+    if active_preset == HomePresets.BOOKSHELF_PRESET_NAME and type(strip) == "table"
+            and type(strip.controls) == "table"
+            and strip.controls.enabled ~= true then
+        strip.controls.enabled = true
+        changed = true
+    end
     for _name, preset in pairs(store.presets) do
         local page = type(preset) == "table" and (preset.home_page or preset)
         if HomePresets.normalizeStripConfig(page) then changed = true end

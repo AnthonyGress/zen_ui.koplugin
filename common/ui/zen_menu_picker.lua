@@ -14,6 +14,7 @@ local function showMenuPicker(opts)
     local TW         = require("ui/widget/textwidget")
     local pager      = require("common/ui/zen_pager")
     local TitleStyle = require("common/ui/zen_title_style")
+    local TruncatedTextMessage = require("common/ui/truncated_text_message")
 
     opts = opts or {}
     local items = type(opts.items) == "table" and opts.items or {}
@@ -75,6 +76,21 @@ local function showMenuPicker(opts)
     local closed = false
     local selected_idx = #items > 0 and 1 or nil
     local back_focused = #items == 0
+    local row_truncated = {}
+
+    local function itemText(item)
+        return type(item.text) == "string" and item.text or tostring(item.text or "")
+    end
+
+    local function rowAt(gx, gy)
+        if gx < list_x or gx >= list_x + content_w
+                or gy < list_y or gy >= list_y + page_h then
+            return
+        end
+        local row_i = math.floor((gy - list_y) / row_h)
+        local idx = (cur_page - 1) * rows_per_page + row_i + 1
+        if items[idx] then return idx, row_i end
+    end
 
     local function closeDialog()
         if closed then return end
@@ -208,12 +224,8 @@ local function showMenuPicker(opts)
                         return true
                     end
                     if handlePageNumberTap(gx, gy) then return true end
-                    if gx >= list_x and gx < list_x + content_w
-                       and gy >= list_y and gy < list_y + page_h then
-                        local row_i = math.floor((gy - list_y) / row_h)
-                        local idx = (cur_page - 1) * rows_per_page + row_i + 1
-                        selectItem(items[idx])
-                    end
+                    local idx = rowAt(gx, gy)
+                    if idx then selectItem(items[idx]) end
                     return true
                 end,
             },
@@ -227,7 +239,16 @@ local function showMenuPicker(opts)
                             and gy >= 0 and gy < TitleStyle.HEADER_CONTENT_HEIGHT then
                         return backToSettingsRoot()
                     end
-                    return handlePageNumberHold(gx, gy)
+                    if handlePageNumberHold(gx, gy) then return true end
+                    local idx, row_i = rowAt(gx, gy)
+                    if idx and row_truncated[idx] then
+                        TruncatedTextMessage.show(itemText(items[idx]), {
+                            y = (dialog.dimen.y or 0) + list_y + row_i * row_h,
+                            h = row_h,
+                        })
+                        return true
+                    end
+                    return false
                 end,
             },
             {
@@ -298,7 +319,7 @@ local function showMenuPicker(opts)
             local row_i = idx - first
             local row_y = list_y + row_i * row_h
             local item = items[idx]
-            local text = type(item.text) == "string" and item.text or tostring(item.text or "")
+            local text = itemText(item)
             local text_indent = math.max(0, tonumber(item.indent_level) or 0) * indent_step
             local selected = not back_focused
                 and (not Device:isTouchDevice() or Device:hasDPad() or Device:hasKeyboard())
@@ -314,6 +335,7 @@ local function showMenuPicker(opts)
                 padding   = 0,
                 fgcolor   = selected and Blitbuffer.COLOR_WHITE or nil,
             }
+            row_truncated[idx] = tw:isTruncated()
             local sz = tw:getSize()
             tw:paintTo(bb, list_x + row_pad + text_indent,
                 row_y + math.floor((row_h - sz.h) / 2))

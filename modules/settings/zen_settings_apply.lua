@@ -277,6 +277,9 @@ end
 
 function M.apply_feature_toggle(plugin, feature, enabled)
     active_plugin = plugin or active_plugin
+    if feature == "reader_top_status_bar" and enabled then
+        require("common/reader_status_bar").disableKoreaderAltStatusBar()
+    end
     if RESTART_REQUIRED[feature] then
         prompt_restart()
         return

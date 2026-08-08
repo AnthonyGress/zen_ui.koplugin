@@ -25,8 +25,10 @@ describe("config manager folder-path migration", function()
             migrateStores = function() return false end,
         })
         ZenSpec.replace("modules/filebrowser/patches/home/home_presets", {
+            BOOKSHELF_PRESET_NAME = "Bookshelf",
             applyMosaicTitlesToStrips = function() end,
             defaultHomePage = function() return { quotes = { font_size = 12 } } end,
+            normalizeStripConfig = function() return false end,
         })
         ZenSpec.replace("modules/filebrowser/patches/home/home_quotes", {
             ensureFile = function() return false end,
@@ -86,6 +88,21 @@ describe("config manager folder-path migration", function()
         assert.is_true(stores.home.presets.missing.quotes.automatic_font_size)
         assert.are.equal(14, stores.home.presets.missing.quotes.max_font_size)
         assert.are.equal(18, stores.home.presets.explicit.quotes.font_size)
+    end)
+
+    it("enables strip controls for an existing active Bookshelf preset", function()
+        stores.home = {
+            active_preset = "Bookshelf",
+            settings = {
+                active_preset = "Bookshelf",
+                modules = { strip = { controls = { enabled = false } } },
+            },
+            presets = {},
+        }
+
+        Manager.load()
+
+        assert.is_true(stores.home.settings.modules.strip.controls.enabled)
     end)
 
     it("removes obsolete folder-cover lifecycle settings", function()
