@@ -12,6 +12,7 @@ describe("library settings", function()
         "modules/settings/zen_settings_apply",
         "modules/settings/zen_settings_utils",
         "apps/filemanager/filemanager",
+        "ui/widget/confirmbox",
     }
 
     before_each(function()
@@ -187,5 +188,48 @@ describe("library settings", function()
 
         scheduled.callback()
         assert.are.equal(1, rebuilds)
+    end)
+
+    it("resets the Library font to bundled Hyperreadable", function()
+        local confirmation
+        local saves = 0
+        package.loaded["ui/uimanager"].show = function(_self, widget)
+            confirmation = widget
+        end
+        package.loaded["ui/uimanager"].scheduleIn = function() end
+        package.loaded["modules/settings/zen_settings_apply"].reinit_filemanager = function() end
+        package.loaded["modules/settings/zen_settings_apply"].prompt_restart = function() end
+        ZenSpec.replace("ui/widget/confirmbox", {
+            new = function(_self, options) return options end,
+        })
+        ZenSpec.replace("apps/filemanager/filemanager", {})
+
+        local config = {
+            browser_hide_up_folder = {},
+            features = {},
+            library_font = { font_face = "/fonts/Custom-Regular.ttf", font_size = 24 },
+        }
+        local items = require("modules/settings/sections/library_settings").build({
+            config = config,
+            plugin = { saveConfig = function() saves = saves + 1 end },
+            save_and_apply = function() end,
+        })
+
+        local function find_item(item_table, text)
+            for _i, item in ipairs(item_table) do
+                if item.text == text then return item end
+                if type(item.sub_item_table) == "table" then
+                    local found = find_item(item.sub_item_table, text)
+                    if found then return found end
+                end
+            end
+        end
+
+        find_item(items, "Reset font").callback()
+        confirmation.ok_callback()
+
+        assert.are.equal(require("config/defaults").library_font.font_face, config.library_font.font_face)
+        assert.are.equal(18, config.library_font.font_size)
+        assert.are.equal(1, saves)
     end)
 end)

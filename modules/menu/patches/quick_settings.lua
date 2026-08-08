@@ -1305,6 +1305,7 @@ local function apply_quick_settings()
                 local btn_widget, btn_circle = makeActionButton(def.icon, label_text, active and not disabled, disabled)
 
                 table.insert(refs.buttons, {
+                    id = entry.id,
                     widget = btn_circle,
                     callback = not disabled and function()
                         def.callback(touch_menu)

@@ -1,3 +1,6 @@
+local plugin_root = require("common/plugin_root") or ""
+local library_font_default = plugin_root .. "/fonts/hyperreadable/Hyperreadable-Regular.ttf"
+
 local defaults = {
     _meta = {
         schema_version = 1,
@@ -6,10 +9,12 @@ local defaults = {
         footer_backup_created = false,
         quickstart_shown_for_version = false,
         quickstart_completed = false,
+        quickstart_menu_tour_pending = false,
         sort_defaults_applied = false,
         bim_fbc_migrated = false,
         reader_footer_hide_cbz_default_migrated = false,
         context_menu_allow_delete_default_migrated = false,
+        library_font_hyperreadable_default_migrated = false,
         tbr_collection_migrated = false,
     },
     updater = {
@@ -208,7 +213,7 @@ local defaults = {
         show_author = false,
     },
     library_font = {
-        font_face = "default",
+        font_face = library_font_default,
         font_size = 18,
     },
     zen_scroll_bar = {

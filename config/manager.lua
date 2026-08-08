@@ -927,6 +927,18 @@ local function migrate_changed_defaults(cfg)
         changed = true
     end
 
+    if cfg._meta.library_font_hyperreadable_default_migrated ~= true then
+        if type(cfg.library_font) ~= "table" then
+            cfg.library_font = {}
+        end
+        local font_face = cfg.library_font.font_face
+        if type(font_face) ~= "string" or font_face == "" or font_face == "default" then
+            cfg.library_font.font_face = defaults.library_font.font_face
+        end
+        cfg._meta.library_font_hyperreadable_default_migrated = true
+        changed = true
+    end
+
     -- One-time seed of home strip book titles from the mosaic "Show title below
     -- cover" setting. After this runs once, strip titles are user-owned and the
     -- mosaic setting no longer overrides them.

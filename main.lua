@@ -302,6 +302,17 @@ function ZenUI:init()
     pcall(function() require("common/tbr_index").ensureCollection() end)
     logger.perf("Core initialization completed", (os.clock() - started_at) * 1000)
 
+    local function schedule_quickstart_menu_tour(delay)
+        require("ui/uimanager"):scheduleIn(delay, function()
+            local ok, tour = pcall(require, "common/quickstart/menu_tour")
+            if ok then
+                tour.start(self)
+            else
+                logger.warn("failed to load quickstart menu tour:", tour)
+            end
+        end)
+    end
+
     -- -----------------------------------------------------------------------
     -- Quickstart / onboarding screen
     -- -----------------------------------------------------------------------
@@ -385,6 +396,7 @@ function ZenUI:init()
                     pages    = pages_to_show,
                     on_close = function()
                         self.config._meta.quickstart_completed = true
+                        self.config._meta.quickstart_menu_tour_pending = true
                         self:saveConfig()
                         -- scheduleIn(0) lets UIManager finish the close-frame before
                         -- we force a full repaint and navbar reinject.
@@ -424,6 +436,7 @@ function ZenUI:init()
                                     fm3.file_chooser:changeToPath(new_home)
                                 end
                             end
+                            schedule_quickstart_menu_tour(0.35)
                         end)
                     end,
                 })
@@ -468,6 +481,11 @@ function ZenUI:init()
                     end,
                 })
             end)
+        end
+
+        if shown_ver ~= false and not is_update
+                and self.config._meta.quickstart_menu_tour_pending == true then
+            schedule_quickstart_menu_tour(0.8)
         end
     end
 

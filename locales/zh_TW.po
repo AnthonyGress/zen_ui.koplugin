@@ -2801,3 +2801,15 @@ msgstr "首頁間距已更新。已保留您儲存的小工具順序與選擇，
 
 msgid "%1, %2 %3"
 msgstr "%2%3日，%1"
+
+msgid "Zen Mode is enabled. KOReader menus are hidden."
+msgstr "禪模式已啟用。KOReader 選單已隱藏。"
+
+msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
+msgstr "使用此圖示關閉禪模式，即可調整 Zen 設定中沒有的 KOReader 設定。"
+
+msgid "This does not disable Zen UI—it only shows or hides KOReader’s menus."
+msgstr "這不會停用 Zen UI，只會顯示或隱藏 KOReader 選單。"
+
+msgid "This is Zen Settings. Zen UI and common KOReader settings live here."
+msgstr "這裡是 Zen 設定，其中包含 Zen UI 設定和常用的 KOReader 設定。"

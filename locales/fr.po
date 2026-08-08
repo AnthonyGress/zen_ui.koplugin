@@ -2801,3 +2801,15 @@ msgstr "L’espacement de l’accueil a été mis à jour. L’ordre et la séle
 
 msgid "%1, %2 %3"
 msgstr "%1 %3 %2"
+
+msgid "Zen Mode is enabled. KOReader menus are hidden."
+msgstr "Le mode Zen est activé. Les menus de KOReader sont masqués."
+
+msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
+msgstr "Désactivez le mode Zen à l’aide de cette icône pour modifier les paramètres de KOReader qui ne sont pas disponibles dans les paramètres Zen."
+
+msgid "This does not disable Zen UI—it only shows or hides KOReader’s menus."
+msgstr "Cela ne désactive pas Zen UI : seuls les menus de KOReader sont affichés ou masqués."
+
+msgid "This is Zen Settings. Zen UI and common KOReader settings live here."
+msgstr "Voici les paramètres Zen. Les paramètres de Zen UI et les paramètres courants de KOReader s’y trouvent."
