@@ -37,6 +37,29 @@ describe("Quickstart menu coachmark", function()
         return values
     end
 
+    function InputContainer:onKeyPress(key)
+        for name, sequences in pairs(self.key_events) do
+            for _i, sequence in ipairs(sequences) do
+                if key:match(sequence) then
+                    return self["on" .. name](self)
+                end
+            end
+        end
+    end
+
+    local function key(name)
+        return {
+            match = function(_self, sequence)
+                local group = sequence[1]
+                if type(group) ~= "table" then return group == name end
+                for _i, member in ipairs(group) do
+                    if member == name then return true end
+                end
+                return false
+            end,
+        }
+    end
+
     local function intersects(a, b)
         return a.x < b.x + b.w and b.x < a.x + a.w
             and a.y < b.y + b.h and b.y < a.y + a.h
@@ -89,7 +112,14 @@ describe("Quickstart menu coachmark", function()
                 getHeight = function() return 800 end,
                 scaleBySize = function(_self, value) return value end,
             },
-            input = { group = { Back = "Back" } },
+            input = {
+                group = {
+                    Any = {
+                        "A", "Up", "Down", "Left", "Right", "Press",
+                        "Back", "Home", "LPgBack", "RPgBack", "LPgFwd", "RPgFwd",
+                    },
+                },
+            },
             hasKeys = function() return true end,
         })
         ZenSpec.replace("ui/font", {
@@ -176,6 +206,18 @@ describe("Quickstart menu coachmark", function()
 
         coachmark:onCloseWidget()
         assert.are.equal(1, completions)
+    end)
+
+    it("advances on any hardware key, including page-turn keys", function()
+        local keys = {
+            "A", "Up", "Down", "Left", "Right", "Press",
+            "Back", "Home", "LPgBack", "RPgBack", "LPgFwd", "RPgFwd",
+        }
+        for _i, name in ipairs(keys) do
+            local coachmark = new_coachmark()
+            assert.is_true(coachmark:onKeyPress(key(name)))
+            assert.are.equal(2, coachmark._step)
+        end
     end)
 
     it("anchors each callout close to its target while keeping it on-screen", function()

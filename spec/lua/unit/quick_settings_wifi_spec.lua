@@ -154,8 +154,10 @@ describe("quick settings Wi-Fi", function()
             restore_calls = 0,
             connectivity_calls = 0,
             stock_calls = 0,
+            current_ssid = nil,
             isWifiOn = function(self) return self.wifi_on end,
             isConnected = function(self) return self.connected end,
+            getCurrentNetwork = function(self) return { ssid = self.current_ssid } end,
             restoreWifiAsync = function(self) self.restore_calls = self.restore_calls + 1 end,
             scheduleConnectivityCheck = function(self, callback)
                 self.connectivity_calls = self.connectivity_calls + 1
@@ -231,6 +233,11 @@ describe("quick settings Wi-Fi", function()
         assert.is_false(_G.__ZEN_UI_QUICK_SETTINGS.isDisabled("wifi"))
         assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.isActive("wifi"))
         assert.are.equal(2, updates)
+        assert.are.equal(2, #UIManager.scheduled)
+
+        NetworkMgr.current_ssid = "Home"
+        UIManager.scheduled[2].callback()
+        assert.are.equal(3, updates)
     end)
 
     it("keeps KOReader's normal Wi-Fi action as the fallback", function()

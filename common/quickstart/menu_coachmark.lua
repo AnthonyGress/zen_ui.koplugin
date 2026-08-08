@@ -40,8 +40,7 @@ function MenuCoachmark:init()
     }
     if Device:hasKeys() then
         self.key_events.Advance = {
-            { Device.input.group.Back },
-            { "Home" },
+            { Device.input.group.Any },
         }
     end
     self:_buildCallout()

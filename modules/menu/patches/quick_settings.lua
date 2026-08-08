@@ -479,6 +479,9 @@ local function apply_quick_settings()
         NetworkMgr:restoreWifiAsync()
         NetworkMgr:scheduleConnectivityCheck(function()
             refreshQuickSettings(touch_menu)
+            UIManager:scheduleIn(1, function()
+                refreshQuickSettings(touch_menu)
+            end)
         end)
         UIManager:scheduleIn(1, function()
             refreshQuickSettings(touch_menu)
@@ -513,7 +516,7 @@ local function apply_quick_settings()
             label_func = function()
                 if isWifiConnected() then
                     local net = NetworkMgr.getCurrentNetwork and NetworkMgr:getCurrentNetwork()
-                    if net and net.ssid then
+                    if net and type(net.ssid) == "string" and net.ssid ~= "" then
                         return net.ssid
                     end
                 end
@@ -1232,7 +1235,7 @@ local function apply_quick_settings()
 
         local normal_border = Screen:scaleBySize(2)
 
-        local function makeActionButton(icon_name, label_text, active, dim)
+        local function makeActionButton(icon_name, label_text, active, disabled, dimmed)
             local icon_path = type(icon_name) == "string" and icon_name:sub(1, 1) == "/"
                 and icon_name or (_icons_dir and utils.resolveIcon(_icons_dir, icon_name))
             local icon = IconWidget:new{
@@ -1257,8 +1260,9 @@ local function apply_quick_settings()
             end
             local border = active and 0 or normal_border
             local bg = active and Blitbuffer.COLOR_BLACK
-                or dim  and Blitbuffer.COLOR_LIGHT_GRAY
-                or       Blitbuffer.COLOR_WHITE
+                or disabled and Blitbuffer.COLOR_LIGHT_GRAY
+                or dimmed and Blitbuffer.COLOR_GRAY
+                or Blitbuffer.COLOR_WHITE
             local circle = FrameContainer:new{
                 width      = action_btn_size,
                 height     = action_btn_size,
@@ -1319,7 +1323,7 @@ local function apply_quick_settings()
                 local dimmed   = def.dim_func      and def.dim_func()      or false
                 -- Disabled takes priority: don't show active styling on a greyed-out button.
                 local btn_widget, btn_circle = makeActionButton(
-                    def.icon, label_text, active and not disabled, disabled or dimmed
+                    def.icon, label_text, active and not disabled, disabled, dimmed
                 )
 
                 table.insert(refs.buttons, {
