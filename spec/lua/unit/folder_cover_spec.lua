@@ -126,8 +126,9 @@ describe("shared folder cover provider", function()
         assert.is_false(FolderCover.isSupported({ text = "Unrelated" }, {}))
     end)
 
-    it("updates a folder label mask when rounded corners change", function()
+    it("keeps adaptive folder labels at a fixed overlay height", function()
         local created = {}
+        local label_font_sizes = {}
         local next_mask_id = 0
         local function widget_class(kind)
             return {
@@ -182,8 +183,14 @@ describe("shared folder cover provider", function()
         })
         ZenSpec.replace("ui/widget/textboxwidget", {
             new = function(_self, values)
-                values.vertical_string_list = { values.text }
-                values.getLineHeight = function() return 10 end
+                values.vertical_string_list = values.text == "A longer folder label"
+                    and (values.face.size > 14
+                        and { "A", "longer", "folder" } or { "A", "longer" })
+                    or { values.text }
+                if values.height then
+                    label_font_sizes[values.text] = values.face.size
+                end
+                values.getLineHeight = function() return values.face.size end
                 values.getSize = function() return { w = values.width, h = values.height or 10 } end
                 values.free = function() end
                 return values
@@ -211,14 +218,25 @@ describe("shared folder cover provider", function()
             title = "Fantasy",
             config = config,
         })
+        FolderCover.overlayName({}, {
+            width = 80,
+            height = 120,
+            cover_dimen = { w = 80, h = 120 },
+            title = "A longer folder label",
+            config = config,
+        })
+        assert.are.equal(17, label_font_sizes.Fantasy)
+        assert.are.equal(14, label_font_sizes["A longer folder label"])
 
-        local label_strip
+        local label_strips = {}
         for _i, widget in ipairs(created) do
             if widget.kind == "label_strip" then
-                label_strip = widget
-                break
+                label_strips[#label_strips + 1] = widget
             end
         end
+        assert.are.equal(2, #label_strips)
+        assert.are.equal(label_strips[1].dimen.h, label_strips[2].dimen.h)
+        local label_strip = label_strips[1]
         assert.is_table(label_strip)
         local painted_masks = {}
         local target = {

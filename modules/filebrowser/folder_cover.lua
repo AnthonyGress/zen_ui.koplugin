@@ -756,10 +756,10 @@ function M.overlayName(cover, options)
 
     local max_font_size = ui.library_font.getBaseSize() + 1
     local min_font_size = ui.library_font.scaleValue(14)
-    local function make_label(font_size, height)
+    local function make_label(size, height)
         return ui.TextBoxWidget:new{
             text = text,
-            face = ui.library_font.getFace(font_size),
+            face = ui.library_font.getFace(size),
             width = label_w,
             height = height,
             height_adjust = height ~= nil,
@@ -770,28 +770,20 @@ function M.overlayName(cover, options)
         }
     end
 
+    local height_probe = make_label(max_font_size)
+    local two_line_h = math.min(available_h, 2 * height_probe:getLineHeight())
+    height_probe:free()
+
     local font_size = max_font_size
-    local fits_two_lines = false
-    local line_h
     while font_size >= min_font_size do
         local probe = make_label(font_size)
         local line_count = #probe.vertical_string_list
-        line_h = probe:getLineHeight()
+        local line_h = probe:getLineHeight()
         probe:free()
-        if line_count <= 2 and line_count * line_h <= available_h then
-            fits_two_lines = true
-            break
-        end
+        if line_count <= 2 and line_count * line_h <= two_line_h then break end
         font_size = font_size - 1
     end
-
-    if not fits_two_lines then
-        font_size = min_font_size
-        local probe = make_label(font_size)
-        line_h = probe:getLineHeight()
-        probe:free()
-    end
-    local two_line_h = math.min(available_h, 2 * line_h)
+    if font_size < min_font_size then font_size = min_font_size end
     local label = transparent_folder_label(ui, make_label(font_size, two_line_h))
     local label_dimen = ui.Geom:new{
         w = label_w + 2 * (label_pad_h + CoverUtils.BORDER_SIZE),
