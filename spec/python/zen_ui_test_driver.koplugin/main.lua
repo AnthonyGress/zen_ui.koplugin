@@ -503,6 +503,11 @@ local function navbar_state()
     local stack = UIManager._window_stack
     local top = stack and stack[#stack]
     local widget = top and top.widget
+    local stack_names = {}
+    for _i, entry in ipairs(stack or {}) do
+        local name = entry.widget and entry.widget.name
+        if name then stack_names[#stack_names + 1] = name end
+    end
     local visible_texts = {}
     if widget then collect_texts(widget, visible_texts, {}, 0) end
     return {
@@ -511,31 +516,23 @@ local function navbar_state()
         display_mode_type = chooser and (chooser.display_mode_type or chooser.display_mode) or nil,
         top_name = widget and widget.name or nil,
         top_tab_id = widget and widget._zen_tab_id or nil,
+        stack_names = stack_names,
         visible_texts = visible_texts,
     }
 end
 
-local function find_text_widget(widget, text, seen, depth)
-    if type(widget) ~= "table" or seen[widget] or depth > 64 then return end
-    seen[widget] = true
-    if widget.text == text then return widget end
-    for _i, child in ipairs(widget) do
-        local found = find_text_widget(child, text, seen, depth + 1)
-        if found then return found end
-    end
-end
-
-local function tap_navbar_tab(label, y_ratio)
+local function tap_navbar_tab(label, tab_id, y_ratio)
     local stack = UIManager._window_stack
-    local top = stack and stack[#stack] and stack[#stack].widget
-    if not top then return false, "top widget unavailable" end
+    if not (stack and stack[#stack] and stack[#stack].widget) then
+        return false, "top widget unavailable"
+    end
 
     local navbar
+    local event_target
     local function find_navbar(widget, seen, depth)
         if type(widget) ~= "table" or seen[widget] or depth > 64 then return end
         seen[widget] = true
-        if type(widget.onTapNavBar) == "function"
-                and find_text_widget(widget, label, {}, 0) then
+        if type(widget.onTapNavBar) == "function" then
             navbar = widget
             return
         end
@@ -544,31 +541,41 @@ local function tap_navbar_tab(label, y_ratio)
             if navbar then return end
         end
     end
-    find_navbar(top, {}, 0)
-    if not navbar then return false, "navbar tab unavailable: " .. tostring(label) end
-
-    local labels = {}
-    collect_texts(navbar, labels, {}, 0)
-    local label_index
-    for i, value in ipairs(labels) do
-        if value == label then
-            label_index = i
+    for index = #stack, 1, -1 do
+        local widget = stack[index].widget
+        find_navbar(widget, {}, 0)
+        if navbar then
+            event_target = widget
             break
         end
     end
+    if not navbar then return false, "navbar tab unavailable: " .. tostring(label) end
+
     local dimen = navbar.dimen
-    if not label_index or not dimen or #labels == 0 then
+    if not tab_id or not dimen then
         return false, "navbar label geometry unavailable"
     end
+    local probe_y = (dimen.y or 0) + math.floor((dimen.h or 1) / 2)
+    local x
+    for sample = 1, 64 do
+        local probe_x = (dimen.x or 0)
+            + math.floor((dimen.w or 1) * (sample - 0.5) / 64)
+        if navbar:getTappedTabId(require("ui/geometry"):new{
+            x = probe_x, y = probe_y, w = 0, h = 0,
+        }) == tab_id then
+            x = probe_x
+            break
+        end
+    end
+    if not x then return false, "navbar tab geometry unavailable: " .. tostring(tab_id) end
     local pos = {
-        x = (dimen.x or 0)
-            + math.floor((dimen.w or 1) * (label_index - 0.5) / #labels),
+        x = x,
         y = y_ratio and math.floor(require("device").screen:getHeight() * y_ratio)
             or (dimen.y or 0) + math.floor((dimen.h or 1) / 2),
         w = 0,
         h = 0,
     }
-    return top:handleEvent(Event:new("Gesture", {
+    return event_target:handleEvent(Event:new("Gesture", {
         ges = "tap",
         pos = require("ui/geometry"):new(pos),
     })) == true
@@ -1784,7 +1791,11 @@ function Driver:handleCommand(command)
         return { ok = open_tab(params.id) == true }
     end
     if kind == "tap_navbar_tab" and type(params.label) == "string" then
-        local ok, err = tap_navbar_tab(params.label, tonumber(params.y_ratio))
+        local ok, err = tap_navbar_tab(
+            params.label,
+            type(params.id) == "string" and params.id or nil,
+            tonumber(params.y_ratio)
+        )
         return { ok = ok == true, error = err }
     end
     if kind == "race_home_to_books" then

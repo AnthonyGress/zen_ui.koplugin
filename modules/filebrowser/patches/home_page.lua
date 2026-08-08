@@ -2893,9 +2893,9 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
                     content_bounds.max_shift = 0
                 elseif content_bounds.min_shift ~= 0
                         or content_bounds.max_shift ~= 0 then
-                    -- Borrow the blank row gaps when internal slack is too small.
-                    content_bounds.min_shift = (content_bounds.min_shift or 0) - row_gap
-                    content_bounds.max_shift = (content_bounds.max_shift or 0) + row_gap
+                    -- Borrow the adjacent blank row gaps when internal slack is too small.
+                    content_bounds.min_shift = (content_bounds.min_shift or 0) - row_gap * 2
+                    content_bounds.max_shift = (content_bounds.max_shift or 0) + row_gap * 2
                 end
                 visual_rows[i] = content_bounds
             end

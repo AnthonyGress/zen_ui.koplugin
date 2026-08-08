@@ -824,11 +824,11 @@ function M.build_strip(ctx, source_key)
             local gap_slots = left_align_partial and math.max(1, row_capacity - 1) or (#items - 1)
             local avg_cover_w = math.floor(covers_w / #items)
             local cover_slots_w = left_align_partial and (avg_cover_w * row_capacity) or covers_w
+            local row_inset = left_align_partial and 0 or padding * 2
             local available_gap = center_short_row
                 and (min_gap * gap_slots)
-                or math.max(min_gap * gap_slots, width - cover_slots_w)
+                or math.max(min_gap * gap_slots, width - row_inset - cover_slots_w)
             gap = math.floor(available_gap / gap_slots)
-            extra_gap_px = left_align_partial and 0 or (available_gap - gap * gap_slots)
         end
 
         local row = HorizontalGroup:new{ align = "center" }

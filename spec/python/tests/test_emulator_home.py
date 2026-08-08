@@ -297,7 +297,7 @@ def test_home_edit_mode_reopens_widget_settings_after_close() -> None:
                     strip = response["arrange"]
                     break
                 time.sleep(0.1)
-            assert strip.get("title") == "Strip widget"
+            assert strip.get("title") == "Book strip"
             assert strip.get("status_visible") is True
             assert driver.command("close_arrange_page")["ok"] is True
 
@@ -311,7 +311,7 @@ def test_home_edit_mode_reopens_widget_settings_after_close() -> None:
                     quotes = response["arrange"]
                     break
                 time.sleep(0.1)
-            assert quotes.get("title") == "Quotes widget"
+            assert quotes.get("title") == "Quotes"
             assert quotes.get("status_visible") is True
             assert quotes.get("row_style") == quotes.get("standard_style")
             assert driver.command("close_arrange_page")["ok"] is True
@@ -435,18 +435,18 @@ def test_navbar_tabs_remain_tappable_with_library_background() -> None:
             driver = ZenDriver(socket_path)
             _wait_for_home(driver)
 
-            for label, tab_id in (
-                ("Library", None),
-                ("Series", "series"),
-                ("Authors", "authors"),
-                ("Stats", "stats"),
-                ("To Be Read", "to_be_read"),
-                ("Collections", None),
-                ("Library", None),
-                ("Series", "series"),
+            for label, tap_id, tab_id in (
+                ("Library", "books", None),
+                ("Series", "series", "series"),
+                ("Authors", "authors", "authors"),
+                ("Stats", "stats", "stats"),
+                ("To Be Read", "to_be_read", "to_be_read"),
+                ("Collections", "collections", None),
+                ("Library", "books", None),
+                ("Series", "series", "series"),
             ):
                 response = driver.command(
-                    "tap_navbar_tab", label=label, y_ratio=1384 / 1440,
+                    "tap_navbar_tab", label=label, id=tap_id, y_ratio=1384 / 1440,
                 )
                 assert response["ok"] is True, response
                 _wait_for_navbar(driver, label, tab_id)

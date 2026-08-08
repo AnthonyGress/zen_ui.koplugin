@@ -415,7 +415,7 @@ describe("home strip widget", function()
         end
         assert.are.equal(1, #outer_frames)
         assert.are.equal(584, outer_frames[1].width)
-        assert.are.equal(8, outer_frames[1].radius)
+        assert.are.equal(4, outer_frames[1].radius)
         assert.are.equal(3, #tab_frames)
         assert.are.same({ 176, 176, 175 }, {
             tab_frames[1].width,
