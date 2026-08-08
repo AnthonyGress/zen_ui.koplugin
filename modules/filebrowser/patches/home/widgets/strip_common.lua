@@ -620,7 +620,7 @@ function M.build_strip(ctx, source_key)
         end
 
     local num_rows = two_rows and 2 or 1
-    local row_gap = two_rows and math.max(2, Screen:scaleBySize(7)) or 0
+    local row_gap = two_rows and math.max(3, Screen:scaleBySize(10)) or 0
     local row_top_pad = math.max(4, Screen:scaleBySize(4))
     local row_bottom_pad = math.max(4, Screen:scaleBySize(4))
     local row_inner_bottom_pad = two_rows and math.max(2, Screen:scaleBySize(4)) or 0
@@ -681,7 +681,8 @@ function M.build_strip(ctx, source_key)
     local hydration_jobs = {}
 
     local function build_group_cover(book, max_cover_w, cover_h)
-        local config = get_zen_config(rawget(_G, "__ZEN_UI_PLUGIN")) or {}
+        local config = type(ctx.zen_config) == "table" and ctx.zen_config
+            or get_zen_config(rawget(_G, "__ZEN_UI_PLUGIN")) or {}
         local features = type(config.features) == "table" and config.features or {}
         local uniform = features.browser_cover_mosaic_uniform == true
         -- Match book-cover bounds; spine lines paint outside this box.

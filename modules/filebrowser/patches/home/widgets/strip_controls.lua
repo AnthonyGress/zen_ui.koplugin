@@ -71,7 +71,16 @@ local function fit_face(labels, width, style, maximum, minimum)
     return get_control_face(style, minimum)
 end
 
-local function control_widget(content, width, height, tap_callback, hold_callback)
+local function hitbox_contains(dimen, pos, padding)
+    if not (dimen and pos) then return false end
+    local left = (dimen.x or 0) - (padding.left or 0)
+    local top = (dimen.y or 0) - (padding.top or 0)
+    local right = (dimen.x or 0) + dimen.w + (padding.right or 0)
+    local bottom = (dimen.y or 0) + dimen.h + (padding.bottom or 0)
+    return pos.x >= left and pos.x < right and pos.y >= top and pos.y < bottom
+end
+
+local function control_widget(content, width, height, tap_callback, hold_callback, hit_padding)
     if not Device:isTouchDevice() then return content end
     local ges_events = {
         TapStripControl = {
@@ -92,7 +101,7 @@ local function control_widget(content, width, height, tap_callback, hold_callbac
         ges_events = ges_events,
     }
     input.onTapStripControl = function(self, _arg, ges)
-        if not (self.dimen and ges and ges.pos and self.dimen:contains(ges.pos)) then
+        if not (ges and hitbox_contains(self.dimen, ges.pos, hit_padding)) then
             return false
         end
         tap_callback()
@@ -100,7 +109,7 @@ local function control_widget(content, width, height, tap_callback, hold_callbac
     end
     if type(hold_callback) == "function" then
         input.onHoldStripControl = function(self, _arg, ges)
-            if not (self.dimen and ges and ges.pos and self.dimen:contains(ges.pos)) then
+            if not (ges and hitbox_contains(self.dimen, ges.pos, hit_padding)) then
                 return false
             end
             return hold_callback() == true
@@ -144,6 +153,8 @@ function M.build(opts)
     local targets = {}
     local radius = opts.rounded == true and Device.screen:scaleBySize(4) or 0
     local side_padding = Device.screen:scaleBySize(4)
+    local vertical_hit_padding = Device.screen:scaleBySize(3)
+    local edge_hit_padding = Device.screen:scaleBySize(4)
     local label_index = 0
 
     for index, entry in ipairs(entries) do
@@ -202,7 +213,12 @@ function M.build(opts)
             return opts.on_hold(entry)
         end or nil
         local widget = control_widget(
-            content, cell_width, inner_height, activate, context)
+            content, cell_width, inner_height, activate, context, {
+                top = vertical_hit_padding,
+                bottom = vertical_hit_padding,
+                left = index == 1 and edge_hit_padding or 0,
+                right = index == #entries and edge_hit_padding or 0,
+            })
         if type(opts.prepare_focus) == "function" then
             local target = {
                 key = "strip-control:" .. tostring(entry.id),

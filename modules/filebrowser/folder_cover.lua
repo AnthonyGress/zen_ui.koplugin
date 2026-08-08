@@ -581,6 +581,7 @@ end
 
 local label_strip_cache = {}
 local label_ui
+local cached_label_strip
 
 local function get_config(config)
     if type(config) == "table" then return config end
@@ -598,6 +599,22 @@ local function get_label_ui()
     local LabelStrip = WidgetContainer:extend{}
 
     function LabelStrip:paintTo(bb, x, y)
+        local config = get_config(self.config)
+        local features = type(config.features) == "table" and config.features or {}
+        local folder = type(config.browser_folder_cover) == "table"
+            and config.browser_folder_cover or {}
+        local label_max_radius = math.floor(
+            (math.min(self.dimen.w, self.dimen.h) - 1) / 2)
+        local radius = features.browser_cover_rounded_corners == true
+            and math.min(self.ui.Screen:scaleBySize(8), self.max_radius,
+                label_max_radius) or 0
+        local opaque = folder.name_opaque == true
+        if self._zen_strip_radius ~= radius or self._zen_strip_opaque ~= opaque then
+            self.strip, self._zen_strip_radius, self.alpha = cached_label_strip(
+                self.ui, self.dimen.w, self.dimen.h, radius, opaque)
+            self._zen_strip_opaque = opaque
+            self.radius = self._zen_strip_radius
+        end
         bb:colorblitFromRGB32(self.strip.background_mask, x, y, 0, 0,
             self.dimen.w, self.dimen.h, BlitbufferUI.COLOR_WHITE)
         bb:colorblitFromRGB32(self.strip.border_mask, x, y, 0, 0,
@@ -620,7 +637,7 @@ local function get_label_ui()
     return label_ui
 end
 
-local function cached_label_strip(ui, width, height, radius, opaque)
+cached_label_strip = function(ui, width, height, radius, opaque)
     radius = math.max(0, math.min(radius,
         math.floor((math.min(width, height) - 1) / 2)))
     local alpha = opaque and 0xFF or math.floor(0.75 * 0xFF + 0.5)
@@ -705,7 +722,8 @@ end
 
 function M.overlayName(cover, options)
     options = options or {}
-    local config = get_config(options.config).browser_folder_cover or {}
+    local full_config = get_config(options.config)
+    local config = full_config.browser_folder_cover or {}
     if config.show_folder_name == false or (tonumber(options.strip_height) or 0) > 0 then
         return cover
     end
@@ -717,7 +735,7 @@ function M.overlayName(cover, options)
     local cover_dimen = options.cover_dimen
     local cover_w = math.max(1, cover_dimen and cover_dimen.w or item_width)
     local cover_h = math.max(1, cover_dimen and cover_dimen.h or content_h)
-    local features = get_config(options.config).features or {}
+    local features = full_config.features or {}
     local rounded = features.browser_cover_rounded_corners == true
     local corner_radius = rounded and math.min(ui.Screen:scaleBySize(8),
         math.floor((math.min(cover_w, cover_h) - 1) / 2)) or 0
@@ -786,7 +804,12 @@ function M.overlayName(cover, options)
         ui.LabelStrip:new{
             dimen = label_dimen,
             strip = strip,
+            config = full_config,
+            max_radius = math.floor((math.min(cover_w, cover_h) - 1) / 2),
+            ui = ui,
             radius = strip_radius,
+            _zen_strip_radius = strip_radius,
+            _zen_strip_opaque = config.name_opaque == true,
             alpha = strip_alpha,
         },
         ui.CenterContainer:new{

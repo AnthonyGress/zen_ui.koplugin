@@ -2556,7 +2556,7 @@ local function install_home_key_handlers(menu)
     end
 end
 
-local function build_home_content(menu, dcfg, rows, data_provider)
+local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
     local Device = require("device")
     local Screen = Device.screen
     local Geom = require("ui/geometry")
@@ -2793,6 +2793,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             height = content_h,
             menu = menu,
             config = dcfg,
+            zen_config = zen_config,
             data = data_provider,
             openBook = open_book,
             showBookMenu = function(path, source)
@@ -3086,7 +3087,7 @@ function M.showHomeView(injectNavbar)
         local stats_ms = (os.clock() - stats_started_at) * 1000
         menu._zen_home_component_ms = {}
         local build_started_at = os.clock()
-        local content = build_home_content(menu, dcfg, rows, data_provider)
+        local content = build_home_content(menu, cfg, dcfg, rows, data_provider)
         local build_ms = (os.clock() - build_started_at) * 1000
         provider_dataset_expires_at = _home_dataset_cache
             and _home_dataset_cache.expires_at

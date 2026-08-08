@@ -263,7 +263,7 @@ describe("home strip widget", function()
         assert.are.same({ book.path, "recently_read" }, context_args)
     end)
 
-    it("adds a small vertical gap between two book rows", function()
+    it("adds extra vertical space between two book rows", function()
         local books = {}
         for i = 1, 8 do
             books[i] = { path = "/library/" .. tostring(i) .. ".epub" }
@@ -284,11 +284,54 @@ describe("home strip widget", function()
 
         local row_gaps = 0
         for _i, widget in ipairs(created) do
-            if widget.kind == "ui/widget/verticalspan" and widget.width == 7 then
+            if widget.kind == "ui/widget/verticalspan" and widget.width == 10 then
                 row_gaps = row_gaps + 1
             end
         end
         assert.are.equal(1, row_gaps)
+    end)
+
+    it("extends strip-control hit targets past their outer edges", function()
+        touch_device = true
+        local activated = {}
+        local StripControls = require(
+            "modules/filebrowser/patches/home/widgets/strip_controls")
+        StripControls.build({
+            width = 200,
+            height = 30,
+            controls = {
+                order = { "recent", "to_be_read" },
+                show_buttons = { recent = true, to_be_read = true },
+                labels = {}, custom_buttons = {},
+            },
+            on_source = function(entry)
+                activated[#activated + 1] = entry.id
+                return true
+            end,
+            on_action = function() return true end,
+        })
+
+        local inputs = {}
+        for _i, widget in ipairs(created) do
+            if type(widget.onTapStripControl) == "function" then
+                inputs[#inputs + 1] = widget
+            end
+        end
+        local first, last = inputs[1], inputs[2]
+        first.dimen.x, first.dimen.y = 20, 40
+        last.dimen.x, last.dimen.y = 120, 40
+
+        assert.is_true(first:onTapStripControl(nil, { pos = { x = 25, y = 37 } }))
+        assert.is_false(first:onTapStripControl(nil, { pos = { x = 25, y = 36 } }))
+        assert.is_true(first:onTapStripControl(nil, { pos = { x = 16, y = 45 } }))
+        assert.is_false(first:onTapStripControl(nil, { pos = { x = 15, y = 45 } }))
+        assert.is_true(last:onTapStripControl(nil, {
+            pos = { x = last.dimen.x + last.dimen.w + 3, y = 45 },
+        }))
+        assert.is_false(last:onTapStripControl(nil, {
+            pos = { x = last.dimen.x + last.dimen.w + 4, y = 45 },
+        }))
+        assert.are.same({ "recent", "recent", "to_be_read" }, activated)
     end)
 
     it("keeps books slightly closer together horizontally", function()
@@ -918,6 +961,49 @@ describe("home strip widget", function()
         }, remembered)
         assert.are.equal(2, rebuilt)
         assert.are.equal(2, resets)
+    end)
+
+    it("uses Home's active config for group-label corner styling", function()
+        rawset(_G, "__ZEN_UI_PLUGIN", {
+            config = {
+                features = { browser_cover_rounded_corners = true },
+            },
+        })
+        local active_config = {
+            browser_folder_cover = { show_folder_name = true },
+            features = {
+                browser_cover_mosaic_uniform = false,
+                browser_cover_rounded_corners = false,
+            },
+        }
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 300,
+            zen_config = active_config,
+            component_id = "strip",
+            module_cfg = {
+                count = 1,
+                show_strip_titles = false,
+                default_source = { kind = "tags" },
+                controls = { enabled = false },
+            },
+            data = {
+                getStripItemsForPage = function()
+                    return {{
+                        is_group = true,
+                        group_label = "Fantasy",
+                        group_count = 1,
+                        group_files = { "/books/a.epub" },
+                    }}
+                end,
+            },
+        })
+
+        assert.are.same(active_config, folder_calls.overlay.options.config)
+        assert.is_false(folder_calls.overlay.options.config.features
+            .browser_cover_rounded_corners)
+        assert.is_false(folder_calls.build.options.uniform)
     end)
 
     it("exposes vertical slack for Home gap balancing", function()

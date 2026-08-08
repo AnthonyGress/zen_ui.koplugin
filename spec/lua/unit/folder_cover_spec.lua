@@ -126,6 +126,116 @@ describe("shared folder cover provider", function()
         assert.is_false(FolderCover.isSupported({ text = "Unrelated" }, {}))
     end)
 
+    it("updates a folder label mask when rounded corners change", function()
+        local created = {}
+        local next_mask_id = 0
+        local function widget_class(kind)
+            return {
+                new = function(_self, values)
+                    values = values or {}
+                    values.kind = kind
+                    created[#created + 1] = values
+                    return values
+                end,
+            }
+        end
+
+        ZenSpec.replace("ffi/blitbuffer", {
+            TYPE_BB8 = "bb8",
+            COLOR_BLACK = "black",
+            COLOR_WHITE = "white",
+            Color8 = function(value) return value end,
+            new = function(width, height)
+                next_mask_id = next_mask_id + 1
+                return {
+                    id = next_mask_id,
+                    width = width,
+                    height = height,
+                    fill = function() end,
+                    paintRect = function() end,
+                }
+            end,
+        })
+        ZenSpec.replace("ui/bidi", { directory = function(text) return text end })
+        ZenSpec.replace("ui/geometry", { new = function(_self, values) return values end })
+        ZenSpec.replace("ui/widget/container/centercontainer", widget_class("center"))
+        ZenSpec.replace("ui/widget/container/bottomcontainer", widget_class("bottom"))
+        ZenSpec.replace("ui/widget/overlapgroup", widget_class("overlap"))
+        ZenSpec.replace("ui/widget/container/widgetcontainer", {
+            extend = function()
+                local class = {}
+                function class:new(values)
+                    values = values or {}
+                    values.kind = "label_strip"
+                    created[#created + 1] = values
+                    return setmetatable(values, { __index = class })
+                end
+                return class
+            end,
+        })
+        ZenSpec.replace("ui/widget/textwidget", {
+            new = function(_self, values)
+                values.getSize = function() return { w = 6, h = 10 } end
+                values.free = function() end
+                return values
+            end,
+        })
+        ZenSpec.replace("ui/widget/textboxwidget", {
+            new = function(_self, values)
+                values.vertical_string_list = { values.text }
+                values.getLineHeight = function() return 10 end
+                values.getSize = function() return { w = values.width, h = values.height or 10 } end
+                values.free = function() end
+                return values
+            end,
+        })
+        ZenSpec.replace("modules/filebrowser/patches/library_font", {
+            getFace = function(size) return { size = size } end,
+            getBaseSize = function() return 16 end,
+            scaleValue = function(value) return value end,
+        })
+        ZenSpec.replace("device", {
+            screen = { scaleBySize = function(_self, value) return value end },
+        })
+        ZenSpec.unload("modules/filebrowser/folder_cover")
+
+        local config = {
+            browser_folder_cover = { show_folder_name = true },
+            features = { browser_cover_rounded_corners = true },
+        }
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        FolderCover.overlayName({}, {
+            width = 80,
+            height = 120,
+            cover_dimen = { w = 80, h = 120 },
+            title = "Fantasy",
+            config = config,
+        })
+
+        local label_strip
+        for _i, widget in ipairs(created) do
+            if widget.kind == "label_strip" then
+                label_strip = widget
+                break
+            end
+        end
+        assert.is_table(label_strip)
+        local painted_masks = {}
+        local target = {
+            colorblitFromRGB32 = function(_self, mask)
+                painted_masks[#painted_masks + 1] = mask
+            end,
+        }
+        label_strip:paintTo(target, 0, 0)
+        local rounded_mask = painted_masks[1]
+        assert.is_true(label_strip.radius > 0)
+
+        config.features.browser_cover_rounded_corners = false
+        label_strip:paintTo(target, 0, 0)
+        assert.are.equal(0, label_strip.radius)
+        assert.are_not.equal(rounded_mask, painted_masks[3])
+    end)
+
     it("does not enumerate a physical folder when covers are suppressed", function()
         local FolderCover = require("modules/filebrowser/folder_cover")
         local enumerations = 0
