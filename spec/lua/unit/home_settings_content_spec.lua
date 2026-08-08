@@ -41,8 +41,13 @@ describe("Home widget content settings", function()
                 featured = {
                     default_source = { kind = "recent" },
                     path = "/books/selected.epub",
+                    show_module_title = true,
                 },
+                quotes = { show_module_title = true },
+                reading_goals = { show_module_title = true },
+                stats_triplet = { show_module_title = true },
                 strip = {
+                    show_module_title = true,
                     controls = {
                         enabled = false,
                         labels = {},
@@ -83,14 +88,16 @@ describe("Home widget content settings", function()
             normalizeLayoutGrid = function() end,
             isBuiltinPresetName = function() return false end,
         })
-        ZenSpec.replace("modules/filebrowser/patches/home/home_quotes", {})
+        ZenSpec.replace("modules/filebrowser/patches/home/home_quotes", {
+            hasCustomQuotes = function() return false end,
+        })
         ZenSpec.replace("modules/filebrowser/patches/home/components/registry", {
             CAPACITY_UNITS = 10,
             normalizeRows = function(rows) return rows end,
             list = function()
                 return {
-                    { id = "featured", label = "Featured widget" },
-                    { id = "strip", label = "Strip widget" },
+                    { id = "featured", label = "Featured book" },
+                    { id = "strip", label = "Book strip" },
                 }
             end,
             get = function(id) return { id = id, label = id, size = 2 } end,
@@ -102,6 +109,7 @@ describe("Home widget content settings", function()
         })
         ZenSpec.replace("common/reading_goals", {
             normalize = function(goals) return goals end,
+            settingsItems = function() return {} end,
         })
         ZenSpec.replace("common/inline_icon_map", setmetatable({}, {
             __index = function(_self, key) return key end,
@@ -153,10 +161,13 @@ describe("Home widget content settings", function()
 
     it("shows Featured book settings only for custom content", function()
         local settings = require("modules/settings/sections/library_settings/home_settings")
-        assert.is_true(settings.openWidgetSettings("featured"))
+        local plugin = { config = {} }
+        assert.is_true(settings.openWidgetSettings("featured", plugin))
+        assert.are.equal(plugin, arrange_options.plugin)
 
         local items = arrange_options.item_table
         assert.are.equal("Content: Recently read", item_text(items[1]))
+        assert.is_nil(find_item(items, "Show widget title"))
         assert.is_false(has_item_prefix(items, "Book: "))
         assert.is_nil(find_item(items, "Clear book"))
 
@@ -172,12 +183,36 @@ describe("Home widget content settings", function()
         assert.is_nil(find_item(parent.item_table, "Clear book"))
     end)
 
+    it("keeps the plugin when Widgets is opened from the settings page", function()
+        local plugin = { config = {} }
+        local section = require("modules/settings/sections/library_settings/home_settings").build({
+            plugin = plugin,
+            config = {},
+            settings_apply = {},
+        })
+
+        section.sub_item_table[1].callback({})
+
+        assert.are.equal(plugin, arrange_options.plugin)
+    end)
+
+    it("removes widget-title settings and legacy values", function()
+        local settings = require("modules/settings/sections/library_settings/home_settings")
+        for _i, id in ipairs({ "featured", "strip", "reading_goals", "stats_triplet", "quotes" }) do
+            assert.is_nil(home_page.modules[id].show_module_title)
+            assert.is_true(settings.openWidgetSettings(id))
+            assert.is_nil(find_item(arrange_options.item_table, "Show widget title"))
+        end
+    end)
+
     it("shows Strip filters and custom books only for their content", function()
         local settings = require("modules/settings/sections/library_settings/home_settings")
         assert.is_true(settings.openWidgetSettings("strip"))
 
         local items = arrange_options.item_table
         assert.are.equal("Content: Recent", item_text(items[1]))
+        assert.is_nil(find_item(items, "Show widget title"))
+        assert.is_nil(find_item(items, "Order"))
         assert.is_not_nil(find_item(items, "Recent filters"))
         assert.is_nil(find_item(items, "Custom books"))
 
@@ -191,6 +226,22 @@ describe("Home widget content settings", function()
         find_item(parent.item_table[1].sub_item_table_func(parent), "Favorites").callback()
         assert.is_nil(find_item(parent.item_table, "Recent filters"))
         assert.is_nil(find_item(parent.item_table, "Custom books"))
+    end)
+
+    it("exposes strip control font face, size, and weight settings", function()
+        local settings = require("modules/settings/sections/library_settings/home_settings")
+        assert.is_true(settings.openWidgetSettings("strip"))
+
+        local controls = find_item(arrange_options.item_table, "Controls")
+        local controls_items = controls.sub_item_table_func()
+        local font = find_item(controls_items, "Font: default, 10, regular")
+        assert.is_not_nil(font)
+
+        local font_items = font.sub_item_table_func()
+        assert.is_not_nil(find_item(font_items, "Font size: 10"))
+        assert.is_not_nil(find_item(font_items, "Font: default"))
+        assert.is_not_nil(find_item(font_items, "Bold"))
+        assert.is_not_nil(find_item(font_items, "Use default style"))
     end)
 
     it("deletes a Strip control tab immediately and returns to Tabs", function()

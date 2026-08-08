@@ -649,6 +649,7 @@ function M.build(ctx)
                         config.features.browser_cover_rounded_corners ~= true
                     plugin:saveConfig()
                     rebuild_filechooser()
+                    schedule_home_rebuild_on_menu_close(plugin)
                 end,
             },
             {

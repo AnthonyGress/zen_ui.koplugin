@@ -68,7 +68,7 @@ function M.label(controls, entry)
     if type(entry) ~= "table" then return _("Custom") end
     local override = type(controls) == "table" and type(controls.labels) == "table"
         and controls.labels[entry.id]
-    if override == "Genres" then return _("Genres") end
+    if override == "Genres" or override == "Tags" then return _("Tags") end
     if type(override) == "string" and override ~= "" then return override end
     if type(entry.label) == "string" and entry.label ~= "" then return entry.label end
     if entry.type == "tag" then return entry.tag or _("Tag") end

@@ -333,6 +333,9 @@ msgstr "Informații carte"
 msgid "Book Status"
 msgstr "Stare carte"
 
+msgid "Book strip"
+msgstr "Bandă de cărți"
+
 msgid "Book switcher"
 msgstr "Selector de cărți"
 
@@ -675,8 +678,8 @@ msgstr "Gri cald închis"
 msgid "Date"
 msgstr "Data"
 
-msgid "Date/time widget"
-msgstr "Widget data/ora"
+msgid "Date/time"
+msgstr "Data/ora"
 
 msgid "Day brightness"
 msgstr "Luminozitate zi"
@@ -933,11 +936,8 @@ msgstr "Trimiterea raportului a eșuat: "
 msgid "Favorites"
 msgstr "Favorite"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "Carte recomandată"
-
-msgid "Featured widget"
-msgstr "Widget recomandat"
 
 msgid "Featured widgets"
 msgstr "Widgeturi principale"
@@ -1776,8 +1776,8 @@ msgstr "Dimensiunea fontului citat"
 msgid "Quote sources"
 msgstr "Surse citate"
 
-msgid "Quotes widget"
-msgstr "Widget citate"
+msgid "Quotes"
+msgstr "Citate"
 
 msgid "quotes.lua is empty"
 msgstr "ghilimele.lua este goală"
@@ -1830,14 +1830,8 @@ msgstr "Obiective de lectură"
 msgid "Reading goals font size"
 msgstr "Dimensiunea fontului obiectivelor de citire"
 
-msgid "Reading goals widget"
-msgstr "Widget pentru obiective de citire"
-
 msgid "Reading stats"
 msgstr "Statistici de lectură"
-
-msgid "Reading stats widget"
-msgstr "Widget statistici de lectură"
 
 msgid "Reading trend"
 msgstr "Tendință de lectură"
@@ -2300,9 +2294,6 @@ msgstr "Serie"
 
 msgid "Stream from page"
 msgstr "Flux de la pagina"
-
-msgid "Strip widget"
-msgstr "Widget bandă"
 
 msgid "Strip widgets"
 msgstr "Widgeturi bandă"

@@ -13,6 +13,7 @@ local function apply_page_browser()
     local ZenTocWidget = require("modules/reader/zen_toc_widget")
     local PresetStore   = require("config/preset_store")
     local utils        = require("common/utils")
+    local WidgetResources = require("common/widget_resources")
     local lfs          = require("libs/libkoreader-lfs")
     local _stock_icons_dir = lfs.currentdir() .. "/resources/icons/mdlight/"
 
@@ -303,6 +304,7 @@ local function apply_page_browser()
             radius = Screen:scaleBySize(4),
             HorizontalGroup:new{ align = "center", btn_view_frame, divider, btn_grid_frame },
         }
+        WidgetResources.paintFrameBorderOnTop(btn_row)
         local function make_skip_btn(file_path)
             return FrameContainer:new{
                 padding_top = icon_pad_v, padding_bottom = icon_pad_v,
@@ -1658,6 +1660,7 @@ local function apply_page_browser()
                 radius         = Screen:scaleBySize(4),
                 btn_group,
             }
+            WidgetResources.paintFrameBorderOnTop(btn_row)
 
             -- Skip chapter buttons (larger icons, no border)
             local function make_skip_btn(file_path)

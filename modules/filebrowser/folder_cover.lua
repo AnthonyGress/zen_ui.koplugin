@@ -987,10 +987,12 @@ function M.paintSpines(bb, frame, item_x, item_y, options)
         Screen = require("device").screen
         Size = require("ui/size")
     end
-    local thickness = math.max(1, Screen:scaleBySize(2.5))
+    local thickness = math.max(1, Screen:scaleBySize(2))
     local margin = Size.line.medium
-    local spine_gap = Screen:scaleBySize(9)
-    local top_h = 2 * (thickness + margin)
+    local cover_gap = math.max(1, Screen:scaleBySize(2))
+    local spine_gap = 2 * thickness + margin + cover_gap
+    local lines_h = 2 * thickness + margin
+    local top_h = lines_h + cover_gap
     local orientation = options.orientation
     if not orientation then
         local top_gap = dimen.y - (item_y or 0)
@@ -1015,8 +1017,7 @@ function M.paintSpines(bb, frame, item_x, item_y, options)
     end
 
     if orientation == "top" then
-        local lines_h = 2 * thickness + margin
-        local first_y = dimen.y - top_h + math.floor((top_h - lines_h) / 2)
+        local first_y = dimen.y - top_h
         if first_length > 0 then
             paint_spine(dimen.x + math.floor((dimen.w - first_length) / 2),
                 first_y, first_length, thickness)

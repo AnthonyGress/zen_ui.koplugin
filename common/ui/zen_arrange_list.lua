@@ -625,6 +625,7 @@ local function configure_title_bar(sort_widget, opts)
                     end
                 end, {
                     close_arrange = opts.close_arrange,
+                    plugin = opts.plugin,
                 })
                 return true
             end,
@@ -643,6 +644,7 @@ local function configure_title_bar(sort_widget, opts)
         search_visible = false,
         title_full_width = true,
         action = default_action,
+        plugin = opts.plugin,
         show_parent = sort_widget,
         back_callback = function() return close_with(opts.back_callback) end,
         back_hold_callback = function() return close_with(opts.back_hold_callback) end,
@@ -920,6 +922,7 @@ local function open_submenu_for_item(sort_widget, item, resume_path, resume_in_b
     end, {
         close_arrange = sort_widget._zen_arrange_close_all,
         menu_mode = sort_widget._zen_menu_mode,
+        plugin = sort_widget._zen_plugin,
         settings_resume = extend_settings_resume(sort_widget._zen_settings_resume, item),
         resume_path = resume_path,
         resume_in_background = resume_in_background,
@@ -1383,12 +1386,14 @@ local function ensure_submenu_callbacks(items)
     for _i, item in ipairs(items) do
         if not item.hold_callback and has_submenu(item) then
             local submenu_item = item
-            item.hold_callback = function(_item, refresh)
+            item.hold_callback = function(parent, refresh)
                 local sub_items = submenu_item.sub_item_table
                 if type(submenu_item.sub_item_table_func) == "function" then
                     sub_items = submenu_item.sub_item_table_func()
                 end
-                show_submenu(item_submenu_title(submenu_item), sub_items, refresh)
+                show_submenu(item_submenu_title(submenu_item), sub_items, refresh, {
+                    plugin = parent and parent._zen_plugin,
+                })
             end
         end
         if item.hold_callback and has_submenu(item) then
@@ -1435,6 +1440,7 @@ show_submenu = function(title, items, refresh, opts)
 
     menu_proxy = {
         _zen_settings_resume = opts.settings_resume,
+        _zen_plugin = opts.plugin,
         item_table_stack = {},
         item_table = items,
         backToUpperMenu = function()
@@ -1486,6 +1492,7 @@ show_submenu = function(title, items, refresh, opts)
     sort_widget.sort_disabled = true
     sort_widget._zen_arrange_close_all = opts.close_arrange
     sort_widget._zen_menu_mode = opts.menu_mode == true
+    sort_widget._zen_plugin = opts.plugin
     sort_widget._zen_menu_proxy = menu_proxy
     sort_widget._zen_settings_resume = opts.settings_resume
 
@@ -1528,6 +1535,7 @@ show_submenu = function(title, items, refresh, opts)
     end
     sort_widget._zen_arrange_close_all = close_submenu_and_arrange
     configure_title_bar(sort_widget, {
+        plugin = opts.plugin,
         back_callback = function()
             menu_proxy:backToUpperMenu()
             return true
@@ -1724,6 +1732,7 @@ function M.show(opts)
     sort_widget:_populateItems()
     sort_widget._zen_arrange_enabled = arrange_enabled
     sort_widget._zen_menu_mode = menu_mode
+    sort_widget._zen_plugin = opts.plugin
     sort_widget._zen_arrange_refresh = function(self)
         if type(opts.refresh_func) == "function" then
             local refreshed = opts.refresh_func()
@@ -1744,6 +1753,7 @@ function M.show(opts)
     end
     menu_proxy = {
         _zen_settings_resume = settings_resume,
+        _zen_plugin = opts.plugin,
         item_table = item_table,
         updateItems = function(self)
             if type(self.item_table) == "table" and self.item_table ~= item_table then
@@ -1823,6 +1833,7 @@ function M.show(opts)
         add_title = opts.add_title,
         add_item_table = opts.add_item_table,
         close_arrange = sort_widget._zen_arrange_close_all,
+        plugin = opts.plugin,
         back_callback = close_and_go_back or close_and_restore_parent,
         back_hold_callback = function()
             if close_and_go_back then return close_and_go_back() end
@@ -1929,6 +1940,7 @@ function M.show(opts)
                 end
             end, {
                 close_arrange = sort_widget._zen_arrange_close_all,
+                plugin = opts.plugin,
             })
         end)
     end

@@ -14,6 +14,7 @@ local StandalonePage = require("modules/filebrowser/patches/standalone_page")
 local SharedState = require("common/shared_state")
 local utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
+local icons = require("common/inline_icon_map")
 local UIManager = require("ui/uimanager")
 local _ = require("gettext")
 local now = require("common/zen_logger").now
@@ -521,18 +522,41 @@ local FEATURED_TEXT_STYLE_DEFAULTS = {
     progress = { font_face = "default", font_size = 7, bold = false },
 }
 
-local MODULE_TITLES = {
-    datetime = _("Today"),
-    featured = _("Recently read"),
-    reading_goals = _("Reading goals"),
-    strip = _("Books"),
-    stats_triplet = _("Reading stats"),
-    quotes = _("Quote"),
-}
-
 local function normalize_order(order)
     if order == "reverse" then return "reverse" end
     return "default"
+end
+
+local function build_strip_order_context_buttons(file_chooser, component_id, dcfg, data_provider)
+    local modules = type(dcfg) == "table" and dcfg.modules or nil
+    local mcfg = type(modules) == "table" and modules[component_id] or nil
+    if component_id ~= "strip" or type(mcfg) ~= "table" then return nil end
+
+    return {
+        {{
+            text = icons.sort .. "  " .. _("Order") .. "  " .. icons.arrow_right,
+            align = "left",
+            callback = function()
+                if type(file_chooser.showSortOrderDialog) ~= "function" then return false end
+                UIManager:close(file_chooser.file_dialog)
+                file_chooser:showSortOrderDialog{
+                    title = _("Order"),
+                    current_reverse = normalize_order(mcfg.order) == "reverse",
+                    forward_text = _("Default"),
+                    reverse_text = _("Reverse"),
+                    on_select = function(reverse)
+                        mcfg.order = reverse and "reverse" or "default"
+                        if type(data_provider.resetStripPages) == "function" then
+                            data_provider:resetStripPages()
+                        end
+                        PresetStore.saveSettings("home", dcfg)
+                        M.rebuildActive()
+                    end,
+                }
+                return true
+            end,
+        }},
+    }
 end
 
 local function ensure_featured_text_style(mcfg, key)
@@ -568,11 +592,7 @@ local function ensure_module_cfg(dcfg, module_id)
     if type(dcfg.modules) ~= "table" then dcfg.modules = {} end
     if type(dcfg.modules[module_id]) ~= "table" then dcfg.modules[module_id] = {} end
     local mcfg = dcfg.modules[module_id]
-    if module_id == "datetime" then
-        mcfg.show_module_title = false
-    elseif mcfg.show_module_title == nil then
-        mcfg.show_module_title = false
-    end
+    mcfg.show_module_title = nil
     return mcfg
 end
 
@@ -665,6 +685,7 @@ local function ensure_home_widget_cfg(dcfg)
     reading_goals.font_size = goals_font_size and (goals_font_override or goals_font_size ~= DEFAULT_GOALS_FONT_SIZE)
         and math.max(8, math.min(32, math.floor(goals_font_size + 0.5))) or nil
     reading_goals.font_size_override = reading_goals.font_size and true or nil
+    ensure_module_cfg(dcfg, "quotes")
     ensure_strip_module_cfg(dcfg)
 end
 
@@ -2543,8 +2564,6 @@ local function build_home_content(menu, dcfg, rows, data_provider)
     local HorizontalSpan = require("ui/widget/horizontalspan")
     local VerticalGroup = require("ui/widget/verticalgroup")
     local VerticalSpan = require("ui/widget/verticalspan")
-    local TextWidget = require("ui/widget/textwidget")
-    local LeftContainer = require("ui/widget/container/leftcontainer")
     local FrameContainer = require("ui/widget/container/framecontainer")
     local InputContainer = require("ui/widget/container/inputcontainer")
     local Font = require("ui/font")
@@ -2610,9 +2629,6 @@ local function build_home_content(menu, dcfg, rows, data_provider)
     local face_title = Font:getFace("smallinfofont", Screen:scaleBySize(24))
     local face_value = Font:getFace("smallinfofont", Screen:scaleBySize(20))
     local face_label = Font:getFace("smallinfofont", Screen:scaleBySize(16))
-    local row_title_face = Font:getFace("smallinfofont", Screen:scaleBySize(13))
-    local row_title_gap = Screen:scaleBySize(3)
-
     local FileManager = require("apps/filemanager/filemanager")
     local filemanagerutil = require("apps/filemanager/filemanagerutil")
 
@@ -2645,6 +2661,8 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             _zen_disable_select = true,
             _zen_is_history = source == "recently_read",
             _zen_collection_name = explicit_collection,
+            _zen_extra_buttons = build_strip_order_context_buttons(
+                fc, component_id, dcfg, data_provider),
             _zen_widget_settings = dcfg.edit_mode == true and function()
                 return require("modules/settings/sections/library_settings/home_settings")
                     .openWidgetSettings(component_id, _zen_plugin)
@@ -2761,46 +2779,14 @@ local function build_home_content(menu, dcfg, rows, data_provider)
         used_h = used_h + top_pad
     end
 
-    local function title_for_component(comp_id)
-        if comp_id == "featured" then
-            local mcfg = type(dcfg.modules) == "table" and dcfg.modules.featured or {}
-            local kind = type(mcfg.default_source) == "table"
-                and mcfg.default_source.kind or "recent"
-            if kind == "custom" then return _("Featured Book") end
-            if kind == "to_be_read" then return _("To Be Read") end
-        end
-        return MODULE_TITLES[comp_id]
-    end
-
     for i, comp in ipairs(rows) do
         local row_y = used_h
         local content_bounds
         local h = row_heights[i] and row_heights[i].h or 120
         local module_cfg = type(dcfg.modules) == "table" and dcfg.modules[comp.id] or nil
-        local show_row_title = not (module_cfg and module_cfg.show_module_title == false)
-        local row_title = title_for_component(comp.id) or comp.title or comp.label or ""
         local row_focus_base = i * 10
         local row_focus_actions = {}
-        local title_h = 0
-        local title_widget = nil
-        if show_row_title and row_title ~= "" then
-            title_widget = TextWidget:new{ text = row_title, face = row_title_face, bold = true }
-            title_h = title_widget:getSize().h
-        end
         local content_h = h
-        local title_gap_h = title_h > 0 and row_title_gap or 0
-        if title_widget then
-            local reserved = title_h + title_gap_h
-            if h > reserved + 20 then
-                content_h = h - reserved
-            else
-                -- Hide row title when space is constrained, so widget content fits.
-                title_widget = nil
-                title_h = 0
-                title_gap_h = 0
-                content_h = h
-            end
-        end
         if content_h < 1 then content_h = 1 end
         local row_ctx = {
             width = content_w,
@@ -2877,17 +2863,6 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             math.floor((os.clock() - component_started_at) * 10000 + 0.5) / 10
         if ok_widget and widget then
             local final_widget = widget
-            if title_widget then
-                final_widget = VerticalGroup:new{
-                    align = "left",
-                    LeftContainer:new{
-                        dimen = Geom:new{ w = content_w, h = title_h },
-                        title_widget,
-                    },
-                    VerticalSpan:new{ width = title_gap_h },
-                    widget,
-                }
-            end
             if comp.id ~= "featured" and comp.id ~= "strip"
                     and comp.id ~= "quotes" and comp.id ~= "reading_goals" then
                 final_widget = add_widget_settings_hold(final_widget, comp.id, content_w, h)
@@ -2909,7 +2884,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
                 background = home_frame_bg(),
                 final_widget,
             })
-            if not title_widget and content_bounds then
+            if content_bounds then
                 content_bounds.row_y = row_y
                 if i == 1 then
                     content_bounds.min_shift = 0

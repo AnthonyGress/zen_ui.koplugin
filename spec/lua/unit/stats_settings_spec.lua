@@ -118,6 +118,17 @@ describe("stats settings", function()
         assert.is_true(saved_settings.enabled.this_week)
     end)
 
+    it("keeps the plugin when Widgets is opened from the settings page", function()
+        local plugin = { config = {} }
+        local section = require("modules/settings/sections/stats_settings").build({
+            plugin = plugin,
+        })
+
+        section.sub_item_table[1].callback({})
+
+        assert.are.equal(plugin, arrange_options.plugin)
+    end)
+
     it("persists repeated widget order commits", function()
         local section = require("modules/settings/sections/stats_settings").build({})
         section.sub_item_table[1].callback()
@@ -191,9 +202,11 @@ describe("stats settings", function()
 
     it("opens a widget settings page without finish controls", function()
         local settings = require("modules/settings/sections/stats_settings")
+        local plugin = { config = {} }
 
-        assert.is_true(settings.openWidgetSettings("trend_graph"))
+        assert.is_true(settings.openWidgetSettings("trend_graph", plugin))
         assert.are.equal("Reading trend", arrange_options.title)
+        assert.are.equal(plugin, arrange_options.plugin)
         assert.is_false(arrange_options.allow_arrange)
         assert.is_function(arrange_options.back_callback)
         assert.is_nil(arrange_options.item_table._zen_arrange_done_func)

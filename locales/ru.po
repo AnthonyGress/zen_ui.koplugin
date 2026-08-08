@@ -333,6 +333,9 @@ msgstr "Информация о книге"
 msgid "Book Status"
 msgstr "Статус книги"
 
+msgid "Book strip"
+msgstr "Книжная лента"
+
 msgid "Book switcher"
 msgstr "Переключатель книг"
 
@@ -675,8 +678,8 @@ msgstr "Тёмный тёплый серый"
 msgid "Date"
 msgstr "Дата"
 
-msgid "Date/time widget"
-msgstr "Виджет даты/времени"
+msgid "Date/time"
+msgstr "Дата/время"
 
 msgid "Day brightness"
 msgstr "Яркость (день)"
@@ -933,11 +936,8 @@ msgstr "Не удалось отправить отчёт: "
 msgid "Favorites"
 msgstr "Избранное"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "Рекомендуемая книга"
-
-msgid "Featured widget"
-msgstr "Рекомендуемый виджет"
 
 msgid "Featured widgets"
 msgstr "Главные виджеты"
@@ -1776,8 +1776,8 @@ msgstr "Размер шрифта цитаты"
 msgid "Quote sources"
 msgstr "Источники цитат"
 
-msgid "Quotes widget"
-msgstr "Виджет цитат"
+msgid "Quotes"
+msgstr "Цитаты"
 
 msgid "quotes.lua is empty"
 msgstr "quotes.lua пуст"
@@ -1830,14 +1830,8 @@ msgstr "Цели чтения"
 msgid "Reading goals font size"
 msgstr "Размер шрифта целей чтения"
 
-msgid "Reading goals widget"
-msgstr "Виджет целей чтения"
-
 msgid "Reading stats"
 msgstr "Статистика чтения"
-
-msgid "Reading stats widget"
-msgstr "Виджет статистики чтения"
 
 msgid "Reading trend"
 msgstr "Тенденция чтения"
@@ -2300,9 +2294,6 @@ msgstr "Серия"
 
 msgid "Stream from page"
 msgstr "Поток со страницы"
-
-msgid "Strip widget"
-msgstr "Виджет полосы"
 
 msgid "Strip widgets"
 msgstr "Виджеты ленты"

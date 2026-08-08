@@ -46,7 +46,7 @@ end
 
 return {
     id = "datetime",
-    label = _("Date/time widget"),
+    label = _("Date/time"),
     size = { units = 1.5 },
     build = function(ctx)
         local width = ctx.width

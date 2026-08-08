@@ -14,6 +14,7 @@ local GestureRange = require("ui/gesturerange")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
 local cover_common = require("modules/filebrowser/patches/home/widgets/cover_common")
+local CoverUtils = require("common/cover_utils")
 local FolderCover = require("modules/filebrowser/folder_cover")
 local library_font = require("modules/filebrowser/patches/library_font")
 local Font = require("ui/font")
@@ -352,7 +353,9 @@ function M.build_strip(ctx, source_key)
     local module_cfg = type(ctx.module_cfg) == "table" and ctx.module_cfg or {}
     local controls_cfg = type(module_cfg.controls) == "table" and module_cfg.controls or {}
     local controls_enabled = controls_cfg.enabled == true
-    local controls_height = controls_enabled and Screen:scaleBySize(20) or 0
+    local controls_height = controls_enabled and Screen:scaleBySize(30) or 0
+    local controls_content_offset = controls_enabled and math.floor(
+        math.max(0, controls_height - Screen:scaleBySize(20)) / 2) or 0
     local controls_gap = controls_enabled and math.max(2, Screen:scaleBySize(3)) or 0
     local outer_height = math.max(1, total_outer_height - controls_height - controls_gap)
     local padding = Screen:scaleBySize(8)
@@ -506,12 +509,15 @@ function M.build_strip(ctx, source_key)
     local controls_widget
     local control_targets = {}
     if controls_enabled then
+        local config = get_zen_config(rawget(_G, "__ZEN_UI_PLUGIN")) or {}
+        local features = type(config.features) == "table" and config.features or {}
         local StripControls = require(
             "modules/filebrowser/patches/home/widgets/strip_controls")
         controls_widget, control_targets = StripControls.build{
             width = width,
             height = controls_height,
             controls = controls_cfg,
+            rounded = features.browser_cover_rounded_corners == true,
             active_id = runtime.active_id,
             active_group = active_group,
             prepare_focus = ctx.prepareHomeFocusTarget,
@@ -591,8 +597,8 @@ function M.build_strip(ctx, source_key)
         end
         if page_delta == 0 and type(ctx.setContentBounds) == "function" then
             ctx.setContentBounds{
-                top = empty_top,
-                bottom = empty_top + cover_h,
+                top = empty_top + controls_content_offset,
+                bottom = empty_top + cover_h + controls_content_offset,
                 min_shift = -empty_top,
                 max_shift = outer_height - empty_top - cover_h,
                 set_shift = function(shift) visual_shift = shift end,
@@ -715,6 +721,21 @@ function M.build_strip(ctx, source_key)
         cover = FolderCover.decorateWidget(cover, frame, result.count, config)
         local job
         if result.needs_hydration then
+            local members = {}
+            local entries = type(result.entries) == "table" and result.entries or {}
+            for index, member in ipairs(entries) do
+                local path = member.path or member.file
+                if type(path) == "string" and path ~= "" then
+                    local member_w, member_h = CoverUtils.getFolderPreviewBounds(
+                        result.mode, inner_w, inner_h, #entries, index)
+                    members[#members + 1] = {
+                        book = { path = path },
+                        path = path,
+                        width = member_w or inner_w,
+                        height = member_h or inner_h,
+                    }
+                end
+            end
             job = {
                 folder_entry = entry,
                 title = result.title,
@@ -726,6 +747,7 @@ function M.build_strip(ctx, source_key)
                 cover_specs = specs,
                 uniform = uniform,
                 cover_count = result.cover_count or 0,
+                members = members,
             }
         end
         return cover, max_cover_w, cover_h, job
@@ -980,8 +1002,8 @@ function M.build_strip(ctx, source_key)
         local visual_top = outer_top + inner_top + row_top_pad
         local visual_bottom = outer_top + inner_top + visible_bottom
         ctx.setContentBounds{
-            top = visual_top,
-            bottom = visual_bottom,
+            top = visual_top + controls_content_offset,
+            bottom = visual_bottom + controls_content_offset,
             min_shift = -visual_top,
             max_shift = outer_height - visual_bottom,
             set_shift = function(shift) visual_shift = shift end,
@@ -1108,6 +1130,16 @@ function M.build_strip(ctx, source_key)
 
     local function warm_job(job)
         if job.folder_entry then
+            if type(ctx.data.warmStripCover) == "function" then
+                local members_pending = false
+                for _i, member in ipairs(job.members or {}) do
+                    if ctx.data:warmStripCover(
+                            member.book, member.width, member.height) == "pending" then
+                        members_pending = true
+                    end
+                end
+                if members_pending then return "pending" end
+            end
             local result = FolderCover.build(
                 ctx.menu or {}, job.folder_entry, job.title, job.width, job.height, {
                     cached_only = false,
@@ -1383,13 +1415,21 @@ function M.build_strip(ctx, source_key)
     end
     swipe[1] = frame
 
+    local function job_contains_path(job, path)
+        if job.path == path then return true end
+        for _i, member in ipairs(job.members or {}) do
+            if member.path == path then return true end
+        end
+        return false
+    end
+
     local unregister_cover_listener
     if type(ctx.registerStripCoverListener) == "function" then
         unregister_cover_listener = ctx.registerStripCoverListener(function(path)
             hydration_failed_paths[path] = nil
             local current = page_cache[0]
             for _i, job in ipairs(current and current.jobs or {}) do
-                if job.path == path then
+                if job_contains_path(job, path) then
                     cancel_visible_hydration("cover_ready")
                     schedule_visible_hydration(0)
                     return
@@ -1397,7 +1437,7 @@ function M.build_strip(ctx, source_key)
             end
             local future = page_cache[prewarm_direction]
             for _i, job in ipairs(future and future.jobs or {}) do
-                if job.path == path then
+                if job_contains_path(job, path) then
                     cancel_prewarm("cover_ready")
                     schedule_prewarm(PRELOAD_TICK_S)
                     return

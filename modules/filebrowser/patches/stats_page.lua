@@ -1188,7 +1188,7 @@ local function buildContent(blocks_config, data, page_w, h_padding, top_padding,
     return VerticalGroup:new(items), block_hits, has_overflow, required_heights
 end
 
-function StatsPage.create(createStatusRow, repaintTitleBar)
+function StatsPage.create(createStatusRow, repaintTitleBar, zen_plugin)
     if #active_stats_menus > 0 then
         return active_stats_menus[#active_stats_menus], false
     end
@@ -1437,7 +1437,8 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
         end
         local has_context = #buttons > 0
         if not has_context and stats_settings.edit_mode == true then
-            return require("modules/settings/sections/stats_settings").openWidgetSettings(current.id)
+            return require("modules/settings/sections/stats_settings")
+                .openWidgetSettings(current.id, zen_plugin)
         end
         if stats_settings.edit_mode == true then
             buttons[#buttons + 1] = {{
@@ -1445,7 +1446,8 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
                 callback = function()
                     closeConfigDialog()
                     UIManager:nextTick(function()
-                        require("modules/settings/sections/stats_settings").openWidgetSettings(current.id)
+                        require("modules/settings/sections/stats_settings")
+                            .openWidgetSettings(current.id, zen_plugin)
                     end)
                 end,
             }}

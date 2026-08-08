@@ -333,6 +333,9 @@ msgstr "Informace o knize"
 msgid "Book Status"
 msgstr "Stav knihy"
 
+msgid "Book strip"
+msgstr "Pás knih"
+
 msgid "Book switcher"
 msgstr ""
 
@@ -675,8 +678,8 @@ msgstr "Tmavě teplá šedá"
 msgid "Date"
 msgstr "Datum"
 
-msgid "Date/time widget"
-msgstr "Widget Datum/čas"
+msgid "Date/time"
+msgstr "Datum/čas"
 
 msgid "Day brightness"
 msgstr "Denní jas"
@@ -933,11 +936,8 @@ msgstr "Zprávu se nepodařilo odeslat: "
 msgid "Favorites"
 msgstr "Oblíbené"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "Doporučená kniha"
-
-msgid "Featured widget"
-msgstr "Doporučený widget"
 
 msgid "Featured widgets"
 msgstr "Doporučené widgety"
@@ -1776,8 +1776,8 @@ msgstr "Velikost písma nabídky"
 msgid "Quote sources"
 msgstr "Zdroje citace"
 
-msgid "Quotes widget"
-msgstr "Widget citací"
+msgid "Quotes"
+msgstr "Citace"
 
 msgid "quotes.lua is empty"
 msgstr "quotes.lua je prázdný"
@@ -1830,14 +1830,8 @@ msgstr "Cíle čtení"
 msgid "Reading goals font size"
 msgstr "Velikost písma pro čtení cílů"
 
-msgid "Reading goals widget"
-msgstr "Widget pro čtení cílů"
-
 msgid "Reading stats"
 msgstr "Statistiky čtení"
-
-msgid "Reading stats widget"
-msgstr "Widget statistik čtení"
 
 msgid "Reading trend"
 msgstr "Trend čtení"
@@ -2300,9 +2294,6 @@ msgstr "Pruh"
 
 msgid "Stream from page"
 msgstr "Proud od stránky"
-
-msgid "Strip widget"
-msgstr "Widget Strip"
 
 msgid "Strip widgets"
 msgstr "Proužkové widgety"

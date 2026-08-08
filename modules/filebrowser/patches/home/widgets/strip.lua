@@ -3,7 +3,7 @@ local _ = require("gettext")
 
 return {
     id = "strip",
-    label = _("Strip widget"),
+    label = _("Book strip"),
     size = shared.SIZE,
     build = function(ctx)
         return shared.build_strip(ctx)

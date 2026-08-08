@@ -36,7 +36,7 @@ end
 
 return {
     id = "quotes",
-    label = _("Quotes widget"),
+    label = _("Quotes"),
     size = { units = 2 },
     build = function(ctx)
         local width = ctx.width

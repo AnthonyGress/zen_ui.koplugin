@@ -13,6 +13,7 @@ local LineWidget = require("ui/widget/linewidget")
 local TextWidget = require("ui/widget/textwidget")
 local WidgetResources = require("common/widget_resources")
 local icons = require("common/inline_icon_map")
+local library_font = require("modules/filebrowser/patches/library_font")
 
 local M = {}
 
@@ -31,14 +32,32 @@ local function visible_entries(controls)
     return entries
 end
 
-local function fit_face(labels, width, maximum, minimum)
+local function control_text_style(controls)
+    local configured = type(controls.text_style) == "table" and controls.text_style or {}
+    local font_face = type(configured.font_face) == "string"
+        and configured.font_face ~= "" and configured.font_face or "default"
+    local font_size = math.max(6, math.min(24, math.floor(
+        (tonumber(configured.font_size) or 10) + 0.5)))
+    return {
+        font_face = font_face,
+        font_size = font_size,
+        bold = configured.bold == true,
+    }
+end
+
+local function get_control_face(style, size)
+    if style.font_face == "default" then return library_font.getFace(size) end
+    return Font:getFace(style.font_face, size) or library_font.getFace(size)
+end
+
+local function fit_face(labels, width, style, maximum, minimum)
     local size = maximum or Device.screen:scaleBySize(10)
     minimum = minimum or Device.screen:scaleBySize(7)
     while size > minimum do
-        local face = Font:getFace("smallinfofont", size)
+        local face = get_control_face(style, size)
         local fits = true
         for _i, label in ipairs(labels) do
-            local probe = TextWidget:new{ text = label, face = face }
+            local probe = TextWidget:new{ text = label, face = face, bold = style.bold }
             local needed = probe:getSize().w
             WidgetResources.free(probe)
             if needed > width - Device.screen:scaleBySize(6) then
@@ -49,7 +68,7 @@ local function fit_face(labels, width, maximum, minimum)
         if fits then return face end
         size = size - 1
     end
-    return Font:getFace("smallinfofont", minimum)
+    return get_control_face(style, minimum)
 end
 
 local function control_widget(content, width, height, tap_callback, hold_callback)
@@ -105,7 +124,7 @@ function M.build(opts)
         if entry.id == "search" then search_count = search_count + 1 end
     end
     local label_count = #entries - search_count
-    local search_padding_x = Device.screen:scaleBySize(4)
+    local search_padding_x = Device.screen:scaleBySize(12)
     local search_width = label_count == 0 and inner_width
         or math.min(inner_height + search_padding_x * 2, inner_width)
     local button_area = math.max(0,
@@ -118,10 +137,12 @@ function M.build(opts)
             labels[#labels + 1] = ButtonModel.label(controls, entry)
         end
     end
-    local face = fit_face(labels, math.max(1, button_width))
+    local text_style = control_text_style(controls)
+    local face = fit_face(labels, math.max(1, button_width), text_style,
+        Device.screen:scaleBySize(text_style.font_size))
     local row = HorizontalGroup:new{ align = "center" }
     local targets = {}
-    local radius = Device.screen:scaleBySize(4)
+    local radius = opts.rounded == true and Device.screen:scaleBySize(4) or 0
     local side_padding = Device.screen:scaleBySize(4)
     local label_index = 0
 
@@ -137,7 +158,7 @@ function M.build(opts)
                 dimen = Geom:new{ w = cell_width, h = inner_height },
                 TextWidget:new{
                     text = icons.search,
-                    face = Font:getFace("smallinfofont", Device.screen:scaleBySize(11)),
+                    face = Font:getFace("smallinfofont", Device.screen:scaleBySize(14)),
                     padding = 0,
                 },
             }
@@ -147,7 +168,7 @@ function M.build(opts)
             local label_face = face
             if entry.id == opts.active_id and opts.active_group then
                 local base_size = face.orig_size or face.size or Device.screen:scaleBySize(10)
-                label_face = fit_face({ label }, cell_width, base_size,
+                label_face = fit_face({ label }, cell_width, text_style, base_size,
                     math.max(Device.screen:scaleBySize(7), base_size - 1))
             end
             content = FrameContainer:new{
@@ -162,6 +183,7 @@ function M.build(opts)
                     TextWidget:new{
                         text = label,
                         face = label_face,
+                        bold = text_style.bold,
                         padding = 0,
                         max_width = math.max(1, cell_width - side_padding * 2),
                         truncate_with_ellipsis = true,
@@ -214,7 +236,7 @@ function M.build(opts)
         background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
         row,
     }
-    return outer, targets
+    return WidgetResources.paintFrameBorderOnTop(outer), targets
 end
 
 return M

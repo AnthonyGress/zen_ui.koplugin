@@ -333,6 +333,9 @@ msgstr "Інформація про книгу"
 msgid "Book Status"
 msgstr "Статус книги"
 
+msgid "Book strip"
+msgstr "Книжкова стрічка"
+
 msgid "Book switcher"
 msgstr ""
 
@@ -675,8 +678,8 @@ msgstr "Темно теплий сірий"
 msgid "Date"
 msgstr "Дата"
 
-msgid "Date/time widget"
-msgstr "Віджет дати/часу"
+msgid "Date/time"
+msgstr "Дата/час"
 
 msgid "Day brightness"
 msgstr "Денна яскравість"
@@ -933,11 +936,8 @@ msgstr "Не вдалося надіслати звіт: "
 msgid "Favorites"
 msgstr "Улюблене"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "Рекомендована книга"
-
-msgid "Featured widget"
-msgstr "Рекомендований віджет"
 
 msgid "Featured widgets"
 msgstr "Головні віджети"
@@ -1776,8 +1776,8 @@ msgstr "Розмір шрифту цитати"
 msgid "Quote sources"
 msgstr "Цитуйте джерела"
 
-msgid "Quotes widget"
-msgstr "Віджет цитат"
+msgid "Quotes"
+msgstr "Цитати"
 
 msgid "quotes.lua is empty"
 msgstr "quotes.lua порожній"
@@ -1830,14 +1830,8 @@ msgstr "Цілі читання"
 msgid "Reading goals font size"
 msgstr "Розмір шрифту цілей читання"
 
-msgid "Reading goals widget"
-msgstr "Віджет цілей читання"
-
 msgid "Reading stats"
 msgstr "Статистика читання"
-
-msgid "Reading stats widget"
-msgstr "Віджет статистики читання"
 
 msgid "Reading trend"
 msgstr "Тренд читання"
@@ -2300,9 +2294,6 @@ msgstr "Серія"
 
 msgid "Stream from page"
 msgstr "Потік зі сторінки"
-
-msgid "Strip widget"
-msgstr "Віджет Strip"
 
 msgid "Strip widgets"
 msgstr "Рядкові віджети"

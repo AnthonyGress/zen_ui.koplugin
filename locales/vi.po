@@ -333,6 +333,9 @@ msgstr "Thông tin sách"
 msgid "Book Status"
 msgstr "Trạng thái sách"
 
+msgid "Book strip"
+msgstr "Dải sách"
+
 msgid "Book switcher"
 msgstr ""
 
@@ -675,8 +678,8 @@ msgstr "Màu xám đậm ấm áp"
 msgid "Date"
 msgstr "Ngày"
 
-msgid "Date/time widget"
-msgstr "Tiện ích ngày/giờ"
+msgid "Date/time"
+msgstr "Ngày/giờ"
 
 msgid "Day brightness"
 msgstr "Độ sáng ban ngày"
@@ -933,11 +936,8 @@ msgstr "Không thể gửi báo cáo: "
 msgid "Favorites"
 msgstr "Yêu thích"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "Sách nổi bật"
-
-msgid "Featured widget"
-msgstr "Tiện ích nổi bật"
 
 msgid "Featured widgets"
 msgstr "Widget nổi bật"
@@ -1776,8 +1776,8 @@ msgstr "Cỡ chữ trích dẫn"
 msgid "Quote sources"
 msgstr "Nguồn trích dẫn"
 
-msgid "Quotes widget"
-msgstr "Widget trích dẫn"
+msgid "Quotes"
+msgstr "Trích dẫn"
 
 msgid "quotes.lua is empty"
 msgstr "quote.lua trống"
@@ -1830,14 +1830,8 @@ msgstr "Mục tiêu đọc"
 msgid "Reading goals font size"
 msgstr "Kích thước phông chữ mục tiêu đọc"
 
-msgid "Reading goals widget"
-msgstr "Tiện ích đọc mục tiêu"
-
 msgid "Reading stats"
 msgstr "Thống kê đọc"
-
-msgid "Reading stats widget"
-msgstr "Widget thống kê đọc"
 
 msgid "Reading trend"
 msgstr "Xu hướng đọc"
@@ -2300,9 +2294,6 @@ msgstr "Chuỗi"
 
 msgid "Stream from page"
 msgstr "Phát từ trang"
-
-msgid "Strip widget"
-msgstr "Dải tiện ích"
 
 msgid "Strip widgets"
 msgstr "Widget dải"

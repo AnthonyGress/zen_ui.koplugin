@@ -47,15 +47,15 @@ def _seed_home_settings(ko_home: Path, *, show_strip_titles: bool = True) -> Non
     modules = {
       featured = {
         default_source = { kind = "recent" },
-        interactive = true, show_description = true, show_module_title = false,
+        interactive = true, show_description = true,
         show_status_bar = false,
         progress_meta = { left = "percent", right = "total_pages" },
       },
-      stats_triplet = { show_module_title = false },
-      reading_goals = { show_module_title = false },
+      stats_triplet = {},
+      reading_goals = {},
       strip = {
         count = 4, interactive = true, order = "default",
-        show_module_title = false, show_strip_titles = true, two_rows = false,
+        show_strip_titles = true, two_rows = false,
         default_source = { kind = "recent" },
         sources = {
           recent = {
@@ -67,10 +67,10 @@ def _seed_home_settings(ko_home: Path, *, show_strip_titles: bool = True) -> Non
           enabled = true,
           order = { "recent", "to_be_read", "tags" },
           show_buttons = { recent = true, to_be_read = true, tags = true },
-          labels = { tags = "Genres" }, custom_buttons = {}, next_custom_id = 0,
+          labels = { tags = "Tags" }, custom_buttons = {}, next_custom_id = 0,
         },
       },
-      quotes = { show_module_title = false },
+      quotes = {},
     },
     quotes = {
       rotation = "daily", show_author = true, show_title = true,
@@ -142,13 +142,25 @@ def _seed_page_count_sidecar(book: Path) -> None:
     )
 
 
-def _wait_for_home(driver: ZenDriver) -> dict[str, object]:
+def _wait_for_home(
+    driver: ZenDriver,
+    required_texts: set[str] | None = None,
+    required_book_paths: set[str] | None = None,
+) -> dict[str, object]:
     deadline = time.monotonic() + 30
     latest: dict[str, object] = {}
     while time.monotonic() < deadline:
         response = driver.command("home_state")
         latest = response.get("home", {})
-        if latest.get("active") and len(latest.get("widget_ids", [])) >= 5:
+        visible_texts = {
+            normalize_visible_text(str(value))
+            for value in latest.get("visible_texts", [])
+        }
+        latest["visible_texts"] = sorted(visible_texts)
+        book_paths = set(latest.get("book_paths", []))
+        if latest.get("active") and len(latest.get("widget_ids", [])) >= 5 \
+                and (not required_texts or required_texts <= visible_texts) \
+                and (not required_book_paths or required_book_paths <= book_paths):
             return latest
         time.sleep(0.25)
     raise AssertionError(f"Home widgets did not become ready: {latest}")
@@ -181,7 +193,7 @@ def test_home_renders_all_core_widgets_with_and_without_history(with_history: bo
             assert set(home["widget_ids"]) >= {
                 "featured", "strip", "quotes", "reading_goals", "stats_triplet",
             }
-            assert {"Recent", "To Be Read", "Genres"} <= set(home["visible_texts"])
+            assert {"Recent", "To Be Read", "Tags"} <= set(home["visible_texts"])
             assert home["page_padding"] > 0
             visual_gaps = home["visual_gaps"]
             assert len(visual_gaps) == 4
@@ -199,9 +211,9 @@ def test_home_renders_all_core_widgets_with_and_without_history(with_history: bo
             process.wait(timeout=15)
 
 
-def test_home_genres_drills_from_tag_folders_into_books() -> None:
+def test_home_tags_drill_from_tag_folders_into_books() -> None:
     runtime = Path(os.environ["KOREADER_DIR"])
-    with tempfile.TemporaryDirectory(prefix="zen-ui-home-genres-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="zen-ui-home-tags-") as temporary:
         root = Path(temporary)
         ko_home = root / "home"
         ko_home.mkdir()
@@ -220,18 +232,21 @@ def test_home_genres_drills_from_tag_folders_into_books() -> None:
             assert driver.command(
                 "activate_home_target", key="strip-control:tags"
             )["ok"] is True
-            groups = _wait_for_home(driver)
+            groups = _wait_for_home(driver, {"Focus", "Testing"})
             assert {"Focus", "Testing"} <= set(groups["visible_texts"])
             assert {"Focus (1)", "Testing (1)"}.isdisjoint(groups["visible_texts"])
-            screenshot = root / "home-genre-folders.png"
+            screenshot = root / "home-tag-folders.png"
             driver.screenshot(screenshot)
             assert screenshot.stat().st_size > 0
 
             assert driver.command(
                 "activate_home_target", key="group:Focus"
             )["ok"] is True
-            books = _wait_for_home(driver)
-            assert "Alpha Home" in books["visible_texts"]
+            book_path = str(fixture["epub"].resolve())
+            books = _wait_for_home(
+                driver, {"Focus"}, required_book_paths={book_path}
+            )
+            assert book_path in books["book_paths"]
             assert {"Recent", "To Be Read", "Focus"} <= set(books["visible_texts"])
 
             assert driver.command(
@@ -283,6 +298,7 @@ def test_home_edit_mode_reopens_widget_settings_after_close() -> None:
                     break
                 time.sleep(0.1)
             assert strip.get("title") == "Strip widget"
+            assert strip.get("status_visible") is True
             assert driver.command("close_arrange_page")["ok"] is True
 
             first = driver.command("open_widget_settings", page="home", id="quotes")
@@ -296,11 +312,28 @@ def test_home_edit_mode_reopens_widget_settings_after_close() -> None:
                     break
                 time.sleep(0.1)
             assert quotes.get("title") == "Quotes widget"
+            assert quotes.get("status_visible") is True
             assert quotes.get("row_style") == quotes.get("standard_style")
             assert driver.command("close_arrange_page")["ok"] is True
 
             second = driver.command("open_widget_settings", page="home", id="quotes")
             assert second["opened"] is True, second
+            assert driver.command("close_arrange_page")["ok"] is True
+
+            assert driver.command("open_settings_page")["ok"] is True
+            deadline = time.monotonic() + 5
+            settings: dict[str, object] = {}
+            while time.monotonic() < deadline:
+                response = driver.command("settings_page_state")
+                if response.get("ok"):
+                    settings = response["settings"]
+                    break
+                time.sleep(0.1)
+            assert settings.get("status_visible") is True
+
+            reopened = driver.command("arrange_page_state")
+            assert reopened.get("ok") is True, reopened
+            assert reopened["arrange"].get("status_visible") is True
         finally:
             process.send_signal(signal.SIGTERM)
             process.wait(timeout=15)

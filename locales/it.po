@@ -333,6 +333,9 @@ msgstr "Informazioni libro"
 msgid "Book Status"
 msgstr "Stato libro"
 
+msgid "Book strip"
+msgstr "Striscia di libri"
+
 msgid "Book switcher"
 msgstr "Selettore di libri"
 
@@ -675,8 +678,8 @@ msgstr "Grigio caldo scuro"
 msgid "Date"
 msgstr "Data"
 
-msgid "Date/time widget"
-msgstr "Widget data/ora"
+msgid "Date/time"
+msgstr "Data/ora"
 
 msgid "Day brightness"
 msgstr "Luminosità diurna"
@@ -933,11 +936,8 @@ msgstr "Invio della segnalazione non riuscito: "
 msgid "Favorites"
 msgstr "Preferiti"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "Libro in evidenza"
-
-msgid "Featured widget"
-msgstr "Widget in primo piano"
 
 msgid "Featured widgets"
 msgstr "Widget in evidenza"
@@ -1776,8 +1776,8 @@ msgstr "Dimensione del carattere della citazione"
 msgid "Quote sources"
 msgstr "Fonti delle citazioni"
 
-msgid "Quotes widget"
-msgstr "Widget citazioni"
+msgid "Quotes"
+msgstr "Citazioni"
 
 msgid "quotes.lua is empty"
 msgstr "quotes.lua è vuoto"
@@ -1830,14 +1830,8 @@ msgstr "Obiettivi di lettura"
 msgid "Reading goals font size"
 msgstr "Dimensione del carattere degli obiettivi di lettura"
 
-msgid "Reading goals widget"
-msgstr "Widget degli obiettivi di lettura"
-
 msgid "Reading stats"
 msgstr "Statistiche di lettura"
-
-msgid "Reading stats widget"
-msgstr "Widget statistiche di lettura"
 
 msgid "Reading trend"
 msgstr "Tendenza alla lettura"
@@ -2300,9 +2294,6 @@ msgstr "Streak"
 
 msgid "Stream from page"
 msgstr "Flusso dalla pagina"
-
-msgid "Strip widget"
-msgstr "Widget di striscia"
 
 msgid "Strip widgets"
 msgstr "Widget striscia"

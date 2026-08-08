@@ -333,6 +333,9 @@ msgstr "Boekinformatie"
 msgid "Book Status"
 msgstr "Boekstatus"
 
+msgid "Book strip"
+msgstr "Boekenstrip"
+
 msgid "Book switcher"
 msgstr "Boekwisselaar"
 
@@ -675,8 +678,8 @@ msgstr "Donker warmgrijs"
 msgid "Date"
 msgstr "Datum"
 
-msgid "Date/time widget"
-msgstr "Datum/tijd-widget"
+msgid "Date/time"
+msgstr "Datum/tijd"
 
 msgid "Day brightness"
 msgstr "Dagheldheid"
@@ -933,11 +936,8 @@ msgstr "Indienen van rapport mislukt: "
 msgid "Favorites"
 msgstr "Favorieten"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "Uitgelicht boek"
-
-msgid "Featured widget"
-msgstr "Uitgelichte widget"
 
 msgid "Featured widgets"
 msgstr "Uitgelichte widgets"
@@ -1776,8 +1776,8 @@ msgstr "Citeer de lettergrootte"
 msgid "Quote sources"
 msgstr "Citeer bronnen"
 
-msgid "Quotes widget"
-msgstr "Citatenwidget"
+msgid "Quotes"
+msgstr "Citaten"
 
 msgid "quotes.lua is empty"
 msgstr "quotes.lua is leeg"
@@ -1830,14 +1830,8 @@ msgstr "Leesdoelen"
 msgid "Reading goals font size"
 msgstr "Lettergrootte van leesdoelen"
 
-msgid "Reading goals widget"
-msgstr "Widget voor leesdoelen"
-
 msgid "Reading stats"
 msgstr "Leesstatistieken"
-
-msgid "Reading stats widget"
-msgstr "Leesstatistiekenwidget"
 
 msgid "Reading trend"
 msgstr "Leestrend"
@@ -2300,9 +2294,6 @@ msgstr "Reeks"
 
 msgid "Stream from page"
 msgstr "Streamen vanaf pagina"
-
-msgid "Strip widget"
-msgstr "Strip-widget"
 
 msgid "Strip widgets"
 msgstr "Strookwidgets"

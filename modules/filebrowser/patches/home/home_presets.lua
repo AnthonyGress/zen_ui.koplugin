@@ -25,7 +25,6 @@ local function featured_defaults()
             right = "total_pages",
         },
         show_description = true,
-        show_module_title = false,
         show_status_bar = true,
         status_bar_bold_text = true,
         status_bar_show_bottom_border = true,
@@ -47,7 +46,7 @@ local function strip_defaults(opts)
         count = opts.count or 4,
         controls = {
             enabled = opts.controls == true,
-            labels = { tags = "Genres" },
+            labels = {},
             next_custom_id = 0,
             order = { "recent", "to_be_read", "tags", "search" },
             show_buttons = {
@@ -56,13 +55,17 @@ local function strip_defaults(opts)
                 tags = true,
                 search = true,
             },
+            text_style = {
+                font_face = "default",
+                font_size = 10,
+                bold = false,
+            },
             custom_buttons = {},
         },
         default_source = { kind = "recent" },
         interactive = true,
         order = "default",
         show_badges = false,
-        show_module_title = false,
         show_strip_titles = false,
         sources = {
             custom = { paths = {} },
@@ -128,21 +131,15 @@ local DEFAULT_HOME_PAGE = {
     modules = {
         datetime = {
             automatic_font_size = true,
-            show_module_title = false,
             text_styles = datetime_text_styles(),
         },
         featured = featured_defaults(),
-        quotes = {
-            show_module_title = false,
-        },
-        reading_goals = {
-            show_module_title = false,
-        },
+        quotes = {},
+        reading_goals = {},
         stats_triplet = {
             font_size = 18,
             font_size_override = true,
             stat_style = "divider",
-            show_module_title = false,
         },
         strip = strip_defaults(),
     },
@@ -207,19 +204,13 @@ local BOOKSHELF_HOME_PAGE = {
     modules = {
         datetime = {
             automatic_font_size = true,
-            show_module_title = false,
             text_styles = datetime_text_styles(),
         },
         featured = featured_defaults(),
-        quotes = {
-            show_module_title = false,
-        },
-        reading_goals = {
-            show_module_title = false,
-        },
+        quotes = {},
+        reading_goals = {},
         stats_triplet = {
             stat_style = "divider",
-            show_module_title = false,
         },
         strip = strip_defaults{ count = 8, controls = true, two_rows = true },
     },
@@ -420,7 +411,7 @@ end
 local LEGACY_STRIP_MODULE_IDS = { "strip_recent", "strip_custom", "strip_tag", "strip_tbr" }
 local STRIP_COMMON_KEYS = {
     "center_books", "count", "interactive", "order", "show_badges",
-    "show_module_title", "show_strip_titles", "two_rows",
+    "show_strip_titles", "two_rows",
 }
 
 local VALID_CONTROL_IDS = {
@@ -465,6 +456,10 @@ local function ensure_strip_shape(strip)
     end
     if type(controls.labels) ~= "table" then
         controls.labels = deepcopy(defaults.controls.labels)
+        changed = true
+    end
+    if controls.labels.tags == "Genres" then
+        controls.labels.tags = nil
         changed = true
     end
     if type(controls.order) ~= "table" then

@@ -18,6 +18,11 @@ local PluginScan = require("modules/menu/app_launcher/plugin_scan")
 local M = {}
 local DEFAULT_GOALS_FONT_SIZE = 11
 local DEFAULT_DATETIME_FONT_SIZES = { time = 48, date = 18 }
+local DEFAULT_STRIP_CONTROL_TEXT_STYLE = {
+    font_face = "default",
+    font_size = 10,
+    bold = false,
+}
 local open_widget_settings
 
 function M.openWidgetSettings(id, plugin)
@@ -30,7 +35,7 @@ function M.openWidgetSettings(id, plugin)
         })
     end
     if type(open_widget_settings) == "function" then
-        return open_widget_settings(id)
+        return open_widget_settings(id, plugin)
     end
     return false
 end
@@ -117,11 +122,7 @@ local function ensure_module_cfg(dcfg, module_id)
     if type(dcfg.modules) ~= "table" then dcfg.modules = {} end
     if type(dcfg.modules[module_id]) ~= "table" then dcfg.modules[module_id] = {} end
     local mcfg = dcfg.modules[module_id]
-    if module_id == "datetime" then
-        mcfg.show_module_title = false
-    elseif mcfg.show_module_title == nil then
-        mcfg.show_module_title = false
-    end
+    mcfg.show_module_title = nil
     return mcfg
 end
 
@@ -180,6 +181,17 @@ local function ensure_strip_cfg(dcfg)
     if mcfg.show_strip_titles == nil then mcfg.show_strip_titles = false end
     if mcfg.show_badges == nil then mcfg.show_badges = false end
     if mcfg.center_books == nil then mcfg.center_books = false end
+    if type(mcfg.controls) ~= "table" then mcfg.controls = {} end
+    if type(mcfg.controls.text_style) ~= "table" then
+        mcfg.controls.text_style = {}
+    end
+    local style = mcfg.controls.text_style
+    if type(style.font_face) ~= "string" or style.font_face == "" then
+        style.font_face = DEFAULT_STRIP_CONTROL_TEXT_STYLE.font_face
+    end
+    style.font_size = math.max(6, math.min(24, math.floor(
+        (tonumber(style.font_size) or DEFAULT_STRIP_CONTROL_TEXT_STYLE.font_size) + 0.5)))
+    style.bold = style.bold == true
     return mcfg
 end
 
@@ -207,6 +219,7 @@ local function ensure_home_widget_cfg(dcfg)
     reading_goals.font_size = goals_font_size and (goals_font_override or goals_font_size ~= DEFAULT_GOALS_FONT_SIZE)
         and math.max(8, math.min(32, math.floor(goals_font_size + 0.5))) or nil
     reading_goals.font_size_override = reading_goals.font_size and true or nil
+    ensure_module_cfg(dcfg, "quotes")
     ensure_strip_cfg(dcfg)
 end
 
@@ -971,16 +984,6 @@ function M.build(ctx)
                 end,
             },
             {
-                text = _("Show widget title"),
-                checked_func = function()
-                    return mcfg.show_module_title == true
-                end,
-                callback = function()
-                    mcfg.show_module_title = mcfg.show_module_title ~= true
-                    save_home("reinit")
-                end,
-            },
-            {
                 text = _("Show description"),
                 checked_func = function()
                     return mcfg.show_description ~= false
@@ -1471,6 +1474,102 @@ function M.build(ctx)
         return items
     end
 
+    local function strip_control_style_summary(mcfg)
+        local style = ensure_strip_cfg(dcfg).controls.text_style
+        local weight = style.bold and _("bold") or _("regular")
+        return string.format("%s, %s, %s",
+            font_label(style.font_face), tostring(style.font_size), weight)
+    end
+
+    local function save_strip_control_style(touchmenu_instance)
+        save_home("reinit")
+        if touchmenu_instance and touchmenu_instance.updateItems then
+            touchmenu_instance:updateItems()
+        end
+    end
+
+    local function build_strip_control_font_items(mcfg)
+        return {
+            {
+                text_func = function()
+                    local style = ensure_strip_cfg(dcfg).controls.text_style
+                    return string.format("%s %s", _("Font size:"), tostring(style.font_size))
+                end,
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    local SpinWidget = require("ui/widget/spinwidget")
+                    local style = ensure_strip_cfg(dcfg).controls.text_style
+                    UIManager:show(SpinWidget:new{
+                        title_text = string.format("%s %s", _("Controls"), _("font size")),
+                        value = style.font_size,
+                        value_min = 6,
+                        value_max = 24,
+                        default_value = DEFAULT_STRIP_CONTROL_TEXT_STYLE.font_size,
+                        callback = function(spin)
+                            style.font_size = spin.value
+                            save_strip_control_style(touchmenu_instance)
+                        end,
+                    })
+                end,
+            },
+            {
+                text_func = function()
+                    local style = ensure_strip_cfg(dcfg).controls.text_style
+                    return string.format("%s %s", _("Font:"), font_label(style.font_face))
+                end,
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    local ok_fc, FontChooser = pcall(require, "ui/widget/fontchooser")
+                    if not ok_fc then return end
+                    local style = ensure_strip_cfg(dcfg).controls.text_style
+                    local default_font = chooser_default_font()
+                    local display_face = style.font_face == "default"
+                        and default_font or style.font_face
+                    UIManager:show(FontChooser:new{
+                        title = string.format("%s %s", _("Controls"), _("font")),
+                        font_file = display_face,
+                        default_font_file = default_font,
+                        callback = function(file)
+                            if style.font_face ~= file then
+                                style.font_face = file
+                                save_strip_control_style(touchmenu_instance)
+                            end
+                        end,
+                    })
+                end,
+                hold_callback = function(touchmenu_instance)
+                    local style = ensure_strip_cfg(dcfg).controls.text_style
+                    if style.font_face ~= "default" then
+                        style.font_face = "default"
+                        save_strip_control_style(touchmenu_instance)
+                    end
+                end,
+            },
+            {
+                text = _("Bold"),
+                checked_func = function()
+                    return ensure_strip_cfg(dcfg).controls.text_style.bold == true
+                end,
+                callback = function(touchmenu_instance)
+                    local style = ensure_strip_cfg(dcfg).controls.text_style
+                    style.bold = style.bold ~= true
+                    save_strip_control_style(touchmenu_instance)
+                end,
+            },
+            {
+                text = _("Use default style"),
+                callback = function(touchmenu_instance)
+                    mcfg.controls.text_style = {
+                        font_face = DEFAULT_STRIP_CONTROL_TEXT_STYLE.font_face,
+                        font_size = DEFAULT_STRIP_CONTROL_TEXT_STYLE.font_size,
+                        bold = DEFAULT_STRIP_CONTROL_TEXT_STYLE.bold,
+                    }
+                    save_strip_control_style(touchmenu_instance)
+                end,
+            },
+        }
+    end
+
     build_strip_widget_items = function()
         local mcfg = ensure_strip_cfg(dcfg)
         local recent = mcfg.sources.recent
@@ -1507,15 +1606,15 @@ function M.build(ctx)
                                 show_strip_buttons(mcfg, touchmenu_instance)
                             end,
                         }, icons.navbar_tabs),
+                        {
+                            text_func = function()
+                                return _("Font") .. ": " .. strip_control_style_summary(mcfg)
+                            end,
+                            sub_item_table_func = function()
+                                return build_strip_control_font_items(mcfg)
+                            end,
+                        },
                     }
-                end,
-            },
-            {
-                text = _("Show widget title"),
-                checked_func = function() return mcfg.show_module_title == true end,
-                callback = function()
-                    mcfg.show_module_title = mcfg.show_module_title ~= true
-                    save_home("reinit")
                 end,
             },
             {
@@ -1567,7 +1666,6 @@ function M.build(ctx)
                     })
                 end,
             },
-            { text = _("Order"), sub_item_table = build_order_items(mcfg) },
         }
         if mcfg.default_source.kind == "recent" then
             table.insert(items, 2, {
@@ -1677,6 +1775,7 @@ function M.build(ctx)
         ZenArrangeList.show{
             title = _("Widgets"),
             item_table = sort_items,
+            plugin = ctx.plugin,
             callback = function()
                 local new_order = {}
                 for _i, item in ipairs(sort_items) do
@@ -1882,16 +1981,6 @@ function M.build(ctx)
         local goals_cfg = ensure_module_cfg(dcfg, "reading_goals")
         local items = {
             {
-                text = _("Show widget title"),
-                checked_func = function()
-                    return goals_cfg.show_module_title == true
-                end,
-                callback = function()
-                    goals_cfg.show_module_title = goals_cfg.show_module_title ~= true
-                    save_home("reinit")
-                end,
-            },
-            {
                 text_func = function()
                     return string.format("%s %s", _("Font size:"), tostring(goals_cfg.font_size or DEFAULT_GOALS_FONT_SIZE))
                 end,
@@ -1949,16 +2038,6 @@ function M.build(ctx)
     local function build_stats_triplet_items()
         local stats_cfg = ensure_module_cfg(dcfg, "stats_triplet")
         local items = {
-            {
-                text = _("Show widget title"),
-                checked_func = function()
-                    return stats_cfg.show_module_title == true
-                end,
-                callback = function()
-                    stats_cfg.show_module_title = stats_cfg.show_module_title ~= true
-                    save_home("reinit")
-                end,
-            },
             {
                 text_func = function()
                     return string.format("%s %s", _("Font size:"), tostring(stats_cfg.font_size or dcfg.font_size))
@@ -2061,7 +2140,6 @@ function M.build(ctx)
     end
 
     local function build_quotes_items()
-        local quotes_cfg = ensure_module_cfg(dcfg, "quotes")
         local function quote_sources()
             if type(dcfg.quotes.sources) ~= "table" then
                 dcfg.quotes.sources = { default = true }
@@ -2152,16 +2230,6 @@ function M.build(ctx)
                         end,
                     },
                 },
-            },
-            {
-                text = _("Show widget title"),
-                checked_func = function()
-                    return quotes_cfg.show_module_title == true
-                end,
-                callback = function()
-                    quotes_cfg.show_module_title = quotes_cfg.show_module_title ~= true
-                    save_home("reinit")
-                end,
             },
             {
                 text = _("Automatic font size"),
@@ -2282,7 +2350,7 @@ function M.build(ctx)
         return items
     end
 
-    open_widget_settings = function(id)
+    open_widget_settings = function(id, owning_plugin)
         local settings_page = require("modules/settings/zen_settings_page")
         local standalone_route = settings_page.rememberStandaloneArrangeRoute({
             { text = _("Home"), occurrence = 1 },
@@ -2295,6 +2363,7 @@ function M.build(ctx)
         require("common/ui/zen_arrange_list").show{
             title = component_label(id),
             item_table = items,
+            plugin = owning_plugin or ctx.plugin,
             allow_arrange = false,
             hide_footer_cancel = true,
             back_callback = standalone_route and function()
@@ -2383,7 +2452,7 @@ function M.build(ctx)
                         text = _("Featured widgets"),
                         sub_item_table = {
                             {
-                                text = _("Featured widget"),
+                                text = _("Featured book"),
                                 sub_item_table_func = build_featured_widget_items,
                             },
                         },
@@ -2414,11 +2483,11 @@ function M.build(ctx)
                         sub_item_table_func = build_goals_items,
                     },
                     {
-                        text = _("Reading stats widget"),
+                        text = _("Reading stats"),
                         sub_item_table_func = build_stats_triplet_items,
                     },
                     {
-                        text = _("Quotes widget"),
+                        text = _("Quotes"),
                         sub_item_table_func = build_quotes_items,
                     },
                 },

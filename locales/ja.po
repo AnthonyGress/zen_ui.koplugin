@@ -333,6 +333,9 @@ msgstr "本の情報"
 msgid "Book Status"
 msgstr "本のステータス"
 
+msgid "Book strip"
+msgstr "ブックストリップ"
+
 msgid "Book switcher"
 msgstr ""
 
@@ -675,8 +678,8 @@ msgstr "ダークウォームグレー"
 msgid "Date"
 msgstr "日付"
 
-msgid "Date/time widget"
-msgstr "日付/時刻ウィジェット"
+msgid "Date/time"
+msgstr "日付/時刻"
 
 msgid "Day brightness"
 msgstr "日中明るさ"
@@ -933,11 +936,8 @@ msgstr "レポート送信に失敗しました: "
 msgid "Favorites"
 msgstr "お気に入り"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "注目の本"
-
-msgid "Featured widget"
-msgstr "注目のウィジェット"
 
 msgid "Featured widgets"
 msgstr "注目ウィジェット"
@@ -1776,8 +1776,8 @@ msgstr "引用のフォントサイズ"
 msgid "Quote sources"
 msgstr "引用元"
 
-msgid "Quotes widget"
-msgstr "引用ウィジェット"
+msgid "Quotes"
+msgstr "引用"
 
 msgid "quotes.lua is empty"
 msgstr "quotes.lua は空です"
@@ -1830,14 +1830,8 @@ msgstr "読書目標"
 msgid "Reading goals font size"
 msgstr "読書目標のフォントサイズ"
 
-msgid "Reading goals widget"
-msgstr "読書目標ウィジェット"
-
 msgid "Reading stats"
 msgstr "読書統計"
-
-msgid "Reading stats widget"
-msgstr "読書統計ウィジェット"
 
 msgid "Reading trend"
 msgstr "読書傾向"
@@ -2300,9 +2294,6 @@ msgstr "連続記録"
 
 msgid "Stream from page"
 msgstr "ページからストリーム"
-
-msgid "Strip widget"
-msgstr "ストリップウィジェット"
 
 msgid "Strip widgets"
 msgstr "ストリップウィジェット"

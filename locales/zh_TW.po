@@ -333,6 +333,9 @@ msgstr "書籍資訊"
 msgid "Book Status"
 msgstr "書籍狀態"
 
+msgid "Book strip"
+msgstr "書籍橫條"
+
 msgid "Book switcher"
 msgstr "書籍切換器"
 
@@ -675,8 +678,8 @@ msgstr "深暖灰"
 msgid "Date"
 msgstr "日期"
 
-msgid "Date/time widget"
-msgstr "日期/時間小工具"
+msgid "Date/time"
+msgstr "日期/時間"
 
 msgid "Day brightness"
 msgstr "白天亮度"
@@ -933,11 +936,8 @@ msgstr "送出報告失敗："
 msgid "Favorites"
 msgstr "我的最愛"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "精選書籍"
-
-msgid "Featured widget"
-msgstr "特色小部件"
 
 msgid "Featured widgets"
 msgstr "精選小工具"
@@ -1776,8 +1776,8 @@ msgstr "報價字體大小"
 msgid "Quote sources"
 msgstr "報價來源"
 
-msgid "Quotes widget"
-msgstr "引文小工具"
+msgid "Quotes"
+msgstr "引文"
 
 msgid "quotes.lua is empty"
 msgstr "quotes.lua 為空"
@@ -1830,14 +1830,8 @@ msgstr "閱讀目標"
 msgid "Reading goals font size"
 msgstr "閱讀目標字體大小"
 
-msgid "Reading goals widget"
-msgstr "閱讀目標小工具"
-
 msgid "Reading stats"
 msgstr "閱讀統計數據"
-
-msgid "Reading stats widget"
-msgstr "閱讀統計小工具"
 
 msgid "Reading trend"
 msgstr "閱讀趨勢"
@@ -2300,9 +2294,6 @@ msgstr "連續閱讀"
 
 msgid "Stream from page"
 msgstr "從頁面串流"
-
-msgid "Strip widget"
-msgstr "條帶小部件"
 
 msgid "Strip widgets"
 msgstr "橫列小工具"

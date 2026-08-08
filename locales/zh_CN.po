@@ -333,6 +333,9 @@ msgstr "书籍信息"
 msgid "Book Status"
 msgstr "书籍状态"
 
+msgid "Book strip"
+msgstr "书籍横条"
+
 msgid "Book switcher"
 msgstr "书籍切换器"
 
@@ -675,8 +678,8 @@ msgstr "深暖灰"
 msgid "Date"
 msgstr "日期"
 
-msgid "Date/time widget"
-msgstr "日期/时间小部件"
+msgid "Date/time"
+msgstr "日期/时间"
 
 msgid "Day brightness"
 msgstr "白天亮度"
@@ -933,11 +936,8 @@ msgstr "提交报告失败："
 msgid "Favorites"
 msgstr "收藏夹"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "精选书籍"
-
-msgid "Featured widget"
-msgstr "特色小部件"
 
 msgid "Featured widgets"
 msgstr "精选小组件"
@@ -1776,8 +1776,8 @@ msgstr "报价字体大小"
 msgid "Quote sources"
 msgstr "报价来源"
 
-msgid "Quotes widget"
-msgstr "引文小组件"
+msgid "Quotes"
+msgstr "引文"
 
 msgid "quotes.lua is empty"
 msgstr "quotes.lua 为空"
@@ -1830,14 +1830,8 @@ msgstr "阅读目标"
 msgid "Reading goals font size"
 msgstr "阅读目标字体大小"
 
-msgid "Reading goals widget"
-msgstr "阅读目标小部件"
-
 msgid "Reading stats"
 msgstr "阅读统计数据"
-
-msgid "Reading stats widget"
-msgstr "阅读统计小组件"
 
 msgid "Reading trend"
 msgstr "阅读趋势"
@@ -2300,9 +2294,6 @@ msgstr "连续阅读"
 
 msgid "Stream from page"
 msgstr "从页面串流"
-
-msgid "Strip widget"
-msgstr "条带小部件"
 
 msgid "Strip widgets"
 msgstr "横条小组件"

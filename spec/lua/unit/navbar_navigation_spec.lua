@@ -1321,11 +1321,16 @@ describe("file browser navbar navigation", function()
             updateItems = function() calls[#calls + 1] = "stats_reset" end,
             { dimen = { w = 800, h = 580 } },
         }
+        local stats_plugin
         ZenSpec.replace("modules/filebrowser/patches/stats_page", {
-            create = function() return stats_page, true end,
+            create = function(_create_status_row, _repaint_title_bar, plugin)
+                stats_plugin = plugin
+                return stats_page, true
+            end,
         })
 
         assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("stats"))
+        assert.are.equal(_G.__ZEN_UI_PLUGIN, stats_plugin)
         local navbar = stats_page[1][1][2]
         calls = {}
 

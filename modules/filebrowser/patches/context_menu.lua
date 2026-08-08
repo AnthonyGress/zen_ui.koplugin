@@ -527,13 +527,15 @@ local function apply_context_menu()
             local UIManager_sod    = require("ui/uimanager")
             local _sod             = require("gettext")
             local cur_rev          = opts.current_reverse or false
+            local forward_text     = opts.forward_text or _sod("Ascending")
+            local reverse_text     = opts.reverse_text or _sod("Descending")
             local order_dialog
             order_dialog = new_context_menu_dialog{
                 title       = opts.title or _sod("Sort order"),
                 title_align = "center",
                 buttons     = {
                     {{
-                        text     = "\u{F15D}  " .. _sod("Ascending") .. (not cur_rev and "  \u{2713}" or ""),
+                        text     = "\u{F15D}  " .. forward_text .. (not cur_rev and "  \u{2713}" or ""),
                         align    = "left",
                         enabled  = cur_rev,
                         callback = function()
@@ -542,7 +544,7 @@ local function apply_context_menu()
                         end,
                     }},
                     {{
-                        text     = "\u{F15E}  " .. _sod("Descending") .. (cur_rev and "  \u{2713}" or ""),
+                        text     = "\u{F15E}  " .. reverse_text .. (cur_rev and "  \u{2713}" or ""),
                         align    = "left",
                         enabled  = not cur_rev,
                         callback = function()

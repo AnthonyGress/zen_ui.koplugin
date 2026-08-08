@@ -333,6 +333,9 @@ msgstr "Book information"
 msgid "Book Status"
 msgstr "Book Status"
 
+msgid "Book strip"
+msgstr "Book strip"
+
 msgid "Book switcher"
 msgstr "Book switcher"
 
@@ -675,8 +678,8 @@ msgstr "Dark warm gray"
 msgid "Date"
 msgstr "Date"
 
-msgid "Date/time widget"
-msgstr "Date/time widget"
+msgid "Date/time"
+msgstr "Date/time"
 
 msgid "Day brightness"
 msgstr "Day brightness"
@@ -933,11 +936,8 @@ msgstr "Failed to submit report: "
 msgid "Favorites"
 msgstr "Favorites"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "Featured Book"
-
-msgid "Featured widget"
-msgstr "Featured widget"
 
 msgid "Featured widgets"
 msgstr "Featured widgets"
@@ -1776,8 +1776,8 @@ msgstr "Quote font size"
 msgid "Quote sources"
 msgstr "Quote sources"
 
-msgid "Quotes widget"
-msgstr "Quotes widget"
+msgid "Quotes"
+msgstr "Quotes"
 
 msgid "quotes.lua is empty"
 msgstr "quotes.lua is empty"
@@ -1830,14 +1830,8 @@ msgstr "Reading goals"
 msgid "Reading goals font size"
 msgstr "Reading goals font size"
 
-msgid "Reading goals widget"
-msgstr "Reading goals widget"
-
 msgid "Reading stats"
 msgstr "Reading stats"
-
-msgid "Reading stats widget"
-msgstr "Reading stats widget"
 
 msgid "Reading trend"
 msgstr "Reading trend"
@@ -2300,9 +2294,6 @@ msgstr "Streak"
 
 msgid "Stream from page"
 msgstr "Stream from page"
-
-msgid "Strip widget"
-msgstr "Strip widget"
 
 msgid "Strip widgets"
 msgstr "Strip widgets"

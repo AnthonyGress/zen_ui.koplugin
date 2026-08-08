@@ -114,6 +114,28 @@ describe("unified Home strip configuration", function()
         assert.is_nil(controls.show_buttons.search)
     end)
 
+    it("adds the default strip control text style to existing presets", function()
+        local Presets = require("modules/filebrowser/patches/home/home_presets")
+        local page = Presets.defaultHomePage()
+        page.modules.strip.controls.text_style = nil
+
+        assert.is_true(Presets.normalizeStripConfig(page))
+        assert.are.same({
+            font_face = "default",
+            font_size = 10,
+            bold = false,
+        }, page.modules.strip.controls.text_style)
+    end)
+
+    it("migrates the legacy Genres control label to Tags", function()
+        local Presets = require("modules/filebrowser/patches/home/home_presets")
+        local page = Presets.defaultHomePage()
+        page.modules.strip.controls.labels.tags = "Genres"
+
+        assert.is_true(Presets.normalizeStripConfig(page))
+        assert.is_nil(page.modules.strip.controls.labels.tags)
+    end)
+
     it("keeps all Tags as a strip source", function()
         local Presets = require("modules/filebrowser/patches/home/home_presets")
         local page = Presets.defaultHomePage()

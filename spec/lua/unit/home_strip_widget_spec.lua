@@ -122,6 +122,11 @@ describe("home strip widget", function()
                 return "No books found"
             end,
         })
+        ZenSpec.replace("common/cover_utils", {
+            getFolderPreviewBounds = function(_mode, width, height)
+                return width, height
+            end,
+        })
         ZenSpec.replace("modules/filebrowser/folder_cover", {
             build = function(menu, entry, title, width, height, options)
                 local build = {
@@ -136,6 +141,10 @@ describe("home strip widget", function()
                 folder_calls.builds[#folder_calls.builds + 1] = build
                 local pending = folder_needs_hydration and options.cached_only == true
                 if options.cached_only == false then folder_needs_hydration = false end
+                local entries = {}
+                for _i, path in ipairs(entry._zen_files or {}) do
+                    entries[#entries + 1] = { is_file = true, path = path }
+                end
                 return {
                     frame = widget_class("folder-cover"):new{
                         width = width,
@@ -144,6 +153,8 @@ describe("home strip widget", function()
                     title = title,
                     count = #entry._zen_files,
                     cover_count = pending and 0 or 1,
+                    entries = entries,
+                    mode = "normal",
                     needs_hydration = pending,
                 }
             end,
@@ -209,6 +220,7 @@ describe("home strip widget", function()
         local requested
         local focus_target
         local opened
+        local context_args
         local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         assert.are.same({ units = 2.5 }, Strip.size)
         local widget = Strip.build({
@@ -228,6 +240,10 @@ describe("home strip widget", function()
                 return child
             end,
             openBook = function(path) opened = path end,
+            showBookMenu = function(path, source)
+                context_args = { path, source }
+                return true
+            end,
         })
 
         assert.is_table(widget)
@@ -240,6 +256,8 @@ describe("home strip widget", function()
         assert.are.equal("book:/library/alpha.epub", focus_target.key)
         assert.is_true(focus_target.activate())
         assert.are.equal(book.path, opened)
+        assert.is_true(focus_target.context())
+        assert.are.same({ book.path, "recently_read" }, context_args)
     end)
 
     it("adds a small vertical gap between two book rows", function()
@@ -268,6 +286,29 @@ describe("home strip widget", function()
             end
         end
         assert.are.equal(1, row_gaps)
+    end)
+
+    it("keeps books slightly closer together horizontally", function()
+        local books = {}
+        for i = 1, 4 do
+            books[i] = { path = "/library/" .. tostring(i) .. ".epub" }
+        end
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 300,
+            component_id = "strip",
+            module_cfg = { count = 4, interactive = false },
+            data = { getBooksForStrip = function() return books end },
+        })
+
+        local book_gaps = {}
+        for _i, widget in ipairs(created) do
+            if widget.kind == "ui/widget/horizontalspan" then
+                book_gaps[#book_gaps + 1] = widget.width
+            end
+        end
+        assert.are.same({ 82, 82, 82 }, book_gaps)
     end)
 
     it("renders an empty recent-history state", function()
@@ -304,7 +345,7 @@ describe("home strip widget", function()
                     show_buttons = {
                         recent = true, to_be_read = true, tags = true, search = true,
                     },
-                    labels = { tags = "Genres" },
+                    labels = { tags = "Tags" },
                     custom_buttons = {},
                 },
             },
@@ -316,21 +357,21 @@ describe("home strip widget", function()
         local dividers = {}
         for _i, widget in ipairs(created) do
             if widget.kind == "ui/widget/container/framecontainer"
-                    and widget.height == 20 and widget.bordersize == 2 then
+                    and widget.height == 30 and widget.bordersize == 2 then
                 outer_frames[#outer_frames + 1] = widget
             elseif widget.kind == "ui/widget/container/framecontainer"
-                    and widget.height == 16 then
+                    and widget.height == 26 then
                 tab_frames[#tab_frames + 1] = widget
             elseif widget.kind == "ui/widget/linewidget"
-                    and widget.dimen.h == 16 then
+                    and widget.dimen.h == 26 then
                 dividers[#dividers + 1] = widget
             end
         end
         assert.are.equal(1, #outer_frames)
         assert.are.equal(584, outer_frames[1].width)
-        assert.are.equal(4, outer_frames[1].radius)
+        assert.are.equal(8, outer_frames[1].radius)
         assert.are.equal(3, #tab_frames)
-        assert.are.same({ 185, 184, 184 }, {
+        assert.are.same({ 176, 176, 175 }, {
             tab_frames[1].width,
             tab_frames[2].width,
             tab_frames[3].width,
@@ -346,8 +387,40 @@ describe("home strip widget", function()
             assert.are.equal("black", divider.background)
         end
         assert.is_true(has_text("Recent"))
-        assert.is_true(has_text("Genres"))
+        assert.is_true(has_text("Tags"))
         assert.is_true(has_text(require("common/inline_icon_map").search))
+    end)
+
+    it("squares strip controls when rounded library covers are disabled", function()
+        rawset(_G, "__ZEN_UI_PLUGIN", {
+            config = { features = { browser_cover_rounded_corners = false } },
+        })
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 300,
+            component_id = "strip",
+            module_cfg = {
+                count = 4,
+                controls = {
+                    enabled = true,
+                    order = { "recent" },
+                    show_buttons = { recent = true },
+                    labels = {},
+                    custom_buttons = {},
+                },
+            },
+            data = { getStripItemsForPage = function() return {} end },
+        })
+
+        for _i, widget in ipairs(created) do
+            if widget.kind == "ui/widget/container/framecontainer"
+                    and widget.height == 30 and widget.bordersize == 2 then
+                assert.are.equal(0, widget.radius)
+                return
+            end
+        end
+        error("strip controls frame not found")
     end)
 
     it("keeps normal tab text stable while fitting a long active group label", function()
@@ -357,13 +430,13 @@ describe("home strip widget", function()
             width = 600,
             height = 20,
             active_id = "tags",
-            active_group = "A very long genre name that needs truncation",
+            active_group = "A very long tag name that needs truncation",
             controls = {
                 order = { "recent", "to_be_read", "tags", "search" },
                 show_buttons = {
                     recent = true, to_be_read = true, tags = true, search = true,
                 },
-                labels = { tags = "Genres" },
+                labels = { tags = "Tags" },
                 custom_buttons = {},
             },
             on_source = function() return true end,
@@ -379,11 +452,44 @@ describe("home strip widget", function()
         assert.are.equal(10, text_widgets.Recent.face.size)
         assert.are.equal(10, text_widgets["To Be Read"].face.size)
         assert.are.equal(9,
-            text_widgets["A very long genre name that needs truncation"].face.size)
+            text_widgets["A very long tag name that needs truncation"].face.size)
         assert.is_true(
-            text_widgets["A very long genre name that needs truncation"].truncate_with_ellipsis)
-        assert.are.equal(11,
+            text_widgets["A very long tag name that needs truncation"].truncate_with_ellipsis)
+        assert.are.equal(14,
             text_widgets[require("common/inline_icon_map").search].face.size)
+    end)
+
+    it("applies the configured control font style", function()
+        local StripControls = require(
+            "modules/filebrowser/patches/home/widgets/strip_controls")
+        StripControls.build({
+            width = 600,
+            height = 30,
+            controls = {
+                order = { "recent", "search" },
+                show_buttons = { recent = true, search = true },
+                labels = {},
+                custom_buttons = {},
+                text_style = {
+                    font_face = "ControlFont",
+                    font_size = 13,
+                    bold = true,
+                },
+            },
+            on_source = function() return true end,
+            on_action = function() return true end,
+        })
+
+        local recent
+        for _i, widget in ipairs(created) do
+            if widget.kind == "ui/widget/textwidget" and widget.text == "Recent" then
+                recent = widget
+                break
+            end
+        end
+        assert.are.equal("ControlFont", recent.face.name)
+        assert.are.equal(13, recent.face.size)
+        assert.is_true(recent.bold)
     end)
 
     it("prepares every visible control for non-touch focus and activation", function()
@@ -457,7 +563,7 @@ describe("home strip widget", function()
                     enabled = true,
                     order = { "recent", "tags" },
                     show_buttons = { recent = true, tags = true },
-                    labels = { tags = "Genres" }, custom_buttons = {},
+                    labels = { tags = "Tags" }, custom_buttons = {},
                 },
             },
             data = {
@@ -471,7 +577,7 @@ describe("home strip widget", function()
         local active_frames = 0
         for _i, widget in ipairs(created) do
             if widget.kind == "ui/widget/container/framecontainer"
-                    and widget.height == 16 and widget.background == "black" then
+                    and widget.height == 26 and widget.background == "black" then
                 active_frames = active_frames + 1
             end
         end
@@ -480,7 +586,7 @@ describe("home strip widget", function()
         assert.are.equal(1, active_frames)
     end)
 
-    it("maps a restored tag source to the active Genres tab", function()
+    it("maps a restored tag source to the active Tags tab", function()
         local menu = {
             _zen_home_strip_runtime = {
                 source = { kind = "tag", value = "Adventure" },
@@ -497,7 +603,7 @@ describe("home strip widget", function()
                     enabled = true,
                     order = { "recent", "tags" },
                     show_buttons = { recent = true, tags = true },
-                    labels = { tags = "Genres" }, custom_buttons = {},
+                    labels = { tags = "Tags" }, custom_buttons = {},
                 },
             },
             data = { getStripItemsForPage = function() return {} end },
@@ -506,7 +612,7 @@ describe("home strip widget", function()
         local active_frames = 0
         for _i, widget in ipairs(created) do
             if widget.kind == "ui/widget/container/framecontainer"
-                    and widget.height == 16 and widget.background == "black" then
+                    and widget.height == 26 and widget.background == "black" then
                 active_frames = active_frames + 1
             end
         end
@@ -737,7 +843,7 @@ describe("home strip widget", function()
                     enabled = true,
                     order = { "tags" },
                     show_buttons = { tags = true },
-                    labels = { tags = "Genres" }, custom_buttons = {},
+                    labels = { tags = "Tags" }, custom_buttons = {},
                 },
             },
             data = {
@@ -955,6 +1061,55 @@ describe("home strip widget", function()
 
         assert.is_false(folder_calls.builds[2].options.cached_only)
         assert.is_false(folder_calls.builds[2].options.decorate)
+        assert.is_true(folder_calls.builds[3].options.cached_only)
+        assert.are.equal(1, refreshed)
+        assert.are.equal(0, #scheduled)
+    end)
+
+    it("refreshes a grouped preview when one of its pending covers is ready", function()
+        folder_needs_hydration = true
+        local member_covers_pending = true
+        local cover_listener
+        local refreshed = 0
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        local widget = Strip.build({
+            width = 600,
+            height = 240,
+            component_id = "strip",
+            module_cfg = { count = 4, show_strip_titles = false },
+            data = {
+                getStripItemsForPage = function()
+                    return {{
+                        is_group = true,
+                        group_kind = "tags",
+                        group_label = "Fantasy",
+                        group_count = 2,
+                        group_files = { "/books/a.epub", "/books/b.epub" },
+                    }}
+                end,
+                warmStripCover = function()
+                    return member_covers_pending and "pending" or "warmed"
+                end,
+            },
+            registerStripCoverListener = function(listener)
+                cover_listener = listener
+                return function() end
+            end,
+            refreshStrip = function() refreshed = refreshed + 1 end,
+        })
+
+        widget:paintTo({}, 0, 0)
+        run_scheduled()
+        assert.are.equal(1, #folder_calls.builds)
+        assert.are.same({ 0.4 }, scheduled_delays)
+        assert.are.equal(0, refreshed)
+
+        member_covers_pending = false
+        cover_listener("/books/a.epub")
+        assert.are.same({ 0 }, scheduled_delays)
+        run_scheduled()
+
+        assert.is_false(folder_calls.builds[2].options.cached_only)
         assert.is_true(folder_calls.builds[3].options.cached_only)
         assert.are.equal(1, refreshed)
         assert.are.equal(0, #scheduled)

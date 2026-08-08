@@ -25,7 +25,7 @@ Add widgets like featured books, cover strips, reading goals, reading stats, quo
 - Show or hide the home page top status bar.
 - Configure featured, strip, reading goals, stats, and quote widgets.
 - Select custom books for custom featured and strip widgets.
-- Configure text styles, progress labels, widget titles, interactivity, and widget-specific display options.
+- Configure text styles, progress labels, interactivity, and widget-specific display options.
 - Use stable page labels in featured-widget progress when a book provides a page map.
 
 ## Setting reference
@@ -38,7 +38,6 @@ Add widgets like featured books, cover strips, reading goals, reading stats, quo
 | Presets > Save current home page as preset | Saves the current home page configuration as a user preset. |
 | Presets > User presets | Applies, renames, or deletes saved home page presets. |
 | Home > Show top status bar | Shows or hides the top status bar on the home page. |
-| Featured widgets > Show widget title | Shows the featured widget title. |
 | Featured widgets > Show description | Shows featured-book description text. |
 | Featured widgets > Interactive | Allows featured widgets to respond to selection. |
 | Featured widgets > Top status bar | Shows the featured widget status bar and configures its bottom border and bold text. |
@@ -47,7 +46,6 @@ Add widgets like featured books, cover strips, reading goals, reading stats, quo
 | Custom featured widget > Book | Selects the book shown by the custom featured widget. |
 | Custom featured widget > Clear book | Removes the selected custom featured book. |
 | Featured recent and To Be Read widgets > Order | Selects default or reverse order. |
-| Strip widgets > Show widget title | Shows the strip widget title. |
 | Strip widgets > Show book titles | Shows book titles in strip widgets. |
 | Strip widgets > Show badges | Shows cover badges in strip widgets. |
 | Strip widgets > Interactive | Allows strip widgets to respond to selection. |
@@ -58,17 +56,14 @@ Add widgets like featured books, cover strips, reading goals, reading stats, quo
 | Custom strip widget > Add book | Adds a selected book to the custom strip, up to 50 books. |
 | Custom strip widget > Remove book | Removes a selected book from the custom strip. |
 | Custom strip widget > Clear books | Removes all selected custom strip books. |
-| Reading goals > Show widget title | Shows the reading goals widget title. |
 | Reading goals > Goal shown | Selects daily or weekly goal display. |
 | Reading goals > Goals metric | Selects pages or time as the goal metric. |
 | Reading goals > Daily pages goal | Sets the daily page target. |
 | Reading goals > Weekly pages goal | Sets the weekly page target. |
 | Reading goals > Daily time goal | Sets the daily time target in minutes. |
 | Reading goals > Weekly time goal | Sets the weekly time target in minutes. |
-| Reading stats widget > Show widget title | Shows the reading stats widget title. |
 | Reading stats widget > Stat separators | Selects dividing lines, outlined boxes, or no stat separators. |
 | Reading stats widget > Font size | Sets a per-widget text size or uses the Home default. |
-| Quotes widget > Show widget title | Shows the quotes widget title. |
 | Quotes widget > Quote sources | Selects any combination of default quotes, custom quotes, and annotations. |
 | Quotes widget > New quote | Changes the quote daily or whenever Home refreshes. |
 | Quotes widget > Show author | Shows the quote author when available. |

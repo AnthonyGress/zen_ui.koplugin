@@ -191,6 +191,61 @@ describe("library settings", function()
         assert.are.equal(1, rebuilds)
     end)
 
+    it("rebuilds Home when spine lines or rounded corners change", function()
+        local scheduled
+        local saves = 0
+        local refreshes = 0
+        local rebuilds = 0
+        package.loaded["ui/uimanager"].scheduleIn = function(_self, delay, callback)
+            scheduled = { delay = delay, callback = callback }
+        end
+        package.loaded["common/shared_state"].get = function()
+            return { rebuildActive = function() rebuilds = rebuilds + 1 end }
+        end
+        ZenSpec.replace("apps/filemanager/filemanager", {
+            instance = {
+                file_chooser = {
+                    updateItems = function() refreshes = refreshes + 1 end,
+                },
+            },
+        })
+
+        local config = {
+            browser_hide_up_folder = {},
+            browser_folder_cover = { show_spine_lines = false },
+            features = { browser_cover_rounded_corners = true },
+        }
+        local items = require("modules/settings/sections/library_settings").build({
+            config = config,
+            plugin = { saveConfig = function() saves = saves + 1 end },
+            save_and_apply = function() end,
+        })
+
+        local function find_item(item_table, text)
+            for _i, item in ipairs(item_table) do
+                if item.text == text then return item end
+                if type(item.sub_item_table) == "table" then
+                    local found = find_item(item.sub_item_table, text)
+                    if found then return found end
+                end
+            end
+        end
+
+        find_item(items, "Show spine lines").callback()
+        assert.are.equal(0.25, scheduled.delay)
+        scheduled.callback()
+
+        find_item(items, "Rounded cover corners").callback()
+        assert.are.equal(0.25, scheduled.delay)
+        scheduled.callback()
+
+        assert.is_true(config.browser_folder_cover.show_spine_lines)
+        assert.is_false(config.features.browser_cover_rounded_corners)
+        assert.are.equal(2, saves)
+        assert.are.equal(2, refreshes)
+        assert.are.equal(2, rebuilds)
+    end)
+
     it("resets the Library font to bundled Hyperreadable", function()
         local confirmation
         local saves = 0
