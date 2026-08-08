@@ -6,7 +6,6 @@ local _ = require("gettext")
 local UIManager = require("ui/uimanager")
 local utils = require("modules/settings/zen_settings_utils")
 local paths = require("common/paths")
-local ReaderMargins = require("common/reader_margins")
 
 local M = {}
 
@@ -31,19 +30,6 @@ function M.build(ctx)
             Trapper:wrap(function()
                 BookInfoManager:extractBooksInDirectory(fc.path, fc.cover_specs)
             end)
-        end,
-        keep_menu_open = true,
-    })
-
-    table.insert(items, {
-        text = _("Enable Zen UI Reader margins"),
-        help_text = _("Apply the 30-unit Reader margin defaults used by the Setup Guide. Books with their own margin settings are unchanged."),
-        callback = function()
-            ReaderMargins.applyZenDefaults(G_reader_settings)
-            local InfoMessage = require("ui/widget/infomessage")
-            UIManager:show(InfoMessage:new{
-                text = _("Zen UI Reader margins enabled"),
-            })
         end,
         keep_menu_open = true,
     })

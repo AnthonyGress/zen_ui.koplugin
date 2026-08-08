@@ -984,6 +984,17 @@ function M.load()
         end
     end
 
+    -- Older configs only tracked whether Quickstart had been shown. Treat a
+    -- previously shown guide as completed so reruns preserve reader settings.
+    local migrated_qs_completion = false
+    if type(stored) == "table" and next(stored) ~= nil then
+        local m = rawget(stored, "_meta")
+        if type(m) == "table" and m.quickstart_completed == nil then
+            m.quickstart_completed = m.quickstart_shown_for_version ~= false
+            migrated_qs_completion = true
+        end
+    end
+
     local migrated_rakuyomi = migrate_legacy_rakuyomi_keys(stored)
     local cfg = merged_with_defaults(stored)
     local migrated_renamed
@@ -1003,7 +1014,7 @@ function M.load()
     local migrated_changed_defaults
     cfg, migrated_changed_defaults = migrate_changed_defaults(cfg)
     if migrated_renamed or migrated_group or migrated_substring or migrated_updater or migrated_fbc or migrated_bim
-            or migrated_reader_backup or migrated_qs or migrated_file_config
+            or migrated_reader_backup or migrated_qs or migrated_qs_completion or migrated_file_config
             or migrated_settings_files or migrated_reader_presets
             or migrated_changed_defaults or migrated_home_lock
             or migrated_folder_paths or migrated_rakuyomi or migrated_page_browser then

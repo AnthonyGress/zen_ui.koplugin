@@ -103,6 +103,16 @@ describe("config manager folder-path migration", function()
         assert.is_nil(config._meta.gallery_mode_defaulted)
     end)
 
+    it("migrates previously shown Quickstart guides as completed", function()
+        settings_file.data = {
+            _meta = { quickstart_shown_for_version = "2.5.0" },
+        }
+
+        local config = Manager.load()
+
+        assert.is_true(config._meta.quickstart_completed)
+    end)
+
     it("moves global search and page-browser layout into their Zen settings", function()
         settings_file.data = {
             reader_page_browser = { layout = "single" },

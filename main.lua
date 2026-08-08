@@ -273,28 +273,6 @@ function ZenUI:init()
         end
     end
 
-    -- First-run: color e-ink screens clip the footer bottom, so bump the
-    -- container bottom margin from KOReader's default of 1 to 6.
-    if not self.config._meta.footer_color_bottom_padding_applied then
-        local Device = require("device")
-        if Device:hasColorScreen() then
-            local footer_settings = G_reader_settings:readSetting("footer")
-            if type(footer_settings) == "table" then
-                footer_settings.container_bottom_padding = 6
-                G_reader_settings:saveSetting("footer", footer_settings)
-            end
-        end
-        self.config._meta.footer_color_bottom_padding_applied = true
-        self:saveConfig()
-    end
-
-    -- First-run: default to swipe-only menu activation (KOReader default is tap+swipe).
-    if not self.config._meta.menu_activation_defaulted then
-        G_reader_settings:saveSetting("activation_menu", "swipe")
-        self.config._meta.menu_activation_defaulted = true
-        self:saveConfig()
-    end
-
     -- First-run: default sort to recently read, mix files and folders.
     -- Always override: KOReader ships "title" as its own default, so guarding
     -- on readSetting() would silently skip this on a fresh install.
@@ -406,6 +384,8 @@ function ZenUI:init()
                 require("ui/uimanager"):show(QuickstartScreen:new{
                     pages    = pages_to_show,
                     on_close = function()
+                        self.config._meta.quickstart_completed = true
+                        self:saveConfig()
                         -- scheduleIn(0) lets UIManager finish the close-frame before
                         -- we force a full repaint and navbar reinject.
                         require("ui/uimanager"):scheduleIn(0, function()

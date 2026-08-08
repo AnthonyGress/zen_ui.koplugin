@@ -29,7 +29,7 @@ local function apply_reader_footer_time_format()
     --
     -- Named local so we can reference it in the genAllFooterText patch below.
     local zen_filler_wrapper = function(footer)
-        local text, merge = orig_filler(footer)
+        local text, merge, is_filler = orig_filler(footer)
         if is_verbose() and type(text) == "string" and #text > 0 then
             local ct = ReaderFooter.textGeneratorMap.chapter_time_to_read(footer)
             if ct and ct ~= "" then
@@ -40,7 +40,7 @@ local function apply_reader_footer_time_format()
                 end
             end
         end
-        return text, merge
+        return text, merge, is_filler
     end
 
     -- On cold/restart start, footerTextGenerators may hold orig_filler while
