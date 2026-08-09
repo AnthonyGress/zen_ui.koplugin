@@ -36,7 +36,7 @@ local LAYOUT_GROWTH = {
     quotes = { max = 3, priority = 3 },
     reading_goals = { max = 1, priority = 4 },
     stats_triplet = { max = 1, priority = 4 },
-    strip = { max = 4, expanded_max = 7, priority = 1 },
+    strip = { max = 4, expanded_max = 6, priority = 1 },
 }
 
 local function clamp_units(value)

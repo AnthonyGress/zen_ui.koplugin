@@ -364,7 +364,7 @@ describe("home strip widget", function()
                 cover_heights[#cover_heights + 1] = widget.height
             end
         end
-        assert.are.same({ 169, 169, 169, 169, 169, 169, 169, 169 },
+        assert.are.same({ 160, 160, 160, 160, 160, 160, 160, 160 },
             cover_heights)
     end)
 
@@ -497,11 +497,14 @@ describe("home strip widget", function()
                 interactive = false,
                 controls = { enabled = true, order = {}, show_buttons = {} },
             },
+            row_gap_above = 8,
             data = { getStripItemsForPage = function() return books end },
             setContentBounds = function(bounds) content_bounds = bounds end,
         })
 
         assert.is_table(content_bounds)
+        assert.are.equal(18, content_bounds.top)
+        assert.are.equal(8, content_bounds.bottom_anchor_offset)
         assert.are.equal(30 + 18 + 205,
             content_bounds.bottom - content_bounds.top)
         assert.are.equal(-content_bounds.top, content_bounds.min_shift)

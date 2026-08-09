@@ -1147,6 +1147,23 @@ function M.build(ctx)
         clear_strip_memory_for_control(id)
     end
 
+    local function reset_strip_tabs(mcfg)
+        local defaults = HomePresets.defaultHomePage().modules.strip.controls
+        local controls = mcfg.controls
+        for _i, entry in ipairs(controls.custom_buttons) do
+            if type(entry) == "table" and type(entry.id) == "string"
+                    and entry.id ~= "" then
+                defaults.order[#defaults.order + 1] = entry.id
+                defaults.show_buttons[entry.id] = false
+            end
+        end
+        controls.labels = defaults.labels
+        controls.order = defaults.order
+        controls.show_buttons = defaults.show_buttons
+        dcfg.strip_memory = nil
+        save_home("reinit")
+    end
+
     local function add_strip_builtin(controls, touchmenu_instance)
         if count_strip_buttons(controls) >= 7 then
             local InfoMessage = require("ui/widget/infomessage")
@@ -1396,11 +1413,18 @@ function M.build(ctx)
                                             and count_strip_buttons(controls) <= 1 then
                                         return
                                     end
-                                    remove_strip_button(controls, button_id)
-                                    save_home("reinit")
-                                    if touchmenu_instance then
-                                        touchmenu_instance:backToUpperMenu()
-                                    end
+                                    local ConfirmBox = require("ui/widget/confirmbox")
+                                    UIManager:show(ConfirmBox:new{
+                                        text = _("Delete this tab?"),
+                                        ok_text = _("Delete"),
+                                        ok_callback = function()
+                                            remove_strip_button(controls, button_id)
+                                            save_home("reinit")
+                                            if touchmenu_instance then
+                                                touchmenu_instance:backToUpperMenu()
+                                            end
+                                        end,
+                                    })
                                 end,
                             },
                         },
@@ -1586,6 +1610,25 @@ function M.build(ctx)
                                 return build_strip_control_font_items(mcfg)
                             end,
                         },
+                        IconItem.decorate({
+                            text = _("Reset to defaults"),
+                            separator = true,
+                            keep_menu_open = true,
+                            callback = function(touchmenu_instance)
+                                local ConfirmBox = require("ui/widget/confirmbox")
+                                UIManager:show(ConfirmBox:new{
+                                    text = _("Reset Controls to defaults?"),
+                                    ok_text = _("Reset"),
+                                    ok_callback = function()
+                                        reset_strip_tabs(mcfg)
+                                        if touchmenu_instance
+                                                and touchmenu_instance.updateItems then
+                                            touchmenu_instance:updateItems()
+                                        end
+                                    end,
+                                })
+                            end,
+                        }, icons.restart),
                     }
                 end,
             },

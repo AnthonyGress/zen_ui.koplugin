@@ -3,6 +3,7 @@ describe("Home widget content settings", function()
     local arrange_history
     local home_page
     local remembered_routes
+    local shown
 
     local function item_text(item)
         return item.text or (item.text_func and item.text_func())
@@ -28,6 +29,7 @@ describe("Home widget content settings", function()
         arrange_options = nil
         arrange_history = {}
         remembered_routes = {}
+        shown = {}
         home_page = {
             strip_memory = {
                 active_id = "recent",
@@ -73,6 +75,10 @@ describe("Home widget content settings", function()
         })
         ZenSpec.replace("ui/uimanager", {
             scheduleIn = function() end,
+            show = function(_self, widget) shown[#shown + 1] = widget end,
+        })
+        ZenSpec.replace("ui/widget/confirmbox", {
+            new = function(_self, opts) return opts end,
         })
         ZenSpec.replace("config/preset_store", {
             getSettings = function() return home_page end,
@@ -93,6 +99,29 @@ describe("Home widget content settings", function()
             normalizeStripConfig = function() end,
             normalizeLayoutGrid = function() end,
             isBuiltinPresetName = function() return false end,
+            defaultHomePage = function()
+                return {
+                    modules = {
+                        strip = {
+                            controls = {
+                                labels = {},
+                                next_custom_id = 0,
+                                order = {
+                                    "page_left", "recent", "search", "tags", "page_right",
+                                },
+                                show_buttons = {
+                                    page_left = true,
+                                    recent = true,
+                                    search = true,
+                                    tags = true,
+                                    page_right = true,
+                                },
+                                custom_buttons = {},
+                            },
+                        },
+                    },
+                }
+            end,
         })
         ZenSpec.replace("modules/filebrowser/patches/home/home_quotes", {
             hasCustomQuotes = function() return false end,
@@ -294,7 +323,7 @@ describe("Home widget content settings", function()
         assert.is_not_nil(find_item(font_items, "Use default style"))
     end)
 
-    it("deletes a Strip control tab immediately and returns to Tabs", function()
+    it("confirms before deleting a Strip control tab and returns to Tabs", function()
         local settings = require("modules/settings/sections/library_settings/home_settings")
         home_page.strip_memory = {
             active_id = "favorites",
@@ -322,10 +351,71 @@ describe("Home widget content settings", function()
             backToUpperMenu = function() backs = backs + 1 end,
         })
 
+        assert.are.same({ "recent", "favorites" },
+            home_page.modules.strip.controls.order)
+        assert.are.equal(0, backs)
+        assert.are.equal("Delete this tab?", shown[1].text)
+        assert.are.equal("Delete", shown[1].ok_text)
+
+        shown[1].ok_callback()
+
         assert.are.same({ "recent" }, home_page.modules.strip.controls.order)
         assert.is_nil(home_page.modules.strip.controls.show_buttons.favorites)
         assert.is_nil(home_page.strip_memory)
         assert.are.equal(1, backs)
+    end)
+
+    it("resets Strip control tabs without changing control display settings", function()
+        local strip = home_page.modules.strip
+        strip.controls.enabled = true
+        strip.controls.labels = { favorites = "Saved" }
+        strip.controls.next_custom_id = 4
+        strip.controls.order = { "favorites", "hs_4" }
+        strip.controls.show_buttons = { favorites = true, hs_4 = true }
+        strip.controls.custom_buttons = {
+            { id = "hs_4", type = "tag", tag = "Science" },
+        }
+        strip.controls.text_style = {
+            font_face = "custom", font_size = 13, bold = true,
+        }
+
+        local settings = require("modules/settings/sections/library_settings/home_settings")
+        assert.is_true(settings.openWidgetSettings("strip"))
+        local controls = find_item(arrange_options.item_table, "Controls")
+        local controls_items = controls.sub_item_table_func()
+        local updates = 0
+        find_item(controls_items, "Reset to defaults").callback({
+            updateItems = function() updates = updates + 1 end,
+        })
+
+        assert.are.same({ "favorites", "hs_4" }, strip.controls.order)
+        assert.are.equal("Reset Controls to defaults?", shown[1].text)
+        assert.are.equal("Reset", shown[1].ok_text)
+
+        shown[1].ok_callback()
+
+        assert.are.same({
+            "page_left", "recent", "search", "tags", "page_right", "hs_4",
+        }, strip.controls.order)
+        assert.are.same({
+            page_left = true,
+            recent = true,
+            search = true,
+            tags = true,
+            page_right = true,
+            hs_4 = false,
+        }, strip.controls.show_buttons)
+        assert.are.same({}, strip.controls.labels)
+        assert.are.same({
+            { id = "hs_4", type = "tag", tag = "Science" },
+        }, strip.controls.custom_buttons)
+        assert.are.equal(4, strip.controls.next_custom_id)
+        assert.is_true(strip.controls.enabled)
+        assert.are.same({
+            font_face = "custom", font_size = 13, bold = true,
+        }, strip.controls.text_style)
+        assert.is_nil(home_page.strip_memory)
+        assert.are.equal(1, updates)
     end)
 
     it("remembers Strip Controls and Tabs when opened from standalone settings", function()

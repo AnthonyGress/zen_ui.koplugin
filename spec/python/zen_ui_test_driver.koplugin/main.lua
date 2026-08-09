@@ -484,6 +484,7 @@ local function home_state()
         widget_ids = widget_ids,
         book_paths = book_paths,
         page_padding = menu and menu._zen_home_page_padding or 0,
+        row_gap = menu and menu._zen_home_row_gap or 0,
         body_height = menu and menu.height or 0,
         top_visual_inset = menu and menu._zen_home_top_visual_inset or 0,
         strip_bottom = strip_bottom,

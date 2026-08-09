@@ -51,6 +51,7 @@ local function strip_layout_metrics(outer_width, module_cfg)
     local controls_enabled = controls.enabled == true
     local controls_height = controls_enabled and Screen:scaleBySize(30) or 0
     local controls_gap = controls_enabled and math.max(12, Screen:scaleBySize(18)) or 0
+    local controls_top_gap = controls_gap
     local padding = Screen:scaleBySize(8)
     local width = math.max(1, outer_width - padding * 2)
     local two_rows = module_cfg.two_rows == true
@@ -89,6 +90,7 @@ local function strip_layout_metrics(outer_width, module_cfg)
         controls_enabled = controls_enabled,
         controls_height = controls_height,
         controls_gap = controls_gap,
+        controls_top_gap = controls_top_gap,
         padding = padding,
         vertical_padding = vertical_padding,
         width = width,
@@ -115,7 +117,7 @@ function M.preferred_height(outer_width, module_cfg)
     local cover_w = math.max(24, math.floor(
         (metrics.width - min_gap * (metrics.per_row - 1)) / metrics.per_row))
     local cover_h = math.max(28, cover_height_for_width(cover_w))
-    return metrics.controls_height + metrics.controls_gap
+    return metrics.controls_top_gap + metrics.controls_height + metrics.controls_gap
         + metrics.vertical_padding * 2
         + metrics.row_top_pad + metrics.row_bottom_pad
         + metrics.rows * (cover_h + metrics.title_gap + metrics.title_h)
@@ -443,10 +445,12 @@ function M.build_strip(ctx, source_key)
     local controls_enabled = metrics.controls_enabled
     local controls_height = metrics.controls_height
     local controls_gap = metrics.controls_gap
+    local controls_top_gap = metrics.controls_top_gap
     local controls_and_gap = controls_height + controls_gap
     local outer_height = math.max(1, total_outer_height - controls_and_gap)
     local width = metrics.width
-    local height = math.max(1, outer_height - metrics.vertical_padding * 2)
+    local height = math.max(
+        1, outer_height - metrics.vertical_padding * 2 - controls_top_gap)
     local runtime = ctx.menu and ctx.menu._zen_home_strip_runtime
     local runtime_created = false
     local function default_source()
@@ -648,18 +652,23 @@ function M.build_strip(ctx, source_key)
     end
 
     local function set_visual_bounds(page_delta, visual_top, visual_bottom)
-        if page_delta ~= 0 then return end
-        controls_visual_top = visual_top
+        local base_shift = controls_enabled and controls_top_gap - visual_top or 0
+        local adjusted_top = visual_top + base_shift
+        if page_delta ~= 0 then return base_shift, adjusted_top end
+        controls_visual_top = adjusted_top
         if type(ctx.setContentBounds) == "function" then
-            local group_bottom = controls_and_gap + visual_bottom
+            local group_bottom = controls_and_gap + visual_bottom + base_shift
             ctx.setContentBounds{
-                top = visual_top,
+                top = adjusted_top,
                 bottom = group_bottom,
-                min_shift = -visual_top,
+                min_shift = -adjusted_top,
                 max_shift = total_outer_height - group_bottom,
+                bottom_anchor_offset = controls_enabled
+                    and math.max(0, tonumber(ctx.row_gap_above) or 0) or 0,
                 set_shift = function(shift) visual_shift = shift end,
             }
         end
+        return base_shift, adjusted_top
     end
 
     local function build_frame(page_delta, supplied_books)
@@ -695,11 +704,13 @@ function M.build_strip(ctx, source_key)
             dimen = Geom:new{ w = outer_width, h = outer_height },
             empty_row,
         }
+        local empty_base_shift, empty_controls_top = set_visual_bounds(
+            page_delta, empty_top, empty_top + cover_h)
         local original_empty_paint = empty_container.paintTo
         empty_container.paintTo = function(self, bb, x, y)
-            return original_empty_paint(self, bb, x, y + visual_shift)
+            return original_empty_paint(
+                self, bb, x, y + empty_base_shift + visual_shift)
         end
-        set_visual_bounds(page_delta, empty_top, empty_top + cover_h)
         local empty_frame = FrameContainer:new{
             width = outer_width,
             height = outer_height,
@@ -712,7 +723,8 @@ function M.build_strip(ctx, source_key)
             "component=", ctx.component_id or source,
             "page_delta=", page_delta or 0,
             "books=", 0)
-            return empty_frame, add_control_targets({}), {}, books, cover_plans, empty_top
+            return empty_frame, add_control_targets({}), {}, books, cover_plans,
+                empty_controls_top
         end
 
     local num_rows = metrics.rows
@@ -1093,16 +1105,20 @@ function M.build_strip(ctx, source_key)
         dimen = Geom:new{ w = width, h = height },
         vgroup,
     }
+    local content_base_shift = 0
     local original_content_paint = content_container.paintTo
     content_container.paintTo = function(self, bb, x, y)
-        return original_content_paint(self, bb, x, y + visual_shift)
+        return original_content_paint(
+            self, bb, x, y + content_base_shift + visual_shift)
     end
     local outer_top = math.floor(math.max(0, outer_height - height) / 2)
     local visible_bottom = row_top_pad + total_row_h
         + math.max(0, visible_rows - 1) * (row_gap + row_inner_bottom_pad)
     local visual_top = outer_top + inner_top + row_top_pad
     local visual_bottom = outer_top + inner_top + visible_bottom
-    set_visual_bounds(page_delta, visual_top, visual_bottom)
+    local controls_top
+    content_base_shift, controls_top = set_visual_bounds(
+        page_delta, visual_top, visual_bottom)
 
     local frame = FrameContainer:new{
         width = outer_width,
@@ -1121,7 +1137,7 @@ function M.build_strip(ctx, source_key)
         "page_delta=", page_delta or 0,
         "books=", #books)
         return frame, add_control_targets(page_focus_targets), hydration_jobs,
-            books, cover_plans, visual_top
+            books, cover_plans, controls_top
     end
 
     local frame, initial_targets, initial_jobs, initial_books, initial_plans,

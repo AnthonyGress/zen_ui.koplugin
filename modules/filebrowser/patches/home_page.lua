@@ -2640,6 +2640,7 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
     local row_heights = compute_row_heights(
         rows, layout_h, row_gap, capacity, content_w, dcfg.modules)
     menu._zen_home_page_padding = page_pad
+    menu._zen_home_row_gap = row_gap
     menu._zen_home_capacity_units = capacity
 
     local face_title = Font:getFace("smallinfofont", Screen:scaleBySize(24))
@@ -2872,6 +2873,7 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
             face_label = face_label,
             component_id = comp.id,
             module_cfg = module_cfg,
+            row_gap_above = i > 1 and row_gap or 0,
             is_first_row = i == 1,
         }
         local component_started_at = os.clock()
@@ -2933,8 +2935,11 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
     local run = {}
     local function apply_visual_run(anchor_bottom)
         if #run > 1 then
-            local spacing_options = anchor_bottom
-                and { bottom = body_h - top_visual_inset } or nil
+            local bottom_anchor_offset = anchor_bottom
+                and math.max(0, tonumber(run[#run].bottom_anchor_offset) or 0) or 0
+            local spacing_options = anchor_bottom and {
+                bottom = body_h - top_visual_inset - bottom_anchor_offset,
+            } or nil
             local shifts = Registry.equalSpacingShifts(run, spacing_options)
             for i, shift in ipairs(shifts) do
                 run[i].set_shift(shift)

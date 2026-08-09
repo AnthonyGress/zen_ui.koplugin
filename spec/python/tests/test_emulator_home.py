@@ -192,7 +192,7 @@ def _wait_for_home(
     raise AssertionError(f"Home widgets did not become ready: {latest}")
 
 
-def test_bookshelf_strip_matches_the_top_visual_inset() -> None:
+def test_bookshelf_strip_offsets_its_bottom_anchor_by_the_home_row_gap() -> None:
     runtime = Path(os.environ["KOREADER_DIR"])
     with tempfile.TemporaryDirectory(prefix="zen-ui-home-bookshelf-") as temporary:
         root = Path(temporary)
@@ -229,7 +229,10 @@ def test_bookshelf_strip_matches_the_top_visual_inset() -> None:
                 minimum_widget_count=2,
             )
             bottom_inset = int(home["body_height"]) - int(home["strip_bottom"])
-            assert abs(bottom_inset - int(home["top_visual_inset"])) <= 2, home
+            expected_bottom_inset = (
+                int(home["top_visual_inset"]) + int(home["row_gap"])
+            )
+            assert abs(bottom_inset - expected_bottom_inset) <= 2, home
         finally:
             process.send_signal(signal.SIGTERM)
             process.wait(timeout=15)

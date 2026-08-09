@@ -116,7 +116,7 @@ describe("home component registry", function()
             Registry.get("strip"),
         }))
         assert.are.same({ 1 }, Registry.layoutUnits({ Registry.get("stats_triplet") }))
-        assert.are.same({ 3.5, 6.5 }, Registry.layoutUnits({
+        assert.are.same({ 4, 6 }, Registry.layoutUnits({
             setmetatable({ _home_units = 3.5 }, {
                 __index = Registry.get("featured"),
             }),
@@ -220,7 +220,7 @@ describe("home component registry", function()
             bookshelf.rows.enabled,
             bookshelf.modules
         ) <= Registry.CAPACITY_UNITS)
-        assert.are.same({ 3.5, 6.5 }, Registry.layoutUnits({
+        assert.are.same({ 4, 6 }, Registry.layoutUnits({
             setmetatable({ _home_units = 3.5 }, {
                 __index = Registry.get("featured"),
             }),
