@@ -333,6 +333,9 @@ msgstr "Book information"
 msgid "Book Status"
 msgstr "Book Status"
 
+msgid "Book strip"
+msgstr "Book strip"
+
 msgid "Book switcher"
 msgstr "Book switcher"
 
@@ -489,9 +492,6 @@ msgstr "Clear all gestures"
 msgid "Clear book"
 msgstr "Clear book"
 
-msgid "Clear books"
-msgstr "Clear books"
-
 msgid "Close"
 msgstr "Close"
 
@@ -606,6 +606,9 @@ msgstr "Current/total pages"
 msgid "Custom"
 msgstr "Custom"
 
+msgid "Custom books"
+msgstr "Custom books"
+
 msgid "Custom button label"
 msgstr "Custom button label"
 
@@ -675,8 +678,8 @@ msgstr "Dark warm gray"
 msgid "Date"
 msgstr "Date"
 
-msgid "Date/time widget"
-msgstr "Date/time widget"
+msgid "Date/time"
+msgstr "Date/time"
 
 msgid "Day brightness"
 msgstr "Day brightness"
@@ -719,6 +722,9 @@ msgstr "default"
 
 msgid "Default (black)"
 msgstr "Default (black)"
+
+msgid "Content: "
+msgstr "Content: "
 
 msgid "Default font size:"
 msgstr "Default font size:"
@@ -930,14 +936,8 @@ msgstr "Failed to submit report: "
 msgid "Favorites"
 msgstr "Favorites"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "Featured Book"
-
-msgid "Featured Books"
-msgstr "Featured Books"
-
-msgid "Featured widget"
-msgstr "Featured widget"
 
 msgid "Featured widgets"
 msgstr "Featured widgets"
@@ -1025,6 +1025,9 @@ msgstr "Frontlight"
 
 msgid "Gallery"
 msgstr "Gallery"
+
+msgid "Genres"
+msgstr "Genres"
 
 msgid "Get Started"
 msgstr "Get Started"
@@ -1629,6 +1632,9 @@ msgstr "Outline"
 msgid "Outlined boxes"
 msgstr "Outlined boxes"
 
+msgid "p."
+msgstr "p."
+
 msgid "Page %1 of %2"
 msgstr "Page %1 of %2"
 
@@ -1770,8 +1776,8 @@ msgstr "Quote font size"
 msgid "Quote sources"
 msgstr "Quote sources"
 
-msgid "Quotes widget"
-msgstr "Quotes widget"
+msgid "Quotes"
+msgstr "Quotes"
 
 msgid "quotes.lua is empty"
 msgstr "quotes.lua is empty"
@@ -1824,20 +1830,20 @@ msgstr "Reading goals"
 msgid "Reading goals font size"
 msgstr "Reading goals font size"
 
-msgid "Reading goals widget"
-msgstr "Reading goals widget"
-
 msgid "Reading stats"
 msgstr "Reading stats"
-
-msgid "Reading stats widget"
-msgstr "Reading stats widget"
 
 msgid "Reading trend"
 msgstr "Reading trend"
 
 msgid "Reading Trend"
 msgstr "Reading Trend"
+
+msgid "Recent"
+msgstr "Recent"
+
+msgid "Recent filters"
+msgstr "Recent filters"
 
 msgid "Recently read"
 msgstr "Recently read"
@@ -2100,6 +2106,9 @@ msgstr "Show bottom border"
 msgid "Show brightness slider"
 msgstr "Show brightness slider"
 
+msgid "Show controls"
+msgstr "Show controls"
+
 msgid "Show description"
 msgstr "Show description"
 
@@ -2232,6 +2241,9 @@ msgstr "Sort order"
 msgid "Sort series"
 msgstr "Sort series"
 
+msgid "Specific tag"
+msgstr "Specific tag"
+
 msgid "Stable"
 msgstr "Stable"
 
@@ -2283,9 +2295,6 @@ msgstr "Streak"
 msgid "Stream from page"
 msgstr "Stream from page"
 
-msgid "Strip widget"
-msgstr "Strip widget"
-
 msgid "Strip widgets"
 msgstr "Strip widgets"
 
@@ -2322,14 +2331,8 @@ msgstr "Tabs"
 msgid "Tag"
 msgstr "Tag"
 
-msgid "Tag books"
-msgstr "Tag books"
-
 msgid "Tag strip widget"
 msgstr "Tag strip widget"
-
-msgid "Tag: "
-msgstr "Tag: "
 
 msgid "Tag: %1"
 msgstr "Tag: %1"
@@ -2780,3 +2783,12 @@ msgstr "ZenPM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM has been installed. Restart KOReader to use it."
+
+msgid "Automatic"
+msgstr "Automatic"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+
+msgid "%1, %2 %3"
+msgstr "%1, %2 %3"

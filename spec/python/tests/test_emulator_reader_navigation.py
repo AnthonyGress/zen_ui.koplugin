@@ -164,8 +164,9 @@ def _wait_for_navbar_view(
         state = response.get("navbar", {})
         if isinstance(state, dict):
             last = state
-            if state.get("top_name") == expected_name \
-                    and state.get("active_tab_label") == expected_label:
+            stack_names = state.get("stack_names", [])
+            if state.get("active_tab_label") == expected_label \
+                    and (expected_name is None or expected_name in stack_names):
                 return state
         time.sleep(0.1)
     raise AssertionError(f"navbar view did not return: {last}")

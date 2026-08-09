@@ -273,28 +273,6 @@ function ZenUI:init()
         end
     end
 
-    -- First-run: color e-ink screens clip the footer bottom, so bump the
-    -- container bottom margin from KOReader's default of 1 to 6.
-    if not self.config._meta.footer_color_bottom_padding_applied then
-        local Device = require("device")
-        if Device:hasColorScreen() then
-            local footer_settings = G_reader_settings:readSetting("footer")
-            if type(footer_settings) == "table" then
-                footer_settings.container_bottom_padding = 6
-                G_reader_settings:saveSetting("footer", footer_settings)
-            end
-        end
-        self.config._meta.footer_color_bottom_padding_applied = true
-        self:saveConfig()
-    end
-
-    -- First-run: default to swipe-only menu activation (KOReader default is tap+swipe).
-    if not self.config._meta.menu_activation_defaulted then
-        G_reader_settings:saveSetting("activation_menu", "swipe")
-        self.config._meta.menu_activation_defaulted = true
-        self:saveConfig()
-    end
-
     -- First-run: default sort to recently read, mix files and folders.
     -- Always override: KOReader ships "title" as its own default, so guarding
     -- on readSetting() would silently skip this on a fresh install.
@@ -323,6 +301,17 @@ function ZenUI:init()
     -- TBR is a normal KOReader collection; create it for standard pickers.
     pcall(function() require("common/tbr_index").ensureCollection() end)
     logger.perf("Core initialization completed", (os.clock() - started_at) * 1000)
+
+    local function schedule_quickstart_menu_tour(delay)
+        require("ui/uimanager"):scheduleIn(delay, function()
+            local ok, tour = pcall(require, "common/quickstart/menu_tour")
+            if ok then
+                tour.start(self)
+            else
+                logger.warn("failed to load quickstart menu tour:", tour)
+            end
+        end)
+    end
 
     -- -----------------------------------------------------------------------
     -- Quickstart / onboarding screen
@@ -406,6 +395,9 @@ function ZenUI:init()
                 require("ui/uimanager"):show(QuickstartScreen:new{
                     pages    = pages_to_show,
                     on_close = function()
+                        self.config._meta.quickstart_completed = true
+                        self.config._meta.quickstart_menu_tour_pending = true
+                        self:saveConfig()
                         -- scheduleIn(0) lets UIManager finish the close-frame before
                         -- we force a full repaint and navbar reinject.
                         require("ui/uimanager"):scheduleIn(0, function()
@@ -444,6 +436,7 @@ function ZenUI:init()
                                     fm3.file_chooser:changeToPath(new_home)
                                 end
                             end
+                            schedule_quickstart_menu_tour(0.35)
                         end)
                     end,
                 })
@@ -488,6 +481,11 @@ function ZenUI:init()
                     end,
                 })
             end)
+        end
+
+        if shown_ver ~= false and not is_update
+                and self.config._meta.quickstart_menu_tour_pending == true then
+            schedule_quickstart_menu_tour(0.8)
         end
     end
 

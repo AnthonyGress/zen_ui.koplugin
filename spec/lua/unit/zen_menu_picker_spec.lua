@@ -15,6 +15,7 @@ describe("Zen menu picker", function()
     local text_widgets
     local back_icon
     local back_paint_x
+    local truncated_text
 
     local module_names = {
         "gettext",
@@ -24,11 +25,13 @@ describe("Zen menu picker", function()
         "ui/font",
         "ui/size",
         "ui/uimanager",
+        "ui/widget/infomessage",
         "ui/widget/focusmanager",
         "ui/widget/iconwidget",
         "ui/widget/textwidget",
         "common/ui/zen_pager",
         "common/ui/zen_title_style",
+        "common/ui/truncated_text_message",
         "common/ui/zen_menu_picker",
     }
 
@@ -80,6 +83,7 @@ describe("Zen menu picker", function()
         text_widgets = {}
         back_icon = nil
         back_paint_x = nil
+        truncated_text = nil
 
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("device", {
@@ -109,7 +113,7 @@ describe("Zen menu picker", function()
         })
         ZenSpec.replace("ui/size", {
             line = { thick = 1 },
-            padding = { default = 10, large = 20 },
+            padding = { default = 10, large = 20, small = 4 },
             span = { vertical_default = 4 },
         })
         ZenSpec.replace("ui/uimanager", {
@@ -118,6 +122,12 @@ describe("Zen menu picker", function()
             forceRePaint = function() end,
             nextTick = function(_, callback) callback() end,
             setDirty = function() end,
+        })
+        ZenSpec.replace("ui/widget/infomessage", {
+            new = function(_self, options)
+                options.movable = {}
+                return options
+            end,
         })
         ZenSpec.replace("ui/widget/focusmanager", focus_manager())
         ZenSpec.replace("ui/widget/iconwidget", {
@@ -133,6 +143,7 @@ describe("Zen menu picker", function()
         ZenSpec.replace("ui/widget/textwidget", {
             new = function(_, values)
                 values.getSize = function() return { w = 100, h = 20 } end
+                values.isTruncated = function(self) return self.text == truncated_text end
                 values.paintTo = function(self, _bb, x) self.paint_x = x end
                 values.free = function() end
                 text_widgets[#text_widgets + 1] = values
@@ -180,6 +191,7 @@ describe("Zen menu picker", function()
             getLeadingIconX = function(origin) return (origin or 0) + 12 end,
             getTitleX = function(origin) return (origin or 0) + 54 end,
         })
+        ZenSpec.unload("common/ui/truncated_text_message")
         ZenSpec.unload("common/ui/zen_menu_picker")
     end)
 
@@ -273,6 +285,21 @@ describe("Zen menu picker", function()
         assert.is_true(root_row.bold)
         assert.is_false(nested_row.bold)
         assert.are.equal(16, nested_row.paint_x - root_row.paint_x)
+    end)
+
+    it("shows full truncated row text on hold", function()
+        local full_text = "A plugin menu label too long for its row"
+        truncated_text = full_text
+        require("common/ui/zen_menu_picker"){
+            items = { { text = full_text } },
+        }
+        local picker = shown
+        picker:paintTo({ paintRect = function() end }, 0, 0)
+
+        assert.is_true(picker.touch_zones[2].handler({ pos = { x = 100, y = 70 } }))
+        assert.are.equal(full_text, shown.text)
+        assert.is_false(shown.show_icon)
+        assert.are.same({ y = 54, h = 56 }, shown.movable.anchor)
     end)
 
     it("focuses and activates the back chevron from the first item", function()

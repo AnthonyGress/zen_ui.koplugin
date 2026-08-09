@@ -133,6 +133,17 @@ local function apply_history()
         return true
     end
 
+    SharedState.register(zen_plugin, {
+        history = {
+            showContextMenu = function()
+                local FileManager = require("apps/filemanager/filemanager")
+                local hist_mgr = FileManager.instance and FileManager.instance.history
+                if not hist_mgr then return false end
+                return show_hist_blank_menu(hist_mgr, hist_mgr.booklist_menu) == true
+            end,
+        },
+    })
+
     local function clean_nav(menu, hist_mgr, search_info)
         if not menu then return end
         Background.applyToMenu(menu)

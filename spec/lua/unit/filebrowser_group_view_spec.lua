@@ -236,6 +236,49 @@ describe("file browser group views", function()
         assert.are.equal(1, tags.update_count)
     end)
 
+    it("uses the tag-group context menu for external group folders", function()
+        install_group_view({})
+
+        assert.is_true(api.showGroupContextMenu(
+            "Focus", { "/focus.epub" }, "tags"))
+        assert.are.equal("Focus", file_dialog_args._zen_group_name)
+        assert.are.same({ "/focus.epub" }, file_dialog_args._zen_group_files)
+        assert.is_function(file_dialog_args._zen_sort_cb)
+        assert.is_function(file_dialog_args._zen_display_cb)
+    end)
+
+    it("omits context actions for Home strip group folders", function()
+        install_group_view({})
+
+        assert.is_true(api.showGroupContextMenu(
+            "Focus", { "/focus.epub" }, "tags", nil, { hide_actions = true }))
+        assert.are.equal("Focus", file_dialog_args._zen_group_name)
+        assert.are.same({ "/focus.epub" }, file_dialog_args._zen_group_files)
+        assert.is_nil(file_dialog_args._zen_sort_cb)
+        assert.is_nil(file_dialog_args._zen_display_cb)
+    end)
+
+    it("opens root and TBR section context menus without opening their pages", function()
+        install_group_view({
+            authors = { { author = "Ada", files = { "/a.epub" } } },
+            tbr = { "/later.epub", "/next.epub" },
+        })
+
+        assert.is_true(api.showSourceContextMenu("authors"))
+        assert.are.equal("Authors", file_dialog_args._zen_group_name)
+        assert.are.equal("1 author", file_dialog_args._zen_group_subtitle)
+        assert.is_function(file_dialog_args._zen_sort_cb)
+        assert.is_function(file_dialog_args._zen_display_cb)
+        assert.are.equal(0, #menus)
+
+        assert.is_true(api.showSourceContextMenu("to_be_read"))
+        assert.are.equal("To Be Read", file_dialog_args._zen_group_name)
+        assert.are.equal("2 books", file_dialog_args._zen_group_subtitle)
+        assert.are.same({ "/later.epub", "/next.epub" },
+            file_dialog_args._zen_group_files)
+        assert.are.equal(0, #menus)
+    end)
+
     it("reuses an open group page", function()
         install_group_view({
             authors = {

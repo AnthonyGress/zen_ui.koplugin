@@ -457,6 +457,16 @@ local function apply_quick_settings()
         end
     end
 
+    local function isWifiConnected()
+        return NetworkMgr:isWifiOn()
+            and (type(NetworkMgr.isConnected) ~= "function" or NetworkMgr:isConnected())
+    end
+
+    local function isWifiConnecting()
+        return not isWifiConnected()
+            and (NetworkMgr.pending_connection or NetworkMgr.pending_connectivity_check)
+    end
+
     local function enableWifiInBackground(touch_menu)
         if not (Device.hasWifiRestore and Device:hasWifiRestore())
             or type(NetworkMgr.restoreWifiAsync) ~= "function" then
@@ -465,9 +475,13 @@ local function apply_quick_settings()
 
         NetworkMgr.pending_connection = true
         UIManager:broadcastEvent(Event:new("NetworkConnecting"))
+        refreshQuickSettings(touch_menu)
         NetworkMgr:restoreWifiAsync()
         NetworkMgr:scheduleConnectivityCheck(function()
             refreshQuickSettings(touch_menu)
+            UIManager:scheduleIn(1, function()
+                refreshQuickSettings(touch_menu)
+            end)
         end)
         UIManager:scheduleIn(1, function()
             refreshQuickSettings(touch_menu)
@@ -500,20 +514,19 @@ local function apply_quick_settings()
             icon = "quick_wifi",
             label = _("Wi-Fi"),
             label_func = function()
-                if NetworkMgr:isWifiOn() then
+                if isWifiConnected() then
                     local net = NetworkMgr.getCurrentNetwork and NetworkMgr:getCurrentNetwork()
-                    if net and net.ssid then
+                    if net and type(net.ssid) == "string" and net.ssid ~= "" then
                         return net.ssid
                     end
                 end
                 return _("Wi-Fi")
             end,
-            active_func = function() return NetworkMgr:isWifiOn() end,
+            active_func = isWifiConnected,
+            dim_func = isWifiConnecting,
             callback = function(touch_menu)
                 local wifi_on = NetworkMgr:isWifiOn()
-                if not wifi_on and (NetworkMgr.pending_connection or NetworkMgr.pending_connectivity_check) then
-                    return
-                end
+                if isWifiConnecting() then return end
                 if not wifi_on and enableWifiInBackground(touch_menu) then
                     return
                 end
@@ -1152,6 +1165,11 @@ local function apply_quick_settings()
             local def = button_defs[id]
             return def and def.disabled_func and def.disabled_func() or false
         end,
+        isDimmed = function(id)
+            install_custom_button_defs()
+            local def = button_defs[id]
+            return def and def.dim_func and def.dim_func() or false
+        end,
         activate = function(id, touch_menu)
             install_custom_button_defs()
             local def = button_defs[id]
@@ -1217,7 +1235,7 @@ local function apply_quick_settings()
 
         local normal_border = Screen:scaleBySize(2)
 
-        local function makeActionButton(icon_name, label_text, active, dim)
+        local function makeActionButton(icon_name, label_text, active, disabled, dimmed)
             local icon_path = type(icon_name) == "string" and icon_name:sub(1, 1) == "/"
                 and icon_name or (_icons_dir and utils.resolveIcon(_icons_dir, icon_name))
             local icon = IconWidget:new{
@@ -1242,8 +1260,9 @@ local function apply_quick_settings()
             end
             local border = active and 0 or normal_border
             local bg = active and Blitbuffer.COLOR_BLACK
-                or dim  and Blitbuffer.COLOR_LIGHT_GRAY
-                or       Blitbuffer.COLOR_WHITE
+                or disabled and Blitbuffer.COLOR_LIGHT_GRAY
+                or dimmed and Blitbuffer.COLOR_GRAY
+                or Blitbuffer.COLOR_WHITE
             local circle = FrameContainer:new{
                 width      = action_btn_size,
                 height     = action_btn_size,
@@ -1301,10 +1320,14 @@ local function apply_quick_settings()
                 end
                 local active   = def.active_func   and def.active_func()   or false
                 local disabled = def.disabled_func and def.disabled_func() or false
+                local dimmed   = def.dim_func      and def.dim_func()      or false
                 -- Disabled takes priority: don't show active styling on a greyed-out button.
-                local btn_widget, btn_circle = makeActionButton(def.icon, label_text, active and not disabled, disabled)
+                local btn_widget, btn_circle = makeActionButton(
+                    def.icon, label_text, active and not disabled, disabled, dimmed
+                )
 
                 table.insert(refs.buttons, {
+                    id = entry.id,
                     widget = btn_circle,
                     callback = not disabled and function()
                         def.callback(touch_menu)

@@ -4,7 +4,6 @@
 
 local _ = require("gettext")
 local UIManager = require("ui/uimanager")
-local Event = require("ui/event")
 local dispatch_action = require("common/dispatch_action")
 local utils = require("modules/settings/zen_settings_utils")
 local constants = require("common/constants")
@@ -772,10 +771,6 @@ function M.build(ctx)
                     ui.view.footer:loadPreset(resolve_preset_font(preset))
                     config.features["reader_top_status_bar"] = true
                     save_and_apply("reader_top_status_bar")
-                    if ui.rolling then
-                        ui.document.configurable.status_line = 1
-                        ui:handleEvent(Event:new("SetStatusLine", 1))
-                    end
                     local verbose_chapter_time = preset.verbose_chapter_time
                     if verbose_chapter_time == nil and type(preset.zen) == "table" then
                         verbose_chapter_time = preset.zen.verbose_chapter_time

@@ -181,7 +181,7 @@ end
 
 return {
     id = "reading_goals",
-    label = _("Reading goals widget"),
+    label = _("Reading goals"),
     size = "xs",
     build = function(ctx)
         local width = ctx.width

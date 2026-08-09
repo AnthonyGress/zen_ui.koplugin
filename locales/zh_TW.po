@@ -333,6 +333,9 @@ msgstr "書籍資訊"
 msgid "Book Status"
 msgstr "書籍狀態"
 
+msgid "Book strip"
+msgstr "書籍橫條"
+
 msgid "Book switcher"
 msgstr "書籍切換器"
 
@@ -489,9 +492,6 @@ msgstr "清除所有手勢"
 msgid "Clear book"
 msgstr "清除書籍"
 
-msgid "Clear books"
-msgstr "清除書籍"
-
 msgid "Close"
 msgstr "關閉"
 
@@ -606,6 +606,9 @@ msgstr "目前/總頁數"
 msgid "Custom"
 msgstr "自訂"
 
+msgid "Custom books"
+msgstr "自訂書籍"
+
 msgid "Custom button label"
 msgstr "自訂按鈕標籤"
 
@@ -675,8 +678,8 @@ msgstr "深暖灰"
 msgid "Date"
 msgstr "日期"
 
-msgid "Date/time widget"
-msgstr "日期/時間小工具"
+msgid "Date/time"
+msgstr "日期/時間"
 
 msgid "Day brightness"
 msgstr "白天亮度"
@@ -719,6 +722,9 @@ msgstr "預設"
 
 msgid "Default (black)"
 msgstr "預設（黑色）"
+
+msgid "Content: "
+msgstr "內容："
 
 msgid "Default font size:"
 msgstr "預設字體大小："
@@ -930,14 +936,8 @@ msgstr "送出報告失敗："
 msgid "Favorites"
 msgstr "我的最愛"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "精選書籍"
-
-msgid "Featured Books"
-msgstr "特色書籍"
-
-msgid "Featured widget"
-msgstr "特色小部件"
 
 msgid "Featured widgets"
 msgstr "精選小工具"
@@ -1025,6 +1025,9 @@ msgstr "前光"
 
 msgid "Gallery"
 msgstr "圖庫"
+
+msgid "Genres"
+msgstr "類型"
 
 msgid "Get Started"
 msgstr "開始使用"
@@ -1629,6 +1632,9 @@ msgstr "大綱"
 msgid "Outlined boxes"
 msgstr "外框方塊"
 
+msgid "p."
+msgstr "頁"
+
 msgid "Page %1 of %2"
 msgstr "第 %1 頁，共 %2 頁"
 
@@ -1770,8 +1776,8 @@ msgstr "報價字體大小"
 msgid "Quote sources"
 msgstr "報價來源"
 
-msgid "Quotes widget"
-msgstr "引文小工具"
+msgid "Quotes"
+msgstr "引文"
 
 msgid "quotes.lua is empty"
 msgstr "quotes.lua 為空"
@@ -1824,20 +1830,20 @@ msgstr "閱讀目標"
 msgid "Reading goals font size"
 msgstr "閱讀目標字體大小"
 
-msgid "Reading goals widget"
-msgstr "閱讀目標小工具"
-
 msgid "Reading stats"
 msgstr "閱讀統計數據"
-
-msgid "Reading stats widget"
-msgstr "閱讀統計小工具"
 
 msgid "Reading trend"
 msgstr "閱讀趨勢"
 
 msgid "Reading Trend"
 msgstr "閱讀趨勢"
+
+msgid "Recent"
+msgstr "最近"
+
+msgid "Recent filters"
+msgstr "最近項目篩選"
 
 msgid "Recently read"
 msgstr "最近閱讀"
@@ -2100,6 +2106,9 @@ msgstr "顯示底部邊框"
 msgid "Show brightness slider"
 msgstr "顯示亮度滑桿"
 
+msgid "Show controls"
+msgstr "顯示控制項"
+
 msgid "Show description"
 msgstr "顯示描述"
 
@@ -2232,6 +2241,9 @@ msgstr "排序順序"
 msgid "Sort series"
 msgstr "按系列排序"
 
+msgid "Specific tag"
+msgstr "指定標籤"
+
 msgid "Stable"
 msgstr "Stable"
 
@@ -2283,9 +2295,6 @@ msgstr "連續閱讀"
 msgid "Stream from page"
 msgstr "從頁面串流"
 
-msgid "Strip widget"
-msgstr "條帶小部件"
-
 msgid "Strip widgets"
 msgstr "橫列小工具"
 
@@ -2322,14 +2331,8 @@ msgstr "標籤"
 msgid "Tag"
 msgstr "標籤"
 
-msgid "Tag books"
-msgstr "帶標籤的書籍"
-
 msgid "Tag strip widget"
 msgstr "標籤條小工具"
-
-msgid "Tag: "
-msgstr "標籤："
 
 msgid "Tag: %1"
 msgstr "標籤：%1"
@@ -2780,3 +2783,24 @@ msgstr "ZenPM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM 已安裝。重新啟動 KOReader 即可使用。"
+
+msgid "Automatic"
+msgstr "自動"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "首頁間距已更新。已保留您儲存的小工具順序與選擇，並重新配合新格線。"
+
+msgid "%1, %2 %3"
+msgstr "%2%3日，%1"
+
+msgid "Zen Mode is enabled. KOReader menus are hidden."
+msgstr "禪模式已啟用。KOReader 選單已隱藏。"
+
+msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
+msgstr "使用此圖示關閉禪模式，即可調整 Zen 設定中沒有的 KOReader 設定。"
+
+msgid "This does not disable Zen UI—it only shows or hides KOReader’s menus."
+msgstr "這不會停用 Zen UI，只會顯示或隱藏 KOReader 選單。"
+
+msgid "This is Zen Settings. Zen UI and common KOReader settings live here."
+msgstr "這裡是 Zen 設定，其中包含 Zen UI 設定和常用的 KOReader 設定。"

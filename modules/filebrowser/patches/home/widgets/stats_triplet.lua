@@ -82,7 +82,7 @@ end
 
 return {
     id = "stats_triplet",
-    label = _("Reading stats widget"),
+    label = _("Reading stats"),
     size = "xs",
     build = function(ctx)
         local width = ctx.width

@@ -12,12 +12,12 @@ local M = {}
 local DEFAULT_GOALS_FONT_SIZE = 11
 local open_widget_settings
 
-function M.openWidgetSettings(id)
+function M.openWidgetSettings(id, plugin)
     if type(open_widget_settings) ~= "function" then
-        M.build({})
+        M.build({ plugin = plugin })
     end
     if type(open_widget_settings) == "function" then
-        return open_widget_settings(id)
+        return open_widget_settings(id, plugin)
     end
     return false
 end
@@ -250,6 +250,7 @@ function M.build(ctx)
         require("common/ui/zen_arrange_list").show{
             title = _("Widgets"),
             item_table = sort_items,
+            plugin = plugin,
             callback = function()
                 local order = {}
                 for _i, item in ipairs(sort_items) do order[#order + 1] = item.orig_item end
@@ -308,7 +309,7 @@ function M.build(ctx)
         }
     end
 
-    open_widget_settings = function(id)
+    open_widget_settings = function(id, owning_plugin)
         local settings_page = require("modules/settings/zen_settings_page")
         local standalone_route = settings_page.rememberStandaloneArrangeRoute({
             { text = _("Extras"), occurrence = 1 },
@@ -330,6 +331,7 @@ function M.build(ctx)
         require("common/ui/zen_arrange_list").show{
             title = label_for(id),
             item_table = items,
+            plugin = owning_plugin or plugin,
             allow_arrange = false,
             hide_footer_cancel = true,
             back_callback = standalone_route and function()

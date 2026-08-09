@@ -333,6 +333,9 @@ msgstr "Thông tin sách"
 msgid "Book Status"
 msgstr "Trạng thái sách"
 
+msgid "Book strip"
+msgstr "Dải sách"
+
 msgid "Book switcher"
 msgstr ""
 
@@ -489,9 +492,6 @@ msgstr "Xóa tất cả cử chỉ"
 msgid "Clear book"
 msgstr "Xóa sách"
 
-msgid "Clear books"
-msgstr "Xóa sách"
-
 msgid "Close"
 msgstr "Đóng"
 
@@ -606,6 +606,9 @@ msgstr "Trang hiện tại/tổng"
 msgid "Custom"
 msgstr "Tùy chỉnh"
 
+msgid "Custom books"
+msgstr ""
+
 msgid "Custom button label"
 msgstr "Nhãn nút tùy chỉnh"
 
@@ -675,8 +678,8 @@ msgstr "Màu xám đậm ấm áp"
 msgid "Date"
 msgstr "Ngày"
 
-msgid "Date/time widget"
-msgstr "Tiện ích ngày/giờ"
+msgid "Date/time"
+msgstr "Ngày/giờ"
 
 msgid "Day brightness"
 msgstr "Độ sáng ban ngày"
@@ -719,6 +722,9 @@ msgstr "mặc định"
 
 msgid "Default (black)"
 msgstr "Mặc định (đen)"
+
+msgid "Content: "
+msgstr "Nội dung: "
 
 msgid "Default font size:"
 msgstr "Cỡ chữ mặc định:"
@@ -930,14 +936,8 @@ msgstr "Không thể gửi báo cáo: "
 msgid "Favorites"
 msgstr "Yêu thích"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "Sách nổi bật"
-
-msgid "Featured Books"
-msgstr "Sách nổi bật"
-
-msgid "Featured widget"
-msgstr "Tiện ích nổi bật"
 
 msgid "Featured widgets"
 msgstr "Widget nổi bật"
@@ -1025,6 +1025,9 @@ msgstr "Đèn trước"
 
 msgid "Gallery"
 msgstr "Thư viện ảnh"
+
+msgid "Genres"
+msgstr ""
 
 msgid "Get Started"
 msgstr "Bắt đầu"
@@ -1629,6 +1632,9 @@ msgstr "phác thảo"
 msgid "Outlined boxes"
 msgstr "Hộp có viền"
 
+msgid "p."
+msgstr ""
+
 msgid "Page %1 of %2"
 msgstr "Trang %1 / %2"
 
@@ -1770,8 +1776,8 @@ msgstr "Cỡ chữ trích dẫn"
 msgid "Quote sources"
 msgstr "Nguồn trích dẫn"
 
-msgid "Quotes widget"
-msgstr "Widget trích dẫn"
+msgid "Quotes"
+msgstr "Trích dẫn"
 
 msgid "quotes.lua is empty"
 msgstr "quote.lua trống"
@@ -1824,20 +1830,20 @@ msgstr "Mục tiêu đọc"
 msgid "Reading goals font size"
 msgstr "Kích thước phông chữ mục tiêu đọc"
 
-msgid "Reading goals widget"
-msgstr "Tiện ích đọc mục tiêu"
-
 msgid "Reading stats"
 msgstr "Thống kê đọc"
-
-msgid "Reading stats widget"
-msgstr "Widget thống kê đọc"
 
 msgid "Reading trend"
 msgstr "Xu hướng đọc"
 
 msgid "Reading Trend"
 msgstr "Xu hướng đọc"
+
+msgid "Recent"
+msgstr ""
+
+msgid "Recent filters"
+msgstr ""
 
 msgid "Recently read"
 msgstr "Đã đọc gần đây"
@@ -2100,6 +2106,9 @@ msgstr "Hiển thị viền dưới"
 msgid "Show brightness slider"
 msgstr "Hiển thị thanh trượt độ sáng"
 
+msgid "Show controls"
+msgstr ""
+
 msgid "Show description"
 msgstr "Hiển thị mô tả"
 
@@ -2232,6 +2241,9 @@ msgstr "Thứ tự sắp xếp"
 msgid "Sort series"
 msgstr "Sắp xếp chuỗi"
 
+msgid "Specific tag"
+msgstr ""
+
 msgid "Stable"
 msgstr "Ổn định"
 
@@ -2283,9 +2295,6 @@ msgstr "Chuỗi"
 msgid "Stream from page"
 msgstr "Phát từ trang"
 
-msgid "Strip widget"
-msgstr "Dải tiện ích"
-
 msgid "Strip widgets"
 msgstr "Widget dải"
 
@@ -2322,14 +2331,8 @@ msgstr "Tab"
 msgid "Tag"
 msgstr "Nhãn"
 
-msgid "Tag books"
-msgstr "Sách được gắn thẻ"
-
 msgid "Tag strip widget"
 msgstr "Tiện ích dải thẻ"
-
-msgid "Tag: "
-msgstr "Nhãn:"
 
 msgid "Tag: %1"
 msgstr "Thẻ: %1"
@@ -2780,3 +2783,12 @@ msgstr "ZenPM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM đã được cài đặt. Khởi động lại KOReader để sử dụng."
+
+msgid "Automatic"
+msgstr "Tự động"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "Khoảng cách trên màn hình chính đã được cập nhật. Thứ tự và lựa chọn tiện ích đã lưu được giữ nguyên và điều chỉnh theo lưới mới."
+
+msgid "%1, %2 %3"
+msgstr "%1, ngày %3 %2"

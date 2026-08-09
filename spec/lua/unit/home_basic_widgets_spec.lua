@@ -70,6 +70,10 @@ describe("home basic widgets", function()
             ZenSpec.replace(name, widget_class(name))
         end
         ZenSpec.replace("common/utils", { resolveLocalIcon = function() return nil end })
+        ZenSpec.replace("modules/filebrowser/patches/library_font", {
+            getFontName = function() return "smallinfofont" end,
+        })
+        ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("ui/gesturerange", widget_class("gesture"))
         ZenSpec.unload("common/widget_resources")
     end
@@ -99,10 +103,11 @@ describe("home basic widgets", function()
         date_stub = nil
     end)
 
-    it("renders a 24-hour clock and localized date and registers refresh", function()
+    it("renders a 24-hour clock and English long date and registers refresh", function()
+        _G.G_reader_settings = ZenSpec.memorySettings({ language = "en_US" })
         date_stub = stub(os, "date")
         date_stub.on_call_with("%H:%M").returns("21:07")
-        date_stub.on_call_with("*t").returns({ wday = 2, day = 8 })
+        date_stub.on_call_with("*t").returns({ wday = 2, year = 2026, month = 1, day = 8 })
         date_stub.on_call_with("%B").returns("January")
         date_stub.on_call_with("%A").returns("Monday")
         ZenSpec.replace("datetime", {
@@ -121,7 +126,7 @@ describe("home basic widgets", function()
         })
 
         assert.are.equal("datetime", component.id)
-        assert.are.equal("s", component.size)
+        assert.are.same({ units = 1.5 }, component.size)
         assert.is_table(widget)
         assert.is_function(refresh)
         assert.is_true(refresh())
@@ -143,7 +148,7 @@ describe("home basic widgets", function()
         _G.G_reader_settings = ZenSpec.memorySettings({ twelve_hour_clock = true })
         date_stub = stub(os, "date")
         date_stub.on_call_with("%I:%M").returns("09:05")
-        date_stub.on_call_with("*t").returns({ wday = 2, day = 8 })
+        date_stub.on_call_with("*t").returns({ wday = 2, year = 2026, month = 1, day = 8 })
         date_stub.on_call_with("%B").returns("January")
         date_stub.on_call_with("%A").returns("Monday")
         ZenSpec.replace("datetime", {
@@ -164,6 +169,66 @@ describe("home basic widgets", function()
             end
         end
         assert.are.equal(120, clock_size)
+    end)
+
+    it("uses translated day-first grammar for Spanish dates", function()
+        _G.G_reader_settings = ZenSpec.memorySettings({ language = "es" })
+        ZenSpec.replace("gettext", function(text)
+            if text == "%1, %2 %3" then return "%1, %3 de %2" end
+            return text
+        end)
+        date_stub = stub(os, "date")
+        date_stub.on_call_with("%H:%M").returns("21:07")
+        date_stub.on_call_with("*t").returns({ wday = 6, year = 2026, month = 8, day = 15 })
+        date_stub.on_call_with("%B").returns("August")
+        date_stub.on_call_with("%A").returns("Friday")
+        ZenSpec.replace("datetime", {
+            weekDays = { [6] = "Fri" },
+            shortDayOfWeekToLongTranslation = { Fri = "Viernes" },
+            longMonthTranslation = { August = "Agosto" },
+        })
+
+        ZenSpec.unload("modules/filebrowser/patches/home/widgets/datetime")
+        require("modules/filebrowser/patches/home/widgets/datetime").build({
+            width = 300, height = 60,
+        })
+        assert.is_true(has_text("Viernes, 15 de agosto"))
+    end)
+
+    it("applies separate Date/time font faces and sizes", function()
+        date_stub = stub(os, "date")
+        date_stub.on_call_with("%H:%M").returns("21:07")
+        date_stub.on_call_with("*t").returns({ wday = 2, year = 2026, month = 1, day = 8 })
+        date_stub.on_call_with("%B").returns("January")
+        ZenSpec.replace("datetime", {
+            weekDays = { [2] = "Mon" },
+            shortDayOfWeekToLongTranslation = { Mon = "Monday" },
+            longMonthTranslation = { January = "January" },
+        })
+        ZenSpec.unload("modules/filebrowser/patches/home/widgets/datetime")
+        require("modules/filebrowser/patches/home/widgets/datetime").build({
+            width = 500,
+            height = 120,
+            module_cfg = {
+                automatic_font_size = false,
+                text_styles = {
+                    time = { font_face = "TimeFace.ttf", font_size = 52 },
+                    date = { font_face = "DateFace.ttf", font_size = 17 },
+                },
+            },
+        })
+
+        local time_face, date_face, rendered_date
+        for _i, child in ipairs(created) do
+            if child.text == "21:07" then time_face = child.face end
+            if child.face and child.face.name == "DateFace.ttf" then
+                date_face = child.face
+                rendered_date = child.text
+            end
+        end
+        assert.are.same({ name = "TimeFace.ttf", size = 52 }, time_face)
+        assert.are.same({ name = "DateFace.ttf", size = 17 }, date_face)
+        assert.are.equal("Monday, January 8", rendered_date)
     end)
 
     it("aligns stats dividers to the visible text block", function()
@@ -221,7 +286,7 @@ describe("home basic widgets", function()
         widget.dimen.x, widget.dimen.y = 10, 20
 
         assert.are.equal("quotes", component.id)
-        assert.are.same({ units = 1.5 }, component.size)
+        assert.are.same({ units = 2 }, component.size)
         assert.is_true(widget:onTapQuote(nil, { pos = { x = 40, y = 40 } }))
         assert.is_true(widget:onSwipeQuote(nil, {
             pos = { x = 40, y = 40 },
@@ -254,7 +319,7 @@ describe("home basic widgets", function()
         end
         assert.are.equal(48, quote_widget.paint_y)
         assert.are.equal(60, author_widget.paint_y)
-        assert.are.same({ 4, 116, 0, 0 }, {
+        assert.are.same({ 48, 72, -48, 48 }, {
             content_bounds.top,
             content_bounds.bottom,
             content_bounds.min_shift,
@@ -266,6 +331,10 @@ describe("home basic widgets", function()
         ZenSpec.unload("modules/filebrowser/patches/home/home_presets")
         local preset = require("modules/filebrowser/patches/home/home_presets").defaultHomePage()
         assert.are.equal(10, preset.rows.capacity_units)
+        assert.are.equal(2, preset.rows.layout_schema_version)
+        assert.is_true(preset.modules.datetime.automatic_font_size)
+        assert.are.equal(48, preset.modules.datetime.text_styles.time.font_size)
+        assert.are.equal(18, preset.modules.datetime.text_styles.date.font_size)
         assert.are.equal(18, preset.modules.stats_triplet.font_size)
         assert.is_true(preset.modules.stats_triplet.font_size_override)
         assert.is_true(preset.quotes.automatic_font_size)
@@ -439,7 +508,7 @@ describe("home basic widgets", function()
         for _i, child in ipairs(created) do
             if child.text == '"First\nSecond\nThird\nFourth"' and child.height then
                 assert.are.equal(36, child.height)
-                assert.are.same({ 4, 116 }, {
+                assert.are.same({ 4, 40 }, {
                     content_bounds.top,
                     content_bounds.bottom,
                 })

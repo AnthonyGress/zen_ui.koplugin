@@ -25,8 +25,10 @@ describe("config manager folder-path migration", function()
             migrateStores = function() return false end,
         })
         ZenSpec.replace("modules/filebrowser/patches/home/home_presets", {
+            BOOKSHELF_PRESET_NAME = "Bookshelf",
             applyMosaicTitlesToStrips = function() end,
             defaultHomePage = function() return { quotes = { font_size = 12 } } end,
+            normalizeStripConfig = function() return false end,
         })
         ZenSpec.replace("modules/filebrowser/patches/home/home_quotes", {
             ensureFile = function() return false end,
@@ -88,6 +90,21 @@ describe("config manager folder-path migration", function()
         assert.are.equal(18, stores.home.presets.explicit.quotes.font_size)
     end)
 
+    it("enables strip controls for an existing active Bookshelf preset", function()
+        stores.home = {
+            active_preset = "Bookshelf",
+            settings = {
+                active_preset = "Bookshelf",
+                modules = { strip = { controls = { enabled = false } } },
+            },
+            presets = {},
+        }
+
+        Manager.load()
+
+        assert.is_true(stores.home.settings.modules.strip.controls.enabled)
+    end)
+
     it("removes obsolete folder-cover lifecycle settings", function()
         settings_file.data = {
             features = { browser_folder_cover = true },
@@ -101,6 +118,46 @@ describe("config manager folder-path migration", function()
         assert.is_nil(config.browser_folder_cover.crop_to_fit)
         assert.are.equal("stack", config.browser_folder_cover.cover_mode)
         assert.is_nil(config._meta.gallery_mode_defaulted)
+    end)
+
+    it("migrates the legacy Library default to bundled Hyperreadable once", function()
+        settings_file.data = {
+            library_font = { font_face = "default", font_size = 20 },
+        }
+
+        local config = Manager.load()
+        local expected = (require("common/plugin_root") or "")
+            .. "/fonts/hyperreadable/Hyperreadable-Regular.ttf"
+
+        assert.are.equal(expected, config.library_font.font_face)
+        assert.are.equal(20, config.library_font.font_size)
+        assert.is_true(config._meta.library_font_hyperreadable_default_migrated)
+
+        config.library_font.font_face = "default"
+        Manager.save(config)
+
+        assert.are.equal("default", Manager.load().library_font.font_face)
+    end)
+
+    it("preserves a custom Library font during the default migration", function()
+        settings_file.data = {
+            library_font = { font_face = "/fonts/Custom-Regular.ttf", font_size = 18 },
+        }
+
+        local config = Manager.load()
+
+        assert.are.equal("/fonts/Custom-Regular.ttf", config.library_font.font_face)
+        assert.is_true(config._meta.library_font_hyperreadable_default_migrated)
+    end)
+
+    it("migrates previously shown Quickstart guides as completed", function()
+        settings_file.data = {
+            _meta = { quickstart_shown_for_version = "2.5.0" },
+        }
+
+        local config = Manager.load()
+
+        assert.is_true(config._meta.quickstart_completed)
     end)
 
     it("moves global search and page-browser layout into their Zen settings", function()

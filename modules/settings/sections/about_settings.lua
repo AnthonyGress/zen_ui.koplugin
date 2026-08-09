@@ -87,6 +87,9 @@ function M.build(ctx)
                     config = ctx.config,
                 }),
                 on_close = function()
+                    if type(ctx.config._meta) ~= "table" then ctx.config._meta = {} end
+                    ctx.config._meta.quickstart_completed = true
+                    plugin:saveConfig()
                     UIManager:nextTick(function()
                         local reinject = _G.__ZEN_UI_REINJECT_FM_NAVBAR
                         if type(reinject) == "function" then reinject() end

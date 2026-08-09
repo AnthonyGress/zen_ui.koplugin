@@ -1242,7 +1242,8 @@ local function apply_navbar()
         local StatsPage = require("modules/filebrowser/patches/stats_page")
         local _createStatusRow = get_shared("createStatusRow")
         local _repaintTitleBar = get_shared("repaintTitleBar")
-        local stats_page, is_new = StatsPage.create(_createStatusRow, _repaintTitleBar)
+        local stats_page, is_new = StatsPage.create(
+            _createStatusRow, _repaintTitleBar, zen_plugin)
         if not is_new then return end
         injectStandaloneNavbar(stats_page, "stats")
         UIManager:show(stats_page)

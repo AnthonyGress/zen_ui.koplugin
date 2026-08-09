@@ -5,11 +5,14 @@ describe("reader book status", function()
         "apps/reader/modules/readerstatus",
         "common/book_status",
         "common/library_navigation",
+        "common/plugin_root",
+        "common/ui/zen_icon_button",
+        "common/utils",
         "gettext",
+        "libs/libkoreader-lfs",
         "ui/size",
         "device",
         "ui/uimanager",
-        "ui/widget/iconbutton",
         "ui/widget/button",
         "ui/widget/container/centercontainer",
         "ui/event",
@@ -28,6 +31,9 @@ describe("reader book status", function()
     local next_file_opens
     local library_opens
     local closed
+    local icon_buttons
+    local buttons
+    local saved_default_tab_icon
 
     local function widget_class()
         return {
@@ -44,6 +50,8 @@ describe("reader book status", function()
     local function make_status()
         return {
             key_events = {},
+            layout = {},
+            selected = { x = 1, y = 1 },
             ui = {
                 document = {},
                 doc_settings = { flush = function() end },
@@ -84,10 +92,14 @@ describe("reader book status", function()
         next_file_opens = 0
         library_opens = 0
         closed = 0
+        icon_buttons = {}
+        buttons = {}
         invalidated = {}
+        saved_default_tab_icon = rawget(_G, "__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON")
 
         BookStatusWidget = {
-            generateRateGroup = function()
+            generateRateGroup = function(self)
+                self.layout[1] = { { id = "star" } }
                 return {}
             end,
             onChangeBookStatus = function(self)
@@ -111,6 +123,23 @@ describe("reader book status", function()
                 library_opens = library_opens + 1
             end,
         })
+        ZenSpec.replace("common/plugin_root", "/plugin")
+        ZenSpec.replace("common/utils", {
+            getUserIconsDir = function() return "/user-icons/" end,
+            resolveIcon = function(icons_dir, name)
+                if icons_dir == "/plugin/icons/" and (name == "home" or name == "library") then
+                    return icons_dir .. name .. ".svg"
+                end
+            end,
+            resolveLocalIcon = function(icons_dir, name)
+                if icons_dir == "/koreader/resources/icons/mdlight/" then
+                    return icons_dir .. name .. ".svg"
+                end
+            end,
+        })
+        ZenSpec.replace("libs/libkoreader-lfs", {
+            currentdir = function() return "/koreader" end,
+        })
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("ui/size", {
             padding = { default = 8 },
@@ -125,8 +154,24 @@ describe("reader book status", function()
             close = function() closed = closed + 1 end,
             scheduleIn = function(_, _, callback) callback() end,
         })
-        ZenSpec.replace("ui/widget/iconbutton", widget_class())
-        ZenSpec.replace("ui/widget/button", widget_class())
+        ZenSpec.replace("common/ui/zen_icon_button", {
+            new = function(_, values)
+                values.getSize = function(self)
+                    return { w = self.width or 0, h = self.height or 20 }
+                end
+                icon_buttons[#icon_buttons + 1] = values
+                return values
+            end,
+        })
+        ZenSpec.replace("ui/widget/button", {
+            new = function(_, values)
+                values.getSize = function(self)
+                    return { w = self.width or 0, h = self.height or 20 }
+                end
+                buttons[#buttons + 1] = values
+                return values
+            end,
+        })
         ZenSpec.replace("ui/widget/container/centercontainer", widget_class())
         ZenSpec.replace("ui/widget/horizontalgroup", widget_class())
         ZenSpec.replace("ui/widget/horizontalspan", widget_class())
@@ -142,9 +187,26 @@ describe("reader book status", function()
     after_each(function()
         _G.G_defaults = saved_defaults
         _G.G_reader_settings = saved_reader_settings
+        rawset(_G, "__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON", saved_default_tab_icon)
         for _i, name in ipairs(dependencies) do
             package.loaded[name] = saved_modules[name] or nil
         end
+    end)
+
+    it("adds the header and restart controls to hardware focus navigation", function()
+        G_reader_settings:saveSetting("collate", "natural")
+        rawset(_G, "__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON", function() return "home" end)
+        require("modules/reader/patches/book_status")()
+        local status = make_status()
+
+        BookStatusWidget.getStatusContent(status, 400)
+
+        assert.are.equal("/koreader/resources/icons/mdlight/chevron.left.svg", icon_buttons[1].file)
+        assert.are.equal("/plugin/icons/home.svg", icon_buttons[2].file)
+        assert.same({ icon_buttons[1], icon_buttons[2] }, status.layout[1])
+        assert.same({ buttons[1] }, status.layout[2])
+        assert.are.equal("Restart Book", buttons[1].text)
+        assert.are.equal(3, status.selected.y)
     end)
 
     it("opens the next sequential file on page-forward from book status", function()

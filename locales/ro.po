@@ -333,6 +333,9 @@ msgstr "Informații carte"
 msgid "Book Status"
 msgstr "Stare carte"
 
+msgid "Book strip"
+msgstr "Bandă de cărți"
+
 msgid "Book switcher"
 msgstr "Selector de cărți"
 
@@ -489,9 +492,6 @@ msgstr "Șterge toate gesturile"
 msgid "Clear book"
 msgstr "Elimină cartea"
 
-msgid "Clear books"
-msgstr "Elimină cărțile"
-
 msgid "Close"
 msgstr "Închide"
 
@@ -606,6 +606,9 @@ msgstr "Pagini curente/totale"
 msgid "Custom"
 msgstr "Personalizat"
 
+msgid "Custom books"
+msgstr "Cărți personalizate"
+
 msgid "Custom button label"
 msgstr "Etichetă buton personalizat"
 
@@ -675,8 +678,8 @@ msgstr "Gri cald închis"
 msgid "Date"
 msgstr "Data"
 
-msgid "Date/time widget"
-msgstr "Widget data/ora"
+msgid "Date/time"
+msgstr "Data/ora"
 
 msgid "Day brightness"
 msgstr "Luminozitate zi"
@@ -719,6 +722,9 @@ msgstr "implicit"
 
 msgid "Default (black)"
 msgstr "Implicit (negru)"
+
+msgid "Content: "
+msgstr "Conținut: "
 
 msgid "Default font size:"
 msgstr "Dimensiunea fontului implicit:"
@@ -930,14 +936,8 @@ msgstr "Trimiterea raportului a eșuat: "
 msgid "Favorites"
 msgstr "Favorite"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "Carte recomandată"
-
-msgid "Featured Books"
-msgstr "Cărți recomandate"
-
-msgid "Featured widget"
-msgstr "Widget recomandat"
 
 msgid "Featured widgets"
 msgstr "Widgeturi principale"
@@ -1025,6 +1025,9 @@ msgstr "Lumină frontală"
 
 msgid "Gallery"
 msgstr "Galerie"
+
+msgid "Genres"
+msgstr "Genuri"
 
 msgid "Get Started"
 msgstr "Începeți"
@@ -1629,6 +1632,9 @@ msgstr "Contur"
 msgid "Outlined boxes"
 msgstr "Casete conturate"
 
+msgid "p."
+msgstr "p."
+
 msgid "Page %1 of %2"
 msgstr "Pagina %1 din %2"
 
@@ -1770,8 +1776,8 @@ msgstr "Dimensiunea fontului citat"
 msgid "Quote sources"
 msgstr "Surse citate"
 
-msgid "Quotes widget"
-msgstr "Widget citate"
+msgid "Quotes"
+msgstr "Citate"
 
 msgid "quotes.lua is empty"
 msgstr "ghilimele.lua este goală"
@@ -1824,20 +1830,20 @@ msgstr "Obiective de lectură"
 msgid "Reading goals font size"
 msgstr "Dimensiunea fontului obiectivelor de citire"
 
-msgid "Reading goals widget"
-msgstr "Widget pentru obiective de citire"
-
 msgid "Reading stats"
 msgstr "Statistici de lectură"
-
-msgid "Reading stats widget"
-msgstr "Widget statistici de lectură"
 
 msgid "Reading trend"
 msgstr "Tendință de lectură"
 
 msgid "Reading Trend"
 msgstr "Tendință de lectură"
+
+msgid "Recent"
+msgstr "Recente"
+
+msgid "Recent filters"
+msgstr "Filtre pentru recente"
 
 msgid "Recently read"
 msgstr "Citite recent"
@@ -2100,6 +2106,9 @@ msgstr "Afișează chenarul inferior"
 msgid "Show brightness slider"
 msgstr "Afișează cursorul luminozității"
 
+msgid "Show controls"
+msgstr "Afișează comenzile"
+
 msgid "Show description"
 msgstr "Arată descrierea"
 
@@ -2232,6 +2241,9 @@ msgstr "Ordine de sortare"
 msgid "Sort series"
 msgstr "Sortare serii"
 
+msgid "Specific tag"
+msgstr "Etichetă specifică"
+
 msgid "Stable"
 msgstr "Stable"
 
@@ -2283,9 +2295,6 @@ msgstr "Serie"
 msgid "Stream from page"
 msgstr "Flux de la pagina"
 
-msgid "Strip widget"
-msgstr "Widget bandă"
-
 msgid "Strip widgets"
 msgstr "Widgeturi bandă"
 
@@ -2322,14 +2331,8 @@ msgstr "File"
 msgid "Tag"
 msgstr "Etichetă"
 
-msgid "Tag books"
-msgstr "Cărți etichetate"
-
 msgid "Tag strip widget"
 msgstr "Widget cu bandă de etichete"
-
-msgid "Tag: "
-msgstr "Etichetă:"
 
 msgid "Tag: %1"
 msgstr "Etichetă: %1"
@@ -2780,3 +2783,24 @@ msgstr "ZenPM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM a fost instalat. Reporniți KOReader pentru a-l folosi."
+
+msgid "Automatic"
+msgstr "Automat"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "Spațierea ecranului principal a fost actualizată. Ordinea și selecția salvate ale widgeturilor au fost păstrate și adaptate la noua grilă."
+
+msgid "%1, %2 %3"
+msgstr "%1, %3 %2"
+
+msgid "Zen Mode is enabled. KOReader menus are hidden."
+msgstr "Modul Zen este activat. Meniurile KOReader sunt ascunse."
+
+msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
+msgstr "Dezactivați modul Zen cu această pictogramă pentru a ajusta setările KOReader care nu sunt disponibile în Setările Zen."
+
+msgid "This does not disable Zen UI—it only shows or hides KOReader’s menus."
+msgstr "Aceasta nu dezactivează Zen UI: doar afișează sau ascunde meniurile KOReader."
+
+msgid "This is Zen Settings. Zen UI and common KOReader settings live here."
+msgstr "Acestea sunt Setările Zen. Atât setările Zen UI, cât și setările KOReader uzuale se găsesc aici."

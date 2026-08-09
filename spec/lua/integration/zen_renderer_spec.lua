@@ -90,14 +90,17 @@ describe("Zen renderer", function()
         ZenSpec.replace("ui/gesturerange", { new = function(_self, values) return values end })
         ZenSpec.replace("ui/widget/imagewidget", class())
         ZenSpec.replace("ui/widget/container/inputcontainer", class())
-        local function widget_class()
+        local function widget_class(kind)
             local Widget = class()
-            function Widget:new(values) return values end
+            function Widget:new(values)
+                values.kind = kind
+                return values
+            end
             return Widget
         end
-        ZenSpec.replace("ui/widget/container/centercontainer", widget_class())
+        ZenSpec.replace("ui/widget/container/centercontainer", widget_class("center"))
         ZenSpec.replace("ui/widget/container/alphacontainer", widget_class())
-        ZenSpec.replace("ui/widget/container/bottomcontainer", widget_class())
+        ZenSpec.replace("ui/widget/container/bottomcontainer", widget_class("bottom"))
         ZenSpec.replace("ui/widget/container/framecontainer", widget_class())
         local WidgetContainer = class()
         function WidgetContainer:getSize() return self.dimen end
@@ -211,6 +214,21 @@ describe("Zen renderer", function()
             BORDER_SIZE = 2,
             calcDims = function(width, height) return calc_dimensions(width, height) end,
         })
+        ZenSpec.replace("modules/filebrowser/patches/home/widgets/cover_common", {
+            BORDER_SIZE = 2,
+            make_cover_widget = function(book, width, height, options)
+                cover_books[#cover_books + 1] = book
+                cover_requests[#cover_requests + 1] = {
+                    width = width,
+                    height = height,
+                    options = options,
+                }
+                return { dimen = { w = 66, h = 99 } }
+            end,
+        })
+        ZenSpec.unload("modules/filebrowser/folder_cover")
+        local shared_folder_overlay =
+            require("modules/filebrowser/folder_cover").overlayName
         ZenSpec.replace("modules/filebrowser/folder_cover", {
             isBook = function(entry)
                 return entry.is_file == true or type(entry.file) == "string"
@@ -244,6 +262,8 @@ describe("Zen renderer", function()
                     mode = "gallery",
                 }
             end,
+            overlayName = shared_folder_overlay,
+            paintDecorations = function() end,
         })
         ZenSpec.replace("common/ui/background", {
             library_path = function() return "" end,
@@ -259,18 +279,6 @@ describe("Zen renderer", function()
             getBadgeInset = function(radius) return math.floor(radius * 0.4) end,
             getBadgeScale = function(config)
                 return config.browser_cover_badges.badge_size == "extra_large" and 1.5 or 1
-            end,
-        })
-        ZenSpec.replace("modules/filebrowser/patches/home/widgets/cover_common", {
-            BORDER_SIZE = 2,
-            make_cover_widget = function(book, width, height, options)
-                cover_books[#cover_books + 1] = book
-                cover_requests[#cover_requests + 1] = {
-                    width = width,
-                    height = height,
-                    options = options,
-                }
-                return { dimen = { w = 66, h = 99 } }
             end,
         })
         ZenSpec.replace("modules/filebrowser/patches/library_font", {
@@ -628,6 +636,7 @@ describe("Zen renderer", function()
         assert.are.equal(cover_size.w - 14, folder_name_labels[1].width)
         assert.are.equal(cover_size.w, label_container.dimen.w)
         assert.are.equal(cover_size.h, label_container.dimen.h)
+        assert.are.equal("bottom", label_container.kind)
         assert.are.equal(cover_size.w, label_strip.dimen.w)
         assert.are.equal(20, label_strip.dimen.h)
         assert.are.equal(8, label_strip.radius)
@@ -674,6 +683,12 @@ describe("Zen renderer", function()
         local short_strip = short_overlay[2][1][1][1]
         assert.are.equal(translucent_strip.dimen.h, short_strip.dimen.h)
         assert.are.equal(translucent_strip.strip, short_strip.strip)
+
+        _G.__ZEN_UI_PLUGIN.config.browser_folder_cover.name_centered = true
+        local centered_menu = folder_menu("Centered")
+        MosaicMenu._updateItemsBuildUI(centered_menu)
+        local centered_overlay = centered_menu.layout[1][1]._underline_container[1][1]
+        assert.are.equal("center", centered_overlay[2][1].kind)
     end)
 
     it("supplies the rendered book cover before opening a Zen mosaic tile", function()

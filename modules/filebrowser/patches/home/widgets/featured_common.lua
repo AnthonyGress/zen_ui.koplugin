@@ -19,11 +19,12 @@ local zen_utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
 local BookOpenTap = require("common/book_open_tap")
 local cover_common = require("modules/filebrowser/patches/home/widgets/cover_common")
+local HomePresets = require("modules/filebrowser/patches/home/home_presets")
 local library_font = require("modules/filebrowser/patches/library_font")
 local _ = require("gettext")
 
 local M = {}
-M.SIZE = "l"
+M.SIZE = { units = 3.5 }
 
 local function time_unit(unit)
     if type(_) == "table" and type(_.pgettext) == "function" then
@@ -182,9 +183,8 @@ function M.build(ctx, source_key)
     local height = math.max(1, outer_height - padding * 2)
     local module_cfg = type(ctx.module_cfg) == "table" and ctx.module_cfg or {}
     local interactive = module_cfg.interactive ~= false
-    local source = source_key or "recently_read"
-    local order = module_cfg.order or "default"
-    local book = ctx.data:getFeaturedBook(source, order)
+    local source = source_key or HomePresets.featuredSourceKey(module_cfg.default_source)
+    local book = ctx.data:getFeaturedBook(source, "default")
     local show_description = module_cfg.show_description ~= false
     local show_status_bar = module_cfg.show_status_bar == true and type(ctx.buildStatusRow) == "function"
     local cover_widget, cover_w, cover_actual_h

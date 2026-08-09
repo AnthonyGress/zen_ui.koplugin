@@ -57,4 +57,25 @@ function M.wrapFree(widget, free_func)
     end
 end
 
+function M.paintFrameBorderOnTop(frame)
+    if not frame or frame._zen_border_on_top then return frame end
+    local orig_paint = frame.paintTo
+    if type(orig_paint) ~= "function" then return frame end
+    frame.paintTo = function(self, bb, x, y)
+        local result = orig_paint(self, bb, x, y)
+        local border = tonumber(self.bordersize) or 0
+        if border <= 0 or type(bb.paintBorder) ~= "function" then return result end
+        local size = self:getSize()
+        local margin = tonumber(self.margin) or 0
+        bb:paintBorder(
+            x + margin, y + margin,
+            (self.width or size.w) - margin * 2,
+            (self.height or size.h) - margin * 2,
+            border, self.color, self.radius, false)
+        return result
+    end
+    frame._zen_border_on_top = true
+    return frame
+end
+
 return M

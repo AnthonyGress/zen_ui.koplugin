@@ -14,6 +14,30 @@ local function apply_book_status()
     local BookStatusWidget = require("ui/widget/bookstatuswidget")
     local book_status = require("common/book_status")
     local library_navigation = require("common/library_navigation")
+    local utils = require("common/utils")
+
+    local _icons_dir
+    local plugin_root = require("common/plugin_root")
+    if plugin_root then _icons_dir = plugin_root .. "/icons/" end
+    local _stock_icons_dir = require("libs/libkoreader-lfs").currentdir()
+        .. "/resources/icons/mdlight/"
+
+    local function resolve_icon(name)
+        return utils.resolveIcon(_icons_dir, name)
+            or utils.resolveLocalIcon(utils.getUserIconsDir(), name)
+            or utils.resolveLocalIcon(_stock_icons_dir, name)
+    end
+
+    local function library_home_icon()
+        local get_default_tab_icon = rawget(_G, "__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON")
+        local icon = type(get_default_tab_icon) == "function" and get_default_tab_icon()
+        if type(icon) ~= "string" or icon == "" then
+            local config = zen_plugin and zen_plugin.config
+            local menu = type(config) == "table" and config.menu
+            icon = type(menu) == "table" and menu.library_home_icon or "library"
+        end
+        return resolve_icon(icon) or resolve_icon("library")
+    end
 
     if not BookStatusWidget._zen_status_cache_invalidation
             and type(BookStatusWidget.onChangeBookStatus) == "function" then
@@ -46,7 +70,7 @@ local function apply_book_status()
         local Size = require("ui/size")
         local Device = require("device")
         local Screen = Device.screen
-        local IconButton = require("ui/widget/iconbutton")
+        local ZenIconButton = require("common/ui/zen_icon_button")
         local Button = require("ui/widget/button")
         local CenterContainer = require("ui/widget/container/centercontainer")
         local Event = require("ui/event")
@@ -112,15 +136,15 @@ local function apply_book_status()
             end
         end
 
-        local close_btn = IconButton:new{
-            icon = "chevron.left",
+        local close_btn = ZenIconButton:new{
+            file = resolve_icon("chevron.left"),
             width = close_size, height = close_size,
             padding = btn_pad,
             show_parent = self,
             callback = function() self:onClose() end,
         }
-        local home_btn = IconButton:new{
-            icon = "library",
+        local home_btn = ZenIconButton:new{
+            file = library_home_icon(),
             width = home_size, height = home_size,
             padding = btn_pad,
             show_parent = self,
@@ -214,6 +238,14 @@ local function apply_book_status()
             end
         end
 
+        local switch_group = self:generateSwitchGroup(width)
+
+        -- Keep the existing star selection while making the header and restart
+        -- controls reachable by moving upward through the focus layout.
+        table.insert(self.layout, 1, { close_btn, home_btn })
+        table.insert(self.layout, 2, { restart_book_btn })
+        self.selected.y = self.selected.y + 2
+
         return VerticalGroup:new{
             align = "left",
             title_bar,
@@ -223,7 +255,7 @@ local function apply_book_status()
             self:genHeader(_("Review")),
             summary_group,
             self:genHeader(self.readonly and _("Book Status") or _("Update Status")),
-            self:generateSwitchGroup(width),
+            switch_group,
         }
     end
 end

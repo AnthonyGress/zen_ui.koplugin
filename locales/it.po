@@ -333,6 +333,9 @@ msgstr "Informazioni libro"
 msgid "Book Status"
 msgstr "Stato libro"
 
+msgid "Book strip"
+msgstr "Striscia di libri"
+
 msgid "Book switcher"
 msgstr "Selettore di libri"
 
@@ -489,9 +492,6 @@ msgstr "Cancella tutti i gesti"
 msgid "Clear book"
 msgstr "Cancella libro"
 
-msgid "Clear books"
-msgstr "Cancella libri"
-
 msgid "Close"
 msgstr "Chiudi"
 
@@ -606,6 +606,9 @@ msgstr "Pagine correnti/totali"
 msgid "Custom"
 msgstr "Personalizzato"
 
+msgid "Custom books"
+msgstr "Libri personalizzati"
+
 msgid "Custom button label"
 msgstr "Etichetta pulsante personalizzato"
 
@@ -675,8 +678,8 @@ msgstr "Grigio caldo scuro"
 msgid "Date"
 msgstr "Data"
 
-msgid "Date/time widget"
-msgstr "Widget data/ora"
+msgid "Date/time"
+msgstr "Data/ora"
 
 msgid "Day brightness"
 msgstr "Luminosità diurna"
@@ -719,6 +722,9 @@ msgstr "predefinito"
 
 msgid "Default (black)"
 msgstr "Predefinito (nero)"
+
+msgid "Content: "
+msgstr "Contenuto: "
 
 msgid "Default font size:"
 msgstr "Dimensione carattere predefinita:"
@@ -930,14 +936,8 @@ msgstr "Invio della segnalazione non riuscito: "
 msgid "Favorites"
 msgstr "Preferiti"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "Libro in evidenza"
-
-msgid "Featured Books"
-msgstr "Libri in evidenza"
-
-msgid "Featured widget"
-msgstr "Widget in primo piano"
 
 msgid "Featured widgets"
 msgstr "Widget in evidenza"
@@ -1025,6 +1025,9 @@ msgstr "Luce frontale"
 
 msgid "Gallery"
 msgstr "Galleria"
+
+msgid "Genres"
+msgstr "Generi"
 
 msgid "Get Started"
 msgstr "Inizia"
@@ -1629,6 +1632,9 @@ msgstr "Contorno"
 msgid "Outlined boxes"
 msgstr "Riquadri contornati"
 
+msgid "p."
+msgstr "p."
+
 msgid "Page %1 of %2"
 msgstr "Pagina %1 di %2"
 
@@ -1770,8 +1776,8 @@ msgstr "Dimensione del carattere della citazione"
 msgid "Quote sources"
 msgstr "Fonti delle citazioni"
 
-msgid "Quotes widget"
-msgstr "Widget citazioni"
+msgid "Quotes"
+msgstr "Citazioni"
 
 msgid "quotes.lua is empty"
 msgstr "quotes.lua è vuoto"
@@ -1824,20 +1830,20 @@ msgstr "Obiettivi di lettura"
 msgid "Reading goals font size"
 msgstr "Dimensione del carattere degli obiettivi di lettura"
 
-msgid "Reading goals widget"
-msgstr "Widget degli obiettivi di lettura"
-
 msgid "Reading stats"
 msgstr "Statistiche di lettura"
-
-msgid "Reading stats widget"
-msgstr "Widget statistiche di lettura"
 
 msgid "Reading trend"
 msgstr "Tendenza alla lettura"
 
 msgid "Reading Trend"
 msgstr "Tendenza della lettura"
+
+msgid "Recent"
+msgstr "Recenti"
+
+msgid "Recent filters"
+msgstr "Filtri recenti"
 
 msgid "Recently read"
 msgstr "Letto di recente"
@@ -2100,6 +2106,9 @@ msgstr "Mostra bordo inferiore"
 msgid "Show brightness slider"
 msgstr "Mostra cursore luminosità"
 
+msgid "Show controls"
+msgstr "Mostra controlli"
+
 msgid "Show description"
 msgstr "Mostra descrizione"
 
@@ -2232,6 +2241,9 @@ msgstr "Ordine di ordinamento"
 msgid "Sort series"
 msgstr "Ordina serie"
 
+msgid "Specific tag"
+msgstr "Etichetta specifica"
+
 msgid "Stable"
 msgstr "Stable"
 
@@ -2283,9 +2295,6 @@ msgstr "Streak"
 msgid "Stream from page"
 msgstr "Flusso dalla pagina"
 
-msgid "Strip widget"
-msgstr "Widget di striscia"
-
 msgid "Strip widgets"
 msgstr "Widget striscia"
 
@@ -2322,14 +2331,8 @@ msgstr "Schede"
 msgid "Tag"
 msgstr "Etichetta"
 
-msgid "Tag books"
-msgstr "Libri con tag"
-
 msgid "Tag strip widget"
 msgstr "Widget della striscia di tag"
-
-msgid "Tag: "
-msgstr "Etichetta:"
 
 msgid "Tag: %1"
 msgstr "Etichetta: %1"
@@ -2780,3 +2783,24 @@ msgstr "ZenPM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM è stato installato. Riavvia KOReader per usarlo."
+
+msgid "Automatic"
+msgstr "Automatico"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "La spaziatura della schermata Home è stata aggiornata. L'ordine e la selezione dei widget salvati sono stati mantenuti e adattati alla nuova griglia."
+
+msgid "%1, %2 %3"
+msgstr "%1 %3 %2"
+
+msgid "Zen Mode is enabled. KOReader menus are hidden."
+msgstr "La modalità Zen è attiva. I menu di KOReader sono nascosti."
+
+msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
+msgstr "Disattiva la modalità Zen con questa icona per modificare le impostazioni di KOReader non disponibili nelle Impostazioni Zen."
+
+msgid "This does not disable Zen UI—it only shows or hides KOReader’s menus."
+msgstr "Questo non disattiva Zen UI: mostra o nasconde soltanto i menu di KOReader."
+
+msgid "This is Zen Settings. Zen UI and common KOReader settings live here."
+msgstr "Queste sono le Impostazioni Zen. Qui si trovano le impostazioni di Zen UI e le impostazioni comuni di KOReader."

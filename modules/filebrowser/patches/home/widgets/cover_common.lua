@@ -113,11 +113,12 @@ local function paint_rounded_border_edges(bb, tx, ty, tw, th, r, bsz)
     end
 end
 
-local function apply_cover_border(frame, rounded)
+local function apply_cover_border(frame)
     local orig_paintTo = frame.paintTo
     if type(orig_paintTo) ~= "function" then return end
     local base_radius = Screen:scaleBySize(8)
     frame.paintTo = function(self, bb, x, y)
+        local rounded = rounded_enabled()
         -- For rounded corners we need the background that sits *behind* the
         -- cover so the corner cut-outs can reveal it. Snapshot the target rect
         -- before the cover paints over it.
@@ -166,7 +167,7 @@ function M.decorate_cover_frame(frame)
     if not frame or frame._zen_cover_frame_decorated then return frame end
     frame._zen_cover_frame_decorated = true
     if (frame.bordersize or 0) > 0 then
-        apply_cover_border(frame, rounded_enabled())
+        apply_cover_border(frame)
     end
     return frame
 end

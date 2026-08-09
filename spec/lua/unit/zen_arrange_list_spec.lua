@@ -31,6 +31,7 @@ describe("Zen arrange list settings resume", function()
         "ui/widget/verticalgroup",
         "gettext",
         "common/ui/icon_menu_item",
+        "common/ui/truncated_text_message",
         "common/ui/zen_settings_titlebar",
         "modules/global/patches/menu_top_swipe",
         "common/ui/zen_toggle",
@@ -122,6 +123,7 @@ describe("Zen arrange list settings resume", function()
         ZenSpec.replace("ui/widget/verticalgroup", {})
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("common/ui/icon_menu_item", {})
+        ZenSpec.replace("common/ui/truncated_text_message", { show = function() end })
         ZenSpec.replace("common/ui/zen_settings_titlebar", {})
         ZenSpec.replace("modules/global/patches/menu_top_swipe", {
             getTapHeight = function() return 0 end,
@@ -188,6 +190,78 @@ describe("Zen arrange list settings resume", function()
         shown_widgets[2]:onClose()
         assert.are.equal(3, #shown_widgets)
         assert.is_false(shown_widgets[1].invisible)
+    end)
+
+    it("inherits an explicit settings route for a nested arrange page", function()
+        local inherited = {
+            opener = { text = "Widgets", occurrence = 1 },
+            path = { "strip", "Controls" },
+        }
+
+        ArrangeList.show{
+            settings_resume = inherited,
+            item_table = {{ text = "Recent" }},
+        }
+
+        assert.are.equal(inherited, shown_widgets[1]._zen_settings_resume)
+        assert.are.equal(inherited,
+            shown_widgets[1]._zen_menu_proxy._zen_settings_resume)
+    end)
+
+    it("passes the menu proxy to SortWidget hold callbacks", function()
+        local callback_host
+        local item = {
+            text = "General",
+            hold_callback = function(menu)
+                callback_host = menu
+                menu:updateItems()
+            end,
+        }
+
+        ArrangeList.show{
+            allow_arrange = false,
+            item_table = { item },
+        }
+        local picker = shown_widgets[1]
+
+        item:hold_callback(function() end)
+
+        assert.are.equal(picker._zen_menu_proxy, callback_host)
+    end)
+
+    it("restores a callback-backed settings leaf", function()
+        local callback_parent
+        require("modules/settings/zen_settings_page").claimArrangeRoute = function()
+            return {
+                opener = { text = "Arrange" },
+                path = { "First", "Tabs" },
+            }
+        end
+
+        ArrangeList.show{
+            allow_arrange = false,
+            item_table = {
+                {
+                    text = "First",
+                    sub_item_table = {
+                        {
+                            text = "Tabs",
+                            _zen_settings_submenu = true,
+                            keep_menu_open = true,
+                            callback = function(parent)
+                                callback_parent = parent
+                                ui_manager:show({ title = "Tabs" })
+                            end,
+                        },
+                    },
+                },
+            },
+        }
+
+        assert.are.equal(3, #shown_widgets)
+        assert.are.equal("Tabs", shown_widgets[3].title)
+        assert.is_false(shown_widgets[2].invisible)
+        assert.are.same({ "First" }, callback_parent._zen_settings_resume.path)
     end)
 
     it("does not reveal deferred parents while closing the whole arrange stack", function()

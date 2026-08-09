@@ -126,6 +126,134 @@ describe("shared folder cover provider", function()
         assert.is_false(FolderCover.isSupported({ text = "Unrelated" }, {}))
     end)
 
+    it("keeps adaptive folder labels at a fixed overlay height", function()
+        local created = {}
+        local label_font_sizes = {}
+        local next_mask_id = 0
+        local function widget_class(kind)
+            return {
+                new = function(_self, values)
+                    values = values or {}
+                    values.kind = kind
+                    created[#created + 1] = values
+                    return values
+                end,
+            }
+        end
+
+        ZenSpec.replace("ffi/blitbuffer", {
+            TYPE_BB8 = "bb8",
+            COLOR_BLACK = "black",
+            COLOR_WHITE = "white",
+            Color8 = function(value) return value end,
+            new = function(width, height)
+                next_mask_id = next_mask_id + 1
+                return {
+                    id = next_mask_id,
+                    width = width,
+                    height = height,
+                    fill = function() end,
+                    paintRect = function() end,
+                }
+            end,
+        })
+        ZenSpec.replace("ui/bidi", { directory = function(text) return text end })
+        ZenSpec.replace("ui/geometry", { new = function(_self, values) return values end })
+        ZenSpec.replace("ui/widget/container/centercontainer", widget_class("center"))
+        ZenSpec.replace("ui/widget/container/bottomcontainer", widget_class("bottom"))
+        ZenSpec.replace("ui/widget/overlapgroup", widget_class("overlap"))
+        ZenSpec.replace("ui/widget/container/widgetcontainer", {
+            extend = function()
+                local class = {}
+                function class:new(values)
+                    values = values or {}
+                    values.kind = "label_strip"
+                    created[#created + 1] = values
+                    return setmetatable(values, { __index = class })
+                end
+                return class
+            end,
+        })
+        ZenSpec.replace("ui/widget/textwidget", {
+            new = function(_self, values)
+                values.getSize = function() return { w = 6, h = 10 } end
+                values.free = function() end
+                return values
+            end,
+        })
+        ZenSpec.replace("ui/widget/textboxwidget", {
+            new = function(_self, values)
+                values.vertical_string_list = values.text == "A longer folder label"
+                    and (values.face.size > 14
+                        and { "A", "longer", "folder" } or { "A", "longer" })
+                    or { values.text }
+                if values.height then
+                    label_font_sizes[values.text] = values.face.size
+                end
+                values.getLineHeight = function() return values.face.size end
+                values.getSize = function() return { w = values.width, h = values.height or 10 } end
+                values.free = function() end
+                return values
+            end,
+        })
+        ZenSpec.replace("modules/filebrowser/patches/library_font", {
+            getFace = function(size) return { size = size } end,
+            getBaseSize = function() return 16 end,
+            scaleValue = function(value) return value end,
+        })
+        ZenSpec.replace("device", {
+            screen = { scaleBySize = function(_self, value) return value end },
+        })
+        ZenSpec.unload("modules/filebrowser/folder_cover")
+
+        local config = {
+            browser_folder_cover = { show_folder_name = true },
+            features = { browser_cover_rounded_corners = true },
+        }
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        FolderCover.overlayName({}, {
+            width = 80,
+            height = 120,
+            cover_dimen = { w = 80, h = 120 },
+            title = "Fantasy",
+            config = config,
+        })
+        FolderCover.overlayName({}, {
+            width = 80,
+            height = 120,
+            cover_dimen = { w = 80, h = 120 },
+            title = "A longer folder label",
+            config = config,
+        })
+        assert.are.equal(17, label_font_sizes.Fantasy)
+        assert.are.equal(14, label_font_sizes["A longer folder label"])
+
+        local label_strips = {}
+        for _i, widget in ipairs(created) do
+            if widget.kind == "label_strip" then
+                label_strips[#label_strips + 1] = widget
+            end
+        end
+        assert.are.equal(2, #label_strips)
+        assert.are.equal(label_strips[1].dimen.h, label_strips[2].dimen.h)
+        local label_strip = label_strips[1]
+        assert.is_table(label_strip)
+        local painted_masks = {}
+        local target = {
+            colorblitFromRGB32 = function(_self, mask)
+                painted_masks[#painted_masks + 1] = mask
+            end,
+        }
+        label_strip:paintTo(target, 0, 0)
+        local rounded_mask = painted_masks[1]
+        assert.is_true(label_strip.radius > 0)
+
+        config.features.browser_cover_rounded_corners = false
+        label_strip:paintTo(target, 0, 0)
+        assert.are.equal(0, label_strip.radius)
+        assert.are_not.equal(rounded_mask, painted_masks[3])
+    end)
+
     it("does not enumerate a physical folder when covers are suppressed", function()
         local FolderCover = require("modules/filebrowser/folder_cover")
         local enumerations = 0
@@ -633,8 +761,8 @@ describe("shared folder cover provider", function()
 
         assert.are.equal("top", orientation)
         assert.are.same({
-            { x = 37, y = 11, width = 86, height = 3 },
-            { x = 35, y = 16, width = 89, height = 3 },
+            { x = 37, y = 13, width = 86, height = 2 },
+            { x = 35, y = 17, width = 89, height = 2 },
         }, rects)
         assert.are.equal(1, 20 - (rects[2].y + rects[2].height))
     end)
@@ -660,8 +788,8 @@ describe("shared folder cover provider", function()
 
         assert.are.equal("left", orientation)
         assert.are.same({
-            { x = 21, y = 10, width = 3, height = 133 },
-            { x = 26, y = 8, width = 3, height = 137 },
+            { x = 23, y = 10, width = 2, height = 133 },
+            { x = 27, y = 8, width = 2, height = 137 },
         }, rects)
         assert.are.equal(1, 30 - (rects[2].x + rects[2].width))
     end)
@@ -688,8 +816,8 @@ describe("shared folder cover provider", function()
         })
 
         assert.are.same({
-            { x = 21, y = 13, width = 3, height = 76 },
-            { x = 26, y = 11, width = 3, height = 79 },
+            { x = 23, y = 13, width = 2, height = 76 },
+            { x = 27, y = 11, width = 2, height = 79 },
         }, rects)
     end)
 
@@ -715,9 +843,37 @@ describe("shared folder cover provider", function()
         }, 0, 0, { orientation = "left", rounded = true })
 
         assert.are.same({
-            { x = 21, y = 13, width = 3, height = 76, radius = 1 },
-            { x = 26, y = 11, width = 3, height = 79, radius = 1 },
+            { x = 23, y = 13, width = 2, height = 76, radius = 1 },
+            { x = 27, y = 11, width = 2, height = 79, radius = 1 },
         }, rounded)
+    end)
+
+    it("shares rounded spine decoration with embedded folder widgets", function()
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local painted
+        local original_paint_spines = FolderCover.paintSpines
+        FolderCover.paintSpines = function(bb, frame, x, y, options)
+            painted = { bb = bb, frame = frame, x = x, y = y, options = options }
+        end
+        local frame = { dimen = { x = 10, y = 20, w = 80, h = 120 } }
+        local bb = {}
+
+        FolderCover.paintDecorations({
+            _zen_cover_frame = frame,
+            _zen_folder_count = 2,
+        }, bb, {
+            browser_folder_cover = {
+                show_spine_lines = true,
+                show_item_count = false,
+            },
+            features = { browser_cover_rounded_corners = true },
+        }, 3, 4)
+        FolderCover.paintSpines = original_paint_spines
+
+        assert.are.equal(bb, painted.bb)
+        assert.are.equal(frame, painted.frame)
+        assert.are.same({ x = 3, y = 4 }, { x = painted.x, y = painted.y })
+        assert.is_true(painted.options.rounded)
     end)
 
     it("uses synthetic group and collection members without scanning paths", function()
