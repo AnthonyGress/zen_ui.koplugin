@@ -10,6 +10,7 @@ describe("home strip widget", function()
     local scheduled_delays
     local screen_width
     local screen_height
+    local cover_frame_border
 
     local function widget_class(kind)
         return {
@@ -47,6 +48,7 @@ describe("home strip widget", function()
         library_font_sizes, scheduled = {}, {}
         scheduled_delays = {}
         screen_width, screen_height = 800, 600
+        cover_frame_border = 0
         touch_device = false
         rawset(_G, "__ZEN_UI_NAVBAR_OPEN_TAB", nil)
         rawset(_G, "__ZEN_UI_PLUGIN", nil)
@@ -112,7 +114,10 @@ describe("home strip widget", function()
             BORDER_SIZE = 2,
             make_cover_widget = function(book, _max_w, max_h)
                 cover_books[#cover_books + 1] = book
-                local cover = widget_class("cover"):new{ width = 80, height = max_h }
+                local cover = widget_class("cover"):new{
+                    width = 80 + cover_frame_border * 2,
+                    height = max_h,
+                }
                 return cover, 80, max_h, book.is_cover_pending == true
             end,
             make_empty_placeholder_cover = function(_max_w, max_h)
@@ -126,6 +131,7 @@ describe("home strip widget", function()
             end,
         })
         ZenSpec.replace("common/cover_utils", {
+            getRatio = function() return 2 / 3 end,
             calcDims = function(_width, height)
                 return 80, height
             end,
@@ -294,6 +300,74 @@ describe("home strip widget", function()
         assert.are.equal(1, row_gaps)
     end)
 
+    it("aligns two-row covers with the controls inset", function()
+        cover_frame_border = 2
+        local books = {}
+        for i = 1, 8 do
+            books[i] = { path = "/library/" .. tostring(i) .. ".epub" }
+        end
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 600,
+            component_id = "strip",
+            module_cfg = {
+                count = 8,
+                interactive = false,
+                two_rows = true,
+                controls = { enabled = true, order = {}, show_buttons = {} },
+            },
+            data = { getBooksForStrip = function() return books end },
+        })
+
+        local book_gaps = {}
+        local left_aligned_rows = 0
+        local controls_width
+        for _i, widget in ipairs(created) do
+            if widget.kind == "ui/widget/horizontalspan" then
+                book_gaps[#book_gaps + 1] = widget.width
+            elseif widget.kind == "ui/widget/container/leftcontainer"
+                    and widget.dimen.w == 580 then
+                left_aligned_rows = left_aligned_rows + 1
+            elseif widget.kind == "ui/widget/container/framecontainer"
+                    and widget.height == 30 and widget.bordersize == 2 then
+                controls_width = widget.width
+            end
+        end
+        assert.are.same({ 87, 87, 86, 87, 87, 86 }, book_gaps)
+        assert.are.equal(2, left_aligned_rows)
+        assert.are.equal(controls_width, 580 + cover_frame_border * 2)
+    end)
+
+    it("uses two-row vertical edge slack to grow covers", function()
+        local books = {}
+        for i = 1, 8 do
+            books[i] = { path = "/library/" .. tostring(i) .. ".epub" }
+        end
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 400,
+            component_id = "strip",
+            module_cfg = {
+                count = 8,
+                interactive = false,
+                two_rows = true,
+                controls = { enabled = true, order = {}, show_buttons = {} },
+            },
+            data = { getBooksForStrip = function() return books end },
+        })
+
+        local cover_heights = {}
+        for _i, widget in ipairs(created) do
+            if widget.kind == "cover" then
+                cover_heights[#cover_heights + 1] = widget.height
+            end
+        end
+        assert.are.same({ 169, 169, 169, 169, 169, 169, 169, 169 },
+            cover_heights)
+    end)
+
     it("extends strip-control hit targets past their outer edges", function()
         touch_device = true
         local activated = {}
@@ -337,7 +411,8 @@ describe("home strip widget", function()
         assert.are.same({ "recent", "recent", "to_be_read" }, activated)
     end)
 
-    it("keeps books slightly closer together horizontally", function()
+    it("aligns one-row covers with the shared content inset", function()
+        cover_frame_border = 2
         local books = {}
         for i = 1, 4 do
             books[i] = { path = "/library/" .. tostring(i) .. ".epub" }
@@ -347,17 +422,90 @@ describe("home strip widget", function()
             width = 600,
             height = 300,
             component_id = "strip",
-            module_cfg = { count = 4, interactive = false },
+            module_cfg = {
+                count = 4,
+                interactive = false,
+                controls = { enabled = true, order = {}, show_buttons = {} },
+            },
             data = { getBooksForStrip = function() return books end },
         })
 
         local book_gaps = {}
+        local controls_width
+        local row_width
         for _i, widget in ipairs(created) do
             if widget.kind == "ui/widget/horizontalspan" then
                 book_gaps[#book_gaps + 1] = widget.width
+            elseif widget.kind == "ui/widget/container/framecontainer"
+                    and widget.height == 30 and widget.bordersize == 2 then
+                controls_width = widget.width
+            elseif widget.kind == "ui/widget/container/centercontainer"
+                    and widget.dimen.w == 580 and widget.dimen.h == 205 then
+                row_width = widget.dimen.w
             end
         end
-        assert.are.same({ 82, 82, 82 }, book_gaps)
+        assert.are.same({ 87, 87, 86 }, book_gaps)
+        assert.are.equal(controls_width, row_width + cover_frame_border * 2)
+    end)
+
+    it("keeps cover dimensions stable on a partial control category", function()
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        local function cover_heights(book_count)
+            local books = {}
+            for i = 1, book_count do
+                books[i] = { path = "/library/" .. tostring(i) .. ".epub" }
+            end
+            local first_created = #created + 1
+            Strip.build({
+                width = 600,
+                height = 300,
+                component_id = "strip",
+                module_cfg = {
+                    count = 4,
+                    interactive = false,
+                    controls = { enabled = true, order = {}, show_buttons = {} },
+                },
+                data = { getStripItemsForPage = function() return books end },
+            })
+            local heights = {}
+            for i = first_created, #created do
+                if created[i].kind == "cover" then
+                    heights[#heights + 1] = created[i].height
+                end
+            end
+            return heights
+        end
+
+        assert.are.same({ 205, 205, 205, 205 }, cover_heights(4))
+        assert.are.same({ 205, 205 }, cover_heights(2))
+        assert.are.same({ 205 }, cover_heights(1))
+    end)
+
+    it("keeps controls and covers in one fixed-gap visual group", function()
+        local books = {}
+        for i = 1, 4 do
+            books[i] = { path = "/library/" .. tostring(i) .. ".epub" }
+        end
+        local content_bounds
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 400,
+            component_id = "strip",
+            module_cfg = {
+                count = 4,
+                interactive = false,
+                controls = { enabled = true, order = {}, show_buttons = {} },
+            },
+            data = { getStripItemsForPage = function() return books end },
+            setContentBounds = function(bounds) content_bounds = bounds end,
+        })
+
+        assert.is_table(content_bounds)
+        assert.are.equal(30 + 18 + 205,
+            content_bounds.bottom - content_bounds.top)
+        assert.are.equal(-content_bounds.top, content_bounds.min_shift)
+        assert.are.equal(400 - content_bounds.bottom, content_bounds.max_shift)
     end)
 
     it("caps book spacing on phone-shaped screens", function()
@@ -401,7 +549,7 @@ describe("home strip widget", function()
         assert.is_true(has_text("Start reading a book to fill this space."))
     end)
 
-    it("builds compact segmented tabs inside the strip width", function()
+    it("bookends label tabs and a medium Search with compact page controls", function()
         rawset(_G, "__ZEN_UI_PLUGIN", {
             config = { features = { browser_cover_rounded_corners = true } },
         })
@@ -414,9 +562,10 @@ describe("home strip widget", function()
                 count = 4,
                 controls = {
                     enabled = true,
-                    order = { "recent", "to_be_read", "tags", "search" },
+                    order = { "page_left", "to_be_read", "search", "tags", "page_right" },
                     show_buttons = {
-                        recent = true, to_be_read = true, tags = true, search = true,
+                        page_left = true, to_be_read = true, search = true,
+                        tags = true, page_right = true,
                     },
                     labels = { tags = "Tags" },
                     custom_buttons = {},
@@ -428,6 +577,8 @@ describe("home strip widget", function()
         local outer_frames = {}
         local tab_frames = {}
         local dividers = {}
+        local icon_widths = {}
+        local icon_map = require("common/inline_icon_map")
         for _i, widget in ipairs(created) do
             if widget.kind == "ui/widget/container/framecontainer"
                     and widget.height == 30 and widget.bordersize == 2 then
@@ -438,30 +589,36 @@ describe("home strip widget", function()
             elseif widget.kind == "ui/widget/linewidget"
                     and widget.dimen.h == 26 then
                 dividers[#dividers + 1] = widget
+            elseif widget.kind == "ui/widget/container/centercontainer"
+                    and widget[1] and (widget[1].text == icon_map.arrow_left
+                        or widget[1].text == icon_map.search
+                        or widget[1].text == icon_map.arrow_right) then
+                icon_widths[#icon_widths + 1] = widget.dimen.w
             end
         end
         assert.are.equal(1, #outer_frames)
         assert.are.equal(584, outer_frames[1].width)
         assert.are.equal(4, outer_frames[1].radius)
-        assert.are.equal(3, #tab_frames)
-        assert.are.same({ 176, 176, 175 }, {
+        assert.are.equal(2, #tab_frames)
+        assert.are.same({ 207, 207 }, {
             tab_frames[1].width,
             tab_frames[2].width,
-            tab_frames[3].width,
         })
-        assert.are.same({ 0, 0, 0 }, {
+        assert.are.same({ 0, 0 }, {
             tab_frames[1].bordersize,
             tab_frames[2].bordersize,
-            tab_frames[3].bordersize,
         })
-        assert.are.equal(3, #dividers)
+        assert.are.same({ 50, 62, 50 }, icon_widths)
+        assert.are.equal(4, #dividers)
         for _i, divider in ipairs(dividers) do
             assert.are.equal(1, divider.dimen.w)
             assert.are.equal("black", divider.background)
         end
-        assert.is_true(has_text("Recent"))
+        assert.is_true(has_text("To Be Read"))
         assert.is_true(has_text("Tags"))
-        assert.is_true(has_text(require("common/inline_icon_map").search))
+        assert.is_true(has_text(icon_map.arrow_left))
+        assert.is_true(has_text(icon_map.search))
+        assert.is_true(has_text(icon_map.arrow_right))
     end)
 
     it("squares strip controls when rounded library covers are disabled", function()
@@ -801,6 +958,64 @@ describe("home strip widget", function()
         }, remembered)
     end)
 
+    it("uses the previous and next controls to page the strip", function()
+        local current_page = 0
+        local shifted = {}
+        local refreshed = 0
+        local targets
+        local opened = {}
+        rawset(_G, "__ZEN_UI_NAVBAR_OPEN_TAB", function(id)
+            opened[#opened + 1] = id
+            return true
+        end)
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 300,
+            component_id = "strip",
+            module_cfg = {
+                count = 4,
+                controls = {
+                    enabled = true,
+                    order = { "page_left", "to_be_read", "search", "tags", "page_right" },
+                    show_buttons = {
+                        page_left = true, to_be_read = true, search = true,
+                        tags = true, page_right = true,
+                    },
+                    labels = {}, custom_buttons = {},
+                },
+            },
+            data = {
+                getStripItemsForPage = function(_self, _source, _count, _order,
+                        _component_id, delta)
+                    return {{
+                        path = "/library/page-" .. tostring(current_page + delta) .. ".epub",
+                    }}, true
+                end,
+            },
+            shiftStrip = function(_source, _count, _order, direction,
+                    _component_id, _two_rows, refresh)
+                shifted[#shifted + 1] = direction
+                current_page = current_page + (direction == "next" and 1 or -1)
+                refresh()
+                return true
+            end,
+            refreshStrip = function() refreshed = refreshed + 1 end,
+            prepareHomeFocusTarget = function(_target, widget) return widget end,
+            activateStripFocusTargets = function(value) targets = value end,
+        })
+
+        local by_key = {}
+        for _i, target in ipairs(targets) do by_key[target.key] = target end
+        assert.is_true(by_key["strip-control:page_right"].activate())
+        assert.are.equal(1, current_page)
+        assert.is_true(by_key["strip-control:page_left"].activate())
+        assert.are.equal(0, current_page)
+        assert.are.same({ "next", "previous" }, shifted)
+        assert.are.equal(2, refreshed)
+        assert.are.same({}, opened)
+    end)
+
     it("does nothing on control hold outside edit mode", function()
         touch_device = true
         local targets
@@ -947,7 +1162,8 @@ describe("home strip widget", function()
 
         local group_stack_found = false
         for _i, widget in ipairs(created) do
-            if widget.kind == "ui/widget/overlapgroup" then
+            if widget.kind == "ui/widget/overlapgroup"
+                    and not (widget.dimen.w == 600 and widget.dimen.h == 300) then
                 group_stack_found = true
                 break
             end
@@ -1058,11 +1274,11 @@ describe("home strip widget", function()
     it("reports its width-limited preferred height to Home", function()
         local Strip = require("modules/filebrowser/patches/home/widgets/strip")
 
-        assert.are.equal(247, Strip.preferredHeight{
+        assert.are.equal(231, Strip.preferredHeight{
             width = 600,
             module_cfg = { count = 4 },
         })
-        assert.are.equal(488, Strip.preferredHeight{
+        assert.are.equal(428, Strip.preferredHeight{
             width = 600,
             module_cfg = { count = 8, two_rows = true },
         })

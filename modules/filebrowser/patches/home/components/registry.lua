@@ -36,7 +36,7 @@ local LAYOUT_GROWTH = {
     quotes = { max = 3, priority = 3 },
     reading_goals = { max = 1, priority = 4 },
     stats_triplet = { max = 1, priority = 4 },
-    strip = { max = 4, expanded_max = 6, priority = 1 },
+    strip = { max = 4, expanded_max = 7, priority = 1 },
 }
 
 local function clamp_units(value)
@@ -295,14 +295,31 @@ function M.gridHeights(unit_counts, body_h, gap, capacity, max_heights)
     return heights
 end
 
-function M.equalSpacingShifts(items)
+function M.equalSpacingShifts(items, options)
     local count = #(items or {})
     if count < 2 then return {} end
 
-    local function shift_bounds(item)
+    local function configured_shift_bounds(item)
         local first = item.min_shift or 0
         local second = item.max_shift or 0
         return math.min(first, second), math.max(first, second)
+    end
+
+    local pinned_last_shift
+    if type(options) == "table" and type(options.bottom) == "number" then
+        local last = items[count]
+        local min_shift, max_shift = configured_shift_bounds(last)
+        pinned_last_shift = math.floor(options.bottom
+            - (last.row_y or 0) - (last.bottom or 0) + 0.5)
+        pinned_last_shift = math.max(min_shift,
+            math.min(max_shift, pinned_last_shift))
+    end
+
+    local function shift_bounds(item, index)
+        if pinned_last_shift ~= nil and index == count then
+            return pinned_last_shift, pinned_last_shift
+        end
+        return configured_shift_bounds(item)
     end
 
     local base_gaps = {}
@@ -315,11 +332,12 @@ function M.equalSpacingShifts(items)
         base_gaps[i] = gap
         max_gap = math.max(max_gap, gap)
     end
-    for _i, item in ipairs(items) do
-        local min_shift, max_shift = shift_bounds(item)
+    for i, item in ipairs(items) do
+        local min_shift, max_shift = shift_bounds(item, i)
         max_gap = max_gap
             + max_shift - min_shift
     end
+    max_gap = math.floor(max_gap + math.abs(pinned_last_shift or 0))
 
     local best_shifts
     local best_cost
@@ -334,7 +352,7 @@ function M.equalSpacingShifts(items)
         local lower = -math.huge
         local upper = math.huge
         for i = 1, count do
-            local min_shift, max_shift = shift_bounds(items[i])
+            local min_shift, max_shift = shift_bounds(items[i], i)
             lower = math.max(lower, min_shift - offsets[i])
             upper = math.min(upper, max_shift - offsets[i])
         end
@@ -357,7 +375,7 @@ function M.equalSpacingShifts(items)
 
     local shifts = {}
     for i, item in ipairs(items) do
-        local min_shift, max_shift = shift_bounds(item)
+        local min_shift, max_shift = shift_bounds(item, i)
         shifts[i] = math.max(min_shift, math.min(max_shift, 0))
     end
 
@@ -391,7 +409,7 @@ function M.equalSpacingShifts(items)
     for _pass = 1, 20 do
         local changed = false
         for i, item in ipairs(items) do
-            local min_shift, max_shift = shift_bounds(item)
+            local min_shift, max_shift = shift_bounds(item, i)
             min_shift = math.ceil(min_shift)
             max_shift = math.floor(max_shift)
             local original = shifts[i]

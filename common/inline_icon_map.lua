@@ -135,6 +135,7 @@ return {
     hide_reader_actions = "\u{F0209}",
     remove       = "\u{F0374}",
     check        = "\u{2713}",   -- plain checkmark
+    arrow_left   = "\u{25C2}",   -- triangular bullet
     arrow_right  = "\u{25B8}",   -- triangular bullet
     go           = "\u{F124}",   -- nf-fa-location-arrow
     open_menu    = "\u{F073D}",  -- mdi-menu-open

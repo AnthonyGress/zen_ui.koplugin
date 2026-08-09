@@ -2926,9 +2926,11 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
     end
 
     local run = {}
-    local function apply_visual_run()
+    local function apply_visual_run(anchor_bottom)
         if #run > 1 then
-            local shifts = Registry.equalSpacingShifts(run)
+            local spacing_options = anchor_bottom
+                and { bottom = body_h - page_pad } or nil
+            local shifts = Registry.equalSpacingShifts(run, spacing_options)
             for i, shift in ipairs(shifts) do
                 run[i].set_shift(shift)
             end
@@ -2946,10 +2948,10 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
         if visual_rows[i] then
             run[#run + 1] = visual_rows[i]
         else
-            apply_visual_run()
+            apply_visual_run(false)
         end
     end
-    apply_visual_run()
+    apply_visual_run(true)
 
     if used_h < body_h then
         table.insert(children, VerticalSpan:new{ width = body_h - used_h })

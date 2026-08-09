@@ -10,6 +10,20 @@ describe("unified Home strip configuration", function()
         }
     end
 
+    it("bookends the default Strip controls with page buttons", function()
+        local Presets = require("modules/filebrowser/patches/home/home_presets")
+        local strip = Presets.defaultHomePage().modules.strip
+
+        assert.are.equal(3, strip.strip_schema_version)
+        assert.are.same({
+            "page_left", "to_be_read", "search", "tags", "page_right",
+        }, strip.controls.order)
+        for _i, id in ipairs(strip.controls.order) do
+            assert.is_true(strip.controls.show_buttons[id])
+        end
+        assert.is_nil(strip.controls.show_buttons.recent)
+    end)
+
     it("keeps the unified strip disabled when no legacy strip was enabled", function()
         local page = legacy_page({}, { "strip_recent", "quotes" }, {
             strip_recent = { count = 5 },
@@ -88,18 +102,39 @@ describe("unified Home strip configuration", function()
         assert.are.equal(9, #page.modules.strip.controls.order)
     end)
 
-    it("adds configurable Search to existing strip controls", function()
+    it("adds configurable Search to older custom strip controls", function()
         local Presets = require("modules/filebrowser/patches/home/home_presets")
         local page = Presets.defaultHomePage()
         local controls = page.modules.strip.controls
         page.modules.strip.strip_schema_version = 1
-        controls.order = { "recent", "to_be_read", "tags" }
+        controls.order = { "recent", "to_be_read" }
+        controls.show_buttons.recent = true
         controls.show_buttons.search = nil
 
         assert.is_true(Presets.normalizeStripConfig(page))
-        assert.are.equal(2, page.modules.strip.strip_schema_version)
-        assert.are.same({ "recent", "to_be_read", "tags", "search" }, controls.order)
+        assert.are.equal(3, page.modules.strip.strip_schema_version)
+        assert.are.same({ "recent", "to_be_read", "search" }, controls.order)
         assert.is_true(controls.show_buttons.search)
+    end)
+
+    it("migrates the previous default controls to page bookends", function()
+        local Presets = require("modules/filebrowser/patches/home/home_presets")
+        local page = Presets.defaultHomePage()
+        local controls = page.modules.strip.controls
+        page.modules.strip.strip_schema_version = 2
+        controls.order = { "recent", "to_be_read", "tags", "search" }
+        controls.show_buttons = {
+            recent = true, to_be_read = true, tags = true, search = true,
+        }
+
+        assert.is_true(Presets.normalizeStripConfig(page))
+        assert.are.equal(3, page.modules.strip.strip_schema_version)
+        assert.are.same({
+            "page_left", "to_be_read", "search", "tags", "page_right",
+        }, controls.order)
+        assert.is_nil(controls.show_buttons.recent)
+        assert.is_true(controls.show_buttons.page_left)
+        assert.is_true(controls.show_buttons.page_right)
     end)
 
     it("keeps Search removed after the strip schema is current", function()

@@ -47,12 +47,13 @@ local function strip_defaults(opts)
             enabled = opts.controls == true,
             labels = {},
             next_custom_id = 0,
-            order = { "recent", "to_be_read", "tags", "search" },
+            order = { "page_left", "to_be_read", "search", "tags", "page_right" },
             show_buttons = {
-                recent = true,
+                page_left = true,
                 to_be_read = true,
-                tags = true,
                 search = true,
+                tags = true,
+                page_right = true,
             },
             text_style = {
                 font_face = "default",
@@ -75,7 +76,7 @@ local function strip_defaults(opts)
             },
             tag = { tag = nil },
         },
-        strip_schema_version = 2,
+        strip_schema_version = 3,
         two_rows = opts.two_rows == true,
     }
 end
@@ -488,6 +489,22 @@ local function ensure_strip_shape(strip)
         controls.show_buttons.search = true
         changed = true
     end
+    if strip_schema_version < 3
+            and #controls.order == 4
+            and controls.order[1] == "recent"
+            and controls.order[2] == "to_be_read"
+            and controls.order[3] == "tags"
+            and controls.order[4] == "search"
+            and controls.show_buttons.recent == true
+            and controls.show_buttons.to_be_read == true
+            and controls.show_buttons.tags == true
+            and controls.show_buttons.search == true then
+        controls.order = deepcopy(defaults.controls.order)
+        controls.show_buttons.recent = nil
+        controls.show_buttons.page_left = true
+        controls.show_buttons.page_right = true
+        changed = true
+    end
     controls.next_custom_id = math.max(0, math.floor(
         tonumber(controls.next_custom_id) or 0))
     controls.enabled = controls.enabled == true
@@ -538,8 +555,8 @@ local function ensure_strip_shape(strip)
         changed = true
     end
     controls.order = order
-    if strip.strip_schema_version ~= 2 then
-        strip.strip_schema_version = 2
+    if strip.strip_schema_version ~= 3 then
+        strip.strip_schema_version = 3
         changed = true
     end
     return changed

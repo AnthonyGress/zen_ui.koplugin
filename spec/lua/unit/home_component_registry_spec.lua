@@ -116,7 +116,7 @@ describe("home component registry", function()
             Registry.get("strip"),
         }))
         assert.are.same({ 1 }, Registry.layoutUnits({ Registry.get("stats_triplet") }))
-        assert.are.same({ 4, 6 }, Registry.layoutUnits({
+        assert.are.same({ 3.5, 6.5 }, Registry.layoutUnits({
             setmetatable({ _home_units = 3.5 }, {
                 __index = Registry.get("featured"),
             }),
@@ -220,7 +220,7 @@ describe("home component registry", function()
             bookshelf.rows.enabled,
             bookshelf.modules
         ) <= Registry.CAPACITY_UNITS)
-        assert.are.same({ 4, 6 }, Registry.layoutUnits({
+        assert.are.same({ 3.5, 6.5 }, Registry.layoutUnits({
             setmetatable({ _home_units = 3.5 }, {
                 __index = Registry.get("featured"),
             }),
@@ -285,6 +285,25 @@ describe("home component registry", function()
             assert.is_true(shift >= items[i].min_shift)
             assert.is_true(shift <= items[i].max_shift)
         end
+    end)
+
+    it("spreads widgets evenly to the bottom page inset", function()
+        local Registry = require("modules/filebrowser/patches/home/components/registry")
+        local items = {
+            { row_y = 10, top = 10, bottom = 110, min_shift = 0, max_shift = 0 },
+            { row_y = 250, top = 20, bottom = 120, min_shift = -100, max_shift = 100 },
+            { row_y = 500, top = 10, bottom = 110, min_shift = -100, max_shift = 200 },
+        }
+        local bottom = 701
+        local shifts = Registry.equalSpacingShifts(items, { bottom = bottom })
+        local first_gap = items[2].row_y + items[2].top + shifts[2]
+            - items[1].row_y - items[1].bottom - shifts[1]
+        local second_gap = items[3].row_y + items[3].top + shifts[3]
+            - items[2].row_y - items[2].bottom - shifts[2]
+
+        assert.is_true(math.abs(first_gap - second_gap) <= 1)
+        assert.are.equal(bottom,
+            items[3].row_y + items[3].bottom + shifts[3])
     end)
 
     it("equalizes gaps when content is taller than its row", function()

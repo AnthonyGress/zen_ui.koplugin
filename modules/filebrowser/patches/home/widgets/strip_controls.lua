@@ -17,6 +17,12 @@ local library_font = require("modules/filebrowser/patches/library_font")
 
 local M = {}
 
+local COMPACT_IDS = { page_left = true, page_right = true }
+
+local function is_icon_entry(entry)
+    return entry.id == "search" or COMPACT_IDS[entry.id] == true
+end
+
 local function visible_entries(controls)
     local entries = {}
     local seen = {}
@@ -128,21 +134,28 @@ function M.build(opts)
     local inner_height = math.max(1, height - border_size * 2)
     local divider_size = math.max(1, Device.screen:scaleBySize(1))
     local divider_width = math.max(0, #entries - 1) * divider_size
-    local search_count = 0
+    local compact_count = 0
+    local medium_count = 0
     for _i, entry in ipairs(entries) do
-        if entry.id == "search" then search_count = search_count + 1 end
+        if COMPACT_IDS[entry.id] then
+            compact_count = compact_count + 1
+        elseif entry.id == "search" then
+            medium_count = medium_count + 1
+        end
     end
-    local label_count = #entries - search_count
-    local search_padding_x = Device.screen:scaleBySize(12)
-    local search_width = label_count == 0 and inner_width
-        or math.min(inner_height + search_padding_x * 2, inner_width)
+    local label_count = #entries - compact_count - medium_count
+    local compact_width = math.min(
+        inner_height + Device.screen:scaleBySize(24), inner_width)
+    local medium_width = #entries == 1 and inner_width
+        or math.min(inner_height + Device.screen:scaleBySize(36), inner_width)
     local button_area = math.max(0,
-        inner_width - search_width * search_count - divider_width)
+        inner_width - compact_width * compact_count
+            - medium_width * medium_count - divider_width)
     local button_width = label_count > 0 and math.floor(button_area / label_count) or 0
     local remainder = label_count > 0 and button_area - button_width * label_count or 0
     local labels = {}
     for _i, entry in ipairs(entries) do
-        if entry.id ~= "search" then
+        if not is_icon_entry(entry) then
             labels[#labels + 1] = ButtonModel.label(controls, entry)
         end
     end
@@ -158,17 +171,20 @@ function M.build(opts)
     local label_index = 0
 
     for index, entry in ipairs(entries) do
-        local is_search = entry.id == "search"
-        if not is_search then label_index = label_index + 1 end
-        local cell_width = is_search and search_width
+        local icon_entry = is_icon_entry(entry)
+        if not icon_entry then label_index = label_index + 1 end
+        local cell_width = COMPACT_IDS[entry.id] and compact_width
+            or entry.id == "search" and medium_width
             or button_width + (label_index <= remainder and 1 or 0)
         local active = entry.id == opts.active_id
         local content
-        if is_search then
+        if icon_entry then
+            local icon = entry.id == "page_left" and icons.arrow_left
+                or entry.id == "page_right" and icons.arrow_right or icons.search
             content = CenterContainer:new{
                 dimen = Geom:new{ w = cell_width, h = inner_height },
                 TextWidget:new{
-                    text = icons.search,
+                    text = icon,
                     face = Font:getFace("smallinfofont", Device.screen:scaleBySize(14)),
                     padding = 0,
                 },
