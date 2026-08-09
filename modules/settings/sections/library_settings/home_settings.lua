@@ -281,6 +281,8 @@ local custom_strip_max_books = 40
 function M.build(ctx)
     local config = ctx.config
     local dcfg = ensure_cfg(config)
+    local capacity_units = type(Registry.capacityUnits) == "function"
+        and Registry.capacityUnits() or Registry.CAPACITY_UNITS
     local home_rebuild_pending = false
     local home_rebuild_poll_active = false
     local schedule_home_rebuild_on_menu_close
@@ -401,7 +403,7 @@ function M.build(ctx)
             text = T(
                 _("Not enough Home space: %1/%2 units used; this widget needs %3."),
                 used,
-                Registry.CAPACITY_UNITS,
+                capacity_units,
                 needed
             ),
         })
@@ -413,7 +415,7 @@ function M.build(ctx)
             local used = used_home_units()
             local current_units = component_units(module_id, mcfg)
             local next_units = component_units(module_id, { two_rows = true })
-            if used - current_units + next_units > Registry.CAPACITY_UNITS then
+            if used - current_units + next_units > capacity_units then
                 show_capacity_message(used - current_units, next_units)
                 return false
             end
@@ -1668,7 +1670,7 @@ function M.build(ctx)
             if not comp then return false end
             local used = used_home_units()
             local needed = component_units(cid)
-            if used + needed > Registry.CAPACITY_UNITS then
+            if used + needed > capacity_units then
                 show_capacity_message(used, needed)
                 return false
             end
@@ -1715,7 +1717,7 @@ function M.build(ctx)
             local comp = Registry.get(id)
             if not comp then return true end
             return dcfg.rows.enabled[id] ~= true
-                and used_home_units() + component_units(id) > Registry.CAPACITY_UNITS
+                and used_home_units() + component_units(id) > capacity_units
         end
         local function update_dim_states()
             for _i, sort_item in ipairs(sort_items) do
@@ -1913,8 +1915,11 @@ function M.build(ctx)
             local is_builtin = preset.builtin == true
             items[#items + 1] = {
                 text_func = function()
-                    local prefix = dcfg.active_preset == preset_name and "* " or ""
-                    return prefix .. (preset_name or _("Unnamed preset"))
+                    return preset_name or _("Unnamed preset")
+                end,
+                radio = true,
+                checked_func = function()
+                    return dcfg.active_preset == preset_name
                 end,
                 callback = function(touchmenu_instance)
                     apply_home_preset(preset, touchmenu_instance)

@@ -127,6 +127,48 @@ describe("home component registry", function()
         assert.are.same({ 394, 596 }, Registry.gridHeights({ 4, 6 }, 1000, 10))
     end)
 
+    it("adds layout capacity on tall screens without shrinking other devices", function()
+        local Registry = require("modules/filebrowser/patches/home/components/registry")
+
+        assert.are.equal(10, Registry.capacityUnits(1080, 1440))
+        assert.are.equal(17, Registry.capacityUnits(1080, 2400))
+        assert.are.equal(17, Registry.capacityUnits(2400, 1080))
+        assert.are.equal(16, Registry.capacityUnits(1080, 2340))
+        assert.are.equal(16, Registry.capacityUnits(2340, 1080))
+        assert.are.equal(20, Registry.capacityUnits(100, 1000))
+        assert.are.equal(10, Registry.capacityUnits(0, 1000))
+        ZenSpec.replace("device", { screen = {
+            getWidth = function() return 2340 end,
+            getHeight = function() return 1080 end,
+        } })
+        assert.are.equal(16, Registry.capacityUnits())
+
+        local units = Registry.layoutUnits({
+            Registry.get("datetime"),
+            Registry.get("featured"),
+            Registry.get("stats_triplet"),
+            Registry.get("reading_goals"),
+            Registry.get("strip"),
+            Registry.get("quotes"),
+        }, 17)
+        assert.are.equal(6, #units)
+        assert.are.same({ 1.5, 3.5, 1, 1, 2.5, 2 }, units)
+        local heights = Registry.gridHeights(units, 2400, 10, 17)
+        local occupied = (#heights - 1) * 10
+        for _i, height in ipairs(heights) do occupied = occupied + height end
+        assert.are.equal(2400, occupied)
+        assert.are.equal(14, Registry.totalUnits({
+            datetime = true,
+            featured = true,
+            stats_triplet = true,
+            reading_goals = true,
+            strip = true,
+            quotes = true,
+        }, {
+            strip = { two_rows = true },
+        }))
+    end)
+
     it("keeps an existing five-widget phone layout within the grid", function()
         local Registry = require("modules/filebrowser/patches/home/components/registry")
         local units = Registry.layoutUnits({
@@ -196,13 +238,29 @@ describe("home component registry", function()
         assert.are.equal(1000,
             heights[1] + heights[2] + heights[3] + heights[4] + 30)
         assert.are.same({ 1003 }, Registry.gridHeights({ 10 }, 1003, 10))
-        assert.are.equal(303,
+        assert.are.equal(0,
             1000 - Registry.gridHeights({ 4, 3 }, 1000, 10)[1]
                 - Registry.gridHeights({ 4, 3 }, 1000, 10)[2] - 10)
         assert.are.same({ 344, 91, 343, 192 },
             Registry.gridHeights({ 3.5, 1, 3.5, 2 }, 1000, 10))
         assert.are.same({ 344, 242, 192, 91, 91 },
             Registry.gridHeights({ 3.5, 2.5, 2, 1, 1 }, 1000, 10))
+    end)
+
+    it("redistributes height a width-limited widget cannot use", function()
+        local Registry = require("modules/filebrowser/patches/home/components/registry")
+
+        assert.are.same({ 320, 120, 540 }, Registry.gridHeights(
+            { 3, 2, 5 }, 1000, 10, 10, { nil, 120, nil }))
+        assert.are.same({ 690, 300 }, Registry.gridHeights(
+            { 2, 2 }, 1000, 10, 10, { nil, 300 }))
+    end)
+
+    it("fills unused grid tracks across the visible widgets", function()
+        local Registry = require("modules/filebrowser/patches/home/components/registry")
+
+        assert.are.same({ 567, 423 }, Registry.gridHeights(
+            { 4, 3 }, 1000, 10, 10))
     end)
 
     it("equalizes visible gaps within each widget's available slack", function()

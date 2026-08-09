@@ -2182,15 +2182,27 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
     return provider
 end
 
-local function compute_row_heights(rows, body_h, row_gap)
+local function compute_row_heights(rows, body_h, row_gap, capacity, width, modules)
     local specs = {}
-    local unit_counts = Registry.layoutUnits and Registry.layoutUnits(rows) or {}
+    local unit_counts = Registry.layoutUnits and Registry.layoutUnits(rows, capacity) or {}
     if #unit_counts == 0 then
         for _i, comp in ipairs(rows) do
             unit_counts[#unit_counts + 1] = tonumber(comp._home_units) or 2
         end
     end
-    local heights = Registry.gridHeights(unit_counts, body_h, row_gap)
+    local max_heights = {}
+    modules = type(modules) == "table" and modules or {}
+    for i, comp in ipairs(rows) do
+        if type(comp.preferredHeight) == "function" then
+            local ok, preferred = pcall(comp.preferredHeight, {
+                width = width,
+                module_cfg = modules[comp.id],
+            })
+            if ok and tonumber(preferred) then max_heights[i] = preferred end
+        end
+    end
+    local heights = Registry.gridHeights(
+        unit_counts, body_h, row_gap, capacity, max_heights)
     for i, height in ipairs(heights) do
         specs[i] = { units = unit_counts[i], h = height }
     end
@@ -2616,15 +2628,19 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
     local content_w = math.max(1, body_w - side_pad * 2)
     local right_pad = math.max(0, body_w - content_w - side_pad)
     local standard_gap = math.max(4, Screen:scaleBySize(8))
-    local capacity = tonumber(Registry.CAPACITY_UNITS) or 10
+    local capacity = type(Registry.capacityUnits) == "function"
+        and Registry.capacityUnits(Screen:getWidth(), Screen:getHeight())
+        or tonumber(Registry.CAPACITY_UNITS) or 10
     local max_page_pad = math.max(0, math.floor((body_h - capacity) / 2))
     local page_pad = math.min(math.max(3, Screen:scaleBySize(4)), max_page_pad)
     local layout_h = math.max(1, body_h - page_pad * 2)
     local max_grid_gap = capacity > 1
         and math.max(0, math.floor((layout_h - capacity) / (capacity - 1))) or 0
     local row_gap = math.min(standard_gap, max_grid_gap)
-    local row_heights = compute_row_heights(rows, layout_h, row_gap)
+    local row_heights = compute_row_heights(
+        rows, layout_h, row_gap, capacity, content_w, dcfg.modules)
     menu._zen_home_page_padding = page_pad
+    menu._zen_home_capacity_units = capacity
 
     local face_title = Font:getFace("smallinfofont", Screen:scaleBySize(24))
     local face_value = Font:getFace("smallinfofont", Screen:scaleBySize(20))

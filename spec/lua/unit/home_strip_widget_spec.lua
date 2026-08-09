@@ -8,6 +8,8 @@ describe("home strip widget", function()
     local touch_device
     local scheduled
     local scheduled_delays
+    local screen_width
+    local screen_height
 
     local function widget_class(kind)
         return {
@@ -44,6 +46,7 @@ describe("home strip widget", function()
         folder_needs_hydration = false
         library_font_sizes, scheduled = {}, {}
         scheduled_delays = {}
+        screen_width, screen_height = 800, 600
         touch_device = false
         rawset(_G, "__ZEN_UI_NAVBAR_OPEN_TAB", nil)
         rawset(_G, "__ZEN_UI_PLUGIN", nil)
@@ -78,8 +81,8 @@ describe("home strip widget", function()
         ZenSpec.replace("device", {
             screen = {
                 scaleBySize = function(_, value) return value end,
-                getWidth = function() return 800 end,
-                getHeight = function() return 600 end,
+                getWidth = function() return screen_width end,
+                getHeight = function() return screen_height end,
             },
             isTouchDevice = function() return touch_device end,
         })
@@ -355,6 +358,30 @@ describe("home strip widget", function()
             end
         end
         assert.are.same({ 82, 82, 82 }, book_gaps)
+    end)
+
+    it("caps book spacing on phone-shaped screens", function()
+        screen_width, screen_height = 1080, 2340
+        local books = {}
+        for i = 1, 4 do
+            books[i] = { path = "/library/" .. tostring(i) .. ".epub" }
+        end
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 300,
+            component_id = "strip",
+            module_cfg = { count = 4, interactive = false },
+            data = { getBooksForStrip = function() return books end },
+        })
+
+        local book_gaps = {}
+        for _i, widget in ipairs(created) do
+            if widget.kind == "ui/widget/horizontalspan" then
+                book_gaps[#book_gaps + 1] = widget.width
+            end
+        end
+        assert.are.same({ 24, 24, 24 }, book_gaps)
     end)
 
     it("renders an empty recent-history state", function()
@@ -1026,6 +1053,19 @@ describe("home strip widget", function()
 
         assert.is_true(content_bounds.min_shift < 0)
         assert.is_true(content_bounds.max_shift > content_bounds.min_shift)
+    end)
+
+    it("reports its width-limited preferred height to Home", function()
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+
+        assert.are.equal(247, Strip.preferredHeight{
+            width = 600,
+            module_cfg = { count = 4 },
+        })
+        assert.are.equal(488, Strip.preferredHeight{
+            width = 600,
+            module_cfg = { count = 8, two_rows = true },
+        })
     end)
 
     it("supplies the selected strip cover before opening its book", function()

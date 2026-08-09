@@ -17,6 +17,10 @@ local refresh_callback = nil
 local M = {}
 
 M.CAPACITY_UNITS = 10
+M.MAX_CAPACITY_UNITS = 20
+
+-- Android may expose native framebuffer axes independently of UI rotation.
+local REFERENCE_ASPECT_RATIO = 4 / 3
 
 local SIZE_UNITS = {
     xs = 1,
@@ -38,6 +42,26 @@ local LAYOUT_GROWTH = {
 local function clamp_units(value)
     local units = math.floor((tonumber(value) or 2) + 0.5)
     return math.max(1, math.min(M.CAPACITY_UNITS, units))
+end
+
+function M.capacityUnits(width, height)
+    width, height = tonumber(width), tonumber(height)
+    if not width or not height then
+        local ok, Device = pcall(require, "device")
+        local screen = ok and Device and Device.screen
+        if screen then
+            width = tonumber(screen:getWidth())
+            height = tonumber(screen:getHeight())
+        end
+    end
+    if not width or width <= 0 or not height or height <= 0 then
+        return M.CAPACITY_UNITS
+    end
+    local short_side = math.min(width, height)
+    local long_side = math.max(width, height)
+    local capacity = math.floor(
+        M.CAPACITY_UNITS * long_side / short_side / REFERENCE_ASPECT_RATIO + 0.5)
+    return math.max(M.CAPACITY_UNITS, math.min(M.MAX_CAPACITY_UNITS, capacity))
 end
 
 local MIN_LAYOUT_UNITS = {
@@ -114,8 +138,9 @@ function M.totalUnits(enabled, modules)
     return total
 end
 
-function M.layoutUnits(components)
+function M.layoutUnits(components, capacity)
     components = components or {}
+    capacity = math.max(1, tonumber(capacity) or M.CAPACITY_UNITS)
     local units = {}
     local requested = {}
     local expanded = {}
@@ -138,7 +163,7 @@ function M.layoutUnits(components)
     end
     table.sort(priorities)
 
-    if requested_total > M.CAPACITY_UNITS then
+    if requested_total > capacity then
         local minimums = {}
         local minimum_total = 0
         for i, component in ipairs(components) do
@@ -149,8 +174,8 @@ function M.layoutUnits(components)
             minimum_total = minimum_total + minimums[i]
         end
 
-        if minimum_total >= M.CAPACITY_UNITS then
-            local scale = M.CAPACITY_UNITS / minimum_total
+        if minimum_total >= capacity then
+            local scale = capacity / minimum_total
             for i, minimum in ipairs(minimums) do
                 units[i] = minimum * scale
             end
@@ -158,7 +183,7 @@ function M.layoutUnits(components)
         end
 
         local flexible_total = requested_total - minimum_total
-        local remaining = M.CAPACITY_UNITS - minimum_total
+        local remaining = capacity - minimum_total
         for i, value in ipairs(requested) do
             local flexible = value - minimums[i]
             units[i] = minimums[i] + (flexible_total > 0
@@ -167,7 +192,9 @@ function M.layoutUnits(components)
         return units
     end
 
-    local remaining = math.max(0, M.CAPACITY_UNITS - total)
+    local growth_capacity = math.min(
+        capacity, math.max(M.CAPACITY_UNITS, requested_total))
+    local remaining = math.max(0, growth_capacity - total)
     for _i, priority in ipairs(priorities) do
         while remaining > 0 do
             local grew = false
@@ -193,9 +220,9 @@ function M.layoutUnits(components)
     return units
 end
 
-function M.gridHeights(unit_counts, body_h, gap)
+function M.gridHeights(unit_counts, body_h, gap, capacity, max_heights)
     local heights = {}
-    local capacity = M.CAPACITY_UNITS
+    capacity = math.max(1, tonumber(capacity) or M.CAPACITY_UNITS)
     gap = math.max(0, math.floor(tonumber(gap) or 0))
     body_h = math.max(1, math.floor(tonumber(body_h) or 1))
     local pitch = (body_h + gap) / capacity
@@ -213,6 +240,56 @@ function M.gridHeights(unit_counts, body_h, gap)
             local end_px = math.floor(used_units * pitch - gap + 0.5)
             heights[#heights + 1] = math.max(1, end_px - start_px)
         end
+    end
+
+    local recipients = {}
+    local recipient_weight = 0
+    for i, height in ipairs(heights) do
+        local maximum = max_heights and tonumber(max_heights[i])
+        if maximum and maximum > 0 then
+            maximum = math.floor(maximum)
+            if height > maximum then heights[i] = maximum end
+        end
+        if not maximum or maximum <= 0 or heights[i] < maximum then
+            local weight = math.max(0, tonumber(unit_counts[i]) or 0)
+            recipients[#recipients + 1] = {
+                index = i,
+                maximum = maximum,
+                weight = weight,
+            }
+            recipient_weight = recipient_weight + weight
+        end
+    end
+    -- Fill unused tracks without stretching width-limited rows past their cap.
+    local allocated = math.max(0, #heights - 1) * gap
+    for _i, height in ipairs(heights) do allocated = allocated + height end
+    local distributable = math.max(0, body_h - allocated)
+    local remaining = distributable
+    while remaining > 0 and recipient_weight > 0 do
+        local pass_budget = remaining
+        local assigned = 0
+        local spent = 0
+        local next_recipients = {}
+        local next_weight = 0
+        for i, recipient in ipairs(recipients) do
+            local share = i == #recipients and pass_budget - assigned
+                or math.floor(pass_budget * recipient.weight / recipient_weight)
+            assigned = assigned + share
+            local current = heights[recipient.index]
+            local headroom = recipient.maximum
+                and math.max(0, recipient.maximum - current) or share
+            local added = math.min(share, headroom)
+            heights[recipient.index] = current + added
+            spent = spent + added
+            if not recipient.maximum or current + added < recipient.maximum then
+                next_recipients[#next_recipients + 1] = recipient
+                next_weight = next_weight + recipient.weight
+            end
+        end
+        if spent <= 0 then break end
+        remaining = remaining - spent
+        recipients = next_recipients
+        recipient_weight = next_weight
     end
 
     return heights

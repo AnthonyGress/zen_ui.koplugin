@@ -36,6 +36,83 @@ local PRELOAD_TICK_S = 0.05
 local PRELOAD_CHUNK = 4
 local PRELOAD_BUDGET_S = 0.03
 
+local function strip_layout_metrics(outer_width, module_cfg)
+    outer_width = math.max(1, math.floor(tonumber(outer_width) or 1))
+    module_cfg = type(module_cfg) == "table" and module_cfg or {}
+    local Screen = Device.screen
+    local controls = type(module_cfg.controls) == "table" and module_cfg.controls or {}
+    local controls_enabled = controls.enabled == true
+    local controls_height = controls_enabled and Screen:scaleBySize(30) or 0
+    local controls_gap = controls_enabled and math.max(2, Screen:scaleBySize(3)) or 0
+    local padding = Screen:scaleBySize(8)
+    local width = math.max(1, outer_width - padding * 2)
+    local two_rows = module_cfg.two_rows == true
+    local count = tonumber(module_cfg.count) or (two_rows and 8 or 4)
+    if two_rows then
+        if count < 2 then count = 2 end
+        if count > 10 then count = 10 end
+    else
+        if count < 3 then count = 3 end
+        if count > 5 then count = 5 end
+    end
+    local rows = two_rows and 2 or 1
+    local per_row = two_rows and math.ceil(count / 2) or count
+    local strip_title_face = library_font.getFace(16)
+    local title_h = 0
+    local title_gap = 0
+    if module_cfg.show_strip_titles == true then
+        local probe = TextBoxWidget:new{
+            text = "Ag",
+            width = width,
+            face = strip_title_face,
+            bold = true,
+        }
+        title_h = probe:getSize().h
+        WidgetResources.free(probe)
+        if title_h < 1 then title_h = math.max(14, Screen:scaleBySize(12)) end
+        title_gap = math.max(1, Screen:scaleBySize(2))
+    end
+    local row_gap = two_rows and math.max(3, Screen:scaleBySize(10)) or 0
+    local screen_w = tonumber(Screen:getWidth()) or outer_width
+    local screen_h = tonumber(Screen:getHeight()) or outer_width
+    local short_side = math.max(1, math.min(screen_w, screen_h))
+    local phone_shaped = math.max(screen_w, screen_h) / short_side >= 1.6
+    return {
+        controls_enabled = controls_enabled,
+        controls_height = controls_height,
+        controls_gap = controls_gap,
+        padding = padding,
+        width = width,
+        two_rows = two_rows,
+        count = count,
+        rows = rows,
+        per_row = per_row,
+        row_gap = row_gap,
+        row_top_pad = math.max(4, Screen:scaleBySize(4)),
+        row_bottom_pad = math.max(4, Screen:scaleBySize(4)),
+        row_inner_bottom_pad = two_rows and math.max(2, Screen:scaleBySize(4)) or 0,
+        strip_title_face = strip_title_face,
+        title_h = title_h,
+        title_gap = title_gap,
+        phone_shaped = phone_shaped,
+    }
+end
+
+function M.preferred_height(outer_width, module_cfg)
+    local metrics = strip_layout_metrics(outer_width, module_cfg)
+    local Screen = Device.screen
+    local min_gap = math.max(6, math.min(
+        Screen:scaleBySize(14), math.floor(metrics.width * 0.018)))
+    local cover_w = math.max(24, math.floor(
+        (metrics.width - min_gap * (metrics.per_row - 1)) / metrics.per_row))
+    local cover_h = math.max(28, math.floor(cover_w * 1.62))
+    return metrics.controls_height + metrics.controls_gap + metrics.padding * 2
+        + metrics.row_top_pad + metrics.row_bottom_pad
+        + metrics.rows * (cover_h + metrics.title_gap + metrics.title_h
+            + metrics.row_inner_bottom_pad)
+        + math.max(0, metrics.rows - 1) * metrics.row_gap
+end
+
 local function set_opening_banner_cover(cover)
     local set_cover = rawget(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER")
     if type(set_cover) == "function" then set_cover(cover) end
@@ -351,15 +428,16 @@ function M.build_strip(ctx, source_key)
     local total_outer_height = ctx.height
     local Screen = Device.screen
     local module_cfg = type(ctx.module_cfg) == "table" and ctx.module_cfg or {}
+    local metrics = strip_layout_metrics(outer_width, module_cfg)
     local controls_cfg = type(module_cfg.controls) == "table" and module_cfg.controls or {}
-    local controls_enabled = controls_cfg.enabled == true
-    local controls_height = controls_enabled and Screen:scaleBySize(30) or 0
+    local controls_enabled = metrics.controls_enabled
+    local controls_height = metrics.controls_height
     local controls_content_offset = controls_enabled and math.floor(
         math.max(0, controls_height - Screen:scaleBySize(20)) / 2) or 0
-    local controls_gap = controls_enabled and math.max(2, Screen:scaleBySize(3)) or 0
+    local controls_gap = metrics.controls_gap
     local outer_height = math.max(1, total_outer_height - controls_height - controls_gap)
-    local padding = Screen:scaleBySize(8)
-    local width = math.max(1, outer_width - padding * 2)
+    local padding = metrics.padding
+    local width = metrics.width
     local height = math.max(1, outer_height - padding * 2)
     local runtime = ctx.menu and ctx.menu._zen_home_strip_runtime
     local runtime_created = false
@@ -379,20 +457,9 @@ function M.build_strip(ctx, source_key)
     local source_name = source.kind == "recent" and "recently_read"
         or source.kind == "custom" and "custom_strip" or source.kind
     local order = module_cfg.order or "default"
-    local two_rows = module_cfg.two_rows == true
-    local per_row
-    local count
-    if two_rows then
-        count = tonumber(module_cfg.count) or 8
-        if count < 2 then count = 2 end
-        if count > 10 then count = 10 end
-        per_row = math.ceil(count / 2)
-    else
-        count = tonumber(module_cfg.count) or 4
-        if count < 3 then count = 3 end
-        if count > 5 then count = 5 end
-        per_row = count
-    end
+    local two_rows = metrics.two_rows
+    local per_row = metrics.per_row
+    local count = metrics.count
     local wants_strip_titles = module_cfg.show_strip_titles == true
     local show_badges = module_cfg.show_badges == true
     local center_books = module_cfg.center_books == true
@@ -619,28 +686,17 @@ function M.build_strip(ctx, source_key)
             return empty_frame, add_control_targets({}), {}, books, cover_plans
         end
 
-    local num_rows = two_rows and 2 or 1
-    local row_gap = two_rows and math.max(3, Screen:scaleBySize(10)) or 0
-    local row_top_pad = math.max(4, Screen:scaleBySize(4))
-    local row_bottom_pad = math.max(4, Screen:scaleBySize(4))
-    local row_inner_bottom_pad = two_rows and math.max(2, Screen:scaleBySize(4)) or 0
-    local strip_title_face = library_font.getFace(16)
+    local num_rows = metrics.rows
+    local row_gap = metrics.row_gap
+    local row_top_pad = metrics.row_top_pad
+    local row_bottom_pad = metrics.row_bottom_pad
+    local row_inner_bottom_pad = metrics.row_inner_bottom_pad
+    local strip_title_face = metrics.strip_title_face
     -- Measure the real rendered single-line height: TextBoxWidget renders at
     -- round((1+line_height)*face.size) and bumps a too-small height up to that,
     -- so a guessed title_h underreserves and the title overflows into the navbar.
-    local title_h = 0
-    if show_strip_titles then
-        local probe = TextBoxWidget:new{
-            text = "Ag",
-            width = width,
-            face = strip_title_face,
-            bold = true,
-        }
-        title_h = probe:getSize().h
-        WidgetResources.free(probe)
-        if title_h < 1 then title_h = math.max(14, Screen:scaleBySize(12)) end
-    end
-    local title_gap = show_strip_titles and math.max(1, Screen:scaleBySize(2)) or 0
+    local title_h = show_strip_titles and metrics.title_h or 0
+    local title_gap = show_strip_titles and metrics.title_gap or 0
     -- cover_common floors cover height at 28px, so a row never shrinks below it.
     local MIN_COVER_H = 28
 
@@ -829,6 +885,11 @@ function M.build_strip(ctx, source_key)
                 and (min_gap * gap_slots)
                 or math.max(min_gap * gap_slots, width - row_inset - cover_slots_w)
             gap = math.floor(available_gap / gap_slots)
+            if metrics.phone_shaped then
+                local phone_gap = math.max(min_gap, math.min(
+                    Screen:scaleBySize(24), math.floor(width * 0.045)))
+                gap = math.min(gap, phone_gap)
+            end
         end
 
         local row = HorizontalGroup:new{ align = "center" }

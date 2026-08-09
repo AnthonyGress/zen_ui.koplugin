@@ -78,10 +78,16 @@ describe("Home widget content settings", function()
             getSettings = function() return home_page end,
             saveSettings = function() end,
             isBuiltin = function() return false end,
+            list = function()
+                return { { name = "My preset" } }
+            end,
         })
         ZenSpec.replace("modules/filebrowser/patches/home/home_presets", {
             DEFAULT_PRESET_NAME = "Zen Default",
             CUSTOM_PRESET_NAME = "Custom preset",
+            getBuiltinPresets = function()
+                return { { name = "Zen Default", builtin = true } }
+            end,
             ensurePresetState = function() end,
             normalizeFeaturedConfig = function() end,
             normalizeStripConfig = function() end,
@@ -194,6 +200,24 @@ describe("Home widget content settings", function()
         section.sub_item_table[1].callback({})
 
         assert.are.equal(plugin, arrange_options.plugin)
+    end)
+
+    it("uses radio buttons to mark the active Home preset", function()
+        home_page.active_preset = "Zen Default"
+        local section = require("modules/settings/sections/library_settings/home_settings").build({
+            config = {},
+            settings_apply = {},
+        })
+
+        local presets = find_item(section.sub_item_table, "Presets").sub_item_table_func()
+        local builtin = find_item(presets, "Zen Default")
+        local custom = find_item(presets, "My preset")
+
+        assert.is_true(builtin.radio)
+        assert.is_true(builtin.checked_func())
+        assert.is_true(custom.radio)
+        assert.is_false(custom.checked_func())
+        assert.is_nil(find_item(presets, "* Zen Default"))
     end)
 
     it("removes widget-title settings and legacy values", function()

@@ -5,6 +5,9 @@ return {
     id = "strip",
     label = _("Book strip"),
     size = shared.SIZE,
+    preferredHeight = function(ctx)
+        return shared.preferred_height(ctx.width, ctx.module_cfg)
+    end,
     build = function(ctx)
         return shared.build_strip(ctx)
     end,
