@@ -11,6 +11,7 @@ local ArrangeState = require("common/arrange_state")
 local I18n = require("common/i18n")
 local IconItem = require("common/ui/icon_menu_item")
 local SettingsTitleBar = require("common/ui/zen_settings_titlebar")
+local TruncatedTextMessage = require("common/ui/truncated_text_message")
 local TopMenu = require("modules/global/patches/menu_top_swipe")
 local zen_settings = require("modules/settings/zen_settings")
 
@@ -107,6 +108,15 @@ local function enabled(item)
         return item.enabled_func() ~= false
     end
     return true
+end
+
+local function item_dimen(page, item)
+    for _i, row in ipairs(page.item_group or {}) do
+        if row.entry == item then
+            local container = row._underline_container or row[1]
+            if container and container.dimen then return container.dimen end
+        end
+    end
 end
 
 local function callback_for(item)
@@ -443,6 +453,12 @@ function ZenSettingsPage:onMenuHold(item)
     if help_text then
         UIManager:show(InfoMessage:new{ text = help_text })
         return true
+    end
+    if item._zen_settings_text_truncated then
+        TruncatedTextMessage.show(
+            item._zen_display_text or item_text(item),
+            item_dimen(self, item)
+        )
     end
     return true
 end

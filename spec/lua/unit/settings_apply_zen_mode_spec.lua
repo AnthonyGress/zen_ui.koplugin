@@ -1,24 +1,38 @@
 describe("Zen mode settings apply", function()
     local saved_runtime_patches
     local saved_modules
+    local saved_reader_settings
 
     local dependencies = {
         "gettext",
+        "ui/event",
         "ui/uimanager",
         "ui/widget/confirmbox",
         "common/restart",
         "common/shared_state",
         "ui/widget/touchmenu",
+        "apps/reader/readerui",
+        "modules/reader/patches/reader_top_status_bar",
         "modules/menu/patches/zen_mode",
         "modules/settings/zen_settings_apply",
     }
 
     before_each(function()
         saved_runtime_patches = rawget(_G, "__ZEN_UI_RUNTIME_PATCHES")
+        saved_reader_settings = rawget(_G, "G_reader_settings")
         saved_modules = {}
         for _i, name in ipairs(dependencies) do saved_modules[name] = package.loaded[name] end
         _G.__ZEN_UI_RUNTIME_PATCHES = nil
+        _G.G_reader_settings = ZenSpec.memorySettings({
+            alt_status_bar = true,
+            copt_status_line = 0,
+        })
         ZenSpec.replace("gettext", function(text) return text end)
+        ZenSpec.replace("ui/event", {
+            new = function(_, name, value)
+                return { handler = "on" .. name, args = { value } }
+            end,
+        })
         ZenSpec.replace("ui/uimanager", {
             setDirty = function() end,
             nextTick = function(_self, callback) callback() end,
@@ -28,11 +42,13 @@ describe("Zen mode settings apply", function()
         })
         ZenSpec.replace("common/restart", {})
         ZenSpec.replace("ui/widget/touchmenu", {})
+        ZenSpec.replace("apps/reader/readerui", { instance = nil })
         ZenSpec.unload("modules/settings/zen_settings_apply")
     end)
 
     after_each(function()
         _G.__ZEN_UI_RUNTIME_PATCHES = saved_runtime_patches
+        _G.G_reader_settings = saved_reader_settings
         for _i, name in ipairs(dependencies) do package.loaded[name] = saved_modules[name] end
     end)
 
@@ -61,6 +77,33 @@ describe("Zen mode settings apply", function()
         assert.are.equal(1, applies)
         assert.are.equal(1, refreshes)
         assert.are.equal(0, restart_prompts)
+    end)
+
+    it("disables KOReader's alt status bar when enabling the Zen reader bar", function()
+        local applied = 0
+        local handled_event
+        local reader = {
+            document = { configurable = { status_line = 0 } },
+            rolling = {},
+            handleEvent = function(_self, event) handled_event = event end,
+        }
+        package.loaded["apps/reader/readerui"].instance = reader
+        ZenSpec.replace("modules/reader/patches/reader_top_status_bar", function()
+            applied = applied + 1
+        end)
+
+        require("modules/settings/zen_settings_apply").apply_feature_toggle(
+            { config = { features = { reader_top_status_bar = true } } },
+            "reader_top_status_bar",
+            true
+        )
+
+        assert.are.equal(1, applied)
+        assert.are.equal(1, G_reader_settings:readSetting("copt_status_line"))
+        assert.is_false(G_reader_settings:readSetting("alt_status_bar"))
+        assert.are.equal(1, reader.document.configurable.status_line)
+        assert.are.equal("onSetStatusLine", handled_event.handler)
+        assert.are.equal(1, handled_event.args[1])
     end)
 
     it("defers navbar reinjection until the Zen settings page closes", function()

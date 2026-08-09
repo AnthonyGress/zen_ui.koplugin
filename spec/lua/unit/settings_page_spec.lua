@@ -20,6 +20,7 @@ describe("Zen settings page", function()
         "ui/widget/inputdialog",
         "common/i18n",
         "common/ui/icon_menu_item",
+        "common/ui/truncated_text_message",
         "modules/global/patches/menu_top_swipe",
         "modules/settings/zen_settings",
         "modules/settings/zen_settings_apply",
@@ -82,7 +83,12 @@ describe("Zen settings page", function()
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("ui/bidi", { mirroredUILayout = function() return false end })
         ZenSpec.replace("ui/widget/menu", Menu)
-        ZenSpec.replace("ui/widget/infomessage", { new = function(_self, opts) return opts end })
+        ZenSpec.replace("ui/widget/infomessage", {
+            new = function(_self, opts)
+                opts.movable = {}
+                return opts
+            end,
+        })
         ZenSpec.replace("ui/uimanager", {
             close = function() end,
             nextTick = function(_self, callback) callback() end,
@@ -98,7 +104,10 @@ describe("Zen settings page", function()
                 getHeight = function() return 800 end,
             },
         })
-        ZenSpec.replace("ui/size", { line = { thin = 1 } })
+        ZenSpec.replace("ui/size", {
+            line = { thin = 1 },
+            padding = { small = 4 },
+        })
         ZenSpec.replace("ffi/blitbuffer", { COLOR_LIGHT_GRAY = 1 })
         ZenSpec.replace("ui/widget/inputdialog", { init = function() end })
         ZenSpec.replace("common/i18n", {
@@ -142,6 +151,7 @@ describe("Zen settings page", function()
                 return opts
             end,
         })
+        ZenSpec.unload("common/ui/truncated_text_message")
         ZenSpec.unload("modules/settings/zen_settings_page")
         PageModule = require("modules/settings/zen_settings_page")
         Page = PageModule.Page
@@ -215,17 +225,33 @@ describe("Zen settings page", function()
         assert.is_false(settings.title_bar.back_visible)
     end)
 
-    it("ignores ordinary row holds while preserving explicit help", function()
+    it("shows full truncated row text on hold while preserving explicit help", function()
         local plain = { text = "Plain setting" }
+        local truncated = {
+            text = "A setting label too long for its row",
+            _zen_settings_text_truncated = true,
+        }
         local help = { text = "Helped setting", help_text = "Helpful details" }
-        local settings = make_page({ plain, help })
+        local settings = make_page({ plain, truncated, help })
+        settings.item_group = {
+            {
+                entry = truncated,
+                _underline_container = { dimen = { x = 20, y = 300, w = 560, h = 64 } },
+            },
+        }
 
         assert.is_true(settings:onMenuHold(plain, true))
         assert.are.equal(0, #shown_widgets)
 
-        assert.is_true(settings:onMenuHold(help, true))
+        assert.is_true(settings:onMenuHold(truncated, true))
         assert.are.equal(1, #shown_widgets)
-        assert.are.equal("Helpful details", shown_widgets[1].text)
+        assert.are.equal("A setting label too long for its row", shown_widgets[1].text)
+        assert.is_false(shown_widgets[1].show_icon)
+        assert.are.same({ y = 296, h = 72 }, shown_widgets[1].movable.anchor)
+
+        assert.is_true(settings:onMenuHold(help, true))
+        assert.are.equal(2, #shown_widgets)
+        assert.are.equal("Helpful details", shown_widgets[2].text)
     end)
 
     it("reuses the active settings page", function()

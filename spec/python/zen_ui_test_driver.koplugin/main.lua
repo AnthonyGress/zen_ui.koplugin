@@ -448,21 +448,32 @@ count_image_widgets = function(widget, seen, depth)
     return count
 end
 
-local function home_state()
+local function active_home_menu()
     local apply_home = require("modules/filebrowser/patches/home_page")
     local register_home_api = find_upvalue(apply_home, "register_home_api")
     local Home = find_upvalue(register_home_api, "M")
     local menu = Home and find_upvalue(Home.hasActive, "_home_menu") or nil
+    return Home, menu
+end
+
+local function home_state()
+    local Home, menu = active_home_menu()
     local visible_texts = {}
     if menu then collect_texts(menu, visible_texts, {}, 0) end
     local widget_ids = {}
     local book_paths = {}
+    local strip_bottom
     for _i, target in ipairs(menu and menu._zen_home_focus_targets or {}) do
         local key = type(target.key) == "string" and target.key or ""
         local widget_id = key:match("^widget:(.+)$")
         local book_path = key:match("^book:(.+)$")
         if widget_id then widget_ids[#widget_ids + 1] = widget_id end
         if book_path then book_paths[#book_paths + 1] = book_path end
+        local dimen = target.component_id == "strip"
+            and target.widget and target.widget.dimen or nil
+        if dimen and type(dimen.y) == "number" and type(dimen.h) == "number" then
+            strip_bottom = math.max(strip_bottom or 0, dimen.y + dimen.h)
+        end
     end
     return {
         active = Home and Home.hasActive() or false,
@@ -473,11 +484,27 @@ local function home_state()
         widget_ids = widget_ids,
         book_paths = book_paths,
         page_padding = menu and menu._zen_home_page_padding or 0,
+        row_gap = menu and menu._zen_home_row_gap or 0,
+        body_height = menu and menu.height or 0,
+        top_visual_inset = menu and menu._zen_home_top_visual_inset or 0,
+        strip_bottom = strip_bottom,
         visual_gaps = menu and menu._zen_home_visual_gaps or {},
         clock_refreshers = #(menu and menu._zen_home_clock_refreshers or {}),
         visible_texts = visible_texts,
         image_widget_count = menu and count_image_widgets(menu, {}, 0) or 0,
     }
+end
+
+local function activate_home_target(key, action)
+    local menu = select(2, active_home_menu())
+    for _i, target in ipairs(menu and menu._zen_home_focus_targets or {}) do
+        local callback = action == "context" and target.context or target.activate
+        if target.key == key and type(callback) == "function" then
+            local ok, activated = pcall(callback)
+            return ok and activated == true, ok and nil or tostring(activated)
+        end
+    end
+    return false, "home target unavailable"
 end
 
 local function navbar_state()
@@ -486,6 +513,11 @@ local function navbar_state()
     local stack = UIManager._window_stack
     local top = stack and stack[#stack]
     local widget = top and top.widget
+    local stack_names = {}
+    for _i, entry in ipairs(stack or {}) do
+        local name = entry.widget and entry.widget.name
+        if name then stack_names[#stack_names + 1] = name end
+    end
     local visible_texts = {}
     if widget then collect_texts(widget, visible_texts, {}, 0) end
     return {
@@ -494,31 +526,23 @@ local function navbar_state()
         display_mode_type = chooser and (chooser.display_mode_type or chooser.display_mode) or nil,
         top_name = widget and widget.name or nil,
         top_tab_id = widget and widget._zen_tab_id or nil,
+        stack_names = stack_names,
         visible_texts = visible_texts,
     }
 end
 
-local function find_text_widget(widget, text, seen, depth)
-    if type(widget) ~= "table" or seen[widget] or depth > 64 then return end
-    seen[widget] = true
-    if widget.text == text then return widget end
-    for _i, child in ipairs(widget) do
-        local found = find_text_widget(child, text, seen, depth + 1)
-        if found then return found end
-    end
-end
-
-local function tap_navbar_tab(label, y_ratio)
+local function tap_navbar_tab(label, tab_id, y_ratio)
     local stack = UIManager._window_stack
-    local top = stack and stack[#stack] and stack[#stack].widget
-    if not top then return false, "top widget unavailable" end
+    if not (stack and stack[#stack] and stack[#stack].widget) then
+        return false, "top widget unavailable"
+    end
 
     local navbar
+    local event_target
     local function find_navbar(widget, seen, depth)
         if type(widget) ~= "table" or seen[widget] or depth > 64 then return end
         seen[widget] = true
-        if type(widget.onTapNavBar) == "function"
-                and find_text_widget(widget, label, {}, 0) then
+        if type(widget.onTapNavBar) == "function" then
             navbar = widget
             return
         end
@@ -527,31 +551,41 @@ local function tap_navbar_tab(label, y_ratio)
             if navbar then return end
         end
     end
-    find_navbar(top, {}, 0)
-    if not navbar then return false, "navbar tab unavailable: " .. tostring(label) end
-
-    local labels = {}
-    collect_texts(navbar, labels, {}, 0)
-    local label_index
-    for i, value in ipairs(labels) do
-        if value == label then
-            label_index = i
+    for index = #stack, 1, -1 do
+        local widget = stack[index].widget
+        find_navbar(widget, {}, 0)
+        if navbar then
+            event_target = widget
             break
         end
     end
+    if not navbar then return false, "navbar tab unavailable: " .. tostring(label) end
+
     local dimen = navbar.dimen
-    if not label_index or not dimen or #labels == 0 then
+    if not tab_id or not dimen then
         return false, "navbar label geometry unavailable"
     end
+    local probe_y = (dimen.y or 0) + math.floor((dimen.h or 1) / 2)
+    local x
+    for sample = 1, 64 do
+        local probe_x = (dimen.x or 0)
+            + math.floor((dimen.w or 1) * (sample - 0.5) / 64)
+        if navbar:getTappedTabId(require("ui/geometry"):new{
+            x = probe_x, y = probe_y, w = 0, h = 0,
+        }) == tab_id then
+            x = probe_x
+            break
+        end
+    end
+    if not x then return false, "navbar tab geometry unavailable: " .. tostring(tab_id) end
     local pos = {
-        x = (dimen.x or 0)
-            + math.floor((dimen.w or 1) * (label_index - 0.5) / #labels),
+        x = x,
         y = y_ratio and math.floor(require("device").screen:getHeight() * y_ratio)
             or (dimen.y or 0) + math.floor((dimen.h or 1) / 2),
         w = 0,
         h = 0,
     }
-    return top:handleEvent(Event:new("Gesture", {
+    return event_target:handleEvent(Event:new("Gesture", {
         ges = "tap",
         pos = require("ui/geometry"):new(pos),
     })) == true
@@ -701,6 +735,10 @@ function Driver:handleCommand(command)
     end
     if kind == "home_state" then
         return { ok = true, home = home_state() }
+    end
+    if kind == "activate_home_target" and type(params.key) == "string" then
+        local activated, err = activate_home_target(params.key, params.action)
+        return { ok = activated == true, activated = activated == true, error = err }
     end
     if kind == "menu_tab_layout" then
         local FileManager = require("apps/filemanager/filemanager")
@@ -1763,7 +1801,11 @@ function Driver:handleCommand(command)
         return { ok = open_tab(params.id) == true }
     end
     if kind == "tap_navbar_tab" and type(params.label) == "string" then
-        local ok, err = tap_navbar_tab(params.label, tonumber(params.y_ratio))
+        local ok, err = tap_navbar_tab(
+            params.label,
+            type(params.id) == "string" and params.id or nil,
+            tonumber(params.y_ratio)
+        )
         return { ok = ok == true, error = err }
     end
     if kind == "race_home_to_books" then

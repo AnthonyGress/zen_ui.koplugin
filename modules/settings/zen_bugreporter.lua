@@ -280,11 +280,11 @@ end
 function M._do_submit(ctx, bug_title, description, github_username)
     local InfoMessage = require("ui/widget/infomessage")
 
-    -- Show "Submitting…" then do network work on the next tick so the UI updates first.
+    -- Let the notice paint before starting the blocking network work.
     local spinner = InfoMessage:new{ text = _("Submitting report…") }
     UIManager:show(spinner)
 
-    UIManager:nextTick(function()
+    UIManager:tickAfterNext(function()
         -- Gather system info.
         local ok_u, sutils = pcall(require, "modules/settings/zen_settings_utils")
         local plugin = ctx and ctx.plugin

@@ -11,9 +11,12 @@ local TextWidget = require("ui/widget/textwidget")
 local TextBoxWidget = require("ui/widget/textboxwidget")
 local InputContainer = require("ui/widget/container/inputcontainer")
 local GestureRange = require("ui/gesturerange")
+local OverlapGroup = require("ui/widget/overlapgroup")
 local VerticalGroup = require("ui/widget/verticalgroup")
 local VerticalSpan = require("ui/widget/verticalspan")
 local cover_common = require("modules/filebrowser/patches/home/widgets/cover_common")
+local CoverUtils = require("common/cover_utils")
+local FolderCover = require("modules/filebrowser/folder_cover")
 local library_font = require("modules/filebrowser/patches/library_font")
 local Font = require("ui/font")
 local Device = require("device")
@@ -21,17 +24,106 @@ local MemoryPolicy = require("common/memory_policy")
 local utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
 local BookOpenTap = require("common/book_open_tap")
+local ButtonModel = require("common/nav_button_model")
 local _ = require("gettext")
 local logger = require("common/zen_logger").new("home_strip")
 
 local M = {}
-M.SIZE = { units = 3.5 }
+M.SIZE = { units = 2.5 }
 local HYDRATE_DELAY_S = 0.05
 local COVER_POLL_S = 0.4
 local PRELOAD_DELAY_S = 0.35
 local PRELOAD_TICK_S = 0.05
 local PRELOAD_CHUNK = 4
 local PRELOAD_BUDGET_S = 0.03
+
+local function cover_height_for_width(width)
+    local ratio = type(CoverUtils.getRatio) == "function"
+        and tonumber(CoverUtils.getRatio()) or 2 / 3
+    return math.max(1, math.floor(width / math.max(0.1, ratio)))
+end
+
+local function strip_layout_metrics(outer_width, module_cfg)
+    outer_width = math.max(1, math.floor(tonumber(outer_width) or 1))
+    module_cfg = type(module_cfg) == "table" and module_cfg or {}
+    local Screen = Device.screen
+    local controls = type(module_cfg.controls) == "table" and module_cfg.controls or {}
+    local controls_enabled = controls.enabled == true
+    local controls_height = controls_enabled and Screen:scaleBySize(30) or 0
+    local controls_gap = controls_enabled and math.max(12, Screen:scaleBySize(18)) or 0
+    local controls_top_gap = controls_gap
+    local padding = Screen:scaleBySize(8)
+    local width = math.max(1, outer_width - padding * 2)
+    local two_rows = module_cfg.two_rows == true
+    local vertical_padding = two_rows and 0 or padding
+    local count = tonumber(module_cfg.count) or (two_rows and 8 or 4)
+    if two_rows then
+        if count < 2 then count = 2 end
+        if count > 10 then count = 10 end
+    else
+        if count < 3 then count = 3 end
+        if count > 5 then count = 5 end
+    end
+    local rows = two_rows and 2 or 1
+    local per_row = two_rows and math.ceil(count / 2) or count
+    local strip_title_face = library_font.getFace(16)
+    local title_h = 0
+    local title_gap = 0
+    if module_cfg.show_strip_titles == true then
+        local probe = TextBoxWidget:new{
+            text = "Ag",
+            width = width,
+            face = strip_title_face,
+            bold = true,
+        }
+        title_h = probe:getSize().h
+        WidgetResources.free(probe)
+        if title_h < 1 then title_h = math.max(14, Screen:scaleBySize(12)) end
+        title_gap = math.max(1, Screen:scaleBySize(2))
+    end
+    local row_gap = two_rows and math.max(3, Screen:scaleBySize(10)) or 0
+    local screen_w = tonumber(Screen:getWidth()) or outer_width
+    local screen_h = tonumber(Screen:getHeight()) or outer_width
+    local short_side = math.max(1, math.min(screen_w, screen_h))
+    local phone_shaped = math.max(screen_w, screen_h) / short_side >= 1.6
+    return {
+        controls_enabled = controls_enabled,
+        controls_height = controls_height,
+        controls_gap = controls_gap,
+        controls_top_gap = controls_top_gap,
+        padding = padding,
+        vertical_padding = vertical_padding,
+        width = width,
+        two_rows = two_rows,
+        count = count,
+        rows = rows,
+        per_row = per_row,
+        row_gap = row_gap,
+        row_top_pad = two_rows and 0 or math.max(4, Screen:scaleBySize(4)),
+        row_bottom_pad = two_rows and 0 or math.max(4, Screen:scaleBySize(4)),
+        row_inner_bottom_pad = two_rows and math.max(2, Screen:scaleBySize(4)) or 0,
+        strip_title_face = strip_title_face,
+        title_h = title_h,
+        title_gap = title_gap,
+        phone_shaped = phone_shaped,
+    }
+end
+
+function M.preferred_height(outer_width, module_cfg)
+    local metrics = strip_layout_metrics(outer_width, module_cfg)
+    local Screen = Device.screen
+    local min_gap = math.max(6, math.min(
+        Screen:scaleBySize(14), math.floor(metrics.width * 0.018)))
+    local cover_w = math.max(24, math.floor(
+        (metrics.width - min_gap * (metrics.per_row - 1)) / metrics.per_row))
+    local cover_h = math.max(28, cover_height_for_width(cover_w))
+    return metrics.controls_top_gap + metrics.controls_height + metrics.controls_gap
+        + metrics.vertical_padding * 2
+        + metrics.row_top_pad + metrics.row_bottom_pad
+        + metrics.rows * (cover_h + metrics.title_gap + metrics.title_h)
+        + math.max(0, metrics.rows - 1)
+            * (metrics.row_gap + metrics.row_inner_bottom_pad)
+end
 
 local function set_opening_banner_cover(cover)
     local set_cover = rawget(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER")
@@ -345,28 +437,49 @@ end
 
 function M.build_strip(ctx, source_key)
     local outer_width = ctx.width
-    local outer_height = ctx.height
+    local total_outer_height = ctx.height
     local Screen = Device.screen
-    local padding = Screen:scaleBySize(8)
-    local width = math.max(1, outer_width - padding * 2)
-    local height = math.max(1, outer_height - padding * 2)
     local module_cfg = type(ctx.module_cfg) == "table" and ctx.module_cfg or {}
-    local source = source_key or "recently_read"
-    local order = module_cfg.order or "default"
-    local two_rows = module_cfg.two_rows == true
-    local per_row
-    local count
-    if two_rows then
-        count = tonumber(module_cfg.count) or 8
-        if count < 2 then count = 2 end
-        if count > 10 then count = 10 end
-        per_row = math.ceil(count / 2)
-    else
-        count = tonumber(module_cfg.count) or 4
-        if count < 3 then count = 3 end
-        if count > 5 then count = 5 end
-        per_row = count
+    local metrics = strip_layout_metrics(outer_width, module_cfg)
+    local controls_cfg = type(module_cfg.controls) == "table" and module_cfg.controls or {}
+    local controls_enabled = metrics.controls_enabled
+    local controls_height = metrics.controls_height
+    local controls_gap = metrics.controls_gap
+    local controls_top_gap = metrics.controls_top_gap
+    local controls_and_gap = controls_height + controls_gap
+    local outer_height = math.max(1, total_outer_height - controls_and_gap)
+    local width = metrics.width
+    local height = math.max(
+        1, outer_height - metrics.vertical_padding * 2 - controls_top_gap)
+    local runtime = ctx.menu and ctx.menu._zen_home_strip_runtime
+    local runtime_created = false
+    local function default_source()
+        if controls_enabled then
+            local first_source = ButtonModel.firstVisibleSource(controls_cfg)
+            if first_source then return utils.deepcopy(first_source) end
+        end
+        return type(module_cfg.default_source) == "table"
+            and utils.deepcopy(module_cfg.default_source) or { kind = "recent" }
     end
+    if type(runtime) ~= "table" then
+        runtime = { source = default_source() }
+        if source_key then
+            runtime.source = { kind = source_key == "recently_read" and "recent"
+                or source_key == "custom_strip" and "custom" or source_key }
+        end
+        if ctx.menu then ctx.menu._zen_home_strip_runtime = runtime end
+        runtime_created = true
+    end
+    local source = runtime.source or { kind = "recent" }
+    if type(source) ~= "table" then source = { kind = "recent" } end
+    local source_name = source.kind == "recent" and "recently_read"
+        or source.kind == "custom" and "custom_strip" or source.kind
+    local order = module_cfg.order or "default"
+    local two_rows = metrics.two_rows
+    -- Keep the painted cover borders inside the controls inset.
+    local cover_row_width = math.max(1, width - cover_common.BORDER_SIZE * 2)
+    local per_row = metrics.per_row
+    local count = metrics.count
     local wants_strip_titles = module_cfg.show_strip_titles == true
     local show_badges = module_cfg.show_badges == true
     local center_books = module_cfg.center_books == true
@@ -375,18 +488,187 @@ function M.build_strip(ctx, source_key)
     local has_adjacent_pages = false
     local hydration_failed_paths = {}
     local visual_shift = 0
+    local controls_visual_top = 0
 
     local function get_page_books(page_delta)
-        if type(ctx.data.getBooksForStripPage) == "function" then
-            local books, has_adjacent = ctx.data:getBooksForStripPage(
+        if type(ctx.data.getStripItemsForPage) == "function" then
+            local books, has_adjacent = ctx.data:getStripItemsForPage(
                 source, count, order, ctx.component_id, page_delta)
             has_adjacent_pages = has_adjacent == true
             return books
         end
+        if type(ctx.data.getBooksForStripPage) == "function" then
+            local books, has_adjacent = ctx.data:getBooksForStripPage(
+                source_name, count, order, ctx.component_id, page_delta)
+            has_adjacent_pages = has_adjacent == true
+            return books
+        end
         if page_delta == 0 then
-            return ctx.data:getBooksForStrip(source, count, order, ctx.component_id)
+            return ctx.data:getBooksForStrip(source_name, count, order, ctx.component_id)
         end
         return nil
+    end
+
+    local function rebuild_home()
+        if ctx.menu and type(ctx.menu._home_rebuild) == "function" then
+            ctx.menu:_home_rebuild()
+            return true
+        end
+        return false
+    end
+
+    local function reset_strip_pages()
+        if type(ctx.data.resetStripPages) == "function" then
+            ctx.data:resetStripPages()
+        end
+    end
+
+    local function descriptors_match(a, b)
+        return type(a) == "table" and type(b) == "table"
+            and a.kind == b.kind and a.value == b.value
+    end
+
+    local function parent_descriptor_matches(descriptor, current_source)
+        return type(descriptor) == "table" and type(current_source) == "table"
+            and descriptor.kind == "tags" and current_source.kind == "tag"
+    end
+
+    local function visible_source_entry(id)
+        return controls_cfg.show_buttons and controls_cfg.show_buttons[id]
+            and ButtonModel.find(controls_cfg, id) or nil
+    end
+
+    local function find_source_control(parent_match)
+        for _i, id in ipairs(controls_cfg.order or {}) do
+            local entry = visible_source_entry(id)
+            local descriptor = entry and ButtonModel.sourceDescriptor(entry)
+            local matches = parent_match and parent_descriptor_matches(descriptor, source)
+                or not parent_match and descriptors_match(descriptor, source)
+            if matches then return id end
+        end
+    end
+
+    local runtime_repaired = false
+    if runtime.active_id ~= nil then
+        local entry = visible_source_entry(runtime.active_id)
+        local descriptor = entry and ButtonModel.sourceDescriptor(entry)
+        if not descriptors_match(descriptor, source)
+                and not parent_descriptor_matches(descriptor, source) then
+            runtime.active_id = nil
+            source = default_source()
+            runtime.source = source
+            source_name = source.kind == "recent" and "recently_read"
+                or source.kind == "custom" and "custom_strip" or source.kind
+            runtime_repaired = true
+        end
+    end
+    if runtime.active_id == nil then
+        runtime.active_id = find_source_control(false) or find_source_control(true)
+    end
+
+    local function remember_strip_state()
+        if type(ctx.rememberStripState) == "function" then
+            ctx.rememberStripState(runtime)
+        end
+    end
+
+    if runtime_created or runtime_repaired then
+        remember_strip_state()
+    end
+
+    local active_group = source.drill and source.drill.label or nil
+    if active_group == nil and source.kind == "tag" and runtime.active_id == "tags" then
+        active_group = source.value
+    end
+
+    ctx.openStripGroup = function(book)
+        if type(book) ~= "table" or book.is_group ~= true then return false end
+        reset_strip_pages()
+        source.drill = {
+            label = book.group_label,
+            files = utils.deepcopy(book.group_files or {}),
+        }
+        runtime.source = source
+        remember_strip_state()
+        return rebuild_home()
+    end
+
+    local shift_strip_page
+    local controls_widget
+    local control_targets = {}
+    if controls_enabled then
+        local config = get_zen_config(rawget(_G, "__ZEN_UI_PLUGIN")) or {}
+        local features = type(config.features) == "table" and config.features or {}
+        local StripControls = require(
+            "modules/filebrowser/patches/home/widgets/strip_controls")
+        controls_widget, control_targets = StripControls.build{
+            width = width,
+            height = controls_height,
+            controls = controls_cfg,
+            rounded = features.browser_cover_rounded_corners == true,
+            active_id = runtime.active_id,
+            active_group = active_group,
+            prepare_focus = ctx.prepareHomeFocusTarget,
+            on_source = function(entry)
+                if runtime.active_id == entry.id then
+                    if source.drill then
+                        reset_strip_pages()
+                        source.drill = nil
+                        runtime.source = source
+                        remember_strip_state()
+                        return rebuild_home()
+                    end
+                    return true
+                end
+                local descriptor = ButtonModel.sourceDescriptor(entry)
+                if not descriptor then return false end
+                reset_strip_pages()
+                runtime.source = utils.deepcopy(descriptor)
+                runtime.active_id = entry.id
+                remember_strip_state()
+                return rebuild_home()
+            end,
+            on_action = function(entry)
+                if entry.id == "page_left" or entry.id == "page_right" then
+                    local direction = entry.id == "page_left" and "previous" or "next"
+                    return type(shift_strip_page) == "function"
+                        and shift_strip_page(direction) or false
+                end
+                return ButtonModel.execute(entry)
+            end,
+            on_hold = ctx.editMode == true and function()
+                return type(ctx.openWidgetSettings) == "function"
+                    and ctx.openWidgetSettings() == true
+            end or nil,
+        }
+    end
+
+    local function add_control_targets(targets)
+        if #control_targets == 0 then return targets end
+        local combined = {}
+        for _i, target in ipairs(control_targets) do combined[#combined + 1] = target end
+        for _i, target in ipairs(targets or {}) do combined[#combined + 1] = target end
+        return combined
+    end
+
+    local function set_visual_bounds(page_delta, visual_top, visual_bottom)
+        local base_shift = controls_enabled and controls_top_gap - visual_top or 0
+        local adjusted_top = visual_top + base_shift
+        if page_delta ~= 0 then return base_shift, adjusted_top end
+        controls_visual_top = adjusted_top
+        if type(ctx.setContentBounds) == "function" then
+            local group_bottom = controls_and_gap + visual_bottom + base_shift
+            ctx.setContentBounds{
+                top = adjusted_top,
+                bottom = group_bottom,
+                min_shift = -adjusted_top,
+                max_shift = total_outer_height - group_bottom,
+                bottom_anchor_offset = controls_enabled
+                    and math.max(0, tonumber(ctx.row_gap_above) or 0) or 0,
+                set_shift = function(shift) visual_shift = shift end,
+            }
+        end
+        return base_shift, adjusted_top
     end
 
     local function build_frame(page_delta, supplied_books)
@@ -402,7 +684,7 @@ function M.build_strip(ctx, source_key)
         local gap = math.max(4, Screen:scaleBySize(8))
         local message_w = math.max(1, width - cover_w - gap)
         local empty_message = TextBoxWidget:new{
-            text = cover_common.get_empty_message(source),
+            text = cover_common.get_empty_message(source_name),
             face = Font:getFace("smallinfofont", Screen:scaleBySize(10)),
             width = message_w,
             alignment = "left",
@@ -422,18 +704,12 @@ function M.build_strip(ctx, source_key)
             dimen = Geom:new{ w = outer_width, h = outer_height },
             empty_row,
         }
+        local empty_base_shift, empty_controls_top = set_visual_bounds(
+            page_delta, empty_top, empty_top + cover_h)
         local original_empty_paint = empty_container.paintTo
         empty_container.paintTo = function(self, bb, x, y)
-            return original_empty_paint(self, bb, x, y + visual_shift)
-        end
-        if page_delta == 0 and type(ctx.setContentBounds) == "function" then
-            ctx.setContentBounds{
-                top = empty_top,
-                bottom = empty_top + cover_h,
-                min_shift = -empty_top,
-                max_shift = outer_height - empty_top - cover_h,
-                set_shift = function(shift) visual_shift = shift end,
-            }
+            return original_empty_paint(
+                self, bb, x, y + empty_base_shift + visual_shift)
         end
         local empty_frame = FrameContainer:new{
             width = outer_width,
@@ -447,31 +723,21 @@ function M.build_strip(ctx, source_key)
             "component=", ctx.component_id or source,
             "page_delta=", page_delta or 0,
             "books=", 0)
-            return empty_frame, {}, {}, books, cover_plans
+            return empty_frame, add_control_targets({}), {}, books, cover_plans,
+                empty_controls_top
         end
 
-    local num_rows = two_rows and 2 or 1
-    local row_gap = two_rows and math.max(2, Screen:scaleBySize(3)) or 0
-    local row_top_pad = math.max(4, Screen:scaleBySize(4))
-    local row_bottom_pad = math.max(4, Screen:scaleBySize(4))
-    local row_inner_bottom_pad = two_rows and math.max(2, Screen:scaleBySize(4)) or 0
-    local strip_title_face = library_font.getFace(16)
+    local num_rows = metrics.rows
+    local row_gap = metrics.row_gap
+    local row_top_pad = metrics.row_top_pad
+    local row_bottom_pad = metrics.row_bottom_pad
+    local row_inner_bottom_pad = metrics.row_inner_bottom_pad
+    local strip_title_face = metrics.strip_title_face
     -- Measure the real rendered single-line height: TextBoxWidget renders at
     -- round((1+line_height)*face.size) and bumps a too-small height up to that,
     -- so a guessed title_h underreserves and the title overflows into the navbar.
-    local title_h = 0
-    if show_strip_titles then
-        local probe = TextBoxWidget:new{
-            text = "Ag",
-            width = width,
-            face = strip_title_face,
-            bold = true,
-        }
-        title_h = probe:getSize().h
-        WidgetResources.free(probe)
-        if title_h < 1 then title_h = math.max(14, Screen:scaleBySize(12)) end
-    end
-    local title_gap = show_strip_titles and math.max(1, Screen:scaleBySize(2)) or 0
+    local title_h = show_strip_titles and metrics.title_h or 0
+    local title_gap = show_strip_titles and metrics.title_gap or 0
     -- cover_common floors cover height at 28px, so a row never shrinks below it.
     local MIN_COVER_H = 28
 
@@ -495,7 +761,7 @@ function M.build_strip(ctx, source_key)
     local fixed_h = row_top_pad
         + row_bottom_pad
         + math.max(0, visible_rows - 1) * row_gap
-        + visible_rows * row_inner_bottom_pad
+        + math.max(0, visible_rows - 1) * row_inner_bottom_pad
     local avail_h = height - fixed_h
     -- Covers can't shrink below MIN_COVER_H; if titles won't also fit within `height`,
     -- drop them so the strip never overflows downward into the navbar (2-row / rotation).
@@ -511,32 +777,125 @@ function M.build_strip(ctx, source_key)
     local page_focus_targets = {}
     local hydration_jobs = {}
 
+    local function build_group_cover(book, max_cover_w, cover_h)
+        local config = type(ctx.zen_config) == "table" and ctx.zen_config
+            or get_zen_config(rawget(_G, "__ZEN_UI_PLUGIN")) or {}
+        local features = type(config.features) == "table" and config.features or {}
+        local uniform = features.browser_cover_mosaic_uniform == true
+        -- Match book-cover bounds; spine lines paint outside this box.
+        local target_w, target_h = CoverUtils.calcDims(max_cover_w, cover_h)
+        local entry = {
+            _zen_files = book.group_files or {},
+            text = book.group_label,
+            mandatory = book.group_count,
+        }
+        local specs = {
+            max_cover_w = target_w,
+            max_cover_h = target_h,
+            uniform = uniform,
+        }
+        local result = FolderCover.build(
+            ctx.menu or {}, entry, book.group_label, target_w, target_h, {
+                cached_only = true,
+                cover_specs = specs,
+                uniform = uniform,
+            })
+        local frame = result.frame
+        local frame_size = type(frame.getSize) == "function" and frame:getSize()
+            or frame.dimen or { w = target_w, h = target_h }
+        local cover = CenterContainer:new{
+            dimen = Geom:new{ w = target_w, h = target_h },
+            frame,
+        }
+        cover = FolderCover.overlayName(cover, {
+            width = target_w,
+            height = target_h,
+            title = result.title,
+            strip_height = show_strip_titles and title_h or 0,
+            cover_dimen = frame_size,
+            config = config,
+        })
+        cover = FolderCover.decorateWidget(cover, frame, result.count, config)
+        local job
+        if result.needs_hydration then
+            local members = {}
+            local entries = type(result.entries) == "table" and result.entries or {}
+            for index, member in ipairs(entries) do
+                local path = member.path or member.file
+                if type(path) == "string" and path ~= "" then
+                    local member_w, member_h = CoverUtils.getFolderPreviewBounds(
+                        result.mode, target_w, target_h, #entries, index)
+                    members[#members + 1] = {
+                        book = { path = path },
+                        path = path,
+                        width = member_w or target_w,
+                        height = member_h or target_h,
+                    }
+                end
+            end
+            job = {
+                folder_entry = entry,
+                title = result.title,
+                path = table.concat({
+                    "group", tostring(book.group_kind), tostring(book.group_label),
+                }, "\30"),
+                width = target_w,
+                height = target_h,
+                cover_specs = specs,
+                uniform = uniform,
+                cover_count = result.cover_count or 0,
+                members = members,
+            }
+        end
+        return cover, target_w, target_h, job
+    end
+
     local function build_row_widget(row_list, row_num)
         local n = #row_list
-        local row_capacity = two_rows and per_row or n
-        local center_short_row = center_books and n <= 3
+        local row_capacity = per_row
+        local partial_one_row = not two_rows and n < row_capacity
+        local center_short_row = partial_one_row or center_books and n <= 3
         local left_align_partial = not center_short_row and two_rows and row_num == 2 and n < per_row
         local min_gap = math.max(6, math.min(Screen:scaleBySize(14), math.floor(width * 0.018)))
-        local max_cover_w = math.max(24, math.floor((width - min_gap * (row_capacity - 1)) / row_capacity))
-        local cover_h = math.min(max_cover_h_per_row, math.floor(max_cover_w * 1.62))
+        local max_cover_w = math.max(24, math.floor(
+            (cover_row_width - min_gap * (row_capacity - 1)) / row_capacity))
+        local cover_h = math.min(
+            max_cover_h_per_row, cover_height_for_width(max_cover_w))
         if cover_h < 1 then cover_h = max_cover_h_per_row end
 
         local items = {}
         local covers_w = 0
         local row_h = 0
         for _i, book in ipairs(row_list) do
-            local cover, cover_w, rendered_cover_h, needs_hydration = cover_common.make_cover_widget(
-                book,
-                max_cover_w,
-                cover_h,
-                {
-                    border = cover_common.BORDER_SIZE,
-                    background = Blitbuffer.COLOR_LIGHT_GRAY,
-                    decorate = show_badges and function(frame)
-                        apply_strip_badges(frame, book, rawget(_G, "__ZEN_UI_PLUGIN"))
-                    end or nil,
-                }
-            )
+            local cover, cover_w, rendered_cover_h, hydration_job
+            if book.is_group == true then
+                cover, cover_w, rendered_cover_h, hydration_job =
+                    build_group_cover(book, max_cover_w, cover_h)
+            else
+                local needs_hydration
+                cover, cover_w, rendered_cover_h, needs_hydration =
+                    cover_common.make_cover_widget(
+                        book,
+                        max_cover_w,
+                        cover_h,
+                        {
+                            border = cover_common.BORDER_SIZE,
+                            background = Blitbuffer.COLOR_LIGHT_GRAY,
+                            decorate = show_badges and function(frame)
+                                apply_strip_badges(
+                                    frame, book, rawget(_G, "__ZEN_UI_PLUGIN"))
+                            end or nil,
+                        }
+                    )
+                if needs_hydration and not hydration_failed_paths[book.path] then
+                    hydration_job = {
+                        book = book,
+                        path = book.path,
+                        width = cover_w or max_cover_w,
+                        height = rendered_cover_h or cover_h,
+                    }
+                end
+            end
             cover_w = cover_w or max_cover_w
             local cover_size = cover.getSize and cover:getSize() or nil
             local actual_cover_h = rendered_cover_h or (cover_size and cover_size.h) or cover_h
@@ -544,13 +903,8 @@ function M.build_strip(ctx, source_key)
                 width = cover_w,
                 height = actual_cover_h,
             }
-            if needs_hydration and not hydration_failed_paths[book.path] then
-                hydration_jobs[#hydration_jobs + 1] = {
-                    book = book,
-                    path = book.path,
-                    width = cover_w,
-                    height = actual_cover_h,
-                }
+            if hydration_job and not hydration_failed_paths[hydration_job.path] then
+                hydration_jobs[#hydration_jobs + 1] = hydration_job
             end
             local item_h = show_strip_titles and (actual_cover_h + title_gap + title_h) or actual_cover_h
             if item_h > row_h then row_h = item_h end
@@ -572,9 +926,20 @@ function M.build_strip(ctx, source_key)
             local cover_slots_w = left_align_partial and (avg_cover_w * row_capacity) or covers_w
             local available_gap = center_short_row
                 and (min_gap * gap_slots)
-                or math.max(min_gap * gap_slots, width - cover_slots_w)
+                or math.max(
+                    min_gap * gap_slots,
+                    cover_row_width - cover_slots_w)
             gap = math.floor(available_gap / gap_slots)
-            extra_gap_px = left_align_partial and 0 or (available_gap - gap * gap_slots)
+            local fill_available_width = true
+            if metrics.phone_shaped then
+                local phone_gap = math.max(min_gap, math.min(
+                    Screen:scaleBySize(24), math.floor(width * 0.045)))
+                if gap > phone_gap then fill_available_width = false end
+                gap = math.min(gap, phone_gap)
+            end
+            if fill_available_width and not center_short_row then
+                extra_gap_px = math.max(0, available_gap - gap * gap_slots)
+            end
         end
 
         local row = HorizontalGroup:new{ align = "center" }
@@ -593,7 +958,10 @@ function M.build_strip(ctx, source_key)
                     },
                     VerticalSpan:new{ width = title_gap },
                     TextBoxWidget:new{
-                        text = book.title or "",
+                        text = book.is_group == true
+                            and ((book.group_label or "") .. " ("
+                                .. tostring(book.group_count or 0) .. ")")
+                            or book.title or "",
                         width = item_w,
                         height = title_h,
                         face = strip_title_face,
@@ -630,6 +998,10 @@ function M.build_strip(ctx, source_key)
                     if not tap_self.dimen or not ges or not ges.pos then return false end
                     if ctx.openTopMenu and ctx.openTopMenu(ges) then return true end
                     if not tap_self.dimen:contains(ges.pos) then return false end
+                    if book.is_group == true then
+                        if type(ctx.openStripGroup) == "function" then ctx.openStripGroup(book) end
+                        return true
+                    end
                     if ges.time ~= nil and not BookOpenTap.shouldOpen(path, ges.time) then return true end
                     set_opening_banner_cover(item.cover)
                     ctx.openBook(path)
@@ -638,7 +1010,13 @@ function M.build_strip(ctx, source_key)
                 tap.onHoldCover = function(tap_self, _, ges)
                     if not tap_self.dimen or not ges or not ges.pos then return false end
                     if not tap_self.dimen:contains(ges.pos) then return false end
-                    if ctx.showBookMenu then return ctx.showBookMenu(path, source) end
+                    if book.is_group == true then
+                        if type(ctx.showStripGroupMenu) == "function" then
+                            return ctx.showStripGroupMenu(book)
+                        end
+                        return false
+                    end
+                    if ctx.showBookMenu then return ctx.showBookMenu(path, source_name) end
                     return false
                 end
                 tap[1] = content
@@ -646,18 +1024,31 @@ function M.build_strip(ctx, source_key)
             end
             if interactive and type(ctx.registerHomeFocusTarget) == "function" then
                 local target = {
-                    key = "book:" .. tostring(path),
+                    key = (book.is_group == true and "group:" or "book:")
+                        .. tostring(book.group_label or path),
                     subrow = row_num or 1,
                     col = idx,
                     width = item_w,
                     height = item.h,
                     activate = function()
+                        if book.is_group == true then
+                            if type(ctx.openStripGroup) == "function" then
+                                return ctx.openStripGroup(book)
+                            end
+                            return false
+                        end
                         set_opening_banner_cover(item.cover)
                         ctx.openBook(path)
                         return true
                     end,
                     context = function()
-                        if ctx.showBookMenu then return ctx.showBookMenu(path, source) end
+                        if book.is_group == true then
+                            if type(ctx.showStripGroupMenu) == "function" then
+                                return ctx.showStripGroupMenu(book)
+                            end
+                            return false
+                        end
+                        if ctx.showBookMenu then return ctx.showBookMenu(path, source_name) end
                         return false
                     end,
                 }
@@ -690,14 +1081,17 @@ function M.build_strip(ctx, source_key)
         if #row_books[r] > 0 then
             local row_widget, row_h = build_row_widget(row_books[r], r)
             total_row_h = total_row_h + row_h
-            local container = two_rows and r == 2 and #row_books[r] < per_row
+            local container = two_rows
                 and not (center_books and #row_books[r] <= 3)
                 and LeftContainer or CenterContainer
-            table.insert(vgroup, container:new{ dimen = Geom:new{ w = width, h = row_h }, row_widget })
-            if row_inner_bottom_pad > 0 then
-                table.insert(vgroup, VerticalSpan:new{ width = row_inner_bottom_pad })
-            end
+            table.insert(vgroup, container:new{
+                dimen = Geom:new{ w = cover_row_width, h = row_h },
+                row_widget,
+            })
             if r < num_rows and #row_books[r + 1] > 0 then
+                if row_inner_bottom_pad > 0 then
+                    table.insert(vgroup, VerticalSpan:new{ width = row_inner_bottom_pad })
+                end
                 table.insert(vgroup, VerticalSpan:new{ width = row_gap })
             end
         end
@@ -711,24 +1105,20 @@ function M.build_strip(ctx, source_key)
         dimen = Geom:new{ w = width, h = height },
         vgroup,
     }
+    local content_base_shift = 0
     local original_content_paint = content_container.paintTo
     content_container.paintTo = function(self, bb, x, y)
-        return original_content_paint(self, bb, x, y + visual_shift)
+        return original_content_paint(
+            self, bb, x, y + content_base_shift + visual_shift)
     end
-    if page_delta == 0 and type(ctx.setContentBounds) == "function" then
-        local outer_top = math.floor(math.max(0, outer_height - height) / 2)
-        local visible_bottom = row_top_pad + total_row_h
-            + math.max(0, visible_rows - 1) * (row_gap + row_inner_bottom_pad)
-        local visual_top = outer_top + inner_top + row_top_pad
-        local visual_bottom = outer_top + inner_top + visible_bottom
-        ctx.setContentBounds{
-            top = visual_top,
-            bottom = visual_bottom,
-            min_shift = -visual_top,
-            max_shift = outer_height - visual_bottom,
-            set_shift = function(shift) visual_shift = shift end,
-        }
-    end
+    local outer_top = math.floor(math.max(0, outer_height - height) / 2)
+    local visible_bottom = row_top_pad + total_row_h
+        + math.max(0, visible_rows - 1) * (row_gap + row_inner_bottom_pad)
+    local visual_top = outer_top + inner_top + row_top_pad
+    local visual_bottom = outer_top + inner_top + visible_bottom
+    local controls_top
+    content_base_shift, controls_top = set_visual_bounds(
+        page_delta, visual_top, visual_bottom)
 
     local frame = FrameContainer:new{
         width = outer_width,
@@ -746,10 +1136,12 @@ function M.build_strip(ctx, source_key)
         "component=", ctx.component_id or source,
         "page_delta=", page_delta or 0,
         "books=", #books)
-        return frame, page_focus_targets, hydration_jobs, books, cover_plans
+        return frame, add_control_targets(page_focus_targets), hydration_jobs,
+            books, cover_plans, controls_top
     end
 
-    local frame, initial_targets, initial_jobs, initial_books, initial_plans = build_frame(0)
+    local frame, initial_targets, initial_jobs, initial_books, initial_plans,
+        initial_controls_top = build_frame(0)
     if type(ctx.activateStripFocusTargets) == "function" then
         ctx.activateStripFocusTargets(initial_targets)
     end
@@ -766,6 +1158,7 @@ function M.build_strip(ctx, source_key)
             },
         } or {},
     }
+    local repaint_widget = swipe
     local UIManager = require("ui/uimanager")
     local closed = false
     local visible_hydrate_fn
@@ -773,19 +1166,21 @@ function M.build_strip(ctx, source_key)
     local prewarm_direction = 1
     local swap_sequence = 0
 
-    local function new_entry(cached_frame, targets, jobs, books, plans)
+    local function new_entry(cached_frame, targets, jobs, books, plans, controls_top)
         return {
             frame = cached_frame,
             targets = targets or {},
             jobs = jobs or {},
             books = books or {},
             plans = plans or {},
+            controls_top = controls_top,
             freed = false,
         }
     end
 
     page_cache[0] = new_entry(
-        frame, initial_targets, initial_jobs, initial_books, initial_plans)
+        frame, initial_targets, initial_jobs, initial_books, initial_plans,
+        initial_controls_top)
 
     local function free_entry(entry)
         if not entry or entry.freed then return end
@@ -796,15 +1191,19 @@ function M.build_strip(ctx, source_key)
         entry.jobs = nil
         entry.books = nil
         entry.plans = nil
+        entry.controls_top = nil
     end
 
     local function build_entry(page_delta, books)
-        local cached_frame, targets, jobs, loaded_books, plans =
+        local cached_frame, targets, jobs, loaded_books, plans, controls_top =
             build_frame(page_delta, books)
-        return new_entry(cached_frame, targets, jobs, loaded_books, plans)
+        return new_entry(cached_frame, targets, jobs, loaded_books, plans, controls_top)
     end
 
     local function activate_entry(entry)
+        if type(entry.controls_top) == "number" then
+            controls_visual_top = entry.controls_top
+        end
         swipe[1] = entry.frame
         if swipe.resetLayout then swipe:resetLayout() end
         if type(ctx.activateStripFocusTargets) == "function" then
@@ -821,7 +1220,7 @@ function M.build_strip(ctx, source_key)
             activate_entry(replacement)
             if repaint then
                 if ctx.refreshStrip then
-                    ctx.refreshStrip(swipe)
+                    ctx.refreshStrip(repaint_widget)
                 else
                     UIManager:setDirty(ctx.menu, "ui")
                 end
@@ -849,6 +1248,31 @@ function M.build_strip(ctx, source_key)
     end
 
     local function warm_job(job)
+        if job.folder_entry then
+            if type(ctx.data.warmStripCover) == "function" then
+                local members_pending = false
+                for _i, member in ipairs(job.members or {}) do
+                    if ctx.data:warmStripCover(
+                            member.book, member.width, member.height) == "pending" then
+                        members_pending = true
+                    end
+                end
+                if members_pending then return "pending" end
+            end
+            local result = FolderCover.build(
+                ctx.menu or {}, job.folder_entry, job.title, job.width, job.height, {
+                    cached_only = false,
+                    cover_specs = job.cover_specs,
+                    uniform = job.uniform,
+                    decorate = false,
+                })
+            local previous_count = job.cover_count or 0
+            job.cover_count = result.cover_count or 0
+            local pending = result.needs_hydration == true
+            WidgetResources.free(result.frame)
+            if job.cover_count > previous_count or not pending then return "warmed" end
+            return "pending"
+        end
         if type(ctx.data.warmStripCover) ~= "function" then return "failed" end
         return ctx.data:warmStripCover(job.book, job.width, job.height)
     end
@@ -909,7 +1333,8 @@ function M.build_strip(ctx, source_key)
 
     schedule_prewarm = function(delay)
         if closed or prewarm_fn or not has_adjacent_pages
-                or type(ctx.data.getBooksForStripPage) ~= "function" then
+                or (type(ctx.data.getStripItemsForPage) ~= "function"
+                    and type(ctx.data.getBooksForStripPage) ~= "function") then
             return
         end
         local page_delta = prewarm_direction
@@ -1074,7 +1499,7 @@ function M.build_strip(ctx, source_key)
             "direction=", direction,
             "cache_hit=", cache_hit and 1 or 0)
         if ctx.refreshStrip then
-            ctx.refreshStrip(swipe_self)
+            ctx.refreshStrip(repaint_widget)
         else
             UIManager:setDirty(ctx.menu, "ui")
         end
@@ -1083,25 +1508,24 @@ function M.build_strip(ctx, source_key)
         schedule_prewarm(PRELOAD_DELAY_S)
     end
 
+    shift_strip_page = function(direction)
+        if not ctx.shiftStrip then return false end
+        local gesture_started_at = os.clock()
+        return ctx.shiftStrip(
+            source, count, order, direction, ctx.component_id, two_rows, function()
+                refresh_strip(swipe, direction, gesture_started_at)
+            end) == true
+    end
+
     if can_swipe then
         swipe.onSwipeStrip = function(swipe_self, _, ges)
             if not swipe_self.dimen or not ges or not ges.pos then return false end
             if not swipe_self.dimen:contains(ges.pos) then return false end
             if ges.direction == "west" then
-                if ctx.shiftStrip then
-                    local gesture_started_at = os.clock()
-                    ctx.shiftStrip(source, count, order, "next", ctx.component_id, two_rows, function()
-                        refresh_strip(swipe_self, "next", gesture_started_at)
-                    end)
-                end
+                shift_strip_page("next")
                 return true
             elseif ges.direction == "east" then
-                if ctx.shiftStrip then
-                    local gesture_started_at = os.clock()
-                    ctx.shiftStrip(source, count, order, "previous", ctx.component_id, two_rows, function()
-                        refresh_strip(swipe_self, "previous", gesture_started_at)
-                    end)
-                end
+                shift_strip_page("previous")
                 return true
             end
             return false
@@ -1109,13 +1533,21 @@ function M.build_strip(ctx, source_key)
     end
     swipe[1] = frame
 
+    local function job_contains_path(job, path)
+        if job.path == path then return true end
+        for _i, member in ipairs(job.members or {}) do
+            if member.path == path then return true end
+        end
+        return false
+    end
+
     local unregister_cover_listener
     if type(ctx.registerStripCoverListener) == "function" then
         unregister_cover_listener = ctx.registerStripCoverListener(function(path)
             hydration_failed_paths[path] = nil
             local current = page_cache[0]
             for _i, job in ipairs(current and current.jobs or {}) do
-                if job.path == path then
+                if job_contains_path(job, path) then
                     cancel_visible_hydration("cover_ready")
                     schedule_visible_hydration(0)
                     return
@@ -1123,7 +1555,7 @@ function M.build_strip(ctx, source_key)
             end
             local future = page_cache[prewarm_direction]
             for _i, job in ipairs(future and future.jobs or {}) do
-                if job.path == path then
+                if job_contains_path(job, path) then
                     cancel_prewarm("cover_ready")
                     schedule_prewarm(PRELOAD_TICK_S)
                     return
@@ -1170,7 +1602,33 @@ function M.build_strip(ctx, source_key)
             page_cache[page_delta] = nil
         end
     end)
-    return swipe
+    if not controls_widget then return swipe end
+    local controls_container = CenterContainer:new{
+        dimen = Geom:new{ w = outer_width, h = controls_height },
+        controls_widget,
+    }
+    local original_controls_paint = controls_container.paintTo
+    controls_container.paintTo = function(self, bb, x, y)
+        return original_controls_paint(
+            self, bb, x, y + controls_visual_top + visual_shift)
+    end
+    local strip_widget = FrameContainer:new{
+        width = outer_width,
+        height = total_outer_height,
+        padding = 0,
+        bordersize = 0,
+        background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
+        OverlapGroup:new{
+            dimen = Geom:new{ w = outer_width, h = total_outer_height },
+            VerticalGroup:new{
+                VerticalSpan:new{ width = controls_and_gap },
+                swipe,
+            },
+            controls_container,
+        },
+    }
+    repaint_widget = strip_widget
+    return strip_widget
 end
 
 return M

@@ -342,6 +342,9 @@ msgstr "Информация за книгата"
 msgid "Book Status"
 msgstr "Състояние на книгата"
 
+msgid "Book strip"
+msgstr "Лента с книги"
+
 msgid "Book switcher"
 msgstr ""
 
@@ -498,9 +501,6 @@ msgstr "Изчистване на всички жестове"
 msgid "Clear book"
 msgstr "Изчистване на книгата"
 
-msgid "Clear books"
-msgstr "Изчистване на книгите"
-
 msgid "Close"
 msgstr "Затваряне"
 
@@ -615,6 +615,9 @@ msgstr "Текущи/общо страници"
 msgid "Custom"
 msgstr "По избор"
 
+msgid "Custom books"
+msgstr ""
+
 msgid "Custom button label"
 msgstr "Етикет на персонализирания бутон"
 
@@ -684,8 +687,8 @@ msgstr "Тъмно топло сиво"
 msgid "Date"
 msgstr "Дата"
 
-msgid "Date/time widget"
-msgstr "Джаджа за дата/час"
+msgid "Date/time"
+msgstr "Дата/час"
 
 msgid "Day brightness"
 msgstr "Дневна яркост"
@@ -728,6 +731,9 @@ msgstr "по подразбиране"
 
 msgid "Default (black)"
 msgstr "По подразбиране (черно)"
+
+msgid "Content: "
+msgstr "Съдържание: "
 
 msgid "Default font size:"
 msgstr "Размер на шрифта по подразбиране:"
@@ -939,14 +945,8 @@ msgstr "Неуспешно изпращане на доклада: "
 msgid "Favorites"
 msgstr "Любими"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "Представена книга"
-
-msgid "Featured Books"
-msgstr "Представени книги"
-
-msgid "Featured widget"
-msgstr "Представена джаджа"
 
 msgid "Featured widgets"
 msgstr "Избрани уиджети"
@@ -1034,6 +1034,9 @@ msgstr "Подсветка"
 
 msgid "Gallery"
 msgstr "Галерия"
+
+msgid "Genres"
+msgstr ""
 
 msgid "Get Started"
 msgstr "Начало"
@@ -1638,6 +1641,9 @@ msgstr "Контур"
 msgid "Outlined boxes"
 msgstr "Оградени полета"
 
+msgid "p."
+msgstr ""
+
 msgid "Page %1 of %2"
 msgstr "Страница %1 от %2"
 
@@ -1779,8 +1785,8 @@ msgstr "Размер на шрифта на офертата"
 msgid "Quote sources"
 msgstr "Цитиране на източници"
 
-msgid "Quotes widget"
-msgstr "Уиджет за цитати"
+msgid "Quotes"
+msgstr "Цитати"
 
 msgid "quotes.lua is empty"
 msgstr "quotes.lua е празен"
@@ -1833,20 +1839,20 @@ msgstr "Цели за четене"
 msgid "Reading goals font size"
 msgstr "Размер на шрифта на цели за четене"
 
-msgid "Reading goals widget"
-msgstr "Приспособление за цели за четене"
-
 msgid "Reading stats"
 msgstr "Статистика за четене"
-
-msgid "Reading stats widget"
-msgstr "Уиджет за статистика на четенето"
 
 msgid "Reading trend"
 msgstr "Тенденция на четене"
 
 msgid "Reading Trend"
 msgstr "Тенденция на четене"
+
+msgid "Recent"
+msgstr ""
+
+msgid "Recent filters"
+msgstr ""
 
 msgid "Recently read"
 msgstr "Наскоро прочетени"
@@ -2109,6 +2115,9 @@ msgstr "Показване на долна граница"
 msgid "Show brightness slider"
 msgstr "Показване на плъзгач за яркост"
 
+msgid "Show controls"
+msgstr ""
+
 msgid "Show description"
 msgstr "Показване на описанието"
 
@@ -2241,6 +2250,9 @@ msgstr "Ред на сортиране"
 msgid "Sort series"
 msgstr "Сортиране на поредици"
 
+msgid "Specific tag"
+msgstr ""
+
 msgid "Stable"
 msgstr "Стабилна"
 
@@ -2292,9 +2304,6 @@ msgstr "Серия"
 msgid "Stream from page"
 msgstr "Поток от страница"
 
-msgid "Strip widget"
-msgstr "Джаджа за ленти"
-
 msgid "Strip widgets"
 msgstr "Лентови уиджети"
 
@@ -2331,14 +2340,8 @@ msgstr "Раздели"
 msgid "Tag"
 msgstr "Етикет"
 
-msgid "Tag books"
-msgstr "Книги с етикети"
-
 msgid "Tag strip widget"
 msgstr "Приспособление за лента с етикети"
-
-msgid "Tag: "
-msgstr "Етикет:"
 
 msgid "Tag: %1"
 msgstr "Етикет: %1"
@@ -2789,3 +2792,12 @@ msgstr "ZenPM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM е инсталиран. Рестартирайте KOReader, за да го използвате."
+
+msgid "Automatic"
+msgstr "Автоматично"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "Разстоянието на началния екран беше актуализирано. Запазеният ред и избор на джаджи бяха съхранени и напаснати към новата мрежа."
+
+msgid "%1, %2 %3"
+msgstr "%1, %3 %2"

@@ -579,6 +579,345 @@ function M.build(menu, entry, menu_text, max_w, max_h, options)
     }
 end
 
+local label_strip_cache = {}
+local label_ui
+local cached_label_strip
+
+local function get_config(config)
+    if type(config) == "table" then return config end
+    local plugin = rawget(_G, "__ZEN_UI_PLUGIN")
+    if plugin and type(plugin.config) == "table" then return plugin.config end
+    local ok, manager = pcall(require, "config/manager")
+    return ok and type(manager.get) == "function" and manager.get() or {}
+end
+
+local function get_label_ui()
+    if label_ui then return label_ui end
+    local BlitbufferUI = require("ffi/blitbuffer")
+    local CenterContainer = require("ui/widget/container/centercontainer")
+    local WidgetContainer = require("ui/widget/container/widgetcontainer")
+    local LabelStrip = WidgetContainer:extend{}
+
+    function LabelStrip:paintTo(bb, x, y)
+        local config = get_config(self.config)
+        local features = type(config.features) == "table" and config.features or {}
+        local folder = type(config.browser_folder_cover) == "table"
+            and config.browser_folder_cover or {}
+        local label_max_radius = math.floor(
+            (math.min(self.dimen.w, self.dimen.h) - 1) / 2)
+        local radius = features.browser_cover_rounded_corners == true
+            and math.min(self.ui.Screen:scaleBySize(8), self.max_radius,
+                label_max_radius) or 0
+        local opaque = folder.name_opaque == true
+        if self._zen_strip_radius ~= radius or self._zen_strip_opaque ~= opaque then
+            self.strip, self._zen_strip_radius, self.alpha = cached_label_strip(
+                self.ui, self.dimen.w, self.dimen.h, radius, opaque)
+            self._zen_strip_opaque = opaque
+            self.radius = self._zen_strip_radius
+        end
+        bb:colorblitFromRGB32(self.strip.background_mask, x, y, 0, 0,
+            self.dimen.w, self.dimen.h, BlitbufferUI.COLOR_WHITE)
+        bb:colorblitFromRGB32(self.strip.border_mask, x, y, 0, 0,
+            self.dimen.w, self.dimen.h, BlitbufferUI.COLOR_BLACK)
+    end
+
+    label_ui = {
+        BD = require("ui/bidi"),
+        Blitbuffer = BlitbufferUI,
+        BottomContainer = require("ui/widget/container/bottomcontainer"),
+        CenterContainer = CenterContainer,
+        Geom = require("ui/geometry"),
+        OverlapGroup = require("ui/widget/overlapgroup"),
+        Screen = require("device").screen,
+        TextBoxWidget = require("ui/widget/textboxwidget"),
+        TextWidget = require("ui/widget/textwidget"),
+        LabelStrip = LabelStrip,
+        library_font = require("modules/filebrowser/patches/library_font"),
+    }
+    return label_ui
+end
+
+cached_label_strip = function(ui, width, height, radius, opaque)
+    radius = math.max(0, math.min(radius,
+        math.floor((math.min(width, height) - 1) / 2)))
+    local alpha = opaque and 0xFF or math.floor(0.75 * 0xFF + 0.5)
+    local key = table.concat({ width, height, radius, alpha }, ":")
+    if label_strip_cache[key] then return label_strip_cache[key], radius, alpha end
+
+    local BlitbufferUI = ui.Blitbuffer
+    local background_mask = BlitbufferUI.new(width, height, BlitbufferUI.TYPE_BB8)
+    local border_mask = BlitbufferUI.new(width, height, BlitbufferUI.TYPE_BB8)
+    local background = BlitbufferUI.Color8(alpha)
+    local border = math.max(1, math.min(CoverUtils.BORDER_SIZE,
+        math.floor(math.min(width, height) / 2)))
+    background_mask:fill(BlitbufferUI.COLOR_BLACK)
+    border_mask:fill(BlitbufferUI.COLOR_BLACK)
+    background_mask:paintRect(0, 0, width, height, background)
+
+    if radius >= 2 then
+        local inner_radius = math.max(0, radius - border)
+        for row = 0, radius - 1 do
+            local y = height - radius + row
+            for column = 0, radius - 1 do
+                local dx = radius - column - 0.5
+                local dy = row + 0.5
+                local distance = math.sqrt(dx * dx + dy * dy)
+                if distance > radius then
+                    background_mask:paintRect(column, y, 1, 1, BlitbufferUI.COLOR_BLACK)
+                    background_mask:paintRect(
+                        width - 1 - column, y, 1, 1, BlitbufferUI.COLOR_BLACK)
+                elseif distance >= inner_radius then
+                    border_mask:paintRect(column, y, 1, 1, BlitbufferUI.COLOR_WHITE)
+                    border_mask:paintRect(
+                        width - 1 - column, y, 1, 1, BlitbufferUI.COLOR_WHITE)
+                end
+            end
+        end
+        border_mask:paintRect(0, 0, width, border, BlitbufferUI.COLOR_WHITE)
+        border_mask:paintRect(0, 0, border, height - radius, BlitbufferUI.COLOR_WHITE)
+        border_mask:paintRect(
+            width - border, 0, border, height - radius, BlitbufferUI.COLOR_WHITE)
+        border_mask:paintRect(
+            radius, height - border, width - 2 * radius, border, BlitbufferUI.COLOR_WHITE)
+    else
+        border_mask:paintRect(0, 0, width, border, BlitbufferUI.COLOR_WHITE)
+        border_mask:paintRect(0, height - border, width, border, BlitbufferUI.COLOR_WHITE)
+        border_mask:paintRect(0, 0, border, height, BlitbufferUI.COLOR_WHITE)
+        border_mask:paintRect(width - border, 0, border, height, BlitbufferUI.COLOR_WHITE)
+    end
+
+    local strip = { background_mask = background_mask, border_mask = border_mask }
+    label_strip_cache[key] = strip
+    return strip, radius, alpha
+end
+
+local function transparent_folder_label(ui, label)
+    local original_free = label.free
+    function label:paintTo(bb, x, y)
+        if not self._bb then self:_updateLayout() end
+        local width = self.width
+        local height = self._bb:getHeight()
+        if not self._zen_folder_label_mask
+                or self._zen_folder_label_mask:getWidth() ~= width
+                or self._zen_folder_label_mask:getHeight() ~= height then
+            if self._zen_folder_label_mask then self._zen_folder_label_mask:free() end
+            self._zen_folder_label_mask = ui.Blitbuffer.new(
+                width, height, ui.Blitbuffer.TYPE_BB8)
+        end
+        local mask = self._zen_folder_label_mask
+        mask:fill(ui.Blitbuffer.COLOR_WHITE)
+        mask:blitFrom(self._bb, 0, 0, 0, 0, width, height)
+        mask:invertRect(0, 0, width, height)
+        bb:colorblitFromRGB32(mask, x, y, 0, 0, width, height, self.fgcolor)
+    end
+    function label:free(...)
+        if self._zen_folder_label_mask then
+            self._zen_folder_label_mask:free()
+            self._zen_folder_label_mask = nil
+        end
+        return original_free(self, ...)
+    end
+    return label
+end
+
+function M.overlayName(cover, options)
+    options = options or {}
+    local full_config = get_config(options.config)
+    local config = full_config.browser_folder_cover or {}
+    if config.show_folder_name == false or (tonumber(options.strip_height) or 0) > 0 then
+        return cover
+    end
+
+    local ui = get_label_ui()
+    local border = CoverUtils.BORDER_SIZE
+    local item_width = math.max(1, tonumber(options.width) or 1)
+    local content_h = math.max(1, tonumber(options.height) or 1)
+    local cover_dimen = options.cover_dimen
+    local cover_w = math.max(1, cover_dimen and cover_dimen.w or item_width)
+    local cover_h = math.max(1, cover_dimen and cover_dimen.h or content_h)
+    local features = full_config.features or {}
+    local rounded = features.browser_cover_rounded_corners == true
+    local corner_radius = rounded and math.min(ui.Screen:scaleBySize(8),
+        math.floor((math.min(cover_w, cover_h) - 1) / 2)) or 0
+    local label_pad_h = ui.Screen:scaleBySize(5)
+    local label_pad_v = 0
+    local label_w = math.max(1, cover_w - 2 * border - 2 * label_pad_h)
+    local label_h = math.max(1, cover_h - 2 * border)
+    local text = ui.BD.directory(options.title or "")
+    local badge_probe = ui.TextWidget:new{
+        text = "0",
+        face = ui.library_font.getFace(ui.library_font.scaleValue(15)),
+        bold = true,
+        padding = 0,
+    }
+    local available_h = math.max(1,
+        label_h - 2 * badge_probe:getSize().h - 2 * label_pad_v)
+    badge_probe:free()
+
+    local max_font_size = ui.library_font.getBaseSize() + 1
+    local min_font_size = ui.library_font.scaleValue(14)
+    local function make_label(size, height)
+        return ui.TextBoxWidget:new{
+            text = text,
+            face = ui.library_font.getFace(size),
+            width = label_w,
+            height = height,
+            height_adjust = height ~= nil,
+            height_overflow_show_ellipsis = height ~= nil,
+            alignment = "center",
+            bold = true,
+            fgcolor = ui.Blitbuffer.COLOR_BLACK,
+        }
+    end
+
+    local height_probe = make_label(max_font_size)
+    local two_line_h = math.min(available_h, 2 * height_probe:getLineHeight())
+    height_probe:free()
+
+    local font_size = max_font_size
+    while font_size >= min_font_size do
+        local probe = make_label(font_size)
+        local line_count = #probe.vertical_string_list
+        local line_h = probe:getLineHeight()
+        probe:free()
+        if line_count <= 2 and line_count * line_h <= two_line_h then break end
+        font_size = font_size - 1
+    end
+    if font_size < min_font_size then font_size = min_font_size end
+    local label = transparent_folder_label(ui, make_label(font_size, two_line_h))
+    local label_dimen = ui.Geom:new{
+        w = label_w + 2 * (label_pad_h + CoverUtils.BORDER_SIZE),
+        h = two_line_h + 2 * (label_pad_v + CoverUtils.BORDER_SIZE),
+    }
+    local strip, strip_radius, strip_alpha = cached_label_strip(
+        ui, label_dimen.w, label_dimen.h, corner_radius, config.name_opaque == true)
+    local label_widget = ui.OverlapGroup:new{
+        dimen = label_dimen,
+        ui.LabelStrip:new{
+            dimen = label_dimen,
+            strip = strip,
+            config = full_config,
+            max_radius = math.floor((math.min(cover_w, cover_h) - 1) / 2),
+            ui = ui,
+            radius = strip_radius,
+            _zen_strip_radius = strip_radius,
+            _zen_strip_opaque = config.name_opaque == true,
+            alpha = strip_alpha,
+        },
+        ui.CenterContainer:new{
+            dimen = label_dimen,
+            label,
+        },
+    }
+    local PositionContainer = config.name_centered == true
+        and ui.CenterContainer or ui.BottomContainer
+    return ui.OverlapGroup:new{
+        dimen = ui.Geom:new{ w = item_width, h = content_h },
+        cover,
+        ui.CenterContainer:new{
+            dimen = ui.Geom:new{ w = item_width, h = content_h },
+            PositionContainer:new{
+                dimen = ui.Geom:new{ w = cover_w, h = cover_h },
+                label_widget,
+            },
+        },
+    }
+end
+
+local function paint_circle(bb, cx, cy, radius, color)
+    for row = -radius, radius do
+        local half = math.floor(math.sqrt(math.max(0, radius * radius - row * row)))
+        if half > 0 then
+            bb:paintRectRGB32(cx - half, cy + row, 2 * half, 1, color)
+        end
+    end
+end
+
+function M.paintDecorations(item, bb, config, x, y)
+    config = get_config(config)
+    local folder = config.browser_folder_cover or {}
+    local frame = item and item._zen_cover_frame
+    if not (frame and frame.dimen) then return end
+    if folder.show_spine_lines == true then
+        local features = config.features or {}
+        M.paintSpines(bb, frame, x, y, {
+            rounded = features.browser_cover_rounded_corners == true,
+        })
+    end
+
+    local count = item._zen_folder_count
+    if folder.show_item_count == false or not count then return end
+    local BlitbufferUI = require("ffi/blitbuffer")
+    local Font = require("ui/font")
+    local TextWidget = require("ui/widget/textwidget")
+    local utils = require("common/utils")
+    local ScreenUI = require("device").screen
+    local size = math.floor(math.max(ScreenUI:scaleBySize(20),
+        math.floor(frame.dimen.w * 0.14)) * utils.getBadgeScale(config))
+    local radius = math.floor(size / 2)
+    local badge = config.browser_cover_badges or {}
+    local color = utils.getBadgeColor(config)
+    local raw_color = badge.badge_color
+    local is_dark = raw_color == nil or (type(raw_color) == "table"
+        and raw_color[1] == 0 and raw_color[2] == 0 and raw_color[3] == 0)
+    local foreground = is_dark and BlitbufferUI.COLOR_WHITE or BlitbufferUI.COLOR_BLACK
+    local text = tostring(count)
+    local font_size = math.max(7, math.floor(size * 0.26))
+    local cached = item._zen_folder_count_badge
+    if cached and (cached.text ~= text or cached.size ~= font_size
+            or cached.color ~= foreground) then
+        cached.widget:free()
+        cached = nil
+    end
+    if not cached then
+        cached = {
+            text = text,
+            size = font_size,
+            color = foreground,
+            widget = TextWidget:new{
+                text = text,
+                face = Font:getFace("cfont", font_size),
+                bold = true,
+                fgcolor = foreground,
+                padding = 0,
+            },
+        }
+        item._zen_folder_count_badge = cached
+    end
+    local widget_size = cached.widget:getSize()
+    local inset = utils.getBadgeInset(radius)
+    local badge_x = frame.dimen.x + frame.dimen.w - radius - inset
+    local badge_y = frame.dimen.y + radius + inset
+    paint_circle(bb, badge_x, badge_y, radius + 2, foreground)
+    paint_circle(bb, badge_x, badge_y, radius, color)
+    cached.widget:paintTo(bb, badge_x - math.floor(widget_size.w / 2),
+        badge_y - math.floor(widget_size.h / 2))
+end
+
+function M.decorateWidget(widget, frame, count, config)
+    if not (widget and type(widget.paintTo) == "function") then return widget end
+    local state = {
+        _zen_cover_frame = frame,
+        _zen_folder_count = count and count > 0 and count or nil,
+    }
+    local original_paint = widget.paintTo
+    widget.paintTo = function(self, bb, x, y)
+        original_paint(self, bb, x, y)
+        M.paintDecorations(state, bb, config, x, y)
+    end
+    local original_free = widget.free
+    if type(original_free) == "function" then
+        widget.free = function(self, ...)
+            if state._zen_folder_count_badge then
+                state._zen_folder_count_badge.widget:free()
+                state._zen_folder_count_badge = nil
+            end
+            return original_free(self, ...)
+        end
+    end
+    return widget
+end
+
 function M.isGalleryCached(menu, entry, menu_text, max_w, max_h, options)
     options = options or {}
     local mode, max_covers = CoverUtils.getMode()
@@ -663,10 +1002,12 @@ function M.paintSpines(bb, frame, item_x, item_y, options)
         Screen = require("device").screen
         Size = require("ui/size")
     end
-    local thickness = math.max(1, Screen:scaleBySize(2.5))
+    local thickness = math.max(1, Screen:scaleBySize(2))
     local margin = Size.line.medium
-    local spine_gap = Screen:scaleBySize(9)
-    local top_h = 2 * (thickness + margin)
+    local cover_gap = math.max(1, Screen:scaleBySize(1))
+    local spine_gap = 2 * thickness + margin + cover_gap
+    local lines_h = 2 * thickness + margin
+    local top_h = lines_h + cover_gap
     local orientation = options.orientation
     if not orientation then
         local top_gap = dimen.y - (item_y or 0)
@@ -691,8 +1032,7 @@ function M.paintSpines(bb, frame, item_x, item_y, options)
     end
 
     if orientation == "top" then
-        local lines_h = 2 * thickness + margin
-        local first_y = dimen.y - top_h + math.floor((top_h - lines_h) / 2)
+        local first_y = dimen.y - top_h
         if first_length > 0 then
             paint_spine(dimen.x + math.floor((dimen.w - first_length) / 2),
                 first_y, first_length, thickness)

@@ -1,14 +1,9 @@
 local builtin_components = {
     require("modules/filebrowser/patches/home/widgets/datetime"),
-    require("modules/filebrowser/patches/home/widgets/featured_custom"),
-    require("modules/filebrowser/patches/home/widgets/featured_tbr"),
-    require("modules/filebrowser/patches/home/widgets/featured_recent"),
+    require("modules/filebrowser/patches/home/widgets/featured"),
     require("modules/filebrowser/patches/home/widgets/stats_triplet"),
     require("modules/filebrowser/patches/home/widgets/reading_goals"),
-    require("modules/filebrowser/patches/home/widgets/strip_custom"),
-    require("modules/filebrowser/patches/home/widgets/strip_tag"),
-    require("modules/filebrowser/patches/home/widgets/strip_tbr"),
-    require("modules/filebrowser/patches/home/widgets/strip_recent"),
+    require("modules/filebrowser/patches/home/widgets/strip"),
     require("modules/filebrowser/patches/home/widgets/quotes"),
 }
 
@@ -22,6 +17,10 @@ local refresh_callback = nil
 local M = {}
 
 M.CAPACITY_UNITS = 10
+M.MAX_CAPACITY_UNITS = 20
+
+-- Android may expose native framebuffer axes independently of UI rotation.
+local REFERENCE_ASPECT_RATIO = 4 / 3
 
 local SIZE_UNITS = {
     xs = 1,
@@ -32,23 +31,47 @@ local SIZE_UNITS = {
 }
 
 local LAYOUT_GROWTH = {
-    datetime = { max = 3, priority = 2 },
-    featured_custom = { max = 5, priority = 2 },
-    featured_recent = { max = 5, priority = 2 },
-    featured_tbr = { max = 5, priority = 2 },
+    datetime = { max = 2, priority = 2 },
+    featured = { max = 4, priority = 2 },
     quotes = { max = 3, priority = 3 },
-    reading_goals = { max = 2, priority = 4 },
+    reading_goals = { max = 1, priority = 4 },
     stats_triplet = { max = 1, priority = 4 },
-    strip_custom = { max = 3.5, priority = 1 },
-    strip_recent = { max = 3.5, priority = 1 },
-    strip_tag = { max = 3.5, priority = 1 },
-    strip_tbr = { max = 3.5, priority = 1 },
+    strip = { max = 4, expanded_max = 6, priority = 1 },
 }
 
 local function clamp_units(value)
     local units = math.floor((tonumber(value) or 2) + 0.5)
     return math.max(1, math.min(M.CAPACITY_UNITS, units))
 end
+
+function M.capacityUnits(width, height)
+    width, height = tonumber(width), tonumber(height)
+    if not width or not height then
+        local ok, Device = pcall(require, "device")
+        local screen = ok and Device and Device.screen
+        if screen then
+            width = tonumber(screen:getWidth())
+            height = tonumber(screen:getHeight())
+        end
+    end
+    if not width or width <= 0 or not height or height <= 0 then
+        return M.CAPACITY_UNITS
+    end
+    local short_side = math.min(width, height)
+    local long_side = math.max(width, height)
+    local capacity = math.floor(
+        M.CAPACITY_UNITS * long_side / short_side / REFERENCE_ASPECT_RATIO + 0.5)
+    return math.max(M.CAPACITY_UNITS, math.min(M.MAX_CAPACITY_UNITS, capacity))
+end
+
+local MIN_LAYOUT_UNITS = {
+    datetime = 1,
+    featured = 2,
+    quotes = 1.5,
+    reading_goals = 1,
+    stats_triplet = 1,
+    strip = 1.5,
+}
 
 local function size_value(component)
     if type(component) == "table" and component.size ~= nil then
@@ -115,16 +138,23 @@ function M.totalUnits(enabled, modules)
     return total
 end
 
-function M.layoutUnits(components)
+function M.layoutUnits(components, capacity)
     components = components or {}
+    capacity = math.max(1, tonumber(capacity) or M.CAPACITY_UNITS)
     local units = {}
+    local requested = {}
+    local expanded = {}
     local total = 0
+    local requested_total = 0
     local priorities = {}
     local seen_priorities = {}
     for i, component in ipairs(components) do
         local base = M.baseSizeUnits(component)
         units[i] = base
         total = total + base
+        requested[i] = math.max(base, tonumber(component._home_units) or base)
+        expanded[i] = requested[i] > base
+        requested_total = requested_total + requested[i]
         local growth = LAYOUT_GROWTH[component.id]
         if growth and not seen_priorities[growth.priority] then
             seen_priorities[growth.priority] = true
@@ -133,7 +163,38 @@ function M.layoutUnits(components)
     end
     table.sort(priorities)
 
-    local remaining = math.max(0, M.CAPACITY_UNITS - total)
+    if requested_total > capacity then
+        local minimums = {}
+        local minimum_total = 0
+        for i, component in ipairs(components) do
+            local base = M.baseSizeUnits(component)
+            local multiplier = requested[i] > base and requested[i] / base or 1
+            local minimum = (MIN_LAYOUT_UNITS[component.id] or 1) * multiplier
+            minimums[i] = math.min(requested[i], minimum)
+            minimum_total = minimum_total + minimums[i]
+        end
+
+        if minimum_total >= capacity then
+            local scale = capacity / minimum_total
+            for i, minimum in ipairs(minimums) do
+                units[i] = minimum * scale
+            end
+            return units
+        end
+
+        local flexible_total = requested_total - minimum_total
+        local remaining = capacity - minimum_total
+        for i, value in ipairs(requested) do
+            local flexible = value - minimums[i]
+            units[i] = minimums[i] + (flexible_total > 0
+                and remaining * flexible / flexible_total or 0)
+        end
+        return units
+    end
+
+    local growth_capacity = math.min(
+        capacity, math.max(M.CAPACITY_UNITS, requested_total))
+    local remaining = math.max(0, growth_capacity - total)
     for _i, priority in ipairs(priorities) do
         while remaining > 0 do
             local grew = false
@@ -141,6 +202,9 @@ function M.layoutUnits(components)
                 local growth = LAYOUT_GROWTH[component.id]
                 local max_units = growth
                     and math.max(growth.max, tonumber(component._home_units) or 0) or 0
+                if growth and growth.expanded_max and expanded[i] then
+                    max_units = math.max(max_units, growth.expanded_max)
+                end
                 if growth and growth.priority == priority and units[i] < max_units then
                     local added = math.min(1, remaining, max_units - units[i])
                     units[i] = units[i] + added
@@ -156,9 +220,9 @@ function M.layoutUnits(components)
     return units
 end
 
-function M.gridHeights(unit_counts, body_h, gap)
+function M.gridHeights(unit_counts, body_h, gap, capacity, max_heights)
     local heights = {}
-    local capacity = M.CAPACITY_UNITS
+    capacity = math.max(1, tonumber(capacity) or M.CAPACITY_UNITS)
     gap = math.max(0, math.floor(tonumber(gap) or 0))
     body_h = math.max(1, math.floor(tonumber(body_h) or 1))
     local pitch = (body_h + gap) / capacity
@@ -178,17 +242,84 @@ function M.gridHeights(unit_counts, body_h, gap)
         end
     end
 
+    local recipients = {}
+    local recipient_weight = 0
+    for i, height in ipairs(heights) do
+        local maximum = max_heights and tonumber(max_heights[i])
+        if maximum and maximum > 0 then
+            maximum = math.floor(maximum)
+            if height > maximum then heights[i] = maximum end
+        end
+        if not maximum or maximum <= 0 or heights[i] < maximum then
+            local weight = math.max(0, tonumber(unit_counts[i]) or 0)
+            recipients[#recipients + 1] = {
+                index = i,
+                maximum = maximum,
+                weight = weight,
+            }
+            recipient_weight = recipient_weight + weight
+        end
+    end
+    -- Fill unused tracks without stretching width-limited rows past their cap.
+    local allocated = math.max(0, #heights - 1) * gap
+    for _i, height in ipairs(heights) do allocated = allocated + height end
+    local distributable = math.max(0, body_h - allocated)
+    local remaining = distributable
+    while remaining > 0 and recipient_weight > 0 do
+        local pass_budget = remaining
+        local assigned = 0
+        local spent = 0
+        local next_recipients = {}
+        local next_weight = 0
+        for i, recipient in ipairs(recipients) do
+            local share = i == #recipients and pass_budget - assigned
+                or math.floor(pass_budget * recipient.weight / recipient_weight)
+            assigned = assigned + share
+            local current = heights[recipient.index]
+            local headroom = recipient.maximum
+                and math.max(0, recipient.maximum - current) or share
+            local added = math.min(share, headroom)
+            heights[recipient.index] = current + added
+            spent = spent + added
+            if not recipient.maximum or current + added < recipient.maximum then
+                next_recipients[#next_recipients + 1] = recipient
+                next_weight = next_weight + recipient.weight
+            end
+        end
+        if spent <= 0 then break end
+        remaining = remaining - spent
+        recipients = next_recipients
+        recipient_weight = next_weight
+    end
+
     return heights
 end
 
-function M.equalSpacingShifts(items)
+function M.equalSpacingShifts(items, options)
     local count = #(items or {})
     if count < 2 then return {} end
 
-    local function shift_bounds(item)
+    local function configured_shift_bounds(item)
         local first = item.min_shift or 0
         local second = item.max_shift or 0
         return math.min(first, second), math.max(first, second)
+    end
+
+    local pinned_last_shift
+    if type(options) == "table" and type(options.bottom) == "number" then
+        local last = items[count]
+        local min_shift, max_shift = configured_shift_bounds(last)
+        pinned_last_shift = math.floor(options.bottom
+            - (last.row_y or 0) - (last.bottom or 0) + 0.5)
+        pinned_last_shift = math.max(min_shift,
+            math.min(max_shift, pinned_last_shift))
+    end
+
+    local function shift_bounds(item, index)
+        if pinned_last_shift ~= nil and index == count then
+            return pinned_last_shift, pinned_last_shift
+        end
+        return configured_shift_bounds(item)
     end
 
     local base_gaps = {}
@@ -201,11 +332,12 @@ function M.equalSpacingShifts(items)
         base_gaps[i] = gap
         max_gap = math.max(max_gap, gap)
     end
-    for _i, item in ipairs(items) do
-        local min_shift, max_shift = shift_bounds(item)
+    for i, item in ipairs(items) do
+        local min_shift, max_shift = shift_bounds(item, i)
         max_gap = max_gap
             + max_shift - min_shift
     end
+    max_gap = math.floor(max_gap + math.abs(pinned_last_shift or 0))
 
     local best_shifts
     local best_cost
@@ -220,7 +352,7 @@ function M.equalSpacingShifts(items)
         local lower = -math.huge
         local upper = math.huge
         for i = 1, count do
-            local min_shift, max_shift = shift_bounds(items[i])
+            local min_shift, max_shift = shift_bounds(items[i], i)
             lower = math.max(lower, min_shift - offsets[i])
             upper = math.min(upper, max_shift - offsets[i])
         end
@@ -243,7 +375,7 @@ function M.equalSpacingShifts(items)
 
     local shifts = {}
     for i, item in ipairs(items) do
-        local min_shift, max_shift = shift_bounds(item)
+        local min_shift, max_shift = shift_bounds(item, i)
         shifts[i] = math.max(min_shift, math.min(max_shift, 0))
     end
 
@@ -277,7 +409,7 @@ function M.equalSpacingShifts(items)
     for _pass = 1, 20 do
         local changed = false
         for i, item in ipairs(items) do
-            local min_shift, max_shift = shift_bounds(item)
+            local min_shift, max_shift = shift_bounds(item, i)
             min_shift = math.ceil(min_shift)
             max_shift = math.floor(max_shift)
             local original = shifts[i]

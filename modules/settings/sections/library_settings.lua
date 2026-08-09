@@ -8,12 +8,14 @@ local paths = require("common/paths")
 local SharedState = require("common/shared_state")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
+local defaults = require("config/defaults")
 
 local status_bar_section  = require("modules/settings/sections/library_settings/status_bar_settings")
 local settings_apply      = require("modules/settings/zen_settings_apply")
 local zen_settings_utils  = require("modules/settings/zen_settings_utils")
 
 local M = {}
+local DEFAULT_LIBRARY_FONT = defaults.library_font.font_face
 local home_rebuild_pending = false
 local home_rebuild_poll_active = false
 local bg_surface_refresh_pending = false
@@ -100,7 +102,7 @@ local function ensure_library_font_cfg(config)
         config.library_font = {}
     end
     if type(config.library_font.font_face) ~= "string" or config.library_font.font_face == "" then
-        config.library_font.font_face = "default"
+        config.library_font.font_face = DEFAULT_LIBRARY_FONT
     end
     local font_size = tonumber(config.library_font.font_size)
     if not font_size then
@@ -144,6 +146,7 @@ function M.build(ctx)
     local function save_fbc_and_update()
         plugin:saveConfig()
         rebuild_filechooser()
+        schedule_home_rebuild_on_menu_close(plugin)
     end
     local function get_home_lock_mode()
         local cfg = config.browser_hide_up_folder
@@ -210,13 +213,11 @@ function M.build(ctx)
                     local ok_fc, FontChooser = pcall(require, "ui/widget/fontchooser")
                     if not ok_fc then return end
                     local cfg = ensure_library_font_cfg(config)
-                    local footer_settings = G_reader_settings:readSetting("footer") or {}
-                    local fallback_face = footer_settings.text_font_face or "NotoSans-Regular.ttf"
-                    local display_face = cfg.font_face == "default" and fallback_face or cfg.font_face
+                    local display_face = cfg.font_face == "default" and DEFAULT_LIBRARY_FONT or cfg.font_face
                     UIManager:show(FontChooser:new{
                         title = _("Library font"),
                         font_file = display_face,
-                        default_font_file = fallback_face,
+                        default_font_file = DEFAULT_LIBRARY_FONT,
                         callback = function(file)
                             if cfg.font_face ~= file then
                                 cfg.font_face = file
@@ -225,12 +226,11 @@ function M.build(ctx)
                         end,
                     })
                 end,
-                hold_callback = function(touchmenu_instance)
+                hold_callback = function()
                     local cfg = ensure_library_font_cfg(config)
-                    if cfg.font_face ~= "default" then
-                        cfg.font_face = "default"
-                        save_library_font(config, plugin, touchmenu_instance, true)
-                    end
+                    local font_file = cfg.font_face == "default" and DEFAULT_LIBRARY_FONT or cfg.font_face
+                    local InfoMessage = require("ui/widget/infomessage")
+                    UIManager:show(InfoMessage:new{ text = font_file, show_icon = false })
                 end,
             },
             {
@@ -243,9 +243,9 @@ function M.build(ctx)
                         ok_text = _("Reset"),
                         ok_callback = function()
                             local cfg = ensure_library_font_cfg(config)
-                            local changed = cfg.font_face ~= "default" or cfg.font_size ~= 18
+                            local changed = cfg.font_face ~= DEFAULT_LIBRARY_FONT or cfg.font_size ~= 18
                             if changed then
-                                cfg.font_face = "default"
+                                cfg.font_face = DEFAULT_LIBRARY_FONT
                                 cfg.font_size = 18
                                 save_library_font(config, plugin, touchmenu_instance, true)
                             end
@@ -649,6 +649,7 @@ function M.build(ctx)
                         config.features.browser_cover_rounded_corners ~= true
                     plugin:saveConfig()
                     rebuild_filechooser()
+                    schedule_home_rebuild_on_menu_close(plugin)
                 end,
             },
             {

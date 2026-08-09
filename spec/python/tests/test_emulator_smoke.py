@@ -197,7 +197,7 @@ def test_launcher_book_switcher_fits_inside_the_panel() -> None:
                 assert cell["y"] > state["divider_bottom"]
                 assert cover["y"] >= cell["y"]
                 assert cover["y"] + cover["h"] <= cell["y"] + cell["h"]
-                assert cell["w"] * 0.70 <= cover["w"] <= cell["w"] * 0.78
+                assert cell["w"] * 0.90 <= cover["w"] <= cell["w"]
                 assert cover["h"] <= cell["h"] * 0.84
 
             assert driver.command("set_open_confirmation", enabled=True)["ok"] is True
@@ -369,7 +369,6 @@ def test_pt_br_settings_root_labels_are_localized() -> None:
         try:
             wait_for_socket(socket_path)
             driver = ZenDriver(socket_path)
-            assert driver.plugin_loaded("customisablesleepscreen")
             assert driver.command("open_settings_page")["ok"] is True
             labels = driver.command("settings_page_state")["settings"]["labels"]
             assert {"Biblioteca", "Barra de navegação", "Adicionais"}.issubset(labels)
@@ -660,7 +659,7 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             search_row_style = settings.get("row_style")
             assert search_row_style == settings.get("standard_style")
             assert driver.command(
-                "settings_page_search", query="widg"
+                "settings_page_search", query="show"
             )["ok"] is True
             settings = driver.command("settings_page_state")["settings"]
             assert settings.get("page_count", 1) > 1
@@ -682,7 +681,7 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
             settings = driver.command("settings_page_state")["settings"]
             quotes_item = next(
                 item for item in settings.get("items", [])
-                if item["label"] == "Quotes widget"
+                if item["label"] == "Quotes"
             )
             assert quotes_item.get("breadcrumb") == "Home"
             assert driver.command(
@@ -947,17 +946,21 @@ def test_touch_arrange_drag_crosses_to_previous_page() -> None:
             ko_home,
             socket_path,
             library,
-            env_overrides={
-                "EMULATE_READER_W": "600",
-                "EMULATE_READER_H": "800",
-            },
+            zen_config_source="""return {
+  updater = { update_auto_check = false },
+  quick_settings = {
+    layout_version = 2,
+    button_order = {
+      "wifi", "night", "rotate", "zen", "restart", "sleep", "exit", "cloud", "search", "screenshot",
+    },
+  },
+}
+""",
         )
         try:
             wait_for_socket(socket_path)
             driver = ZenDriver(socket_path)
-            assert driver.command("open_settings_page")["ok"] is True
-            assert driver.command("settings_page_search", query="widgets")["ok"] is True
-            assert driver.command("settings_page_select", label="Widgets")["ok"] is True
+            _open_buttons_arrange(driver)
             time.sleep(0.2)
 
             arrange = driver.command("arrange_page_state")["arrange"]

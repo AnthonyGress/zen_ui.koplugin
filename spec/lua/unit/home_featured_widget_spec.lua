@@ -127,7 +127,7 @@ describe("home featured widget", function()
             pages = 120,
         }
         local Featured = require("modules/filebrowser/patches/home/widgets/featured_common")
-        assert.are.equal("l", Featured.SIZE)
+        assert.are.same({ units = 3.5 }, Featured.SIZE)
         local widget = Featured.build({
             width = 600,
             height = 220,
@@ -190,6 +190,25 @@ describe("home featured widget", function()
         assert.is_table(series)
         assert.equals("SeriesFont", series.face.name)
         assert.is_true(series.bold)
+    end)
+
+    it("uses the configured unified source", function()
+        local requested_source
+        local Featured = require("modules/filebrowser/patches/home/widgets/featured_common")
+        Featured.build({
+            width = 600,
+            height = 220,
+            module_cfg = { default_source = { kind = "to_be_read" } },
+            data = {
+                getFeaturedBook = function(_, source)
+                    requested_source = source
+                    return nil
+                end,
+            },
+        })
+
+        assert.are.equal("to_be_read", requested_source)
+        assert.are.same({ "to_be_read" }, empty_sources)
     end)
 
     it("applies the configured progress-label text style", function()

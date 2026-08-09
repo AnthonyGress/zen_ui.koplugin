@@ -1179,6 +1179,99 @@ end
 -- injectNavbar: the injectStandaloneNavbar function from navbar.lua
 -- groups: pre-loaded data from db_bookinfo
 -------------------------------------------------------------------------------
+function M.showGroupContextMenu(group_name, files, tab_id, menu, options)
+    if show_select_mode_menu() then return true end
+    if type(group_name) ~= "string" or type(files) ~= "table" then return false end
+    local fm = get_file_manager()
+    if not (fm and fm.file_chooser and fm.file_chooser.showFileDialog) then
+        return false
+    end
+    local hide_actions = type(options) == "table" and options.hide_actions == true
+    fm.file_chooser:showFileDialog({
+        _zen_group_files = files,
+        _zen_group_name = group_name,
+        _zen_sort_cb = not hide_actions and function()
+            showDetailSortDialog(group_name, tab_id, nil, files)
+        end or nil,
+        _zen_display_cb = not hide_actions and function()
+            showDisplayModeDialog(menu, tab_id)
+        end or nil,
+    })
+    return true
+end
+
+function M.showSourceContextMenu(tab_id, menu, options)
+    if show_select_mode_menu() then return true end
+    options = type(options) == "table" and options or {}
+    local fm = get_file_manager()
+    if not (fm and fm.file_chooser and fm.file_chooser.showFileDialog) then
+        return false
+    end
+
+    local _ = require("gettext")
+    if tab_id == "to_be_read" then
+        local files = options.files
+        if type(files) ~= "table" then
+            local ok_index, tbr_index = pcall(require, "common/tbr_index")
+            if not ok_index or type(tbr_index.getAll) ~= "function" then return false end
+            files = tbr_index.getAll({
+                include_new = book_status.includeNewInTBREnabled(),
+                collate = get_detail_collate(tab_id, tab_id, "title"),
+                reverse = get_detail_reverse(tab_id, tab_id, false),
+            })
+            files = apply_status_filter(files)
+        end
+        local count = tonumber(options.item_count) or #files
+        fm.file_chooser:showFileDialog({
+            _zen_group_files = files,
+            _zen_group_name = _("To Be Read"),
+            _zen_group_subtitle = count == 1 and _("1 book")
+                or (tostring(count) .. " " .. _("books")),
+            _zen_sort_cb = options.sort_cb or function()
+                showDetailSortDialog(tab_id, tab_id, menu, files)
+            end,
+            _zen_display_cb = function()
+                showDisplayModeDialog(menu, tab_id)
+            end,
+        })
+        return true
+    end
+
+    if tab_id ~= "authors" and tab_id ~= "series" and tab_id ~= "tags" then
+        return false
+    end
+    local label = tab_id == "authors" and _("Authors")
+        or tab_id == "tags" and _("Tags") or _("Series")
+    local count = tonumber(options.item_count)
+    if not count then
+        local ok_db, db = pcall(require, "common/db_bookinfo")
+        if not ok_db or not db then return false end
+        local groups = tab_id == "authors" and db.getGroupedByAuthor()
+            or tab_id == "tags" and db.getGroupedByTags()
+            or db.getGroupedBySeries()
+        count = type(groups) == "table" and #groups or 0
+    end
+    local subtitle
+    if tab_id == "authors" then
+        subtitle = count == 1 and _("1 author")
+            or (tostring(count) .. " " .. _("authors"))
+    elseif tab_id == "tags" then
+        subtitle = count == 1 and _("1 tag")
+            or (tostring(count) .. " " .. _("tags"))
+    else
+        subtitle = count == 1 and _("1 series")
+            or (tostring(count) .. " " .. _("series"))
+    end
+    fm.file_chooser:showFileDialog({
+        _zen_group_files = {},
+        _zen_group_name = label,
+        _zen_group_subtitle = subtitle,
+        _zen_sort_cb = function() showGroupSortDialog(tab_id, menu) end,
+        _zen_display_cb = function() showDisplayModeDialog(menu, tab_id) end,
+    })
+    return true
+end
+
 showGroupView = function(tab_id, injectNavbar, groups)
     local active_menu = get_root_menu(tab_id)
     if active_menu then return active_menu, false end
@@ -1211,22 +1304,11 @@ showGroupView = function(tab_id, injectNavbar, groups)
             end
         end,
         onMenuHold = function(menu_self, item)
-            if show_select_mode_menu() then return true end
             if item._zen_files then
-                local fm = get_file_manager()
-                if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
-                    fm.file_chooser:showFileDialog({
-                        _zen_group_files = item._zen_files,
-                        _zen_group_name = item.text,
-                        _zen_sort_cb = function()
-                            showDetailSortDialog(item.text, tab_id, nil, item._zen_files)
-                        end,
-                        _zen_display_cb = function()
-                            showDisplayModeDialog(menu_self, tab_id)
-                        end,
-                    })
-                end
+                return M.showGroupContextMenu(
+                    item.text, item._zen_files, tab_id, menu_self)
             end
+            return show_select_mode_menu()
         end,
         updateItems = function() end,
     }
@@ -1288,35 +1370,9 @@ showGroupView = function(tab_id, injectNavbar, groups)
             },
         }
         function menu:onZenGroupBlankHold(arg, ges)
-            if show_select_mode_menu() then return true end
-            local fm = get_file_manager()
-            if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
-                local n = self.item_table and #self.item_table or 0
-                local subtitle
-                if tab_id == "authors" then
-                    subtitle = n == 1 and _("1 author") or (tostring(n) .. " " .. _("authors"))
-                elseif tab_id == "tags" then
-                    subtitle = n == 1 and _("1 tag") or (tostring(n) .. " " .. _("tags"))
-                else
-                    subtitle = n == 1 and _("1 series") or (tostring(n) .. " " .. _("series"))
-                end
-                local group_label
-                if tab_id == "authors" then
-                    group_label = _("Authors")
-                elseif tab_id == "tags" then
-                    group_label = _("Tags")
-                else
-                    group_label = _("Series")
-                end
-                fm.file_chooser:showFileDialog({
-                    _zen_group_files    = {},
-                    _zen_group_name     = group_label,
-                    _zen_group_subtitle = subtitle,
-                    _zen_sort_cb        = function() showGroupSortDialog(tab_id, self) end,
-                    _zen_display_cb     = function() showDisplayModeDialog(self, tab_id) end,
-                })
-            end
-            return true
+            return M.showSourceContextMenu(tab_id, self, {
+                item_count = self.item_table and #self.item_table or 0,
+            })
         end
     end
 
@@ -1582,28 +1638,18 @@ function M.showTBRView(injectNavbar)
             },
         }
         function menu:onZenTBRBlankHold(arg, ges)
-            if show_select_mode_menu() then return true end
-            local fm = get_file_manager()
-            if fm and fm.file_chooser and fm.file_chooser.showFileDialog then
-                local n = self.item_table and #self.item_table or 0
-                fm.file_chooser:showFileDialog({
-                    _zen_group_files    = files,
-                    _zen_group_name     = group_name,
-                    _zen_group_subtitle = n == 1 and _("1 book") or (tostring(n) .. " " .. _("books")),
-                    _zen_sort_cb        = function()
-                        showDetailSortDialog(SORT_GROUP, tab_id, self, files,
-                            function(collate, reverse)
-                                cur_collate, cur_reverse = collate, reverse
-                                files = loadFiles()
-                                return files
-                            end)
-                    end,
-                    _zen_display_cb     = function()
-                        showDisplayModeDialog(self, tab_id)
-                    end,
-                })
-            end
-            return true
+            return M.showSourceContextMenu(tab_id, self, {
+                files = files,
+                item_count = self.item_table and #self.item_table or 0,
+                sort_cb = function()
+                    showDetailSortDialog(SORT_GROUP, tab_id, self, files,
+                        function(collate, reverse)
+                            cur_collate, cur_reverse = collate, reverse
+                            files = loadFiles()
+                            return files
+                        end)
+                end,
+            })
         end
     end
 

@@ -4,6 +4,7 @@ describe("Zen TOC hardware focus", function()
     local dirty_calls
     local back_icon
     local title_spec
+    local font_calls
 
     local function input_container()
         local InputContainer = {}
@@ -33,6 +34,7 @@ describe("Zen TOC hardware focus", function()
         dirty_calls = 0
         back_icon = nil
         title_spec = nil
+        font_calls = {}
         ZenSpec.replace("device", {
             screen = {
                 getWidth = function() return 600 end,
@@ -53,7 +55,13 @@ describe("Zen TOC hardware focus", function()
             COLOR_WHITE = "white",
             gray = function(value) return value end,
         })
-        ZenSpec.replace("ui/font", { getFace = function() return {} end })
+        ZenSpec.replace("ui/font", {
+            getFace = function(_, name, size, index)
+                table.insert(font_calls, { name = name, size = size, index = index })
+                return { name = name, size = size, index = index }
+            end,
+        })
+        ZenSpec.replace("document/credocument", {})
         ZenSpec.replace("ui/geometry", { new = function(_self, values) return values end })
         ZenSpec.replace("ui/widget/container/inputcontainer", input_container())
         ZenSpec.replace("ui/widget/iconwidget", {
@@ -116,6 +124,7 @@ describe("Zen TOC hardware focus", function()
             getLeadingIconX = function(origin) return (origin or 0) + 12 end,
             getTitleX = function(origin) return (origin or 0) + 54 end,
         })
+        ZenSpec.unload("common/reader_font")
         ZenSpec.unload("modules/reader/zen_toc_widget")
         ZenTocWidget = require("modules/reader/zen_toc_widget")
     end)
@@ -130,7 +139,11 @@ describe("Zen TOC hardware focus", function()
             toc[i] = { title = "Section " .. i, page = i * 10, depth = 1 }
         end
         return ZenTocWidget:new{
-            ui = { toc = { toc = toc } },
+            ui = {
+                toc = { toc = toc },
+                font = { font_face = "ReaderFont" },
+                document = { configurable = { font_size = 21 } },
+            },
             focus_page = 1,
             on_goto = on_goto,
         }
@@ -190,5 +203,12 @@ describe("Zen TOC hardware focus", function()
         assert.are.equal(54, title_spec.paint_x)
         assert.are.equal(28, back_icon.width)
         assert.are.equal(12, back_icon.paint_x)
+    end)
+
+    it("uses the reader face and size for TOC entries", function()
+        local widget = new_widget()
+        widget:paintTo({ paintRect = function() end }, 0, 0)
+
+        assert.same({ name = "ReaderFont", size = 21, index = nil }, font_calls[1])
     end)
 end)

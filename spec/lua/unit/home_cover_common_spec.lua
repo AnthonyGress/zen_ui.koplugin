@@ -98,6 +98,25 @@ describe("home cover rendering", function()
         assert.are.same({ { 32, 8 } }, allocations)
     end)
 
+    it("reads the rounded-corner setting again when an existing cover repaints", function()
+        local Cover = require("modules/filebrowser/patches/home/widgets/cover_common")
+        local frame = Cover.make_cover_widget(
+            { path = "/library/alpha.epub" }, 100, 150, { uniform = false })
+        local target = {
+            getType = function() return "bb8" end,
+            blitFrom = function() end,
+            paintRect = function() end,
+        }
+
+        _G.__ZEN_UI_PLUGIN.config.features.browser_cover_rounded_corners = false
+        frame:paintTo(target, 10, 20)
+        assert.are.same({}, allocations)
+
+        _G.__ZEN_UI_PLUGIN.config.features.browser_cover_rounded_corners = true
+        frame:paintTo(target, 10, 20)
+        assert.are.same({ { 32, 8 } }, allocations)
+    end)
+
     it("keeps the corner radius fixed for smaller list covers", function()
         local Cover = require("modules/filebrowser/patches/home/widgets/cover_common")
         local target = {

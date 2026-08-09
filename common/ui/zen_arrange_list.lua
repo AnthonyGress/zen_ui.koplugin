@@ -25,6 +25,7 @@ local VerticalGroup = require("ui/widget/verticalgroup")
 local _ = require("gettext")
 local IconItem = require("common/ui/icon_menu_item")
 local SettingsTitleBar = require("common/ui/zen_settings_titlebar")
+local TruncatedTextMessage = require("common/ui/truncated_text_message")
 local TopMenu = require("modules/global/patches/menu_top_swipe")
 local ZenToggle = require("common/ui/zen_toggle")
 local pager = require("common/ui/zen_pager")
@@ -300,6 +301,7 @@ local function rebuild_icon_row(row)
     local content_w = row.width - left_padding - right_padding
     local item_has_submenu = type(item.sub_item_table) == "table"
         or type(item.sub_item_table_func) == "function"
+        or item._zen_settings_submenu == true
     local face = IconItem.getSettingsFace(item.face or row.face)
     local right_items = { align = "center" }
     if item_checkable then
@@ -364,14 +366,25 @@ local function rebuild_icon_row(row)
         toggle_height = IconItem.SETTINGS_TOGGLE_HEIGHT,
         caret_size = IconItem.SETTINGS_CARET_SIZE,
     }
+    local display_text = ArrangeState.stripSubmenuCaret(item.text)
+    local text_widget = TextWidget:new{
+        text = display_text,
+        max_width = text_max_width,
+        face = face,
+        fgcolor = item.dim and Blitbuffer.COLOR_DARK_GRAY or nil,
+    }
+    row._zen_settings_text_truncated = text_widget:isTruncated()
+    if row._zen_settings_text_truncated then
+        row.onHoldTouch = function(self)
+            local anchor = self._zen_arrange_row_frame
+                and self._zen_arrange_row_frame.dimen
+            TruncatedTextMessage.show(display_text, anchor)
+            return true
+        end
+    end
     table.insert(row_items, VerticalGroup:new{
         align = "left",
-        TextWidget:new{
-            text = ArrangeState.stripSubmenuCaret(item.text),
-            max_width = text_max_width,
-            face = face,
-            fgcolor = item.dim and Blitbuffer.COLOR_DARK_GRAY or nil,
-        },
+        text_widget,
         row.show_parent.underscore_checked_item and item_checked and LineWidget:new{
             dimen = Geom:new{ w = text_max_width, h = Size.line.thick },
             background = Blitbuffer.COLOR_DARK_GRAY,
@@ -612,6 +625,7 @@ local function configure_title_bar(sort_widget, opts)
                     end
                 end, {
                     close_arrange = opts.close_arrange,
+                    plugin = opts.plugin,
                 })
                 return true
             end,
@@ -630,6 +644,7 @@ local function configure_title_bar(sort_widget, opts)
         search_visible = false,
         title_full_width = true,
         action = default_action,
+        plugin = opts.plugin,
         show_parent = sort_widget,
         back_callback = function() return close_with(opts.back_callback) end,
         back_hold_callback = function() return close_with(opts.back_hold_callback) end,
@@ -855,6 +870,18 @@ local function refresh_after_callbacks(items, refresh, menu_proxy, callback_comp
             item._zen_arrange_refresh_proxy = menu_proxy
             item._zen_arrange_refresh_wrapped = true
         end
+        if type(item.hold_callback) == "function"
+                and (not item._zen_arrange_hold_wrapped
+                    or item._zen_arrange_hold_proxy ~= menu_proxy) then
+            local orig_hold_callback = item._zen_arrange_orig_hold_callback
+                or item.hold_callback
+            item.hold_callback = function(_item, callback_refresh, ...)
+                return orig_hold_callback(menu_proxy, callback_refresh, ...)
+            end
+            item._zen_arrange_orig_hold_callback = orig_hold_callback
+            item._zen_arrange_hold_proxy = menu_proxy
+            item._zen_arrange_hold_wrapped = true
+        end
         refresh_after_callbacks(item.sub_item_table, refresh, menu_proxy, callback_complete)
     end
 end
@@ -895,12 +922,26 @@ local function open_submenu_for_item(sort_widget, item, resume_path, resume_in_b
     end, {
         close_arrange = sort_widget._zen_arrange_close_all,
         menu_mode = sort_widget._zen_menu_mode,
+        plugin = sort_widget._zen_plugin,
         settings_resume = extend_settings_resume(sort_widget._zen_settings_resume, item),
         resume_path = resume_path,
         resume_in_background = resume_in_background,
         restore_parent = resume_in_background and sort_widget or nil,
     })
     return submenu ~= nil
+end
+
+local function open_resume_item(sort_widget, item, resume_path)
+    if open_submenu_for_item(sort_widget, item, resume_path, true) then return true end
+    if #resume_path > 0 or item._zen_settings_submenu ~= true then return false end
+    local callback = item.callback
+    if type(callback) ~= "function" and type(item.callback_func) == "function" then
+        callback = item.callback_func()
+    end
+    if type(callback) ~= "function" then return false end
+    sort_widget.invisible = false
+    callback(sort_widget._zen_menu_proxy)
+    return true
 end
 
 local function get_focused_arrange_target(sort_widget)
@@ -1345,12 +1386,14 @@ local function ensure_submenu_callbacks(items)
     for _i, item in ipairs(items) do
         if not item.hold_callback and has_submenu(item) then
             local submenu_item = item
-            item.hold_callback = function(_item, refresh)
+            item.hold_callback = function(parent, refresh)
                 local sub_items = submenu_item.sub_item_table
                 if type(submenu_item.sub_item_table_func) == "function" then
                     sub_items = submenu_item.sub_item_table_func()
                 end
-                show_submenu(item_submenu_title(submenu_item), sub_items, refresh)
+                show_submenu(item_submenu_title(submenu_item), sub_items, refresh, {
+                    plugin = parent and parent._zen_plugin,
+                })
             end
         end
         if item.hold_callback and has_submenu(item) then
@@ -1396,6 +1439,8 @@ show_submenu = function(title, items, refresh, opts)
     end
 
     menu_proxy = {
+        _zen_settings_resume = opts.settings_resume,
+        _zen_plugin = opts.plugin,
         item_table_stack = {},
         item_table = items,
         backToUpperMenu = function()
@@ -1447,6 +1492,7 @@ show_submenu = function(title, items, refresh, opts)
     sort_widget.sort_disabled = true
     sort_widget._zen_arrange_close_all = opts.close_arrange
     sort_widget._zen_menu_mode = opts.menu_mode == true
+    sort_widget._zen_plugin = opts.plugin
     sort_widget._zen_menu_proxy = menu_proxy
     sort_widget._zen_settings_resume = opts.settings_resume
 
@@ -1489,6 +1535,7 @@ show_submenu = function(title, items, refresh, opts)
     end
     sort_widget._zen_arrange_close_all = close_submenu_and_arrange
     configure_title_bar(sort_widget, {
+        plugin = opts.plugin,
         back_callback = function()
             menu_proxy:backToUpperMenu()
             return true
@@ -1540,7 +1587,7 @@ show_submenu = function(title, items, refresh, opts)
         discard_background_refreshes(refresh_count)
         UIManager:show(sort_widget)
         table.remove(opts.resume_path, 1)
-        if not open_submenu_for_item(sort_widget, resume_item, opts.resume_path, true) then
+        if not open_resume_item(sort_widget, resume_item, opts.resume_path) then
             sort_widget.invisible = false
             UIManager:setDirty(sort_widget, "ui")
         end
@@ -1557,8 +1604,8 @@ install_submenu_tap_handlers = function(sort_widget)
         if item and sort_widget._zen_menu_mode
                 and not child._zen_arrange_menu_hold_patched then
             child._zen_arrange_menu_hold_patched = true
-            child.onHoldTouch = function()
-                return true
+            if not child._zen_settings_text_truncated then
+                child.onHoldTouch = function() return true end
             end
         end
         if item and sort_widget._zen_menu_mode
@@ -1598,7 +1645,9 @@ install_root_tap_handlers = function(sort_widget)
         local item = type(child) == "table" and child.item or nil
         if item and not child._zen_arrange_root_hold_patched then
             child._zen_arrange_root_hold_patched = true
-            child.onHoldTouch = function() return true end
+            if not child._zen_settings_text_truncated then
+                child.onHoldTouch = function() return true end
+            end
         end
         if item and not child._zen_arrange_root_tap_patched then
             child._zen_arrange_root_tap_patched = true
@@ -1643,8 +1692,9 @@ function M.show(opts)
     update_dynamic_text(item_table)
     ensure_submenu_callbacks(item_table)
 
-    local settings_resume
-    if not menu_mode and rawget(_G, "__ZEN_UI_SETTINGS_PAGE") then
+    local settings_resume = type(opts.settings_resume) == "table"
+        and opts.settings_resume or nil
+    if not settings_resume and not menu_mode and rawget(_G, "__ZEN_UI_SETTINGS_PAGE") then
         local ok_settings_page, settings_page = pcall(require, "modules/settings/zen_settings_page")
         if ok_settings_page and settings_page.claimArrangeRoute then
             settings_resume = settings_page.claimArrangeRoute()
@@ -1682,6 +1732,7 @@ function M.show(opts)
     sort_widget:_populateItems()
     sort_widget._zen_arrange_enabled = arrange_enabled
     sort_widget._zen_menu_mode = menu_mode
+    sort_widget._zen_plugin = opts.plugin
     sort_widget._zen_arrange_refresh = function(self)
         if type(opts.refresh_func) == "function" then
             local refreshed = opts.refresh_func()
@@ -1701,6 +1752,8 @@ function M.show(opts)
         self:_populateItems()
     end
     menu_proxy = {
+        _zen_settings_resume = settings_resume,
+        _zen_plugin = opts.plugin,
         item_table = item_table,
         updateItems = function(self)
             if type(self.item_table) == "table" and self.item_table ~= item_table then
@@ -1780,6 +1833,7 @@ function M.show(opts)
         add_title = opts.add_title,
         add_item_table = opts.add_item_table,
         close_arrange = sort_widget._zen_arrange_close_all,
+        plugin = opts.plugin,
         back_callback = close_and_go_back or close_and_restore_parent,
         back_hold_callback = function()
             if close_and_go_back then return close_and_go_back() end
@@ -1869,7 +1923,7 @@ function M.show(opts)
         discard_background_refreshes(refresh_count)
         UIManager:show(sort_widget)
         table.remove(resume_path, 1)
-        if not open_submenu_for_item(sort_widget, resume_item, resume_path, true) then
+        if not open_resume_item(sort_widget, resume_item, resume_path) then
             sort_widget.invisible = false
             UIManager:setDirty(sort_widget, "ui")
         end
@@ -1886,6 +1940,7 @@ function M.show(opts)
                 end
             end, {
                 close_arrange = sort_widget._zen_arrange_close_all,
+                plugin = opts.plugin,
             })
         end)
     end

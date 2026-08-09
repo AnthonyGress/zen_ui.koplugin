@@ -14,12 +14,14 @@ local StandalonePage = require("modules/filebrowser/patches/standalone_page")
 local SharedState = require("common/shared_state")
 local utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
+local icons = require("common/inline_icon_map")
 local UIManager = require("ui/uimanager")
 local _ = require("gettext")
 local now = require("common/zen_logger").now
 
 local M = {}
 local DEFAULT_GOALS_FONT_SIZE = 11
+local DEFAULT_DATETIME_FONT_SIZES = { time = 48, date = 18 }
 
 -- When a library background image is configured, home module frames must be
 -- transparent (nil fill) instead of opaque COLOR_WHITE, or they paint over the
@@ -39,11 +41,56 @@ local _home_book_cache_bytes = 0
 local _home_book_cache_byte_budget = MemoryPolicy.homeByteBudget()
 local _home_dataset_cache = nil
 local _home_dataset_generation = 0
+local _home_strip_page_state = nil
 local HOME_BOOK_CACHE_MAX = 32
 local HOME_DATASET_TTL = 120
 local HOME_STRIP_MAX_BOOKS = 40
 local HOME_STATS_TTL = 60
 local _home_stats_cache = { key = nil, value = nil, expires_at = 0 }
+
+local function copy_home_strip_pages(state)
+    local copy = {}
+    for key, offset in pairs(type(state) == "table" and state or {}) do
+        offset = tonumber(offset)
+        if type(key) == "string" and offset then copy[key] = offset end
+    end
+    return copy
+end
+
+local function copy_home_strip_state(state)
+    local source = type(state) == "table" and state.source or nil
+    if type(source) ~= "table" or type(source.kind) ~= "string"
+            or source.kind == "" then
+        return nil
+    end
+    local copy = { source = { kind = source.kind } }
+    if source.value ~= nil then copy.source.value = source.value end
+    if type(source.paths) == "table" then
+        copy.source.paths = utils.deepcopy(source.paths)
+    end
+    local drill = source.drill
+    if type(drill) == "table" and type(drill.label) == "string" then
+        copy.source.drill = { label = drill.label }
+        if type(drill.files) == "table" then
+            copy.source.drill.files = utils.deepcopy(drill.files)
+        end
+    end
+    if type(state.active_id) == "string" then
+        copy.active_id = state.active_id
+    end
+    return copy
+end
+
+local function save_home_strip_state(dcfg, state)
+    if type(dcfg) ~= "table" then return false end
+    local remembered = copy_home_strip_state(state)
+    if not remembered then return false end
+    if remembered.source.drill then
+        remembered.source.drill.files = nil
+    end
+    dcfg.strip_memory = remembered
+    return PresetStore.saveSettings("home", dcfg)
+end
 
 local function home_is_on_top(menu)
     if menu == nil then return false end
@@ -448,23 +495,18 @@ end
 
 local DEFAULT_ROW_ORDER = {
     "datetime",
-    "featured_recent",
-    "featured_custom",
-    "featured_tbr",
+    "featured",
     "stats_triplet",
     "reading_goals",
-    "strip_recent",
-    "strip_custom",
-    "strip_tag",
-    "strip_tbr",
+    "strip",
     "quotes",
 }
 
 local DEFAULT_ROW_ENABLED = {
-    featured_recent = true,
+    featured = true,
     quotes = true,
     stats_triplet = true,
-    strip_recent = true,
+    strip = true,
 }
 
 local DEFAULT_FEATURED_PROGRESS_META = {
@@ -475,27 +517,46 @@ local DEFAULT_FEATURED_PROGRESS_META = {
 local FEATURED_TEXT_STYLE_DEFAULTS = {
     title = { font_face = "default", font_size = 11, bold = true },
     author = { font_face = "default", font_size = 9, bold = false },
+    series = { font_face = "default", font_size = 7, bold = false },
     description = { font_face = "default", font_size = 16, bold = false },
     progress = { font_face = "default", font_size = 7, bold = false },
-}
-
-local MODULE_TITLES = {
-    datetime = _("Today"),
-    featured_custom = _("Featured Book"),
-    featured_tbr = _("To Be Read"),
-    featured_recent = _("Recently read"),
-    reading_goals = _("Reading goals"),
-    strip_custom = _("Featured Books"),
-    strip_tag = _("Tag books"),
-    strip_tbr = _("To Be Read"),
-    strip_recent = _("Recently read"),
-    stats_triplet = _("Reading stats"),
-    quotes = _("Quote"),
 }
 
 local function normalize_order(order)
     if order == "reverse" then return "reverse" end
     return "default"
+end
+
+local function build_strip_order_context_buttons(file_chooser, component_id, dcfg, data_provider)
+    local modules = type(dcfg) == "table" and dcfg.modules or nil
+    local mcfg = type(modules) == "table" and modules[component_id] or nil
+    if component_id ~= "strip" or type(mcfg) ~= "table" then return nil end
+
+    return {
+        {{
+            text = icons.sort .. "  " .. _("Order") .. "  " .. icons.arrow_right,
+            align = "left",
+            callback = function()
+                if type(file_chooser.showSortOrderDialog) ~= "function" then return false end
+                UIManager:close(file_chooser.file_dialog)
+                file_chooser:showSortOrderDialog{
+                    title = _("Order"),
+                    current_reverse = normalize_order(mcfg.order) == "reverse",
+                    forward_text = _("Default"),
+                    reverse_text = _("Reverse"),
+                    on_select = function(reverse)
+                        mcfg.order = reverse and "reverse" or "default"
+                        if type(data_provider.resetStripPages) == "function" then
+                            data_provider:resetStripPages()
+                        end
+                        PresetStore.saveSettings("home", dcfg)
+                        M.rebuildActive()
+                    end,
+                }
+                return true
+            end,
+        }},
+    }
 end
 
 local function ensure_featured_text_style(mcfg, key)
@@ -531,11 +592,7 @@ local function ensure_module_cfg(dcfg, module_id)
     if type(dcfg.modules) ~= "table" then dcfg.modules = {} end
     if type(dcfg.modules[module_id]) ~= "table" then dcfg.modules[module_id] = {} end
     local mcfg = dcfg.modules[module_id]
-    if module_id == "datetime" then
-        mcfg.show_module_title = false
-    elseif mcfg.show_module_title == nil then
-        mcfg.show_module_title = false
-    end
+    mcfg.show_module_title = nil
     return mcfg
 end
 
@@ -570,15 +627,10 @@ local function ensure_featured_module_cfg(dcfg, module_id)
     return mcfg
 end
 
-local function ensure_strip_module_cfg(dcfg, module_id)
-    local mcfg = ensure_module_cfg(dcfg, module_id)
+local function ensure_strip_module_cfg(dcfg)
+    local mcfg = ensure_module_cfg(dcfg, "strip")
     mcfg.order = normalize_order(mcfg.order)
     if mcfg.interactive == nil then mcfg.interactive = true end
-    if module_id == "strip_recent" then
-        if mcfg.filter_unread == nil then mcfg.filter_unread = false end
-        if mcfg.filter_tbr == nil then mcfg.filter_tbr = false end
-        if mcfg.filter_finished == nil then mcfg.filter_finished = false end
-    end
     if mcfg.two_rows == nil then mcfg.two_rows = false end
     if type(mcfg.count) ~= "number" then mcfg.count = mcfg.two_rows and 8 or 4 end
     if mcfg.two_rows then
@@ -594,10 +646,28 @@ local function ensure_strip_module_cfg(dcfg, module_id)
 end
 
 local function ensure_home_widget_cfg(dcfg)
-    local featured_custom = ensure_featured_module_cfg(dcfg, "featured_custom")
-    if type(featured_custom.path) ~= "string" then featured_custom.path = nil end
-    ensure_featured_module_cfg(dcfg, "featured_tbr")
-    ensure_featured_module_cfg(dcfg, "featured_recent")
+    local datetime = ensure_module_cfg(dcfg, "datetime")
+    datetime.automatic_font_size = datetime.automatic_font_size ~= false
+    if type(datetime.text_styles) ~= "table" then datetime.text_styles = {} end
+    for key, default_size in pairs(DEFAULT_DATETIME_FONT_SIZES) do
+        if type(datetime.text_styles[key]) ~= "table" then
+            datetime.text_styles[key] = {}
+        end
+        local style = datetime.text_styles[key]
+        if type(style.font_face) ~= "string" or style.font_face == "" then
+            style.font_face = "default"
+        end
+        local minimum = key == "time" and 8 or 6
+        local maximum = key == "time" and 160 or 80
+        style.font_size = math.max(minimum, math.min(
+            maximum, math.floor((tonumber(style.font_size) or default_size) + 0.5)
+        ))
+    end
+    local featured = ensure_featured_module_cfg(dcfg, "featured")
+    if type(featured.default_source) ~= "table" then
+        featured.default_source = { kind = "recent" }
+    end
+    if type(featured.path) ~= "string" then featured.path = nil end
     local stats_triplet = ensure_module_cfg(dcfg, "stats_triplet")
     if stats_triplet.stat_style ~= "outline" and stats_triplet.stat_style ~= "none" then
         stats_triplet.stat_style = "divider"
@@ -615,12 +685,8 @@ local function ensure_home_widget_cfg(dcfg)
     reading_goals.font_size = goals_font_size and (goals_font_override or goals_font_size ~= DEFAULT_GOALS_FONT_SIZE)
         and math.max(8, math.min(32, math.floor(goals_font_size + 0.5))) or nil
     reading_goals.font_size_override = reading_goals.font_size and true or nil
-    local strip_custom = ensure_strip_module_cfg(dcfg, "strip_custom")
-    if type(strip_custom.paths) ~= "table" then strip_custom.paths = {} end
-    local strip_tag = ensure_strip_module_cfg(dcfg, "strip_tag")
-    if type(strip_tag.tag) ~= "string" then strip_tag.tag = nil end
-    ensure_strip_module_cfg(dcfg, "strip_tbr")
-    ensure_strip_module_cfg(dcfg, "strip_recent")
+    ensure_module_cfg(dcfg, "quotes")
+    ensure_strip_module_cfg(dcfg)
 end
 
 local function load_zen_config()
@@ -639,6 +705,11 @@ local function ensure_home_cfg()
         dcfg = HomePresets.defaultHomePage()
     end
     HomePresets.ensurePresetState(dcfg)
+    HomePresets.normalizeFeaturedConfig(dcfg)
+    HomePresets.normalizeStripConfig(dcfg)
+    if type(HomePresets.normalizeLayoutGrid) == "function" then
+        HomePresets.normalizeLayoutGrid(dcfg, false)
+    end
 
     dcfg.rows = Registry.normalizeRows(dcfg.rows, DEFAULT_ROW_ORDER, DEFAULT_ROW_ENABLED)
 
@@ -687,40 +758,28 @@ local function resolve_rows(dcfg)
     local order = rows_cfg.order or DEFAULT_ROW_ORDER
     local enabled = rows_cfg.enabled or {}
     local modules = type(dcfg.modules) == "table" and dcfg.modules or {}
-    local capacity = tonumber(Registry.CAPACITY_UNITS) or 10
 
     local seen = {}
     local out = {}
     local selected_count = 0
-    local used_units = 0
-    local full = false
 
     local function try_push(id)
-        if full or seen[id] then return end
+        if seen[id] then return end
         if enabled[id] ~= true then return end
         seen[id] = true
         selected_count = selected_count + 1
         local comp = Registry.get(id)
         if not comp then return end
         local units = Registry.sizeUnits and Registry.sizeUnits(comp, modules[id]) or 2
-        if used_units + units > capacity then
-            full = true
-            return
-        end
-        used_units = used_units + units
         table.insert(out, setmetatable({ _home_units = units }, { __index = comp }))
     end
 
     for _i, id in ipairs(order) do
         try_push(id)
-        if full then break end
     end
 
-    if not full then
-        for _i, comp in ipairs(Registry.list()) do
-            try_push(comp.id)
-            if full then break end
-        end
+    for _i, comp in ipairs(Registry.list()) do
+        try_push(comp.id)
     end
 
     if #out == 0 and selected_count == 0 then
@@ -729,8 +788,7 @@ local function resolve_rows(dcfg)
                 local comp = Registry.get(id)
                 local units = comp and (Registry.sizeUnits
                     and Registry.sizeUnits(comp, modules[id]) or 2) or 0
-                if comp and used_units + units <= capacity then
-                    used_units = used_units + units
+                if comp then
                     table.insert(out, setmetatable(
                         { _home_units = units }, { __index = comp }
                     ))
@@ -809,7 +867,7 @@ local function stats_fields_key(fields)
     return table.concat(out, ",")
 end
 
-local function build_data_provider(cfg, dcfg)
+local function build_data_provider(cfg, dcfg, strip_page_state)
     local provider = {}
     local dataset = get_home_dataset()
     local cover_badges = type(cfg) == "table" and type(cfg.browser_cover_badges) == "table"
@@ -817,7 +875,7 @@ local function build_data_provider(cfg, dcfg)
     local wants_favorite_badge = cover_badges.show_favorite_badge == true
     local stats_cached = nil
     local stats_cached_key = nil
-    local strip_offsets = {}
+    local strip_offsets = copy_home_strip_pages(strip_page_state)
     local book_cache_hits = 0
     local book_cache_misses = 0
     local book_lookup_ms = 0
@@ -834,11 +892,10 @@ local function build_data_provider(cfg, dcfg)
     end
 
     local function featured_widget_for_source(source)
-        if source == "custom_featured" then return "featured_custom" end
-        if source == "custom_strip" then return "featured_custom" end
-        if source == "to_be_read" then return "featured_tbr" end
-        if source == "tag" then return nil end
-        return "featured_recent"
+        local mcfg = dcfg and dcfg.modules and dcfg.modules.featured or {}
+        local configured = HomePresets.featuredSourceKey(mcfg.default_source)
+        local requested = source == "currently_reading" and "recently_read" or source
+        if requested == configured then return "featured" end
     end
 
     local function get_stats(fields)
@@ -1235,7 +1292,8 @@ local function build_data_provider(cfg, dcfg)
             include_new = book_status.includeNewInTBREnabled(),
         }
         local index = get_tbr_index()
-        if exclude_featured and index and is_widget_visible("featured_tbr") then
+        if exclude_featured and index
+                and is_widget_visible(featured_widget_for_source("to_be_read")) then
             local featured = index.getPage(0, 1, {
                 collate = options.collate,
                 reverse = reverse_tbl.to_be_read == true,
@@ -1345,19 +1403,24 @@ local function build_data_provider(cfg, dcfg)
                 and source ~= "custom_strip"
                 and source ~= "currently_reading"
                 and source ~= "to_be_read"
+                and source ~= "favorites"
                 and source ~= "tag" then
             source = "recently_read"
         end
         local lim = math.min(HOME_STRIP_MAX_BOOKS,
             math.max(1, math.floor(tonumber(limit) or HOME_STRIP_MAX_BOOKS)))
         if source == "custom_featured" then
-            local mcfg = dcfg and dcfg.modules and dcfg.modules.featured_custom or {}
+            local mcfg = dcfg and dcfg.modules and dcfg.modules.featured or {}
             local path = type(mcfg.path) == "string" and mcfg.path or nil
             return path and { path } or {}
         end
         if source == "custom_strip" then
-            local mcfg = dcfg and dcfg.modules and dcfg.modules.strip_custom or {}
-            local paths = type(mcfg.paths) == "table" and mcfg.paths or {}
+            local mcfg = dcfg and dcfg.modules and dcfg.modules.strip or {}
+            local sources = type(mcfg.sources) == "table" and mcfg.sources or {}
+            local custom = type(sources.custom) == "table" and sources.custom or {}
+            local legacy = dcfg and dcfg.modules and dcfg.modules.strip_custom or {}
+            local paths = type(custom.paths) == "table" and custom.paths
+                or type(legacy.paths) == "table" and legacy.paths or {}
             local out = {}
             for _i, path in ipairs(paths) do
                 if type(path) == "string" and path ~= "" then
@@ -1380,6 +1443,32 @@ local function build_data_provider(cfg, dcfg)
         end
         if source == "currently_reading" then
             return get_paths_by_status("reading", lim)
+        end
+        if source == "favorites" then
+            local ok_collection, ReadCollection = pcall(require, "readcollection")
+            if not ok_collection or not ReadCollection then return {} end
+            local name = ReadCollection.default_collection_name
+            local collection = name and ReadCollection.coll and ReadCollection.coll[name]
+            if type(collection) ~= "table" then return {} end
+            local entries = {}
+            for _key, entry in pairs(collection) do
+                if type(entry) == "table" and type(entry.file) == "string"
+                        and entry.file ~= "" then
+                    entries[#entries + 1] = entry
+                end
+            end
+            table.sort(entries, function(a, b)
+                local ao = tonumber(a.order) or 0
+                local bo = tonumber(b.order) or 0
+                if ao == bo then return a.file < b.file end
+                return ao < bo
+            end)
+            local out = {}
+            for _i, entry in ipairs(entries) do
+                out[#out + 1] = entry.file
+                if #out >= lim then break end
+            end
+            return out
         end
         if source == "to_be_read" then
             local tbr = get_tbr_paths(lim)
@@ -1406,6 +1495,7 @@ local function build_data_provider(cfg, dcfg)
             and source ~= "custom_strip"
             and source ~= "currently_reading"
             and source ~= "to_be_read"
+            and source ~= "favorites"
             and source ~= "tag"
     end
 
@@ -1418,6 +1508,7 @@ local function build_data_provider(cfg, dcfg)
             opts and opts.filter_tbr == true and "tbr" or "",
             opts and opts.filter_finished == true and "finished" or "",
             opts and opts.tag or "",
+            opts and opts.path or "",
         }, "\0")
         local cached = dataset.ordered_paths[cache_key]
         if cached then
@@ -1466,12 +1557,21 @@ local function build_data_provider(cfg, dcfg)
             local ordered_paths = get_ordered_paths(source_key, 1, order_key)
             path = ordered_paths[1]
         end
-        local module_id = featured_widget_for_source(source_key)
-        local featured_cfg = dcfg and dcfg.modules and dcfg.modules[module_id] or {}
+        local featured_cfg = dcfg and dcfg.modules and dcfg.modules.featured or {}
         local progress_meta = featured_cfg.progress_meta or {}
         local need_time_left = progress_meta.left == "time_left"
             or progress_meta.right == "time_left"
         return get_book(path, need_time_left)
+    end
+
+    local function strip_page_offset(total, count, offset, page_delta)
+        if total < 1 then return 0 end
+        local page_size = math.max(1, math.floor(tonumber(count) or 4))
+        local pages = math.ceil(total / page_size)
+        local current = (tonumber(offset) or 0) % total
+        local page = math.floor(current / page_size)
+        page = (page + math.floor(tonumber(page_delta) or 0)) % pages
+        return page * page_size
     end
 
     local function get_strip_paths(source_key, count, order_key, component_id)
@@ -1479,10 +1579,22 @@ local function build_data_provider(cfg, dcfg)
         if n < 1 then n = 1 end
         local source = source_key
         if source ~= "custom_strip" and source ~= "currently_reading"
-                and source ~= "to_be_read" and source ~= "tag" then
+                and source ~= "to_be_read" and source ~= "favorites"
+                and source ~= "tag" then
             source = "recently_read"
         end
         local mcfg = dcfg and dcfg.modules and dcfg.modules[component_id] or {}
+        if component_id == "strip" then
+            local sources = type(mcfg.sources) == "table" and mcfg.sources or {}
+            local recent = type(sources.recent) == "table" and sources.recent or {}
+            local tag = type(sources.tag) == "table" and sources.tag or {}
+            mcfg = {
+                filter_unread = recent.filter_unread,
+                filter_tbr = recent.filter_tbr,
+                filter_finished = recent.filter_finished,
+                tag = tag.tag,
+            }
+        end
         local strip_cache_key = table.concat({
             tostring(component_id or source),
             source,
@@ -1541,23 +1653,9 @@ local function build_data_provider(cfg, dcfg)
                 local total = math.min(index.getCount(options), HOME_STRIP_MAX_BOOKS)
                 local offset_key = tostring(component_id or source_key)
                     .. ":" .. source_key .. ":" .. normalize_order(order_key)
-                local offset = tonumber(strip_offsets[offset_key]) or 0
-                if total > 0 then
-                    offset = offset % total
-                    strip_offsets[offset_key] = offset
-                    offset = (offset + (tonumber(page_delta) or 0) * n) % total
-                else
-                    offset = 0
-                end
+                local offset = strip_page_offset(
+                    total, n, strip_offsets[offset_key], page_delta)
                 local paths = index.getPage(offset, n, options)
-                if #paths < n and #paths < total then
-                    local wrapped = index.getPage(0, n - #paths, options)
-                    local seen = {}
-                    for _i, path in ipairs(paths) do seen[path] = true end
-                    for _i, path in ipairs(wrapped) do
-                        if not seen[path] then paths[#paths + 1] = path end
-                    end
-                end
                 local component_cfg = dcfg and dcfg.modules and dcfg.modules[component_id] or {}
                 local resolve_favorite = wants_favorite_badge
                     and component_cfg.show_badges == true
@@ -1577,19 +1675,11 @@ local function build_data_provider(cfg, dcfg)
         local resolve_favorite = wants_favorite_badge and component_cfg.show_badges == true
 
         local offset_key = tostring(component_id or source) .. ":" .. source .. ":" .. normalize_order(order_key)
-        local offset = tonumber(strip_offsets[offset_key]) or 0
-        if #paths > 0 then
-            offset = offset % #paths
-            strip_offsets[offset_key] = offset
-            offset = (offset + (tonumber(page_delta) or 0) * n) % #paths
-        else
-            offset = 0
-        end
+        local offset = strip_page_offset(#paths, n, strip_offsets[offset_key], page_delta)
 
         local books = {}
-        for i = 1, math.min(n, #paths) do
-            local idx = ((offset + i - 1) % #paths) + 1
-            local path = paths[idx]
+        for i = offset + 1, math.min(offset + n, #paths) do
+            local path = paths[i]
             local book = get_book(path, false, true)
             if book then
                 if resolve_favorite then
@@ -1606,6 +1696,231 @@ local function build_data_provider(cfg, dcfg)
         return self:getBooksForStripPage(source_key, count, order_key, component_id, 0)
     end
 
+    local function collection_files(name)
+        local ok_collection, ReadCollection = pcall(require, "readcollection")
+        if not ok_collection or not ReadCollection or type(name) ~= "string" then return {} end
+        local collection = ReadCollection.coll and ReadCollection.coll[name]
+        if type(collection) ~= "table" then return {} end
+        local entries = {}
+        for _key, entry in pairs(collection) do
+            if type(entry) == "table" and type(entry.file) == "string"
+                    and entry.file ~= "" then
+                entries[#entries + 1] = entry
+            end
+        end
+        table.sort(entries, function(a, b)
+            local ao = tonumber(a.order) or 0
+            local bo = tonumber(b.order) or 0
+            if ao == bo then return a.file < b.file end
+            return ao < bo
+        end)
+        local files = {}
+        for _i, entry in ipairs(entries) do files[#files + 1] = entry.file end
+        return files
+    end
+
+    local function folder_files(path)
+        if type(path) ~= "string" or path == "" then return {} end
+        local ok_lfs, lfs = pcall(require, "libs/libkoreader-lfs")
+        if not ok_lfs or lfs.attributes(path, "mode") ~= "directory" then return {} end
+        local FileManager = require("apps/filemanager/filemanager")
+        local chooser = FileManager.instance and FileManager.instance.file_chooser
+        if not (chooser and type(chooser.genItemTableFromPath) == "function") then return {} end
+        local ok_items, items = pcall(chooser.genItemTableFromPath, chooser, path)
+        if not ok_items or type(items) ~= "table" then return {} end
+        local DocumentRegistry = require("document/documentregistry")
+        local files = {}
+        for _i, item in ipairs(items) do
+            local item_path = item and (item.path or item.file)
+            local is_file = item and (item.is_file == true
+                or type(item.attr) == "table" and item.attr.mode == "file")
+            if is_file and type(item_path) == "string" then
+                local ok_supported, supported = pcall(
+                    DocumentRegistry.hasProvider, DocumentRegistry, item_path)
+                if ok_supported and supported then files[#files + 1] = item_path end
+            end
+        end
+        return files
+    end
+
+    local function source_groups(kind)
+        if kind == "collections" then
+            local ok_collection, ReadCollection = pcall(require, "readcollection")
+            local groups = {}
+            if ok_collection and ReadCollection and type(ReadCollection.coll) == "table" then
+                for name in pairs(ReadCollection.coll) do
+                    local files = collection_files(name)
+                    if #files > 0 then
+                        groups[#groups + 1] = { label = name, files = files }
+                    end
+                end
+                table.sort(groups, function(a, b) return a.label < b.label end)
+            end
+            return groups
+        end
+        local ok_db, db = pcall(require, "common/db_bookinfo")
+        if not ok_db or not db then return {} end
+        local raw_groups
+        if kind == "authors" and type(db.getGroupedByAuthor) == "function" then
+            raw_groups = db.getGroupedByAuthor()
+        elseif kind == "series" and type(db.getGroupedBySeries) == "function" then
+            raw_groups = db.getGroupedBySeries()
+        elseif kind == "tags" and type(db.getGroupedByTags) == "function" then
+            raw_groups = db.getGroupedByTags()
+        end
+        local groups = {}
+        for _i, group in ipairs(raw_groups or {}) do
+            local files = group.files
+            if kind == "series" then
+                files = {}
+                for _j, item in ipairs(group.items or {}) do
+                    if type(item.file) == "string" then files[#files + 1] = item.file end
+                end
+            end
+            local label = group.author or group.series or group.tag
+            if type(label) == "string" and type(files) == "table" and #files > 0 then
+                groups[#groups + 1] = { label = label, files = files }
+            end
+        end
+        return groups
+    end
+
+    local function resolve_drill_files(request)
+        local drill = type(request) == "table" and request.drill or nil
+        if type(drill) ~= "table" then return nil end
+        if type(drill.files) == "table" then return drill.files end
+        for _i, group in ipairs(source_groups(request.kind)) do
+            if group.label == drill.label then
+                drill.files = copy_paths(group.files)
+                return drill.files
+            end
+        end
+        drill.files = {}
+        return drill.files
+    end
+
+    local function descriptor_key(request, order_key)
+        local drill = type(request.drill) == "table" and request.drill.label or ""
+        return table.concat({
+            "strip", tostring(request.kind), tostring(request.value or ""),
+            tostring(drill), normalize_order(order_key),
+        }, ":")
+    end
+
+    local function paginate(values, request, count, order_key, component_id, page_delta)
+        local n = math.max(1, tonumber(count) or 4)
+        local key = tostring(component_id or "strip") .. ":" .. descriptor_key(request, order_key)
+        local offset = strip_page_offset(#values, n, strip_offsets[key], page_delta)
+        local page = {}
+        for i = offset + 1, math.min(offset + n, #values) do
+            page[#page + 1] = values[i]
+        end
+        return page, #values > n, key
+    end
+
+    local function descriptor_paths(request)
+        if request.kind == "favorites" then
+            local ok_collection, ReadCollection = pcall(require, "readcollection")
+            return ok_collection and ReadCollection
+                and collection_files(ReadCollection.default_collection_name) or {}
+        end
+        if request.kind == "tag" then
+            local ok_db, db = pcall(require, "common/db_bookinfo")
+            return ok_db and db and type(db.getTagBooks) == "function"
+                and db.getTagBooks(request.value) or {}
+        end
+        if request.kind == "custom" then
+            if type(request.paths) == "table" then return copy_paths(request.paths) end
+            local strip = dcfg and dcfg.modules and dcfg.modules.strip or {}
+            local sources = type(strip.sources) == "table" and strip.sources or {}
+            local custom = type(sources.custom) == "table" and sources.custom or {}
+            return copy_paths(custom.paths)
+        end
+    end
+
+    function provider:getStripItemsForPage(request, count, order_key, component_id, page_delta)
+        request = type(request) == "table" and request or { kind = "recent" }
+        local kind = request.kind or "recent"
+        if type(request.drill) == "table" then
+            local paths = copy_paths(resolve_drill_files(request))
+            if normalize_order(order_key) == "reverse" then paths = reverse_copy(paths) end
+            local page, adjacent = paginate(
+                paths, request, count, order_key, component_id, page_delta)
+            local books = {}
+            for _i, path in ipairs(page) do
+                local book = get_book(path, false, true)
+                if book then books[#books + 1] = book end
+            end
+            return books, adjacent
+        end
+        if kind == "authors" or kind == "series" or kind == "tags"
+                or kind == "collections" then
+            local groups = source_groups(kind)
+            if normalize_order(order_key) == "reverse" then groups = reverse_copy(groups) end
+            local page, adjacent = paginate(
+                groups, request, count, order_key, component_id, page_delta)
+            local items = {}
+            for _i, group in ipairs(page) do
+                local book = get_book(group.files[1], false, true)
+                if book then
+                    book.is_group = true
+                    book.group_kind = kind
+                    book.group_label = group.label
+                    book.group_count = #group.files
+                    book.group_files = group.files
+                    items[#items + 1] = book
+                end
+            end
+            return items, adjacent
+        end
+        if kind == "folder" then
+            local paths = folder_files(request.value)
+            local page, adjacent = paginate(
+                paths, request, count, order_key, component_id, page_delta)
+            local books = {}
+            for _i, path in ipairs(page) do
+                local book = get_book(path, false, true)
+                if book then books[#books + 1] = book end
+            end
+            return books, adjacent
+        end
+        if kind == "favorites" or kind == "tag" or kind == "custom" then
+            local paths = descriptor_paths(request)
+            if normalize_order(order_key) == "reverse" then paths = reverse_copy(paths) end
+            local page, adjacent = paginate(
+                paths, request, count, order_key, component_id, page_delta)
+            local books = {}
+            for _i, path in ipairs(page) do
+                local book = get_book(path, false, true)
+                if book then books[#books + 1] = book end
+            end
+            return books, adjacent
+        end
+        local source = kind == "to_be_read" and "to_be_read" or "recently_read"
+        return self:getBooksForStripPage(
+            source, count, order_key, component_id, page_delta)
+    end
+
+    function provider:shiftStripItems(request, count, order_key, direction, component_id, refresh)
+        request = type(request) == "table" and request or { kind = "recent" }
+        if request.kind == "recent" or request.kind == "to_be_read" then
+            local source = request.kind == "to_be_read" and "to_be_read"
+                or "recently_read"
+            return self:shiftStrip(source, count, order_key, direction, component_id, refresh)
+        end
+        local values = request.drill and resolve_drill_files(request)
+            or request.kind == "folder" and folder_files(request.value)
+            or descriptor_paths(request)
+            or source_groups(request.kind)
+        local n = math.max(1, tonumber(count) or 4)
+        if type(values) ~= "table" or #values <= n then return false end
+        local key = tostring(component_id or "strip") .. ":" .. descriptor_key(request, order_key)
+        strip_offsets[key] = strip_page_offset(
+            #values, n, strip_offsets[key], direction == "previous" and -1 or 1)
+        if type(refresh) == "function" then refresh() end
+        return true
+    end
+
     function provider:shiftStrip(source_key, count, order_key, direction, component_id, refresh)
         if source_key == "to_be_read" then
             local index = get_tbr_index()
@@ -1617,9 +1932,9 @@ local function build_data_provider(cfg, dcfg)
                 if total <= n then return false end
                 local offset_key = tostring(component_id or source_key)
                     .. ":" .. source_key .. ":" .. normalize_order(order_key)
-                local cur = tonumber(strip_offsets[offset_key]) or 0
-                local step = direction == "previous" and -n or n
-                strip_offsets[offset_key] = (cur + step) % total
+                strip_offsets[offset_key] = strip_page_offset(
+                    total, n, strip_offsets[offset_key],
+                    direction == "previous" and -1 or 1)
                 if type(refresh) == "function" then refresh() end
                 return true
             end
@@ -1627,9 +1942,8 @@ local function build_data_provider(cfg, dcfg)
         local source, paths, n = get_strip_paths(source_key, count, order_key, component_id)
         if #paths <= n then return false end
         local offset_key = tostring(component_id or source) .. ":" .. source .. ":" .. normalize_order(order_key)
-        local cur = tonumber(strip_offsets[offset_key]) or 0
-        local step = direction == "previous" and -n or n
-        strip_offsets[offset_key] = (cur + step) % #paths
+        strip_offsets[offset_key] = strip_page_offset(
+            #paths, n, strip_offsets[offset_key], direction == "previous" and -1 or 1)
         if type(refresh) == "function" then
             refresh()
         elseif _home_menu and _home_menu._home_rebuild then
@@ -1713,6 +2027,10 @@ local function build_data_provider(cfg, dcfg)
             strip_offsets[offset_key] = nil
         end
         return changed
+    end
+
+    function provider:getStripPageState()
+        return copy_home_strip_pages(strip_offsets)
     end
 
     function provider:getCurrentQuote()
@@ -1846,29 +2164,42 @@ local function build_data_provider(cfg, dcfg)
     return provider
 end
 
-local function compute_row_heights(rows, body_h, row_gap)
+local function compute_row_heights(rows, body_h, row_gap, capacity, width, modules)
     local specs = {}
-    local unit_counts = Registry.layoutUnits and Registry.layoutUnits(rows) or {}
+    local unit_counts = Registry.layoutUnits and Registry.layoutUnits(rows, capacity) or {}
     if #unit_counts == 0 then
         for _i, comp in ipairs(rows) do
             unit_counts[#unit_counts + 1] = tonumber(comp._home_units) or 2
         end
     end
-    local heights = Registry.gridHeights(unit_counts, body_h, row_gap)
+    local max_heights = {}
+    modules = type(modules) == "table" and modules or {}
+    for i, comp in ipairs(rows) do
+        if type(comp.preferredHeight) == "function" then
+            local ok, preferred = pcall(comp.preferredHeight, {
+                width = width,
+                module_cfg = modules[comp.id],
+            })
+            if ok and tonumber(preferred) then max_heights[i] = preferred end
+        end
+    end
+    local heights = Registry.gridHeights(
+        unit_counts, body_h, row_gap, capacity, max_heights)
     for i, height in ipairs(heights) do
         specs[i] = { units = unit_counts[i], h = height }
     end
     return specs
 end
 
-local function paint_focus_rect(bb, x, y, w, h)
+local function paint_focus_rect(bb, x, y, w, h, color)
     if not (bb and x and y and w and h and w > 2 and h > 2) then return end
     local t = 2
+    color = color or Blitbuffer.COLOR_BLACK
     for i = 0, t - 1 do
-        bb:paintRect(x + i, y + i, w - i * 2, 1, Blitbuffer.COLOR_BLACK)
-        bb:paintRect(x + i, y + h - 1 - i, w - i * 2, 1, Blitbuffer.COLOR_BLACK)
-        bb:paintRect(x + i, y + i, 1, h - i * 2, Blitbuffer.COLOR_BLACK)
-        bb:paintRect(x + w - 1 - i, y + i, 1, h - i * 2, Blitbuffer.COLOR_BLACK)
+        bb:paintRect(x + i, y + i, w - i * 2, 1, color)
+        bb:paintRect(x + i, y + h - 1 - i, w - i * 2, 1, color)
+        bb:paintRect(x + i, y + i, 1, h - i * 2, color)
+        bb:paintRect(x + w - 1 - i, y + i, 1, h - i * 2, color)
     end
 end
 
@@ -1924,7 +2255,8 @@ local function wrap_home_focus_target(menu, target, widget, defer_registration)
     frame.paintTo = function(self, bb, x, y)
         orig_paintTo(self, bb, x, y)
         if menu._zen_home_focus_id == target.id then
-            paint_focus_rect(bb, x, y, self:getSize().w, self:getSize().h)
+            paint_focus_rect(
+                bb, x, y, self:getSize().w, self:getSize().h, target.focus_color)
         end
     end
     target.widget = frame
@@ -2029,6 +2361,20 @@ local function context_home_focus(menu)
     return true
 end
 
+local HOME_CONFIRM_KEYS = { "Press", "Return", "Enter" }
+
+local function home_key_matches(key, name)
+    if key == name then return true end
+    return type(key) == "table" and type(key.match) == "function"
+        and key:match({ name }) == true
+end
+
+local function home_confirm_key_name(key)
+    for _i, name in ipairs(HOME_CONFIRM_KEYS) do
+        if home_key_matches(key, name) then return name end
+    end
+end
+
 local function install_home_key_handlers(menu)
     if not menu or menu._zen_home_key_patched then return end
     menu._zen_home_key_patched = true
@@ -2079,6 +2425,12 @@ local function install_home_key_handlers(menu)
     menu.key_events.ZenHomeContext = {
         { "Menu" },
         event = "ZenHomeContext",
+    }
+    menu.key_events.ZenNavbarConfirm = {
+        { "Press" },
+        { "Return" },
+        { "Enter" },
+        event = "ZenNavbarConfirm",
     }
 
     function menu:onZenHomeContext()
@@ -2158,7 +2510,7 @@ local function install_home_key_handlers(menu)
 
     local orig_key_press = menu.onKeyPress
     menu.onKeyPress = function(m, key)
-        if m._zen_home_focus_suspended and key == "Up" then
+        if m._zen_home_focus_suspended and home_key_matches(key, "Up") then
             local handled = orig_key_press and orig_key_press(m, key)
             if handled then
                 m._zen_home_focus_suspended = false
@@ -2166,22 +2518,30 @@ local function install_home_key_handlers(menu)
             end
             return handled
         end
-        if key == "Left" and home_move_or_focus(m, -1, 0) then return true end
-        if key == "Right" and home_move_or_focus(m, 1, 0) then return true end
-        if key == "Up" and home_move_or_focus(m, 0, -1) then return true end
-        if key == "Down" and home_move_or_focus(m, 0, 1) then return true end
-        if (key == "Press" or key == "Return") and get_home_focus_target(m) then
-            start_hold(m, key)
+        if home_key_matches(key, "Left")
+                and home_move_or_focus(m, -1, 0) then return true end
+        if home_key_matches(key, "Right")
+                and home_move_or_focus(m, 1, 0) then return true end
+        if home_key_matches(key, "Up")
+                and home_move_or_focus(m, 0, -1) then return true end
+        if home_key_matches(key, "Down")
+                and home_move_or_focus(m, 0, 1) then return true end
+        local confirm_key = home_confirm_key_name(key)
+        if confirm_key and get_home_focus_target(m) then
+            start_hold(m, confirm_key)
             return true
         end
         local handled = orig_key_press and orig_key_press(m, key)
-        if handled and key == "Down" then clear_home_focus(m, true) end
+        if handled and home_key_matches(key, "Down") then
+            clear_home_focus(m, true)
+        end
         return handled
     end
 
     local orig_key_release = menu.onKeyRelease
     menu.onKeyRelease = function(m, key)
-        if (key == "Press" or key == "Return") and hold_key == key then
+        local confirm_key = home_confirm_key_name(key)
+        if confirm_key and hold_key == confirm_key then
             cancel_hold()
             activate_home_focus(m)
             return true
@@ -2190,7 +2550,7 @@ local function install_home_key_handlers(menu)
     end
 end
 
-local function build_home_content(menu, dcfg, rows, data_provider)
+local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
     local Device = require("device")
     local Screen = Device.screen
     local Geom = require("ui/geometry")
@@ -2198,8 +2558,6 @@ local function build_home_content(menu, dcfg, rows, data_provider)
     local HorizontalSpan = require("ui/widget/horizontalspan")
     local VerticalGroup = require("ui/widget/verticalgroup")
     local VerticalSpan = require("ui/widget/verticalspan")
-    local TextWidget = require("ui/widget/textwidget")
-    local LeftContainer = require("ui/widget/container/leftcontainer")
     local FrameContainer = require("ui/widget/container/framecontainer")
     local InputContainer = require("ui/widget/container/inputcontainer")
     local Font = require("ui/font")
@@ -2252,22 +2610,24 @@ local function build_home_content(menu, dcfg, rows, data_provider)
     local content_w = math.max(1, body_w - side_pad * 2)
     local right_pad = math.max(0, body_w - content_w - side_pad)
     local standard_gap = math.max(4, Screen:scaleBySize(8))
-    local capacity = tonumber(Registry.CAPACITY_UNITS) or 10
+    local capacity = type(Registry.capacityUnits) == "function"
+        and Registry.capacityUnits(Screen:getWidth(), Screen:getHeight())
+        or tonumber(Registry.CAPACITY_UNITS) or 10
     local max_page_pad = math.max(0, math.floor((body_h - capacity) / 2))
     local page_pad = math.min(math.max(3, Screen:scaleBySize(4)), max_page_pad)
     local layout_h = math.max(1, body_h - page_pad * 2)
     local max_grid_gap = capacity > 1
         and math.max(0, math.floor((layout_h - capacity) / (capacity - 1))) or 0
     local row_gap = math.min(standard_gap, max_grid_gap)
-    local row_heights = compute_row_heights(rows, layout_h, row_gap)
+    local row_heights = compute_row_heights(
+        rows, layout_h, row_gap, capacity, content_w, dcfg.modules)
     menu._zen_home_page_padding = page_pad
+    menu._zen_home_row_gap = row_gap
+    menu._zen_home_capacity_units = capacity
 
     local face_title = Font:getFace("smallinfofont", Screen:scaleBySize(24))
     local face_value = Font:getFace("smallinfofont", Screen:scaleBySize(20))
     local face_label = Font:getFace("smallinfofont", Screen:scaleBySize(16))
-    local row_title_face = Font:getFace("smallinfofont", Screen:scaleBySize(13))
-    local row_title_gap = Screen:scaleBySize(3)
-
     local FileManager = require("apps/filemanager/filemanager")
     local filemanagerutil = require("apps/filemanager/filemanagerutil")
 
@@ -2300,6 +2660,8 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             _zen_disable_select = true,
             _zen_is_history = source == "recently_read",
             _zen_collection_name = explicit_collection,
+            _zen_extra_buttons = build_strip_order_context_buttons(
+                fc, component_id, dcfg, data_provider),
             _zen_widget_settings = dcfg.edit_mode == true and function()
                 return require("modules/settings/sections/library_settings/home_settings")
                     .openWidgetSettings(component_id, _zen_plugin)
@@ -2342,6 +2704,11 @@ local function build_home_content(menu, dcfg, rows, data_provider)
     end
 
     local function shift_strip(source_key, count, order_key, direction, component_id, _two_rows, refresh)
+        if type(source_key) == "table" and data_provider
+                and type(data_provider.shiftStripItems) == "function" then
+            return data_provider:shiftStripItems(
+                source_key, count, order_key, direction, component_id, refresh)
+        end
         if not (data_provider and type(data_provider.shiftStrip) == "function") then return false end
         return data_provider:shiftStrip(source_key, count, order_key, direction, component_id, refresh)
     end
@@ -2411,49 +2778,39 @@ local function build_home_content(menu, dcfg, rows, data_provider)
         used_h = used_h + top_pad
     end
 
-    local function title_for_component(comp_id)
-        return MODULE_TITLES[comp_id]
-    end
-
     for i, comp in ipairs(rows) do
         local row_y = used_h
         local content_bounds
         local h = row_heights[i] and row_heights[i].h or 120
         local module_cfg = type(dcfg.modules) == "table" and dcfg.modules[comp.id] or nil
-        local show_row_title = not (module_cfg and module_cfg.show_module_title == false)
-        local row_title = title_for_component(comp.id) or comp.title or comp.label or ""
         local row_focus_base = i * 10
         local row_focus_actions = {}
-        local title_h = 0
-        local title_widget = nil
-        if show_row_title and row_title ~= "" then
-            title_widget = TextWidget:new{ text = row_title, face = row_title_face, bold = true }
-            title_h = title_widget:getSize().h
-        end
         local content_h = h
-        local title_gap_h = title_h > 0 and row_title_gap or 0
-        if title_widget then
-            local reserved = title_h + title_gap_h
-            if h > reserved + 20 then
-                content_h = h - reserved
-            else
-                -- Hide row title when space is constrained, so widget content fits.
-                title_widget = nil
-                title_h = 0
-                title_gap_h = 0
-                content_h = h
-            end
-        end
         if content_h < 1 then content_h = 1 end
         local row_ctx = {
             width = content_w,
             height = content_h,
             menu = menu,
             config = dcfg,
+            zen_config = zen_config,
             data = data_provider,
             openBook = open_book,
             showBookMenu = function(path, source)
                 return show_book_context_menu(path, source, comp.id)
+            end,
+            showStripGroupMenu = function(book)
+                if type(book) ~= "table" then return false end
+                local group_view = _zen_shared and _zen_shared.group_view
+                    or SharedState.get(_zen_plugin, "group_view")
+                if not (group_view and type(group_view.showGroupContextMenu) == "function") then
+                    return false
+                end
+                return group_view.showGroupContextMenu(
+                    book.group_label or "", book.group_files or {}, book.group_kind,
+                    nil, { hide_actions = true })
+            end,
+            rememberStripState = function(state)
+                return save_home_strip_state(dcfg, state)
             end,
             editMode = dcfg.edit_mode == true,
             openWidgetSettings = function()
@@ -2498,6 +2855,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             face_label = face_label,
             component_id = comp.id,
             module_cfg = module_cfg,
+            row_gap_above = i > 1 and row_gap or 0,
             is_first_row = i == 1,
         }
         local component_started_at = os.clock()
@@ -2507,21 +2865,7 @@ local function build_home_content(menu, dcfg, rows, data_provider)
             math.floor((os.clock() - component_started_at) * 10000 + 0.5) / 10
         if ok_widget and widget then
             local final_widget = widget
-            if title_widget then
-                final_widget = VerticalGroup:new{
-                    align = "left",
-                    LeftContainer:new{
-                        dimen = Geom:new{ w = content_w, h = title_h },
-                        title_widget,
-                    },
-                    VerticalSpan:new{ width = title_gap_h },
-                    widget,
-                }
-            end
-            if comp.id ~= "featured_custom" and comp.id ~= "featured_tbr"
-                    and comp.id ~= "featured_recent" and comp.id ~= "strip_custom"
-                    and comp.id ~= "strip_tag" and comp.id ~= "strip_tbr"
-                    and comp.id ~= "strip_recent"
+            if comp.id ~= "featured" and comp.id ~= "strip"
                     and comp.id ~= "quotes" and comp.id ~= "reading_goals" then
                 final_widget = add_widget_settings_hold(final_widget, comp.id, content_w, h)
             end
@@ -2542,16 +2886,15 @@ local function build_home_content(menu, dcfg, rows, data_provider)
                 background = home_frame_bg(),
                 final_widget,
             })
-            if not title_widget and content_bounds then
+            if content_bounds then
                 content_bounds.row_y = row_y
                 if i == 1 then
                     content_bounds.min_shift = 0
                     content_bounds.max_shift = 0
-                elseif content_bounds.min_shift ~= 0
-                        or content_bounds.max_shift ~= 0 then
-                    -- Borrow the blank row gaps when internal slack is too small.
-                    content_bounds.min_shift = (content_bounds.min_shift or 0) - row_gap
-                    content_bounds.max_shift = (content_bounds.max_shift or 0) + row_gap
+                else
+                    -- Borrow the adjacent blank row gaps when internal slack is too small.
+                    content_bounds.min_shift = (content_bounds.min_shift or 0) - row_gap * 2
+                    content_bounds.max_shift = (content_bounds.max_shift or 0) + row_gap * 2
                 end
                 visual_rows[i] = content_bounds
             end
@@ -2565,10 +2908,21 @@ local function build_home_content(menu, dcfg, rows, data_provider)
         end
     end
 
+    local top_visual_inset = page_pad
+    if visual_rows[1] then
+        top_visual_inset = math.max(0,
+            (visual_rows[1].row_y or 0) + (visual_rows[1].top or 0))
+    end
+    menu._zen_home_top_visual_inset = top_visual_inset
     local run = {}
-    local function apply_visual_run()
+    local function apply_visual_run(anchor_bottom)
         if #run > 1 then
-            local shifts = Registry.equalSpacingShifts(run)
+            local bottom_anchor_offset = anchor_bottom
+                and math.max(0, tonumber(run[#run].bottom_anchor_offset) or 0) or 0
+            local spacing_options = anchor_bottom and {
+                bottom = body_h - top_visual_inset - bottom_anchor_offset,
+            } or nil
+            local shifts = Registry.equalSpacingShifts(run, spacing_options)
             for i, shift in ipairs(shifts) do
                 run[i].set_shift(shift)
             end
@@ -2586,10 +2940,10 @@ local function build_home_content(menu, dcfg, rows, data_provider)
         if visual_rows[i] then
             run[#run + 1] = visual_rows[i]
         else
-            apply_visual_run()
+            apply_visual_run(false)
         end
     end
-    apply_visual_run()
+    apply_visual_run(true)
 
     if used_h < body_h then
         table.insert(children, VerticalSpan:new{ width = body_h - used_h })
@@ -2621,7 +2975,7 @@ local function rows_have_clock_refreshers(rows, dcfg)
         if comp.id == "datetime" then
             return true
         end
-        if comp.id == "featured_recent" or comp.id == "featured_custom" or comp.id == "featured_tbr" then
+        if comp.id == "featured" then
             local mcfg = modules[comp.id]
             if type(mcfg) == "table" and mcfg.show_status_bar == true then
                 return true
@@ -2684,6 +3038,11 @@ function M.showHomeView(injectNavbar)
     local cfg = load_zen_config()
     if type(cfg) ~= "table" then return end
     local dcfg = ensure_home_cfg()
+    local layout_notice_pending = dcfg.rows.layout_notice_pending == true
+    if layout_notice_pending then
+        dcfg.rows.layout_notice_pending = nil
+        PresetStore.saveSettings("home", dcfg)
+    end
     local show_status_bar = dcfg.show_status_bar ~= false
     local Screen = require("device").screen
 
@@ -2694,6 +3053,7 @@ function M.showHomeView(injectNavbar)
         block_filemanager_horizontal_swipe = true,
     }
     StandalonePage.prepare_shell(menu)
+    menu._zen_home_strip_runtime = copy_home_strip_state(dcfg.strip_memory)
 
     local createStatusRow = _zen_shared and _zen_shared.createStatusRow
     local createStatusRowCustomBack = _zen_shared and _zen_shared.createStatusRowCustomBack
@@ -2710,7 +3070,12 @@ function M.showHomeView(injectNavbar)
     menu._zen_home_screen_height = Screen:getHeight()
 
     local rows = resolve_rows(dcfg)
-    local data_provider = build_data_provider(cfg, dcfg)
+    local data_provider = build_data_provider(cfg, dcfg, _home_strip_page_state)
+    local function remember_strip_pages()
+        if data_provider and type(data_provider.getStripPageState) == "function" then
+            _home_strip_page_state = data_provider:getStripPageState()
+        end
+    end
     local provider_dataset_expires_at = _home_dataset_cache and _home_dataset_cache.expires_at
     local has_clock_refreshers = rows_have_clock_refreshers(rows, dcfg)
     local has_date_dependent = rows_have_date_dependent(rows)
@@ -2732,7 +3097,7 @@ function M.showHomeView(injectNavbar)
         local stats_ms = (os.clock() - stats_started_at) * 1000
         menu._zen_home_component_ms = {}
         local build_started_at = os.clock()
-        local content = build_home_content(menu, dcfg, rows, data_provider)
+        local content = build_home_content(menu, cfg, dcfg, rows, data_provider)
         local build_ms = (os.clock() - build_started_at) * 1000
         provider_dataset_expires_at = _home_dataset_cache
             and _home_dataset_cache.expires_at
@@ -2910,12 +3275,14 @@ function M.showHomeView(injectNavbar)
         end
         refresh_shared_state()
         if reload_config == true then
+            remember_strip_pages()
             local next_cfg = load_zen_config()
             if type(next_cfg) == "table" then
                 cfg = next_cfg
                 dcfg = ensure_home_cfg()
+                self._zen_home_strip_runtime = copy_home_strip_state(dcfg.strip_memory)
                 _home_dataset_cache = new_home_dataset()
-                data_provider = build_data_provider(cfg, dcfg)
+                data_provider = build_data_provider(cfg, dcfg, _home_strip_page_state)
                 provider_dataset_expires_at = _home_dataset_cache
                     and _home_dataset_cache.expires_at
             end
@@ -2974,8 +3341,9 @@ function M.showHomeView(injectNavbar)
         if quote_refresh then reasons[#reasons + 1] = "quote" end
 
         if dataset_expired and not reload_config then
+            remember_strip_pages()
             _home_dataset_cache = new_home_dataset()
-            data_provider = build_data_provider(cfg, dcfg)
+            data_provider = build_data_provider(cfg, dcfg, _home_strip_page_state)
             provider_dataset_expires_at = _home_dataset_cache
                 and _home_dataset_cache.expires_at
         end
@@ -3019,6 +3387,7 @@ function M.showHomeView(injectNavbar)
             return false
         end
         if not data_provider:resetStripPages() then return false end
+        remember_strip_pages()
         self:_home_rebuild()
         return true
     end
@@ -3037,6 +3406,7 @@ function M.showHomeView(injectNavbar)
 
     local orig_onCloseWidget = menu.onCloseWidget
     function menu:onCloseWidget(...)
+        remember_strip_pages()
         self._zen_home_closing = true
         self._zen_home_strip_cover_listeners = {}
         if rawequal(_home_menu, self) then
@@ -3069,6 +3439,12 @@ function M.showHomeView(injectNavbar)
         rebuild(true)
         if menu._zen_status_refresh then
             menu:_zen_status_refresh()
+        end
+        if layout_notice_pending then
+            local InfoMessage = require("ui/widget/infomessage")
+            UIManager:show(InfoMessage:new{
+                text = _("Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."),
+            })
         end
     end)
     return menu, true

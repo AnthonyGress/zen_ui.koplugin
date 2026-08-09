@@ -4,6 +4,7 @@ describe("bug reporter labels", function()
     local channel
     local original_modules
     local payloads
+    local UIManager
 
     local module_names = {
         "android",
@@ -30,17 +31,18 @@ describe("bug reporter labels", function()
 
         channel = "stable"
         payloads = {}
+        UIManager = {
+            show = function(self, widget) self.widget = widget end,
+            close = function(self, widget) self.closed_widget = widget end,
+            tickAfterNext = function(self, callback) self.submit_callback = callback end,
+        }
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("common/zen_logger", {
             new = function()
                 return { dbg = function() end, warn = function() end }
             end,
         })
-        ZenSpec.replace("ui/uimanager", {
-            show = function() end,
-            close = function() end,
-            nextTick = function(_, callback) callback() end,
-        })
+        ZenSpec.replace("ui/uimanager", UIManager)
         ZenSpec.replace("common/restart", {})
         ZenSpec.replace("common/utils", {
             truncateUtf8Bytes = function(value) return value end,
@@ -99,8 +101,22 @@ describe("bug reporter labels", function()
         require("modules/settings/zen_bugreporter")._do_submit(
             { plugin = {} }, "Title", "Description", ""
         )
+        UIManager.submit_callback()
         return payloads[#payloads]
     end
+
+    it("renders a notice before submitting the report", function()
+        require("modules/settings/zen_bugreporter")._do_submit(
+            { plugin = {} }, "Title", "Description", ""
+        )
+
+        assert.are.equal("Submitting report…", UIManager.widget.text)
+        assert.are.equal(0, #payloads)
+
+        UIManager.submit_callback()
+
+        assert.are.equal(1, #payloads)
+    end)
 
     it("adds the beta label on the beta update channel", function()
         channel = "beta"

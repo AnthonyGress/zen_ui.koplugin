@@ -837,6 +837,53 @@ local function migrate_home_quote_font_size()
     return changed and PresetStore.saveStore("home", store)
 end
 
+local function migrate_home_strip_config()
+    if type(HomePresets.normalizeStripConfig) ~= "function" then return false end
+    local store = PresetStore.loadStore("home")
+    local changed = HomePresets.normalizeStripConfig(store.settings)
+    local active_preset = type(store.settings) == "table"
+        and store.settings.active_preset or nil
+    if type(active_preset) ~= "string" or active_preset == "" then
+        active_preset = store.active_preset
+    end
+    local strip = type(store.settings) == "table"
+        and type(store.settings.modules) == "table"
+        and store.settings.modules.strip or nil
+    if active_preset == HomePresets.BOOKSHELF_PRESET_NAME and type(strip) == "table"
+            and type(strip.controls) == "table"
+            and strip.controls.enabled ~= true then
+        strip.controls.enabled = true
+        changed = true
+    end
+    for _name, preset in pairs(store.presets) do
+        local page = type(preset) == "table" and (preset.home_page or preset)
+        if HomePresets.normalizeStripConfig(page) then changed = true end
+    end
+    return changed and PresetStore.saveStore("home", store)
+end
+
+local function migrate_home_featured_config()
+    if type(HomePresets.normalizeFeaturedConfig) ~= "function" then return false end
+    local store = PresetStore.loadStore("home")
+    local changed = HomePresets.normalizeFeaturedConfig(store.settings)
+    for _name, preset in pairs(store.presets) do
+        local page = type(preset) == "table" and (preset.home_page or preset)
+        if HomePresets.normalizeFeaturedConfig(page) then changed = true end
+    end
+    return changed and PresetStore.saveStore("home", store)
+end
+
+local function migrate_home_layout_grid()
+    if type(HomePresets.normalizeLayoutGrid) ~= "function" then return false end
+    local store = PresetStore.loadStore("home")
+    local changed = HomePresets.normalizeLayoutGrid(store.settings, true)
+    for _name, preset in pairs(store.presets) do
+        local page = type(preset) == "table" and (preset.home_page or preset)
+        if HomePresets.normalizeLayoutGrid(page, false) then changed = true end
+    end
+    return changed and PresetStore.saveStore("home", store)
+end
+
 local function migrate_settings_files()
     local changed = PresetStore.migrateStores({
         home = HomePresets.defaultHomePage(),
@@ -847,6 +894,15 @@ local function migrate_settings_files()
         changed = true
     end
     if migrate_home_quote_font_size() then
+        changed = true
+    end
+    if migrate_home_featured_config() then
+        changed = true
+    end
+    if migrate_home_strip_config() then
+        changed = true
+    end
+    if migrate_home_layout_grid() then
         changed = true
     end
     return changed
@@ -882,6 +938,18 @@ local function migrate_changed_defaults(cfg)
             cfg.context_menu.allow_delete = true
         end
         cfg._meta.context_menu_allow_delete_default_migrated = true
+        changed = true
+    end
+
+    if cfg._meta.library_font_hyperreadable_default_migrated ~= true then
+        if type(cfg.library_font) ~= "table" then
+            cfg.library_font = {}
+        end
+        local font_face = cfg.library_font.font_face
+        if type(font_face) ~= "string" or font_face == "" or font_face == "default" then
+            cfg.library_font.font_face = defaults.library_font.font_face
+        end
+        cfg._meta.library_font_hyperreadable_default_migrated = true
         changed = true
     end
 
@@ -942,6 +1010,17 @@ function M.load()
         end
     end
 
+    -- Older configs only tracked whether Quickstart had been shown. Treat a
+    -- previously shown guide as completed so reruns preserve reader settings.
+    local migrated_qs_completion = false
+    if type(stored) == "table" and next(stored) ~= nil then
+        local m = rawget(stored, "_meta")
+        if type(m) == "table" and m.quickstart_completed == nil then
+            m.quickstart_completed = m.quickstart_shown_for_version ~= false
+            migrated_qs_completion = true
+        end
+    end
+
     local migrated_rakuyomi = migrate_legacy_rakuyomi_keys(stored)
     local cfg = merged_with_defaults(stored)
     local migrated_renamed
@@ -961,7 +1040,7 @@ function M.load()
     local migrated_changed_defaults
     cfg, migrated_changed_defaults = migrate_changed_defaults(cfg)
     if migrated_renamed or migrated_group or migrated_substring or migrated_updater or migrated_fbc or migrated_bim
-            or migrated_reader_backup or migrated_qs or migrated_file_config
+            or migrated_reader_backup or migrated_qs or migrated_qs_completion or migrated_file_config
             or migrated_settings_files or migrated_reader_presets
             or migrated_changed_defaults or migrated_home_lock
             or migrated_folder_paths or migrated_rakuyomi or migrated_page_browser then

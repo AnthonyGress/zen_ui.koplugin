@@ -333,6 +333,9 @@ msgstr "本の情報"
 msgid "Book Status"
 msgstr "本のステータス"
 
+msgid "Book strip"
+msgstr "ブックストリップ"
+
 msgid "Book switcher"
 msgstr ""
 
@@ -489,9 +492,6 @@ msgstr "すべてのジェスチャーをクリア"
 msgid "Clear book"
 msgstr "本をクリア"
 
-msgid "Clear books"
-msgstr "本をクリア"
-
 msgid "Close"
 msgstr "閉じる"
 
@@ -606,6 +606,9 @@ msgstr "現在/総ページ数"
 msgid "Custom"
 msgstr "カスタム"
 
+msgid "Custom books"
+msgstr ""
+
 msgid "Custom button label"
 msgstr "カスタムボタンラベル"
 
@@ -675,8 +678,8 @@ msgstr "ダークウォームグレー"
 msgid "Date"
 msgstr "日付"
 
-msgid "Date/time widget"
-msgstr "日付/時刻ウィジェット"
+msgid "Date/time"
+msgstr "日付/時刻"
 
 msgid "Day brightness"
 msgstr "日中明るさ"
@@ -719,6 +722,9 @@ msgstr "デフォルト"
 
 msgid "Default (black)"
 msgstr "デフォルト (黒)"
+
+msgid "Content: "
+msgstr "コンテンツ: "
 
 msgid "Default font size:"
 msgstr "デフォルトのフォントサイズ:"
@@ -930,14 +936,8 @@ msgstr "レポート送信に失敗しました: "
 msgid "Favorites"
 msgstr "お気に入り"
 
-msgid "Featured Book"
+msgid "Featured book"
 msgstr "注目の本"
-
-msgid "Featured Books"
-msgstr "注目の書籍"
-
-msgid "Featured widget"
-msgstr "注目のウィジェット"
 
 msgid "Featured widgets"
 msgstr "注目ウィジェット"
@@ -1025,6 +1025,9 @@ msgstr "フロントライト"
 
 msgid "Gallery"
 msgstr "ギャラリー"
+
+msgid "Genres"
+msgstr ""
 
 msgid "Get Started"
 msgstr "はじめる"
@@ -1629,6 +1632,9 @@ msgstr "概要"
 msgid "Outlined boxes"
 msgstr "枠線付きボックス"
 
+msgid "p."
+msgstr ""
+
 msgid "Page %1 of %2"
 msgstr "ページ %1 / %2"
 
@@ -1770,8 +1776,8 @@ msgstr "引用のフォントサイズ"
 msgid "Quote sources"
 msgstr "引用元"
 
-msgid "Quotes widget"
-msgstr "引用ウィジェット"
+msgid "Quotes"
+msgstr "引用"
 
 msgid "quotes.lua is empty"
 msgstr "quotes.lua は空です"
@@ -1824,20 +1830,20 @@ msgstr "読書目標"
 msgid "Reading goals font size"
 msgstr "読書目標のフォントサイズ"
 
-msgid "Reading goals widget"
-msgstr "読書目標ウィジェット"
-
 msgid "Reading stats"
 msgstr "読書統計"
-
-msgid "Reading stats widget"
-msgstr "読書統計ウィジェット"
 
 msgid "Reading trend"
 msgstr "読書傾向"
 
 msgid "Reading Trend"
 msgstr "読書傾向"
+
+msgid "Recent"
+msgstr ""
+
+msgid "Recent filters"
+msgstr ""
 
 msgid "Recently read"
 msgstr "最近読んだ"
@@ -2100,6 +2106,9 @@ msgstr "下部の境界線を表示"
 msgid "Show brightness slider"
 msgstr "明るさスライダーを表示"
 
+msgid "Show controls"
+msgstr ""
+
 msgid "Show description"
 msgstr "説明を表示"
 
@@ -2232,6 +2241,9 @@ msgstr "並べ替え順序"
 msgid "Sort series"
 msgstr "シリーズの並べ替え"
 
+msgid "Specific tag"
+msgstr ""
+
 msgid "Stable"
 msgstr "安定版"
 
@@ -2283,9 +2295,6 @@ msgstr "連続記録"
 msgid "Stream from page"
 msgstr "ページからストリーム"
 
-msgid "Strip widget"
-msgstr "ストリップウィジェット"
-
 msgid "Strip widgets"
 msgstr "ストリップウィジェット"
 
@@ -2322,14 +2331,8 @@ msgstr "タブ"
 msgid "Tag"
 msgstr "タグ"
 
-msgid "Tag books"
-msgstr "タグ付きの本"
-
 msgid "Tag strip widget"
 msgstr "タグストリップウィジェット"
-
-msgid "Tag: "
-msgstr "タグ："
 
 msgid "Tag: %1"
 msgstr "タグ: %1"
@@ -2780,3 +2783,12 @@ msgstr "ZenPM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPMがインストールされています。 KOReader を使用するには、KOReader を再起動します。"
+
+msgid "Automatic"
+msgstr "自動"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "ホームの間隔を更新しました。保存済みのウィジェットの順序と選択内容は維持され、新しいグリッドに合わせて調整されました。"
+
+msgid "%1, %2 %3"
+msgstr "%2%3日（%1）"

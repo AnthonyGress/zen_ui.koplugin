@@ -647,6 +647,26 @@ local function apply_collections()
         return true
     end
 
+    SharedState.register(zen_plugin, {
+        collections = {
+            showContextMenu = function(kind)
+                local FileManager = require("apps/filemanager/filemanager")
+                local fm_coll = FileManager.instance and FileManager.instance.collections
+                if not fm_coll then return false end
+                if kind == "collections" then
+                    return show_coll_blank_menu(fm_coll) == true
+                end
+                if kind == "favorites" then
+                    local ReadCollection = require("readcollection")
+                    return show_named_coll_blank_menu(
+                        fm_coll, nil, ReadCollection.default_collection_name,
+                        require("gettext")("Favorites"), true) == true
+                end
+                return false
+            end,
+        },
+    })
+
     ---------------------------------------------------------------------------
     -- Flags set during show calls
     ---------------------------------------------------------------------------
