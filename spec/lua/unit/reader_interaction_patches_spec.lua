@@ -224,6 +224,15 @@ describe("reader interaction patches", function()
 
     it("updates bookmark page styling and swaps title-bar actions", function()
         local stock_calls, update_calls = 0, 0
+        local font_calls = {}
+        ZenSpec.replace("ui/font", {
+            getFace = function(_, name, size, index)
+                table.insert(font_calls, { name = name, size = size, index = index })
+                return { name = name, size = size, index = index }
+            end,
+        })
+        ZenSpec.replace("document/credocument", {})
+        ZenSpec.unload("common/reader_font")
         local ReaderBookmark = {
             onShowBookmark = function() stock_calls = stock_calls + 1 end,
         }
@@ -244,17 +253,35 @@ describe("reader interaction patches", function()
         local menu = {
             font_size = 20,
             item_table = { { mandatory_dim = true }, { mandatory_dim = true } },
-            updateItems = function() update_calls = update_calls + 1 end,
+            item_group = {
+                setmetatable({}, { font = "LibraryFont", infont = "LibraryFont" }),
+            },
+            updateItems = function(self)
+                update_calls = update_calls + 1
+                local Font = require("ui/font")
+                Font:getFace("LibraryFont", self.font_size)
+                Font:getFace("LibraryFont", self.items_mandatory_font_size)
+            end,
             title_bar = { left_button = left, right_button = right },
         }
-        local bookmark = { bookmark_menu = { menu } }
+        local bookmark = {
+            bookmark_menu = { menu },
+            ui = {
+                font = { font_face = "ReaderFont" },
+                document = { configurable = { font_size = 23 } },
+            },
+        }
         ReaderBookmark.onShowBookmark(bookmark)
 
         assert.are.equal(1, stock_calls)
-        assert.are.equal(18, menu.items_mandatory_font_size)
+        assert.are.equal(23, menu.items_font_size)
+        assert.are.equal(23, menu.font_size)
+        assert.are.equal(23, menu.items_mandatory_font_size)
         assert.is_nil(menu.item_table[1].mandatory_dim)
         assert.is_nil(menu.item_table[2].mandatory_dim)
         assert.are.equal(1, update_calls)
+        assert.same({ name = "ReaderFont", size = 23, index = nil }, font_calls[1])
+        assert.same({ name = "ReaderFont", size = 23, index = nil }, font_calls[2])
         assert.are.equal("chevron.left", left.icon)
         assert.are.equal(right_tap, left.callback)
         assert.is_nil(left.hold_callback)

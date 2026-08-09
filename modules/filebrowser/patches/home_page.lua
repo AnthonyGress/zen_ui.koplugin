@@ -1564,6 +1564,16 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
         return get_book(path, need_time_left)
     end
 
+    local function strip_page_offset(total, count, offset, page_delta)
+        if total < 1 then return 0 end
+        local page_size = math.max(1, math.floor(tonumber(count) or 4))
+        local pages = math.ceil(total / page_size)
+        local current = (tonumber(offset) or 0) % total
+        local page = math.floor(current / page_size)
+        page = (page + math.floor(tonumber(page_delta) or 0)) % pages
+        return page * page_size
+    end
+
     local function get_strip_paths(source_key, count, order_key, component_id)
         local n = tonumber(count) or 5
         if n < 1 then n = 1 end
@@ -1643,23 +1653,9 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
                 local total = math.min(index.getCount(options), HOME_STRIP_MAX_BOOKS)
                 local offset_key = tostring(component_id or source_key)
                     .. ":" .. source_key .. ":" .. normalize_order(order_key)
-                local offset = tonumber(strip_offsets[offset_key]) or 0
-                if total > 0 then
-                    offset = offset % total
-                    strip_offsets[offset_key] = offset
-                    offset = (offset + (tonumber(page_delta) or 0) * n) % total
-                else
-                    offset = 0
-                end
+                local offset = strip_page_offset(
+                    total, n, strip_offsets[offset_key], page_delta)
                 local paths = index.getPage(offset, n, options)
-                if #paths < n and #paths < total then
-                    local wrapped = index.getPage(0, n - #paths, options)
-                    local seen = {}
-                    for _i, path in ipairs(paths) do seen[path] = true end
-                    for _i, path in ipairs(wrapped) do
-                        if not seen[path] then paths[#paths + 1] = path end
-                    end
-                end
                 local component_cfg = dcfg and dcfg.modules and dcfg.modules[component_id] or {}
                 local resolve_favorite = wants_favorite_badge
                     and component_cfg.show_badges == true
@@ -1679,19 +1675,11 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
         local resolve_favorite = wants_favorite_badge and component_cfg.show_badges == true
 
         local offset_key = tostring(component_id or source) .. ":" .. source .. ":" .. normalize_order(order_key)
-        local offset = tonumber(strip_offsets[offset_key]) or 0
-        if #paths > 0 then
-            offset = offset % #paths
-            strip_offsets[offset_key] = offset
-            offset = (offset + (tonumber(page_delta) or 0) * n) % #paths
-        else
-            offset = 0
-        end
+        local offset = strip_page_offset(#paths, n, strip_offsets[offset_key], page_delta)
 
         local books = {}
-        for i = 1, math.min(n, #paths) do
-            local idx = ((offset + i - 1) % #paths) + 1
-            local path = paths[idx]
+        for i = offset + 1, math.min(offset + n, #paths) do
+            local path = paths[i]
             local book = get_book(path, false, true)
             if book then
                 if resolve_favorite then
@@ -1822,15 +1810,10 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
     local function paginate(values, request, count, order_key, component_id, page_delta)
         local n = math.max(1, tonumber(count) or 4)
         local key = tostring(component_id or "strip") .. ":" .. descriptor_key(request, order_key)
-        local offset = tonumber(strip_offsets[key]) or 0
-        if #values > 0 then
-            offset = (offset % #values + (tonumber(page_delta) or 0) * n) % #values
-        else
-            offset = 0
-        end
+        local offset = strip_page_offset(#values, n, strip_offsets[key], page_delta)
         local page = {}
-        for i = 1, math.min(n, #values) do
-            page[#page + 1] = values[((offset + i - 1) % #values) + 1]
+        for i = offset + 1, math.min(offset + n, #values) do
+            page[#page + 1] = values[i]
         end
         return page, #values > n, key
     end
@@ -1932,8 +1915,8 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
         local n = math.max(1, tonumber(count) or 4)
         if type(values) ~= "table" or #values <= n then return false end
         local key = tostring(component_id or "strip") .. ":" .. descriptor_key(request, order_key)
-        local cur = tonumber(strip_offsets[key]) or 0
-        strip_offsets[key] = (cur + (direction == "previous" and -n or n)) % #values
+        strip_offsets[key] = strip_page_offset(
+            #values, n, strip_offsets[key], direction == "previous" and -1 or 1)
         if type(refresh) == "function" then refresh() end
         return true
     end
@@ -1949,9 +1932,9 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
                 if total <= n then return false end
                 local offset_key = tostring(component_id or source_key)
                     .. ":" .. source_key .. ":" .. normalize_order(order_key)
-                local cur = tonumber(strip_offsets[offset_key]) or 0
-                local step = direction == "previous" and -n or n
-                strip_offsets[offset_key] = (cur + step) % total
+                strip_offsets[offset_key] = strip_page_offset(
+                    total, n, strip_offsets[offset_key],
+                    direction == "previous" and -1 or 1)
                 if type(refresh) == "function" then refresh() end
                 return true
             end
@@ -1959,9 +1942,8 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
         local source, paths, n = get_strip_paths(source_key, count, order_key, component_id)
         if #paths <= n then return false end
         local offset_key = tostring(component_id or source) .. ":" .. source .. ":" .. normalize_order(order_key)
-        local cur = tonumber(strip_offsets[offset_key]) or 0
-        local step = direction == "previous" and -n or n
-        strip_offsets[offset_key] = (cur + step) % #paths
+        strip_offsets[offset_key] = strip_page_offset(
+            #paths, n, strip_offsets[offset_key], direction == "previous" and -1 or 1)
         if type(refresh) == "function" then
             refresh()
         elseif _home_menu and _home_menu._home_rebuild then

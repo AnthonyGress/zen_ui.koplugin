@@ -12,6 +12,7 @@ local function apply_page_browser()
     local Device       = require("device")
     local ZenTocWidget = require("modules/reader/zen_toc_widget")
     local PresetStore   = require("config/preset_store")
+    local ReaderFont   = require("common/reader_font")
     local utils        = require("common/utils")
     local WidgetResources = require("common/widget_resources")
     local lfs          = require("libs/libkoreader-lfs")
@@ -891,37 +892,11 @@ local function apply_page_browser()
                     .. " " .. _("Annotations"), "secondary", false, 3)
                 add_detail(summary.note, "secondary", false, 3)
 
-                local ui_reader_font = ui.font and ui.font.font_face
-                local settings_reader_font = settings and settings:readSetting("font_face")
-                local reader_font = ui_reader_font
-                    or settings_reader_font
-                    or (ui.document and ui.document.default_font)
-                local reader_font_size = tonumber(ui.configurable and ui.configurable.font_size)
-                    or (Font.sizemap and Font.sizemap.cfont) or 16
-                local reader_font_file, reader_font_index
-                if reader_font then
-                    local ok_cre, CreDocument = pcall(require, "document/credocument")
-                    if ok_cre and CreDocument then
-                        local ok_engine, cre = pcall(CreDocument.engineInit, CreDocument)
-                        if ok_engine and cre and cre.getFontFaceFilenameAndFaceIndex then
-                            reader_font_file, reader_font_index =
-                                cre.getFontFaceFilenameAndFaceIndex(reader_font)
-                            if not reader_font_file then
-                                reader_font_file, reader_font_index =
-                                    cre.getFontFaceFilenameAndFaceIndex(reader_font, nil, true)
-                            end
-                        end
-                    end
-                end
+                local reader_font_info = ReaderFont.getInfo(ui,
+                    (Font.sizemap and Font.sizemap.cfont) or 16)
+                local reader_font_size = reader_font_info.size
                 local function reader_face_at(size)
-                    local font_source = reader_font_file or reader_font or "cfont"
-                    local ok, face = pcall(Font.getFace, Font, font_source, size, reader_font_index)
-                    if ok and face then return face end
-                    if font_source == reader_font or not reader_font then
-                        return nil
-                    end
-                    ok, face = pcall(Font.getFace, Font, reader_font, size)
-                    return ok and face or nil
+                    return ReaderFont.getFace(reader_font_info, size)
                 end
                 local reader_face = reader_face_at(reader_font_size)
                 local text_faces = {

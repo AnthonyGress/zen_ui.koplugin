@@ -26,6 +26,7 @@ local TextWidget     = require("ui/widget/textwidget")
 local UIManager      = require("ui/uimanager")
 local Screen         = Device.screen
 local pager          = require("common/ui/zen_pager")
+local ReaderFont     = require("common/reader_font")
 local TitleStyle     = require("common/ui/zen_title_style")
 
 local function supports_hardware_focus()
@@ -118,6 +119,10 @@ function ZenTocWidget:init()
     end
     self._entries = entries
 
+    local reader_font = ReaderFont.getInfo(self.ui, 18)
+    self._reader_face = ReaderFont.getFace(reader_font)
+        or Font:getFace("cfont", reader_font.size)
+
     -- -----------------------------------------------------------------------
     -- Layout constants (all screen-scaled)
     -- -----------------------------------------------------------------------
@@ -126,7 +131,9 @@ function ZenTocWidget:init()
     local PAD         = Screen:scaleBySize(16)   -- horizontal content padding
     local TITLE_H     = TitleStyle.HEADER_CONTENT_HEIGHT
     local SEP_H       = TitleStyle.DIVIDER_HEIGHT
-    local ROW_H       = Screen:scaleBySize(48)
+    local row_sample  = TextWidget:new{ text = "Wg", face = self._reader_face, padding = 0 }
+    local ROW_H       = math.max(Screen:scaleBySize(48), row_sample:getSize().h + Screen:scaleBySize(16))
+    row_sample:free()
     local BAR_PAD_V   = Screen:scaleBySize(7)
     local DOT_DIAM    = Screen:scaleBySize(10)
     local DOT_GAP     = Screen:scaleBySize(12)
@@ -458,7 +465,7 @@ function ZenTocWidget:paintTo(bb, x, y)
         -- Empty state
         local etw = TextWidget:new{
             text    = "No table of contents available",
-            face    = Font:getFace("cfont", 15),
+            face    = self._reader_face,
             fgcolor = Blitbuffer.COLOR_DARK_GRAY,
             padding = 0,
         }
@@ -491,10 +498,9 @@ function ZenTocWidget:paintTo(bb, x, y)
 
             -- Page number (right-aligned)
             local page_str = e.page_label or tostring(e.page)
-            local pface    = Font:getFace("cfont", 16)
             local pn_tw    = TextWidget:new{
                 text    = page_str,
-                face    = pface,
+                face    = self._reader_face,
                 fgcolor = Blitbuffer.COLOR_BLACK,
                 bold    = is_active,
                 padding = 0,
@@ -507,10 +513,9 @@ function ZenTocWidget:paintTo(bb, x, y)
 
             -- Chapter title (truncated to available width)
             local title_max_w = pn_x - text_x - Screen:scaleBySize(8)
-            local tface = Font:getFace("cfont", 18)
             local title_tw2 = TextWidget:new{
                 text      = e.title,
-                face      = tface,
+                face      = self._reader_face,
                 fgcolor   = Blitbuffer.COLOR_BLACK,
                 bold      = is_active,
                 max_width = title_max_w,

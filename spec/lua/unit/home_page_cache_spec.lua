@@ -739,18 +739,21 @@ describe("home data and book caches", function()
 
         local featured = provider:getFeaturedBook("to_be_read", "default")
         local first = provider:getBooksForStripPage(
-            "to_be_read", 2, "default", "strip_tbr", 0)
+            "to_be_read", 4, "default", "strip_tbr", 0)
         local adjacent = provider:getBooksForStripPage(
-            "to_be_read", 2, "default", "strip_tbr", 1)
+            "to_be_read", 4, "default", "strip_tbr", 1)
 
         assert.are.equal("/library/tbr-1.epub", featured.path)
         assert.are.equal("/library/tbr-1.epub", first[1].path)
         assert.are.equal("/library/tbr-2.epub", first[2].path)
-        assert.are.equal("/library/tbr-3.epub", adjacent[1].path)
+        assert.are.equal("/library/tbr-4.epub", first[4].path)
+        assert.are.equal("/library/tbr-5.epub", adjacent[1].path)
+        assert.are.equal("/library/tbr-6.epub", adjacent[2].path)
+        assert.are.equal(2, #adjacent)
         assert.are.same({
             { offset = 0, limit = 1 },
-            { offset = 0, limit = 2 },
-            { offset = 2, limit = 2 },
+            { offset = 0, limit = 4 },
+            { offset = 4, limit = 4 },
         }, page_calls)
         assert.are.equal(0, all_calls)
         assert.are.equal(1, doc_open_count)
@@ -1060,6 +1063,91 @@ describe("home data and book caches", function()
             { kind = "favorites" }, 1, "default", "strip", 0)
         assert.are.equal("/library/beta.epub", books[1].path)
         assert.is_true(adjacent)
+    end)
+
+    it("keeps the final strip page partial before wrapping", function()
+        local favorites = {}
+        for i = 1, 6 do
+            favorites[tostring(i)] = {
+                file = "/library/book-" .. tostring(i) .. ".epub",
+                order = i,
+            }
+        end
+        ZenSpec.replace("readcollection", {
+            default_collection_name = "favorites",
+            coll = { favorites = favorites },
+            coll_settings = {},
+        })
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, {
+            rows = { order = { "strip" }, enabled = { strip = true } },
+            modules = { strip = {} },
+        })
+        local source = { kind = "favorites" }
+
+        assert.is_true(provider:shiftStripItems(source, 4, "default", "next", "strip"))
+        local partial = provider:getStripItemsForPage(source, 4, "default", "strip", 0)
+        assert.are.same({ "/library/book-5.epub", "/library/book-6.epub" }, {
+            partial[1].path,
+            partial[2].path,
+        })
+        assert.are.equal(2, #partial)
+
+        assert.is_true(provider:shiftStripItems(source, 4, "default", "next", "strip"))
+        local restarted = provider:getStripItemsForPage(source, 4, "default", "strip", 0)
+        assert.are.same({
+            "/library/book-1.epub",
+            "/library/book-2.epub",
+            "/library/book-3.epub",
+            "/library/book-4.epub",
+        }, {
+            restarted[1].path,
+            restarted[2].path,
+            restarted[3].path,
+            restarted[4].path,
+        })
+    end)
+
+    it("keeps the final recent strip page partial before wrapping", function()
+        for i = #history_items, 1, -1 do
+            table.remove(history_items, i)
+        end
+        for i = 1, 6 do
+            history_items[#history_items + 1] = {
+                file = "/library/recent-" .. tostring(i) .. ".epub",
+            }
+        end
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, {
+            rows = { order = { "strip_recent" }, enabled = { strip_recent = true } },
+            modules = { strip_recent = {} },
+        })
+
+        assert.is_true(provider:shiftStrip(
+            "recently_read", 4, "default", "next", "strip_recent"))
+        local partial = provider:getBooksForStripPage(
+            "recently_read", 4, "default", "strip_recent", 0)
+        assert.are.same({ "/library/recent-5.epub", "/library/recent-6.epub" }, {
+            partial[1].path,
+            partial[2].path,
+        })
+        assert.are.equal(2, #partial)
+
+        assert.is_true(provider:shiftStrip(
+            "recently_read", 4, "default", "next", "strip_recent"))
+        local restarted = provider:getBooksForStripPage(
+            "recently_read", 4, "default", "strip_recent", 0)
+        assert.are.same({
+            "/library/recent-1.epub",
+            "/library/recent-2.epub",
+            "/library/recent-3.epub",
+            "/library/recent-4.epub",
+        }, {
+            restarted[1].path,
+            restarted[2].path,
+            restarted[3].path,
+            restarted[4].path,
+        })
     end)
 
     it("restores the active strip page across provider rebuilds", function()

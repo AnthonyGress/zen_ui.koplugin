@@ -5,6 +5,8 @@
 local function apply_bookmarks()
     local ReaderBookmark = require("apps/reader/modules/readerbookmark")
     local Device = require("device")
+    local ReaderFont = require("common/reader_font")
+    local unpack = table.unpack or unpack
 
     local _orig_gotoBookmark = ReaderBookmark.gotoBookmark
     if type(_orig_gotoBookmark) == "function" then
@@ -144,9 +146,20 @@ local function apply_bookmarks()
         local bm_menu = self.bookmark_menu and self.bookmark_menu[1]
         if not bm_menu then return end
 
-        -- Default mandatory (page number) font size is font_size - 4.
-        -- Use font_size - 2 for a slightly larger page number.
-        bm_menu.items_mandatory_font_size = (bm_menu.font_size or 18) - 2
+        local reader_font = ReaderFont.getInfo(self.ui, bm_menu.font_size or 18)
+        local menu_faces = { smallinfofont = true, infont = true }
+        local first_item = bm_menu.item_group and bm_menu.item_group[1]
+        local item_class = first_item and getmetatable(first_item)
+        if item_class and item_class.font then menu_faces[item_class.font] = true end
+        if item_class and item_class.infont then menu_faces[item_class.infont] = true end
+        bm_menu.items_font_size = reader_font.size
+        bm_menu.font_size = reader_font.size
+        bm_menu.items_mandatory_font_size = reader_font.size
+        if bm_menu.items_max_lines and type(bm_menu.setupItemHeights) == "function" then
+            ReaderFont.withMenuFaces(reader_font, function()
+                bm_menu:setupItemHeights()
+            end, menu_faces)
+        end
 
         -- Wrap the instance's updateItems so that every subsequent re-render
         -- (page turns, filter/sort, bulk-select) also clears mandatory_dim,
@@ -158,7 +171,10 @@ local function apply_bookmarks()
                 for _i, item in ipairs(self_m.item_table or {}) do
                     item.mandatory_dim = nil
                 end
-                return _orig_updateItems(self_m, ...)
+                local args = { ... }
+                return ReaderFont.withMenuFaces(reader_font, function()
+                    return _orig_updateItems(self_m, unpack(args))
+                end, menu_faces)
             end
         end
 
