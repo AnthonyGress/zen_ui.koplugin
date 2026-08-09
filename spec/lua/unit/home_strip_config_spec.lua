@@ -16,12 +16,12 @@ describe("unified Home strip configuration", function()
 
         assert.are.equal(3, strip.strip_schema_version)
         assert.are.same({
-            "page_left", "to_be_read", "search", "tags", "page_right",
+            "page_left", "recent", "search", "tags", "page_right",
         }, strip.controls.order)
         for _i, id in ipairs(strip.controls.order) do
             assert.is_true(strip.controls.show_buttons[id])
         end
-        assert.is_nil(strip.controls.show_buttons.recent)
+        assert.is_nil(strip.controls.show_buttons.to_be_read)
     end)
 
     it("keeps the unified strip disabled when no legacy strip was enabled", function()
@@ -102,6 +102,21 @@ describe("unified Home strip configuration", function()
         assert.are.equal(9, #page.modules.strip.controls.order)
     end)
 
+    it("uses the first visible source tab as the controls default", function()
+        local Presets = require("modules/filebrowser/patches/home/home_presets")
+        local page = Presets.defaultHomePage()
+        local strip = page.modules.strip
+        strip.default_source = { kind = "recent" }
+        strip.controls.enabled = true
+        strip.controls.order = { "page_left", "to_be_read", "favorites", "recent" }
+        strip.controls.show_buttons = {
+            page_left = true, to_be_read = false, favorites = true, recent = true,
+        }
+
+        assert.is_true(Presets.normalizeStripConfig(page))
+        assert.are.same({ kind = "favorites" }, strip.default_source)
+    end)
+
     it("adds configurable Search to older custom strip controls", function()
         local Presets = require("modules/filebrowser/patches/home/home_presets")
         local page = Presets.defaultHomePage()
@@ -130,9 +145,10 @@ describe("unified Home strip configuration", function()
         assert.is_true(Presets.normalizeStripConfig(page))
         assert.are.equal(3, page.modules.strip.strip_schema_version)
         assert.are.same({
-            "page_left", "to_be_read", "search", "tags", "page_right",
+            "page_left", "recent", "search", "tags", "page_right",
         }, controls.order)
-        assert.is_nil(controls.show_buttons.recent)
+        assert.is_true(controls.show_buttons.recent)
+        assert.is_nil(controls.show_buttons.to_be_read)
         assert.is_true(controls.show_buttons.page_left)
         assert.is_true(controls.show_buttons.page_right)
     end)

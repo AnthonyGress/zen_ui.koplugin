@@ -135,6 +135,17 @@ describe("Home widget content settings", function()
                     if entry.id == id then return entry end
                 end
             end,
+            firstVisibleSource = function(controls)
+                local model = require("common/nav_button_model")
+                for _i, id in ipairs(controls.order or {}) do
+                    if controls.show_buttons[id] == true then
+                        local entry = model.find(controls, id)
+                        if entry and entry.source == true then
+                            return { kind = id }, id
+                        end
+                    end
+                end
+            end,
             label = function(_controls, entry) return entry.label end,
         })
         ZenSpec.replace("common/dispatcher_menu", {})
@@ -250,6 +261,21 @@ describe("Home widget content settings", function()
         find_item(parent.item_table[1].sub_item_table_func(parent), "Favorites").callback()
         assert.is_nil(find_item(parent.item_table, "Recent filters"))
         assert.is_nil(find_item(parent.item_table, "Custom books"))
+    end)
+
+    it("uses the first visible source tab instead of a Content option", function()
+        local strip = home_page.modules.strip
+        strip.controls.enabled = true
+        strip.controls.order = { "recent", "favorites" }
+        strip.default_source = { kind = "favorites" }
+
+        local settings = require("modules/settings/sections/library_settings/home_settings")
+        assert.is_true(settings.openWidgetSettings("strip"))
+
+        local items = arrange_options.item_table
+        assert.is_false(has_item_prefix(items, "Content: "))
+        assert.is_not_nil(find_item(items, "Controls"))
+        assert.is_not_nil(find_item(items, "Recent filters"))
     end)
 
     it("exposes strip control font face, size, and weight settings", function()

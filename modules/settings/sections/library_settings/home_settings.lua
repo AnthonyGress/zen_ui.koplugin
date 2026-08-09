@@ -1085,6 +1085,14 @@ function M.build(ctx)
         return items
     end
 
+    local function strip_default_source(mcfg)
+        if mcfg.controls.enabled == true then
+            local source = ButtonModel.firstVisibleSource(mcfg.controls)
+            if source then return source end
+        end
+        return mcfg.default_source
+    end
+
     local function edit_strip_label(controls, entry, touchmenu_instance)
         local InputDialog = require("ui/widget/inputdialog")
         local dialog
@@ -1549,16 +1557,6 @@ function M.build(ctx)
         local recent = mcfg.sources.recent
         local items = {
             {
-                text_func = function()
-                    return _("Content: ") .. source_label(mcfg.default_source)
-                end,
-                sub_item_table_func = function(touchmenu_instance)
-                    return build_default_source_items(mcfg, function()
-                        refresh_widget_items(touchmenu_instance, build_strip_widget_items)
-                    end)
-                end,
-            },
-            {
                 text = _("Controls"),
                 sub_item_table_func = function()
                     return {
@@ -1641,7 +1639,20 @@ function M.build(ctx)
                 end,
             },
         }
-        if mcfg.default_source.kind == "recent" then
+        if mcfg.controls.enabled ~= true then
+            table.insert(items, 1, {
+                text_func = function()
+                    return _("Content: ") .. source_label(mcfg.default_source)
+                end,
+                sub_item_table_func = function(touchmenu_instance)
+                    return build_default_source_items(mcfg, function()
+                        refresh_widget_items(touchmenu_instance, build_strip_widget_items)
+                    end)
+                end,
+            })
+        end
+        local source = strip_default_source(mcfg)
+        if source.kind == "recent" then
             table.insert(items, 2, {
                 text = _("Recent filters"),
                 sub_item_table = {
@@ -1650,7 +1661,7 @@ function M.build(ctx)
                     filter_status_item(recent, "filter_finished", _("Hide finished books")),
                 },
             })
-        elseif mcfg.default_source.kind == "custom" then
+        elseif source.kind == "custom" and source.paths == nil then
             table.insert(items, 2, {
                 text = _("Custom books"),
                 sub_item_table_func = function() return build_custom_books_items(mcfg) end,

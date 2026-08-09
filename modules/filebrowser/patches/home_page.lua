@@ -2907,8 +2907,7 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
                 if i == 1 then
                     content_bounds.min_shift = 0
                     content_bounds.max_shift = 0
-                elseif content_bounds.min_shift ~= 0
-                        or content_bounds.max_shift ~= 0 then
+                else
                     -- Borrow the adjacent blank row gaps when internal slack is too small.
                     content_bounds.min_shift = (content_bounds.min_shift or 0) - row_gap * 2
                     content_bounds.max_shift = (content_bounds.max_shift or 0) + row_gap * 2
@@ -2925,11 +2924,17 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
         end
     end
 
+    local top_visual_inset = page_pad
+    if visual_rows[1] then
+        top_visual_inset = math.max(0,
+            (visual_rows[1].row_y or 0) + (visual_rows[1].top or 0))
+    end
+    menu._zen_home_top_visual_inset = top_visual_inset
     local run = {}
     local function apply_visual_run(anchor_bottom)
         if #run > 1 then
             local spacing_options = anchor_bottom
-                and { bottom = body_h - page_pad } or nil
+                and { bottom = body_h - top_visual_inset } or nil
             local shifts = Registry.equalSpacingShifts(run, spacing_options)
             for i, shift in ipairs(shifts) do
                 run[i].set_shift(shift)

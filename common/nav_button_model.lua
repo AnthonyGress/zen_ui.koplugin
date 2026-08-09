@@ -64,6 +64,23 @@ function M.find(controls, id)
     end
 end
 
+function M.firstVisibleSource(controls)
+    if type(controls) ~= "table" then return end
+    local show_buttons = type(controls.show_buttons) == "table"
+        and controls.show_buttons or {}
+    local seen = {}
+    local visible_count = 0
+    for _i, id in ipairs(type(controls.order) == "table" and controls.order or {}) do
+        if type(id) == "string" and not seen[id] and show_buttons[id] == true then
+            seen[id] = true
+            visible_count = visible_count + 1
+            local source = M.sourceDescriptor(M.find(controls, id))
+            if source then return source, id end
+            if visible_count >= 7 then return end
+        end
+    end
+end
+
 function M.label(controls, entry)
     if type(entry) ~= "table" then return _("Custom") end
     local override = type(controls) == "table" and type(controls.labels) == "table"

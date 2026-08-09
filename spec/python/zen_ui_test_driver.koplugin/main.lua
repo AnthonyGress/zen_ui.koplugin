@@ -462,12 +462,18 @@ local function home_state()
     if menu then collect_texts(menu, visible_texts, {}, 0) end
     local widget_ids = {}
     local book_paths = {}
+    local strip_bottom
     for _i, target in ipairs(menu and menu._zen_home_focus_targets or {}) do
         local key = type(target.key) == "string" and target.key or ""
         local widget_id = key:match("^widget:(.+)$")
         local book_path = key:match("^book:(.+)$")
         if widget_id then widget_ids[#widget_ids + 1] = widget_id end
         if book_path then book_paths[#book_paths + 1] = book_path end
+        local dimen = target.component_id == "strip"
+            and target.widget and target.widget.dimen or nil
+        if dimen and type(dimen.y) == "number" and type(dimen.h) == "number" then
+            strip_bottom = math.max(strip_bottom or 0, dimen.y + dimen.h)
+        end
     end
     return {
         active = Home and Home.hasActive() or false,
@@ -478,6 +484,9 @@ local function home_state()
         widget_ids = widget_ids,
         book_paths = book_paths,
         page_padding = menu and menu._zen_home_page_padding or 0,
+        body_height = menu and menu.height or 0,
+        top_visual_inset = menu and menu._zen_home_top_visual_inset or 0,
+        strip_bottom = strip_bottom,
         visual_gaps = menu and menu._zen_home_visual_gaps or {},
         clock_refreshers = #(menu and menu._zen_home_clock_refreshers or {}),
         visible_texts = visible_texts,

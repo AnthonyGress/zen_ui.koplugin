@@ -449,10 +449,16 @@ function M.build_strip(ctx, source_key)
     local height = math.max(1, outer_height - metrics.vertical_padding * 2)
     local runtime = ctx.menu and ctx.menu._zen_home_strip_runtime
     local runtime_created = false
-    if type(runtime) ~= "table" then
-        local configured = type(module_cfg.default_source) == "table"
+    local function default_source()
+        if controls_enabled then
+            local first_source = ButtonModel.firstVisibleSource(controls_cfg)
+            if first_source then return utils.deepcopy(first_source) end
+        end
+        return type(module_cfg.default_source) == "table"
             and utils.deepcopy(module_cfg.default_source) or { kind = "recent" }
-        runtime = { source = configured }
+    end
+    if type(runtime) ~= "table" then
+        runtime = { source = default_source() }
         if source_key then
             runtime.source = { kind = source_key == "recently_read" and "recent"
                 or source_key == "custom_strip" and "custom" or source_key }
@@ -545,8 +551,7 @@ function M.build_strip(ctx, source_key)
         if not descriptors_match(descriptor, source)
                 and not parent_descriptor_matches(descriptor, source) then
             runtime.active_id = nil
-            source = type(module_cfg.default_source) == "table"
-                and utils.deepcopy(module_cfg.default_source) or { kind = "recent" }
+            source = default_source()
             runtime.source = source
             source_name = source.kind == "recent" and "recently_read"
                 or source.kind == "custom" and "custom_strip" or source.kind

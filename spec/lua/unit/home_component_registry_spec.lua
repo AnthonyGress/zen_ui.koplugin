@@ -287,14 +287,16 @@ describe("home component registry", function()
         end
     end)
 
-    it("spreads widgets evenly to the bottom page inset", function()
+    it("spreads widgets evenly between matching visual edge insets", function()
         local Registry = require("modules/filebrowser/patches/home/components/registry")
         local items = {
             { row_y = 10, top = 10, bottom = 110, min_shift = 0, max_shift = 0 },
             { row_y = 250, top = 20, bottom = 120, min_shift = -100, max_shift = 100 },
             { row_y = 500, top = 10, bottom = 110, min_shift = -100, max_shift = 200 },
         }
-        local bottom = 701
+        local body_h = 721
+        local top_inset = items[1].row_y + items[1].top
+        local bottom = body_h - top_inset
         local shifts = Registry.equalSpacingShifts(items, { bottom = bottom })
         local first_gap = items[2].row_y + items[2].top + shifts[2]
             - items[1].row_y - items[1].bottom - shifts[1]
@@ -304,6 +306,8 @@ describe("home component registry", function()
         assert.is_true(math.abs(first_gap - second_gap) <= 1)
         assert.are.equal(bottom,
             items[3].row_y + items[3].bottom + shifts[3])
+        assert.are.equal(top_inset,
+            body_h - items[3].row_y - items[3].bottom - shifts[3])
     end)
 
     it("equalizes gaps when content is taller than its row", function()

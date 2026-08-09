@@ -549,10 +549,20 @@ describe("home strip widget", function()
         assert.is_true(has_text("Start reading a book to fill this space."))
     end)
 
-    it("bookends label tabs and a medium Search with compact page controls", function()
+    it("balances a dynamic Search between compact page controls", function()
         rawset(_G, "__ZEN_UI_PLUGIN", {
             config = { features = { browser_cover_rounded_corners = true } },
         })
+        local controls = {
+            enabled = true,
+            order = { "page_left", "to_be_read", "search", "tags", "page_right" },
+            show_buttons = {
+                page_left = true, to_be_read = true, search = true,
+                tags = true, page_right = true,
+            },
+            labels = { tags = "Tags" },
+            custom_buttons = {},
+        }
         local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         Strip.build({
             width = 600,
@@ -560,16 +570,7 @@ describe("home strip widget", function()
             component_id = "strip",
             module_cfg = {
                 count = 4,
-                controls = {
-                    enabled = true,
-                    order = { "page_left", "to_be_read", "search", "tags", "page_right" },
-                    show_buttons = {
-                        page_left = true, to_be_read = true, search = true,
-                        tags = true, page_right = true,
-                    },
-                    labels = { tags = "Tags" },
-                    custom_buttons = {},
-                },
+                controls = controls,
             },
             data = { getStripItemsForPage = function() return {} end },
         })
@@ -577,7 +578,7 @@ describe("home strip widget", function()
         local outer_frames = {}
         local tab_frames = {}
         local dividers = {}
-        local icon_widths = {}
+        local icon_cells = {}
         local icon_map = require("common/inline_icon_map")
         for _i, widget in ipairs(created) do
             if widget.kind == "ui/widget/container/framecontainer"
@@ -593,14 +594,14 @@ describe("home strip widget", function()
                     and widget[1] and (widget[1].text == icon_map.arrow_left
                         or widget[1].text == icon_map.search
                         or widget[1].text == icon_map.arrow_right) then
-                icon_widths[#icon_widths + 1] = widget.dimen.w
+                icon_cells[widget[1].text] = widget
             end
         end
         assert.are.equal(1, #outer_frames)
         assert.are.equal(584, outer_frames[1].width)
         assert.are.equal(4, outer_frames[1].radius)
         assert.are.equal(2, #tab_frames)
-        assert.are.same({ 207, 207 }, {
+        assert.are.same({ 183, 147 }, {
             tab_frames[1].width,
             tab_frames[2].width,
         })
@@ -608,7 +609,19 @@ describe("home strip widget", function()
             tab_frames[1].bordersize,
             tab_frames[2].bordersize,
         })
-        assert.are.same({ 50, 62, 50 }, icon_widths)
+        assert.are.equal("\u{F0141}", icon_map.arrow_left)
+        assert.are.equal("\u{F0142}", icon_map.arrow_right)
+        assert.are.equal(50, icon_cells[icon_map.arrow_left].dimen.w)
+        assert.are.equal(146, icon_cells[icon_map.search].dimen.w)
+        assert.are.equal(50, icon_cells[icon_map.arrow_right].dimen.w)
+        assert.are.equal(tab_frames[1].width - #"To Be Read" * 6,
+            tab_frames[2].width - #"Tags" * 6)
+        for _i, icon in ipairs({
+            icon_map.arrow_left, icon_map.search, icon_map.arrow_right,
+        }) do
+            assert.are.equal(26, icon_cells[icon].dimen.h)
+            assert.are.equal(0, icon_cells[icon][1].padding)
+        end
         assert.are.equal(4, #dividers)
         for _i, divider in ipairs(dividers) do
             assert.are.equal(1, divider.dimen.w)
@@ -619,6 +632,31 @@ describe("home strip widget", function()
         assert.is_true(has_text(icon_map.arrow_left))
         assert.is_true(has_text(icon_map.search))
         assert.is_true(has_text(icon_map.arrow_right))
+
+        local first_wide_widget = #created + 1
+        require("modules/filebrowser/patches/home/widgets/strip_controls").build({
+            width = 785,
+            height = 30,
+            controls = controls,
+            on_source = function() return true end,
+            on_action = function() return true end,
+        })
+        local wide_search_width
+        local wide_label_widths = {}
+        for i = first_wide_widget, #created do
+            local widget = created[i]
+            if widget.kind == "ui/widget/container/centercontainer"
+                    and widget[1] and widget[1].text == icon_map.search then
+                wide_search_width = widget.dimen.w
+            elseif widget.kind == "ui/widget/container/framecontainer"
+                    and widget.height == 26 then
+                wide_label_widths[#wide_label_widths + 1] = widget.width
+            end
+        end
+        assert.are.equal(213, wide_search_width)
+        assert.are.same({ 250, 214 }, wide_label_widths)
+        assert.is_true(wide_search_width > icon_cells[icon_map.search].dimen.w)
+        assert.is_true(wide_search_width < wide_label_widths[2])
     end)
 
     it("squares strip controls when rounded library covers are disabled", function()
@@ -886,6 +924,39 @@ describe("home strip widget", function()
         assert.are.same({ kind = "recent" }, menu._zen_home_strip_runtime.source)
         assert.are.equal("recent", menu._zen_home_strip_runtime.active_id)
         assert.are.same({ source = "recent", active_id = "recent" }, remembered)
+    end)
+
+    it("starts on the first visible source tab when controls are enabled", function()
+        local requested_source
+        local menu = {}
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 300,
+            menu = menu,
+            component_id = "strip",
+            module_cfg = {
+                default_source = { kind = "recent" },
+                controls = {
+                    enabled = true,
+                    order = { "page_left", "to_be_read", "favorites", "recent" },
+                    show_buttons = {
+                        page_left = true, to_be_read = false,
+                        favorites = true, recent = true,
+                    },
+                    labels = {}, custom_buttons = {},
+                },
+            },
+            data = {
+                getStripItemsForPage = function(_self, source)
+                    requested_source = source
+                    return {}
+                end,
+            },
+        })
+
+        assert.are.same({ kind = "favorites" }, requested_source)
+        assert.are.equal("favorites", menu._zen_home_strip_runtime.active_id)
     end)
 
     it("switches source tabs in place and delegates normal actions and Search", function()

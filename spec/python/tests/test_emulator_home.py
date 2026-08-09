@@ -20,14 +20,26 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def _seed_history(ko_home: Path, book: Path) -> None:
+def _seed_history_books(ko_home: Path, books: list[Path]) -> None:
     ko_home.joinpath("history.lua").write_text(
-        "return {{ time = 1704067200, file = " + json.dumps(str(book.resolve())) + " }}\n",
+        "return {\n"
+        + "\n".join(
+            "  { time = " + str(1704067200 - index)
+            + ", file = " + json.dumps(str(book.resolve())) + " },"
+            for index, book in enumerate(books)
+        )
+        + "\n}\n",
         encoding="utf-8",
     )
 
 
-def _seed_home_settings(ko_home: Path, *, show_strip_titles: bool = True) -> None:
+def _seed_history(ko_home: Path, book: Path) -> None:
+    _seed_history_books(ko_home, [book])
+
+
+def _seed_home_settings(
+    ko_home: Path, *, show_strip_titles: bool = True, bookshelf: bool = False
+) -> None:
     settings = ko_home / "settings" / "Zen UI"
     settings.mkdir(parents=True, exist_ok=True)
     source = """return {
@@ -83,6 +95,18 @@ def _seed_home_settings(ko_home: Path, *, show_strip_titles: bool = True) -> Non
         "show_strip_titles = true",
         f"show_strip_titles = {str(show_strip_titles).lower()}",
     )
+    if bookshelf:
+        source = source.replace(
+            "featured = true, strip = true, quotes = true,\n"
+            "        reading_goals = true, stats_triplet = true,",
+            "featured = true, strip = true, quotes = false,\n"
+            "        reading_goals = false, stats_triplet = false,",
+        )
+        source = source.replace(
+            "count = 4, interactive = true, order = \"default\",",
+            "count = 8, interactive = true, order = \"default\",",
+        )
+        source = source.replace("two_rows = false", "two_rows = true")
     settings.joinpath("home.lua").write_text(
         source,
         encoding="utf-8",
@@ -146,6 +170,7 @@ def _wait_for_home(
     driver: ZenDriver,
     required_texts: set[str] | None = None,
     required_book_paths: set[str] | None = None,
+    minimum_widget_count: int = 5,
 ) -> dict[str, object]:
     deadline = time.monotonic() + 30
     latest: dict[str, object] = {}
@@ -158,12 +183,56 @@ def _wait_for_home(
         }
         latest["visible_texts"] = sorted(visible_texts)
         book_paths = set(latest.get("book_paths", []))
-        if latest.get("active") and len(latest.get("widget_ids", [])) >= 5 \
+        if latest.get("active") \
+                and len(latest.get("widget_ids", [])) >= minimum_widget_count \
                 and (not required_texts or required_texts <= visible_texts) \
                 and (not required_book_paths or required_book_paths <= book_paths):
             return latest
         time.sleep(0.25)
     raise AssertionError(f"Home widgets did not become ready: {latest}")
+
+
+def test_bookshelf_strip_matches_the_top_visual_inset() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-home-bookshelf-") as temporary:
+        root = Path(temporary)
+        ko_home = root / "home"
+        ko_home.mkdir()
+        library = root / "library"
+        fixture = build_library(library)
+        books = [fixture["epub"]]
+        for index in range(2, 9):
+            book = library / f"Bookshelf {index}.epub"
+            book.write_bytes(fixture["epub"].read_bytes())
+            books.append(book)
+        _seed_home_settings(ko_home, show_strip_titles=False, bookshelf=True)
+        _seed_bookinfo(ko_home, fixture["epub"])
+        _seed_history_books(ko_home, books)
+        socket_path = root / "driver.sock"
+        process = launch(
+            runtime,
+            ko_home,
+            socket_path,
+            library.resolve(),
+            env_overrides={
+                "EMULATE_READER_W": "562",
+                "EMULATE_READER_H": "725",
+            },
+        )
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            assert driver.command("activate_navbar_tab", id="home")["ok"] is True
+            home = _wait_for_home(
+                driver,
+                required_book_paths={str(book.resolve()) for book in books[1:]},
+                minimum_widget_count=2,
+            )
+            bottom_inset = int(home["body_height"]) - int(home["strip_bottom"])
+            assert abs(bottom_inset - int(home["top_visual_inset"])) <= 2, home
+        finally:
+            process.send_signal(signal.SIGTERM)
+            process.wait(timeout=15)
 
 
 @pytest.mark.parametrize("with_history", [True, False], ids=["history", "empty-history"])

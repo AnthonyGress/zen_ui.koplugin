@@ -1,3 +1,5 @@
+local ButtonModel = require("common/nav_button_model")
+
 local M = {}
 
 M.DEFAULT_PRESET_NAME = "Zen Default"
@@ -47,10 +49,10 @@ local function strip_defaults(opts)
             enabled = opts.controls == true,
             labels = {},
             next_custom_id = 0,
-            order = { "page_left", "to_be_read", "search", "tags", "page_right" },
+            order = { "page_left", "recent", "search", "tags", "page_right" },
             show_buttons = {
                 page_left = true,
-                to_be_read = true,
+                recent = true,
                 search = true,
                 tags = true,
                 page_right = true,
@@ -245,6 +247,24 @@ local function deepcopy(value, seen)
         out[deepcopy(key, seen)] = deepcopy(val, seen)
     end
     return out
+end
+
+local function same_source(a, b)
+    if type(a) ~= "table" or type(b) ~= "table"
+            or a.kind ~= b.kind or a.value ~= b.value then
+        return false
+    end
+    local a_paths = a.paths
+    local b_paths = b.paths
+    if a_paths == nil and b_paths == nil then return true end
+    if type(a_paths) ~= "table" or type(b_paths) ~= "table"
+            or #a_paths ~= #b_paths then
+        return false
+    end
+    for i, path in ipairs(a_paths) do
+        if path ~= b_paths[i] then return false end
+    end
+    return true
 end
 
 function M.copy(value)
@@ -500,7 +520,8 @@ local function ensure_strip_shape(strip)
             and controls.show_buttons.tags == true
             and controls.show_buttons.search == true then
         controls.order = deepcopy(defaults.controls.order)
-        controls.show_buttons.recent = nil
+        controls.show_buttons.recent = true
+        controls.show_buttons.to_be_read = nil
         controls.show_buttons.page_left = true
         controls.show_buttons.page_right = true
         changed = true
@@ -555,6 +576,13 @@ local function ensure_strip_shape(strip)
         changed = true
     end
     controls.order = order
+    if controls.enabled then
+        local first_source = ButtonModel.firstVisibleSource(controls)
+        if first_source and not same_source(strip.default_source, first_source) then
+            strip.default_source = deepcopy(first_source)
+            changed = true
+        end
+    end
     if strip.strip_schema_version ~= 3 then
         strip.strip_schema_version = 3
         changed = true
