@@ -133,6 +133,25 @@ describe("reader themes", function()
         assert.is_false(Themes.isValidColor("#123ab"))
     end)
 
+    it("does not change the font for built-in themes", function()
+        local face
+        local reader = {
+            font = { font_face = "Noto Serif" },
+            document = {
+                setFontFace = function(_, value) face = value end,
+            },
+        }
+        local plugin = {
+            config = {
+                features = { reader_themes = true },
+                reader_themes = { light_mode = "dark_warm_gray" },
+            },
+        }
+
+        assert.is_false(Themes.applyFont(reader, plugin))
+        assert.is_nil(face)
+    end)
+
     it("reapplies the open CRE reader and restores KOReader's background", function()
         local applied_css, backgrounds = 0, {}
         local call_cache_resets, buffer_cache_resets = 0, 0

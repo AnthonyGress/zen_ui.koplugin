@@ -4,6 +4,7 @@ describe("Zen UI translations", function()
     local saved_settings
     local GetText
     local methods
+    local warnings
 
     before_each(function()
         saved_gettext = package.loaded["gettext"]
@@ -30,11 +31,14 @@ describe("Zen UI translations", function()
         })
 
         package.loaded["gettext"] = GetText
+        warnings = {}
         package.loaded["common/zen_logger"] = {
             new = function()
                 return {
                     info = function() end,
-                    warn = function() end,
+                    warn = function(message)
+                        table.insert(warnings, message)
+                    end,
                 }
             end,
         }
@@ -73,6 +77,15 @@ describe("Zen UI translations", function()
 
         assert.is_true(I18n.install())
         assert.are.equal("Biblioteca", GetText("Library"))
+    end)
+
+    it("silently uses English source strings for the C locale", function()
+        _G.G_reader_settings:saveSetting("language", "C")
+
+        local I18n = require("common/i18n")
+        assert.is_true(I18n.install())
+        assert.are.equal("Library", package.loaded["gettext"]("Library"))
+        assert.are.same({}, warnings)
     end)
 
     it("patches KOReader gettext behind another plugin wrapper", function()

@@ -17,6 +17,7 @@ common/db_library.lua|unit
 common/db_stats.lua|unit
 common/dispatch_action.lua|unit
 common/dispatcher_menu.lua|unit
+common/font_language.lua|unit
 common/history_index.lua|unit
 common/i18n.lua|unit
 common/icon_packs.lua|unit

@@ -1,5 +1,6 @@
 local plugin_root = require("common/plugin_root") or ""
 local ReaderStatusBar = require("common/reader_status_bar")
+local FontLanguage = require("common/font_language")
 
 local M = {}
 
@@ -85,7 +86,7 @@ local function save_footer_preset(preset)
     end
 end
 
-local function apply_to_active_reader(preset)
+local function apply_to_active_reader(preset, use_bundled_fonts)
     local ok_reader, ReaderUI = pcall(require, "apps/reader/readerui")
     local reader = ok_reader and ReaderUI and ReaderUI.instance
     if not reader then return end
@@ -112,9 +113,11 @@ local function apply_to_active_reader(preset)
     for key, value in pairs(CRE_DEFAULTS) do
         configurable[key:sub(6)] = copy_value(value)
     end
-    if reader.font then reader.font.font_face = READER_FONT end
+    if use_bundled_fonts and reader.font then reader.font.font_face = READER_FONT end
 
-    if type(document.setFontFace) == "function" then document:setFontFace(READER_FONT) end
+    if use_bundled_fonts and type(document.setFontFace) == "function" then
+        document:setFontFace(READER_FONT)
+    end
     if type(document.setFontSize) == "function" then
         document:setFontSize(scale_by_size(CRE_DEFAULTS.copt_font_size))
     end
@@ -153,16 +156,31 @@ local function apply_to_active_reader(preset)
 end
 
 function M.apply(settings, config)
-    ensure_reader_font_registered()
-    settings:saveSetting("cre_font", READER_FONT)
+    local use_bundled_fonts = FontLanguage.supportsBundledFonts()
+    if use_bundled_fonts then
+        ensure_reader_font_registered()
+        settings:saveSetting("cre_font", READER_FONT)
+    end
     for key, value in pairs(CRE_DEFAULTS) do
         settings:saveSetting(key, copy_value(value))
     end
     ReaderStatusBar.disableKoreaderAltStatusBar(settings)
 
     local preset = copy_value(require("modules/reader/patches/reader_footer_presets")[1])
-    preset.footer.text_font_face = STATUS_FONT
-    preset.footer.text_font_bold = false
+    if use_bundled_fonts then
+        preset.footer.text_font_face = STATUS_FONT
+        preset.footer.text_font_bold = false
+    else
+        local existing_footer = settings:readSetting("footer")
+        if type(existing_footer) == "table" then
+            if type(existing_footer.text_font_face) == "string" then
+                preset.footer.text_font_face = existing_footer.text_font_face
+            end
+            if type(existing_footer.text_font_bold) == "boolean" then
+                preset.footer.text_font_bold = existing_footer.text_font_bold
+            end
+        end
+    end
     local ok_device, Device = pcall(require, "device")
     local is_color = ok_device and Device and type(Device.hasColorScreen) == "function"
         and Device:hasColorScreen()
@@ -176,7 +194,9 @@ function M.apply(settings, config)
     if type(config.reader_top_status_bar) ~= "table" then
         config.reader_top_status_bar = {}
     end
-    config.reader_top_status_bar.font_face = STATUS_FONT
+    if use_bundled_fonts then
+        config.reader_top_status_bar.font_face = STATUS_FONT
+    end
     config.reader_top_status_bar.left_order = {}
     config.reader_top_status_bar.center_order = { "time" }
     config.reader_top_status_bar.right_order = {}
@@ -190,7 +210,7 @@ function M.apply(settings, config)
     config.features.reader_top_status_bar = true
 
     save_footer_preset(preset)
-    apply_to_active_reader(preset)
+    apply_to_active_reader(preset, use_bundled_fonts)
 end
 
 return M

@@ -770,7 +770,7 @@ function M.build_install_pages(ctx)
         -- 8. Reader (INTERACTIVE — radio)
         {
             title       = _("Reader"),
-            description = _("Customizable top status bar and bottom progress bar."),
+            description = _("Font, margins, contrast, line spacing etc - tested together for the best reading experience"),
             choice_type = "radio",
             choices     = {
                 { id = "keep", text = _("Keep existing settings"), checked = quickstart_completed },

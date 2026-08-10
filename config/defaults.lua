@@ -1,5 +1,7 @@
 local plugin_root = require("common/plugin_root") or ""
-local library_font_default = plugin_root .. "/fonts/hyperreadable/Hyperreadable-Regular.ttf"
+local FontLanguage = require("common/font_language")
+local library_font_default = FontLanguage.supportsBundledFonts()
+    and plugin_root .. "/fonts/hyperreadable/Hyperreadable-Regular.ttf" or "default"
 
 local defaults = {
     _meta = {

@@ -1,10 +1,12 @@
 describe("Reader defaults", function()
     local original_modules
+    local original_settings
     local preset_settings
     local active_preset
 
     before_each(function()
         original_modules = {}
+        original_settings = G_reader_settings
         for _i, name in ipairs({
             "apps/reader/readerui",
             "common/plugin_root",
@@ -50,6 +52,7 @@ describe("Reader defaults", function()
         }) do
             package.loaded[name] = original_modules[name]
         end
+        _G.G_reader_settings = original_settings
     end)
 
     it("applies the Zen Reader typography and layout defaults", function()
@@ -126,6 +129,39 @@ describe("Reader defaults", function()
         require("common/reader_defaults").apply(settings, {})
 
         assert.are.equal(1, settings:readSetting("footer").container_bottom_padding)
+    end)
+
+    it("keeps existing reader and status fonts for unsupported locales", function()
+        _G.G_reader_settings = ZenSpec.memorySettings({ language = "ru_RU" })
+        local settings = ZenSpec.memorySettings({
+            cre_font = "Noto Serif CJK",
+            footer = {
+                text_font_face = "NotoSansCJK-Regular.ttc",
+                text_font_bold = true,
+            },
+        })
+        local document_calls = {}
+        local reader = {
+            document = {
+                configurable = {},
+                setFontFace = function(_self, value) document_calls.font_face = value end,
+            },
+            font = { font_face = "Noto Serif CJK" },
+            rolling = {},
+        }
+        local config = {
+            reader_top_status_bar = { font_face = "NotoSansCJK-Regular.ttc" },
+        }
+        ZenSpec.replace("apps/reader/readerui", { instance = reader })
+
+        require("common/reader_defaults").apply(settings, config)
+
+        assert.are.equal("Noto Serif CJK", settings:readSetting("cre_font"))
+        assert.are.equal("NotoSansCJK-Regular.ttc", settings:readSetting("footer").text_font_face)
+        assert.is_true(settings:readSetting("footer").text_font_bold)
+        assert.are.equal("NotoSansCJK-Regular.ttc", config.reader_top_status_bar.font_face)
+        assert.are.equal("Noto Serif CJK", reader.font.font_face)
+        assert.is_nil(document_calls.font_face)
     end)
 
     it("updates the active reflowable book and loads the Chapter Time preset", function()
