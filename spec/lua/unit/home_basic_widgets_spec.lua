@@ -233,7 +233,8 @@ describe("home basic widgets", function()
 
     it("aligns stats dividers to the visible text block", function()
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/stats_triplet")
-        require("modules/filebrowser/patches/home/widgets/stats_triplet").build({
+        local component = require("modules/filebrowser/patches/home/widgets/stats_triplet")
+        local ctx = {
             width = 600,
             height = 120,
             config = {
@@ -242,7 +243,9 @@ describe("home basic widgets", function()
             },
             module_cfg = { stat_style = "divider" },
             data = { stats = {} },
-        })
+        }
+        assert.are.equal(35, component.preferredHeight(ctx))
+        component.build(ctx)
 
         local divider_heights = {}
         for _i, child in ipairs(created) do
@@ -251,6 +254,37 @@ describe("home basic widgets", function()
             end
         end
         assert.are.same({ 19, 19 }, divider_heights)
+    end)
+
+    it("insets outlined stats cards to the shared home content width", function()
+        ZenSpec.unload("modules/filebrowser/patches/home/widgets/stats_triplet")
+        local component = require("modules/filebrowser/patches/home/widgets/stats_triplet")
+        local ctx = {
+            width = 600,
+            height = 120,
+            config = {
+                font_size = 18,
+                middle_stats_triplet = { "today_pages", "today_duration", "streak" },
+            },
+            module_cfg = { stat_style = "outline" },
+            data = { stats = {} },
+        }
+        assert.are.equal(39, component.preferredHeight(ctx))
+        local widget = component.build(ctx)
+
+        local card_widths, inner_widths = {}, {}
+        for _i, child in ipairs(created) do
+            if child.kind == "ui/widget/container/framecontainer"
+                    and child.bordersize == 2 then
+                card_widths[#card_widths + 1] = child.width
+                inner_widths[#inner_widths + 1] = child[1].dimen.w
+                assert.are.equal(child.width,
+                    child[1].dimen.w + child.padding * 2 + child.bordersize * 2)
+            end
+        end
+        assert.are.same({ 177, 177, 177 }, card_widths)
+        assert.are.same({ 161, 161, 161 }, inner_widths)
+        assert.are.equal(600, widget.width)
     end)
 
     it("renders quote attribution and navigates with horizontal swipes", function()
@@ -319,12 +353,40 @@ describe("home basic widgets", function()
         end
         assert.are.equal(48, quote_widget.paint_y)
         assert.are.equal(60, author_widget.paint_y)
-        assert.are.same({ 48, 72, -48, 48 }, {
+        assert.are.same({ 4, 116, 0, 0 }, {
             content_bounds.top,
             content_bounds.bottom,
             content_bounds.min_shift,
             content_bounds.max_shift,
         })
+    end)
+
+    it("keeps quote layout bounds stable across quote lengths", function()
+        ZenSpec.unload("modules/filebrowser/patches/home/widgets/quotes")
+        local component = require("modules/filebrowser/patches/home/widgets/quotes")
+        local function bounds_for(text)
+            local bounds
+            component.build({
+                width = 400,
+                height = 120,
+                config = { quotes = { show_author = true } },
+                data = {
+                    getCurrentQuote = function()
+                        return { text = text, author = "Zen Tester" }
+                    end,
+                },
+                setContentBounds = function(value) bounds = value end,
+            })
+            return {
+                bounds.top,
+                bounds.bottom,
+                bounds.min_shift,
+                bounds.max_shift,
+            }
+        end
+
+        assert.are.same(bounds_for("Short."), bounds_for("First\nSecond\nThird"))
+        assert.are.same({ 4, 116, 0, 0 }, bounds_for("Short."))
     end)
 
     it("seeds automatic quote sizing in the default home preset", function()
@@ -493,7 +555,7 @@ describe("home basic widgets", function()
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/quotes")
         local component = require("modules/filebrowser/patches/home/widgets/quotes")
         local content_bounds
-        component.build({
+        local widget = component.build({
             width = 400,
             height = 120,
             config = { quotes = { show_author = false } },
@@ -504,11 +566,13 @@ describe("home basic widgets", function()
             },
             setContentBounds = function(bounds) content_bounds = bounds end,
         })
+        widget[1][1]:paintTo(nil, 0, 0)
 
         for _i, child in ipairs(created) do
             if child.text == '"First\nSecond\nThird\nFourth"' and child.height then
                 assert.are.equal(36, child.height)
-                assert.are.same({ 4, 40 }, {
+                assert.are.equal(42, child.paint_y)
+                assert.are.same({ 4, 116 }, {
                     content_bounds.top,
                     content_bounds.bottom,
                 })

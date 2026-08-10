@@ -853,7 +853,9 @@ local function migrate_home_strip_config()
     local strip = type(store.settings) == "table"
         and type(store.settings.modules) == "table"
         and store.settings.modules.strip or nil
-    if active_preset == HomePresets.BOOKSHELF_PRESET_NAME and type(strip) == "table"
+    if (active_preset == HomePresets.DEFAULT_PRESET_NAME
+                or active_preset == HomePresets.BOOKSHELF_PRESET_NAME)
+            and type(strip) == "table"
             and type(strip.controls) == "table"
             and strip.controls.enabled ~= true then
         strip.controls.enabled = true

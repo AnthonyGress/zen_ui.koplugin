@@ -260,16 +260,14 @@ return {
             content_h = content_h + author_gap + (author_size.h or 0)
         end
         local available_h = math.max(0, height - content_h)
-        local is_multiline = natural_quote_h > quote_line_h
-        local content_top = is_multiline and math.min(vertical_padding, available_h)
-            or math.floor(available_h / 2)
+        local content_top = math.floor(available_h / 2)
         local visual_shift = 0
         if type(ctx.setContentBounds) == "function" then
             ctx.setContentBounds{
-                top = content_top,
-                bottom = content_top + content_h,
-                min_shift = -content_top,
-                max_shift = height - content_top - content_h,
+                top = vertical_padding,
+                bottom = height - vertical_padding,
+                min_shift = 0,
+                max_shift = 0,
                 set_shift = function(shift) visual_shift = shift end,
             }
         end

@@ -14,7 +14,6 @@ local StandalonePage = require("modules/filebrowser/patches/standalone_page")
 local SharedState = require("common/shared_state")
 local utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
-local icons = require("common/inline_icon_map")
 local UIManager = require("ui/uimanager")
 local _ = require("gettext")
 local now = require("common/zen_logger").now
@@ -525,38 +524,6 @@ local FEATURED_TEXT_STYLE_DEFAULTS = {
 local function normalize_order(order)
     if order == "reverse" then return "reverse" end
     return "default"
-end
-
-local function build_strip_order_context_buttons(file_chooser, component_id, dcfg, data_provider)
-    local modules = type(dcfg) == "table" and dcfg.modules or nil
-    local mcfg = type(modules) == "table" and modules[component_id] or nil
-    if component_id ~= "strip" or type(mcfg) ~= "table" then return nil end
-
-    return {
-        {{
-            text = icons.sort .. "  " .. _("Order") .. "  " .. icons.arrow_right,
-            align = "left",
-            callback = function()
-                if type(file_chooser.showSortOrderDialog) ~= "function" then return false end
-                UIManager:close(file_chooser.file_dialog)
-                file_chooser:showSortOrderDialog{
-                    title = _("Order"),
-                    current_reverse = normalize_order(mcfg.order) == "reverse",
-                    forward_text = _("Default"),
-                    reverse_text = _("Reverse"),
-                    on_select = function(reverse)
-                        mcfg.order = reverse and "reverse" or "default"
-                        if type(data_provider.resetStripPages) == "function" then
-                            data_provider:resetStripPages()
-                        end
-                        PresetStore.saveSettings("home", dcfg)
-                        M.rebuildActive()
-                    end,
-                }
-                return true
-            end,
-        }},
-    }
 end
 
 local function ensure_featured_text_style(mcfg, key)
@@ -2164,7 +2131,7 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
     return provider
 end
 
-local function compute_row_heights(rows, body_h, row_gap, capacity, width, modules)
+local function compute_row_heights(rows, body_h, row_gap, capacity, width, modules, config)
     local specs = {}
     local unit_counts = Registry.layoutUnits and Registry.layoutUnits(rows, capacity) or {}
     if #unit_counts == 0 then
@@ -2179,6 +2146,7 @@ local function compute_row_heights(rows, body_h, row_gap, capacity, width, modul
             local ok, preferred = pcall(comp.preferredHeight, {
                 width = width,
                 module_cfg = modules[comp.id],
+                config = config,
             })
             if ok and tonumber(preferred) then max_heights[i] = preferred end
         end
@@ -2620,7 +2588,7 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
         and math.max(0, math.floor((layout_h - capacity) / (capacity - 1))) or 0
     local row_gap = math.min(standard_gap, max_grid_gap)
     local row_heights = compute_row_heights(
-        rows, layout_h, row_gap, capacity, content_w, dcfg.modules)
+        rows, layout_h, row_gap, capacity, content_w, dcfg.modules, dcfg)
     menu._zen_home_page_padding = page_pad
     menu._zen_home_row_gap = row_gap
     menu._zen_home_capacity_units = capacity
@@ -2660,8 +2628,6 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
             _zen_disable_select = true,
             _zen_is_history = source == "recently_read",
             _zen_collection_name = explicit_collection,
-            _zen_extra_buttons = build_strip_order_context_buttons(
-                fc, component_id, dcfg, data_provider),
             _zen_widget_settings = dcfg.edit_mode == true and function()
                 return require("modules/settings/sections/library_settings/home_settings")
                     .openWidgetSettings(component_id, _zen_plugin)

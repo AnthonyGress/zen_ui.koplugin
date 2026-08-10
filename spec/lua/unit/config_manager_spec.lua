@@ -32,6 +32,7 @@ describe("config manager folder-path migration", function()
             migrateStores = function() return false end,
         })
         ZenSpec.replace("modules/filebrowser/patches/home/home_presets", {
+            DEFAULT_PRESET_NAME = "Zen Default",
             BOOKSHELF_PRESET_NAME = "Bookshelf",
             applyMosaicTitlesToStrips = function() end,
             defaultHomePage = function() return { quotes = { font_size = 12 } } end,
@@ -100,6 +101,21 @@ describe("config manager folder-path migration", function()
             active_preset = "Bookshelf",
             settings = {
                 active_preset = "Bookshelf",
+                modules = { strip = { controls = { enabled = false } } },
+            },
+            presets = {},
+        }
+
+        Manager.load()
+
+        assert.is_true(stores.home.settings.modules.strip.controls.enabled)
+    end)
+
+    it("enables strip controls for an existing active Zen Default preset", function()
+        stores.home = {
+            active_preset = "Zen Default",
+            settings = {
+                active_preset = "Zen Default",
                 modules = { strip = { controls = { enabled = false } } },
             },
             presets = {},
