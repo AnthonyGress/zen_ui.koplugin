@@ -15,6 +15,9 @@ msgstr "%1 (%2)"
 msgid "%1 mins left in chapter"
 msgstr "本章剩餘 %1 分鐘"
 
+msgid "%1, %2 %3"
+msgstr "%2%3日，%1"
+
 msgid "%d%% Read"
 msgstr "已讀 %d%%"
 
@@ -240,6 +243,9 @@ msgstr "作者"
 msgid "authors"
 msgstr "位作者"
 
+msgid "Automatic"
+msgstr "自動"
+
 msgid "Automatic font size"
 msgstr "自動字體大小"
 
@@ -356,12 +362,6 @@ msgstr "本書"
 
 msgid "Books read"
 msgstr "讀過的書"
-
-msgid "Books shown"
-msgstr "顯示書籍數"
-
-msgid "Books shown: "
-msgstr "顯示書籍數： "
 
 msgid "Books tab label"
 msgstr "書庫標籤名稱"
@@ -521,6 +521,9 @@ msgstr "連結資料夾"
 
 msgid "Connections"
 msgstr "連線"
+
+msgid "Content: "
+msgstr "內容："
 
 msgid "Context Menu"
 msgstr "內容選單"
@@ -723,9 +726,6 @@ msgstr "預設"
 msgid "Default (black)"
 msgstr "預設（黑色）"
 
-msgid "Content: "
-msgstr "內容："
-
 msgid "Default font size:"
 msgstr "預設字體大小："
 
@@ -818,6 +818,9 @@ msgstr "停用長按字詞搜尋"
 
 msgid "Disable zen mode to access default KOReader menus."
 msgstr "停用 zen 模式以存取預設 KOReader 選單。"
+
+msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
+msgstr "使用此圖示關閉禪模式，即可調整 Zen 設定中沒有的 KOReader 設定。"
 
 msgid "Disk space"
 msgstr "磁碟空間"
@@ -1107,6 +1110,9 @@ msgstr "主資料夾"
 msgid "Home page preset"
 msgstr "儀表板預設"
 
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "首頁間距已更新。已保留您儲存的小工具順序與選擇，並重新配合新格線。"
+
 msgid "Home tab label"
 msgstr "首頁標籤名稱"
 
@@ -1325,6 +1331,12 @@ msgstr "從相同的 ZenPM 發行版手動下載並側載 %1。"
 
 msgid "Match whole words"
 msgstr "比對完整字詞"
+
+msgid "Max books shown"
+msgstr "最多顯示書籍數"
+
+msgid "Max books shown: "
+msgstr "最多顯示書籍數： "
 
 msgid "Maximum 7 tabs allowed"
 msgstr "最多允許 7 個分頁"
@@ -2373,6 +2385,12 @@ msgstr "主題名稱"
 msgid "This change requires a restart to take effect."
 msgstr "此變更需要重新啟動才會生效。"
 
+msgid "This does not disable Zen UI—it only shows or hides KOReader’s menus."
+msgstr "這不會停用 Zen UI，只會顯示或隱藏 KOReader 選單。"
+
+msgid "This is Zen Settings. Zen UI and common KOReader settings live here."
+msgstr "這裡是 Zen 設定，其中包含 Zen UI 設定和常用的 KOReader 設定。"
+
 msgid "This Month"
 msgstr "本月"
 
@@ -2694,6 +2712,9 @@ msgstr "禪 模式"
 msgid "Zen Mode"
 msgstr "禪模式"
 
+msgid "Zen Mode is enabled. KOReader menus are hidden."
+msgstr "禪模式已啟用。KOReader 選單已隱藏。"
+
 msgid "Zen Mode: Disabled"
 msgstr "禪宗模式：禁用"
 
@@ -2783,24 +2804,3 @@ msgstr "ZenPM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM 已安裝。重新啟動 KOReader 即可使用。"
-
-msgid "Automatic"
-msgstr "自動"
-
-msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
-msgstr "首頁間距已更新。已保留您儲存的小工具順序與選擇，並重新配合新格線。"
-
-msgid "%1, %2 %3"
-msgstr "%2%3日，%1"
-
-msgid "Zen Mode is enabled. KOReader menus are hidden."
-msgstr "禪模式已啟用。KOReader 選單已隱藏。"
-
-msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
-msgstr "使用此圖示關閉禪模式，即可調整 Zen 設定中沒有的 KOReader 設定。"
-
-msgid "This does not disable Zen UI—it only shows or hides KOReader’s menus."
-msgstr "這不會停用 Zen UI，只會顯示或隱藏 KOReader 選單。"
-
-msgid "This is Zen Settings. Zen UI and common KOReader settings live here."
-msgstr "這裡是 Zen 設定，其中包含 Zen UI 設定和常用的 KOReader 設定。"

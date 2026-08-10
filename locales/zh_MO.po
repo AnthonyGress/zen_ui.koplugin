@@ -15,6 +15,9 @@ msgstr "%1 (%2)"
 msgid "%1 mins left in chapter"
 msgstr "本章剩餘 %1 分鐘"
 
+msgid "%1, %2 %3"
+msgstr "%2%3日，%1"
+
 msgid "%d%% Read"
 msgstr "已讀 %d%%"
 
@@ -240,6 +243,9 @@ msgstr "作者"
 msgid "authors"
 msgstr "位作者"
 
+msgid "Automatic"
+msgstr "自動"
+
 msgid "Automatic font size"
 msgstr "自動字體大小"
 
@@ -356,12 +362,6 @@ msgstr "本書"
 
 msgid "Books read"
 msgstr "讀過的書"
-
-msgid "Books shown"
-msgstr "顯示書籍數"
-
-msgid "Books shown: "
-msgstr "顯示書籍數： "
 
 msgid "Books tab label"
 msgstr "書庫標籤名稱"
@@ -521,6 +521,9 @@ msgstr "連結資料夾"
 
 msgid "Connections"
 msgstr "連線"
+
+msgid "Content: "
+msgstr "內容："
 
 msgid "Context Menu"
 msgstr "內容選單"
@@ -722,9 +725,6 @@ msgstr "預設"
 
 msgid "Default (black)"
 msgstr "預設（黑色）"
-
-msgid "Content: "
-msgstr "內容："
 
 msgid "Default font size:"
 msgstr "預設字體大小："
@@ -1107,6 +1107,9 @@ msgstr "主資料夾"
 msgid "Home page preset"
 msgstr "儀表板預設"
 
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "主頁間距已更新。已保留你儲存的小工具次序和選擇，並重新配合新網格。"
+
 msgid "Home tab label"
 msgstr "首頁標籤名稱"
 
@@ -1325,6 +1328,12 @@ msgstr "從相同 ZenPM 版本手動下載並旁加載%1。"
 
 msgid "Match whole words"
 msgstr "比對完整字詞"
+
+msgid "Max books shown"
+msgstr "最多顯示書籍數"
+
+msgid "Max books shown: "
+msgstr "最多顯示書籍數： "
 
 msgid "Maximum 7 tabs allowed"
 msgstr "最多允許 7 個分頁"
@@ -2783,12 +2792,3 @@ msgstr "禪PM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM 已安裝。重新啟動 KOReader 使用。"
-
-msgid "Automatic"
-msgstr "自動"
-
-msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
-msgstr "主頁間距已更新。已保留你儲存的小工具次序和選擇，並重新配合新網格。"
-
-msgid "%1, %2 %3"
-msgstr "%2%3日，%1"
