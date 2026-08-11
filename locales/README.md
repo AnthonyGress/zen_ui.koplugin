@@ -28,6 +28,7 @@ at runtime — KOReader handles this automatically.
 | `uk` | Ukrainian |
 | `zh_CN` | Simplified Chinese |
 | `zh_TW` | Traditional Chinese |
+| `el` | Greek |
 
 ## Contributing
 

@@ -196,6 +196,7 @@ Zen UI is currently translated into:
 | `zh_TW` | Traditional Chinese |
 | `zh_HK` | Traditional Chinese (Hong Kong) |
 | `zh_MO` | Traditional Chinese (Macau) |
+| `el` | Greek |
 
 If you find any issues or corrections to the translations, please feel free to contribute.
 
