@@ -15,6 +15,9 @@ msgstr "%1 (%2)"
 msgid "%1 mins left in chapter"
 msgstr "%1 phút còn lại trong chương"
 
+msgid "%1, %2 %3"
+msgstr "%1, ngày %3 %2"
+
 msgid "%d%% Read"
 msgstr "%d%% Đã đọc"
 
@@ -240,6 +243,9 @@ msgstr "Tác giả"
 msgid "authors"
 msgstr "tác giả"
 
+msgid "Automatic"
+msgstr "Tự động"
+
 msgid "Automatic font size"
 msgstr "Cỡ chữ tự động"
 
@@ -356,12 +362,6 @@ msgstr "sách"
 
 msgid "Books read"
 msgstr "Sách đã đọc"
-
-msgid "Books shown"
-msgstr "Sách hiển thị"
-
-msgid "Books shown: "
-msgstr "Sách hiển thị: "
 
 msgid "Books tab label"
 msgstr "Nhãn tab Sách"
@@ -521,6 +521,9 @@ msgstr "Kết nối thư mục"
 
 msgid "Connections"
 msgstr "Kết nối"
+
+msgid "Content: "
+msgstr "Nội dung: "
 
 msgid "Context Menu"
 msgstr "Menu ngữ cảnh"
@@ -722,9 +725,6 @@ msgstr "mặc định"
 
 msgid "Default (black)"
 msgstr "Mặc định (đen)"
-
-msgid "Content: "
-msgstr "Nội dung: "
 
 msgid "Default font size:"
 msgstr "Cỡ chữ mặc định:"
@@ -1107,6 +1107,9 @@ msgstr "Thư mục nhà"
 msgid "Home page preset"
 msgstr "Mẫu bảng điều khiển"
 
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "Khoảng cách trên màn hình chính đã được cập nhật. Thứ tự và lựa chọn tiện ích đã lưu được giữ nguyên và điều chỉnh theo lưới mới."
+
 msgid "Home tab label"
 msgstr "Nhãn tab Trang chủ"
 
@@ -1325,6 +1328,12 @@ msgstr "Tải xuống và tải xuống thủ công %1 từ cùng một bản ph
 
 msgid "Match whole words"
 msgstr "Khớp cả từ"
+
+msgid "Max books shown"
+msgstr "Số sách hiển thị tối đa"
+
+msgid "Max books shown: "
+msgstr "Số sách hiển thị tối đa: "
 
 msgid "Maximum 7 tabs allowed"
 msgstr "Cho phép tối đa 7 tab"
@@ -2783,12 +2792,3 @@ msgstr "ZenPM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM đã được cài đặt. Khởi động lại KOReader để sử dụng."
-
-msgid "Automatic"
-msgstr "Tự động"
-
-msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
-msgstr "Khoảng cách trên màn hình chính đã được cập nhật. Thứ tự và lựa chọn tiện ích đã lưu được giữ nguyên và điều chỉnh theo lưới mới."
-
-msgid "%1, %2 %3"
-msgstr "%1, ngày %3 %2"

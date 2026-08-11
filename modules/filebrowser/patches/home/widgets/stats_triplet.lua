@@ -80,18 +80,52 @@ local function metric_content(width, height, value_widget, label_widget)
     return content, top, content_h
 end
 
+local function configured_font_size(ctx)
+    local module_cfg = type(ctx.module_cfg) == "table" and ctx.module_cfg or {}
+    local config = type(ctx.config) == "table" and ctx.config or {}
+    return math.max(8, math.min(32,
+        tonumber(module_cfg.font_size) or tonumber(config.font_size) or 18))
+end
+
+local function preferred_height(ctx)
+    ctx = type(ctx) == "table" and ctx or {}
+    local Screen = Device.screen
+    local font_size = configured_font_size(ctx)
+    local value_probe = TextWidget:new{
+        text = "A",
+        face = Font:getFace("smallinfofont", Screen:scaleBySize(font_size)),
+        bold = true,
+    }
+    local label_probe = TextWidget:new{
+        text = "A",
+        face = Font:getFace("smallinfofont", Screen:scaleBySize(
+            math.max(6, math.floor(font_size * 0.6)))),
+    }
+    local value_h = value_probe:getSize().h or 1
+    local label_h = label_probe:getSize().h or 1
+    WidgetResources.free(value_probe)
+    WidgetResources.free(label_probe)
+    local content_h = value_h - math.floor(value_h * 0.18) + 1 + label_h
+    local border_size = ctx.module_cfg and ctx.module_cfg.stat_style == "outline" and 2 or 0
+    return math.max(20, content_h + 12 + border_size * 2)
+end
+
 return {
     id = "stats_triplet",
     label = _("Reading stats"),
     size = "xs",
+    preferredHeight = preferred_height,
     build = function(ctx)
-        local width = ctx.width
+        local outer_width = ctx.width
         local height = ctx.height
         local stats = ctx.data.stats or {}
         local module_cfg = ctx.module_cfg or {}
         local stat_style = module_cfg.stat_style == "outline" and "outline"
             or module_cfg.stat_style == "none" and "none"
             or "divider"
+        local horizontal_padding = stat_style == "outline"
+            and Device.screen:scaleBySize(8) or 0
+        local width = math.max(1, outer_width - horizontal_padding * 2)
 
         local config = ctx.config.middle_stats_triplet or { "today_pages", "today_duration", "streak" }
         local fields = {}
@@ -109,10 +143,9 @@ return {
             or 6
         local cell_w = math.max(20, math.floor((width - gap_w * 2) / 3))
         local card_h = math.max(20, height)
+        local border_size = stat_style == "outline" and 2 or 0
         local Screen = Device.screen
-        local font_size = tonumber(module_cfg.font_size)
-            or tonumber(ctx.config.font_size) or 18
-        font_size = math.max(8, math.min(32, font_size))
+        local font_size = configured_font_size(ctx)
         local value_face = Font:getFace("smallinfofont", Screen:scaleBySize(font_size))
         local label_face = Font:getFace("smallinfofont", Screen:scaleBySize(math.max(6, math.floor(font_size * 0.6))))
         local row = HorizontalGroup:new{ align = "center" }
@@ -142,8 +175,8 @@ return {
                     value_widget,
                 }
             end
-            local inner_w = cell_w - 12
-            local inner_h = math.max(1, card_h - 12)
+            local inner_w = math.max(1, cell_w - 12 - border_size * 2)
+            local inner_h = math.max(1, card_h - 12 - border_size * 2)
             local content, metric_top, metric_h = metric_content(inner_w, inner_h, value_widget,
                 TextWidget:new{ text = field.label, face = label_face, fgcolor = Blitbuffer.COLOR_BLACK })
             visual_top = math.min(visual_top, 6 + metric_top)
@@ -152,7 +185,7 @@ return {
                 width = cell_w,
                 height = card_h,
                 padding = 6,
-                bordersize = stat_style == "outline" and 2 or 0,
+                bordersize = border_size,
                 color = Blitbuffer.COLOR_DARK_GRAY,
                 radius = stat_style == "outline" and 8 or 0,
                 background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
@@ -202,7 +235,7 @@ return {
         end
         local visual_shift = 0
         local row_container = CenterContainer:new{
-            dimen = Geom:new{ w = width, h = height },
+            dimen = Geom:new{ w = outer_width, h = height },
             row,
         }
         local original_row_paint = row_container.paintTo
@@ -220,7 +253,7 @@ return {
         end
 
         return FrameContainer:new{
-            width = width,
+            width = outer_width,
             height = height,
             padding = 0,
             bordersize = 0,

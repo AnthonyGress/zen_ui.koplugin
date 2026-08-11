@@ -94,8 +94,13 @@ end
 -- ---------------------------------------------------------------------------
 -- Load .po translations for a given language string
 -- ---------------------------------------------------------------------------
+local function usesEnglishSource(lang)
+    return lang == "C" or lang == "POSIX"
+        or lang == "en" or lang:match("^en_") ~= nil
+end
+
 local function loadTranslationsForLang(lang)
-    if not lang or lang == "en" or lang:match("^en_") then return nil, nil end
+    if not lang or usesEnglishSource(lang) then return nil, nil end
 
     local function try(name)
         local path = _dir .. "../locales/" .. name .. ".po"
@@ -130,7 +135,9 @@ local function applyZenTranslations(GetText, lang)
     _translations = translations or {}
     _contexts = contexts or {}
     if not translations then
-        logger.warn("skipping injection — no translations for lang=" .. (lang or "nil"))
+        if not lang or not usesEnglishSource(lang) then
+            logger.warn("skipping injection — no translations for lang=" .. (lang or "nil"))
+        end
         return
     end
     for msgid, msgstr in pairs(translations) do

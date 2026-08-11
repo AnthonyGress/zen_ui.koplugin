@@ -36,6 +36,7 @@ local PRELOAD_DELAY_S = 0.35
 local PRELOAD_TICK_S = 0.05
 local PRELOAD_CHUNK = 4
 local PRELOAD_BUDGET_S = 0.03
+local MIN_RESPONSIVE_COVER_W = 120
 
 local function cover_height_for_width(width)
     local ratio = type(CoverUtils.getRatio) == "function"
@@ -65,6 +66,12 @@ local function strip_layout_metrics(outer_width, module_cfg)
         if count > 5 then count = 5 end
     end
     local rows = two_rows and 2 or 1
+    local min_gap = math.max(6, math.min(
+        Screen:scaleBySize(14), math.floor(width * 0.018)))
+    local target_cover_w = math.max(24, Screen:scaleBySize(MIN_RESPONSIVE_COVER_W))
+    local responsive_per_row = math.max(3, math.min(5,
+        math.floor((width + min_gap) / (target_cover_w + min_gap))))
+    count = math.min(count, responsive_per_row * rows)
     local per_row = two_rows and math.ceil(count / 2) or count
     local strip_title_face = library_font.getFace(16)
     local title_h = 0

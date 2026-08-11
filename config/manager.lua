@@ -3,8 +3,12 @@ local HomePresets = require("modules/filebrowser/patches/home/home_presets")
 local PresetStore = require("config/preset_store")
 local HomeQuotes = require("modules/filebrowser/patches/home/home_quotes")
 local utils = require("common/utils")
+local FontLanguage = require("common/font_language")
+local plugin_root = require("common/plugin_root") or ""
 
 local LEGACY_KEY = "zen_ui_config"  -- legacy G_reader_settings key; cleanup only
+local HYPERREADABLE_LIBRARY_FONT = plugin_root
+    .. "/fonts/hyperreadable/Hyperreadable-Regular.ttf"
 
 local _zen_settings_file = nil  -- cached LuaSettings instance
 local _current_config    = nil  -- in-memory cache for M.get()
@@ -849,7 +853,9 @@ local function migrate_home_strip_config()
     local strip = type(store.settings) == "table"
         and type(store.settings.modules) == "table"
         and store.settings.modules.strip or nil
-    if active_preset == HomePresets.BOOKSHELF_PRESET_NAME and type(strip) == "table"
+    if (active_preset == HomePresets.DEFAULT_PRESET_NAME
+                or active_preset == HomePresets.BOOKSHELF_PRESET_NAME)
+            and type(strip) == "table"
             and type(strip.controls) == "table"
             and strip.controls.enabled ~= true then
         strip.controls.enabled = true
@@ -950,6 +956,12 @@ local function migrate_changed_defaults(cfg)
             cfg.library_font.font_face = defaults.library_font.font_face
         end
         cfg._meta.library_font_hyperreadable_default_migrated = true
+        changed = true
+    end
+    if type(cfg.library_font) == "table"
+            and not FontLanguage.supportsBundledFonts()
+            and cfg.library_font.font_face == HYPERREADABLE_LIBRARY_FONT then
+        cfg.library_font.font_face = "default"
         changed = true
     end
 

@@ -3,6 +3,13 @@ describe("config manager folder-path migration", function()
     local settings_file
     local stores
 
+    local function reload_manager(language)
+        _G.G_reader_settings = ZenSpec.memorySettings(language and { language = language } or {})
+        ZenSpec.unload("config/defaults")
+        ZenSpec.unload("config/manager")
+        Manager = require("config/manager")
+    end
+
     before_each(function()
         settings_file = { data = {}, flush = function() end }
         stores = {
@@ -25,6 +32,7 @@ describe("config manager folder-path migration", function()
             migrateStores = function() return false end,
         })
         ZenSpec.replace("modules/filebrowser/patches/home/home_presets", {
+            DEFAULT_PRESET_NAME = "Zen Default",
             BOOKSHELF_PRESET_NAME = "Bookshelf",
             applyMosaicTitlesToStrips = function() end,
             defaultHomePage = function() return { quotes = { font_size = 12 } } end,
@@ -33,9 +41,7 @@ describe("config manager folder-path migration", function()
         ZenSpec.replace("modules/filebrowser/patches/home/home_quotes", {
             ensureFile = function() return false end,
         })
-        ZenSpec.unload("config/manager")
-        Manager = require("config/manager")
-        _G.G_reader_settings = ZenSpec.memorySettings()
+        reload_manager()
     end)
 
     it("moves sort and display overrides for a renamed folder subtree", function()
@@ -105,6 +111,21 @@ describe("config manager folder-path migration", function()
         assert.is_true(stores.home.settings.modules.strip.controls.enabled)
     end)
 
+    it("enables strip controls for an existing active Zen Default preset", function()
+        stores.home = {
+            active_preset = "Zen Default",
+            settings = {
+                active_preset = "Zen Default",
+                modules = { strip = { controls = { enabled = false } } },
+            },
+            presets = {},
+        }
+
+        Manager.load()
+
+        assert.is_true(stores.home.settings.modules.strip.controls.enabled)
+    end)
+
     it("removes obsolete folder-cover lifecycle settings", function()
         settings_file.data = {
             features = { browser_folder_cover = true },
@@ -148,6 +169,36 @@ describe("config manager folder-path migration", function()
 
         assert.are.equal("/fonts/Custom-Regular.ttf", config.library_font.font_face)
         assert.is_true(config._meta.library_font_hyperreadable_default_migrated)
+    end)
+
+    it("keeps the Library default for locales unsupported by bundled fonts", function()
+        reload_manager("ja_JP")
+        settings_file.data = {
+            library_font = { font_face = "default", font_size = 20 },
+        }
+
+        local config = Manager.load()
+
+        assert.are.equal("default", config.library_font.font_face)
+        assert.are.equal(20, config.library_font.font_size)
+        assert.is_true(config._meta.library_font_hyperreadable_default_migrated)
+    end)
+
+    it("resets the bundled Library font after switching to an unsupported locale", function()
+        reload_manager("ja_JP")
+        settings_file.data = {
+            _meta = { library_font_hyperreadable_default_migrated = true },
+            library_font = {
+                font_face = (require("common/plugin_root") or "")
+                    .. "/fonts/hyperreadable/Hyperreadable-Regular.ttf",
+                font_size = 20,
+            },
+        }
+
+        local config = Manager.load()
+
+        assert.are.equal("default", config.library_font.font_face)
+        assert.are.equal(20, config.library_font.font_size)
     end)
 
     it("migrates previously shown Quickstart guides as completed", function()

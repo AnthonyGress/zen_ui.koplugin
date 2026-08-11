@@ -193,24 +193,6 @@ describe("home data and book caches", function()
         error("request_home_repaint upvalue not found")
     end
 
-    local function get_strip_order_context_buttons(Home)
-        local build_home_content
-        for i = 1, 80 do
-            local name, value = debug.getupvalue(Home.showHomeView, i)
-            if not name then break end
-            if name == "build_home_content" then
-                build_home_content = value
-                break
-            end
-        end
-        for i = 1, 80 do
-            local name, value = debug.getupvalue(build_home_content, i)
-            if not name then break end
-            if name == "build_strip_order_context_buttons" then return value end
-        end
-        error("strip order context helper upvalue not found")
-    end
-
     local function get_install_home_key_handlers(Home)
         for i = 1, 80 do
             local name, value = debug.getupvalue(Home.showHomeView, i)
@@ -321,50 +303,6 @@ describe("home data and book caches", function()
         assert.are.equal(0,
             #after_removal:getBooksForStrip("recently_read", 4, "default", "strip_recent"))
         assert.are.equal(2, history_reload_count)
-    end)
-
-    it("moves strip order into the book context menu", function()
-        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
-        local build_buttons = get_strip_order_context_buttons(Home)
-        local shown_options
-        local closed
-        local saved
-        local resets = 0
-        local file_dialog = {}
-        local file_chooser = {
-            file_dialog = file_dialog,
-            showSortOrderDialog = function(_self, options)
-                shown_options = options
-            end,
-        }
-        local dcfg = { modules = { strip = { order = "default" } } }
-        local provider = {
-            resetStripPages = function()
-                resets = resets + 1
-                return true
-            end,
-        }
-        local UIManager = require("ui/uimanager")
-        UIManager.close = function(_self, widget) closed = widget end
-        require("config/preset_store").saveSettings = function(name, value)
-            saved = { name, value }
-            return true
-        end
-
-        local buttons = build_buttons(file_chooser, "strip", dcfg, provider)
-        assert.is_nil(build_buttons(file_chooser, "featured", dcfg, provider))
-        assert.is_truthy(buttons[1][1].text:find("Order", 1, true))
-        assert.is_true(buttons[1][1].callback())
-        assert.are.equal(file_dialog, closed)
-        assert.are.equal("Order", shown_options.title)
-        assert.are.equal("Default", shown_options.forward_text)
-        assert.are.equal("Reverse", shown_options.reverse_text)
-        assert.is_false(shown_options.current_reverse)
-
-        shown_options.on_select(true)
-        assert.are.equal("reverse", dcfg.modules.strip.order)
-        assert.are.same({ "home", dcfg }, saved)
-        assert.are.equal(1, resets)
     end)
 
     it("reuses matching Home stats across provider rebuilds", function()

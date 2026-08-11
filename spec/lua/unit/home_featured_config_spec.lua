@@ -90,4 +90,16 @@ describe("unified Home featured configuration", function()
         assert.are.same({ kind = "custom" }, page.modules.featured.default_source)
         assert.are.equal("/library/custom.epub", page.modules.featured.path)
     end)
+
+    it("removes the obsolete featured cover-layout setting", function()
+        local Presets = require("modules/filebrowser/patches/home/home_presets")
+        local page = {
+            rows = { order = { "featured" }, enabled = { featured = true } },
+            modules = { featured = { cover_layout = "top_left_wrap" } },
+        }
+
+        assert.is_true(Presets.normalizeFeaturedConfig(page))
+        assert.is_nil(page.modules.featured.cover_layout)
+        assert.is_false(Presets.normalizeFeaturedConfig(page))
+    end)
 end)

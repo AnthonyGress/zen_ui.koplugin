@@ -15,6 +15,7 @@ describe("unified Home strip configuration", function()
         local strip = Presets.defaultHomePage().modules.strip
 
         assert.are.equal(3, strip.strip_schema_version)
+        assert.is_true(strip.controls.enabled)
         assert.are.same({
             "page_left", "recent", "search", "tags", "page_right",
         }, strip.controls.order)
@@ -87,6 +88,7 @@ describe("unified Home strip configuration", function()
         local Presets = require("modules/filebrowser/patches/home/home_presets")
         local page = Presets.defaultHomePage()
         page.modules.strip.default_source = { kind = "favorites" }
+        page.modules.strip.controls.enabled = false
         page.modules.strip.controls.order = {
             "recent", "favorites", "to_be_read", "authors", "series",
             "tags", "collections", "books", "search", "recent",
@@ -191,6 +193,7 @@ describe("unified Home strip configuration", function()
         local Presets = require("modules/filebrowser/patches/home/home_presets")
         local page = Presets.defaultHomePage()
         page.modules.strip.default_source = { kind = "tags" }
+        page.modules.strip.controls.enabled = false
 
         assert.is_false(Presets.normalizeStripConfig(page))
         assert.are.same({ kind = "tags" }, page.modules.strip.default_source)

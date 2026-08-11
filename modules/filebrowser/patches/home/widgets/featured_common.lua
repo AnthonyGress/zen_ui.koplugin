@@ -26,6 +26,8 @@ local _ = require("gettext")
 local M = {}
 M.SIZE = { units = 3.5 }
 
+local COVER_WIDTH_SHARE = 0.40
+
 local function time_unit(unit)
     if type(_) == "table" and type(_.pgettext) == "function" then
         return _.pgettext("Time", unit)
@@ -140,6 +142,37 @@ local function format_series(book)
     return series .. " #" .. index_text
 end
 
+local function split_text_for_box(text, face, bold, width, height)
+    if text == "" or height <= 0 then return "", text end
+    local probe = TextBoxWidget:new{
+        text = text,
+        width = width,
+        height = height,
+        face = face,
+        bold = bold,
+        alignment = "left",
+        alignment_strict = true,
+    }
+    local lines = probe.vertical_string_list
+    local visible_lines = tonumber(probe.lines_per_page) or 0
+    local next_line = type(lines) == "table" and lines[visible_lines + 1] or nil
+    if not next_line or not next_line.offset then
+        WidgetResources.free(probe)
+        return text, ""
+    end
+
+    local last_line = lines[visible_lines]
+    local upper_end = last_line and tonumber(last_line.end_offset) or 0
+    local lower_start = tonumber(next_line.offset)
+    local chars = util.splitToChars(text)
+    WidgetResources.free(probe)
+    if upper_end < 1 or not lower_start or lower_start > #chars then
+        return "", text
+    end
+    return table.concat(chars, "", 1, upper_end),
+        table.concat(chars, "", lower_start, #chars)
+end
+
 local function build_progress_text(book, pct, progress_meta)
     progress_meta = type(progress_meta) == "table" and progress_meta or {}
     local left = {}
@@ -189,7 +222,7 @@ function M.build(ctx, source_key)
     local show_status_bar = module_cfg.show_status_bar == true and type(ctx.buildStatusRow) == "function"
     local cover_widget, cover_w, cover_actual_h
 
-    local col_top_pad = math.max(1, math.floor(height * 0.015))
+    local col_top_pad = math.max(1, Screen:scaleBySize(4))
     local col_bottom_pad = math.max(3, math.floor(height * 0.02))
     local gap = math.max(4, math.floor(width * 0.025))
 
@@ -242,23 +275,22 @@ function M.build(ctx, source_key)
         }
     end
 
-    -- Both columns share this height so tops and bottoms align
+    -- Keep details at the full assigned height; the cover fits within it.
     local col_h = math.max(1, height - col_top_pad - col_bottom_pad)
 
-    -- Left column: cover fills col_h, width is natural (aspect ratio driven)
-    local cover_max_w = math.max(1, math.floor(col_h * 0.80))
+    -- Reserve at least 60% of the usable row width for book details.
+    local columns_w = math.max(1, width - gap)
+    local cover_max_w = math.max(1, math.floor(columns_w * COVER_WIDTH_SHARE))
     cover_widget, cover_w, cover_actual_h = cover_common.make_cover_widget(
         book, cover_max_w, col_h,
         { border = cover_common.BORDER_SIZE, background = Blitbuffer.COLOR_LIGHT_GRAY }
     )
-    -- Right column must match the actual rendered cover height exactly
     local cover_col_w = math.max(1, cover_w or cover_max_w)
-    col_h = math.max(1, cover_actual_h or col_h)
     gap = math.min(gap, math.max(0, width - cover_col_w - 1))
     local text_w = math.max(1, width - cover_col_w - gap)
 
     -- Fonts
-    local scale = clamp(col_h / 300, 0.55, 1.28)
+    local scale = clamp(math.max(1, cover_actual_h or col_h) / 300, 0.55, 1.28)
     local title_style = text_style(module_cfg, "title")
     local author_style = text_style(module_cfg, "author")
     local series_style = text_style(module_cfg, "series")
@@ -270,6 +302,16 @@ function M.build(ctx, source_key)
     local stats_face = get_text_face(progress_style,
         Screen:scaleBySize(math.floor(progress_style.font_size * scale + 0.5)), "smallinfofont")
     local desc_face = get_text_face(description_style, description_style.font_size)
+    local desc_text = book.description and util.htmlToPlainTextIfHtml(book.description) or ""
+    local desc_line_h_probe = TextBoxWidget:new{
+        text = "A\nA",
+        width = text_w,
+        face = desc_face,
+        bold = description_style.bold == true,
+    }
+    local desc_line_h = math.max(1, math.ceil(desc_line_h_probe:getSize().h / 2))
+    WidgetResources.free(desc_line_h_probe)
+    local v_pad = math.max(2, math.floor(col_h * 0.02))
 
     -- Optional status bar (top of right column)
     local status_opts = {
@@ -309,9 +351,15 @@ function M.build(ctx, source_key)
         WidgetResources.free(stats_probe)
     end
     local bar_h = math.max(progress_h, stats_text_h)
+    local has_progress = bar_h > 0 and book.status ~= "new" and not is_tbr
+    local flow_top_h = math.max(1, cover_actual_h or col_h)
+    local flow_description = show_description and desc_text ~= ""
+        and col_h - flow_top_h - (has_progress and bar_h or 0)
+            >= desc_line_h + v_pad * 2
+    local progress_w = flow_description and width or text_w
 
     local progress_row
-    if bar_h > 0 and book.status ~= "new" and not is_tbr then
+    if has_progress then
         if has_progress_text then
             local lw = TextWidget:new{
                 text = left_progress_text,
@@ -325,8 +373,8 @@ function M.build(ctx, source_key)
                 bold = progress_style.bold == true,
                 fgcolor = Blitbuffer.COLOR_BLACK,
             }
-            local tgap = math.max(4, math.floor(text_w * 0.02))
-            local bar_w = math.max(20, text_w - lw:getSize().w - rw:getSize().w - tgap * 2)
+            local tgap = math.max(4, math.floor(progress_w * 0.02))
+            local bar_w = math.max(20, progress_w - lw:getSize().w - rw:getSize().w - tgap * 2)
             progress_row = HorizontalGroup:new{
                 align = "center",
                 lw,
@@ -336,7 +384,7 @@ function M.build(ctx, source_key)
                 rw,
             }
         else
-            progress_row = render_progress(progress_percent, text_w, progress_h)
+            progress_row = render_progress(progress_percent, progress_w, progress_h)
         end
     end
     local bottom_h = progress_row and bar_h or 0
@@ -367,7 +415,7 @@ function M.build(ctx, source_key)
 
     -- Build top block widgets first so we can measure actual heights
     local top_items = {}
-    local top_budget = col_h - bottom_h
+    local top_budget = flow_description and flow_top_h or col_h - bottom_h
 
     if status_widget and status_h > 0 then
         if top_budget >= status_h then
@@ -471,76 +519,129 @@ function M.build(ctx, source_key)
         actual_top_h = actual_top_h + w:getSize().h
     end
     local actual_bottom_h = progress_row and progress_row:getSize().h or 0
-    local spacer_h = math.max(0, col_h - actual_top_h - actual_bottom_h)
+    local detail_top_h = flow_description and flow_top_h or col_h
+    local detail_bottom_h = flow_description and 0 or actual_bottom_h
+    local spacer_h = math.max(0, detail_top_h - actual_top_h - detail_bottom_h)
 
-    -- Description fills the middle space
-    local desc_line_h_probe = TextBoxWidget:new{
-        text = "A\nA",
-        width = text_w,
-        face = desc_face,
-        bold = description_style.bold == true,
-    }
-    local desc_line_h = math.max(1, math.ceil(desc_line_h_probe:getSize().h / 2))
-    WidgetResources.free(desc_line_h_probe)
-
-    local v_pad = math.max(2, math.floor(col_h * 0.02))
-    local desc_available = math.max(0, spacer_h - v_pad * 2)
-    local desc_text = book.description and util.htmlToPlainTextIfHtml(book.description) or ""
-    local can_show_desc = show_description and desc_text ~= "" and desc_available >= desc_line_h
-    local desc_h = 0
-    if can_show_desc then
-        desc_h = math.floor(desc_available / desc_line_h) * desc_line_h
-    end
-
-    -- Assemble right column: title/author top, desc middle, progress bottom
-    local detail_children = { align = "left" }
-    for _i, w in ipairs(top_items) do
-        table.insert(detail_children, w)
-    end
-
-    if can_show_desc and desc_h > 0 then
-        local desc_widget = TextBoxWidget:new{
-            text = desc_text,
-            width = text_w,
-            height = desc_h,
+    local function description_widget(text, box_w, box_h, ellipsis)
+        return TextBoxWidget:new{
+            text = text,
+            width = box_w,
+            height = box_h,
             face = desc_face,
             bold = description_style.bold == true,
             alignment = "left",
             alignment_strict = true,
             fgcolor = Blitbuffer.COLOR_BLACK,
-            height_overflow_show_ellipsis = true,
+            height_overflow_show_ellipsis = ellipsis,
         }
-        local actual_desc_h = desc_widget:getSize().h
-        local after = math.max(0, spacer_h - v_pad - actual_desc_h)
-        table.insert(detail_children, VerticalSpan:new{ width = v_pad })
-        table.insert(detail_children, desc_widget)
-        if after > 0 then
-            table.insert(detail_children, VerticalSpan:new{ width = after })
+    end
+
+    local body
+    if flow_description then
+        local upper_available = math.max(0, spacer_h - v_pad)
+        local upper_desc_h = math.floor(upper_available / desc_line_h) * desc_line_h
+        local lower_slot_h = math.max(0, col_h - flow_top_h - actual_bottom_h)
+        local lower_available = math.max(0, lower_slot_h - v_pad * 2)
+        local lower_desc_h = math.floor(lower_available / desc_line_h) * desc_line_h
+        local upper_text, lower_text
+        if upper_desc_h > 0 and lower_desc_h > 0 then
+            upper_text, lower_text = split_text_for_box(
+                desc_text, desc_face, description_style.bold == true,
+                text_w, upper_desc_h)
+        elseif upper_desc_h > 0 then
+            upper_text, lower_text = desc_text, ""
+        else
+            upper_text, lower_text = "", desc_text
         end
-    elseif spacer_h > 0 then
-        table.insert(detail_children, VerticalSpan:new{ width = spacer_h })
+        lower_text = lower_text:gsub("^[\r\n]+", "")
+
+        local side_children = { align = "left" }
+        for _i, w in ipairs(top_items) do
+            table.insert(side_children, w)
+        end
+        if upper_text ~= "" and upper_desc_h > 0 then
+            local upper_desc = description_widget(
+                upper_text, text_w, upper_desc_h, lower_desc_h <= 0)
+            local after = math.max(0, spacer_h - v_pad - upper_desc:getSize().h)
+            table.insert(side_children, VerticalSpan:new{ width = v_pad })
+            table.insert(side_children, upper_desc)
+            if after > 0 then
+                table.insert(side_children, VerticalSpan:new{ width = after })
+            end
+        elseif spacer_h > 0 then
+            table.insert(side_children, VerticalSpan:new{ width = spacer_h })
+        end
+
+        local side_detail = FrameContainer:new{
+            width = text_w,
+            height = flow_top_h,
+            padding = 0,
+            bordersize = 0,
+            background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
+            VerticalGroup:new(side_children),
+        }
+        local flow_children = {
+            align = "left",
+            HorizontalGroup:new{
+                align = "top",
+                cover_widget,
+                HorizontalSpan:new{ width = gap },
+                side_detail,
+            },
+        }
+        if lower_text ~= "" and lower_desc_h > 0 then
+            local lower_desc = description_widget(
+                lower_text, width, lower_desc_h, true)
+            local after = math.max(0, lower_slot_h - v_pad - lower_desc:getSize().h)
+            table.insert(flow_children, VerticalSpan:new{ width = v_pad })
+            table.insert(flow_children, lower_desc)
+            if after > 0 then
+                table.insert(flow_children, VerticalSpan:new{ width = after })
+            end
+        elseif lower_slot_h > 0 then
+            table.insert(flow_children, VerticalSpan:new{ width = lower_slot_h })
+        end
+        if progress_row then table.insert(flow_children, progress_row) end
+        body = VerticalGroup:new(flow_children)
+    else
+        local desc_available = math.max(0, spacer_h - v_pad * 2)
+        local can_show_desc = show_description and desc_text ~= ""
+            and desc_available >= desc_line_h
+        local desc_h = can_show_desc
+            and math.floor(desc_available / desc_line_h) * desc_line_h or 0
+        local detail_children = { align = "left" }
+        for _i, w in ipairs(top_items) do
+            table.insert(detail_children, w)
+        end
+        if can_show_desc and desc_h > 0 then
+            local desc_widget = description_widget(desc_text, text_w, desc_h, true)
+            local after = math.max(0, spacer_h - v_pad - desc_widget:getSize().h)
+            table.insert(detail_children, VerticalSpan:new{ width = v_pad })
+            table.insert(detail_children, desc_widget)
+            if after > 0 then
+                table.insert(detail_children, VerticalSpan:new{ width = after })
+            end
+        elseif spacer_h > 0 then
+            table.insert(detail_children, VerticalSpan:new{ width = spacer_h })
+        end
+        if progress_row then table.insert(detail_children, progress_row) end
+
+        local detail = FrameContainer:new{
+            width = text_w,
+            height = col_h,
+            padding = 0,
+            bordersize = 0,
+            background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
+            VerticalGroup:new(detail_children),
+        }
+        body = HorizontalGroup:new{
+            align = "top",
+            cover_widget,
+            HorizontalSpan:new{ width = gap },
+            detail,
+        }
     end
-
-    -- Progress anchored at bottom
-    if progress_row then
-        table.insert(detail_children, progress_row)
-    end
-
-    local detail = FrameContainer:new{
-        width = text_w,
-        height = col_h,
-        padding = 0,
-        bordersize = 0,
-        background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
-        VerticalGroup:new(detail_children),
-    }
-
-    local body = HorizontalGroup:new{
-        align = "top",
-        cover_widget,
-        HorizontalSpan:new{ width = gap },
-        detail,
-    }
 
     local visual_group = VerticalGroup:new{
         align = "center",

@@ -143,7 +143,7 @@ local DEFAULT_HOME_PAGE = {
             font_size_override = true,
             stat_style = "divider",
         },
-        strip = strip_defaults(),
+        strip = strip_defaults{ controls = true },
     },
     quotes = {
         automatic_font_size = true,
@@ -351,6 +351,10 @@ local function ensure_featured_shape(featured)
     end
     if featured.order ~= nil then
         featured.order = nil
+        changed = true
+    end
+    if featured.cover_layout ~= nil then
+        featured.cover_layout = nil
         changed = true
     end
     return changed

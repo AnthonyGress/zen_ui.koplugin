@@ -1664,13 +1664,13 @@ function M.build(ctx)
             },
             {
                 text_func = function()
-                    return _("Books shown: ") .. tostring(mcfg.count or 4)
+                    return _("Max books shown: ") .. tostring(mcfg.count or 4)
                 end,
                 callback = function()
                     local SpinWidget = require("ui/widget/spinwidget")
                     local is_two = mcfg.two_rows == true
                     UIManager:show(SpinWidget:new{
-                        title_text = _("Books shown"),
+                        title_text = _("Max books shown"),
                         value = mcfg.count or (is_two and 8 or 4),
                         value_min = is_two and 2 or 3,
                         value_max = is_two and 10 or 5,

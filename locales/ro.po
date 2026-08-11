@@ -15,6 +15,9 @@ msgstr "%1 (%2)"
 msgid "%1 mins left in chapter"
 msgstr "%1 min rămase în capitol"
 
+msgid "%1, %2 %3"
+msgstr "%1, %3 %2"
+
 msgid "%d%% Read"
 msgstr "%d%% citit"
 
@@ -240,6 +243,9 @@ msgstr "Autori"
 msgid "authors"
 msgstr "autori"
 
+msgid "Automatic"
+msgstr "Automat"
+
 msgid "Automatic font size"
 msgstr "Dimensiunea fontului automat"
 
@@ -356,12 +362,6 @@ msgstr "cărți"
 
 msgid "Books read"
 msgstr "Cărți citite"
-
-msgid "Books shown"
-msgstr "Cărți afișate"
-
-msgid "Books shown: "
-msgstr "Cărți afișate: "
 
 msgid "Books tab label"
 msgstr "Etichetă filă Cărți"
@@ -521,6 +521,9 @@ msgstr "Conectează dosarele"
 
 msgid "Connections"
 msgstr "Conexiuni"
+
+msgid "Content: "
+msgstr "Conținut: "
 
 msgid "Context Menu"
 msgstr "Meniu contextual"
@@ -723,9 +726,6 @@ msgstr "implicit"
 msgid "Default (black)"
 msgstr "Implicit (negru)"
 
-msgid "Content: "
-msgstr "Conținut: "
-
 msgid "Default font size:"
 msgstr "Dimensiunea fontului implicit:"
 
@@ -818,6 +818,9 @@ msgstr "Dezactivează căutarea cuvântului la apăsare lungă"
 
 msgid "Disable zen mode to access default KOReader menus."
 msgstr "Dezactivează modul zen pentru a accesa meniurile implicite KOReader."
+
+msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
+msgstr "Dezactivați modul Zen cu această pictogramă pentru a ajusta setările KOReader care nu sunt disponibile în Setările Zen."
 
 msgid "Disk space"
 msgstr "Spațiu pe disc"
@@ -1107,6 +1110,9 @@ msgstr "Dosar principal"
 msgid "Home page preset"
 msgstr "Presetare panou"
 
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "Spațierea ecranului principal a fost actualizată. Ordinea și selecția salvate ale widgeturilor au fost păstrate și adaptate la noua grilă."
+
 msgid "Home tab label"
 msgstr "Etichetă filă Acasă"
 
@@ -1325,6 +1331,12 @@ msgstr "Descărcați și instalați manual %1 din aceeași versiune ZenPM."
 
 msgid "Match whole words"
 msgstr "Potrivește cuvinte întregi"
+
+msgid "Max books shown"
+msgstr "Număr maxim de cărți afișate"
+
+msgid "Max books shown: "
+msgstr "Număr maxim de cărți afișate: "
 
 msgid "Maximum 7 tabs allowed"
 msgstr "Maximum 7 file permise"
@@ -2373,6 +2385,12 @@ msgstr "Numele temei"
 msgid "This change requires a restart to take effect."
 msgstr "Această modificare necesită o repornire pentru a intra în vigoare."
 
+msgid "This does not disable Zen UI—it only shows or hides KOReader’s menus."
+msgstr "Aceasta nu dezactivează Zen UI: doar afișează sau ascunde meniurile KOReader."
+
+msgid "This is Zen Settings. Zen UI and common KOReader settings live here."
+msgstr "Acestea sunt Setările Zen. Atât setările Zen UI, cât și setările KOReader uzuale se găsesc aici."
+
 msgid "This Month"
 msgstr "Luna aceasta"
 
@@ -2694,6 +2712,9 @@ msgstr "Mod Zen"
 msgid "Zen Mode"
 msgstr "Mod Zen"
 
+msgid "Zen Mode is enabled. KOReader menus are hidden."
+msgstr "Modul Zen este activat. Meniurile KOReader sunt ascunse."
+
 msgid "Zen Mode: Disabled"
 msgstr "Modul Zen: Dezactivat"
 
@@ -2783,24 +2804,3 @@ msgstr "ZenPM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM a fost instalat. Reporniți KOReader pentru a-l folosi."
-
-msgid "Automatic"
-msgstr "Automat"
-
-msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
-msgstr "Spațierea ecranului principal a fost actualizată. Ordinea și selecția salvate ale widgeturilor au fost păstrate și adaptate la noua grilă."
-
-msgid "%1, %2 %3"
-msgstr "%1, %3 %2"
-
-msgid "Zen Mode is enabled. KOReader menus are hidden."
-msgstr "Modul Zen este activat. Meniurile KOReader sunt ascunse."
-
-msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
-msgstr "Dezactivați modul Zen cu această pictogramă pentru a ajusta setările KOReader care nu sunt disponibile în Setările Zen."
-
-msgid "This does not disable Zen UI—it only shows or hides KOReader’s menus."
-msgstr "Aceasta nu dezactivează Zen UI: doar afișează sau ascunde meniurile KOReader."
-
-msgid "This is Zen Settings. Zen UI and common KOReader settings live here."
-msgstr "Acestea sunt Setările Zen. Atât setările Zen UI, cât și setările KOReader uzuale se găsesc aici."

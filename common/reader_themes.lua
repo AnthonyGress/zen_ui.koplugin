@@ -123,10 +123,8 @@ function M.applyFont(reader, plugin)
     if not (document and type(document.setFontFace) == "function") then return false end
     local theme = theme_for(plugin)
     local face = theme and theme.font_face
-    if not face or face == "default" then
-        face = reader.font and reader.font.font_face
-    end
-    if face then document:setFontFace(face) end
+    if type(face) ~= "string" or face == "default" then return false end
+    document:setFontFace(face)
     return true
 end
 

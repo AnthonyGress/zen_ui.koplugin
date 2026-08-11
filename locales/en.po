@@ -15,6 +15,9 @@ msgstr "%1 (%2)"
 msgid "%1 mins left in chapter"
 msgstr "%1 mins left in chapter"
 
+msgid "%1, %2 %3"
+msgstr "%1, %2 %3"
+
 msgid "%d%% Read"
 msgstr "%d%% Read"
 
@@ -240,6 +243,9 @@ msgstr "Authors"
 msgid "authors"
 msgstr "authors"
 
+msgid "Automatic"
+msgstr "Automatic"
+
 msgid "Automatic font size"
 msgstr "Automatic font size"
 
@@ -356,12 +362,6 @@ msgstr "books"
 
 msgid "Books read"
 msgstr "Books read"
-
-msgid "Books shown"
-msgstr "Books shown"
-
-msgid "Books shown: "
-msgstr "Books shown: "
 
 msgid "Books tab label"
 msgstr "Books tab label"
@@ -521,6 +521,9 @@ msgstr "Connect folders"
 
 msgid "Connections"
 msgstr "Connections"
+
+msgid "Content: "
+msgstr "Content: "
 
 msgid "Context Menu"
 msgstr "Context Menu"
@@ -722,9 +725,6 @@ msgstr "default"
 
 msgid "Default (black)"
 msgstr "Default (black)"
-
-msgid "Content: "
-msgstr "Content: "
 
 msgid "Default font size:"
 msgstr "Default font size:"
@@ -1107,6 +1107,9 @@ msgstr "Home folder"
 msgid "Home page preset"
 msgstr "Home page preset"
 
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+
 msgid "Home tab label"
 msgstr "Home tab label"
 
@@ -1325,6 +1328,12 @@ msgstr "Manually download and sideload %1 from the same ZenPM release."
 
 msgid "Match whole words"
 msgstr "Match whole words"
+
+msgid "Max books shown"
+msgstr "Max books shown"
+
+msgid "Max books shown: "
+msgstr "Max books shown: "
 
 msgid "Maximum 7 tabs allowed"
 msgstr "Maximum 7 tabs allowed"
@@ -2783,12 +2792,3 @@ msgstr "ZenPM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM has been installed. Restart KOReader to use it."
-
-msgid "Automatic"
-msgstr "Automatic"
-
-msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
-msgstr "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
-
-msgid "%1, %2 %3"
-msgstr "%1, %2 %3"

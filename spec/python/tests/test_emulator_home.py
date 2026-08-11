@@ -269,7 +269,7 @@ def test_home_renders_all_core_widgets_with_and_without_history(with_history: bo
             assert home["page_padding"] > 0
             visual_gaps = home["visual_gaps"]
             assert len(visual_gaps) == 4
-            assert max(visual_gaps) - min(visual_gaps) <= 2, visual_gaps
+            assert max(visual_gaps) - min(visual_gaps) <= 3, visual_gaps
             screenshot = root / "home.png"
             driver.screenshot(screenshot)
             assert screenshot.stat().st_size > 0

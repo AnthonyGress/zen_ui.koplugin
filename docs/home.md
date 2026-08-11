@@ -49,7 +49,7 @@ Add widgets like featured books, cover strips, reading goals, reading stats, quo
 | Strip widgets > Show book titles | Shows book titles in strip widgets. |
 | Strip widgets > Show badges | Shows cover badges in strip widgets. |
 | Strip widgets > Interactive | Allows strip widgets to respond to selection. |
-| Strip widgets > Books shown | Sets how many books are shown in a strip. |
+| Strip widgets > Max books shown | Sets the upper limit; narrower layouts may show fewer books. |
 | Strip widgets > Two rows | Displays compatible strips across two rows. |
 | Strip widgets > Center books | Centers short rows of books in compatible strip widgets. |
 | Strip widgets > Order | Selects default or reverse order for recent and To Be Read strips. |

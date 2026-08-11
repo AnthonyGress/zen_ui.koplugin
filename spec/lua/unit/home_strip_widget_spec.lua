@@ -272,6 +272,36 @@ describe("home strip widget", function()
         assert.are.same({ book.path, "recently_read" }, context_args)
     end)
 
+    it("reduces the page size when the strip is too narrow for readable covers", function()
+        local requested = {}
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        local function build(width, count, two_rows)
+            Strip.build({
+                width = width,
+                height = 300,
+                component_id = "strip",
+                module_cfg = {
+                    count = count,
+                    interactive = false,
+                    two_rows = two_rows,
+                },
+                data = {
+                    getBooksForStrip = function(_self, _source, page_size)
+                        requested[#requested + 1] = page_size
+                        return {}
+                    end,
+                },
+            })
+        end
+
+        build(500, 5, false)
+        build(800, 5, false)
+        build(500, 10, true)
+        build(800, 10, true)
+
+        assert.are.same({ 3, 5, 6, 10 }, requested)
+    end)
+
     it("adds extra vertical space between two book rows", function()
         local books = {}
         for i = 1, 8 do

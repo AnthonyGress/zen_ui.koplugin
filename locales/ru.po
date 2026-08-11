@@ -364,12 +364,6 @@ msgstr "книги"
 msgid "Books read"
 msgstr "Прочитано книг"
 
-msgid "Books shown"
-msgstr "Показано книг"
-
-msgid "Books shown: "
-msgstr "Показано книг: "
-
 msgid "Books tab label"
 msgstr "Метка вкладки «Книги»"
 
@@ -829,6 +823,9 @@ msgstr "Отключите режим Zen, чтобы получить дост�
 msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
 msgstr "Отключите режим Zen с помощью этого значка, чтобы изменить настройки KOReader, недоступные в настройках Zen."
 
+msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
+msgstr "Отключите режим Zen с помощью этого значка, чтобы изменить настройки KOReader, недоступные в настройках Zen."
+
 msgid "Disk space"
 msgstr "Место на диске"
 
@@ -1120,6 +1117,9 @@ msgstr "Пресет главной страницы"
 msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
 msgstr "Интервалы на главном экране обновлены. Сохранённые порядок и набор виджетов адаптированы к новой сетке."
 
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "Интервалы на главном экране обновлены. Сохранённые порядок и набор виджетов адаптированы к новой сетке."
+
 msgid "Home tab label"
 msgstr "Метка вкладки «Главная»"
 
@@ -1338,6 +1338,12 @@ msgstr "Загрузите и установите %1 вручную из тог
 
 msgid "Match whole words"
 msgstr "Искать целые слова"
+
+msgid "Max books shown"
+msgstr "Максимум показанных книг"
+
+msgid "Max books shown: "
+msgstr "Максимум показанных книг: "
 
 msgid "Maximum 7 tabs allowed"
 msgstr "Разрешено не более 7 вкладок"

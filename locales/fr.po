@@ -15,6 +15,9 @@ msgstr "%1 (%2)"
 msgid "%1 mins left in chapter"
 msgstr "%1 min restants dans le chapitre"
 
+msgid "%1, %2 %3"
+msgstr "%1 %3 %2"
+
 msgid "%d%% Read"
 msgstr "%d%% lu"
 
@@ -240,6 +243,9 @@ msgstr "Auteurs"
 msgid "authors"
 msgstr "auteurs"
 
+msgid "Automatic"
+msgstr "Automatique"
+
 msgid "Automatic font size"
 msgstr "Taille de police automatique"
 
@@ -356,12 +362,6 @@ msgstr "livres"
 
 msgid "Books read"
 msgstr "Livres lus"
-
-msgid "Books shown"
-msgstr "Livres affichés"
-
-msgid "Books shown: "
-msgstr "Livres affichés : "
 
 msgid "Books tab label"
 msgstr "Étiquette de l'onglet Livres"
@@ -521,6 +521,9 @@ msgstr "Connecter des dossiers"
 
 msgid "Connections"
 msgstr "Connexions"
+
+msgid "Content: "
+msgstr "Contenu : "
 
 msgid "Context Menu"
 msgstr "Menu contextuel"
@@ -723,9 +726,6 @@ msgstr "par défaut"
 msgid "Default (black)"
 msgstr "Par défaut (noir)"
 
-msgid "Content: "
-msgstr "Contenu : "
-
 msgid "Default font size:"
 msgstr "Taille de police par défaut :"
 
@@ -818,6 +818,9 @@ msgstr "Désactiver la recherche de mot au maintien"
 
 msgid "Disable zen mode to access default KOReader menus."
 msgstr "Désactivez le mode zen pour accéder aux menus par défaut de KOReader."
+
+msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
+msgstr "Désactivez le mode Zen à l’aide de cette icône pour modifier les paramètres de KOReader qui ne sont pas disponibles dans les paramètres Zen."
 
 msgid "Disk space"
 msgstr "Espace disque"
@@ -1107,6 +1110,9 @@ msgstr "Dossier personnel"
 msgid "Home page preset"
 msgstr "Préréglage du tableau de bord"
 
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "L’espacement de l’accueil a été mis à jour. L’ordre et la sélection de vos widgets ont été conservés et adaptés à la nouvelle grille."
+
 msgid "Home tab label"
 msgstr "Étiquette de l'onglet Accueil"
 
@@ -1325,6 +1331,12 @@ msgstr "Téléchargez et installez manuellement %1 depuis la même version de Ze
 
 msgid "Match whole words"
 msgstr "Mots entiers uniquement"
+
+msgid "Max books shown"
+msgstr "Nombre maximal de livres affichés"
+
+msgid "Max books shown: "
+msgstr "Nombre maximal de livres affichés : "
 
 msgid "Maximum 7 tabs allowed"
 msgstr "Maximum 7 onglets autorisés"
@@ -2373,6 +2385,12 @@ msgstr "Nom du thème"
 msgid "This change requires a restart to take effect."
 msgstr "Ce changement nécessite un redémarrage pour prendre effet."
 
+msgid "This does not disable Zen UI—it only shows or hides KOReader’s menus."
+msgstr "Cela ne désactive pas Zen UI : seuls les menus de KOReader sont affichés ou masqués."
+
+msgid "This is Zen Settings. Zen UI and common KOReader settings live here."
+msgstr "Voici les paramètres Zen. Les paramètres de Zen UI et les paramètres courants de KOReader s’y trouvent."
+
 msgid "This Month"
 msgstr "Ce mois"
 
@@ -2694,6 +2712,9 @@ msgstr "Mode Zen"
 msgid "Zen Mode"
 msgstr "Mode Zen"
 
+msgid "Zen Mode is enabled. KOReader menus are hidden."
+msgstr "Le mode Zen est activé. Les menus de KOReader sont masqués."
+
 msgid "Zen Mode: Disabled"
 msgstr "Mode Zen : Désactivé"
 
@@ -2783,24 +2804,3 @@ msgstr "ZenPM"
 
 msgid "ZenPM has been installed. Restart KOReader to use it."
 msgstr "ZenPM a été installé. Redémarrez KOReader pour l’utiliser."
-
-msgid "Automatic"
-msgstr "Automatique"
-
-msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
-msgstr "L’espacement de l’accueil a été mis à jour. L’ordre et la sélection de vos widgets ont été conservés et adaptés à la nouvelle grille."
-
-msgid "%1, %2 %3"
-msgstr "%1 %3 %2"
-
-msgid "Zen Mode is enabled. KOReader menus are hidden."
-msgstr "Le mode Zen est activé. Les menus de KOReader sont masqués."
-
-msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
-msgstr "Désactivez le mode Zen à l’aide de cette icône pour modifier les paramètres de KOReader qui ne sont pas disponibles dans les paramètres Zen."
-
-msgid "This does not disable Zen UI—it only shows or hides KOReader’s menus."
-msgstr "Cela ne désactive pas Zen UI : seuls les menus de KOReader sont affichés ou masqués."
-
-msgid "This is Zen Settings. Zen UI and common KOReader settings live here."
-msgstr "Voici les paramètres Zen. Les paramètres de Zen UI et les paramètres courants de KOReader s’y trouvent."
