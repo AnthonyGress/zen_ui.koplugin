@@ -19,7 +19,7 @@ msgid "%d%% Read"
 msgstr "%d%% gelesen"
 
 msgid "%s books goal"
-msgstr "%s bucht Ziel"
+msgstr "%s Buchziel"
 
 msgid "%s goal"
 msgstr "%s Ziel"
@@ -85,7 +85,7 @@ msgid "< 1 min left in chapter"
 msgstr "< 1 Min. im Kapitel verbleibend"
 
 msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
-msgstr "Eine minimale, cleane und einfache Benutzeroberfläche für Ihren E-Reader.\n\nWischen oder tippen Sie auf „Weiter“, um fortzufahren."
+msgstr "Eine minimale, saubere und einfache Benutzeroberfläche für Ihren E-Reader.\n\nWischen oder tippen Sie auf „Weiter“, um fortzufahren."
 
 msgid "A short summary of what went wrong"
 msgstr "Eine kurze Zusammenfassung des Fehlers"
