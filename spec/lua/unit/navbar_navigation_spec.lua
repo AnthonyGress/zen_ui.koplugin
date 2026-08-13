@@ -383,6 +383,22 @@ describe("file browser navbar navigation", function()
         assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
     end)
 
+    it("lets a forced default Home override saved Series state", function()
+        _G.__ZEN_UI_PLUGIN.config.features.restore_library_view = true
+        _G.__ZEN_UI_LIBRARY_STATE = { tab = "series", page = 2 }
+        _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = true
+        local fm = make_instance()
+        FileManager._test_next_instance = fm
+        calls = {}
+
+        FileManager.showFiles(FileManager, "/library/Series", "/library/Series/Book.epub")
+
+        assert.are.same({ "base:/library:nil", "home" }, calls)
+        assert.is_true(fm.invisible)
+        assert.is_nil(_G.__ZEN_UI_LIBRARY_STATE)
+        assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+    end)
+
     it("defers hidden FileManager construction for a default Home startup", function()
         _G.__ZEN_UI_PLUGIN.config.features.restore_library_view = true
         local fm = make_instance()

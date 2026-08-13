@@ -102,6 +102,56 @@ describe("file manager status bar visibility", function()
         assert.are.equal(existing_row, title_group[2])
     end)
 
+    it("builds hidden status rows without repainting them over the top widget", function()
+        require("modules/filebrowser/patches/status_bar")()
+
+        local function replace_upvalue(fn, target, replacement)
+            for index = 1, 40 do
+                local name = debug.getupvalue(fn, index)
+                if not name then break end
+                if name == target then
+                    debug.setupvalue(fn, index, replacement)
+                    return true
+                end
+            end
+            return false
+        end
+
+        local repaint_count = 0
+        local next_row = { getSize = function() return { h = 1 } end }
+        assert.is_true(replace_upvalue(FileManager._updateStatusBar,
+            "createStatusRow", function() return next_row end))
+        assert.is_true(replace_upvalue(FileManager._updateStatusBar,
+            "repaintTitleBar", function() repaint_count = repaint_count + 1 end))
+
+        local function item()
+            return { getSize = function() return { h = 1 } end }
+        end
+        local title_group = { item(), item(), item(), item() }
+        function title_group:resetLayout() end
+        FileManager.title_bar = {
+            title_group = title_group,
+            titlebar_height = 2,
+            width = 600,
+            button_padding = 0,
+        }
+        FileManager.instance = FileManager
+        UIManager._window_stack = { { widget = FileManager } }
+
+        FileManager.invisible = true
+        FileManager:_updateStatusBar()
+        assert.are.equal(next_row, title_group[2])
+        assert.are.equal(0, repaint_count)
+
+        FileManager.invisible = nil
+        FileManager:_updateStatusBar()
+        assert.are.equal(1, repaint_count)
+
+        UIManager._window_stack[#UIManager._window_stack + 1] = { widget = {} }
+        FileManager:_updateStatusBar()
+        assert.are.equal(1, repaint_count)
+    end)
+
     it("routes the real-folder chevron through onFolderUp", function()
         local status_api
         local back_callback

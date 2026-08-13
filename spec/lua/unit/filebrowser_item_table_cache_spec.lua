@@ -17,6 +17,7 @@ describe("file browser item-table cache", function()
     local scheduled
     local filename_wrap
     local directory_wrap
+    local home_invalidations
 
     local module_names = {
         "common/cover_utils",
@@ -32,6 +33,7 @@ describe("file browser item-table cache", function()
         "common/paths", "modules/filebrowser/patches/library_font", "common/utils",
         "gettext", "apps/filemanager/filemanager", "luasettings",
         "config/preset_store", "ui/uimanager", "version",
+        "common/shared_state",
     }
 
     local function new_filechooser_class()
@@ -92,6 +94,7 @@ describe("file browser item-table cache", function()
         scheduled = {}
         filename_wrap = function(text) return text end
         directory_wrap = function(text) return text end
+        home_invalidations = {}
         saved_modules = {}
         for _i, name in ipairs(module_names) do
             saved_modules[name] = package.loaded[name]
@@ -155,6 +158,19 @@ describe("file browser item-table cache", function()
         ZenSpec.replace("common/paths", {
             getHomeDir = function() return "/library" end,
             normPath = function(path) return path end,
+        })
+        ZenSpec.replace("common/shared_state", {
+            get = function(_plugin, key)
+                if key ~= "home" then return end
+                return {
+                    invalidateBookCache = function(path, history_changed)
+                        home_invalidations[#home_invalidations + 1] = {
+                            path = path,
+                            history_changed = history_changed,
+                        }
+                    end,
+                }
+            end,
         })
         ZenSpec.replace("modules/filebrowser/patches/library_font", {})
         ZenSpec.replace("gettext", function(text) return text end)
@@ -283,12 +299,18 @@ describe("file browser item-table cache", function()
         assert.are.equal("1 \xef\x80\x96", before[1].mandatory)
 
         descendant_times["/library/Later"] = 30
+        directory_mtime = 2
         _G.__ZEN_UI_LAST_READ_FILE = "/library/Later/book.epub"
         local after = chooser:genItemTableFromPath("/library")
 
         assert.are.equal("Later/", after[1].text)
         assert.are.equal("2 \xef\x80\x96", after[1].mandatory)
         assert.are.equal(1, generated["/library"])
+        assert.are.same({ {
+            path = "/library/Later/book.epub",
+            history_changed = true,
+        } }, home_invalidations)
+        assert.is_nil(_G.__ZEN_UI_LAST_READ_FILE)
     end)
 
     it("restores a scalar-only listing snapshot in a fresh cache instance", function()

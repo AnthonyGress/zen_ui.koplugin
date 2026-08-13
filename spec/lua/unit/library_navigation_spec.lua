@@ -6,6 +6,7 @@ describe("library navigation", function()
             "__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB", "__ZEN_UI_OPEN_TARGET_TAB",
             "__ZEN_UI_OPEN_TARGET_FOLDER", "__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER",
             "__ZEN_UI_KEEP_BOOK_LOCATION", "__ZEN_UI_LAST_READ_FILE",
+            "__ZEN_UI_LIBRARY_STATE", "__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB",
         }) do
             _G[name] = nil
         end
@@ -101,6 +102,50 @@ describe("library navigation", function()
         assert.is_true(ui.closed)
         assert.are.equal("/library/Book.epub", ui.shown)
         assert.is_true(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+    end)
+
+    it("arms the configured default before Reader teardown", function()
+        local ui = reader()
+        local original_close = ui.onClose
+        function ui:onClose()
+            assert.is_true(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+            return original_close(self)
+        end
+
+        Navigation.showFromReader(ui, {
+            config = { features = { restore_library_view = true } },
+        })
+
+        assert.is_true(ui.closed)
+        assert.are.equal("/library/Book.epub", ui.shown)
+    end)
+
+    it("forces an explicit default even when Android reports an outside path", function()
+        local ui = reader("/outside/Book.epub")
+
+        Navigation.showFromReader(ui, {
+            config = { features = { restore_library_view = true } },
+        }, { force_default = true })
+
+        assert.is_true(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+        assert.is_nil(_G.__ZEN_UI_KEEP_BOOK_LOCATION)
+    end)
+
+    it("opens the default directly when a surviving FileManager bypasses showFiles", function()
+        local ui = reader()
+        local default_opens = 0
+        _G.__ZEN_UI_LIBRARY_STATE = { tab = "series", page = 2 }
+        _G.__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB = function()
+            default_opens = default_opens + 1
+        end
+
+        Navigation.showFromReader(ui, {
+            config = { features = { restore_library_view = true } },
+        }, { force_default = true })
+
+        assert.are.equal(1, default_opens)
+        assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+        assert.is_nil(_G.__ZEN_UI_LIBRARY_STATE)
     end)
 
     it("uses explicit home before a simultaneous folder target", function()

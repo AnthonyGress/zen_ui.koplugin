@@ -8,6 +8,7 @@ local function apply_browser_item_table_cache()
     local ffiUtil = require("ffi/util")
     local lfs = require("libs/libkoreader-lfs")
     local paths = require("common/paths")
+    local SharedState = require("common/shared_state")
     local zen_logger = require("common/zen_logger")
     local logger = zen_logger.new("browser_item_table_cache")
     local now = zen_logger.now
@@ -796,8 +797,13 @@ local function apply_browser_item_table_cache()
         end
 
         local stale = shared_cache.values[path]
-        if collate_mode == "access" and rawget(_G, "__ZEN_UI_LAST_READ_FILE")
+        local last_read_file = rawget(_G, "__ZEN_UI_LAST_READ_FILE")
+        if collate_mode == "access" and last_read_file
                 and stale and stale.stable_key == stable then
+            local Home = SharedState.get(plugin, "home")
+            if Home and type(Home.invalidateBookCache) == "function" then
+                pcall(Home.invalidateBookCache, last_read_file, true)
+            end
             _G.__ZEN_UI_LAST_READ_FILE = nil
             stale.table = apply_history_order(self, stale.table, collate, reverse)
             stale.key = key

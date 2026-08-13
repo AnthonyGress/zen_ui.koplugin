@@ -57,6 +57,7 @@ function M.showFromReader(ui, plugin, opts)
     opts = type(opts) == "table" and opts or {}
     local file = ui.document.file
     local open_home = opts.open_home == true
+    local force_default = opts.force_default == true
     local target_tab = opts.target_tab
     local target_folder = opts.target_folder
     local return_to_default = not open_home and target_tab == nil and target_folder == nil
@@ -70,22 +71,35 @@ function M.showFromReader(ui, plugin, opts)
         return true
     end
 
-    ui:onClose()
-    if type(ui.showFileManager) == "function" then
+    local can_show_file_manager = type(ui.showFileManager) == "function"
+    if can_show_file_manager then
         if open_home then
             _G.__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER = true
         elseif target_tab then
             _G.__ZEN_UI_OPEN_TARGET_TAB = target_tab
         elseif target_folder then
             _G.__ZEN_UI_OPEN_TARGET_FOLDER = target_folder
-        elseif return_to_default and not outside_home then
+        elseif force_default or (return_to_default and not outside_home) then
             _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = true
         elseif not restore and not outside_home then
             _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = true
         elseif outside_home then
             _G.__ZEN_UI_KEEP_BOOK_LOCATION = true
         end
+    end
+
+    ui:onClose()
+    if can_show_file_manager then
         ui:showFileManager(file)
+        -- KOReader bypasses FileManager.showFiles when an instance survived teardown.
+        if force_default and rawget(_G, "__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB") == true then
+            local open_default = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB")
+            if type(open_default) == "function" then
+                _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = nil
+                _G.__ZEN_UI_LIBRARY_STATE = nil
+                open_default()
+            end
+        end
     end
     return true
 end

@@ -1085,9 +1085,13 @@ local function apply_status_bar()
             end
         end
 
-        -- Clear the full titlebar region to white before repainting so stale
-        -- pixels from a previously wider right-side group don't leave ghosts.
-        repaintTitleBar(tb)
+        local top_widget = topmost_non_toast_widget()
+        if FileManager.instance == self and self.invisible ~= true
+                and (top_widget == self or top_widget == self.show_parent) then
+            -- Clear the full titlebar region so stale pixels from a previously
+            -- wider right-side group don't leave ghosts.
+            repaintTitleBar(tb)
+        end
     end
 
     -- === Hooks ===
@@ -1214,9 +1218,8 @@ local function apply_status_bar()
             orig_setupLayout(self)
         end
 
-        -- Apply immediately so the first paint shows our custom row rather
-        -- than the placeholder title.  _updateStatusBar is a no-op when the
-        -- titlebar isn't ready yet, so this is always safe to call early.
+        -- Build immediately so the first paint shows our custom row rather
+        -- than the placeholder title. Hidden instances do not repaint it.
         self:_updateStatusBar()
 
         -- Defer again after all plugins (coverbrowser etc.) finish init
