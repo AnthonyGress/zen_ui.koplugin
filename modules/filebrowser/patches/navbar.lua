@@ -3279,6 +3279,22 @@ local function apply_navbar()
             orig_showFiles(self, path, effective_focused, selected_files)
         end
         local filemanager = FileManager.instance
+        -- Android may restore a focused book after setupLayout already chose hidden Home.
+        if not startup_default_home
+                and default_tab == "home"
+                and restore_enabled
+                and focused_file
+                and not forced_default_tab
+                and not open_home_after_filemanager
+                and not open_target_tab
+                and not open_target_folder
+                and not keep_book_location_requested
+                and not (state_before_show and state_before_show.tab)
+                and filemanager
+                and filemanager._zen_hidden_home_startup == true then
+            startup_default_home = true
+            defer_hidden_home_listing = true
+        end
         if hide_rakuyomi_filemanager and filemanager then
             filemanager.invisible = true
             UIManager._dirty[filemanager] = nil

@@ -192,7 +192,7 @@ def test_book_opens_in_reader_and_home_returns_to_library(
         library.mkdir()
         book = library / "Reader Navigation.epub"
         _write_readable_epub(book)
-        folder = library / "Shelf"
+        folder = library / "Folder"
         folder.mkdir()
         _write_readable_epub(folder / "Nested.epub")
         _seed_mosaic_mode(ko_home)

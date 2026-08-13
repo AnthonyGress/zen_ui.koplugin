@@ -157,22 +157,22 @@ describe("book info grouping cache", function()
             local stmt = original_prepare(self, sql)
             local query = prepared_queries[#prepared_queries]
             query.rows = {
-                { "/books/shelf/", "a.epub", "Title A", "Author A", "Series A", 2, "Tag A" },
+                { "/books/folder/", "a.epub", "Title A", "Author A", "Series A", 2, "Tag A" },
             }
             return stmt
         end
 
-        local first = DbBookInfo.getLightMetadata("/books/shelf")
-        local second = DbBookInfo.getLightMetadata("/books/shelf/")
+        local first = DbBookInfo.getLightMetadata("/books/folder")
+        local second = DbBookInfo.getLightMetadata("/books/folder/")
 
-        assert.are.equal("Title A", first["/books/shelf/a.epub"].title)
-        assert.are.equal("Author A", first["/books/shelf/a.epub"].authors)
-        assert.are.equal("Tag A", first["/books/shelf/a.epub"].keywords)
+        assert.are.equal("Title A", first["/books/folder/a.epub"].title)
+        assert.are.equal("Author A", first["/books/folder/a.epub"].authors)
+        assert.are.equal("Tag A", first["/books/folder/a.epub"].keywords)
         assert.are.equal(first, second)
         assert.are.equal(1, #prepared_queries)
         assert.matches("WHERE directory = %? OR directory = %? OR directory = %?",
             prepared_queries[1].sql)
-        assert.are.same({ "/books/shelf/", "/books/shelf/", "/books/shelf/" },
+        assert.are.same({ "/books/folder/", "/books/folder/", "/books/folder/" },
             prepared_queries[1].binds)
         assert.are.equal(0, exec_calls)
     end)
@@ -190,19 +190,19 @@ describe("book info grouping cache", function()
             return path:gsub("^/sdcard/", "/storage/emulated/0/")
         end
 
-        DbBookInfo.getLightMetadata("/sdcard/shelf")
+        DbBookInfo.getLightMetadata("/sdcard/folder")
 
         assert.are.same({
-            "/sdcard/shelf/", "/storage/emulated/0/shelf/", "/sdcard/shelf/",
+            "/sdcard/folder/", "/storage/emulated/0/folder/", "/sdcard/folder/",
         }, prepared_queries[1].binds)
     end)
 
     it("bounds cached directories on constrained devices", function()
         limit_group_cache = true
         for index = 1, 5 do
-            DbBookInfo.getLightMetadata("/books/shelf-" .. index)
+            DbBookInfo.getLightMetadata("/books/folder-" .. index)
         end
-        DbBookInfo.getLightMetadata("/books/shelf-1")
+        DbBookInfo.getLightMetadata("/books/folder-1")
 
         assert.are.equal(6, #prepared_queries)
     end)

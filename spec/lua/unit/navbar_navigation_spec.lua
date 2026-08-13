@@ -412,6 +412,25 @@ describe("file browser navbar navigation", function()
         assert.is_nil(fm.file_chooser._zen_hidden_home_startup)
     end)
 
+    it("finishes deferred Home when Android restores a focused book", function()
+        _G.__ZEN_UI_PLUGIN.config.features.restore_library_view = true
+        local fm = make_instance()
+        fm.invisible = true
+        fm._zen_hidden_home_startup = true
+        fm.file_chooser._zen_hidden_home_startup = true
+        fm.file_chooser._zen_needs_full_listing = true
+        FileManager._test_next_instance = fm
+        calls = {}
+
+        FileManager.showFiles(FileManager, "/library", "/library/Book.epub")
+
+        assert.are.same({
+            "base:/library:/library/Book.epub",
+            "home",
+        }, calls)
+        assert.is_true(fm._zen_default_tab_bootstrapped)
+    end)
+
     it("defers cold default-Home construction from the initial setupLayout seam", function()
         local injected_update
         local file_chooser = {
