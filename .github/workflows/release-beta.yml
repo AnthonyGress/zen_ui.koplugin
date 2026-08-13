@@ -114,3 +114,13 @@ jobs:
             --notes-file release_notes.md \
             --prerelease \
             --target "${{ github.sha }}"
+
+      - name: Refresh ZenPM package
+        if: steps.version_check.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.ZENPM_REPO_TOKEN }}
+        run: |
+          gh workflow run scrape-plugins.yml \
+            --repo xZenLabs/repo \
+            --ref main \
+            --field package=zen-ui

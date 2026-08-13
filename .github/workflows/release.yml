@@ -88,3 +88,13 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --title "Zen UI $TAG" \
             --notes-file release_notes.md
+
+      - name: Refresh ZenPM package
+        if: steps.version_check.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.ZENPM_REPO_TOKEN }}
+        run: |
+          gh workflow run scrape-plugins.yml \
+            --repo xZenLabs/repo \
+            --ref main \
+            --field package=zen-ui
