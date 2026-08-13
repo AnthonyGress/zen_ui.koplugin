@@ -305,6 +305,40 @@ describe("home data and book caches", function()
         assert.are.equal(2, history_reload_count)
     end)
 
+    it("normalizes Android history paths before validating the file", function()
+        history_items[1].file = "/sdcard/alpha.epub"
+        ZenSpec.replace("libs/libkoreader-lfs", {
+            attributes = function(path, key)
+                if path ~= "/storage/emulated/0/alpha.epub" then return nil end
+                if key == "mode" then return "file" end
+                if key == "modification" then return 1 end
+                return { mode = "file", modification = 1 }
+            end,
+        })
+        ZenSpec.replace("common/paths", {
+            getHomeDir = function() return "/storage/emulated/0" end,
+            normPath = function(path)
+                return path:gsub("^/sdcard/", "/storage/emulated/0/")
+            end,
+            isInHomeDir = function(path)
+                return path:sub(1, 20) == "/storage/emulated/0/"
+            end,
+        })
+
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, {
+            rows = {
+                order = { "featured" },
+                enabled = { featured = true },
+                max_rows = 1,
+            },
+            modules = { featured = { default_source = { kind = "recent" } } },
+        })
+
+        assert.are.equal("/storage/emulated/0/alpha.epub",
+            provider:getFeaturedBook("recently_read", "default").path)
+    end)
+
     it("reuses matching Home stats across provider rebuilds", function()
         local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
         local build_data_provider = get_build_data_provider(Home)

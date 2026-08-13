@@ -925,8 +925,9 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
         end
 
         for _i, entry in ipairs(hist) do
-            local path = entry and entry.file
-            if type(path) == "string"
+            local raw_path = entry and entry.file
+            local path = type(raw_path) == "string" and paths.normPath(raw_path) or nil
+            if path ~= nil
                 and path ~= ""
                 and lfs.attributes(path, "mode") == "file"
                 and (paths.isInHomeDir(path) or is_rakuyomi_history_path(path)) then

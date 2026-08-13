@@ -28,6 +28,9 @@ describe("Quickstart pages", function()
         ZenSpec.replace("common/cover_utils", {})
         ZenSpec.replace("common/paths", {
             getHomeDir = function() return "/books" end,
+            getConfiguredHomeDir = function()
+                return G_reader_settings:readSetting("home_dir")
+            end,
         })
         ZenSpec.replace("common/plugin_root", "/plugins/zen_ui.koplugin")
         ZenSpec.replace("common/reader_defaults", { apply = function() end })
@@ -66,6 +69,17 @@ describe("Quickstart pages", function()
         end
     end
 
+    local function install_pages()
+        return require("common/quickstart/quickstart_pages").build_install_pages({
+            config = {
+                _meta = { quickstart_completed = false },
+                features = {},
+                navbar = { show_tabs = {} },
+            },
+            plugin = {},
+        })
+    end
+
     it("selects Zen Reader defaults before setup has been completed", function()
         local choices = reader_choices(false)
 
@@ -78,5 +92,14 @@ describe("Quickstart pages", function()
 
         assert.is_true(choices[1].checked)
         assert.is_false(choices[2].checked)
+    end)
+
+    it("still offers Home Folder setup when only the device fallback exists", function()
+        local found = false
+        for _i, page in ipairs(install_pages()) do
+            if page.title == "Home Folder" then found = true end
+        end
+
+        assert.is_true(found)
     end)
 end)

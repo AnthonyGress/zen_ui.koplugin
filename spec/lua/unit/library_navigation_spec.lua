@@ -17,6 +17,7 @@ describe("library navigation", function()
         ZenSpec.replace("ui/event", {
             new = function(_, name) return { name = name } end,
         })
+        ZenSpec.replace("device", { home_dir = "/sdcard" })
         ZenSpec.replace("config/manager", { get = function() return {} end })
         ZenSpec.replace("MangaReader", { is_showing = false })
         ZenSpec.replace("common/utils", {
@@ -90,6 +91,20 @@ describe("library navigation", function()
 
         assert.is_true(_G.__ZEN_UI_KEEP_BOOK_LOCATION)
         assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+    end)
+
+    it("uses KOReader's Android home when no explicit home is stored", function()
+        _G.G_reader_settings = ZenSpec.memorySettings({
+            allow_commaneer_filemanager = true,
+        })
+        local ui = reader("/storage/emulated/0/Book.epub")
+
+        Navigation.showFromReader(ui, {
+            config = { features = { restore_library_view = true } },
+        })
+
+        assert.is_true(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+        assert.is_nil(_G.__ZEN_UI_KEEP_BOOK_LOCATION)
     end)
 
     it("closes Reader and rebuilds the configured default view", function()

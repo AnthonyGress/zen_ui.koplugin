@@ -809,7 +809,7 @@ function M.build_install_pages(ctx)
 
     -- Insert home folder page before finale if home_dir has not been customized.
     do
-        local current_home = paths.getHomeDir()
+        local current_home = paths.getConfiguredHomeDir()
         if not current_home or current_home == "" then
             -- Detect the device's primary storage root for path suggestions.
             local base_storage = "/"
