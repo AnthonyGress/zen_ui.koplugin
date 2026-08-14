@@ -38,7 +38,7 @@ def _seed_history(ko_home: Path, book: Path) -> None:
 
 
 def _seed_home_settings(
-    ko_home: Path, *, show_strip_titles: bool = True, bookshelf: bool = False
+    ko_home: Path, *, show_strip_titles: bool = True, two_row_strip: bool = False
 ) -> None:
     settings = ko_home / "settings" / "ZenOS"
     settings.mkdir(parents=True, exist_ok=True)
@@ -95,7 +95,7 @@ def _seed_home_settings(
         "show_strip_titles = true",
         f"show_strip_titles = {str(show_strip_titles).lower()}",
     )
-    if bookshelf:
+    if two_row_strip:
         source = source.replace(
             "featured = true, strip = true, quotes = true,\n"
             "        reading_goals = true, stats_triplet = true,",
@@ -192,9 +192,9 @@ def _wait_for_home(
     raise AssertionError(f"Home widgets did not become ready: {latest}")
 
 
-def test_bookshelf_strip_offsets_its_bottom_anchor_by_the_home_row_gap() -> None:
+def test_two_row_strip_offsets_its_bottom_anchor_by_the_home_row_gap() -> None:
     runtime = Path(os.environ["KOREADER_DIR"])
-    with tempfile.TemporaryDirectory(prefix="zen-ui-home-bookshelf-") as temporary:
+    with tempfile.TemporaryDirectory(prefix="zen-ui-home-two-row-strip-") as temporary:
         root = Path(temporary)
         ko_home = root / "home"
         ko_home.mkdir()
@@ -202,10 +202,10 @@ def test_bookshelf_strip_offsets_its_bottom_anchor_by_the_home_row_gap() -> None
         fixture = build_library(library)
         books = [fixture["epub"]]
         for index in range(2, 9):
-            book = library / f"Bookshelf {index}.epub"
+            book = library / f"Two Row Strip {index}.epub"
             book.write_bytes(fixture["epub"].read_bytes())
             books.append(book)
-        _seed_home_settings(ko_home, show_strip_titles=False, bookshelf=True)
+        _seed_home_settings(ko_home, show_strip_titles=False, two_row_strip=True)
         _seed_bookinfo(ko_home, fixture["epub"])
         _seed_history_books(ko_home, books)
         socket_path = root / "driver.sock"
