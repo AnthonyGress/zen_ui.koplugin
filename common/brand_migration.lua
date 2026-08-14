@@ -17,6 +17,35 @@ local SETTINGS_FILES = {
     "quote_state.lua",
     "library_item_cache.lua",
 }
+local GLOBAL_SETTINGS_KEYS = {
+    "zen_ui_config",
+    "zen_ui_folder_sort",
+    "zen_ui_folder_display_mode",
+    "zen_ui_just_updated",
+    "zen_ui_last_update_check",
+    "zen_ui_update_available",
+    "zen_ui_latest_version",
+    "zen_ui_update_dl_url",
+    "zen_ui_update_sha256",
+    "zen_ui_update_channel",
+    "zen_ui_update_auto_check",
+    "zen_tags_global_collate",
+    "zen_tags_global_reverse",
+    "zen_authors_reverse",
+    "zen_series_reverse",
+    "zen_page_browser_layout",
+}
+local GLOBAL_SETTINGS_PATTERNS = {
+    "^zen_tags_global_.+",
+    "^zen_.+_display_mode$",
+    "^zen_.+_detail_collate_.+$",
+    "^zen_.+_detail_reverse_.+$",
+}
+local USERPATCH_PATTERNS = {
+    "^%d+%-zen.*%-suppress%-startup%-alerts%.lua$",
+    "^%d+%-zen[%-_]ui[%-_].*%.lua$",
+    "^%d+%-zenos[%-_].*%.lua$",
+}
 local BRAND_MIGRATION_MARKER = "zenos_brand_migration_v1"
 local ROOT_GUARD_KEY = "__ZENOS_PLUGIN_ROOT_GUARD"
 
@@ -75,6 +104,64 @@ local function get_entry_mode(lfs, path)
     return get_mode(lfs, path)
 end
 
+local function is_directory_entry(lfs, path, entry_mode)
+    entry_mode = entry_mode or get_entry_mode(lfs, path)
+    return entry_mode == "directory"
+        or (entry_mode == "link" and get_mode(lfs, path) == "directory")
+end
+
+local function normalize_path(path)
+    if type(path) ~= "string" then return nil end
+    path = path:gsub("\\", "/")
+    local drive = path:match("^(%a:)/")
+    local absolute = path:sub(1, 1) == "/" or drive ~= nil
+    if drive then path = path:sub(4) end
+    local parts = {}
+    for part in path:gmatch("[^/]+") do
+        if part == ".." then
+            if #parts > 0 and parts[#parts] ~= ".." then
+                table.remove(parts)
+            elseif not absolute then
+                parts[#parts + 1] = part
+            end
+        elseif part ~= "." and part ~= "" then
+            parts[#parts + 1] = part
+        end
+    end
+    local prefix = drive and (drive .. "/") or (absolute and "/" or "")
+    local normalized = prefix .. table.concat(parts, "/")
+    return normalized ~= "" and normalized or (absolute and prefix or ".")
+end
+
+local function absolute_path(path, lfs)
+    path = trim_trailing_slashes(path)
+    if not path or path == "" then return nil end
+    path = path:gsub("\\", "/")
+    if path:sub(1, 1) ~= "/" and not path:match("^%a:/")
+            and lfs and type(lfs.currentdir) == "function" then
+        local ok, cwd = pcall(lfs.currentdir)
+        if ok and type(cwd) == "string" and cwd ~= "" then
+            path = join(cwd, path)
+        end
+    end
+    return normalize_path(path)
+end
+
+local function is_exact_settings_alias(lfs, legacy_root, root)
+    if get_entry_mode(lfs, legacy_root) ~= "link"
+            or not is_directory_entry(lfs, legacy_root, "link")
+            or not is_directory_entry(lfs, root) then
+        return false
+    end
+    local ok, target = pcall(lfs.symlinkattributes, legacy_root, "target")
+    if not ok or type(target) ~= "string" or target == "" then return false end
+    target = target:gsub("\\", "/")
+    if target:sub(1, 1) ~= "/" and not target:match("^%a:/") then
+        target = join(dirname(legacy_root), target)
+    end
+    return normalize_path(target) == normalize_path(root)
+end
+
 local function is_empty_directory(lfs, path)
     if get_entry_mode(lfs, path) ~= "directory" then return false end
     local ok, iterator, state = pcall(lfs.dir, path)
@@ -115,6 +202,19 @@ local function settings_parent_path(options)
     return trim_trailing_slashes(settings_dir)
 end
 
+local function data_dir_path(options)
+    options = options or {}
+    if options.data_dir then return trim_trailing_slashes(options.data_dir) end
+    local data_storage = options.data_storage
+    if not data_storage then
+        local ok, loaded = pcall(require, "datastorage")
+        if ok then data_storage = loaded end
+    end
+    if not data_storage or type(data_storage.getDataDir) ~= "function" then return nil end
+    local ok_data, data_dir = pcall(data_storage.getDataDir, data_storage)
+    return ok_data and trim_trailing_slashes(data_dir) or nil
+end
+
 local function source_root(main_source, lfs)
     local source = main_source
     if type(source) ~= "string" or source == "" then
@@ -143,8 +243,20 @@ function M.prepareSettings(settings_parent, options)
     local root = join(settings_parent, M.SETTINGS_DIR)
     local legacy_mode = get_entry_mode(lfs, legacy_root)
     local root_mode = get_entry_mode(lfs, root)
+    local legacy_is_directory = is_directory_entry(lfs, legacy_root, legacy_mode)
+    local root_is_directory = is_directory_entry(lfs, root, root_mode)
 
-    if legacy_mode and legacy_mode ~= "directory" then
+    if is_exact_settings_alias(lfs, legacy_root, root) then
+        return {
+            ok = true,
+            status = "current",
+            root = root,
+            legacy_root = legacy_root,
+            legacy_alias = true,
+        }
+    end
+
+    if legacy_mode and not legacy_is_directory then
         return {
             ok = false,
             status = "legacy_settings_invalid",
@@ -152,18 +264,19 @@ function M.prepareSettings(settings_parent, options)
             legacy_root = legacy_root,
         }
     end
-    if root_mode and root_mode ~= "directory" then
+    if root_mode and not root_is_directory then
         return {
             ok = false,
             status = "settings_destination_invalid",
-            root = legacy_mode == "directory" and legacy_root or root,
+            root = legacy_is_directory and legacy_root or root,
             legacy_root = legacy_root,
         }
     end
-    if legacy_mode == "directory" and root_mode == "directory" then
+    if legacy_is_directory and root_is_directory then
         if is_empty_directory(lfs, root) then
             local removed = pcall(lfs.rmdir, root)
             root_mode = get_entry_mode(lfs, root)
+            root_is_directory = is_directory_entry(lfs, root, root_mode)
             if not removed or root_mode ~= nil then
                 return {
                     ok = false,
@@ -183,7 +296,7 @@ function M.prepareSettings(settings_parent, options)
                 }
             end
         end
-        if root_mode == "directory" then
+        if root_is_directory then
             return {
                 ok = false,
                 status = "settings_conflict",
@@ -192,10 +305,10 @@ function M.prepareSettings(settings_parent, options)
             }
         end
     end
-    if legacy_mode ~= "directory" then
+    if not legacy_is_directory then
         return {
             ok = true,
-            status = root_mode == "directory" and "current" or "absent",
+            status = root_is_directory and "current" or "absent",
             root = root,
             legacy_root = legacy_root,
         }
@@ -215,7 +328,7 @@ function M.prepareSettings(settings_parent, options)
     -- A concurrent or interrupted attempt may have completed the same rename.
     legacy_mode = get_entry_mode(lfs, legacy_root)
     root_mode = get_entry_mode(lfs, root)
-    if not legacy_mode and root_mode == "directory" then
+    if not legacy_mode and is_directory_entry(lfs, root, root_mode) then
         return {
             ok = true,
             status = "current",
@@ -260,6 +373,27 @@ function M.removeSettings(options)
     return true
 end
 
+-- Best-effort downgrade bridge; removeSettings unlinks it without following it.
+function M.ensureLegacySettingsAlias(settings_parent, options)
+    options = options or {}
+    local lfs = get_lfs(options)
+    settings_parent = trim_trailing_slashes(settings_parent)
+    if not lfs or not settings_parent then return false, false end
+    local legacy_root = join(settings_parent, M.LEGACY_SETTINGS_DIR)
+    local root = join(settings_parent, M.SETTINGS_DIR)
+    if is_exact_settings_alias(lfs, legacy_root, root) then return true, false end
+    if get_entry_mode(lfs, legacy_root) ~= nil
+            or not is_directory_entry(lfs, root)
+            or type(lfs.link) ~= "function" then
+        return false, false
+    end
+    local ok, linked = pcall(lfs.link, M.SETTINGS_DIR, legacy_root, true)
+    if not ok or not linked or not is_exact_settings_alias(lfs, legacy_root, root) then
+        return false, false
+    end
+    return true, true
+end
+
 local function rewrite_string(value, old_root, new_root, replacements)
     if replacements and replacements[value] then return replacements[value], true end
     if type(old_root) == "string" and old_root ~= "" then
@@ -270,6 +404,33 @@ local function rewrite_string(value, old_root, new_root, replacements)
         end
     end
     return value, false
+end
+
+local function deeply_equal(left, right, seen)
+    if left == right then return true end
+    if type(left) ~= "table" or type(right) ~= "table" then return false end
+    seen = seen or {}
+    if seen[left] then return seen[left] == right end
+    seen[left] = right
+    for key, value in pairs(left) do
+        if not deeply_equal(value, right[key], seen) then return false end
+    end
+    for key in pairs(right) do
+        if left[key] == nil then return false end
+    end
+    return true
+end
+
+local function unique_migrated_key(value, rewritten_key, old_key, label)
+    local suffix = label or ("migrated from " .. old_key)
+    local base = rewritten_key .. " (" .. suffix .. ")"
+    local candidate = base
+    local index = 2
+    while value[candidate] ~= nil do
+        candidate = base .. " " .. index
+        index = index + 1
+    end
+    return candidate
 end
 
 local function rewrite_table(value, old_root, new_root, replacements, seen)
@@ -301,10 +462,28 @@ local function rewrite_table(value, old_root, new_root, replacements, seen)
             end
         end
     end
+    table.sort(key_moves, function(left, right)
+        if left.new == right.new then return left.old < right.old end
+        return left.new < right.new
+    end)
     for _i, move in ipairs(key_moves) do
         if value[move.new] == nil then
             value[move.new] = value[move.old]
             value[move.old] = nil
+            changed = true
+        elseif deeply_equal(value[move.old], value[move.new]) then
+            value[move.old] = nil
+            changed = true
+        else
+            local collision_key = unique_migrated_key(
+                value, move.new, move.old)
+            local migrated_value = value[move.old]
+            value[collision_key] = migrated_value
+            value[move.old] = nil
+            if type(migrated_value) == "table"
+                    and migrated_value.name == move.new then
+                migrated_value.name = collision_key
+            end
             changed = true
         end
     end
@@ -339,17 +518,101 @@ local function migrate_disabled_data(data)
 end
 
 local function flush_settings(settings, prevent_backup)
-    if type(settings) ~= "table" or type(settings.flush) ~= "function" then
-        return false
-    end
+    if type(settings) ~= "table" then return false end
+    if type(settings.flush) ~= "function" then return settings.file == nil end
     if prevent_backup then settings.backup = function() return false end end
-    return pcall(settings.flush, settings)
+    local ok, result = pcall(settings.flush, settings)
+    if not ok or result == false then return false end
+    if type(settings.file) ~= "string" or settings.file == "" then return true end
+    local ok_read, persisted = pcall(dofile, settings.file)
+    return ok_read and deeply_equal(persisted, settings.data)
+end
+
+function M.deletePluginSettings(options)
+    options = options or {}
+    M.removeSettings(options)
+
+    local g_settings = options.g_settings
+    if g_settings == nil then g_settings = rawget(_G, "G_reader_settings") end
+    if type(g_settings) == "table" and type(g_settings.delSetting) == "function" then
+        local owned_keys = {}
+        for _i, key in ipairs(GLOBAL_SETTINGS_KEYS) do
+            owned_keys[key] = true
+        end
+
+        local setting_keys = {}
+        if type(g_settings.pairs) == "function" then
+            local ok, iterator, state, first_key = pcall(
+                g_settings.pairs, g_settings)
+            if ok and type(iterator) == "function" then
+                local key = first_key
+                while true do
+                    local ok_next, next_key = pcall(iterator, state, key)
+                    if not ok_next or next_key == nil then break end
+                    if type(next_key) == "string" then setting_keys[next_key] = true end
+                    key = next_key
+                end
+            end
+        end
+        for _i, field in ipairs({ "data", "settings", "_data" }) do
+            local values = rawget(g_settings, field)
+            if type(values) == "table" then
+                for key in pairs(values) do
+                    if type(key) == "string" then setting_keys[key] = true end
+                end
+            end
+        end
+        for key in pairs(g_settings) do
+            if type(key) == "string" then setting_keys[key] = true end
+        end
+        for key in pairs(setting_keys) do
+            for _i, pattern in ipairs(GLOBAL_SETTINGS_PATTERNS) do
+                if key:match(pattern) then
+                    owned_keys[key] = true
+                    break
+                end
+            end
+        end
+
+        local sorted_keys = {}
+        for key in pairs(owned_keys) do sorted_keys[#sorted_keys + 1] = key end
+        table.sort(sorted_keys)
+        for _i, key in ipairs(sorted_keys) do
+            pcall(g_settings.delSetting, g_settings, key)
+        end
+        flush_settings(g_settings)
+    end
+
+    local lfs = get_lfs(options)
+    local data_dir = data_dir_path(options)
+    local patches_dir = data_dir and join(data_dir, "patches") or nil
+    if lfs and patches_dir and get_mode(lfs, patches_dir) == "directory" then
+        local ok_dir, iterator, state = pcall(lfs.dir, patches_dir)
+        if ok_dir and type(iterator) == "function" then
+            for entry in iterator, state do
+                local matches = false
+                for _i, pattern in ipairs(USERPATCH_PATTERNS) do
+                    if entry:match(pattern) then
+                        matches = true
+                        break
+                    end
+                end
+                local fullpath = matches and join(patches_dir, entry) or nil
+                local mode = fullpath and get_entry_mode(lfs, fullpath) or nil
+                if mode == "file" or mode == "link" then
+                    pcall(os.remove, fullpath)
+                end
+            end
+        end
+    end
+    return true
 end
 
 local function rewrite_global_settings(g_settings, old_root, new_root,
         migrate_builtin_custom_text, prevent_backup)
     if type(g_settings) ~= "table" then return false, true end
     local changed = false
+    local saved = true
     if type(g_settings.data) == "table" then
         changed = M.rewriteTablePaths(g_settings.data, old_root, new_root) or changed
         local migrated_disabled = migrate_disabled_data(g_settings.data)
@@ -362,15 +625,25 @@ local function rewrite_global_settings(g_settings, old_root, new_root,
                     if type(value) == "table" then
                         if M.rewriteTablePaths(value, old_root, new_root) then
                             if type(g_settings.saveSetting) == "function" then
-                                pcall(g_settings.saveSetting, g_settings, key, value)
+                                local ok_save, save_result = pcall(
+                                    g_settings.saveSetting, g_settings, key, value)
+                                saved = saved and ok_save and save_result ~= false
+                            else
+                                saved = false
                             end
                             changed = true
                         end
                     elseif type(value) == "string" then
                         local rewritten, value_changed = rewrite_string(
                             value, old_root, new_root)
-                        if value_changed and type(g_settings.saveSetting) == "function" then
-                            pcall(g_settings.saveSetting, g_settings, key, rewritten)
+                        if value_changed then
+                            if type(g_settings.saveSetting) == "function" then
+                                local ok_save, save_result = pcall(
+                                    g_settings.saveSetting, g_settings, key, rewritten)
+                                saved = saved and ok_save and save_result ~= false
+                            else
+                                saved = false
+                            end
                             changed = true
                         end
                     end
@@ -380,19 +653,60 @@ local function rewrite_global_settings(g_settings, old_root, new_root,
     end
 
     if migrate_builtin_custom_text
-            and type(g_settings.readSetting) == "function"
-            and type(g_settings.saveSetting) == "function" then
+            and type(g_settings.readSetting) == "function" then
         local ok_read, custom_text = pcall(
             g_settings.readSetting, g_settings, "reader_footer_custom_text")
         if ok_read and custom_text == "Zen UI" then
-            pcall(g_settings.saveSetting, g_settings,
-                "reader_footer_custom_text", "ZenOS")
+            if type(g_settings.saveSetting) == "function" then
+                local ok_save, save_result = pcall(g_settings.saveSetting,
+                    g_settings, "reader_footer_custom_text", "ZenOS")
+                saved = saved and ok_save and save_result ~= false
+            else
+                saved = false
+            end
             changed = true
         end
     end
-    local saved = true
-    if changed then saved = flush_settings(g_settings, prevent_backup) end
+    if changed then
+        local flushed = flush_settings(g_settings, prevent_backup)
+        saved = saved and flushed
+    end
     return changed, saved
+end
+
+local function migrate_reader_key_collisions(data)
+    if type(data) ~= "table" or type(data.presets) ~= "table" then return false end
+    local legacy_names = {}
+    for legacy_name in pairs(READER_BRAND_VALUES) do
+        legacy_names[#legacy_names + 1] = legacy_name
+    end
+    table.sort(legacy_names)
+    local changed = false
+    for _i, legacy_name in ipairs(legacy_names) do
+        local current_name = READER_BRAND_VALUES[legacy_name]
+        local legacy_preset = data.presets[legacy_name]
+        local current_preset = data.presets[current_name]
+        if legacy_preset ~= nil and current_preset ~= nil then
+            local migrated_name = current_name
+            if not deeply_equal(legacy_preset, current_preset) then
+                migrated_name = unique_migrated_key(
+                    data.presets, current_name, legacy_name, "migrated from Zen UI")
+                data.presets[migrated_name] = legacy_preset
+                if type(legacy_preset) == "table" then
+                    legacy_preset.name = migrated_name
+                    legacy_preset.builtin = false
+                end
+            end
+            data.presets[legacy_name] = nil
+            if data.active_preset == legacy_name then data.active_preset = migrated_name end
+            if type(data.settings) == "table"
+                    and data.settings.active_preset == legacy_name then
+                data.settings.active_preset = migrated_name
+            end
+            changed = true
+        end
+    end
+    return changed
 end
 
 local function rewrite_reader_builtins(data)
@@ -416,6 +730,7 @@ local function rewrite_reader_builtins(data)
             end
         end
     end
+    if migrate_reader_key_collisions(data) then changed = true end
     if builtin_active and type(data.settings) == "table"
             and data.settings.reader_footer_custom_text == "Zen UI" then
         data.settings.reader_footer_custom_text = "ZenOS"
@@ -435,7 +750,14 @@ local function rewrite_settings_files(settings_root, old_root, new_root, options
         if ok then LuaSettings = loaded end
     end
     if not LuaSettings or type(LuaSettings.open) ~= "function" then
-        return 0, false, false, false
+        for _i, filename in ipairs(SETTINGS_FILES) do
+            local path = join(settings_root, filename)
+            if get_mode(lfs, path) == "file"
+                    or get_mode(lfs, path .. ".old") == "file" then
+                return 0, false, false, false
+            end
+        end
+        return 0, false, false, true
     end
 
     local changed_count = 0
@@ -528,17 +850,19 @@ local function migration_marked(settings_root, options)
 end
 
 local function mark_migration_complete(settings_root, options)
+    local lfs = get_lfs(options)
+    if get_mode(lfs, join(settings_root, "config.lua")) ~= "file" then return true end
     local settings = config_store(settings_root, options)
     if not settings or type(settings.data) ~= "table"
             or type(settings.flush) ~= "function" then return false end
-    M.markConfigMigrationComplete(settings.data)
-    return pcall(settings.flush, settings)
+    if not M.markConfigMigrationComplete(settings.data) then return true end
+    return flush_settings(settings)
 end
 
 function M.rewritePersistedPaths(settings_root, old_root, new_root, options)
     options = options or {}
     if not options.force and migration_marked(settings_root, options) then
-        return false, 0
+        return false, 0, true
     end
     local g_settings = options.g_settings
     if g_settings == nil then g_settings = rawget(_G, "G_reader_settings") end
@@ -549,28 +873,157 @@ function M.rewritePersistedPaths(settings_root, old_root, new_root, options)
         g_settings, old_root, new_root, reader_builtin_active)
     local global_backup_changed, global_backup_saved = rewrite_global_backup(
         g_settings, old_root, new_root, reader_backup_builtin_active, options)
-    if files_saved and global_saved and global_backup_saved then
-        mark_migration_complete(settings_root, options)
-    end
-    return global_changed or global_backup_changed, files_changed
+    local saved = files_saved and global_saved and global_backup_saved
+    if saved then saved = mark_migration_complete(settings_root, options) end
+    return global_changed or global_backup_changed, files_changed, saved
 end
 
 local function transfer_disabled_key(g_settings)
-    if type(g_settings) ~= "table" or type(g_settings.readSetting) ~= "function" then
-        return false, false
+    if type(g_settings) ~= "table" then return false, false, true end
+    if type(g_settings.readSetting) ~= "function" then
+        return false, false, false
     end
     local ok_read, disabled = pcall(
         g_settings.readSetting, g_settings, "plugins_disabled")
-    if not ok_read or type(disabled) ~= "table" then return false, false end
+    if not ok_read then return false, false, false end
+    if type(disabled) ~= "table" then return false, false, true end
     local changed, disabled_value = migrate_disabled_data({
         plugins_disabled = disabled,
     })
-    if not changed then return false, false end
+    if not changed then return false, false, true end
+    local saved = type(g_settings.data) == "table"
     if type(g_settings.saveSetting) == "function" then
-        pcall(g_settings.saveSetting, g_settings, "plugins_disabled", disabled)
+        local ok_save, save_result = pcall(
+            g_settings.saveSetting, g_settings, "plugins_disabled", disabled)
+        saved = ok_save and save_result ~= false
     end
-    if type(g_settings.flush) == "function" then pcall(g_settings.flush, g_settings) end
-    return true, disabled_value
+    local flushed = flush_settings(g_settings)
+    return true, disabled_value, saved and flushed
+end
+
+function M.installLegacyRuntimeAliases(plugin, options)
+    if type(plugin) ~= "table" then return false, false end
+    options = options or {}
+    local plugin_loader = options.plugin_loader
+    if plugin_loader == nil then
+        local ok, loaded = pcall(require, "pluginloader")
+        if ok then plugin_loader = loaded end
+    end
+
+    local loader_aliased = false
+    local loaded_plugins = type(plugin_loader) == "table"
+        and plugin_loader.loaded_plugins or nil
+    if type(loaded_plugins) == "table" then
+        local legacy = loaded_plugins[M.LEGACY_PLUGIN_ID]
+        local current = loaded_plugins[M.PLUGIN_ID]
+        if (current == nil or current == plugin)
+                and (legacy == nil or legacy == current or legacy == plugin) then
+            loaded_plugins[M.LEGACY_PLUGIN_ID] = plugin
+            loader_aliased = true
+        end
+    end
+
+    local ui_aliased = false
+    if type(plugin.ui) == "table" then
+        local legacy = rawget(plugin.ui, M.LEGACY_PLUGIN_ID)
+        if legacy == nil or legacy == plugin then
+            rawset(plugin.ui, M.LEGACY_PLUGIN_ID, plugin)
+            ui_aliased = true
+        end
+    end
+    return loader_aliased, ui_aliased
+end
+
+local function add_brand_root(roots, root, lfs)
+    root = trim_trailing_slashes(root)
+    if type(root) == "string" then root = root:gsub("\\", "/") end
+    local plugin_dir = basename(root)
+    if plugin_dir ~= M.LEGACY_PLUGIN_DIR and plugin_dir ~= M.PLUGIN_DIR then
+        return false
+    end
+    local normalized = absolute_path(root, lfs)
+    if not normalized or get_mode(lfs, normalized) ~= "directory" then
+        return false
+    end
+    roots[normalized] = plugin_dir
+    return true
+end
+
+local function add_lookup_path(paths, seen, path, lfs)
+    local normalized = absolute_path(path, lfs)
+    if normalized and not seen[normalized]
+            and get_mode(lfs, normalized) == "directory" then
+        seen[normalized] = true
+        paths[#paths + 1] = normalized
+    end
+end
+
+local function fallback_lookup_paths(plugin_root, options, lfs)
+    local paths = {}
+    local seen = {}
+    add_lookup_path(paths, seen, dirname(plugin_root), lfs)
+    add_lookup_path(paths, seen, options.default_plugin_path or "plugins", lfs)
+
+    local g_settings = options.g_settings
+    if g_settings == nil then g_settings = rawget(_G, "G_reader_settings") end
+    local extra_paths
+    if type(g_settings) == "table" and type(g_settings.readSetting) == "function" then
+        local ok, value = pcall(
+            g_settings.readSetting, g_settings, "extra_plugin_paths")
+        if ok then extra_paths = value end
+    end
+    if type(extra_paths) == "string" then extra_paths = { extra_paths } end
+    if type(extra_paths) == "table" then
+        for _i, path in ipairs(extra_paths) do
+            add_lookup_path(paths, seen, path, lfs)
+        end
+    elseif extra_paths == nil then
+        local data_dir = data_dir_path(options)
+        if data_dir and data_dir ~= "." then
+            add_lookup_path(paths, seen, join(data_dir, "plugins"), lfs)
+        end
+    end
+    return paths
+end
+
+local function discovered_root_conflict(plugin_root, options, lfs)
+    local roots = {}
+    add_brand_root(roots, plugin_root, lfs)
+
+    local plugin_loader = options.plugin_loader
+    if plugin_loader == nil then plugin_loader = package.loaded["pluginloader"] end
+    local discovered_ok = false
+    if type(plugin_loader) == "table"
+            and type(plugin_loader._discover) == "function" then
+        local ok, discovered = pcall(plugin_loader._discover, plugin_loader)
+        if ok and type(discovered) == "table" then
+            for _i, plugin in ipairs(discovered) do
+                if type(plugin) == "table" then
+                    if add_brand_root(roots, plugin.path, lfs) then
+                        discovered_ok = true
+                    end
+                end
+            end
+        end
+    end
+
+    if not discovered_ok then
+        for _i, lookup_path in ipairs(
+                fallback_lookup_paths(plugin_root, options, lfs)) do
+            for _j, plugin_dir in ipairs({ M.LEGACY_PLUGIN_DIR, M.PLUGIN_DIR }) do
+                local root = join(lookup_path, plugin_dir)
+                if get_mode(lfs, root) == "directory" then
+                    add_brand_root(roots, root, lfs)
+                end
+            end
+        end
+    end
+
+    local conflict_paths = {}
+    for root in pairs(roots) do conflict_paths[#conflict_paths + 1] = root end
+    if #conflict_paths < 2 then return nil end
+    table.sort(conflict_paths)
+    return conflict_paths
 end
 
 local function registered_root_conflict(plugin_root, plugin_dir)
@@ -609,6 +1062,24 @@ function M.checkRootConflict(result)
     return paths and as_plugin_conflict(result, paths) or result
 end
 
+local function as_state_save_failure(result, disabled_saved, paths_saved)
+    result.proceed = false
+    result.inert = true
+    result.pending = nil
+    result.restart = nil
+    result.status = "migration_save_failed"
+    result.disabled_state_saved = disabled_saved
+    result.persisted_paths_saved = paths_saved
+    log("warn", "persisted migration state could not be saved")
+    return result
+end
+
+local function add_legacy_settings_alias(result, settings_parent, options)
+    local aliased, created = M.ensureLegacySettingsAlias(settings_parent, options)
+    result.legacy_settings_alias = aliased
+    result.legacy_settings_alias_created = created
+end
+
 function M.startup(main_source, options)
     options = options or {}
     local lfs = get_lfs(options)
@@ -633,18 +1104,6 @@ function M.startup(main_source, options)
     end
     local plugin_parent = dirname(root)
 
-    if not lfs then
-        result.proceed = false
-        result.inert = true
-        result.status = "filesystem_unavailable"
-        return result
-    end
-    local guarded_paths = registered_root_conflict(root, plugin_dir)
-    if guarded_paths then
-        log("warn", "multiple plugin roots detected; startup is disabled")
-        return as_plugin_conflict(result, guarded_paths)
-    end
-
     local legacy_root = join(plugin_parent, M.LEGACY_PLUGIN_DIR)
     local new_root = join(plugin_parent, M.PLUGIN_DIR)
     result.legacy_plugin_root = legacy_root
@@ -652,6 +1111,23 @@ function M.startup(main_source, options)
     result.source_plugin_root = root
     result.settings_parent = settings_parent
     result.plugin_dir = plugin_dir
+
+    if not lfs then
+        result.proceed = false
+        result.inert = true
+        result.status = "filesystem_unavailable"
+        return result
+    end
+    local discovered_paths = discovered_root_conflict(root, options, lfs)
+    if discovered_paths then
+        log("warn", "multiple plugin roots discovered; startup is disabled")
+        return as_plugin_conflict(result, discovered_paths)
+    end
+    local guarded_paths = registered_root_conflict(root, plugin_dir)
+    if guarded_paths then
+        log("warn", "multiple plugin roots detected; startup is disabled")
+        return as_plugin_conflict(result, guarded_paths)
+    end
 
     local sibling_root = plugin_dir == M.LEGACY_PLUGIN_DIR and new_root or legacy_root
     if get_entry_mode(lfs, sibling_root) ~= nil then
@@ -690,7 +1166,7 @@ function M.startup(main_source, options)
         local renamed, err = rename_path(legacy_root, new_root, options)
         if not renamed then
             local rename_completed = get_entry_mode(lfs, legacy_root) == nil
-                and get_entry_mode(lfs, new_root) == "directory"
+                and is_directory_entry(lfs, new_root)
             if not rename_completed then
                 local rollback_error
                 if settings.renamed then
@@ -709,13 +1185,18 @@ function M.startup(main_source, options)
                 return result
             end
         end
-        transfer_disabled_key(g_settings)
-        M.rewritePersistedPaths(settings.root, legacy_root, new_root, {
-            force = true,
-            g_settings = g_settings,
-            lfs = lfs,
-            lua_settings = options.lua_settings,
-        })
+        local disabled_saved = select(3, transfer_disabled_key(g_settings))
+        local paths_saved = select(3,
+            M.rewritePersistedPaths(settings.root, legacy_root, new_root, {
+                force = true,
+                g_settings = g_settings,
+                lfs = lfs,
+                lua_settings = options.lua_settings,
+        }))
+        if not disabled_saved or not paths_saved then
+            return as_state_save_failure(result, disabled_saved, paths_saved)
+        end
+        add_legacy_settings_alias(result, settings_parent, options)
         result.proceed = false
         result.inert = true
         result.restart = true
@@ -724,14 +1205,20 @@ function M.startup(main_source, options)
         return result
     end
 
-    local disabled_transferred, disabled = transfer_disabled_key(g_settings)
+    local disabled_transferred, disabled, disabled_saved =
+        transfer_disabled_key(g_settings)
     result.disabled_state_transferred = disabled_transferred
-    M.rewritePersistedPaths(settings.root, legacy_root, new_root, {
-        force = settings.status == "migrated",
-        g_settings = g_settings,
-        lfs = lfs,
-        lua_settings = options.lua_settings,
-    })
+    local paths_saved = select(3,
+        M.rewritePersistedPaths(settings.root, legacy_root, new_root, {
+            force = settings.status == "migrated",
+            g_settings = g_settings,
+            lfs = lfs,
+            lua_settings = options.lua_settings,
+    }))
+    if not disabled_saved or not paths_saved then
+        return as_state_save_failure(result, disabled_saved, paths_saved)
+    end
+    add_legacy_settings_alias(result, settings_parent, options)
     result.status = settings.status == "migrated"
         and "settings_migrated" or "current"
     if disabled then
@@ -775,12 +1262,17 @@ local function notice_text(result)
     if result.status == "plugin_conflict" then
         return "ZenOS found more than one plugin copy. Close KOReader, keep "
             .. "one zenos.koplugin folder, move or remove every duplicate "
-            .. "and zen_ui.koplugin folder, then restart. No files were changed."
+            .. "and zen_ui.koplugin folder, then restart."
     end
     if result.status == "settings_conflict" then
         return "ZenOS found both Zen UI and ZenOS settings. Close KOReader, "
             .. "back up both folders, move one aside, then restart. Neither "
             .. "folder was overwritten."
+    end
+    if result.status == "migration_save_failed" then
+        return "ZenOS could not save migrated settings. Check available "
+            .. "storage and folder permissions, then restart KOReader to retry. "
+            .. "Existing files were kept."
     end
     return "ZenOS could not finish migrating. Check available storage and "
         .. "folder permissions, then restart KOReader to retry. Existing files "

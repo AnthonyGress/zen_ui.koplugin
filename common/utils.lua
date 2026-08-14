@@ -456,6 +456,11 @@ function M.getBadgeTextColor(config)
     return Blitbuffer.COLOR_BLACK
 end
 
+--- Return a canonical UI label without changing compatibility icon IDs.
+function M.getIconDisplayName(name)
+    return name == "zen_ui" and "ZenOS" or name
+end
+
 --- Build the combined {name, file} icon list for the icon picker.
 --- Sources are ordered by the active pack resolution precedence.
 --- @param plugin_root string   absolute path to the plugin root (no trailing slash)

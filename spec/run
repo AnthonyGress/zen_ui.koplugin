@@ -8,7 +8,7 @@ ARTIFACTS="$ROOT/spec/.artifacts"
 
 usage() {
   cat <<'EOF'
-Usage: ./spec/run <lua|smoke|full|nightly-smoke|update-goldens|package-check>
+Usage: ./spec/run <lua|smoke|full|nightly-smoke|legacy-upgrade|update-goldens|package-check>
 
 Set KOREADER_DIR to a KOReader emulator/runtime directory containing luajit,
 frontend, and the Busted rocks under spec/rocks. The runtime is never mutated.
@@ -142,6 +142,11 @@ run_python() {
   local staged_runtime=""
   if [[ "${ZEN_UI_RUN_EMULATOR:-0}" == "1" ]]; then
     require_runtime
+    local staged_plugin_dir="${ZEN_UI_STAGED_PLUGIN_DIR:-zenos.koplugin}"
+    if [[ "$staged_plugin_dir" != "zenos.koplugin" && "$staged_plugin_dir" != "zen_ui.koplugin" ]]; then
+      echo "Unsupported staged plugin directory: $staged_plugin_dir" >&2
+      return 2
+    fi
     staged_runtime="$(mktemp -d "${TMPDIR:-/tmp}/zen-ui-spec-runtime.XXXXXX")"
     local item
     for item in "$RUNTIME"/*; do
@@ -158,17 +163,71 @@ run_python() {
       ln -s "$item" "$staged_runtime/plugins/$plugin_name"
     done
     rsync -a --exclude '.git/' --exclude '.luarocks/' --exclude 'dist/' --exclude 'spec/' \
-      "$ROOT/" "$staged_runtime/plugins/zenos.koplugin/"
+      "$ROOT/" "$staged_runtime/plugins/$staged_plugin_dir/"
     rsync -a "$ROOT/spec/python/zen_ui_test_driver.koplugin/" \
       "$staged_runtime/plugins/zen_ui_test_driver.koplugin/"
   fi
   local python_status=0
   local pytest_target="${ZEN_UI_PYTEST_TARGET:-$ROOT/spec/python/tests}"
+  local report_name="${ZEN_UI_PYTHON_REPORT:-junit.xml}"
   mkdir -p "$ARTIFACTS/python"
   PYTHONPATH="$ROOT/spec/python" KOREADER_DIR="$staged_runtime" \
     "$python" -m pytest "$pytest_target" -q \
-      --junitxml="$ARTIFACTS/python/junit.xml" || python_status=$?
+      --junitxml="$ARTIFACTS/python/$report_name" || python_status=$?
   if [[ -n "$staged_runtime" ]]; then rm -rf "$staged_runtime"; fi
+  return "$python_status"
+}
+
+validate_legacy_upgrade_report() {
+  python3 - "$1" <<'PY'
+import sys
+import xml.etree.ElementTree as ET
+
+report = sys.argv[1]
+try:
+    root = ET.parse(report).getroot()
+except (OSError, ET.ParseError) as error:
+    print(f"Legacy upgrade did not produce a valid JUnit report: {error}", file=sys.stderr)
+    raise SystemExit(1)
+
+results = root.attrib
+if "tests" not in results:
+    results = {
+        key: str(sum(int(suite.get(key, 0)) for suite in root.findall("testsuite")))
+        for key in ("tests", "failures", "errors", "skip", "skipped")
+    }
+tests = int(results.get("tests", 0))
+failures = int(results.get("failures", 0))
+errors = int(results.get("errors", 0))
+skipped = int(results.get("skip", 0)) or int(results.get("skipped", 0))
+passed = tests - failures - errors - skipped
+if (tests, passed, skipped, failures, errors) != (1, 1, 0, 0, 0):
+    print(
+        "Legacy upgrade requires exactly 1 passing test "
+        f"(found {passed} passed, {skipped} skipped, "
+        f"{failures} failed, {errors} errors)",
+        file=sys.stderr,
+    )
+    raise SystemExit(1)
+PY
+}
+
+run_legacy_upgrade() {
+  local python_status=0
+  local report_status=0
+  local report_name="junit-legacy-upgrade.xml"
+  ZEN_UI_RUN_EMULATOR=1 \
+    ZEN_UI_STAGED_PLUGIN_DIR=zen_ui.koplugin \
+    ZEN_UI_LEGACY_UPGRADE=1 \
+    ZEN_UI_PYTEST_TARGET="$ROOT/spec/python/tests/test_emulator_brand_migration.py" \
+    ZEN_UI_PYTHON_REPORT="$report_name" \
+    run_python legacy-upgrade || python_status=$?
+  report_test_results \
+    "Legacy upgrade/Python" "$ARTIFACTS/python/$report_name"
+  validate_legacy_upgrade_report \
+    "$ARTIFACTS/python/$report_name" || report_status=$?
+  if [[ "$python_status" -ne 0 ]]; then return "$python_status"; fi
+  if [[ "$report_status" -ne 0 ]]; then return "$report_status"; fi
   return "$python_status"
 }
 
@@ -270,6 +329,7 @@ case "$COMMAND" in
   lua) run_lua_suite ;;
   smoke) run_test_suite stable ;;
   nightly-smoke) run_test_suite nightly ;;
+  legacy-upgrade) run_legacy_upgrade ;;
   package-check) package_check ;;
   full) run_test_suite stable; package_check ;;
   update-goldens)

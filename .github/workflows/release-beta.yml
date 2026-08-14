@@ -8,10 +8,10 @@ on:
 
 jobs:
   tests:
-    name: Lua tests
+    name: Full test suite
     uses: ./.github/workflows/test.yml
     with:
-      suite: lua
+      suite: full
 
   luacheck:
     name: LuaCheck

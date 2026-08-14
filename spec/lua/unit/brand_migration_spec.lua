@@ -72,6 +72,11 @@ describe("ZenOS brand migration", function()
             lfs = lfs,
             g_settings = g_settings or ZenSpec.memorySettings(),
             lua_settings = fake_lua_settings,
+            plugin_loader = {
+                _discover = function()
+                    return { { path = plugin_root } }
+                end,
+            },
         }
         for key, value in pairs(extra or {}) do options[key] = value end
         return options
@@ -105,14 +110,19 @@ describe("ZenOS brand migration", function()
                     end
                 end
                 function settings:flush()
+                    local failure = fake_lua_settings.flush_failures[filename]
+                    if failure == "silent" then return true end
+                    if failure then return false end
                     self:backup()
                     write_file(filename, "return " .. serialize(self.data) .. "\n")
+                    return true
                 end
                 return settings
             end,
             open_count = 0,
             rotate_on_flush = false,
             rotated = {},
+            flush_failures = {},
         }
         test_root = os.tmpname()
         os.remove(test_root)
@@ -127,6 +137,51 @@ describe("ZenOS brand migration", function()
         remove_tree(test_root)
         _G.__ZENOS_BRAND_MIGRATION_NOTICE = nil
         _G.__ZENOS_PLUGIN_ROOT_GUARD = nil
+    end)
+
+    it("derives metadata identity from the installed plugin directory", function()
+        local metadata_source = read_file(path(ZenSpec.root, "_meta.lua"))
+        local legacy_plugin = mkdir(path(plugins_dir, "zen_ui.koplugin"))
+        local current_plugin = mkdir(path(plugins_dir, "zenos.koplugin"))
+        write_file(path(legacy_plugin, "_meta.lua"), metadata_source)
+        write_file(path(current_plugin, "_meta.lua"), metadata_source)
+
+        local legacy = dofile(path(legacy_plugin, "_meta.lua"))
+        local current = dofile(path(current_plugin, "_meta.lua"))
+
+        assert.are.equal("zen_ui", legacy.name)
+        assert.are.equal("zenos", current.name)
+        assert.are.equal("ZenOS", legacy.fullname)
+        assert.are.equal("ZenOS", current.fullname)
+    end)
+
+    it("aliases legacy runtime lookups to the canonical live instance", function()
+        local plugin = { ui = {} }
+        local plugin_loader = {
+            loaded_plugins = {},
+        }
+
+        local loader_aliased, ui_aliased =
+            BrandMigration.installLegacyRuntimeAliases(plugin, {
+                plugin_loader = plugin_loader,
+            })
+
+        assert.is_true(loader_aliased)
+        assert.is_true(ui_aliased)
+        assert.are.equal(plugin, plugin_loader.loaded_plugins.zen_ui)
+        assert.are.equal(plugin, plugin.ui.zen_ui)
+
+        local unrelated_current = {}
+        local unrelated = {}
+        plugin_loader.loaded_plugins.zenos = unrelated_current
+        plugin_loader.loaded_plugins.zen_ui = unrelated
+        plugin.ui.zen_ui = unrelated
+        BrandMigration.installLegacyRuntimeAliases(plugin, {
+            plugin_loader = plugin_loader,
+        })
+        assert.are.equal(unrelated_current, plugin_loader.loaded_plugins.zenos)
+        assert.are.equal(unrelated, plugin_loader.loaded_plugins.zen_ui)
+        assert.are.equal(unrelated, plugin.ui.zen_ui)
     end)
 
     it("defers the legacy directory rename until plugin init", function()
@@ -317,6 +372,79 @@ return {
         assert.are.equal("directory", lfs.attributes(current_plugin, "mode"))
     end)
 
+    it("discovers cross-parent duplicates before mutating real settings", function()
+        local first_parent = mkdir(path(test_root, "first_plugins"))
+        local second_parent = mkdir(path(test_root, "second_plugins"))
+        local legacy_plugin = mkdir(path(first_parent, "zen_ui.koplugin"))
+        local current_plugin = mkdir(path(second_parent, "zenos.koplugin"))
+        local legacy_settings = mkdir(path(settings_dir, "Zen UI"))
+        local config_path = path(legacy_settings, "config.lua")
+        local config_contents = string.format(
+            "return { fixture = %q, font = %q }\n",
+            "unchanged", legacy_plugin .. "/fonts/Regular.ttf")
+        write_file(config_path, config_contents)
+        local g_settings = ZenSpec.memorySettings({
+            plugins_disabled = { zen_ui = true },
+        })
+        local discover_calls = 0
+        local plugin_loader = {
+            _discover = function()
+                discover_calls = discover_calls + 1
+                return {
+                    { name = "zen_ui", path = legacy_plugin },
+                    { name = "zenos", path = current_plugin },
+                }
+            end,
+        }
+
+        local result = BrandMigration.detectStartup(nil,
+            migration_options(current_plugin, g_settings, {
+                plugin_loader = plugin_loader,
+            }))
+
+        assert.are.equal("plugin_conflict", result.status)
+        assert.is_true(result.inert)
+        assert.is_nil(result.pending)
+        assert.are.equal(1, discover_calls)
+        assert.are.same({ legacy_plugin, current_plugin }, result.conflict_paths)
+        assert.are.equal(config_contents, read_file(config_path))
+        assert.are.equal("directory", lfs.attributes(legacy_settings, "mode"))
+        assert.is_nil(lfs.attributes(path(settings_dir, "ZenOS"), "mode"))
+        assert.are.equal("directory", lfs.attributes(legacy_plugin, "mode"))
+        assert.are.equal("directory", lfs.attributes(current_plugin, "mode"))
+        local disabled = g_settings:readSetting("plugins_disabled")
+        assert.is_true(disabled.zen_ui)
+        assert.is_nil(disabled.zenos)
+    end)
+
+    it("falls back to configured lookup paths after malformed discovery", function()
+        local first_parent = mkdir(path(test_root, "first_plugins"))
+        local second_parent = mkdir(path(test_root, "second_plugins"))
+        local legacy_plugin = mkdir(path(first_parent, "zen_ui.koplugin"))
+        local current_plugin = mkdir(path(second_parent, "zenos.koplugin"))
+        local g_settings = ZenSpec.memorySettings({
+            extra_plugin_paths = { first_parent, second_parent },
+        })
+        local plugin_loader = {
+            _discover = function()
+                return {
+                    {},
+                    { path = path(first_parent, "unrelated.koplugin") },
+                    { path = path(test_root, "missing/zen_ui.koplugin") },
+                }
+            end,
+        }
+
+        local result = BrandMigration.detectStartup(nil,
+            migration_options(current_plugin, g_settings, {
+                plugin_loader = plugin_loader,
+                default_plugin_path = path(test_root, "missing-default-plugins"),
+            }))
+
+        assert.are.equal("plugin_conflict", result.status)
+        assert.are.same({ legacy_plugin, current_plugin }, result.conflict_paths)
+    end)
+
     it("replaces an empty ZenOS settings directory with the legacy tree", function()
         local legacy_settings = mkdir(path(settings_dir, "Zen UI"))
         local current_settings = mkdir(path(settings_dir, "ZenOS"))
@@ -364,6 +492,66 @@ return {
             g_settings:readSetting("reader_footer_custom_text"))
     end)
 
+    it("preserves colliding reader presets under a deterministic deletable name", function()
+        local current_settings = mkdir(path(settings_dir, "ZenOS"))
+        local legacy_plugin = path(plugins_dir, "zen_ui.koplugin")
+        local current_plugin = path(plugins_dir, "zenos.koplugin")
+        write_file(path(current_settings, "config.lua"), "return { _meta = {} }")
+        write_file(path(current_settings, "reader.lua"), [[
+return {
+    active_preset = "(Zen UI) Chapter Time + %",
+    presets = {
+        ["(Zen UI) Chapter Time + %"] = {
+            name = "(Zen UI) Chapter Time + %",
+            builtin = true,
+            marker = "legacy",
+            reader_footer_custom_text = "Zen UI",
+        },
+        ["(ZenOS) Chapter Time + %"] = {
+            name = "(ZenOS) Chapter Time + %",
+            builtin = true,
+            marker = "current",
+            reader_footer_custom_text = "ZenOS",
+        },
+    },
+}
+]])
+
+        local saved = select(3, BrandMigration.rewritePersistedPaths(
+                current_settings, legacy_plugin, current_plugin,
+                migration_options(current_plugin, nil, { force = true })))
+
+        assert.is_true(saved)
+        local reader = dofile(path(current_settings, "reader.lua"))
+        local migrated_name = "(ZenOS) Chapter Time + % (migrated from Zen UI)"
+        assert.is_nil(reader.presets["(Zen UI) Chapter Time + %"])
+        assert.are.equal("current",
+            reader.presets["(ZenOS) Chapter Time + %"].marker)
+        assert.are.equal("legacy", reader.presets[migrated_name].marker)
+        assert.are.equal(migrated_name, reader.presets[migrated_name].name)
+        assert.is_false(reader.presets[migrated_name].builtin)
+        assert.are.equal(migrated_name, reader.active_preset)
+    end)
+
+    it("moves generic rewritten-key collisions without overwriting either value", function()
+        local legacy_root = path(plugins_dir, "zen_ui.koplugin")
+        local current_root = path(plugins_dir, "zenos.koplugin")
+        local legacy_key = legacy_root .. "/fonts/Regular.ttf"
+        local current_key = current_root .. "/fonts/Regular.ttf"
+        local values = {
+            [legacy_key] = { marker = "legacy" },
+            [current_key] = { marker = "current" },
+        }
+
+        assert.is_true(BrandMigration.rewriteTablePaths(
+            values, legacy_root, current_root))
+
+        local migrated_key = current_key .. " (migrated from " .. legacy_key .. ")"
+        assert.is_nil(values[legacy_key])
+        assert.are.equal("current", values[current_key].marker)
+        assert.are.equal("legacy", values[migrated_key].marker)
+    end)
+
     it("falls back to the legacy settings tree after a rename failure", function()
         local legacy_settings = mkdir(path(settings_dir, "Zen UI"))
         write_file(path(legacy_settings, "config.lua"), "return { preserved = true }")
@@ -380,6 +568,35 @@ return {
         assert.is_nil(lfs.attributes(path(settings_dir, "ZenOS"), "mode"))
     end)
 
+    it("migrates a valid settings-root symlink and leaves an exact downgrade alias", function()
+        if type(lfs.link) ~= "function" then return pending("lfs.link unavailable") end
+        local legacy_plugin = mkdir(path(plugins_dir, "zen_ui.koplugin"))
+        local outside = mkdir(path(test_root, "external-settings"))
+        local legacy_settings = path(settings_dir, "Zen UI")
+        local current_settings = path(settings_dir, "ZenOS")
+        write_file(path(outside, "config.lua"), "return { preserved = true }")
+        assert.is_true(lfs.link(outside, legacy_settings, true))
+
+        local pending_result = BrandMigration.detectStartup(
+            nil, migration_options(legacy_plugin))
+        local result = BrandMigration.performPending(pending_result)
+
+        assert.are.equal("migrated", result.status)
+        assert.is_true(result.legacy_settings_alias)
+        assert.is_true(result.legacy_settings_alias_created)
+        assert.are.equal("link", lfs.symlinkattributes(current_settings, "mode"))
+        assert.are.equal("link", lfs.symlinkattributes(legacy_settings, "mode"))
+        assert.are.equal("ZenOS", lfs.symlinkattributes(legacy_settings, "target"))
+        assert.are.equal(true, dofile(path(current_settings, "config.lua")).preserved)
+
+        local prepared = BrandMigration.prepareSettings(settings_dir, { lfs = lfs })
+        assert.are.equal("current", prepared.status)
+        assert.is_true(prepared.legacy_alias)
+
+        BrandMigration.removeSettings({ settings_dir = settings_dir, lfs = lfs })
+        assert.are.equal("file", lfs.attributes(path(outside, "config.lua"), "mode"))
+    end)
+
     it("does not overwrite a broken settings destination symlink", function()
         if type(lfs.link) ~= "function" then return pending("lfs.link unavailable") end
         local legacy_settings = mkdir(path(settings_dir, "Zen UI"))
@@ -392,6 +609,49 @@ return {
         assert.are.equal("settings_destination_invalid", result.status)
         assert.are.equal("directory", lfs.attributes(legacy_settings, "mode"))
         assert.are.equal("link", lfs.symlinkattributes(destination, "mode"))
+    end)
+
+    it("accepts a valid current settings symlink and rejects non-directory links", function()
+        if type(lfs.link) ~= "function" then return pending("lfs.link unavailable") end
+        local outside = mkdir(path(test_root, "current-settings"))
+        local current = path(settings_dir, "ZenOS")
+        local legacy = path(settings_dir, "Zen UI")
+        assert.is_true(lfs.link(outside, current, true))
+
+        local valid = BrandMigration.prepareSettings(settings_dir, { lfs = lfs })
+        assert.are.equal("current", valid.status)
+        assert.are.equal(current, valid.root)
+
+        os.remove(current)
+        local file_target = path(test_root, "not-a-directory")
+        write_file(file_target, "file")
+        assert.is_true(lfs.link(file_target, legacy, true))
+        local invalid = BrandMigration.prepareSettings(settings_dir, { lfs = lfs })
+        assert.are.equal("legacy_settings_invalid", invalid.status)
+    end)
+
+    it("repairs the downgrade alias for an already-migrated install", function()
+        if type(lfs.link) ~= "function" then return pending("lfs.link unavailable") end
+        local current_plugin = mkdir(path(plugins_dir, "zenos.koplugin"))
+        local current_settings = mkdir(path(settings_dir, "ZenOS"))
+        write_file(path(current_settings, "config.lua"),
+            "return { _meta = { zenos_brand_migration_v1 = true } }")
+
+        local result = BrandMigration.detectStartup(
+            nil, migration_options(current_plugin))
+
+        local legacy_settings = path(settings_dir, "Zen UI")
+        assert.are.equal("current", result.status)
+        assert.is_true(result.proceed)
+        assert.is_true(result.legacy_settings_alias)
+        assert.is_true(result.legacy_settings_alias_created)
+        assert.are.equal("link", lfs.symlinkattributes(legacy_settings, "mode"))
+        assert.are.equal("ZenOS", lfs.symlinkattributes(legacy_settings, "target"))
+
+        local repeated = BrandMigration.detectStartup(
+            nil, migration_options(current_plugin))
+        assert.is_true(repeated.legacy_settings_alias)
+        assert.is_false(repeated.legacy_settings_alias_created)
     end)
 
     it("preserves disabled intent on a canonical manual replacement", function()
@@ -410,6 +670,75 @@ return {
         assert.is_true(g_settings:readSetting("plugins_disabled").zenos)
     end)
 
+    it("does not report migration success when rewritten settings cannot be saved", function()
+        local legacy_plugin = mkdir(path(plugins_dir, "zen_ui.koplugin"))
+        local legacy_settings = mkdir(path(settings_dir, "Zen UI"))
+        local current_plugin = path(plugins_dir, "zenos.koplugin")
+        local current_settings = path(settings_dir, "ZenOS")
+        write_file(path(legacy_settings, "config.lua"), string.format(
+            "return { font = %q }", legacy_plugin .. "/fonts/Regular.ttf"))
+        fake_lua_settings.flush_failures[path(current_settings, "config.lua")] = "silent"
+
+        local pending_result = BrandMigration.detectStartup(
+            nil, migration_options(legacy_plugin))
+        local result = BrandMigration.performPending(pending_result)
+
+        assert.are.equal("migration_save_failed", result.status)
+        assert.is_true(result.inert)
+        assert.is_nil(result.restart)
+        assert.is_true(result.disabled_state_saved)
+        assert.is_false(result.persisted_paths_saved)
+        assert.is_false(result.legacy_settings_alias == true)
+        assert.are.equal(legacy_plugin .. "/fonts/Regular.ttf",
+            dofile(path(current_settings, "config.lua")).font)
+        assert.are.equal("directory", lfs.attributes(current_plugin, "mode"))
+    end)
+
+    it("reports a failed global path save through the settings API", function()
+        local legacy_plugin = path(plugins_dir, "zen_ui.koplugin")
+        local current_plugin = path(plugins_dir, "zenos.koplugin")
+        local footer = {
+            text_font_face = legacy_plugin .. "/fonts/SemiBold.ttf",
+        }
+        local g_settings = {
+            readSetting = function(_self, key)
+                if key == "footer" then return footer end
+            end,
+            saveSetting = function() return false end,
+            flush = function() return true end,
+        }
+
+        local saved = select(3, BrandMigration.rewritePersistedPaths(
+            path(settings_dir, "ZenOS"), legacy_plugin, current_plugin, {
+                force = true,
+                g_settings = g_settings,
+                lfs = lfs,
+                lua_settings = fake_lua_settings,
+        }))
+
+        assert.is_false(saved)
+    end)
+
+    it("does not report disabled-state migration success when its flush fails", function()
+        local current_plugin = mkdir(path(plugins_dir, "zenos.koplugin"))
+        mkdir(path(settings_dir, "ZenOS"))
+        local g_settings = ZenSpec.memorySettings({
+            plugins_disabled = { zen_ui = true },
+        })
+        g_settings.flush = function() return false end
+
+        local result = BrandMigration.detectStartup(
+            nil, migration_options(current_plugin, g_settings))
+
+        assert.are.equal("migration_save_failed", result.status)
+        assert.is_true(result.inert)
+        assert.is_nil(result.restart)
+        assert.is_false(result.disabled_state_saved)
+        assert.is_true(result.persisted_paths_saved)
+        assert.is_nil(lfs.symlinkattributes(
+            path(settings_dir, "Zen UI"), "mode"))
+    end)
+
     it("removes settings symlinks without traversing their targets", function()
         if type(lfs.link) ~= "function" then return pending("lfs.link unavailable") end
         local current_settings = mkdir(path(settings_dir, "ZenOS"))
@@ -425,5 +754,95 @@ return {
 
         assert.are.equal("file", lfs.attributes(outside_file, "mode"))
         assert.is_nil(lfs.attributes(current_settings, "mode"))
+    end)
+
+    it("shares complete settings cleanup with inert plugin instances", function()
+        local legacy_settings = mkdir(path(settings_dir, "Zen UI"))
+        local current_settings = mkdir(path(settings_dir, "ZenOS"))
+        write_file(path(legacy_settings, "legacy.txt"), "legacy")
+        write_file(path(current_settings, "current.txt"), "current")
+        local data_dir = mkdir(path(test_root, "data"))
+        local patches_dir = mkdir(path(data_dir, "patches"))
+        write_file(path(patches_dir, "2-zen-ui-suppress-startup-alerts.lua"), "remove")
+        write_file(path(patches_dir, "7-zenos-extra.lua"), "remove")
+        write_file(path(patches_dir, "8-unrelated.lua"), "keep")
+        local stored_settings = {
+            zen_ui_config = { enabled = true },
+            zen_ui_folder_sort = { ["/books"] = "title" },
+            zen_ui_folder_display_mode = { ["/books"] = "mosaic_image" },
+            zen_ui_just_updated = "3.0.0",
+            zen_ui_last_update_check = 42,
+            zen_ui_update_available = true,
+            zen_ui_latest_version = "3.1.0",
+            zen_ui_update_dl_url = "https://example.invalid/update.zip",
+            zen_ui_update_sha256 = "sha256",
+            zen_ui_update_channel = "beta",
+            zen_ui_update_auto_check = true,
+            zen_tags_global_collate = "title",
+            zen_tags_global_reverse = true,
+            zen_tags_global_custom = "legacy",
+            zen_authors_reverse = true,
+            zen_series_reverse = true,
+            zen_authors_display_mode = "list_image_meta",
+            zen_tags_detail_collate_fiction = "title",
+            zen_series_detail_reverse_fiction = true,
+            zen_page_browser_layout = "grid",
+            substring_search = true,
+            folder_gallery_mode = "mosaic_image",
+            unrelated = true,
+        }
+        local flushes = 0
+        local g_settings = {
+            data = stored_settings,
+            readSetting = function(_self, key) return stored_settings[key] end,
+            delSetting = function(_self, key) stored_settings[key] = nil end,
+            flush = function()
+                flushes = flushes + 1
+                return true
+            end,
+        }
+
+        assert.is_true(BrandMigration.deletePluginSettings({
+            settings_dir = settings_dir,
+            data_dir = data_dir,
+            g_settings = g_settings,
+            lfs = lfs,
+        }))
+
+        assert.is_nil(entry_mode(legacy_settings))
+        assert.is_nil(entry_mode(current_settings))
+        assert.is_nil(g_settings:readSetting("zen_ui_config"))
+        assert.is_nil(g_settings:readSetting("zen_ui_folder_sort"))
+        assert.is_nil(g_settings:readSetting("zen_ui_folder_display_mode"))
+        for _i, key in ipairs({
+            "zen_ui_just_updated",
+            "zen_ui_last_update_check",
+            "zen_ui_update_available",
+            "zen_ui_latest_version",
+            "zen_ui_update_dl_url",
+            "zen_ui_update_sha256",
+            "zen_ui_update_channel",
+            "zen_ui_update_auto_check",
+            "zen_tags_global_collate",
+            "zen_tags_global_reverse",
+            "zen_tags_global_custom",
+            "zen_authors_reverse",
+            "zen_series_reverse",
+            "zen_authors_display_mode",
+            "zen_tags_detail_collate_fiction",
+            "zen_series_detail_reverse_fiction",
+            "zen_page_browser_layout",
+        }) do
+            assert.is_nil(g_settings:readSetting(key), key)
+        end
+        assert.is_true(g_settings:readSetting("substring_search"))
+        assert.are.equal("mosaic_image",
+            g_settings:readSetting("folder_gallery_mode"))
+        assert.is_true(g_settings:readSetting("unrelated"))
+        assert.are.equal(1, flushes)
+        assert.is_nil(entry_mode(path(patches_dir,
+            "2-zen-ui-suppress-startup-alerts.lua")))
+        assert.is_nil(entry_mode(path(patches_dir, "7-zenos-extra.lua")))
+        assert.are.equal("file", entry_mode(path(patches_dir, "8-unrelated.lua")))
     end)
 end)

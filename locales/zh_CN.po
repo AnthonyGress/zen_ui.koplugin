@@ -907,7 +907,7 @@ msgid "Enable Zen OPDS"
 msgstr "启用 Zen OPDS"
 
 msgid "Enable ZenOS enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
-msgstr "启用 禅 UI 对 OPDS 浏览器的增强：封面图、列表视图、长按菜单及导航改进。"
+msgstr "启用 ZenOS 对 OPDS 浏览器的增强：封面图、列表视图、长按菜单及导航改进。"
 
 msgid "Enable ZenOS Reader margins"
 msgstr "启用 ZenOS Reader 页边距"
@@ -1756,7 +1756,7 @@ msgid "Progress labels"
 msgstr "进度标签"
 
 msgid "Project: Title is not compatible with ZenOS."
-msgstr "Project: Title 与 禅 UI 不兼容。"
+msgstr "Project: Title 与 ZenOS 不兼容。"
 
 msgid "Puzzle"
 msgstr "拼图"
@@ -2653,7 +2653,7 @@ msgid "Weekly"
 msgstr "每周"
 
 msgid "Welcome to ZenOS"
-msgstr "欢迎使用 禅 UI"
+msgstr "欢迎使用 ZenOS"
 
 msgid "What should your device show when it goes to sleep?"
 msgstr "设备休眠时应显示什么？"

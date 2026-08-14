@@ -904,7 +904,7 @@ msgid "Enable Zen OPDS"
 msgstr "Zen OPDS aktivieren"
 
 msgid "Enable ZenOS enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
-msgstr "Aktivieren Sie die Zen-UI-Erweiterungen für den OPDS-Browser: Coverbilder, Listenansicht, Gedrückthalten-Menü und Navigationsverbesserungen."
+msgstr "Aktivieren Sie die ZenOS-Erweiterungen für den OPDS-Browser: Coverbilder, Listenansicht, Gedrückthalten-Menü und Navigationsverbesserungen."
 
 msgid "Enable ZenOS Reader margins"
 msgstr "Aktivieren Sie die Ränder des ZenOS Readers"
@@ -2656,7 +2656,7 @@ msgid "What's New"
 msgstr "Was gibt's Neues"
 
 msgid "When enabled, loose icons or a selected ZenOS icon pack override supported icons. Missing icons fall back to ZenOS, then KOReader."
-msgstr "Wenn diese Option aktiviert ist, überschreiben lose Symbole oder ein ausgewähltes Zen-UI-Symbolpaket unterstützte Symbole. Fehlende Symbole fallen auf die Zen-Benutzeroberfläche und dann auf KOReader zurück."
+msgstr "Wenn diese Option aktiviert ist, überschreiben lose Symbole oder ein ausgewähltes ZenOS-Symbolpaket unterstützte Symbole. Fehlende Symbole fallen auf ZenOS und dann auf KOReader zurück."
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "Wenn aktiviert, findet die Suche nur ganze Wörter. Wenn deaktiviert, werden auch Teilzeichenfolgen gefunden (z. B. findet „fish“ auch „fishing“)."
@@ -2725,7 +2725,7 @@ msgid "ZenOS"
 msgstr "ZenOS"
 
 msgid "ZenOS defaults"
-msgstr "Zen-UI-Standardwerte"
+msgstr "ZenOS-Standardwerte"
 
 msgid "ZenOS is up to date."
 msgstr "ZenOS ist auf dem neuesten Stand."
@@ -2779,7 +2779,7 @@ msgid "ZenOS: Toggle reader status bars"
 msgstr "ZenOS: Reader-Statusleisten umschalten"
 
 msgid "ZenOS: Toggle reader themes"
-msgstr "Zen-Benutzeroberfläche: Leserthemen umschalten"
+msgstr "ZenOS: Leserthemen umschalten"
 
 msgid "ZenOS: Toggle top reader status bar"
 msgstr "ZenOS: Obere Reader-Statusleiste umschalten"

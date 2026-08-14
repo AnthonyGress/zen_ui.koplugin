@@ -23,6 +23,7 @@ describe("ZenOS legacy main lifecycle", function()
     local mocked_modules = {
         "datastorage",
         "logger",
+        "pluginloader",
         "ui/widget/container/widgetcontainer",
         "ui/widget/infomessage",
         "ui/event",
@@ -114,6 +115,11 @@ describe("ZenOS legacy main lifecycle", function()
             saved_modules[name] = package.loaded[name]
             saved_preloads[name] = package.preload[name]
         end
+        package.loaded.pluginloader = {
+            _discover = function()
+                return { { path = legacy_plugin } }
+            end,
+        }
     end)
 
     after_each(function()
@@ -189,7 +195,8 @@ describe("ZenOS legacy main lifecycle", function()
 
         assert.are.same({}, normal_loads)
         assert.is_nil(lfs.attributes(legacy_plugin, "mode"))
-        assert.is_nil(lfs.attributes(legacy_settings, "mode"))
+        assert.are.equal("link", lfs.symlinkattributes(legacy_settings, "mode"))
+        assert.are.equal("ZenOS", lfs.symlinkattributes(legacy_settings, "target"))
         assert.are.equal("directory", lfs.attributes(current_plugin, "mode"))
         assert.are.equal("directory", lfs.attributes(current_settings, "mode"))
         assert.are.equal("file", lfs.attributes(
@@ -199,5 +206,71 @@ describe("ZenOS legacy main lifecycle", function()
 
         scheduled()
         assert.are.equal("Restart", restarted and restarted.name)
+    end)
+
+    it("uses complete settings cleanup while the migration plugin is inert", function()
+        local data_dir = mkdir(join(test_root, "data"))
+        local patches_dir = mkdir(join(data_dir, "patches"))
+        local patch_path = join(patches_dir,
+            "2-zen-ui-suppress-startup-alerts.lua")
+        write_file(patch_path, "return true")
+        _G.G_reader_settings = ZenSpec.memorySettings({
+            zen_ui_config = { enabled = true },
+            zen_ui_folder_sort = { ["/books"] = "title" },
+            zen_ui_update_channel = "beta",
+            zen_tags_detail_reverse_fiction = true,
+            zen_page_browser_layout = "grid",
+            substring_search = true,
+        })
+        _G.G_reader_settings.flush = function() return true end
+        package.loaded.datastorage = {
+            getSettingsDir = function() return join(test_root, "settings") end,
+            getDataDir = function() return data_dir end,
+        }
+        package.loaded.logger = {
+            dbg = function() end,
+            info = function() end,
+            warn = function() end,
+            err = function() end,
+        }
+        package.loaded["ui/widget/container/widgetcontainer"] = {
+            extend = function(self, definition)
+                definition.__index = definition
+                return setmetatable(definition, { __index = self })
+            end,
+        }
+
+        local plugin = assert(dofile(join(legacy_plugin, "main.lua")))
+        assert.is_true(plugin:deletePluginSettings())
+
+        assert.is_nil(entry_mode(legacy_settings))
+        assert.is_nil(_G.G_reader_settings:readSetting("zen_ui_config"))
+        assert.is_nil(_G.G_reader_settings:readSetting("zen_ui_folder_sort"))
+        assert.is_nil(_G.G_reader_settings:readSetting("zen_ui_update_channel"))
+        assert.is_nil(_G.G_reader_settings:readSetting(
+            "zen_tags_detail_reverse_fiction"))
+        assert.is_nil(_G.G_reader_settings:readSetting("zen_page_browser_layout"))
+        assert.is_true(_G.G_reader_settings:readSetting("substring_search"))
+        assert.is_nil(entry_mode(patch_path))
+    end)
+
+    it("shows a failure notice without scheduling restart after a save failure", function()
+        local shown
+        local scheduled
+        package.loaded["ui/widget/infomessage"] = {
+            new = function(_self, attributes) return attributes end,
+        }
+        package.loaded["ui/uimanager"] = {
+            show = function(_self, widget) shown = widget end,
+            tickAfterNext = function(_self, callback) scheduled = callback end,
+        }
+
+        require("common/brand_migration").notify({
+            inert = true,
+            status = "migration_save_failed",
+        })
+
+        assert.is_truthy(shown and shown.text:match("could not save"))
+        assert.is_nil(scheduled)
     end)
 end)

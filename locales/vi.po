@@ -904,7 +904,7 @@ msgid "Enable Zen OPDS"
 msgstr "Bật Zen OPDS"
 
 msgid "Enable ZenOS enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
-msgstr "Bật cải tiến giao diện Zen cho trình duyệt OPDS: ảnh bìa, chế độ xem danh sách, menu giữ, và cải tiến điều hướng."
+msgstr "Bật cải tiến ZenOS cho trình duyệt OPDS: ảnh bìa, chế độ xem danh sách, menu giữ, và cải tiến điều hướng."
 
 msgid "Enable ZenOS Reader margins"
 msgstr "Kích hoạt lề ZenOS Reader"

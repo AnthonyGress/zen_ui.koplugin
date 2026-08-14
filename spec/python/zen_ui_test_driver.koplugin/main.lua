@@ -646,6 +646,144 @@ local function cover_cache_comparison()
     }
 end
 
+local function find_disabled_plugin(name)
+    local PluginLoader = require("pluginloader")
+    local disabled = select(2, PluginLoader:loadPlugins())
+    for _i, plugin in ipairs(disabled or {}) do
+        if plugin.name == name then return plugin end
+    end
+end
+
+local function find_plugin_manager_item(plugin)
+    local function find(items)
+        for _i, item in ipairs(items or {}) do
+            if item.text == plugin.fullname and type(item.checked_func) == "function"
+                    and item.checked_func() == false then return item end
+            if type(item.sub_item_table) == "table" then
+                local nested = find(item.sub_item_table)
+                if nested then return nested end
+            end
+        end
+    end
+    return find(require("pluginloader"):genPluginManagerSubItem())
+end
+
+local function legacy_plugin_manager_state()
+    local plugin = find_disabled_plugin("zen_ui")
+    if not plugin then
+        return { ok = false, error = "disabled legacy plugin was not discovered" }
+    end
+    return {
+        ok = true,
+        name = plugin.name,
+        fullname = plugin.fullname,
+        path = plugin.path,
+    }
+end
+
+local function enable_legacy_plugin()
+    local plugin = find_disabled_plugin("zen_ui")
+    if not plugin then
+        return { ok = false, error = "disabled legacy plugin was not discovered" }
+    end
+    local item = find_plugin_manager_item(plugin)
+    if not item then
+        return { ok = false, error = "legacy plugin manager item was not found" }
+    end
+
+    local enable_label
+    local enable_path
+    if type(item.hold_callback) == "function" then
+        item.hold_callback({ updateItems = function() end })
+        local stack = UIManager._window_stack or {}
+        local dialog = stack[#stack] and stack[#stack].widget
+        local enable_button = dialog and dialog.buttons and dialog.buttons[1]
+            and dialog.buttons[1][1]
+        local expected_label = require("gettext")("Enable plugin")
+        if not enable_button or enable_button.text ~= expected_label
+                or type(enable_button.callback) ~= "function" then
+            return { ok = false, error = "real Enable plugin callback was not found" }
+        end
+        enable_label = enable_button.text
+        enable_path = "dialog"
+        enable_button.callback()
+    elseif type(item.callback) == "function" then
+        enable_path = "toggle"
+        item.callback()
+    else
+        return { ok = false, error = "legacy plugin manager callback was not found" }
+    end
+
+    local disabled = G_reader_settings:readSetting("plugins_disabled") or {}
+    UIManager:scheduleIn(0.25, function()
+        local windows = UIManager._window_stack or {}
+        local prompt = windows[#windows] and windows[#windows].widget
+        if prompt and type(prompt.ok_callback) == "function" then
+            prompt.ok_callback()
+        end
+    end)
+    return {
+        ok = true,
+        name = plugin.name,
+        fullname = plugin.fullname,
+        enable_label = enable_label,
+        enable_path = enable_path,
+        legacy_disabled_present = disabled.zen_ui ~= nil,
+        legacy_disabled = disabled.zen_ui == true,
+    }
+end
+
+local function brand_migration_state()
+    local PluginLoader = require("pluginloader")
+    local plugin = PluginLoader:getPluginInstance("zenos")
+    local legacy_alias = PluginLoader:getPluginInstance("zen_ui")
+    if not plugin then
+        return { ok = false, error = "canonical ZenOS plugin is not loaded" }
+    end
+    local config = plugin.config or {}
+    local settings_root = require("datastorage"):getSettingsDir() .. "/ZenOS"
+    local ok_reader, reader = pcall(dofile, settings_root .. "/reader.lua")
+    local ok_home, home = pcall(dofile, settings_root .. "/home.lua")
+    if not ok_reader or type(reader) ~= "table"
+            or not ok_home or type(home) ~= "table" then
+        return { ok = false, error = "migrated setting files could not be loaded" }
+    end
+    local disabled = G_reader_settings:readSetting("plugins_disabled") or {}
+    local footer = G_reader_settings:readSetting("footer") or {}
+    local buttons = config.quick_settings and config.quick_settings.custom_buttons or {}
+    local builtin = reader.presets and reader.presets["(ZenOS) Chapter Time + %"] or {}
+    local custom = reader.presets and reader.presets.custom or {}
+    return {
+        ok = true,
+        plugin_alias_same = legacy_alias == plugin,
+        plugin_root = plugin.path,
+        settings_root = settings_root,
+        marker = config._meta and config._meta.zenos_brand_migration_v1 == true,
+        fixture = config.migration_fixture,
+        update_channel = config.updater and config.updater.update_channel,
+        library_font = config.library_font and config.library_font.font_face,
+        custom_button_label = buttons[1] and buttons[1].label,
+        custom_button_icon = buttons[1] and buttons[1].icon,
+        reader_active_preset = reader.active_preset,
+        reader_has_legacy_preset = reader.presets
+            and reader.presets["(Zen UI) Chapter Time + %"] ~= nil,
+        reader_has_canonical_preset = reader.presets
+            and reader.presets["(ZenOS) Chapter Time + %"] ~= nil,
+        reader_builtin_footer = builtin.reader_footer_custom_text,
+        reader_custom_footer = custom.reader_footer_custom_text,
+        reader_footer_font = reader.settings and reader.settings.footer
+            and reader.settings.footer.text_font_face,
+        home_fixture = home.migration_fixture,
+        home_path = home.fixture_path,
+        global_footer_font = footer.text_font_face,
+        global_reader_footer = G_reader_settings:readSetting("reader_footer_custom_text"),
+        legacy_disabled_present = disabled.zen_ui ~= nil,
+        canonical_disabled_present = disabled.zenos ~= nil,
+        canonical_disabled = disabled.zenos == true,
+        canonical_effectively_enabled = disabled.zenos ~= true,
+    }
+end
+
 local Driver = WidgetContainer:extend{}
 
 function Driver:init()
@@ -686,6 +824,15 @@ function Driver:handleCommand(command)
     if kind == "plugin_loaded" and type(params.name) == "string" then
         local PluginLoader = require("pluginloader")
         return { ok = true, loaded = PluginLoader:isPluginLoaded(params.name) }
+    end
+    if kind == "legacy_plugin_manager_state" then
+        return legacy_plugin_manager_state()
+    end
+    if kind == "enable_legacy_plugin" then
+        return enable_legacy_plugin()
+    end
+    if kind == "brand_migration_state" then
+        return brand_migration_state()
     end
     if kind == "file_chooser_items" then
         local state = file_chooser_items()

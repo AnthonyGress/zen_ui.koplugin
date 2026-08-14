@@ -734,7 +734,8 @@ function M.build(ctx)
 
         table.insert(items, IconItem.decorate({
             text_func = function()
-                return T(_("Icon: %1"), ct.icon or "zen_ui")
+                return T(_("Icon: %1"),
+                    icon_utils.getIconDisplayName(ct.icon or "zen_ui"))
             end,
             keep_menu_open = true,
             callback = function(tm)

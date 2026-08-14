@@ -16,7 +16,7 @@ if _brand_startup.inert then
     end
 
     function BrandMigrationPlugin:deletePluginSettings()
-        pcall(BrandMigration.removeSettings)
+        pcall(BrandMigration.deletePluginSettings)
         return true
     end
 
@@ -229,6 +229,7 @@ function ZenUI:init()
         BrandMigration.notify(brand_state)
         return
     end
+    BrandMigration.installLegacyRuntimeAliases(self)
     local started_at = os.clock()
     if _incompatible_plugins_restart_required then
         logger.warn("ZenOS initialization skipped; restart required after disabling incompatible plugins")
@@ -964,41 +965,7 @@ function ZenUI:deletePluginSettings()
     zen_updater._on_update_found = nil
     cancel_item_table_cache_persist()
 
-    -- Delete the dedicated settings folder.
-    pcall(function()
-        require("config/preset_store").removeAll()
-    end)
-
-    -- Also clean up any legacy G_reader_settings key left from before the
-    -- file-based migration completed (e.g., plugin disabled mid-boot).
-    local gs = rawget(_G, "G_reader_settings")
-    if gs and type(gs.delSetting) == "function" then
-        pcall(gs.delSetting, gs, ConfigManager.key())
-        pcall(gs.delSetting, gs, "zen_ui_folder_sort")
-        pcall(gs.delSetting, gs, "zen_ui_folder_display_mode")
-        pcall(gs.flush, gs)
-    end
-
-    -- Remove userpatches installed alongside the plugin (e.g. the startup-alert
-    -- suppressor seeded into koreader/patches/ at install time). Match any
-    -- priority prefix so the patch is removed regardless of load order.
-    pcall(function()
-        local DataStorage = require("datastorage")
-        local lfs = require("libs/libkoreader-lfs")
-        local patches_dir = DataStorage:getDataDir() .. "/patches"
-        if lfs.attributes(patches_dir, "mode") ~= "directory" then return end
-        for entry in lfs.dir(patches_dir) do
-            if entry:match("^%d+%-zen.*%-suppress%-startup%-alerts%.lua$")
-                or entry:match("^%d+%-zen[%-_]ui[%-_].*%.lua$")
-                or entry:match("^%d+%-zenos[%-_].*%.lua$") then
-                local fullpath = patches_dir .. "/" .. entry
-                if lfs.attributes(fullpath, "mode") == "file" then
-                    os.remove(fullpath)
-                    logger.info("removed userpatch", entry)
-                end
-            end
-        end
-    end)
+    pcall(BrandMigration.deletePluginSettings)
 
     logger.info("deletePluginSettings completed")
     return true
