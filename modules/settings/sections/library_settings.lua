@@ -1,5 +1,5 @@
 -- settings/sections/library_settings.lua
--- Library (filebrowser) settings items for Zen UI.
+-- Library (filebrowser) settings items for ZenOS.
 -- Receives ctx: { plugin, config, save_and_apply, apply_feature }
 
 local _ = require("gettext")

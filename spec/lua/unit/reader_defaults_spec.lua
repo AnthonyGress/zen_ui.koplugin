@@ -24,7 +24,7 @@ describe("Reader defaults", function()
         ZenSpec.replace("device", {
             hasColorScreen = function() return true end,
         })
-        ZenSpec.replace("common/plugin_root", "/plugins/zen_ui.koplugin")
+        ZenSpec.replace("common/plugin_root", "/plugins/zenos.koplugin")
         ZenSpec.replace("config/preset_store", {
             saveSettings = function(kind, settings)
                 assert.are.equal("reader", kind)
@@ -72,7 +72,7 @@ describe("Reader defaults", function()
                 right_order = { "time" },
             },
         }
-        local status_font = "/plugins/zen_ui.koplugin/fonts/hyperreadable/Hyperreadable-SemiBold.ttf"
+        local status_font = "/plugins/zenos.koplugin/fonts/hyperreadable/Hyperreadable-SemiBold.ttf"
 
         require("common/reader_defaults").apply(settings, config)
 
@@ -105,7 +105,7 @@ describe("Reader defaults", function()
         assert.is_false(footer.text_font_bold)
         assert.are.equal(6, footer.container_bottom_padding)
         assert.are.equal(1, settings:readSetting("reader_footer_mode"))
-        assert.are.equal("Zen UI", settings:readSetting("reader_footer_custom_text"))
+        assert.are.equal("ZenOS", settings:readSetting("reader_footer_custom_text"))
         assert.are.equal(1, settings:readSetting("reader_footer_custom_text_repetitions"))
         assert.are.equal(status_font, config.reader_top_status_bar.font_face)
         assert.are.equal(14, config.reader_top_status_bar.font_size)
@@ -114,7 +114,7 @@ describe("Reader defaults", function()
         assert.are.same({}, config.reader_top_status_bar.right_order)
         assert.is_true(config.reader_footer.verbose_chapter_time)
         assert.is_true(config.features.reader_top_status_bar)
-        assert.are.equal("(Zen UI) Chapter Time + %", active_preset)
+        assert.are.equal("(ZenOS) Chapter Time + %", active_preset)
         assert.are.same(footer, preset_settings.footer)
         assert.is_true(preset_settings.verbose_chapter_time)
     end)
@@ -225,7 +225,7 @@ describe("Reader defaults", function()
 
         require("common/reader_defaults").apply(ZenSpec.memorySettings(), {})
 
-        assert.are.equal("(Zen UI) Chapter Time + %", loaded_preset.name)
+        assert.are.equal("(ZenOS) Chapter Time + %", loaded_preset.name)
         assert.is_true(loaded_preset.footer.chapter_time_to_read)
         assert.is_false(loaded_preset.footer.page_progress)
         assert.is_true(loaded_preset.footer.percentage)

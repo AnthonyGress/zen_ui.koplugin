@@ -2220,7 +2220,7 @@ function M.build(ctx)
             source_item(_("Default quotes"), "default"),
             source_item(_("Custom quotes"), "custom", {
                 enabled_func = HomeQuotes.hasCustomQuotes,
-                help_text = _("Add at least one quote to settings/Zen UI/quotes.lua to enable this source."),
+                help_text = _("Add at least one quote to settings/ZenOS/quotes.lua to enable this source."),
             }),
         }
         if not custom_quotes_available then

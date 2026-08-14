@@ -176,7 +176,7 @@ function M.build(plugin)
     end
 
     return {
-        text = _("Zen UI"),
+        text = _("ZenOS"),
         sub_item_table = root_items,
     }
 end

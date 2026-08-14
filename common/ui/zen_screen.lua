@@ -1,13 +1,13 @@
 -- common/zen_screen.lua
 -- Fullscreen update / splash screen.
 --
--- Shows the Zen UI logo centered with an optional title at the top and an
+-- Shows the ZenOS logo centered with an optional title at the top and an
 -- optional action button at the bottom. Tap or swipe anywhere to dismiss.
 --
 -- Usage:
 --   local ZenScreen = require("common/zen_screen")
 --   UIManager:show(ZenScreen:new{
---       title    = "Zen UI updated to v1.2.3",  -- nil hides the title bar
+--       title    = "ZenOS updated to v1.2.3",  -- nil hides the title bar
 --       button   = "Get Started",               -- nil -> default label; false -> no button
 --       on_close = function() ... end,
 --   })

@@ -545,7 +545,7 @@ local function buildListBB(covers, avail_w)
 end
 
 -- ---------------------------------------------------------------------------
--- ctx = { plugin = <ZenUI plugin>, config = <config table> }
+-- ctx = { plugin = <ZenOS plugin>, config = <config table> }
 -- ---------------------------------------------------------------------------
 
 function M.build_install_pages(ctx)
@@ -647,9 +647,9 @@ function M.build_install_pages(ctx)
     local pages = {
         -- 1. Welcome (static)
         {
-            title       = _("Welcome to Zen UI"),
+            title       = _("Welcome to ZenOS"),
             icon        = "_zen_quickstart",
-            description = _("A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."),
+            description = _("A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."),
         },
 
         -- 2. Library View (INTERACTIVE — radio)
@@ -774,7 +774,7 @@ function M.build_install_pages(ctx)
             choice_type = "radio",
             choices     = {
                 { id = "keep", text = _("Keep existing settings"), checked = quickstart_completed },
-                { id = "zen",  text = _("Zen UI defaults"), checked = not quickstart_completed },
+                { id = "zen",  text = _("ZenOS defaults"), checked = not quickstart_completed },
             },
             on_apply = function(sel)
                 if sel["keep"] then return end
@@ -795,7 +795,7 @@ function M.build_install_pages(ctx)
             title       = _("Settings & Updates"),
             icon        = "_zen_quickstart_update",
             icon_size   = 120,
-            description = _("All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall Zen UI updates directly from your device."),
+            description = _("All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall ZenOS updates directly from your device."),
         },
 
         -- 11. Finale

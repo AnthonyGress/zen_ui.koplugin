@@ -146,7 +146,7 @@ def test_launcher_book_switcher_fits_inside_the_panel() -> None:
         ko_home, library = root / "home", root / "library"
         ko_home.mkdir()
         books = stage_epub_library(library)
-        launcher_settings = ko_home / "settings" / "Zen UI"
+        launcher_settings = ko_home / "settings" / "ZenOS"
         launcher_settings.mkdir(parents=True)
         launcher_settings.joinpath("app_launcher.lua").write_text(
             """return {
@@ -225,7 +225,7 @@ def test_native_koreader_menu_shortcuts_open_in_library_and_reader() -> None:
         ko_home, library = root / "home", root / "library"
         ko_home.mkdir()
         books = stage_epub_library(library)
-        launcher_settings = ko_home / "settings" / "Zen UI"
+        launcher_settings = ko_home / "settings" / "ZenOS"
         launcher_settings.mkdir(parents=True)
         launcher_settings.joinpath("app_launcher.lua").write_text(
             """return {
@@ -488,7 +488,7 @@ def test_clean_emulator_renders_fixture_library_and_reader_goldens() -> None:
         root = Path(temporary)
         ko_home = root / "home"
         ko_home.mkdir()
-        launcher_settings = ko_home / "settings" / "Zen UI"
+        launcher_settings = ko_home / "settings" / "ZenOS"
         launcher_settings.mkdir(parents=True)
         launcher_settings.joinpath("app_launcher.lua").write_text(
             """return {

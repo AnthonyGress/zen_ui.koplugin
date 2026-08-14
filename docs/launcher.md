@@ -2,17 +2,17 @@
 title: Launcher
 category: Launcher
 summary: Customizable app launcher with action buttons, plugin buttons, and folders.
-settingsPath: Zen UI > Launcher
+settingsPath: ZenOS > Launcher
 order: 40
 ---
 
-<!-- Documentation current through Zen UI v2.5.0. -->
+<!-- Documentation current through ZenOS v3.0.0. -->
 
 ![Launcher](/images/zen_ui/launcher.png)
 
 ## Overview
 
-Launcher adds a configurable tab to the Zen UI menu. It can create shortcut buttons for Controls, dispatcher actions, detected launchable plugins, and native KOReader submenus. Place these buttons inside folders for more organization.
+Launcher adds a configurable tab to the ZenOS menu. It can create shortcut buttons for Controls, dispatcher actions, detected launchable plugins, and native KOReader submenus. Place these buttons inside folders for more organization.
 
 ## Options
 

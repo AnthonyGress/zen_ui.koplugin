@@ -1,22 +1,22 @@
 ---
 title: FAQ
 category: FAQ
-summary: Answers to common questions about Zen UI.
+summary: Answers to common questions about ZenOS.
 settingsPath: ''
 order: 6
 ---
 
-<!-- Documentation current through Zen UI v2.5.0. -->
+<!-- Documentation current through ZenOS v3.0.0. -->
 
-## How do I install Zen UI?
+## How do I install ZenOS?
 
 See the [Installation](/zen-ui/docs/installation) guide for full installation instructions.
 
-## Zen UI is not starting and doesn't show in the Plugins list
+## ZenOS is not starting and doesn't show in the Plugins list
 
-Make sure you downloaded the [Release](https://github.com/AnthonyGress/zen_ui.koplugin/releases) and that there is not a second folder inside the `zen_ui.koplugin` folder. The `zen_ui.koplugin` folder should contain `main.lua` along with the other Zen UI code files - *NOT* a second `zen_ui.koplugin` folder. You want to copy the one that has the `.lua` files inside
+Make sure you downloaded the [Release](https://github.com/AnthonyGress/zen_ui.koplugin/releases) and that there is not a second folder inside the `zenos.koplugin` folder. The `zenos.koplugin` folder should contain `main.lua` along with the other ZenOS code files - *NOT* a second `zenos.koplugin` folder. You want to copy the one that has the `.lua` files inside
 
-![zen_ui.koplugin folder inside the KOReader plugins directory](/images/zen_ui/plugins_folder.png)
+![zenos.koplugin folder inside the KOReader plugins directory](/images/zen_ui/plugins_folder.png)
 
 ## How do I access the reader menu?
 

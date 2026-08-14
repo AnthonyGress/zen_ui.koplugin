@@ -1,4 +1,4 @@
--- Standard Zen UI logger; adapts KOReader's logger backend.
+-- Standard ZenOS logger; adapts KOReader's logger backend.
 local M = {}
 
 local _logger
@@ -28,6 +28,7 @@ local function feature_from_source(source)
 end
 
 local function strip_legacy_prefix(message)
+    message = message:gsub("^%[?[Zz]en[Oo][Ss]%]?[%s:]*", "")
     message = message:gsub("^%[?[Zz]en[Uu][Ii]%]?[%s:]*", "")
     message = message:gsub("^%[?[Zz]en[ _%-][Uu][Ii]%]?[%s:]*", "")
     message = message:gsub("^%b[]:%s*", "")
@@ -41,9 +42,9 @@ end
 
 local function emit(level, feature, args)
     if type(args[1]) == "string" then
-        args[1] = string.format("Zen UI: [%s] %s", feature, strip_legacy_prefix(args[1]))
+        args[1] = string.format("ZenOS: [%s] %s", feature, strip_legacy_prefix(args[1]))
     else
-        table.insert(args, 1, string.format("Zen UI: [%s]", feature))
+        table.insert(args, 1, string.format("ZenOS: [%s]", feature))
     end
     return _original[level](unpack(args))
 end

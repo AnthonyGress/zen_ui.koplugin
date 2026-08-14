@@ -1,5 +1,5 @@
 -- settings/sections/menu.lua
--- Touch menu settings items for Zen UI (Quick Settings panel).
+-- Touch menu settings items for ZenOS (Quick Settings panel).
 -- Receives ctx: { plugin, config, save_and_apply }
 
 local _ = require("gettext")

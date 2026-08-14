@@ -147,7 +147,7 @@ def launch(
     env_overrides: dict[str, str] | None = None,
     language: str | None = None,
 ) -> subprocess.Popen[str]:
-    settings_dir = ko_home / "settings" / "Zen UI"
+    settings_dir = ko_home / "settings" / "ZenOS"
     settings_dir.mkdir(parents=True, exist_ok=True)
     install_startup_alert_patch(ko_home)
     bookinfo_cache = ko_home / "settings" / "bookinfo_cache.sqlite3"

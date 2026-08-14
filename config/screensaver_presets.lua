@@ -1,4 +1,4 @@
--- Built-in sleep screen presets shipped with Zen UI.
+-- Built-in sleep screen presets shipped with ZenOS.
 -- icons_dir is resolved at runtime so paths work on any device.
 
 local function get(icons_dir)

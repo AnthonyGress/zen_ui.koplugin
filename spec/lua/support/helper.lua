@@ -1,4 +1,4 @@
-local root = assert(os.getenv("ZEN_UI_ROOT"), "ZEN_UI_ROOT must point to the Zen UI checkout")
+local root = assert(os.getenv("ZEN_UI_ROOT"), "ZEN_UI_ROOT must point to the ZenOS checkout")
 
 package.path = table.concat({
     root .. "/?.lua",

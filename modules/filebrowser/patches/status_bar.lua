@@ -130,7 +130,7 @@ local function apply_status_bar()
             _serializeOrder(config.left_order),
             "center_order=", _serializeOrder(config.center_order),
             "right_order=",  _serializeOrder(config.right_order))
-        -- Preserve dormant external keys: their plugins may register after Zen UI.
+        -- Preserve dormant external keys: their plugins may register after ZenOS.
         local seen = {}
         local function clean_order(list, side_name)
             local out = {}

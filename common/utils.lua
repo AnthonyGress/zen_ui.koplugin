@@ -502,6 +502,7 @@ end
 function M.suggestIcon(plugin_root, label, fallback, strip_zen_prefix)
     local text = type(label) == "string" and label or ""
     if strip_zen_prefix then
+        text = text:gsub("^ZenOS%s*%-%s*", "")
         text = text:gsub("^Zen UI%s*%-%s*", "")
     end
     local needle = text:lower():gsub("[^%w]", "")

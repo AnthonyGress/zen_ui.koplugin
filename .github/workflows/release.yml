@@ -67,9 +67,9 @@ jobs:
         if: steps.version_check.outputs.skip == 'false'
         run: pip install fonttools
 
-      - name: Build plugin zip
+      - name: Build and verify plugin zips
         if: steps.version_check.outputs.skip == 'false'
-        run: bash build.sh
+        run: ./spec/run package-check
 
       - name: Build release notes
         if: steps.version_check.outputs.skip == 'false'
@@ -84,9 +84,10 @@ jobs:
         run: |
           TAG="v${{ steps.meta.outputs.version }}"
           gh release create "$TAG" \
+            dist/zenos.koplugin.zip \
             dist/zen_ui.koplugin.zip \
             --repo "$GITHUB_REPOSITORY" \
-            --title "Zen UI $TAG" \
+            --title "ZenOS $TAG" \
             --notes-file release_notes.md
 
       - name: Refresh ZenPM package

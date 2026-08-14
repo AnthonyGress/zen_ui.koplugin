@@ -2,7 +2,7 @@
 -- CloudStorage doesn't register a Home key handler by default, so pressing
 -- Home there normally does nothing. Close the browser (regardless of folder
 -- depth) and return to the default navbar tab underneath, matching the
--- behavior in the File Manager and other Zen UI library views.
+-- behavior in the File Manager and other ZenOS library views.
 
 local function apply_cloud_storage_home()
     local ok_cs, CloudStorage = pcall(require, "apps/cloudstorage/cloudstorage")

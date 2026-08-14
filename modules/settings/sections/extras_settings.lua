@@ -1,5 +1,5 @@
 -- settings/sections/extras.lua
--- Extra integration settings for Zen UI.
+-- Extra integration settings for ZenOS.
 -- Receives ctx: { plugin, config, settings_apply }
 
 local _ = require("gettext")
@@ -64,7 +64,7 @@ function M.build(ctx)
 
         table.insert(items, {
             text = _("Zen OPDS"),
-            help_text = _("Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."),
+            help_text = _("Enable ZenOS enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."),
             sub_item_table = {
                 IconItem.decorate({
                     text = _("Enable Zen OPDS"),
@@ -136,7 +136,7 @@ function M.build(ctx)
 
     local custom_icons_enabled_item = IconItem.decorate({
         text = _("Enable custom icons"),
-        help_text = _("When enabled, loose icons or a selected Zen UI icon pack override supported icons. Missing icons fall back to Zen UI, then KOReader."),
+        help_text = _("When enabled, loose icons or a selected ZenOS icon pack override supported icons. Missing icons fall back to ZenOS, then KOReader."),
         checked_func = function()
             return config.features.custom_icons_enabled == true
         end,

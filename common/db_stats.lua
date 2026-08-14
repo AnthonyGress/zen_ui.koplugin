@@ -610,7 +610,7 @@ function StatsDB.queryDailySeries(days)
     local db_path = DBConn.getStatsDbPath()
     local conn, err = DBConn.open(db_path)
     if not conn then
-        logger.warn("zen-ui db_stats: cannot open DB:", err)
+        logger.warn("cannot open DB:", err)
         return series
     end
 
@@ -641,7 +641,7 @@ function StatsDB.queryDailySeries(days)
         end
     end)
     if not ok then
-        logger.warn("zen-ui db_stats: daily series query failed:", query_err)
+        logger.warn("daily series query failed:", query_err)
     end
 
     conn:close()
@@ -657,7 +657,7 @@ function StatsDB.queryBooksForPeriod(period_begin, period_end)
     local db_path = DBConn.getStatsDbPath()
     local conn, err = DBConn.open(db_path)
     if not conn then
-        logger.warn("zen-ui db_stats: cannot open DB:", err)
+        logger.warn("cannot open DB:", err)
         return {}
     end
 
@@ -686,7 +686,7 @@ function StatsDB.queryBooksForPeriod(period_begin, period_end)
         end
     end)
     if not ok then
-        logger.warn("zen-ui db_stats: books for period query failed:", query_err)
+        logger.warn("books for period query failed:", query_err)
     end
 
     conn:close()

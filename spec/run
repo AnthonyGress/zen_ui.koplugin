@@ -152,13 +152,13 @@ run_python() {
     for item in "$RUNTIME"/plugins/*; do
       local plugin_name
       plugin_name="$(basename "$item")"
-      if [[ "$plugin_name" == "zen_ui.koplugin" || "$plugin_name" == "zen_ui_test_driver.koplugin" ]]; then
+      if [[ "$plugin_name" == "zenos.koplugin" || "$plugin_name" == "zen_ui.koplugin" || "$plugin_name" == "zen_ui_test_driver.koplugin" ]]; then
         continue
       fi
       ln -s "$item" "$staged_runtime/plugins/$plugin_name"
     done
     rsync -a --exclude '.git/' --exclude '.luarocks/' --exclude 'dist/' --exclude 'spec/' \
-      "$ROOT/" "$staged_runtime/plugins/zen_ui.koplugin/"
+      "$ROOT/" "$staged_runtime/plugins/zenos.koplugin/"
     rsync -a "$ROOT/spec/python/zen_ui_test_driver.koplugin/" \
       "$staged_runtime/plugins/zen_ui_test_driver.koplugin/"
   fi
@@ -196,12 +196,73 @@ package_check() {
   (
     cd "$ROOT"
     bash build.sh
-    local listing
-    listing="$(unzip -Z1 dist/zen_ui.koplugin.zip)"
-    if printf '%s\n' "$listing" | grep -Eq '/spec/|/icon-packs/|_spec\.lua$|\.py$|zen_ui_test_driver|/ICON-LIST\.md$|/included-icons\.json$|/zen-icon-pack/'; then
-      echo "Test asset leaked into release ZIP" >&2
-      exit 1
-    fi
+
+    local package_tmp
+    package_tmp="$(mktemp -d "${TMPDIR:-/tmp}/zenos-package-check.XXXXXX")"
+    trap 'rm -rf "$package_tmp"' EXIT
+
+    verify_archive() {
+      local zip_path="$1"
+      local expected_root="$2"
+      local normalized_list="$3"
+      local extract_dir="$4"
+      local listing
+      local entry
+
+      [[ -f "$zip_path" ]] || { echo "Missing release ZIP: $zip_path" >&2; exit 1; }
+      listing="$(unzip -Z1 "$zip_path")"
+      [[ -n "$listing" ]] || { echo "Empty release ZIP: $zip_path" >&2; exit 1; }
+
+      while IFS= read -r entry; do
+        case "$entry" in
+          "$expected_root"|"$expected_root/"*) ;;
+          *)
+            echo "Unexpected ZIP root in $zip_path: $entry" >&2
+            exit 1
+            ;;
+        esac
+      done <<< "$listing"
+
+      if printf '%s\n' "$listing" | grep -Eq '/spec/|/icon-packs/|_spec\.lua$|\.py$|zen_ui_test_driver|/ICON-LIST\.md$|/included-icons\.json$|/zen-icon-pack/'; then
+        echo "Test asset leaked into release ZIP: $zip_path" >&2
+        exit 1
+      fi
+
+      while IFS= read -r entry; do
+        if [[ "$entry" == "$expected_root" || "$entry" == "$expected_root/" ]]; then
+          printf '.\n'
+        else
+          printf '%s\n' "${entry#"$expected_root"/}"
+        fi
+      done <<< "$listing" | sort > "$normalized_list"
+
+      mkdir -p "$extract_dir"
+      unzip -q "$zip_path" -d "$extract_dir"
+      [[ -f "$extract_dir/$expected_root/_meta.lua" ]] || {
+        echo "Release ZIP is missing _meta.lua: $zip_path" >&2
+        exit 1
+      }
+      [[ -f "$extract_dir/$expected_root/main.lua" ]] || {
+        echo "Release ZIP is missing main.lua: $zip_path" >&2
+        exit 1
+      }
+    }
+
+    verify_archive \
+      "dist/zenos.koplugin.zip" \
+      "zenos.koplugin" \
+      "$package_tmp/zenos.list" \
+      "$package_tmp/zenos"
+    verify_archive \
+      "dist/zen_ui.koplugin.zip" \
+      "zen_ui.koplugin" \
+      "$package_tmp/zen_ui.list" \
+      "$package_tmp/zen_ui"
+
+    diff -u "$package_tmp/zenos.list" "$package_tmp/zen_ui.list"
+    diff -qr \
+      "$package_tmp/zenos/zenos.koplugin" \
+      "$package_tmp/zen_ui/zen_ui.koplugin"
   )
 }
 

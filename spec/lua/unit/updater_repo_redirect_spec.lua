@@ -4,6 +4,7 @@ describe("updater repository redirects", function()
     local original_archiver
     local original_icon_item
     local original_logger
+    local original_plugin_root
     local original_network_manager
     local original_trapper
     local original_uimanager
@@ -12,6 +13,7 @@ describe("updater repository redirects", function()
     local network_up
     local requests
     local scheduled
+    local asset_name
 
     before_each(function()
         original_https = package.loaded["ssl.https"]
@@ -19,6 +21,7 @@ describe("updater repository redirects", function()
         original_archiver = package.loaded["ffi/archiver"]
         original_icon_item = package.loaded["common/ui/icon_menu_item"]
         original_logger = package.loaded["common/zen_logger"]
+        original_plugin_root = package.loaded["common/plugin_root"]
         original_network_manager = package.loaded["ui/network/manager"]
         original_trapper = package.loaded["ui/trapper"]
         original_uimanager = package.loaded["ui/uimanager"]
@@ -26,12 +29,14 @@ describe("updater repository redirects", function()
         network_up = true
         requests = {}
         scheduled = {}
+        asset_name = "zenos.koplugin.zip"
         config = { updater = { update_channel = "stable" } }
 
         ZenSpec.replace("ffi/archiver", {})
         ZenSpec.replace("common/ui/icon_menu_item", {
             decorate = function(item) return item end,
         })
+        ZenSpec.replace("common/plugin_root", "/plugins/zenos.koplugin")
         ZenSpec.replace("config/manager", {
             load = function() return config end,
             save = function() end,
@@ -81,12 +86,13 @@ describe("updater repository redirects", function()
             request = function(request)
                 requests[#requests + 1] = request.url
                 assert.is_false(request.redirect)
+                assert.are.equal("zenos.koplugin", request.headers["User-Agent"])
                 if #requests == 1 then
                     return 1, 301, {
                         location = "https://api.github.com/repositories/1194031944/releases?per_page=100",
                     }, "HTTP/1.1 301 Moved Permanently"
                 end
-                request.sink([[
+                request.sink(string.format([[
                     [{
                         "url":"https://api.github.com/repos/AnthonyGress/zen-ui/releases/12345",
                         "tag_name":"v999.0.0",
@@ -94,12 +100,12 @@ describe("updater repository redirects", function()
                         "body":"Renamed repository release",
                         "published_at":"2026-07-12T00:00:00Z",
                         "assets":[{
-                            "name":"zen_ui.koplugin.zip",
-                            "browser_download_url":"https://github.com/AnthonyGress/zen-ui/releases/download/v999.0.0/zen_ui.koplugin.zip",
+                            "name":"%s",
+                            "browser_download_url":"https://github.com/AnthonyGress/zen-ui/releases/download/v999.0.0/%s",
                             "digest":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
                         }]
                     }]
-                ]])
+                ]], asset_name, asset_name))
                 return 1, 200, {}, "HTTP/1.1 200 OK"
             end,
         })
@@ -112,6 +118,7 @@ describe("updater repository redirects", function()
         package.loaded["ffi/archiver"] = original_archiver
         package.loaded["common/ui/icon_menu_item"] = original_icon_item
         package.loaded["common/zen_logger"] = original_logger
+        package.loaded["common/plugin_root"] = original_plugin_root
         package.loaded["ui/network/manager"] = original_network_manager
         package.loaded["ui/trapper"] = original_trapper
         package.loaded["ui/uimanager"] = original_uimanager
@@ -119,15 +126,30 @@ describe("updater repository redirects", function()
         ZenSpec.unload("config/manager")
     end)
 
-    it("follows the GitHub API rename and accepts assets from the canonical repository", function()
+    it("follows the GitHub API redirect and selects the canonical ZenOS asset", function()
         local updater = require("modules/settings/zen_updater")
 
         assert.are.equal("ok", updater.check_for_update())
         assert.are.equal(2, #requests)
         assert.are.equal(
+            "https://api.github.com/repos/AnthonyGress/zen_ui.koplugin/releases?per_page=100",
+            requests[1]
+        )
+        assert.are.equal(
             "https://api.github.com/repositories/1194031944/releases?per_page=100",
             requests[2]
         )
+        assert.are.equal("999.0.0", updater.latest_version())
+        assert.is_true(updater.has_update())
+    end)
+
+    it("selects the compatibility asset while running from the legacy folder", function()
+        asset_name = "zen_ui.koplugin.zip"
+        ZenSpec.replace("common/plugin_root", "/plugins/zen_ui.koplugin")
+        ZenSpec.unload("modules/settings/zen_updater")
+        local updater = require("modules/settings/zen_updater")
+
+        assert.are.equal("ok", updater.check_for_update())
         assert.are.equal("999.0.0", updater.latest_version())
         assert.is_true(updater.has_update())
     end)

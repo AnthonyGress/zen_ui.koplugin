@@ -171,7 +171,7 @@ local function apply_reader_top_status_bar()
     local function getCustomTextItem()
         local cfg = zen_plugin and zen_plugin.config and zen_plugin.config.reader_top_status_bar
         local text = type(cfg) == "table" and cfg.custom_text
-        if not text or text == "" then text = Device.model or "Zen UI" end
+        if not text or text == "" then text = Device.model or "ZenOS" end
         return text ~= "" and text or nil, nil
     end
 

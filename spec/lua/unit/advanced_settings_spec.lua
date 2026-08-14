@@ -17,7 +17,7 @@ describe("Advanced settings", function()
             settings_apply = { prompt_restart = function() end },
         })
         for _i, item in ipairs(items) do
-            assert.are_not.equal("Enable Zen UI Reader margins", item.text)
+            assert.are_not.equal("Enable ZenOS Reader margins", item.text)
         end
     end)
 

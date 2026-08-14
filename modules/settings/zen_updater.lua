@@ -1,6 +1,6 @@
 -- settings/zen_updater.lua
--- Checks the GitHub releases API for a newer Zen UI version, downloads the
--- release.zip asset, unpacks it in-place, and prompts for a KOReader restart.
+-- Checks the GitHub releases API for a newer ZenOS version, downloads the
+-- matching plugin asset, unpacks it in-place, and prompts for a KOReader restart.
 
 local _ = require("gettext")
 local Archiver = require("ffi/archiver")
@@ -12,7 +12,6 @@ local IconItem = require("common/ui/icon_menu_item")
 
 local GITHUB_OWNER = "AnthonyGress"
 local GITHUB_REPO = "zen_ui.koplugin"
-local RELEASE_ASSET_NAME = "zen_ui.koplugin.zip"
 local GITHUB_RELEASES_URL = string.format(
     "https://api.github.com/repos/%s/%s/releases",
     GITHUB_OWNER,
@@ -32,6 +31,14 @@ local TRUSTED_DL_HOSTS = {
 -- Resolve the plugin root directory from this file's own path so the module
 -- works regardless of where KOReader is installed.
 local PLUGIN_ROOT = require("common/plugin_root")
+local CANONICAL_PLUGIN_NAME = "zenos.koplugin"
+local LEGACY_PLUGIN_NAME = "zen_ui.koplugin"
+local CURRENT_PLUGIN_NAME = PLUGIN_ROOT:gsub("/+$", ""):match("([^/]+)$")
+    or CANONICAL_PLUGIN_NAME
+local RELEASE_ASSET_NAME = CURRENT_PLUGIN_NAME == LEGACY_PLUGIN_NAME
+    and (LEGACY_PLUGIN_NAME .. ".zip")
+    or (CANONICAL_PLUGIN_NAME .. ".zip")
+local USER_AGENT = CANONICAL_PLUGIN_NAME
 
 local M = {}
 
@@ -42,8 +49,8 @@ local PTF_BOLD_END = "\u{FFF3}"
 
 M._has_update       = false
 M._latest_ver       = nil   -- latest version string without leading "v"
-M._dl_url           = nil   -- download URL for release.zip
-M._latest_sha256    = nil   -- expected SHA-256 digest for release.zip
+M._dl_url           = nil   -- download URL for the selected plugin asset
+M._latest_sha256    = nil   -- expected SHA-256 digest for the selected plugin asset
 M._latest_notes     = nil   -- markdown changelog body for the selected latest release
 M._last_error       = nil   -- last update-check error message for UI
 M._banner_loaded    = false -- true after init_banner() has run
@@ -177,7 +184,7 @@ local function resolve_redirect_url(base_url, location)
     return string.format("%s://%s%s%s", scheme, host, base_dir, location)
 end
 
---- Get release.zip metadata from a decoded release object.
+--- Get plugin asset metadata from a decoded release object.
 local function get_asset_info(release)
     if not release or type(release.assets) ~= "table" then
         return nil, "missing_assets_table"
@@ -435,7 +442,7 @@ local function https_get(url, depth)
     local ok_req, req_err = pcall(function()
         local _, code, headers, status = https.request{
             url     = url,
-            headers = { ["User-Agent"] = "zen_ui.koplugin" },
+            headers = { ["User-Agent"] = USER_AGENT },
             redirect = false,
             sink    = ltn12.sink.table(body),
         }
@@ -544,7 +551,7 @@ local function https_download(url, dest_path, expected_sha256, depth)
         local _, r_code, r_headers = https.request{
             url     = resolved_url,
             method  = "HEAD",
-            headers = { ["User-Agent"] = "zen_ui.koplugin" },
+            headers = { ["User-Agent"] = USER_AGENT },
             sink    = ltn12.sink.null(),
         }
         if (r_code == 301 or r_code == 302 or r_code == 307 or r_code == 308)
@@ -569,7 +576,7 @@ local function https_download(url, dest_path, expected_sha256, depth)
 
     local _, dl_code = https.request{
         url     = resolved_url,
-        headers = { ["User-Agent"] = "zen_ui.koplugin" },
+        headers = { ["User-Agent"] = USER_AGENT },
         sink    = ltn12.sink.file(f),
     }
     -- ltn12.sink.file closes f on EOF; pcall guards against double-close.
@@ -694,7 +701,7 @@ local function clear_update_state(cfg)
     save_updater_config(cfg)
 end
 
---- Acknowledge a version change detected outside Zen UI's updater.
+--- Acknowledge a version change detected outside ZenOS's updater.
 function M.clear_update_state(cfg)
     clear_update_state(cfg)
 end
@@ -1226,7 +1233,7 @@ end
 
 local function prepare_plugins_dir_writable(plugins_dir)
     logger.dbg("prepare_plugins_dir_writable dir=", plugins_dir)
-    local probe = plugins_dir .. "/.zen_ui_update_write_probe"
+    local probe = plugins_dir .. "/.zenos_update_write_probe"
     local f = io.open(probe, "wb")
     if not f then
         logger.warn("plugins dir write probe open failed path=", probe)
@@ -1272,7 +1279,7 @@ local function _do_install(screen, plugin_root, plugins_dir)
     persist_state(os.time())
     if not M._has_update then
         logger.warn("install abort no newer release after refresh")
-        screen:update{ subtitle = _("Zen UI is up to date."), button = _("OK"), dismissable = true }
+        screen:update{ subtitle = _("ZenOS is up to date."), button = _("OK"), dismissable = true }
         return
     end
     if not is_valid_asset_url(M._dl_url) then
@@ -1292,11 +1299,11 @@ local function _do_install(screen, plugin_root, plugins_dir)
         return
     end
 
-    local zip_path = plugins_dir .. "/zen_ui_update.zip"
-    local plugin_name = plugin_root:match("([^/]+)$") or "zen_ui.koplugin"
+    local zip_path = plugins_dir .. "/zenos_update.zip"
+    local plugin_name = plugin_root:match("([^/]+)$") or CURRENT_PLUGIN_NAME
     local active_dir = plugins_dir .. "/" .. plugin_name
     local backup_dir = plugins_dir .. "/" .. plugin_name .. ".backup"
-    local stage_parent = plugins_dir .. "/.zen_ui_update_stage"
+    local stage_parent = plugins_dir .. "/.zenos_update_stage"
     local staged_dir = stage_parent .. "/" .. plugin_name
     logger.dbg(
         "install paths active=", active_dir,
@@ -1510,7 +1517,7 @@ local function _do_install(screen, plugin_root, plugins_dir)
 end
 
 --- Show the ZenScreen update UI for a known-available update and run the install.
---- Called from both the settings banner and the About > Update Zen UI item.
+--- Called from both the settings banner and the About > Update ZenOS item.
 local function _show_update_screen_and_install(plugin)
     local UIManager = require("ui/uimanager")
     local ZenScreen = require("common/ui/zen_screen")
@@ -1522,7 +1529,7 @@ local function _show_update_screen_and_install(plugin)
 
     if not ensure_selected_release_details(true) then
         UIManager:show(ZenScreen:new{
-            title       = _("Zen UI"),
+            title       = _("ZenOS"),
             subtitle    = M._last_error or _("Could not reach update server. Check your internet connection."),
             button      = _("OK"),
             dismissable = true,
@@ -1535,14 +1542,14 @@ local function _show_update_screen_and_install(plugin)
         local current = get_current_version()
         local subtitle
         if M._latest_ver and semver_eq(M._latest_ver, current) then
-            subtitle = _("Zen UI is up to date.")
+            subtitle = _("ZenOS is up to date.")
         elseif M._latest_ver and semver_gt(current, M._latest_ver) then
             subtitle = _("Installed version is newer than the latest release.")
         else
             subtitle = M._last_error or _("Could not determine update status.")
         end
         UIManager:show(ZenScreen:new{
-            title       = _("Zen UI"),
+            title       = _("ZenOS"),
             subtitle    = subtitle,
             button      = _("OK"),
             dismissable = true,
@@ -1555,7 +1562,7 @@ local function _show_update_screen_and_install(plugin)
 
     local screen
     screen = ZenScreen:new{
-        title        = _("Zen UI"),
+        title        = _("ZenOS"),
         title_icon   = true,
         subtitle     = _("Update available: ") .. ver_label,
         scroll_text  = changelog_text,
@@ -1566,7 +1573,7 @@ local function _show_update_screen_and_install(plugin)
     }
     screen._on_button_action = function()
         local progress_screen = ZenScreen:new{
-            title        = _("Zen UI"),
+            title        = _("ZenOS"),
             subtitle     = _("Downloading") .. "...",
             button       = false,
             later_button = false,
@@ -1582,7 +1589,7 @@ local function _show_update_screen_and_install(plugin)
     UIManager:show(screen)
 end
 
---- Download the latest release.zip, unpack it over the plugin directory, and
+--- Download the latest plugin asset, unpack it over the plugin directory, and
 --- prompt the user to restart KOReader.
 function M.run_update(plugin)
     local ok_nm, NetworkMgr = pcall(require, "ui/network/manager")
@@ -1593,7 +1600,7 @@ function M.run_update(plugin)
     end
 end
 
---- Returns a menu item for the top of the Zen UI settings page when an update
+--- Returns a menu item for the top of the ZenOS settings page when an update
 --- is available, or nil when no update has been detected.
 function M.build_update_available_item(plugin)
     if not M._has_update then return nil end
@@ -1607,7 +1614,7 @@ function M.build_update_available_item(plugin)
     }, icons.update)
 end
 
---- Returns the "Update Zen UI" menu item for the About section.
+--- Returns the "Update ZenOS" menu item for the About section.
 --- When a newer version has already been detected the text changes to reflect
 --- the pending update and tapping it launches the download flow directly.
 function M.build_update_now_item(plugin)
@@ -1616,7 +1623,7 @@ function M.build_update_now_item(plugin)
             if M._has_update then
                 return "\u{F01B} " .. _("Update available")
             end
-            return _("Update Zen UI")
+            return _("Update ZenOS")
         end,
         keep_menu_open = true,
         callback = function()
@@ -1674,7 +1681,7 @@ function M.build_update_now_item(plugin)
                                 local current = get_current_version()
                                 if M._latest_ver and semver_eq(M._latest_ver, current) then
                                     screen:update{
-                                        subtitle    = _("Zen UI is up to date."),
+                                        subtitle    = _("ZenOS is up to date."),
                                         button      = _("OK"),
                                         dismissable = true,
                                     }

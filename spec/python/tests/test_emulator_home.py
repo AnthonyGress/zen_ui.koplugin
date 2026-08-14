@@ -40,7 +40,7 @@ def _seed_history(ko_home: Path, book: Path) -> None:
 def _seed_home_settings(
     ko_home: Path, *, show_strip_titles: bool = True, bookshelf: bool = False
 ) -> None:
-    settings = ko_home / "settings" / "Zen UI"
+    settings = ko_home / "settings" / "ZenOS"
     settings.mkdir(parents=True, exist_ok=True)
     source = """return {
   version = 1,
@@ -341,7 +341,7 @@ def test_home_edit_mode_reopens_widget_settings_after_close() -> None:
         ko_home.mkdir()
         build_library(root / "library")
         _seed_home_settings(ko_home)
-        settings_path = ko_home / "settings" / "Zen UI" / "home.lua"
+        settings_path = ko_home / "settings" / "ZenOS" / "home.lua"
         settings_path.write_text(
             settings_path.read_text(encoding="utf-8").replace(
                 "show_status_bar = false,",

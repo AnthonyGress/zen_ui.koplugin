@@ -25,7 +25,7 @@ pytestmark = pytest.mark.skipif(
 def _launch_flat_view(
     runtime: Path, ko_home: Path, socket_path: Path, library: Path
 ) -> subprocess.Popen[str]:
-    settings_dir = ko_home / "settings" / "Zen UI"
+    settings_dir = ko_home / "settings" / "ZenOS"
     settings_dir.mkdir(parents=True, exist_ok=True)
     install_startup_alert_patch(ko_home)
     (ko_home / "settings.reader.lua").write_text(

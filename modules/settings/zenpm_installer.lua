@@ -100,7 +100,7 @@ local function get_release()
         local body = {}
         local _, code, headers = https.request{
             url = url,
-            headers = { ["User-Agent"] = "zen_ui.koplugin" },
+            headers = { ["User-Agent"] = "zenos.koplugin" },
             redirect = false,
             sink = ltn12.sink.table(body),
         }
@@ -173,7 +173,7 @@ local function download(asset, destination)
         local _, code, headers = https.request{
             url = url,
             method = "HEAD",
-            headers = { ["User-Agent"] = "zen_ui.koplugin" },
+            headers = { ["User-Agent"] = "zenos.koplugin" },
             sink = ltn12.sink.null(),
         }
         if (code == 301 or code == 302 or code == 307 or code == 308) and headers and headers.location then
@@ -188,7 +188,7 @@ local function download(asset, destination)
     if not f then return false, err end
     local _, code = https.request{
         url = url,
-        headers = { ["User-Agent"] = "zen_ui.koplugin" },
+        headers = { ["User-Agent"] = "zenos.koplugin" },
         sink = ltn12.sink.file(f),
     }
     pcall(f.close, f)

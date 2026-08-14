@@ -1,9 +1,9 @@
 ---
 ---
 
-# Zen UI Locales
+# ZenOS Locales
 
-This folder contains gettext `.po` files for Zen UI plugin labels.
+This folder contains gettext `.po` files for ZenOS plugin labels.
 
 The `en.po` file is the source catalog (~254 strings). All other locale files
 are translated from it. Strings with an empty `msgstr ""` fall back to English

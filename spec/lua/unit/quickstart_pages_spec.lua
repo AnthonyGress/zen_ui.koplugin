@@ -32,7 +32,7 @@ describe("Quickstart pages", function()
                 return G_reader_settings:readSetting("home_dir")
             end,
         })
-        ZenSpec.replace("common/plugin_root", "/plugins/zen_ui.koplugin")
+        ZenSpec.replace("common/plugin_root", "/plugins/zenos.koplugin")
         ZenSpec.replace("common/reader_defaults", { apply = function() end })
         ZenSpec.replace("common/zen_logger", {
             new = function() return { warn = function() end } end,

@@ -39,7 +39,7 @@ function M.build(ctx)
 
     table.insert(items, {
         text_func = function()
-            return _("Zen UI: ") .. utils.get_plugin_version(plugin)
+            return _("ZenOS: ") .. utils.get_plugin_version(plugin)
         end,
         keep_menu_open = true,
     })

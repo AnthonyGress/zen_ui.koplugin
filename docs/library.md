@@ -2,11 +2,11 @@
 title: Library
 category: Library
 summary: All your books in one place
-settingsPath: Zen UI > Library
+settingsPath: ZenOS > Library
 order: 30
 ---
 
-<!-- Documentation current through Zen UI v2.5.0. -->
+<!-- Documentation current through ZenOS v3.0.0. -->
 
 ![Library cover view](/images/zen_ui/library_covers_full.png)
 
@@ -33,7 +33,7 @@ Library settings control the KOReader library. Customize the top status bar, lay
 
 | Setting | Description |
 | --- | --- |
-| Status bar > Enable custom status bar | Shows Zen UI's library status bar. |
+| Status bar > Enable custom status bar | Shows ZenOS's library status bar. |
 | Status bar > Custom text | Sets custom status text. Empty text falls back to the device model. |
 | Status bar > Show bottom border | Draws a separator below the status bar. |
 | Status bar > Bold text | Uses bold text in the status bar. |
@@ -42,9 +42,9 @@ Library settings control the KOReader library. Customize the top status bar, lay
 | Status bar > Center items | Selects and arranges status items for the center slot. |
 | Status bar > Right items | Selects and arranges status items for the right slot. |
 | Status bar > Separator | Selects dot, bar, dash, bullet, space, small space, none, or a custom separator. |
-| Font > Font | Sets the global Zen UI font family, or restores the default font. Applies everywhere except the reader. |
+| Font > Font | Sets the global ZenOS font family, or restores the default font. Applies everywhere except the reader. |
 | Font > Font size | Sets the global base text size from 10 to 40. |
-| Font > Bold | Renders Zen UI text in bold. |
+| Font > Bold | Renders ZenOS text in bold. |
 | Layout > Display mode | Selects classic, mosaic with covers, mosaic with text, detailed list with covers and metadata, detailed list with metadata, or detailed list with covers and filenames. |
 | Layout > Items per page | Sets portrait mosaic columns and rows, landscape mosaic columns and rows, and list items per page. |
 | Layout > Show item underline | Shows or hides the underline between browser items. |
@@ -81,7 +81,7 @@ Library settings control the KOReader library. Customize the top status bar, lay
 
 ## Fonts
 
-The library **Font** settings set the global Zen UI font. You can change the font family, base size, and bold style, and it applies across the whole interface — library, navbar, home, menus, status bars — everything except the reader.
+The library **Font** settings set the global ZenOS font. You can change the font family, base size, and bold style, and it applies across the whole interface — library, navbar, home, menus, status bars — everything except the reader.
 
 The reader has its own separate font controls, so you can give the reading view a different font, size, and bold setting from the rest of the UI.
 

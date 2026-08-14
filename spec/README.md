@@ -1,4 +1,4 @@
-# Zen UI tests
+# ZenOS tests
 
 Run all commands from the plugin root through `./spec/run`.
 
@@ -11,7 +11,7 @@ Run all commands from the plugin root through `./spec/run`.
 
 Set `KOREADER_DIR` to an emulator runtime directory containing `luajit`,
 `frontend`, `spec/rocks`, and bundled plugins such as CoverBrowser. Emulator
-runs stage those bundled plugins alongside Zen UI and the test driver. The
+runs stage those bundled plugins alongside ZenOS and the test driver. The
 runner never uses a system Lua interpreter for behavior tests and creates a
 temporary `KO_HOME` for every invocation.
 

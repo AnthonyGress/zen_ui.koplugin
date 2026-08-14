@@ -5,6 +5,7 @@ main.lua|integration
 common/book_status.lua|unit
 common/bluetooth.lua|unit
 common/book_walker.lua|unit
+common/brand_migration.lua|unit
 common/clock_schedule.lua|unit
 common/clock_timer.lua|unit
 common/constants.lua|unit

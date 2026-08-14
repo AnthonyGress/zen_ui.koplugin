@@ -6,7 +6,7 @@ settingsPath: Settings > Library > Navbar
 order: 35
 ---
 
-<!-- Documentation current through Zen UI v2.5.0. -->
+<!-- Documentation current through ZenOS v3.0.0. -->
 
 ![Navbar](/images/zen_ui/navbar.png)
 
@@ -61,7 +61,7 @@ Adjust a grouped view's display and sort from its context menu while that tab is
 | Custom tabs > Icon | Selects a bundled, KOReader, or user icon for the custom tab. |
 | Custom tabs > Label | Sets a custom label or leaves the label empty to use the action or plugin title. |
 | Custom tabs > Delete | Deletes the custom tab and removes it from the order list. |
-| Default tab | Selects the tab Zen UI treats as the default destination. |
+| Default tab | Selects the tab ZenOS treats as the default destination. |
 | Tabs > Home > Label | Sets the Home tab label. |
 | Tabs > Books > Label | Sets the Library tab label to Books, Home, Library, or custom text. |
 | Tabs > Manga | Opens Rakuyomi, another manga reader, or a selected folder. |

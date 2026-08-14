@@ -1685,7 +1685,7 @@ function Driver:handleCommand(command)
         local plugin = settings_page and settings_page.plugin
         if not plugin then
             local loader = require("pluginloader")
-            local ok_plugin, loaded = pcall(loader.getPluginInstance, loader, "zen_ui")
+            local ok_plugin, loaded = pcall(loader.getPluginInstance, loader, "zenos")
             if ok_plugin then plugin = loaded end
         end
         local config = plugin and plugin.config or {}

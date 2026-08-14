@@ -1,8 +1,8 @@
 -- incompatible_plugins_check.lua
 -- Detects incompatible plugins and user patches.
 -- Two categories:
---   MANUAL_BLOCK  -- Zen UI cannot auto-fix these. User is informed and init is halted.
---   AUTO_DISABLE  -- Zen UI disables plugins/patches and prompts restart.
+--   MANUAL_BLOCK  -- ZenOS cannot auto-fix these. User is informed and init is halted.
+--   AUTO_DISABLE  -- ZenOS disables plugins/patches and prompts restart.
 
 -- Returns the plugin directory for an already-loaded sentinel module.
 local function get_dir_from_loaded(sentinel)
@@ -76,7 +76,7 @@ local function is_pt_active()
     return type(disabled_list) == "table" and disabled_list["coverbrowser"] == true
 end
 
--- Plugins that Zen UI will auto-disable (writes plugins_disabled, requires restart).
+-- Plugins that ZenOS will auto-disable (writes plugins_disabled, requires restart).
 local AUTO_DISABLE = {
     {
         sentinel = "sui_core",
@@ -118,7 +118,7 @@ local function apply_incompatible_plugins_check()
             local _ = require("gettext")
             local InfoMessage = require("ui/widget/infomessage")
             UIManager:show(InfoMessage:new{
-                text = _("Project: Title is not compatible with Zen UI.")
+                text = _("Project: Title is not compatible with ZenOS.")
                     .. "\n\n" .. _("Please delete the Project: Title plugin from your plugins folder and restart KOReader."),
                 show_icon = false,
             })

@@ -1,8 +1,8 @@
--- common/i18n.lua — Zen UI
+-- common/i18n.lua — ZenOS
 -- Injects the plugin's .po translations into KOReader's GetText tables for
--- already-loaded code, then installs a composable outer wrapper for Zen UI
--- modules. This keeps another plugin's catalog from taking priority over Zen
--- UI while preserving that plugin's own previously captured gettext wrapper.
+-- already-loaded code, then installs a composable outer wrapper for ZenOS
+-- modules. This keeps another plugin's catalog from taking priority over
+-- ZenOS while preserving that plugin's own previously captured wrapper.
 --
 -- USAGE: call i18n.install() early in main.lua (before menus are built).
 -- The installation is process-wide; uninstall() is only for explicit teardown.
@@ -127,7 +127,7 @@ local function loadTranslationsForLang(lang)
 end
 
 -- ---------------------------------------------------------------------------
--- Inject Zen UI translations into the live GetText tables.
+-- Inject ZenOS translations into the live GetText tables.
 -- Called at startup and again after every changeLang().
 -- ---------------------------------------------------------------------------
 local function applyZenTranslations(GetText, lang)
@@ -230,7 +230,7 @@ local function install()
     -- Inject translations for the current language
     applyZenTranslations(gettext_state, detectLang())
 
-    -- Keep Zen UI's catalog outermost for modules loaded after this point.
+    -- Keep ZenOS's catalog outermost for modules loaded after this point.
     -- Other plugins that already captured their own wrapper retain it.
     installWrapper(GetText)
 
@@ -279,7 +279,7 @@ local function uninstall()
     if _gettext_state and _change_methods and _orig_changeLang then
         if _change_methods.changeLang == _patched_changeLang then
             _change_methods.changeLang = _orig_changeLang
-            -- Reload clean KOReader translations without Zen UI overlay
+            -- Reload clean KOReader translations without ZenOS overlay
             _orig_changeLang(_gettext_state.current_lang)
         else
             logger.warn("uninstall — changeLang ownership changed")

@@ -54,7 +54,7 @@ function M.init(logger, plugin)
         return true
     end
 
-    -- Route KOReader's File browser gesture through the same transition as Zen UI.
+    -- Route KOReader's File browser gesture through the same transition as ZenOS.
     local library_navigation_fn = load_patch("library_navigation")
     if library_navigation_fn then
         run_feature(logger, plugin, "library_navigation", library_navigation_fn)

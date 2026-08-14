@@ -226,6 +226,8 @@ return {
         "Update testing emulator to KOReader 2026.07"
     },
     ["3.0.0"] = {
+        "Zen UI is now ZenOS",
+        "Existing installations and settings migrate automatically",
         "Major performance improvements",
         "New Settings page",
         "Use Zen Mode without restarting",

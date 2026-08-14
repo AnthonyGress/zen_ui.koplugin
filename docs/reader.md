@@ -2,11 +2,11 @@
 title: Reader
 category: Reader
 summary: Configure reader status bars, bottom status bar presets, font access, lookup tools, and page navigation.
-settingsPath: Zen UI > Reader
+settingsPath: ZenOS > Reader
 order: 50
 ---
 
-<!-- Documentation current through Zen UI v2.5.0. -->
+<!-- Documentation current through ZenOS v3.0.0. -->
 
 ![Page browser menu](/images/zen_ui/page_browser_menu.png)
 
@@ -28,7 +28,7 @@ order: 50
 
 ## Overview
 
-Reader settings control Zen UI features while a book is open. They cover the top status bar, reader themes and font menu, highlight and lookup tools, bottom swipe, stable page labels, page browser, return behavior, and bottom status bar options including presets.
+Reader settings control ZenOS features while a book is open. They cover the top status bar, reader themes and font menu, highlight and lookup tools, bottom swipe, stable page labels, page browser, return behavior, and bottom status bar options including presets.
 
 ![Page browser](/images/zen_ui/page_browser.png)
 
@@ -37,7 +37,7 @@ Reader settings control Zen UI features while a book is open. They cover the top
 - Configure a reader top status bar with left, center, and right item slots.
 - Apply built-in or custom themes for light and dark reader modes.
 - Apply prebuilt bottom status bars or save your current setup as a preset.
-- Open KOReader's reader font controls from Zen UI.
+- Open KOReader's reader font controls from ZenOS.
 - Configure Zen quick lookup, Zen highlight menu, Wikipedia, and other lookup actions.
 - Enable bottom swipe and the Zen page browser.
 - Use stable page labels in the page browser and table of contents when a book provides a page map.
@@ -48,7 +48,7 @@ Reader settings control Zen UI features while a book is open. They cover the top
 
 | Setting | Description |
 | --- | --- |
-| Top status bar > Enable top status bar | Shows Zen UI's top reader status bar. |
+| Top status bar > Enable top status bar | Shows ZenOS's top reader status bar. |
 | Top status bar > Left items | Selects and arranges time, battery, Wi-Fi, brightness, RAM usage, disk space, custom text, book title, author, or chapter for the left slot. |
 | Top status bar > Center items | Selects and arranges top-bar items for the center slot. |
 | Top status bar > Right items | Selects and arranges top-bar items for the right slot. |
@@ -58,19 +58,19 @@ Reader settings control Zen UI features while a book is open. They cover the top
 | Top status bar > Font | Sets the top-bar font face or restores the default font. |
 | Top status bar > Separator | Selects a preset separator for top-bar items. |
 | Top status bar > Show bottom border | Draws a separator below the reader top status bar. |
-| Reader themes > Enable reader themes | Enables Zen UI reader themes. |
+| Reader themes > Enable reader themes | Enables ZenOS reader themes. |
 | Reader themes > Dark mode | Selects the theme used while KOReader night mode is active. |
 | Reader themes > Light mode | Selects the theme used while KOReader night mode is inactive. |
 | Reader themes > Custom themes | Creates, edits, and deletes custom themes. A custom theme can set its name, background color, text color, and font. |
 | Font > Reader font menu | Opens KOReader's reader font submenu when a reader instance is active. |
-| Highlight / Lookup > Zen quick lookup | Enables Zen UI quick lookup behavior. |
-| Highlight / Lookup > Zen highlight menu | Enables Zen UI's highlight menu. |
+| Highlight / Lookup > Zen quick lookup | Enables ZenOS quick lookup behavior. |
+| Highlight / Lookup > Zen highlight menu | Enables ZenOS's highlight menu. |
 | Highlight / Lookup > Show Wikipedia | Shows Wikipedia in lookup options. |
 | Highlight / Lookup > Show AI assistant | Shows an Assistant plugin button in lookup and highlight menus when the plugin is installed. |
 | Highlight / Lookup > Show other items | Shows non-Zen KOReader quick lookup options alongside Zen buttons. |
 | Reader > Verbose time to chapter end | Shows expanded chapter time information in compatible footer layouts. |
 | Reader > Enable bottom swipe | Enables bottom-swipe reader menu behavior. This is forced on while page browser is enabled. |
-| Reader > Enable page browser | Enables Zen UI page browser. It requires bottom swipe and supports stable page labels when the current book provides a page map. |
+| Reader > Enable page browser | Enables ZenOS page browser. It requires bottom swipe and supports stable page labels when the current book provides a page map. |
 | Reader > Restore library location on exit | Returns to the previous library location after leaving the reader. |
 | Bottom status bar > Presets > Built-in presets | Applies a prebuilt bottom status bar layout. |
 | Bottom status bar > Presets > Save current settings as preset | Saves the current bottom status bar setup as a user preset. |
@@ -86,7 +86,7 @@ Reader settings control Zen UI features while a book is open. They cover the top
 
 ![Dictionary lookup menu](/images/zen_ui/dictionary_lookup_menu.png)
 
-Tap and hold a word while reading to open the Zen quick lookup menu. It shows the dictionary definition for the selected word along with Zen UI action buttons. Enable it with **Highlight / Lookup > Zen quick lookup**. Toggle **Show Wikipedia** to add a Wikipedia button, and **Show other items** to keep KOReader's native quick lookup options alongside the Zen buttons.
+Tap and hold a word while reading to open the Zen quick lookup menu. It shows the dictionary definition for the selected word along with ZenOS action buttons. Enable it with **Highlight / Lookup > Zen quick lookup**. Toggle **Show Wikipedia** to add a Wikipedia button, and **Show other items** to keep KOReader's native quick lookup options alongside the Zen buttons.
 
 ## Highlight menu
 
@@ -96,7 +96,7 @@ Tap + hold and drag to highlight a selection of text and open the Zen highlight 
 
 ## Stable Page Labels
 
-Zen UI uses KOReader page-map labels when a book provides them. The reader page browser shows stable labels on page tiles and during page scrubbing, and the Zen table of contents shows the same labels beside chapter entries. Home featured widgets use the same data for current/total page progress.
+ZenOS uses KOReader page-map labels when a book provides them. The reader page browser shows stable labels on page tiles and during page scrubbing, and the Zen table of contents shows the same labels beside chapter entries. Home featured widgets use the same data for current/total page progress.
 
 ## Status bars
 

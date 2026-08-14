@@ -1,5 +1,5 @@
 -- settings/sections/library/navbar.lua
--- Navbar settings item for Zen UI.
+-- Navbar settings item for ZenOS.
 -- Returns a single menu-item table: { text = _("Navbar"), sub_item_table = {...} }
 -- Receives ctx: { config, save_and_apply, settings_apply }
 
