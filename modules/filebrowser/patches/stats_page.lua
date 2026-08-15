@@ -1,4 +1,4 @@
--- Zen UI Stats Page
+-- ZenOS Stats Page
 -- Fullscreen reading stats dashboard with long-press block customization.
 
 local Blitbuffer = require("ffi/blitbuffer")

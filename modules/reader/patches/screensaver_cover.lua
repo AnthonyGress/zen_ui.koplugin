@@ -1,7 +1,7 @@
 local function apply_screensaver_cover()
     -- When a book has no cover (or the user hasn't set a screensaver folder),
     -- KOReader falls back to "resources/koreader.png".  Replace that with the
-    -- Zen UI logo so the device shows our branding instead.
+    -- ZenOS logo so the device shows our branding instead.
 
     -- Resolve both SVG variants from this file's path at apply-time.
     local _icons_dir

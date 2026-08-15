@@ -152,19 +152,19 @@ describe("Quickstart menu tour", function()
         assert.are.same({
             "Zen Mode is enabled. KOReader menus are hidden.",
             "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings.",
-            "This does not disable Zen UI—it only shows or hides KOReader’s menus.",
-            "This is Zen Settings. Zen UI and common KOReader settings live here.",
+            "This does not disable ZenOS—it only shows or hides KOReader’s menus.",
+            "This is Zen Settings. ZenOS and common KOReader settings live here.",
         }, gettext_inputs)
         assert.are.equal(2, #shown[1].steps)
         assert.are.same({
             text = "Zen Mode is enabled. KOReader menus are hidden.\n\n"
                 .. "Disable Zen Mode with this icon to adjust KOReader settings "
                 .. "that aren’t available in Zen Settings.\n\nThis does not disable "
-                .. "Zen UI—it only shows or hides KOReader’s menus.",
+                .. "ZenOS—it only shows or hides KOReader’s menus.",
             target = zen_dimen,
         }, shown[1].steps[1])
         assert.are.same({
-            text = "This is Zen Settings. Zen UI and common KOReader settings live here.",
+            text = "This is Zen Settings. ZenOS and common KOReader settings live here.",
             target = zen_settings_dimen,
         }, shown[1].steps[2])
     end)

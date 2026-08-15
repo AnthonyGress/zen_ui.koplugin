@@ -1,5 +1,5 @@
 -- settings/sections/reader.lua
--- Reader settings items for Zen UI (clock, presets, fonts, footer).
+-- Reader settings items for ZenOS (clock, presets, fonts, footer).
 -- Receives ctx: { plugin, config, save_and_apply }
 
 local _ = require("gettext")

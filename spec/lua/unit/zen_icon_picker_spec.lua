@@ -13,6 +13,7 @@ describe("Zen icon picker", function()
     local close_icon
     local close_paint_x
     local title_spec
+    local text_values
 
     local module_names = {
         "gettext",
@@ -119,6 +120,7 @@ describe("Zen icon picker", function()
         close_icon = nil
         close_paint_x = nil
         title_spec = nil
+        text_values = {}
 
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("device", {
@@ -192,6 +194,7 @@ describe("Zen icon picker", function()
         ZenSpec.replace("ui/widget/textwidget", {
             new = function(_, values)
                 if values.text == "Select icon" then title_spec = values end
+                text_values[#text_values + 1] = values.text
                 values.getSize = function() return { w = 100, h = 20 } end
                 values.paintTo = function(self, _bb, x) self.paint_x = x end
                 values.free = function() end
@@ -260,6 +263,17 @@ describe("Zen icon picker", function()
         assert.are.equal(9, focused_cell)
         assert.is_true(shown:onPress())
         assert.are.equal("icon_09", selected)
+    end)
+
+    it("labels the legacy Zen icon as ZenOS without changing its stored ID", function()
+        require("common/ui/zen_icon_picker")({ { name = "zen_ui" } }, "zen_ui", function(name)
+            selected = name
+        end)
+
+        assert.is_true(table.concat(text_values, "\n"):find("ZenOS", 1, true) ~= nil)
+        assert.is_nil(table.concat(text_values, "\n"):find("zen_ui", 1, true))
+        assert.is_true(shown:onPress())
+        assert.are.equal("zen_ui", selected)
     end)
 
     it("focuses and activates the top-right close button from the first row", function()

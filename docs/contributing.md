@@ -6,7 +6,7 @@ settingsPath: ''
 order: 90
 ---
 
-<!-- Documentation current through Zen UI v2.5.0. -->
+<!-- Documentation current through ZenOS v3.0.0. -->
 
 Contributions that keep it clean, minimal, and performant are most welcome.
 
@@ -35,15 +35,15 @@ If the bug causes a crash, attach the KOReader log (`crash.log` in the KOReader 
 
 ## Suggesting a feature
 
-Open an [Issue](https://github.com/AnthonyGress/zen_ui.koplugin/issues) describing the feature and why it would be useful. Keep Zen UI's philosophy in mind — features should reduce clutter or add something genuinely useful. Screenshots or mockups are welcome.
+Open an [Issue](https://github.com/AnthonyGress/zen_ui.koplugin/issues) describing the feature and why it would be useful. Keep ZenOS's philosophy in mind — features should reduce clutter or add something genuinely useful. Screenshots or mockups are welcome.
 
 ## Contributing code
 
-Zen UI is a standard KOReader plugin written in Lua. No build system or compilation step is required — the plugin runs directly from source.
+ZenOS is a standard KOReader plugin written in Lua. No build system or compilation step is required — the plugin runs directly from source.
 
 To test changes:
 
-1. Copy the `zen_ui.koplugin` folder to the `plugins/` directory on your device or the KOReader emulator.
+1. Copy the `zenos.koplugin` folder to the `plugins/` directory on your device or the KOReader emulator.
 2. Restart KOReader to reload the plugin.
 
 The [KOReader emulator](https://github.com/koreader/koreader/blob/master/doc/Building.md) is the fastest way to iterate without a physical device.
@@ -56,11 +56,12 @@ To generate a production-ready build, run the build script from the plugin root:
 ./build.sh
 ```
 
-This produces the packaged `zen_ui.koplugin` build ready for installation or release.
+This produces the canonical `zenos.koplugin.zip` and the legacy updater bridge
+`zen_ui.koplugin.zip`. Their payloads are identical except for the root folder.
 
 ### Linting
 
-Zen UI uses [LuaCheck](https://github.com/mpeterv/luacheck) for static analysis. Install it once with `luarocks install luacheck`, then run from the plugin root:
+ZenOS uses [LuaCheck](https://github.com/mpeterv/luacheck) for static analysis. Install it once with `luarocks install luacheck`, then run from the plugin root:
 
 ```sh
 luacheck -q _meta.lua main.lua common config modules

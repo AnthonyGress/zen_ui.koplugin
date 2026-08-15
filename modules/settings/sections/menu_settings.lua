@@ -1,5 +1,5 @@
 -- settings/sections/menu.lua
--- Touch menu settings items for Zen UI (Quick Settings panel).
+-- Touch menu settings items for ZenOS (Quick Settings panel).
 -- Receives ctx: { plugin, config, save_and_apply }
 
 local _ = require("gettext")
@@ -719,7 +719,8 @@ function M.build(ctx)
         -- Icon picker
         table.insert(items, IconItem.decorate({
             text_func = function()
-                return T(_("Icon: %1"), cb.icon or "zen_ui")
+                return T(_("Icon: %1"),
+                    icon_utils.getIconDisplayName(cb.icon or "zen_ui"))
             end,
             keep_menu_open = true,
             callback = function(tm)

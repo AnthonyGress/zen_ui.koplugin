@@ -1,4 +1,4 @@
-describe("Zen UI translations", function()
+describe("ZenOS translations", function()
     local saved_gettext
     local saved_logger
     local saved_settings

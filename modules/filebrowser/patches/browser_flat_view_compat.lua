@@ -15,7 +15,7 @@ local function apply_browser_flat_view_compat()
         return paths.isInHomeDir(ffiUtil.realpath(path) or path)
     end
 
-    -- Temporarily prefer Zen UI's scanner over KOReader's native flat view.
+    -- Temporarily prefer ZenOS's scanner over KOReader's native flat view.
     -- if has_native_flat_view then return end
 
     local function zen_flat_view_enabled()

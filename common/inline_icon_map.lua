@@ -85,7 +85,7 @@ return {
     wallpaper    = "\u{F05DA}",  -- mdi-wallpaper
     send         = "\u{F048A}",  -- mdi-send
 
-    -- Zen UI settings root
+    -- ZenOS settings root
     settings_launcher = "\u{F15FC}",
     settings_quick    = "\u{f0521}",
     settings_library  = "\u{F125F}",

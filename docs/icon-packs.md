@@ -1,15 +1,15 @@
 ---
 title: Custom Icon Packs
 category: Extras
-summary: Install or create icon packs for Zen UI and its KOReader menu surfaces
-settingsPath: Zen UI > Extras > Custom icon pack
+summary: Install or create icon packs for ZenOS and its KOReader menu surfaces
+settingsPath: ZenOS > Extras > Custom icon pack
 order: 65
 ---
 
 ## Install an icon pack
 
 Custom packs belong in the `/koreader/icons/zen` folder inside KOReader's data directory.
-Zen UI creates this folder automatically and scans only its immediate children.
+ZenOS creates this folder automatically and scans only its immediate children.
 A typical installation is:
 
 ```text
@@ -23,7 +23,7 @@ A typical installation is:
 ```
 
 Copy either a pack folder or ZIP into `/koreader/icons/zen`, then restart
-KOReader or open **Zen UI > Extras > Custom icon pack**. Zen UI validates and
+KOReader or open **ZenOS > Extras > Custom icon pack**. ZenOS validates and
 unpacks ZIP files automatically. A successfully installed ZIP is deleted.
 
 If the same pack is already installed, a valid ZIP replaces it atomically. The
@@ -32,17 +32,17 @@ kept so they can be inspected or replaced. Installation errors are shown in the
 pack submenu and written to the KOReader log.
 
 Enable **Allow custom icons**, choose the unpacked pack, and restart KOReader.
-Packs are never selected automatically, so the bundled Zen UI and KOReader
+Packs are never selected automatically, so the bundled ZenOS and KOReader
 icons remain the default.
 
 When custom icons are disabled, icon resolution is unchanged. When enabled,
 the selected pack is checked first; a missing pack icon falls through to the
-same bundled Zen UI and KOReader icons used without a pack. Installing or
+same bundled ZenOS and KOReader icons used without a pack. Installing or
 selecting a pack does not modify those fallback files.
 
 ## Create a pack
 
-Download `zen-icon-pack.zip` from [https://github.com/xZenLabs/zen-icon-pack](https://github.com/xZenLabs/zen-icon-pack) extract it. It contains the replaceable icons for Zen UI's Navbar,
+Download `zen-icon-pack.zip` from [https://github.com/xZenLabs/zen-icon-pack](https://github.com/xZenLabs/zen-icon-pack) extract it. It contains the replaceable icons for ZenOS's Navbar,
 KOReader's top menu tabs, the bottom reader configuration-bar tabs,
 highlight/dictionary/lookup actions, chevrons, dialogs, bookmarks,
 and shared reader controls. The current sample contains 62 icons from the
@@ -57,7 +57,7 @@ intentionally omitted.
 5. ZIP the top-level pack folder, not only its contents.
 
 ZIPs may contain only regular files and directories beneath that one top-level
-folder. Zen UI rejects unsafe paths, links and special entries, archives larger
+folder. ZenOS rejects unsafe paths, links and special entries, archives larger
 than 25 MiB, more than 512 entries, files larger than 5 MiB, or more than 50 MiB
 of expanded data.
 
@@ -78,7 +78,7 @@ or number, and the folder name must exactly match the ID.
 Icons must be `.svg` or `.png` files at the pack root. SVG is preferred when
 both formats exist. Use a transparent background and artwork that remains
 legible in black and white on e-ink screens. Every safely named root icon is
-loaded: it can replace a matching Zen UI or KOReader icon, or be selected for
+loaded: it can replace a matching ZenOS or KOReader icon, or be selected for
 a Navbar or Launcher icon.
 
 The sample ZIP also includes `ICON-LIST.md`, a human-readable catalog of every
@@ -87,16 +87,16 @@ bottom-menu, lookup, or shared control it changes.
 
 ## Fallbacks and recovery
 
-A pack may be incomplete. For each missing icon, Zen UI falls back to its
+A pack may be incomplete. For each missing icon, ZenOS falls back to its
 bundled icon and then KOReader's normal icon. With no pack selected, the
 existing loose files directly under `/koreader/icons` continue to work.
 
-If a pack is removed while selected, Zen UI starts with fallback icons and
+If a pack is removed while selected, ZenOS starts with fallback icons and
 shows the selection as unavailable. Choose another pack or **Loose icons**, or
 disable **Allow custom icons**, then restart. A failed ZIP installation never
 removes the previously installed version.
 
-Zen UI normally recovers its own hidden `.zen-stage-<id>` and
+ZenOS normally recovers its own hidden `.zen-stage-<id>` and
 `.zen-backup-<id>` transaction folders on the next scan. For manual recovery,
 close KOReader and make a backup of `/koreader/icons/zen` first. Remove or
 replace the retained invalid ZIP. If an installed `<id>` folder is missing but

@@ -38,7 +38,7 @@ local function https_post_json(url, payload_str)
         url    = url,
         method = "POST",
         headers = {
-            ["User-Agent"]     = "zen_ui.koplugin",
+            ["User-Agent"]     = "zenos.koplugin",
             ["Content-Type"]   = "application/json",
             ["Content-Length"] = tostring(#payload_str),
         },
@@ -103,7 +103,7 @@ local function build_issue_body(description, system_info, crash_log, github_user
         parts[#parts+1] = "**Reported by:** @" .. github_username
         parts[#parts+1] = ""
     end
-    parts[#parts+1] = "_Submitted via Zen UI in-app bug reporter._"
+    parts[#parts+1] = "_Submitted via ZenOS in-app bug reporter._"
 
     return table.concat(parts, "\n")
 end
@@ -293,7 +293,7 @@ function M._do_submit(ctx, bug_title, description, github_username)
         local device   = ok_u and sutils.get_device_model_name()      or "?"
         local firmware = ok_u and sutils.get_device_firmware_display() or "?"
         local language = ok_u and sutils.get_device_language()        or "?"
-        local system_info = "- Zen UI: " .. zen_ver
+        local system_info = "- ZenOS: " .. zen_ver
                          .. "\n- KOReader: " .. ko_ver
                          .. "\n- Device: " .. device
                          .. (firmware ~= "n/a" and ("\n- Firmware: " .. firmware) or "")

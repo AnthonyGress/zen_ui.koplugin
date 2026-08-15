@@ -2,11 +2,11 @@
 title: Extras
 category: Extras
 summary: Additional Zen goodies like OPDS, lighting schedules, and sleep settings
-settingsPath: Zen UI > Extras
+settingsPath: ZenOS > Extras
 order: 60
 ---
 
-<!-- Documentation current through Zen UI v2.5.0. -->
+<!-- Documentation current through ZenOS v3.0.0. -->
 
 ## Overview
 
@@ -28,7 +28,7 @@ The Reading trend widget can show pages or time for the past 7, 14, 30, or 90 da
 
 ![OPDS context menu](/images/zen_ui/opds_context.png)
 
-Enable **Extras > Zen OPDS** to apply Zen UI styling to the OPDS catalog browser. The OPDS view inherits the same styling as your library: rounded corners, list and mosaic view, items per page, and other layout options all carry over. Each book in the catalog shows its cover.
+Enable **Extras > Zen OPDS** to apply ZenOS styling to the OPDS catalog browser. The OPDS view inherits the same styling as your library: rounded corners, list and mosaic view, items per page, and other layout options all carry over. Each book in the catalog shows its cover.
 
 Tap and hold any item to open the OPDS context menu for per-item actions.
 
@@ -40,7 +40,7 @@ To include every new book automatically, enable **Extras > Include new books in 
 
 ## Custom Icons
 
-The bundled Zen UI and KOReader icons remain the default. To use loose icon
+The bundled ZenOS and KOReader icons remain the default. To use loose icon
 overrides, enable **Extras > Allow custom icons** and place them directly in
 `/koreader/icons` as before.
 
@@ -49,7 +49,7 @@ custom icons, and select it under **Extras > Custom icon pack**. Valid ZIPs are
 installed automatically. See [Custom Icon Packs](/icon-packs) for the complete
 installation and authoring guide.
 
-> Note: Icons placed directly inside `/koreader/plugins/zen_ui.koplugin/icons` are erased on updates, so do not put custom icons there.
+> Note: Icons placed directly inside `/koreader/plugins/zenos.koplugin/icons` are erased on updates, so do not put custom icons there.
 
 ## Rakuyomi
 
@@ -77,10 +77,10 @@ Use **Extras > Lockdown mode** to configure library, Controls, and reader restri
 | Extras > Stats > Edit mode | Enables editing supported Stats and Home widgets directly from their pages. |
 | Extras > Stats > Default font size | Sets the default text size for Stats widgets. Individual supported widgets can override it. |
 | Extras > Stats > Stat separators | Selects divider lines, outlines, or no separators for Stats widgets. |
-| Extras > Zen OPDS | Enables Zen UI OPDS enhancements, including cover art, list/mosaic view, hold menu, and navigation changes. |
+| Extras > Zen OPDS | Enables ZenOS OPDS enhancements, including cover art, list/mosaic view, hold menu, and navigation changes. |
 | Extras > Zen OPDS > Display mode | Selects mosaic, list, or classic OPDS display mode. |
 | Extras > Include new books in TBR | Adds books with the New status to the To Be Read tab and Home widgets. New includes unread books and books modified since they were last opened. |
-| Extras > Allow custom icons | Enables loose icon overrides or the selected Zen UI icon pack. |
+| Extras > Allow custom icons | Enables loose icon overrides or the selected ZenOS icon pack. |
 | Extras > Custom icon pack | Installs ZIPs from `/koreader/icons/zen` and selects an unpacked pack. |
 | Extras > Rakuyomi > Return to chapter list on exit | Returns Rakuyomi-owned books to their manga chapter list when exiting the reader. Disable this to return to Rakuyomi library view. |
 | Extras > Search > Match whole words | Uses whole-word search instead of substring search. |

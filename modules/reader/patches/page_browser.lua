@@ -362,7 +362,7 @@ local function apply_page_browser()
     end)
 
     -- -----------------------------------------------------------------------
-    -- Zen UI customisations applied once to PageBrowserWidget
+    -- ZenOS customisations applied once to PageBrowserWidget
     -- -----------------------------------------------------------------------
     local _zen_pbw_patched = false
 
@@ -2416,7 +2416,7 @@ local function apply_page_browser()
     end
 
     -- -----------------------------------------------------------------------
-    -- Open KOReader's native PageBrowserWidget (with Zen UI tweaks)
+    -- Open KOReader's native PageBrowserWidget (with ZenOS tweaks)
     -- -----------------------------------------------------------------------
     local function open_page_browser(ui, from_menu_hold)
         local PageBrowserWidget = require("ui/widget/pagebrowserwidget")
@@ -2520,7 +2520,7 @@ local function apply_page_browser()
     end
 
     -- -----------------------------------------------------------------------
-    -- Zen UI customisations for fulltext search dialog
+    -- ZenOS customisations for fulltext search dialog
     -- -----------------------------------------------------------------------
     local ok_rs, ReaderSearch = pcall(require, "apps/reader/modules/readersearch")
     if ok_rs and ReaderSearch then

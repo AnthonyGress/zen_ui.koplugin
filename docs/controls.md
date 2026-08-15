@@ -2,11 +2,11 @@
 title: Controls
 category: Controls
 summary: All your controls in one place
-settingsPath: Zen UI > Controls
+settingsPath: ZenOS > Controls
 order: 20
 ---
 
-<!-- Documentation current through Zen UI v2.5.0. -->
+<!-- Documentation current through ZenOS v3.0.0. -->
 
 ![Controls launcher](/images/zen_ui/quick_settings_launcher.png)
 
@@ -14,7 +14,7 @@ order: 20
 
 ## Overview
 
-Controls adds a fast control panel to KOReader. It allows you to toggle Wi-Fi, frontlight, rotation, Zen UI modes, brightness, and warmth controls with a single swipe. You can also add action, plugin, and KOReader menu buttons for quick access.
+Controls adds a fast control panel to KOReader. It allows you to toggle Wi-Fi, frontlight, rotation, ZenOS modes, brightness, and warmth controls with a single swipe. You can also add action, plugin, and KOReader menu buttons for quick access.
 
 ## Options
 

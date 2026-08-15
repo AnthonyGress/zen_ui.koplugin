@@ -77,11 +77,73 @@ jobs:
             ZEN_UI_RUN_EMULATOR=1 xvfb-run -s '-screen 0 800x600x24' ./spec/run smoke
           fi
 
+      - name: Run legacy upgrade contract on current stable
+        if: ${{ env.REQUESTED_SUITE != 'lua' }}
+        run: xvfb-run -s '-screen 0 800x600x24' ./spec/run legacy-upgrade
+
       - name: Upload test artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: stable-test-artifacts
+          path: spec/.artifacts
+          if-no-files-found: ignore
+
+  compat:
+    name: KOReader v2026.03 Legacy Upgrade
+    needs: stable
+    if: ${{ inputs.suite != 'lua' && github.event.inputs.suite != 'lua' }}
+    runs-on: ubuntu-latest
+    env:
+      ZEN_UI_KOREADER_CACHE: ${{ github.workspace }}/spec/.cache/koreader
+      KOREADER_CACHE_VERSION: 2
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install KOReader emulator dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential gettext git lua5.1 luarocks meson nasm ninja-build pkg-config xvfb \
+            libsdl2-dev libfreetype6-dev libfontconfig1-dev libharfbuzz-dev libxtst-dev \
+            libfribidi-dev libpng-dev libjpeg-dev libsqlite3-dev
+          python -m pip install fonttools
+
+      - name: Restore KOReader v2026.03 build
+        id: compat-koreader-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: spec/.cache/koreader
+          key: koreader-compat-${{ runner.os }}-${{ runner.arch }}-v${{ env.KOREADER_CACHE_VERSION }}-${{ hashFiles('spec/koreader-lock.json') }}
+
+      - uses: actions/cache@v4
+        with:
+          path: spec/.venv
+          key: zen-ui-python-${{ runner.os }}-${{ hashFiles('spec/python/requirements.txt') }}
+
+      - name: Provision KOReader v2026.03
+        run: |
+          KOREADER_DIR="$(./spec/provision-koreader.sh compat)"
+          echo "KOREADER_DIR=$KOREADER_DIR" >> "$GITHUB_ENV"
+
+      - name: Save KOReader v2026.03 build
+        uses: actions/cache/save@v4
+        with:
+          path: spec/.cache/koreader
+          key: ${{ steps.compat-koreader-cache.outputs.cache-primary-key }}
+
+      - name: Run legacy upgrade contract
+        run: xvfb-run -s '-screen 0 800x600x24' ./spec/run legacy-upgrade
+
+      - name: Upload legacy upgrade artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v2026.03-legacy-upgrade-artifacts
           path: spec/.artifacts
           if-no-files-found: ignore
 

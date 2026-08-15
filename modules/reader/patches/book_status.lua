@@ -10,7 +10,7 @@ local function apply_book_status()
     -- the Book Status widget, so it opens with "Finished" already selected.
     G_reader_settings:saveSetting("end_document_auto_mark", true)
 
-    -- Always use the Zen UI custom Book Status layout (home + close buttons, cleaner stats)
+    -- Always use the ZenOS custom Book Status layout (home + close buttons, cleaner stats)
     local BookStatusWidget = require("ui/widget/bookstatuswidget")
     local book_status = require("common/book_status")
     local library_navigation = require("common/library_navigation")

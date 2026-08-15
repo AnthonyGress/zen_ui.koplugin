@@ -549,6 +549,8 @@ function M.setRefreshCallback(callback)
 end
 
 function M.install()
+    rawset(_G, "__ZENOS_REGISTER_HOME_ITEM", M.register)
+    rawset(_G, "__ZENOS_UNREGISTER_HOME_ITEM", M.unregister)
     rawset(_G, "__ZEN_UI_REGISTER_HOME_ITEM", M.register)
     rawset(_G, "__ZEN_UI_UNREGISTER_HOME_ITEM", M.unregister)
 end

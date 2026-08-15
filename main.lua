@@ -1,7 +1,32 @@
+-- Run the on-disk identity bridge before loading any normal Zen modules. The
+-- legacy package returns an inert plugin for this boot, then restarts as ZenOS.
+local BrandMigration = require("common/brand_migration")
+local _brand_startup = BrandMigration.detectStartup(debug.getinfo(1, "S").source)
+if _brand_startup.inert then
+    local WidgetContainer = require("ui/widget/container/widgetcontainer")
+    local BrandMigrationPlugin = WidgetContainer:extend{
+        name = _brand_startup.plugin_dir == BrandMigration.PLUGIN_DIR
+            and BrandMigration.PLUGIN_ID or BrandMigration.LEGACY_PLUGIN_ID,
+        is_doc_only = false,
+    }
+
+    function BrandMigrationPlugin:init()
+        _brand_startup = BrandMigration.performPending(_brand_startup)
+        BrandMigration.notify(_brand_startup)
+    end
+
+    function BrandMigrationPlugin:deletePluginSettings()
+        pcall(BrandMigration.deletePluginSettings)
+        return true
+    end
+
+    return BrandMigrationPlugin
+end
+
 local ZenLogger = require("common/zen_logger")
 local logger = ZenLogger.new("main")
 
--- This must happen before loading Zen UI modules: Simple UI installs a
+-- This must happen before loading ZenOS modules: Simple UI installs a
 -- conflicting common/i18n module during its own startup.
 local _incompatible_plugins_restart_required = false
 do
@@ -47,7 +72,7 @@ local library_navigation = require("common/library_navigation")
 -- Absolute path to this plugin's root directory (shared module resolves relative paths).
 local _plugin_root = require("common/plugin_root")
 
--- Preserve Zen UI's existing cache registration and navbar icon sync behavior.
+-- Preserve ZenOS's existing cache registration and navbar icon sync behavior.
 require("common/inject_icons")
 if _plugin_root then
     local utils = require("common/utils")
@@ -130,7 +155,7 @@ end
 
 -- Defensive nil-action guard: prevent UIManager:scheduleIn/nextTick(nil) crashes.
 -- Installed once per process; logs a traceback so the real culprit can be identified.
--- Catches bugs in Zen UI *and* in KOReader sync plugins (which share the same UIManager).
+-- Catches bugs in ZenOS *and* in KOReader sync plugins (which share the same UIManager).
 if not rawget(_G, "__zen_ui_uimgr_guard") then
     _G.__zen_ui_uimgr_guard = true
     local ok_um, UIManager = pcall(require, "ui/uimanager")
@@ -157,7 +182,7 @@ if not rawget(_G, "__zen_ui_uimgr_guard") then
 end
 
 local ZenUI = WidgetContainer:extend{
-    name = "zen_ui",
+    name = "zenos",
     is_doc_only = false,
 }
 
@@ -198,9 +223,16 @@ function ZenUI:_initModules()
 end
 
 function ZenUI:init()
+    local brand_state = BrandMigration.checkRootConflict(_brand_startup)
+    if brand_state.inert then
+        self._zenos_brand_inert = true
+        BrandMigration.notify(brand_state)
+        return
+    end
+    BrandMigration.installLegacyRuntimeAliases(self)
     local started_at = os.clock()
     if _incompatible_plugins_restart_required then
-        logger.warn("Zen UI initialization skipped; restart required after disabling incompatible plugins")
+        logger.warn("ZenOS initialization skipped; restart required after disabling incompatible plugins")
         return
     end
     i18n.refresh()
@@ -224,7 +256,7 @@ function ZenUI:init()
     zen_updater.init_banner()
 
     -- Clamp persisted list items-per-page before any browser reads it,
-    -- so covers stay legible regardless of where it was set (zen UI,
+    -- so covers stay legible regardless of where it was set (ZenOS,
     -- KOReader's coverbrowser, or a legacy save).
     pcall(function() require("common/cover_utils").getFilesPerPage() end)
 
@@ -459,7 +491,7 @@ function ZenUI:init()
                 logger.info("showing ZenScreen")
                 local T = require("ffi/util").template
                 require("ui/uimanager"):show(ZenScreen:new{
-                    title       = _("Zen UI"),
+                    title       = _("ZenOS"),
                     title_icon  = true,
                     subtitle    = T(_("Updated to %1"), "v" .. current_ver),
                     changelog   = (type(changelog_to_show) == "table" and #changelog_to_show > 0)
@@ -489,7 +521,7 @@ function ZenUI:init()
         end
     end
 
-    -- Inject Zen UI and Library tabs around Quick Settings.
+    -- Inject ZenOS and Library tabs around Quick Settings.
     -- Patches setUpdateItemTable once per class so it persists across menu rebuilds.
     local function find_quicksettings_pos(tab_table)
         for i, tab in ipairs(tab_table) do
@@ -827,14 +859,13 @@ function ZenUI:init()
     -- Trigger background update check on fresh startup too, not only on resume.
     zen_updater.schedule_wakeup_check()
 
-    -- Signal that Zen UI is loaded and its public status-bar and home-item
-    -- registries are available. Plugins loaded after Zen can check for the
-    -- globals directly; plugins already loaded can (re)register on this event.
+    -- Signal that ZenOS is loaded while retaining the legacy integration event.
     do
         local ok_um, UIManager = pcall(require, "ui/uimanager")
         local ok_ev, Event = pcall(require, "ui/event")
         if ok_um and ok_ev then
             UIManager:broadcastEvent(Event:new("ZenUIReady"))
+            UIManager:broadcastEvent(Event:new("ZenOSReady"))
         end
     end
 end
@@ -846,6 +877,7 @@ end
 -- On resume: schedule a background update check (if due + network up).
 -- Also called from init() so a fresh KOReader start triggers the same check.
 function ZenUI:onResume()
+    if self._zenos_brand_inert then return end
     zen_updater.schedule_wakeup_check()
     local ok_incognito, Incognito = pcall(require, "modules/global/patches/incognito_mode")
     if ok_incognito and type(Incognito.onResume) == "function" then
@@ -871,10 +903,12 @@ local function invalidate_annotation_quotes(plugin)
 end
 
 function ZenUI:onAnnotationsModified()
+    if self._zenos_brand_inert then return end
     invalidate_annotation_quotes(self)
 end
 
 function ZenUI:onBookMetadataChanged()
+    if self._zenos_brand_inert then return end
     pcall(function() require("common/tbr_index").invalidateStatusCache() end)
     local home = self._zen_shared and self._zen_shared.home
     if home and type(home.invalidateTBRCache) == "function" then
@@ -883,11 +917,13 @@ function ZenUI:onBookMetadataChanged()
 end
 
 function ZenUI:onCloseDocument()
+    if self._zenos_brand_inert then return end
     invalidate_annotation_quotes(self)
 end
 
 -- On suspend: cancel the pending timer so checks don't run while asleep.
 function ZenUI:onSuspend()
+    if self._zenos_brand_inert then return end
     zen_updater.cancel_wakeup_check()
     local ok_incognito, Incognito = pcall(require, "modules/global/patches/incognito_mode")
     if ok_incognito and type(Incognito.onSuspend) == "function" then
@@ -917,6 +953,7 @@ local function cancel_item_table_cache_persist()
 end
 
 function ZenUI:onCloseWidget()
+    if self._zenos_brand_inert then return end
     cancel_item_table_cache_persist()
     close_zen_standalone_views(self._zen_shared)
 end
@@ -928,40 +965,7 @@ function ZenUI:deletePluginSettings()
     zen_updater._on_update_found = nil
     cancel_item_table_cache_persist()
 
-    -- Delete the dedicated settings folder.
-    pcall(function()
-        require("config/preset_store").removeAll()
-    end)
-
-    -- Also clean up any legacy G_reader_settings key left from before the
-    -- file-based migration completed (e.g., plugin disabled mid-boot).
-    local gs = rawget(_G, "G_reader_settings")
-    if gs and type(gs.delSetting) == "function" then
-        pcall(gs.delSetting, gs, ConfigManager.key())
-        pcall(gs.delSetting, gs, "zen_ui_folder_sort")
-        pcall(gs.delSetting, gs, "zen_ui_folder_display_mode")
-        pcall(gs.flush, gs)
-    end
-
-    -- Remove userpatches installed alongside the plugin (e.g. the startup-alert
-    -- suppressor seeded into koreader/patches/ at install time). Match any
-    -- priority prefix so the patch is removed regardless of load order.
-    pcall(function()
-        local DataStorage = require("datastorage")
-        local lfs = require("libs/libkoreader-lfs")
-        local patches_dir = DataStorage:getDataDir() .. "/patches"
-        if lfs.attributes(patches_dir, "mode") ~= "directory" then return end
-        for entry in lfs.dir(patches_dir) do
-            if entry:match("^%d+%-zen.*%-suppress%-startup%-alerts%.lua$")
-                or entry:match("^%d+%-zen[%-_]ui[%-_].*%.lua$") then
-                local fullpath = patches_dir .. "/" .. entry
-                if lfs.attributes(fullpath, "mode") == "file" then
-                    os.remove(fullpath)
-                    logger.info("removed userpatch", entry)
-                end
-            end
-        end
-    end)
+    pcall(BrandMigration.deletePluginSettings)
 
     logger.info("deletePluginSettings completed")
     return true

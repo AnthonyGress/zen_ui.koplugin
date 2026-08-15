@@ -61,6 +61,9 @@ describe("navbar settings", function()
         ZenSpec.replace("common/utils", {
             copyDefaultCustomTabIcon = function() end,
             getIconPickerList = function() return {} end,
+            getIconDisplayName = function(name)
+                return name == "zen_ui" and "ZenOS" or name
+            end,
             suggestIcon = function() return "lightning" end,
         })
         ZenSpec.replace("common/paths", {
@@ -156,5 +159,27 @@ describe("navbar settings", function()
         assert.is_true(config.navbar.show_tabs[custom.id])
         assert.are.equal(custom.id, config.navbar.tab_order[#config.navbar.tab_order])
         assert.are.equal(1, saved)
+    end)
+
+    it("shows the ZenOS icon label without rewriting a legacy custom-tab ID", function()
+        config.navbar.custom_tabs = {
+            { id = "ct_1", type = "action", label = "Legacy", icon = "zen_ui", action = {} },
+        }
+        config.navbar.show_tabs.ct_1 = true
+        config.navbar.tab_order = { "books", "home", "ct_1" }
+
+        local navbar = build_navbar()
+        navbar.sub_item_table[1].callback()
+        local sub_items = find_arrange_item("ct_1").sub_item_table_func()
+        local icon_label
+        for _i, item in ipairs(sub_items) do
+            if item.text_func and item.text_func():sub(1, 6) == "Icon: " then
+                icon_label = item.text_func()
+                break
+            end
+        end
+
+        assert.are.equal("Icon: ZenOS", icon_label)
+        assert.are.equal("zen_ui", config.navbar.custom_tabs[1].icon)
     end)
 end)

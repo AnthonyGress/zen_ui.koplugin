@@ -2,17 +2,17 @@
 title: Lockdown Mode
 category: Lockdown Mode
 summary: Restrict library, Controls, and reader interactions for a controlled reading setup.
-settingsPath: Zen UI > Extras > Lockdown mode
+settingsPath: ZenOS > Extras > Lockdown mode
 order: 65
 ---
 
-<!-- Documentation current through Zen UI v2.5.0. -->
+<!-- Documentation current through ZenOS v3.0.0. -->
 
 ![Lockdown Mode](/images/zen_ui/lockdown_mode.png)
 
 ## Overview
 
-Lockdown Mode applies restrictions across Zen UI and KOReader. It is toggled from Controls or the `Zen UI: Toggle Lockdown Mode` dispatcher action, while its behavior is configured under Extras.
+Lockdown Mode applies restrictions across ZenOS and KOReader. It is toggled from Controls or the `ZenOS: Toggle Lockdown Mode` dispatcher action, while its behavior is configured under Extras.
 
 ## Options
 
@@ -27,7 +27,7 @@ Lockdown Mode applies restrictions across Zen UI and KOReader. It is toggled fro
 | Setting | Description |
 | --- | --- |
 | Activation > Controls Lockdown button | Toggles Lockdown Mode from the Controls panel. |
-| Activation > Dispatcher action | Toggles Lockdown Mode through the `Zen UI: Toggle Lockdown Mode` dispatcher action. |
+| Activation > Dispatcher action | Toggles Lockdown Mode through the `ZenOS: Toggle Lockdown Mode` dispatcher action. |
 | Activation > Zen Mode dependency | Enables Zen Mode when Lockdown Mode turns on and keeps Zen Mode enabled while Lockdown Mode is active. |
 | Activation > Restart prompt | Prompts for a KOReader restart after Lockdown Mode changes. |
 | Lockdown mode > Magnify UI | Saves the current library density, applies 2x2 mosaic and 3-item list density while enabled, and restores the saved density when disabled. |

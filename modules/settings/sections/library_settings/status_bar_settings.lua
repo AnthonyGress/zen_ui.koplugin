@@ -1,5 +1,5 @@
 -- settings/sections/library/status_bar.lua
--- Status bar settings item for Zen UI.
+-- Status bar settings item for ZenOS.
 -- Returns a single menu-item table: { text = _("Status bar"), sub_item_table = {...} }
 -- Receives ctx: { config, save_and_apply }
 
@@ -49,8 +49,7 @@ function M.build(ctx)
         status_bar_all_items = available_items
     end
 
-    -- Append items registered by external plugins via
-    -- _G.__ZEN_UI_REGISTER_STATUS_ITEM so they are placeable from this UI.
+    -- Append items registered via __ZENOS_REGISTER_STATUS_ITEM (or its legacy alias).
     local ext_registry = rawget(_G, "__ZEN_UI_STATUS_ITEMS")
     if type(ext_registry) == "table" then
         for key, entry in pairs(ext_registry) do

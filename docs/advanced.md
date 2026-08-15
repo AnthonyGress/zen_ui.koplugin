@@ -2,13 +2,13 @@
 title: Advanced
 category: About
 summary: Access metadata extraction, refresh behavior, logs, gestures, and plugin tools.
-settingsPath: Zen UI > About > Advanced
+settingsPath: ZenOS > About > Advanced
 order: 81
 ---
 
-<!-- Documentation current through Zen UI v2.5.0. -->
+<!-- Documentation current through ZenOS v3.0.0. -->
 
-![Zen UI settings](/images/zen_ui/zen_settings.png)
+![ZenOS settings](/images/zen_ui/zen_settings.png)
 
 ## Overview
 

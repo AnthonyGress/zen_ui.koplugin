@@ -4,11 +4,12 @@ local PresetStore = require("config/preset_store")
 local HomeQuotes = require("modules/filebrowser/patches/home/home_quotes")
 local utils = require("common/utils")
 local FontLanguage = require("common/font_language")
+local LibraryFontPath = require("common/library_font_path")
 local plugin_root = require("common/plugin_root") or ""
+local BrandMigration = require("common/brand_migration")
 
 local LEGACY_KEY = "zen_ui_config"  -- legacy G_reader_settings key; cleanup only
-local HYPERREADABLE_LIBRARY_FONT = plugin_root
-    .. "/fonts/hyperreadable/Hyperreadable-Regular.ttf"
+local HYPERREADABLE_LIBRARY_FONT = LibraryFontPath.BUNDLED_DEFAULT
 
 local _zen_settings_file = nil  -- cached LuaSettings instance
 local _current_config    = nil  -- in-memory cache for M.get()
@@ -39,6 +40,17 @@ local function load_raw_config()
         return legacy, true
     end
     return {}, false
+end
+
+local function migrate_brand_plugin_paths(stored)
+    if type(stored) ~= "table" then return false end
+    local plugin_parent = plugin_root:match("^(.*)/" .. BrandMigration.PLUGIN_DIR .. "$")
+    if not plugin_parent then return false end
+    return BrandMigration.rewriteTablePaths(
+        stored,
+        plugin_parent .. "/" .. BrandMigration.LEGACY_PLUGIN_DIR,
+        plugin_root
+    )
 end
 
 local function merged_with_defaults(stored)
@@ -958,6 +970,14 @@ local function migrate_changed_defaults(cfg)
         cfg._meta.library_font_hyperreadable_default_migrated = true
         changed = true
     end
+    if type(cfg.library_font) == "table" then
+        local font_face = cfg.library_font.font_face
+        local portable_face = LibraryFontPath.toConfig(font_face)
+        if portable_face ~= font_face then
+            cfg.library_font.font_face = portable_face
+            changed = true
+        end
+    end
     if type(cfg.library_font) == "table"
             and not FontLanguage.supportsBundledFonts()
             and cfg.library_font.font_face == HYPERREADABLE_LIBRARY_FONT then
@@ -995,6 +1015,8 @@ end
 
 function M.load()
     local stored, migrated_file_config = load_raw_config()
+    local fresh_config = type(stored) ~= "table" or next(stored) == nil
+    local migrated_brand_paths = migrate_brand_plugin_paths(stored)
     local migrated_home_lock = false
     local stored_hide_up = type(stored) == "table" and rawget(stored, "browser_hide_up_folder")
     if type(stored_hide_up) ~= "table" or stored_hide_up.lock_home_folder == nil then
@@ -1051,11 +1073,15 @@ function M.load()
     local migrated_reader_presets = migrate_reader_preset_zen_settings()
     local migrated_changed_defaults
     cfg, migrated_changed_defaults = migrate_changed_defaults(cfg)
+    local initialized_brand_marker = fresh_config
+        and plugin_root:match("/" .. BrandMigration.PLUGIN_DIR .. "$") ~= nil
+        and BrandMigration.markConfigMigrationComplete(cfg)
     if migrated_renamed or migrated_group or migrated_substring or migrated_updater or migrated_fbc or migrated_bim
             or migrated_reader_backup or migrated_qs or migrated_qs_completion or migrated_file_config
             or migrated_settings_files or migrated_reader_presets
             or migrated_changed_defaults or migrated_home_lock
-            or migrated_folder_paths or migrated_rakuyomi or migrated_page_browser then
+            or migrated_folder_paths or migrated_rakuyomi or migrated_page_browser
+            or migrated_brand_paths or initialized_brand_marker then
         M.save(cfg)
     end
     if migrated_file_config then

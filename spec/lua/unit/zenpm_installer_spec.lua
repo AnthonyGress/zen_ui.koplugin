@@ -11,7 +11,7 @@ describe("ZenPM installer asset selection", function()
         original_archiver = package.loaded["ffi/archiver"]
         original_network_manager = package.loaded["ui/network/manager"]
         ZenSpec.replace("common/zen_logger", { new = function() return { info = function() end, warn = function() end } end })
-        ZenSpec.replace("common/plugin_root", "/plugins/zen_ui.koplugin")
+        ZenSpec.replace("common/plugin_root", "/plugins/zenos.koplugin")
         ZenSpec.replace("ffi/archiver", {})
         ZenSpec.unload("modules/settings/zenpm_installer")
         Installer = require("modules/settings/zenpm_installer")

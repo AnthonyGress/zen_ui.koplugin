@@ -106,7 +106,7 @@ def build_library(root: Path) -> dict[str, Path]:
     _write_zip(hidden, {"mimetype": b"application/epub+zip"})
 
     manifest = {
-        "title": "Zen UI test library",
+        "title": "ZenOS test library",
         "books": [str(epub), str(no_cover), str(finale), str(cbz), str(hidden)],
         "metadata": {
             str(epub): {"title": "Alpha", "authors": "Zen Author", "series": "Series A"},

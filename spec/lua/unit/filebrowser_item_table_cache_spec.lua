@@ -179,7 +179,7 @@ describe("file browser item-table cache", function()
             open = function() return persisted_store end,
         })
         ZenSpec.replace("config/preset_store", {
-            rootDir = function() return "/settings/Zen UI" end,
+            rootDir = function() return "/settings/ZenOS" end,
         })
         ZenSpec.replace("ui/uimanager", {
             scheduleIn = function(_self, _delay, callback)

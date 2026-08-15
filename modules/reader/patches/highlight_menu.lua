@@ -1,4 +1,4 @@
--- Zen UI: Highlight menu
+-- ZenOS: Highlight menu
 -- Replaces the default highlight popup with a clean icon row.
 -- Patches the text-selection highlight menu with icon buttons.
 

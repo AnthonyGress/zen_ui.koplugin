@@ -1,5 +1,5 @@
 -- common/db_connection.lua
--- Shared SQLite connection utilities for Zen UI.
+-- Shared SQLite connection utilities for ZenOS.
 -- Centralises path resolution and connection management so that each
 -- database module (db_stats, db_library, …) does not duplicate this logic.
 

@@ -1,4 +1,4 @@
--- Zen UI: Register all plugin icons into KOReader's icon cache at startup.
+-- ZenOS: Register all plugin icons into KOReader's icon cache at startup.
 -- Copies SVGs to the user icons dir so they resolve on cold starts too.
 
 local utils = require("common/utils")
@@ -10,6 +10,9 @@ if _plugin_root then
         -- App / settings UI
         ["zen_settings"]        = "zen_ui.svg",
         ["quicksettings"]       = "quicksettings.svg",
+        ["zenos"]               = "zen_ui.svg",
+        ["zenos_light"]         = "zen_ui_light.svg",
+        ["zenos_update"]        = "zen_ui_update.svg",
         ["zen_ui"]              = "zen_ui.svg",
         ["zen_ui_light"]        = "zen_ui_light.svg",
         ["zen_ui_update"]       = "zen_ui_update.svg",

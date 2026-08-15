@@ -29,6 +29,8 @@ describe("home component registry", function()
     end)
 
     after_each(function()
+        _G.__ZENOS_REGISTER_HOME_ITEM = nil
+        _G.__ZENOS_UNREGISTER_HOME_ITEM = nil
         _G.__ZEN_UI_REGISTER_HOME_ITEM = nil
         _G.__ZEN_UI_UNREGISTER_HOME_ITEM = nil
     end)
@@ -69,9 +71,12 @@ describe("home component registry", function()
         Registry.setRefreshCallback(function() refreshes = refreshes + 1 end)
         Registry.install()
 
+        assert.are.equal(_G.__ZEN_UI_REGISTER_HOME_ITEM, _G.__ZENOS_REGISTER_HOME_ITEM)
+        assert.are.equal(_G.__ZEN_UI_UNREGISTER_HOME_ITEM, _G.__ZENOS_UNREGISTER_HOME_ITEM)
+
         assert.is_false(_G.__ZEN_UI_REGISTER_HOME_ITEM("quotes", function() end))
         assert.is_false(_G.__ZEN_UI_REGISTER_HOME_ITEM("invalid", "not a function"))
-        assert.is_true(_G.__ZEN_UI_REGISTER_HOME_ITEM("weather", function() return "sunny" end, {
+        assert.is_true(_G.__ZENOS_REGISTER_HOME_ITEM("weather", function() return "sunny" end, {
             label = "Weather",
             size = "m",
         }))
@@ -80,7 +85,7 @@ describe("home component registry", function()
         assert.are.equal("sunny", Registry.get("weather").build())
         assert.are.equal(1, refreshes)
 
-        _G.__ZEN_UI_UNREGISTER_HOME_ITEM("weather")
+        _G.__ZENOS_UNREGISTER_HOME_ITEM("weather")
         assert.is_nil(Registry.get("weather"))
         assert.are.equal(2, refreshes)
     end)

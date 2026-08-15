@@ -3,7 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$SCRIPT_DIR"
-PLUGIN_DIR_NAME="$(basename "$REPO_ROOT")"
+CANONICAL_PLUGIN_DIR_NAME="zenos.koplugin"
+COMPAT_PLUGIN_DIR_NAME="zen_ui.koplugin"
 DEV_MODE=false
 
 case "${1:-}" in
@@ -21,11 +22,6 @@ esac
 
 if [[ $# -ne 0 ]]; then
   echo "Usage: $0 [--dev]" >&2
-  exit 1
-fi
-
-if [[ "$PLUGIN_DIR_NAME" != *.koplugin ]]; then
-  echo "Error: repository folder name must end with .koplugin (found: $PLUGIN_DIR_NAME)" >&2
   exit 1
 fi
 
@@ -47,7 +43,7 @@ if [[ "$DEV_MODE" == true ]]; then
     exit 1
   fi
 
-  DEV_PLUGIN_DIR="$KOREADER_DIR/plugins/$PLUGIN_DIR_NAME"
+  DEV_PLUGIN_DIR="$KOREADER_DIR/plugins/$CANONICAL_PLUGIN_DIR_NAME"
 fi
 
 for cmd in rsync zip mktemp; do
@@ -63,13 +59,14 @@ if ! command -v pyftsubset >/dev/null 2>&1; then
 fi
 
 DIST_DIR="$REPO_ROOT/dist"
-OUT_ZIP="$DIST_DIR/${PLUGIN_DIR_NAME}.zip"
+CANONICAL_OUT_ZIP="$DIST_DIR/${CANONICAL_PLUGIN_DIR_NAME}.zip"
+COMPAT_OUT_ZIP="$DIST_DIR/${COMPAT_PLUGIN_DIR_NAME}.zip"
 STAGE_PARENT="$(mktemp -d "${TMPDIR:-/tmp}/koplugin-build.XXXXXX")"
-STAGE_DIR="$STAGE_PARENT/$PLUGIN_DIR_NAME"
+PAYLOAD_DIR="$STAGE_PARENT/payload"
 INLINE_ICON_MAP="$REPO_ROOT/common/inline_icon_map.lua"
 NERD_FONT_NAME="SymbolsNerdFont-Regular.ttf"
 NERD_FONT_SRC="$REPO_ROOT/fonts/$NERD_FONT_NAME"
-NERD_FONT_STAGE="$STAGE_DIR/fonts/$NERD_FONT_NAME"
+NERD_FONT_STAGE="$PAYLOAD_DIR/fonts/$NERD_FONT_NAME"
 
 cleanup() {
   rm -rf "$STAGE_PARENT"
@@ -78,7 +75,7 @@ trap cleanup EXIT
 
 # Start each build from a clean output directory.
 rm -rf "$DIST_DIR"
-mkdir -p "$DIST_DIR" "$STAGE_DIR"
+mkdir -p "$DIST_DIR" "$PAYLOAD_DIR"
 
 # Stage only distributable plugin files.
 rsync -a \
@@ -107,7 +104,7 @@ rsync -a \
   --exclude '*.luacheckrc' \
   --exclude '__pycache__' \
   --exclude '.*' \
-  "$REPO_ROOT/" "$STAGE_DIR/"
+  "$REPO_ROOT/" "$PAYLOAD_DIR/"
 
 UNICODE_LIST="$(mktemp "$STAGE_PARENT/nerd-font-unicodes.XXXXXX")"
 unicode_escape_re='\\u\{([0-9A-Fa-f]+)\}'
@@ -131,17 +128,36 @@ pyftsubset "$NERD_FONT_SRC" \
   --name-IDs='*' \
   --name-languages='*'
 
-rm -f "$OUT_ZIP"
-(
-  cd "$STAGE_PARENT"
-  zip -rq "$OUT_ZIP" "$PLUGIN_DIR_NAME"
-)
+create_archive() {
+  local plugin_name="$1"
+  local output_zip="$2"
+  local stage_dir="$STAGE_PARENT/$plugin_name"
 
-echo "Created KOReader plugin zip: $OUT_ZIP"
+  mkdir -p "$stage_dir"
+  rsync -a "$PAYLOAD_DIR/" "$stage_dir/"
+  rm -f "$output_zip"
+  (
+    cd "$STAGE_PARENT"
+    zip -rq "$output_zip" "$plugin_name"
+  )
+  rm -rf "$stage_dir"
+}
+
+create_archive "$CANONICAL_PLUGIN_DIR_NAME" "$CANONICAL_OUT_ZIP"
+create_archive "$COMPAT_PLUGIN_DIR_NAME" "$COMPAT_OUT_ZIP"
+
+echo "Created KOReader plugin zips:"
+echo "  $CANONICAL_OUT_ZIP"
+echo "  $COMPAT_OUT_ZIP"
 
 if [[ "$DEV_MODE" == true ]]; then
+  if [[ -e "$KOREADER_DIR/plugins/$COMPAT_PLUGIN_DIR_NAME" ]]; then
+    echo "Error: legacy development plugin still exists: $KOREADER_DIR/plugins/$COMPAT_PLUGIN_DIR_NAME" >&2
+    echo "Start KOReader once to migrate it, or remove it before deploying $CANONICAL_PLUGIN_DIR_NAME." >&2
+    exit 1
+  fi
   mkdir -p "$DEV_PLUGIN_DIR"
-  rsync -a --delete "$STAGE_DIR/" "$DEV_PLUGIN_DIR/"
+  rsync -a --delete "$PAYLOAD_DIR/" "$DEV_PLUGIN_DIR/"
   echo "Deployed plugin to: $DEV_PLUGIN_DIR"
 
   find_luajit_child() {

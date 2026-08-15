@@ -5,6 +5,7 @@ main.lua|integration
 common/book_status.lua|unit
 common/bluetooth.lua|unit
 common/book_walker.lua|unit
+common/brand_migration.lua|unit
 common/clock_schedule.lua|unit
 common/clock_timer.lua|unit
 common/constants.lua|unit
@@ -23,6 +24,7 @@ common/i18n.lua|unit
 common/icon_packs.lua|unit
 common/inject_icons.lua|unit
 common/inline_icon_map.lua|unit
+common/library_font_path.lua|unit
 common/library_navigation.lua|unit
 common/memory_policy.lua|unit
 common/nav_button_model.lua|unit

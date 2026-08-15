@@ -1,4 +1,4 @@
--- Zen UI: Icon-only DictQuickLookup buttons
+-- ZenOS: Icon-only DictQuickLookup buttons
 -- Replaces the dictionary popup's text button row with a compact icon row.
 -- Supports both old KOReader (DictButtonsReady event) and new KOReader
 -- (buildButtonLayout override). When "show other items" is enabled,

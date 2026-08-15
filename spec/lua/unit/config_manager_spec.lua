@@ -147,8 +147,7 @@ describe("config manager folder-path migration", function()
         }
 
         local config = Manager.load()
-        local expected = (require("common/plugin_root") or "")
-            .. "/fonts/hyperreadable/Hyperreadable-Regular.ttf"
+        local expected = "fonts/hyperreadable/Hyperreadable-Regular.ttf"
 
         assert.are.equal(expected, config.library_font.font_face)
         assert.are.equal(20, config.library_font.font_size)
@@ -169,6 +168,25 @@ describe("config manager folder-path migration", function()
 
         assert.are.equal("/fonts/Custom-Regular.ttf", config.library_font.font_face)
         assert.is_true(config._meta.library_font_hyperreadable_default_migrated)
+    end)
+
+    it("makes bundled Library font paths portable across plugin locations", function()
+        local copied_paths = {
+            "/mnt/onboard/.adds/koreader/plugins/zen_ui.koplugin/fonts/Custom-Regular.ttf",
+            "/storage/emulated/0/koreader/plugins/zenos.koplugin/fonts/Custom-Regular.ttf",
+        }
+
+        for _i, font_path in ipairs(copied_paths) do
+            settings_file.data = {
+                _meta = { library_font_hyperreadable_default_migrated = true },
+                library_font = { font_face = font_path, font_size = 23 },
+            }
+
+            local config = Manager.load()
+
+            assert.are.equal("fonts/Custom-Regular.ttf", config.library_font.font_face)
+            assert.are.equal(23, config.library_font.font_size)
+        end
     end)
 
     it("keeps the Library default for locales unsupported by bundled fonts", function()

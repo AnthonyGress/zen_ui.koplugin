@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Only the latest release of Zen UI is actively maintained. Security fixes will not be backported to older versions.
+Only the latest release of ZenOS is actively maintained. Security fixes will not be backported to older versions.
 
 | Version | Supported |
 |---------|-----------|
@@ -11,7 +11,7 @@ Only the latest release of Zen UI is actively maintained. Security fixes will no
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Zen UI, **please do not open a public GitHub issue.** Instead, report it privately so it can be addressed before any public disclosure.
+If you discover a security vulnerability in ZenOS, **please do not open a public GitHub issue.** Instead, report it privately so it can be addressed before any public disclosure.
 
 **To report a vulnerability:**
 
@@ -32,7 +32,7 @@ Reported vulnerabilities will be reviewed and responded to as promptly as possib
 
 ## Scope
 
-Zen UI is a client-side KOReader plugin written in Lua. It does not run a server, handle authentication, or process external user data. The primary security surface is:
+ZenOS is a client-side KOReader plugin written in Lua. It does not run a server, handle authentication, or process external user data. The primary security surface is:
 
 - The built-in updater, which downloads and unpacks files from GitHub Releases over HTTPS
 - Any file operations performed through the file browser patches

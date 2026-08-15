@@ -76,7 +76,7 @@ def _seed_mosaic_mode(ko_home: Path) -> None:
 def _launch(
     runtime: Path, ko_home: Path, socket_path: Path, library: Path, default_tab: str
 ) -> subprocess.Popen[str]:
-    settings_dir = ko_home / "settings" / "Zen UI"
+    settings_dir = ko_home / "settings" / "ZenOS"
     settings_dir.mkdir(parents=True, exist_ok=True)
     install_startup_alert_patch(ko_home)
     (ko_home / "settings.reader.lua").write_text(

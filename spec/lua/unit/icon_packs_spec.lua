@@ -2,7 +2,7 @@ require("ffi/loadlib")
 local Archiver = require("ffi/archiver")
 local lfs = require("libs/libkoreader-lfs")
 
-describe("Zen UI icon packs", function()
+describe("ZenOS icon packs", function()
     local IconPacks = require("common/icon_packs")
     local icons_root
     local packs_root

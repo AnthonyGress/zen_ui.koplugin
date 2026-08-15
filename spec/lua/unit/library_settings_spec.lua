@@ -5,6 +5,7 @@ describe("library settings", function()
         "gettext",
         "ui/uimanager",
         "common/paths",
+        "common/library_font_path",
         "common/shared_state",
         "common/inline_icon_map",
         "common/ui/icon_menu_item",
@@ -12,7 +13,10 @@ describe("library settings", function()
         "modules/settings/zen_settings_apply",
         "modules/settings/zen_settings_utils",
         "apps/filemanager/filemanager",
+        "fontlist",
+        "ui/font",
         "ui/widget/confirmbox",
+        "ui/widget/fontchooser",
         "ui/widget/infomessage",
     }
 
@@ -36,6 +40,7 @@ describe("library settings", function()
         ZenSpec.replace("modules/settings/zen_settings_utils", {
             buildColorSubMenu = function() return {} end,
         })
+        ZenSpec.unload("common/library_font_path")
         ZenSpec.unload("modules/settings/sections/library_settings")
     end)
 
@@ -289,6 +294,97 @@ describe("library settings", function()
         assert.are.equal(1, saves)
     end)
 
+    it("resolves portable Library font paths for the chooser and stores them relatively", function()
+        local chooser
+        local name_path
+        local saves = 0
+        local plugin_root = assert(require("common/plugin_root"))
+        local font_path = "fonts/hyperreadable/Hyperreadable-Regular.ttf"
+        local resolved_font_path = plugin_root .. "/" .. font_path
+        local stock_font_path = "./fonts/noto/NotoSans-Regular.ttf"
+        package.loaded["ui/uimanager"].show = function(_self, widget)
+            chooser = widget
+        end
+        package.loaded["ui/uimanager"].scheduleIn = function() end
+        package.loaded["modules/settings/zen_settings_apply"].reinit_filemanager = function() end
+        package.loaded["modules/settings/zen_settings_apply"].prompt_restart = function() end
+        ZenSpec.replace("ui/widget/fontchooser", {
+            getFontNameText = function(path)
+                name_path = path
+                return "Hyperreadable"
+            end,
+            isFontRegistered = function(path)
+                return path == resolved_font_path or path == stock_font_path
+            end,
+            new = function(_self, options) return options end,
+        })
+        ZenSpec.replace("ui/font", {
+            fontmap = { cfont = "NotoSans-Regular.ttf" },
+        })
+        ZenSpec.replace("fontlist", {
+            fontinfo = {
+                [stock_font_path] = {},
+                ["/external/Unavailable-Regular.ttf"] = {},
+            },
+        })
+        ZenSpec.replace("apps/filemanager/filemanager", {})
+
+        local config = {
+            browser_hide_up_folder = {},
+            features = {},
+            library_font = { font_face = font_path, font_size = 24 },
+        }
+        local items = require("modules/settings/sections/library_settings").build({
+            config = config,
+            plugin = { saveConfig = function() saves = saves + 1 end },
+            save_and_apply = function() end,
+        })
+
+        local font_item
+        for _i, item in ipairs(items) do
+            if type(item.sub_item_table) == "table" then
+                for _j, sub_item in ipairs(item.sub_item_table) do
+                    if sub_item.text == "Reset font" then
+                        for _k, sibling in ipairs(item.sub_item_table) do
+                            if sibling.hold_callback then font_item = sibling end
+                        end
+                        break
+                    end
+                end
+            end
+        end
+        assert.is_not_nil(font_item)
+        assert.are.equal("Font: Hyperreadable", font_item.text_func())
+        assert.are.equal(resolved_font_path, name_path)
+
+        font_item.callback()
+
+        assert.are.equal(resolved_font_path, chooser.font_file)
+        assert.are.equal(resolved_font_path, chooser.default_font_file)
+
+        local selected = plugin_root .. "/fonts/hyperreadable/Hyperreadable-Bold.ttf"
+        chooser.callback(selected)
+        assert.are.equal("fonts/hyperreadable/Hyperreadable-Bold.ttf",
+            config.library_font.font_face)
+        assert.are.equal(1, saves)
+
+        chooser.callback("/mnt/fonts/External-Regular.ttf")
+        assert.are.equal("/mnt/fonts/External-Regular.ttf", config.library_font.font_face)
+        assert.are.equal(2, saves)
+
+        config.library_font.font_face = "cfont"
+        font_item.callback()
+        assert.are.equal(stock_font_path, chooser.font_file)
+        assert.are.equal("cfont", config.library_font.font_face)
+        assert.are.equal(2, saves)
+
+        config.library_font.font_face = "/missing/Unavailable-Regular.ttf"
+        font_item.callback()
+        assert.are.equal(resolved_font_path, chooser.font_file)
+        assert.are.equal(font_path, config.library_font.font_face)
+        assert.are.equal(3, saves)
+    end)
+
     it("shows the selected Library font path on hold without resetting it", function()
         local message
         local saves = 0
@@ -299,7 +395,8 @@ describe("library settings", function()
             new = function(_self, options) return options end,
         })
 
-        local font_path = "/fonts/Custom-Regular.ttf"
+        local font_path = "fonts/Custom-Regular.ttf"
+        local resolved_font_path = assert(require("common/plugin_root")) .. "/" .. font_path
         local config = {
             browser_hide_up_folder = {},
             features = {},
@@ -327,7 +424,7 @@ describe("library settings", function()
         assert.is_not_nil(font_item)
         font_item.hold_callback()
 
-        assert.are.equal(font_path, message.text)
+        assert.are.equal(resolved_font_path, message.text)
         assert.is_false(message.show_icon)
         assert.are.equal(font_path, config.library_font.font_face)
         assert.are.equal(0, saves)

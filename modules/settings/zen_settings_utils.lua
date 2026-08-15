@@ -1,5 +1,5 @@
 -- settings/zen_settings_utils.lua
--- Pure utility functions shared across Zen UI settings sections.
+-- Pure utility functions shared across ZenOS settings sections.
 -- No dependency on plugin instance or config at module level.
 
 local _ = require("gettext")

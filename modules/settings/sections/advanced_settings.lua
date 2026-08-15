@@ -1,5 +1,5 @@
 -- settings/sections/advanced.lua
--- Advanced / developer settings items for Zen UI.
+-- Advanced / developer settings items for ZenOS.
 -- Receives ctx: { plugin, config, save_and_apply, settings_apply }
 
 local _ = require("gettext")

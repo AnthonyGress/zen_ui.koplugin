@@ -1,5 +1,5 @@
 -- settings/sections/library_settings.lua
--- Library (filebrowser) settings items for Zen UI.
+-- Library (filebrowser) settings items for ZenOS.
 -- Receives ctx: { plugin, config, save_and_apply, apply_feature }
 
 local _ = require("gettext")
@@ -9,6 +9,7 @@ local SharedState = require("common/shared_state")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
 local defaults = require("config/defaults")
+local LibraryFontPath = require("common/library_font_path")
 
 local status_bar_section  = require("modules/settings/sections/library_settings/status_bar_settings")
 local settings_apply      = require("modules/settings/zen_settings_apply")
@@ -20,6 +21,49 @@ local home_rebuild_pending = false
 local home_rebuild_poll_active = false
 local bg_surface_refresh_pending = false
 local bg_surface_refresh_poll_active = false
+
+local function resolved_library_font(font_face)
+    if font_face == "default" then font_face = DEFAULT_LIBRARY_FONT end
+    return LibraryFontPath.resolve(font_face)
+end
+
+local function font_name_text(cfg, FontChooser)
+    if cfg.font_face == "default" then return _("default") end
+    return FontChooser.getFontNameText(resolved_library_font(cfg.font_face)) or cfg.font_face
+end
+
+local function find_registered_font_file(font_face)
+    local ok_font, Font = pcall(require, "ui/font")
+    local mapped_face = ok_font and Font.fontmap and Font.fontmap[font_face] or font_face
+    local ok_list, FontList = pcall(require, "fontlist")
+    if not ok_list or type(FontList.fontinfo) ~= "table" then return nil end
+    if FontList.fontinfo[mapped_face] then return mapped_face end
+    if type(font_face) ~= "string" or font_face:find("/", 1, true)
+            or font_face:find("\\", 1, true) then
+        return nil
+    end
+
+    local filename = type(mapped_face) == "string" and mapped_face:match("([^/]+)$")
+    local matched_file
+    for file in pairs(FontList.fontinfo) do
+        if filename and file:sub(-#filename - 1) == "/" .. filename
+                and (not matched_file or file < matched_file) then
+            matched_file = file
+        end
+    end
+    return matched_file
+end
+
+local function picker_default(FontChooser)
+    local default_file = resolved_library_font(DEFAULT_LIBRARY_FONT)
+    if type(FontChooser.isFontRegistered) ~= "function"
+            or FontChooser.isFontRegistered(default_file) then
+        return DEFAULT_LIBRARY_FONT, default_file
+    end
+    local registered_default = find_registered_font_file(default_file)
+    if registered_default then return DEFAULT_LIBRARY_FONT, registered_default end
+    return "default", find_registered_font_file("cfont")
+end
 
 local function is_filemanager_menu_open()
     local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
@@ -174,7 +218,7 @@ function M.build(ctx)
             local cfg = ensure_library_font_cfg(config)
             local ok_fc, FontChooser = pcall(require, "ui/widget/fontchooser")
             local face_text = (cfg.font_face == "default") and _("default")
-                or (ok_fc and FontChooser.getFontNameText(cfg.font_face) or cfg.font_face)
+                or (ok_fc and font_name_text(cfg, FontChooser) or cfg.font_face)
             return string.format("%s %s, %s", _("Font:"), face_text, tostring(cfg.font_size))
         end,
         sub_item_table = {
@@ -205,7 +249,7 @@ function M.build(ctx)
                     local cfg = ensure_library_font_cfg(config)
                     local ok_fc, FontChooser = pcall(require, "ui/widget/fontchooser")
                     local face_text = (cfg.font_face == "default") and _("default")
-                        or (ok_fc and FontChooser.getFontNameText(cfg.font_face) or cfg.font_face)
+                        or (ok_fc and font_name_text(cfg, FontChooser) or cfg.font_face)
                     return string.format("%s %s", _("Font:"), face_text)
                 end,
                 keep_menu_open = true,
@@ -213,14 +257,29 @@ function M.build(ctx)
                     local ok_fc, FontChooser = pcall(require, "ui/widget/fontchooser")
                     if not ok_fc then return end
                     local cfg = ensure_library_font_cfg(config)
-                    local display_face = cfg.font_face == "default" and DEFAULT_LIBRARY_FONT or cfg.font_face
+                    local default_config, default_file = picker_default(FontChooser)
+                    local display_face = cfg.font_face == "default"
+                        and default_file or resolved_library_font(cfg.font_face)
+                    if type(FontChooser.isFontRegistered) == "function"
+                            and not FontChooser.isFontRegistered(display_face) then
+                        local registered_face = find_registered_font_file(display_face)
+                        if registered_face then
+                            display_face = registered_face
+                        else
+                            cfg.font_face = default_config
+                            display_face = default_file
+                            save_library_font(config, plugin, touchmenu_instance)
+                        end
+                    end
+                    if not display_face then return end
                     UIManager:show(FontChooser:new{
                         title = _("Library font"),
                         font_file = display_face,
-                        default_font_file = DEFAULT_LIBRARY_FONT,
+                        default_font_file = default_file,
                         callback = function(file)
-                            if cfg.font_face ~= file then
-                                cfg.font_face = file
+                            local portable_file = LibraryFontPath.toConfig(file)
+                            if cfg.font_face ~= portable_file then
+                                cfg.font_face = portable_file
                                 save_library_font(config, plugin, touchmenu_instance, true)
                             end
                         end,
@@ -228,7 +287,7 @@ function M.build(ctx)
                 end,
                 hold_callback = function()
                     local cfg = ensure_library_font_cfg(config)
-                    local font_file = cfg.font_face == "default" and DEFAULT_LIBRARY_FONT or cfg.font_face
+                    local font_file = resolved_library_font(cfg.font_face)
                     local InfoMessage = require("ui/widget/infomessage")
                     UIManager:show(InfoMessage:new{ text = font_file, show_icon = false })
                 end,

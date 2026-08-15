@@ -574,7 +574,8 @@ function M.build(ctx)
         local function add_icon_item()
             items[#items + 1] = IconItem.decorate({
                 text_func = function()
-                    return T(_("Icon: %1"), entry.icon or DEFAULT_ENTRY_ICON)
+                    return T(_("Icon: %1"),
+                        icon_utils.getIconDisplayName(entry.icon or DEFAULT_ENTRY_ICON))
                 end,
                 keep_menu_open = true,
                 callback = function(touch_menu)

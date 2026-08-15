@@ -9,8 +9,10 @@
 --   file=nil means render via KOReader icon name; otherwise use the absolute path.
 
 local function showIconPickerDialog(icons_list, current_icon, on_select)
+    local icon_utils = require("common/utils")
     local function displayName(item)
-        return (item.name:gsub("^quick_", ""):gsub("^tab_", ""):gsub("^lookup_", ""))
+        return (icon_utils.getIconDisplayName(item.name)
+            :gsub("^quick_", ""):gsub("^tab_", ""):gsub("^lookup_", ""))
     end
     table.sort(icons_list, function(a, b)
         return displayName(a):lower() < displayName(b):lower()
@@ -115,7 +117,8 @@ local function showIconPickerDialog(icons_list, current_icon, on_select)
             local item      = icons_list[i]
             local name      = item.name
             local is_sel    = (current_icon == name)
-            local short     = name:gsub("^quick_", ""):gsub("^tab_", ""):gsub("^lookup_", "")
+            local short     = icon_utils.getIconDisplayName(name)
+                :gsub("^quick_", ""):gsub("^tab_", ""):gsub("^lookup_", "")
             -- bordersize is added on top of content by FC.getSize(), so subtract it
             -- from the CC inner dimen so each FC reports exactly cell_w to HG.
             local cell_brd = is_sel and Screen:scaleBySize(2) or Screen:scaleBySize(1)

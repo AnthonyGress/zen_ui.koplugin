@@ -1,4 +1,4 @@
--- Zen UI OPDS browser enhancements:
+-- ZenOS OPDS browser enhancements:
 --   - Back chevron on left title button (closes at root, navigates back in catalog)
 --   - Hamburger menu on right title button
 --   - Footer return arrow hidden (navigation via title buttons)
@@ -991,7 +991,7 @@ local function apply_opds()
 
         if Device:hasKeys() then
             browser.key_events = browser.key_events or {}
-            -- Stock Menu binds the physical Menu key to LeftButtonTap.  Zen UI
+            -- Stock Menu binds the physical Menu key to LeftButtonTap.  ZenOS
             -- keeps navigation on Back and routes Menu to the header action.
             browser.key_events.LeftButtonTap = {
                 { "Menu" },

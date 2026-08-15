@@ -2,17 +2,17 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TARGET="${1:?expected stable or nightly}"
+TARGET="${1:?expected stable, compat, or nightly}"
 CACHE_ROOT="${ZEN_UI_KOREADER_CACHE:-$ROOT/spec/.cache/koreader}"
 LOCK="$ROOT/spec/koreader-lock.json"
 
-if [[ "$TARGET" != "stable" && "$TARGET" != "nightly" ]]; then
-  echo "Target must be stable or nightly" >&2
+if [[ "$TARGET" != "stable" && "$TARGET" != "compat" && "$TARGET" != "nightly" ]]; then
+  echo "Target must be stable, compat, or nightly" >&2
   exit 2
 fi
 
 REF=""
-if [[ "$TARGET" == "stable" ]]; then
+if [[ "$TARGET" != "nightly" ]]; then
   REF="$(python3 - "$LOCK" "$TARGET" <<'PY'
 import json
 import sys
@@ -43,7 +43,10 @@ if [[ "$TARGET" == "nightly" ]]; then
     if [[ ! "$version" =~ ^v[0-9]{4}\.[0-9]{2}([.-]|$) ]]; then
       # Shallow nightly clones may not include a release tag.
       commit_date="$(git log -1 --format=%cs HEAD)"
-      git -c tag.gpgSign=false tag --annotate --force \
+      git -c tag.gpgSign=false \
+        -c user.name="Zen UI CI" \
+        -c user.email="zen-ui-ci@invalid" \
+        tag --annotate --force \
         --message "Nightly test build" \
         "v${commit_date:0:4}.${commit_date:5:2}" HEAD
     fi
