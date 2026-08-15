@@ -47,6 +47,7 @@ local USERPATCH_PATTERNS = {
     "^%d+%-zenos[%-_].*%.lua$",
 }
 local BRAND_MIGRATION_MARKER = "zenos_brand_migration_v1"
+local PRESERVED_LEGACY_MARKER = ".zenos-preserved-legacy"
 local ROOT_GUARD_KEY = "__ZENOS_PLUGIN_ROOT_GUARD"
 
 local READER_BRAND_VALUES = {
@@ -188,6 +189,68 @@ local function log(level, ...)
     end
 end
 
+local function diagnostic_value(value)
+    if value == nil then return "n/a" end
+    return tostring(value)
+end
+
+local function migration_snapshot_status(result)
+    if result.legacy_settings_snapshot_materialized then return "materialized" end
+    if result.legacy_settings_snapshot_created then return "created" end
+    if result.legacy_settings_preserved then return "preserved" end
+    if result.snapshot_attempted then return "unavailable" end
+    return "not_attempted"
+end
+
+local function migration_rollback_status(result)
+    if not result.settings_rollback_attempted then return "not_needed" end
+    return result.settings_rollback_succeeded and "succeeded" or "failed"
+end
+
+local function migration_conflict_count(result)
+    if type(result.conflict_paths) == "table" then
+        return #result.conflict_paths
+    end
+    return result.conflict_path and 1 or 0
+end
+
+local function log_migration_result(result)
+    if type(result) ~= "table" then return end
+    local status = result.status or "unknown"
+    if result.migration_result_logged_status == status then return end
+    if (status == "current" and not result.legacy_settings_snapshot_materialized)
+            or status == "development" or status == "unmanaged"
+            or status == "legacy_pending" then
+        return
+    end
+    result.migration_result_logged_status = status
+    local settings = type(result.settings) == "table" and result.settings or {}
+    local level = (result.restart or status == "settings_migrated"
+        or result.legacy_settings_snapshot_materialized)
+        and "info" or "warn"
+    log(level, "result",
+        "status=" .. status,
+        "plugin_dir=" .. diagnostic_value(result.plugin_dir),
+        "plugin_renamed=" .. diagnostic_value(result.plugin_renamed),
+        "settings_status=" .. diagnostic_value(settings.status),
+        "settings_renamed=" .. diagnostic_value(settings.renamed),
+        "settings_copied=" .. diagnostic_value(settings.copied),
+        "legacy_preserved="
+            .. diagnostic_value(result.legacy_settings_preserved),
+        "disabled_transferred="
+            .. diagnostic_value(result.disabled_state_transferred),
+        "disabled_saved=" .. diagnostic_value(result.disabled_state_saved),
+        "paths_saved=" .. diagnostic_value(result.persisted_paths_saved),
+        "files_rewritten="
+            .. diagnostic_value(result.persisted_files_changed),
+        "global_rewritten="
+            .. diagnostic_value(result.persisted_global_changed),
+        "rollback=" .. migration_rollback_status(result),
+        "snapshot=" .. migration_snapshot_status(result),
+        "conflicts=" .. migration_conflict_count(result),
+        "restart=" .. diagnostic_value(result.restart == true))
+end
+
 local function settings_parent_path(options)
     options = options or {}
     if options.settings_dir then return trim_trailing_slashes(options.settings_dir) end
@@ -232,9 +295,114 @@ local function source_root(main_source, lfs)
     return trim_trailing_slashes(root)
 end
 
--- Rename the complete settings tree before any LuaSettings file is opened.
--- On failure the legacy tree remains authoritative, so callers never create a
--- fresh configuration over an existing installation.
+local function remove_tree(path, lfs)
+    local mode = get_entry_mode(lfs, path)
+    if mode == "file" or mode == "link" then
+        pcall(os.remove, path)
+        return
+    end
+    if mode ~= "directory" then return end
+    local ok_dir, iterator, state = pcall(lfs.dir, path)
+    if ok_dir and type(iterator) == "function" then
+        for entry in iterator, state do
+            if entry ~= "." and entry ~= ".." then
+                remove_tree(join(path, entry), lfs)
+            end
+        end
+    end
+    pcall(lfs.rmdir, path)
+end
+
+local function copy_file(from_path, to_path, options)
+    if type(options.copy_file) == "function" then
+        return options.copy_file(from_path, to_path)
+    end
+    local source, source_err = io.open(from_path, "rb")
+    if not source then return false, source_err end
+    local destination, destination_err = io.open(to_path, "wb")
+    if not destination then
+        source:close()
+        return false, destination_err
+    end
+    local copied = true
+    local copy_err
+    while true do
+        local chunk = source:read(64 * 1024)
+        if not chunk then break end
+        local ok, err = destination:write(chunk)
+        if not ok then
+            copied = false
+            copy_err = err
+            break
+        end
+    end
+    source:close()
+    local closed, close_err = destination:close()
+    if not closed then
+        copied = false
+        copy_err = copy_err or close_err
+    end
+    return copied, copy_err
+end
+
+local function copy_tree(from_path, to_path, lfs, options, follow_root_link)
+    local mode = get_entry_mode(lfs, from_path)
+    if mode == "link" and follow_root_link
+            and get_mode(lfs, from_path) == "directory" then
+        mode = "directory"
+    end
+    if mode == "file" then return copy_file(from_path, to_path, options) end
+    if mode == "link" then
+        if type(lfs.link) ~= "function"
+                or type(lfs.symlinkattributes) ~= "function" then
+            return false, "symlink copy unavailable"
+        end
+        local ok_target, target = pcall(
+            lfs.symlinkattributes, from_path, "target")
+        if not ok_target or type(target) ~= "string" or target == "" then
+            return false, "symlink target unavailable"
+        end
+        local ok_link, linked = pcall(lfs.link, target, to_path, true)
+        return ok_link and linked == true,
+            ok_link and "could not copy symlink" or linked
+    end
+    if mode ~= "directory" then return false, "unsupported settings entry" end
+    local created = lfs.mkdir(to_path) == true
+        or get_entry_mode(lfs, to_path) == "directory"
+    if not created then return false, "could not create settings directory" end
+    local ok_dir, iterator, state = pcall(lfs.dir, from_path)
+    if not ok_dir or type(iterator) ~= "function" then
+        return false, iterator
+    end
+    for entry in iterator, state do
+        if entry ~= "." and entry ~= ".." then
+            local copied, err = copy_tree(join(from_path, entry),
+                join(to_path, entry), lfs, options, false)
+            if not copied then return false, err end
+        end
+    end
+    return true
+end
+
+local function preserved_legacy_marker_path(root)
+    return join(root, PRESERVED_LEGACY_MARKER)
+end
+
+local function has_preserved_legacy_marker(lfs, root)
+    return get_mode(lfs, preserved_legacy_marker_path(root)) == "file"
+end
+
+local function mark_legacy_settings_preserved(root)
+    local file = io.open(preserved_legacy_marker_path(root), "wb")
+    if not file then return false end
+    local written = file:write("v1\n")
+    local closed = file:close()
+    return written ~= nil and closed ~= nil
+end
+
+-- Copy the complete settings tree before any LuaSettings file is opened.
+-- The untouched Zen UI tree remains a rollback snapshot; only the ZenOS copy
+-- is migrated.
 function M.prepareSettings(settings_parent, options)
     options = options or {}
     local lfs = get_lfs(options)
@@ -297,6 +465,15 @@ function M.prepareSettings(settings_parent, options)
             end
         end
         if root_is_directory then
+            if has_preserved_legacy_marker(lfs, root) then
+                return {
+                    ok = true,
+                    status = "current",
+                    root = root,
+                    legacy_root = legacy_root,
+                    legacy_preserved = true,
+                }
+            end
             return {
                 ok = false,
                 status = "settings_conflict",
@@ -314,53 +491,25 @@ function M.prepareSettings(settings_parent, options)
         }
     end
 
-    local renamed, err = rename_path(legacy_root, root, options)
-    if renamed then
+    local copied, err = copy_tree(legacy_root, root, lfs, options, true)
+    if copied and mark_legacy_settings_preserved(root) then
         return {
             ok = true,
             status = "migrated",
             root = root,
             legacy_root = legacy_root,
-            renamed = true,
+            copied = true,
+            legacy_preserved = true,
         }
     end
-
-    -- A concurrent or interrupted attempt may have completed the same rename.
-    legacy_mode = get_entry_mode(lfs, legacy_root)
-    root_mode = get_entry_mode(lfs, root)
-    if not legacy_mode and is_directory_entry(lfs, root, root_mode) then
-        return {
-            ok = true,
-            status = "current",
-            root = root,
-            legacy_root = legacy_root,
-        }
-    end
+    remove_tree(root, lfs)
     return {
         ok = false,
-        status = "settings_rename_failed",
+        status = "settings_copy_failed",
         root = legacy_root,
         legacy_root = legacy_root,
         error = err,
     }
-end
-
-local function remove_tree(path, lfs)
-    local mode = get_entry_mode(lfs, path)
-    if mode == "file" or mode == "link" then
-        pcall(os.remove, path)
-        return
-    end
-    if mode ~= "directory" then return end
-    local ok_dir, iterator, state = pcall(lfs.dir, path)
-    if ok_dir and type(iterator) == "function" then
-        for entry in iterator, state do
-            if entry ~= "." and entry ~= ".." then
-                remove_tree(join(path, entry), lfs)
-            end
-        end
-    end
-    pcall(lfs.rmdir, path)
 end
 
 function M.removeSettings(options)
@@ -371,27 +520,6 @@ function M.removeSettings(options)
     remove_tree(join(settings_parent, M.SETTINGS_DIR), lfs)
     remove_tree(join(settings_parent, M.LEGACY_SETTINGS_DIR), lfs)
     return true
-end
-
--- Best-effort downgrade bridge; removeSettings unlinks it without following it.
-function M.ensureLegacySettingsAlias(settings_parent, options)
-    options = options or {}
-    local lfs = get_lfs(options)
-    settings_parent = trim_trailing_slashes(settings_parent)
-    if not lfs or not settings_parent then return false, false end
-    local legacy_root = join(settings_parent, M.LEGACY_SETTINGS_DIR)
-    local root = join(settings_parent, M.SETTINGS_DIR)
-    if is_exact_settings_alias(lfs, legacy_root, root) then return true, false end
-    if get_entry_mode(lfs, legacy_root) ~= nil
-            or not is_directory_entry(lfs, root)
-            or type(lfs.link) ~= "function" then
-        return false, false
-    end
-    local ok, linked = pcall(lfs.link, M.SETTINGS_DIR, legacy_root, true)
-    if not ok or not linked or not is_exact_settings_alias(lfs, legacy_root, root) then
-        return false, false
-    end
-    return true, true
 end
 
 local function rewrite_string(value, old_root, new_root, replacements)
@@ -775,8 +903,10 @@ local function rewrite_settings_files(settings_root, old_root, new_root, options
                 local changed = ok_open and type(settings) == "table"
                     and type(settings.data) == "table"
                     and M.rewriteTablePaths(
-                        settings.data, old_root, new_root) or false
-                if filename == "reader.lua" and ok_open
+                        settings.data, old_root, new_root,
+                        options.path_replacements) or false
+                if options.rewrite_brand_values ~= false
+                        and filename == "reader.lua" and ok_open
                         and type(settings) == "table" then
                     local reader_changed, is_builtin_active =
                         rewrite_reader_builtins(settings.data)
@@ -805,6 +935,87 @@ local function rewrite_settings_files(settings_root, old_root, new_root, options
     end
     return changed_count, reader_builtin_active,
         reader_backup_builtin_active, saved
+end
+
+local function legacy_snapshot_replacements(current_root)
+    local replacements = {}
+    for _i, filename in ipairs({
+        "Hyperreadable-Bold.ttf",
+        "Hyperreadable-Italic.ttf",
+        "Hyperreadable-Regular.ttf",
+        "Hyperreadable-SemiBold.ttf",
+    }) do
+        replacements[join(current_root, "fonts/hyperreadable/" .. filename)] =
+            "default"
+    end
+    return replacements
+end
+
+function M.ensureLegacySettingsSnapshot(settings_parent, legacy_plugin_root,
+        current_plugin_root, options)
+    options = options or {}
+    local lfs = get_lfs(options)
+    settings_parent = trim_trailing_slashes(settings_parent)
+    if not lfs or not settings_parent then return false, false, "unavailable" end
+
+    local legacy_root = join(settings_parent, M.LEGACY_SETTINGS_DIR)
+    local root = join(settings_parent, M.SETTINGS_DIR)
+    local legacy_mode = get_entry_mode(lfs, legacy_root)
+    if legacy_mode == "directory"
+            or (legacy_mode == "link"
+                and not is_exact_settings_alias(lfs, legacy_root, root)) then
+        if not has_preserved_legacy_marker(lfs, root)
+                and not mark_legacy_settings_preserved(root) then
+            return false, false, "marker_failed"
+        end
+        return true, false, "preserved"
+    end
+    if legacy_mode == nil then return true, false, "absent" end
+    if not is_exact_settings_alias(lfs, legacy_root, root) then
+        return false, false, "legacy_settings_invalid"
+    end
+
+    local temp_root = join(settings_parent, M.LEGACY_SETTINGS_DIR
+        .. ".zenos-snapshot-tmp")
+    if get_entry_mode(lfs, temp_root) ~= nil then remove_tree(temp_root, lfs) end
+    local copied, copy_err = copy_tree(root, temp_root, lfs, options, true)
+    if not copied then
+        remove_tree(temp_root, lfs)
+        return false, false, copy_err or "copy_failed"
+    end
+
+    local rewrite_options = {}
+    for key, value in pairs(options) do rewrite_options[key] = value end
+    rewrite_options.path_replacements =
+        legacy_snapshot_replacements(current_plugin_root)
+    rewrite_options.rewrite_brand_values = false
+    local saved = select(4, rewrite_settings_files(temp_root,
+        current_plugin_root, legacy_plugin_root, rewrite_options))
+    if not saved then
+        remove_tree(temp_root, lfs)
+        return false, false, "rewrite_failed"
+    end
+    pcall(os.remove, preserved_legacy_marker_path(temp_root))
+    if not has_preserved_legacy_marker(lfs, root)
+            and not mark_legacy_settings_preserved(root) then
+        remove_tree(temp_root, lfs)
+        return false, false, "marker_failed"
+    end
+
+    if not pcall(os.remove, legacy_root)
+            or get_entry_mode(lfs, legacy_root) ~= nil then
+        remove_tree(temp_root, lfs)
+        return false, false, "alias_remove_failed"
+    end
+    local renamed, rename_err = rename_path(temp_root, legacy_root, options)
+    if not renamed then
+        if type(lfs.link) == "function" then
+            pcall(lfs.link, M.SETTINGS_DIR, legacy_root, true)
+        end
+        remove_tree(temp_root, lfs)
+        return false, false, rename_err or "snapshot_activate_failed"
+    end
+    return true, true, "materialized"
 end
 
 local function rewrite_global_backup(g_settings, old_root, new_root,
@@ -1074,10 +1285,30 @@ local function as_state_save_failure(result, disabled_saved, paths_saved)
     return result
 end
 
-local function add_legacy_settings_alias(result, settings_parent, options)
-    local aliased, created = M.ensureLegacySettingsAlias(settings_parent, options)
-    result.legacy_settings_alias = aliased
-    result.legacy_settings_alias_created = created
+local function as_snapshot_failure(result)
+    result.proceed = false
+    result.inert = true
+    result.pending = nil
+    result.restart = nil
+    result.status = "settings_snapshot_failed"
+    log("warn", "legacy settings snapshot could not be saved:",
+        result.legacy_settings_snapshot_status or "unknown")
+    return result
+end
+
+local function preserve_legacy_settings_snapshot(result, settings_parent,
+        legacy_root, new_root, options)
+    result.snapshot_attempted = true
+    local saved, materialized, status = M.ensureLegacySettingsSnapshot(
+        settings_parent, legacy_root, new_root, options)
+    result.legacy_settings_snapshot_saved = saved
+    result.legacy_settings_snapshot_materialized = materialized
+    result.legacy_settings_preserved = status == "preserved"
+        or status == "materialized"
+    result.legacy_settings_snapshot_created = result.settings
+        and result.settings.copied == true
+    result.legacy_settings_snapshot_status = status
+    return saved
 end
 
 function M.startup(main_source, options)
@@ -1163,15 +1394,26 @@ function M.startup(main_source, options)
     if g_settings == nil then g_settings = rawget(_G, "G_reader_settings") end
 
     if plugin_dir == M.LEGACY_PLUGIN_DIR then
+        result.plugin_renamed = false
         local renamed, err = rename_path(legacy_root, new_root, options)
         if not renamed then
             local rename_completed = get_entry_mode(lfs, legacy_root) == nil
                 and is_directory_entry(lfs, new_root)
             if not rename_completed then
                 local rollback_error
-                if settings.renamed then
+                if settings.copied then
+                    result.settings_rollback_attempted = true
+                    remove_tree(settings.root, lfs)
+                    result.settings_rollback_succeeded =
+                        get_entry_mode(lfs, settings.root) == nil
+                    if not result.settings_rollback_succeeded then
+                        rollback_error = "could not remove copied settings"
+                    end
+                elseif settings.renamed then
                     local rolled_back, rollback_err = rename_path(
                         settings.root, settings.legacy_root, options)
+                    result.settings_rollback_attempted = true
+                    result.settings_rollback_succeeded = rolled_back == true
                     if not rolled_back then rollback_error = rollback_err end
                 end
                 result.proceed = false
@@ -1185,18 +1427,29 @@ function M.startup(main_source, options)
                 return result
             end
         end
-        local disabled_saved = select(3, transfer_disabled_key(g_settings))
-        local paths_saved = select(3,
+        result.plugin_renamed = true
+        local disabled_result = { transfer_disabled_key(g_settings) }
+        local disabled_transferred = disabled_result[1]
+        local disabled_saved = disabled_result[3]
+        result.disabled_state_transferred = disabled_transferred
+        result.disabled_state_saved = disabled_saved
+        local global_changed, files_changed, paths_saved =
             M.rewritePersistedPaths(settings.root, legacy_root, new_root, {
                 force = true,
                 g_settings = g_settings,
                 lfs = lfs,
                 lua_settings = options.lua_settings,
-        }))
+        })
+        result.persisted_global_changed = global_changed
+        result.persisted_files_changed = files_changed
+        result.persisted_paths_saved = paths_saved
         if not disabled_saved or not paths_saved then
             return as_state_save_failure(result, disabled_saved, paths_saved)
         end
-        add_legacy_settings_alias(result, settings_parent, options)
+        if not preserve_legacy_settings_snapshot(
+                result, settings_parent, legacy_root, new_root, options) then
+            return as_snapshot_failure(result)
+        end
         result.proceed = false
         result.inert = true
         result.restart = true
@@ -1208,17 +1461,24 @@ function M.startup(main_source, options)
     local disabled_transferred, disabled, disabled_saved =
         transfer_disabled_key(g_settings)
     result.disabled_state_transferred = disabled_transferred
-    local paths_saved = select(3,
+    result.disabled_state_saved = disabled_saved
+    local global_changed, files_changed, paths_saved =
         M.rewritePersistedPaths(settings.root, legacy_root, new_root, {
             force = settings.status == "migrated",
             g_settings = g_settings,
             lfs = lfs,
             lua_settings = options.lua_settings,
-    }))
+    })
+    result.persisted_global_changed = global_changed
+    result.persisted_files_changed = files_changed
+    result.persisted_paths_saved = paths_saved
     if not disabled_saved or not paths_saved then
         return as_state_save_failure(result, disabled_saved, paths_saved)
     end
-    add_legacy_settings_alias(result, settings_parent, options)
+    if not preserve_legacy_settings_snapshot(
+            result, settings_parent, legacy_root, new_root, options) then
+        return as_snapshot_failure(result)
+    end
     result.status = settings.status == "migrated"
         and "settings_migrated" or "current"
     if disabled then
@@ -1239,7 +1499,9 @@ end
 function M.detectStartup(main_source, options)
     local detection_options = copy_options(options)
     detection_options.defer_legacy = true
-    return M.startup(main_source, detection_options)
+    local result = M.startup(main_source, detection_options)
+    if not result.pending then log_migration_result(result) end
+    return result
 end
 
 function M.performPending(result, options)
@@ -1249,7 +1511,9 @@ function M.performPending(result, options)
     perform_options.defer_legacy = false
     perform_options.plugin_root = result.source_plugin_root
     perform_options.settings_dir = result.settings_parent
-    return M.startup(nil, perform_options)
+    local completed = M.startup(nil, perform_options)
+    log_migration_result(completed)
+    return completed
 end
 
 local function notice_text(result)
@@ -1274,6 +1538,11 @@ local function notice_text(result)
             .. "storage and folder permissions, then restart KOReader to retry. "
             .. "Existing files were kept."
     end
+    if result.status == "settings_snapshot_failed" then
+        return "ZenOS could not preserve the Zen UI settings snapshot. Check "
+            .. "available storage and folder permissions, then restart KOReader "
+            .. "to retry. Existing files were kept."
+    end
     return "ZenOS could not finish migrating. Check available storage and "
         .. "folder permissions, then restart KOReader to retry. Existing files "
         .. "were kept."
@@ -1281,6 +1550,7 @@ end
 
 function M.notify(result)
     if type(result) ~= "table" or not result.inert then return end
+    log_migration_result(result)
     if rawget(_G, "__ZENOS_BRAND_MIGRATION_NOTICE") then return end
     _G.__ZENOS_BRAND_MIGRATION_NOTICE = true
 

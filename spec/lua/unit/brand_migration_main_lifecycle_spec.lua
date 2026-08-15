@@ -195,8 +195,9 @@ describe("ZenOS legacy main lifecycle", function()
 
         assert.are.same({}, normal_loads)
         assert.is_nil(lfs.attributes(legacy_plugin, "mode"))
-        assert.are.equal("link", lfs.symlinkattributes(legacy_settings, "mode"))
-        assert.are.equal("ZenOS", lfs.symlinkattributes(legacy_settings, "target"))
+        assert.are.equal("directory", lfs.symlinkattributes(legacy_settings, "mode"))
+        assert.are.equal("file", lfs.attributes(
+            join(legacy_settings, "unknown.txt"), "mode"))
         assert.are.equal("directory", lfs.attributes(current_plugin, "mode"))
         assert.are.equal("directory", lfs.attributes(current_settings, "mode"))
         assert.are.equal("file", lfs.attributes(

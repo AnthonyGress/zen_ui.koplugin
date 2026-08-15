@@ -154,6 +154,11 @@ The migration performs two automatic restarts. If Zen UI is disabled, enable
 it once so its migration can run. Do not manually install `zenos.koplugin`
 beside an existing `zen_ui.koplugin` directory.
 
+The upgrade keeps `settings/Zen UI` as an unchanged rollback snapshot and
+migrates a separate copy in `settings/ZenOS`. Downgrading to an older Zen UI
+build therefore restores the settings as they were immediately before the
+ZenOS upgrade; changes made later in ZenOS are intentionally not copied back.
+
 For a fresh installation:
 
 1. Go to the [Releases](https://github.com/AnthonyGress/zen_ui.koplugin/releases) page and download `zenos.koplugin.zip` from the latest release.

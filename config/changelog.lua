@@ -227,6 +227,7 @@ return {
     },
     ["3.0.0"] = {
         "IMPORTANT: Zen UI is now ZenOS! Update from within Zen UI or update ZenPM BEFORE updating Zen UI",
+        "WARNING: This beta is testing the migration to ZenOS and may be unstable, it is recommended to wait until ZenOS stable release",
         "Existing installations and settings migrate automatically",
         "Major performance improvements",
         "New Settings page",

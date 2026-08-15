@@ -171,15 +171,27 @@ def test_disabled_legacy_plugin_enables_migrates_and_restarts_twice() -> None:
         assert not legacy_plugin.exists()
         assert canonical_plugin.is_dir()
         assert canonical_settings.is_dir()
-        assert legacy_settings.is_symlink()
-        assert os.readlink(legacy_settings) == "ZenOS"
-        assert legacy_settings.resolve() == canonical_settings.resolve()
+        assert legacy_settings.is_dir()
+        assert not legacy_settings.is_symlink()
         assert canonical_settings.joinpath("unknown.txt").read_text(encoding="utf-8") == (
             "preserve unknown files\n"
         )
+        assert legacy_settings.joinpath("unknown.txt").read_text(encoding="utf-8") == (
+            "preserve unknown files\n"
+        )
+        legacy_config = legacy_settings.joinpath("config.lua").read_text(encoding="utf-8")
+        canonical_config = canonical_settings.joinpath("config.lua").read_text(
+            encoding="utf-8"
+        )
+        assert str(legacy_plugin / "fonts" / "hyperreadable") in legacy_config
+        assert str(canonical_plugin / "fonts" / "hyperreadable") not in legacy_config
+        assert str(canonical_plugin / "fonts" / "hyperreadable") in canonical_config
         migrated_reader = canonical_settings.joinpath("reader.lua").read_text(encoding="utf-8")
         assert "(ZenOS) Chapter Time + %" in migrated_reader
         assert "(Zen UI) Chapter Time + %" not in migrated_reader
+        legacy_reader = legacy_settings.joinpath("reader.lua").read_text(encoding="utf-8")
+        assert "(Zen UI) Chapter Time + %" in legacy_reader
+        assert "(ZenOS) Chapter Time + %" not in legacy_reader
 
         socket_path.unlink(missing_ok=True)
         final_boot = launch(
