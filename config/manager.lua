@@ -4,12 +4,12 @@ local PresetStore = require("config/preset_store")
 local HomeQuotes = require("modules/filebrowser/patches/home/home_quotes")
 local utils = require("common/utils")
 local FontLanguage = require("common/font_language")
+local LibraryFontPath = require("common/library_font_path")
 local plugin_root = require("common/plugin_root") or ""
 local BrandMigration = require("common/brand_migration")
 
 local LEGACY_KEY = "zen_ui_config"  -- legacy G_reader_settings key; cleanup only
-local HYPERREADABLE_LIBRARY_FONT = plugin_root
-    .. "/fonts/hyperreadable/Hyperreadable-Regular.ttf"
+local HYPERREADABLE_LIBRARY_FONT = LibraryFontPath.BUNDLED_DEFAULT
 
 local _zen_settings_file = nil  -- cached LuaSettings instance
 local _current_config    = nil  -- in-memory cache for M.get()
@@ -969,6 +969,14 @@ local function migrate_changed_defaults(cfg)
         end
         cfg._meta.library_font_hyperreadable_default_migrated = true
         changed = true
+    end
+    if type(cfg.library_font) == "table" then
+        local font_face = cfg.library_font.font_face
+        local portable_face = LibraryFontPath.toConfig(font_face)
+        if portable_face ~= font_face then
+            cfg.library_font.font_face = portable_face
+            changed = true
+        end
     end
     if type(cfg.library_font) == "table"
             and not FontLanguage.supportsBundledFonts()

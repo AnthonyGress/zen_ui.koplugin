@@ -705,8 +705,7 @@ return {
         if type(lfs.link) ~= "function" then return pending("lfs.link unavailable") end
         local current_plugin = mkdir(path(plugins_dir, "zenos.koplugin"))
         local current_settings = mkdir(path(settings_dir, "ZenOS"))
-        local current_font = current_plugin
-            .. "/fonts/hyperreadable/Hyperreadable-Regular.ttf"
+        local current_font = "fonts/hyperreadable/Hyperreadable-Regular.ttf"
         write_file(path(current_settings, "config.lua"), string.format(
             "return { _meta = { zenos_brand_migration_v1 = true }, "
                 .. "library_font = { font_face = %q } }", current_font))

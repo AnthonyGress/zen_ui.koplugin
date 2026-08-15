@@ -211,8 +211,8 @@ def test_disabled_legacy_plugin_enables_migrates_and_restarts_twice() -> None:
             assert state["marker"] is True
             assert state["fixture"] == "config-preserved"
             assert state["update_channel"] == "beta"
-            assert state["library_font"] == str(
-                canonical_plugin / "fonts" / "hyperreadable" / "Hyperreadable-Regular.ttf"
+            assert state["library_font"] == (
+                "fonts/hyperreadable/Hyperreadable-Regular.ttf"
             )
             assert state["custom_button_label"] == "Migration fixture"
             assert state["custom_button_icon"] == "zen_ui"

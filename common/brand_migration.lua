@@ -945,8 +945,9 @@ local function legacy_snapshot_replacements(current_root)
         "Hyperreadable-Regular.ttf",
         "Hyperreadable-SemiBold.ttf",
     }) do
-        replacements[join(current_root, "fonts/hyperreadable/" .. filename)] =
-            "default"
+        local relative_path = "fonts/hyperreadable/" .. filename
+        replacements[join(current_root, relative_path)] = "default"
+        replacements[relative_path] = "default"
     end
     return replacements
 end

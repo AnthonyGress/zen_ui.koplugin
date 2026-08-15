@@ -43,7 +43,10 @@ if [[ "$TARGET" == "nightly" ]]; then
     if [[ ! "$version" =~ ^v[0-9]{4}\.[0-9]{2}([.-]|$) ]]; then
       # Shallow nightly clones may not include a release tag.
       commit_date="$(git log -1 --format=%cs HEAD)"
-      git -c tag.gpgSign=false tag --annotate --force \
+      git -c tag.gpgSign=false \
+        -c user.name="Zen UI CI" \
+        -c user.email="zen-ui-ci@invalid" \
+        tag --annotate --force \
         --message "Nightly test build" \
         "v${commit_date:0:4}.${commit_date:5:2}" HEAD
     fi

@@ -1,5 +1,7 @@
 local Font = require("ui/font")
 local logger = require("common/zen_logger").new("library_font")
+local defaults = require("config/defaults")
+local LibraryFontPath = require("common/library_font_path")
 
 local M = {}
 
@@ -7,6 +9,44 @@ local DEFAULT_FACE = "cfont"
 local DEFAULT_BASE_SIZE = 18
 local checked_face
 local resolved_face
+
+local function persist_cfg(cfg)
+    local ok_manager, ConfigManager = pcall(require, "config/manager")
+    if not ok_manager or type(ConfigManager.get) ~= "function"
+            or type(ConfigManager.save) ~= "function" then
+        return
+    end
+    local config = ConfigManager.get()
+    if type(config) == "table" and config.library_font == cfg then
+        local ok_save, err = pcall(ConfigManager.save, config)
+        if not ok_save then logger.warn("failed to persist library font fallback", err) end
+    end
+end
+
+local function probe(font_face)
+    local resolved = LibraryFontPath.resolve(font_face)
+    local ok, loaded_face = pcall(Font.getFace, Font, resolved, DEFAULT_BASE_SIZE)
+    return ok and loaded_face ~= nil, resolved
+end
+
+local function restore_default(cfg)
+    local default_face = defaults.library_font.font_face
+    local fallback_face = DEFAULT_FACE
+    if default_face ~= "default" and default_face ~= DEFAULT_FACE then
+        local available, resolved = probe(default_face)
+        if available then
+            fallback_face = resolved
+        else
+            logger.warn("default library font unavailable; using KOReader default", resolved)
+            default_face = "default"
+        end
+    end
+    if cfg then
+        cfg.font_face = default_face
+        persist_cfg(cfg)
+    end
+    return default_face, fallback_face
+end
 
 local function get_cfg()
     local cached = rawget(_G, "__ZEN_UI_LIBRARY_FONT_CFG")
@@ -56,11 +96,13 @@ function M.getFontName()
         return DEFAULT_FACE
     end
     if face ~= checked_face then
-        local ok, loaded_face = pcall(Font.getFace, Font, face, DEFAULT_BASE_SIZE)
-        checked_face = face
-        resolved_face = ok and loaded_face and face or DEFAULT_FACE
-        if resolved_face == DEFAULT_FACE then
+        local available, candidate = probe(face)
+        if available then
+            checked_face = face
+            resolved_face = candidate
+        else
             logger.warn("configured library font unavailable; using default", face)
+            checked_face, resolved_face = restore_default(cfg)
         end
     end
     return resolved_face
