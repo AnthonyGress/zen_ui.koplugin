@@ -2168,6 +2168,19 @@ local function compute_row_heights(rows, body_h, row_gap, capacity, width, modul
             max_heights[math.floor((row_count + 1) / 2)] = nil
         end
     end
+    local has_flexible_row = false
+    for i = 1, row_count do
+        if not max_heights[i] then has_flexible_row = true; break end
+    end
+    if row_count ~= 2 or not has_flexible_row then
+        for i, comp in ipairs(rows) do
+            if comp.id == "stats_triplet" then
+                -- Only a two-row flexible layout can give all stats slack to its other row.
+                max_heights[i] = nil
+                break
+            end
+        end
+    end
     local heights = Registry.gridHeights(
         unit_counts, body_h, row_gap, capacity, max_heights)
     for i, height in ipairs(heights) do

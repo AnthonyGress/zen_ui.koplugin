@@ -487,6 +487,7 @@ local function home_state()
     local visible_texts = {}
     if menu then collect_texts(menu, visible_texts, {}, 0) end
     local widget_ids = {}
+    local widget_heights = {}
     local quote_content_bounds
     local book_paths = {}
     local strip_bottom
@@ -496,6 +497,7 @@ local function home_state()
         local book_path = key:match("^book:(.+)$")
         if widget_id then
             widget_ids[#widget_ids + 1] = widget_id
+            widget_heights[widget_id] = target.height
             if widget_id == "quotes" then
                 quote_content_bounds = find_quote_content_bounds(target.widget, {}, 0)
             end
@@ -514,6 +516,7 @@ local function home_state()
         active_tab_label = rawget(_G, "__ZEN_UI_ACTIVE_TAB_LABEL"),
         menu_name = menu and menu.name or nil,
         widget_ids = widget_ids,
+        widget_heights = widget_heights,
         quote_content_bounds = quote_content_bounds,
         book_paths = book_paths,
         page_padding = menu and menu._zen_home_page_padding or 0,

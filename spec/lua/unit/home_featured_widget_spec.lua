@@ -26,7 +26,6 @@ describe("home featured widget", function()
                 values.getSize = values.getSize or function(self) return self.dimen end
                 values.free = values.free or function(self) self.freed = true end
                 if kind == "ui/widget/textboxwidget" and description_split
-                        and not description_split.used
                         and values.text == description_split.text
                         and values.width == description_split.width
                         and values.height
@@ -34,19 +33,20 @@ describe("home featured widget", function()
                     description_split.used = true
                     description_split.probe_line_height = values.line_height
                     description_split.probe_height = values.height
-                    if description_split.fits_at_height
-                            and values.height >= description_split.fits_at_height then
-                        values.lines_per_page = 1
-                        values.vertical_string_list = {
-                            { offset = 1, end_offset = #values.text },
-                        }
-                    else
-                        values.lines_per_page = 1
-                        values.vertical_string_list = {
-                            { offset = 1, end_offset = description_split.upper_end },
-                            { offset = description_split.lower_start, end_offset = #values.text },
-                        }
+                    description_split.probe_heights = description_split.probe_heights or {}
+                    table.insert(description_split.probe_heights, values.height)
+                    local upper_end = description_split.upper_end
+                    local lower_start = description_split.lower_start
+                    if description_split.min_height
+                            and values.height < description_split.min_height then
+                        upper_end = description_split.short_upper_end
+                        lower_start = description_split.short_lower_start
                     end
+                    values.lines_per_page = 1
+                    values.vertical_string_list = {
+                        { offset = 1, end_offset = upper_end },
+                        { offset = lower_start, end_offset = #values.text },
+                    }
                 end
                 created[#created + 1] = values
                 return values
@@ -307,7 +307,9 @@ describe("home featured widget", function()
         description_split = {
             text = description,
             width = 342,
-            fits_at_height = 300,
+            min_height = 317,
+            short_upper_end = 10,
+            short_lower_start = 12,
             upper_end = 31,
             lower_start = 32,
         }
@@ -343,9 +345,10 @@ describe("home featured widget", function()
         assert.is_table(top_row)
         assert.is_true(description_split.used)
         assert.is_nil(description_split.probe_line_height)
-        assert.are.equal(294, description_split.probe_height)
+        assert.are.same({ 294, 317 }, description_split.probe_heights)
         assert.are.equal(342, text_widget("Upper text fascinating science.").width)
         assert.are.equal(584, text_widget("Lower continuation fills the remaining width.").width)
+        assert.are.equal(215, text_widget("Lower continuation fills the remaining width.").height)
         assert.are.equal(490, progress_bar_width("25%", "120 pages"))
     end)
 

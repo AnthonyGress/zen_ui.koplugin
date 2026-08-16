@@ -242,6 +242,65 @@ def test_two_row_strip_offsets_its_bottom_anchor_by_the_home_row_gap() -> None:
             process.wait(timeout=15)
 
 
+def test_wrapped_featured_absorbs_space_above_compact_stats() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-home-wrapped-featured-") as temporary:
+        root = Path(temporary)
+        ko_home = root / "home"
+        ko_home.mkdir()
+        library = root / "library"
+        fixture = build_library(library)
+        _seed_home_settings(ko_home)
+        settings_path = ko_home / "settings" / "ZenOS" / "home.lua"
+        settings_source = settings_path.read_text(encoding="utf-8")
+        settings_source = settings_source.replace(
+            'order = { "featured", "strip", "quotes", "reading_goals", "stats_triplet" },',
+            'order = { "featured", "stats_triplet" },',
+        ).replace(
+            "featured = true, strip = true, quotes = true,\n"
+            "        reading_goals = true, stats_triplet = true,",
+            "featured = true, strip = false, quotes = false,\n"
+            "        reading_goals = false, stats_triplet = true,",
+        ).replace(
+            "interactive = true, show_description = true,",
+            "interactive = true, show_description = true,\n"
+            "        wrap_description_text = true,",
+        )
+        settings_path.write_text(settings_source, encoding="utf-8")
+        _seed_bookinfo(
+            ko_home,
+            fixture["epub"],
+            "A long description that should claim all space not needed by stats. " * 30,
+        )
+        _seed_history(ko_home, fixture["epub"])
+        socket_path = root / "driver.sock"
+        process = launch(
+            runtime,
+            ko_home,
+            socket_path,
+            library.resolve(),
+            env_overrides={
+                "EMULATE_READER_W": "600",
+                "EMULATE_READER_H": "800",
+            },
+        )
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            assert driver.command("activate_navbar_tab", id="home")["ok"] is True
+            home = _wait_for_home(
+                driver,
+                required_texts={"Alpha Home"},
+                minimum_widget_count=2,
+            )
+            assert home["widget_ids"] == ["featured", "stats_triplet"]
+            heights = home["widget_heights"]
+            assert int(heights["featured"]) > int(heights["stats_triplet"]) * 6, home
+        finally:
+            process.send_signal(signal.SIGTERM)
+            process.wait(timeout=15)
+
+
 @pytest.mark.parametrize(
     ("middle_widget", "last_widget", "wrap_description"),
     [

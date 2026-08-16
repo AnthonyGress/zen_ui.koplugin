@@ -87,10 +87,34 @@ local function configured_font_size(ctx)
         tonumber(module_cfg.font_size) or tonumber(config.font_size) or 18))
 end
 
+local function preferred_height(ctx)
+    ctx = type(ctx) == "table" and ctx or {}
+    local Screen = Device.screen
+    local font_size = configured_font_size(ctx)
+    local value_probe = TextWidget:new{
+        text = "A",
+        face = Font:getFace("smallinfofont", Screen:scaleBySize(font_size)),
+        bold = true,
+    }
+    local label_probe = TextWidget:new{
+        text = "A",
+        face = Font:getFace("smallinfofont", Screen:scaleBySize(
+            math.max(6, math.floor(font_size * 0.6)))),
+    }
+    local value_h = value_probe:getSize().h or 1
+    local label_h = label_probe:getSize().h or 1
+    WidgetResources.free(value_probe)
+    WidgetResources.free(label_probe)
+    local content_h = value_h - math.floor(value_h * 0.18) + 1 + label_h
+    local border_size = ctx.module_cfg and ctx.module_cfg.stat_style == "outline" and 2 or 0
+    return math.max(20, content_h + 12 + border_size * 2)
+end
+
 return {
     id = "stats_triplet",
     label = _("Reading stats"),
     size = "xs",
+    preferredHeight = preferred_height,
     build = function(ctx)
         local outer_width = ctx.width
         local height = ctx.height

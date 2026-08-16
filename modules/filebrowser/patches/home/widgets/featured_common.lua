@@ -484,21 +484,34 @@ function M.build(ctx, source_key)
     local flow_upper_text, flow_lower_text = "", ""
     local side_desc_h = 0
     local lower_room = col_h - cover_h - bottom_h
+    -- Detect overflow in the compact layout, then reflow into the freed progress space.
     if module_cfg.wrap_description_text == true
             and show_description and desc_text ~= ""
-            and lower_room >= desc_line_h + v_pad * 2 then
-        local side_available = math.max(
+            and lower_room >= desc_line_h then
+        local compact_side_available = math.max(
             0, cover_h - actual_top_h - bottom_h - v_pad * 2)
-        side_desc_h = math.floor(side_available / desc_line_h) * desc_line_h
-        if side_desc_h > 0 then
-            flow_upper_text, flow_lower_text = split_text_for_box(
+        local compact_side_desc_h =
+            math.floor(compact_side_available / desc_line_h) * desc_line_h
+        local overflow_text = desc_text
+        if compact_side_desc_h > 0 then
+            flow_upper_text, overflow_text = split_text_for_box(
                 desc_text, desc_face, description_style.bold == true,
-                text_w, side_desc_h)
-        else
-            flow_lower_text = desc_text
+                text_w, compact_side_desc_h)
         end
-        flow_lower_text = flow_lower_text:gsub("^%s+", "")
-        flow_description = flow_lower_text ~= ""
+        flow_description = overflow_text:gsub("^%s+", "") ~= ""
+        if flow_description then
+            local side_available = math.max(
+                0, cover_h - actual_top_h - v_pad)
+            side_desc_h = math.floor(side_available / desc_line_h) * desc_line_h
+            if side_desc_h > 0 then
+                flow_upper_text, flow_lower_text = split_text_for_box(
+                    desc_text, desc_face, description_style.bold == true,
+                    text_w, side_desc_h)
+            else
+                flow_lower_text = desc_text
+            end
+            flow_lower_text = flow_lower_text:gsub("^%s+", "")
+        end
     end
     local progress_w = flow_description and width or text_w
     local progress_row = build_progress_row(progress_w)
@@ -524,8 +537,7 @@ function M.build(ctx, source_key)
     if flow_description then
         local upper_desc_h = side_desc_h
         local lower_slot_h = math.max(0, col_h - cover_h - actual_bottom_h)
-        local lower_available = math.max(0, lower_slot_h - v_pad * 2)
-        local lower_desc_h = math.floor(lower_available / desc_line_h) * desc_line_h
+        local lower_desc_h = lower_slot_h
         local upper_text, lower_text = flow_upper_text, flow_lower_text
 
         local side_children = { align = "left" }
@@ -565,8 +577,7 @@ function M.build(ctx, source_key)
         if lower_text ~= "" and lower_desc_h > 0 then
             local lower_desc = description_widget(
                 lower_text, width, lower_desc_h, true)
-            local after = math.max(0, lower_slot_h - v_pad - lower_desc:getSize().h)
-            table.insert(flow_children, VerticalSpan:new{ width = v_pad })
+            local after = math.max(0, lower_slot_h - lower_desc:getSize().h)
             table.insert(flow_children, lower_desc)
             if after > 0 then
                 table.insert(flow_children, VerticalSpan:new{ width = after })

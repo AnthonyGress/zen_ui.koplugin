@@ -246,7 +246,7 @@ describe("home basic widgets", function()
             data = { stats = {} },
             setContentBounds = function(bounds) content_bounds = bounds end,
         }
-        assert.is_nil(component.preferredHeight)
+        assert.are.equal(35, component.preferredHeight(ctx))
         component.build(ctx)
 
         local divider_heights = {}
@@ -278,6 +278,8 @@ describe("home basic widgets", function()
             data = { stats = {} },
         }
         local widget = component.build(ctx)
+
+        assert.are.equal(39, component.preferredHeight(ctx))
 
         local card_widths, inner_widths = {}, {}
         for _i, child in ipairs(created) do
