@@ -2695,6 +2695,9 @@ msgstr "Настройки виджета"
 msgid "Widgets"
 msgstr "Виджеты"
 
+msgid "Wrap description text"
+msgstr "Переносить текст описания"
+
 msgid "Yearly"
 msgstr "Ежегодно"
 

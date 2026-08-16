@@ -567,6 +567,7 @@ local function ensure_featured_module_cfg(dcfg, module_id)
     local mcfg = ensure_module_cfg(dcfg, module_id)
     mcfg.order = normalize_order(mcfg.order)
     if mcfg.show_description == nil then mcfg.show_description = true end
+    if mcfg.wrap_description_text == nil then mcfg.wrap_description_text = false end
     if mcfg.interactive == nil then mcfg.interactive = true end
     if mcfg.show_status_bar == nil then mcfg.show_status_bar = false end
     if mcfg.status_bar_show_bottom_border == nil then mcfg.status_bar_show_bottom_border = true end
@@ -1509,7 +1510,7 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
         return paths
     end
 
-    function provider:getFeaturedBook(source_key, order_key)
+    function provider:getFeaturedBook(source_key, order_key, metadata_only)
         local path
         local used_index = false
         if source_key == "to_be_read" then
@@ -1527,9 +1528,10 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
         end
         local featured_cfg = dcfg and dcfg.modules and dcfg.modules.featured or {}
         local progress_meta = featured_cfg.progress_meta or {}
-        local need_time_left = progress_meta.left == "time_left"
-            or progress_meta.right == "time_left"
-        return get_book(path, need_time_left)
+        metadata_only = metadata_only == true
+        local need_time_left = not metadata_only
+            and (progress_meta.left == "time_left" or progress_meta.right == "time_left")
+        return get_book(path, need_time_left, metadata_only)
     end
 
     local function strip_page_offset(total, count, offset, page_delta)
@@ -2132,8 +2134,9 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
     return provider
 end
 
-local function compute_row_heights(rows, body_h, row_gap, capacity, width, modules, config)
+local function compute_row_heights(rows, body_h, row_gap, capacity, width, modules, config, data)
     local specs = {}
+    local row_count = #rows
     local unit_counts = Registry.layoutUnits and Registry.layoutUnits(rows, capacity) or {}
     if #unit_counts == 0 then
         for _i, comp in ipairs(rows) do
@@ -2148,8 +2151,21 @@ local function compute_row_heights(rows, body_h, row_gap, capacity, width, modul
                 width = width,
                 module_cfg = modules[comp.id],
                 config = config,
+                data = data,
+                is_last_row = i == row_count,
+                row_count = row_count,
             })
             if ok and tonumber(preferred) then max_heights[i] = preferred end
+        end
+    end
+    if row_count >= 3 and rows[row_count].id == "quotes" and max_heights[row_count] then
+        local has_flexible_middle = false
+        for i = 2, row_count - 1 do
+            if not max_heights[i] then has_flexible_middle = true; break end
+        end
+        if not has_flexible_middle then
+            -- Keep one middle row flexible so capped outer rows do not leave trailing space.
+            max_heights[math.floor((row_count + 1) / 2)] = nil
         end
     end
     local heights = Registry.gridHeights(
@@ -2589,7 +2605,7 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
         and math.max(0, math.floor((layout_h - capacity) / (capacity - 1))) or 0
     local row_gap = math.min(standard_gap, max_grid_gap)
     local row_heights = compute_row_heights(
-        rows, layout_h, row_gap, capacity, content_w, dcfg.modules, dcfg)
+        rows, layout_h, row_gap, capacity, content_w, dcfg.modules, dcfg, data_provider)
     menu._zen_home_page_padding = page_pad
     menu._zen_home_row_gap = row_gap
     menu._zen_home_capacity_units = capacity
@@ -2739,6 +2755,7 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
     local top_pad = page_pad
     local visual_rows = {}
     menu._zen_home_visual_gaps = {}
+    menu._zen_home_bottom_visual_inset = nil
     menu._zen_home_clock_refreshers = {}
     if top_pad > 0 then
         table.insert(children, VerticalSpan:new{ width = top_pad })
@@ -2898,6 +2915,11 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
                     menu._zen_home_visual_gaps[#menu._zen_home_visual_gaps + 1] =
                         run[i + 1].row_y + run[i + 1].top + shifts[i + 1]
                         - run[i].row_y - run[i].bottom - shifts[i]
+                end
+                if anchor_bottom then
+                    local last = run[#run]
+                    menu._zen_home_bottom_visual_inset = body_h
+                        - last.row_y - last.bottom - shifts[#shifts]
                 end
             end
         end

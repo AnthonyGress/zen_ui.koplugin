@@ -2688,6 +2688,9 @@ msgstr "Setări widget"
 msgid "Widgets"
 msgstr "Widgeturi"
 
+msgid "Wrap description text"
+msgstr "Încadrează textul descrierii"
+
 msgid "Yearly"
 msgstr "Anual"
 

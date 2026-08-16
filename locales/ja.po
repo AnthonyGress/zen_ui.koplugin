@@ -2679,6 +2679,9 @@ msgstr "ウィジェットの設定"
 msgid "Widgets"
 msgstr "ウィジェット"
 
+msgid "Wrap description text"
+msgstr ""
+
 msgid "Yearly"
 msgstr "毎年"
 

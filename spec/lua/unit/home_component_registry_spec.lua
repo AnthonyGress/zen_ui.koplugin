@@ -308,7 +308,8 @@ describe("home component registry", function()
         local second_gap = items[3].row_y + items[3].top + shifts[3]
             - items[2].row_y - items[2].bottom - shifts[2]
 
-        assert.is_true(math.abs(first_gap - second_gap) <= 1)
+        assert.are.same({ 0, 40, 91 }, shifts)
+        assert.are.same({ 190, 191 }, { first_gap, second_gap })
         assert.are.equal(bottom,
             items[3].row_y + items[3].bottom + shifts[3])
         assert.are.equal(top_inset,

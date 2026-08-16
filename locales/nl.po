@@ -2688,6 +2688,9 @@ msgstr "Widget-instellingen"
 msgid "Widgets"
 msgstr "Widgets"
 
+msgid "Wrap description text"
+msgstr "Beschrijvingstekst laten doorlopen"
+
 msgid "Yearly"
 msgstr "Jaarlijks"
 

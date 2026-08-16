@@ -12,6 +12,7 @@ local function apply_page_browser()
     local Device       = require("device")
     local ZenTocWidget = require("modules/reader/zen_toc_widget")
     local PresetStore   = require("config/preset_store")
+    local LibraryFont  = require("modules/filebrowser/patches/library_font")
     local ReaderFont   = require("common/reader_font")
     local utils        = require("common/utils")
     local WidgetResources = require("common/widget_resources")
@@ -795,6 +796,7 @@ local function apply_page_browser()
                         pbw_ref:onClose()
                         pbw_ref.ui:handleEvent(Event:new("GotoPage", page))
                     end,
+                    close_all_callback = function() pbw_ref:onClose() end,
                 })
             end
 
@@ -892,17 +894,18 @@ local function apply_page_browser()
                     .. " " .. _("Annotations"), "secondary", false, 3)
                 add_detail(summary.note, "secondary", false, 3)
 
-                local reader_font_info = ReaderFont.getInfo(ui,
-                    (Font.sizemap and Font.sizemap.cfont) or 16)
-                local reader_font_size = reader_font_info.size
-                local function reader_face_at(size)
-                    return ReaderFont.getFace(reader_font_info, size)
+                local reader_font_size = ReaderFont.getInfo(ui,
+                    (Font.sizemap and Font.sizemap.cfont) or 16).size
+                local function library_face_at(size)
+                    return LibraryFont.getFace(size)
                 end
-                local reader_face = reader_face_at(reader_font_size)
+                local library_face = library_face_at(reader_font_size)
                 local text_faces = {
-                    title = reader_face,
-                    author = reader_face_at(math.max(1, math.floor(reader_font_size * 17 / 20 + 0.5))),
-                    secondary = reader_face_at(math.max(1, math.floor(reader_font_size * 14 / 20 + 0.5))),
+                    title = library_face,
+                    author = library_face_at(math.max(1,
+                        math.floor(reader_font_size * 17 / 20 + 0.5))),
+                    secondary = library_face_at(math.max(1,
+                        math.floor(reader_font_size * 14 / 20 + 0.5))),
                 }
 
                 local cover_bb, cover_w, cover_h, cover_kind
@@ -956,9 +959,10 @@ local function apply_page_browser()
                     rounded_cover = _plugin_ref and _plugin_ref.config
                         and _plugin_ref.config.features
                         and _plugin_ref.config.features.browser_cover_rounded_corners == true,
-                    text_face = reader_face,
+                    text_face = library_face,
                     text_size = reader_font_size,
                     text_faces = text_faces,
+                    close_all_callback = function() pbw_ref:onClose() end,
                 })
             end
 

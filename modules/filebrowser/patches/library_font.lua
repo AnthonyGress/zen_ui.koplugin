@@ -112,4 +112,22 @@ function M.getFace(size)
     return Font:getFace(M.getFontName(), math.max(1, math.floor(size)))
 end
 
+function M.withMenuFaces(callback, menu_faces)
+    menu_faces = menu_faces or { smallinfofont = true, infont = true }
+    local get_face = Font.getFace
+    local font_name = M.getFontName()
+    Font.getFace = function(font, face_name, size, index)
+        if face_name and menu_faces[face_name] then
+            local face = get_face(font, font_name, size)
+            if face then return face end
+        end
+        return get_face(font, face_name, size, index)
+    end
+
+    local ok, result = pcall(callback)
+    Font.getFace = get_face
+    if not ok then error(result, 0) end
+    return result
+end
+
 return M

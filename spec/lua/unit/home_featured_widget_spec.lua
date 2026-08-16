@@ -3,6 +3,7 @@ describe("home featured widget", function()
     local cover_calls
     local description_split
     local empty_sources
+    local cover_ratio
 
     local function widget_class(kind)
         return {
@@ -28,22 +29,24 @@ describe("home featured widget", function()
                         and not description_split.used
                         and values.text == description_split.text
                         and values.width == description_split.width
-                        and values.height then
+                        and values.height
+                        and values.height_overflow_show_ellipsis == nil then
                     description_split.used = true
                     description_split.probe_line_height = values.line_height
                     description_split.probe_height = values.height
-                    local upper_end = description_split.upper_end
-                    local lower_start = description_split.lower_start
-                    if description_split.min_height
-                            and values.height < description_split.min_height then
-                        upper_end = description_split.short_upper_end
-                        lower_start = description_split.short_lower_start
+                    if description_split.fits_at_height
+                            and values.height >= description_split.fits_at_height then
+                        values.lines_per_page = 1
+                        values.vertical_string_list = {
+                            { offset = 1, end_offset = #values.text },
+                        }
+                    else
+                        values.lines_per_page = 1
+                        values.vertical_string_list = {
+                            { offset = 1, end_offset = description_split.upper_end },
+                            { offset = description_split.lower_start, end_offset = #values.text },
+                        }
                     end
-                    values.lines_per_page = 1
-                    values.vertical_string_list = {
-                        { offset = 1, end_offset = upper_end },
-                        { offset = lower_start, end_offset = #values.text },
-                    }
                 end
                 created[#created + 1] = values
                 return values
@@ -56,6 +59,7 @@ describe("home featured widget", function()
         cover_calls = {}
         description_split = nil
         empty_sources = {}
+        cover_ratio = 2 / 3
         rawset(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER", nil)
         ZenSpec.replace("common/ui/background", { tile_bg = function(color) return color end })
         ZenSpec.replace("ffi/blitbuffer", {
@@ -107,13 +111,16 @@ describe("home featured widget", function()
             scaleValue = function() error("home widget used library font size") end,
         })
         ZenSpec.replace("modules/filebrowser/patches/home/widgets/cover_common", {
+            uniform_height_for_width = function(width)
+                return math.floor(width / cover_ratio)
+            end,
             make_cover_widget = function(book, max_w, max_h, opts)
                 cover_calls[#cover_calls + 1] = { book = book, max_w = max_w, max_h = max_h, opts = opts }
                 local width, height
-                if max_h * 2 / 3 <= max_w then
-                    width, height = math.floor(max_h * 2 / 3), max_h
+                if max_h * cover_ratio <= max_w then
+                    width, height = math.floor(max_h * cover_ratio), max_h
                 else
-                    width, height = max_w, math.floor(max_w * 3 / 2)
+                    width, height = max_w, math.floor(max_w / cover_ratio)
                 end
                 local cover = widget_class("cover"):new{ width = width, height = height }
                 return cover, width, height
@@ -132,6 +139,7 @@ describe("home featured widget", function()
         })
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.unload("common/widget_resources")
+        ZenSpec.unload("modules/filebrowser/patches/home/widgets/featured")
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/featured_common")
     end)
 
@@ -145,6 +153,16 @@ describe("home featured widget", function()
     local function text_widget(expected)
         for _i, widget in ipairs(created) do
             if widget.kind == "ui/widget/textboxwidget" and widget.text == expected then return widget end
+        end
+    end
+
+    local function progress_bar_width(left_text, right_text)
+        for _i, widget in ipairs(created) do
+            if widget.kind == "ui/widget/horizontalgroup"
+                    and widget[1] and widget[1].text == left_text
+                    and widget[5] and widget[5].text == right_text then
+                return widget[3] and widget[3].dimen and widget[3].dimen.w
+            end
         end
     end
 
@@ -163,7 +181,36 @@ describe("home featured widget", function()
             pages = 120,
         }
         local Featured = require("modules/filebrowser/patches/home/widgets/featured_common")
+        local FeaturedComponent = require("modules/filebrowser/patches/home/widgets/featured")
         assert.are.same({ units = 3.5 }, Featured.SIZE)
+        assert.are.equal(369, FeaturedComponent.preferredHeight{ width = 600, module_cfg = {} })
+        cover_ratio = 3 / 4
+        assert.are.equal(330, FeaturedComponent.preferredHeight{ width = 600, module_cfg = {} })
+        cover_ratio = 2 / 3
+        assert.is_nil(FeaturedComponent.preferredHeight{
+            width = 600,
+            module_cfg = { wrap_description_text = true },
+        })
+        assert.are.equal(369, FeaturedComponent.preferredHeight{
+            width = 600,
+            module_cfg = { wrap_description_text = true },
+            data = { getFeaturedBook = function() return nil end },
+        })
+        assert.is_nil(FeaturedComponent.preferredHeight{
+            width = 600,
+            module_cfg = { wrap_description_text = true },
+            data = { getFeaturedBook = function(_self, _source, _order, metadata_only)
+                assert.is_true(metadata_only)
+                return { description = "Description that may overflow." }
+            end },
+        })
+        assert.are.equal(369, FeaturedComponent.preferredHeight{
+            width = 600,
+            module_cfg = {
+                wrap_description_text = true,
+                show_description = false,
+            },
+        })
         local widget = Featured.build({
             width = 600,
             height = 220,
@@ -198,8 +245,9 @@ describe("home featured widget", function()
         assert.are.equal(book.path, opened)
     end)
 
-    it("caps the cover width while keeping the details at full row height", function()
+    it("caps the cover width and keeps the default layout at cover height", function()
         local Featured = require("modules/filebrowser/patches/home/widgets/featured_common")
+        local content_bounds
         Featured.build({
             width = 600,
             height = 600,
@@ -209,18 +257,16 @@ describe("home featured widget", function()
                     return { path = "/library/alpha.epub", title = "Alpha", status = "new" }
                 end,
             },
+            setContentBounds = function(bounds) content_bounds = bounds end,
         }, "recently_read")
 
         local content_w = 600 - 8 * 2
-        local content_h = 600 - 8 * 2
         local gap = math.max(4, math.floor(content_w * 0.025))
         assert.are.equal(math.floor((content_w - gap) * 0.40), cover_calls[1].max_w)
 
         local cover_w = math.floor((content_w - gap) * 0.40)
         local detail_w = content_w - cover_w - gap
-        local detail_h = content_h
-            - 4
-            - math.max(3, math.floor(content_h * 0.02))
+        local detail_h = math.floor(cover_w * 3 / 2)
         local detail
         for _i, widget in ipairs(created) do
             if widget.kind == "ui/widget/container/framecontainer"
@@ -230,7 +276,7 @@ describe("home featured widget", function()
         end
         assert.is_table(detail)
         assert.are.equal(detail_h, detail.height)
-
+        assert.is_true(content_bounds.bottom < 600)
     end)
 
     it("keeps the same top inset across featured row heights", function()
@@ -255,14 +301,12 @@ describe("home featured widget", function()
         assert.are.same({ 12, 12 }, tops)
     end)
 
-    it("fills the last side line and omits a leading overflow newline", function()
+    it("wraps actual description overflow below the cover when enabled", function()
         local description = "Upper text fascinating science.\nLower continuation fills the remaining width."
         description_split = {
             text = description,
             width = 342,
-            min_height = 317,
-            short_upper_end = 10,
-            short_lower_start = 12,
+            fits_at_height = 300,
             upper_end = 31,
             lower_start = 32,
         }
@@ -270,14 +314,19 @@ describe("home featured widget", function()
         Featured.build({
             width = 600,
             height = 600,
-            module_cfg = {},
+            module_cfg = {
+                wrap_description_text = true,
+                progress_meta = { left = "percent", right = "total_pages" },
+            },
             data = {
                 getFeaturedBook = function()
                     return {
                         path = "/library/alpha.epub",
                         title = "Alpha",
                         description = description,
-                        status = "new",
+                        status = "reading",
+                        percent = 0.25,
+                        pages = 120,
                     }
                 end,
             },
@@ -293,9 +342,71 @@ describe("home featured widget", function()
         assert.is_table(top_row)
         assert.is_true(description_split.used)
         assert.is_nil(description_split.probe_line_height)
-        assert.are.equal(317, description_split.probe_height)
+        assert.are.equal(294, description_split.probe_height)
         assert.are.equal(342, text_widget("Upper text fascinating science.").width)
         assert.are.equal(584, text_widget("Lower continuation fills the remaining width.").width)
+        assert.are.equal(490, progress_bar_width("25%", "120 pages"))
+    end)
+
+    it("keeps the description and progress beside the cover by default", function()
+        local description = "Upper text fascinating science. Lower continuation fills the remaining width."
+        description_split = {
+            text = description,
+            width = 342,
+            upper_end = 31,
+            lower_start = 32,
+        }
+        local Featured = require("modules/filebrowser/patches/home/widgets/featured_common")
+        Featured.build({
+            width = 600,
+            height = 600,
+            module_cfg = {
+                progress_meta = { left = "percent", right = "total_pages" },
+            },
+            data = {
+                getFeaturedBook = function()
+                    return {
+                        path = "/library/alpha.epub",
+                        title = "Alpha",
+                        description = description,
+                        status = "reading",
+                        percent = 0.25,
+                        pages = 120,
+                    }
+                end,
+            },
+        }, "recently_read")
+
+        assert.is_nil(description_split.used)
+        assert.are.equal(342, text_widget(description).width)
+        assert.are.equal(258, progress_bar_width("25%", "120 pages"))
+    end)
+
+    it("keeps an enabled fitting description and progress beside the cover", function()
+        local Featured = require("modules/filebrowser/patches/home/widgets/featured_common")
+        Featured.build({
+            width = 600,
+            height = 600,
+            module_cfg = {
+                wrap_description_text = true,
+                progress_meta = { left = "percent", right = "total_pages" },
+            },
+            data = {
+                getFeaturedBook = function()
+                    return {
+                        path = "/library/alpha.epub",
+                        title = "Alpha",
+                        description = "Short description.",
+                        status = "reading",
+                        percent = 0.25,
+                        pages = 120,
+                    }
+                end,
+            },
+        }, "recently_read")
+
+        assert.are.equal(342, text_widget("Short description.").width)
+        assert.are.equal(258, progress_bar_width("25%", "120 pages"))
     end)
 
     it("applies the configured series text style independently", function()

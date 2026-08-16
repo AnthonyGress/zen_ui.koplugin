@@ -3,6 +3,7 @@ describe("Zen TOC hardware focus", function()
     local close_calls
     local dirty_calls
     local back_icon
+    local close_icon
     local title_spec
     local font_calls
 
@@ -33,6 +34,7 @@ describe("Zen TOC hardware focus", function()
         close_calls = 0
         dirty_calls = 0
         back_icon = nil
+        close_icon = nil
         title_spec = nil
         font_calls = {}
         ZenSpec.replace("device", {
@@ -64,9 +66,14 @@ describe("Zen TOC hardware focus", function()
         ZenSpec.replace("document/credocument", {})
         ZenSpec.replace("ui/geometry", { new = function(_self, values) return values end })
         ZenSpec.replace("ui/widget/container/inputcontainer", input_container())
+        ZenSpec.replace("datastorage", { getDataDir = function() return "/koreader" end })
+        ZenSpec.replace("common/utils", {
+            resolveLocalIcon = function(_, name) return "/icons/" .. name .. ".svg" end,
+        })
         ZenSpec.replace("ui/widget/iconwidget", {
             new = function(_self, values)
-                if values.icon == "chevron.left" then back_icon = values end
+                if values.file == "/icons/chevron.left.svg" then back_icon = values end
+                if values.file == "/icons/close.svg" then close_icon = values end
                 values.paintTo = function(self, _bb, x)
                     self.paint_x = x
                 end
@@ -113,7 +120,9 @@ describe("Zen TOC hardware focus", function()
         ZenSpec.replace("common/ui/zen_title_style", {
             ICON_SIZE = 28,
             BUTTON_SIZE = 44,
+            BUTTON_PADDING = 8,
             LEFT_PADDING = 4,
+            RIGHT_PADDING = 20,
             ROW_HEIGHT = 44,
             VERTICAL_PADDING = 6,
             DIVIDER_HEIGHT = 2,
@@ -123,6 +132,14 @@ describe("Zen TOC hardware focus", function()
             getTitleFace = function() return { name = "settings_title" } end,
             getLeadingIconX = function(origin) return (origin or 0) + 12 end,
             getTitleX = function(origin) return (origin or 0) + 54 end,
+            getTrailingIconX = function(width, origin)
+                return (origin or 0) + width - 20 - 8 - 28
+            end,
+        })
+        ZenSpec.replace("modules/filebrowser/patches/library_font", {
+            getFace = function(size)
+                return require("ui/font"):getFace("LibraryFont", size)
+            end,
         })
         ZenSpec.unload("common/reader_font")
         ZenSpec.unload("modules/reader/zen_toc_widget")
@@ -131,9 +148,13 @@ describe("Zen TOC hardware focus", function()
 
     after_each(function()
         ZenSpec.unload("modules/reader/zen_toc_widget")
+        ZenSpec.unload("modules/filebrowser/patches/library_font")
+        ZenSpec.unload("common/reader_font")
+        ZenSpec.unload("datastorage")
+        ZenSpec.unload("common/utils")
     end)
 
-    local function new_widget(on_goto)
+    local function new_widget(on_goto, close_all_callback)
         local toc = {}
         for i = 1, 8 do
             toc[i] = { title = "Section " .. i, page = i * 10, depth = 1 }
@@ -146,6 +167,7 @@ describe("Zen TOC hardware focus", function()
             },
             focus_page = 1,
             on_goto = on_goto,
+            close_all_callback = close_all_callback,
         }
     end
 
@@ -160,6 +182,11 @@ describe("Zen TOC hardware focus", function()
         assert.are.equal("back", widget._zen_focus_area)
         assert.are.equal("Back", widget.key_events.Close[1][1])
         assert.are.equal("PgFwd", widget.key_events.TocPageDown[1][1])
+
+        assert.is_true(widget:onKeyPress(key("Right")))
+        assert.are.equal("close", widget._zen_focus_area)
+        assert.is_true(widget:onKeyPress(key("Left")))
+        assert.are.equal("back", widget._zen_focus_area)
 
         assert.is_true(widget:onKeyPress(key("Down")))
         assert.are.equal("entry", widget._zen_focus_area)
@@ -195,7 +222,7 @@ describe("Zen TOC hardware focus", function()
         assert.is_true(dirty_calls > 0)
     end)
 
-    it("aligns its title and back icon with the arrange-list header", function()
+    it("aligns its title, back icon, and close icon with the header", function()
         local widget = new_widget()
         widget:paintTo({ paintRect = function() end }, 0, 0)
 
@@ -203,12 +230,23 @@ describe("Zen TOC hardware focus", function()
         assert.are.equal(54, title_spec.paint_x)
         assert.are.equal(28, back_icon.width)
         assert.are.equal(12, back_icon.paint_x)
+        assert.are.equal(28, close_icon.width)
+        assert.are.equal(544, close_icon.paint_x)
     end)
 
-    it("uses the reader face and size for TOC entries", function()
+    it("closes itself and the page browser from the top-right X", function()
+        local parent_closes = 0
+        local widget = new_widget(nil, function() parent_closes = parent_closes + 1 end)
+
+        assert.is_true(widget:_onTap({ pos = { x = 550, y = 10 } }))
+        assert.are.equal(1, close_calls)
+        assert.are.equal(1, parent_closes)
+    end)
+
+    it("uses the library face and size for TOC entries", function()
         local widget = new_widget()
         widget:paintTo({ paintRect = function() end }, 0, 0)
 
-        assert.same({ name = "ReaderFont", size = 21, index = nil }, font_calls[1])
+        assert.same({ name = "LibraryFont", size = 21, index = nil }, font_calls[1])
     end)
 end)

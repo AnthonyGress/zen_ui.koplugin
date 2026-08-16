@@ -61,6 +61,7 @@ describe("page browser entry", function()
         ZenSpec.replace("apps/reader/modules/readersearch", {})
         ZenSpec.replace("ui/widget/inputdialog", { onTap = function() end })
         ZenSpec.replace("apps/reader/readerui", {})
+        ZenSpec.unload("modules/filebrowser/patches/library_font")
         ZenSpec.unload("common/reader_font")
     end)
 
@@ -71,6 +72,7 @@ describe("page browser entry", function()
         ZenSpec.unload("ui/widget/booklist")
         ZenSpec.unload("modules/reader/book_info_widget")
         ZenSpec.unload("modules/reader/patches/page_browser")
+        ZenSpec.unload("modules/filebrowser/patches/library_font")
         ZenSpec.unload("common/reader_font")
     end)
 
@@ -549,21 +551,16 @@ describe("page browser entry", function()
         local info_spec
         local cover_options
         ZenSpec.replace("ui/font", {
-            sizemap = { cfont = 16 },
             getFace = function(_, name, size, index)
-                if name == "ReaderFont.ttf" then return nil end
                 return { name = name, size = size, index = index }
             end,
         })
-        ZenSpec.replace("document/credocument", {
-            engineInit = function()
-                return {
-                    getFontFaceFilenameAndFaceIndex = function(_, _, italic)
-                        if italic then return "ReaderFont.ttf", 0 end
-                    end,
-                }
+        ZenSpec.replace("modules/filebrowser/patches/library_font", {
+            getFace = function(size)
+                return require("ui/font"):getFace("LibraryFont", size)
             end,
         })
+        ZenSpec.replace("document/credocument", {})
         ZenSpec.replace("ui/language", {
             getLanguageName = function(_, code)
                 return code == "en" and "English" or code
@@ -688,7 +685,8 @@ describe("page browser entry", function()
         expect(closes == 2 and action_events[#action_events].name == "ShowVocabBuilder")
 
         by_file["/icons/toc.svg"]()
-        expect(closes == 2 and toc_spec.focus_page == 12)
+        expect(closes == 2 and toc_spec.focus_page == 12
+            and type(toc_spec.close_all_callback) == "function")
         toc_spec.on_goto(27)
         expect(closes == 3 and stack_adds == 1)
         expect(action_events[#action_events].name == "GotoPage"
@@ -708,9 +706,10 @@ describe("page browser entry", function()
         expect(info_spec.details[7].text == "rating 4" and info_spec.details[7].style == "secondary")
         expect(info_spec.details[8].text == "2 Annotations" and info_spec.details[8].style == "secondary")
         expect(info_spec.rounded_cover == true and type(info_spec.cover_tap_callback) == "function")
-        expect(info_spec.text_face.name == "ReaderFont" and info_spec.text_face.size == 21)
-        expect(info_spec.text_faces.author.name == "ReaderFont" and info_spec.text_faces.author.size == 18)
-        expect(info_spec.text_faces.secondary.name == "ReaderFont" and info_spec.text_faces.secondary.size == 15)
+        expect(type(info_spec.close_all_callback) == "function")
+        expect(info_spec.text_face.name == "LibraryFont" and info_spec.text_face.size == 21)
+        expect(info_spec.text_faces.author.name == "LibraryFont" and info_spec.text_faces.author.size == 18)
+        expect(info_spec.text_faces.secondary.name == "LibraryFont" and info_spec.text_faces.secondary.size == 15)
         expect(cover_options.height == 240)
         expect(info_spec.description == "Test description")
 
@@ -723,6 +722,10 @@ describe("page browser entry", function()
         config_dialog.close_callback()
         expect(ui.config.config_dialog == nil and ui.config.last_panel_index == 2)
         expect(action_events[#action_events].name == "RestoreHinting")
+
+        toc_spec.close_all_callback()
+        info_spec.close_all_callback()
+        expect(closes == 6)
     end)
 
     it("closes book search with hardware Back and focuses its X on non-touch devices", function()

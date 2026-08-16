@@ -2679,6 +2679,9 @@ msgstr "Налаштування віджета"
 msgid "Widgets"
 msgstr "Віджети"
 
+msgid "Wrap description text"
+msgstr ""
+
 msgid "Yearly"
 msgstr "щорічно"
 

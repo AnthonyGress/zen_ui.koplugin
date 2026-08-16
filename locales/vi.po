@@ -2679,6 +2679,9 @@ msgstr "Cài đặt tiện ích"
 msgid "Widgets"
 msgstr "Widget"
 
+msgid "Wrap description text"
+msgstr ""
+
 msgid "Yearly"
 msgstr "Hàng năm"
 

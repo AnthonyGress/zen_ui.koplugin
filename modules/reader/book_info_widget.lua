@@ -31,6 +31,7 @@ local BookInfoWidget = InputContainer:extend{
     cover_width = nil,
     cover_height = nil,
     cover_tap_callback = nil,
+    close_all_callback = nil,
     rounded_cover = false,
     text_face = nil,
     text_size = nil,
@@ -73,6 +74,8 @@ function BookInfoWidget:init()
         body_y = body_y,
         back_x = TitleStyle.LEFT_PADDING,
         back_w = TitleStyle.BUTTON_SIZE,
+        close_all_x = sw - TitleStyle.RIGHT_PADDING - TitleStyle.BUTTON_SIZE,
+        close_all_w = TitleStyle.BUTTON_SIZE,
         cover_x = pad + border,
         cover_y = body_y,
         cover_w = cover_w,
@@ -89,7 +92,8 @@ function BookInfoWidget:init()
         face = TitleStyle.getTitleFace(),
         bold = true,
         max_width = math.max(1,
-            sw - TitleStyle.getTitleX(0) - TitleStyle.RIGHT_PADDING),
+            sw - TitleStyle.getTitleX(0)
+                - TitleStyle.RIGHT_PADDING - TitleStyle.BUTTON_SIZE),
         padding = 0,
     }
     self._description_label = TextWidget:new{
@@ -134,6 +138,11 @@ function BookInfoWidget:init()
 
     self._back_icon = IconWidget:new{
         file = resolve_stock_icon("chevron.left"),
+        width = TitleStyle.ICON_SIZE,
+        height = TitleStyle.ICON_SIZE,
+    }
+    self._close_icon = IconWidget:new{
+        file = resolve_stock_icon("close"),
         width = TitleStyle.ICON_SIZE,
         height = TitleStyle.ICON_SIZE,
     }
@@ -253,14 +262,21 @@ function BookInfoWidget:onKeyPress(key)
                 return self:_scrollDescription(-1)
             end
             return true
+        elseif key:match({ "Right" }) and self._zen_focus_area == "back" then
+            self:_setFocusArea("close")
+            return true
+        elseif key:match({ "Left" }) and self._zen_focus_area == "close" then
+            self:_setFocusArea("back")
+            return true
         elseif key:match({ "Down" }) then
-            if self._zen_focus_area == "back" then
+            if self._zen_focus_area == "back" or self._zen_focus_area == "close" then
                 self:_setFocusArea("description")
                 return true
             end
             return self:_scrollDescription(1)
         elseif key:match({ "Press" }) or key:match({ "Return" }) or key:match({ "Enter" }) then
             if self._zen_focus_area == "back" then return self:onClose() end
+            if self._zen_focus_area == "close" then return self:onCloseAll() end
             return true
         end
     end
@@ -325,6 +341,24 @@ function BookInfoWidget:paintTo(bb, x, y)
         TitleStyle.getLeadingIconX(x),
         y + TitleStyle.VERTICAL_PADDING
             + math.floor((TitleStyle.ROW_HEIGHT - back_size.h) / 2))
+
+    local close_size = self._close_icon:getSize()
+    local close_x = TitleStyle.getTrailingIconX(L.sw, x)
+    local close_y = y + TitleStyle.VERTICAL_PADDING
+        + math.floor((TitleStyle.ROW_HEIGHT - close_size.h) / 2)
+    local close_focused = self._zen_focus_enabled and self._zen_focus_area == "close"
+    self._close_icon.invert = close_focused
+    if close_focused then
+        local focus_pad = Device.screen:scaleBySize(4)
+        bb:paintRect(
+            close_x - focus_pad,
+            close_y - focus_pad,
+            close_size.w + 2 * focus_pad,
+            close_size.h + 2 * focus_pad,
+            Blitbuffer.COLOR_BLACK
+        )
+    end
+    self._close_icon:paintTo(bb, close_x, close_y)
 
     if self._cover_widget then
         self._cover_widget:paintTo(bb, x + L.cover_x, y + L.cover_y)
@@ -391,6 +425,11 @@ function BookInfoWidget:_onTap(ges)
             and pos.y >= 0 and pos.y < self._L.title_h then
         return self:onClose()
     end
+    if pos.x >= self._L.close_all_x
+            and pos.x < self._L.close_all_x + self._L.close_all_w
+            and pos.y >= 0 and pos.y < self._L.title_h then
+        return self:onCloseAll()
+    end
     local handled = TopMenu.handleTap(nil, ges)
     if handled then return handled end
     if self:_inCover(pos) then
@@ -435,10 +474,17 @@ function BookInfoWidget:onClose()
     if self._description_widget then self._description_widget:free() end
     if self._cover_widget then self._cover_widget:free() end
     if self._back_icon then self._back_icon:free() end
+    if self._close_icon then self._close_icon:free() end
     if self._title_widget then self._title_widget:free() end
     if self._description_label then self._description_label:free() end
     for _i, entry in ipairs(self._detail_widgets or {}) do entry.widget:free() end
     UIManager:close(self)
+    return true
+end
+
+function BookInfoWidget:onCloseAll()
+    self:onClose()
+    if self.close_all_callback then self.close_all_callback() end
     return true
 end
 

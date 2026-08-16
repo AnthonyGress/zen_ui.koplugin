@@ -173,11 +173,17 @@ describe("book details", function()
             DIVIDER_COLOR = "light_gray",
             HEADER_CONTENT_HEIGHT = 56,
             HEADER_HEIGHT = 58,
+            BUTTON_PADDING = 8,
             getTitleFace = function() return { name = "settings_title" } end,
             getLeadingIconX = function(origin) return (origin or 0) + 12 end,
             getTitleX = function(origin) return (origin or 0) + 54 end,
+            getTrailingIconX = function(width, origin)
+                return (origin or 0) + width - 20 - 8 - 28
+            end,
         })
-        ZenSpec.replace("common/utils", { resolveLocalIcon = function() return nil end })
+        ZenSpec.replace("common/utils", {
+            resolveLocalIcon = function(_, name) return "/icons/" .. name .. ".svg" end,
+        })
         ZenSpec.replace("modules/global/patches/menu_top_swipe", {
             handleTap = function()
                 top_taps = top_taps + 1
@@ -199,12 +205,13 @@ describe("book details", function()
         end
     end)
 
-    local function new_widget()
+    local function new_widget(close_all_callback)
         return BookInfoWidget:new{
             cover = {},
             cover_width = 120,
             cover_height = 180,
             description = "Description",
+            close_all_callback = close_all_callback,
         }
     end
 
@@ -214,7 +221,7 @@ describe("book details", function()
         assert.are.equal(true, image_specs[1].original_in_nightmode)
     end)
 
-    it("aligns its title and back icon with the arrange-list header", function()
+    it("aligns its title, back icon, and close icon with the header", function()
         local widget = new_widget()
         widget:paintTo({
             paintRect = function() end,
@@ -225,6 +232,18 @@ describe("book details", function()
         assert.are.equal(54, text_specs[1].paint_x)
         assert.are.equal(28, icon_specs[1].width)
         assert.are.equal(12, icon_specs[1].paint_x)
+        assert.are.equal("/icons/close.svg", icon_specs[2].file)
+        assert.are.equal(544, icon_specs[2].paint_x)
+    end)
+
+    it("closes itself and the page browser from the top-right X", function()
+        local parent_closes = 0
+        local widget = new_widget(function() parent_closes = parent_closes + 1 end)
+
+        assert.is_true(widget:_onTap({ pos = { x = 550, y = 10 } }))
+        assert.are.equal(1, close_calls)
+        assert.are.equal(1, parent_closes)
+        assert.are.equal(0, top_taps)
     end)
 
     it("opens the KOReader menu from an unoccupied top tap", function()
@@ -264,6 +283,11 @@ describe("book details", function()
         assert.are.equal("back", widget._zen_focus_area)
         assert.are.equal("Back", widget.key_events.Close[1][1])
         assert.are.equal("PgFwd", widget.key_events.BookInfoPageDown[1][1])
+
+        assert.is_true(widget:onKeyPress(key("Right")))
+        assert.are.equal("close", widget._zen_focus_area)
+        assert.is_true(widget:onKeyPress(key("Left")))
+        assert.are.equal("back", widget._zen_focus_area)
 
         assert.is_true(widget:onKeyPress(key("Down")))
         assert.are.equal("description", widget._zen_focus_area)

@@ -2688,6 +2688,9 @@ msgstr "小部件设置"
 msgid "Widgets"
 msgstr "小组件"
 
+msgid "Wrap description text"
+msgstr "描述文本换行"
+
 msgid "Yearly"
 msgstr "每年"
 

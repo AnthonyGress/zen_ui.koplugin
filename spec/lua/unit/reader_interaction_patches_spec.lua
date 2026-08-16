@@ -6,10 +6,16 @@ describe("reader interaction patches", function()
 
     before_each(function()
         _G.__ZEN_UI_PLUGIN = nil
+        ZenSpec.replace("modules/filebrowser/patches/library_font", {
+            withMenuFaces = function(callback) return callback() end,
+        })
+        ZenSpec.unload("common/reader_font")
     end)
 
     after_each(function()
         _G.__ZEN_UI_PLUGIN = nil
+        ZenSpec.unload("modules/filebrowser/patches/library_font")
+        ZenSpec.unload("common/reader_font")
     end)
 
     it("swallows holds in page margins and delegates content holds", function()
@@ -232,7 +238,20 @@ describe("reader interaction patches", function()
             end,
         })
         ZenSpec.replace("document/credocument", {})
-        ZenSpec.unload("common/reader_font")
+        ZenSpec.replace("modules/filebrowser/patches/library_font", {
+            withMenuFaces = function(callback, menu_faces)
+                local Font = require("ui/font")
+                local get_face = Font.getFace
+                Font.getFace = function(font, name, size, index)
+                    if menu_faces[name] then name = "LibraryFont" end
+                    return get_face(font, name, size, index)
+                end
+                local ok, result = pcall(callback)
+                Font.getFace = get_face
+                if not ok then error(result, 0) end
+                return result
+            end,
+        })
         local ReaderBookmark = {
             onShowBookmark = function() stock_calls = stock_calls + 1 end,
         }
@@ -254,13 +273,13 @@ describe("reader interaction patches", function()
             font_size = 20,
             item_table = { { mandatory_dim = true }, { mandatory_dim = true } },
             item_group = {
-                setmetatable({}, { font = "LibraryFont", infont = "LibraryFont" }),
+                setmetatable({}, { font = "MenuBody", infont = "MenuInfo" }),
             },
             updateItems = function(self)
                 update_calls = update_calls + 1
                 local Font = require("ui/font")
-                Font:getFace("LibraryFont", self.font_size)
-                Font:getFace("LibraryFont", self.items_mandatory_font_size)
+                Font:getFace("MenuBody", self.font_size)
+                Font:getFace("MenuInfo", self.items_mandatory_font_size)
             end,
             title_bar = { left_button = left, right_button = right },
         }
@@ -280,8 +299,8 @@ describe("reader interaction patches", function()
         assert.is_nil(menu.item_table[1].mandatory_dim)
         assert.is_nil(menu.item_table[2].mandatory_dim)
         assert.are.equal(1, update_calls)
-        assert.same({ name = "ReaderFont", size = 23, index = nil }, font_calls[1])
-        assert.same({ name = "ReaderFont", size = 23, index = nil }, font_calls[2])
+        assert.same({ name = "LibraryFont", size = 23, index = nil }, font_calls[1])
+        assert.same({ name = "LibraryFont", size = 23, index = nil }, font_calls[2])
         assert.are.equal("chevron.left", left.icon)
         assert.are.equal(right_tap, left.callback)
         assert.is_nil(left.hold_callback)

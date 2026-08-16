@@ -83,6 +83,22 @@ describe("library font", function()
         assert.are.equal(0, #warnings)
     end)
 
+    it("temporarily applies the library face to menu fonts", function()
+        local library_font = require("modules/filebrowser/patches/library_font")
+        local Font = require("ui/font")
+        local get_face = Font.getFace
+        local mapped, untouched
+
+        library_font.withMenuFaces(function()
+            mapped = Font:getFace("smallinfofont", 22)
+            untouched = Font:getFace("titlefont", 20)
+        end)
+
+        assert.are.equal("Custom-Regular.ttf", mapped.orig_font)
+        assert.are.equal("titlefont", untouched.orig_font)
+        assert.are.equal(get_face, Font.getFace)
+    end)
+
     it("resolves and caches a portable bundled font path", function()
         cfg.font_face = "fonts/Custom-Regular.ttf"
         local library_font = require("modules/filebrowser/patches/library_font")

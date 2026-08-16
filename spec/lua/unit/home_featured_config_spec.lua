@@ -13,6 +13,7 @@ describe("unified Home featured configuration", function()
         assert.are.same({ kind = "recent" }, page.modules.featured.default_source)
         assert.is_nil(page.modules.featured.show_module_title)
         assert.is_true(page.modules.featured.show_status_bar)
+        assert.is_false(page.modules.featured.wrap_description_text)
         assert.is_nil(page.modules.featured_recent)
         assert.is_nil(page.modules.featured_custom)
         assert.is_nil(page.modules.featured_tbr)
@@ -65,10 +66,23 @@ describe("unified Home featured configuration", function()
         assert.are.same(recent_styles, page.modules.featured.text_styles)
         assert.is_nil(page.modules.featured.order)
         assert.is_false(page.modules.featured.interactive)
+        assert.is_false(page.modules.featured.wrap_description_text)
         assert.are.equal("/library/picked.epub", page.modules.featured.path)
         assert.is_nil(page.modules.featured_recent)
         assert.is_nil(page.modules.featured_custom)
         assert.is_nil(page.modules.featured_tbr)
+        assert.is_false(Presets.normalizeFeaturedConfig(page))
+    end)
+
+    it("preserves the opt-in description wrapping setting", function()
+        local Presets = require("modules/filebrowser/patches/home/home_presets")
+        local page = {
+            rows = { order = { "featured" }, enabled = { featured = true } },
+            modules = { featured = { wrap_description_text = true } },
+        }
+
+        assert.is_true(Presets.normalizeFeaturedConfig(page))
+        assert.is_true(page.modules.featured.wrap_description_text)
         assert.is_false(Presets.normalizeFeaturedConfig(page))
     end)
 

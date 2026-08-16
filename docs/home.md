@@ -39,6 +39,7 @@ Add widgets like featured books, cover strips, reading goals, reading stats, quo
 | Presets > User presets | Applies, renames, or deletes saved home page presets. |
 | Home > Show top status bar | Shows or hides the top status bar on the home page. |
 | Featured widgets > Show description | Shows featured-book description text. |
+| Featured widgets > Wrap description text | Lets description overflow continue below the cover and uses a full-width progress bar. Disabled by default. |
 | Featured widgets > Interactive | Allows featured widgets to respond to selection. |
 | Featured widgets > Top status bar | Shows the featured widget status bar and configures its bottom border and bold text. |
 | Featured widgets > Text styles | Sets title, author, series, and description font face, size, and bold style. |

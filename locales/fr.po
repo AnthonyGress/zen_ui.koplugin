@@ -2688,6 +2688,9 @@ msgstr "Paramètres des widgets"
 msgid "Widgets"
 msgstr "Widgets"
 
+msgid "Wrap description text"
+msgstr "Renvoyer le texte de la description à la ligne"
+
 msgid "Yearly"
 msgstr "Annuel"
 

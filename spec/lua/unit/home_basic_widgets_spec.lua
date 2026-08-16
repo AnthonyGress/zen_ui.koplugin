@@ -234,6 +234,7 @@ describe("home basic widgets", function()
     it("aligns stats dividers to the visible text block", function()
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/stats_triplet")
         local component = require("modules/filebrowser/patches/home/widgets/stats_triplet")
+        local content_bounds
         local ctx = {
             width = 600,
             height = 120,
@@ -243,8 +244,9 @@ describe("home basic widgets", function()
             },
             module_cfg = { stat_style = "divider" },
             data = { stats = {} },
+            setContentBounds = function(bounds) content_bounds = bounds end,
         }
-        assert.are.equal(35, component.preferredHeight(ctx))
+        assert.is_nil(component.preferredHeight)
         component.build(ctx)
 
         local divider_heights = {}
@@ -254,6 +256,12 @@ describe("home basic widgets", function()
             end
         end
         assert.are.same({ 19, 19 }, divider_heights)
+        assert.are.same({ 48, 71, -48, 49 }, {
+            content_bounds.top,
+            content_bounds.bottom,
+            content_bounds.min_shift,
+            content_bounds.max_shift,
+        })
     end)
 
     it("insets outlined stats cards to the shared home content width", function()
@@ -269,7 +277,6 @@ describe("home basic widgets", function()
             module_cfg = { stat_style = "outline" },
             data = { stats = {} },
         }
-        assert.are.equal(39, component.preferredHeight(ctx))
         local widget = component.build(ctx)
 
         local card_widths, inner_widths = {}, {}
@@ -353,7 +360,7 @@ describe("home basic widgets", function()
         end
         assert.are.equal(48, quote_widget.paint_y)
         assert.are.equal(60, author_widget.paint_y)
-        assert.are.same({ 4, 116, 0, 0 }, {
+        assert.are.same({ 48, 72, -48, 48 }, {
             content_bounds.top,
             content_bounds.bottom,
             content_bounds.min_shift,
@@ -361,7 +368,7 @@ describe("home basic widgets", function()
         })
     end)
 
-    it("keeps quote layout bounds stable across quote lengths", function()
+    it("reports the visible quote bounds and their available movement", function()
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/quotes")
         local component = require("modules/filebrowser/patches/home/widgets/quotes")
         local function bounds_for(text)
@@ -385,8 +392,30 @@ describe("home basic widgets", function()
             }
         end
 
-        assert.are.same(bounds_for("Short."), bounds_for("First\nSecond\nThird"))
-        assert.are.same({ 4, 116, 0, 0 }, bounds_for("Short."))
+        assert.are.same({ 48, 72, -48, 48 }, bounds_for("Short."))
+        assert.are.same({ 36, 84, -36, 36 }, bounds_for("First\nSecond\nThird"))
+    end)
+
+    it("caps a bottom quote row to its natural content height", function()
+        ZenSpec.unload("modules/filebrowser/patches/home/widgets/quotes")
+        local component = require("modules/filebrowser/patches/home/widgets/quotes")
+        local ctx = {
+            width = 400,
+            config = { quotes = { show_author = true } },
+            data = {
+                getCurrentQuote = function()
+                    return { text = "Short.", author = "Zen Tester" }
+                end,
+            },
+        }
+
+        assert.is_function(component.preferredHeight)
+        assert.is_nil(component.preferredHeight(ctx))
+        ctx.is_last_row = true
+        ctx.row_count = 2
+        assert.is_nil(component.preferredHeight(ctx))
+        ctx.row_count = 3
+        assert.are.equal(32, component.preferredHeight(ctx))
     end)
 
     it("seeds automatic quote sizing in the default home preset", function()
@@ -572,7 +601,7 @@ describe("home basic widgets", function()
             if child.text == '"First\nSecond\nThird\nFourth"' and child.height then
                 assert.are.equal(36, child.height)
                 assert.are.equal(42, child.paint_y)
-                assert.are.same({ 4, 116 }, {
+                assert.are.same({ 42, 78 }, {
                     content_bounds.top,
                     content_bounds.bottom,
                 })

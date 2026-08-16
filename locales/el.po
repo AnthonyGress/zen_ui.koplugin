@@ -2689,6 +2689,9 @@ msgstr "Ρυθμίσεις γραφικού στοιχείου"
 msgid "Widgets"
 msgstr "Γραφικά στοιχεία"
 
+msgid "Wrap description text"
+msgstr ""
+
 msgid "Yearly"
 msgstr "Ετήσια"
 

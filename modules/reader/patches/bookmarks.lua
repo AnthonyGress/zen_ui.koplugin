@@ -1,10 +1,11 @@
 -- zen_ui: bookmarks patch
--- Makes page numbers in the bookmark/highlight list slightly larger and
--- always renders them in black (instead of dimming future-page entries to gray).
+-- Uses the library font face with the reader size for bookmark/highlight rows
+-- and keeps page numbers black instead of dimming future-page entries to gray.
 
 local function apply_bookmarks()
     local ReaderBookmark = require("apps/reader/modules/readerbookmark")
     local Device = require("device")
+    local LibraryFont = require("modules/filebrowser/patches/library_font")
     local ReaderFont = require("common/reader_font")
     local unpack = table.unpack or unpack
 
@@ -146,17 +147,17 @@ local function apply_bookmarks()
         local bm_menu = self.bookmark_menu and self.bookmark_menu[1]
         if not bm_menu then return end
 
-        local reader_font = ReaderFont.getInfo(self.ui, bm_menu.font_size or 18)
+        local reader_font_size = ReaderFont.getInfo(self.ui, bm_menu.font_size or 18).size
         local menu_faces = { smallinfofont = true, infont = true }
         local first_item = bm_menu.item_group and bm_menu.item_group[1]
         local item_class = first_item and getmetatable(first_item)
         if item_class and item_class.font then menu_faces[item_class.font] = true end
         if item_class and item_class.infont then menu_faces[item_class.infont] = true end
-        bm_menu.items_font_size = reader_font.size
-        bm_menu.font_size = reader_font.size
-        bm_menu.items_mandatory_font_size = reader_font.size
+        bm_menu.items_font_size = reader_font_size
+        bm_menu.font_size = reader_font_size
+        bm_menu.items_mandatory_font_size = reader_font_size
         if bm_menu.items_max_lines and type(bm_menu.setupItemHeights) == "function" then
-            ReaderFont.withMenuFaces(reader_font, function()
+            LibraryFont.withMenuFaces(function()
                 bm_menu:setupItemHeights()
             end, menu_faces)
         end
@@ -172,7 +173,7 @@ local function apply_bookmarks()
                     item.mandatory_dim = nil
                 end
                 local args = { ... }
-                return ReaderFont.withMenuFaces(reader_font, function()
+                return LibraryFont.withMenuFaces(function()
                     return _orig_updateItems(self_m, unpack(args))
                 end, menu_faces)
             end

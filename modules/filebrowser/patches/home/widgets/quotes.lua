@@ -29,49 +29,110 @@ local function cache_layout(key, value)
 end
 
 local function get_quote(ctx)
-    local q = ctx.data:getCurrentQuote()
+    local data = type(ctx) == "table" and ctx.data or nil
+    local q = data and type(data.getCurrentQuote) == "function"
+        and data:getCurrentQuote() or nil
     if q then return q end
     return { text = _("No quote available."), author = "" }
+end
+
+local function quote_content(ctx)
+    local quote = get_quote(ctx)
+    local config = type(ctx.config) == "table" and ctx.config or {}
+    local quotes = type(config.quotes) == "table" and config.quotes or {}
+    local show_author = quotes.show_author ~= false
+    local show_title = quotes.show_title ~= false
+    local attribution_parts = {}
+    if show_author and quote.author and quote.author ~= "" then
+        attribution_parts[#attribution_parts + 1] = quote.author
+    end
+    if show_title and quote.title and quote.title ~= "" then
+        attribution_parts[#attribution_parts + 1] = quote.title
+    end
+    local attribution = table.concat(attribution_parts, ",  ")
+    if attribution == "" and show_author
+            and (not quote.author or quote.author == "")
+            and (not quote.title or quote.title == "") then
+        attribution = quote.attribution or ""
+    end
+    return quote, quotes, '"' .. (quote.text or "") .. '"', attribution
+end
+
+local function configured_quote_font_size(ctx, quotes)
+    local config = type(ctx.config) == "table" and ctx.config or {}
+    local quote_font_size = quotes.font_size
+    if quote_font_size == nil then
+        quote_font_size = quotes.use_home_font_size and config.font_size or 12
+    end
+    return math.max(4, math.min(32, tonumber(quote_font_size) or 12))
+end
+
+local function preferred_height(ctx)
+    ctx = type(ctx) == "table" and ctx or {}
+    if ctx.is_last_row ~= true or (tonumber(ctx.row_count) or 0) < 3 then return nil end
+    local quotes, quote_text, attribution = select(2, quote_content(ctx))
+    local Screen = Device.screen
+    local automatic_font_size = quotes.automatic_font_size == true
+    local quote_font_size = automatic_font_size and math.max(
+        4, math.min(32, tonumber(quotes.max_font_size) or 14)
+    ) or configured_quote_font_size(ctx, quotes)
+    local padding = Screen:scaleBySize(8)
+    local vertical_padding = automatic_font_size and 0 or Screen:scaleBySize(4)
+    local content_w = math.max(30, (tonumber(ctx.width) or Screen:getWidth()) - padding * 2)
+    local quote_face = Font:getFace("smallinfofont", Screen:scaleBySize(quote_font_size))
+    local quote_probe = TextBoxWidget:new{
+        text = quote_text,
+        width = content_w,
+        face = quote_face,
+        line_height = 0.55,
+    }
+    local quote_h = quote_probe:getSize().h or 0
+    WidgetResources.free(quote_probe)
+    if not automatic_font_size then
+        local three_line_probe = TextBoxWidget:new{
+            text = "A\nA\nA",
+            width = content_w,
+            face = quote_face,
+            line_height = 0.55,
+        }
+        quote_h = math.min(quote_h, three_line_probe:getSize().h or quote_h)
+        WidgetResources.free(three_line_probe)
+    end
+    local author_h = 0
+    if attribution ~= "" then
+        local author_face = Font:getFace(
+            "smallinfofont",
+            Screen:scaleBySize(math.max(6, math.floor(quote_font_size * 9 / 10)))
+        )
+        local author_probe = TextBoxWidget:new{
+            text = "\226\128\148 " .. attribution,
+            width = content_w,
+            face = author_face,
+            alignment = "center",
+        }
+        author_h = author_probe:getSize().h or 0
+        WidgetResources.free(author_probe)
+    end
+    return math.max(20, quote_h + author_h + vertical_padding * 2)
 end
 
 return {
     id = "quotes",
     label = _("Quotes"),
     size = { units = 2 },
+    preferredHeight = preferred_height,
     build = function(ctx)
         local width = ctx.width
         local height = ctx.height
-        local quote = get_quote(ctx)
-        local quotes = ctx.config.quotes or {}
-        local show_author = quotes.show_author ~= false
-        local show_title = quotes.show_title ~= false
+        local quote, quotes, quote_text, attribution = quote_content(ctx)
         local automatic_font_size = quotes.automatic_font_size == true
         local Screen = Device.screen
-        local quote_font_size = quotes.font_size
-        if quote_font_size == nil then
-            quote_font_size = quotes.use_home_font_size and ctx.config.font_size or 12
-        end
-        quote_font_size = math.max(4, math.min(32, tonumber(quote_font_size) or 12))
+        local quote_font_size = configured_quote_font_size(ctx, quotes)
 
         local padding = Screen:scaleBySize(8)
         local vertical_padding = automatic_font_size and 0 or Screen:scaleBySize(4)
         local content_w = math.max(30, width - padding * 2)
         local inner_h = math.max(20, height - vertical_padding * 2)
-        local quote_text = '"' .. (quote.text or "") .. '"'
-        local attribution_parts = {}
-        if show_author and quote.author and quote.author ~= "" then
-            attribution_parts[#attribution_parts + 1] = quote.author
-        end
-        if show_title and quote.title and quote.title ~= "" then
-            attribution_parts[#attribution_parts + 1] = quote.title
-        end
-        local attribution = table.concat(attribution_parts, ",  ")
-        if attribution == "" and show_author
-                and (not quote.author or quote.author == "")
-                and (not quote.title or quote.title == "") then
-            attribution = quote.attribution or ""
-        end
-
         local quote_line_height = 0.55
         local layout_key = table.concat({
             quote_text, attribution, tostring(content_w), tostring(inner_h),
@@ -264,10 +325,10 @@ return {
         local visual_shift = 0
         if type(ctx.setContentBounds) == "function" then
             ctx.setContentBounds{
-                top = vertical_padding,
-                bottom = height - vertical_padding,
-                min_shift = 0,
-                max_shift = 0,
+                top = content_top,
+                bottom = content_top + content_h,
+                min_shift = -content_top,
+                max_shift = height - content_top - content_h,
                 set_shift = function(shift) visual_shift = shift end,
             }
         end

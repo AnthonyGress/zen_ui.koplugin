@@ -28,6 +28,31 @@ M.SIZE = { units = 3.5 }
 
 local COVER_WIDTH_SHARE = 0.40
 
+function M.preferred_height(outer_width, module_cfg, data)
+    module_cfg = type(module_cfg) == "table" and module_cfg or {}
+    if module_cfg.wrap_description_text == true
+            and module_cfg.show_description ~= false then
+        if not (data and type(data.getFeaturedBook) == "function") then return nil end
+        local source = HomePresets.featuredSourceKey(module_cfg.default_source)
+        local book = data:getFeaturedBook(source, "default", true)
+        local description = type(book) == "table" and type(book.description) == "string"
+            and util.htmlToPlainTextIfHtml(book.description) or ""
+        if description:gsub("^%s+", ""):gsub("%s+$", "") ~= "" then return nil end
+    end
+    local Screen = Device.screen
+    outer_width = math.max(1, tonumber(outer_width) or Screen:getWidth())
+    local padding = Screen:scaleBySize(8)
+    local width = math.max(1, outer_width - padding * 2)
+    local gap = math.max(4, math.floor(width * 0.025))
+    local cover_w = math.max(1,
+        math.floor(math.max(1, width - gap) * COVER_WIDTH_SHARE))
+    local cover_h = cover_common.uniform_height_for_width(cover_w)
+    local base_h = math.max(1, Screen:scaleBySize(4)) + cover_h
+    local bottom_pad = math.max(3, math.floor(base_h * 0.02))
+    bottom_pad = math.max(3, math.floor((base_h + bottom_pad) * 0.02))
+    return padding * 2 + base_h + bottom_pad
+end
+
 local function time_unit(unit)
     if type(_) == "table" and type(_.pgettext) == "function" then
         return _.pgettext("Time", unit)
@@ -275,7 +300,7 @@ function M.build(ctx, source_key)
         }
     end
 
-    -- Keep details at the full assigned height; the cover fits within it.
+    -- The assigned height is an upper bound; normal details stop at cover height.
     local col_h = math.max(1, height - col_top_pad - col_bottom_pad)
 
     -- Reserve at least 60% of the usable row width for book details.
@@ -302,7 +327,9 @@ function M.build(ctx, source_key)
     local stats_face = get_text_face(progress_style,
         Screen:scaleBySize(math.floor(progress_style.font_size * scale + 0.5)), "smallinfofont")
     local desc_face = get_text_face(description_style, description_style.font_size)
-    local desc_text = book.description and util.htmlToPlainTextIfHtml(book.description) or ""
+    local desc_text = type(book.description) == "string"
+        and util.htmlToPlainTextIfHtml(book.description) or ""
+    desc_text = desc_text:gsub("^%s+", ""):gsub("%s+$", "")
     local desc_line_h_probe = TextBoxWidget:new{
         text = "A\nA",
         width = text_w,
@@ -329,7 +356,7 @@ function M.build(ctx, source_key)
     local status_h = status_widget and (status_widget:getSize().h or 0) or 0
     local status_gap = status_h > 0 and math.max(1, math.floor(col_h * 0.015)) or 0
 
-    -- Progress bar anchored to bottom of right column
+    -- Progress metrics; row width is chosen after overflow is measured.
     local is_tbr = book.status == "tbr"
     local progress_percent = (book.status == "new" or is_tbr) and 0 or book.percent
     if book.status ~= "new" and not is_tbr
@@ -352,14 +379,11 @@ function M.build(ctx, source_key)
     end
     local bar_h = math.max(progress_h, stats_text_h)
     local has_progress = bar_h > 0 and book.status ~= "new" and not is_tbr
-    local flow_top_h = math.max(1, cover_actual_h or col_h)
-    local flow_description = show_description and desc_text ~= ""
-        and col_h - flow_top_h - (has_progress and bar_h or 0)
-            >= desc_line_h + v_pad * 2
-    local progress_w = flow_description and width or text_w
+    local cover_h = math.max(1, cover_actual_h or col_h)
+    local bottom_h = has_progress and bar_h or 0
 
-    local progress_row
-    if has_progress then
+    local function build_progress_row(progress_w)
+        if not has_progress then return nil end
         if has_progress_text then
             local lw = TextWidget:new{
                 text = left_progress_text,
@@ -375,7 +399,7 @@ function M.build(ctx, source_key)
             }
             local tgap = math.max(4, math.floor(progress_w * 0.02))
             local bar_w = math.max(20, progress_w - lw:getSize().w - rw:getSize().w - tgap * 2)
-            progress_row = HorizontalGroup:new{
+            return HorizontalGroup:new{
                 align = "center",
                 lw,
                 HorizontalSpan:new{ width = tgap },
@@ -383,11 +407,9 @@ function M.build(ctx, source_key)
                 HorizontalSpan:new{ width = tgap },
                 rw,
             }
-        else
-            progress_row = render_progress(progress_percent, progress_w, progress_h)
         end
+        return render_progress(progress_percent, progress_w, progress_h)
     end
-    local bottom_h = progress_row and bar_h or 0
 
     -- Title: up to 2 lines before truncating
     local title_line_h = math.max(1, math.floor((tonumber(title_face.size) or 12) * 1.05 + 0.5))
@@ -415,7 +437,7 @@ function M.build(ctx, source_key)
 
     -- Build top block widgets first so we can measure actual heights
     local top_items = {}
-    local top_budget = flow_description and flow_top_h or col_h - bottom_h
+    local top_budget = math.max(0, cover_h - bottom_h)
 
     if status_widget and status_h > 0 then
         if top_budget >= status_h then
@@ -518,10 +540,31 @@ function M.build(ctx, source_key)
     for _i, w in ipairs(top_items) do
         actual_top_h = actual_top_h + w:getSize().h
     end
+    local flow_description = false
+    local flow_upper_text, flow_lower_text = "", ""
+    local side_desc_h = 0
+    local lower_room = col_h - cover_h - bottom_h
+    if module_cfg.wrap_description_text == true
+            and show_description and desc_text ~= ""
+            and lower_room >= desc_line_h + v_pad * 2 then
+        local side_available = math.max(
+            0, cover_h - actual_top_h - bottom_h - v_pad * 2)
+        side_desc_h = math.floor(side_available / desc_line_h) * desc_line_h
+        if side_desc_h > 0 then
+            flow_upper_text, flow_lower_text = split_text_for_box(
+                desc_text, desc_face, description_style.bold == true,
+                text_w, side_desc_h)
+        else
+            flow_lower_text = desc_text
+        end
+        flow_lower_text = flow_lower_text:gsub("^%s+", "")
+        flow_description = flow_lower_text ~= ""
+    end
+    local progress_w = flow_description and width or text_w
+    local progress_row = build_progress_row(progress_w)
     local actual_bottom_h = progress_row and progress_row:getSize().h or 0
-    local detail_top_h = flow_description and flow_top_h or col_h
     local detail_bottom_h = flow_description and 0 or actual_bottom_h
-    local spacer_h = math.max(0, detail_top_h - actual_top_h - detail_bottom_h)
+    local spacer_h = math.max(0, cover_h - actual_top_h - detail_bottom_h)
 
     local function description_widget(text, box_w, box_h, ellipsis)
         return TextBoxWidget:new{
@@ -539,22 +582,11 @@ function M.build(ctx, source_key)
 
     local body
     if flow_description then
-        local upper_available = math.max(0, spacer_h - v_pad)
-        local upper_desc_h = math.floor(upper_available / desc_line_h) * desc_line_h
-        local lower_slot_h = math.max(0, col_h - flow_top_h - actual_bottom_h)
+        local upper_desc_h = side_desc_h
+        local lower_slot_h = math.max(0, col_h - cover_h - actual_bottom_h)
         local lower_available = math.max(0, lower_slot_h - v_pad * 2)
         local lower_desc_h = math.floor(lower_available / desc_line_h) * desc_line_h
-        local upper_text, lower_text
-        if upper_desc_h > 0 and lower_desc_h > 0 then
-            upper_text, lower_text = split_text_for_box(
-                desc_text, desc_face, description_style.bold == true,
-                text_w, upper_desc_h)
-        elseif upper_desc_h > 0 then
-            upper_text, lower_text = desc_text, ""
-        else
-            upper_text, lower_text = "", desc_text
-        end
-        lower_text = lower_text:gsub("^[\r\n]+", "")
+        local upper_text, lower_text = flow_upper_text, flow_lower_text
 
         local side_children = { align = "left" }
         for _i, w in ipairs(top_items) do
@@ -575,7 +607,7 @@ function M.build(ctx, source_key)
 
         local side_detail = FrameContainer:new{
             width = text_w,
-            height = flow_top_h,
+            height = cover_h,
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
@@ -629,7 +661,7 @@ function M.build(ctx, source_key)
 
         local detail = FrameContainer:new{
             width = text_w,
-            height = col_h,
+            height = cover_h,
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),

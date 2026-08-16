@@ -2688,6 +2688,9 @@ msgstr "Настройки на джаджи"
 msgid "Widgets"
 msgstr "Уиджети"
 
+msgid "Wrap description text"
+msgstr ""
+
 msgid "Yearly"
 msgstr "Годишно"
 

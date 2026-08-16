@@ -24,10 +24,20 @@ local Geom           = require("ui/geometry")
 local IconWidget     = require("ui/widget/iconwidget")
 local TextWidget     = require("ui/widget/textwidget")
 local UIManager      = require("ui/uimanager")
+local DataStorage    = require("datastorage")
 local Screen         = Device.screen
 local pager          = require("common/ui/zen_pager")
+local LibraryFont    = require("modules/filebrowser/patches/library_font")
 local ReaderFont     = require("common/reader_font")
 local TitleStyle     = require("common/ui/zen_title_style")
+local utils          = require("common/utils")
+
+local function resolve_stock_icon(name)
+    return utils.resolveLocalIcon(DataStorage:getDataDir() .. "/resources/icons/mdlight/", name)
+end
+
+local BACK_ICON_PATH = resolve_stock_icon("chevron.left")
+local CLOSE_ICON_PATH = resolve_stock_icon("close")
 
 local function supports_hardware_focus()
     local has_dpad = type(Device.hasDPad) == "function" and Device:hasDPad()
@@ -76,6 +86,7 @@ end
 local ZenTocWidget = InputContainer:extend{
     ui         = nil,   -- ReaderUI instance
     on_goto    = nil,   -- callback(page_num) when entry tapped
+    close_all_callback = nil,
     focus_page = 1,     -- current page; used to highlight active chapter
 }
 
@@ -119,9 +130,8 @@ function ZenTocWidget:init()
     end
     self._entries = entries
 
-    local reader_font = ReaderFont.getInfo(self.ui, 18)
-    self._reader_face = ReaderFont.getFace(reader_font)
-        or Font:getFace("cfont", reader_font.size)
+    local reader_font_size = ReaderFont.getInfo(self.ui, 18).size
+    self._text_face = LibraryFont.getFace(reader_font_size)
 
     -- -----------------------------------------------------------------------
     -- Layout constants (all screen-scaled)
@@ -131,7 +141,7 @@ function ZenTocWidget:init()
     local PAD         = Screen:scaleBySize(16)   -- horizontal content padding
     local TITLE_H     = TitleStyle.HEADER_CONTENT_HEIGHT
     local SEP_H       = TitleStyle.DIVIDER_HEIGHT
-    local row_sample  = TextWidget:new{ text = "Wg", face = self._reader_face, padding = 0 }
+    local row_sample  = TextWidget:new{ text = "Wg", face = self._text_face, padding = 0 }
     local ROW_H       = math.max(Screen:scaleBySize(48), row_sample:getSize().h + Screen:scaleBySize(16))
     row_sample:free()
     local BAR_PAD_V   = Screen:scaleBySize(7)
@@ -157,9 +167,9 @@ function ZenTocWidget:init()
     local MODAL_X    = 0
     local MODAL_Y    = 0
 
-    local CLOSE_W = TitleStyle.BUTTON_SIZE
-    local CLOSE_X = TitleStyle.LEFT_PADDING
-    local CLOSE_Y = MODAL_Y
+    local BACK_W = TitleStyle.BUTTON_SIZE
+    local BACK_X = TitleStyle.LEFT_PADDING
+    local BACK_Y = MODAL_Y
 
     -- Y where entry rows start (absolute screen coords).
     local LIST_Y = MODAL_Y + TITLE_H + SEP_H
@@ -187,8 +197,11 @@ function ZenTocWidget:init()
         scrollbar_h = SCROLLBAR_H,
         style   = toc_style,
         bar_w   = BAR_W,   bar_x   = BAR_X, bar_y = BAR_Y,
-        close_x = CLOSE_X, close_y = CLOSE_Y,
-        close_w = CLOSE_W, close_h = TITLE_H,
+        back_x = BACK_X, back_y = BACK_Y,
+        back_w = BACK_W, back_h = TITLE_H,
+        close_all_x = MODAL_X + MODAL_W
+            - TitleStyle.RIGHT_PADDING - TitleStyle.BUTTON_SIZE,
+        close_all_w = TitleStyle.BUTTON_SIZE,
     }
 
     local nb_pages = math.max(1, math.ceil(#entries / per_page))
@@ -263,6 +276,11 @@ end
 function ZenTocWidget:_moveFocus(dx, dy)
     local first, last = self:_visibleEntryBounds()
     if self._zen_focus_area == "back" then
+        if dx > 0 then self:_setFocus("close") end
+        if dy > 0 and first <= last then self:_setFocus("entry", first) end
+        return true
+    elseif self._zen_focus_area == "close" then
+        if dx < 0 then self:_setFocus("back") end
         if dy > 0 and first <= last then self:_setFocus("entry", first) end
         return true
     elseif self._zen_focus_area == "footer" then
@@ -295,6 +313,7 @@ end
 
 function ZenTocWidget:onPress()
     if self._zen_focus_area == "back" then return self:onClose() end
+    if self._zen_focus_area == "close" then return self:onCloseAll() end
     if self._zen_focus_area == "footer" then
         local direction = self._zen_footer_side == "right" and 1 or -1
         self:_gotoTocPage(self._toc_page + direction)
@@ -317,11 +336,13 @@ function ZenTocWidget:onKeyPress(key)
     if self._zen_focus_enabled and key and type(key.match) == "function" then
         if key:match({ "Up" }) then
             return self:_moveFocus(0, -1)
-        elseif key:match({ "Right" }) and self._zen_focus_area == "footer" then
+        elseif key:match({ "Right" })
+                and (self._zen_focus_area == "back" or self._zen_focus_area == "footer") then
             return self:_moveFocus(1, 0)
         elseif key:match({ "Down" }) then
             return self:_moveFocus(0, 1)
-        elseif key:match({ "Left" }) and self._zen_focus_area == "footer" then
+        elseif key:match({ "Left" })
+                and (self._zen_focus_area == "close" or self._zen_focus_area == "footer") then
             return self:_moveFocus(-1, 0)
         elseif key:match({ "Press" }) or key:match({ "Return" }) or key:match({ "Enter" }) then
             return self:onPress()
@@ -335,11 +356,13 @@ function ZenTocWidget:onKeyRepeat(key)
     if self._zen_focus_enabled and key and type(key.match) == "function" then
         if key:match({ "Up" }) then
             return self:_moveFocus(0, -1)
-        elseif key:match({ "Right" }) and self._zen_focus_area == "footer" then
+        elseif key:match({ "Right" })
+                and (self._zen_focus_area == "back" or self._zen_focus_area == "footer") then
             return self:_moveFocus(1, 0)
         elseif key:match({ "Down" }) then
             return self:_moveFocus(0, 1)
-        elseif key:match({ "Left" }) and self._zen_focus_area == "footer" then
+        elseif key:match({ "Left" })
+                and (self._zen_focus_area == "close" or self._zen_focus_area == "footer") then
             return self:_moveFocus(-1, 0)
         end
     end
@@ -425,15 +448,15 @@ function ZenTocWidget:paintTo(bb, x, y)
             + math.floor((TitleStyle.ROW_HEIGHT - tsz.h) / 2))
     title_tw:free()
 
-    -- Close icon (left chevron, positioned on the left)
+    -- Back icon (left chevron)
     local icon_sz    = TitleStyle.ICON_SIZE
-    local close_icon = IconWidget:new{
-        icon   = "chevron.left",
+    local back_icon = IconWidget:new{
+        file   = BACK_ICON_PATH,
         width  = icon_sz,
         height = icon_sz,
     }
     local back_focused = self._zen_focus_enabled and self._zen_focus_area == "back"
-    close_icon.invert = back_focused
+    back_icon.invert = back_focused
     if back_focused then
         local focus_pad = Screen:scaleBySize(4)
         bb:paintRect(
@@ -445,10 +468,34 @@ function ZenTocWidget:paintTo(bb, x, y)
             Blitbuffer.COLOR_BLACK
         )
     end
-    close_icon:paintTo(bb,
+    back_icon:paintTo(bb,
         TitleStyle.getLeadingIconX(mx),
         my + TitleStyle.VERTICAL_PADDING
             + math.floor((TitleStyle.ROW_HEIGHT - icon_sz) / 2))
+    back_icon:free()
+
+    -- Close-all icon (X)
+    local close_icon = IconWidget:new{
+        file   = CLOSE_ICON_PATH,
+        width  = icon_sz,
+        height = icon_sz,
+    }
+    local close_x = TitleStyle.getTrailingIconX(L.modal_w, mx)
+    local close_y = my + TitleStyle.VERTICAL_PADDING
+        + math.floor((TitleStyle.ROW_HEIGHT - icon_sz) / 2)
+    local close_focused = self._zen_focus_enabled and self._zen_focus_area == "close"
+    close_icon.invert = close_focused
+    if close_focused then
+        local focus_pad = Screen:scaleBySize(4)
+        bb:paintRect(
+            close_x - focus_pad,
+            close_y - focus_pad,
+            icon_sz + 2 * focus_pad,
+            icon_sz + 2 * focus_pad,
+            Blitbuffer.COLOR_BLACK
+        )
+    end
+    close_icon:paintTo(bb, close_x, close_y)
     close_icon:free()
 
     -- Title separator line.
@@ -465,7 +512,7 @@ function ZenTocWidget:paintTo(bb, x, y)
         -- Empty state
         local etw = TextWidget:new{
             text    = "No table of contents available",
-            face    = self._reader_face,
+            face    = self._text_face,
             fgcolor = Blitbuffer.COLOR_DARK_GRAY,
             padding = 0,
         }
@@ -500,7 +547,7 @@ function ZenTocWidget:paintTo(bb, x, y)
             local page_str = e.page_label or tostring(e.page)
             local pn_tw    = TextWidget:new{
                 text    = page_str,
-                face    = self._reader_face,
+                face    = self._text_face,
                 fgcolor = Blitbuffer.COLOR_BLACK,
                 bold    = is_active,
                 padding = 0,
@@ -515,7 +562,7 @@ function ZenTocWidget:paintTo(bb, x, y)
             local title_max_w = pn_x - text_x - Screen:scaleBySize(8)
             local title_tw2 = TextWidget:new{
                 text      = e.title,
-                face      = self._reader_face,
+                face      = self._text_face,
                 fgcolor   = Blitbuffer.COLOR_BLACK,
                 bold      = is_active,
                 max_width = title_max_w,
@@ -568,11 +615,16 @@ function ZenTocWidget:_onTap(ges)
     local p = ges.pos
     local L = self._L
 
-    -- Tap on close button hit zone (top-left of title bar)
-    if p.x >= L.close_x and p.x < L.close_x + L.close_w
-    and p.y >= L.close_y and p.y < L.close_y + L.close_h then
+    -- Tap on back button hit zone (top-left of title bar)
+    if p.x >= L.back_x and p.x < L.back_x + L.back_w
+    and p.y >= L.back_y and p.y < L.back_y + L.back_h then
         self:onClose()
         return true
+    end
+
+    if p.x >= L.close_all_x and p.x < L.close_all_x + L.close_all_w
+            and p.y >= L.modal_y and p.y < L.modal_y + L.title_h then
+        return self:onCloseAll()
     end
 
     -- Tap on the page_number footer chevrons; center label is display-only.
@@ -662,6 +714,12 @@ end
 
 function ZenTocWidget:onClose()
     UIManager:close(self)
+    return true
+end
+
+function ZenTocWidget:onCloseAll()
+    self:onClose()
+    if self.close_all_callback then self.close_all_callback() end
     return true
 end
 

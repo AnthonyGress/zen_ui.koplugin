@@ -229,6 +229,19 @@ describe("Home widget content settings", function()
         assert.is_nil(find_item(parent.item_table, "Clear book"))
     end)
 
+    it("keeps featured description wrapping disabled by default", function()
+        local settings = require("modules/settings/sections/library_settings/home_settings")
+        assert.is_true(settings.openWidgetSettings("featured"))
+
+        local item = find_item(arrange_options.item_table, "Wrap description text")
+        assert.is_table(item)
+        assert.is_false(item.checked_func())
+
+        item.callback()
+        assert.is_true(home_page.modules.featured.wrap_description_text)
+        assert.is_true(item.checked_func())
+    end)
+
     it("keeps the plugin when Widgets is opened from the settings page", function()
         local plugin = { config = {} }
         local section = require("modules/settings/sections/library_settings/home_settings").build({

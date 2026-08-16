@@ -2679,6 +2679,9 @@ msgstr "Nastavení widgetů"
 msgid "Widgets"
 msgstr "Widgety"
 
+msgid "Wrap description text"
+msgstr ""
+
 msgid "Yearly"
 msgstr "Roční"
 

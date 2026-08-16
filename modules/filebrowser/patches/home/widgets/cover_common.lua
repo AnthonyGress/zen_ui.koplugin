@@ -26,6 +26,11 @@ local function get_uniform_ratio()
     return (tonumber(n) or 2) / (tonumber(d) or 3)
 end
 
+function M.uniform_height_for_width(width)
+    width = math.max(1, tonumber(width) or 1)
+    return math.max(1, math.floor(width / get_uniform_ratio()))
+end
+
 local function calc_uniform_dims(max_w, max_h)
     local ratio = get_uniform_ratio()
     if max_h * ratio <= max_w then

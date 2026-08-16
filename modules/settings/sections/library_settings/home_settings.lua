@@ -138,6 +138,7 @@ local function ensure_featured_cfg(dcfg, module_id)
     local mcfg = ensure_module_cfg(dcfg, module_id)
     mcfg.order = nil
     if mcfg.show_description == nil then mcfg.show_description = true end
+    if mcfg.wrap_description_text == nil then mcfg.wrap_description_text = false end
     if mcfg.interactive == nil then mcfg.interactive = true end
     if mcfg.show_status_bar == nil then mcfg.show_status_bar = false end
     if mcfg.status_bar_show_bottom_border == nil then mcfg.status_bar_show_bottom_border = true end
@@ -968,6 +969,16 @@ function M.build(ctx)
                 end,
                 callback = function()
                     mcfg.show_description = mcfg.show_description == false
+                    save_home("reinit")
+                end,
+            },
+            {
+                text = _("Wrap description text"),
+                checked_func = function()
+                    return mcfg.wrap_description_text == true
+                end,
+                callback = function()
+                    mcfg.wrap_description_text = mcfg.wrap_description_text ~= true
                     save_home("reinit")
                 end,
             },

@@ -26,6 +26,7 @@ local function featured_defaults()
             right = "total_pages",
         },
         show_description = true,
+        wrap_description_text = false,
         show_status_bar = true,
         status_bar_bold_text = true,
         status_bar_show_bottom_border = true,

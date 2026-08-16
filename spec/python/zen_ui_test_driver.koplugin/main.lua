@@ -456,18 +456,50 @@ local function active_home_menu()
     return Home, menu
 end
 
+local function find_quote_content_bounds(widget, seen, depth)
+    if type(widget) ~= "table" or seen[widget] or depth > 64 then return nil end
+    seen[widget] = true
+    if type(widget.paintTo) == "function" then
+        local quote_widget = find_upvalue(widget.paintTo, "quote_widget")
+        local author_widget = find_upvalue(widget.paintTo, "author_widget")
+        local quote_dimen = type(quote_widget) == "table" and quote_widget.dimen or nil
+        if quote_dimen and type(quote_dimen.y) == "number"
+                and type(quote_dimen.h) == "number" then
+            local top = quote_dimen.y
+            local bottom = quote_dimen.y + quote_dimen.h
+            local author_dimen = type(author_widget) == "table" and author_widget.dimen or nil
+            if author_dimen and type(author_dimen.y) == "number"
+                    and type(author_dimen.h) == "number" then
+                top = math.min(top, author_dimen.y)
+                bottom = math.max(bottom, author_dimen.y + author_dimen.h)
+            end
+            return { top = top, bottom = bottom }
+        end
+    end
+    for _i, child in ipairs(widget) do
+        local bounds = find_quote_content_bounds(child, seen, depth + 1)
+        if bounds then return bounds end
+    end
+end
+
 local function home_state()
     local Home, menu = active_home_menu()
     local visible_texts = {}
     if menu then collect_texts(menu, visible_texts, {}, 0) end
     local widget_ids = {}
+    local quote_content_bounds
     local book_paths = {}
     local strip_bottom
     for _i, target in ipairs(menu and menu._zen_home_focus_targets or {}) do
         local key = type(target.key) == "string" and target.key or ""
         local widget_id = key:match("^widget:(.+)$")
         local book_path = key:match("^book:(.+)$")
-        if widget_id then widget_ids[#widget_ids + 1] = widget_id end
+        if widget_id then
+            widget_ids[#widget_ids + 1] = widget_id
+            if widget_id == "quotes" then
+                quote_content_bounds = find_quote_content_bounds(target.widget, {}, 0)
+            end
+        end
         if book_path then book_paths[#book_paths + 1] = book_path end
         local dimen = target.component_id == "strip"
             and target.widget and target.widget.dimen or nil
@@ -482,11 +514,13 @@ local function home_state()
         active_tab_label = rawget(_G, "__ZEN_UI_ACTIVE_TAB_LABEL"),
         menu_name = menu and menu.name or nil,
         widget_ids = widget_ids,
+        quote_content_bounds = quote_content_bounds,
         book_paths = book_paths,
         page_padding = menu and menu._zen_home_page_padding or 0,
         row_gap = menu and menu._zen_home_row_gap or 0,
         body_height = menu and menu.height or 0,
         top_visual_inset = menu and menu._zen_home_top_visual_inset or 0,
+        bottom_visual_inset = menu and menu._zen_home_bottom_visual_inset or nil,
         strip_bottom = strip_bottom,
         visual_gaps = menu and menu._zen_home_visual_gaps or {},
         clock_refreshers = #(menu and menu._zen_home_clock_refreshers or {}),
