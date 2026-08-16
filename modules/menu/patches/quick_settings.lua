@@ -457,6 +457,13 @@ local function apply_quick_settings()
         end
     end
 
+    local function refreshWifiQuickSettings(touch_menu)
+        refreshQuickSettings(touch_menu)
+        UIManager:scheduleIn(1, function()
+            refreshQuickSettings(touch_menu)
+        end)
+    end
+
     local function isWifiConnected()
         return NetworkMgr:isWifiOn()
             and (type(NetworkMgr.isConnected) ~= "function" or NetworkMgr:isConnected())
@@ -465,28 +472,6 @@ local function apply_quick_settings()
     local function isWifiConnecting()
         return not isWifiConnected()
             and (NetworkMgr.pending_connection or NetworkMgr.pending_connectivity_check)
-    end
-
-    local function enableWifiInBackground(touch_menu)
-        if not (Device.hasWifiRestore and Device:hasWifiRestore())
-            or type(NetworkMgr.restoreWifiAsync) ~= "function" then
-            return false
-        end
-
-        NetworkMgr.pending_connection = true
-        UIManager:broadcastEvent(Event:new("NetworkConnecting"))
-        refreshQuickSettings(touch_menu)
-        NetworkMgr:restoreWifiAsync()
-        NetworkMgr:scheduleConnectivityCheck(function()
-            refreshQuickSettings(touch_menu)
-            UIManager:scheduleIn(1, function()
-                refreshQuickSettings(touch_menu)
-            end)
-        end)
-        UIManager:scheduleIn(1, function()
-            refreshQuickSettings(touch_menu)
-        end)
-        return true
     end
 
     -- ============================================================
@@ -525,14 +510,14 @@ local function apply_quick_settings()
             active_func = isWifiConnected,
             dim_func = isWifiConnecting,
             callback = function(touch_menu)
-                local wifi_on = NetworkMgr:isWifiOn()
                 if isWifiConnecting() then return end
-                if not wifi_on and enableWifiInBackground(touch_menu) then
-                    return
-                end
-
+                -- Explicit toggles need KOReader's scan/DHCP flow; async restore is resume-only.
                 local wifi_menu = NetworkMgr:getWifiMenuTable()
-                wifi_menu.callback(touch_menu)
+                wifi_menu.callback({
+                    updateItems = function()
+                        refreshWifiQuickSettings(touch_menu)
+                    end,
+                })
             end,
             hold_callback = function(touch_menu)
                 -- Long-hold: (re)connect and show the AP picker.
@@ -541,11 +526,7 @@ local function apply_quick_settings()
                 -- If already off, go straight to the long-press connect flow.
                 local function do_connect()
                     NetworkMgr:toggleWifiOn(function()
-                        UIManager:scheduleIn(0.5, function()
-                            if touch_menu.item_table and touch_menu.item_table.panel then
-                                touch_menu:updateItems(1)
-                            end
-                        end)
+                        refreshWifiQuickSettings(touch_menu)
                     end, true, true)
                 end
                 if NetworkMgr:isWifiOn() then

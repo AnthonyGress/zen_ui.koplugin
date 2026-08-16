@@ -43,12 +43,14 @@ function M.build(opts)
     local HorizontalSpan = require("ui/widget/horizontalspan")
     local InputContainer = require("ui/widget/container/inputcontainer")
     local TextBoxWidget = require("ui/widget/textboxwidget")
+    local TextWidget = require("ui/widget/textwidget")
     local UIManager = require("ui/uimanager")
     local VerticalGroup = require("ui/widget/verticalgroup")
     local VerticalSpan = require("ui/widget/verticalspan")
     local BookProgress = require("common/ui/book_progress")
     local BookDetails = require("modules/reader/book_details")
     local BookSwitcherPage = require("modules/menu/app_launcher/book_switcher_page")
+    local TruncatedTextMessage = require("common/ui/truncated_text_message")
     local cover_common = require("modules/filebrowser/patches/home/widgets/cover_common")
     local library_font = require("modules/filebrowser/patches/library_font")
     local _ = require("gettext")
@@ -89,38 +91,50 @@ function M.build(opts)
     local text_w = math.max(1, inner_w - cover_w - gap)
     local title_face = library_font.getFace(library_font.scaleValue(22))
     local metadata_face = library_font.getFace(library_font.scaleValue(19))
-    local title = TextBoxWidget:new{
-        text = book.title or "",
-        face = title_face,
-        bold = true,
-        width = text_w,
-        alignment = "left",
-        alignment_strict = true,
-        height_adjust = true,
+    local FullText = InputContainer:extend{}
+    function FullText:init()
+        local size = self[1]:getSize()
+        self.dimen = Geom:new{ w = size.w, h = size.h }
+        self.ges_events = {
+            HoldFullText = { GestureRange:new{ ges = "hold", range = self.dimen } },
+        }
+    end
+    function FullText:paintTo(bb, x, y)
+        self.dimen.x, self.dimen.y = x, y
+        self[1]:paintTo(bb, x, y)
+    end
+    function FullText:onHoldFullText()
+        TruncatedTextMessage.showMetadata(self.full_text, self.dimen)
+        return true
+    end
+    local function one_line(text, face, bold)
+        local full_text = tostring(text or ""):gsub("%s*\n%s*", " ")
+        local text_widget = TextWidget:new{
+            text = full_text,
+            face = face,
+            bold = bold == true,
+            max_width = text_w,
+            truncate_with_ellipsis = true,
+            padding = 0,
+        }
+        if not text_widget:isTruncated() then return text_widget end
+        return FullText:new{ full_text = full_text, text_widget }
+    end
+    local title = one_line(book.title, title_face, true)
+    local details = VerticalGroup:new{
+        align = "left",
+        HorizontalSpan:new{ width = text_w },
+        title,
     }
-    local details = VerticalGroup:new{ align = "left", title }
     if book.authors and book.authors ~= "" then
         details[#details + 1] = VerticalSpan:new{ width = Screen:scaleBySize(6) }
-        details[#details + 1] = TextBoxWidget:new{
-            text = book.authors:gsub("%s*\n%s*", ", "),
-            face = metadata_face,
-            width = text_w,
-            alignment = "left",
-            alignment_strict = true,
-            height_adjust = true,
-        }
+        details[#details + 1] = one_line(
+            book.authors:gsub("%s*\n%s*", ", "), metadata_face)
     end
     local function add_metadata(text)
         if text and text ~= "" then
             details[#details + 1] = VerticalSpan:new{ width = Screen:scaleBySize(3) }
-            details[#details + 1] = TextBoxWidget:new{
-                text = text,
-                face = metadata_face,
-                width = text_w,
-                alignment = "left",
-                alignment_strict = true,
-                height_adjust = true,
-            }
+            details[#details + 1] = one_line(text, metadata_face)
         end
     end
     add_metadata(book.series)
@@ -139,12 +153,17 @@ function M.build(opts)
         details[#details + 1] = progress
     end
 
-    local content_h = layout.cover_area_h
+    local content_h = math.max(layout.cover_area_h, details:getSize().h)
+    local cell_h = content_h + layout.strip_h
     local detail_row = HorizontalGroup:new{
         align = "center",
         CenterContainer:new{ dimen = Geom:new{ w = cover_w, h = content_h }, cover },
         HorizontalSpan:new{ width = gap },
-        CenterContainer:new{ dimen = Geom:new{ w = text_w, h = content_h }, details },
+        CenterContainer:new{
+            dimen = Geom:new{ w = text_w, h = content_h },
+            ignore_if_over = "height",
+            details,
+        },
     }
     local content = VerticalGroup:new{ align = "center", detail_row }
     if layout.strip_h > 0 then
@@ -187,8 +206,8 @@ function M.build(opts)
     end
     local cell = DetailsCell:new{
         width = inner_w,
-        height = layout.cell_h,
-        dimen = Geom:new{ w = inner_w, h = layout.cell_h },
+        height = cell_h,
+        dimen = Geom:new{ w = inner_w, h = cell_h },
         callback = callback,
         content,
     }
@@ -198,7 +217,7 @@ function M.build(opts)
     return VerticalGroup:new{
         align = "center",
         VerticalSpan:new{ width = layout.top_padding },
-        CenterContainer:new{ dimen = Geom:new{ w = width, h = layout.cell_h }, cell },
+        CenterContainer:new{ dimen = Geom:new{ w = width, h = cell_h }, cell },
         VerticalSpan:new{ width = padding },
     }, refs
 end

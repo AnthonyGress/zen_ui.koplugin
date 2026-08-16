@@ -15,8 +15,11 @@ end
 
 function M.pagePosition(config, library_context, button_page_count)
     if not M.isEnabled(config, library_context) then return nil end
-    if launcher_config(config).book_switcher_first == true then return 1 end
-    return math.max(0, tonumber(button_page_count) or 0) + 1
+    local plan = require("modules/menu/app_launcher/page_plan").build(
+        button_page_count, config, library_context)
+    for index, page in ipairs(plan) do
+        if page.kind == "book_switcher" then return index end
+    end
 end
 
 function M.rendererOptions(config)

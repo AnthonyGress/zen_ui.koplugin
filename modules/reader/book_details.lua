@@ -214,7 +214,7 @@ function M.buildSpec(ui, opts)
     add_detail(summary.title, "title", true)
     add_detail(summary.authors, "author", false, 2)
     add_detail(summary.series, "secondary", false, 2)
-    add_detail(summary.genres, "secondary", false, 3)
+    add_detail(summary.genres, "tags", false, 3)
     add_detail(full_language_name(props.language), "secondary", false, 3)
     local rating = book_summary.rating
     local numeric_rating = tonumber(rating)
@@ -230,7 +230,7 @@ function M.buildSpec(ui, opts)
             "secondary", false, 3)
     end
     add_detail(book_summary.note, "secondary", false, 3)
-    add_detail(summary.page_text, "secondary", false, 3)
+    add_detail(summary.page_text, "page", false, 3)
 
     local reader_font_size = ReaderFont.getInfo(ui,
         (Font.sizemap and Font.sizemap.cfont) or 16).size
@@ -240,6 +240,8 @@ function M.buildSpec(ui, opts)
     local text_faces = {
         title = library_face,
         author = metadata_face,
+        tags = metadata_face,
+        page = metadata_face,
         secondary = metadata_face,
     }
 

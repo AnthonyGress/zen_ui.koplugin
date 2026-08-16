@@ -60,12 +60,15 @@ describe("app launcher book switcher page", function()
         end
     end)
 
-    it("places the optional page first or last and honors reader-only visibility", function()
+    it("places the optional page from page order and honors reader-only visibility", function()
         local Page = require("modules/menu/app_launcher/book_switcher_page")
-        local cfg = { show_book_switcher = true }
+        local cfg = {
+            show_book_switcher = true,
+            page_order = { "buttons", "book_switcher", "book_details" },
+        }
 
         assert.are.equal(3, Page.pagePosition(cfg, false, 2))
-        cfg.book_switcher_first = true
+        cfg.page_order = { "book_switcher", "buttons", "book_details" }
         assert.are.equal(1, Page.pagePosition(cfg, false, 2))
         cfg.book_switcher_reader_only = true
         assert.is_nil(Page.pagePosition(cfg, true, 2))
@@ -102,23 +105,42 @@ describe("app launcher book switcher page", function()
         local Store = require("modules/menu/app_launcher/store")
         local cfg = Store.load()
         assert.is_false(cfg.show_book_switcher)
-        assert.is_false(cfg.book_switcher_first)
         assert.is_false(cfg.book_switcher_reader_only)
         assert.is_false(cfg.show_book_details)
-        assert.is_false(cfg.book_details_first)
+        assert.are.same({ "book_details", "book_switcher", "buttons" }, cfg.page_order)
 
         cfg.show_book_switcher = true
         cfg.book_switcher_first = true
         cfg.book_switcher_reader_only = true
         cfg.show_book_details = true
         cfg.book_details_first = true
+        cfg.page_order = { "buttons", "unknown", "buttons" }
         Store.save(cfg)
         assert.is_true(settings_file.flushed)
         assert.is_true(settings_file.data.show_book_switcher)
-        assert.is_false(settings_file.data.book_switcher_first)
         assert.is_true(settings_file.data.book_switcher_reader_only)
         assert.is_true(settings_file.data.show_book_details)
-        assert.is_true(settings_file.data.book_details_first)
+        assert.is_nil(settings_file.data.book_switcher_first)
+        assert.is_nil(settings_file.data.book_details_first)
+        assert.are.same({ "buttons", "book_details", "book_switcher" },
+            settings_file.data.page_order)
+    end)
+
+    it("migrates the removed first-page preference into page order", function()
+        local settings_file = {
+            data = {
+                entries = {},
+                show_book_switcher = true,
+                book_switcher_first = true,
+            },
+        }
+        function settings_file:flush() end
+        replace("luasettings", { open = function() return settings_file end })
+        replace("config/preset_store", { rootDir = function() return "/settings" end })
+
+        local cfg = require("modules/menu/app_launcher/store").load()
+        assert.are.same({ "book_switcher", "buttons", "book_details" }, cfg.page_order)
+        assert.is_nil(cfg.book_switcher_first)
     end)
 
     it("loads four switcher alternatives with cover metadata", function()

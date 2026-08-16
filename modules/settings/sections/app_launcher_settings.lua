@@ -7,6 +7,7 @@ local icon_utils = require("common/utils")
 
 local Model = require("modules/menu/app_launcher/model")
 local NativeMenu = require("modules/menu/app_launcher/native_menu")
+local PagePlan = require("modules/menu/app_launcher/page_plan")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
 local DispatcherMenu = require("common/dispatcher_menu")
 
@@ -38,6 +39,33 @@ function M.build(ctx)
         else
             save_and_apply("app_launcher")
         end
+    end
+
+    local function show_page_order()
+        local sort_items = {}
+        local labels = {
+            book_details = _("Book information"),
+            book_switcher = _("Book switcher"),
+            buttons = _("Buttons"),
+        }
+        for _i, kind in ipairs(PagePlan.normalizeOrder(cfg.page_order)) do
+            sort_items[#sort_items + 1] = {
+                text = labels[kind],
+                orig_kind = kind,
+            }
+        end
+        require("common/ui/zen_arrange_list").show{
+            title = _("Order"),
+            item_table = sort_items,
+            callback = function()
+                local order = {}
+                for _i, item in ipairs(sort_items) do
+                    order[#order + 1] = item.orig_kind
+                end
+                cfg.page_order = PagePlan.normalizeOrder(order)
+                save_app_launcher()
+            end,
+        }
     end
 
     local function is_draft_entry(entry)
@@ -792,21 +820,6 @@ function M.build(ctx)
                     end,
                 },
                 {
-                    text = _("Show as first page"),
-                    enabled_func = function()
-                        return cfg.show_book_switcher == true
-                    end,
-                    checked_func = function()
-                        return cfg.book_switcher_first == true
-                    end,
-                    callback = function()
-                        local enabled = cfg.book_switcher_first ~= true
-                        cfg.book_switcher_first = enabled
-                        if enabled then cfg.book_details_first = false end
-                        save_app_launcher()
-                    end,
-                },
-                {
                     text = _("Only show while reading"),
                     enabled_func = function()
                         return cfg.show_book_switcher == true
@@ -834,21 +847,6 @@ function M.build(ctx)
                         save_app_launcher()
                     end,
                 },
-                {
-                    text = _("Show as first page"),
-                    enabled_func = function()
-                        return cfg.show_book_details == true
-                    end,
-                    checked_func = function()
-                        return cfg.book_details_first == true
-                    end,
-                    callback = function()
-                        local enabled = cfg.book_details_first ~= true
-                        cfg.book_details_first = enabled
-                        if enabled then cfg.book_switcher_first = false end
-                        save_app_launcher()
-                    end,
-                },
             },
         },
         {
@@ -863,6 +861,11 @@ function M.build(ctx)
                     touch_menu:updateItems(1)
                 end
             end,
+        },
+        {
+            text = _("Order") .. " \u{25B8}",
+            keep_menu_open = true,
+            callback = show_page_order,
         },
         {
             text = _("Open menu to Launcher"),
@@ -896,8 +899,9 @@ function M.build(ctx)
     IconItem.decorate(root_items[3], icons.book_switcher)
     IconItem.decorate(root_items[4], icons.details)
     IconItem.decorate(root_items[5], icons.keywords)
-    IconItem.decorate(root_items[6], icons.open_menu)
-    IconItem.decorate(root_items[7], icons.hide_reader_actions)
+    IconItem.decorate(root_items[6], icons.sort)
+    IconItem.decorate(root_items[7], icons.open_menu)
+    IconItem.decorate(root_items[8], icons.hide_reader_actions)
 
     local function open_entry_settings_from_search(entry, parent)
         local items = build_entry_items(entry, parent)

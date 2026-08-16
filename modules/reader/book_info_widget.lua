@@ -6,17 +6,18 @@ local Geom = require("ui/geometry")
 local IconWidget = require("ui/widget/iconwidget")
 local ImageWidget = require("ui/widget/imagewidget")
 local ScrollTextWidget = require("ui/widget/scrolltextwidget")
-local TextBoxWidget = require("ui/widget/textboxwidget")
 local TextWidget = require("ui/widget/textwidget")
 local UIManager = require("ui/uimanager")
 local Cover = require("common/cover_utils")
 local BookProgress = require("common/ui/book_progress")
+local TruncatedTextMessage = require("common/ui/truncated_text_message")
 local TitleStyle = require("common/ui/zen_title_style")
 local utils = require("common/utils")
 local TopMenu = require("modules/global/patches/menu_top_swipe")
 local _ = require("gettext")
 
 local COVER_BORDER_COLOR = Blitbuffer.COLOR_BLACK
+local DESCRIPTION_MIN_SCREEN_RATIO = 0.50
 
 local function supports_hardware_focus()
     local has_dpad = type(Device.hasDPad) == "function" and Device:hasDPad()
@@ -56,10 +57,30 @@ function BookInfoWidget:init()
     local gap = Device.screen:scaleBySize(14)
     local metadata_gap = Device.screen:scaleBySize(32)
     local body_y = title_h + title_divider_h + pad
+    self._text_face = self.text_face or Font:getFace("cfont", self.text_size or 16)
+    self._text_faces = self.text_faces or {}
+    self._description_label = TextWidget:new{
+        text = _("Description"),
+        face = self._text_face,
+        bold = true,
+        padding = 0,
+    }
+    local description_overhead = 3 * gap + 1 + self._description_label:getSize().h
+    local description_available_h = math.max(
+        0, sh - body_y - description_overhead - pad)
+    local description_min_h = math.min(
+        description_available_h,
+        math.max(Device.screen:scaleBySize(80),
+            math.ceil(sh * DESCRIPTION_MIN_SCREEN_RATIO)))
+    local max_header_h = math.max(
+        0, description_available_h - description_min_h)
     local cover_w = self.cover and (self.cover_width or 0) or 0
     local cover_h = self.cover and (self.cover_height or 0) or 0
-    local max_cover_h = math.max(Device.screen:scaleBySize(100), math.floor(sh * 0.30))
-    if cover_h > max_cover_h and cover_h > 0 then
+    local max_cover_h = math.min(max_header_h,
+        math.max(Device.screen:scaleBySize(100), math.floor(sh * 0.30)))
+    if max_cover_h <= 0 then
+        cover_w, cover_h = 0, 0
+    elseif cover_h > max_cover_h and cover_h > 0 then
         local scale = max_cover_h / cover_h
         cover_w = math.floor(cover_w * scale)
         cover_h = max_cover_h
@@ -89,8 +110,6 @@ function BookInfoWidget:init()
     }
 
     local details_w = math.max(Device.screen:scaleBySize(60), sw - self._L.details_x - pad)
-    self._text_face = self.text_face or Font:getFace("cfont", self.text_size or 16)
-    self._text_faces = self.text_faces or {}
     self._title_widget = TextWidget:new{
         text = self.title or _("Book details"),
         face = TitleStyle.getTitleFace(),
@@ -100,32 +119,30 @@ function BookInfoWidget:init()
                 - TitleStyle.RIGHT_PADDING - TitleStyle.BUTTON_SIZE),
         padding = 0,
     }
-    self._description_label = TextWidget:new{
-        text = _("Description"),
-        face = self._text_face,
-        bold = true,
-        padding = 0,
-    }
     self._detail_widgets = {}
-    local details_h = 0
     for _i, detail in ipairs(self.details or {}) do
         local face = self._text_faces[detail.style] or self._text_face
-        local widget = TextBoxWidget:new{
-            text = detail.text,
+        local widget = TextWidget:new{
+            text = tostring(detail.text):gsub("%s*\n%s*", " "),
             face = face,
             bold = detail.bold == true,
-            width = details_w,
-            alignment = "left",
+            max_width = details_w,
+            truncate_with_ellipsis = true,
+            padding = 0,
         }
         local size = widget:getSize()
         local gap_before = Device.screen:scaleBySize(detail.gap_before or 0)
         if _i > 1 then gap_before = gap_before + Device.screen:scaleBySize(2) end
+        local truncated = widget:isTruncated()
         table.insert(self._detail_widgets, {
             widget = widget,
             h = size.h,
             gap_before = gap_before,
+            style = detail.style,
+            truncated = truncated,
+            full_text = widget.text,
+            dimen = truncated and Geom:new{ w = details_w, h = size.h } or nil,
         })
-        details_h = details_h + gap_before + size.h
     end
     if tonumber(self.progress) then
         self._progress_gap = Device.screen:scaleBySize(10)
@@ -138,20 +155,41 @@ function BookInfoWidget:init()
             face = self._text_faces.secondary or self._text_face,
         }
         if self._progress_widget then
-            details_h = details_h + self._progress_gap
-                + self._progress_widget:getSize().h
+            self._progress_h = self._progress_widget:getSize().h
         end
     end
 
-    self._L.header_h = math.max(cover_h, details_h)
+    local progress_layout_h = self._progress_widget
+        and self._progress_gap + self._progress_h or 0
+    local required_h = progress_layout_h
+    for _i, entry in ipairs(self._detail_widgets) do
+        if entry.style == "page" then
+            required_h = required_h + entry.gap_before + entry.h
+        end
+    end
+    local visible_h = 0
+    for _i, entry in ipairs(self._detail_widgets) do
+        local entry_h = entry.gap_before + entry.h
+        if entry.style == "page" then
+            entry.visible = true
+            visible_h = visible_h + entry_h
+            required_h = required_h - entry_h
+        elseif visible_h + entry_h + required_h <= max_header_h then
+            entry.visible = true
+            visible_h = visible_h + entry_h
+        end
+    end
+    self._progress_visible = self._progress_widget ~= nil
+    local details_h = visible_h + progress_layout_h
+
+    self._L.header_h = math.min(max_header_h, math.max(cover_h, details_h))
     self._L.description_divider_y = body_y + self._L.header_h + gap
     self._L.description_label_y = self._L.description_divider_y + 1 + gap
     self._L.description_y = self._L.description_label_y
         + self._description_label:getSize().h + gap
+    self._L.description_min_h = description_min_h
     self._L.description_h = math.max(
-        Device.screen:scaleBySize(80),
-        sh - self._L.description_y - pad
-    )
+        description_min_h, sh - self._L.description_y - pad)
     self._L.description_x = pad
     self._L.description_w = sw - pad * 2
 
@@ -165,7 +203,7 @@ function BookInfoWidget:init()
         width = TitleStyle.ICON_SIZE,
         height = TitleStyle.ICON_SIZE,
     }
-    if self.cover then
+    if self.cover and cover_w > 0 and cover_h > 0 then
         self._cover_widget = ImageWidget:new{
             image = self.cover,
             image_disposable = true,
@@ -200,6 +238,12 @@ function BookInfoWidget:init()
             ges = "swipe",
             screen_zone = { ratio_x = 0, ratio_y = 0, ratio_w = 1, ratio_h = 1 },
             handler = function(ges) return self:_onSwipe(ges) end,
+        },
+        {
+            id = "zen_book_info_hold",
+            ges = "hold",
+            screen_zone = { ratio_x = 0, ratio_y = 0, ratio_w = 1, ratio_h = 1 },
+            handler = function(ges) return self:_onHold(ges) end,
         },
         {
             id = "zen_book_info_pan",
@@ -417,11 +461,17 @@ function BookInfoWidget:paintTo(bb, x, y)
 
     local details_y = y + L.body_y
     for _i, entry in ipairs(self._detail_widgets) do
-        details_y = details_y + entry.gap_before
-        entry.widget:paintTo(bb, x + L.details_x, details_y)
-        details_y = details_y + entry.h
+        if entry.visible then
+            details_y = details_y + entry.gap_before
+            local details_x = x + L.details_x
+            if entry.dimen then
+                entry.dimen.x, entry.dimen.y = details_x, details_y
+            end
+            entry.widget:paintTo(bb, details_x, details_y)
+            details_y = details_y + entry.h
+        end
     end
-    if self._progress_widget then
+    if self._progress_visible then
         details_y = details_y + self._progress_gap
         self._progress_widget:paintTo(bb, x + L.details_x, details_y)
     end
@@ -463,6 +513,20 @@ function BookInfoWidget:_onTap(ges)
         self._description_widget:onTapScrollText(nil, ges)
     end
     return true
+end
+
+function BookInfoWidget:_onHold(ges)
+    local pos = ges and ges.pos
+    if not pos then return false end
+    for _i, entry in ipairs(self._detail_widgets) do
+        local dimen = entry.visible and entry.truncated and entry.dimen
+        if dimen and pos.x >= dimen.x and pos.x < dimen.x + dimen.w
+                and pos.y >= dimen.y and pos.y < dimen.y + dimen.h then
+            TruncatedTextMessage.showMetadata(entry.full_text, dimen)
+            return true
+        end
+    end
+    return false
 end
 
 function BookInfoWidget:_onSwipe(ges)

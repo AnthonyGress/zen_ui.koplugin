@@ -1,5 +1,6 @@
 local LuaSettings = require("luasettings")
 local PresetStore = require("config/preset_store")
+local PagePlan = require("modules/menu/app_launcher/page_plan")
 
 local M = {}
 
@@ -13,11 +14,10 @@ local function default_config()
         show_labels = true,
         open_first = false,
         hide_reader_actions_in_library = false,
+        page_order = PagePlan.normalizeOrder(),
         show_book_switcher = false,
-        book_switcher_first = false,
         book_switcher_reader_only = false,
         show_book_details = false,
-        book_details_first = false,
     }
 end
 
@@ -42,20 +42,25 @@ local function normalize(cfg)
     if type(cfg.hide_reader_actions_in_library) ~= "boolean" then
         cfg.hide_reader_actions_in_library = false
     end
+    if type(cfg.page_order) ~= "table" then
+        local legacy_order = { "buttons", "book_switcher", "book_details" }
+        if cfg.book_details_first == true
+                and not (cfg.book_switcher_first == true and cfg.show_book_details ~= true) then
+            legacy_order = { "book_details", "buttons", "book_switcher" }
+        elseif cfg.book_switcher_first == true then
+            legacy_order = { "book_switcher", "buttons", "book_details" }
+        end
+        cfg.page_order = PagePlan.normalizeOrder(nil, legacy_order)
+    else
+        cfg.page_order = PagePlan.normalizeOrder(cfg.page_order)
+    end
+    cfg.book_switcher_first = nil
+    cfg.book_details_first = nil
     if type(cfg.show_book_switcher) ~= "boolean" then cfg.show_book_switcher = false end
-    if type(cfg.book_switcher_first) ~= "boolean" then cfg.book_switcher_first = false end
     if type(cfg.book_switcher_reader_only) ~= "boolean" then
         cfg.book_switcher_reader_only = false
     end
     if type(cfg.show_book_details) ~= "boolean" then cfg.show_book_details = false end
-    if type(cfg.book_details_first) ~= "boolean" then cfg.book_details_first = false end
-    if cfg.book_details_first and cfg.book_switcher_first then
-        if cfg.show_book_details then
-            cfg.book_switcher_first = false
-        else
-            cfg.book_details_first = false
-        end
-    end
     return cfg
 end
 

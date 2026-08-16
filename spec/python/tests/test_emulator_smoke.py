@@ -152,7 +152,7 @@ def test_launcher_book_switcher_fits_inside_the_panel() -> None:
             """return {
   entries = {},
   show_book_switcher = true,
-  book_switcher_first = true,
+  page_order = { "book_switcher", "buttons", "book_details" },
 }
 """,
             encoding="utf-8",

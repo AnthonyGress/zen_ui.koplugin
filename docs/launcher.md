@@ -17,6 +17,8 @@ Launcher adds a configurable tab to the ZenOS menu. It can create shortcut butto
 ## Options
 
 - Enable or disable the Launcher feature.
+- Show optional Book information and Book switcher pages.
+- Arrange Book information, Book switcher, and Buttons pages.
 - Show launcher button labels. This is enabled by default.
 - Hide reader action buttons when the launcher is shown from the library.
 - Center-align launcher buttons.
@@ -36,6 +38,10 @@ Launcher adds a configurable tab to the ZenOS menu. It can create shortcut butto
 | --- | --- |
 | Enable | Enables or disables the Launcher feature. |
 | Buttons | Opens the launcher button arranger. |
+| Book switcher | Shows recent books as a launcher page, optionally only while reading. |
+| Book details | Shows information for the current book as a reader-only launcher page. |
+| Order | Arranges the Book information, Book switcher, and Buttons pages. |
+| Open menu to Launcher | Opens the top menu on the Launcher tab. |
 | Show labels | Shows launcher button labels. Enabled by default; disabling it hides the labels. |
 | Hide reader actions in library | When enabled, action buttons bound to reader-only dispatcher actions are hidden (and inactive) while the launcher is opened from the library. Disabled by default. |
 | Center align buttons | Centers launcher buttons instead of left-aligning them. |

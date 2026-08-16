@@ -25,7 +25,9 @@ describe("app launcher book details page", function()
                 if widget.width or widget.height then
                     return { w = widget.width or 1, h = widget.height or 1 }
                 end
-                if widget.text then return { w = #widget.text * 6, h = 20 } end
+                if widget.text then
+                    return { w = math.min(#widget.text * 6, widget.max_width or math.huge), h = 20 }
+                end
                 local width, height = 0, 0
                 for _i, child in ipairs(widget) do
                     local size = child:getSize()
@@ -41,6 +43,10 @@ describe("app launcher book details page", function()
             end
             values.paintTo = values.paintTo or function() end
             values.free = values.free or function() end
+            values.isTruncated = values.isTruncated or function(widget)
+                return widget.max_width ~= nil and widget.text ~= nil
+                    and #widget.text * 6 > widget.max_width
+            end
             values.dimen = values.dimen or {
                 x = 0, y = 0,
                 w = values.width or values:getSize().w,
@@ -85,8 +91,7 @@ describe("app launcher book details page", function()
         local cfg = {
             show_book_switcher = true,
             show_book_details = true,
-            book_switcher_first = true,
-            book_details_first = true,
+            page_order = { "book_details", "buttons", "book_switcher" },
         }
         local plan = Plan.build(2, cfg, false)
         assert.are.same({ "book_details", "buttons", "buttons", "book_switcher" }, {
@@ -94,6 +99,12 @@ describe("app launcher book details page", function()
         })
         assert.are.equal(1, plan[2].index)
         assert.are.equal(2, plan[3].index)
+
+        cfg.page_order = { "book_switcher", "book_details", "buttons" }
+        plan = Plan.build(2, cfg, false)
+        assert.are.same({ "book_switcher", "book_details", "buttons", "buttons" }, {
+            plan[1].kind, plan[2].kind, plan[3].kind, plan[4].kind,
+        })
 
         cfg.show_book_details = false
         plan = Plan.build(2, cfg, false)
@@ -115,6 +126,7 @@ describe("app launcher book details page", function()
         local cover_width
         local cover_height
         local opened = 0
+        local full_text_message
         local InputContainer = widget_class("input", created)
         for _i, name in ipairs({
             "ui/widget/container/centercontainer",
@@ -143,6 +155,11 @@ describe("app launcher book details page", function()
         })
         replace("ui/font", { getFace = function() return {} end })
         replace("ui/uimanager", { setDirty = function() end })
+        replace("common/ui/truncated_text_message", {
+            showMetadata = function(text, anchor)
+                full_text_message = { text = text, anchor = anchor }
+            end,
+        })
         replace("gettext", function(text) return text end)
         replace("common/ui/book_progress", {
             build = function(spec)
@@ -174,14 +191,15 @@ describe("app launcher book details page", function()
         local Page = require("modules/menu/app_launcher/book_details_page")
         local panel, refs = Page.build{
             width = 600,
-            height = 500,
+            height = 160,
             config = config,
             book = {
                 path = "/books/current.epub",
                 title = "Current title",
-                authors = "Current author",
+                authors = "Current author\nSecond author",
                 series = "Current series #2",
-                genres = "Fantasy, Adventure",
+                genres = "Fantasy, Adventure, Romance, Mystery, Historical Fiction, "
+                    .. "Science Fiction, Epic Fantasy, Mythology",
                 progress = 0.425,
                 pages = 300,
                 page_text = "Page 128 of 300",
@@ -196,32 +214,60 @@ describe("app launcher book details page", function()
         assert.is_false(cover_options.uniform)
         local switcher_layout = require(
             "modules/menu/app_launcher/book_switcher_page").layout{
-                width = 600, height = 500, config = config,
+                width = 600, height = 160, config = config,
             }
         assert.are.equal(switcher_layout.cover_max_w, cover_width)
         assert.are.equal(switcher_layout.cover_max_h, cover_height)
-        assert.are.equal(switcher_layout.cell_h, refs.buttons[1].widget.height)
+        assert.is_true(refs.buttons[1].widget.height > switcher_layout.cell_h)
         assert.are.equal(0.425, progress_spec.ratio)
         assert.are.equal(300, progress_spec.pages)
         assert.are.equal("", progress_spec.right_text)
         local texts = {}
         local text_sizes = {}
+        local metadata_widgets = {}
+        local guarded_details
+        local full_text_widget
         for _i, widget in ipairs(created) do
             if widget.text then
                 texts[widget.text] = true
                 text_sizes[widget.text] = widget.face and widget.face.size
+                if widget.kind == "ui/widget/textwidget"
+                        and widget.max_width == progress_spec.width then
+                    metadata_widgets[#metadata_widgets + 1] = widget
+                end
             end
+            if widget.ignore_if_over == "height" then guarded_details = widget end
+            if widget.full_text then full_text_widget = widget end
         end
         assert.is_true(texts["Current title"])
-        assert.is_true(texts["Current author"])
+        assert.is_true(texts["Current author, Second author"])
         assert.is_true(texts["Current series #2"])
-        assert.is_true(texts["Fantasy, Adventure"])
+        local genres = "Fantasy, Adventure, Romance, Mystery, Historical Fiction, "
+            .. "Science Fiction, Epic Fantasy, Mythology"
+        assert.is_true(texts[genres])
         assert.is_true(texts["Page 128 of 300"])
         assert.are.equal(22, text_sizes["Current title"])
-        assert.are.equal(19, text_sizes["Current author"])
+        assert.are.equal(19, text_sizes["Current author, Second author"])
         assert.are.equal(19, text_sizes["Current series #2"])
-        assert.are.equal(19, text_sizes["Fantasy, Adventure"])
+        assert.are.equal(19, text_sizes[genres])
         assert.are.equal(19, text_sizes["Page 128 of 300"])
+        assert.are.equal(5, #metadata_widgets)
+        for _i, widget in ipairs(metadata_widgets) do
+            assert.are.equal(progress_spec.width, widget.max_width)
+            assert.is_true(widget.truncate_with_ellipsis)
+            assert.are.equal(0, widget.padding)
+        end
+        assert.is_table(guarded_details)
+        assert.are.equal(progress_spec.width, guarded_details[1]:getSize().w)
+        assert.are.equal(guarded_details[1]:getSize().h, guarded_details.dimen.h)
+        assert.is_true(guarded_details.dimen.h > switcher_layout.cover_area_h)
+        assert.are.equal(guarded_details.dimen.h + switcher_layout.strip_h,
+            refs.buttons[1].widget.height)
+        assert.is_table(full_text_widget)
+        assert.are.equal("hold", full_text_widget.ges_events.HoldFullText[1].ges)
+        assert.is_true(full_text_widget:onHoldFullText())
+        assert.are.equal(genres, full_text_message.text)
+        assert.are.equal(full_text_widget.dimen, full_text_message.anchor)
         assert.are.equal(19, progress_spec.face.size)
         refs.buttons[1].callback()
         assert.are.equal(1, opened)

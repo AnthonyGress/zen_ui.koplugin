@@ -14,7 +14,10 @@ describe("app launcher settings", function()
         }
         shown_options = nil
         saves = 0
-        launcher_cfg = { entries = { entry } }
+        launcher_cfg = {
+            entries = { entry },
+            page_order = { "book_details", "book_switcher", "buttons" },
+        }
 
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("ffi/util", {
@@ -27,7 +30,10 @@ describe("app launcher settings", function()
             __index = function(_self, key) return key end,
         }))
         ZenSpec.replace("common/ui/icon_menu_item", {
-            decorate = function(item) return item end,
+            decorate = function(item, icon)
+                item.test_icon = icon
+                return item
+            end,
         })
         ZenSpec.replace("common/utils", {
             getIconDisplayName = function(name)
@@ -79,7 +85,7 @@ describe("app launcher settings", function()
         assert.are.equal("zen_ui", entry.icon)
     end)
 
-    it("offers reader-only Book details without a redundant visibility setting", function()
+    it("offers page visibility options and arranges their launcher order", function()
         local section = require(
             "modules/settings/sections/app_launcher_settings").build({
                 config = { features = { app_launcher = true } },
@@ -91,24 +97,40 @@ describe("app launcher settings", function()
         end
 
         assert.is_table(details)
-        assert.are.equal(2, #details.sub_item_table)
+        assert.are.equal(1, #details.sub_item_table)
         assert.are.equal("Enable", details.sub_item_table[1].text)
-        assert.are.equal("Show as first page", details.sub_item_table[2].text)
         details.sub_item_table[1].callback()
         assert.is_true(launcher_cfg.show_book_details)
-        assert.is_true(details.sub_item_table[2].enabled_func())
-        launcher_cfg.book_switcher_first = true
-        details.sub_item_table[2].callback()
-        assert.is_true(launcher_cfg.book_details_first)
-        assert.is_false(launcher_cfg.book_switcher_first)
 
         local switcher
+        local order_item
+        local order_index
+        local open_menu_index
         for _i, item in ipairs(section.sub_item_table) do
             if item.text == "Book switcher" then switcher = item end
+            if item.text:match("^Order") then
+                order_item = item
+                order_index = _i
+            end
+            if item.text == "Open menu to Launcher" then open_menu_index = _i end
         end
-        switcher.sub_item_table[2].callback()
-        assert.is_true(launcher_cfg.book_switcher_first)
-        assert.is_false(launcher_cfg.book_details_first)
-        assert.are.equal(3, saves)
+        assert.are.equal(2, #switcher.sub_item_table)
+        assert.are.equal("Only show while reading", switcher.sub_item_table[2].text)
+        assert.are.equal(order_index + 1, open_menu_index)
+        assert.are.equal("sort", order_item.test_icon)
+
+        order_item.callback()
+        assert.are.equal("Order", shown_options.title)
+        assert.are.same({ "Book information", "Book switcher", "Buttons" }, {
+            shown_options.item_table[1].text,
+            shown_options.item_table[2].text,
+            shown_options.item_table[3].text,
+        })
+        shown_options.item_table[1], shown_options.item_table[3]
+            = shown_options.item_table[3], shown_options.item_table[1]
+        shown_options.callback()
+        assert.are.same({ "buttons", "book_switcher", "book_details" },
+            launcher_cfg.page_order)
+        assert.are.equal(2, saves)
     end)
 end)

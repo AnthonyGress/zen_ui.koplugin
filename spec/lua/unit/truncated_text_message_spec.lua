@@ -45,4 +45,16 @@ describe("truncated text message", function()
         assert.is_false(message.show_icon)
         assert.are.same({ y = 296, h = 72 }, message.movable.anchor)
     end)
+
+    it("left-aligns metadata and anchors it to the full row bounds", function()
+        local message = require("common/ui/truncated_text_message").showMetadata(
+            "Full metadata",
+            { x = 120, y = 300, w = 360, h = 24 }
+        )
+
+        assert.are.equal(message, shown)
+        assert.are.equal("left", message.alignment)
+        assert.are.same({ x = 120, y = 296, w = 360, h = 32 },
+            message.movable.anchor)
+    end)
 end)

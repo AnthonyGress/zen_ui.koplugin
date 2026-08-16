@@ -13,6 +13,7 @@ describe("book details", function()
     local text_specs
     local progress_specs
     local progress_frees
+    local full_text_message
 
     local dependency_names = {
         "gettext",
@@ -26,10 +27,10 @@ describe("book details", function()
         "ui/widget/iconwidget",
         "ui/widget/imagewidget",
         "ui/widget/scrolltextwidget",
-        "ui/widget/textboxwidget",
         "ui/widget/textwidget",
         "common/cover_utils",
         "common/ui/book_progress",
+        "common/ui/truncated_text_message",
         "common/ui/zen_title_style",
         "common/utils",
         "modules/global/patches/menu_top_swipe",
@@ -75,6 +76,7 @@ describe("book details", function()
         text_specs = {}
         progress_specs = {}
         progress_frees = 0
+        full_text_message = nil
 
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("device", {
@@ -146,18 +148,13 @@ describe("book details", function()
                 return values
             end,
         })
-        ZenSpec.replace("ui/widget/textboxwidget", {
-            new = function(_self, values)
-                values.getSize = function() return { w = 100, h = 20 } end
-                values.paintTo = function() end
-                values.free = function() end
-                return values
-            end,
-        })
         ZenSpec.replace("ui/widget/textwidget", {
             new = function(_self, values)
                 text_specs[#text_specs + 1] = values
                 values.getSize = function() return { w = 100, h = 20 } end
+                values.isTruncated = function()
+                    return values.max_width ~= nil and #tostring(values.text or "") > 40
+                end
                 values.paintTo = function(self, _bb, x, y)
                     self.paint_x = x
                     self.paint_y = y
@@ -177,6 +174,11 @@ describe("book details", function()
                     end,
                     free = function() progress_frees = progress_frees + 1 end,
                 }
+            end,
+        })
+        ZenSpec.replace("common/ui/truncated_text_message", {
+            showMetadata = function(text, anchor)
+                full_text_message = { text = text, anchor = anchor }
             end,
         })
         ZenSpec.replace("common/ui/zen_title_style", {
@@ -238,6 +240,106 @@ describe("book details", function()
         assert.are.equal(true, image_specs[1].original_in_nightmode)
     end)
 
+    it("uses the full metadata row before truncating with ellipses", function()
+        local widget = BookInfoWidget:new{
+            cover = {},
+            cover_width = 120,
+            cover_height = 180,
+            description = "Description",
+            details = {
+                { text = "Title", style = "title", bold = true },
+                { text = "Author", style = "author" },
+                { text = "Series", style = "secondary" },
+                { text = "Tags", style = "tags" },
+            },
+        }
+        local specs = {}
+        for _i, values in ipairs(text_specs) do
+            if values.max_width then specs[values.text] = values end
+        end
+
+        for _i, text in ipairs({ "Title", "Author", "Series", "Tags" }) do
+            assert.are.equal(600 - widget._L.pad,
+                widget._L.details_x + specs[text].max_width)
+            assert.is_true(specs[text].truncate_with_ellipsis)
+            assert.are.equal(0, specs[text].padding)
+        end
+        assert.are.equal(4, #widget._detail_widgets)
+    end)
+
+    it("shows the full value when holding truncated metadata only", function()
+        local full_text = "A metadata value long enough to be truncated on one line"
+        local widget = BookInfoWidget:new{
+            description = "Description",
+            details = {
+                { text = "Short value", style = "title" },
+                { text = full_text, style = "tags" },
+            },
+        }
+        widget:paintTo({
+            paintRect = function() end,
+            paintBorder = function() end,
+        }, 0, 0)
+
+        local hold_zone
+        for _i, zone in ipairs(widget.touch_zones) do
+            if zone.id == "zen_book_info_hold" then hold_zone = zone end
+        end
+        assert.is_table(hold_zone)
+        assert.are.equal("hold", hold_zone.ges)
+        local short = widget._detail_widgets[1]
+        assert.is_false(short.truncated)
+        assert.is_false(hold_zone.handler({
+            pos = { x = widget._L.details_x, y = short.widget.paint_y },
+        }))
+        assert.is_nil(full_text_message)
+
+        local truncated = widget._detail_widgets[2]
+        assert.is_true(truncated.truncated)
+        assert.is_true(hold_zone.handler({
+            pos = { x = truncated.dimen.x, y = truncated.dimen.y },
+        }))
+        assert.are.equal(full_text, full_text_message.text)
+        assert.are.equal(truncated.dimen, full_text_message.anchor)
+    end)
+
+    it("reserves half the screen without dropping page number or progress", function()
+        local details = {}
+        for index = 1, 12 do
+            details[index] = { text = "Metadata " .. index, style = "secondary" }
+        end
+        details[#details + 1] = { text = "Page 128 of 300", style = "page" }
+        local widget = BookInfoWidget:new{
+            cover = {},
+            cover_width = 120,
+            cover_height = 240,
+            description = "Description",
+            details = details,
+            progress = 0.425,
+            progress_pages = 300,
+        }
+
+        assert.are.equal(400, widget._L.description_min_h)
+        assert.is_true(widget._L.description_h >= 400)
+        assert.is_true(widget._L.description_y + widget._L.description_h <= 784)
+        assert.are.equal(240, widget._L.cover_h)
+        assert.is_true(widget._L.header_h >= widget._L.cover_h)
+        assert.is_true(widget._L.header_h <= 247)
+
+        widget:paintTo({
+            paintRect = function() end,
+            paintBorder = function() end,
+        }, 0, 0)
+        local page_spec
+        for _i, values in ipairs(text_specs) do
+            if values.text == "Page 128 of 300" then page_spec = values end
+        end
+        assert.is_number(page_spec.paint_y)
+        assert.is_number(widget._progress_widget.paint_y)
+        assert.is_true(widget._progress_widget.paint_y + widget._progress_h
+            <= widget._L.description_divider_y)
+    end)
+
     it("renders and releases current progress beside the metadata", function()
         local widget = BookInfoWidget:new{
             cover = {},
@@ -270,8 +372,12 @@ describe("book details", function()
             paintBorder = function() end,
         }, 0, 0)
 
-        assert.are.equal("settings_title", text_specs[1].face.name)
-        assert.are.equal(54, text_specs[1].paint_x)
+        local title_spec
+        for _i, spec in ipairs(text_specs) do
+            if spec.face and spec.face.name == "settings_title" then title_spec = spec end
+        end
+        assert.are.equal("settings_title", title_spec.face.name)
+        assert.are.equal(54, title_spec.paint_x)
         assert.are.equal(28, icon_specs[1].width)
         assert.are.equal(12, icon_specs[1].paint_x)
         assert.are.equal("/icons/close.svg", icon_specs[2].file)
