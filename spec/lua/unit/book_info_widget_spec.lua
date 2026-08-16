@@ -11,6 +11,8 @@ describe("book details", function()
     local saved_modules
     local icon_specs
     local text_specs
+    local progress_specs
+    local progress_frees
 
     local dependency_names = {
         "gettext",
@@ -27,6 +29,7 @@ describe("book details", function()
         "ui/widget/textboxwidget",
         "ui/widget/textwidget",
         "common/cover_utils",
+        "common/ui/book_progress",
         "common/ui/zen_title_style",
         "common/utils",
         "modules/global/patches/menu_top_swipe",
@@ -70,6 +73,8 @@ describe("book details", function()
         close_calls = 0
         icon_specs = {}
         text_specs = {}
+        progress_specs = {}
+        progress_frees = 0
 
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("device", {
@@ -162,6 +167,18 @@ describe("book details", function()
             end,
         })
         ZenSpec.replace("common/cover_utils", { BORDER_SIZE = 1 })
+        ZenSpec.replace("common/ui/book_progress", {
+            build = function(values)
+                progress_specs[#progress_specs + 1] = values
+                return {
+                    getSize = function() return { w = values.width, h = 14 } end,
+                    paintTo = function(self, _bb, x, y)
+                        self.paint_x, self.paint_y = x, y
+                    end,
+                    free = function() progress_frees = progress_frees + 1 end,
+                }
+            end,
+        })
         ZenSpec.replace("common/ui/zen_title_style", {
             ICON_SIZE = 28,
             BUTTON_SIZE = 44,
@@ -219,6 +236,31 @@ describe("book details", function()
         new_widget()
 
         assert.are.equal(true, image_specs[1].original_in_nightmode)
+    end)
+
+    it("renders and releases current progress beside the metadata", function()
+        local widget = BookInfoWidget:new{
+            cover = {},
+            cover_width = 120,
+            cover_height = 180,
+            description = "Description",
+            progress = 0.425,
+            progress_pages = 300,
+            progress_right_text = "",
+            text_faces = { secondary = { name = "secondary" } },
+        }
+        widget:paintTo({
+            paintRect = function() end,
+            paintBorder = function() end,
+        }, 0, 0)
+
+        assert.are.equal(0.425, progress_specs[1].ratio)
+        assert.are.equal(300, progress_specs[1].pages)
+        assert.are.equal("", progress_specs[1].right_text)
+        assert.are.equal("secondary", progress_specs[1].face.name)
+        assert.are.equal(widget._L.details_x, widget._progress_widget.paint_x)
+        widget:onClose()
+        assert.are.equal(1, progress_frees)
     end)
 
     it("aligns its title, back icon, and close icon with the header", function()

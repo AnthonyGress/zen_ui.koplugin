@@ -16,6 +16,8 @@ local function default_config()
         show_book_switcher = false,
         book_switcher_first = false,
         book_switcher_reader_only = false,
+        show_book_details = false,
+        book_details_first = false,
     }
 end
 
@@ -44,6 +46,15 @@ local function normalize(cfg)
     if type(cfg.book_switcher_first) ~= "boolean" then cfg.book_switcher_first = false end
     if type(cfg.book_switcher_reader_only) ~= "boolean" then
         cfg.book_switcher_reader_only = false
+    end
+    if type(cfg.show_book_details) ~= "boolean" then cfg.show_book_details = false end
+    if type(cfg.book_details_first) ~= "boolean" then cfg.book_details_first = false end
+    if cfg.book_details_first and cfg.book_switcher_first then
+        if cfg.show_book_details then
+            cfg.book_switcher_first = false
+        else
+            cfg.book_details_first = false
+        end
     end
     return cfg
 end

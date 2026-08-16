@@ -104,15 +104,21 @@ describe("app launcher book switcher page", function()
         assert.is_false(cfg.show_book_switcher)
         assert.is_false(cfg.book_switcher_first)
         assert.is_false(cfg.book_switcher_reader_only)
+        assert.is_false(cfg.show_book_details)
+        assert.is_false(cfg.book_details_first)
 
         cfg.show_book_switcher = true
         cfg.book_switcher_first = true
         cfg.book_switcher_reader_only = true
+        cfg.show_book_details = true
+        cfg.book_details_first = true
         Store.save(cfg)
         assert.is_true(settings_file.flushed)
         assert.is_true(settings_file.data.show_book_switcher)
-        assert.is_true(settings_file.data.book_switcher_first)
+        assert.is_false(settings_file.data.book_switcher_first)
         assert.is_true(settings_file.data.book_switcher_reader_only)
+        assert.is_true(settings_file.data.show_book_details)
+        assert.is_true(settings_file.data.book_details_first)
     end)
 
     it("loads four switcher alternatives with cover metadata", function()

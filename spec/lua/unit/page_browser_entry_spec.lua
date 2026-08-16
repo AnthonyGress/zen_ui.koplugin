@@ -71,6 +71,7 @@ describe("page browser entry", function()
         ZenSpec.unload("common/cover_utils")
         ZenSpec.unload("ui/widget/booklist")
         ZenSpec.unload("modules/reader/book_info_widget")
+        ZenSpec.unload("modules/reader/book_details")
         ZenSpec.unload("modules/reader/patches/page_browser")
         ZenSpec.unload("modules/filebrowser/patches/library_font")
         ZenSpec.unload("common/reader_font")
@@ -549,7 +550,6 @@ describe("page browser entry", function()
             end,
         })
         local info_spec
-        local cover_options
         ZenSpec.replace("ui/font", {
             getFace = function(_, name, size, index)
                 return { name = name, size = size, index = index }
@@ -568,8 +568,7 @@ describe("page browser entry", function()
         })
         ZenSpec.replace("common/cover_utils", {
             getRatio = function() return 2 / 3 end,
-            makeCover = function(_, _, options)
-                cover_options = options
+            makeCover = function()
                 return { copy = function(self) return self end }, 120, 180, "single", "real_cover"
             end,
         })
@@ -580,6 +579,12 @@ describe("page browser entry", function()
             new = function(_, spec)
                 info_spec = spec
                 return spec
+            end,
+        })
+        ZenSpec.replace("modules/reader/book_details", {
+            show = function(ui, opts)
+                info_spec = { ui = ui, opts = opts }
+                return true
             end,
         })
         _G.__ZEN_UI_PLUGIN = {
@@ -693,25 +698,9 @@ describe("page browser entry", function()
             and action_events[#action_events].args[1] == 27)
 
         by_file["/icons/info.svg"]()
-        expect(closes == 3 and info_spec ~= nil and info_spec.title == "Book details")
-        expect(info_spec.cover ~= nil and info_spec.cover_width == 120 and info_spec.cover_height == 180)
-        expect(#info_spec.details == 8)
-        expect(info_spec.details[1].text == "Test title" and info_spec.details[1].bold == true
-            and info_spec.details[1].style == "title")
-        expect(info_spec.details[2].text == "Test author" and info_spec.details[2].style == "author")
-        expect(info_spec.details[3].text == "Test series #2" and info_spec.details[3].style == "secondary")
-        expect(info_spec.details[4].text == "First tag, Second tag" and info_spec.details[4].style == "secondary")
-        expect(info_spec.details[5].text == "240 pages" and info_spec.details[5].style == "secondary")
-        expect(info_spec.details[6].text == "English" and info_spec.details[6].style == "secondary")
-        expect(info_spec.details[7].text == "rating 4" and info_spec.details[7].style == "secondary")
-        expect(info_spec.details[8].text == "2 Annotations" and info_spec.details[8].style == "secondary")
-        expect(info_spec.rounded_cover == true and type(info_spec.cover_tap_callback) == "function")
-        expect(type(info_spec.close_all_callback) == "function")
-        expect(info_spec.text_face.name == "LibraryFont" and info_spec.text_face.size == 21)
-        expect(info_spec.text_faces.author.name == "LibraryFont" and info_spec.text_faces.author.size == 18)
-        expect(info_spec.text_faces.secondary.name == "LibraryFont" and info_spec.text_faces.secondary.size == 15)
-        expect(cover_options.height == 240)
-        expect(info_spec.description == "Test description")
+        expect(closes == 3 and info_spec ~= nil and info_spec.ui == ui)
+        expect(info_spec.opts.config == _G.__ZEN_UI_PLUGIN.config)
+        expect(type(info_spec.opts.close_all_callback) == "function")
 
         by_file["/icons/appbar.textsize.svg"]()
         expect(closes == 4)
@@ -724,7 +713,7 @@ describe("page browser entry", function()
         expect(action_events[#action_events].name == "RestoreHinting")
 
         toc_spec.close_all_callback()
-        info_spec.close_all_callback()
+        info_spec.opts.close_all_callback()
         expect(closes == 6)
     end)
 

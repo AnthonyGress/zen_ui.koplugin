@@ -31,6 +31,67 @@ function M.rendererOptions(config)
     }
 end
 
+function M.layout(opts)
+    opts = opts or {}
+    local Device = require("device")
+    local TextWidget = require("ui/widget/textwidget")
+    local cover_common = require("modules/filebrowser/patches/home/widgets/cover_common")
+    local library_font = require("modules/filebrowser/patches/library_font")
+    local Screen = Device.screen
+    local width = math.max(1, tonumber(opts.width) or Screen:getWidth())
+    local height = math.max(1, tonumber(opts.height) or Screen:getHeight())
+    local padding = math.max(4, Screen:scaleBySize(8))
+    local top_padding = padding + Screen:scaleBySize(8)
+    local gap = math.max(2, Screen:scaleBySize(2))
+    local inner_w = math.max(1, width - padding * 2)
+    local max_content_h = math.max(1, height - top_padding - padding)
+    local cell_w = math.max(24,
+        math.floor((inner_w - gap * (M.BOOK_COUNT - 1)) / M.BOOK_COUNT))
+    local render = M.rendererOptions(opts.config)
+    local title_face = library_font.getFace(library_font.scaleValue(16))
+    local author_face = library_font.getFace(library_font.scaleValue(13))
+    local strip_padding = Screen:scaleBySize(3)
+    local line_gap = Screen:scaleBySize(2)
+    local strip_h = 0
+    if render.show_title then
+        local probe = TextWidget:new{
+            text = "Ag", face = title_face, bold = true, padding = 0,
+        }
+        strip_h = strip_h + probe:getSize().h
+        probe:free()
+    end
+    if render.show_title and render.show_author then strip_h = strip_h + line_gap end
+    if render.show_author then
+        local probe = TextWidget:new{ text = "Ag", face = author_face, padding = 0 }
+        strip_h = strip_h + probe:getSize().h
+        probe:free()
+    end
+    if strip_h > 0 then strip_h = strip_h + strip_padding * 2 end
+    local cover_area_h = math.min(
+        math.max(1, max_content_h - strip_h), Screen:scaleBySize(200))
+    local cover_border = cover_common.BORDER_SIZE
+    return {
+        width = width,
+        height = height,
+        padding = padding,
+        top_padding = top_padding,
+        gap = gap,
+        inner_w = inner_w,
+        cell_w = cell_w,
+        cell_h = cover_area_h + strip_h,
+        cover_area_h = cover_area_h,
+        cover_border = cover_border,
+        cover_max_w = math.max(18, cell_w - cover_border * 2),
+        cover_max_h = math.max(28, cover_area_h - cover_border * 2),
+        render = render,
+        title_face = title_face,
+        author_face = author_face,
+        strip_padding = strip_padding,
+        line_gap = line_gap,
+        strip_h = strip_h,
+    }
+end
+
 local function fallback_title(path)
     local filename = (path or ""):match("([^/\\]+)$") or path or ""
     return filename:gsub("%.[^%.]+$", "")
@@ -139,18 +200,17 @@ function M.build(opts)
     local VerticalSpan = require("ui/widget/verticalspan")
     local _ = require("gettext")
     local cover_common = require("modules/filebrowser/patches/home/widgets/cover_common")
-    local library_font = require("modules/filebrowser/patches/library_font")
 
     local Screen = Device.screen
     local width = math.max(1, tonumber(opts.width) or Screen:getWidth())
     local height = math.max(1, tonumber(opts.height) or Screen:getHeight())
-    local padding = math.max(4, Screen:scaleBySize(8))
-    local top_padding = padding + Screen:scaleBySize(8)
-    local gap = math.max(2, Screen:scaleBySize(2))
-    local inner_w = math.max(1, width - padding * 2)
-    local max_content_h = math.max(1, height - top_padding - padding)
-    local cell_w = math.max(24, math.floor((inner_w - gap * (M.BOOK_COUNT - 1)) / M.BOOK_COUNT))
-    local render = M.rendererOptions(opts.config)
+    local layout = M.layout{ width = width, height = height, config = opts.config }
+    local padding = layout.padding
+    local top_padding = layout.top_padding
+    local gap = layout.gap
+    local inner_w = layout.inner_w
+    local cell_w = layout.cell_w
+    local render = layout.render
     local books = type(opts.books) == "table" and opts.books
         or M.loadBooks(M.BOOK_COUNT, opts.exclude_path)
     local refs = { buttons = {}, layout_rows = {} }
@@ -173,29 +233,14 @@ function M.build(opts)
         }, refs
     end
 
-    local title_face = library_font.getFace(library_font.scaleValue(16))
-    local author_face = library_font.getFace(library_font.scaleValue(13))
-    local strip_padding = Screen:scaleBySize(3)
-    local line_gap = Screen:scaleBySize(2)
-    local strip_h = 0
-    if render.show_title then
-        local probe = TextWidget:new{ text = "Ag", face = title_face, bold = true, padding = 0 }
-        strip_h = strip_h + probe:getSize().h
-        probe:free()
-    end
-    if render.show_title and render.show_author then strip_h = strip_h + line_gap end
-    if render.show_author then
-        local probe = TextWidget:new{ text = "Ag", face = author_face, padding = 0 }
-        strip_h = strip_h + probe:getSize().h
-        probe:free()
-    end
-    if strip_h > 0 then strip_h = strip_h + strip_padding * 2 end
-    local available_cover_h = math.max(1, max_content_h - strip_h)
-    local cover_area_h = math.min(available_cover_h, Screen:scaleBySize(200))
-    local cover_border = cover_common.BORDER_SIZE
-    local cover_max_w = math.max(18, cell_w - cover_border * 2)
-    local cover_max_h = math.max(28, cover_area_h - cover_border * 2)
-    local cell_h = cover_area_h + strip_h
+    local title_face = layout.title_face
+    local author_face = layout.author_face
+    local strip_h = layout.strip_h
+    local cover_area_h = layout.cover_area_h
+    local cover_border = layout.cover_border
+    local cover_max_w = layout.cover_max_w
+    local cover_max_h = layout.cover_max_h
+    local cell_h = layout.cell_h
 
     local BookCell = InputContainer:extend{}
 

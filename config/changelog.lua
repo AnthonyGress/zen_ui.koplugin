@@ -231,6 +231,8 @@ return {
         "Existing installations and settings migrate automatically",
         "Major performance improvements",
         "New Settings page",
+        "New Book Switcher in Launcher (Launcher > Book Switcher)",
+        "New Book Details in Launcher (Launcher > Book Details)",
         "Use Zen Mode without restarting",
         "Home strip widget controls",
         "Settings page memory (return to prev opened Settings)",

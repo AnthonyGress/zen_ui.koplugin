@@ -1,5 +1,7 @@
 describe("app launcher settings", function()
     local entry
+    local launcher_cfg
+    local saves
     local shown_options
 
     before_each(function()
@@ -11,6 +13,8 @@ describe("app launcher settings", function()
             plugin = { key = "legacy", method = "open" },
         }
         shown_options = nil
+        saves = 0
+        launcher_cfg = { entries = { entry } }
 
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("ffi/util", {
@@ -34,10 +38,10 @@ describe("app launcher settings", function()
         })
         ZenSpec.replace("modules/menu/app_launcher/model", {
             ensure = function()
-                return { entries = { entry } }
+                return launcher_cfg
             end,
             display_label = function(item) return item.label end,
-            save = function() end,
+            save = function() saves = saves + 1 end,
         })
         ZenSpec.replace("modules/menu/app_launcher/native_menu", {
             scan = function() return {} end,
@@ -73,5 +77,38 @@ describe("app launcher settings", function()
 
         assert.are.equal("Icon: ZenOS", icon_label)
         assert.are.equal("zen_ui", entry.icon)
+    end)
+
+    it("offers reader-only Book details without a redundant visibility setting", function()
+        local section = require(
+            "modules/settings/sections/app_launcher_settings").build({
+                config = { features = { app_launcher = true } },
+                save_and_apply = function() end,
+        })
+        local details
+        for _i, item in ipairs(section.sub_item_table) do
+            if item.text == "Book details" then details = item end
+        end
+
+        assert.is_table(details)
+        assert.are.equal(2, #details.sub_item_table)
+        assert.are.equal("Enable", details.sub_item_table[1].text)
+        assert.are.equal("Show as first page", details.sub_item_table[2].text)
+        details.sub_item_table[1].callback()
+        assert.is_true(launcher_cfg.show_book_details)
+        assert.is_true(details.sub_item_table[2].enabled_func())
+        launcher_cfg.book_switcher_first = true
+        details.sub_item_table[2].callback()
+        assert.is_true(launcher_cfg.book_details_first)
+        assert.is_false(launcher_cfg.book_switcher_first)
+
+        local switcher
+        for _i, item in ipairs(section.sub_item_table) do
+            if item.text == "Book switcher" then switcher = item end
+        end
+        switcher.sub_item_table[2].callback()
+        assert.is_true(launcher_cfg.book_switcher_first)
+        assert.is_false(launcher_cfg.book_details_first)
+        assert.are.equal(3, saves)
     end)
 end)

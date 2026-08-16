@@ -21,7 +21,9 @@
     local Model = require("modules/menu/app_launcher/model")
     local NativeMenu = require("modules/menu/app_launcher/native_menu")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
+    local BookDetailsPage = require("modules/menu/app_launcher/book_details_page")
     local BookSwitcherPage = require("modules/menu/app_launcher/book_switcher_page")
+    local PagePlan = require("modules/menu/app_launcher/page_plan")
     local ButtonLabelWidth = require("common/ui/button_label_width")
     local ZenButton = require("common/ui/zen_button")
     local SettingsTransition = require("common/settings_transition")
@@ -333,11 +335,25 @@
         end)
     end
 
-    local function current_reader_path(touch_menu)
+    local function current_reader(touch_menu)
         if is_library_launcher(touch_menu) then return nil end
         local ok_reader, ReaderUI = pcall(require, "apps/reader/readerui")
-        local reader = ok_reader and ReaderUI.instance or nil
+        return ok_reader and ReaderUI.instance or nil
+    end
+
+    local function current_reader_path(touch_menu)
+        local reader = current_reader(touch_menu)
         return reader and reader.document and reader.document.file or nil
+    end
+
+    local function open_current_book_details(touch_menu, reader)
+        if not reader then return end
+        touch_menu:closeMenu()
+        SettingsTransition.close()
+        UIManager:nextTick(function()
+            require("modules/reader/book_details").show(
+                reader, { config = zen_plugin.config })
+        end)
     end
 
     local function entry_available(entry, touch_menu, cfg)
@@ -456,13 +472,10 @@
         local panel_height = math.max(1, menu_height - bar_h - footer_h - footer_margin_h)
         local items_height = math.max(1, panel_height - pad * 2)
         local rows_per_page = math.max(1, math.floor(items_height / cell_total_h) - 1)
-        local switcher_enabled = not folder
-            and BookSwitcherPage.isEnabled(cfg, is_library_launcher(touch_menu))
-        local button_page_num = #all_rows == 0 and switcher_enabled
-            and 0 or math.max(1, math.ceil(#all_rows / rows_per_page))
-        local switcher_page = switcher_enabled and BookSwitcherPage.pagePosition(
-            cfg, is_library_launcher(touch_menu), button_page_num) or nil
-        local page_num = math.max(1, button_page_num + (switcher_page and 1 or 0))
+        local button_page_num = math.ceil(#all_rows / rows_per_page)
+        local page_plan = folder and PagePlan.build(math.max(1, button_page_num), {}, true)
+            or PagePlan.build(button_page_num, cfg, is_library_launcher(touch_menu))
+        local page_num = #page_plan
         local page = touch_menu._app_launcher_page or 1
         if page > page_num then page = page_num end
         if page < 1 then page = 1 end
@@ -482,12 +495,13 @@
             touch_menu._zen_panel_refs = refs
         end
 
-        local is_switcher_page = switcher_page == page
-        local button_page = page
-        if switcher_page == 1 then button_page = page - 1 end
+        local page_spec = page_plan[page] or { kind = "buttons", index = 1 }
+        local is_switcher_page = page_spec.kind == "book_switcher"
+        local is_book_details_page = page_spec.kind == "book_details"
+        local button_page = page_spec.index or 1
 
         local page_rows = {}
-        if not is_switcher_page and #all_rows > 0 then
+        if page_spec.kind == "buttons" and #all_rows > 0 then
             local start_idx = (button_page - 1) * rows_per_page + 1
             local end_idx = math.min(start_idx + rows_per_page - 1, #all_rows)
             for i = start_idx, end_idx do
@@ -507,6 +521,23 @@
             }
             refs.buttons = switcher_refs.buttons
             refs.layout_rows = switcher_refs.layout_rows
+            set_page_refs()
+            return panel
+        end
+
+        if is_book_details_page then
+            local reader = current_reader(touch_menu)
+            local panel, details_refs = BookDetailsPage.build{
+                width = panel_width,
+                height = panel_height,
+                config = zen_plugin.config,
+                ui = reader,
+                open_details = function()
+                    open_current_book_details(touch_menu, reader)
+                end,
+            }
+            refs.buttons = details_refs.buttons
+            refs.layout_rows = details_refs.layout_rows
             set_page_refs()
             return panel
         end
@@ -679,6 +710,7 @@
         TouchMenu.__zen_app_launcher_open_first_patched = true
         local orig_init = TouchMenu.init
         TouchMenu.init = function(self, ...)
+            self._app_launcher_page = 1
             if is_enabled() and Model.ensure().open_first == true then
                 local index = find_tab(self.tab_item_table, "app_launcher")
                 if index then self.last_index = index end
@@ -719,6 +751,7 @@
         local orig_onCloseWidget = TouchMenu.onCloseWidget
         TouchMenu.onCloseWidget = function(self, ...)
             reset_folder(self, false)
+            self._app_launcher_page = 1
             if orig_onCloseWidget then
                 return orig_onCloseWidget(self, ...)
             end
@@ -728,6 +761,7 @@
         TouchMenu.onClose = function(self, ...)
             if self.item_table and self.item_table.id == "app_launcher" then
                 reset_folder(self, false)
+                self._app_launcher_page = 1
             end
             if orig_onClose then
                 return orig_onClose(self, ...)

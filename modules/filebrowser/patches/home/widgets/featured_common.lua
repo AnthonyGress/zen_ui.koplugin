@@ -18,6 +18,7 @@ local util = require("util")
 local zen_utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
 local BookOpenTap = require("common/book_open_tap")
+local BookProgress = require("common/ui/book_progress")
 local cover_common = require("modules/filebrowser/patches/home/widgets/cover_common")
 local HomePresets = require("modules/filebrowser/patches/home/home_presets")
 local library_font = require("modules/filebrowser/patches/library_font")
@@ -94,55 +95,6 @@ end
 local function set_opening_banner_cover(cover)
     local set_cover = rawget(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER")
     if type(set_cover) == "function" then set_cover(cover) end
-end
-
-local function paint_pill(bb, x, y, w, h, color)
-    if w <= 0 or h <= 0 then return end
-    if h <= 1 then
-        bb:paintRect(x, y, w, h, color)
-        return
-    end
-    local r = math.floor(h / 2)
-    if w <= h then
-        local cx = x + math.floor(w / 2)
-        for row = 0, h - 1 do
-            local dy = row - r + 0.5
-            local half = math.floor(math.sqrt(math.max(0, r * r - dy * dy)) + 0.5)
-            local x0 = math.max(x, cx - half)
-            local rw = math.min(w, half * 2)
-            if rw > 0 then bb:paintRect(x0, y + row, rw, 1, color) end
-        end
-        return
-    end
-    for row = 0, h - 1 do
-        local dy = row - r + 0.5
-        local inset = math.floor(r - math.sqrt(math.max(0, r * r - dy * dy)) + 0.5)
-        local rw = w - inset * 2
-        if rw > 0 then bb:paintRect(x + inset, y + row, rw, 1, color) end
-    end
-end
-
-local function render_progress(percent, w, h)
-    local pct = percent or 0
-    if pct < 0 then pct = 0 end
-    if pct > 1 then pct = 1 end
-
-    local fill_w = math.floor(w * pct)
-    return {
-        dimen = Geom:new{ w = w, h = h },
-        getSize = function(self)
-            return self.dimen
-        end,
-        handleEvent = function()
-            return false
-        end,
-        paintTo = function(_self, bb, x, y)
-            paint_pill(bb, x, y, w, h, Blitbuffer.COLOR_LIGHT_GRAY)
-            if fill_w > 0 then
-                paint_pill(bb, x, y, math.min(w, math.max(fill_w, h)), h, Blitbuffer.COLOR_GRAY_5)
-            end
-        end,
-    }
 end
 
 local function fmt_duration(secs)
@@ -385,30 +337,18 @@ function M.build(ctx, source_key)
     local function build_progress_row(progress_w)
         if not has_progress then return nil end
         if has_progress_text then
-            local lw = TextWidget:new{
-                text = left_progress_text,
+            return BookProgress.build{
+                ratio = progress_percent,
+                width = progress_w,
+                bar_height = progress_h,
                 face = stats_face,
                 bold = progress_style.bold == true,
-                fgcolor = Blitbuffer.COLOR_BLACK,
-            }
-            local rw = TextWidget:new{
-                text = right_progress_text,
-                face = stats_face,
-                bold = progress_style.bold == true,
-                fgcolor = Blitbuffer.COLOR_BLACK,
-            }
-            local tgap = math.max(4, math.floor(progress_w * 0.02))
-            local bar_w = math.max(20, progress_w - lw:getSize().w - rw:getSize().w - tgap * 2)
-            return HorizontalGroup:new{
-                align = "center",
-                lw,
-                HorizontalSpan:new{ width = tgap },
-                render_progress(progress_percent, bar_w, progress_h),
-                HorizontalSpan:new{ width = tgap },
-                rw,
+                gap = math.max(4, math.floor(progress_w * 0.02)),
+                left_text = left_progress_text,
+                right_text = right_progress_text,
             }
         end
-        return render_progress(progress_percent, progress_w, progress_h)
+        return BookProgress.bar(progress_percent, progress_w, progress_h)
     end
 
     -- Title: up to 2 lines before truncating

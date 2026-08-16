@@ -10,6 +10,7 @@ local TextBoxWidget = require("ui/widget/textboxwidget")
 local TextWidget = require("ui/widget/textwidget")
 local UIManager = require("ui/uimanager")
 local Cover = require("common/cover_utils")
+local BookProgress = require("common/ui/book_progress")
 local TitleStyle = require("common/ui/zen_title_style")
 local utils = require("common/utils")
 local TopMenu = require("modules/global/patches/menu_top_swipe")
@@ -36,6 +37,9 @@ local BookInfoWidget = InputContainer:extend{
     text_face = nil,
     text_size = nil,
     text_faces = nil,
+    progress = nil,
+    progress_pages = nil,
+    progress_right_text = nil,
 }
 
 local function resolve_stock_icon(name)
@@ -122,6 +126,21 @@ function BookInfoWidget:init()
             gap_before = gap_before,
         })
         details_h = details_h + gap_before + size.h
+    end
+    if tonumber(self.progress) then
+        self._progress_gap = Device.screen:scaleBySize(10)
+        self._progress_widget = BookProgress.build{
+            ratio = self.progress,
+            pages = self.progress_pages,
+            right_text = self.progress_right_text,
+            width = details_w,
+            bar_height = math.max(2, Device.screen:scaleBySize(6)),
+            face = self._text_faces.secondary or self._text_face,
+        }
+        if self._progress_widget then
+            details_h = details_h + self._progress_gap
+                + self._progress_widget:getSize().h
+        end
     end
 
     self._L.header_h = math.max(cover_h, details_h)
@@ -402,6 +421,10 @@ function BookInfoWidget:paintTo(bb, x, y)
         entry.widget:paintTo(bb, x + L.details_x, details_y)
         details_y = details_y + entry.h
     end
+    if self._progress_widget then
+        details_y = details_y + self._progress_gap
+        self._progress_widget:paintTo(bb, x + L.details_x, details_y)
+    end
 
     bb:paintRect(x, y + L.description_divider_y, L.sw, 1, Blitbuffer.COLOR_LIGHT_GRAY)
     self._description_label:paintTo(bb, x + L.description_x, y + L.description_label_y)
@@ -478,6 +501,7 @@ function BookInfoWidget:onClose()
     if self._title_widget then self._title_widget:free() end
     if self._description_label then self._description_label:free() end
     for _i, entry in ipairs(self._detail_widgets or {}) do entry.widget:free() end
+    if self._progress_widget then self._progress_widget:free() end
     UIManager:close(self)
     return true
 end
