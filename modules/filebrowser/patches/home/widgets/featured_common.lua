@@ -537,7 +537,8 @@ function M.build(ctx, source_key)
     if flow_description then
         local upper_desc_h = side_desc_h
         local lower_slot_h = math.max(0, col_h - cover_h - actual_bottom_h)
-        local lower_desc_h = lower_slot_h
+        local wrap_gap = math.max(4, Screen:scaleBySize(8))
+        local lower_desc_h = math.max(0, lower_slot_h - wrap_gap)
         local upper_text, lower_text = flow_upper_text, flow_lower_text
 
         local side_children = { align = "left" }
@@ -577,7 +578,9 @@ function M.build(ctx, source_key)
         if lower_text ~= "" and lower_desc_h > 0 then
             local lower_desc = description_widget(
                 lower_text, width, lower_desc_h, true)
-            local after = math.max(0, lower_slot_h - lower_desc:getSize().h)
+            local after = math.max(0,
+                lower_slot_h - wrap_gap - lower_desc:getSize().h)
+            table.insert(flow_children, VerticalSpan:new{ width = wrap_gap })
             table.insert(flow_children, lower_desc)
             if after > 0 then
                 table.insert(flow_children, VerticalSpan:new{ width = after })

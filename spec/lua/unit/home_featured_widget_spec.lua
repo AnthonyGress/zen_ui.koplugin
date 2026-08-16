@@ -348,7 +348,7 @@ describe("home featured widget", function()
         assert.are.same({ 294, 317 }, description_split.probe_heights)
         assert.are.equal(342, text_widget("Upper text fascinating science.").width)
         assert.are.equal(584, text_widget("Lower continuation fills the remaining width.").width)
-        assert.are.equal(215, text_widget("Lower continuation fills the remaining width.").height)
+        assert.are.equal(207, text_widget("Lower continuation fills the remaining width.").height)
         assert.are.equal(490, progress_bar_width("25%", "120 pages"))
     end)
 
