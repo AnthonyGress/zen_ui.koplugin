@@ -1,8 +1,10 @@
 describe("navbar settings", function()
     local arrange_options
     local config
+    local original_quick_settings
     local saved
     local shown
+    local suggested_preferred
     local touch_menu
     local picker_options
 
@@ -13,9 +15,11 @@ describe("navbar settings", function()
     end
 
     before_each(function()
+        original_quick_settings = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
         arrange_options = nil
         saved = 0
         shown = {}
+        suggested_preferred = nil
         picker_options = nil
         touch_menu = {
             item_table = {},
@@ -67,7 +71,10 @@ describe("navbar settings", function()
             getIconDisplayName = function(name)
                 return name == "zen_ui" and "ZenOS" or name
             end,
-            suggestIcon = function() return "lightning" end,
+            suggestIcon = function(_root, _label, _fallback, _strip_zen_prefix, preferred)
+                suggested_preferred = preferred
+                return preferred and "approved_zenfm" or "lightning"
+            end,
         })
         ZenSpec.replace("common/paths", {
             getHomeDir = function() return "/home" end,
@@ -103,6 +110,10 @@ describe("navbar settings", function()
         end)
         ZenSpec.replace("common/plugin_root", "/plugin")
         ZenSpec.unload("modules/settings/sections/library_settings/navbar_settings")
+    end)
+
+    after_each(function()
+        _G.__ZEN_UI_QUICK_SETTINGS = original_quick_settings
     end)
 
     local function build_navbar()
@@ -162,6 +173,31 @@ describe("navbar settings", function()
         assert.is_true(config.navbar.show_tabs[custom.id])
         assert.are.equal(custom.id, config.navbar.tab_order[#config.navbar.tab_order])
         assert.are.equal(1, saved)
+    end)
+
+    it("stores an approved icon name instead of a control's plugin path", function()
+        _G.__ZEN_UI_QUICK_SETTINGS = {
+            getItems = function()
+                return {{
+                    id = "zenfm",
+                    label = "ZenFM",
+                    icon = "/plugins/zenfm.koplugin/icons/zenfm.svg",
+                }}
+            end,
+        }
+        local navbar = build_navbar()
+        navbar.sub_item_table[1].callback()
+        local add_control
+        for _i, item in ipairs(arrange_options.add_item_table) do
+            if item.text == "Control" then add_control = item end
+        end
+
+        add_control.callback(touch_menu)
+        picker_options.on_select(picker_options.items[1])
+
+        local added = config.navbar.custom_tabs[1]
+        assert.are.equal("/plugins/zenfm.koplugin/icons/zenfm.svg", suggested_preferred)
+        assert.are.equal("approved_zenfm", added.icon)
     end)
 
     it("offers a built-in Folder tab with a configurable path", function()

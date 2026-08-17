@@ -17,9 +17,10 @@ local DispatcherMenu = require("common/dispatcher_menu")
 
 local M = {}
 
-local function suggest_icon(label, strip_zen_prefix)
+local function suggest_icon(label, strip_zen_prefix, preferred)
     local ok_root, root = pcall(require, "common/plugin_root")
-    return icon_utils.suggestIcon(ok_root and root or nil, label, "lightning", strip_zen_prefix)
+    return icon_utils.suggestIcon(
+        ok_root and root or nil, label, "lightning", strip_zen_prefix, preferred)
 end
 
 function M.build(ctx)
@@ -607,7 +608,7 @@ function M.build(ctx)
                 local ct = {
                     type = "quick_setting",
                     label = item.label,
-                    icon = item.icon or suggest_icon(item.label),
+                    icon = suggest_icon(item.label, nil, item.icon),
                     quick_setting_id = item.id,
                 }
                 commitCustomTab(ct)
@@ -628,7 +629,7 @@ function M.build(ctx)
             on_select = function(item)
                 ct.quick_setting_id = item.id
                 ct.label = item.label
-                ct.icon = item.icon or suggest_icon(item.label)
+                ct.icon = suggest_icon(item.label, nil, item.icon)
                 save_and_defer_navbar_refresh()
                 if touch_menu and touch_menu.updateItems then
                     touch_menu:updateItems(1)

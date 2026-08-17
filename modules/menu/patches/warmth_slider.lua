@@ -135,6 +135,7 @@ local function build_warmth_slider(touch_menu, opts)
         bordersize     = 0,
         show_parent    = show_parent,
         callback       = function() setWarmth(nl.cur - 1) end,
+        hold_callback  = function() setWarmth(0) end,
     }
     local nl_plus = Button:new{
         text           = "＋",

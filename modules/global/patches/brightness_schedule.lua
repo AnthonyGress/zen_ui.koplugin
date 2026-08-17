@@ -1,11 +1,12 @@
 local function apply_brightness_schedule()
     --[[
-        Sets frontlight brightness at two user-defined times per day.
+        Sets frontlight brightness by time or light/dark mode.
         State survives module reloads via __ZEN_UI_BRIGHTNESS_SCHEDULE.
     --]]
 
     local Device     = require("device")
     local UIManager  = require("ui/uimanager")
+    local Screen     = Device.screen
 
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
     if not zen_plugin or type(zen_plugin.config) ~= "table" then return end
@@ -53,11 +54,16 @@ local function apply_brightness_schedule()
         return {
             day_h       = tonumber(cfg.day_h)       or 7,
             day_m       = tonumber(cfg.day_m)       or 0,
-            day_value   = tonumber(cfg.day_value)   or 80,
+            day_value   = tonumber(cfg.day_value)   or 20,
             night_h     = tonumber(cfg.night_h)     or 20,
             night_m     = tonumber(cfg.night_m)     or 0,
-            night_value = tonumber(cfg.night_value) or 20,
+            night_value = tonumber(cfg.night_value) or 5,
+            use_mode_values = cfg.use_mode_values == true,
         }
+    end
+
+    local function uses_mode_values()
+        return not is_enabled() and get_config().use_mode_values
     end
 
     local function now_s()
@@ -88,12 +94,32 @@ local function apply_brightness_schedule()
 
     local function set_brightness(value)
         local Powerd = Device.powerd
-        if Powerd and type(Powerd.setIntensity) == "function" then
-            local lo = Powerd.fl_min or 0
+        if Powerd then
+            local lo = 0
             local hi = Powerd.fl_max or 100
-            pcall(Powerd.setIntensity, Powerd, math.max(lo, math.min(hi, value)))
+            value = math.max(lo, math.min(hi, value))
+            if value <= 0 and type(Powerd.turnOffFrontlight) == "function" then
+                pcall(Powerd.turnOffFrontlight, Powerd)
+            elseif type(Powerd.setIntensity) == "function" then
+                value = math.max(Powerd.fl_min or 0, value)
+                pcall(Powerd.setIntensity, Powerd, value)
+                if type(Powerd.isFrontlightOff) == "function"
+                        and Powerd:isFrontlightOff()
+                        and type(Powerd.turnOnFrontlight) == "function" then
+                    pcall(Powerd.turnOnFrontlight, Powerd)
+                end
+            end
+            if type(Powerd.updateResumeFrontlightState) == "function" then
+                pcall(Powerd.updateResumeFrontlightState, Powerd)
+            end
             UIManager:setDirty("all", "ui")
         end
+    end
+
+    local function apply_mode_value()
+        if not uses_mode_values() then return end
+        local cfg = get_config()
+        set_brightness(Screen.night_mode and cfg.night_value or cfg.day_value)
     end
 
     -- -------------------------------------------------------------------------
@@ -124,7 +150,10 @@ local function apply_brightness_schedule()
     local function reschedule()
         UIManager:unschedule(day_fn)
         UIManager:unschedule(night_fn)
-        if not is_enabled() then return end
+        if not is_enabled() then
+            apply_mode_value()
+            return
+        end
         set_brightness(current_brightness_value())
         local cfg = get_config()
         UIManager:scheduleIn(seconds_until(cfg.day_h,   cfg.day_m),   day_fn)
@@ -133,6 +162,7 @@ local function apply_brightness_schedule()
 
     state.reschedule       = reschedule
     state.force_reschedule = reschedule  -- brightness always applies (no guard)
+    state.apply_mode_value = apply_mode_value
     state._on_suspend = function()
         UIManager:unschedule(day_fn)
         UIManager:unschedule(night_fn)
@@ -142,11 +172,20 @@ local function apply_brightness_schedule()
     end
     state.initialized = true
 
+    if type(Screen.toggleNightMode) == "function" then
+        local orig_toggle_night_mode = Screen.toggleNightMode
+        Screen.toggleNightMode = function(self, ...)
+            local result = orig_toggle_night_mode(self, ...)
+            apply_mode_value()
+            return result
+        end
+    end
+
     -- -------------------------------------------------------------------------
     -- Boot-time: apply correct state and arm timers
     -- -------------------------------------------------------------------------
 
-    if is_enabled() then
+    if is_enabled() or uses_mode_values() then
         reschedule()
     end
 end

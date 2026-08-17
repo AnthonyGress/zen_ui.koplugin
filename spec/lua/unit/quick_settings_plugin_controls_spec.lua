@@ -58,7 +58,11 @@ describe("quick settings plugin controls", function()
         ZenSpec.replace("ffi/blitbuffer", no_op)
         ZenSpec.replace("ffi/util", { template = function(text) return text end, strcoll = function(a, b) return a < b end })
         ZenSpec.replace("ui/widget/container/centercontainer", no_op)
-        ZenSpec.replace("device", { screen = {} })
+        ZenSpec.replace("device", {
+            screen = {},
+            hasFrontlight = function() return false end,
+            hasGSensor = function() return false end,
+        })
         ZenSpec.replace("ui/event", { new = function(_self, name) return { name = name } end })
         ZenSpec.replace("ui/font", no_op)
         ZenSpec.replace("ui/widget/container/framecontainer", no_op)
@@ -91,16 +95,13 @@ describe("quick settings plugin controls", function()
         ZenSpec.replace("common/restart", no_op)
         ZenSpec.replace("common/shared_state", { get = function() end })
         ZenSpec.replace("common/settings_transition", { close = function() end })
-        ZenSpec.replace("common/bluetooth", no_op)
+        ZenSpec.replace("common/bluetooth", {
+            isAvailable = function() return false end,
+        })
         ZenSpec.replace("modules/menu/patches/brightness_slider", function() end)
         ZenSpec.replace("modules/menu/patches/warmth_slider", function() end)
         ZenSpec.replace("gettext", function(text) return text end)
-        ZenSpec.replace("dispatcher", {
-            execute = function(_self, action)
-                assert.is_true(action.zenfm_toggle)
-                zenfm.running = not zenfm.running
-            end,
-        })
+        ZenSpec.replace("dispatcher", { execute = function() end })
         ZenSpec.replace("common/dispatch_action", no_op)
         ZenSpec.replace("modules/menu/app_launcher/plugin_scan", no_op)
         ZenSpec.replace("common/plugin_root", "/tmp/zen-ui")
@@ -126,10 +127,15 @@ describe("quick settings plugin controls", function()
         }
         zenfm = {
             running = false,
+            toggle_calls = 0,
             daemon = {
                 is_android = function() return false end,
                 status = function() return zenfm.running end,
             },
+            onToggleZenFM = function(self)
+                self.toggle_calls = self.toggle_calls + 1
+                self.running = not self.running
+            end,
         }
         ZenSpec.replace("pluginloader", {
             loaded_plugins = { tailscale = tailscale, zenfm = zenfm },
@@ -140,8 +146,8 @@ describe("quick settings plugin controls", function()
                 features = { quick_settings = true },
                 quick_settings = {
                     layout_version = 2,
-                    button_order = { "tailscale", "zenfm" },
-                    show_buttons = { tailscale = true, zenfm = true },
+                    button_order = { "tailscale" },
+                    show_buttons = { tailscale = true, zenfm = false },
                     custom_buttons = {},
                     next_custom_id = 0,
                 },
@@ -175,11 +181,12 @@ describe("quick settings plugin controls", function()
         assert.is_equal(1, updates)
     end)
 
-    it("dispatches the ZenFM toggle and reflects its action state", function()
+    it("lists and toggles ZenFM without closing the menu", function()
         local closes = 0
+        local updates = 0
         local touch_menu = {
             closeMenu = function() closes = closes + 1 end,
-            updateItems = function() end,
+            updateItems = function() updates = updates + 1 end,
             item_table = { panel = true },
         }
         local zenfm_item
@@ -191,8 +198,21 @@ describe("quick settings plugin controls", function()
         assert.are.equal("/tmp/zen-ui/icons/zenfm.svg", zenfm_item.icon)
         assert.is_false(_G.__ZEN_UI_QUICK_SETTINGS.isActive("zenfm"))
         assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.activate("zenfm", touch_menu))
-        assert.are.equal(1, closes)
+        assert.are.equal(0, closes)
+        assert.are.equal(1, zenfm.toggle_calls)
+        assert.are.equal(1, updates)
         assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.isActive("zenfm"))
+    end)
+
+    it("lists ZenFM based on plugin presence without requiring its daemon API", function()
+        package.loaded["pluginloader"].loaded_plugins.zenfm = {}
+
+        local found = false
+        for _i, item in ipairs(_G.__ZEN_UI_QUICK_SETTINGS.getItems()) do
+            if item.id == "zenfm" then found = true end
+        end
+
+        assert.is_true(found)
     end)
 
     it("closes the menu before toggling Zen mode", function()

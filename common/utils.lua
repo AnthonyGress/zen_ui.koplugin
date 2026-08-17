@@ -503,8 +503,9 @@ function M.getIconPickerList(plugin_root, excluded)
     return all
 end
 
---- Suggest an icon whose filename matches a label. Falls back when none do.
-function M.suggestIcon(plugin_root, label, fallback, strip_zen_prefix)
+--- Suggest an icon from the picker directories. A preferred icon is accepted by
+--- filename only when that name exists in those directories.
+function M.suggestIcon(plugin_root, label, fallback, strip_zen_prefix, preferred)
     local text = type(label) == "string" and label or ""
     if strip_zen_prefix then
         text = text:gsub("^ZenOS%s*%-%s*", "")
@@ -517,7 +518,20 @@ function M.suggestIcon(plugin_root, label, fallback, strip_zen_prefix)
     for token in text:lower():gmatch("[%w]+") do
         if #token >= 3 then tokens[#tokens + 1] = token end
     end
-    for _i, item in ipairs(M.getIconPickerList(plugin_root)) do
+    local preferred_name
+    if type(preferred) == "string" then
+        local filename = preferred:match("([^/\\]+)$") or preferred
+        preferred_name = filename:match("^(.*)%.[Ss][Vv][Gg]$")
+            or filename:match("^(.*)%.[Pp][Nn][Gg]$")
+            or filename:match("^[%w._-]+$") and filename
+    end
+    local picker_items = M.getIconPickerList(plugin_root)
+    if preferred_name then
+        for _i, item in ipairs(picker_items) do
+            if item.name == preferred_name then return item.name end
+        end
+    end
+    for _i, item in ipairs(picker_items) do
         local name = item.name:lower():gsub("[^%w]", "")
         local score
         if name == needle then

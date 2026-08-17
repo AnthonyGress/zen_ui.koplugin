@@ -8,6 +8,18 @@ describe("night mode schedule", function()
     before_each(function()
         _G.G_reader_settings = ZenSpec.memorySettings()
         _G.__ZEN_UI_NIGHT_SCHEDULE = nil
+        _G.__ZEN_UI_BRIGHTNESS_SCHEDULE = {
+            apply_mode_value = function()
+                _G.brightness_mode_reapplies = (_G.brightness_mode_reapplies or 0) + 1
+            end,
+        }
+        _G.__ZEN_UI_WARMTH_SCHEDULE = {
+            apply_mode_value = function()
+                _G.warmth_mode_reapplies = (_G.warmth_mode_reapplies or 0) + 1
+            end,
+        }
+        _G.brightness_mode_reapplies = nil
+        _G.warmth_mode_reapplies = nil
         local now = os.date("*t")
         local night_off = (now.hour * 60 + now.min + 1) % 1440
         plugin = {
@@ -53,6 +65,10 @@ describe("night mode schedule", function()
 
     after_each(function()
         _G.__ZEN_UI_NIGHT_SCHEDULE = nil
+        _G.__ZEN_UI_BRIGHTNESS_SCHEDULE = nil
+        _G.__ZEN_UI_WARMTH_SCHEDULE = nil
+        _G.brightness_mode_reapplies = nil
+        _G.warmth_mode_reapplies = nil
         _G.__ZEN_UI_PLUGIN = nil
     end)
 
@@ -64,6 +80,8 @@ describe("night mode schedule", function()
         assert.is_true(screen.night_mode)
         assert.is_true(screen.hw_night_mode)
         assert.are.equal(1, ReaderThemes.applied)
+        assert.are.equal(1, _G.brightness_mode_reapplies)
+        assert.are.equal(1, _G.warmth_mode_reapplies)
     end)
 
     it("inverts the file manager at night", function()
@@ -73,5 +91,7 @@ describe("night mode schedule", function()
         assert.is_true(screen.night_mode)
         assert.is_true(screen.hw_night_mode)
         assert.are.equal(1, ReaderThemes.applied)
+        assert.are.equal(1, _G.brightness_mode_reapplies)
+        assert.are.equal(1, _G.warmth_mode_reapplies)
     end)
 end)

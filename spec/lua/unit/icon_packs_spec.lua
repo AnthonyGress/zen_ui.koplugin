@@ -354,6 +354,21 @@ describe("ZenOS icon packs", function()
         assert.are.equal(plugin_icons .. "plus.svg", IconPacks.resolve("plus", plugin_icons))
     end)
 
+    it("accepts preferred suggestions only by names in picker directories", function()
+        IconPacks.initialize({
+            features = { custom_icons_enabled = false },
+            custom_icons = { active_pack = "" },
+        })
+        local utils = require("common/utils")
+
+        assert.are.equal("zenfm", utils.suggestIcon(
+            ZenSpec.root, "ZenFM", "lightning", false,
+            "/plugins/zenfm.koplugin/icons/zenfm.svg"))
+        assert.are.equal("lightning", utils.suggestIcon(
+            ZenSpec.root, "Qzxvplm", "lightning", false,
+            "/plugins/zenfm.koplugin/icons/plugin_only_qzxvplm.svg"))
+    end)
+
     it("keeps custom icons and the active pack disabled by default", function()
         local defaults = require("config/defaults")
         assert.is_false(defaults.features.custom_icons_enabled)

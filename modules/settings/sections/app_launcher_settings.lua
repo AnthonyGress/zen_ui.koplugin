@@ -15,9 +15,10 @@ local M = {}
 local DEFAULT_ENTRY_ICON = "lightning"
 local DEFAULT_FOLDER_ICON = "folder_open"
 
-local function suggest_icon(label, strip_zen_prefix)
+local function suggest_icon(label, strip_zen_prefix, preferred)
     local ok_root, root = pcall(require, "common/plugin_root")
-    return icon_utils.suggestIcon(ok_root and root or nil, label, DEFAULT_ENTRY_ICON, strip_zen_prefix)
+    return icon_utils.suggestIcon(
+        ok_root and root or nil, label, DEFAULT_ENTRY_ICON, strip_zen_prefix, preferred)
 end
 
 local function trim(text)
@@ -404,7 +405,7 @@ function M.build(ctx)
         show_quick_setting_picker(function(item)
             entry.quick_setting_id = item.id
             entry.label = item.label
-            entry.icon = item.icon or suggest_icon(item.label)
+            entry.icon = suggest_icon(item.label, nil, item.icon)
             save_app_launcher()
             if touch_menu and touch_menu.updateItems then
                 touch_menu:updateItems(1)
@@ -418,7 +419,7 @@ function M.build(ctx)
                     id = Model.next_id(cfg),
                     type = "quick_setting",
                     label = item.label,
-                    icon = item.icon or suggest_icon(item.label),
+                    icon = suggest_icon(item.label, nil, item.icon),
                     quick_setting_id = item.id,
                 }
                 insert_entry(entry, folder)

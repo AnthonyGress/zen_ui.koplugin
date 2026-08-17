@@ -271,6 +271,7 @@ local defaults = {
         night_h     = 20,
         night_m     = 0,
         night_value = 8,
+        use_mode_values = false,
     },
     brightness_schedule = {
         day_h       = 7,
@@ -279,6 +280,7 @@ local defaults = {
         night_h     = 20,
         night_m     = 0,
         night_value = 5,
+        use_mode_values = false,
     },
     group_view = {
         include_new_in_tbr = false,

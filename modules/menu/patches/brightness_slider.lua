@@ -37,7 +37,8 @@ local function build_brightness_slider(touch_menu, opts)
     local show_parent     = touch_menu.show_parent
 
     local fl = {
-        min = powerd.fl_min,
+        min = 0,
+        hardware_min = powerd.fl_min or 0,
         max = powerd.fl_max,
         cur = powerd:frontlightIntensity(),
     }
@@ -89,7 +90,20 @@ local function build_brightness_slider(touch_menu, opts)
     local function setBrightness(intensity)
         if intensity ~= fl.min and intensity == fl.cur then return end
         intensity = math.max(fl.min, math.min(fl.max, intensity))
-        powerd:setIntensity(intensity)
+        if intensity > 0 then intensity = math.max(fl.hardware_min, intensity) end
+        if intensity <= 0 and type(powerd.turnOffFrontlight) == "function" then
+            powerd:turnOffFrontlight()
+        else
+            powerd:setIntensity(intensity)
+            if type(powerd.isFrontlightOff) == "function"
+                    and powerd:isFrontlightOff()
+                    and type(powerd.turnOnFrontlight) == "function" then
+                powerd:turnOnFrontlight()
+            end
+        end
+        if type(powerd.updateResumeFrontlightState) == "function" then
+            powerd:updateResumeFrontlightState()
+        end
         fl.cur = intensity
         if fl.cur > fl.min then fl.prev_non_min = fl.cur end
         if fl_label_fn then UIManager:unschedule(fl_label_fn) ; fl_label_fn = nil end
@@ -139,6 +153,7 @@ local function build_brightness_slider(touch_menu, opts)
     end
 
     fl_minus.callback = function() setBrightness(fl.cur - 1) end
+    fl_minus.hold_callback = function() setBrightness(0) end
     local fl_plus = Button:new{
         text           = "＋",
         text_font_face = library_font.getFontName(),

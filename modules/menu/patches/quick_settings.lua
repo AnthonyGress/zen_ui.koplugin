@@ -36,7 +36,6 @@ local function apply_quick_settings()
     local DispatchAction = require("common/dispatch_action")
     local NativeMenu = require("modules/menu/app_launcher/native_menu")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
-    local ZENFM_TOGGLE_ACTION = { zenfm_toggle = true }
 
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
     if not zen_plugin or type(zen_plugin.config) ~= "table" then
@@ -824,15 +823,16 @@ local function apply_quick_settings()
         zenfm = {
             icon = utils.resolveLocalIcon(_icons_dir, "zenfm"),
             label = _("ZenFM"),
-            visible_func = function() return getZenFMPlugin() ~= nil end,
+            visible_func = function() return getCandidatePlugin(zenfm_plugin) ~= nil end,
             active_func = isZenFMRunning,
             callback = function(touch_menu)
-                touch_menu:closeMenu()
-                SettingsTransition.close()
-                UIManager:broadcastEvent(Event:new("CloseConfigMenu"))
-                UIManager:nextTick(function()
-                    Dispatcher:execute(ZENFM_TOGGLE_ACTION)
-                end)
+                local plugin = getCandidatePlugin(zenfm_plugin)
+                if not (plugin and isCallable(plugin.onToggleZenFM)) then
+                    showUnavailable()
+                    return
+                end
+                plugin:onToggleZenFM()
+                refreshQuickSettings(touch_menu)
             end,
         },
         zen = {
@@ -1109,10 +1109,8 @@ local function apply_quick_settings()
     local function quick_setting_items()
         install_custom_button_defs()
         local items = {}
-        for _i, id in ipairs(config.button_order or {}) do
-            local def = button_defs[id]
-            if config.show_buttons[id] == true
-                    and def and (not def.visible_func or def.visible_func()) then
+        for id, def in pairs(button_defs) do
+            if not def.visible_func or def.visible_func() then
                 local label = def.label
                 items[#items + 1] = { id = id, text = label, label = label, icon = def.icon }
             end

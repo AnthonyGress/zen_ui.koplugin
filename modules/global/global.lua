@@ -146,14 +146,18 @@ function M.init(logger, plugin)
         end
     end
 
+    local function schedule_resume_reapply()
+        UIManager:unschedule(reschedule_schedules)
+        UIManager:scheduleIn(0.1, reschedule_schedules)
+    end
+
     if type(UIManager.broadcastEvent) == "function" then
         local orig_broadcastEvent = UIManager.broadcastEvent
         UIManager.broadcastEvent = function(self, event, ...)
-            local result = orig_broadcastEvent(self, event, ...)
             if event and event.handler == "onResume" then
-                reschedule_schedules()
+                schedule_resume_reapply()
             end
-            return result
+            return orig_broadcastEvent(self, event, ...)
         end
     end
 

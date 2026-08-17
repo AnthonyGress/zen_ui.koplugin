@@ -58,6 +58,14 @@ function M.build(ctx)
     local config = ctx.config
     local plugin = ctx.plugin
 
+    local function mode_value_label(mode, setting)
+        return mode .. " " .. setting:lower()
+    end
+
+    local function mode_pair_label(setting)
+        return _("Light mode") .. " / " .. _("Dark mode") .. " " .. setting:lower()
+    end
+
     -- -------------------------------------------------------------------------
     -- Schedule helpers
     -- -------------------------------------------------------------------------
@@ -90,10 +98,11 @@ function M.build(ctx)
         return {
             day_h       = tonumber(cfg.day_h)       or 7,
             day_m       = tonumber(cfg.day_m)       or 0,
-            day_value   = tonumber(cfg.day_value)   or 30,
+            day_value   = tonumber(cfg.day_value)   or 3,
             night_h     = tonumber(cfg.night_h)     or 20,
             night_m     = tonumber(cfg.night_m)     or 0,
-            night_value = tonumber(cfg.night_value) or 80,
+            night_value = tonumber(cfg.night_value) or 8,
+            use_mode_values = cfg.use_mode_values == true,
         }
     end
 
@@ -112,10 +121,11 @@ function M.build(ctx)
         return {
             day_h       = tonumber(cfg.day_h)       or 7,
             day_m       = tonumber(cfg.day_m)       or 0,
-            day_value   = tonumber(cfg.day_value)   or 80,
+            day_value   = tonumber(cfg.day_value)   or 20,
             night_h     = tonumber(cfg.night_h)     or 20,
             night_m     = tonumber(cfg.night_m)     or 0,
-            night_value = tonumber(cfg.night_value) or 20,
+            night_value = tonumber(cfg.night_value) or 5,
+            use_mode_values = cfg.use_mode_values == true,
         }
     end
 
@@ -390,9 +400,9 @@ function M.build(ctx)
         },
     })
 
-    -- Brightness schedule
+    -- Brightness
     table.insert(items, {
-        text = _("Brightness schedule"),
+        text = _("Brightness"),
         sub_item_table = {
             {
                 text = _("Enable brightness schedule"),
@@ -402,9 +412,29 @@ function M.build(ctx)
                 callback = function()
                     config.features.brightness_schedule =
                         config.features.brightness_schedule ~= true
+                    get_brightness_schedule_config()
+                    config.brightness_schedule.use_mode_values = false
                     plugin:saveConfig()
                     trigger_brightness_schedule_reschedule()
                     if config.features.brightness_schedule then
+                        disable_autowarmth()
+                    end
+                end,
+            },
+            {
+                text = mode_pair_label(_("Brightness")),
+                checked_func = function()
+                    return get_brightness_schedule_config().use_mode_values
+                end,
+                callback = function()
+                    local cfg = get_brightness_schedule_config()
+                    config.brightness_schedule.use_mode_values = not cfg.use_mode_values
+                    if config.brightness_schedule.use_mode_values then
+                        config.features.brightness_schedule = false
+                    end
+                    plugin:saveConfig()
+                    trigger_brightness_schedule_reschedule()
+                    if config.brightness_schedule.use_mode_values then
                         disable_autowarmth()
                     end
                 end,
@@ -436,24 +466,33 @@ function M.build(ctx)
             {
                 text_func = function()
                     local cfg = get_brightness_schedule_config()
-                    return _("Day brightness: ") .. cfg.day_value
+                    if config.features.brightness_schedule == true then
+                        return _("Day brightness: ") .. cfg.day_value
+                    end
+                    return mode_value_label(_("Light mode"), _("Brightness"))
+                        .. ": " .. cfg.day_value
                 end,
                 enabled_func = function()
-                    return config.features.brightness_schedule == true
+                    local cfg = get_brightness_schedule_config()
+                    return config.features.brightness_schedule == true or cfg.use_mode_values
                 end,
                 keep_menu_open = true,
                 callback = function(touchmenu_instance)
                     local cfg = get_brightness_schedule_config()
                     local powerd = Device.powerd
-                    utils.show_value_picker(_("Day brightness"), cfg.day_value,
+                    local title = config.features.brightness_schedule == true
+                        and _("Day brightness")
+                        or mode_value_label(_("Light mode"), _("Brightness"))
+                    utils.show_value_picker(title, cfg.day_value,
                         function(v)
                             if type(config.brightness_schedule) ~= "table" then
                                 config.brightness_schedule = {}
                             end
                             config.brightness_schedule.day_value = v
                             plugin:saveConfig()
+                            trigger_brightness_schedule_reschedule()
                             if touchmenu_instance then touchmenu_instance:updateItems() end
-                        end, powerd.fl_min, powerd.fl_max)
+                        end, 0, powerd.fl_max)
                 end,
             },
             {
@@ -483,32 +522,41 @@ function M.build(ctx)
             {
                 text_func = function()
                     local cfg = get_brightness_schedule_config()
-                    return _("Night brightness: ") .. cfg.night_value
+                    if config.features.brightness_schedule == true then
+                        return _("Night brightness: ") .. cfg.night_value
+                    end
+                    return mode_value_label(_("Dark mode"), _("Brightness"))
+                        .. ": " .. cfg.night_value
                 end,
                 enabled_func = function()
-                    return config.features.brightness_schedule == true
+                    local cfg = get_brightness_schedule_config()
+                    return config.features.brightness_schedule == true or cfg.use_mode_values
                 end,
                 keep_menu_open = true,
                 callback = function(touchmenu_instance)
                     local cfg = get_brightness_schedule_config()
                     local powerd = Device.powerd
-                    utils.show_value_picker(_("Night brightness"), cfg.night_value,
+                    local title = config.features.brightness_schedule == true
+                        and _("Night brightness")
+                        or mode_value_label(_("Dark mode"), _("Brightness"))
+                    utils.show_value_picker(title, cfg.night_value,
                         function(v)
                             if type(config.brightness_schedule) ~= "table" then
                                 config.brightness_schedule = {}
                             end
                             config.brightness_schedule.night_value = v
                             plugin:saveConfig()
+                            trigger_brightness_schedule_reschedule()
                             if touchmenu_instance then touchmenu_instance:updateItems() end
-                        end, powerd.fl_min, powerd.fl_max)
+                        end, 0, powerd.fl_max)
                 end,
             },
         },
     })
 
-    -- Warmth schedule
+    -- Warmth
     table.insert(items, {
-        text = _("Warmth schedule"),
+        text = _("Warmth"),
         enabled_func = function() return Device:hasNaturalLight() end,
         sub_item_table = {
             {
@@ -518,9 +566,29 @@ function M.build(ctx)
                 end,
                 callback = function()
                     config.features.warmth_schedule = config.features.warmth_schedule ~= true
+                    get_warmth_schedule_config()
+                    config.warmth_schedule.use_mode_values = false
                     plugin:saveConfig()
                     trigger_warmth_schedule_reschedule()
                     if config.features.warmth_schedule then
+                        disable_autowarmth()
+                    end
+                end,
+            },
+            {
+                text = mode_pair_label(_("Warmth")),
+                checked_func = function()
+                    return get_warmth_schedule_config().use_mode_values
+                end,
+                callback = function()
+                    local cfg = get_warmth_schedule_config()
+                    config.warmth_schedule.use_mode_values = not cfg.use_mode_values
+                    if config.warmth_schedule.use_mode_values then
+                        config.features.warmth_schedule = false
+                    end
+                    plugin:saveConfig()
+                    trigger_warmth_schedule_reschedule()
+                    if config.warmth_schedule.use_mode_values then
                         disable_autowarmth()
                     end
                 end,
@@ -552,22 +620,31 @@ function M.build(ctx)
             {
                 text_func = function()
                     local cfg = get_warmth_schedule_config()
-                    return _("Day warmth: ") .. cfg.day_value
+                    if config.features.warmth_schedule == true then
+                        return _("Day warmth: ") .. cfg.day_value
+                    end
+                    return mode_value_label(_("Light mode"), _("Warmth"))
+                        .. ": " .. cfg.day_value
                 end,
                 enabled_func = function()
-                    return config.features.warmth_schedule == true
+                    local cfg = get_warmth_schedule_config()
+                    return config.features.warmth_schedule == true or cfg.use_mode_values
                 end,
                 keep_menu_open = true,
                 callback = function(touchmenu_instance)
                     local cfg = get_warmth_schedule_config()
                     local powerd = Device.powerd
-                    utils.show_value_picker(_("Day warmth"), cfg.day_value,
+                    local title = config.features.warmth_schedule == true
+                        and _("Day warmth")
+                        or mode_value_label(_("Light mode"), _("Warmth"))
+                    utils.show_value_picker(title, cfg.day_value,
                         function(v)
                             if type(config.warmth_schedule) ~= "table" then
                                 config.warmth_schedule = {}
                             end
                             config.warmth_schedule.day_value = v
                             plugin:saveConfig()
+                            trigger_warmth_schedule_reschedule()
                             if touchmenu_instance then touchmenu_instance:updateItems() end
                         end, powerd.fl_warmth_min, powerd.fl_warmth_max)
                 end,
@@ -599,22 +676,31 @@ function M.build(ctx)
             {
                 text_func = function()
                     local cfg = get_warmth_schedule_config()
-                    return _("Night warmth: ") .. cfg.night_value
+                    if config.features.warmth_schedule == true then
+                        return _("Night warmth: ") .. cfg.night_value
+                    end
+                    return mode_value_label(_("Dark mode"), _("Warmth"))
+                        .. ": " .. cfg.night_value
                 end,
                 enabled_func = function()
-                    return config.features.warmth_schedule == true
+                    local cfg = get_warmth_schedule_config()
+                    return config.features.warmth_schedule == true or cfg.use_mode_values
                 end,
                 keep_menu_open = true,
                 callback = function(touchmenu_instance)
                     local cfg = get_warmth_schedule_config()
                     local powerd = Device.powerd
-                    utils.show_value_picker(_("Night warmth"), cfg.night_value,
+                    local title = config.features.warmth_schedule == true
+                        and _("Night warmth")
+                        or mode_value_label(_("Dark mode"), _("Warmth"))
+                    utils.show_value_picker(title, cfg.night_value,
                         function(v)
                             if type(config.warmth_schedule) ~= "table" then
                                 config.warmth_schedule = {}
                             end
                             config.warmth_schedule.night_value = v
                             plugin:saveConfig()
+                            trigger_warmth_schedule_reschedule()
                             if touchmenu_instance then touchmenu_instance:updateItems() end
                         end, powerd.fl_warmth_min, powerd.fl_warmth_max)
                 end,

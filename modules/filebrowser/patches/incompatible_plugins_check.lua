@@ -57,13 +57,18 @@ local function plugin_folder_exists(folder_key)
     return false
 end
 
-local function any_zen_schedule_enabled()
+local function any_zen_frontlight_automation_enabled()
     local plugin = rawget(_G, "__ZEN_UI_PLUGIN")
     local features = plugin and plugin.config and plugin.config.features
     if type(features) ~= "table" then return false end
+    local config = plugin.config
+    local brightness = config and config.brightness_schedule
+    local warmth = config and config.warmth_schedule
     return features.brightness_schedule == true
         or features.warmth_schedule     == true
         or features.night_mode_schedule == true
+        or type(brightness) == "table" and brightness.use_mode_values == true
+        or type(warmth) == "table" and warmth.use_mode_values == true
 end
 
 -- Returns true if Project: Title is truly active (not just self-disabled).
@@ -190,9 +195,9 @@ local function apply_incompatible_plugins_check()
         end
     end
 
-    -- Disable autowarmth when a Zen schedule is active (they conflict).
+    -- Disable autowarmth when Zen controls a schedule or mode value (they conflict).
     if package.loaded["suntime"] ~= nil and disabled_list["autowarmth"] == nil
-            and any_zen_schedule_enabled() then
+            and any_zen_frontlight_automation_enabled() then
         incompatibility_detected = true
         local dir = get_dir_from_loaded("suntime")
         local folder_key = get_folder_key(dir) or "autowarmth"

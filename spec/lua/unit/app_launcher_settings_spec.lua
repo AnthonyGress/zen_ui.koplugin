@@ -1,10 +1,14 @@
 describe("app launcher settings", function()
     local entry
     local launcher_cfg
+    local original_quick_settings
+    local picker_options
     local saves
     local shown_options
+    local suggested_preferred
 
     before_each(function()
+        original_quick_settings = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
         entry = {
             id = "al_1",
             type = "plugin",
@@ -13,6 +17,8 @@ describe("app launcher settings", function()
             plugin = { key = "legacy", method = "open" },
         }
         shown_options = nil
+        picker_options = nil
+        suggested_preferred = nil
         saves = 0
         launcher_cfg = {
             entries = { entry },
@@ -25,7 +31,9 @@ describe("app launcher settings", function()
                 return text:gsub("%%1", tostring(value))
             end,
         })
-        ZenSpec.replace("ui/uimanager", {})
+        ZenSpec.replace("ui/uimanager", {
+            nextTick = function(_self, callback) callback() end,
+        })
         ZenSpec.replace("common/inline_icon_map", setmetatable({}, {
             __index = function(_self, key) return key end,
         }))
@@ -40,13 +48,17 @@ describe("app launcher settings", function()
                 return name == "zen_ui" and "ZenOS" or name
             end,
             getIconPickerList = function() return {} end,
-            suggestIcon = function() return "lightning" end,
+            suggestIcon = function(_root, _label, _fallback, _strip_zen_prefix, preferred)
+                suggested_preferred = preferred
+                return preferred and "approved_zenfm" or "lightning"
+            end,
         })
         ZenSpec.replace("modules/menu/app_launcher/model", {
             ensure = function()
                 return launcher_cfg
             end,
             display_label = function(item) return item.label end,
+            next_id = function() return "al_2" end,
             save = function() saves = saves + 1 end,
         })
         ZenSpec.replace("modules/menu/app_launcher/native_menu", {
@@ -61,7 +73,14 @@ describe("app launcher settings", function()
         ZenSpec.replace("common/ui/zen_arrange_list", {
             show = function(options) shown_options = options end,
         })
+        ZenSpec.replace("common/ui/zen_menu_picker", function(options)
+            picker_options = options
+        end)
         ZenSpec.unload("modules/settings/sections/app_launcher_settings")
+    end)
+
+    after_each(function()
+        _G.__ZEN_UI_QUICK_SETTINGS = original_quick_settings
     end)
 
     it("displays ZenOS without rewriting the persisted legacy icon ID", function()
@@ -132,5 +151,34 @@ describe("app launcher settings", function()
         assert.are.same({ "buttons", "book_switcher", "book_details" },
             launcher_cfg.page_order)
         assert.are.equal(2, saves)
+    end)
+
+    it("stores an approved icon name instead of a control's plugin path", function()
+        _G.__ZEN_UI_QUICK_SETTINGS = {
+            getItems = function()
+                return {{
+                    id = "zenfm",
+                    label = "ZenFM",
+                    icon = "/plugins/zenfm.koplugin/icons/zenfm.svg",
+                }}
+            end,
+        }
+        local section = require(
+            "modules/settings/sections/app_launcher_settings").build({
+                config = { features = { app_launcher = true } },
+                save_and_apply = function() end,
+        })
+
+        section.sub_item_table[2].callback()
+        local add_control
+        for _i, item in ipairs(shown_options.add_item_table) do
+            if item.text == "Control" then add_control = item end
+        end
+        add_control.callback()
+        picker_options.on_select(picker_options.items[1])
+
+        local added = launcher_cfg.entries[2]
+        assert.are.equal("/plugins/zenfm.koplugin/icons/zenfm.svg", suggested_preferred)
+        assert.are.equal("approved_zenfm", added.icon)
     end)
 end)

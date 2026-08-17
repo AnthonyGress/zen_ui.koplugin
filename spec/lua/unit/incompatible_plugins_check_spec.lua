@@ -240,4 +240,19 @@ describe("incompatible plugin and patch check", function()
         assert.is_nil(settings.disabled.appearance)
         assert.are.equal(0, settings.flushes)
     end)
+
+    it("disables auto warmth for light/dark frontlight values", function()
+        package.loaded["suntime"] = { loaded = true }
+        _G.__ZEN_UI_PLUGIN = {
+            config = {
+                features = {},
+                brightness_schedule = { use_mode_values = true },
+            },
+        }
+        ZenSpec.replace("userpatch", { execution_status = {} })
+
+        assert.is_true(require("modules/filebrowser/patches/incompatible_plugins_check")())
+        assert.is_true(settings.disabled.autowarmth)
+        assert.are.equal(1, settings.flushes)
+    end)
 end)
