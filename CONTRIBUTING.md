@@ -153,21 +153,16 @@ The project config is in `.luacheckrc` and is aligned with KOReader's baseline (
 
 ### Extracting translatable strings
 
-If you have Python 3 available, you can scan all Lua files for translatable strings and print any that are missing from `locales/en.po`:
+Use the repository translation tool to find strings missing from the catalogs:
 
-```python
-import re, pathlib
-
-strings = set()
-pattern = re.compile(r'_\("([^"]+)"\)')
-for f in pathlib.Path(".").rglob("*.lua"):
-    strings.update(pattern.findall(f.read_text(errors="ignore")))
-
-existing = pathlib.Path("locales/en.po").read_text(errors="ignore")
-for s in sorted(strings):
-    if f'msgid "{s}"' not in existing:
-        print(f'msgid "{s}"\nmsgstr ""\n')
+```sh
+python3 translation_utils.py --list-missing
+python3 translation_utils.py --update-po --locale en
 ```
+
+Use `--locale <locale>` for a scoped catalog update, or see
+`python3 translation_utils.py --help` for synchronization and maintenance
+commands.
 
 ### Code style
 
@@ -187,20 +182,23 @@ zenos.koplugin/
 │   ├── defaults.lua                — schema and default values
 │   └── manager.lua                 — persistence, migration, getters/setters
 ├── common/
-│   └── utils.lua                   — shared utilities
+│   ├── ui/                         — shared ZenOS widgets
+│   └── *.lua                       — shared services and utilities
 ├── modules/
 │   ├── registry.lua                — module loader and feature registry
 │   ├── filebrowser/                — file browser patches and layout
-│   ├── menu/                       — menu patches (quick settings, zen mode)
-│   └── reader/                     — reader patches (clock, status, banner)
-├── settings/
-│   ├── zen_settings.lua            — unified settings menu entry
-│   ├── zen_settings_build.lua      — menu tree builder
-│   ├── zen_settings_apply.lua      — apply settings to live state
-│   ├── zen_settings_updater.lua    — update checker and installer
-│   └── zen_updater.lua             — GitHub release fetcher
+│   ├── global/                     — global behavior patches
+│   ├── menu/                       — Controls and Launcher patches
+│   ├── reader/                     — reader patches and status bars
+│   └── settings/
+│       ├── sections/               — settings section builders
+│       ├── zen_settings.lua        — unified settings entry
+│       ├── zen_settings_page.lua   — searchable settings page
+│       ├── zen_settings_apply.lua  — live settings application
+│       └── zen_updater.lua         — update checker and installer
 ├── locales/                        — gettext .po translation files
 ├── icons/                          — UI icons
+├── spec/                           — unit, integration, and smoke tests
 ├── CONTRIBUTING.md
 ├── SECURITY.md
 └── README.md

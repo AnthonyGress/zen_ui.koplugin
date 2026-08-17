@@ -8,7 +8,7 @@ order: 40
 
 <!-- Documentation current through ZenOS v3.0.0. -->
 
-![Launcher](/images/zen_ui/launcher.png)
+![Launcher](/images/zen_os/launcher.png)
 
 ## Overview
 
@@ -17,11 +17,10 @@ Launcher adds a configurable tab to the ZenOS menu. It can create shortcut butto
 ## Options
 
 - Enable or disable the Launcher feature.
-- Show optional Book information and Book switcher pages.
-- Arrange Book information, Book switcher, and Buttons pages.
+- Show optional Book details and Book switcher pages.
+- Arrange Book details, Book switcher, and Buttons pages.
 - Show launcher button labels. This is enabled by default.
 - Hide reader action buttons when the launcher is shown from the library.
-- Center-align launcher buttons.
 - Arrange launcher buttons.
 - Add action buttons backed by dispatcher actions.
 - Add buttons that run a chosen Controls control.
@@ -30,7 +29,7 @@ Launcher adds a configurable tab to the ZenOS menu. It can create shortcut butto
 - Add folders and arrange buttons inside each folder.
 - Insert a row break to start later buttons on a new row.
 - Configure each button or folder label and icon.
-- Move action, plugin, and KOReader menu buttons into folders or back to the root launcher.
+- Move Control, action, plugin-menu, and KOReader-menu buttons into folders or back to the root launcher.
 
 ## Setting reference
 
@@ -40,14 +39,13 @@ Launcher adds a configurable tab to the ZenOS menu. It can create shortcut butto
 | Buttons | Opens the launcher button arranger. |
 | Book switcher | Shows recent books as a launcher page, optionally only while reading. |
 | Book details | Shows information for the current book as a reader-only launcher page. |
-| Order | Arranges the Book information, Book switcher, and Buttons pages. |
+| Order | Arranges the Book details, Book switcher, and Buttons pages. |
 | Open menu to Launcher | Opens the top menu on the Launcher tab. |
 | Show labels | Shows launcher button labels. Enabled by default; disabling it hides the labels. |
 | Hide reader actions in library | When enabled, action buttons bound to reader-only dispatcher actions are hidden (and inactive) while the launcher is opened from the library. Disabled by default. |
-| Center align buttons | Centers launcher buttons instead of left-aligning them. |
 | Buttons > Add > Control | Adds a launcher button that runs a selected Controls control. |
 | Buttons > Add > Action | Adds a launcher button that runs a dispatcher action, with a suggested icon. |
-| Buttons > Add > Plugin | Scans for launchable plugin menus and adds the selected plugin menu as a launcher button with a suggested icon. |
+| Buttons > Add > Plugin Menu | Scans for launchable plugin menus and adds the selected plugin menu as a launcher button with a suggested icon. |
 | Buttons > Add > KOReader menu | Adds a native KOReader submenu available in the current library or reader context. |
 | Buttons > Add > Row break | Inserts a row break in the Launcher button layout. |
 | Control button > Control | Selects the Controls control run by the button. |
@@ -64,9 +62,11 @@ Launcher adds a configurable tab to the ZenOS menu. It can create shortcut butto
 | Folder > Label | Sets the folder label. |
 | Folder > Icon | Sets the folder icon. |
 | Folder > Folder buttons | Opens the arranger for buttons inside the folder. |
+| Folder buttons > Add > Control | Adds a Controls control inside the folder. |
 | Folder buttons > Add > Action | Adds an action button inside the folder. |
-| Folder buttons > Add > Plugin | Adds a detected plugin menu button inside the folder. |
+| Folder buttons > Add > Plugin Menu | Adds a detected plugin menu button inside the folder. |
 | Folder buttons > Add > KOReader menu | Adds a native KOReader submenu button inside the folder. |
-| Button movement > Move to folder | Moves an action, plugin, or KOReader menu button into an existing launcher folder. |
+| Folder buttons > Add > Row break | Starts later folder buttons on a new row. |
+| Button movement > Move to folder | Moves a Control, action, plugin-menu, or KOReader-menu button into an existing launcher folder. |
 | Button movement > Move out of folder | Moves a button from a folder back to the root launcher. |
 | Button or folder > Delete | Deletes a button, or deletes a folder and its buttons after confirmation. |

@@ -8,7 +8,7 @@ order: 80
 
 <!-- Documentation current through ZenOS v3.0.0. -->
 
-![Update available](/images/zen_ui/update_available.png)
+![Update available](/images/zen_os/update_available.png)
 
 ## Overview
 
@@ -16,11 +16,11 @@ The About section groups project information, device information, support action
 
 > **Note:** When you see the Zen icon with the dot, that means that an update is available.
 
-![Zen update icon](/images/zen_ui/zen_update.svg)
+![Zen update icon](/images/zen_os/zen_update.svg)
 
 ## Updating
 
-You can update ZenOS from **About > Updates > Check for updates** without leaving KOReader or connecting to a computer. ZenOS also checks for updates automatically — when one is available you'll see an **"Update available"** banner and the settings icon will show a dot.
+You can update ZenOS from **About > Updates > Update ZenOS** without leaving KOReader or connecting to a computer. ZenOS also checks for updates automatically — when one is available the item becomes **Update available**, a banner appears, and the settings icon shows a dot.
 
 Two update channels are available:
 
@@ -32,12 +32,12 @@ You can switch channels and toggle automatic update checking from **About > Upda
 ## Options
 
 - View the installed ZenOS version.
-- View KOReader, device, and firmware information.
+- View KOReader, device, firmware, and IP-address information.
 - Open the setup guide.
 - Open the bug reporting flow.
-- Check for updates
-- Read the changelog
-- Select the update channel
+- Check for ZenOS updates and, on supported devices, KOReader updates.
+- Read the changelog.
+- Select the update channel.
 - Control automatic update checks.
 - Open Advanced settings.
 - Quit KOReader from the ZenOS menu.
@@ -50,9 +50,11 @@ You can switch channels and toggle automatic update checking from **About > Upda
 | Device > KOReader | Shows the KOReader version. |
 | Device > Device | Shows the device model name. |
 | Device > Firmware | Shows firmware information when available. |
-| About > Setup Guide | Opens the built-in ZenOS quickstart, a multi-page onboarding walkthrough of the library, navbar, Controls, reader, status bars, and core modes. Shown automatically on first launch and reopenable here at any time. |
+| Device > IP address | Shows the device's current network address, or a dash when unavailable. |
+| About > Setup Guide | Opens the built-in ZenOS quickstart. When it closes, a short coachmark tour points out Zen Mode and Zen Settings in the top menu. The guide is shown on first launch and remains available here. |
 | About > Report a Bug | Opens the ZenOS bug reporting dialog. |
-| Updates > Update now | Checks for available ZenOS updates and starts the update flow. |
+| Updates > Update ZenOS | Checks for available ZenOS updates and starts the update flow. The label changes to Update available when a newer release has already been detected. |
+| Updates > Update KOReader | Runs KOReader's updater on devices that support over-the-air updates. |
 | Updates > Changelog | Opens the ZenOS changelog. |
 | Updates > Channel | Selects the update channel. |
 | Updates > Automatic update checking | Enables or disables automatic update checks. |

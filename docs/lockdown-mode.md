@@ -8,7 +8,7 @@ order: 65
 
 <!-- Documentation current through ZenOS v3.0.0. -->
 
-![Lockdown Mode](/images/zen_ui/lockdown_mode.png)
+![Lockdown Mode](/images/zen_os/lockdown_mode.png)
 
 ## Overview
 

@@ -40,10 +40,10 @@ Controls, Navbar, and Launcher can also launch detected plugin menus directly. T
 | --- | --- |
 | Gestures | Assign any ZenOS dispatcher action from KOReader's gesture action picker. Reader-only actions only work while a book is open. |
 | Controls | Go to **ZenOS > Controls > Buttons**, choose **Add > Action**, pick a dispatcher action, then set its icon and label. |
-| Navbar | Go to **Settings > Library > Navbar > Tabs**, choose **Add > Action**, pick a dispatcher action, then set its icon and label. |
+| Navbar | Go to **ZenOS > Navbar > Tabs**, choose **Add > Action**, pick a dispatcher action, then set its icon and label. |
 | Launcher | Go to **ZenOS > Launcher > Buttons**, choose **Add > Action**, pick a dispatcher action, then set its icon and label. |
 | KOReader Dispatcher integrations | Any KOReader or plugin UI that exposes Dispatcher actions can use the same ZenOS action IDs. |
 
 ## Plugin launch shortcuts
 
-Controls, Navbar, and Launcher also include **Add > Plugin**. This scans installed plugins for launchable menu entries and creates a shortcut to that plugin menu. Use this for plugin screens that are not exposed as dispatcher actions.
+Controls, Navbar, and Launcher also include **Add > Plugin Menu**. This scans installed plugins for launchable menu entries and creates a shortcut to that plugin menu. Use this for plugin screens that are not exposed as dispatcher actions.

@@ -5,7 +5,7 @@
 
 This folder contains gettext `.po` files for ZenOS plugin labels.
 
-The `en.po` file is the source catalog (~254 strings). All other locale files
+The `en.po` file is the source catalog. All other locale files
 are translated from it. Strings with an empty `msgstr ""` fall back to English
 at runtime — KOReader handles this automatically.
 
@@ -26,9 +26,13 @@ at runtime — KOReader handles this automatically.
 | `ro` | Romanian |
 | `ru` | Russian |
 | `uk` | Ukrainian |
+| `el` | Greek |
+| `ja` | Japanese |
+| `vi` | Vietnamese |
 | `zh_CN` | Simplified Chinese |
 | `zh_TW` | Traditional Chinese |
-| `el` | Greek |
+| `zh_HK` | Traditional Chinese (Hong Kong) |
+| `zh_MO` | Traditional Chinese (Macau) |
 
 ## Contributing
 

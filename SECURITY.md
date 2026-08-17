@@ -18,8 +18,6 @@ If you discover a security vulnerability in ZenOS, **please do not open a public
 1. Go to the [Security Advisories](https://github.com/AnthonyGress/zen_ui.koplugin/security/advisories) page on GitHub.
 2. Click **"Report a vulnerability"** and fill in the details.
 
-Alternatively, you can reach out directly by opening a [private issue](https://github.com/AnthonyGress/zen_ui.koplugin/issues) and marking it as confidential, or by contacting the maintainer through GitHub.
-
 Please include:
 
 - A clear description of the vulnerability and its potential impact
@@ -32,9 +30,10 @@ Reported vulnerabilities will be reviewed and responded to as promptly as possib
 
 ## Scope
 
-ZenOS is a client-side KOReader plugin written in Lua. It does not run a server, handle authentication, or process external user data. The primary security surface is:
+ZenOS is a client-side KOReader plugin written in Lua. It does not run a server or handle account authentication. It works with local library files and can download release assets and catalog content. The primary security surface is:
 
-- The built-in updater, which downloads and unpacks files from GitHub Releases over HTTPS
-- Any file operations performed through the file browser patches
+- The built-in ZenOS updater and ZenPM installer, which download and unpack release files over HTTPS
+- Custom icon-pack ZIP validation and extraction
+- File operations performed through the file browser patches
 
 Out-of-scope reports (e.g. vulnerabilities in KOReader itself, or in the underlying device OS) should be directed to the appropriate upstream project.

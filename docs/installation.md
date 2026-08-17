@@ -8,13 +8,12 @@ order: 5
 
 <!-- Documentation current through ZenOS v3.0.0. -->
 
-![zenos.koplugin folder inside the KOReader plugins directory](/images/zen_ui/plugins_folder.png)
+![zenos.koplugin folder inside the KOReader plugins directory](/images/zen_os/plugins_folder.png)
 
 ## Prerequisites
 
-- KOReader (version 2026.03 or later) must be installed first in order to use ZenOS. [Install KOReader](https://github.com/koreader/koreader#installation)
-> Older versions *may* work but ZenOS was built and tested with the latest stable version of KOReader 2026.03
-- Disable or uninstall any **other plugins/patches** that modify the UI such as Simple UI, Project: Title, or VOS, as they may conflict and cause instability.
+- KOReader 2026.03 or later must be installed first. ZenOS is tested against KOReader 2026.07 and compatibility-tested against 2026.03. [Install KOReader](https://github.com/koreader/koreader#installation)
+- Disable or remove Project: Title before starting ZenOS. ZenOS automatically disables Simple UI, QuickMenu, Appearance, etc and known conflicting user patches, then asks you to restart KOReader.
 
 ## Migrating from Project Title
 
@@ -35,10 +34,10 @@ Already using Zen UI? Update from its settings page instead of copying ZenOS
 beside it. The updater preserves your settings and completes the rename after
 restarting KOReader.
 
-The migration performs two automatic restarts and moves
-`settings/Zen UI` to `settings/ZenOS`. If Zen UI is disabled, enable it once so
-the migration can run. Do not manually install `zenos.koplugin` beside an
-existing `zen_ui.koplugin` directory.
+The migration performs two automatic restarts. It keeps `settings/Zen UI` as an
+unchanged rollback snapshot and migrates a separate copy to `settings/ZenOS`.
+If Zen UI is disabled, enable it once so the migration can run. Do not manually
+install `zenos.koplugin` beside an existing `zen_ui.koplugin` directory.
 
 For a fresh installation:
 
@@ -48,10 +47,11 @@ For a fresh installation:
    - Make sure you are copying the unzipped **folder** and **not the .zip** file itself.
 4. Restart KOReader. ZenOS will load automatically.
    - If you don't see ZenOS load, manually enable the plugin in Tools > More tools > Plugin management > ZenOS.
+   - On first launch, ZenOS guides you through setup and a short top-menu tour.
 
 > The final path should look like: `.../plugins/zenos.koplugin/main.lua`
 
-![zenos.koplugin folder inside the KOReader plugins directory](/images/zen_ui/plugins_folder.png)
+![zenos.koplugin folder inside the KOReader plugins directory](/images/zen_os/plugins_folder.png)
 
 ## Plugins directory by device
 
@@ -63,6 +63,4 @@ For a fresh installation:
 | **Android** | `/sdcard/koreader/plugins/` |
 | **Desktop (Linux/macOS)** | `/koreader/plugins/` |
 
-5. Once the folder is copied, restart KOReader and you should be guided through initial setup.
-
-![ZenOS Startup Screen](/images/zen_ui/quickstart.png)
+![ZenOS Startup Screen](/images/zen_os/quickstart.png)

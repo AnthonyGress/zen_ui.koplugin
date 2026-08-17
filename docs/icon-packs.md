@@ -31,7 +31,7 @@ existing folder is restored if validation or extraction fails. Invalid ZIPs are
 kept so they can be inspected or replaced. Installation errors are shown in the
 pack submenu and written to the KOReader log.
 
-Enable **Allow custom icons**, choose the unpacked pack, and restart KOReader.
+Turn on **Enable custom icons**, choose the unpacked pack, and restart KOReader.
 Packs are never selected automatically, so the bundled ZenOS and KOReader
 icons remain the default.
 
@@ -42,7 +42,7 @@ selecting a pack does not modify those fallback files.
 
 ## Create a pack
 
-Download `zen-icon-pack.zip` from [https://github.com/xZenLabs/zen-icon-pack](https://github.com/xZenLabs/zen-icon-pack) extract it. It contains the replaceable icons for ZenOS's Navbar,
+Download `zen-icon-pack.zip` from [xZenLabs/zen-icon-pack](https://github.com/xZenLabs/zen-icon-pack), then extract it. It contains the replaceable icons for ZenOS's Navbar,
 KOReader's top menu tabs, the bottom reader configuration-bar tabs,
 highlight/dictionary/lookup actions, chevrons, dialogs, bookmarks,
 and shared reader controls. The current sample contains 62 icons from the
@@ -93,7 +93,7 @@ existing loose files directly under `/koreader/icons` continue to work.
 
 If a pack is removed while selected, ZenOS starts with fallback icons and
 shows the selection as unavailable. Choose another pack or **Loose icons**, or
-disable **Allow custom icons**, then restart. A failed ZIP installation never
+turn off **Enable custom icons**, then restart. A failed ZIP installation never
 removes the previously installed version.
 
 ZenOS normally recovers its own hidden `.zen-stage-<id>` and

@@ -18,7 +18,7 @@ Contributions that keep it clean, minimal, and performant are most welcome.
 | --- | --- |
 | Bug report | Open an [Issue](https://github.com/AnthonyGress/zen_ui.koplugin/issues) describing what went wrong |
 | Feature request | Open an [Issue](https://github.com/AnthonyGress/zen_ui.koplugin/issues) with your idea |
-| Translation | Add or improve a `.po` file in `locales/` — see [Translations](/zen-ui/docs/translations) |
+| Translation | Add or improve a `.po` file in `locales/` — see [Translations](/zen-os/docs/translations) |
 | Code | Fork, branch, change, and open a Pull Request to `dev` |
 | Documentation | Improve the README or add inline comments |
 
@@ -27,7 +27,7 @@ Contributions that keep it clean, minimal, and performant are most welcome.
 Open an [Issue](https://github.com/AnthonyGress/zen_ui.koplugin/issues) and include:
 
 - A clear description of what happened and what you expected.
-- Your KOReader version (Settings > About > Device).
+- Your KOReader version (**ZenOS > About > Device > KOReader**).
 - Your device model (e.g. Kobo Libra 2, Kindle Paperwhite 5).
 - Steps to reproduce the problem, if you can.
 
@@ -47,6 +47,14 @@ To test changes:
 2. Restart KOReader to reload the plugin.
 
 The [KOReader emulator](https://github.com/koreader/koreader/blob/master/doc/Building.md) is the fastest way to iterate without a physical device.
+
+Run the repository checks from the plugin root when your change touches the related area:
+
+```sh
+./spec/run lua
+./spec/run smoke
+./spec/run package-check
+```
 
 ### Building
 
