@@ -27,7 +27,7 @@ local flame_icon_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "flame
 local MIN_FONT_SIZE = 8
 local MAX_FONT_SIZE = 64
 local DEFAULT_FONT_SIZE = 18
-local DEFAULT_MAX_FONT_SIZE = 24
+local DEFAULT_MAX_FONT_SIZE = 18
 
 local function time_unit(unit)
     if type(_) == "table" and type(_.pgettext) == "function" then
@@ -55,7 +55,7 @@ local FIELD_MAP = {
     week_duration = { id = "week_duration", label = _("Time this week"), get = function(s) return fmt_time(s.week_duration or 0) end },
 }
 
-local function metric_content(width, height, value_widget, label_widget)
+local function metric_content(width, height, value_widget, label_widget, shift_state)
     local value_size = value_widget:getSize()
     local label_size = label_widget:getSize()
     local value_h = value_size.h or 1
@@ -70,7 +70,7 @@ local function metric_content(width, height, value_widget, label_widget)
         resources = { value_widget, label_widget },
         paintTo = function(_self, bb, x, y)
             local value_x = x + math.floor((width - (value_size.w or 0)) / 2)
-            local value_y = y + top
+            local value_y = y + top + shift_state.value
             local label_x = x + math.floor((width - (label_size.w or 0)) / 2)
             local label_y = value_y + value_h - overlap + gap
             value_widget:paintTo(bb, value_x, value_y)
@@ -203,6 +203,7 @@ return {
         local inner_w = math.max(1, cell_w - border_size * 2)
         local inner_h = math.max(1, card_h - border_size * 2)
         local Screen = Device.screen
+        local shift_state = { value = 0 }
         local font_size = module_cfg.automatic_font_size ~= false
             and fitting_font_size(fields, stats, inner_w, inner_h,
                 configured_max_font_size(ctx))
@@ -210,6 +211,8 @@ return {
         local value_face = Font:getFace("smallinfofont", Screen:scaleBySize(font_size))
         local label_face = Font:getFace("smallinfofont", Screen:scaleBySize(math.max(6, math.floor(font_size * 0.6))))
         local row = HorizontalGroup:new{ align = "center" }
+        local visual_top
+        local visual_bottom
 
         for _i, field in ipairs(fields) do
             local value_widget = TextWidget:new{
@@ -233,8 +236,13 @@ return {
                     value_widget,
                 }
             end
-            local content, metric_top, metric_h = metric_content(inner_w, inner_h, value_widget,
-                TextWidget:new{ text = field.label, face = label_face, fgcolor = Blitbuffer.COLOR_BLACK })
+            local content, metric_top, metric_h = metric_content(
+                inner_w, inner_h, value_widget,
+                TextWidget:new{ text = field.label, face = label_face, fgcolor = Blitbuffer.COLOR_BLACK },
+                shift_state)
+            visual_top = math.min(visual_top or metric_top, metric_top)
+            visual_bottom = math.max(visual_bottom or metric_top + metric_h,
+                metric_top + metric_h)
             local card = FrameContainer:new{
                 width = cell_w,
                 height = card_h,
@@ -270,7 +278,8 @@ return {
                     }
                     local original_divider_paint = divider_container.paintTo
                     divider_container.paintTo = function(self, bb, x, y)
-                        return original_divider_paint(self, bb, x, y + divider_shift)
+                        return original_divider_paint(
+                            self, bb, x, y + divider_shift + shift_state.value)
                     end
                     table.insert(row, divider_container)
                 else
@@ -284,12 +293,17 @@ return {
             row,
         }
         if type(ctx.setContentBounds) == "function" then
+            local fixed = stat_style == "outline"
+            local top = fixed and 0 or visual_top or 0
+            local bottom = fixed and height or visual_bottom or height
             ctx.setContentBounds{
-                top = 0,
-                bottom = height,
-                min_shift = 0,
-                max_shift = 0,
-                set_shift = function() end,
+                top = top,
+                bottom = bottom,
+                min_shift = fixed and 0 or -top,
+                max_shift = fixed and 0 or height - bottom,
+                set_shift = function(shift)
+                    if not fixed then shift_state.value = shift end
+                end,
             }
         end
 

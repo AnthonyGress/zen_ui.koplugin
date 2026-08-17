@@ -21,7 +21,7 @@ local now = require("common/zen_logger").now
 local M = {}
 local DEFAULT_GOALS_FONT_SIZE = 11
 local DEFAULT_STATS_FONT_SIZE = 18
-local DEFAULT_STATS_MAX_FONT_SIZE = 24
+local DEFAULT_STATS_MAX_FONT_SIZE = 18
 local MAX_STATS_FONT_SIZE = 64
 local DEFAULT_DATETIME_FONT_SIZES = { time = 48, date = 18 }
 
@@ -2897,9 +2897,9 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
                     content_bounds.min_shift = 0
                     content_bounds.max_shift = 0
                 else
-                    -- Borrow the adjacent blank row gaps when internal slack is too small.
-                    content_bounds.min_shift = (content_bounds.min_shift or 0) - row_gap * 2
-                    content_bounds.max_shift = (content_bounds.max_shift or 0) + row_gap * 2
+                    -- Borrow surrounding blank space when internal slack is too small.
+                    content_bounds.min_shift = (content_bounds.min_shift or 0) - row_gap * 3
+                    content_bounds.max_shift = (content_bounds.max_shift or 0) + row_gap * 3
                 end
                 visual_rows[i] = content_bounds
             end

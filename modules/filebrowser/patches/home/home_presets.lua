@@ -143,7 +143,7 @@ local DEFAULT_HOME_PAGE = {
             automatic_font_size = true,
             font_size = 18,
             font_size_override = true,
-            max_font_size = 24,
+            max_font_size = 18,
             stat_style = "divider",
         },
         strip = strip_defaults{ controls = true },
@@ -216,7 +216,7 @@ local BOOKSHELF_HOME_PAGE = {
         reading_goals = {},
         stats_triplet = {
             automatic_font_size = true,
-            max_font_size = 24,
+            max_font_size = 18,
             stat_style = "divider",
         },
         strip = strip_defaults{ count = 8, controls = true, two_rows = true },

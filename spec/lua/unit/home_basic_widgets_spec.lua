@@ -233,7 +233,7 @@ describe("home basic widgets", function()
         assert.are.equal("Monday, January 8", rendered_date)
     end)
 
-    it("keeps stats bounds fixed while aligning dividers to the text", function()
+    it("reports movable stats content bounds while aligning dividers to the text", function()
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/stats_triplet")
         local component = require("modules/filebrowser/patches/home/widgets/stats_triplet")
         local content_bounds
@@ -249,7 +249,7 @@ describe("home basic widgets", function()
             setContentBounds = function(bounds) content_bounds = bounds end,
         }
         assert.are.equal(35, component.preferredHeight(ctx))
-        component.build(ctx)
+        local widget = component.build(ctx)
 
         local divider_heights = {}
         for _i, child in ipairs(created) do
@@ -258,12 +258,29 @@ describe("home basic widgets", function()
             end
         end
         assert.are.same({ 19, 19 }, divider_heights)
-        assert.are.same({ 0, 120, 0, 0 }, {
+        assert.are.same({ 48, 71, -48, 49 }, {
             content_bounds.top,
             content_bounds.bottom,
             content_bounds.min_shift,
             content_bounds.max_shift,
         })
+        local metric = widget[1][1][1][1][1]
+        metric:paintTo(nil, 0, 0)
+        local initial_y
+        for i = #created, 1, -1 do
+            if created[i].text == "Pages today" and created[i].paint_y then
+                initial_y = created[i].paint_y
+                break
+            end
+        end
+        content_bounds.set_shift(7)
+        metric:paintTo(nil, 0, 0)
+        for i = #created, 1, -1 do
+            if created[i].text == "Pages today" and created[i].paint_y then
+                assert.are.equal(initial_y + 7, created[i].paint_y)
+                break
+            end
+        end
 
         content_bounds = nil
         ctx.data.stats = {
@@ -272,7 +289,7 @@ describe("home basic widgets", function()
             streak = 999,
         }
         component.build(ctx)
-        assert.are.same({ 0, 120, 0, 0 }, {
+        assert.are.same({ 48, 71, -48, 49 }, {
             content_bounds.top,
             content_bounds.bottom,
             content_bounds.min_shift,
@@ -514,7 +531,7 @@ describe("home basic widgets", function()
         assert.are.equal(18, preset.modules.stats_triplet.font_size)
         assert.is_true(preset.modules.stats_triplet.font_size_override)
         assert.is_true(preset.modules.stats_triplet.automatic_font_size)
-        assert.are.equal(24, preset.modules.stats_triplet.max_font_size)
+        assert.are.equal(18, preset.modules.stats_triplet.max_font_size)
         assert.is_true(preset.quotes.automatic_font_size)
         assert.are.equal(14, preset.quotes.max_font_size)
         assert.are.equal(12, preset.quotes.font_size)
