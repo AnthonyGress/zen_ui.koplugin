@@ -5,7 +5,7 @@
   </picture>
 
   <h1>ZenOS</h1>
-  <p>A clean, minimal UI for KOReader.</p>
+  <p>A clean, minimal reading experience.</p>
   <p>
     <a href="https://zen-labs.org/zen-os">Website</a> ·
     <a href="https://github.com/AnthonyGress/zen_ui.koplugin/releases">Releases</a> ·
@@ -14,7 +14,7 @@
   </p>
 </div>
 
-ZenOS is a customizable, touch- and key-friendly interface layer for KOReader. It adds a personal Home page, redesigned Library, fast Controls panel, Launcher, reader tools, and unified settings while keeping KOReader underneath.
+ZenOS is a customizable interface layer for KOReader. It adds a personal Home page, redesigned Library, fast Controls panel, Launcher, reader tools, and unified settings while keeping KOReader underneath.
 
 ## Philosophy
 
@@ -24,7 +24,7 @@ Throughout development, three things were non-negotiable: **performance**, **sta
 
 ## Speed & Performance
 
-ZenOS is built to be lightweight and efficient. Its dedicated renderer, cover decoding cache, book-information cache, and item-table cache avoid repeating expensive work while browsing large libraries. Patches are loaded only where needed, redraws are scoped to changed regions when safe, and layouts are shared across touch and non-touch devices. The result is a responsive interface without unnecessary battery or memory use.
+ZenOS is built to be lightweight and efficient. Its dedicated renderer and intelligent caching avoids repeating expensive work while browsing large libraries. Patches are loaded only where needed, redraws are scoped to changed regions when safe, and layouts are shared across touch and non-touch devices. The result is a responsive interface without unnecessary battery or memory use.
 
 ## Features
 
