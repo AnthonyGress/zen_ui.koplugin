@@ -139,7 +139,13 @@ function M.build(opts)
     end
     add_metadata(book.series)
     add_metadata(book.genres)
-    add_metadata(book.page_text)
+    local bottom_details = VerticalGroup:new{ align = "left" }
+    if book.page_text and book.page_text ~= "" then
+        bottom_details[#bottom_details + 1] = VerticalSpan:new{
+            width = Screen:scaleBySize(3),
+        }
+        bottom_details[#bottom_details + 1] = one_line(book.page_text, metadata_face)
+    end
     local progress = BookProgress.build{
         ratio = book.progress,
         pages = book.pages,
@@ -149,11 +155,21 @@ function M.build(opts)
         face = metadata_face,
     }
     if progress then
-        details[#details + 1] = VerticalSpan:new{ width = Screen:scaleBySize(18) }
-        details[#details + 1] = progress
+        bottom_details[#bottom_details + 1] = VerticalSpan:new{
+            width = Screen:scaleBySize(18),
+        }
+        bottom_details[#bottom_details + 1] = progress
     end
 
-    local content_h = math.max(layout.cover_area_h, details:getSize().h)
+    local details_h = details:getSize().h
+    local bottom_h = bottom_details:getSize().h
+    local content_h = math.max(layout.cover_area_h, details_h + bottom_h)
+    local middle_h = content_h - details_h - bottom_h
+    local detail_column = VerticalGroup:new{ align = "left", details }
+    if middle_h > 0 then
+        detail_column[#detail_column + 1] = VerticalSpan:new{ width = middle_h }
+    end
+    if bottom_h > 0 then detail_column[#detail_column + 1] = bottom_details end
     local cell_h = content_h + layout.strip_h
     local detail_row = HorizontalGroup:new{
         align = "center",
@@ -162,7 +178,7 @@ function M.build(opts)
         CenterContainer:new{
             dimen = Geom:new{ w = text_w, h = content_h },
             ignore_if_over = "height",
-            details,
+            detail_column,
         },
     }
     local content = VerticalGroup:new{ align = "center", detail_row }

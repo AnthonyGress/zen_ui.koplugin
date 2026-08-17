@@ -722,7 +722,8 @@ local function apply_zen_renderer()
         end
 
         local text = do_tbr and "\u{F0150}"
-            or (do_pause and "\u{F03E4}" or (math.floor(100 * item.percent_finished) .. "%"))
+            or (do_pause and "\u{F03E4}"
+                or (math.floor(100 * item.percent_finished + 0.5) .. "%"))
         local font_size = (do_tbr or do_pause) and math.max(7, math.floor(size * 0.40))
             or math.max(7, math.floor(size * 0.24))
         local widget = badge_text(item, "_zen_progress_badge", text, font_size, foreground)

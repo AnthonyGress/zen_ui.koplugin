@@ -650,7 +650,6 @@ local function configure_title_bar(sort_widget, opts)
         back_hold_callback = function() return close_with(opts.back_hold_callback) end,
         close_callback = function() return close_with(opts.close_callback) end,
     }
-    title_bar._zen_settings_header = true
     title_bar._zen_arrange_default_action = default_action
     vertical_group[1] = title_bar
     sort_widget.title_bar = title_bar
@@ -809,18 +808,8 @@ end
 local function install_titlebar_focus(sort_widget)
     if not (sort_widget and sort_widget.layout) then return end
     local title_bar = sort_widget.title_bar
-    if title_bar and title_bar._zen_settings_header then
-        local row = title_bar:generateHorizontalLayout()[1]
-        row._zen_settings_titlebar = true
-        local first = sort_widget.layout[1]
-        if first and first._zen_settings_titlebar then
-            sort_widget.layout[1] = row
-            return
-        end
-        table.insert(sort_widget.layout, 1, row)
-        if sort_widget.selected then
-            sort_widget.selected.y = (sort_widget.selected.y or 1) + 1
-        end
+    if title_bar and type(title_bar.installFocusLayout) == "function" then
+        title_bar:installFocusLayout(sort_widget)
         return
     end
     local left_button = title_bar and title_bar.left_button
@@ -836,13 +825,10 @@ end
 local function move_focus_right_from_header(sort_widget)
     local title_bar = sort_widget and sort_widget.title_bar
     local focused = sort_widget and sort_widget.getFocusItem and sort_widget:getFocusItem()
-    local controls = title_bar and title_bar.generateHorizontalLayout
-        and title_bar:generateHorizontalLayout()[1]
-    for _control_i, control in ipairs(controls or {}) do
-        if control == focused then
-            sort_widget:onFocusMove({ 1, 0 })
-            return true
-        end
+    if title_bar and type(title_bar.containsFocus) == "function"
+            and title_bar:containsFocus(focused) then
+        sort_widget:onFocusMove({ 1, 0 })
+        return true
     end
     return false
 end

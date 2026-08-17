@@ -29,7 +29,6 @@ local function apply_context_menu()
     local HorizontalGroup = require("ui/widget/horizontalgroup")
     local HorizontalSpan  = require("ui/widget/horizontalspan")
     local TextWidget      = require("ui/widget/textwidget")
-    local Font            = require("ui/font")
     local Geom            = require("ui/geometry")
     local Blitbuffer      = require("ffi/blitbuffer")
     local library_font    = require("modules/filebrowser/patches/library_font")
@@ -130,50 +129,6 @@ local function apply_context_menu()
 
     local function new_context_menu_dialog(options)
         return align_button_dialog_icons(ButtonDialog:new(options))
-    end
-
-    local function get_title_face_for_textviewer()
-        local default_title_face = Font:getFace("x_smalltfont")
-        local title_size = default_title_face and default_title_face.orig_size or 20
-        return Font:getFace(library_font.getFontName(), title_size)
-    end
-
-    local function apply_textviewer_body_font_family(tv)
-        if type(tv) ~= "table" then return end
-        if not tv.scroll_text_w then return end
-        local ScrollTextWidget = require("ui/widget/scrolltextwidget")
-        local body_size = tv.text_font_size
-        if type(body_size) ~= "number" or body_size <= 0 then
-            local text_widget = tv.scroll_text_w and tv.scroll_text_w.text_widget
-            body_size = text_widget and text_widget.face and text_widget.face.orig_size or 20
-        end
-
-        local textw_height = tv.height - tv.titlebar:getHeight() - tv.button_table:getSize().h
-        local new_scroll = ScrollTextWidget:new{
-            text = tv.text,
-            face = Font:getFace(library_font.getFontName(), body_size),
-            fgcolor = tv.fgcolor,
-            width = tv.width - 2 * tv.text_padding - 2 * tv.text_margin,
-            height = textw_height - 2 * tv.text_padding - 2 * tv.text_margin,
-            dialog = tv,
-            alignment = tv.alignment,
-            justified = tv.justified,
-            lang = tv.lang,
-            para_direction_rtl = tv.para_direction_rtl,
-            auto_para_direction = tv.auto_para_direction,
-            alignment_strict = tv.alignment_strict,
-            scroll_callback = tv._buttons_scroll_callback,
-        }
-
-        pcall(function()
-            if type(tv.scroll_text_w.free) == "function" then
-                tv.scroll_text_w:free(false)
-            end
-        end)
-        tv.scroll_text_w = new_scroll
-        if type(tv.textw) == "table" then
-            tv.textw[1] = new_scroll
-        end
     end
 
     -- Keep Zen's path-keyed folder settings aligned with successful moves.
@@ -905,7 +860,7 @@ local function apply_context_menu()
                 end
             end
 
-            local dialog_title, dialog_cover_widget, book_description
+            local dialog_title, dialog_cover_widget
 
             local function showCoverFullscreen(cover_path)
                 local ok2, bim2 = pcall(require, "bookinfomanager")
@@ -1138,11 +1093,6 @@ local function apply_context_menu()
                                     pages_str = n_pages .. " " .. _("pages")
                                 end
                             end
-                            if not bookinfo.ignore_meta and bookinfo.description
-                                and bookinfo.description ~= "" then
-                                book_description = bookinfo.description
-                            end
-
                             -- Use unified makeCover for single book (with proper scaling)
                             local cover_bb, w, h = Cover.makeCover(file, nil, {
                                 is_folder = false,
@@ -1610,30 +1560,24 @@ local function apply_context_menu()
                         align = "left",
                         callback = function()
                             close_dialog()
-                            local util = require("util")
-                            local TextViewer = require("ui/widget/textviewer")
-                            local desc_text = book_description
-                                and util.htmlToPlainTextIfHtml(book_description)
-                                or _("No description.")
-                            local tv
-                            tv = TextViewer:new{
-                                title = _("Description"),
-                                title_face = get_title_face_for_textviewer(),
-                                text = desc_text,
-                                text_type = "book_info",
-                                buttons_table = {
-                                    {{
-                                        text = icons.details .. " " .. _("Book information"),
-                                        font_face = library_font.getFontName(),
-                                        callback = function()
-                                            UIManager:close(tv)
-                                            file_manager.bookinfo:show(file)
-                                        end,
-                                    }},
-                                },
-                            }
-                            apply_textviewer_body_font_family(tv)
-                            UIManager:show(tv)
+                            require("modules/reader/book_details").showFile(file, {
+                                config = zen_plugin and zen_plugin.config,
+                                edit_callback = function(details_widget)
+                                    local bookinfo = file_manager.bookinfo
+                                    if bookinfo.showFromBookDetails then
+                                        bookinfo:showFromBookDetails(file, nil, {
+                                            close_parent_callback = function()
+                                                if details_widget
+                                                        and type(details_widget.onClose) == "function" then
+                                                    details_widget:onClose()
+                                                end
+                                            end,
+                                        })
+                                    else
+                                        bookinfo:show(file)
+                                    end
+                                end,
+                            })
                         end,
                     },
                 })

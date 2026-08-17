@@ -28,6 +28,7 @@ describe("book details", function()
         "ui/widget/imagewidget",
         "ui/widget/scrolltextwidget",
         "ui/widget/textwidget",
+        "common/inline_icon_map",
         "common/cover_utils",
         "common/ui/book_progress",
         "common/ui/truncated_text_message",
@@ -163,6 +164,7 @@ describe("book details", function()
                 return values
             end,
         })
+        ZenSpec.replace("common/inline_icon_map", { edit = "edit-icon" })
         ZenSpec.replace("common/cover_utils", { BORDER_SIZE = 1 })
         ZenSpec.replace("common/ui/book_progress", {
             build = function(values)
@@ -238,6 +240,13 @@ describe("book details", function()
         new_widget()
 
         assert.are.equal(true, image_specs[1].original_in_nightmode)
+    end)
+
+    it("does not render a description heading", function()
+        new_widget()
+
+        assert.are.equal(1, #text_specs)
+        assert.are.equal("Book details", text_specs[1].text)
     end)
 
     it("uses the full metadata row before truncating with ellipses", function()
@@ -324,7 +333,7 @@ describe("book details", function()
         assert.is_true(widget._L.description_y + widget._L.description_h <= 784)
         assert.are.equal(240, widget._L.cover_h)
         assert.is_true(widget._L.header_h >= widget._L.cover_h)
-        assert.is_true(widget._L.header_h <= 247)
+        assert.is_true(widget._L.header_h <= 281)
 
         widget:paintTo({
             paintRect = function() end,
@@ -340,12 +349,16 @@ describe("book details", function()
             <= widget._L.description_divider_y)
     end)
 
-    it("renders and releases current progress beside the metadata", function()
+    it("pins page and progress below the top-aligned metadata", function()
         local widget = BookInfoWidget:new{
             cover = {},
             cover_width = 120,
             cover_height = 180,
             description = "Description",
+            details = {
+                { text = "Title", style = "title", bold = true },
+                { text = "Page 128 of 300", style = "page" },
+            },
             progress = 0.425,
             progress_pages = 300,
             progress_right_text = "",
@@ -361,6 +374,11 @@ describe("book details", function()
         assert.are.equal("", progress_specs[1].right_text)
         assert.are.equal("secondary", progress_specs[1].face.name)
         assert.are.equal(widget._L.details_x, widget._progress_widget.paint_x)
+        assert.are.equal(widget._L.body_y, widget._detail_widgets[1].widget.paint_y)
+        assert.is_true(widget._detail_widgets[2].widget.paint_y
+            > widget._detail_widgets[1].widget.paint_y)
+        assert.are.equal(widget._L.body_y + widget._L.header_h,
+            widget._progress_widget.paint_y + widget._progress_h)
         widget:onClose()
         assert.are.equal(1, progress_frees)
     end)
@@ -382,6 +400,49 @@ describe("book details", function()
         assert.are.equal(12, icon_specs[1].paint_x)
         assert.are.equal("/icons/close.svg", icon_specs[2].file)
         assert.are.equal(544, icon_specs[2].paint_x)
+    end)
+
+    it("shows Edit beside close only when an edit callback is provided", function()
+        local edits = 0
+        local edited_widget
+        local widget = BookInfoWidget:new{
+            description = "Description",
+            edit_callback = function(current_widget)
+                edits = edits + 1
+                edited_widget = current_widget
+            end,
+        }
+        widget:paintTo({
+            paintRect = function() end,
+            paintBorder = function() end,
+        }, 0, 0)
+
+        assert.are.equal("edit-icon  Edit", widget._edit_widget.text)
+        assert.are.equal("black", widget._edit_widget.fgcolor)
+        widget._zen_focus_enabled = true
+        widget._zen_focus_area = "edit"
+        widget:paintTo({
+            paintRect = function() end,
+            paintBorder = function() end,
+        }, 0, 0)
+        assert.are.equal("white", widget._edit_widget.fgcolor)
+        widget._zen_focus_area = "back"
+        widget:paintTo({
+            paintRect = function() end,
+            paintBorder = function() end,
+        }, 0, 0)
+        assert.are.equal("black", widget._edit_widget.fgcolor)
+        assert.are.equal(widget._L.close_all_x,
+            widget._L.edit_x + widget._L.edit_w + widget._L.edit_close_gap)
+        assert.is_true(widget:_onTap({
+            pos = { x = widget._L.edit_x + 1, y = 10 },
+        }))
+        assert.are.equal(0, close_calls)
+        assert.are.equal(1, edits)
+        assert.are.equal(widget, edited_widget)
+
+        local reader_widget = new_widget()
+        assert.is_nil(reader_widget._edit_widget)
     end)
 
     it("closes itself and the page browser from the top-right X", function()

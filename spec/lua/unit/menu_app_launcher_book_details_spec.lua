@@ -191,7 +191,7 @@ describe("app launcher book details page", function()
         local Page = require("modules/menu/app_launcher/book_details_page")
         local panel, refs = Page.build{
             width = 600,
-            height = 160,
+            height = 400,
             config = config,
             book = {
                 path = "/books/current.epub",
@@ -214,11 +214,11 @@ describe("app launcher book details page", function()
         assert.is_false(cover_options.uniform)
         local switcher_layout = require(
             "modules/menu/app_launcher/book_switcher_page").layout{
-                width = 600, height = 160, config = config,
+                width = 600, height = 400, config = config,
             }
         assert.are.equal(switcher_layout.cover_max_w, cover_width)
         assert.are.equal(switcher_layout.cover_max_h, cover_height)
-        assert.is_true(refs.buttons[1].widget.height > switcher_layout.cell_h)
+        assert.are.equal(switcher_layout.cell_h, refs.buttons[1].widget.height)
         assert.are.equal(0.425, progress_spec.ratio)
         assert.are.equal(300, progress_spec.pages)
         assert.are.equal("", progress_spec.right_text)
@@ -259,8 +259,13 @@ describe("app launcher book details page", function()
         end
         assert.is_table(guarded_details)
         assert.are.equal(progress_spec.width, guarded_details[1]:getSize().w)
-        assert.are.equal(guarded_details[1]:getSize().h, guarded_details.dimen.h)
-        assert.is_true(guarded_details.dimen.h > switcher_layout.cover_area_h)
+        assert.are.equal(switcher_layout.cover_area_h, guarded_details.dimen.h)
+        local bottom_details = guarded_details[1][#guarded_details[1]]
+        local middle_span = guarded_details[1][#guarded_details[1] - 1]
+        assert.are.equal("ui/widget/verticalgroup", bottom_details.kind)
+        assert.are.equal("Page 128 of 300", bottom_details[2].text)
+        assert.are.equal("progress", bottom_details[4].kind)
+        assert.is_true(middle_span.width > 0)
         assert.are.equal(guarded_details.dimen.h + switcher_layout.strip_h,
             refs.buttons[1].widget.height)
         assert.is_table(full_text_widget)

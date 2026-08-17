@@ -20,6 +20,7 @@ local PATCH_MODULES = {
     coverbrowser_subprocess_compat = "modules/filebrowser/patches/coverbrowser_subprocess_compat",
     cover_decode_cache = "modules/filebrowser/patches/cover_decode_cache",
     cover_preload = "modules/filebrowser/patches/cover_preload",
+    metadata_editor = "modules/filebrowser/patches/metadata_editor",
     context_menu = "modules/filebrowser/patches/context_menu",
     browser_flat_view_compat = "modules/filebrowser/patches/browser_flat_view_compat",
     browser_folder_sort = "modules/filebrowser/patches/browser_folder_sort",
@@ -144,6 +145,11 @@ function M.init(logger, plugin)
     local browser_item_table_cache_fn = load_patch("browser_item_table_cache")
     if browser_item_table_cache_fn then
         run_feature(logger, plugin, "browser_item_table_cache", browser_item_table_cache_fn)
+    end
+
+    local metadata_editor_fn = load_patch("metadata_editor")
+    if metadata_editor_fn then
+        run_feature(logger, plugin, "metadata_editor", metadata_editor_fn)
     end
 
     local context_menu_fn = load_patch("context_menu")

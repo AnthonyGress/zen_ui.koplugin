@@ -821,7 +821,7 @@ describe("Zen renderer", function()
         local item = setmetatable({
             _zen_cover_frame = { dimen = { x = 0, y = 0, w = 100, h = 150 }, bordersize = 1 },
             _zen_effective_status = "reading",
-            percent_finished = 0.5,
+            percent_finished = 0.456,
             _zen_is_fav = true,
             _zen_page_label = "120 p.",
             _zen_series_label = "#2",
@@ -843,13 +843,13 @@ describe("Zen renderer", function()
         item:paintTo(bb, 0, 0)
 
         assert.is_true(#compact > 0)
-        assert.is_true(table.concat(painted_text, " "):find("50%%") ~= nil)
+        assert.is_true(table.concat(painted_text, " "):find("46%%") ~= nil)
         assert.is_true(table.concat(painted_text, " "):find("120 p%.") ~= nil)
         assert.is_true(table.concat(painted_text, " "):find("#2") ~= nil)
         assert.is_true(table.concat(painted_text, " "):find("☆") ~= nil)
         assert.are.equal(1, native_progress_paints)
         assert.are.equal(4, native_progress.radius)
-        assert.are.same({ width = 42, height = 4, radius = 2 }, rounded_progress)
+        assert.are.same({ width = 39, height = 4, radius = 2 }, rounded_progress)
 
         _G.__ZEN_UI_PLUGIN.config.browser_cover_badges.show_native_progress_bar = false
         item:paintTo(bb, 0, 0)

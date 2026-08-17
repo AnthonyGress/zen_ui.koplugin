@@ -233,6 +233,7 @@ return {
         "New Settings page",
         "New Book Switcher in Launcher (Launcher > Book Switcher)",
         "New Book Details in Launcher (Launcher > Book Details)",
+        "New Book Details in Context Menu (Tap + Hold book)",
         "Arrange Book Details, Book Switcher, and Buttons pages in Launcher (Launcher > Order)",
         "Use Zen Mode without restarting",
         "Home strip widget controls",

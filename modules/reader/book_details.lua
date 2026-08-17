@@ -296,6 +296,7 @@ function M.buildSpec(ui, opts)
         progress = summary.progress,
         progress_pages = summary.pages,
         progress_right_text = "",
+        edit_callback = opts.edit_callback,
         close_all_callback = opts.close_all_callback,
     }
 end
@@ -306,6 +307,33 @@ function M.show(ui, opts)
     local BookInfoWidget = require("modules/reader/book_info_widget")
     UIManager:show(BookInfoWidget:new(spec))
     return true
+end
+
+function M.showFile(file, opts)
+    if type(file) ~= "string" or file == "" then return false end
+
+    local props = {}
+    local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
+    if ok_bim and BookInfoManager and type(BookInfoManager.getBookInfo) == "function" then
+        local ok_info, bookinfo = pcall(BookInfoManager.getBookInfo,
+            BookInfoManager, file, false)
+        if ok_info and type(bookinfo) == "table" and not bookinfo.ignore_meta then
+            props = bookinfo
+        end
+    end
+
+    local doc_settings
+    local ok_settings, DocSettings = pcall(require, "docsettings")
+    if ok_settings and DocSettings and type(DocSettings.open) == "function" then
+        local ok_open, settings = pcall(DocSettings.open, DocSettings, file)
+        if ok_open then doc_settings = settings end
+    end
+
+    return M.show({
+        document = { file = file },
+        doc_props = props,
+        doc_settings = doc_settings,
+    }, opts)
 end
 
 return M

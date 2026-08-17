@@ -92,6 +92,7 @@ modules/filebrowser/patches/browser_item_table_cache.lua|integration
 modules/filebrowser/patches/browser_list_item_layout.lua|integration
 modules/filebrowser/patches/browser_show_hidden.lua|integration
 modules/filebrowser/patches/book_double_tap.lua|integration
+modules/filebrowser/patches/metadata_editor.lua|unit
 modules/filebrowser/patches/collections.lua|integration
 modules/filebrowser/patches/context_menu.lua|integration
 modules/filebrowser/patches/coverbrowser_check.lua|integration

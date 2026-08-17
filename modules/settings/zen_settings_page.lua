@@ -208,12 +208,8 @@ end
 function ZenSettingsPage:_isHeaderFocused()
     local focused = self.getFocusItem and self:getFocusItem()
     local title_bar = self.title_bar
-    local controls = title_bar and title_bar.generateHorizontalLayout
-        and title_bar:generateHorizontalLayout()[1]
-    for control_i, control in ipairs(controls or {}) do
-        if control == focused then return true end
-    end
-    return false
+    return title_bar and title_bar.containsFocus
+        and title_bar:containsFocus(focused) or false
 end
 
 function ZenSettingsPage:_refreshHeaderFocus(control)
@@ -303,9 +299,9 @@ end
 
 function ZenSettingsPage:mergeTitleBarIntoLayout()
     local title_bar = self.title_bar
-    if not (title_bar and title_bar.generateHorizontalLayout) then return end
-    table.insert(self.layout, 1, title_bar:generateHorizontalLayout()[1])
-    self.selected.y = (self.selected.y or 1) + 1
+    if title_bar and title_bar.installFocusLayout then
+        title_bar:installFocusLayout(self)
+    end
 end
 
 function ZenSettingsPage:onZenSettingsFocusLeft()

@@ -654,4 +654,31 @@ function ZenSettingsTitleBar:generateVerticalLayout()
     return layout
 end
 
+function ZenSettingsTitleBar:containsFocus(control)
+    if not control then return false end
+    for _control_i, candidate in ipairs(focus_controls(self)) do
+        if candidate == control then return true end
+    end
+    return false
+end
+
+function ZenSettingsTitleBar:installFocusLayout(owner)
+    if not (owner and type(owner.layout) == "table") then return end
+
+    local row = self:generateHorizontalLayout()[1]
+    row._zen_settings_titlebar = true
+    for index, existing in ipairs(owner.layout) do
+        if existing._zen_settings_titlebar then
+            owner.layout[index] = row
+            return row
+        end
+    end
+
+    table.insert(owner.layout, 1, row)
+    if owner.selected then
+        owner.selected.y = (owner.selected.y or 1) + 1
+    end
+    return row
+end
+
 return ZenSettingsTitleBar

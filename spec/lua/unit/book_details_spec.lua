@@ -147,6 +147,42 @@ describe("reader book details", function()
         assert.are.equal("Page 126 of 300", widget_spec.details[8].text)
     end)
 
+    it("builds file-manager details with an optional edit action", function()
+        local edit_callback = function() end
+        ZenSpec.replace("bookinfomanager", {
+            getBookInfo = function(_, path, get_cover)
+                assert.are.equal("/books/library.epub", path)
+                assert.is_false(get_cover)
+                return {
+                    title = "Library title",
+                    authors = "Library author",
+                    description = "Library description",
+                    pages = 200,
+                }
+            end,
+        })
+        ZenSpec.replace("docsettings", {
+            open = function(_, path)
+                assert.are.equal("/books/library.epub", path)
+                return {
+                    readSetting = function(_, key)
+                        if key == "percent_finished" then return 0.25 end
+                    end,
+                }
+            end,
+        })
+        local BookDetails = require("modules/reader/book_details")
+
+        assert.is_true(BookDetails.showFile("/books/library.epub", {
+            edit_callback = edit_callback,
+        }))
+        assert.are.equal("Library title", widget_spec.details[1].text)
+        assert.are.equal("Library author", widget_spec.details[2].text)
+        assert.are.equal("Library description", widget_spec.description)
+        assert.are.equal(0.25, widget_spec.progress)
+        assert.are.equal(edit_callback, widget_spec.edit_callback)
+    end)
+
     it("prefers live page-map labels for the current page line", function()
         local ui = reader_ui()
         ui.pagemap = {
@@ -165,6 +201,12 @@ describe("reader book details", function()
     it("does nothing when no reader book is open", function()
         local BookDetails = require("modules/reader/book_details")
         assert.is_false(BookDetails.show({}))
+        assert.is_nil(shown)
+    end)
+
+    it("does nothing when the file path is missing", function()
+        local BookDetails = require("modules/reader/book_details")
+        assert.is_false(BookDetails.showFile(nil))
         assert.is_nil(shown)
     end)
 end)
