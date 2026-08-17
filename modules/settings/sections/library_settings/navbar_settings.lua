@@ -147,6 +147,7 @@ function M.build(ctx)
 
     local navbar_tab_items = {
         { id = "books",       text = _("Library")      },
+        { id = "folder",      text = _("Folder")       },
         { id = "manga",       text = _("Manga")         },
         { id = "news",        text = _("News")          },
         { id = "continue",    text = _("Continue")      },
@@ -182,7 +183,7 @@ function M.build(ctx)
     end
 
     local default_tab_ids = {
-        "books", "manga", "news", "history", "favorites",
+        "books", "folder", "manga", "news", "history", "favorites",
         "collections", "authors", "series", "home", "tags", "to_be_read",
     }
 
@@ -998,31 +999,31 @@ function M.build(ctx)
     end
 
     local function build_folder_presets(action_key, folder_key)
+        local function set_folder(dir_path)
+            if action_key then config.navbar[action_key] = "folder" end
+            config.navbar[folder_key] = dir_path
+            save_and_apply_navbar()
+        end
+
         return {
             text = _("Folder presets"),
             sub_item_table = {
                 {
                     text = _("Use home folder"),
                     callback = function()
-                        config.navbar[action_key] = "folder"
-                        config.navbar[folder_key] = paths.getHomeDir()
-                        save_and_apply_navbar()
+                        set_folder(paths.getHomeDir())
                     end,
                 },
                 {
                     text = _("Use last folder"),
                     callback = function()
-                        config.navbar[action_key] = "folder"
-                        config.navbar[folder_key] = utils.get_last_dir()
-                        save_and_apply_navbar()
+                        set_folder(utils.get_last_dir())
                     end,
                 },
                 {
                     text = _("Use current folder"),
                     callback = function()
-                        config.navbar[action_key] = "folder"
-                        config.navbar[folder_key] = utils.get_current_dir()
-                        save_and_apply_navbar()
+                        set_folder(utils.get_current_dir())
                     end,
                 },
             },
@@ -1032,12 +1033,15 @@ function M.build(ctx)
     local function build_folder_action_item(action_key, folder_key)
         return {
             text_func = function()
-                if config.navbar[action_key] == "folder" then
+                if not action_key or config.navbar[action_key] == "folder" then
                     return folder_label(config.navbar[folder_key], _("Open folder"))
                 end
                 return _("Open folder")
             end,
-            checked_func = function() return config.navbar[action_key] == "folder" end,
+            checked_func = function()
+                if action_key then return config.navbar[action_key] == "folder" end
+                return config.navbar[folder_key] ~= nil and config.navbar[folder_key] ~= ""
+            end,
             keep_menu_open = true,
             callback = function(touch_menu)
                 local PathChooser = require("ui/widget/pathchooser")
@@ -1048,13 +1052,20 @@ function M.build(ctx)
                     show_files = false,
                     path = start_path,
                     onConfirm = function(dir_path)
-                        config.navbar[action_key] = "folder"
+                        if action_key then config.navbar[action_key] = "folder" end
                         config.navbar[folder_key] = dir_path
                         save_and_apply_navbar()
                         if touch_menu and touch_menu.updateItems then touch_menu:updateItems() end
                     end,
                 })
             end,
+        }
+    end
+
+    local function build_folder_tab_items()
+        return {
+            build_folder_action_item(nil, "folder_path"),
+            build_folder_presets(nil, "folder_path"),
         }
     end
 
@@ -1105,6 +1116,8 @@ function M.build(ctx)
             items = build_home_tab_items()
         elseif id == "books" then
             items = build_books_tab_items()
+        elseif id == "folder" then
+            items = build_folder_tab_items()
         elseif id == "manga" then
             items = build_manga_tab_items()
         elseif id == "news" then
@@ -1215,7 +1228,7 @@ function M.build(ctx)
                     callback = addQuickSettingTab,
                 }, icons.settings_quick),
                 IconItem.decorate({
-                    text = _("Plugin"),
+                    text = _("Plugin Menu"),
                     keep_menu_open = true,
                     callback = addPluginTab,
                 }, icons.plugin),

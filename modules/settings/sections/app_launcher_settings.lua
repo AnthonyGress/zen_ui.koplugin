@@ -478,7 +478,7 @@ function M.build(ctx)
                 end,
             }, icons.settings_quick),
             IconItem.decorate({
-                text = _("Plugin"),
+                text = _("Plugin Menu"),
                 keep_menu_open = true,
                 callback = function(touch_menu)
                     add_plugin(folder, touch_menu)

@@ -239,6 +239,33 @@ describe("file browser item-table cache", function()
         assert.are.equal(1, generated["/library/series"])
     end)
 
+    it("refreshes a parent listing when a child folder changes", function()
+        directory_mtimes["/library"] = 1
+        directory_mtimes["/library/series"] = 1
+        source_items["/library"] = {
+            {
+                text = "series/", path = "/library/series",
+                mandatory = "1 \xef\x80\x96", attr = { mode = "directory", modification = 1 },
+            },
+        }
+        local chooser = setmetatable({ name = "filemanager" }, { __index = FileChooser })
+
+        local before = chooser:genItemTableFromPath("/library")
+        assert.are.equal("1 \xef\x80\x96", before[1].mandatory)
+
+        directory_mtimes["/library/series"] = 2
+        source_items["/library"] = {
+            {
+                text = "series/", path = "/library/series",
+                mandatory = "2 \xef\x80\x96", attr = { mode = "directory", modification = 2 },
+            },
+        }
+        local after = chooser:genItemTableFromPath("/library")
+
+        assert.are.equal("2 \xef\x80\x96", after[1].mandatory)
+        assert.are.equal(2, generated["/library"])
+    end)
+
     it("returns a synthetic empty list only during hidden Home bootstrap", function()
         local chooser = setmetatable({ name = "filemanager" }, { __index = FileChooser })
         _G.__ZEN_UI_DEFER_FILEMANAGER_LISTING = { path = "/library" }
@@ -292,6 +319,8 @@ describe("file browser item-table cache", function()
             ["/library/Earlier"] = 20,
             ["/library/Later"] = 10,
         }
+        directory_mtimes["/library/Earlier"] = 1
+        directory_mtimes["/library/Later"] = 1
         local chooser = setmetatable({ name = "filemanager" }, { __index = FileChooser })
 
         local before = chooser:genItemTableFromPath("/library")

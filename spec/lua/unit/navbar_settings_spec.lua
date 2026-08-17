@@ -53,6 +53,9 @@ describe("navbar settings", function()
         ZenSpec.replace("ui/widget/infomessage", {
             new = function(_self, opts) return opts end,
         })
+        ZenSpec.replace("ui/widget/pathchooser", {
+            new = function(_self, opts) return opts end,
+        })
         ZenSpec.replace("modules/settings/zen_settings_utils", {
             buildColorSubMenu = function(opts) return opts end,
             get_current_dir = function() return "/current" end,
@@ -159,6 +162,30 @@ describe("navbar settings", function()
         assert.is_true(config.navbar.show_tabs[custom.id])
         assert.are.equal(custom.id, config.navbar.tab_order[#config.navbar.tab_order])
         assert.are.equal(1, saved)
+    end)
+
+    it("offers a built-in Folder tab with a configurable path", function()
+        local navbar = build_navbar()
+        navbar.sub_item_table[1].callback()
+        arrange_options.add_item_table[1].callback(touch_menu)
+
+        local folder_picker_item
+        for _i, item in ipairs(picker_options.items) do
+            if item.id == "folder" then folder_picker_item = item; break end
+        end
+        assert.is_table(folder_picker_item)
+        picker_options.on_select(folder_picker_item)
+
+        navbar = build_navbar()
+        navbar.sub_item_table[1].callback()
+
+        local folder_settings = find_arrange_item("folder").sub_item_table_func()
+        folder_settings[1].callback(touch_menu)
+        shown[1].onConfirm("/home/Fiction")
+
+        assert.are.equal("/home/Fiction", config.navbar.folder_path)
+        assert.are.equal(1, touch_menu.update_count)
+        assert.are.equal(2, saved)
     end)
 
     it("shows the ZenOS icon label without rewriting a legacy custom-tab ID", function()

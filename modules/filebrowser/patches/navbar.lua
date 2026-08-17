@@ -93,6 +93,7 @@ local function apply_navbar()
     local config_default = {
         show_tabs = {
             books = true,
+            folder = false,
             manga = true,
             news = true,
             continue = true,
@@ -120,6 +121,7 @@ local function apply_navbar()
         books_label = "",  -- empty = auto-translated "Library"
         home_label = "",   -- empty = auto-translated "Home"
         default_tab = "books",
+        folder_path = "",
         manga_action = "rakuyomi",
         manga_folder = "",
         news_action = "quickrss",
@@ -214,6 +216,11 @@ local function apply_navbar()
             id = "books",
             label = getBooksLabel(),
             icon = "library",
+        },
+        {
+            id = "folder",
+            label = _("Folder"),
+            icon = "folder_open",
         },
         {
             id = "manga",
@@ -319,7 +326,7 @@ local function apply_navbar()
     local _last_menu_item = nil  -- tracks last long-held item for the menu tab
     local skip_tabs_for_state = {
         books = true, manga = true, news = true,
-        continue = true, search = true, stats = true, exit = true,
+        folder = true, continue = true, search = true, stats = true, exit = true,
     }
     local group_view_tabs = {
         authors = true, series = true, tags = true, to_be_read = true,
@@ -356,8 +363,25 @@ local function apply_navbar()
         _G.__ZEN_UI_ACTIVE_TAB_LABEL = tabs_by_id[active_tab] and tabs_by_id[active_tab].label or active_tab
     end
 
+    local function normalizeFolderPath(path)
+        if type(path) ~= "string" or path == "" then return nil end
+        if type(paths.normPath) == "function" then path = paths.normPath(path) end
+        if path ~= "/" then path = path:gsub("/+$", "") end
+        return path ~= "" and path or "/"
+    end
+
+    local function isInFolderPath(path, folder_path)
+        path = normalizeFolderPath(path)
+        folder_path = normalizeFolderPath(folder_path)
+        if not path or not folder_path then return false end
+        return path == folder_path
+            or folder_path == "/"
+            or path:sub(1, #folder_path + 1) == folder_path .. "/"
+    end
+
     local function tabStaysInFileManager(id)
         return id == "books"
+            or (id == "folder" and normalizeFolderPath(config.folder_path) ~= nil)
             or (id == "manga" and config.manga_action == "folder" and config.manga_folder ~= "")
             or (id == "news" and config.news_action == "folder" and config.news_folder ~= "")
     end
@@ -1016,6 +1040,44 @@ local function apply_navbar()
         end
     end
 
+    local function onTabFolder()
+        local fm = FileManager.instance
+        local fc = fm and fm.file_chooser
+        local folder_path = normalizeFolderPath(config.folder_path)
+        if not (fc and folder_path
+                and lfs.attributes(folder_path, "mode") == "directory") then
+            setActiveTab("books")
+            onTabBooks()
+            local InfoMessage = require("ui/widget/infomessage")
+            UIManager:show(InfoMessage:new{
+                text = folder_path and _("ZenOS: folder not found: ") .. folder_path
+                    or _("ZenOS: no folder set for this action."),
+            })
+            return false
+        end
+
+        local fm_stack_widget = select(2, retainHomeBelowFileManager(fm))
+        local reveal_hidden_filemanager = fm.invisible == true
+        fm.invisible = nil
+        fm._zen_hidden_home_startup = nil
+        fc._zen_hidden_home_startup = nil
+        fc._zen_needs_full_listing = nil
+        fc._zen_needs_cover_refresh = nil
+        utils.closeWidgetsAbove(fm_stack_widget or fm)
+        if reveal_hidden_filemanager then
+            UIManager:setDirty(fm_stack_widget or fm, "ui")
+        end
+
+        if normalizeFolderPath(fc.path) == folder_path
+                and type(fc.onGotoPage) == "function" then
+            fc:onGotoPage(1)
+        else
+            fc.path_items[folder_path] = nil
+            fc:changeToPath(folder_path)
+        end
+        return true
+    end
+
     local function onTabNews()
         local fm = FileManager.instance
         if not fm then return end
@@ -1293,6 +1355,7 @@ local function apply_navbar()
 
     local tab_callbacks = {
         books = onTabBooks,
+        folder = onTabFolder,
         manga = onTabManga,
         news = onTabNews,
         continue = onTabContinue,
@@ -1315,6 +1378,7 @@ local function apply_navbar()
 
     local default_tab_whitelist = {
         books = true,
+        folder = true,
         manga = true,
         news = true,
         history = true,
@@ -1329,6 +1393,7 @@ local function apply_navbar()
 
     local active_tab_whitelist = {
         books = true,
+        folder = true,
         manga = true,
         news = true,
         authors = true,
@@ -2122,6 +2187,38 @@ local function apply_navbar()
 
     -- === Auto-switch active tab on folder change ===
 
+    local function tabForFileManagerPath(path)
+        if not path then return end
+
+        if isInFolderPath(path, config.folder_path) then
+            return "folder"
+        end
+        if config.manga_action == "folder" and config.manga_folder ~= ""
+                and isInFolderPath(path, config.manga_folder) then
+            return "manga"
+        end
+        if config.news_action == "folder" and config.news_folder ~= ""
+                and isInFolderPath(path, config.news_folder) then
+            return "news"
+        end
+
+        local home_dir = paths.getHomeDir()
+                         or require("apps/filemanager/filemanagerutil").getDefaultDir()
+        if home_dir and paths.isInHomeDir(path) then return "books" end
+    end
+
+    local function syncFileManagerTabForPath(fm, path, repaint)
+        local new_tab = tabForFileManagerPath(path)
+        if not new_tab or new_tab == active_tab then return false end
+        active_tab = new_tab
+        syncActiveTabLabel()
+        if repaint then
+            injectNavbar(fm)
+            UIManager:setDirty(fm, "ui")
+        end
+        return true
+    end
+
     local orig_onPathChanged = FileManager.onPathChanged
 
     function FileManager:onPathChanged(path)
@@ -2129,40 +2226,7 @@ local function apply_navbar()
             orig_onPathChanged(self, path)
         end
 
-        if not path then return end
-
-        local function startsWith(str, prefix)
-            return str:sub(1, #prefix) == prefix
-        end
-
-        local new_tab
-        -- Check manga folder
-        if config.manga_action == "folder" and config.manga_folder ~= "" then
-            if path == config.manga_folder or startsWith(path, config.manga_folder .. "/") then
-                new_tab = "manga"
-            end
-        end
-        -- Check news folder
-        if not new_tab and config.news_action == "folder" and config.news_folder ~= "" then
-            if path == config.news_folder or startsWith(path, config.news_folder .. "/") then
-                new_tab = "news"
-            end
-        end
-        -- Check home dir for books
-        if not new_tab then
-            local home_dir = paths.getHomeDir()
-                             or require("apps/filemanager/filemanagerutil").getDefaultDir()
-            if home_dir and paths.isInHomeDir(path) then
-                new_tab = "books"
-            end
-        end
-
-        if new_tab and new_tab ~= active_tab then
-            active_tab = new_tab
-            syncActiveTabLabel()
-            injectNavbar(self)
-            UIManager:setDirty(self, "ui")
-        end
+        syncFileManagerTabForPath(self, path, true)
     end
 
     -- === Physical Home button: return to the default navbar tab ===
@@ -3618,6 +3682,9 @@ local function apply_navbar()
                 maybe_open_startup_default_tab(fm)
                 return
             end
+            if tabStaysInFileManager(active_tab) and fm.file_chooser then
+                syncFileManagerTabForPath(fm, fm.file_chooser.path, false)
+            end
             injectNavbar(fm)
             if maybe_open_startup_default_tab(fm) then return end
             UIManager:setDirty(fm, "ui")
@@ -3641,6 +3708,9 @@ local function apply_navbar()
     _G.__ZEN_UI_REINJECT_FM_NAVBAR = function()
         local fm = FileManager.instance
         if fm then
+            if tabStaysInFileManager(active_tab) and fm.file_chooser then
+                syncFileManagerTabForPath(fm, fm.file_chooser.path, false)
+            end
             injectNavbar(fm)
             UIManager:setDirty(fm, "full")
         else

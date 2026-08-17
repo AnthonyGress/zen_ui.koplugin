@@ -18,7 +18,7 @@ local function apply_browser_item_table_cache()
     local FOLDER_AGGREGATE_CACHE_MAX = 128
     local PERSISTED_CACHE_MAX = 4
     local PERSISTED_ITEM_MAX = 4096
-    local PERSISTED_SCHEMA = 2
+    local PERSISTED_SCHEMA = 3
     local PERSISTED_TREE_DEPTH = 2
     local PERSISTED_TREE_DIR_MAX = 256
     local PERSISTED_TREE_ENTRY_MAX = 4096
@@ -507,6 +507,25 @@ local function apply_browser_item_table_cache()
         return tostring(lfs.attributes(path, "modification") or 0)
     end
 
+    local function child_directory_signatures(item_table)
+        local signatures = {}
+        for _i, item in ipairs(item_table or {}) do
+            if item.attr and item.attr.mode == "directory" and type(item.path) == "string" then
+                signatures[item.path] = directory_signature(item.path)
+            end
+        end
+        return signatures
+    end
+
+    local function child_directories_match(value)
+        local signatures = value and value.child_directory_signatures
+        if type(signatures) ~= "table" then return false end
+        for path, signature in pairs(signatures) do
+            if directory_signature(path) ~= signature then return false end
+        end
+        return true
+    end
+
     build_tree_signature = function(root)
         local signature = {}
         local directory_count = 0
@@ -592,10 +611,11 @@ local function apply_browser_item_table_cache()
 
     local function get_cached(path, key)
         local value = shared_cache.values[path]
-        return value and value.key == key and value or nil
+        return value and value.key == key and child_directories_match(value) and value or nil
     end
 
     local function put_cached(path, value)
+        value.child_directory_signatures = child_directory_signatures(value.table)
         if not shared_cache.values[path] then shared_cache.order[#shared_cache.order + 1] = path end
         shared_cache.values[path] = value
         while #shared_cache.order > ITEM_TABLE_CACHE_MAX do
@@ -609,6 +629,7 @@ local function apply_browser_item_table_cache()
         local value = cache.values[path]
         if not value then return nil, "disk_miss" end
         if value.key ~= key then return nil, "disk_stale" end
+        if not child_directories_match(value) then return nil, "disk_stale_children" end
         if not tree_signature_matches(value.tree_signature) then
             return nil, "disk_stale_tree"
         end
@@ -618,6 +639,7 @@ local function apply_browser_item_table_cache()
             key = value.key,
             stable_key = value.stable_key,
             table = restored,
+            child_directory_signatures = value.child_directory_signatures,
             tree_signature_mode = value.tree_signature_mode or "legacy",
         }, "disk_hit"
     end
@@ -632,6 +654,7 @@ local function apply_browser_item_table_cache()
             key = value.key,
             stable_key = value.stable_key,
             table = snapshot,
+            child_directory_signatures = value.child_directory_signatures,
             needs_tree_signature = true,
             requires_full_tree = self.show_flat_view == true
                 or (self.show_flat_view == nil and FileChooser.show_flat_view == true),
@@ -799,7 +822,8 @@ local function apply_browser_item_table_cache()
         local stale = shared_cache.values[path]
         local last_read_file = rawget(_G, "__ZEN_UI_LAST_READ_FILE")
         if collate_mode == "access" and last_read_file
-                and stale and stale.stable_key == stable then
+                and stale and stale.stable_key == stable
+                and child_directories_match(stale) then
             local Home = SharedState.get(plugin, "home")
             if Home and type(Home.invalidateBookCache) == "function" then
                 pcall(Home.invalidateBookCache, last_read_file, true)

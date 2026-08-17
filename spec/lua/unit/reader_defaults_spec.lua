@@ -76,14 +76,16 @@ describe("Reader defaults", function()
 
         require("common/reader_defaults").apply(settings, config)
 
-        assert.are.equal("Libron R", settings:readSetting("cre_font"))
+        assert.are.equal("Readerly R", settings:readSetting("cre_font"))
         assert.are.same({30, 30}, settings:readSetting("copt_h_page_margins"))
         assert.are.equal(1, settings:readSetting("copt_sync_t_b_page_margins"))
         assert.are.equal(30, settings:readSetting("copt_t_page_margin"))
         assert.are.equal(30, settings:readSetting("copt_b_page_margin"))
         assert.are.same({100, 90}, settings:readSetting("copt_word_spacing"))
+        assert.are.equal(5, settings:readSetting("copt_word_expansion"))
         assert.are.equal(110, settings:readSetting("copt_line_spacing"))
-        assert.are.equal(30, settings:readSetting("copt_font_gamma"))
+        assert.are.equal(25, settings:readSetting("copt_font_gamma"))
+        assert.are.equal(-0.5, settings:readSetting("copt_font_base_weight"))
         assert.are.equal(23, settings:readSetting("copt_font_size"))
         assert.are.equal(2, settings:readSetting("copt_font_hinting"))
         assert.are.equal(3, settings:readSetting("copt_font_kerning"))
@@ -177,8 +179,10 @@ describe("Reader defaults", function()
             setFontHinting = function(_self, value) document_calls.font_hinting = value end,
             setFontKerning = function(_self, value) document_calls.font_kerning = value end,
             setWordSpacing = function(_self, value) document_calls.word_spacing = value end,
+            setWordExpansion = function(_self, value) document_calls.word_expansion = value end,
             setInterlineSpacePercent = function(_self, value) document_calls.line_spacing = value end,
             setGammaIndex = function(_self, value) document_calls.font_gamma = value end,
+            setFontBaseWeight = function(_self, value) document_calls.font_base_weight = value end,
             setEmbeddedStyleSheet = function(_self, value) document_calls.embedded_css = value end,
             setEmbeddedFonts = function(_self, value) document_calls.embedded_fonts = value end,
             setNightmodeImages = function(_self, value) document_calls.nightmode_images = value end,
@@ -234,12 +238,14 @@ describe("Reader defaults", function()
         assert.are.equal(12, reader.view.footer.footer_content.padding_bottom)
         assert.are.equal(1, footer_resets)
         assert.are.equal(1, footer_refreshes)
-        assert.are.equal("Libron R", reader.font.font_face)
-        assert.are.equal("Libron R", document_calls.font_face)
+        assert.are.equal("Readerly R", reader.font.font_face)
+        assert.are.equal("Readerly R", document_calls.font_face)
         assert.are.equal(46, document_calls.font_size)
-        assert.are.equal(30, document_calls.font_gamma)
+        assert.are.equal(25, document_calls.font_gamma)
+        assert.are.equal(-0.5, document_calls.font_base_weight)
         assert.are.equal(110, document_calls.line_spacing)
         assert.are.same({100, 90}, document_calls.word_spacing)
+        assert.are.equal(5, document_calls.word_expansion)
         assert.are.same({30, 30, 30, 30}, document_calls.page_margins)
         assert.are.same({30, 30}, document.configurable.h_page_margins)
         assert.are.equal(1, document.configurable.sync_t_b_page_margins)

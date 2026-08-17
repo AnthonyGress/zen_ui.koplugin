@@ -255,7 +255,7 @@ describe("file browser navbar navigation", function()
                 features = { navbar = true, restore_library_view = false },
                 navbar = {
                     show_tabs = {
-                        books = true, home = true, authors = true, series = true,
+                        books = true, folder = true, home = true, authors = true, series = true,
                         tags = true, to_be_read = true, history = true,
                         favorites = true, collections = true, search = true,
                         page_left = true, page_right = true, menu = true,
@@ -266,6 +266,7 @@ describe("file browser navbar navigation", function()
                         "page_left", "page_right", "menu",
                     },
                     default_tab = "home",
+                    folder_path = "/library/Fiction/",
                     show_icons = false,
                     show_labels = true,
                     label_size = 17,
@@ -1020,6 +1021,22 @@ describe("file browser navbar navigation", function()
                 _G.__ZEN_UI_ACTIVE_TAB_LABEL)
         end
         assert.are.same({ "home", "authors", "series", "tags", "to_be_read" }, calls)
+    end)
+
+    it("opens the configured folder and highlights its full subtree only", function()
+        local fm = make_instance()
+        dir_mtimes["/library/Fiction"] = 10
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("folder"))
+        assert.are.same({ "books:/library/Fiction" }, calls)
+        assert.are.equal("Folder", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+
+        FileManager.onPathChanged(fm, "/library/Fiction/Series")
+        assert.are.equal("Folder", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+
+        FileManager.onPathChanged(fm, "/library/Fictional")
+        assert.are.equal("Library", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
     end)
 
     it("does not reopen the navbar page already on top", function()

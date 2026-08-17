@@ -81,6 +81,7 @@ function M.build(ctx)
         { key = "opds",           text = _("OPDS"),            detect = function() return hasPlugin("opds") end },
         { key = "localsend",      text = _("LocalSend"),       detect = function() return hasPlugin("localsend") end },
         { key = "tailscale",      text = _("Tailscale"),       detect = function() return hasPlugin("tailscale") end },
+        { key = "zenfm",          text = _("ZenFM"),           detect = function() return hasPlugin("zenfm") end },
         { key = "filebrowser",    text = _("Filebrowser"),     detect = function() return hasAnyPlugin(filebrowser_slots) end },
         { key = "puzzle",         text = _("Slide Puzzle"),    detect = function() return hasPlugin("slidepuzzle") end },
         { key = "crossword",      text = _("Crossword"),       detect = function() return hasPlugin("crossword") end },
@@ -580,7 +581,7 @@ function M.build(ctx)
                     callback = addActionButton,
                 }, icons.action),
                 IconItem.decorate({
-                    text = _("Plugin"),
+                    text = _("Plugin Menu"),
                     keep_menu_open = true,
                     callback = addPluginButton,
                 }, icons.plugin),

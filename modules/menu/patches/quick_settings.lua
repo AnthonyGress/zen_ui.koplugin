@@ -36,6 +36,7 @@ local function apply_quick_settings()
     local DispatchAction = require("common/dispatch_action")
     local NativeMenu = require("modules/menu/app_launcher/native_menu")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
+    local ZENFM_TOGGLE_ACTION = { zenfm_toggle = true }
 
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
     if not zen_plugin or type(zen_plugin.config) ~= "table" then
@@ -115,6 +116,7 @@ local function apply_quick_settings()
             opds = false,
             filebrowser = false,
             tailscale = false,
+            zenfm = false,
             puzzle = false,
             crossword = false,
             connections = false,
@@ -380,6 +382,25 @@ local function apply_quick_settings()
         if plugin and isCallable(plugin[tailscale_plugin.toggle]) then
             return plugin
         end
+    end
+
+    local zenfm_plugin = {
+        slots = { "zenfm" },
+        key = "zenfm",
+    }
+
+    local function getZenFMPlugin()
+        local plugin = getCandidatePlugin(zenfm_plugin)
+        if plugin and plugin.daemon and isCallable(plugin.daemon.status) then
+            return plugin
+        end
+    end
+
+    local function isZenFMRunning()
+        local plugin = getZenFMPlugin()
+        if not plugin then return false end
+        local ok_running, running = pcall(plugin.daemon.status, plugin.daemon)
+        return ok_running and running == true
     end
 
     local function getFilebrowserPlugin(prefer_running)
@@ -797,6 +818,20 @@ local function apply_quick_settings()
                 end
                 plugin:onToggleTailscale(function()
                     refreshQuickSettings(touch_menu)
+                end)
+            end,
+        },
+        zenfm = {
+            icon = utils.resolveLocalIcon(_icons_dir, "zenfm"),
+            label = _("ZenFM"),
+            visible_func = function() return getZenFMPlugin() ~= nil end,
+            active_func = isZenFMRunning,
+            callback = function(touch_menu)
+                touch_menu:closeMenu()
+                SettingsTransition.close()
+                UIManager:broadcastEvent(Event:new("CloseConfigMenu"))
+                UIManager:nextTick(function()
+                    Dispatcher:execute(ZENFM_TOGGLE_ACTION)
                 end)
             end,
         },

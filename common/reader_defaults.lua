@@ -4,7 +4,7 @@ local FontLanguage = require("common/font_language")
 
 local M = {}
 
-local READER_FONT = "Libron R"
+local READER_FONT = "Readerly R"
 local STATUS_FONT = plugin_root .. "/fonts/hyperreadable/Hyperreadable-SemiBold.ttf"
 local CRE_DEFAULTS = {
     copt_h_page_margins = {30, 30},
@@ -12,8 +12,10 @@ local CRE_DEFAULTS = {
     copt_t_page_margin = 30,
     copt_b_page_margin = 30,
     copt_word_spacing = {100, 90},
+    copt_word_expansion = 5,
     copt_line_spacing = 110,
-    copt_font_gamma = 30,
+    copt_font_gamma = 25,
+    copt_font_base_weight = -0.5,
     copt_font_size = 23,
     copt_font_hinting = 2,
     copt_font_kerning = 3,
@@ -57,12 +59,12 @@ local function ensure_reader_font_registered()
     if type(cre.registerFont) ~= "function" then return end
 
     for _i, filename in ipairs({
-        "Libron_R-Regular.ttf",
-        "Libron_R-Bold.ttf",
-        "Libron_R-Italic.ttf",
-        "Libron_R-BoldItalic.ttf",
+        "Readerly_R-Regular.ttf",
+        "Readerly_R-Bold.ttf",
+        "Readerly_R-Italic.ttf",
+        "Readerly_R-BoldItalic.ttf",
     }) do
-        pcall(cre.registerFont, plugin_root .. "/fonts/libron/" .. filename)
+        pcall(cre.registerFont, plugin_root .. "/fonts/readerly/" .. filename)
     end
     if type(cre.regularizeRegisteredFontsWeights) == "function" then
         pcall(cre.regularizeRegisteredFontsWeights, false)
@@ -121,6 +123,9 @@ local function apply_to_active_reader(preset, use_bundled_fonts)
     if type(document.setFontSize) == "function" then
         document:setFontSize(scale_by_size(CRE_DEFAULTS.copt_font_size))
     end
+    if type(document.setFontBaseWeight) == "function" then
+        document:setFontBaseWeight(CRE_DEFAULTS.copt_font_base_weight)
+    end
     if type(document.setFontHinting) == "function" then
         document:setFontHinting(CRE_DEFAULTS.copt_font_hinting)
     end
@@ -129,6 +134,9 @@ local function apply_to_active_reader(preset, use_bundled_fonts)
     end
     if type(document.setWordSpacing) == "function" then
         document:setWordSpacing(copy_value(CRE_DEFAULTS.copt_word_spacing))
+    end
+    if type(document.setWordExpansion) == "function" then
+        document:setWordExpansion(CRE_DEFAULTS.copt_word_expansion)
     end
     if type(document.setInterlineSpacePercent) == "function" then
         document:setInterlineSpacePercent(CRE_DEFAULTS.copt_line_spacing)

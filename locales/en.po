@@ -1713,6 +1713,9 @@ msgstr "Please delete the Project: Title plugin from your plugins folder and res
 msgid "Plugin"
 msgstr "Plugin"
 
+msgid "Plugin Menu"
+msgstr "Plugin Menu"
+
 msgid "Plugin management"
 msgstr "Plugin management"
 
@@ -2711,6 +2714,9 @@ msgstr "Zen Mode: Disabled"
 
 msgid "Zen Mode: Enabled"
 msgstr "Zen Mode: Enabled"
+
+msgid "ZenFM"
+msgstr "ZenFM"
 
 msgid "Zen OPDS"
 msgstr "Zen OPDS"

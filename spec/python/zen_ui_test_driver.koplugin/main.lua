@@ -1972,7 +1972,7 @@ function Driver:handleCommand(command)
     end
     if kind == "activate_navbar_tab" and type(params.id) == "string" then
         local allowed = {
-            books = true, home = true, authors = true, series = true,
+            books = true, folder = true, home = true, authors = true, series = true,
             tags = true, to_be_read = true,
         }
         local open_tab = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_TAB")

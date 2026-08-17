@@ -544,6 +544,13 @@ local function apply_status_bar()
         return #group > 0 and group or nil
     end
 
+    local function normalizeDirPath(path)
+        if type(path) ~= "string" or path == "" then return nil end
+        path = paths.normPath(path)
+        if path ~= "/" then path = path:gsub("/+$", "") end
+        return path ~= "" and path or "/"
+    end
+
     local function createStatusRow(path, file_manager, nav_title)
         local CenterContainer = require("ui/widget/container/centercontainer")
 
@@ -551,8 +558,8 @@ local function apply_status_bar()
         local in_subfolder = false
         local folder_name = nil
         local home_dir = paths.getHomeDir()
+        local norm_path = normalizeDirPath(path)
         if home_dir and path then
-            local norm_path = paths.normPath(path:gsub("/$", ""))
             if norm_path ~= home_dir and norm_path:sub(1, #home_dir + 1) == home_dir .. "/" then
                 in_subfolder = true
                 folder_name = path:match("([^/]+)/?$") or path
@@ -570,10 +577,22 @@ local function apply_status_bar()
         end
 
         local home_locked = paths.isHomeLocked()
+        local features = zen_plugin.config.features
+        local navbar = zen_plugin.config.navbar
+        local folder_root = type(navbar) == "table"
+            and normalizeDirPath(navbar.folder_path) or nil
+        local at_folder_tab_root = type(features) == "table" and features.navbar == true
+            and type(navbar) == "table"
+            and type(navbar.show_tabs) == "table"
+            and navbar.show_tabs.folder == true
+            and folder_root ~= nil and folder_root ~= ""
+            and norm_path == folder_root
+            and not in_series_view
 
-        -- Show back chevron in subfolders always; everywhere when home is not locked.
+        -- Show back in subfolders, but treat the configured Folder tab path as its root.
         -- path must be non-nil — callers like collections pass nil for non-filesystem views.
-        local show_back = path ~= nil and (in_subfolder or not home_locked)
+        local show_back = path ~= nil and not at_folder_tab_root
+            and (in_subfolder or not home_locked)
 
         -- Back chevron is always pinned to the far-left when navigation is available
         local back_widget = nil

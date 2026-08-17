@@ -9,6 +9,18 @@ describe("file manager status bar visibility", function()
         ZenSpec.replace(name, module)
     end
 
+    local function replace_upvalue(fn, target, replacement)
+        for index = 1, 40 do
+            local name = debug.getupvalue(fn, index)
+            if not name then break end
+            if name == target then
+                debug.setupvalue(fn, index, replacement)
+                return true
+            end
+        end
+        return false
+    end
+
     before_each(function()
         FileManager = {}
         UIManager = { _window_stack = {} }
@@ -105,18 +117,6 @@ describe("file manager status bar visibility", function()
     it("builds hidden status rows without repainting them over the top widget", function()
         require("modules/filebrowser/patches/status_bar")()
 
-        local function replace_upvalue(fn, target, replacement)
-            for index = 1, 40 do
-                local name = debug.getupvalue(fn, index)
-                if not name then break end
-                if name == target then
-                    debug.setupvalue(fn, index, replacement)
-                    return true
-                end
-            end
-            return false
-        end
-
         local repaint_count = 0
         local next_row = { getSize = function() return { h = 1 } end }
         assert.is_true(replace_upvalue(FileManager._updateStatusBar,
@@ -190,5 +190,46 @@ describe("file manager status bar visibility", function()
 
         assert.are.equal(1, folder_up_calls)
         assert.are.equal(0, direct_change_calls)
+    end)
+
+    it("hides back at the Folder tab root and shows it in descendants", function()
+        local status_api
+        local back_buttons = 0
+        _G.__ZEN_UI_PLUGIN.config.features.navbar = true
+        _G.__ZEN_UI_PLUGIN.config.navbar = {
+            show_tabs = { folder = true },
+            folder_path = "/library/Fiction/",
+        }
+        _G.__ZEN_UI_PLUGIN.config.status_bar = {
+            left_order = {}, center_order = {}, right_order = {},
+        }
+        ZenSpec.replace("common/paths", {
+            getHomeDir = function() return "/library" end,
+            normPath = function(path) return path end,
+            isHomeLocked = function() return false end,
+        })
+        ZenSpec.replace("common/shared_state", {
+            register = function(_plugin, api) status_api = api end,
+            registerLoader = function() end,
+        })
+        ZenSpec.replace("ui/widget/button", {
+            new = function()
+                back_buttons = back_buttons + 1
+                return { label_widget = {}, frame = {} }
+            end,
+        })
+
+        require("modules/filebrowser/patches/status_bar")()
+        assert.is_true(replace_upvalue(status_api.createStatusRow,
+            "_buildGroup", function() error("row build stopped") end))
+
+        local file_manager = { file_chooser = { item_table = {} } }
+        assert.is_false(pcall(status_api.createStatusRow,
+            "/library/Fiction", file_manager))
+        assert.are.equal(0, back_buttons)
+
+        assert.is_false(pcall(status_api.createStatusRow,
+            "/library/Fiction/Series", file_manager))
+        assert.are.equal(1, back_buttons)
     end)
 end)
