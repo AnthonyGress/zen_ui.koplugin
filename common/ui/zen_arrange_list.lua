@@ -75,10 +75,19 @@ local function suppress_footer_button(button)
     button:hide()
 end
 
+local function item_is_enabled(item)
+    if type(item) ~= "table" or item.enabled == false then return false end
+    if type(item.enabled_func) == "function" then
+        return item.enabled_func() ~= false
+    end
+    return true
+end
+
 local function toggle_sort_item(sort_widget, item)
     if not (sort_widget and item and item.checked_func and item.callback) then
         return false
     end
+    if not item_is_enabled(item) then return false end
     item:callback()
     if sort_widget.marked and sort_widget.marked > 0 then
         sort_widget.marked = 0
@@ -275,6 +284,7 @@ local function rebuild_icon_row(row)
         item_checkable = true
         item_checked = item.checked_func()
     end
+    local item_disabled = item.dim == true or item_is_enabled(item) == false
     local toggle_h = IconItem.SETTINGS_TOGGLE_HEIGHT
     local check_w = IconItem.SETTINGS_TOGGLE_WIDTH
     if item_checkable then
@@ -282,7 +292,7 @@ local function rebuild_icon_row(row)
             row.checkmark_widget = RadioMark:new{
                 checkable = true,
                 checked = item_checked == true,
-                enabled = item.dim ~= true,
+                enabled = not item_disabled,
             }
         else
             row.checkmark_widget = ZenToggle:new{
@@ -371,7 +381,7 @@ local function rebuild_icon_row(row)
         text = display_text,
         max_width = text_max_width,
         face = face,
-        fgcolor = item.dim and Blitbuffer.COLOR_DARK_GRAY or nil,
+        fgcolor = item_disabled and Blitbuffer.COLOR_DARK_GRAY or nil,
     }
     row._zen_settings_text_truncated = text_widget:isTruncated()
     if row._zen_settings_text_truncated then
@@ -777,14 +787,6 @@ local function update_dynamic_text(items)
     end
 end
 
-local function item_is_enabled(item)
-    if type(item) ~= "table" or item.enabled == false then return false end
-    if type(item.enabled_func) == "function" then
-        return item.enabled_func() ~= false
-    end
-    return true
-end
-
 local function update_menu_enabled_state(items)
     if type(items) ~= "table" then return end
     for _i, item in ipairs(items) do
@@ -891,7 +893,7 @@ local install_root_tap_handlers
 
 local function open_submenu_for_item(sort_widget, item, resume_path, resume_in_background)
     if not (sort_widget and item and has_submenu(item)
-            and (not sort_widget._zen_menu_mode or item_is_enabled(item))) then
+            and item_is_enabled(item)) then
         return false
     end
     commit_arrange_order(sort_widget)
@@ -979,7 +981,7 @@ local function activate_keyboard_target(sort_widget)
     local focused = get_focused_arrange_target(sort_widget)
     local item = focused and focused.item
     if not (focused and item) then return false end
-    if sort_widget._zen_menu_mode and not item_is_enabled(item) then return true end
+    if not item_is_enabled(item) then return true end
     if focused._zen_arrange_toggle then
         sort_widget._zen_arrange_focus_column = 3
         local toggled = toggle_sort_item(sort_widget, item)
@@ -1606,7 +1608,7 @@ install_submenu_tap_handlers = function(sort_widget)
         if item and item._zen_arrange_submenu_on_tap and not child._zen_arrange_submenu_tap_patched then
             child._zen_arrange_submenu_tap_patched = true
             child.onTap = function(row, _arg, ges)
-                if row.show_parent._zen_menu_mode and not item_is_enabled(item) then
+                if not item_is_enabled(item) then
                     return true
                 end
                 if item.checked_func and ges and is_toggle_tap(row, ges.pos) then
@@ -1638,7 +1640,7 @@ install_root_tap_handlers = function(sort_widget)
         if item and not child._zen_arrange_root_tap_patched then
             child._zen_arrange_root_tap_patched = true
             child.onTap = function(row, _arg, ges)
-                if row.show_parent._zen_menu_mode and not item_is_enabled(item) then
+                if not item_is_enabled(item) then
                     return true
                 end
                 if ges and is_arrange_handle_tap(row, ges.pos) then return true end

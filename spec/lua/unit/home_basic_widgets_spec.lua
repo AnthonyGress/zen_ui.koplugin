@@ -126,7 +126,7 @@ describe("home basic widgets", function()
         })
 
         assert.are.equal("datetime", component.id)
-        assert.are.equal("xs", component.size)
+        assert.are.equal("sm", component.size)
         assert.are.equal(27, component.preferredHeight({ width = 500 }))
         assert.is_table(widget)
         assert.is_function(refresh)
@@ -335,15 +335,15 @@ describe("home basic widgets", function()
             data = { stats = {} },
         }
 
-        assert.are.equal(38, component.preferredHeight(ctx))
+        assert.are.equal(45, component.preferredHeight(ctx))
         ctx.height = 80
         component.build(ctx)
-        assert.are.equal(10, rendered_label_size())
+        assert.are.equal(13, rendered_label_size())
 
         created = {}
         ctx.height = 30
         component.build(ctx)
-        assert.are.equal(10, rendered_label_size())
+        assert.are.equal(12, rendered_label_size())
 
         created = {}
         ctx.module_cfg.automatic_font_size = false
@@ -525,13 +525,13 @@ describe("home basic widgets", function()
         assert.are.equal(2, preset.rows.layout_schema_version)
         assert.is_true(preset.modules.datetime.automatic_font_size)
         assert.are.equal(36, preset.modules.datetime.max_font_size)
-        assert.are.equal(48, preset.modules.datetime.text_styles.time.font_size)
-        assert.are.equal(18, preset.modules.datetime.text_styles.date.font_size)
+        assert.are.equal(36, preset.modules.datetime.text_styles.time.font_size)
+        assert.are.equal(12, preset.modules.datetime.text_styles.date.font_size)
         assert.is_nil(preset.font_size)
-        assert.are.equal(18, preset.modules.stats_triplet.font_size)
-        assert.is_true(preset.modules.stats_triplet.font_size_override)
+        assert.are.equal(16, preset.modules.stats_triplet.font_size)
+        assert.is_nil(preset.modules.stats_triplet.font_size_override)
         assert.is_true(preset.modules.stats_triplet.automatic_font_size)
-        assert.are.equal(18, preset.modules.stats_triplet.max_font_size)
+        assert.are.equal(22, preset.modules.stats_triplet.max_font_size)
         assert.is_true(preset.quotes.automatic_font_size)
         assert.are.equal(14, preset.quotes.max_font_size)
         assert.are.equal(12, preset.quotes.font_size)
