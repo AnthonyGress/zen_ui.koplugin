@@ -89,6 +89,7 @@ function M.build(ctx)
                 on_close = function()
                     if type(ctx.config._meta) ~= "table" then ctx.config._meta = {} end
                     ctx.config._meta.quickstart_completed = true
+                    ctx.config._meta.quickstart_menu_tour_pending = true
                     plugin:saveConfig()
                     UIManager:nextTick(function()
                         local reinject = _G.__ZEN_UI_REINJECT_FM_NAVBAR
@@ -98,6 +99,10 @@ function M.build(ctx)
                         if fm and type(fm._updateStatusBar) == "function" then
                             fm:_updateStatusBar()
                         end
+                        UIManager:scheduleIn(0.35, function()
+                            local ok_tour, tour = pcall(require, "common/quickstart/menu_tour")
+                            if ok_tour then tour.start(plugin) end
+                        end)
                     end)
                 end,
             })

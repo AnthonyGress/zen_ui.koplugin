@@ -1,6 +1,7 @@
 describe("Quickstart pages", function()
     local original_modules
     local original_settings
+    local reader_apply_result
 
     local module_names = {
         "bookinfomanager",
@@ -15,6 +16,7 @@ describe("Quickstart pages", function()
         "config/screensaver_presets",
         "device",
         "gettext",
+        "modules/settings/zen_settings_apply",
     }
 
     before_each(function()
@@ -33,7 +35,10 @@ describe("Quickstart pages", function()
             end,
         })
         ZenSpec.replace("common/plugin_root", "/plugins/zenos.koplugin")
-        ZenSpec.replace("common/reader_defaults", { apply = function() end })
+        reader_apply_result = nil
+        ZenSpec.replace("common/reader_defaults", {
+            apply = function() return reader_apply_result end,
+        })
         ZenSpec.replace("common/zen_logger", {
             new = function() return { warn = function() end } end,
         })
@@ -44,6 +49,9 @@ describe("Quickstart pages", function()
         })
         ZenSpec.replace("device", {})
         ZenSpec.replace("gettext", function(text) return text end)
+        ZenSpec.replace("modules/settings/zen_settings_apply", {
+            apply_feature_toggle = function() end,
+        })
         ZenSpec.unload("common/quickstart/quickstart_pages")
         _G.G_reader_settings = ZenSpec.memorySettings()
     end)
@@ -55,18 +63,26 @@ describe("Quickstart pages", function()
         _G.G_reader_settings = original_settings
     end)
 
-    local function reader_choices(completed)
-        local pages = require("common/quickstart/quickstart_pages").build_install_pages({
-            config = {
-                _meta = { quickstart_completed = completed },
-                features = {},
-                navbar = { show_tabs = {} },
+    local function reader_page(completed, pending)
+        local config = {
+            _meta = {
+                quickstart_completed = completed,
+                reader_defaults_apply_on_next_open = pending == true,
             },
+            features = {},
+            navbar = { show_tabs = {} },
+        }
+        local pages = require("common/quickstart/quickstart_pages").build_install_pages({
+            config = config,
             plugin = {},
         })
         for _i, page in ipairs(pages) do
-            if page.title == "Reader" then return page.choices end
+            if page.title == "Reader" then return page, config end
         end
+    end
+
+    local function reader_choices(completed)
+        return reader_page(completed).choices
     end
 
     local function install_pages()
@@ -92,6 +108,32 @@ describe("Quickstart pages", function()
 
         assert.is_true(choices[1].checked)
         assert.is_false(choices[2].checked)
+    end)
+
+    it("applies Zen Reader defaults to the next book when no reader is active", function()
+        reader_apply_result = false
+        local page, config = reader_page(false)
+
+        page.on_apply({ zen = true })
+
+        assert.is_true(config._meta.reader_defaults_apply_on_next_open)
+    end)
+
+    it("does not defer Zen Reader defaults after applying them to an active book", function()
+        reader_apply_result = true
+        local page, config = reader_page(true, true)
+
+        page.on_apply({ zen = true })
+
+        assert.is_false(config._meta.reader_defaults_apply_on_next_open)
+    end)
+
+    it("cancels a deferred application when existing Reader settings are kept", function()
+        local page, config = reader_page(true, true)
+
+        page.on_apply({ keep = true })
+
+        assert.is_false(config._meta.reader_defaults_apply_on_next_open)
     end)
 
     it("still offers Home Folder setup when only the device fallback exists", function()

@@ -1,4 +1,5 @@
 local function apply_status_on_open()
+    local plugin = rawget(_G, "__ZEN_UI_PLUGIN")
     local ReaderUI = require("apps/reader/readerui")
     if ReaderUI._zen_new_status_on_open_patched then return end
     ReaderUI._zen_new_status_on_open_patched = true
@@ -37,6 +38,16 @@ local function apply_status_on_open()
         pcall(function()
             if file then require("common/tbr_index").refreshPath(file, doc_settings) end
         end)
+        local meta = plugin and plugin.config and plugin.config._meta
+        if type(meta) == "table" and meta.reader_defaults_apply_on_next_open == true then
+            local ok_defaults, applied = pcall(function()
+                return require("common/reader_defaults").apply(G_reader_settings, plugin.config)
+            end)
+            if ok_defaults and applied == true then
+                meta.reader_defaults_apply_on_next_open = false
+                plugin:saveConfig()
+            end
+        end
     end
 end
 

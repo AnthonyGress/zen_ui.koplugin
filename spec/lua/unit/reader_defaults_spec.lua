@@ -227,7 +227,7 @@ describe("Reader defaults", function()
         ZenSpec.unload("modules/reader/patches/reader_footer_presets")
         ZenSpec.unload("common/reader_defaults")
 
-        require("common/reader_defaults").apply(ZenSpec.memorySettings(), {})
+        local applied = require("common/reader_defaults").apply(ZenSpec.memorySettings(), {})
 
         assert.are.equal("(ZenOS) Chapter Time + %", loaded_preset.name)
         assert.is_true(loaded_preset.footer.chapter_time_to_read)
@@ -252,6 +252,7 @@ describe("Reader defaults", function()
         assert.are.equal(1, document.configurable.status_line)
         assert.are.equal(1, document_calls.status_line)
         assert.is_true(saved)
+        assert.is_true(applied)
     end)
 
     it("uses device-aware margins in every built-in footer preset", function()

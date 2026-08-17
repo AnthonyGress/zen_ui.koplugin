@@ -82,6 +82,11 @@ function M.start(plugin)
         if not switch_to_quicksettings(menu_container[1], quicksettings_index) then return false end
     else
         menu:onShowMenu(quicksettings_index)
+        local touch_menu = menu.menu_container and menu.menu_container[1]
+        if touch_menu and touch_menu.cur_tab ~= quicksettings_index
+                and not switch_to_quicksettings(touch_menu, quicksettings_index) then
+            return false
+        end
     end
 
     active = true

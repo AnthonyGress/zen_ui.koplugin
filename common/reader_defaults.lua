@@ -91,7 +91,7 @@ end
 local function apply_to_active_reader(preset, use_bundled_fonts)
     local ok_reader, ReaderUI = pcall(require, "apps/reader/readerui")
     local reader = ok_reader and ReaderUI and ReaderUI.instance
-    if not reader then return end
+    if not reader then return false end
 
     local footer = reader.view and reader.view.footer
     if footer and type(footer.loadPreset) == "function" then
@@ -110,7 +110,7 @@ local function apply_to_active_reader(preset, use_bundled_fonts)
 
     local document = reader.document
     local configurable = document and document.configurable
-    if not (reader.rolling and configurable) then return end
+    if not (reader.rolling and configurable) then return false end
 
     for key, value in pairs(CRE_DEFAULTS) do
         configurable[key:sub(6)] = copy_value(value)
@@ -161,6 +161,7 @@ local function apply_to_active_reader(preset, use_bundled_fonts)
         typeset:onSetPageMargins(typeset.unscaled_margins)
     end
     if type(reader.saveSettings) == "function" then reader:saveSettings() end
+    return true
 end
 
 function M.apply(settings, config)
@@ -218,7 +219,7 @@ function M.apply(settings, config)
     config.features.reader_top_status_bar = true
 
     save_footer_preset(preset)
-    apply_to_active_reader(preset, use_bundled_fonts)
+    return apply_to_active_reader(preset, use_bundled_fonts)
 end
 
 return M

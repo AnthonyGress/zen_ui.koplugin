@@ -120,6 +120,38 @@ describe("reader interaction patches", function()
         assert.are.equal(0, flushes)
     end)
 
+    it("applies deferred Quickstart Reader defaults to the next opened book", function()
+        local apply_calls = 0
+        local saves = 0
+        local plugin = {
+            config = {
+                _meta = { reader_defaults_apply_on_next_open = true },
+            },
+            saveConfig = function() saves = saves + 1 end,
+        }
+        _G.__ZEN_UI_PLUGIN = plugin
+        local ReaderUI = { onReaderReady = function() end }
+        ZenSpec.replace("apps/reader/readerui", ReaderUI)
+        ZenSpec.replace("common/book_status", {
+            acknowledgeNewVersion = function() return false end,
+        })
+        ZenSpec.replace("common/reader_defaults", {
+            apply = function(settings, config)
+                assert.are.equal(G_reader_settings, settings)
+                assert.are.equal(plugin.config, config)
+                apply_calls = apply_calls + 1
+                return true
+            end,
+        })
+        apply_patch("modules/reader/patches/status_on_open")
+
+        ReaderUI.onReaderReady({ doc_settings = {} })
+
+        assert.are.equal(1, apply_calls)
+        assert.is_false(plugin.config._meta.reader_defaults_apply_on_next_open)
+        assert.are.equal(1, saves)
+    end)
+
     it("starts explicit TBR books as reading and removes them from the collection", function()
         local saved, cached, invalidated, removed = {}, {}, {}, 0
         local ReaderUI = { onReaderReady = function() end }

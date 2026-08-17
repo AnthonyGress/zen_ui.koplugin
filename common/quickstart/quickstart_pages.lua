@@ -777,8 +777,14 @@ function M.build_install_pages(ctx)
                 { id = "zen",  text = _("ZenOS defaults"), checked = not quickstart_completed },
             },
             on_apply = function(sel)
-                if sel["keep"] then return end
-                ReaderDefaults.apply(G_reader_settings, config)
+                if type(config._meta) ~= "table" then config._meta = {} end
+                if sel["keep"] then
+                    config._meta.reader_defaults_apply_on_next_open = false
+                    save_zen_config()
+                    return
+                end
+                local applied = ReaderDefaults.apply(G_reader_settings, config)
+                config._meta.reader_defaults_apply_on_next_open = applied ~= true
                 save_and_apply("reader_top_status_bar")
             end,
         },

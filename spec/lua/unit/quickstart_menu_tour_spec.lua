@@ -211,6 +211,28 @@ describe("Quickstart menu tour", function()
         assert.are.equal(1, #scheduled)
     end)
 
+    it("forces Controls when the Launcher overrides the requested opening tab", function()
+        local controls_switches = 0
+        menu.onShowMenu = function(self, tab_index)
+            self.show_calls = (self.show_calls or 0) + 1
+            self.opened_tab_index = tab_index
+            touch_menu.tab_item_table = self.tab_item_table
+            touch_menu.cur_tab = 1
+            touch_menu.switchMenuTab = function(t_self, index)
+                controls_switches = controls_switches + 1
+                t_self.cur_tab = index
+            end
+            self.menu_container = { touch_menu }
+        end
+
+        require("common/quickstart/menu_tour").start(plugin)
+
+        assert.are.equal(3, menu.opened_tab_index)
+        assert.are.equal(1, controls_switches)
+        assert.are.equal(3, touch_menu.cur_tab)
+        assert.are.equal(1, #scheduled)
+    end)
+
     it("keeps the tour pending and schedules a retry when the coachmark is cancelled", function()
         zen_dimen.x, zen_dimen.y = 94, 90
         zen_settings_dimen.x, zen_settings_dimen.y = 418, 10
