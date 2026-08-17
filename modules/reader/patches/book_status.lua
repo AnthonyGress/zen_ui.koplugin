@@ -80,6 +80,7 @@ local function apply_book_status()
         local VerticalGroup = require("ui/widget/verticalgroup")
         local VerticalSpan = require("ui/widget/verticalspan")
         local UIManager = require("ui/uimanager")
+        local is_landscape = Screen:getScreenMode() == "landscape"
 
         -- Build a custom header row instead of TitleBar so both icons share the
         -- same HorizontalGroup centerline, compensating for the home SVG's
@@ -151,15 +152,28 @@ local function apply_book_status()
             callback = home_callback,
         }
 
-        -- Center-align keeps both icons on the same horizontal midline
+        -- Center-align keeps both icons on the same horizontal midline. In
+        -- landscape, keep the touch targets clear of the screen edges.
+        local header_inset = is_landscape and self.padding or 0
+        local close_btn_size = close_btn:getSize()
+        local home_btn_size = home_btn:getSize()
         local header_row = HorizontalGroup:new{
             align = "center",
             close_btn,
-            HorizontalSpan:new{ width = width - (close_size + btn_pad * 2) - (home_size + btn_pad * 2) },
+            HorizontalSpan:new{
+                width = math.max(0, width - header_inset * 2
+                    - close_btn_size.w - home_btn_size.w),
+            },
             home_btn,
         }
         local title_bar = VerticalGroup:new{
-            header_row,
+            CenterContainer:new{
+                dimen = Geom:new{
+                    w = width,
+                    h = math.max(close_btn_size.h, home_btn_size.h),
+                },
+                header_row,
+            },
             VerticalSpan:new{ width = Size.padding.default },
         }
 
@@ -169,15 +183,18 @@ local function apply_book_status()
             stats_header[1].width = Size.span.vertical_default
         end
 
-        -- Inject "Restart Book" button between the title/author block and the 5-star
-        -- row by overriding generateRateGroup on this instance.  genBookInfoGroup calls
-        -- self:generateRateGroup() internally, so the override is picked up through
-        -- normal Lua method dispatch without duplicating genBookInfoGroup.
-        -- genBookInfoGroup already has a large top gap (height * 0.2 ≈ 55px+) so the
-        -- slightly taller content just shifts title/author up slightly — no overflow.
+        -- Keep actions beside the stars in landscape so KOReader's fixed-height
+        -- book-info panel does not overflow into the Statistics section.
+        local book_info_width = width
+        if is_landscape then
+            book_info_width = width - math.floor(width * 0.05) - Screen:scaleBySize(132)
+        end
+        local action_width = next_file_enabled and math.floor(book_info_width * 0.27)
+            or math.floor(book_info_width * 0.55)
+        local action_gap = Screen:scaleBySize(8)
         local restart_book_btn = Button:new{
             text = _("Restart Book"),
-            width = next_file_enabled and math.floor(width * 0.27) or math.floor(width * 0.55),
+            width = action_width,
             show_parent = self,
             callback = function()
                 local ui = self.ui
@@ -194,7 +211,7 @@ local function apply_book_status()
         if next_file_enabled then
             next_file_btn = Button:new{
                 text = _("Open next file"),
-                width = math.floor(width * 0.27),
+                width = action_width,
                 preselect = true, -- inverts colors: black bg, white text
                 show_parent = self,
                 callback = open_next_file_callback,
@@ -202,19 +219,39 @@ local function apply_book_status()
         end
         local orig_generateRateGroup = BookStatusWidget.generateRateGroup
         self.generateRateGroup = function(s, w, h, rating)
-            local stars = orig_generateRateGroup(s, w, h, rating)
-            local btn_h = restart_book_btn:getSize().h
             local btn_row
             if next_file_btn then
                 btn_row = HorizontalGroup:new{
                     align = "center",
                     restart_book_btn,
-                    HorizontalSpan:new{ width = Screen:scaleBySize(8) },
+                    HorizontalSpan:new{ width = action_gap },
                     next_file_btn,
                 }
             else
                 btn_row = restart_book_btn
             end
+            if is_landscape then
+                local btn_row_width = action_width
+                if next_file_btn then
+                    btn_row_width = action_width * 2 + action_gap
+                end
+                local stars_width = math.max(0, book_info_width - btn_row_width - action_gap)
+                local stars = orig_generateRateGroup(s, stars_width, h, rating)
+                local action_row = HorizontalGroup:new{
+                    align = "center",
+                    btn_row,
+                    HorizontalSpan:new{ width = action_gap },
+                    stars,
+                }
+                local row_lift = Screen:scaleBySize(6)
+                return VerticalGroup:new{
+                    VerticalSpan:new{ width = -row_lift },
+                    action_row,
+                    VerticalSpan:new{ width = row_lift },
+                }
+            end
+            local stars = orig_generateRateGroup(s, w, h, rating)
+            local btn_h = restart_book_btn:getSize().h
             return VerticalGroup:new{
                 CenterContainer:new{
                     dimen = Geom:new{ w = w, h = btn_h },

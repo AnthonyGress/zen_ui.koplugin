@@ -70,7 +70,8 @@ end
 local function preferred_height(ctx)
     ctx = type(ctx) == "table" and ctx or {}
     if ctx.is_last_row ~= true or (tonumber(ctx.row_count) or 0) < 3 then return nil end
-    local quotes, quote_text, attribution = select(2, quote_content(ctx))
+    local config = type(ctx.config) == "table" and ctx.config or {}
+    local quotes = type(config.quotes) == "table" and config.quotes or {}
     local Screen = Device.screen
     local automatic_font_size = quotes.automatic_font_size == true
     local quote_font_size = automatic_font_size and math.max(
@@ -81,31 +82,21 @@ local function preferred_height(ctx)
     local content_w = math.max(30, (tonumber(ctx.width) or Screen:getWidth()) - padding * 2)
     local quote_face = Font:getFace("smallinfofont", Screen:scaleBySize(quote_font_size))
     local quote_probe = TextBoxWidget:new{
-        text = quote_text,
+        text = "A\nA",
         width = content_w,
         face = quote_face,
         line_height = 0.55,
     }
     local quote_h = quote_probe:getSize().h or 0
     WidgetResources.free(quote_probe)
-    if not automatic_font_size then
-        local three_line_probe = TextBoxWidget:new{
-            text = "A\nA\nA",
-            width = content_w,
-            face = quote_face,
-            line_height = 0.55,
-        }
-        quote_h = math.min(quote_h, three_line_probe:getSize().h or quote_h)
-        WidgetResources.free(three_line_probe)
-    end
     local author_h = 0
-    if attribution ~= "" then
+    if quotes.show_author ~= false or quotes.show_title ~= false then
         local author_face = Font:getFace(
             "smallinfofont",
             Screen:scaleBySize(math.max(6, math.floor(quote_font_size * 9 / 10)))
         )
         local author_probe = TextBoxWidget:new{
-            text = "\226\128\148 " .. attribution,
+            text = "\226\128\148 A",
             width = content_w,
             face = author_face,
             alignment = "center",
@@ -119,7 +110,7 @@ end
 return {
     id = "quotes",
     label = _("Quotes"),
-    size = { units = 2 },
+    size = { units = 1.5 },
     preferredHeight = preferred_height,
     build = function(ctx)
         local width = ctx.width
@@ -322,14 +313,13 @@ return {
         end
         local available_h = math.max(0, height - content_h)
         local content_top = math.floor(available_h / 2)
-        local visual_shift = 0
         if type(ctx.setContentBounds) == "function" then
             ctx.setContentBounds{
-                top = content_top,
-                bottom = content_top + content_h,
-                min_shift = -content_top,
-                max_shift = height - content_top - content_h,
-                set_shift = function(shift) visual_shift = shift end,
+                top = 0,
+                bottom = height,
+                min_shift = 0,
+                max_shift = 0,
+                set_shift = function() end,
             }
         end
         local content = WidgetResources.managedPaintWidget{
@@ -337,7 +327,7 @@ return {
             resources = { quote_widget, author_widget },
             paintTo = function(_self, bb, x, y)
                 local quote_x = x + math.floor((width - content_w) / 2)
-                local quote_y = y + content_top + visual_shift
+                local quote_y = y + content_top
                 quote_widget:paintTo(bb, quote_x, quote_y)
                 if author_widget then
                     local author_x = x + math.floor((width - content_w) / 2)

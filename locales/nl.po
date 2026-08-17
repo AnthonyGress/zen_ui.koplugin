@@ -2091,6 +2091,12 @@ msgstr "Een knop voor de Assistant-plug-in tonen, indien geïnstalleerd."
 msgid "Show AI assistant"
 msgstr "AI-assistent tonen"
 
+msgid "Show KOAssistant"
+msgstr "KOAssistant tonen"
+
+msgid "Show X-Ray"
+msgstr "X-Ray tonen"
+
 msgid "Show all files from subfolders"
 msgstr "Alle bestanden uit submappen tonen"
 

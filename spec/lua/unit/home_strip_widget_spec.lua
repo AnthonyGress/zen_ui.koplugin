@@ -1378,7 +1378,7 @@ describe("home strip widget", function()
     it("reports its width-limited preferred height to Home", function()
         local Strip = require("modules/filebrowser/patches/home/widgets/strip")
 
-        assert.are.equal(231, Strip.preferredHeight{
+        assert.are.equal(223, Strip.preferredHeight{
             width = 600,
             module_cfg = { count = 4 },
         })
@@ -1479,7 +1479,7 @@ describe("home strip widget", function()
         assert.are.same({ 0.05 }, scheduled_delays)
         run_scheduled()
 
-        assert.are.same({ book = book, width = 80, height = 136 }, warmed)
+        assert.are.same({ book = book, width = 80, height = 144 }, warmed)
         assert.are.equal(2, #cover_books)
         assert.are.equal(1, refreshed)
         assert.are.equal(0, #scheduled)

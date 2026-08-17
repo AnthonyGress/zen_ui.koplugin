@@ -47,7 +47,7 @@ describe("Home widget content settings", function()
                 },
                 quotes = { show_module_title = true },
                 reading_goals = { show_module_title = true },
-                stats_triplet = { show_module_title = true },
+                stats_triplet = { show_module_title = true, max_font_size = 18 },
                 strip = {
                     show_module_title = true,
                     controls = {
@@ -334,6 +334,61 @@ describe("Home widget content settings", function()
         assert.is_not_nil(find_item(font_items, "Font: default"))
         assert.is_not_nil(find_item(font_items, "Bold"))
         assert.is_not_nil(find_item(font_items, "Use default style"))
+    end)
+
+    it("caps automatic Date/time sizing and lets the maximum be changed", function()
+        ZenSpec.replace("ui/widget/spinwidget", {
+            new = function(_self, values) return values end,
+        })
+        local settings = require("modules/settings/sections/library_settings/home_settings")
+        assert.is_true(settings.openWidgetSettings("datetime"))
+
+        local items = arrange_options.item_table
+        local automatic = find_item(items, "Automatic font size")
+        local maximum = find_item(items, "Maximum font size: 36")
+        assert.is_true(automatic.checked_func())
+        assert.is_not_nil(maximum)
+        assert.is_true(maximum.enabled_func())
+
+        maximum.callback({ updateItems = function() end })
+        assert.are.equal(36, shown[#shown].value)
+        assert.are.equal(160, shown[#shown].value_max)
+        shown[#shown].callback({ value = 52 })
+        assert.are.equal(52, home_page.modules.datetime.max_font_size)
+
+        automatic.callback({ updateItems = function() end })
+        assert.is_false(maximum.enabled_func())
+    end)
+
+    it("offers automatic and manual stats font sizing", function()
+        ZenSpec.replace("ui/widget/spinwidget", {
+            new = function(_self, values) return values end,
+        })
+        local settings = require("modules/settings/sections/library_settings/home_settings")
+        assert.is_true(settings.openWidgetSettings("stats_triplet"))
+
+        local items = arrange_options.item_table
+        local automatic = find_item(items, "Automatic font size")
+        local size = find_item(items, "Font size: Automatic")
+        assert.is_true(automatic.checked_func())
+        assert.is_not_nil(size)
+        assert.is_false(size.enabled_func())
+        assert.is_false(find_item(items, "Use Home default font size").enabled_func())
+        assert.is_nil(home_page.modules.stats_triplet.max_font_size)
+        assert.is_nil(home_page.modules.stats_triplet.max_font_size_override)
+
+        automatic.callback({ updateItems = function() end })
+        assert.is_false(automatic.checked_func())
+        assert.are.equal("Font size: 18", size.text_func())
+        assert.is_true(size.enabled_func())
+        assert.is_true(find_item(items, "Use Home default font size").enabled_func())
+
+        size.callback({ updateItems = function() end })
+        assert.are.equal(18, shown[#shown].value)
+        assert.are.equal(64, shown[#shown].value_max)
+        shown[#shown].callback({ value = 22 })
+        assert.are.equal(22, home_page.modules.stats_triplet.font_size)
+        assert.is_true(home_page.modules.stats_triplet.font_size_override)
     end)
 
     it("confirms before deleting a Strip control tab and returns to Tabs", function()

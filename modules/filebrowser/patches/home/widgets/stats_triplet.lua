@@ -24,6 +24,9 @@ do
 end
 
 local flame_icon_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "flame") or nil
+local MIN_FONT_SIZE = 8
+local MAX_FONT_SIZE = 64
+local DEFAULT_FONT_SIZE = 18
 
 local function time_unit(unit)
     if type(_) == "table" and type(_.pgettext) == "function" then
@@ -83,8 +86,53 @@ end
 local function configured_font_size(ctx)
     local module_cfg = type(ctx.module_cfg) == "table" and ctx.module_cfg or {}
     local config = type(ctx.config) == "table" and ctx.config or {}
-    return math.max(8, math.min(32,
-        tonumber(module_cfg.font_size) or tonumber(config.font_size) or 18))
+    return math.max(MIN_FONT_SIZE, math.min(MAX_FONT_SIZE,
+        tonumber(module_cfg.font_size) or tonumber(config.font_size) or DEFAULT_FONT_SIZE))
+end
+
+local function font_size_fits(candidate, fields, stats, inner_w, inner_h)
+    local Screen = Device.screen
+    local value_face = Font:getFace("smallinfofont", Screen:scaleBySize(candidate))
+    local label_face = Font:getFace("smallinfofont", Screen:scaleBySize(
+        math.max(6, math.floor(candidate * 0.6))))
+    for _i, field in ipairs(fields) do
+        local value_probe = TextWidget:new{
+            text = field.get(stats),
+            face = value_face,
+            bold = true,
+        }
+        local label_probe = TextWidget:new{ text = field.label, face = label_face }
+        local value_size = value_probe:getSize()
+        local label_size = label_probe:getSize()
+        local value_w = value_size.w or 0
+        local value_h = value_size.h or 1
+        if field.id == "streak" and flame_icon_path then
+            value_w = value_w + math.max(8, math.floor(value_h * 0.62)) + 3
+        end
+        local content_h = value_h - math.floor(value_h * 0.18)
+            + 1 + (label_size.h or 1)
+        local fits = value_w <= inner_w and (label_size.w or 0) <= inner_w
+            and content_h <= inner_h
+        WidgetResources.free(value_probe)
+        WidgetResources.free(label_probe)
+        if not fits then return false end
+    end
+    return true
+end
+
+local function fitting_font_size(fields, stats, inner_w, inner_h)
+    local low, high = MIN_FONT_SIZE, MAX_FONT_SIZE
+    local best = MIN_FONT_SIZE
+    while low <= high do
+        local candidate = math.floor((low + high) / 2)
+        if font_size_fits(candidate, fields, stats, inner_w, inner_h) then
+            best = candidate
+            low = candidate + 1
+        else
+            high = candidate - 1
+        end
+    end
+    return best
 end
 
 local function preferred_height(ctx)
@@ -144,14 +192,15 @@ return {
         local cell_w = math.max(20, math.floor((width - gap_w * 2) / 3))
         local card_h = math.max(20, height)
         local border_size = stat_style == "outline" and 2 or 0
+        local inner_w = math.max(1, cell_w - border_size * 2)
+        local inner_h = math.max(1, card_h - border_size * 2)
         local Screen = Device.screen
-        local font_size = configured_font_size(ctx)
+        local font_size = module_cfg.automatic_font_size ~= false
+            and fitting_font_size(fields, stats, inner_w, inner_h)
+            or configured_font_size(ctx)
         local value_face = Font:getFace("smallinfofont", Screen:scaleBySize(font_size))
         local label_face = Font:getFace("smallinfofont", Screen:scaleBySize(math.max(6, math.floor(font_size * 0.6))))
         local row = HorizontalGroup:new{ align = "center" }
-        local visual_top = height
-        local visual_bottom = 0
-        local divider_visual_top
 
         for _i, field in ipairs(fields) do
             local value_widget = TextWidget:new{
@@ -175,16 +224,12 @@ return {
                     value_widget,
                 }
             end
-            local inner_w = math.max(1, cell_w - 12 - border_size * 2)
-            local inner_h = math.max(1, card_h - 12 - border_size * 2)
             local content, metric_top, metric_h = metric_content(inner_w, inner_h, value_widget,
                 TextWidget:new{ text = field.label, face = label_face, fgcolor = Blitbuffer.COLOR_BLACK })
-            visual_top = math.min(visual_top, 6 + metric_top)
-            visual_bottom = math.max(visual_bottom, 6 + metric_top + metric_h)
             local card = FrameContainer:new{
                 width = cell_w,
                 height = card_h,
-                padding = 6,
+                padding = 0,
                 bordersize = border_size,
                 color = Blitbuffer.COLOR_DARK_GRAY,
                 radius = stat_style == "outline" and 8 or 0,
@@ -204,11 +249,9 @@ return {
                         math.max(1, Screen:scaleBySize(4))
                     )
                     local divider_h = math.min(card_h, math.max(1, metric_h - divider_trim))
-                    local divider_bottom = 6 + metric_top + metric_h
+                    local divider_bottom = metric_top + metric_h
                     local divider_top = divider_bottom - divider_h
                     local divider_shift = divider_top - math.floor((card_h - divider_h) / 2)
-                    divider_visual_top = math.min(divider_visual_top or divider_top, divider_top)
-                    visual_bottom = math.max(visual_bottom, divider_top + divider_h)
                     local divider_container = CenterContainer:new{
                         dimen = Geom:new{ w = gap_w, h = card_h },
                         LineWidget:new{
@@ -227,28 +270,17 @@ return {
             end
         end
 
-        if stat_style == "outline" then
-            visual_top = 0
-            visual_bottom = height
-        elseif stat_style == "divider" and divider_visual_top then
-            visual_top = math.min(visual_top, divider_visual_top)
-        end
-        local visual_shift = 0
         local row_container = CenterContainer:new{
             dimen = Geom:new{ w = outer_width, h = height },
             row,
         }
-        local original_row_paint = row_container.paintTo
-        row_container.paintTo = function(self, bb, x, y)
-            return original_row_paint(self, bb, x, y + visual_shift)
-        end
         if type(ctx.setContentBounds) == "function" then
             ctx.setContentBounds{
-                top = visual_top,
-                bottom = visual_bottom,
-                min_shift = -visual_top,
-                max_shift = height - visual_bottom,
-                set_shift = function(shift) visual_shift = shift end,
+                top = 0,
+                bottom = height,
+                min_shift = 0,
+                max_shift = 0,
+                set_shift = function() end,
             }
         end
 

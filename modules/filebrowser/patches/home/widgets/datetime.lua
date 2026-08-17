@@ -13,6 +13,8 @@ local _ = require("gettext")
 local LOWERCASE_MONTH_LANGUAGES = {
     es = true, fr = true, it = true, nl = true, pt = true, ro = true,
 }
+local DEFAULT_MAX_TIME_SIZE = 36
+local MAX_TIME_SIZE = 160
 
 local function clamp(value, minimum, maximum)
     value = math.floor((tonumber(value) or minimum) + 0.5)
@@ -44,25 +46,110 @@ local function date_text()
     return BaseUtil.template(_("%1, %2 %3"), weekday, month, tostring(t.day))
 end
 
+local function clock_styles(module_cfg)
+    local text_styles = type(module_cfg.text_styles) == "table"
+        and module_cfg.text_styles or {}
+    local time_style = type(text_styles.time) == "table" and text_styles.time or {}
+    local date_style = type(text_styles.date) == "table" and text_styles.date or {}
+    local time_font_name = type(time_style.font_face) == "string"
+        and time_style.font_face ~= "" and time_style.font_face or "default"
+    local date_font_name = type(date_style.font_face) == "string"
+        and date_style.font_face ~= "" and date_style.font_face or "default"
+    if time_font_name == "default" then time_font_name = library_font.getFontName() end
+    if date_font_name == "default" then date_font_name = library_font.getFontName() end
+    return time_style, date_style, time_font_name, date_font_name
+end
+
+local function new_clock_widgets(Screen, time_font_name, date_font_name,
+        time_str, date_str, time_px, date_px, date_gap)
+    date_px = date_px or math.max(8, math.floor(time_px * 0.36))
+    local tw = TextWidget:new{
+        text = time_str,
+        face = Font:getFace(time_font_name, Screen:scaleBySize(time_px)),
+        bold = true,
+    }
+    local dw = TextWidget:new{
+        text = date_str,
+        face = Font:getFace(date_font_name, Screen:scaleBySize(date_px)),
+        fgcolor = Blitbuffer.COLOR_GRAY_3,
+    }
+    local ts = tw:getSize()
+    local ds = dw:getSize()
+    local th = ts.h or 18
+    local dh = ds.h or 10
+    local overlap = math.floor(th * 0.16)
+    local ch = th - overlap + date_gap + dh
+    return tw, dw, ts, ds, th, dh, overlap, ch
+end
+
+local function preferred_height(ctx)
+    ctx = type(ctx) == "table" and ctx or {}
+    local Screen = Device.screen
+    local width = math.max(1, tonumber(ctx.width) or Screen:getWidth())
+    local module_cfg = type(ctx.module_cfg) == "table" and ctx.module_cfg or {}
+    local time_style, date_style, time_font_name, date_font_name =
+        clock_styles(module_cfg)
+    local automatic_font_size = module_cfg.automatic_font_size ~= false
+    local date_gap = math.max(1, Screen:scaleBySize(2))
+    local time_str = time_text()
+    local date_str = date_text()
+    local best_h
+    local last_h
+
+    local function keep_if_fits(time_px, date_px)
+        local tw, dw, ts, ds, th, dh, overlap = new_clock_widgets(
+            Screen, time_font_name, date_font_name,
+            time_str, date_str, time_px, date_px, date_gap)
+        local ch = th - overlap + date_gap + dh
+        local fits = (ts.w or 0) <= width and (ds.w or 0) <= width
+        WidgetResources.free(tw)
+        WidgetResources.free(dw)
+        last_h = ch
+        if fits then best_h = ch end
+        return fits
+    end
+
+    if automatic_font_size then
+        local low = 4
+        local high = clamp(tonumber(module_cfg.max_font_size)
+            or DEFAULT_MAX_TIME_SIZE, 8, MAX_TIME_SIZE)
+        while low <= high do
+            local time_px = math.floor((low + high) / 2)
+            if keep_if_fits(time_px) then
+                low = time_px + 1
+            else
+                high = time_px - 1
+            end
+        end
+    else
+        local time_px = clamp(time_style.font_size, 8, MAX_TIME_SIZE)
+        local date_px = clamp(date_style.font_size, 6, 80)
+        local scale = 1
+        while scale >= 0.25 do
+            if keep_if_fits(
+                    math.max(4, math.floor(time_px * scale + 0.5)),
+                    math.max(4, math.floor(date_px * scale + 0.5))) then
+                break
+            end
+            scale = scale - 0.05
+        end
+    end
+
+    return (best_h or last_h or 1) + Screen:scaleBySize(2)
+end
+
 return {
     id = "datetime",
     label = _("Date/time"),
-    size = { units = 1.5 },
+    size = "xs",
+    preferredHeight = preferred_height,
     build = function(ctx)
         local width = ctx.width
         local height = ctx.height
         local Screen = Device.screen
         local module_cfg = type(ctx.module_cfg) == "table" and ctx.module_cfg or {}
-        local text_styles = type(module_cfg.text_styles) == "table"
-            and module_cfg.text_styles or {}
-        local time_style = type(text_styles.time) == "table" and text_styles.time or {}
-        local date_style = type(text_styles.date) == "table" and text_styles.date or {}
-        local time_font_name = type(time_style.font_face) == "string"
-            and time_style.font_face ~= "" and time_style.font_face or "default"
-        local date_font_name = type(date_style.font_face) == "string"
-            and date_style.font_face ~= "" and date_style.font_face or "default"
-        if time_font_name == "default" then time_font_name = library_font.getFontName() end
-        if date_font_name == "default" then date_font_name = library_font.getFontName() end
+        local time_style, date_style, time_font_name, date_font_name =
+            clock_styles(module_cfg)
         local automatic_font_size = module_cfg.automatic_font_size ~= false
         local date_gap = math.max(1, Screen:scaleBySize(2))
         local max_content_h = math.max(1, height - Screen:scaleBySize(2))
@@ -79,7 +166,8 @@ return {
         local resources = {}
 
         local min_time_px = 4
-        local max_time_px = math.max(22, math.min(480, height * 2))
+        local max_time_px = clamp(
+            tonumber(module_cfg.max_font_size) or DEFAULT_MAX_TIME_SIZE, 8, MAX_TIME_SIZE)
 
         local function rebuild_clock_widgets()
             WidgetResources.free(time_widget)
@@ -92,24 +180,9 @@ return {
             local time_str = time_text()
             local date_str = date_text()
             local function make_clock_widgets(time_px, date_px)
-                date_px = date_px or math.max(8, math.floor(time_px * 0.36))
-                local tw = TextWidget:new{
-                    text = time_str,
-                    face = Font:getFace(time_font_name, Screen:scaleBySize(time_px)),
-                    bold = true,
-                }
-                local dw = TextWidget:new{
-                    text = date_str,
-                    face = Font:getFace(date_font_name, Screen:scaleBySize(date_px)),
-                    fgcolor = Blitbuffer.COLOR_GRAY_3,
-                }
-                local ts = tw:getSize()
-                local ds = dw:getSize()
-                local th = ts.h or 18
-                local dh = ds.h or 10
-                local overlap = math.floor(th * 0.16)
-                local ch = th - overlap + date_gap + dh
-                return tw, dw, ts, ds, th, dh, overlap, ch
+                return new_clock_widgets(
+                    Screen, time_font_name, date_font_name,
+                    time_str, date_str, time_px, date_px, date_gap)
             end
 
             local best
@@ -141,7 +214,7 @@ return {
                     end
                 end
             else
-                local time_px = clamp(time_style.font_size, 8, 160)
+                local time_px = clamp(time_style.font_size, 8, MAX_TIME_SIZE)
                 local date_px = clamp(date_style.font_size, 6, 80)
                 local scale = 1
                 while scale >= 0.25 and not keep_if_fits(

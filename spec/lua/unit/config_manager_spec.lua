@@ -196,6 +196,33 @@ describe("config manager folder-path migration", function()
         assert.are.equal("default", Manager.load().library_font.font_face)
     end)
 
+    it("enables recognized lookup plugins once and preserves later choices", function()
+        settings_file.data = {
+            highlight_lookup = {
+                show_xray = false,
+                show_koassistant = false,
+                show_ai_assistant = false,
+            },
+        }
+
+        local config = Manager.load()
+
+        assert.is_true(config.highlight_lookup.show_xray)
+        assert.is_true(config.highlight_lookup.show_koassistant)
+        assert.is_true(config.highlight_lookup.show_ai_assistant)
+        assert.is_true(config._meta.lookup_plugin_items_default_migrated)
+
+        config.highlight_lookup.show_xray = false
+        config.highlight_lookup.show_koassistant = false
+        config.highlight_lookup.show_ai_assistant = false
+        Manager.save(config)
+
+        config = Manager.load()
+        assert.is_false(config.highlight_lookup.show_xray)
+        assert.is_false(config.highlight_lookup.show_koassistant)
+        assert.is_false(config.highlight_lookup.show_ai_assistant)
+    end)
+
     it("preserves a custom Library font during the default migration", function()
         settings_file.data = {
             library_font = { font_face = "/fonts/Custom-Regular.ttf", font_size = 18 },

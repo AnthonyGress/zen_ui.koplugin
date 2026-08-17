@@ -84,13 +84,23 @@ def _select_arrange_label(driver: ZenDriver, label: str) -> None:
 
 def _open_buttons_arrange(driver: ZenDriver) -> None:
     assert driver.command("open_settings_page")["ok"] is True
+    attempts: list[dict[str, object]] = []
     for _attempt in range(3):
-        if driver.command("arrange_page_state").get("ok") is True:
+        arrange = driver.command("arrange_page_state")
+        if arrange.get("ok") is True:
             return
-        labels = driver.command("settings_page_state")["settings"]["labels"]
+        settings = driver.command("settings_page_state")
+        labels = settings["settings"]["labels"]
         target = "Controls" if "Controls" in labels else "Buttons"
-        assert driver.command("settings_page_select", label=target)["ok"] is True
-    raise AssertionError("Buttons arrange page did not open")
+        selected = driver.command("settings_page_select", label=target)
+        attempts.append({
+            "arrange": arrange,
+            "labels": labels,
+            "target": target,
+            "selected": selected,
+        })
+        assert selected["ok"] is True, attempts
+    raise AssertionError(f"Buttons arrange page did not open: {attempts}")
 
 
 def test_flip_lh_rh_swaps_both_menu_tab_pairs() -> None:

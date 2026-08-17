@@ -18,6 +18,7 @@ local defaults = {
         reader_footer_hide_cbz_default_migrated = false,
         context_menu_allow_delete_default_migrated = false,
         library_font_hyperreadable_default_migrated = false,
+        lookup_plugin_items_default_migrated = false,
         tbr_collection_migrated = false,
     },
     updater = {
@@ -255,7 +256,9 @@ local defaults = {
     highlight_lookup = {
         allow_unknown_items = false,
         show_wikipedia      = false,
-        show_ai_assistant   = false,
+        show_xray           = true,
+        show_koassistant    = true,
+        show_ai_assistant   = true,
     },
     dict_quick_lookup = {},
 

@@ -92,12 +92,18 @@ local function settings_row_standard()
     }
 end
 
+local function is_arrange_widget(widget)
+    return widget
+        and type(widget._zen_menu_proxy) == "table"
+        and type(widget._zen_arrange_close_all) == "function"
+        and widget.title_bar ~= nil
+end
+
 local function active_arrange_widget()
     for index = #UIManager._window_stack, 1, -1 do
         local window = UIManager._window_stack[index]
         local widget = window and window.widget
-        local title_bar = widget and widget.title_bar
-        if title_bar and title_bar._zen_settings_header then return widget end
+        if is_arrange_widget(widget) then return widget end
     end
 end
 
@@ -1388,7 +1394,7 @@ function Driver:handleCommand(command)
     if kind == "arrange_page_state" then
         local widget = active_arrange_widget()
         local title_bar = widget and widget.title_bar
-        if not (title_bar and title_bar._zen_settings_header) then
+        if not title_bar then
             return { ok = false, error = "arrange page unavailable" }
         end
         local labels = {}
@@ -1854,7 +1860,7 @@ function Driver:handleCommand(command)
         local arrange_count = 0
         for index = #UIManager._window_stack, 1, -1 do
             local widget = UIManager._window_stack[index].widget
-            if widget and widget.title_bar and widget.title_bar._zen_settings_header then
+            if is_arrange_widget(widget) then
                 arrange_count = arrange_count + 1
             end
         end

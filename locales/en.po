@@ -2091,6 +2091,12 @@ msgstr "Show a button for the Assistant plugin, if installed."
 msgid "Show AI assistant"
 msgstr "Show AI assistant"
 
+msgid "Show KOAssistant"
+msgstr "Show KOAssistant"
+
+msgid "Show X-Ray"
+msgstr "Show X-Ray"
+
 msgid "Show all files from subfolders"
 msgstr "Show all files from subfolders"
 

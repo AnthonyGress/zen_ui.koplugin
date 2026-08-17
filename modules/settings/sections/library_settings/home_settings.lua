@@ -17,6 +17,8 @@ local PluginScan = require("modules/menu/app_launcher/plugin_scan")
 
 local M = {}
 local DEFAULT_GOALS_FONT_SIZE = 11
+local DEFAULT_DATETIME_MAX_FONT_SIZE = 36
+local MAX_DATETIME_FONT_SIZE = 160
 local DEFAULT_DATETIME_FONT_SIZES = { time = 48, date = 18 }
 local DEFAULT_STRIP_CONTROL_TEXT_STYLE = {
     font_face = "default",
@@ -129,6 +131,9 @@ end
 local function ensure_datetime_cfg(dcfg)
     local mcfg = ensure_module_cfg(dcfg, "datetime")
     mcfg.automatic_font_size = mcfg.automatic_font_size ~= false
+    mcfg.max_font_size = math.max(8, math.min(MAX_DATETIME_FONT_SIZE, math.floor(
+        (tonumber(mcfg.max_font_size) or DEFAULT_DATETIME_MAX_FONT_SIZE) + 0.5
+    )))
     ensure_datetime_text_style(mcfg, "time")
     ensure_datetime_text_style(mcfg, "date")
     return mcfg
@@ -211,8 +216,11 @@ local function ensure_home_widget_cfg(dcfg)
         or tonumber(stats_triplet.font_scale) and 18 * stats_triplet.font_scale / 100
     local stats_font_override = stats_triplet.font_size_override == true
     stats_triplet.font_size = stats_font_size and (stats_font_override or stats_font_size ~= 18)
-        and math.max(8, math.min(32, math.floor(stats_font_size + 0.5))) or nil
+        and math.max(8, math.min(64, math.floor(stats_font_size + 0.5))) or nil
     stats_triplet.font_size_override = stats_triplet.font_size and true or nil
+    stats_triplet.automatic_font_size = stats_triplet.automatic_font_size ~= false
+    stats_triplet.max_font_size = nil
+    stats_triplet.max_font_size_override = nil
     stats_triplet.font_scale = nil
     local reading_goals = ensure_module_cfg(dcfg, "reading_goals")
     local goals_font_size = tonumber(reading_goals.font_size)
@@ -589,9 +597,37 @@ function M.build(ctx)
             {
                 text = _("Automatic font size"),
                 checked_func = function() return mcfg.automatic_font_size ~= false end,
-                callback = function()
+                callback = function(touchmenu_instance)
                     mcfg.automatic_font_size = mcfg.automatic_font_size == false
                     save_home("reinit")
+                    if touchmenu_instance and touchmenu_instance.updateItems then
+                        touchmenu_instance:updateItems()
+                    end
+                end,
+            },
+            {
+                text_func = function()
+                    return string.format("%s %s", _("Maximum font size:"),
+                        tostring(mcfg.max_font_size))
+                end,
+                enabled_func = function() return mcfg.automatic_font_size ~= false end,
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    local SpinWidget = require("ui/widget/spinwidget")
+                    UIManager:show(SpinWidget:new{
+                        title_text = _("Time") .. " " .. _("font size"),
+                        value = mcfg.max_font_size,
+                        value_min = 8,
+                        value_max = MAX_DATETIME_FONT_SIZE,
+                        default_value = DEFAULT_DATETIME_MAX_FONT_SIZE,
+                        callback = function(spin)
+                            mcfg.max_font_size = spin.value
+                            save_home("reinit")
+                            if touchmenu_instance and touchmenu_instance.updateItems then
+                                touchmenu_instance:updateItems()
+                            end
+                        end,
+                    })
                 end,
             },
             {
@@ -2081,8 +2117,27 @@ function M.build(ctx)
         local stats_cfg = ensure_module_cfg(dcfg, "stats_triplet")
         local items = {
             {
+                text = _("Automatic font size"),
+                checked_func = function()
+                    return stats_cfg.automatic_font_size ~= false
+                end,
+                callback = function(touchmenu_instance)
+                    stats_cfg.automatic_font_size = stats_cfg.automatic_font_size == false
+                    save_home("reinit")
+                    if touchmenu_instance and touchmenu_instance.updateItems then
+                        touchmenu_instance:updateItems()
+                    end
+                end,
+            },
+            {
                 text_func = function()
+                    if stats_cfg.automatic_font_size ~= false then
+                        return string.format("%s %s", _("Font size:"), _("Automatic"))
+                    end
                     return string.format("%s %s", _("Font size:"), tostring(stats_cfg.font_size or dcfg.font_size))
+                end,
+                enabled_func = function()
+                    return stats_cfg.automatic_font_size == false
                 end,
                 keep_menu_open = true,
                 callback = function(touchmenu_instance)
@@ -2091,7 +2146,7 @@ function M.build(ctx)
                         title_text = _("Stats font size"),
                         value = stats_cfg.font_size or dcfg.font_size,
                         value_min = 8,
-                        value_max = 32,
+                        value_max = 64,
                         default_value = 18,
                         callback = function(spin)
                             stats_cfg.font_size = spin.value
@@ -2106,6 +2161,9 @@ function M.build(ctx)
             },
             {
                 text = _("Use Home default font size"),
+                enabled_func = function()
+                    return stats_cfg.automatic_font_size == false
+                end,
                 callback = function()
                     stats_cfg.font_size = nil
                     stats_cfg.font_size_override = nil

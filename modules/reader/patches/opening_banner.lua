@@ -131,6 +131,8 @@ local function apply_opening_banner()
             w = dimen.w,
             h = dimen.h,
             is_list = is_list == true,
+            border = is_list and 0 or math.max(0,
+                math.floor(tonumber(cover_widget and cover_widget.bordersize) or 0)),
         }
         if is_list then
             local night_mode = G_reader_settings and G_reader_settings:isTrue("night_mode") or false
@@ -293,8 +295,7 @@ local function apply_opening_banner()
             -- Only book taps may prepare a banner. Virtual group rows do not
             -- always carry KOReader's is_directory marker.
             if is_book_item(self_item) and should_prepare_for_tap(self_item, ...) then
-                -- self[1][1][1]: FrameContainer/FakeCover inside CenterContainer.
-                local cover_frame = self_item[1] and self_item[1][1] and self_item[1][1][1]
+                local cover_frame = find_cover_frame(self_item)
 
                 -- Use paintTo-snapshotted dimen if available (_zen_cover_dimen),
                 -- with flag+cell-math as fallback for items not yet painted.
@@ -368,9 +369,9 @@ local function apply_opening_banner()
 
     -- Border that follows rounded bottom corners
     -- Must be called AFTER _mask_bottom_corners so the border is never overwritten.
-    local function _draw_border(bb, x, y, w, h, r, color)
+    local function _draw_border(bb, x, y, w, h, r, color, top_border)
         -- Top edge (always straight)
-        bb:paintRect(x, y, w, 1, color)
+        bb:paintRect(x, y, w, math.min(h, math.max(1, top_border or 1)), color)
         if r > 0 then
             -- Left / right: straight down to where the arc begins
             bb:paintRect(x,         y, 1, h - r, color)
@@ -435,7 +436,8 @@ local function apply_opening_banner()
         local bg = use_dark and Blitbuffer.COLOR_BLACK or Blitbuffer.COLOR_WHITE
         local fg = use_dark and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK
         local w, h = self.dimen.w, self.dimen.h
-        local r    = self.round_bottom_corners and Screen:scaleBySize(8) or 0
+        local r    = self.round_bottom_corners
+            and math.max(0, Screen:scaleBySize(8) - (self.cover_border or 0)) or 0
         local background
         if r > 0 then
             background = Blitbuffer.new(r * 2, r, bb:getType())
@@ -454,7 +456,7 @@ local function apply_opening_banner()
             _mask_bottom_corners(bb, x, y, w, h, r, background)
         end
         -- 3. Border contrasts with bg (fg color), consistent with night mode.
-        _draw_border(bb, x, y, w, h, r, fg)
+        _draw_border(bb, x, y, w, h, r, fg, self.cover_border)
 
         local tw = TextWidget:new{
             text      = self.label or _("Opening"),
@@ -474,13 +476,14 @@ local function apply_opening_banner()
         local banner_h = Screen:scaleBySize(28)
         local bx, by, bw
         if cover then
-            by = cover.y + cover.h - banner_h
+            local border = cover.is_list and 0 or cover.border or 0
+            by = cover.y + cover.h - border - banner_h
             if cover.is_list then
                 bx = cover.x + cover.h
                 bw = cover.w - cover.h
             else
-                bx = cover.x
-                bw = cover.w
+                bx = cover.x + border
+                bw = cover.w - 2 * border
             end
         else
             bx = 0
@@ -503,6 +506,7 @@ local function apply_opening_banner()
             dimen                = dimen,
             dark_banner          = dark_banner,
             round_bottom_corners = round_bottom and true or false,
+            cover_border         = cover and cover.border or 0,
         }, dimen
     end
 

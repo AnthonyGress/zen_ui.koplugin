@@ -108,7 +108,7 @@ function BookInfoWidget:init()
     if self.edit_callback then
         self._edit_widget = TextWidget:new{
             text = icons.edit .. "  " .. _("Edit"),
-            face = TitleStyle.getTitleFace(),
+            face = Font:getFace("smallinfofont", TitleStyle.ICON_BASE_SIZE),
             fgcolor = Blitbuffer.COLOR_BLACK,
             padding = 0,
         }

@@ -56,7 +56,7 @@ local function strip_layout_metrics(outer_width, module_cfg)
     local padding = Screen:scaleBySize(8)
     local width = math.max(1, outer_width - padding * 2)
     local two_rows = module_cfg.two_rows == true
-    local vertical_padding = two_rows and 0 or padding
+    local vertical_padding = two_rows and 0 or math.max(2, Screen:scaleBySize(4))
     local count = tonumber(module_cfg.count) or (two_rows and 8 or 4)
     if two_rows then
         if count < 2 then count = 2 end

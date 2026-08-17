@@ -2091,6 +2091,12 @@ msgstr "如果已安装 Assistant 插件，则显示其按钮。"
 msgid "Show AI assistant"
 msgstr "显示 AI 助手"
 
+msgid "Show KOAssistant"
+msgstr "显示 KOAssistant"
+
+msgid "Show X-Ray"
+msgstr "显示 X-Ray"
+
 msgid "Show all files from subfolders"
 msgstr "显示子文件夹中的所有文件"
 

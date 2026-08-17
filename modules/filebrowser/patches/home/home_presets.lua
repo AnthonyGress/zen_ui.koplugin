@@ -134,12 +134,14 @@ local DEFAULT_HOME_PAGE = {
     modules = {
         datetime = {
             automatic_font_size = true,
+            max_font_size = 36,
             text_styles = datetime_text_styles(),
         },
         featured = featured_defaults(),
         quotes = {},
         reading_goals = {},
         stats_triplet = {
+            automatic_font_size = true,
             font_size = 18,
             font_size_override = true,
             stat_style = "divider",
@@ -207,12 +209,14 @@ local BOOKSHELF_HOME_PAGE = {
     modules = {
         datetime = {
             automatic_font_size = true,
+            max_font_size = 36,
             text_styles = datetime_text_styles(),
         },
         featured = featured_defaults(),
         quotes = {},
         reading_goals = {},
         stats_triplet = {
+            automatic_font_size = true,
             stat_style = "divider",
         },
         strip = strip_defaults{ count = 8, controls = true, two_rows = true },

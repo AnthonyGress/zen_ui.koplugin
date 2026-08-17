@@ -31,7 +31,6 @@ local SIZE_UNITS = {
 }
 
 local LAYOUT_GROWTH = {
-    datetime = { max = 2, priority = 2 },
     featured = { max = 4, priority = 2 },
     quotes = { max = 3, priority = 3 },
     reading_goals = { max = 1, priority = 4 },

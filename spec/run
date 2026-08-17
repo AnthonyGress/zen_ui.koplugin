@@ -12,6 +12,7 @@ Usage: ./spec/run <lua|smoke|full|nightly-smoke|legacy-upgrade|update-goldens|pa
 
 Set KOREADER_DIR to a KOReader emulator/runtime directory containing luajit,
 frontend, and the Busted rocks under spec/rocks. The runtime is never mutated.
+Smoke, full, and nightly-smoke always run the real KOReader emulator.
 EOF
 }
 
@@ -236,7 +237,7 @@ run_test_suite() {
   local lua_status=0
   local python_status=0
   run_lua || lua_status=$?
-  run_python "$runtime" || python_status=$?
+  ZEN_UI_RUN_EMULATOR=1 run_python "$runtime" || python_status=$?
   report_test_results \
     "Lua/Busted" "$ARTIFACTS/lua/junit.xml" \
     "Python/pytest" "$ARTIFACTS/python/junit.xml"

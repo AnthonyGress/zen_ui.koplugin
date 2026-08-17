@@ -2091,6 +2091,12 @@ msgstr "Mostrar un botón para el complemento Assistant, si está instalado."
 msgid "Show AI assistant"
 msgstr "Mostrar asistente de IA"
 
+msgid "Show KOAssistant"
+msgstr "Mostrar KOAssistant"
+
+msgid "Show X-Ray"
+msgstr "Mostrar X-Ray"
+
 msgid "Show all files from subfolders"
 msgstr "Mostrar todos los archivos de las subcarpetas"
 

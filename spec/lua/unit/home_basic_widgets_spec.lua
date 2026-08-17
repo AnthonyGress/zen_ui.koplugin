@@ -126,7 +126,8 @@ describe("home basic widgets", function()
         })
 
         assert.are.equal("datetime", component.id)
-        assert.are.same({ units = 1.5 }, component.size)
+        assert.are.equal("xs", component.size)
+        assert.are.equal(27, component.preferredHeight({ width = 500 }))
         assert.is_table(widget)
         assert.is_function(refresh)
         assert.is_true(refresh())
@@ -140,8 +141,8 @@ describe("home basic widgets", function()
                 date_size = child.face.size
             end
         end
-        assert.are.equal(240, clock_size)
-        assert.are.equal(86, date_size)
+        assert.are.equal(36, clock_size)
+        assert.are.equal(12, date_size)
     end)
 
     it("honors the twelve-hour clock setting and removes its leading zero", function()
@@ -159,6 +160,7 @@ describe("home basic widgets", function()
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/datetime")
         require("modules/filebrowser/patches/home/widgets/datetime").build({
             width = 300, height = 60, is_first_row = false,
+            module_cfg = { max_font_size = 52 },
         })
 
         assert.is_true(has_text("9:05"))
@@ -168,7 +170,7 @@ describe("home basic widgets", function()
                 clock_size = child.face.size
             end
         end
-        assert.are.equal(120, clock_size)
+        assert.are.equal(52, clock_size)
     end)
 
     it("uses translated day-first grammar for Spanish dates", function()
@@ -231,7 +233,7 @@ describe("home basic widgets", function()
         assert.are.equal("Monday, January 8", rendered_date)
     end)
 
-    it("aligns stats dividers to the visible text block", function()
+    it("keeps stats bounds fixed while aligning dividers to the text", function()
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/stats_triplet")
         local component = require("modules/filebrowser/patches/home/widgets/stats_triplet")
         local content_bounds
@@ -256,12 +258,81 @@ describe("home basic widgets", function()
             end
         end
         assert.are.same({ 19, 19 }, divider_heights)
-        assert.are.same({ 48, 71, -48, 49 }, {
+        assert.are.same({ 0, 120, 0, 0 }, {
             content_bounds.top,
             content_bounds.bottom,
             content_bounds.min_shift,
             content_bounds.max_shift,
         })
+
+        content_bounds = nil
+        ctx.data.stats = {
+            today_pages = 12345,
+            today_duration = 360000,
+            streak = 999,
+        }
+        component.build(ctx)
+        assert.are.same({ 0, 120, 0, 0 }, {
+            content_bounds.top,
+            content_bounds.bottom,
+            content_bounds.min_shift,
+            content_bounds.max_shift,
+        })
+    end)
+
+    it("auto-sizes stats text while preserving an exact manual size", function()
+        ZenSpec.replace("ui/widget/textwidget", {
+            new = function(_self, values)
+                values.kind = "ui/widget/textwidget"
+                values.dimen = {
+                    w = #values.text * math.max(1, math.floor(values.face.size * 0.6)),
+                    h = values.face.size,
+                }
+                values.getSize = function(self) return self.dimen end
+                values.paintTo = function() end
+                values.free = function() end
+                created[#created + 1] = values
+                return values
+            end,
+        })
+        ZenSpec.unload("modules/filebrowser/patches/home/widgets/stats_triplet")
+        local component = require("modules/filebrowser/patches/home/widgets/stats_triplet")
+        local function rendered_label_size()
+            for i = #created, 1, -1 do
+                if created[i].text == "Pages today" then
+                    return created[i].face.size
+                end
+            end
+        end
+        local ctx = {
+            width = 600,
+            height = 30,
+            config = {
+                font_size = 18,
+                middle_stats_triplet = { "today_pages", "today_duration", "streak" },
+            },
+            module_cfg = {
+                automatic_font_size = true,
+                stat_style = "divider",
+            },
+            data = { stats = {} },
+        }
+
+        assert.are.equal(38, component.preferredHeight(ctx))
+        ctx.height = 80
+        component.build(ctx)
+        assert.are.equal(29, rendered_label_size())
+
+        created = {}
+        ctx.height = 30
+        component.build(ctx)
+        assert.are.equal(12, rendered_label_size())
+
+        created = {}
+        ctx.module_cfg.automatic_font_size = false
+        ctx.module_cfg.font_size = 18
+        component.build(ctx)
+        assert.are.equal(10, rendered_label_size())
     end)
 
     it("insets outlined stats cards to the shared home content width", function()
@@ -292,7 +363,7 @@ describe("home basic widgets", function()
             end
         end
         assert.are.same({ 177, 177, 177 }, card_widths)
-        assert.are.same({ 161, 161, 161 }, inner_widths)
+        assert.are.same({ 173, 173, 173 }, inner_widths)
         assert.are.equal(600, widget.width)
     end)
 
@@ -329,7 +400,7 @@ describe("home basic widgets", function()
         widget.dimen.x, widget.dimen.y = 10, 20
 
         assert.are.equal("quotes", component.id)
-        assert.are.same({ units = 2 }, component.size)
+        assert.are.same({ units = 1.5 }, component.size)
         assert.is_true(widget:onTapQuote(nil, { pos = { x = 40, y = 40 } }))
         assert.is_true(widget:onSwipeQuote(nil, {
             pos = { x = 40, y = 40 },
@@ -362,7 +433,7 @@ describe("home basic widgets", function()
         end
         assert.are.equal(48, quote_widget.paint_y)
         assert.are.equal(60, author_widget.paint_y)
-        assert.are.same({ 48, 72, -48, 48 }, {
+        assert.are.same({ 0, 120, 0, 0 }, {
             content_bounds.top,
             content_bounds.bottom,
             content_bounds.min_shift,
@@ -370,7 +441,7 @@ describe("home basic widgets", function()
         })
     end)
 
-    it("reports the visible quote bounds and their available movement", function()
+    it("reports fixed quote bounds regardless of content length", function()
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/quotes")
         local component = require("modules/filebrowser/patches/home/widgets/quotes")
         local function bounds_for(text)
@@ -394,19 +465,26 @@ describe("home basic widgets", function()
             }
         end
 
-        assert.are.same({ 48, 72, -48, 48 }, bounds_for("Short."))
-        assert.are.same({ 36, 84, -36, 36 }, bounds_for("First\nSecond\nThird"))
+        assert.are.same({ 0, 120, 0, 0 }, bounds_for("Short."))
+        assert.are.same({ 0, 120, 0, 0 }, bounds_for("First\nSecond\nThird"))
     end)
 
-    it("caps a bottom quote row to its natural content height", function()
+    it("gives the bottom quote row a content-independent fixed height", function()
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/quotes")
         local component = require("modules/filebrowser/patches/home/widgets/quotes")
+        local quote_text = "Short."
         local ctx = {
             width = 400,
-            config = { quotes = { show_author = true } },
+            config = {
+                quotes = {
+                    automatic_font_size = true,
+                    max_font_size = 14,
+                    show_author = true,
+                },
+            },
             data = {
                 getCurrentQuote = function()
-                    return { text = "Short.", author = "Zen Tester" }
+                    return { text = quote_text, author = "Zen Tester" }
                 end,
             },
         }
@@ -417,7 +495,10 @@ describe("home basic widgets", function()
         ctx.row_count = 2
         assert.is_nil(component.preferredHeight(ctx))
         ctx.row_count = 3
-        assert.are.equal(32, component.preferredHeight(ctx))
+        local short_height = component.preferredHeight(ctx)
+        quote_text = "A much longer quote\nthat spans\nseveral lines\nand used to resize the row."
+        assert.are.equal(short_height, component.preferredHeight(ctx))
+        assert.are.equal(36, short_height)
     end)
 
     it("seeds automatic quote sizing in the default home preset", function()
@@ -426,10 +507,13 @@ describe("home basic widgets", function()
         assert.are.equal(10, preset.rows.capacity_units)
         assert.are.equal(2, preset.rows.layout_schema_version)
         assert.is_true(preset.modules.datetime.automatic_font_size)
+        assert.are.equal(36, preset.modules.datetime.max_font_size)
         assert.are.equal(48, preset.modules.datetime.text_styles.time.font_size)
         assert.are.equal(18, preset.modules.datetime.text_styles.date.font_size)
         assert.are.equal(18, preset.modules.stats_triplet.font_size)
         assert.is_true(preset.modules.stats_triplet.font_size_override)
+        assert.is_true(preset.modules.stats_triplet.automatic_font_size)
+        assert.is_nil(preset.modules.stats_triplet.max_font_size)
         assert.is_true(preset.quotes.automatic_font_size)
         assert.are.equal(14, preset.quotes.max_font_size)
         assert.are.equal(12, preset.quotes.font_size)
@@ -603,7 +687,7 @@ describe("home basic widgets", function()
             if child.text == '"First\nSecond\nThird\nFourth"' and child.height then
                 assert.are.equal(36, child.height)
                 assert.are.equal(42, child.paint_y)
-                assert.are.same({ 42, 78 }, {
+                assert.are.same({ 0, 120 }, {
                     content_bounds.top,
                     content_bounds.bottom,
                 })

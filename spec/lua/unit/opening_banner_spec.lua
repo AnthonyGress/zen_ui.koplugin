@@ -46,6 +46,13 @@ describe("opening banner", function()
         function Widget:new(props)
             return setmetatable(props, { __index = self })
         end
+        local TextWidget = {}
+        function TextWidget:new(props)
+            function props:getSize() return { w = 40, h = 10 } end
+            function props:paintTo() end
+            function props:free() end
+            return props
+        end
 
         ZenSpec.replace("apps/reader/readerui", ReaderUI)
         ZenSpec.replace("apps/reader/modules/readerhighlight", ReaderHighlight)
@@ -95,10 +102,13 @@ describe("opening banner", function()
             },
             setIgnoreInput = function() end,
         })
-        ZenSpec.replace("ffi/blitbuffer", {})
-        ZenSpec.replace("ui/font", {})
+        ZenSpec.replace("ffi/blitbuffer", {
+            COLOR_BLACK = "black",
+            COLOR_WHITE = "white",
+        })
+        ZenSpec.replace("ui/font", { getFace = function() return {} end })
         ZenSpec.replace("ui/geometry", { new = function(_, value) return value end })
-        ZenSpec.replace("ui/widget/textwidget", {})
+        ZenSpec.replace("ui/widget/textwidget", TextWidget)
         ZenSpec.replace("ui/widget/widget", Widget)
         ZenSpec.replace("common/zen_logger", {
             new = function()
@@ -153,15 +163,21 @@ describe("opening banner", function()
 
         local set_cover = rawget(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER")
         assert.is_function(set_cover)
-        assert.is_true(set_cover({ dimen = { x = 31, y = 47, w = 220, h = 330 } }))
-        assert.are.same({ x = 31, y = 349, w = 220, h = 28 }, shown[1].dimen)
+        assert.is_true(set_cover({
+            dimen = { x = 31, y = 47, w = 220, h = 330 },
+            bordersize = 2,
+        }))
+        assert.are.same({ x = 33, y = 347, w = 216, h = 28 }, shown[1].dimen)
 
         ReaderUI.showReaderCoroutine(reader, "book.epub", {})
         assert.are.equal(1, #shown)
 
         run_next_tick()
-        assert.is_true(set_cover({ dimen = { x = 52, y = 80, w = 180, h = 270 } }))
-        assert.are.same({ x = 52, y = 322, w = 180, h = 28 }, shown[2].dimen)
+        assert.is_true(set_cover({
+            dimen = { x = 52, y = 80, w = 180, h = 270 },
+            bordersize = 2,
+        }))
+        assert.are.same({ x = 54, y = 320, w = 176, h = 28 }, shown[2].dimen)
         ReaderUI.showReaderCoroutine(reader, "book.epub", {})
         assert.are.equal(2, #shown)
 
@@ -211,6 +227,27 @@ describe("opening banner", function()
 
         run_next_tick()
         assert.are.equal(1, opens)
+    end)
+
+    it("matches a cover banner's top edge to the cover border weight", function()
+        local _, _, shown = install_stubs()
+        apply_patch()
+
+        local set_cover = rawget(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER")
+        assert.is_true(set_cover({
+            dimen = { x = 31, y = 47, w = 220, h = 330 },
+            bordersize = 2,
+        }))
+        shown[1].round_bottom_corners = false
+
+        local painted = {}
+        shown[1]:paintTo({
+            paintRect = function(_, x, y, w, h, color)
+                painted[#painted + 1] = { x = x, y = y, w = w, h = h, color = color }
+            end,
+        }, shown[1].dimen.x, shown[1].dimen.y)
+
+        assert.are.same({ x = 33, y = 347, w = 216, h = 2, color = "white" }, painted[2])
     end)
 
     it("does not recreate a banner after its cover is released", function()

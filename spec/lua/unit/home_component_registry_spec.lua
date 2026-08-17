@@ -8,12 +8,12 @@ describe("home component registry", function()
         "quotes",
     }
     local module_sizes = {
-        datetime = { units = 1.5 },
+        datetime = "xs",
         featured = { units = 3.5 },
         stats_triplet = "xs",
         reading_goals = "xs",
         strip = { units = 2.5 },
-        quotes = { units = 2 },
+        quotes = { units = 1.5 },
     }
 
     before_each(function()
@@ -92,9 +92,9 @@ describe("home component registry", function()
 
     it("maps widget sizes to the 10-unit grid", function()
         local Registry = require("modules/filebrowser/patches/home/components/registry")
-        assert.are.equal(1.5, Registry.sizeUnits(Registry.get("datetime")))
+        assert.are.equal(1, Registry.sizeUnits(Registry.get("datetime")))
         assert.are.equal(1, Registry.sizeUnits(Registry.get("stats_triplet")))
-        assert.are.equal(2, Registry.sizeUnits(Registry.get("quotes")))
+        assert.are.equal(1.5, Registry.sizeUnits(Registry.get("quotes")))
         assert.are.equal(2.5, Registry.sizeUnits(Registry.get("strip")))
         assert.are.equal(3.5, Registry.sizeUnits(Registry.get("featured")))
         assert.are.equal(5, Registry.sizeUnits(
@@ -104,17 +104,22 @@ describe("home component registry", function()
         assert.are.equal(4, Registry.sizeUnits({
             size = { preferred_pct = 0.36 },
         }))
-        assert.are.equal(9, Registry.totalUnits({
+        assert.are.equal(8.5, Registry.totalUnits({
             featured = true,
             stats_triplet = true,
             strip = true,
             quotes = true,
         }))
-        assert.are.same({ 3.5, 1, 3.5, 2 }, Registry.layoutUnits({
+        assert.are.same({ 3.5, 1, 4, 1.5 }, Registry.layoutUnits({
             Registry.get("featured"),
             Registry.get("stats_triplet"),
             Registry.get("strip"),
             Registry.get("quotes"),
+        }))
+        assert.are.same({ 1, 4, 1 }, Registry.layoutUnits({
+            Registry.get("datetime"),
+            Registry.get("featured"),
+            Registry.get("stats_triplet"),
         }))
         assert.are.same({ 4, 4 }, Registry.layoutUnits({
             Registry.get("featured"),
@@ -157,12 +162,12 @@ describe("home component registry", function()
             Registry.get("quotes"),
         }, 17)
         assert.are.equal(6, #units)
-        assert.are.same({ 1.5, 3.5, 1, 1, 2.5, 2 }, units)
+        assert.are.same({ 1, 3.5, 1, 1, 2.5, 1.5 }, units)
         local heights = Registry.gridHeights(units, 2400, 10, 17)
         local occupied = (#heights - 1) * 10
         for _i, height in ipairs(heights) do occupied = occupied + height end
         assert.are.equal(2400, occupied)
-        assert.are.equal(14, Registry.totalUnits({
+        assert.are.equal(13, Registry.totalUnits({
             datetime = true,
             featured = true,
             stats_triplet = true,
@@ -184,8 +189,8 @@ describe("home component registry", function()
             Registry.get("stats_triplet"),
         })
 
-        assert.are.same({ 3.5, 2.5, 2, 1, 1 }, units)
-        assert.are.equal(10, Registry.totalUnits({
+        assert.are.same({ 3.5, 3, 1.5, 1, 1 }, units)
+        assert.are.equal(9.5, Registry.totalUnits({
             featured = true,
             strip = true,
             quotes = true,

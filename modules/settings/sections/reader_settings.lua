@@ -23,12 +23,35 @@ function M.build(ctx)
         return utils.make_enable_feature_item(feature, text, config, save_and_apply)
     end
 
-    -- Returns true if a plugin slot is loaded in the active UI; fails open if no UI yet.
+    -- Returns true if a plugin is loaded in the active UI or PluginLoader.
     local function hasPlugin(slot)
         local ok_f, FM = pcall(require, "apps/filemanager/filemanager")
         local ok_r, RU = pcall(require, "apps/reader/readerui")
         local ui = (ok_f and FM.instance) or (ok_r and RU.instance)
-        return ui == nil or ui[slot] ~= nil
+        if ui and ui[slot] ~= nil then return true end
+        local ok_l, loader = pcall(require, "pluginloader")
+        return ok_l and type(loader.loaded_plugins) == "table"
+            and loader.loaded_plugins[slot] ~= nil
+    end
+
+    local function make_lookup_plugin_item(slot, setting, text, help_text)
+        return {
+            text = text,
+            help_text = help_text,
+            show_func = function() return hasPlugin(slot) end,
+            checked_func = function()
+                return type(config.highlight_lookup) == "table"
+                    and config.highlight_lookup[setting] ~= false
+            end,
+            callback = function()
+                if type(config.highlight_lookup) ~= "table" then
+                    config.highlight_lookup = {}
+                end
+                config.highlight_lookup[setting] =
+                    config.highlight_lookup[setting] == false
+                plugin:saveConfig()
+            end,
+        }
     end
 
     local items = {}
@@ -930,23 +953,14 @@ function M.build(ctx)
                     plugin:saveConfig()
                 end,
             },
-            {
-                text = _("Show AI assistant"),
-                help_text = _("Show a button for the Assistant plugin, if installed."),
-                show_func = function() return hasPlugin("assistant") end,
-                checked_func = function()
-                    return type(config.highlight_lookup) == "table"
-                        and config.highlight_lookup.show_ai_assistant == true
-                end,
-                callback = function()
-                    if type(config.highlight_lookup) ~= "table" then
-                        config.highlight_lookup = {}
-                    end
-                    config.highlight_lookup.show_ai_assistant =
-                        config.highlight_lookup.show_ai_assistant ~= true
-                    plugin:saveConfig()
-                end,
-            },
+            make_lookup_plugin_item("xray", "show_xray", _("Show X-Ray")),
+            make_lookup_plugin_item("koassistant", "show_koassistant", _("Show KOAssistant")),
+            make_lookup_plugin_item(
+                "assistant",
+                "show_ai_assistant",
+                _("Show AI assistant"),
+                _("Show a button for the Assistant plugin, if installed.")
+            ),
             {
                 text = _("Show other items"),
                 help_text = _("Show other KOReader quick lookup options alongside Zen buttons."),

@@ -644,8 +644,11 @@ local function ensure_home_widget_cfg(dcfg)
         or tonumber(stats_triplet.font_scale) and 18 * stats_triplet.font_scale / 100
     local stats_font_override = stats_triplet.font_size_override == true
     stats_triplet.font_size = stats_font_size and (stats_font_override or stats_font_size ~= 18)
-        and math.max(8, math.min(32, math.floor(stats_font_size + 0.5))) or nil
+        and math.max(8, math.min(64, math.floor(stats_font_size + 0.5))) or nil
     stats_triplet.font_size_override = stats_triplet.font_size and true or nil
+    stats_triplet.automatic_font_size = stats_triplet.automatic_font_size ~= false
+    stats_triplet.max_font_size = nil
+    stats_triplet.max_font_size_override = nil
     stats_triplet.font_scale = nil
     local reading_goals = ensure_module_cfg(dcfg, "reading_goals")
     local goals_font_size = tonumber(reading_goals.font_size)

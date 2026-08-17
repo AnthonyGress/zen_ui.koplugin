@@ -973,6 +973,17 @@ local function migrate_changed_defaults(cfg)
         changed = true
     end
 
+    if cfg._meta.lookup_plugin_items_default_migrated ~= true then
+        if type(cfg.highlight_lookup) ~= "table" then
+            cfg.highlight_lookup = {}
+        end
+        cfg.highlight_lookup.show_xray = true
+        cfg.highlight_lookup.show_koassistant = true
+        cfg.highlight_lookup.show_ai_assistant = true
+        cfg._meta.lookup_plugin_items_default_migrated = true
+        changed = true
+    end
+
     if cfg._meta.library_font_hyperreadable_default_migrated ~= true then
         if type(cfg.library_font) ~= "table" then
             cfg.library_font = {}

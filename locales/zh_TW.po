@@ -2091,6 +2091,12 @@ msgstr "如果已安裝 Assistant 外掛，則顯示其按鈕。"
 msgid "Show AI assistant"
 msgstr "顯示 AI 助理"
 
+msgid "Show KOAssistant"
+msgstr "顯示 KOAssistant"
+
+msgid "Show X-Ray"
+msgstr "顯示 X-Ray"
+
 msgid "Show all files from subfolders"
 msgstr "顯示子資料夾中的所有檔案"
 

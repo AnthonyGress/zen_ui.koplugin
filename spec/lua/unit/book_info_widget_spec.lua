@@ -94,7 +94,11 @@ describe("book details", function()
             COLOR_LIGHT_GRAY = "light_gray",
             COLOR_WHITE = "white",
         })
-        ZenSpec.replace("ui/font", { getFace = function() return {} end })
+        ZenSpec.replace("ui/font", {
+            getFace = function(_self, name, size)
+                return { name = name, orig_size = size }
+            end,
+        })
         ZenSpec.replace("ui/geometry", { new = function(_self, values) return values end })
         ZenSpec.replace("ui/uimanager", {
             close = function() close_calls = close_calls + 1 end,
@@ -184,6 +188,7 @@ describe("book details", function()
             end,
         })
         ZenSpec.replace("common/ui/zen_title_style", {
+            ICON_BASE_SIZE = 28,
             ICON_SIZE = 28,
             BUTTON_SIZE = 44,
             LEFT_PADDING = 4,
@@ -418,6 +423,8 @@ describe("book details", function()
         }, 0, 0)
 
         assert.are.equal("edit-icon  Edit", widget._edit_widget.text)
+        assert.are.equal("smallinfofont", widget._edit_widget.face.name)
+        assert.are.equal(28, widget._edit_widget.face.orig_size)
         assert.are.equal("black", widget._edit_widget.fgcolor)
         widget._zen_focus_enabled = true
         widget._zen_focus_area = "edit"

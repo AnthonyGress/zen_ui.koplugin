@@ -33,6 +33,11 @@ describe("reader book status", function()
     local closed
     local icon_buttons
     local buttons
+    local horizontal_groups
+    local horizontal_spans
+    local rate_widths
+    local screen_mode
+    local screen_width
     local saved_default_tab_icon
 
     local function widget_class()
@@ -52,6 +57,7 @@ describe("reader book status", function()
             key_events = {},
             layout = {},
             selected = { x = 1, y = 1 },
+            padding = 15,
             ui = {
                 document = {},
                 doc_settings = { flush = function() end },
@@ -68,7 +74,9 @@ describe("reader book status", function()
                 return {}
             end,
             genBookInfoGroup = function(self)
-                return self:generateRateGroup(300, 0, 0)
+                local group = self:generateRateGroup(screen_width, 60, 0)
+                self.generated_rate_group = group
+                return group
             end,
             genSummaryGroup = function()
                 return {}
@@ -94,11 +102,17 @@ describe("reader book status", function()
         closed = 0
         icon_buttons = {}
         buttons = {}
+        horizontal_groups = {}
+        horizontal_spans = {}
+        rate_widths = {}
+        screen_mode = "portrait"
+        screen_width = 400
         invalidated = {}
         saved_default_tab_icon = rawget(_G, "__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON")
 
         BookStatusWidget = {
-            generateRateGroup = function(self)
+            generateRateGroup = function(self, width)
+                rate_widths[#rate_widths + 1] = width
                 self.layout[1] = { { id = "star" } }
                 return {}
             end,
@@ -146,7 +160,11 @@ describe("reader book status", function()
             span = { vertical_default = 4 },
         })
         ZenSpec.replace("device", {
-            screen = { scaleBySize = function(_, value) return value end },
+            screen = {
+                getScreenMode = function() return screen_mode end,
+                getWidth = function() return screen_width end,
+                scaleBySize = function(_, value) return value end,
+            },
             input = { group = { PgFwd = { "PgFwd" } } },
             hasKeys = function() return true end,
         })
@@ -157,7 +175,11 @@ describe("reader book status", function()
         ZenSpec.replace("common/ui/zen_icon_button", {
             new = function(_, values)
                 values.getSize = function(self)
-                    return { w = self.width or 0, h = self.height or 20 }
+                    local padding = self.padding or 0
+                    return {
+                        w = (self.width or 0) + padding * 2,
+                        h = (self.height or 20) + padding * 2,
+                    }
                 end
                 icon_buttons[#icon_buttons + 1] = values
                 return values
@@ -173,8 +195,26 @@ describe("reader book status", function()
             end,
         })
         ZenSpec.replace("ui/widget/container/centercontainer", widget_class())
-        ZenSpec.replace("ui/widget/horizontalgroup", widget_class())
-        ZenSpec.replace("ui/widget/horizontalspan", widget_class())
+        ZenSpec.replace("ui/widget/horizontalgroup", {
+            new = function(_, values)
+                values = values or {}
+                values.getSize = values.getSize or function(self)
+                    return { w = self.width or 0, h = self.height or 20 }
+                end
+                horizontal_groups[#horizontal_groups + 1] = values
+                return values
+            end,
+        })
+        ZenSpec.replace("ui/widget/horizontalspan", {
+            new = function(_, values)
+                values = values or {}
+                values.getSize = values.getSize or function(self)
+                    return { w = self.width or 0, h = 0 }
+                end
+                horizontal_spans[#horizontal_spans + 1] = values
+                return values
+            end,
+        })
         ZenSpec.replace("ui/widget/verticalgroup", widget_class())
         ZenSpec.replace("ui/widget/verticalspan", widget_class())
         ZenSpec.replace("ui/event", { new = function(_, name) return { name = name } end })
@@ -237,6 +277,23 @@ describe("reader book status", function()
         assert.are.equal(0, next_file_opens)
         assert.are.equal(1, closed)
         assert.are.equal(1, library_opens)
+    end)
+
+    it("keeps landscape actions beside the stars and inside the safe header width", function()
+        screen_mode = "landscape"
+        screen_width = 800
+        G_reader_settings:saveSetting("collate", "access")
+        require("modules/reader/patches/book_status")()
+        local status = make_status()
+
+        BookStatusWidget.getStatusContent(status, screen_width)
+
+        assert.are.equal(345, buttons[1].width)
+        assert.are.equal(275, rate_widths[1])
+        assert.same(buttons[1], horizontal_groups[2][1])
+        assert.are.equal(699.2, horizontal_spans[1].width)
+        assert.are.equal(-6, status.generated_rate_group[1].width)
+        assert.are.equal(6, status.generated_rate_group[3].width)
     end)
 
     it("invalidates cached status after reader and status-widget writes", function()

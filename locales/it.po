@@ -2091,6 +2091,12 @@ msgstr "Mostra un pulsante per il plugin Assistant, se installato."
 msgid "Show AI assistant"
 msgstr "Mostra assistente IA"
 
+msgid "Show KOAssistant"
+msgstr "Mostra KOAssistant"
+
+msgid "Show X-Ray"
+msgstr "Mostra X-Ray"
+
 msgid "Show all files from subfolders"
 msgstr "Mostra tutti i file delle sottocartelle"
 

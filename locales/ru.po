@@ -2098,6 +2098,12 @@ msgstr "Показывать кнопку плагина Assistant, если о�
 msgid "Show AI assistant"
 msgstr "Показывать ИИ-ассистента"
 
+msgid "Show KOAssistant"
+msgstr "Показывать KOAssistant"
+
+msgid "Show X-Ray"
+msgstr "Показывать X-Ray"
+
 msgid "Show all files from subfolders"
 msgstr "Показывать все файлы из подпапок"
 

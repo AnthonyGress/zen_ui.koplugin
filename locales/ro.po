@@ -2091,6 +2091,12 @@ msgstr "Afișează un buton pentru extensia Assistant, dacă este instalată."
 msgid "Show AI assistant"
 msgstr "Afișează asistentul IA"
 
+msgid "Show KOAssistant"
+msgstr "Afișează KOAssistant"
+
+msgid "Show X-Ray"
+msgstr "Afișează X-Ray"
+
 msgid "Show all files from subfolders"
 msgstr "Afișează toate fișierele din subdosare"
 
