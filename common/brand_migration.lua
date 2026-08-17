@@ -633,6 +633,11 @@ function M.markConfigMigrationComplete(config)
     return true
 end
 
+function M.isConfigMigrationComplete(config)
+    local meta = type(config) == "table" and config._meta or nil
+    return type(meta) == "table" and meta[BRAND_MIGRATION_MARKER] == true
+end
+
 local function migrate_disabled_data(data)
     local disabled = type(data) == "table" and data.plugins_disabled or nil
     if type(disabled) ~= "table" or disabled[M.LEGACY_PLUGIN_ID] == nil then
@@ -1067,6 +1072,7 @@ local function mark_migration_complete(settings_root, options)
     local settings = config_store(settings_root, options)
     if not settings or type(settings.data) ~= "table"
             or type(settings.flush) ~= "function" then return false end
+    if next(settings.data) == nil then return true end
     if not M.markConfigMigrationComplete(settings.data) then return true end
     return flush_settings(settings)
 end

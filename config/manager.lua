@@ -63,6 +63,20 @@ local function merged_with_defaults(stored)
     return cfg
 end
 
+-- Recover the sparse config produced when an empty table was mistaken for an
+-- array and therefore received none of the defaults during a fresh ZenOS boot.
+local function is_incomplete_fresh_config(stored)
+    if type(stored) ~= "table"
+            or not BrandMigration.isConfigMigrationComplete(stored) then
+        return false
+    end
+    local meta = type(stored._meta) == "table" and stored._meta or {}
+    local features = stored.features
+    local shown = meta.quickstart_shown_for_version
+    return type(features) == "table" and next(features) == nil
+        and (shown == nil or shown == "pre-quickstart")
+end
+
 local function normalize_renamed_keys(cfg)
     if type(cfg) ~= "table" then
         return cfg, false
@@ -1015,7 +1029,13 @@ end
 
 function M.load()
     local stored, migrated_file_config = load_raw_config()
+    local recovered_fresh_config = is_incomplete_fresh_config(stored)
+    if recovered_fresh_config then
+        stored._meta.quickstart_shown_for_version = false
+        stored._meta.quickstart_completed = false
+    end
     local fresh_config = type(stored) ~= "table" or next(stored) == nil
+        or recovered_fresh_config
     local migrated_brand_paths = migrate_brand_plugin_paths(stored)
     local migrated_home_lock = false
     local stored_hide_up = type(stored) == "table" and rawget(stored, "browser_hide_up_folder")
@@ -1081,7 +1101,8 @@ function M.load()
             or migrated_settings_files or migrated_reader_presets
             or migrated_changed_defaults or migrated_home_lock
             or migrated_folder_paths or migrated_rakuyomi or migrated_page_browser
-            or migrated_brand_paths or initialized_brand_marker then
+            or migrated_brand_paths or initialized_brand_marker
+            or recovered_fresh_config then
         M.save(cfg)
     end
     if migrated_file_config then

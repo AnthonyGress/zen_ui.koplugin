@@ -63,7 +63,7 @@ describe("Quickstart pages", function()
         _G.G_reader_settings = original_settings
     end)
 
-    local function reader_page(completed, pending)
+    local function install_page(title, completed, pending)
         local config = {
             _meta = {
                 quickstart_completed = completed,
@@ -77,8 +77,12 @@ describe("Quickstart pages", function()
             plugin = {},
         })
         for _i, page in ipairs(pages) do
-            if page.title == "Reader" then return page, config end
+            if page.title == title then return page, config end
         end
+    end
+
+    local function reader_page(completed, pending)
+        return install_page("Reader", completed, pending)
     end
 
     local function reader_choices(completed)
@@ -105,6 +109,20 @@ describe("Quickstart pages", function()
 
     it("keeps existing Reader settings when a completed setup is rerun", function()
         local choices = reader_choices(true)
+
+        assert.is_true(choices[1].checked)
+        assert.is_false(choices[2].checked)
+    end)
+
+    it("selects the book cover sleep screen before setup has been completed", function()
+        local choices = install_page("Sleep Screen", false).choices
+
+        assert.is_false(choices[1].checked)
+        assert.is_true(choices[2].checked)
+    end)
+
+    it("keeps existing sleep screen settings when a completed setup is rerun", function()
+        local choices = install_page("Sleep Screen", true).choices
 
         assert.is_true(choices[1].checked)
         assert.is_false(choices[2].checked)

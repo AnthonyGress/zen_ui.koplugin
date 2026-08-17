@@ -213,6 +213,19 @@ describe("ZenOS brand migration", function()
         assert.are.equal(unrelated, plugin.ui.zen_ui)
     end)
 
+    it("does not turn an empty fresh config into migrated settings", function()
+        local current_plugin = mkdir(path(plugins_dir, "zenos.koplugin"))
+        local current_settings = mkdir(path(settings_dir, "ZenOS"))
+        local config_path = path(current_settings, "config.lua")
+        write_file(config_path, "return {}\n")
+
+        local result = BrandMigration.detectStartup(
+            nil, migration_options(current_plugin))
+
+        assert.are.equal("current", result.status)
+        assert.are.same({}, dofile(config_path))
+    end)
+
     it("defers the legacy directory rename until plugin init", function()
         local legacy_plugin = mkdir(path(plugins_dir, "zen_ui.koplugin"))
         local legacy_settings = mkdir(path(settings_dir, "Zen UI"))

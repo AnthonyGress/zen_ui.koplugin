@@ -44,6 +44,43 @@ describe("config manager folder-path migration", function()
         reload_manager()
     end)
 
+    it("loads complete defaults for a fresh install", function()
+        local config = Manager.load()
+
+        assert.is_true(config.features.navbar)
+        assert.is_true(config.features.quick_settings)
+        assert.is_true(config.features.app_launcher)
+        assert.is_true(config.features.zen_mode)
+        assert.is_true(config.features.status_bar)
+        assert.is_false(config._meta.quickstart_shown_for_version)
+    end)
+
+    it("recovers the sparse config created by the fresh-install merge bug", function()
+        settings_file.data = {
+            _meta = {
+                schema_version = 1,
+                zenos_brand_migration_v1 = true,
+                quickstart_shown_for_version = "pre-quickstart",
+                quickstart_completed = true,
+            },
+            features = {},
+            navbar = { default_tab = "books" },
+            quick_settings = { button_order = { "wifi" } },
+        }
+
+        local config = Manager.load()
+
+        assert.is_true(config.features.navbar)
+        assert.is_true(config.features.quick_settings)
+        assert.is_true(config.features.app_launcher)
+        assert.is_true(config.features.zen_mode)
+        assert.is_true(config.features.status_bar)
+        assert.are.equal("books", config.navbar.default_tab)
+        assert.are.same({ "wifi" }, config.quick_settings.button_order)
+        assert.is_false(config._meta.quickstart_shown_for_version)
+        assert.is_false(config._meta.quickstart_completed)
+    end)
+
     it("moves sort and display overrides for a renamed folder subtree", function()
         Manager.save({
             folder_sort = {

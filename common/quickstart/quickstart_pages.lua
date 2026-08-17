@@ -723,8 +723,8 @@ function M.build_install_pages(ctx)
             description = _("What should your device show when it goes to sleep?"),
             choice_type = "radio",
             choices     = {
-                { id = "keep",          text = _("Keep existing settings"),         checked = true  },
-                { id = "cover_black",   text = _("Show Book cover"), checked = false },
+                { id = "keep",          text = _("Keep existing settings"),         checked = quickstart_completed },
+                { id = "cover_black",   text = _("Show Book cover"), checked = not quickstart_completed },
                 { id = "zen_white",     text = _("Show Zen icon - white background"),   checked = false },
                 { id = "zen_black",     text = _("Show Zen icon - black background"),   checked = false },
             },

@@ -82,7 +82,7 @@ end
 local function _is_array(t)
     local n = 0
     for _k in pairs(t) do n = n + 1 end
-    return n == #t
+    return n > 0 and n == #t
 end
 
 function M.deepmerge(dst, src)
@@ -91,8 +91,8 @@ function M.deepmerge(dst, src)
     end
 
     -- Never merge into an existing array: arrays are treated as opaque values.
-    -- Only fill in missing keys from src when dst is a plain map.
-    if _is_array(dst) then
+    -- An empty table inherits src's shape because Lua cannot identify it alone.
+    if _is_array(dst) or (next(dst) == nil and _is_array(src)) then
         return dst
     end
 
