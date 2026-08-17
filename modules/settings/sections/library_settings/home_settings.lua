@@ -19,10 +19,10 @@ local M = {}
 local DEFAULT_GOALS_FONT_SIZE = 11
 local DEFAULT_DATETIME_MAX_FONT_SIZE = 36
 local MAX_DATETIME_FONT_SIZE = 160
-local DEFAULT_STATS_FONT_SIZE = 18
-local DEFAULT_STATS_MAX_FONT_SIZE = 18
+local DEFAULT_STATS_FONT_SIZE = 16
+local DEFAULT_STATS_MAX_FONT_SIZE = 22
 local MAX_STATS_FONT_SIZE = 64
-local DEFAULT_DATETIME_FONT_SIZES = { time = 48, date = 18 }
+local DEFAULT_DATETIME_FONT_SIZES = { time = 36, date = 12 }
 local DEFAULT_STRIP_CONTROL_TEXT_STYLE = {
     font_face = "default",
     font_size = 10,
@@ -215,25 +215,22 @@ local function ensure_home_widget_cfg(dcfg)
     if stats_triplet.stat_style ~= "outline" and stats_triplet.stat_style ~= "none" then
         stats_triplet.stat_style = "divider"
     end
-    local stats_font_size = tonumber(stats_triplet.font_size)
-        or tonumber(stats_triplet.font_scale) and DEFAULT_STATS_FONT_SIZE * stats_triplet.font_scale / 100
-    local stats_font_override = stats_triplet.font_size_override == true
-    stats_triplet.font_size = stats_font_size
-        and (stats_font_override or stats_font_size ~= DEFAULT_STATS_FONT_SIZE)
-        and math.max(8, math.min(MAX_STATS_FONT_SIZE, math.floor(stats_font_size + 0.5))) or nil
-    stats_triplet.font_size_override = stats_triplet.font_size and true or nil
+    stats_triplet.font_size = tonumber(stats_triplet.font_size)
+    if stats_triplet.font_size then
+        stats_triplet.font_size = math.max(8, math.min(MAX_STATS_FONT_SIZE, math.floor(stats_triplet.font_size + 0.5)))
+    end
     stats_triplet.automatic_font_size = stats_triplet.automatic_font_size ~= false
     stats_triplet.max_font_size = math.max(8, math.min(MAX_STATS_FONT_SIZE, math.floor(
         (tonumber(stats_triplet.max_font_size) or DEFAULT_STATS_MAX_FONT_SIZE) + 0.5
     )))
-    stats_triplet.max_font_size_override = nil
     stats_triplet.font_scale = nil
     local reading_goals = ensure_module_cfg(dcfg, "reading_goals")
     local goals_font_size = tonumber(reading_goals.font_size)
-    local goals_font_override = reading_goals.font_size_override == true
-    reading_goals.font_size = goals_font_size and (goals_font_override or goals_font_size ~= DEFAULT_GOALS_FONT_SIZE)
-        and math.max(8, math.min(32, math.floor(goals_font_size + 0.5))) or nil
-    reading_goals.font_size_override = reading_goals.font_size and true or nil
+    reading_goals.font_size = goals_font_size and math.max(8, math.min(32, math.floor(goals_font_size + 0.5))) or nil
+    reading_goals.automatic_font_size = reading_goals.automatic_font_size ~= false
+    reading_goals.max_font_size = math.max(8, math.min(64, math.floor(
+        (tonumber(reading_goals.max_font_size) or 32) + 0.5
+    )))
     ensure_module_cfg(dcfg, "quotes")
     ensure_strip_cfg(dcfg)
 end
@@ -2106,6 +2103,12 @@ function M.build(ctx)
         stats_field_labels[option.id] = option.text
     end
 
+    local function stats_style_summary(stats_cfg)
+        local size = stats_cfg.automatic_font_size ~= false
+            and _("Automatic") or tostring(stats_cfg.font_size or DEFAULT_STATS_FONT_SIZE)
+        return size
+    end
+
     local function build_stats_triplet_items()
         local stats_cfg = ensure_module_cfg(dcfg, "stats_triplet")
         local items = {
@@ -2141,6 +2144,7 @@ function M.build(ctx)
                         default_value = DEFAULT_STATS_MAX_FONT_SIZE,
                         callback = function(spin)
                             stats_cfg.max_font_size = spin.value
+                            stats_cfg.automatic_font_size = false
                             save_home("reinit")
                             if touchmenu_instance and touchmenu_instance.updateItems then
                                 touchmenu_instance:updateItems()
@@ -2152,7 +2156,7 @@ function M.build(ctx)
             {
                 text_func = function()
                     return string.format("%s %s", _("Font size:"),
-                        tostring(stats_cfg.font_size or DEFAULT_STATS_FONT_SIZE))
+                        stats_style_summary(stats_cfg))
                 end,
                 enabled_func = function()
                     return stats_cfg.automatic_font_size == false
@@ -2168,7 +2172,7 @@ function M.build(ctx)
                         default_value = DEFAULT_STATS_FONT_SIZE,
                         callback = function(spin)
                             stats_cfg.font_size = spin.value
-                            stats_cfg.font_size_override = true
+                            stats_cfg.automatic_font_size = false
                             save_home("reinit")
                             if touchmenu_instance and touchmenu_instance.updateItems then
                                 touchmenu_instance:updateItems()

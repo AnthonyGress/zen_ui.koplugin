@@ -36,8 +36,8 @@ end
 
 local function datetime_text_styles()
     return {
-        time = { font_face = "default", font_size = 48 },
-        date = { font_face = "default", font_size = 18 },
+        time = { font_face = "default", font_size = 36 },
+        date = { font_face = "default", font_size = 12 },
     }
 end
 
@@ -141,9 +141,8 @@ local DEFAULT_HOME_PAGE = {
         reading_goals = {},
         stats_triplet = {
             automatic_font_size = true,
-            font_size = 18,
-            font_size_override = true,
-            max_font_size = 18,
+            font_size = 16,
+            max_font_size = 22,
             stat_style = "divider",
         },
         strip = strip_defaults{ controls = true },
@@ -216,7 +215,7 @@ local BOOKSHELF_HOME_PAGE = {
         reading_goals = {},
         stats_triplet = {
             automatic_font_size = true,
-            max_font_size = 18,
+            max_font_size = 22,
             stat_style = "divider",
         },
         strip = strip_defaults{ count = 8, controls = true, two_rows = true },

@@ -31,12 +31,6 @@ describe("About settings", function()
         ZenSpec.replace("modules/settings/zen_bugreporter", {
             show_dialog = function() end,
         })
-        ZenSpec.replace("modules/settings/zen_updater", {
-            build_update_now_item = function() return {} end,
-            build_changelog_item = function() return {} end,
-            build_channel_item = function() return {} end,
-            build_auto_check_item = function() return {} end,
-        })
         ZenSpec.replace("modules/settings/sections/advanced_settings", {
             build = function() return {} end,
         })
@@ -45,9 +39,6 @@ describe("About settings", function()
         }))
         ZenSpec.replace("common/ui/icon_menu_item", {
             decorate = function() end,
-        })
-        ZenSpec.replace("device", {
-            hasOTAUpdates = function() return false end,
         })
         ZenSpec.replace("common/quickstart/quickstart_screen", {
             new = function(_self, spec) return spec end,

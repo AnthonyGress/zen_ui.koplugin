@@ -26,8 +26,8 @@ end
 local flame_icon_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "flame") or nil
 local MIN_FONT_SIZE = 8
 local MAX_FONT_SIZE = 64
-local DEFAULT_FONT_SIZE = 18
-local DEFAULT_MAX_FONT_SIZE = 18
+local DEFAULT_FONT_SIZE = 16
+local DEFAULT_MAX_FONT_SIZE = 22
 
 local function time_unit(unit)
     if type(_) == "table" and type(_.pgettext) == "function" then

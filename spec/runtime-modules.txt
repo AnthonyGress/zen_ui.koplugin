@@ -197,6 +197,7 @@ modules/settings/sections/library_settings/status_bar_settings.lua|integration
 modules/settings/sections/menu_settings.lua|integration
 modules/settings/sections/reader_settings.lua|integration
 modules/settings/sections/stats_settings.lua|integration
+modules/settings/sections/updates_settings.lua|integration
 modules/settings/zen_bugreporter.lua|integration
 modules/settings/zen_settings.lua|integration
 modules/settings/zen_settings_page.lua|integration

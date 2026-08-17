@@ -1614,7 +1614,7 @@ function M.build_update_available_item(plugin)
     }, icons.update)
 end
 
---- Returns the "Update ZenOS" menu item for the About section.
+--- Returns the "Update ZenOS" menu item for the Updates section.
 --- When a newer version has already been detected the text changes to reflect
 --- the pending update and tapping it launches the download flow directly.
 function M.build_update_now_item(plugin)
@@ -1837,7 +1837,7 @@ function M.set_channel(ch)
     save_updater_config(cfg)
 end
 
---- Returns a radio-style "Update channel" sub-menu item for the About section.
+--- Returns a radio-style "Update channel" sub-menu item for the Updates section.
 function M.build_channel_item()
     return {
         text = _("Update channel"),

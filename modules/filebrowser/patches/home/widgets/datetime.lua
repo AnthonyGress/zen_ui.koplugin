@@ -14,7 +14,7 @@ local LOWERCASE_MONTH_LANGUAGES = {
     es = true, fr = true, it = true, nl = true, pt = true, ro = true,
 }
 local DEFAULT_MAX_TIME_SIZE = 36
-local MAX_TIME_SIZE = 160
+local MAX_TIME_SIZE = 52
 
 local function clamp(value, minimum, maximum)
     value = math.floor((tonumber(value) or minimum) + 0.5)
@@ -141,7 +141,7 @@ end
 return {
     id = "datetime",
     label = _("Date/time"),
-    size = "xs",
+    size = "sm",
     preferredHeight = preferred_height,
     build = function(ctx)
         local width = ctx.width
