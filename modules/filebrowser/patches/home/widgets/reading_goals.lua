@@ -287,7 +287,6 @@ return {
         local content_w = math.max(20, width - pad_h * 2)
         local module_cfg = ctx.module_cfg or {}
         local configured_font_size = tonumber(module_cfg.font_size)
-            or tonumber(ctx.font_size)
             or DEFAULT_FONT_SIZE
         local max_px = configured_font_size and math.max(6, math.min(32, configured_font_size))
             or math.max(6, math.min(10, math.floor(height / #goal_rows * 0.7)))

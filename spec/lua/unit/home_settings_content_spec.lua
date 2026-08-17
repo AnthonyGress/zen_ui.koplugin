@@ -47,7 +47,7 @@ describe("Home widget content settings", function()
                 },
                 quotes = { show_module_title = true },
                 reading_goals = { show_module_title = true },
-                stats_triplet = { show_module_title = true, max_font_size = 18 },
+                stats_triplet = { show_module_title = true },
                 strip = {
                     show_module_title = true,
                     controls = {
@@ -282,6 +282,25 @@ describe("Home widget content settings", function()
         end
     end)
 
+    it("removes shared Home font-size controls and legacy values", function()
+        home_page.font_size = 23
+        home_page.font_size_override = true
+        home_page.quotes.use_home_font_size = true
+
+        local settings = require("modules/settings/sections/library_settings/home_settings")
+        local section = settings.build({ config = {}, settings_apply = {} })
+
+        assert.is_nil(home_page.font_size)
+        assert.is_nil(home_page.font_size_override)
+        assert.is_nil(home_page.quotes.use_home_font_size)
+        assert.is_false(has_item_prefix(section.sub_item_table, "Default font size:"))
+        for _i, id in ipairs({ "reading_goals", "stats_triplet", "quotes" }) do
+            assert.is_true(settings.openWidgetSettings(id))
+            assert.is_nil(find_item(arrange_options.item_table, "Use default font size"))
+            assert.is_nil(find_item(arrange_options.item_table, "Use Home default font size"))
+        end
+    end)
+
     it("shows Strip filters and custom books only for their content", function()
         local settings = require("modules/settings/sections/library_settings/home_settings")
         assert.is_true(settings.openWidgetSettings("strip"))
@@ -360,7 +379,7 @@ describe("Home widget content settings", function()
         assert.is_false(maximum.enabled_func())
     end)
 
-    it("offers automatic and manual stats font sizing", function()
+    it("caps automatic stats sizing and disables its manual size", function()
         ZenSpec.replace("ui/widget/spinwidget", {
             new = function(_self, values) return values end,
         })
@@ -369,19 +388,24 @@ describe("Home widget content settings", function()
 
         local items = arrange_options.item_table
         local automatic = find_item(items, "Automatic font size")
-        local size = find_item(items, "Font size: Automatic")
+        local maximum = find_item(items, "Maximum font size: 24")
+        local size = find_item(items, "Font size: 18")
         assert.is_true(automatic.checked_func())
+        assert.is_not_nil(maximum)
+        assert.is_true(maximum.enabled_func())
         assert.is_not_nil(size)
         assert.is_false(size.enabled_func())
-        assert.is_false(find_item(items, "Use Home default font size").enabled_func())
-        assert.is_nil(home_page.modules.stats_triplet.max_font_size)
-        assert.is_nil(home_page.modules.stats_triplet.max_font_size_override)
+
+        maximum.callback({ updateItems = function() end })
+        assert.are.equal(24, shown[#shown].value)
+        assert.are.equal(64, shown[#shown].value_max)
+        shown[#shown].callback({ value = 30 })
+        assert.are.equal(30, home_page.modules.stats_triplet.max_font_size)
 
         automatic.callback({ updateItems = function() end })
         assert.is_false(automatic.checked_func())
-        assert.are.equal("Font size: 18", size.text_func())
+        assert.is_false(maximum.enabled_func())
         assert.is_true(size.enabled_func())
-        assert.is_true(find_item(items, "Use Home default font size").enabled_func())
 
         size.callback({ updateItems = function() end })
         assert.are.equal(18, shown[#shown].value)
@@ -389,6 +413,29 @@ describe("Home widget content settings", function()
         shown[#shown].callback({ value = 22 })
         assert.are.equal(22, home_page.modules.stats_triplet.font_size)
         assert.is_true(home_page.modules.stats_triplet.font_size_override)
+    end)
+
+    it("disables the inactive quote font-size control", function()
+        ZenSpec.replace("ui/widget/spinwidget", {
+            new = function(_self, values) return values end,
+        })
+        home_page.quotes.automatic_font_size = true
+
+        local settings = require("modules/settings/sections/library_settings/home_settings")
+        assert.is_true(settings.openWidgetSettings("quotes"))
+
+        local items = arrange_options.item_table
+        local automatic = find_item(items, "Automatic font size")
+        local maximum = find_item(items, "Maximum font size: 14")
+        local size = find_item(items, "Font size: 12")
+        assert.is_true(automatic.checked_func())
+        assert.is_true(maximum.enabled_func())
+        assert.is_false(size.enabled_func())
+
+        automatic.callback({ updateItems = function() end })
+        assert.is_false(automatic.checked_func())
+        assert.is_false(maximum.enabled_func())
+        assert.is_true(size.enabled_func())
     end)
 
     it("confirms before deleting a Strip control tab and returns to Tabs", function()

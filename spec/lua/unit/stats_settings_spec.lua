@@ -180,7 +180,7 @@ describe("stats settings", function()
         local font_items = arrange_options.item_table[4].sub_item_table_func()
 
         assert.are.equal("Font size: 11", font_items[1].text_func())
-        assert.are.equal("Use default font size", font_items[2].text)
+        assert.is_nil(font_items[2])
     end)
 
     it("persists the default font size", function()

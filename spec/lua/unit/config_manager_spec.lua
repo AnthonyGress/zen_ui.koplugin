@@ -110,7 +110,13 @@ describe("config manager folder-path migration", function()
         stores.home = {
             settings = {
                 font_size = 18,
-                quotes = { day_seed = 123, font_size = 18, manual_index = 4 },
+                font_size_override = true,
+                quotes = {
+                    day_seed = 123,
+                    font_size = 18,
+                    manual_index = 4,
+                    use_home_font_size = true,
+                },
             },
             presets = {
                 missing = { quotes = {} },
@@ -120,7 +126,10 @@ describe("config manager folder-path migration", function()
 
         Manager.load()
 
+        assert.is_nil(stores.home.settings.font_size)
+        assert.is_nil(stores.home.settings.font_size_override)
         assert.are.equal(12, stores.home.settings.quotes.font_size)
+        assert.is_nil(stores.home.settings.quotes.use_home_font_size)
         assert.is_true(stores.home.settings.quotes.automatic_font_size)
         assert.are.equal(14, stores.home.settings.quotes.max_font_size)
         assert.are.equal("daily", stores.home.settings.quotes.rotation)

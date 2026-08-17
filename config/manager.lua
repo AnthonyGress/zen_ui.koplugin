@@ -817,6 +817,14 @@ local function migrate_home_quote_font_size()
 
     local function migrate(page)
         if type(page) ~= "table" then return end
+        if page.font_size ~= nil then
+            page.font_size = nil
+            changed = true
+        end
+        if page.font_size_override ~= nil then
+            page.font_size_override = nil
+            changed = true
+        end
         if type(page.quotes) ~= "table" then
             page.quotes = {}
             changed = true
@@ -851,10 +859,13 @@ local function migrate_home_quote_font_size()
             changed = true
         end
         local font_size = tonumber(quotes.font_size)
-        if quotes.use_home_font_size ~= true
-                and (font_size == nil or (font_size == 18 and quotes.font_size_override ~= true)) then
+        if font_size == nil or (font_size == 18 and quotes.font_size_override ~= true) then
             quotes.font_size = 12
             quotes.font_size_override = nil
+            changed = true
+        end
+        if quotes.use_home_font_size ~= nil then
+            quotes.use_home_font_size = nil
             changed = true
         end
     end

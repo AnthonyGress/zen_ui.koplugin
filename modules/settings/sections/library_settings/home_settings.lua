@@ -19,6 +19,9 @@ local M = {}
 local DEFAULT_GOALS_FONT_SIZE = 11
 local DEFAULT_DATETIME_MAX_FONT_SIZE = 36
 local MAX_DATETIME_FONT_SIZE = 160
+local DEFAULT_STATS_FONT_SIZE = 18
+local DEFAULT_STATS_MAX_FONT_SIZE = 24
+local MAX_STATS_FONT_SIZE = 64
 local DEFAULT_DATETIME_FONT_SIZES = { time = 48, date = 18 }
 local DEFAULT_STRIP_CONTROL_TEXT_STYLE = {
     font_face = "default",
@@ -213,13 +216,16 @@ local function ensure_home_widget_cfg(dcfg)
         stats_triplet.stat_style = "divider"
     end
     local stats_font_size = tonumber(stats_triplet.font_size)
-        or tonumber(stats_triplet.font_scale) and 18 * stats_triplet.font_scale / 100
+        or tonumber(stats_triplet.font_scale) and DEFAULT_STATS_FONT_SIZE * stats_triplet.font_scale / 100
     local stats_font_override = stats_triplet.font_size_override == true
-    stats_triplet.font_size = stats_font_size and (stats_font_override or stats_font_size ~= 18)
-        and math.max(8, math.min(64, math.floor(stats_font_size + 0.5))) or nil
+    stats_triplet.font_size = stats_font_size
+        and (stats_font_override or stats_font_size ~= DEFAULT_STATS_FONT_SIZE)
+        and math.max(8, math.min(MAX_STATS_FONT_SIZE, math.floor(stats_font_size + 0.5))) or nil
     stats_triplet.font_size_override = stats_triplet.font_size and true or nil
     stats_triplet.automatic_font_size = stats_triplet.automatic_font_size ~= false
-    stats_triplet.max_font_size = nil
+    stats_triplet.max_font_size = math.max(8, math.min(MAX_STATS_FONT_SIZE, math.floor(
+        (tonumber(stats_triplet.max_font_size) or DEFAULT_STATS_MAX_FONT_SIZE) + 0.5
+    )))
     stats_triplet.max_font_size_override = nil
     stats_triplet.font_scale = nil
     local reading_goals = ensure_module_cfg(dcfg, "reading_goals")
@@ -248,9 +254,8 @@ local function ensure_cfg(_config)
 
     if dcfg.show_status_bar == nil then dcfg.show_status_bar = true end
     dcfg.edit_mode = dcfg.edit_mode == true
-    local font_size = tonumber(dcfg.font_size)
-    dcfg.font_size = font_size and math.max(8, math.min(32, math.floor(font_size + 0.5))) or 18
-    dcfg.font_size_override = dcfg.font_size_override == true
+    dcfg.font_size = nil
+    dcfg.font_size_override = nil
 
     if type(dcfg.middle_stats_triplet) ~= "table" then
         dcfg.middle_stats_triplet = { "today_pages", "today_duration", "streak" }
@@ -269,7 +274,7 @@ local function ensure_cfg(_config)
     dcfg.quotes.max_font_size = math.max(
         4, math.min(32, tonumber(dcfg.quotes.max_font_size) or 14)
     )
-    dcfg.quotes.use_home_font_size = dcfg.quotes.use_home_font_size == true or nil
+    dcfg.quotes.use_home_font_size = nil
     local quote_font_size = tonumber(dcfg.quotes.font_size)
     local quote_font_override = dcfg.quotes.font_size_override == true
     if quote_font_size == 18 and not quote_font_override then quote_font_size = nil end
@@ -2057,43 +2062,31 @@ function M.build(ctx)
 
     local function build_goals_items()
         local goals_cfg = ensure_module_cfg(dcfg, "reading_goals")
-        local items = {
-            {
-                text_func = function()
-                    return string.format("%s %s", _("Font size:"), tostring(goals_cfg.font_size or DEFAULT_GOALS_FONT_SIZE))
-                end,
-                keep_menu_open = true,
-                callback = function(touchmenu_instance)
-                    local SpinWidget = require("ui/widget/spinwidget")
-                    UIManager:show(SpinWidget:new{
-                        title_text = _("Reading goals font size"),
-                        value = goals_cfg.font_size or DEFAULT_GOALS_FONT_SIZE,
-                        value_min = 8,
-                        value_max = 32,
-                        default_value = DEFAULT_GOALS_FONT_SIZE,
-                        callback = function(spin)
-                            goals_cfg.font_size = spin.value
-                            goals_cfg.font_size_override = true
-                            save_home("reinit")
-                            if touchmenu_instance and touchmenu_instance.updateItems then
-                                touchmenu_instance:updateItems()
-                            end
-                        end,
-                    })
-                end,
-            },
-            {
-                text = _("Use default font size"),
-                callback = function(touchmenu_instance)
-                    goals_cfg.font_size = nil
-                    goals_cfg.font_size_override = nil
-                    save_home("reinit")
-                    if touchmenu_instance and touchmenu_instance.updateItems then
-                        touchmenu_instance:updateItems()
-                    end
-                end,
-            },
-        }
+        local items = {{
+            text_func = function()
+                return string.format("%s %s", _("Font size:"),
+                    tostring(goals_cfg.font_size or DEFAULT_GOALS_FONT_SIZE))
+            end,
+            keep_menu_open = true,
+            callback = function(touchmenu_instance)
+                local SpinWidget = require("ui/widget/spinwidget")
+                UIManager:show(SpinWidget:new{
+                    title_text = _("Reading goals font size"),
+                    value = goals_cfg.font_size or DEFAULT_GOALS_FONT_SIZE,
+                    value_min = 8,
+                    value_max = 32,
+                    default_value = DEFAULT_GOALS_FONT_SIZE,
+                    callback = function(spin)
+                        goals_cfg.font_size = spin.value
+                        goals_cfg.font_size_override = true
+                        save_home("reinit")
+                        if touchmenu_instance and touchmenu_instance.updateItems then
+                            touchmenu_instance:updateItems()
+                        end
+                    end,
+                })
+            end,
+        }}
         local shared_items = ReadingGoals.settingsItems(dcfg.goals, function()
             save_home("reinit")
         end)
@@ -2131,26 +2124,23 @@ function M.build(ctx)
             },
             {
                 text_func = function()
-                    if stats_cfg.automatic_font_size ~= false then
-                        return string.format("%s %s", _("Font size:"), _("Automatic"))
-                    end
-                    return string.format("%s %s", _("Font size:"), tostring(stats_cfg.font_size or dcfg.font_size))
+                    return string.format("%s %s", _("Maximum font size:"),
+                        tostring(stats_cfg.max_font_size or DEFAULT_STATS_MAX_FONT_SIZE))
                 end,
                 enabled_func = function()
-                    return stats_cfg.automatic_font_size == false
+                    return stats_cfg.automatic_font_size ~= false
                 end,
                 keep_menu_open = true,
                 callback = function(touchmenu_instance)
                     local SpinWidget = require("ui/widget/spinwidget")
                     UIManager:show(SpinWidget:new{
                         title_text = _("Stats font size"),
-                        value = stats_cfg.font_size or dcfg.font_size,
+                        value = stats_cfg.max_font_size or DEFAULT_STATS_MAX_FONT_SIZE,
                         value_min = 8,
-                        value_max = 64,
-                        default_value = 18,
+                        value_max = MAX_STATS_FONT_SIZE,
+                        default_value = DEFAULT_STATS_MAX_FONT_SIZE,
                         callback = function(spin)
-                            stats_cfg.font_size = spin.value
-                            stats_cfg.font_size_override = true
+                            stats_cfg.max_font_size = spin.value
                             save_home("reinit")
                             if touchmenu_instance and touchmenu_instance.updateItems then
                                 touchmenu_instance:updateItems()
@@ -2160,14 +2150,31 @@ function M.build(ctx)
                 end,
             },
             {
-                text = _("Use Home default font size"),
+                text_func = function()
+                    return string.format("%s %s", _("Font size:"),
+                        tostring(stats_cfg.font_size or DEFAULT_STATS_FONT_SIZE))
+                end,
                 enabled_func = function()
                     return stats_cfg.automatic_font_size == false
                 end,
-                callback = function()
-                    stats_cfg.font_size = nil
-                    stats_cfg.font_size_override = nil
-                    save_home("reinit")
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    local SpinWidget = require("ui/widget/spinwidget")
+                    UIManager:show(SpinWidget:new{
+                        title_text = _("Stats font size"),
+                        value = stats_cfg.font_size or DEFAULT_STATS_FONT_SIZE,
+                        value_min = 8,
+                        value_max = MAX_STATS_FONT_SIZE,
+                        default_value = DEFAULT_STATS_FONT_SIZE,
+                        callback = function(spin)
+                            stats_cfg.font_size = spin.value
+                            stats_cfg.font_size_override = true
+                            save_home("reinit")
+                            if touchmenu_instance and touchmenu_instance.updateItems then
+                                touchmenu_instance:updateItems()
+                            end
+                        end,
+                    })
                 end,
             },
             {
@@ -2274,7 +2281,6 @@ function M.build(ctx)
             return item
         end
         local function quote_font_size()
-            if dcfg.quotes.use_home_font_size then return dcfg.font_size end
             return dcfg.quotes.font_size or 12
         end
         local custom_quotes_available = HomeQuotes.hasCustomQuotes()
@@ -2349,63 +2355,56 @@ function M.build(ctx)
 
         items[#items + 1] = {
             text_func = function()
-                if dcfg.quotes.automatic_font_size == true then
-                    return string.format(
-                        "%s %s",
-                        _("Maximum font size:"),
-                        tostring(dcfg.quotes.max_font_size or 14)
-                    )
-                end
-                return string.format("%s %s", _("Font size:"), tostring(quote_font_size()))
+                return string.format("%s %s", _("Maximum font size:"),
+                    tostring(dcfg.quotes.max_font_size or 14))
+            end,
+            enabled_func = function()
+                return dcfg.quotes.automatic_font_size == true
             end,
             keep_menu_open = true,
             callback = function(touchmenu_instance)
                 local SpinWidget = require("ui/widget/spinwidget")
-                if dcfg.quotes.automatic_font_size == true then
-                    UIManager:show(SpinWidget:new{
-                        title_text = _("Maximum quote font size"),
-                        value = dcfg.quotes.max_font_size or 14,
-                        value_min = 4,
-                        value_max = 32,
-                        default_value = 14,
-                        callback = function(spin)
-                            dcfg.quotes.max_font_size = spin.value
-                            save_home("reinit")
-                            if touchmenu_instance and touchmenu_instance.updateItems then
-                                touchmenu_instance:updateItems()
-                            end
-                        end,
-                    })
-                else
-                    UIManager:show(SpinWidget:new{
-                        title_text = _("Quote font size"),
-                        value = quote_font_size(),
-                        value_min = 4,
-                        value_max = 32,
-                        default_value = 12,
-                        callback = function(spin)
-                            dcfg.quotes.font_size = spin.value
-                            dcfg.quotes.font_size_override = true
-                            dcfg.quotes.use_home_font_size = nil
-                            save_home("reinit")
-                            if touchmenu_instance and touchmenu_instance.updateItems then
-                                touchmenu_instance:updateItems()
-                            end
-                        end,
-                    })
-                end
+                UIManager:show(SpinWidget:new{
+                    title_text = _("Maximum quote font size"),
+                    value = dcfg.quotes.max_font_size or 14,
+                    value_min = 4,
+                    value_max = 32,
+                    default_value = 14,
+                    callback = function(spin)
+                        dcfg.quotes.max_font_size = spin.value
+                        save_home("reinit")
+                        if touchmenu_instance and touchmenu_instance.updateItems then
+                            touchmenu_instance:updateItems()
+                        end
+                    end,
+                })
             end,
         }
         items[#items + 1] = {
-            text = _("Use Home default font size"),
+            text_func = function()
+                return string.format("%s %s", _("Font size:"), tostring(quote_font_size()))
+            end,
             enabled_func = function()
                 return dcfg.quotes.automatic_font_size ~= true
             end,
-            callback = function()
-                dcfg.quotes.font_size = nil
-                dcfg.quotes.font_size_override = nil
-                dcfg.quotes.use_home_font_size = true
-                save_home("reinit")
+            keep_menu_open = true,
+            callback = function(touchmenu_instance)
+                local SpinWidget = require("ui/widget/spinwidget")
+                UIManager:show(SpinWidget:new{
+                    title_text = _("Quote font size"),
+                    value = quote_font_size(),
+                    value_min = 4,
+                    value_max = 32,
+                    default_value = 12,
+                    callback = function(spin)
+                        dcfg.quotes.font_size = spin.value
+                        dcfg.quotes.font_size_override = true
+                        save_home("reinit")
+                        if touchmenu_instance and touchmenu_instance.updateItems then
+                            touchmenu_instance:updateItems()
+                        end
+                    end,
+                })
             end,
         }
 
@@ -2499,30 +2498,6 @@ function M.build(ctx)
             {
                 text = _("Presets"),
                 sub_item_table_func = build_preset_items,
-            },
-            {
-                text_func = function()
-                    return string.format("%s %s", _("Default font size:"), tostring(dcfg.font_size))
-                end,
-                keep_menu_open = true,
-                callback = function(touchmenu_instance)
-                    local SpinWidget = require("ui/widget/spinwidget")
-                    UIManager:show(SpinWidget:new{
-                        title_text = _("Home default font size"),
-                        value = dcfg.font_size,
-                        value_min = 8,
-                        value_max = 32,
-                        default_value = 18,
-                        callback = function(spin)
-                            dcfg.font_size = spin.value
-                            dcfg.font_size_override = true
-                            save_home("reinit")
-                            if touchmenu_instance and touchmenu_instance.updateItems then
-                                touchmenu_instance:updateItems()
-                            end
-                        end,
-                    })
-                end,
             },
             {
                 text = _("Show top status bar"),

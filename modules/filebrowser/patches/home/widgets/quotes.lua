@@ -58,12 +58,8 @@ local function quote_content(ctx)
     return quote, quotes, '"' .. (quote.text or "") .. '"', attribution
 end
 
-local function configured_quote_font_size(ctx, quotes)
-    local config = type(ctx.config) == "table" and ctx.config or {}
+local function configured_quote_font_size(quotes)
     local quote_font_size = quotes.font_size
-    if quote_font_size == nil then
-        quote_font_size = quotes.use_home_font_size and config.font_size or 12
-    end
     return math.max(4, math.min(32, tonumber(quote_font_size) or 12))
 end
 
@@ -76,7 +72,7 @@ local function preferred_height(ctx)
     local automatic_font_size = quotes.automatic_font_size == true
     local quote_font_size = automatic_font_size and math.max(
         4, math.min(32, tonumber(quotes.max_font_size) or 14)
-    ) or configured_quote_font_size(ctx, quotes)
+    ) or configured_quote_font_size(quotes)
     local padding = Screen:scaleBySize(8)
     local vertical_padding = automatic_font_size and 0 or Screen:scaleBySize(4)
     local content_w = math.max(30, (tonumber(ctx.width) or Screen:getWidth()) - padding * 2)
@@ -118,7 +114,7 @@ return {
         local quote, quotes, quote_text, attribution = quote_content(ctx)
         local automatic_font_size = quotes.automatic_font_size == true
         local Screen = Device.screen
-        local quote_font_size = configured_quote_font_size(ctx, quotes)
+        local quote_font_size = configured_quote_font_size(quotes)
 
         local padding = Screen:scaleBySize(8)
         local vertical_padding = automatic_font_size and 0 or Screen:scaleBySize(4)

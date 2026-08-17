@@ -11,7 +11,7 @@ local ZEN_MODE_TEXT = table.concat({
     _("Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."),
     _("This does not disable ZenOS—it only shows or hides KOReader’s menus."),
 }, "\n\n")
-local ZEN_SETTINGS_TEXT = _("This is Zen Settings. ZenOS and common KOReader settings live here.")
+local ZEN_SETTINGS_TEXT = _("This is Zen Settings. ZenOS settings/updates and common KOReader settings live here.")
 
 local function valid_dimen(dimen)
     return type(dimen) == "table"

@@ -318,10 +318,10 @@ describe("home basic widgets", function()
             data = { stats = {} },
         }
 
-        assert.are.equal(38, component.preferredHeight(ctx))
+        assert.are.equal(47, component.preferredHeight(ctx))
         ctx.height = 80
         component.build(ctx)
-        assert.are.equal(29, rendered_label_size())
+        assert.are.equal(14, rendered_label_size())
 
         created = {}
         ctx.height = 30
@@ -510,10 +510,11 @@ describe("home basic widgets", function()
         assert.are.equal(36, preset.modules.datetime.max_font_size)
         assert.are.equal(48, preset.modules.datetime.text_styles.time.font_size)
         assert.are.equal(18, preset.modules.datetime.text_styles.date.font_size)
+        assert.is_nil(preset.font_size)
         assert.are.equal(18, preset.modules.stats_triplet.font_size)
         assert.is_true(preset.modules.stats_triplet.font_size_override)
         assert.is_true(preset.modules.stats_triplet.automatic_font_size)
-        assert.is_nil(preset.modules.stats_triplet.max_font_size)
+        assert.are.equal(24, preset.modules.stats_triplet.max_font_size)
         assert.is_true(preset.quotes.automatic_font_size)
         assert.are.equal(14, preset.quotes.max_font_size)
         assert.are.equal(12, preset.quotes.font_size)

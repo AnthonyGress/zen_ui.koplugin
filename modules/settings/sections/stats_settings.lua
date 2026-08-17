@@ -136,43 +136,31 @@ function M.build(ctx)
             return settings.widgets.options[id]
         end
         local default_font_size = id == "goal_progress" and DEFAULT_GOALS_FONT_SIZE or settings.font_size or 15
-        return {
-            {
-                text_func = function()
-                    return string.format("%s %s", _("Font size:"), tostring(widget().font_size or default_font_size))
-                end,
-                keep_menu_open = true,
-                callback = function(touchmenu_instance)
-                    local SpinWidget = require("ui/widget/spinwidget")
-                    UIManager:show(SpinWidget:new{
-                        title_text = label_for(id) .. " " .. _("font size"),
-                        value = widget().font_size or default_font_size,
-                        value_min = 6,
-                        value_max = 32,
-                        default_value = default_font_size,
-                        callback = function(spin)
-                            widget().font_size = spin.value
-                            widget().font_size_override = true
-                            save(settings)
-                            if touchmenu_instance and touchmenu_instance.updateItems then
-                                touchmenu_instance:updateItems()
-                            end
-                        end,
-                    })
-                end,
-            },
-            {
-                text = _("Use default font size"),
-                callback = function(touchmenu_instance)
-                    widget().font_size = nil
-                    widget().font_size_override = nil
-                    save(settings)
-                    if touchmenu_instance and touchmenu_instance.updateItems then
-                        touchmenu_instance:updateItems()
-                    end
-                end,
-            },
-        }
+        return {{
+            text_func = function()
+                return string.format("%s %s", _("Font size:"),
+                    tostring(widget().font_size or default_font_size))
+            end,
+            keep_menu_open = true,
+            callback = function(touchmenu_instance)
+                local SpinWidget = require("ui/widget/spinwidget")
+                UIManager:show(SpinWidget:new{
+                    title_text = label_for(id) .. " " .. _("font size"),
+                    value = widget().font_size or default_font_size,
+                    value_min = 6,
+                    value_max = 32,
+                    default_value = default_font_size,
+                    callback = function(spin)
+                        widget().font_size = spin.value
+                        widget().font_size_override = true
+                        save(settings)
+                        if touchmenu_instance and touchmenu_instance.updateItems then
+                            touchmenu_instance:updateItems()
+                        end
+                    end,
+                })
+            end,
+        }}
     end
 
     local function goal_items(settings)

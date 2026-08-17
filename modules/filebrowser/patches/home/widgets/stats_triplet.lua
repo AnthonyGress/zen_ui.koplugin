@@ -27,6 +27,7 @@ local flame_icon_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "flame
 local MIN_FONT_SIZE = 8
 local MAX_FONT_SIZE = 64
 local DEFAULT_FONT_SIZE = 18
+local DEFAULT_MAX_FONT_SIZE = 24
 
 local function time_unit(unit)
     if type(_) == "table" and type(_.pgettext) == "function" then
@@ -85,9 +86,14 @@ end
 
 local function configured_font_size(ctx)
     local module_cfg = type(ctx.module_cfg) == "table" and ctx.module_cfg or {}
-    local config = type(ctx.config) == "table" and ctx.config or {}
     return math.max(MIN_FONT_SIZE, math.min(MAX_FONT_SIZE,
-        tonumber(module_cfg.font_size) or tonumber(config.font_size) or DEFAULT_FONT_SIZE))
+        tonumber(module_cfg.font_size) or DEFAULT_FONT_SIZE))
+end
+
+local function configured_max_font_size(ctx)
+    local module_cfg = type(ctx.module_cfg) == "table" and ctx.module_cfg or {}
+    return math.max(MIN_FONT_SIZE, math.min(MAX_FONT_SIZE,
+        tonumber(module_cfg.max_font_size) or DEFAULT_MAX_FONT_SIZE))
 end
 
 local function font_size_fits(candidate, fields, stats, inner_w, inner_h)
@@ -120,8 +126,8 @@ local function font_size_fits(candidate, fields, stats, inner_w, inner_h)
     return true
 end
 
-local function fitting_font_size(fields, stats, inner_w, inner_h)
-    local low, high = MIN_FONT_SIZE, MAX_FONT_SIZE
+local function fitting_font_size(fields, stats, inner_w, inner_h, max_font_size)
+    local low, high = MIN_FONT_SIZE, max_font_size
     local best = MIN_FONT_SIZE
     while low <= high do
         local candidate = math.floor((low + high) / 2)
@@ -138,7 +144,9 @@ end
 local function preferred_height(ctx)
     ctx = type(ctx) == "table" and ctx or {}
     local Screen = Device.screen
-    local font_size = configured_font_size(ctx)
+    local module_cfg = type(ctx.module_cfg) == "table" and ctx.module_cfg or {}
+    local font_size = module_cfg.automatic_font_size ~= false
+        and configured_max_font_size(ctx) or configured_font_size(ctx)
     local value_probe = TextWidget:new{
         text = "A",
         face = Font:getFace("smallinfofont", Screen:scaleBySize(font_size)),
@@ -196,7 +204,8 @@ return {
         local inner_h = math.max(1, card_h - border_size * 2)
         local Screen = Device.screen
         local font_size = module_cfg.automatic_font_size ~= false
-            and fitting_font_size(fields, stats, inner_w, inner_h)
+            and fitting_font_size(fields, stats, inner_w, inner_h,
+                configured_max_font_size(ctx))
             or configured_font_size(ctx)
         local value_face = Font:getFace("smallinfofont", Screen:scaleBySize(font_size))
         local label_face = Font:getFace("smallinfofont", Screen:scaleBySize(math.max(6, math.floor(font_size * 0.6))))
