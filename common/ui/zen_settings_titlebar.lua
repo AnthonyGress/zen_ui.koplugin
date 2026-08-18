@@ -97,6 +97,22 @@ local function refresh_status_on_clock_tick(owner)
     end
 end
 
+local function file_manager_dispatches_status_refresh()
+    local FileManager = package.loaded["apps/filemanager/filemanager"]
+    local file_manager = FileManager and FileManager.instance
+    return file_manager and type(file_manager._updateStatusBar) == "function"
+end
+
+local function refresh_status_on_device_event(title_bar)
+    if file_manager_dispatches_status_refresh() then return end
+    local owner = title_bar and title_bar.show_parent
+    if not (owner and owner._zen_status_title_bar == title_bar
+            and type(owner._zen_status_refresh) == "function") then
+        return
+    end
+    refresh_status_on_clock_tick(owner)
+end
+
 local function dismiss_keyboard_on_outside_tap(input)
     local keyboard = input and input.keyboard
     if not keyboard or keyboard._zen_settings_outside_tap then return end
@@ -118,12 +134,43 @@ local function dismiss_keyboard_on_outside_tap(input)
 end
 
 function ZenSettingsTitleBar:clearStatusRefresh()
+    if self._zen_status_charging_refresh_timer then
+        UIManager:unschedule(self._zen_status_charging_refresh_timer)
+        self._zen_status_charging_refresh_timer = nil
+    end
     local owner = self.show_parent
     if not owner or owner._zen_status_title_bar ~= self then return end
     ClockTimer.unbind(owner)
     owner._zen_status_refresh = nil
     owner._zen_status_clock_bound = nil
     owner._zen_status_title_bar = nil
+end
+
+function ZenSettingsTitleBar:onNetworkConnected()
+    refresh_status_on_device_event(self)
+end
+
+ZenSettingsTitleBar.onNetworkDisconnected = ZenSettingsTitleBar.onNetworkConnected
+
+function ZenSettingsTitleBar:onCharging()
+    if file_manager_dispatches_status_refresh() then return end
+    if self._zen_status_charging_refresh_timer then
+        UIManager:unschedule(self._zen_status_charging_refresh_timer)
+    end
+    local title_bar = self
+    self._zen_status_charging_refresh_timer = function()
+        title_bar._zen_status_charging_refresh_timer = nil
+        refresh_status_on_device_event(title_bar)
+    end
+    UIManager:scheduleIn(1.5, self._zen_status_charging_refresh_timer)
+end
+
+ZenSettingsTitleBar.onNotCharging = ZenSettingsTitleBar.onCharging
+
+function ZenSettingsTitleBar:onSuspend()
+    if not self._zen_status_charging_refresh_timer then return end
+    UIManager:unschedule(self._zen_status_charging_refresh_timer)
+    self._zen_status_charging_refresh_timer = nil
 end
 
 function ZenSettingsTitleBar:init()
