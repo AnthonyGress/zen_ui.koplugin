@@ -2862,6 +2862,7 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
             module_cfg = module_cfg,
             row_gap_above = i > 1 and row_gap or 0,
             is_first_row = i == 1,
+            is_last_row = i == #rows,
         }
         local component_started_at = os.clock()
         local ok_widget, widget = pcall(comp.build, row_ctx)

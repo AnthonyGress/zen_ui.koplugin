@@ -396,6 +396,7 @@ describe("home basic widgets", function()
                 font_size = 18,
                 quotes = { show_author = true, show_title = true },
             },
+            is_last_row = true,
             data = {
                 getCurrentQuote = function()
                     return {
@@ -456,6 +457,10 @@ describe("home basic widgets", function()
             content_bounds.min_shift,
             content_bounds.max_shift,
         })
+        content_bounds.set_shift(-7)
+        widget[1][1]:paintTo(nil, 0, 0)
+        assert.are.equal(content_bounds.bottom - 7,
+            author_widget.paint_y + author_widget.dimen.h)
     end)
 
     it("reports fixed quote bounds regardless of content length", function()
