@@ -3487,7 +3487,24 @@ function M.resumeActive()
         return false, "missing"
     end
     if not home_is_on_top(menu) then return false, "not_top" end
+    if menu._zen_navbar_refresh_pending == true then
+        menu._zen_navbar_refresh_pending = nil
+        if type(menu._zen_reinject_navbar) == "function"
+                and menu:_zen_reinject_navbar() == "reopened" then
+            return true, "rebuilt"
+        end
+    end
     return menu:_zen_home_resume()
+end
+
+function M.invalidateNavbar()
+    local menu = _home_menu
+    if not menu or menu._zen_home_closing
+            or type(menu._zen_reinject_navbar) ~= "function" then
+        return false
+    end
+    menu._zen_navbar_refresh_pending = true
+    return true
 end
 
 function M.setCoverCacheBudget(bytes)

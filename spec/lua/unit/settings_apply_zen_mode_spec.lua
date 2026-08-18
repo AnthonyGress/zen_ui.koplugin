@@ -107,6 +107,7 @@ describe("Zen mode settings apply", function()
     end)
 
     it("defers navbar reinjection until the Zen settings page closes", function()
+        local home_invalidations = 0
         local reinjections = 0
         local queued = {}
         local UIManager = require("ui/uimanager")
@@ -117,17 +118,31 @@ describe("Zen mode settings apply", function()
         _G.__ZEN_UI_REINJECT_NAVBARS = function()
             reinjections = reinjections + 1
         end
+        ZenSpec.replace("common/shared_state", {
+            get = function(_plugin, key)
+                if key == "home" then
+                    return {
+                        invalidateNavbar = function()
+                            home_invalidations = home_invalidations + 1
+                        end,
+                    }
+                end
+            end,
+        })
 
         local settings_apply = require("modules/settings/zen_settings_apply")
+        settings_apply.set_plugin({})
         settings_apply.refresh_navbar_on_menu_close()
 
         assert.are.equal(0, reinjections)
+        assert.are.equal(0, home_invalidations)
         _G.__ZEN_UI_SETTINGS_PAGE = nil
         settings_apply.flush_deferred_on_settings_close()
         assert.are.equal(1, #queued)
 
         queued[1]()
         assert.are.equal(1, reinjections)
+        assert.are.equal(1, home_invalidations)
         _G.__ZEN_UI_REINJECT_NAVBARS = nil
     end)
 end)

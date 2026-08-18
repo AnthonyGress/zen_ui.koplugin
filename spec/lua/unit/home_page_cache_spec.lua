@@ -831,6 +831,29 @@ describe("home data and book caches", function()
         assert.are.equal(1, resumes)
     end)
 
+    it("refreshes a stale retained navbar before resuming Home", function()
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local UIManager = require("ui/uimanager")
+        local order = {}
+        local menu = {
+            _zen_reinject_navbar = function()
+                order[#order + 1] = "navbar"
+            end,
+            _zen_home_resume = function()
+                order[#order + 1] = "resume"
+                return true, "reused"
+            end,
+        }
+        set_home_menu(Home, menu)
+        UIManager._window_stack = { { widget = menu } }
+
+        assert.is_true(Home.invalidateNavbar())
+        assert.is_true(menu._zen_navbar_refresh_pending)
+        assert.are.same({ true, "reused" }, { Home.resumeActive() })
+        assert.are.same({ "navbar", "resume" }, order)
+        assert.is_nil(menu._zen_navbar_refresh_pending)
+    end)
+
     it("repaints Home after the last generic startup overlay closes", function()
         local closed = {}
         local dirtied = {}

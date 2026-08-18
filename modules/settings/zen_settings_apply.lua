@@ -103,6 +103,11 @@ local function apply_filemanager_layout()
 end
 
 local function apply_navbar_refresh()
+    local plugin = active_plugin or rawget(_G, "__ZEN_UI_PLUGIN")
+    local home = get_shared(plugin, "home")
+    if home and type(home.invalidateNavbar) == "function" then
+        home.invalidateNavbar()
+    end
     local reinject = rawget(_G, "__ZEN_UI_REINJECT_NAVBARS")
         or rawget(_G, "__ZEN_UI_REINJECT_FM_NAVBAR")
     if type(reinject) == "function" then

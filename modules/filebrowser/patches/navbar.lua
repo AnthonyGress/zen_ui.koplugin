@@ -2735,6 +2735,7 @@ local function apply_navbar()
             local new_nb = createNavBar()
             active_tab = saved_active_local
             if not new_nb then return end
+            menu._zen_navbar_refresh_pending = nil
             local new_h = new_nb:getSize().h
             local old_h = menu._zen_navbar_height or new_h
             if new_h ~= old_h and menu.name == "home" then
