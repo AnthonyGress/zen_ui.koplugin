@@ -10,6 +10,12 @@ order: 40
 
 ![Launcher](/images/zen_os/launcher.png)
 
+![Book switcher in Reader Launcher](/images/zen_os/reader_launcher_book_switcher.png)
+
+![Book details in Reader Launcher](/images/zen_os/reader_launcher_book_details.png)
+
+![Full-screen book details](/images/zen_os/reader_book_details.png)
+
 ## Overview
 
 Launcher adds a configurable tab to the ZenOS menu. It can create shortcut buttons for Controls, dispatcher actions, detected launchable plugins, and native KOReader submenus. Place these buttons inside folders for more organization.

@@ -8,8 +8,6 @@ order: 79
 
 <!-- Documentation current through ZenOS v3.0.0. -->
 
-![Update available](/images/zen_os/update_available.png)
-
 ## Overview
 
 The Updates section installs ZenOS updates directly on the device and, on supported devices, KOReader updates. It also shows the changelog, selects the update channel, and controls automatic update checks.

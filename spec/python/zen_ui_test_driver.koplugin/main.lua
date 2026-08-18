@@ -6,6 +6,76 @@ local C = ffi.C
 local rapidjson = require("rapidjson")
 local UIManager = require("ui/uimanager")
 
+local showcase_originals
+local showcase_timestamp
+
+local function configure_showcase(params)
+    params = type(params) == "table" and params or {}
+    if not showcase_originals then
+        showcase_originals = {
+            os_time = os.time,
+            os_date = os.date,
+        }
+        rawset(os, "time", function(value)
+            if value ~= nil then return showcase_originals.os_time(value) end
+            return showcase_timestamp or showcase_originals.os_time()
+        end)
+        rawset(os, "date", function(format, value)
+            if value == nil then value = showcase_timestamp end
+            return showcase_originals.os_date(format, value)
+        end)
+    end
+    showcase_timestamp = tonumber(params.timestamp)
+        or tonumber(os.getenv("ZEN_UI_SHOWCASE_TIMESTAMP")) or showcase_timestamp
+
+    local ok_device, Device = pcall(require, "device")
+    if ok_device and Device then
+        Device.hasKeyboard = function() return false end
+        Device.hasDPad = function() return false end
+    end
+    local ok_filemanager, FileManager = pcall(require, "apps/filemanager/filemanager")
+    local file_chooser = ok_filemanager and FileManager.instance and FileManager.instance.file_chooser
+    if file_chooser then file_chooser.is_enable_shortcut = false end
+    local powerd = ok_device and Device.getPowerDevice and Device:getPowerDevice()
+    local battery = tonumber(params.battery)
+        or tonumber(os.getenv("ZEN_UI_SHOWCASE_BATTERY")) or 82
+    if powerd then
+        powerd.getCapacity = function() return battery end
+        powerd.getCapacityHW = function() return battery end
+        powerd.isCharging = function() return false end
+        powerd.isCharged = function() return false end
+    end
+    local ok_network, NetworkMgr = pcall(require, "ui/network/manager")
+    if ok_network and NetworkMgr then
+        NetworkMgr.isWifiOn = function() return params.wifi ~= false end
+        NetworkMgr.isConnected = function() return params.wifi ~= false end
+    end
+    return true
+end
+
+local function show_lockdown_control()
+    local PluginLoader = require("pluginloader")
+    local plugin = PluginLoader:getPluginInstance("zenos")
+        or PluginLoader:getPluginInstance("zen_ui")
+    local quick_settings = plugin and plugin.config and plugin.config.quick_settings
+    if type(quick_settings) ~= "table" then return false, "quick settings unavailable" end
+    if type(quick_settings.show_buttons) ~= "table" then quick_settings.show_buttons = {} end
+    quick_settings.show_buttons.lockdown = true
+    if type(quick_settings.button_order) ~= "table" then quick_settings.button_order = {} end
+    for _i, id in ipairs(quick_settings.button_order) do
+        if id == "lockdown" then return true end
+    end
+    local order = {}
+    for _i, id in ipairs(quick_settings.button_order) do
+        order[#order + 1] = id
+        if id == "zen" then order[#order + 1] = "lockdown" end
+    end
+    quick_settings.button_order = order
+    return true
+end
+
+if os.getenv("ZEN_UI_SHOWCASE_TIMESTAMP") then configure_showcase({ wifi = true }) end
+
 local original_set_dirty = UIManager.setDirty
 UIManager.setDirty = function(self, widget, refresh_type, ...)
     if type(widget) == "table" and widget._zen_test_capture_refresh_modes
@@ -281,6 +351,13 @@ local function file_chooser_items()
     local FileManager = require("apps/filemanager/filemanager")
     local file_chooser = FileManager.instance and FileManager.instance.file_chooser
     if not file_chooser then return nil end
+    local PluginLoader = require("pluginloader")
+    local plugin = PluginLoader:getPluginInstance("zenos")
+        or PluginLoader:getPluginInstance("zen_ui")
+    local config = plugin and plugin.config or {}
+    local status_bar = type(config.status_bar) == "table" and config.status_bar or {}
+    local title_strip = type(config.mosaic_title_strip) == "table"
+        and config.mosaic_title_strip or {}
 
     local items = {}
     for _i, item in ipairs(file_chooser.item_table or {}) do
@@ -339,6 +416,16 @@ local function file_chooser_items()
         folder_widgets = folder_widgets,
         visible_items = visible_items,
         visible_texts = visible_texts,
+        status_bar = {
+            center_item_count = type(status_bar.center_order) == "table"
+                and #status_bar.center_order or 0,
+            custom_height = filemanager_status_height(),
+            hide_browser_bar = status_bar.hide_browser_bar == true,
+        },
+        mosaic_title_strip = {
+            show_title = title_strip.show_title == true,
+            show_author = title_strip.show_author == true,
+        },
     }
 end
 
@@ -423,15 +510,82 @@ local function reader_state()
     local visible_texts = {}
     collect_texts(reader, visible_texts, {}, 0)
     local library_state = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
+    local footer = reader.view and reader.view.footer
+    local active_preset
+    local ok_store, PresetStore = pcall(require, "config/preset_store")
+    if ok_store and type(PresetStore.getActivePreset) == "function" then
+        active_preset = PresetStore.getActivePreset("reader")
+    end
     return {
         open = true,
         file = reader.document.file,
         page = page,
+        active_preset = active_preset,
         saved_tab = type(library_state) == "table" and library_state.tab or nil,
         saved_page = type(library_state) == "table" and library_state.page or nil,
         active_tab_label = rawget(_G, "__ZEN_UI_ACTIVE_TAB_LABEL"),
+        footer_text = footer and footer.footer_text and footer.footer_text.text or nil,
         visible_texts = visible_texts,
     }
+end
+
+local function ensure_reader_status_fonts()
+    local PluginLoader = require("pluginloader")
+    local plugin = PluginLoader:getPluginInstance("zenos")
+        or PluginLoader:getPluginInstance("zen_ui")
+    if not (plugin and type(plugin.path) == "string" and type(plugin.config) == "table") then
+        return false, "ZenOS plugin unavailable"
+    end
+    local applied = require("common/reader_defaults").apply(G_reader_settings, plugin.config)
+    if applied ~= true then return false, "reader defaults unavailable" end
+    local ReaderUI = require("apps/reader/readerui")
+    local footer = ReaderUI.instance and ReaderUI.instance.view and ReaderUI.instance.view.footer
+    local expected = require("common/plugin_root")
+        .. "/fonts/hyperreadable/Hyperreadable-SemiBold.ttf"
+    local top = plugin.config.reader_top_status_bar and plugin.config.reader_top_status_bar.font_face
+    local bottom = footer and footer.settings and footer.settings.text_font_face
+    if top ~= expected or bottom ~= expected then
+        return false, string.format("reader status fonts did not apply (top=%s bottom=%s expected=%s)",
+            tostring(top), tostring(bottom), expected)
+    end
+    return true
+end
+
+local function ensure_reader_chapter_time()
+    local ReaderUI = require("apps/reader/readerui")
+    local reader = ReaderUI.instance
+    local footer = reader and reader.view and reader.view.footer
+    if not (reader and footer) then return false, "reader footer unavailable" end
+
+    local stats = reader.statistics
+    if type(stats) ~= "table" then
+        stats = {}
+        reader.statistics = stats
+    end
+    if type(stats.settings) ~= "table" then stats.settings = {} end
+    stats.settings.is_enabled = true
+    stats.avg_time = 60
+
+    if type(footer.updateFooterTextGenerator) == "function" then
+        footer:updateFooterTextGenerator()
+    end
+    if type(footer.refreshFooter) == "function" then footer:refreshFooter(true, true) end
+
+    local text = footer.footer_text and footer.footer_text.text or ""
+    if not text:find("chapter", 1, true) then
+        return false, string.format("chapter ETA did not render (footer=%s)", text)
+    end
+    return true
+end
+
+local function goto_reader_page(page)
+    local ReaderUI = require("apps/reader/readerui")
+    local reader = ReaderUI.instance
+    page = math.max(1, math.floor(tonumber(page) or 1))
+    if not reader or not reader.document then return false, "reader unavailable" end
+    local ok, handled = pcall(reader.handleEvent, reader, Event:new("GotoPage", page))
+    if not ok then return false, handled end
+    return handled ~= false
 end
 
 local function find_upvalue(fn, wanted)
@@ -827,6 +981,181 @@ local function brand_migration_state()
     }
 end
 
+local function reset_showcase_ui(session)
+    local settings_page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
+    if settings_page and type(settings_page.onClose) == "function" then
+        pcall(settings_page.onClose, settings_page)
+    end
+    pcall(function() require("modules/filebrowser/patches/stats_page").closeAll() end)
+    local Home = select(1, active_home_menu())
+    if Home and type(Home.closeAll) == "function" then pcall(Home.closeAll) end
+
+    local FileManager = require("apps/filemanager/filemanager")
+    local fm = FileManager.instance
+    local menu = fm and fm.menu
+    local touch_menu = menu and menu.menu_container and menu.menu_container[1]
+    if touch_menu and type(touch_menu.closeMenu) == "function" then
+        pcall(touch_menu.closeMenu, touch_menu)
+    end
+
+    local ok_reader, ReaderUI = pcall(require, "apps/reader/readerui")
+    local reader = ok_reader and ReaderUI.instance or nil
+    local base = session == "reader" and reader or fm
+    for _i = 1, 24 do
+        local stack = UIManager._window_stack or {}
+        local top = stack[#stack] and stack[#stack].widget
+        if not top or top == base then break end
+        UIManager:close(top)
+    end
+
+    if session ~= "reader" then
+        local open_tab = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_TAB")
+        if type(open_tab) == "function" then pcall(open_tab, "books") end
+    end
+    return true
+end
+
+local function showcase_home(preset_name, simple)
+    local HomePresets = require("modules/filebrowser/patches/home/home_presets")
+    local PresetStore = require("config/preset_store")
+    local settings = HomePresets.defaultHomePage()
+    local active_preset
+    if simple == true then
+        settings.title = "Simple"
+        settings.rows.order = { "datetime", "featured", "strip" }
+        settings.rows.enabled = {
+            datetime = true,
+            featured = true,
+            strip = true,
+        }
+        settings.modules.featured.show_description = true
+        settings.modules.featured.show_status_bar = false
+        settings.modules.strip.count = 8
+        settings.modules.strip.two_rows = true
+        settings.modules.strip.controls.enabled = false
+    else
+        for _i, preset in ipairs(HomePresets.getBuiltinPresets()) do
+            if preset.name == preset_name then
+                HomePresets.applyHomePagePreset(settings, preset)
+                active_preset = preset.name
+                break
+            end
+        end
+        if not active_preset then return false, "unknown Home preset: " .. tostring(preset_name) end
+    end
+    settings.active_preset = active_preset
+    PresetStore.saveSettings("home", settings)
+    PresetStore.setActivePreset("home", active_preset)
+    local Home = select(1, active_home_menu())
+    if Home and type(Home.closeAll) == "function" then Home.closeAll() end
+    local open_tab = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_TAB")
+    if type(open_tab) ~= "function" or open_tab("home") ~= true then
+        return false, "Home navbar callback unavailable"
+    end
+    return true
+end
+
+local function set_library_display_mode(mode)
+    local allowed = {
+        mosaic_image = true,
+        list_image_meta = true,
+    }
+    if not allowed[mode] then return false, "unsupported display mode" end
+    local FileManager = require("apps/filemanager/filemanager")
+    local fm = FileManager.instance
+    if not (fm and type(fm.onSetDisplayMode) == "function") then
+        return false, "file manager display mode callback unavailable"
+    end
+    local ok, err = pcall(fm.onSetDisplayMode, fm, mode)
+    if not ok then return false, tostring(err) end
+    local open_tab = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_TAB")
+    if type(open_tab) == "function" then pcall(open_tab, "books") end
+    return true
+end
+
+local function open_file_context(path)
+    local FileManager = require("apps/filemanager/filemanager")
+    local chooser = FileManager.instance and FileManager.instance.file_chooser
+    if not (chooser and type(chooser.showFileDialog) == "function") then
+        return false, "file chooser context callback unavailable"
+    end
+    for _i, item in ipairs(chooser.item_table or {}) do
+        if (item.path or item.file) == path then
+            chooser:showFileDialog(item)
+            return true
+        end
+    end
+    return false, "context book is not in the current file chooser"
+end
+
+local function open_quickstart()
+    local PluginLoader = require("pluginloader")
+    local plugin = PluginLoader:getPluginInstance("zenos")
+        or PluginLoader:getPluginInstance("zen_ui")
+    if not plugin then return false, "ZenOS plugin unavailable" end
+    local ok_screen, QuickstartScreen = pcall(
+        require, "common/quickstart/quickstart_screen")
+    local ok_pages, QuickstartPages = pcall(
+        require, "common/quickstart/quickstart_pages")
+    if not ok_screen or not ok_pages then return false, "Quickstart modules unavailable" end
+    UIManager:show(QuickstartScreen:new{
+        pages = QuickstartPages.build_install_pages({
+            plugin = plugin,
+            config = plugin.config,
+        }),
+        on_close = function() end,
+    })
+    return true
+end
+
+local function dimen_bounds(dimen)
+    if not (dimen and tonumber(dimen.x) and tonumber(dimen.y)
+            and tonumber(dimen.w) and tonumber(dimen.h)) then return nil end
+    return { x = dimen.x, y = dimen.y, w = dimen.w, h = dimen.h }
+end
+
+local function union_bounds(first, second)
+    if not first then return second end
+    if not second then return first end
+    local x = math.min(first.x, second.x)
+    local y = math.min(first.y, second.y)
+    local right = math.max(first.x + first.w, second.x + second.w)
+    local bottom = math.max(first.y + first.h, second.y + second.h)
+    return { x = x, y = y, w = right - x, h = bottom - y }
+end
+
+local function showcase_bounds(target, label)
+    if target == "navbar" then
+        local stack = UIManager._window_stack or {}
+        for index = #stack, 1, -1 do
+            local navbar = find_descendant(stack[index].widget, function(widget)
+                return type(widget.onTapNavBar) == "function" and widget.dimen ~= nil
+            end)
+            if navbar then return dimen_bounds(navbar.dimen) end
+        end
+        return nil, "navbar bounds unavailable"
+    end
+    if target == "panel_button" then
+        local FileManager = require("apps/filemanager/filemanager")
+        local menu = FileManager.instance and FileManager.instance.menu
+        local touch_menu = menu and menu.menu_container and menu.menu_container[1]
+        local refs = touch_menu and touch_menu._zen_panel_refs
+        local wanted_id = label == "Zen" and "zen"
+            or label == "Lockdown" and "lockdown" or nil
+        for _i, button in ipairs(refs and refs.buttons or {}) do
+            if button.id == wanted_id then
+                local bounds = dimen_bounds(button.widget and button.widget.dimen)
+                local label_widget = find_descendant(touch_menu, function(widget)
+                    return widget.text == label and widget.dimen ~= nil
+                end)
+                return union_bounds(bounds, dimen_bounds(label_widget and label_widget.dimen))
+            end
+        end
+        return nil, "panel button bounds unavailable"
+    end
+    return nil, "unknown showcase bounds target"
+end
+
 local Driver = WidgetContainer:extend{}
 
 function Driver:init()
@@ -863,6 +1192,36 @@ end
 function Driver:handleCommand(command)
     local kind = command and command.type
     local params = command and command.params or {}
+    if kind == "configure_showcase" then
+        return { ok = configure_showcase(params) == true }
+    end
+    if kind == "reset_showcase_ui" then
+        return { ok = reset_showcase_ui(params.session) == true }
+    end
+    if kind == "showcase_home" then
+        local ok, err = showcase_home(params.preset, params.simple)
+        return { ok = ok == true, error = err }
+    end
+    if kind == "set_library_display_mode" and type(params.mode) == "string" then
+        local ok, err = set_library_display_mode(params.mode)
+        return { ok = ok == true, error = err }
+    end
+    if kind == "showcase_lockdown_control" then
+        local ok, err = show_lockdown_control()
+        return { ok = ok == true, error = err }
+    end
+    if kind == "open_file_context" and type(params.path) == "string" then
+        local ok, err = open_file_context(params.path)
+        return { ok = ok == true, error = err }
+    end
+    if kind == "open_quickstart" then
+        local ok, err = open_quickstart()
+        return { ok = ok == true, error = err }
+    end
+    if kind == "showcase_bounds" and type(params.target) == "string" then
+        local bounds, err = showcase_bounds(params.target, params.label)
+        return { ok = bounds ~= nil, bounds = bounds, error = err }
+    end
     if kind == "visible_ui" then return { ok = true, ui = visible_ui() } end
     if kind == "plugin_loaded" and type(params.name) == "string" then
         local PluginLoader = require("pluginloader")
@@ -898,6 +1257,18 @@ function Driver:handleCommand(command)
     if kind == "reader_state" then
         return { ok = true, reader = reader_state() }
     end
+    if kind == "ensure_reader_status_fonts" then
+        local ok, err = ensure_reader_status_fonts()
+        return { ok = ok == true, error = err }
+    end
+    if kind == "ensure_reader_chapter_time" then
+        local ok, err = ensure_reader_chapter_time()
+        return { ok = ok == true, error = err }
+    end
+    if kind == "goto_reader_page" then
+        local ok, err = goto_reader_page(params.page)
+        return { ok = ok == true, error = err }
+    end
     if kind == "page_browser_state" then
         local state = require("reader_tools").page_browser_state()
         return state and { ok = true, page_browser = state }
@@ -918,6 +1289,9 @@ function Driver:handleCommand(command)
     end
     if kind == "reader_overlay_state" then
         return { ok = true, overlays = require("reader_tools").overlay_state() }
+    end
+    if kind == "reader_launcher_state" then
+        return { ok = true, launcher = require("reader_tools").launcher_state() }
     end
     if kind == "activate_reader_control" and type(params.name) == "string" then
         local activated, err = require("reader_tools").activate(params.name)
@@ -1979,7 +2353,7 @@ function Driver:handleCommand(command)
     if kind == "activate_navbar_tab" and type(params.id) == "string" then
         local allowed = {
             books = true, folder = true, home = true, authors = true, series = true,
-            tags = true, to_be_read = true,
+            tags = true, to_be_read = true, stats = true,
         }
         local open_tab = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_TAB")
         if not allowed[params.id] and params.id:sub(1, 3) ~= "ct_" then

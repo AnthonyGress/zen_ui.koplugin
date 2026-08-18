@@ -42,7 +42,6 @@ local function book_info_overlay()
     return find_widget(function(widget)
         return widget._description_widget ~= nil
             and widget._L and widget._L.description_h ~= nil
-            and widget._zen_focus_area ~= nil
     end)
 end
 
@@ -51,6 +50,36 @@ local function bookmark_menu()
     local bookmark = ui and ui.bookmark
     local container = bookmark and bookmark.bookmark_menu
     return container and container[1], container
+end
+
+local function open_launcher_page(page)
+    local ui = reader()
+    local menu = ui and ui.menu
+    if not menu then return false, "reader menu unavailable" end
+    if menu.tab_item_table == nil and type(menu.setUpdateItemTable) == "function" then
+        menu:setUpdateItemTable()
+    end
+    if type(menu.onShowMenu) == "function" then
+        menu:onShowMenu()
+    end
+    local touch_menu = menu.menu_container and menu.menu_container[1]
+    if not touch_menu then return false, "reader menu unavailable" end
+    touch_menu._app_launcher_page = page
+    for index, tab in ipairs(menu.tab_item_table or {}) do
+        if tab.id == "app_launcher" then
+            local icon = touch_menu.bar and touch_menu.bar.icon_widgets
+                and touch_menu.bar.icon_widgets[index]
+            if icon and type(icon.callback) == "function" then
+                icon.callback()
+                return true
+            end
+            if type(touch_menu.switchMenuTab) == "function" then
+                touch_menu:switchMenuTab(index)
+                return true
+            end
+        end
+    end
+    return false, "launcher tab unavailable"
 end
 
 local function find_control(widget, icon, seen, depth)
@@ -175,9 +204,50 @@ function M.overlay_state()
     }
 end
 
+function M.launcher_state()
+    local ui = reader()
+    local menu = ui and ui.menu
+    local container = menu and menu.menu_container
+    local touch_menu = container and container[1]
+    local refs = touch_menu and touch_menu._zen_panel_refs
+    return {
+        open = is_visible(container) and refs ~= nil and touch_menu.item_table
+            and touch_menu.item_table.id == "app_launcher" or false,
+        page = refs and refs.page or nil,
+        page_num = refs and refs.page_num or nil,
+    }
+end
+
 function M.activate(name)
     local ui = reader()
     if not (ui and ui.document) then return false, "reader unavailable" end
+    if name == "reader_menu" then
+        local menu = ui.menu
+        if not (menu and type(menu.onShowMenu) == "function") then
+            return false, "reader menu unavailable"
+        end
+        menu:onShowMenu()
+        return menu.menu_container ~= nil
+    end
+    if name == "launcher_book_switcher" then
+        return open_launcher_page(2)
+    end
+    if name == "launcher_book_details" then
+        return open_launcher_page(3)
+    end
+    if name == "launcher_book_details_fullscreen" then
+        local opened, err = open_launcher_page(3)
+        if not opened then return false, err end
+        local menu = ui.menu
+        local touch_menu = menu and menu.menu_container and menu.menu_container[1]
+        local button = touch_menu and touch_menu._zen_panel_refs
+            and touch_menu._zen_panel_refs.buttons and touch_menu._zen_panel_refs.buttons[1]
+        if not (button and type(button.callback) == "function") then
+            return false, "book details action unavailable"
+        end
+        button.callback()
+        return true
+    end
     if name == "page_browser" then
         local config = ui.config
         if not (config and type(config.onSwipeShowConfigMenu) == "function") then

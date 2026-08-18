@@ -8,13 +8,7 @@ order: 50
 
 <!-- Documentation current through ZenOS v3.0.0. -->
 
-![Page browser menu](/images/zen_os/page_browser_menu.png)
-
-![Page browser table of contents](/images/zen_os/page_browser_toc.png)
-
-![Page browser bookmarks](/images/zen_os/page_browser_bookmarks.png)
-
-![Page browser search](/images/zen_os/page_browser_search.png)
+![Page browser grid](/images/zen_os/page_browser_grid.png)
 
 ![Reader](/images/zen_os/reader.png)
 
@@ -22,15 +16,13 @@ order: 50
 
 ![Highlight menu](/images/zen_os/hilight_menu.png)
 
-> **Note:** To access the default KOReader menu from the page browser, tap the Aa icon in the top right.
-
 ![Reader menu](/images/zen_os/reader_menu.png)
+
+![Book details](/images/zen_os/reader_book_details.png)
 
 ## Overview
 
 Reader settings control ZenOS features while a book is open. They cover the top status bar, reader themes and font menu, highlight and lookup tools, bottom swipe, stable page labels, page browser, return behavior, and bottom status bar options including presets.
-
-![Page browser](/images/zen_os/page_browser.png)
 
 ## Options
 

@@ -46,8 +46,8 @@ local BookInfoWidget = InputContainer:extend{
 }
 
 local function resolve_stock_icon(name)
-    local DataStorage = require("datastorage")
-    return utils.resolveLocalIcon(DataStorage:getDataDir() .. "/resources/icons/mdlight/", name)
+    local lfs = require("libs/libkoreader-lfs")
+    return utils.resolveLocalIcon(lfs.currentdir() .. "/resources/icons/mdlight/", name)
 end
 
 function BookInfoWidget:init()
