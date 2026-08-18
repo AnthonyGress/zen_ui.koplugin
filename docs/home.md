@@ -8,11 +8,11 @@ order: 10
 
 <!-- Documentation current through ZenOS v3.0.0. -->
 
-![ZenOS bookshelf home](/images/zen_os/home_bookshelf.png)
+![ZenOS bookshelf home](/images/zen_os/home_bookshelf.webp)
 
-![ZenOS home](/images/zen_os/zen_home.png)
+![ZenOS home](/images/zen_os/zen_home.webp)
 
-![ZenOS home page](/images/zen_os/home_simple.png)
+![ZenOS home page](/images/zen_os/home_simple.webp)
 
 ## Overview
 

@@ -8,7 +8,7 @@ order: 81
 
 <!-- Documentation current through ZenOS v3.0.0. -->
 
-![ZenOS settings](/images/zen_os/zen_settings.png)
+![ZenOS settings](/images/zen_os/zen_settings.webp)
 
 ## Overview
 

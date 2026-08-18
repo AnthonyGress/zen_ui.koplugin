@@ -8,7 +8,7 @@ order: 35
 
 <!-- Documentation current through ZenOS v3.0.0. -->
 
-![Navbar](/images/zen_os/navbar.png)
+![Navbar](/images/zen_os/navbar.webp)
 
 ## Overview
 

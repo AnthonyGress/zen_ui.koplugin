@@ -28,9 +28,9 @@ The Reading trend widget can show pages or time for the past 7, 14, 30, or 90 da
 
 ## OPDS
 
-![OPDS catalog](/images/zen_os/opds.png)
+![OPDS catalog](/images/zen_os/opds.webp)
 
-![OPDS context menu](/images/zen_os/opds_context.png)
+![OPDS context menu](/images/zen_os/opds_context.webp)
 
 Enable **Extras > Zen OPDS** to apply ZenOS styling to the OPDS catalog browser. The OPDS view inherits the same styling as your library: rounded corners, list and mosaic view, items per page, and other layout options all carry over. Each book in the catalog shows its cover.
 

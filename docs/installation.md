@@ -8,7 +8,7 @@ order: 5
 
 <!-- Documentation current through ZenOS v3.0.0. -->
 
-![zenos.koplugin folder inside the KOReader plugins directory](/images/zen_os/plugins_folder.png)
+![zenos.koplugin folder inside the KOReader plugins directory](/images/zen_os/plugins_folder.webp)
 
 ## Prerequisites
 
@@ -51,7 +51,7 @@ For a fresh installation:
 
 > The final path should look like: `.../plugins/zenos.koplugin/main.lua`
 
-![zenos.koplugin folder inside the KOReader plugins directory](/images/zen_os/plugins_folder.png)
+![zenos.koplugin folder inside the KOReader plugins directory](/images/zen_os/plugins_folder.webp)
 
 ## Plugins directory by device
 
@@ -63,4 +63,4 @@ For a fresh installation:
 | **Android** | `/sdcard/koreader/plugins/` |
 | **Desktop (Linux/macOS)** | `/koreader/plugins/` |
 
-![ZenOS Startup Screen](/images/zen_os/quickstart.png)
+![ZenOS Startup Screen](/images/zen_os/quickstart.webp)

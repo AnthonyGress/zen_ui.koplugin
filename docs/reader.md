@@ -8,21 +8,31 @@ order: 50
 
 <!-- Documentation current through ZenOS v3.0.0. -->
 
-![Page browser grid](/images/zen_os/page_browser_grid.png)
+![Page browser grid](/images/zen_os/page_browser_grid.webp)
 
-![Reader](/images/zen_os/reader.png)
+![Page browser menu](/images/zen_os/page_browser_menu.webp)
 
-![Dictionary lookup menu](/images/zen_os/dictionary_lookup_menu.png)
+![Page browser table of contents](/images/zen_os/page_browser_toc.webp)
 
-![Highlight menu](/images/zen_os/hilight_menu.png)
+![Page browser bookmarks](/images/zen_os/page_browser_bookmarks.webp)
 
-![Reader menu](/images/zen_os/reader_menu.png)
+![Page browser search](/images/zen_os/page_browser_search.webp)
 
-![Book details](/images/zen_os/reader_book_details.png)
+![Reader](/images/zen_os/reader.webp)
+
+![Dictionary lookup menu](/images/zen_os/dictionary_lookup_menu.webp)
+
+![Highlight menu](/images/zen_os/hilight_menu.webp)
+
+![Reader menu](/images/zen_os/reader_menu.webp)
+
+![Book details](/images/zen_os/reader_book_details.webp)
 
 ## Overview
 
 Reader settings control ZenOS features while a book is open. They cover the top status bar, reader themes and font menu, highlight and lookup tools, bottom swipe, stable page labels, page browser, return behavior, and bottom status bar options including presets.
+
+![Page browser](/images/zen_os/page_browser.webp)
 
 ## Options
 
@@ -82,13 +92,13 @@ Reader settings control ZenOS features while a book is open. They cover the top 
 
 ## Dictionary lookup menu
 
-![Dictionary lookup menu](/images/zen_os/dictionary_lookup_menu.png)
+![Dictionary lookup menu](/images/zen_os/dictionary_lookup_menu.webp)
 
 Tap and hold a word while reading to open the Zen quick lookup menu. It shows the dictionary definition for the selected word along with ZenOS action buttons. Enable it with **Highlight / Lookup > Zen quick lookup**. Wikipedia and installed X-Ray, KOAssistant, and AI Assistant integrations can appear as dedicated buttons; use **Show other items** to retain KOReader's remaining lookup options.
 
 ## Highlight menu
 
-![Highlight menu](/images/zen_os/hilight_menu.png)
+![Highlight menu](/images/zen_os/hilight_menu.webp)
 
 Tap + hold and drag to highlight a selection of text and open the Zen highlight menu. It collects highlight, lookup, and annotation actions for the selected text in a single Zen-styled menu. Enable it with **Highlight / Lookup > Zen highlight menu**.
 

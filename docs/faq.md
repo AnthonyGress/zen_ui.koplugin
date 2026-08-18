@@ -16,13 +16,13 @@ See the [Installation](/zen-os/docs/installation) guide for full installation in
 
 Make sure you downloaded the [release](https://github.com/AnthonyGress/zen_ui.koplugin/releases) and did not leave a second folder inside `zenos.koplugin`. The installed `zenos.koplugin` folder must contain `main.lua` and the other ZenOS code files directly, not another nested `zenos.koplugin` folder.
 
-![zenos.koplugin folder inside the KOReader plugins directory](/images/zen_os/plugins_folder.png)
+![zenos.koplugin folder inside the KOReader plugins directory](/images/zen_os/plugins_folder.webp)
 
 ## How do I access the reader menu?
 
 Swipe up while in a book, then tap the **Aa** icon.
 
-![Page browser grid](/images/zen_os/page_browser_grid.png)
+![Page browser grid](/images/zen_os/page_browser_grid.webp)
 
 ## No books found
 

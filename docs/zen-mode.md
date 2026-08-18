@@ -8,9 +8,9 @@ order: 30
 
 <!-- Documentation current through ZenOS v3.0.0. -->
 
-![Controls](/images/zen_os/quicksettings.png)
+![Controls](/images/zen_os/quicksettings.webp)
 
-![Zen Mode](/images/zen_os/zen_mode.png)
+![Zen Mode](/images/zen_os/zen_mode.webp)
 
 ## Introduction
 
@@ -20,7 +20,7 @@ By default, the Home folder lock applies only in Zen Mode, so you cannot acciden
 
 Exiting Zen Mode with the toggle in Controls (icon below) will re-enable the top KOReader menu bar icons like Settings, Tools, etc.
 
-![Zen Mode](/images/zen_os/zen_mode.png)
+![Zen Mode](/images/zen_os/zen_mode.webp)
 
 ## Options
 

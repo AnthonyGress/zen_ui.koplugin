@@ -8,9 +8,9 @@ order: 20
 
 <!-- Documentation current through ZenOS v3.0.0. -->
 
-![Controls launcher](/images/zen_os/quick_settings_launcher.png)
+![Controls launcher](/images/zen_os/quick_settings_launcher.webp)
 
-![Controls panel](/images/zen_os/quicksettings.png)
+![Controls panel](/images/zen_os/quicksettings.webp)
 
 ## Overview
 

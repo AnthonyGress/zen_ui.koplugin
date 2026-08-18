@@ -8,13 +8,13 @@ order: 40
 
 <!-- Documentation current through ZenOS v3.0.0. -->
 
-![Launcher](/images/zen_os/launcher.png)
+![Launcher](/images/zen_os/launcher.webp)
 
-![Book switcher in Reader Launcher](/images/zen_os/reader_launcher_book_switcher.png)
+![Book switcher in Reader Launcher](/images/zen_os/reader_launcher_book_switcher.webp)
 
-![Book details in Reader Launcher](/images/zen_os/reader_launcher_book_details.png)
+![Book details in Reader Launcher](/images/zen_os/reader_launcher_book_details.webp)
 
-![Full-screen book details](/images/zen_os/reader_book_details.png)
+![Full-screen book details](/images/zen_os/reader_book_details.webp)
 
 ## Overview
 

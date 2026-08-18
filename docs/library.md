@@ -8,11 +8,11 @@ order: 30
 
 <!-- Documentation current through ZenOS v3.0.0. -->
 
-![Library cover view](/images/zen_os/library_covers_full.png)
+![Library cover view](/images/zen_os/library_covers_full.webp)
 
-![Library list view](/images/zen_os/library_list_full.png)
+![Library list view](/images/zen_os/library_list_full.webp)
 
-![Context menu](/images/zen_os/context_menu.png)
+![Context menu](/images/zen_os/context_menu.webp)
 
 ## Overview
 
@@ -98,7 +98,7 @@ Use **Background > Enable** and **Background > Image** to add a custom JPG/JPEG 
 
 Tap and hold any book, folder, or the current folder in the Library/Navbar. This opens the context menu. It collects details, file management, read status, sorting, filtering, and display actions for the selected item. Available actions depend on what you held — a book, a folder, or empty space in the current folder.
 
-![Context menu](/images/zen_os/context_menu.png)
+![Context menu](/images/zen_os/context_menu.webp)
 
 ## Display mode & sorting
 Tap + Hold on the Navbar (or any empty space) to open the context menu for the folder you are viewing (including your libraries Home folder). From here you can change the folder's display mode, sorting, and status filter on the fly. Each folder remembers its own display and sorting preferences independently, so you can browse one folder as a mosaic sorted by title and another as a detailed list sorted by recently read, and each keeps its settings across sessions.
