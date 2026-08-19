@@ -107,6 +107,7 @@ describe("file browser group views", function()
             getGroupedByAuthor = function() return groups.authors or {} end,
             getGroupedBySeries = function() return groups.series or {} end,
             getGroupedByTags = function() return groups.tags or {} end,
+            getLightMetadata = function() return metadata end,
             getTBRBooks = function()
                 legacy_tbr_calls = legacy_tbr_calls + 1
                 return groups.tbr or {}
@@ -391,22 +392,45 @@ describe("file browser group views", function()
                 } },
             },
         })
-        metadata["/first.epub"] = { series_index = "1", size = 10 }
-        metadata["/second.epub"] = { series_index = 2, size = 20 }
-        metadata["/third.epub"] = { series_index = 3, size = 30 }
+        metadata["/first.epub"] = { series_index = "3", size = 10 }
+        metadata["/second.epub"] = { series_index = 1, size = 20 }
+        metadata["/third.epub"] = { series_index = 2, size = 30 }
 
         api.showSeriesView()
         local root = assert(find_menu("series"))
         root.onMenuSelect(root, root.item_table[1])
 
         local detail = assert(find_menu("series_detail"))
-        assert.are.same({ "first", "second", "third" }, {
+        assert.are.same({ "second", "third", "first" }, {
             detail.item_table[1].text,
             detail.item_table[2].text,
             detail.item_table[3].text,
         })
-        assert.are.equal("20 B", detail.item_table[2].mandatory)
+        assert.are.equal("20 B", detail.item_table[1].mandatory)
         assert.are.same({ group_name = "Saga", tab_id = "series", page = 1 }, api.getActiveDetail())
+    end)
+
+    it("sorts detail books by batched library metadata", function()
+        install_group_view({
+            series = {
+                { series = "Saga", items = {
+                    { file = "/zeta.epub" }, { file = "/alpha.epub" },
+                } },
+            },
+        })
+        config.group_view.detail_collate = { series = { Saga = "title" } }
+        metadata["/alpha.epub"] = { title = "Mystery", size = 1 }
+        metadata["/zeta.epub"] = { title = "Anthology", size = 2 }
+
+        api.showSeriesView()
+        local root = assert(find_menu("series"))
+        root.onMenuSelect(root, root.item_table[1])
+
+        local detail = assert(find_menu("series_detail"))
+        assert.are.same({ "zeta", "alpha" }, {
+            detail.item_table[1].text,
+            detail.item_table[2].text,
+        })
     end)
 
     it("sorts recently read detail books from read history", function()
