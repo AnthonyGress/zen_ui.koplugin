@@ -939,6 +939,41 @@ describe("file browser navbar navigation", function()
         assert.is_nil(fm.file_chooser._zen_home_retained_library)
     end)
 
+    it("re-stats known subdirs when the Library root is untouched", function()
+        local fm = make_instance()
+        fm.file_chooser.path = "/library"
+        fm.file_chooser.page = 2
+        fm.file_chooser._zen_lib_mtime_snapshot = {
+            ["/library"] = 10,
+            ["/library/sub"] = 20,
+        }
+        fm.file_chooser._zen_lib_mtime_subdirs = { "/library/sub" }
+        fm.file_chooser._zen_lib_mtime_snapshot_at = os.clock() - 31
+        fm.file_chooser._zen_invalidate_item_table_path = function(_, path)
+            calls[#calls + 1] = "invalidate:" .. path
+        end
+        dir_mtimes["/library"] = 10
+        dir_mtimes["/library/sub"] = 20
+        dir_entries["/library"] = { "sub" }
+
+        local next_ticks = {}
+        UIManager.nextTick = function(_self, callback)
+            next_ticks[#next_ticks + 1] = callback
+        end
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        dir_mtimes["/library/sub"] = 21
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        assert.are.same({}, calls)
+        table.remove(next_ticks, 1)()
+        assert.are.same({ "invalidate:/library", "books:/library" }, calls)
+        assert.are.equal("re-statted",
+            measurement_detail(measurements[2], "recursive_validation="))
+        assert.are.equal("true", measurement_detail(measurements[2], "listing_changed="))
+        assert.are.equal(0, dir_scan_calls)
+    end)
+
     it("refreshes after first reveal when recursive Library validation changes", function()
         local fm = make_instance()
         fm.file_chooser.path = "/library"
