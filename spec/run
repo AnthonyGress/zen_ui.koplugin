@@ -137,7 +137,7 @@ ensure_python() {
     python3 -m venv "$ROOT/spec/.venv"
   fi
   if ! "$python" -c 'from PIL import Image; import pytest, pyautogui' >/dev/null 2>&1; then
-    "$python" -m pip install --requirement "$ROOT/spec/python/requirements.txt"
+    "$python" -m pip install --requirement "$ROOT/spec/python/requirements.txt" >&2
   fi
   printf '%s\n' "$python"
 }
