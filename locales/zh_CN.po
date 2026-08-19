@@ -87,11 +87,11 @@ msgstr "90°"
 msgid "< 1 min left in chapter"
 msgstr "本章剩余 < 1 分钟"
 
+msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
+msgstr "为您的电子阅读器提供干净、简约的体验。\n\n滑动或点击下一步继续。"
+
 msgid "A launcher button has been added for ZenPM."
 msgstr "已添加 ZenPM 启动器按钮。"
-
-msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
-msgstr "为您的电子阅读器打造的极简、整洁界面。\n\n向左滑动或点击「下一步」继续。"
 
 msgid "A short summary of what went wrong"
 msgstr "简要描述出错的原因"
@@ -177,11 +177,11 @@ msgstr "所有设置都在一个统一标签页中。带点的此图标表示有
 msgid "All tags"
 msgstr "所有标签"
 
-msgid "All Time"
-msgstr "历史总计"
-
 msgid "All time"
 msgstr "所有时间"
+
+msgid "All Time"
+msgstr "历史总计"
 
 msgid "Allow delete"
 msgstr "允许删除"
@@ -200,9 +200,6 @@ msgstr "应用"
 
 msgid "Apply"
 msgstr "应用"
-
-msgid "Apply the 30-unit Reader margin defaults used by the Setup Guide. Books with their own margin settings are unchanged."
-msgstr "应用设置指南使用的 30 单位 Reader 页边距默认值。具有自己的边距设置的书籍不变。"
 
 msgid "Are you sure you want to exit KOReader?"
 msgstr "确定要退出 KOReader 吗？"
@@ -315,10 +312,10 @@ msgstr "蓝色"
 msgid "Bluetooth"
 msgstr "蓝牙"
 
-msgid "bold"
+msgid "Bold"
 msgstr "粗体"
 
-msgid "Bold"
+msgid "bold"
 msgstr "粗体"
 
 msgid "Bold text"
@@ -354,11 +351,11 @@ msgstr "图书标题"
 msgid "Book: "
 msgstr "图书： "
 
-msgid "Books"
-msgstr "书库"
-
 msgid "books"
 msgstr "本书"
+
+msgid "Books"
+msgstr "书库"
 
 msgid "Books read"
 msgstr "读过的书"
@@ -377,9 +374,6 @@ msgstr "问题的简要描述"
 
 msgid "Brightness"
 msgstr "亮度"
-
-msgid "Brightness schedule"
-msgstr "亮度定时"
 
 msgid "Bug description (optional)"
 msgstr "问题描述（可选）"
@@ -426,9 +420,6 @@ msgstr "居中显示书籍"
 msgid "Center items"
 msgstr "中间项目"
 
-msgid "Centered Pages"
-msgstr "居中页码"
-
 msgid "Change folder"
 msgstr "更改文件夹"
 
@@ -437,9 +428,6 @@ msgstr "更新日志"
 
 msgid "Chapter"
 msgstr "章节"
-
-msgid "Chapter Time + %"
-msgstr "章节时间 + %"
 
 msgid "Check for updates automatically"
 msgstr "自动检查更新"
@@ -452,9 +440,6 @@ msgstr "国际象棋"
 
 msgid "Choose a different folder"
 msgstr "选择其他文件夹"
-
-msgid "Choose a preset for your reading progress bar."
-msgstr "为您的阅读进度条选择预设。"
 
 msgid "Choose control"
 msgstr "选择控制"
@@ -591,10 +576,10 @@ msgstr "填字游戏"
 msgid "Current / total pages"
 msgstr "当前 / 总页数"
 
-msgid "Current Book"
+msgid "Current book"
 msgstr "当前书籍"
 
-msgid "Current book"
+msgid "Current Book"
 msgstr "当前书籍"
 
 msgid "Current home folder:"
@@ -614,9 +599,6 @@ msgstr "自定义书籍"
 
 msgid "Custom button label"
 msgstr "自定义按钮标签"
-
-msgid "Custom featured widget"
-msgstr "自定义精选小组件"
 
 msgid "Custom icon pack: %1"
 msgstr "自定义图标包：%1"
@@ -653,9 +635,6 @@ msgstr "自定义主题"
 
 msgid "Custom: "
 msgstr "自定义: "
-
-msgid "Customizable top status bar and bottom progress bar."
-msgstr "可自定义顶部状态栏和底部进度条。"
 
 msgid "Customize widget"
 msgstr "自定义小部件"
@@ -717,10 +696,10 @@ msgstr "调试日志"
 msgid "Debug logging must be enabled to submit bug reports."
 msgstr "提交问题报告前必须启用调试日志。"
 
-msgid "Default"
+msgid "default"
 msgstr "默认"
 
-msgid "default"
+msgid "Default"
 msgstr "默认"
 
 msgid "Default (black)"
@@ -909,9 +888,6 @@ msgstr "启用 Zen OPDS"
 msgid "Enable ZenOS enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "启用 ZenOS 对 OPDS 浏览器的增强：封面图、列表视图、长按菜单及导航改进。"
 
-msgid "Enable ZenOS Reader margins"
-msgstr "启用 ZenOS Reader 页边距"
-
 msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
 msgstr "正在启用调试日志，需要重启。请重现问题后再提交报告。"
 
@@ -957,6 +933,9 @@ msgstr "文件管理器"
 msgid "Filebrowser plugin is not installed."
 msgstr "Filebrowser 插件未安装。"
 
+msgid "Filename:"
+msgstr "文件名："
+
 msgid "Filter"
 msgstr "筛选"
 
@@ -996,20 +975,23 @@ msgstr "文件夹预设"
 msgid "Folders"
 msgstr "文件夹"
 
-msgid "Font"
-msgstr "字体"
-
 msgid "font"
 msgstr "字体"
 
-msgid "Font size"
-msgstr "字体大小"
+msgid "Font"
+msgstr "字体"
 
 msgid "font size"
 msgstr "字号"
 
+msgid "Font size"
+msgstr "字体大小"
+
 msgid "Font size:"
 msgstr "字体大小："
+
+msgid "Font, margins, contrast, line spacing etc - tested together for the best reading experience"
+msgstr "字体、边距、对比度、行距等 - 一起测试以获得最佳阅读体验"
 
 msgid "Font:"
 msgstr "字体："
@@ -1020,6 +1002,9 @@ msgstr "强制同步"
 msgid "Force sync all catalogs"
 msgstr "强制同步所有目录"
 
+msgid "Format:"
+msgstr "格式："
+
 msgid "Format: R,G,B (0-255)"
 msgstr "格式: R,G,B (0-255)"
 
@@ -1028,9 +1013,6 @@ msgstr "前光"
 
 msgid "Gallery"
 msgstr "画廊"
-
-msgid "Genres"
-msgstr "类型"
 
 msgid "Get Started"
 msgstr "开始使用"
@@ -1097,9 +1079,6 @@ msgstr "长按跳过"
 
 msgid "Home"
 msgstr "主页"
-
-msgid "Home default font size"
-msgstr "首页默认字体大小"
 
 msgid "Home Folder"
 msgstr "主文件夹"
@@ -1179,10 +1158,10 @@ msgstr "交互式"
 msgid "IP address: %1"
 msgstr "IP 地址：%1"
 
-msgid "Items per page"
+msgid "items per page"
 msgstr "每页项目数"
 
-msgid "items per page"
+msgid "Items per page"
 msgstr "每页项目数"
 
 msgid "Keep existing settings"
@@ -1632,6 +1611,9 @@ msgstr "打开RSS阅读器"
 msgid "Open this file?"
 msgstr "打开这个文件？"
 
+msgid "Open with…"
+msgstr "打开…"
+
 msgid "Opening"
 msgstr "正在打开"
 
@@ -1670,12 +1652,6 @@ msgstr "页"
 
 msgid "Pages"
 msgstr "页数"
-
-msgid "Pages + Chapter Time + %"
-msgstr "页数 + 章节时间 + %"
-
-msgid "Pages and %"
-msgstr "页数和 %"
 
 msgid "Pages read"
 msgstr "已读页数"
@@ -1718,6 +1694,9 @@ msgstr "插件"
 
 msgid "Plugin management"
 msgstr "插件管理"
+
+msgid "Plugin Menu"
+msgstr "插件菜单"
 
 msgid "Plugin: %1"
 msgstr "插件：%1"
@@ -1779,9 +1758,6 @@ msgstr "退出"
 msgid "Quit KOReader"
 msgstr "退出 KOReader"
 
-msgid "Quote"
-msgstr "引文"
-
 msgid "Quote font size"
 msgstr "报价字体大小"
 
@@ -1821,9 +1797,6 @@ msgstr "今天阅读"
 msgid "Reader"
 msgstr "阅读器"
 
-msgid "Reader Progress"
-msgstr "阅读进度"
-
 msgid "Reader themes"
 msgstr "阅读主题"
 
@@ -1859,9 +1832,6 @@ msgstr "最近项目筛选"
 
 msgid "Recently read"
 msgstr "最近阅读"
-
-msgid "Recently read featured widget"
-msgstr "最近阅读精选小组件"
 
 msgid "Recently read strip widget"
 msgstr "最近阅读横条小组件"
@@ -1953,9 +1923,6 @@ msgstr "从页面继续"
 msgid "Return to chapter list on exit"
 msgstr "退出时返回章节列表"
 
-msgid "Reverse"
-msgstr "反向"
-
 msgid "Review"
 msgstr "书评"
 
@@ -2040,11 +2007,11 @@ msgstr "分隔符"
 msgid "Separator: "
 msgstr "分隔符: "
 
-msgid "Series"
-msgstr "系列"
-
 msgid "series"
 msgstr "个系列"
+
+msgid "Series"
+msgstr "系列"
 
 msgid "Series number"
 msgstr "系列编号"
@@ -2091,17 +2058,8 @@ msgstr "如果已安装 Assistant 插件，则显示其按钮。"
 msgid "Show AI assistant"
 msgstr "显示 AI 助手"
 
-msgid "Show KOAssistant"
-msgstr "显示 KOAssistant"
-
-msgid "Show X-Ray"
-msgstr "显示 X-Ray"
-
 msgid "Show all files from subfolders"
 msgstr "显示子文件夹中的所有文件"
-
-msgid "Show as first page"
-msgstr "显示为第一页"
 
 msgid "Show author"
 msgstr "显示作者"
@@ -2151,6 +2109,9 @@ msgstr "显示项目数"
 msgid "Show item underline"
 msgstr "显示项目下划线"
 
+msgid "Show KOAssistant"
+msgstr "显示 KOAssistant"
+
 msgid "Show labels"
 msgstr "显示标签"
 
@@ -2196,11 +2157,11 @@ msgstr "显示顶部状态栏"
 msgid "Show warmth slider"
 msgstr "显示色温滑块"
 
-msgid "Show widget title"
-msgstr "显示小组件标题"
-
 msgid "Show Wikipedia"
 msgstr "显示维基百科"
+
+msgid "Show X-Ray"
+msgstr "显示 X-Ray"
 
 msgid "Show Zen icon - black background"
 msgstr "显示 Zen 图标 - 黑色背景"
@@ -2343,6 +2304,9 @@ msgstr "同步所有目录"
 msgid "Tab"
 msgstr "选项卡"
 
+msgid "Table of contents"
+msgstr "目录"
+
 msgid "Tabs"
 msgstr "标签"
 
@@ -2355,10 +2319,10 @@ msgstr "标签条小部件"
 msgid "Tag: %1"
 msgstr "标签：%1"
 
-msgid "Tags"
+msgid "tags"
 msgstr "标签"
 
-msgid "tags"
+msgid "Tags"
 msgstr "标签"
 
 msgid "Tailscale"
@@ -2394,8 +2358,8 @@ msgstr "此更改需要重启才能生效。"
 msgid "This does not disable ZenOS—it only shows or hides KOReader’s menus."
 msgstr "这不会停用 ZenOS，只会显示或隐藏 KOReader 菜单。"
 
-msgid "This is Zen Settings. ZenOS and common KOReader settings live here."
-msgstr "这里是 Zen 设置，其中包含 ZenOS 设置和常用的 KOReader 设置。"
+msgid "This is Zen Settings. ZenOS settings/updates and common KOReader settings live here."
+msgstr "这是禅宗设置。 ZenOS 设置/更新和常见 KOReader 设置位于此处。"
 
 msgid "This Month"
 msgstr "本月"
@@ -2457,9 +2421,6 @@ msgstr "标题自然排序"
 msgid "To Be Read"
 msgstr "待读"
 
-msgid "To Be Read featured widget"
-msgstr "待读精选小组件"
-
 msgid "To Be Read strip widget"
 msgstr "待读横条小组件"
 
@@ -2514,10 +2475,10 @@ msgstr "图标上方下划线"
 msgid "Uniform covers"
 msgstr "统一封面"
 
-msgid "Unknown"
+msgid "unknown"
 msgstr "未知"
 
-msgid "unknown"
+msgid "Unknown"
 msgstr "未知"
 
 msgid "Unknown Author"
@@ -2622,14 +2583,8 @@ msgstr "使用当前文件夹"
 msgid "Use default font"
 msgstr "使用默认字体"
 
-msgid "Use default font size"
-msgstr "使用默认字体大小"
-
 msgid "Use default style"
 msgstr "使用默认样式"
-
-msgid "Use Home default font size"
-msgstr "使用主页默认字体大小"
 
 msgid "Use home folder"
 msgstr "使用主文件夹"
@@ -2651,9 +2606,6 @@ msgstr "虚拟文件夹"
 
 msgid "Warmth"
 msgstr "色温"
-
-msgid "Warmth schedule"
-msgstr "色温定时"
 
 msgid "Weekly"
 msgstr "每周"
@@ -2742,6 +2694,9 @@ msgstr "Zen 预设"
 msgid "Zen quick lookup"
 msgstr "Zen 快速查询"
 
+msgid "ZenFM"
+msgstr "禅调FM"
+
 msgid "ZenOS"
 msgstr "ZenOS"
 
@@ -2750,9 +2705,6 @@ msgstr "ZenOS 默认设置"
 
 msgid "ZenOS is up to date."
 msgstr "ZenOS 已是最新版本。"
-
-msgid "ZenOS Reader margins enabled"
-msgstr "ZenOS Reader 已启用边距"
 
 msgid "ZenOS: "
 msgstr "ZenOS: "

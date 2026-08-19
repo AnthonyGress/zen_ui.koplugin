@@ -88,11 +88,11 @@ msgstr "90°"
 msgid "< 1 min left in chapter"
 msgstr "< 1 мин до конца главы"
 
+msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
+msgstr "Чистый, минимальный опыт для вашей электронной книги.\n\nПроведите пальцем по экрану или коснитесь «Далее», чтобы продолжить."
+
 msgid "A launcher button has been added for ZenPM."
 msgstr "Для ZenPM добавлена кнопка в лаунчере."
-
-msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
-msgstr "Минималистичный, чистый и простой интерфейс для вашей электронной книги.\n\nПроведите пальцем или нажмите «Далее», чтобы продолжить."
 
 msgid "A short summary of what went wrong"
 msgstr "Краткое описание проблемы"
@@ -178,10 +178,10 @@ msgstr "Все настройки находятся на одной общей 
 msgid "All tags"
 msgstr "Все теги"
 
-msgid "All Time"
+msgid "All time"
 msgstr "За всё время"
 
-msgid "All time"
+msgid "All Time"
 msgstr "За всё время"
 
 msgid "Allow delete"
@@ -201,9 +201,6 @@ msgstr "Приложение"
 
 msgid "Apply"
 msgstr "Применить"
-
-msgid "Apply the 30-unit Reader margin defaults used by the Setup Guide. Books with their own margin settings are unchanged."
-msgstr "Применить поля читалки по умолчанию (30 единиц), как в Руководстве по настройке. Книги с собственными настройками полей не изменятся."
 
 msgid "Are you sure you want to exit KOReader?"
 msgstr "Вы уверены, что хотите выйти из KOReader?"
@@ -316,11 +313,11 @@ msgstr "Синий"
 msgid "Bluetooth"
 msgstr "Bluetooth"
 
-msgid "bold"
-msgstr "жирный"
-
 msgid "Bold"
 msgstr "Жирный"
+
+msgid "bold"
+msgstr "жирный"
 
 msgid "Bold text"
 msgstr "Жирный текст"
@@ -355,11 +352,11 @@ msgstr "Название книги"
 msgid "Book: "
 msgstr "Книга: "
 
-msgid "Books"
-msgstr "Книги"
-
 msgid "books"
 msgstr "книги"
+
+msgid "Books"
+msgstr "Книги"
 
 msgid "Books read"
 msgstr "Прочитано книг"
@@ -378,9 +375,6 @@ msgstr "Краткое описание ошибки"
 
 msgid "Brightness"
 msgstr "Яркость"
-
-msgid "Brightness schedule"
-msgstr "Расписание яркости"
 
 msgid "Bug description (optional)"
 msgstr "Описание ошибки (необязательно)"
@@ -427,9 +421,6 @@ msgstr "Книги по центру"
 msgid "Center items"
 msgstr "Центральные элементы"
 
-msgid "Centered Pages"
-msgstr "Страницы по центру"
-
 msgid "Change folder"
 msgstr "Изменить папку"
 
@@ -438,9 +429,6 @@ msgstr "Список изменений"
 
 msgid "Chapter"
 msgstr "Глава"
-
-msgid "Chapter Time + %"
-msgstr "Время главы + %"
 
 msgid "Check for updates automatically"
 msgstr "Проверять обновления автоматически"
@@ -453,9 +441,6 @@ msgstr "Шахматы"
 
 msgid "Choose a different folder"
 msgstr "Выбрать другую папку"
-
-msgid "Choose a preset for your reading progress bar."
-msgstr "Выберите пресет для полосы прогресса чтения."
 
 msgid "Choose control"
 msgstr "Выберите элемент управления"
@@ -592,10 +577,10 @@ msgstr "Кроссворд"
 msgid "Current / total pages"
 msgstr "Текущая / всего страниц"
 
-msgid "Current Book"
+msgid "Current book"
 msgstr "Текущая книга"
 
-msgid "Current book"
+msgid "Current Book"
 msgstr "Текущая книга"
 
 msgid "Current home folder:"
@@ -615,9 +600,6 @@ msgstr "Пользовательские книги"
 
 msgid "Custom button label"
 msgstr "Метка пользовательской кнопки"
-
-msgid "Custom featured widget"
-msgstr "Пользовательский главный виджет"
 
 msgid "Custom icon pack: %1"
 msgstr "Пользовательский набор значков: %1"
@@ -654,9 +636,6 @@ msgstr "Пользовательские темы"
 
 msgid "Custom: "
 msgstr "Пользовательский: "
-
-msgid "Customizable top status bar and bottom progress bar."
-msgstr "Настраиваемая верхняя строка состояния и нижняя полоса прогресса."
 
 msgid "Customize widget"
 msgstr "Настроить виджет"
@@ -718,11 +697,11 @@ msgstr "Журналирование отладки"
 msgid "Debug logging must be enabled to submit bug reports."
 msgstr "Для отправки отчётов необходимо включить журналирование отладки."
 
-msgid "Default"
-msgstr "По умолчанию"
-
 msgid "default"
 msgstr "по умолчанию"
+
+msgid "Default"
+msgstr "По умолчанию"
 
 msgid "Default (black)"
 msgstr "По умолчанию (чёрный)"
@@ -910,9 +889,6 @@ msgstr "Включить Zen OPDS"
 msgid "Enable ZenOS enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "Включить улучшения ZenOS для браузера OPDS: обложки, вид списка, меню удержания и улучшения навигации."
 
-msgid "Enable ZenOS Reader margins"
-msgstr "Включить поля читалки ZenOS"
-
 msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
 msgstr "Включение журналирования отладки, требуется перезапуск. Воспроизведите проблему, затем отправьте отчёт."
 
@@ -958,6 +934,9 @@ msgstr "Filebrowser"
 msgid "Filebrowser plugin is not installed."
 msgstr "Плагин Filebrowser не установлен."
 
+msgid "Filename:"
+msgstr "Имя файла:"
+
 msgid "Filter"
 msgstr "Фильтр"
 
@@ -997,20 +976,23 @@ msgstr "Пресеты папки"
 msgid "Folders"
 msgstr "Папки"
 
-msgid "Font"
-msgstr "Шрифт"
-
 msgid "font"
 msgstr "шрифт"
 
-msgid "Font size"
-msgstr "Размер шрифта"
+msgid "Font"
+msgstr "Шрифт"
 
 msgid "font size"
 msgstr "размер шрифта"
 
+msgid "Font size"
+msgstr "Размер шрифта"
+
 msgid "Font size:"
 msgstr "Размер шрифта:"
+
+msgid "Font, margins, contrast, line spacing etc - tested together for the best reading experience"
+msgstr "Шрифт, поля, контрастность, межстрочный интервал и т. д. – тестируются вместе для обеспечения наилучшего качества чтения."
 
 msgid "Font:"
 msgstr "Шрифт:"
@@ -1021,6 +1003,9 @@ msgstr "Принудительная синхронизация"
 msgid "Force sync all catalogs"
 msgstr "Принудительная синхронизация всех каталогов"
 
+msgid "Format:"
+msgstr "Формат:"
+
 msgid "Format: R,G,B (0-255)"
 msgstr "Формат: R,G,B (0-255)"
 
@@ -1029,9 +1014,6 @@ msgstr "Подсветка"
 
 msgid "Gallery"
 msgstr "Галерея"
-
-msgid "Genres"
-msgstr "Жанры"
 
 msgid "Get Started"
 msgstr "Начать"
@@ -1098,9 +1080,6 @@ msgstr "Удерживать для пропуска"
 
 msgid "Home"
 msgstr "Главная"
-
-msgid "Home default font size"
-msgstr "Размер шрифта главной по умолчанию"
 
 msgid "Home Folder"
 msgstr "Домашняя папка"
@@ -1180,11 +1159,11 @@ msgstr "Интерактивный"
 msgid "IP address: %1"
 msgstr "IP-адрес: %1"
 
-msgid "Items per page"
-msgstr "Элементов на странице"
-
 msgid "items per page"
 msgstr "элементов на странице"
+
+msgid "Items per page"
+msgstr "Элементов на странице"
 
 msgid "Keep existing settings"
 msgstr "Оставить текущие настройки"
@@ -1633,6 +1612,9 @@ msgstr "Открыть RSS-читалку"
 msgid "Open this file?"
 msgstr "Открыть этот файл?"
 
+msgid "Open with…"
+msgstr "Открыть с…"
+
 msgid "Opening"
 msgstr "Открывается"
 
@@ -1671,12 +1653,6 @@ msgstr "страниц"
 
 msgid "Pages"
 msgstr "Страницы"
-
-msgid "Pages + Chapter Time + %"
-msgstr "Страницы + Время главы + %"
-
-msgid "Pages and %"
-msgstr "Страницы и %"
 
 msgid "Pages read"
 msgstr "Прочитано страниц"
@@ -1719,6 +1695,9 @@ msgstr "Плагин"
 
 msgid "Plugin management"
 msgstr "Управление плагинами"
+
+msgid "Plugin Menu"
+msgstr "Меню плагинов"
 
 msgid "Plugin: %1"
 msgstr "Плагин: %1"
@@ -1780,9 +1759,6 @@ msgstr "Завершить работу"
 msgid "Quit KOReader"
 msgstr "Завершить работу KOReader"
 
-msgid "Quote"
-msgstr "Цитата"
-
 msgid "Quote font size"
 msgstr "Размер шрифта цитаты"
 
@@ -1822,9 +1798,6 @@ msgstr "Прочитано сегодня"
 msgid "Reader"
 msgstr "Читалка"
 
-msgid "Reader Progress"
-msgstr "Прогресс чтения"
-
 msgid "Reader themes"
 msgstr "Темы чтения"
 
@@ -1860,9 +1833,6 @@ msgstr "Фильтры недавних"
 
 msgid "Recently read"
 msgstr "Недавно прочитанное"
-
-msgid "Recently read featured widget"
-msgstr "Главный виджет недавно прочитанного"
 
 msgid "Recently read strip widget"
 msgstr "Виджет ленты недавно прочитанного"
@@ -1954,9 +1924,6 @@ msgstr "Продолжить со страницы"
 msgid "Return to chapter list on exit"
 msgstr "При выходе возвращаться к списку глав"
 
-msgid "Reverse"
-msgstr "Обратный порядок"
-
 msgid "Review"
 msgstr "Отзыв"
 
@@ -2041,11 +2008,11 @@ msgstr "Разделитель"
 msgid "Separator: "
 msgstr "Разделитель: "
 
-msgid "Series"
-msgstr "Серия"
-
 msgid "series"
 msgstr "серии"
+
+msgid "Series"
+msgstr "Серия"
 
 msgid "Series number"
 msgstr "Номер серии"
@@ -2092,17 +2059,8 @@ msgstr "Показывать кнопку плагина Assistant, если о�
 msgid "Show AI assistant"
 msgstr "Показывать ИИ-ассистента"
 
-msgid "Show KOAssistant"
-msgstr "Показывать KOAssistant"
-
-msgid "Show X-Ray"
-msgstr "Показывать X-Ray"
-
 msgid "Show all files from subfolders"
 msgstr "Показывать все файлы из подпапок"
-
-msgid "Show as first page"
-msgstr "Показывать первой страницей"
 
 msgid "Show author"
 msgstr "Показывать автора"
@@ -2152,6 +2110,9 @@ msgstr "Показывать число элементов"
 msgid "Show item underline"
 msgstr "Показывать подчёркивание элемента"
 
+msgid "Show KOAssistant"
+msgstr "Показывать KOAssistant"
+
 msgid "Show labels"
 msgstr "Показывать метки"
 
@@ -2197,11 +2158,11 @@ msgstr "Показывать верхнюю строку состояния"
 msgid "Show warmth slider"
 msgstr "Показывать ползунок тёплого света"
 
-msgid "Show widget title"
-msgstr "Показывать заголовок виджета"
-
 msgid "Show Wikipedia"
 msgstr "Показывать Wikipedia"
+
+msgid "Show X-Ray"
+msgstr "Показывать X-Ray"
 
 msgid "Show Zen icon - black background"
 msgstr "Показывать значок Zen - чёрный фон"
@@ -2344,6 +2305,9 @@ msgstr "Синхронизировать все каталоги"
 msgid "Tab"
 msgstr "Вкладка"
 
+msgid "Table of contents"
+msgstr "Оглавление"
+
 msgid "Tabs"
 msgstr "Вкладки"
 
@@ -2356,11 +2320,11 @@ msgstr "Виджет ленты тегов"
 msgid "Tag: %1"
 msgstr "Тег: %1"
 
-msgid "Tags"
-msgstr "Теги"
-
 msgid "tags"
 msgstr "теги"
+
+msgid "Tags"
+msgstr "Теги"
 
 msgid "Tailscale"
 msgstr "Tailscale"
@@ -2395,8 +2359,8 @@ msgstr "Для применения этого изменения необход
 msgid "This does not disable ZenOS—it only shows or hides KOReader’s menus."
 msgstr "Это не отключит ZenOS: только покажет или скроет меню KOReader."
 
-msgid "This is Zen Settings. ZenOS and common KOReader settings live here."
-msgstr "Это настройки Zen. Здесь собраны настройки ZenOS и основные настройки KOReader."
+msgid "This is Zen Settings. ZenOS settings/updates and common KOReader settings live here."
+msgstr "Это настройки дзен. Здесь находятся настройки/обновления ZenOS и общие настройки KOReader."
 
 msgid "This Month"
 msgstr "Этот месяц"
@@ -2458,9 +2422,6 @@ msgstr "Название (естественный порядок)"
 msgid "To Be Read"
 msgstr "К прочтению"
 
-msgid "To Be Read featured widget"
-msgstr "Главный виджет «К прочтению»"
-
 msgid "To Be Read strip widget"
 msgstr "Виджет ленты «К прочтению»"
 
@@ -2515,11 +2476,11 @@ msgstr "Подчёркивание над значком"
 msgid "Uniform covers"
 msgstr "Единый вид обложек"
 
-msgid "Unknown"
-msgstr "Неизвестно"
-
 msgid "unknown"
 msgstr "неизвестно"
+
+msgid "Unknown"
+msgstr "Неизвестно"
 
 msgid "Unknown Author"
 msgstr "Неизвестный автор"
@@ -2623,14 +2584,8 @@ msgstr "Использовать текущую папку"
 msgid "Use default font"
 msgstr "Использовать шрифт по умолчанию"
 
-msgid "Use default font size"
-msgstr "Использовать размер шрифта по умолчанию"
-
 msgid "Use default style"
 msgstr "Использовать стиль по умолчанию"
-
-msgid "Use Home default font size"
-msgstr "Использовать размер шрифта главной по умолчанию"
 
 msgid "Use home folder"
 msgstr "Использовать домашнюю папку"
@@ -2652,9 +2607,6 @@ msgstr "Виртуальная папка"
 
 msgid "Warmth"
 msgstr "Тёплый свет"
-
-msgid "Warmth schedule"
-msgstr "Расписание тёплого света"
 
 msgid "Weekly"
 msgstr "Еженедельно"
@@ -2743,6 +2695,9 @@ msgstr "Пресеты Zen"
 msgid "Zen quick lookup"
 msgstr "Быстрый поиск Zen"
 
+msgid "ZenFM"
+msgstr "ЗенФМ"
+
 msgid "ZenOS"
 msgstr "ZenOS"
 
@@ -2751,9 +2706,6 @@ msgstr "Настройки по умолчанию ZenOS"
 
 msgid "ZenOS is up to date."
 msgstr "Установлена последняя версия ZenOS."
-
-msgid "ZenOS Reader margins enabled"
-msgstr "Поля читалки ZenOS включены"
 
 msgid "ZenOS: "
 msgstr "ZenOS: "

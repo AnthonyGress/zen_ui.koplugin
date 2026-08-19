@@ -87,11 +87,11 @@ msgstr "90°"
 msgid "< 1 min left in chapter"
 msgstr "この章の残り1分未満"
 
+msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
+msgstr "電子書籍リーダーにクリーンで最小限のエクスペリエンスを提供します。\n\nスワイプするか「次へ」をタップして続行します。"
+
 msgid "A launcher button has been added for ZenPM."
 msgstr "ZenPM のランチャー ボタンが追加されました。"
-
-msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
-msgstr "電子書籍リーダーのための最小限でクリーン、シンプルなインターフェース。\n\nスワイプまたは「次へ」をタップして続けてください。"
 
 msgid "A short summary of what went wrong"
 msgstr "何が問題だったかの簡単な要約"
@@ -148,7 +148,7 @@ msgid "Add folder…"
 msgstr "フォルダを追加…"
 
 msgid "Add KOReader menu"
-msgstr ""
+msgstr "KOReader メニューを追加"
 
 msgid "Add plugin"
 msgstr "プラグインを追加"
@@ -177,11 +177,11 @@ msgstr "すべての設定は1つの統合タブにあります。ドット付�
 msgid "All tags"
 msgstr "すべてのタグ"
 
-msgid "All Time"
-msgstr "全期間"
-
 msgid "All time"
 msgstr "ずっと"
+
+msgid "All Time"
+msgstr "全期間"
 
 msgid "Allow delete"
 msgstr "削除を許可"
@@ -200,9 +200,6 @@ msgstr "アプリ"
 
 msgid "Apply"
 msgstr "適用"
-
-msgid "Apply the 30-unit Reader margin defaults used by the Setup Guide. Books with their own margin settings are unchanged."
-msgstr "セットアップ ガイドで使用される 30 単位のリーダー マージンのデフォルトを適用します。独自の余白設定を持つブックは変更されません。"
 
 msgid "Are you sure you want to exit KOReader?"
 msgstr "KOReaderを終了してもよろしいですか？"
@@ -315,10 +312,10 @@ msgstr "ブルー"
 msgid "Bluetooth"
 msgstr "ブルートゥース"
 
-msgid "bold"
+msgid "Bold"
 msgstr "太字"
 
-msgid "Bold"
+msgid "bold"
 msgstr "太字"
 
 msgid "Bold text"
@@ -343,7 +340,7 @@ msgid "Book strip"
 msgstr "ブックストリップ"
 
 msgid "Book switcher"
-msgstr ""
+msgstr "ブックスイッチャー"
 
 msgid "Book title"
 msgstr "書籍タイトル"
@@ -354,10 +351,10 @@ msgstr "書籍タイトル"
 msgid "Book: "
 msgstr "本: "
 
-msgid "Books"
+msgid "books"
 msgstr "本"
 
-msgid "books"
+msgid "Books"
 msgstr "本"
 
 msgid "Books read"
@@ -377,9 +374,6 @@ msgstr "バグの簡単な説明"
 
 msgid "Brightness"
 msgstr "明るさ"
-
-msgid "Brightness schedule"
-msgstr "明るさスケジュール"
 
 msgid "Bug description (optional)"
 msgstr "バグの説明 (任意)"
@@ -426,9 +420,6 @@ msgstr "本を中央揃え"
 msgid "Center items"
 msgstr "中央アイテム"
 
-msgid "Centered Pages"
-msgstr "中央揃えページ"
-
 msgid "Change folder"
 msgstr "フォルダを変更"
 
@@ -437,9 +428,6 @@ msgstr "変更履歴"
 
 msgid "Chapter"
 msgstr "章"
-
-msgid "Chapter Time + %"
-msgstr "チャプター時間 + %"
 
 msgid "Check for updates automatically"
 msgstr "アップデートを自動確認"
@@ -453,9 +441,6 @@ msgstr "チェス"
 msgid "Choose a different folder"
 msgstr "別のフォルダを選択"
 
-msgid "Choose a preset for your reading progress bar."
-msgstr "読書進行状況バーのプリセットを選択してください。"
-
 msgid "Choose control"
 msgstr "コントロールの選択"
 
@@ -463,7 +448,7 @@ msgid "Choose item"
 msgstr "項目を選択"
 
 msgid "Choose KOReader menu"
-msgstr ""
+msgstr "KOReader メニューを選択します"
 
 msgid "Choose plugin menu"
 msgstr "プラグインメニューを選択"
@@ -591,10 +576,10 @@ msgstr "クロスワード"
 msgid "Current / total pages"
 msgstr "現在 / 総ページ数"
 
-msgid "Current Book"
+msgid "Current book"
 msgstr "現在の本"
 
-msgid "Current book"
+msgid "Current Book"
 msgstr "現在の本"
 
 msgid "Current home folder:"
@@ -610,13 +595,10 @@ msgid "Custom"
 msgstr "カスタム"
 
 msgid "Custom books"
-msgstr ""
+msgstr "カスタムブック"
 
 msgid "Custom button label"
 msgstr "カスタムボタンラベル"
-
-msgid "Custom featured widget"
-msgstr "カスタム注目ウィジェット"
 
 msgid "Custom icon pack: %1"
 msgstr "カスタムアイコンパック: %1"
@@ -653,9 +635,6 @@ msgstr "カスタムテーマ"
 
 msgid "Custom: "
 msgstr "カスタム: "
-
-msgid "Customizable top status bar and bottom progress bar."
-msgstr "カスタマイズ可能な上部ステータスバーと下部進行状況バー。"
 
 msgid "Customize widget"
 msgstr "ウィジェットのカスタマイズ"
@@ -717,10 +696,10 @@ msgstr "デバッグログ"
 msgid "Debug logging must be enabled to submit bug reports."
 msgstr "バグレポートを送信するにはデバッグログを有効にする必要があります。"
 
-msgid "Default"
+msgid "default"
 msgstr "デフォルト"
 
-msgid "default"
+msgid "Default"
 msgstr "デフォルト"
 
 msgid "Default (black)"
@@ -819,6 +798,9 @@ msgstr "長押しでの単語検索を無効化"
 msgid "Disable zen mode to access default KOReader menus."
 msgstr "デフォルトのKOReaderメニューにアクセスするにはZenモードを無効にしてください。"
 
+msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
+msgstr "Zen 設定では利用できない KOReader 設定を調整するには、このアイコンで Zen モードを無効にします。"
+
 msgid "Disk space"
 msgstr "ディスク容量"
 
@@ -906,9 +888,6 @@ msgstr "Zen OPDSを有効にする"
 msgid "Enable ZenOS enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "OPDSブラウザのZenOS拡張を有効にします: 表紙アート、リスト表示、長押しメニュー、ナビゲーションの改善。"
 
-msgid "Enable ZenOS Reader margins"
-msgstr "ZenOS リーダーのマージンを有効にする"
-
 msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
 msgstr "デバッグログを有効にするには再起動が必要です。問題を再現してからレポートを送信してください。"
 
@@ -943,7 +922,7 @@ msgid "Featured widgets"
 msgstr "注目ウィジェット"
 
 msgid "File browser settings"
-msgstr ""
+msgstr "ファイルブラウザの設定"
 
 msgid "File search"
 msgstr "ファイル検索"
@@ -953,6 +932,9 @@ msgstr "ファイルブラウザ"
 
 msgid "Filebrowser plugin is not installed."
 msgstr "ファイルブラウザプラグインがインストールされていません。"
+
+msgid "Filename:"
+msgstr "ファイル名："
 
 msgid "Filter"
 msgstr "フィルター"
@@ -993,20 +975,23 @@ msgstr "フォルダプリセット"
 msgid "Folders"
 msgstr "フォルダ"
 
-msgid "Font"
-msgstr "フォント"
-
 msgid "font"
 msgstr "フォント"
 
-msgid "Font size"
-msgstr "フォントサイズ"
+msgid "Font"
+msgstr "フォント"
 
 msgid "font size"
 msgstr "フォントサイズ"
 
+msgid "Font size"
+msgstr "フォントサイズ"
+
 msgid "Font size:"
 msgstr "フォントサイズ:"
+
+msgid "Font, margins, contrast, line spacing etc - tested together for the best reading experience"
+msgstr "フォント、余白、コントラスト、行間など - 最高の読書体験を得るために一緒にテストされています"
 
 msgid "Font:"
 msgstr "フォント:"
@@ -1017,6 +1002,9 @@ msgstr "強制同期"
 msgid "Force sync all catalogs"
 msgstr "すべてのカタログを強制同期"
 
+msgid "Format:"
+msgstr "形式："
+
 msgid "Format: R,G,B (0-255)"
 msgstr "形式: R,G,B (0-255)"
 
@@ -1025,9 +1013,6 @@ msgstr "フロントライト"
 
 msgid "Gallery"
 msgstr "ギャラリー"
-
-msgid "Genres"
-msgstr ""
 
 msgid "Get Started"
 msgstr "はじめる"
@@ -1095,9 +1080,6 @@ msgstr "長押しでスキップ"
 msgid "Home"
 msgstr "ホーム"
 
-msgid "Home default font size"
-msgstr "ホームのデフォルトのフォントサイズ"
-
 msgid "Home Folder"
 msgstr "ホームフォルダ"
 
@@ -1147,7 +1129,7 @@ msgid "Incognito mode enabled"
 msgstr "シークレットモードを有効にしました"
 
 msgid "Incognito mode timed out"
-msgstr ""
+msgstr "シークレットモードがタイムアウトしました"
 
 msgid "Incompatible plugins and patches have been disabled:"
 msgstr "互換性のないプラグインとパッチは無効になっています。"
@@ -1176,20 +1158,20 @@ msgstr "インタラクティブ"
 msgid "IP address: %1"
 msgstr "IPアドレス: %1"
 
-msgid "Items per page"
+msgid "items per page"
 msgstr "ページあたりのアイテム数"
 
-msgid "items per page"
+msgid "Items per page"
 msgstr "ページあたりのアイテム数"
 
 msgid "Keep existing settings"
 msgstr "既存の設定を保持"
 
 msgid "KOReader menu"
-msgstr ""
+msgstr "KOReader メニュー"
 
 msgid "KOReader menu: %1"
-msgstr ""
+msgstr "KOReader メニュー: %1"
 
 msgid "KOReader: "
 msgstr "KOReader: "
@@ -1315,7 +1297,7 @@ msgid "Magnify UI"
 msgstr "UIを拡大"
 
 msgid "Main menu"
-msgstr ""
+msgstr "メインメニュー"
 
 msgid "Manga"
 msgstr "マンガ"
@@ -1414,7 +1396,7 @@ msgid "Navbar Tabs"
 msgstr "ナビゲーションバータブ"
 
 msgid "Navigation"
-msgstr ""
+msgstr "ナビゲーション"
 
 msgid "Network unavailable."
 msgstr "ネットワークを利用できません。"
@@ -1504,7 +1486,7 @@ msgid "No books found in the selected folder"
 msgstr "選択したフォルダーに書籍が見つかりませんでした"
 
 msgid "No books to switch to"
-msgstr ""
+msgstr "切り替える本がない"
 
 msgid "No books with author metadata found"
 msgstr "著者メタデータを含む書籍が見つかりませんでした"
@@ -1525,7 +1507,7 @@ msgid "No description."
 msgstr "説明なし。"
 
 msgid "No KOReader submenus found"
-msgstr ""
+msgstr "KOReader のサブメニューが見つかりません"
 
 msgid "No launchable plugin menus found"
 msgstr "起動可能なプラグインメニューが見つかりません"
@@ -1597,7 +1579,7 @@ msgid "Only in Zen mode"
 msgstr "Zenモード時のみ"
 
 msgid "Only show while reading"
-msgstr ""
+msgstr "読書中のみ表示"
 
 msgid "Opaque background"
 msgstr "不透明な背景"
@@ -1629,6 +1611,9 @@ msgstr "RSS Readerを開く"
 msgid "Open this file?"
 msgstr "このファイルを開きますか?"
 
+msgid "Open with…"
+msgstr "…で開く"
+
 msgid "Opening"
 msgstr "開く"
 
@@ -1642,7 +1627,7 @@ msgid "Outlined boxes"
 msgstr "枠線付きボックス"
 
 msgid "p."
-msgstr ""
+msgstr "p."
 
 msgid "Page %1 of %2"
 msgstr "ページ %1 / %2"
@@ -1667,12 +1652,6 @@ msgstr "ページ"
 
 msgid "Pages"
 msgstr "ページ"
-
-msgid "Pages + Chapter Time + %"
-msgstr "ページ + チャプター時間 + %"
-
-msgid "Pages and %"
-msgstr "ページと%"
 
 msgid "Pages read"
 msgstr "読んだページ数"
@@ -1715,6 +1694,9 @@ msgstr "プラグイン"
 
 msgid "Plugin management"
 msgstr "プラグイン管理"
+
+msgid "Plugin Menu"
+msgstr "プラグインメニュー"
 
 msgid "Plugin: %1"
 msgstr "プラグイン: %1"
@@ -1776,9 +1758,6 @@ msgstr "終了"
 msgid "Quit KOReader"
 msgstr "KOReaderを終了"
 
-msgid "Quote"
-msgstr "引用"
-
 msgid "Quote font size"
 msgstr "引用のフォントサイズ"
 
@@ -1818,9 +1797,6 @@ msgstr "今日読む"
 msgid "Reader"
 msgstr "リーダー"
 
-msgid "Reader Progress"
-msgstr "リーダー進行状況"
-
 msgid "Reader themes"
 msgstr "読者のテーマ"
 
@@ -1849,16 +1825,13 @@ msgid "Reading Trend"
 msgstr "読書傾向"
 
 msgid "Recent"
-msgstr ""
+msgstr "最近の"
 
 msgid "Recent filters"
-msgstr ""
+msgstr "最近のフィルター"
 
 msgid "Recently read"
 msgstr "最近読んだ"
-
-msgid "Recently read featured widget"
-msgstr "最近読んだ注目ウィジェット"
 
 msgid "Recently read strip widget"
 msgstr "最近読んだストリップウィジェット"
@@ -1906,7 +1879,7 @@ msgid "Report a Bug"
 msgstr "バグを報告"
 
 msgid "Require double tap to open books"
-msgstr ""
+msgstr "本を開くにはダブルタップが必要です"
 
 msgid "Require hold to toggle buttons"
 msgstr "ボタンの切り替えに長押しを要求"
@@ -1949,9 +1922,6 @@ msgstr "ページから再開"
 
 msgid "Return to chapter list on exit"
 msgstr "終了時に章一覧へ戻る"
-
-msgid "Reverse"
-msgstr "逆順"
 
 msgid "Review"
 msgstr "レビュー"
@@ -2037,10 +2007,10 @@ msgstr "区切り"
 msgid "Separator: "
 msgstr "区切り文字: "
 
-msgid "Series"
+msgid "series"
 msgstr "シリーズ"
 
-msgid "series"
+msgid "Series"
 msgstr "シリーズ"
 
 msgid "Series number"
@@ -2091,9 +2061,6 @@ msgstr "AIアシスタントを表示"
 msgid "Show all files from subfolders"
 msgstr "サブフォルダー内のすべてのファイルを表示"
 
-msgid "Show as first page"
-msgstr ""
-
 msgid "Show author"
 msgstr "著者を表示"
 
@@ -2116,7 +2083,7 @@ msgid "Show brightness slider"
 msgstr "明るさスライダーを表示"
 
 msgid "Show controls"
-msgstr ""
+msgstr "コントロールを表示する"
 
 msgid "Show description"
 msgstr "説明を表示"
@@ -2141,6 +2108,9 @@ msgstr "項目数を表示"
 
 msgid "Show item underline"
 msgstr "アイテムの下線を表示"
+
+msgid "Show KOAssistant"
+msgstr "KOアシスタントを表示"
 
 msgid "Show labels"
 msgstr "ラベルを表示"
@@ -2187,11 +2157,11 @@ msgstr "上部ステータスバーを表示"
 msgid "Show warmth slider"
 msgstr "色温度スライダーを表示"
 
-msgid "Show widget title"
-msgstr "ウィジェットタイトルを表示"
-
 msgid "Show Wikipedia"
 msgstr "Wikipediaを表示"
+
+msgid "Show X-Ray"
+msgstr "X線を表示する"
 
 msgid "Show Zen icon - black background"
 msgstr "Zenアイコンを表示 - 黒背景"
@@ -2251,7 +2221,7 @@ msgid "Sort series"
 msgstr "シリーズの並べ替え"
 
 msgid "Specific tag"
-msgstr ""
+msgstr "特定のタグ"
 
 msgid "Stable"
 msgstr "安定版"
@@ -2334,6 +2304,9 @@ msgstr "すべてのカタログを同期"
 msgid "Tab"
 msgstr "タブ"
 
+msgid "Table of contents"
+msgstr "目次"
+
 msgid "Tabs"
 msgstr "タブ"
 
@@ -2346,10 +2319,10 @@ msgstr "タグストリップウィジェット"
 msgid "Tag: %1"
 msgstr "タグ: %1"
 
-msgid "Tags"
+msgid "tags"
 msgstr "タグ"
 
-msgid "tags"
+msgid "Tags"
 msgstr "タグ"
 
 msgid "Tailscale"
@@ -2381,6 +2354,12 @@ msgstr "テーマ名"
 
 msgid "This change requires a restart to take effect."
 msgstr "この変更を有効にするには再起動が必要です。"
+
+msgid "This does not disable ZenOS—it only shows or hides KOReader’s menus."
+msgstr "これは ZenOS を無効にするのではなく、KOReader のメニューを表示または非表示にするだけです。"
+
+msgid "This is Zen Settings. ZenOS settings/updates and common KOReader settings live here."
+msgstr "これは禅の設定です。 ZenOS の設定/更新および一般的な KOReader 設定はここにあります。"
 
 msgid "This Month"
 msgstr "今月"
@@ -2428,7 +2407,7 @@ msgid "Time/page"
 msgstr "時間/ページ"
 
 msgid "Timeout"
-msgstr ""
+msgstr "タイムアウト"
 
 msgid "Timer: %1 s"
 msgstr "タイマー: %1 s"
@@ -2442,9 +2421,6 @@ msgstr "自然順タイトル"
 msgid "To Be Read"
 msgstr "未読"
 
-msgid "To Be Read featured widget"
-msgstr "未読の注目ウィジェット"
-
 msgid "To Be Read strip widget"
 msgstr "未読のストリップウィジェット"
 
@@ -2455,7 +2431,7 @@ msgid "Too many requests. Please try again later."
 msgstr "リクエストが多すぎます。後でもう一度お試しください。"
 
 msgid "Tools"
-msgstr ""
+msgstr "ツール"
 
 msgid "Top bar font"
 msgstr "上部バーのフォント"
@@ -2482,7 +2458,7 @@ msgid "Two rows"
 msgstr "2行"
 
 msgid "Typesetting"
-msgstr ""
+msgstr "組版"
 
 msgid "Unavailable"
 msgstr "利用できません"
@@ -2499,10 +2475,10 @@ msgstr "アイコンの上に下線"
 msgid "Uniform covers"
 msgstr "均一な表紙"
 
-msgid "Unknown"
+msgid "unknown"
 msgstr "不明"
 
-msgid "unknown"
+msgid "Unknown"
 msgstr "不明"
 
 msgid "Unknown Author"
@@ -2607,14 +2583,8 @@ msgstr "現在のフォルダを使用"
 msgid "Use default font"
 msgstr "デフォルトフォントを使用"
 
-msgid "Use default font size"
-msgstr "デフォルトのフォントサイズを使用する"
-
 msgid "Use default style"
 msgstr "デフォルトスタイルを使用"
-
-msgid "Use Home default font size"
-msgstr "ホームのデフォルトのフォント サイズを使用する"
 
 msgid "Use home folder"
 msgstr "ホームフォルダを使用"
@@ -2636,9 +2606,6 @@ msgstr "仮想フォルダ"
 
 msgid "Warmth"
 msgstr "色温度"
-
-msgid "Warmth schedule"
-msgstr "色温度スケジュール"
 
 msgid "Weekly"
 msgstr "毎週"
@@ -2662,7 +2629,7 @@ msgid "When enabled, search matches whole words only. When disabled, substring m
 msgstr "有効にすると、検索は単語全体にのみ一致します。無効にすると、部分一致を使用します (例: 'fish' は 'fishing' に一致)。"
 
 msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
-msgstr ""
+msgstr "有効にすると、同じ本を素早く 2 回続けてタップして開きます。キーボードのコントロールは変更されていません。"
 
 msgid "Which time format do you prefer?"
 msgstr "お好みの時刻形式はどちらですか？"
@@ -2680,7 +2647,7 @@ msgid "Widgets"
 msgstr "ウィジェット"
 
 msgid "Wrap description text"
-msgstr ""
+msgstr "説明テキストを折り返す"
 
 msgid "Yearly"
 msgstr "毎年"
@@ -2706,6 +2673,9 @@ msgstr "Zenモード"
 msgid "Zen Mode"
 msgstr "Zenモード"
 
+msgid "Zen Mode is enabled. KOReader menus are hidden."
+msgstr "禅モードが有効になっています。 KOReader メニューは非表示になります。"
+
 msgid "Zen Mode: Disabled"
 msgstr "Zen モード: 無効"
 
@@ -2724,6 +2694,9 @@ msgstr "Zen Presets"
 msgid "Zen quick lookup"
 msgstr "Zenクイック検索"
 
+msgid "ZenFM"
+msgstr "ZenFM"
+
 msgid "ZenOS"
 msgstr "ZenOS"
 
@@ -2732,9 +2705,6 @@ msgstr "ZenOSデフォルト"
 
 msgid "ZenOS is up to date."
 msgstr "ZenOSは最新です。"
-
-msgid "ZenOS Reader margins enabled"
-msgstr "ZenOS Reader のマージンが有効になりました"
 
 msgid "ZenOS: "
 msgstr "ZenOS: "

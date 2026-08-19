@@ -31,6 +31,7 @@ local LibraryFont    = require("modules/filebrowser/patches/library_font")
 local ReaderFont     = require("common/reader_font")
 local TitleStyle     = require("common/ui/zen_title_style")
 local utils          = require("common/utils")
+local _              = require("gettext")
 
 local function resolve_stock_icon(name)
     return utils.resolveLocalIcon(DataStorage:getDataDir() .. "/resources/icons/mdlight/", name)
@@ -64,6 +65,23 @@ local function normalize_title(s)
     s = s:gsub("%s+", " ")
     s = s:match("^%s*(.-)%s*$") or s
     return s
+end
+
+local function is_placeholder_title(title)
+    local stripped = title:gsub("%s+", ""):gsub("%-", "")
+        :gsub("\xE2\x80\x93", ""):gsub("\xE2\x80\x94", "")
+    return stripped == ""
+end
+
+local function get_entry_title(ui, entry, page)
+    local title = normalize_title(entry.title or "")
+    local toc = ui and ui.toc
+    if is_placeholder_title(title) and toc
+            and type(toc.getTocTitleByPage) == "function" then
+        local resolved = normalize_title(toc:getTocTitleByPage(page) or "")
+        if not is_placeholder_title(resolved) then title = resolved end
+    end
+    return title
 end
 
 local function get_toc_page_label(ui, entry, fallback_page)
@@ -105,12 +123,14 @@ function ZenTocWidget:init()
         local pg    = e.page or 1
         local depth = e.depth or 1
         if depth <= 3 then
-            local title = normalize_title(e.title or "")
+            local title = get_entry_title(self.ui, e, pg)
             local idx   = page_to_idx[pg]
             if idx then
                 -- Merge: append title only if it's not a duplicate string
                 local existing = entries[idx].title
-                if title ~= "" and title ~= existing then
+                if title ~= "" and is_placeholder_title(existing) then
+                    entries[idx].title = title
+                elseif title ~= "" and title ~= existing then
                     entries[idx].title = existing .. " · " .. title
                 end
                 -- Keep the shallowest (lowest) depth
@@ -435,17 +455,18 @@ function ZenTocWidget:paintTo(bb, x, y)
     -- Title bar: aligned with Zen settings and arrange screens.
     -- -----------------------------------------------------------------------
     local title_tw = TextWidget:new{
-        text    = "Contents",
+        text    = _("Table of contents"),
         face    = TitleStyle.getTitleFace(),
         fgcolor = Blitbuffer.COLOR_BLACK,
         bold    = true,
         padding = 0,
     }
     local tsz = title_tw:getSize()
-    title_tw:paintTo(bb,
-        TitleStyle.getTitleX(mx),
-        my + TitleStyle.VERTICAL_PADDING
-            + math.floor((TitleStyle.ROW_HEIGHT - tsz.h) / 2))
+    local title_x = TitleStyle.getTitleX(mx)
+    local title_y = my + TitleStyle.VERTICAL_PADDING
+        + math.floor((TitleStyle.ROW_HEIGHT - tsz.h) / 2)
+    self._title_hit = { x = title_x, y = title_y, w = tsz.w, h = tsz.h }
+    title_tw:paintTo(bb, title_x, title_y)
     title_tw:free()
 
     -- Back icon (left chevron)
@@ -511,7 +532,7 @@ function ZenTocWidget:paintTo(bb, x, y)
     if #self._entries == 0 then
         -- Empty state
         local etw = TextWidget:new{
-            text    = "No table of contents available",
+            text    = _("No table of contents available."),
             face    = self._text_face,
             fgcolor = Blitbuffer.COLOR_DARK_GRAY,
             padding = 0,
@@ -620,6 +641,12 @@ function ZenTocWidget:_onTap(ges)
     and p.y >= L.back_y and p.y < L.back_y + L.back_h then
         self:onClose()
         return true
+    end
+
+    local title_hit = self._title_hit
+    if title_hit and p.x >= title_hit.x and p.x < title_hit.x + title_hit.w
+            and p.y >= title_hit.y and p.y < title_hit.y + title_hit.h then
+        return self:onClose()
     end
 
     if p.x >= L.close_all_x and p.x < L.close_all_x + L.close_all_w

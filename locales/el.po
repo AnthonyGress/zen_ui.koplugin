@@ -88,11 +88,11 @@ msgstr "90°"
 msgid "< 1 min left in chapter"
 msgstr "< 1 λεπτό έως το τέλος του κεφαλαίου"
 
+msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
+msgstr "Μια καθαρή, ελάχιστη εμπειρία για τον ηλεκτρονικό σας αναγνώστη.\n\nΣύρετε ή πατήστε Επόμενο για να συνεχίσετε."
+
 msgid "A launcher button has been added for ZenPM."
 msgstr "Προστέθηκε κουμπί για το ZenPM στον εκκινητή."
-
-msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
-msgstr "Μια μινιμαλιστική, καθαρή και απλή διεπαφή για τον αναγνώστη σας.\n\nΣύρετε ή πατήστε «Επόμενο» για να συνεχίσετε."
 
 msgid "A short summary of what went wrong"
 msgstr "Σύντομη περιγραφή του προβλήματος"
@@ -178,10 +178,10 @@ msgstr "Όλες οι ρυθμίσεις βρίσκονται σε μία ενι
 msgid "All tags"
 msgstr "Όλες οι ετικέτες"
 
-msgid "All Time"
+msgid "All time"
 msgstr "Συνολικά"
 
-msgid "All time"
+msgid "All Time"
 msgstr "Συνολικά"
 
 msgid "Allow delete"
@@ -201,9 +201,6 @@ msgstr "Εφαρμογή"
 
 msgid "Apply"
 msgstr "Εφαρμογή"
-
-msgid "Apply the 30-unit Reader margin defaults used by the Setup Guide. Books with their own margin settings are unchanged."
-msgstr "Εφαρμογή των προεπιλεγμένων περιθωρίων ανάγνωσης 30 μονάδων που χρησιμοποιεί ο Οδηγός εγκατάστασης. Τα βιβλία με δικές τους ρυθμίσεις περιθωρίων δεν αλλάζουν."
 
 msgid "Are you sure you want to exit KOReader?"
 msgstr "Είστε βέβαιοι ότι θέλετε να βγείτε από το KOReader;"
@@ -316,11 +313,11 @@ msgstr "Μπλε"
 msgid "Bluetooth"
 msgstr "Bluetooth"
 
-msgid "bold"
-msgstr "με έντονους χαρακτήρες"
-
 msgid "Bold"
 msgstr "Έντονη"
+
+msgid "bold"
+msgstr "με έντονους χαρακτήρες"
 
 msgid "Bold text"
 msgstr "Έντονο κείμενο"
@@ -355,20 +352,14 @@ msgstr "Τίτλος βιβλίου"
 msgid "Book: "
 msgstr "Βιβλίο: "
 
-msgid "Books"
-msgstr "Βιβλία"
-
 msgid "books"
 msgstr "βιβλία"
 
+msgid "Books"
+msgstr "Βιβλία"
+
 msgid "Books read"
 msgstr "Βιβλία που διαβάστηκαν"
-
-msgid "Books shown"
-msgstr "Εμφανιζόμενα βιβλία"
-
-msgid "Books shown: "
-msgstr "Εμφανιζόμενα βιβλία: "
 
 msgid "Books tab label"
 msgstr "Ονομασία καρτέλας «Βιβλία»"
@@ -384,9 +375,6 @@ msgstr "Σύντομη περιγραφή του σφάλματος"
 
 msgid "Brightness"
 msgstr "Φωτεινότητα"
-
-msgid "Brightness schedule"
-msgstr "Πρόγραμμα φωτεινότητας"
 
 msgid "Bug description (optional)"
 msgstr "Περιγραφή σφάλματος (προαιρετικά)"
@@ -433,9 +421,6 @@ msgstr "Κεντράρισμα βιβλίων"
 msgid "Center items"
 msgstr "Κεντρικά στοιχεία"
 
-msgid "Centered Pages"
-msgstr "Κεντραρισμένες σελίδες"
-
 msgid "Change folder"
 msgstr "Αλλαγή φακέλου"
 
@@ -444,9 +429,6 @@ msgstr "Αρχείο αλλαγών"
 
 msgid "Chapter"
 msgstr "Κεφάλαιο"
-
-msgid "Chapter Time + %"
-msgstr "Χρόνος κεφαλαίου + %"
 
 msgid "Check for updates automatically"
 msgstr "Αυτόματος έλεγχος για ενημερώσεις"
@@ -459,9 +441,6 @@ msgstr "Σκάκι"
 
 msgid "Choose a different folder"
 msgstr "Επιλογή άλλου φακέλου"
-
-msgid "Choose a preset for your reading progress bar."
-msgstr "Επιλέξτε προρύθμιση για τη γραμμή προόδου ανάγνωσης."
 
 msgid "Choose control"
 msgstr "Επιλέξτε στοιχείο ελέγχου"
@@ -598,10 +577,10 @@ msgstr "Σταυρόλεξο"
 msgid "Current / total pages"
 msgstr "Τρέχουσα / συνολικές σελίδες"
 
-msgid "Current Book"
+msgid "Current book"
 msgstr "Τρέχον βιβλίο"
 
-msgid "Current book"
+msgid "Current Book"
 msgstr "Τρέχον βιβλίο"
 
 msgid "Current home folder:"
@@ -621,9 +600,6 @@ msgstr "Προσαρμοσμένα βιβλία"
 
 msgid "Custom button label"
 msgstr "Ονομασία προσαρμοσμένου κουμπιού"
-
-msgid "Custom featured widget"
-msgstr "Προσαρμοσμένο κύριο γραφικό στοιχείο"
 
 msgid "Custom icon pack: %1"
 msgstr "Προσαρμοσμένο πακέτο εικονιδίων: %1"
@@ -660,9 +636,6 @@ msgstr "Προσαρμοσμένα θέματα"
 
 msgid "Custom: "
 msgstr "Προσαρμοσμένο: "
-
-msgid "Customizable top status bar and bottom progress bar."
-msgstr "Προσαρμόσιμη πάνω γραμμή κατάστασης και κάτω γραμμή προόδου."
 
 msgid "Customize widget"
 msgstr "Προσαρμογή γραφικού στοιχείου"
@@ -724,11 +697,11 @@ msgstr "Καταγραφή εντοπισμού σφαλμάτων"
 msgid "Debug logging must be enabled to submit bug reports."
 msgstr "Η καταγραφή εντοπισμού σφαλμάτων πρέπει να είναι ενεργοποιημένη για την υποβολή αναφορών σφαλμάτων."
 
-msgid "Default"
-msgstr "Προεπιλογή"
-
 msgid "default"
 msgstr "προκαθορισμένo"
+
+msgid "Default"
+msgstr "Προεπιλογή"
 
 msgid "Default (black)"
 msgstr "Προεπιλογή (μαύρο)"
@@ -916,9 +889,6 @@ msgstr "Ενεργοποίηση Zen OPDS"
 msgid "Enable ZenOS enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "Ενεργοποίηση των βελτιώσεων του ZenOS στον περιηγητή OPDS: εξώφυλλα, προβολή λίστας, μενού παρατεταμένου πατήματος και βελτιώσεις πλοήγησης."
 
-msgid "Enable ZenOS Reader margins"
-msgstr "Ενεργοποίηση περιθωρίων ανάγνωσης ZenOS"
-
 msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
 msgstr "Ενεργοποίηση καταγραφής εντοπισμού σφαλμάτων· απαιτείται επανεκκίνηση. Αναπαραγάγετε το πρόβλημα και έπειτα υποβάλετε την αναφορά."
 
@@ -964,6 +934,9 @@ msgstr "Filebrowser"
 msgid "Filebrowser plugin is not installed."
 msgstr "Το πρόσθετο Filebrowser δεν είναι εγκατεστημένο."
 
+msgid "Filename:"
+msgstr "Όνομα αρχείου:"
+
 msgid "Filter"
 msgstr "Φίλτρο"
 
@@ -1003,20 +976,23 @@ msgstr "Προρυθμίσεις φακέλου"
 msgid "Folders"
 msgstr "Φάκελοι"
 
-msgid "Font"
-msgstr "Γραμματοσειρά"
-
 msgid "font"
 msgstr "γραμματοσειρά"
 
-msgid "Font size"
-msgstr "Μέγεθος γραμματοσειράς"
+msgid "Font"
+msgstr "Γραμματοσειρά"
 
 msgid "font size"
 msgstr "μέγεθος γραμματοσειράς"
 
+msgid "Font size"
+msgstr "Μέγεθος γραμματοσειράς"
+
 msgid "Font size:"
 msgstr "Μέγεθος γραμματοσειράς:"
+
+msgid "Font, margins, contrast, line spacing etc - tested together for the best reading experience"
+msgstr "Γραμματοσειρά, περιθώρια, αντίθεση, διάστιχο κ.λπ. - δοκιμάστηκαν μαζί για την καλύτερη εμπειρία ανάγνωσης"
 
 msgid "Font:"
 msgstr "Γραμματοσειρά:"
@@ -1027,6 +1003,9 @@ msgstr "Αναγκαστικός συγχρονισμός"
 msgid "Force sync all catalogs"
 msgstr "Αναγκαστικός συγχρονισμός όλων των καταλόγων"
 
+msgid "Format:"
+msgstr "Σχήμα και διάταξις βιβλίου:"
+
 msgid "Format: R,G,B (0-255)"
 msgstr "Μορφή: R,G,B (0-255)"
 
@@ -1035,9 +1014,6 @@ msgstr "Εμπρόσθιος φωτισμός"
 
 msgid "Gallery"
 msgstr "Συλλογή εικόνων"
-
-msgid "Genres"
-msgstr "Είδη"
 
 msgid "Get Started"
 msgstr "Ας ξεκινήσουμε"
@@ -1104,9 +1080,6 @@ msgstr "Παρατεταμένο πάτημα για παράλειψη"
 
 msgid "Home"
 msgstr "Αρχικός Φάκελος"
-
-msgid "Home default font size"
-msgstr "Προεπιλεγμένο μέγεθος γραμματοσειράς αρχικής"
 
 msgid "Home Folder"
 msgstr "Αρχικός φάκελος"
@@ -1186,11 +1159,11 @@ msgstr "Διαδραστικό"
 msgid "IP address: %1"
 msgstr "Διεύθυνση IP: %1"
 
-msgid "Items per page"
-msgstr "Στοιχεία ανά σελίδα"
-
 msgid "items per page"
 msgstr "στοιχεία ανά σελίδα"
+
+msgid "Items per page"
+msgstr "Στοιχεία ανά σελίδα"
 
 msgid "Keep existing settings"
 msgstr "Διατήρηση υπαρχουσών ρυθμίσεων"
@@ -1338,6 +1311,12 @@ msgstr "Κατεβάστε και εγκαταστήστε χειροκίνητ�
 
 msgid "Match whole words"
 msgstr "Αντιστοίχιση ολόκληρων λέξεων"
+
+msgid "Max books shown"
+msgstr "Εμφανίζονται τα μέγιστα βιβλία"
+
+msgid "Max books shown: "
+msgstr "Μέγιστος αριθμός βιβλίων που εμφανίζονται:"
 
 msgid "Maximum 7 tabs allowed"
 msgstr "Επιτρέπονται έως 7 καρτέλες"
@@ -1633,6 +1612,9 @@ msgstr "Άνοιγμα RSS Reader"
 msgid "Open this file?"
 msgstr "Να ανοιχθεί αυτό το αρχείο;"
 
+msgid "Open with…"
+msgstr "Ανοιχτό με…"
+
 msgid "Opening"
 msgstr "Ανοίγει"
 
@@ -1671,12 +1653,6 @@ msgstr "σελίδες"
 
 msgid "Pages"
 msgstr "Σελίδες"
-
-msgid "Pages + Chapter Time + %"
-msgstr "Σελίδες + Χρόνος κεφαλαίου + %"
-
-msgid "Pages and %"
-msgstr "Σελίδες και %"
 
 msgid "Pages read"
 msgstr "Αναγνωσμένες σελίδες"
@@ -1719,6 +1695,9 @@ msgstr "Πρόσθετο"
 
 msgid "Plugin management"
 msgstr "Διαχείριση προσθέτων"
+
+msgid "Plugin Menu"
+msgstr "Μενού προσθηκών"
 
 msgid "Plugin: %1"
 msgstr "Πρόσθετο: %1"
@@ -1780,9 +1759,6 @@ msgstr "Ακύρωση"
 msgid "Quit KOReader"
 msgstr "Τερματισμός του KOReader"
 
-msgid "Quote"
-msgstr "Απόφθεγμα"
-
 msgid "Quote font size"
 msgstr "Μέγεθος γραμματοσειράς αποφθέγματος"
 
@@ -1822,9 +1798,6 @@ msgstr "Διαβάστηκαν σήμερα"
 msgid "Reader"
 msgstr "Αναγνώστης"
 
-msgid "Reader Progress"
-msgstr "Πρόοδος ανάγνωσης"
-
 msgid "Reader themes"
 msgstr "Θέματα ανάγνωσης"
 
@@ -1860,9 +1833,6 @@ msgstr "Φίλτρα πρόσφατων"
 
 msgid "Recently read"
 msgstr "Πρόσφατα αναγνωσμένα"
-
-msgid "Recently read featured widget"
-msgstr "Κύριο γραφικό στοιχείο πρόσφατα αναγνωσμένων"
 
 msgid "Recently read strip widget"
 msgstr "Γραφικό στοιχείο λωρίδας πρόσφατα αναγνωσμένων"
@@ -1954,9 +1924,6 @@ msgstr "Συνέχεια από τη σελίδα"
 msgid "Return to chapter list on exit"
 msgstr "Επιστροφή στη λίστα κεφαλαίων κατά την έξοδο"
 
-msgid "Reverse"
-msgstr "Αντίστροφη σειρά"
-
 msgid "Review"
 msgstr "Κριτική"
 
@@ -2041,11 +2008,11 @@ msgstr "Διαχωριστικό"
 msgid "Separator: "
 msgstr "Διαχωριστικό: "
 
-msgid "Series"
-msgstr "Σειρές"
-
 msgid "series"
 msgstr "σειρές"
+
+msgid "Series"
+msgstr "Σειρές"
 
 msgid "Series number"
 msgstr "Αριθμός σειράς"
@@ -2095,9 +2062,6 @@ msgstr "Εμφάνιση βοηθού AI"
 msgid "Show all files from subfolders"
 msgstr "Εμφάνιση όλων των αρχείων από τους υποφακέλους"
 
-msgid "Show as first page"
-msgstr "Εμφάνιση ως πρώτη σελίδα"
-
 msgid "Show author"
 msgstr "Εμφάνιση συγγραφέα"
 
@@ -2146,6 +2110,9 @@ msgstr "Εμφάνιση πλήθους στοιχείων"
 msgid "Show item underline"
 msgstr "Εμφάνιση υπογράμμισης στοιχείου"
 
+msgid "Show KOAssistant"
+msgstr "Εμφάνιση KOAsistant"
+
 msgid "Show labels"
 msgstr "Εμφάνιση ονομασιών"
 
@@ -2191,11 +2158,11 @@ msgstr "Εμφάνιση πάνω γραμμής κατάστασης"
 msgid "Show warmth slider"
 msgstr "Εμφάνιση ρυθμιστικού θερμού φωτός"
 
-msgid "Show widget title"
-msgstr "Εμφάνιση τίτλου γραφικού στοιχείου"
-
 msgid "Show Wikipedia"
 msgstr "Εμφάνιση Βικιπαίδειας"
+
+msgid "Show X-Ray"
+msgstr "Εμφάνιση ακτίνων Χ"
 
 msgid "Show Zen icon - black background"
 msgstr "Εμφάνιση εικονιδίου Zen - μαύρο φόντο"
@@ -2338,6 +2305,9 @@ msgstr "Συγχρονισμός όλων των καταλόγων"
 msgid "Tab"
 msgstr "Καρτέλα"
 
+msgid "Table of contents"
+msgstr "Πίνακας περιεχομένων"
+
 msgid "Tabs"
 msgstr "Καρτέλες"
 
@@ -2350,11 +2320,11 @@ msgstr "Γραφικό στοιχείο λωρίδας ετικετών"
 msgid "Tag: %1"
 msgstr "Ετικέτα: %1"
 
-msgid "Tags"
-msgstr "Ετικέτες"
-
 msgid "tags"
 msgstr "ετικέτες"
+
+msgid "Tags"
+msgstr "Ετικέτες"
 
 msgid "Tailscale"
 msgstr "Tailscale"
@@ -2389,8 +2359,8 @@ msgstr "Αυτή η αλλαγή απαιτεί επανεκκίνηση για 
 msgid "This does not disable ZenOS—it only shows or hides KOReader’s menus."
 msgstr "Αυτό δεν απενεργοποιεί το ZenOS — απλώς εμφανίζει ή αποκρύπτει τα μενού του KOReader."
 
-msgid "This is Zen Settings. ZenOS and common KOReader settings live here."
-msgstr "Αυτές είναι οι Ρυθμίσεις Zen. Εδώ βρίσκονται οι ρυθμίσεις του ZenOS και οι βασικές ρυθμίσεις του KOReader."
+msgid "This is Zen Settings. ZenOS settings/updates and common KOReader settings live here."
+msgstr "Αυτό είναι το Zen Settings. Ρυθμίσεις/ενημερώσεις ZenOS και κοινές ρυθμίσεις KOREader ζωντανά εδώ."
 
 msgid "This Month"
 msgstr "Αυτόν τον μήνα"
@@ -2452,9 +2422,6 @@ msgstr "Τίτλος (φυσική σειρά)"
 msgid "To Be Read"
 msgstr "Προς ανάγνωση"
 
-msgid "To Be Read featured widget"
-msgstr "Κύριο γραφικό στοιχείο «Προς ανάγνωση»"
-
 msgid "To Be Read strip widget"
 msgstr "Γραφικό στοιχείο λωρίδας «Προς ανάγνωση»"
 
@@ -2509,11 +2476,11 @@ msgstr "Υπογράμμιση πάνω από το εικονίδιο"
 msgid "Uniform covers"
 msgstr "Ενιαίο μέγεθος εξωφύλλων"
 
-msgid "Unknown"
-msgstr "Άγνωστo"
-
 msgid "unknown"
 msgstr "άγνωστο"
+
+msgid "Unknown"
+msgstr "Άγνωστo"
 
 msgid "Unknown Author"
 msgstr "Άγνωστος Συγγραφέας"
@@ -2617,14 +2584,8 @@ msgstr "Χρήση τρέχοντος φακέλου"
 msgid "Use default font"
 msgstr "Χρήση προεπιλεγμένης γραμματοσειράς"
 
-msgid "Use default font size"
-msgstr "Χρήση προεπιλεγμένου μεγέθους γραμματοσειράς"
-
 msgid "Use default style"
 msgstr "Χρήση προεπιλεγμένου στυλ"
-
-msgid "Use Home default font size"
-msgstr "Χρήση προεπιλεγμένου μεγέθους γραμματοσειράς αρχικής"
 
 msgid "Use home folder"
 msgstr "Χρήση αρχικού φακέλου"
@@ -2646,9 +2607,6 @@ msgstr "Εικονικός φάκελος"
 
 msgid "Warmth"
 msgstr "Θερμό φως"
-
-msgid "Warmth schedule"
-msgstr "Πρόγραμμα θερμού φωτός"
 
 msgid "Weekly"
 msgstr "Εβδομαδιαία"
@@ -2690,7 +2648,7 @@ msgid "Widgets"
 msgstr "Γραφικά στοιχεία"
 
 msgid "Wrap description text"
-msgstr ""
+msgstr "Αναδίπλωση κειμένου περιγραφής"
 
 msgid "Yearly"
 msgstr "Ετήσια"
@@ -2737,6 +2695,9 @@ msgstr "Προρυθμίσεις Zen"
 msgid "Zen quick lookup"
 msgstr "Γρήγορη αναζήτηση Zen"
 
+msgid "ZenFM"
+msgstr "ZenFM"
+
 msgid "ZenOS"
 msgstr "ZenOS"
 
@@ -2745,9 +2706,6 @@ msgstr "Προεπιλογές του ZenOS"
 
 msgid "ZenOS is up to date."
 msgstr "Το ZenOS είναι ενημερωμένο."
-
-msgid "ZenOS Reader margins enabled"
-msgstr "Τα περιθώρια ανάγνωσης ZenOS ενεργοποιήθηκαν"
 
 msgid "ZenOS: "
 msgstr "ZenOS: "

@@ -87,11 +87,11 @@ msgstr "90°"
 msgid "< 1 min left in chapter"
 msgstr "< 1 min restant dans le chapitre"
 
+msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
+msgstr "Une expérience propre et minimale pour votre liseuse.\n\nFaites glisser ou appuyez sur Suivant pour continuer."
+
 msgid "A launcher button has been added for ZenPM."
 msgstr "Un bouton de lancement a été ajouté pour ZenPM."
-
-msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
-msgstr "Une interface minimale, épurée et simple pour votre liseuse.\n\nBalayez ou appuyez sur Suivant pour continuer."
 
 msgid "A short summary of what went wrong"
 msgstr "Un bref résumé de ce qui s'est mal passé"
@@ -177,10 +177,10 @@ msgstr "Tous les réglages se trouvent dans un seul onglet unifié. Cette icône
 msgid "All tags"
 msgstr "Toutes les étiquettes"
 
-msgid "All Time"
+msgid "All time"
 msgstr "Tout le temps"
 
-msgid "All time"
+msgid "All Time"
 msgstr "Tout le temps"
 
 msgid "Allow delete"
@@ -200,9 +200,6 @@ msgstr "Appli"
 
 msgid "Apply"
 msgstr "Appliquer"
-
-msgid "Apply the 30-unit Reader margin defaults used by the Setup Guide. Books with their own margin settings are unchanged."
-msgstr "Appliquez les valeurs par défaut de marge du lecteur de 30 unités utilisées par le guide d'installation. Les livres avec leurs propres paramètres de marge restent inchangés."
 
 msgid "Are you sure you want to exit KOReader?"
 msgstr "Voulez-vous vraiment quitter KOReader ?"
@@ -315,11 +312,11 @@ msgstr "Bleu"
 msgid "Bluetooth"
 msgstr "Bluetooth"
 
-msgid "bold"
-msgstr "gras"
-
 msgid "Bold"
 msgstr "Gras"
+
+msgid "bold"
+msgstr "gras"
 
 msgid "Bold text"
 msgstr "Texte en gras"
@@ -354,11 +351,11 @@ msgstr "Titre du livre"
 msgid "Book: "
 msgstr "Livre : "
 
-msgid "Books"
-msgstr "Livres"
-
 msgid "books"
 msgstr "livres"
+
+msgid "Books"
+msgstr "Livres"
 
 msgid "Books read"
 msgstr "Livres lus"
@@ -377,9 +374,6 @@ msgstr "Description brève du bug"
 
 msgid "Brightness"
 msgstr "Luminosité"
-
-msgid "Brightness schedule"
-msgstr "Planification de la luminosité"
 
 msgid "Bug description (optional)"
 msgstr "Description du bug (optionnelle)"
@@ -426,9 +420,6 @@ msgstr "Centrer les livres"
 msgid "Center items"
 msgstr "Éléments du centre"
 
-msgid "Centered Pages"
-msgstr "Pages centrées"
-
 msgid "Change folder"
 msgstr "Changer de dossier"
 
@@ -437,9 +428,6 @@ msgstr "Journal des modifications"
 
 msgid "Chapter"
 msgstr "Chapitre"
-
-msgid "Chapter Time + %"
-msgstr "Temps de chapitre + %"
 
 msgid "Check for updates automatically"
 msgstr "Vérifier automatiquement les mises à jour"
@@ -452,9 +440,6 @@ msgstr "Échecs"
 
 msgid "Choose a different folder"
 msgstr "Choisir un autre dossier"
-
-msgid "Choose a preset for your reading progress bar."
-msgstr "Choisissez un préréglage pour votre barre de progression de lecture."
 
 msgid "Choose control"
 msgstr "Choisissez le contrôle"
@@ -591,10 +576,10 @@ msgstr "Mots croisés"
 msgid "Current / total pages"
 msgstr "Pages actuelles / totales"
 
-msgid "Current Book"
+msgid "Current book"
 msgstr "Livre actuel"
 
-msgid "Current book"
+msgid "Current Book"
 msgstr "Livre actuel"
 
 msgid "Current home folder:"
@@ -614,9 +599,6 @@ msgstr "Livres personnalisés"
 
 msgid "Custom button label"
 msgstr "Étiquette du bouton personnalisé"
-
-msgid "Custom featured widget"
-msgstr "Widget à la une personnalisé"
 
 msgid "Custom icon pack: %1"
 msgstr "Pack d’icônes personnalisé : %1"
@@ -653,9 +635,6 @@ msgstr "Thèmes personnalisés"
 
 msgid "Custom: "
 msgstr "Personnalisé : "
-
-msgid "Customizable top status bar and bottom progress bar."
-msgstr "Barre d'état supérieure et barre de progression inférieure personnalisables."
 
 msgid "Customize widget"
 msgstr "Personnaliser le widget"
@@ -717,11 +696,11 @@ msgstr "Journal de débogage"
 msgid "Debug logging must be enabled to submit bug reports."
 msgstr "La journalisation de débogage doit être activée pour soumettre des rapports."
 
-msgid "Default"
-msgstr "Par défaut"
-
 msgid "default"
 msgstr "par défaut"
+
+msgid "Default"
+msgstr "Par défaut"
 
 msgid "Default (black)"
 msgstr "Par défaut (noir)"
@@ -909,9 +888,6 @@ msgstr "Activer Zen OPDS"
 msgid "Enable ZenOS enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
 msgstr "Activer les améliorations ZenOS du navigateur OPDS : couvertures, vue liste, menu au maintien et améliorations de navigation."
 
-msgid "Enable ZenOS Reader margins"
-msgstr "Activer les marges de ZenOS Reader"
-
 msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
 msgstr "Activation de la journalisation de débogage, redémarrage requis. Reproduisez le problème, puis soumettez le rapport."
 
@@ -957,6 +933,9 @@ msgstr "Explorateur de fichiers"
 msgid "Filebrowser plugin is not installed."
 msgstr "Le plugin Filebrowser n'est pas installé."
 
+msgid "Filename:"
+msgstr "Nom de fichier:"
+
 msgid "Filter"
 msgstr "Filtrer"
 
@@ -996,20 +975,23 @@ msgstr "Préréglages de dossier"
 msgid "Folders"
 msgstr "Dossiers"
 
-msgid "Font"
-msgstr "Police"
-
 msgid "font"
 msgstr "police"
 
-msgid "Font size"
-msgstr "Taille de police"
+msgid "Font"
+msgstr "Police"
 
 msgid "font size"
 msgstr "taille de police"
 
+msgid "Font size"
+msgstr "Taille de police"
+
 msgid "Font size:"
 msgstr "Taille de police :"
+
+msgid "Font, margins, contrast, line spacing etc - tested together for the best reading experience"
+msgstr "Police, marges, contraste, interligne, etc. - testés ensemble pour la meilleure expérience de lecture"
 
 msgid "Font:"
 msgstr "Police :"
@@ -1020,6 +1002,9 @@ msgstr "Forcer la synchronisation"
 msgid "Force sync all catalogs"
 msgstr "Forcer la synchronisation de tous les catalogues"
 
+msgid "Format:"
+msgstr "Format:"
+
 msgid "Format: R,G,B (0-255)"
 msgstr "Format : R,V,B (0-255)"
 
@@ -1028,9 +1013,6 @@ msgstr "Éclairage frontal"
 
 msgid "Gallery"
 msgstr "Galerie"
-
-msgid "Genres"
-msgstr "Genres"
 
 msgid "Get Started"
 msgstr "Commencer"
@@ -1097,9 +1079,6 @@ msgstr "Maintenir pour ignorer"
 
 msgid "Home"
 msgstr "Accueil"
-
-msgid "Home default font size"
-msgstr "Taille de police par défaut"
 
 msgid "Home Folder"
 msgstr "Dossier racine"
@@ -1179,11 +1158,11 @@ msgstr "Interactif"
 msgid "IP address: %1"
 msgstr "Adresse IP : %1"
 
-msgid "Items per page"
-msgstr "Éléments par page"
-
 msgid "items per page"
 msgstr "éléments par page"
+
+msgid "Items per page"
+msgstr "Éléments par page"
 
 msgid "Keep existing settings"
 msgstr "Conserver les réglages actuels"
@@ -1632,6 +1611,9 @@ msgstr "Ouvrir le lecteur RSS"
 msgid "Open this file?"
 msgstr "Ouvrir ce fichier ?"
 
+msgid "Open with…"
+msgstr "Ouvrir avec…"
+
 msgid "Opening"
 msgstr "Ouverture"
 
@@ -1670,12 +1652,6 @@ msgstr "pages"
 
 msgid "Pages"
 msgstr "Pages"
-
-msgid "Pages + Chapter Time + %"
-msgstr "Pages + Temps de chapitre + %"
-
-msgid "Pages and %"
-msgstr "Pages et %"
 
 msgid "Pages read"
 msgstr "Pages lues"
@@ -1718,6 +1694,9 @@ msgstr "Plugin"
 
 msgid "Plugin management"
 msgstr "Gestion des plugins"
+
+msgid "Plugin Menu"
+msgstr "Menu des plugins"
 
 msgid "Plugin: %1"
 msgstr "Plugin : %1"
@@ -1779,9 +1758,6 @@ msgstr "Quitter"
 msgid "Quit KOReader"
 msgstr "Fermer KOReader"
 
-msgid "Quote"
-msgstr "Citation"
-
 msgid "Quote font size"
 msgstr "Taille de la police du devis"
 
@@ -1821,9 +1797,6 @@ msgstr "Lire aujourd'hui"
 msgid "Reader"
 msgstr "Lecteur"
 
-msgid "Reader Progress"
-msgstr "Progression de lecture"
-
 msgid "Reader themes"
 msgstr "Thèmes de lecture"
 
@@ -1859,9 +1832,6 @@ msgstr "Filtres des éléments récents"
 
 msgid "Recently read"
 msgstr "Lu récemment"
-
-msgid "Recently read featured widget"
-msgstr "Widget à la une lus récemment"
 
 msgid "Recently read strip widget"
 msgstr "Widget bande lus récemment"
@@ -1953,9 +1923,6 @@ msgstr "Reprendre depuis la page"
 msgid "Return to chapter list on exit"
 msgstr "Revenir à la liste des chapitres en quittant"
 
-msgid "Reverse"
-msgstr "Inverser"
-
 msgid "Review"
 msgstr "Critique"
 
@@ -2040,11 +2007,11 @@ msgstr "Séparateur"
 msgid "Separator: "
 msgstr "Séparateur : "
 
-msgid "Series"
-msgstr "Série"
-
 msgid "series"
 msgstr "séries"
+
+msgid "Series"
+msgstr "Série"
 
 msgid "Series number"
 msgstr "Numéro de série"
@@ -2091,17 +2058,8 @@ msgstr "Afficher un bouton pour le module Assistant, s’il est installé."
 msgid "Show AI assistant"
 msgstr "Afficher l’assistant IA"
 
-msgid "Show KOAssistant"
-msgstr "Afficher KOAssistant"
-
-msgid "Show X-Ray"
-msgstr "Afficher X-Ray"
-
 msgid "Show all files from subfolders"
 msgstr "Afficher tous les fichiers des sous-dossiers"
-
-msgid "Show as first page"
-msgstr "Afficher en première page"
 
 msgid "Show author"
 msgstr "Afficher l'auteur"
@@ -2151,6 +2109,9 @@ msgstr "Afficher le nombre d'éléments"
 msgid "Show item underline"
 msgstr "Afficher le soulignement des éléments"
 
+msgid "Show KOAssistant"
+msgstr "Afficher KOAssistant"
+
 msgid "Show labels"
 msgstr "Afficher les étiquettes"
 
@@ -2196,11 +2157,11 @@ msgstr "Afficher la barre d’état supérieure"
 msgid "Show warmth slider"
 msgstr "Afficher le curseur de chaleur"
 
-msgid "Show widget title"
-msgstr "Afficher le titre du widget"
-
 msgid "Show Wikipedia"
 msgstr "Afficher Wikipédia"
+
+msgid "Show X-Ray"
+msgstr "Afficher X-Ray"
 
 msgid "Show Zen icon - black background"
 msgstr "Afficher l'icône Zen - fond noir"
@@ -2343,6 +2304,9 @@ msgstr "Synchroniser tous les catalogues"
 msgid "Tab"
 msgstr "Languette"
 
+msgid "Table of contents"
+msgstr "Table des matières"
+
 msgid "Tabs"
 msgstr "Onglets"
 
@@ -2355,11 +2319,11 @@ msgstr "Widget de bande de balises"
 msgid "Tag: %1"
 msgstr "Étiquette : %1"
 
-msgid "Tags"
-msgstr "Étiquettes"
-
 msgid "tags"
 msgstr "étiquettes"
+
+msgid "Tags"
+msgstr "Étiquettes"
 
 msgid "Tailscale"
 msgstr "Échelle arrière"
@@ -2394,8 +2358,8 @@ msgstr "Ce changement nécessite un redémarrage pour prendre effet."
 msgid "This does not disable ZenOS—it only shows or hides KOReader’s menus."
 msgstr "Cela ne désactive pas ZenOS : seuls les menus de KOReader sont affichés ou masqués."
 
-msgid "This is Zen Settings. ZenOS and common KOReader settings live here."
-msgstr "Voici les paramètres Zen. Les paramètres de ZenOS et les paramètres courants de KOReader s’y trouvent."
+msgid "This is Zen Settings. ZenOS settings/updates and common KOReader settings live here."
+msgstr "Il s'agit des paramètres Zen. Les paramètres/mises à jour ZenOS et les paramètres courants de KOReader sont disponibles ici."
 
 msgid "This Month"
 msgstr "Ce mois"
@@ -2457,9 +2421,6 @@ msgstr "Titre naturel"
 msgid "To Be Read"
 msgstr "À lire"
 
-msgid "To Be Read featured widget"
-msgstr "Widget à la une À lire"
-
 msgid "To Be Read strip widget"
 msgstr "Widget bande À lire"
 
@@ -2514,11 +2475,11 @@ msgstr "Soulignement au-dessus de l'icône"
 msgid "Uniform covers"
 msgstr "Couvertures uniformes"
 
-msgid "Unknown"
-msgstr "Inconnu"
-
 msgid "unknown"
 msgstr "inconnu"
+
+msgid "Unknown"
+msgstr "Inconnu"
 
 msgid "Unknown Author"
 msgstr "Auteur inconnu"
@@ -2622,14 +2583,8 @@ msgstr "Utiliser le dossier actuel"
 msgid "Use default font"
 msgstr "Utiliser la police par défaut"
 
-msgid "Use default font size"
-msgstr "Utiliser la taille de police par défaut"
-
 msgid "Use default style"
 msgstr "Utiliser le style par défaut"
-
-msgid "Use Home default font size"
-msgstr "Utiliser la taille de police par défaut de l'accueil"
 
 msgid "Use home folder"
 msgstr "Utiliser le dossier personnel"
@@ -2651,9 +2606,6 @@ msgstr "Dossier virtuel"
 
 msgid "Warmth"
 msgstr "Chaleur"
-
-msgid "Warmth schedule"
-msgstr "Planification de la chaleur"
 
 msgid "Weekly"
 msgstr "Hebdomadaire"
@@ -2742,6 +2694,9 @@ msgstr "Zen Presets"
 msgid "Zen quick lookup"
 msgstr "Recherche rapide Zen"
 
+msgid "ZenFM"
+msgstr "ZenFM"
+
 msgid "ZenOS"
 msgstr "ZenOS"
 
@@ -2750,9 +2705,6 @@ msgstr "Paramètres par défaut de ZenOS"
 
 msgid "ZenOS is up to date."
 msgstr "ZenOS est à jour."
-
-msgid "ZenOS Reader margins enabled"
-msgstr "Marges de ZenOS Reader activées"
 
 msgid "ZenOS: "
 msgstr "ZenOS : "

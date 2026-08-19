@@ -2,6 +2,29 @@ local Font = require("ui/font")
 
 local M = {}
 
+local function get_font_size(ui, fallback_size)
+    local document = ui and ui.document
+    local reader_config = document and document.configurable
+        or (ui and ui.configurable)
+    local size = tonumber(reader_config and reader_config.font_size)
+
+    -- PDF/DJVU reflow stores a zoom ratio here (normally 0.1–3.0), not a
+    -- display font size. Prefer its active reader size, then convert the ratio
+    -- or use the caller's UI-size fallback.
+    if size and size < 5 then
+        local kopt_size = size
+        size = tonumber(document and document.reflowable_font_size)
+        if not size or size < 5 then
+            local convert = document and document.convertKoptToReflowableFontSize
+            if type(convert) == "function" then
+                size = tonumber(convert(document, kopt_size))
+            end
+        end
+    end
+    if not size or size < 5 then return fallback_size end
+    return size
+end
+
 function M.getInfo(ui, fallback_size)
     local settings_reader_font
     if ui and ui.doc_settings and type(ui.doc_settings.readSetting) == "function" then
@@ -10,10 +33,7 @@ function M.getInfo(ui, fallback_size)
     local reader_font = ui and ui.font and ui.font.font_face
         or settings_reader_font
         or (ui and ui.document and ui.document.default_font)
-    local reader_config = ui and ui.document and ui.document.configurable
-        or (ui and ui.configurable)
-    local reader_font_size = tonumber(reader_config and reader_config.font_size)
-        or fallback_size
+    local reader_font_size = get_font_size(ui, fallback_size)
     local reader_font_file, reader_font_index
 
     if reader_font then

@@ -6,6 +6,7 @@ describe("Zen TOC hardware focus", function()
     local close_icon
     local title_spec
     local font_calls
+    local text_specs
 
     local function input_container()
         local InputContainer = {}
@@ -37,6 +38,12 @@ describe("Zen TOC hardware focus", function()
         close_icon = nil
         title_spec = nil
         font_calls = {}
+        text_specs = {}
+        ZenSpec.replace("gettext", function(text)
+            if text == "Table of contents" then return "Translated contents" end
+            if text == "No table of contents available." then return "Translated empty TOC" end
+            return text
+        end)
         ZenSpec.replace("device", {
             screen = {
                 getWidth = function() return 600 end,
@@ -83,7 +90,8 @@ describe("Zen TOC hardware focus", function()
         })
         ZenSpec.replace("ui/widget/textwidget", {
             new = function(_self, values)
-                if values.text == "Contents" then title_spec = values end
+                table.insert(text_specs, values)
+                if values.text == "Translated contents" then title_spec = values end
                 values.getSize = function() return { w = 80, h = 20 } end
                 values.paintTo = function(self, _bb, x)
                     self.paint_x = x
@@ -234,6 +242,62 @@ describe("Zen TOC hardware focus", function()
         assert.are.equal(544, close_icon.paint_x)
     end)
 
+    it("treats a tap on the title text as Back", function()
+        local parent_closes = 0
+        local widget = new_widget(nil, function() parent_closes = parent_closes + 1 end)
+        widget:paintTo({ paintRect = function() end }, 0, 0)
+        local hit = widget._title_hit
+
+        assert.is_true(widget:_onTap({
+            pos = { x = hit.x + 1, y = hit.y + 1 },
+        }))
+        assert.are.equal(1, close_calls)
+        assert.are.equal(0, parent_closes)
+    end)
+
+    it("localizes the title and empty state", function()
+        local widget = ZenTocWidget:new{
+            ui = {
+                toc = { toc = {} },
+                font = { font_face = "ReaderFont" },
+                document = { configurable = { font_size = 21 } },
+            },
+        }
+        widget:paintTo({ paintRect = function() end }, 0, 0)
+
+        assert.are.equal("Translated contents", title_spec.text)
+        local found_empty
+        for _i, spec in ipairs(text_specs) do
+            if spec.text == "Translated empty TOC" then found_empty = true end
+        end
+        assert.is_true(found_empty)
+    end)
+
+    it("replaces PDF placeholder titles with KOReader's resolved chapter title", function()
+        local toc = {
+            toc = {
+                { title = "---", page = 5, depth = 1 },
+                { title = "", page = 10, depth = 1 },
+                { title = "Chapter ten", page = 10, depth = 2 },
+            },
+            getTocTitleByPage = function(_self, page)
+                if page == 5 then return "Resolved chapter" end
+                return ""
+            end,
+        }
+        local widget = ZenTocWidget:new{
+            ui = {
+                toc = toc,
+                font = { font_face = "ReaderFont" },
+                document = { configurable = { font_size = 21 } },
+            },
+        }
+
+        assert.are.equal(2, #widget._entries)
+        assert.are.equal("Resolved chapter", widget._entries[1].title)
+        assert.are.equal("Chapter ten", widget._entries[2].title)
+    end)
+
     it("closes itself and the page browser from the top-right X", function()
         local parent_closes = 0
         local widget = new_widget(nil, function() parent_closes = parent_closes + 1 end)
@@ -248,5 +312,35 @@ describe("Zen TOC hardware focus", function()
         widget:paintTo({ paintRect = function() end }, 0, 0)
 
         assert.same({ name = "LibraryFont", size = 21, index = nil }, font_calls[1])
+    end)
+
+    it("uses the active PDF reader font size for TOC text", function()
+        ZenTocWidget:new{
+            ui = {
+                toc = { toc = {} },
+                document = {
+                    configurable = { font_size = 1 },
+                    reflowable_font_size = 30,
+                },
+            },
+        }
+
+        assert.same({ name = "LibraryFont", size = 30, index = nil }, font_calls[1])
+    end)
+
+    it("converts the PDF scale when its active reader font size is unavailable", function()
+        ZenTocWidget:new{
+            ui = {
+                toc = { toc = {} },
+                document = {
+                    configurable = { font_size = 1 },
+                    convertKoptToReflowableFontSize = function(_self, scale)
+                        return scale * 22
+                    end,
+                },
+            },
+        }
+
+        assert.same({ name = "LibraryFont", size = 22, index = nil }, font_calls[1])
     end)
 end)
