@@ -18,6 +18,8 @@ describe("file browser item-table cache", function()
     local filename_wrap
     local directory_wrap
     local home_invalidations
+    local fake_now
+    local attributes_calls
 
     local module_names = {
         "common/cover_utils",
@@ -95,6 +97,8 @@ describe("file browser item-table cache", function()
         filename_wrap = function(text) return text end
         directory_wrap = function(text) return text end
         home_invalidations = {}
+        fake_now = 0
+        attributes_calls = 0
         saved_modules = {}
         for _i, name in ipairs(module_names) do
             saved_modules[name] = package.loaded[name]
@@ -121,6 +125,7 @@ describe("file browser item-table cache", function()
         ZenSpec.replace("ffi/util", { realpath = function(path) return path end })
         ZenSpec.replace("libs/libkoreader-lfs", {
             attributes = function(path, field)
+                attributes_calls = attributes_calls + 1
                 local mode = path:match("%.[^/]+$") and "file" or "directory"
                 local attr = {
                     mode = mode,
@@ -150,7 +155,7 @@ describe("file browser item-table cache", function()
             maxDescendantTimes = function() return descendant_times end,
         })
         ZenSpec.replace("common/zen_logger", {
-            now = function() return 0 end,
+            now = function() return fake_now end,
             new = function()
                 return { measure = function() end, dbg = function() end, warn = function() end }
             end,
@@ -253,6 +258,13 @@ describe("file browser item-table cache", function()
         local before = chooser:genItemTableFromPath("/library")
         assert.are.equal("1 \xef\x80\x96", before[1].mandatory)
 
+        -- Within the child-validation window the cached listing is reused...
+        local quick = chooser:genItemTableFromPath("/library")
+        assert.are.equal(1, generated["/library"])
+        assert.are.equal(before, quick)
+
+        -- ...and the next full validation detects the changed child folder.
+        fake_now = fake_now + 10
         directory_mtimes["/library/series"] = 2
         source_items["/library"] = {
             {
@@ -330,8 +342,12 @@ describe("file browser item-table cache", function()
         descendant_times["/library/Later"] = 30
         directory_mtime = 2
         _G.__ZEN_UI_LAST_READ_FILE = "/library/Later/book.epub"
+        local stat_base = attributes_calls
         local after = chooser:genItemTableFromPath("/library")
 
+        -- The refresh re-sorts without scanning the child directories again
+        -- (only the root signature for the cache key).
+        assert.are.equal(1, attributes_calls - stat_base)
         assert.are.equal("Later/", after[1].text)
         assert.are.equal("2 \xef\x80\x96", after[1].mandatory)
         assert.are.equal(1, generated["/library"])

@@ -560,13 +560,37 @@ local function apply_browser_item_table_cache()
         return signatures
     end
 
-    local function child_directories_match(value)
-        local signatures = value and value.child_directory_signatures
-        if type(signatures) ~= "table" then return false end
-        for path, signature in pairs(signatures) do
-            if directory_signature(path) ~= signature then return false end
+    -- True when the freshly scanned map matches the stored one, in both
+    -- directions: a child removed from the listing invalidates the stored map.
+    local function signatures_match(stored, fresh)
+        if type(stored) ~= "table" then return false end
+        for path, signature in pairs(fresh) do
+            if stored[path] ~= signature then return false end
+        end
+        for path in pairs(stored) do
+            if not fresh[path] then return false end
         end
         return true
+    end
+
+    -- Validates the cached listing's child directories against the current
+    -- filesystem.  Each validation is one lfs.attributes per child directory;
+    -- consecutive lookups of the same value (refresh, focus moves, path
+    -- re-reads) skip the scan for CHILD_VALIDATION_TTL_S, and the freshly
+    -- scanned map is kept on the value so callers that repopulate the cache
+    -- (history re-order, disk restore) do not scan a second time.
+    local CHILD_VALIDATION_TTL_S = 5
+    local function validate_children(value)
+        if value.last_children_check and value.last_children_ok
+                and now() - value.last_children_check < CHILD_VALIDATION_TTL_S then
+            return true
+        end
+        local fresh = child_directory_signatures(value.table)
+        local ok = signatures_match(value.child_directory_signatures, fresh)
+        value.child_directory_signatures = fresh
+        value.last_children_check = now()
+        value.last_children_ok = ok
+        return ok
     end
 
     build_tree_signature = function(root)
@@ -654,11 +678,15 @@ local function apply_browser_item_table_cache()
 
     local function get_cached(path, key)
         local value = shared_cache.values[path]
-        return value and value.key == key and child_directories_match(value) and value or nil
+        return value and value.key == key and validate_children(value) and value or nil
     end
 
     local function put_cached(path, value)
-        value.child_directory_signatures = child_directory_signatures(value.table)
+        if not value.child_directory_signatures then
+            value.child_directory_signatures = child_directory_signatures(value.table)
+        end
+        value.last_children_ok = true
+        value.last_children_check = now()
         if not shared_cache.values[path] then shared_cache.order[#shared_cache.order + 1] = path end
         shared_cache.values[path] = value
         while #shared_cache.order > ITEM_TABLE_CACHE_MAX do
@@ -672,7 +700,7 @@ local function apply_browser_item_table_cache()
         local value = cache.values[path]
         if not value then return nil, "disk_miss" end
         if value.key ~= key then return nil, "disk_stale" end
-        if not child_directories_match(value) then return nil, "disk_stale_children" end
+        if not validate_children(value) then return nil, "disk_stale_children" end
         if not tree_signature_matches(value.tree_signature) then
             return nil, "disk_stale_tree"
         end
@@ -866,7 +894,7 @@ local function apply_browser_item_table_cache()
         local last_read_file = rawget(_G, "__ZEN_UI_LAST_READ_FILE")
         if collate_mode == "access" and last_read_file
                 and stale and stale.stable_key == stable
-                and child_directories_match(stale) then
+                and validate_children(stale) then
             local Home = SharedState.get(plugin, "home")
             if Home and type(Home.invalidateBookCache) == "function" then
                 pcall(Home.invalidateBookCache, last_read_file, true)
