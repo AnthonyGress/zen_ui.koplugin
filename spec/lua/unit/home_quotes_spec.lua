@@ -140,6 +140,7 @@ describe("home quotes", function()
         })
         ZenSpec.replace("docsettings", {
             findSidecarFile = function(_, file)
+                if file:match("plain") then return nil end
                 return file .. ".sdr/metadata.epub.lua"
             end,
             openSettingsFile = function()
