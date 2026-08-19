@@ -14,6 +14,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: spec/python/requirements.txt
 
       - name: Install KOReader emulator dependencies
         run: |
@@ -31,11 +33,6 @@ jobs:
         with:
           path: spec/.cache/koreader
           key: koreader-stable-${{ runner.os }}-${{ hashFiles('spec/koreader-lock.json') }}
-
-      - uses: actions/cache@v4
-        with:
-          path: spec/.venv
-          key: zen-ui-python-${{ runner.os }}-${{ hashFiles('spec/python/requirements.txt') }}
 
       - name: Provision pinned stable KOReader
         run: |
