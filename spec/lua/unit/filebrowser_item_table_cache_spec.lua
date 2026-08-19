@@ -342,6 +342,39 @@ describe("file browser item-table cache", function()
         assert.is_nil(_G.__ZEN_UI_LAST_READ_FILE)
     end)
 
+    it("sorts access collate oldest-first when reverse collate is enabled", function()
+        collate_mode = "access"
+        mixed = true
+        setting_values["reverse_collate"] = true
+        source_items["/library"] = {
+            {
+                text = "Old/", path = "/library/Old",
+                mandatory = "1 \xef\x80\x96", attr = { mode = "directory", modification = 1 },
+            },
+            {
+                text = "New/", path = "/library/New",
+                mandatory = "2 \xef\x80\x96", attr = { mode = "directory", modification = 1 },
+            },
+        }
+        descendant_times = {
+            ["/library/Old"] = 10,
+            ["/library/New"] = 20,
+        }
+        directory_mtimes["/library/Old"] = 1
+        directory_mtimes["/library/New"] = 1
+        local chooser = setmetatable({ name = "filemanager" }, { __index = FileChooser })
+
+        local result = chooser:genItemTableFromPath("/library")
+        assert.are.equal("Old/", result[1].text)
+        assert.are.equal("New/", result[2].text)
+
+        -- Memory-hit refresh re-applies the order without regenerating.
+        local second = chooser:genItemTableFromPath("/library")
+        assert.are.equal(1, generated["/library"])
+        assert.are.equal("Old/", second[1].text)
+        assert.are.equal("New/", second[2].text)
+    end)
+
     it("restores a scalar-only listing snapshot in a fresh cache instance", function()
         source_items["/library"] = {
             {
