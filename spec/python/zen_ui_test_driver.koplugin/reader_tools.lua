@@ -131,6 +131,8 @@ function M.page_browser_key(key)
 end
 
 function M.hardware_overlay_state()
+    local ui = reader()
+    local annotations = ui and ui.annotation and ui.annotation.annotations
     local toc = toc_overlay()
     if toc then
         return {
@@ -142,7 +144,11 @@ function M.hardware_overlay_state()
     end
     local info = book_info_overlay()
     if info then
-        return { kind = "book_info", focused = info._zen_focus_area }
+        return {
+            kind = "book_info",
+            focused = info._zen_focus_area,
+            annotation_count = type(annotations) == "table" and #annotations or 0,
+        }
     end
     local menu, container = bookmark_menu()
     if menu and is_visible(container) then
@@ -201,7 +207,30 @@ function M.overlay_state()
             and top_widget ~= nil
             and top_widget ~= ui
             and top_widget ~= config_dialog,
+        dictionary_data_dir = ui.dictionary and ui.dictionary.data_dir or nil,
     }
+end
+
+local function seed_annotations()
+    local ui = reader()
+    local annotation = ui and ui.annotation
+    local document = ui and ui.document
+    if not (annotation and document) then return false, "annotations unavailable" end
+    if type(annotation.annotations) ~= "table" then annotation.annotations = {} end
+    local page = ui.rolling and document:getXPointer()
+        or (type(document.getCurrentPage) == "function" and document:getCurrentPage())
+    if page == nil then return false, "reader position unavailable" end
+    local pageno = ui.rolling and document:getPageFromXPointer(page) or page
+    while #annotation.annotations < 3 do
+        local index = #annotation.annotations + 1
+        annotation.annotations[#annotation.annotations + 1] = {
+            datetime = "2026-06-17 21:" .. tostring(10 + index) .. ":00",
+            note = "Showcase annotation " .. tostring(index),
+            page = page,
+            pageno = pageno,
+        }
+    end
+    return true
 end
 
 function M.launcher_state()
@@ -221,6 +250,7 @@ end
 function M.activate(name)
     local ui = reader()
     if not (ui and ui.document) then return false, "reader unavailable" end
+    if name == "seed_annotations" then return seed_annotations() end
     if name == "reader_menu" then
         local menu = ui.menu
         if not (menu and type(menu.onShowMenu) == "function") then

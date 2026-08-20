@@ -20,23 +20,23 @@ Each book record has four required fields and an optional keyword field:
 - `keywords`: a string or list of the book's actual tags. These override embedded metadata and
   are shown in Library list screenshots.
 
-The profile contains exactly nine books in newest-to-oldest recent order. That order drives
+The profile contains exactly twelve books in newest-to-oldest recent order. That order drives
 both the Home recent widgets and the Library's last-read sorting.
 
-Use `--list` to inspect the tracked 23-screen catalog, `--audit` to check documentation and
+Use `--list` to inspect the tracked 19-screen catalog, `--audit` to check documentation and
 carousel references, or capture with `--screen ID`, `--group GROUP`, or `--all`. OPDS and
 `update_available.png` are intentionally outside the automated catalog.
 
-Every run is archived below `spec/.artifacts/website-screenshots/<timestamp>/`. Website-ready
-PNGs are in its `public/images/zen_os/` folder. To also make a flat folder for manual website
-use, pass a new or empty path:
+Every capture clears and replaces `spec/.artifacts/screenshots/`. Website-ready PNGs are written
+directly into that folder; raw frames are temporary. To also copy the screenshots to another
+folder for manual website use, pass a new or empty path:
 
 ```sh
 ./spec/run website-screenshots --all --output ~/Desktop/zenos-website-images
 ```
 
-Review `contact-sheet.png` and `report.json` before manually copying approved images. The
-workflow rejects an output path inside the website repository and never publishes images.
+Review `report.json` before manually copying approved images. The workflow rejects an output
+path inside the website repository and never publishes images.
 
 Each isolated session uses `settings.reader.lua`, `settings/ZenOS/config.lua`, and
 `settings/ZenOS/reader.lua` from `KOREADER_DIR` as a read-only baseline when those files

@@ -2,7 +2,7 @@
 title: Updates
 category: Updates
 summary: Update ZenOS and KOReader, read the changelog, and configure the update channel and automatic checks.
-settingsPath: ZenOS > Updates
+settingsPath: Zen Settings > Updates
 order: 79
 ---
 
@@ -18,14 +18,14 @@ The Updates section installs ZenOS updates directly on the device and, on suppor
 
 ## Updating
 
-You can update ZenOS from **ZenOS > Updates > Update ZenOS** without leaving KOReader or connecting to a computer. ZenOS also checks for updates automatically — when one is available the item becomes **Update available**, a banner appears at the top of Zen Settings, and the settings icon shows a dot.
+You can update ZenOS from **Zen Settings > Updates > Update ZenOS** without leaving KOReader or connecting to a computer. ZenOS also checks for updates automatically — when one is available the item becomes **Update available**, a banner appears at the top of Zen Settings, and the settings icon shows a dot.
 
 Two update channels are available:
 
 - **Stable** — Fully tested releases. Recommended for most users.
 - **Beta** — Gets new features faster but may be unstable or contain bugs.
 
-You can switch channels and toggle automatic update checking from **ZenOS > Updates**.
+You can switch channels and toggle automatic update checking from **Zen Settings > Updates**.
 
 ## Setting reference
 

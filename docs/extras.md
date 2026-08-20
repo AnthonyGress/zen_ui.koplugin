@@ -2,7 +2,7 @@
 title: Extras
 category: Extras
 summary: Additional Zen goodies like OPDS, lighting schedules, and sleep settings
-settingsPath: ZenOS > Extras
+settingsPath: Zen Settings > Extras
 order: 60
 ---
 
@@ -14,15 +14,15 @@ Extras collects optional additions that fall outside of the Library/Reader. It i
 
 ## ZenPM
 
-On non-Android devices, choose **Extras > Install ZenPM** to install the Zen plugin manager directly from ZenOS.
+On non-Android devices, choose **Zen Settings > Extras > Install ZenPM** to install the Zen plugin manager directly from ZenOS.
 
 ## Stats
 
-Open the **Stats** tab from the Navbar to view reading activity. Use **Extras > Stats** to choose and arrange the dashboard widgets, enable Edit mode for on-page adjustments, set the default text size, and choose stat separators. Widgets can show activity for today, week, month, year, all time, personal records, your library, the current book, reading trends, goals, and the reading calendar.
+Open the **Stats** tab from the Navbar to view reading activity. Use **Zen Settings > Extras > Stats** to choose and arrange the dashboard widgets, enable Edit mode for on-page adjustments, set the default text size, and choose stat separators. Widgets can show activity for today, week, month, year, all time, personal records, your library, the current book, reading trends, goals, and the reading calendar.
 
 ### Widgets and settings
 
-Choose from Today, This week, This month, This year, All time, Personal records, Library, Current book, Reading trend, Reading goals, and Reading calendar widgets. Enable the widgets you want and hold an item in **Extras > Stats > Widgets** to arrange its position. The dashboard has six slots; the Reading calendar uses two.
+Choose from Today, This week, This month, This year, All time, Personal records, Library, Current book, Reading trend, Reading goals, and Reading calendar widgets. Enable the widgets you want and hold an item in **Zen Settings > Extras > Stats > Widgets** to arrange its position. The dashboard has six slots; the Reading calendar uses two.
 
 The Reading trend widget can show pages or time for the past 7, 14, 30, or 90 days. Text-based widgets can use the default Stats font size or an individual override. Enable **Edit mode** to open a widget's settings directly from the Stats page, and use **Stat separators** to choose dividers, outlines, or no separation.
 
@@ -32,7 +32,7 @@ The Reading trend widget can show pages or time for the past 7, 14, 30, or 90 da
 
 ![OPDS context menu](/images/zen_os/opds_context.webp)
 
-Enable **Extras > Zen OPDS** to apply ZenOS styling to the OPDS catalog browser. The OPDS view inherits the same styling as your library: rounded corners, list and mosaic view, items per page, and other layout options all carry over. Each book in the catalog shows its cover.
+Enable **Zen Settings > Extras > Zen OPDS** to apply ZenOS styling to the OPDS catalog browser. The OPDS view inherits the same styling as your library: rounded corners, list and mosaic view, items per page, and other layout options all carry over. Each book in the catalog shows its cover.
 
 Tap and hold any item to open the OPDS context menu for per-item actions.
 
@@ -40,16 +40,16 @@ Tap and hold any item to open the OPDS context menu for per-item actions.
 
 To add one book to your To Be Read list, tap and hold it in the Library, choose **Read status**, then choose **To Be Read**. The book appears in the To Be Read Navbar tab and anywhere the Home Featured or unified Strip widget uses To Be Read as its source.
 
-To include every new book automatically, enable **Extras > Include new books in TBR**. This adds books with the New status to the To Be Read Navbar tab and Home widgets without changing their saved read status. New includes unread books and books modified since they were last opened.
+To include every new book automatically, enable **Zen Settings > Extras > Include new books in TBR**. This adds books with the New status to the To Be Read Navbar tab and Home widgets without changing their saved read status. New includes unread books and books modified since they were last opened.
 
 ## Custom Icons
 
 The bundled ZenOS and KOReader icons remain the default. To use loose icon
-overrides, enable **Extras > Enable custom icons** and place them directly in
+overrides, enable **Zen Settings > Extras > Enable custom icons** and place them directly in
 `/koreader/icons` as before.
 
 For a named pack, copy its folder or ZIP into `/koreader/icons/zen`, enable
-custom icons, and select it under **Extras > Custom icon pack**. Valid ZIPs are
+custom icons, and select it under **Zen Settings > Extras > Custom icon pack**. Valid ZIPs are
 installed automatically. See [Custom Icon Packs](/zen-os/docs/icon-packs) for the complete
 installation and authoring guide.
 
@@ -57,23 +57,23 @@ installation and authoring guide.
 
 ## Rakuyomi
 
-Enable **Extras > Rakuyomi > Return to chapter list on exit** to keep the current behavior: Rakuyomi-owned books return to the manga chapter list when you exit the reader.
+Enable **Zen Settings > Extras > Rakuyomi > Return to chapter list on exit** to keep the current behavior: Rakuyomi-owned books return to the manga chapter list when you exit the reader.
 
 Disable it to return to the Rakuyomi library view instead.
 
 ## Schedules
 
-Use **Extras > Schedules** for automatic brightness, night mode, and warmth changes. Brightness and warmth can follow either a clock schedule or KOReader's light/dark mode, with separate values for each state. These two methods are mutually exclusive for each setting: enabling a schedule turns off its light/dark values, and enabling light/dark values turns off its schedule.
+Use **Zen Settings > Extras > Schedules** for automatic brightness, night mode, and warmth changes. Brightness and warmth can follow either a clock schedule or KOReader's light/dark mode, with separate values for each state. These two methods are mutually exclusive for each setting: enabling a schedule turns off its light/dark values, and enabling light/dark values turns off its schedule.
 
 Lighting automation disables KOReader's Auto warmth and night mode plugin because it would compete for the same device controls. Warmth settings appear only on devices with natural-light support.
 
 ## Search, Sleep, And Lockdown
 
-Use **Extras > Search** to switch library search between substring and whole-word matching.
+Use **Zen Settings > Extras > Search** to switch library search between substring and whole-word matching.
 
-Use **Extras > Sleep** for KOReader sleep screen controls, sleep presets, automatic dimmer, and automatic suspend integrations when available.
+Use **Zen Settings > Extras > Sleep** for KOReader sleep screen controls, sleep presets, automatic dimmer, and automatic suspend integrations when available.
 
-Use **Extras > Lockdown mode** to configure library, Controls, and reader restrictions.
+Use **Zen Settings > Extras > Lockdown mode** to configure library, Controls, and reader restrictions.
 
 ## Setting reference
 

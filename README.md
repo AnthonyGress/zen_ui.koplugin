@@ -106,7 +106,7 @@ See the [Extras](docs/extras.md), [Custom Icon Packs](docs/icon-packs.md), and [
 
 Zen Settings brings ZenOS and frequently used KOReader settings into one searchable, key-friendly interface. Sections are organized as Controls, Launcher, Home, Library, Navbar, Reader, Extras, and About. It remembers your previous location, most features remain independently configurable, and ZenOS can update itself without leaving KOReader.
 
-New installations include a visual setup guide followed by a short on-screen tour of Zen Mode and Zen Settings. The guide remains available from **About > Setup Guide**.
+New installations include a visual setup guide followed by a short on-screen tour of Zen Mode and Zen Settings. The guide remains available from **Zen Settings > About > Setup Guide**.
 
 <img src="./images/quickstart/onboarding/zen_ui_settings.png" width="500" alt="ZenOS Settings">
 
@@ -128,7 +128,7 @@ end
 
 The builder receives `width`, `height`, `is_first_row`, and an item-specific
 `module_cfg` table. New items are disabled by default and can be enabled and
-positioned under **Home > Widgets**. Plugins loaded before ZenOS should register
+positioned under **Zen Settings > Home > Widgets**. Plugins loaded before ZenOS should register
 when they receive `ZenOSReady`; unregister with
 `_G.__ZENOS_UNREGISTER_HOME_ITEM(id)`. The legacy `__ZEN_UI_*` aliases remain
 available for existing integrations, and `ZenUIReady` is still broadcast.

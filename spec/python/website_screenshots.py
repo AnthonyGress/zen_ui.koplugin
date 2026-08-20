@@ -23,7 +23,7 @@ from typing import Sequence
 from xml.etree import ElementTree
 from zipfile import BadZipFile, ZipFile
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image
 
 from zen_driver import ZenDriver, launch, wait_for_socket
 
@@ -31,7 +31,7 @@ from zen_driver import ZenDriver, launch, wait_for_socket
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CATALOG_PATH = Path(__file__).with_name("website_screenshot_scenarios.json")
 DEFAULT_PROFILE = REPO_ROOT / ".website-screenshot-books.json"
-ARTIFACT_ROOT = REPO_ROOT / "spec" / ".artifacts" / "website-screenshots"
+ARTIFACT_ROOT = REPO_ROOT / "spec" / ".artifacts" / "screenshots"
 SCREEN_SIZE = (1272, 1696)
 BB_TYPE_RGB32 = 5
 READER_SHOWCASE_PAGE = 10
@@ -42,15 +42,14 @@ GROUPS = frozenset(("home", "library", "menus", "reader"))
 SESSIONS = frozenset(("general", "reader"))
 EXPECTED_IDS = frozenset((
     "zen_home", "home_bookshelf", "home_simple",
-    "library_covers_full", "library_list_full", "context_menu", "navbar", "stats",
-    "launcher", "quick_settings_launcher", "quicksettings", "zen_mode",
-    "lockdown_mode", "quickstart", "zen_settings",
+    "library_covers_full", "library_list_full", "context_menu", "stats",
+    "launcher", "quicksettings", "quickstart", "zen_settings",
     "reader", "reader_menu", "reader_launcher_book_switcher",
     "reader_launcher_book_details", "reader_book_details", "page_browser_grid",
     "dictionary_lookup_menu", "hilight_menu",
 ))
-SHOWCASE_BOOK_COUNT = 9
-SHOWCASE_PLACEHOLDER_COUNT = 9
+SHOWCASE_BOOK_COUNT = 12
+SHOWCASE_PLACEHOLDER_COUNT = SHOWCASE_BOOK_COUNT
 NON_EMULATOR_ASSETS = frozenset((
     "plugins_folder.png", "zen_update.svg", "banner.png", "social.png",
     "og-zen.png", "zenos-banner.png",
@@ -173,10 +172,13 @@ def validate_catalog(scenarios: Sequence[Scenario]) -> None:
     ids = [scenario.id for scenario in scenarios]
     if len(ids) != len(set(ids)):
         raise ValueError("scenario IDs must be unique")
-    if set(ids) != EXPECTED_IDS or len(ids) != 23:
+    if set(ids) != EXPECTED_IDS or len(ids) != len(EXPECTED_IDS):
         missing = sorted(EXPECTED_IDS - set(ids))
         extra = sorted(set(ids) - EXPECTED_IDS)
-        raise ValueError(f"catalog must contain the canonical 23 scenarios; missing={missing}, extra={extra}")
+        raise ValueError(
+            f"catalog must contain the canonical {len(EXPECTED_IDS)} scenarios; "
+            f"missing={missing}, extra={extra}"
+        )
     for scenario in scenarios:
         if not re.fullmatch(r"[a-z][a-z0-9_]*", scenario.id):
             raise ValueError(f"invalid scenario ID: {scenario.id}")
@@ -759,7 +761,7 @@ def _seed_bookinfo(ko_home: Path, books: Sequence[StagedBook]) -> None:
                 ("filemanager_display_mode", "mosaic_image"),
                 ("no_hint_description", "Y"),
                 ("files_per_page", "5"),
-                ("nb_cols_portrait", "3"),
+                ("nb_cols_portrait", "4"),
                 ("nb_rows_portrait", "3"),
             ),
         )
@@ -875,8 +877,14 @@ def _seed_statistics(ko_home: Path, books: Sequence[StagedBook]) -> None:
 
 
 def _seed_sidecars(books: Sequence[StagedBook]) -> None:
-    progress = (0.62, 0.18, 0.45, 1.0, 0.0, 0.77, 0.31, 0.54, 0.12)
-    statuses = ("reading", "reading", "tbr", "complete", None, "reading", None, "reading", "tbr")
+    progress = (
+        0.62, 0.18, 0.45, 1.0, 0.0, 0.77,
+        0.31, 0.54, 0.12, 0.28, 0.69, 0.08,
+    )
+    statuses = (
+        "reading", "reading", "tbr", "complete", None, "reading",
+        None, "reading", "tbr", "reading", "complete", "tbr",
+    )
     for index, book in enumerate(books):
         sidecar = book.path.with_suffix(".sdr") / f"metadata.{book.path.suffix.lstrip('.').lower()}.lua"
         _write_lua(sidecar, {
@@ -923,22 +931,88 @@ def seed_showcase(ko_home: Path, books: Sequence[StagedBook], runtime: Path) -> 
     reader_baseline = runtime / "settings" / "ZenOS" / "reader.lua"
     if reader_baseline.is_file():
         shutil.copyfile(reader_baseline, zen_settings / "reader.lua")
+    _write_lua(zen_settings / "stats.lua", {
+        "settings": {
+            "widgets": {
+                "order": [
+                    "this_year", "trend_graph", "goal_progress", "calendar", "library",
+                    "today", "this_week", "this_month", "all_time", "personal_records",
+                    "current_book",
+                ],
+                "enabled": {
+                    "this_year": True,
+                    "trend_graph": True,
+                    "goal_progress": True,
+                    "calendar": True,
+                },
+                "options": {
+                    "trend_graph": {"id": "trend_graph", "metric": "pages", "range_days": 14},
+                },
+            },
+            "font_size": 15,
+            "stat_style": "divider",
+        },
+        "presets": {},
+        "version": 1,
+    })
     _write_lua(zen_settings / "app_launcher.lua", {
         "entries": [
-            {"id": "showcase_wifi", "type": "quick_setting", "label": "Wi-Fi", "quick_setting_id": "wifi"},
-            {"id": "showcase_night", "type": "quick_setting", "label": "Night mode", "quick_setting_id": "night"},
-            {"id": "showcase_rotate", "type": "quick_setting", "label": "Rotate", "quick_setting_id": "rotate"},
-            {"id": "showcase_zen", "type": "quick_setting", "label": "Zen Mode", "quick_setting_id": "zen"},
-            {"id": "showcase_restart", "type": "quick_setting", "label": "Restart", "quick_setting_id": "restart"},
-            {"id": "showcase_sleep", "type": "quick_setting", "label": "Sleep", "quick_setting_id": "sleep"},
+            {
+                "id": "showcase_vocabulary", "type": "plugin",
+                "label": "Vocabulary builder", "icon": "lookup.translate",
+                "plugin": {"key": "vocabbuilder", "method": "__menu_callback"},
+            },
+            {
+                "id": "showcase_rakuyomi", "type": "plugin",
+                "label": "Rakuyomi", "icon": "tab_manga",
+                "plugin": {"key": "rakuyomi", "method": "__menu_callback"},
+            },
+            {
+                "id": "showcase_opds", "type": "quick_setting",
+                "label": "OPDS", "icon": "quick_opds", "quick_setting_id": "opds",
+            },
+            {
+                "id": "showcase_calibre", "type": "plugin",
+                "label": "Calibre", "icon": "quick_calibre",
+                "plugin": {"key": "calibre", "method": "__menu_submenu"},
+            },
+            {
+                "id": "showcase_battery", "type": "plugin",
+                "label": "Battery", "icon": "quick_battery",
+                "plugin": {"key": "batterystat", "method": "__menu_callback"},
+            },
+            {
+                "id": "showcase_terminal", "type": "plugin",
+                "label": "Terminal", "icon": "terminal",
+                "plugin": {"key": "terminal", "method": "__menu_submenu"},
+            },
+            {
+                "id": "showcase_zenfm", "type": "action",
+                "label": "ZenFM", "icon": "zenfm", "action": {"gesture_overview": True},
+            },
+            {
+                "id": "showcase_games", "type": "folder",
+                "label": "Games", "icon": "folder_open", "children": [],
+            },
+            {
+                "id": "showcase_network", "type": "koreader_menu",
+                "label": "Network", "icon": "network",
+                "koreader_menu": {"id": "network", "title": "Network"},
+            },
+            {
+                "id": "showcase_zenpm", "type": "plugin",
+                "label": "ZenPM", "icon": "zenpm",
+                "plugin": {"key": "zenpm", "method": "open"},
+            },
         ],
-        "next_id": 6,
+        "next_id": 10,
         "show_labels": True,
         "open_first": False,
         "page_order": ["buttons", "book_switcher", "book_details"],
         "show_book_switcher": True,
         "book_switcher_reader_only": False,
         "show_book_details": True,
+        "zenpm_launcher_added": True,
     })
     fixed_ts = int(time.mktime(FIXED_LOCAL_TIME.timetuple()))
     _write_lua(ko_home / "history.lua", [
@@ -1032,29 +1106,6 @@ def audit_inventory(
         "errors": errors,
         "warnings": warnings,
     }
-
-
-def make_contact_sheet(images: Sequence[tuple[str, Path]], output: Path) -> None:
-    if not images:
-        raise ValueError("contact sheet requires at least one image")
-    columns = 4
-    thumb_w, thumb_h = 254, 339
-    label_h = 34
-    rows = (len(images) + columns - 1) // columns
-    sheet = Image.new("RGB", (columns * thumb_w, rows * (thumb_h + label_h)), "white")
-    draw = ImageDraw.Draw(sheet)
-    font = ImageFont.load_default()
-    for index, (label, path) in enumerate(images):
-        with Image.open(path) as source:
-            thumbnail = source.convert("RGB")
-            thumbnail.thumbnail((thumb_w - 8, thumb_h - 8), Image.Resampling.LANCZOS)
-            x = (index % columns) * thumb_w + (thumb_w - thumbnail.width) // 2
-            y = (index // columns) * (thumb_h + label_h) + (thumb_h - thumbnail.height) // 2
-            sheet.paste(thumbnail, (x, y))
-        label_y = (index // columns) * (thumb_h + label_h) + thumb_h + 8
-        draw.text(((index % columns) * thumb_w + 8, label_y), label, fill="black", font=font)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    sheet.save(output, format="PNG", optimize=True)
 
 
 def runtime_version(runtime: Path) -> dict[str, str]:
@@ -1171,7 +1222,7 @@ class CaptureWorkflow:
         self.books = list(books)
         self.run_dir = run_dir
         self.raw_dir = run_dir / "raw"
-        self.output_dir = run_dir / "public" / "images" / "zen_os"
+        self.output_dir = run_dir
         self.website_root = website_root
         self.calibre_root = calibre_root
         self.results: list[dict[str, object]] = []
@@ -1231,12 +1282,21 @@ class CaptureWorkflow:
             )
             _require_ok(response, action)
             featured_title = self._role(books, "featured").title
-            minimum_images = 8 if action == "home_simple" else 5
+            minimum_images = 5
             _wait_for(
                 lambda: driver.command("home_state"),
                 lambda value: value.get("home", {}).get("active") is True
                 and int(value.get("home", {}).get("image_widget_count", 0)) >= minimum_images
-                and featured_title in value.get("home", {}).get("visible_texts", []),
+                and featured_title in value.get("home", {}).get("visible_texts", [])
+                and (
+                    action != "home_simple"
+                    or (
+                        all(widget_id in value.get("home", {}).get("widget_ids", []) for widget_id in (
+                            "datetime", "featured", "stats_triplet", "strip",
+                        ))
+                        and int(value.get("home", {}).get("strip_control_count", 0)) > 0
+                    )
+                ),
                 scenario.id,
             )
             return
@@ -1284,9 +1344,22 @@ class CaptureWorkflow:
             )
             return
         if action in ("menu_tab", "menu_button"):
-            if options.get("background") == "home":
+            background = options.get("background")
+            if background in ("home", "home_simple"):
                 _require_ok(
-                    driver.command("showcase_home", preset="Zen Default", simple=False),
+                    driver.command(
+                        "showcase_home",
+                        preset="Zen Default",
+                        simple=background == "home_simple",
+                    ),
+                    "Home background",
+                )
+                featured_title = self._role(books, "featured").title
+                _wait_for(
+                    lambda: driver.command("home_state"),
+                    lambda value: value.get("home", {}).get("active") is True
+                    and int(value.get("home", {}).get("image_widget_count", 0)) >= 5
+                    and featured_title in value.get("home", {}).get("visible_texts", []),
                     "Home background",
                 )
             if options.get("show_lockdown_control") is True:
@@ -1324,6 +1397,11 @@ class CaptureWorkflow:
                     driver.command("activate_reader_control", name="show_highlight_menu"),
                     "highlight menu",
                 )
+            elif control == "launcher_book_details_fullscreen":
+                _require_ok(
+                    driver.command("activate_reader_control", name="seed_annotations"),
+                    "book annotations",
+                )
             _require_ok(driver.command("activate_reader_control", name=control), control)
             if control in ("launcher_book_switcher", "launcher_book_details"):
                 expected_page = 2 if control == "launcher_book_switcher" else 3
@@ -1336,7 +1414,16 @@ class CaptureWorkflow:
             elif control == "launcher_book_details_fullscreen":
                 _wait_for(
                     lambda: driver.command("hardware_overlay_state"),
-                    lambda value: value.get("overlay", {}).get("kind") == "book_info",
+                    lambda value: value.get("overlay", {}).get("kind") == "book_info"
+                    and int(value.get("overlay", {}).get("annotation_count", 0)) >= 3,
+                    control,
+                )
+            elif control == "highlight_dictionary":
+                dictionary_dir = str((self.runtime / "data" / "dict").resolve())
+                _wait_for(
+                    lambda: driver.command("reader_overlay_state"),
+                    lambda value: value.get("overlays", {}).get("dictionary_menu") is True
+                    and value.get("overlays", {}).get("dictionary_data_dir") == dictionary_dir,
                     control,
                 )
             return
@@ -1432,6 +1519,7 @@ class CaptureWorkflow:
                 "EMULATE_READER_DPI": "300",
                 "LC_ALL": "en_US.UTF-8",
                 "TZ": "America/New_York",
+                "STARDICT_DATA_DIR": str((self.runtime / "data" / "dict").resolve()),
                 "ZEN_UI_SHOWCASE_TIMESTAMP": str(int(time.mktime(FIXED_LOCAL_TIME.timetuple()))),
                 "ZEN_UI_SHOWCASE_BATTERY": "82",
             },
@@ -1469,6 +1557,7 @@ class CaptureWorkflow:
         started = time.monotonic()
         with tempfile.TemporaryDirectory(prefix="zenos-website-screenshots-") as temporary:
             root = Path(temporary)
+            self.raw_dir = root / "raw"
             staged = stage_books(self.books, root / "library")
             stage_placeholder_texts(root / "library")
             for session in ("general", "reader"):
@@ -1484,12 +1573,6 @@ class CaptureWorkflow:
         sources_unchanged = source_before == source_after
         website_unchanged = website_before == website_after
         settings_baseline_unchanged = settings_baseline_before == settings_baseline_after
-        successes = [result for result in self.results if result["status"] == "passed"]
-        if successes:
-            make_contact_sheet(
-                [(str(result["id"]), self.output_dir / str(result["filename"])) for result in successes],
-                self.run_dir / "contact-sheet.png",
-            )
         audit = audit_inventory(
             load_catalog(),
             website_source=(self.website_root / "src/pages/ZenOsPage.tsx")
@@ -1541,14 +1624,18 @@ def _website_watch_paths(website_root: Path | None) -> list[Path]:
     return [path for path in paths if path.is_file()]
 
 
-def create_run_directory(root: Path = ARTIFACT_ROOT, now: datetime | None = None) -> Path:
-    stamp = (now or datetime.now()).strftime("%Y%m%d-%H%M%S")
-    candidate = root / stamp
-    suffix = 1
-    while candidate.exists():
-        candidate = root / f"{stamp}-{suffix:02d}"
-        suffix += 1
-    return candidate
+def prepare_artifact_directory(root: Path = ARTIFACT_ROOT) -> Path:
+    root = root.expanduser()
+    if root.is_symlink():
+        raise ValueError(f"refusing to clear symlinked artifact directory: {root}")
+    root = root.resolve()
+    if root.name != "screenshots" or root.parent.name != ".artifacts":
+        raise ValueError(f"refusing to clear unexpected artifact directory: {root}")
+    if root.exists():
+        if not root.is_dir():
+            raise ValueError(f"artifact path is not a directory: {root}")
+        shutil.rmtree(root)
+    return root
 
 
 def select_scenarios(
@@ -1645,7 +1732,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     books = resolve_calibre_books(calibre_root, requests)
     if shutil.which("zstd") is None:
         parser.error("zstd is required to seed deterministic embedded cover thumbnails")
-    run_dir = create_run_directory()
+    run_dir = prepare_artifact_directory()
     workflow = CaptureWorkflow(runtime, selected, books, run_dir, website_root, calibre_root)
     try:
         report = workflow.run()

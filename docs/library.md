@@ -2,7 +2,7 @@
 title: Library
 category: Library
 summary: All your books in one place
-settingsPath: ZenOS > Library
+settingsPath: Zen Settings > Library
 order: 30
 ---
 
@@ -92,7 +92,7 @@ Override the featured image shown on a folder's cover by placing an image file i
 
 ## Library Background
 
-Use **Background > Enable** and **Background > Image** to add a custom JPG/JPEG background to the Library. Changing or clearing the background refreshes the Library, Home, and Navbar surfaces so the new image is applied without hunting through separate settings.
+Use **Zen Settings > Library > Background > Enable** and **Zen Settings > Library > Background > Image** to add a custom JPG/JPEG background to the Library. Changing or clearing the background refreshes the Library, Home, and Navbar surfaces so the new image is applied without hunting through separate settings.
 
 ## Context menu
 
@@ -104,7 +104,7 @@ Tap and hold any book, folder, or the current folder in the Library/Navbar. This
 Tap + Hold on the Navbar (or any empty space) to open the context menu for the folder you are viewing (including your libraries Home folder). From here you can change the folder's display mode, sorting, and status filter on the fly. Each folder remembers its own display and sorting preferences independently, so you can browse one folder as a mosaic sorted by title and another as a detailed list sorted by recently read, and each keeps its settings across sessions.
 
 ## Filesystem
-To navigate the complete filesystem, set **ZenOS > Library > Home folder > Lock home folder** to **Off**.
+To navigate the complete filesystem, set **Zen Settings > Library > Home folder > Lock home folder** to **Off**.
 
 ### Book actions
 

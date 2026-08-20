@@ -2,7 +2,7 @@
 title: Custom Icon Packs
 category: Extras
 summary: Install or create icon packs for ZenOS and its KOReader menu surfaces
-settingsPath: ZenOS > Extras > Custom icon pack
+settingsPath: Zen Settings > Extras > Custom icon pack
 order: 65
 ---
 
@@ -23,7 +23,7 @@ A typical installation is:
 ```
 
 Copy either a pack folder or ZIP into `/koreader/icons/zen`, then restart
-KOReader or open **ZenOS > Extras > Custom icon pack**. ZenOS validates and
+KOReader or open **Zen Settings > Extras > Custom icon pack**. ZenOS validates and
 unpacks ZIP files automatically. A successfully installed ZIP is deleted.
 
 If the same pack is already installed, a valid ZIP replaces it atomically. The

@@ -2,7 +2,7 @@
 title: Reader
 category: Reader
 summary: Configure reader status bars, bottom status bar presets, font access, lookup tools, and page navigation.
-settingsPath: ZenOS > Reader
+settingsPath: Zen Settings > Reader
 order: 50
 ---
 
@@ -94,13 +94,13 @@ Reader settings control ZenOS features while a book is open. They cover the top 
 
 ![Dictionary lookup menu](/images/zen_os/dictionary_lookup_menu.webp)
 
-Tap and hold a word while reading to open the Zen quick lookup menu. It shows the dictionary definition for the selected word along with ZenOS action buttons. Enable it with **Highlight / Lookup > Zen quick lookup**. Wikipedia and installed X-Ray, KOAssistant, and AI Assistant integrations can appear as dedicated buttons; use **Show other items** to retain KOReader's remaining lookup options.
+Tap and hold a word while reading to open the Zen quick lookup menu. It shows the dictionary definition for the selected word along with ZenOS action buttons. Enable it with **Zen Settings > Reader > Highlight / Lookup > Zen quick lookup**. Wikipedia and installed X-Ray, KOAssistant, and AI Assistant integrations can appear as dedicated buttons; use **Show other items** to retain KOReader's remaining lookup options.
 
 ## Highlight menu
 
 ![Highlight menu](/images/zen_os/hilight_menu.webp)
 
-Tap + hold and drag to highlight a selection of text and open the Zen highlight menu. It collects highlight, lookup, and annotation actions for the selected text in a single Zen-styled menu. Enable it with **Highlight / Lookup > Zen highlight menu**.
+Tap + hold and drag to highlight a selection of text and open the Zen highlight menu. It collects highlight, lookup, and annotation actions for the selected text in a single Zen-styled menu. Enable it with **Zen Settings > Reader > Highlight / Lookup > Zen highlight menu**.
 
 ## Stable Page Labels
 
@@ -112,4 +112,4 @@ The reader has two independent status bars: a top bar and a bottom bar. Each bar
 
 ## Verbose time to chapter end
 
-Enable **Reader > Verbose time to chapter end** to show the written-out time remaining in the current chapter, the same style Kindle uses (e.g. "12 minutes left in chapter"). 
+Enable **Zen Settings > Reader > Verbose time to chapter end** to show the written-out time remaining in the current chapter, the same style Kindle uses (e.g. "12 minutes left in chapter").

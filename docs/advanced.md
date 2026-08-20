@@ -2,7 +2,7 @@
 title: Advanced
 category: About
 summary: Access metadata extraction, refresh behavior, logs, gestures, and plugin tools.
-settingsPath: ZenOS > About > Advanced
+settingsPath: Zen Settings > About > Advanced
 order: 81
 ---
 

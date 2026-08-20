@@ -6,14 +6,10 @@
   {"id": "library_covers_full", "group": "library", "session": "general", "action": "library", "mode": "mosaic_image", "docs": ["docs/library.md"]},
   {"id": "library_list_full", "group": "library", "session": "general", "action": "library", "mode": "list_image_meta", "docs": ["docs/library.md"]},
   {"id": "context_menu", "group": "library", "session": "general", "action": "context", "book_role": "featured", "docs": ["docs/library.md"]},
-  {"id": "navbar", "group": "library", "session": "general", "action": "navbar", "crop": {"target": "navbar", "padding": 0}, "docs": ["docs/navbar.md"]},
   {"id": "stats", "group": "library", "session": "general", "action": "stats", "docs": []},
 
-  {"id": "launcher", "group": "menus", "session": "general", "action": "menu_tab", "tab": "app_launcher", "docs": ["docs/launcher.md"]},
-  {"id": "quick_settings_launcher", "group": "menus", "session": "general", "action": "menu_tab", "tab": "quicksettings", "background": "home", "docs": ["docs/controls.md"]},
+  {"id": "launcher", "group": "menus", "session": "general", "action": "menu_tab", "tab": "app_launcher", "background": "home_simple", "docs": ["docs/launcher.md"]},
   {"id": "quicksettings", "group": "menus", "session": "general", "action": "menu_tab", "tab": "quicksettings", "docs": ["docs/controls.md", "docs/zen-mode.md"]},
-  {"id": "zen_mode", "group": "menus", "session": "general", "action": "menu_button", "tab": "quicksettings", "label": "Zen", "crop": {"target": "panel_button", "label": "Zen", "padding": 8}, "docs": ["docs/zen-mode.md"]},
-  {"id": "lockdown_mode", "group": "menus", "session": "general", "action": "menu_button", "tab": "quicksettings", "label": "Lockdown", "show_lockdown_control": true, "crop": {"target": "panel_button", "label": "Lockdown", "padding": 8}, "docs": ["docs/lockdown-mode.md"]},
   {"id": "quickstart", "group": "menus", "session": "general", "action": "quickstart", "docs": ["docs/installation.md"]},
   {"id": "zen_settings", "group": "menus", "session": "general", "action": "zen_settings", "docs": ["docs/advanced.md"]},
 

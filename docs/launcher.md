@@ -2,7 +2,7 @@
 title: Launcher
 category: Launcher
 summary: Customizable app launcher with action buttons, plugin buttons, and folders.
-settingsPath: ZenOS > Launcher
+settingsPath: Zen Settings > Launcher
 order: 40
 ---
 

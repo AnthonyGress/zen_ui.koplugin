@@ -651,10 +651,14 @@ local function home_state()
     local quote_content_bounds
     local book_paths = {}
     local strip_bottom
+    local strip_control_count = 0
     for _i, target in ipairs(menu and menu._zen_home_focus_targets or {}) do
         local key = type(target.key) == "string" and target.key or ""
         local widget_id = key:match("^widget:(.+)$")
         local book_path = key:match("^book:(.+)$")
+        if key:match("^strip%-control:") then
+            strip_control_count = strip_control_count + 1
+        end
         if widget_id then
             widget_ids[#widget_ids + 1] = widget_id
             widget_heights[widget_id] = target.height
@@ -685,6 +689,7 @@ local function home_state()
         top_visual_inset = menu and menu._zen_home_top_visual_inset or 0,
         bottom_visual_inset = menu and menu._zen_home_bottom_visual_inset or nil,
         strip_bottom = strip_bottom,
+        strip_control_count = strip_control_count,
         visual_gaps = menu and menu._zen_home_visual_gaps or {},
         clock_refreshers = #(menu and menu._zen_home_clock_refreshers or {}),
         visible_texts = visible_texts,
@@ -1022,17 +1027,19 @@ local function showcase_home(preset_name, simple)
     local active_preset
     if simple == true then
         settings.title = "Simple"
-        settings.rows.order = { "datetime", "featured", "strip" }
+        settings.rows.order = { "datetime", "featured", "stats_triplet", "strip" }
         settings.rows.enabled = {
             datetime = true,
             featured = true,
+            stats_triplet = true,
             strip = true,
         }
         settings.modules.featured.show_description = true
         settings.modules.featured.show_status_bar = false
-        settings.modules.strip.count = 8
-        settings.modules.strip.two_rows = true
-        settings.modules.strip.controls.enabled = false
+        settings.modules.strip.count = 4
+        settings.modules.strip.two_rows = false
+        settings.modules.strip.default_source = { kind = "recent" }
+        settings.modules.strip.controls.enabled = true
     else
         for _i, preset in ipairs(HomePresets.getBuiltinPresets()) do
             if preset.name == preset_name then

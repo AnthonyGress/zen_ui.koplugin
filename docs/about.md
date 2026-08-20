@@ -2,7 +2,7 @@
 title: About
 category: About
 summary: View ZenOS version, device information, setup guide, bug reporting, advanced settings, and quit controls.
-settingsPath: ZenOS > About
+settingsPath: Zen Settings > About
 order: 80
 ---
 
@@ -34,4 +34,3 @@ The About section groups project information, device information, support action
 | About > Report a Bug | Opens the ZenOS bug reporting dialog. |
 | About > Advanced | Opens metadata extraction, refresh behavior, logs, gestures, and plugin tools. |
 | About > Quit KOReader | Opens a confirmation dialog and exits KOReader. |
-

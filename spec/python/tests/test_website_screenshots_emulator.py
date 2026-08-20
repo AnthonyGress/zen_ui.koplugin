@@ -23,7 +23,7 @@ def test_representative_home_library_stats_reader_and_page_browser_capture(
     titles = [
         "Never Split the Difference", "Flow", "Atomic Habits", "Project Hail Mary",
         "The Clean Coder", "Do Less", "The Creative Habit", "The Martian",
-        "System Design",
+        "System Design", "Deep Work", "The Let Them Theory", "Wild",
     ]
     books = []
     for index, title in enumerate(titles):
@@ -45,9 +45,10 @@ def test_representative_home_library_stats_reader_and_page_browser_capture(
         if result["session"] == "reader":
             assert result["reader_page"] == 10
             assert result["reader_preset"] == "(ZenOS) Chapter Time + %"
-    assert {path.name for path in (run_dir / "public/images/zen_os").glob("*.png")} == {
+    assert {path.name for path in run_dir.glob("*.png")} == {
         f"{screen_id}.png" for screen_id in ids
     }
-    for path in (run_dir / "raw").glob("*.png"):
+    assert not (run_dir / "raw").exists()
+    for path in run_dir.glob("*.png"):
         with Image.open(path) as image:
             assert image.size == (1272, 1696)

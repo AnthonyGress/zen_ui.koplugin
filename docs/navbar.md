@@ -2,7 +2,7 @@
 title: Navbar
 category: Navbar
 summary: The customizable bottom navigation bar
-settingsPath: ZenOS > Navbar
+settingsPath: Zen Settings > Navbar
 order: 35
 ---
 
@@ -14,7 +14,7 @@ order: 35
 
 The Navbar adds a bottom navigation bar to the library. Tabs can open library views, folders, plugin integrations, page controls, menu actions, custom dispatcher actions, launchable plugin menus, or native KOReader submenus.
 
-Navbar settings live under **ZenOS > Navbar**.
+Navbar settings live under **Zen Settings > Navbar**.
 
 ## Options
 

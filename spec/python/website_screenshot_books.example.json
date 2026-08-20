@@ -9,6 +9,9 @@
     {"calibre_id": null, "expected_title": "Do Less", "direct_path": "test123/Do Less - Rachel Jonat.epub", "role": "reader"},
     {"calibre_id": null, "expected_title": "The Creative Habit", "direct_path": "The Creative Habit - Tharp_ Twyla.epub", "role": "library"},
     {"calibre_id": null, "expected_title": "The Martian: A Novel", "direct_path": "The Martian_ A Novel - Andy Weir (1).epub", "role": "library"},
-    {"calibre_id": null, "expected_title": "Design Patterns: Elements of Reusable Object-Oriented Software", "direct_path": "Design Patterns_ Elements of Reusable Object-Oriented Software - Gamma_ Erich.epub", "role": "library"}
+    {"calibre_id": null, "expected_title": "Design Patterns: Elements of Reusable Object-Oriented Software", "direct_path": "Design Patterns_ Elements of Reusable Object-Oriented Software - Gamma_ Erich.epub", "role": "library"},
+    {"calibre_id": 32, "expected_title": "Deep Work", "direct_path": null, "role": "library"},
+    {"calibre_id": 4, "expected_title": "The Let Them Theory", "direct_path": null, "role": "library"},
+    {"calibre_id": 6, "expected_title": "Wild", "direct_path": null, "role": "library"}
   ]
 }

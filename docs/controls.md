@@ -2,7 +2,7 @@
 title: Controls
 category: Controls
 summary: All your controls in one place
-settingsPath: ZenOS > Controls
+settingsPath: Zen Settings > Controls
 order: 20
 ---
 

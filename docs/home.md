@@ -2,7 +2,7 @@
 title: Home
 category: Home
 summary: Create your own e-reader home page
-settingsPath: ZenOS > Home
+settingsPath: Zen Settings > Home
 order: 10
 ---
 
@@ -84,7 +84,7 @@ Home featured widgets use KOReader page-map data when it is available. That mean
 
 ## Custom quotes
 
-Add personal quotes by editing `settings/ZenOS/quotes.lua`, then enable **Custom quotes** under **Widgets > Quotes > Quote sources**. Custom quotes can be combined with the default list and annotations. Each entry can be a `{ text, author, title }` table, the older `{ text, author }` form, or a plain string without attribution.
+Add personal quotes by editing `settings/ZenOS/quotes.lua`, then enable **Custom quotes** under **Zen Settings > Home > Widgets > Quotes > Quote sources**. Custom quotes can be combined with the default list and annotations. Each entry can be a `{ text, author, title }` table, the older `{ text, author }` form, or a plain string without attribution.
 
 ```lua
 return {

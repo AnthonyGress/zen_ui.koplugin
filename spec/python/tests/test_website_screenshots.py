@@ -28,7 +28,8 @@ from website_screenshots import (
     crop_from_bounds,
     export_screenshots,
     load_catalog,
-    make_contact_sheet,
+    load_profile,
+    prepare_artifact_directory,
     resolve_calibre_books,
     select_scenarios,
     sha256_file,
@@ -99,9 +100,9 @@ def _color_cover_epub(
         archive.writestr("OPS/cover.png", cover.getvalue())
 
 
-def test_catalog_is_the_canonical_23_image_inventory() -> None:
+def test_catalog_is_the_canonical_19_image_inventory() -> None:
     catalog = load_catalog()
-    assert len(catalog) == 23
+    assert len(catalog) == 19
     assert {scenario.id for scenario in catalog} == EXPECTED_IDS
     assert [scenario.id for scenario in catalog if scenario.id.startswith("page_browser")] == [
         "page_browser_grid"
@@ -109,6 +110,19 @@ def test_catalog_is_the_canonical_23_image_inventory() -> None:
     assert "update_available" not in {scenario.id for scenario in catalog}
     assert "opds" not in {scenario.id for scenario in catalog}
     assert "opds_context" not in {scenario.id for scenario in catalog}
+    assert "quick_settings_launcher" not in {scenario.id for scenario in catalog}
+    assert "zen_mode" not in {scenario.id for scenario in catalog}
+    assert "navbar" not in {scenario.id for scenario in catalog}
+    assert "lockdown_mode" not in {scenario.id for scenario in catalog}
+    launcher = next(scenario for scenario in catalog if scenario.id == "launcher")
+    assert launcher.options["background"] == "home_simple"
+
+
+def test_example_profile_fills_the_four_by_three_library_grid() -> None:
+    profile = Path(__file__).resolve().parents[1] / "website_screenshot_books.example.json"
+    _calibre_root, books = load_profile(profile)
+    assert SHOWCASE_BOOK_COUNT == 12
+    assert len(books) == SHOWCASE_BOOK_COUNT
 
 
 def test_capture_overrides_use_custom_library_bar_and_zen_reader_preset() -> None:
@@ -205,7 +219,7 @@ def test_bookinfo_seed_marks_rgb_covers_complete(tmp_path: Path, monkeypatch) ->
     assert settings == {
         "filemanager_display_mode": "mosaic_image",
         "files_per_page": "5",
-        "nb_cols_portrait": "3",
+        "nb_cols_portrait": "4",
         "nb_rows_portrait": "3",
         "no_hint_description": "Y",
     }
@@ -284,7 +298,7 @@ def test_staging_access_times_preserve_profile_recent_order(tmp_path: Path) -> N
     assert staged[0].path.stat().st_atime - staged[1].path.stat().st_atime == 600
 
 
-def test_crop_bounds_and_contact_sheet_create_valid_pngs(tmp_path: Path) -> None:
+def test_crop_bounds_create_a_valid_png(tmp_path: Path) -> None:
     raw = tmp_path / "raw.png"
     Image.new("RGB", (1272, 1696), "white").save(raw)
     crop = tmp_path / "crop.png"
@@ -292,12 +306,8 @@ def test_crop_bounds_and_contact_sheet_create_valid_pngs(tmp_path: Path) -> None
         320,
         420,
     )
-    sheet = tmp_path / "sheet.png"
-    make_contact_sheet([("crop", crop), ("raw", raw)], sheet)
     with Image.open(crop) as image:
         assert image.size == (320, 420)
-    with Image.open(sheet) as image:
-        assert image.format == "PNG"
 
 
 def test_report_generation_is_sorted_json_with_newline(tmp_path: Path) -> None:
@@ -305,6 +315,16 @@ def test_report_generation_is_sorted_json_with_newline(tmp_path: Path) -> None:
     write_report(output, {"z": 1, "a": {"passed": True}})
     assert output.read_text(encoding="utf-8").endswith("\n")
     assert json.loads(output.read_text(encoding="utf-8")) == {"a": {"passed": True}, "z": 1}
+
+
+def test_artifact_directory_replaces_the_previous_capture(tmp_path: Path) -> None:
+    artifacts = tmp_path / ".artifacts" / "screenshots"
+    previous = artifacts / "raw" / "old.png"
+    previous.parent.mkdir(parents=True)
+    previous.write_bytes(b"old capture")
+
+    assert prepare_artifact_directory(artifacts) == artifacts.resolve()
+    assert not artifacts.exists()
 
 
 def test_manual_export_copies_pngs_only_into_an_empty_folder(tmp_path: Path) -> None:
