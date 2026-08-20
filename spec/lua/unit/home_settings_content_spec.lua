@@ -3,6 +3,7 @@ describe("Home widget content settings", function()
     local arrange_history
     local home_page
     local remembered_routes
+    local responsive_strip_per_row
     local shown
 
     local function item_text(item)
@@ -29,6 +30,7 @@ describe("Home widget content settings", function()
         arrange_options = nil
         arrange_history = {}
         remembered_routes = {}
+        responsive_strip_per_row = 5
         shown = {}
         home_page = {
             strip_memory = {
@@ -76,6 +78,12 @@ describe("Home widget content settings", function()
         ZenSpec.replace("ui/uimanager", {
             scheduleIn = function() end,
             show = function(_self, widget) shown[#shown + 1] = widget end,
+        })
+        ZenSpec.replace("device", {
+            screen = {
+                getWidth = function() return 600 end,
+                scaleBySize = function(_self, value) return value end,
+            },
         })
         ZenSpec.replace("ui/widget/confirmbox", {
             new = function(_self, opts) return opts end,
@@ -138,6 +146,11 @@ describe("Home widget content settings", function()
             get = function(id) return { id = id, label = id, size = 2 } end,
             totalUnits = function() return 4 end,
             sizeUnits = function() return 2 end,
+        })
+        ZenSpec.replace("modules/filebrowser/patches/home/widgets/strip_common", {
+            max_books_for_width = function(_width, two_rows)
+                return responsive_strip_per_row * (two_rows and 2 or 1)
+            end,
         })
         ZenSpec.replace("modules/filebrowser/patches/library_font", {
             getFontName = function() return "default" end,
@@ -353,6 +366,48 @@ describe("Home widget content settings", function()
         assert.is_not_nil(find_item(font_items, "Font: default"))
         assert.is_not_nil(find_item(font_items, "Bold"))
         assert.is_not_nil(find_item(font_items, "Use default style"))
+    end)
+
+    it("refreshes the Strip book count after the spinner changes it", function()
+        ZenSpec.replace("ui/widget/spinwidget", {
+            new = function(_self, values) return values end,
+        })
+        local settings = require("modules/settings/sections/library_settings/home_settings")
+        assert.is_true(settings.openWidgetSettings("strip"))
+
+        local maximum = find_item(arrange_options.item_table, "Max books shown: 4")
+        assert.is_true(maximum.keep_menu_open)
+        local updates = 0
+        maximum.callback({
+            updateItems = function() updates = updates + 1 end,
+        })
+        shown[#shown].callback({ value = 5 })
+
+        assert.are.equal(5, home_page.modules.strip.count)
+        assert.are.equal(1, updates)
+        assert.are.equal("Max books shown: 5", item_text(maximum))
+    end)
+
+    it("limits the Strip book count spinner to responsive capacity", function()
+        ZenSpec.replace("ui/widget/spinwidget", {
+            new = function(_self, values) return values end,
+        })
+        responsive_strip_per_row = 4
+        home_page.modules.strip.two_rows = true
+        home_page.modules.strip.count = 10
+        local settings = require("modules/settings/sections/library_settings/home_settings")
+        assert.is_true(settings.openWidgetSettings("strip"))
+
+        local maximum = find_item(arrange_options.item_table, "Max books shown: 10")
+        maximum.callback({ updateItems = function() end })
+
+        assert.are.equal(8, shown[#shown].value)
+        assert.are.equal(8, shown[#shown].value_max)
+        assert.is_true(shown[#shown].ok_always_enabled)
+        assert.are.equal(10, home_page.modules.strip.count)
+
+        shown[#shown].callback({ value = 8 })
+        assert.are.equal(8, home_page.modules.strip.count)
     end)
 
     it("caps automatic Date/time sizing and lets the maximum be changed", function()

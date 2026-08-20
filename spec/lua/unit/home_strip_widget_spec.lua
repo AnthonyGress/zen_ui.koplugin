@@ -294,12 +294,17 @@ describe("home strip widget", function()
             })
         end
 
-        build(500, 5, false)
-        build(800, 5, false)
-        build(500, 10, true)
-        build(800, 10, true)
+        build(400, 5, false)
+        build(600, 5, false)
+        build(400, 10, true)
+        build(600, 10, true)
 
         assert.are.same({ 3, 5, 6, 10 }, requested)
+        local Common = require("modules/filebrowser/patches/home/widgets/strip_common")
+        assert.are.equal(3, Common.max_books_for_width(400, false))
+        assert.are.equal(5, Common.max_books_for_width(600, false))
+        assert.are.equal(6, Common.max_books_for_width(400, true))
+        assert.are.equal(10, Common.max_books_for_width(600, true))
     end)
 
     it("adds extra vertical space between two book rows", function()

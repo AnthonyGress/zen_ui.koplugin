@@ -289,6 +289,20 @@ end
 
 local custom_strip_max_books = 40
 
+local function responsive_strip_max_books(two_rows)
+    local Screen = require("device").screen
+    local body_w = Screen:getWidth()
+    local side_pad = math.max(2, math.min(
+        Screen:scaleBySize(8), math.floor(body_w * 0.025)))
+    if side_pad * 2 >= body_w then
+        side_pad = math.max(0, math.floor(body_w * 0.04))
+    end
+    local outer_width = math.max(1, body_w - side_pad * 2)
+    local StripCommon = require(
+        "modules/filebrowser/patches/home/widgets/strip_common")
+    return StripCommon.max_books_for_width(outer_width, two_rows)
+end
+
 function M.build(ctx)
     local config = ctx.config
     local dcfg = ensure_cfg(config)
@@ -1715,17 +1729,24 @@ function M.build(ctx)
                 text_func = function()
                     return _("Max books shown: ") .. tostring(mcfg.count or 4)
                 end,
-                callback = function()
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
                     local SpinWidget = require("ui/widget/spinwidget")
                     local is_two = mcfg.two_rows == true
+                    local responsive_max = responsive_strip_max_books(is_two)
+                    local configured_count = mcfg.count or (is_two and 8 or 4)
                     UIManager:show(SpinWidget:new{
                         title_text = _("Max books shown"),
-                        value = mcfg.count or (is_two and 8 or 4),
+                        value = math.min(configured_count, responsive_max),
                         value_min = is_two and 2 or 3,
-                        value_max = is_two and 10 or 5,
+                        value_max = responsive_max,
+                        ok_always_enabled = configured_count > responsive_max,
                         callback = function(spin)
                             mcfg.count = spin.value
                             save_home("reinit")
+                            if touchmenu_instance and touchmenu_instance.updateItems then
+                                touchmenu_instance:updateItems()
+                            end
                         end,
                     })
                 end,

@@ -36,12 +36,28 @@ local PRELOAD_DELAY_S = 0.35
 local PRELOAD_TICK_S = 0.05
 local PRELOAD_CHUNK = 4
 local PRELOAD_BUDGET_S = 0.03
-local MIN_RESPONSIVE_COVER_W = 120
+local MIN_RESPONSIVE_COVER_W = 100
 
 local function cover_height_for_width(width)
     local ratio = type(CoverUtils.getRatio) == "function"
         and tonumber(CoverUtils.getRatio()) or 2 / 3
     return math.max(1, math.floor(width / math.max(0.1, ratio)))
+end
+
+local function responsive_per_row(width)
+    local Screen = Device.screen
+    local min_gap = math.max(6, math.min(
+        Screen:scaleBySize(14), math.floor(width * 0.018)))
+    local target_cover_w = math.max(24, Screen:scaleBySize(MIN_RESPONSIVE_COVER_W))
+    return math.max(3, math.min(5,
+        math.floor((width + min_gap) / (target_cover_w + min_gap))))
+end
+
+function M.max_books_for_width(outer_width, two_rows)
+    local Screen = Device.screen
+    outer_width = math.max(1, math.floor(tonumber(outer_width) or 1))
+    local width = math.max(1, outer_width - Screen:scaleBySize(8) * 2)
+    return responsive_per_row(width) * (two_rows == true and 2 or 1)
 end
 
 local function strip_layout_metrics(outer_width, module_cfg)
@@ -66,12 +82,7 @@ local function strip_layout_metrics(outer_width, module_cfg)
         if count > 5 then count = 5 end
     end
     local rows = two_rows and 2 or 1
-    local min_gap = math.max(6, math.min(
-        Screen:scaleBySize(14), math.floor(width * 0.018)))
-    local target_cover_w = math.max(24, Screen:scaleBySize(MIN_RESPONSIVE_COVER_W))
-    local responsive_per_row = math.max(3, math.min(5,
-        math.floor((width + min_gap) / (target_cover_w + min_gap))))
-    count = math.min(count, responsive_per_row * rows)
+    count = math.min(count, responsive_per_row(width) * rows)
     local per_row = two_rows and math.ceil(count / 2) or count
     local strip_title_face = library_font.getFace(16)
     local title_h = 0
