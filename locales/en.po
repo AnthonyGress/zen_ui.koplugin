@@ -2730,6 +2730,9 @@ msgstr "ZenOS: Open folder"
 msgid "ZenOS: Series"
 msgstr "ZenOS: Series"
 
+msgid "ZenOS: Stats"
+msgstr "ZenOS: Stats"
+
 msgid "ZenOS: Sync progress (pull + push)"
 msgstr "ZenOS: Sync progress (pull + push)"
 

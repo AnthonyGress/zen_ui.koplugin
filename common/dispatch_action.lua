@@ -472,6 +472,12 @@ function M.onDispatcherRegisterActions()
         title = _("ZenOS: Tags"),
         general = true,
     })
+    Dispatcher:registerAction("zen_ui_show_stats", {
+        category = "none",
+        event = "ShowZenUIStats",
+        title = _("ZenOS: Stats"),
+        general = true,
+    })
     -- Folder action stores its target path per-gesture (category="string" passes the
     -- stored value to the event). No section flag: the default menu loop skips it, so
     -- our _addItem patch renders a PathChooser in the General section instead of a fixed
@@ -625,6 +631,10 @@ function M.onShowZenUITags(plugin)
     return show_zen_tab(plugin, "tags")
 end
 
+function M.onShowZenUIStats(plugin)
+    return show_zen_tab(plugin, "stats")
+end
+
 function M.onShowZenUIFolder(plugin, folder)
     -- category="string": Dispatcher passes the per-action stored folder path as arg.
     return show_zen_folder(plugin, folder)
@@ -653,6 +663,7 @@ function M.install(target)
     target.onShowZenUIAuthors = M.onShowZenUIAuthors
     target.onShowZenUISeries = M.onShowZenUISeries
     target.onShowZenUITags = M.onShowZenUITags
+    target.onShowZenUIStats = M.onShowZenUIStats
     target.onShowZenUIFolder = M.onShowZenUIFolder
     target.onZenUIKOSyncSync = M.onZenUIKOSyncSync
     target.onShowZenUIToc = M.onShowZenUIToc
