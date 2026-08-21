@@ -105,13 +105,24 @@ local function apply_browser_folder_sort()
     -- the internal folder-name fallback sort; don't touch that.
     local orig_getSortingFunction = FileChooser.getSortingFunction
 
+    local function sort_item_key(item)
+        local value = tostring(item and (item.path or item.file or item.text) or "")
+        return value:lower() .. "\30" .. value
+    end
+
     FileChooser.getSortingFunction = function(self, collate, reverse_collate)
         local override = self._zen_sort_override
         if override and type(override) == "table" and type(override.reverse) == "boolean"
                 and reverse_collate ~= nil then
             reverse_collate = override.reverse
         end
-        return orig_getSortingFunction(self, collate, reverse_collate)
+        local sorting = orig_getSortingFunction(self, collate, reverse_collate)
+        if not (override and type(sorting) == "function") then return sorting end
+        return function(a, b)
+            if sorting(a, b) then return true end
+            if sorting(b, a) then return false end
+            return sort_item_key(a) < sort_item_key(b)
+        end
     end
 
     local function prepare_directory_items(items, collate_id)

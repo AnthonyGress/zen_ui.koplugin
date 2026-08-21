@@ -1,7 +1,32 @@
+-- Run the on-disk identity bridge before loading any normal Zen modules. The
+-- legacy package returns an inert plugin for this boot, then restarts as ZenOS.
+local BrandMigration = require("common/brand_migration")
+local _brand_startup = BrandMigration.detectStartup(debug.getinfo(1, "S").source)
+if _brand_startup.inert then
+    local WidgetContainer = require("ui/widget/container/widgetcontainer")
+    local BrandMigrationPlugin = WidgetContainer:extend{
+        name = _brand_startup.plugin_dir == BrandMigration.PLUGIN_DIR
+            and BrandMigration.PLUGIN_ID or BrandMigration.LEGACY_PLUGIN_ID,
+        is_doc_only = false,
+    }
+
+    function BrandMigrationPlugin:init()
+        _brand_startup = BrandMigration.performPending(_brand_startup)
+        BrandMigration.notify(_brand_startup)
+    end
+
+    function BrandMigrationPlugin:deletePluginSettings()
+        pcall(BrandMigration.deletePluginSettings)
+        return true
+    end
+
+    return BrandMigrationPlugin
+end
+
 local ZenLogger = require("common/zen_logger")
 local logger = ZenLogger.new("main")
 
--- This must happen before loading Zen UI modules: Simple UI installs a
+-- This must happen before loading ZenOS modules: Simple UI installs a
 -- conflicting common/i18n module during its own startup.
 local _incompatible_plugins_restart_required = false
 do
@@ -15,12 +40,11 @@ do
     end
 end
 
--- i18n must be installed before any other require() so every subsequent
--- require("gettext") in every sub-module receives the wrapped version.
+-- Install i18n before Zen modules capture gettext-backed labels.
 local i18n
 if _incompatible_plugins_restart_required then
     -- KOReader may still call onCloseWidget on this inert plugin instance.
-    i18n = { install = function() end, uninstall = function() end }
+    i18n = { install = function() end, refresh = function() end }
 else
     i18n = require("common/i18n")
     i18n.install()
@@ -37,8 +61,9 @@ local _ = require("gettext")
 local _pt_active = package.loaded["ptutil"] ~= nil
 
 local ConfigManager = require("config/manager")
+local _startup_config = ConfigManager.load()
 local registry = require("modules/registry")
-local zen_settings = require("modules/settings/zen_settings")
+local zen_settings_page = require("modules/settings/zen_settings_page")
 require("modules/filebrowser/patches/home/components/registry").install()
 local zen_updater   = require("modules/settings/zen_updater")
 local paths         = require("common/paths")
@@ -47,33 +72,60 @@ local library_navigation = require("common/library_navigation")
 -- Absolute path to this plugin's root directory (shared module resolves relative paths).
 local _plugin_root = require("common/plugin_root")
 
--- Register all plugin icons into KOReader's icon cache (copies to user icons dir).
+-- Preserve ZenOS's existing cache registration and navbar icon sync behavior.
 require("common/inject_icons")
 if _plugin_root then
     local utils = require("common/utils")
-    -- Override KOReader's default dialog icons with the Zen UI logo.
+    -- Fixed Zen controls use private aliases that icon packs cannot name.
     local zen_icon = _plugin_root .. "/icons/zen_ui.svg"
+    local zen_update_icon = _plugin_root .. "/icons/zen_ui_update.svg"
     utils.overrideIcons({
-        ["notice-info"]     = zen_icon,
-        ["notice-question"] = zen_icon,
-    })
-    -- Register bundled SymbolsNerdFont as last-resort fallback for MDI glyphs.
-    -- Skipped when ProjectTitle is active: crengine fails to register the font
-    -- on some devices, which causes a width=0 crash in ProjectTitle's TextWidget.
-    if not _pt_active then
-        local ok_font, Font = pcall(require, "ui/font")
+        ["notice-info"]      = zen_icon,
+        ["notice-question"]  = zen_icon,
+        ["_zen_settings_tab"] = zen_icon,
+        ["_zen_update_tab"]   = zen_update_icon,
+        ["_zen_quickstart"]   = zen_icon,
+        ["_zen_quickstart_update"] = zen_update_icon,
+    }, false)
+    -- Register bundled fonts into KOReader's font system so they appear
+    -- in all font pickers (FontChooser) across the UI.
+    do
         local ok_fl, FontList = pcall(require, "fontlist")
-        if ok_font and Font and Font.fallbacks and ok_fl and FontList then
-            pcall(function()
-                FontList:getFontList()
-                if type(FontList.fontlist) == "table" then
-                    table.insert(FontList.fontlist, _plugin_root .. "/fonts/SymbolsNerdFont-Regular.ttf")
+        if ok_fl and FontList then
+            FontList:getFontList()  -- ensure fontlist + fontinfo initialized
+            -- Scan bundled fonts dir into fontlist/fontinfo for FontChooser.
+            local mark = {}
+            pcall(FontList._readList, FontList, _plugin_root .. "/fonts", mark)
+            if next(mark) then
+                -- Rebuild fontnames so FontChooser groups by family.
+                local names = FontList.fontnames
+                for path in pairs(mark) do
+                    local coll = FontList.fontinfo[path]
+                    if coll then
+                        for _j, v in ipairs(coll) do
+                            local nlist = names[v.name] or {}
+                            names[v.name] = nlist
+                            table.insert(nlist, v)
+                        end
+                    end
                 end
-                table.insert(Font.fallbacks, "SymbolsNerdFont-Regular.ttf")
-            end)
+                table.sort(FontList.fontlist)
+            end
+            -- SymbolsNerdFont also serves as glyph fallback for MDI icons.
+            -- Skipped when ProjectTitle is active: crengine fails to register
+            -- the font on some devices, causing a width=0 crash.
+            if not _pt_active then
+                local ok_font, Font = pcall(require, "ui/font")
+                if ok_font and Font and Font.fallbacks then
+                    pcall(table.insert, Font.fallbacks, "SymbolsNerdFont-Regular.ttf")
+                end
+            end
         end
     end
 end
+
+-- Custom packs are an additional first-priority layer over the existing loader.
+require("common/icon_packs").initialize(_startup_config)
 
 -- Holds the single plugin instance so the FileManagerMenu patch can reach it.
 local _zen_plugin_ref = nil
@@ -103,7 +155,7 @@ end
 
 -- Defensive nil-action guard: prevent UIManager:scheduleIn/nextTick(nil) crashes.
 -- Installed once per process; logs a traceback so the real culprit can be identified.
--- Catches bugs in Zen UI *and* in KOReader sync plugins (which share the same UIManager).
+-- Catches bugs in ZenOS *and* in KOReader sync plugins (which share the same UIManager).
 if not rawget(_G, "__zen_ui_uimgr_guard") then
     _G.__zen_ui_uimgr_guard = true
     local ok_um, UIManager = pcall(require, "ui/uimanager")
@@ -130,7 +182,7 @@ if not rawget(_G, "__zen_ui_uimgr_guard") then
 end
 
 local ZenUI = WidgetContainer:extend{
-    name = "zen_ui",
+    name = "zenos",
     is_doc_only = false,
 }
 
@@ -171,12 +223,19 @@ function ZenUI:_initModules()
 end
 
 function ZenUI:init()
-    local started_at = os.clock()
-    if _incompatible_plugins_restart_required then
-        logger.warn("Zen UI initialization skipped; restart required after disabling incompatible plugins")
+    local brand_state = BrandMigration.checkRootConflict(_brand_startup)
+    if brand_state.inert then
+        self._zenos_brand_inert = true
+        BrandMigration.notify(brand_state)
         return
     end
-    i18n.install()  -- reinstall after any context-switch uninstall (onCloseWidget removes it)
+    BrandMigration.installLegacyRuntimeAliases(self)
+    local started_at = os.clock()
+    if _incompatible_plugins_restart_required then
+        logger.warn("ZenOS initialization skipped; restart required after disabling incompatible plugins")
+        return
+    end
+    i18n.refresh()
     self.config = ConfigManager.load()
     if _plugin_root then
         require("common/utils").copyDefaultCustomTabIcon(
@@ -197,7 +256,7 @@ function ZenUI:init()
     zen_updater.init_banner()
 
     -- Clamp persisted list items-per-page before any browser reads it,
-    -- so covers stay legible regardless of where it was set (zen UI,
+    -- so covers stay legible regardless of where it was set (ZenOS,
     -- KOReader's coverbrowser, or a legacy save).
     pcall(function() require("common/cover_utils").getFilesPerPage() end)
 
@@ -246,28 +305,6 @@ function ZenUI:init()
         end
     end
 
-    -- First-run: color e-ink screens clip the footer bottom, so bump the
-    -- container bottom margin from KOReader's default of 1 to 6.
-    if not self.config._meta.footer_color_bottom_padding_applied then
-        local Device = require("device")
-        if Device:hasColorScreen() then
-            local footer_settings = G_reader_settings:readSetting("footer")
-            if type(footer_settings) == "table" then
-                footer_settings.container_bottom_padding = 6
-                G_reader_settings:saveSetting("footer", footer_settings)
-            end
-        end
-        self.config._meta.footer_color_bottom_padding_applied = true
-        self:saveConfig()
-    end
-
-    -- First-run: default to swipe-only menu activation (KOReader default is tap+swipe).
-    if not self.config._meta.menu_activation_defaulted then
-        G_reader_settings:saveSetting("activation_menu", "swipe")
-        self.config._meta.menu_activation_defaulted = true
-        self:saveConfig()
-    end
-
     -- First-run: default sort to recently read, mix files and folders.
     -- Always override: KOReader ships "title" as its own default, so guarding
     -- on readSetting() would silently skip this on a fresh install.
@@ -275,14 +312,6 @@ function ZenUI:init()
         G_reader_settings:saveSetting("collate", "access")
         G_reader_settings:saveSetting("collate_mixed", true)
         self.config._meta.sort_defaults_applied = true
-        self:saveConfig()
-    end
-
-    -- First-run: defaults for folder covers (gallery, bottom name, transparent bg)
-    -- are now in config/defaults.lua under browser_folder_cover; no explicit init needed.
-    -- Guard flag kept so this block doesn't run on every startup for existing installs.
-    if not self.config._meta.gallery_mode_defaulted then
-        self.config._meta.gallery_mode_defaulted = true
         self:saveConfig()
     end
 
@@ -301,7 +330,20 @@ function ZenUI:init()
     end
 
     self:_initModules()
+    -- TBR is a normal KOReader collection; create it for standard pickers.
+    pcall(function() require("common/tbr_index").ensureCollection() end)
     logger.perf("Core initialization completed", (os.clock() - started_at) * 1000)
+
+    local function schedule_quickstart_menu_tour(delay)
+        require("ui/uimanager"):scheduleIn(delay, function()
+            local ok, tour = pcall(require, "common/quickstart/menu_tour")
+            if ok then
+                tour.start(self)
+            else
+                logger.warn("failed to load quickstart menu tour:", tour)
+            end
+        end)
+    end
 
     -- -----------------------------------------------------------------------
     -- Quickstart / onboarding screen
@@ -385,6 +427,9 @@ function ZenUI:init()
                 require("ui/uimanager"):show(QuickstartScreen:new{
                     pages    = pages_to_show,
                     on_close = function()
+                        self.config._meta.quickstart_completed = true
+                        self.config._meta.quickstart_menu_tour_pending = true
+                        self:saveConfig()
                         -- scheduleIn(0) lets UIManager finish the close-frame before
                         -- we force a full repaint and navbar reinject.
                         require("ui/uimanager"):scheduleIn(0, function()
@@ -423,11 +468,15 @@ function ZenUI:init()
                                     fm3.file_chooser:changeToPath(new_home)
                                 end
                             end
+                            schedule_quickstart_menu_tour(0.35)
                         end)
                     end,
                 })
             end)
         elseif is_update then
+            -- Clear a stale banner left by a manual/external install.
+            zen_updater.clear_update_state(self.config)
+
             -- Post-update: always show the ZenScreen splash, then chain UPDATE_PAGES if present.
             self.config._meta.quickstart_shown_for_version = current_ver
             self:saveConfig()
@@ -442,7 +491,7 @@ function ZenUI:init()
                 logger.info("showing ZenScreen")
                 local T = require("ffi/util").template
                 require("ui/uimanager"):show(ZenScreen:new{
-                    title       = _("Zen UI"),
+                    title       = _("ZenOS"),
                     title_icon  = true,
                     subtitle    = T(_("Updated to %1"), "v" .. current_ver),
                     changelog   = (type(changelog_to_show) == "table" and #changelog_to_show > 0)
@@ -465,9 +514,14 @@ function ZenUI:init()
                 })
             end)
         end
+
+        if shown_ver ~= false and not is_update
+                and self.config._meta.quickstart_menu_tour_pending == true then
+            schedule_quickstart_menu_tour(0.8)
+        end
     end
 
-    -- Inject Zen UI and Library tabs around Quick Settings.
+    -- Inject ZenOS and Library tabs around Quick Settings.
     -- Patches setUpdateItemTable once per class so it persists across menu rebuilds.
     local function find_quicksettings_pos(tab_table)
         for i, tab in ipairs(tab_table) do
@@ -537,6 +591,27 @@ function ZenUI:init()
         return type(_ft) == "table" and _ft.app_launcher == true
     end
 
+    local function make_zen_settings_tab(m_self)
+        local tab = {
+            id = "zen_ui",
+            icon = zen_updater.has_update() and "_zen_update_tab" or "_zen_settings_tab",
+            remember = false,
+        }
+        tab.callback = function()
+            require("ui/uimanager"):scheduleIn(0, function()
+                local UIManager = require("ui/uimanager")
+                if m_self.menu_container then
+                    UIManager:close(m_self.menu_container)
+                    m_self.menu_container = nil
+                end
+                if _zen_plugin_ref then
+                    zen_settings_page.show(_zen_plugin_ref)
+                end
+            end)
+        end
+        return tab
+    end
+
     local function remove_zen_menu_tabs(m_self)
         for i = #m_self.tab_item_table, 1, -1 do
             local tab = m_self.tab_item_table[i]
@@ -574,12 +649,12 @@ function ZenUI:init()
                 table.insert(m_self.tab_item_table, insert_pos, qs_tab)
             end
             local next_pos = qs_tab and (insert_pos + 1) or insert_pos
-            if not panel_hidden then
-                table.insert(m_self.tab_item_table, next_pos, m_self._zen_tab_item)
-                next_pos = next_pos + 1
-            end
             if app_tab then
                 table.insert(m_self.tab_item_table, next_pos, app_tab)
+            end
+            -- Keep Settings beside Library at the far right.
+            if not panel_hidden then
+                table.insert(m_self.tab_item_table, m_self._zen_tab_item)
             end
             -- Last tab is pushed to far-right by TouchMenuBar's stretch spacer.
             table.insert(m_self.tab_item_table, m_self._zen_home_tab_item)
@@ -592,13 +667,95 @@ function ZenUI:init()
         m_self._zen_home_tab_item.icon = library_home_icon()
         if not panel_hidden then
             if not m_self._zen_tab_item then
-                m_self._zen_tab_item = zen_settings.build(_zen_plugin_ref).sub_item_table
-                m_self._zen_tab_item.id = "zen_ui"
+                m_self._zen_tab_item = make_zen_settings_tab(m_self)
             end
-            m_self._zen_tab_item.icon = zen_updater.has_update() and "zen_ui_update" or "zen_settings"
+            m_self._zen_tab_item.icon = zen_updater.has_update()
+                and "_zen_update_tab" or "_zen_settings_tab"
         end
         remove_zen_menu_tabs(m_self)
         insert_zen_menu_tabs(m_self, panel_hidden)
+    end
+
+    local function keep_tab_pair_right(touch_menu)
+        local tabs = touch_menu.tab_item_table
+        local bar = touch_menu.bar
+        local group = bar and bar.bar_icon_group
+        local icons = bar and bar.icon_widgets
+        local count = type(tabs) == "table" and #tabs or 0
+        if count < 2 or type(group) ~= "table" or type(icons) ~= "table" then
+            return
+        end
+        local left_id = tabs[count - 1].id
+        local right_id = tabs[count].id
+        if not (left_id == "zen_ui" and right_id == "zen_library_home")
+                and not (left_id == "app_launcher" and right_id == "quicksettings") then return end
+
+        local left_pos
+        local right_pos
+        for i, widget in ipairs(group) do
+            if widget == icons[count - 1] then
+                left_pos = i
+            elseif widget == icons[count] then
+                right_pos = i
+            end
+        end
+        if not left_pos or right_pos ~= left_pos + 4 then return end
+
+        local stretch = table.remove(group, left_pos + 2)
+        local stretch_sep = table.remove(group, left_pos + 2)
+        table.insert(group, left_pos, stretch)
+        table.insert(group, left_pos + 1, stretch_sep)
+        if type(group.resetLayout) == "function" then group:resetLayout() end
+
+        local BD = require("ui/bidi")
+        local function sync_tab_borders(tab_index)
+            local icon = icons[tab_index]
+            local icon_pos
+            local start_seg = 0
+            for i, widget in ipairs(group) do
+                if widget == icon then
+                    icon_pos = i
+                    break
+                end
+                start_seg = start_seg + widget:getSize().w
+            end
+            if not icon_pos then return end
+
+            local end_seg = start_seg + icon:getSize().w
+            if BD.mirroredUILayout() then
+                start_seg, end_seg = bar.width - end_seg, bar.width - start_seg
+            end
+            bar.bar_sep.empty_segments = { { s = start_seg, e = end_seg } }
+
+            local before = group[icon_pos - 1]
+            local after = group[icon_pos + 1]
+            for _i, sep in ipairs(bar.icon_seps) do
+                sep.style = (sep == before or sep == after) and "solid" or "none"
+            end
+        end
+
+        for _i, tab_index in ipairs({ count - 1, count }) do
+            local icon = icons[tab_index]
+            local orig_callback = icon.callback
+            icon.callback = function(...)
+                local result = orig_callback(...)
+                sync_tab_borders(tab_index)
+                return result
+            end
+        end
+        if touch_menu.cur_tab == count - 1 or touch_menu.cur_tab == count then
+            sync_tab_borders(touch_menu.cur_tab)
+        end
+    end
+
+    local TouchMenu = require("ui/widget/touchmenu")
+    if not TouchMenu.__zen_right_tabs_patched then
+        TouchMenu.__zen_right_tabs_patched = true
+        local orig_touch_menu_init = TouchMenu.init
+        TouchMenu.init = function(t_self, ...)
+            orig_touch_menu_init(t_self, ...)
+            keep_tab_pair_right(t_self)
+        end
     end
 
     local function inject_zen_tab(menu_class)
@@ -618,22 +775,30 @@ function ZenUI:init()
             _zen_menu_instances[m_self] = true
             local _panel_hidden = zen_panel_hidden()
             if not _panel_hidden then
-                m_self._zen_tab_item = zen_settings.build(_zen_plugin_ref).sub_item_table
-                m_self._zen_tab_item.id = "zen_ui"
+                m_self._zen_tab_item = make_zen_settings_tab(m_self)
             end
             local home_tab = { id = "zen_library_home", icon = library_home_icon(), remember = false }
             home_tab.callback = function()
+                local ui = m_self.ui
+                local was_tearing_down = ui and ui.tearing_down
+                if ui and ui.document then ui.tearing_down = true end
                 require("ui/uimanager"):scheduleIn(0, function()
                     local UIManager = require("ui/uimanager")
                     if m_self.menu_container then
                         UIManager:close(m_self.menu_container)
                         m_self.menu_container = nil
                     end
-                    local ui = m_self.ui
+                    if ui and ui.document then ui.tearing_down = was_tearing_down end
                     if not ui then return end
                     if ui.document then
-                        library_navigation.showFromReader(ui, _zen_plugin_ref)
+                        library_navigation.showFromReader(ui, _zen_plugin_ref, {
+                            force_default = true,
+                        })
                     else
+                        local is_default_active = rawget(_G, "__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE")
+                        if type(is_default_active) == "function" and is_default_active() then
+                            return
+                        end
                         local fm = require("apps/filemanager/filemanager").instance
                         if fm then require("common/utils").closeWidgetsAbove(fm) end
                         local open_default = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB")
@@ -682,7 +847,7 @@ function ZenUI:init()
     -- also refreshes the icon, so this is just for the case where a menu
     -- instance already exists when the background check finishes.
     local update_icon = function()
-        local icon = zen_updater.has_update() and "zen_ui_update" or "zen_settings"
+        local icon = zen_updater.has_update() and "_zen_update_tab" or "_zen_settings_tab"
         for m_instance in pairs(_zen_menu_instances) do
             if m_instance._zen_tab_item then
                 m_instance._zen_tab_item.icon = icon
@@ -694,14 +859,13 @@ function ZenUI:init()
     -- Trigger background update check on fresh startup too, not only on resume.
     zen_updater.schedule_wakeup_check()
 
-    -- Signal that Zen UI is loaded and its public status-bar and home-item
-    -- registries are available. Plugins loaded after Zen can check for the
-    -- globals directly; plugins already loaded can (re)register on this event.
+    -- Signal that ZenOS is loaded while retaining the legacy integration event.
     do
         local ok_um, UIManager = pcall(require, "ui/uimanager")
         local ok_ev, Event = pcall(require, "ui/event")
         if ok_um and ok_ev then
             UIManager:broadcastEvent(Event:new("ZenUIReady"))
+            UIManager:broadcastEvent(Event:new("ZenOSReady"))
         end
     end
 end
@@ -713,7 +877,12 @@ end
 -- On resume: schedule a background update check (if due + network up).
 -- Also called from init() so a fresh KOReader start triggers the same check.
 function ZenUI:onResume()
+    if self._zenos_brand_inert then return end
     zen_updater.schedule_wakeup_check()
+    local ok_incognito, Incognito = pcall(require, "modules/global/patches/incognito_mode")
+    if ok_incognito and type(Incognito.onResume) == "function" then
+        Incognito.onResume(self)
+    end
     local UIManager = require("ui/uimanager")
     UIManager:scheduleIn(0.5, function()
         refresh_home_date_dependent(self)
@@ -723,9 +892,43 @@ function ZenUI:onResume()
     end)
 end
 
+local function invalidate_annotation_quotes(plugin)
+    local ok_quotes, HomeQuotes = pcall(
+        require, "modules/filebrowser/patches/home/home_quotes"
+    )
+    if ok_quotes and HomeQuotes and HomeQuotes.invalidateAnnotations then
+        HomeQuotes.invalidateAnnotations()
+    end
+    refresh_home_date_dependent(plugin)
+end
+
+function ZenUI:onAnnotationsModified()
+    if self._zenos_brand_inert then return end
+    invalidate_annotation_quotes(self)
+end
+
+function ZenUI:onBookMetadataChanged()
+    if self._zenos_brand_inert then return end
+    pcall(function() require("common/tbr_index").invalidateStatusCache() end)
+    local home = self._zen_shared and self._zen_shared.home
+    if home and type(home.invalidateTBRCache) == "function" then
+        home.invalidateTBRCache()
+    end
+end
+
+function ZenUI:onCloseDocument()
+    if self._zenos_brand_inert then return end
+    invalidate_annotation_quotes(self)
+end
+
 -- On suspend: cancel the pending timer so checks don't run while asleep.
 function ZenUI:onSuspend()
+    if self._zenos_brand_inert then return end
     zen_updater.cancel_wakeup_check()
+    local ok_incognito, Incognito = pcall(require, "modules/global/patches/incognito_mode")
+    if ok_incognito and type(Incognito.onSuspend) == "function" then
+        Incognito.onSuspend()
+    end
 end
 
 local function close_zen_standalone_views(shared)
@@ -741,9 +944,18 @@ local function close_zen_standalone_views(shared)
     end
 end
 
+local function cancel_item_table_cache_persist()
+    local ok, FileChooser = pcall(require, "ui/widget/filechooser")
+    if ok and FileChooser
+            and type(FileChooser._zen_cancel_item_table_cache_persist) == "function" then
+        FileChooser:_zen_cancel_item_table_cache_persist()
+    end
+end
+
 function ZenUI:onCloseWidget()
+    if self._zenos_brand_inert then return end
+    cancel_item_table_cache_persist()
     close_zen_standalone_views(self._zen_shared)
-    i18n.uninstall()
 end
 
 -- KOReader PluginLoader calls this only when the user explicitly chooses
@@ -751,41 +963,9 @@ end
 function ZenUI:deletePluginSettings()
     zen_updater.cancel_wakeup_check()
     zen_updater._on_update_found = nil
+    cancel_item_table_cache_persist()
 
-    -- Delete the dedicated settings folder.
-    pcall(function()
-        require("config/preset_store").removeAll()
-    end)
-
-    -- Also clean up any legacy G_reader_settings key left from before the
-    -- file-based migration completed (e.g., plugin disabled mid-boot).
-    local gs = rawget(_G, "G_reader_settings")
-    if gs and type(gs.delSetting) == "function" then
-        pcall(gs.delSetting, gs, ConfigManager.key())
-        pcall(gs.delSetting, gs, "zen_ui_folder_sort")
-        pcall(gs.delSetting, gs, "zen_ui_folder_display_mode")
-        pcall(gs.flush, gs)
-    end
-
-    -- Remove userpatches installed alongside the plugin (e.g. the startup-alert
-    -- suppressor seeded into koreader/patches/ at install time). Match any
-    -- priority prefix so the patch is removed regardless of load order.
-    pcall(function()
-        local DataStorage = require("datastorage")
-        local lfs = require("libs/libkoreader-lfs")
-        local patches_dir = DataStorage:getPatchesDir()
-        if lfs.attributes(patches_dir, "mode") ~= "directory" then return end
-        for entry in lfs.dir(patches_dir) do
-            if entry:match("^%d+%-zen.*%-suppress%-startup%-alerts%.lua$")
-                or entry:match("^%d+%-zen[%-_]ui[%-_].*%.lua$") then
-                local fullpath = patches_dir .. "/" .. entry
-                if lfs.attributes(fullpath, "mode") == "file" then
-                    os.remove(fullpath)
-                    logger.info("removed userpatch", entry)
-                end
-            end
-        end
-    end)
+    pcall(BrandMigration.deletePluginSettings)
 
     logger.info("deletePluginSettings completed")
     return true

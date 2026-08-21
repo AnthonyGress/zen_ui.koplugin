@@ -18,4 +18,32 @@ describe("widget resources", function()
         widget:free()
         assert.are.same({ "cleanup", "original" }, calls)
     end)
+
+    it("repaints rounded frame borders after child content", function()
+        local calls = {}
+        local frame = {
+            width = 100,
+            height = 24,
+            margin = 1,
+            bordersize = 2,
+            color = "black",
+            radius = 4,
+            getSize = function() return { w = 80, h = 20 } end,
+            paintTo = function() calls[#calls + 1] = { kind = "content" } end,
+        }
+        local bb = {
+            paintBorder = function(_self, ...)
+                calls[#calls + 1] = { kind = "border", args = { ... } }
+            end,
+        }
+
+        Resources.paintFrameBorderOnTop(frame)
+        Resources.paintFrameBorderOnTop(frame)
+        frame:paintTo(bb, 10, 20)
+
+        assert.are.equal("content", calls[1].kind)
+        assert.are.equal("border", calls[2].kind)
+        assert.are.same({ 11, 21, 98, 22, 2, "black", 4, false }, calls[2].args)
+        assert.are.equal(2, #calls)
+    end)
 end)

@@ -115,6 +115,26 @@ describe("reader footer patches", function()
         assert.are.equal(wrapper, skipped)
     end)
 
+    it("preserves KOReader's dynamic filler marker in verbose mode", function()
+        local ReaderFooter = {
+            textGeneratorMap = {
+                chapter_time_to_read = function() return "chapter" end,
+                dynamic_filler = function() return nil, true, true end,
+            },
+            genAllFooterText = function() return "all" end,
+        }
+        ZenSpec.replace("apps/reader/modules/readerfooter", ReaderFooter)
+        _G.__ZEN_UI_PLUGIN = {
+            config = { reader_footer = { verbose_chapter_time = true } },
+        }
+        apply_patch("modules/reader/patches/reader_footer_time_format")
+
+        local text, merge, is_filler = ReaderFooter.textGeneratorMap.dynamic_filler({})
+        assert.is_nil(text)
+        assert.is_true(merge)
+        assert.is_true(is_filler)
+    end)
+
     it("keeps configured image documents hidden after load and footer toggles", function()
         local ready_calls, mode
         local ReaderFooter = {

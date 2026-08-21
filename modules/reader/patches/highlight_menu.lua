@@ -1,4 +1,4 @@
--- Zen UI: Highlight menu
+-- ZenOS: Highlight menu
 -- Replaces the default highlight popup with a clean icon row.
 -- Patches the text-selection highlight menu with icon buttons.
 
@@ -8,6 +8,7 @@ local function apply()
     local UIManager = require("ui/uimanager")
     local Event = require("ui/event")
     local logger = require("common/zen_logger").new("highlight_menu")
+    local LookupPluginItems = require("modules/reader/lookup_plugin_items")
 
     local _plugin_ref = rawget(_G, "__ZEN_UI_PLUGIN")
 
@@ -28,13 +29,6 @@ local function apply()
         return type(features) == "table" and features.highlight_lookup == true
     end
 
-    local function allow_unknown()
-        local cfg = _plugin_ref
-            and _plugin_ref.config
-            and _plugin_ref.config.highlight_lookup
-        return type(cfg) == "table" and cfg.allow_unknown_items == true
-    end
-
     local function show_wikipedia()
         local cfg = _plugin_ref
             and _plugin_ref.config
@@ -46,7 +40,7 @@ local function apply()
         local cfg = _plugin_ref
             and _plugin_ref.config
             and _plugin_ref.config.highlight_lookup
-        return type(cfg) == "table" and cfg.show_ai_assistant == true
+        return type(cfg) == "table" and cfg.show_ai_assistant ~= false
     end
 
     -- Find the main button registered by assistant.koplugin (AI helper).
@@ -147,13 +141,16 @@ local function apply()
             end,
         })
 
-        -- Optionally include unrecognised third-party buttons.
-        if allow_unknown() and self._highlight_buttons then
+        -- Include recognized companion-plugin buttons or opted-in unknown items.
+        if self._highlight_buttons then
             local ffiUtil = require("ffi/util")
             local extra = {}
             for key, fn_button in ffiUtil.orderedPairs(self._highlight_buttons) do
                 local key_name = key:match("^%d+_(.*)$") or key
-                if not KNOWN_KEYS[key_name] then
+                local plugin_setting = LookupPluginItems.settingForHighlightKey(key)
+                if not KNOWN_KEYS[key_name]
+                        and LookupPluginItems.shouldShow(
+                            _plugin_ref and _plugin_ref.config, plugin_setting) then
                     local ok, btn = pcall(fn_button, self, index)
                     if ok and btn then
                         if not btn.show_in_highlight_dialog_func

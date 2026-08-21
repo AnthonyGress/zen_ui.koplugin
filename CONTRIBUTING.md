@@ -1,8 +1,8 @@
 ---
 ---
-# Contributing to Zen UI
+# Contributing to ZenOS
 
-Thank you for your interest in contributing. Zen UI is a small, focused plugin — contributions that keep it clean, minimal, and well-behaved are most welcome.
+Thank you for your interest in contributing. ZenOS is a small, focused plugin — contributions that keep it clean, minimal, and well-behaved are most welcome.
 
 ## Ways to contribute
 
@@ -31,7 +31,7 @@ If the bug causes a crash, the KOReader log (`crash.log` or `reader.log` in the 
 
 ## Suggesting a feature
 
-Open an Issue describing the feature and why it would be useful. Keep Zen UI's philosophy in mind — features should reduce clutter or add something genuinely useful. Screenshots or mockups are welcome.
+Open an Issue describing the feature and why it would be useful. Keep ZenOS's philosophy in mind — features should reduce clutter or add something genuinely useful. Screenshots or mockups are welcome.
 
 ---
 
@@ -71,11 +71,11 @@ Open the existing `.po` file for your language, correct or complete the `msgstr`
 
 ### Setup
 
-Zen UI is a standard KOReader plugin written in Lua. No build system or compilation step is required. The plugin runs directly from source.
+ZenOS is a standard KOReader plugin written in Lua. No build system or compilation step is required. The plugin runs directly from source.
 
 To test changes:
 
-1. Copy the `zen_ui.koplugin` folder to the `plugins/` directory on your device or the KOReader emulator.
+1. Copy the `zenos.koplugin` folder to the `plugins/` directory on your device or the KOReader emulator.
 2. Restart KOReader to reload the plugin.
 
 The [KOReader emulator](https://github.com/koreader/koreader/blob/master/doc/Building.md) is the fastest way to iterate without a physical device.
@@ -91,14 +91,14 @@ restarts the KOReader process launched by the previous `--dev` build.
 
 ### Automated tests
 
-Zen UI's tests live under `spec/` and run against KOReader's bundled LuaJIT.
+ZenOS's tests live under `spec/` and run against KOReader's bundled LuaJIT.
 Set `KOREADER_DIR` to a built KOReader emulator when it is not discoverable next
 to this checkout. The first Python smoke run creates an ignored virtualenv.
 
 ```sh
 ./spec/run lua             # Lua unit and KOReader patch integration specs
 ./spec/run smoke           # Lua plus deterministic Python checks
-./spec/run package-check   # Assert release ZIP excludes every test asset
+./spec/run package-check   # Verify both release ZIPs and exclude test assets
 ```
 
 `ZEN_UI_RUN_EMULATOR=1 ./spec/run smoke` starts a disposable emulator overlay
@@ -108,7 +108,7 @@ for pinned KOReader versions and golden-image workflow.
 
 ### Static linting (LuaCheck)
 
-Zen UI uses [LuaCheck](https://github.com/mpeterv/luacheck) for static analysis.
+ZenOS uses [LuaCheck](https://github.com/mpeterv/luacheck) for static analysis.
 
 Install it locally (one-time):
 
@@ -153,21 +153,16 @@ The project config is in `.luacheckrc` and is aligned with KOReader's baseline (
 
 ### Extracting translatable strings
 
-If you have Python 3 available, you can scan all Lua files for translatable strings and print any that are missing from `locales/en.po`:
+Use the repository translation tool to find strings missing from the catalogs:
 
-```python
-import re, pathlib
-
-strings = set()
-pattern = re.compile(r'_\("([^"]+)"\)')
-for f in pathlib.Path(".").rglob("*.lua"):
-    strings.update(pattern.findall(f.read_text(errors="ignore")))
-
-existing = pathlib.Path("locales/en.po").read_text(errors="ignore")
-for s in sorted(strings):
-    if f'msgid "{s}"' not in existing:
-        print(f'msgid "{s}"\nmsgstr ""\n')
+```sh
+python3 translation_utils.py --list-missing
+python3 translation_utils.py --update-po --locale en
 ```
+
+Use `--locale <locale>` for a scoped catalog update, or see
+`python3 translation_utils.py --help` for synchronization and maintenance
+commands.
 
 ### Code style
 
@@ -180,27 +175,30 @@ for s in sorted(strings):
 ### File structure
 
 ```
-zen_ui.koplugin/
+zenos.koplugin/
 ├── main.lua                        — plugin entry point and lifecycle
 ├── _meta.lua                       — plugin metadata
 ├── config/
 │   ├── defaults.lua                — schema and default values
 │   └── manager.lua                 — persistence, migration, getters/setters
 ├── common/
-│   └── utils.lua                   — shared utilities
+│   ├── ui/                         — shared ZenOS widgets
+│   └── *.lua                       — shared services and utilities
 ├── modules/
 │   ├── registry.lua                — module loader and feature registry
 │   ├── filebrowser/                — file browser patches and layout
-│   ├── menu/                       — menu patches (quick settings, zen mode)
-│   └── reader/                     — reader patches (clock, status, banner)
-├── settings/
-│   ├── zen_settings.lua            — unified settings menu entry
-│   ├── zen_settings_build.lua      — menu tree builder
-│   ├── zen_settings_apply.lua      — apply settings to live state
-│   ├── zen_settings_updater.lua    — update checker and installer
-│   └── zen_updater.lua             — GitHub release fetcher
+│   ├── global/                     — global behavior patches
+│   ├── menu/                       — Controls and Launcher patches
+│   ├── reader/                     — reader patches and status bars
+│   └── settings/
+│       ├── sections/               — settings section builders
+│       ├── zen_settings.lua        — unified settings entry
+│       ├── zen_settings_page.lua   — searchable settings page
+│       ├── zen_settings_apply.lua  — live settings application
+│       └── zen_updater.lua         — update checker and installer
 ├── locales/                        — gettext .po translation files
 ├── icons/                          — UI icons
+├── spec/                           — unit, integration, and smoke tests
 ├── CONTRIBUTING.md
 ├── SECURITY.md
 └── README.md
@@ -218,4 +216,4 @@ Before submitting, please check:
 - [ ] The commit message clearly describes the change
 - [ ] No debug logging or commented-out code is left in
 
-Thank you for helping make Zen UI better.
+Thank you for helping make ZenOS better.

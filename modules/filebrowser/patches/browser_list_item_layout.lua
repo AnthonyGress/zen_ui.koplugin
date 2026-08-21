@@ -2,7 +2,7 @@ local function apply_browser_list_item_layout()
     -- Capture plugin reference while __ZEN_UI_PLUGIN is still set by run_feature.
     local _plugin_ref = rawget(_G, "__ZEN_UI_PLUGIN")
     local Cover = require("common/cover_utils")
-    local logger = require("common/zen_logger").new("browser_list_item_layout")
+    local RenderCache = require("common/cover_render_cache")
 
     local BD = require("ui/bidi")
     local Blitbuffer = require("ffi/blitbuffer")
@@ -17,13 +17,14 @@ local function apply_browser_list_item_layout()
     local OverlapGroup = require("ui/widget/overlapgroup")
     local ReadCollection = require("readcollection")
     local RightContainer = require("ui/widget/container/rightcontainer")
-    local Size = require("ui/size")
     local TextBoxWidget = require("ui/widget/textboxwidget")
     local TextWidget = require("ui/widget/textwidget")
     local VerticalGroup = require("ui/widget/verticalgroup")
     local VerticalSpan = require("ui/widget/verticalspan")
     local filemanagerutil = require("apps/filemanager/filemanagerutil")
     local book_status = require("common/book_status")
+    local FolderCover = require("modules/filebrowser/folder_cover")
+    local CoverWidget = require("modules/filebrowser/patches/home/widgets/cover_common")
     local library_font = require("modules/filebrowser/patches/library_font")
     local util = require("util")
     local zen_utils = require("common/utils")
@@ -46,50 +47,18 @@ local function apply_browser_list_item_layout()
         local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
         if not ok_bim then return end
 
-        -- Corner-mask helpers
-        local corner_radius = Screen:scaleBySize(8)
-
-        -- Restore corner pixels from a pre-paint background snapshot so the rounded
-        -- cut-outs reveal whatever was behind the cover (row bg / library bg image)
-        -- instead of an opaque white square. snap origin is absolute (ox, oy).
-        local function paintCornerMasks(bb, tx, ty, tw, th, r, snap, ox, oy)
-            for j = 0, r - 1 do
-                local inner = math.sqrt(r * r - (r - j) * (r - j))
-                local cut = math.ceil(r - inner)
-                if cut > 0 then
-                    bb:blitFrom(snap, tx,            ty + j,          tx - ox,            ty + j - oy,          cut, 1)
-                    bb:blitFrom(snap, tx + tw - cut, ty + j,          tx + tw - cut - ox, ty + j - oy,          cut, 1)
-                    bb:blitFrom(snap, tx,            ty + th - 1 - j, tx - ox,            ty + th - 1 - j - oy, cut, 1)
-                    bb:blitFrom(snap, tx + tw - cut, ty + th - 1 - j, tx + tw - cut - ox, ty + th - 1 - j - oy, cut, 1)
-                end
-            end
-        end
-
-        local function paintCornerBorderArcs(bb, tx, ty, tw, th, r, bsz, color)
-            local r_outer = r
-            local r_inner = r - bsz
-            for j = 0, r - 1 do
-                for c = 0, r - 1 do
-                    local dx = r - c - 0.5
-                    local dy = r - j - 0.5
-                    local dist = math.sqrt(dx * dx + dy * dy)
-                    if dist >= r_inner and dist <= r_outer then
-                        bb:paintRect(tx + c, ty + j, 1, 1, color)
-                        bb:paintRect(tx + tw - 1 - c, ty + j, 1, 1, color)
-                        bb:paintRect(tx + c, ty + th - 1 - j, 1, 1, color)
-                        bb:paintRect(tx + tw - 1 - c, ty + th - 1 - j, 1, 1, color)
-                    end
-                end
-            end
-        end
-
         local original_update = ListMenuItem.update
 
         function ListMenuItem:update()
+            local is_dir = not (self.entry.is_file or self.entry.file)
             -- Intercept list mode (no covers) to fix directory text wrapping
             if not self.do_cover_image then
+                local original_text = self.text
+                if is_dir and not self.entry.is_go_up then
+                    self.text = FolderCover.title(self.entry, self.text, self.menu)
+                end
                 original_update(self)
-                local is_dir = not (self.entry.is_file or self.entry.file)
+                self.text = original_text
                 if is_dir then
                     -- Fix folder name widget (TextBoxWidget) overflowing to 3+ lines in list mode
                     pcall(function()
@@ -104,6 +73,7 @@ local function apply_browser_list_item_layout()
 
                             wleft:free(true)
                             wleft.face = library_font.getFace(fs)
+                            wleft.fgcolor = Blitbuffer.COLOR_BLACK
                             wleft:init() -- init once to compute font metrics
 
                             local lh = wleft:getLineHeight()
@@ -118,7 +88,6 @@ local function apply_browser_list_item_layout()
                 return
             end
 
-            local is_dir = not (self.entry.is_file or self.entry.file)
             if is_dir then
                 -- Render all directory rows (up-folder and regular folders) with the
                 -- same padded layout so long names never overlap the top separator.
@@ -129,7 +98,7 @@ local function apply_browser_list_item_layout()
                     local text_safe_pad_top = math.max(2, Screen:scaleBySize(4))
                     local text_safe_pad_bottom = math.max(2, Screen:scaleBySize(3))
                     local content_h = math.max(1, dimen_h - text_safe_pad_top - text_safe_pad_bottom)
-                    local border_size = Size.border.thin
+                    local border_size = Cover.BORDER_SIZE
                     local cover_v_pad = Screen:scaleBySize(4)
                     local cover_zone_w = dimen_h
                     local max_img  = dimen_h - 2 * border_size - 2 * cover_v_pad
@@ -160,6 +129,23 @@ local function apply_browser_list_item_layout()
                             },
                         },
                     }
+                    if not is_go_up and self.do_cover_image then
+                        local folder_result = FolderCover.build(
+                            self.menu, self.entry, self.text, cover_w, max_img, {
+                                load_covers = not covers_suppressed(self.menu),
+                                cover_specs = {
+                                    max_cover_w = cover_w,
+                                    max_cover_h = max_img,
+                                    uniform = true,
+                                },
+                            })
+                        cover_frame = folder_result.frame
+                        self._zen_folder_count = folder_result.count > 0 and folder_result.count or nil
+                        self._foldercover_processed = true
+                        self._has_cover_image = folder_result.cover_count > 0
+                        if self._has_cover_image then self.menu._has_cover_images = true end
+                    end
+                    CoverWidget.decorate_cover_frame(cover_frame)
                     local wleft = CenterContainer:new{
                         dimen = { w = cover_zone_w, h = dimen_h },
                         cover_frame,
@@ -173,13 +159,22 @@ local function apply_browser_list_item_layout()
                     fs_title = math.min(fs_title, math.max(9, math.floor(content_h * 0.45)))
                     local title_text = is_go_up
                         and (BD.mirroredUILayout() and BD.ltr("../ \u{F062}") or "\u{F062}  ../")
-                        or BD.directory(self.text)
+                        or BD.directory(FolderCover.title(self.entry, self.text, self.menu))
 
                     local right_widgets = {}
                     local right_w = 0
-                    if not is_go_up and self.mandatory then
-                        local file_count = tonumber(self.mandatory:match("(%d+)%s*\xef\x80\x96")) or 0
-                        local dir_count = tonumber(self.mandatory:match("(%d+)%s*\xef\x84\x94")) or 0
+                    local synthetic_count = (self.entry._zen_files or self.entry.series_items
+                        or (self.menu._zen_coll_list and self.entry.name))
+                        and self._zen_folder_count or nil
+                    if not is_go_up and (self.mandatory or synthetic_count) then
+                        local mandatory = self.mandatory
+                        local file_count = type(mandatory) == "number" and mandatory or 0
+                        local dir_count = 0
+                        if type(mandatory) == "string" then
+                            file_count = tonumber(mandatory:match("(%d+)%s*\xef\x80\x96")) or 0
+                            dir_count = tonumber(mandatory:match("(%d+)%s*\xef\x84\x94")) or 0
+                        end
+                        if synthetic_count then file_count = synthetic_count end
                         local fs_right = _fontSize(16, 20)
                         fs_right = math.min(fs_right, math.max(8, math.floor(content_h * 0.34)))
                         if dir_count > 0 then
@@ -219,6 +214,7 @@ local function apply_browser_list_item_layout()
                         height_overflow_show_ellipsis = true,
                         alignment = "left",
                         bold = true,
+                        fgcolor = Blitbuffer.COLOR_BLACK,
                     }
                     local row_dimen = { w = self.width, h = dimen_h }
                     local widget = OverlapGroup:new{
@@ -273,7 +269,7 @@ local function apply_browser_list_item_layout()
 
             local underline_h = 1 -- matches self.underline_h in ListMenuItem:init()
             local dimen_h = self.height - 2 * underline_h
-            local border_size = Size.border.thin
+            local border_size = Cover.BORDER_SIZE
             local cover_v_pad = Screen:scaleBySize(4)  -- top+bottom breathing room
             local cover_zone_w = dimen_h  -- squared, identical to stock list mode
             local max_img = dimen_h - 2 * border_size - 2 * cover_v_pad
@@ -350,17 +346,8 @@ local function apply_browser_list_item_layout()
                     -- Uniform fill: scale from the actual cached-bb dimensions so
                     -- the image covers the entire 2:3 frame, then centre-crop to
                     -- exactly cover_w × max_img.
-                    local bb_w     = bookinfo.cover_bb:getWidth()
-                    local bb_h     = bookinfo.cover_bb:getHeight()
-                    local sf       = math.max(cover_w / bb_w, max_img / bb_h)
-                    local scaled_w = math.max(cover_w,  math.ceil(bb_w * sf))
-                    local scaled_h = math.max(max_img,  math.ceil(bb_h * sf))
-                    local x_off    = math.floor((scaled_w - cover_w) / 2)
-                    local y_off    = math.floor((scaled_h - max_img) / 2)
-                    local scaled_bb = bookinfo.cover_bb:scale(scaled_w, scaled_h)
-                    local fill_bb   = Blitbuffer.new(cover_w, max_img, scaled_bb:getType())
-                    fill_bb:blitFrom(scaled_bb, 0, 0, x_off, y_off, cover_w, max_img)
-                    scaled_bb:free()
+                    local fill_bb = RenderCache:render(filepath, bookinfo.cover_bb, cover_w, max_img)
+                    bookinfo.cover_bb = nil
                     local wimage = ImageWidget:new{
                         image        = fill_bb,
                         scale_factor = 1,
@@ -377,6 +364,7 @@ local function apply_browser_list_item_layout()
                             wimage,
                         },
                     }
+                    CoverWidget.decorate_cover_frame(cover_frame)
                     wleft = CenterContainer:new{
                         dimen = { w = cover_zone_w, h = dimen_h },
                         cover_frame,
@@ -404,6 +392,7 @@ local function apply_browser_list_item_layout()
                             wimage,
                         },
                     }
+                    CoverWidget.decorate_cover_frame(cover_frame)
                     wleft = CenterContainer:new{
                         dimen = { w = cover_zone_w, h = dimen_h },
                         cover_frame,
@@ -454,18 +443,22 @@ local function apply_browser_list_item_layout()
             local effective_status = book_status.getComputedStatus(
                 filepath, status, percent_finished
             )
-            local is_new = effective_status == "new"
-            self._zen_effective_status = effective_status
+            local display_status = book_status.getDisplayStatus(filepath, effective_status)
+            local is_new = display_status == "new"
+            self._zen_effective_status = display_status
 
             local status_label, progress_str
             if is_new then
                 status_label = _("New")
-            elseif effective_status == "complete" then
-                status_label = _("Finished")
-                progress_str = "\u{F012C}"  -- MD check
-            elseif effective_status == "abandoned" then
+            elseif display_status == "tbr" then
                 status_label = _("To Be Read")
                 progress_str = "\u{F0150}"  -- MD Clock icon
+            elseif display_status == "complete" then
+                status_label = _("Finished")
+                progress_str = "\u{F012C}"  -- MD check
+            elseif display_status == "abandoned" then
+                status_label = _("On hold")
+                progress_str = "\u{F03E4}"
             elseif percent_finished then
                 -- has recorded progress
                 status_label = string.format(_("%d%% Read"), math.floor(100 * percent_finished))
@@ -733,8 +726,9 @@ local function apply_browser_list_item_layout()
             end
 
             -- ── Favorite star overlay (top-right corner, absolute) ─────────
+            local favorites = ReadCollection.default_collection_name or "favorites"
             if self.menu.name ~= "collections"
-                and ReadCollection:isFileInCollection(filepath, "favorites") then
+                and ReadCollection:isFileInCollection(filepath, favorites) then
                 local star_pad = Screen:scaleBySize(3)
                 -- Scale star to ~40% of row height (capped at 22) so it shrinks on
                 -- short rows (12 items/page) instead of overflowing.
@@ -767,71 +761,39 @@ local function apply_browser_list_item_layout()
             self.init_done = true
         end
 
-        -- ── Cover-frame paintTo ───────────────────────────────────────────────
-        -- Fill-scaled images overflow their ImageWidget bounds and can paint
-        -- over the FrameContainer border (which KOReader draws *before* child
-        -- content).  We always redraw the border on top after the base paint so
-        -- it is never obscured.  Rounded corners build on top of that.
+        -- Suppress stock hints and apply the configured finished-book dimming.
         local orig_paintTo = ListMenuItem.paintTo
         if orig_paintTo then
             function ListMenuItem:paintTo(bb, x, y)
                 local plug = _plugin_ref or rawget(_G, "__ZEN_UI_PLUGIN")
-                local rounded = plug
-                    and type(plug.config) == "table"
-                    and type(plug.config.features) == "table"
-                    and plug.config.features.browser_cover_rounded_corners == true
-
-                -- Snapshot the row background *before* painting the cover, so the
-                -- corner cut-outs can restore it (row/library bg) instead of an
-                -- opaque white square.
-                local snap
-                if rounded then
-                    local sz = self:getSize()
-                    local w, h = sz and sz.w, sz and sz.h
-                    if w and h and w > 0 and h > 0 then
-                        snap = Blitbuffer.new(w, h, bb:getType())
-                        snap:blitFrom(bb, 0, 0, x, y, w, h)
-                    end
-                end
-
+                local saved_do_hint = self.do_hint_opened
+                self.do_hint_opened = false
                 orig_paintTo(self, bb, x, y)
-                if not self._cover_frame then
-                    if snap then snap:free() end
-                    return
-                end
-                local target = self._cover_frame
-                if not (target.dimen
-                    and target.dimen.x and target.dimen.y
-                    and target.dimen.w and target.dimen.h
-                    and target.dimen.w > 0 and target.dimen.h > 0)
-                then
-                    if snap then snap:free() end
-                    return
-                end
-                local tx, ty = target.dimen.x, target.dimen.y
-                local tw, th = target.dimen.w, target.dimen.h
-                local bsz    = math.max(1, target.bordersize or 0)
+                self.do_hint_opened = saved_do_hint
 
-                -- Always redraw straight border on top (fixes fill-overflow masking).
-                local bc = Blitbuffer.COLOR_BLACK
-                bb:paintRect(tx,            ty,            tw,  bsz, bc)
-                bb:paintRect(tx,            ty + th - bsz, tw,  bsz, bc)
-                bb:paintRect(tx,            ty,            bsz, th,  bc)
-                bb:paintRect(tx + tw - bsz, ty,            bsz, th,  bc)
-
-                if rounded and snap then
-                    -- Radius proportional to cover height so short covers (12 items/
-                    -- page) don't look over-rounded; capped at the mosaic radius and
-                    -- never more than half the cover.
-                    local r = math.min(corner_radius, math.floor(th / 5),
-                                       math.floor(tw / 2), math.floor(th / 2))
-                    if r >= 1 then
-                        -- Restore bg in the corners, then redraw arc border.
-                        paintCornerMasks(bb, tx, ty, tw, th, r, snap, x, y)
-                        paintCornerBorderArcs(bb, tx, ty, tw, th, r, bsz, Blitbuffer.COLOR_BLACK)
-                    end
+                local entry = self.entry
+                local config = plug and type(plug.config) == "table" and plug.config or {}
+                local folder = config.browser_folder_cover or {}
+                if self.do_cover_image and folder.show_spine_lines == true
+                        and entry and not entry.is_go_up
+                        and not FolderCover.isBook(entry) and self._cover_frame then
+                    local features = config.features or {}
+                    FolderCover.paintSpines(bb, self._cover_frame, x, y, {
+                        orientation = "left",
+                        rounded = features.browser_cover_rounded_corners == true,
+                    })
                 end
-                if snap then snap:free() end
+                local effective_status = (entry and entry._zen_effective_status)
+                    or self._zen_effective_status
+                    or book_status.getEffectiveStatus(
+                        self.status or (entry and entry.status),
+                        self.percent_finished or (entry and entry.percent_finished))
+                local badges = plug and type(plug.config) == "table"
+                    and plug.config.browser_cover_badges
+                if type(badges) == "table" and badges.dim_finished_books == true
+                        and effective_status == "complete" and self.width and self.height then
+                    bb:lightenRect(x, y, self.width, self.height, 0.3)
+                end
             end
         end
         ListMenuItem._zen_bll_patched = true
@@ -915,12 +877,8 @@ local function apply_browser_list_item_layout()
         if fc and fc.updateItems then
             if fc._zen_strip_list_borders_fn ~= fc.updateItems then
                 local function zen_fc_updateItems(s, ...)
-                    local started_at = os.clock()
                     FileChooser.updateItems(s, ...)
                     stripListBorders(s)
-                    logger.perf("File chooser update completed", (os.clock() - started_at) * 1000,
-                        "mode=", tostring(s.display_mode_type),
-                        "items=", #(s.item_table or {}))
                 end
                 fc._zen_strip_list_borders_fn = zen_fc_updateItems
                 fc.updateItems = zen_fc_updateItems

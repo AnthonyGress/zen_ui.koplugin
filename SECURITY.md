@@ -2,7 +2,7 @@
 
 ## Supported Versions
 
-Only the latest release of Zen UI is actively maintained. Security fixes will not be backported to older versions.
+Only the latest release of ZenOS is actively maintained. Security fixes will not be backported to older versions.
 
 | Version | Supported |
 |---------|-----------|
@@ -11,14 +11,12 @@ Only the latest release of Zen UI is actively maintained. Security fixes will no
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Zen UI, **please do not open a public GitHub issue.** Instead, report it privately so it can be addressed before any public disclosure.
+If you discover a security vulnerability in ZenOS, **please do not open a public GitHub issue.** Instead, report it privately so it can be addressed before any public disclosure.
 
 **To report a vulnerability:**
 
 1. Go to the [Security Advisories](https://github.com/AnthonyGress/zen_ui.koplugin/security/advisories) page on GitHub.
 2. Click **"Report a vulnerability"** and fill in the details.
-
-Alternatively, you can reach out directly by opening a [private issue](https://github.com/AnthonyGress/zen_ui.koplugin/issues) and marking it as confidential, or by contacting the maintainer through GitHub.
 
 Please include:
 
@@ -32,9 +30,10 @@ Reported vulnerabilities will be reviewed and responded to as promptly as possib
 
 ## Scope
 
-Zen UI is a client-side KOReader plugin written in Lua. It does not run a server, handle authentication, or process external user data. The primary security surface is:
+ZenOS is a client-side KOReader plugin written in Lua. It does not run a server or handle account authentication. It works with local library files and can download release assets and catalog content. The primary security surface is:
 
-- The built-in updater, which downloads and unpacks files from GitHub Releases over HTTPS
-- Any file operations performed through the file browser patches
+- The built-in ZenOS updater and ZenPM installer, which download and unpack release files over HTTPS
+- Custom icon-pack ZIP validation and extraction
+- File operations performed through the file browser patches
 
 Out-of-scope reports (e.g. vulnerabilities in KOReader itself, or in the underlying device OS) should be directed to the appropriate upstream project.

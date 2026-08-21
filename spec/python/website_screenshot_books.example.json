@@ -1,0 +1,18 @@
+{
+  "calibre_root": "~/Calibre Library",
+  "quote": "The secret of getting ahead is getting started.",
+  "books": [
+    {"calibre_id": null, "expected_title": "Never Split the Difference", "direct_path": "Never Split the Difference - Chris Voss.epub", "role": "featured"},
+    {"calibre_id": null, "expected_title": "Flow - The Psychology of Optimal Experience", "direct_path": "Flow - The Psychology of Optimal Experience - Mihaly Csikszentmihalyi.epub", "role": "library"},
+    {"calibre_id": null, "expected_title": "Atomic Habits: An Easy and Proven Way to Build Good Habits and Break Bad Ones", "direct_path": "Atomic Habits_ An Easy and Proven Way to Build Good Habits and Break Bad Ones - James Clear.epub", "role": "library"},
+    {"calibre_id": 31, "expected_title": "Project Hail Mary: A Novel", "direct_path": null, "role": "library"},
+    {"calibre_id": null, "expected_title": "Clean Coder", "direct_path": "Clean Coder - Martin_ Robert C_.epub", "role": "library", "authors": "Robert C Martin"},
+    {"calibre_id": null, "expected_title": "Do Less", "direct_path": "test123/Do Less - Rachel Jonat.epub", "role": "reader"},
+    {"calibre_id": null, "expected_title": "The Creative Habit", "direct_path": "The Creative Habit - Tharp_ Twyla.epub", "role": "library", "authors": "Twyla Tharp"},
+    {"calibre_id": null, "expected_title": "The Martian: A Novel", "direct_path": "The Martian_ A Novel - Andy Weir (1).epub", "role": "library"},
+    {"calibre_id": null, "expected_title": "Design Patterns: Elements of Reusable Object-Oriented Software", "direct_path": "Design Patterns_ Elements of Reusable Object-Oriented Software - Gamma_ Erich.epub", "role": "library"},
+    {"calibre_id": 32, "expected_title": "Deep Work", "direct_path": null, "role": "library"},
+    {"calibre_id": 4, "expected_title": "The Let Them Theory", "direct_path": null, "role": "library"},
+    {"calibre_id": 6, "expected_title": "Wild", "direct_path": null, "role": "library"}
+  ]
+}

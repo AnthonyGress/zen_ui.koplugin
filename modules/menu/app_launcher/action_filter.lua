@@ -42,6 +42,24 @@ function M.has_reader_action(Dispatcher, actions)
     return false
 end
 
+function M.has_registered_action(Dispatcher, actions)
+    if type(actions) ~= "table" then return false end
+    local settings_list = dispatcher_settings_list(Dispatcher)
+    local has_action = false
+    for key, value in pairs(actions) do
+        if key ~= "settings" then
+            local name = type(key) == "number" and value or key
+            if type(name) == "string" then
+                has_action = true
+                if not settings_list or settings_list[name] then
+                    return true
+                end
+            end
+        end
+    end
+    return not settings_list and has_action
+end
+
 function M.filter_dispatch_menu(items)
     if type(items) ~= "table" then return items end
     local hidden_sections = {

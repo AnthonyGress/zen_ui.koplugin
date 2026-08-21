@@ -130,7 +130,7 @@ local function apply_status_bar()
             _serializeOrder(config.left_order),
             "center_order=", _serializeOrder(config.center_order),
             "right_order=",  _serializeOrder(config.right_order))
-        -- Preserve dormant external keys: their plugins may register after Zen UI.
+        -- Preserve dormant external keys: their plugins may register after ZenOS.
         local seen = {}
         local function clean_order(list, side_name)
             local out = {}
@@ -346,6 +346,14 @@ local function apply_status_bar()
         return nil
     end
 
+    local function getIncognitoInfo()
+        local features = zen_plugin.config and zen_plugin.config.features
+        if type(features) == "table" and features.incognito_mode == true then
+            return inline_icons.incognito
+        end
+        return nil
+    end
+
     local function getRamInfo()
         local now = os.time()
         if cached_ram_text and (now - cached_ram_time) < 30 then
@@ -445,6 +453,7 @@ local function apply_status_bar()
 
     local item_fetchers = {
         bluetooth   = getBluetoothInfo,
+        incognito   = getIncognitoInfo,
         wifi        = getWifiInfo,
         disk        = getDiskInfo,
         ram         = getRamInfo,
@@ -535,6 +544,13 @@ local function apply_status_bar()
         return #group > 0 and group or nil
     end
 
+    local function normalizeDirPath(path)
+        if type(path) ~= "string" or path == "" then return nil end
+        path = paths.normPath(path)
+        if path ~= "/" then path = path:gsub("/+$", "") end
+        return path ~= "" and path or "/"
+    end
+
     local function createStatusRow(path, file_manager, nav_title)
         local CenterContainer = require("ui/widget/container/centercontainer")
 
@@ -542,8 +558,8 @@ local function apply_status_bar()
         local in_subfolder = false
         local folder_name = nil
         local home_dir = paths.getHomeDir()
+        local norm_path = normalizeDirPath(path)
         if home_dir and path then
-            local norm_path = paths.normPath(path:gsub("/$", ""))
             if norm_path ~= home_dir and norm_path:sub(1, #home_dir + 1) == home_dir .. "/" then
                 in_subfolder = true
                 folder_name = path:match("([^/]+)/?$") or path
@@ -561,10 +577,22 @@ local function apply_status_bar()
         end
 
         local home_locked = paths.isHomeLocked()
+        local features = zen_plugin.config.features
+        local navbar = zen_plugin.config.navbar
+        local folder_root = type(navbar) == "table"
+            and normalizeDirPath(navbar.folder_path) or nil
+        local at_folder_tab_root = type(features) == "table" and features.navbar == true
+            and type(navbar) == "table"
+            and type(navbar.show_tabs) == "table"
+            and navbar.show_tabs.folder == true
+            and folder_root ~= nil and folder_root ~= ""
+            and norm_path == folder_root
+            and not in_series_view
 
-        -- Show back chevron in subfolders always; everywhere when home is not locked.
+        -- Show back in subfolders, but treat the configured Folder tab path as its root.
         -- path must be non-nil — callers like collections pass nil for non-filesystem views.
-        local show_back = path ~= nil and (in_subfolder or not home_locked)
+        local show_back = path ~= nil and not at_folder_tab_root
+            and (in_subfolder or not home_locked)
 
         -- Back chevron is always pinned to the far-left when navigation is available
         local back_widget = nil
@@ -574,8 +602,7 @@ local function apply_status_bar()
             local ffiUtil = require("ffi/util")
             back_callback = function()
                 local file_chooser = file_manager and file_manager.file_chooser
-                local bw_item_table = file_chooser and file_chooser.item_table
-                if bw_item_table and bw_item_table.is_in_series_view and file_chooser.onFolderUp then
+                if file_chooser and file_chooser.onFolderUp then
                     UIManager:scheduleIn(0.1, function()
                         if file_manager.file_chooser then
                             file_manager.file_chooser:onFolderUp()
@@ -794,6 +821,15 @@ local function apply_status_bar()
         return vg
     end
 
+    local function topmost_non_toast_widget()
+        local stack = UIManager._window_stack
+        if type(stack) ~= "table" then return end
+        for index = #stack, 1, -1 do
+            local widget = stack[index] and stack[index].widget
+            if widget and not widget.toast then return widget end
+        end
+    end
+
     -- Refresh TouchMenu panels from the shared minute heartbeat.
     local function schedulePanelRefresh(menu)
         if menu._zen_status_timer then
@@ -805,9 +841,7 @@ local function apply_status_bar()
                 clock_timer.unbind(target)
                 return
             end
-            local stack = UIManager._window_stack
-            local top = stack and stack[#stack]
-            if not top or top.widget ~= target then return end
+            if topmost_non_toast_widget() ~= target then return end
             target:updateItems()
         end
         menu._zen_status_timer = tick
@@ -933,7 +967,7 @@ local function apply_status_bar()
         if not tb or not tb.dimen then return end
         local bb = Screen.bb
         if bb then
-            local bg_path = Background.library_path()
+            local bg_path = Background.library_path(zen_plugin)
             if bg_path == "" or not Background.paintScreenRegion(bb,
                     tb.dimen.x, tb.dimen.y, tb.dimen.x, tb.dimen.y,
                     tb.dimen.w, tb.dimen.h, bg_path) then
@@ -945,9 +979,8 @@ local function apply_status_bar()
         -- A non-dithered "ui" refresh of this region renders whiter than the
         -- surrounding dithered page, leaving a brighter box. Honor the top
         -- widget's dithering hint so the region matches.
-        local stack = UIManager._window_stack
-        local top = stack and stack[#stack]
-        local refresh_dither = top and top.widget and top.widget.dithered or nil
+        local top_widget = topmost_non_toast_widget()
+        local refresh_dither = top_widget and top_widget.dithered or nil
         UIManager:setDirty(nil, "ui", tb.dimen, refresh_dither)
     end
 
@@ -1002,8 +1035,13 @@ local function apply_status_bar()
         end
     end
 
+    local function home_without_status_bar_is_on_top()
+        local widget = topmost_non_toast_widget()
+        return widget and widget._zen_home_show_status_bar == false
+    end
+
     function FileManager:_updateStatusBar()
-        if not is_enabled() then
+        if not is_enabled() or home_without_status_bar_is_on_top() then
             return
         end
 
@@ -1066,9 +1104,13 @@ local function apply_status_bar()
             end
         end
 
-        -- Clear the full titlebar region to white before repainting so stale
-        -- pixels from a previously wider right-side group don't leave ghosts.
-        repaintTitleBar(tb)
+        local top_widget = topmost_non_toast_widget()
+        if FileManager.instance == self and self.invisible ~= true
+                and (top_widget == self or top_widget == self.show_parent) then
+            -- Clear the full titlebar region so stale pixels from a previously
+            -- wider right-side group don't leave ghosts.
+            repaintTitleBar(tb)
+        end
     end
 
     -- === Hooks ===
@@ -1099,9 +1141,7 @@ local function apply_status_bar()
 
     local function refreshVisibleStatusBar(fm, clock_tick)
         if FileManager.instance ~= fm then return end
-        local stack = UIManager._window_stack
-        local top = stack and stack[#stack]
-        local top_widget = top and top.widget
+        local top_widget = topmost_non_toast_widget()
 
         if suppresses_status_bar(top_widget) then return end
         if top_widget == fm or top_widget == fm.show_parent then
@@ -1118,12 +1158,12 @@ local function apply_status_bar()
         end
     end
 
-    local page_load_refresh_pending = false
-    local function schedulePageLoadStatusRefresh(fm)
-        if not fm or page_load_refresh_pending then return end
-        page_load_refresh_pending = true
+    local show_refresh_pending = false
+    local function scheduleShowStatusRefresh(fm)
+        if not fm or show_refresh_pending then return end
+        show_refresh_pending = true
         UIManager:nextTick(function()
-            page_load_refresh_pending = false
+            show_refresh_pending = false
             refreshVisibleStatusBar(fm, false)
         end)
     end
@@ -1139,7 +1179,7 @@ local function apply_status_bar()
     Menu._zen_status_bar_on_show_refresh = function(menu)
         local fm = FileManager.instance
         if fm and is_enabled() and has_refreshable_status_bar(menu, fm) then
-            schedulePageLoadStatusRefresh(fm)
+            scheduleShowStatusRefresh(fm)
         end
     end
     if not Menu._zen_status_bar_on_show_patched then
@@ -1197,9 +1237,8 @@ local function apply_status_bar()
             orig_setupLayout(self)
         end
 
-        -- Apply immediately so the first paint shows our custom row rather
-        -- than the placeholder title.  _updateStatusBar is a no-op when the
-        -- titlebar isn't ready yet, so this is always safe to call early.
+        -- Build immediately so the first paint shows our custom row rather
+        -- than the placeholder title. Hidden instances do not repaint it.
         self:_updateStatusBar()
 
         -- Defer again after all plugins (coverbrowser etc.) finish init
@@ -1207,7 +1246,8 @@ local function apply_status_bar()
         UIManager:nextTick(function()
             refreshVisibleStatusBar(fm, false)
             -- Restore subtitle path only when subtitle widget exists
-            if not config.hide_browser_bar and fm.file_chooser and fm.file_chooser.path then
+            if not config.hide_browser_bar and fm.file_chooser
+                    and fm.file_chooser.path then
                 fm:updateTitleBarPath(fm.file_chooser.path)
             end
 
@@ -1323,22 +1363,6 @@ local function apply_status_bar()
             end)
         end
     end
-
-    -- Refresh on filebrowser page turns (paging through the file list)
-    local FileChooser = require("ui/widget/filechooser")
-    local function wrapFCPage(method_name)
-        local orig = FileChooser[method_name]
-        FileChooser[method_name] = function(fc, ...)
-            local result = orig and orig(fc, ...) or true
-            local fm = FileManager.instance
-            if fm and is_enabled() then
-                schedulePageLoadStatusRefresh(fm)
-            end
-            return result
-        end
-    end
-    wrapFCPage("onNextPage")
-    wrapFCPage("onPrevPage")
 
     -- onResume: defer long enough for the screensaver to finish its full-screen
     -- repaint and for the titlebar layout to be fully established.  nextTick

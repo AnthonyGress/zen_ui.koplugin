@@ -1,13 +1,13 @@
 -- common/zen_screen.lua
 -- Fullscreen update / splash screen.
 --
--- Shows the Zen UI logo centered with an optional title at the top and an
+-- Shows the ZenOS logo centered with an optional title at the top and an
 -- optional action button at the bottom. Tap or swipe anywhere to dismiss.
 --
 -- Usage:
 --   local ZenScreen = require("common/zen_screen")
 --   UIManager:show(ZenScreen:new{
---       title    = "Zen UI updated to v1.2.3",  -- nil hides the title bar
+--       title    = "ZenOS updated to v1.2.3",  -- nil hides the title bar
 --       button   = "Get Started",               -- nil -> default label; false -> no button
 --       on_close = function() ... end,
 --   })
@@ -22,6 +22,7 @@ local TextBoxWidget  = require("ui/widget/textboxwidget")
 local TextWidget     = require("ui/widget/textwidget")
 local UIManager      = require("ui/uimanager")
 local ZenButton      = require("common/ui/zen_button")
+local TitleStyle     = require("common/ui/zen_title_style")
 local Screen         = Device.screen
 local _              = require("gettext")
 local ok_stw, ScrollTextWidget = pcall(require, "ui/widget/scrolltextwidget")
@@ -50,8 +51,8 @@ function ZenScreen:_computeLayout()
     local sw = Screen:getWidth()
     local sh = Screen:getHeight()
     local PAD        = Screen:scaleBySize(20)
-    local TITLE_H    = self.title and Screen:scaleBySize(60) or 0
-    local SEP_H      = 0
+    local TITLE_H    = self.title and TitleStyle.HEADER_CONTENT_HEIGHT or 0
+    local SEP_H      = self.title and TitleStyle.DIVIDER_HEIGHT or 0
     -- Subtitle band grows to fit wrapped text so long strings don't run off-page.
     local SUBTITLE_H = 0
     if self.subtitle then
@@ -80,6 +81,44 @@ function ZenScreen:_computeLayout()
     }
 end
 
+function ZenScreen:_normalizeButtonFocus()
+    if self._button_focus == "primary" and self.button ~= false then return end
+    if self._button_focus == "later" and self.later_button then return end
+    self._button_focus = self.button ~= false and "primary"
+        or (self.later_button and "later" or nil)
+end
+
+function ZenScreen:_moveButtonFocus()
+    self:_normalizeButtonFocus()
+    if not self._button_focus then return true end
+    local next_button = self._button_focus
+    if self.button ~= false and self.later_button then
+        next_button = self._button_focus == "primary" and "later" or "primary"
+    end
+    local needs_repaint = not self._button_focus_visible or next_button ~= self._button_focus
+    self._button_focus = next_button
+    self._button_focus_visible = true
+    if needs_repaint then
+        UIManager:setDirty(self, function() return "fast", self.dimen end)
+    end
+    return true
+end
+
+function ZenScreen:_activateButton(button)
+    if button == "later" and self.later_button then
+        self:onClose()
+    elseif button == "primary" and self.button ~= false then
+        if self._on_button_action then
+            self._on_button_action()
+        else
+            self:onClose()
+        end
+    elseif self.dismissable then
+        self:onClose()
+    end
+    return true
+end
+
 function ZenScreen:init()
     logger.info("init title=", self.title)
     local sw = Screen:getWidth()
@@ -93,6 +132,8 @@ function ZenScreen:init()
     self._scroll_w = nil
     self._scroll_h = nil
     self._scroll_top_line_num = nil
+    self._button_focus_visible = Device:hasDPad() and not Device:isTouchDevice()
+    self:_normalizeButtonFocus()
 
     self:registerTouchZones({
         {
@@ -118,11 +159,26 @@ function ZenScreen:init()
             },
             ZsConfirmPgFwd = {
                 { Input.group.PgFwd },
-                event = "ZsConfirm",
+                event = "ZsPrimary",
             },
             ZsDismiss = {
                 { Input.group.PgBack },
                 event = "ZsDismiss",
+            },
+            ZsCancelOrClose = {
+                { Input.group.Back },
+                { "Home" },
+                event = "ZsCancelOrClose",
+            },
+            ZsFocusNext = {
+                { "Right" },
+                { "Tab" },
+                event = "ZsFocusNext",
+            },
+            ZsFocusPrevious = {
+                { "Left" },
+                { "Shift", "Tab" },
+                event = "ZsFocusPrevious",
             },
         }
     end
@@ -174,18 +230,15 @@ function ZenScreen:_point_in_rect(point, rect)
         and point.y >= rect.y and point.y < rect.y + rect.h
 end
 
--- Enter/PgFwd: activate primary button (or dismiss if no button)
+-- Enter: activate the focused button (or dismiss if there are no buttons).
 function ZenScreen:onZsConfirm()
-    if self.button ~= false then
-        if self._on_button_action then
-            self._on_button_action()
-        else
-            self:onClose()
-        end
-    elseif self.dismissable then
-        self:onClose()
-    end
-    return true
+    self:_normalizeButtonFocus()
+    return self:_activateButton(self._button_focus)
+end
+
+-- PgFwd retains its existing primary-action shortcut.
+function ZenScreen:onZsPrimary()
+    return self:_activateButton("primary")
 end
 
 -- PgBack: activate "Later" / dismiss
@@ -194,6 +247,23 @@ function ZenScreen:onZsDismiss()
         self:onClose()
     end
     return true
+end
+
+function ZenScreen:onZsCancelOrClose()
+    if self.dismissable then
+        self:onClose()
+    elseif self.button ~= false then
+        self:_activateButton("primary")
+    end
+    return true
+end
+
+function ZenScreen:onZsFocusNext()
+    return self:_moveButtonFocus()
+end
+
+function ZenScreen:onZsFocusPrevious()
+    return self:_moveButtonFocus()
 end
 
 function ZenScreen:paintTo(bb, x, y)
@@ -279,17 +349,20 @@ function ZenScreen:paintTo(bb, x, y)
     if self.title and L.title_h > 0 then
         local tw = TextWidget:new{
             text    = self.title,
-            face    = Font:getFace("cfont", 26),
+            face    = TitleStyle.getTitleFace(),
             bold    = true,
             padding = 0,
         }
         local tsz = tw:getSize()
         local show_inline_icon = self.title_icon == true or self._show_title_icon
-        local icon_gap = Screen:scaleBySize(8)
-        local icon_sz  = show_inline_icon and tsz.h or 0
+        local icon_gap = TitleStyle.TITLE_LEADING_PADDING
+        local icon_sz  = show_inline_icon and TitleStyle.ICON_SIZE or 0
         local total_w  = tsz.w + (show_inline_icon and (icon_sz + icon_gap) or 0)
         local base_x   = x + math.floor((L.sw - total_w) / 2)
-        local text_y   = y + math.floor((L.title_h - tsz.h) / 2)
+        local text_y   = y + TitleStyle.VERTICAL_PADDING
+            + math.floor((TitleStyle.ROW_HEIGHT - tsz.h) / 2)
+        local icon_y   = y + TitleStyle.VERTICAL_PADDING
+            + math.floor((TitleStyle.ROW_HEIGHT - icon_sz) / 2)
 
         if show_inline_icon and ImageWidget and _plugin_root ~= "" then
             pcall(function()
@@ -299,16 +372,17 @@ function ZenScreen:paintTo(bb, x, y)
                     height = icon_sz,
                     alpha  = true,
                 }
-                iw:paintTo(bb, base_x, text_y)
+                iw:paintTo(bb, base_x, icon_y)
                 iw:free()
                 if Screen.night_mode then
-                    bb:invertRect(base_x, text_y, icon_sz, icon_sz)
+                    bb:invertRect(base_x, icon_y, icon_sz, icon_sz)
                 end
             end)
         end
 
         tw:paintTo(bb, base_x + (show_inline_icon and (icon_sz + icon_gap) or 0), text_y)
         tw:free()
+        bb:paintRect(x, y + L.title_h, L.sw, L.sep_h, TitleStyle.DIVIDER_COLOR)
     end
 
     -- Subtitle above icon (wraps to fit width so long strings don't run off-page).
@@ -436,6 +510,14 @@ function ZenScreen:paintTo(bb, x, y)
                 bb, btn_x, btn_y, btn_w, btn_h, lbl, 22, corner_r)
         end
     end
+    self:_normalizeButtonFocus()
+    if self._button_focus_visible then
+        local focus_rect = self._button_focus == "later"
+            and self._later_btn_rect or self._btn_rect
+        if focus_rect then
+            bb:invertRect(focus_rect.x, focus_rect.y, focus_rect.w, focus_rect.h)
+        end
+    end
 end
 
 function ZenScreen:_onSwipe(ges)
@@ -456,19 +538,13 @@ function ZenScreen:_onTap(ges)
     -- Later button: always dismisses
     if lr and p.x >= lr.x and p.x < lr.x + lr.w
            and p.y >= lr.y and p.y < lr.y + lr.h then
-        self:onClose()
-        return true
+        return self:_activateButton("later")
     end
 
     -- Primary button: call action override if set, otherwise close
     if br and p.x >= br.x and p.x < br.x + br.w
            and p.y >= br.y and p.y < br.y + br.h then
-        if self._on_button_action then
-            self._on_button_action()
-        else
-            self:onClose()
-        end
-        return true
+        return self:_activateButton("primary")
     end
 
     if self._scroll_text_w and self:_point_in_rect(p, self._scroll_rect) then
@@ -501,6 +577,7 @@ function ZenScreen:update(opts)
     if opts.later_button ~= nil then self.later_button = opts.later_button end
     if opts.dismissable ~= nil then self.dismissable = opts.dismissable end
     if opts.on_button ~= nil then self._on_button_action = opts.on_button end
+    self:_normalizeButtonFocus()
     if text_changed then
         if opts.preserve_scroll and self._scroll_text_w
             and self._scroll_text_w.text_widget

@@ -1,3 +1,7 @@
+local Device = require("device")
+
+local BOTTOM_PADDING = Device:hasColorScreen() and 6 or 1
+
 -- Shared order: page_progress, chapter_time_to_read, dynamic_filler, percentage first
 local preset_order = {
     [0] = "off",
@@ -80,7 +84,7 @@ local preset_order_bar = {
 local presets = {}
 
 presets[1] = {
-    name = "(Zen UI) Chapter Time + %",
+    name = "(ZenOS) Chapter Time + %",
     footer = {
         align = "center",
         all_at_once = true,
@@ -99,7 +103,7 @@ presets[1] = {
         chapter_progress = false,
         chapter_progress_bar = false,
         chapter_time_to_read = true,
-        container_bottom_padding = 1,
+        container_bottom_padding = BOTTOM_PADDING,
         container_height = 14,
         disable_progress_bar = true,
         disabled = false,
@@ -136,14 +140,14 @@ presets[1] = {
         toc_markers_width = 2,
         wifi_status = false,
     },
-    reader_footer_custom_text = "Zen UI",
+    reader_footer_custom_text = "ZenOS",
     reader_footer_custom_text_repetitions = 1,
     reader_footer_mode = 1,
     verbose_chapter_time = true,
 }
 
 presets[2] = {
-    name = "(Zen UI) Pages and %",
+    name = "(ZenOS) Pages and %",
     footer = {
         align = "center",
         all_at_once = true,
@@ -162,7 +166,7 @@ presets[2] = {
         chapter_progress = false,
         chapter_progress_bar = false,
         chapter_time_to_read = false,
-        container_bottom_padding = 1,
+        container_bottom_padding = BOTTOM_PADDING,
         container_height = 14,
         disable_progress_bar = true,
         disabled = false,
@@ -199,13 +203,13 @@ presets[2] = {
         toc_markers_width = 2,
         wifi_status = false,
     },
-    reader_footer_custom_text = "Zen UI",
+    reader_footer_custom_text = "ZenOS",
     reader_footer_custom_text_repetitions = 1,
     reader_footer_mode = 1,
 }
 
 presets[3] = {
-    name = "(Zen UI) Pages + Time + %",
+    name = "(ZenOS) Pages + Time + %",
     footer = {
         align = "center",
         all_at_once = true,
@@ -224,7 +228,7 @@ presets[3] = {
         chapter_progress = false,
         chapter_progress_bar = false,
         chapter_time_to_read = true,
-        container_bottom_padding = 1,
+        container_bottom_padding = BOTTOM_PADDING,
         container_height = 14,
         disable_progress_bar = true,
         disabled = false,
@@ -261,14 +265,14 @@ presets[3] = {
         toc_markers_width = 2,
         wifi_status = false,
     },
-    reader_footer_custom_text = "Zen UI",
+    reader_footer_custom_text = "ZenOS",
     reader_footer_custom_text_repetitions = 1,
     reader_footer_mode = 1,
     verbose_chapter_time = true,
 }
 
 presets[4] = {
-    name = "(Zen UI) Centered Pages",
+    name = "(ZenOS) Centered Pages",
     footer = {
         align = "center",
         all_at_once = true,
@@ -287,7 +291,7 @@ presets[4] = {
         chapter_progress = false,
         chapter_progress_bar = false,
         chapter_time_to_read = false,
-        container_bottom_padding = 1,
+        container_bottom_padding = BOTTOM_PADDING,
         container_height = 14,
         disable_progress_bar = true,
         disabled = false,
@@ -324,13 +328,13 @@ presets[4] = {
         toc_markers_width = 2,
         wifi_status = false,
     },
-    reader_footer_custom_text = "Zen UI",
+    reader_footer_custom_text = "ZenOS",
     reader_footer_custom_text_repetitions = 1,
     reader_footer_mode = 1,
 }
 
 presets[5] = {
-    name = "(Zen UI) L/C/R: Chapter Time | Page | %",
+    name = "(ZenOS) L/C/R: Chapter Time | Page | %",
     footer = {
         align = "center",
         all_at_once = true,
@@ -349,7 +353,7 @@ presets[5] = {
         chapter_progress = false,
         chapter_progress_bar = false,
         chapter_time_to_read = true,
-        container_bottom_padding = 1,
+        container_bottom_padding = BOTTOM_PADDING,
         container_height = 14,
         disable_progress_bar = true,
         disabled = false,
@@ -387,14 +391,14 @@ presets[5] = {
         toc_markers_width = 2,
         wifi_status = false,
     },
-    reader_footer_custom_text = "Zen UI",
+    reader_footer_custom_text = "ZenOS",
     reader_footer_custom_text_repetitions = 1,
     reader_footer_mode = 1,
     verbose_chapter_time = true,
 }
 
 presets[6] = {
-    name = "(Zen UI) Pages | Bar | %",
+    name = "(ZenOS) Pages | Bar | %",
     footer = {
         align = "center",
         all_at_once = true,
@@ -413,7 +417,7 @@ presets[6] = {
         chapter_progress = false,
         chapter_progress_bar = false,
         chapter_time_to_read = false,
-        container_bottom_padding = 1,
+        container_bottom_padding = BOTTOM_PADDING,
         container_height = 14,
         disable_progress_bar = false,
         disabled = false,
@@ -451,7 +455,7 @@ presets[6] = {
         toc_markers_width = 2,
         wifi_status = false,
     },
-    reader_footer_custom_text = "Zen UI",
+    reader_footer_custom_text = "ZenOS",
     reader_footer_custom_text_repetitions = 1,
     reader_footer_mode = 1,
 }

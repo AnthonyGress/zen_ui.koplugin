@@ -1,6 +1,7 @@
 import os
 import signal
 import sqlite3
+import subprocess
 import tempfile
 import time
 import zipfile
@@ -60,7 +61,9 @@ def _write_page_count_cbz(path: Path, temporary: Path) -> None:
         archive.write(image_path, "002.png")
 
 
-def _seed_bookinfo(ko_home: Path, book: Path) -> None:
+def _seed_bookinfo(
+    ko_home: Path, book: Path, page_count_book: Path | None = None
+) -> None:
     database = ko_home / "settings" / "bookinfo_cache.sqlite3"
     database.parent.mkdir(parents=True, exist_ok=True)
     canonical = book.resolve()
@@ -100,6 +103,21 @@ def _seed_bookinfo(ko_home: Path, book: Path) -> None:
                 "Focus, Testing",
             ),
         )
+        if page_count_book:
+            page_count_canonical = page_count_book.resolve()
+            page_count_stat = page_count_canonical.stat()
+            connection.execute(
+                """INSERT INTO bookinfo (
+                    directory, filename, filesize, filemtime, in_progress,
+                    cover_fetched, has_meta, pages
+                ) VALUES (?, ?, ?, ?, 0, 'Y', 'Y', 2)""",
+                (
+                    str(page_count_canonical.parent) + "/",
+                    page_count_canonical.name,
+                    page_count_stat.st_size,
+                    int(page_count_stat.st_mtime),
+                ),
+            )
         connection.execute(
             "INSERT INTO config (key, value) VALUES (?, ?)",
             ("filemanager_display_mode", "list_image_meta"),
@@ -130,8 +148,9 @@ def test_metadata_list_rows_render_all_semantic_values() -> None:
         library.mkdir()
         semantic_book = library / "semantic.epub"
         _write_metadata_epub(semantic_book)
-        _write_page_count_cbz(library / "pages.cbz", root)
-        _seed_bookinfo(ko_home, semantic_book)
+        page_count_book = library / "pages.cbz"
+        _write_page_count_cbz(page_count_book, root)
+        _seed_bookinfo(ko_home, semantic_book, page_count_book)
         socket_path = root / "driver.sock"
         process = launch(runtime, ko_home, socket_path, library)
         try:
@@ -170,4 +189,75 @@ def test_metadata_list_rows_render_all_semantic_values() -> None:
             assert tags_visible, f"missing rendered tags in: {sorted(visible)}"
         finally:
             process.send_signal(signal.SIGTERM)
-            process.wait(timeout=15)
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+
+
+def test_double_tap_opening_in_list_mode() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-list-double-tap-") as temporary:
+        root = Path(temporary)
+        ko_home = root / "home"
+        ko_home.mkdir()
+        library = root / "library"
+        library.mkdir()
+        book = library / "semantic.epub"
+        _write_metadata_epub(book)
+        _seed_bookinfo(ko_home, book)
+        socket_path = root / "driver.sock"
+        process = launch(
+            runtime,
+            ko_home,
+            socket_path,
+            library,
+            zen_config_source="""return {
+  updater = { update_auto_check = false },
+  developer = { double_tap_to_open_books = true },
+  features = { automatic_series_grouping = false },
+}
+""",
+        )
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            deadline = time.monotonic() + 30
+            visible_item = None
+            while time.monotonic() < deadline and visible_item is None:
+                chooser = driver.command("file_chooser_items").get("file_chooser", {})
+                for item in chooser.get("visible_items", []):
+                    if Path(item.get("path", "")).resolve() == book.resolve():
+                        visible_item = item
+                        break
+                if visible_item is None:
+                    time.sleep(0.1)
+            assert visible_item is not None
+            assert visible_item["double_tap_patched"] is True
+
+            initial_windows = driver.visible_ui()["ui"]["windows"]
+
+            assert driver.command("tap_file_chooser_item", path=str(book.resolve()))["ok"] is True
+            assert driver.reader_state()["reader"]["open"] is False
+            assert len(driver.visible_ui()["ui"]["windows"]) == len(initial_windows)
+
+            time.sleep(0.35)
+            assert driver.command("tap_file_chooser_item", path=str(book.resolve()))["ok"] is True
+            assert driver.command("tap_file_chooser_item", path=str(book.resolve()))["ok"] is True
+            deadline = time.monotonic() + 15
+            reader = {"open": False}
+            while time.monotonic() < deadline:
+                reader = driver.reader_state()["reader"]
+                if reader["open"]:
+                    break
+                time.sleep(0.1)
+            assert reader["open"] is True
+            assert Path(reader["file"]).resolve() == book.resolve()
+        finally:
+            process.send_signal(signal.SIGTERM)
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()

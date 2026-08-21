@@ -59,6 +59,15 @@ local function apply_automatic_series_grouping()
         return features.automatic_series_grouping ~= false
     end
 
+    local function can_group_items(file_chooser)
+        -- PathChooser inherits FileChooser, but its items must always map to
+        -- real paths so callers can navigate or select them.
+        return is_enabled()
+            and file_chooser
+            and file_chooser.select_file == nil
+            and file_chooser.select_directory == nil
+    end
+
     local function is_dim_finished_enabled()
         local plugin = get_plugin()
         local cfg = plugin and plugin.config and plugin.config.browser_cover_badges
@@ -193,10 +202,22 @@ local function apply_automatic_series_grouping()
         return copy
     end
 
-    local function clear_item_table_cache(file_chooser)
-        if file_chooser and file_chooser._zen_clear_item_table_cache then
-            file_chooser:_zen_clear_item_table_cache()
+    local function build_series_view_items(file_chooser, group_item, parent_path)
+        local items = clone_series_items(group_item.series_items)
+        local hide_up_folder = is_hide_up_folder_enabled(file_chooser)
+        if not (items[1] and items[1].is_go_up) and not hide_up_folder then
+            table.insert(items, 1, {
+                text = BD.mirroredUILayout() and BD.ltr("../ \u{2B06}") or "\u{2B06} ../",
+                is_directory = true,
+                path = parent_path,
+                is_go_up = true,
+            })
         end
+        items.is_in_series_view = true
+        items.parent_path = parent_path
+        items._zen_series_group_item = group_item
+        items._zen_series_sort_key = group_item._zen_sort_key or group_item.path
+        return items, hide_up_folder
     end
 
     local book_status
@@ -249,7 +270,11 @@ local function apply_automatic_series_grouping()
 
         if not override then
             table.sort(items, function(a, b)
-                return (a._series_index or 0) < (b._series_index or 0)
+                local a_index = a._series_index or 0
+                local b_index = b._series_index or 0
+                if a_index ~= b_index then return a_index < b_index end
+                return tostring(a.path or a.file or a.text or "")
+                    < tostring(b.path or b.file or b.text or "")
             end)
             return
         end
@@ -272,7 +297,13 @@ local function apply_automatic_series_grouping()
             local ok_sort_func, sort_func = pcall(
                 file_chooser.getSortingFunction, file_chooser, collate, override.reverse == true)
             if ok_sort_func and sort_func then
-                local ok_sort, err = pcall(table.sort, items, sort_func)
+                local function deterministic_sort(a, b)
+                    if sort_func(a, b) then return true end
+                    if sort_func(b, a) then return false end
+                    return tostring(a.path or a.file or a.text or "")
+                        < tostring(b.path or b.file or b.text or "")
+                end
+                local ok_sort, err = pcall(table.sort, items, deterministic_sort)
                 if not ok_sort then
                     logger.warn("series sort failed:", err)
                 end
@@ -372,7 +403,13 @@ local function apply_automatic_series_grouping()
                             table.insert(processed_list, group_item)
                             group_item._list_index = #processed_list
                         else
-                            table.insert(series_map[series_name].series_items, item)
+                            local group = series_map[series_name]
+                            table.insert(group.series_items, item)
+                            if collate_id == "access" then
+                                group.attr.access = math.max(
+                                    tonumber(group.attr.access) or 0,
+                                    tonumber(item.attr and item.attr.access) or 0)
+                            end
                         end
                         series_handled = true
                     else
@@ -465,10 +502,15 @@ local function apply_automatic_series_grouping()
         for _i, item in ipairs(final_table) do item_table[_i] = item end
     end
 
+    local function update_status_bar()
+        local FileManager = require("apps/filemanager/filemanager")
+        local fm = FileManager.instance
+        if fm and fm._updateStatusBar then fm:_updateStatusBar() end
+    end
+
     function AutomaticSeries:openSeriesGroup(file_chooser, group_item)
         if not file_chooser then return end
 
-        local items = clone_series_items(group_item.series_items)
         local parent_path = file_chooser.path
         local parent_page = file_chooser.page
         local parent_item_index
@@ -481,7 +523,6 @@ local function apply_automatic_series_grouping()
         if not parent_item_index and file_chooser.path_items then
             parent_item_index = file_chooser.path_items[parent_path]
         end
-        self:sortSeriesItems(items, group_item, file_chooser)
         local display_api = rawget(_G, "__ZEN_FOLDER_DISPLAY_MODE")
         local display_key = group_item._zen_sort_key or group_item.path
         local display_override = display_api and type(display_api.get) == "function"
@@ -508,25 +549,8 @@ local function apply_automatic_series_grouping()
             parent_page = parent_page,
         }
 
-        local up_item_already_present = items[1] and items[1].is_go_up
-        local hide_up_folder = is_hide_up_folder_enabled(file_chooser)
-
-        if not up_item_already_present then
-            local up_item = {
-                text = BD.mirroredUILayout() and BD.ltr("../ \u{2B06}") or "\u{2B06} ../",
-                is_directory = true,
-                path = parent_path,
-                is_go_up = true,
-            }
-            if not hide_up_folder then
-                table.insert(items, 1, up_item)
-            end
-        end
-
-        items.is_in_series_view = true
-        items.parent_path = parent_path
-        items._zen_series_group_item = group_item
-        items._zen_series_sort_key = group_item._zen_sort_key or group_item.path
+        local items, hide_up_folder = build_series_view_items(
+            file_chooser, group_item, parent_path)
         file_chooser:switchItemTable(nil, items, nil, nil, group_item.text)
         log_navigation("open:after-switch", file_chooser,
             "series=" .. tostring(group_item.text))
@@ -538,11 +562,35 @@ local function apply_automatic_series_grouping()
         -- Entering a series view does not change file_chooser.path, so the zen
         -- status bar's onPathChanged hook never fires. Refresh it directly so the
         -- back chevron appears for the virtual folder.
-        local FileManager = require("apps/filemanager/filemanager")
-        local fm = FileManager.instance
-        if fm and fm._updateStatusBar then
-            fm:_updateStatusBar()
+        update_status_bar()
+    end
+
+    function AutomaticSeries:resortSeriesGroup(file_chooser, group_item, refresh_view)
+        if not (file_chooser and type(group_item) == "table"
+                and type(group_item.series_items) == "table") then
+            return false
         end
+        self:sortSeriesItems(group_item.series_items, group_item, file_chooser)
+        if not refresh_view then return true end
+        if not (current_series_group and file_chooser.item_table
+                and file_chooser.item_table.is_in_series_view) then
+            return false
+        end
+
+        local current_page = file_chooser.page
+        local items, hide_up_folder = build_series_view_items(
+            file_chooser, group_item, current_series_group.parent_path)
+        file_chooser.page = current_page
+        file_chooser.itemnumber = nil
+        file_chooser:switchItemTable(nil, items, -1, nil, group_item.text)
+        if hide_up_folder then
+            file_chooser:_changeLeftIcon(Icon.up, function() file_chooser:onFolderUp() end)
+        end
+        return true
+    end
+
+    FileChooser._zen_resort_series_group = function(file_chooser, group_item, refresh_view)
+        return AutomaticSeries:resortSeriesGroup(file_chooser, group_item, refresh_view)
     end
 
     local function exit_virtual_folder_if_needed(file_chooser)
@@ -600,7 +648,7 @@ local function apply_automatic_series_grouping()
         local trace_navigation = current_series_group ~= nil
             or (new_item_table and new_item_table.is_in_series_view)
         local restore_index
-        if is_enabled() and new_item_table and not new_item_table.is_in_series_view then
+        if can_group_items(file_chooser) and new_item_table and not new_item_table.is_in_series_view then
             new_item_table = clone_item_table(new_item_table)
             AutomaticSeries:processItemTable(new_item_table, file_chooser)
         end
@@ -661,22 +709,32 @@ local function apply_automatic_series_grouping()
     FileChooser.refreshPath = function(file_chooser)
         if not is_enabled() then
             current_series_group = nil
-            clear_item_table_cache(file_chooser)
             old_refreshPath(file_chooser)
             return
+        end
+        local reopen_state = current_series_group
+        if reopen_state and not reopen_state.should_restore_focus then
+            current_series_group = nil
         end
         old_refreshPath(file_chooser)
         -- Only re-open the series view for an in-place refresh (e.g. returning
         -- from the reader). When should_restore_focus is set we are exiting the
         -- virtual folder, so re-opening would trap the user inside it.
-        if current_series_group and not current_series_group.should_restore_focus then
-            local series_name = current_series_group.series_name
+        if reopen_state and not reopen_state.should_restore_focus then
+            local series_name = reopen_state.series_name
+            local reopened = false
             for _i, item in ipairs(file_chooser.item_table) do
                 if item.is_series_group and item.text == series_name then
                     AutomaticSeries:openSeriesGroup(file_chooser, item)
+                    if current_series_group then
+                        current_series_group.parent_path = reopen_state.parent_path
+                        current_series_group.parent_page = reopen_state.parent_page
+                    end
+                    reopened = true
                     break
                 end
             end
+            if not reopened then update_status_bar() end
         end
     end
 
@@ -688,7 +746,7 @@ local function apply_automatic_series_grouping()
     end
 
     FileChooser.onMenuSelect = function(file_chooser, item)
-        if is_enabled() and item.is_series_group then
+        if can_group_items(file_chooser) and item.is_series_group then
             AutomaticSeries:openSeriesGroup(file_chooser, item)
             return true
         end

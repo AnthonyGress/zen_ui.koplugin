@@ -1,6 +1,6 @@
 -- common/zen_dialog.lua
 -- Factory for a Zen-styled InputDialog:
---   - Close (X) icon in the title bar top-left
+--   - Close (X) icon in the title bar top-right
 --   - Single primary button whose text carries the action icon
 --   - Outside-tap dismisses both keyboard and dialog
 --
@@ -20,6 +20,7 @@
 
 local InputDialog = require("ui/widget/inputdialog")
 local UIManager   = require("ui/uimanager")
+local ZenModalClose = require("common/ui/zen_modal_close")
 
 local function createZenDialog(opts)
     local orig_onTap = InputDialog.onTap
@@ -30,11 +31,6 @@ local function createZenDialog(opts)
         input      = opts.input or "",
         input_type = opts.input_type,
         input_hint = opts.input_hint,
-        title_bar_left_icon = "close",
-        title_bar_left_icon_tap_callback = function()
-            UIManager:close(dialog)
-            if opts.close_callback then opts.close_callback() end
-        end,
         buttons = {
             {
                 {
@@ -45,6 +41,10 @@ local function createZenDialog(opts)
             },
         },
     }
+    ZenModalClose.installDialog(dialog, function()
+        UIManager:close(dialog)
+        if opts.close_callback then opts.close_callback() end
+    end)
 
     -- Close both keyboard and dialog on outside tap (mirrors search dialog behaviour).
     function dialog:onTap(arg, ges)

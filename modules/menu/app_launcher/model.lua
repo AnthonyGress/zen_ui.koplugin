@@ -9,6 +9,12 @@ local function valid_plugin(plugin)
         and type(plugin.method) == "string"
 end
 
+local function valid_koreader_menu(menu)
+    return type(menu) == "table"
+        and type(menu.id) == "string"
+        and menu.id ~= ""
+end
+
 local function valid_entry(entry, allow_folder)
     if type(entry) ~= "table" or type(entry.id) ~= "string" then
         return false
@@ -23,8 +29,14 @@ local function valid_entry(entry, allow_folder)
         return type(entry.action) == "table"
     elseif entry.type == "plugin" then
         return valid_plugin(entry.plugin)
+    elseif entry.type == "koreader_menu" then
+        return valid_koreader_menu(entry.koreader_menu)
     elseif entry.type == "quick_setting" then
         return type(entry.quick_setting_id) == "string" and entry.quick_setting_id ~= ""
+    elseif entry.type == "folder_shortcut" then
+        return type(entry.folder) == "string" and entry.folder ~= ""
+    elseif entry.type == "tag" then
+        return type(entry.tag) == "string" and entry.tag ~= ""
     elseif allow_folder and entry.type == "folder" then
         return true
     end
@@ -193,6 +205,16 @@ function M.display_label(entry)
     if not entry then return _("App") end
     if entry.type == "break" then return "\u{2014} " .. _("Row break") .. " \u{2014}" end
     return entry.label or _("App")
+end
+
+function M.enabled_entries(entries)
+    local enabled = {}
+    for _i, entry in ipairs(entries or {}) do
+        if entry.enabled ~= false then
+            enabled[#enabled + 1] = entry
+        end
+    end
+    return enabled
 end
 
 return M

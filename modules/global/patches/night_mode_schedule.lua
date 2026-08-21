@@ -114,6 +114,16 @@ local function apply_night_mode_schedule()
         if ReaderThemes.isEnabled(zen_plugin) then
             ReaderThemes.applyCurrent(zen_plugin)
         end
+        for _i, name in ipairs({
+            "__ZEN_UI_BRIGHTNESS_SCHEDULE",
+            "__ZEN_UI_WARMTH_SCHEDULE",
+        }) do
+            local frontlight_state = rawget(_G, name)
+            if type(frontlight_state) == "table"
+                    and type(frontlight_state.apply_mode_value) == "function" then
+                pcall(frontlight_state.apply_mode_value)
+            end
+        end
         UIManager:setDirty("all", "full")
     end
 

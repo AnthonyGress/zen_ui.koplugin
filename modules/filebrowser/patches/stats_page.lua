@@ -1,4 +1,4 @@
--- Zen UI Stats Page
+-- ZenOS Stats Page
 -- Fullscreen reading stats dashboard with long-press block customization.
 
 local Blitbuffer = require("ffi/blitbuffer")
@@ -34,8 +34,10 @@ local LineGraph = require("common/ui/zen_line_graph")
 local StatsSettings = require("modules/filebrowser/patches/stats_settings")
 local PresetStore = require("config/preset_store")
 local HomeGoals = require("modules/filebrowser/patches/home/widgets/reading_goals")
+local ZenModalClose = require("common/ui/zen_modal_close")
 local icons = require("common/inline_icon_map")
 local utils = require("common/utils")
+local datetime = require("datetime")
 local Screen = Device.screen
 local _ = require("gettext")
 
@@ -84,6 +86,12 @@ local function statsFrameBg()
     return Background.tile_bg(Blitbuffer.COLOR_WHITE)
 end
 
+local function clearStatsBackgrounds(widget)
+    if Background.library_active() then
+        Background.clearWhiteBackgrounds(widget, 40)
+    end
+end
+
 local function displayBlockTitle(block)
     local title = blockTitle(block)
     if block.id == "trend_graph" then
@@ -113,29 +121,37 @@ local function loadCalendarMonthConfig(settings)
     if isCalendarMonth(month) then return month end
 end
 
+local function time_unit(unit)
+    if type(_) == "table" and type(_.pgettext) == "function" then
+        return _.pgettext("Time", unit)
+    end
+    return _(unit)
+end
+
 local function formatTime(secs)
     secs = math.floor(secs or 0)
-    if secs <= 0 then return "0m" end
+    if secs <= 0 then return "0" .. time_unit("m") end
     local h = math.floor(secs / 3600)
     local m = math.floor((secs % 3600) / 60)
     if h > 0 then
-        return h .. "h " .. m .. "m"
+        return h .. time_unit("h") .. " " .. m .. time_unit("m")
     end
-    return m .. "m"
+    return m .. time_unit("m")
 end
 
 local function formatLongTime(secs)
     secs = math.floor(secs or 0)
-    if secs <= 0 then return "0m" end
+    if secs <= 0 then return "0" .. time_unit("m") end
     local d = math.floor(secs / 86400)
     local h = math.floor((secs % 86400) / 3600)
     local m = math.floor((secs % 3600) / 60)
     if d > 0 then
-        return h > 0 and (d .. "d " .. h .. "h") or (d .. "d")
+        return h > 0 and (d .. time_unit("d") .. " " .. h .. time_unit("h"))
+            or (d .. time_unit("d"))
     elseif h > 0 then
-        return h .. "h " .. m .. "m"
+        return h .. time_unit("h") .. " " .. m .. time_unit("m")
     end
-    return m .. "m"
+    return m .. time_unit("m")
 end
 
 local function minuteCount(secs)
@@ -144,7 +160,8 @@ end
 
 local function fmtPeakDay(ts)
     if not ts then return "" end
-    return os.date("%b %d", ts):gsub(" 0(%d)", " %1")
+    local month = datetime.shortMonthTranslation[os.date("%b", ts)] or os.date("%b", ts)
+    return month .. " " .. tostring(os.date("*t", ts).day)
 end
 
 local function fmtPeakWeek(ts)
@@ -153,16 +170,19 @@ local function fmtPeakWeek(ts)
     local days_to_mon = (t.wday - 2) % 7
     local mon_ts = ts - days_to_mon * 86400
     local sun_ts = mon_ts + 6 * 86400
-    local mon_str = os.date("%b %d", mon_ts):gsub(" 0(%d)", " %1")
+    local mon_month = datetime.shortMonthTranslation[os.date("%b", mon_ts)] or os.date("%b", mon_ts)
+    local sun_month = datetime.shortMonthTranslation[os.date("%b", sun_ts)] or os.date("%b", sun_ts)
+    local mon_str = mon_month .. " " .. tostring(os.date("*t", mon_ts).day)
     if os.date("%m", mon_ts) == os.date("%m", sun_ts) then
-        return mon_str .. "-" .. os.date("%d", sun_ts):gsub("^0", "")
+        return mon_str .. "-" .. tostring(os.date("*t", sun_ts).day)
     end
-    return mon_str .. "-" .. os.date("%b %d", sun_ts):gsub(" 0(%d)", " %1")
+    return mon_str .. "-" .. sun_month .. " " .. tostring(os.date("*t", sun_ts).day)
 end
 
 local function fmtPeakMonth(ts)
     if not ts then return "" end
-    return os.date("%b %Y", ts)
+    local month = datetime.shortMonthTranslation[os.date("%b", ts)] or os.date("%b", ts)
+    return month .. " " .. os.date("%Y", ts)
 end
 
 local function shortDate(date)
@@ -191,14 +211,16 @@ local function monthLabel(month_s)
     year = tonumber(year)
     month = tonumber(month)
     if not year or not month then return tostring(month_s or "") end
-    return os.date("%B %Y", os.time{
+    local ts = os.time{
         year = year,
         month = month,
         day = 15,
         hour = 12,
         min = 0,
         sec = 0,
-    })
+    }
+    local month_name = datetime.longMonthTranslation[os.date("%B", ts)] or os.date("%B", ts)
+    return month_name .. " " .. tostring(year)
 end
 
 local function graphDateLabels(series, max_labels)
@@ -521,17 +543,18 @@ local function showCalendarDaySummary(stats_plugin, visible_day_ts, stat_style)
         Screen:scaleBySize(120),
         width - ScrollableContainer:getScrollbarWidth() - Screen:scaleBySize(4)
     )
-    local title_text = os.date("%B %d, %Y", visible_day_ts):gsub(" 0(%d)", " %1")
-    dialog:addWidget(TitleBar:new{
+    local title_text = datetime.secondsToDate(visible_day_ts, true)
+    local title_bar = TitleBar:new{
         width = width,
         align = "left",
         title = title_text,
         title_face = Font:getFace("smallinfofontbold", Screen:scaleBySize(10)),
-        left_icon = "close",
-        left_icon_allow_flash = false,
-        left_icon_tap_callback = function() UIManager:close(dialog) end,
         show_parent = dialog,
-    })
+    }
+    local close_button = ZenModalClose.installTitleBar(
+        title_bar, dialog, function() UIManager:close(dialog) end
+    )
+    dialog:addWidget(title_bar)
     dialog:addWidget(VerticalSpan:new{ width = Screen:scaleBySize(6) })
     local items = { align = "center" }
     items[#items + 1] = createDayBookCard(scroll_w, _("Total"), total_duration, total_pages, stat_style)
@@ -602,6 +625,7 @@ local function showCalendarDaySummary(stats_plugin, visible_day_ts, stat_style)
     function dialog:onZenDayPopupHoldRelease(_arg, ges)
         return scroll_widget:onScrollableHoldRelease(nil, ges)
     end
+    ZenModalClose.addToFocusLayout(dialog, close_button)
     UIManager:show(dialog)
 end
 
@@ -1039,7 +1063,7 @@ local function buildContent(blocks_config, data, page_w, h_padding, top_padding,
             browse_future_months = settings.calendar_browse_future_months,
         }
         tuneEmbeddedCalendar(calendar)
-        Background.clearWhiteBackgrounds(calendar, 40)
+        clearStatsBackgrounds(calendar)
         local orig_go_to_month = calendar.goToMonth
         calendar.goToMonth = function(self_cal, month, ...)
             local result = orig_go_to_month(self_cal, month, ...)
@@ -1065,7 +1089,7 @@ local function buildContent(blocks_config, data, page_w, h_padding, top_padding,
             local result = orig_populate_items(self_cal, ...)
             hideCalendarPageInfo(self_cal)
             installCalendarDaySummary(self_cal, stats_plugin, stat_style)
-            Background.clearWhiteBackgrounds(self_cal, 40)
+            clearStatsBackgrounds(self_cal)
             refreshEmbeddedCalendarLayout(self_cal)
             UIManager:setDirty(self_cal, "ui")
             return result
@@ -1078,7 +1102,7 @@ local function buildContent(blocks_config, data, page_w, h_padding, top_padding,
         calendar.onMultiSwipe = function() return false end
         local orig_calendar_paintTo = calendar.paintTo
         calendar.paintTo = function(self_cal, bb, x, y)
-            Background.clearWhiteBackgrounds(self_cal, 40)
+            clearStatsBackgrounds(self_cal)
             return orig_calendar_paintTo(self_cal, bb, x, y)
         end
         calendar.onSwipe = function(_self, _arg, ges_ev)
@@ -1164,7 +1188,10 @@ local function buildContent(blocks_config, data, page_w, h_padding, top_padding,
     return VerticalGroup:new(items), block_hits, has_overflow, required_heights
 end
 
-function StatsPage.create(createStatusRow, repaintTitleBar)
+function StatsPage.create(createStatusRow, repaintTitleBar, zen_plugin)
+    if #active_stats_menus > 0 then
+        return active_stats_menus[#active_stats_menus], false
+    end
     local stats_settings = StatsSettings.load()
     local blocks_config = StatsSettings.enabledBlocks(stats_settings)
     local stat_style = stats_settings.stat_style
@@ -1403,13 +1430,15 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
         if current.id == "calendar" then
             local calendar = calendar_widgets[block_idx]
             buttons[#buttons + 1] = {{
-                text = _("Date") .. ": " .. tostring(calendar and calendar.cur_month or ""),
+                text = _("Date") .. ": "
+                    .. (calendar and monthLabel(calendar.cur_month) or ""),
                 callback = function() showCalendarMonthMenu(block_idx) end,
             }}
         end
         local has_context = #buttons > 0
         if not has_context and stats_settings.edit_mode == true then
-            return require("modules/settings/sections/stats_settings").openWidgetSettings(current.id)
+            return require("modules/settings/sections/stats_settings")
+                .openWidgetSettings(current.id, zen_plugin)
         end
         if stats_settings.edit_mode == true then
             buttons[#buttons + 1] = {{
@@ -1417,7 +1446,8 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
                 callback = function()
                     closeConfigDialog()
                     UIManager:nextTick(function()
-                        require("modules/settings/sections/stats_settings").openWidgetSettings(current.id)
+                        require("modules/settings/sections/stats_settings")
+                            .openWidgetSettings(current.id, zen_plugin)
                     end)
                 end,
             }}
@@ -1536,7 +1566,7 @@ function StatsPage.create(createStatusRow, repaintTitleBar)
         UIManager:setDirty(menu, "flashui")
     end)
 
-    return menu
+    return menu, true
 end
 
 function StatsPage.closeAll()

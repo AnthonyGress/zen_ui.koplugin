@@ -1,12 +1,13 @@
 local function apply_warmth_schedule()
     --[[
-        Sets screen warmth at two user-defined times per day.
+        Sets screen warmth by time or light/dark mode.
         Only active on devices with natural-light frontlight.
         State survives module reloads via __ZEN_UI_WARMTH_SCHEDULE.
     --]]
 
     local Device = require("device")
     local UIManager = require("ui/uimanager")
+    local Screen = Device.screen
 
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
     if not zen_plugin or type(zen_plugin.config) ~= "table" then return end
@@ -58,7 +59,12 @@ local function apply_warmth_schedule()
             night_h     = tonumber(cfg.night_h)     or 20,
             night_m     = tonumber(cfg.night_m)     or 0,
             night_value = tonumber(cfg.night_value) or 8,
+            use_mode_values = cfg.use_mode_values == true,
         }
+    end
+
+    local function uses_mode_values()
+        return not is_enabled() and get_config().use_mode_values
     end
 
     local function now_s()
@@ -98,6 +104,12 @@ local function apply_warmth_schedule()
         end
     end
 
+    local function apply_mode_value()
+        if not uses_mode_values() then return end
+        local cfg = get_config()
+        set_warmth(Screen.night_mode and cfg.night_value or cfg.day_value)
+    end
+
     -- -------------------------------------------------------------------------
     -- Stable function references required by UIManager:unschedule
     -- -------------------------------------------------------------------------
@@ -126,7 +138,10 @@ local function apply_warmth_schedule()
     local function reschedule()
         UIManager:unschedule(day_fn)
         UIManager:unschedule(night_fn)
-        if not is_enabled() then return end
+        if not is_enabled() then
+            apply_mode_value()
+            return
+        end
         set_warmth(current_warmth_value())
         local cfg = get_config()
         UIManager:scheduleIn(seconds_until(cfg.day_h,   cfg.day_m),   day_fn)
@@ -135,6 +150,7 @@ local function apply_warmth_schedule()
 
     state.reschedule       = reschedule
     state.force_reschedule = reschedule  -- warmth always applies (no guard)
+    state.apply_mode_value = apply_mode_value
     state._on_suspend = function()
         UIManager:unschedule(day_fn)
         UIManager:unschedule(night_fn)
@@ -144,11 +160,20 @@ local function apply_warmth_schedule()
     end
     state.initialized = true
 
+    if type(Screen.toggleNightMode) == "function" then
+        local orig_toggle_night_mode = Screen.toggleNightMode
+        Screen.toggleNightMode = function(self, ...)
+            local result = orig_toggle_night_mode(self, ...)
+            apply_mode_value()
+            return result
+        end
+    end
+
     -- -------------------------------------------------------------------------
     -- Boot-time: apply correct state and arm timers
     -- -------------------------------------------------------------------------
 
-    if is_enabled() then
+    if is_enabled() or uses_mode_values() then
         reschedule()
     end
 end

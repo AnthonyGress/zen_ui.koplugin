@@ -1,4 +1,4 @@
--- Zen UI: Icon-only DictQuickLookup buttons
+-- ZenOS: Icon-only DictQuickLookup buttons
 -- Replaces the dictionary popup's text button row with a compact icon row.
 -- Supports both old KOReader (DictButtonsReady event) and new KOReader
 -- (buildButtonLayout override). When "show other items" is enabled,
@@ -11,6 +11,7 @@ local function apply()
     local Event = require("ui/event")
     local UIManager = require("ui/uimanager")
     local logger = require("common/zen_logger").new("dict_quick_lookup")
+    local LookupPluginItems = require("modules/reader/lookup_plugin_items")
     local _ = require("gettext")
 
     local _plugin_ref = rawget(_G, "__ZEN_UI_PLUGIN")
@@ -29,18 +30,17 @@ local function apply()
         return type(cfg) == "table" and cfg.show_wikipedia == true
     end
 
-    local function allow_unknown()
-        local cfg = _plugin_ref
-            and _plugin_ref.config
-            and _plugin_ref.config.highlight_lookup
-        return type(cfg) == "table" and cfg.allow_unknown_items == true
-    end
-
     local function show_ai_assistant()
         local cfg = _plugin_ref
             and _plugin_ref.config
             and _plugin_ref.config.highlight_lookup
-        return type(cfg) == "table" and cfg.show_ai_assistant == true
+        return type(cfg) == "table" and cfg.show_ai_assistant ~= false
+    end
+
+    local function show_other_button(button)
+        local setting = LookupPluginItems.settingForDictButton(button)
+        return LookupPluginItems.shouldShow(
+            _plugin_ref and _plugin_ref.config, setting)
     end
 
     -- IDs we handle explicitly; everything else is "unknown".
@@ -172,7 +172,7 @@ local function apply()
                 for _j, btn in ipairs(row) do
                     if btn.id and KNOWN_IDS[btn.id] then
                         by_id[btn.id] = btn
-                    elseif btn.id then
+                    elseif show_other_button(btn) then
                         table.insert(unknown, btn)
                     end
                 end
@@ -279,21 +279,19 @@ local function apply()
                 table.insert(result, icon_row)
             end
 
-            -- Preserve unknown buttons as text rows when enabled.
-            if allow_unknown() then
-                for _i, btn in ipairs(unknown) do
-                    if btn.id ~= "vocabulary" then
-                        -- Put each unknown in its own row.
-                        local found = false
-                        for _j, row in ipairs(result) do
-                            for _k, rb in ipairs(row) do
-                                if rb.id == btn.id then found = true; break end
-                            end
-                            if found then break end
+            -- Preserve companion-plugin and opted-in unknown buttons as text rows.
+            for _i, btn in ipairs(unknown) do
+                if btn.id ~= "vocabulary" then
+                    -- Put each unknown in its own row.
+                    local found = false
+                    for _j, row in ipairs(result) do
+                        for _k, rb in ipairs(row) do
+                            if rb.id and rb.id == btn.id then found = true; break end
                         end
-                        if not found then
-                            table.insert(result, { btn })
-                        end
+                        if found then break end
+                    end
+                    if not found then
+                        table.insert(result, { btn })
                     end
                 end
             end
@@ -323,12 +321,10 @@ local function apply()
         local unknown = {}
         for _i, row in ipairs(buttons) do
             for _j, btn in ipairs(row) do
-                if btn.id then
-                    if KNOWN_IDS[btn.id] then
-                        by_id[btn.id] = btn
-                    else
-                        table.insert(unknown, btn)
-                    end
+                if btn.id and KNOWN_IDS[btn.id] then
+                    by_id[btn.id] = btn
+                elseif show_other_button(btn) then
+                    table.insert(unknown, btn)
                 end
             end
         end
@@ -373,15 +369,13 @@ local function apply()
         for i = #buttons, 1, -1 do table.remove(buttons, i) end
         table.insert(buttons, icon_row)
 
-        -- Preserve unknown buttons as a plain text row when enabled.
-        if allow_unknown() and #unknown > 0 then
+        -- Preserve companion-plugin and opted-in unknown buttons as a text row.
+        if #unknown > 0 then
             table.insert(buttons, unknown)
         end
 
         -- Tag the widget so the init-wrap knows to post-process.
         dict_widget._zen_icon_row = icon_row
-        dict_widget._zen_allow_unknown = allow_unknown()
-
         logger.dbg("replaced buttons, icon_row=",
             #icon_row, "unknown=", #unknown)
     end
@@ -469,6 +463,27 @@ local function apply()
                         }
                         table.insert(icon_row, 2, v)
                         logger.dbg("vocab icon inserted")
+                    end
+
+                    -- Other plugins may append their legacy rows after our
+                    -- onDictButtonsReady handler. Filter the final layout so
+                    -- companion toggles work regardless of handler order.
+                    for row_index = #buttons, 1, -1 do
+                        local row = buttons[row_index]
+                        if row ~= icon_row then
+                            local filtered = {}
+                            for _i, btn in ipairs(row) do
+                                if not (btn.id and KNOWN_IDS[btn.id])
+                                        and show_other_button(btn) then
+                                    table.insert(filtered, btn)
+                                end
+                            end
+                            if #filtered > 0 then
+                                buttons[row_index] = filtered
+                            else
+                                table.remove(buttons, row_index)
+                            end
+                        end
                     end
                 end
                 return result

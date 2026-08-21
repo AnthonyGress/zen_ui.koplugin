@@ -15,6 +15,7 @@ local app_launcher_section = require("modules/settings/sections/app_launcher_set
 local reader_section   = require("modules/settings/sections/reader_settings")
 local extras_section   = require("modules/settings/sections/extras_settings")
 local about_section    = require("modules/settings/sections/about_settings")
+local updates_section  = require("modules/settings/sections/updates_settings")
 local shutdown         = require("common/shutdown")
 
 local M = {}
@@ -50,25 +51,13 @@ function M.build(plugin)
 
     local navbar_item          = navbar_section.build(ctx)
     local filebrowser_items    = lib_section.build(ctx)
-    do
-        local inserted = false
-        for _i, item in ipairs(filebrowser_items) do
-            if item.text == _("Layout") then
-                table.insert(filebrowser_items, _i + 1, navbar_item)
-                inserted = true
-                break
-            end
-        end
-        if not inserted then
-            table.insert(filebrowser_items, navbar_item)
-        end
-    end
     local home_item       = home_section.build(ctx)
     local quick_settings_item  = menu_section.build(ctx)
     local app_launcher_item = app_launcher_section.build(ctx)
     local reader_items         = reader_section.build(ctx)
     local extras_items      = extras_section.build(ctx)
     local general_items     = about_section.build(ctx)
+    local updates_items     = updates_section.build(ctx)
 
     table.insert(general_items, IconItem.decorate({
         text = _("Quit KOReader"),
@@ -153,12 +142,14 @@ function M.build(plugin)
         app_launcher_item,
         home_item,
         IconItem.decorate({ text = _("Library"), sub_item_table = filebrowser_items }, icons.settings_library),
+        IconItem.decorate(navbar_item, icons.settings_navbar),
         IconItem.decorate({ text = _("Reader"), sub_item_table = reader_items }, icons.settings_reader),
         IconItem.decorate({ text = _("Extras"), sub_item_table = extras_items }, icons.fav_add),
+        IconItem.decorate({ text = _("Updates"), sub_item_table = updates_items }, icons.update),
         IconItem.decorate({
             text = _("About"),
             sub_item_table = general_items,
-        }, icons.details),
+        }, icons.settings_about),
     }
 
     -- Insert banner if an update is already known.
@@ -188,7 +179,7 @@ function M.build(plugin)
     end
 
     return {
-        text = _("Zen UI"),
+        text = _("ZenOS"),
         sub_item_table = root_items,
     }
 end

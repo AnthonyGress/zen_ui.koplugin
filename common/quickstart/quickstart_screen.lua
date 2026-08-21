@@ -22,6 +22,7 @@ local TextBoxWidget  = require("ui/widget/textboxwidget")
 local TextWidget     = require("ui/widget/textwidget")
 local UIManager      = require("ui/uimanager")
 local ZenButton      = require("common/ui/zen_button")
+local TitleStyle     = require("common/ui/zen_title_style")
 local Screen         = Device.screen
 local _              = require("gettext")
 
@@ -46,8 +47,8 @@ function QuickstartScreen:init()
     self._total    = #self.pages
 
     local PAD     = Screen:scaleBySize(20)
-    local TITLE_H = Screen:scaleBySize(60)
-    local SEP_H   = 1
+    local TITLE_H = TitleStyle.HEADER_CONTENT_HEIGHT
+    local SEP_H   = TitleStyle.DIVIDER_HEIGHT
     local DOT_H   = Screen:scaleBySize(36)
     local NAV_H   = Screen:scaleBySize(64)
     -- Reserve 40% of screen height for description + dots + nav; image fills at most 60%.
@@ -334,17 +335,17 @@ function QuickstartScreen:paintTo(bb, x, y)
     -- -------------------------------------------------------------------------
     local title_tw = TextWidget:new{
         text    = page.title or "",
-        face    = Font:getFace("cfont", 24),
+        face    = TitleStyle.getTitleFace(),
         bold    = true,
         padding = 0,
     }
     local tsz = title_tw:getSize()
     title_tw:paintTo(bb,
         x + math.floor((L.sw - tsz.w) / 2),
-        y + math.floor((L.title_h - tsz.h) / 2))
+        y + TitleStyle.VERTICAL_PADDING + math.floor((TitleStyle.ROW_HEIGHT - tsz.h) / 2))
     title_tw:free()
 
-    bb:paintRect(x, y + L.title_h, L.sw, L.sep_h, Blitbuffer.COLOR_LIGHT_GRAY)
+    bb:paintRect(x, y + L.title_h, L.sw, L.sep_h, TitleStyle.DIVIDER_COLOR)
 
     -- -------------------------------------------------------------------------
     -- Interactive page without image: use full image+desc band for content

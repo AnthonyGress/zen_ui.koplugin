@@ -1,6 +1,6 @@
 -- settings/zen_updater.lua
--- Checks the GitHub releases API for a newer Zen UI version, downloads the
--- release.zip asset, unpacks it in-place, and prompts for a KOReader restart.
+-- Checks the GitHub releases API for a newer ZenOS version, downloads the
+-- matching plugin asset, unpacks it in-place, and prompts for a KOReader restart.
 
 local _ = require("gettext")
 local Archiver = require("ffi/archiver")
@@ -12,7 +12,6 @@ local IconItem = require("common/ui/icon_menu_item")
 
 local GITHUB_OWNER = "AnthonyGress"
 local GITHUB_REPO = "zen_ui.koplugin"
-local RELEASE_ASSET_NAME = "zen_ui.koplugin.zip"
 local GITHUB_RELEASES_URL = string.format(
     "https://api.github.com/repos/%s/%s/releases",
     GITHUB_OWNER,
@@ -32,6 +31,14 @@ local TRUSTED_DL_HOSTS = {
 -- Resolve the plugin root directory from this file's own path so the module
 -- works regardless of where KOReader is installed.
 local PLUGIN_ROOT = require("common/plugin_root")
+local CANONICAL_PLUGIN_NAME = "zenos.koplugin"
+local LEGACY_PLUGIN_NAME = "zen_ui.koplugin"
+local CURRENT_PLUGIN_NAME = PLUGIN_ROOT:gsub("/+$", ""):match("([^/]+)$")
+    or CANONICAL_PLUGIN_NAME
+local RELEASE_ASSET_NAME = CURRENT_PLUGIN_NAME == LEGACY_PLUGIN_NAME
+    and (LEGACY_PLUGIN_NAME .. ".zip")
+    or (CANONICAL_PLUGIN_NAME .. ".zip")
+local USER_AGENT = CANONICAL_PLUGIN_NAME
 
 local M = {}
 
@@ -42,8 +49,8 @@ local PTF_BOLD_END = "\u{FFF3}"
 
 M._has_update       = false
 M._latest_ver       = nil   -- latest version string without leading "v"
-M._dl_url           = nil   -- download URL for release.zip
-M._latest_sha256    = nil   -- expected SHA-256 digest for release.zip
+M._dl_url           = nil   -- download URL for the selected plugin asset
+M._latest_sha256    = nil   -- expected SHA-256 digest for the selected plugin asset
 M._latest_notes     = nil   -- markdown changelog body for the selected latest release
 M._last_error       = nil   -- last update-check error message for UI
 M._banner_loaded    = false -- true after init_banner() has run
@@ -177,7 +184,7 @@ local function resolve_redirect_url(base_url, location)
     return string.format("%s://%s%s%s", scheme, host, base_dir, location)
 end
 
---- Get release.zip metadata from a decoded release object.
+--- Get plugin asset metadata from a decoded release object.
 local function get_asset_info(release)
     if not release or type(release.assets) ~= "table" then
         return nil, "missing_assets_table"
@@ -435,7 +442,7 @@ local function https_get(url, depth)
     local ok_req, req_err = pcall(function()
         local _, code, headers, status = https.request{
             url     = url,
-            headers = { ["User-Agent"] = "zen_ui.koplugin" },
+            headers = { ["User-Agent"] = USER_AGENT },
             redirect = false,
             sink    = ltn12.sink.table(body),
         }
@@ -544,7 +551,7 @@ local function https_download(url, dest_path, expected_sha256, depth)
         local _, r_code, r_headers = https.request{
             url     = resolved_url,
             method  = "HEAD",
-            headers = { ["User-Agent"] = "zen_ui.koplugin" },
+            headers = { ["User-Agent"] = USER_AGENT },
             sink    = ltn12.sink.null(),
         }
         if (r_code == 301 or r_code == 302 or r_code == 307 or r_code == 308)
@@ -569,7 +576,7 @@ local function https_download(url, dest_path, expected_sha256, depth)
 
     local _, dl_code = https.request{
         url     = resolved_url,
-        headers = { ["User-Agent"] = "zen_ui.koplugin" },
+        headers = { ["User-Agent"] = USER_AGENT },
         sink    = ltn12.sink.file(f),
     }
     -- ltn12.sink.file closes f on EOF; pcall guards against double-close.
@@ -650,10 +657,7 @@ local function is_check_due()
     local now = os.time()
     local last = updater and updater[UP_KEY_TIME] or 0
     local last_num = type(last) == "number" and last or 0
-    local delta = now - last_num
-    local due = delta >= CHECK_INTERVAL
-    logger.info("is_check_due last=", last_num, "now=", now, "delta=", delta, "due=", tostring(due))
-    return due
+    return now - last_num >= CHECK_INTERVAL
 end
 
 local function get_channel()
@@ -678,15 +682,28 @@ local function persist_state(now)
     save_updater_config(cfg)
 end
 
---- Clear all persisted update state (called after a successful install).
-local function clear_update_state()
+--- Clear all persisted update state after an install or version-change acknowledgement.
+local function clear_update_state(cfg)
     reset_release_state()
     M._last_error = nil
-    local cfg, updater = load_updater_config()
+    local updater
+    if type(cfg) == "table" then
+        if type(cfg.updater) ~= "table" then
+            cfg.updater = {}
+        end
+        updater = cfg.updater
+    else
+        cfg, updater = load_updater_config()
+    end
     if not updater then return end
     updater[UP_KEY_AVAIL] = false
     clear_persisted_release_state(updater)
     save_updater_config(cfg)
+end
+
+--- Acknowledge a version change detected outside ZenOS's updater.
+function M.clear_update_state(cfg)
+    clear_update_state(cfg)
 end
 
 --- Perform an actual network check; returns true on success.
@@ -823,12 +840,24 @@ local function is_sdl_wayland_desktop()
     return call_device_bool("isSDL") or call_device_bool("isDesktop")
 end
 
-local function dismissable_or_in_process(Trapper, task, trap_widget, task_returns_simple_string)
+local function dismissable_or_in_process(Trapper, task, trap_widget, task_returns_simple_string, quiet)
     if is_sdl_wayland_desktop() then
-        logger.warn("running update task in-process on SDL/Wayland to avoid EGL fork crash")
+        if not quiet then
+            logger.warn("running update task in-process on SDL/Wayland to avoid EGL fork crash")
+        end
         return true, task()
     end
     return Trapper:dismissableRunInSubprocess(task, trap_widget, task_returns_simple_string)
+end
+
+local function run_without_updater_logs(fn)
+    local dbg, info, warn, err = logger.dbg, logger.info, logger.warn, logger.err
+    local function discard() end
+    logger.dbg, logger.info, logger.warn, logger.err = discard, discard, discard, discard
+    local ok, a, b, c, d, e, f, g = pcall(fn)
+    logger.dbg, logger.info, logger.warn, logger.err = dbg, info, warn, err
+    if not ok then error(a, 0) end
+    return a, b, c, d, e, f, g
 end
 
 --- Run do_network_check() in a non-blocking subprocess via Trapper.
@@ -838,16 +867,20 @@ end
 ---                  a cancel button via coroutine.resume(co, false).
 --- on_done(net_ok) -- called when the subprocess completes.
 --- on_cancelled()  -- called when dismissed before completion; may be nil.
-local function network_check_async(trap_widget, setup_fn, on_done, on_cancelled)
+local function network_check_async(trap_widget, setup_fn, on_done, on_cancelled, quiet)
     local Trapper = require("ui/trapper")
     Trapper:wrap(function()
         local co = coroutine.running()
         if setup_fn then setup_fn(co) end
         local completed, net_ok, has_upd, latest_ver, dl_url, latest_sha256, latest_notes, last_error =
             dismissable_or_in_process(Trapper, function()
-                local ok = do_network_check()
-                return ok, M._has_update, M._latest_ver, M._dl_url, M._latest_sha256, M._latest_notes, M._last_error
-            end, trap_widget)
+                local function check()
+                    local ok = do_network_check()
+                    return ok, M._has_update, M._latest_ver, M._dl_url, M._latest_sha256, M._latest_notes, M._last_error
+                end
+                if quiet then return run_without_updater_logs(check) end
+                return check()
+            end, trap_widget, nil, quiet)
         if completed and net_ok then
             M._has_update = has_upd
             M._latest_ver = latest_ver
@@ -890,7 +923,6 @@ function M.cancel_wakeup_check()
         UIManager:unschedule(M._wakeup_timer)
     end
     M._wakeup_timer = nil
-    logger.dbg("wakeup check cancelled")
 end
 
 --- Schedule a background update check on device resume.
@@ -901,21 +933,20 @@ end
 --- (NET_ERROR_BASE_DELAY doubling each attempt, up to NET_ERROR_MAX_RETRIES).
 --- Cancelled on suspend so nothing fires while asleep.
 function M.schedule_wakeup_check()
-    logger.info("schedule_wakeup_check called")
     M.cancel_wakeup_check()  -- reset on every resume
     if not is_auto_check_enabled() then
-        logger.info("background check disabled in settings")
+        logger.info("automatic update check status=disabled")
         return
     end
     M._check_cancelled = false
     if not is_check_due() then
-        logger.info("background check skipped, within 24h window")
+        logger.info("automatic update check status=skipped reason=interval")
         return
     end
 
     local ok_um, UIManager = pcall(require, "ui/uimanager")
     if not ok_um or not UIManager then
-        logger.warn("UIManager not available, aborting")
+        logger.warn("automatic update check status=failed reason=uimanager_unavailable")
         return
     end
 
@@ -928,7 +959,6 @@ function M.schedule_wakeup_check()
     -- Uses a subprocess so the UI thread is never blocked.
     local function run_check_with_retry(retry_count, error_delay)
         if M._check_cancelled then return end
-        logger.info("starting background network check")
         network_check_async(
             nil,  -- invisible trap: taps pass through normally
             nil,
@@ -937,12 +967,11 @@ function M.schedule_wakeup_check()
                 if net_ok then
                     persist_state(os.time())
                     M._banner_loaded = true
-                    logger.info("background check done, has_update=", tostring(M._has_update))
+                    logger.info("automatic update check status=ok has_update=", tostring(M._has_update), "latest=", tostring(M._latest_ver))
                     if M._has_update and type(M._on_update_found) == "function" then
                         M._on_update_found()
                     end
                 elseif retry_count < NET_ERROR_MAX_RETRIES then
-                    logger.warn("check failed, retry", retry_count + 1, "of", NET_ERROR_MAX_RETRIES, "in", error_delay, "s")
                     local next_count = retry_count + 1
                     local next_delay = error_delay * 2
                     local function error_retry()
@@ -952,9 +981,11 @@ function M.schedule_wakeup_check()
                     M._wakeup_timer = error_retry
                     UIManager:scheduleIn(error_delay, error_retry)
                 else
-                    logger.warn("background check failed after", NET_ERROR_MAX_RETRIES, "retries, giving up")
+                    logger.warn("automatic update check status=failed attempts=", NET_ERROR_MAX_RETRIES + 1, "error=", tostring(M._last_error))
                 end
-            end
+            end,
+            nil,
+            true
         )
     end
 
@@ -963,17 +994,14 @@ function M.schedule_wakeup_check()
         M._wakeup_timer = nil
         if M._check_cancelled then return end
         local net_up = has_network()
-        logger.info("attempt fired, network=", tostring(net_up))
         if not net_up then
             -- No network after settle delay -- retry once after NET_RETRY_DELAY.
-            logger.info("no network, scheduling retry in ", NET_RETRY_DELAY, "s")
             local function retry_check()
                 M._wakeup_timer = nil
                 if M._check_cancelled then return end
                 local retry_net = has_network()
-                logger.info("retry fired, network=", tostring(retry_net))
                 if not retry_net then
-                    logger.info("retry: still no network, giving up")
+                    logger.info("automatic update check status=skipped reason=network_unavailable")
                     return
                 end
                 run_check_with_retry(0, NET_ERROR_BASE_DELAY)
@@ -987,7 +1015,6 @@ function M.schedule_wakeup_check()
 
     M._wakeup_timer = attempt
     UIManager:scheduleIn(NET_SETTLE_DELAY, attempt)
-    logger.info("wakeup check scheduled in ", NET_SETTLE_DELAY, "s")
 end
 
 --- Check for updates with a live network request.
@@ -1206,7 +1233,7 @@ end
 
 local function prepare_plugins_dir_writable(plugins_dir)
     logger.dbg("prepare_plugins_dir_writable dir=", plugins_dir)
-    local probe = plugins_dir .. "/.zen_ui_update_write_probe"
+    local probe = plugins_dir .. "/.zenos_update_write_probe"
     local f = io.open(probe, "wb")
     if not f then
         logger.warn("plugins dir write probe open failed path=", probe)
@@ -1252,7 +1279,7 @@ local function _do_install(screen, plugin_root, plugins_dir)
     persist_state(os.time())
     if not M._has_update then
         logger.warn("install abort no newer release after refresh")
-        screen:update{ subtitle = _("Zen UI is up to date."), button = _("OK"), dismissable = true }
+        screen:update{ subtitle = _("ZenOS is up to date."), button = _("OK"), dismissable = true }
         return
     end
     if not is_valid_asset_url(M._dl_url) then
@@ -1272,11 +1299,11 @@ local function _do_install(screen, plugin_root, plugins_dir)
         return
     end
 
-    local zip_path = plugins_dir .. "/zen_ui_update.zip"
-    local plugin_name = plugin_root:match("([^/]+)$") or "zen_ui.koplugin"
+    local zip_path = plugins_dir .. "/zenos_update.zip"
+    local plugin_name = plugin_root:match("([^/]+)$") or CURRENT_PLUGIN_NAME
     local active_dir = plugins_dir .. "/" .. plugin_name
     local backup_dir = plugins_dir .. "/" .. plugin_name .. ".backup"
-    local stage_parent = plugins_dir .. "/.zen_ui_update_stage"
+    local stage_parent = plugins_dir .. "/.zenos_update_stage"
     local staged_dir = stage_parent .. "/" .. plugin_name
     logger.dbg(
         "install paths active=", active_dir,
@@ -1485,20 +1512,12 @@ local function _do_install(screen, plugin_root, plugins_dir)
             save_updater_config(cfg2)
         end
 
-        screen:update{ subtitle = _("Rebooting") .. "...", button = false }
-        UIManager:forceRePaint()
-        UIManager:scheduleIn(1, function()
-            if type(UIManager.restartKOReader) == "function" then
-                UIManager:restartKOReader()
-            else
-                UIManager:broadcastEvent(require("ui/event"):new("Restart"))
-            end
-        end)
+        require("common/restart").request()
     end)
 end
 
 --- Show the ZenScreen update UI for a known-available update and run the install.
---- Called from both the settings banner and the About > Update Zen UI item.
+--- Called from both the settings banner and the About > Update ZenOS item.
 local function _show_update_screen_and_install(plugin)
     local UIManager = require("ui/uimanager")
     local ZenScreen = require("common/ui/zen_screen")
@@ -1510,7 +1529,7 @@ local function _show_update_screen_and_install(plugin)
 
     if not ensure_selected_release_details(true) then
         UIManager:show(ZenScreen:new{
-            title       = _("Zen UI"),
+            title       = _("ZenOS"),
             subtitle    = M._last_error or _("Could not reach update server. Check your internet connection."),
             button      = _("OK"),
             dismissable = true,
@@ -1523,14 +1542,14 @@ local function _show_update_screen_and_install(plugin)
         local current = get_current_version()
         local subtitle
         if M._latest_ver and semver_eq(M._latest_ver, current) then
-            subtitle = _("Zen UI is up to date.")
+            subtitle = _("ZenOS is up to date.")
         elseif M._latest_ver and semver_gt(current, M._latest_ver) then
             subtitle = _("Installed version is newer than the latest release.")
         else
             subtitle = M._last_error or _("Could not determine update status.")
         end
         UIManager:show(ZenScreen:new{
-            title       = _("Zen UI"),
+            title       = _("ZenOS"),
             subtitle    = subtitle,
             button      = _("OK"),
             dismissable = true,
@@ -1543,7 +1562,7 @@ local function _show_update_screen_and_install(plugin)
 
     local screen
     screen = ZenScreen:new{
-        title        = _("Zen UI"),
+        title        = _("ZenOS"),
         title_icon   = true,
         subtitle     = _("Update available: ") .. ver_label,
         scroll_text  = changelog_text,
@@ -1554,7 +1573,7 @@ local function _show_update_screen_and_install(plugin)
     }
     screen._on_button_action = function()
         local progress_screen = ZenScreen:new{
-            title        = _("Zen UI"),
+            title        = _("ZenOS"),
             subtitle     = _("Downloading") .. "...",
             button       = false,
             later_button = false,
@@ -1570,7 +1589,7 @@ local function _show_update_screen_and_install(plugin)
     UIManager:show(screen)
 end
 
---- Download the latest release.zip, unpack it over the plugin directory, and
+--- Download the latest plugin asset, unpack it over the plugin directory, and
 --- prompt the user to restart KOReader.
 function M.run_update(plugin)
     local ok_nm, NetworkMgr = pcall(require, "ui/network/manager")
@@ -1581,7 +1600,7 @@ function M.run_update(plugin)
     end
 end
 
---- Returns a menu item for the top of the Zen UI settings page when an update
+--- Returns a menu item for the top of the ZenOS settings page when an update
 --- is available, or nil when no update has been detected.
 function M.build_update_available_item(plugin)
     if not M._has_update then return nil end
@@ -1595,7 +1614,7 @@ function M.build_update_available_item(plugin)
     }, icons.update)
 end
 
---- Returns the "Update Zen UI" menu item for the About section.
+--- Returns the "Update ZenOS" menu item for the Updates section.
 --- When a newer version has already been detected the text changes to reflect
 --- the pending update and tapping it launches the download flow directly.
 function M.build_update_now_item(plugin)
@@ -1604,7 +1623,7 @@ function M.build_update_now_item(plugin)
             if M._has_update then
                 return "\u{F01B} " .. _("Update available")
             end
-            return _("Update Zen UI")
+            return _("Update ZenOS")
         end,
         keep_menu_open = true,
         callback = function()
@@ -1662,7 +1681,7 @@ function M.build_update_now_item(plugin)
                                 local current = get_current_version()
                                 if M._latest_ver and semver_eq(M._latest_ver, current) then
                                     screen:update{
-                                        subtitle    = _("Zen UI is up to date."),
+                                        subtitle    = _("ZenOS is up to date."),
                                         button      = _("OK"),
                                         dismissable = true,
                                     }
@@ -1818,7 +1837,7 @@ function M.set_channel(ch)
     save_updater_config(cfg)
 end
 
---- Returns a radio-style "Update channel" sub-menu item for the About section.
+--- Returns a radio-style "Update channel" sub-menu item for the Updates section.
 function M.build_channel_item()
     return {
         text = _("Update channel"),

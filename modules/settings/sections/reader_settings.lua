@@ -1,10 +1,9 @@
 -- settings/sections/reader.lua
--- Reader settings items for Zen UI (clock, presets, fonts, footer).
+-- Reader settings items for ZenOS (clock, presets, fonts, footer).
 -- Receives ctx: { plugin, config, save_and_apply }
 
 local _ = require("gettext")
 local UIManager = require("ui/uimanager")
-local Event = require("ui/event")
 local dispatch_action = require("common/dispatch_action")
 local utils = require("modules/settings/zen_settings_utils")
 local constants = require("common/constants")
@@ -24,12 +23,35 @@ function M.build(ctx)
         return utils.make_enable_feature_item(feature, text, config, save_and_apply)
     end
 
-    -- Returns true if a plugin slot is loaded in the active UI; fails open if no UI yet.
+    -- Returns true if a plugin is loaded in the active UI or PluginLoader.
     local function hasPlugin(slot)
         local ok_f, FM = pcall(require, "apps/filemanager/filemanager")
         local ok_r, RU = pcall(require, "apps/reader/readerui")
         local ui = (ok_f and FM.instance) or (ok_r and RU.instance)
-        return ui == nil or ui[slot] ~= nil
+        if ui and ui[slot] ~= nil then return true end
+        local ok_l, loader = pcall(require, "pluginloader")
+        return ok_l and type(loader.loaded_plugins) == "table"
+            and loader.loaded_plugins[slot] ~= nil
+    end
+
+    local function make_lookup_plugin_item(slot, setting, text, help_text)
+        return {
+            text = text,
+            help_text = help_text,
+            show_func = function() return hasPlugin(slot) end,
+            checked_func = function()
+                return type(config.highlight_lookup) == "table"
+                    and config.highlight_lookup[setting] ~= false
+            end,
+            callback = function()
+                if type(config.highlight_lookup) ~= "table" then
+                    config.highlight_lookup = {}
+                end
+                config.highlight_lookup[setting] =
+                    config.highlight_lookup[setting] == false
+                plugin:saveConfig()
+            end,
+        }
     end
 
     local items = {}
@@ -42,6 +64,7 @@ function M.build(ctx)
     local header_all_items = {
         { key = "time",        text = _("Time")          },
         { key = "battery",     text = _("Battery")       },
+        { key = "incognito",   text = _("Incognito")     },
         { key = "wifi",        text = _("Wi-Fi")         },
         { key = "frontlight",  text = _("Brightness")    },
         { key = "ram",         text = _("RAM usage")     },
@@ -57,7 +80,7 @@ function M.build(ctx)
     local HEADER_CANONICAL = {
         left   = { "time", "custom_text" },
         center = { "time" },
-        right  = { "progress_percent", "page_progress", "custom_text", "frontlight", "wifi", "battery" },
+        right  = { "progress_percent", "page_progress", "custom_text", "frontlight", "incognito", "wifi", "battery" },
     }
 
     local function save_clock() save_and_apply("reader_top_status_bar") end
@@ -771,10 +794,6 @@ function M.build(ctx)
                     ui.view.footer:loadPreset(resolve_preset_font(preset))
                     config.features["reader_top_status_bar"] = true
                     save_and_apply("reader_top_status_bar")
-                    if ui.rolling then
-                        ui.document.configurable.status_line = 1
-                        ui:handleEvent(Event:new("SetStatusLine", 1))
-                    end
                     local verbose_chapter_time = preset.verbose_chapter_time
                     if verbose_chapter_time == nil and type(preset.zen) == "table" then
                         verbose_chapter_time = preset.zen.verbose_chapter_time
@@ -934,23 +953,14 @@ function M.build(ctx)
                     plugin:saveConfig()
                 end,
             },
-            {
-                text = _("Show AI assistant"),
-                help_text = _("Show a button for the Assistant plugin, if installed."),
-                show_func = function() return hasPlugin("assistant") end,
-                checked_func = function()
-                    return type(config.highlight_lookup) == "table"
-                        and config.highlight_lookup.show_ai_assistant == true
-                end,
-                callback = function()
-                    if type(config.highlight_lookup) ~= "table" then
-                        config.highlight_lookup = {}
-                    end
-                    config.highlight_lookup.show_ai_assistant =
-                        config.highlight_lookup.show_ai_assistant ~= true
-                    plugin:saveConfig()
-                end,
-            },
+            make_lookup_plugin_item("xray", "show_xray", _("Show X-Ray")),
+            make_lookup_plugin_item("koassistant", "show_koassistant", _("Show KOAssistant")),
+            make_lookup_plugin_item(
+                "assistant",
+                "show_ai_assistant",
+                _("Show AI assistant"),
+                _("Show a button for the Assistant plugin, if installed.")
+            ),
             {
                 text = _("Show other items"),
                 help_text = _("Show other KOReader quick lookup options alongside Zen buttons."),
@@ -970,7 +980,7 @@ function M.build(ctx)
         },
     })
 
-    table.insert(items, {
+    table.insert(items, IconItem.decorate({
         text = _("Verbose time to chapter end"),
         checked_func = function()
             return type(config.reader_footer) == "table"
@@ -984,14 +994,14 @@ function M.build(ctx)
                 config.reader_footer.verbose_chapter_time ~= true
             plugin:saveConfig()
         end,
-    })
+    }, icons.verbose_chapter_time))
 
     -- -------------------------------------------------------------------------
     -- Feature toggles
     -- -------------------------------------------------------------------------
 
     -- bottom swipe is forced on when page browser is active
-    table.insert(items, {
+    table.insert(items, IconItem.decorate({
         text = _("Enable bottom swipe"),
         checked_func = function()
             return config.features["reader_bottom_menu"] == true
@@ -1004,10 +1014,10 @@ function M.build(ctx)
             config.features["reader_bottom_menu"] = config.features["reader_bottom_menu"] ~= true
             save_and_apply("reader_bottom_menu")
         end,
-    })
+    }, icons.bottom_swipe))
     -- page browser requires bottom swipe; disabling bottom swipe unchecks this too
-    table.insert(items, {
-        text = _("Enable page browser"),
+    table.insert(items, IconItem.decorate({
+        text = _("Zen page browser"),
         checked_func = function()
             return config.features["page_browser"] == true
         end,
@@ -1019,8 +1029,8 @@ function M.build(ctx)
             config.features["page_browser"] = config.features["page_browser"] ~= true
             save_and_apply("page_browser")
         end,
-    })
-    table.insert(items, {
+    }, icons.page_browser))
+    table.insert(items, IconItem.decorate({
         text = _("Restore library location on exit"),
         checked_func = function()
             return config.features["restore_library_view"] == true
@@ -1029,7 +1039,7 @@ function M.build(ctx)
             config.features["restore_library_view"] = config.features["restore_library_view"] ~= true
             save_and_apply("restore_library_view")
         end,
-    })
+    }, icons.restore_library_location))
 
     -- -------------------------------------------------------------------------
     -- Bottom status bar (passthrough to KOReader's footer menu)

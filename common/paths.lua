@@ -14,16 +14,25 @@ function M.normPath(p)
              :gsub("^/sdcard$",  "/storage/emulated/0"))
 end
 
--- Returns the user's home dir (library root) from G_reader_settings:
--- normalized via normPath and stripped of any trailing slash.
--- Returns nil when home_dir is not set.
-function M.getHomeDir()
+local function normalize_dir(d)
+    if type(d) ~= "string" or d == "" then return nil end
+    return M.normPath(d:gsub("/*$", ""))
+end
+
+-- Returns an explicitly configured home dir, if any.
+function M.getConfiguredHomeDir()
     local g = rawget(_G, "G_reader_settings")
     local d = g and g:readSetting("home_dir")
-    if d and d ~= "" then
-        return M.normPath(d:gsub("/*$", ""))
-    end
-    return nil
+    return normalize_dir(d)
+end
+
+-- Match KOReader's effective home-folder resolution: prefer the configured
+-- home_dir, then fall back to the device's default storage root.
+function M.getHomeDir()
+    local configured = M.getConfiguredHomeDir()
+    if configured then return configured end
+    local ok_device, Device = pcall(require, "device")
+    return normalize_dir(ok_device and Device and Device.home_dir)
 end
 
 function M.isUnsafeFlatViewRoot(path)

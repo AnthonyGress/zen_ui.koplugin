@@ -28,6 +28,34 @@ local function refresh_reader()
     end
 end
 
+local function refresh_incognito_indicators()
+    local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
+    local file_manager = ok_fm and FileManager and FileManager.instance
+    local UIManager = require("ui/uimanager")
+    local refreshed = false
+    local stack = UIManager._window_stack
+    for i = type(stack) == "table" and #stack or 0, 1, -1 do
+        local widget = stack[i] and stack[i].widget
+        if widget and type(widget._zen_status_refresh) == "function" then
+            pcall(widget._zen_status_refresh, widget)
+            refreshed = true
+            break
+        elseif widget and type(widget._zen_home_refresh_clock_widgets) == "function" then
+            pcall(widget._zen_home_refresh_clock_widgets, widget)
+            refreshed = true
+            break
+        elseif widget == file_manager and type(file_manager._updateStatusBar) == "function" then
+            pcall(file_manager._updateStatusBar, file_manager)
+            refreshed = true
+            break
+        end
+    end
+    if not refreshed and file_manager and type(file_manager._updateStatusBar) == "function" then
+        pcall(file_manager._updateStatusBar, file_manager)
+    end
+    refresh_reader()
+end
+
 local function open_navbar_tab(tab_id)
     local open = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_TAB")
     if type(open) ~= "function" then return false end
@@ -119,13 +147,15 @@ local function show_folder_from_filemanager(folder)
     local lfs = require("libs/libkoreader-lfs")
     if lfs.attributes(folder, "mode") ~= "directory" then
         require("ui/uimanager"):show(require("ui/widget/infomessage"):new{
-            text = _("Zen UI: folder not found: ") .. folder,
+            text = _("ZenOS: folder not found: ") .. folder,
         })
         return false
     end
     local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
     local fm = ok_fm and FileManager and FileManager.instance
     if not fm or not fm.file_chooser then return false end
+    local open_folder = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_FOLDER")
+    if type(open_folder) == "function" then return open_folder(folder) == true end
     require("common/utils").closeWidgetsAbove(fm)
     fm.file_chooser:changeToPath(folder)
     return true
@@ -134,7 +164,7 @@ end
 local function show_zen_folder(plugin, folder)
     if type(folder) ~= "string" or folder == "" then
         require("ui/uimanager"):show(require("ui/widget/infomessage"):new{
-            text = _("Zen UI: no folder set for this action."),
+            text = _("ZenOS: no folder set for this action."),
         })
         return false
     end
@@ -143,6 +173,32 @@ local function show_zen_folder(plugin, folder)
         return require("common/library_navigation").showFromReader(reader, plugin, { target_folder = folder })
     end
     return show_folder_from_filemanager(folder)
+end
+
+local function show_tag_from_filemanager(plugin, tag)
+    if type(tag) ~= "string" or tag == "" then return false end
+    local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
+    local fm = ok_fm and FileManager and FileManager.instance
+    if fm then require("common/utils").closeWidgetsAbove(fm) end
+    local open_tag = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_TAG")
+    if type(open_tag) == "function" then return open_tag(tag) == true end
+    local ok_shared, SharedState = pcall(require, "common/shared_state")
+    local GroupView = ok_shared and SharedState.get(plugin, "group_view") or nil
+    if GroupView and type(GroupView.showTagDetail) == "function" then
+        GroupView.showTagDetail(tag)
+        return true
+    end
+    return false
+end
+
+local function show_zen_tag(plugin, tag)
+    if type(tag) ~= "string" or tag == "" then return false end
+    local reader = get_reader()
+    if reader and reader.document then
+        return require("common/library_navigation").showFromReader(
+            reader, plugin, { target_tag = tag })
+    end
+    return show_tag_from_filemanager(plugin, tag)
 end
 
 local function apply_top_status_bar(plugin, enabled)
@@ -319,9 +375,9 @@ local function patch_folder_picker_menu(Dispatcher)
                 local folder = stored_folder()
                 if type(folder) == "string" and folder ~= "" then
                     local name = select(2, util.splitFilePathName(folder))
-                    return _("Zen UI - Open folder") .. ": " .. name
+                    return _("ZenOS: Open folder") .. ": " .. name
                 end
-                return _("Zen UI - Open folder")
+                return _("ZenOS: Open folder")
             end,
             checked_func = function()
                 return stored_folder() ~= nil
@@ -362,86 +418,92 @@ function M.onDispatcherRegisterActions()
     Dispatcher:registerAction("zen_ui_toggle_zen_mode", {
         category = "none",
         event = "ToggleZenMode",
-        title = _("Zen UI - Toggle Zen Mode"),
+        title = _("ZenOS: Toggle Zen Mode"),
         general = true,
         active_func = zen_action_active.zen_ui_toggle_zen_mode,
     })
     Dispatcher:registerAction("zen_ui_toggle_lockdown_mode", {
         category = "none",
         event = "ToggleLockdownMode",
-        title = _("Zen UI - Toggle Lockdown Mode"),
+        title = _("ZenOS: Toggle Lockdown Mode"),
         general = true,
         active_func = zen_action_active.zen_ui_toggle_lockdown_mode,
     })
     Dispatcher:registerAction("zen_ui_toggle_incognito_mode", {
         category = "none",
         event = "ToggleIncognitoMode",
-        title = _("Zen UI - Toggle Incognito Mode"),
+        title = _("ZenOS: Toggle Incognito Mode"),
         general = true,
         active_func = zen_action_active.zen_ui_toggle_incognito_mode,
     })
     Dispatcher:registerAction("zen_ui_toggle_reader_top_status_bar", {
         category = "none",
         event = "ToggleReaderTopStatusBar",
-        title = _("Zen UI - Toggle top reader status bar"),
+        title = _("ZenOS: Toggle top reader status bar"),
         reader = true,
         active_func = zen_action_active.zen_ui_toggle_reader_top_status_bar,
     })
     Dispatcher:registerAction("zen_ui_toggle_reader_themes", {
         category = "none",
         event = "ToggleReaderThemes",
-        title = _("Zen UI - Toggle reader themes"),
+        title = _("ZenOS: Toggle reader themes"),
         reader = true,
         active_func = zen_action_active.zen_ui_toggle_reader_themes,
     })
     Dispatcher:registerAction("zen_ui_toggle_reader_bottom_status_bar", {
         category = "none",
         event = "ToggleReaderBottomStatusBar",
-        title = _("Zen UI - Toggle bottom reader status bar"),
+        title = _("ZenOS: Toggle bottom reader status bar"),
         reader = true,
         active_func = zen_action_active.zen_ui_toggle_reader_bottom_status_bar,
     })
     Dispatcher:registerAction("zen_ui_toggle_reader_status_bars", {
         category = "none",
         event = "ToggleReaderStatusBars",
-        title = _("Zen UI - Toggle reader status bars"),
+        title = _("ZenOS: Toggle reader status bars"),
         reader = true,
         active_func = zen_action_active.zen_ui_toggle_reader_status_bars,
     })
     Dispatcher:registerAction("zen_ui_show_toc", {
         category = "none",
         event = "ShowZenUIToc",
-        title = _("Zen UI - Table of contents"),
+        title = _("ZenOS: Table of contents"),
         reader = true,
     })
     Dispatcher:registerAction("zen_ui_show_home", {
         category = "none",
         event = "ShowZenUIHome",
-        title = _("Zen UI - Home"),
+        title = _("ZenOS: Home"),
         general = true,
     })
     Dispatcher:registerAction("zen_ui_show_library", {
         category = "none",
         event = "ShowZenUILibrary",
-        title = _("Zen UI - Library"),
+        title = _("ZenOS: Library"),
         general = true,
     })
     Dispatcher:registerAction("zen_ui_show_authors", {
         category = "none",
         event = "ShowZenUIAuthors",
-        title = _("Zen UI - Authors"),
+        title = _("ZenOS: Authors"),
         general = true,
     })
     Dispatcher:registerAction("zen_ui_show_series", {
         category = "none",
         event = "ShowZenUISeries",
-        title = _("Zen UI - Series"),
+        title = _("ZenOS: Series"),
         general = true,
     })
     Dispatcher:registerAction("zen_ui_show_tags", {
         category = "none",
         event = "ShowZenUITags",
-        title = _("Zen UI - Tags"),
+        title = _("ZenOS: Tags"),
+        general = true,
+    })
+    Dispatcher:registerAction("zen_ui_show_stats", {
+        category = "none",
+        event = "ShowZenUIStats",
+        title = _("ZenOS: Stats"),
         general = true,
     })
     -- Folder action stores its target path per-gesture (category="string" passes the
@@ -453,7 +515,7 @@ function M.onDispatcherRegisterActions()
     Dispatcher:registerAction("zen_ui_show_folder", {
         category = "string",
         event = "ShowZenUIFolder",
-        title = _("Zen UI - Open folder"),
+        title = _("ZenOS: Open folder"),
         args = {},
         toggle = {},
         zen_folder_picker = true,
@@ -461,7 +523,7 @@ function M.onDispatcherRegisterActions()
     Dispatcher:registerAction("zen_ui_kosync_sync", {
         category = "none",
         event = "ZenUIKOSyncSync",
-        title = _("Zen UI - Sync progress (pull + push)"),
+        title = _("ZenOS: Sync progress (pull + push)"),
         general = true,
     })
     patch_folder_picker_menu(Dispatcher)
@@ -475,7 +537,12 @@ function M.onToggleZenMode(plugin)
     end
     features.zen_mode = not features.zen_mode
     save_config(plugin)
-    require("modules/settings/zen_settings_apply").prompt_restart()
+    require("modules/settings/zen_settings_apply").apply_feature_toggle(
+        plugin, "zen_mode", features.zen_mode)
+    require("ui/uimanager"):show(require("ui/widget/infomessage"):new{
+        text = features.zen_mode and _("Zen Mode: Enabled") or _("Zen Mode: Disabled"),
+        timeout = 2,
+    })
     return true
 end
 
@@ -512,17 +579,36 @@ function M.onToggleLockdownMode(plugin)
     return true
 end
 
-function M.onToggleIncognitoMode(plugin)
+function M.setIncognitoMode(plugin, enabled, opts)
     local features = plugin and plugin.config and plugin.config.features
     if type(features) ~= "table" then return false end
-    local enabling = not features.incognito_mode
-    features.incognito_mode = enabling
+    enabled = enabled == true
+    if features.incognito_mode == enabled then return true end
+    local ok_guard, guard = pcall(require, "modules/global/patches/incognito_mode")
+    if enabled and ok_guard and type(guard.beforeEnable) == "function" then
+        guard.beforeEnable(plugin)
+    end
+    features.incognito_mode = enabled
+    if enabled and ok_guard and type(guard.afterEnable) == "function" then
+        guard.afterEnable(plugin)
+    elseif not enabled and ok_guard and type(guard.afterDisable) == "function" then
+        guard.afterDisable(plugin)
+    end
     save_config(plugin)
+    refresh_incognito_indicators()
+    opts = type(opts) == "table" and opts or {}
     require("ui/uimanager"):show(require("ui/widget/infomessage"):new{
-        text = enabling and _("Incognito mode enabled") or _("Incognito mode disabled"),
+        text = opts.timed_out and _("Incognito mode timed out")
+            or enabled and _("Incognito mode enabled") or _("Incognito mode disabled"),
         timeout = 3,
     })
     return true
+end
+
+function M.onToggleIncognitoMode(plugin)
+    local features = plugin and plugin.config and plugin.config.features
+    if type(features) ~= "table" then return false end
+    return M.setIncognitoMode(plugin, features.incognito_mode ~= true)
 end
 
 function M.onToggleReaderTopStatusBar(plugin)
@@ -573,6 +659,14 @@ function M.onShowZenUITags(plugin)
     return show_zen_tab(plugin, "tags")
 end
 
+function M.onShowZenUITag(plugin, tag)
+    return show_zen_tag(plugin, tag)
+end
+
+function M.onShowZenUIStats(plugin)
+    return show_zen_tab(plugin, "stats")
+end
+
 function M.onShowZenUIFolder(plugin, folder)
     -- category="string": Dispatcher passes the per-action stored folder path as arg.
     return show_zen_folder(plugin, folder)
@@ -601,6 +695,8 @@ function M.install(target)
     target.onShowZenUIAuthors = M.onShowZenUIAuthors
     target.onShowZenUISeries = M.onShowZenUISeries
     target.onShowZenUITags = M.onShowZenUITags
+    target.onShowZenUITag = M.onShowZenUITag
+    target.onShowZenUIStats = M.onShowZenUIStats
     target.onShowZenUIFolder = M.onShowZenUIFolder
     target.onZenUIKOSyncSync = M.onZenUIKOSyncSync
     target.onShowZenUIToc = M.onShowZenUIToc

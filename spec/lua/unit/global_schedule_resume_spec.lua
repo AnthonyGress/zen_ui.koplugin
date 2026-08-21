@@ -1,6 +1,8 @@
 describe("global schedule resume hook", function()
     local global
     local ui_manager
+    local scheduled
+    local original_reader_settings
     local patched_modules = {
         "modules/global/patches/night_mode_schedule",
         "modules/global/patches/warmth_schedule",
@@ -11,9 +13,11 @@ describe("global schedule resume hook", function()
         "modules/global/patches/lockdown_mode",
         "modules/global/patches/incognito_mode",
         "modules/global/patches/menu_font",
+        "modules/global/patches/unified_title_style",
     }
 
     before_each(function()
+        original_reader_settings = _G.G_reader_settings
         _G.__ZEN_UI_NIGHT_SCHEDULE = { force_reschedule = function()
             _G.night_reschedules = (_G.night_reschedules or 0) + 1
         end }
@@ -26,12 +30,21 @@ describe("global schedule resume hook", function()
         _G.night_reschedules = nil
         _G.brightness_reschedules = nil
         _G.warmth_reschedules = nil
+        scheduled = {}
 
         ui_manager = {
             broadcastEvent = function(_, event)
                 return event.handler == "onResume"
             end,
             setDirty = function() end,
+            scheduleIn = function(_, delay, callback)
+                scheduled[#scheduled + 1] = { delay = delay, callback = callback }
+            end,
+            unschedule = function(_, callback)
+                for index = #scheduled, 1, -1 do
+                    if scheduled[index].callback == callback then table.remove(scheduled, index) end
+                end
+            end,
         }
         ZenSpec.replace("ui/uimanager", ui_manager)
         ZenSpec.replace("device", {
@@ -57,12 +70,17 @@ describe("global schedule resume hook", function()
         _G.night_reschedules = nil
         _G.brightness_reschedules = nil
         _G.warmth_reschedules = nil
+        _G.G_reader_settings = original_reader_settings
     end)
 
     it("reapplies schedules after Resume even when another widget handled it", function()
         assert.is_true(global.init(nil, { config = { features = {} } }))
 
         assert.is_true(ui_manager:broadcastEvent({ handler = "onResume" }))
+        assert.are.equal(1, #scheduled)
+        assert.are.equal(0.1, scheduled[1].delay)
+        assert.is_nil(_G.night_reschedules)
+        scheduled[1].callback()
         assert.are.equal(1, _G.night_reschedules)
         assert.are.equal(1, _G.brightness_reschedules)
         assert.are.equal(1, _G.warmth_reschedules)
@@ -72,8 +90,30 @@ describe("global schedule resume hook", function()
         assert.is_true(global.init(nil, { config = { features = {} } }))
 
         ui_manager:broadcastEvent({ handler = "onCharging" })
+        assert.are.equal(0, #scheduled)
         assert.is_nil(_G.night_reschedules)
         assert.is_nil(_G.brightness_reschedules)
         assert.is_nil(_G.warmth_reschedules)
+    end)
+
+    it("disables Zen OPDS when KOReader OPDS is disabled", function()
+        local opds_applies = 0
+        local config = { features = {} }
+        local saved = 0
+        _G.G_reader_settings = ZenSpec.memorySettings({
+            plugins_disabled = { opds = true },
+        })
+        ZenSpec.replace("modules/global/patches/opds", function()
+            opds_applies = opds_applies + 1
+        end)
+
+        assert.is_true(global.init(nil, {
+            config = config,
+            saveConfig = function() saved = saved + 1 end,
+        }))
+
+        assert.are.equal(0, opds_applies)
+        assert.is_false(config.features.zen_opds)
+        assert.are.equal(1, saved)
     end)
 end)

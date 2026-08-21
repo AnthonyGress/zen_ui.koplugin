@@ -1,75 +1,82 @@
 ---
 title: Home
 category: Home
-summary: Create your own E-Reader home page 
-settingsPath: Zen UI > Home
+summary: Create your own e-reader home page
+settingsPath: Zen Settings > Home
 order: 10
 ---
 
-<!-- Documentation current through Zen UI v2.5.0. -->
+<!-- Documentation current through ZenOS v3.0.0. -->
 
-![Zen UI bookshelf home](/images/zen_ui/home_bookshelf.png)
+![ZenOS bookshelf home](/images/zen_os/home_bookshelf.webp)
 
-![Zen UI home](/images/zen_ui/zen_home.png)
+![ZenOS home](/images/zen_os/zen_home.webp)
 
-![Zen UI home page](/images/zen_ui/home_simple.png)
+![ZenOS home page](/images/zen_os/home_simple.webp)
 
 ## Overview
 
-Add widgets like featured books, cover strips, reading goals, reading stats, quotes and more. Use built-in presets or save your own favorite layout.
+Build a personal Home page from date and time, featured book, reading stats, reading goals, book strip, and quotes widgets. The layout uses a responsive capacity grid so it can make better use of taller or wider screens while keeping widget proportions predictable. Use a built-in preset or save your own layout.
 
 ## Options
 
-- Show and arrange up to 5 home widgets.
+- Show and arrange any combination of the six built-in widgets that fits the screen's capacity. At least one widget remains enabled.
+- Use Edit mode to open widget settings directly from Home.
 - Apply, save, rename, and delete home page presets.
 - Show or hide the home page top status bar.
-- Configure featured, strip, reading goals, stats, and quote widgets.
-- Select custom books for custom featured and strip widgets.
-- Configure text styles, progress labels, widget titles, interactivity, and widget-specific display options.
+- Configure automatic or manual font sizing for date/time, stats, and quotes.
+- Set Featured content to Recently read, To Be Read, or one custom book.
+- Set Strip content to a library source, specific tag, folder, or up to 40 custom books.
+- Add up to seven Strip control tabs for library sources, tags, folders, actions, Controls, plugin menus, or KOReader menus.
+- Configure text styles, progress labels, interactivity, filters, and widget-specific display options.
+- Track daily, weekly, monthly, and yearly reading goals using pages, time, or supported book-count targets.
 - Use stable page labels in featured-widget progress when a book provides a page map.
 
 ## Setting reference
 
 | Setting | Description |
 | --- | --- |
-| Widgets > Widgets | Opens the widget arranger. No more than 5 widgets can be enabled. |
-| Widgets > Available widgets | Includes date/time, recently read featured, custom featured, To Be Read featured, reading stats, reading goals, recently read strip, custom strip, To Be Read strip, and quotes. |
+| Widgets | Opens the widget arranger. Widgets show their relative size and must fit the responsive Home capacity. |
+| Widgets > Built-in widgets | Includes Date and time, Featured book, Reading stats, Reading goals, Book strip, and Quotes. |
+| Edit mode | Lets supported widgets open their own settings directly from Home. |
 | Presets > Built-in presets | Applies bundled home page layouts. Editing a built-in preset creates an editable user copy. |
 | Presets > Save current home page as preset | Saves the current home page configuration as a user preset. |
 | Presets > User presets | Applies, renames, or deletes saved home page presets. |
-| Home > Show top status bar | Shows or hides the top status bar on the home page. |
-| Featured widgets > Show widget title | Shows the featured widget title. |
-| Featured widgets > Show description | Shows featured-book description text. |
-| Featured widgets > Interactive | Allows featured widgets to respond to selection. |
-| Featured widgets > Top status bar | Shows the featured widget status bar and configures its bottom border and bold text. |
-| Featured widgets > Text styles | Sets title, author, series, and description font face, size, and bold style. |
-| Featured widgets > Progress labels | Selects left and right progress labels: off, percent, time to book end, current/total pages, or total pages. Current/total and total pages use stable page labels when the book provides a page map. |
-| Custom featured widget > Book | Selects the book shown by the custom featured widget. |
-| Custom featured widget > Clear book | Removes the selected custom featured book. |
-| Featured recent and To Be Read widgets > Order | Selects default or reverse order. |
-| Strip widgets > Show widget title | Shows the strip widget title. |
-| Strip widgets > Show book titles | Shows book titles in strip widgets. |
-| Strip widgets > Show badges | Shows cover badges in strip widgets. |
-| Strip widgets > Interactive | Allows strip widgets to respond to selection. |
-| Strip widgets > Books shown | Sets how many books are shown in a strip. |
-| Strip widgets > Two rows | Displays compatible strips across two rows. |
-| Strip widgets > Center books | Centers short rows of books in compatible strip widgets. |
-| Strip widgets > Order | Selects default or reverse order for recent and To Be Read strips. |
-| Custom strip widget > Add book | Adds a selected book to the custom strip, up to 50 books. |
-| Custom strip widget > Remove book | Removes a selected book from the custom strip. |
-| Custom strip widget > Clear books | Removes all selected custom strip books. |
-| Reading goals > Show widget title | Shows the reading goals widget title. |
-| Reading goals > Goal shown | Selects daily or weekly goal display. |
-| Reading goals > Goals metric | Selects pages or time as the goal metric. |
-| Reading goals > Daily pages goal | Sets the daily page target. |
-| Reading goals > Weekly pages goal | Sets the weekly page target. |
-| Reading goals > Daily time goal | Sets the daily time target in minutes. |
-| Reading goals > Weekly time goal | Sets the weekly time target in minutes. |
-| Reading stats widget > Show widget title | Shows the reading stats widget title. |
-| Reading stats widget > Stat separators | Selects dividing lines, outlined boxes, or no stat separators. |
-| Reading stats widget > Font size | Sets a per-widget text size or uses the Home default. |
-| Quotes widget > Show widget title | Shows the quotes widget title. |
-| Quotes widget > Show author | Shows quote author text. |
+| Show top status bar | Shows or hides the top status bar on the home page. |
+| Widgets > Date and time > Automatic font size | Fits the time and date to the available widget height, up to the configured maximum. |
+| Widgets > Date and time > Time / Date | Sets the font face and manual fallback size for each line. |
+| Widgets > Featured book > Content | Selects Recently read, To Be Read, or Custom. Custom lets you choose one book. |
+| Widgets > Featured book > Show description | Shows featured-book description text. |
+| Widgets > Featured book > Wrap description text | Lets description overflow continue below the cover and uses a full-width progress bar. Disabled by default. |
+| Widgets > Featured book > Interactive | Allows the featured book to respond to selection. |
+| Widgets > Featured book > Top status bar | Shows the featured widget status bar and configures its bottom border and bold text. |
+| Widgets > Featured book > Text styles | Sets title, author, series, and description font face, size, and bold style. |
+| Widgets > Featured book > Progress labels | Selects left and right progress labels: off, percent, time to book end, current/total pages, or total pages. Current/total and total pages use stable page labels when the book provides a page map. |
+| Widgets > Book strip > Content | Selects Recent, Favorites, To Be Read, Authors, Series, Tags, Collections, a specific tag, a folder, or custom books when Strip controls are hidden. |
+| Widgets > Book strip > Controls > Show controls | Adds source and action tabs above the strip. The first visible source tab becomes the active content source. |
+| Widgets > Book strip > Controls > Tabs | Shows and arranges up to seven tabs. Add a built-in source, specific tag, folder, dispatcher action, Control, plugin menu, or KOReader menu. |
+| Widgets > Book strip > Controls > Font | Sets the strip-control label font, size, and weight. |
+| Widgets > Book strip > Show book titles | Shows titles below strip covers. |
+| Widgets > Book strip > Show badges | Shows cover badges in the strip. |
+| Widgets > Book strip > Interactive | Allows strip books and controls to respond to selection. |
+| Widgets > Book strip > Max books shown | Sets 3–5 books for one row or 2–10 books for two rows; narrower layouts may show fewer. |
+| Widgets > Book strip > Two rows | Expands the strip to two rows when enough Home capacity is available. |
+| Widgets > Book strip > Center books | Centers short rows. |
+| Widgets > Book strip > Recent filters | Hides unread, On hold, or finished books when Recent is the active source. |
+| Widgets > Book strip > Custom books | Adds or removes selected books, up to 40. |
+| Widgets > Reading goals > Daily / Weekly | Shows a pages or time goal for the selected period. |
+| Widgets > Reading goals > Monthly / Yearly | Shows a pages, time, or books goal for the selected period. |
+| Widgets > Reading goals > Font size | Sets the reading-goals text size. |
+| Widgets > Reading stats > Stat separators | Selects dividing lines, outlined boxes, or no stat separators. |
+| Widgets > Reading stats > Automatic font size | Fits the three stat slots to the available height, up to the configured maximum. Disable it to set a fixed font size. |
+| Widgets > Reading stats > Stat slot 1–3 | Selects pages today, time today, day streak, pages this week, or time this week for each slot. |
+| Widgets > Quotes > Quote sources | Selects any combination of default quotes, custom quotes, and annotations. |
+| Widgets > Quotes > New quote | Changes the quote daily or whenever Home refreshes. |
+| Widgets > Quotes > Automatic font size | Fits quote text to the available area up to the configured maximum. Disable it to use a fixed size. |
+| Widgets > Quotes > Show author | Shows the quote author when available. |
+| Widgets > Quotes > Show title | Shows the book title when available. |
+
+Opening a book from Featured or Book strip uses the same non-blocking opening banner as the Library.
 
 ## Stable Page Labels
 
@@ -77,12 +84,21 @@ Home featured widgets use KOReader page-map data when it is available. That mean
 
 ## Custom quotes
 
-Override the default Zen UI quotes by editing `settings/Zen UI/quotes.lua`. Return a list of quotes; when the list is not empty it replaces the Zen UI defaults entirely. Each entry is either a `{ text, author }` table or a plain string without an author.
+Add personal quotes by editing `settings/ZenOS/quotes.lua`, then enable **Custom quotes** under **Zen Settings > Home > Widgets > Quotes > Quote sources**. Custom quotes can be combined with the default list and annotations. Each entry can be a `{ text, author, title }` table, the older `{ text, author }` form, or a plain string without attribution.
 
 ```lua
 return {
-    -- Add your quotes here. When this list is not empty, it replaces Zen UI defaults.
+    -- Existing formats remain supported:
     -- { text = "Quote text", author = "Author" },
     -- "Plain quote without author",
+
+    -- The title field is optional:
+    -- { text = "Quote text", author = "Author", title = "Book title" },
 }
 ```
+
+Annotation quotes are collected from books in KOReader's reading history and
+book-information cache. Tap an annotation quote to open its book at the saved
+location. Swipe horizontally on the widget to move between quotes. Quotes use a
+persistent shuffled deck, so every enabled quote is shown before the list is
+reshuffled.

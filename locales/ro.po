@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: zen-ui 0.1.0\n"
+"Project-Id-Version: zenos 3.0.0\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -14,6 +14,9 @@ msgstr "%1 (%2)"
 
 msgid "%1 mins left in chapter"
 msgstr "%1 min rămase în capitol"
+
+msgid "%1, %2 %3"
+msgstr "%1, %3 %2"
 
 msgid "%d%% Read"
 msgstr "%d%% citit"
@@ -84,8 +87,11 @@ msgstr "90°"
 msgid "< 1 min left in chapter"
 msgstr "< 1 min rămas în capitol"
 
-msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
-msgstr "O interfață minimală, curată și simplă pentru e-reader-ul tău.\n\nGlisați sau atingeți Înainte pentru a continua."
+msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
+msgstr "O experiență curată, minimă pentru cititorul dvs. electronic.\n\nGlisați sau atingeți Următorul pentru a continua."
+
+msgid "A launcher button has been added for ZenPM."
+msgstr "A fost adăugat un buton de lansare pentru ZenPM."
 
 msgid "A short summary of what went wrong"
 msgstr "Un scurt rezumat al problemei"
@@ -120,6 +126,9 @@ msgstr "Adaugă"
 msgid "Add action"
 msgstr "Adaugă acțiune"
 
+msgid "Add at least one quote to settings/ZenOS/quotes.lua to enable this source."
+msgstr "Adăugați cel puțin un citat la setări/ZenOS/quotes.lua pentru a activa această sursă."
+
 msgid "Add book"
 msgstr "Adaugă carte"
 
@@ -137,6 +146,9 @@ msgstr "Adaugă butoane personalizate pentru alte pluginuri sau acțiuni."
 
 msgid "Add folder…"
 msgstr "Adaugă folder…"
+
+msgid "Add KOReader menu"
+msgstr "Adaugă meniul KOReader"
 
 msgid "Add plugin"
 msgstr "Adaugă plugin"
@@ -159,17 +171,17 @@ msgstr "Alexandre Dumas"
 msgid "All"
 msgstr "Tot"
 
-msgid "All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall Zen UI updates directly from your device."
-msgstr "Toate setările sunt într-o singură filă unificată. Această pictogramă cu punct indică faptul că este disponibilă o actualizare.\n\nInstalează actualizările Zen UI direct de pe dispozitiv."
+msgid "All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall ZenOS updates directly from your device."
+msgstr "Toate setările sunt într-o singură filă unificată. Această pictogramă cu punct indică faptul că este disponibilă o actualizare.\n\nInstalează actualizările ZenOS direct de pe dispozitiv."
 
-msgid "All Time"
-msgstr "Tot timpul"
+msgid "All tags"
+msgstr "Toate etichetele"
 
 msgid "All time"
 msgstr "Tot timpul"
 
-msgid "Allow custom icons"
-msgstr "Permite pictograme personalizate"
+msgid "All Time"
+msgstr "Tot timpul"
 
 msgid "Allow delete"
 msgstr "Permite ștergerea"
@@ -180,6 +192,9 @@ msgstr "Chihlimbar"
 msgid "An item with that name already exists."
 msgstr "Există deja un element cu acest nume."
 
+msgid "Annotations"
+msgstr "Adnotări"
+
 msgid "App"
 msgstr "Aplicație"
 
@@ -188,6 +203,9 @@ msgstr "Aplică"
 
 msgid "Are you sure you want to exit KOReader?"
 msgstr "Sigur vrei să ieși din KOReader?"
+
+msgid "Are you sure you want to install the ZenPM plugin?"
+msgstr "Sigur doriți să instalați pluginul ZenPM?"
 
 msgid "Are you sure you want to quit KOReader?"
 msgstr "Sigur vrei să închizi KOReader?"
@@ -222,6 +240,12 @@ msgstr "Autori"
 msgid "authors"
 msgstr "autori"
 
+msgid "Automatic"
+msgstr "Automat"
+
+msgid "Automatic font size"
+msgstr "Dimensiunea fontului automat"
+
 msgid "Automatic suspend"
 msgstr "Suspendare automată"
 
@@ -230,6 +254,9 @@ msgstr "Înapoi"
 
 msgid "Background"
 msgstr "Fundal"
+
+msgid "Background color"
+msgstr "Culoare fundal"
 
 msgid "Background image could not be loaded. It may be corrupt or unsupported."
 msgstr "Imaginea de fundal nu a putut fi încărcată. Poate fi deteriorată sau neacceptată."
@@ -285,17 +312,14 @@ msgstr "Albastru"
 msgid "Bluetooth"
 msgstr "Bluetooth"
 
-msgid "bold"
-msgstr "aldin"
-
 msgid "Bold"
 msgstr "Îngroșat"
 
+msgid "bold"
+msgstr "aldin"
+
 msgid "Bold text"
 msgstr "Text îngroșat"
-
-msgid "book"
-msgstr "carte"
 
 msgid "Book"
 msgstr "Carte"
@@ -303,11 +327,20 @@ msgstr "Carte"
 msgid "Book added to download list"
 msgstr "Carte adăugată în lista de descărcări"
 
+msgid "Book details"
+msgstr "Detalii carte"
+
 msgid "Book information"
 msgstr "Informații carte"
 
 msgid "Book Status"
 msgstr "Stare carte"
+
+msgid "Book strip"
+msgstr "Bandă de cărți"
+
+msgid "Book switcher"
+msgstr "Selector de cărți"
 
 msgid "Book title"
 msgstr "Titlul cărții"
@@ -318,20 +351,14 @@ msgstr "Titlul cărții"
 msgid "Book: "
 msgstr "Carte: "
 
-msgid "Books"
-msgstr "Cărți"
-
 msgid "books"
 msgstr "cărți"
 
+msgid "Books"
+msgstr "Cărți"
+
 msgid "Books read"
 msgstr "Cărți citite"
-
-msgid "Books shown"
-msgstr "Cărți afișate"
-
-msgid "Books shown: "
-msgstr "Cărți afișate: "
 
 msgid "Books tab label"
 msgstr "Etichetă filă Cărți"
@@ -348,9 +375,6 @@ msgstr "Descriere scurtă a erorii"
 msgid "Brightness"
 msgstr "Luminozitate"
 
-msgid "Brightness schedule"
-msgstr "Planificare luminozitate"
-
 msgid "Bug description (optional)"
 msgstr "Descrierea erorii (opțional)"
 
@@ -362,6 +386,9 @@ msgstr "Titlul raportului de eroare"
 
 msgid "Buttons"
 msgstr "Butoane"
+
+msgid "By %1"
+msgstr "De %1"
 
 msgid "Calendar"
 msgstr "Calendar"
@@ -393,9 +420,6 @@ msgstr "Centrează cărțile"
 msgid "Center items"
 msgstr "Elemente centrale"
 
-msgid "Centered Pages"
-msgstr "Pagini centrate"
-
 msgid "Change folder"
 msgstr "Schimbă dosarul"
 
@@ -404,12 +428,6 @@ msgstr "Jurnal modificări"
 
 msgid "Chapter"
 msgstr "Capitol"
-
-msgid "Chapter Time + %"
-msgstr "Timp capitol + %"
-
-msgid "Update Zen UI"
-msgstr "Actualizează Zen UI"
 
 msgid "Check for updates automatically"
 msgstr "Verifică automat actualizările"
@@ -423,20 +441,23 @@ msgstr "Șah"
 msgid "Choose a different folder"
 msgstr "Alegeți un alt dosar"
 
-msgid "Choose a preset for your reading progress bar."
-msgstr "Alegeți o presetare pentru bara de progres de lectură."
-
 msgid "Choose control"
 msgstr "Alege controlul"
 
 msgid "Choose item"
 msgstr "Alege elementul"
 
+msgid "Choose KOReader menu"
+msgstr "Alege meniul KOReader"
+
 msgid "Choose plugin menu"
 msgstr "Alege meniul pluginului"
 
 msgid "Choose tab"
 msgstr "Alegeți fila"
+
+msgid "Choose tag"
+msgstr "Alegeți eticheta"
 
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 msgstr "Alegeți ce file apar în bara de navigare.\nPuteți rearanja sau ajusta oricând în Setări."
@@ -455,9 +476,6 @@ msgstr "Șterge toate gesturile"
 
 msgid "Clear book"
 msgstr "Elimină cartea"
-
-msgid "Clear books"
-msgstr "Elimină cărțile"
 
 msgid "Close"
 msgstr "Închide"
@@ -489,6 +507,9 @@ msgstr "Conectează dosarele"
 msgid "Connections"
 msgstr "Conexiuni"
 
+msgid "Content: "
+msgstr "Conținut: "
+
 msgid "Context Menu"
 msgstr "Meniu contextual"
 
@@ -513,8 +534,17 @@ msgstr "Copiază"
 msgid "Could not determine update status."
 msgstr "Nu s-a putut determina starea actualizării."
 
+msgid "Could not find a ZenPM release."
+msgstr "Nu s-a putut găsi o versiune ZenPM."
+
 msgid "Could not get release from update server."
 msgstr "Versiunea nu a putut fi obținută de la serverul de actualizări."
+
+msgid "Could not install %1: %2"
+msgstr "Nu s-a putut instala %1: %2"
+
+msgid "Could not install ZenPM."
+msgstr "Nu s-a putut instala ZenPM."
 
 msgid "Could not reach update server."
 msgstr "Nu s-a putut contacta serverul de actualizări."
@@ -546,10 +576,10 @@ msgstr "Cuvinte încrucișate"
 msgid "Current / total pages"
 msgstr "Pagini curente / totale"
 
-msgid "Current Book"
+msgid "Current book"
 msgstr "Cartea curentă"
 
-msgid "Current book"
+msgid "Current Book"
 msgstr "Cartea curentă"
 
 msgid "Current home folder:"
@@ -564,11 +594,20 @@ msgstr "Pagini curente/totale"
 msgid "Custom"
 msgstr "Personalizat"
 
+msgid "Custom books"
+msgstr "Cărți personalizate"
+
 msgid "Custom button label"
 msgstr "Etichetă buton personalizat"
 
-msgid "Custom featured widget"
-msgstr "Widget principal personalizat"
+msgid "Custom icon pack: %1"
+msgstr "Pachet de pictograme personalizat: %1"
+
+msgid "Custom icons"
+msgstr "Pictograme personalizate"
+
+msgid "Custom quotes"
+msgstr "Citate personalizate"
 
 msgid "Custom RGB"
 msgstr "RGB personalizat"
@@ -588,11 +627,14 @@ msgstr "Text personalizat"
 msgid "Custom text: "
 msgstr "Text personalizat: "
 
+msgid "Custom theme"
+msgstr "Temă personalizată"
+
+msgid "Custom themes"
+msgstr "Teme personalizate"
+
 msgid "Custom: "
 msgstr "Personalizat: "
-
-msgid "Customizable top status bar and bottom progress bar."
-msgstr "Bară de stare superioară și bară de progres inferioară personalizabile."
 
 msgid "Customize widget"
 msgstr "Personalizați widgetul"
@@ -606,8 +648,20 @@ msgstr "Ciclu"
 msgid "Daily"
 msgstr "Zilnic"
 
+msgid "Dark graphite"
+msgstr "Grafit închis"
+
+msgid "Dark mode"
+msgstr "Mod întunecat"
+
+msgid "Dark warm gray"
+msgstr "Gri cald închis"
+
 msgid "Date"
 msgstr "Data"
+
+msgid "Date/time"
+msgstr "Data/ora"
 
 msgid "Day brightness"
 msgstr "Luminozitate zi"
@@ -642,17 +696,20 @@ msgstr "Jurnal de depanare"
 msgid "Debug logging must be enabled to submit bug reports."
 msgstr "Jurnalizarea de depanare trebuie activată pentru a trimite rapoarte."
 
-msgid "Default"
-msgstr "Implicit"
-
 msgid "default"
 msgstr "implicit"
+
+msgid "Default"
+msgstr "Implicit"
 
 msgid "Default (black)"
 msgstr "Implicit (negru)"
 
 msgid "Default font size:"
 msgstr "Dimensiunea fontului implicit:"
+
+msgid "Default quotes"
+msgstr "Citate implicite"
 
 msgid "Default tab: "
 msgstr "Filă implicită: "
@@ -672,11 +729,17 @@ msgstr "Șterge catalogul OPDS?"
 msgid "Delete preset?"
 msgstr "Șterge setarea predefinită?"
 
+msgid "Delete theme"
+msgstr "Șterge tema"
+
 msgid "Delete this button?"
 msgstr "Ștergi acest buton?"
 
 msgid "Delete this control?"
 msgstr "Ștergeți acest control?"
+
+msgid "Delete this custom theme?"
+msgstr "Ștergeți această temă personalizată?"
 
 msgid "Delete this folder and its buttons?"
 msgstr "Ștergi acest dosar și butoanele sale?"
@@ -735,6 +798,9 @@ msgstr "Dezactivează căutarea cuvântului la apăsare lungă"
 msgid "Disable zen mode to access default KOReader menus."
 msgstr "Dezactivează modul zen pentru a accesa meniurile implicite KOReader."
 
+msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
+msgstr "Dezactivați modul Zen cu această pictogramă pentru a ajusta setările KOReader care nu sunt disponibile în Setările Zen."
+
 msgid "Disk space"
 msgstr "Spațiu pe disc"
 
@@ -759,6 +825,9 @@ msgstr "Puncte"
 msgid "Download"
 msgstr "Descarcă"
 
+msgid "Download and install the Zen Package Manager for this device."
+msgstr "Descărcați și instalați Zen Package Manager pentru acest dispozitiv."
+
 msgid "Download failed: "
 msgstr "Descărcare eșuată: "
 
@@ -768,11 +837,17 @@ msgstr "Descărcat"
 msgid "Downloading"
 msgstr "Se descarcă"
 
+msgid "Downloading ZenPM"
+msgstr "Se descarcă ZenPM"
+
 msgid "Dynamic filler 2"
 msgstr "Umplere dinamică 2"
 
 msgid "Edit"
 msgstr "Editează"
+
+msgid "Edit mode"
+msgstr "Mod de editare"
 
 msgid "Enable"
 msgstr "Activează"
@@ -786,6 +861,9 @@ msgstr "Activează glisarea de jos"
 msgid "Enable brightness schedule"
 msgstr "Activare planificare luminozitate"
 
+msgid "Enable custom icons"
+msgstr "Activează pictogramele personalizate"
+
 msgid "Enable custom status bar"
 msgstr "Activează bara de stare personalizată"
 
@@ -795,8 +873,8 @@ msgstr "Activați jurnalizarea detaliată de depanare KOReader. Jurnalele sunt s
 msgid "Enable night mode schedule"
 msgstr "Activare planificare mod noapte"
 
-msgid "Enable page browser"
-msgstr "Activează browserul de pagini"
+msgid "Enable reader themes"
+msgstr "Activează temele de lectură"
 
 msgid "Enable top status bar"
 msgstr "Activează bara de stare de sus"
@@ -807,8 +885,8 @@ msgstr "Activare planificare căldură"
 msgid "Enable Zen OPDS"
 msgstr "Activează Zen OPDS"
 
-msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
-msgstr "Activați îmbunătățirile Zen UI pentru browserul OPDS: coperte, vizualizare listă, meniu la apăsare lungă și îmbunătățiri de navigare."
+msgid "Enable ZenOS enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
+msgstr "Activați îmbunătățirile ZenOS pentru browserul OPDS: coperte, vizualizare listă, meniu la apăsare lungă și îmbunătățiri de navigare."
 
 msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
 msgstr "Se activează jurnalizarea de depanare, este necesar un repornire. Reproduceți problema, apoi trimiteți raportul."
@@ -837,8 +915,14 @@ msgstr "Trimiterea raportului a eșuat: "
 msgid "Favorites"
 msgstr "Favorite"
 
+msgid "Featured book"
+msgstr "Carte recomandată"
+
 msgid "Featured widgets"
 msgstr "Widgeturi principale"
+
+msgid "File browser settings"
+msgstr "Setările navigatorului de fișiere"
 
 msgid "File search"
 msgstr "Căutare fișiere"
@@ -849,14 +933,14 @@ msgstr "Manager fișiere"
 msgid "Filebrowser plugin is not installed."
 msgstr "Pluginul Filebrowser nu este instalat."
 
+msgid "Filename:"
+msgstr "Nume de fișier:"
+
 msgid "Filter"
 msgstr "Filtrare"
 
 msgid "Filter by status"
 msgstr "Filtrare după stare"
-
-msgid "Finish"
-msgstr "Finalizează"
 
 msgid "Finished"
 msgstr "Terminat"
@@ -891,11 +975,11 @@ msgstr "Setări predefinite dosar"
 msgid "Folders"
 msgstr "Dosare"
 
-msgid "Font"
-msgstr "Font"
-
 msgid "font"
 msgstr "font"
+
+msgid "Font"
+msgstr "Font"
 
 msgid "font size"
 msgstr "dimensiune font"
@@ -906,6 +990,9 @@ msgstr "Dimensiune font"
 msgid "Font size:"
 msgstr "Dimensiune font:"
 
+msgid "Font, margins, contrast, line spacing etc - tested together for the best reading experience"
+msgstr "Font, margini, contrast, spațiere între linii etc - testate împreună pentru cea mai bună experiență de lectură"
+
 msgid "Font:"
 msgstr "Font:"
 
@@ -915,6 +1002,9 @@ msgstr "Sincronizare forțată"
 msgid "Force sync all catalogs"
 msgstr "Sincronizare forțată a tuturor cataloagelor"
 
+msgid "Format:"
+msgstr "Format:"
+
 msgid "Format: R,G,B (0-255)"
 msgstr "Format: R,G,B (0-255)"
 
@@ -923,9 +1013,6 @@ msgstr "Lumină frontală"
 
 msgid "Gallery"
 msgstr "Galerie"
-
-msgid "Gallery view (4-grid)"
-msgstr "Vizualizare galerie (grilă 4)"
 
 msgid "Get Started"
 msgstr "Începeți"
@@ -969,11 +1056,11 @@ msgstr "Ascunde în fișiere CBZ/PDF"
 msgid "Hide list borders"
 msgstr "Ascunde marginile listei"
 
+msgid "Hide on-hold books"
+msgstr "Ascunde cărțile în așteptare"
+
 msgid "Hide reader actions in library"
 msgstr "Ascunde acțiunile cititorului în bibliotecă"
-
-msgid "Hide TBR books"
-msgstr "Ascunde cărțile de citit"
 
 msgid "Hide unread books"
 msgstr "Ascunde cărțile necitite"
@@ -987,17 +1074,11 @@ msgstr "Evidențiere / Căutare"
 msgid "History"
 msgstr "Istoric"
 
-msgid "Hold to arrange"
-msgstr "Ține apăsat pentru a aranja"
-
 msgid "Hold to skip"
 msgstr "Ține apăsat pentru a sări"
 
 msgid "Home"
 msgstr "Acasă"
-
-msgid "Home default font size"
-msgstr "Mărimea fontului implicită de acasă"
 
 msgid "Home Folder"
 msgstr "Dosar principal"
@@ -1007,6 +1088,9 @@ msgstr "Dosar principal"
 
 msgid "Home page preset"
 msgstr "Presetare panou"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "Spațierea ecranului principal a fost actualizată. Ordinea și selecția salvate ale widgeturilor au fost păstrate și adaptate la noua grilă."
 
 msgid "Home tab label"
 msgstr "Etichetă filă Acasă"
@@ -1026,9 +1110,6 @@ msgstr "Pictograme"
 msgid "Image support is unavailable on this device."
 msgstr "Imaginile nu sunt acceptate pe acest dispozitiv."
 
-msgid "IP address: %1"
-msgstr "Adresă IP: %1"
-
 msgid "Image: "
 msgstr "Imagine: "
 
@@ -1047,8 +1128,20 @@ msgstr "Modul incognito este dezactivat"
 msgid "Incognito mode enabled"
 msgstr "Modul incognito este activat"
 
+msgid "Incognito mode timed out"
+msgstr "Modul incognito a expirat"
+
+msgid "Incompatible plugins and patches have been disabled:"
+msgstr "Pluginurile și corecțiile incompatibile au fost dezactivate:"
+
 msgid "Incompatible plugins have been disabled:"
 msgstr "Pluginurile incompatibile au fost dezactivate:"
+
+msgid "Install"
+msgstr "Instalați"
+
+msgid "Install ZenPM"
+msgstr "Instalați ZenPM"
 
 msgid "Installed version is newer than the latest release."
 msgstr "Versiunea instalată este mai nouă decât cea mai recentă versiune."
@@ -1056,17 +1149,29 @@ msgstr "Versiunea instalată este mai nouă decât cea mai recentă versiune."
 msgid "Installing"
 msgstr "Se instalează"
 
+msgid "Installing ZenPM"
+msgstr "Se instalează ZenPM"
+
 msgid "Interactive"
 msgstr "Interactiv"
 
-msgid "Items per page"
-msgstr "Elemente pe pagină"
+msgid "IP address: %1"
+msgstr "Adresă IP: %1"
 
 msgid "items per page"
 msgstr "elemente pe pagină"
 
+msgid "Items per page"
+msgstr "Elemente pe pagină"
+
 msgid "Keep existing settings"
 msgstr "Păstrați setările existente"
+
+msgid "KOReader menu"
+msgstr "Meniu KOReader"
+
+msgid "KOReader menu: %1"
+msgstr "Meniu KOReader: %1"
 
 msgid "KOReader: "
 msgstr "KOReader: "
@@ -1125,6 +1230,9 @@ msgstr "Elemente stânga"
 msgid "Library"
 msgstr "Bibliotecă"
 
+msgid "Library background was disabled because the image file was not found."
+msgstr "Fundalul bibliotecii a fost dezactivat deoarece fișierul imagine nu a fost găsit."
+
 msgid "Library font"
 msgstr "Font bibliotecă"
 
@@ -1136,6 +1244,15 @@ msgstr "Vizualizare bibliotecă"
 
 msgid "Light"
 msgstr "Lumină"
+
+msgid "Light mode"
+msgstr "Mod luminos"
+
+msgid "Light sepia"
+msgstr "Sepia deschis"
+
+msgid "Light tan"
+msgstr "Bej deschis"
 
 msgid "List"
 msgstr "Listă"
@@ -1170,8 +1287,17 @@ msgstr "Restricție"
 msgid "Lockdown mode"
 msgstr "Mod restricție"
 
+msgid "Loose icons"
+msgstr "Pictograme separate"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Pictograme separate în /koreader/icons"
+
 msgid "Magnify UI"
 msgstr "Mărire interfață"
+
+msgid "Main menu"
+msgstr "Meniu principal"
 
 msgid "Manga"
 msgstr "Manga"
@@ -1179,17 +1305,29 @@ msgstr "Manga"
 msgid "Manga folder not found: "
 msgstr "Dosarul manga nu a fost găsit: "
 
+msgid "Manually download and sideload %1 from the same ZenPM release."
+msgstr "Descărcați și instalați manual %1 din aceeași versiune ZenPM."
+
 msgid "Match whole words"
 msgstr "Potrivește cuvinte întregi"
 
-msgid "Maximum 5 widgets allowed"
-msgstr "Maximum 5 widgeturi permise"
+msgid "Max books shown"
+msgstr "Număr maxim de cărți afișate"
+
+msgid "Max books shown: "
+msgstr "Număr maxim de cărți afișate: "
 
 msgid "Maximum 7 tabs allowed"
 msgstr "Maximum 7 file permise"
 
 msgid "Maximum 9 buttons allowed"
 msgstr "Maximum 9 butoane permise"
+
+msgid "Maximum font size:"
+msgstr "Dimensiunea maximă a fontului:"
+
+msgid "Maximum quote font size"
+msgstr "Dimensiunea maximă a fontului citatelor"
 
 msgid "Menu"
 msgstr "Meniu"
@@ -1209,6 +1347,9 @@ msgstr "Minute"
 msgid "minutes"
 msgstr "minute"
 
+msgid "Missing: %1"
+msgstr "Lipsește: %1"
+
 msgid "Monthly"
 msgstr "Lunar"
 
@@ -1220,9 +1361,6 @@ msgstr "Mozaic"
 
 msgid "Mosaic - large cover thumbnails"
 msgstr "Mozaic — miniaturi mari ale copertelor"
-
-msgid "Mosaic and detailed list settings"
-msgstr "Setări mozaic și listă detaliată"
 
 msgid "Mosaic with cover images"
 msgstr "Mozaic cu coperte"
@@ -1257,6 +1395,9 @@ msgstr "Dimensiune etichete bară de navigare"
 msgid "Navbar Tabs"
 msgstr "File bare de navigare"
 
+msgid "Navigation"
+msgstr "Navigare"
+
 msgid "Network unavailable."
 msgstr "Rețeaua nu este disponibilă."
 
@@ -1266,11 +1407,17 @@ msgstr "Nou"
 msgid "New collection"
 msgstr "Colecție nouă"
 
+msgid "New custom theme"
+msgstr "Temă personalizată nouă"
+
 msgid "New folder"
 msgstr "Dosar nou"
 
 msgid "New includes unread books and books modified since they were last opened."
 msgstr "Nou include cărțile necitite și cărțile modificate de la ultima deschidere."
+
+msgid "New quote"
+msgstr "Citat nou"
 
 msgid "News"
 msgstr "Știri"
@@ -1335,6 +1482,12 @@ msgstr "Nu a fost selectată nicio imagine de fundal."
 msgid "No books found"
 msgstr "Nu s-au găsit cărți"
 
+msgid "No books found in the selected folder"
+msgstr "Nu s-au găsit cărți în folderul selectat"
+
+msgid "No books to switch to"
+msgstr "Nu există cărți la care să comuți"
+
 msgid "No books with author metadata found"
 msgstr "Nu s-au găsit cărți cu metadate ale autorului"
 
@@ -1353,11 +1506,17 @@ msgstr "Nu a fost furnizat niciun jurnal de modificări."
 msgid "No description."
 msgstr "Fără descriere."
 
+msgid "No KOReader submenus found"
+msgstr "Nu s-au găsit submeniuri KOReader"
+
 msgid "No launchable plugin menus found"
 msgstr "Nu au fost găsite meniuri de pluginuri lansabile"
 
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Fără conexiune la rețea. Conectați-vă la Wi-Fi și încercați din nou."
+
+msgid "No quote available."
+msgstr "Nu este disponibil niciun citat."
 
 msgid "No reader engine for this file or invalid file."
 msgstr "Niciun motor de citire pentru acest fișier sau fișier invalid."
@@ -1368,8 +1527,17 @@ msgstr "Fără date de citire"
 msgid "No table of contents available."
 msgstr "Nu este disponibil niciun cuprins."
 
+msgid "No tags found"
+msgstr "Nu au fost găsite etichete"
+
+msgid "No TBR books found"
+msgstr "Nu s-au găsit cărți TBR"
+
 msgid "No update asset found."
 msgstr "Nu s-a găsit nicio resursă de actualizare."
+
+msgid "No ZenPM package is available for this device."
+msgstr "Nu este disponibil niciun pachet ZenPM pentru acest dispozitiv."
 
 msgid "None"
 msgstr "Niciunul"
@@ -1379,6 +1547,9 @@ msgstr "Niciunul (doar numele dosarului)"
 
 msgid "Normal"
 msgstr "Normal"
+
+msgid "Not enough Home space: %1/%2 units used; this widget needs %3."
+msgstr "Nu este suficient spațiu acasă: unități %1/%2 utilizate; acest widget are nevoie de %3."
 
 msgid "Nothing"
 msgstr "Nimic"
@@ -1398,14 +1569,26 @@ msgstr "OK"
 msgid "On"
 msgstr "Pornit"
 
+msgid "On hold"
+msgstr "În așteptare"
+
+msgid "On Home refresh"
+msgstr "La reîmprospătarea Acasă"
+
 msgid "Only in Zen mode"
 msgstr "Numai în modul Zen"
+
+msgid "Only show while reading"
+msgstr "Afișează numai în timpul lecturii"
 
 msgid "Opaque background"
 msgstr "Fundal opac"
 
 msgid "OPDS"
 msgstr "OPDS"
+
+msgid "Open"
+msgstr "Deschide"
 
 msgid "Open folder"
 msgstr "Deschide dosar"
@@ -1425,6 +1608,12 @@ msgstr "Deschide Rakuyomi"
 msgid "Open RSS Reader"
 msgstr "Deschide cititorul RSS"
 
+msgid "Open this file?"
+msgstr "Deschideți acest fișier?"
+
+msgid "Open with…"
+msgstr "Deschide cu…"
+
 msgid "Opening"
 msgstr "Se deschide"
 
@@ -1436,6 +1625,9 @@ msgstr "Contur"
 
 msgid "Outlined boxes"
 msgstr "Casete conturate"
+
+msgid "p."
+msgstr "p."
 
 msgid "Page %1 of %2"
 msgstr "Pagina %1 din %2"
@@ -1461,12 +1653,6 @@ msgstr "pag."
 msgid "Pages"
 msgstr "Pagini"
 
-msgid "Pages + Chapter Time + %"
-msgstr "Pagini + Timp capitol + %"
-
-msgid "Pages and %"
-msgstr "Pagini și %"
-
 msgid "Pages read"
 msgstr "Pagini citite"
 
@@ -1485,14 +1671,20 @@ msgstr "Reîmprospătare pagini parțiale"
 msgid "Paste"
 msgstr "Lipește"
 
+msgid "Paste selected files"
+msgstr "Lipiți fișierele selectate"
+
 msgid "Percent"
 msgstr "Procent"
+
+msgid "Personal records"
+msgstr "Înregistrările personale"
 
 msgid "Personal Records"
 msgstr "Recorduri personale"
 
-msgid "Personal records"
-msgstr "Înregistrările personale"
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Plasează dosarele pachetelor sau fișierele ZIP în /koreader/icons/zen. Fișierele ZIP sunt instalate automat."
 
 msgid "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
 msgstr "Ștergeți pluginul Project: Title din folderul de pluginuri și reporniți KOReader."
@@ -1502,6 +1694,9 @@ msgstr "Plugin"
 
 msgid "Plugin management"
 msgstr "Gestionare pluginuri"
+
+msgid "Plugin Menu"
+msgstr "Meniul Plugin"
 
 msgid "Plugin: %1"
 msgstr "Plugin: %1"
@@ -1539,8 +1734,8 @@ msgstr "Bară de progres"
 msgid "Progress labels"
 msgstr "Etichete progres"
 
-msgid "Project: Title is not compatible with Zen UI."
-msgstr "Project: Title nu este compatibil cu Zen UI."
+msgid "Project: Title is not compatible with ZenOS."
+msgstr "Project: Title nu este compatibil cu ZenOS."
 
 msgid "Puzzle"
 msgstr "Puzzle"
@@ -1566,8 +1761,14 @@ msgstr "Închide KOReader"
 msgid "Quote font size"
 msgstr "Dimensiunea fontului citat"
 
-msgid "Quotes widget"
-msgstr "Widget citate"
+msgid "Quote sources"
+msgstr "Surse citate"
+
+msgid "Quotes"
+msgstr "Citate"
+
+msgid "quotes.lua is empty"
+msgstr "ghilimele.lua este goală"
 
 msgid "Rakuyomi"
 msgstr "Rakuyomi"
@@ -1596,8 +1797,8 @@ msgstr "Citiți astăzi"
 msgid "Reader"
 msgstr "Cititor"
 
-msgid "Reader Progress"
-msgstr "Progres de lectură"
+msgid "Reader themes"
+msgstr "Teme de lectură"
 
 msgid "Reading"
 msgstr "Se citește"
@@ -1611,23 +1812,26 @@ msgstr "Calendar de lectură"
 msgid "Reading goals"
 msgstr "Obiective de lectură"
 
-msgid "Reading stats widget"
-msgstr "Widget statistici de lectură"
+msgid "Reading goals font size"
+msgstr "Dimensiunea fontului obiectivelor de citire"
 
-msgid "Reading Trend"
-msgstr "Tendință de lectură"
+msgid "Reading stats"
+msgstr "Statistici de lectură"
 
 msgid "Reading trend"
 msgstr "Tendință de lectură"
 
-msgid "Rebooting"
-msgstr "Se repornește"
+msgid "Reading Trend"
+msgstr "Tendință de lectură"
+
+msgid "Recent"
+msgstr "Recente"
+
+msgid "Recent filters"
+msgstr "Filtre pentru recente"
 
 msgid "Recently read"
 msgstr "Citite recent"
-
-msgid "Recently read featured widget"
-msgstr "Widget principal citite recent"
 
 msgid "Recently read strip widget"
 msgstr "Widget bandă citite recent"
@@ -1674,6 +1878,9 @@ msgstr "Redenumește"
 msgid "Report a Bug"
 msgstr "Raportează o eroare"
 
+msgid "Require double tap to open books"
+msgstr "Necesită atingere dublă pentru a deschide cărțile"
+
 msgid "Require hold to toggle buttons"
 msgstr "Necesită apăsare lungă pentru a comuta butoanele"
 
@@ -1698,8 +1905,14 @@ msgstr "Repornește"
 msgid "Restart Book"
 msgstr "Repornește cartea"
 
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Repornește KOReader pentru a aplica pachetul activ actualizat"
+
 msgid "Restart now"
 msgstr "Repornește acum"
+
+msgid "Restarting"
+msgstr "Se repornește"
 
 msgid "Restore library location on exit"
 msgstr "Restaurează locația bibliotecii la ieșire"
@@ -1709,9 +1922,6 @@ msgstr "Continuă de la pagina"
 
 msgid "Return to chapter list on exit"
 msgstr "Revino la lista de capitole la ieșire"
-
-msgid "Reverse"
-msgstr "Inversează"
 
 msgid "Review"
 msgstr "Recenzie"
@@ -1779,6 +1989,9 @@ msgstr "Caută în bibliotecă"
 msgid "Search results"
 msgstr "Rezultate căutare"
 
+msgid "Search settings"
+msgstr "Căutați în setări"
+
 msgid "Select"
 msgstr "Selectează"
 
@@ -1794,11 +2007,11 @@ msgstr "Separator"
 msgid "Separator: "
 msgstr "Separator: "
 
-msgid "Series"
-msgstr "Serie"
-
 msgid "series"
 msgstr "serii"
+
+msgid "Series"
+msgstr "Serie"
 
 msgid "Series number"
 msgstr "Număr din serie"
@@ -1869,6 +2082,9 @@ msgstr "Afișează chenarul inferior"
 msgid "Show brightness slider"
 msgstr "Afișează cursorul luminozității"
 
+msgid "Show controls"
+msgstr "Afișează comenzile"
+
 msgid "Show description"
 msgstr "Arată descrierea"
 
@@ -1893,8 +2109,8 @@ msgstr "Arată numărul de elemente"
 msgid "Show item underline"
 msgstr "Afișează sublinierea elementului"
 
-msgid "Show KOReader progress bar"
-msgstr "Afișează bara de progres KOReader"
+msgid "Show KOAssistant"
+msgstr "Afișează KOAssistant"
 
 msgid "Show labels"
 msgstr "Afișează etichete"
@@ -1911,8 +2127,11 @@ msgstr "Afișează alte opțiuni de căutare rapidă KOReader alături de butoan
 msgid "Show page count"
 msgstr "Afișează numărul de pagini"
 
-msgid "Show progress % on mosaic covers"
-msgstr "Afișează % progres pe copertele mozaicului"
+msgid "Show progress bar"
+msgstr "Afișează bara de progres"
+
+msgid "Show reading progress"
+msgstr "Afișează progresul de citire"
 
 msgid "Show separator"
 msgstr "Arată separatorul"
@@ -1922,6 +2141,9 @@ msgstr "Afișează numărul din serie pe coperte"
 
 msgid "Show spine lines"
 msgstr "Arată liniile cotorului"
+
+msgid "Show title"
+msgstr "Afișează titlul"
 
 msgid "Show title below cover (mosaic)"
 msgstr "Show title below cover (mosaic)"
@@ -1935,17 +2157,20 @@ msgstr "Afișează bara de stare de sus"
 msgid "Show warmth slider"
 msgstr "Afișează cursorul de căldură"
 
-msgid "Show widget title"
-msgstr "Arată titlul widgetului"
-
 msgid "Show Wikipedia"
 msgstr "Afișează Wikipedia"
+
+msgid "Show X-Ray"
+msgstr "Afișează X-Ray"
 
 msgid "Show Zen icon - black background"
 msgstr "Afișează pictograma Zen - fundal negru"
 
 msgid "Show Zen icon - white background"
 msgstr "Afișează pictograma Zen - fundal alb"
+
+msgid "Single tag"
+msgstr "O singură etichetă"
 
 msgid "Skip"
 msgstr "Omiteți"
@@ -1995,14 +2220,17 @@ msgstr "Ordine de sortare"
 msgid "Sort series"
 msgstr "Sortare serii"
 
+msgid "Specific tag"
+msgstr "Etichetă specifică"
+
 msgid "Stable"
 msgstr "Stable"
 
 msgid "Stack"
 msgstr "Stivă"
 
-msgid "Stack effect (overlapping covers)"
-msgstr "Efect de stivă (coperți suprapuse)"
+msgid "Start reading a book to fill this space."
+msgstr "Începeți să citiți o carte pentru a umple acest spațiu."
 
 msgid "Stat separators"
 msgstr "Separatoare statistici"
@@ -2076,8 +2304,20 @@ msgstr "Sincronizează toate cataloagele"
 msgid "Tab"
 msgstr "Tab"
 
+msgid "Table of contents"
+msgstr "Cuprins"
+
 msgid "Tabs"
 msgstr "File"
+
+msgid "Tag"
+msgstr "Etichetă"
+
+msgid "Tag strip widget"
+msgstr "Widget cu bandă de etichete"
+
+msgid "Tag: %1"
+msgstr "Etichetă: %1"
 
 msgid "tags"
 msgstr "etichete"
@@ -2085,8 +2325,14 @@ msgstr "etichete"
 msgid "Tags"
 msgstr "Etichete"
 
+msgid "Tailscale"
+msgstr "Scala de coadă"
+
 msgid "Tap and hold any book or folder in your library to reveal details."
 msgstr "Apăsați lung pe orice carte sau dosar din biblioteca dvs. pentru a vedea detalii."
+
+msgid "Text color"
+msgstr "Culoare text"
 
 msgid "Text styles"
 msgstr "Stiluri text"
@@ -2100,8 +2346,20 @@ msgstr "Meniul implicit de citire KOReader se află în pictograma Aa."
 msgid "The place for all your books %1"
 msgstr "Locul pentru toate cărțile dvs. %1"
 
+msgid "Theme font"
+msgstr "Fontul temei"
+
+msgid "Theme name"
+msgstr "Numele temei"
+
 msgid "This change requires a restart to take effect."
 msgstr "Această modificare necesită o repornire pentru a intra în vigoare."
+
+msgid "This does not disable ZenOS—it only shows or hides KOReader’s menus."
+msgstr "Aceasta nu dezactivează ZenOS: doar afișează sau ascunde meniurile KOReader."
+
+msgid "This is Zen Settings. ZenOS settings/updates and common KOReader settings live here."
+msgstr "Aceasta este Setările Zen. Setările/actualizările ZenOS și setările comune KOReader sunt disponibile aici."
 
 msgid "This Month"
 msgstr "Luna aceasta"
@@ -2112,11 +2370,11 @@ msgstr "Luna aceasta"
 msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
 msgstr "Această opțiune este dezactivată când un dosar principal este rădăcina spațiului de stocare al dispozitivului. Setați mai întâi dosare de cărți mai restrânse ca dosare principale."
 
-msgid "This week"
-msgstr "În această săptămână"
-
 msgid "This Week"
 msgstr "Săptămâna aceasta"
+
+msgid "This week"
+msgstr "În această săptămână"
 
 msgid "This year"
 msgstr "Anul acesta"
@@ -2148,6 +2406,9 @@ msgstr "Timp/zi"
 msgid "Time/page"
 msgstr "Timp/pagina"
 
+msgid "Timeout"
+msgstr "Limită de timp"
+
 msgid "Timer: %1 s"
 msgstr "Temporizator: %1 s"
 
@@ -2160,9 +2421,6 @@ msgstr "Titlu natural"
 msgid "To Be Read"
 msgstr "De citit"
 
-msgid "To Be Read featured widget"
-msgstr "Widget principal de citit"
-
 msgid "To Be Read strip widget"
 msgstr "Widget bandă de citit"
 
@@ -2171,6 +2429,9 @@ msgstr "Azi"
 
 msgid "Too many requests. Please try again later."
 msgstr "Prea multe cereri. Încercați din nou mai târziu."
+
+msgid "Tools"
+msgstr "Instrumente"
 
 msgid "Top bar font"
 msgstr "Font bară de sus"
@@ -2196,8 +2457,14 @@ msgstr "Activați modul Zen pentru a reduce KOReader la esențial.\n\nEliminați
 msgid "Two rows"
 msgstr "Două rânduri"
 
+msgid "Typesetting"
+msgstr "Culegere"
+
 msgid "Unavailable"
 msgstr "Indisponibil"
+
+msgid "Unavailable pack: %1"
+msgstr "Pachet indisponibil: %1"
 
 msgid "Underline"
 msgstr "Subliniere"
@@ -2283,14 +2550,17 @@ msgstr "Actualizarea a eșuat: validarea pluginului pregătit a eșuat."
 msgid "Update failed: timed out."
 msgstr "Actualizarea a eșuat: timpul a expirat."
 
-msgid "Update now"
-msgstr "Actualizează acum"
-
 msgid "Update KOReader"
 msgstr "Actualizează KOReader"
 
+msgid "Update now"
+msgstr "Actualizează acum"
+
 msgid "Update Status"
 msgstr "Stare actualizare"
+
+msgid "Update ZenOS"
+msgstr "Actualizează ZenOS"
 
 msgid "Updated to %1"
 msgstr "Actualizat la %1"
@@ -2316,17 +2586,11 @@ msgstr "Folosește fontul implicit"
 msgid "Use default style"
 msgstr "Folosește stilul implicit"
 
-msgid "Use Home default font size"
-msgstr "Utilizați dimensiunea implicită a fontului principal"
-
 msgid "Use home folder"
 msgstr "Folosește dosarul principal"
 
 msgid "Use last folder"
 msgstr "Folosește ultimul dosar"
-
-msgid "Use Stats default font size"
-msgstr "Utilizați dimensiunea implicită a fontului Stats"
 
 msgid "username"
 msgstr "nume utilizator"
@@ -2343,14 +2607,11 @@ msgstr "Dosar virtual"
 msgid "Warmth"
 msgstr "Căldură"
 
-msgid "Warmth schedule"
-msgstr "Planificare căldură"
-
 msgid "Weekly"
 msgstr "Săptămânal"
 
-msgid "Welcome to Zen UI"
-msgstr "Bun venit în Zen UI"
+msgid "Welcome to ZenOS"
+msgstr "Bun venit în ZenOS"
 
 msgid "What should your device show when it goes to sleep?"
 msgstr "Ce ar trebui să afișeze dispozitivul dvs. când intră în repaus?"
@@ -2361,11 +2622,14 @@ msgstr "Ce s-a schimbat"
 msgid "What's New"
 msgstr "Noutăți"
 
-msgid "When enabled, icons placed in KOReader's user icons folder override the bundled Zen UI icons. Falls back to Zen UI icons, then KOReader built-ins."
-msgstr "Când este activat, pictogramele din dosarul de pictograme al utilizatorului KOReader suprascriu pictogramele Zen UI incluse. Se revine la pictogramele Zen UI, apoi la cele din KOReader."
+msgid "When enabled, loose icons or a selected ZenOS icon pack override supported icons. Missing icons fall back to ZenOS, then KOReader."
+msgstr "Când opțiunea este activată, pictogramele separate sau un pachet de pictograme ZenOS selectat înlocuiesc pictogramele acceptate. Pictogramele lipsă folosesc mai întâi ZenOS, apoi KOReader."
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "Când este activat, căutarea potrivește doar cuvinte întregi. Când este dezactivat, se folosește potrivirea parțială (ex.: 'pește' se potrivește cu 'pescuit')."
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr "Când este activată, atinge rapid de două ori aceeași carte pentru a o deschide. Comenzile de la tastatură rămân neschimbate."
 
 msgid "Which time format do you prefer?"
 msgstr "Ce format de oră preferați?"
@@ -2376,8 +2640,14 @@ msgstr "Alb"
 msgid "Wi-Fi"
 msgstr "Wi-Fi"
 
+msgid "Widget settings"
+msgstr "Setări widget"
+
 msgid "Widgets"
 msgstr "Widgeturi"
+
+msgid "Wrap description text"
+msgstr "Încadrează textul descrierii"
 
 msgid "Yearly"
 msgstr "Anual"
@@ -2397,14 +2667,26 @@ msgstr "Zen"
 msgid "Zen highlight menu"
 msgstr "Meniu de evidențiere Zen"
 
-msgid "Zen Mode"
-msgstr "Mod Zen"
-
 msgid "Zen mode"
 msgstr "Mod Zen"
 
+msgid "Zen Mode"
+msgstr "Mod Zen"
+
+msgid "Zen Mode is enabled. KOReader menus are hidden."
+msgstr "Modul Zen este activat. Meniurile KOReader sunt ascunse."
+
+msgid "Zen Mode: Disabled"
+msgstr "Modul Zen: Dezactivat"
+
+msgid "Zen Mode: Enabled"
+msgstr "Modul Zen: Activat"
+
 msgid "Zen OPDS"
 msgstr "Zen OPDS"
+
+msgid "Zen page browser"
+msgstr "Browser de pagini Zen"
 
 msgid "Zen Presets"
 msgstr "Zen Presets"
@@ -2412,116 +2694,74 @@ msgstr "Zen Presets"
 msgid "Zen quick lookup"
 msgstr "Căutare rapidă Zen"
 
-msgid "Zen UI"
-msgstr "Zen UI"
+msgid "ZenFM"
+msgstr "ZenFM"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - Autori"
+msgid "ZenOS"
+msgstr "ZenOS"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - Acasă"
+msgid "ZenOS defaults"
+msgstr "Setări implicite ZenOS"
 
-msgid "Zen UI - Library"
-msgstr "Zen UI – Bibliotecă"
+msgid "ZenOS is up to date."
+msgstr "ZenOS este actualizat."
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - Deschide dosar"
+msgid "ZenOS: "
+msgstr "ZenOS: "
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - Serii"
+msgid "ZenOS: Authors"
+msgstr "ZenOS: Autori"
 
-msgid "Zen UI - Sync progress (pull + push)"
-msgstr "Zen UI – Progresul sincronizării (descărcare + încărcare)"
+msgid "ZenOS: folder not found: "
+msgstr "ZenOS: dosarul nu a fost găsit: "
 
-msgid "Zen UI - Table of contents"
-msgstr "Zen UI – Cuprins"
+msgid "ZenOS: Home"
+msgstr "ZenOS: Acasă"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - Etichete"
+msgid "ZenOS: Library"
+msgstr "ZenOS – Bibliotecă"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - Comută bara de stare inferioară a cititorului"
+msgid "ZenOS: no folder set for this action."
+msgstr "ZenOS: niciun dosar setat pentru această acțiune."
 
-msgid "Zen UI - Toggle Incognito Mode"
-msgstr "Zen UI – Comută modul incognito"
+msgid "ZenOS: Open folder"
+msgstr "ZenOS: Deschide dosar"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - Comută modul restricție"
+msgid "ZenOS: Series"
+msgstr "ZenOS: Serii"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - Comută barele de stare ale cititorului"
+msgid "ZenOS: Sync progress (pull + push)"
+msgstr "ZenOS – Progresul sincronizării (descărcare + încărcare)"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - Comută bara de stare superioară a cititorului"
+msgid "ZenOS: Table of contents"
+msgstr "ZenOS – Cuprins"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Comută modul Zen"
+msgid "ZenOS: Tags"
+msgstr "ZenOS: Etichete"
 
-msgid "Zen UI defaults"
-msgstr "Setări implicite Zen UI"
+msgid "ZenOS: Toggle bottom reader status bar"
+msgstr "ZenOS: Comută bara de stare inferioară a cititorului"
 
-msgid "Zen UI is up to date."
-msgstr "Zen UI este actualizat."
+msgid "ZenOS: Toggle Incognito Mode"
+msgstr "ZenOS – Comută modul incognito"
 
-msgid "Zen UI: "
-msgstr "Zen UI: "
+msgid "ZenOS: Toggle Lockdown Mode"
+msgstr "ZenOS: Comută modul restricție"
 
-msgid "Zen UI: folder not found: "
-msgstr "Zen UI: dosarul nu a fost găsit: "
+msgid "ZenOS: Toggle reader status bars"
+msgstr "ZenOS: Comută barele de stare ale cititorului"
 
-msgid "Zen UI: no folder set for this action."
-msgstr "Zen UI: niciun dosar setat pentru această acțiune."
+msgid "ZenOS: Toggle reader themes"
+msgstr "ZenOS: Comută temele de lectură"
 
-msgid "Reader themes"
-msgstr "Teme de lectură"
+msgid "ZenOS: Toggle top reader status bar"
+msgstr "ZenOS: Comută bara de stare superioară a cititorului"
 
-msgid "Enable reader themes"
-msgstr "Activează temele de lectură"
+msgid "ZenOS: Toggle Zen Mode"
+msgstr "ZenOS: Comută modul Zen"
 
-msgid "Dark warm gray"
-msgstr "Gri cald închis"
+msgid "ZenPM"
+msgstr "ZenPM"
 
-msgid "Dark graphite"
-msgstr "Grafit închis"
-
-msgid "Light sepia"
-msgstr "Sepia deschis"
-
-msgid "Light tan"
-msgstr "Bej deschis"
-
-msgid "Zen UI - Toggle reader themes"
-msgstr "Zen UI - Comută temele de lectură"
-
-msgid "Dark mode"
-msgstr "Mod întunecat"
-
-msgid "Light mode"
-msgstr "Mod luminos"
-
-msgid "Custom themes"
-msgstr "Teme personalizate"
-
-msgid "New custom theme"
-msgstr "Temă personalizată nouă"
-
-msgid "Theme name"
-msgstr "Numele temei"
-
-msgid "Background color"
-msgstr "Culoare fundal"
-
-msgid "Text color"
-msgstr "Culoare text"
-
-msgid "Theme font"
-msgstr "Fontul temei"
-
-msgid "Delete theme"
-msgstr "Șterge tema"
-
-msgid "Delete this custom theme?"
-msgstr "Ștergeți această temă personalizată?"
-
-msgid "Custom theme"
-msgstr "Temă personalizată"
+msgid "ZenPM has been installed. Restart KOReader to use it."
+msgstr "ZenPM a fost instalat. Reporniți KOReader pentru a-l folosi."

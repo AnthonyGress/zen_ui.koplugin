@@ -9,17 +9,7 @@ local M = {}
 local _zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
 local function library_background_path()
-    local cfg = _zen_plugin and _zen_plugin.config
-    if type(cfg) ~= "table" then
-        local ok, loaded = pcall(function()
-            return require("config/manager").load()
-        end)
-        cfg = ok and loaded or nil
-    end
-    local bg = type(cfg) == "table" and cfg.library_background
-    if not (type(bg) == "table" and bg.enabled == true) then return "" end
-    local path = type(bg.path) == "string" and bg.path or ""
-    return Background.isJpegPath(path) and path or ""
+    return Background.library_path(_zen_plugin)
 end
 
 local SKIP_FM_DISPATCH = {
@@ -234,7 +224,8 @@ function M.apply_background(menu)
             -- returns after any refresh and hides the background.
             Background.clearWhiteBackgrounds(self[1], 14)
             if self.dimen then
-                Background.paint(bb, 0, 0, self.dimen.w, self.dimen.h, path)
+                Background.paintScreenRegion(bb, 0, 0, 0, 0,
+                    self.dimen.w, self.dimen.h, path)
             end
         end
         if orig_paintTo then
@@ -305,10 +296,10 @@ function M.apply_status_row(menu, params)
         set_title_row(build_row())
     end
 
-    menu._zen_status_refresh = function()
+    menu._zen_status_refresh = function(_self, suppress_repaint)
         if tb.title_group and #tb.title_group >= 2 then
             set_title_row(build_row())
-            if repaintTitleBar then repaintTitleBar(tb) end
+            if repaintTitleBar and suppress_repaint ~= true then repaintTitleBar(tb) end
         end
     end
 

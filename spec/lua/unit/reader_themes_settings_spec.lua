@@ -105,6 +105,51 @@ describe("reader themes settings", function()
         assert.are.equal(1, applied)
     end)
 
+    it("shows default-on lookup toggles only for loaded companion plugins", function()
+        ZenSpec.replace("apps/filemanager/filemanager", { instance = nil })
+        ZenSpec.replace("apps/reader/readerui", {
+            instance = { xray = {} },
+        })
+        ZenSpec.replace("pluginloader", { loaded_plugins = { koassistant = {} } })
+
+        local saved = 0
+        local items = ReaderSettings.build({
+            config = {
+                features = {
+                    reader_themes = false,
+                    reader_top_status_bar = false,
+                    dict_quick_lookup = true,
+                    highlight_lookup = true,
+                    reader_bottom_menu = false,
+                    page_browser = false,
+                    restore_library_view = false,
+                },
+                highlight_lookup = {},
+                reader_themes = { dark_mode = "dark_warm_gray", light_mode = "default" },
+            },
+            plugin = { saveConfig = function() saved = saved + 1 end },
+            save_and_apply = function() end,
+        })
+
+        local lookup
+        for _i, item in ipairs(items) do
+            if item.text == "Highlight / Lookup" then lookup = item end
+        end
+        local by_text = {}
+        for _i, item in ipairs(lookup.sub_item_table) do
+            by_text[item.text] = item
+        end
+
+        assert.is_true(by_text["Show X-Ray"].show_func())
+        assert.is_true(by_text["Show KOAssistant"].show_func())
+        assert.is_false(by_text["Show AI assistant"].show_func())
+        assert.is_true(by_text["Show X-Ray"].checked_func())
+
+        by_text["Show X-Ray"].callback()
+        assert.is_false(by_text["Show X-Ray"].checked_func())
+        assert.are.equal(1, saved)
+    end)
+
     it("creates a custom theme without using a built-in theme as its base", function()
         local saved, applied = 0, 0
         local config = {

@@ -17,18 +17,56 @@ local Font = require("ui/font")
 local util = require("util")
 local zen_utils = require("common/utils")
 local WidgetResources = require("common/widget_resources")
+local BookOpenTap = require("common/book_open_tap")
+local BookProgress = require("common/ui/book_progress")
 local cover_common = require("modules/filebrowser/patches/home/widgets/cover_common")
+local HomePresets = require("modules/filebrowser/patches/home/home_presets")
 local library_font = require("modules/filebrowser/patches/library_font")
 local _ = require("gettext")
 
 local M = {}
-M.SIZE = { preferred_pct = 0.36, min_pct = 0.22, max_pct = 0.50, grow_priority = 1 }
+M.SIZE = { units = 3.5 }
+
+local COVER_WIDTH_SHARE = 0.40
+
+function M.preferred_height(outer_width, module_cfg, data)
+    module_cfg = type(module_cfg) == "table" and module_cfg or {}
+    if module_cfg.wrap_description_text == true
+            and module_cfg.show_description ~= false then
+        if not (data and type(data.getFeaturedBook) == "function") then return nil end
+        local source = HomePresets.featuredSourceKey(module_cfg.default_source)
+        local book = data:getFeaturedBook(source, "default", true)
+        local description = type(book) == "table" and type(book.description) == "string"
+            and util.htmlToPlainTextIfHtml(book.description) or ""
+        if description:gsub("^%s+", ""):gsub("%s+$", "") ~= "" then return nil end
+    end
+    local Screen = Device.screen
+    outer_width = math.max(1, tonumber(outer_width) or Screen:getWidth())
+    local padding = Screen:scaleBySize(8)
+    local width = math.max(1, outer_width - padding * 2)
+    local gap = math.max(4, math.floor(width * 0.025))
+    local cover_w = math.max(1,
+        math.floor(math.max(1, width - gap) * COVER_WIDTH_SHARE))
+    local cover_h = cover_common.uniform_height_for_width(cover_w)
+    local base_h = math.max(1, Screen:scaleBySize(4)) + cover_h
+    local bottom_pad = math.max(3, math.floor(base_h * 0.02))
+    bottom_pad = math.max(3, math.floor((base_h + bottom_pad) * 0.02))
+    return padding * 2 + base_h + bottom_pad
+end
+
+local function time_unit(unit)
+    if type(_) == "table" and type(_.pgettext) == "function" then
+        return _.pgettext("Time", unit)
+    end
+    return _(unit)
+end
 
 local DEFAULT_TEXT_STYLES = {
     title = { font_face = "default", font_size = 11, bold = true },
     author = { font_face = "default", font_size = 9, bold = false },
     series = { font_face = "default", font_size = 7, bold = false },
     description = { font_face = "default", font_size = 16, bold = false },
+    progress = { font_face = "default", font_size = 7, bold = false },
 }
 
 local function clamp(v, min_v, max_v)
@@ -49,58 +87,14 @@ local function text_style(module_cfg, key)
     }
 end
 
-local function get_text_face(style, size)
-    local font_name = style.font_face == "default" and library_font.getFontName() or style.font_face
+local function get_text_face(style, size, default_font_name)
+    local font_name = style.font_face == "default" and (default_font_name or library_font.getFontName()) or style.font_face
     return Font:getFace(font_name, size)
 end
 
-local function paint_pill(bb, x, y, w, h, color)
-    if w <= 0 or h <= 0 then return end
-    if h <= 1 then
-        bb:paintRect(x, y, w, h, color)
-        return
-    end
-    local r = math.floor(h / 2)
-    if w <= h then
-        local cx = x + math.floor(w / 2)
-        for row = 0, h - 1 do
-            local dy = row - r + 0.5
-            local half = math.floor(math.sqrt(math.max(0, r * r - dy * dy)) + 0.5)
-            local x0 = math.max(x, cx - half)
-            local rw = math.min(w, half * 2)
-            if rw > 0 then bb:paintRect(x0, y + row, rw, 1, color) end
-        end
-        return
-    end
-    for row = 0, h - 1 do
-        local dy = row - r + 0.5
-        local inset = math.floor(r - math.sqrt(math.max(0, r * r - dy * dy)) + 0.5)
-        local rw = w - inset * 2
-        if rw > 0 then bb:paintRect(x + inset, y + row, rw, 1, color) end
-    end
-end
-
-local function render_progress(percent, w, h)
-    local pct = percent or 0
-    if pct < 0 then pct = 0 end
-    if pct > 1 then pct = 1 end
-
-    local fill_w = math.floor(w * pct)
-    return {
-        dimen = Geom:new{ w = w, h = h },
-        getSize = function(self)
-            return self.dimen
-        end,
-        handleEvent = function()
-            return false
-        end,
-        paintTo = function(_self, bb, x, y)
-            paint_pill(bb, x, y, w, h, Blitbuffer.COLOR_LIGHT_GRAY)
-            if fill_w > 0 then
-                paint_pill(bb, x, y, math.min(w, math.max(fill_w, h)), h, Blitbuffer.COLOR_GRAY_5)
-            end
-        end,
-    }
+local function set_opening_banner_cover(cover)
+    local set_cover = rawget(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER")
+    if type(set_cover) == "function" then set_cover(cover) end
 end
 
 local function fmt_duration(secs)
@@ -109,9 +103,10 @@ local function fmt_duration(secs)
     local hours = math.floor(secs / 3600)
     local mins = math.floor((secs % 3600) / 60)
     if hours > 0 then
-        return tostring(hours) .. "h " .. tostring(mins) .. "m"
+        return tostring(hours) .. time_unit("h") .. " "
+            .. tostring(mins) .. time_unit("m")
     end
-    return tostring(math.max(1, mins)) .. "m"
+    return tostring(math.max(1, mins)) .. time_unit("m")
 end
 
 local function format_series(book)
@@ -122,6 +117,37 @@ local function format_series(book)
     local index_text = index == math.floor(index)
         and tostring(math.floor(index)) or string.format("%.10g", index)
     return series .. " #" .. index_text
+end
+
+local function split_text_for_box(text, face, bold, width, height)
+    if text == "" or height <= 0 then return "", text end
+    local probe = TextBoxWidget:new{
+        text = text,
+        width = width,
+        height = height,
+        face = face,
+        bold = bold,
+        alignment = "left",
+        alignment_strict = true,
+    }
+    local lines = probe.vertical_string_list
+    local visible_lines = tonumber(probe.lines_per_page) or 0
+    local next_line = type(lines) == "table" and lines[visible_lines + 1] or nil
+    if not next_line or not next_line.offset then
+        WidgetResources.free(probe)
+        return text, ""
+    end
+
+    local last_line = lines[visible_lines]
+    local upper_end = last_line and tonumber(last_line.end_offset) or 0
+    local lower_start = tonumber(next_line.offset)
+    local chars = util.splitToChars(text)
+    WidgetResources.free(probe)
+    if upper_end < 1 or not lower_start or lower_start > #chars then
+        return "", text
+    end
+    return table.concat(chars, "", 1, upper_end),
+        table.concat(chars, "", lower_start, #chars)
 end
 
 local function build_progress_text(book, pct, progress_meta)
@@ -167,33 +193,55 @@ function M.build(ctx, source_key)
     local height = math.max(1, outer_height - padding * 2)
     local module_cfg = type(ctx.module_cfg) == "table" and ctx.module_cfg or {}
     local interactive = module_cfg.interactive ~= false
-    local source = source_key or "recently_read"
-    local order = module_cfg.order or "default"
-    local book = ctx.data:getFeaturedBook(source, order)
+    local source = source_key or HomePresets.featuredSourceKey(module_cfg.default_source)
+    local book = ctx.data:getFeaturedBook(source, "default")
     local show_description = module_cfg.show_description ~= false
     local show_status_bar = module_cfg.show_status_bar == true and type(ctx.buildStatusRow) == "function"
+    local cover_widget, cover_w, cover_actual_h
 
-    local col_top_pad = math.max(1, math.floor(height * 0.015))
+    local col_top_pad = math.max(1, Screen:scaleBySize(4))
     local col_bottom_pad = math.max(3, math.floor(height * 0.02))
     local gap = math.max(4, math.floor(width * 0.025))
 
     if not book then
+        local empty_cover = cover_common.make_empty_cover_widget(
+            source, width, height,
+            { border = cover_common.BORDER_SIZE, background = Blitbuffer.COLOR_LIGHT_GRAY }
+        )
+        local empty_size = empty_cover:getSize()
+        local empty_top = math.floor(math.max(0, outer_height - (empty_size.h or outer_height)) / 2)
+        local visual_shift = 0
+        local empty_container = CenterContainer:new{
+            dimen = Geom:new{ w = outer_width, h = outer_height },
+            empty_cover,
+        }
+        local original_empty_paint = empty_container.paintTo
+        empty_container.paintTo = function(self, bb, x, y)
+            return original_empty_paint(self, bb, x, y + visual_shift)
+        end
+        if type(ctx.setContentBounds) == "function" then
+            ctx.setContentBounds{
+                top = empty_top,
+                bottom = empty_top + (empty_size.h or outer_height),
+                min_shift = -empty_top,
+                max_shift = outer_height - empty_top - (empty_size.h or outer_height),
+                set_shift = function(shift) visual_shift = shift end,
+            }
+        end
         return FrameContainer:new{
             width = outer_width,
             height = outer_height,
             padding = 0,
             bordersize = 0,
             background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
-            CenterContainer:new{
-                dimen = Geom:new{ w = outer_width, h = outer_height },
-                TextWidget:new{ text = "No books found", face = ctx.face_label },
-            },
+            empty_container,
         }
     end
 
     if type(ctx.setWidgetActions) == "function" then
         ctx.setWidgetActions{
             activate = function()
+                set_opening_banner_cover(cover_widget)
                 ctx.openBook(book.path)
                 return true
             end,
@@ -204,32 +252,45 @@ function M.build(ctx, source_key)
         }
     end
 
-    -- Both columns share this height so tops and bottoms align
+    -- The assigned height is an upper bound; normal details stop at cover height.
     local col_h = math.max(1, height - col_top_pad - col_bottom_pad)
 
-    -- Left column: cover fills col_h, width is natural (aspect ratio driven)
-    local cover_max_w = math.max(1, math.floor(col_h * 0.80))
-    local cover_widget, cover_w, cover_actual_h = cover_common.make_cover_widget(
+    -- Reserve at least 60% of the usable row width for book details.
+    local columns_w = math.max(1, width - gap)
+    local cover_max_w = math.max(1, math.floor(columns_w * COVER_WIDTH_SHARE))
+    cover_widget, cover_w, cover_actual_h = cover_common.make_cover_widget(
         book, cover_max_w, col_h,
-        { border = 1, background = Blitbuffer.COLOR_LIGHT_GRAY }
+        { border = cover_common.BORDER_SIZE, background = Blitbuffer.COLOR_LIGHT_GRAY }
     )
-    -- Right column must match the actual rendered cover height exactly
     local cover_col_w = math.max(1, cover_w or cover_max_w)
-    col_h = math.max(1, cover_actual_h or col_h)
     gap = math.min(gap, math.max(0, width - cover_col_w - 1))
     local text_w = math.max(1, width - cover_col_w - gap)
 
     -- Fonts
-    local scale = clamp(col_h / 300, 0.55, 1.28) * library_font.getScale(18)
+    local scale = clamp(math.max(1, cover_actual_h or col_h) / 300, 0.55, 1.28)
     local title_style = text_style(module_cfg, "title")
     local author_style = text_style(module_cfg, "author")
     local series_style = text_style(module_cfg, "series")
     local description_style = text_style(module_cfg, "description")
+    local progress_style = text_style(module_cfg, "progress")
     local title_face = get_text_face(title_style, Screen:scaleBySize(math.floor(title_style.font_size * scale + 0.5)))
     local meta_face = get_text_face(author_style, Screen:scaleBySize(math.floor(author_style.font_size * scale + 0.5)))
     local series_face = get_text_face(series_style, Screen:scaleBySize(math.floor(series_style.font_size * scale + 0.5)))
-    local stats_face = Font:getFace("smallinfofont", Screen:scaleBySize(math.floor(6.5 * scale + 0.5)))
-    local desc_face = get_text_face(description_style, library_font.scaleValue(description_style.font_size))
+    local stats_face = get_text_face(progress_style,
+        Screen:scaleBySize(math.floor(progress_style.font_size * scale + 0.5)), "smallinfofont")
+    local desc_face = get_text_face(description_style, description_style.font_size)
+    local desc_text = type(book.description) == "string"
+        and util.htmlToPlainTextIfHtml(book.description) or ""
+    desc_text = desc_text:gsub("^%s+", ""):gsub("%s+$", "")
+    local desc_line_h_probe = TextBoxWidget:new{
+        text = "A\nA",
+        width = text_w,
+        face = desc_face,
+        bold = description_style.bold == true,
+    }
+    local desc_line_h = math.max(1, math.ceil(desc_line_h_probe:getSize().h / 2))
+    WidgetResources.free(desc_line_h_probe)
+    local v_pad = math.max(2, math.floor(col_h * 0.02))
 
     -- Optional status bar (top of right column)
     local status_opts = {
@@ -247,15 +308,16 @@ function M.build(ctx, source_key)
     local status_h = status_widget and (status_widget:getSize().h or 0) or 0
     local status_gap = status_h > 0 and math.max(1, math.floor(col_h * 0.015)) or 0
 
-    -- Progress bar anchored to bottom of right column
-    local progress_percent = book.status == "new" and 0 or book.percent
-    if book.status ~= "new"
+    -- Progress metrics; row width is chosen after overflow is measured.
+    local is_tbr = book.status == "tbr"
+    local progress_percent = (book.status == "new" or is_tbr) and 0 or book.percent
+    if book.status ~= "new" and not is_tbr
             and book.stable_current_page and book.stable_pages and book.stable_pages > 0 then
         progress_percent = book.stable_current_page / book.stable_pages
     end
     local pct = math.floor((progress_percent or 0) * 100 + 0.5)
     local left_progress_text, right_progress_text = "", ""
-    if book.status ~= "new" then
+    if book.status ~= "new" and not is_tbr then
         left_progress_text, right_progress_text =
             build_progress_text(book, pct, module_cfg.progress_meta)
     end
@@ -268,27 +330,26 @@ function M.build(ctx, source_key)
         WidgetResources.free(stats_probe)
     end
     local bar_h = math.max(progress_h, stats_text_h)
+    local has_progress = bar_h > 0 and book.status ~= "new" and not is_tbr
+    local cover_h = math.max(1, cover_actual_h or col_h)
+    local bottom_h = has_progress and bar_h or 0
 
-    local progress_row
-    if bar_h > 0 and book.status ~= "new" then
+    local function build_progress_row(progress_w)
+        if not has_progress then return nil end
         if has_progress_text then
-            local lw = TextWidget:new{ text = left_progress_text, face = stats_face, fgcolor = Blitbuffer.COLOR_BLACK }
-            local rw = TextWidget:new{ text = right_progress_text, face = stats_face, fgcolor = Blitbuffer.COLOR_BLACK }
-            local tgap = math.max(4, math.floor(text_w * 0.02))
-            local bar_w = math.max(20, text_w - lw:getSize().w - rw:getSize().w - tgap * 2)
-            progress_row = HorizontalGroup:new{
-                align = "center",
-                lw,
-                HorizontalSpan:new{ width = tgap },
-                render_progress(progress_percent, bar_w, progress_h),
-                HorizontalSpan:new{ width = tgap },
-                rw,
+            return BookProgress.build{
+                ratio = progress_percent,
+                width = progress_w,
+                bar_height = progress_h,
+                face = stats_face,
+                bold = progress_style.bold == true,
+                gap = math.max(4, math.floor(progress_w * 0.02)),
+                left_text = left_progress_text,
+                right_text = right_progress_text,
             }
-        else
-            progress_row = render_progress(progress_percent, text_w, progress_h)
         end
+        return BookProgress.bar(progress_percent, progress_w, progress_h)
     end
-    local bottom_h = progress_row and bar_h or 0
 
     -- Title: up to 2 lines before truncating
     local title_line_h = math.max(1, math.floor((tonumber(title_face.size) or 12) * 1.05 + 0.5))
@@ -316,7 +377,7 @@ function M.build(ctx, source_key)
 
     -- Build top block widgets first so we can measure actual heights
     local top_items = {}
-    local top_budget = col_h - bottom_h
+    local top_budget = math.max(0, cover_h - bottom_h)
 
     if status_widget and status_h > 0 then
         if top_budget >= status_h then
@@ -419,77 +480,182 @@ function M.build(ctx, source_key)
     for _i, w in ipairs(top_items) do
         actual_top_h = actual_top_h + w:getSize().h
     end
+    local flow_description = false
+    local flow_upper_text, flow_lower_text = "", ""
+    local side_desc_h = 0
+    local lower_room = col_h - cover_h - bottom_h
+    -- Detect overflow in the compact layout, then reflow into the freed progress space.
+    if module_cfg.wrap_description_text == true
+            and show_description and desc_text ~= ""
+            and lower_room >= desc_line_h then
+        local compact_side_available = math.max(
+            0, cover_h - actual_top_h - bottom_h - v_pad * 2)
+        local compact_side_desc_h =
+            math.floor(compact_side_available / desc_line_h) * desc_line_h
+        local overflow_text = desc_text
+        if compact_side_desc_h > 0 then
+            flow_upper_text, overflow_text = split_text_for_box(
+                desc_text, desc_face, description_style.bold == true,
+                text_w, compact_side_desc_h)
+        end
+        flow_description = overflow_text:gsub("^%s+", "") ~= ""
+        if flow_description then
+            local side_available = math.max(
+                0, cover_h - actual_top_h - v_pad)
+            side_desc_h = math.floor(side_available / desc_line_h) * desc_line_h
+            if side_desc_h > 0 then
+                flow_upper_text, flow_lower_text = split_text_for_box(
+                    desc_text, desc_face, description_style.bold == true,
+                    text_w, side_desc_h)
+            else
+                flow_lower_text = desc_text
+            end
+            flow_lower_text = flow_lower_text:gsub("^%s+", "")
+        end
+    end
+    local progress_w = flow_description and width or text_w
+    local progress_row = build_progress_row(progress_w)
     local actual_bottom_h = progress_row and progress_row:getSize().h or 0
-    local spacer_h = math.max(0, col_h - actual_top_h - actual_bottom_h)
+    local detail_bottom_h = flow_description and 0 or actual_bottom_h
+    local spacer_h = math.max(0, cover_h - actual_top_h - detail_bottom_h)
 
-    -- Description fills the middle space
-    local desc_line_h_probe = TextBoxWidget:new{
-        text = "A\nA",
-        width = text_w,
-        face = desc_face,
-        bold = description_style.bold == true,
-    }
-    local desc_line_h = math.max(1, math.ceil(desc_line_h_probe:getSize().h / 2))
-    WidgetResources.free(desc_line_h_probe)
-
-    local v_pad = math.max(2, math.floor(col_h * 0.02))
-    local desc_available = math.max(0, spacer_h - v_pad * 2)
-    local desc_text = book.description and util.htmlToPlainTextIfHtml(book.description) or ""
-    local can_show_desc = show_description and desc_text ~= "" and desc_available >= desc_line_h
-    local desc_h = 0
-    if can_show_desc then
-        desc_h = math.floor(desc_available / desc_line_h) * desc_line_h
-    end
-
-    -- Assemble right column: title/author top, desc middle, progress bottom
-    local detail_children = { align = "left" }
-    for _i, w in ipairs(top_items) do
-        table.insert(detail_children, w)
-    end
-
-    if can_show_desc and desc_h > 0 then
-        local desc_widget = TextBoxWidget:new{
-            text = desc_text,
-            width = text_w,
-            height = desc_h,
+    local function description_widget(text, box_w, box_h, ellipsis)
+        return TextBoxWidget:new{
+            text = text,
+            width = box_w,
+            height = box_h,
             face = desc_face,
             bold = description_style.bold == true,
             alignment = "left",
             alignment_strict = true,
             fgcolor = Blitbuffer.COLOR_BLACK,
-            height_overflow_show_ellipsis = true,
+            height_overflow_show_ellipsis = ellipsis,
         }
-        local actual_desc_h = desc_widget:getSize().h
-        local after = math.max(0, spacer_h - v_pad - actual_desc_h)
-        table.insert(detail_children, VerticalSpan:new{ width = v_pad })
-        table.insert(detail_children, desc_widget)
-        if after > 0 then
-            table.insert(detail_children, VerticalSpan:new{ width = after })
+    end
+
+    local body
+    if flow_description then
+        local upper_desc_h = side_desc_h
+        local lower_slot_h = math.max(0, col_h - cover_h - actual_bottom_h)
+        local wrap_gap = math.max(4, Screen:scaleBySize(8))
+        local lower_desc_h = math.max(0, lower_slot_h - wrap_gap)
+        local upper_text, lower_text = flow_upper_text, flow_lower_text
+
+        local side_children = { align = "left" }
+        for _i, w in ipairs(top_items) do
+            table.insert(side_children, w)
         end
-    elseif spacer_h > 0 then
-        table.insert(detail_children, VerticalSpan:new{ width = spacer_h })
+        if upper_text ~= "" and upper_desc_h > 0 then
+            local upper_desc = description_widget(
+                upper_text, text_w, upper_desc_h, lower_desc_h <= 0)
+            local after = math.max(0, spacer_h - v_pad - upper_desc:getSize().h)
+            table.insert(side_children, VerticalSpan:new{ width = v_pad })
+            table.insert(side_children, upper_desc)
+            if after > 0 then
+                table.insert(side_children, VerticalSpan:new{ width = after })
+            end
+        elseif spacer_h > 0 then
+            table.insert(side_children, VerticalSpan:new{ width = spacer_h })
+        end
+
+        local side_detail = FrameContainer:new{
+            width = text_w,
+            height = cover_h,
+            padding = 0,
+            bordersize = 0,
+            background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
+            VerticalGroup:new(side_children),
+        }
+        local flow_children = {
+            align = "left",
+            HorizontalGroup:new{
+                align = "top",
+                cover_widget,
+                HorizontalSpan:new{ width = gap },
+                side_detail,
+            },
+        }
+        if lower_text ~= "" and lower_desc_h > 0 then
+            local lower_desc = description_widget(
+                lower_text, width, lower_desc_h, true)
+            local after = math.max(0,
+                lower_slot_h - wrap_gap - lower_desc:getSize().h)
+            table.insert(flow_children, VerticalSpan:new{ width = wrap_gap })
+            table.insert(flow_children, lower_desc)
+            if after > 0 then
+                table.insert(flow_children, VerticalSpan:new{ width = after })
+            end
+        elseif lower_slot_h > 0 then
+            table.insert(flow_children, VerticalSpan:new{ width = lower_slot_h })
+        end
+        if progress_row then table.insert(flow_children, progress_row) end
+        body = VerticalGroup:new(flow_children)
+    else
+        local desc_available = math.max(0, spacer_h - v_pad * 2)
+        local can_show_desc = show_description and desc_text ~= ""
+            and desc_available >= desc_line_h
+        local desc_h = can_show_desc
+            and math.floor(desc_available / desc_line_h) * desc_line_h or 0
+        local detail_children = { align = "left" }
+        for _i, w in ipairs(top_items) do
+            table.insert(detail_children, w)
+        end
+        if can_show_desc and desc_h > 0 then
+            local desc_widget = description_widget(desc_text, text_w, desc_h, true)
+            local after = math.max(0, spacer_h - v_pad - desc_widget:getSize().h)
+            table.insert(detail_children, VerticalSpan:new{ width = v_pad })
+            table.insert(detail_children, desc_widget)
+            if after > 0 then
+                table.insert(detail_children, VerticalSpan:new{ width = after })
+            end
+        elseif spacer_h > 0 then
+            table.insert(detail_children, VerticalSpan:new{ width = spacer_h })
+        end
+        if progress_row then table.insert(detail_children, progress_row) end
+
+        local detail = FrameContainer:new{
+            width = text_w,
+            height = cover_h,
+            padding = 0,
+            bordersize = 0,
+            background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
+            VerticalGroup:new(detail_children),
+        }
+        body = HorizontalGroup:new{
+            align = "top",
+            cover_widget,
+            HorizontalSpan:new{ width = gap },
+            detail,
+        }
     end
 
-    -- Progress anchored at bottom
-    if progress_row then
-        table.insert(detail_children, progress_row)
+    local visual_group = VerticalGroup:new{
+        align = "center",
+        VerticalSpan:new{ width = col_top_pad },
+        body,
+    }
+    local visual_size = visual_group:getSize()
+    local visual_shift = 0
+    local content_container = TopContainer:new{
+        dimen = Geom:new{ w = width, h = height },
+        visual_group,
+    }
+    local original_content_paint = content_container.paintTo
+    content_container.paintTo = function(self, bb, x, y)
+        return original_content_paint(self, bb, x, y + visual_shift)
     end
-
-    local detail = FrameContainer:new{
-        width = text_w,
-        height = col_h,
-        padding = 0,
-        bordersize = 0,
-        background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
-        VerticalGroup:new(detail_children),
-    }
-
-    local body = HorizontalGroup:new{
-        align = "top",
-        cover_widget,
-        HorizontalSpan:new{ width = gap },
-        detail,
-    }
+    if type(ctx.setContentBounds) == "function" then
+        local outer_top = math.floor(math.max(0, outer_height - height) / 2)
+        local visual_top = outer_top + col_top_pad
+        local visual_bottom = outer_top + (visual_size.h or height)
+        ctx.setContentBounds{
+            top = visual_top,
+            bottom = visual_bottom,
+            min_shift = -visual_top,
+            max_shift = outer_height - visual_bottom,
+            set_shift = function(shift) visual_shift = shift end,
+        }
+    end
 
     local frame = FrameContainer:new{
         width = outer_width,
@@ -499,14 +665,7 @@ function M.build(ctx, source_key)
         background = Background.tile_bg(Blitbuffer.COLOR_WHITE),
         CenterContainer:new{
             dimen = Geom:new{ w = outer_width, h = outer_height },
-            TopContainer:new{
-            dimen = Geom:new{ w = width, h = height },
-            VerticalGroup:new{
-                align = "center",
-                VerticalSpan:new{ width = col_top_pad },
-                body,
-            },
-            },
+            content_container,
         },
     }
 
@@ -534,6 +693,8 @@ function M.build(ctx, source_key)
         if not tap_self.dimen or not ges or not ges.pos then return false end
         if ctx.openTopMenu and ctx.openTopMenu(ges) then return true end
         if not tap_self.dimen:contains(ges.pos) then return false end
+        if ges.time ~= nil and not BookOpenTap.shouldOpen(book.path, ges.time) then return true end
+        set_opening_banner_cover(cover_widget)
         ctx.openBook(book.path)
         return true
     end

@@ -1,10 +1,17 @@
 local DataStorage = require("datastorage")
-local LuaSettings = require("luasettings")
 local lfs = require("libs/libkoreader-lfs")
+local BrandMigration = require("common/brand_migration")
+
+local settings_parent = DataStorage:getSettingsDir()
+local settings_migration = BrandMigration.prepareSettings(settings_parent, { lfs = lfs })
+local ROOT_DIR = settings_migration.root
+
+-- Resolve and, when needed, rename the complete settings tree before opening
+-- any individual LuaSettings file.
+local LuaSettings = require("luasettings")
 
 local M = {}
 
-local ROOT_DIR = DataStorage:getSettingsDir() .. "/Zen UI"
 local VALID_KINDS = {
     home = true,
     stats = true,
@@ -124,7 +131,14 @@ end
 
 function M.saveSettings(kind, settings_data)
     local store = M.loadStore(kind)
+    local previous = store.settings
     store.settings = type(settings_data) == "table" and settings_data or {}
+    if kind == "reader" and store.settings.page_browser_layout == nil then
+        local layout = type(previous) == "table" and previous.page_browser_layout
+        if layout == "single" or layout == "grid" then
+            store.settings.page_browser_layout = layout
+        end
+    end
     return M.saveStore(kind, store)
 end
 
@@ -187,23 +201,8 @@ function M.delete(kind, name)
     return M.saveStore(kind, store)
 end
 
-local function remove_tree(path)
-    local mode = lfs.attributes(path, "mode")
-    if mode == "file" then
-        pcall(os.remove, path)
-        return
-    end
-    if mode ~= "directory" then return end
-    for entry in lfs.dir(path) do
-        if entry ~= "." and entry ~= ".." then
-            remove_tree(path .. "/" .. entry)
-        end
-    end
-    pcall(lfs.rmdir, path)
-end
-
 function M.removeAll()
-    remove_tree(ROOT_DIR)
+    return BrandMigration.removeSettings({ settings_dir = settings_parent, lfs = lfs })
 end
 
 return M

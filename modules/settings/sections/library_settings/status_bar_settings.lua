@@ -1,5 +1,5 @@
 -- settings/sections/library/status_bar.lua
--- Status bar settings item for Zen UI.
+-- Status bar settings item for ZenOS.
 -- Returns a single menu-item table: { text = _("Status bar"), sub_item_table = {...} }
 -- Receives ctx: { config, save_and_apply }
 
@@ -29,6 +29,7 @@ function M.build(ctx)
 
     local status_bar_all_items = {
         { key = "bluetooth",   text = _("Bluetooth"), available = Bluetooth.isAvailable },
+        { key = "incognito",   text = _("Incognito")   },
         { key = "wifi",        text = _("Wi-Fi")       },
         { key = "disk",        text = _("Disk space")  },
         { key = "ram",         text = _("RAM usage")   },
@@ -48,8 +49,7 @@ function M.build(ctx)
         status_bar_all_items = available_items
     end
 
-    -- Append items registered by external plugins via
-    -- _G.__ZEN_UI_REGISTER_STATUS_ITEM so they are placeable from this UI.
+    -- Append items registered via __ZENOS_REGISTER_STATUS_ITEM (or its legacy alias).
     local ext_registry = rawget(_G, "__ZEN_UI_STATUS_ITEMS")
     if type(ext_registry) == "table" then
         for key, entry in pairs(ext_registry) do
@@ -68,7 +68,7 @@ function M.build(ctx)
     local CANONICAL_ORDERS = {
         left   = { "time", "custom_text" },
         center = {},
-        right  = { "custom_text", "disk", "ram", "frontlight", "bluetooth", "wifi", "battery" },
+        right  = { "custom_text", "disk", "ram", "frontlight", "incognito", "bluetooth", "wifi", "battery" },
     }
 
     local function make_status_bar_slot_items(slot_name, arrange_title)
