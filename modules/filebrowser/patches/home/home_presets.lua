@@ -733,12 +733,14 @@ function M.normalizeStripConfig(dcfg)
     return changed
 end
 
-function M.normalizeLayoutGrid(dcfg, notify)
+function M.normalizeLayoutGrid(dcfg)
     if type(dcfg) ~= "table" then return false end
     if type(dcfg.rows) ~= "table" then dcfg.rows = {} end
     local rows = dcfg.rows
+    local changed = rows.layout_notice_pending ~= nil
+    rows.layout_notice_pending = nil
     if tonumber(rows.layout_schema_version) and rows.layout_schema_version >= 2 then
-        return false
+        return changed
     end
 
     local max_rows = tonumber(rows.max_rows)
@@ -755,7 +757,6 @@ function M.normalizeLayoutGrid(dcfg, notify)
     rows.max_rows = nil
     rows.capacity_units = 10
     rows.layout_schema_version = 2
-    if notify == true then rows.layout_notice_pending = true end
     return true
 end
 
@@ -784,7 +785,7 @@ function M.applyHomePagePreset(dcfg, preset)
     end
     M.normalizeFeaturedConfig(dcfg)
     M.normalizeStripConfig(dcfg)
-    M.normalizeLayoutGrid(dcfg, false)
+    M.normalizeLayoutGrid(dcfg)
 end
 
 return M

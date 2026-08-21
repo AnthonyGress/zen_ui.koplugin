@@ -685,7 +685,7 @@ local function ensure_home_cfg()
     HomePresets.normalizeFeaturedConfig(dcfg)
     HomePresets.normalizeStripConfig(dcfg)
     if type(HomePresets.normalizeLayoutGrid) == "function" then
-        HomePresets.normalizeLayoutGrid(dcfg, false)
+        HomePresets.normalizeLayoutGrid(dcfg)
     end
 
     dcfg.rows = Registry.normalizeRows(dcfg.rows, DEFAULT_ROW_ORDER, DEFAULT_ROW_ENABLED)
@@ -3049,11 +3049,6 @@ function M.showHomeView(injectNavbar)
     local cfg = load_zen_config()
     if type(cfg) ~= "table" then return end
     local dcfg = ensure_home_cfg()
-    local layout_notice_pending = dcfg.rows.layout_notice_pending == true
-    if layout_notice_pending then
-        dcfg.rows.layout_notice_pending = nil
-        PresetStore.saveSettings("home", dcfg)
-    end
     local show_status_bar = dcfg.show_status_bar ~= false
     local Screen = require("device").screen
 
@@ -3450,12 +3445,6 @@ function M.showHomeView(injectNavbar)
         rebuild(true)
         if menu._zen_status_refresh then
             menu:_zen_status_refresh()
-        end
-        if layout_notice_pending then
-            local InfoMessage = require("ui/widget/infomessage")
-            UIManager:show(InfoMessage:new{
-                text = _("Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."),
-            })
         end
     end)
     return menu, true

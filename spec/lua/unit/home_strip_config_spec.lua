@@ -213,7 +213,7 @@ describe("unified Home strip configuration", function()
         assert.is_false(page.modules.strip.controls.show_buttons.recent)
     end)
 
-    it("migrates legacy five-row layouts without revealing previously hidden widgets", function()
+    it("silently migrates legacy five-row layouts without revealing hidden widgets", function()
         local Presets = require("modules/filebrowser/patches/home/home_presets")
         local page = {
             rows = {
@@ -229,14 +229,14 @@ describe("unified Home strip configuration", function()
             },
         }
 
-        assert.is_true(Presets.normalizeLayoutGrid(page, true))
+        assert.is_true(Presets.normalizeLayoutGrid(page))
         assert.is_nil(page.rows.max_rows)
         assert.are.equal(10, page.rows.capacity_units)
         assert.are.equal(2, page.rows.layout_schema_version)
-        assert.is_true(page.rows.layout_notice_pending)
+        assert.is_nil(page.rows.layout_notice_pending)
         assert.is_true(page.rows.enabled.stats_triplet)
         assert.is_false(page.rows.enabled.datetime)
-        assert.is_false(Presets.normalizeLayoutGrid(page, true))
+        assert.is_false(Presets.normalizeLayoutGrid(page))
     end)
 
     it("preserves all selections from the first spacing-grid version", function()
@@ -252,12 +252,26 @@ describe("unified Home strip configuration", function()
             },
         }
 
-        assert.is_true(Presets.normalizeLayoutGrid(page, true))
+        assert.is_true(Presets.normalizeLayoutGrid(page))
         assert.is_true(page.rows.enabled.featured)
         assert.is_true(page.rows.enabled.strip)
         assert.is_true(page.rows.enabled.quotes)
         assert.is_true(page.rows.enabled.reading_goals)
         assert.is_true(page.rows.enabled.stats_triplet)
-        assert.is_true(page.rows.layout_notice_pending)
+        assert.is_nil(page.rows.layout_notice_pending)
+    end)
+
+    it("clears a queued layout notice from prior versions", function()
+        local Presets = require("modules/filebrowser/patches/home/home_presets")
+        local page = {
+            rows = {
+                layout_schema_version = 2,
+                layout_notice_pending = true,
+            },
+        }
+
+        assert.is_true(Presets.normalizeLayoutGrid(page))
+        assert.is_nil(page.rows.layout_notice_pending)
+        assert.is_false(Presets.normalizeLayoutGrid(page))
     end)
 end)

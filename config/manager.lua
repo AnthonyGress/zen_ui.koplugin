@@ -919,10 +919,10 @@ end
 local function migrate_home_layout_grid()
     if type(HomePresets.normalizeLayoutGrid) ~= "function" then return false end
     local store = PresetStore.loadStore("home")
-    local changed = HomePresets.normalizeLayoutGrid(store.settings, true)
+    local changed = HomePresets.normalizeLayoutGrid(store.settings)
     for _name, preset in pairs(store.presets) do
         local page = type(preset) == "table" and (preset.home_page or preset)
-        if HomePresets.normalizeLayoutGrid(page, false) then changed = true end
+        if HomePresets.normalizeLayoutGrid(page) then changed = true end
     end
     return changed and PresetStore.saveStore("home", store)
 end
