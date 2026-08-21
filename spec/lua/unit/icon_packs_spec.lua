@@ -369,6 +369,14 @@ describe("ZenOS icon packs", function()
             "/plugins/zenfm.koplugin/icons/plugin_only_qzxvplm.svg"))
     end)
 
+    it("strips current and legacy Zen action prefixes", function()
+        local utils = require("common/utils")
+
+        assert.are.equal("Open folder", utils.stripZenPrefix("ZenOS: Open folder"))
+        assert.are.equal("Home", utils.stripZenPrefix("Zen UI - Home"))
+        assert.are.equal("KOReader menu", utils.stripZenPrefix("KOReader menu"))
+    end)
+
     it("keeps custom icons and the active pack disabled by default", function()
         local defaults = require("config/defaults")
         assert.is_false(defaults.features.custom_icons_enabled)

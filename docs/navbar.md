@@ -36,7 +36,7 @@ Folder mode makes either tab a one-tap shortcut to wherever you keep that conten
 
 ## Folder And Tag Tabs
 
-The built-in **Folder** tab opens a folder you choose. Its presets can point to the home folder, the last folder, or the current folder, and Folder can be selected as the default tab. Use **Single tag** for a direct shortcut to one tag or **All tags** for the grouped tag browser.
+The built-in **Folder** tab opens a folder you choose. Its presets can point to the home folder, the last folder, or the current folder, and Folder can be selected as the default tab. Add as many separate **Folder** tabs as you need, each with its own path. Use **Specific tag** for a direct shortcut to one tag or **All tags** for the grouped tag browser.
 
 ## Grouped Views
 
@@ -55,6 +55,8 @@ Adjust a grouped view's display and sort from its context menu while that tab is
 | Tabs | Opens the tab arranger. At least 1 tab must remain visible and no more than 7 tabs can be visible. |
 | Tabs > Built-in tabs | Includes Library, Folder, Manga, News, Continue, History, Favorites, Collections, Authors, Series, Home, Single tag, All tags, To Be Read, Search, Calibre Search, Stats, Exit, Previous page, Next page, and Menu. |
 | Tabs > Add > Control | Adds a Navbar tab that runs a selected Controls control. |
+| Tabs > Add > Folder | Adds an independently configured folder tab. |
+| Tabs > Add > Specific tag | Adds a tab that opens one selected tag. |
 | Tabs > Add > Action | Adds a user-defined tab that runs a dispatcher action with a suggested icon. |
 | Tabs > Add > Plugin Menu | Scans for launchable plugin menus and adds the selected plugin menu as a tab with a suggested icon. |
 | Tabs > Add > KOReader menu | Adds a native submenu from the library-valid KOReader menu tree. |

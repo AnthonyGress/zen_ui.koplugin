@@ -5,8 +5,10 @@ describe("library navigation", function()
         for _i, name in ipairs({
             "__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB", "__ZEN_UI_OPEN_TARGET_TAB",
             "__ZEN_UI_OPEN_TARGET_FOLDER", "__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER",
+            "__ZEN_UI_OPEN_TARGET_TAG",
             "__ZEN_UI_KEEP_BOOK_LOCATION", "__ZEN_UI_LAST_READ_FILE",
             "__ZEN_UI_LIBRARY_STATE", "__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB",
+            "__ZEN_UI_NAVBAR_OPEN_FOLDER",
         }) do
             _G[name] = nil
         end
@@ -81,6 +83,67 @@ describe("library navigation", function()
         assert.is_true(ui.closed)
         assert.are.equal("/library/Book.epub", ui.shown)
         assert.are.equal("history", _G.__ZEN_UI_OPEN_TARGET_TAB)
+    end)
+
+    it("returns to the file manager with a requested specific tag", function()
+        local ui = reader()
+        local plugin = { config = { features = { restore_library_view = true } } }
+
+        assert.is_true(Navigation.showFromReader(ui, plugin, { target_tag = "Science" }))
+
+        assert.are.equal("Science", _G.__ZEN_UI_OPEN_TARGET_TAG)
+        assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+        assert.is_true(ui.closed)
+    end)
+
+    it("opens folder and tag destinations when Navbar is disabled", function()
+        local folders = {}
+        local tags = {}
+        ZenSpec.replace("apps/filemanager/filemanager", { instance = {
+            file_chooser = {
+                changeToPath = function(_self, path) folders[#folders + 1] = path end,
+            },
+        } })
+        ZenSpec.replace("common/shared_state", {
+            get = function()
+                return {
+                    showTagDetail = function(tag) tags[#tags + 1] = tag end,
+                }
+            end,
+        })
+        local plugin = { config = { features = { restore_library_view = true } } }
+
+        Navigation.showFromReader(reader(), plugin, { target_folder = "/library/Fiction" })
+        Navigation.showFromReader(reader(), plugin, { target_tag = "Science" })
+
+        assert.are.same({ "/library/Fiction" }, folders)
+        assert.are.same({ "Science" }, tags)
+        assert.is_nil(_G.__ZEN_UI_OPEN_TARGET_FOLDER)
+        assert.is_nil(_G.__ZEN_UI_OPEN_TARGET_TAG)
+    end)
+
+    it("uses Navbar folder navigation when FileManager survives Reader teardown", function()
+        local direct_changes = {}
+        local navbar_opens = {}
+        ZenSpec.replace("apps/filemanager/filemanager", { instance = {
+            file_chooser = {
+                changeToPath = function(_self, path)
+                    direct_changes[#direct_changes + 1] = path
+                end,
+            },
+        } })
+        _G.__ZEN_UI_NAVBAR_OPEN_FOLDER = function(path)
+            navbar_opens[#navbar_opens + 1] = path
+            return true
+        end
+
+        Navigation.showFromReader(reader(), {
+            config = { features = { restore_library_view = true } },
+        }, { target_folder = "/library/Fiction" })
+
+        assert.are.same({ "/library/Fiction" }, navbar_opens)
+        assert.are.same({}, direct_changes)
+        assert.is_nil(_G.__ZEN_UI_OPEN_TARGET_FOLDER)
     end)
 
     it("keeps a book outside home instead of forcing the default tab", function()

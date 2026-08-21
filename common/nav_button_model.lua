@@ -64,6 +64,21 @@ function M.find(controls, id)
     end
 end
 
+function M.getFolderActionPath(actions)
+    if type(actions) ~= "table" then return end
+    local folder = actions.zen_ui_show_folder
+    if type(folder) ~= "string" or folder == "" then return end
+    local found
+    for key, value in pairs(actions) do
+        if key ~= "settings" then
+            local name = type(key) == "number" and value or key
+            if name ~= "zen_ui_show_folder" or found then return end
+            found = true
+        end
+    end
+    return found and folder or nil
+end
+
 function M.firstVisibleSource(controls)
     if type(controls) ~= "table" then return end
     local show_buttons = type(controls.show_buttons) == "table"
@@ -89,9 +104,8 @@ function M.label(controls, entry)
     if type(override) == "string" and override ~= "" then return override end
     if type(entry.label) == "string" and entry.label ~= "" then return entry.label end
     if entry.type == "tag" then return entry.tag or _("Tag") end
-    if entry.type == "folder" then
-        return type(entry.folder) == "string" and entry.folder:match("([^/]+)/?$")
-            or _("Folder")
+    if entry.type == "folder" or entry.type == "folder_shortcut" then
+        return require("common/library_destination").folderLabel(entry.folder)
     end
     if entry.type == "plugin" then return entry.plugin_title or _("Plugin") end
     if entry.type == "koreader_menu" then
@@ -100,7 +114,7 @@ function M.label(controls, entry)
     return _("Custom")
 end
 
-function M.execute(entry)
+function M.execute(entry, plugin)
     if type(entry) ~= "table" then return false end
     if by_id[entry.id] then
         local open_tab = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_TAB")
@@ -128,6 +142,15 @@ function M.execute(entry)
             return true
         end
         return false
+    end
+    if (entry.type == "folder" or entry.type == "folder_shortcut")
+            and type(entry.folder) == "string" then
+        return require("common/dispatch_action").onShowZenUIFolder(
+            plugin or rawget(_G, "__ZEN_UI_PLUGIN"), entry.folder) == true
+    end
+    if entry.type == "tag" and type(entry.tag) == "string" then
+        return require("common/dispatch_action").onShowZenUITag(
+            plugin or rawget(_G, "__ZEN_UI_PLUGIN"), entry.tag) == true
     end
     if entry.action and next(entry.action) then
         local ok, Dispatcher = pcall(require, "dispatcher")

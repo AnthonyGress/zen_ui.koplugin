@@ -14,6 +14,8 @@ local IconItem = require("common/ui/icon_menu_item")
 local NativeMenu = require("modules/menu/app_launcher/native_menu")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
 local DispatcherMenu = require("common/dispatcher_menu")
+local ButtonModel = require("common/nav_button_model")
+local Destination = require("common/library_destination")
 
 local M = {}
 
@@ -285,6 +287,9 @@ function M.build(ctx)
         if ct.type == "tag" then
             return ct.tag or _("Tag")
         end
+        if ct.type == "folder" then
+            return Destination.folderLabel(ct.folder)
+        end
         if ct.type == "plugin" then
             return ct.plugin_title or _("Plugin")
         end
@@ -293,7 +298,7 @@ function M.build(ctx)
         end
         if ok_disp and ct.action and next(ct.action) then
             local t = Dispatcher:menuTextFunc(ct.action)
-            if t ~= _("Nothing") then return t end
+            if t ~= _("Nothing") then return icon_utils.stripZenPrefix(t) end
         end
         return _("Custom")
     end
@@ -315,7 +320,9 @@ function M.build(ctx)
             ct.label_auto = true
         end
         if ct.icon == "lightning" then
-            ct.icon = suggest_icon(ct.label, true)
+            local preferred = ButtonModel.getFolderActionPath(ct.action)
+                and "tab_folder" or nil
+            ct.icon = suggest_icon(ct.label, true, preferred)
         end
     end
 
@@ -350,10 +357,6 @@ function M.build(ctx)
                 }
             end
         end
-        picker_items[#picker_items + 1] = {
-            id = "tag",
-            text = _("Single tag"),
-        }
         table.sort(picker_items, function(a, b) return a.text < b.text end)
         if #picker_items == 0 then return end
         require("common/ui/zen_menu_picker"){
@@ -361,10 +364,6 @@ function M.build(ctx)
             items = picker_items,
             back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
-                if item.id == "tag" then
-                    addTagTab(touch_menu)
-                    return
-                end
                 ensureTabOrder(item.id)
                 config.navbar.show_tabs[item.id] = countEnabledTabs() < navbar_max_tabs
                 save_and_defer_navbar_refresh()
@@ -440,26 +439,11 @@ function M.build(ctx)
     end
 
     local function showTagPicker(on_select, touch_menu)
-        local ok_db, db = pcall(require, "common/db_bookinfo")
-        local groups = ok_db and db and type(db.getGroupedByTags) == "function"
-            and db.getGroupedByTags() or {}
-        if #groups == 0 then
-            local InfoMessage = require("ui/widget/infomessage")
-            UIManager:show(InfoMessage:new{ text = _("No tags found") })
-            return
-        end
-        local items = {}
-        for _i, group in ipairs(groups) do
-            items[#items + 1] = { text = group.tag, tag = group.tag }
-        end
-        require("common/ui/zen_menu_picker"){
-            title = _("Choose tag"),
-            items = items,
+        Destination.chooseTag(function(tag)
+            on_select({ tag = tag })
+        end, {
             back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
-            on_select = function(item)
-                if item and item.tag then on_select(item) end
-            end,
-        }
+        })
     end
 
     local function choosePluginTab(ct, touch_menu)
@@ -578,6 +562,36 @@ function M.build(ctx)
         end, touch_menu)
     end
 
+    local function addFolderTab(touch_menu)
+        Destination.chooseFolder(function(path)
+            local ct = {
+                type = "folder",
+                folder = path,
+                label = Destination.folderLabel(path),
+                label_auto = true,
+                icon = "tab_folder",
+            }
+            commitCustomTab(ct)
+            openCustomTabSettings(touch_menu, ct)
+        end, {
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
+        })
+    end
+
+    local function chooseFolderTab(ct, touch_menu)
+        Destination.chooseFolder(function(path)
+            local old_label = Destination.folderLabel(ct.folder)
+            ct.folder = path
+            if ct.label_auto == true or not ct.label or ct.label == ""
+                    or ct.label == old_label then
+                ct.label = Destination.folderLabel(path)
+                ct.label_auto = true
+            end
+            save_and_defer_navbar_refresh()
+            if touch_menu and touch_menu.updateItems then touch_menu:updateItems(1) end
+        end, { path = ct.folder })
+    end
+
     local function chooseTagTab(ct, touch_menu)
         showTagPicker(function(item)
             local old_tag = ct.tag
@@ -665,6 +679,16 @@ function M.build(ctx)
                     chooseTagTab(ct, touch_menu)
                 end,
             }, icons.keywords))
+        elseif ct.type == "folder" then
+            table.insert(items, IconItem.decorate({
+                text_func = function()
+                    return _("Folder") .. ": " .. Destination.folderLabel(ct.folder)
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    chooseFolderTab(ct, touch_menu)
+                end,
+            }, icons.settings_folders))
         elseif ct.type == "quick_setting" then
             table.insert(items, IconItem.decorate({
                 text_func = function()
@@ -763,7 +787,8 @@ function M.build(ctx)
                 dialog = InputDialog:new{
                     title = _("Custom tab label"),
                     input = ct.label or "",
-                    input_hint = _("Leave empty to use action title"),
+                    input_hint = ct.type == "action"
+                        and _("Leave empty to use action title") or nil,
                     buttons = {{
                         { text = _("Cancel"), callback = function() UIManager:close(dialog) end },
                         {
@@ -774,8 +799,9 @@ function M.build(ctx)
                                 if txt and txt ~= "" then
                                     ct.label = txt
                                     ct.label_auto = false
-                                elseif ct.type == "tag" then
-                                    ct.label = ct.tag
+                                elseif ct.type == "tag" or ct.type == "folder" then
+                                    ct.label = ct.type == "tag" and ct.tag
+                                        or Destination.folderLabel(ct.folder)
                                     ct.label_auto = true
                                 else
                                     ct.label = nil
@@ -1223,6 +1249,16 @@ function M.build(ctx)
                     keep_menu_open = true,
                     callback = addActionTab,
                 }, icons.action),
+                IconItem.decorate({
+                    text = _("Folder"),
+                    keep_menu_open = true,
+                    callback = addFolderTab,
+                }, icons.settings_folders),
+                IconItem.decorate({
+                    text = _("Specific tag"),
+                    keep_menu_open = true,
+                    callback = addTagTab,
+                }, icons.keywords),
                 IconItem.decorate({
                     text = _("Control"),
                     keep_menu_open = true,

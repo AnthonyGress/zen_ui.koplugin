@@ -10,6 +10,7 @@ local NativeMenu = require("modules/menu/app_launcher/native_menu")
 local PagePlan = require("modules/menu/app_launcher/page_plan")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
 local DispatcherMenu = require("common/dispatcher_menu")
+local Destination = require("common/library_destination")
 
 local M = {}
 local DEFAULT_ENTRY_ICON = "lightning"
@@ -116,7 +117,7 @@ function M.build(ctx)
         if ok_disp and entry.action and next(entry.action) then
             local text = Dispatcher:menuTextFunc(entry.action)
             if text and text ~= "" and text ~= _("Nothing") then
-                return text
+                return icon_utils.stripZenPrefix(text)
             end
         end
         return nil
@@ -297,6 +298,40 @@ function M.build(ctx)
         }
     end
 
+    local function add_library_folder(folder, touch_menu)
+        Destination.chooseFolder(function(path)
+            local entry = {
+                id = Model.next_id(cfg),
+                type = "folder_shortcut",
+                folder = path,
+                label = Destination.folderLabel(path),
+                label_auto = true,
+                icon = suggest_icon(Destination.folderLabel(path), nil, "folder"),
+            }
+            insert_entry(entry, folder)
+            UIManager:nextTick(function()
+                open_entry_settings(touch_menu, entry, folder)
+            end)
+        end)
+    end
+
+    local function add_tag(folder, touch_menu)
+        Destination.chooseTag(function(tag)
+            local entry = {
+                id = Model.next_id(cfg),
+                type = "tag",
+                tag = tag,
+                label = tag,
+                label_auto = true,
+                icon = suggest_icon(tag, nil, "tab_tags"),
+            }
+            insert_entry(entry, folder)
+            UIManager:nextTick(function()
+                open_entry_settings(touch_menu, entry, folder)
+            end)
+        end)
+    end
+
     local function choose_plugin_entry(entry, touch_menu)
         local found = PluginScan.scan()
         if #found == 0 then
@@ -459,6 +494,20 @@ function M.build(ctx)
                     add_koreader_menu(folder, touch_menu)
                 end,
             }, icons.open_menu),
+            IconItem.decorate({
+                text = _("Open folder"),
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    add_library_folder(folder, touch_menu)
+                end,
+            }, icons.settings_folders),
+            IconItem.decorate({
+                text = _("Specific tag"),
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    add_tag(folder, touch_menu)
+                end,
+            }, icons.keywords),
         }
     end
 
@@ -500,6 +549,20 @@ function M.build(ctx)
                 callback = add_folder,
             }, icons.new_folder)
         end
+        items[#items + 1] = IconItem.decorate({
+            text = _("Open folder"),
+            keep_menu_open = true,
+            callback = function(touch_menu)
+                add_library_folder(folder, touch_menu)
+            end,
+        }, icons.settings_folders)
+        items[#items + 1] = IconItem.decorate({
+            text = _("Specific tag"),
+            keep_menu_open = true,
+            callback = function(touch_menu)
+                add_tag(folder, touch_menu)
+            end,
+        }, icons.keywords)
         items[#items + 1] = IconItem.decorate({
             text = _("Row break"),
             keep_menu_open = true,
@@ -642,6 +705,48 @@ function M.build(ctx)
             for _i, item in ipairs(add_sub) do
                 items[#items + 1] = item
             end
+        elseif entry.type == "folder_shortcut" then
+            items[#items + 1] = IconItem.decorate({
+                text_func = function()
+                    return _("Folder") .. ": " .. Destination.folderLabel(entry.folder)
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    Destination.chooseFolder(function(path)
+                        local old_label = Destination.folderLabel(entry.folder)
+                        entry.folder = path
+                        if entry.label_auto == true or entry.label == old_label then
+                            entry.label = Destination.folderLabel(path)
+                            entry.label_auto = true
+                        end
+                        save_app_launcher()
+                        if touch_menu then touch_menu:updateItems(1) end
+                    end, { path = entry.folder })
+                end,
+            }, icons.settings_folders)
+            add_label_item()
+            add_icon_item()
+        elseif entry.type == "tag" then
+            items[#items + 1] = IconItem.decorate({
+                text_func = function()
+                    return T(_("Tag: %1"), entry.tag or _("(none)"))
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    Destination.chooseTag(function(tag)
+                        local old_tag = entry.tag
+                        entry.tag = tag
+                        if entry.label_auto == true or entry.label == old_tag then
+                            entry.label = tag
+                            entry.label_auto = true
+                        end
+                        save_app_launcher()
+                        if touch_menu then touch_menu:updateItems(1) end
+                    end)
+                end,
+            }, icons.keywords)
+            add_label_item()
+            add_icon_item()
         elseif entry.type == "quick_setting" then
             items[#items + 1] = IconItem.decorate({
                 text_func = function()

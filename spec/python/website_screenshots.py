@@ -35,7 +35,7 @@ ARTIFACT_ROOT = REPO_ROOT / "spec" / ".artifacts" / "screenshots"
 SCREEN_SIZE = (1272, 1696)
 BB_TYPE_RGB32 = 5
 READER_SHOWCASE_PAGE = 10
-READER_SHOWCASE_PRESET = "(ZenOS) Chapter Time + %"
+READER_SHOWCASE_PRESET = "(ZenOS) L/C/R: Chapter Time | Page | %"
 FIXED_LOCAL_TIME = datetime(2026, 6, 18, 10, 9, 0)
 FORMAT_PREFERENCE = ("EPUB", "KEPUB", "AZW3", "MOBI")
 GROUPS = frozenset(("home", "library", "menus", "reader"))
@@ -44,12 +44,62 @@ EXPECTED_IDS = frozenset((
     "zen_home", "home_bookshelf", "home_simple",
     "library_covers_full", "library_list_full", "context_menu", "stats",
     "launcher", "quicksettings", "quickstart", "zen_settings",
-    "reader", "reader_menu", "reader_launcher_book_switcher",
+    "launcher_add_plugin_menu", "navbar_buttons_settings",
+    "reader", "reader_launcher_book_switcher",
     "reader_launcher_book_details", "reader_book_details", "page_browser_grid",
     "dictionary_lookup_menu", "hilight_menu",
 ))
 SHOWCASE_BOOK_COUNT = 12
 SHOWCASE_PLACEHOLDER_COUNT = SHOWCASE_BOOK_COUNT
+SHOWCASE_NAVBAR_STATES = {
+    "default": {
+        "tab_order": ["home"],
+        "show_icons": True,
+        "show_labels": False,
+    },
+    "library_home_icons": {
+        "tab_order": ["books", "home"],
+        "show_icons": True,
+        "show_labels": False,
+    },
+    "regular": {
+        "tab_order": ["books", "authors", "series", "stats", "to_be_read", "home"],
+        "show_icons": True,
+        "show_labels": True,
+    },
+    "zen_home_icons": {
+        "tab_order": ["home", "books", "to_be_read", "authors"],
+        "show_icons": True,
+        "show_labels": False,
+    },
+    "navbar_settings": {
+        "tab_order": [
+            "books", "home", "to_be_read", "authors", "tags", "ct_showcase_folder",
+        ],
+        "show_icons": True,
+        "show_labels": False,
+    },
+    "library_home_text": {
+        "tab_order": ["books", "home"],
+        "show_icons": False,
+        "show_labels": True,
+    },
+    "icons_only": {
+        "tab_order": ["books", "authors", "series", "stats", "to_be_read", "home"],
+        "show_icons": True,
+        "show_labels": False,
+    },
+    "text_only": {
+        "tab_order": ["books", "authors", "series", "stats", "to_be_read", "home"],
+        "show_icons": False,
+        "show_labels": True,
+    },
+    "few_items": {
+        "tab_order": ["books", "stats", "home"],
+        "show_icons": True,
+        "show_labels": True,
+    },
+}
 NON_EMULATOR_ASSETS = frozenset((
     "plugins_folder.png", "zen_update.svg", "banner.png", "social.png",
     "og-zen.png", "zenos-banner.png",
@@ -90,6 +140,7 @@ class BookRequest:
     direct_path: str | None
     role: str
     keywords: str | None = None
+    authors: str | None = None
 
 
 @dataclass(frozen=True)
@@ -186,6 +237,9 @@ def validate_catalog(scenarios: Sequence[Scenario]) -> None:
             raise ValueError(f"invalid scenario group: {scenario.group}")
         if scenario.session not in SESSIONS:
             raise ValueError(f"invalid scenario session: {scenario.session}")
+        navbar = scenario.options.get("navbar", "default")
+        if navbar not in SHOWCASE_NAVBAR_STATES:
+            raise ValueError(f"invalid navbar fixture for {scenario.id}: {navbar}")
         crop = scenario.options.get("crop")
         if crop is not None and (
             not isinstance(crop, dict)
@@ -199,9 +253,13 @@ def validate_catalog(scenarios: Sequence[Scenario]) -> None:
         raise ValueError("update_available is intentionally outside the capture catalog")
 
 
-def load_profile(path: Path) -> tuple[Path, list[BookRequest]]:
+def load_profile(path: Path) -> tuple[Path, list[BookRequest], str | None]:
     raw = json.loads(path.read_text(encoding="utf-8"))
     calibre_root = Path(str(raw.get("calibre_root", "~/Calibre Library"))).expanduser()
+    raw_quote = raw.get("quote")
+    if raw_quote is not None and not isinstance(raw_quote, str):
+        raise ValueError("book profile quote must be a string")
+    quote = (raw_quote.strip() or None) if raw_quote is not None else None
     records = raw.get("books")
     if not isinstance(records, list) or not records:
         raise ValueError("book profile must contain a non-empty books list")
@@ -221,12 +279,17 @@ def load_profile(path: Path) -> tuple[Path, list[BookRequest]]:
             keywords = None
         else:
             raise ValueError("book profile keywords must be a string or list")
+        raw_authors = record.get("authors")
+        if raw_authors is not None and not isinstance(raw_authors, str):
+            raise ValueError("book profile authors must be a string")
+        authors = (raw_authors.strip() or None) if raw_authors is not None else None
         books.append(BookRequest(
             calibre_id=int(calibre_id) if calibre_id is not None else None,
             expected_title=str(record.get("expected_title", "")).strip(),
             direct_path=str(record["direct_path"]) if record.get("direct_path") else None,
             role=str(record.get("role", "library")),
             keywords=keywords,
+            authors=authors,
         ))
     if len(books) != SHOWCASE_BOOK_COUNT:
         raise ValueError(
@@ -237,7 +300,7 @@ def load_profile(path: Path) -> tuple[Path, list[BookRequest]]:
         raise ValueError("the showcase profile needs exactly one featured book")
     if sum(book.role == "reader" for book in books) != 1:
         raise ValueError("the showcase profile needs exactly one reader book")
-    return calibre_root, books
+    return calibre_root, books, quote
 
 
 def _calibre_authors(connection: sqlite3.Connection, book_id: int) -> str:
@@ -340,6 +403,7 @@ def resolve_calibre_books(calibre_root: Path, requests: Sequence[BookRequest]) -
             if root not in selected_path.parents:
                 raise ValueError(f"book path escapes the Calibre root: {selected_path}")
             keywords = keywords or _embedded_keywords(selected_path)
+            authors = request.authors or authors
             resolved.append(ResolvedBook(
                 calibre_id=request.calibre_id,
                 title=title,
@@ -531,9 +595,9 @@ def _zen_config() -> dict[str, object]:
             "automatic_series_grouping": False,
         },
         "navbar": {
-            "default_tab": "books",
+            "default_tab": "home",
             "show_icons": True,
-            "show_labels": True,
+            "show_labels": False,
             "show_tabs": {
                 "books": True,
                 "authors": True,
@@ -542,7 +606,7 @@ def _zen_config() -> dict[str, object]:
                 "stats": True,
                 "to_be_read": True,
             },
-            "tab_order": ["books", "authors", "series", "stats", "to_be_read", "home"],
+            "tab_order": ["home"],
         },
         "quick_settings": {
             "button_order": ["wifi", "night", "rotate", "zen", "restart", "sleep"],
@@ -584,9 +648,9 @@ def _zen_config() -> dict[str, object]:
             "hide_browser_bar": True,
         },
         "reader_top_status_bar": {
-            "left_order": [],
-            "center_order": ["time"],
-            "right_order": [],
+            "left_order": ["book_title"],
+            "center_order": [],
+            "right_order": ["chapter"],
             "show_bottom_border": False,
             "bottom_border_progress": False,
         },
@@ -1216,6 +1280,7 @@ class CaptureWorkflow:
         run_dir: Path,
         website_root: Path | None,
         calibre_root: Path | None = None,
+        quote: str | None = None,
     ):
         self.runtime = runtime
         self.scenarios = list(scenarios)
@@ -1225,6 +1290,7 @@ class CaptureWorkflow:
         self.output_dir = run_dir
         self.website_root = website_root
         self.calibre_root = calibre_root
+        self.quote = quote
         self.results: list[dict[str, object]] = []
 
     def _role(self, books: Sequence[StagedBook], role: str) -> StagedBook:
@@ -1274,6 +1340,18 @@ class CaptureWorkflow:
     ) -> None:
         action = scenario.action
         options = scenario.options
+        expected_navbar = None
+        if scenario.session == "general":
+            navbar_mode = str(options.get("navbar", "default"))
+            expected_navbar = SHOWCASE_NAVBAR_STATES[navbar_mode]
+            navbar_response = _require_ok(
+                driver.command("showcase_navbar", mode=navbar_mode),
+                f"{scenario.id} navbar",
+            )
+            if navbar_response.get("navbar") != expected_navbar:
+                raise CaptureError(
+                    f"{scenario.id} navbar state mismatch: {navbar_response.get('navbar')}"
+                )
         if action in ("home_preset", "home_simple"):
             response = driver.command(
                 "showcase_home",
@@ -1282,12 +1360,28 @@ class CaptureWorkflow:
             )
             _require_ok(response, action)
             featured_title = self._role(books, "featured").title
+            expected_quote = (
+                self.quote
+                if action == "home_preset" and options.get("preset") == "Zen Default"
+                else None
+            )
             minimum_images = 5
             _wait_for(
                 lambda: driver.command("home_state"),
                 lambda value: value.get("home", {}).get("active") is True
                 and int(value.get("home", {}).get("image_widget_count", 0)) >= minimum_images
                 and featured_title in value.get("home", {}).get("visible_texts", [])
+                and (
+                    expected_quote is None
+                    or expected_quote
+                    in (
+                        value.get("home", {})
+                        .get("quote_content_bounds", {})
+                        .get("text")
+                        or ""
+                    )
+                )
+                and value.get("home", {}).get("navbar") == expected_navbar
                 and (
                     action != "home_simple"
                     or (
@@ -1301,10 +1395,33 @@ class CaptureWorkflow:
             )
             return
         if action == "library":
+            visible_books = options.get("visible_books")
+            ordered_books = None
+            if isinstance(visible_books, list):
+                visible_titles = [str(title) for title in visible_books]
+                if len(visible_titles) != len(set(visible_titles)):
+                    raise CaptureError("list showcase book titles must be unique")
+                books_by_title = {book.title: book for book in books}
+                missing = [title for title in visible_titles if title not in books_by_title]
+                if missing:
+                    raise CaptureError(
+                        f"list showcase books were not staged: {', '.join(missing)}"
+                    )
+                requested = set(visible_titles)
+                ordered_books = [books_by_title[title] for title in visible_titles]
+                ordered_books.extend(book for book in books if book.title not in requested)
             _require_ok(
                 driver.command("set_library_display_mode", mode=options["mode"]),
                 action,
             )
+            if ordered_books is not None:
+                _require_ok(
+                    driver.command(
+                        "showcase_library_order",
+                        paths=[str(book.path.resolve()) for book in ordered_books],
+                    ),
+                    f"{scenario.id} book order",
+                )
             _wait_for(
                 lambda: driver.command("file_chooser_items"),
                 lambda value: value.get("file_chooser", {}).get("display_mode_type")
@@ -1326,6 +1443,21 @@ class CaptureWorkflow:
                 ) is False,
                 scenario.id,
             )
+            if ordered_books is not None:
+                expected_paths = [
+                    str(next(book.path for book in books if book.title == title).resolve())
+                    for title in visible_titles
+                ]
+                _wait_for(
+                    lambda: driver.command("file_chooser_items"),
+                    lambda value: [
+                        item.get("path")
+                        for item in value.get("file_chooser", {}).get("items", [])[
+                            :len(expected_paths)
+                        ]
+                    ] == expected_paths,
+                    f"{scenario.id} visible books",
+                )
             return
         if action == "context":
             book = self._role(books, str(options["book_role"]))
@@ -1375,6 +1507,70 @@ class CaptureWorkflow:
                 lambda: driver.command("settings_page_state"),
                 lambda value: value.get("ok") is True,
                 scenario.id,
+            )
+            return
+        if action in ("launcher_add_plugin_menu", "navbar_buttons_settings"):
+            _require_ok(driver.command("open_settings_page"), action)
+            _wait_for(
+                lambda: driver.command("settings_page_state"),
+                lambda value: value.get("settings", {}).get("title") == "Settings",
+                "settings root",
+            )
+            root_label = (
+                "Launcher" if action == "launcher_add_plugin_menu" else "Navbar"
+            )
+            _require_ok(
+                driver.command("settings_page_select", label=root_label),
+                root_label,
+            )
+            opener = "Buttons" if action == "launcher_add_plugin_menu" else "Tabs"
+            _wait_for(
+                lambda: driver.command("settings_page_state"),
+                lambda value: value.get("settings", {}).get("title") == root_label
+                and opener in value.get("settings", {}).get("labels", []),
+                f"{root_label} settings",
+            )
+            _require_ok(
+                driver.command("settings_page_select", label=opener),
+                opener,
+            )
+            arrange = _wait_for(
+                lambda: driver.command("arrange_page_state"),
+                lambda value: value.get("arrange", {}).get("title") == opener,
+                f"{opener} settings",
+            )["arrange"]
+            if action == "navbar_buttons_settings":
+                expected = {
+                    "Library": True,
+                    "Home": True,
+                    "To Be Read": True,
+                    "Authors": False,
+                    "Tags": False,
+                    "Sci-Fi folder": False,
+                }
+                actual = dict(zip(arrange["labels"], arrange["checked"], strict=True))
+                if any(actual.get(label) is not checked for label, checked in expected.items()):
+                    raise CaptureError(f"navbar button states did not match: {actual}")
+                return
+
+            _require_ok(driver.command("arrange_page_action"), "Launcher Add")
+            add_menu = _wait_for(
+                lambda: driver.command("arrange_page_state"),
+                lambda value: value.get("arrange", {}).get("title") == "Add"
+                and "Plugin Menu" in value.get("arrange", {}).get("labels", []),
+                "Launcher Add menu",
+            )["arrange"]
+            plugin_index = add_menu["labels"].index("Plugin Menu") + 1
+            _require_ok(
+                driver.command("arrange_page_select", index=plugin_index),
+                "Add plugin menu",
+            )
+            _wait_for(
+                lambda: driver.command("showcase_picker_state"),
+                lambda value: value.get("picker", {}).get("title")
+                == "Choose plugin menu"
+                and len(value.get("picker", {}).get("labels", [])) >= 3,
+                "plugin menu picker",
             )
             return
         if action == "reader":
@@ -1529,12 +1725,17 @@ class CaptureWorkflow:
         try:
             wait_for_socket(socket_path, timeout=45)
             driver = ZenDriver(socket_path)
-            _require_ok(driver.command(
-                "configure_showcase",
-                timestamp=int(time.mktime(FIXED_LOCAL_TIME.timetuple())),
-                battery=82,
-                wifi=True,
-            ), "configure showcase")
+            showcase_options: dict[str, object] = {
+                "timestamp": int(time.mktime(FIXED_LOCAL_TIME.timetuple())),
+                "battery": 82,
+                "wifi": True,
+            }
+            if self.quote is not None:
+                showcase_options["quote"] = self.quote
+            _require_ok(
+                driver.command("configure_showcase", **showcase_options),
+                "configure showcase",
+            )
             for scenario in scenarios:
                 self._capture_one(driver, scenario, books)
         finally:
@@ -1582,6 +1783,7 @@ class CaptureWorkflow:
             "schema_version": 1,
             "created_at": datetime.now().astimezone().isoformat(),
             "fixed_showcase_time": FIXED_LOCAL_TIME.isoformat(),
+            "quote": self.quote,
             "runtime": runtime_version(self.runtime),
             "screen": {"width": SCREEN_SIZE[0], "height": SCREEN_SIZE[1], "dpi": 300},
             "selected_count": len(self.scenarios),
@@ -1728,12 +1930,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     runtime = Path(runtime_value).resolve() if runtime_value else None
     if runtime is None or not (runtime / "reader.lua").is_file():
         parser.error("KOREADER_DIR must point to the staged KOReader runtime")
-    calibre_root, requests = load_profile(profile)
+    calibre_root, requests, quote = load_profile(profile)
     books = resolve_calibre_books(calibre_root, requests)
     if shutil.which("zstd") is None:
         parser.error("zstd is required to seed deterministic embedded cover thumbnails")
     run_dir = prepare_artifact_directory()
-    workflow = CaptureWorkflow(runtime, selected, books, run_dir, website_root, calibre_root)
+    workflow = CaptureWorkflow(
+        runtime, selected, books, run_dir, website_root, calibre_root, quote
+    )
     try:
         report = workflow.run()
     except Exception as error:

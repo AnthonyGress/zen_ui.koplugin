@@ -14,6 +14,7 @@ from website_screenshots import (
     READER_SHOWCASE_PAGE,
     READER_SHOWCASE_PRESET,
     SHOWCASE_BOOK_COUNT,
+    SHOWCASE_NAVBAR_STATES,
     BookRequest,
     ResolvedBook,
     Scenario,
@@ -100,9 +101,9 @@ def _color_cover_epub(
         archive.writestr("OPS/cover.png", cover.getvalue())
 
 
-def test_catalog_is_the_canonical_19_image_inventory() -> None:
+def test_catalog_is_the_canonical_20_image_inventory() -> None:
     catalog = load_catalog()
-    assert len(catalog) == 19
+    assert len(catalog) == 20
     assert {scenario.id for scenario in catalog} == EXPECTED_IDS
     assert [scenario.id for scenario in catalog if scenario.id.startswith("page_browser")] == [
         "page_browser_grid"
@@ -114,15 +115,59 @@ def test_catalog_is_the_canonical_19_image_inventory() -> None:
     assert "zen_mode" not in {scenario.id for scenario in catalog}
     assert "navbar" not in {scenario.id for scenario in catalog}
     assert "lockdown_mode" not in {scenario.id for scenario in catalog}
+    assert "reader_menu" not in {scenario.id for scenario in catalog}
+    zen_home = next(scenario for scenario in catalog if scenario.id == "zen_home")
+    assert zen_home.options["navbar"] == "zen_home_icons"
+    library_covers = next(
+        scenario for scenario in catalog if scenario.id == "library_covers_full"
+    )
+    assert library_covers.options["navbar"] == "regular"
+    stats = next(scenario for scenario in catalog if scenario.id == "stats")
+    assert stats.options.get("navbar", "default") == "default"
     launcher = next(scenario for scenario in catalog if scenario.id == "launcher")
     assert launcher.options["background"] == "home_simple"
+    assert launcher.options["navbar"] == "library_home_icons"
+    quicksettings = next(scenario for scenario in catalog if scenario.id == "quicksettings")
+    assert quicksettings.options["navbar"] == "library_home_icons"
+    bookshelf = next(scenario for scenario in catalog if scenario.id == "home_bookshelf")
+    assert bookshelf.options["navbar"] == "library_home_text"
+    home_simple = next(scenario for scenario in catalog if scenario.id == "home_simple")
+    assert home_simple.options["navbar"] == "text_only"
+    library_list = next(scenario for scenario in catalog if scenario.id == "library_list_full")
+    assert library_list.options["navbar"] == "icons_only"
+    assert library_list.options["visible_books"] == [
+        "Project Hail Mary: A Novel",
+        "Never Split the Difference",
+        "The Creative Habit",
+        "Atomic Habits: An Easy and Proven Way to Build Good Habits and Break Bad Ones",
+        "Clean Coder",
+    ]
+    context_menu = next(scenario for scenario in catalog if scenario.id == "context_menu")
+    assert context_menu.options["navbar"] == "few_items"
+    launcher_add = next(
+        scenario for scenario in catalog if scenario.id == "launcher_add_plugin_menu"
+    )
+    assert launcher_add.action == "launcher_add_plugin_menu"
+    navbar_buttons = next(
+        scenario for scenario in catalog if scenario.id == "navbar_buttons_settings"
+    )
+    assert navbar_buttons.options["navbar"] == "navbar_settings"
+    assert SHOWCASE_NAVBAR_STATES["zen_home_icons"] == {
+        "tab_order": ["home", "books", "to_be_read", "authors"],
+        "show_icons": True,
+        "show_labels": False,
+    }
 
 
 def test_example_profile_fills_the_four_by_three_library_grid() -> None:
     profile = Path(__file__).resolve().parents[1] / "website_screenshot_books.example.json"
-    _calibre_root, books = load_profile(profile)
+    _calibre_root, books, quote = load_profile(profile)
     assert SHOWCASE_BOOK_COUNT == 12
     assert len(books) == SHOWCASE_BOOK_COUNT
+    assert quote == "The secret of getting ahead is getting started."
+    authors = {book.expected_title: book.authors for book in books}
+    assert authors["The Creative Habit"] == "Twyla Tharp"
+    assert authors["Clean Coder"] == "Robert C Martin"
 
 
 def test_capture_overrides_use_custom_library_bar_and_zen_reader_preset() -> None:
@@ -140,10 +185,31 @@ def test_capture_overrides_use_custom_library_bar_and_zen_reader_preset() -> Non
         "time_12h": True,
         "hide_browser_bar": True,
     }
+    assert config["navbar"] == {
+        "default_tab": "home",
+        "show_icons": True,
+        "show_labels": False,
+        "show_tabs": {
+            "books": True,
+            "authors": True,
+            "series": True,
+            "home": True,
+            "stats": True,
+            "to_be_read": True,
+        },
+        "tab_order": ["home"],
+    }
+    assert config["reader_top_status_bar"] == {
+        "left_order": ["book_title"],
+        "center_order": [],
+        "right_order": ["chapter"],
+        "show_bottom_border": False,
+        "bottom_border_progress": False,
+    }
     assert config["mosaic_title_strip"] == {"show_title": False, "show_author": False}
     assert config["_meta"]["reader_defaults_apply_on_next_open"] is True
     assert READER_SHOWCASE_PAGE == 10
-    assert READER_SHOWCASE_PRESET == "(ZenOS) Chapter Time + %"
+    assert READER_SHOWCASE_PRESET == "(ZenOS) L/C/R: Chapter Time | Page | %"
 
 
 def test_showcase_statistics_uses_koreader_enable_key() -> None:

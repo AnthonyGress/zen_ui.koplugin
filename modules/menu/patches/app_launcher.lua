@@ -25,6 +25,7 @@
     local BookSwitcherPage = require("modules/menu/app_launcher/book_switcher_page")
     local PagePlan = require("modules/menu/app_launcher/page_plan")
     local ButtonLabelWidth = require("common/ui/button_label_width")
+    local ButtonModel = require("common/nav_button_model")
     local ZenButton = require("common/ui/zen_button")
     local SettingsTransition = require("common/settings_transition")
     local utils = require("common/utils")
@@ -281,6 +282,14 @@
                 if type(entry.action) == "table" and next(entry.action) then
                     Dispatcher:execute(entry.action)
                 end
+            end)
+            return
+        end
+        if entry.type == "folder_shortcut" or entry.type == "tag" then
+            touch_menu:closeMenu()
+            SettingsTransition.close()
+            UIManager:nextTick(function()
+                ButtonModel.execute(entry, zen_plugin)
             end)
             return
         end

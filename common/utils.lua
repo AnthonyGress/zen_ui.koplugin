@@ -503,14 +503,17 @@ function M.getIconPickerList(plugin_root, excluded)
     return all
 end
 
+function M.stripZenPrefix(text)
+    if type(text) ~= "string" then return text end
+    text = text:gsub("^ZenOS%s*[:%-]%s*", "")
+    return text:gsub("^Zen UI%s*[:%-]%s*", "")
+end
+
 --- Suggest an icon from the picker directories. A preferred icon is accepted by
 --- filename only when that name exists in those directories.
 function M.suggestIcon(plugin_root, label, fallback, strip_zen_prefix, preferred)
     local text = type(label) == "string" and label or ""
-    if strip_zen_prefix then
-        text = text:gsub("^ZenOS%s*%-%s*", "")
-        text = text:gsub("^Zen UI%s*%-%s*", "")
-    end
+    if strip_zen_prefix then text = M.stripZenPrefix(text) end
     local needle = text:lower():gsub("[^%w]", "")
     if #needle < 3 then return fallback or "lightning" end
     local best, best_score

@@ -9,7 +9,10 @@ Create the ignored local profile before capturing:
 cp spec/python/website_screenshot_books.example.json .website-screenshot-books.json
 ```
 
-Each book record has four required fields and an optional keyword field:
+Set the optional top-level `quote` to the exact text of a built-in Home quote. The capture
+fails if the quote is not present in `modules/filebrowser/patches/home/quote_list.lua`.
+
+Each book record has four required fields and optional metadata overrides:
 
 - `calibre_id`: the record verified against `metadata.db`, or `null` for a direct-only book.
 - `expected_title`: the title that must agree with the Calibre record.
@@ -19,11 +22,13 @@ Each book record has four required fields and an optional keyword field:
   required.
 - `keywords`: a string or list of the book's actual tags. These override embedded metadata and
   are shown in Library list screenshots.
+- `authors`: the author text to show when a direct filename does not contain display-ready
+  metadata.
 
 The profile contains exactly twelve books in newest-to-oldest recent order. That order drives
-both the Home recent widgets and the Library's last-read sorting.
+the Home recent widgets; a scenario may pin a specific Library list showcase order.
 
-Use `--list` to inspect the tracked 19-screen catalog, `--audit` to check documentation and
+Use `--list` to inspect the tracked 20-screen catalog, `--audit` to check documentation and
 carousel references, or capture with `--screen ID`, `--group GROUP`, or `--all`. OPDS and
 `update_available.png` are intentionally outside the automated catalog.
 

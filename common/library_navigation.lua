@@ -60,7 +60,9 @@ function M.showFromReader(ui, plugin, opts)
     local force_default = opts.force_default == true
     local target_tab = opts.target_tab
     local target_folder = opts.target_folder
-    local return_to_default = not open_home and target_tab == nil and target_folder == nil
+    local target_tag = opts.target_tag
+    local return_to_default = not open_home and target_tab == nil
+        and target_folder == nil and target_tag == nil
     local restore = M.restoreEnabled(plugin)
     local outside_home = file and not paths.isInHomeDir(file)
     _G.__ZEN_UI_LAST_READ_FILE = file
@@ -79,6 +81,8 @@ function M.showFromReader(ui, plugin, opts)
             _G.__ZEN_UI_OPEN_TARGET_TAB = target_tab
         elseif target_folder then
             _G.__ZEN_UI_OPEN_TARGET_FOLDER = target_folder
+        elseif target_tag then
+            _G.__ZEN_UI_OPEN_TARGET_TAG = target_tag
         elseif force_default or (return_to_default and not outside_home) then
             _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = true
         elseif not restore and not outside_home then
@@ -98,6 +102,27 @@ function M.showFromReader(ui, plugin, opts)
                 _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = nil
                 _G.__ZEN_UI_LIBRARY_STATE = nil
                 open_default()
+            end
+        end
+        if target_folder and rawget(_G, "__ZEN_UI_OPEN_TARGET_FOLDER") ~= nil then
+            local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
+            local fm = ok_fm and FileManager and FileManager.instance
+            if fm and fm.file_chooser then
+                _G.__ZEN_UI_OPEN_TARGET_FOLDER = nil
+                local open_folder = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_FOLDER")
+                if type(open_folder) == "function" then
+                    open_folder(target_folder)
+                else
+                    fm.file_chooser:changeToPath(target_folder)
+                end
+            end
+        end
+        if target_tag and rawget(_G, "__ZEN_UI_OPEN_TARGET_TAG") ~= nil then
+            local ok_shared, SharedState = pcall(require, "common/shared_state")
+            local GroupView = ok_shared and SharedState.get(plugin, "group_view") or nil
+            if GroupView and type(GroupView.showTagDetail) == "function" then
+                _G.__ZEN_UI_OPEN_TARGET_TAG = nil
+                GroupView.showTagDetail(target_tag)
             end
         end
     end

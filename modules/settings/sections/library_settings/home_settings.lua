@@ -11,6 +11,7 @@ local ReadingGoals = require("common/reading_goals")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
 local ButtonModel = require("common/nav_button_model")
+local Destination = require("common/library_destination")
 local DispatcherMenu = require("common/dispatcher_menu")
 local NativeMenu = require("modules/menu/app_launcher/native_menu")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
@@ -914,42 +915,11 @@ function M.build(ctx)
     end
 
     local function choose_tag(callback)
-        local ok_db, db = pcall(require, "common/db_bookinfo")
-        local groups = ok_db and db and type(db.getGroupedByTags) == "function"
-            and db.getGroupedByTags() or {}
-        if #groups == 0 then
-            local InfoMessage = require("ui/widget/infomessage")
-            UIManager:show(InfoMessage:new{ text = _("No tags found") })
-            return
-        end
-        local items = {}
-        for _i, group in ipairs(groups) do
-            items[#items + 1] = { text = group.tag, tag = group.tag }
-        end
-        require("common/ui/zen_menu_picker"){
-            title = _("Choose tag"),
-            items = items,
-            on_select = function(item)
-                if item and item.tag then callback(item.tag) end
-            end,
-        }
+        return Destination.chooseTag(callback)
     end
 
     local function choose_folder(callback)
-        local PathChooser = require("ui/widget/pathchooser")
-        local paths = require("common/paths")
-        UIManager:show(PathChooser:new{
-            select_directory = true,
-            select_file = false,
-            show_files = false,
-            path = paths.getHomeDir() or G_reader_settings:readSetting("lastdir") or "/",
-            onConfirm = function(path)
-                local lfs = require("libs/libkoreader-lfs")
-                if type(path) == "string" and lfs.attributes(path, "mode") == "directory" then
-                    callback(path)
-                end
-            end,
-        })
+        return Destination.chooseFolder(callback)
     end
 
     local function featured_source_label(source)

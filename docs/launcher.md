@@ -49,6 +49,8 @@ Launcher adds a configurable tab to the ZenOS menu. It can create shortcut butto
 | Open menu to Launcher | Opens the top menu on the Launcher tab. |
 | Show labels | Shows launcher button labels. Enabled by default; disabling it hides the labels. |
 | Hide reader actions in library | When enabled, action buttons bound to reader-only dispatcher actions are hidden (and inactive) while the launcher is opened from the library. Disabled by default. |
+| Buttons > Add > Open folder | Adds an independently configured folder destination button. This is separate from a Launcher folder used to group buttons. |
+| Buttons > Add > Specific tag | Adds a button that opens one selected tag. |
 | Buttons > Add > Control | Adds a launcher button that runs a selected Controls control. |
 | Buttons > Add > Action | Adds a launcher button that runs a dispatcher action, with a suggested icon. |
 | Buttons > Add > Plugin Menu | Scans for launchable plugin menus and adds the selected plugin menu as a launcher button with a suggested icon. |
@@ -69,6 +71,8 @@ Launcher adds a configurable tab to the ZenOS menu. It can create shortcut butto
 | Folder > Icon | Sets the folder icon. |
 | Folder > Folder buttons | Opens the arranger for buttons inside the folder. |
 | Folder buttons > Add > Control | Adds a Controls control inside the folder. |
+| Folder buttons > Add > Open folder | Adds a folder destination inside the launcher folder. |
+| Folder buttons > Add > Specific tag | Adds a one-tag destination inside the launcher folder. |
 | Folder buttons > Add > Action | Adds an action button inside the folder. |
 | Folder buttons > Add > Plugin Menu | Adds a detected plugin menu button inside the folder. |
 | Folder buttons > Add > KOReader menu | Adds a native KOReader submenu button inside the folder. |
