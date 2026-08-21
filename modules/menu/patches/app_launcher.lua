@@ -135,6 +135,8 @@
     local function make_cell(opts)
         local icon_path, icon_name = icon_spec(opts.icon)
         local icon_size = opts.icon_size
+        local rendered_icon_size = math.floor(
+            icon_size * utils.iconOpticalScale(opts.icon) + 0.5)
         local circle_size = opts.circle_size
         local circle_border = opts.circle_border
         local active = opts.active == true
@@ -144,8 +146,8 @@
         local icon = IconWidget:new{
             file = icon_path or nil,
             icon = icon_path and nil or icon_name,
-            width = icon_size,
-            height = icon_size,
+            width = rendered_icon_size,
+            height = rendered_icon_size,
             alpha = not active,
         }
         if active then

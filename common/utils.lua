@@ -1,5 +1,17 @@
 local M = {}
 
+local OPTICAL_ICON_SCALES = {
+    zenfm = 1.25,
+    zenpm = 1.25,
+}
+
+function M.iconOpticalScale(name)
+    if type(name) ~= "string" then return 1 end
+    local filename = name:match("([^/]+)$") or name
+    local stem = filename:gsub("%.[^.]+$", "")
+    return OPTICAL_ICON_SCALES[stem] or 1
+end
+
 local function utf8_char_count(text)
     local count = 0
     for _pos in tostring(text):gmatch("()[%z\1-\127\194-\244][\128-\191]*") do
