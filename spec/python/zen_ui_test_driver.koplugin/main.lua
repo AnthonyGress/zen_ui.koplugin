@@ -8,6 +8,129 @@ local UIManager = require("ui/uimanager")
 
 local showcase_originals
 local showcase_timestamp
+local showcase_quote
+local showcase_picker
+local showcase_picker_wrapped
+
+local function get_zen_plugin()
+    local PluginLoader = require("pluginloader")
+    return PluginLoader:getPluginInstance("zenos")
+        or PluginLoader:getPluginInstance("zen_ui")
+end
+
+local SHOWCASE_NAVBARS = {
+    default = {
+        tab_order = { "home" },
+        show_icons = true,
+        show_labels = false,
+    },
+    library_home_icons = {
+        tab_order = { "books", "home" },
+        show_icons = true,
+        show_labels = false,
+    },
+    regular = {
+        tab_order = { "books", "authors", "series", "stats", "to_be_read", "home" },
+        show_icons = true,
+        show_labels = true,
+    },
+    zen_home_icons = {
+        tab_order = { "home", "books", "to_be_read", "authors" },
+        show_icons = true,
+        show_labels = false,
+    },
+    navbar_settings = {
+        tab_order = {
+            "books", "home", "to_be_read", "authors", "tags", "ct_showcase_folder",
+        },
+        show_icons = true,
+        show_labels = false,
+    },
+    library_home_text = {
+        tab_order = { "books", "home" },
+        show_icons = false,
+        show_labels = true,
+    },
+    icons_only = {
+        tab_order = { "books", "authors", "series", "stats", "to_be_read", "home" },
+        show_icons = true,
+        show_labels = false,
+    },
+    text_only = {
+        tab_order = { "books", "authors", "series", "stats", "to_be_read", "home" },
+        show_icons = false,
+        show_labels = true,
+    },
+    few_items = {
+        tab_order = { "books", "stats", "home" },
+        show_icons = true,
+        show_labels = true,
+    },
+}
+
+local function showcase_navbar_state()
+    local zen_plugin = get_zen_plugin()
+    local navbar = zen_plugin and zen_plugin.config and zen_plugin.config.navbar or {}
+    return {
+        tab_order = navbar.tab_order,
+        show_icons = navbar.show_icons,
+        show_labels = navbar.show_labels,
+    }
+end
+
+local function configure_showcase_navbar(mode)
+    local preset = SHOWCASE_NAVBARS[mode]
+    if not preset then return false, "unknown showcase navbar: " .. tostring(mode) end
+    local zen_plugin = get_zen_plugin()
+    local navbar = zen_plugin and zen_plugin.config and zen_plugin.config.navbar
+    if type(navbar) ~= "table" then return false, "navbar config unavailable" end
+    if type(navbar.show_tabs) ~= "table" then navbar.show_tabs = {} end
+    navbar.tab_order = {}
+    for _i, id in ipairs(preset.tab_order) do
+        navbar.tab_order[#navbar.tab_order + 1] = id
+        navbar.show_tabs[id] = true
+    end
+    if mode == "navbar_settings" then
+        navbar.custom_tabs = {{
+            id = "ct_showcase_folder",
+            type = "action",
+            label = "Sci-Fi folder",
+            label_auto = false,
+            icon = "folder_open",
+            action = {
+                zen_ui_show_folder = G_reader_settings:readSetting("home_dir"),
+            },
+        }}
+        navbar.show_tabs.authors = false
+        navbar.show_tabs.tags = false
+        navbar.show_tabs.ct_showcase_folder = false
+    end
+    navbar.show_icons = preset.show_icons
+    navbar.show_labels = preset.show_labels
+    local reinject = rawget(_G, "__ZEN_UI_REINJECT_FM_NAVBAR")
+    if type(reinject) == "function" then reinject() end
+    UIManager:setDirty(nil, "ui")
+    return true
+end
+
+local function install_showcase_picker_tracker()
+    if showcase_picker_wrapped then return true end
+    local ok_picker, original_picker = pcall(require, "common/ui/zen_menu_picker")
+    if not ok_picker then return false end
+    showcase_picker_wrapped = true
+    package.loaded["common/ui/zen_menu_picker"] = function(opts)
+        local labels = {}
+        for _i, item in ipairs(type(opts) == "table" and opts.items or {}) do
+            labels[#labels + 1] = item.text
+        end
+        showcase_picker = {
+            title = type(opts) == "table" and opts.title or nil,
+            labels = labels,
+        }
+        return original_picker(opts)
+    end
+    return true
+end
 
 local function configure_showcase(params)
     params = type(params) == "table" and params or {}
@@ -27,6 +150,31 @@ local function configure_showcase(params)
     end
     showcase_timestamp = tonumber(params.timestamp)
         or tonumber(os.getenv("ZEN_UI_SHOWCASE_TIMESTAMP")) or showcase_timestamp
+    install_showcase_picker_tracker()
+
+    if params.quote ~= nil then
+        if type(params.quote) ~= "string" or params.quote == "" then
+            return false, "showcase quote must be a non-empty string"
+        end
+        showcase_quote = nil
+        for _i, quote in ipairs(require("modules/filebrowser/patches/home/quote_list")) do
+            if quote.text == params.quote then
+                showcase_quote = quote
+                break
+            end
+        end
+        if not showcase_quote then
+            return false, "showcase quote was not found in the default quote list"
+        end
+        local HomeQuotes = require("modules/filebrowser/patches/home/home_quotes")
+        if not HomeQuotes._zen_showcase_select_quote then
+            HomeQuotes._zen_showcase_select_quote = HomeQuotes.selectQuote
+            HomeQuotes.selectQuote = function(config, rotation)
+                if showcase_quote then return showcase_quote end
+                return HomeQuotes._zen_showcase_select_quote(config, rotation)
+            end
+        end
+    end
 
     local ok_device, Device = pcall(require, "device")
     if ok_device and Device then
@@ -539,15 +687,36 @@ local function ensure_reader_status_fonts()
     local applied = require("common/reader_defaults").apply(G_reader_settings, plugin.config)
     if applied ~= true then return false, "reader defaults unavailable" end
     local ReaderUI = require("apps/reader/readerui")
-    local footer = ReaderUI.instance and ReaderUI.instance.view and ReaderUI.instance.view.footer
+    local reader = ReaderUI.instance
+    local footer = reader and reader.view and reader.view.footer
+    if not footer then return false, "reader footer unavailable" end
     local expected = require("common/plugin_root")
         .. "/fonts/hyperreadable/Hyperreadable-SemiBold.ttf"
+    local preset = require("util").tableDeepCopy(
+        require("modules/reader/patches/reader_footer_presets")[5])
+    if type(preset) ~= "table"
+            or preset.name ~= "(ZenOS) L/C/R: Chapter Time | Page | %" then
+        return false, "reader showcase preset unavailable"
+    end
+    preset.footer.text_font_face = expected
+    preset.footer.text_font_bold = false
+    footer:loadPreset(preset)
+
+    local top_config = plugin.config.reader_top_status_bar
+    top_config.left_order = { "book_title" }
+    top_config.center_order = {}
+    top_config.right_order = { "chapter" }
+    if type(plugin.config.reader_footer) ~= "table" then plugin.config.reader_footer = {} end
+    plugin.config.reader_footer.verbose_chapter_time = true
+    require("config/preset_store").setActivePreset("reader", preset.name)
+
     local top = plugin.config.reader_top_status_bar and plugin.config.reader_top_status_bar.font_face
     local bottom = footer and footer.settings and footer.settings.text_font_face
     if top ~= expected or bottom ~= expected then
         return false, string.format("reader status fonts did not apply (top=%s bottom=%s expected=%s)",
             tostring(top), tostring(bottom), expected)
     end
+    UIManager:setDirty(reader, "ui")
     return true
 end
 
@@ -633,7 +802,12 @@ local function find_quote_content_bounds(widget, seen, depth)
                 top = math.min(top, author_dimen.y)
                 bottom = math.max(bottom, author_dimen.y + author_dimen.h)
             end
-            return { top = top, bottom = bottom }
+            return {
+                top = top,
+                bottom = bottom,
+                text = quote_widget.text,
+                author = type(author_widget) == "table" and author_widget.text or nil,
+            }
         end
     end
     for _i, child in ipairs(widget) do
@@ -694,6 +868,7 @@ local function home_state()
         clock_refreshers = #(menu and menu._zen_home_clock_refreshers or {}),
         visible_texts = visible_texts,
         image_widget_count = menu and count_image_widgets(menu, {}, 0) or 0,
+        navbar = showcase_navbar_state(),
     }
 end
 
@@ -730,6 +905,7 @@ local function navbar_state()
         top_tab_id = widget and widget._zen_tab_id or nil,
         stack_names = stack_names,
         visible_texts = visible_texts,
+        navbar = showcase_navbar_state(),
     }
 end
 
@@ -987,6 +1163,7 @@ local function brand_migration_state()
 end
 
 local function reset_showcase_ui(session)
+    showcase_picker = nil
     local settings_page = rawget(_G, "__ZEN_UI_SETTINGS_PAGE")
     if settings_page and type(settings_page.onClose) == "function" then
         pcall(settings_page.onClose, settings_page)
@@ -1077,6 +1254,39 @@ local function set_library_display_mode(mode)
     if not ok then return false, tostring(err) end
     local open_tab = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_TAB")
     if type(open_tab) == "function" then pcall(open_tab, "books") end
+    return true
+end
+
+local function set_showcase_library_order(paths)
+    if type(paths) ~= "table" or #paths == 0 then
+        return false, "showcase library order is empty"
+    end
+    local FileManager = require("apps/filemanager/filemanager")
+    local chooser = FileManager.instance and FileManager.instance.file_chooser
+    if not (chooser and type(chooser.switchItemTable) == "function") then
+        return false, "file chooser item callback unavailable"
+    end
+    local items_by_path = {}
+    for _i, item in ipairs(chooser.item_table or {}) do
+        local path = item.path or item.file
+        if path then items_by_path[path] = item end
+    end
+    local ordered = {}
+    local included = {}
+    for _i, path in ipairs(paths) do
+        if type(path) ~= "string" or path == "" then
+            return false, "invalid showcase library path"
+        end
+        local item = items_by_path[path]
+        if not item then return false, "showcase library item unavailable: " .. path end
+        ordered[#ordered + 1] = item
+        included[path] = true
+    end
+    for _i, item in ipairs(chooser.item_table or {}) do
+        local path = item.path or item.file
+        if not included[path] then ordered[#ordered + 1] = item end
+    end
+    chooser:switchItemTable(nil, ordered, 1)
     return true
 end
 
@@ -1200,10 +1410,15 @@ function Driver:handleCommand(command)
     local kind = command and command.type
     local params = command and command.params or {}
     if kind == "configure_showcase" then
-        return { ok = configure_showcase(params) == true }
+        local ok, err = configure_showcase(params)
+        return { ok = ok == true, error = err }
     end
     if kind == "reset_showcase_ui" then
         return { ok = reset_showcase_ui(params.session) == true }
+    end
+    if kind == "showcase_navbar" and type(params.mode) == "string" then
+        local ok, err = configure_showcase_navbar(params.mode)
+        return { ok = ok == true, error = err, navbar = showcase_navbar_state() }
     end
     if kind == "showcase_home" then
         local ok, err = showcase_home(params.preset, params.simple)
@@ -1211,6 +1426,10 @@ function Driver:handleCommand(command)
     end
     if kind == "set_library_display_mode" and type(params.mode) == "string" then
         local ok, err = set_library_display_mode(params.mode)
+        return { ok = ok == true, error = err }
+    end
+    if kind == "showcase_library_order" then
+        local ok, err = set_showcase_library_order(params.paths)
         return { ok = ok == true, error = err }
     end
     if kind == "showcase_lockdown_control" then
@@ -1228,6 +1447,9 @@ function Driver:handleCommand(command)
     if kind == "showcase_bounds" and type(params.target) == "string" then
         local bounds, err = showcase_bounds(params.target, params.label)
         return { ok = bounds ~= nil, bounds = bounds, error = err }
+    end
+    if kind == "showcase_picker_state" then
+        return { ok = true, picker = showcase_picker }
     end
     if kind == "visible_ui" then return { ok = true, ui = visible_ui() } end
     if kind == "plugin_loaded" and type(params.name) == "string" then
