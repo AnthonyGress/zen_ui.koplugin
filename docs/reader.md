@@ -20,9 +20,9 @@ order: 50
 
 ![Reader](/images/zen_os/reader.webp)
 
-![Dictionary lookup menu](/images/zen_os/dictionary_lookup_menu.webp)
+![Dictionary lookup menu](/images/zen_os/reader_dict.webp)
 
-![Highlight menu](/images/zen_os/hilight_menu.webp)
+![Highlight menu](/images/zen_os/reader_highlight.webp)
 
 ![Reader menu](/images/zen_os/reader_menu.webp)
 
@@ -92,13 +92,13 @@ Reader settings control ZenOS features while a book is open. They cover the top 
 
 ## Dictionary lookup menu
 
-![Dictionary lookup menu](/images/zen_os/dictionary_lookup_menu.webp)
+![Dictionary lookup menu](/images/zen_os/reader_dict.webp)
 
 Tap and hold a word while reading to open the Zen quick lookup menu. It shows the dictionary definition for the selected word along with ZenOS action buttons. Enable it with **Zen Settings > Reader > Highlight / Lookup > Zen quick lookup**. Wikipedia and installed X-Ray, KOAssistant, and AI Assistant integrations can appear as dedicated buttons; use **Show other items** to retain KOReader's remaining lookup options.
 
 ## Highlight menu
 
-![Highlight menu](/images/zen_os/hilight_menu.webp)
+![Highlight menu](/images/zen_os/reader_highlight.webp)
 
 Tap + hold and drag to highlight a selection of text and open the Zen highlight menu. It collects highlight, lookup, and annotation actions for the selected text in a single Zen-styled menu. Enable it with **Zen Settings > Reader > Highlight / Lookup > Zen highlight menu**.
 

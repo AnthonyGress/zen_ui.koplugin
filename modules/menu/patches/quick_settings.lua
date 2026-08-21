@@ -1266,11 +1266,13 @@ local function apply_quick_settings()
         local function makeActionButton(icon_name, label_text, active, disabled, dimmed)
             local icon_path = type(icon_name) == "string" and icon_name:sub(1, 1) == "/"
                 and icon_name or (_icons_dir and utils.resolveIcon(_icons_dir, icon_name))
+            local rendered_icon_size = math.floor(
+                icon_size * utils.iconOpticalScale(icon_name) + 0.5)
             local icon = IconWidget:new{
                 file   = icon_path or nil,
                 icon   = icon_path and nil or icon_name,
-                width  = icon_size,
-                height = icon_size,
+                width  = rendered_icon_size,
+                height = rendered_icon_size,
                 -- alpha=false → BlitBuffer8 (opaque grayscale); invertRect flips
                 -- pixel values so the icon renders white-on-black for active state.
                 alpha  = not active,

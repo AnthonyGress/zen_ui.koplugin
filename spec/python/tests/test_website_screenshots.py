@@ -11,8 +11,10 @@ from PIL import Image
 from website_screenshots import (
     BB_TYPE_RGB32,
     EXPECTED_IDS,
+    READER_FOOTER_PRESETS,
     READER_SHOWCASE_PAGE,
     READER_SHOWCASE_PRESET,
+    SHOWCASE_BACKGROUND,
     SHOWCASE_BOOK_COUNT,
     SHOWCASE_NAVBAR_STATES,
     BookRequest,
@@ -24,6 +26,7 @@ from website_screenshots import (
     _embedded_keywords,
     _lua_merge_override,
     _seed_bookinfo,
+    _seed_sidecars,
     _zen_config,
     audit_inventory,
     crop_from_bounds,
@@ -35,6 +38,7 @@ from website_screenshots import (
     select_scenarios,
     sha256_file,
     stage_books,
+    stage_showcase_background,
     stage_placeholder_texts,
     write_report,
 )
@@ -101,9 +105,9 @@ def _color_cover_epub(
         archive.writestr("OPS/cover.png", cover.getvalue())
 
 
-def test_catalog_is_the_canonical_20_image_inventory() -> None:
+def test_catalog_is_the_canonical_22_image_inventory() -> None:
     catalog = load_catalog()
-    assert len(catalog) == 20
+    assert len(catalog) == 22
     assert {scenario.id for scenario in catalog} == EXPECTED_IDS
     assert [scenario.id for scenario in catalog if scenario.id.startswith("page_browser")] == [
         "page_browser_grid"
@@ -148,15 +152,32 @@ def test_catalog_is_the_canonical_20_image_inventory() -> None:
         scenario for scenario in catalog if scenario.id == "launcher_add_plugin_menu"
     )
     assert launcher_add.action == "launcher_add_plugin_menu"
+    launcher_add_koreader = next(
+        scenario for scenario in catalog if scenario.id == "launcher_add_koreader_menu"
+    )
+    assert launcher_add_koreader.action == "launcher_add_koreader_menu"
+    controls_buttons = next(
+        scenario for scenario in catalog if scenario.id == "controls_buttons_settings"
+    )
+    assert controls_buttons.action == "controls_buttons_settings"
+    dictionary = next(
+        scenario for scenario in catalog if scenario.id == "reader_dict"
+    )
+    assert dictionary.options["footer_preset"] == "pages_bar_percent"
+    assert "hilight_menu" not in {scenario.id for scenario in catalog}
     navbar_buttons = next(
         scenario for scenario in catalog if scenario.id == "navbar_buttons_settings"
     )
     assert navbar_buttons.options["navbar"] == "navbar_settings"
     assert SHOWCASE_NAVBAR_STATES["zen_home_icons"] == {
-        "tab_order": ["home", "books", "to_be_read", "authors"],
+        "tab_order": ["books", "authors", "series", "stats", "to_be_read", "home"],
         "show_icons": True,
         "show_labels": False,
     }
+    assert (
+        SHOWCASE_NAVBAR_STATES["zen_home_icons"]["tab_order"]
+        == SHOWCASE_NAVBAR_STATES["text_only"]["tab_order"]
+    )
 
 
 def test_example_profile_fills_the_four_by_three_library_grid() -> None:
@@ -175,9 +196,30 @@ def test_capture_overrides_use_custom_library_bar_and_zen_reader_preset() -> Non
     assert config["features"]["zen_mode"] is True
     assert config["features"]["lockdown_mode"] is False
     assert config["quick_settings"]["button_order"] == [
-        "wifi", "night", "rotate", "zen", "restart", "sleep",
+        "wifi", "night", "rotate", "zen", "lockdown", "incognito",
+        "usb", "search", "restart", "exit", "sleep",
     ]
-    assert config["quick_settings"]["show_buttons"]["lockdown"] is False
+    assert config["quick_settings"]["layout_version"] == 2
+    assert config["quick_settings"]["rotate_action"] == "90"
+    assert config["quick_settings"]["custom_buttons"] == []
+    assert {
+        key: config["quick_settings"]["show_buttons"][key]
+        for key in (
+            "wifi", "night", "zen", "lockdown", "incognito", "usb",
+            "search", "restart", "exit", "sleep",
+        )
+    } == {
+        "wifi": True,
+        "night": True,
+        "zen": True,
+        "lockdown": False,
+        "incognito": False,
+        "usb": False,
+        "search": False,
+        "restart": True,
+        "exit": False,
+        "sleep": True,
+    }
     assert config["status_bar"] == {
         "left_order": ["time"],
         "center_order": [],
@@ -207,9 +249,24 @@ def test_capture_overrides_use_custom_library_bar_and_zen_reader_preset() -> Non
         "bottom_border_progress": False,
     }
     assert config["mosaic_title_strip"] == {"show_title": False, "show_author": False}
+    assert config["library_background"] == {
+        "enabled": True,
+        "path": str(SHOWCASE_BACKGROUND.resolve()),
+    }
     assert config["_meta"]["reader_defaults_apply_on_next_open"] is True
     assert READER_SHOWCASE_PAGE == 10
     assert READER_SHOWCASE_PRESET == "(ZenOS) L/C/R: Chapter Time | Page | %"
+    assert READER_FOOTER_PRESETS["pages_bar_percent"] == "(ZenOS) Pages | Bar | %"
+
+
+def test_showcase_background_is_staged_inside_the_emulator_home(tmp_path: Path) -> None:
+    destination = stage_showcase_background(tmp_path)
+
+    assert destination == (tmp_path / SHOWCASE_BACKGROUND.name).resolve()
+    assert destination.read_bytes() == SHOWCASE_BACKGROUND.read_bytes()
+    with Image.open(destination) as image:
+        assert image.format == "JPEG"
+        assert image.size == (4494, 2493)
 
 
 def test_showcase_statistics_uses_koreader_enable_key() -> None:
@@ -336,6 +393,24 @@ def test_safe_staging_copies_only_books_and_preserves_sources(tmp_path: Path) ->
     assert [path.name for path in destination.iterdir()] == [staged[0].path.name]
     assert staged[0].path.read_bytes() == b"epub"
     assert sha256_file(books[0].source) == before
+
+
+def test_reader_showcase_sidecar_has_no_seeded_bookmark(tmp_path: Path) -> None:
+    reader_path = tmp_path / "Reader.epub"
+    library_path = tmp_path / "Library.epub"
+    books = [
+        StagedBook(None, "Reader", "Author", None, reader_path, reader_path,
+                   "reader", "EPUB"),
+        StagedBook(None, "Library", "Author", None, library_path, library_path,
+                   "library", "EPUB"),
+    ]
+
+    _seed_sidecars(books)
+
+    reader_sidecar = reader_path.with_suffix(".sdr") / "metadata.epub.lua"
+    library_sidecar = library_path.with_suffix(".sdr") / "metadata.epub.lua"
+    assert '["bookmarks"]' not in reader_sidecar.read_text(encoding="utf-8")
+    assert '["bookmarks"]' in library_sidecar.read_text(encoding="utf-8")
 
 
 def test_placeholder_texts_fill_the_second_library_page(tmp_path: Path) -> None:

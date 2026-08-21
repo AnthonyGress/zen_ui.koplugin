@@ -23,3 +23,17 @@ describe("common utils deep merge", function()
         assert.are.same({}, target)
     end)
 end)
+
+describe("common utils icon sizing", function()
+    local utils = require("common/utils")
+
+    it("optically enlarges ZenFM and ZenPM icons", function()
+        assert.are.equal(1.25, utils.iconOpticalScale("zenfm"))
+        assert.are.equal(1.25, utils.iconOpticalScale("/plugins/zenpm/icons/zenpm.svg"))
+    end)
+
+    it("keeps other icons at their requested size", function()
+        assert.are.equal(1, utils.iconOpticalScale("quick_wifi"))
+        assert.are.equal(1, utils.iconOpticalScale(nil))
+    end)
+end)

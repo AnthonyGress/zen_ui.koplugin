@@ -32,10 +32,17 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CATALOG_PATH = Path(__file__).with_name("website_screenshot_scenarios.json")
 DEFAULT_PROFILE = REPO_ROOT / ".website-screenshot-books.json"
 ARTIFACT_ROOT = REPO_ROOT / "spec" / ".artifacts" / "screenshots"
+SHOWCASE_BACKGROUND = (
+    REPO_ROOT / "spec" / "fixtures" / "sergei-a-7NjKwGDUmBM-unsplash.jpg"
+)
 SCREEN_SIZE = (1272, 1696)
 BB_TYPE_RGB32 = 5
 READER_SHOWCASE_PAGE = 10
 READER_SHOWCASE_PRESET = "(ZenOS) L/C/R: Chapter Time | Page | %"
+READER_FOOTER_PRESETS = {
+    "default": READER_SHOWCASE_PRESET,
+    "pages_bar_percent": "(ZenOS) Pages | Bar | %",
+}
 FIXED_LOCAL_TIME = datetime(2026, 6, 18, 10, 9, 0)
 FORMAT_PREFERENCE = ("EPUB", "KEPUB", "AZW3", "MOBI")
 GROUPS = frozenset(("home", "library", "menus", "reader"))
@@ -44,10 +51,11 @@ EXPECTED_IDS = frozenset((
     "zen_home", "home_bookshelf", "home_simple",
     "library_covers_full", "library_list_full", "context_menu", "stats",
     "launcher", "quicksettings", "quickstart", "zen_settings",
-    "launcher_add_plugin_menu", "navbar_buttons_settings",
+    "launcher_add_plugin_menu", "launcher_add_koreader_menu",
+    "controls_buttons_settings", "navbar_buttons_settings",
     "reader", "reader_launcher_book_switcher",
     "reader_launcher_book_details", "reader_book_details", "page_browser_grid",
-    "dictionary_lookup_menu", "hilight_menu",
+    "reader_dict", "reader_highlight",
 ))
 SHOWCASE_BOOK_COUNT = 12
 SHOWCASE_PLACEHOLDER_COUNT = SHOWCASE_BOOK_COUNT
@@ -68,7 +76,7 @@ SHOWCASE_NAVBAR_STATES = {
         "show_labels": True,
     },
     "zen_home_icons": {
-        "tab_order": ["home", "books", "to_be_read", "authors"],
+        "tab_order": ["books", "authors", "series", "stats", "to_be_read", "home"],
         "show_icons": True,
         "show_labels": False,
     },
@@ -571,7 +579,7 @@ def _settings_baseline_files(runtime: Path) -> list[Path]:
     ]
 
 
-def _zen_config() -> dict[str, object]:
+def _zen_config(background_path: Path = SHOWCASE_BACKGROUND) -> dict[str, object]:
     return {
         "_meta": {
             "quickstart_completed": True,
@@ -609,7 +617,10 @@ def _zen_config() -> dict[str, object]:
             "tab_order": ["home"],
         },
         "quick_settings": {
-            "button_order": ["wifi", "night", "rotate", "zen", "restart", "sleep"],
+            "button_order": [
+                "wifi", "night", "rotate", "zen", "lockdown", "incognito",
+                "usb", "search", "restart", "exit", "sleep",
+            ],
             "show_buttons": {
                 "wifi": True,
                 "bluetooth": False,
@@ -639,6 +650,11 @@ def _zen_config() -> dict[str, object]:
             "show_labels": True,
             "show_frontlight": True,
             "show_warmth": True,
+            "rotate_action": "90",
+            "screenshot_timer_seconds": 3,
+            "custom_buttons": [],
+            "next_custom_id": 0,
+            "layout_version": 2,
         },
         "status_bar": {
             "left_order": ["time"],
@@ -664,6 +680,10 @@ def _zen_config() -> dict[str, object]:
         "browser_page_count": {"show_page_count": True},
         "mosaic_title_strip": {"show_title": False, "show_author": False},
         "group_view": {"include_new_in_tbr": False},
+        "library_background": {
+            "enabled": True,
+            "path": str(background_path.resolve()),
+        },
     }
 
 
@@ -951,16 +971,24 @@ def _seed_sidecars(books: Sequence[StagedBook]) -> None:
     )
     for index, book in enumerate(books):
         sidecar = book.path.with_suffix(".sdr") / f"metadata.{book.path.suffix.lstrip('.').lower()}.lua"
-        _write_lua(sidecar, {
+        metadata = {
             "doc_pages": 384 + index * 17,
             "percent_finished": progress[index],
             "summary": {"status": statuses[index]},
-            "bookmarks": [{
+        }
+        if book.role != "reader":
+            metadata["bookmarks"] = [{
                 "page": 3 + index,
                 "datetime": "2026-06-17 21:14:00",
                 "text": "A deterministic showcase bookmark.",
-            }],
-        })
+            }]
+        _write_lua(sidecar, metadata)
+
+
+def stage_showcase_background(ko_home: Path) -> Path:
+    destination = ko_home / SHOWCASE_BACKGROUND.name
+    shutil.copyfile(SHOWCASE_BACKGROUND, destination)
+    return destination.resolve()
 
 
 def seed_showcase(ko_home: Path, books: Sequence[StagedBook], runtime: Path) -> None:
@@ -968,6 +996,7 @@ def seed_showcase(ko_home: Path, books: Sequence[StagedBook], runtime: Path) -> 
     zen_settings = settings / "ZenOS"
     settings.mkdir(parents=True, exist_ok=True)
     zen_settings.mkdir(parents=True, exist_ok=True)
+    background_path = stage_showcase_background(ko_home)
     _write_merged_lua(
         runtime,
         runtime / "settings.reader.lua",
@@ -990,7 +1019,7 @@ def seed_showcase(ko_home: Path, books: Sequence[StagedBook], runtime: Path) -> 
         runtime,
         runtime / "settings" / "ZenOS" / "config.lua",
         zen_settings / "config.lua",
-        _zen_config(),
+        _zen_config(background_path),
     )
     reader_baseline = runtime / "settings" / "ZenOS" / "reader.lua"
     if reader_baseline.is_file():
@@ -1509,21 +1538,29 @@ class CaptureWorkflow:
                 scenario.id,
             )
             return
-        if action in ("launcher_add_plugin_menu", "navbar_buttons_settings"):
+        if action in (
+            "launcher_add_plugin_menu",
+            "launcher_add_koreader_menu",
+            "controls_buttons_settings",
+            "navbar_buttons_settings",
+        ):
             _require_ok(driver.command("open_settings_page"), action)
             _wait_for(
                 lambda: driver.command("settings_page_state"),
                 lambda value: value.get("settings", {}).get("title") == "Settings",
                 "settings root",
             )
-            root_label = (
-                "Launcher" if action == "launcher_add_plugin_menu" else "Navbar"
-            )
+            if action.startswith("launcher_add_"):
+                root_label = "Launcher"
+            elif action == "controls_buttons_settings":
+                root_label = "Controls"
+            else:
+                root_label = "Navbar"
             _require_ok(
                 driver.command("settings_page_select", label=root_label),
                 root_label,
             )
-            opener = "Buttons" if action == "launcher_add_plugin_menu" else "Tabs"
+            opener = "Tabs" if action == "navbar_buttons_settings" else "Buttons"
             _wait_for(
                 lambda: driver.command("settings_page_state"),
                 lambda value: value.get("settings", {}).get("title") == root_label
@@ -1553,24 +1590,49 @@ class CaptureWorkflow:
                     raise CaptureError(f"navbar button states did not match: {actual}")
                 return
 
+            if action == "controls_buttons_settings":
+                expected = {
+                    "Wi-Fi": True,
+                    "Night mode": True,
+                    "Zen mode": True,
+                    "Lockdown": False,
+                    "Incognito": False,
+                    "USB": False,
+                    "File search": False,
+                    "Restart": True,
+                    "Exit": False,
+                    "Sleep": True,
+                }
+                actual = dict(zip(arrange["labels"], arrange["checked"], strict=True))
+                if any(actual.get(label) is not checked for label, checked in expected.items()):
+                    raise CaptureError(f"Controls button states did not match: {actual}")
+                return
+
             _require_ok(driver.command("arrange_page_action"), "Launcher Add")
+            picker_label = (
+                "Plugin Menu" if action == "launcher_add_plugin_menu"
+                else "KOReader menu"
+            )
             add_menu = _wait_for(
                 lambda: driver.command("arrange_page_state"),
                 lambda value: value.get("arrange", {}).get("title") == "Add"
-                and "Plugin Menu" in value.get("arrange", {}).get("labels", []),
+                and picker_label in value.get("arrange", {}).get("labels", []),
                 "Launcher Add menu",
             )["arrange"]
-            plugin_index = add_menu["labels"].index("Plugin Menu") + 1
+            picker_index = add_menu["labels"].index(picker_label) + 1
             _require_ok(
-                driver.command("arrange_page_select", index=plugin_index),
-                "Add plugin menu",
+                driver.command("arrange_page_select", index=picker_index),
+                f"Add {picker_label}",
+            )
+            picker_title = (
+                "Choose plugin menu" if action == "launcher_add_plugin_menu"
+                else "Choose KOReader menu"
             )
             _wait_for(
                 lambda: driver.command("showcase_picker_state"),
-                lambda value: value.get("picker", {}).get("title")
-                == "Choose plugin menu"
+                lambda value: value.get("picker", {}).get("title") == picker_title
                 and len(value.get("picker", {}).get("labels", [])) >= 3,
-                "plugin menu picker",
+                picker_title,
             )
             return
         if action == "reader":
@@ -1581,6 +1643,24 @@ class CaptureWorkflow:
             reader_book = self._role(books, "reader")
             self._reader_at_showcase_page(driver, reader_book)
             control = str(options["control"])
+            footer_preset = str(options.get("footer_preset", "default"))
+            expected_preset = READER_FOOTER_PRESETS.get(footer_preset)
+            if expected_preset is None:
+                raise CaptureError(f"unknown reader footer preset: {footer_preset}")
+            if footer_preset != "default":
+                _require_ok(
+                    driver.command(
+                        "ensure_reader_status_fonts",
+                        preset=footer_preset,
+                    ),
+                    expected_preset,
+                )
+                _wait_for(
+                    driver.reader_state,
+                    lambda value: value.get("reader", {}).get("active_preset")
+                    == expected_preset,
+                    expected_preset,
+                )
             if control == "page_browser_grid":
                 _require_ok(driver.command("activate_reader_control", name="page_browser"), control)
                 _wait_for(

@@ -34,7 +34,7 @@ local function apply_browser_hide_underline()
 
                 function ListMenuItem:onFocus()
                     if self._underline_container then
-                        self._underline_container.color = Blitbuffer.COLOR_WHITE
+                        self._underline_container.color = Blitbuffer.COLOR_BLACK
                     end
                     return true
                 end

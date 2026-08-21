@@ -245,7 +245,7 @@ local function ensure_cfg(_config)
     HomePresets.normalizeFeaturedConfig(dcfg)
     HomePresets.normalizeStripConfig(dcfg)
     if type(HomePresets.normalizeLayoutGrid) == "function" then
-        HomePresets.normalizeLayoutGrid(dcfg, false)
+        HomePresets.normalizeLayoutGrid(dcfg)
     end
 
     dcfg.rows = Registry.normalizeRows(dcfg.rows, DEFAULT_ORDER, DEFAULT_ENABLED)

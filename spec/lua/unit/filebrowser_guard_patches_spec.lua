@@ -188,11 +188,18 @@ describe("file browser guard patches", function()
         local CoverMenu = {
             updateItems = function() cover_updates = cover_updates + 1 end,
         }
-        ZenSpec.replace("ffi/blitbuffer", { COLOR_WHITE = "white" })
+        local ListMenuItem = { update = function() end }
+        local function list_builder()
+            return ListMenuItem
+        end
+        ZenSpec.replace("ffi/blitbuffer", {
+            COLOR_BLACK = "black",
+            COLOR_WHITE = "white",
+        })
         ZenSpec.replace("ui/widget/menu", Menu)
         ZenSpec.replace("covermenu", CoverMenu)
         ZenSpec.replace("mosaicmenu", { _updateItemsBuildUI = function() end })
-        ZenSpec.replace("listmenu", { _updateItemsBuildUI = function() end })
+        ZenSpec.replace("listmenu", { _updateItemsBuildUI = list_builder })
         ZenSpec.replace("common/shared_state", {
             register = function(_, values) shared = values end,
         })
@@ -220,6 +227,12 @@ describe("file browser guard patches", function()
         local cover = { _underline_container = { color = "black" } }
         CoverMenu.updateItems({ layout = { { cover } } })
         assert.are.equal("white", cover._underline_container.color)
+
+        local list_item = { _underline_container = { color = "black" } }
+        ListMenuItem.update(list_item)
+        assert.are.equal("white", list_item._underline_container.color)
+        ListMenuItem.onFocus(list_item)
+        assert.are.equal("black", list_item._underline_container.color)
         assert.are.same({ 2, 1 }, { menu_updates, cover_updates })
     end)
 

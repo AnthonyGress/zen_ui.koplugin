@@ -685,7 +685,7 @@ local function ensure_home_cfg()
     HomePresets.normalizeFeaturedConfig(dcfg)
     HomePresets.normalizeStripConfig(dcfg)
     if type(HomePresets.normalizeLayoutGrid) == "function" then
-        HomePresets.normalizeLayoutGrid(dcfg, false)
+        HomePresets.normalizeLayoutGrid(dcfg)
     end
 
     dcfg.rows = Registry.normalizeRows(dcfg.rows, DEFAULT_ROW_ORDER, DEFAULT_ROW_ENABLED)
@@ -2392,11 +2392,11 @@ local function install_home_key_handlers(menu)
         if hold_fn then
             UIManager:unschedule(hold_fn)
             hold_fn = nil
-            local key = hold_key
             hold_key = nil
-            return key
+            return true
         end
         hold_key = nil
+        return false
     end
 
     local function start_hold(m, key)
@@ -2404,7 +2404,6 @@ local function install_home_key_handlers(menu)
         hold_key = key
         hold_fn = function()
             hold_fn = nil
-            hold_key = nil
             context_home_focus(m)
         end
         UIManager:scheduleIn(HOLD_DELAY, hold_fn)
@@ -2440,10 +2439,12 @@ local function install_home_key_handlers(menu)
     }
 
     function menu:onZenHomeContext()
-        if not get_home_focus_target(self) then
-            return set_home_focus(self, 1)
+        local fm = require("apps/filemanager/filemanager").instance
+        local fm_menu = fm and fm.menu
+        if fm_menu and type(fm_menu.onShowMenu) == "function" then
+            return fm_menu:onShowMenu()
         end
-        return context_home_focus(self)
+        return false
     end
 
     local orig_left = menu.onZenNavbarFocusLeft
@@ -2492,7 +2493,10 @@ local function install_home_key_handlers(menu)
         if self._zen_home_focus_suspended then
             return orig_confirm and orig_confirm(self)
         end
-        if activate_home_focus(self) then return true end
+        if get_home_focus_target(self) then
+            start_hold(self, true)
+            return true
+        end
         return orig_confirm and orig_confirm(self)
     end
 
@@ -2547,9 +2551,10 @@ local function install_home_key_handlers(menu)
     local orig_key_release = menu.onKeyRelease
     menu.onKeyRelease = function(m, key)
         local confirm_key = home_confirm_key_name(key)
-        if confirm_key and hold_key == confirm_key then
-            cancel_hold()
-            activate_home_focus(m)
+        if confirm_key and hold_key
+                and (hold_key == true or hold_key == confirm_key) then
+            local activate = cancel_hold()
+            if activate then activate_home_focus(m) end
             return true
         end
         return orig_key_release and orig_key_release(m, key)
@@ -3049,11 +3054,6 @@ function M.showHomeView(injectNavbar)
     local cfg = load_zen_config()
     if type(cfg) ~= "table" then return end
     local dcfg = ensure_home_cfg()
-    local layout_notice_pending = dcfg.rows.layout_notice_pending == true
-    if layout_notice_pending then
-        dcfg.rows.layout_notice_pending = nil
-        PresetStore.saveSettings("home", dcfg)
-    end
     local show_status_bar = dcfg.show_status_bar ~= false
     local Screen = require("device").screen
 
@@ -3451,12 +3451,6 @@ function M.showHomeView(injectNavbar)
         if menu._zen_status_refresh then
             menu:_zen_status_refresh()
         end
-        if layout_notice_pending then
-            local InfoMessage = require("ui/widget/infomessage")
-            UIManager:show(InfoMessage:new{
-                text = _("Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."),
-            })
-        end
     end)
     return menu, true
 end
@@ -3472,6 +3466,10 @@ end
 function M.suspendActive()
     local menu = _home_menu
     if not menu or menu._zen_home_closing then return false end
+    menu._zen_home_focus_index = nil
+    menu._zen_home_focus_id = nil
+    menu._zen_home_focus_key = nil
+    menu._zen_home_focus_suspended = nil
     if menu._zen_home_suspended ~= true then
         menu._zen_home_suspended = true
         menu._zen_home_suspended_at = now()

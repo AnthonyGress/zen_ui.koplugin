@@ -1008,7 +1008,7 @@ describe("Zen renderer", function()
         assert.are.same({ { span = 100, thick = 35 } }, banner_sizes)
     end)
 
-    it("respects the hide-underline feature when focus returns", function()
+    it("shows keyboard focus while idle underlines are hidden", function()
         require("modules/filebrowser/patches/zen_renderer")()
         local item = setmetatable({ _underline_container = {} }, {
             __index = MosaicMenu._zen_mosaic_item_class,
@@ -1019,6 +1019,8 @@ describe("Zen renderer", function()
 
         _G.__ZEN_UI_PLUGIN.config.features.browser_hide_underline = true
         item:onFocus()
+        assert.are.equal(0, item._underline_container.color)
+        item:onUnfocus()
         assert.are.equal(1, item._underline_container.color)
     end)
 end)

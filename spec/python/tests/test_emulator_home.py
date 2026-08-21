@@ -624,6 +624,146 @@ def test_navbar_tabs_navigate_to_real_library_views() -> None:
             process.wait(timeout=15)
 
 
+def test_navbar_press_activates_keyboard_focused_tab() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-navbar-press-") as temporary:
+        root = Path(temporary)
+        ko_home = root / "home"
+        ko_home.mkdir()
+        fixture = build_library(root / "library")
+        _seed_home_settings(ko_home)
+        _seed_bookinfo(ko_home, fixture["epub"])
+        home_settings = ko_home / "settings" / "ZenOS" / "home.lua"
+        home_settings.write_text(
+            home_settings.read_text(encoding="utf-8").replace(
+                "show_status_bar = false,\n    rows =",
+                "show_status_bar = false, edit_mode = true,\n    rows =",
+            ).replace(
+                'default_source = { kind = "recent" },\n'
+                "        interactive = true, show_description = true,",
+                'default_source = { kind = "custom" },\n'
+                f"        path = {json.dumps(str(fixture['epub'].resolve()))},\n"
+                "        interactive = true, show_description = true,",
+            ).replace(
+                "interactive = true, show_description = true,\n"
+                "        show_status_bar = false,",
+                "interactive = true, show_description = true,\n"
+                "        show_status_bar = true,",
+            ),
+            encoding="utf-8",
+        )
+        socket_path = root / "driver.sock"
+        process = launch(
+            runtime, ko_home, socket_path, root / "library",
+            zen_config_source="""return {
+  updater = { update_auto_check = false },
+  navbar = {
+    default_tab = "books",
+    tab_order = { "books", "home" },
+    show_tabs = { books = true, home = true },
+  },
+}
+""",
+        )
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            _wait_for_navbar(driver, "Library", None)
+
+            assert driver.command("navbar_key", key="Down", count=64)["ok"] is True
+            assert driver.command("navbar_key", key="Right")["ok"] is True
+            assert driver.command("navbar_key", key="Press")["ok"] is True
+            home = _wait_for_navbar(driver, "Home", "home")
+            assert home["top_name"] == "home"
+
+            focused = driver.command("navbar_key", key="Down", count=64)
+            assert focused["target"] == "standalone"
+            menu = driver.command("navbar_key", key="Menu", close_menu=True)
+            assert menu["target"] == "standalone"
+            assert menu["menu_open"] is True
+            assert driver.command("navbar_key", key="Right")["ok"] is True
+            assert driver.command("navbar_key", key="Press")["ok"] is True
+            library = _wait_for_navbar(driver, "Library", None)
+            assert Path(str(library["path"])).resolve() == (root / "library").resolve()
+
+            assert driver.command("activate_navbar_tab", id="home")["ok"] is True
+            _wait_for_navbar(driver, "Home", "home")
+            home_focus = driver.command("navbar_key", key="Down")
+            assert home_focus["ok"] is True
+            assert home_focus["home_focus_key"] == "widget:featured"
+            assert driver.command("navbar_key", key="Enter")["ok"] is True
+            deadline = time.monotonic() + 5
+            while time.monotonic() < deadline:
+                context = driver.command("navbar_state")["navbar"]
+                if any(
+                    "Widget settings" in normalize_visible_text(str(text))
+                    for text in context.get("visible_texts", [])
+                ):
+                    break
+                time.sleep(0.1)
+            else:
+                raise AssertionError("holding Enter did not open focused widget options")
+        finally:
+            process.send_signal(signal.SIGTERM)
+            process.wait(timeout=15)
+
+
+@pytest.mark.parametrize("display_mode", ["list_image_meta", "mosaic_image"])
+def test_navbar_restores_library_and_group_item_focus(display_mode: str) -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-navbar-content-focus-") as temporary:
+        root = Path(temporary)
+        ko_home = root / "home"
+        ko_home.mkdir()
+        fixture = build_library(root / "library")
+        _seed_bookinfo(ko_home, fixture["epub"])
+        with sqlite3.connect(ko_home / "settings" / "bookinfo_cache.sqlite3") as connection:
+            connection.execute(
+                "INSERT INTO config (key, value) VALUES (?, ?)",
+                ("filemanager_display_mode", display_mode),
+            )
+        socket_path = root / "driver.sock"
+        process = launch(
+            runtime, ko_home, socket_path, root / "library",
+            zen_config_source="""return {
+  updater = { update_auto_check = false },
+  navbar = {
+    default_tab = "books",
+    tab_order = { "books", "authors", "series" },
+    show_tabs = { books = true, authors = true, series = true },
+  },
+}
+""",
+        )
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            _wait_for_navbar(driver, "Library", None)
+
+            assert driver.command("navbar_key", key="Down", count=64)["ok"] is True
+            library_focus = driver.command("navbar_key", key="Up")
+            assert library_focus["target"] == "file_chooser"
+            assert library_focus["content_focused"] is True, library_focus
+
+            for tab_id, label, detail_name in (
+                ("authors", "Authors", "authors_detail"),
+                ("series", "Series", "series_detail"),
+            ):
+                assert driver.command("activate_navbar_tab", id=tab_id)["ok"] is True
+                root_view = _wait_for_navbar(driver, label, tab_id)
+                assert root_view["top_name"] == tab_id
+                assert driver.command("navbar_key", key="Down", count=64)["ok"] is True
+                item_focus = driver.command("navbar_key", key="Up")
+                assert item_focus["target"] == "standalone"
+                assert item_focus["content_focused"] is True, item_focus
+                assert driver.command("navbar_key", key="Press")["ok"] is True
+                detail = _wait_for_navbar(driver, label, tab_id)
+                assert detail["top_name"] == detail_name
+        finally:
+            process.send_signal(signal.SIGTERM)
+            process.wait(timeout=15)
+
+
 def test_navbar_tabs_remain_tappable_with_library_background() -> None:
     runtime = Path(os.environ["KOREADER_DIR"])
     with tempfile.TemporaryDirectory(prefix="zen-ui-background-tabs-") as temporary:

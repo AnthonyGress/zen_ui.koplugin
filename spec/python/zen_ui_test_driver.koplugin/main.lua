@@ -35,7 +35,7 @@ local SHOWCASE_NAVBARS = {
         show_labels = true,
     },
     zen_home_icons = {
-        tab_order = { "home", "books", "to_be_read", "authors" },
+        tab_order = { "books", "authors", "series", "stats", "to_be_read", "home" },
         show_icons = true,
         show_labels = false,
     },
@@ -374,6 +374,24 @@ local function has_focus_feedback(control)
     return focused
 end
 
+local function is_keyboard_focused(widget, seen, depth)
+    if type(widget) ~= "table" or depth > 32 then return false end
+    seen = seen or {}
+    if seen[widget] then return false end
+    seen[widget] = true
+    local underline = widget._underline_container
+    if underline then
+        local Blitbuffer = require("ffi/blitbuffer")
+        if underline.focused == true or underline.color == Blitbuffer.COLOR_BLACK then
+            return true
+        end
+    end
+    for _i, child in ipairs(widget) do
+        if is_keyboard_focused(child, seen, depth + 1) then return true end
+    end
+    return false
+end
+
 if ffi.os == "OSX" then
     ffi.cdef[[
 struct zen_test_sockaddr_un {
@@ -677,7 +695,22 @@ local function reader_state()
     }
 end
 
-local function ensure_reader_status_fonts()
+local READER_STATUS_PRESETS = {
+    default = {
+        index = 5,
+        name = "(ZenOS) L/C/R: Chapter Time | Page | %",
+    },
+    pages_bar_percent = {
+        index = 6,
+        name = "(ZenOS) Pages | Bar | %",
+    },
+}
+
+local function ensure_reader_status_fonts(preset_key)
+    local preset_spec = READER_STATUS_PRESETS[preset_key or "default"]
+    if not preset_spec then
+        return false, "unknown reader showcase preset: " .. tostring(preset_key)
+    end
     local PluginLoader = require("pluginloader")
     local plugin = PluginLoader:getPluginInstance("zenos")
         or PluginLoader:getPluginInstance("zen_ui")
@@ -693,9 +726,9 @@ local function ensure_reader_status_fonts()
     local expected = require("common/plugin_root")
         .. "/fonts/hyperreadable/Hyperreadable-SemiBold.ttf"
     local preset = require("util").tableDeepCopy(
-        require("modules/reader/patches/reader_footer_presets")[5])
+        require("modules/reader/patches/reader_footer_presets")[preset_spec.index])
     if type(preset) ~= "table"
-            or preset.name ~= "(ZenOS) L/C/R: Chapter Time | Page | %" then
+            or preset.name ~= preset_spec.name then
         return false, "reader showcase preset unavailable"
     end
     preset.footer.text_font_face = expected
@@ -1487,7 +1520,7 @@ function Driver:handleCommand(command)
         return { ok = true, reader = reader_state() }
     end
     if kind == "ensure_reader_status_fonts" then
-        local ok, err = ensure_reader_status_fonts()
+        local ok, err = ensure_reader_status_fonts(params.preset)
         return { ok = ok == true, error = err }
     end
     if kind == "ensure_reader_chapter_time" then
@@ -2578,6 +2611,41 @@ function Driver:handleCommand(command)
     end
     if kind == "navbar_state" then
         return { ok = true, navbar = navbar_state() }
+    end
+    if kind == "navbar_key" and type(params.key) == "string" then
+        local stack = UIManager._window_stack
+        local top = stack and stack[#stack]
+        local target = top and top.widget
+        local FileManager = require("apps/filemanager/filemanager")
+        local chooser = FileManager.instance and FileManager.instance.file_chooser
+        if not (target and target._zen_navbar_key_patched) then target = chooser end
+        if not target then return { ok = false, error = "navbar owner unavailable" } end
+        local Key = require("device/key")
+        local count = math.max(1, math.min(math.floor(tonumber(params.count) or 1), 64))
+        local handled = false
+        for _i = 1, count do
+            if target:handleEvent(Event:new("KeyPress", Key:new(params.key, {}))) then
+                handled = true
+            end
+        end
+        local fm_menu = FileManager.instance and FileManager.instance.menu
+        local menu_open = fm_menu and fm_menu.menu_container ~= nil
+        if menu_open and params.close_menu == true
+                and type(fm_menu.onCloseFileManagerMenu) == "function" then
+            fm_menu:onCloseFileManagerMenu()
+        end
+        local selected = target.selected
+        local row = selected and target.layout and target.layout[selected.y]
+        local focused_widget = row and row[selected.x]
+        return {
+            ok = handled,
+            target = target == chooser and "file_chooser" or "standalone",
+            menu_open = menu_open,
+            home_focus_key = target._zen_home_focus_key,
+            focus_x = selected and selected.x or nil,
+            focus_y = selected and selected.y or nil,
+            content_focused = is_keyboard_focused(focused_widget, {}, 0),
+        }
     end
     if kind == "activate_navbar_tab" and type(params.id) == "string" then
         local allowed = {
