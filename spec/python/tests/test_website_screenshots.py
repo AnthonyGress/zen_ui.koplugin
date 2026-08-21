@@ -14,6 +14,7 @@ from website_screenshots import (
     READER_FOOTER_PRESETS,
     READER_SHOWCASE_PAGE,
     READER_SHOWCASE_PRESET,
+    SHOWCASE_BACKGROUND,
     SHOWCASE_BOOK_COUNT,
     SHOWCASE_NAVBAR_STATES,
     BookRequest,
@@ -37,6 +38,7 @@ from website_screenshots import (
     select_scenarios,
     sha256_file,
     stage_books,
+    stage_showcase_background,
     stage_placeholder_texts,
     write_report,
 )
@@ -247,10 +249,24 @@ def test_capture_overrides_use_custom_library_bar_and_zen_reader_preset() -> Non
         "bottom_border_progress": False,
     }
     assert config["mosaic_title_strip"] == {"show_title": False, "show_author": False}
+    assert config["library_background"] == {
+        "enabled": True,
+        "path": str(SHOWCASE_BACKGROUND.resolve()),
+    }
     assert config["_meta"]["reader_defaults_apply_on_next_open"] is True
     assert READER_SHOWCASE_PAGE == 10
     assert READER_SHOWCASE_PRESET == "(ZenOS) L/C/R: Chapter Time | Page | %"
     assert READER_FOOTER_PRESETS["pages_bar_percent"] == "(ZenOS) Pages | Bar | %"
+
+
+def test_showcase_background_is_staged_inside_the_emulator_home(tmp_path: Path) -> None:
+    destination = stage_showcase_background(tmp_path)
+
+    assert destination == (tmp_path / SHOWCASE_BACKGROUND.name).resolve()
+    assert destination.read_bytes() == SHOWCASE_BACKGROUND.read_bytes()
+    with Image.open(destination) as image:
+        assert image.format == "JPEG"
+        assert image.size == (4494, 2493)
 
 
 def test_showcase_statistics_uses_koreader_enable_key() -> None:

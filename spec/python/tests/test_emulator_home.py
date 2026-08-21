@@ -624,6 +624,41 @@ def test_navbar_tabs_navigate_to_real_library_views() -> None:
             process.wait(timeout=15)
 
 
+def test_navbar_press_activates_keyboard_focused_tab() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-navbar-press-") as temporary:
+        root = Path(temporary)
+        ko_home = root / "home"
+        ko_home.mkdir()
+        build_library(root / "library")
+        socket_path = root / "driver.sock"
+        process = launch(
+            runtime, ko_home, socket_path, root / "library",
+            zen_config_source="""return {
+  updater = { update_auto_check = false },
+  navbar = {
+    default_tab = "books",
+    tab_order = { "books", "home" },
+    show_tabs = { books = true, home = true },
+  },
+}
+""",
+        )
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            _wait_for_navbar(driver, "Library", None)
+
+            assert driver.command("navbar_key", key="Down", count=64)["ok"] is True
+            assert driver.command("navbar_key", key="Right")["ok"] is True
+            assert driver.command("navbar_key", key="Press")["ok"] is True
+            home = _wait_for_navbar(driver, "Home", None)
+            assert home["top_name"] == "home"
+        finally:
+            process.send_signal(signal.SIGTERM)
+            process.wait(timeout=15)
+
+
 def test_navbar_tabs_remain_tappable_with_library_background() -> None:
     runtime = Path(os.environ["KOREADER_DIR"])
     with tempfile.TemporaryDirectory(prefix="zen-ui-background-tabs-") as temporary:

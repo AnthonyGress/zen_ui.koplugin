@@ -21,6 +21,7 @@ describe("file browser navbar navigation", function()
     local dispatcher_executions
     local real_paths
     local full_repaints
+    local device_has_keys
 
     local function class(methods)
         methods = methods or {}
@@ -65,6 +66,7 @@ describe("file browser navbar navigation", function()
         dispatcher_executions = {}
         real_paths = {}
         full_repaints = 0
+        device_has_keys = false
         device_input = {
             disable_double_tap = true,
             tap_interval_override = nil,
@@ -150,7 +152,7 @@ describe("file browser navbar navigation", function()
                 getHeight = function() return 600 end,
                 isColorScreen = function() return false end,
             },
-            hasKeys = function() return false end,
+            hasKeys = function() return device_has_keys end,
         })
         ZenSpec.replace("ui/geometry", {
             new = function(_, values)
@@ -1678,6 +1680,54 @@ describe("file browser navbar navigation", function()
         assert.is_false(navbar:onTapNavBar(nil, { pos = { x = 1, y = 1 } }))
         assert.is_false(navbar:onTapNavBar(nil, { pos = { x = 799, y = 1 } }))
         assert.are.same({}, calls)
+    end)
+
+    it("activates a focused file-manager navbar tab on Press", function()
+        device_has_keys = true
+        local fm = make_instance()
+        local fc = fm.file_chooser
+        fm[1] = { fc }
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        fc.selected = { x = 1, y = 1 }
+        fc.layout = { { {} } }
+        calls = {}
+
+        assert.is_true(fc:onFocusMove({ 0, 1 }))
+        assert.is_true(fc:onFocusMove({ -1, 0 }))
+        assert.is_true(fc:onPress())
+
+        assert.are.same({ "home" }, calls)
+    end)
+
+    it("activates a focused standalone navbar tab on Press", function()
+        device_has_keys = true
+        local fm = make_instance()
+        fm[1] = { fm.file_chooser }
+        local home_menu
+        home_show_callback = function(inject)
+            local body = {
+                dimen = { w = 800, h = 560 },
+                inner_dimen = { w = 800, h = 560 },
+                resetLayout = function() end,
+            }
+            home_menu = {
+                name = "home",
+                dimen = { w = 800, h = 600 },
+                inner_dimen = { w = 800, h = 600 },
+                updateItems = function() end,
+                [1] = body,
+            }
+            inject(home_menu, "home")
+        end
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        calls = {}
+
+        assert.is_true(home_menu:onFocusMove({ 0, 1 }))
+        assert.is_true(home_menu:onFocusMove({ 1, 0 }))
+        assert.is_true(home_menu:onPress())
+
+        assert.are.same({ "books:/library" }, calls)
     end)
 
     it("uses rendered tab centers when tapping a standalone navbar background", function()

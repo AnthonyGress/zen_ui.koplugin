@@ -32,6 +32,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 CATALOG_PATH = Path(__file__).with_name("website_screenshot_scenarios.json")
 DEFAULT_PROFILE = REPO_ROOT / ".website-screenshot-books.json"
 ARTIFACT_ROOT = REPO_ROOT / "spec" / ".artifacts" / "screenshots"
+SHOWCASE_BACKGROUND = (
+    REPO_ROOT / "spec" / "fixtures" / "sergei-a-7NjKwGDUmBM-unsplash.jpg"
+)
 SCREEN_SIZE = (1272, 1696)
 BB_TYPE_RGB32 = 5
 READER_SHOWCASE_PAGE = 10
@@ -576,7 +579,7 @@ def _settings_baseline_files(runtime: Path) -> list[Path]:
     ]
 
 
-def _zen_config() -> dict[str, object]:
+def _zen_config(background_path: Path = SHOWCASE_BACKGROUND) -> dict[str, object]:
     return {
         "_meta": {
             "quickstart_completed": True,
@@ -677,6 +680,10 @@ def _zen_config() -> dict[str, object]:
         "browser_page_count": {"show_page_count": True},
         "mosaic_title_strip": {"show_title": False, "show_author": False},
         "group_view": {"include_new_in_tbr": False},
+        "library_background": {
+            "enabled": True,
+            "path": str(background_path.resolve()),
+        },
     }
 
 
@@ -978,11 +985,18 @@ def _seed_sidecars(books: Sequence[StagedBook]) -> None:
         _write_lua(sidecar, metadata)
 
 
+def stage_showcase_background(ko_home: Path) -> Path:
+    destination = ko_home / SHOWCASE_BACKGROUND.name
+    shutil.copyfile(SHOWCASE_BACKGROUND, destination)
+    return destination.resolve()
+
+
 def seed_showcase(ko_home: Path, books: Sequence[StagedBook], runtime: Path) -> None:
     settings = ko_home / "settings"
     zen_settings = settings / "ZenOS"
     settings.mkdir(parents=True, exist_ok=True)
     zen_settings.mkdir(parents=True, exist_ok=True)
+    background_path = stage_showcase_background(ko_home)
     _write_merged_lua(
         runtime,
         runtime / "settings.reader.lua",
@@ -1005,7 +1019,7 @@ def seed_showcase(ko_home: Path, books: Sequence[StagedBook], runtime: Path) -> 
         runtime,
         runtime / "settings" / "ZenOS" / "config.lua",
         zen_settings / "config.lua",
-        _zen_config(),
+        _zen_config(background_path),
     )
     reader_baseline = runtime / "settings" / "ZenOS" / "reader.lua"
     if reader_baseline.is_file():

@@ -2594,6 +2594,20 @@ function Driver:handleCommand(command)
     if kind == "navbar_state" then
         return { ok = true, navbar = navbar_state() }
     end
+    if kind == "navbar_key" and type(params.key) == "string" then
+        local FileManager = require("apps/filemanager/filemanager")
+        local chooser = FileManager.instance and FileManager.instance.file_chooser
+        if not chooser then return { ok = false, error = "file chooser unavailable" } end
+        local Key = require("device/key")
+        local count = math.max(1, math.min(math.floor(tonumber(params.count) or 1), 64))
+        local handled = false
+        for _i = 1, count do
+            if chooser:handleEvent(Event:new("KeyPress", Key:new(params.key, {}))) then
+                handled = true
+            end
+        end
+        return { ok = handled }
+    end
     if kind == "activate_navbar_tab" and type(params.id) == "string" then
         local allowed = {
             books = true, folder = true, home = true, authors = true, series = true,

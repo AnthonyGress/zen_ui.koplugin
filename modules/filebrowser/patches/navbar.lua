@@ -2459,6 +2459,7 @@ local function apply_navbar()
         local cls_kp = file_chooser.onKeyPress
         local cls_kr = file_chooser.onKeyRelease
         local cls_ms = file_chooser.onMenuSelect
+        local cls_press = file_chooser.onPress
         local HOLD_DELAY = 0.4
         local _press_hold_fn = nil   -- scheduled hold callback (nil = not pending)
         local _press_ctx = nil       -- "navbar" or "filelist" when hold pending
@@ -2622,6 +2623,13 @@ local function apply_navbar()
                 activateNavbarTab(); return true
             end
             return cls_ms and cls_ms(fc, item)
+        end
+
+        file_chooser.onPress = function(fc)
+            if _navbar_focused_idx then
+                activateNavbarTab(); return true
+            end
+            return cls_press and cls_press(fc)
         end
 
         -- All d-pad moves dispatch as FocusMove events (args={dx,dy}), not onKeyPress.
@@ -3094,6 +3102,14 @@ local function apply_navbar()
                     end
                 end
                 return cls_skp and cls_skp(m, key)
+            end
+
+            local cls_sp = menu.onPress
+            menu.onPress = function(m)
+                if _navbar_focused_idx then
+                    activateStandaloneTab(); return true
+                end
+                return cls_sp and cls_sp(m)
             end
 
             -- Back event (fired by key_events regardless of physical key name).
