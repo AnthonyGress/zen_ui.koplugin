@@ -34,6 +34,7 @@ local function apply_quick_settings()
     local Screen = Device.screen
     local Dispatcher = require("dispatcher")
     local DispatchAction = require("common/dispatch_action")
+    local ButtonModel = require("common/nav_button_model")
     local NativeMenu = require("modules/menu/app_launcher/native_menu")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
 
@@ -1072,6 +1073,19 @@ local function apply_quick_settings()
                         SettingsTransition.close()
                         UIManager:nextTick(function()
                             pcall(launch)
+                        end)
+                    end,
+                }
+            elseif cb.type == "folder" or cb.type == "tag" then
+                button_defs[cb.id] = {
+                    icon = cb.icon or "lightning",
+                    label = (cb.label and cb.label ~= "") and cb.label
+                        or ButtonModel.label(nil, cb),
+                    callback = function(tm)
+                        tm:closeMenu()
+                        SettingsTransition.close()
+                        UIManager:nextTick(function()
+                            ButtonModel.execute(cb, zen_plugin)
                         end)
                     end,
                 }

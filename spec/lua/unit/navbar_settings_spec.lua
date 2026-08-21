@@ -4,11 +4,15 @@ describe("navbar settings", function()
     local original_quick_settings
     local saved
     local shown
+    local suggested_label
     local suggested_preferred
     local touch_menu
     local picker_options
     local dispatcher_update
     local dispatcher_action
+    local dispatcher_text
+    local choose_folder
+    local choose_tag
 
     local function find_arrange_item(id)
         for _i, item in ipairs(arrange_options.item_table) do
@@ -21,10 +25,14 @@ describe("navbar settings", function()
         arrange_options = nil
         saved = 0
         shown = {}
+        suggested_label = nil
         suggested_preferred = nil
         picker_options = nil
         dispatcher_update = nil
         dispatcher_action = nil
+        dispatcher_text = "Nothing"
+        choose_folder = nil
+        choose_tag = nil
         touch_menu = {
             item_table = {},
             item_table_stack = {},
@@ -75,7 +83,11 @@ describe("navbar settings", function()
             getIconDisplayName = function(name)
                 return name == "zen_ui" and "ZenOS" or name
             end,
-            suggestIcon = function(_root, _label, _fallback, _strip_zen_prefix, preferred)
+            stripZenPrefix = function(text)
+                return text:gsub("^ZenOS%s*[:%-]%s*", "")
+            end,
+            suggestIcon = function(_root, label, _fallback, _strip_zen_prefix, preferred)
+                suggested_label = label
                 suggested_preferred = preferred
                 if preferred == "tab_folder" then return "tab_folder" end
                 return preferred and "approved_zenfm" or "lightning"
@@ -106,11 +118,16 @@ describe("navbar settings", function()
                 dispatcher_update = on_update
             end,
         })
+        ZenSpec.replace("common/library_destination", {
+            folderLabel = function(path) return path:match("([^/]+)$") or path end,
+            chooseFolder = function(callback) choose_folder = callback end,
+            chooseTag = function(callback) choose_tag = callback end,
+        })
         ZenSpec.replace("dispatcher", {
             addSubMenu = function(_self, _caller, _items, location, settings)
                 if dispatcher_action then location[settings] = dispatcher_action end
             end,
-            menuTextFunc = function() return "Nothing" end,
+            menuTextFunc = function() return dispatcher_text end,
         })
         ZenSpec.replace("common/ui/zen_icon_picker", function() end)
         ZenSpec.replace("common/ui/zen_arrange_list", {
@@ -237,6 +254,7 @@ describe("navbar settings", function()
 
     it("suggests tab_folder for an Open folder action tab", function()
         dispatcher_action = { zen_ui_show_folder = "/home/Fiction" }
+        dispatcher_text = "ZenOS: Open folder"
         local navbar = build_navbar()
         navbar.sub_item_table[1].callback()
         local add_action
@@ -248,9 +266,47 @@ describe("navbar settings", function()
         dispatcher_update(touch_menu)
 
         local added = config.navbar.custom_tabs[1]
+        assert.are.equal("Open folder", added.label)
+        assert.are.equal("Open folder", suggested_label)
         assert.are.equal("tab_folder", suggested_preferred)
         assert.are.equal("tab_folder", added.icon)
         assert.are.same(dispatcher_action, added.action)
+    end)
+
+    it("adds multiple folder tabs and a specific-tag tab", function()
+        local navbar = build_navbar()
+        navbar.sub_item_table[1].callback()
+        local add_folder
+        local add_tag
+        for _i, item in ipairs(arrange_options.add_item_table) do
+            if item.text == "Folder" then add_folder = item end
+            if item.text == "Specific tag" then add_tag = item end
+        end
+
+        add_folder.callback(touch_menu)
+        choose_folder("/home/Fiction")
+        add_folder.callback(touch_menu)
+        choose_folder("/home/Nonfiction")
+        add_tag.callback(touch_menu)
+        choose_tag("Science")
+
+        assert.are.same({
+            {
+                id = "ct_1", type = "folder", folder = "/home/Fiction",
+                label = "Fiction", label_auto = true, icon = "tab_folder",
+            },
+            {
+                id = "ct_2", type = "folder", folder = "/home/Nonfiction",
+                label = "Nonfiction", label_auto = true, icon = "tab_folder",
+            },
+            {
+                id = "ct_3", type = "tag", tag = "Science",
+                label = "Science", label_auto = true, icon = "tab_tags",
+            },
+        }, config.navbar.custom_tabs)
+        assert.is_true(config.navbar.show_tabs.ct_1)
+        assert.is_true(config.navbar.show_tabs.ct_2)
+        assert.is_true(config.navbar.show_tabs.ct_3)
     end)
 
     it("shows the ZenOS icon label without rewriting a legacy custom-tab ID", function()

@@ -106,6 +106,7 @@ describe("file browser navbar navigation", function()
                 base_observation = {
                     hidden = rawget(_G, "__ZEN_UI_HIDDEN_HOME_BOOTSTRAP"),
                     deferred = rawget(_G, "__ZEN_UI_DEFER_FILEMANAGER_LISTING"),
+                    target_folder = rawget(_G, "__ZEN_UI_OPEN_TARGET_FOLDER"),
                 }
                 FileManager.instance = self._test_next_instance or self
                 self._test_next_instance = nil
@@ -293,12 +294,14 @@ describe("file browser navbar navigation", function()
     after_each(function()
         for _i, name in ipairs({
             "__ZEN_UI_PLUGIN", "__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB", "__ZEN_UI_NAVBAR_OPEN_TAB",
+            "__ZEN_UI_NAVBAR_OPEN_FOLDER", "__ZEN_UI_NAVBAR_OPEN_TAG",
             "__ZEN_UI_NAVBAR_RESOLVE_DEFAULT_TAB", "__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE",
             "__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON",
             "__ZEN_UI_ACTIVE_TAB_LABEL",
             "__ZEN_UI_REINJECT_FM_NAVBAR", "__ZEN_UI_REINJECT_NAVBARS",
             "__ZEN_UI_LIBRARY_STATE", "__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER",
             "__ZEN_UI_OPEN_TARGET_TAB", "__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB",
+            "__ZEN_UI_OPEN_TARGET_FOLDER", "__ZEN_UI_OPEN_TARGET_TAG",
             "__ZEN_UI_HIDDEN_HOME_BOOTSTRAP", "__ZEN_UI_DEFER_FILEMANAGER_LISTING",
         }) do
             _G[name] = nil
@@ -440,6 +443,27 @@ describe("file browser navbar navigation", function()
         assert.is_nil(fm.invisible)
         assert.is_nil(fm.file_chooser._zen_needs_full_listing)
         assert.is_nil(fm.file_chooser._zen_hidden_home_startup)
+    end)
+
+    it("builds a Reader folder target directly without hidden Home startup", function()
+        local target = "/library/Fiction"
+        dir_mtimes[target] = 10
+        local fm = make_instance()
+        fm.file_chooser.path = target
+        FileManager._test_next_instance = fm
+        _G.__ZEN_UI_OPEN_TARGET_FOLDER = target
+        calls = {}
+
+        FileManager.showFiles(FileManager, "/library", "/library/Book.epub")
+
+        assert.are.same({ "base:/library/Fiction:nil" }, calls)
+        assert.are.equal(target, base_observation.target_folder)
+        assert.is_nil(base_observation.hidden)
+        assert.is_nil(fm.invisible)
+        assert.is_nil(fm._zen_hidden_home_startup)
+        assert.is_nil(fm.file_chooser._zen_hidden_home_startup)
+        assert.is_nil(_G.__ZEN_UI_OPEN_TARGET_FOLDER)
+        assert.are.equal("Folder", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
     end)
 
     it("finishes deferred Home when Android restores a focused book", function()
@@ -1149,6 +1173,52 @@ describe("file browser navbar navigation", function()
 
         FileManager.onPathChanged(fm, "/library/SciFi/Series")
         assert.are.equal("Sci-Fi", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+    end)
+
+    it("opens independently configured folder tabs and tracks each destination", function()
+        local fm = make_instance()
+        local fc = fm.file_chooser
+        fm[1] = { fc }
+        fc.changeToPath = function(self, path)
+            calls[#calls + 1] = "books:" .. path
+            self.path = path
+            FileManager.onPathChanged(fm, path)
+        end
+        local navbar_config = _G.__ZEN_UI_PLUGIN.config.navbar
+        navbar_config.custom_tabs = {
+            { id = "ct_fiction", type = "folder", folder = "/library/Fiction",
+                label = "Fiction", icon = "tab_folder" },
+            { id = "ct_nonfiction", type = "folder", folder = "/library/Nonfiction",
+                label = "Nonfiction", icon = "tab_folder" },
+        }
+        navbar_config.show_tabs.ct_fiction = true
+        navbar_config.show_tabs.ct_nonfiction = true
+        navbar_config.tab_order = { "home", "ct_fiction", "ct_nonfiction" }
+        dir_mtimes["/library/Fiction"] = 10
+        dir_mtimes["/library/Nonfiction"] = 10
+        _G.__ZEN_UI_REINJECT_FM_NAVBAR()
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("ct_fiction"))
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("ct_nonfiction"))
+
+        assert.are.same({
+            "books:/library/Fiction",
+            "books:/library/Nonfiction",
+        }, calls)
+        assert.are.equal("Nonfiction", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+        FileManager.onPathChanged(fm, "/library/Nonfiction/History")
+        assert.are.equal("Nonfiction", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+    end)
+
+    it("opens a specific tag for non-navbar destination buttons", function()
+        make_instance()
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAG("Science"))
+
+        assert.are.same({ "tag:Science:tags" }, calls)
+        assert.are.equal("Tags", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
     end)
 
     it("reveals a deferred FileManager for tabs configured as folder destinations", function()

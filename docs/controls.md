@@ -39,6 +39,8 @@ Controls adds a fast control panel to KOReader. It allows you to toggle Wi-Fi, f
 | Buttons > Buttons | Opens the button arranger. Disabled buttons are dimmed when the 9-button limit is reached. |
 | Buttons > Built-in buttons | Includes Wi-Fi, Bluetooth, night mode, frontlight, gyroscope, rotate, Zen Mode, Lockdown, Incognito, USB, file search, restart, exit, sleep, screenshot, sync, cloud, OPDS, Calibre, Calibre Search, Z-Library, LocalSend, Tailscale, ZenFM, Filebrowser, QuickRSS, Notion, reading streak, statistics progress, statistics calendar, battery stats, and supported game plugins when detected. |
 | Buttons > Rotate action | Sets the rotate button to cycle rotation or apply 90, 180, or 270 rotation directly. |
+| Buttons > Add > Folder | Adds an independently configured folder destination button. |
+| Buttons > Add > Specific tag | Adds a button that opens one selected tag. |
 | Buttons > Add > Action | Creates a user-defined Controls button that runs a dispatcher action, with a suggested icon. New buttons are added to the order list and shown when there is room under the 9-button limit. |
 | Buttons > Add > Plugin Menu | Scans for launchable plugin menus and adds the selected plugin menu as a Controls button with a suggested icon. |
 | Buttons > Add > KOReader menu | Adds a native KOReader submenu, such as Network, Tools, or Style tweaks, with a suggested icon. Reader-only menus remain visible but dimmed in the library. |

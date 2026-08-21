@@ -25,6 +25,7 @@ common/icon_packs.lua|unit
 common/inject_icons.lua|unit
 common/inline_icon_map.lua|unit
 common/library_font_path.lua|unit
+common/library_destination.lua|unit
 common/library_navigation.lua|unit
 common/memory_policy.lua|unit
 common/nav_button_model.lua|unit

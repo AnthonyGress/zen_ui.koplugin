@@ -154,6 +154,8 @@ local function show_folder_from_filemanager(folder)
     local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
     local fm = ok_fm and FileManager and FileManager.instance
     if not fm or not fm.file_chooser then return false end
+    local open_folder = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_FOLDER")
+    if type(open_folder) == "function" then return open_folder(folder) == true end
     require("common/utils").closeWidgetsAbove(fm)
     fm.file_chooser:changeToPath(folder)
     return true
@@ -171,6 +173,32 @@ local function show_zen_folder(plugin, folder)
         return require("common/library_navigation").showFromReader(reader, plugin, { target_folder = folder })
     end
     return show_folder_from_filemanager(folder)
+end
+
+local function show_tag_from_filemanager(plugin, tag)
+    if type(tag) ~= "string" or tag == "" then return false end
+    local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
+    local fm = ok_fm and FileManager and FileManager.instance
+    if fm then require("common/utils").closeWidgetsAbove(fm) end
+    local open_tag = rawget(_G, "__ZEN_UI_NAVBAR_OPEN_TAG")
+    if type(open_tag) == "function" then return open_tag(tag) == true end
+    local ok_shared, SharedState = pcall(require, "common/shared_state")
+    local GroupView = ok_shared and SharedState.get(plugin, "group_view") or nil
+    if GroupView and type(GroupView.showTagDetail) == "function" then
+        GroupView.showTagDetail(tag)
+        return true
+    end
+    return false
+end
+
+local function show_zen_tag(plugin, tag)
+    if type(tag) ~= "string" or tag == "" then return false end
+    local reader = get_reader()
+    if reader and reader.document then
+        return require("common/library_navigation").showFromReader(
+            reader, plugin, { target_tag = tag })
+    end
+    return show_tag_from_filemanager(plugin, tag)
 end
 
 local function apply_top_status_bar(plugin, enabled)
@@ -631,6 +659,10 @@ function M.onShowZenUITags(plugin)
     return show_zen_tab(plugin, "tags")
 end
 
+function M.onShowZenUITag(plugin, tag)
+    return show_zen_tag(plugin, tag)
+end
+
 function M.onShowZenUIStats(plugin)
     return show_zen_tab(plugin, "stats")
 end
@@ -663,6 +695,7 @@ function M.install(target)
     target.onShowZenUIAuthors = M.onShowZenUIAuthors
     target.onShowZenUISeries = M.onShowZenUISeries
     target.onShowZenUITags = M.onShowZenUITags
+    target.onShowZenUITag = M.onShowZenUITag
     target.onShowZenUIStats = M.onShowZenUIStats
     target.onShowZenUIFolder = M.onShowZenUIFolder
     target.onZenUIKOSyncSync = M.onZenUIKOSyncSync

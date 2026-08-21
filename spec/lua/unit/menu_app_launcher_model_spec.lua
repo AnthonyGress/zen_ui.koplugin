@@ -75,6 +75,28 @@ describe("app launcher model", function()
         assert.are.equal(folder, parent)
     end)
 
+    it("preserves folder shortcuts and specific tags at root and inside folders", function()
+        local fiction = {
+            id = "fiction", type = "folder_shortcut", label = "Fiction",
+            folder = "/library/Fiction",
+        }
+        local science = {
+            id = "science", type = "tag", label = "Science", tag = "Science",
+        }
+        saved_configs.loaded = {
+            entries = {
+                fiction,
+                { id = "tools", type = "folder", label = "Tools", children = { science } },
+            },
+        }
+
+        local cfg = require("modules/menu/app_launcher/model").ensure()
+
+        assert.are.equal(fiction, cfg.entries[1])
+        assert.are.equal(science, cfg.entries[2].children[1])
+        assert.is_nil(saved_configs.saved)
+    end)
+
     it("moves entries within lists, into folders, and back to root", function()
         local Model = require("modules/menu/app_launcher/model")
         local first = { id = "first", type = "action", label = "First", action = {} }

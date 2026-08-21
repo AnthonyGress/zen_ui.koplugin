@@ -348,9 +348,15 @@ local function apply_navbar()
     local function getCustomFolderTab(tab_id)
         if type(config.custom_tabs) ~= "table" then return nil end
         for _i, tab in ipairs(config.custom_tabs) do
-            if type(tab) == "table" and tab.id == tab_id and tab.type == "action" then
-                local folder = ButtonModel.getFolderActionPath(tab.action)
-                if folder then return tab, folder end
+            if type(tab) == "table" and tab.id == tab_id then
+                if tab.type == "folder" and type(tab.folder) == "string"
+                        and tab.folder ~= "" then
+                    return tab, tab.folder
+                end
+                if tab.type == "action" then
+                    local folder = ButtonModel.getFolderActionPath(tab.action)
+                    if folder then return tab, folder end
+                end
             end
         end
     end
@@ -1087,11 +1093,12 @@ local function apply_navbar()
             fc._zen_needs_full_listing = nil
             fc._zen_needs_cover_refresh = nil
             local current_path = normalizeFolderPath(fc.path)
-            if current_path == folder_path and listing_deferred
-                    and type(fc.refreshPath) == "function" then
-                fc:refreshPath()
-            elseif current_path == folder_path and type(fc.onGotoPage) == "function" then
-                fc:onGotoPage(1)
+            if current_path == folder_path then
+                if listing_deferred and type(fc.refreshPath) == "function" then
+                    fc:refreshPath()
+                elseif type(fc.onGotoPage) == "function" then
+                    fc:onGotoPage(1)
+                end
             else
                 fc.path_items[folder_path] = nil
                 fc:changeToPath(folder_path)
@@ -1163,6 +1170,17 @@ local function apply_navbar()
             })
         end
         return opened
+    end
+
+    local function openTag(tag_name, tab_id)
+        if type(tag_name) ~= "string" or tag_name == "" then return false end
+        local GroupView = get_shared("group_view")
+        if not (GroupView and type(GroupView.showTagDetail) == "function") then
+            return false
+        end
+        setActiveTab(tab_id or "tags")
+        GroupView.showTagDetail(tag_name, injectStandaloneNavbar, tab_id or "tags")
+        return true
     end
 
     local function onTabNews()
@@ -1936,6 +1954,7 @@ local function apply_navbar()
                     end
                     entry.label = (ct.label ~= nil and ct.label ~= "") and ct.label
                         or ct.tag
+                        or (ct.type == "folder" and ButtonModel.label(nil, ct))
                         or ct.plugin_title
                         or (ct.koreader_menu and ct.koreader_menu.title)
                         or _("Custom")
@@ -1968,10 +1987,14 @@ local function apply_navbar()
                         local tag_name = ct.tag
                         local tab_id = ct.id
                         tab_callbacks[ct.id] = function()
-                            local GroupView = get_shared("group_view")
-                            if GroupView and type(GroupView.showTagDetail) == "function" then
-                                GroupView.showTagDetail(tag_name, injectStandaloneNavbar, tab_id)
-                            end
+                            openTag(tag_name, tab_id)
+                        end
+                    elseif ct.type == "folder" and type(ct.folder) == "string"
+                            and ct.folder ~= "" then
+                        local folder_path = ct.folder
+                        local tab_id = ct.id
+                        tab_callbacks[tab_id] = function()
+                            onCustomFolderTab(folder_path, tab_id)
                         end
                     elseif ct.type == "action" then
                         local folder_path = ButtonModel.getFolderActionPath(ct.action)
@@ -2311,7 +2334,7 @@ local function apply_navbar()
         if type(config.custom_tabs) == "table" then
             for _i, tab in ipairs(config.custom_tabs) do
                 local folder = type(tab) == "table"
-                    and ButtonModel.getFolderActionPath(tab.action) or nil
+                    and select(2, getCustomFolderTab(tab.id)) or nil
                 if folder and isInFolderPath(path, folder) then return tab.id end
             end
         end
@@ -3227,6 +3250,7 @@ local function apply_navbar()
         if rawget(_G, "__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER") == true
                 or rawget(_G, "__ZEN_UI_OPEN_TARGET_TAB") ~= nil
                 or rawget(_G, "__ZEN_UI_OPEN_TARGET_FOLDER") ~= nil
+                or rawget(_G, "__ZEN_UI_OPEN_TARGET_TAG") ~= nil
                 or rawget(_G, "__ZEN_UI_LIBRARY_STATE") ~= nil then
             return false
         end
@@ -3371,13 +3395,10 @@ local function apply_navbar()
     function FileManager:showFiles(path, focused_file, selected_files)
         local started_at = os.clock()
         local open_home_after_filemanager = rawget(_G, "__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER") == true
-        _G.__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER = nil
         local open_target_tab = rawget(_G, "__ZEN_UI_OPEN_TARGET_TAB")
-        _G.__ZEN_UI_OPEN_TARGET_TAB = nil
         local open_target_folder = rawget(_G, "__ZEN_UI_OPEN_TARGET_FOLDER")
-        _G.__ZEN_UI_OPEN_TARGET_FOLDER = nil
+        local open_target_tag = rawget(_G, "__ZEN_UI_OPEN_TARGET_TAG")
         local keep_book_location_requested = rawget(_G, "__ZEN_UI_KEEP_BOOK_LOCATION") == true
-        _G.__ZEN_UI_KEEP_BOOK_LOCATION = nil
         local restore_enabled = is_restore_enabled()
         local state_before_show = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
         local force_source_restore = state_before_show and state_before_show.force_restore == true
@@ -3394,7 +3415,8 @@ local function apply_navbar()
                 "keep_requested=", tostring(keep_book_location_requested),
                 "open_home=", tostring(open_home_after_filemanager),
                 "open_target_tab=", tostring(open_target_tab),
-                "open_target_folder=", tostring(open_target_folder))
+                "open_target_folder=", tostring(open_target_folder),
+                "open_target_tag=", tostring(open_target_tag))
         end
         if force_source_restore then
             _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = nil
@@ -3409,13 +3431,22 @@ local function apply_navbar()
             and not open_home_after_filemanager
             and not open_target_tab
             and not open_target_folder
+            and not open_target_tag
             and not keep_book_location_requested
             and not (state_before_show and state_before_show.tab)
             and (not restore_enabled or not focused_file)
+        local target_folder_path = normalizeFolderPath(open_target_folder)
+        if target_folder_path
+                and lfs.attributes(target_folder_path, "mode") ~= "directory" then
+            target_folder_path = nil
+        end
         -- When restore is disabled, open at library root immediately (no double render).
         local effective_focused = not startup_default_home and not forced_default_tab
             and (restore_enabled or keep_book_location) and focused_file or nil
-        if startup_default_home or forced_default_tab
+        if target_folder_path then
+            path = target_folder_path
+            effective_focused = nil
+        elseif startup_default_home or forced_default_tab
                 or (not restore_enabled and not keep_book_location) then
             local home_dir = require("common/paths").getHomeDir()
             if home_dir then
@@ -3430,6 +3461,7 @@ local function apply_navbar()
             or open_home_after_filemanager
             or open_target_tab
             or open_target_folder
+            or open_target_tag
             or (state_before_show and state_before_show.force_restore)
             or (not restore_enabled
                 and not keep_book_location
@@ -3457,6 +3489,11 @@ local function apply_navbar()
         else
             orig_showFiles(self, path, effective_focused, selected_files)
         end
+        _G.__ZEN_UI_OPEN_HOME_AFTER_FILEMANAGER = nil
+        _G.__ZEN_UI_OPEN_TARGET_TAB = nil
+        _G.__ZEN_UI_OPEN_TARGET_FOLDER = nil
+        _G.__ZEN_UI_OPEN_TARGET_TAG = nil
+        _G.__ZEN_UI_KEEP_BOOK_LOCATION = nil
         local filemanager = FileManager.instance
         -- Android may restore a focused book after setupLayout already chose hidden Home.
         if not startup_default_home
@@ -3467,6 +3504,7 @@ local function apply_navbar()
                 and not open_home_after_filemanager
                 and not open_target_tab
                 and not open_target_folder
+                and not open_target_tag
                 and not keep_book_location_requested
                 and not (state_before_show and state_before_show.tab)
                 and filemanager
@@ -3520,13 +3558,18 @@ local function apply_navbar()
         if open_target_folder then
             _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = nil
             _G.__ZEN_UI_LIBRARY_STATE = nil
-            local fm = FileManager.instance
-            local fc = fm and fm.file_chooser
-            if fc and lfs.attributes(open_target_folder, "mode") == "directory" then
-                setActiveTab("books")
-                fc:changeToPath(open_target_folder)
-                refreshSuppressedCoversNow(fm)
+            local tab_id = tabForFileManagerPath(target_folder_path) or "books"
+            local opened = target_folder_path
+                and openFileManagerFolder(target_folder_path, tab_id)
+            if opened then
+                refreshSuppressedCoversNow(FileManager.instance)
             end
+            return
+        end
+        if open_target_tag then
+            _G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB = nil
+            _G.__ZEN_UI_LIBRARY_STATE = nil
+            openTag(open_target_tag, "tags")
             return
         end
         if rawget(_G, "__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB") then
@@ -3813,6 +3856,14 @@ local function apply_navbar()
     -- Allows main.lua to rebuild the navbar after quickstart changes tab config.
     _G.__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB = open_default_tab
     _G.__ZEN_UI_NAVBAR_OPEN_TAB = open_tab
+    _G.__ZEN_UI_NAVBAR_OPEN_FOLDER = function(path)
+        local tab_id = tabForFileManagerPath(path) or "books"
+        local opened = openFileManagerFolder(path, tab_id)
+        return opened == true
+    end
+    _G.__ZEN_UI_NAVBAR_OPEN_TAG = function(tag_name)
+        return openTag(tag_name, "tags")
+    end
     _G.__ZEN_UI_NAVBAR_RESOLVE_DEFAULT_TAB = resolve_default_tab
     _G.__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE = is_default_tab_active
     _G.__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON = function()

@@ -33,6 +33,10 @@ local function valid_entry(entry, allow_folder)
         return valid_koreader_menu(entry.koreader_menu)
     elseif entry.type == "quick_setting" then
         return type(entry.quick_setting_id) == "string" and entry.quick_setting_id ~= ""
+    elseif entry.type == "folder_shortcut" then
+        return type(entry.folder) == "string" and entry.folder ~= ""
+    elseif entry.type == "tag" then
+        return type(entry.tag) == "string" and entry.tag ~= ""
     elseif allow_folder and entry.type == "folder" then
         return true
     end

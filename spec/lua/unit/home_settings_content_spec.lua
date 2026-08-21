@@ -5,6 +5,8 @@ describe("Home widget content settings", function()
     local remembered_routes
     local responsive_strip_per_row
     local shown
+    local choose_folder
+    local choose_tag
 
     local function item_text(item)
         return item.text or (item.text_func and item.text_func())
@@ -32,6 +34,8 @@ describe("Home widget content settings", function()
         remembered_routes = {}
         responsive_strip_per_row = 5
         shown = {}
+        choose_folder = nil
+        choose_tag = nil
         home_page = {
             strip_memory = {
                 active_id = "recent",
@@ -172,8 +176,11 @@ describe("Home widget content settings", function()
                     { id = "favorites", label = "Favorites", source = true },
                 }
             end,
-            find = function(_controls, id)
+            find = function(controls, id)
                 for _i, entry in ipairs(require("common/nav_button_model").builtins()) do
+                    if entry.id == id then return entry end
+                end
+                for _i, entry in ipairs(controls.custom_buttons or {}) do
                     if entry.id == id then return entry end
                 end
             end,
@@ -189,6 +196,10 @@ describe("Home widget content settings", function()
                 end
             end,
             label = function(_controls, entry) return entry.label end,
+        })
+        ZenSpec.replace("common/library_destination", {
+            chooseFolder = function(callback) choose_folder = callback end,
+            chooseTag = function(callback) choose_tag = callback end,
         })
         ZenSpec.replace("common/dispatcher_menu", {})
         ZenSpec.replace("modules/menu/app_launcher/native_menu", {})
@@ -533,6 +544,30 @@ describe("Home widget content settings", function()
         assert.is_nil(home_page.modules.strip.controls.show_buttons.favorites)
         assert.is_nil(home_page.strip_memory)
         assert.are.equal(1, backs)
+    end)
+
+    it("adds multiple folder sources and a specific-tag source to Strip controls", function()
+        local settings = require("modules/settings/sections/library_settings/home_settings")
+        assert.is_true(settings.openWidgetSettings("strip"))
+        local controls_item = find_item(arrange_options.item_table, "Controls")
+        find_item(controls_item.sub_item_table_func(), "Tabs").callback({})
+        local add_folder = find_item(arrange_options.add_item_table, "Folder")
+        local add_tag = find_item(arrange_options.add_item_table, "Specific tag")
+
+        add_folder.callback()
+        choose_folder("/library/Fiction")
+        add_folder.callback()
+        choose_folder("/library/Nonfiction")
+        add_tag.callback()
+        choose_tag("Science")
+
+        assert.are.same({
+            { id = "hs_1", type = "folder", folder = "/library/Fiction",
+                label = "Fiction" },
+            { id = "hs_2", type = "folder", folder = "/library/Nonfiction",
+                label = "Nonfiction" },
+            { id = "hs_3", type = "tag", tag = "Science", label = "Science" },
+        }, home_page.modules.strip.controls.custom_buttons)
     end)
 
     it("resets Strip control tabs without changing control display settings", function()

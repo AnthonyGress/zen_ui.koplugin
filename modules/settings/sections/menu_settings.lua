@@ -13,13 +13,15 @@ local NativeMenu = require("modules/menu/app_launcher/native_menu")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
 local DispatcherMenu = require("common/dispatcher_menu")
 local icon_utils = require("common/utils")
+local Destination = require("common/library_destination")
 local Bluetooth = require("common/bluetooth")
 
 local M = {}
 
-local function suggest_icon(label, strip_zen_prefix)
+local function suggest_icon(label, strip_zen_prefix, preferred)
     local ok_root, root = pcall(require, "common/plugin_root")
-    return icon_utils.suggestIcon(ok_root and root or nil, label, "lightning", strip_zen_prefix)
+    return icon_utils.suggestIcon(
+        ok_root and root or nil, label, "lightning", strip_zen_prefix, preferred)
 end
 
 function M.build(ctx)
@@ -161,8 +163,12 @@ function M.build(ctx)
                     lbl = cb.plugin_title
                 elseif cb.type == "koreader_menu" then
                     lbl = cb.koreader_menu and cb.koreader_menu.title
+                elseif cb.type == "folder" then
+                    lbl = Destination.folderLabel(cb.folder)
+                elseif cb.type == "tag" then
+                    lbl = cb.tag
                 elseif ok_disp and cb.action and next(cb.action) then
-                    lbl = Dispatcher:menuTextFunc(cb.action)
+                    lbl = icon_utils.stripZenPrefix(Dispatcher:menuTextFunc(cb.action))
                 end
                 quick_button_label_by_id[cb.id] = lbl or _("Custom")
                 quick_button_key_set[cb.id] = true
@@ -256,6 +262,55 @@ function M.build(ctx)
 
     local function wrap_dispatch_callbacks(items, caller, on_update)
         DispatcherMenu.wrap(items, caller, on_update, "_zen_qs_dispatch")
+    end
+
+    local function commitDestinationButton(cb, touch_menu)
+        local cbs = config.quick_settings.custom_buttons
+        if type(cbs) ~= "table" then
+            config.quick_settings.custom_buttons = {}
+            cbs = config.quick_settings.custom_buttons
+        end
+        config.quick_settings.next_custom_id =
+            (config.quick_settings.next_custom_id or 0) + 1
+        cb.id = "cb_" .. config.quick_settings.next_custom_id
+        table.insert(cbs, cb)
+        quick_button_custom_by_id[cb.id] = cb
+        quick_button_label_by_id[cb.id] = get_cb_label(cb)
+        quick_button_key_set[cb.id] = true
+        config.quick_settings.show_buttons[cb.id] = countEnabledButtons() < quick_buttons_max
+        ensureButtonOrder(cb.id)
+        save_and_apply_quick_settings()
+        if touch_menu and build_cb_sub_items then
+            table.insert(touch_menu.item_table_stack, touch_menu.item_table)
+            touch_menu.parent_id = nil
+            touch_menu.item_table = build_cb_sub_items(cb)
+            touch_menu:updateItems(1)
+        end
+    end
+
+    local function addFolderButton(touch_menu)
+        Destination.chooseFolder(function(path)
+            local label = Destination.folderLabel(path)
+            commitDestinationButton({
+                type = "folder",
+                folder = path,
+                label = label,
+                label_auto = true,
+                icon = suggest_icon(label, nil, "folder"),
+            }, touch_menu)
+        end)
+    end
+
+    local function addTagButton(touch_menu)
+        Destination.chooseTag(function(tag)
+            commitDestinationButton({
+                type = "tag",
+                tag = tag,
+                label = tag,
+                label_auto = true,
+                icon = suggest_icon(tag, nil, "tab_tags"),
+            }, touch_menu)
+        end)
     end
 
     local function addActionButton(touch_menu)
@@ -581,6 +636,16 @@ function M.build(ctx)
                     callback = addActionButton,
                 }, icons.action),
                 IconItem.decorate({
+                    text = _("Folder"),
+                    keep_menu_open = true,
+                    callback = addFolderButton,
+                }, icons.settings_folders),
+                IconItem.decorate({
+                    text = _("Specific tag"),
+                    keep_menu_open = true,
+                    callback = addTagButton,
+                }, icons.keywords),
+                IconItem.decorate({
                     text = _("Plugin Menu"),
                     keep_menu_open = true,
                     callback = addPluginButton,
@@ -632,12 +697,18 @@ function M.build(ctx)
         if cb.type == "plugin" then
             return cb.plugin_title or _("Plugin")
         end
+        if cb.type == "folder" then
+            return Destination.folderLabel(cb.folder)
+        end
+        if cb.type == "tag" then
+            return cb.tag or _("Tag")
+        end
         if cb.type == "koreader_menu" then
             return cb.koreader_menu and cb.koreader_menu.title or _("KOReader menu")
         end
         if ok_disp and cb.action and next(cb.action) then
             local t = Dispatcher:menuTextFunc(cb.action)
-            if t ~= _("Nothing") then return t end
+            if t ~= _("Nothing") then return icon_utils.stripZenPrefix(t) end
         end
         return _("Custom")
     end
@@ -688,6 +759,48 @@ function M.build(ctx)
                     chooseKoreaderMenuButton(cb, touch_menu, false)
                 end,
             }, icons.open_menu))
+        elseif cb.type == "folder" then
+            table.insert(items, IconItem.decorate({
+                text_func = function()
+                    return _("Folder") .. ": " .. Destination.folderLabel(cb.folder)
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    Destination.chooseFolder(function(path)
+                        local old_label = Destination.folderLabel(cb.folder)
+                        cb.folder = path
+                        if cb.label_auto == true or not cb.label or cb.label == ""
+                                or cb.label == old_label then
+                            cb.label = Destination.folderLabel(path)
+                            cb.label_auto = true
+                        end
+                        quick_button_label_by_id[cb.id] = get_cb_label(cb)
+                        save_and_apply_quick_settings()
+                        if touch_menu then touch_menu:updateItems(1) end
+                    end, { path = cb.folder })
+                end,
+            }, icons.settings_folders))
+        elseif cb.type == "tag" then
+            table.insert(items, IconItem.decorate({
+                text_func = function()
+                    return T(_("Tag: %1"), cb.tag or _("(none)"))
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    Destination.chooseTag(function(tag)
+                        local old_tag = cb.tag
+                        cb.tag = tag
+                        if cb.label_auto == true or not cb.label or cb.label == ""
+                                or cb.label == old_tag then
+                            cb.label = tag
+                            cb.label_auto = true
+                        end
+                        quick_button_label_by_id[cb.id] = get_cb_label(cb)
+                        save_and_apply_quick_settings()
+                        if touch_menu then touch_menu:updateItems(1) end
+                    end)
+                end,
+            }, icons.keywords))
         elseif ok_disp then
             -- Action picker via Dispatcher submenu
             local dispatch_items = {}
@@ -749,7 +862,8 @@ function M.build(ctx)
                 dialog = InputDialog:new{
                     title = _("Custom button label"),
                     input = cb.label or "",
-                    input_hint = _("Leave empty to use action title"),
+                    input_hint = cb.type == "action"
+                        and _("Leave empty to use action title") or nil,
                     buttons = {{
                         { text = _("Cancel"), callback = function() UIManager:close(dialog) end },
                         {
@@ -761,7 +875,9 @@ function M.build(ctx)
                                     cb.label = txt
                                     cb.label_auto = false
                                 else
-                                    cb.label = nil
+                                    cb.label = cb.type == "folder"
+                                        and Destination.folderLabel(cb.folder)
+                                        or cb.type == "tag" and cb.tag or nil
                                     cb.label_auto = true
                                     sync_cb_action_label(cb)
                                 end

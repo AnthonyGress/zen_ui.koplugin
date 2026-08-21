@@ -50,6 +50,16 @@ describe("reader navbar dispatch", function()
         assert.is_nil(calls[1].opts.target_tab)
     end)
 
+    it("routes a specific tag from the reader", function()
+        local plugin = { marker = "zen" }
+
+        assert.is_true(Dispatch.onShowZenUITag(plugin, "Science"))
+
+        assert.are.equal(reader, calls[1].reader)
+        assert.are.equal(plugin, calls[1].plugin)
+        assert.are.equal("Science", calls[1].opts.target_tag)
+    end)
+
     it("registers Stats as a general dispatcher action", function()
         local actions = {}
         ZenSpec.replace("dispatcher", {

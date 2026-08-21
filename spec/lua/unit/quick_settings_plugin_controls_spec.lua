@@ -4,6 +4,7 @@ describe("quick settings plugin controls", function()
     local original_quick_settings
     local tailscale
     local zenfm
+    local destination_entries
 
     local module_names = {
         "ffi/blitbuffer",
@@ -35,6 +36,7 @@ describe("quick settings plugin controls", function()
         "gettext",
         "dispatcher",
         "common/dispatch_action",
+        "common/nav_button_model",
         "modules/menu/app_launcher/plugin_scan",
         "common/plugin_root",
         "modules/menu/patches/touch_menu_panel",
@@ -103,6 +105,14 @@ describe("quick settings plugin controls", function()
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("dispatcher", { execute = function() end })
         ZenSpec.replace("common/dispatch_action", no_op)
+        destination_entries = {}
+        ZenSpec.replace("common/nav_button_model", {
+            label = function(_controls, entry) return entry.label end,
+            execute = function(entry)
+                destination_entries[#destination_entries + 1] = entry
+                return true
+            end,
+        })
         ZenSpec.replace("modules/menu/app_launcher/plugin_scan", no_op)
         ZenSpec.replace("common/plugin_root", "/tmp/zen-ui")
         ZenSpec.replace("modules/menu/patches/touch_menu_panel", { install = function() end })
@@ -228,5 +238,30 @@ describe("quick settings plugin controls", function()
 
         assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.activate("zen", touch_menu))
         assert.are.same({ "close", "toggle" }, calls)
+    end)
+
+    it("runs independently configured folder and tag destination buttons", function()
+        local config = _G.__ZEN_UI_PLUGIN.config.quick_settings
+        config.custom_buttons = {
+            { id = "cb_1", type = "folder", folder = "/library/Fiction",
+                label = "Fiction", icon = "tab_folder" },
+            { id = "cb_2", type = "folder", folder = "/library/Nonfiction",
+                label = "Nonfiction", icon = "tab_folder" },
+            { id = "cb_3", type = "tag", tag = "Science",
+                label = "Science", icon = "tab_tags" },
+        }
+        local closes = 0
+        local touch_menu = {
+            closeMenu = function() closes = closes + 1 end,
+            updateItems = function() end,
+            item_table = { panel = true },
+        }
+
+        assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.activate("cb_1", touch_menu))
+        assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.activate("cb_2", touch_menu))
+        assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.activate("cb_3", touch_menu))
+
+        assert.are.equal(3, closes)
+        assert.are.same(config.custom_buttons, destination_entries)
     end)
 end)
