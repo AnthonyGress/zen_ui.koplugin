@@ -530,9 +530,7 @@ local function apply_zen_renderer()
     end
 
     function ZenMosaicItem:onFocus()
-        local features = plugin_config().features or {}
-        self._underline_container.color = features.browser_hide_underline == true
-            and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK
+        self._underline_container.color = Blitbuffer.COLOR_BLACK
         return true
     end
 

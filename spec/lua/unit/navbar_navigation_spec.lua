@@ -1686,12 +1686,39 @@ describe("file browser navbar navigation", function()
         device_has_keys = true
         local fm = make_instance()
         local fc = fm.file_chooser
+        local focus_events = {}
+        local content_moves = 0
+        local content_presses = 0
+        local first_item = {}
+        local last_item = {
+            handleEvent = function(_self, event)
+                focus_events[#focus_events + 1] = event.name
+                return true
+            end,
+        }
+        fc.onFocusMove = function(self, args)
+            content_moves = content_moves + 1
+            self.selected.y = self.selected.y + (args[2] or 0)
+            return true
+        end
+        fc.onPress = function()
+            content_presses = content_presses + 1
+            return true
+        end
         fm[1] = { fc }
         assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
         fc.selected = { x = 1, y = 1 }
-        fc.layout = { { {} } }
+        fc.layout = { { first_item }, { last_item } }
         calls = {}
 
+        assert.is_true(fc:onFocusMove({ 0, 1 }))
+        assert.are.equal(1, content_moves)
+        assert.is_true(fc:onFocusMove({ 0, 1 }))
+        assert.are.same({ "Unfocus" }, focus_events)
+        assert.is_true(fc:onFocusMove({ 0, -1 }))
+        assert.are.same({ "Unfocus", "Focus" }, focus_events)
+        assert.is_true(fc:onPress())
+        assert.are.equal(1, content_presses)
         assert.is_true(fc:onFocusMove({ 0, 1 }))
         assert.is_true(fc:onFocusMove({ -1, 0 }))
         assert.is_true(fc:onPress())
@@ -1704,17 +1731,38 @@ describe("file browser navbar navigation", function()
         local fm = make_instance()
         fm[1] = { fm.file_chooser }
         local home_menu
+        local focus_events = {}
+        local content_moves = 0
+        local content_presses = 0
         home_show_callback = function(inject)
             local body = {
                 dimen = { w = 800, h = 560 },
                 inner_dimen = { w = 800, h = 560 },
                 resetLayout = function() end,
             }
+            local first_item = {}
+            local last_item = {
+                handleEvent = function(_self, event)
+                    focus_events[#focus_events + 1] = event.name
+                    return true
+                end,
+            }
             home_menu = {
                 name = "home",
                 dimen = { w = 800, h = 600 },
                 inner_dimen = { w = 800, h = 600 },
                 updateItems = function() end,
+                selected = { x = 1, y = 1 },
+                layout = { { first_item }, { last_item } },
+                onFocusMove = function(self, args)
+                    content_moves = content_moves + 1
+                    self.selected.y = self.selected.y + (args[2] or 0)
+                    return true
+                end,
+                onPress = function()
+                    content_presses = content_presses + 1
+                    return true
+                end,
                 [1] = body,
             }
             inject(home_menu, "home")
@@ -1723,11 +1771,54 @@ describe("file browser navbar navigation", function()
         assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
         calls = {}
 
+        assert.is_true(home_menu:onZenNavbarFocusDown())
+        assert.are.equal(1, content_moves)
+        assert.is_true(home_menu:onFocusMove({ 0, 1 }))
+        assert.are.same({ "Unfocus" }, focus_events)
+        assert.is_true(home_menu:onFocusMove({ 0, -1 }))
+        assert.are.same({ "Unfocus", "Focus" }, focus_events)
+        assert.is_true(home_menu:onZenNavbarConfirm())
+        assert.are.equal(1, content_presses)
         assert.is_true(home_menu:onFocusMove({ 0, 1 }))
         assert.is_true(home_menu:onFocusMove({ 1, 0 }))
         assert.is_true(home_menu:onPress())
 
         assert.are.same({ "books:/library" }, calls)
+    end)
+
+    it("opens the top menu from the physical Menu key on standalone pages", function()
+        device_has_keys = true
+        local fm = make_instance()
+        fm[1] = { fm.file_chooser }
+        fm.menu = {
+            onShowMenu = function()
+                calls[#calls + 1] = "top_menu"
+                return true
+            end,
+        }
+        local home_menu
+        home_show_callback = function(inject)
+            home_menu = {
+                name = "home",
+                dimen = { w = 800, h = 600 },
+                inner_dimen = { w = 800, h = 600 },
+                updateItems = function() end,
+                [1] = {
+                    dimen = { w = 800, h = 560 },
+                    inner_dimen = { w = 800, h = 560 },
+                    resetLayout = function() end,
+                },
+            }
+            inject(home_menu, "home")
+        end
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        calls = {}
+
+        assert.is_true(home_menu:onKeyPress({
+            match = function(_self, sequence) return sequence[1] == "Menu" end,
+        }))
+
+        assert.are.same({ "top_menu" }, calls)
     end)
 
     it("uses rendered tab centers when tapping a standalone navbar background", function()

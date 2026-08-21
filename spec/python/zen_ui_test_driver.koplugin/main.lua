@@ -374,6 +374,24 @@ local function has_focus_feedback(control)
     return focused
 end
 
+local function is_keyboard_focused(widget, seen, depth)
+    if type(widget) ~= "table" or depth > 32 then return false end
+    seen = seen or {}
+    if seen[widget] then return false end
+    seen[widget] = true
+    local underline = widget._underline_container
+    if underline then
+        local Blitbuffer = require("ffi/blitbuffer")
+        if underline.focused == true or underline.color == Blitbuffer.COLOR_BLACK then
+            return true
+        end
+    end
+    for _i, child in ipairs(widget) do
+        if is_keyboard_focused(child, seen, depth + 1) then return true end
+    end
+    return false
+end
+
 if ffi.os == "OSX" then
     ffi.cdef[[
 struct zen_test_sockaddr_un {
@@ -2595,18 +2613,39 @@ function Driver:handleCommand(command)
         return { ok = true, navbar = navbar_state() }
     end
     if kind == "navbar_key" and type(params.key) == "string" then
+        local stack = UIManager._window_stack
+        local top = stack and stack[#stack]
+        local target = top and top.widget
         local FileManager = require("apps/filemanager/filemanager")
         local chooser = FileManager.instance and FileManager.instance.file_chooser
-        if not chooser then return { ok = false, error = "file chooser unavailable" } end
+        if not (target and target._zen_navbar_key_patched) then target = chooser end
+        if not target then return { ok = false, error = "navbar owner unavailable" } end
         local Key = require("device/key")
         local count = math.max(1, math.min(math.floor(tonumber(params.count) or 1), 64))
         local handled = false
         for _i = 1, count do
-            if chooser:handleEvent(Event:new("KeyPress", Key:new(params.key, {}))) then
+            if target:handleEvent(Event:new("KeyPress", Key:new(params.key, {}))) then
                 handled = true
             end
         end
-        return { ok = handled }
+        local fm_menu = FileManager.instance and FileManager.instance.menu
+        local menu_open = fm_menu and fm_menu.menu_container ~= nil
+        if menu_open and params.close_menu == true
+                and type(fm_menu.onCloseFileManagerMenu) == "function" then
+            fm_menu:onCloseFileManagerMenu()
+        end
+        local selected = target.selected
+        local row = selected and target.layout and target.layout[selected.y]
+        local focused_widget = row and row[selected.x]
+        return {
+            ok = handled,
+            target = target == chooser and "file_chooser" or "standalone",
+            menu_open = menu_open,
+            home_focus_key = target._zen_home_focus_key,
+            focus_x = selected and selected.x or nil,
+            focus_y = selected and selected.y or nil,
+            content_focused = is_keyboard_focused(focused_widget, {}, 0),
+        }
     end
     if kind == "activate_navbar_tab" and type(params.id) == "string" then
         local allowed = {

@@ -326,6 +326,16 @@ local function apply_navbar()
     local active_tab
     local _navbar_focused_idx = nil  -- keyboard-focused tab index (nil = file list has focus)
     local _last_menu_item = nil  -- tracks last long-held item for the menu tab
+
+    local function setSelectedWidgetFocus(owner, focused)
+        local selected = owner and owner.selected
+        local row = selected and owner.layout and owner.layout[selected.y]
+        local widget = row and row[selected.x]
+        if not (widget and type(widget.handleEvent) == "function") then return false end
+        widget:handleEvent(Event:new(focused and "Focus" or "Unfocus"))
+        return true
+    end
+
     local skip_tabs_for_state = {
         books = true, manga = true, news = true,
         folder = true, continue = true, search = true, stats = true, exit = true,
@@ -2497,6 +2507,7 @@ local function apply_navbar()
         -- Focus the navbar at the active tab, starting from the given key direction.
         local function focusNavbar(direction, vis_tabs)
             _back_btn_focused = false  -- mutually exclusive with navbar focus
+            setSelectedWidgetFocus(file_chooser, false)
             local n = #vis_tabs
             _navbar_focused_idx = 1
             for i, tab in ipairs(vis_tabs) do
@@ -2556,6 +2567,7 @@ local function apply_navbar()
                         activateNavbarTab(); return true
                     elseif key == "Back" then
                         _navbar_focused_idx = nil
+                        setSelectedWidgetFocus(fc, true)
                         repaintNavbar(); return true
                     end
                 else
@@ -2573,6 +2585,7 @@ local function apply_navbar()
                             repaintStatusBar()
                         else
                             _back_btn_focused = false
+                            setSelectedWidgetFocus(fc, true)
                             repaintStatusBar()
                         end
                         return true
@@ -2645,6 +2658,7 @@ local function apply_navbar()
                     if dy == -1 then
                         -- Up from navbar → return to file list
                         _navbar_focused_idx = nil
+                        setSelectedWidgetFocus(fc, true)
                         repaintNavbar(); return true
                     elseif dx == -1 then
                         _navbar_focused_idx = ((_navbar_focused_idx - 2) % n) + 1
@@ -2658,6 +2672,7 @@ local function apply_navbar()
                 if _back_btn_focused then
                     -- Any d-pad move while back button focused: unfocus and consume.
                     _back_btn_focused = false
+                    setSelectedWidgetFocus(fc, true)
                     repaintStatusBar(); return true
                 end
                 if dy == 1 and fc.selected and fc.layout
@@ -2673,6 +2688,7 @@ local function apply_navbar()
                     local back_zone = fm2 and fm2._zen_back_tap_zone
                     if back_zone and back_zone.callback then
                         _back_btn_focused = true
+                        setSelectedWidgetFocus(fc, false)
                         repaintStatusBar(); return true
                     end
                 end
@@ -2695,6 +2711,7 @@ local function apply_navbar()
             if _navbar_focused_idx then
                 -- Back unfocuses the navbar row.
                 _navbar_focused_idx = nil
+                setSelectedWidgetFocus(fc, true)
                 repaintNavbar(); return true
             end
             -- Navigate to parent folder via zen back zone.
@@ -2994,6 +3011,7 @@ local function apply_navbar()
             end
 
             local function focusStandaloneNavbar(vis_tabs)
+                setSelectedWidgetFocus(menu, false)
                 _navbar_focused_idx = 1
                 for i, tab in ipairs(vis_tabs) do
                     if tab.id == view_tab_id then
@@ -3042,6 +3060,7 @@ local function apply_navbar()
                     if _navbar_focused_idx then
                         if dy == -1 then
                             _navbar_focused_idx = nil
+                            setSelectedWidgetFocus(m, true)
                             repaintStandaloneNavbar(); return true
                         elseif dx == -1 then
                             _navbar_focused_idx = ((_navbar_focused_idx - 2) % n) + 1
@@ -3061,31 +3080,37 @@ local function apply_navbar()
                 return false
             end
 
+            local cls_sfm = menu.onFocusMove
+            local cls_sp = menu.onPress
+
             function menu:onZenNavbarFocusLeft()
-                return moveStandaloneNavbar(self, -1, 0)
+                if moveStandaloneNavbar(self, -1, 0) then return true end
+                return cls_sfm and cls_sfm(self, { -1, 0 })
             end
 
             function menu:onZenNavbarFocusRight()
-                return moveStandaloneNavbar(self, 1, 0)
+                if moveStandaloneNavbar(self, 1, 0) then return true end
+                return cls_sfm and cls_sfm(self, { 1, 0 })
             end
 
             function menu:onZenNavbarFocusUp()
-                return moveStandaloneNavbar(self, 0, -1)
+                if moveStandaloneNavbar(self, 0, -1) then return true end
+                return cls_sfm and cls_sfm(self, { 0, -1 })
             end
 
             function menu:onZenNavbarFocusDown()
-                return moveStandaloneNavbar(self, 0, 1)
+                if moveStandaloneNavbar(self, 0, 1) then return true end
+                return cls_sfm and cls_sfm(self, { 0, 1 })
             end
 
             function menu:onZenNavbarConfirm()
                 if _navbar_focused_idx then
                     activateStandaloneTab(); return true
                 end
-                return false
+                return cls_sp and cls_sp(self)
             end
 
             -- D-pad moves arrive as FocusMove events, not onKeyPress.
-            local cls_sfm = menu.onFocusMove
             menu.onFocusMove = function(m, args)
                 local dx = args and args[1] or 0
                 local dy = args and args[2] or 0
@@ -3095,6 +3120,18 @@ local function apply_navbar()
 
             local cls_skp = menu.onKeyPress
             menu.onKeyPress = function(m, key)
+                local is_menu_key = key == "Menu"
+                if not is_menu_key and type(key) == "table"
+                        and type(key.match) == "function" then
+                    is_menu_key = key:match({ "Menu" })
+                end
+                if is_menu_key then
+                    local fm = FileManager.instance
+                    local fm_menu = fm and fm.menu
+                    if fm_menu and type(fm_menu.onShowMenu) == "function" then
+                        return fm_menu:onShowMenu()
+                    end
+                end
                 local vis_tabs = getVisibleTabs()
                 if #vis_tabs > 0 and _navbar_focused_idx then
                     if key == "Return" or key == "Press" then
@@ -3104,7 +3141,6 @@ local function apply_navbar()
                 return cls_skp and cls_skp(m, key)
             end
 
-            local cls_sp = menu.onPress
             menu.onPress = function(m)
                 if _navbar_focused_idx then
                     activateStandaloneTab(); return true
@@ -3116,6 +3152,7 @@ local function apply_navbar()
             menu.onBack = function(m)
                 if _navbar_focused_idx then
                     _navbar_focused_idx = nil
+                    setSelectedWidgetFocus(m, true)
                     repaintStandaloneNavbar(); return true
                 end
                 local fm = FileManager.instance

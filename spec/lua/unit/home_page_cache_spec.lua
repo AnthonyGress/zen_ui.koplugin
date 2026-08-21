@@ -7,6 +7,7 @@ describe("home data and book caches", function()
     local history_items
     local book_info_reads
     local stats_query_count
+    local top_menu_count
 
     before_each(function()
         _G.__ZEN_UI_LAST_READ_FILE = nil
@@ -17,6 +18,7 @@ describe("home data and book caches", function()
         favorite_lookup_count = 0
         book_info_reads = 0
         stats_query_count = 0
+        top_menu_count = 0
         history_items = { { file = "/library/alpha.epub" } }
 
         ZenSpec.replace("config/manager", { get = function() return {} end })
@@ -25,6 +27,16 @@ describe("home data and book caches", function()
             screen = {
                 getWidth = function() return 600 end,
                 getHeight = function() return 900 end,
+            },
+        })
+        ZenSpec.replace("apps/filemanager/filemanager", {
+            instance = {
+                menu = {
+                    onShowMenu = function()
+                        top_menu_count = top_menu_count + 1
+                        return true
+                    end,
+                },
             },
         })
         ZenSpec.replace("ui/uimanager", {
@@ -218,6 +230,7 @@ describe("home data and book caches", function()
         local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
         local install_home_key_handlers = get_install_home_key_handlers(Home)
         local activated = {}
+        local contexted = {}
         local targets = {}
         for index, name in ipairs({ "recent", "to_be_read", "books", "search" }) do
             targets[index] = {
@@ -228,6 +241,10 @@ describe("home data and book caches", function()
                 col = index,
                 activate = function()
                     activated[#activated + 1] = name
+                    return true
+                end,
+                context = function()
+                    contexted[#contexted + 1] = name
                     return true
                 end,
             }
@@ -244,6 +261,9 @@ describe("home data and book caches", function()
         local menu = { _zen_home_focus_targets = targets }
         install_home_key_handlers(menu)
 
+        assert.are.same({ "Menu" }, menu.key_events.ZenHomeContext[1])
+        assert.is_true(menu:onZenHomeContext())
+        assert.are.equal(1, top_menu_count)
         assert.are.same({ "Enter" }, menu.key_events.ZenNavbarConfirm[3])
         assert.is_true(menu:onZenNavbarFocusRight())
         assert.are.equal("strip-control:recent", menu._zen_home_focus_key)
@@ -254,6 +274,7 @@ describe("home data and book caches", function()
                 match = function(_self, sequence) return sequence[1] == name end,
             }
         end
+        assert.is_true(menu:onKeyRelease(key("Press")))
         assert.is_true(menu:onKeyPress(key("Right")))
         assert.are.equal("strip-control:to_be_read", menu._zen_home_focus_key)
         assert.is_true(menu:onKeyPress(key("Enter")))
@@ -262,11 +283,15 @@ describe("home data and book caches", function()
         assert.is_true(menu:onFocusMove({ 1, 0 }))
         assert.are.equal("strip-control:books", menu._zen_home_focus_key)
         assert.is_true(menu:onZenNavbarConfirm())
+        assert.is_function(pending)
+        pending()
+        assert.are.same({ "books" }, contexted)
+        assert.is_true(menu:onKeyRelease(key("Enter")))
         assert.is_true(menu:onKeyPress("Right"))
         assert.are.equal("strip-control:search", menu._zen_home_focus_key)
         assert.is_true(menu:onKeyPress("Press"))
         assert.is_true(menu:onKeyRelease("Press"))
-        assert.are.same({ "recent", "to_be_read", "books", "search" }, activated)
+        assert.are.same({ "recent", "to_be_read", "search" }, activated)
     end)
 
     it("reuses history/status data across providers and opens one sidecar per book miss", function()
@@ -807,6 +832,10 @@ describe("home data and book caches", function()
         local rebuilds = 0
         local resumes = 0
         local menu = {
+            _zen_home_focus_index = 2,
+            _zen_home_focus_id = "stats_triplet",
+            _zen_home_focus_key = "widget:stats_triplet",
+            _zen_home_focus_suspended = true,
             _home_rebuild = function() rebuilds = rebuilds + 1 end,
             _zen_home_resume = function(self)
                 resumes = resumes + 1
@@ -820,6 +849,10 @@ describe("home data and book caches", function()
 
         assert.is_true(Home.suspendActive())
         assert.is_true(menu._zen_home_suspended)
+        assert.is_nil(menu._zen_home_focus_index)
+        assert.is_nil(menu._zen_home_focus_id)
+        assert.is_nil(menu._zen_home_focus_key)
+        assert.is_nil(menu._zen_home_focus_suspended)
         assert.is_nil(UIManager._dirty[menu])
         assert.is_true(Home.rebuildActive())
         assert.are.equal(0, rebuilds)
