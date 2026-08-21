@@ -87,6 +87,28 @@ local function apply_zen_scroll_bar()
             or  (self.dimen.y + self.dimen.h - footer_area_h)
         local menu_x = is_search and 0 or self.dimen.x
 
+        local function getLibraryContentBottom()
+            if menu.name ~= "filemanager" then return end
+            local perpage = tonumber(menu.perpage) or 0
+            local row_height = menu.item_dimen and tonumber(menu.item_dimen.h) or 0
+            if perpage <= 0 or row_height <= 0 then return end
+
+            local title_height = menu.title_bar and menu.title_bar:getHeight() or 0
+            local content_height = perpage * row_height
+            local rows = tonumber(menu.nb_rows)
+            local item_height = tonumber(menu.item_height)
+            local item_margin = tonumber(menu.item_margin) or 0
+            if menu.display_mode_type == "mosaic"
+                    and rows and rows > 0 and item_height and item_height > 0 then
+                content_height = rows * item_height + (rows + 1) * item_margin
+            elseif menu.display_mode_type == "list"
+                    and menu.files_per_page and item_height and item_height > 0 then
+                content_height = Size.line.thin
+                    + perpage * (item_height + Size.line.thin)
+            end
+            return menu.dimen.y + title_height + content_height
+        end
+
         local function getTouchBottom()
             local navbar_h = tonumber(menu._zen_navbar_height) or 0
             if navbar_h > 0 then return scr_h - navbar_h end
@@ -115,6 +137,18 @@ local function apply_zen_scroll_bar()
         -- x, y: absolute screen position supplied by BottomContainer.
         self.page_info.paintTo = function(_, bb, x, y)
             local area_y = is_search and (scr_h - footer_area_h) or y
+            local anchored_area_y = area_y
+            local content_bottom = getLibraryContentBottom()
+            area_y = pager.getCenteredFooterY(
+                content_bottom,
+                area_y,
+                footer_area_h,
+                content_bottom ~= nil
+            )
+            if content_bottom and area_y < anchored_area_y then
+                local padding_bias = math.max(0, footer_pad_bottom - footer_pad_top)
+                area_y = math.max(content_bottom, area_y - padding_bias)
+            end
             local paint_y = area_y + footer_pad_top
             updateTouchZoneY(area_y)
             if is_search then

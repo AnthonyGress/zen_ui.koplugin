@@ -52,7 +52,18 @@ describe("config manager folder-path migration", function()
         assert.is_true(config.features.app_launcher)
         assert.is_true(config.features.zen_mode)
         assert.is_true(config.features.status_bar)
+        assert.are.equal("90", config.quick_settings.rotate_action)
         assert.is_false(config._meta.quickstart_shown_for_version)
+    end)
+
+    it("preserves an existing rotate action", function()
+        settings_file.data = {
+            quick_settings = { rotate_action = "cycle" },
+        }
+
+        local config = Manager.load()
+
+        assert.are.equal("cycle", config.quick_settings.rotate_action)
     end)
 
     it("recovers the sparse config created by the fresh-install merge bug", function()

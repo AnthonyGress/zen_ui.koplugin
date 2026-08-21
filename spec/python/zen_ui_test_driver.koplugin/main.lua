@@ -35,7 +35,7 @@ local SHOWCASE_NAVBARS = {
         show_labels = true,
     },
     zen_home_icons = {
-        tab_order = { "home", "books", "to_be_read", "authors" },
+        tab_order = { "books", "authors", "series", "stats", "to_be_read", "home" },
         show_icons = true,
         show_labels = false,
     },
@@ -677,7 +677,22 @@ local function reader_state()
     }
 end
 
-local function ensure_reader_status_fonts()
+local READER_STATUS_PRESETS = {
+    default = {
+        index = 5,
+        name = "(ZenOS) L/C/R: Chapter Time | Page | %",
+    },
+    pages_bar_percent = {
+        index = 6,
+        name = "(ZenOS) Pages | Bar | %",
+    },
+}
+
+local function ensure_reader_status_fonts(preset_key)
+    local preset_spec = READER_STATUS_PRESETS[preset_key or "default"]
+    if not preset_spec then
+        return false, "unknown reader showcase preset: " .. tostring(preset_key)
+    end
     local PluginLoader = require("pluginloader")
     local plugin = PluginLoader:getPluginInstance("zenos")
         or PluginLoader:getPluginInstance("zen_ui")
@@ -693,9 +708,9 @@ local function ensure_reader_status_fonts()
     local expected = require("common/plugin_root")
         .. "/fonts/hyperreadable/Hyperreadable-SemiBold.ttf"
     local preset = require("util").tableDeepCopy(
-        require("modules/reader/patches/reader_footer_presets")[5])
+        require("modules/reader/patches/reader_footer_presets")[preset_spec.index])
     if type(preset) ~= "table"
-            or preset.name ~= "(ZenOS) L/C/R: Chapter Time | Page | %" then
+            or preset.name ~= preset_spec.name then
         return false, "reader showcase preset unavailable"
     end
     preset.footer.text_font_face = expected
@@ -1487,7 +1502,7 @@ function Driver:handleCommand(command)
         return { ok = true, reader = reader_state() }
     end
     if kind == "ensure_reader_status_fonts" then
-        local ok, err = ensure_reader_status_fonts()
+        local ok, err = ensure_reader_status_fonts(params.preset)
         return { ok = ok == true, error = err }
     end
     if kind == "ensure_reader_chapter_time" then

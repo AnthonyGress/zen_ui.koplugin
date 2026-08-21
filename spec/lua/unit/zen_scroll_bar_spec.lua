@@ -3,6 +3,7 @@ describe("Zen scroll bar", function()
     local shown
     local painted_y
     local page_turns
+    local centered_content_bottom
     local saved_modules
 
     local module_names = {
@@ -47,6 +48,7 @@ describe("Zen scroll bar", function()
         shown = nil
         painted_y = nil
         page_turns = {}
+        centered_content_bottom = nil
         Menu = {
             init = function(self)
                 self.page_info = { resetLayout = function() end }
@@ -72,7 +74,10 @@ describe("Zen scroll bar", function()
         })
         ZenSpec.replace("ui/geometry", { new = function(_self, values) return values end })
         ZenSpec.replace("ui/widget/menu", Menu)
-        ZenSpec.replace("ui/size", { padding = { small = 4, large = 10 } })
+        ZenSpec.replace("ui/size", {
+            line = { thin = 1 },
+            padding = { small = 4, large = 10 },
+        })
         ZenSpec.replace("ui/uimanager", {
             show = function(_self, widget) shown = widget end,
             close = function() end,
@@ -87,6 +92,11 @@ describe("Zen scroll bar", function()
             getChevronHitWidth = function() return 72 end,
             getChevronHitBottom = function(y, h, available_bottom)
                 return math.min(y + h + 24, available_bottom)
+            end,
+            getCenteredFooterY = function(content_bottom, footer_y, footer_h, should_center)
+                centered_content_bottom = content_bottom
+                if should_center then return 700 end
+                return footer_y
             end,
             getStyle = function() return "page_number" end,
             getHoldSkip = function() return "10" end,
@@ -156,6 +166,42 @@ describe("Zen scroll bar", function()
         assert.are.equal(54, mosaic.page_info:getSize().h)
         assert.are.equal(750, list_y)
         assert.are.equal(list_y, painted_y)
+    end)
+
+    it("centers file-manager pagination in the space below the library grid", function()
+        local filemanager = new_menu("filemanager", {
+            display_mode_type = "mosaic",
+            perpage = 12,
+            item_dimen = { h = 100 },
+            item_height = 100,
+            item_margin = 10,
+            nb_rows = 3,
+            title_bar = { getHeight = function() return 20 end },
+        })
+
+        local area_y = filemanager.dimen.h - filemanager.page_info:getSize().h
+        filemanager.page_info.paintTo(nil, nil, 0, area_y)
+
+        assert.are.equal(360, centered_content_bottom)
+        assert.are.equal(698, painted_y)
+        assert.are.equal(694 / 800,
+            find_zone(filemanager, "zen_pn_left_tap").screen_zone.ratio_y)
+    end)
+
+    it("uses list geometry after switching the library from mosaic mode", function()
+        local filemanager = new_menu("filemanager", {
+            display_mode_type = "list",
+            perpage = 10,
+            files_per_page = 10,
+            item_dimen = { h = 50 },
+            item_height = 50,
+            item_margin = 10,
+            nb_rows = 3,
+        })
+
+        filemanager.page_info.paintTo(nil, nil, 0, 746)
+
+        assert.are.equal(511, centered_content_bottom)
     end)
 
     it("uses hitboxes wider than the visible chevron slots", function()
