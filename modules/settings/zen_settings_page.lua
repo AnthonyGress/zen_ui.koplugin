@@ -505,6 +505,10 @@ function ZenSettingsPage:onClose()
     return self:backToUpperMenu()
 end
 
+function ZenSettingsPage:onExit()
+    return self:closeMenu()
+end
+
 function ZenSettingsPage:onLeftButtonTap()
     return self:openKoreaderMenu()
 end

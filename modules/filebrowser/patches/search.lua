@@ -70,9 +70,24 @@ local function apply_search()
                 },
             },
         }
-        ZenModalClose.installDialog(search_dialog, function()
+
+        local function close_dialog()
             UIManager:close(search_dialog)
-        end)
+            return true
+        end
+
+        search_dialog.onCloseDialog = close_dialog
+        ZenModalClose.installDialog(search_dialog, close_dialog)
+
+        -- The virtual keyboard otherwise consumes Back and only hides itself.
+        local keyboard = search_dialog._input_widget and search_dialog._input_widget.keyboard
+        local keyboard_back = keyboard and keyboard.key_events and keyboard.key_events.Close
+        if keyboard_back then
+            keyboard.key_events.Close = nil
+            keyboard.key_events.ZenCloseFileSearchDialog = keyboard_back
+            keyboard_back.event = "ZenCloseFileSearchDialog"
+            keyboard.onZenCloseFileSearchDialog = close_dialog
+        end
 
         -- Override onTap: always close the full dialog (keyboard + dialog) on outside tap
         function search_dialog:onTap(arg, ges)

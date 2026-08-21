@@ -1,9 +1,10 @@
 describe("file browser search", function()
-    local close_button, closed, dialog, input_widget
+    local close_button, close_count, closed, dialog, input_widget
 
     before_each(function()
         dialog = nil
         closed = nil
+        close_count = 0
         close_button = nil
         _G.__ZEN_UI_PLUGIN = { config = { features = { search = true } } }
 
@@ -19,7 +20,13 @@ describe("file browser search", function()
             onTap = function() end,
             new = function(_, spec)
                 dialog = spec
-                input_widget = { name = "input" }
+                input_widget = {
+                    name = "input",
+                    keyboard = {
+                        key_events = { Close = { { "Back" } } },
+                    },
+                }
+                dialog._input_widget = input_widget
                 dialog.title_bar = {}
                 dialog.layout = { { input_widget } }
                 dialog.selected = { x = 1, y = 1 }
@@ -28,7 +35,10 @@ describe("file browser search", function()
             end,
         })
         ZenSpec.replace("ui/uimanager", {
-            close = function(_, widget) closed = widget end,
+            close = function(_, widget)
+                closed = widget
+                close_count = close_count + 1
+            end,
             show = function() end,
         })
         ZenSpec.replace("common/paths", { getHomeDir = function() return "/library" end })
@@ -67,5 +77,21 @@ describe("file browser search", function()
 
         close_button.callback()
         assert.is_true(closed == dialog)
+    end)
+
+    it("closes the full dialog with hardware Back", function()
+        local FileManagerFileSearcher = require("apps/filemanager/filemanagerfilesearcher")
+        FileManagerFileSearcher:onShowFileSearch()
+
+        assert.is_function(dialog.onCloseDialog)
+        assert.is_nil(input_widget.keyboard.key_events.Close)
+        assert.are.same({ "Back" },
+            input_widget.keyboard.key_events.ZenCloseFileSearchDialog[1])
+        assert.are.equal("ZenCloseFileSearchDialog",
+            input_widget.keyboard.key_events.ZenCloseFileSearchDialog.event)
+
+        assert.is_true(input_widget.keyboard:onZenCloseFileSearchDialog())
+        assert.is_true(closed == dialog)
+        assert.are.equal(1, close_count)
     end)
 end)
