@@ -13,6 +13,7 @@ local function apply_navbar()
     local LineWidget = require("ui/widget/linewidget")
     local TextWidget = require("ui/widget/textwidget")
     local Event = require("ui/event")
+    local ffiUtil = require("ffi/util")
     local UIManager = require("ui/uimanager")
     local VerticalGroup = require("ui/widget/verticalgroup")
     local VerticalSpan = require("ui/widget/verticalspan")
@@ -21,6 +22,7 @@ local function apply_navbar()
     local paths = require("common/paths")
     local MemoryPolicy = require("common/memory_policy")
     local SharedState = require("common/shared_state")
+    local ButtonModel = require("common/nav_button_model")
     local NativeMenu = require("modules/menu/app_launcher/native_menu")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
     local Screen = Device.screen
@@ -220,7 +222,7 @@ local function apply_navbar()
         {
             id = "folder",
             label = _("Folder"),
-            icon = "folder_open",
+            icon = "tab_folder",
         },
         {
             id = "manga",
@@ -343,6 +345,21 @@ local function apply_navbar()
         end
     end
 
+    local function getCustomFolderTab(tab_id)
+        if type(config.custom_tabs) ~= "table" then return nil end
+        for _i, tab in ipairs(config.custom_tabs) do
+            if type(tab) == "table" and tab.id == tab_id and tab.type == "action" then
+                local folder = ButtonModel.getFolderActionPath(tab.action)
+                if folder then return tab, folder end
+            end
+        end
+    end
+
+    local function skipTabState(tab_id)
+        return skip_tabs_for_state[tab_id] == true
+            or getCustomFolderTab(tab_id) ~= nil
+    end
+
     local function isGroupViewTab(tab_id)
         return group_view_tabs[tab_id] == true or getCustomTagTab(tab_id) ~= nil
     end
@@ -366,6 +383,8 @@ local function apply_navbar()
     local function normalizeFolderPath(path)
         if type(path) ~= "string" or path == "" then return nil end
         if type(paths.normPath) == "function" then path = paths.normPath(path) end
+        path = ffiUtil.realpath(path) or path
+        if type(paths.normPath) == "function" then path = paths.normPath(path) end
         if path ~= "/" then path = path:gsub("/+$", "") end
         return path ~= "" and path or "/"
     end
@@ -380,19 +399,25 @@ local function apply_navbar()
     end
 
     local function tabStaysInFileManager(id)
+        local custom_folder = getCustomFolderTab(id)
         return id == "books"
             or (id == "folder" and normalizeFolderPath(config.folder_path) ~= nil)
             or (id == "manga" and config.manga_action == "folder" and config.manga_folder ~= "")
             or (id == "news" and config.news_action == "folder" and config.news_folder ~= "")
+            or custom_folder ~= nil
     end
 
     local function setActiveTab(id)
         local fm = FileManager.instance
+        local fc = fm and fm.file_chooser
+        local defer_hidden_folder = fm and id ~= "books"
+            and tabStaysInFileManager(id)
+            and fm.invisible == true
+            and fc and fc._zen_needs_full_listing == true
         if fm and id == "books" and active_tab == "home" then
             local stack = UIManager._window_stack
             local top = stack and stack[#stack]
             local top_widget = top and top.widget
-            local fc = fm.file_chooser
             local returning_from_home = fm._zen_hidden_home_startup == true
                 or (fc and fc._zen_home_retained_library ~= nil)
                 or (top_widget and (top_widget.name == "home"
@@ -409,14 +434,15 @@ local function apply_navbar()
                 fm._zen_library_to_home_started_at = nil
             end
         end
-        if fm and id ~= "home" and cancelHiddenLibraryWarm then
+        if fm and id ~= "home" and not defer_hidden_folder
+                and cancelHiddenLibraryWarm then
             cancelHiddenLibraryWarm(fm, id == "books")
         end
         active_tab = id
         syncActiveTabLabel()
         _navbar_focused_idx = nil
         local stays_in_browser = tabStaysInFileManager(id)
-        if fm and stays_in_browser then
+        if fm and stays_in_browser and not defer_hidden_folder then
             injectNavbar(fm)
             UIManager:setDirty(fm, "ui")
         end
@@ -927,6 +953,32 @@ local function apply_navbar()
         end)
     end
 
+    local function fileManagerIsHidden(fm, fc)
+        local fm_parent = fm and fm.show_parent
+        local fc_parent = fc and fc.show_parent
+        return fm and fm.invisible == true
+            or fc and fc.invisible == true
+            or fm_parent and fm_parent.invisible == true
+            or fc_parent and fc_parent.invisible == true
+    end
+
+    local function revealFileManager(fm, fc)
+        local was_hidden = fileManagerIsHidden(fm, fc)
+        local fm_parent = fm and fm.show_parent
+        local fc_parent = fc and fc.show_parent
+        local function reveal(widget)
+            if widget then
+                widget.invisible = nil
+                widget._zen_hidden_home_startup = nil
+            end
+        end
+        reveal(fm)
+        reveal(fc)
+        reveal(fm_parent)
+        reveal(fc_parent)
+        return was_hidden
+    end
+
     local function onTabBooks()
         local fm = FileManager.instance
         local home_dir = paths.getHomeDir()
@@ -934,11 +986,8 @@ local function apply_navbar()
         if not (fm and fm.file_chooser) then return false end
         local fc = fm.file_chooser
         local fm_stack_widget = select(2, retainHomeBelowFileManager(fm))
-        local reveal_hidden_filemanager = fm.invisible == true
         -- A reinit under Home replaces FileChooser but preserves FileManager.invisible.
-        fm.invisible = nil
-        fm._zen_hidden_home_startup = nil
-        fc._zen_hidden_home_startup = nil
+        local reveal_hidden_filemanager = revealFileManager(fm, fc)
         utils.closeWidgetsAbove(fm_stack_widget or fm)
         if reveal_hidden_filemanager then
             UIManager:setDirty(fm_stack_widget or fm, "ui")
@@ -1018,20 +1067,69 @@ local function apply_navbar()
         refreshLibraryStatusBar(fm)
     end
 
-    local function onTabManga()
+    local function openFileManagerFolder(path, tab_id)
         local fm = FileManager.instance
-        if not fm then return end
+        local fc = fm and fm.file_chooser
+        local folder_path = normalizeFolderPath(path)
+        if not (fc and folder_path
+                and lfs.attributes(folder_path, "mode") == "directory") then
+            return false, folder_path
+        end
 
-        if config.manga_action == "folder" and config.manga_folder ~= "" then
-            if lfs.attributes(config.manga_folder, "mode") == "directory" then
-                fm.file_chooser:changeToPath(config.manga_folder)
+        local listing_deferred = fc._zen_needs_full_listing == true
+        if listing_deferred and cancelHiddenLibraryWarm then
+            cancelHiddenLibraryWarm(fm)
+        end
+
+        local fm_stack_widget = select(2, retainHomeBelowFileManager(fm))
+        local was_hidden = fileManagerIsHidden(fm, fc)
+        local function buildFolder()
+            fc._zen_needs_full_listing = nil
+            fc._zen_needs_cover_refresh = nil
+            local current_path = normalizeFolderPath(fc.path)
+            if current_path == folder_path and listing_deferred
+                    and type(fc.refreshPath) == "function" then
+                fc:refreshPath()
+            elseif current_path == folder_path and type(fc.onGotoPage) == "function" then
+                fc:onGotoPage(1)
             else
+                fc.path_items[folder_path] = nil
+                fc:changeToPath(folder_path)
+            end
+            setActiveTab(tab_id)
+        end
+        if was_hidden then
+            local original_set_dirty = UIManager.setDirty
+            UIManager.setDirty = function() end
+            local ok, error_message = pcall(buildFolder)
+            UIManager.setDirty = original_set_dirty
+            if not ok then error(error_message) end
+        else
+            buildFolder()
+        end
+
+        local revealed = revealFileManager(fm, fc)
+        utils.closeWidgetsAbove(fm_stack_widget or fm)
+        if revealed then UIManager:setDirty(fm_stack_widget or fm, "ui") end
+        return true, folder_path
+    end
+
+    local function fallbackToLibrary()
+        setActiveTab("books")
+        onTabBooks()
+    end
+
+    local function onTabManga()
+        if config.manga_action == "folder" and config.manga_folder ~= "" then
+            local opened, folder_path = openFileManagerFolder(config.manga_folder, "manga")
+            if not opened then
+                fallbackToLibrary()
                 local InfoMessage = require("ui/widget/infomessage")
                 UIManager:show(InfoMessage:new{
-                    text = _("Manga folder not found: ") .. config.manga_folder,
+                    text = _("Manga folder not found: ") .. (folder_path or config.manga_folder),
                 })
             end
-            return
+            return opened
         end
 
         local Rakuyomi = getRakuyomi()
@@ -1041,13 +1139,9 @@ local function apply_navbar()
     end
 
     local function onTabFolder()
-        local fm = FileManager.instance
-        local fc = fm and fm.file_chooser
-        local folder_path = normalizeFolderPath(config.folder_path)
-        if not (fc and folder_path
-                and lfs.attributes(folder_path, "mode") == "directory") then
-            setActiveTab("books")
-            onTabBooks()
+        local opened, folder_path = openFileManagerFolder(config.folder_path, "folder")
+        if not opened then
+            fallbackToLibrary()
             local InfoMessage = require("ui/widget/infomessage")
             UIManager:show(InfoMessage:new{
                 text = folder_path and _("ZenOS: folder not found: ") .. folder_path
@@ -1055,27 +1149,20 @@ local function apply_navbar()
             })
             return false
         end
-
-        local fm_stack_widget = select(2, retainHomeBelowFileManager(fm))
-        local reveal_hidden_filemanager = fm.invisible == true
-        fm.invisible = nil
-        fm._zen_hidden_home_startup = nil
-        fc._zen_hidden_home_startup = nil
-        fc._zen_needs_full_listing = nil
-        fc._zen_needs_cover_refresh = nil
-        utils.closeWidgetsAbove(fm_stack_widget or fm)
-        if reveal_hidden_filemanager then
-            UIManager:setDirty(fm_stack_widget or fm, "ui")
-        end
-
-        if normalizeFolderPath(fc.path) == folder_path
-                and type(fc.onGotoPage) == "function" then
-            fc:onGotoPage(1)
-        else
-            fc.path_items[folder_path] = nil
-            fc:changeToPath(folder_path)
-        end
         return true
+    end
+
+    local function onCustomFolderTab(path, tab_id)
+        local opened, folder_path = openFileManagerFolder(path, tab_id)
+        if not opened then
+            fallbackToLibrary()
+            local InfoMessage = require("ui/widget/infomessage")
+            UIManager:show(InfoMessage:new{
+                text = folder_path and _("ZenOS: folder not found: ") .. folder_path
+                    or _("ZenOS: no folder set for this action."),
+            })
+        end
+        return opened
     end
 
     local function onTabNews()
@@ -1083,15 +1170,15 @@ local function apply_navbar()
         if not fm then return end
 
         if config.news_action == "folder" and config.news_folder ~= "" then
-            if lfs.attributes(config.news_folder, "mode") == "directory" then
-                fm.file_chooser:changeToPath(config.news_folder)
-            else
+            local opened, folder_path = openFileManagerFolder(config.news_folder, "news")
+            if not opened then
+                fallbackToLibrary()
                 local InfoMessage = require("ui/widget/infomessage")
                 UIManager:show(InfoMessage:new{
-                    text = _("News folder not found: ") .. config.news_folder,
+                    text = _("News folder not found: ") .. (folder_path or config.news_folder),
                 })
             end
-            return
+            return opened
         end
 
         if config.news_action == "rssreader" then
@@ -1145,7 +1232,7 @@ local function apply_navbar()
             _G.__ZEN_UI_LIBRARY_SOURCE_TAB = "manga"
             _G.__ZEN_UI_FORCE_SOURCE_TAB_RESTORE = true
             _G.__ZEN_UI_RAKUYOMI_RETURN_FILE = rakuyomi_return_file
-        elseif is_restore_enabled() and not skip_tabs_for_state[active_tab] then
+        elseif is_restore_enabled() and not skipTabState(active_tab) then
             _G.__ZEN_UI_LIBRARY_SOURCE_TAB = active_tab
         else
             _G.__ZEN_UI_LIBRARY_SOURCE_TAB = nil
@@ -1407,7 +1494,9 @@ local function apply_navbar()
     }
 
     local function shouldTrackActiveTab(tab_id)
-        return active_tab_whitelist[tab_id] == true or getCustomTagTab(tab_id) ~= nil
+        return active_tab_whitelist[tab_id] == true
+            or getCustomTagTab(tab_id) ~= nil
+            or getCustomFolderTab(tab_id) ~= nil
     end
 
     local function is_tab_enabled(tab_id)
@@ -1475,7 +1564,7 @@ local function apply_navbar()
         end
         if shouldTrackActiveTab(tab_id) then
             cb()
-            if tab_id ~= "books" and tab_id ~= "home" then
+            if tab_id ~= "home" and not tabStaysInFileManager(tab_id) then
                 refreshAfterNavbarPageSwitch()
             end
             return
@@ -1884,6 +1973,19 @@ local function apply_navbar()
                                 GroupView.showTagDetail(tag_name, injectStandaloneNavbar, tab_id)
                             end
                         end
+                    elseif ct.type == "action" then
+                        local folder_path = ButtonModel.getFolderActionPath(ct.action)
+                        if folder_path then
+                            local tab_id = ct.id
+                            tab_callbacks[tab_id] = function()
+                                onCustomFolderTab(folder_path, tab_id)
+                            end
+                        elseif ok_disp_ct and ct.action and next(ct.action) then
+                            local action = ct.action
+                            tab_callbacks[ct.id] = function() Dispatcher_ct:execute(action) end
+                        else
+                            tab_callbacks[ct.id] = function() end
+                        end
                     elseif ok_disp_ct and ct.action and next(ct.action) then
                         local action = ct.action
                         tab_callbacks[ct.id] = function() Dispatcher_ct:execute(action) end
@@ -2190,6 +2292,11 @@ local function apply_navbar()
     local function tabForFileManagerPath(path)
         if not path then return end
 
+        local active_custom, active_folder = getCustomFolderTab(active_tab)
+        if active_custom and isInFolderPath(path, active_folder) then
+            return active_tab
+        end
+
         if isInFolderPath(path, config.folder_path) then
             return "folder"
         end
@@ -2200,6 +2307,13 @@ local function apply_navbar()
         if config.news_action == "folder" and config.news_folder ~= ""
                 and isInFolderPath(path, config.news_folder) then
             return "news"
+        end
+        if type(config.custom_tabs) == "table" then
+            for _i, tab in ipairs(config.custom_tabs) do
+                local folder = type(tab) == "table"
+                    and ButtonModel.getFolderActionPath(tab.action) or nil
+                if folder and isInFolderPath(path, folder) then return tab.id end
+            end
         end
 
         local home_dir = paths.getHomeDir()
@@ -3035,7 +3149,7 @@ local function apply_navbar()
         _G.__ZEN_UI_FORCE_SOURCE_TAB_RESTORE = nil
         _G.__ZEN_UI_RAKUYOMI_RETURN_FILE = nil
         if (is_restore_enabled() or force_source_restore)
-                and (force_source_restore or not skip_tabs_for_state[source_tab]) then
+                and (force_source_restore or not skipTabState(source_tab)) then
             local page = 1
             -- Group views expose page via M.getActivePage
             if gv and gv.getActivePage then

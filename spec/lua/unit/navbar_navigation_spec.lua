@@ -18,6 +18,9 @@ describe("file browser navbar navigation", function()
     local device_input
     local native_available
     local native_launches
+    local dispatcher_executions
+    local real_paths
+    local full_repaints
 
     local function class(methods)
         methods = methods or {}
@@ -59,6 +62,9 @@ describe("file browser navbar navigation", function()
         initial_reinject_callback = nil
         native_available = true
         native_launches = {}
+        dispatcher_executions = {}
+        real_paths = {}
+        full_repaints = 0
         device_input = {
             disable_double_tap = true,
             tap_interval_override = nil,
@@ -153,11 +159,18 @@ describe("file browser navbar navigation", function()
         })
         ZenSpec.replace("ui/event", { new = function(_, name) return { name = name } end })
         ZenSpec.replace("ui/rendertext", { getGlyphByIndex = function() return nil end })
-        ZenSpec.replace("dispatcher", {})
+        ZenSpec.replace("ffi/util", {
+            realpath = function(path) return real_paths[path] or path end,
+        })
+        ZenSpec.replace("dispatcher", {
+            execute = function(_self, action)
+                dispatcher_executions[#dispatcher_executions + 1] = action
+            end,
+        })
         UIManager = {
             _window_stack = {},
             setDirty = function() end,
-            forceRePaint = function() end,
+            forceRePaint = function() full_repaints = full_repaints + 1 end,
             nextTick = function(_, callback)
                 initial_reinject_callback = initial_reinject_callback or callback
                 callback()
@@ -1037,6 +1050,245 @@ describe("file browser navbar navigation", function()
 
         FileManager.onPathChanged(fm, "/library/Fictional")
         assert.are.equal("Library", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+    end)
+
+    it("builds the configured folder when the hidden Home listing is still deferred", function()
+        local fm = make_instance()
+        local fc = fm.file_chooser
+        local rendered_paths = {}
+        _G.__ZEN_UI_PLUGIN.config.navbar.folder_path = "/library"
+        fm.invisible = true
+        fm._zen_hidden_home_startup = true
+        fc.path = "/library"
+        fc._zen_hidden_home_startup = true
+        fc._zen_needs_full_listing = true
+        fc.refreshPath = function(self)
+            assert.is_true(fm.invisible)
+            calls[#calls + 1] = "refresh:" .. self.path
+            self.item_table = { { path = "/library/Book.epub" } }
+        end
+        fc.onGotoPage = function(_, page)
+            calls[#calls + 1] = "page:" .. page
+        end
+        UIManager._window_stack = {
+            { widget = fm },
+            { widget = home_widget },
+        }
+        UIManager.setDirty = function(_self, widget)
+            if widget == fm and widget.invisible ~= true then
+                rendered_paths[#rendered_paths + 1] = fc.path
+            end
+        end
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("folder"))
+
+        assert.are.same({ "refresh:/library" }, calls)
+        assert.is_nil(fm.invisible)
+        assert.is_nil(fm._zen_hidden_home_startup)
+        assert.is_nil(fc._zen_hidden_home_startup)
+        assert.is_nil(fc._zen_needs_full_listing)
+        assert.are.equal("Folder", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+        assert.are.same({ "/library" }, rendered_paths)
+        assert.are.equal(0, full_repaints)
+    end)
+
+    it("keeps Folder active when FileChooser canonicalizes its configured path", function()
+        local fm = make_instance()
+        _G.__ZEN_UI_PLUGIN.config.navbar.folder_path = "/alias/Fiction/"
+        real_paths["/alias/Fiction/"] = "/library/Fiction"
+        real_paths["/alias/Fiction"] = "/library/Fiction"
+        dir_mtimes["/library/Fiction"] = 10
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("folder"))
+        assert.are.same({ "books:/library/Fiction" }, calls)
+
+        FileManager.onPathChanged(fm, "/library/Fiction/Series")
+        assert.are.equal("Folder", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+    end)
+
+    it("routes a navbar Open folder action through Folder tab navigation", function()
+        local fm = make_instance()
+        local fc = fm.file_chooser
+        fm[1] = { fc }
+        fm.invisible = true
+        fm._zen_hidden_home_startup = true
+        fc.path = "/library"
+        fc._zen_hidden_home_startup = true
+        fc._zen_needs_full_listing = true
+        fc.changeToPath = function(self, path)
+            calls[#calls + 1] = "books:" .. path
+            self.path = path
+            FileManager.onPathChanged(fm, path)
+        end
+        local navbar_config = _G.__ZEN_UI_PLUGIN.config.navbar
+        navbar_config.custom_tabs = {{
+            id = "ct_folder",
+            type = "action",
+            label = "Sci-Fi",
+            icon = "tab_folder",
+            action = { zen_ui_show_folder = "/library/SciFi" },
+        }}
+        navbar_config.show_tabs.ct_folder = true
+        navbar_config.tab_order = { "home", "ct_folder" }
+        dir_mtimes["/library/SciFi"] = 10
+        _G.__ZEN_UI_REINJECT_FM_NAVBAR()
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("ct_folder"))
+
+        assert.are.same({ "books:/library/SciFi" }, calls)
+        assert.are.equal(0, #dispatcher_executions)
+        assert.are.equal("/library/SciFi", fc.path)
+        assert.is_nil(fm.invisible)
+        assert.is_nil(fm._zen_hidden_home_startup)
+        assert.is_nil(fc._zen_hidden_home_startup)
+        assert.is_nil(fc._zen_needs_full_listing)
+        assert.are.equal("Sci-Fi", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+
+        FileManager.onPathChanged(fm, "/library/SciFi/Series")
+        assert.are.equal("Sci-Fi", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+    end)
+
+    it("reveals a deferred FileManager for tabs configured as folder destinations", function()
+        local fm = make_instance()
+        local fc = fm.file_chooser
+        _G.__ZEN_UI_PLUGIN.config.navbar.folder_path = "/library"
+        _G.__ZEN_UI_PLUGIN.config.navbar.manga_action = "folder"
+        _G.__ZEN_UI_PLUGIN.config.navbar.manga_folder = "/library/Manga"
+        dir_mtimes["/library/Manga"] = 10
+        fm.invisible = true
+        fm._zen_hidden_home_startup = true
+        fc._zen_hidden_home_startup = true
+        fc._zen_needs_full_listing = true
+        fc.changeToPath = function(self, path)
+            calls[#calls + 1] = "books:" .. path
+            self.path = path
+            FileManager.onPathChanged(fm, path)
+        end
+        UIManager._window_stack = {
+            { widget = fm },
+            { widget = home_widget },
+        }
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("manga"))
+
+        assert.are.same({ "books:/library/Manga" }, calls)
+        assert.is_nil(fm.invisible)
+        assert.is_nil(fm._zen_hidden_home_startup)
+        assert.is_nil(fc._zen_hidden_home_startup)
+        assert.is_nil(fc._zen_needs_full_listing)
+        assert.are.equal("Manga", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+        assert.are.equal(0, full_repaints)
+    end)
+
+    it("handles a cold Folder tap from the live Home navbar", function()
+        local fm = make_instance()
+        local fc = fm.file_chooser
+        local wrapper = {
+            invisible = true,
+            _zen_hidden_home_startup = true,
+        }
+        local rendered_paths = {}
+        fm.show_parent = wrapper
+        fm[1] = { fc }
+        fc.show_parent = wrapper
+        fm.invisible = true
+        fm._zen_hidden_home_startup = true
+        fc.path = "/library"
+        fc._zen_hidden_home_startup = true
+        fc._zen_needs_full_listing = true
+        fc.refreshPath = function(self)
+            calls[#calls + 1] = "refresh:" .. self.path
+            self.item_table = { { path = "/library/Book.epub" } }
+        end
+        fc.changeToPath = function(self, path)
+            calls[#calls + 1] = "books:" .. path
+            self.path = path
+            FileManager.onPathChanged(fm, path)
+        end
+        fc.onGotoPage = function(_, page)
+            calls[#calls + 1] = "page:" .. page
+        end
+        fc._zen_discard_prepared_item_table = function()
+            calls[#calls + 1] = "discard_prepared"
+        end
+        dir_mtimes["/library/Fiction"] = 10
+        local navbar_config = _G.__ZEN_UI_PLUGIN.config.navbar
+        navbar_config.tab_order = { "home", "folder" }
+        UIManager.setDirty = function(_self, widget)
+            if (widget == fm or widget == wrapper) and widget.invisible ~= true then
+                rendered_paths[#rendered_paths + 1] = fc.path
+            end
+        end
+
+        local home_menu
+        home_show_callback = function(inject)
+            home_menu = {
+                name = "home",
+                dimen = { w = 800, h = 600 },
+                inner_dimen = { w = 800, h = 600 },
+                close_callback = function() calls[#calls + 1] = "home_close" end,
+                [1] = {
+                    dimen = { w = 800, h = 560 },
+                    inner_dimen = { w = 800, h = 560 },
+                    resetLayout = function() end,
+                },
+            }
+            inject(home_menu, "home")
+        end
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        local navbar = home_menu[1][1][2]
+        calls = {}
+
+        assert.is_true(navbar:onTapNavBar(nil, { pos = { x = 600, y = 1 } }))
+
+        assert.are.same({
+            "home_close",
+            "discard_prepared",
+            "books:/library/Fiction",
+            "discard_prepared",
+        }, calls)
+        assert.are.equal("/library/Fiction", fc.path)
+        assert.is_nil(fm.invisible)
+        assert.is_nil(fm._zen_hidden_home_startup)
+        assert.is_nil(fc._zen_hidden_home_startup)
+        assert.is_nil(wrapper.invisible)
+        assert.is_nil(wrapper._zen_hidden_home_startup)
+        assert.are.equal("Folder", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+        assert.are.same({ "/library/Fiction" }, rendered_paths)
+        assert.are.equal(0, full_repaints)
+
+        local filemanager_navbar = fm[1][1][2]
+        calls = {}
+        assert.is_true(filemanager_navbar:onTapNavBar(nil, { pos = { x = 600, y = 1 } }))
+        assert.are.same({ "page:1", "discard_prepared" }, calls)
+        assert.are.equal("Folder", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+    end)
+
+    it("falls back to a usable Library when a configured folder is missing", function()
+        local fm = make_instance()
+        local fc = fm.file_chooser
+        _G.__ZEN_UI_PLUGIN.config.navbar.manga_action = "folder"
+        _G.__ZEN_UI_PLUGIN.config.navbar.manga_folder = "/library/Missing"
+        fm.invisible = true
+        fm._zen_hidden_home_startup = true
+        fc._zen_hidden_home_startup = true
+        fc._zen_needs_full_listing = true
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("manga"))
+
+        assert.are.same({ "books:/library" }, calls)
+        assert.is_nil(fm.invisible)
+        assert.is_nil(fm._zen_hidden_home_startup)
+        assert.is_nil(fc._zen_hidden_home_startup)
+        assert.is_nil(fc._zen_needs_full_listing)
+        assert.are.equal("Library", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+        assert.are.equal(0, full_repaints)
     end)
 
     it("does not reopen the navbar page already on top", function()

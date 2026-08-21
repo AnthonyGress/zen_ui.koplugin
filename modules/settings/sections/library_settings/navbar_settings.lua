@@ -14,6 +14,7 @@ local IconItem = require("common/ui/icon_menu_item")
 local NativeMenu = require("modules/menu/app_launcher/native_menu")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
 local DispatcherMenu = require("common/dispatcher_menu")
+local ButtonModel = require("common/nav_button_model")
 
 local M = {}
 
@@ -315,7 +316,9 @@ function M.build(ctx)
             ct.label_auto = true
         end
         if ct.icon == "lightning" then
-            ct.icon = suggest_icon(ct.label, true)
+            local preferred = ButtonModel.getFolderActionPath(ct.action)
+                and "tab_folder" or nil
+            ct.icon = suggest_icon(ct.label, true, preferred)
         end
     end
 

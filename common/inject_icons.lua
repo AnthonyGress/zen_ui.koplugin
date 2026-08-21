@@ -23,6 +23,7 @@ if _plugin_root then
         -- Navbar tab icons (needed so the menu-bar shortcut icon, which tracks
         -- the navbar's default tab, can resolve any of them by name).
         ["home"]                = "home.svg",
+        ["tab_folder"]          = "tab_folder.svg",
         ["tab_manga"]           = "tab_manga.svg",
         ["tab_news"]            = "tab_news.svg",
         ["tab_history"]         = "tab_history.svg",

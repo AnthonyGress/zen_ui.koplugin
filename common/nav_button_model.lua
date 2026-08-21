@@ -64,6 +64,21 @@ function M.find(controls, id)
     end
 end
 
+function M.getFolderActionPath(actions)
+    if type(actions) ~= "table" then return end
+    local folder = actions.zen_ui_show_folder
+    if type(folder) ~= "string" or folder == "" then return end
+    local found
+    for key, value in pairs(actions) do
+        if key ~= "settings" then
+            local name = type(key) == "number" and value or key
+            if name ~= "zen_ui_show_folder" or found then return end
+            found = true
+        end
+    end
+    return found and folder or nil
+end
+
 function M.firstVisibleSource(controls)
     if type(controls) ~= "table" then return end
     local show_buttons = type(controls.show_buttons) == "table"

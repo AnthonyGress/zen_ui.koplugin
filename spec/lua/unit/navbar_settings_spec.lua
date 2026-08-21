@@ -7,6 +7,8 @@ describe("navbar settings", function()
     local suggested_preferred
     local touch_menu
     local picker_options
+    local dispatcher_update
+    local dispatcher_action
 
     local function find_arrange_item(id)
         for _i, item in ipairs(arrange_options.item_table) do
@@ -21,6 +23,8 @@ describe("navbar settings", function()
         shown = {}
         suggested_preferred = nil
         picker_options = nil
+        dispatcher_update = nil
+        dispatcher_action = nil
         touch_menu = {
             item_table = {},
             item_table_stack = {},
@@ -73,6 +77,7 @@ describe("navbar settings", function()
             end,
             suggestIcon = function(_root, _label, _fallback, _strip_zen_prefix, preferred)
                 suggested_preferred = preferred
+                if preferred == "tab_folder" then return "tab_folder" end
                 return preferred and "approved_zenfm" or "lightning"
             end,
         })
@@ -96,9 +101,15 @@ describe("navbar settings", function()
                 }
             end,
         })
-        ZenSpec.replace("common/dispatcher_menu", { wrap = function() end })
+        ZenSpec.replace("common/dispatcher_menu", {
+            wrap = function(_items, _caller, on_update)
+                dispatcher_update = on_update
+            end,
+        })
         ZenSpec.replace("dispatcher", {
-            addSubMenu = function() end,
+            addSubMenu = function(_self, _caller, _items, location, settings)
+                if dispatcher_action then location[settings] = dispatcher_action end
+            end,
             menuTextFunc = function() return "Nothing" end,
         })
         ZenSpec.replace("common/ui/zen_icon_picker", function() end)
@@ -222,6 +233,24 @@ describe("navbar settings", function()
         assert.are.equal("/home/Fiction", config.navbar.folder_path)
         assert.are.equal(1, touch_menu.update_count)
         assert.are.equal(2, saved)
+    end)
+
+    it("suggests tab_folder for an Open folder action tab", function()
+        dispatcher_action = { zen_ui_show_folder = "/home/Fiction" }
+        local navbar = build_navbar()
+        navbar.sub_item_table[1].callback()
+        local add_action
+        for _i, item in ipairs(arrange_options.add_item_table) do
+            if item.text == "Action" then add_action = item end
+        end
+
+        add_action.callback(touch_menu)
+        dispatcher_update(touch_menu)
+
+        local added = config.navbar.custom_tabs[1]
+        assert.are.equal("tab_folder", suggested_preferred)
+        assert.are.equal("tab_folder", added.icon)
+        assert.are.same(dispatcher_action, added.action)
     end)
 
     it("shows the ZenOS icon label without rewriting a legacy custom-tab ID", function()
