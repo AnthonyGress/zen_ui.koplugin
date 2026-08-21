@@ -1642,6 +1642,10 @@ class CaptureWorkflow:
         if action == "reader_control":
             reader_book = self._role(books, "reader")
             self._reader_at_showcase_page(driver, reader_book)
+            _require_ok(
+                driver.command("clear_reader_bookmarks"),
+                "clear reader bookmarks",
+            )
             control = str(options["control"])
             footer_preset = str(options.get("footer_preset", "default"))
             expected_preset = READER_FOOTER_PRESETS.get(footer_preset)

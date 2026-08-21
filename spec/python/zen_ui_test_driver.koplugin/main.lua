@@ -1531,6 +1531,10 @@ function Driver:handleCommand(command)
         local ok, err = goto_reader_page(params.page)
         return { ok = ok == true, error = err }
     end
+    if kind == "clear_reader_bookmarks" then
+        local ok, err = require("reader_tools").clear_page_bookmarks()
+        return { ok = ok == true, error = err }
+    end
     if kind == "page_browser_state" then
         local state = require("reader_tools").page_browser_state()
         return state and { ok = true, page_browser = state }
