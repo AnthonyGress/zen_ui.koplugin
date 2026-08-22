@@ -488,7 +488,7 @@ describe("page browser entry", function()
         expect(ReaderSearch.current_search_type == default_search_type)
     end)
 
-    it("keeps fixed-layout document searches as plain text", function()
+    it("uses native whole-word boundaries for fixed-layout document searches", function()
         local search_call = {}
         local find_all_call = {}
         local default_search_type = { flags = 0x00FF, regex = false }
@@ -520,12 +520,12 @@ describe("page browser entry", function()
         require("modules/reader/patches/page_browser")()
 
         ReaderSearch:search("red", 0, default_search_type, true)
-        expect(search_call.pattern == "red")
+        expect(search_call.pattern == " red ")
         expect(search_call.origin == 0 and search_call.case_insensitive == true)
         expect(search_call.search_type == default_search_type)
 
         ReaderSearch:findAllText("red")
-        expect(find_all_call.pattern == "red")
+        expect(find_all_call.pattern == " red ")
         expect(ReaderSearch.current_search_type == default_search_type)
     end)
 

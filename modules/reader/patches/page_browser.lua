@@ -2464,6 +2464,11 @@ local function apply_page_browser()
             return document and type(document.checkRegex) == "function"
         end
 
+        local function fixed_layout_whole_word(text)
+            -- Kopt treats surrounding spaces as start/end word boundaries.
+            return " " .. text .. " "
+        end
+
         local _orig_rs_search = ReaderSearch.search
         local function regex_search_type(self, search_type)
             local source_type = search_type
@@ -2482,17 +2487,17 @@ local function apply_page_browser()
         end
 
         function ReaderSearch:search(pattern, origin, search_type, case_insensitive)
-            -- Only use whole-word regex when substring mode is NOT enabled
             if not is_substring_enabled() and supports_regex_search(self) then
                 pattern = make_whole_word_regex(pattern)
                 search_type = regex_search_type(self, search_type)
+            elseif not is_substring_enabled() then
+                pattern = fixed_layout_whole_word(pattern)
             end
             return _orig_rs_search(self, pattern, origin, search_type, case_insensitive)
         end
 
         local _orig_rs_findAllText = ReaderSearch.findAllText
         function ReaderSearch:findAllText(search_text)
-            -- Only use whole-word regex when substring mode is NOT enabled
             if not is_substring_enabled() and supports_regex_search(self) then
                 search_text = make_whole_word_regex(search_text)
                 if type(self.current_search_type) == "table" then
@@ -2503,6 +2508,8 @@ local function apply_page_browser()
                     return result
                 end
                 self.use_regex = true
+            elseif not is_substring_enabled() then
+                search_text = fixed_layout_whole_word(search_text)
             end
             return _orig_rs_findAllText(self, search_text)
         end
