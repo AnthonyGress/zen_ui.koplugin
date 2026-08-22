@@ -337,13 +337,39 @@ local function apply_browser_item_table_cache()
         return paths.normPath((ffiUtil.realpath(path) or path):gsub("/$", ""))
     end
 
+    -- Rebuilds the index only when ReadHistory actually changed.  The
+    -- KOReader reload() re-parses history.lua and rebuilds the table on every
+    -- file change; in-place mutations (clearMissing, removeItem, _reduce)
+    -- change the length or the head/tail entry.  Rebuilding the index walks
+    -- every history entry through realpath(), so the steady state must not
+    -- pay for it on each listing refresh.
+    local _history_index_memo = nil
     local function history_time_map()
-        return HistoryIndex.load(canonical_path)
+        local ReadHistory = package.loaded["readhistory"]
+        local hist = ReadHistory and ReadHistory.hist
+        local memo = _history_index_memo
+        if memo and type(hist) == "table" and memo.len == #hist
+                and memo.first == hist[1] and memo.last == hist[#hist] then
+            -- The snapshot still matches, whether hist is the same table or a
+            -- reload with identical content.
+            return memo.index
+        end
+        local index = HistoryIndex.load(canonical_path)
+        if type(hist) == "table" then
+            _history_index_memo = {
+                hist = hist, len = #hist,
+                first = hist[1], last = hist[#hist],
+                index = index,
+            }
+        end
+        return index
     end
 
-    local function history_time(map, item)
+    -- Resolves a path against the history once per call; the precomputed
+    -- canonical path is passed in so no realpath() runs here.
+    local function history_time(map, item, canonical)
         if not (map and item and item.path) then return nil end
-        return HistoryIndex.fileTime(map, item.path, canonical_path)
+        return HistoryIndex.fileTime(map, item.path, function() return canonical end)
     end
 
     local function is_special_item(item)
@@ -358,8 +384,12 @@ local function apply_browser_item_table_cache()
         local mixed = collate.can_collate_mixed and G_reader_settings:isTrue("collate_mixed")
         local directory_paths = {}
         for _i, item in ipairs(item_table) do
-            if not is_special_item(item) and item.attr and item.attr.mode == "directory" then
-                directory_paths[#directory_paths + 1] = canonical_path(item.path)
+            if not is_special_item(item) then
+                -- One realpath() per item; both passes below reuse it.
+                item._zen_canonical_path = canonical_path(item.path)
+                if item.attr and item.attr.mode == "directory" then
+                    directory_paths[#directory_paths + 1] = item._zen_canonical_path
+                end
             end
         end
         local directory_times = HistoryIndex.maxDescendantTimes(map, directory_paths)
@@ -369,9 +399,9 @@ local function apply_browser_item_table_cache()
                 local is_directory = item.attr and item.attr.mode == "directory"
                 local read_time
                 if is_directory then
-                    read_time = directory_times[canonical_path(item.path)]
+                    read_time = directory_times[item._zen_canonical_path]
                 else
-                    read_time = history_time(map, item)
+                    read_time = history_time(map, item, item._zen_canonical_path)
                 end
                 if read_time then
                     item.attr = item.attr or {}
@@ -381,15 +411,27 @@ local function apply_browser_item_table_cache()
                     end
                 end
                 item._zen_sort_key = read_time or (item.attr and item.attr.modification) or 0
+                item._zen_sort_text = tostring(item.text or ""):lower()
             end
         end
 
         local function compare(a, b)
             local a_key, b_key = a._zen_sort_key or 0, b._zen_sort_key or 0
             if a_key == b_key then
-                return tostring(a.text or ""):lower() < tostring(b.text or ""):lower()
+                return a._zen_sort_text < b._zen_sort_text
             end
-            return reverse and a_key < b_key or a_key > b_key
+            if reverse then return a_key < b_key end
+            return a_key > b_key
+        end
+
+        -- The same table is re-sorted on every refresh, and consecutive
+        -- listings rarely change the keys; verifying the current order is
+        -- O(n) and skips the O(n log n) sort when it already holds.
+        local function already_ordered(items)
+            for i = 2, #items do
+                if not compare(items[i - 1], items[i]) then return false end
+            end
+            return true
         end
 
         local head, directories, files = {}, {}, {}
@@ -409,10 +451,11 @@ local function apply_browser_item_table_cache()
             local body = {}
             for _i, item in ipairs(directories) do body[#body + 1] = item end
             for _i, item in ipairs(files) do body[#body + 1] = item end
-            table.sort(body, compare)
+            if not already_ordered(body) then table.sort(body, compare) end
             for _i, item in ipairs(body) do result[#result + 1] = item end
         else
-            table.sort(files, compare)
+            if not already_ordered(directories) then table.sort(directories, compare) end
+            if not already_ordered(files) then table.sort(files, compare) end
             for _i, item in ipairs(directories) do result[#result + 1] = item end
             for _i, item in ipairs(files) do result[#result + 1] = item end
         end
@@ -517,13 +560,37 @@ local function apply_browser_item_table_cache()
         return signatures
     end
 
-    local function child_directories_match(value)
-        local signatures = value and value.child_directory_signatures
-        if type(signatures) ~= "table" then return false end
-        for path, signature in pairs(signatures) do
-            if directory_signature(path) ~= signature then return false end
+    -- True when the freshly scanned map matches the stored one, in both
+    -- directions: a child removed from the listing invalidates the stored map.
+    local function signatures_match(stored, fresh)
+        if type(stored) ~= "table" then return false end
+        for path, signature in pairs(fresh) do
+            if stored[path] ~= signature then return false end
+        end
+        for path in pairs(stored) do
+            if not fresh[path] then return false end
         end
         return true
+    end
+
+    -- Validates the cached listing's child directories against the current
+    -- filesystem.  Each validation is one lfs.attributes per child directory;
+    -- consecutive lookups of the same value (refresh, focus moves, path
+    -- re-reads) skip the scan for CHILD_VALIDATION_TTL_S, and the freshly
+    -- scanned map is kept on the value so callers that repopulate the cache
+    -- (history re-order, disk restore) do not scan a second time.
+    local CHILD_VALIDATION_TTL_S = 5
+    local function validate_children(value)
+        if value.last_children_check and value.last_children_ok
+                and now() - value.last_children_check < CHILD_VALIDATION_TTL_S then
+            return true
+        end
+        local fresh = child_directory_signatures(value.table)
+        local ok = signatures_match(value.child_directory_signatures, fresh)
+        value.child_directory_signatures = fresh
+        value.last_children_check = now()
+        value.last_children_ok = ok
+        return ok
     end
 
     build_tree_signature = function(root)
@@ -611,11 +678,15 @@ local function apply_browser_item_table_cache()
 
     local function get_cached(path, key)
         local value = shared_cache.values[path]
-        return value and value.key == key and child_directories_match(value) and value or nil
+        return value and value.key == key and validate_children(value) and value or nil
     end
 
     local function put_cached(path, value)
-        value.child_directory_signatures = child_directory_signatures(value.table)
+        if not value.child_directory_signatures then
+            value.child_directory_signatures = child_directory_signatures(value.table)
+        end
+        value.last_children_ok = true
+        value.last_children_check = now()
         if not shared_cache.values[path] then shared_cache.order[#shared_cache.order + 1] = path end
         shared_cache.values[path] = value
         while #shared_cache.order > ITEM_TABLE_CACHE_MAX do
@@ -629,7 +700,7 @@ local function apply_browser_item_table_cache()
         local value = cache.values[path]
         if not value then return nil, "disk_miss" end
         if value.key ~= key then return nil, "disk_stale" end
-        if not child_directories_match(value) then return nil, "disk_stale_children" end
+        if not validate_children(value) then return nil, "disk_stale_children" end
         if not tree_signature_matches(value.tree_signature) then
             return nil, "disk_stale_tree"
         end
@@ -823,7 +894,7 @@ local function apply_browser_item_table_cache()
         local last_read_file = rawget(_G, "__ZEN_UI_LAST_READ_FILE")
         if collate_mode == "access" and last_read_file
                 and stale and stale.stable_key == stable
-                and child_directories_match(stale) then
+                and validate_children(stale) then
             local Home = SharedState.get(plugin, "home")
             if Home and type(Home.invalidateBookCache) == "function" then
                 pcall(Home.invalidateBookCache, last_read_file, true)
