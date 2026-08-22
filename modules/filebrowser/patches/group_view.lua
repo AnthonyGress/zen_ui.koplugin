@@ -684,24 +684,33 @@ end
 local function sortDetailFiles(files, collate, reverse)
     if not files or #files == 0 then return files end
 
-    local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
-    if not ok_bim then return files end
+    -- Batch-load the metadata for the whole library with one cached query
+    -- (db_bookinfo.getLightMetadata) instead of issuing one SQL statement per
+    -- file via BookInfoManager:getBookInfo.
+    local meta_map
+    if collate == "title" or collate == "title_natural"
+        or collate == "series_index" or collate == "series" then
+        local ok_db, db = pcall(require, "common/db_bookinfo")
+        if ok_db and type(db.getLightMetadata) == "function" then
+            meta_map = db.getLightMetadata()
+        end
+    end
 
     -- Build sortable array with metadata
     local items = {}
     local normalize_path = paths.normPath
     local history = collate == "access" and HistoryIndex.load(normalize_path) or nil
     for _i, fpath in ipairs(files) do
-        local bookinfo = BookInfoManager:getBookInfo(fpath, false)
+        local meta = meta_map and (meta_map[fpath] or meta_map[normalize_path(fpath)])
         local sort_key
 
         if collate == "title" or collate == "title_natural" then
-            sort_key = (bookinfo and bookinfo.title) or fpath:match("([^/]+)$") or fpath
+            sort_key = (meta and meta.title) or fpath:match("([^/]+)$") or fpath
         elseif collate == "series_index" then
             -- Numeric; books without an index sort last.
-            sort_key = (bookinfo and tonumber(bookinfo.series_index)) or math.huge
+            sort_key = (meta and tonumber(meta.series_index)) or math.huge
         elseif collate == "series" then
-            sort_key = (bookinfo and bookinfo.series) or ""
+            sort_key = (meta and meta.series) or ""
         elseif collate == "access" then
             local lfs = require("libs/libkoreader-lfs")
             sort_key = HistoryIndex.fileTime(history, fpath, normalize_path)
