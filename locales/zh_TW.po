@@ -57,6 +57,9 @@ msgstr "1 位作者"
 msgid "1 book"
 msgstr "1 本書"
 
+msgid "1 language"
+msgstr "1 種語言"
+
 msgid "1 min left in chapter"
 msgstr "本章剩餘 1 分鐘"
 
@@ -1197,6 +1200,12 @@ msgstr "橫向拼貼模式"
 msgid "Landscape mosaic: "
 msgstr "橫向拼貼："
 
+msgid "Languages"
+msgstr "語言"
+
+msgid "languages"
+msgstr "種語言"
+
 msgid "Large"
 msgstr "大"
 
@@ -1490,6 +1499,9 @@ msgstr "沒有可切換的書籍"
 
 msgid "No books with author metadata found"
 msgstr "找不到包含作者中繼資料的書籍"
+
+msgid "No books with language metadata found"
+msgstr "找不到包含語言中繼資料的書籍"
 
 msgid "No books with series metadata found"
 msgstr "找不到包含系列中繼資料的書籍"
@@ -2213,6 +2225,9 @@ msgstr "排序書庫"
 
 msgid "Sort library by"
 msgstr "書庫排序方式"
+
+msgid "Sort languages"
+msgstr "語言排序"
 
 msgid "Sort order"
 msgstr "排序順序"

@@ -112,12 +112,14 @@ describe("home strip widget", function()
         })
         ZenSpec.replace("modules/filebrowser/patches/home/widgets/cover_common", {
             BORDER_SIZE = 2,
-            make_cover_widget = function(book, _max_w, max_h)
+            make_cover_widget = function(book, _max_w, max_h, options)
                 cover_books[#cover_books + 1] = book
                 local cover = widget_class("cover"):new{
                     width = 80 + cover_frame_border * 2,
                     height = max_h,
+                    bordersize = options and options.border or 0,
                 }
+                if options and options.decorate then options.decorate(cover) end
                 return cover, 80, max_h, book.is_cover_pending == true
             end,
             make_empty_placeholder_cover = function(_max_w, max_h)
@@ -270,6 +272,51 @@ describe("home strip widget", function()
         assert.are.equal(book.path, opened)
         assert.is_true(focus_target.context())
         assert.are.same({ book.path, "recently_read" }, context_args)
+    end)
+
+    it("dims finished covers even when strip badges are hidden", function()
+        rawset(_G, "__ZEN_UI_PLUGIN", {
+            config = {
+                browser_cover_badges = { dim_finished_books = true },
+            },
+        })
+        cover_frame_border = 2
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 300,
+            component_id = "strip",
+            module_cfg = {
+                count = 3,
+                interactive = false,
+                show_badges = false,
+            },
+            data = {
+                getBooksForStrip = function()
+                    return {{ path = "/library/finished.epub", status = "complete" }}
+                end,
+            },
+        })
+
+        local dimmed
+        local expected
+        for _i, widget in ipairs(created) do
+            if widget.kind == "cover" then
+                expected = {
+                    12, 22,
+                    widget.dimen.w - 2 * widget.bordersize,
+                    widget.dimen.h - 2 * widget.bordersize,
+                    0.4,
+                }
+                widget:paintTo({
+                    lightenRect = function(_bb, x, y, w, h, factor)
+                        dimmed = { x, y, w, h, factor }
+                    end,
+                }, 10, 20)
+                break
+            end
+        end
+        assert.are.same(expected, dimmed)
     end)
 
     it("reduces the page size when the strip is too narrow for readable covers", function()
@@ -1123,6 +1170,47 @@ describe("home strip widget", function()
         assert.are.same({ "next", "previous" }, shifted)
         assert.are.equal(2, refreshed)
         assert.are.same({}, opened)
+    end)
+
+    it("registers the strip page handler for physical page turns", function()
+        local current_page = 0
+        local shifted = {}
+        local handler
+        local unregistered = 0
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        local widget = Strip.build({
+            width = 600,
+            height = 160,
+            component_id = "strip",
+            module_cfg = { count = 1, interactive = true },
+            data = {
+                getStripItemsForPage = function(_self, _source, _count, _order,
+                        _component_id, delta)
+                    return {{
+                        path = "/library/page-" .. tostring(current_page + delta) .. ".epub",
+                    }}, true
+                end,
+            },
+            shiftStrip = function(_source, _count, _order, direction,
+                    _component_id, _two_rows, refresh)
+                shifted[#shifted + 1] = direction
+                current_page = current_page + (direction == "next" and 1 or -1)
+                refresh()
+                return true
+            end,
+            registerStripPageHandler = function(value)
+                handler = value
+                return function() unregistered = unregistered + 1 end
+            end,
+            refreshStrip = function() end,
+        })
+
+        assert.is_function(handler)
+        assert.is_true(handler("next"))
+        assert.is_true(handler("previous"))
+        assert.are.same({ "next", "previous" }, shifted)
+        widget:free()
+        assert.are.equal(1, unregistered)
     end)
 
     it("does nothing on control hold outside edit mode", function()

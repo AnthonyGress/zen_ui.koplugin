@@ -57,6 +57,9 @@ msgstr "1 auteur"
 msgid "1 book"
 msgstr "1 boek"
 
+msgid "1 language"
+msgstr "1 taal"
+
 msgid "1 min left in chapter"
 msgstr "1 min resterend in hoofdstuk"
 
@@ -1197,6 +1200,12 @@ msgstr "Liggend mozaïekmodus"
 msgid "Landscape mosaic: "
 msgstr "Liggend mozaïek: "
 
+msgid "Languages"
+msgstr "Talen"
+
+msgid "languages"
+msgstr "talen"
+
 msgid "Large"
 msgstr "Groot"
 
@@ -1490,6 +1499,9 @@ msgstr "Geen boeken om naar over te schakelen"
 
 msgid "No books with author metadata found"
 msgstr "Geen boeken met metagegevens van de auteur gevonden"
+
+msgid "No books with language metadata found"
+msgstr "Geen boeken met taalmetagegevens gevonden"
 
 msgid "No books with series metadata found"
 msgstr "Er zijn geen boeken met metagegevens van de serie gevonden"
@@ -2213,6 +2225,9 @@ msgstr "Bibliotheek sorteren"
 
 msgid "Sort library by"
 msgstr "Bibliotheek sorteren op"
+
+msgid "Sort languages"
+msgstr "Talen sorteren"
 
 msgid "Sort order"
 msgstr "Sorteervolgorde"

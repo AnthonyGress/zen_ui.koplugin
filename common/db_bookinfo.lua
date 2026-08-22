@@ -1,6 +1,6 @@
 -- common/db_bookinfo.lua
--- Queries KOReader's bookinfo_cache.sqlite3 to group books by author or series.
--- Used by the Authors and Series navbar tabs.
+-- Queries KOReader's bookinfo_cache.sqlite3 to group books by metadata.
+-- Used by the Authors, Series, Tags, and Languages navbar tabs.
 
 local zen_logger = require("common/zen_logger")
 local logger = zen_logger.new("db_bookinfo")
@@ -168,6 +168,57 @@ function M.getGroupedByAuthor()
     local groups = sorted_groups(author_map, "author", "files")
     save_cached("authors", groups)
     logger.measure("Author groups loaded", (now() - started_at) * 1000,
+        "cache=miss", "rows=", row_count, "groups=", #groups)
+    return groups
+end
+
+-- Returns a sorted list of language groups:
+--   { { language="en", files={"/abs/path", ...} }, ... }
+-- Only includes books within home_dir that still exist on disk.
+function M.getGroupedByLanguage()
+    local started_at = now()
+    if not bimOk then
+        logger.warn("BookInfoManager not available")
+        return {}
+    end
+    local cached = get_cached("languages")
+    if cached then
+        logger.measure("Language groups loaded", (now() - started_at) * 1000,
+            "cache=hit", "groups=", #cached)
+        return cached
+    end
+    BookInfoManager:openDbConnection()
+    local language_map = {}
+
+    local row_count = 0
+    local ok2, err = pcall(function()
+        local sql = [[
+            SELECT directory, filename, language
+            FROM bookinfo
+            WHERE in_progress = 0
+              AND language IS NOT NULL
+              AND language != ''
+            ORDER BY language, filename
+        ]]
+        row_count = for_each_valid_book_row(BookInfoManager.db_conn, sql,
+            function(raw_filepath, _filename, result, index)
+                local language = result[3] and result[3][index]
+                language = language and language:match("^%s*(.-)%s*$")
+                if language and language ~= "" then
+                    if not language_map[language] then language_map[language] = {} end
+                    table.insert(language_map[language], raw_filepath)
+                end
+            end)
+    end)
+
+    if not ok2 then
+        logger.warn("language query error:", err)
+        return {}
+    end
+
+    local groups = sorted_groups(language_map, "language", "files")
+    save_cached("languages", groups)
+    logger.measure("Language groups loaded", (now() - started_at) * 1000,
         "cache=miss", "rows=", row_count, "groups=", #groups)
     return groups
 end

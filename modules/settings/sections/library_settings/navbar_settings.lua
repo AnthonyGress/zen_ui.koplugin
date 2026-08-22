@@ -171,6 +171,7 @@ function M.build(ctx)
         { id = "collections", text = _("Collections")   },
         { id = "authors",     text = _("Authors")       },
         { id = "series",      text = _("Series")        },
+        { id = "languages",   text = _("Languages")     },
         { id = "home",        text_func = get_home_tab_label  },
         { id = "tags",        text = _("Tags")          },
         { id = "to_be_read",  text = _("To Be Read")    },
@@ -199,7 +200,7 @@ function M.build(ctx)
 
     local default_tab_ids = {
         "books", "folder", "manga", "news", "history", "favorites",
-        "collections", "authors", "series", "home", "tags", "to_be_read",
+        "collections", "authors", "series", "languages", "home", "tags", "to_be_read",
     }
 
     local function get_builtin_tab_label(tab_id)

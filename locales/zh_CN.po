@@ -57,6 +57,9 @@ msgstr "1 位作者"
 msgid "1 book"
 msgstr "1 本书"
 
+msgid "1 language"
+msgstr "1 种语言"
+
 msgid "1 min left in chapter"
 msgstr "本章剩余 1 分钟"
 
@@ -1197,6 +1200,12 @@ msgstr "横向马赛克模式"
 msgid "Landscape mosaic: "
 msgstr "横向马赛克: "
 
+msgid "Languages"
+msgstr "语言"
+
+msgid "languages"
+msgstr "种语言"
+
 msgid "Large"
 msgstr "大"
 
@@ -1490,6 +1499,9 @@ msgstr "没有可切换的书籍"
 
 msgid "No books with author metadata found"
 msgstr "未找到包含作者元数据的书籍"
+
+msgid "No books with language metadata found"
+msgstr "未找到包含语言元数据的书籍"
 
 msgid "No books with series metadata found"
 msgstr "未找到包含系列元数据的书籍"
@@ -2213,6 +2225,9 @@ msgstr "排序图书馆"
 
 msgid "Sort library by"
 msgstr "图书馆排序方式"
+
+msgid "Sort languages"
+msgstr "语言排序"
 
 msgid "Sort order"
 msgstr "排序顺序"

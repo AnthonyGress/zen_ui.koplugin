@@ -57,6 +57,9 @@ msgstr "1 autor"
 msgid "1 book"
 msgstr "1 carte"
 
+msgid "1 language"
+msgstr "1 limbă"
+
 msgid "1 min left in chapter"
 msgstr "1 min rămas în capitol"
 
@@ -1197,6 +1200,12 @@ msgstr "Mod mozaic peisaj"
 msgid "Landscape mosaic: "
 msgstr "Mozaic peisaj: "
 
+msgid "Languages"
+msgstr "Limbi"
+
+msgid "languages"
+msgstr "limbi"
+
 msgid "Large"
 msgstr "Mare"
 
@@ -1490,6 +1499,9 @@ msgstr "Nu există cărți la care să comuți"
 
 msgid "No books with author metadata found"
 msgstr "Nu s-au găsit cărți cu metadate ale autorului"
+
+msgid "No books with language metadata found"
+msgstr "Nu s-au găsit cărți cu metadate despre limbă"
 
 msgid "No books with series metadata found"
 msgstr "Nu s-au găsit cărți cu metadate de serie"
@@ -2213,6 +2225,9 @@ msgstr "Sortare bibliotecă"
 
 msgid "Sort library by"
 msgstr "Sortare bibliotecă după"
+
+msgid "Sort languages"
+msgstr "Sortare limbi"
 
 msgid "Sort order"
 msgstr "Ordine de sortare"

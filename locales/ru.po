@@ -58,6 +58,9 @@ msgstr "1 автор"
 msgid "1 book"
 msgstr "1 книга"
 
+msgid "1 language"
+msgstr "1 язык"
+
 msgid "1 min left in chapter"
 msgstr "1 мин до конца главы"
 
@@ -1198,6 +1201,12 @@ msgstr "Мозаика в альбомном режиме"
 msgid "Landscape mosaic: "
 msgstr "Альбомная мозаика: "
 
+msgid "Languages"
+msgstr "Языки"
+
+msgid "languages"
+msgstr "языков"
+
 msgid "Large"
 msgstr "Большой"
 
@@ -1491,6 +1500,9 @@ msgstr "Нет книг для переключения"
 
 msgid "No books with author metadata found"
 msgstr "Книг с метаданными автора не найдено"
+
+msgid "No books with language metadata found"
+msgstr "Книг с метаданными языка не найдено"
 
 msgid "No books with series metadata found"
 msgstr "Книг с метаданными серий не найдено"
@@ -2214,6 +2226,9 @@ msgstr "Сортировать библиотеку"
 
 msgid "Sort library by"
 msgstr "Сортировать библиотеку по"
+
+msgid "Sort languages"
+msgstr "Сортировать языки"
 
 msgid "Sort order"
 msgstr "Порядок сортировки"

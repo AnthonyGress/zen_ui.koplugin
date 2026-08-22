@@ -104,6 +104,7 @@ local function apply_navbar()
             collections = false,
             authors = false,
             series = false,
+            languages = false,
             tags = false,
             to_be_read = false,
             home = true,
@@ -276,6 +277,11 @@ local function apply_navbar()
             icon = "tab_series",
         },
         {
+            id = "languages",
+            label = _("Languages"),
+            icon = "tab_translate",
+        },
+        {
             id = "tags",
             label = _("Tags"),
             icon = "tab_tags",
@@ -352,7 +358,7 @@ local function apply_navbar()
         folder = true, continue = true, search = true, stats = true, exit = true,
     }
     local group_view_tabs = {
-        authors = true, series = true, tags = true, to_be_read = true,
+        authors = true, series = true, languages = true, tags = true, to_be_read = true,
     }
 
     local function getCustomTagTab(tab_id)
@@ -482,6 +488,9 @@ local function apply_navbar()
         local getters = {}
         if config.show_tabs.authors == true then getters[#getters + 1] = "getGroupedByAuthor" end
         if config.show_tabs.series == true then getters[#getters + 1] = "getGroupedBySeries" end
+        if config.show_tabs.languages == true then
+            getters[#getters + 1] = "getGroupedByLanguage"
+        end
         local has_tag_tab = config.show_tabs.tags == true
         if type(config.custom_tabs) == "table" then
             for _i, tab in ipairs(config.custom_tabs) do
@@ -1311,6 +1320,11 @@ local function apply_navbar()
         if GroupView then GroupView.showSeriesView(injectStandaloneNavbar) end
     end
 
+    local function onTabLanguages()
+        local GroupView = get_shared("group_view")
+        if GroupView then GroupView.showLanguagesView(injectStandaloneNavbar) end
+    end
+
     local function onTabTBR()
         local GroupView = get_shared("group_view")
         if GroupView then GroupView.showTBRView(injectStandaloneNavbar) end
@@ -1490,6 +1504,7 @@ local function apply_navbar()
         collections = onTabCollections,
         authors = onTabAuthors,
         series = onTabSeries,
+        languages = onTabLanguages,
         tags = onTabTags,
         to_be_read = onTabTBR,
         home = onTabHome,
@@ -1512,6 +1527,7 @@ local function apply_navbar()
         collections = true,
         authors = true,
         series = true,
+        languages = true,
         tags = true,
         to_be_read = true,
         home = true,
@@ -1524,6 +1540,7 @@ local function apply_navbar()
         news = true,
         authors = true,
         series = true,
+        languages = true,
         tags = true,
         to_be_read = true,
         home = true,
@@ -2198,11 +2215,13 @@ local function apply_navbar()
         collections = true,
         authors = true,
         series = true,
+        languages = true,
         tags = true,
         to_be_read = true,
         home = true,
         authors_detail = true,
         series_detail = true,
+        languages_detail = true,
         tags_detail = true,
         stats = true,
     }
@@ -2788,6 +2807,7 @@ local function apply_navbar()
                 end
                 local is_detail = menu.name == "authors_detail"
                     or menu.name == "series_detail"
+                    or menu.name == "languages_detail"
                     or menu.name == "tags_detail"
                 if is_detail then
                     if menu.close_callback then
@@ -2923,10 +2943,12 @@ local function apply_navbar()
             end
             local is_group_view = menu.name == "authors"
                 or menu.name == "series"
+                or menu.name == "languages"
                 or menu.name == "tags"
                 or menu.name == "to_be_read"
                 or menu.name == "authors_detail"
                 or menu.name == "series_detail"
+                or menu.name == "languages_detail"
                 or menu.name == "tags_detail"
             local is_booklist_view = view_tab_id == "history"
                 or view_tab_id == "favorites"

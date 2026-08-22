@@ -1049,7 +1049,7 @@ function M.build(ctx)
         local labels = {
             recent = _("Recent"), favorites = _("Favorites"),
             to_be_read = _("To Be Read"), authors = _("Authors"),
-            series = _("Series"), tags = _("Tags"),
+            series = _("Series"), languages = _("Languages"), tags = _("Tags"),
             collections = _("Collections"), custom = _("Custom books"),
         }
         if source.kind == "tag" then return source.value or _("Specific tag") end

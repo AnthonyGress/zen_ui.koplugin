@@ -57,6 +57,9 @@ msgstr "1 author"
 msgid "1 book"
 msgstr "1 book"
 
+msgid "1 language"
+msgstr "1 language"
+
 msgid "1 min left in chapter"
 msgstr "1 min left in chapter"
 
@@ -1197,6 +1200,12 @@ msgstr "Landscape mosaic mode"
 msgid "Landscape mosaic: "
 msgstr "Landscape mosaic: "
 
+msgid "Languages"
+msgstr "Languages"
+
+msgid "languages"
+msgstr "languages"
+
 msgid "Large"
 msgstr "Large"
 
@@ -1490,6 +1499,9 @@ msgstr "No books to switch to"
 
 msgid "No books with author metadata found"
 msgstr "No books with author metadata found"
+
+msgid "No books with language metadata found"
+msgstr "No books with language metadata found"
 
 msgid "No books with series metadata found"
 msgstr "No books with series metadata found"
@@ -2213,6 +2225,9 @@ msgstr "Sort library"
 
 msgid "Sort library by"
 msgstr "Sort library by"
+
+msgid "Sort languages"
+msgstr "Sort languages"
 
 msgid "Sort order"
 msgstr "Sort order"

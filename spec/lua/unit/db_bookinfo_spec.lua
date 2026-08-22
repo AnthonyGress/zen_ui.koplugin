@@ -64,6 +64,13 @@ describe("book info grouping cache", function()
                             { "Tag A", "Tag B" },
                         }
                     end
+                    if sql:find("filename, language", 1, true) then
+                        return {
+                            { "/books/", "/books/" },
+                            { "a.epub", "b.epub" },
+                            { " en ", "fr" },
+                        }
+                    end
                     return {
                         { "/books/", "/books/" },
                         { "a.epub", "b.epub" },
@@ -137,6 +144,16 @@ describe("book info grouping cache", function()
         local files = DbBookInfo.getTagBooks(groups[1].tag)
 
         assert.are.same(groups[1].files, files)
+        assert.are.equal(1, exec_calls)
+    end)
+
+    it("groups books by trimmed language metadata", function()
+        local groups = DbBookInfo.getGroupedByLanguage()
+
+        assert.are.same({
+            { language = "en", files = { "/books/a.epub" } },
+            { language = "fr", files = { "/books/b.epub" } },
+        }, groups)
         assert.are.equal(1, exec_calls)
     end)
 

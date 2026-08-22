@@ -19,6 +19,7 @@ describe("file browser group views", function()
         "config/manager",
         "common/book_status",
         "common/history_index",
+        "common/language_name",
         "common/paths",
         "common/shared_state",
         "modules/filebrowser/patches/standalone_page",
@@ -79,6 +80,11 @@ describe("file browser group views", function()
             load = function() return groups.history or {} end,
             fileTime = function(index, path) return index[path] end,
         })
+        ZenSpec.replace("common/language_name", {
+            get = function(language)
+                return language == "en" and "English" or language
+            end,
+        })
         ZenSpec.replace("common/paths", { normPath = function(path) return path end })
         ZenSpec.replace("common/shared_state", {
             registerLoader = function() end,
@@ -106,6 +112,7 @@ describe("file browser group views", function()
         ZenSpec.replace("common/db_bookinfo", {
             getGroupedByAuthor = function() return groups.authors or {} end,
             getGroupedBySeries = function() return groups.series or {} end,
+            getGroupedByLanguage = function() return groups.languages or {} end,
             getGroupedByTags = function() return groups.tags or {} end,
             getTBRBooks = function()
                 legacy_tbr_calls = legacy_tbr_calls + 1
@@ -207,13 +214,16 @@ describe("file browser group views", function()
         end
     end)
 
-    it("builds author, series, and tag pages from database groups", function()
+    it("builds author, series, language, and tag pages from database groups", function()
         install_group_view({
             authors = {
                 { author = "Ada\nLovelace", files = { "/a.epub", "/b.epub" } },
             },
             series = {
                 { series = "Earthsea", items = { { file = "/e1.epub" }, { file = "/e2.epub" } } },
+            },
+            languages = {
+                { language = "en", files = { "/en.epub" } },
             },
             tags = {
                 { tag = "Science", files = { "/s.epub" } },
@@ -222,14 +232,17 @@ describe("file browser group views", function()
 
         api.showAuthorsView()
         api.showSeriesView()
+        api.showLanguagesView()
         api.showTagsView()
 
         local authors = assert(find_menu("authors"))
         local series = assert(find_menu("series"))
+        local languages = assert(find_menu("languages"))
         local tags = assert(find_menu("tags"))
         assert.are.equal("Ada, Lovelace", authors.item_table[1].text)
         assert.are.equal("2 \u{F016}", authors.item_table[1].mandatory)
         assert.are.same({ "/e1.epub", "/e2.epub" }, series.item_table[1]._zen_files)
+        assert.are.equal("English", languages.item_table[1].text)
         assert.are.equal("Science", tags.item_table[1].text)
         assert.are.equal(1, authors.update_count)
         assert.are.equal(1, series.update_count)

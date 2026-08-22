@@ -2,6 +2,7 @@ local Device = require("device")
 local Font = require("ui/font")
 local UIManager = require("ui/uimanager")
 local Cover = require("common/cover_utils")
+local LanguageName = require("common/language_name")
 local LibraryFont = require("modules/filebrowser/patches/library_font")
 local ReaderFont = require("common/reader_font")
 local utils = require("common/utils")
@@ -150,28 +151,6 @@ function M.getSummary(ui)
     }
 end
 
-local function full_language_name(language)
-    if not is_present(language) then return language end
-    local original = tostring(language)
-    local code = original:gsub("-", "_")
-    local ok_language, Language = pcall(require, "ui/language")
-    if ok_language and Language and Language.getLanguageName then
-        local name = Language:getLanguageName(code)
-        if name ~= code then return name end
-        local base = code:match("^([^_]+)")
-        if base then
-            name = Language:getLanguageName(base)
-            if name ~= base then return name end
-        end
-    end
-    local ok_iso, IsoLanguage = pcall(require, "ui/data/isolanguage")
-    if ok_iso and IsoLanguage and IsoLanguage.getLocalizedLanguage then
-        local name = IsoLanguage:getLocalizedLanguage(code:lower())
-        if name ~= code:lower() then return name end
-    end
-    return original
-end
-
 local function rounded_covers_enabled(config)
     config = type(config) == "table" and config
         or rawget(_G, "__ZEN_UI_PLUGIN") and rawget(_G, "__ZEN_UI_PLUGIN").config
@@ -215,7 +194,7 @@ function M.buildSpec(ui, opts)
     add_detail(summary.authors, "author", false, 2)
     add_detail(summary.series, "secondary", false, 2)
     add_detail(summary.genres, "tags", false, 3)
-    add_detail(full_language_name(props.language), "secondary", false, 3)
+    add_detail(LanguageName.get(props.language), "secondary", false, 3)
     local rating = book_summary.rating
     local numeric_rating = tonumber(rating)
     if (not numeric_rating or numeric_rating > 0) and is_present(rating) then

@@ -57,6 +57,9 @@ msgstr "1 autore"
 msgid "1 book"
 msgstr "1 libro"
 
+msgid "1 language"
+msgstr "1 lingua"
+
 msgid "1 min left in chapter"
 msgstr "1 min al termine del capitolo"
 
@@ -1197,6 +1200,12 @@ msgstr "Modalità mosaico orizzontale"
 msgid "Landscape mosaic: "
 msgstr "Mosaico orizzontale: "
 
+msgid "Languages"
+msgstr "Lingue"
+
+msgid "languages"
+msgstr "lingue"
+
 msgid "Large"
 msgstr "Grande"
 
@@ -1490,6 +1499,9 @@ msgstr "Nessun libro a cui passare"
 
 msgid "No books with author metadata found"
 msgstr "Nessun libro con metadati dell'autore trovato"
+
+msgid "No books with language metadata found"
+msgstr "Nessun libro con metadati sulla lingua trovato"
 
 msgid "No books with series metadata found"
 msgstr "Nessun libro con metadati della serie trovato"
@@ -2213,6 +2225,9 @@ msgstr "Ordina libreria"
 
 msgid "Sort library by"
 msgstr "Ordina libreria per"
+
+msgid "Sort languages"
+msgstr "Ordina lingue"
 
 msgid "Sort order"
 msgstr "Ordine di ordinamento"
