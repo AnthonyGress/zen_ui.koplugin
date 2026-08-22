@@ -193,6 +193,35 @@ describe("reader footer patches", function()
         assert.same({ true, true }, refresh_args)
     end)
 
+    it("persists customized bottom status bar items before closing an EPUB", function()
+        local save_calls = 0
+        local ReaderFooter = {
+            onReaderReady = function() end,
+            applyFooterMode = function() end,
+            onSaveSettings = function() save_calls = save_calls + 1 end,
+        }
+        ZenSpec.replace("apps/reader/modules/readerfooter", ReaderFooter)
+        _G.__ZEN_UI_PLUGIN = { config = { reader_footer = {} } }
+        G_reader_settings:saveSetting("footer", { time = false, battery = true })
+        apply_patch("modules/reader/patches/reader_footer_cbz_hide")
+
+        local customized = {
+            time = true,
+            battery = false,
+            book_title = true,
+            order = { [0] = "off", "book_title", "time", "battery" },
+        }
+        ReaderFooter.onSaveSettings({
+            settings = customized,
+            ui = { document = { file = "/books/Novel.epub" } },
+        })
+
+        assert.are.equal(1, save_calls)
+        assert.are.equal(customized, G_reader_settings:readSetting("footer"))
+        assert.is_true(G_reader_settings:readSetting("footer").book_title)
+        assert.same(customized.order, G_reader_settings:readSetting("footer").order)
+    end)
+
     it("leaves ordinary documents and disabled image hiding unchanged", function()
         local refreshes = 0
         local ReaderFooter = {

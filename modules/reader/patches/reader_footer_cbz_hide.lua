@@ -1,6 +1,6 @@
 local function apply_reader_footer_cbz_hide()
-    -- Keeps the bottom status bar hidden across reader reloads and, optionally,
-    -- while reading CBZ/PDF files.
+    -- Persists bottom status bar state across reader reloads and, optionally,
+    -- keeps it hidden while reading CBZ/PDF files.
 
     local ReaderFooter = require("apps/reader/modules/readerfooter")
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
@@ -48,6 +48,17 @@ local function apply_reader_footer_cbz_hide()
         if is_status_bar_disabled()
                 or hide_in_image_docs() and is_image_doc(self.ui) then
             self.view.footer_visible = false
+        end
+    end
+
+    -- Commit the live configuration before ReaderUI flushes global settings.
+    local orig_onSaveSettings = ReaderFooter.onSaveSettings
+    ReaderFooter.onSaveSettings = function(self, ...)
+        if type(self.settings) == "table" then
+            G_reader_settings:saveSetting("footer", self.settings)
+        end
+        if orig_onSaveSettings then
+            return orig_onSaveSettings(self, ...)
         end
     end
 end

@@ -135,17 +135,17 @@ describe("reader interaction patches", function()
         ZenSpec.replace("common/book_status", {
             acknowledgeNewVersion = function() return false end,
         })
+        local ui = { doc_settings = {} }
         ZenSpec.replace("common/reader_defaults", {
-            apply = function(settings, config)
-                assert.are.equal(G_reader_settings, settings)
-                assert.are.equal(plugin.config, config)
+            applyDeferredToReader = function(reader)
+                assert.are.equal(ui, reader)
                 apply_calls = apply_calls + 1
                 return true
             end,
         })
         apply_patch("modules/reader/patches/status_on_open")
 
-        ReaderUI.onReaderReady({ doc_settings = {} })
+        ReaderUI.onReaderReady(ui)
 
         assert.are.equal(1, apply_calls)
         assert.is_false(plugin.config._meta.reader_defaults_apply_on_next_open)
@@ -168,10 +168,7 @@ describe("reader interaction patches", function()
             acknowledgeNewVersion = function() return false end,
         })
         ZenSpec.replace("common/reader_defaults", {
-            apply = function(_, config)
-                config.features.reader_top_status_bar = true
-                return true
-            end,
+            applyDeferredToReader = function() return true end,
         })
         apply_patch("modules/reader/patches/status_on_open")
 
