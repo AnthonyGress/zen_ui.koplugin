@@ -447,6 +447,7 @@ describe("page browser entry", function()
         end
         local ReaderSearch = {
             default_search_type = default_search_type,
+            ui = { document = { checkRegex = function() return 0 end } },
             search = original_search,
             findAllText = function(self, pattern)
                 find_all_call = {
@@ -484,6 +485,47 @@ describe("page browser entry", function()
         expect(find_all_call.pattern == "\\b" .. "red" .. "\\b")
         expect(find_all_call.search_type ~= default_search_type)
         expect(find_all_call.search_type.regex == true)
+        expect(ReaderSearch.current_search_type == default_search_type)
+    end)
+
+    it("keeps fixed-layout document searches as plain text", function()
+        local search_call = {}
+        local find_all_call = {}
+        local default_search_type = { flags = 0x00FF, regex = false }
+        local ReaderSearch = {
+            default_search_type = default_search_type,
+            current_search_type = default_search_type,
+            ui = { document = {} },
+            search = function(_, pattern, origin, search_type, case_insensitive)
+                search_call = {
+                    pattern = pattern,
+                    origin = origin,
+                    search_type = search_type,
+                    case_insensitive = case_insensitive,
+                }
+            end,
+            findAllText = function(_, pattern)
+                find_all_call.pattern = pattern
+            end,
+        }
+        ZenSpec.replace("apps/reader/modules/readersearch", ReaderSearch)
+        ZenSpec.replace("apps/reader/modules/readermenu", { initGesListener = function() end })
+        ZenSpec.replace("apps/reader/modules/readerconfig", { onSwipeShowConfigMenu = function() end })
+        _G.__ZEN_UI_PLUGIN = {
+            config = {
+                features = { page_browser = false },
+                search = { substring = false },
+            },
+        }
+        require("modules/reader/patches/page_browser")()
+
+        ReaderSearch:search("red", 0, default_search_type, true)
+        expect(search_call.pattern == "red")
+        expect(search_call.origin == 0 and search_call.case_insensitive == true)
+        expect(search_call.search_type == default_search_type)
+
+        ReaderSearch:findAllText("red")
+        expect(find_all_call.pattern == "red")
         expect(ReaderSearch.current_search_type == default_search_type)
     end)
 

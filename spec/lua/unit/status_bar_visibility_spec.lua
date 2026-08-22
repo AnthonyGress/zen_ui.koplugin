@@ -192,6 +192,52 @@ describe("file manager status bar visibility", function()
         assert.are.equal(0, direct_change_calls)
     end)
 
+    it("clears restored item focus when the chevron navigates with underlines hidden", function()
+        local status_api
+        local back_callback
+        _G.__ZEN_UI_PLUGIN.config.features.browser_hide_underline = true
+        ZenSpec.replace("common/paths", {
+            getHomeDir = function() return "/library" end,
+            normPath = function(path) return path end,
+            isHomeLocked = function() return true end,
+        })
+        ZenSpec.replace("common/shared_state", {
+            register = function(_plugin, api) status_api = api end,
+            registerLoader = function() end,
+        })
+        ZenSpec.replace("ui/widget/button", {
+            new = function(_, options)
+                back_callback = options.callback
+                error("back callback captured")
+            end,
+        })
+        UIManager.scheduleIn = function(_, _, callback) callback() end
+
+        require("modules/filebrowser/patches/status_bar")()
+
+        local unfocus_calls = 0
+        local focused_item = {
+            onUnfocus = function() unfocus_calls = unfocus_calls + 1 end,
+        }
+        local file_chooser = {
+            item_table = {},
+            itemnumber = 4,
+            prev_itemnumber = 4,
+            selected = { x = 1, y = 1 },
+            layout = { { focused_item } },
+            onFolderUp = function() end,
+        }
+        local ok = pcall(status_api.createStatusRow, "/library/folder", {
+            file_chooser = file_chooser,
+        })
+        assert.is_false(ok)
+        back_callback()
+
+        assert.are.equal(1, unfocus_calls)
+        assert.is_nil(file_chooser.itemnumber)
+        assert.is_nil(file_chooser.prev_itemnumber)
+    end)
+
     it("hides back at the Folder tab root and shows it in descendants", function()
         local status_api
         local back_buttons = 0

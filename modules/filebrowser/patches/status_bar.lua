@@ -577,6 +577,20 @@ local function apply_status_bar()
         return path ~= "" and path or "/"
     end
 
+    local function clearRestoredItemFocus(file_chooser)
+        local features = zen_plugin.config and zen_plugin.config.features
+        if type(features) ~= "table" or features.browser_hide_underline ~= true then return end
+
+        file_chooser.itemnumber = nil
+        file_chooser.prev_itemnumber = nil
+        local selected = file_chooser.selected
+        local row = selected and file_chooser.layout and file_chooser.layout[selected.y]
+        local item = row and row[selected.x]
+        if item and type(item.onUnfocus) == "function" then
+            item:onUnfocus()
+        end
+    end
+
     local function createStatusRow(path, file_manager, nav_title)
         local CenterContainer = require("ui/widget/container/centercontainer")
 
@@ -631,7 +645,9 @@ local function apply_status_bar()
                 if file_chooser and file_chooser.onFolderUp then
                     UIManager:scheduleIn(0.1, function()
                         if file_manager.file_chooser then
-                            file_manager.file_chooser:onFolderUp()
+                            local active_chooser = file_manager.file_chooser
+                            active_chooser:onFolderUp()
+                            clearRestoredItemFocus(active_chooser)
                         end
                     end)
                     return

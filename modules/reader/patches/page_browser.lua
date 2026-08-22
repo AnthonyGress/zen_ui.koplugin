@@ -2459,6 +2459,11 @@ local function apply_page_browser()
             return "\\b" .. escaped .. "\\b"
         end
 
+        local function supports_regex_search(self)
+            local document = self.ui and self.ui.document
+            return document and type(document.checkRegex) == "function"
+        end
+
         local _orig_rs_search = ReaderSearch.search
         local function regex_search_type(self, search_type)
             local source_type = search_type
@@ -2478,7 +2483,7 @@ local function apply_page_browser()
 
         function ReaderSearch:search(pattern, origin, search_type, case_insensitive)
             -- Only use whole-word regex when substring mode is NOT enabled
-            if not is_substring_enabled() then
+            if not is_substring_enabled() and supports_regex_search(self) then
                 pattern = make_whole_word_regex(pattern)
                 search_type = regex_search_type(self, search_type)
             end
@@ -2488,7 +2493,7 @@ local function apply_page_browser()
         local _orig_rs_findAllText = ReaderSearch.findAllText
         function ReaderSearch:findAllText(search_text)
             -- Only use whole-word regex when substring mode is NOT enabled
-            if not is_substring_enabled() then
+            if not is_substring_enabled() and supports_regex_search(self) then
                 search_text = make_whole_word_regex(search_text)
                 if type(self.current_search_type) == "table" then
                     local saved_search_type = self.current_search_type
