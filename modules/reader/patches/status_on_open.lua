@@ -40,9 +40,15 @@ local function apply_status_on_open()
         end)
         local meta = plugin and plugin.config and plugin.config._meta
         if type(meta) == "table" and meta.reader_defaults_apply_on_next_open == true then
+            local features = plugin.config.features
+            local preserve_top_bar_disabled = type(features) == "table"
+                and features.reader_top_status_bar == false
             local ok_defaults, applied = pcall(function()
                 return require("common/reader_defaults").apply(G_reader_settings, plugin.config)
             end)
+            if preserve_top_bar_disabled and type(plugin.config.features) == "table" then
+                plugin.config.features.reader_top_status_bar = false
+            end
             if ok_defaults and applied == true then
                 meta.reader_defaults_apply_on_next_open = false
                 plugin:saveConfig()

@@ -152,6 +152,36 @@ describe("reader interaction patches", function()
         assert.are.equal(1, saves)
     end)
 
+    it("preserves a top status bar disabled after Quickstart was deferred", function()
+        local saves = 0
+        local plugin = {
+            config = {
+                _meta = { reader_defaults_apply_on_next_open = true },
+                features = { reader_top_status_bar = false },
+            },
+            saveConfig = function() saves = saves + 1 end,
+        }
+        _G.__ZEN_UI_PLUGIN = plugin
+        local ReaderUI = { onReaderReady = function() end }
+        ZenSpec.replace("apps/reader/readerui", ReaderUI)
+        ZenSpec.replace("common/book_status", {
+            acknowledgeNewVersion = function() return false end,
+        })
+        ZenSpec.replace("common/reader_defaults", {
+            apply = function(_, config)
+                config.features.reader_top_status_bar = true
+                return true
+            end,
+        })
+        apply_patch("modules/reader/patches/status_on_open")
+
+        ReaderUI.onReaderReady({ doc_settings = {} })
+
+        assert.is_false(plugin.config.features.reader_top_status_bar)
+        assert.is_false(plugin.config._meta.reader_defaults_apply_on_next_open)
+        assert.are.equal(1, saves)
+    end)
+
     it("starts explicit TBR books as reading and removes them from the collection", function()
         local saved, cached, invalidated, removed = {}, {}, {}, 0
         local ReaderUI = { onReaderReady = function() end }

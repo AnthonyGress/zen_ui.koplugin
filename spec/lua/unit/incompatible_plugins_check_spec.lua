@@ -247,25 +247,29 @@ describe("incompatible plugin and patch check", function()
     it("records installed incompatible plugins before their main modules load", function()
         local plugins_dir = data_dir .. "/plugins"
         local simpleui_dir = plugins_dir .. "/simpleui.koplugin"
+        local quickmenu_dir = plugins_dir .. "/quickmenu.koplugin"
         local reader_menu_dir = plugins_dir .. "/zzz-readermenuredesign.koplugin"
         assert.is_true(lfs.mkdir(plugins_dir))
         assert.is_true(lfs.mkdir(simpleui_dir))
+        assert.is_true(lfs.mkdir(quickmenu_dir))
         assert.is_true(lfs.mkdir(reader_menu_dir))
         settings.extra_plugin_paths = { plugins_dir }
         ZenSpec.replace("userpatch", { execution_status = {} })
 
         assert.is_true(require("modules/filebrowser/patches/incompatible_plugins_check")())
         assert.is_true(settings.disabled.simpleui)
+        assert.is_true(settings.disabled.quickmenu)
         assert.is_true(settings.disabled["zzz-readermenuredesign"])
         assert.are.equal(1, settings.flushes)
 
         UIManager.scheduled[1].callback()
         assert.are.equal(
             "Incompatible plugins and patches have been disabled:\n"
-                .. "Simple UI\nReader Menu Redesign",
+                .. "Simple UI\nQuickMenu\nReader Menu Redesign",
             UIManager.shown[1].text)
 
         lfs.rmdir(simpleui_dir)
+        lfs.rmdir(quickmenu_dir)
         lfs.rmdir(reader_menu_dir)
         lfs.rmdir(plugins_dir)
     end)

@@ -85,7 +85,12 @@ local AUTO_DISABLE = {
         fallback_key = "simpleui",
         folder_key = "simpleui",
     },
-    { sentinel = "quickmenu", label = "QuickMenu", fallback_key = "quickmenu" },
+    {
+        sentinel = "quickmenu",
+        label = "QuickMenu",
+        fallback_key = "quickmenu",
+        folder_key = "quickmenu",
+    },
     {
         sentinel = "lib/setting",
         label = "Appearance",
