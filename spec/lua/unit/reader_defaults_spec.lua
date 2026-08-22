@@ -166,6 +166,64 @@ describe("Reader defaults", function()
         assert.is_nil(document_calls.font_face)
     end)
 
+    it("applies deferred EPUB defaults without replacing customized status bars", function()
+        local custom_footer = {
+            time = true,
+            battery = false,
+            book_title = true,
+            order = { [0] = "off", "book_title", "time", "battery" },
+        }
+        local settings = ZenSpec.memorySettings({
+            alt_status_bar = true,
+            copt_status_line = 0,
+            footer = custom_footer,
+            reader_footer_mode = 3,
+            reader_footer_custom_text = "Mine",
+        })
+        local config = {
+            features = { reader_top_status_bar = false },
+            reader_footer = { verbose_chapter_time = false },
+            reader_top_status_bar = {
+                left_order = { "book_title" },
+                center_order = { "chapter" },
+                right_order = { "battery" },
+            },
+        }
+        local preset_loads = 0
+        local saved = false
+        local reader = {
+            document = { configurable = { status_line = 0 } },
+            font = {},
+            rolling = {},
+            view = {
+                footer = {
+                    loadPreset = function() preset_loads = preset_loads + 1 end,
+                },
+            },
+            saveSettings = function() saved = true end,
+        }
+
+        local applied = require("common/reader_defaults").applyDeferredToReader(reader)
+
+        assert.is_true(applied)
+        assert.is_true(saved)
+        assert.are.equal(custom_footer, settings:readSetting("footer"))
+        assert.same(custom_footer.order, settings:readSetting("footer").order)
+        assert.are.equal(3, settings:readSetting("reader_footer_mode"))
+        assert.are.equal("Mine", settings:readSetting("reader_footer_custom_text"))
+        assert.is_true(settings:readSetting("alt_status_bar"))
+        assert.are.equal(0, settings:readSetting("copt_status_line"))
+        assert.are.equal(0, reader.document.configurable.status_line)
+        assert.are.equal(0, preset_loads)
+        assert.is_false(config.features.reader_top_status_bar)
+        assert.same({ "book_title" }, config.reader_top_status_bar.left_order)
+        assert.same({ "chapter" }, config.reader_top_status_bar.center_order)
+        assert.same({ "battery" }, config.reader_top_status_bar.right_order)
+        assert.is_false(config.reader_footer.verbose_chapter_time)
+        assert.is_nil(preset_settings)
+        assert.is_nil(active_preset)
+    end)
+
     it("updates the active reflowable book and loads the Chapter Time preset", function()
         local document_calls = {}
         local loaded_preset

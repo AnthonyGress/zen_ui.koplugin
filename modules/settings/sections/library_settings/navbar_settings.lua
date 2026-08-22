@@ -148,9 +148,21 @@ function M.build(ctx)
         return label
     end
 
+    local function get_folder_tab_label()
+        local label = config.navbar.folder_label
+        if label == nil or label == "" then return _("Folder") end
+        return label
+    end
+
+    local function get_folder_tab_icon()
+        local icon = config.navbar.folder_icon
+        if type(icon) ~= "string" or icon == "" then return "tab_folder" end
+        return icon
+    end
+
     local navbar_tab_items = {
         { id = "books",       text = _("Library")      },
-        { id = "folder",      text = _("Folder")       },
+        { id = "folder",      text_func = get_folder_tab_label },
         { id = "manga",       text = _("Manga")         },
         { id = "news",        text = _("News")          },
         { id = "continue",    text = _("Continue")      },
@@ -1093,6 +1105,54 @@ function M.build(ctx)
         return {
             build_folder_action_item(nil, "folder_path"),
             build_folder_presets(nil, "folder_path"),
+            IconItem.decorate({
+                text_func = function()
+                    return T(_("Icon: %1"), icon_utils.getIconDisplayName(
+                        get_folder_tab_icon()))
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    showTabIconPicker({ icon = get_folder_tab_icon() },
+                        function(name)
+                            config.navbar.folder_icon = name
+                            save_and_defer_navbar_refresh()
+                            if touch_menu and touch_menu.updateItems then
+                                touch_menu:updateItems(1)
+                            end
+                        end)
+                end,
+            }, icons.icon),
+            IconItem.decorate({
+                text_func = function()
+                    return T(_("Label: %1"), get_folder_tab_label())
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    local InputDialog = require("ui/widget/inputdialog")
+                    local dialog
+                    dialog = InputDialog:new{
+                        title = _("Label"),
+                        input = config.navbar.folder_label or "",
+                        buttons = {{
+                            { text = _("Cancel"), callback = function() UIManager:close(dialog) end },
+                            {
+                                text = _("Set"),
+                                is_enter_default = true,
+                                callback = function()
+                                    local text = dialog:getInputText()
+                                    config.navbar.folder_label = text and text ~= "" and text or ""
+                                    UIManager:close(dialog)
+                                    save_and_defer_navbar_refresh()
+                                    if touch_menu and touch_menu.updateItems then
+                                        touch_menu:updateItems(1)
+                                    end
+                                end,
+                            },
+                        }},
+                    }
+                    UIManager:show(dialog)
+                end,
+            }, icons.label),
         }
     end
 

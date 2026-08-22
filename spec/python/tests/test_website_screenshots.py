@@ -127,7 +127,12 @@ def test_catalog_is_the_canonical_22_image_inventory() -> None:
     )
     assert library_covers.options["navbar"] == "regular"
     stats = next(scenario for scenario in catalog if scenario.id == "stats")
-    assert stats.options.get("navbar", "default") == "default"
+    assert stats.options["navbar"] == "library_home_text"
+    assert SHOWCASE_NAVBAR_STATES["library_home_text"] == {
+        "tab_order": ["books", "home"],
+        "show_icons": False,
+        "show_labels": True,
+    }
     launcher = next(scenario for scenario in catalog if scenario.id == "launcher")
     assert launcher.options["background"] == "home_simple"
     assert launcher.options["navbar"] == "library_home_icons"

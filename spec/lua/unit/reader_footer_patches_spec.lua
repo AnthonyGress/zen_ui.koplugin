@@ -162,6 +162,66 @@ describe("reader footer patches", function()
         assert.is_false(footer.view.footer_visible)
     end)
 
+    it("keeps a disabled bottom status bar hidden after reopening a book", function()
+        local ready_calls, applied_mode
+        local ReaderFooter = {
+            onReaderReady = function() ready_calls = (ready_calls or 0) + 1 end,
+            applyFooterMode = function(self, mode)
+                applied_mode = mode
+                self.view.footer_visible = mode ~= self.mode_list.off
+            end,
+        }
+        ZenSpec.replace("apps/reader/modules/readerfooter", ReaderFooter)
+        _G.__ZEN_UI_PLUGIN = {
+            config = { reader_footer = { status_bar_enabled = false } },
+        }
+        apply_patch("modules/reader/patches/reader_footer_cbz_hide")
+
+        local refresh_args
+        local footer = {
+            mode_list = { off = 0 },
+            ui = { document = { file = "/books/Novel.epub" } },
+            view = { footer_visible = true },
+            applyFooterMode = ReaderFooter.applyFooterMode,
+            refreshFooter = function(_, first, second) refresh_args = { first, second } end,
+        }
+        ReaderFooter.onReaderReady(footer)
+
+        assert.are.equal(1, ready_calls)
+        assert.are.equal(0, applied_mode)
+        assert.is_false(footer.view.footer_visible)
+        assert.same({ true, true }, refresh_args)
+    end)
+
+    it("persists customized bottom status bar items before closing an EPUB", function()
+        local save_calls = 0
+        local ReaderFooter = {
+            onReaderReady = function() end,
+            applyFooterMode = function() end,
+            onSaveSettings = function() save_calls = save_calls + 1 end,
+        }
+        ZenSpec.replace("apps/reader/modules/readerfooter", ReaderFooter)
+        _G.__ZEN_UI_PLUGIN = { config = { reader_footer = {} } }
+        G_reader_settings:saveSetting("footer", { time = false, battery = true })
+        apply_patch("modules/reader/patches/reader_footer_cbz_hide")
+
+        local customized = {
+            time = true,
+            battery = false,
+            book_title = true,
+            order = { [0] = "off", "book_title", "time", "battery" },
+        }
+        ReaderFooter.onSaveSettings({
+            settings = customized,
+            ui = { document = { file = "/books/Novel.epub" } },
+        })
+
+        assert.are.equal(1, save_calls)
+        assert.are.equal(customized, G_reader_settings:readSetting("footer"))
+        assert.is_true(G_reader_settings:readSetting("footer").book_title)
+        assert.same(customized.order, G_reader_settings:readSetting("footer").order)
+    end)
+
     it("leaves ordinary documents and disabled image hiding unchanged", function()
         local refreshes = 0
         local ReaderFooter = {

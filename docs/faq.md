@@ -22,7 +22,7 @@ Make sure you downloaded the [release](https://github.com/AnthonyGress/zen_ui.ko
 
 Swipe up while in a book, then tap the **Aa** icon.
 
-![Page browser grid](/images/zen_os/page_browser_grid.webp)
+![Page browser menu](/images/zen_os/page_browser_menu.webp)
 
 ## No books found
 

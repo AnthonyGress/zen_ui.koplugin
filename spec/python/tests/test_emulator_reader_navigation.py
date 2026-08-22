@@ -74,7 +74,12 @@ def _seed_mosaic_mode(ko_home: Path) -> None:
 
 
 def _launch(
-    runtime: Path, ko_home: Path, socket_path: Path, library: Path, default_tab: str
+    runtime: Path,
+    ko_home: Path,
+    socket_path: Path,
+    library: Path,
+    default_tab: str,
+    pending_reader_defaults: bool = False,
 ) -> subprocess.Popen[str]:
     settings_dir = ko_home / "settings" / "ZenOS"
     settings_dir.mkdir(parents=True, exist_ok=True)
@@ -83,9 +88,14 @@ def _launch(
         'return { ["home_dir"] = ' + repr(str(library.resolve())) + " }\n",
         encoding="utf-8",
     )
+    pending_meta = (
+        "_meta = { reader_defaults_apply_on_next_open = true }, "
+        if pending_reader_defaults else ""
+    )
     (settings_dir / "config.lua").write_text(
         "return { updater = { update_auto_check = false }, "
-        "features = { restore_library_view = true }, "
+        + pending_meta
+        + "features = { restore_library_view = true }, "
         "navbar = { default_tab = " + repr(default_tab) + ", "
         "show_tabs = { home = true, series = true }, "
         "tab_order = { 'home', 'series', 'books' } } }\n",
@@ -227,6 +237,51 @@ def test_book_opens_in_reader_and_home_returns_to_library(
             assert after.get("page") == before.get("page")
             if default_tab == "books":
                 _wait_for_folder_cover(driver, folder)
+        finally:
+            process.send_signal(signal.SIGTERM)
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait()
+
+
+def test_customized_footer_items_survive_epub_reopen() -> None:
+    runtime = Path(os.environ["KOREADER_DIR"])
+    with tempfile.TemporaryDirectory(prefix="zen-ui-epub-footer-") as temporary:
+        root = Path(temporary)
+        ko_home = root / "home"
+        ko_home.mkdir()
+        library = root / "library"
+        library.mkdir()
+        book = library / "Footer Persistence.epub"
+        _write_readable_epub(book)
+        _seed_mosaic_mode(ko_home)
+        socket_path = root / "driver.sock"
+        process = _launch(
+            runtime, ko_home, socket_path, library, "books",
+            pending_reader_defaults=True,
+        )
+        try:
+            wait_for_socket(socket_path)
+            driver = ZenDriver(socket_path)
+            _wait_for_file_manager(driver)
+
+            assert driver.open_book(book).get("ok") is True
+            first_open = _wait_for_reader(driver, book)
+            assert first_open.get("reader_defaults_pending") is False, first_open
+            customized = driver.command("customize_reader_footer")
+            assert customized.get("ok") is True, customized
+
+            assert driver.reader_menu_home().get("ok") is True
+            _wait_for_file_manager(driver)
+            assert driver.open_book(book).get("ok") is True
+            reopened = _wait_for_reader(driver, book)
+            assert reopened.get("footer_time") is True, reopened
+            assert reopened.get("footer_chapter_time") is False, reopened
+            assert reopened.get("footer_book_title") is True, reopened
+            assert reopened.get("footer_order_first") == "book_title", reopened
+            assert reopened.get("footer_order_second") == "time", reopened
         finally:
             process.send_signal(signal.SIGTERM)
             try:

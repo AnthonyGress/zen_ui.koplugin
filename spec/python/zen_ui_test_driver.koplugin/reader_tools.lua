@@ -233,6 +233,31 @@ local function seed_annotations()
     return true
 end
 
+function M.clear_page_bookmarks()
+    local ui = reader()
+    local annotation = ui and ui.annotation
+    if type(annotation and annotation.annotations) ~= "table" then
+        return false, "bookmarks unavailable"
+    end
+
+    local removed = false
+    for index = #annotation.annotations, 1, -1 do
+        if not annotation.annotations[index].drawer then
+            table.remove(annotation.annotations, index)
+            removed = true
+        end
+    end
+    if not removed then return true end
+
+    local bookmark = ui.bookmark
+    if bookmark and type(bookmark.setDogearVisibility) == "function"
+        and type(bookmark.getCurrentPageNumber) == "function" then
+        bookmark:setDogearVisibility(bookmark:getCurrentPageNumber())
+    end
+    UIManager:setDirty(ui, "ui")
+    return true
+end
+
 function M.launcher_state()
     local ui = reader()
     local menu = ui and ui.menu

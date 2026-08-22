@@ -124,6 +124,8 @@ local function apply_navbar()
         home_label = "",   -- empty = auto-translated "Home"
         default_tab = "books",
         folder_path = "",
+        folder_label = "",
+        folder_icon = "tab_folder",
         manga_action = "rakuyomi",
         manga_folder = "",
         news_action = "quickrss",
@@ -213,6 +215,15 @@ local function apply_navbar()
         return config.home_label ~= "" and config.home_label or _("Home")
     end
 
+    local function getFolderLabel()
+        return config.folder_label ~= "" and config.folder_label or _("Folder")
+    end
+
+    local function getFolderIcon()
+        return type(config.folder_icon) == "string" and config.folder_icon ~= ""
+            and config.folder_icon or "tab_folder"
+    end
+
     local tabs = {
         {
             id = "books",
@@ -221,8 +232,8 @@ local function apply_navbar()
         },
         {
             id = "folder",
-            label = _("Folder"),
-            icon = "tab_folder",
+            label = getFolderLabel(),
+            icon = getFolderIcon(),
         },
         {
             id = "manga",
@@ -1949,6 +1960,8 @@ local function apply_navbar()
         -- Update books tab label from config
         tabs_by_id["books"].label = getBooksLabel()
         tabs_by_id["home"].label = getHomeLabel()
+        tabs_by_id["folder"].label = getFolderLabel()
+        tabs_by_id["folder"].icon = getFolderIcon()
 
         -- Sync custom tabs from config so add/remove/edit takes effect on every reinject
         local known_custom = {}

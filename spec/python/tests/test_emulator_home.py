@@ -175,6 +175,7 @@ def _wait_for_home(
     required_texts: set[str] | None = None,
     required_book_paths: set[str] | None = None,
     minimum_widget_count: int = 5,
+    required_state_keys: set[str] | None = None,
 ) -> dict[str, object]:
     deadline = time.monotonic() + 30
     latest: dict[str, object] = {}
@@ -190,7 +191,8 @@ def _wait_for_home(
         if latest.get("active") \
                 and len(latest.get("widget_ids", [])) >= minimum_widget_count \
                 and (not required_texts or required_texts <= visible_texts) \
-                and (not required_book_paths or required_book_paths <= book_paths):
+                and (not required_book_paths or required_book_paths <= book_paths) \
+                and (not required_state_keys or required_state_keys <= latest.keys()):
             return latest
         time.sleep(0.25)
     raise AssertionError(f"Home widgets did not become ready: {latest}")
@@ -231,6 +233,7 @@ def test_two_row_strip_offsets_its_bottom_anchor_by_the_home_row_gap() -> None:
                 driver,
                 required_book_paths={str(book.resolve()) for book in books[1:]},
                 minimum_widget_count=2,
+                required_state_keys={"strip_bottom"},
             )
             bottom_inset = int(home["body_height"]) - int(home["strip_bottom"])
             expected_bottom_inset = (

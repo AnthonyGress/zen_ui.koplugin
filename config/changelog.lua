@@ -259,5 +259,11 @@ return {
         "Improved first time setup guide",
         "Bug fixes",
         "+ lots more!"
+    },
+    ["3.0.1"] = {
+        "Allow chaning folder icon/name in Navbar",
+        "Fix status bars sometimes turning back on in reader",
+        "Update incompatible plugins",
+
     }
 }

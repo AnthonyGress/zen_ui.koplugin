@@ -88,13 +88,15 @@ local function save_footer_preset(preset)
     end
 end
 
-local function apply_to_active_reader(preset, use_bundled_fonts)
-    local ok_reader, ReaderUI = pcall(require, "apps/reader/readerui")
-    local reader = ok_reader and ReaderUI and ReaderUI.instance
+local function apply_to_active_reader(preset, use_bundled_fonts, reader, preserve_status_bars)
+    if not reader then
+        local ok_reader, ReaderUI = pcall(require, "apps/reader/readerui")
+        reader = ok_reader and ReaderUI and ReaderUI.instance
+    end
     if not reader then return false end
 
     local footer = reader.view and reader.view.footer
-    if footer and type(footer.loadPreset) == "function" then
+    if not preserve_status_bars and footer and type(footer.loadPreset) == "function" then
         footer:loadPreset(copy_value(preset))
         local bottom_padding = preset.footer.container_bottom_padding
         if type(footer.settings) == "table" then
@@ -113,7 +115,9 @@ local function apply_to_active_reader(preset, use_bundled_fonts)
     if not (reader.rolling and configurable) then return false end
 
     for key, value in pairs(CRE_DEFAULTS) do
-        configurable[key:sub(6)] = copy_value(value)
+        if not preserve_status_bars or key ~= "copt_status_line" then
+            configurable[key:sub(6)] = copy_value(value)
+        end
     end
     if use_bundled_fonts and reader.font then reader.font.font_face = READER_FONT end
 
@@ -220,6 +224,12 @@ function M.apply(settings, config)
 
     save_footer_preset(preset)
     return apply_to_active_reader(preset, use_bundled_fonts)
+end
+
+function M.applyDeferredToReader(reader)
+    local use_bundled_fonts = FontLanguage.supportsBundledFonts()
+    if use_bundled_fonts then ensure_reader_font_registered() end
+    return apply_to_active_reader(nil, use_bundled_fonts, reader, true)
 end
 
 return M
