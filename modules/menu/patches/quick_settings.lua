@@ -499,6 +499,8 @@ local function apply_quick_settings()
     -- Button definitions (data-driven)
     -- ============================================================
 
+    local open_quick_setting_settings
+
     local button_defs = {
         bluetooth = {
             icon = "quick_bluetooth",
@@ -835,6 +837,9 @@ local function apply_quick_settings()
                 plugin:onToggleZenFM()
                 refreshQuickSettings(touch_menu)
             end,
+            hold_callback = function(touch_menu)
+                return open_quick_setting_settings("zenfm", touch_menu)
+            end,
         },
         zen = {
             icon = "quick_zen",
@@ -1135,6 +1140,25 @@ local function apply_quick_settings()
         return items
     end
 
+    local function normalize_zenfm_settings(items)
+        for _i, item in ipairs(type(items) == "table" and items or {}) do
+            if type(item.checked_func) == "function"
+                    and type(item.checkmark_callback) == "function"
+                    and type(item.callback) == "function"
+                    and item.sub_item_table == nil
+                    and item.sub_item_table_func == nil then
+                local open_callback = item.callback
+                item.callback = item.checkmark_callback
+                item.checkmark_callback = nil
+                item.sub_item_table_func = function(touch_menu)
+                    open_callback(touch_menu)
+                    return {}
+                end
+            end
+        end
+        return items
+    end
+
     local function quick_setting_config_items(id)
         if id == "rotate" then
             local items = {}
@@ -1171,12 +1195,44 @@ local function apply_quick_settings()
         if id == "incognito" then
             return require("modules/global/patches/incognito_mode").timeoutMenuItems(zen_plugin)
         end
+        if id == "zenfm" then
+            local plugin = getCandidatePlugin(zenfm_plugin)
+            if not (plugin and isCallable(plugin.settings_menu)) then return {} end
+            local ok, items = pcall(plugin.settings_menu, plugin)
+            if not ok or type(items) ~= "table" then return {} end
+            return normalize_zenfm_settings(items)
+        end
         return {}
+    end
+
+    open_quick_setting_settings = function(id, touch_menu)
+        local items = quick_setting_config_items(id)
+        if #items == 0 then
+            showUnavailable()
+            return false
+        end
+        if touch_menu and type(touch_menu.closeMenu) == "function" then
+            touch_menu:closeMenu()
+        end
+        UIManager:nextTick(function()
+            require("modules/menu/app_launcher/menu_host").show{
+                title = button_defs[id] and button_defs[id].label or _("Control settings"),
+                item_table = items,
+                back_visible = false,
+            }
+        end)
+        return true
     end
 
     rawset(_G, "__ZEN_UI_QUICK_SETTINGS", {
         getItems = quick_setting_items,
         getSettingsItems = quick_setting_config_items,
+        hold = function(id, touch_menu)
+            install_custom_button_defs()
+            local def = button_defs[id]
+            if not (def and type(def.hold_callback) == "function") then return false end
+            return def.hold_callback(touch_menu) ~= false
+        end,
         has = function(id)
             install_custom_button_defs()
             local def = button_defs[id]

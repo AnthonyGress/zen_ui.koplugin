@@ -243,13 +243,18 @@ function ZenUI:init()
     end
     _G.__ZEN_UI_LIBRARY_FONT_CFG = self.config and self.config.library_font or nil
     _zen_plugin_ref = self
-    local ok_zenpm, added_or_error = pcall(function()
-        return require("modules/menu/app_launcher/model").ensure_zenpm_launcher_entry()
-    end)
-    if not ok_zenpm then
-        logger.warn("ZenPM launcher integration failed:", added_or_error)
-    elseif added_or_error then
-        logger.info("Added ZenPM to the launcher")
+    for _i, integration in ipairs({
+        { name = "ZenPM", method = "ensure_zenpm_launcher_entry" },
+        { name = "ZenFM", method = "ensure_zenfm_launcher_entry" },
+    }) do
+        local ok, added_or_error = pcall(function()
+            return require("modules/menu/app_launcher/model")[integration.method]()
+        end)
+        if not ok then
+            logger.warn(integration.name .. " launcher integration failed:", added_or_error)
+        elseif added_or_error then
+            logger.info("Added " .. integration.name .. " to the launcher")
+        end
     end
     self:onDispatcherRegisterActions()
     -- Initialize updater state; release metadata stays live-only.

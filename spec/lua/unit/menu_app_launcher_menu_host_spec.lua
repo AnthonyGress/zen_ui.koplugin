@@ -34,6 +34,7 @@ describe("app launcher plugin menu host", function()
         local host = MenuHost.show{
             title = "Wallabag",
             item_table = item_table,
+            back_visible = false,
         }
 
         assert.is_true(host.shown)
@@ -42,5 +43,6 @@ describe("app launcher plugin menu host", function()
         assert.is_false(shown_opts.allow_arrange)
         assert.is_true(shown_opts.hide_footer_cancel)
         assert.is_true(shown_opts.menu_mode)
+        assert.is_false(shown_opts.back_visible)
     end)
 end)

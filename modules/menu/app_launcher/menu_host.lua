@@ -10,6 +10,7 @@ function M.show(opts)
         allow_arrange = false,
         hide_footer_cancel = true,
         menu_mode = true,
+        back_visible = opts.back_visible,
     }
 end
 
