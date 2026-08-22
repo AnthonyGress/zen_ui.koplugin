@@ -244,10 +244,17 @@ local function set_bottom_status_bar(plugin, enabled)
     if not footer then return false end
 
     local plugin_config = plugin and plugin.config or nil
+    local reader_footer
+    if plugin_config then
+        if type(plugin_config.reader_footer) ~= "table" then
+            plugin_config.reader_footer = {}
+        end
+        reader_footer = plugin_config.reader_footer
+        reader_footer.status_bar_enabled = enabled
+    end
     local mode_list = footer.mode_list or {}
     local off_mode = mode_list.off or 0
     if enabled then
-        local reader_footer = plugin_config and plugin_config.reader_footer
         local last_mode = reader_footer and reader_footer.last_status_bar_mode
         if type(last_mode) ~= "number" or last_mode == off_mode then
             last_mode = G_reader_settings:readSetting("reader_footer_mode")
@@ -258,16 +265,13 @@ local function set_bottom_status_bar(plugin, enabled)
         footer:applyFooterMode(last_mode)
         G_reader_settings:saveSetting("reader_footer_mode", last_mode)
     else
-        if plugin_config and type(plugin_config.reader_footer) ~= "table" then
-            plugin_config.reader_footer = {}
-        end
-        if plugin_config and type(footer.mode) == "number" and footer.mode ~= off_mode then
-            plugin_config.reader_footer.last_status_bar_mode = footer.mode
-            save_config(plugin)
+        if reader_footer and type(footer.mode) == "number" and footer.mode ~= off_mode then
+            reader_footer.last_status_bar_mode = footer.mode
         end
         footer:applyFooterMode(off_mode)
         G_reader_settings:saveSetting("reader_footer_mode", off_mode)
     end
+    if reader_footer then save_config(plugin) end
 
     footer:refreshFooter(true, true)
     if type(footer.rescheduleFooterAutoRefreshIfNeeded) == "function" then

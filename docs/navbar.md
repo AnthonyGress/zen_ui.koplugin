@@ -36,7 +36,7 @@ Folder mode makes either tab a one-tap shortcut to wherever you keep that conten
 
 ## Folder And Tag Tabs
 
-The built-in **Folder** tab opens a folder you choose. Its presets can point to the home folder, the last folder, or the current folder, and Folder can be selected as the default tab. Add as many separate **Folder** tabs as you need, each with its own path. Use **Specific tag** for a direct shortcut to one tag or **All tags** for the grouped tag browser.
+The built-in **Folder** tab opens a folder you choose. Its presets can point to the home folder, the last folder, or the current folder, and Folder can be selected as the default tab. Its label and icon can be changed without removing or re-adding the folder. Add as many separate **Folder** tabs as you need, each with its own path, label, and icon. Use **Specific tag** for a direct shortcut to one tag or **All tags** for the grouped tag browser. Each specific-tag tab can also have its own label and icon.
 
 ## Grouped Views
 
@@ -64,13 +64,13 @@ Adjust a grouped view's display and sort from its context menu while that tab is
 | Custom tabs > Action | Selects the dispatcher action run by an action tab. |
 | Custom tabs > Plugin | Selects the launchable plugin menu run by a plugin tab. |
 | Custom tabs > KOReader menu | Selects the native KOReader submenu opened by a menu tab. |
-| Custom tabs > Icon | Selects a bundled, KOReader, or user icon for the custom tab. |
-| Custom tabs > Label | Sets a custom label or leaves the label empty to use the action or plugin title. |
+| Custom tabs > Icon | Selects a bundled, KOReader, or user icon, including for added folder and specific-tag tabs. |
+| Custom tabs > Label | Sets a custom label; leaving it empty restores the folder name, tag name, action title, or plugin title. |
 | Custom tabs > Delete | Deletes the custom tab and removes it from the order list. |
 | Default tab | Selects the destination ZenOS opens at startup and when the device's physical Home button is pressed. |
 | Tabs > Home > Label | Sets the Home tab label. |
 | Tabs > Books > Label | Sets the Library tab label to Books, Home, Library, or custom text. |
-| Tabs > Folder | Selects a folder destination or uses the home, last, or current folder preset. |
+| Tabs > Folder | Selects a folder destination, changes its label or icon, or uses the home, last, or current folder preset. |
 | Tabs > Manga | Opens Rakuyomi, another manga reader, or a selected folder. |
 | Tabs > Manga > Folder presets | Sets the Manga folder to the home folder, last folder, or current folder. |
 | Tabs > News | Opens QuickRSS, RSS Reader, or a selected folder. |

@@ -21,6 +21,20 @@ describe("incompatible plugin and patch check", function()
         "2-automatic-book-series.lua",
         "2-ui-font.lua",
         "2-custom-navbar.lua",
+        "2-page-scrubber.lua",
+        "2-browser-double-tap.lua",
+        "2-browser-hide-underline.lua",
+        "2-browser-up-folder.lua",
+        "2-coverimage-eink-optimize.lua",
+        "2-disable-top-menu-zones.lua",
+        "2-filemanager-titlebar.lua",
+        "2-menu-size.lua",
+        "2-new-status-icons.lua",
+        "2-screensaver-chapter.lua",
+        "2-screensaver-cover.lua",
+        "2-series-badge-numbered.lua",
+        "2-statusbar-better-compact.lua",
+        "2-statusbar-cycle-presets.lua",
     }
 
     local module_names = {
@@ -30,6 +44,7 @@ describe("incompatible plugin and patch check", function()
         "ui/uimanager",
         "gettext",
         "ui/widget/confirmbox",
+        "ui/widget/infomessage",
         "ui/event",
     }
 
@@ -58,10 +73,6 @@ describe("incompatible plugin and patch check", function()
         assert.is_true(lfs.mkdir(data_dir))
         patch_dir = data_dir .. "/patches"
         assert.is_true(lfs.mkdir(patch_dir))
-        for _i, filename in ipairs(patch_files) do
-            local file = assert(io.open(patch_dir .. "/" .. filename, "w"))
-            file:close()
-        end
         settings = {
             disabled = {},
             saves = 0,
@@ -95,6 +106,9 @@ describe("incompatible plugin and patch check", function()
         })
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("ui/widget/confirmbox", {
+            new = function(_, spec) return spec end,
+        })
+        ZenSpec.replace("ui/widget/infomessage", {
             new = function(_, spec) return spec end,
         })
         ZenSpec.replace("ui/event", { new = function(_, name) return { name = name } end })
@@ -132,7 +146,11 @@ describe("incompatible plugin and patch check", function()
         ZenSpec.unload("modules/filebrowser/patches/incompatible_plugins_check")
     end)
 
-    it("disables executed incompatible user patches and requests a restart", function()
+    it("disables all known incompatible user patches and requests a restart", function()
+        for _i, filename in ipairs(patch_files) do
+            local file = assert(io.open(patch_dir .. "/" .. filename, "w"))
+            file:close()
+        end
         ZenSpec.replace("userpatch", {
             execution_status = {
                 ["2-quick-settings.lua"] = true,
@@ -157,12 +175,49 @@ describe("incompatible plugin and patch check", function()
         UIManager.scheduled[1].callback()
         assert.are.equal(
             "Incompatible plugins and patches have been disabled:\n"
-                .. "2-quick-settings.lua\n2-automatic-book-series.lua\n2-ui-font.lua\n2-custom-navbar.lua",
+                .. table.concat(patch_files, "\n"),
             UIManager.shown[1].text)
     end)
 
-    it("ignores incompatible user patches that did not execute", function()
+    it("blocks Project: Title when it self-disables because CoverBrowser is enabled", function()
+        package.loaded["ptutil"] = { loaded = true }
         ZenSpec.replace("userpatch", { execution_status = {} })
+
+        assert.is_true(require("modules/filebrowser/patches/incompatible_plugins_check")())
+        assert.are.equal(0, settings.flushes)
+        assert.are.equal(1, #UIManager.scheduled)
+        assert.are.equal("Incompatible plugins or patches detected", logs.warn[1][1])
+
+        UIManager.scheduled[1].callback()
+        assert.are.equal(
+            "Project: Title is not compatible with ZenOS.\n\n"
+                .. "Please delete the Project: Title plugin from your plugins folder and restart KOReader.",
+            UIManager.shown[1].text)
+    end)
+
+    it("disables an enabled incompatible patch before execution status is recorded", function()
+        local file = assert(io.open(patch_dir .. "/2-quick-settings.lua", "w"))
+        file:close()
+        ZenSpec.replace("userpatch", {
+            execution_status = {},
+            arePatchesDisabled = function() return false end,
+        })
+
+        assert.is_true(require("modules/filebrowser/patches/incompatible_plugins_check")())
+        assert.is_nil(lfs.attributes(patch_dir .. "/2-quick-settings.lua", "mode"))
+        assert.are.equal("file",
+            lfs.attributes(patch_dir .. "/2-quick-settings.lua.disabled", "mode"))
+        assert.are.equal(1, settings.flushes)
+        assert.are.equal(1, #UIManager.scheduled)
+    end)
+
+    it("ignores incompatible user patches when user patches are disabled", function()
+        local file = assert(io.open(patch_dir .. "/2-quick-settings.lua", "w"))
+        file:close()
+        ZenSpec.replace("userpatch", {
+            execution_status = {},
+            arePatchesDisabled = function() return true end,
+        })
 
         assert.is_false(require("modules/filebrowser/patches/incompatible_plugins_check")())
         assert.are.equal("file", lfs.attributes(patch_dir .. "/2-quick-settings.lua", "mode"))

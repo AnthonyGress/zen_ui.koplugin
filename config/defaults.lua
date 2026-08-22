@@ -116,6 +116,8 @@ local defaults = {
         home_label = "Home",
         default_tab = "home",
         folder_path = "",
+        folder_label = "",
+        folder_icon = "tab_folder",
         manga_action = "rakuyomi",
         manga_folder = "",
         news_action = "quickrss",
@@ -250,6 +252,7 @@ local defaults = {
         custom = {},
     },
     reader_footer = {
+        status_bar_enabled = true,
         verbose_chapter_time = false,
         hide_in_cbz = true,
     },

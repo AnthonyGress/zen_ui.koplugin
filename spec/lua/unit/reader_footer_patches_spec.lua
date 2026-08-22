@@ -162,6 +162,37 @@ describe("reader footer patches", function()
         assert.is_false(footer.view.footer_visible)
     end)
 
+    it("keeps a disabled bottom status bar hidden after reopening a book", function()
+        local ready_calls, applied_mode
+        local ReaderFooter = {
+            onReaderReady = function() ready_calls = (ready_calls or 0) + 1 end,
+            applyFooterMode = function(self, mode)
+                applied_mode = mode
+                self.view.footer_visible = mode ~= self.mode_list.off
+            end,
+        }
+        ZenSpec.replace("apps/reader/modules/readerfooter", ReaderFooter)
+        _G.__ZEN_UI_PLUGIN = {
+            config = { reader_footer = { status_bar_enabled = false } },
+        }
+        apply_patch("modules/reader/patches/reader_footer_cbz_hide")
+
+        local refresh_args
+        local footer = {
+            mode_list = { off = 0 },
+            ui = { document = { file = "/books/Novel.epub" } },
+            view = { footer_visible = true },
+            applyFooterMode = ReaderFooter.applyFooterMode,
+            refreshFooter = function(_, first, second) refresh_args = { first, second } end,
+        }
+        ReaderFooter.onReaderReady(footer)
+
+        assert.are.equal(1, ready_calls)
+        assert.are.equal(0, applied_mode)
+        assert.is_false(footer.view.footer_visible)
+        assert.same({ true, true }, refresh_args)
+    end)
+
     it("leaves ordinary documents and disabled image hiding unchanged", function()
         local refreshes = 0
         local ReaderFooter = {
