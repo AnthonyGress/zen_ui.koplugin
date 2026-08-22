@@ -758,6 +758,7 @@ local function apply_navbar()
 
     local function _build_dir_mtime_snapshot(root, max_depth)
         local snap = {}
+        local subdirs = {}
         local function walk(dir, depth)
             local m = lfs.attributes(dir, "modification")
             if m then snap[dir] = m end
@@ -769,13 +770,14 @@ local function apply_navbar()
                         and f:sub(-4) ~= ".sdr" then
                     local sub = dir .. "/" .. f
                     if lfs.attributes(sub, "mode") == "directory" then
+                        subdirs[#subdirs + 1] = sub
                         walk(sub, depth + 1)
                     end
                 end
             end
         end
         walk(root, 0)
-        return snap
+        return snap, subdirs
     end
 
     local function _snapshot_differs(old, new)
@@ -874,8 +876,8 @@ local function apply_navbar()
             return false
         end
         refreshLibraryStatusBar(fm)
-        fc._zen_lib_mtime_snapshot = _build_dir_mtime_snapshot(
-            home_dir, LIB_SNAPSHOT_DEPTH)
+        fc._zen_lib_mtime_snapshot, fc._zen_lib_mtime_subdirs =
+            _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
         fc._zen_lib_mtime_snapshot_at = now()
         local retained = _library_retained_descriptor(fc, home_dir)
         fc._zen_idle_materialized_library = retained
@@ -953,12 +955,36 @@ local function apply_navbar()
             local listing_changed = false
             local validation_mode = "cached"
             if validation_due then
-                local snapshot = _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
+                local root_mtime = lfs.attributes(home_dir, "modification")
+                -- If the root's mtime is untouched since the last scan, no
+                -- directory could have been created, removed or renamed at
+                -- any depth (all of those bump the parent dir), so re-stat
+                -- the previously known subdirs instead of re-listing the
+                -- tree.  Changes INSIDE a subdir bump only that subdir.
+                local incremental = fc._zen_lib_mtime_subdirs ~= nil
+                    and fc._zen_lib_mtime_snapshot ~= nil
+                    and fc._zen_lib_mtime_snapshot[home_dir] == root_mtime
+                local snapshot
+                local subdirs
+                if incremental then
+                    snapshot = {}
+                    for _i, sub in ipairs(fc._zen_lib_mtime_subdirs) do
+                        local m = lfs.attributes(sub, "modification")
+                        if m then snapshot[sub] = m end
+                    end
+                    snapshot[home_dir] = root_mtime
+                    subdirs = fc._zen_lib_mtime_subdirs
+                    validation_mode = "incremental"
+                else
+                    snapshot, subdirs = _build_dir_mtime_snapshot(
+                        home_dir, LIB_SNAPSHOT_DEPTH)
+                    validation_mode = "scan"
+                end
                 listing_changed = fc._zen_lib_mtime_snapshot ~= nil
                     and _snapshot_differs(fc._zen_lib_mtime_snapshot, snapshot)
                 fc._zen_lib_mtime_snapshot = snapshot
+                fc._zen_lib_mtime_subdirs = subdirs
                 fc._zen_lib_mtime_snapshot_at = now()
-                validation_mode = "scan"
             end
             local refresh_needed = not options.already_refreshed
                 and (sort_changed or tree_changed or listing_changed)
@@ -981,7 +1007,9 @@ local function apply_navbar()
                     "baseline_missing=", tostring(baseline_missing),
                     "validation=", validation_mode,
                     "recursive_validation=",
-                        validation_mode == "scan" and "scanned" or "skipped")
+                        validation_mode == "scan" and "scanned"
+                            or validation_mode == "incremental" and "re-statted"
+                            or "skipped")
                 if fm._zen_home_to_library_started_at == transition_started_at then
                     fm._zen_home_to_library_started_at = nil
                 end
@@ -1064,7 +1092,8 @@ local function apply_navbar()
         if fc.item_table and fc.item_table.is_in_series_view and series_exit then
             series_exit(fc)
             fc.path_items[home_dir] = 1
-            fc._zen_lib_mtime_snapshot = _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
+            fc._zen_lib_mtime_snapshot, fc._zen_lib_mtime_subdirs =
+                _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
             fc._zen_lib_mtime_snapshot_at = now()
             fc:changeToPath(home_dir)
             refreshLibraryStatusBar(fm)
@@ -1096,7 +1125,8 @@ local function apply_navbar()
             if retained_valid and fm._zen_home_to_library_started_at then return end
         else
             fc.path_items[home_dir] = nil
-            fc._zen_lib_mtime_snapshot = _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
+            fc._zen_lib_mtime_snapshot, fc._zen_lib_mtime_subdirs =
+                _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
             fc._zen_lib_mtime_snapshot_at = now()
             fc:changeToPath(home_dir)
         end
