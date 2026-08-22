@@ -187,28 +187,44 @@ local function apply_status_bar()
     -- Returns a bold TextWidget that shrinks font size before truncating.
     -- Tries each step in `shrink_steps` pt below the base face; applies
     -- max_width (with ellipsis) only when even the smallest size is still too wide.
+    -- The center title only changes on path changes; memoize it so the
+    -- per-minute tick and focus-move rebuilds don't re-probe font sizes for an
+    -- identical string (each probe is a Harfbuzz shape of the full title).
+    local _fit_text_key = nil
+    local _fit_text_widget = nil
     local function fitTextWidget(text, max_width)
         local base_face = getBarFont()
+        local key = text .. "\0" .. max_width .. "\0" .. (base_face.orig_size or base_face.size)
+        if _fit_text_key == key and _fit_text_widget then
+            return _fit_text_widget
+        end
         local base_size = base_face.orig_size or base_face.size or 14
         local min_size  = math.max(10, base_size - 4)
         local size = base_size
+        local widget
         while size >= min_size do
             local face  = library_font.getFace(size)
             local probe = TextWidget:new{ text = text, face = face, bold = true }
             local w = probe:getSize().w
             probe:free()
             if w <= max_width then
-                return TextWidget:new{ text = text, face = face, bold = true }
+                widget = TextWidget:new{ text = text, face = face, bold = true }
+                break
             end
             size = size - 1
         end
         -- Still too wide at minimum size: truncate.
-        return TextWidget:new{
-            text = text,
-            face = library_font.getFace(min_size),
-            bold = true,
-            max_width = max_width,
-        }
+        if not widget then
+            widget = TextWidget:new{
+                text = text,
+                face = library_font.getFace(min_size),
+                bold = true,
+                max_width = max_width,
+            }
+        end
+        _fit_text_key = key
+        _fit_text_widget = widget
+        return widget
     end
     local h_padding = Screen:scaleBySize(10)
 
@@ -217,7 +233,15 @@ local function apply_status_bar()
     -- leaves a white box around the chevron when a library background is showing.
     -- Force the icon to keep its alpha channel and drop the frame's white fill so
     -- the background paints through.
+    -- Back chevron only depends on icon size; memoize it and swap the
+    -- callback on reuse (the callback captures the per-call path).
+    local _back_btn_icon_size = nil
+    local _back_btn_widget = nil
     local function makeBackButton(icon_size, callback)
+        if _back_btn_icon_size == icon_size and _back_btn_widget then
+            _back_btn_widget.callback = callback or function() end
+            return _back_btn_widget
+        end
         local Button = require("ui/widget/button")
         local back_widget = Button:new{
             icon        = "chevron.left",
@@ -242,6 +266,8 @@ local function apply_status_bar()
         -- background stays untouched.
         back_widget._doFeedbackHighlight = function() end
         back_widget._undoFeedbackHighlight = function() end
+        _back_btn_icon_size = icon_size
+        _back_btn_widget = back_widget
         return back_widget
     end
 
