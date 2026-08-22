@@ -519,6 +519,17 @@ describe("Zen settings page", function()
         assert.are.equal(1, settings.itemnumber)
     end)
 
+    it("closes settings immediately when KOReader exits during a search", function()
+        local settings = make_page({ { text = "Screen timeout" } })
+
+        settings.title_bar.search_expanded = true
+        settings:_onSearchChanged("screen")
+
+        assert.is_true(settings:onExit())
+        assert.is_true(settings._closed)
+        assert.are.equal(1, deferred_apply_flushes)
+    end)
+
     it("collapses an empty search pill to an icon when opening a submenu", function()
         local controls = { text = "Controls", sub_item_table = {{ text = "Screen timeout" }} }
         local settings = make_page({ controls })
