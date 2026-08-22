@@ -361,6 +361,23 @@ describe("file browser navbar navigation", function()
         assert.are.same({ "home" }, calls)
     end)
 
+    it("applies updated label and icon to the existing built-in Folder tab", function()
+        local navbar = _G.__ZEN_UI_PLUGIN.config.navbar
+        navbar.folder_label = "Novels"
+        navbar.folder_icon = "library"
+        navbar.default_tab = "folder"
+        table.insert(navbar.tab_order, 1, "folder")
+        dir_mtimes["/library/Fiction"] = 1
+        local fm = make_instance()
+        fm[1] = { fm.file_chooser }
+
+        _G.__ZEN_UI_REINJECT_FM_NAVBAR()
+
+        assert.are.equal("library", _G.__ZEN_UI_NAVBAR_DEFAULT_TAB_ICON())
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("folder"))
+        assert.are.equal("Novels", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+    end)
+
     it("recognizes an already-active default tab", function()
         local fm = make_instance()
         UIManager._window_stack = { { widget = { _zen_navbar_tab_id = "home" } } }

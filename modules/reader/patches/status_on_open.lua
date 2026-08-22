@@ -41,7 +41,7 @@ local function apply_status_on_open()
         local meta = plugin and plugin.config and plugin.config._meta
         if type(meta) == "table" and meta.reader_defaults_apply_on_next_open == true then
             local ok_defaults, applied = pcall(function()
-                return require("common/reader_defaults").apply(G_reader_settings, plugin.config)
+                return require("common/reader_defaults").applyDeferredToReader(self)
             end)
             if ok_defaults and applied == true then
                 meta.reader_defaults_apply_on_next_open = false

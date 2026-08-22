@@ -152,19 +152,20 @@ function M.getUserIconsDir()
     return DataStorage:getDataDir() .. "/icons/"
 end
 
---- Copy the selected custom default-tab icon into KOReader's user icons dir.
+--- Copy the selected default-tab icon into KOReader's user icons dir.
 --- Existing user icons are left untouched so a user's override always wins.
 function M.copyDefaultCustomTabIcon(plugin_icons_dir, navbar)
-    if type(navbar) ~= "table" or type(navbar.default_tab) ~= "string"
-        or type(navbar.custom_tabs) ~= "table" then
+    if type(navbar) ~= "table" or type(navbar.default_tab) ~= "string" then
         return false
     end
 
-    local icon_name
-    for _i, tab in ipairs(navbar.custom_tabs) do
-        if type(tab) == "table" and tab.id == navbar.default_tab then
-            icon_name = tab.icon
-            break
+    local icon_name = navbar.default_tab == "folder" and navbar.folder_icon or nil
+    if type(navbar.custom_tabs) == "table" then
+        for _i, tab in ipairs(navbar.custom_tabs) do
+            if type(tab) == "table" and tab.id == navbar.default_tab then
+                icon_name = tab.icon
+                break
+            end
         end
     end
     if type(icon_name) ~= "string" or not icon_name:match("^[%w._-]+$") then

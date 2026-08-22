@@ -677,6 +677,11 @@ local function reader_state()
     collect_texts(reader, visible_texts, {}, 0)
     local library_state = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
     local footer = reader.view and reader.view.footer
+    local footer_settings = footer and footer.settings
+    local PluginLoader = require("pluginloader")
+    local plugin = PluginLoader:getPluginInstance("zenos")
+        or PluginLoader:getPluginInstance("zen_ui")
+    local meta = plugin and plugin.config and plugin.config._meta
     local active_preset
     local ok_store, PresetStore = pcall(require, "config/preset_store")
     if ok_store and type(PresetStore.getActivePreset) == "function" then
@@ -691,8 +696,33 @@ local function reader_state()
         saved_page = type(library_state) == "table" and library_state.page or nil,
         active_tab_label = rawget(_G, "__ZEN_UI_ACTIVE_TAB_LABEL"),
         footer_text = footer and footer.footer_text and footer.footer_text.text or nil,
+        footer_time = footer_settings and footer_settings.time == true,
+        footer_chapter_time = footer_settings
+            and footer_settings.chapter_time_to_read == true,
+        footer_book_title = footer_settings and footer_settings.book_title == true,
+        footer_order_first = footer_settings and footer_settings.order
+            and footer_settings.order[1] or nil,
+        footer_order_second = footer_settings and footer_settings.order
+            and footer_settings.order[2] or nil,
+        reader_defaults_pending = type(meta) == "table"
+            and meta.reader_defaults_apply_on_next_open == true,
         visible_texts = visible_texts,
     }
+end
+
+local function customize_reader_footer()
+    local ReaderUI = require("apps/reader/readerui")
+    local reader = ReaderUI.instance
+    local footer = reader and reader.view and reader.view.footer
+    if not (footer and type(footer.settings) == "table") then
+        return false, "reader footer unavailable"
+    end
+
+    footer.settings.time = true
+    footer.settings.chapter_time_to_read = false
+    footer.settings.book_title = true
+    footer.settings.order = { [0] = "off", "book_title", "time" }
+    return true
 end
 
 local READER_STATUS_PRESETS = {
@@ -1519,6 +1549,10 @@ function Driver:handleCommand(command)
     if kind == "reader_state" then
         return { ok = true, reader = reader_state() }
     end
+    if kind == "customize_reader_footer" then
+        local ok, err = customize_reader_footer()
+        return { ok = ok == true, error = err }
+    end
     if kind == "ensure_reader_status_fonts" then
         local ok, err = ensure_reader_status_fonts(params.preset)
         return { ok = ok == true, error = err }
@@ -1529,6 +1563,10 @@ function Driver:handleCommand(command)
     end
     if kind == "goto_reader_page" then
         local ok, err = goto_reader_page(params.page)
+        return { ok = ok == true, error = err }
+    end
+    if kind == "clear_reader_bookmarks" then
+        local ok, err = require("reader_tools").clear_page_bookmarks()
         return { ok = ok == true, error = err }
     end
     if kind == "page_browser_state" then

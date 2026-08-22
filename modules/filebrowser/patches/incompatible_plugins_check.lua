@@ -71,14 +71,10 @@ local function any_zen_frontlight_automation_enabled()
         or type(warmth) == "table" and warmth.use_mode_values == true
 end
 
--- Returns true if Project: Title is truly active (not just self-disabled).
--- PT always requires("ptutil") before its self-disable check, so ptutil is in
--- package.loaded even when PT has self-disabled. The real signal is whether
--- plugins_disabled["coverbrowser"] == true, which is PT's hard load precondition.
-local function is_pt_active()
-    if package.loaded["ptutil"] == nil then return false end
-    local disabled_list = G_reader_settings and G_reader_settings:readSetting("plugins_disabled")
-    return type(disabled_list) == "table" and disabled_list["coverbrowser"] == true
+-- Project: Title loads this unique module before checking its requirements,
+-- including when it self-disables because CoverBrowser is enabled.
+local function is_pt_detected()
+    return package.loaded["ptutil"] ~= nil
 end
 
 -- Plugins that ZenOS will auto-disable (writes plugins_disabled, requires restart).
@@ -89,7 +85,12 @@ local AUTO_DISABLE = {
         fallback_key = "simpleui",
         folder_key = "simpleui",
     },
-    { sentinel = "quickmenu", label = "QuickMenu", fallback_key = "quickmenu" },
+    {
+        sentinel = "quickmenu",
+        label = "QuickMenu",
+        fallback_key = "quickmenu",
+        folder_key = "quickmenu",
+    },
     {
         sentinel = "lib/setting",
         label = "Appearance",
@@ -110,13 +111,26 @@ local AUTO_DISABLE_PATCHES = {
     "2-ui-font.lua",
     "2-custom-navbar.lua",
     "2-page-scrubber.lua",
+    "2-browser-double-tap.lua",
+    "2-browser-hide-underline.lua",
+    "2-browser-up-folder.lua",
+    "2-coverimage-eink-optimize.lua",
+    "2-disable-top-menu-zones.lua",
+    "2-filemanager-titlebar.lua",
+    "2-menu-size.lua",
+    "2-new-status-icons.lua",
+    "2-screensaver-chapter.lua",
+    "2-screensaver-cover.lua",
+    "2-series-badge-numbered.lua",
+    "2-statusbar-better-compact.lua",
+    "2-statusbar-cycle-presets.lua",
 }
 
 local function apply_incompatible_plugins_check()
     local logger = require("common/zen_logger").new("incompatible_plugins_check")
 
     -- Manual-block check: inform user and halt init without touching anything.
-    if is_pt_active() then
+    if is_pt_detected() then
         logger.warn("Incompatible plugins or patches detected")
         local UIManager = require("ui/uimanager")
         UIManager:scheduleIn(0.5, function()
@@ -179,11 +193,16 @@ local function apply_incompatible_plugins_check()
     local ok_userpatch, userpatch = pcall(require, "userpatch")
     local execution_status = ok_userpatch and userpatch and userpatch.execution_status
     if type(execution_status) == "table" then
+        local patches_enabled = type(userpatch.arePatchesDisabled) ~= "function"
+            or not userpatch.arePatchesDisabled()
         local patch_dir = require("datastorage"):getDataDir() .. "/patches"
+        local lfs = require("libs/libkoreader-lfs")
         for _i, filename in ipairs(AUTO_DISABLE_PATCHES) do
-            if execution_status[filename] ~= nil then
+            local source = patch_dir .. "/" .. filename
+            local installed_and_enabled = patches_enabled
+                and lfs.attributes(source, "mode") == "file"
+            if execution_status[filename] ~= nil or installed_and_enabled then
                 incompatibility_detected = true
-                local source = patch_dir .. "/" .. filename
                 if os.rename(source, source .. ".disabled") then
                     logger.dbg("Disabling incompatible user patch", filename)
                     disabled_labels[#disabled_labels + 1] = filename
