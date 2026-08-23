@@ -207,6 +207,9 @@ describe("file browser navbar navigation", function()
         ZenSpec.replace("common/memory_policy", {
             canPrewarmGroups = function() return allow_group_prewarm end,
         })
+        ZenSpec.replace("modules/filebrowser/patches/standalone_page", {
+            enable_gesture_manager_dispatch = function() end,
+        })
         ZenSpec.replace("common/ui/background", {
             library_active = function() return false end,
         })
@@ -993,6 +996,41 @@ describe("file browser navbar navigation", function()
         assert.are.equal("Library", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
         assert.are.equal(1, cover_resume_calls)
         assert.is_nil(fm.file_chooser._zen_home_retained_library)
+    end)
+
+    it("re-stats known subdirs when the Library root is untouched", function()
+        local fm = make_instance()
+        fm.file_chooser.path = "/library"
+        fm.file_chooser.page = 2
+        fm.file_chooser._zen_lib_mtime_snapshot = {
+            ["/library"] = 10,
+            ["/library/sub"] = 20,
+        }
+        fm.file_chooser._zen_lib_mtime_subdirs = { "/library/sub" }
+        fm.file_chooser._zen_lib_mtime_snapshot_at = os.clock() - 31
+        fm.file_chooser._zen_invalidate_item_table_path = function(_, path)
+            calls[#calls + 1] = "invalidate:" .. path
+        end
+        dir_mtimes["/library"] = 10
+        dir_mtimes["/library/sub"] = 20
+        dir_entries["/library"] = { "sub" }
+
+        local next_ticks = {}
+        UIManager.nextTick = function(_self, callback)
+            next_ticks[#next_ticks + 1] = callback
+        end
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("home"))
+        dir_mtimes["/library/sub"] = 21
+        calls = {}
+
+        assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("books"))
+        assert.are.same({}, calls)
+        table.remove(next_ticks, 1)()
+        assert.are.same({ "invalidate:/library", "books:/library" }, calls)
+        assert.are.equal("re-statted",
+            measurement_detail(measurements[2], "recursive_validation="))
+        assert.are.equal("true", measurement_detail(measurements[2], "listing_changed="))
+        assert.are.equal(0, dir_scan_calls)
     end)
 
     it("refreshes after first reveal when recursive Library validation changes", function()
@@ -1883,6 +1921,48 @@ describe("file browser navbar navigation", function()
             "previous", "next", "menu",
         }, calls)
         assert.are.equal("Collections", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
+    end)
+
+    it("returns an open collection to the collections root on an active-tab tap", function()
+        local fm = make_instance()
+        local restored_item = { _underline_container = { color = "black" } }
+        local collection_root = { layout = { { restored_item } } }
+        shared.hideMenuUnderlines = function(menu)
+            calls[#calls + 1] = "underlines_hidden"
+            menu.layout[1][1]._underline_container.color = "white"
+        end
+        _G.__ZEN_UI_PLUGIN.config.features.browser_hide_underline = true
+        local detail = {
+            name = "collections",
+            page = 2,
+            dimen = { w = 800, h = 600 },
+            inner_dimen = { w = 800, h = 600 },
+            onReturn = function()
+                calls[#calls + 1] = "collection_root"
+                fm.collections.coll_list = collection_root
+            end,
+            close_callback = function() calls[#calls + 1] = "collections_closed" end,
+            updateItems = function() calls[#calls + 1] = "detail_reset" end,
+            [1] = {
+                dimen = { w = 800, h = 560 },
+                inner_dimen = { w = 800, h = 560 },
+                resetLayout = function() end,
+            },
+        }
+        detail._manager = fm.collections
+        fm.collections.coll_list = {}
+        fm.collections.booklist_menu = detail
+
+        local FileManagerCollection = require("apps/filemanager/filemanagercollection")
+        FileManagerCollection.onShowColl(fm.collections, "Reading")
+        local navbar = detail[1][1][2]
+        navbar.getTappedTabId = function() return "collections" end
+        calls = {}
+
+        assert.is_true(navbar:onTapNavBar(nil, { pos = { x = 400, y = 1 } }))
+        assert.are.same({ "collection_root", "underlines_hidden" }, calls)
+        assert.are.equal("white", restored_item._underline_container.color)
+        assert.are.equal(2, detail.page)
     end)
 
     it("reveals the current Library page without scheduling a full-screen repaint", function()

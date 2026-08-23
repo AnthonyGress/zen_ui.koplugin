@@ -61,6 +61,14 @@ function M.getSettingsFace(fallback)
         or fallback or Font:getFace("smallinfofont")
 end
 
+function M.getItemFace(item, fallback)
+    local face = M.getSettingsFace(fallback)
+    if type(item) == "table" and type(item.font_func) == "function" then
+        return item.font_func(face.orig_size) or face
+    end
+    return face
+end
+
 function M.getSettingsIconFace(face)
     face = face or M.getSettingsFace()
     return Font:getFace(
@@ -240,10 +248,7 @@ local function rebuild_settings_menu_item(row)
         enabled = item.enabled_func() ~= false
     end
     local visual_enabled = enabled and item.dim ~= true
-    local face = M.getSettingsFace(row.face)
-    if type(item.font_func) == "function" then
-        face = item.font_func(face.orig_size) or face
-    end
+    local face = M.getItemFace(item, row.face)
     local left_padding = Size.padding.large + Size.padding.fullscreen
     local right_padding = Size.padding.large + Size.padding.default
     local icon_widget = settings_icon_widget(item, row.dimen.h, face)
@@ -265,6 +270,19 @@ local function rebuild_settings_menu_item(row)
     end
     table.insert(right_controls, HorizontalSpan:new{ width = right_padding })
     local right_controls_w = right_controls:getSize().w
+    if control_widget then
+        local control_w = control_widget:getSize().w
+        local control_right = row.dimen.w - right_padding
+        if item._zen_has_submenu then
+            control_right = control_right - M.SETTINGS_CARET_SIZE - Size.padding.large
+        end
+        item._zen_settings_control_bounds = {
+            left = (control_right - control_w) / row.dimen.w,
+            right = control_right / row.dimen.w,
+        }
+    else
+        item._zen_settings_control_bounds = nil
+    end
     local text_w = math.max(1, row.dimen.w - left_padding - left_icon_w
         - right_controls_w - Size.padding.default)
     local text = item._zen_display_text

@@ -2,6 +2,7 @@ local Device = require("device")
 local Font = require("ui/font")
 local UIManager = require("ui/uimanager")
 local Cover = require("common/cover_utils")
+local LanguageName = require("common/language_name")
 local LibraryFont = require("modules/filebrowser/patches/library_font")
 local ReaderFont = require("common/reader_font")
 local utils = require("common/utils")
@@ -130,6 +131,30 @@ function M.getProgress(ui)
     return ratio, pages, page_current, page_total
 end
 
+function M.getReadingTimes(ui)
+    local stats = ui and ui.statistics
+    if type(stats) ~= "table" or type(stats.getStatsBookStatus) ~= "function" then
+        return nil, nil
+    end
+
+    local ok, status = pcall(stats.getStatsBookStatus, stats)
+    if not ok or type(status) ~= "table" then return nil, nil end
+
+    local read_time = tonumber(status.time)
+    if not (read_time and read_time >= 0 and read_time < math.huge) then
+        read_time = nil
+    end
+
+    local time_left
+    local avg_time = tonumber(stats.avg_time)
+    local current_page, total_pages = current_page_info(ui)
+    if avg_time and avg_time > 0 and avg_time < math.huge
+            and current_page and total_pages and current_page <= total_pages then
+        time_left = math.floor((total_pages - current_page) * avg_time + 0.5)
+    end
+    return time_left, read_time
+end
+
 function M.getSummary(ui)
     local file = ui and ui.document and ui.document.file
     if not file then return nil end
@@ -148,28 +173,6 @@ function M.getSummary(ui)
         progress = ratio,
         bookinfo = props,
     }
-end
-
-local function full_language_name(language)
-    if not is_present(language) then return language end
-    local original = tostring(language)
-    local code = original:gsub("-", "_")
-    local ok_language, Language = pcall(require, "ui/language")
-    if ok_language and Language and Language.getLanguageName then
-        local name = Language:getLanguageName(code)
-        if name ~= code then return name end
-        local base = code:match("^([^_]+)")
-        if base then
-            name = Language:getLanguageName(base)
-            if name ~= base then return name end
-        end
-    end
-    local ok_iso, IsoLanguage = pcall(require, "ui/data/isolanguage")
-    if ok_iso and IsoLanguage and IsoLanguage.getLocalizedLanguage then
-        local name = IsoLanguage:getLocalizedLanguage(code:lower())
-        if name ~= code:lower() then return name end
-    end
-    return original
 end
 
 local function rounded_covers_enabled(config)
@@ -215,7 +218,7 @@ function M.buildSpec(ui, opts)
     add_detail(summary.authors, "author", false, 2)
     add_detail(summary.series, "secondary", false, 2)
     add_detail(summary.genres, "tags", false, 3)
-    add_detail(full_language_name(props.language), "secondary", false, 3)
+    add_detail(LanguageName.get(props.language), "secondary", false, 3)
     local rating = book_summary.rating
     local numeric_rating = tonumber(rating)
     if (not numeric_rating or numeric_rating > 0) and is_present(rating) then

@@ -23,6 +23,23 @@ local function apply_collections()
         return type(features) == "table" and features.collections == true
     end
 
+    local function is_tbr_collection(item)
+        local coll_name = type(item) == "table" and item.name or item
+        return coll_name == require("common/tbr_index").collectionName()
+    end
+
+    local orig_renameCollection = FileManagerCollection.renameCollection
+    function FileManagerCollection:renameCollection(item, ...)
+        if is_enabled() and is_tbr_collection(item) then return end
+        return orig_renameCollection(self, item, ...)
+    end
+
+    local orig_removeCollection = FileManagerCollection.removeCollection
+    function FileManagerCollection:removeCollection(item, ...)
+        if is_enabled() and is_tbr_collection(item) then return end
+        return orig_removeCollection(self, item, ...)
+    end
+
     local function get_shared(key)
         return SharedState.get(zen_plugin, key)
     end
@@ -255,6 +272,7 @@ local function apply_collections()
         local SORT_OPTIONS = {
             { key = "title",    text = "\u{F04BB}  " .. _g("Title")         },
             { key = "title_natural", text = "\u{F04BB}  " .. _g("Title natural") },
+            { key = "strcoll",  text = icons.filename .. "  " .. _g("Filename") },
             { key = "authors",  text = "\u{F0013}  " .. _g("Authors")       },
             { key = "series",   text = "\u{F0436}  " .. _g("Series")        },
             { key = "access",   text = "\u{F02DA}  " .. _g("Recently read") },
@@ -337,6 +355,7 @@ local function apply_collections()
 
         local coll_name    = item.name
         local is_favorites = coll_name == ReadCollection.default_collection_name
+        local is_protected = is_favorites or is_tbr_collection(coll_name)
         local display_name = is_favorites and _("Favorites") or coll_name
         local files        = get_collection_files_in_cover_order(coll_name)
         local book_count   = #files
@@ -344,7 +363,7 @@ local function apply_collections()
         local button_dialog
         local prepend_buttons = {}
         local extra_buttons = {}
-        if not is_favorites then
+        if not is_protected then
             table.insert(prepend_buttons, {{
                 text     = icons.rename .. "  " .. _("Rename"),
                 align    = "left",
@@ -368,7 +387,7 @@ local function apply_collections()
                 fm_coll:showCollFolderList(item)
             end,
         }})
-        if not is_favorites then
+        if not is_protected then
             table.insert(extra_buttons, {{
                 text     = icons.delete .. "  " .. _("Delete collection"),
                 align    = "left",

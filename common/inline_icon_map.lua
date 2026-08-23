@@ -51,6 +51,7 @@ return {
 
     -- metadata sort keys (context_menu.lua / collections.lua)
     title        = "\u{F04BB}",  -- mdi-format-title
+    filename     = "\u{F0224}",
     authors      = "\u{F0013}",  -- mdi-account
     series       = "\u{F0436}",  -- mdi-library-books
     history      = "\u{F02DA}",  -- mdi-history
@@ -128,7 +129,7 @@ return {
     downgrade    = "\u{F0CDC}",
     upgrade      = "\u{F0CE2}",
     enable       = "\u{F040A}",
-    verbose_chapter_time = "\u{F19B9}",
+    chapter_time_format = "\u{F19B9}",
     bottom_swipe = "\u{F0740}",
     page_browser = "\u{F0570}",
     restore_library_location = "\u{F006F}",

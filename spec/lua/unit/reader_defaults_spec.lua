@@ -64,7 +64,7 @@ describe("Reader defaults", function()
         })
         local config = {
             features = { reader_top_status_bar = false },
-            reader_footer = { verbose_chapter_time = false },
+            reader_footer = { chapter_time_format = "number" },
             reader_top_status_bar = {
                 font_size = 14,
                 left_order = { "battery" },
@@ -114,11 +114,11 @@ describe("Reader defaults", function()
         assert.are.same({}, config.reader_top_status_bar.left_order)
         assert.are.same({ "time" }, config.reader_top_status_bar.center_order)
         assert.are.same({}, config.reader_top_status_bar.right_order)
-        assert.is_true(config.reader_footer.verbose_chapter_time)
+        assert.are.equal("full", config.reader_footer.chapter_time_format)
         assert.is_true(config.features.reader_top_status_bar)
         assert.are.equal("(ZenOS) Chapter Time + %", active_preset)
         assert.are.same(footer, preset_settings.footer)
-        assert.is_true(preset_settings.verbose_chapter_time)
+        assert.are.equal("full", preset_settings.chapter_time_format)
     end)
 
     it("keeps the preset bottom margin on monochrome screens", function()
@@ -182,7 +182,7 @@ describe("Reader defaults", function()
         })
         local config = {
             features = { reader_top_status_bar = false },
-            reader_footer = { verbose_chapter_time = false },
+            reader_footer = { chapter_time_format = "number" },
             reader_top_status_bar = {
                 left_order = { "book_title" },
                 center_order = { "chapter" },
@@ -219,7 +219,7 @@ describe("Reader defaults", function()
         assert.same({ "book_title" }, config.reader_top_status_bar.left_order)
         assert.same({ "chapter" }, config.reader_top_status_bar.center_order)
         assert.same({ "battery" }, config.reader_top_status_bar.right_order)
-        assert.is_false(config.reader_footer.verbose_chapter_time)
+        assert.are.equal("number", config.reader_footer.chapter_time_format)
         assert.is_nil(preset_settings)
         assert.is_nil(active_preset)
     end)

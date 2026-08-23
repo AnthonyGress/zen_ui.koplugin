@@ -233,9 +233,9 @@ def test_two_row_strip_offsets_its_bottom_anchor_by_the_home_row_gap() -> None:
                 driver,
                 required_book_paths={str(book.resolve()) for book in books[1:]},
                 minimum_widget_count=2,
-                required_state_keys={"strip_bottom"},
+                required_state_keys={"bottom_visual_inset"},
             )
-            bottom_inset = int(home["body_height"]) - int(home["strip_bottom"])
+            bottom_inset = int(home["bottom_visual_inset"])
             expected_bottom_inset = (
                 int(home["top_visual_inset"]) + int(home["row_gap"])
             )
@@ -376,6 +376,8 @@ def test_three_widget_home_evenly_spaces_rows_to_the_bottom(
                 driver,
                 required_texts={"Alpha Home"},
                 minimum_widget_count=3,
+                required_state_keys={"quote_content_bounds"}
+                if last_widget == "quotes" else None,
             )
             assert home["widget_ids"] == ["featured", middle_widget, last_widget]
             visual_gaps = home["visual_gaps"]
@@ -461,6 +463,7 @@ def test_home_tags_drill_from_tag_folders_into_books() -> None:
                 "activate_home_target", key="strip-control:tags"
             )["ok"] is True
             groups = _wait_for_home(driver, {"Focus", "Testing"})
+            controls_top = int(groups["strip_control_top"])
             assert {"Focus", "Testing"} <= set(groups["visible_texts"])
             assert {"Focus (1)", "Testing (1)"}.isdisjoint(groups["visible_texts"])
             screenshot = root / "home-tag-folders.png"
@@ -474,6 +477,7 @@ def test_home_tags_drill_from_tag_folders_into_books() -> None:
             books = _wait_for_home(
                 driver, {"Focus"}, required_book_paths={book_path}
             )
+            assert abs(int(books["strip_control_top"]) - controls_top) <= 1, books
             assert book_path in books["book_paths"]
             assert {"Recent", "To Be Read", "Focus"} <= set(books["visible_texts"])
 

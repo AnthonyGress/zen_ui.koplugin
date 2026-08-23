@@ -12,6 +12,7 @@ common/constants.lua|unit
 common/cover_decode_cache.lua|unit
 common/cover_render_cache.lua|unit
 common/cover_utils.lua|unit
+common/date_format.lua|unit
 common/db_bookinfo.lua|unit
 common/db_connection.lua|unit
 common/db_library.lua|unit
@@ -27,6 +28,7 @@ common/inline_icon_map.lua|unit
 common/library_font_path.lua|unit
 common/library_destination.lua|unit
 common/library_navigation.lua|unit
+common/language_name.lua|unit
 common/memory_policy.lua|unit
 common/nav_button_model.lua|unit
 common/paths.lua|unit
@@ -52,6 +54,7 @@ common/ui/book_progress.lua|unit
 common/ui/button_label_width.lua|unit
 common/ui/corner_banner.lua|unit
 common/ui/icon_menu_item.lua|unit
+common/ui/markdown_text.lua|unit
 common/ui/truncated_text_message.lua|unit
 common/ui/zen_arrange_list.lua|unit
 common/ui/zen_button.lua|unit

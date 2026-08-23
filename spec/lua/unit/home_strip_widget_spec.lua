@@ -112,12 +112,14 @@ describe("home strip widget", function()
         })
         ZenSpec.replace("modules/filebrowser/patches/home/widgets/cover_common", {
             BORDER_SIZE = 2,
-            make_cover_widget = function(book, _max_w, max_h)
+            make_cover_widget = function(book, _max_w, max_h, options)
                 cover_books[#cover_books + 1] = book
                 local cover = widget_class("cover"):new{
                     width = 80 + cover_frame_border * 2,
                     height = max_h,
+                    bordersize = options and options.border or 0,
                 }
+                if options and options.decorate then options.decorate(cover) end
                 return cover, 80, max_h, book.is_cover_pending == true
             end,
             make_empty_placeholder_cover = function(_max_w, max_h)
@@ -272,6 +274,51 @@ describe("home strip widget", function()
         assert.are.same({ book.path, "recently_read" }, context_args)
     end)
 
+    it("dims finished covers even when strip badges are hidden", function()
+        rawset(_G, "__ZEN_UI_PLUGIN", {
+            config = {
+                browser_cover_badges = { dim_finished_books = true },
+            },
+        })
+        cover_frame_border = 2
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 300,
+            component_id = "strip",
+            module_cfg = {
+                count = 3,
+                interactive = false,
+                show_badges = false,
+            },
+            data = {
+                getBooksForStrip = function()
+                    return {{ path = "/library/finished.epub", status = "complete" }}
+                end,
+            },
+        })
+
+        local dimmed
+        local expected
+        for _i, widget in ipairs(created) do
+            if widget.kind == "cover" then
+                expected = {
+                    12, 22,
+                    widget.dimen.w - 2 * widget.bordersize,
+                    widget.dimen.h - 2 * widget.bordersize,
+                    0.4,
+                }
+                widget:paintTo({
+                    lightenRect = function(_bb, x, y, w, h, factor)
+                        dimmed = { x, y, w, h, factor }
+                    end,
+                }, 10, 20)
+                break
+            end
+        end
+        assert.are.same(expected, dimmed)
+    end)
+
     it("reduces the page size when the strip is too narrow for readable covers", function()
         local requested = {}
         local Strip = require("modules/filebrowser/patches/home/widgets/strip")
@@ -403,6 +450,61 @@ describe("home strip widget", function()
             cover_heights)
     end)
 
+    it("keeps two-row cover dimensions and slots stable on sparse groups", function()
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        local function layout(book_count)
+            local books = {}
+            for i = 1, book_count do
+                books[i] = { path = "/library/" .. tostring(i) .. ".epub" }
+            end
+            local first_created = #created + 1
+            local content_bounds
+            Strip.build({
+                width = 600,
+                height = 400,
+                component_id = "strip",
+                module_cfg = {
+                    count = 8,
+                    interactive = false,
+                    two_rows = true,
+                    controls = { enabled = true, order = {}, show_buttons = {} },
+                },
+                data = { getStripItemsForPage = function() return books end },
+                setContentBounds = function(bounds) content_bounds = bounds end,
+            })
+            local covers = {}
+            local gaps = {}
+            for i = first_created, #created do
+                local widget = created[i]
+                if widget.kind == "cover" then
+                    covers[#covers + 1] = { widget.width, widget.height }
+                elseif widget.kind == "ui/widget/horizontalspan"
+                        and widget.width >= 80 then
+                    gaps[#gaps + 1] = widget.width
+                end
+            end
+            return covers, gaps, content_bounds
+        end
+
+        local full_covers, full_gaps, full_bounds = layout(8)
+        local partial_covers, partial_gaps, partial_bounds = layout(3)
+        local single_covers, single_gaps, single_bounds = layout(1)
+
+        assert.are.same({ 80, 160 }, full_covers[1])
+        assert.are.same({ 80, 160 }, partial_covers[1])
+        assert.are.same({ 80, 160 }, single_covers[1])
+        assert.are.same({ full_gaps[1], full_gaps[2] }, partial_gaps)
+        assert.are.same({}, single_gaps)
+        assert.are.equal(full_bounds.top, partial_bounds.top)
+        assert.are.equal(full_bounds.top, single_bounds.top)
+        assert.are.equal(full_bounds.bottom, partial_bounds.bottom)
+        assert.are.equal(full_bounds.bottom, single_bounds.bottom)
+        assert.are.equal(full_bounds.min_shift, partial_bounds.min_shift)
+        assert.are.equal(full_bounds.min_shift, single_bounds.min_shift)
+        assert.are.equal(full_bounds.max_shift, partial_bounds.max_shift)
+        assert.are.equal(full_bounds.max_shift, single_bounds.max_shift)
+    end)
+
     it("extends strip-control hit targets past their outer edges", function()
         touch_device = true
         local activated = {}
@@ -446,7 +548,7 @@ describe("home strip widget", function()
         assert.are.same({ "recent", "recent", "to_be_read" }, activated)
     end)
 
-    it("aligns one-row covers with the shared content inset", function()
+    it("left-aligns one-row covers with the shared content inset", function()
         cover_frame_border = 2
         local books = {}
         for i = 1, 4 do
@@ -474,13 +576,42 @@ describe("home strip widget", function()
             elseif widget.kind == "ui/widget/container/framecontainer"
                     and widget.height == 30 and widget.bordersize == 2 then
                 controls_width = widget.width
-            elseif widget.kind == "ui/widget/container/centercontainer"
+            elseif widget.kind == "ui/widget/container/leftcontainer"
                     and widget.dimen.w == 580 and widget.dimen.h == 205 then
                 row_width = widget.dimen.w
             end
         end
         assert.are.same({ 87, 87, 86 }, book_gaps)
         assert.are.equal(controls_width, row_width + cover_frame_border * 2)
+    end)
+
+    it("left-aligns a partial one-row strip unless centering is enabled", function()
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        local books = { { path = "/library/one.epub" } }
+        local function row_container_kind(center_books)
+            local first_created = #created + 1
+            Strip.build({
+                width = 600,
+                height = 300,
+                component_id = "strip",
+                module_cfg = {
+                    center_books = center_books,
+                    count = 4,
+                    interactive = false,
+                    controls = { enabled = true, order = {}, show_buttons = {} },
+                },
+                data = { getStripItemsForPage = function() return books end },
+            })
+            for i = first_created, #created do
+                local widget = created[i]
+                if widget.dimen.w == 580 and widget.dimen.h == 205 then
+                    return widget.kind
+                end
+            end
+        end
+
+        assert.are.equal("ui/widget/container/leftcontainer", row_container_kind(false))
+        assert.are.equal("ui/widget/container/centercontainer", row_container_kind(true))
     end)
 
     it("keeps cover dimensions stable on a partial control category", function()
@@ -544,6 +675,101 @@ describe("home strip widget", function()
             content_bounds.bottom - content_bounds.top)
         assert.are.equal(-content_bounds.top, content_bounds.min_shift)
         assert.are.equal(400 - content_bounds.bottom, content_bounds.max_shift)
+    end)
+
+    it("preserves a borrowed upward control offset across a two-row rebuild", function()
+        local books = {
+            { path = "/library/a.epub" },
+            { path = "/library/b.epub" },
+            { path = "/library/c.epub" },
+            { path = "/library/d.epub" },
+            { path = "/library/e.epub" },
+        }
+        local content_bounds
+        local runtime = {
+            active_id = "series",
+            source = {
+                kind = "series",
+                drill = { label = "Short Series", files = {} },
+            },
+            _locked_visual_shift = -24,
+        }
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 400,
+            menu = { _zen_home_strip_runtime = runtime },
+            component_id = "strip",
+            module_cfg = {
+                count = 8,
+                interactive = false,
+                two_rows = true,
+                controls = {
+                    enabled = true,
+                    order = { "series" },
+                    show_buttons = { series = true },
+                    labels = { series = "Series" }, custom_buttons = {},
+                },
+            },
+            data = { getStripItemsForPage = function() return books end },
+            setContentBounds = function(bounds) content_bounds = bounds end,
+        })
+
+        assert.is_table(content_bounds)
+        assert.is_true(content_bounds.lock_shift)
+        assert.are.equal(-24, content_bounds.min_shift)
+        assert.are.equal(-24, content_bounds.max_shift)
+        assert.are.equal(18, content_bounds.top)
+        content_bounds.set_shift(-24)
+        assert.are.equal(-24, runtime._visual_shift)
+        assert.is_nil(runtime._locked_visual_shift)
+    end)
+
+    it("clamps a carried two-row strip offset for a one-book group", function()
+        local content_bounds
+        local runtime = {
+            active_id = "series",
+            source = {
+                kind = "series",
+                drill = { label = "One Book", files = {} },
+            },
+            _locked_visual_shift = 400,
+        }
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 400,
+            menu = { _zen_home_strip_runtime = runtime },
+            component_id = "strip",
+            module_cfg = {
+                count = 8,
+                interactive = false,
+                two_rows = true,
+                controls = {
+                    enabled = true,
+                    order = { "series" },
+                    show_buttons = { series = true },
+                    labels = { series = "Series" }, custom_buttons = {},
+                },
+            },
+            data = {
+                getStripItemsForPage = function()
+                    return {{ path = "/library/only.epub" }}
+                end,
+            },
+            setContentBounds = function(bounds) content_bounds = bounds end,
+        })
+
+        local safe_bottom_shift = 400 - content_bounds.bottom
+        assert.is_true(content_bounds.lock_shift)
+        assert.are.equal(400, content_bounds.bottom)
+        assert.are.equal(safe_bottom_shift, content_bounds.min_shift)
+        assert.are.equal(safe_bottom_shift, content_bounds.max_shift)
+        assert.is_true(safe_bottom_shift < 400)
+
+        content_bounds.set_shift(safe_bottom_shift)
+        assert.are.equal(safe_bottom_shift, runtime._visual_shift)
+        assert.is_nil(runtime._locked_visual_shift)
     end)
 
     it("caps book spacing on phone-shaped screens", function()
@@ -1123,6 +1349,47 @@ describe("home strip widget", function()
         assert.are.same({ "next", "previous" }, shifted)
         assert.are.equal(2, refreshed)
         assert.are.same({}, opened)
+    end)
+
+    it("registers the strip page handler for physical page turns", function()
+        local current_page = 0
+        local shifted = {}
+        local handler
+        local unregistered = 0
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        local widget = Strip.build({
+            width = 600,
+            height = 160,
+            component_id = "strip",
+            module_cfg = { count = 1, interactive = true },
+            data = {
+                getStripItemsForPage = function(_self, _source, _count, _order,
+                        _component_id, delta)
+                    return {{
+                        path = "/library/page-" .. tostring(current_page + delta) .. ".epub",
+                    }}, true
+                end,
+            },
+            shiftStrip = function(_source, _count, _order, direction,
+                    _component_id, _two_rows, refresh)
+                shifted[#shifted + 1] = direction
+                current_page = current_page + (direction == "next" and 1 or -1)
+                refresh()
+                return true
+            end,
+            registerStripPageHandler = function(value)
+                handler = value
+                return function() unregistered = unregistered + 1 end
+            end,
+            refreshStrip = function() end,
+        })
+
+        assert.is_function(handler)
+        assert.is_true(handler("next"))
+        assert.is_true(handler("previous"))
+        assert.are.same({ "next", "previous" }, shifted)
+        widget:free()
+        assert.are.equal(1, unregistered)
     end)
 
     it("does nothing on control hold outside edit mode", function()

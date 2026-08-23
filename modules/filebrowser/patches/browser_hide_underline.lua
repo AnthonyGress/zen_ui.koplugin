@@ -1,6 +1,17 @@
 local function apply_browser_hide_underline()
     local Blitbuffer = require("ffi/blitbuffer")
 
+    local function hide_menu_underlines(menu)
+        if not (menu and menu.layout) then return end
+        for _i, row in ipairs(menu.layout) do
+            for _j, item in ipairs(row) do
+                if item._underline_container then
+                    item._underline_container.color = Blitbuffer.COLOR_WHITE
+                end
+            end
+        end
+    end
+
     local function get_upvalue(fn, name)
         if type(fn) ~= "function" then
             return nil
@@ -49,15 +60,7 @@ local function apply_browser_hide_underline()
             local orig_cover_updateItems = CoverMenu.updateItems
             function CoverMenu:updateItems(...)
                 orig_cover_updateItems(self, ...)
-                if self.layout then
-                    for _i, row in ipairs(self.layout) do
-                        for _j, item in ipairs(row) do
-                            if item._underline_container then
-                                item._underline_container.color = Blitbuffer.COLOR_WHITE
-                            end
-                        end
-                    end
-                end
+                hide_menu_underlines(self)
             end
         end
     end
@@ -65,7 +68,10 @@ local function apply_browser_hide_underline()
     -- Export shared utilities for other patches (e.g. collections classic mode)
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
     if zen_plugin then
-        require("common/shared_state").register(zen_plugin, { hide_underline_active = true })
+        require("common/shared_state").register(zen_plugin, {
+            hide_underline_active = true,
+            hideMenuUnderlines = hide_menu_underlines,
+        })
     end
 
     -- Patch Menu.updateItems at the class level so ALL menu views
@@ -82,15 +88,7 @@ local function apply_browser_hide_underline()
             orig_menu_updateItems(self, ...)
             -- Classic mode menus (file browser or group view): leave underlines visible.
             if self.name == "filemanager" or self.display_mode_type == "classic" then return end
-            if self.layout then
-                for _i, row in ipairs(self.layout) do
-                    for _j, item in ipairs(row) do
-                        if item._underline_container then
-                            item._underline_container.color = Blitbuffer.COLOR_WHITE
-                        end
-                    end
-                end
-            end
+            hide_menu_underlines(self)
         end
     end
 

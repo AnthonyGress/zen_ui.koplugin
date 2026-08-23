@@ -7,6 +7,7 @@ local HorizontalSpan = require("ui/widget/horizontalspan")
 local FrameContainer = require("ui/widget/container/framecontainer")
 local CenterContainer = require("ui/widget/container/centercontainer")
 local LeftContainer = require("ui/widget/container/leftcontainer")
+local TopContainer = require("ui/widget/container/topcontainer")
 local TextWidget = require("ui/widget/textwidget")
 local TextBoxWidget = require("ui/widget/textboxwidget")
 local InputContainer = require("ui/widget/container/inputcontainer")
@@ -211,9 +212,9 @@ local function paintPill(bb, bx, by, bw, bh, color)
     end
 end
 
--- Wraps a cover FrameContainer paintTo to draw library-style badges over the cover.
+-- Wraps a cover FrameContainer paintTo to draw library-style decorations.
 -- Metadata and collection state must be resolved before this paint path.
-local function apply_strip_badges(frame, book, plugin)
+local function apply_strip_cover_decorations(frame, book, config, show_badges)
     local orig_paintTo = frame.paintTo
     if type(orig_paintTo) ~= "function" then return end
 
@@ -257,15 +258,25 @@ local function apply_strip_badges(frame, book, plugin)
         local d = self.dimen
         if not (d and d.w and d.h and d.w > 0 and d.h > 0) then return end
 
-        local border      = self.bordersize or 0
-        local config      = get_zen_config(plugin)
+        local border = self.bordersize or 0
+        local cover_badges = type(config) == "table" and type(config.browser_cover_badges) == "table"
+            and config.browser_cover_badges or {}
+        local dim_finished = cover_badges.dim_finished_books == true
+            and book.status == "complete"
+
+        local cov_w = d.w - 2 * border
+        local cov_h = d.h - 2 * border
+        if cov_w <= 0 or cov_h <= 0 then return end
+        if dim_finished then
+            bb:lightenRect(x + border, y + border, cov_w, cov_h, 0.4)
+        end
+        if not show_badges then return end
+
         local badge_col   = utils.getBadgeColor(config)
         local badge_fg    = utils.getBadgeTextColor(config)
         local outline     = badge_fg
         local is_dark     = utils.isBadgeDark(config)
         local badge_scale = utils.getBadgeScale(config)
-        local cover_badges = type(config) == "table" and type(config.browser_cover_badges) == "table"
-            and config.browser_cover_badges or {}
         local show_favorite = cover_badges.show_favorite_badge == true
         local show_new = cover_badges.show_new_banner == true
         local show_progress = cover_badges.show_mosaic_progress == true
@@ -275,10 +286,6 @@ local function apply_strip_badges(frame, book, plugin)
         local show_series = type(config) == "table"
             and type(config.browser_series_badge) == "table"
             and config.browser_series_badge.show_series_badge == true
-
-        local cov_w = d.w - 2 * border
-        local cov_h = d.h - 2 * border
-        if cov_w <= 0 or cov_h <= 0 then return end
 
         local ScreenDev = Device.screen
         local base_sz   = math.floor(math.max(ScreenDev:scaleBySize(20),
@@ -301,7 +308,7 @@ local function apply_strip_badges(frame, book, plugin)
         local pct    = type(book.percent) == "number" and book.percent or 0
         local status = book.status
         local is_new = status == "new"
-        local do_check = (status == "complete")
+        local do_check = status == "complete" and not dim_finished
         local do_tbr = (status == "tbr")
         local do_pause = (status == "abandoned")
         local do_pct   = not is_new and not do_check and not do_tbr and not do_pause and pct > 0
@@ -500,6 +507,11 @@ function M.build_strip(ctx, source_key)
     local count = metrics.count
     local wants_strip_titles = module_cfg.show_strip_titles == true
     local show_badges = module_cfg.show_badges == true
+    local strip_config = type(ctx.zen_config) == "table" and ctx.zen_config
+        or get_zen_config(rawget(_G, "__ZEN_UI_PLUGIN")) or {}
+    local cover_badges = type(strip_config.browser_cover_badges) == "table"
+        and strip_config.browser_cover_badges or {}
+    local decorate_covers = show_badges or cover_badges.dim_finished_books == true
     local center_books = module_cfg.center_books == true
     local interactive = module_cfg.interactive ~= false
     local page_cache = {}
@@ -529,6 +541,7 @@ function M.build_strip(ctx, source_key)
 
     local function rebuild_home()
         if ctx.menu and type(ctx.menu._home_rebuild) == "function" then
+            runtime._locked_visual_shift = tonumber(runtime._visual_shift) or 0
             ctx.menu:_home_rebuild()
             return true
         end
@@ -676,14 +689,24 @@ function M.build_strip(ctx, source_key)
         controls_visual_top = adjusted_top
         if type(ctx.setContentBounds) == "function" then
             local group_bottom = controls_and_gap + visual_bottom + base_shift
+            local locked_shift = tonumber(runtime._locked_visual_shift)
+            if locked_shift then
+                local natural_max = total_outer_height - group_bottom
+                locked_shift = math.min(natural_max, locked_shift)
+            end
             ctx.setContentBounds{
                 top = adjusted_top,
                 bottom = group_bottom,
-                min_shift = -adjusted_top,
-                max_shift = total_outer_height - group_bottom,
+                min_shift = locked_shift or -adjusted_top,
+                max_shift = locked_shift or total_outer_height - group_bottom,
+                lock_shift = locked_shift ~= nil,
                 bottom_anchor_offset = controls_enabled
                     and math.max(0, tonumber(ctx.row_gap_above) or 0) or 0,
-                set_shift = function(shift) visual_shift = shift end,
+                set_shift = function(shift)
+                    visual_shift = shift
+                    runtime._visual_shift = shift
+                    runtime._locked_visual_shift = nil
+                end,
             }
         end
         return base_shift, adjusted_top
@@ -776,20 +799,22 @@ function M.build_strip(ctx, source_key)
         end
     end
     if visible_rows < 1 then visible_rows = 1 end
+    local layout_rows = two_rows and num_rows or visible_rows
     local fixed_h = row_top_pad
         + row_bottom_pad
-        + math.max(0, visible_rows - 1) * row_gap
-        + math.max(0, visible_rows - 1) * row_inner_bottom_pad
+        + math.max(0, layout_rows - 1) * row_gap
+        + math.max(0, layout_rows - 1) * row_inner_bottom_pad
     local avail_h = height - fixed_h
     -- Covers can't shrink below MIN_COVER_H; if titles won't also fit within `height`,
     -- drop them so the strip never overflows downward into the navbar (2-row / rotation).
     if show_strip_titles
-            and avail_h < visible_rows * (MIN_COVER_H + title_gap + title_h) then
+            and avail_h < layout_rows * (MIN_COVER_H + title_gap + title_h) then
         show_strip_titles = false
         title_h = 0
         title_gap = 0
     end
-    local per_row_budget = math.floor((avail_h - visible_rows * (title_h + title_gap)) / visible_rows)
+    local per_row_budget = math.floor(
+        (avail_h - layout_rows * (title_h + title_gap)) / layout_rows)
     local max_cover_h_per_row = math.max(1, math.min(MIN_COVER_H, per_row_budget))
     if per_row_budget > MIN_COVER_H then max_cover_h_per_row = per_row_budget end
     local page_focus_targets = {}
@@ -871,9 +896,8 @@ function M.build_strip(ctx, source_key)
     local function build_row_widget(row_list, row_num)
         local n = #row_list
         local row_capacity = per_row
-        local partial_one_row = not two_rows and n < row_capacity
-        local center_short_row = partial_one_row or center_books and n <= 3
-        local left_align_partial = not center_short_row and two_rows and row_num == 2 and n < per_row
+        local center_short_row = center_books and n <= 3
+        local left_align_partial = not center_short_row and n < per_row
         local min_gap = math.max(6, math.min(Screen:scaleBySize(14), math.floor(width * 0.018)))
         local max_cover_w = math.max(24, math.floor(
             (cover_row_width - min_gap * (row_capacity - 1)) / row_capacity))
@@ -899,9 +923,9 @@ function M.build_strip(ctx, source_key)
                         {
                             border = cover_common.BORDER_SIZE,
                             background = Blitbuffer.COLOR_LIGHT_GRAY,
-                            decorate = show_badges and function(frame)
-                                apply_strip_badges(
-                                    frame, book, rawget(_G, "__ZEN_UI_PLUGIN"))
+                            decorate = decorate_covers and function(frame)
+                                apply_strip_cover_decorations(
+                                    frame, book, strip_config, show_badges)
                             end or nil,
                         }
                     )
@@ -1099,8 +1123,7 @@ function M.build_strip(ctx, source_key)
         if #row_books[r] > 0 then
             local row_widget, row_h = build_row_widget(row_books[r], r)
             total_row_h = total_row_h + row_h
-            local container = two_rows
-                and not (center_books and #row_books[r] <= 3)
+            local container = not (center_books and #row_books[r] <= 3)
                 and LeftContainer or CenterContainer
             table.insert(vgroup, container:new{
                 dimen = Geom:new{ w = cover_row_width, h = row_h },
@@ -1118,8 +1141,10 @@ function M.build_strip(ctx, source_key)
 
     local visual_size = vgroup:getSize()
     local inner_slack = math.max(0, height - (visual_size.h or height))
-    local inner_top = math.floor(inner_slack / 2)
-    local content_container = CenterContainer:new{
+    local sparse_two_rows = two_rows and visible_rows < num_rows
+    local inner_top = sparse_two_rows and 0 or math.floor(inner_slack / 2)
+    local ContentContainer = sparse_two_rows and TopContainer or CenterContainer
+    local content_container = ContentContainer:new{
         dimen = Geom:new{ w = width, h = height },
         vgroup,
     }
@@ -1134,6 +1159,9 @@ function M.build_strip(ctx, source_key)
         + math.max(0, visible_rows - 1) * (row_gap + row_inner_bottom_pad)
     local visual_top = outer_top + inner_top + row_top_pad
     local visual_bottom = outer_top + inner_top + visible_bottom
+    if sparse_two_rows then
+        visual_bottom = visual_top + height
+    end
     local controls_top
     content_base_shift, controls_top = set_visual_bounds(
         page_delta, visual_top, visual_bottom)
@@ -1535,6 +1563,11 @@ function M.build_strip(ctx, source_key)
             end) == true
     end
 
+    local unregister_page_handler
+    if interactive and type(ctx.registerStripPageHandler) == "function" then
+        unregister_page_handler = ctx.registerStripPageHandler(shift_strip_page)
+    end
+
     if can_swipe then
         swipe.onSwipeStrip = function(swipe_self, _, ges)
             if not swipe_self.dimen or not ges or not ges.pos then return false end
@@ -1612,6 +1645,7 @@ function M.build_strip(ctx, source_key)
         closed = true
         cancel_visible_hydration("widget_close")
         cancel_prewarm("widget_close")
+        if unregister_page_handler then unregister_page_handler() end
         if unregister_cover_listener then unregister_cover_listener() end
         for page_delta, entry in pairs(page_cache) do
             if not rawequal(entry.frame, swipe[1]) then

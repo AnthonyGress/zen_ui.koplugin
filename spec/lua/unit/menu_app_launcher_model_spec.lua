@@ -185,6 +185,71 @@ describe("app launcher model", function()
         assert.is_nil(saved_configs.loaded.zenpm_launcher_added)
         assert.is_nil(saved_configs.saved)
     end)
+
+    it("adds enabled ZenFM once as a launcher control", function()
+        ZenSpec.replace("pluginloader", {
+            loadPlugins = function()
+                return { { name = "zenfm" } }
+            end,
+        })
+        local Model = require("modules/menu/app_launcher/model")
+        saved_configs.loaded = { entries = {}, next_id = 8 }
+
+        assert.is_true(Model.ensure_zenfm_launcher_entry())
+        assert.are.same({ {
+            id = "al_9",
+            type = "quick_setting",
+            label = "ZenFM",
+            icon = "zenfm",
+            quick_setting_id = "zenfm",
+        } }, saved_configs.loaded.entries)
+        assert.is_true(saved_configs.loaded.zenfm_launcher_added)
+
+        saved_configs.saved = nil
+        assert.is_false(Model.ensure_zenfm_launcher_entry())
+        assert.is_nil(saved_configs.saved)
+    end)
+
+    it("keeps an existing ZenFM launcher entry and records the integration", function()
+        ZenSpec.replace("pluginloader", {
+            loadPlugins = function()
+                return { { name = "zenfm" } }
+            end,
+        })
+        local Model = require("modules/menu/app_launcher/model")
+        local existing = {
+            id = "al_4",
+            type = "quick_setting",
+            label = "My ZenFM",
+            quick_setting_id = "zenfm",
+        }
+        saved_configs.loaded = {
+            entries = {
+                { id = "folder", type = "folder", label = "Tools", children = { existing } },
+            },
+            next_id = 4,
+        }
+
+        assert.is_true(Model.ensure_zenfm_launcher_entry())
+        assert.are.equal(existing, saved_configs.loaded.entries[1].children[1])
+        assert.are.equal(1, #saved_configs.loaded.entries[1].children)
+        assert.is_true(saved_configs.loaded.zenfm_launcher_added)
+    end)
+
+    it("waits to record the integration until ZenFM is enabled", function()
+        ZenSpec.replace("pluginloader", {
+            loadPlugins = function()
+                return { { name = "other_plugin" } }
+            end,
+        })
+        local Model = require("modules/menu/app_launcher/model")
+        saved_configs.loaded = { entries = {}, next_id = 8 }
+
+        assert.is_false(Model.ensure_zenfm_launcher_entry())
+        assert.are.same({}, saved_configs.loaded.entries)
+        assert.is_nil(saved_configs.loaded.zenfm_launcher_added)
+        assert.is_nil(saved_configs.saved)
+    end)
 end)
 
 describe("app launcher action filter", function()

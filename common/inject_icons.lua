@@ -32,6 +32,7 @@ if _plugin_root then
         ["tab_authors"]         = "tab_authors.svg",
         ["tab_series"]          = "tab_series.svg",
         ["tab_tags"]            = "tab_tags.svg",
+        ["tab_translate"]       = "tab_translate.svg",
         ["tab_to_be_read"]      = "tab_to_be_read.svg",
         -- Highlight / lookup popup (shared by highlight_menu + dict_quick_lookup)
         ["lookup.highlight"]    = "lookup_highlight.svg",

@@ -4,6 +4,8 @@ describe("Zen screen", function()
     local closed
     local dirty_modes
     local inverted
+    local image_widgets
+    local text_widgets
 
     local module_names = {
         "gettext",
@@ -62,6 +64,8 @@ describe("Zen screen", function()
         closed = 0
         dirty_modes = {}
         inverted = {}
+        image_widgets = {}
+        text_widgets = {}
 
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("ffi/blitbuffer", {
@@ -83,7 +87,9 @@ describe("Zen screen", function()
         ZenSpec.replace("device/input", {
             group = { PgFwd = "PgFwd", PgBack = "PgBack", Back = "Back" },
         })
-        ZenSpec.replace("ui/font", { getFace = function() return {} end })
+        ZenSpec.replace("ui/font", { getFace = function(_self, name, size)
+            return { name = name, size = size }
+        end })
         ZenSpec.replace("ui/geometry", { new = function(_self, values) return values end })
         ZenSpec.replace("ui/uimanager", {
             close = function() closed = closed + 1 end,
@@ -94,11 +100,17 @@ describe("Zen screen", function()
             end,
         })
         ZenSpec.replace("ui/widget/container/inputcontainer", InputContainer)
-        ZenSpec.replace("ui/widget/imagewidget", { new = function(_self, values) return text_widget(values) end })
+        ZenSpec.replace("ui/widget/imagewidget", { new = function(_self, values)
+            image_widgets[#image_widgets + 1] = values
+            return text_widget(values)
+        end })
         ZenSpec.replace("ui/widget/scrolltextwidget", { new = function(_self, values) return text_widget(values) end })
         ZenSpec.replace("ui/widget/textboxwidget", { new = function(_self, values) return text_widget(values) end })
-        ZenSpec.replace("ui/widget/textwidget", { new = function(_self, values) return text_widget(values) end })
-        ZenSpec.replace("common/plugin_root", "")
+        ZenSpec.replace("ui/widget/textwidget", { new = function(_self, values)
+            text_widgets[#text_widgets + 1] = values
+            return text_widget(values)
+        end })
+        ZenSpec.replace("common/plugin_root", "/plugin")
         ZenSpec.replace("common/ui/zen_button", {
             paintFilled = function(_bb, x, y, w, h) return { x = x, y = y, w = w, h = h } end,
             paintOutlined = function(_bb, x, y, w, h) return { x = x, y = y, w = w, h = h } end,
@@ -107,6 +119,7 @@ describe("Zen screen", function()
             ICON_SIZE = 28,
             TITLE_LEADING_PADDING = 6,
             VERTICAL_PADDING = 6,
+            ROW_HEIGHT = 44,
             DIVIDER_HEIGHT = 2,
             DIVIDER_COLOR = "light_gray",
             HEADER_CONTENT_HEIGHT = 56,
@@ -240,5 +253,35 @@ describe("Zen screen", function()
         screen:onZsFocusPrevious()
         screen:paintTo(bb, 0, 0)
         assert.are.same({ x = 92, y = 733, w = 200, h = 54 }, inverted[#inverted])
+    end)
+
+    it("caps the centered logo when a short changelog leaves extra space", function()
+        local screen = new_screen{
+            title = "ZenOS",
+            title_icon = true,
+            subtitle = "Updated to v1.2.3",
+            changelog = { "Small update" },
+            scroll_text = "What's New\n\n- Small update",
+        }
+        local bb = {
+            paintRect = function() end,
+            invertRect = function() end,
+        }
+
+        screen:paintTo(bb, 0, 0)
+
+        assert.are.equal(0, screen._L.sep_h)
+        assert.are.equal(2, #image_widgets)
+        assert.are.equal(28, image_widgets[1].width)
+        assert.are.equal(330, image_widgets[2].width)
+        assert.are.equal(330, image_widgets[2].height)
+        for _i, widget in ipairs(text_widgets) do
+            if widget.text == "ZenOS" then
+                assert.are.equal("cfont", widget.face.name)
+                assert.are.equal(28, widget.face.size)
+                return
+            end
+        end
+        assert.fail("ZenOS title was not rendered")
     end)
 end)

@@ -5,6 +5,7 @@ describe("quick settings plugin controls", function()
     local tailscale
     local zenfm
     local destination_entries
+    local hosted_menu
 
     local module_names = {
         "ffi/blitbuffer",
@@ -38,6 +39,7 @@ describe("quick settings plugin controls", function()
         "common/dispatch_action",
         "common/nav_button_model",
         "modules/menu/app_launcher/plugin_scan",
+        "modules/menu/app_launcher/menu_host",
         "common/plugin_root",
         "modules/menu/patches/touch_menu_panel",
         "ui/widget/touchmenu",
@@ -106,6 +108,7 @@ describe("quick settings plugin controls", function()
         ZenSpec.replace("dispatcher", { execute = function() end })
         ZenSpec.replace("common/dispatch_action", no_op)
         destination_entries = {}
+        hosted_menu = nil
         ZenSpec.replace("common/nav_button_model", {
             label = function(_controls, entry) return entry.label end,
             execute = function(entry)
@@ -114,6 +117,9 @@ describe("quick settings plugin controls", function()
             end,
         })
         ZenSpec.replace("modules/menu/app_launcher/plugin_scan", no_op)
+        ZenSpec.replace("modules/menu/app_launcher/menu_host", {
+            show = function(options) hosted_menu = options end,
+        })
         ZenSpec.replace("common/plugin_root", "/tmp/zen-ui")
         ZenSpec.replace("modules/menu/patches/touch_menu_panel", { install = function() end })
         ZenSpec.replace("ui/widget/touchmenu", {
@@ -145,6 +151,18 @@ describe("quick settings plugin controls", function()
             onToggleZenFM = function(self)
                 self.toggle_calls = self.toggle_calls + 1
                 self.running = not self.running
+            end,
+            settings_menu = function(self)
+                return {{
+                    text_func = function()
+                        return "Inactivity timeout: " .. tostring(self.timeout_minutes or 30) .. " min"
+                    end,
+                    checked_func = function() return self.timeout_enabled == true end,
+                    checkmark_callback = function()
+                        self.timeout_enabled = not self.timeout_enabled
+                    end,
+                    callback = function() self.timeout_dialog_calls = (self.timeout_dialog_calls or 0) + 1 end,
+                }}
             end,
         }
         ZenSpec.replace("pluginloader", {
@@ -223,6 +241,29 @@ describe("quick settings plugin controls", function()
         end
 
         assert.is_true(found)
+    end)
+
+    it("opens ZenFM settings on hold with a toggle and timeout submenu", function()
+        local closes = 0
+        local touch_menu = {
+            closeMenu = function() closes = closes + 1 end,
+        }
+
+        assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.hold("zenfm", touch_menu))
+        assert.are.equal(1, closes)
+        assert.are.equal("ZenFM", hosted_menu.title)
+        assert.is_false(hosted_menu.back_visible)
+
+        local timeout = hosted_menu.item_table[1]
+        assert.is_function(timeout.checked_func)
+        assert.is_function(timeout.callback)
+        assert.is_nil(timeout.sub_item_table)
+        assert.is_function(timeout.sub_item_table_func)
+
+        timeout.callback()
+        assert.is_true(zenfm.timeout_enabled)
+        assert.are.same({}, timeout.sub_item_table_func())
+        assert.are.equal(1, zenfm.timeout_dialog_calls)
     end)
 
     it("closes the menu before toggling Zen mode", function()

@@ -12,8 +12,23 @@ msgstr " dias"
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
-msgid "%1 mins left in chapter"
+msgid "%1 min left"
+msgstr "%1 min restantes"
+
+msgid "%1 min left in chapter"
 msgstr "%1 min restantes no capítulo"
+
+msgid "%1h"
+msgstr "%1 h"
+
+msgid "%1h %2m"
+msgstr "%1 h %2 min"
+
+msgid "%1m"
+msgstr "%1 min"
+
+msgid "< %1m"
+msgstr "< %1 min"
 
 msgid "%1, %2 %3"
 msgstr "%1, %3 de %2"
@@ -57,8 +72,8 @@ msgstr "1 autor"
 msgid "1 book"
 msgstr "1 livro"
 
-msgid "1 min left in chapter"
-msgstr "1 min restante no capítulo"
+msgid "1 language"
+msgstr "1 idioma"
 
 msgid "1 series"
 msgstr "1 série"
@@ -83,9 +98,6 @@ msgstr "270°"
 
 msgid "90°"
 msgstr "90°"
-
-msgid "< 1 min left in chapter"
-msgstr "< 1 min restante no capítulo"
 
 msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "Uma experiência limpa e mínima para o seu e-reader.\n\nDeslize ou toque em Avançar para continuar."
@@ -676,7 +688,7 @@ msgid "Day brightness: "
 msgstr "Brilho diurno: "
 
 msgid "Day streak"
-msgstr "Sequência do dia"
+msgstr "Sequência de dias"
 
 msgid "Day warmth"
 msgstr "Tonalidade quente diurna"
@@ -932,6 +944,9 @@ msgstr "Gerenciador de arquivos"
 
 msgid "Filebrowser plugin is not installed."
 msgstr "O plugin Filebrowser não está instalado."
+
+msgid "Filename"
+msgstr "Nome do arquivo"
 
 msgid "Filename:"
 msgstr "Nome do arquivo:"
@@ -1196,6 +1211,12 @@ msgstr "Modo mosaico paisagem"
 
 msgid "Landscape mosaic: "
 msgstr "Mosaico paisagem: "
+
+msgid "Languages"
+msgstr "Idiomas"
+
+msgid "languages"
+msgstr "idiomas"
 
 msgid "Large"
 msgstr "Grande"
@@ -1490,6 +1511,9 @@ msgstr "Não há livros para alternar"
 
 msgid "No books with author metadata found"
 msgstr "Nenhum livro com metadados do autor encontrado"
+
+msgid "No books with language metadata found"
+msgstr "Nenhum livro com metadados de idioma encontrado"
 
 msgid "No books with series metadata found"
 msgstr "Nenhum livro com metadados de série encontrado"
@@ -1792,7 +1816,10 @@ msgid "Read time"
 msgstr "Tempo de leitura"
 
 msgid "Read today"
-msgstr "Leia hoje"
+msgstr "Lido hoje"
+
+msgid "Read: %s"
+msgstr "Leitura: %s"
 
 msgid "Reader"
 msgstr "Leitor"
@@ -1850,6 +1877,9 @@ msgstr "normal"
 
 msgid "Release metadata is invalid or incomplete."
 msgstr "Os metadados do lançamento são inválidos ou incompletos."
+
+msgid "Remaining: %s"
+msgstr "Restante: %s"
 
 msgid "Remove"
 msgstr "Remover"
@@ -2213,6 +2243,9 @@ msgstr "Ordenar biblioteca"
 
 msgid "Sort library by"
 msgstr "Ordenar biblioteca por"
+
+msgid "Sort languages"
+msgstr "Ordenar idiomas"
 
 msgid "Sort order"
 msgstr "Ordem de classificação"
@@ -2595,8 +2628,8 @@ msgstr "Usar última pasta"
 msgid "username"
 msgstr "nome de usuário"
 
-msgid "Verbose time to chapter end"
-msgstr "Tempo detalhado até o final do capítulo"
+msgid "Time until chapter end"
+msgstr "Tempo até o final do capítulo"
 
 msgid "View"
 msgstr "Visualizar"

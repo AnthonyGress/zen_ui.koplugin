@@ -12,8 +12,23 @@ msgstr " dagen"
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
-msgid "%1 mins left in chapter"
+msgid "%1 min left"
+msgstr "%1 min resterend"
+
+msgid "%1 min left in chapter"
 msgstr "%1 min resterend in hoofdstuk"
+
+msgid "%1h"
+msgstr "%1 u"
+
+msgid "%1h %2m"
+msgstr "%1 u %2 min"
+
+msgid "%1m"
+msgstr "%1 min"
+
+msgid "< %1m"
+msgstr "< %1 min"
 
 msgid "%1, %2 %3"
 msgstr "%1 %3 %2"
@@ -57,8 +72,8 @@ msgstr "1 auteur"
 msgid "1 book"
 msgstr "1 boek"
 
-msgid "1 min left in chapter"
-msgstr "1 min resterend in hoofdstuk"
+msgid "1 language"
+msgstr "1 taal"
 
 msgid "1 series"
 msgstr "1 reeks"
@@ -83,9 +98,6 @@ msgstr "270°"
 
 msgid "90°"
 msgstr "90°"
-
-msgid "< 1 min left in chapter"
-msgstr "< 1 min resterend in hoofdstuk"
 
 msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "Een schone, minimale ervaring voor uw e-reader.\n\nVeeg of tik op Volgende om door te gaan."
@@ -933,6 +945,9 @@ msgstr "Bestandsbeheer"
 msgid "Filebrowser plugin is not installed."
 msgstr "De Filebrowser-plugin is niet geïnstalleerd."
 
+msgid "Filename"
+msgstr "Bestandsnaam"
+
 msgid "Filename:"
 msgstr "Bestandsnaam:"
 
@@ -1196,6 +1211,12 @@ msgstr "Liggend mozaïekmodus"
 
 msgid "Landscape mosaic: "
 msgstr "Liggend mozaïek: "
+
+msgid "Languages"
+msgstr "Talen"
+
+msgid "languages"
+msgstr "talen"
 
 msgid "Large"
 msgstr "Groot"
@@ -1490,6 +1511,9 @@ msgstr "Geen boeken om naar over te schakelen"
 
 msgid "No books with author metadata found"
 msgstr "Geen boeken met metagegevens van de auteur gevonden"
+
+msgid "No books with language metadata found"
+msgstr "Geen boeken met taalmetagegevens gevonden"
 
 msgid "No books with series metadata found"
 msgstr "Er zijn geen boeken met metagegevens van de serie gevonden"
@@ -1794,6 +1818,9 @@ msgstr "Lees tijd"
 msgid "Read today"
 msgstr "Lees vandaag"
 
+msgid "Read: %s"
+msgstr "Gelezen: %s"
+
 msgid "Reader"
 msgstr "Lezer"
 
@@ -1850,6 +1877,9 @@ msgstr "normaal"
 
 msgid "Release metadata is invalid or incomplete."
 msgstr "Releasemetadata is ongeldig of onvolledig."
+
+msgid "Remaining: %s"
+msgstr "Resterend: %s"
 
 msgid "Remove"
 msgstr "Verwijderen"
@@ -2213,6 +2243,9 @@ msgstr "Bibliotheek sorteren"
 
 msgid "Sort library by"
 msgstr "Bibliotheek sorteren op"
+
+msgid "Sort languages"
+msgstr "Talen sorteren"
 
 msgid "Sort order"
 msgstr "Sorteervolgorde"
@@ -2595,8 +2628,8 @@ msgstr "Laatste map gebruiken"
 msgid "username"
 msgstr "gebruikersnaam"
 
-msgid "Verbose time to chapter end"
-msgstr "Gedetailleerde tijd tot einde hoofdstuk"
+msgid "Time until chapter end"
+msgstr "Tijd tot einde hoofdstuk"
 
 msgid "View"
 msgstr "Weergave"

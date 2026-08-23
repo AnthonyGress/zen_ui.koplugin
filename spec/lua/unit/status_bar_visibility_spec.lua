@@ -3,6 +3,7 @@ describe("file manager status bar visibility", function()
     local UIManager
     local original_modules
     local original_plugin
+    local created_text_widgets
 
     local function replace(name, module)
         original_modules[name] = { value = package.loaded[name] }
@@ -21,11 +22,20 @@ describe("file manager status bar visibility", function()
         return false
     end
 
+    local function get_upvalue(fn, target)
+        for index = 1, 40 do
+            local name, value = debug.getupvalue(fn, index)
+            if not name then break end
+            if name == target then return value end
+        end
+    end
+
     before_each(function()
         FileManager = {}
         UIManager = { _window_stack = {} }
         original_modules = {}
         original_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
+        created_text_widgets = {}
 
         replace("ui/bidi", {})
         replace("device", {
@@ -36,17 +46,28 @@ describe("file manager status bar visibility", function()
             },
         })
         replace("apps/filemanager/filemanager", FileManager)
-        replace("ui/font", {})
+        replace("ui/font", {
+            sizemap = { xx_smallinfofont = 14 },
+            getFace = function(_, _name, size) return { size = size } end,
+        })
         replace("ui/geometry", {})
-        replace("ui/widget/horizontalgroup", {})
+        replace("ui/widget/horizontalgroup", {
+            new = function(_, values) return values or {} end,
+        })
         replace("ui/widget/horizontalspan", {})
         replace("ui/widget/container/leftcontainer", {})
         replace("ui/network/manager", {})
         replace("ui/widget/overlapgroup", {})
         replace("ui/widget/container/rightcontainer", {})
-        replace("ui/widget/textwidget", {
-            extend = function() return {} end,
-        })
+        local TextWidget = {}
+        function TextWidget:new(values)
+            created_text_widgets[#created_text_widgets + 1] = values
+            return values
+        end
+        function TextWidget:extend()
+            return setmetatable({}, { __index = self })
+        end
+        replace("ui/widget/textwidget", TextWidget)
         replace("ui/uimanager", UIManager)
         replace("ffi/blitbuffer", {
             ColorRGB32 = function() return 0 end,
@@ -56,7 +77,12 @@ describe("file manager status bar visibility", function()
         replace("ui/size", {})
         replace("ui/widget/verticalgroup", {})
         replace("common/clock_timer", {})
-        replace("modules/filebrowser/patches/library_font", {})
+        replace("modules/filebrowser/patches/library_font", {
+            getFace = function(size) return { size = size } end,
+        })
+        replace("common/date_format", {
+            format = function() return "August 8th" end,
+        })
         replace("common/utils", { deepcopy = function(value) return value end })
         replace("common/paths", {})
         replace("common/shared_state", {
@@ -97,6 +123,20 @@ describe("file manager status bar visibility", function()
             package.loaded[name] = saved.value
         end
         _G.__ZEN_UI_PLUGIN = original_plugin
+    end)
+
+    it("renders the configured date item", function()
+        local status_api
+        local SharedState = require("common/shared_state")
+        SharedState.register = function(_plugin, api) status_api = api end
+        require("modules/filebrowser/patches/status_bar")()
+
+        local build_group = get_upvalue(status_api.buildStatusRow, "_buildGroup")
+        local group = build_group({ "date" }, { size = 14 }, false)
+
+        assert.are.equal(1, #group)
+        assert.are.equal("August 8th", group[1].text)
+        assert.are.equal("August 8th", created_text_widgets[1].text)
     end)
 
     it("does not repaint behind a Home page that hides its status bar", function()
@@ -190,6 +230,52 @@ describe("file manager status bar visibility", function()
 
         assert.are.equal(1, folder_up_calls)
         assert.are.equal(0, direct_change_calls)
+    end)
+
+    it("clears restored item focus when the chevron navigates with underlines hidden", function()
+        local status_api
+        local back_callback
+        _G.__ZEN_UI_PLUGIN.config.features.browser_hide_underline = true
+        ZenSpec.replace("common/paths", {
+            getHomeDir = function() return "/library" end,
+            normPath = function(path) return path end,
+            isHomeLocked = function() return true end,
+        })
+        ZenSpec.replace("common/shared_state", {
+            register = function(_plugin, api) status_api = api end,
+            registerLoader = function() end,
+        })
+        ZenSpec.replace("ui/widget/button", {
+            new = function(_, options)
+                back_callback = options.callback
+                error("back callback captured")
+            end,
+        })
+        UIManager.scheduleIn = function(_, _, callback) callback() end
+
+        require("modules/filebrowser/patches/status_bar")()
+
+        local unfocus_calls = 0
+        local focused_item = {
+            onUnfocus = function() unfocus_calls = unfocus_calls + 1 end,
+        }
+        local file_chooser = {
+            item_table = {},
+            itemnumber = 4,
+            prev_itemnumber = 4,
+            selected = { x = 1, y = 1 },
+            layout = { { focused_item } },
+            onFolderUp = function() end,
+        }
+        local ok = pcall(status_api.createStatusRow, "/library/folder", {
+            file_chooser = file_chooser,
+        })
+        assert.is_false(ok)
+        back_callback()
+
+        assert.are.equal(1, unfocus_calls)
+        assert.is_nil(file_chooser.itemnumber)
+        assert.is_nil(file_chooser.prev_itemnumber)
     end)
 
     it("hides back at the Folder tab root and shows it in descendants", function()

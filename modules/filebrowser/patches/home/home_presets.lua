@@ -25,6 +25,7 @@ local function featured_defaults()
             left = "percent",
             right = "total_pages",
         },
+        show_progress = true,
         show_description = true,
         wrap_description_text = false,
         show_status_bar = true,
@@ -448,7 +449,8 @@ local STRIP_COMMON_KEYS = {
 
 local VALID_CONTROL_IDS = {
     recent = true, favorites = true, to_be_read = true, authors = true,
-    series = true, tags = true, collections = true, books = true, manga = true,
+    series = true, languages = true, tags = true, collections = true,
+    books = true, manga = true,
     news = true, continue = true, history = true, home = true,
     search = true, calibre_search = true, stats = true, exit = true, page_left = true,
     page_right = true, menu = true,
@@ -539,7 +541,7 @@ local function ensure_strip_shape(strip)
     controls.enabled = controls.enabled == true
     local valid_sources = {
         recent = true, favorites = true, to_be_read = true, authors = true,
-        series = true, tags = true, collections = true, tag = true,
+        series = true, languages = true, tags = true, collections = true, tag = true,
         folder = true, custom = true,
     }
     if not valid_sources[strip.default_source.kind] then

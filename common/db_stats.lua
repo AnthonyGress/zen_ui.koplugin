@@ -8,6 +8,10 @@ local DBConn = require("common/db_connection")
 
 local StatsDB = {}
 
+local FLUSH_MIN_INTERVAL_S = 10
+local last_flush_at = 0
+local STREAK_WINDOW_S = 370 * 86400
+
 local function get_stats_plugin()
     local ok_loader, PluginLoader = pcall(require, "pluginloader")
     if not ok_loader or not PluginLoader or type(PluginLoader.getPluginInstance) ~= "function" then
@@ -19,6 +23,9 @@ local function get_stats_plugin()
 end
 
 local function flush_pending_stats()
+    local now_ts = os.time()
+    if now_ts - last_flush_at < FLUSH_MIN_INTERVAL_S then return end
+    last_flush_at = now_ts
     local stats_plugin = get_stats_plugin()
     if not stats_plugin or type(stats_plugin.insertDB) ~= "function" then return end
     if type(stats_plugin.isEnabled) == "function" and not stats_plugin:isEnabled() then return end
@@ -86,29 +93,16 @@ local function query_period_stats(conn, start_time, need_pages, need_duration)
     return 0, 0
 end
 
-local function query_streak(conn, one_day)
-    local sql_streak = [[
-        SELECT DISTINCT strftime('%Y-%m-%d', start_time, 'unixepoch', 'localtime') AS day
-        FROM page_stat
-        WHERE duration > 0
-        ORDER BY day DESC;
-    ]]
-    local ok_streak, streak_result = pcall(conn.exec, conn, sql_streak)
-    if not ok_streak then
-        logger.warn("streak query error:", streak_result)
-        return 0
-    end
-    if not (streak_result and streak_result.day) then return 0 end
-
+local function streak_walk(days_list, one_day)
     local today_str = os.date("%Y-%m-%d")
     local yesterday_str = os.date("%Y-%m-%d", os.time() - one_day)
-    local most_recent = streak_result.day[1]
+    local most_recent = days_list[1]
     if most_recent ~= today_str and most_recent ~= yesterday_str then return 0 end
 
     local streak = 0
     local expected = most_recent
-    for i = 1, #streak_result.day do
-        if streak_result.day[i] ~= expected then break end
+    for i = 1, #days_list do
+        if days_list[i] ~= expected then break end
         streak = streak + 1
         local y, mo, dd = expected:match("(%d+)-(%d+)-(%d+)")
         local noon = os.time({
@@ -118,6 +112,48 @@ local function query_streak(conn, one_day)
             hour = 12, min = 0, sec = 0,
         })
         expected = os.date("%Y-%m-%d", noon - one_day)
+    end
+    return streak
+end
+
+local function query_streak(conn, one_day)
+    -- Query page_stat_data directly (no view join) with an adaptive 370-day
+    -- window aligned to local midnight. When the walk reaches the window edge
+    -- (every day inside the window has reading data), the window itself
+    -- truncates the result, so fall back to the unbounded query for an exact
+    -- streak. (Duration rescaling in the page_stat view cannot zero out a row
+    -- that has duration > 0, so the semantic is preserved.)
+    local now_ts = os.time()
+    local yy, mm, dd = now_ts and os.date("%Y", now_ts), os.date("%m", now_ts), os.date("%d", now_ts)
+    local window_start = os.time({
+        year = tonumber(yy), month = tonumber(mm), day = tonumber(dd),
+        hour = 0, min = 0, sec = 0,
+    }) - STREAK_WINDOW_S
+    local sql_streak = [[
+        SELECT DISTINCT strftime('%%Y-%%m-%%d', start_time, 'unixepoch', 'localtime') AS day
+        FROM page_stat_data
+        WHERE duration > 0 AND start_time >= %d
+        ORDER BY day DESC;
+    ]]
+    local ok_streak, streak_result = pcall(conn.exec, conn,
+        string.format(sql_streak, window_start))
+    if not ok_streak then
+        logger.warn("streak query error:", streak_result)
+        return 0
+    end
+    if not (streak_result and streak_result.day) then return 0 end
+    local window_first_day = os.date("%Y-%m-%d", window_start)
+    local streak = streak_walk(streak_result.day, one_day)
+    if streak == #streak_result.day and streak_result.day[#streak_result.day] == window_first_day then
+        local ok_full, full_result = pcall(conn.exec, conn, [[
+            SELECT DISTINCT strftime('%Y-%m-%d', start_time, 'unixepoch', 'localtime') AS day
+            FROM page_stat_data
+            WHERE duration > 0
+            ORDER BY day DESC;
+        ]])
+        if ok_full and full_result and full_result.day then
+            streak = streak_walk(full_result.day, one_day)
+        end
     end
     return streak
 end
@@ -462,51 +498,52 @@ function StatsDB.queryStats()
         -- ── Personal records (peak daily / weekly / monthly duration) ─────────
         -- Queries run directly against page_stat_data (indexed on start_time)
         -- rather than the page_stat view, since only durations matter here.
-        -- Each query returns (total_duration, rep_ts) for the peak period.
+        -- One pass over page_stat_data: per-day aggregates are materialised
+        -- once, and the week/month peaks are derived from that daily result.
+        -- Each subquery yields (duration, rep_ts) for its peak period.
         -- ORDER BY + LIMIT 1 replaces COALESCE(MAX(...)) so we also get a
         -- representative timestamp that can be formatted into a date label.
-        -- When the table is empty, rowexec returns nil for both columns.
-        local sql_peak_day = [[
-            SELECT day_total, rep_ts
-            FROM (
-                SELECT SUM(duration) AS day_total, MIN(start_time) AS rep_ts
+        -- When the table is empty, rowexec returns nil for all columns.
+        local sql_peaks = [[
+            WITH daily AS (
+                SELECT strftime('%Y-%m-%d', start_time, 'unixepoch', 'localtime') AS day,
+                       SUM(duration) AS day_total,
+                       MIN(start_time) AS rep_ts
                 FROM page_stat_data
-                GROUP BY strftime('%Y-%m-%d', start_time, 'unixepoch', 'localtime')
+                GROUP BY day
             )
-            ORDER BY day_total DESC
-            LIMIT 1;
+            SELECT
+                (SELECT day_total FROM daily ORDER BY day_total DESC LIMIT 1),
+                (SELECT rep_ts FROM daily ORDER BY day_total DESC LIMIT 1),
+                (SELECT week_total FROM (
+                    SELECT SUM(day_total) AS week_total, MIN(rep_ts) AS rep_ts
+                    FROM daily
+                    GROUP BY strftime('%Y-%W', rep_ts, 'unixepoch', 'localtime')
+                ) ORDER BY week_total DESC LIMIT 1),
+                (SELECT rep_ts FROM (
+                    SELECT SUM(day_total) AS week_total, MIN(rep_ts) AS rep_ts
+                    FROM daily
+                    GROUP BY strftime('%Y-%W', rep_ts, 'unixepoch', 'localtime')
+                ) ORDER BY week_total DESC LIMIT 1),
+                (SELECT month_total FROM (
+                    SELECT SUM(day_total) AS month_total, MIN(rep_ts) AS rep_ts
+                    FROM daily
+                    GROUP BY strftime('%Y-%m', rep_ts, 'unixepoch', 'localtime')
+                ) ORDER BY month_total DESC LIMIT 1),
+                (SELECT rep_ts FROM (
+                    SELECT SUM(day_total) AS month_total, MIN(rep_ts) AS rep_ts
+                    FROM daily
+                    GROUP BY strftime('%Y-%m', rep_ts, 'unixepoch', 'localtime')
+                ) ORDER BY month_total DESC LIMIT 1);
         ]]
-        local ok_pd, pd_dur, pd_ts = pcall(conn.rowexec, conn, sql_peak_day)
-        stats.peak_day_duration = ok_pd and (tonumber(pd_dur) or 0) or 0
-        stats.peak_day_ts       = ok_pd and tonumber(pd_ts) or nil
-
-        local sql_peak_week = [[
-            SELECT week_total, rep_ts
-            FROM (
-                SELECT SUM(duration) AS week_total, MIN(start_time) AS rep_ts
-                FROM page_stat_data
-                GROUP BY strftime('%Y-%W', start_time, 'unixepoch', 'localtime')
-            )
-            ORDER BY week_total DESC
-            LIMIT 1;
-        ]]
-        local ok_pw, pw_dur, pw_ts = pcall(conn.rowexec, conn, sql_peak_week)
-        stats.peak_week_duration = ok_pw and (tonumber(pw_dur) or 0) or 0
-        stats.peak_week_ts       = ok_pw and tonumber(pw_ts) or nil
-
-        local sql_peak_month = [[
-            SELECT month_total, rep_ts
-            FROM (
-                SELECT SUM(duration) AS month_total, MIN(start_time) AS rep_ts
-                FROM page_stat_data
-                GROUP BY strftime('%Y-%m', start_time, 'unixepoch', 'localtime')
-            )
-            ORDER BY month_total DESC
-            LIMIT 1;
-        ]]
-        local ok_pm, pm_dur, pm_ts = pcall(conn.rowexec, conn, sql_peak_month)
-        stats.peak_month_duration = ok_pm and (tonumber(pm_dur) or 0) or 0
-        stats.peak_month_ts       = ok_pm and tonumber(pm_ts) or nil
+        local ok_pk, pd_dur, pd_ts, pw_dur, pw_ts, pm_dur, pm_ts =
+            pcall(conn.rowexec, conn, sql_peaks)
+        stats.peak_day_duration = ok_pk and (tonumber(pd_dur) or 0) or 0
+        stats.peak_day_ts       = ok_pk and tonumber(pd_ts) or nil
+        stats.peak_week_duration = ok_pk and (tonumber(pw_dur) or 0) or 0
+        stats.peak_week_ts       = ok_pk and tonumber(pw_ts) or nil
+        stats.peak_month_duration = ok_pk and (tonumber(pm_dur) or 0) or 0
+        stats.peak_month_ts       = ok_pk and tonumber(pm_ts) or nil
         logger.info("peak_day=", stats.peak_day_duration,
                     "peak_week=", stats.peak_week_duration,
                     "peak_month=", stats.peak_month_duration)

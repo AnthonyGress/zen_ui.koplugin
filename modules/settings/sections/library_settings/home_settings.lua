@@ -147,6 +147,7 @@ local function ensure_featured_cfg(dcfg, module_id)
     local mcfg = ensure_module_cfg(dcfg, module_id)
     mcfg.order = nil
     if mcfg.show_description == nil then mcfg.show_description = true end
+    if mcfg.show_progress == nil then mcfg.show_progress = true end
     if mcfg.wrap_description_text == nil then mcfg.wrap_description_text = false end
     if mcfg.interactive == nil then mcfg.interactive = true end
     if mcfg.show_status_bar == nil then mcfg.show_status_bar = false end
@@ -488,6 +489,16 @@ function M.build(ctx)
             return items
         end
         return {
+            {
+                text = _("Enable"),
+                checked_func = function()
+                    return mcfg.show_progress ~= false
+                end,
+                callback = function()
+                    mcfg.show_progress = mcfg.show_progress == false
+                    save_home("reinit")
+                end,
+            },
             {
                 text_func = function()
                     return _("Left") .. ": " .. progress_label(mcfg.progress_meta.left)
@@ -1011,7 +1022,7 @@ function M.build(ctx)
             },
             featured_text_styles_item(mcfg),
             {
-                text = _("Progress labels"),
+                text = _("Progress"),
                 sub_item_table = build_progress_meta_items(mcfg),
             },
         }
@@ -1049,7 +1060,7 @@ function M.build(ctx)
         local labels = {
             recent = _("Recent"), favorites = _("Favorites"),
             to_be_read = _("To Be Read"), authors = _("Authors"),
-            series = _("Series"), tags = _("Tags"),
+            series = _("Series"), languages = _("Languages"), tags = _("Tags"),
             collections = _("Collections"), custom = _("Custom books"),
         }
         if source.kind == "tag" then return source.value or _("Specific tag") end

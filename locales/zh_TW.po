@@ -12,8 +12,23 @@ msgstr " 天"
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
-msgid "%1 mins left in chapter"
+msgid "%1 min left"
+msgstr "剩餘 %1 分鐘"
+
+msgid "%1 min left in chapter"
 msgstr "本章剩餘 %1 分鐘"
+
+msgid "%1h"
+msgstr "%1時"
+
+msgid "%1h %2m"
+msgstr "%1時%2分"
+
+msgid "%1m"
+msgstr "%1分"
+
+msgid "< %1m"
+msgstr "< %1分"
 
 msgid "%1, %2 %3"
 msgstr "%2%3日，%1"
@@ -57,8 +72,8 @@ msgstr "1 位作者"
 msgid "1 book"
 msgstr "1 本書"
 
-msgid "1 min left in chapter"
-msgstr "本章剩餘 1 分鐘"
+msgid "1 language"
+msgstr "1 種語言"
 
 msgid "1 series"
 msgstr "1 個系列"
@@ -83,9 +98,6 @@ msgstr "270°"
 
 msgid "90°"
 msgstr "90°"
-
-msgid "< 1 min left in chapter"
-msgstr "本章剩餘 < 1 分鐘"
 
 msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "為您的電子閱讀器提供乾淨、簡約的體驗。\n\n滑動或點擊下一步繼續。"
@@ -933,6 +945,9 @@ msgstr "檔案瀏覽器"
 msgid "Filebrowser plugin is not installed."
 msgstr "檔案瀏覽器外掛未安裝。"
 
+msgid "Filename"
+msgstr "檔案名稱"
+
 msgid "Filename:"
 msgstr "檔案名稱："
 
@@ -1196,6 +1211,12 @@ msgstr "橫向拼貼模式"
 
 msgid "Landscape mosaic: "
 msgstr "橫向拼貼："
+
+msgid "Languages"
+msgstr "語言"
+
+msgid "languages"
+msgstr "種語言"
 
 msgid "Large"
 msgstr "大"
@@ -1490,6 +1511,9 @@ msgstr "沒有可切換的書籍"
 
 msgid "No books with author metadata found"
 msgstr "找不到包含作者中繼資料的書籍"
+
+msgid "No books with language metadata found"
+msgstr "找不到包含語言中繼資料的書籍"
 
 msgid "No books with series metadata found"
 msgstr "找不到包含系列中繼資料的書籍"
@@ -1794,6 +1818,9 @@ msgstr "閱讀時間"
 msgid "Read today"
 msgstr "今天閱讀"
 
+msgid "Read: %s"
+msgstr "已閱讀：%s"
+
 msgid "Reader"
 msgstr "閱讀器"
 
@@ -1850,6 +1877,9 @@ msgstr "一般"
 
 msgid "Release metadata is invalid or incomplete."
 msgstr "發行資訊無效或不完整。"
+
+msgid "Remaining: %s"
+msgstr "剩餘：%s"
 
 msgid "Remove"
 msgstr "移除"
@@ -2213,6 +2243,9 @@ msgstr "排序書庫"
 
 msgid "Sort library by"
 msgstr "書庫排序方式"
+
+msgid "Sort languages"
+msgstr "語言排序"
 
 msgid "Sort order"
 msgstr "排序順序"
@@ -2595,8 +2628,8 @@ msgstr "使用上次資料夾"
 msgid "username"
 msgstr "使用者名稱"
 
-msgid "Verbose time to chapter end"
-msgstr "詳細的本章剩餘時間"
+msgid "Time until chapter end"
+msgstr "距本章結束時間"
 
 msgid "View"
 msgstr "檢視"

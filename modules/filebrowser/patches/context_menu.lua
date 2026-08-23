@@ -1994,6 +1994,7 @@ local function apply_context_menu()
                 local SORT_OPTIONS = {
                     { key = "title", text = "\u{F04BB}  " .. _("Title") },
                     { key = "title_natural", text = "\u{F04BB}  " .. _("Title natural") },
+                    { key = "strcoll", text = icons.filename .. "  " .. _("Filename") },
                     { key = "authors", text = "\u{F0013}  " .. _("Authors") },
                     { key = "series", text = "\u{F0436}  " .. _("Series") },
                     { key = "access", text = "\u{F02DA}  " .. _("Recently read") },
@@ -2012,7 +2013,6 @@ local function apply_context_menu()
                                     local sort_buttons = {}
                                     local cur = g_sort:readSetting("collate", "strcoll")
                                     local cur_reverse = g_sort:isTrue("reverse_collate")
-                                    if cur == "strcoll" then cur = "title" end
                                     for _i, opt in ipairs(SORT_OPTIONS) do
                                         local is_active = cur == opt.key
                                         table.insert(sort_buttons, {{

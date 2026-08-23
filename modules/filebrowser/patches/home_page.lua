@@ -6,6 +6,7 @@ local DecodeCache = require("common/cover_decode_cache")
 local RenderCache = require("common/cover_render_cache")
 local HomeQuotes = require("modules/filebrowser/patches/home/home_quotes")
 local HomePresets = require("modules/filebrowser/patches/home/home_presets")
+local LanguageName = require("common/language_name")
 local MemoryPolicy = require("common/memory_policy")
 local ReadingGoals = require("common/reading_goals")
 local PresetStore = require("config/preset_store")
@@ -1743,6 +1744,8 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
             raw_groups = db.getGroupedByAuthor()
         elseif kind == "series" and type(db.getGroupedBySeries) == "function" then
             raw_groups = db.getGroupedBySeries()
+        elseif kind == "languages" and type(db.getGroupedByLanguage) == "function" then
+            raw_groups = db.getGroupedByLanguage()
         elseif kind == "tags" and type(db.getGroupedByTags) == "function" then
             raw_groups = db.getGroupedByTags()
         end
@@ -1755,7 +1758,10 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
                     if type(item.file) == "string" then files[#files + 1] = item.file end
                 end
             end
-            local label = group.author or group.series or group.tag
+            local label = group.author or group.series or group.language or group.tag
+            if kind == "languages" then
+                label = LanguageName.get(label)
+            end
             if type(label) == "string" and type(files) == "table" and #files > 0 then
                 groups[#groups + 1] = { label = label, files = files }
             end
@@ -1831,7 +1837,8 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
             end
             return books, adjacent
         end
-        if kind == "authors" or kind == "series" or kind == "tags"
+        if kind == "authors" or kind == "series" or kind == "languages"
+                or kind == "tags"
                 or kind == "collections" then
             local groups = source_groups(kind)
             if normalize_order(order_key) == "reverse" then groups = reverse_copy(groups) end
@@ -2422,6 +2429,26 @@ local function install_home_key_handlers(menu)
         return handled
     end
 
+    local orig_next_page = menu.onNextPage
+    function menu:onNextPage(...)
+        local handler = self._zen_home_strip_page_handler
+        if type(handler) == "function" then
+            handler("next")
+            return true
+        end
+        return orig_next_page and orig_next_page(self, ...)
+    end
+
+    local orig_prev_page = menu.onPrevPage
+    function menu:onPrevPage(...)
+        local handler = self._zen_home_strip_page_handler
+        if type(handler) == "function" then
+            handler("previous")
+            return true
+        end
+        return orig_prev_page and orig_prev_page(self, ...)
+    end
+
     menu.key_events = menu.key_events or {}
     menu.key_events.LeftButtonTap = {
         { "Menu" },
@@ -2599,6 +2626,16 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
                     table.remove(strip_cover_listeners, i)
                     break
                 end
+            end
+        end
+    end
+
+    local function register_strip_page_handler(handler)
+        if type(handler) ~= "function" then return function() end end
+        menu._zen_home_strip_page_handler = handler
+        return function()
+            if rawequal(menu._zen_home_strip_page_handler, handler) then
+                menu._zen_home_strip_page_handler = nil
             end
         end
     end
@@ -2858,6 +2895,7 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
                 activate_strip_focus_targets(comp.id, targets)
             end,
             clearStripFocusTargets = clear_strip_focus_targets,
+            registerStripPageHandler = register_strip_page_handler,
             refreshStrip = refresh_strip,
             registerStripCoverListener = register_strip_cover_listener,
             face_title = face_title,
@@ -2902,10 +2940,13 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
                 if i == 1 then
                     content_bounds.min_shift = 0
                     content_bounds.max_shift = 0
-                else
+                elseif content_bounds.lock_shift ~= true then
                     -- Borrow surrounding blank space when internal slack is too small.
                     content_bounds.min_shift = (content_bounds.min_shift or 0) - row_gap * 3
                     content_bounds.max_shift = (content_bounds.max_shift or 0) + row_gap * 3
+                else
+                    content_bounds.min_shift = tonumber(content_bounds.min_shift) or 0
+                    content_bounds.max_shift = content_bounds.min_shift
                 end
                 visual_rows[i] = content_bounds
             end

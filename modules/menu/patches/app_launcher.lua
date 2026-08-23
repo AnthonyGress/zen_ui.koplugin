@@ -625,11 +625,19 @@
                 }
                 rows[#rows][#rows[#rows] + 1] = cell
                 layout_rows[#layout_rows][#layout_rows[#layout_rows] + 1] = cell
+                local quick_setting_id = entry.quick_setting_id
+                local controls = entry.type == "quick_setting"
+                    and quick_setting_id == "zenfm"
+                    and rawget(_G, "__ZEN_UI_QUICK_SETTINGS") or nil
                 refs.buttons[#refs.buttons + 1] = {
                     widget = cell,
                     callback = cell.callback and function()
                         cell.callback()
                     end or nil,
+                    hold_callback = not dim and controls and type(controls.hold) == "function"
+                        and function()
+                            return controls.hold(quick_setting_id, touch_menu)
+                        end or nil,
                 }
             end
         end

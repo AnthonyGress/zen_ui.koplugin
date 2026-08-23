@@ -80,7 +80,7 @@ local function save_footer_preset(preset)
             reader_footer_mode = preset.reader_footer_mode,
             reader_footer_custom_text = preset.reader_footer_custom_text,
             reader_footer_custom_text_repetitions = preset.reader_footer_custom_text_repetitions,
-            verbose_chapter_time = preset.verbose_chapter_time == true,
+            chapter_time_format = preset.chapter_time_format,
         })
     end
     if type(PresetStore.setActivePreset) == "function" then
@@ -216,7 +216,7 @@ function M.apply(settings, config)
     if type(config.reader_footer) ~= "table" then
         config.reader_footer = {}
     end
-    config.reader_footer.verbose_chapter_time = preset.verbose_chapter_time == true
+    config.reader_footer.chapter_time_format = preset.chapter_time_format
     if type(config.features) ~= "table" then
         config.features = {}
     end

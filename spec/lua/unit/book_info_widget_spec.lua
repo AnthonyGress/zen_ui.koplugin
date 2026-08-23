@@ -462,6 +462,20 @@ describe("book details", function()
         assert.are.equal(0, top_taps)
     end)
 
+    it("closes from both the back button and title before opening the top menu", function()
+        local widget = new_widget()
+
+        assert.is_true(widget:_onTap({ pos = { x = 1, y = 10 } }))
+        assert.are.equal(1, close_calls)
+        assert.are.equal(0, top_taps)
+
+        assert.is_true(widget:_onTap({
+            pos = { x = widget._L.title_x + 1, y = 10 },
+        }))
+        assert.are.equal(2, close_calls)
+        assert.are.equal(0, top_taps)
+    end)
+
     it("opens the KOReader menu from an unoccupied top tap", function()
         local widget = new_widget()
 

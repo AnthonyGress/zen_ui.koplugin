@@ -53,7 +53,42 @@ describe("config manager folder-path migration", function()
         assert.is_true(config.features.zen_mode)
         assert.is_true(config.features.status_bar)
         assert.are.equal("90", config.quick_settings.rotate_action)
+        assert.are.equal("number", config.reader_footer.chapter_time_format)
         assert.is_false(config._meta.quickstart_shown_for_version)
+    end)
+
+    it("migrates verbose chapter time settings to display formats", function()
+        settings_file.data = {
+            reader_footer = { verbose_chapter_time = true },
+        }
+        stores.reader.settings = { verbose_chapter_time = false }
+        stores.reader.presets = {
+            Full = { verbose_chapter_time = true },
+            Legacy = { zen = { verbose_chapter_time = false } },
+        }
+
+        local config = Manager.load()
+
+        assert.are.equal("full", config.reader_footer.chapter_time_format)
+        assert.is_nil(config.reader_footer.verbose_chapter_time)
+        assert.are.equal("number", stores.reader.settings.chapter_time_format)
+        assert.is_nil(stores.reader.settings.verbose_chapter_time)
+        assert.are.equal("full", stores.reader.presets.Full.chapter_time_format)
+        assert.is_nil(stores.reader.presets.Full.verbose_chapter_time)
+        assert.are.equal("number", stores.reader.presets.Legacy.chapter_time_format)
+        assert.is_nil(stores.reader.presets.Legacy.zen)
+    end)
+
+    it("preserves the KOReader chapter time format", function()
+        settings_file.data = {
+            reader_footer = { chapter_time_format = "koreader" },
+        }
+        stores.reader.settings = { chapter_time_format = "koreader" }
+
+        local config = Manager.load()
+
+        assert.are.equal("koreader", config.reader_footer.chapter_time_format)
+        assert.are.equal("koreader", stores.reader.settings.chapter_time_format)
     end)
 
     it("preserves an existing rotate action", function()

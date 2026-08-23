@@ -401,13 +401,23 @@ function ZenSettingsPage:_openSubmenu(item, items, defer_update)
     return true
 end
 
-function ZenSettingsPage:onMenuSelect(item)
+function ZenSettingsPage:onMenuSelect(item, pos)
     if item._zen_search_result then
         self:_openSearchResult(item._zen_search_result)
         return true
     end
     if not enabled(item) then return true end
     self._pending_navigation_title = item.sub_title or item_text(item)
+
+    local bounds = item._zen_settings_control_bounds
+    if type(item.checkmark_callback) == "function" and type(pos) == "table"
+            and type(pos.x) == "number" and type(bounds) == "table"
+            and pos.x >= bounds.left and pos.x <= bounds.right then
+        item.checkmark_callback()
+        self._search_index = nil
+        self:updateItems()
+        return true
+    end
 
     local sub_items = self:_resolveSubItems(item)
     if sub_items then
@@ -503,6 +513,10 @@ end
 
 function ZenSettingsPage:onClose()
     return self:backToUpperMenu()
+end
+
+function ZenSettingsPage:onExit()
+    return self:closeMenu()
 end
 
 function ZenSettingsPage:onLeftButtonTap()

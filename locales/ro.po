@@ -12,8 +12,23 @@ msgstr " zile"
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
-msgid "%1 mins left in chapter"
+msgid "%1 min left"
+msgstr "%1 min rămase"
+
+msgid "%1 min left in chapter"
 msgstr "%1 min rămase în capitol"
+
+msgid "%1h"
+msgstr "%1 h"
+
+msgid "%1h %2m"
+msgstr "%1 h %2 min"
+
+msgid "%1m"
+msgstr "%1 min"
+
+msgid "< %1m"
+msgstr "< %1 min"
 
 msgid "%1, %2 %3"
 msgstr "%1, %3 %2"
@@ -57,8 +72,8 @@ msgstr "1 autor"
 msgid "1 book"
 msgstr "1 carte"
 
-msgid "1 min left in chapter"
-msgstr "1 min rămas în capitol"
+msgid "1 language"
+msgstr "1 limbă"
 
 msgid "1 series"
 msgstr "1 serie"
@@ -83,9 +98,6 @@ msgstr "270°"
 
 msgid "90°"
 msgstr "90°"
-
-msgid "< 1 min left in chapter"
-msgstr "< 1 min rămas în capitol"
 
 msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "O experiență curată, minimă pentru cititorul dvs. electronic.\n\nGlisați sau atingeți Următorul pentru a continua."
@@ -933,6 +945,9 @@ msgstr "Manager fișiere"
 msgid "Filebrowser plugin is not installed."
 msgstr "Pluginul Filebrowser nu este instalat."
 
+msgid "Filename"
+msgstr "Nume de fișier"
+
 msgid "Filename:"
 msgstr "Nume de fișier:"
 
@@ -1196,6 +1211,12 @@ msgstr "Mod mozaic peisaj"
 
 msgid "Landscape mosaic: "
 msgstr "Mozaic peisaj: "
+
+msgid "Languages"
+msgstr "Limbi"
+
+msgid "languages"
+msgstr "limbi"
 
 msgid "Large"
 msgstr "Mare"
@@ -1490,6 +1511,9 @@ msgstr "Nu există cărți la care să comuți"
 
 msgid "No books with author metadata found"
 msgstr "Nu s-au găsit cărți cu metadate ale autorului"
+
+msgid "No books with language metadata found"
+msgstr "Nu s-au găsit cărți cu metadate despre limbă"
 
 msgid "No books with series metadata found"
 msgstr "Nu s-au găsit cărți cu metadate de serie"
@@ -1794,6 +1818,9 @@ msgstr "Ora de citire"
 msgid "Read today"
 msgstr "Citiți astăzi"
 
+msgid "Read: %s"
+msgstr "Citit: %s"
+
 msgid "Reader"
 msgstr "Cititor"
 
@@ -1850,6 +1877,9 @@ msgstr "obișnuit"
 
 msgid "Release metadata is invalid or incomplete."
 msgstr "Metadatele versiunii sunt invalide sau incomplete."
+
+msgid "Remaining: %s"
+msgstr "Rămas: %s"
 
 msgid "Remove"
 msgstr "Elimină"
@@ -2213,6 +2243,9 @@ msgstr "Sortare bibliotecă"
 
 msgid "Sort library by"
 msgstr "Sortare bibliotecă după"
+
+msgid "Sort languages"
+msgstr "Sortare limbi"
 
 msgid "Sort order"
 msgstr "Ordine de sortare"
@@ -2595,8 +2628,8 @@ msgstr "Folosește ultimul dosar"
 msgid "username"
 msgstr "nume utilizator"
 
-msgid "Verbose time to chapter end"
-msgstr "Timp detaliat până la sfârșitul capitolului"
+msgid "Time until chapter end"
+msgstr "Timp până la sfârșitul capitolului"
 
 msgid "View"
 msgstr "Vizualizare"

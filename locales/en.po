@@ -12,8 +12,23 @@ msgstr " days"
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
-msgid "%1 mins left in chapter"
-msgstr "%1 mins left in chapter"
+msgid "%1 min left"
+msgstr "%1 min left"
+
+msgid "%1 min left in chapter"
+msgstr "%1 min left in chapter"
+
+msgid "%1h"
+msgstr "%1h"
+
+msgid "%1h %2m"
+msgstr "%1h %2m"
+
+msgid "%1m"
+msgstr "%1m"
+
+msgid "< %1m"
+msgstr "< %1m"
 
 msgid "%1, %2 %3"
 msgstr "%1, %2 %3"
@@ -57,8 +72,8 @@ msgstr "1 author"
 msgid "1 book"
 msgstr "1 book"
 
-msgid "1 min left in chapter"
-msgstr "1 min left in chapter"
+msgid "1 language"
+msgstr "1 language"
 
 msgid "1 series"
 msgstr "1 series"
@@ -83,9 +98,6 @@ msgstr "270°"
 
 msgid "90°"
 msgstr "90°"
-
-msgid "< 1 min left in chapter"
-msgstr "< 1 min left in chapter"
 
 msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
@@ -933,6 +945,9 @@ msgstr "Filebrowser"
 msgid "Filebrowser plugin is not installed."
 msgstr "Filebrowser plugin is not installed."
 
+msgid "Filename"
+msgstr "Filename"
+
 msgid "Filename:"
 msgstr "Filename:"
 
@@ -1196,6 +1211,12 @@ msgstr "Landscape mosaic mode"
 
 msgid "Landscape mosaic: "
 msgstr "Landscape mosaic: "
+
+msgid "Languages"
+msgstr "Languages"
+
+msgid "languages"
+msgstr "languages"
 
 msgid "Large"
 msgstr "Large"
@@ -1490,6 +1511,9 @@ msgstr "No books to switch to"
 
 msgid "No books with author metadata found"
 msgstr "No books with author metadata found"
+
+msgid "No books with language metadata found"
+msgstr "No books with language metadata found"
 
 msgid "No books with series metadata found"
 msgstr "No books with series metadata found"
@@ -1794,6 +1818,9 @@ msgstr "Read time"
 msgid "Read today"
 msgstr "Read today"
 
+msgid "Read: %s"
+msgstr "Read: %s"
+
 msgid "Reader"
 msgstr "Reader"
 
@@ -1850,6 +1877,9 @@ msgstr "regular"
 
 msgid "Release metadata is invalid or incomplete."
 msgstr "Release metadata is invalid or incomplete."
+
+msgid "Remaining: %s"
+msgstr "Remaining: %s"
 
 msgid "Remove"
 msgstr "Remove"
@@ -2213,6 +2243,9 @@ msgstr "Sort library"
 
 msgid "Sort library by"
 msgstr "Sort library by"
+
+msgid "Sort languages"
+msgstr "Sort languages"
 
 msgid "Sort order"
 msgstr "Sort order"
@@ -2595,8 +2628,8 @@ msgstr "Use last folder"
 msgid "username"
 msgstr "username"
 
-msgid "Verbose time to chapter end"
-msgstr "Verbose time to chapter end"
+msgid "Time until chapter end"
+msgstr "Time until chapter end"
 
 msgid "View"
 msgstr "View"

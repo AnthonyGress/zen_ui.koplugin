@@ -213,6 +213,7 @@ describe("file browser guard patches", function()
 
         apply_patch("modules/filebrowser/patches/browser_hide_underline")
         assert.is_true(shared.hide_underline_active)
+        assert.is_function(shared.hideMenuUnderlines)
         assert.is_function(registered)
         registered({})
 
@@ -227,6 +228,10 @@ describe("file browser guard patches", function()
         local cover = { _underline_container = { color = "black" } }
         CoverMenu.updateItems({ layout = { { cover } } })
         assert.are.equal("white", cover._underline_container.color)
+
+        local restored = { _underline_container = { color = "black" } }
+        shared.hideMenuUnderlines({ layout = { { restored } } })
+        assert.are.equal("white", restored._underline_container.color)
 
         local list_item = { _underline_container = { color = "black" } }
         ListMenuItem.update(list_item)

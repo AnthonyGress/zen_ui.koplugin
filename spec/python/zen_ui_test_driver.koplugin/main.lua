@@ -770,7 +770,7 @@ local function ensure_reader_status_fonts(preset_key)
     top_config.center_order = {}
     top_config.right_order = { "chapter" }
     if type(plugin.config.reader_footer) ~= "table" then plugin.config.reader_footer = {} end
-    plugin.config.reader_footer.verbose_chapter_time = true
+    plugin.config.reader_footer.chapter_time_format = "full"
     require("config/preset_store").setActivePreset("reader", preset.name)
 
     local top = plugin.config.reader_top_status_bar and plugin.config.reader_top_status_bar.font_face
@@ -887,7 +887,7 @@ local function home_state()
     local widget_heights = {}
     local quote_content_bounds
     local book_paths = {}
-    local strip_bottom
+    local strip_control_top
     local strip_control_count = 0
     for _i, target in ipairs(menu and menu._zen_home_focus_targets or {}) do
         local key = type(target.key) == "string" and target.key or ""
@@ -901,13 +901,23 @@ local function home_state()
             widget_heights[widget_id] = target.height
             if widget_id == "quotes" then
                 quote_content_bounds = find_quote_content_bounds(target.widget, {}, 0)
+                local row_dimen = target.widget and target.widget.dimen
+                local row_top = row_dimen and tonumber(row_dimen.y)
+                local row_h = row_dimen and tonumber(row_dimen.h)
+                if quote_content_bounds and row_top and row_h
+                        and (quote_content_bounds.bottom < row_top
+                            or quote_content_bounds.top > row_top + row_h) then
+                    quote_content_bounds = nil
+                end
             end
         end
         if book_path then book_paths[#book_paths + 1] = book_path end
         local dimen = target.component_id == "strip"
             and target.widget and target.widget.dimen or nil
         if dimen and type(dimen.y) == "number" and type(dimen.h) == "number" then
-            strip_bottom = math.max(strip_bottom or 0, dimen.y + dimen.h)
+            if key:match("^strip%-control:") then
+                strip_control_top = math.min(strip_control_top or dimen.y, dimen.y)
+            end
         end
     end
     return {
@@ -925,7 +935,7 @@ local function home_state()
         body_height = menu and menu.height or 0,
         top_visual_inset = menu and menu._zen_home_top_visual_inset or 0,
         bottom_visual_inset = menu and menu._zen_home_bottom_visual_inset or nil,
-        strip_bottom = strip_bottom,
+        strip_control_top = strip_control_top,
         strip_control_count = strip_control_count,
         visual_gaps = menu and menu._zen_home_visual_gaps or {},
         clock_refreshers = #(menu and menu._zen_home_clock_refreshers or {}),

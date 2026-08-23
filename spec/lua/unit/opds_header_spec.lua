@@ -29,9 +29,10 @@ describe("OPDS header", function()
         return class
     end
 
-    local function generated_button(side, callback)
+    local function generated_button(side, callback, icon)
         return {
             side = side,
+            icon = icon,
             width = 24,
             height = 24,
             padding = 4,
@@ -52,8 +53,8 @@ describe("OPDS header", function()
             for i = #self, 1, -1 do self[i] = nil end
         end
         function title_bar:init()
-            self.left_button = generated_button("left", self.left_icon_tap_callback)
-            self.right_button = generated_button("right", self.right_icon_tap_callback)
+            self.left_button = generated_button("left", self.left_icon_tap_callback, self.left_icon)
+            self.right_button = generated_button("right", self.right_icon_tap_callback, self.right_icon)
             self[1] = self.left_button
             self[2] = self.right_button
         end
@@ -179,6 +180,8 @@ describe("OPDS header", function()
         assert.are.equal("/zen-ui/icons/tab_left.svg", buttons[1].file)
         assert.are.equal("/zen-ui/icons/quick_search.svg", buttons[2].file)
         assert.are.equal("/zen-ui/icons/close.svg", buttons[3].file)
+        assert.are.equal("chevron.left", browser.title_bar.left_icon)
+        assert.are.equal("close", browser.title_bar.right_icon)
         assert.are.equal("left", buttons[1].overlap_align)
         assert.are.equal("right", buttons[3].overlap_align)
         assert.is_true(browser.layout[1] == buttons)
@@ -197,6 +200,8 @@ describe("OPDS header", function()
         assert.are.equal("back", browser.layout[1][1]._zen_opds_focus_id)
         assert.are.equal("search", browser.layout[1][2]._zen_opds_focus_id)
         assert.are.equal("close", browser.layout[1][3]._zen_opds_focus_id)
+        assert.are.equal("chevron.left", browser.title_bar.left_icon)
+        assert.are.equal("close", browser.title_bar.right_icon)
         assert.is_true(browser.layout[2][1] == browser.item)
 
         browser.search_url = nil
@@ -204,5 +209,11 @@ describe("OPDS header", function()
         assert.are.equal("menu", browser.layout[1][2]._zen_opds_focus_id)
         browser.layout[1][2].callback()
         assert.are.equal(1, menu_opened)
+
+        -- appendCatalog changes the title, which rebuilds TitleBar without fix_buttons.
+        browser.title_bar:clear()
+        browser.title_bar:init()
+        assert.are.equal("chevron.left", browser.title_bar.left_button.icon)
+        assert.are.equal("close", browser.title_bar.right_button.icon)
     end)
 end)

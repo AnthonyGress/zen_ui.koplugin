@@ -1,6 +1,6 @@
 local function apply_reader_footer_time_format()
     --[[
-        Displays "time to chapter" as "X mins left in chapter" instead of icon + timestamp.
+        Displays "time to chapter" in the selected Zen format.
         Patches ReaderFooter.textGeneratorMap.chapter_time_to_read.
     --]]
 
@@ -8,29 +8,37 @@ local function apply_reader_footer_time_format()
     local _ = require("gettext")
     local T = require("ffi/util").template
 
-    local orig = ReaderFooter.textGeneratorMap.chapter_time_to_read -- luacheck: ignore
+    local orig_chapter_time_to_read = ReaderFooter.textGeneratorMap.chapter_time_to_read
     local orig_filler = ReaderFooter.textGeneratorMap.dynamic_filler
 
     -- Capture at apply time (while __ZEN_UI_PLUGIN is set); fall back to
     -- re-reading the global for late callers (same pattern as reader_top_status_bar.lua).
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
-    local function is_verbose()
+    local function get_time_format()
         local plugin = zen_plugin or rawget(_G, "__ZEN_UI_PLUGIN")
         local rf_config = plugin and plugin.config and plugin.config.reader_footer
-        return type(rf_config) == "table" and rf_config.verbose_chapter_time == true
+        if type(rf_config) ~= "table" then return "number" end
+        local format = rf_config.chapter_time_format
+        if format == "full" or format == "compact" or format == "number"
+                or format == "koreader" then
+            return format
+        end
+        return rf_config.verbose_chapter_time == true and "full" or "number"
     end
 
     -- The dynamic_filler formula adds separator_width back to compensate for the
     -- merged separator, which can push the total over max_width by ~1 space,
     -- causing TextWidget to truncate adjacent items with "...". By removing 6
     -- extra spaces (approx 30px), we guarantee it fits safely without truncation.
-    -- Only trim when verbose mode is active.
+    -- Only trim for the longer text formats.
     --
     -- Named local so we can reference it in the genAllFooterText patch below.
     local zen_filler_wrapper = function(footer)
         local text, merge, is_filler = orig_filler(footer)
-        if is_verbose() and type(text) == "string" and #text > 0 then
+        local format = get_time_format()
+        if (format == "full" or format == "compact")
+                and type(text) == "string" and #text > 0 then
             local ct = ReaderFooter.textGeneratorMap.chapter_time_to_read(footer)
             if ct and ct ~= "" then
                 if #text > 8 then
@@ -61,12 +69,19 @@ local function apply_reader_footer_time_format()
 
     ReaderFooter.textGeneratorMap.dynamic_filler = zen_filler_wrapper
 
-    ReaderFooter.textGeneratorMap.chapter_time_to_read = function(footer)
-        -- Only show verbose text when the setting is explicitly enabled.
-        if not is_verbose() then
-            return orig(footer)
-        end
+    local function format_short_duration(total_minutes)
+        if total_minutes < 1 then return T(_("< %1m"), 1) end
+        local hours = math.floor(total_minutes / 60)
+        local minutes = total_minutes % 60
+        if hours == 0 then return T(_("%1m"), minutes) end
+        if minutes == 0 then return T(_("%1h"), hours) end
+        return T(_("%1h %2m"), hours, minutes)
+    end
 
+    ReaderFooter.textGeneratorMap.chapter_time_to_read = function(footer)
+        if get_time_format() == "koreader" then
+            return orig_chapter_time_to_read(footer)
+        end
         local stats = footer.ui.statistics
         -- avg_time > 0 also rules out NaN (NaN > 0 is false in LuaJIT)
         if stats and stats.settings and stats.settings.is_enabled
@@ -86,13 +101,14 @@ local function apply_reader_footer_time_format()
                 -- supplies. It is narrower than \u{00A0} and is not an
                 -- ASCII space, so the compact_items gsub leaves it alone.
                 local hair = "\u{200A}"
-                if total_minutes < 1 then
-                    return hair .. _("< 1 min left in chapter"):gsub(" ", nbsp)
-                elseif total_minutes == 1 then
-                    return hair .. _("1 min left in chapter"):gsub(" ", nbsp)
-                else
-                    return hair .. T(_("%1 mins left in chapter"), total_minutes):gsub(" ", nbsp)
+                local minutes = total_minutes < 1 and "< 1" or tostring(total_minutes)
+                local format = get_time_format()
+                if format == "number" then
+                    return hair .. format_short_duration(total_minutes)
                 end
+                local template = format == "compact"
+                    and _("%1 min left") or _("%1 min left in chapter")
+                return hair .. T(template, minutes):gsub(" ", nbsp)
             end
         end
         return ""

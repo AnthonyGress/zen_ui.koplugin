@@ -196,6 +196,45 @@ describe("reader lookup menus", function()
         assert.same({ "deterministic", true }, translated)
     end)
 
+    it("recognizes localized id-less vocabulary buttons on the new API", function()
+        local translated_label = "添加到生词本"
+        ZenSpec.replace("gettext", function(text)
+            if text == "Add to vocabulary builder" then return translated_label end
+            return text
+        end)
+        local DictQuickLookup = {
+            buildButtonLayout = function()
+                return {
+                    { { id = "highlight", callback = function() end }, { id = "search" } },
+                    { { text = translated_label } },
+                }
+            end,
+        }
+        ZenSpec.replace("ui/widget/dictquicklookup", DictQuickLookup)
+        ZenSpec.replace("apps/reader/modules/readerhighlight", {})
+        ZenSpec.replace("ui/translator", {})
+        _G.__ZEN_UI_PLUGIN = {
+            config = {
+                features = { dict_quick_lookup = true },
+                highlight_lookup = {},
+            },
+        }
+        require("modules/reader/patches/dict_quick_lookup")()
+
+        local events = {}
+        local result = DictQuickLookup.buildButtonLayout({
+            highlight = {},
+            lookupword = "本",
+            ui = { handleEvent = function(_, event) events[#events + 1] = event end },
+        })
+        assert.are.equal("vocabulary", result[1][2].id)
+        assert.are.equal("lookup.vocab", result[1][2].icon)
+        assert.are.equal(1, #result)
+        result[1][2].callback()
+        assert.are.equal("WordLookedUp", events[1].name)
+        assert.are.equal("本", events[1].args[1])
+    end)
+
     it("shows recognized dictionary plugins by default and honors their toggles", function()
         local original = {
             { { id = "highlight", callback = function() end }, { id = "search" } },
@@ -284,6 +323,53 @@ describe("reader lookup menus", function()
         DictQuickLookup.init(lookup)
         assert.are.equal("Explain (KOA)", lookup.final_buttons[2][1].text)
         assert.are.equal(2, #lookup.final_buttons)
+    end)
+
+    it("recognizes localized id-less vocabulary buttons on the legacy API", function()
+        local translated_label = "添加到生词本"
+        ZenSpec.replace("gettext", function(text)
+            if text == "Add to vocabulary builder" then return translated_label end
+            return text
+        end)
+        local ReaderHighlight = {}
+        local DictQuickLookup = {
+            init = function(self)
+                local buttons = {
+                    { { id = "highlight", callback = function() end }, { id = "search" } },
+                }
+                self.ui:handleEvent({
+                    handler = "onDictButtonsReady",
+                    args = { self, buttons },
+                })
+                self.final_buttons = buttons
+            end,
+        }
+        ZenSpec.replace("ui/widget/dictquicklookup", DictQuickLookup)
+        ZenSpec.replace("apps/reader/modules/readerhighlight", ReaderHighlight)
+        ZenSpec.replace("ui/translator", {})
+        _G.__ZEN_UI_PLUGIN = {
+            config = {
+                features = { dict_quick_lookup = true },
+                highlight_lookup = {},
+            },
+        }
+        require("modules/reader/patches/dict_quick_lookup")()
+
+        local lookup = {
+            lookupword = "本",
+            highlight = {},
+            ui = {
+                handleEvent = function(_, event)
+                    ReaderHighlight.onDictButtonsReady(
+                        {}, event.args[1], event.args[2])
+                    table.insert(event.args[2], { { text = translated_label } })
+                end,
+            },
+        }
+        DictQuickLookup.init(lookup)
+        assert.are.equal(1, #lookup.final_buttons)
+        assert.are.equal("vocabulary", lookup.final_buttons[1][2].id)
+        assert.are.equal("lookup.vocab", lookup.final_buttons[1][2].icon)
     end)
 
     it("toggles an existing dictionary highlight off and closes the lookup", function()

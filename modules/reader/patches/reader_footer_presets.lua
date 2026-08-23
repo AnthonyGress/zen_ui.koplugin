@@ -143,7 +143,7 @@ presets[1] = {
     reader_footer_custom_text = "ZenOS",
     reader_footer_custom_text_repetitions = 1,
     reader_footer_mode = 1,
-    verbose_chapter_time = true,
+    chapter_time_format = "full",
 }
 
 presets[2] = {
@@ -268,7 +268,7 @@ presets[3] = {
     reader_footer_custom_text = "ZenOS",
     reader_footer_custom_text_repetitions = 1,
     reader_footer_mode = 1,
-    verbose_chapter_time = true,
+    chapter_time_format = "full",
 }
 
 presets[4] = {
@@ -394,7 +394,7 @@ presets[5] = {
     reader_footer_custom_text = "ZenOS",
     reader_footer_custom_text_repetitions = 1,
     reader_footer_mode = 1,
-    verbose_chapter_time = true,
+    chapter_time_format = "full",
 }
 
 presets[6] = {

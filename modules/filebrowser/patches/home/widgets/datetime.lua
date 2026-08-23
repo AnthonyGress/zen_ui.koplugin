@@ -1,6 +1,6 @@
 local Background = require("common/ui/background")
 local Blitbuffer = require("ffi/blitbuffer")
-local BaseUtil = require("ffi/util")
+local DateFormat = require("common/date_format")
 local Device = require("device")
 local Font = require("ui/font")
 local Geom = require("ui/geometry")
@@ -10,9 +10,6 @@ local WidgetResources = require("common/widget_resources")
 local library_font = require("modules/filebrowser/patches/library_font")
 local _ = require("gettext")
 
-local LOWERCASE_MONTH_LANGUAGES = {
-    es = true, fr = true, it = true, nl = true, pt = true, ro = true,
-}
 local DEFAULT_MAX_TIME_SIZE = 36
 local MAX_TIME_SIZE = 52
 
@@ -29,21 +26,6 @@ local function time_text()
         text = text:gsub("^0(%d:)", "%1")
     end
     return text
-end
-
-local function date_text()
-    local datetime = require("datetime")
-    local t = os.date("*t")
-    local weekday = datetime.shortDayOfWeekToLongTranslation[datetime.weekDays[t.wday]] or os.date("%A")
-    local month_name = os.date("%B")
-    local month = datetime.longMonthTranslation[month_name] or month_name
-    local gs = rawget(_G, "G_reader_settings")
-    local language = gs and gs.readSetting and gs:readSetting("language") or "en"
-    if LOWERCASE_MONTH_LANGUAGES[tostring(language):match("^[a-z]+") or ""] then
-        month = month:gsub("^%u", string.lower)
-    end
-    -- Translators: %1 weekday, %2 month name, %3 day of month.
-    return BaseUtil.template(_("%1, %2 %3"), weekday, month, tostring(t.day))
 end
 
 local function clock_styles(module_cfg)
@@ -92,7 +74,7 @@ local function preferred_height(ctx)
     local automatic_font_size = module_cfg.automatic_font_size ~= false
     local date_gap = math.max(1, Screen:scaleBySize(2))
     local time_str = time_text()
-    local date_str = date_text()
+    local date_str = DateFormat.formatLongWithWeekday()
     local best_h
     local last_h
 
@@ -178,7 +160,7 @@ return {
             resources[2] = nil
 
             local time_str = time_text()
-            local date_str = date_text()
+            local date_str = DateFormat.formatLongWithWeekday()
             local function make_clock_widgets(time_px, date_px)
                 return new_clock_widgets(
                     Screen, time_font_name, date_font_name,

@@ -1,6 +1,8 @@
 local ConfigManager = require("config/manager")
 local book_status = require("common/book_status")
 local HistoryIndex = require("common/history_index")
+local icons = require("common/inline_icon_map")
+local LanguageName = require("common/language_name")
 local paths = require("common/paths")
 local StandalonePage = require("modules/filebrowser/patches/standalone_page")
 local SharedState = require("common/shared_state")
@@ -12,6 +14,7 @@ local M = {}
 -- Active group view menus (so we can refresh them)
 local _authors_menu = nil
 local _series_menu  = nil
+local _languages_menu = nil
 local _tbr_menu     = nil
 local _tags_menu    = nil
 -- Detail view menus layered on top of the group menu
@@ -20,6 +23,7 @@ local _detail_menus = {}
 local function get_root_menu(tab_id)
     if tab_id == "authors" then return _authors_menu end
     if tab_id == "series" then return _series_menu end
+    if tab_id == "languages" then return _languages_menu end
     if tab_id == "tags" then return _tags_menu end
     if tab_id == "to_be_read" then return _tbr_menu end
 end
@@ -29,6 +33,8 @@ local function clear_root_menu(tab_id, menu)
         _authors_menu = nil
     elseif tab_id == "series" and _series_menu == menu then
         _series_menu = nil
+    elseif tab_id == "languages" and _languages_menu == menu then
+        _languages_menu = nil
     elseif tab_id == "tags" and _tags_menu == menu then
         _tags_menu = nil
     elseif tab_id == "to_be_read" and _tbr_menu == menu then
@@ -39,6 +45,7 @@ end
 local root_show_methods = {
     authors = "showAuthorsView",
     series = "showSeriesView",
+    languages = "showLanguagesView",
     tags = "showTagsView",
     to_be_read = "showTBRView",
 }
@@ -165,7 +172,7 @@ local function get_group_reverse(tab_id)
 end
 
 local function set_group_reverse(tab_id, reverse)
-    if tab_id ~= "authors" and tab_id ~= "series" then return end
+    if tab_id ~= "authors" and tab_id ~= "series" and tab_id ~= "languages" then return end
     local cfg = load_zen_config()
     if type(cfg) ~= "table" then return end
     if type(cfg.group_view) ~= "table" then cfg.group_view = {} end
@@ -400,6 +407,7 @@ local function group_empty_message(data_type)
     return ({
         authors = _("No books with author metadata found"),
         series = _("No books with series metadata found"),
+        languages = _("No books with language metadata found"),
         tags = _("No books with tags metadata found"),
         to_be_read = _("No TBR books found"),
     })[data_type] or _("No books found")
@@ -410,7 +418,7 @@ local function build_group_item_table(groups, data_type)
     local items = {}
     for _i, group in ipairs(groups) do
         local files
-        if data_type == "authors" or data_type == "tags" then
+        if data_type == "authors" or data_type == "languages" or data_type == "tags" then
             files = group.files
         else
             -- series items: extract file paths in order
@@ -419,7 +427,9 @@ local function build_group_item_table(groups, data_type)
                 table.insert(files, item.file)
             end
         end
-        local display = (group.author or group.series or group.tag or "?"):gsub("\n", ", ")
+        local display = group.author or group.series or group.language or group.tag or "?"
+        if data_type == "languages" then display = LanguageName.get(display) end
+        display = tostring(display):gsub("\n", ", ")
         local count = #files
         table.insert(items, {
             text        = display,
@@ -438,8 +448,9 @@ local function build_group_item_table(groups, data_type)
         })
     end
 
-    -- Apply reverse sort if enabled (authors / series only; tags use per-group or global book sort)
-    if (data_type == "authors" or data_type == "series") and get_group_reverse(data_type) and #items > 0 then
+    -- Apply reverse sort if enabled (tags use per-group or global book sort).
+    if (data_type == "authors" or data_type == "series" or data_type == "languages")
+            and get_group_reverse(data_type) and #items > 0 then
         -- Reverse the array (skip the placeholder)
         if items[1].text ~= empty_message then
             local reversed = {}
@@ -514,6 +525,8 @@ local function showDisplayModeDialog(menu, tab_id)
             local root_menu
             if tab_id == "authors" then
                 root_menu = _authors_menu
+            elseif tab_id == "languages" then
+                root_menu = _languages_menu
             elseif tab_id == "tags" then
                 root_menu = _tags_menu
             else
@@ -573,6 +586,7 @@ local function showGroupSortDialog(tab_id, menu)
             { key = "series_index",  text = "\u{F0CB}  " .. _("Series number") },
             { key = "title",         text = "\u{F031}  " .. _("Title") },
             { key = "title_natural", text = "\u{F04BB}  " .. _("Title natural") },
+            { key = "strcoll",       text = icons.filename .. "  " .. _("Filename") },
             { key = "access",        text = "\u{F073}  " .. _("Recently read") },
         }
 
@@ -636,7 +650,8 @@ local function showGroupSortDialog(tab_id, menu)
     local fm = ok_fm and FM and FM.instance
     if not fm then return end
 
-    local title        = tab_id == "authors" and _("Sort authors") or _("Sort series")
+    local title = tab_id == "authors" and _("Sort authors")
+        or tab_id == "languages" and _("Sort languages") or _("Sort series")
 
     fm.file_chooser:showSortOrderDialog({
         title           = title,
@@ -649,6 +664,8 @@ local function showGroupSortDialog(tab_id, menu)
                     local groups
                     if tab_id == "authors" then
                         groups = db.getGroupedByAuthor()
+                    elseif tab_id == "languages" then
+                        groups = db.getGroupedByLanguage()
                     elseif tab_id == "tags" then
                         groups = db.getGroupedByTags()
                     else
@@ -669,24 +686,33 @@ end
 local function sortDetailFiles(files, collate, reverse)
     if not files or #files == 0 then return files end
 
-    local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
-    if not ok_bim then return files end
+    -- Batch-load the metadata for the whole library with one cached query
+    -- (db_bookinfo.getLightMetadata) instead of issuing one SQL statement per
+    -- file via BookInfoManager:getBookInfo.
+    local meta_map
+    if collate == "title" or collate == "title_natural"
+        or collate == "series_index" or collate == "series" then
+        local ok_db, db = pcall(require, "common/db_bookinfo")
+        if ok_db and type(db.getLightMetadata) == "function" then
+            meta_map = db.getLightMetadata()
+        end
+    end
 
     -- Build sortable array with metadata
     local items = {}
     local normalize_path = paths.normPath
     local history = collate == "access" and HistoryIndex.load(normalize_path) or nil
     for _i, fpath in ipairs(files) do
-        local bookinfo = BookInfoManager:getBookInfo(fpath, false)
+        local meta = meta_map and (meta_map[fpath] or meta_map[normalize_path(fpath)])
         local sort_key
 
         if collate == "title" or collate == "title_natural" then
-            sort_key = (bookinfo and bookinfo.title) or fpath:match("([^/]+)$") or fpath
+            sort_key = (meta and meta.title) or fpath:match("([^/]+)$") or fpath
         elseif collate == "series_index" then
             -- Numeric; books without an index sort last.
-            sort_key = (bookinfo and tonumber(bookinfo.series_index)) or math.huge
+            sort_key = (meta and tonumber(meta.series_index)) or math.huge
         elseif collate == "series" then
-            sort_key = (bookinfo and bookinfo.series) or ""
+            sort_key = (meta and meta.series) or ""
         elseif collate == "access" then
             local lfs = require("libs/libkoreader-lfs")
             sort_key = HistoryIndex.fileTime(history, fpath, normalize_path)
@@ -723,7 +749,11 @@ local function sortDetailFiles(files, collate, reverse)
         local sort_func = BookList.collates.title_natural.init_sort_func()
 
         table.sort(items, function(a, b)
-            return sort_func({ doc_props = { display_title = a.key } }, { doc_props = { display_title = b.key } })
+            local first, second = a, b
+            if reverse then first, second = second, first end
+            return sort_func(
+                { doc_props = { display_title = first.key } },
+                { doc_props = { display_title = second.key } })
         end)
     end
 
@@ -783,6 +813,7 @@ local function showDetailSortDialog(group_name, tab_id, menu, files, reload_file
         { key = "series_index",  text = "\u{F0CB}  " .. _("Series number") },
         { key = "title",         text = "\u{F031}  " .. _("Title") },
         { key = "title_natural", text = "\u{F04BB}  " .. _("Title natural") },
+        { key = "strcoll",       text = icons.filename .. "  " .. _("Filename") },
         { key = "access",        text = "\u{F073}  " .. _("Recently read") },
     }
 
@@ -957,6 +988,8 @@ local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
     local detail_name
     if tab_id == "authors" then
         detail_name = "authors_detail"
+    elseif tab_id == "languages" then
+        detail_name = "languages_detail"
     elseif tab_id == "tags" then
         detail_name = "tags_detail"
     else
@@ -1083,6 +1116,8 @@ local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
         local parent
         if tab_id == "authors" then
             parent = _authors_menu
+        elseif tab_id == "languages" then
+            parent = _languages_menu
         elseif tab_id == "tags" then
             parent = _tags_menu
         else
@@ -1091,6 +1126,7 @@ local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
         if parent then
             UIManager:close(parent)
             if tab_id == "authors" then _authors_menu = nil
+            elseif tab_id == "languages" then _languages_menu = nil
             elseif tab_id == "tags" then _tags_menu = nil
             else _series_menu = nil end
         end
@@ -1237,16 +1273,19 @@ function M.showSourceContextMenu(tab_id, menu, options)
         return true
     end
 
-    if tab_id ~= "authors" and tab_id ~= "series" and tab_id ~= "tags" then
+    if tab_id ~= "authors" and tab_id ~= "series"
+            and tab_id ~= "languages" and tab_id ~= "tags" then
         return false
     end
     local label = tab_id == "authors" and _("Authors")
+        or tab_id == "languages" and _("Languages")
         or tab_id == "tags" and _("Tags") or _("Series")
     local count = tonumber(options.item_count)
     if not count then
         local ok_db, db = pcall(require, "common/db_bookinfo")
         if not ok_db or not db then return false end
         local groups = tab_id == "authors" and db.getGroupedByAuthor()
+            or tab_id == "languages" and db.getGroupedByLanguage()
             or tab_id == "tags" and db.getGroupedByTags()
             or db.getGroupedBySeries()
         count = type(groups) == "table" and #groups or 0
@@ -1255,6 +1294,9 @@ function M.showSourceContextMenu(tab_id, menu, options)
     if tab_id == "authors" then
         subtitle = count == 1 and _("1 author")
             or (tostring(count) .. " " .. _("authors"))
+    elseif tab_id == "languages" then
+        subtitle = count == 1 and _("1 language")
+            or (tostring(count) .. " " .. _("languages"))
     elseif tab_id == "tags" then
         subtitle = count == 1 and _("1 tag")
             or (tostring(count) .. " " .. _("tags"))
@@ -1281,6 +1323,8 @@ showGroupView = function(tab_id, injectNavbar, groups)
     local title
     if tab_id == "authors" then
         title = _("Authors")
+    elseif tab_id == "languages" then
+        title = _("Languages")
     elseif tab_id == "tags" then
         title = _("Tags")
     else
@@ -1345,6 +1389,8 @@ showGroupView = function(tab_id, injectNavbar, groups)
 
     if tab_id == "authors" then
         _authors_menu = menu
+    elseif tab_id == "languages" then
+        _languages_menu = menu
     elseif tab_id == "tags" then
         _tags_menu = menu
     else
@@ -1442,6 +1488,15 @@ function M.showSeriesView(injectNavbar)
     if not ok then return end
     local groups = db.getGroupedBySeries()
     return showGroupView("series", injectNavbar, groups)
+end
+
+function M.showLanguagesView(injectNavbar)
+    if _languages_menu then return _languages_menu, false end
+    refresh_shared_state()
+    local ok, db = pcall(require, "common/db_bookinfo")
+    if not ok then return end
+    local groups = db.getGroupedByLanguage()
+    return showGroupView("languages", injectNavbar, groups)
 end
 
 function M.showTagsView(injectNavbar)
@@ -1682,6 +1737,8 @@ function M.restoreDetail(group_name, tab_id, injectNavbar_fn)
     local menu
     if tab_id == "authors" then
         menu = _authors_menu
+    elseif tab_id == "languages" then
+        menu = _languages_menu
     elseif tab_id == "tags" then
         menu = _tags_menu
     else
@@ -1709,6 +1766,8 @@ function M.getActivePage(tab_id)
         return _authors_menu.page
     elseif tab_id == "series" and _series_menu then
         return _series_menu.page
+    elseif tab_id == "languages" and _languages_menu then
+        return _languages_menu.page
     elseif tab_id == "to_be_read" and _tbr_menu then
         return _tbr_menu.page
     elseif tab_id == "tags" and _tags_menu then
@@ -1725,6 +1784,7 @@ function M.closeAll()
     _detail_menus = {}
     if _authors_menu then UIManager2:close(_authors_menu); _authors_menu = nil end
     if _series_menu  then UIManager2:close(_series_menu);  _series_menu  = nil end
+    if _languages_menu then UIManager2:close(_languages_menu); _languages_menu = nil end
     if _tbr_menu     then UIManager2:close(_tbr_menu);     _tbr_menu     = nil end
     if _tags_menu    then UIManager2:close(_tags_menu);    _tags_menu    = nil end
 end

@@ -100,6 +100,7 @@ local defaults = {
             collections = false,
             authors = true,
             series = true,
+            languages = true,
             home = true,
             stats = false,
             exit = false,
@@ -107,7 +108,9 @@ local defaults = {
             page_right = false,
             menu = false,
         },
-        tab_order = { "books", "authors", "series", "home", "continue", "favorites" },
+        tab_order = {
+            "books", "authors", "series", "languages", "home", "continue", "favorites",
+        },
         show_icons = true,
         show_labels = true,
         icon_size = 34,
@@ -170,6 +173,7 @@ local defaults = {
         left_order   = { "time" },
         center_order = {},
         right_order  = { "wifi", "battery" },
+        date_format = "short",
         time_12h = true,
         show_bottom_border = false,
         colored = false,
@@ -253,7 +257,7 @@ local defaults = {
     },
     reader_footer = {
         status_bar_enabled = true,
-        verbose_chapter_time = false,
+        chapter_time_format = "number",
         hide_in_cbz = true,
     },
     highlight_lookup = {
@@ -294,12 +298,14 @@ local defaults = {
         display_mode = {
             authors = "list_image_meta",
             series = "list_image_meta",
+            languages = "list_image_meta",
             tags = "list_image_meta",
             to_be_read = "list_image_meta",
         },
         group_reverse = {
             authors = false,
             series = false,
+            languages = false,
         },
         tags_global = {
             collate = "title",
@@ -308,12 +314,14 @@ local defaults = {
         detail_collate = {
             authors = {},
             series = {},
+            languages = {},
             tags = {},
             to_be_read = {},
         },
         detail_reverse = {
             authors = {},
             series = {},
+            languages = {},
             tags = {},
             to_be_read = {},
         },

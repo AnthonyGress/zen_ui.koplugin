@@ -8,6 +8,7 @@ local BUILTINS = {
     { id = "to_be_read", label = _("To Be Read"), source = true },
     { id = "authors", label = _("Authors"), source = true },
     { id = "series", label = _("Series"), source = true },
+    { id = "languages", label = _("Languages"), source = true },
     { id = "tags", label = _("Tags"), source = true },
     { id = "collections", label = _("Collections"), source = true },
     { id = "books", label = _("Library") },

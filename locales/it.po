@@ -12,8 +12,23 @@ msgstr " giorni"
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
-msgid "%1 mins left in chapter"
+msgid "%1 min left"
+msgstr "%1 min rimanenti"
+
+msgid "%1 min left in chapter"
 msgstr "%1 min al termine del capitolo"
+
+msgid "%1h"
+msgstr "%1 h"
+
+msgid "%1h %2m"
+msgstr "%1 h %2 min"
+
+msgid "%1m"
+msgstr "%1 min"
+
+msgid "< %1m"
+msgstr "< %1 min"
 
 msgid "%1, %2 %3"
 msgstr "%1 %3 %2"
@@ -57,8 +72,8 @@ msgstr "1 autore"
 msgid "1 book"
 msgstr "1 libro"
 
-msgid "1 min left in chapter"
-msgstr "1 min al termine del capitolo"
+msgid "1 language"
+msgstr "1 lingua"
 
 msgid "1 series"
 msgstr "1 serie"
@@ -83,9 +98,6 @@ msgstr "270°"
 
 msgid "90°"
 msgstr "90°"
-
-msgid "< 1 min left in chapter"
-msgstr "< 1 min al termine del capitolo"
 
 msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "Un'esperienza pulita e minimale per il tuo e-reader.\n\nScorri o tocca Avanti per continuare."
@@ -933,6 +945,9 @@ msgstr "Gestione file"
 msgid "Filebrowser plugin is not installed."
 msgstr "Il plugin Filebrowser non è installato."
 
+msgid "Filename"
+msgstr "Nome file"
+
 msgid "Filename:"
 msgstr "Nome file:"
 
@@ -1196,6 +1211,12 @@ msgstr "Modalità mosaico orizzontale"
 
 msgid "Landscape mosaic: "
 msgstr "Mosaico orizzontale: "
+
+msgid "Languages"
+msgstr "Lingue"
+
+msgid "languages"
+msgstr "lingue"
 
 msgid "Large"
 msgstr "Grande"
@@ -1490,6 +1511,9 @@ msgstr "Nessun libro a cui passare"
 
 msgid "No books with author metadata found"
 msgstr "Nessun libro con metadati dell'autore trovato"
+
+msgid "No books with language metadata found"
+msgstr "Nessun libro con metadati sulla lingua trovato"
 
 msgid "No books with series metadata found"
 msgstr "Nessun libro con metadati della serie trovato"
@@ -1794,6 +1818,9 @@ msgstr "Leggi il tempo"
 msgid "Read today"
 msgstr "Leggi oggi"
 
+msgid "Read: %s"
+msgstr "Lettura: %s"
+
 msgid "Reader"
 msgstr "Lettore"
 
@@ -1850,6 +1877,9 @@ msgstr "normale"
 
 msgid "Release metadata is invalid or incomplete."
 msgstr "I metadati della release non sono validi o sono incompleti."
+
+msgid "Remaining: %s"
+msgstr "Rimanente: %s"
 
 msgid "Remove"
 msgstr "Rimuovi"
@@ -2213,6 +2243,9 @@ msgstr "Ordina libreria"
 
 msgid "Sort library by"
 msgstr "Ordina libreria per"
+
+msgid "Sort languages"
+msgstr "Ordina lingue"
 
 msgid "Sort order"
 msgstr "Ordine di ordinamento"
@@ -2595,8 +2628,8 @@ msgstr "Usa ultima cartella"
 msgid "username"
 msgstr "username"
 
-msgid "Verbose time to chapter end"
-msgstr "Tempo dettagliato alla fine del capitolo"
+msgid "Time until chapter end"
+msgstr "Tempo fino alla fine del capitolo"
 
 msgid "View"
 msgstr "Vista"

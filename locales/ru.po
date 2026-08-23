@@ -13,8 +13,23 @@ msgstr " дн."
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
-msgid "%1 mins left in chapter"
+msgid "%1 min left"
+msgstr "Осталось %1 мин"
+
+msgid "%1 min left in chapter"
 msgstr "%1 мин до конца главы"
+
+msgid "%1h"
+msgstr "%1 ч"
+
+msgid "%1h %2m"
+msgstr "%1 ч %2 мин"
+
+msgid "%1m"
+msgstr "%1 мин"
+
+msgid "< %1m"
+msgstr "< %1 мин"
 
 msgid "%1, %2 %3"
 msgstr "%1, %3 %2"
@@ -58,8 +73,8 @@ msgstr "1 автор"
 msgid "1 book"
 msgstr "1 книга"
 
-msgid "1 min left in chapter"
-msgstr "1 мин до конца главы"
+msgid "1 language"
+msgstr "1 язык"
 
 msgid "1 series"
 msgstr "1 серия"
@@ -84,9 +99,6 @@ msgstr "270°"
 
 msgid "90°"
 msgstr "90°"
-
-msgid "< 1 min left in chapter"
-msgstr "< 1 мин до конца главы"
 
 msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "Чистый, минимальный опыт для вашей электронной книги.\n\nПроведите пальцем по экрану или коснитесь «Далее», чтобы продолжить."
@@ -934,6 +946,9 @@ msgstr "Filebrowser"
 msgid "Filebrowser plugin is not installed."
 msgstr "Плагин Filebrowser не установлен."
 
+msgid "Filename"
+msgstr "Имя файла"
+
 msgid "Filename:"
 msgstr "Имя файла:"
 
@@ -1197,6 +1212,12 @@ msgstr "Мозаика в альбомном режиме"
 
 msgid "Landscape mosaic: "
 msgstr "Альбомная мозаика: "
+
+msgid "Languages"
+msgstr "Языки"
+
+msgid "languages"
+msgstr "языков"
 
 msgid "Large"
 msgstr "Большой"
@@ -1491,6 +1512,9 @@ msgstr "Нет книг для переключения"
 
 msgid "No books with author metadata found"
 msgstr "Книг с метаданными автора не найдено"
+
+msgid "No books with language metadata found"
+msgstr "Книг с метаданными языка не найдено"
 
 msgid "No books with series metadata found"
 msgstr "Книг с метаданными серий не найдено"
@@ -1795,6 +1819,9 @@ msgstr "Время чтения"
 msgid "Read today"
 msgstr "Прочитано сегодня"
 
+msgid "Read: %s"
+msgstr "Прочитано: %s"
+
 msgid "Reader"
 msgstr "Читалка"
 
@@ -1851,6 +1878,9 @@ msgstr "обычный"
 
 msgid "Release metadata is invalid or incomplete."
 msgstr "Метаданные выпуска недействительны или неполны."
+
+msgid "Remaining: %s"
+msgstr "Осталось: %s"
 
 msgid "Remove"
 msgstr "Убрать"
@@ -2214,6 +2244,9 @@ msgstr "Сортировать библиотеку"
 
 msgid "Sort library by"
 msgstr "Сортировать библиотеку по"
+
+msgid "Sort languages"
+msgstr "Сортировать языки"
 
 msgid "Sort order"
 msgstr "Порядок сортировки"
@@ -2596,8 +2629,8 @@ msgstr "Использовать последнюю папку"
 msgid "username"
 msgstr "имя пользователя"
 
-msgid "Verbose time to chapter end"
-msgstr "Подробное время до конца главы"
+msgid "Time until chapter end"
+msgstr "Время до конца главы"
 
 msgid "View"
 msgstr "Вид"

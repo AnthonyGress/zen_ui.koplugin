@@ -65,6 +65,17 @@ local function apply()
         next_dict = "next_dict",
     }
 
+    local function is_vocabulary_button(button, dict_widget)
+        if button.id == "vocabulary" then return true end
+        local text = button.text
+        if type(text) ~= "string" and type(button.text_func) == "function" then
+            text = button.text_func(dict_widget)
+        end
+        return text == _("Add to vocabulary builder")
+            or text == _("Remove from vocabulary builder")
+            or text == _("Long-press to add to vocabulary builder")
+    end
+
     -- AI assistant icon (assistant.koplugin). Built directly against the
     -- plugin, like the other Zen icons, so it shows whenever the plugin is
     -- loaded regardless of which buttons it registered itself. Opens the
@@ -197,17 +208,18 @@ local function apply()
                 table.insert(icon_row, icon_btn(h, ICON_MAP.highlight))
             end
 
-            -- Vocab button: handled below after we check for VocabBuilder output.
-            -- Look for vocabulary in flattened buttons or in unknown.
+            -- Vocab button: use its id when available, with a localized-label
+            -- fallback for older KOReader integrations.
             local vocab_btn = by_id["vocabulary"]
             if not vocab_btn then
-                for _i, btn in ipairs(unknown) do
-                    local t = type(btn.text) == "string" and btn.text
-                        or (type(btn.text_func) == "function" and btn.text_func())
-                    if type(t) == "string" and t:lower():find("vocabulary") then
-                        vocab_btn = btn
-                        break
+                for _i, row in ipairs(buttons) do
+                    for _j, btn in ipairs(row) do
+                        if is_vocabulary_button(btn, self_dql) then
+                            vocab_btn = btn
+                            break
+                        end
                     end
+                    if vocab_btn then break end
                 end
             end
             if vocab_btn then
@@ -225,6 +237,7 @@ local function apply()
                 end
 
                 local v = icon_btn(vocab_btn, "lookup.vocab")
+                v.id = "vocabulary"
                 v.callback = function()
                     if not is_in_vocab then
                         self_dql.ui:handleEvent(
@@ -281,7 +294,7 @@ local function apply()
 
             -- Preserve companion-plugin and opted-in unknown buttons as text rows.
             for _i, btn in ipairs(unknown) do
-                if btn.id ~= "vocabulary" then
+                if btn ~= vocab_btn and btn.id ~= "vocabulary" then
                     -- Put each unknown in its own row.
                     local found = false
                     for _j, row in ipairs(result) do
@@ -396,15 +409,13 @@ local function apply()
                     and self_dql._zen_icon_row then
                     local buttons = event.args[2]
                     local icon_row = self_dql._zen_icon_row
-                    -- Scan for VocabBuilder's id-less row (text contains "vocabulary").
+                    -- Scan for VocabBuilder's row, including localized id-less buttons.
                     local vocab_raw = nil
                     for ri = #buttons, 1, -1 do
                         local row = buttons[ri]
                         if row ~= icon_row then
                             for _i, btn in ipairs(row) do
-                                local t = type(btn.text) == "string" and btn.text
-                                    or (type(btn.text_func) == "function" and btn.text_func())
-                                if type(t) == "string" and t:lower():find("vocabulary") then
+                                if is_vocabulary_button(btn, self_dql) then
                                     vocab_raw = btn
                                     break
                                 end

@@ -312,7 +312,7 @@ local function rebuild_icon_row(row)
     local item_has_submenu = type(item.sub_item_table) == "table"
         or type(item.sub_item_table_func) == "function"
         or item._zen_settings_submenu == true
-    local face = IconItem.getSettingsFace(item.face or row.face)
+    local face = IconItem.getItemFace(item, item.face or row.face)
     local right_items = { align = "center" }
     if item_checkable then
         local toggle_control = row.checkmark_widget
@@ -650,7 +650,7 @@ local function configure_title_bar(sort_widget, opts)
     local title_bar = SettingsTitleBar:new{
         width = sort_widget.dimen.w,
         title = sort_widget.title,
-        back_visible = true,
+        back_visible = opts.back_visible ~= false,
         search_visible = false,
         title_full_width = true,
         action = default_action,
@@ -1822,6 +1822,7 @@ function M.show(opts)
         add_item_table = opts.add_item_table,
         close_arrange = sort_widget._zen_arrange_close_all,
         plugin = opts.plugin,
+        back_visible = opts.back_visible,
         back_callback = close_and_go_back or close_and_restore_parent,
         back_hold_callback = function()
             if close_and_go_back then return close_and_go_back() end

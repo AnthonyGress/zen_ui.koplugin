@@ -73,7 +73,7 @@ local function sanitize_list(entries, allow_folder)
     return out, changed
 end
 
-local function zenpm_is_enabled()
+local function plugin_is_enabled(name)
     local ok_loader, PluginLoader = pcall(require, "pluginloader")
     if not ok_loader or type(PluginLoader) ~= "table"
             or type(PluginLoader.loadPlugins) ~= "function" then
@@ -82,22 +82,27 @@ local function zenpm_is_enabled()
     local ok_plugins, plugins = pcall(PluginLoader.loadPlugins, PluginLoader)
     if not ok_plugins or type(plugins) ~= "table" then return false end
     for _i, plugin in ipairs(plugins) do
-        if type(plugin) == "table" and plugin.name == "zenpm" then
+        if type(plugin) == "table" and plugin.name == name then
             return true
         end
     end
     return false
 end
 
-local function has_zenpm_entry(entries)
+local function has_plugin_entry(entries, plugin_key, quick_setting_id)
     for _i, entry in ipairs(entries or {}) do
         if type(entry) == "table" then
             local plugin = entry.plugin
             if entry.type == "plugin" and type(plugin) == "table"
-                    and plugin.key == "zenpm" then
+                    and plugin.key == plugin_key then
                 return true
             end
-            if entry.type == "folder" and has_zenpm_entry(entry.children) then
+            if quick_setting_id and entry.type == "quick_setting"
+                    and entry.quick_setting_id == quick_setting_id then
+                return true
+            end
+            if entry.type == "folder"
+                    and has_plugin_entry(entry.children, plugin_key, quick_setting_id) then
                 return true
             end
         end
@@ -125,10 +130,10 @@ end
 
 function M.ensure_zenpm_launcher_entry()
     local cfg = M.ensure()
-    if cfg.zenpm_launcher_added == true or not zenpm_is_enabled() then
+    if cfg.zenpm_launcher_added == true or not plugin_is_enabled("zenpm") then
         return false
     end
-    if not has_zenpm_entry(cfg.entries) then
+    if not has_plugin_entry(cfg.entries, "zenpm") then
         cfg.entries[#cfg.entries + 1] = {
             id = M.next_id(cfg),
             type = "plugin",
@@ -138,6 +143,25 @@ function M.ensure_zenpm_launcher_entry()
         }
     end
     cfg.zenpm_launcher_added = true
+    Store.save(cfg)
+    return true
+end
+
+function M.ensure_zenfm_launcher_entry()
+    local cfg = M.ensure()
+    if cfg.zenfm_launcher_added == true or not plugin_is_enabled("zenfm") then
+        return false
+    end
+    if not has_plugin_entry(cfg.entries, "zenfm", "zenfm") then
+        cfg.entries[#cfg.entries + 1] = {
+            id = M.next_id(cfg),
+            type = "quick_setting",
+            label = "ZenFM",
+            icon = "zenfm",
+            quick_setting_id = "zenfm",
+        }
+    end
+    cfg.zenfm_launcher_added = true
     Store.save(cfg)
     return true
 end

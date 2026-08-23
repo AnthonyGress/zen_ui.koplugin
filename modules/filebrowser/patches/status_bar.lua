@@ -20,6 +20,7 @@ local function apply_status_bar()
     local Size = require("ui/size")
     local VerticalGroup = require("ui/widget/verticalgroup")
     local clock_timer = require("common/clock_timer")
+    local DateFormat = require("common/date_format")
     local library_font = require("modules/filebrowser/patches/library_font")
     local utils = require("common/utils")
     local paths = require("common/paths")
@@ -65,6 +66,7 @@ local function apply_status_bar()
         left_order   = { "time" },
         center_order = {},
         right_order  = { "wifi", "battery" },
+        date_format = "short",
         show_bottom_border = true,
         colored = false,
         bold_text = false,
@@ -187,28 +189,44 @@ local function apply_status_bar()
     -- Returns a bold TextWidget that shrinks font size before truncating.
     -- Tries each step in `shrink_steps` pt below the base face; applies
     -- max_width (with ellipsis) only when even the smallest size is still too wide.
+    -- The center title only changes on path changes; memoize it so the
+    -- per-minute tick and focus-move rebuilds don't re-probe font sizes for an
+    -- identical string (each probe is a Harfbuzz shape of the full title).
+    local _fit_text_key = nil
+    local _fit_text_widget = nil
     local function fitTextWidget(text, max_width)
         local base_face = getBarFont()
+        local key = text .. "\0" .. max_width .. "\0" .. (base_face.orig_size or base_face.size)
+        if _fit_text_key == key and _fit_text_widget then
+            return _fit_text_widget
+        end
         local base_size = base_face.orig_size or base_face.size or 14
         local min_size  = math.max(10, base_size - 4)
         local size = base_size
+        local widget
         while size >= min_size do
             local face  = library_font.getFace(size)
             local probe = TextWidget:new{ text = text, face = face, bold = true }
             local w = probe:getSize().w
             probe:free()
             if w <= max_width then
-                return TextWidget:new{ text = text, face = face, bold = true }
+                widget = TextWidget:new{ text = text, face = face, bold = true }
+                break
             end
             size = size - 1
         end
         -- Still too wide at minimum size: truncate.
-        return TextWidget:new{
-            text = text,
-            face = library_font.getFace(min_size),
-            bold = true,
-            max_width = max_width,
-        }
+        if not widget then
+            widget = TextWidget:new{
+                text = text,
+                face = library_font.getFace(min_size),
+                bold = true,
+                max_width = max_width,
+            }
+        end
+        _fit_text_key = key
+        _fit_text_widget = widget
+        return widget
     end
     local h_padding = Screen:scaleBySize(10)
 
@@ -217,7 +235,15 @@ local function apply_status_bar()
     -- leaves a white box around the chevron when a library background is showing.
     -- Force the icon to keep its alpha channel and drop the frame's white fill so
     -- the background paints through.
+    -- Back chevron only depends on icon size; memoize it and swap the
+    -- callback on reuse (the callback captures the per-call path).
+    local _back_btn_icon_size = nil
+    local _back_btn_widget = nil
     local function makeBackButton(icon_size, callback)
+        if _back_btn_icon_size == icon_size and _back_btn_widget then
+            _back_btn_widget.callback = callback or function() end
+            return _back_btn_widget
+        end
         local Button = require("ui/widget/button")
         local back_widget = Button:new{
             icon        = "chevron.left",
@@ -242,6 +268,8 @@ local function apply_status_bar()
         -- background stays untouched.
         back_widget._doFeedbackHighlight = function() end
         back_widget._undoFeedbackHighlight = function() end
+        _back_btn_icon_size = icon_size
+        _back_btn_widget = back_widget
         return back_widget
     end
 
@@ -443,6 +471,10 @@ local function apply_status_bar()
         return time_str, nil, nil
     end
 
+    local function getDateInfo()
+        return DateFormat.format(config.date_format), nil, nil
+    end
+
     local function getCustomTextInfo()
         local text = (config.custom_text ~= nil and config.custom_text ~= "")
                      and config.custom_text or getDeviceName()
@@ -460,6 +492,7 @@ local function apply_status_bar()
         frontlight  = getFrontlightInfo,
         battery     = getBatteryInfo,
         time        = getTimeInfo,
+        date        = getDateInfo,
         custom_text = getCustomTextInfo,
     }
 
@@ -551,6 +584,20 @@ local function apply_status_bar()
         return path ~= "" and path or "/"
     end
 
+    local function clearRestoredItemFocus(file_chooser)
+        local features = zen_plugin.config and zen_plugin.config.features
+        if type(features) ~= "table" or features.browser_hide_underline ~= true then return end
+
+        file_chooser.itemnumber = nil
+        file_chooser.prev_itemnumber = nil
+        local selected = file_chooser.selected
+        local row = selected and file_chooser.layout and file_chooser.layout[selected.y]
+        local item = row and row[selected.x]
+        if item and type(item.onUnfocus) == "function" then
+            item:onUnfocus()
+        end
+    end
+
     local function createStatusRow(path, file_manager, nav_title)
         local CenterContainer = require("ui/widget/container/centercontainer")
 
@@ -605,7 +652,9 @@ local function apply_status_bar()
                 if file_chooser and file_chooser.onFolderUp then
                     UIManager:scheduleIn(0.1, function()
                         if file_manager.file_chooser then
-                            file_manager.file_chooser:onFolderUp()
+                            local active_chooser = file_manager.file_chooser
+                            active_chooser:onFolderUp()
+                            clearRestoredItemFocus(active_chooser)
                         end
                     end)
                     return

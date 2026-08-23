@@ -23,6 +23,7 @@ local function apply_navbar()
     local MemoryPolicy = require("common/memory_policy")
     local SharedState = require("common/shared_state")
     local ButtonModel = require("common/nav_button_model")
+    local StandalonePage = require("modules/filebrowser/patches/standalone_page")
     local NativeMenu = require("modules/menu/app_launcher/native_menu")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
     local Screen = Device.screen
@@ -104,6 +105,7 @@ local function apply_navbar()
             collections = false,
             authors = false,
             series = false,
+            languages = false,
             tags = false,
             to_be_read = false,
             home = true,
@@ -276,6 +278,11 @@ local function apply_navbar()
             icon = "tab_series",
         },
         {
+            id = "languages",
+            label = _("Languages"),
+            icon = "tab_translate",
+        },
+        {
             id = "tags",
             label = _("Tags"),
             icon = "tab_tags",
@@ -352,7 +359,7 @@ local function apply_navbar()
         folder = true, continue = true, search = true, stats = true, exit = true,
     }
     local group_view_tabs = {
-        authors = true, series = true, tags = true, to_be_read = true,
+        authors = true, series = true, languages = true, tags = true, to_be_read = true,
     }
 
     local function getCustomTagTab(tab_id)
@@ -482,6 +489,9 @@ local function apply_navbar()
         local getters = {}
         if config.show_tabs.authors == true then getters[#getters + 1] = "getGroupedByAuthor" end
         if config.show_tabs.series == true then getters[#getters + 1] = "getGroupedBySeries" end
+        if config.show_tabs.languages == true then
+            getters[#getters + 1] = "getGroupedByLanguage"
+        end
         local has_tag_tab = config.show_tabs.tags == true
         if type(config.custom_tabs) == "table" then
             for _i, tab in ipairs(config.custom_tabs) do
@@ -749,6 +759,7 @@ local function apply_navbar()
 
     local function _build_dir_mtime_snapshot(root, max_depth)
         local snap = {}
+        local subdirs = {}
         local function walk(dir, depth)
             local m = lfs.attributes(dir, "modification")
             if m then snap[dir] = m end
@@ -760,13 +771,14 @@ local function apply_navbar()
                         and f:sub(-4) ~= ".sdr" then
                     local sub = dir .. "/" .. f
                     if lfs.attributes(sub, "mode") == "directory" then
+                        subdirs[#subdirs + 1] = sub
                         walk(sub, depth + 1)
                     end
                 end
             end
         end
         walk(root, 0)
-        return snap
+        return snap, subdirs
     end
 
     local function _snapshot_differs(old, new)
@@ -865,8 +877,8 @@ local function apply_navbar()
             return false
         end
         refreshLibraryStatusBar(fm)
-        fc._zen_lib_mtime_snapshot = _build_dir_mtime_snapshot(
-            home_dir, LIB_SNAPSHOT_DEPTH)
+        fc._zen_lib_mtime_snapshot, fc._zen_lib_mtime_subdirs =
+            _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
         fc._zen_lib_mtime_snapshot_at = now()
         local retained = _library_retained_descriptor(fc, home_dir)
         fc._zen_idle_materialized_library = retained
@@ -944,12 +956,36 @@ local function apply_navbar()
             local listing_changed = false
             local validation_mode = "cached"
             if validation_due then
-                local snapshot = _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
+                local root_mtime = lfs.attributes(home_dir, "modification")
+                -- If the root's mtime is untouched since the last scan, no
+                -- directory could have been created, removed or renamed at
+                -- any depth (all of those bump the parent dir), so re-stat
+                -- the previously known subdirs instead of re-listing the
+                -- tree.  Changes INSIDE a subdir bump only that subdir.
+                local incremental = fc._zen_lib_mtime_subdirs ~= nil
+                    and fc._zen_lib_mtime_snapshot ~= nil
+                    and fc._zen_lib_mtime_snapshot[home_dir] == root_mtime
+                local snapshot
+                local subdirs
+                if incremental then
+                    snapshot = {}
+                    for _i, sub in ipairs(fc._zen_lib_mtime_subdirs) do
+                        local m = lfs.attributes(sub, "modification")
+                        if m then snapshot[sub] = m end
+                    end
+                    snapshot[home_dir] = root_mtime
+                    subdirs = fc._zen_lib_mtime_subdirs
+                    validation_mode = "incremental"
+                else
+                    snapshot, subdirs = _build_dir_mtime_snapshot(
+                        home_dir, LIB_SNAPSHOT_DEPTH)
+                    validation_mode = "scan"
+                end
                 listing_changed = fc._zen_lib_mtime_snapshot ~= nil
                     and _snapshot_differs(fc._zen_lib_mtime_snapshot, snapshot)
                 fc._zen_lib_mtime_snapshot = snapshot
+                fc._zen_lib_mtime_subdirs = subdirs
                 fc._zen_lib_mtime_snapshot_at = now()
-                validation_mode = "scan"
             end
             local refresh_needed = not options.already_refreshed
                 and (sort_changed or tree_changed or listing_changed)
@@ -972,7 +1008,9 @@ local function apply_navbar()
                     "baseline_missing=", tostring(baseline_missing),
                     "validation=", validation_mode,
                     "recursive_validation=",
-                        validation_mode == "scan" and "scanned" or "skipped")
+                        validation_mode == "scan" and "scanned"
+                            or validation_mode == "incremental" and "re-statted"
+                            or "skipped")
                 if fm._zen_home_to_library_started_at == transition_started_at then
                     fm._zen_home_to_library_started_at = nil
                 end
@@ -1055,7 +1093,8 @@ local function apply_navbar()
         if fc.item_table and fc.item_table.is_in_series_view and series_exit then
             series_exit(fc)
             fc.path_items[home_dir] = 1
-            fc._zen_lib_mtime_snapshot = _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
+            fc._zen_lib_mtime_snapshot, fc._zen_lib_mtime_subdirs =
+                _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
             fc._zen_lib_mtime_snapshot_at = now()
             fc:changeToPath(home_dir)
             refreshLibraryStatusBar(fm)
@@ -1087,7 +1126,8 @@ local function apply_navbar()
             if retained_valid and fm._zen_home_to_library_started_at then return end
         else
             fc.path_items[home_dir] = nil
-            fc._zen_lib_mtime_snapshot = _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
+            fc._zen_lib_mtime_snapshot, fc._zen_lib_mtime_subdirs =
+                _build_dir_mtime_snapshot(home_dir, LIB_SNAPSHOT_DEPTH)
             fc._zen_lib_mtime_snapshot_at = now()
             fc:changeToPath(home_dir)
         end
@@ -1311,6 +1351,11 @@ local function apply_navbar()
         if GroupView then GroupView.showSeriesView(injectStandaloneNavbar) end
     end
 
+    local function onTabLanguages()
+        local GroupView = get_shared("group_view")
+        if GroupView then GroupView.showLanguagesView(injectStandaloneNavbar) end
+    end
+
     local function onTabTBR()
         local GroupView = get_shared("group_view")
         if GroupView then GroupView.showTBRView(injectStandaloneNavbar) end
@@ -1490,6 +1535,7 @@ local function apply_navbar()
         collections = onTabCollections,
         authors = onTabAuthors,
         series = onTabSeries,
+        languages = onTabLanguages,
         tags = onTabTags,
         to_be_read = onTabTBR,
         home = onTabHome,
@@ -1512,6 +1558,7 @@ local function apply_navbar()
         collections = true,
         authors = true,
         series = true,
+        languages = true,
         tags = true,
         to_be_read = true,
         home = true,
@@ -1524,6 +1571,7 @@ local function apply_navbar()
         news = true,
         authors = true,
         series = true,
+        languages = true,
         tags = true,
         to_be_read = true,
         home = true,
@@ -2198,11 +2246,13 @@ local function apply_navbar()
         collections = true,
         authors = true,
         series = true,
+        languages = true,
         tags = true,
         to_be_read = true,
         home = true,
         authors_detail = true,
         series_detail = true,
+        languages_detail = true,
         tags_detail = true,
         stats = true,
     }
@@ -2756,6 +2806,7 @@ local function apply_navbar()
         end
         if menu._zen_standalone_navbar_injected then return end
         _G.__ZEN_UI_ACTIVE_TAB_LABEL = tabs_by_id[view_tab_id] and tabs_by_id[view_tab_id].label or view_tab_id
+        StandalonePage.enable_gesture_manager_dispatch(menu)
         preventStandaloneSwipeClose(menu)
         if not is_navbar_enabled() then
             return
@@ -2786,10 +2837,24 @@ local function apply_navbar()
                 if view_tab_id == "home" and resetHomeStripPages() then
                     return true
                 end
+                local is_collection_detail = menu._zen_collection_detail == true
                 local is_detail = menu.name == "authors_detail"
                     or menu.name == "series_detail"
+                    or menu.name == "languages_detail"
                     or menu.name == "tags_detail"
-                if is_detail then
+                    or is_collection_detail
+                if is_collection_detail and type(menu.onReturn) == "function" then
+                    menu:onReturn()
+                    local features = zen_plugin.config and zen_plugin.config.features
+                    local manager = menu._manager
+                    local hide_underlines = get_shared("hideMenuUnderlines")
+                    if type(features) == "table"
+                            and features.browser_hide_underline == true
+                            and manager and manager.coll_list
+                            and type(hide_underlines) == "function" then
+                        hide_underlines(manager.coll_list)
+                    end
+                elseif is_detail then
                     if menu.close_callback then
                         menu.close_callback()
                     elseif menu.onClose then
@@ -2923,10 +2988,12 @@ local function apply_navbar()
             end
             local is_group_view = menu.name == "authors"
                 or menu.name == "series"
+                or menu.name == "languages"
                 or menu.name == "tags"
                 or menu.name == "to_be_read"
                 or menu.name == "authors_detail"
                 or menu.name == "series_detail"
+                or menu.name == "languages_detail"
                 or menu.name == "tags_detail"
             local is_booklist_view = view_tab_id == "history"
                 or view_tab_id == "favorites"
@@ -3769,6 +3836,7 @@ local function apply_navbar()
         local result = orig_onShowColl(self, collection_name)
         if self.booklist_menu then
             local inferred_tab = from_coll_list and "collections" or "favorites"
+            self.booklist_menu._zen_collection_detail = from_coll_list or nil
             injectStandaloneNavbar(self.booklist_menu, inferred_tab)
             local state = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
             if state and state.tab == inferred_tab and state.page and state.page > 1 then
@@ -3825,6 +3893,7 @@ local function apply_navbar()
         function QuickRSSUI_class:init()
             orig_qrss_init(self)
             self._zen_navbar_tab_id = "news"
+            StandalonePage.enable_gesture_manager_dispatch(self)
 
             local navbar_h = getNavbarHeight()
             if navbar_h <= 0 then return end
@@ -3844,6 +3913,7 @@ local function apply_navbar()
             local navbar = createNavBar()
             active_tab = saved_active
             if not navbar then return end
+            self._zen_navbar_height = navbar:getSize().h
 
             -- Override tap handler for standalone view context
             navbar.onTapNavBar = function(self_nb, _, ges)

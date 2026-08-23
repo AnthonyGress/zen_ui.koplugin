@@ -294,6 +294,37 @@ describe("home data and book caches", function()
         assert.are.same({ "recent", "to_be_read", "search" }, activated)
     end)
 
+    it("routes physical page turns to the active book strip", function()
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local install_home_key_handlers = get_install_home_key_handlers(Home)
+        local fallback = {}
+        local menu = {
+            onNextPage = function()
+                fallback[#fallback + 1] = "next"
+                return "next fallback"
+            end,
+            onPrevPage = function()
+                fallback[#fallback + 1] = "previous"
+                return "previous fallback"
+            end,
+        }
+        install_home_key_handlers(menu)
+
+        assert.are.equal("next fallback", menu:onNextPage())
+        assert.are.equal("previous fallback", menu:onPrevPage())
+        assert.are.same({ "next", "previous" }, fallback)
+
+        local shifted = {}
+        menu._zen_home_strip_page_handler = function(direction)
+            shifted[#shifted + 1] = direction
+            return false
+        end
+        assert.is_true(menu:onNextPage())
+        assert.is_true(menu:onPrevPage())
+        assert.are.same({ "next", "previous" }, shifted)
+        assert.are.same({ "next", "previous" }, fallback)
+    end)
+
     it("reuses history/status data across providers and opens one sidecar per book miss", function()
         local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
         local build_data_provider = get_build_data_provider(Home)
@@ -1256,6 +1287,35 @@ describe("home data and book caches", function()
         local books = provider:getStripItemsForPage({
             kind = "tags",
             drill = { label = "Science" },
+        }, 4, "default", "strip", 0)
+        assert.are.equal(2, #books)
+        assert.is_nil(books[1].is_group)
+    end)
+
+    it("returns language stacks and drills into their books", function()
+        ZenSpec.replace("common/db_bookinfo", {
+            getGroupedByLanguage = function()
+                return {{
+                    language = "en",
+                    files = { "/library/alpha.epub", "/library/beta.epub" },
+                }}
+            end,
+        })
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local provider = get_build_data_provider(Home)({ browser_cover_badges = {} }, {
+            rows = { order = { "strip" }, enabled = { strip = true } },
+            modules = { strip = {} },
+        })
+
+        local groups = provider:getStripItemsForPage(
+            { kind = "languages" }, 4, "default", "strip", 0)
+        assert.is_true(groups[1].is_group)
+        assert.are.equal("English", groups[1].group_label)
+        assert.are.equal(2, groups[1].group_count)
+
+        local books = provider:getStripItemsForPage({
+            kind = "languages",
+            drill = { label = "English" },
         }, 4, "default", "strip", 0)
         assert.are.equal(2, #books)
         assert.is_nil(books[1].is_group)

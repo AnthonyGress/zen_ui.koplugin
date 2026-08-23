@@ -499,6 +499,33 @@ describe("home featured widget", function()
         assert.equals(2, labels)
     end)
 
+    it("hides the complete progress row when disabled", function()
+        local Featured = require("modules/filebrowser/patches/home/widgets/featured_common")
+        Featured.build({
+            width = 600,
+            height = 220,
+            module_cfg = {
+                show_progress = false,
+                progress_meta = { left = "percent", right = "total_pages" },
+            },
+            data = {
+                getFeaturedBook = function()
+                    return {
+                        path = "/library/alpha.epub",
+                        title = "Alpha",
+                        status = "reading",
+                        percent = 0.25,
+                        pages = 120,
+                    }
+                end,
+            },
+        }, "recently_read")
+
+        assert.is_false(has_text("25%"))
+        assert.is_false(has_text("120 pages"))
+        assert.is_nil(progress_bar_width("25%", "120 pages"))
+    end)
+
     it("supplies the featured cover before opening its book", function()
         local captured_cover
         rawset(_G, "__ZEN_UI_SET_OPENING_BANNER_COVER", function(cover)
