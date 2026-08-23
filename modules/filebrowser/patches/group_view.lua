@@ -1,6 +1,7 @@
 local ConfigManager = require("config/manager")
 local book_status = require("common/book_status")
 local HistoryIndex = require("common/history_index")
+local icons = require("common/inline_icon_map")
 local LanguageName = require("common/language_name")
 local paths = require("common/paths")
 local StandalonePage = require("modules/filebrowser/patches/standalone_page")
@@ -585,6 +586,7 @@ local function showGroupSortDialog(tab_id, menu)
             { key = "series_index",  text = "\u{F0CB}  " .. _("Series number") },
             { key = "title",         text = "\u{F031}  " .. _("Title") },
             { key = "title_natural", text = "\u{F04BB}  " .. _("Title natural") },
+            { key = "strcoll",       text = icons.filename .. "  " .. _("Filename") },
             { key = "access",        text = "\u{F073}  " .. _("Recently read") },
         }
 
@@ -747,7 +749,11 @@ local function sortDetailFiles(files, collate, reverse)
         local sort_func = BookList.collates.title_natural.init_sort_func()
 
         table.sort(items, function(a, b)
-            return sort_func({ doc_props = { display_title = a.key } }, { doc_props = { display_title = b.key } })
+            local first, second = a, b
+            if reverse then first, second = second, first end
+            return sort_func(
+                { doc_props = { display_title = first.key } },
+                { doc_props = { display_title = second.key } })
         end)
     end
 
@@ -807,6 +813,7 @@ local function showDetailSortDialog(group_name, tab_id, menu, files, reload_file
         { key = "series_index",  text = "\u{F0CB}  " .. _("Series number") },
         { key = "title",         text = "\u{F031}  " .. _("Title") },
         { key = "title_natural", text = "\u{F04BB}  " .. _("Title natural") },
+        { key = "strcoll",       text = icons.filename .. "  " .. _("Filename") },
         { key = "access",        text = "\u{F073}  " .. _("Recently read") },
     }
 

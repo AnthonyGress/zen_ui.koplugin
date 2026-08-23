@@ -1,4 +1,5 @@
 describe("file browser group views", function()
+    local SortFixtures = require("sort_fixtures")
     local api
     local config
     local menus
@@ -19,6 +20,7 @@ describe("file browser group views", function()
         "config/manager",
         "common/book_status",
         "common/history_index",
+        "common/inline_icon_map",
         "common/language_name",
         "common/paths",
         "common/shared_state",
@@ -40,6 +42,7 @@ describe("file browser group views", function()
         "apps/filemanager/filemanagerutil",
         "apps/filemanager/filemanager",
         "ui/widget/filechooser",
+        "ui/widget/booklist",
     }
 
     local function find_menu(name)
@@ -80,6 +83,7 @@ describe("file browser group views", function()
             load = function() return groups.history or {} end,
             fileTime = function(index, path) return index[path] end,
         })
+        ZenSpec.replace("common/inline_icon_map", { filename = "filename" })
         ZenSpec.replace("common/language_name", {
             get = function(language)
                 return language == "en" and "English" or language
@@ -191,6 +195,7 @@ describe("file browser group views", function()
             },
         })
         ZenSpec.replace("ui/widget/filechooser", { show_filter = {} })
+        ZenSpec.replace("ui/widget/booklist", { collates = SortFixtures.collates(metadata) })
 
         _G.__ZEN_UI_PLUGIN = plugin
         _G.__ZEN_UI_LIBRARY_STATE = nil
@@ -522,6 +527,68 @@ describe("file browser group views", function()
         assert.are.equal(1, saved)
     end)
 
+    it("offers filename sorting and rebuilds detail pages by filesystem name", function()
+        install_group_view({
+            authors = {
+                { author = "Writer", files = { "/zeta.epub", "/alpha.epub" } },
+            },
+        })
+        metadata["/zeta.epub"] = { title = "Alpha" }
+        metadata["/alpha.epub"] = { title = "Zulu" }
+        package.loaded.device.isTouchDevice = function() return true end
+
+        api.showAuthorsView()
+        local root = assert(find_menu("authors"))
+        root.onMenuSelect(root, root.item_table[1])
+        local detail = assert(find_menu("authors_detail"))
+        assert.are.same({ "zeta", "alpha" }, {
+            detail.item_table[1].text,
+            detail.item_table[2].text,
+        })
+
+        detail:onZenDetailBlankHold()
+        file_dialog_args._zen_sort_cb()
+        local sort_dialog = dialogs[#dialogs]
+        assert.is_truthy(sort_dialog.buttons[4][1].text:find("Filename", 1, true))
+        sort_dialog.buttons[4][1].callback()
+
+        assert.are.equal("strcoll", config.group_view.detail_collate.authors.Writer)
+        assert.are.same({ "alpha", "zeta" }, {
+            detail.item_table[1].text,
+            detail.item_table[2].text,
+        })
+    end)
+
+    it("applies every detail sort method in ascending and descending order", function()
+        local fixture = SortFixtures.new()
+        install_group_view({
+            history = fixture.access,
+            authors = { { author = "Writer", files = SortFixtures.paths_from_entries(fixture.entries) } },
+        })
+        for path, props in pairs(fixture.metadata) do metadata[path] = props end
+
+        local methods = { "series_index", "strcoll", "title", "title_natural", "access" }
+        for _i, method in ipairs(methods) do
+            for _j, reverse in ipairs({ false, true }) do
+                config.group_view.detail_collate = { authors = { Writer = method } }
+                config.group_view.detail_reverse = { authors = { Writer = reverse } }
+                api.closeAll()
+                menus = {}
+                api.showAuthorsView()
+                local root = assert(find_menu("authors"))
+                root.onMenuSelect(root, root.item_table[1])
+                local detail = assert(find_menu("authors_detail"))
+                local actual = {}
+                for _k, item in ipairs(detail.item_table) do
+                    actual[#actual + 1] = item.path
+                end
+                local expected = reverse and SortFixtures.reversed(fixture.expected[method])
+                    or fixture.expected[method]
+                assert.are.same(expected, actual, method .. " reverse=" .. tostring(reverse))
+            end
+        end
+    end)
+
     it("persists tag-global collation and descending order from the page menu", function()
         install_group_view({
             tags = { { tag = "Classics", files = { "/book.epub" } } },
@@ -533,13 +600,13 @@ describe("file browser group views", function()
         menu:onZenGroupBlankHold()
         file_dialog_args._zen_sort_cb()
         local sort_dialog = dialogs[#dialogs]
-        sort_dialog.buttons[4][1].callback()
+        sort_dialog.buttons[5][1].callback()
         assert.are.equal("access", config.group_view.tags_global.collate)
 
         menu:onZenGroupBlankHold()
         file_dialog_args._zen_sort_cb()
         sort_dialog = dialogs[#dialogs]
-        sort_dialog.buttons[5][1].callback()
+        sort_dialog.buttons[6][1].callback()
         local order_dialog = dialogs[#dialogs]
         order_dialog.buttons[2][1].callback()
 

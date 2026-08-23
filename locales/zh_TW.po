@@ -936,6 +936,9 @@ msgstr "檔案瀏覽器"
 msgid "Filebrowser plugin is not installed."
 msgstr "檔案瀏覽器外掛未安裝。"
 
+msgid "Filename"
+msgstr "檔案名稱"
+
 msgid "Filename:"
 msgstr "檔案名稱："
 

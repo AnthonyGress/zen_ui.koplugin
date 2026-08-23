@@ -272,6 +272,7 @@ local function apply_collections()
         local SORT_OPTIONS = {
             { key = "title",    text = "\u{F04BB}  " .. _g("Title")         },
             { key = "title_natural", text = "\u{F04BB}  " .. _g("Title natural") },
+            { key = "strcoll",  text = icons.filename .. "  " .. _g("Filename") },
             { key = "authors",  text = "\u{F0013}  " .. _g("Authors")       },
             { key = "series",   text = "\u{F0436}  " .. _g("Series")        },
             { key = "access",   text = "\u{F02DA}  " .. _g("Recently read") },

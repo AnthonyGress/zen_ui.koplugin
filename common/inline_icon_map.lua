@@ -51,6 +51,7 @@ return {
 
     -- metadata sort keys (context_menu.lua / collections.lua)
     title        = "\u{F04BB}",  -- mdi-format-title
+    filename     = "\u{F0224}",
     authors      = "\u{F0013}",  -- mdi-account
     series       = "\u{F0436}",  -- mdi-library-books
     history      = "\u{F02DA}",  -- mdi-history

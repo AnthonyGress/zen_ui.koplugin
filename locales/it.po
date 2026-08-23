@@ -936,6 +936,9 @@ msgstr "Gestione file"
 msgid "Filebrowser plugin is not installed."
 msgstr "Il plugin Filebrowser non è installato."
 
+msgid "Filename"
+msgstr "Nome file"
+
 msgid "Filename:"
 msgstr "Nome file:"
 

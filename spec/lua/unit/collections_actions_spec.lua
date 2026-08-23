@@ -1,7 +1,11 @@
 describe("ZenOS collection actions", function()
+    local SortFixtures = require("sort_fixtures")
     local FileManagerCollection
+    local collection_fixture
     local collection_manager
     local file_dialog_args
+    local shown_dialog
+    local collection_writes
     local renamed
     local removed
     local saved_modules
@@ -20,11 +24,15 @@ describe("ZenOS collection actions", function()
         "ui/widget/menu",
         "ui/widget/buttondialog",
         "ui/uimanager",
+        "ui/widget/booklist",
         "device",
     }
 
     local function install_collections_patch()
         file_dialog_args = nil
+        shown_dialog = nil
+        collection_writes = 0
+        collection_fixture = SortFixtures.new()
         renamed = {}
         removed = {}
 
@@ -52,6 +60,7 @@ describe("ZenOS collection actions", function()
         ZenSpec.replace("common/inline_icon_map", {
             rename = "rename",
             delete = "delete",
+            filename = "filename",
         })
         ZenSpec.replace("common/cover_utils", {})
         ZenSpec.replace("modules/filebrowser/patches/library_font", {
@@ -66,23 +75,35 @@ describe("ZenOS collection actions", function()
         ZenSpec.replace("common/tbr_index", {
             collectionName = function() return "To Be Read" end,
         })
+        local reading_entries = {}
+        for _i, entry in ipairs(collection_fixture.entries) do
+            reading_entries[entry.file] = entry
+        end
         ZenSpec.replace("readcollection", {
             default_collection_name = "favorites",
             coll = {
                 favorites = {},
                 ["To Be Read"] = {},
-                Reading = {},
+                Reading = reading_entries,
             },
             coll_settings = {
                 favorites = {},
                 ["To Be Read"] = {},
                 Reading = {},
             },
+            write = function()
+                collection_writes = collection_writes + 1
+            end,
         })
         ZenSpec.replace("apps/filemanager/filemanagercollection", FileManagerCollection)
         ZenSpec.replace("apps/filemanager/filemanager", {
             instance = {
                 collections = collection_manager,
+                bookinfo = {
+                    getDocProps = function(_self, path)
+                        return collection_fixture.metadata[path]
+                    end,
+                },
                 file_chooser = {
                     showFileDialog = function(_self, args)
                         file_dialog_args = args
@@ -96,7 +117,11 @@ describe("ZenOS collection actions", function()
         })
         ZenSpec.replace("ui/uimanager", {
             close = function() end,
+            show = function(_self, widget) shown_dialog = widget end,
             setDirty = function() end,
+        })
+        ZenSpec.replace("ui/widget/booklist", {
+            collates = SortFixtures.collates(collection_fixture.metadata),
         })
         ZenSpec.replace("device", { isTouchDevice = function() return false end })
 
@@ -138,6 +163,44 @@ describe("ZenOS collection actions", function()
             "Rename", 1, true))
         assert.is_truthy(file_dialog_args._zen_extra_buttons[2][1].text:find(
             "Delete collection", 1, true))
+    end)
+
+    it("offers and saves filename sorting for collections", function()
+        assert.is_true(collection_manager.coll_list:onMenuHold({ name = "Reading" }))
+        file_dialog_args._zen_sort_cb()
+
+        assert.are.equal("Sort collection by", shown_dialog.title)
+        local filename_button
+        for _i, row in ipairs(shown_dialog.buttons) do
+            local button = row[1]
+            if button and button.text and button.text:find("Filename", 1, true) then
+                filename_button = button
+                break
+            end
+        end
+        assert.is_table(filename_button)
+        filename_button.callback()
+
+        assert.are.equal("strcoll", package.loaded.readcollection.coll_settings.Reading.collate)
+        assert.are.equal(1, collection_writes)
+    end)
+
+    it("applies every collection sort method in forward and reverse order", function()
+        local ReadCollection = package.loaded.readcollection
+        local methods = {
+            "title", "title_natural", "strcoll", "authors", "series", "access", "keywords",
+        }
+        for _i, method in ipairs(methods) do
+            for _j, reverse in ipairs({ false, true }) do
+                ReadCollection.coll_settings.Reading.collate = method
+                ReadCollection.coll_settings.Reading.collate_reverse = reverse or nil
+                assert.is_true(collection_manager.coll_list:onMenuHold({ name = "Reading" }))
+                local expected = reverse and SortFixtures.reversed(collection_fixture.expected[method])
+                    or collection_fixture.expected[method]
+                assert.are.same(expected, file_dialog_args._zen_group_files,
+                    method .. " reverse=" .. tostring(reverse))
+            end
+        end
     end)
 
     it("rejects direct rename and delete calls for To Be Read", function()

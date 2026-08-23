@@ -936,6 +936,9 @@ msgstr "Bestandsbeheer"
 msgid "Filebrowser plugin is not installed."
 msgstr "De Filebrowser-plugin is niet geïnstalleerd."
 
+msgid "Filename"
+msgstr "Bestandsnaam"
+
 msgid "Filename:"
 msgstr "Bestandsnaam:"
 
