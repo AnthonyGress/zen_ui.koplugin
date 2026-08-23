@@ -77,6 +77,14 @@ local function dispatch_gesture_manager(ges)
     return false
 end
 
+local function is_navbar_gesture(menu, ges)
+    local navbar_h = tonumber(menu and menu._zen_navbar_height)
+    local screen_h = tonumber(menu and menu.dimen and menu.dimen.h)
+    local y = tonumber(ges and ges.pos and ges.pos.y)
+    return navbar_h and navbar_h > 0 and screen_h and y
+        and y >= screen_h - navbar_h
+end
+
 -- broadcastEvent dispatches to *every* window-stack widget directly, including
 -- FileManager.instance (which sits beneath the standalone page). Forwarding
 -- broadcast events to FM as well would dispatch them twice -- harmless for most
@@ -131,11 +139,20 @@ function M.enable_gesture_manager_dispatch(menu)
 
     local orig_handleEvent = menu.handleEvent
     function menu:handleEvent(event)
-        if event and event.handler == "onGesture"
-                and dispatch_gesture_manager(event.args and event.args[1]) then
+        local ges = event and event.handler == "onGesture"
+            and event.args and event.args[1] or nil
+        local local_checked = false
+        if is_navbar_gesture(self, ges) then
+            local_checked = true
+            if orig_handleEvent and orig_handleEvent(self, event) then return true end
+        end
+        if ges and dispatch_gesture_manager(ges) then
             return true
         end
-        if orig_handleEvent then return orig_handleEvent(self, event) end
+        if not local_checked and orig_handleEvent then
+            return orig_handleEvent(self, event)
+        end
+        return false
     end
 end
 

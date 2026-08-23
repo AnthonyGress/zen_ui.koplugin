@@ -276,6 +276,7 @@ return {
         "Hold ZenFM for settings",
         "Fix a bug with 1 row sub folders in Home Book strip",
         "Fix some gestures not working on some pages",
+        "Protect To Be Read collection from rename/delete",
         "Performance improvements"
     }
 }

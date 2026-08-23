@@ -3913,6 +3913,7 @@ local function apply_navbar()
             local navbar = createNavBar()
             active_tab = saved_active
             if not navbar then return end
+            self._zen_navbar_height = navbar:getSize().h
 
             -- Override tap handler for standalone view context
             navbar.onTapNavBar = function(self_nb, _, ges)

@@ -902,6 +902,14 @@ local function home_state()
             widget_heights[widget_id] = target.height
             if widget_id == "quotes" then
                 quote_content_bounds = find_quote_content_bounds(target.widget, {}, 0)
+                local row_dimen = target.widget and target.widget.dimen
+                local row_top = row_dimen and tonumber(row_dimen.y)
+                local row_h = row_dimen and tonumber(row_dimen.h)
+                if quote_content_bounds and row_top and row_h
+                        and (quote_content_bounds.bottom < row_top
+                            or quote_content_bounds.top > row_top + row_h) then
+                    quote_content_bounds = nil
+                end
             end
         end
         if book_path then book_paths[#book_paths + 1] = book_path end

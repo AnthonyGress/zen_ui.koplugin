@@ -114,6 +114,40 @@ describe("standalone page gestures", function()
         }, gesture_calls)
     end)
 
+    it("gives the standalone navbar priority inside its screen band", function()
+        local StandalonePage = require("modules/filebrowser/patches/standalone_page")
+        local page_calls = 0
+        local gesture_calls = {}
+        local menu = {
+            dimen = { h = 1000 },
+            _zen_navbar_height = 100,
+            handleEvent = function()
+                page_calls = page_calls + 1
+                return true
+            end,
+        }
+        FileManager.instance = {
+            _ordered_touch_zones = {
+                zone("tap_bottom_right_corner", "tap", gesture_calls),
+            },
+        }
+        StandalonePage.enable_gesture_manager_dispatch(menu)
+
+        assert.is_true(menu:handleEvent({
+            handler = "onGesture",
+            args = { { ges = "tap", pos = { y = 950 } } },
+        }))
+        assert.are.equal(1, page_calls)
+        assert.are.same({}, gesture_calls)
+
+        assert.is_true(menu:handleEvent({
+            handler = "onGesture",
+            args = { { ges = "tap", pos = { y = 800 } } },
+        }))
+        assert.are.equal(1, page_calls)
+        assert.are.same({ "tap_bottom_right_corner" }, gesture_calls)
+    end)
+
     it("keeps Home page swipes local without suppressing diagonals", function()
         local StandalonePage = require("modules/filebrowser/patches/standalone_page")
         local swipes = {}

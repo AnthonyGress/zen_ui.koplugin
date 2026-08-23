@@ -376,6 +376,8 @@ def test_three_widget_home_evenly_spaces_rows_to_the_bottom(
                 driver,
                 required_texts={"Alpha Home"},
                 minimum_widget_count=3,
+                required_state_keys={"quote_content_bounds"}
+                if last_widget == "quotes" else None,
             )
             assert home["widget_ids"] == ["featured", middle_widget, last_widget]
             visual_gaps = home["visual_gaps"]
