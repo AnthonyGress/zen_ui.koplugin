@@ -277,6 +277,7 @@ return {
         "Fix underline showing when setting is off",
         "Auto add ZenFM to launcher",
         "Hold ZenFM for settings",
+        "Fix show font preview when selecting a font from Launcher",
         "Fix a bug with 1 row sub folders in Home Book strip",
         "Fix some gestures not working on some pages",
         "Protect To Be Read collection from rename/delete",

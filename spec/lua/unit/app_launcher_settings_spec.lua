@@ -212,6 +212,51 @@ describe("app launcher settings", function()
         assert.are.equal("approved_zenfm", added.icon)
     end)
 
+    it("omits control settings for ZenFM launcher buttons", function()
+        entry.type = "quick_setting"
+        entry.label = "ZenFM"
+        entry.quick_setting_id = "zenfm"
+        _G.__ZEN_UI_QUICK_SETTINGS = {
+            getSettingsItems = function()
+                return {{ text = "Timeout" }}
+            end,
+        }
+        local section = require(
+            "modules/settings/sections/app_launcher_settings").build({
+                config = { features = { app_launcher = true } },
+                save_and_apply = function() end,
+        })
+
+        assert.is_true(section._zen_search_items_func()[1]._zen_search_open())
+        for _i, item in ipairs(shown_options.item_table) do
+            assert.are_not.equal("Control settings", item.text)
+        end
+    end)
+
+    it("keeps control settings for other launcher controls", function()
+        entry.type = "quick_setting"
+        entry.label = "Wi-Fi"
+        entry.quick_setting_id = "wifi"
+        _G.__ZEN_UI_QUICK_SETTINGS = {
+            getSettingsItems = function()
+                return {{ text = "Network settings" }}
+            end,
+        }
+        local section = require(
+            "modules/settings/sections/app_launcher_settings").build({
+                config = { features = { app_launcher = true } },
+                save_and_apply = function() end,
+        })
+
+        assert.is_true(section._zen_search_items_func()[1]._zen_search_open())
+        local settings_item
+        for _i, item in ipairs(shown_options.item_table) do
+            if item.text == "Control settings" then settings_item = item end
+        end
+        assert.is_table(settings_item)
+        assert.are.equal("Network settings", settings_item.sub_item_table[1].text)
+    end)
+
     it("strips the ZenOS prefix from a new action label and icon suggestion", function()
         dispatcher_action = { zen_ui_home = true }
         dispatcher_text = "ZenOS: Home"

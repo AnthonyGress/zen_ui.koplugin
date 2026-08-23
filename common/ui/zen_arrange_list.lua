@@ -312,7 +312,7 @@ local function rebuild_icon_row(row)
     local item_has_submenu = type(item.sub_item_table) == "table"
         or type(item.sub_item_table_func) == "function"
         or item._zen_settings_submenu == true
-    local face = IconItem.getSettingsFace(item.face or row.face)
+    local face = IconItem.getItemFace(item, item.face or row.face)
     local right_items = { align = "center" }
     if item_checkable then
         local toggle_control = row.checkmark_widget

@@ -757,15 +757,17 @@ function M.build(ctx)
                     choose_quick_setting_entry(entry, touch_menu)
                 end,
             }, icons.settings_quick)
-            local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
-            local settings_items = controls and controls.getSettingsItems
-                and controls.getSettingsItems(entry.quick_setting_id)
-            if settings_items and #settings_items > 0 then
-                items[#items + 1] = IconItem.decorate({
-                    text = _("Control settings"),
-                    keep_menu_open = true,
-                    sub_item_table = settings_items,
-                }, icons.settings_quick)
+            if entry.quick_setting_id ~= "zenfm" then
+                local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
+                local settings_items = controls and controls.getSettingsItems
+                    and controls.getSettingsItems(entry.quick_setting_id)
+                if settings_items and #settings_items > 0 then
+                    items[#items + 1] = IconItem.decorate({
+                        text = _("Control settings"),
+                        keep_menu_open = true,
+                        sub_item_table = settings_items,
+                    }, icons.settings_quick)
+                end
             end
             add_label_item()
             add_icon_item()
