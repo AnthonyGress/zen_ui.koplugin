@@ -53,6 +53,7 @@ common/ui/book_progress.lua|unit
 common/ui/button_label_width.lua|unit
 common/ui/corner_banner.lua|unit
 common/ui/icon_menu_item.lua|unit
+common/ui/markdown_text.lua|unit
 common/ui/truncated_text_message.lua|unit
 common/ui/zen_arrange_list.lua|unit
 common/ui/zen_button.lua|unit

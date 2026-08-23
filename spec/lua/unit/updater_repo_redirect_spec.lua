@@ -5,6 +5,8 @@ describe("updater repository redirects", function()
     local original_icon_item
     local original_logger
     local original_plugin_root
+    local original_changelog
+    local original_zen_screen
     local original_network_manager
     local original_trapper
     local original_uimanager
@@ -14,6 +16,7 @@ describe("updater repository redirects", function()
     local requests
     local scheduled
     local asset_name
+    local shown_screen
 
     before_each(function()
         original_https = package.loaded["ssl.https"]
@@ -22,6 +25,8 @@ describe("updater repository redirects", function()
         original_icon_item = package.loaded["common/ui/icon_menu_item"]
         original_logger = package.loaded["common/zen_logger"]
         original_plugin_root = package.loaded["common/plugin_root"]
+        original_changelog = package.loaded["config/changelog"]
+        original_zen_screen = package.loaded["common/ui/zen_screen"]
         original_network_manager = package.loaded["ui/network/manager"]
         original_trapper = package.loaded["ui/trapper"]
         original_uimanager = package.loaded["ui/uimanager"]
@@ -30,6 +35,7 @@ describe("updater repository redirects", function()
         requests = {}
         scheduled = {}
         asset_name = "zenos.koplugin.zip"
+        shown_screen = nil
         config = { updater = { update_channel = "stable" } }
 
         ZenSpec.replace("ffi/archiver", {})
@@ -40,6 +46,22 @@ describe("updater repository redirects", function()
         ZenSpec.replace("config/manager", {
             load = function() return config end,
             save = function() end,
+        })
+        ZenSpec.replace("config/changelog", {
+            ["1.0.0"] = { "Oldest" },
+            ["2.0.0"] = { "Second" },
+            ["3.0.0"] = { "Third" },
+            ["4.0.0"] = { "Fourth" },
+            ["5.0.0"] = { "Fifth" },
+            ["6.0.0"] = { "Newest **feature**" },
+        })
+        ZenSpec.replace("common/ui/zen_screen", {
+            new = function(_self, values)
+                values.update = function(screen, changes)
+                    for key, value in pairs(changes) do screen[key] = value end
+                end
+                return values
+            end,
         })
         ZenSpec.replace("common/zen_logger", {
             new = function()
@@ -71,6 +93,7 @@ describe("updater repository redirects", function()
                 scheduled[#scheduled + 1] = { delay = delay, callback = callback }
             end,
             unschedule = function() end,
+            show = function(_self, screen) shown_screen = screen end,
         })
         ZenSpec.replace("ltn12", {
             sink = {
@@ -119,6 +142,8 @@ describe("updater repository redirects", function()
         package.loaded["common/ui/icon_menu_item"] = original_icon_item
         package.loaded["common/zen_logger"] = original_logger
         package.loaded["common/plugin_root"] = original_plugin_root
+        package.loaded["config/changelog"] = original_changelog
+        package.loaded["common/ui/zen_screen"] = original_zen_screen
         package.loaded["ui/network/manager"] = original_network_manager
         package.loaded["ui/trapper"] = original_trapper
         package.loaded["ui/uimanager"] = original_uimanager
@@ -165,6 +190,24 @@ describe("updater repository redirects", function()
         assert.is_false(updater.has_update())
         assert.is_nil(updater.latest_version())
         assert.is_false(config.updater.update_available)
+    end)
+
+    it("builds the changelog from the bundled file without a network request", function()
+        local updater = require("modules/settings/zen_updater")
+
+        updater.build_changelog_item().callback()
+
+        assert.are.equal(0, #requests)
+        assert.is_table(shown_screen)
+        assert.is_truthy(shown_screen.scroll_text:find("v6.0.0", 1, true))
+        assert.is_truthy(shown_screen.scroll_text:find("\u{2022} Newest", 1, true))
+        assert.is_nil(shown_screen.scroll_text:find("v1.0.0", 1, true))
+        assert.are.equal("Load more", shown_screen.button)
+
+        shown_screen._on_button_action()
+
+        assert.is_truthy(shown_screen.scroll_text:find("v1.0.0", 1, true))
+        assert.is_false(shown_screen.button)
     end)
 
     it("logs one summary line for an automatic update check", function()

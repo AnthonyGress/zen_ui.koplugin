@@ -9,6 +9,7 @@ local logger = require("common/zen_logger").new("zen_updater")
 local ConfigManager = require("config/manager")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
+local MarkdownText = require("common/ui/markdown_text")
 
 local GITHUB_OWNER = "AnthonyGress"
 local GITHUB_REPO = "zen_ui.koplugin"
@@ -41,11 +42,6 @@ local RELEASE_ASSET_NAME = CURRENT_PLUGIN_NAME == LEGACY_PLUGIN_NAME
 local USER_AGENT = CANONICAL_PLUGIN_NAME
 
 local M = {}
-
--- TextBoxWidget supports a tiny formatting protocol for bold spans.
-local PTF_HEADER = "\u{FFF1}"
-local PTF_BOLD_START = "\u{FFF2}"
-local PTF_BOLD_END = "\u{FFF3}"
 
 M._has_update       = false
 M._latest_ver       = nil   -- latest version string without leading "v"
@@ -225,13 +221,6 @@ local function normalize_release_notes(notes)
     return notes
 end
 
-local function ptf_bold(text)
-    if type(text) ~= "string" or text == "" then
-        return ""
-    end
-    return PTF_BOLD_START .. text .. PTF_BOLD_END
-end
-
 local function normalize_whats_changed_line(line)
     local heading = line:match("^%s*##%s*(.-)%s*$")
     if not heading then
@@ -239,31 +228,22 @@ local function normalize_whats_changed_line(line)
     end
     local lower = heading:lower()
     if lower == "what's changed" or lower == "what’s changed" then
-        return ptf_bold(_("What's changed"))
+        return "## " .. _("What's changed")
     end
     return nil
 end
 
 local function render_release_text(entry)
     local label = entry.version ~= "" and ("v" .. entry.version) or (entry.tag or _("unknown"))
-    local lines = {
-        ptf_bold(label),
-    }
+    local lines = {}
     local notes = normalize_release_notes(entry.notes)
     for raw in (notes .. "\n"):gmatch("(.-)\n") do
         local line = raw:gsub("\r", "")
         local normalized = normalize_whats_changed_line(line)
-        if normalized then
-            lines[#lines + 1] = normalized
-        else
-            lines[#lines + 1] = line
-        end
+        lines[#lines + 1] = normalized or line
     end
-
-    while #lines > 0 and lines[#lines] == "" do
-        table.remove(lines)
-    end
-    return table.concat(lines, "\n")
+    return MarkdownText.bold(label) .. "\n"
+        .. MarkdownText.render_fragment(table.concat(lines, "\n"))
 end
 
 local function sort_entries_most_recent(entries)
@@ -766,25 +746,42 @@ local function ensure_selected_release_details(force_live)
     return do_network_check()
 end
 
-local function fetch_channel_release_entries(channel)
-    logger.dbg("fetch_channel_release_entries channel=", tostring(channel))
-    local body = https_get(GITHUB_RELEASES_URL .. "?per_page=100")
-    if not body then
-        logger.warn("changelog fetch failed: empty API response")
-        return nil
+local function load_bundled_changelog_entries(channel)
+    local ok, changelog = pcall(require, "config/changelog")
+    if not ok or type(changelog) ~= "table" then
+        logger.warn("could not load bundled changelog")
+        return {}
     end
-    local entries = parse_release_entries(body)
-    if not entries then
-        logger.warn("changelog fetch failed: parse_release_entries returned nil")
-        return nil
+
+    local entries = {}
+    for version, items in pairs(changelog) do
+        if type(version) == "string" and type(items) == "table" then
+            local lines = {}
+            for _i, item in ipairs(items) do
+                if type(item) == "string" and item ~= "" then
+                    lines[#lines + 1] = "- " .. item
+                end
+            end
+            if #lines > 0 then
+                entries[#entries + 1] = {
+                    tag = "v" .. version,
+                    version = version,
+                    prerelease = select(4, parse_semver(version)),
+                    notes = table.concat(lines, "\n"),
+                }
+            end
+        end
     end
+    table.sort(entries, function(a, b)
+        return semver_gt(a.version, b.version)
+    end)
     local filtered = filter_changelog_entries_for_channel(entries, channel)
     logger.dbg(
-        "changelog entries channel=",
+        "bundled changelog entries channel=",
         tostring(channel),
-        "raw=",
+        "total=",
         #entries,
-        "filtered=",
+        "shown=",
         #filtered
     )
     return filtered
@@ -801,7 +798,7 @@ local function build_changelog_text(entries, count)
     if text == "" then
         text = _("No changelog provided.")
     else
-        text = PTF_HEADER .. text
+        text = MarkdownText.PTF_HEADER .. text
     end
     return text, shown < #entries
 end
@@ -814,7 +811,7 @@ local function build_single_release_scroll_text(notes, version)
     if text == "" then
         text = _("No changelog provided.")
     else
-        text = PTF_HEADER .. text
+        text = MarkdownText.PTF_HEADER .. text
     end
     return text
 end
@@ -1727,75 +1724,44 @@ function M.build_changelog_item()
         callback = function()
             local UIManager = require("ui/uimanager")
             local ZenScreen = require("common/ui/zen_screen")
-            local ok_nm, NetworkMgr = pcall(require, "ui/network/manager")
-
-            local function open_viewer()
-                local channel = get_channel()
-                logger.dbg("opening changelog viewer channel=", tostring(channel))
-
-                local screen = ZenScreen:new{
-                    title        = _("Changelog"),
-                    title_icon   = true,
-                    scroll_text  = _("Loading changelog") .. "...",
-                    button       = false,
+            local channel = get_channel()
+            local entries = load_bundled_changelog_entries(channel)
+            local shown = 5
+            local text, has_more = build_changelog_text(entries, shown)
+            local screen
+            local function refresh_text()
+                text, has_more = build_changelog_text(entries, shown)
+                screen._on_button_action = nil
+                screen:update{
+                    scroll_text = text,
+                    button = has_more and _("Load more") or false,
                     later_button = _("Close"),
-                    dismissable  = true,
+                    dismissable = true,
+                    preserve_scroll = true,
                 }
-                UIManager:show(screen)
-                UIManager:forceRePaint()
-
-                UIManager:scheduleIn(0.1, function()
-                    local entries = fetch_channel_release_entries(channel)
-                    if not entries then
-                        logger.warn("changelog viewer failed to load entries for channel", channel)
-                        screen:update{
-                            scroll_text = _("Could not reach update server. Check your internet connection.\n\nUnable to load changelog."),
-                            button = false,
-                            later_button = _("Close"),
-                            dismissable = true,
-                        }
-                        return
+                if has_more then
+                    screen._on_button_action = function()
+                        shown = math.min(shown + 5, #entries)
+                        refresh_text()
                     end
+                end
+            end
 
-                    if #entries == 0 then
-                        logger.warn("changelog viewer has zero entries for channel", channel)
-                        screen:update{
-                            scroll_text = _("No changelog entries found.\n\nNo releases are available for this channel."),
-                            button = false,
-                            later_button = _("Close"),
-                            dismissable = true,
-                        }
-                        return
-                    end
-
-                    local shown = 5
-                    local function refresh_text()
-                        local text, has_more = build_changelog_text(entries, shown)
-                        screen._on_button_action = nil
-                        screen:update{
-                            scroll_text = text,
-                            button = has_more and _("Load more") or false,
-                            later_button = _("Close"),
-                            dismissable = true,
-                            preserve_scroll = true,
-                        }
-                        if has_more then
-                            screen._on_button_action = function()
-                                shown = math.min(shown + 5, #entries)
-                                refresh_text()
-                            end
-                        end
-                    end
-
+            screen = ZenScreen:new{
+                title        = _("Changelog"),
+                title_icon   = true,
+                scroll_text  = text,
+                button       = has_more and _("Load more") or false,
+                later_button = _("Close"),
+                dismissable  = true,
+            }
+            if has_more then
+                screen._on_button_action = function()
+                    shown = math.min(shown + 5, #entries)
                     refresh_text()
-                end)
+                end
             end
-
-            if ok_nm and NetworkMgr and not NetworkMgr:isWifiOn() then
-                NetworkMgr:runWhenOnline(open_viewer)
-            else
-                open_viewer()
-            end
+            UIManager:show(screen)
         end,
     }
 end

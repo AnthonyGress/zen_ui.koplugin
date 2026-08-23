@@ -68,6 +68,7 @@ require("modules/filebrowser/patches/home/components/registry").install()
 local zen_updater   = require("modules/settings/zen_updater")
 local paths         = require("common/paths")
 local library_navigation = require("common/library_navigation")
+local MarkdownText  = require("common/ui/markdown_text")
 
 -- Absolute path to this plugin's root directory (shared module resolves relative paths).
 local _plugin_root = require("common/plugin_root")
@@ -142,15 +143,7 @@ local function refresh_home_date_dependent(plugin)
 end
 
 local function build_update_changelog_scroll_text(items)
-    if type(items) ~= "table" or #items == 0 then return nil end
-    local lines = { _("What's New"), "" }
-    for _i, item in ipairs(items) do
-        if type(item) == "string" and item ~= "" then
-            lines[#lines + 1] = "- " .. item
-        end
-    end
-    if #lines == 2 then return nil end
-    return table.concat(lines, "\n")
+    return MarkdownText.format_list(_("What's New"), items)
 end
 
 -- Defensive nil-action guard: prevent UIManager:scheduleIn/nextTick(nil) crashes.
