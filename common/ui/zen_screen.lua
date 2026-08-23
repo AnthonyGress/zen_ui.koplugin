@@ -32,6 +32,7 @@ local ok_iw, ImageWidget = pcall(require, "ui/widget/imagewidget")
 if not ok_iw then ImageWidget = nil end
 
 local _plugin_root = require("common/plugin_root") or ""
+local TITLE_FONT_SIZE = 28
 
 local ZenScreen = InputContainer:extend{
     title             = nil,   -- string shown in top bar; nil hides the title bar entirely
@@ -52,7 +53,7 @@ function ZenScreen:_computeLayout()
     local sh = Screen:getHeight()
     local PAD        = Screen:scaleBySize(20)
     local TITLE_H    = self.title and TitleStyle.HEADER_CONTENT_HEIGHT or 0
-    local SEP_H      = self.title and TitleStyle.DIVIDER_HEIGHT or 0
+    local SEP_H      = 0
     -- Subtitle band grows to fit wrapped text so long strings don't run off-page.
     local SUBTITLE_H = 0
     if self.subtitle then
@@ -278,6 +279,7 @@ function ZenScreen:paintTo(bb, x, y)
     local HDR_GAP   = Screen:scaleBySize(6)
     local ITEM_GAP  = Screen:scaleBySize(4)
     local MIN_LOGO  = Screen:scaleBySize(140)
+    local MAX_LOGO  = math.floor(math.min(L.sw, L.sh) * 0.55)
 
     local item_widgets = {}
     local hdr_tw, hdr_h
@@ -349,7 +351,7 @@ function ZenScreen:paintTo(bb, x, y)
     if self.title and L.title_h > 0 then
         local tw = TextWidget:new{
             text    = self.title,
-            face    = TitleStyle.getTitleFace(),
+            face    = Font:getFace("cfont", TITLE_FONT_SIZE),
             bold    = true,
             padding = 0,
         }
@@ -382,7 +384,6 @@ function ZenScreen:paintTo(bb, x, y)
 
         tw:paintTo(bb, base_x + (show_inline_icon and (icon_sz + icon_gap) or 0), text_y)
         tw:free()
-        bb:paintRect(x, y + L.title_h, L.sw, L.sep_h, TitleStyle.DIVIDER_COLOR)
     end
 
     -- Subtitle above icon (wraps to fit width so long strings don't run off-page).
@@ -404,9 +405,10 @@ function ZenScreen:paintTo(bb, x, y)
     -- Logo (hidden when changelog consumes too much space).
     if not use_scroll_text and not self.hide_logo and ImageWidget and _plugin_root ~= "" then
         local logo    = _plugin_root .. "/icons/zen_ui.svg"
-        local logo_sz = has_cl
+        local available_logo_sz = has_cl
             and math.floor(math.min(L.sw - L.pad * 2, logo_h - L.pad * 2))
             or  math.floor(math.min(L.sw - L.pad * 4, logo_h - L.pad * 4) * 0.75)
+        local logo_sz = math.min(available_logo_sz, MAX_LOGO)
         if logo_sz > 0 then
             pcall(function()
                 local iw = ImageWidget:new{
