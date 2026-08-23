@@ -233,9 +233,9 @@ def test_two_row_strip_offsets_its_bottom_anchor_by_the_home_row_gap() -> None:
                 driver,
                 required_book_paths={str(book.resolve()) for book in books[1:]},
                 minimum_widget_count=2,
-                required_state_keys={"strip_bottom"},
+                required_state_keys={"bottom_visual_inset"},
             )
-            bottom_inset = int(home["body_height"]) - int(home["strip_bottom"])
+            bottom_inset = int(home["bottom_visual_inset"])
             expected_bottom_inset = (
                 int(home["top_visual_inset"]) + int(home["row_gap"])
             )

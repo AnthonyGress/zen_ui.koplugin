@@ -887,7 +887,6 @@ local function home_state()
     local widget_heights = {}
     local quote_content_bounds
     local book_paths = {}
-    local strip_bottom
     local strip_control_top
     local strip_control_count = 0
     for _i, target in ipairs(menu and menu._zen_home_focus_targets or {}) do
@@ -916,7 +915,6 @@ local function home_state()
         local dimen = target.component_id == "strip"
             and target.widget and target.widget.dimen or nil
         if dimen and type(dimen.y) == "number" and type(dimen.h) == "number" then
-            strip_bottom = math.max(strip_bottom or 0, dimen.y + dimen.h)
             if key:match("^strip%-control:") then
                 strip_control_top = math.min(strip_control_top or dimen.y, dimen.y)
             end
@@ -937,7 +935,6 @@ local function home_state()
         body_height = menu and menu.height or 0,
         top_visual_inset = menu and menu._zen_home_top_visual_inset or 0,
         bottom_visual_inset = menu and menu._zen_home_bottom_visual_inset or nil,
-        strip_bottom = strip_bottom,
         strip_control_top = strip_control_top,
         strip_control_count = strip_control_count,
         visual_gaps = menu and menu._zen_home_visual_gaps or {},
