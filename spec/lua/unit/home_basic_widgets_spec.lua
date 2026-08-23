@@ -76,6 +76,7 @@ describe("home basic widgets", function()
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("ui/gesturerange", widget_class("gesture"))
         ZenSpec.unload("common/widget_resources")
+        ZenSpec.unload("common/date_format")
     end
 
     local function texts()

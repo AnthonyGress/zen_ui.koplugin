@@ -20,6 +20,7 @@ local function apply_status_bar()
     local Size = require("ui/size")
     local VerticalGroup = require("ui/widget/verticalgroup")
     local clock_timer = require("common/clock_timer")
+    local DateFormat = require("common/date_format")
     local library_font = require("modules/filebrowser/patches/library_font")
     local utils = require("common/utils")
     local paths = require("common/paths")
@@ -65,6 +66,7 @@ local function apply_status_bar()
         left_order   = { "time" },
         center_order = {},
         right_order  = { "wifi", "battery" },
+        date_format = "short",
         show_bottom_border = true,
         colored = false,
         bold_text = false,
@@ -469,6 +471,10 @@ local function apply_status_bar()
         return time_str, nil, nil
     end
 
+    local function getDateInfo()
+        return DateFormat.format(config.date_format), nil, nil
+    end
+
     local function getCustomTextInfo()
         local text = (config.custom_text ~= nil and config.custom_text ~= "")
                      and config.custom_text or getDeviceName()
@@ -486,6 +492,7 @@ local function apply_status_bar()
         frontlight  = getFrontlightInfo,
         battery     = getBatteryInfo,
         time        = getTimeInfo,
+        date        = getDateInfo,
         custom_text = getCustomTextInfo,
     }
 

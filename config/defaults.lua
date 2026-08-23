@@ -173,6 +173,7 @@ local defaults = {
         left_order   = { "time" },
         center_order = {},
         right_order  = { "wifi", "battery" },
+        date_format = "short",
         time_12h = true,
         show_bottom_border = false,
         colored = false,

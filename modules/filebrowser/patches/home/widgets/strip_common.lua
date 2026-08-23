@@ -896,9 +896,8 @@ function M.build_strip(ctx, source_key)
     local function build_row_widget(row_list, row_num)
         local n = #row_list
         local row_capacity = per_row
-        local partial_one_row = not two_rows and n < row_capacity
-        local center_short_row = partial_one_row or center_books and n <= 3
-        local left_align_partial = not center_short_row and two_rows and n < per_row
+        local center_short_row = center_books and n <= 3
+        local left_align_partial = not center_short_row and n < per_row
         local min_gap = math.max(6, math.min(Screen:scaleBySize(14), math.floor(width * 0.018)))
         local max_cover_w = math.max(24, math.floor(
             (cover_row_width - min_gap * (row_capacity - 1)) / row_capacity))
@@ -1124,8 +1123,7 @@ function M.build_strip(ctx, source_key)
         if #row_books[r] > 0 then
             local row_widget, row_h = build_row_widget(row_books[r], r)
             total_row_h = total_row_h + row_h
-            local container = two_rows
-                and not (center_books and #row_books[r] <= 3)
+            local container = not (center_books and #row_books[r] <= 3)
                 and LeftContainer or CenterContainer
             table.insert(vgroup, container:new{
                 dimen = Geom:new{ w = cover_row_width, h = row_h },

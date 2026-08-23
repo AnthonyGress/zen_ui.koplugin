@@ -207,6 +207,26 @@ describe("Zen settings page", function()
         assert.is_true(settings.title_bar.search_visible)
     end)
 
+    it("toggles configurable submenu rows only from their outer switch", function()
+        local active = false
+        local date = {
+            text = "Date",
+            checked_func = function() return active end,
+            checkmark_callback = function() active = not active end,
+            sub_item_table = {{ text = "MM/DD/YY" }},
+            _zen_settings_control_bounds = { left = 0.75, right = 0.9 },
+        }
+        local settings = make_page({ date })
+
+        settings:onMenuSelect(date, { x = 0.8 })
+        assert.is_true(active)
+        assert.are.equal(settings._root_items, settings.item_table)
+
+        settings:onMenuSelect(date, { x = 0.95 })
+        assert.are.equal(date.sub_item_table, settings.item_table)
+        assert.are.equal("Date", settings.title_bar.title)
+    end)
+
     it("returns to the settings root when the header Back button is held", function()
         local detail = { text = "Detail", sub_item_table = {{ text = "Option" }} }
         local library = { text = "Library >", sub_item_table = { detail } }

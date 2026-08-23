@@ -270,6 +270,19 @@ local function rebuild_settings_menu_item(row)
     end
     table.insert(right_controls, HorizontalSpan:new{ width = right_padding })
     local right_controls_w = right_controls:getSize().w
+    if control_widget then
+        local control_w = control_widget:getSize().w
+        local control_right = row.dimen.w - right_padding
+        if item._zen_has_submenu then
+            control_right = control_right - M.SETTINGS_CARET_SIZE - Size.padding.large
+        end
+        item._zen_settings_control_bounds = {
+            left = (control_right - control_w) / row.dimen.w,
+            right = control_right / row.dimen.w,
+        }
+    else
+        item._zen_settings_control_bounds = nil
+    end
     local text_w = math.max(1, row.dimen.w - left_padding - left_icon_w
         - right_controls_w - Size.padding.default)
     local text = item._zen_display_text

@@ -548,7 +548,7 @@ describe("home strip widget", function()
         assert.are.same({ "recent", "recent", "to_be_read" }, activated)
     end)
 
-    it("aligns one-row covers with the shared content inset", function()
+    it("left-aligns one-row covers with the shared content inset", function()
         cover_frame_border = 2
         local books = {}
         for i = 1, 4 do
@@ -576,13 +576,42 @@ describe("home strip widget", function()
             elseif widget.kind == "ui/widget/container/framecontainer"
                     and widget.height == 30 and widget.bordersize == 2 then
                 controls_width = widget.width
-            elseif widget.kind == "ui/widget/container/centercontainer"
+            elseif widget.kind == "ui/widget/container/leftcontainer"
                     and widget.dimen.w == 580 and widget.dimen.h == 205 then
                 row_width = widget.dimen.w
             end
         end
         assert.are.same({ 87, 87, 86 }, book_gaps)
         assert.are.equal(controls_width, row_width + cover_frame_border * 2)
+    end)
+
+    it("left-aligns a partial one-row strip unless centering is enabled", function()
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        local books = { { path = "/library/one.epub" } }
+        local function row_container_kind(center_books)
+            local first_created = #created + 1
+            Strip.build({
+                width = 600,
+                height = 300,
+                component_id = "strip",
+                module_cfg = {
+                    center_books = center_books,
+                    count = 4,
+                    interactive = false,
+                    controls = { enabled = true, order = {}, show_buttons = {} },
+                },
+                data = { getStripItemsForPage = function() return books end },
+            })
+            for i = first_created, #created do
+                local widget = created[i]
+                if widget.dimen.w == 580 and widget.dimen.h == 205 then
+                    return widget.kind
+                end
+            end
+        end
+
+        assert.are.equal("ui/widget/container/leftcontainer", row_container_kind(false))
+        assert.are.equal("ui/widget/container/centercontainer", row_container_kind(true))
     end)
 
     it("keeps cover dimensions stable on a partial control category", function()
