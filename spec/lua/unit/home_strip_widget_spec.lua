@@ -593,6 +593,33 @@ describe("home strip widget", function()
         assert.are.equal(400 - content_bounds.bottom, content_bounds.max_shift)
     end)
 
+    it("locks a two-row strip control bar when only one row has books", function()
+        local books = {
+            { path = "/library/a.epub" },
+            { path = "/library/b.epub" },
+            { path = "/library/c.epub" },
+        }
+        local content_bounds
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 400,
+            component_id = "strip",
+            module_cfg = {
+                count = 8,
+                interactive = false,
+                two_rows = true,
+                controls = { enabled = true, order = {}, show_buttons = {} },
+            },
+            data = { getStripItemsForPage = function() return books end },
+            setContentBounds = function(bounds) content_bounds = bounds end,
+        })
+
+        assert.is_table(content_bounds)
+        assert.is_true(content_bounds.lock_shift)
+        assert.are.equal(18, content_bounds.top)
+    end)
+
     it("caps book spacing on phone-shaped screens", function()
         screen_width, screen_height = 1080, 2340
         local books = {}

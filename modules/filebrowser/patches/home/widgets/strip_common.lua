@@ -692,6 +692,7 @@ function M.build_strip(ctx, source_key)
                 bottom = group_bottom,
                 min_shift = -adjusted_top,
                 max_shift = total_outer_height - group_bottom,
+                lock_shift = controls_enabled,
                 bottom_anchor_offset = controls_enabled
                     and math.max(0, tonumber(ctx.row_gap_above) or 0) or 0,
                 set_shift = function(shift) visual_shift = shift end,

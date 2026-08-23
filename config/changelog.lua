@@ -274,6 +274,7 @@ return {
         "Fix underline showing when setting is off",
         "Auto add ZenFM to launcher",
         "Hold ZenFM for settings",
+        "Fix a bug with 1 row sub folders in Home Book strip",
         "Performance improvements"
     }
 }

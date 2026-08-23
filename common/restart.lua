@@ -5,10 +5,13 @@ local InfoMessage = require("ui/widget/infomessage")
 
 local M = {}
 
-function M.request()
-    UIManager:show(InfoMessage:new{
-        text = _("Restarting") .. "...",
-    })
+function M.request(opts)
+    opts = opts or {}
+    if opts.show_notice ~= false then
+        UIManager:show(InfoMessage:new{
+            text = _("Restarting") .. "...",
+        })
+    end
     UIManager:tickAfterNext(function()
         UIManager:broadcastEvent(Event:new("Restart"))
     end)

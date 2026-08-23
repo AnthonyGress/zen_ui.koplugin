@@ -2937,7 +2937,7 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
             })
             if content_bounds then
                 content_bounds.row_y = row_y
-                if i == 1 then
+                if i == 1 or content_bounds.lock_shift == true then
                     content_bounds.min_shift = 0
                     content_bounds.max_shift = 0
                 else

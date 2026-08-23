@@ -46,4 +46,16 @@ describe("restart notice", function()
         assert.are.equal(1, #UIManager.events)
         assert.are.equal("Restart", UIManager.events[1].name)
     end)
+
+    it("can restart without replacing an existing progress screen", function()
+        require("common/restart").request{ show_notice = false }
+
+        assert.is_nil(UIManager.widget)
+        assert.are.equal(0, #UIManager.events)
+
+        UIManager.restart_callback()
+
+        assert.are.equal(1, #UIManager.events)
+        assert.are.equal("Restart", UIManager.events[1].name)
+    end)
 end)

@@ -1512,7 +1512,9 @@ local function _do_install(screen, plugin_root, plugins_dir)
             save_updater_config(cfg2)
         end
 
-        require("common/restart").request()
+        screen:update{ subtitle = _("Restarting") .. "..." }
+        UIManager:forceRePaint()
+        require("common/restart").request{ show_notice = false }
     end)
 end
 
