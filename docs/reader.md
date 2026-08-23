@@ -75,7 +75,7 @@ Reader settings control ZenOS features while a book is open. They cover the top 
 | Highlight / Lookup > Show KOAssistant | Shows KOAssistant in lookup and highlight menus when the plugin is installed. |
 | Highlight / Lookup > Show AI assistant | Shows an Assistant plugin button in lookup and highlight menus when the plugin is installed. |
 | Highlight / Lookup > Show other items | Shows non-Zen KOReader quick lookup options alongside Zen buttons. |
-| Reader > Verbose time to chapter end | Shows expanded chapter time information in compatible footer layouts. |
+| Reader > Time until chapter end | Selects `5 min left in chapter`, `5 min left`, abbreviated `5m`/`1h 5m`, or KOReader's default `hh:mm` format for compatible footer layouts. |
 | Reader > Enable bottom swipe | Enables bottom-swipe reader menu behavior. This is forced on while page browser is enabled. |
 | Reader > Enable page browser | Enables ZenOS page browser. It requires bottom swipe and supports stable page labels when the current book provides a page map. |
 | Reader > Restore library location on exit | Returns to the previous library location after leaving the reader. |
@@ -110,6 +110,6 @@ ZenOS uses KOReader page-map labels when a book provides them. The reader page b
 
 The reader has two independent status bars: a top bar and a bottom bar. Each bar has three slots — left, center, and right — that you customize separately. Drop items like time, battery, Incognito, Wi-Fi, brightness, RAM usage, disk space, custom text, book title, author, chapter, progress percentage, or current/total pages into any slot and arrange their order. The top and bottom bars are configured independently, so you can show different items in each.
 
-## Verbose time to chapter end
+## Time until chapter end
 
-Enable **Zen Settings > Reader > Verbose time to chapter end** to show the written-out time remaining in the current chapter, the same style Kindle uses (e.g. "12 minutes left in chapter").
+Open **Zen Settings > Reader > Time until chapter end** to choose how the current chapter estimate appears: `5 min left in chapter`, `5 min left`, abbreviated `5m`/`1h 5m`, or KOReader's default `hh:mm` format. The abbreviated hour and minute units are localized.

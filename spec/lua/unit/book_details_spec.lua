@@ -198,6 +198,33 @@ describe("reader book details", function()
         assert.are.equal("Page xii of 300", summary.page_text)
     end)
 
+    it("reports live time left and total time spent for the launcher", function()
+        local ui = reader_ui()
+        local status_calls = 0
+        ui.statistics = {
+            avg_time = 90,
+            getStatsBookStatus = function(stats)
+                status_calls = status_calls + 1
+                stats.avg_time = 75
+                return { time = 7260 }
+            end,
+        }
+        local BookDetails = require("modules/reader/book_details")
+        local time_left, read_time = BookDetails.getReadingTimes(ui)
+
+        assert.are.equal(1, status_calls)
+        assert.are.equal(4350, time_left)
+        assert.are.equal(7260, read_time)
+    end)
+
+    it("omits reading times when statistics are unavailable", function()
+        local BookDetails = require("modules/reader/book_details")
+        local time_left, read_time = BookDetails.getReadingTimes(reader_ui())
+
+        assert.is_nil(time_left)
+        assert.is_nil(read_time)
+    end)
+
     it("does nothing when no reader book is open", function()
         local BookDetails = require("modules/reader/book_details")
         assert.is_false(BookDetails.show({}))

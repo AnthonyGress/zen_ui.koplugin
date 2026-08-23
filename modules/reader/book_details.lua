@@ -131,6 +131,30 @@ function M.getProgress(ui)
     return ratio, pages, page_current, page_total
 end
 
+function M.getReadingTimes(ui)
+    local stats = ui and ui.statistics
+    if type(stats) ~= "table" or type(stats.getStatsBookStatus) ~= "function" then
+        return nil, nil
+    end
+
+    local ok, status = pcall(stats.getStatsBookStatus, stats)
+    if not ok or type(status) ~= "table" then return nil, nil end
+
+    local read_time = tonumber(status.time)
+    if not (read_time and read_time >= 0 and read_time < math.huge) then
+        read_time = nil
+    end
+
+    local time_left
+    local avg_time = tonumber(stats.avg_time)
+    local current_page, total_pages = current_page_info(ui)
+    if avg_time and avg_time > 0 and avg_time < math.huge
+            and current_page and total_pages and current_page <= total_pages then
+        time_left = math.floor((total_pages - current_page) * avg_time + 0.5)
+    end
+    return time_left, read_time
+end
+
 function M.getSummary(ui)
     local file = ui and ui.document and ui.document.file
     if not file then return nil end

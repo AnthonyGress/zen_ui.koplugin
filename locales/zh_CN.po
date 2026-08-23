@@ -12,8 +12,23 @@ msgstr " 天"
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
-msgid "%1 mins left in chapter"
+msgid "%1 min left"
+msgstr "剩余 %1 分钟"
+
+msgid "%1 min left in chapter"
 msgstr "本章剩余 %1 分钟"
+
+msgid "%1h"
+msgstr "%1时"
+
+msgid "%1h %2m"
+msgstr "%1时%2分"
+
+msgid "%1m"
+msgstr "%1分"
+
+msgid "< %1m"
+msgstr "< %1分"
 
 msgid "%1, %2 %3"
 msgstr "%2%3日，%1"
@@ -60,9 +75,6 @@ msgstr "1 本书"
 msgid "1 language"
 msgstr "1 种语言"
 
-msgid "1 min left in chapter"
-msgstr "本章剩余 1 分钟"
-
 msgid "1 series"
 msgstr "1 个系列"
 
@@ -86,9 +98,6 @@ msgstr "270°"
 
 msgid "90°"
 msgstr "90°"
-
-msgid "< 1 min left in chapter"
-msgstr "本章剩余 < 1 分钟"
 
 msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "为您的电子阅读器提供干净、简约的体验。\n\n滑动或点击下一步继续。"
@@ -1809,6 +1818,9 @@ msgstr "阅读时间"
 msgid "Read today"
 msgstr "今天阅读"
 
+msgid "Read: %s"
+msgstr "已阅读：%s"
+
 msgid "Reader"
 msgstr "阅读器"
 
@@ -1865,6 +1877,9 @@ msgstr "常规"
 
 msgid "Release metadata is invalid or incomplete."
 msgstr "发布信息无效或不完整。"
+
+msgid "Remaining: %s"
+msgstr "剩余：%s"
 
 msgid "Remove"
 msgstr "删除"
@@ -2613,8 +2628,8 @@ msgstr "使用上次文件夹"
 msgid "username"
 msgstr "用户名"
 
-msgid "Verbose time to chapter end"
-msgstr "详细的章节剩余时间"
+msgid "Time until chapter end"
+msgstr "距本章结束时间"
 
 msgid "View"
 msgstr "查看"

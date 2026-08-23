@@ -273,8 +273,8 @@ describe("Zen screen", function()
         assert.are.equal(0, screen._L.sep_h)
         assert.are.equal(2, #image_widgets)
         assert.are.equal(28, image_widgets[1].width)
-        assert.are.equal(420, image_widgets[2].width)
-        assert.are.equal(420, image_widgets[2].height)
+        assert.are.equal(330, image_widgets[2].width)
+        assert.are.equal(330, image_widgets[2].height)
         for _i, widget in ipairs(text_widgets) do
             if widget.text == "ZenOS" then
                 assert.are.equal("cfont", widget.face.name)

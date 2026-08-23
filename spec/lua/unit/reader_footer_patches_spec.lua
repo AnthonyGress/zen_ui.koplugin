@@ -8,8 +8,11 @@ describe("reader footer patches", function()
         _G.__ZEN_UI_PLUGIN = nil
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("ffi/util", {
-            template = function(text, value)
-                return (text:gsub("%%1", tostring(value)))
+            template = function(text, ...)
+                local values = { ... }
+                return (text:gsub("%%(%d+)", function(index)
+                    return tostring(values[tonumber(index)])
+                end))
             end,
         })
     end)
@@ -28,7 +31,7 @@ describe("reader footer patches", function()
         }
         ZenSpec.replace("apps/reader/modules/readerfooter", ReaderFooter)
         _G.__ZEN_UI_PLUGIN = {
-            config = { reader_footer = { verbose_chapter_time = true } },
+            config = { reader_footer = { chapter_time_format = "full" } },
         }
         apply_patch("modules/reader/patches/reader_footer_time_format")
 
@@ -52,12 +55,12 @@ describe("reader footer patches", function()
             ReaderFooter.textGeneratorMap.chapter_time_to_read(footer))
 
         footer.ui.toc.getChapterPagesLeft = function() return 4 end
-        assert.are.equal(hair .. "4" .. nbsp .. "mins" .. nbsp .. "left" .. nbsp
+        assert.are.equal(hair .. "4" .. nbsp .. "min" .. nbsp .. "left" .. nbsp
             .. "in" .. nbsp .. "chapter",
             ReaderFooter.textGeneratorMap.chapter_time_to_read(footer))
     end)
 
-    it("uses stock chapter time while verbose mode is disabled", function()
+    it("formats compact and abbreviated chapter times", function()
         local ReaderFooter = {
             textGeneratorMap = {
                 chapter_time_to_read = function() return "stock" end,
@@ -67,11 +70,57 @@ describe("reader footer patches", function()
         }
         ZenSpec.replace("apps/reader/modules/readerfooter", ReaderFooter)
         _G.__ZEN_UI_PLUGIN = {
-            config = { reader_footer = { verbose_chapter_time = false } },
+            config = { reader_footer = { chapter_time_format = "compact" } },
         }
         apply_patch("modules/reader/patches/reader_footer_time_format")
 
-        assert.are.equal("stock", ReaderFooter.textGeneratorMap.chapter_time_to_read({}))
+        local footer = {
+            pageno = 10,
+            ui = {
+                statistics = { settings = { is_enabled = true }, avg_time = 60 },
+                toc = { getChapterPagesLeft = function() return 4 end },
+                document = { getTotalPagesLeft = function() return 99 end },
+            },
+        }
+        local nbsp = "\u{00A0}"
+        local hair = "\u{200A}"
+        assert.are.equal(hair .. "4" .. nbsp .. "min" .. nbsp .. "left",
+            ReaderFooter.textGeneratorMap.chapter_time_to_read(footer))
+
+        _G.__ZEN_UI_PLUGIN.config.reader_footer.chapter_time_format = "number"
+        assert.are.equal(hair .. "4m", ReaderFooter.textGeneratorMap.chapter_time_to_read(footer))
+        local text, merge = ReaderFooter.textGeneratorMap.dynamic_filler(footer)
+        assert.are.equal("          ", text)
+        assert.is_false(merge)
+
+        footer.ui.statistics.avg_time = 30
+        footer.ui.toc.getChapterPagesLeft = function() return 1 end
+        assert.are.equal(hair .. "< 1m", ReaderFooter.textGeneratorMap.chapter_time_to_read(footer))
+
+        footer.ui.statistics.avg_time = 60
+        footer.ui.toc.getChapterPagesLeft = function() return 60 end
+        assert.are.equal(hair .. "1h", ReaderFooter.textGeneratorMap.chapter_time_to_read(footer))
+
+        footer.ui.toc.getChapterPagesLeft = function() return 65 end
+        assert.are.equal(hair .. "1h 5m", ReaderFooter.textGeneratorMap.chapter_time_to_read(footer))
+    end)
+
+    it("uses KOReader's chapter-time formatter for the default format", function()
+        local original_filler = function() return "          ", false end
+        local ReaderFooter = {
+            textGeneratorMap = {
+                chapter_time_to_read = function() return "01:05" end,
+                dynamic_filler = original_filler,
+            },
+            genAllFooterText = function() return "all" end,
+        }
+        ZenSpec.replace("apps/reader/modules/readerfooter", ReaderFooter)
+        _G.__ZEN_UI_PLUGIN = {
+            config = { reader_footer = { chapter_time_format = "koreader" } },
+        }
+        apply_patch("modules/reader/patches/reader_footer_time_format")
+
+        assert.are.equal("01:05", ReaderFooter.textGeneratorMap.chapter_time_to_read({}))
         local text, merge = ReaderFooter.textGeneratorMap.dynamic_filler({})
         assert.are.equal("          ", text)
         assert.is_false(merge)
@@ -92,7 +141,7 @@ describe("reader footer patches", function()
         }
         ZenSpec.replace("apps/reader/modules/readerfooter", ReaderFooter)
         _G.__ZEN_UI_PLUGIN = {
-            config = { reader_footer = { verbose_chapter_time = true } },
+            config = { reader_footer = { chapter_time_format = "full" } },
         }
         apply_patch("modules/reader/patches/reader_footer_time_format")
 
@@ -125,7 +174,7 @@ describe("reader footer patches", function()
         }
         ZenSpec.replace("apps/reader/modules/readerfooter", ReaderFooter)
         _G.__ZEN_UI_PLUGIN = {
-            config = { reader_footer = { verbose_chapter_time = true } },
+            config = { reader_footer = { chapter_time_format = "full" } },
         }
         apply_patch("modules/reader/patches/reader_footer_time_format")
 

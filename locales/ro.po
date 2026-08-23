@@ -12,8 +12,23 @@ msgstr " zile"
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
-msgid "%1 mins left in chapter"
+msgid "%1 min left"
+msgstr "%1 min rămase"
+
+msgid "%1 min left in chapter"
 msgstr "%1 min rămase în capitol"
+
+msgid "%1h"
+msgstr "%1 h"
+
+msgid "%1h %2m"
+msgstr "%1 h %2 min"
+
+msgid "%1m"
+msgstr "%1 min"
+
+msgid "< %1m"
+msgstr "< %1 min"
 
 msgid "%1, %2 %3"
 msgstr "%1, %3 %2"
@@ -60,9 +75,6 @@ msgstr "1 carte"
 msgid "1 language"
 msgstr "1 limbă"
 
-msgid "1 min left in chapter"
-msgstr "1 min rămas în capitol"
-
 msgid "1 series"
 msgstr "1 serie"
 
@@ -86,9 +98,6 @@ msgstr "270°"
 
 msgid "90°"
 msgstr "90°"
-
-msgid "< 1 min left in chapter"
-msgstr "< 1 min rămas în capitol"
 
 msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "O experiență curată, minimă pentru cititorul dvs. electronic.\n\nGlisați sau atingeți Următorul pentru a continua."
@@ -1809,6 +1818,9 @@ msgstr "Ora de citire"
 msgid "Read today"
 msgstr "Citiți astăzi"
 
+msgid "Read: %s"
+msgstr "Citit: %s"
+
 msgid "Reader"
 msgstr "Cititor"
 
@@ -1865,6 +1877,9 @@ msgstr "obișnuit"
 
 msgid "Release metadata is invalid or incomplete."
 msgstr "Metadatele versiunii sunt invalide sau incomplete."
+
+msgid "Remaining: %s"
+msgstr "Rămas: %s"
 
 msgid "Remove"
 msgstr "Elimină"
@@ -2613,8 +2628,8 @@ msgstr "Folosește ultimul dosar"
 msgid "username"
 msgstr "nume utilizator"
 
-msgid "Verbose time to chapter end"
-msgstr "Timp detaliat până la sfârșitul capitolului"
+msgid "Time until chapter end"
+msgstr "Timp până la sfârșitul capitolului"
 
 msgid "View"
 msgstr "Vizualizare"

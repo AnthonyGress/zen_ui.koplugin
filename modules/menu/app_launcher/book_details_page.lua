@@ -31,6 +31,25 @@ local function load_cover(book, width, height)
     book.has_real_cover = cover[5] == "real_cover"
 end
 
+local function time_unit(gettext, unit)
+    if type(gettext) == "table" and type(gettext.pgettext) == "function" then
+        return gettext.pgettext("Time", unit)
+    end
+    return gettext(unit)
+end
+
+local function format_duration(gettext, seconds)
+    seconds = math.floor(tonumber(seconds) or 0)
+    if seconds <= 0 then return "0" .. time_unit(gettext, "m") end
+    local hours = math.floor(seconds / 3600)
+    local minutes = math.floor((seconds % 3600) / 60)
+    if hours > 0 then
+        return hours .. time_unit(gettext, "h") .. " "
+            .. minutes .. time_unit(gettext, "m")
+    end
+    return math.max(1, minutes) .. time_unit(gettext, "m")
+end
+
 function M.build(opts)
     opts = opts or {}
     local Blitbuffer = require("ffi/blitbuffer")
@@ -64,6 +83,9 @@ function M.build(opts)
     local padding = layout.padding
     local inner_w = layout.inner_w
     local book = opts.book or BookDetails.getSummary(opts.ui)
+    if book and opts.ui and type(BookDetails.getReadingTimes) == "function" then
+        book.time_left_secs, book.read_time_secs = BookDetails.getReadingTimes(opts.ui)
+    end
     local refs = { buttons = {}, layout_rows = {} }
 
     if not book then
@@ -126,19 +148,30 @@ function M.build(opts)
         HorizontalSpan:new{ width = text_w },
         title,
     }
-    if book.authors and book.authors ~= "" then
-        details[#details + 1] = VerticalSpan:new{ width = Screen:scaleBySize(6) }
-        details[#details + 1] = one_line(
-            book.authors:gsub("%s*\n%s*", ", "), metadata_face)
-    end
+    local metadata_gap = Screen:scaleBySize(6)
     local function add_metadata(text)
         if text and text ~= "" then
-            details[#details + 1] = VerticalSpan:new{ width = Screen:scaleBySize(3) }
+            details[#details + 1] = VerticalSpan:new{ width = metadata_gap }
             details[#details + 1] = one_line(text, metadata_face)
         end
     end
+    if book.authors and book.authors ~= "" then
+        add_metadata(book.authors:gsub("%s*\n%s*", ", "))
+    end
     add_metadata(book.series)
     add_metadata(book.genres)
+    local timing = {}
+    if book.read_time_secs ~= nil then
+        timing[#timing + 1] = string.format(_("Read: %s"),
+            format_duration(_, book.read_time_secs))
+    end
+    if book.time_left_secs ~= nil then
+        timing[#timing + 1] = string.format(_("Remaining: %s"),
+            format_duration(_, book.time_left_secs))
+    end
+    if #timing > 0 then
+        add_metadata(table.concat(timing, " / "))
+    end
     local bottom_details = VerticalGroup:new{ align = "left" }
     if book.page_text and book.page_text ~= "" then
         bottom_details[#bottom_details + 1] = VerticalSpan:new{

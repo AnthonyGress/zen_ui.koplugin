@@ -128,6 +128,8 @@ function BookInfoWidget:init()
         max_width = math.max(1, title_right - TitleStyle.getTitleX(0)),
         padding = 0,
     }
+    self._L.title_x = TitleStyle.getTitleX(0)
+    self._L.title_w = self._title_widget:getSize().w
     self._detail_widgets = {}
     for _i, detail in ipairs(self.details or {}) do
         local face = self._text_faces[detail.style] or self._text_face
@@ -534,8 +536,8 @@ end
 
 function BookInfoWidget:_onTap(ges)
     local pos = ges.pos
-    if pos.x >= self._L.back_x and pos.x < self._L.back_x + self._L.back_w
-            and pos.y >= 0 and pos.y < self._L.title_h then
+    local in_header = pos.y >= 0 and pos.y < self._L.title_h
+    if in_header and pos.x >= 0 and pos.x < self._L.title_x then
         return self:onClose()
     end
     if self._edit_widget and pos.x >= self._L.edit_x
@@ -545,8 +547,12 @@ function BookInfoWidget:_onTap(ges)
     end
     if pos.x >= self._L.close_all_x
             and pos.x < self._L.close_all_x + self._L.close_all_w
-            and pos.y >= 0 and pos.y < self._L.title_h then
+            and in_header then
         return self:onCloseAll()
+    end
+    if in_header and pos.x >= self._L.title_x
+            and pos.x < self._L.title_x + self._L.title_w then
+        return self:onClose()
     end
     local handled = TopMenu.handleTap(nil, ges)
     if handled then return handled end

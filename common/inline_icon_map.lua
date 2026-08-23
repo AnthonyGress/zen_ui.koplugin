@@ -129,7 +129,7 @@ return {
     downgrade    = "\u{F0CDC}",
     upgrade      = "\u{F0CE2}",
     enable       = "\u{F040A}",
-    verbose_chapter_time = "\u{F19B9}",
+    chapter_time_format = "\u{F19B9}",
     bottom_swipe = "\u{F0740}",
     page_browser = "\u{F0570}",
     restore_library_location = "\u{F006F}",

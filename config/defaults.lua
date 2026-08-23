@@ -256,7 +256,7 @@ local defaults = {
     },
     reader_footer = {
         status_bar_enabled = true,
-        verbose_chapter_time = false,
+        chapter_time_format = "number",
         hide_in_cbz = true,
     },
     highlight_lookup = {

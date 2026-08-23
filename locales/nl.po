@@ -12,8 +12,23 @@ msgstr " dagen"
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
-msgid "%1 mins left in chapter"
+msgid "%1 min left"
+msgstr "%1 min resterend"
+
+msgid "%1 min left in chapter"
 msgstr "%1 min resterend in hoofdstuk"
+
+msgid "%1h"
+msgstr "%1 u"
+
+msgid "%1h %2m"
+msgstr "%1 u %2 min"
+
+msgid "%1m"
+msgstr "%1 min"
+
+msgid "< %1m"
+msgstr "< %1 min"
 
 msgid "%1, %2 %3"
 msgstr "%1 %3 %2"
@@ -60,9 +75,6 @@ msgstr "1 boek"
 msgid "1 language"
 msgstr "1 taal"
 
-msgid "1 min left in chapter"
-msgstr "1 min resterend in hoofdstuk"
-
 msgid "1 series"
 msgstr "1 reeks"
 
@@ -86,9 +98,6 @@ msgstr "270°"
 
 msgid "90°"
 msgstr "90°"
-
-msgid "< 1 min left in chapter"
-msgstr "< 1 min resterend in hoofdstuk"
 
 msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "Een schone, minimale ervaring voor uw e-reader.\n\nVeeg of tik op Volgende om door te gaan."
@@ -1809,6 +1818,9 @@ msgstr "Lees tijd"
 msgid "Read today"
 msgstr "Lees vandaag"
 
+msgid "Read: %s"
+msgstr "Gelezen: %s"
+
 msgid "Reader"
 msgstr "Lezer"
 
@@ -1865,6 +1877,9 @@ msgstr "normaal"
 
 msgid "Release metadata is invalid or incomplete."
 msgstr "Releasemetadata is ongeldig of onvolledig."
+
+msgid "Remaining: %s"
+msgstr "Resterend: %s"
 
 msgid "Remove"
 msgstr "Verwijderen"
@@ -2613,8 +2628,8 @@ msgstr "Laatste map gebruiken"
 msgid "username"
 msgstr "gebruikersnaam"
 
-msgid "Verbose time to chapter end"
-msgstr "Gedetailleerde tijd tot einde hoofdstuk"
+msgid "Time until chapter end"
+msgstr "Tijd tot einde hoofdstuk"
 
 msgid "View"
 msgstr "Weergave"

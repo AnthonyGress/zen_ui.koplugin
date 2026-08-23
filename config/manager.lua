@@ -171,6 +171,22 @@ local function normalize_renamed_keys(cfg)
         changed = true
     end
 
+    local reader_footer = cfg.reader_footer
+    if type(reader_footer) == "table" then
+        if reader_footer.verbose_chapter_time ~= nil then
+            reader_footer.chapter_time_format = reader_footer.verbose_chapter_time == true
+                and "full" or "number"
+            reader_footer.verbose_chapter_time = nil
+            changed = true
+        end
+        local format = reader_footer.chapter_time_format
+        if format ~= "full" and format ~= "compact" and format ~= "number"
+                and format ~= "koreader" then
+            reader_footer.chapter_time_format = "number"
+            changed = true
+        end
+    end
+
     return cfg, changed
 end
 
@@ -736,8 +752,10 @@ end
 local function migrate_reader_preset_zen_settings()
     local store = PresetStore.loadStore("reader")
     local changed = false
-    for _name, preset in pairs(store.presets) do
-        local zen = type(preset) == "table" and preset.zen
+
+    local function migrate(preset)
+        if type(preset) ~= "table" then return end
+        local zen = preset.zen
         if type(zen) == "table" then
             if preset.verbose_chapter_time == nil and zen.verbose_chapter_time ~= nil then
                 preset.verbose_chapter_time = zen.verbose_chapter_time
@@ -750,6 +768,25 @@ local function migrate_reader_preset_zen_settings()
                 changed = true
             end
         end
+        if preset.verbose_chapter_time ~= nil then
+            if preset.chapter_time_format == nil then
+                preset.chapter_time_format = preset.verbose_chapter_time == true
+                    and "full" or "number"
+            end
+            preset.verbose_chapter_time = nil
+            changed = true
+        end
+        local format = preset.chapter_time_format
+        if format ~= nil and format ~= "full" and format ~= "compact" and format ~= "number"
+                and format ~= "koreader" then
+            preset.chapter_time_format = "number"
+            changed = true
+        end
+    end
+
+    migrate(store.settings)
+    for _name, preset in pairs(store.presets) do
+        migrate(preset)
     end
     return changed and PresetStore.saveStore("reader", store)
 end

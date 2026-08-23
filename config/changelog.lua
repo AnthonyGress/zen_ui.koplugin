@@ -270,6 +270,8 @@ return {
         "Fix KOReader exit not closing search in settings",
         "Physical page buttons control Home Book Strip widget",
         "Add sort by filename",
+        "Add more options to reader chapter end time",
+        "Add time read/remaining to the book details in Launcher",
         "Filter books by language from Navbar and Home controls",
         "Fix PDF search",
         "Fix underline showing when setting is off",

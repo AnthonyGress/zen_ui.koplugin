@@ -770,7 +770,7 @@ local function ensure_reader_status_fonts(preset_key)
     top_config.center_order = {}
     top_config.right_order = { "chapter" }
     if type(plugin.config.reader_footer) ~= "table" then plugin.config.reader_footer = {} end
-    plugin.config.reader_footer.verbose_chapter_time = true
+    plugin.config.reader_footer.chapter_time_format = "full"
     require("config/preset_store").setActivePreset("reader", preset.name)
 
     local top = plugin.config.reader_top_status_bar and plugin.config.reader_top_status_bar.font_face

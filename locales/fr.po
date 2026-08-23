@@ -12,8 +12,23 @@ msgstr " jours"
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
-msgid "%1 mins left in chapter"
+msgid "%1 min left"
+msgstr "%1 min restantes"
+
+msgid "%1 min left in chapter"
 msgstr "%1 min restants dans le chapitre"
+
+msgid "%1h"
+msgstr "%1 h"
+
+msgid "%1h %2m"
+msgstr "%1 h %2 min"
+
+msgid "%1m"
+msgstr "%1 min"
+
+msgid "< %1m"
+msgstr "< %1 min"
 
 msgid "%1, %2 %3"
 msgstr "%1 %3 %2"
@@ -60,9 +75,6 @@ msgstr "1 livre"
 msgid "1 language"
 msgstr "1 langue"
 
-msgid "1 min left in chapter"
-msgstr "1 min restant dans le chapitre"
-
 msgid "1 series"
 msgstr "1 série"
 
@@ -86,9 +98,6 @@ msgstr "270°"
 
 msgid "90°"
 msgstr "90°"
-
-msgid "< 1 min left in chapter"
-msgstr "< 1 min restant dans le chapitre"
 
 msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
 msgstr "Une expérience propre et minimale pour votre liseuse.\n\nFaites glisser ou appuyez sur Suivant pour continuer."
@@ -1809,6 +1818,9 @@ msgstr "Lire l'heure"
 msgid "Read today"
 msgstr "Lire aujourd'hui"
 
+msgid "Read: %s"
+msgstr "Lecture : %s"
+
 msgid "Reader"
 msgstr "Lecteur"
 
@@ -1865,6 +1877,9 @@ msgstr "normal"
 
 msgid "Release metadata is invalid or incomplete."
 msgstr "Les métadonnées de version sont invalides ou incomplètes."
+
+msgid "Remaining: %s"
+msgstr "Restant : %s"
 
 msgid "Remove"
 msgstr "Supprimer"
@@ -2613,8 +2628,8 @@ msgstr "Utiliser le dernier dossier"
 msgid "username"
 msgstr "nom d'utilisateur"
 
-msgid "Verbose time to chapter end"
-msgstr "Temps détaillé avant la fin du chapitre"
+msgid "Time until chapter end"
+msgstr "Temps restant avant la fin du chapitre"
 
 msgid "View"
 msgstr "Vue"

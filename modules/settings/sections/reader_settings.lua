@@ -3,6 +3,7 @@
 -- Receives ctx: { plugin, config, save_and_apply }
 
 local _ = require("gettext")
+local T = require("ffi/util").template
 local UIManager = require("ui/uimanager")
 local dispatch_action = require("common/dispatch_action")
 local utils = require("modules/settings/zen_settings_utils")
@@ -785,8 +786,8 @@ function M.build(ctx)
                         reader_footer_custom_text = G_reader_settings:readSetting("reader_footer_custom_text") or "KOReader",
                         reader_footer_custom_text_repetitions =
                             G_reader_settings:readSetting("reader_footer_custom_text_repetitions") or 1,
-                        verbose_chapter_time = type(config.reader_footer) == "table"
-                            and config.reader_footer.verbose_chapter_time == true,
+                        chapter_time_format = type(config.reader_footer) == "table"
+                            and config.reader_footer.chapter_time_format or "number",
                     }
                 end
 
@@ -794,13 +795,18 @@ function M.build(ctx)
                     ui.view.footer:loadPreset(resolve_preset_font(preset))
                     config.features["reader_top_status_bar"] = true
                     save_and_apply("reader_top_status_bar")
+                    local chapter_time_format = preset.chapter_time_format
                     local verbose_chapter_time = preset.verbose_chapter_time
                     if verbose_chapter_time == nil and type(preset.zen) == "table" then
                         verbose_chapter_time = preset.zen.verbose_chapter_time
                     end
-                    if verbose_chapter_time ~= nil then
+                    if chapter_time_format == nil and verbose_chapter_time ~= nil then
+                        chapter_time_format = verbose_chapter_time == true and "full" or "number"
+                    end
+                    if chapter_time_format == "full" or chapter_time_format == "compact"
+                            or chapter_time_format == "number" or chapter_time_format == "koreader" then
                         if type(config.reader_footer) ~= "table" then config.reader_footer = {} end
-                        config.reader_footer.verbose_chapter_time = verbose_chapter_time
+                        config.reader_footer.chapter_time_format = chapter_time_format
                         plugin:saveConfig()
                     end
                     PresetStore.saveSettings("reader", capture_footer_state())
@@ -980,21 +986,35 @@ function M.build(ctx)
         },
     })
 
+    local chapter_time_formats = {
+        { value = "full", text = T(_("%1 min left in chapter"), "5") },
+        { value = "compact", text = T(_("%1 min left"), "5") },
+        { value = "number", text = T(_("%1m"), 5) },
+        { value = "koreader", text = "hh:mm" },
+    }
+    local chapter_time_format_items = {}
+    for _i, entry in ipairs(chapter_time_formats) do
+        local format = entry.value
+        chapter_time_format_items[#chapter_time_format_items + 1] = {
+            text = entry.text,
+            radio = true,
+            checked_func = function()
+                return type(config.reader_footer) == "table"
+                    and config.reader_footer.chapter_time_format == format
+            end,
+            callback = function()
+                if type(config.reader_footer) ~= "table" then
+                    config.reader_footer = {}
+                end
+                config.reader_footer.chapter_time_format = format
+                plugin:saveConfig()
+            end,
+        }
+    end
     table.insert(items, IconItem.decorate({
-        text = _("Verbose time to chapter end"),
-        checked_func = function()
-            return type(config.reader_footer) == "table"
-                and config.reader_footer.verbose_chapter_time == true
-        end,
-        callback = function()
-            if type(config.reader_footer) ~= "table" then
-                config.reader_footer = {}
-            end
-            config.reader_footer.verbose_chapter_time =
-                config.reader_footer.verbose_chapter_time ~= true
-            plugin:saveConfig()
-        end,
-    }, icons.verbose_chapter_time))
+        text = _("Time until chapter end"),
+        sub_item_table = chapter_time_format_items,
+    }, icons.chapter_time_format))
 
     -- -------------------------------------------------------------------------
     -- Feature toggles

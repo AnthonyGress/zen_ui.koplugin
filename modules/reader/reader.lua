@@ -95,7 +95,7 @@ function M.init(logger, plugin)
         run_feature(logger, plugin, "reader_footer", reader_footer_fn)
     end
 
-    -- Always apply: format time_to_chapter in Kindle style ("X mins left in chapter")
+    -- Always apply the selected chapter-time display format.
     local reader_footer_time_format_fn = load_patch("reader_footer_time_format")
     if reader_footer_time_format_fn then
         run_feature(logger, plugin, "reader_footer_time_format", reader_footer_time_format_fn)
