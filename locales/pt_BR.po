@@ -679,7 +679,7 @@ msgid "Day brightness: "
 msgstr "Brilho diurno: "
 
 msgid "Day streak"
-msgstr "Sequência do dia"
+msgstr "Sequência de dias"
 
 msgid "Day warmth"
 msgstr "Tonalidade quente diurna"
@@ -1804,7 +1804,7 @@ msgid "Read time"
 msgstr "Tempo de leitura"
 
 msgid "Read today"
-msgstr "Leia hoje"
+msgstr "Lido hoje"
 
 msgid "Reader"
 msgstr "Leitor"
