@@ -269,6 +269,7 @@ return {
     ["3.1.0"] = {
         "Fix KOReader exit not closing search in settings",
         "Physical page buttons control Home Book Strip widget",
+        "Add sort by filename",
         "Filter books by language from Navbar and Home controls",
         "Fix PDF search",
         "Fix underline showing when setting is off",
