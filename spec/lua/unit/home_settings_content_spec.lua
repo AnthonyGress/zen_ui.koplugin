@@ -266,6 +266,20 @@ describe("Home widget content settings", function()
         assert.is_true(item.checked_func())
     end)
 
+    it("shows an enabled-by-default progress toggle before its label settings", function()
+        local settings = require("modules/settings/sections/library_settings/home_settings")
+        assert.is_true(settings.openWidgetSettings("featured"))
+
+        local progress = find_item(arrange_options.item_table, "Progress")
+        assert.is_table(progress)
+        assert.are.equal("Enable", item_text(progress.sub_item_table[1]))
+        assert.is_true(progress.sub_item_table[1].checked_func())
+
+        progress.sub_item_table[1].callback()
+        assert.is_false(home_page.modules.featured.show_progress)
+        assert.is_false(progress.sub_item_table[1].checked_func())
+    end)
+
     it("keeps the plugin when Widgets is opened from the settings page", function()
         local plugin = { config = {} }
         local section = require("modules/settings/sections/library_settings/home_settings").build({

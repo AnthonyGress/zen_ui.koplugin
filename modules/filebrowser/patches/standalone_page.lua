@@ -33,20 +33,48 @@ local function is_horizontal_swipe(ges)
     if not ges then return false end
     local direction = ges.direction
     return direction == "east" or direction == "west"
-        or direction == "northeast" or direction == "northwest"
-        or direction == "southeast" or direction == "southwest"
 end
 
-local function is_diagonal_swipe(ges)
-    if not ges then return false end
-    local direction = ges.direction
-    return direction == "northeast" or direction == "northwest"
-        or direction == "southeast" or direction == "southwest"
+local function is_gesture_manager_zone(id)
+    if type(id) ~= "string" then return false end
+    return id == "multiswipe"
+        or id == "short_diagonal_swipe"
+        or id == "spread_gesture"
+        or id == "pinch_gesture"
+        or id == "rotate_cw"
+        or id == "rotate_ccw"
+        or id:sub(1, 4) == "tap_"
+        or id:sub(1, 5) == "hold_"
+        or id:sub(1, 11) == "double_tap_"
+        or id:sub(1, 17) == "one_finger_swipe_"
+        or id:sub(1, 11) == "two_finger_"
 end
 
 local function should_block_standalone_swipe(menu, ges)
-    return is_diagonal_swipe(ges)
-        or (menu and menu._zen_block_fm_horizontal_swipe and is_horizontal_swipe(ges))
+    return menu and menu._zen_block_fm_horizontal_swipe and is_horizontal_swipe(ges)
+end
+
+local function dispatch_gesture_manager(ges)
+    if not ges then return false end
+    local fm = get_filemanager_instance()
+    if not (fm and fm._ordered_touch_zones) then return false end
+
+    local UIManager = require("ui/uimanager")
+    local gestures_disabled = UIManager._input_gestures_disabled == true
+    for _i, zone in ipairs(fm._ordered_touch_zones) do
+        local id = zone.def and zone.def.id
+        if is_gesture_manager_zone(id) then
+            local always_active = not gestures_disabled
+                or (type(fm.isGestureAlwaysActive) == "function"
+                    and fm:isGestureAlwaysActive(id, ges.multiswipe_directions))
+            if always_active and zone.gs_range and type(zone.gs_range.match) == "function"
+                    and zone.gs_range:match(ges) and type(zone.handler) == "function"
+                    and zone.handler(ges) then
+                return true
+            end
+        end
+    end
+    return false
 end
 
 -- broadcastEvent dispatches to *every* window-stack widget directly, including
@@ -97,8 +125,23 @@ local function remove_from_overlap(group, widget)
     end
 end
 
+function M.enable_gesture_manager_dispatch(menu)
+    if not menu or menu._zen_gesture_manager_dispatch_enabled then return end
+    menu._zen_gesture_manager_dispatch_enabled = true
+
+    local orig_handleEvent = menu.handleEvent
+    function menu:handleEvent(event)
+        if event and event.handler == "onGesture"
+                and dispatch_gesture_manager(event.args and event.args[1]) then
+            return true
+        end
+        if orig_handleEvent then return orig_handleEvent(self, event) end
+    end
+end
+
 function M.enable_filemanager_dispatch(menu)
     if not menu or menu._zen_fm_dispatch_enabled then return end
+    M.enable_gesture_manager_dispatch(menu)
     menu._zen_fm_dispatch_enabled = true
 
     local orig_handleEvent = menu.handleEvent
@@ -117,21 +160,6 @@ function M.enable_filemanager_dispatch(menu)
         local fm = get_filemanager_instance()
         if fm and fm ~= self and type(fm.handleEvent) == "function" then
             return fm:handleEvent(event)
-        end
-        return consumed
-    end
-
-    local orig_onGesture = menu.onGesture
-    function menu:onGesture(ges)
-        if should_block_standalone_swipe(self, ges) then
-            return true
-        end
-        local consumed = orig_onGesture and orig_onGesture(self, ges)
-        if consumed then return consumed end
-
-        local fm = get_filemanager_instance()
-        if fm and fm ~= self and type(fm.onGesture) == "function" then
-            return fm:onGesture(ges)
         end
         return consumed
     end

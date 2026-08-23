@@ -207,6 +207,9 @@ describe("file browser navbar navigation", function()
         ZenSpec.replace("common/memory_policy", {
             canPrewarmGroups = function() return allow_group_prewarm end,
         })
+        ZenSpec.replace("modules/filebrowser/patches/standalone_page", {
+            enable_gesture_manager_dispatch = function() end,
+        })
         ZenSpec.replace("common/ui/background", {
             library_active = function() return false end,
         })
@@ -1922,12 +1925,23 @@ describe("file browser navbar navigation", function()
 
     it("returns an open collection to the collections root on an active-tab tap", function()
         local fm = make_instance()
+        local restored_item = { _underline_container = { color = "black" } }
+        local collection_root = { layout = { { restored_item } } }
+        shared.hideMenuUnderlines = function(menu)
+            calls[#calls + 1] = "underlines_hidden"
+            menu.layout[1][1]._underline_container.color = "white"
+        end
+        _G.__ZEN_UI_PLUGIN.config.features.browser_hide_underline = true
         local detail = {
             name = "collections",
             page = 2,
             dimen = { w = 800, h = 600 },
             inner_dimen = { w = 800, h = 600 },
-            close_callback = function() calls[#calls + 1] = "collection_root" end,
+            onReturn = function()
+                calls[#calls + 1] = "collection_root"
+                fm.collections.coll_list = collection_root
+            end,
+            close_callback = function() calls[#calls + 1] = "collections_closed" end,
             updateItems = function() calls[#calls + 1] = "detail_reset" end,
             [1] = {
                 dimen = { w = 800, h = 560 },
@@ -1935,6 +1949,7 @@ describe("file browser navbar navigation", function()
                 resetLayout = function() end,
             },
         }
+        detail._manager = fm.collections
         fm.collections.coll_list = {}
         fm.collections.booklist_menu = detail
 
@@ -1945,7 +1960,8 @@ describe("file browser navbar navigation", function()
         calls = {}
 
         assert.is_true(navbar:onTapNavBar(nil, { pos = { x = 400, y = 1 } }))
-        assert.are.same({ "collection_root" }, calls)
+        assert.are.same({ "collection_root", "underlines_hidden" }, calls)
+        assert.are.equal("white", restored_item._underline_container.color)
         assert.are.equal(2, detail.page)
     end)
 

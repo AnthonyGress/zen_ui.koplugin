@@ -23,6 +23,7 @@ local function apply_navbar()
     local MemoryPolicy = require("common/memory_policy")
     local SharedState = require("common/shared_state")
     local ButtonModel = require("common/nav_button_model")
+    local StandalonePage = require("modules/filebrowser/patches/standalone_page")
     local NativeMenu = require("modules/menu/app_launcher/native_menu")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
     local Screen = Device.screen
@@ -2805,6 +2806,7 @@ local function apply_navbar()
         end
         if menu._zen_standalone_navbar_injected then return end
         _G.__ZEN_UI_ACTIVE_TAB_LABEL = tabs_by_id[view_tab_id] and tabs_by_id[view_tab_id].label or view_tab_id
+        StandalonePage.enable_gesture_manager_dispatch(menu)
         preventStandaloneSwipeClose(menu)
         if not is_navbar_enabled() then
             return
@@ -2835,12 +2837,24 @@ local function apply_navbar()
                 if view_tab_id == "home" and resetHomeStripPages() then
                     return true
                 end
+                local is_collection_detail = menu._zen_collection_detail == true
                 local is_detail = menu.name == "authors_detail"
                     or menu.name == "series_detail"
                     or menu.name == "languages_detail"
                     or menu.name == "tags_detail"
-                    or menu._zen_collection_detail == true
-                if is_detail then
+                    or is_collection_detail
+                if is_collection_detail and type(menu.onReturn) == "function" then
+                    menu:onReturn()
+                    local features = zen_plugin.config and zen_plugin.config.features
+                    local manager = menu._manager
+                    local hide_underlines = get_shared("hideMenuUnderlines")
+                    if type(features) == "table"
+                            and features.browser_hide_underline == true
+                            and manager and manager.coll_list
+                            and type(hide_underlines) == "function" then
+                        hide_underlines(manager.coll_list)
+                    end
+                elseif is_detail then
                     if menu.close_callback then
                         menu.close_callback()
                     elseif menu.onClose then
@@ -3879,6 +3893,7 @@ local function apply_navbar()
         function QuickRSSUI_class:init()
             orig_qrss_init(self)
             self._zen_navbar_tab_id = "news"
+            StandalonePage.enable_gesture_manager_dispatch(self)
 
             local navbar_h = getNavbarHeight()
             if navbar_h <= 0 then return end

@@ -450,6 +450,61 @@ describe("home strip widget", function()
             cover_heights)
     end)
 
+    it("keeps two-row cover dimensions and slots stable on sparse groups", function()
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        local function layout(book_count)
+            local books = {}
+            for i = 1, book_count do
+                books[i] = { path = "/library/" .. tostring(i) .. ".epub" }
+            end
+            local first_created = #created + 1
+            local content_bounds
+            Strip.build({
+                width = 600,
+                height = 400,
+                component_id = "strip",
+                module_cfg = {
+                    count = 8,
+                    interactive = false,
+                    two_rows = true,
+                    controls = { enabled = true, order = {}, show_buttons = {} },
+                },
+                data = { getStripItemsForPage = function() return books end },
+                setContentBounds = function(bounds) content_bounds = bounds end,
+            })
+            local covers = {}
+            local gaps = {}
+            for i = first_created, #created do
+                local widget = created[i]
+                if widget.kind == "cover" then
+                    covers[#covers + 1] = { widget.width, widget.height }
+                elseif widget.kind == "ui/widget/horizontalspan"
+                        and widget.width >= 80 then
+                    gaps[#gaps + 1] = widget.width
+                end
+            end
+            return covers, gaps, content_bounds
+        end
+
+        local full_covers, full_gaps, full_bounds = layout(8)
+        local partial_covers, partial_gaps, partial_bounds = layout(3)
+        local single_covers, single_gaps, single_bounds = layout(1)
+
+        assert.are.same({ 80, 160 }, full_covers[1])
+        assert.are.same({ 80, 160 }, partial_covers[1])
+        assert.are.same({ 80, 160 }, single_covers[1])
+        assert.are.same({ full_gaps[1], full_gaps[2] }, partial_gaps)
+        assert.are.same({}, single_gaps)
+        assert.are.equal(full_bounds.top, partial_bounds.top)
+        assert.are.equal(full_bounds.top, single_bounds.top)
+        assert.are.equal(full_bounds.bottom, partial_bounds.bottom)
+        assert.are.equal(full_bounds.bottom, single_bounds.bottom)
+        assert.are.equal(full_bounds.min_shift, partial_bounds.min_shift)
+        assert.are.equal(full_bounds.min_shift, single_bounds.min_shift)
+        assert.are.equal(full_bounds.max_shift, partial_bounds.max_shift)
+        assert.are.equal(full_bounds.max_shift, single_bounds.max_shift)
+    end)
+
     it("extends strip-control hit targets past their outer edges", function()
         touch_device = true
         local activated = {}
@@ -593,11 +648,13 @@ describe("home strip widget", function()
         assert.are.equal(400 - content_bounds.bottom, content_bounds.max_shift)
     end)
 
-    it("preserves a two-row strip control offset while opening a short group", function()
+    it("preserves a borrowed upward control offset across a two-row rebuild", function()
         local books = {
             { path = "/library/a.epub" },
             { path = "/library/b.epub" },
             { path = "/library/c.epub" },
+            { path = "/library/d.epub" },
+            { path = "/library/e.epub" },
         }
         local content_bounds
         local runtime = {
@@ -606,7 +663,7 @@ describe("home strip widget", function()
                 kind = "series",
                 drill = { label = "Short Series", files = {} },
             },
-            _locked_visual_shift = 19,
+            _locked_visual_shift = -24,
         }
         local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         Strip.build({
@@ -631,11 +688,58 @@ describe("home strip widget", function()
 
         assert.is_table(content_bounds)
         assert.is_true(content_bounds.lock_shift)
-        assert.are.equal(19, content_bounds.min_shift)
-        assert.are.equal(19, content_bounds.max_shift)
+        assert.are.equal(-24, content_bounds.min_shift)
+        assert.are.equal(-24, content_bounds.max_shift)
         assert.are.equal(18, content_bounds.top)
-        content_bounds.set_shift(19)
-        assert.are.equal(19, runtime._visual_shift)
+        content_bounds.set_shift(-24)
+        assert.are.equal(-24, runtime._visual_shift)
+        assert.is_nil(runtime._locked_visual_shift)
+    end)
+
+    it("clamps a carried two-row strip offset for a one-book group", function()
+        local content_bounds
+        local runtime = {
+            active_id = "series",
+            source = {
+                kind = "series",
+                drill = { label = "One Book", files = {} },
+            },
+            _locked_visual_shift = 400,
+        }
+        local Strip = require("modules/filebrowser/patches/home/widgets/strip")
+        Strip.build({
+            width = 600,
+            height = 400,
+            menu = { _zen_home_strip_runtime = runtime },
+            component_id = "strip",
+            module_cfg = {
+                count = 8,
+                interactive = false,
+                two_rows = true,
+                controls = {
+                    enabled = true,
+                    order = { "series" },
+                    show_buttons = { series = true },
+                    labels = { series = "Series" }, custom_buttons = {},
+                },
+            },
+            data = {
+                getStripItemsForPage = function()
+                    return {{ path = "/library/only.epub" }}
+                end,
+            },
+            setContentBounds = function(bounds) content_bounds = bounds end,
+        })
+
+        local safe_bottom_shift = 400 - content_bounds.bottom
+        assert.is_true(content_bounds.lock_shift)
+        assert.are.equal(400, content_bounds.bottom)
+        assert.are.equal(safe_bottom_shift, content_bounds.min_shift)
+        assert.are.equal(safe_bottom_shift, content_bounds.max_shift)
+        assert.is_true(safe_bottom_shift < 400)
+
+        content_bounds.set_shift(safe_bottom_shift)
+        assert.are.equal(safe_bottom_shift, runtime._visual_shift)
         assert.is_nil(runtime._locked_visual_shift)
     end)
 

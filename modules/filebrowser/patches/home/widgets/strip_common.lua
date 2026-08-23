@@ -7,6 +7,7 @@ local HorizontalSpan = require("ui/widget/horizontalspan")
 local FrameContainer = require("ui/widget/container/framecontainer")
 local CenterContainer = require("ui/widget/container/centercontainer")
 local LeftContainer = require("ui/widget/container/leftcontainer")
+local TopContainer = require("ui/widget/container/topcontainer")
 local TextWidget = require("ui/widget/textwidget")
 local TextBoxWidget = require("ui/widget/textboxwidget")
 local InputContainer = require("ui/widget/container/inputcontainer")
@@ -689,6 +690,10 @@ function M.build_strip(ctx, source_key)
         if type(ctx.setContentBounds) == "function" then
             local group_bottom = controls_and_gap + visual_bottom + base_shift
             local locked_shift = tonumber(runtime._locked_visual_shift)
+            if locked_shift then
+                local natural_max = total_outer_height - group_bottom
+                locked_shift = math.min(natural_max, locked_shift)
+            end
             ctx.setContentBounds{
                 top = adjusted_top,
                 bottom = group_bottom,
@@ -794,20 +799,22 @@ function M.build_strip(ctx, source_key)
         end
     end
     if visible_rows < 1 then visible_rows = 1 end
+    local layout_rows = two_rows and num_rows or visible_rows
     local fixed_h = row_top_pad
         + row_bottom_pad
-        + math.max(0, visible_rows - 1) * row_gap
-        + math.max(0, visible_rows - 1) * row_inner_bottom_pad
+        + math.max(0, layout_rows - 1) * row_gap
+        + math.max(0, layout_rows - 1) * row_inner_bottom_pad
     local avail_h = height - fixed_h
     -- Covers can't shrink below MIN_COVER_H; if titles won't also fit within `height`,
     -- drop them so the strip never overflows downward into the navbar (2-row / rotation).
     if show_strip_titles
-            and avail_h < visible_rows * (MIN_COVER_H + title_gap + title_h) then
+            and avail_h < layout_rows * (MIN_COVER_H + title_gap + title_h) then
         show_strip_titles = false
         title_h = 0
         title_gap = 0
     end
-    local per_row_budget = math.floor((avail_h - visible_rows * (title_h + title_gap)) / visible_rows)
+    local per_row_budget = math.floor(
+        (avail_h - layout_rows * (title_h + title_gap)) / layout_rows)
     local max_cover_h_per_row = math.max(1, math.min(MIN_COVER_H, per_row_budget))
     if per_row_budget > MIN_COVER_H then max_cover_h_per_row = per_row_budget end
     local page_focus_targets = {}
@@ -891,7 +898,7 @@ function M.build_strip(ctx, source_key)
         local row_capacity = per_row
         local partial_one_row = not two_rows and n < row_capacity
         local center_short_row = partial_one_row or center_books and n <= 3
-        local left_align_partial = not center_short_row and two_rows and row_num == 2 and n < per_row
+        local left_align_partial = not center_short_row and two_rows and n < per_row
         local min_gap = math.max(6, math.min(Screen:scaleBySize(14), math.floor(width * 0.018)))
         local max_cover_w = math.max(24, math.floor(
             (cover_row_width - min_gap * (row_capacity - 1)) / row_capacity))
@@ -1136,8 +1143,10 @@ function M.build_strip(ctx, source_key)
 
     local visual_size = vgroup:getSize()
     local inner_slack = math.max(0, height - (visual_size.h or height))
-    local inner_top = math.floor(inner_slack / 2)
-    local content_container = CenterContainer:new{
+    local sparse_two_rows = two_rows and visible_rows < num_rows
+    local inner_top = sparse_two_rows and 0 or math.floor(inner_slack / 2)
+    local ContentContainer = sparse_two_rows and TopContainer or CenterContainer
+    local content_container = ContentContainer:new{
         dimen = Geom:new{ w = width, h = height },
         vgroup,
     }
@@ -1152,6 +1161,9 @@ function M.build_strip(ctx, source_key)
         + math.max(0, visible_rows - 1) * (row_gap + row_inner_bottom_pad)
     local visual_top = outer_top + inner_top + row_top_pad
     local visual_bottom = outer_top + inner_top + visible_bottom
+    if sparse_two_rows then
+        visual_bottom = visual_top + height
+    end
     local controls_top
     content_base_shift, controls_top = set_visual_bounds(
         page_delta, visual_top, visual_bottom)

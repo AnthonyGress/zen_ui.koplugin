@@ -310,6 +310,7 @@ function M.build(ctx, source_key)
 
     -- Progress metrics; row width is chosen after overflow is measured.
     local is_tbr = book.status == "tbr"
+    local show_progress = module_cfg.show_progress ~= false
     local progress_percent = (book.status == "new" or is_tbr) and 0 or book.percent
     if book.status ~= "new" and not is_tbr
             and book.stable_current_page and book.stable_pages and book.stable_pages > 0 then
@@ -330,7 +331,8 @@ function M.build(ctx, source_key)
         WidgetResources.free(stats_probe)
     end
     local bar_h = math.max(progress_h, stats_text_h)
-    local has_progress = bar_h > 0 and book.status ~= "new" and not is_tbr
+    local has_progress = show_progress and bar_h > 0
+        and book.status ~= "new" and not is_tbr
     local cover_h = math.max(1, cover_actual_h or col_h)
     local bottom_h = has_progress and bar_h or 0
 

@@ -25,6 +25,7 @@ local function featured_defaults()
             left = "percent",
             right = "total_pages",
         },
+        show_progress = true,
         show_description = true,
         wrap_description_text = false,
         show_status_bar = true,
