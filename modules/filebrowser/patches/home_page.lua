@@ -2937,13 +2937,16 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
             })
             if content_bounds then
                 content_bounds.row_y = row_y
-                if i == 1 or content_bounds.lock_shift == true then
+                if i == 1 then
                     content_bounds.min_shift = 0
                     content_bounds.max_shift = 0
-                else
+                elseif content_bounds.lock_shift ~= true then
                     -- Borrow surrounding blank space when internal slack is too small.
                     content_bounds.min_shift = (content_bounds.min_shift or 0) - row_gap * 3
                     content_bounds.max_shift = (content_bounds.max_shift or 0) + row_gap * 3
+                else
+                    content_bounds.min_shift = tonumber(content_bounds.min_shift) or 0
+                    content_bounds.max_shift = content_bounds.min_shift
                 end
                 visual_rows[i] = content_bounds
             end

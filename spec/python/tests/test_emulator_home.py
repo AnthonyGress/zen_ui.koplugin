@@ -461,6 +461,7 @@ def test_home_tags_drill_from_tag_folders_into_books() -> None:
                 "activate_home_target", key="strip-control:tags"
             )["ok"] is True
             groups = _wait_for_home(driver, {"Focus", "Testing"})
+            controls_top = int(groups["strip_control_top"])
             assert {"Focus", "Testing"} <= set(groups["visible_texts"])
             assert {"Focus (1)", "Testing (1)"}.isdisjoint(groups["visible_texts"])
             screenshot = root / "home-tag-folders.png"
@@ -474,6 +475,7 @@ def test_home_tags_drill_from_tag_folders_into_books() -> None:
             books = _wait_for_home(
                 driver, {"Focus"}, required_book_paths={book_path}
             )
+            assert abs(int(books["strip_control_top"]) - controls_top) <= 1, books
             assert book_path in books["book_paths"]
             assert {"Recent", "To Be Read", "Focus"} <= set(books["visible_texts"])
 

@@ -2839,6 +2839,7 @@ local function apply_navbar()
                     or menu.name == "series_detail"
                     or menu.name == "languages_detail"
                     or menu.name == "tags_detail"
+                    or menu._zen_collection_detail == true
                 if is_detail then
                     if menu.close_callback then
                         menu.close_callback()
@@ -3821,6 +3822,7 @@ local function apply_navbar()
         local result = orig_onShowColl(self, collection_name)
         if self.booklist_menu then
             local inferred_tab = from_coll_list and "collections" or "favorites"
+            self.booklist_menu._zen_collection_detail = from_coll_list or nil
             injectStandaloneNavbar(self.booklist_menu, inferred_tab)
             local state = rawget(_G, "__ZEN_UI_LIBRARY_STATE")
             if state and state.tab == inferred_tab and state.page and state.page > 1 then

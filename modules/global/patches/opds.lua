@@ -925,10 +925,11 @@ local function apply_opds()
             title_bar._zen_opds_title_h_padding = title_bar.title_h_padding
         end
         title_bar.title_h_padding = title_bar._zen_opds_title_h_padding + slot_width
-        title_bar.left_icon = header_icon_paths.back
+        -- TitleBar expects stock names; the visible ZenIconButtons use absolute files.
+        title_bar.left_icon = "chevron.left"
         title_bar.left_icon_tap_callback = function() return browser:onLeftButtonTap() end
         title_bar.left_icon_allow_flash = false
-        title_bar.right_icon = header_icon_paths.close
+        title_bar.right_icon = "close"
         title_bar.right_icon_tap_callback = function() return browser:onCloseAllMenus() end
         title_bar.right_icon_allow_flash = false
         title_bar:clear()

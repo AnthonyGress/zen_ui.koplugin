@@ -593,23 +593,37 @@ describe("home strip widget", function()
         assert.are.equal(400 - content_bounds.bottom, content_bounds.max_shift)
     end)
 
-    it("locks a two-row strip control bar when only one row has books", function()
+    it("preserves a two-row strip control offset while opening a short group", function()
         local books = {
             { path = "/library/a.epub" },
             { path = "/library/b.epub" },
             { path = "/library/c.epub" },
         }
         local content_bounds
+        local runtime = {
+            active_id = "series",
+            source = {
+                kind = "series",
+                drill = { label = "Short Series", files = {} },
+            },
+            _locked_visual_shift = 19,
+        }
         local Strip = require("modules/filebrowser/patches/home/widgets/strip")
         Strip.build({
             width = 600,
             height = 400,
+            menu = { _zen_home_strip_runtime = runtime },
             component_id = "strip",
             module_cfg = {
                 count = 8,
                 interactive = false,
                 two_rows = true,
-                controls = { enabled = true, order = {}, show_buttons = {} },
+                controls = {
+                    enabled = true,
+                    order = { "series" },
+                    show_buttons = { series = true },
+                    labels = { series = "Series" }, custom_buttons = {},
+                },
             },
             data = { getStripItemsForPage = function() return books end },
             setContentBounds = function(bounds) content_bounds = bounds end,
@@ -617,7 +631,12 @@ describe("home strip widget", function()
 
         assert.is_table(content_bounds)
         assert.is_true(content_bounds.lock_shift)
+        assert.are.equal(19, content_bounds.min_shift)
+        assert.are.equal(19, content_bounds.max_shift)
         assert.are.equal(18, content_bounds.top)
+        content_bounds.set_shift(19)
+        assert.are.equal(19, runtime._visual_shift)
+        assert.is_nil(runtime._locked_visual_shift)
     end)
 
     it("caps book spacing on phone-shaped screens", function()

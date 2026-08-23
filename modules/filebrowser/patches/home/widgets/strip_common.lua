@@ -540,6 +540,7 @@ function M.build_strip(ctx, source_key)
 
     local function rebuild_home()
         if ctx.menu and type(ctx.menu._home_rebuild) == "function" then
+            runtime._locked_visual_shift = tonumber(runtime._visual_shift) or 0
             ctx.menu:_home_rebuild()
             return true
         end
@@ -687,15 +688,20 @@ function M.build_strip(ctx, source_key)
         controls_visual_top = adjusted_top
         if type(ctx.setContentBounds) == "function" then
             local group_bottom = controls_and_gap + visual_bottom + base_shift
+            local locked_shift = tonumber(runtime._locked_visual_shift)
             ctx.setContentBounds{
                 top = adjusted_top,
                 bottom = group_bottom,
-                min_shift = -adjusted_top,
-                max_shift = total_outer_height - group_bottom,
-                lock_shift = controls_enabled,
+                min_shift = locked_shift or -adjusted_top,
+                max_shift = locked_shift or total_outer_height - group_bottom,
+                lock_shift = locked_shift ~= nil,
                 bottom_anchor_offset = controls_enabled
                     and math.max(0, tonumber(ctx.row_gap_above) or 0) or 0,
-                set_shift = function(shift) visual_shift = shift end,
+                set_shift = function(shift)
+                    visual_shift = shift
+                    runtime._visual_shift = shift
+                    runtime._locked_visual_shift = nil
+                end,
             }
         end
         return base_shift, adjusted_top

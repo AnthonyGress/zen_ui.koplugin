@@ -1920,6 +1920,35 @@ describe("file browser navbar navigation", function()
         assert.are.equal("Collections", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
     end)
 
+    it("returns an open collection to the collections root on an active-tab tap", function()
+        local fm = make_instance()
+        local detail = {
+            name = "collections",
+            page = 2,
+            dimen = { w = 800, h = 600 },
+            inner_dimen = { w = 800, h = 600 },
+            close_callback = function() calls[#calls + 1] = "collection_root" end,
+            updateItems = function() calls[#calls + 1] = "detail_reset" end,
+            [1] = {
+                dimen = { w = 800, h = 560 },
+                inner_dimen = { w = 800, h = 560 },
+                resetLayout = function() end,
+            },
+        }
+        fm.collections.coll_list = {}
+        fm.collections.booklist_menu = detail
+
+        local FileManagerCollection = require("apps/filemanager/filemanagercollection")
+        FileManagerCollection.onShowColl(fm.collections, "Reading")
+        local navbar = detail[1][1][2]
+        navbar.getTappedTabId = function() return "collections" end
+        calls = {}
+
+        assert.is_true(navbar:onTapNavBar(nil, { pos = { x = 400, y = 1 } }))
+        assert.are.same({ "collection_root" }, calls)
+        assert.are.equal(2, detail.page)
+    end)
+
     it("reveals the current Library page without scheduling a full-screen repaint", function()
         local fm = make_instance()
         fm.file_chooser.path = "/library"
