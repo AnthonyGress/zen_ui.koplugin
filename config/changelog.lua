@@ -275,6 +275,7 @@ return {
         "Auto add ZenFM to launcher",
         "Hold ZenFM for settings",
         "Fix a bug with 1 row sub folders in Home Book strip",
+        "Fix some gestures not working on some pages",
         "Performance improvements"
     }
 }
