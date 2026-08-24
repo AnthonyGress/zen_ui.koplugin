@@ -1612,6 +1612,9 @@ msgstr "Непрозрачный фон"
 msgid "OPDS"
 msgstr "OPDS"
 
+msgid "Opacity"
+msgstr "Непрозрачность"
+
 msgid "Open"
 msgstr "Открыть"
 

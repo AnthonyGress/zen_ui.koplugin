@@ -1588,6 +1588,9 @@ msgstr "Αδιαφανές φόντο"
 msgid "OPDS"
 msgstr "OPDS"
 
+msgid "Opacity"
+msgstr "Αδιαφάνεια"
+
 msgid "Open"
 msgstr "Άνοιγμα"
 

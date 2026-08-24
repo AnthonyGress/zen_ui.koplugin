@@ -18,6 +18,7 @@ describe("library settings", function()
         "ui/widget/confirmbox",
         "ui/widget/fontchooser",
         "ui/widget/infomessage",
+        "common/ui/background",
     }
 
     before_each(function()
@@ -428,5 +429,74 @@ describe("library settings", function()
         assert.is_false(message.show_icon)
         assert.are.equal(font_path, config.library_font.font_face)
         assert.are.equal(0, saves)
+    end)
+
+    it("edits library background opacity and refreshes the cached surfaces", function()
+        local picker
+        local saves = 0
+        local cache_clears = 0
+        local reinitializations = 0
+        local scheduled = 0
+        local menu_updates = 0
+        package.loaded["modules/settings/zen_settings_utils"].show_value_picker =
+            function(title, value, callback, min, max)
+                picker = {
+                    title = title,
+                    value = value,
+                    callback = callback,
+                    min = min,
+                    max = max,
+                }
+            end
+        package.loaded["modules/settings/zen_settings_apply"].reinit_filemanager_on_menu_close =
+            function() reinitializations = reinitializations + 1 end
+        package.loaded["ui/uimanager"].scheduleIn = function()
+            scheduled = scheduled + 1
+        end
+        ZenSpec.replace("common/ui/background", {
+            clearCache = function() cache_clears = cache_clears + 1 end,
+        })
+
+        local config = {
+            browser_hide_up_folder = {},
+            features = {},
+            library_background = {
+                enabled = true,
+                path = "/library/background.jpg",
+            },
+        }
+        local items = require("modules/settings/sections/library_settings").build({
+            config = config,
+            plugin = { saveConfig = function() saves = saves + 1 end },
+            save_and_apply = function() end,
+        })
+        local background
+        for _i, item in ipairs(items) do
+            if item.text == "Background" then
+                background = item
+                break
+            end
+        end
+        local opacity = assert(background).sub_item_table[3]
+
+        assert.are.equal("Opacity: 100%", opacity.text_func())
+        assert.is_true(opacity.enabled_func())
+        opacity.callback({ updateItems = function() menu_updates = menu_updates + 1 end })
+        assert.are.same({
+            title = "Background - Opacity",
+            value = 100,
+            min = 0,
+            max = 100,
+            callback = picker.callback,
+        }, picker)
+
+        picker.callback(37.6)
+        assert.are.equal(38, config.library_background.opacity)
+        assert.are.equal(1, saves)
+        assert.are.equal(1, cache_clears)
+        assert.are.equal(1, reinitializations)
+        assert.are.equal(1, scheduled)
+        assert.are.equal(1, menu_updates)
+        assert.are.equal("Opacity: 38%", opacity.text_func())
     end)
 end)

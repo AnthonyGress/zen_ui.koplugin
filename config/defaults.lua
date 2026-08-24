@@ -192,6 +192,7 @@ local defaults = {
     library_background = {
         enabled = false,
         path = "",  -- "" = none; absolute image path otherwise
+        opacity = 100,
     },
     additional_home_dirs = {},
     browser_list_item_layout = {
@@ -259,6 +260,10 @@ local defaults = {
         status_bar_enabled = true,
         chapter_time_format = "number",
         hide_in_cbz = true,
+    },
+    page_browser = {
+        toc_font_size = 18,
+        bookmarks_font_size = 18,
     },
     highlight_lookup = {
         allow_unknown_items = false,

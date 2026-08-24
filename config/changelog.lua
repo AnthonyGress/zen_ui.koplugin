@@ -284,5 +284,9 @@ return {
         "Fix some gestures not working on some pages",
         "Protect To Be Read collection from rename/delete",
         "Performance improvements"
+    },
+    ["3.2.0"] = {
+        "Add opacity slider to Library background (Library > Background)",
+        "Add font options for TOC and Bookmarks (Reader > Zen page browser)"
     }
 }

@@ -214,7 +214,9 @@ local function get_screen_buffer(path, w, h, bb_type)
         return nil
     end
     local night_key = Screen.night_mode and "night" or "day"
-    local key = string.format("%s|%d|%d|%s|%s", path, w, h, tostring(bb_type), night_key)
+    local opacity = M.library_opacity()
+    local key = string.format("%s|%d|%d|%s|%s|%d", path, w, h,
+        tostring(bb_type), night_key, opacity)
     local cached = _buffer_cache[key]
     if cached then return cached end
 
@@ -227,6 +229,14 @@ local function get_screen_buffer(path, w, h, bb_type)
         iw:paintTo(out, 0, 0)
         if Screen.night_mode then
             out:invertRect(0, 0, w, h)
+        end
+        if opacity < 100 then
+            local fade = 1 - opacity / 100
+            if Screen.night_mode then
+                out:darkenRect(0, 0, w, h, fade)
+            else
+                out:lightenRect(0, 0, w, h, fade)
+            end
         end
     end)
     if not ok or not out then
@@ -315,8 +325,7 @@ end
 -- True when a library background image is configured. Home/standalone widget
 -- tiles use this to switch their opaque fill to nil (transparent) so the
 -- background painted behind the page shows through.
-function M.library_path(plugin)
-    schedule_missing_background_work()
+local function library_config(plugin)
     plugin = plugin or rawget(_G, "__ZEN_UI_PLUGIN")
     local cfg = plugin and plugin.config
     if type(cfg) ~= "table" then
@@ -326,11 +335,24 @@ function M.library_path(plugin)
         end)
         cfg = ok and loaded or nil
     end
+    return cfg, plugin
+end
+
+function M.library_opacity(plugin)
+    local cfg = library_config(plugin)
+    local bg = type(cfg) == "table" and cfg.library_background
+    local opacity = type(bg) == "table" and tonumber(bg.opacity) or 100
+    return math.max(0, math.min(100, math.floor(opacity + 0.5)))
+end
+
+function M.library_path(plugin)
+    schedule_missing_background_work()
+    local cfg, resolved_plugin = library_config(plugin)
     local bg = type(cfg) == "table" and cfg.library_background
     local path = type(bg) == "table" and type(bg.path) == "string" and bg.path or ""
     if type(bg) == "table" and bg.enabled == true and is_jpeg_path(path) then
         if not file_exists(path) then
-            disable_missing_library_background(plugin, cfg, bg, path)
+            disable_missing_library_background(resolved_plugin, cfg, bg, path)
             return ""
         end
         return path

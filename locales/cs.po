@@ -1587,6 +1587,9 @@ msgstr "Neprůhledné pozadí"
 msgid "OPDS"
 msgstr "OPDS"
 
+msgid "Opacity"
+msgstr "Krytí"
+
 msgid "Open"
 msgstr "OTEVŘENO"
 

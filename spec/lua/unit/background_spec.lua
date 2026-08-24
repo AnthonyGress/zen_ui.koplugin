@@ -32,6 +32,89 @@ describe("library background cleanup", function()
         assert.is_nil(ordinary.background)
     end)
 
+    it("fades cached backgrounds toward the day and night base colors", function()
+        local screen = {
+            night_mode = false,
+            getWidth = function() return 800 end,
+            getHeight = function() return 600 end,
+        }
+        local buffers = {}
+        ZenSpec.replace("device", { screen = screen })
+        ZenSpec.replace("libs/libkoreader-lfs", {
+            attributes = function() return "file" end,
+        })
+        ZenSpec.replace("ui/widget/imagewidget", {
+            new = function()
+                return {
+                    _img_w = 800,
+                    _img_h = 600,
+                    getSize = function() return { w = 800, h = 600 } end,
+                    paintTo = function(_self, buffer)
+                        buffer.image_paints = buffer.image_paints + 1
+                    end,
+                    free = function() end,
+                }
+            end,
+        })
+        ZenSpec.replace("ffi/blitbuffer", {
+            COLOR_WHITE = "white",
+            new = function()
+                local buffer = {
+                    image_paints = 0,
+                    inversions = 0,
+                }
+                function buffer:fill(color) self.fill_color = color end
+                function buffer:invertRect() self.inversions = self.inversions + 1 end
+                function buffer:lightenRect(_x, _y, _w, _h, amount)
+                    self.lightened = amount
+                end
+                function buffer:darkenRect(_x, _y, _w, _h, amount)
+                    self.darkened = amount
+                end
+                function buffer:free() end
+                buffers[#buffers + 1] = buffer
+                return buffer
+            end,
+        })
+        _G.__ZEN_UI_PLUGIN = {
+            config = {
+                library_background = {
+                    enabled = true,
+                    path = "/library/background.jpg",
+                    opacity = 40,
+                },
+            },
+        }
+        ZenSpec.unload("common/ui/background")
+
+        local Background = require("common/ui/background")
+        local copies = 0
+        local destination = {
+            getType = function() return "bb8" end,
+            blitFrom = function() copies = copies + 1 end,
+        }
+
+        assert.is_true(Background.paintScreenRegion(destination,
+            0, 0, 0, 0, 800, 600, "/library/background.jpg"))
+        assert.is_true(Background.paintScreenRegion(destination,
+            0, 0, 0, 0, 800, 600, "/library/background.jpg"))
+        assert.are.equal(1, #buffers)
+        assert.are.equal(1, buffers[1].image_paints)
+        assert.are.equal(0, buffers[1].inversions)
+        assert.are.equal(0.6, buffers[1].lightened)
+        assert.is_nil(buffers[1].darkened)
+
+        screen.night_mode = true
+        _G.__ZEN_UI_PLUGIN.config.library_background.opacity = 25
+        assert.is_true(Background.paintScreenRegion(destination,
+            0, 0, 0, 0, 800, 600, "/library/background.jpg"))
+        assert.are.equal(2, #buffers)
+        assert.are.equal(1, buffers[2].inversions)
+        assert.are.equal(0.75, buffers[2].darkened)
+        assert.is_nil(buffers[2].lightened)
+        assert.are.equal(3, copies)
+    end)
+
     it("coalesces missing-image recovery without restoring the live widget tree", function()
         local exists = true
         local saved = 0

@@ -630,7 +630,10 @@ describe("page browser entry", function()
             end,
         })
         _G.__ZEN_UI_PLUGIN = {
-            config = { features = { page_browser = true, browser_cover_rounded_corners = true } },
+            config = {
+                features = { page_browser = true, browser_cover_rounded_corners = true },
+                page_browser = { toc_font_size = 26 },
+            },
             saveConfig = function() end,
         }
         package.loaded["db"] = {}
@@ -733,6 +736,7 @@ describe("page browser entry", function()
 
         by_file["/icons/toc.svg"]()
         expect(closes == 2 and toc_spec.focus_page == 12
+            and toc_spec.font_size == 26
             and type(toc_spec.close_all_callback) == "function")
         toc_spec.on_goto(27)
         expect(closes == 3 and stack_adds == 1)

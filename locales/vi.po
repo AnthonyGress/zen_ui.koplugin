@@ -1587,6 +1587,9 @@ msgstr "Nền đục"
 msgid "OPDS"
 msgstr "OPDS"
 
+msgid "Opacity"
+msgstr "Độ mờ"
+
 msgid "Open"
 msgstr "Mở"
 

@@ -54,6 +54,9 @@ describe("reader themes settings", function()
         ZenSpec.replace("ui/widget/confirmbox", {
             new = function(_, spec) return spec end,
         })
+        ZenSpec.replace("ui/widget/spinwidget", {
+            new = function(_, spec) return spec end,
+        })
         ZenSpec.unload("modules/settings/sections/reader_settings")
         ReaderSettings = require("modules/settings/sections/reader_settings")
     end)
@@ -194,6 +197,50 @@ describe("reader themes settings", function()
         assert.are.equal("koreader", config.reader_footer.chapter_time_format)
         assert.is_true(chapter_time.sub_item_table[4].checked_func())
         assert.are.equal(2, saved)
+    end)
+
+    it("nests page-browser controls and persists separate overlay font sizes", function()
+        local saved, updates = 0, 0
+        local config = {
+            features = {
+                reader_themes = false,
+                reader_top_status_bar = false,
+                dict_quick_lookup = false,
+                highlight_lookup = false,
+                reader_bottom_menu = true,
+                page_browser = true,
+                restore_library_view = false,
+            },
+            page_browser = { toc_font_size = 20, bookmarks_font_size = 22 },
+            reader_themes = { dark_mode = "dark_warm_gray", light_mode = "default" },
+        }
+        local items = ReaderSettings.build({
+            config = config,
+            plugin = { saveConfig = function() saved = saved + 1 end },
+            save_and_apply = function() end,
+        })
+
+        local page_browser
+        for _i, item in ipairs(items) do
+            if item.text == "Zen page browser" then page_browser = item end
+        end
+        assert.are.equal(3, #page_browser.sub_item_table)
+        assert.is_true(page_browser.sub_item_table[1].checked_func())
+        assert.are.equal("Table of contents — Font size: 20", page_browser.sub_item_table[2].text_func())
+        assert.are.equal("Bookmarks — Font size: 22", page_browser.sub_item_table[3].text_func())
+
+        local touchmenu = { updateItems = function() updates = updates + 1 end }
+        page_browser.sub_item_table[2].callback(touchmenu)
+        assert.are.equal("Table of contents — Font size", shown_dialog.title_text)
+        shown_dialog.callback({ value = 26 })
+        page_browser.sub_item_table[3].callback(touchmenu)
+        assert.are.equal("Bookmarks — Font size", shown_dialog.title_text)
+        shown_dialog.callback({ value = 24 })
+
+        assert.are.equal(26, config.page_browser.toc_font_size)
+        assert.are.equal(24, config.page_browser.bookmarks_font_size)
+        assert.are.equal(2, saved)
+        assert.are.equal(2, updates)
     end)
 
     it("creates a custom theme without using a built-in theme as its base", function()

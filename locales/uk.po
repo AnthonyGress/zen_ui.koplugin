@@ -1587,6 +1587,9 @@ msgstr "Непрозорий фон"
 msgid "OPDS"
 msgstr "OPDS"
 
+msgid "Opacity"
+msgstr "Непрозорість"
+
 msgid "Open"
 msgstr "ВІДЧИНЕНО"
 

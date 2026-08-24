@@ -1587,6 +1587,9 @@ msgstr "不透明背景"
 msgid "OPDS"
 msgstr "OPDS"
 
+msgid "Opacity"
+msgstr "不透明度"
+
 msgid "Open"
 msgstr "打開"
 

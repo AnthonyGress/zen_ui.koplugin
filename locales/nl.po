@@ -1611,6 +1611,9 @@ msgstr "Ondoorzichtige achtergrond"
 msgid "OPDS"
 msgstr "OPDS"
 
+msgid "Opacity"
+msgstr "Dekking"
+
 msgid "Open"
 msgstr "Open"
 

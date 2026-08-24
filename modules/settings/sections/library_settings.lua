@@ -1171,6 +1171,13 @@ function M.build(ctx)
         if type(config.library_background.path) ~= "string" then
             config.library_background.path = ""
         end
+        local opacity = tonumber(config.library_background.opacity)
+        if not opacity then
+            config.library_background.opacity = 100
+        else
+            config.library_background.opacity = math.max(0,
+                math.min(100, math.floor(opacity + 0.5)))
+        end
         return config.library_background
     end
     local function lib_bg_path()
@@ -1277,6 +1284,27 @@ function M.build(ctx)
                         set_lib_bg("")
                         if touchmenu_instance then touchmenu_instance:updateItems() end
                     end
+                end,
+            },
+            {
+                text_func = function()
+                    return string.format("%s: %d%%", _("Opacity"),
+                        ensure_lib_bg().opacity)
+                end,
+                enabled_func = function()
+                    return ensure_lib_bg().enabled == true
+                end,
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    local bg = ensure_lib_bg()
+                    zen_settings_utils.show_value_picker(
+                        _("Background") .. " - " .. _("Opacity"), bg.opacity,
+                        function(value)
+                            bg.opacity = math.max(0,
+                                math.min(100, math.floor(value + 0.5)))
+                            save_lib_bg()
+                            if touchmenu_instance then touchmenu_instance:updateItems() end
+                        end, 0, 100)
                 end,
             },
         },

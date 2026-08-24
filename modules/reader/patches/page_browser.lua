@@ -69,6 +69,13 @@ local function apply_page_browser()
         PresetStore.saveStore("reader", store)
     end
 
+    local function get_page_browser_font_size(key)
+        local config = _plugin_ref and _plugin_ref.config
+        local page_browser = type(config) == "table" and config.page_browser
+        local size = type(page_browser) == "table" and tonumber(page_browser[key])
+        if size and size >= 10 and size <= 40 then return size end
+    end
+
     local function is_enabled()
         local features = _plugin_ref
             and _plugin_ref.config
@@ -787,6 +794,7 @@ local function apply_page_browser()
                 UIManager:show(ZenTocWidget:new{
                     ui         = pbw_ref.ui,
                     focus_page = visible_page_raw(pbw_ref, pbw_ref.focus_page or pbw_ref.cur_page or 1),
+                    font_size  = get_page_browser_font_size("toc_font_size"),
                     on_goto    = function(page)
                         if pbw_ref.ui.link then
                             pbw_ref.ui.link:addCurrentLocationToStack()

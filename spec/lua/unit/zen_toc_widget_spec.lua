@@ -314,6 +314,18 @@ describe("Zen TOC hardware focus", function()
         assert.same({ name = "LibraryFont", size = 21, index = nil }, font_calls[1])
     end)
 
+    it("uses the configured TOC font size", function()
+        ZenTocWidget:new{
+            font_size = 26,
+            ui = {
+                toc = { toc = {} },
+                document = { configurable = { font_size = 21 } },
+            },
+        }
+
+        assert.same({ name = "LibraryFont", size = 26, index = nil }, font_calls[1])
+    end)
+
     it("uses the active PDF reader font size for TOC text", function()
         ZenTocWidget:new{
             ui = {

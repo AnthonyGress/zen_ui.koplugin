@@ -1036,19 +1036,57 @@ function M.build(ctx)
         end,
     }, icons.bottom_swipe))
     -- page browser requires bottom swipe; disabling bottom swipe unchecks this too
+    local function make_page_browser_font_size_item(key, section)
+        return {
+            text_func = function()
+                local cfg = type(config.page_browser) == "table" and config.page_browser or {}
+                return string.format("%s — %s %s", section, _("Font size:"), tonumber(cfg[key]) or 18)
+            end,
+            keep_menu_open = true,
+            callback = function(touchmenu_instance)
+                local SpinWidget = require("ui/widget/spinwidget")
+                local cfg = type(config.page_browser) == "table" and config.page_browser or {}
+                UIManager:show(SpinWidget:new{
+                    title_text = string.format("%s — %s", section, _("Font size")),
+                    value = tonumber(cfg[key]) or 18,
+                    value_min = 10,
+                    value_max = 40,
+                    default_value = 18,
+                    callback = function(spin)
+                        if type(config.page_browser) ~= "table" then config.page_browser = {} end
+                        config.page_browser[key] = spin.value
+                        plugin:saveConfig()
+                        if touchmenu_instance then touchmenu_instance:updateItems() end
+                    end,
+                })
+            end,
+        }
+    end
+
     table.insert(items, IconItem.decorate({
         text = _("Zen page browser"),
-        checked_func = function()
-            return config.features["page_browser"] == true
-        end,
-        enabled_func = function()
-            return config.features["reader_bottom_menu"] == true
-                or config.features["page_browser"] == true
-        end,
-        callback = function()
-            config.features["page_browser"] = config.features["page_browser"] ~= true
-            save_and_apply("page_browser")
-        end,
+        sub_item_table = {
+            {
+                text = _("Enable"),
+                checked_func = function()
+                    return config.features["page_browser"] == true
+                end,
+                enabled_func = function()
+                    return config.features["reader_bottom_menu"] == true
+                        or config.features["page_browser"] == true
+                end,
+                callback = function()
+                    config.features["page_browser"] = config.features["page_browser"] ~= true
+                    save_and_apply("page_browser")
+                end,
+            },
+            make_page_browser_font_size_item(
+                "toc_font_size", _("Table of contents")
+            ),
+            make_page_browser_font_size_item(
+                "bookmarks_font_size", _("Bookmarks")
+            ),
+        },
     }, icons.page_browser))
     table.insert(items, IconItem.decorate({
         text = _("Restore library location on exit"),

@@ -1611,6 +1611,9 @@ msgstr "Fundal opac"
 msgid "OPDS"
 msgstr "OPDS"
 
+msgid "Opacity"
+msgstr "Opacitate"
+
 msgid "Open"
 msgstr "Deschide"
 

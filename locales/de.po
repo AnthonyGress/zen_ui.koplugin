@@ -1587,6 +1587,9 @@ msgstr "Deckender Hintergrund"
 msgid "OPDS"
 msgstr "OPDS"
 
+msgid "Opacity"
+msgstr "Deckkraft"
+
 msgid "Open"
 msgstr "Offen"
 

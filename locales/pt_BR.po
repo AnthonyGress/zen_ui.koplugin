@@ -1611,6 +1611,9 @@ msgstr "Fundo opaco"
 msgid "OPDS"
 msgstr "OPDS"
 
+msgid "Opacity"
+msgstr "Opacidade"
+
 msgid "Open"
 msgstr "Abrir"
 

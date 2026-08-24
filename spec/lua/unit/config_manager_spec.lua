@@ -54,6 +54,8 @@ describe("config manager folder-path migration", function()
         assert.is_true(config.features.status_bar)
         assert.are.equal("90", config.quick_settings.rotate_action)
         assert.are.equal("number", config.reader_footer.chapter_time_format)
+        assert.are.equal(18, config.page_browser.toc_font_size)
+        assert.are.equal(18, config.page_browser.bookmarks_font_size)
         assert.is_false(config._meta.quickstart_shown_for_version)
     end)
 
