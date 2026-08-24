@@ -1086,6 +1086,9 @@ msgstr "Ocultar pasta acima"
 msgid "Highlight / Lookup"
 msgstr "Destacar / Consultar"
 
+msgid "Highlight names"
+msgstr "Nomes dos destaques"
+
 msgid "History"
 msgstr "Histórico"
 

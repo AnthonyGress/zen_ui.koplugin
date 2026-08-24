@@ -1086,6 +1086,9 @@ msgstr "隐藏上级文件夹"
 msgid "Highlight / Lookup"
 msgstr "高亮 / 查询"
 
+msgid "Highlight names"
+msgstr "高亮名称"
+
 msgid "History"
 msgstr "历史记录"
 

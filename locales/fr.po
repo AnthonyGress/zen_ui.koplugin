@@ -1086,6 +1086,9 @@ msgstr "Masquer le dossier parent"
 msgid "Highlight / Lookup"
 msgstr "Surligner / Rechercher"
 
+msgid "Highlight names"
+msgstr "Noms des surlignages"
+
 msgid "History"
 msgstr "Historique"
 

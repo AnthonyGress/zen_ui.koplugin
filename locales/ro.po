@@ -1086,6 +1086,9 @@ msgstr "Ascunde dosarul părinte"
 msgid "Highlight / Lookup"
 msgstr "Evidențiere / Căutare"
 
+msgid "Highlight names"
+msgstr "Numele evidențierilor"
+
 msgid "History"
 msgstr "Istoric"
 

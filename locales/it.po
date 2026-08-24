@@ -1086,6 +1086,9 @@ msgstr "Nascondi la cartella superiore"
 msgid "Highlight / Lookup"
 msgstr "Evidenzia / Cerca"
 
+msgid "Highlight names"
+msgstr "Nomi delle evidenziazioni"
+
 msgid "History"
 msgstr "Cronologia"
 

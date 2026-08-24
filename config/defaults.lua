@@ -267,6 +267,7 @@ local defaults = {
     },
     highlight_lookup = {
         allow_unknown_items = false,
+        color_names         = {},
         show_wikipedia      = false,
         show_xray           = true,
         show_koassistant    = true,

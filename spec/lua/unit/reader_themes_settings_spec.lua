@@ -3,11 +3,13 @@ describe("reader themes settings", function()
     local shown_dialog
     local dialog_input
     local reader_store
+    local highlight_names_plugin
 
     before_each(function()
         shown_dialog = nil
         dialog_input = nil
         reader_store = { settings = { footer = { existing = true } } }
+        highlight_names_plugin = nil
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("ui/uimanager", {
             show = function(_, dialog) shown_dialog = dialog end,
@@ -57,8 +59,66 @@ describe("reader themes settings", function()
         ZenSpec.replace("ui/widget/spinwidget", {
             new = function(_, spec) return spec end,
         })
+        ZenSpec.replace("modules/reader/patches/highlight_names", function(plugin)
+            highlight_names_plugin = plugin
+        end)
         ZenSpec.unload("modules/settings/sections/reader_settings")
         ReaderSettings = require("modules/settings/sections/reader_settings")
+    end)
+
+    it("edits and resets highlight names from Highlight / Lookup", function()
+        local saved, updates = 0, 0
+        local config = {
+            features = {
+                reader_themes = false,
+                reader_top_status_bar = false,
+                dict_quick_lookup = true,
+                highlight_lookup = true,
+                reader_bottom_menu = false,
+                page_browser = false,
+                restore_library_view = false,
+            },
+            highlight_lookup = { color_names = {} },
+            reader_themes = { dark_mode = "dark_warm_gray", light_mode = "default" },
+        }
+        local plugin = {
+            saveConfig = function() saved = saved + 1 end,
+        }
+        local items = ReaderSettings.build({
+            config = config,
+            plugin = plugin,
+            save_and_apply = function() end,
+        })
+        local lookup
+        for _i, item in ipairs(items) do
+            if item.text == "Highlight / Lookup" then lookup = item end
+        end
+        local names = lookup.sub_item_table[3].sub_item_table_func()
+        local reset, red = names[1], names[2]
+        local touchmenu = { updateItems = function() updates = updates + 1 end }
+
+        assert.are.equal("Highlight names", lookup.sub_item_table[3].text)
+        assert.is_false(reset.enabled_func())
+        assert.are.equal("Red", red.text_func())
+
+        dialog_input = "  Important  "
+        red.callback(touchmenu)
+        assert.are.equal("Red", shown_dialog.title)
+        assert.are.equal("", shown_dialog.input)
+        shown_dialog.buttons[1][2].callback()
+
+        assert.are.equal("Important", config.highlight_lookup.color_names.red)
+        assert.are.equal("Red: Important", red.text_func())
+        assert.is_true(reset.enabled_func())
+        assert.are.equal(plugin, highlight_names_plugin)
+        assert.are.equal(1, saved)
+        assert.are.equal(1, updates)
+
+        reset.callback(touchmenu)
+        assert.are.same({}, config.highlight_lookup.color_names)
+        assert.are.equal("Red", red.text_func())
+        assert.are.equal(2, saved)
+        assert.are.equal(2, updates)
     end)
 
     it("creates a named custom copy only after a built-in theme changes", function()

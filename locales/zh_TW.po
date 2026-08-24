@@ -1086,6 +1086,9 @@ msgstr "隱藏上層資料夾"
 msgid "Highlight / Lookup"
 msgstr "醒目標示 / 查詢"
 
+msgid "Highlight names"
+msgstr "醒目標示名稱"
+
 msgid "History"
 msgstr "歷史記錄"
 

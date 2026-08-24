@@ -287,6 +287,7 @@ return {
     },
     ["3.2.0"] = {
         "Add opacity slider to Library background (Library > Background)",
-        "Add font options for TOC and Bookmarks (Reader > Zen page browser)"
+        "Add font options for TOC and Bookmarks (Reader > Zen page browser)",
+        "Add custom highlight names (Reader > Highlight / Lookup)"
     }
 }

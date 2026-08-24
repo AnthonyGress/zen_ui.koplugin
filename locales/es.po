@@ -1086,6 +1086,9 @@ msgstr "Ocultar carpeta superior"
 msgid "Highlight / Lookup"
 msgstr "Resaltar / Buscar"
 
+msgid "Highlight names"
+msgstr "Nombres de los resaltados"
+
 msgid "History"
 msgstr "Historial"
 

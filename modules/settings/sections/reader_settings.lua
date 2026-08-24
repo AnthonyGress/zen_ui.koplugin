@@ -55,6 +55,94 @@ function M.build(ctx)
         }
     end
 
+    local highlight_colors = {
+        { key = "red", text = _("Red") },
+        { key = "orange", text = _("Orange") },
+        { key = "yellow", text = _("Yellow") },
+        { key = "green", text = _("Green") },
+        { key = "olive", text = _("Olive") },
+        { key = "cyan", text = _("Cyan") },
+        { key = "blue", text = _("Blue") },
+        { key = "purple", text = _("Purple") },
+        { key = "gray", text = _("Gray") },
+    }
+
+    local function highlight_color_names()
+        if type(config.highlight_lookup) ~= "table" then config.highlight_lookup = {} end
+        if type(config.highlight_lookup.color_names) ~= "table" then
+            config.highlight_lookup.color_names = {}
+        end
+        return config.highlight_lookup.color_names
+    end
+
+    local function save_highlight_color_names()
+        plugin:saveConfig()
+        require("modules/reader/patches/highlight_names")(plugin)
+    end
+
+    local function make_highlight_name_items()
+        local items = {
+            {
+                text = _("Reset"),
+                enabled_func = function() return next(highlight_color_names()) ~= nil end,
+                callback = function(touchmenu_instance)
+                    config.highlight_lookup.color_names = {}
+                    save_highlight_color_names()
+                    if touchmenu_instance then touchmenu_instance:updateItems() end
+                end,
+                separator = true,
+            },
+        }
+        for _i, color in ipairs(highlight_colors) do
+            local color_name = color.key
+            local default_name = color.text
+            table.insert(items, {
+                text_func = function()
+                    local name = highlight_color_names()[color_name]
+                    return name and (default_name .. ": " .. name) or default_name
+                end,
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    local InputDialog = require("ui/widget/inputdialog")
+                    local dlg
+                    dlg = InputDialog:new{
+                        title = default_name,
+                        input = highlight_color_names()[color_name] or "",
+                        input_hint = default_name,
+                        buttons = {{
+                            {
+                                text = _("Cancel"),
+                                id = "close",
+                                callback = function() UIManager:close(dlg) end,
+                            },
+                            {
+                                text = _("Set"),
+                                is_enter_default = true,
+                                callback = function()
+                                    local name = dlg:getInputText()
+                                    name = type(name) == "string"
+                                        and name:match("^%s*(.-)%s*$") or ""
+                                    if name == "" or name == default_name then name = nil end
+                                    if highlight_color_names()[color_name] == name then
+                                        UIManager:close(dlg)
+                                        return
+                                    end
+                                    highlight_color_names()[color_name] = name
+                                    UIManager:close(dlg)
+                                    save_highlight_color_names()
+                                    if touchmenu_instance then touchmenu_instance:updateItems() end
+                                end,
+                            },
+                        }},
+                    }
+                    UIManager:show(dlg)
+                    dlg:onShowKeyboard()
+                end,
+            })
+        end
+        return items
+    end
+
     local items = {}
 
     -- -------------------------------------------------------------------------
@@ -944,7 +1032,11 @@ function M.build(ctx)
         sub_item_table = {
             make_enable_feature_item("dict_quick_lookup", _("Zen quick lookup")),
             make_enable_feature_item("highlight_lookup", _("Zen highlight menu")),
-               {
+            {
+                text = _("Highlight names"),
+                sub_item_table_func = make_highlight_name_items,
+            },
+            {
                 text = _("Show Wikipedia"),
                 checked_func = function()
                     return type(config.highlight_lookup) == "table"

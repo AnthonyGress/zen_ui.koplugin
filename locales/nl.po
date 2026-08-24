@@ -1086,6 +1086,9 @@ msgstr "Bovenliggende map verbergen"
 msgid "Highlight / Lookup"
 msgstr "Markeren / Opzoeken"
 
+msgid "Highlight names"
+msgstr "Namen van markeringen"
+
 msgid "History"
 msgstr "Geschiedenis"
 

@@ -1087,6 +1087,9 @@ msgstr "Скрыть папку вверх"
 msgid "Highlight / Lookup"
 msgstr "Выделение / Поиск"
 
+msgid "Highlight names"
+msgstr "Названия выделений"
+
 msgid "History"
 msgstr "История"
 

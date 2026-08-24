@@ -1086,6 +1086,9 @@ msgstr "Hide up folder"
 msgid "Highlight / Lookup"
 msgstr "Highlight / Lookup"
 
+msgid "Highlight names"
+msgstr "Highlight names"
+
 msgid "History"
 msgstr "History"
 

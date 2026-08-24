@@ -11,6 +11,7 @@ describe("reader module initialization", function()
         "reader_footer_cbz_hide",
         "margin_hold_guard",
         "bookmarks",
+        "highlight_names",
         "dict_quick_lookup",
         "highlight_menu",
         "reader_top_status_bar",
@@ -58,6 +59,7 @@ describe("reader module initialization", function()
             "reader_footer_cbz_hide",
             "margin_hold_guard",
             "bookmarks",
+            "highlight_names",
             "dict_quick_lookup",
             "highlight_menu",
         }, calls)
@@ -65,7 +67,7 @@ describe("reader module initialization", function()
         assert.is_nil(_G.__ZEN_UI_RUNTIME_PATCHES.reader_top_status_bar)
 
         assert.is_true(Reader.init(logger, plugin))
-        assert.are.equal(13, #calls)
+        assert.are.equal(14, #calls)
     end)
 
     it("records a successfully enabled runtime status-bar patch", function()
