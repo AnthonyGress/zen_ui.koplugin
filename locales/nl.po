@@ -1083,6 +1083,9 @@ msgstr "Ongelezen boeken verbergen"
 msgid "Hide up folder"
 msgstr "Bovenliggende map verbergen"
 
+msgid "Hide when off"
+msgstr "Verbergen wanneer uitgeschakeld"
+
 msgid "Highlight / Lookup"
 msgstr "Markeren / Opzoeken"
 

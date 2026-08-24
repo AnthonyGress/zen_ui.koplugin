@@ -1068,6 +1068,9 @@ msgstr "未読の本を非表示"
 msgid "Hide up folder"
 msgstr "上フォルダを非表示"
 
+msgid "Hide when off"
+msgstr "オフのとき非表示"
+
 msgid "Highlight / Lookup"
 msgstr "ハイライト / 検索"
 

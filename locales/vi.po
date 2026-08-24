@@ -1068,6 +1068,9 @@ msgstr "Ẩn sách chưa đọc"
 msgid "Hide up folder"
 msgstr "Ẩn thư mục lên"
 
+msgid "Hide when off"
+msgstr "Ẩn khi tắt"
+
 msgid "Highlight / Lookup"
 msgstr "Đánh dấu / Tìm kiếm"
 

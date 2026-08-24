@@ -1077,6 +1077,9 @@ msgstr "Скриване на непрочетените книги"
 msgid "Hide up folder"
 msgstr "Скриване на горната папка"
 
+msgid "Hide when off"
+msgstr "Скриване при изключване"
+
 msgid "Highlight / Lookup"
 msgstr "Подчертаване / Справка"
 

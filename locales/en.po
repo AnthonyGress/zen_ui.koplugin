@@ -1083,6 +1083,9 @@ msgstr "Hide unread books"
 msgid "Hide up folder"
 msgstr "Hide up folder"
 
+msgid "Hide when off"
+msgstr "Hide when off"
+
 msgid "Highlight / Lookup"
 msgstr "Highlight / Lookup"
 

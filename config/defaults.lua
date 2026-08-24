@@ -178,6 +178,7 @@ local defaults = {
         show_bottom_border = false,
         colored = false,
         bold_text = false,
+        wifi_hide_when_off = false,
         hide_browser_bar = true,
     },
     browser_hide_up_folder = {

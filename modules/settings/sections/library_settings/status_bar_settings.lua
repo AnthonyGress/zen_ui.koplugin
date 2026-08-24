@@ -99,6 +99,22 @@ function M.build(ctx)
         return items
     end
 
+    local function make_wifi_items()
+        return {
+            {
+                text = _("Hide when off"),
+                checked_func = function()
+                    return config.status_bar.wifi_hide_when_off == true
+                end,
+                callback = function()
+                    config.status_bar.wifi_hide_when_off =
+                        config.status_bar.wifi_hide_when_off ~= true
+                    save_and_apply_status_bar()
+                end,
+            },
+        }
+    end
+
     local function make_status_bar_slot_items(slot_name, arrange_title)
         local order_key = slot_name .. "_order"
         local canonical = CANONICAL_ORDERS[slot_name] or {}
@@ -200,6 +216,10 @@ function M.build(ctx)
                 item.checked_func = is_checked
                 item.checkmark_callback = toggle
                 item.sub_item_table = make_date_format_items()
+            elseif key == "wifi" then
+                item.checked_func = is_checked
+                item.checkmark_callback = toggle
+                item.sub_item_table = make_wifi_items()
             else
                 item.checked_func = is_checked
                 item.callback = toggle

@@ -1083,6 +1083,9 @@ msgstr "Ascunde cărțile necitite"
 msgid "Hide up folder"
 msgstr "Ascunde dosarul părinte"
 
+msgid "Hide when off"
+msgstr "Ascunde când este dezactivat"
+
 msgid "Highlight / Lookup"
 msgstr "Evidențiere / Căutare"
 

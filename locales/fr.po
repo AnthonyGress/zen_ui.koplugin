@@ -1083,6 +1083,9 @@ msgstr "Masquer les livres non lus"
 msgid "Hide up folder"
 msgstr "Masquer le dossier parent"
 
+msgid "Hide when off"
+msgstr "Masquer lorsque désactivé"
+
 msgid "Highlight / Lookup"
 msgstr "Surligner / Rechercher"
 

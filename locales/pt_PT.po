@@ -1083,6 +1083,9 @@ msgstr "Ocultar livros não lidos"
 msgid "Hide up folder"
 msgstr "Ocultar pasta superior"
 
+msgid "Hide when off"
+msgstr "Ocultar quando desligado"
+
 msgid "Highlight / Lookup"
 msgstr "Realçar / Consultar"
 

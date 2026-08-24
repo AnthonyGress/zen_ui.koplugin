@@ -288,6 +288,7 @@ return {
     ["3.2.0"] = {
         "Add opacity slider to Library background (Library > Background)",
         "Add font options for TOC and Bookmarks (Reader > Zen page browser)",
-        "Add custom highlight names (Reader > Highlight / Lookup)"
+        "Add custom highlight names (Reader > Highlight / Lookup)",
+        "Add option to hide the Wi-Fi status icon when Wi-Fi is off (Library > Status bar)"
     }
 }

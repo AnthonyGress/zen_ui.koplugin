@@ -1083,6 +1083,9 @@ msgstr "Nascondi i libri non letti"
 msgid "Hide up folder"
 msgstr "Nascondi la cartella superiore"
 
+msgid "Hide when off"
+msgstr "Nascondi quando è disattivato"
+
 msgid "Highlight / Lookup"
 msgstr "Evidenzia / Cerca"
 

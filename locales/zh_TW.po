@@ -1083,6 +1083,9 @@ msgstr "隱藏未讀書籍"
 msgid "Hide up folder"
 msgstr "隱藏上層資料夾"
 
+msgid "Hide when off"
+msgstr "關閉時隱藏"
+
 msgid "Highlight / Lookup"
 msgstr "醒目標示 / 查詢"
 

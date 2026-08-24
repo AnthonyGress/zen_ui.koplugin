@@ -70,6 +70,7 @@ local function apply_status_bar()
         show_bottom_border = true,
         colored = false,
         bold_text = false,
+        wifi_hide_when_off = false,
         hide_browser_bar = true,
     }
 
@@ -360,9 +361,10 @@ local function apply_status_bar()
                 return "\u{ECA8}", nil, colors.wifi_on
             end
             return "\u{ECA8}", nil, colors.wifi_searching, nil, true
-        else
+        elseif not config.wifi_hide_when_off then
             return "\u{ECA9}", nil, colors.wifi_off
         end
+        return nil
     end
 
     local function getBluetoothInfo()

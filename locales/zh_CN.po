@@ -1083,6 +1083,9 @@ msgstr "隐藏未读书籍"
 msgid "Hide up folder"
 msgstr "隐藏上级文件夹"
 
+msgid "Hide when off"
+msgstr "关闭时隐藏"
+
 msgid "Highlight / Lookup"
 msgstr "高亮 / 查询"
 
