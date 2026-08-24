@@ -1,5 +1,5 @@
 -- zen_ui: bookmarks patch
--- Uses the library font face for bookmark/highlight rows
+-- Replaces the stock dogear and uses the library font for bookmark/highlight rows
 -- and keeps page numbers black instead of dimming future-page entries to gray.
 
 local function apply_bookmarks()
@@ -17,6 +17,35 @@ local function apply_bookmarks()
 
     local function resolve_stock_icon(name)
         return utils.resolveLocalIcon(_stock_icons_dir, name)
+    end
+
+    local bookmark_icon = _icons_dir and utils.resolveLocalIcon(_icons_dir, "bookmark")
+    if bookmark_icon then
+        local ReaderDogear = require("apps/reader/modules/readerdogear")
+        local function use_bookmark_icon(dogear)
+            local icon = dogear and dogear.icon
+            if not icon or icon.icon ~= "dogear.alpha" and icon.file ~= bookmark_icon then return end
+            if icon.file == bookmark_icon and icon.rotation_angle == 0 then return end
+            if type(icon.free) == "function" then icon:free() end
+            icon.icon = nil
+            icon.file = bookmark_icon
+            icon.rotation_angle = 0
+        end
+
+        if not ReaderDogear._zen_bookmark_icon_patched
+                and type(ReaderDogear.setupDogear) == "function" then
+            ReaderDogear._zen_bookmark_icon_patched = true
+            local orig_setup_dogear = ReaderDogear.setupDogear
+            ReaderDogear.setupDogear = function(self, ...)
+                local result = orig_setup_dogear(self, ...)
+                use_bookmark_icon(self)
+                return result
+            end
+        end
+
+        local ReaderUI = require("apps/reader/readerui")
+        local reader = ReaderUI.instance
+        use_bookmark_icon(reader and reader.view and reader.view.dogear)
     end
 
     local function get_bookmarks_font_size(ui, fallback_size)

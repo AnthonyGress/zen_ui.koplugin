@@ -143,7 +143,7 @@ describe("app launcher book switcher page", function()
         assert.is_nil(cfg.book_switcher_first)
     end)
 
-    it("loads four switcher alternatives with cover metadata", function()
+    it("loads four non-image home alternatives with cover metadata", function()
         local reload_args
         local freed = 0
         local copied = 0
@@ -158,10 +158,12 @@ describe("app launcher book switcher page", function()
         end
         replace("readhistory", {
             hist = {
+                { file = "/downloads/outside.epub" },
+                { file = "/books/cover.JPEG" },
                 { file = "/books/one.epub" },
                 { file = "/books/missing.epub" },
                 { file = "/books/one.epub" },
-                { file = "/books/two.cbz" },
+                { file = "/additional/two.cbz" },
                 { file = "/books/three.pdf" },
                 { file = "/books/four.epub" },
                 { file = "/books/five.epub" },
@@ -172,6 +174,12 @@ describe("app launcher book switcher page", function()
             attributes = function(path)
                 if path == "/books/missing.epub" then return nil end
                 return "file"
+            end,
+        })
+        replace("common/paths", {
+            isInHomeDir = function(path)
+                return path:sub(1, 7) == "/books/"
+                    or path:sub(1, 12) == "/additional/"
             end,
         })
         replace("bookinfomanager", {
@@ -190,7 +198,7 @@ describe("app launcher book switcher page", function()
         })
         replace("modules/filebrowser/patches/rakuyomi", {
             getMetadata = function(path)
-                if path == "/books/two.cbz" then return { title = "Chapter Two" } end
+                if path == "/additional/two.cbz" then return { title = "Chapter Two" } end
             end,
         })
 
@@ -199,7 +207,7 @@ describe("app launcher book switcher page", function()
 
         assert.is_false(reload_args)
         assert.are.same({
-            "/books/two.cbz", "/books/three.pdf", "/books/four.epub", "/books/five.epub",
+            "/additional/two.cbz", "/books/three.pdf", "/books/four.epub", "/books/five.epub",
         }, { books[1].path, books[2].path, books[3].path, books[4].path })
         assert.are.equal("Chapter Two", books[1].title)
         assert.are.same({ copied = true }, books[1].cover_bb)
