@@ -287,7 +287,10 @@ return {
     },
     ["3.2.0"] = {
         "Add opacity slider to Library background (Library > Background)",
+        "Add coverflow view to page browser",
+        "Make coverflow the default page browser view",
         "Add font options for TOC and Bookmarks (Reader > Zen page browser)",
+        "Add three-page carousel layout to the page browser",
         "Add custom highlight names (Reader > Highlight / Lookup)",
         "Add option to hide the Wi-Fi status icon when Wi-Fi is off (Library > Status bar)",
         "Fix restore library location regression",

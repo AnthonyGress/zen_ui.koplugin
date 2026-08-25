@@ -367,4 +367,12 @@ describe("config manager folder-path migration", function()
         assert.is_nil(G_reader_settings:readSetting("substring_search"))
         assert.is_nil(G_reader_settings:readSetting("zen_page_browser_layout"))
     end)
+
+    it("preserves the carousel page-browser layout", function()
+        stores.reader.settings.page_browser_layout = "carousel"
+
+        Manager.load()
+
+        assert.are.equal("carousel", stores.reader.settings.page_browser_layout)
+    end)
 end)

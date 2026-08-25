@@ -810,23 +810,27 @@ end
 local function migrate_page_browser_layout(cfg)
     if type(cfg) ~= "table" then return false end
 
+    local function valid_layout(layout)
+        return layout == "single" or layout == "carousel" or layout == "grid"
+    end
+
     local store = PresetStore.loadStore("reader")
     if type(store) ~= "table" then return false end
     if type(store.settings) ~= "table" then store.settings = {} end
 
     local changed = false
     local layout = store.settings.page_browser_layout
-    if layout ~= "single" and layout ~= "grid" then
+    if not valid_layout(layout) then
         local legacy_config = type(cfg.reader_page_browser) == "table"
             and cfg.reader_page_browser.layout
         local g = rawget(_G, "G_reader_settings")
         local legacy_global = g and g:readSetting("zen_page_browser_layout")
-        if legacy_config == "single" or legacy_config == "grid" then
+        if valid_layout(legacy_config) then
             layout = legacy_config
-        elseif legacy_global == "single" or legacy_global == "grid" then
+        elseif valid_layout(legacy_global) then
             layout = legacy_global
         end
-        if layout == "single" or layout == "grid" then
+        if valid_layout(layout) then
             store.settings.page_browser_layout = layout
             PresetStore.saveStore("reader", store)
             changed = true
