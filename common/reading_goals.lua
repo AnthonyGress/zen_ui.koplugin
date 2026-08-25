@@ -87,7 +87,7 @@ function M.settingsItems(goals, save)
                             return label .. tostring(goals[target.key] or target.default)
                         end,
                         keep_menu_open = true,
-                        callback = function()
+                        callback = function(touchmenu_instance)
                             local SpinWidget = require("ui/widget/spinwidget")
                             UIManager:show(SpinWidget:new{
                                 title_text = title,
@@ -97,6 +97,9 @@ function M.settingsItems(goals, save)
                                 callback = function(spin)
                                     goals[target.key] = spin.value
                                     save()
+                                    if touchmenu_instance and touchmenu_instance.updateItems then
+                                        touchmenu_instance:updateItems()
+                                    end
                                 end,
                             })
                         end,

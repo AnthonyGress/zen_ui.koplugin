@@ -789,9 +789,7 @@ function ZenUI:init()
                     if ui and ui.document then ui.tearing_down = was_tearing_down end
                     if not ui then return end
                     if ui.document then
-                        library_navigation.showFromReader(ui, _zen_plugin_ref, {
-                            force_default = true,
-                        })
+                        library_navigation.showFromReader(ui, _zen_plugin_ref)
                     else
                         local is_default_active = rawget(_G, "__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE")
                         if type(is_default_active) == "function" and is_default_active() then

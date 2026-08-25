@@ -422,6 +422,21 @@ describe("file browser navbar navigation", function()
         assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
     end)
 
+    it("keeps the physical folder and focused book when restoring Reader", function()
+        _G.__ZEN_UI_PLUGIN.config.features.restore_library_view = true
+        local fm = make_instance()
+        FileManager._test_next_instance = fm
+        calls = {}
+
+        FileManager.showFiles(FileManager,
+            "/library/Fiction", "/library/Fiction/Book.epub")
+
+        assert.are.same({
+            "base:/library/Fiction:/library/Fiction/Book.epub",
+        }, calls)
+        assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+    end)
+
     it("lets a forced default Home override saved Series state", function()
         _G.__ZEN_UI_PLUGIN.config.features.restore_library_view = true
         _G.__ZEN_UI_LIBRARY_STATE = { tab = "series", page = 2 }
@@ -2013,13 +2028,22 @@ describe("file browser navbar navigation", function()
         local fm = make_instance()
         _G.__ZEN_UI_PLUGIN.config.features.restore_library_view = true
         assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("series"))
+        shared.group_view.getActivePage = function(tab_id)
+            assert.are.equal("series", tab_id)
+            return 4
+        end
+        shared.group_view.getActiveDetail = function()
+            return { group_name = "Saga", page = 3 }
+        end
         calls = {}
 
         FileManager.onShowingReader(fm)
 
         assert.are.same({ "close_groups", "close_home" }, calls)
         assert.are.equal("series", _G.__ZEN_UI_LIBRARY_STATE.tab)
-        assert.are.equal(1, _G.__ZEN_UI_LIBRARY_STATE.page)
+        assert.are.equal(4, _G.__ZEN_UI_LIBRARY_STATE.page)
+        assert.are.equal("Saga", _G.__ZEN_UI_LIBRARY_STATE.detail_group)
+        assert.are.equal(3, _G.__ZEN_UI_LIBRARY_STATE.detail_page)
     end)
 
     it("defers FileManager listing before opening Home after Reader closes", function()

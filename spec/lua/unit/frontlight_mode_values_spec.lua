@@ -145,6 +145,51 @@ describe("frontlight light/dark mode values", function()
         assert.are.same({ 31 }, powerd.values)
     end)
 
+    it("force reapplies scheduled brightness when the cached value matches", function()
+        local screen = make_screen()
+        local now = os.date("*t")
+        local powerd = {
+            fl_min = 0,
+            fl_max = 100,
+            fl_intensity = 40,
+            hardware_intensity = 40,
+            is_on = true,
+            setIntensity = function(self, value)
+                if value == self.fl_intensity then return false end
+                self.fl_intensity = value
+                self.hardware_intensity = value
+                return true
+            end,
+            setIntensityHW = function(self, value)
+                self.hardware_intensity = value
+            end,
+            isFrontlightOff = function(self) return not self.is_on end,
+            updateResumeFrontlightState = function() end,
+        }
+        _G.__ZEN_UI_PLUGIN = {
+            config = {
+                features = { brightness_schedule = true },
+                brightness_schedule = {
+                    day_h = (now.hour + 1) % 24,
+                    day_m = 0,
+                    day_value = 40,
+                    night_h = now.hour,
+                    night_m = 0,
+                    night_value = 7,
+                },
+            },
+        }
+        ZenSpec.replace("device", { screen = screen, powerd = powerd })
+        ZenSpec.replace("ui/uimanager", make_ui_manager())
+
+        require("modules/global/patches/brightness_schedule")()
+        assert.are.equal(7, powerd.hardware_intensity)
+
+        powerd.hardware_intensity = 40
+        _G.__ZEN_UI_BRIGHTNESS_SCHEDULE.force_reschedule()
+        assert.are.equal(7, powerd.hardware_intensity)
+    end)
+
     it("applies warmth on mode changes while the time schedule is off", function()
         local screen = make_screen()
         local powerd = {
@@ -174,6 +219,46 @@ describe("frontlight light/dark mode values", function()
 
         screen:toggleNightMode()
         assert.are.same({ 30, 80 }, powerd.values)
+    end)
+
+    it("force reapplies scheduled warmth when the cached value matches", function()
+        local screen = make_screen()
+        local now = os.date("*t")
+        local powerd = {
+            fl_warmth_min = 0,
+            fl_warmth_max = 24,
+            fl_warmth = 30,
+            hardware_warmth = 30,
+            fromNativeWarmth = function(_, value) return value * 10 end,
+            setWarmth = function(self, value, force)
+                if not force and value == self.fl_warmth then return false end
+                self.fl_warmth = value
+                self.hardware_warmth = value
+                return true
+            end,
+        }
+        _G.__ZEN_UI_PLUGIN = {
+            config = {
+                features = { warmth_schedule = true },
+                warmth_schedule = {
+                    day_h = (now.hour + 1) % 24,
+                    day_m = 0,
+                    day_value = 3,
+                    night_h = now.hour,
+                    night_m = 0,
+                    night_value = 8,
+                },
+            },
+        }
+        ZenSpec.replace("device", { screen = screen, powerd = powerd })
+        ZenSpec.replace("ui/uimanager", make_ui_manager())
+
+        require("modules/global/patches/warmth_schedule")()
+        assert.are.equal(80, powerd.hardware_warmth)
+
+        powerd.hardware_warmth = 30
+        _G.__ZEN_UI_WARMTH_SCHEDULE.force_reschedule()
+        assert.are.equal(80, powerd.hardware_warmth)
     end)
 
     it("does nothing when both automatic brightness modes are disabled", function()

@@ -111,7 +111,7 @@ function LibraryDB.getBookCounts()
                         ]
                         if not summary then
                             -- Light open: parses only the given sidecar file.
-                            local doc_settings = DocSettings:openSettingsFile(sidecar_file)
+                            local doc_settings = DocSettings.openSettingsFile(sidecar_file)
                             summary = doc_settings and doc_settings.data.summary or nil
                             cache_summary(
                                 sidecar_file .. "\31" .. tostring(mtime) .. "\31" .. tostring(size),
