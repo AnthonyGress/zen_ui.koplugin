@@ -66,6 +66,12 @@ describe("TBR path inventory", function()
             self.coll[name] = {}
             self.coll_settings[name] = { order = 2 }
         end
+        function ReadCollection:renameCollection(name, new_name)
+            self.coll[new_name] = self.coll[name]
+            self.coll_settings[new_name] = self.coll_settings[name]
+            self.coll[name] = nil
+            self.coll_settings[name] = nil
+        end
         function ReadCollection:write() collection_writes = collection_writes + 1 end
         function ReadCollection:addItem(path, name, attr)
             self.coll[name][path] = { file = path, attr = attr, text = path:match("([^/]+)$") }
@@ -200,6 +206,45 @@ describe("TBR path inventory", function()
         assert.is_true(Index.setExplicit("/books/b.epub", false))
         assert.same({}, Index.getAll({ include_new = false }))
         assert.are.equal(3, collection_writes)
+    end)
+
+    it("adopts an existing To Be Read collection without replacing it", function()
+        add_book("/books/a.epub", "reading", 1)
+        ReadCollection:addCollection("To Be Read")
+        ReadCollection:addItem("/books/a.epub", "To Be Read")
+        local existing = ReadCollection.coll["To Be Read"]
+        local Index = require("common/tbr_index")
+
+        assert.are.equal("To Be Read", Index.collectionName())
+        assert.is_true(rawequal(existing, ReadCollection.coll["To Be Read"]))
+        assert.is_true(ReadCollection.coll_settings["To Be Read"].zenos_tbr)
+        assert.same({ "/books/a.epub" }, Index.getAll({ include_new = false }))
+        assert.are.equal(1, collection_writes)
+    end)
+
+    it("keeps explicit TBR membership linked after the collection is renamed", function()
+        add_book("/books/a.epub", "reading", 1)
+        add_book("/books/b.epub", "reading", 1)
+        local Index = require("common/tbr_index")
+
+        assert.is_true(Index.setExplicit("/books/a.epub", true))
+        local old_name = Index.collectionName()
+        assert.is_true(ReadCollection.coll_settings[old_name].zenos_tbr)
+        ReadCollection:renameCollection(old_name, "Later")
+        assert.are.equal("Later", Index.collectionName())
+        assert.is_true(ReadCollection.coll_settings.Later.zenos_tbr)
+
+        Index.close()
+        ZenSpec.unload("common/tbr_index")
+        Index = require("common/tbr_index")
+
+        assert.are.equal("Later", Index.collectionName())
+        assert.same({ "/books/a.epub" }, Index.getAll({ include_new = false }))
+        assert.is_true(Index.isExplicit("/books/a.epub"))
+        assert.is_nil(ReadCollection.coll[old_name])
+        assert.is_true(Index.setExplicit("/books/b.epub", true))
+        assert.is_truthy(ReadCollection.coll.Later["/books/b.epub"])
+        assert.is_nil(ReadCollection.coll[old_name])
     end)
 
     it("reopens only a changed sidecar across warm queries and reloads", function()

@@ -16,7 +16,8 @@ local logger = zen_logger.new("tbr_index")
 local now = zen_logger.now
 local M = {}
 
-local COLLECTION_NAME = "To Be Read"
+local DEFAULT_COLLECTION_NAME = "To Be Read"
+local COLLECTION_MARKER = "zenos_tbr"
 local DB_PATH = DataStorage:getSettingsDir() .. "/docprops_cache.sqlite"
 local STATUS_TABLE = "zen_doc_status_cache"
 
@@ -28,6 +29,7 @@ local revision = 0
 local audit
 local reconciled_scope
 local collection_signature
+local resolved_collection_name
 
 local function open_db()
     if db then return db end
@@ -280,13 +282,50 @@ local function ensure_inventory(force)
     return books, scope, complete
 end
 
+local function marked_collection_name()
+    if type(ReadCollection.coll) ~= "table"
+            or type(ReadCollection.coll_settings) ~= "table" then
+        return nil
+    end
+    if resolved_collection_name then
+        local settings = ReadCollection.coll_settings[resolved_collection_name]
+        if type(ReadCollection.coll[resolved_collection_name]) == "table"
+                and type(settings) == "table" and settings[COLLECTION_MARKER] == true then
+            return resolved_collection_name
+        end
+        resolved_collection_name = nil
+    end
+    for name, settings in pairs(ReadCollection.coll_settings) do
+        if type(settings) == "table" and settings[COLLECTION_MARKER] == true
+                and type(ReadCollection.coll[name]) == "table" then
+            resolved_collection_name = name
+            return name
+        end
+    end
+end
+
+local function collection_name()
+    return marked_collection_name() or DEFAULT_COLLECTION_NAME
+end
+
 local function ensure_collection()
-    if type(ReadCollection.coll) ~= "table" then return false end
-    if ReadCollection.coll[COLLECTION_NAME] then return true end
-    ReadCollection:addCollection(COLLECTION_NAME)
-    ReadCollection:write({ [COLLECTION_NAME] = true })
+    if type(ReadCollection.coll) ~= "table"
+            or type(ReadCollection.coll_settings) ~= "table" then
+        return false
+    end
+    if marked_collection_name() then return true end
+    local created = false
+    if not ReadCollection.coll[DEFAULT_COLLECTION_NAME] then
+        ReadCollection:addCollection(DEFAULT_COLLECTION_NAME)
+        created = true
+    end
+    local settings = ReadCollection.coll_settings[DEFAULT_COLLECTION_NAME]
+    if type(settings) ~= "table" then return false end
+    settings[COLLECTION_MARKER] = true
+    resolved_collection_name = DEFAULT_COLLECTION_NAME
+    ReadCollection:write({ [DEFAULT_COLLECTION_NAME] = true })
     collection_signature = nil
-    clear_results(true)
+    clear_results(created)
     return true
 end
 
@@ -294,7 +333,7 @@ local function explicit_paths()
     if type(ReadCollection._read) == "function" then pcall(ReadCollection._read, ReadCollection) end
     ensure_collection()
     local files = {}
-    local coll = ReadCollection.coll and ReadCollection.coll[COLLECTION_NAME] or {}
+    local coll = ReadCollection.coll and ReadCollection.coll[collection_name()] or {}
     for filepath, entry in pairs(coll) do
         local path = type(entry) == "table" and entry.file or filepath
         if type(path) == "string" and paths.isInHomeDir(path)
@@ -378,6 +417,7 @@ local function migrate_legacy_tbr()
     local complete = inventory_result[3]
     if not complete then return end
     if not ensure_collection() then return end
+    local coll_name = collection_name()
 
     local migrated = 0
     local collection_changed = false
@@ -395,8 +435,8 @@ local function migrate_legacy_tbr()
                         local status = BookStatus.migrateLegacyMarker(
                             book.path, summary.status, doc)
                         if status == "abandoned" then
-                            if not ReadCollection:isFileInCollection(book.path, COLLECTION_NAME) then
-                                ReadCollection:addItem(book.path, COLLECTION_NAME, book.attr)
+                            if not ReadCollection:isFileInCollection(book.path, coll_name) then
+                                ReadCollection:addItem(book.path, coll_name, book.attr)
                                 collection_changed = true
                             end
                             summary.status = nil
@@ -415,7 +455,7 @@ local function migrate_legacy_tbr()
             end
         end
     end)
-    if collection_changed then ReadCollection:write({ [COLLECTION_NAME] = true }) end
+    if collection_changed then ReadCollection:write({ [coll_name] = true }) end
 
     local config = ConfigManager.get()
     if type(config) == "table" then
@@ -553,23 +593,25 @@ function M.ensureCollection()
 end
 
 function M.collectionName()
-    return COLLECTION_NAME
+    ensure_collection()
+    return collection_name()
 end
 
 function M.isExplicit(path)
     ensure_collection()
-    return ReadCollection:isFileInCollection(path, COLLECTION_NAME) == true
+    return ReadCollection:isFileInCollection(path, collection_name()) == true
 end
 
 function M.setExplicit(path, enabled)
     if type(path) ~= "string" or path == "" or not ensure_collection() then return false end
-    local present = ReadCollection:isFileInCollection(path, COLLECTION_NAME) == true
+    local coll_name = collection_name()
+    local present = ReadCollection:isFileInCollection(path, coll_name) == true
     if enabled == true and not present then
-        ReadCollection:addItem(path, COLLECTION_NAME)
-        ReadCollection:write({ [COLLECTION_NAME] = true })
+        ReadCollection:addItem(path, coll_name)
+        ReadCollection:write({ [coll_name] = true })
     elseif enabled ~= true and present then
-        ReadCollection:removeItem(path, COLLECTION_NAME)
-        ReadCollection:write({ [COLLECTION_NAME] = true })
+        ReadCollection:removeItem(path, coll_name)
+        ReadCollection:write({ [coll_name] = true })
     else
         return false
     end
@@ -579,7 +621,7 @@ function M.setExplicit(path, enabled)
 end
 
 function M.collectionChanged(name)
-    if name and name ~= COLLECTION_NAME then return end
+    if name and name ~= collection_name() then return end
     collection_signature = nil
     clear_results(true)
 end
