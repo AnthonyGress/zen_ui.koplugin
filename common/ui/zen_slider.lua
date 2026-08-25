@@ -325,20 +325,25 @@ function ZenSlider.installTouchMenuHooks(TouchMenu, opts)
     local is_locked = opts.is_locked
     local swipe_fb  = opts.swipe_fallback
     local mswipe_fb = opts.multiswipe_fallback
+    local orig_onPan = TouchMenu.onPan
 
     function TouchMenu:onPanCloseAllMenus(arg, ges_ev)
-        if not in_panel(self) then return end
+        if not in_panel(self) then
+            if orig_onPan then return orig_onPan(self, arg, ges_ev) end
+            return
+        end
         if is_locked(self) then
             -- A pan arrived while the input lock is active (e.g. the same
             -- gesture that opened the menu). Mark it so the release is also
             -- consumed once the lock expires.
             self._zen_panel_opening_pan = true
-            return
+            return true
         end
         self._zen_panel_opening_pan = false  -- clear stale flag once unlocked
         for _i, sl in ipairs(get_sl(self)) do
             if sl:handlePan(ges_ev) then return true end
         end
+        if orig_onPan then return orig_onPan(self, arg, ges_ev) end
     end
 
     function TouchMenu:onPanReleaseCloseAllMenus(arg, ges_ev)

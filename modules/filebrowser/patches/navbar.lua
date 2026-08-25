@@ -2322,8 +2322,11 @@ local function apply_navbar()
     local function isStandaloneNavbarView(menu)
         if standalone_view_names[menu.name] then return true end
         if isRakuyomiView(menu) then return true end
-        -- Collections list has no name but has these flags
-        if not menu.name and menu.covers_fullscreen and menu.is_borderless and menu.title_bar_fm_style then
+        -- Collections list has no name but has these flags. PathChooser also
+        -- has them, so exclude its explicit selection contract.
+        if not menu.name
+                and menu.select_directory == nil and menu.select_file == nil
+                and menu.covers_fullscreen and menu.is_borderless and menu.title_bar_fm_style then
             return true
         end
         return false

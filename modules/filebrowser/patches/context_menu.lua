@@ -272,6 +272,7 @@ local function apply_context_menu()
     function MoveChooser:onMenuHold() return true end
 
     function MoveChooser:init()
+        self.height = Device.screen:getHeight()
         local CoverMenu = require("covermenu")
         local MosaicMenu = require("mosaicmenu")
         self.display_mode_type = "mosaic"
