@@ -1798,7 +1798,7 @@ msgid "Read time"
 msgstr "Zeit lesen"
 
 msgid "Read today"
-msgstr "Lesen Sie noch heute"
+msgstr "Heute gelesen"
 
 msgid "Reader"
 msgstr "Lesemodus"
