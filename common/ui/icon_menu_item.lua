@@ -56,6 +56,14 @@ function M.getSettingsRowHeight()
     return M.SETTINGS_ROW_HEIGHT
 end
 
+function M.getSettingsLeftPadding()
+    return Size.padding.large + Size.padding.fullscreen
+end
+
+function M.getSettingsIconGap()
+    return Size.padding.default
+end
+
 function M.getSettingsFace(fallback)
     return Font:getFace("smallinfofont", M.getSettingsFontSize())
         or fallback or Font:getFace("smallinfofont")
@@ -249,11 +257,12 @@ local function rebuild_settings_menu_item(row)
     end
     local visual_enabled = enabled and item.dim ~= true
     local face = M.getItemFace(item, row.face)
-    local left_padding = Size.padding.large + Size.padding.fullscreen
+    local left_padding = M.getSettingsLeftPadding()
     local right_padding = Size.padding.large + Size.padding.default
     local icon_widget = settings_icon_widget(item, row.dimen.h, face)
     local control_widget = settings_control_widget(item, visual_enabled)
-    local left_icon_w = M.SETTINGS_ICON_WIDTH + Size.padding.default
+    local icon_gap = M.getSettingsIconGap()
+    local left_icon_w = M.SETTINGS_ICON_WIDTH + icon_gap
     local right_controls = HorizontalGroup:new{ align = "center" }
     if control_widget then
         table.insert(right_controls, control_widget)
@@ -284,7 +293,7 @@ local function rebuild_settings_menu_item(row)
         item._zen_settings_control_bounds = nil
     end
     local text_w = math.max(1, row.dimen.w - left_padding - left_icon_w
-        - right_controls_w - Size.padding.default)
+        - right_controls_w - icon_gap)
     local text = item._zen_display_text
         or (type(item.text_func) == "function" and item.text_func() or item.text)
         or ""
@@ -327,7 +336,7 @@ local function rebuild_settings_menu_item(row)
         HorizontalSpan:new{ width = left_padding },
     }
     table.insert(left_items, icon_widget or HorizontalSpan:new{ width = M.SETTINGS_ICON_WIDTH })
-    table.insert(left_items, HorizontalSpan:new{ width = Size.padding.default })
+    table.insert(left_items, HorizontalSpan:new{ width = icon_gap })
     table.insert(left_items, text_group)
     local left = LeftContainer:new{
         dimen = Geom:new{ w = row.dimen.w, h = row.dimen.h },

@@ -185,15 +185,16 @@ function ZenSettingsTitleBar:init()
     local close_hitbox_inset = Screen:scaleBySize(4)
     local close_hitbox_left_inset = Screen:scaleBySize(4)
     local close_hitbox_bottom_inset = Screen:scaleBySize(12)
-    local title_leading_padding = TitleStyle.TITLE_LEADING_PADDING
+    local title_leading_padding = IconItem.getSettingsIconGap()
     self.title_leading_padding = title_leading_padding
     local root_icon_size = math.min(button_size, Screen:scaleBySize(32))
     local root_icon_inset = button_size - root_icon_size
     local root_icon_inset_start = math.floor(root_icon_inset / 2)
     local root_icon_inset_end = root_icon_inset - root_icon_inset_start
-    local left_padding = TitleStyle.LEFT_PADDING
+    local leading_width = IconItem.SETTINGS_ICON_WIDTH
+    local left_padding = IconItem.getSettingsLeftPadding()
     local right_padding = TitleStyle.RIGHT_PADDING
-    local back_width = button_size
+    local back_width = leading_width
     local show_search = self.search_expanded == true and self.search_visible ~= false
     local show_search_button = self.search_visible ~= false and not show_search
     local title_cap = math.min(Screen:scaleBySize(150), math.floor(self.width * 0.25))
@@ -300,9 +301,12 @@ function ZenSettingsTitleBar:init()
         show_parent = self.show_parent,
     }
     self.root_icon.skip_paint = self.back_visible == true
-    self.leading_container = OverlapGroup:new{
-        self.root_icon,
-        self.back_button,
+    self.leading_container = CenterContainer:new{
+        dimen = Geom:new{ w = leading_width, h = row_height },
+        OverlapGroup:new{
+            self.root_icon,
+            self.back_button,
+        },
     }
     table.insert(row, self.leading_container)
     table.insert(row, HorizontalSpan:new{ width = title_leading_padding })
