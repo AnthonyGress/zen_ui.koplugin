@@ -6,6 +6,7 @@ describe("incompatible plugin and patch check", function()
     local original_settings
     local original_ptutil
     local original_sui_core
+    local original_vos
     local original_quickmenu
     local original_readermenuredesign_installer
     local original_suntime
@@ -17,6 +18,20 @@ describe("incompatible plugin and patch check", function()
     local patch_dir
 
     local patch_files = {
+        "2---stretched-covers.lua",
+        "2--disable-all-CB-widgets.lua",
+        "2--disable-all-PT-widgets.lua",
+        "2--rounded-covers.lua",
+        "2--stretched-rounded-covers.lua",
+        "2-navbar-vos.lua",
+        "2-new-collections-star.lua",
+        "2-new-progress-bar-colored.lua",
+        "2-new-progress-bar.lua",
+        "2-pages-badge.lua",
+        "2-percent-badge.lua",
+        "2-rounded-folder-covers.lua",
+        "2-series-indicator.lua",
+        "20-faded-finished-books.lua",
         "2-quick-settings.lua",
         "2-automatic-book-series.lua",
         "2-ui-font.lua",
@@ -57,12 +72,14 @@ describe("incompatible plugin and patch check", function()
         original_settings = _G.G_reader_settings
         original_ptutil = package.loaded["ptutil"]
         original_sui_core = package.loaded["sui_core"]
+        original_vos = package.loaded["modules/vos"]
         original_quickmenu = package.loaded["quickmenu"]
         original_readermenuredesign_installer = package.loaded["readermenuredesign_installer"]
         original_suntime = package.loaded["suntime"]
         original_appearance_setting = package.loaded["lib/setting"]
         package.loaded["ptutil"] = nil
         package.loaded["sui_core"] = nil
+        package.loaded["modules/vos"] = nil
         package.loaded["quickmenu"] = nil
         package.loaded["readermenuredesign_installer"] = nil
         package.loaded["suntime"] = nil
@@ -131,6 +148,7 @@ describe("incompatible plugin and patch check", function()
         end
         package.loaded["ptutil"] = original_ptutil
         package.loaded["sui_core"] = original_sui_core
+        package.loaded["modules/vos"] = original_vos
         package.loaded["quickmenu"] = original_quickmenu
         package.loaded["readermenuredesign_installer"] = original_readermenuredesign_installer
         package.loaded["suntime"] = original_suntime
@@ -247,10 +265,12 @@ describe("incompatible plugin and patch check", function()
     it("records installed incompatible plugins before their main modules load", function()
         local plugins_dir = data_dir .. "/plugins"
         local simpleui_dir = plugins_dir .. "/simpleui.koplugin"
+        local vos_dir = plugins_dir .. "/vos.koplugin"
         local quickmenu_dir = plugins_dir .. "/quickmenu.koplugin"
         local reader_menu_dir = plugins_dir .. "/zzz-readermenuredesign.koplugin"
         assert.is_true(lfs.mkdir(plugins_dir))
         assert.is_true(lfs.mkdir(simpleui_dir))
+        assert.is_true(lfs.mkdir(vos_dir))
         assert.is_true(lfs.mkdir(quickmenu_dir))
         assert.is_true(lfs.mkdir(reader_menu_dir))
         settings.extra_plugin_paths = { plugins_dir }
@@ -258,6 +278,7 @@ describe("incompatible plugin and patch check", function()
 
         assert.is_true(require("modules/filebrowser/patches/incompatible_plugins_check")())
         assert.is_true(settings.disabled.simpleui)
+        assert.is_true(settings.disabled.vos)
         assert.is_true(settings.disabled.quickmenu)
         assert.is_true(settings.disabled["zzz-readermenuredesign"])
         assert.are.equal(1, settings.flushes)
@@ -265,10 +286,11 @@ describe("incompatible plugin and patch check", function()
         UIManager.scheduled[1].callback()
         assert.are.equal(
             "Incompatible plugins and patches have been disabled:\n"
-                .. "Simple UI\nQuickMenu\nReader Menu Redesign",
+                .. "Simple UI\nVisual Overhaul Suite (VOS)\nQuickMenu\nReader Menu Redesign",
             UIManager.shown[1].text)
 
         lfs.rmdir(simpleui_dir)
+        lfs.rmdir(vos_dir)
         lfs.rmdir(quickmenu_dir)
         lfs.rmdir(reader_menu_dir)
         lfs.rmdir(plugins_dir)

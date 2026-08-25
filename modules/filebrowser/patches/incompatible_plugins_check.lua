@@ -86,6 +86,12 @@ local AUTO_DISABLE = {
         folder_key = "simpleui",
     },
     {
+        sentinel = "modules/vos",
+        label = "Visual Overhaul Suite (VOS)",
+        fallback_key = "vos",
+        folder_key = "vos",
+    },
+    {
         sentinel = "quickmenu",
         label = "QuickMenu",
         fallback_key = "quickmenu",
@@ -106,6 +112,20 @@ local AUTO_DISABLE = {
 }
 
 local AUTO_DISABLE_PATCHES = {
+    "2---stretched-covers.lua",
+    "2--disable-all-CB-widgets.lua",
+    "2--disable-all-PT-widgets.lua",
+    "2--rounded-covers.lua",
+    "2--stretched-rounded-covers.lua",
+    "2-navbar-vos.lua",
+    "2-new-collections-star.lua",
+    "2-new-progress-bar-colored.lua",
+    "2-new-progress-bar.lua",
+    "2-pages-badge.lua",
+    "2-percent-badge.lua",
+    "2-rounded-folder-covers.lua",
+    "2-series-indicator.lua",
+    "20-faded-finished-books.lua",
     "2-quick-settings.lua",
     "2-automatic-book-series.lua",
     "2-ui-font.lua",
