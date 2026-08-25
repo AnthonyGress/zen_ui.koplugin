@@ -59,6 +59,12 @@ local function apply_automatic_series_grouping()
         return features.automatic_series_grouping ~= false
     end
 
+    local function is_hide_grouped_series_enabled()
+        local plugin = get_plugin()
+        local features = plugin and plugin.config and plugin.config.features
+        return type(features) == "table" and features.hide_grouped_series == true
+    end
+
     local function can_group_items(file_chooser)
         -- PathChooser inherits FileChooser, but its items must always map to
         -- real paths so callers can navigate or select them.
@@ -352,6 +358,7 @@ local function apply_automatic_series_grouping()
         local processed_list = {}
         local book_count = 0
         local non_series_book_count = 0
+        local hide_grouped_series = is_hide_grouped_series_enabled()
 
         for _i, item in ipairs(item_table) do
             if item.is_go_up then
@@ -429,7 +436,7 @@ local function apply_automatic_series_grouping()
             if series_count > 1 then break end
         end
 
-        if series_count == 1 and non_series_book_count == 0 and book_count > 0 then
+        if not hide_grouped_series and series_count == 1 and non_series_book_count == 0 and book_count > 0 then
             return
         end
 
@@ -443,6 +450,17 @@ local function apply_automatic_series_grouping()
                 set_series_status(group)
                 self:sortSeriesItems(group.series_items, group, file_chooser)
             end
+        end
+
+        if hide_grouped_series then
+            local visible = {}
+            for _i, item in ipairs(processed_list) do
+                if not (item.is_series_group and type(item.series_items) == "table"
+                        and #item.series_items > 1) then
+                    table.insert(visible, item)
+                end
+            end
+            processed_list = visible
         end
 
         local final_table = {}

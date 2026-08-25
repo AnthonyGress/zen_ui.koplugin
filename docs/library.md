@@ -51,7 +51,8 @@ Library settings control the KOReader library. Customize the top status bar, lay
 | Layout > Show item underline | Shows or hides the underline between browser items. |
 | Layout > Hide list borders | Hides borders in list display modes. |
 | Folders > Hide up folder | Hides the parent-folder row. |
-| Folders > Group book series into folders | Automatically groups books that share series metadata into generated series folders, sorted by series position. The folders are virtual — they reorganize the view without moving files on disk. |
+| Folders > Series > Group book series into folders | Automatically groups books that share series metadata into generated series folders, sorted by series position. The folders are virtual — they reorganize the view without moving files on disk. |
+| Folders > Series > Hide grouped series | Hides multi-book series groups from the folder view. Available only when automatic series grouping is enabled; books remain accessible from the Series tab. |
 | Folders > Covers | Selects gallery, first cover image, stack, or folder-name-only folder covers. Override per folder with a custom cover image (see below). |
 | Folders > Show spine lines | Shows book-spine lines on stacked folder covers. |
 | Folders > Show item count | Shows item counts on folder covers. |

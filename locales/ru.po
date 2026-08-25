@@ -1066,6 +1066,9 @@ msgstr "Гироскоп"
 msgid "Hide finished books"
 msgstr "Скрыть прочитанные книги"
 
+msgid "Hide grouped series"
+msgstr "Скрыть сгруппированные серии"
+
 msgid "Hide in CBZ/PDF files"
 msgstr "Скрыть в файлах CBZ/PDF"
 

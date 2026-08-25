@@ -1065,6 +1065,9 @@ msgstr "Gyroscope"
 msgid "Hide finished books"
 msgstr "Hide finished books"
 
+msgid "Hide grouped series"
+msgstr "Hide grouped series"
+
 msgid "Hide in CBZ/PDF files"
 msgstr "Hide in CBZ/PDF files"
 

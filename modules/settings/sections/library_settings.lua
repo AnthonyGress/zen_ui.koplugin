@@ -319,6 +319,58 @@ function M.build(ctx)
     -- Folders
     -- -------------------------------------------------------------------------
 
+    local function save_and_refresh_series_grouping()
+        plugin:saveConfig()
+        local home = SharedState.get(plugin, "home")
+        if home and type(home.invalidateLibraryCache) == "function" then
+            home.invalidateLibraryCache()
+        end
+        local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
+        local fc = ok_fm and FileManager and FileManager.instance
+            and FileManager.instance.file_chooser
+        if fc and fc._zen_clear_item_table_cache then
+            fc:_zen_clear_item_table_cache()
+        end
+        if fc and fc.path and fc.changeToPath then
+            fc:changeToPath(fc.path)
+        else
+            save_and_apply("automatic_series_grouping")
+        end
+    end
+
+    local function build_series_items()
+        local sub_items = {
+            {
+                text = _("Group book series into folders"),
+                checked_func = function()
+                    return config.features.automatic_series_grouping ~= false
+                end,
+                callback = function(touchmenu_instance)
+                    config.features.automatic_series_grouping =
+                        config.features.automatic_series_grouping == false
+                    save_and_refresh_series_grouping()
+                    if touchmenu_instance then
+                        touchmenu_instance.item_table = build_series_items()
+                    end
+                end,
+            },
+        }
+        if config.features.automatic_series_grouping ~= false then
+            sub_items[#sub_items + 1] = {
+                text = _("Hide grouped series"),
+                checked_func = function()
+                    return config.features.hide_grouped_series == true
+                end,
+                callback = function()
+                    config.features.hide_grouped_series =
+                        config.features.hide_grouped_series ~= true
+                    save_and_refresh_series_grouping()
+                end,
+            }
+        end
+        return sub_items
+    end
+
     table.insert(items, {
         text = _("Folders"),
         sub_item_table = {
@@ -332,30 +384,8 @@ function M.build(ctx)
                 end,
             },
             {
-                text = _("Group book series into folders"),
-                checked_func = function()
-                    return config.features.automatic_series_grouping ~= false
-                end,
-                callback = function()
-                    config.features.automatic_series_grouping =
-                        config.features.automatic_series_grouping == false
-                    plugin:saveConfig()
-                    local home = SharedState.get(plugin, "home")
-                    if home and type(home.invalidateLibraryCache) == "function" then
-                        home.invalidateLibraryCache()
-                    end
-                    local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
-                    local fc = ok_fm and FileManager and FileManager.instance
-                        and FileManager.instance.file_chooser
-                    if fc and fc._zen_clear_item_table_cache then
-                        fc:_zen_clear_item_table_cache()
-                    end
-                    if fc and fc.path and fc.changeToPath then
-                        fc:changeToPath(fc.path)
-                    else
-                        save_and_apply("automatic_series_grouping")
-                    end
-                end,
+                text = _("Series"),
+                sub_item_table_func = build_series_items,
             },
             -- Cover mode subsection
             {

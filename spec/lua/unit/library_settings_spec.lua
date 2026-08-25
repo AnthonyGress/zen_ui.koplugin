@@ -52,10 +52,11 @@ describe("library settings", function()
         end
     end)
 
-    it("invalidates the library cache when series grouping changes", function()
+    it("nests series settings and refreshes the library when they change", function()
         local invalidations = 0
         local clears = 0
         local refreshes = 0
+        local saves = 0
         local home = {
             invalidateLibraryCache = function()
                 invalidations = invalidations + 1
@@ -74,11 +75,11 @@ describe("library settings", function()
 
         local config = {
             browser_hide_up_folder = {},
-            features = { automatic_series_grouping = true },
+            features = { automatic_series_grouping = true, hide_grouped_series = false },
         }
         local items = require("modules/settings/sections/library_settings").build({
             config = config,
-            plugin = { saveConfig = function() end },
+            plugin = { saveConfig = function() saves = saves + 1 end },
             save_and_apply = function() end,
         })
         local folders
@@ -90,12 +91,36 @@ describe("library settings", function()
         end
 
         assert.is_not_nil(folders)
-        folders.sub_item_table[2].callback()
+        local series
+        for _i, item in ipairs(folders.sub_item_table) do
+            if item.text == "Series" then
+                series = item
+                break
+            end
+        end
+
+        assert.is_not_nil(series)
+        local series_items = series.sub_item_table_func()
+        assert.are.same({ "Group book series into folders", "Hide grouped series" }, {
+            series_items[1].text, series_items[2].text,
+        })
+
+        local touchmenu = { item_table = series_items }
+        series_items[1].callback(touchmenu)
 
         assert.is_false(config.features.automatic_series_grouping)
-        assert.are.equal(1, invalidations)
-        assert.are.equal(1, clears)
-        assert.are.equal(1, refreshes)
+        assert.are.equal(1, #touchmenu.item_table)
+
+        touchmenu.item_table[1].callback(touchmenu)
+        assert.is_true(config.features.automatic_series_grouping)
+        assert.are.equal("Hide grouped series", touchmenu.item_table[2].text)
+
+        touchmenu.item_table[2].callback()
+        assert.is_true(config.features.hide_grouped_series)
+        assert.are.equal(3, saves)
+        assert.are.equal(3, invalidations)
+        assert.are.equal(3, clears)
+        assert.are.equal(3, refreshes)
     end)
 
     it("rebuilds the library when mosaic title strips change", function()

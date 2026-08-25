@@ -1065,6 +1065,9 @@ msgstr "Gyroscoop"
 msgid "Hide finished books"
 msgstr "Uitgelezen boeken verbergen"
 
+msgid "Hide grouped series"
+msgstr "Gegroepeerde boekenseries verbergen"
+
 msgid "Hide in CBZ/PDF files"
 msgstr "Verbergen in CBZ/PDF-bestanden"
 
