@@ -11,9 +11,10 @@ local M = {}
 local _ = require("gettext")
 local T = require("ffi/util").template
 local ConfigManager = require("config/manager")
+local CoverUtils = require("common/cover_utils")
 local paths = require("common/paths")
 local PresetStore = require("config/preset_store")
-local ReaderMargins = require("common/reader_margins")
+local ReaderDefaults = require("common/reader_defaults")
 
 local _plugin_root = require("common/plugin_root") or ""
 
@@ -117,9 +118,10 @@ end
 local function paintCoverBadge(canvas, Blitbuffer, Font, TextWidget, Screen,
                                cell_x, cell_y, cell_w, progress, status)
     local do_check = (status == "complete") or (progress and progress >= 1.0)
+    local do_tbr = not do_check and (status == "tbr")
     local do_pause = not do_check and (status == "abandoned")
-    local do_pct   = not do_check and not do_pause and (progress and progress > 0)
-    if not (do_check or do_pause or do_pct) then return end
+    local do_pct   = not do_check and not do_tbr and not do_pause and (progress and progress > 0)
+    if not (do_check or do_tbr or do_pause or do_pct) then return end
     local badge_size = math.max(Screen:scaleBySize(16), math.floor(cell_w * 0.14))
     local bw = math.floor(badge_size * 1.2)
     local bh = math.floor(badge_size * 1.1)
@@ -139,13 +141,14 @@ local function paintCoverBadge(canvas, Blitbuffer, Font, TextWidget, Screen,
             bdg_y + pad_y + math.floor((icon_h - sq) / 2),
             sq, sq, Blitbuffer.COLOR_BLACK)
     elseif Font and TextWidget then
-        local font_sz = do_pause
+        local font_sz = (do_tbr or do_pause)
             and math.max(7, math.floor(badge_size * 0.40))
             or  math.max(7, math.floor(badge_size * 0.24))
         local tw = TextWidget:new{
-            text    = do_pause and "\u{F0150}" or (math.floor(100 * progress) .. "%"),
+            text    = do_tbr and "\u{F0150}"
+                or (do_pause and "\u{F03E4}" or (math.floor(100 * progress) .. "%")),
             face    = Font:getFace("cfont", font_sz),
-            bold    = not do_pause,
+            bold    = not do_tbr and not do_pause,
             fgcolor = Blitbuffer.COLOR_BLACK,
             padding = 0,
         }
@@ -230,7 +233,7 @@ local function buildContextMenuBB(slot_w, slot_h, cover_info)
         local VerticalSpan    = require("ui/widget/verticalspan")
         local Widget          = require("ui/widget/widget")
 
-        local border      = SizeR.border.thin
+        local border      = CoverUtils.BORDER_SIZE
         local gap         = Screen:scaleBySize(8)
         local avail_inner = dlg_w
             - 2 * (SizeR.border.window + SizeR.padding.button)
@@ -542,7 +545,7 @@ local function buildListBB(covers, avail_w)
 end
 
 -- ---------------------------------------------------------------------------
--- ctx = { plugin = <ZenUI plugin>, config = <config table> }
+-- ctx = { plugin = <ZenOS plugin>, config = <config table> }
 -- ---------------------------------------------------------------------------
 
 function M.build_install_pages(ctx)
@@ -568,12 +571,6 @@ function M.build_install_pages(ctx)
         if type(bp_mod.get) == "function" then
             builtin_presets = bp_mod.get(_plugin_root .. "/icons/")
         end
-    end)
-
-    -- Load footer presets once
-    local footer_presets
-    pcall(function()
-        footer_presets = require("modules/reader/patches/reader_footer_presets")
     end)
 
     -- -----------------------------------------------------------------------
@@ -614,46 +611,6 @@ function M.build_install_pages(ctx)
         end
     end
 
-    local function apply_footer_preset(preset)
-        if type(preset) ~= "table" then return end
-        if preset.footer then
-            -- Deep-copy so the shared preset table is never aliased into
-            -- G_reader_settings; KOReader's footer module receives readSetting()
-            -- and can write defaults back into the same object, which would
-            -- silently corrupt the preset and revert font fields on next load.
-            local footer
-            local ok_u, util_mod = pcall(require, "util")
-            if ok_u and type(util_mod.tableDeepCopy) == "function" then
-                footer = util_mod.tableDeepCopy(preset.footer)
-            else
-                footer = {}
-                for k, v in pairs(preset.footer) do footer[k] = v end
-            end
-            footer.text_font_face = "NotoSans-Bold.ttf"
-            footer.text_font_bold = false
-            G_reader_settings:saveSetting("footer", footer)
-        end
-        if preset.reader_footer_mode ~= nil then
-            G_reader_settings:saveSetting("reader_footer_mode", preset.reader_footer_mode)
-        end
-        if preset.reader_footer_custom_text then
-            G_reader_settings:saveSetting("reader_footer_custom_text", preset.reader_footer_custom_text)
-        end
-        if preset.reader_footer_custom_text_repetitions then
-            G_reader_settings:saveSetting("reader_footer_custom_text_repetitions",
-                preset.reader_footer_custom_text_repetitions)
-        end
-        local verbose_chapter_time = preset.verbose_chapter_time
-        if verbose_chapter_time == nil and type(preset.zen) == "table" then
-            verbose_chapter_time = preset.zen.verbose_chapter_time
-        end
-        if verbose_chapter_time ~= nil then
-            if type(config.reader_footer) ~= "table" then config.reader_footer = {} end
-            config.reader_footer.verbose_chapter_time = verbose_chapter_time
-            save_zen_config()
-        end
-    end
-
     local function apply_display_mode(mode)
         local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
         local fm = ok_fm and FileManager and FileManager.instance
@@ -674,6 +631,8 @@ function M.build_install_pages(ctx)
 
     local show_tabs = (type(config.navbar) == "table" and type(config.navbar.show_tabs) == "table")
         and config.navbar.show_tabs or {}
+    local quickstart_completed = type(config._meta) == "table"
+        and config._meta.quickstart_completed == true
 
     local is_12h = true
     local raw_12h = G_reader_settings:readSetting("twelve_hour_clock")
@@ -688,9 +647,9 @@ function M.build_install_pages(ctx)
     local pages = {
         -- 1. Welcome (static)
         {
-            title       = _("Welcome to Zen UI"),
-            icon        = "zen_ui",
-            description = _("A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."),
+            title       = _("Welcome to ZenOS"),
+            icon        = "_zen_quickstart",
+            description = _("A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."),
         },
 
         -- 2. Library View (INTERACTIVE — radio)
@@ -764,8 +723,8 @@ function M.build_install_pages(ctx)
             description = _("What should your device show when it goes to sleep?"),
             choice_type = "radio",
             choices     = {
-                { id = "keep",          text = _("Keep existing settings"),         checked = true  },
-                { id = "cover_black",   text = _("Show Book cover"), checked = false },
+                { id = "keep",          text = _("Keep existing settings"),         checked = quickstart_completed },
+                { id = "cover_black",   text = _("Show Book cover"), checked = not quickstart_completed },
                 { id = "zen_white",     text = _("Show Zen icon - white background"),   checked = false },
                 { id = "zen_black",     text = _("Show Zen icon - black background"),   checked = false },
             },
@@ -811,70 +770,44 @@ function M.build_install_pages(ctx)
         -- 8. Reader (INTERACTIVE — radio)
         {
             title       = _("Reader"),
-            description = _("Customizable top status bar and bottom progress bar."),
+            description = _("Font, margins, contrast, line spacing etc - tested together for the best reading experience"),
             choice_type = "radio",
             choices     = {
-                { id = "keep", text = _("Keep existing settings"), checked = true  },
-                { id = "zen",  text = _("Zen UI defaults"), checked = false },
+                { id = "keep", text = _("Keep existing settings"), checked = quickstart_completed },
+                { id = "zen",  text = _("ZenOS defaults"), checked = not quickstart_completed },
             },
             on_apply = function(sel)
-                if sel["keep"] then return end
-                ReaderMargins.applyZenDefaults(G_reader_settings)
-                G_reader_settings:saveSetting("copt_word_spacing", {100, 90})
-                G_reader_settings:saveSetting("copt_line_spacing", 110)
-                G_reader_settings:saveSetting("copt_font_gamma", 25)  -- gamma index for 1.45
-                G_reader_settings:saveSetting("copt_font_size", 23)
-                G_reader_settings:saveSetting("copt_embedded_css", 0)
-                G_reader_settings:saveSetting("copt_embedded_fonts", 0)
-                G_reader_settings:saveSetting("copt_nightmode_images", 1)
-                G_reader_settings:saveSetting("alt_status_bar", false)
-            end,
-        },
-
-        -- 9. Reader Progress (INTERACTIVE — radio)
-        {
-            title       = _("Reader Progress"),
-            description = _("Choose a preset for your reading progress bar."),
-            choice_type = "radio",
-            choices     = {
-                { id = "keep",     text = _("Keep existing settings"),       checked = true  },
-                { id = "kindle",   text = _("Chapter Time + %"),             checked = false },
-                { id = "pages",    text = _("Pages and %"),                  checked = false },
-                { id = "full",     text = _("Pages + Chapter Time + %"),     checked = false },
-                { id = "centered", text = _("Centered Pages"),               checked = false },
-            },
-            on_apply = function(sel)
-                if sel["keep"] then return end
-                if not footer_presets then return end
-                local preset
-                if     sel["kindle"]   then preset = footer_presets[1]
-                elseif sel["pages"]    then preset = footer_presets[2]
-                elseif sel["full"]     then preset = footer_presets[3]
-                elseif sel["centered"] then preset = footer_presets[4]
+                if type(config._meta) ~= "table" then config._meta = {} end
+                if sel["keep"] then
+                    config._meta.reader_defaults_apply_on_next_open = false
+                    save_zen_config()
+                    return
                 end
-                if preset then apply_footer_preset(preset) end
+                local applied = ReaderDefaults.apply(G_reader_settings, config)
+                config._meta.reader_defaults_apply_on_next_open = applied ~= true
+                save_and_apply("reader_top_status_bar")
             end,
         },
 
-        -- 10. Page Browser (static)
+        -- 9. Page Browser (static)
         {
             title       = _("Page Browser"),
             description = _("Swipe up from the bottom while reading to open the Page Browser.\n\nSkim through pages or skip chapters, browse the table of contents, manage bookmarks, adjust fonts and more.") .. "\n\n"
                 .. _("The default KOReader reader menu is inside the Aa icon."),
         },
 
-        -- 11. Settings & Updates (static)
+        -- 10. Settings & Updates (static)
         {
             title       = _("Settings & Updates"),
-            icon        = "zen_ui_update",
+            icon        = "_zen_quickstart_update",
             icon_size   = 120,
-            description = _("All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall Zen UI updates directly from your device."),
+            description = _("All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall ZenOS updates directly from your device."),
         },
 
-        -- 12. Finale
+        -- 11. Finale
         {
             title       = _("You're All Set"),
-            icon        = "zen_ui",
+            icon        = "_zen_quickstart",
             finale      = true,
             description = _("The best interface is the one you forget is there.\nNow go get lost in a good book."),
         },
@@ -882,7 +815,7 @@ function M.build_install_pages(ctx)
 
     -- Insert home folder page before finale if home_dir has not been customized.
     do
-        local current_home = paths.getHomeDir()
+        local current_home = paths.getConfiguredHomeDir()
         if not current_home or current_home == "" then
             -- Detect the device's primary storage root for path suggestions.
             local base_storage = "/"

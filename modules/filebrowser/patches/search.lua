@@ -3,6 +3,7 @@ local function apply_search()
     local InputDialog = require("ui/widget/inputdialog")
     local UIManager = require("ui/uimanager")
     local paths = require("common/paths")
+    local ZenModalClose = require("common/ui/zen_modal_close")
     local _ = require("gettext")
 
     -- Capture plugin reference at apply time (global is only set transiently)
@@ -17,7 +18,8 @@ local function apply_search()
     end
 
     local function is_substring_enabled()
-        return G_reader_settings:readSetting("substring_search") ~= false  -- default: substring (whole-word off)
+        local search = zen_plugin.config.search
+        return type(search) ~= "table" or search.substring ~= false
     end
 
     local orig_onShowFileSearch = FileManagerFileSearcher.onShowFileSearch
@@ -56,11 +58,6 @@ local function apply_search()
         search_dialog = InputDialog:new{
             title = _("Search Library"),
             input = search_string or FileManagerFileSearcher.search_string,
-            -- X close icon in top left
-            title_bar_left_icon = "close",
-            title_bar_left_icon_tap_callback = function()
-                UIManager:close(search_dialog)
-            end,
             buttons = {
                 {
                     {
@@ -73,6 +70,24 @@ local function apply_search()
                 },
             },
         }
+
+        local function close_dialog()
+            UIManager:close(search_dialog)
+            return true
+        end
+
+        search_dialog.onCloseDialog = close_dialog
+        ZenModalClose.installDialog(search_dialog, close_dialog)
+
+        -- The virtual keyboard otherwise consumes Back and only hides itself.
+        local keyboard = search_dialog._input_widget and search_dialog._input_widget.keyboard
+        local keyboard_back = keyboard and keyboard.key_events and keyboard.key_events.Close
+        if keyboard_back then
+            keyboard.key_events.Close = nil
+            keyboard.key_events.ZenCloseFileSearchDialog = keyboard_back
+            keyboard_back.event = "ZenCloseFileSearchDialog"
+            keyboard.onZenCloseFileSearchDialog = close_dialog
+        end
 
         -- Override onTap: always close the full dialog (keyboard + dialog) on outside tap
         function search_dialog:onTap(arg, ges)

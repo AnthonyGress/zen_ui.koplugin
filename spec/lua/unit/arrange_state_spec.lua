@@ -52,4 +52,47 @@ describe("arrange state", function()
         assert.are.equal("callback", ArrangeState.rootTapAction(toggle_only, false))
         assert.are.equal("consume", ArrangeState.rootTapAction({}, false))
     end)
+
+    it("recognizes unmodified Enter keys for handle repeat suppression", function()
+        local press = {
+            match = function(_self, sequence) return sequence[1] == "Press" end,
+        }
+        local shifted_press = {
+            match = function() return false end,
+        }
+
+        assert.are.equal("Press", ArrangeState.confirmKeyName("Press"))
+        assert.are.equal("Return", ArrangeState.confirmKeyName("Return"))
+        assert.are.equal("Press", ArrangeState.confirmKeyName(press))
+        assert.is_nil(ArrangeState.confirmKeyName(shifted_press))
+        assert.is_nil(ArrangeState.confirmKeyName("Down"))
+    end)
+
+    it("maps drag positions to visible rows and adjacent pages", function()
+        assert.are.equal(1, ArrangeState.dragTargetIndex(1, 4, 10, 100, 50, 125))
+        assert.are.equal(3, ArrangeState.dragTargetIndex(1, 4, 10, 100, 50, 225))
+        assert.are.equal(5, ArrangeState.dragTargetIndex(1, 4, 10, 100, 50, 325))
+        assert.are.equal(4, ArrangeState.dragTargetIndex(2, 4, 10, 100, 50, 75))
+        assert.are.equal(10, ArrangeState.dragTargetIndex(3, 4, 10, 100, 50, 225))
+        assert.is_nil(ArrangeState.dragTargetIndex(1, 4, 10, 100, 0, 125))
+    end)
+
+    it("recognizes only vertical page crossings", function()
+        assert.are.equal(-1, ArrangeState.dragPageDirection(90, 100, 300))
+        assert.are.equal(1, ArrangeState.dragPageDirection(300, 100, 300))
+        assert.are.equal(0, ArrangeState.dragPageDirection(150, 100, 300))
+        assert.are.equal(0, ArrangeState.dragPageDirection(nil, 100, 300))
+    end)
+
+    it("moves only table items to validated absolute positions", function()
+        local items = { { text = "One" }, { text = "Two" }, { text = "Three" } }
+        assert.is_true(ArrangeState.moveTableItem(items, 3, 1))
+        assert.are.equal("Three", items[1].text)
+        assert.are.equal("One", items[2].text)
+        assert.are.equal("Two", items[3].text)
+
+        local invalid = { { text = "One" }, 2 }
+        assert.is_false(ArrangeState.moveTableItem(invalid, 2, 1))
+        assert.are.equal(2, invalid[2])
+    end)
 end)

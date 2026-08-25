@@ -1,15 +1,25 @@
+local FontLanguage = require("common/font_language")
+local LibraryFontPath = require("common/library_font_path")
+local library_font_default = FontLanguage.supportsBundledFonts()
+    and LibraryFontPath.BUNDLED_DEFAULT or "default"
+
 local defaults = {
     _meta = {
         schema_version = 1,
         files_per_page_defaulted = false,
-        menu_activation_defaulted = false,
         screensaver_backup_created = false,
         footer_backup_created = false,
         quickstart_shown_for_version = false,
+        quickstart_completed = false,
+        quickstart_menu_tour_pending = false,
+        reader_defaults_apply_on_next_open = false,
         sort_defaults_applied = false,
         bim_fbc_migrated = false,
         reader_footer_hide_cbz_default_migrated = false,
         context_menu_allow_delete_default_migrated = false,
+        library_font_hyperreadable_default_migrated = false,
+        lookup_plugin_items_default_migrated = false,
+        tbr_collection_migrated = false,
     },
     updater = {
         just_updated_version = "",
@@ -20,6 +30,9 @@ local defaults = {
     },
     rakuyomi = {
         return_to_chapter_list_on_exit = false,
+    },
+    custom_icons = {
+        active_pack = "",
     },
     localization = {
         default_locale = "en",
@@ -44,7 +57,6 @@ local defaults = {
         zen_mode = true,
         status_bar = true,
         disable_top_menu_swipe_zones = true,
-        browser_folder_cover = true,
         browser_hide_underline = true,
         browser_hide_up_folder = true,
         favorites = true,
@@ -71,9 +83,16 @@ local defaults = {
         incognito_mode       = false,
         zen_opds             = true,
     },
+    search = {
+        substring = false,
+    },
+    developer = {
+        double_tap_to_open_books = false,
+    },
     navbar = {
         show_tabs = {
             books = true,
+            folder = false,
             manga = false,
             news = false,
             continue = true,
@@ -82,6 +101,7 @@ local defaults = {
             collections = false,
             authors = true,
             series = true,
+            languages = true,
             home = true,
             stats = false,
             exit = false,
@@ -89,7 +109,9 @@ local defaults = {
             page_right = false,
             menu = false,
         },
-        tab_order = { "books", "authors", "series", "home", "continue", "favorites" },
+        tab_order = {
+            "books", "authors", "series", "languages", "home", "continue", "favorites",
+        },
         show_icons = true,
         show_labels = true,
         icon_size = 34,
@@ -97,6 +119,9 @@ local defaults = {
         books_label = "Library",
         home_label = "Home",
         default_tab = "home",
+        folder_path = "",
+        folder_label = "",
+        folder_icon = "tab_folder",
         manga_action = "rakuyomi",
         manga_folder = "",
         news_action = "quickrss",
@@ -131,8 +156,11 @@ local defaults = {
             notion = false,
             streak = false,
             opds = false,
+            tailscale = false,
+            zenfm = false,
             filebrowser = false,
         },
+        show_labels = true,
         show_frontlight = true,
         show_warmth = true,
         flip_lh_rh_icon = false,
@@ -146,6 +174,7 @@ local defaults = {
         left_order   = { "time" },
         center_order = {},
         right_order  = { "wifi", "battery" },
+        date_format = "short",
         time_12h = true,
         show_bottom_border = false,
         colored = false,
@@ -180,13 +209,12 @@ local defaults = {
         show_page_count = false,
     },
     browser_folder_cover = {
-        cover_mode = "gallery",   -- "gallery" | "stack" | "normal" | "none"
+        cover_mode = "normal",   -- "gallery" | "stack" | "normal" | "none"
         show_folder_name = true,
         name_centered = false,    -- false = bottom placement
         name_opaque = false,      -- false = transparent bg
         show_spine_lines = false,
         show_item_count = true,
-        crop_to_fit = true,
     },
     browser_series_badge = {
         show_series_badge = false,
@@ -199,7 +227,7 @@ local defaults = {
         show_author = false,
     },
     library_font = {
-        font_face = "default",
+        font_face = library_font_default,
         font_size = 18,
     },
     zen_scroll_bar = {
@@ -229,13 +257,16 @@ local defaults = {
         custom = {},
     },
     reader_footer = {
-        verbose_chapter_time = false,
+        status_bar_enabled = true,
+        chapter_time_format = "number",
         hide_in_cbz = true,
     },
     highlight_lookup = {
         allow_unknown_items = false,
         show_wikipedia      = false,
-        show_ai_assistant   = false,
+        show_xray           = true,
+        show_koassistant    = true,
+        show_ai_assistant   = true,
     },
     dict_quick_lookup = {},
 
@@ -252,6 +283,7 @@ local defaults = {
         night_h     = 20,
         night_m     = 0,
         night_value = 8,
+        use_mode_values = false,
     },
     brightness_schedule = {
         day_h       = 7,
@@ -260,18 +292,21 @@ local defaults = {
         night_h     = 20,
         night_m     = 0,
         night_value = 5,
+        use_mode_values = false,
     },
     group_view = {
         include_new_in_tbr = false,
         display_mode = {
             authors = "list_image_meta",
             series = "list_image_meta",
+            languages = "list_image_meta",
             tags = "list_image_meta",
             to_be_read = "list_image_meta",
         },
         group_reverse = {
             authors = false,
             series = false,
+            languages = false,
         },
         tags_global = {
             collate = "title",
@@ -280,18 +315,17 @@ local defaults = {
         detail_collate = {
             authors = {},
             series = {},
+            languages = {},
             tags = {},
             to_be_read = {},
         },
         detail_reverse = {
             authors = {},
             series = {},
+            languages = {},
             tags = {},
             to_be_read = {},
         },
-    },
-    reader_page_browser = {
-        layout = "grid",
     },
     lockdown = {
         disable_context_menu      = false,
@@ -301,6 +335,9 @@ local defaults = {
         require_hold_in_qs        = false,
         disable_settings_panel    = false,
         magnify_ui                = false,
+    },
+    incognito = {
+        timeout_minutes = 0,
     },
 }
 

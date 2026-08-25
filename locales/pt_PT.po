@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: zen-ui 0.1.0\n"
+"Project-Id-Version: zenos 3.0.0\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -12,8 +12,26 @@ msgstr " dias"
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
 
-msgid "%1 mins left in chapter"
+msgid "%1 min left"
+msgstr "%1 min restantes"
+
+msgid "%1 min left in chapter"
 msgstr "%1 min restantes no capítulo"
+
+msgid "%1h"
+msgstr "%1 h"
+
+msgid "%1h %2m"
+msgstr "%1 h %2 min"
+
+msgid "%1m"
+msgstr "%1 min"
+
+msgid "< %1m"
+msgstr "< %1 min"
+
+msgid "%1, %2 %3"
+msgstr "%1, %3 de %2"
 
 msgid "%d%% Read"
 msgstr "%d%% lido"
@@ -54,8 +72,8 @@ msgstr "1 autor"
 msgid "1 book"
 msgstr "1 livro"
 
-msgid "1 min left in chapter"
-msgstr "1 min restante no capítulo"
+msgid "1 language"
+msgstr "1 idioma"
 
 msgid "1 series"
 msgstr "1 série"
@@ -81,11 +99,11 @@ msgstr "270°"
 msgid "90°"
 msgstr "90°"
 
-msgid "< 1 min left in chapter"
-msgstr "< 1 min restante no capítulo"
+msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
+msgstr "Uma experiência limpa e mínima para o seu e-reader.\n\nDeslize ou toque em Seguinte para continuar."
 
-msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
-msgstr "Uma interface mínima, limpa e simples para o seu e-reader.\n\nDeslize ou toque em Seguinte para continuar."
+msgid "A launcher button has been added for ZenPM."
+msgstr "Foi adicionado um botão de arranque para o ZenPM."
 
 msgid "A short summary of what went wrong"
 msgstr "Um breve resumo do que correu mal"
@@ -120,6 +138,9 @@ msgstr "Adicionar"
 msgid "Add action"
 msgstr "Adicionar ação"
 
+msgid "Add at least one quote to settings/ZenOS/quotes.lua to enable this source."
+msgstr "Adicione pelo menos uma citação a settings/ZenOS/quotes. lua para ativar esta fonte."
+
 msgid "Add book"
 msgstr "Adicionar livro"
 
@@ -137,6 +158,9 @@ msgstr "Adicione botões personalizados para outros plugins ou ações."
 
 msgid "Add folder…"
 msgstr "Adicionar pasta…"
+
+msgid "Add KOReader menu"
+msgstr "Adicionar menu do KOReader"
 
 msgid "Add plugin"
 msgstr "Adicionar plugin"
@@ -159,17 +183,17 @@ msgstr "Alexandre Dumas"
 msgid "All"
 msgstr "Todos"
 
-msgid "All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall Zen UI updates directly from your device."
-msgstr "Todas as definições estão num separador unificado. Este ícone com o ponto indica que há uma atualização disponível.\n\nInstale as atualizações do Zen UI diretamente a partir do seu dispositivo."
+msgid "All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall ZenOS updates directly from your device."
+msgstr "Todas as definições estão num separador unificado. Este ícone com o ponto indica que há uma atualização disponível.\n\nInstale as atualizações do ZenOS diretamente a partir do seu dispositivo."
 
-msgid "All Time"
-msgstr "Todo o tempo"
+msgid "All tags"
+msgstr "Todas as etiquetas"
 
 msgid "All time"
 msgstr "Todo o tempo"
 
-msgid "Allow custom icons"
-msgstr "Permitir ícones personalizados"
+msgid "All Time"
+msgstr "Todo o tempo"
 
 msgid "Allow delete"
 msgstr "Permitir eliminação"
@@ -180,6 +204,9 @@ msgstr "Âmbar"
 msgid "An item with that name already exists."
 msgstr "Já existe um item com esse nome."
 
+msgid "Annotations"
+msgstr "Anotações"
+
 msgid "App"
 msgstr "Aplicação"
 
@@ -188,6 +215,9 @@ msgstr "Aplicar"
 
 msgid "Are you sure you want to exit KOReader?"
 msgstr "Tem a certeza de que quer sair do KOReader?"
+
+msgid "Are you sure you want to install the ZenPM plugin?"
+msgstr "Tem a certeza de que pretende instalar o plugin ZenPM?"
 
 msgid "Are you sure you want to quit KOReader?"
 msgstr "Tem a certeza de que quer fechar o KOReader?"
@@ -222,6 +252,12 @@ msgstr "Autores"
 msgid "authors"
 msgstr "autores"
 
+msgid "Automatic"
+msgstr "Automático"
+
+msgid "Automatic font size"
+msgstr "Tamanho de letra automático"
+
 msgid "Automatic suspend"
 msgstr "Suspensão automática"
 
@@ -230,6 +266,9 @@ msgstr "Voltar"
 
 msgid "Background"
 msgstr "Fundo"
+
+msgid "Background color"
+msgstr "Cor de fundo"
 
 msgid "Background image could not be loaded. It may be corrupt or unsupported."
 msgstr "Não foi possível carregar a imagem de fundo. Pode estar danificada ou não ser suportada."
@@ -285,17 +324,14 @@ msgstr "Azul"
 msgid "Bluetooth"
 msgstr "Bluetooth"
 
-msgid "bold"
-msgstr "negrito"
-
 msgid "Bold"
 msgstr "Negrito"
 
+msgid "bold"
+msgstr "negrito"
+
 msgid "Bold text"
 msgstr "Texto a negrito"
-
-msgid "book"
-msgstr "livro"
 
 msgid "Book"
 msgstr "Livro"
@@ -303,11 +339,20 @@ msgstr "Livro"
 msgid "Book added to download list"
 msgstr "Livro adicionado à lista de transferências"
 
+msgid "Book details"
+msgstr "Detalhes do livro"
+
 msgid "Book information"
 msgstr "Informações do livro"
 
 msgid "Book Status"
 msgstr "Estado do livro"
+
+msgid "Book strip"
+msgstr "Faixa de livros"
+
+msgid "Book switcher"
+msgstr "Seletor de livros"
 
 msgid "Book title"
 msgstr "Título do livro"
@@ -318,20 +363,14 @@ msgstr "Título do livro"
 msgid "Book: "
 msgstr "Livro: "
 
-msgid "Books"
-msgstr "Livros"
-
 msgid "books"
 msgstr "livros"
 
+msgid "Books"
+msgstr "Livros"
+
 msgid "Books read"
 msgstr "Livros lidos"
-
-msgid "Books shown"
-msgstr "Livros mostrados"
-
-msgid "Books shown: "
-msgstr "Livros mostrados: "
 
 msgid "Books tab label"
 msgstr "Rótulo do separador Livros"
@@ -348,9 +387,6 @@ msgstr "Descrição breve do erro"
 msgid "Brightness"
 msgstr "Brilho"
 
-msgid "Brightness schedule"
-msgstr "Programação de brilho"
-
 msgid "Bug description (optional)"
 msgstr "Descrição do erro (opcional)"
 
@@ -362,6 +398,9 @@ msgstr "Título do relatório de erro"
 
 msgid "Buttons"
 msgstr "Botões"
+
+msgid "By %1"
+msgstr "Por %1"
 
 msgid "Calendar"
 msgstr "Calendário"
@@ -393,9 +432,6 @@ msgstr "Centrar livros"
 msgid "Center items"
 msgstr "Itens centrais"
 
-msgid "Centered Pages"
-msgstr "Páginas centradas"
-
 msgid "Change folder"
 msgstr "Mudar pasta"
 
@@ -404,12 +440,6 @@ msgstr "Registo de alterações"
 
 msgid "Chapter"
 msgstr "Capítulo"
-
-msgid "Chapter Time + %"
-msgstr "Tempo de capítulo + %"
-
-msgid "Update Zen UI"
-msgstr "Atualizar Zen UI"
 
 msgid "Check for updates automatically"
 msgstr "Procurar atualizações automaticamente"
@@ -423,20 +453,23 @@ msgstr "Xadrez"
 msgid "Choose a different folder"
 msgstr "Escolher outra pasta"
 
-msgid "Choose a preset for your reading progress bar."
-msgstr "Escolha uma predefinição para a sua barra de progresso de leitura."
-
 msgid "Choose control"
 msgstr "Escolha o comando"
 
 msgid "Choose item"
 msgstr "Escolher item"
 
+msgid "Choose KOReader menu"
+msgstr "Escolher menu do KOReader"
+
 msgid "Choose plugin menu"
 msgstr "Escolher menu do plugin"
 
 msgid "Choose tab"
 msgstr "Escolha o separador"
+
+msgid "Choose tag"
+msgstr "Escolher etiqueta"
 
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 msgstr "Escolha quais separadores aparecem na sua barra de navegação.\nPode reorganizá-los ou ajustá-los a qualquer momento em Definições."
@@ -455,9 +488,6 @@ msgstr "Limpar todos os gestos"
 
 msgid "Clear book"
 msgstr "Limpar livro"
-
-msgid "Clear books"
-msgstr "Limpar livros"
 
 msgid "Close"
 msgstr "Fechar"
@@ -489,6 +519,9 @@ msgstr "Ligar pastas"
 msgid "Connections"
 msgstr "Ligações"
 
+msgid "Content: "
+msgstr "Conteúdo: "
+
 msgid "Context Menu"
 msgstr "Menu de contexto"
 
@@ -513,8 +546,17 @@ msgstr "Copiar"
 msgid "Could not determine update status."
 msgstr "Não foi possível determinar o estado da atualização."
 
+msgid "Could not find a ZenPM release."
+msgstr "Não foi possível encontrar uma versão do ZenPM."
+
 msgid "Could not get release from update server."
 msgstr "Não foi possível obter a versão do servidor de atualizações."
+
+msgid "Could not install %1: %2"
+msgstr "Não foi possível instalar %1: %2"
+
+msgid "Could not install ZenPM."
+msgstr "Não foi possível instalar o ZenPM."
 
 msgid "Could not reach update server."
 msgstr "Não foi possível contactar o servidor de atualizações."
@@ -546,10 +588,10 @@ msgstr "Palavras cruzadas"
 msgid "Current / total pages"
 msgstr "Página atual / total de páginas"
 
-msgid "Current Book"
+msgid "Current book"
 msgstr "Livro atual"
 
-msgid "Current book"
+msgid "Current Book"
 msgstr "Livro atual"
 
 msgid "Current home folder:"
@@ -564,11 +606,20 @@ msgstr "Páginas atuais/totais"
 msgid "Custom"
 msgstr "Personalizado"
 
+msgid "Custom books"
+msgstr "Livros personalizados"
+
 msgid "Custom button label"
 msgstr "Rótulo do botão personalizado"
 
-msgid "Custom featured widget"
-msgstr "Widget destacado personalizado"
+msgid "Custom icon pack: %1"
+msgstr "Pacote de ícones personalizado: %1"
+
+msgid "Custom icons"
+msgstr "Ícones personalizados"
+
+msgid "Custom quotes"
+msgstr "Cotações personalizadas"
 
 msgid "Custom RGB"
 msgstr "RGB personalizado"
@@ -588,11 +639,14 @@ msgstr "Texto personalizado"
 msgid "Custom text: "
 msgstr "Texto personalizado: "
 
+msgid "Custom theme"
+msgstr "Tema personalizado"
+
+msgid "Custom themes"
+msgstr "Temas personalizados"
+
 msgid "Custom: "
 msgstr "Personalizado: "
-
-msgid "Customizable top status bar and bottom progress bar."
-msgstr "Barra de estado superior e barra de progresso inferior personalizáveis."
 
 msgid "Customize widget"
 msgstr "Personalizar widget"
@@ -606,8 +660,20 @@ msgstr "Alternar"
 msgid "Daily"
 msgstr "Diariamente"
 
+msgid "Dark graphite"
+msgstr "Grafite escuro"
+
+msgid "Dark mode"
+msgstr "Modo escuro"
+
+msgid "Dark warm gray"
+msgstr "Cinzento quente escuro"
+
 msgid "Date"
 msgstr "Data"
+
+msgid "Date/time"
+msgstr "Data/hora"
 
 msgid "Day brightness"
 msgstr "Brilho diurno"
@@ -642,17 +708,20 @@ msgstr "Registo de depuração"
 msgid "Debug logging must be enabled to submit bug reports."
 msgstr "O registo de depuração deve estar ativado para enviar relatórios."
 
-msgid "Default"
-msgstr "Predefinido"
-
 msgid "default"
 msgstr "predefinido"
+
+msgid "Default"
+msgstr "Predefinido"
 
 msgid "Default (black)"
 msgstr "Predefinido (preto)"
 
 msgid "Default font size:"
 msgstr "Tamanho de letra padrão:"
+
+msgid "Default quotes"
+msgstr "Cotações padrão"
 
 msgid "Default tab: "
 msgstr "Separador predefinido: "
@@ -672,11 +741,17 @@ msgstr "Apagar catálogo OPDS?"
 msgid "Delete preset?"
 msgstr "Apagar predefinição?"
 
+msgid "Delete theme"
+msgstr "Eliminar tema"
+
 msgid "Delete this button?"
 msgstr "Eliminar este botão?"
 
 msgid "Delete this control?"
 msgstr "Apagar este controlo?"
+
+msgid "Delete this custom theme?"
+msgstr "Eliminar este tema personalizado?"
 
 msgid "Delete this folder and its buttons?"
 msgstr "Eliminar esta pasta e os seus botões?"
@@ -735,6 +810,9 @@ msgstr "Desativar pesquisa de palavra ao manter premido"
 msgid "Disable zen mode to access default KOReader menus."
 msgstr "Desative o modo zen para aceder aos menus predefinidos do KOReader."
 
+msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
+msgstr "Desative o modo Zen com este ícone para ajustar definições do KOReader que não estão disponíveis nas Definições Zen."
+
 msgid "Disk space"
 msgstr "Espaço em disco"
 
@@ -759,6 +837,9 @@ msgstr "Pontos"
 msgid "Download"
 msgstr "Transferir"
 
+msgid "Download and install the Zen Package Manager for this device."
+msgstr "Transfira e instale o Zen Package Manager para este dispositivo."
+
 msgid "Download failed: "
 msgstr "Falha na transferência: "
 
@@ -768,11 +849,17 @@ msgstr "Transferido"
 msgid "Downloading"
 msgstr "A transferir"
 
+msgid "Downloading ZenPM"
+msgstr "A transferir ZenPM"
+
 msgid "Dynamic filler 2"
 msgstr "Preenchimento dinâmico 2"
 
 msgid "Edit"
 msgstr "Editar"
+
+msgid "Edit mode"
+msgstr "Modo de edição"
 
 msgid "Enable"
 msgstr "Ativar"
@@ -786,6 +873,9 @@ msgstr "Ativar deslize inferior"
 msgid "Enable brightness schedule"
 msgstr "Ativar programação de brilho"
 
+msgid "Enable custom icons"
+msgstr "Ativar ícones personalizados"
+
 msgid "Enable custom status bar"
 msgstr "Ativar barra de estado personalizada"
 
@@ -795,8 +885,8 @@ msgstr "Ativar registo detalhado de depuração do KOReader. Os registos são gu
 msgid "Enable night mode schedule"
 msgstr "Ativar programação do modo noturno"
 
-msgid "Enable page browser"
-msgstr "Ativar navegador de páginas"
+msgid "Enable reader themes"
+msgstr "Ativar temas de leitura"
 
 msgid "Enable top status bar"
 msgstr "Ativar barra de estado superior"
@@ -807,8 +897,8 @@ msgstr "Ativar programação de tonalidade quente"
 msgid "Enable Zen OPDS"
 msgstr "Ativar o Zen OPDS"
 
-msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
-msgstr "Ativar melhorias do Zen UI no navegador OPDS: arte de capa, visualização em lista, menu de pressão e melhorias de navegação."
+msgid "Enable ZenOS enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
+msgstr "Ativar melhorias do ZenOS no navegador OPDS: arte de capa, visualização em lista, menu de pressão e melhorias de navegação."
 
 msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
 msgstr "A ativar o registo de depuração, é necessário reiniciar. Reproduza o problema e envie o relatório."
@@ -829,7 +919,7 @@ msgid "Extract metadata"
 msgstr "Extrair metadados"
 
 msgid "Extras"
-msgstr "Extras"
+msgstr "Adicionais"
 
 msgid "Failed to submit report: "
 msgstr "Falha ao enviar o relatório: "
@@ -837,8 +927,14 @@ msgstr "Falha ao enviar o relatório: "
 msgid "Favorites"
 msgstr "Favoritos"
 
+msgid "Featured book"
+msgstr "Livro em destaque"
+
 msgid "Featured widgets"
 msgstr "Widgets destacados"
+
+msgid "File browser settings"
+msgstr "Definições do navegador de ficheiros"
 
 msgid "File search"
 msgstr "Pesquisa de ficheiros"
@@ -849,14 +945,17 @@ msgstr "Gestor de ficheiros"
 msgid "Filebrowser plugin is not installed."
 msgstr "O plugin Filebrowser não está instalado."
 
+msgid "Filename"
+msgstr "Nome do ficheiro"
+
+msgid "Filename:"
+msgstr "Nome do ficheiro:"
+
 msgid "Filter"
 msgstr "Filtrar"
 
 msgid "Filter by status"
 msgstr "Filtrar por estado"
-
-msgid "Finish"
-msgstr "Terminar"
 
 msgid "Finished"
 msgstr "Concluído"
@@ -891,11 +990,11 @@ msgstr "Predefinições de pasta"
 msgid "Folders"
 msgstr "Pastas"
 
-msgid "Font"
-msgstr "Tipo de letra"
-
 msgid "font"
 msgstr "tipo de letra"
+
+msgid "Font"
+msgstr "Tipo de letra"
 
 msgid "font size"
 msgstr "tamanho do tipo de letra"
@@ -906,6 +1005,9 @@ msgstr "Tamanho do tipo de letra"
 msgid "Font size:"
 msgstr "Tamanho do tipo de letra:"
 
+msgid "Font, margins, contrast, line spacing etc - tested together for the best reading experience"
+msgstr "Tipo de letra, margens, contraste, espaçamento entre linhas, etc. - testados em conjunto para a melhor experiência de leitura"
+
 msgid "Font:"
 msgstr "Tipo de letra:"
 
@@ -915,6 +1017,9 @@ msgstr "Forçar sincronização"
 msgid "Force sync all catalogs"
 msgstr "Forçar sincronização de todos os catálogos"
 
+msgid "Format:"
+msgstr "Formatar:"
+
 msgid "Format: R,G,B (0-255)"
 msgstr "Formato: R,G,B (0-255)"
 
@@ -923,9 +1028,6 @@ msgstr "Iluminação frontal"
 
 msgid "Gallery"
 msgstr "Galeria"
-
-msgid "Gallery view (4-grid)"
-msgstr "Vista de galeria (grelha 4)"
 
 msgid "Get Started"
 msgstr "Começar"
@@ -963,17 +1065,20 @@ msgstr "Giroscópio"
 msgid "Hide finished books"
 msgstr "Ocultar livros terminados"
 
+msgid "Hide grouped series"
+msgstr "Ocultar séries agrupadas"
+
 msgid "Hide in CBZ/PDF files"
 msgstr "Ocultar em ficheiros CBZ/PDF"
 
 msgid "Hide list borders"
 msgstr "Ocultar bordas da lista"
 
+msgid "Hide on-hold books"
+msgstr "Ocultar livros em espera"
+
 msgid "Hide reader actions in library"
 msgstr "Ocultar ações de leitura na biblioteca"
-
-msgid "Hide TBR books"
-msgstr "Ocultar livros por ler"
 
 msgid "Hide unread books"
 msgstr "Ocultar livros não lidos"
@@ -987,17 +1092,11 @@ msgstr "Realçar / Consultar"
 msgid "History"
 msgstr "Histórico"
 
-msgid "Hold to arrange"
-msgstr "Manter premido para organizar"
-
 msgid "Hold to skip"
 msgstr "Manter premido para saltar"
 
 msgid "Home"
 msgstr "Início"
-
-msgid "Home default font size"
-msgstr "Tamanho predefinido da letra do Início"
 
 msgid "Home Folder"
 msgstr "Pasta inicial"
@@ -1007,6 +1106,9 @@ msgstr "Pasta inicial"
 
 msgid "Home page preset"
 msgstr "Predefinição da página inicial"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "O espaçamento do ecrã inicial foi atualizado. A ordem e a seleção de widgets guardadas foram mantidas e ajustadas à nova grelha."
 
 msgid "Home tab label"
 msgstr "Etiqueta do separador Início"
@@ -1026,9 +1128,6 @@ msgstr "Ícones"
 msgid "Image support is unavailable on this device."
 msgstr "O suporte de imagens não está disponível neste dispositivo."
 
-msgid "IP address: %1"
-msgstr "Endereço IP: %1"
-
 msgid "Image: "
 msgstr "Imagem: "
 
@@ -1047,8 +1146,20 @@ msgstr "Modo incógnito desativado"
 msgid "Incognito mode enabled"
 msgstr "Modo incógnito ativado"
 
+msgid "Incognito mode timed out"
+msgstr "O modo incógnito expirou"
+
+msgid "Incompatible plugins and patches have been disabled:"
+msgstr "Os plugins e patches incompatíveis foram desativados:"
+
 msgid "Incompatible plugins have been disabled:"
 msgstr "Plugins incompatíveis foram desativados:"
+
+msgid "Install"
+msgstr "Instalar"
+
+msgid "Install ZenPM"
+msgstr "Instalar ZenPM"
 
 msgid "Installed version is newer than the latest release."
 msgstr "A versão instalada é mais recente do que a última versão."
@@ -1056,17 +1167,29 @@ msgstr "A versão instalada é mais recente do que a última versão."
 msgid "Installing"
 msgstr "A instalar"
 
+msgid "Installing ZenPM"
+msgstr "A instalar ZenPM"
+
 msgid "Interactive"
 msgstr "Interativo"
 
-msgid "Items per page"
-msgstr "Itens por página"
+msgid "IP address: %1"
+msgstr "Endereço IP: %1"
 
 msgid "items per page"
 msgstr "itens por página"
 
+msgid "Items per page"
+msgstr "Itens por página"
+
 msgid "Keep existing settings"
 msgstr "Manter definições atuais"
+
+msgid "KOReader menu"
+msgstr "Menu do KOReader"
+
+msgid "KOReader menu: %1"
+msgstr "Menu do KOReader: %1"
 
 msgid "KOReader: "
 msgstr "KOReader: "
@@ -1091,6 +1214,12 @@ msgstr "Modo mosaico horizontal"
 
 msgid "Landscape mosaic: "
 msgstr "Mosaico horizontal: "
+
+msgid "Languages"
+msgstr "Idiomas"
+
+msgid "languages"
+msgstr "idiomas"
 
 msgid "Large"
 msgstr "Grande"
@@ -1125,6 +1254,9 @@ msgstr "Itens à esquerda"
 msgid "Library"
 msgstr "Biblioteca"
 
+msgid "Library background was disabled because the image file was not found."
+msgstr "O fundo da biblioteca foi desativado porque o ficheiro de imagem não foi encontrado."
+
 msgid "Library font"
 msgstr "Tipo de letra da biblioteca"
 
@@ -1136,6 +1268,15 @@ msgstr "Visualização de biblioteca"
 
 msgid "Light"
 msgstr "Claro"
+
+msgid "Light mode"
+msgstr "Modo claro"
+
+msgid "Light sepia"
+msgstr "Sépia claro"
+
+msgid "Light tan"
+msgstr "Bege claro"
 
 msgid "List"
 msgstr "Lista"
@@ -1170,8 +1311,17 @@ msgstr "Bloqueio"
 msgid "Lockdown mode"
 msgstr "Modo de bloqueio"
 
+msgid "Loose icons"
+msgstr "Ícones avulsos"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Ícones avulsos em /koreader/icons"
+
 msgid "Magnify UI"
 msgstr "Ampliar interface"
+
+msgid "Main menu"
+msgstr "Menu principal"
 
 msgid "Manga"
 msgstr "Mangá"
@@ -1179,17 +1329,29 @@ msgstr "Mangá"
 msgid "Manga folder not found: "
 msgstr "Pasta de mangá não encontrada: "
 
+msgid "Manually download and sideload %1 from the same ZenPM release."
+msgstr "Transfira e instale manualmente %1 a partir da mesma versão do ZenPM."
+
 msgid "Match whole words"
 msgstr "Corresponder palavras inteiras"
 
-msgid "Maximum 5 widgets allowed"
-msgstr "Máximo de 5 widgets permitidos"
+msgid "Max books shown"
+msgstr "Máximo de livros mostrados"
+
+msgid "Max books shown: "
+msgstr "Máximo de livros mostrados: "
 
 msgid "Maximum 7 tabs allowed"
 msgstr "Máximo de 7 separadores permitidos"
 
 msgid "Maximum 9 buttons allowed"
 msgstr "Máximo de 9 botões permitidos"
+
+msgid "Maximum font size:"
+msgstr "Tamanho máximo da letra:"
+
+msgid "Maximum quote font size"
+msgstr "Tamanho máximo da fonte da cotação"
 
 msgid "Menu"
 msgstr "Menu"
@@ -1209,6 +1371,9 @@ msgstr "Minutos"
 msgid "minutes"
 msgstr "minutos"
 
+msgid "Missing: %1"
+msgstr "Em falta: %1"
+
 msgid "Monthly"
 msgstr "Mensal"
 
@@ -1220,9 +1385,6 @@ msgstr "Mosaico"
 
 msgid "Mosaic - large cover thumbnails"
 msgstr "Mosaico — miniaturas grandes de capas"
-
-msgid "Mosaic and detailed list settings"
-msgstr "Definições de mosaico e lista detalhada"
 
 msgid "Mosaic with cover images"
 msgstr "Mosaico com capas"
@@ -1257,6 +1419,9 @@ msgstr "Tamanho da etiqueta da barra de navegação"
 msgid "Navbar Tabs"
 msgstr "Separadores de navegação"
 
+msgid "Navigation"
+msgstr "Navegação"
+
 msgid "Network unavailable."
 msgstr "Rede indisponível."
 
@@ -1266,11 +1431,17 @@ msgstr "Novo"
 msgid "New collection"
 msgstr "Nova coleção"
 
+msgid "New custom theme"
+msgstr "Novo tema personalizado"
+
 msgid "New folder"
 msgstr "Nova pasta"
 
 msgid "New includes unread books and books modified since they were last opened."
 msgstr "Novo inclui livros não lidos e livros modificados desde a última vez que foram abertos."
+
+msgid "New quote"
+msgstr "Nova cotação"
 
 msgid "News"
 msgstr "Notícias"
@@ -1335,8 +1506,17 @@ msgstr "Nenhuma imagem de fundo selecionada."
 msgid "No books found"
 msgstr "Nenhum livro encontrado"
 
+msgid "No books found in the selected folder"
+msgstr "Nenhum livro encontrado na pasta selecionada"
+
+msgid "No books to switch to"
+msgstr "Não há livros para mudar"
+
 msgid "No books with author metadata found"
 msgstr "Nenhum livro com metadados do autor encontrado"
+
+msgid "No books with language metadata found"
+msgstr "Nenhum livro com metadados de idioma encontrado"
 
 msgid "No books with series metadata found"
 msgstr "Nenhum livro com metadados de série encontrado"
@@ -1353,11 +1533,17 @@ msgstr "Nenhum registo de alterações fornecido."
 msgid "No description."
 msgstr "Sem descrição."
 
+msgid "No KOReader submenus found"
+msgstr "Nenhum submenu do KOReader encontrado"
+
 msgid "No launchable plugin menus found"
 msgstr "Não foram encontrados menus de plugin lançáveis"
 
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Sem ligação de rede. Ligue-se ao Wi-Fi e tente novamente."
+
+msgid "No quote available."
+msgstr "Nenhuma citação disponível."
 
 msgid "No reader engine for this file or invalid file."
 msgstr "Nenhum motor de leitura para este ficheiro ou ficheiro inválido."
@@ -1368,8 +1554,17 @@ msgstr "Sem dados de leitura"
 msgid "No table of contents available."
 msgstr "Nenhum índice disponível."
 
+msgid "No tags found"
+msgstr "Nenhuma etiqueta encontrada"
+
+msgid "No TBR books found"
+msgstr "Nenhum livro TBR encontrado"
+
 msgid "No update asset found."
 msgstr "Nenhum ficheiro de atualização encontrado."
+
+msgid "No ZenPM package is available for this device."
+msgstr "Não está disponível nenhum pacote ZenPM para este dispositivo."
 
 msgid "None"
 msgstr "Nenhum"
@@ -1379,6 +1574,9 @@ msgstr "Nenhum (apenas nome da pasta)"
 
 msgid "Normal"
 msgstr "Normal"
+
+msgid "Not enough Home space: %1/%2 units used; this widget needs %3."
+msgstr "Espaço insuficiente na casa: unidades %1/%2 usadas; este widget necessita de %3."
 
 msgid "Nothing"
 msgstr "Nada"
@@ -1398,14 +1596,26 @@ msgstr "OK"
 msgid "On"
 msgstr "Ativado"
 
+msgid "On hold"
+msgstr "Em espera"
+
+msgid "On Home refresh"
+msgstr "Na atualização inicial"
+
 msgid "Only in Zen mode"
 msgstr "Apenas no modo Zen"
+
+msgid "Only show while reading"
+msgstr "Mostrar apenas durante a leitura"
 
 msgid "Opaque background"
 msgstr "Fundo opaco"
 
 msgid "OPDS"
 msgstr "OPDS"
+
+msgid "Open"
+msgstr "Aberto"
 
 msgid "Open folder"
 msgstr "Abrir pasta"
@@ -1425,6 +1635,12 @@ msgstr "Abrir Rakuyomi"
 msgid "Open RSS Reader"
 msgstr "Abrir leitor RSS"
 
+msgid "Open this file?"
+msgstr "Abrir este ficheiro?"
+
+msgid "Open with…"
+msgstr "Abra com…"
+
 msgid "Opening"
 msgstr "A abrir"
 
@@ -1436,6 +1652,9 @@ msgstr "Delimitar"
 
 msgid "Outlined boxes"
 msgstr "Caixas contornadas"
+
+msgid "p."
+msgstr "p."
 
 msgid "Page %1 of %2"
 msgstr "Página %1 de %2"
@@ -1461,12 +1680,6 @@ msgstr "págs."
 msgid "Pages"
 msgstr "Páginas"
 
-msgid "Pages + Chapter Time + %"
-msgstr "Páginas + Tempo de capítulo + %"
-
-msgid "Pages and %"
-msgstr "Páginas e %"
-
 msgid "Pages read"
 msgstr "Páginas lidas"
 
@@ -1485,14 +1698,20 @@ msgstr "Atualização de páginas parciais"
 msgid "Paste"
 msgstr "Colar"
 
+msgid "Paste selected files"
+msgstr "Colar os ficheiros selecionados"
+
 msgid "Percent"
 msgstr "Percentagem"
+
+msgid "Personal records"
+msgstr "Registos pessoais"
 
 msgid "Personal Records"
 msgstr "Recordes pessoais"
 
-msgid "Personal records"
-msgstr "Registos pessoais"
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Coloque pastas de pacotes ou ficheiros ZIP em /koreader/icons/zen. Os ficheiros ZIP são instalados automaticamente."
 
 msgid "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
 msgstr "Por favor, elimine o plugin Project: Title da sua pasta de plugins e reinicie o KOReader."
@@ -1502,6 +1721,9 @@ msgstr "Plugin"
 
 msgid "Plugin management"
 msgstr "Gestão de plugins"
+
+msgid "Plugin Menu"
+msgstr "Menu de plug-ins"
 
 msgid "Plugin: %1"
 msgstr "Plugin: %1"
@@ -1539,8 +1761,8 @@ msgstr "Barra de progresso"
 msgid "Progress labels"
 msgstr "Etiquetas de progresso"
 
-msgid "Project: Title is not compatible with Zen UI."
-msgstr "Project: Title não é compatível com o Zen UI."
+msgid "Project: Title is not compatible with ZenOS."
+msgstr "Project: Title não é compatível com o ZenOS."
 
 msgid "Puzzle"
 msgstr "Puzzle"
@@ -1566,8 +1788,14 @@ msgstr "Fechar KOReader"
 msgid "Quote font size"
 msgstr "Citação do tamanho da letra"
 
-msgid "Quotes widget"
-msgstr "Widget de citações"
+msgid "Quote sources"
+msgstr "Fontes de cotação"
+
+msgid "Quotes"
+msgstr "Citações"
+
+msgid "quotes.lua is empty"
+msgstr "quotes.lua está vazio"
 
 msgid "Rakuyomi"
 msgstr "Rakuyomi"
@@ -1593,11 +1821,14 @@ msgstr "Tempo de leitura"
 msgid "Read today"
 msgstr "Lido hoje"
 
+msgid "Read: %s"
+msgstr "Leitura: %s"
+
 msgid "Reader"
 msgstr "Leitor"
 
-msgid "Reader Progress"
-msgstr "Progresso de leitura"
+msgid "Reader themes"
+msgstr "Temas de leitura"
 
 msgid "Reading"
 msgstr "A ler"
@@ -1611,23 +1842,26 @@ msgstr "Calendário de leitura"
 msgid "Reading goals"
 msgstr "Objetivos de leitura"
 
-msgid "Reading stats widget"
-msgstr "Widget de estatísticas de leitura"
+msgid "Reading goals font size"
+msgstr "Tamanho da letra das metas de leitura"
 
-msgid "Reading Trend"
-msgstr "Tendência de leitura"
+msgid "Reading stats"
+msgstr "Estatísticas de leitura"
 
 msgid "Reading trend"
 msgstr "Tendência de leitura"
 
-msgid "Rebooting"
-msgstr "A reiniciar"
+msgid "Reading Trend"
+msgstr "Tendência de leitura"
+
+msgid "Recent"
+msgstr "Recentes"
+
+msgid "Recent filters"
+msgstr "Filtros de recentes"
 
 msgid "Recently read"
 msgstr "Lido recentemente"
-
-msgid "Recently read featured widget"
-msgstr "Widget destacado de lidos recentemente"
 
 msgid "Recently read strip widget"
 msgstr "Widget de faixa de lidos recentemente"
@@ -1646,6 +1880,9 @@ msgstr "normal"
 
 msgid "Release metadata is invalid or incomplete."
 msgstr "Os metadados da versão são inválidos ou incompletos."
+
+msgid "Remaining: %s"
+msgstr "Restante: %s"
 
 msgid "Remove"
 msgstr "Remover"
@@ -1674,6 +1911,9 @@ msgstr "Renomear"
 msgid "Report a Bug"
 msgstr "Reportar um erro"
 
+msgid "Require double tap to open books"
+msgstr "Exigir toque duplo para abrir livros"
+
 msgid "Require hold to toggle buttons"
 msgstr "Requer pressão longa para alternar botões"
 
@@ -1698,8 +1938,14 @@ msgstr "Reiniciar"
 msgid "Restart Book"
 msgstr "Reiniciar livro"
 
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Reinicie o KOReader para aplicar o pacote ativo atualizado"
+
 msgid "Restart now"
 msgstr "Reiniciar agora"
+
+msgid "Restarting"
+msgstr "A reiniciar"
 
 msgid "Restore library location on exit"
 msgstr "Restaurar localização da biblioteca ao sair"
@@ -1709,9 +1955,6 @@ msgstr "Retomar da página"
 
 msgid "Return to chapter list on exit"
 msgstr "Voltar à lista de capítulos ao sair"
-
-msgid "Reverse"
-msgstr "Inverter"
 
 msgid "Review"
 msgstr "Crítica"
@@ -1779,6 +2022,9 @@ msgstr "Pesquisar na biblioteca"
 msgid "Search results"
 msgstr "Resultados da pesquisa"
 
+msgid "Search settings"
+msgstr "Pesquisar nas definições"
+
 msgid "Select"
 msgstr "Selecionar"
 
@@ -1794,11 +2040,11 @@ msgstr "Separador"
 msgid "Separator: "
 msgstr "Separador: "
 
-msgid "Series"
-msgstr "Série"
-
 msgid "series"
 msgstr "séries"
+
+msgid "Series"
+msgstr "Série"
 
 msgid "Series number"
 msgstr "Número da série"
@@ -1869,6 +2115,9 @@ msgstr "Mostrar margem inferior"
 msgid "Show brightness slider"
 msgstr "Mostrar controlo deslizante de brilho"
 
+msgid "Show controls"
+msgstr "Mostrar controlos"
+
 msgid "Show description"
 msgstr "Mostrar descrição"
 
@@ -1893,8 +2142,8 @@ msgstr "Mostrar contagem de itens"
 msgid "Show item underline"
 msgstr "Mostrar sublinhado de item"
 
-msgid "Show KOReader progress bar"
-msgstr "Mostrar barra de progresso do KOReader"
+msgid "Show KOAssistant"
+msgstr "Mostrar KOAssistant"
 
 msgid "Show labels"
 msgstr "Mostrar rótulos"
@@ -1911,8 +2160,11 @@ msgstr "Mostrar outras opções de consulta rápida do KOReader junto aos botõe
 msgid "Show page count"
 msgstr "Mostrar contagem de páginas"
 
-msgid "Show progress % on mosaic covers"
-msgstr "Mostrar % de progresso nas capas do mosaico"
+msgid "Show progress bar"
+msgstr "Mostrar barra de progresso"
+
+msgid "Show reading progress"
+msgstr "Mostrar progresso de leitura"
 
 msgid "Show separator"
 msgstr "Mostrar separador"
@@ -1922,6 +2174,9 @@ msgstr "Mostrar número de série nas capas"
 
 msgid "Show spine lines"
 msgstr "Mostrar linhas da lombada"
+
+msgid "Show title"
+msgstr "Mostrar título"
 
 msgid "Show title below cover (mosaic)"
 msgstr "Mostrar título abaixo da capa (mosaico)"
@@ -1935,17 +2190,20 @@ msgstr "Mostrar barra de estado superior"
 msgid "Show warmth slider"
 msgstr "Mostrar controlo deslizante de tonalidade quente"
 
-msgid "Show widget title"
-msgstr "Mostrar título do widget"
-
 msgid "Show Wikipedia"
 msgstr "Mostrar Wikipedia"
+
+msgid "Show X-Ray"
+msgstr "Mostrar X-Ray"
 
 msgid "Show Zen icon - black background"
 msgstr "Mostrar ícone Zen - fundo preto"
 
 msgid "Show Zen icon - white background"
 msgstr "Mostrar ícone Zen - fundo branco"
+
+msgid "Single tag"
+msgstr "Etiqueta única"
 
 msgid "Skip"
 msgstr "Ignorar"
@@ -1989,11 +2247,17 @@ msgstr "Ordenar biblioteca"
 msgid "Sort library by"
 msgstr "Ordenar biblioteca por"
 
+msgid "Sort languages"
+msgstr "Ordenar idiomas"
+
 msgid "Sort order"
 msgstr "Ordem de classificação"
 
 msgid "Sort series"
 msgstr "Ordenar séries"
+
+msgid "Specific tag"
+msgstr "Etiqueta específica"
 
 msgid "Stable"
 msgstr "Stable"
@@ -2001,8 +2265,8 @@ msgstr "Stable"
 msgid "Stack"
 msgstr "Pilha"
 
-msgid "Stack effect (overlapping covers)"
-msgstr "Efeito de pilha (capas sobrepostas)"
+msgid "Start reading a book to fill this space."
+msgstr "Comece a ler um livro para preencher esse espaço."
 
 msgid "Stat separators"
 msgstr "Separadores de estatísticas"
@@ -2076,8 +2340,20 @@ msgstr "Sincronizar todos os catálogos"
 msgid "Tab"
 msgstr "Guia"
 
+msgid "Table of contents"
+msgstr "Índice"
+
 msgid "Tabs"
 msgstr "Separadores"
+
+msgid "Tag"
+msgstr "Etiqueta"
+
+msgid "Tag strip widget"
+msgstr "Widget de faixa de etiquetas"
+
+msgid "Tag: %1"
+msgstr "Etiqueta: %1"
 
 msgid "tags"
 msgstr "etiquetas"
@@ -2085,8 +2361,14 @@ msgstr "etiquetas"
 msgid "Tags"
 msgstr "Etiquetas"
 
+msgid "Tailscale"
+msgstr "Escala traseira"
+
 msgid "Tap and hold any book or folder in your library to reveal details."
 msgstr "Mantenha premido qualquer livro ou pasta da sua biblioteca para revelar detalhes."
+
+msgid "Text color"
+msgstr "Cor do texto"
 
 msgid "Text styles"
 msgstr "Estilos de texto"
@@ -2100,8 +2382,20 @@ msgstr "O menu de leitura predefinido do KOReader está dentro do ícone Aa."
 msgid "The place for all your books %1"
 msgstr "O local para todos os seus livros %1"
 
+msgid "Theme font"
+msgstr "Tipo de letra do tema"
+
+msgid "Theme name"
+msgstr "Nome do tema"
+
 msgid "This change requires a restart to take effect."
 msgstr "Esta alteração requer um reinício para ter efeito."
+
+msgid "This does not disable ZenOS—it only shows or hides KOReader’s menus."
+msgstr "Isto não desativa o ZenOS: apenas mostra ou oculta os menus do KOReader."
+
+msgid "This is Zen Settings. ZenOS settings/updates and common KOReader settings live here."
+msgstr "Estas são as definições Zen. As definições/atualizações do ZenOS e as definições comuns do KOReader ficam aqui."
 
 msgid "This Month"
 msgstr "Este mês"
@@ -2112,10 +2406,10 @@ msgstr "Este mês"
 msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
 msgstr "Esta opção é desativada quando uma pasta inicial é a raiz do armazenamento do dispositivo. Defina primeiro pastas de livros mais específicas como pastas iniciais."
 
-msgid "This week"
+msgid "This Week"
 msgstr "Esta semana"
 
-msgid "This Week"
+msgid "This week"
 msgstr "Esta semana"
 
 msgid "This year"
@@ -2148,6 +2442,9 @@ msgstr "Hora/dia"
 msgid "Time/page"
 msgstr "Hora/página"
 
+msgid "Timeout"
+msgstr "Tempo limite"
+
 msgid "Timer: %1 s"
 msgstr "Temporizador: %1 s"
 
@@ -2160,9 +2457,6 @@ msgstr "Título natural"
 msgid "To Be Read"
 msgstr "Por ler"
 
-msgid "To Be Read featured widget"
-msgstr "Widget destacado de por ler"
-
 msgid "To Be Read strip widget"
 msgstr "Widget de faixa de por ler"
 
@@ -2171,6 +2465,9 @@ msgstr "Hoje"
 
 msgid "Too many requests. Please try again later."
 msgstr "Demasiados pedidos. Tente novamente mais tarde."
+
+msgid "Tools"
+msgstr "Ferramentas"
 
 msgid "Top bar font"
 msgstr "Tipo de letra da barra superior"
@@ -2196,8 +2493,14 @@ msgstr "Ative o modo Zen para reduzir o KOReader ao essencial.\n\nRemova o exces
 msgid "Two rows"
 msgstr "Duas linhas"
 
+msgid "Typesetting"
+msgstr "Composição"
+
 msgid "Unavailable"
 msgstr "Indisponível"
+
+msgid "Unavailable pack: %1"
+msgstr "Pacote indisponível: %1"
 
 msgid "Underline"
 msgstr "Sublinhado"
@@ -2283,14 +2586,17 @@ msgstr "Atualização falhou: validação do plugin preparado falhou."
 msgid "Update failed: timed out."
 msgstr "Atualização falhou: tempo esgotado."
 
-msgid "Update now"
-msgstr "Atualizar agora"
-
 msgid "Update KOReader"
 msgstr "Atualizar KOReader"
 
+msgid "Update now"
+msgstr "Atualizar agora"
+
 msgid "Update Status"
 msgstr "Estado de atualização"
+
+msgid "Update ZenOS"
+msgstr "Atualizar ZenOS"
 
 msgid "Updated to %1"
 msgstr "Atualizado para %1"
@@ -2316,23 +2622,17 @@ msgstr "Usar tipo de letra predefinido"
 msgid "Use default style"
 msgstr "Usar estilo predefinido"
 
-msgid "Use Home default font size"
-msgstr "Usar tamanho predefinido da letra do Início"
-
 msgid "Use home folder"
 msgstr "Usar pasta inicial"
 
 msgid "Use last folder"
 msgstr "Usar última pasta"
 
-msgid "Use Stats default font size"
-msgstr "Usar tamanho de letra predefinido das estatísticas"
-
 msgid "username"
 msgstr "nome de utilizador"
 
-msgid "Verbose time to chapter end"
-msgstr "Tempo detalhado até ao fim do capítulo"
+msgid "Time until chapter end"
+msgstr "Tempo até ao fim do capítulo"
 
 msgid "View"
 msgstr "Ver"
@@ -2343,14 +2643,11 @@ msgstr "Pasta virtual"
 msgid "Warmth"
 msgstr "Tonalidade quente"
 
-msgid "Warmth schedule"
-msgstr "Programação de tonalidade quente"
-
 msgid "Weekly"
 msgstr "Semanalmente"
 
-msgid "Welcome to Zen UI"
-msgstr "Bem-vindo ao Zen UI"
+msgid "Welcome to ZenOS"
+msgstr "Bem-vindo ao ZenOS"
 
 msgid "What should your device show when it goes to sleep?"
 msgstr "O que deve o seu dispositivo mostrar quando entrar em suspensão?"
@@ -2361,11 +2658,14 @@ msgstr "O que mudou"
 msgid "What's New"
 msgstr "Novidades"
 
-msgid "When enabled, icons placed in KOReader's user icons folder override the bundled Zen UI icons. Falls back to Zen UI icons, then KOReader built-ins."
-msgstr "Quando ativado, ícones colocados na pasta de ícones do utilizador do KOReader substituem os ícones incluídos no Zen UI. Usa os ícones do Zen UI como substituto, depois os do KOReader."
+msgid "When enabled, loose icons or a selected ZenOS icon pack override supported icons. Missing icons fall back to ZenOS, then KOReader."
+msgstr "Quando ativado, ícones avulsos ou um pacote de ícones do ZenOS selecionado substituem os ícones suportados. Os ícones em falta usam primeiro o ZenOS e depois o KOReader."
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "Quando ativado, a pesquisa corresponde apenas a palavras inteiras. Quando desativado, usa correspondência parcial (ex.: 'peixe' corresponde a 'peixaria')."
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr "Quando ativado, toque rapidamente duas vezes no mesmo livro para o abrir. Os controlos do teclado não são alterados."
 
 msgid "Which time format do you prefer?"
 msgstr "Que formato de hora prefere?"
@@ -2376,8 +2676,14 @@ msgstr "Branco"
 msgid "Wi-Fi"
 msgstr "Wi-Fi"
 
+msgid "Widget settings"
+msgstr "Configurações de widget"
+
 msgid "Widgets"
 msgstr "Widgets"
+
+msgid "Wrap description text"
+msgstr "Quebrar texto da descrição"
 
 msgid "Yearly"
 msgstr "Anual"
@@ -2397,14 +2703,26 @@ msgstr "Zen"
 msgid "Zen highlight menu"
 msgstr "Menu de realce Zen"
 
-msgid "Zen Mode"
-msgstr "Modo Zen"
-
 msgid "Zen mode"
 msgstr "Modo Zen"
 
+msgid "Zen Mode"
+msgstr "Modo Zen"
+
+msgid "Zen Mode is enabled. KOReader menus are hidden."
+msgstr "O modo Zen está ativado. Os menus do KOReader estão ocultos."
+
+msgid "Zen Mode: Disabled"
+msgstr "Modo Zen: Desativado"
+
+msgid "Zen Mode: Enabled"
+msgstr "Modo Zen: ativado"
+
 msgid "Zen OPDS"
 msgstr "Zen OPDS"
+
+msgid "Zen page browser"
+msgstr "Navegador de páginas Zen"
 
 msgid "Zen Presets"
 msgstr "Zen Presets"
@@ -2412,116 +2730,74 @@ msgstr "Zen Presets"
 msgid "Zen quick lookup"
 msgstr "Consulta rápida Zen"
 
-msgid "Zen UI"
-msgstr "Zen UI"
+msgid "ZenFM"
+msgstr "Zen FM"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - Autores"
+msgid "ZenOS"
+msgstr "ZenOS"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - Início"
+msgid "ZenOS defaults"
+msgstr "Predefinições do ZenOS"
 
-msgid "Zen UI - Library"
-msgstr "Zen UI - Biblioteca"
+msgid "ZenOS is up to date."
+msgstr "O ZenOS está atualizado."
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - Abrir pasta"
+msgid "ZenOS: "
+msgstr "ZenOS: "
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - Séries"
+msgid "ZenOS: Authors"
+msgstr "ZenOS: Autores"
 
-msgid "Zen UI - Sync progress (pull + push)"
-msgstr "Zen UI - Progresso da sincronização (receção + envio)"
+msgid "ZenOS: folder not found: "
+msgstr "ZenOS: pasta não encontrada: "
 
-msgid "Zen UI - Table of contents"
-msgstr "Zen UI - Índice"
+msgid "ZenOS: Home"
+msgstr "ZenOS: Início"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - Etiquetas"
+msgid "ZenOS: Library"
+msgstr "ZenOS: Biblioteca"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - Alternar barra de estado inferior do leitor"
+msgid "ZenOS: no folder set for this action."
+msgstr "ZenOS: nenhuma pasta definida para esta ação."
 
-msgid "Zen UI - Toggle Incognito Mode"
-msgstr "Zen UI - Alternar modo incógnito"
+msgid "ZenOS: Open folder"
+msgstr "ZenOS: Abrir pasta"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - Alternar modo de bloqueio"
+msgid "ZenOS: Series"
+msgstr "ZenOS: Séries"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - Alternar barras de estado do leitor"
+msgid "ZenOS: Sync progress (pull + push)"
+msgstr "ZenOS: Progresso da sincronização (receção + envio)"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - Alternar barra de estado superior do leitor"
+msgid "ZenOS: Table of contents"
+msgstr "ZenOS: Índice"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Alternar Modo Zen"
+msgid "ZenOS: Tags"
+msgstr "ZenOS: Etiquetas"
 
-msgid "Zen UI defaults"
-msgstr "Predefinições do Zen UI"
+msgid "ZenOS: Toggle bottom reader status bar"
+msgstr "ZenOS: Alternar barra de estado inferior do leitor"
 
-msgid "Zen UI is up to date."
-msgstr "O Zen UI está atualizado."
+msgid "ZenOS: Toggle Incognito Mode"
+msgstr "ZenOS: Alternar modo incógnito"
 
-msgid "Zen UI: "
-msgstr "Zen UI: "
+msgid "ZenOS: Toggle Lockdown Mode"
+msgstr "ZenOS: Alternar modo de bloqueio"
 
-msgid "Zen UI: folder not found: "
-msgstr "Zen UI: pasta não encontrada: "
+msgid "ZenOS: Toggle reader status bars"
+msgstr "ZenOS: Alternar barras de estado do leitor"
 
-msgid "Zen UI: no folder set for this action."
-msgstr "Zen UI: nenhuma pasta definida para esta ação."
+msgid "ZenOS: Toggle reader themes"
+msgstr "ZenOS: Alternar temas de leitura"
 
-msgid "Reader themes"
-msgstr "Temas de leitura"
+msgid "ZenOS: Toggle top reader status bar"
+msgstr "ZenOS: Alternar barra de estado superior do leitor"
 
-msgid "Enable reader themes"
-msgstr "Ativar temas de leitura"
+msgid "ZenOS: Toggle Zen Mode"
+msgstr "ZenOS: Alternar Modo Zen"
 
-msgid "Dark warm gray"
-msgstr "Cinzento quente escuro"
+msgid "ZenPM"
+msgstr "ZenPM"
 
-msgid "Dark graphite"
-msgstr "Grafite escuro"
-
-msgid "Light sepia"
-msgstr "Sépia claro"
-
-msgid "Light tan"
-msgstr "Bege claro"
-
-msgid "Zen UI - Toggle reader themes"
-msgstr "Zen UI - Alternar temas de leitura"
-
-msgid "Dark mode"
-msgstr "Modo escuro"
-
-msgid "Light mode"
-msgstr "Modo claro"
-
-msgid "Custom themes"
-msgstr "Temas personalizados"
-
-msgid "New custom theme"
-msgstr "Novo tema personalizado"
-
-msgid "Theme name"
-msgstr "Nome do tema"
-
-msgid "Background color"
-msgstr "Cor de fundo"
-
-msgid "Text color"
-msgstr "Cor do texto"
-
-msgid "Theme font"
-msgstr "Tipo de letra do tema"
-
-msgid "Delete theme"
-msgstr "Eliminar tema"
-
-msgid "Delete this custom theme?"
-msgstr "Eliminar este tema personalizado?"
-
-msgid "Custom theme"
-msgstr "Tema personalizado"
+msgid "ZenPM has been installed. Restart KOReader to use it."
+msgstr "O ZenPM foi instalado. Reinicie o KOReader para o utilizar."

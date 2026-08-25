@@ -46,6 +46,8 @@ function M.unregister(key)
 end
 
 function M.install()
+    rawset(_G, "__ZENOS_REGISTER_STATUS_ITEM", M.register)
+    rawset(_G, "__ZENOS_UNREGISTER_STATUS_ITEM", M.unregister)
     rawset(_G, "__ZEN_UI_REGISTER_STATUS_ITEM", M.register)
     rawset(_G, "__ZEN_UI_UNREGISTER_STATUS_ITEM", M.unregister)
 end

@@ -12,12 +12,12 @@ local M = {}
 local DEFAULT_GOALS_FONT_SIZE = 11
 local open_widget_settings
 
-function M.openWidgetSettings(id)
+function M.openWidgetSettings(id, plugin)
     if type(open_widget_settings) ~= "function" then
-        M.build({})
+        M.build({ plugin = plugin })
     end
     if type(open_widget_settings) == "function" then
-        return open_widget_settings(id)
+        return open_widget_settings(id, plugin)
     end
     return false
 end
@@ -136,43 +136,31 @@ function M.build(ctx)
             return settings.widgets.options[id]
         end
         local default_font_size = id == "goal_progress" and DEFAULT_GOALS_FONT_SIZE or settings.font_size or 15
-        return {
-            {
-                text_func = function()
-                    return string.format("%s %s", _("Font size:"), tostring(widget().font_size or default_font_size))
-                end,
-                keep_menu_open = true,
-                callback = function(touchmenu_instance)
-                    local SpinWidget = require("ui/widget/spinwidget")
-                    UIManager:show(SpinWidget:new{
-                        title_text = label_for(id) .. " " .. _("font size"),
-                        value = widget().font_size or default_font_size,
-                        value_min = 6,
-                        value_max = 32,
-                        default_value = default_font_size,
-                        callback = function(spin)
-                            widget().font_size = spin.value
-                            widget().font_size_override = true
-                            save(settings)
-                            if touchmenu_instance and touchmenu_instance.updateItems then
-                                touchmenu_instance:updateItems()
-                            end
-                        end,
-                    })
-                end,
-            },
-            {
-                text = _("Use default font size"),
-                callback = function(touchmenu_instance)
-                    widget().font_size = nil
-                    widget().font_size_override = nil
-                    save(settings)
-                    if touchmenu_instance and touchmenu_instance.updateItems then
-                        touchmenu_instance:updateItems()
-                    end
-                end,
-            },
-        }
+        return {{
+            text_func = function()
+                return string.format("%s %s", _("Font size:"),
+                    tostring(widget().font_size or default_font_size))
+            end,
+            keep_menu_open = true,
+            callback = function(touchmenu_instance)
+                local SpinWidget = require("ui/widget/spinwidget")
+                UIManager:show(SpinWidget:new{
+                    title_text = label_for(id) .. " " .. _("font size"),
+                    value = widget().font_size or default_font_size,
+                    value_min = 6,
+                    value_max = 32,
+                    default_value = default_font_size,
+                    callback = function(spin)
+                        widget().font_size = spin.value
+                        widget().font_size_override = true
+                        save(settings)
+                        if touchmenu_instance and touchmenu_instance.updateItems then
+                            touchmenu_instance:updateItems()
+                        end
+                    end,
+                })
+            end,
+        }}
     end
 
     local function goal_items(settings)
@@ -234,33 +222,29 @@ function M.build(ctx)
             if item_id == "trend_graph" then
                 item.sub_title = label_for(item_id)
                 item.sub_item_table_func = function()
-                    local items = graph_items(settings)
-                    items._zen_arrange_done_func = function() end
-                    return items
+                    return graph_items(settings)
                 end
             elseif item_id == "goal_progress" then
                 item.sub_item_table_func = function()
-                    local items = goal_items(settings)
-                    items._zen_arrange_done_func = function() end
-                    return items
+                    return goal_items(settings)
                 end
             elseif StatsSettings.hasFontSize(item_id) then
                 item.sub_item_table_func = function()
-                    local items = font_size_items(settings, item_id)
-                    items._zen_arrange_done_func = function() end
-                    return items
+                    return font_size_items(settings, item_id)
                 end
             end
             sort_items[#sort_items + 1] = item
         end
         require("common/ui/zen_arrange_list").show{
-            title = _("Widgets") .. " (" .. _("Hold to arrange") .. ")",
+            title = _("Widgets"),
             item_table = sort_items,
+            plugin = plugin,
             callback = function()
                 local order = {}
                 for _i, item in ipairs(sort_items) do order[#order + 1] = item.orig_item end
-                widgets.order = order
+                settings.widgets.order = order
                 save(settings)
+                widgets = settings.widgets
             end,
         }
     end
@@ -313,7 +297,12 @@ function M.build(ctx)
         }
     end
 
-    open_widget_settings = function(id)
+    open_widget_settings = function(id, owning_plugin)
+        local settings_page = require("modules/settings/zen_settings_page")
+        local standalone_route = settings_page.rememberStandaloneArrangeRoute({
+            { text = _("Extras"), occurrence = 1 },
+            { text = _("Stats"), occurrence = 1 },
+        }, _("Widgets"), { id })
         local settings = StatsSettings.load()
         local items
         if id == "trend_graph" then
@@ -327,24 +316,53 @@ function M.build(ctx)
             arrange_widgets()
             return true
         end
-        items._zen_arrange_done_func = function() end
         require("common/ui/zen_arrange_list").show{
             title = label_for(id),
             item_table = items,
+            plugin = owning_plugin or plugin,
+            allow_arrange = false,
             hide_footer_cancel = true,
+            back_callback = standalone_route and function()
+                settings_page.rememberStandaloneArrangeRoute({
+                    { text = _("Extras"), occurrence = 1 },
+                    { text = _("Stats"), occurrence = 1 },
+                }, _("Widgets"), {})
+                UIManager:nextTick(function()
+                    if plugin then settings_page.show(plugin) end
+                end)
+                return true
+            end or nil,
         }
         return true
     end
 
+    local function arrange_search_items()
+        local items = {}
+        local settings = StatsSettings.load()
+        for _i, id in ipairs(settings.widgets.order) do
+            if id == "trend_graph" or id == "goal_progress" or StatsSettings.hasFontSize(id) then
+                local widget_id = id
+                items[#items + 1] = {
+                    text = label_for(widget_id),
+                    _zen_search_open = function()
+                        return open_widget_settings(widget_id)
+                    end,
+                }
+            end
+        end
+        return items
+    end
+
     return IconItem.decorate({
         text = _("Stats"),
+        _zen_search_items_func = arrange_search_items,
         sub_item_table = {
             IconItem.decorate({
                 text = _("Widgets") .. " \u{25B8}",
                 keep_menu_open = true,
                 callback = arrange_widgets,
-            }, icons.display),
-            {
+            }, icons.widgets),
+            IconItem.decorate({
                 text = _("Edit mode"),
                 checked_func = function()
                     return StatsSettings.load().edit_mode == true
@@ -354,7 +372,7 @@ function M.build(ctx)
                     settings.edit_mode = settings.edit_mode ~= true
                     save(settings)
                 end,
-            },
+            }, icons.edit),
             IconItem.decorate(default_font_size_item(), icons.title),
             IconItem.decorate({
                 text = _("Stat separators"),

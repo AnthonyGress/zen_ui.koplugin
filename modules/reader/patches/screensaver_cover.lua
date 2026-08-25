@@ -1,7 +1,7 @@
 local function apply_screensaver_cover()
     -- When a book has no cover (or the user hasn't set a screensaver folder),
     -- KOReader falls back to "resources/koreader.png".  Replace that with the
-    -- Zen UI logo so the device shows our branding instead.
+    -- ZenOS logo so the device shows our branding instead.
 
     -- Resolve both SVG variants from this file's path at apply-time.
     local _icons_dir
@@ -29,9 +29,11 @@ local function apply_screensaver_cover()
             -- black background → white logo; white/none → dark logo.
             local bg = G_reader_settings:readSetting("screensaver_img_background")
             if bg == "black" then
-                self.image_file = utils.resolveIcon(_icons_dir, "zen_cover_light") or (_icons_dir .. "zen_cover_light.svg")
+                self.image_file = utils.resolveLocalIcon(_icons_dir, "zen_cover_light")
+                    or (_icons_dir .. "zen_cover_light.svg")
             else
-                self.image_file = utils.resolveIcon(_icons_dir, "zen_cover") or (_icons_dir .. "zen_cover.svg")
+                self.image_file = utils.resolveLocalIcon(_icons_dir, "zen_cover")
+                    or (_icons_dir .. "zen_cover.svg")
             end
         end
     end

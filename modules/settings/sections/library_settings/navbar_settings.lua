@@ -1,5 +1,5 @@
 -- settings/sections/library/navbar.lua
--- Navbar settings item for Zen UI.
+-- Navbar settings item for ZenOS.
 -- Returns a single menu-item table: { text = _("Navbar"), sub_item_table = {...} }
 -- Receives ctx: { config, save_and_apply, settings_apply }
 
@@ -11,13 +11,18 @@ local icon_utils = require("common/utils")
 local paths = require("common/paths")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
+local NativeMenu = require("modules/menu/app_launcher/native_menu")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
+local DispatcherMenu = require("common/dispatcher_menu")
+local ButtonModel = require("common/nav_button_model")
+local Destination = require("common/library_destination")
 
 local M = {}
 
-local function suggest_icon(label, strip_zen_prefix)
+local function suggest_icon(label, strip_zen_prefix, preferred)
     local ok_root, root = pcall(require, "common/plugin_root")
-    return icon_utils.suggestIcon(ok_root and root or nil, label, "lightning", strip_zen_prefix)
+    return icon_utils.suggestIcon(
+        ok_root and root or nil, label, "lightning", strip_zen_prefix, preferred)
 end
 
 function M.build(ctx)
@@ -43,38 +48,17 @@ function M.build(ctx)
         end
     end
 
-    local pending_navbar_refresh = false
-    local pending_navbar_poll_active = false
-
-    local function is_filemanager_menu_open()
-        local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
-        if not ok_fm or not FileManager or not FileManager.instance then return false end
-        local fm = FileManager.instance
-        return fm.menu ~= nil and fm.menu.menu_container ~= nil
-    end
-
-    local function refresh_navbar_after_menu_close()
-        if is_filemanager_menu_open() then
-            UIManager:scheduleIn(0.25, refresh_navbar_after_menu_close)
+    local function queue_deferred_navbar_refresh()
+        if settings_apply and settings_apply.refresh_navbar_on_menu_close then
+            settings_apply.refresh_navbar_on_menu_close()
             return
         end
-        pending_navbar_poll_active = false
-        if not pending_navbar_refresh then return end
-        pending_navbar_refresh = false
         local reinject = rawget(_G, "__ZEN_UI_REINJECT_NAVBARS")
             or rawget(_G, "__ZEN_UI_REINJECT_FM_NAVBAR")
-        if reinject then
-            reinject()
+        if type(reinject) == "function" then
+            UIManager:scheduleIn(0, reinject)
         else
             save_and_apply("navbar")
-        end
-    end
-
-    local function queue_deferred_navbar_refresh()
-        pending_navbar_refresh = true
-        if not pending_navbar_poll_active then
-            pending_navbar_poll_active = true
-            UIManager:scheduleIn(0.25, refresh_navbar_after_menu_close)
         end
     end
 
@@ -164,8 +148,21 @@ function M.build(ctx)
         return label
     end
 
+    local function get_folder_tab_label()
+        local label = config.navbar.folder_label
+        if label == nil or label == "" then return _("Folder") end
+        return label
+    end
+
+    local function get_folder_tab_icon()
+        local icon = config.navbar.folder_icon
+        if type(icon) ~= "string" or icon == "" then return "tab_folder" end
+        return icon
+    end
+
     local navbar_tab_items = {
         { id = "books",       text = _("Library")      },
+        { id = "folder",      text_func = get_folder_tab_label },
         { id = "manga",       text = _("Manga")         },
         { id = "news",        text = _("News")          },
         { id = "continue",    text = _("Continue")      },
@@ -174,6 +171,7 @@ function M.build(ctx)
         { id = "collections", text = _("Collections")   },
         { id = "authors",     text = _("Authors")       },
         { id = "series",      text = _("Series")        },
+        { id = "languages",   text = _("Languages")     },
         { id = "home",        text_func = get_home_tab_label  },
         { id = "tags",        text = _("Tags")          },
         { id = "to_be_read",  text = _("To Be Read")    },
@@ -201,8 +199,8 @@ function M.build(ctx)
     end
 
     local default_tab_ids = {
-        "books", "manga", "news", "history", "favorites",
-        "collections", "authors", "series", "home", "tags", "to_be_read",
+        "books", "folder", "manga", "news", "history", "favorites",
+        "collections", "authors", "series", "languages", "home", "tags", "to_be_read",
     }
 
     local function get_builtin_tab_label(tab_id)
@@ -291,6 +289,7 @@ function M.build(ctx)
     local ok_disp, Dispatcher = pcall(require, "dispatcher")
     local build_ct_sub_items
     local build_builtin_tab_items
+    local addTagTab
 
     local function is_draft_tab(ct)
         return type(ct) == "table" and type(ct._zen_draft_commit) == "function"
@@ -298,12 +297,21 @@ function M.build(ctx)
 
     local function get_ct_label(ct)
         if ct.label and ct.label ~= "" then return ct.label end
+        if ct.type == "tag" then
+            return ct.tag or _("Tag")
+        end
+        if ct.type == "folder" then
+            return Destination.folderLabel(ct.folder)
+        end
         if ct.type == "plugin" then
             return ct.plugin_title or _("Plugin")
         end
+        if ct.type == "koreader_menu" then
+            return ct.koreader_menu and ct.koreader_menu.title or _("KOReader menu")
+        end
         if ok_disp and ct.action and next(ct.action) then
             local t = Dispatcher:menuTextFunc(ct.action)
-            if t ~= _("Nothing") then return t end
+            if t ~= _("Nothing") then return icon_utils.stripZenPrefix(t) end
         end
         return _("Custom")
     end
@@ -325,36 +333,9 @@ function M.build(ctx)
             ct.label_auto = true
         end
         if ct.icon == "lightning" then
-            ct.icon = suggest_icon(ct.label, true)
-        end
-    end
-
-    local function has_valid_custom_tab_target(ct)
-        if ct.type == "action" then
-            return type(ct.action) == "table" and next(ct.action) ~= nil
-        end
-        if ct.type == "quick_setting" then
-            return type(ct.quick_setting_id) == "string" and ct.quick_setting_id ~= ""
-        end
-        return ct.type == "plugin"
-            and type(ct.plugin) == "table"
-            and ct.plugin.key ~= nil
-            and ct.plugin.method ~= nil
-    end
-
-    local function add_done_metadata(items, ct)
-        items._zen_arrange_done_func = function()
-            if ct.type == "action" then
-                sync_ct_action_label(ct)
-            end
-            if is_draft_tab(ct) then
-                ct._zen_draft_commit()
-            elseif has_valid_custom_tab_target(ct) then
-                save_and_defer_navbar_refresh()
-            end
-        end
-        items._zen_arrange_done_enabled_func = function()
-            return has_valid_custom_tab_target(ct)
+            local preferred = ButtonModel.getFolderActionPath(ct.action)
+                and "tab_folder" or nil
+            ct.icon = suggest_icon(ct.label, true, preferred)
         end
     end
 
@@ -385,7 +366,7 @@ function M.build(ctx)
             if not selected[tab.id] then
                 picker_items[#picker_items + 1] = {
                     id = tab.id,
-                    text = get_tab_item_text(tab),
+                    text = tab.id == "tags" and _("All tags") or get_tab_item_text(tab),
                 }
             end
         end
@@ -394,6 +375,7 @@ function M.build(ctx)
         require("common/ui/zen_menu_picker"){
             title = _("Choose tab"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
                 ensureTabOrder(item.id)
                 config.navbar.show_tabs[item.id] = countEnabledTabs() < navbar_max_tabs
@@ -429,48 +411,10 @@ function M.build(ctx)
     end
 
     local function wrap_dispatch_callbacks(items, caller, on_update)
-        if type(items) ~= "table" then return end
-        for _i, item in ipairs(items) do
-            if type(item.callback) == "function" and not item._zen_nav_dispatch_wrapped then
-                local orig_callback = item.callback
-                item.callback = function(touch_menu, ...)
-                    caller.updated = false
-                    local result = orig_callback(touch_menu, ...)
-                    if caller.updated then
-                        caller.updated = false
-                        on_update(touch_menu)
-                    end
-                    return result
-                end
-                item._zen_nav_dispatch_wrapped = true
-            end
-            if type(item.hold_callback) == "function" and not item._zen_nav_dispatch_hold_wrapped then
-                local orig_hold_callback = item.hold_callback
-                item.hold_callback = function(touch_menu, ...)
-                    caller.updated = false
-                    local result = orig_hold_callback(touch_menu, ...)
-                    if caller.updated then
-                        caller.updated = false
-                        on_update(touch_menu)
-                    end
-                    return result
-                end
-                item._zen_nav_dispatch_hold_wrapped = true
-            end
-            if type(item.sub_item_table_func) == "function" and not item._zen_nav_dispatch_func_wrapped then
-                local orig_sub_item_table_func = item.sub_item_table_func
-                item.sub_item_table_func = function(...)
-                    local sub_items = orig_sub_item_table_func(...)
-                    wrap_dispatch_callbacks(sub_items, caller, on_update)
-                    return sub_items
-                end
-                item._zen_nav_dispatch_func_wrapped = true
-            end
-            wrap_dispatch_callbacks(item.sub_item_table, caller, on_update)
-        end
+        DispatcherMenu.wrap(items, caller, on_update, "_zen_nav_dispatch")
     end
 
-    local function showPluginPicker(on_select)
+    local function showPluginPicker(on_select, touch_menu)
         local found = PluginScan.scan()
         if #found == 0 then
             local InfoMessage = require("ui/widget/infomessage")
@@ -487,8 +431,32 @@ function M.build(ctx)
         require("common/ui/zen_menu_picker"){
             title = _("Choose plugin menu"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = on_select,
         }
+    end
+
+    local function showKoreaderMenuPicker(on_select, touch_menu)
+        local found = NativeMenu.scan("filemanager")
+        if #found == 0 then
+            local InfoMessage = require("ui/widget/infomessage")
+            UIManager:show(InfoMessage:new{ text = _("No KOReader submenus found") })
+            return
+        end
+        require("common/ui/zen_menu_picker"){
+            title = _("Choose KOReader menu"),
+            items = found,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
+            on_select = on_select,
+        }
+    end
+
+    local function showTagPicker(on_select, touch_menu)
+        Destination.chooseTag(function(tag)
+            on_select({ tag = tag })
+        end, {
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
+        })
     end
 
     local function choosePluginTab(ct, touch_menu)
@@ -510,7 +478,7 @@ function M.build(ctx)
             if touch_menu and touch_menu.updateItems then
                 touch_menu:updateItems(1)
             end
-        end)
+        end, touch_menu)
     end
 
     local function addActionTab(touch_menu)
@@ -558,7 +526,100 @@ function M.build(ctx)
             }
             commitCustomTab(new_ct)
             openCustomTabSettings(touch_menu, new_ct)
-        end)
+        end, touch_menu)
+    end
+
+    local function chooseKoreaderMenuTab(ct, touch_menu)
+        showKoreaderMenuPicker(function(item)
+            ct.type = "koreader_menu"
+            ct.koreader_menu = { id = item.id, title = item.title }
+            if not ct.label or ct.label == "" or ct.label == _("KOReader menu") then
+                ct.label = item.title
+            end
+            if not ct.icon or ct.icon == "zen_ui" or ct.icon == "lightning" then
+                ct.icon = suggest_icon(item.title)
+            end
+            if not is_draft_tab(ct) then
+                save_and_defer_navbar_refresh()
+            end
+            if touch_menu and touch_menu.updateItems then
+                touch_menu:updateItems(1)
+            end
+        end, touch_menu)
+    end
+
+    local function addKoreaderMenuTab(touch_menu)
+        showKoreaderMenuPicker(function(item)
+            local new_ct = {
+                type = "koreader_menu",
+                label = item.title,
+                icon = suggest_icon(item.title),
+                koreader_menu = { id = item.id, title = item.title },
+            }
+            commitCustomTab(new_ct)
+            openCustomTabSettings(touch_menu, new_ct)
+        end, touch_menu)
+    end
+
+    addTagTab = function(touch_menu)
+        showTagPicker(function(item)
+            local ct = {
+                type = "tag",
+                tag = item.tag,
+                label = item.tag,
+                label_auto = true,
+                icon = "tab_tags",
+            }
+            commitCustomTab(ct)
+            openCustomTabSettings(touch_menu, ct)
+        end, touch_menu)
+    end
+
+    local function addFolderTab(touch_menu)
+        Destination.chooseFolder(function(path)
+            local ct = {
+                type = "folder",
+                folder = path,
+                label = Destination.folderLabel(path),
+                label_auto = true,
+                icon = "tab_folder",
+            }
+            commitCustomTab(ct)
+            openCustomTabSettings(touch_menu, ct)
+        end, {
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
+        })
+    end
+
+    local function chooseFolderTab(ct, touch_menu)
+        Destination.chooseFolder(function(path)
+            local old_label = Destination.folderLabel(ct.folder)
+            ct.folder = path
+            if ct.label_auto == true or not ct.label or ct.label == ""
+                    or ct.label == old_label then
+                ct.label = Destination.folderLabel(path)
+                ct.label_auto = true
+            end
+            save_and_defer_navbar_refresh()
+            if touch_menu and touch_menu.updateItems then touch_menu:updateItems(1) end
+        end, { path = ct.folder })
+    end
+
+    local function chooseTagTab(ct, touch_menu)
+        showTagPicker(function(item)
+            local old_tag = ct.tag
+            ct.tag = item.tag
+            if ct.label_auto == true or not ct.label or ct.label == "" or ct.label == old_tag then
+                ct.label = item.tag
+                ct.label_auto = true
+            end
+            if not is_draft_tab(ct) then
+                save_and_defer_navbar_refresh()
+            end
+            if touch_menu and touch_menu.updateItems then
+                touch_menu:updateItems(1)
+            end
+        end, touch_menu)
     end
 
     local function addQuickSettingTab(touch_menu)
@@ -569,11 +630,12 @@ function M.build(ctx)
         require("common/ui/zen_menu_picker"){
             title = _("Choose control"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
                 local ct = {
                     type = "quick_setting",
                     label = item.label,
-                    icon = item.icon or suggest_icon(item.label),
+                    icon = suggest_icon(item.label, nil, item.icon),
                     quick_setting_id = item.id,
                 }
                 commitCustomTab(ct)
@@ -590,10 +652,11 @@ function M.build(ctx)
         require("common/ui/zen_menu_picker"){
             title = _("Choose control"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
                 ct.quick_setting_id = item.id
                 ct.label = item.label
-                ct.icon = item.icon or suggest_icon(item.label)
+                ct.icon = suggest_icon(item.label, nil, item.icon)
                 save_and_defer_navbar_refresh()
                 if touch_menu and touch_menu.updateItems then
                     touch_menu:updateItems(1)
@@ -619,7 +682,27 @@ function M.build(ctx)
     build_ct_sub_items = function(ct)
         local items = {}
 
-        if ct.type == "quick_setting" then
+        if ct.type == "tag" then
+            table.insert(items, IconItem.decorate({
+                text_func = function()
+                    return T(_("Tag: %1"), ct.tag or _("(none)"))
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    chooseTagTab(ct, touch_menu)
+                end,
+            }, icons.keywords))
+        elseif ct.type == "folder" then
+            table.insert(items, IconItem.decorate({
+                text_func = function()
+                    return _("Folder") .. ": " .. Destination.folderLabel(ct.folder)
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    chooseFolderTab(ct, touch_menu)
+                end,
+            }, icons.settings_folders))
+        elseif ct.type == "quick_setting" then
             table.insert(items, IconItem.decorate({
                 text_func = function()
                     return T(_("Control: %1"), ct.label or _("(none)"))
@@ -649,6 +732,18 @@ function M.build(ctx)
                     choosePluginTab(ct, touch_menu)
                 end,
             }, icons.plugin))
+        elseif ct.type == "koreader_menu" then
+            table.insert(items, IconItem.decorate({
+                text_func = function()
+                    local target = ct.koreader_menu
+                    return T(_("KOReader menu: %1"),
+                        type(target) == "table" and target.title or ct.label or _("(none)"))
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    chooseKoreaderMenuTab(ct, touch_menu)
+                end,
+            }, icons.open_menu))
         elseif ok_disp then
             local dispatch_items = {}
             local caller = {}
@@ -678,7 +773,8 @@ function M.build(ctx)
 
         table.insert(items, IconItem.decorate({
             text_func = function()
-                return T(_("Icon: %1"), ct.icon or "zen_ui")
+                return T(_("Icon: %1"),
+                    icon_utils.getIconDisplayName(ct.icon or "zen_ui"))
             end,
             keep_menu_open = true,
             callback = function(tm)
@@ -704,7 +800,8 @@ function M.build(ctx)
                 dialog = InputDialog:new{
                     title = _("Custom tab label"),
                     input = ct.label or "",
-                    input_hint = _("Leave empty to use action title"),
+                    input_hint = ct.type == "action"
+                        and _("Leave empty to use action title") or nil,
                     buttons = {{
                         { text = _("Cancel"), callback = function() UIManager:close(dialog) end },
                         {
@@ -715,6 +812,10 @@ function M.build(ctx)
                                 if txt and txt ~= "" then
                                     ct.label = txt
                                     ct.label_auto = false
+                                elseif ct.type == "tag" or ct.type == "folder" then
+                                    ct.label = ct.type == "tag" and ct.tag
+                                        or Destination.folderLabel(ct.folder)
+                                    ct.label_auto = true
                                 else
                                     ct.label = nil
                                     ct.label_auto = true
@@ -770,9 +871,6 @@ function M.build(ctx)
             end,
         }, icons.delete))
 
-        if ct.type == "action" or ct.type == "plugin" or ct.type == "quick_setting" then
-            add_done_metadata(items, ct)
-        end
         return items
     end
 
@@ -836,7 +934,7 @@ function M.build(ctx)
                                 is_enter_default = true,
                                 callback = function()
                                     local text = dialog:getInputText()
-                                    config.navbar.home_label = (text and text ~= "") and text or "Home"
+                                    config.navbar.home_label = (text and text ~= "") and text or ""
                                     UIManager:close(dialog)
                                     save_and_apply_navbar()
                                     if touch_menu and touch_menu.updateItems then touch_menu:updateItems() end
@@ -941,31 +1039,31 @@ function M.build(ctx)
     end
 
     local function build_folder_presets(action_key, folder_key)
+        local function set_folder(dir_path)
+            if action_key then config.navbar[action_key] = "folder" end
+            config.navbar[folder_key] = dir_path
+            save_and_apply_navbar()
+        end
+
         return {
             text = _("Folder presets"),
             sub_item_table = {
                 {
                     text = _("Use home folder"),
                     callback = function()
-                        config.navbar[action_key] = "folder"
-                        config.navbar[folder_key] = paths.getHomeDir()
-                        save_and_apply_navbar()
+                        set_folder(paths.getHomeDir())
                     end,
                 },
                 {
                     text = _("Use last folder"),
                     callback = function()
-                        config.navbar[action_key] = "folder"
-                        config.navbar[folder_key] = utils.get_last_dir()
-                        save_and_apply_navbar()
+                        set_folder(utils.get_last_dir())
                     end,
                 },
                 {
                     text = _("Use current folder"),
                     callback = function()
-                        config.navbar[action_key] = "folder"
-                        config.navbar[folder_key] = utils.get_current_dir()
-                        save_and_apply_navbar()
+                        set_folder(utils.get_current_dir())
                     end,
                 },
             },
@@ -975,12 +1073,15 @@ function M.build(ctx)
     local function build_folder_action_item(action_key, folder_key)
         return {
             text_func = function()
-                if config.navbar[action_key] == "folder" then
+                if not action_key or config.navbar[action_key] == "folder" then
                     return folder_label(config.navbar[folder_key], _("Open folder"))
                 end
                 return _("Open folder")
             end,
-            checked_func = function() return config.navbar[action_key] == "folder" end,
+            checked_func = function()
+                if action_key then return config.navbar[action_key] == "folder" end
+                return config.navbar[folder_key] ~= nil and config.navbar[folder_key] ~= ""
+            end,
             keep_menu_open = true,
             callback = function(touch_menu)
                 local PathChooser = require("ui/widget/pathchooser")
@@ -991,13 +1092,68 @@ function M.build(ctx)
                     show_files = false,
                     path = start_path,
                     onConfirm = function(dir_path)
-                        config.navbar[action_key] = "folder"
+                        if action_key then config.navbar[action_key] = "folder" end
                         config.navbar[folder_key] = dir_path
                         save_and_apply_navbar()
                         if touch_menu and touch_menu.updateItems then touch_menu:updateItems() end
                     end,
                 })
             end,
+        }
+    end
+
+    local function build_folder_tab_items()
+        return {
+            build_folder_action_item(nil, "folder_path"),
+            build_folder_presets(nil, "folder_path"),
+            IconItem.decorate({
+                text_func = function()
+                    return T(_("Icon: %1"), icon_utils.getIconDisplayName(
+                        get_folder_tab_icon()))
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    showTabIconPicker({ icon = get_folder_tab_icon() },
+                        function(name)
+                            config.navbar.folder_icon = name
+                            save_and_defer_navbar_refresh()
+                            if touch_menu and touch_menu.updateItems then
+                                touch_menu:updateItems(1)
+                            end
+                        end)
+                end,
+            }, icons.icon),
+            IconItem.decorate({
+                text_func = function()
+                    return T(_("Label: %1"), get_folder_tab_label())
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    local InputDialog = require("ui/widget/inputdialog")
+                    local dialog
+                    dialog = InputDialog:new{
+                        title = _("Label"),
+                        input = config.navbar.folder_label or "",
+                        buttons = {{
+                            { text = _("Cancel"), callback = function() UIManager:close(dialog) end },
+                            {
+                                text = _("Set"),
+                                is_enter_default = true,
+                                callback = function()
+                                    local text = dialog:getInputText()
+                                    config.navbar.folder_label = text and text ~= "" and text or ""
+                                    UIManager:close(dialog)
+                                    save_and_defer_navbar_refresh()
+                                    if touch_menu and touch_menu.updateItems then
+                                        touch_menu:updateItems(1)
+                                    end
+                                end,
+                            },
+                        }},
+                    }
+                    UIManager:show(dialog)
+                end,
+            }, icons.label),
         }
     end
 
@@ -1048,6 +1204,8 @@ function M.build(ctx)
             items = build_home_tab_items()
         elseif id == "books" then
             items = build_books_tab_items()
+        elseif id == "folder" then
+            items = build_folder_tab_items()
         elseif id == "manga" then
             items = build_manga_tab_items()
         elseif id == "news" then
@@ -1137,7 +1295,7 @@ function M.build(ctx)
         sort_items = build_sort_items()
 
         ZenArrangeList.show{
-            title = _("Tabs") .. " (" .. _("Hold to arrange") .. ")",
+            title = _("Tabs"),
             item_table = sort_items,
             add_title = _("Add"),
             hide_footer_cancel = true,
@@ -1153,15 +1311,30 @@ function M.build(ctx)
                     callback = addActionTab,
                 }, icons.action),
                 IconItem.decorate({
+                    text = _("Folder"),
+                    keep_menu_open = true,
+                    callback = addFolderTab,
+                }, icons.settings_folders),
+                IconItem.decorate({
+                    text = _("Specific tag"),
+                    keep_menu_open = true,
+                    callback = addTagTab,
+                }, icons.keywords),
+                IconItem.decorate({
                     text = _("Control"),
                     keep_menu_open = true,
                     callback = addQuickSettingTab,
                 }, icons.settings_quick),
                 IconItem.decorate({
-                    text = _("Plugin"),
+                    text = _("Plugin Menu"),
                     keep_menu_open = true,
                     callback = addPluginTab,
                 }, icons.plugin),
+                IconItem.decorate({
+                    text = _("KOReader menu"),
+                    keep_menu_open = true,
+                    callback = addKoreaderMenuTab,
+                }, icons.open_menu),
             },
             callback = function()
                 local new_order = {}
@@ -1180,19 +1353,60 @@ function M.build(ctx)
         }
     end
 
+    local function open_tab_settings(id)
+        local ct = getCustomTabById(id)
+        local tab = tab_item_by_id[id]
+        if not ct and not tab then
+            showTabsArrange()
+            return true
+        end
+        local items = ct and build_ct_sub_items(ct) or build_builtin_tab_items(id)
+        if type(items) ~= "table" or #items == 0 then
+            showTabsArrange()
+            return true
+        end
+        require("common/ui/zen_arrange_list").show{
+            title = ct and get_ct_label(ct) or get_tab_item_text(tab),
+            item_table = items,
+            hide_footer_cancel = true,
+        }
+        return true
+    end
+
+    local function arrange_search_items()
+        local items = {}
+        local seen = {}
+        for _i, id in ipairs(config.navbar.tab_order) do
+            local ct = getCustomTabById(id)
+            local tab = tab_item_by_id[id]
+            if not seen[id] and (ct or tab) then
+                seen[id] = true
+                local tab_id = id
+                items[#items + 1] = {
+                    text = ct and get_ct_label(ct) or get_tab_item_text(tab),
+                    _zen_search_open = function()
+                        return open_tab_settings(tab_id)
+                    end,
+                }
+            end
+        end
+        return items
+    end
+
     -- -------------------------------------------------------------------------
     -- Navbar item
     -- -------------------------------------------------------------------------
 
     return IconItem.decorate({
         text = _("Navbar"),
+        _zen_search_items_func = arrange_search_items,
         sub_item_table = {
-            {
+            IconItem.decorate({
                 text = _("Tabs") .. " \u{25B8}",
                 keep_menu_open = true,
                 callback = showTabsArrange,
-            },
-            {
+            }, icons.navbar_tabs),
+            IconItem.decorate({
                 text = _("Styling"),
                 sub_item_table = {
                     {
@@ -1355,15 +1569,15 @@ function M.build(ctx)
                         end,
                     },
                 },
-            },
-            {
+            }, icons.navbar_styling),
+            IconItem.decorate({
                 text_func = function()
                     local current = config.navbar.default_tab or "books"
                     return _("Default tab: ") .. get_default_tab_label(current)
                 end,
                 keep_menu_open = true,
                 sub_item_table_func = build_default_tab_items,
-            },
+            }, icons.settings_home),
         },
     }, icons.settings_navbar)
 end

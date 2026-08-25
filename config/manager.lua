@@ -3,8 +3,13 @@ local HomePresets = require("modules/filebrowser/patches/home/home_presets")
 local PresetStore = require("config/preset_store")
 local HomeQuotes = require("modules/filebrowser/patches/home/home_quotes")
 local utils = require("common/utils")
+local FontLanguage = require("common/font_language")
+local LibraryFontPath = require("common/library_font_path")
+local plugin_root = require("common/plugin_root") or ""
+local BrandMigration = require("common/brand_migration")
 
 local LEGACY_KEY = "zen_ui_config"  -- legacy G_reader_settings key; cleanup only
+local HYPERREADABLE_LIBRARY_FONT = LibraryFontPath.BUNDLED_DEFAULT
 
 local _zen_settings_file = nil  -- cached LuaSettings instance
 local _current_config    = nil  -- in-memory cache for M.get()
@@ -37,6 +42,17 @@ local function load_raw_config()
     return {}, false
 end
 
+local function migrate_brand_plugin_paths(stored)
+    if type(stored) ~= "table" then return false end
+    local plugin_parent = plugin_root:match("^(.*)/" .. BrandMigration.PLUGIN_DIR .. "$")
+    if not plugin_parent then return false end
+    return BrandMigration.rewriteTablePaths(
+        stored,
+        plugin_parent .. "/" .. BrandMigration.LEGACY_PLUGIN_DIR,
+        plugin_root
+    )
+end
+
 local function merged_with_defaults(stored)
     local cfg = utils.deepcopy(defaults)
     if type(stored) == "table" then
@@ -45,6 +61,20 @@ local function merged_with_defaults(stored)
     end
     utils.deepmerge(cfg, defaults)
     return cfg
+end
+
+-- Recover the sparse config produced when an empty table was mistaken for an
+-- array and therefore received none of the defaults during a fresh ZenOS boot.
+local function is_incomplete_fresh_config(stored)
+    if type(stored) ~= "table"
+            or not BrandMigration.isConfigMigrationComplete(stored) then
+        return false
+    end
+    local meta = type(stored._meta) == "table" and stored._meta or {}
+    local features = stored.features
+    local shown = meta.quickstart_shown_for_version
+    return type(features) == "table" and next(features) == nil
+        and (shown == nil or shown == "pre-quickstart")
 end
 
 local function normalize_renamed_keys(cfg)
@@ -87,8 +117,20 @@ local function normalize_renamed_keys(cfg)
         changed = true
     end
 
-    -- Always-on features: no user toggle in Zen settings.
-    cfg.features.browser_folder_cover = true
+    -- Folder covers are always on and no longer need a persisted feature flag.
+    if cfg.features.browser_folder_cover ~= nil then
+        cfg.features.browser_folder_cover = nil
+        changed = true
+    end
+    if type(cfg.browser_folder_cover) == "table"
+            and cfg.browser_folder_cover.crop_to_fit ~= nil then
+        cfg.browser_folder_cover.crop_to_fit = nil
+        changed = true
+    end
+    if type(cfg._meta) == "table" and cfg._meta.gallery_mode_defaulted ~= nil then
+        cfg._meta.gallery_mode_defaulted = nil
+        changed = true
+    end
 
     if type(cfg.navbar) == "table" and cfg.navbar.active_tab_bold ~= nil then
         cfg.navbar.active_tab_bold = nil
@@ -127,6 +169,22 @@ local function normalize_renamed_keys(cfg)
         reader_themes.light_mode = reader_themes.preset
         reader_themes.preset = nil
         changed = true
+    end
+
+    local reader_footer = cfg.reader_footer
+    if type(reader_footer) == "table" then
+        if reader_footer.verbose_chapter_time ~= nil then
+            reader_footer.chapter_time_format = reader_footer.verbose_chapter_time == true
+                and "full" or "number"
+            reader_footer.verbose_chapter_time = nil
+            changed = true
+        end
+        local format = reader_footer.chapter_time_format
+        if format ~= "full" and format ~= "compact" and format ~= "number"
+                and format ~= "koreader" then
+            reader_footer.chapter_time_format = "number"
+            changed = true
+        end
     end
 
     return cfg, changed
@@ -372,25 +430,25 @@ local function migrate_legacy_group_view_keys(cfg)
         removed_legacy = true
     end
 
-    local legacy_layout = g:readSetting("zen_page_browser_layout")
-    if legacy_layout ~= nil then
-        if type(cfg.reader_page_browser) ~= "table" then
-            cfg.reader_page_browser = {}
-            changed = true
-        end
-        if cfg.reader_page_browser.layout == nil then
-            cfg.reader_page_browser.layout = legacy_layout
-            changed = true
-        end
-        g:delSetting("zen_page_browser_layout")
-        removed_legacy = true
-    end
-
     if removed_legacy then
         pcall(g.flush, g)
     end
 
     return cfg, (changed or removed_legacy)
+end
+
+local function migrate_legacy_substring_search(cfg)
+    local g = rawget(_G, "G_reader_settings")
+    if not g or type(cfg) ~= "table" then return cfg, false end
+
+    local legacy = g:readSetting("substring_search")
+    if legacy == nil then return cfg, false end
+
+    if type(cfg.search) ~= "table" then cfg.search = {} end
+    cfg.search.substring = legacy ~= false
+    g:delSetting("substring_search")
+    pcall(g.flush, g)
+    return cfg, true
 end
 
 local function migrate_legacy_updater_keys(cfg)
@@ -575,7 +633,7 @@ local function migrate_folder_cover_keys(cfg)
 
     if has_legacy then
         -- Existing user: override cover_mode from their legacy selection.
-        -- merged_with_defaults already ran so fbc.cover_mode is "gallery"; we must overwrite.
+        -- merged_with_defaults already ran, so the legacy value must overwrite it.
         -- New installs never have these keys so defaults.lua applies cleanly.
         if none_val then
             fbc.cover_mode = "none"
@@ -615,13 +673,16 @@ local function migrate_bim_folder_cover_keys(cfg)
     -- All BIM folder cover keys used BooleanSetting(default=true): get() = not BIM_value.
     -- Zen config stores the direct value, so: zen_value = BIM_value ~= true.
     local mappings = {
-        { bim = "folder_crop_custom_image", cfg = "crop_to_fit"      },
         { bim = "folder_name_centered",     cfg = "name_centered"     },
         { bim = "folder_name_show",         cfg = "show_folder_name"  },
         { bim = "folder_item_count_show",   cfg = "show_item_count"   },
         { bim = "folder_name_opaque",       cfg = "name_opaque"       },
         { bim = "folder_spine_lines_show",  cfg = "show_spine_lines"  },
     }
+    -- This old CoverBrowser option never affected Zen's renderer.
+    if bim:getSetting("folder_crop_custom_image") ~= nil then
+        pcall(bim.saveSetting, bim, "folder_crop_custom_image", nil)
+    end
     for _i, m in ipairs(mappings) do
         local bim_val = bim:getSetting(m.bim)
         if bim_val ~= nil then
@@ -691,8 +752,10 @@ end
 local function migrate_reader_preset_zen_settings()
     local store = PresetStore.loadStore("reader")
     local changed = false
-    for _name, preset in pairs(store.presets) do
-        local zen = type(preset) == "table" and preset.zen
+
+    local function migrate(preset)
+        if type(preset) ~= "table" then return end
+        local zen = preset.zen
         if type(zen) == "table" then
             if preset.verbose_chapter_time == nil and zen.verbose_chapter_time ~= nil then
                 preset.verbose_chapter_time = zen.verbose_chapter_time
@@ -705,6 +768,25 @@ local function migrate_reader_preset_zen_settings()
                 changed = true
             end
         end
+        if preset.verbose_chapter_time ~= nil then
+            if preset.chapter_time_format == nil then
+                preset.chapter_time_format = preset.verbose_chapter_time == true
+                    and "full" or "number"
+            end
+            preset.verbose_chapter_time = nil
+            changed = true
+        end
+        local format = preset.chapter_time_format
+        if format ~= nil and format ~= "full" and format ~= "compact" and format ~= "number"
+                and format ~= "koreader" then
+            preset.chapter_time_format = "number"
+            changed = true
+        end
+    end
+
+    migrate(store.settings)
+    for _name, preset in pairs(store.presets) do
+        migrate(preset)
     end
     return changed and PresetStore.saveStore("reader", store)
 end
@@ -725,22 +807,102 @@ local function migrate_reader_footer_backup(cfg)
     return true
 end
 
+local function migrate_page_browser_layout(cfg)
+    if type(cfg) ~= "table" then return false end
+
+    local store = PresetStore.loadStore("reader")
+    if type(store) ~= "table" then return false end
+    if type(store.settings) ~= "table" then store.settings = {} end
+
+    local changed = false
+    local layout = store.settings.page_browser_layout
+    if layout ~= "single" and layout ~= "grid" then
+        local legacy_config = type(cfg.reader_page_browser) == "table"
+            and cfg.reader_page_browser.layout
+        local g = rawget(_G, "G_reader_settings")
+        local legacy_global = g and g:readSetting("zen_page_browser_layout")
+        if legacy_config == "single" or legacy_config == "grid" then
+            layout = legacy_config
+        elseif legacy_global == "single" or legacy_global == "grid" then
+            layout = legacy_global
+        end
+        if layout == "single" or layout == "grid" then
+            store.settings.page_browser_layout = layout
+            PresetStore.saveStore("reader", store)
+            changed = true
+        end
+    end
+
+    if cfg.reader_page_browser ~= nil then
+        cfg.reader_page_browser = nil
+        changed = true
+    end
+
+    local g = rawget(_G, "G_reader_settings")
+    if g and g:readSetting("zen_page_browser_layout") ~= nil then
+        g:delSetting("zen_page_browser_layout")
+        pcall(g.flush, g)
+        changed = true
+    end
+
+    return changed
+end
+
 local function migrate_home_quote_font_size()
     local store = PresetStore.loadStore("home")
     local changed = false
 
     local function migrate(page)
         if type(page) ~= "table" then return end
+        if page.font_size ~= nil then
+            page.font_size = nil
+            changed = true
+        end
+        if page.font_size_override ~= nil then
+            page.font_size_override = nil
+            changed = true
+        end
         if type(page.quotes) ~= "table" then
             page.quotes = {}
             changed = true
         end
         local quotes = page.quotes
+        if type(quotes.sources) ~= "table" then
+            quotes.sources = { default = true }
+            changed = true
+        end
+        if quotes.rotation ~= "daily" and quotes.rotation ~= "refresh" then
+            quotes.rotation = "daily"
+            changed = true
+        end
+        if quotes.automatic_font_size ~= true and quotes.automatic_font_size ~= false then
+            quotes.automatic_font_size = true
+            changed = true
+        end
+        local max_font_size = tonumber(quotes.max_font_size)
+        local normalized_max_font_size = math.max(
+            4, math.min(32, math.floor((max_font_size or 14) + 0.5))
+        )
+        if quotes.max_font_size ~= normalized_max_font_size then
+            quotes.max_font_size = normalized_max_font_size
+            changed = true
+        end
+        if quotes.day_seed ~= nil then
+            quotes.day_seed = nil
+            changed = true
+        end
+        if quotes.manual_index ~= nil then
+            quotes.manual_index = nil
+            changed = true
+        end
         local font_size = tonumber(quotes.font_size)
-        if quotes.use_home_font_size ~= true
-                and (font_size == nil or (font_size == 18 and quotes.font_size_override ~= true)) then
+        if font_size == nil or (font_size == 18 and quotes.font_size_override ~= true) then
             quotes.font_size = 12
             quotes.font_size_override = nil
+            changed = true
+        end
+        if quotes.use_home_font_size ~= nil then
+            quotes.use_home_font_size = nil
             changed = true
         end
     end
@@ -749,6 +911,55 @@ local function migrate_home_quote_font_size()
     for _name, preset in pairs(store.presets) do
         local page = type(preset) == "table" and (preset.home_page or preset)
         migrate(page)
+    end
+    return changed and PresetStore.saveStore("home", store)
+end
+
+local function migrate_home_strip_config()
+    if type(HomePresets.normalizeStripConfig) ~= "function" then return false end
+    local store = PresetStore.loadStore("home")
+    local changed = HomePresets.normalizeStripConfig(store.settings)
+    local active_preset = type(store.settings) == "table"
+        and store.settings.active_preset or nil
+    if type(active_preset) ~= "string" or active_preset == "" then
+        active_preset = store.active_preset
+    end
+    local strip = type(store.settings) == "table"
+        and type(store.settings.modules) == "table"
+        and store.settings.modules.strip or nil
+    if (active_preset == HomePresets.DEFAULT_PRESET_NAME
+                or active_preset == HomePresets.BOOKSHELF_PRESET_NAME)
+            and type(strip) == "table"
+            and type(strip.controls) == "table"
+            and strip.controls.enabled ~= true then
+        strip.controls.enabled = true
+        changed = true
+    end
+    for _name, preset in pairs(store.presets) do
+        local page = type(preset) == "table" and (preset.home_page or preset)
+        if HomePresets.normalizeStripConfig(page) then changed = true end
+    end
+    return changed and PresetStore.saveStore("home", store)
+end
+
+local function migrate_home_featured_config()
+    if type(HomePresets.normalizeFeaturedConfig) ~= "function" then return false end
+    local store = PresetStore.loadStore("home")
+    local changed = HomePresets.normalizeFeaturedConfig(store.settings)
+    for _name, preset in pairs(store.presets) do
+        local page = type(preset) == "table" and (preset.home_page or preset)
+        if HomePresets.normalizeFeaturedConfig(page) then changed = true end
+    end
+    return changed and PresetStore.saveStore("home", store)
+end
+
+local function migrate_home_layout_grid()
+    if type(HomePresets.normalizeLayoutGrid) ~= "function" then return false end
+    local store = PresetStore.loadStore("home")
+    local changed = HomePresets.normalizeLayoutGrid(store.settings)
+    for _name, preset in pairs(store.presets) do
+        local page = type(preset) == "table" and (preset.home_page or preset)
+        if HomePresets.normalizeLayoutGrid(page) then changed = true end
     end
     return changed and PresetStore.saveStore("home", store)
 end
@@ -763,6 +974,15 @@ local function migrate_settings_files()
         changed = true
     end
     if migrate_home_quote_font_size() then
+        changed = true
+    end
+    if migrate_home_featured_config() then
+        changed = true
+    end
+    if migrate_home_strip_config() then
+        changed = true
+    end
+    if migrate_home_layout_grid() then
         changed = true
     end
     return changed
@@ -801,6 +1021,43 @@ local function migrate_changed_defaults(cfg)
         changed = true
     end
 
+    if cfg._meta.lookup_plugin_items_default_migrated ~= true then
+        if type(cfg.highlight_lookup) ~= "table" then
+            cfg.highlight_lookup = {}
+        end
+        cfg.highlight_lookup.show_xray = true
+        cfg.highlight_lookup.show_koassistant = true
+        cfg.highlight_lookup.show_ai_assistant = true
+        cfg._meta.lookup_plugin_items_default_migrated = true
+        changed = true
+    end
+
+    if cfg._meta.library_font_hyperreadable_default_migrated ~= true then
+        if type(cfg.library_font) ~= "table" then
+            cfg.library_font = {}
+        end
+        local font_face = cfg.library_font.font_face
+        if type(font_face) ~= "string" or font_face == "" or font_face == "default" then
+            cfg.library_font.font_face = defaults.library_font.font_face
+        end
+        cfg._meta.library_font_hyperreadable_default_migrated = true
+        changed = true
+    end
+    if type(cfg.library_font) == "table" then
+        local font_face = cfg.library_font.font_face
+        local portable_face = LibraryFontPath.toConfig(font_face)
+        if portable_face ~= font_face then
+            cfg.library_font.font_face = portable_face
+            changed = true
+        end
+    end
+    if type(cfg.library_font) == "table"
+            and not FontLanguage.supportsBundledFonts()
+            and cfg.library_font.font_face == HYPERREADABLE_LIBRARY_FONT then
+        cfg.library_font.font_face = "default"
+        changed = true
+    end
+
     -- One-time seed of home strip book titles from the mosaic "Show title below
     -- cover" setting. After this runs once, strip titles are user-owned and the
     -- mosaic setting no longer overrides them.
@@ -831,6 +1088,14 @@ end
 
 function M.load()
     local stored, migrated_file_config = load_raw_config()
+    local recovered_fresh_config = is_incomplete_fresh_config(stored)
+    if recovered_fresh_config then
+        stored._meta.quickstart_shown_for_version = false
+        stored._meta.quickstart_completed = false
+    end
+    local fresh_config = type(stored) ~= "table" or next(stored) == nil
+        or recovered_fresh_config
+    local migrated_brand_paths = migrate_brand_plugin_paths(stored)
     local migrated_home_lock = false
     local stored_hide_up = type(stored) == "table" and rawget(stored, "browser_hide_up_folder")
     if type(stored_hide_up) ~= "table" or stored_hide_up.lock_home_folder == nil then
@@ -858,27 +1123,45 @@ function M.load()
         end
     end
 
+    -- Older configs only tracked whether Quickstart had been shown. Treat a
+    -- previously shown guide as completed so reruns preserve reader settings.
+    local migrated_qs_completion = false
+    if type(stored) == "table" and next(stored) ~= nil then
+        local m = rawget(stored, "_meta")
+        if type(m) == "table" and m.quickstart_completed == nil then
+            m.quickstart_completed = m.quickstart_shown_for_version ~= false
+            migrated_qs_completion = true
+        end
+    end
+
     local migrated_rakuyomi = migrate_legacy_rakuyomi_keys(stored)
     local cfg = merged_with_defaults(stored)
     local migrated_renamed
     cfg, migrated_renamed = normalize_renamed_keys(cfg)
-    local migrated_group, migrated_updater, migrated_folder_paths, migrated_fbc, migrated_bim
+    local migrated_group, migrated_substring, migrated_updater, migrated_folder_paths, migrated_fbc, migrated_bim
     cfg, migrated_group   = migrate_legacy_group_view_keys(cfg)
+    cfg, migrated_substring = migrate_legacy_substring_search(cfg)
     cfg, migrated_updater = migrate_legacy_updater_keys(cfg)
     cfg, migrated_folder_paths = migrate_folder_path_settings(cfg)
     cfg, migrated_fbc     = migrate_folder_cover_keys(cfg)
     cfg, migrated_bim     = migrate_bim_folder_cover_keys(cfg)
     local migrated_reader_backup = migrate_reader_footer_backup(cfg)
     local migrated_settings_files = migrate_settings_files()
+    local migrated_page_browser = migrate_page_browser_layout(cfg)
     load_reader_theme_settings(cfg)
     local migrated_reader_presets = migrate_reader_preset_zen_settings()
     local migrated_changed_defaults
     cfg, migrated_changed_defaults = migrate_changed_defaults(cfg)
-    if migrated_renamed or migrated_group or migrated_updater or migrated_fbc or migrated_bim
-            or migrated_reader_backup or migrated_qs or migrated_file_config
+    local initialized_brand_marker = fresh_config
+        and plugin_root:match("/" .. BrandMigration.PLUGIN_DIR .. "$") ~= nil
+        and BrandMigration.markConfigMigrationComplete(cfg)
+    if migrated_renamed or migrated_group or migrated_substring or migrated_updater or migrated_fbc or migrated_bim
+            or migrated_reader_backup or migrated_qs or migrated_qs_completion or migrated_file_config
             or migrated_settings_files or migrated_reader_presets
             or migrated_changed_defaults or migrated_home_lock
-            or migrated_folder_paths or migrated_rakuyomi then
+            or migrated_folder_paths or migrated_rakuyomi or migrated_page_browser
+            or migrated_brand_paths or initialized_brand_marker
+            or recovered_fresh_config then
         M.save(cfg)
     end
     if migrated_file_config then

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: zen-ui 0.1.0\n"
+"Project-Id-Version: zenos 3.0.0\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -14,6 +14,9 @@ msgstr "%1 (%2)"
 
 msgid "%1 mins left in chapter"
 msgstr "%1 phút còn lại trong chương"
+
+msgid "%1, %2 %3"
+msgstr "%1, ngày %3 %2"
 
 msgid "%d%% Read"
 msgstr "%d%% Đã đọc"
@@ -84,8 +87,11 @@ msgstr "90°"
 msgid "< 1 min left in chapter"
 msgstr "< 1 phút còn lại trong chương"
 
-msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
-msgstr "Giao diện tối giản, gọn gàng và đơn giản cho máy đọc sách của bạn.\n\nVuốt hoặc chạm Tiếp để tiếp tục."
+msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
+msgstr "Một trải nghiệm rõ ràng, tối giản cho thiết bị đọc sách điện tử của bạn.\n\nVuốt hoặc nhấn Tiếp theo để tiếp tục."
+
+msgid "A launcher button has been added for ZenPM."
+msgstr "Nút khởi chạy đã được thêm cho ZenPM."
 
 msgid "A short summary of what went wrong"
 msgstr "Tóm tắt ngắn gọn về những gì đã xảy ra sai"
@@ -120,6 +126,9 @@ msgstr "Thêm"
 msgid "Add action"
 msgstr "Thêm hành động"
 
+msgid "Add at least one quote to settings/ZenOS/quotes.lua to enable this source."
+msgstr "Thêm ít nhất một trích dẫn vào settings/ZenOS/quotes.lua để kích hoạt nguồn này."
+
 msgid "Add book"
 msgstr "Thêm sách"
 
@@ -137,6 +146,9 @@ msgstr "Thêm nút tùy chỉnh cho các plugin hoặc hành động khác."
 
 msgid "Add folder…"
 msgstr "Thêm thư mục…"
+
+msgid "Add KOReader menu"
+msgstr "Thêm menu KOReader"
 
 msgid "Add plugin"
 msgstr "Thêm plugin"
@@ -159,17 +171,17 @@ msgstr "Alexandre Dumas"
 msgid "All"
 msgstr "Tất cả"
 
-msgid "All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall Zen UI updates directly from your device."
-msgstr "Tất cả cài đặt nằm trong một tab hợp nhất. Biểu tượng có dấu chấm này cho biết có bản cập nhật.\n\nCài đặt các bản cập nhật Zen UI trực tiếp từ thiết bị của bạn."
+msgid "All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall ZenOS updates directly from your device."
+msgstr "Tất cả cài đặt nằm trong một tab hợp nhất. Biểu tượng có dấu chấm này cho biết có bản cập nhật.\n\nCài đặt các bản cập nhật ZenOS trực tiếp từ thiết bị của bạn."
 
-msgid "All Time"
-msgstr "Tất cả thời gian"
+msgid "All tags"
+msgstr "Tất cả các thẻ"
 
 msgid "All time"
 msgstr "Mọi lúc"
 
-msgid "Allow custom icons"
-msgstr "Cho phép biểu tượng tùy chỉnh"
+msgid "All Time"
+msgstr "Tất cả thời gian"
 
 msgid "Allow delete"
 msgstr "Cho phép xóa"
@@ -180,6 +192,9 @@ msgstr "Hổ phách"
 msgid "An item with that name already exists."
 msgstr "Một mục với tên đó đã tồn tại."
 
+msgid "Annotations"
+msgstr "Chú thích"
+
 msgid "App"
 msgstr "Ứng dụng"
 
@@ -188,6 +203,9 @@ msgstr "Áp dụng"
 
 msgid "Are you sure you want to exit KOReader?"
 msgstr "Bạn có chắc chắn muốn thoát KOReader?"
+
+msgid "Are you sure you want to install the ZenPM plugin?"
+msgstr "Bạn có chắc chắn muốn cài đặt plugin ZenPM không?"
 
 msgid "Are you sure you want to quit KOReader?"
 msgstr "Bạn có chắc chắn muốn thoát KOReader?"
@@ -222,6 +240,12 @@ msgstr "Tác giả"
 msgid "authors"
 msgstr "tác giả"
 
+msgid "Automatic"
+msgstr "Tự động"
+
+msgid "Automatic font size"
+msgstr "Cỡ chữ tự động"
+
 msgid "Automatic suspend"
 msgstr "Tạm tự động"
 
@@ -230,6 +254,9 @@ msgstr "Quay lại"
 
 msgid "Background"
 msgstr "Nền"
+
+msgid "Background color"
+msgstr "Màu nền"
 
 msgid "Background image could not be loaded. It may be corrupt or unsupported."
 msgstr "Không thể tải ảnh nền. Ảnh có thể bị hỏng hoặc không được hỗ trợ."
@@ -282,17 +309,17 @@ msgstr "Đen"
 msgid "Blue"
 msgstr "Xanh dương"
 
-msgid "bold"
-msgstr "đậm"
+msgid "Bluetooth"
+msgstr "Bluetooth"
 
 msgid "Bold"
 msgstr "In đậm"
 
+msgid "bold"
+msgstr "đậm"
+
 msgid "Bold text"
 msgstr "Văn bản in đậm"
-
-msgid "book"
-msgstr "sách"
 
 msgid "Book"
 msgstr "Sách"
@@ -300,11 +327,20 @@ msgstr "Sách"
 msgid "Book added to download list"
 msgstr "Sách đã được thêm vào danh sách tải xuống"
 
+msgid "Book details"
+msgstr "Chi tiết sách"
+
 msgid "Book information"
 msgstr "Thông tin sách"
 
 msgid "Book Status"
 msgstr "Trạng thái sách"
+
+msgid "Book strip"
+msgstr "Dải sách"
+
+msgid "Book switcher"
+msgstr "Trình chuyển đổi sách"
 
 msgid "Book title"
 msgstr "Tên sách"
@@ -315,20 +351,14 @@ msgstr "Tên sách"
 msgid "Book: "
 msgstr "Sách: "
 
-msgid "Books"
-msgstr "Sách"
-
 msgid "books"
 msgstr "sách"
 
+msgid "Books"
+msgstr "Sách"
+
 msgid "Books read"
 msgstr "Sách đã đọc"
-
-msgid "Books shown"
-msgstr "Sách hiển thị"
-
-msgid "Books shown: "
-msgstr "Sách hiển thị: "
 
 msgid "Books tab label"
 msgstr "Nhãn tab Sách"
@@ -345,9 +375,6 @@ msgstr "Mô tả ngắn gọn về lỗi"
 msgid "Brightness"
 msgstr "Độ sáng"
 
-msgid "Brightness schedule"
-msgstr "Lịch độ sáng"
-
 msgid "Bug description (optional)"
 msgstr "Mô tả lỗi (tùy chọn)"
 
@@ -359,6 +386,9 @@ msgstr "Tiêu đề báo cáo lỗi"
 
 msgid "Buttons"
 msgstr "Nút bấm"
+
+msgid "By %1"
+msgstr "Bởi %1"
 
 msgid "Calendar"
 msgstr "Lịch"
@@ -390,9 +420,6 @@ msgstr "Căn giữa sách"
 msgid "Center items"
 msgstr "Các mục ở trung tâm"
 
-msgid "Centered Pages"
-msgstr "Trang được căn giữa"
-
 msgid "Change folder"
 msgstr "Thay đổi thư mục"
 
@@ -401,12 +428,6 @@ msgstr "Nhật ký thay đổi"
 
 msgid "Chapter"
 msgstr "Chương"
-
-msgid "Chapter Time + %"
-msgstr "Thời gian chương + %"
-
-msgid "Update Zen UI"
-msgstr "Cập nhật Zen UI"
 
 msgid "Check for updates automatically"
 msgstr "Tự động kiểm tra cập nhật"
@@ -420,20 +441,23 @@ msgstr "Cờ vua"
 msgid "Choose a different folder"
 msgstr "Chọn một thư mục khác"
 
-msgid "Choose a preset for your reading progress bar."
-msgstr "Chọn một cài đặt trước cho thanh tiến trình đọc của bạn."
-
 msgid "Choose control"
 msgstr "Chọn điều khiển"
 
 msgid "Choose item"
 msgstr "Chọn mục"
 
+msgid "Choose KOReader menu"
+msgstr "Chọn menu KOReader"
+
 msgid "Choose plugin menu"
 msgstr "Chọn menu plugin"
 
 msgid "Choose tab"
 msgstr "Chọn tab"
+
+msgid "Choose tag"
+msgstr "Chọn thẻ"
 
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 msgstr "Chọn các tab nào xuất hiện trong thanh điều hướng của bạn.\nBạn có thể sắp xếp hoặc điều chỉnh những tab này bất kỳ lúc nào trong Cài đặt."
@@ -451,9 +475,6 @@ msgid "Clear all gestures"
 msgstr "Xóa tất cả cử chỉ"
 
 msgid "Clear book"
-msgstr "Xóa sách"
-
-msgid "Clear books"
 msgstr "Xóa sách"
 
 msgid "Close"
@@ -486,6 +507,9 @@ msgstr "Kết nối thư mục"
 msgid "Connections"
 msgstr "Kết nối"
 
+msgid "Content: "
+msgstr "Nội dung: "
+
 msgid "Context Menu"
 msgstr "Menu ngữ cảnh"
 
@@ -510,8 +534,17 @@ msgstr "Sao chép"
 msgid "Could not determine update status."
 msgstr "Không thể xác định trạng thái cập nhật."
 
+msgid "Could not find a ZenPM release."
+msgstr "Không thể tìm thấy bản phát hành ZenPM."
+
 msgid "Could not get release from update server."
 msgstr "Không thể lấy bản phát hành từ máy chủ cập nhật."
+
+msgid "Could not install %1: %2"
+msgstr "Không thể cài đặt %1: %2"
+
+msgid "Could not install ZenPM."
+msgstr "Không thể cài đặt ZenPM."
 
 msgid "Could not reach update server."
 msgstr "Không thể kết nối tới máy chủ cập nhật."
@@ -543,11 +576,11 @@ msgstr "Đố chữ"
 msgid "Current / total pages"
 msgstr "Trang hiện tại / tổng số"
 
-msgid "Current Book"
-msgstr "Sách hiện tại"
-
 msgid "Current book"
 msgstr "Cuốn sách hiện tại"
+
+msgid "Current Book"
+msgstr "Sách hiện tại"
 
 msgid "Current home folder:"
 msgstr "Thư mục home hiện tại:"
@@ -561,11 +594,20 @@ msgstr "Trang hiện tại/tổng"
 msgid "Custom"
 msgstr "Tùy chỉnh"
 
+msgid "Custom books"
+msgstr "Sách tùy chỉnh"
+
 msgid "Custom button label"
 msgstr "Nhãn nút tùy chỉnh"
 
-msgid "Custom featured widget"
-msgstr "Widget nổi bật tùy chỉnh"
+msgid "Custom icon pack: %1"
+msgstr "Gói biểu tượng tùy chỉnh: %1"
+
+msgid "Custom icons"
+msgstr "Biểu tượng tùy chỉnh"
+
+msgid "Custom quotes"
+msgstr "Báo giá tùy chỉnh"
 
 msgid "Custom RGB"
 msgstr "RGB tùy chỉnh"
@@ -585,11 +627,14 @@ msgstr "Văn bản tùy chỉnh"
 msgid "Custom text: "
 msgstr "Văn bản tùy chỉnh: "
 
+msgid "Custom theme"
+msgstr "Chủ đề tùy chỉnh"
+
+msgid "Custom themes"
+msgstr "Chủ đề tùy chỉnh"
+
 msgid "Custom: "
 msgstr "Tùy chỉnh: "
-
-msgid "Customizable top status bar and bottom progress bar."
-msgstr "Thanh trạng thái trên cùng và thanh tiến trình dưới cùng có thể tùy chỉnh."
 
 msgid "Customize widget"
 msgstr "Tùy chỉnh tiện ích"
@@ -603,8 +648,20 @@ msgstr "Xoay vòng"
 msgid "Daily"
 msgstr "Hằng ngày"
 
+msgid "Dark graphite"
+msgstr "Than chì tối"
+
+msgid "Dark mode"
+msgstr "Chế độ tối"
+
+msgid "Dark warm gray"
+msgstr "Màu xám đậm ấm áp"
+
 msgid "Date"
 msgstr "Ngày"
+
+msgid "Date/time"
+msgstr "Ngày/giờ"
 
 msgid "Day brightness"
 msgstr "Độ sáng ban ngày"
@@ -639,17 +696,20 @@ msgstr "Ghi nhật ký gỡ lỗi"
 msgid "Debug logging must be enabled to submit bug reports."
 msgstr "Ghi nhật ký gỡ lỗi phải được bật để gửi báo cáo lỗi."
 
-msgid "Default"
-msgstr "Mặc định"
-
 msgid "default"
 msgstr "mặc định"
+
+msgid "Default"
+msgstr "Mặc định"
 
 msgid "Default (black)"
 msgstr "Mặc định (đen)"
 
 msgid "Default font size:"
 msgstr "Cỡ chữ mặc định:"
+
+msgid "Default quotes"
+msgstr "Dấu ngoặc kép mặc định"
 
 msgid "Default tab: "
 msgstr "Tab mặc định: "
@@ -669,11 +729,17 @@ msgstr "Xóa danh mục OPDS?"
 msgid "Delete preset?"
 msgstr "Xóa cài đặt trước?"
 
+msgid "Delete theme"
+msgstr "Xóa chủ đề"
+
 msgid "Delete this button?"
 msgstr "Xóa nút này?"
 
 msgid "Delete this control?"
 msgstr "Xóa điều khiển này?"
+
+msgid "Delete this custom theme?"
+msgstr "Xóa chủ đề tùy chỉnh này?"
 
 msgid "Delete this folder and its buttons?"
 msgstr "Xóa thư mục này và các nút của nó?"
@@ -732,6 +798,9 @@ msgstr "Vô hiệu hóa tìm kiếm từ khi giữ"
 msgid "Disable zen mode to access default KOReader menus."
 msgstr "Tắt chế độ Zen để truy cập các menu KOReader mặc định."
 
+msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
+msgstr "Tắt Chế độ Zen bằng biểu tượng này để điều chỉnh cài đặt KOReader không có trong Cài đặt Zen."
+
 msgid "Disk space"
 msgstr "Dung lượng đĩa"
 
@@ -756,6 +825,9 @@ msgstr "Chấm"
 msgid "Download"
 msgstr "Tải xuống"
 
+msgid "Download and install the Zen Package Manager for this device."
+msgstr "Tải xuống và cài đặt Trình quản lý gói Zen cho thiết bị này."
+
 msgid "Download failed: "
 msgstr "Tải xuống thất bại: "
 
@@ -765,11 +837,17 @@ msgstr "Đã tải xuống"
 msgid "Downloading"
 msgstr "Đang tải xuống"
 
+msgid "Downloading ZenPM"
+msgstr "Đang tải xuống ZenPM"
+
 msgid "Dynamic filler 2"
 msgstr "Phần đệm động 2"
 
 msgid "Edit"
 msgstr "Chỉnh sửa"
+
+msgid "Edit mode"
+msgstr "Chế độ chỉnh sửa"
 
 msgid "Enable"
 msgstr "Bật"
@@ -783,6 +861,9 @@ msgstr "Bật vuốt từ dưới lên"
 msgid "Enable brightness schedule"
 msgstr "Bên lịch độ sáng"
 
+msgid "Enable custom icons"
+msgstr "Bật biểu tượng tùy chỉnh"
+
 msgid "Enable custom status bar"
 msgstr "Bên thanh trạng thái tùy chỉnh"
 
@@ -792,8 +873,8 @@ msgstr "Bên ghi gỡ lỗi chi tiết KOReader. Nhật ký được ghi vào ko
 msgid "Enable night mode schedule"
 msgstr "Bên lịch chế độ ban đêm"
 
-msgid "Enable page browser"
-msgstr "Bật trình duyệt trang"
+msgid "Enable reader themes"
+msgstr "Bật chủ đề trình đọc"
 
 msgid "Enable top status bar"
 msgstr "Bật thanh trạng thái trên"
@@ -804,8 +885,8 @@ msgstr "Bật lịch trình ấm áp"
 msgid "Enable Zen OPDS"
 msgstr "Bật Zen OPDS"
 
-msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
-msgstr "Bật cải tiến giao diện Zen cho trình duyệt OPDS: ảnh bìa, chế độ xem danh sách, menu giữ, và cải tiến điều hướng."
+msgid "Enable ZenOS enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
+msgstr "Bật cải tiến ZenOS cho trình duyệt OPDS: ảnh bìa, chế độ xem danh sách, menu giữ, và cải tiến điều hướng."
 
 msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
 msgstr "Bật ghi nhật ký gỡ lỗi, yêu cầu khởi động lại. Vui lòng tái tạo sự cố, sau đó gửi báo cáo."
@@ -834,8 +915,14 @@ msgstr "Không thể gửi báo cáo: "
 msgid "Favorites"
 msgstr "Yêu thích"
 
+msgid "Featured book"
+msgstr "Sách nổi bật"
+
 msgid "Featured widgets"
 msgstr "Widget nổi bật"
+
+msgid "File browser settings"
+msgstr "Cài đặt trình duyệt tệp"
 
 msgid "File search"
 msgstr "Tìm kiếm tệp"
@@ -846,14 +933,14 @@ msgstr "Filebrowser"
 msgid "Filebrowser plugin is not installed."
 msgstr "Plugin Filebrowser chưa được cài đặt."
 
+msgid "Filename:"
+msgstr "Tên tập tin:"
+
 msgid "Filter"
 msgstr "Lọc"
 
 msgid "Filter by status"
 msgstr "Lọc theo trạng thái"
-
-msgid "Finish"
-msgstr "Hoàn tất"
 
 msgid "Finished"
 msgstr "Hoàn thành"
@@ -888,11 +975,11 @@ msgstr "Cài đặt trước thư mục"
 msgid "Folders"
 msgstr "Thư mục"
 
-msgid "Font"
-msgstr "Phông chữ"
-
 msgid "font"
 msgstr "phông chữ"
+
+msgid "Font"
+msgstr "Phông chữ"
 
 msgid "font size"
 msgstr "cỡ chữ"
@@ -903,6 +990,9 @@ msgstr "Cỡ chữ"
 msgid "Font size:"
 msgstr "Kích cỡ chữ:"
 
+msgid "Font, margins, contrast, line spacing etc - tested together for the best reading experience"
+msgstr "Phông chữ, lề, độ tương phản, khoảng cách dòng, v.v. - được thử nghiệm cùng nhau để có trải nghiệm đọc tốt nhất"
+
 msgid "Font:"
 msgstr "Phông chữ:"
 
@@ -912,6 +1002,9 @@ msgstr "Đồng bộ hóa bắt buộc"
 msgid "Force sync all catalogs"
 msgstr "Đồng bộ hóa bắt buộc tất cả danh mục"
 
+msgid "Format:"
+msgstr "Định dạng:"
+
 msgid "Format: R,G,B (0-255)"
 msgstr "Định dạng: R,G,B (0-255)"
 
@@ -920,9 +1013,6 @@ msgstr "Đèn trước"
 
 msgid "Gallery"
 msgstr "Thư viện ảnh"
-
-msgid "Gallery view (4-grid)"
-msgstr "Chế độ thư viện (lưới 4)"
 
 msgid "Get Started"
 msgstr "Bắt đầu"
@@ -966,11 +1056,11 @@ msgstr "Ẩn trong tệp CBZ/PDF"
 msgid "Hide list borders"
 msgstr "Ẩn viền danh sách"
 
+msgid "Hide on-hold books"
+msgstr "Ẩn sách đang tạm dừng"
+
 msgid "Hide reader actions in library"
 msgstr "Ẩn hành động đọc trong thư viện"
-
-msgid "Hide TBR books"
-msgstr "Ẩn sách cần đọc"
 
 msgid "Hide unread books"
 msgstr "Ẩn sách chưa đọc"
@@ -984,17 +1074,11 @@ msgstr "Đánh dấu / Tìm kiếm"
 msgid "History"
 msgstr "Lịch sử"
 
-msgid "Hold to arrange"
-msgstr "Giữ để sắp xếp"
-
 msgid "Hold to skip"
 msgstr "Giữ để bỏ qua"
 
 msgid "Home"
 msgstr "Trang chủ"
-
-msgid "Home default font size"
-msgstr "Kích thước phông chữ mặc định của trang chủ"
 
 msgid "Home Folder"
 msgstr "Thư mục Trang chủ"
@@ -1004,6 +1088,9 @@ msgstr "Thư mục nhà"
 
 msgid "Home page preset"
 msgstr "Mẫu bảng điều khiển"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "Khoảng cách trên màn hình chính đã được cập nhật. Thứ tự và lựa chọn tiện ích đã lưu được giữ nguyên và điều chỉnh theo lưới mới."
 
 msgid "Home tab label"
 msgstr "Nhãn tab Trang chủ"
@@ -1041,8 +1128,20 @@ msgstr "Đã tắt chế độ ẩn danh"
 msgid "Incognito mode enabled"
 msgstr "Đã bật chế độ ẩn danh"
 
+msgid "Incognito mode timed out"
+msgstr "Chế độ ẩn danh đã hết thời gian chờ"
+
+msgid "Incompatible plugins and patches have been disabled:"
+msgstr "Các plugin và bản vá không tương thích đã bị vô hiệu hóa:"
+
 msgid "Incompatible plugins have been disabled:"
 msgstr "Các plugin không tương thích đã bị vô hiệu hóa:"
+
+msgid "Install"
+msgstr "Cài đặt"
+
+msgid "Install ZenPM"
+msgstr "Cài đặt ZenPM"
 
 msgid "Installed version is newer than the latest release."
 msgstr "Phiên bản đã cài mới hơn bản phát hành mới nhất."
@@ -1050,17 +1149,29 @@ msgstr "Phiên bản đã cài mới hơn bản phát hành mới nhất."
 msgid "Installing"
 msgstr "Đang cài đặt"
 
+msgid "Installing ZenPM"
+msgstr "Cài đặt ZenPM"
+
 msgid "Interactive"
 msgstr "Tương tác"
 
-msgid "Items per page"
-msgstr "Mục mỗi trang"
+msgid "IP address: %1"
+msgstr "Địa chỉ IP: %1"
 
 msgid "items per page"
 msgstr "mục mỗi trang"
 
+msgid "Items per page"
+msgstr "Mục mỗi trang"
+
 msgid "Keep existing settings"
 msgstr "Giữ cài đặt hiện có"
+
+msgid "KOReader menu"
+msgstr "Trình đơn KOReader"
+
+msgid "KOReader menu: %1"
+msgstr "Menu KOReader: %1"
 
 msgid "KOReader: "
 msgstr "KOReader: "
@@ -1119,6 +1230,9 @@ msgstr "Các mục còn lại"
 msgid "Library"
 msgstr "Thư viện"
 
+msgid "Library background was disabled because the image file was not found."
+msgstr "Nền thư viện đã bị tắt vì không tìm thấy tệp hình ảnh."
+
 msgid "Library font"
 msgstr "Phông chữ thư viện"
 
@@ -1130,6 +1244,15 @@ msgstr "Xem thư viện"
 
 msgid "Light"
 msgstr "Sáng"
+
+msgid "Light mode"
+msgstr "Chế độ ánh sáng"
+
+msgid "Light sepia"
+msgstr "Màu nâu đỏ nhạt"
+
+msgid "Light tan"
+msgstr "rám nắng nhẹ"
 
 msgid "List"
 msgstr "Danh sách"
@@ -1164,8 +1287,17 @@ msgstr "Khóa chặt"
 msgid "Lockdown mode"
 msgstr "Chế độ khóa chặt"
 
+msgid "Loose icons"
+msgstr "Biểu tượng lỏng lẻo"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Biểu tượng lỏng lẻo trong /koreader/icons"
+
 msgid "Magnify UI"
 msgstr "Phóng to UI"
+
+msgid "Main menu"
+msgstr "Thực đơn chính"
 
 msgid "Manga"
 msgstr "Manga"
@@ -1173,17 +1305,29 @@ msgstr "Manga"
 msgid "Manga folder not found: "
 msgstr "Thư mục Manga không tìm thấy: "
 
+msgid "Manually download and sideload %1 from the same ZenPM release."
+msgstr "Tải xuống và tải xuống thủ công %1 từ cùng một bản phát hành ZenPM."
+
 msgid "Match whole words"
 msgstr "Khớp cả từ"
 
-msgid "Maximum 5 widgets allowed"
-msgstr "Cho phép tối đa 5 widget"
+msgid "Max books shown"
+msgstr "Số sách hiển thị tối đa"
+
+msgid "Max books shown: "
+msgstr "Số sách hiển thị tối đa: "
 
 msgid "Maximum 7 tabs allowed"
 msgstr "Cho phép tối đa 7 tab"
 
 msgid "Maximum 9 buttons allowed"
 msgstr "Cho phép tối đa 9 nút bấm"
+
+msgid "Maximum font size:"
+msgstr "Cỡ chữ tối đa:"
+
+msgid "Maximum quote font size"
+msgstr "Kích thước phông chữ trích dẫn tối đa"
 
 msgid "Menu"
 msgstr "Menu"
@@ -1203,6 +1347,9 @@ msgstr "Phút"
 msgid "minutes"
 msgstr "phút"
 
+msgid "Missing: %1"
+msgstr "Thiếu: %1"
+
 msgid "Monthly"
 msgstr "hàng tháng"
 
@@ -1214,9 +1361,6 @@ msgstr "Mosaic"
 
 msgid "Mosaic - large cover thumbnails"
 msgstr "Mosaic - ảnh bìa lớn"
-
-msgid "Mosaic and detailed list settings"
-msgstr "Cài đặt hình ghép và danh sách chi tiết"
 
 msgid "Mosaic with cover images"
 msgstr "Hình ghép với ảnh bìa"
@@ -1251,6 +1395,9 @@ msgstr "Kích thước nhãn thanh điều hướng"
 msgid "Navbar Tabs"
 msgstr "Tab thanh điều hướng"
 
+msgid "Navigation"
+msgstr "Điều hướng"
+
 msgid "Network unavailable."
 msgstr "Mạng không khả dụng."
 
@@ -1260,11 +1407,17 @@ msgstr "Mới"
 msgid "New collection"
 msgstr "Bộ sưu tập mới"
 
+msgid "New custom theme"
+msgstr "Chủ đề tùy chỉnh mới"
+
 msgid "New folder"
 msgstr "Thư mục mới"
 
 msgid "New includes unread books and books modified since they were last opened."
 msgstr "Mục Mới bao gồm sách chưa đọc và sách đã thay đổi kể từ lần mở gần nhất."
+
+msgid "New quote"
+msgstr "Báo giá mới"
 
 msgid "News"
 msgstr "Tin tức"
@@ -1329,6 +1482,12 @@ msgstr "Chưa chọn ảnh nền."
 msgid "No books found"
 msgstr "Không tìm thấy sách"
 
+msgid "No books found in the selected folder"
+msgstr "Không tìm thấy sách nào trong thư mục đã chọn"
+
+msgid "No books to switch to"
+msgstr "Không có sách để chuyển sang"
+
 msgid "No books with author metadata found"
 msgstr "Không tìm thấy sách có siêu dữ liệu tác giả"
 
@@ -1347,11 +1506,17 @@ msgstr "Không có nhật ký thay đổi."
 msgid "No description."
 msgstr "Không mô tả."
 
+msgid "No KOReader submenus found"
+msgstr "Không tìm thấy menu con KOReader"
+
 msgid "No launchable plugin menus found"
 msgstr "Không tìm thấy menu plugin nào có thể khởi chạy"
 
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Không có kết nối mạng. Vui lòng kết nối Wi-Fi và thử lại."
+
+msgid "No quote available."
+msgstr "Không có trích dẫn nào."
 
 msgid "No reader engine for this file or invalid file."
 msgstr "Không có trình đọc cho tệp này hoặc tệp không hợp lệ."
@@ -1362,8 +1527,17 @@ msgstr "Không đọc dữ liệu"
 msgid "No table of contents available."
 msgstr "Không có mục lục."
 
+msgid "No tags found"
+msgstr "Không tìm thấy thẻ nào"
+
+msgid "No TBR books found"
+msgstr "Không tìm thấy sách TBR"
+
 msgid "No update asset found."
 msgstr "Không tìm thấy tài sản cập nhật."
+
+msgid "No ZenPM package is available for this device."
+msgstr "Không có gói ZenPM nào có sẵn cho thiết bị này."
 
 msgid "None"
 msgstr "Không có"
@@ -1373,6 +1547,9 @@ msgstr "Không có (chỉ tên thư mục)"
 
 msgid "Normal"
 msgstr "Bình thường"
+
+msgid "Not enough Home space: %1/%2 units used; this widget needs %3."
+msgstr "Không đủ Không gian trong nhà: đã sử dụng các đơn vị %1/%2; tiện ích này cần %3."
 
 msgid "Nothing"
 msgstr "Không có gì"
@@ -1392,14 +1569,26 @@ msgstr "OK"
 msgid "On"
 msgstr "Bật"
 
+msgid "On hold"
+msgstr "Đang chờ"
+
+msgid "On Home refresh"
+msgstr "Khi làm mới trang chủ"
+
 msgid "Only in Zen mode"
 msgstr "Chỉ trong chế độ Zen"
+
+msgid "Only show while reading"
+msgstr "Chỉ hiển thị khi đang đọc"
 
 msgid "Opaque background"
 msgstr "Nền đục"
 
 msgid "OPDS"
 msgstr "OPDS"
+
+msgid "Open"
+msgstr "Mở"
 
 msgid "Open folder"
 msgstr "Mở thư mục"
@@ -1419,6 +1608,12 @@ msgstr "Mở Rakuyomi"
 msgid "Open RSS Reader"
 msgstr "Mở trình đọc RSS"
 
+msgid "Open this file?"
+msgstr "Mở tập tin này?"
+
+msgid "Open with…"
+msgstr "Mở bằng…"
+
 msgid "Opening"
 msgstr "Mở"
 
@@ -1430,6 +1625,9 @@ msgstr "phác thảo"
 
 msgid "Outlined boxes"
 msgstr "Hộp có viền"
+
+msgid "p."
+msgstr "P."
 
 msgid "Page %1 of %2"
 msgstr "Trang %1 / %2"
@@ -1455,12 +1653,6 @@ msgstr "trang"
 msgid "Pages"
 msgstr "Trang"
 
-msgid "Pages + Chapter Time + %"
-msgstr "Trang + Thời lượng chương + %"
-
-msgid "Pages and %"
-msgstr "Trang và %"
-
 msgid "Pages read"
 msgstr "Trang đã đọc"
 
@@ -1479,14 +1671,20 @@ msgstr "Làm mới một phần trang"
 msgid "Paste"
 msgstr "Dán"
 
+msgid "Paste selected files"
+msgstr "Dán các tập tin đã chọn"
+
 msgid "Percent"
 msgstr "Phần trăm"
+
+msgid "Personal records"
+msgstr "Hồ sơ cá nhân"
 
 msgid "Personal Records"
 msgstr "Bản ghi cá nhân"
 
-msgid "Personal records"
-msgstr "Hồ sơ cá nhân"
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Đặt các thư mục gói hoặc tệp ZIP vào /koreader/icons/zen. Các tập tin ZIP được cài đặt tự động."
 
 msgid "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
 msgstr "Vui lòng xóa plugin Project: Title từ thư mục plugins của bạn và khởi động lại KOReader."
@@ -1496,6 +1694,9 @@ msgstr "Plugin"
 
 msgid "Plugin management"
 msgstr "Quản lý plugin"
+
+msgid "Plugin Menu"
+msgstr "Trình đơn bổ trợ"
 
 msgid "Plugin: %1"
 msgstr "Plugin: %1"
@@ -1533,8 +1734,8 @@ msgstr "Thanh tiến độ"
 msgid "Progress labels"
 msgstr "Nhãn tiến độ"
 
-msgid "Project: Title is not compatible with Zen UI."
-msgstr "Dự án: Tiêu đề không tương thích với Zen UI."
+msgid "Project: Title is not compatible with ZenOS."
+msgstr "Dự án: Tiêu đề không tương thích với ZenOS."
 
 msgid "Puzzle"
 msgstr "Đốm"
@@ -1560,8 +1761,14 @@ msgstr "Thoát KOReader"
 msgid "Quote font size"
 msgstr "Cỡ chữ trích dẫn"
 
-msgid "Quotes widget"
-msgstr "Widget trích dẫn"
+msgid "Quote sources"
+msgstr "Nguồn trích dẫn"
+
+msgid "Quotes"
+msgstr "Trích dẫn"
+
+msgid "quotes.lua is empty"
+msgstr "quote.lua trống"
 
 msgid "Rakuyomi"
 msgstr "Rakuyomi"
@@ -1590,8 +1797,8 @@ msgstr "Đọc hôm nay"
 msgid "Reader"
 msgstr "Trình đọc"
 
-msgid "Reader Progress"
-msgstr "Tiến trình đọc"
+msgid "Reader themes"
+msgstr "Chủ đề độc giả"
 
 msgid "Reading"
 msgstr "Đang đọc"
@@ -1605,23 +1812,26 @@ msgstr "Lịch đọc sách"
 msgid "Reading goals"
 msgstr "Mục tiêu đọc"
 
-msgid "Reading stats widget"
-msgstr "Widget thống kê đọc"
+msgid "Reading goals font size"
+msgstr "Kích thước phông chữ mục tiêu đọc"
 
-msgid "Reading Trend"
-msgstr "Xu hướng đọc"
+msgid "Reading stats"
+msgstr "Thống kê đọc"
 
 msgid "Reading trend"
 msgstr "Xu hướng đọc"
 
-msgid "Rebooting"
-msgstr "Đang khởi động lại"
+msgid "Reading Trend"
+msgstr "Xu hướng đọc"
+
+msgid "Recent"
+msgstr "Gần đây"
+
+msgid "Recent filters"
+msgstr "Bộ lọc gần đây"
 
 msgid "Recently read"
 msgstr "Đã đọc gần đây"
-
-msgid "Recently read featured widget"
-msgstr "Widget nổi bật đã đọc gần đây"
 
 msgid "Recently read strip widget"
 msgstr "Widget dải đã đọc gần đây"
@@ -1668,6 +1878,9 @@ msgstr "Đổi tên"
 msgid "Report a Bug"
 msgstr "Báo cáo lỗi"
 
+msgid "Require double tap to open books"
+msgstr "Yêu cầu nhấn đúp để mở sách"
+
 msgid "Require hold to toggle buttons"
 msgstr "Yêu cầu giữ để chuyển đổi nút"
 
@@ -1692,8 +1905,14 @@ msgstr "Khởi động lại"
 msgid "Restart Book"
 msgstr "Khởi động lại Sách"
 
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Khởi động lại KOReader để áp dụng gói hoạt động được cập nhật"
+
 msgid "Restart now"
 msgstr "Khởi động lại ngay"
+
+msgid "Restarting"
+msgstr "Khởi động lại"
 
 msgid "Restore library location on exit"
 msgstr "Khôi phục vị trí thư viện khi thoát"
@@ -1703,9 +1922,6 @@ msgstr "Tiếp tục từ trang"
 
 msgid "Return to chapter list on exit"
 msgstr "Trở về danh sách chương khi thoát"
-
-msgid "Reverse"
-msgstr "Đảo ngược"
 
 msgid "Review"
 msgstr "Đánh giá"
@@ -1773,6 +1989,9 @@ msgstr "Tìm kiếm thư viện"
 msgid "Search results"
 msgstr "Kết quả tìm kiếm"
 
+msgid "Search settings"
+msgstr "Cài đặt tìm kiếm"
+
 msgid "Select"
 msgstr "Chọn"
 
@@ -1788,11 +2007,11 @@ msgstr "Dấu phân cách"
 msgid "Separator: "
 msgstr "Phân cách: "
 
-msgid "Series"
-msgstr "Bộ sưu tập"
-
 msgid "series"
 msgstr "bộ sưu tập"
+
+msgid "Series"
+msgstr "Bộ sưu tập"
 
 msgid "Series number"
 msgstr "Số bộ sưu tập"
@@ -1863,6 +2082,9 @@ msgstr "Hiển thị viền dưới"
 msgid "Show brightness slider"
 msgstr "Hiển thị thanh trượt độ sáng"
 
+msgid "Show controls"
+msgstr "Hiển thị điều khiển"
+
 msgid "Show description"
 msgstr "Hiển thị mô tả"
 
@@ -1887,8 +2109,8 @@ msgstr "Hiển thị số mục"
 msgid "Show item underline"
 msgstr "Hiển thị gạch chân mục"
 
-msgid "Show KOReader progress bar"
-msgstr "Hiển thị thanh tiến trình KOReader"
+msgid "Show KOAssistant"
+msgstr "Hiển thị KOAssistant"
 
 msgid "Show labels"
 msgstr "Hiển thị nhãn"
@@ -1905,8 +2127,11 @@ msgstr "Hiển thị các tùy tra cứu nhanh khác của KOReader cùng với 
 msgid "Show page count"
 msgstr "Hiển thị số trang"
 
-msgid "Show progress % on mosaic covers"
-msgstr "Hiển thị tiến độ % trên bìa mosaïc"
+msgid "Show progress bar"
+msgstr "Hiển thị thanh tiến trình"
+
+msgid "Show reading progress"
+msgstr "Hiển thị tiến trình đọc"
 
 msgid "Show separator"
 msgstr "Hiển thị dấu phân cách"
@@ -1916,6 +2141,9 @@ msgstr "Hiển thị số series trên bìa"
 
 msgid "Show spine lines"
 msgstr "Hiển thị đường gáy sách"
+
+msgid "Show title"
+msgstr "Hiển thị tiêu đề"
 
 msgid "Show title below cover (mosaic)"
 msgstr "Hiển thị tiêu đề dưới bìa (mosaic)"
@@ -1929,17 +2157,20 @@ msgstr "Hiện thanh trạng thái trên cùng"
 msgid "Show warmth slider"
 msgstr "Hiển thị thanh trượt nhiệt độ"
 
-msgid "Show widget title"
-msgstr "Hiển thị tiêu đề widget"
-
 msgid "Show Wikipedia"
 msgstr "Hiển thị Wikipedia"
+
+msgid "Show X-Ray"
+msgstr "Hiển thị tia X"
 
 msgid "Show Zen icon - black background"
 msgstr "Hiển thị biểu tượng Zen - nền đen"
 
 msgid "Show Zen icon - white background"
 msgstr "Hiển thị biểu tượng Zen - nền trắng"
+
+msgid "Single tag"
+msgstr "Thẻ đơn"
 
 msgid "Skip"
 msgstr "Bỏ qua"
@@ -1989,14 +2220,17 @@ msgstr "Thứ tự sắp xếp"
 msgid "Sort series"
 msgstr "Sắp xếp chuỗi"
 
+msgid "Specific tag"
+msgstr "Thẻ cụ thể"
+
 msgid "Stable"
 msgstr "Ổn định"
 
 msgid "Stack"
 msgstr "Chồng"
 
-msgid "Stack effect (overlapping covers)"
-msgstr "Hiệu ứng chồng (bìa chồng lên nhau)"
+msgid "Start reading a book to fill this space."
+msgstr "Bắt đầu đọc một cuốn sách để lấp đầy không gian này."
 
 msgid "Stat separators"
 msgstr "Dấu phân cách thống kê"
@@ -2070,8 +2304,20 @@ msgstr "Đồng bộ tất cả các danh mục"
 msgid "Tab"
 msgstr "Thẻ"
 
+msgid "Table of contents"
+msgstr "Mục lục"
+
 msgid "Tabs"
 msgstr "Tab"
+
+msgid "Tag"
+msgstr "Nhãn"
+
+msgid "Tag strip widget"
+msgstr "Tiện ích dải thẻ"
+
+msgid "Tag: %1"
+msgstr "Thẻ: %1"
 
 msgid "tags"
 msgstr "thẻ"
@@ -2079,8 +2325,14 @@ msgstr "thẻ"
 msgid "Tags"
 msgstr "Thẻ"
 
+msgid "Tailscale"
+msgstr "vảy đuôi"
+
 msgid "Tap and hold any book or folder in your library to reveal details."
 msgstr "Nhấn và giữ bất kỳ cuốn sách hoặc thư mục nào trong thư viện của bạn để xem chi tiết."
+
+msgid "Text color"
+msgstr "Màu văn bản"
 
 msgid "Text styles"
 msgstr "Kiểu văn bản"
@@ -2094,8 +2346,20 @@ msgstr "Menu đọc mặc định của KOReader nằm trong biểu tượng Aa.
 msgid "The place for all your books %1"
 msgstr "Nơi lưu trữ tất cả sách của bạn %1"
 
+msgid "Theme font"
+msgstr "Phông chữ chủ đề"
+
+msgid "Theme name"
+msgstr "Tên chủ đề"
+
 msgid "This change requires a restart to take effect."
 msgstr "Thay đổi này yêu cầu khởi động lại để có hiệu lực."
+
+msgid "This does not disable ZenOS—it only shows or hides KOReader’s menus."
+msgstr "Thao tác này không tắt ZenOS—nó chỉ hiển thị hoặc ẩn các menu của KOReader."
+
+msgid "This is Zen Settings. ZenOS settings/updates and common KOReader settings live here."
+msgstr "Đây là Cài đặt Zen. Các cài đặt/cập nhật ZenOS và cài đặt KOReader phổ biến có tại đây."
 
 msgid "This Month"
 msgstr "Tháng này"
@@ -2106,10 +2370,10 @@ msgstr "Tháng này"
 msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
 msgstr "Tùy chọn này bị tắt khi thư mục chính là thư mục gốc của bộ nhớ thiết bị. Trước tiên, hãy đặt các thư mục sách cụ thể hơn làm thư mục chính."
 
-msgid "This week"
+msgid "This Week"
 msgstr "Tuần này"
 
-msgid "This Week"
+msgid "This week"
 msgstr "Tuần này"
 
 msgid "This year"
@@ -2142,6 +2406,9 @@ msgstr "Thời gian/ngày"
 msgid "Time/page"
 msgstr "Thời gian/trang"
 
+msgid "Timeout"
+msgstr "Hết giờ"
+
 msgid "Timer: %1 s"
 msgstr "Hẹn giờ: %1 s"
 
@@ -2154,9 +2421,6 @@ msgstr "Tiêu đề tự nhiên"
 msgid "To Be Read"
 msgstr "Đọc Sau"
 
-msgid "To Be Read featured widget"
-msgstr "Widget nổi bật Đọc Sau"
-
 msgid "To Be Read strip widget"
 msgstr "Widget dải Đọc Sau"
 
@@ -2165,6 +2429,9 @@ msgstr "Hôm nay"
 
 msgid "Too many requests. Please try again later."
 msgstr "Quá nhiều yêu cầu. Vui lòng thử lại sau."
+
+msgid "Tools"
+msgstr "Công cụ"
 
 msgid "Top bar font"
 msgstr "Phông chữ thanh trên"
@@ -2190,8 +2457,14 @@ msgstr "Bật chế độ Zen để tinh chỉnh KOReader về những tính nă
 msgid "Two rows"
 msgstr "Hai hàng"
 
+msgid "Typesetting"
+msgstr "Sắp chữ"
+
 msgid "Unavailable"
 msgstr "Không khả dụng"
+
+msgid "Unavailable pack: %1"
+msgstr "Gói không có sẵn: %1"
 
 msgid "Underline"
 msgstr "Gạch chân"
@@ -2277,11 +2550,17 @@ msgstr "Cập nhật thất bại: xác thực plugin đã chuẩn bị thất b
 msgid "Update failed: timed out."
 msgstr "Cập nhật thất bại: hết thời gian chờ."
 
+msgid "Update KOReader"
+msgstr "Cập nhật KOReader"
+
 msgid "Update now"
 msgstr "Cập nhật ngay"
 
 msgid "Update Status"
 msgstr "Cập nhật trạng thái"
+
+msgid "Update ZenOS"
+msgstr "Cập nhật ZenOS"
 
 msgid "Updated to %1"
 msgstr "Đã cập nhật thành %1"
@@ -2307,17 +2586,11 @@ msgstr "Sử dụng phông chữ mặc định"
 msgid "Use default style"
 msgstr "Sử dụng kiểu mặc định"
 
-msgid "Use Home default font size"
-msgstr "Sử dụng cỡ chữ mặc định của Trang chủ"
-
 msgid "Use home folder"
 msgstr "Sử dụng thư mục home"
 
 msgid "Use last folder"
 msgstr "Sử dụng thư mục cuối cùng"
-
-msgid "Use Stats default font size"
-msgstr "Sử dụng kích thước phông chữ mặc định của Thống kê"
 
 msgid "username"
 msgstr "tên người dùng"
@@ -2334,14 +2607,11 @@ msgstr "Thư mục ảo"
 msgid "Warmth"
 msgstr "Ấm áp"
 
-msgid "Warmth schedule"
-msgstr "Lịch trình ấm áp"
-
 msgid "Weekly"
 msgstr "hàng tuần"
 
-msgid "Welcome to Zen UI"
-msgstr "Chào mừng đến với Zen UI"
+msgid "Welcome to ZenOS"
+msgstr "Chào mừng đến với ZenOS"
 
 msgid "What should your device show when it goes to sleep?"
 msgstr "Thiết bị của bạn nên hiển thị gì khi vào chế độ ngủ?"
@@ -2352,11 +2622,14 @@ msgstr "Có gì thay đổi"
 msgid "What's New"
 msgstr "Có gì mới"
 
-msgid "When enabled, icons placed in KOReader's user icons folder override the bundled Zen UI icons. Falls back to Zen UI icons, then KOReader built-ins."
-msgstr "Khi được bật, các biểu tượng được đặt trong thư mục biểu tượng người dùng của KOReader sẽ ghi đè lên các biểu tượng Zen UI được đóng gói. Fallback đến các biểu tượng Zen UI, sau đó là các biểu tượng tích hợp sẵn của KOReader."
+msgid "When enabled, loose icons or a selected ZenOS icon pack override supported icons. Missing icons fall back to ZenOS, then KOReader."
+msgstr "Khi được bật, các biểu tượng rời hoặc gói biểu tượng ZenOS đã chọn sẽ ghi đè các biểu tượng được hỗ trợ. Các biểu tượng bị thiếu sẽ quay trở lại ZenOS, sau đó là KOReader."
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "Khi bật, tìm kiếm chỉ khớp cả từ. Khi tắt, sẽ khớp theo chuỗi con (ví dụ: 'fish' khớp với 'fishing')."
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr "Khi được bật, hãy chạm nhanh vào cùng một cuốn sách hai lần liên tiếp để mở nó. Điều khiển bàn phím không thay đổi."
 
 msgid "Which time format do you prefer?"
 msgstr "Bạn thích định dạng thời gian nào?"
@@ -2367,8 +2640,14 @@ msgstr "Trắng"
 msgid "Wi-Fi"
 msgstr "Wi-Fi"
 
+msgid "Widget settings"
+msgstr "Cài đặt tiện ích"
+
 msgid "Widgets"
 msgstr "Widget"
+
+msgid "Wrap description text"
+msgstr "Gói văn bản mô tả"
 
 msgid "Yearly"
 msgstr "Hàng năm"
@@ -2388,14 +2667,26 @@ msgstr "Zen"
 msgid "Zen highlight menu"
 msgstr "Trình đơn đánh dấu Zen"
 
-msgid "Zen Mode"
-msgstr "Chế độ Zen"
-
 msgid "Zen mode"
 msgstr "chế độ Zen"
 
+msgid "Zen Mode"
+msgstr "Chế độ Zen"
+
+msgid "Zen Mode is enabled. KOReader menus are hidden."
+msgstr "Chế độ Zen được bật. Menu KOReader bị ẩn."
+
+msgid "Zen Mode: Disabled"
+msgstr "Chế độ Zen: Đã tắt"
+
+msgid "Zen Mode: Enabled"
+msgstr "Chế độ Zen: Đã bật"
+
 msgid "Zen OPDS"
 msgstr "Zen OPDS"
+
+msgid "Zen page browser"
+msgstr "Trình duyệt trang Zen"
 
 msgid "Zen Presets"
 msgstr "Zen Presets"
@@ -2403,62 +2694,74 @@ msgstr "Zen Presets"
 msgid "Zen quick lookup"
 msgstr "Tra cứu nhanh Zen"
 
-msgid "Zen UI"
-msgstr "Zen UI"
+msgid "ZenFM"
+msgstr "ZenFM"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI - Tác giả"
+msgid "ZenOS"
+msgstr "ZenOS"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI - Trang chủ"
+msgid "ZenOS defaults"
+msgstr "Cài đặt mặc định của ZenOS"
 
-msgid "Zen UI - Library"
-msgstr "Zen UI - Thư viện"
+msgid "ZenOS is up to date."
+msgstr "ZenOS đã được cập nhật."
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI - Mở thư mục"
+msgid "ZenOS: "
+msgstr "ZenOS: "
 
-msgid "Zen UI - Series"
-msgstr "Zen UI - Bộ sách"
+msgid "ZenOS: Authors"
+msgstr "ZenOS: Tác giả"
 
-msgid "Zen UI - Sync progress (pull + push)"
-msgstr "Zen UI - Tiến trình đồng bộ (nhận + gửi)"
+msgid "ZenOS: folder not found: "
+msgstr "ZenOS: không tìm thấy thư mục: "
 
-msgid "Zen UI - Table of contents"
-msgstr "Zen UI - Mục lục"
+msgid "ZenOS: Home"
+msgstr "ZenOS: Trang chủ"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI - Thẻ"
+msgid "ZenOS: Library"
+msgstr "ZenOS: Thư viện"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI - Bật/tắt thanh trạng thái dưới khi đọc"
+msgid "ZenOS: no folder set for this action."
+msgstr "ZenOS: chưa đặt thư mục cho hành động này."
 
-msgid "Zen UI - Toggle Incognito Mode"
-msgstr "Zen UI - Chuyển đổi chế độ ẩn danh"
+msgid "ZenOS: Open folder"
+msgstr "ZenOS: Mở thư mục"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI - Bật/tắt chế độ khóa"
+msgid "ZenOS: Series"
+msgstr "ZenOS: Bộ sách"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI - Bật/tắt các thanh trạng thái khi đọc"
+msgid "ZenOS: Sync progress (pull + push)"
+msgstr "ZenOS: Tiến trình đồng bộ (nhận + gửi)"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI - Bật/tắt thanh trạng thái trên khi đọc"
+msgid "ZenOS: Table of contents"
+msgstr "ZenOS: Mục lục"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI - Bật/tắt chế độ Zen"
+msgid "ZenOS: Tags"
+msgstr "ZenOS: Thẻ"
 
-msgid "Zen UI defaults"
-msgstr "Cài đặt mặc định của Zen UI"
+msgid "ZenOS: Toggle bottom reader status bar"
+msgstr "ZenOS: Bật/tắt thanh trạng thái dưới khi đọc"
 
-msgid "Zen UI is up to date."
-msgstr "Zen UI đã được cập nhật."
+msgid "ZenOS: Toggle Incognito Mode"
+msgstr "ZenOS: Chuyển đổi chế độ ẩn danh"
 
-msgid "Zen UI: "
-msgstr "Zen UI: "
+msgid "ZenOS: Toggle Lockdown Mode"
+msgstr "ZenOS: Bật/tắt chế độ khóa"
 
-msgid "Zen UI: folder not found: "
-msgstr "Zen UI: không tìm thấy thư mục: "
+msgid "ZenOS: Toggle reader status bars"
+msgstr "ZenOS: Bật/tắt các thanh trạng thái khi đọc"
 
-msgid "Zen UI: no folder set for this action."
-msgstr "Zen UI: chưa đặt thư mục cho hành động này."
+msgid "ZenOS: Toggle reader themes"
+msgstr "ZenOS: Chuyển đổi chủ đề trình đọc"
+
+msgid "ZenOS: Toggle top reader status bar"
+msgstr "ZenOS: Bật/tắt thanh trạng thái trên khi đọc"
+
+msgid "ZenOS: Toggle Zen Mode"
+msgstr "ZenOS: Bật/tắt chế độ Zen"
+
+msgid "ZenPM"
+msgstr "ZenPM"
+
+msgid "ZenPM has been installed. Restart KOReader to use it."
+msgstr "ZenPM đã được cài đặt. Khởi động lại KOReader để sử dụng."

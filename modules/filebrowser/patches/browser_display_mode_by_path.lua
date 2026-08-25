@@ -55,13 +55,16 @@ local function apply_browser_display_mode_by_path()
     local _active_home_mode = nil
 
     -- ── Suppress refreshFileManagerInstance, call setDisplayMode, restore ──
-    local function apply_mode(cb, mode)
+    local function apply_mode(cb, mode, file_chooser)
         local orig_refresh = cb.refreshFileManagerInstance
         cb.refreshFileManagerInstance = function() end
         _switching = true
-        pcall(cb.setDisplayMode, cb, mode)
+        local ok = pcall(cb.setDisplayMode, cb, mode)
         _switching = false
         cb.refreshFileManagerInstance = orig_refresh
+        if ok and file_chooser and type(file_chooser._recalculateDimen) == "function" then
+            pcall(file_chooser._recalculateDimen, file_chooser)
+        end
     end
 
     local function save_global_mode(BookInfoManager, mode)
@@ -107,7 +110,7 @@ local function apply_browser_display_mode_by_path()
         local fm = FileManager.instance
         local cb = fm and fm.coverbrowser
         if cb and type(cb.setDisplayMode) == "function" then
-            apply_mode(cb, target_mode)
+            apply_mode(cb, target_mode, fm.file_chooser)
             if override then
                 save_global_mode(BookInfoManager, current_mode)
             end
@@ -141,7 +144,7 @@ local function apply_browser_display_mode_by_path()
                 _G.__ZEN_PREFERRED_DISPLAY_MODE = nil
                 if cb and type(cb.setDisplayMode) == "function" then
                     local target_mode = override or saved
-                    apply_mode(cb, target_mode)
+                    apply_mode(cb, target_mode, self)
                     if override and ok_bim then
                         save_global_mode(BookInfoManager, saved)
                     end
@@ -156,7 +159,7 @@ local function apply_browser_display_mode_by_path()
                             _G.__ZEN_PREFERRED_DISPLAY_MODE = current_mode
                         end
                         if cb and type(cb.setDisplayMode) == "function" then
-                            apply_mode(cb, nil)  -- nil = classic
+                            apply_mode(cb, nil, self)  -- nil = classic
                             -- setDisplayMode(nil) persisted nil; write back preferred so
                             -- CoverBrowser reads the correct mode on next restart.
                             pcall(BookInfoManager.saveSetting, BookInfoManager,
@@ -167,7 +170,7 @@ local function apply_browser_display_mode_by_path()
             elseif ok_bim and cb and type(cb.setDisplayMode) == "function" then
                 local target_mode = override or current_mode
                 if _active_home_mode ~= target_mode then
-                    apply_mode(cb, target_mode)
+                    apply_mode(cb, target_mode, self)
                     if override then
                         save_global_mode(BookInfoManager, current_mode)
                     end

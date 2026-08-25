@@ -6,9 +6,9 @@ settingsPath: ''
 order: 95
 ---
 
-<!-- Documentation current through Zen UI v2.5.0. -->
+<!-- Documentation current through ZenOS v3.0.0. -->
 
-Zen UI is translated through gettext `.po` files in the `locales/` folder. No programming knowledge is needed — you only edit text.
+ZenOS is translated through gettext `.po` files in the `locales/` folder. No programming knowledge is needed — you only edit text.
 
 > **Open translation pull requests against the `dev` branch.** Changes are reviewed on `dev` before release.
 
@@ -31,8 +31,13 @@ The `en.po` file is the source catalog. All other locales are translated from it
 | `ro` | Romanian |
 | `ru` | Russian |
 | `uk` | Ukrainian |
+| `el` | Greek |
+| `ja` | Japanese |
+| `vi` | Vietnamese |
 | `zh_CN` | Simplified Chinese |
 | `zh_TW` | Traditional Chinese |
+| `zh_HK` | Traditional Chinese (Hong Kong) |
+| `zh_MO` | Traditional Chinese (Macau) |
 
 ## Adding a new language
 

@@ -20,7 +20,7 @@ describe("Rakuyomi availability", function()
         ZenSpec.unload("modules/filebrowser/patches/rakuyomi")
     end)
 
-    it("exports the availability API used by Zen UI initialization", function()
+    it("exports the availability API used by ZenOS initialization", function()
         package.loaded["apps/filemanager/filemanager"] = {
             instance = { rakuyomi = {} },
         }

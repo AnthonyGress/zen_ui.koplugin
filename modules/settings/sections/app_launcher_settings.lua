@@ -6,15 +6,20 @@ local IconItem = require("common/ui/icon_menu_item")
 local icon_utils = require("common/utils")
 
 local Model = require("modules/menu/app_launcher/model")
+local NativeMenu = require("modules/menu/app_launcher/native_menu")
+local PagePlan = require("modules/menu/app_launcher/page_plan")
 local PluginScan = require("modules/menu/app_launcher/plugin_scan")
+local DispatcherMenu = require("common/dispatcher_menu")
+local Destination = require("common/library_destination")
 
 local M = {}
 local DEFAULT_ENTRY_ICON = "lightning"
 local DEFAULT_FOLDER_ICON = "folder_open"
 
-local function suggest_icon(label, strip_zen_prefix)
+local function suggest_icon(label, strip_zen_prefix, preferred)
     local ok_root, root = pcall(require, "common/plugin_root")
-    return icon_utils.suggestIcon(ok_root and root or nil, label, DEFAULT_ENTRY_ICON, strip_zen_prefix)
+    return icon_utils.suggestIcon(
+        ok_root and root or nil, label, DEFAULT_ENTRY_ICON, strip_zen_prefix, preferred)
 end
 
 local function trim(text)
@@ -38,6 +43,33 @@ function M.build(ctx)
         end
     end
 
+    local function show_page_order()
+        local sort_items = {}
+        local labels = {
+            book_details = _("Book information"),
+            book_switcher = _("Book switcher"),
+            buttons = _("Buttons"),
+        }
+        for _i, kind in ipairs(PagePlan.normalizeOrder(cfg.page_order)) do
+            sort_items[#sort_items + 1] = {
+                text = labels[kind],
+                orig_kind = kind,
+            }
+        end
+        require("common/ui/zen_arrange_list").show{
+            title = _("Order"),
+            item_table = sort_items,
+            callback = function()
+                local order = {}
+                for _i, item in ipairs(sort_items) do
+                    order[#order + 1] = item.orig_kind
+                end
+                cfg.page_order = PagePlan.normalizeOrder(order)
+                save_app_launcher()
+            end,
+        }
+    end
+
     local function is_draft_entry(entry)
         return type(entry) == "table" and type(entry._zen_draft_commit) == "function"
     end
@@ -55,45 +87,7 @@ function M.build(ctx)
     local ok_disp, Dispatcher = pcall(require, "dispatcher")
 
     local function wrap_dispatch_callbacks(items, caller, on_update)
-        if type(items) ~= "table" then return end
-        for _i, item in ipairs(items) do
-            if type(item.callback) == "function" and not item._zen_launcher_dispatch_wrapped then
-                local orig_callback = item.callback
-                item.callback = function(touch_menu, ...)
-                    caller.updated = false
-                    local result = orig_callback(touch_menu, ...)
-                    if caller.updated then
-                        caller.updated = false
-                        on_update(touch_menu)
-                    end
-                    return result
-                end
-                item._zen_launcher_dispatch_wrapped = true
-            end
-            if type(item.hold_callback) == "function" and not item._zen_launcher_dispatch_hold_wrapped then
-                local orig_hold_callback = item.hold_callback
-                item.hold_callback = function(touch_menu, ...)
-                    caller.updated = false
-                    local result = orig_hold_callback(touch_menu, ...)
-                    if caller.updated then
-                        caller.updated = false
-                        on_update(touch_menu)
-                    end
-                    return result
-                end
-                item._zen_launcher_dispatch_hold_wrapped = true
-            end
-            if type(item.sub_item_table_func) == "function" and not item._zen_launcher_dispatch_func_wrapped then
-                local orig_sub_item_table_func = item.sub_item_table_func
-                item.sub_item_table_func = function(...)
-                    local sub_items = orig_sub_item_table_func(...)
-                    wrap_dispatch_callbacks(sub_items, caller, on_update)
-                    return sub_items
-                end
-                item._zen_launcher_dispatch_func_wrapped = true
-            end
-            wrap_dispatch_callbacks(item.sub_item_table, caller, on_update)
-        end
+        DispatcherMenu.wrap(items, caller, on_update, "_zen_launcher_dispatch")
     end
 
     local ICONS
@@ -123,39 +117,10 @@ function M.build(ctx)
         if ok_disp and entry.action and next(entry.action) then
             local text = Dispatcher:menuTextFunc(entry.action)
             if text and text ~= "" and text ~= _("Nothing") then
-                return text
+                return icon_utils.stripZenPrefix(text)
             end
         end
         return nil
-    end
-
-    local function has_valid_target(entry)
-        if entry.type == "action" then
-            return type(entry.action) == "table" and next(entry.action) ~= nil
-        end
-        if entry.type == "quick_setting" then
-            return type(entry.quick_setting_id) == "string" and entry.quick_setting_id ~= ""
-        end
-        return entry.type == "plugin"
-            and type(entry.plugin) == "table"
-            and entry.plugin.key ~= nil
-            and entry.plugin.method ~= nil
-    end
-
-    local function add_done_metadata(items, entry)
-        items._zen_arrange_done_func = function()
-            if entry.type == "action" then
-                sync_action_label(entry)
-            end
-            if is_draft_entry(entry) then
-                entry._zen_draft_commit()
-            elseif has_valid_target(entry) then
-                save_app_launcher()
-            end
-        end
-        items._zen_arrange_done_enabled_func = function()
-            return has_valid_target(entry)
-        end
     end
 
     sync_action_label = function(entry)
@@ -315,6 +280,7 @@ function M.build(ctx)
         show_menu_picker{
             title = _("Choose plugin menu"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
                 local plugin = item.plugin
                 local entry = {
@@ -330,6 +296,40 @@ function M.build(ctx)
                 end)
             end,
         }
+    end
+
+    local function add_library_folder(folder, touch_menu)
+        Destination.chooseFolder(function(path)
+            local entry = {
+                id = Model.next_id(cfg),
+                type = "folder_shortcut",
+                folder = path,
+                label = Destination.folderLabel(path),
+                label_auto = true,
+                icon = suggest_icon(Destination.folderLabel(path), nil, "folder"),
+            }
+            insert_entry(entry, folder)
+            UIManager:nextTick(function()
+                open_entry_settings(touch_menu, entry, folder)
+            end)
+        end)
+    end
+
+    local function add_tag(folder, touch_menu)
+        Destination.chooseTag(function(tag)
+            local entry = {
+                id = Model.next_id(cfg),
+                type = "tag",
+                tag = tag,
+                label = tag,
+                label_auto = true,
+                icon = suggest_icon(tag, nil, "tab_tags"),
+            }
+            insert_entry(entry, folder)
+            UIManager:nextTick(function()
+                open_entry_settings(touch_menu, entry, folder)
+            end)
+        end)
     end
 
     local function choose_plugin_entry(entry, touch_menu)
@@ -350,6 +350,7 @@ function M.build(ctx)
         show_menu_picker{
             title = _("Choose plugin menu"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = function(item)
                 local plugin = item.plugin
                 entry.type = "plugin"
@@ -361,6 +362,49 @@ function M.build(ctx)
                 end
             end,
         }
+    end
+
+    local function show_koreader_menu_picker(on_select, touch_menu)
+        local found = NativeMenu.scan("active")
+        if #found == 0 then
+            local InfoMessage = require("ui/widget/infomessage")
+            UIManager:show(InfoMessage:new{ text = _("No KOReader submenus found") })
+            return
+        end
+        require("common/ui/zen_menu_picker"){
+            title = _("Choose KOReader menu"),
+            items = found,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
+            on_select = on_select,
+        }
+    end
+
+    local function choose_koreader_menu_entry(entry, touch_menu)
+        show_koreader_menu_picker(function(item)
+            entry.koreader_menu = { id = item.id, title = item.title }
+            entry.label = item.title
+            entry.icon = suggest_icon(item.title)
+            save_app_launcher()
+            if touch_menu and touch_menu.updateItems then
+                touch_menu:updateItems(1)
+            end
+        end, touch_menu)
+    end
+
+    local function add_koreader_menu(folder, touch_menu)
+        show_koreader_menu_picker(function(item)
+            local entry = {
+                id = Model.next_id(cfg),
+                type = "koreader_menu",
+                label = item.title,
+                icon = suggest_icon(item.title),
+                koreader_menu = { id = item.id, title = item.title },
+            }
+            insert_entry(entry, folder)
+            UIManager:nextTick(function()
+                open_entry_settings(touch_menu, entry, folder)
+            end)
+        end, touch_menu)
     end
 
     local function open_new_action_picker(folder, touch_menu)
@@ -379,7 +423,7 @@ function M.build(ctx)
         open_entry_settings(touch_menu, entry, folder)
     end
 
-    local function show_quick_setting_picker(on_select)
+    local function show_quick_setting_picker(on_select, touch_menu)
         local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
         if not controls or type(controls.getItems) ~= "function" then return end
         local picker_items = controls.getItems()
@@ -387,6 +431,7 @@ function M.build(ctx)
         require("common/ui/zen_menu_picker"){
             title = _("Choose control"),
             items = picker_items,
+            back_hold_callback = touch_menu and touch_menu.backToSettingsRoot,
             on_select = on_select,
         }
     end
@@ -395,12 +440,12 @@ function M.build(ctx)
         show_quick_setting_picker(function(item)
             entry.quick_setting_id = item.id
             entry.label = item.label
-            entry.icon = item.icon or suggest_icon(item.label)
+            entry.icon = suggest_icon(item.label, nil, item.icon)
             save_app_launcher()
             if touch_menu and touch_menu.updateItems then
                 touch_menu:updateItems(1)
             end
-        end)
+        end, touch_menu)
     end
 
     local function add_quick_setting(folder, touch_menu)
@@ -409,14 +454,14 @@ function M.build(ctx)
                     id = Model.next_id(cfg),
                     type = "quick_setting",
                     label = item.label,
-                    icon = item.icon or suggest_icon(item.label),
+                    icon = suggest_icon(item.label, nil, item.icon),
                     quick_setting_id = item.id,
                 }
                 insert_entry(entry, folder)
                 UIManager:nextTick(function()
                     open_entry_settings(touch_menu, entry, folder)
                 end)
-        end)
+        end, touch_menu)
     end
 
     local function add_items(folder)
@@ -442,6 +487,27 @@ function M.build(ctx)
                     add_plugin(folder, touch_menu)
                 end,
             }, icons.plugin),
+            IconItem.decorate({
+                text = _("Add KOReader menu"),
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    add_koreader_menu(folder, touch_menu)
+                end,
+            }, icons.open_menu),
+            IconItem.decorate({
+                text = _("Open folder"),
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    add_library_folder(folder, touch_menu)
+                end,
+            }, icons.settings_folders),
+            IconItem.decorate({
+                text = _("Specific tag"),
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    add_tag(folder, touch_menu)
+                end,
+            }, icons.keywords),
         }
     end
 
@@ -462,12 +528,19 @@ function M.build(ctx)
                 end,
             }, icons.settings_quick),
             IconItem.decorate({
-                text = _("Plugin"),
+                text = _("Plugin Menu"),
                 keep_menu_open = true,
                 callback = function(touch_menu)
                     add_plugin(folder, touch_menu)
                 end,
             }, icons.plugin),
+            IconItem.decorate({
+                text = _("KOReader menu"),
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    add_koreader_menu(folder, touch_menu)
+                end,
+            }, icons.koreader_menu),
         }
         if not folder then
             items[#items + 1] = IconItem.decorate({
@@ -476,6 +549,20 @@ function M.build(ctx)
                 callback = add_folder,
             }, icons.new_folder)
         end
+        items[#items + 1] = IconItem.decorate({
+            text = _("Open folder"),
+            keep_menu_open = true,
+            callback = function(touch_menu)
+                add_library_folder(folder, touch_menu)
+            end,
+        }, icons.settings_folders)
+        items[#items + 1] = IconItem.decorate({
+            text = _("Specific tag"),
+            keep_menu_open = true,
+            callback = function(touch_menu)
+                add_tag(folder, touch_menu)
+            end,
+        }, icons.keywords)
         items[#items + 1] = IconItem.decorate({
             text = _("Row break"),
             keep_menu_open = true,
@@ -579,7 +666,8 @@ function M.build(ctx)
         local function add_icon_item()
             items[#items + 1] = IconItem.decorate({
                 text_func = function()
-                    return T(_("Icon: %1"), entry.icon or DEFAULT_ENTRY_ICON)
+                    return T(_("Icon: %1"),
+                        icon_utils.getIconDisplayName(entry.icon or DEFAULT_ENTRY_ICON))
                 end,
                 keep_menu_open = true,
                 callback = function(touch_menu)
@@ -617,6 +705,48 @@ function M.build(ctx)
             for _i, item in ipairs(add_sub) do
                 items[#items + 1] = item
             end
+        elseif entry.type == "folder_shortcut" then
+            items[#items + 1] = IconItem.decorate({
+                text_func = function()
+                    return _("Folder") .. ": " .. Destination.folderLabel(entry.folder)
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    Destination.chooseFolder(function(path)
+                        local old_label = Destination.folderLabel(entry.folder)
+                        entry.folder = path
+                        if entry.label_auto == true or entry.label == old_label then
+                            entry.label = Destination.folderLabel(path)
+                            entry.label_auto = true
+                        end
+                        save_app_launcher()
+                        if touch_menu then touch_menu:updateItems(1) end
+                    end, { path = entry.folder })
+                end,
+            }, icons.settings_folders)
+            add_label_item()
+            add_icon_item()
+        elseif entry.type == "tag" then
+            items[#items + 1] = IconItem.decorate({
+                text_func = function()
+                    return T(_("Tag: %1"), entry.tag or _("(none)"))
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    Destination.chooseTag(function(tag)
+                        local old_tag = entry.tag
+                        entry.tag = tag
+                        if entry.label_auto == true or entry.label == old_tag then
+                            entry.label = tag
+                            entry.label_auto = true
+                        end
+                        save_app_launcher()
+                        if touch_menu then touch_menu:updateItems(1) end
+                    end)
+                end,
+            }, icons.keywords)
+            add_label_item()
+            add_icon_item()
         elseif entry.type == "quick_setting" then
             items[#items + 1] = IconItem.decorate({
                 text_func = function()
@@ -627,16 +757,32 @@ function M.build(ctx)
                     choose_quick_setting_entry(entry, touch_menu)
                 end,
             }, icons.settings_quick)
-            local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
-            local settings_items = controls and controls.getSettingsItems
-                and controls.getSettingsItems(entry.quick_setting_id)
-            if settings_items and #settings_items > 0 then
-                items[#items + 1] = IconItem.decorate({
-                    text = _("Control settings"),
-                    keep_menu_open = true,
-                    sub_item_table = settings_items,
-                }, icons.settings_quick)
+            if entry.quick_setting_id ~= "zenfm" then
+                local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
+                local settings_items = controls and controls.getSettingsItems
+                    and controls.getSettingsItems(entry.quick_setting_id)
+                if settings_items and #settings_items > 0 then
+                    items[#items + 1] = IconItem.decorate({
+                        text = _("Control settings"),
+                        keep_menu_open = true,
+                        sub_item_table = settings_items,
+                    }, icons.settings_quick)
+                end
             end
+            add_label_item()
+            add_icon_item()
+        elseif entry.type == "koreader_menu" then
+            items[#items + 1] = IconItem.decorate({
+                text_func = function()
+                    local target = entry.koreader_menu
+                    return T(_("KOReader menu: %1"),
+                        type(target) == "table" and target.title or entry.label or _("(none)"))
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    choose_koreader_menu_entry(entry, touch_menu)
+                end,
+            }, icons.koreader_menu)
             add_label_item()
             add_icon_item()
         elseif entry.type ~= "break" then
@@ -682,9 +828,6 @@ function M.build(ctx)
                 })
             end,
         }, icons.delete)
-        if entry.type == "action" or entry.type == "plugin" or entry.type == "quick_setting" then
-            add_done_metadata(items, entry)
-        end
         return items
     end
 
@@ -720,7 +863,7 @@ function M.build(ctx)
         end
         sort_items = build_sort_items()
         ZenArrangeList.show{
-            title = (parent and parent.label or _("Buttons")) .. " (" .. _("Hold to arrange") .. ")",
+            title = parent and parent.label or _("Buttons"),
             item_table = sort_items,
             add_title = _("Add"),
             add_item_table = arrange_add_items(parent),
@@ -757,12 +900,9 @@ function M.build(ctx)
             checked_func = function()
                 return config.features.app_launcher == true
             end,
-            callback = function(touch_menu)
+            callback = function()
                 config.features.app_launcher = config.features.app_launcher ~= true
                 save_and_apply("app_launcher")
-                if touch_menu and touch_menu.closeMenu then
-                    touch_menu:closeMenu()
-                end
             end,
         },
         {
@@ -773,6 +913,49 @@ function M.build(ctx)
             callback = function()
                 show_entries_arrange(nil)
             end,
+        },
+        {
+            text = _("Book switcher"),
+            sub_item_table = {
+                {
+                    text = _("Enable"),
+                    checked_func = function()
+                        return cfg.show_book_switcher == true
+                    end,
+                    callback = function()
+                        cfg.show_book_switcher = cfg.show_book_switcher ~= true
+                        save_app_launcher()
+                    end,
+                },
+                {
+                    text = _("Only show while reading"),
+                    enabled_func = function()
+                        return cfg.show_book_switcher == true
+                    end,
+                    checked_func = function()
+                        return cfg.book_switcher_reader_only == true
+                    end,
+                    callback = function()
+                        cfg.book_switcher_reader_only = cfg.book_switcher_reader_only ~= true
+                        save_app_launcher()
+                    end,
+                },
+            },
+        },
+        {
+            text = _("Book details"),
+            sub_item_table = {
+                {
+                    text = _("Enable"),
+                    checked_func = function()
+                        return cfg.show_book_details == true
+                    end,
+                    callback = function()
+                        cfg.show_book_details = cfg.show_book_details ~= true
+                        save_app_launcher()
+                    end,
+                },
+            },
         },
         {
             text = _("Show labels"),
@@ -786,6 +969,11 @@ function M.build(ctx)
                     touch_menu:updateItems(1)
                 end
             end,
+        },
+        {
+            text = _("Order") .. " \u{25B8}",
+            keep_menu_open = true,
+            callback = show_page_order,
         },
         {
             text = _("Open menu to Launcher"),
@@ -814,10 +1002,57 @@ function M.build(ctx)
             end,
         },
     }
+    IconItem.decorate(root_items[1], icons.enable)
     IconItem.decorate(root_items[2], icons.action)
+    IconItem.decorate(root_items[3], icons.book_switcher)
+    IconItem.decorate(root_items[4], icons.details)
+    IconItem.decorate(root_items[5], icons.keywords)
+    IconItem.decorate(root_items[6], icons.sort)
+    IconItem.decorate(root_items[7], icons.open_menu)
+    IconItem.decorate(root_items[8], icons.hide_reader_actions)
+
+    local function open_entry_settings_from_search(entry, parent)
+        local items = build_entry_items(entry, parent)
+        if type(items) ~= "table" or #items == 0 then
+            show_entries_arrange(parent)
+            return true
+        end
+        require("common/ui/zen_arrange_list").show{
+            title = Model.display_label(entry),
+            item_table = items,
+            hide_footer_cancel = true,
+        }
+        return true
+    end
+
+    local function arrange_search_items()
+        local items = {}
+        local function add_entries(entries, parent, breadcrumb)
+            for _i, entry in ipairs(entries or {}) do
+                local label = Model.display_label(entry)
+                if type(label) == "string" and label ~= "" then
+                    local search_entry = entry
+                    local search_parent = parent
+                    items[#items + 1] = {
+                        text = label,
+                        _zen_search_breadcrumb = breadcrumb,
+                        _zen_search_open = function()
+                            return open_entry_settings_from_search(search_entry, search_parent)
+                        end,
+                    }
+                    if entry.type == "folder" then
+                        add_entries(entry.children, entry, breadcrumb .. " › " .. label)
+                    end
+                end
+            end
+        end
+        add_entries(cfg.entries, nil, _("Launcher"))
+        return items
+    end
 
     return {
         text = _("Launcher"),
+        _zen_search_items_func = arrange_search_items,
         sub_item_table = root_items,
     }
 end

@@ -1,12 +1,11 @@
 -- settings/sections/advanced.lua
--- Advanced / developer settings items for Zen UI.
+-- Advanced / developer settings items for ZenOS.
 -- Receives ctx: { plugin, config, save_and_apply, settings_apply }
 
 local _ = require("gettext")
 local UIManager = require("ui/uimanager")
 local utils = require("modules/settings/zen_settings_utils")
 local paths = require("common/paths")
-local ReaderMargins = require("common/reader_margins")
 
 local M = {}
 
@@ -36,19 +35,6 @@ function M.build(ctx)
     })
 
     table.insert(items, {
-        text = _("Enable Zen UI Reader margins"),
-        help_text = _("Apply the 30-unit Reader margin defaults used by the Setup Guide. Books with their own margin settings are unchanged."),
-        callback = function()
-            ReaderMargins.applyZenDefaults(G_reader_settings)
-            local InfoMessage = require("ui/widget/infomessage")
-            UIManager:show(InfoMessage:new{
-                text = _("Zen UI Reader margins enabled"),
-            })
-        end,
-        keep_menu_open = true,
-    })
-
-    table.insert(items, {
         text = _("Partial pages refresh"),
         checked_func = function()
             return config.features.partial_page_repaint == true
@@ -57,6 +43,21 @@ function M.build(ctx)
             config.features.partial_page_repaint = config.features.partial_page_repaint ~= true
             plugin:saveConfig()
             settings_apply.prompt_restart()
+        end,
+    })
+
+    table.insert(items, {
+        text = _("Require double tap to open books"),
+        help_text = _("When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."),
+        checked_func = function()
+            return type(config.developer) == "table"
+                and config.developer.double_tap_to_open_books == true
+        end,
+        callback = function()
+            if type(config.developer) ~= "table" then config.developer = {} end
+            config.developer.double_tap_to_open_books =
+                config.developer.double_tap_to_open_books ~= true
+            plugin:saveConfig()
         end,
     })
 
@@ -146,6 +147,7 @@ function M.build(ctx)
                 end,
             })
         end,
+        keep_menu_open = true,
     })
 
     table.insert(items, {

@@ -9,17 +9,7 @@ local M = {}
 local _zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
 local function library_background_path()
-    local cfg = _zen_plugin and _zen_plugin.config
-    if type(cfg) ~= "table" then
-        local ok, loaded = pcall(function()
-            return require("config/manager").load()
-        end)
-        cfg = ok and loaded or nil
-    end
-    local bg = type(cfg) == "table" and cfg.library_background
-    if not (type(bg) == "table" and bg.enabled == true) then return "" end
-    local path = type(bg.path) == "string" and bg.path or ""
-    return Background.isJpegPath(path) and path or ""
+    return Background.library_path(_zen_plugin)
 end
 
 local SKIP_FM_DISPATCH = {
@@ -43,20 +33,56 @@ local function is_horizontal_swipe(ges)
     if not ges then return false end
     local direction = ges.direction
     return direction == "east" or direction == "west"
-        or direction == "northeast" or direction == "northwest"
-        or direction == "southeast" or direction == "southwest"
 end
 
-local function is_diagonal_swipe(ges)
-    if not ges then return false end
-    local direction = ges.direction
-    return direction == "northeast" or direction == "northwest"
-        or direction == "southeast" or direction == "southwest"
+local function is_gesture_manager_zone(id)
+    if type(id) ~= "string" then return false end
+    return id == "multiswipe"
+        or id == "short_diagonal_swipe"
+        or id == "spread_gesture"
+        or id == "pinch_gesture"
+        or id == "rotate_cw"
+        or id == "rotate_ccw"
+        or id:sub(1, 4) == "tap_"
+        or id:sub(1, 5) == "hold_"
+        or id:sub(1, 11) == "double_tap_"
+        or id:sub(1, 17) == "one_finger_swipe_"
+        or id:sub(1, 11) == "two_finger_"
 end
 
 local function should_block_standalone_swipe(menu, ges)
-    return is_diagonal_swipe(ges)
-        or (menu and menu._zen_block_fm_horizontal_swipe and is_horizontal_swipe(ges))
+    return menu and menu._zen_block_fm_horizontal_swipe and is_horizontal_swipe(ges)
+end
+
+local function dispatch_gesture_manager(ges)
+    if not ges then return false end
+    local fm = get_filemanager_instance()
+    if not (fm and fm._ordered_touch_zones) then return false end
+
+    local UIManager = require("ui/uimanager")
+    local gestures_disabled = UIManager._input_gestures_disabled == true
+    for _i, zone in ipairs(fm._ordered_touch_zones) do
+        local id = zone.def and zone.def.id
+        if is_gesture_manager_zone(id) then
+            local always_active = not gestures_disabled
+                or (type(fm.isGestureAlwaysActive) == "function"
+                    and fm:isGestureAlwaysActive(id, ges.multiswipe_directions))
+            if always_active and zone.gs_range and type(zone.gs_range.match) == "function"
+                    and zone.gs_range:match(ges) and type(zone.handler) == "function"
+                    and zone.handler(ges) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function is_navbar_gesture(menu, ges)
+    local navbar_h = tonumber(menu and menu._zen_navbar_height)
+    local screen_h = tonumber(menu and menu.dimen and menu.dimen.h)
+    local y = tonumber(ges and ges.pos and ges.pos.y)
+    return navbar_h and navbar_h > 0 and screen_h and y
+        and y >= screen_h - navbar_h
 end
 
 -- broadcastEvent dispatches to *every* window-stack widget directly, including
@@ -107,8 +133,32 @@ local function remove_from_overlap(group, widget)
     end
 end
 
+function M.enable_gesture_manager_dispatch(menu)
+    if not menu or menu._zen_gesture_manager_dispatch_enabled then return end
+    menu._zen_gesture_manager_dispatch_enabled = true
+
+    local orig_handleEvent = menu.handleEvent
+    function menu:handleEvent(event)
+        local ges = event and event.handler == "onGesture"
+            and event.args and event.args[1] or nil
+        local local_checked = false
+        if is_navbar_gesture(self, ges) then
+            local_checked = true
+            if orig_handleEvent and orig_handleEvent(self, event) then return true end
+        end
+        if ges and dispatch_gesture_manager(ges) then
+            return true
+        end
+        if not local_checked and orig_handleEvent then
+            return orig_handleEvent(self, event)
+        end
+        return false
+    end
+end
+
 function M.enable_filemanager_dispatch(menu)
     if not menu or menu._zen_fm_dispatch_enabled then return end
+    M.enable_gesture_manager_dispatch(menu)
     menu._zen_fm_dispatch_enabled = true
 
     local orig_handleEvent = menu.handleEvent
@@ -127,21 +177,6 @@ function M.enable_filemanager_dispatch(menu)
         local fm = get_filemanager_instance()
         if fm and fm ~= self and type(fm.handleEvent) == "function" then
             return fm:handleEvent(event)
-        end
-        return consumed
-    end
-
-    local orig_onGesture = menu.onGesture
-    function menu:onGesture(ges)
-        if should_block_standalone_swipe(self, ges) then
-            return true
-        end
-        local consumed = orig_onGesture and orig_onGesture(self, ges)
-        if consumed then return consumed end
-
-        local fm = get_filemanager_instance()
-        if fm and fm ~= self and type(fm.onGesture) == "function" then
-            return fm:onGesture(ges)
         end
         return consumed
     end
@@ -234,7 +269,8 @@ function M.apply_background(menu)
             -- returns after any refresh and hides the background.
             Background.clearWhiteBackgrounds(self[1], 14)
             if self.dimen then
-                Background.paint(bb, 0, 0, self.dimen.w, self.dimen.h, path)
+                Background.paintScreenRegion(bb, 0, 0, 0, 0,
+                    self.dimen.w, self.dimen.h, path)
             end
         end
         if orig_paintTo then
@@ -305,10 +341,10 @@ function M.apply_status_row(menu, params)
         set_title_row(build_row())
     end
 
-    menu._zen_status_refresh = function()
+    menu._zen_status_refresh = function(_self, suppress_repaint)
         if tb.title_group and #tb.title_group >= 2 then
             set_title_row(build_row())
-            if repaintTitleBar then repaintTitleBar(tb) end
+            if repaintTitleBar and suppress_repaint ~= true then repaintTitleBar(tb) end
         end
     end
 

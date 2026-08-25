@@ -25,9 +25,12 @@ M.DOT_DIAM    = Screen:scaleBySize(10)
 M.DOT_GAP     = Screen:scaleBySize(12)
 M.BAR_PAD     = Screen:scaleBySize(5)
 M.CHEV_W      = Screen:scaleBySize(60)
+M.CHEV_HIT_W  = Screen:scaleBySize(96)
+M.CHEV_HIT_PAD_BOTTOM = Screen:scaleBySize(24)
 M.PN_ICON_SZ  = Screen:scaleBySize(36)
 M.FOOTER_H    = math.max(M.BAR_H, M.DOT_DIAM) + M.BAR_PAD * 2
 M.PN_FOOTER_H = math.max(M.FOOTER_H, M.PN_ICON_SZ + Screen:scaleBySize(6))
+M.FOOTER_WIDTH_PCT = 0.92
 
 local TRACK_COLOR = Blitbuffer.COLOR_LIGHT_GRAY
 local THUMB_COLOR = Blitbuffer.COLOR_BLACK
@@ -83,6 +86,49 @@ function M.getHoldSkip()
         return p.config.zen_scroll_bar.hold_skip or "10"
     end
     return "10"
+end
+
+function M.getCenteredFooterY(content_bottom, footer_y, footer_h, should_center)
+    if not should_center
+            or type(content_bottom) ~= "number"
+            or type(footer_y) ~= "number"
+            or type(footer_h) ~= "number" then
+        return footer_y
+    end
+    local gap_h = footer_y + footer_h - content_bottom
+    if gap_h > footer_h then
+        return content_bottom + math.floor((gap_h - footer_h) / 2)
+    end
+    return footer_y
+end
+
+function M.getFooterGeometry(container_x, container_w)
+    local width = math.floor(container_w * M.FOOTER_WIDTH_PCT)
+    return container_x + math.floor((container_w - width) / 2), width
+end
+
+function M.getChevronHitWidth(footer_w)
+    return math.min(footer_w / 2, M.CHEV_HIT_W or M.CHEV_W)
+end
+
+function M.getChevronHitBottom(footer_y, footer_h, available_bottom)
+    local footer_bottom = footer_y + footer_h
+    local hit_bottom = footer_bottom + M.CHEV_HIT_PAD_BOTTOM
+    return math.max(footer_bottom, math.min(hit_bottom, available_bottom or hit_bottom))
+end
+
+-- Side hitboxes may extend below the painted footer; the center never does.
+function M.getPageNumberZone(x, y, footer_x, footer_y, footer_w, footer_h, available_bottom)
+    local footer_bottom = footer_y + footer_h
+    local hit_bottom = M.getChevronHitBottom(footer_y, footer_h, available_bottom)
+    if x < footer_x or x >= footer_x + footer_w
+            or y < footer_y or y >= hit_bottom then
+        return nil
+    end
+    local chevron_w = M.getChevronHitWidth(footer_w)
+    if x < footer_x + chevron_w then return "left" end
+    if x >= footer_x + footer_w - chevron_w then return "right" end
+    if y < footer_bottom then return "center" end
 end
 
 -- Filled pill (stadium) shape via scanline paintRect.

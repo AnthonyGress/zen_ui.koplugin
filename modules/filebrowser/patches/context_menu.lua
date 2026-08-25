@@ -29,7 +29,6 @@ local function apply_context_menu()
     local HorizontalGroup = require("ui/widget/horizontalgroup")
     local HorizontalSpan  = require("ui/widget/horizontalspan")
     local TextWidget      = require("ui/widget/textwidget")
-    local Font            = require("ui/font")
     local Geom            = require("ui/geometry")
     local Blitbuffer      = require("ffi/blitbuffer")
     local library_font    = require("modules/filebrowser/patches/library_font")
@@ -54,48 +53,82 @@ local function apply_context_menu()
         return button_rows
     end
 
-    local function get_title_face_for_textviewer()
-        local default_title_face = Font:getFace("x_smalltfont")
-        local title_size = default_title_face and default_title_face.orig_size or 20
-        return Font:getFace(library_font.getFontName(), title_size)
+    local CONTEXT_ICON_COLUMN_WIDTH = Device.screen:scaleBySize(30)
+    local CONTEXT_ICON_GAP = Device.screen:scaleBySize(8)
+
+    local function split_inline_icon(text)
+        local first_byte = text:byte(1)
+        if not first_byte then return nil, text end
+
+        local char_len
+        if first_byte < 0x80 then
+            char_len = 1
+        elseif first_byte < 0xE0 then
+            char_len = 2
+        elseif first_byte < 0xF0 then
+            char_len = 3
+        else
+            char_len = 4
+        end
+
+        local suffix = text:sub(char_len + 1)
+        if suffix:sub(1, 2) ~= "  " then return nil, text end
+        return text:sub(1, char_len), suffix:sub(3)
     end
 
-    local function apply_textviewer_body_font_family(tv)
-        if type(tv) ~= "table" then return end
-        if not tv.scroll_text_w then return end
-        local ScrollTextWidget = require("ui/widget/scrolltextwidget")
-        local body_size = tv.text_font_size
-        if type(body_size) ~= "number" or body_size <= 0 then
-            local text_widget = tv.scroll_text_w and tv.scroll_text_w.text_widget
-            body_size = text_widget and text_widget.face and text_widget.face.orig_size or 20
-        end
+    local function align_button_dialog_icons(dialog)
+        local button_rows = dialog and dialog.buttontable and dialog.buttontable.buttons_layout
+        if type(button_rows) ~= "table" then return dialog end
 
-        local textw_height = tv.height - tv.titlebar:getHeight() - tv.button_table:getSize().h
-        local new_scroll = ScrollTextWidget:new{
-            text = tv.text,
-            face = Font:getFace(library_font.getFontName(), body_size),
-            fgcolor = tv.fgcolor,
-            width = tv.width - 2 * tv.text_padding - 2 * tv.text_margin,
-            height = textw_height - 2 * tv.text_padding - 2 * tv.text_margin,
-            dialog = tv,
-            alignment = tv.alignment,
-            justified = tv.justified,
-            lang = tv.lang,
-            para_direction_rtl = tv.para_direction_rtl,
-            auto_para_direction = tv.auto_para_direction,
-            alignment_strict = tv.alignment_strict,
-            scroll_callback = tv._buttons_scroll_callback,
-        }
+        for _i, row in ipairs(button_rows) do
+            for _j, button in ipairs(row) do
+                local old_label = button.label_widget
+                local label_container = button.label_container
+                if button.text and old_label and label_container and label_container.dimen then
+                    local display_text = button.checked_func and button:getDisplayText() or button.text
+                    local glyph, label = split_inline_icon(display_text)
+                    local face = old_label.face
+                    local fgcolor = old_label.fgcolor
+                    local bold = old_label.bold
+                    local label_width = math.max(1, label_container.dimen.w
+                        - CONTEXT_ICON_COLUMN_WIDTH - CONTEXT_ICON_GAP)
+                    local icon_widget = glyph and TextWidget:new{
+                        text = glyph,
+                        face = face,
+                        fgcolor = fgcolor,
+                        bold = bold,
+                    } or HorizontalSpan:new{ width = 0 }
+                    local text_widget = TextWidget:new{
+                        text = label,
+                        lang = button.lang,
+                        max_width = label_width,
+                        face = face,
+                        fgcolor = fgcolor,
+                        bold = bold,
+                    }
 
-        pcall(function()
-            if type(tv.scroll_text_w.free) == "function" then
-                tv.scroll_text_w:free(false)
+                    old_label:free()
+                    button.label_widget = text_widget
+                    label_container[1] = HorizontalGroup:new{
+                        align = "center",
+                        CenterContainer:new{
+                            dimen = Geom:new{
+                                w = CONTEXT_ICON_COLUMN_WIDTH,
+                                h = label_container.dimen.h,
+                            },
+                            icon_widget,
+                        },
+                        HorizontalSpan:new{ width = CONTEXT_ICON_GAP },
+                        text_widget,
+                    }
+                end
             end
-        end)
-        tv.scroll_text_w = new_scroll
-        if type(tv.textw) == "table" then
-            tv.textw[1] = new_scroll
         end
+        return dialog
+    end
+
+    local function new_context_menu_dialog(options)
+        return align_button_dialog_icons(ButtonDialog:new(options))
     end
 
     -- Keep Zen's path-keyed folder settings aligned with successful moves.
@@ -115,11 +148,26 @@ local function apply_context_menu()
             destination = ffiUtil.realpath(destination) or destination
             pcall(ConfigManager.moveFolderPathSettings, source, destination)
         end
+        if moved then
+            UIManager:nextTick(function()
+                local plug = zen_plugin or rawget(_G, "__ZEN_UI_PLUGIN")
+                local home = plug and SharedState.get(plug, "home")
+                if home and type(home.invalidateBookCache) == "function" then
+                    home.invalidateBookCache(from, true)
+                end
+                if home and type(home.invalidateLibraryCache) == "function" then
+                    home.invalidateLibraryCache()
+                end
+            end)
+        end
         return moved
     end
 
     -- MoveChooser
-    local MoveChooser = PathChooser:extend{ _zen_no_forced_repaint = true }
+    local MoveChooser = PathChooser:extend{
+        _zen_no_forced_repaint = true,
+        _zen_renderer = true,
+    }
 
     function MoveChooser:genItemTableFromPath(path)
         local ffiUtil3 = require("ffi/util")
@@ -134,6 +182,7 @@ local function apply_context_menu()
                 text           = ffiUtil3.basename(root),
                 path           = root,
                 is_file        = false,
+                is_directory   = true,
                 bidi_wrap_func = BD3.directory,
                 mandatory      = self:getMenuItemMandatory({ path = root }),
             })
@@ -164,6 +213,7 @@ local function apply_context_menu()
                         text           = display,
                         path           = sub.path,
                         is_file        = false,
+                        is_directory   = true,
                         bidi_wrap_func = BD3.directory,
                         mandatory      = self:getMenuItemMandatory({ path = sub.path }),
                     })
@@ -192,6 +242,7 @@ local function apply_context_menu()
                             text           = er_name,
                             path           = er,
                             is_file        = false,
+                            is_directory   = true,
                             bidi_wrap_func = BD3.directory,
                             mandatory      = self:getMenuItemMandatory({ path = er }),
                         })
@@ -221,6 +272,15 @@ local function apply_context_menu()
     function MoveChooser:onMenuHold() return true end
 
     function MoveChooser:init()
+        local CoverMenu = require("covermenu")
+        local MosaicMenu = require("mosaicmenu")
+        self.display_mode_type = "mosaic"
+        self.updateItems = CoverMenu.updateItems
+        self.onCloseWidget = CoverMenu.onCloseWidget
+        self._recalculateDimen = MosaicMenu._recalculateDimen
+        self._updateItemsBuildUI = MosaicMenu._updateItemsBuildUI
+        self._do_cover_images = false
+        self._do_center_partial_rows = false
         PathChooser.init(self)
         local tb = self.title_bar
         if tb and tb.has_left_icon then
@@ -229,6 +289,11 @@ local function apply_context_menu()
             tb.has_left_icon = false
             tb.left_button = nil
             tb:init()
+        end
+        local close_icon = tb and tb.right_button and tb.right_button.image
+        if close_icon then
+            close_icon.alpha = true
+            close_icon:free()
         end
     end
 
@@ -256,8 +321,8 @@ local function apply_context_menu()
                 return false
             end
 
-            local effective_status = book_status.getEffectiveStatusFromFile(fullpath)
-            return status_filter[effective_status] and true or false
+            local display_status = book_status.getDisplayStatusFromFile(fullpath)
+            return status_filter[display_status] and true or false
         end
     end
 
@@ -415,16 +480,17 @@ local function apply_context_menu()
 
         file_chooser.showSortOrderDialog = function(self_fc, opts)
             local UIManager_sod    = require("ui/uimanager")
-            local ButtonDialog_sod = require("ui/widget/buttondialog")
             local _sod             = require("gettext")
             local cur_rev          = opts.current_reverse or false
+            local forward_text     = opts.forward_text or _sod("Ascending")
+            local reverse_text     = opts.reverse_text or _sod("Descending")
             local order_dialog
-            order_dialog = ButtonDialog_sod:new{
+            order_dialog = new_context_menu_dialog{
                 title       = opts.title or _sod("Sort order"),
                 title_align = "center",
                 buttons     = {
                     {{
-                        text     = "\u{F15D}  " .. _sod("Ascending") .. (not cur_rev and "  \u{2713}" or ""),
+                        text     = "\u{F15D}  " .. forward_text .. (not cur_rev and "  \u{2713}" or ""),
                         align    = "left",
                         enabled  = cur_rev,
                         callback = function()
@@ -433,7 +499,7 @@ local function apply_context_menu()
                         end,
                     }},
                     {{
-                        text     = "\u{F15E}  " .. _sod("Descending") .. (cur_rev and "  \u{2713}" or ""),
+                        text     = "\u{F15E}  " .. reverse_text .. (cur_rev and "  \u{2713}" or ""),
                         align    = "left",
                         enabled  = not cur_rev,
                         callback = function()
@@ -478,7 +544,7 @@ local function apply_context_menu()
                 local display_cb  = item._zen_display_cb
                 local Screen   = Device.screen
                 local SizeR    = require("ui/size")
-                local border   = SizeR.border.thin
+                local border   = Cover.BORDER_SIZE
                 local gap      = Screen:scaleBySize(8)
                 local dlg_w    = math.floor(math.min(Screen:getWidth(), Screen:getHeight()) * 0.9)
                 local avail_w  = dlg_w - 2 * (SizeR.border.window + SizeR.padding.button)
@@ -634,7 +700,8 @@ local function apply_context_menu()
                     local STATUS_OPTS = {
                         { key = "new", icon = icons.status, label = _("Unread") },
                         { key = "reading", icon = icons.reading, label = _("Reading") },
-                        { key = "abandoned", icon = icons.tbr, label = _("To Be Read") },
+                        { key = "tbr", icon = icons.tbr, label = _("To Be Read") },
+                        { key = "abandoned", icon = icons.on_hold, label = _("On hold") },
                         { key = "complete", icon = icons.finished, label = _("Finished") },
                     }
                     local fbts = {}
@@ -663,13 +730,13 @@ local function apply_context_menu()
                                 else new_st[st.key] = true end
                                 local n = 0
                                 for _k, v in pairs(new_st) do if v then n = n + 1 end end
-                                if n == 0 or n == 4 then setGlobalFilter(nil)
+                                if n == 0 or n == #STATUS_OPTS then setGlobalFilter(nil)
                                 else setGlobalFilter(new_st) end
                                 UIManager:nextTick(showGroupFilterDialog)
                             end,
                         }})
                     end
-                    filter_dialog = ButtonDialog:new{
+                    filter_dialog = new_context_menu_dialog{
                         title = _("Filter by status"),
                         title_align = "center",
                         buttons = apply_button_group_font(fbts),
@@ -702,7 +769,7 @@ local function apply_context_menu()
                     end
                 end
 
-                self_fc.file_dialog = ButtonDialog:new{
+                self_fc.file_dialog = new_context_menu_dialog{
                     buttons = apply_button_group_font(buttons),
                     _added_widgets = { header_widget },
                 }
@@ -736,10 +803,7 @@ local function apply_context_menu()
                 end)
             end
 
-            local function refresh_book_info()
-                local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
-                if not ok_bim then return end
-                BookInfoManager:deleteBookInfo(file)
+            local function invalidate_home_book()
                 local home = zen_plugin and SharedState.get(zen_plugin, "home")
                 if home and type(home.invalidateBookCache) == "function" then
                     home.invalidateBookCache(file)
@@ -747,23 +811,56 @@ local function apply_context_menu()
                 if home and type(home.rebuildActive) == "function" then
                     home.rebuildActive()
                 end
+            end
+
+            local function refresh_book_info()
+                local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
+                if not ok_bim then return end
+                BookInfoManager:deleteBookInfo(file)
+                invalidate_home_book()
                 if self_fc.filemanager_menu then
                     self_fc.filemanager_menu.files_updated = true
                 end
                 refresh()
             end
 
-            local function refresh_after_sort_change()
-                if self_fc._zen_clear_item_table_cache then
-                    self_fc:_zen_clear_item_table_cache()
+            local function refresh_after_sort_change(folder_path)
+                if not folder_path then
+                    if self_fc._zen_clear_item_table_cache then
+                        self_fc:_zen_clear_item_table_cache()
+                    end
+                    if self_fc.clearSortingCache then self_fc:clearSortingCache() end
+                    self_fc:refreshPath()
+                    return
                 end
-                if self_fc.clearSortingCache then
-                    self_fc:clearSortingCache()
+
+                if is_virtual_folder
+                        and type(self_fc._zen_resort_series_group) == "function"
+                        and self_fc:_zen_resort_series_group(item, is_current_view) then
+                    if not is_current_view and type(self_fc.updateItems) == "function" then
+                        self_fc:updateItems()
+                    end
+                    return
                 end
-                self_fc:refreshPath()
+
+                if self_fc._zen_invalidate_item_table_path then
+                    self_fc:_zen_invalidate_item_table_path(folder_path)
+                else
+                    local ok_folder, FolderCover = pcall(
+                        require, "modules/filebrowser/folder_cover")
+                    if ok_folder and type(FolderCover.clear) == "function" then
+                        FolderCover.clear(folder_path)
+                    end
+                end
+                if self_fc.clearSortingCache then self_fc:clearSortingCache() end
+                if is_current_view then
+                    self_fc:refreshPath()
+                elseif type(self_fc.updateItems) == "function" then
+                    self_fc:updateItems()
+                end
             end
 
-            local dialog_title, dialog_cover_widget, book_description
+            local dialog_title, dialog_cover_widget
 
             local function showCoverFullscreen(cover_path)
                 local ok2, bim2 = pcall(require, "bookinfomanager")
@@ -788,7 +885,7 @@ local function apply_context_menu()
             do
                 local Screen = Device.screen
                 local SizeR = require("ui/size")
-                local border = SizeR.border.thin
+                local border = Cover.BORDER_SIZE
                 local gap = Screen:scaleBySize(8)
                 local dlg_w = math.floor(math.min(Screen:getWidth(), Screen:getHeight()) * 0.9)
                 local avail_w = dlg_w - 2 * (SizeR.border.window + SizeR.padding.button)
@@ -996,11 +1093,6 @@ local function apply_context_menu()
                                     pages_str = n_pages .. " " .. _("pages")
                                 end
                             end
-                            if not bookinfo.ignore_meta and bookinfo.description
-                                and bookinfo.description ~= "" then
-                                book_description = bookinfo.description
-                            end
-
                             -- Use unified makeCover for single book (with proper scaling)
                             local cover_bb, w, h = Cover.makeCover(file, nil, {
                                 is_folder = false,
@@ -1329,7 +1421,7 @@ local function apply_context_menu()
                         file_manager.cutfile = cutfile
                         file_manager:showCopyMoveSelectedFilesDialog(function() end, file)
                     end
-                    action_dialog = ButtonDialog:new{
+                    action_dialog = new_context_menu_dialog{
                         title = _("Paste selected files"),
                         title_align = "center",
                         buttons = apply_button_group_font({{
@@ -1358,7 +1450,7 @@ local function apply_context_menu()
                 end
 
                 if is_home_dir then
-                    edit_dialog = ButtonDialog:new{
+                    edit_dialog = new_context_menu_dialog{
                         buttons = apply_button_group_font({
                             {{
                                 text = "\u{F0192}  " .. C_("File", "Paste"),
@@ -1412,7 +1504,9 @@ local function apply_context_menu()
                             callback = function()
                                 UIManager:close(edit_dialog)
                                 file_manager:onToggleSelectMode()
-                                if is_file and type(self_fc.onFileSelect) == "function" then
+                                if type(item._zen_select_cb) == "function" then
+                                    item._zen_select_cb()
+                                elseif is_file and type(self_fc.onFileSelect) == "function" then
                                     self_fc:onFileSelect(item)
                                 end
                             end,
@@ -1450,7 +1544,7 @@ local function apply_context_menu()
                     })
                 end
 
-                edit_dialog = ButtonDialog:new{
+                edit_dialog = new_context_menu_dialog{
                     buttons = apply_button_group_font(edit_buttons),
                 }
                 UIManager:show(edit_dialog)
@@ -1462,34 +1556,28 @@ local function apply_context_menu()
             if is_file and is_not_parent_folder then
                 table.insert(buttons, {
                     {
-                        text = "\u{F02FD}  " .. _("Details"),
+                        text = icons.details .. "  " .. _("Details"),
                         align = "left",
                         callback = function()
                             close_dialog()
-                            local util = require("util")
-                            local TextViewer = require("ui/widget/textviewer")
-                            local desc_text = book_description
-                                and util.htmlToPlainTextIfHtml(book_description)
-                                or _("No description.")
-                            local tv
-                            tv = TextViewer:new{
-                                title = _("Description"),
-                                title_face = get_title_face_for_textviewer(),
-                                text = desc_text,
-                                text_type = "book_info",
-                                buttons_table = {
-                                    {{
-                                        text = "\u{F02FD} " .. _("Book information"),
-                                        font_face = library_font.getFontName(),
-                                        callback = function()
-                                            UIManager:close(tv)
-                                            file_manager.bookinfo:show(file)
-                                        end,
-                                    }},
-                                },
-                            }
-                            apply_textviewer_body_font_family(tv)
-                            UIManager:show(tv)
+                            require("modules/reader/book_details").showFile(file, {
+                                config = zen_plugin and zen_plugin.config,
+                                edit_callback = function(details_widget)
+                                    local bookinfo = file_manager.bookinfo
+                                    if bookinfo.showFromBookDetails then
+                                        bookinfo:showFromBookDetails(file, nil, {
+                                            close_parent_callback = function()
+                                                if details_widget
+                                                        and type(details_widget.onClose) == "function" then
+                                                    details_widget:onClose()
+                                                end
+                                            end,
+                                        })
+                                    else
+                                        bookinfo:show(file)
+                                    end
+                                end,
+                            })
                         end,
                     },
                 })
@@ -1627,6 +1715,10 @@ local function apply_context_menu()
                                 close_dialog()
                                 ReadCollection:removeItem(file, coll_name)
                                 ReadCollection:write({ [coll_name] = true })
+                                pcall(function()
+                                    require("common/tbr_index").collectionChanged(coll_name)
+                                end)
+                                invalidate_home_book()
                                 if item._zen_collection_refresh then
                                     UIManager:nextTick(item._zen_collection_refresh)
                                 end
@@ -1673,8 +1765,20 @@ local function apply_context_menu()
                                     onMenuSelect = function(self_m, item_m)
                                         if item_m.dim then return true end
                                         UIManager:close(coll_picker)
-                                        ReadCollection:addItem(file, item_m._cn)
-                                        ReadCollection:write({ [item_m._cn] = true })
+                                        local TBRIndex = require("common/tbr_index")
+                                        if item_m._cn == TBRIndex.collectionName() then
+                                            TBRIndex.setExplicit(file, true)
+                                        else
+                                            ReadCollection:addItem(file, item_m._cn)
+                                            ReadCollection:write({ [item_m._cn] = true })
+                                        end
+                                        pcall(function()
+                                            TBRIndex.collectionChanged(item_m._cn)
+                                        end)
+                                        if item._zen_collection_refresh then
+                                            UIManager:nextTick(item._zen_collection_refresh)
+                                        end
+                                        UIManager:nextTick(invalidate_home_book)
                                         return true
                                     end,
                                     close_callback = function()
@@ -1691,7 +1795,7 @@ local function apply_context_menu()
             if is_file and is_not_parent_folder then
                 table.insert(buttons, {
                     {
-                        text = "\u{F0B64}  " .. _("Read status") .. "  " .. submenu_arrow,
+                        text = icons.read_status .. "  " .. _("Read status") .. "  " .. submenu_arrow,
                         align = "left",
                         callback = function()
                             close_dialog()
@@ -1703,9 +1807,20 @@ local function apply_context_menu()
                             local current_status = summary.status
                             local is_unread = not current_status or current_status == ""
                             local status_dialog
+                            local is_explicit_tbr = false
+                            pcall(function()
+                                is_explicit_tbr = require("common/tbr_index").isExplicit(file)
+                            end)
+
+                            local function removeFromTBR()
+                                pcall(function()
+                                    require("common/tbr_index").setExplicit(file, false)
+                                end)
+                            end
 
                             local function setStatus(to_status)
                                 book_status.acknowledgeNewVersion(doc_settings)
+                                removeFromTBR()
                                 if to_status == nil then
                                     summary.status = nil
                                     doc_settings:delSetting("percent_finished")
@@ -1716,6 +1831,10 @@ local function apply_context_menu()
                                 end
                                 filemanagerutil.saveSummary(doc_settings, summary)
                                 BookList.setBookInfoCacheProperty(file, "status", to_status)
+                                book_status.invalidate(file)
+                                pcall(function()
+                                    require("common/tbr_index").refreshPath(file, doc_settings)
+                                end)
                                 if to_status == nil then
                                     -- Snapshot pages before reset: setBookInfoCacheProperty("been_opened", false)
                                     -- replaces the whole cache entry with {been_opened=false}, losing pages.
@@ -1737,25 +1856,44 @@ local function apply_context_menu()
                                 end
                             end
 
+                            local function setTBR()
+                                pcall(function()
+                                    require("common/tbr_index").setExplicit(file, true)
+                                end)
+                                UIManager:close(status_dialog)
+                                if type(item._zen_after_status_change) == "function" then
+                                    UIManager:nextTick(function()
+                                        item._zen_after_status_change(file)
+                                    end)
+                                else
+                                    refresh()
+                                end
+                            end
+
                             local function statusBtn(icon, label, to_status)
-                                local is_cur = (to_status == nil and is_unread)
-                                    or (to_status ~= nil and current_status == to_status)
+                                local is_cur = (to_status == "tbr" and is_explicit_tbr)
+                                    or (not is_explicit_tbr and ((to_status == nil and is_unread)
+                                        or (to_status ~= nil and current_status == to_status)))
                                 return {{
                                     text = icon .. "  " .. label .. (is_cur and "  \u{2713}" or ""),
                                     align = "left",
                                     enabled = not is_cur,
-                                    callback = function() setStatus(to_status) end,
+                                    callback = function()
+                                        if to_status == "tbr" then setTBR()
+                                        else setStatus(to_status) end
+                                    end,
                                 }}
                             end
 
-                            status_dialog = ButtonDialog:new{
+                            status_dialog = new_context_menu_dialog{
                                 title = _("Read status"),
                                 title_align = "center",
                                 buttons = apply_button_group_font({
-                                    statusBtn("\u{F0B64}", _("Unread"), nil),
-                                    statusBtn("\u{F0B63}", _("Reading"), "reading"),
-                                    statusBtn("\u{F0150}", _("To Be Read"), "abandoned"),
-                                    statusBtn("\u{F012C}", _("Finished"), "complete"),
+                                    statusBtn(icons.status, _("Unread"), nil),
+                                    statusBtn(icons.reading, _("Reading"), "reading"),
+                                    statusBtn(icons.tbr, _("To Be Read"), "tbr"),
+                                    statusBtn(icons.on_hold, _("On hold"), "abandoned"),
+                                    statusBtn(icons.finished, _("Finished"), "complete"),
                                 }),
                             }
                             UIManager:show(status_dialog)
@@ -1831,7 +1969,7 @@ local function apply_context_menu()
                             end,
                         }}
                     end
-                    view_dialog = ButtonDialog:new{
+                    view_dialog = new_context_menu_dialog{
                         title = _("Display mode"),
                         title_align = "center",
                         buttons = apply_button_group_font({
@@ -1856,6 +1994,7 @@ local function apply_context_menu()
                 local SORT_OPTIONS = {
                     { key = "title", text = "\u{F04BB}  " .. _("Title") },
                     { key = "title_natural", text = "\u{F04BB}  " .. _("Title natural") },
+                    { key = "strcoll", text = icons.filename .. "  " .. _("Filename") },
                     { key = "authors", text = "\u{F0013}  " .. _("Authors") },
                     { key = "series", text = "\u{F0436}  " .. _("Series") },
                     { key = "access", text = "\u{F02DA}  " .. _("Recently read") },
@@ -1874,7 +2013,6 @@ local function apply_context_menu()
                                     local sort_buttons = {}
                                     local cur = g_sort:readSetting("collate", "strcoll")
                                     local cur_reverse = g_sort:isTrue("reverse_collate")
-                                    if cur == "strcoll" then cur = "title" end
                                     for _i, opt in ipairs(SORT_OPTIONS) do
                                         local is_active = cur == opt.key
                                         table.insert(sort_buttons, {{
@@ -1906,7 +2044,7 @@ local function apply_context_menu()
                                             })
                                         end,
                                     }})
-                                    sort_dialog = ButtonDialog:new{
+                                    sort_dialog = new_context_menu_dialog{
                                         title = _("Sort library by"),
                                         title_align = "center",
                                         buttons = apply_button_group_font(sort_buttons),
@@ -1944,7 +2082,7 @@ local function apply_context_menu()
                                             callback = function()
                                                 fsd_api.set(real_folder, opt.key, cur_reverse)
                                                 UIManager:close(sort_dialog)
-                                                refresh_after_sort_change()
+                                                refresh_after_sort_change(real_folder)
                                             end,
                                         }})
                                     end
@@ -1958,7 +2096,7 @@ local function apply_context_menu()
                                                 on_select = function(reverse)
                                                     if cur_collate then
                                                         fsd_api.set(real_folder, cur_collate, reverse)
-                                                        refresh_after_sort_change()
+                                                        refresh_after_sort_change(real_folder)
                                                     end
                                                 end,
                                             })
@@ -1972,11 +2110,11 @@ local function apply_context_menu()
                                             callback = function()
                                                 fsd_api.clear(real_folder)
                                                 UIManager:close(sort_dialog)
-                                                refresh_after_sort_change()
+                                                refresh_after_sort_change(real_folder)
                                             end,
                                         }})
                                     end
-                                    sort_dialog = ButtonDialog:new{
+                                    sort_dialog = new_context_menu_dialog{
                                         title = _("Sort folder by"),
                                         title_align = "center",
                                         buttons = apply_button_group_font(sort_buttons),
@@ -2008,7 +2146,8 @@ local function apply_context_menu()
                     local STATUS_OPTS = {
                         { key = "new", icon = icons.status, label = _("Unread") },
                         { key = "reading", icon = icons.reading, label = _("Reading") },
-                        { key = "abandoned", icon = icons.tbr, label = _("To Be Read") },
+                        { key = "tbr", icon = icons.tbr, label = _("To Be Read") },
+                        { key = "abandoned", icon = icons.on_hold, label = _("On hold") },
                         { key = "complete", icon = icons.finished, label = _("Finished") },
                     }
 
@@ -2040,14 +2179,14 @@ local function apply_context_menu()
                                 end
                                 local n = 0
                                 for _k, v in pairs(new_st) do if v then n = n + 1 end end
-                                if n == 0 or n == 4 then setFilter(nil)
+                                if n == 0 or n == #STATUS_OPTS then setFilter(nil)
                                 else setFilter(new_st) end
                                 UIManager:nextTick(showFilterDialog)
                             end,
                         }})
                     end
 
-                    filter_dialog = ButtonDialog:new{
+                    filter_dialog = new_context_menu_dialog{
                         title = _("Filter by status"),
                         title_align = "center",
                         buttons = apply_button_group_font(fbts),
@@ -2109,6 +2248,9 @@ local function apply_context_menu()
                                     local home = plug and SharedState.get(plug, "home")
                                     if home and home.rebuildActive then
                                         UIManager:nextTick(function()
+                                            if type(home.invalidateBookCache) == "function" then
+                                                home.invalidateBookCache(file, true)
+                                            end
                                             home.rebuildActive()
                                         end)
                                     end
@@ -2132,7 +2274,7 @@ local function apply_context_menu()
                     },
                 })
             end
-            self_fc.file_dialog = ButtonDialog:new{
+            self_fc.file_dialog = new_context_menu_dialog{
                 title = dlg_title ~= "" and dlg_title or nil,
                 title_align = "center",
                 buttons = apply_button_group_font(buttons),

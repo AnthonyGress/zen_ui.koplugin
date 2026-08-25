@@ -10,6 +10,7 @@
 local Device = require("device")
 local Blitbuffer = require("ffi/blitbuffer")
 local logger = require("common/zen_logger").new("background")
+local _ = require("gettext")
 local Screen = Device.screen
 
 local ok_iw, ImageWidget = pcall(require, "ui/widget/imagewidget")
@@ -23,11 +24,99 @@ local M = {}
 -- Cache the constructed cover-fit ImageWidget keyed by "path|w|h".
 local _cache = {}
 local _buffer_cache = {}
+local _missing_recovery_handler
+local _missing_recovery_pending = false
+local _missing_recovery_running = false
+local _missing_notice_pending = false
+local _missing_work_scheduled = false
+
+local function run_missing_background_work()
+    _missing_work_scheduled = false
+    if _missing_recovery_pending and type(_missing_recovery_handler) == "function" then
+        _missing_recovery_running = true
+        local ok, recovered = pcall(_missing_recovery_handler)
+        _missing_recovery_running = false
+        if ok and recovered ~= false then
+            _missing_recovery_pending = false
+        elseif not ok then
+            logger.warn("missing library background recovery failed:", tostring(recovered))
+        end
+    end
+    if not _missing_notice_pending then return end
+    _missing_notice_pending = false
+    local ok_ui, UIManager = pcall(require, "ui/uimanager")
+    local ok_notification, Notification = pcall(require, "ui/widget/notification")
+    if ok_ui and ok_notification and type(UIManager.show) == "function"
+            and type(Notification.new) == "function" then
+        local notice = Notification:new{
+            text = _("Library background was disabled because the image file was not found."),
+        }
+        local orig_on_close_widget = notice.onCloseWidget
+        function notice:onCloseWidget(...)
+            local result
+            if orig_on_close_widget then
+                result = orig_on_close_widget(self, ...)
+            end
+            -- Home may finish rebuilding while this toast is on top.
+            local function repaint_rebuilt_surface()
+                if type(UIManager.setDirty) == "function" then
+                    UIManager:setDirty("all", "full")
+                end
+            end
+            if type(UIManager.nextTick) == "function" then
+                UIManager:nextTick(repaint_rebuilt_surface)
+            else
+                repaint_rebuilt_surface()
+            end
+            return result
+        end
+        UIManager:show(notice)
+    end
+end
+
+local function schedule_missing_background_work()
+    if _missing_work_scheduled or _missing_recovery_running
+            or not (_missing_recovery_pending or _missing_notice_pending) then
+        return
+    end
+    if not _missing_notice_pending and type(_missing_recovery_handler) ~= "function" then
+        return
+    end
+    local ok_ui, UIManager = pcall(require, "ui/uimanager")
+    if ok_ui and type(UIManager.nextTick) == "function" then
+        _missing_work_scheduled = true
+        UIManager:nextTick(run_missing_background_work)
+    else
+        run_missing_background_work()
+    end
+end
 
 local function file_exists(path)
     if type(path) ~= "string" or path == "" then return false end
     if not lfs then return true end  -- can't check; assume present
     return lfs.attributes(path, "mode") == "file"
+end
+
+local function disable_missing_library_background(plugin, cfg, bg, path)
+    bg.enabled = false
+    if plugin and plugin.config == cfg and type(plugin.saveConfig) == "function" then
+        pcall(plugin.saveConfig, plugin)
+    else
+        local ok_config, ConfigManager = pcall(require, "config/manager")
+        if ok_config and type(ConfigManager.save) == "function" then
+            pcall(ConfigManager.save, cfg)
+        end
+    end
+    M.clearCache()
+    logger.warn("disabled missing library background", path)
+    _missing_recovery_pending = true
+    _missing_notice_pending = true
+    schedule_missing_background_work()
+end
+
+function M.setMissingLibraryBackgroundHandler(handler)
+    _missing_recovery_handler = type(handler) == "function" and handler or nil
+    schedule_missing_background_work()
 end
 
 local function is_jpeg_path(path)
@@ -104,6 +193,7 @@ end
 -- Paint the background image filling (x, y, w, h). No-op if path empty/missing.
 function M.paint(bb, x, y, w, h, path)
     if not bb or type(path) ~= "string" or path == "" then return false end
+    local painted = false
     local ok, err = pcall(function()
         local iw = get_widget(path, w, h)
         if not iw then return end
@@ -111,11 +201,12 @@ function M.paint(bb, x, y, w, h, path)
         if Screen.night_mode then
             bb:invertRect(x, y, w, h)
         end
+        painted = true
     end)
     if not ok then
         logger.warn("paint failed for", tostring(path), tostring(err))
     end
-    return ok
+    return ok and painted
 end
 
 local function get_screen_buffer(path, w, h, bb_type)
@@ -178,7 +269,7 @@ function M.clearWhiteBackgrounds(widget, max_depth)
 
     local function walk(w, depth)
         if type(w) ~= "table" or depth > max_depth then return end
-        if is_white(w.background) then
+        if is_white(w.background) and not w._zen_keep_background then
             w.background = nil
         end
         for i = 1, #w do
@@ -224,18 +315,24 @@ end
 -- True when a library background image is configured. Home/standalone widget
 -- tiles use this to switch their opaque fill to nil (transparent) so the
 -- background painted behind the page shows through.
-function M.library_path()
-    local plugin = rawget(_G, "__ZEN_UI_PLUGIN")
+function M.library_path(plugin)
+    schedule_missing_background_work()
+    plugin = plugin or rawget(_G, "__ZEN_UI_PLUGIN")
     local cfg = plugin and plugin.config
     if type(cfg) ~= "table" then
         local ok, loaded = pcall(function()
-            return require("config/manager").load()
+            local ConfigManager = require("config/manager")
+            return ConfigManager.get() or ConfigManager.load()
         end)
         cfg = ok and loaded or nil
     end
     local bg = type(cfg) == "table" and cfg.library_background
     local path = type(bg) == "table" and type(bg.path) == "string" and bg.path or ""
     if type(bg) == "table" and bg.enabled == true and is_jpeg_path(path) then
+        if not file_exists(path) then
+            disable_missing_library_background(plugin, cfg, bg, path)
+            return ""
+        end
         return path
     end
     return ""
@@ -265,9 +362,11 @@ function M.applyToMenu(menu, max_depth)
             -- Menu:updateItems may rebuild self[1] with opaque white fills.
             M.clearWhiteBackgrounds(self[1], max_depth)
             if self.dimen then
-                M.paint(bb, 0, 0, self.dimen.w, self.dimen.h, path)
+                M.paintScreenRegion(bb, 0, 0, 0, 0,
+                    self.dimen.w, self.dimen.h, path)
             else
-                M.paint(bb, 0, 0, Screen:getWidth(), Screen:getHeight(), path)
+                M.paintScreenRegion(bb, 0, 0, 0, 0,
+                    Screen:getWidth(), Screen:getHeight(), path)
             end
         end
         if orig_paintTo then

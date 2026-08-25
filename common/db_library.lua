@@ -9,9 +9,18 @@
 --
 -- This module iterates ReadHistory, checks each book's DocSettings sidecar,
 -- and counts entries whose summary.status == "complete".
+--
+-- Cost notes: DocSettings:open() stats up to ten candidate paths and parses
+-- the WHOLE sidecar (bookmarks, highlights, ...) just to expose summary.  For
+-- counting we only need `summary`, so we locate the sidecar once with
+-- findSidecarFile() (at most a few stats) and cache the parsed summary keyed
+-- by (path, mtime, size).  Repeated scans therefore re-stat each sidecar but
+-- never re-parse it, and unchanged sidecars stay on the cheap path even after
+-- the result cache expires.
 
 local logger = require("common/zen_logger").new("db_library")
 local paths = require("common/paths")
+local lfs = require("libs/libkoreader-lfs")
 
 local LibraryDB = {}
 
@@ -20,6 +29,22 @@ local LibraryDB = {}
 -- rescan on the next getBookCounts() call.
 local _cache = { book_counts = nil, cache_time = 0 }
 local CACHE_TTL = 300  -- seconds
+
+-- Per-sidecar summary cache.  Key is sidecar path + modification time + size,
+-- so an entry is only reused while the file on disk is byte-identical.
+-- Bounded FIFO; entries are tiny (a status string and a date string).
+local _summary_cache = {}
+local _summary_order = {}
+local SUMMARY_CACHE_MAX = 1024
+
+local function cache_summary(key, summary)
+    _summary_cache[key] = summary
+    _summary_order[#_summary_order + 1] = key
+    if #_summary_order > SUMMARY_CACHE_MAX then
+        local oldest = table.remove(_summary_order, 1)
+        _summary_cache[oldest] = nil
+    end
+end
 
 -- Invalidate the cache so the next getBookCounts() call forces a fresh scan.
 function LibraryDB.invalidateCache()
@@ -71,28 +96,47 @@ function LibraryDB.getBookCounts()
             if file and home_dir and not paths.isInHomeDir(file) then
                 file = nil
             end
-            if file and DocSettings:hasSidecarFile(file) then
-                counts.total = counts.total + 1
-                local doc_settings = DocSettings:open(file)
-                local summary = doc_settings:readSetting("summary") or {}
-                local status  = summary.status
-                if status == "complete" then
-                    counts.finished = counts.finished + 1
-                    local modified = summary.modified
-                    if type(modified) == "string" then
-                        if modified:sub(1, 7) == month then
-                            counts.finished_this_month = counts.finished_this_month + 1
+            if file then
+                -- Locate the sidecar without the ten-candidate scan that
+                -- DocSettings:open() performs.
+                local sidecar_file = DocSettings:findSidecarFile(file)
+                if sidecar_file then
+                    local attrs = lfs.attributes(sidecar_file)
+                    local mtime = attrs and attrs.modification
+                    local size = attrs and attrs.size
+                    if mtime and size and size > 0 then
+                        counts.total = counts.total + 1
+                        local summary = _summary_cache[
+                            sidecar_file .. "\31" .. tostring(mtime) .. "\31" .. tostring(size)
+                        ]
+                        if not summary then
+                            -- Light open: parses only the given sidecar file.
+                            local doc_settings = DocSettings:openSettingsFile(sidecar_file)
+                            summary = doc_settings and doc_settings.data.summary or nil
+                            cache_summary(
+                                sidecar_file .. "\31" .. tostring(mtime) .. "\31" .. tostring(size),
+                                summary
+                            )
                         end
-                        if modified:sub(1, 4) == year then
-                            counts.finished_this_year = counts.finished_this_year + 1
+                        if summary then
+                            local status = summary.status
+                            if status == "complete" then
+                                counts.finished = counts.finished + 1
+                                local modified = summary.modified
+                                if type(modified) == "string" then
+                                    if modified:sub(1, 7) == month then
+                                        counts.finished_this_month = counts.finished_this_month + 1
+                                    end
+                                    if modified:sub(1, 4) == year then
+                                        counts.finished_this_year = counts.finished_this_year + 1
+                                    end
+                                end
+                            elseif status == "reading" then
+                                counts.reading = counts.reading + 1
+                            end
                         end
                     end
-                elseif status == "reading" then
-                    counts.reading = counts.reading + 1
                 end
-                -- NOTE: do NOT call doc_settings:close() — LuaSettings:close()
-                -- unconditionally calls flush(), which rewrites the sidecar to
-                -- disk even when nothing was changed. Let the object be GC'd.
             end
         end
     end)

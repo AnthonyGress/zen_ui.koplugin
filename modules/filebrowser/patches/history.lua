@@ -3,6 +3,7 @@ local function apply_history()
     local Menu = require("ui/widget/menu")
     local Background = require("common/ui/background")
     local SharedState = require("common/shared_state")
+    local SettingsTransition = require("common/settings_transition")
     local _ = require("gettext")
 
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
@@ -132,9 +133,26 @@ local function apply_history()
         return true
     end
 
-    local function clean_nav(menu, hist_mgr)
+    SharedState.register(zen_plugin, {
+        history = {
+            showContextMenu = function()
+                local FileManager = require("apps/filemanager/filemanager")
+                local hist_mgr = FileManager.instance and FileManager.instance.history
+                if not hist_mgr then return false end
+                return show_hist_blank_menu(hist_mgr, hist_mgr.booklist_menu) == true
+            end,
+        },
+    })
+
+    local function clean_nav(menu, hist_mgr, search_info)
         if not menu then return end
         Background.applyToMenu(menu)
+        if hist_mgr then
+            menu._zen_library_bg_reopen = function()
+                hist_mgr:onShowHist(search_info)
+                return hist_mgr.booklist_menu ~= nil
+            end
+        end
 
         -- === Fix partial-row left-alignment ===
         menu._do_center_partial_rows = false
@@ -229,6 +247,7 @@ local function apply_history()
 
     local orig_onShowHist = FileManagerHistory.onShowHist
     function FileManagerHistory:onShowHist(search_info)
+        SettingsTransition.close()
         if is_enabled() then
             -- Sync display mode from zen_ui_config to BIM before CoverBrowser reads it
             local mode = get_hist_display_mode()
@@ -241,7 +260,7 @@ local function apply_history()
         end
         orig_onShowHist(self, search_info)
         if not is_enabled() then return end
-        clean_nav(self.booklist_menu, self)
+        clean_nav(self.booklist_menu, self, search_info)
     end
 
     -- Replace the default hold dialog with the zen context menu.

@@ -4,6 +4,7 @@ M.SENTINEL = "__menu_callback"
 M.SUBMENU = "__menu_submenu"
 
 local EXCLUDED_PLUGINS = {
+    zenos = true,
     zen_ui = true,
 }
 
@@ -42,6 +43,7 @@ local function enabled_plugin_names()
             names[plugin.name] = true
         end
     end
+    names.zenos = nil
     names.zen_ui = nil
     return names
 end

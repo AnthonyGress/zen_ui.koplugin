@@ -1,10 +1,13 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: zen-ui 0.1.0\n"
+"Project-Id-Version: zenos 3.0.0\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Language: uk\n"
+
+msgid " days"
+msgstr "днів"
 
 msgid "%1 (%2)"
 msgstr "%1 (%2)"
@@ -12,11 +15,29 @@ msgstr "%1 (%2)"
 msgid "%1 mins left in chapter"
 msgstr "%1 хв до кінця розділу"
 
+msgid "%1, %2 %3"
+msgstr "%1, %3 %2"
+
 msgid "%d%% Read"
 msgstr "Прочитано %d%%"
 
+msgid "%s books goal"
+msgstr "%s ціль книги"
+
+msgid "%s goal"
+msgstr "%s гол"
+
+msgid "%s goal (%s)"
+msgstr "Мета %s (%s)"
+
 msgid "%s left"
 msgstr "Залишилося %s"
+
+msgid "%s pages goal"
+msgstr "Мета сторінок %s"
+
+msgid "%s time goal (min)"
+msgstr "Цільовий час %s (хв.)"
 
 msgid "(auto)"
 msgstr "(авто)"
@@ -66,8 +87,11 @@ msgstr "90°"
 msgid "< 1 min left in chapter"
 msgstr "< 1 хв до кінця розділу"
 
-msgid "A minimal, clean, and simple interface for your e-reader.\n\nSwipe or tap Next to continue."
-msgstr "Мінімалістичний, чистий та простий інтерфейс для вашої електронної книжки.\n\nПроведіть пальцем або натисніть Далі, щоб продовжити."
+msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
+msgstr "Чистий, мінімальний досвід для вашого електронного пристрою для читання.\n\nПроведіть пальцем або торкніться «Далі», щоб продовжити."
+
+msgid "A launcher button has been added for ZenPM."
+msgstr "Для ZenPM додано кнопку запуску."
 
 msgid "A short summary of what went wrong"
 msgstr "Короткий опис проблеми"
@@ -102,6 +126,9 @@ msgstr "Додати"
 msgid "Add action"
 msgstr "Додати дію"
 
+msgid "Add at least one quote to settings/ZenOS/quotes.lua to enable this source."
+msgstr "Додайте принаймні одну цитату в налаштування/ZenOS/quotes.lua, щоб увімкнути це джерело."
+
 msgid "Add book"
 msgstr "Додати книгу"
 
@@ -111,11 +138,17 @@ msgstr "Додати кнопки"
 msgid "Add catalog"
 msgstr "Додати каталог"
 
+msgid "Add control"
+msgstr "Додати контроль"
+
 msgid "Add custom buttons for other plugins or actions."
 msgstr "Додайте власні кнопки для інших плагінів або дій."
 
 msgid "Add folder…"
 msgstr "Додати теку…"
+
+msgid "Add KOReader menu"
+msgstr "Додайте меню KOReader"
 
 msgid "Add plugin"
 msgstr "Додати плагін"
@@ -138,14 +171,17 @@ msgstr "Александр Дюма"
 msgid "All"
 msgstr "Усі"
 
-msgid "All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall Zen UI updates directly from your device."
-msgstr "Усі налаштування в одній вкладці. Ця позначка з крапкою вказує на доступне оновлення.\n\nВстановлюйте оновлення Zen UI безпосередньо з пристрою."
+msgid "All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall ZenOS updates directly from your device."
+msgstr "Усі налаштування в одній вкладці. Ця позначка з крапкою вказує на доступне оновлення.\n\nВстановлюйте оновлення ZenOS безпосередньо з пристрою."
+
+msgid "All tags"
+msgstr "Всі теги"
+
+msgid "All time"
+msgstr "Весь час"
 
 msgid "All Time"
 msgstr "За весь час"
-
-msgid "Allow custom icons"
-msgstr "Дозволити власні іконки"
 
 msgid "Allow delete"
 msgstr "Дозволити видалення"
@@ -156,6 +192,9 @@ msgstr "Бурштиновий"
 msgid "An item with that name already exists."
 msgstr "Елемент із таким ім'ям уже існує."
 
+msgid "Annotations"
+msgstr "Анотації"
+
 msgid "App"
 msgstr "Додаток"
 
@@ -164,6 +203,9 @@ msgstr "Застосувати"
 
 msgid "Are you sure you want to exit KOReader?"
 msgstr "Ви впевнені, що хочете вийти з KOReader?"
+
+msgid "Are you sure you want to install the ZenPM plugin?"
+msgstr "Ви впевнені, що бажаєте встановити плагін ZenPM?"
 
 msgid "Are you sure you want to quit KOReader?"
 msgstr "Ви впевнені, що хочете закрити KOReader?"
@@ -192,29 +234,29 @@ msgstr "Принаймні одна вкладка має бути видимо�
 msgid "Author"
 msgstr "Автор"
 
-msgid "authors"
-msgstr "автори"
-
 msgid "Authors"
 msgstr "Автори"
 
+msgid "authors"
+msgstr "автори"
+
+msgid "Automatic"
+msgstr "Автоматично"
+
+msgid "Automatic font size"
+msgstr "Автоматичний розмір шрифту"
+
 msgid "Automatic suspend"
 msgstr "Автоматичне присипляння"
-
-msgid "avg pages/day"
-msgstr "сер. стор./день"
-
-msgid "avg time/book"
-msgstr "сер. час/книга"
-
-msgid "avg time/day"
-msgstr "сер. час/день"
 
 msgid "Back"
 msgstr "Назад"
 
 msgid "Background"
 msgstr "Фон"
+
+msgid "Background color"
+msgstr "Колір фону"
 
 msgid "Background image could not be loaded. It may be corrupt or unsupported."
 msgstr "Не вдалося завантажити фонове зображення. Можливо, воно пошкоджене або не підтримується."
@@ -249,14 +291,14 @@ msgstr "Статистика батареї"
 msgid "Beginning / End"
 msgstr "Початок / Кінець"
 
-msgid "best day"
-msgstr "найкращий день"
+msgid "Best day"
+msgstr "Найкращий день"
 
-msgid "best month"
-msgstr "найкращий місяць"
+msgid "Best month"
+msgstr "Найкращий місяць"
 
-msgid "best week"
-msgstr "найкращий тиждень"
+msgid "Best week"
+msgstr "Найкращий тиждень"
 
 msgid "Beta"
 msgstr "Бета"
@@ -267,6 +309,9 @@ msgstr "Чорний"
 msgid "Blue"
 msgstr "Синій"
 
+msgid "Bluetooth"
+msgstr "Bluetooth"
+
 msgid "Bold"
 msgstr "Жирний"
 
@@ -276,20 +321,26 @@ msgstr "жирний"
 msgid "Bold text"
 msgstr "Жирний текст"
 
-msgid "book"
-msgstr "книга"
-
 msgid "Book"
 msgstr "Книга"
 
 msgid "Book added to download list"
 msgstr "Книгу додано до списку завантажень"
 
+msgid "Book details"
+msgstr "Деталі книги"
+
 msgid "Book information"
 msgstr "Інформація про книгу"
 
 msgid "Book Status"
 msgstr "Статус книги"
+
+msgid "Book strip"
+msgstr "Книжкова стрічка"
+
+msgid "Book switcher"
+msgstr "Перемикач книг"
 
 msgid "Book title"
 msgstr "Назва книги"
@@ -306,17 +357,8 @@ msgstr "книги"
 msgid "Books"
 msgstr "Книги"
 
-msgid "books finished"
-msgstr "книг прочитано"
-
-msgid "books read"
-msgstr "книг прочитано"
-
-msgid "Books shown"
-msgstr "Показано книг"
-
-msgid "Books shown: "
-msgstr "Показано книг: "
+msgid "Books read"
+msgstr "Книги прочитані"
 
 msgid "Books tab label"
 msgstr "Підпис вкладки книг"
@@ -333,9 +375,6 @@ msgstr "Короткий опис помилки"
 msgid "Brightness"
 msgstr "Яскравість"
 
-msgid "Brightness schedule"
-msgstr "Розклад яскравості"
-
 msgid "Bug description (optional)"
 msgstr "Опис помилки (необов'язково)"
 
@@ -347,6 +386,9 @@ msgstr "Заголовок звіту про помилку"
 
 msgid "Buttons"
 msgstr "Кнопки"
+
+msgid "By %1"
+msgstr "Від %1"
 
 msgid "Calendar"
 msgstr "Календар"
@@ -378,26 +420,14 @@ msgstr "Книги по центру"
 msgid "Center items"
 msgstr "Центральні елементи"
 
-msgid "Centered Pages"
-msgstr "Сторінки по центру"
-
 msgid "Change folder"
 msgstr "Змінити теку"
-
-msgid "Change Row"
-msgstr "Змінити рядок"
 
 msgid "Changelog"
 msgstr "Список змін"
 
 msgid "Chapter"
 msgstr "Розділ"
-
-msgid "Chapter Time + %"
-msgstr "Час розділу + %"
-
-msgid "Check for updates"
-msgstr "Перевірити оновлення"
 
 msgid "Check for updates automatically"
 msgstr "Автоматично перевіряти оновлення"
@@ -411,14 +441,23 @@ msgstr "Шахи"
 msgid "Choose a different folder"
 msgstr "Вибрати іншу теку"
 
-msgid "Choose a preset for your reading progress bar."
-msgstr "Виберіть шаблон для смуги прогресу читання."
+msgid "Choose control"
+msgstr "Виберіть контроль"
 
 msgid "Choose item"
 msgstr "Вибрати елемент"
 
+msgid "Choose KOReader menu"
+msgstr "Виберіть меню KOReader"
+
 msgid "Choose plugin menu"
 msgstr "Вибрати меню плагіна"
+
+msgid "Choose tab"
+msgstr "Виберіть вкладку"
+
+msgid "Choose tag"
+msgstr "Виберіть тег"
 
 msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
 msgstr "Виберіть, які вкладки відображатимуться на панелі навігації.\nЇх можна змінити в будь-який час у Налаштуваннях."
@@ -437,9 +476,6 @@ msgstr "Очистити всі жести"
 
 msgid "Clear book"
 msgstr "Очистити книгу"
-
-msgid "Clear books"
-msgstr "Очистити книги"
 
 msgid "Close"
 msgstr "Закрити"
@@ -471,11 +507,23 @@ msgstr "Під'єднати теки"
 msgid "Connections"
 msgstr "Підключення"
 
+msgid "Content: "
+msgstr "Вміст: "
+
 msgid "Context Menu"
 msgstr "Контекстне меню"
 
 msgid "Continue"
 msgstr "Продовжити"
+
+msgid "Control"
+msgstr "КОНТРОЛЬ"
+
+msgid "Control settings"
+msgstr "Налаштування керування"
+
+msgid "Control: %1"
+msgstr "Контроль: %1"
 
 msgid "Controls"
 msgstr "Керування"
@@ -486,8 +534,17 @@ msgstr "Копіювати"
 msgid "Could not determine update status."
 msgstr "Не вдалося визначити статус оновлення."
 
+msgid "Could not find a ZenPM release."
+msgstr "Не вдалося знайти випуск ZenPM."
+
 msgid "Could not get release from update server."
 msgstr "Не вдалося отримати реліз із сервера оновлень."
+
+msgid "Could not install %1: %2"
+msgstr "Не вдалося встановити %1: %2"
+
+msgid "Could not install ZenPM."
+msgstr "Не вдалося встановити ZenPM."
 
 msgid "Could not reach update server."
 msgstr "Не вдалося з'єднатися з сервером оновлень."
@@ -519,6 +576,12 @@ msgstr "Кросворд"
 msgid "Current / total pages"
 msgstr "Поточна / всього сторінок"
 
+msgid "Current book"
+msgstr "Актуальна книга"
+
+msgid "Current Book"
+msgstr "Актуальна книга"
+
 msgid "Current home folder:"
 msgstr "Поточна домашня тека:"
 
@@ -531,11 +594,20 @@ msgstr "Поточна/всього сторінок"
 msgid "Custom"
 msgstr "Власний"
 
+msgid "Custom books"
+msgstr "Книги на замовлення"
+
 msgid "Custom button label"
 msgstr "Підпис власної кнопки"
 
-msgid "Custom featured widget"
-msgstr "Власний головний віджет"
+msgid "Custom icon pack: %1"
+msgstr "Спеціальний набір значків: %1"
+
+msgid "Custom icons"
+msgstr "Спеціальні значки"
+
+msgid "Custom quotes"
+msgstr "Спеціальні цитати"
 
 msgid "Custom RGB"
 msgstr "Власний RGB"
@@ -555,11 +627,17 @@ msgstr "Власний текст"
 msgid "Custom text: "
 msgstr "Власний текст: "
 
+msgid "Custom theme"
+msgstr "Спеціальна тема"
+
+msgid "Custom themes"
+msgstr "Спеціальні теми"
+
 msgid "Custom: "
 msgstr "Власний: "
 
-msgid "Customizable top status bar and bottom progress bar."
-msgstr "Налаштовувані верхній рядок статусу та нижня смуга прогресу."
+msgid "Customize widget"
+msgstr "Налаштувати віджет"
 
 msgid "Cut"
 msgstr "Вирізати"
@@ -567,17 +645,23 @@ msgstr "Вирізати"
 msgid "Cycle"
 msgstr "Цикл"
 
-msgid "Daily pages goal"
-msgstr "Щоденна ціль сторінок"
+msgid "Daily"
+msgstr "Щодня"
 
-msgid "Daily pages goal: "
-msgstr "Щоденна ціль сторінок: "
+msgid "Dark graphite"
+msgstr "Темний графіт"
 
-msgid "Daily time goal (min)"
-msgstr "Щоденна ціль часу (хв)"
+msgid "Dark mode"
+msgstr "Темний режим"
 
-msgid "Daily time goal (min): "
-msgstr "Щоденна ціль часу (хв): "
+msgid "Dark warm gray"
+msgstr "Темно теплий сірий"
+
+msgid "Date"
+msgstr "Дата"
+
+msgid "Date/time"
+msgstr "Дата/час"
 
 msgid "Day brightness"
 msgstr "Денна яскравість"
@@ -591,8 +675,8 @@ msgstr "Час денної яскравості: "
 msgid "Day brightness: "
 msgstr "Денна яскравість: "
 
-msgid "day streak"
-msgstr "серія днів"
+msgid "Day streak"
+msgstr "Денна смуга"
 
 msgid "Day warmth"
 msgstr "Денний теплий відтінок"
@@ -621,6 +705,12 @@ msgstr "Типово"
 msgid "Default (black)"
 msgstr "Типово (чорний)"
 
+msgid "Default font size:"
+msgstr "Розмір шрифту за замовчуванням:"
+
+msgid "Default quotes"
+msgstr "Котирування за замовчуванням"
+
 msgid "Default tab: "
 msgstr "Типова вкладка: "
 
@@ -639,8 +729,17 @@ msgstr "Видалити каталог OPDS?"
 msgid "Delete preset?"
 msgstr "Видалити шаблон?"
 
+msgid "Delete theme"
+msgstr "Видалити тему"
+
 msgid "Delete this button?"
 msgstr "Видалити цю кнопку?"
+
+msgid "Delete this control?"
+msgstr "Видалити цей елемент керування?"
+
+msgid "Delete this custom theme?"
+msgstr "Видалити цю спеціальну тему?"
 
 msgid "Delete this folder and its buttons?"
 msgstr "Видалити цю теку та її кнопки?"
@@ -699,6 +798,9 @@ msgstr "Вимкнути пошук слова при утриманні"
 msgid "Disable zen mode to access default KOReader menus."
 msgstr "Вимкніть режим Zen, щоб отримати доступ до типових меню KOReader."
 
+msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
+msgstr "Вимкніть режим Zen за допомогою цього значка, щоб налаштувати параметри KOReader, які недоступні в налаштуваннях Zen."
+
 msgid "Disk space"
 msgstr "Місце на диску"
 
@@ -707,6 +809,9 @@ msgstr "Дисплей"
 
 msgid "Display mode"
 msgstr "Режим відображення"
+
+msgid "Divider"
+msgstr "Роздільник"
 
 msgid "Dividing lines"
 msgstr "Роздільні лінії"
@@ -720,6 +825,9 @@ msgstr "Крапки"
 msgid "Download"
 msgstr "Завантажити"
 
+msgid "Download and install the Zen Package Manager for this device."
+msgstr "Завантажте та встановіть Zen Package Manager для цього пристрою."
+
 msgid "Download failed: "
 msgstr "Завантаження не вдалося: "
 
@@ -729,11 +837,17 @@ msgstr "Завантажено"
 msgid "Downloading"
 msgstr "Завантаження"
 
+msgid "Downloading ZenPM"
+msgstr "Завантаження ZenPM"
+
 msgid "Dynamic filler 2"
 msgstr "Динамічний заповнювач 2"
 
 msgid "Edit"
 msgstr "Редагувати"
+
+msgid "Edit mode"
+msgstr "Режим редагування"
 
 msgid "Enable"
 msgstr "Увімкнути"
@@ -747,6 +861,9 @@ msgstr "Увімкнути нижній свайп"
 msgid "Enable brightness schedule"
 msgstr "Увімкнути розклад яскравості"
 
+msgid "Enable custom icons"
+msgstr "Увімкнути власні іконки"
+
 msgid "Enable custom status bar"
 msgstr "Увімкнути власний рядок статусу"
 
@@ -756,8 +873,8 @@ msgstr "Увімкнути детальне логування налагодж�
 msgid "Enable night mode schedule"
 msgstr "Увімкнути розклад нічного режиму"
 
-msgid "Enable page browser"
-msgstr "Увімкнути браузер сторінок"
+msgid "Enable reader themes"
+msgstr "Увімкнути теми для читання"
 
 msgid "Enable top status bar"
 msgstr "Увімкнути верхній рядок статусу"
@@ -768,8 +885,8 @@ msgstr "Увімкнути розклад теплого відтінку"
 msgid "Enable Zen OPDS"
 msgstr "Увімкнути Zen OPDS"
 
-msgid "Enable Zen UI enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
-msgstr "Увімкнути покращення Zen UI для браузера OPDS: обкладинки, список, меню утримання та навігаційні вдосконалення."
+msgid "Enable ZenOS enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
+msgstr "Увімкнути покращення ZenOS для браузера OPDS: обкладинки, список, меню утримання та навігаційні вдосконалення."
 
 msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
 msgstr "Увімкнення логування налагодження, потрібен перезапуск. Будь ласка, відтворіть проблему, а потім надішліть звіт."
@@ -790,7 +907,7 @@ msgid "Extract metadata"
 msgstr "Видобути метадані"
 
 msgid "Extras"
-msgstr "Додатково"
+msgstr "Доповнення"
 
 msgid "Failed to submit report: "
 msgstr "Не вдалося надіслати звіт: "
@@ -798,8 +915,14 @@ msgstr "Не вдалося надіслати звіт: "
 msgid "Favorites"
 msgstr "Улюблене"
 
+msgid "Featured book"
+msgstr "Рекомендована книга"
+
 msgid "Featured widgets"
 msgstr "Головні віджети"
+
+msgid "File browser settings"
+msgstr "Налаштування файлового браузера"
 
 msgid "File search"
 msgstr "Пошук файлів"
@@ -810,20 +933,17 @@ msgstr "Файловий менеджер"
 msgid "Filebrowser plugin is not installed."
 msgstr "Плагін файлового менеджера не встановлено."
 
+msgid "Filename:"
+msgstr "Ім'я файлу:"
+
 msgid "Filter"
 msgstr "Фільтр"
 
 msgid "Filter by status"
 msgstr "Фільтрувати за статусом"
 
-msgid "Finish"
-msgstr "Завершити"
-
 msgid "Finished"
 msgstr "Завершено"
-
-msgid "finished"
-msgstr "завершено"
 
 msgid "Firmware: "
 msgstr "Прошивка: "
@@ -861,14 +981,17 @@ msgstr "шрифт"
 msgid "Font"
 msgstr "Шрифт"
 
-msgid "Font size"
-msgstr "Розмір шрифту"
-
 msgid "font size"
 msgstr "розмір шрифту"
 
+msgid "Font size"
+msgstr "Розмір шрифту"
+
 msgid "Font size:"
 msgstr "Розмір шрифту:"
+
+msgid "Font, margins, contrast, line spacing etc - tested together for the best reading experience"
+msgstr "Шрифт, поля, контраст, міжрядковий інтервал тощо перевіряються разом для найкращого читання"
 
 msgid "Font:"
 msgstr "Шрифт:"
@@ -879,6 +1002,9 @@ msgstr "Примусова синхронізація"
 msgid "Force sync all catalogs"
 msgstr "Примусово синхронізувати всі каталоги"
 
+msgid "Format:"
+msgstr "Формат:"
+
 msgid "Format: R,G,B (0-255)"
 msgstr "Формат: R,G,B (0-255)"
 
@@ -887,9 +1013,6 @@ msgstr "Підсвітка"
 
 msgid "Gallery"
 msgstr "Галерея"
-
-msgid "Gallery view (4-grid)"
-msgstr "Галерея (4 сітки)"
 
 msgid "Get Started"
 msgstr "Почати"
@@ -903,17 +1026,11 @@ msgstr "Перейти"
 msgid "Go to page"
 msgstr "Перейти до сторінки"
 
-msgid "Goal shown: Daily"
-msgstr "Показувати ціль: щодня"
+msgid "Graph metric"
+msgstr "Метрика графіка"
 
-msgid "Goal shown: Weekly"
-msgstr "Показувати ціль: щотижня"
-
-msgid "Goals metric: Pages"
-msgstr "Метрика цілей: Сторінки"
-
-msgid "Goals metric: Time"
-msgstr "Метрика цілей: Час"
+msgid "Graph range"
+msgstr "Діапазон графіка"
 
 msgid "Gray"
 msgstr "Сірий"
@@ -939,11 +1056,11 @@ msgstr "Приховати у файлах CBZ/PDF"
 msgid "Hide list borders"
 msgstr "Приховати межі списку"
 
+msgid "Hide on-hold books"
+msgstr "Приховати відкладені книги"
+
 msgid "Hide reader actions in library"
 msgstr "Приховати дії читалки в бібліотеці"
-
-msgid "Hide TBR books"
-msgstr "Приховати книги для читання"
 
 msgid "Hide unread books"
 msgstr "Приховати непрочитані книги"
@@ -956,9 +1073,6 @@ msgstr "Виділення / Пошук"
 
 msgid "History"
 msgstr "Історія"
-
-msgid "Hold to arrange"
-msgstr "Утримуйте для впорядкування"
 
 msgid "Hold to skip"
 msgstr "Утримуйте, щоб пропустити"
@@ -974,6 +1088,9 @@ msgstr "Домашня тека"
 
 msgid "Home page preset"
 msgstr "Шаблон домашньої сторінки"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "Відступи на головному екрані оновлено. Збережені порядок і вибір віджетів адаптовано до нової сітки."
 
 msgid "Home tab label"
 msgstr "Підпис вкладки Головна"
@@ -1011,8 +1128,20 @@ msgstr "Режим інкогніто вимкнено"
 msgid "Incognito mode enabled"
 msgstr "Режим інкогніто ввімкнено"
 
+msgid "Incognito mode timed out"
+msgstr "Режим анонімного перегляду минув"
+
+msgid "Incompatible plugins and patches have been disabled:"
+msgstr "Несумісні плагіни та патчі вимкнено:"
+
 msgid "Incompatible plugins have been disabled:"
 msgstr "Несумісні плагіни вимкнено:"
+
+msgid "Install"
+msgstr "встановити"
+
+msgid "Install ZenPM"
+msgstr "Встановіть ZenPM"
 
 msgid "Installed version is newer than the latest release."
 msgstr "Встановлена версія новіша за останній реліз."
@@ -1020,17 +1149,29 @@ msgstr "Встановлена версія новіша за останній �
 msgid "Installing"
 msgstr "Встановлення"
 
+msgid "Installing ZenPM"
+msgstr "Встановлення ZenPM"
+
 msgid "Interactive"
 msgstr "Інтерактивний"
 
-msgid "Items per page"
-msgstr "Елементів на сторінку"
+msgid "IP address: %1"
+msgstr "IP-адреса: %1"
 
 msgid "items per page"
 msgstr "елементів на сторінку"
 
+msgid "Items per page"
+msgstr "Елементів на сторінку"
+
 msgid "Keep existing settings"
 msgstr "Зберегти поточні налаштування"
+
+msgid "KOReader menu"
+msgstr "Меню KOReader"
+
+msgid "KOReader menu: %1"
+msgstr "Меню KOReader: %1"
 
 msgid "KOReader: "
 msgstr "KOReader: "
@@ -1089,6 +1230,9 @@ msgstr "Ліві елементи"
 msgid "Library"
 msgstr "Бібліотека"
 
+msgid "Library background was disabled because the image file was not found."
+msgstr "Тло бібліотеки було вимкнено, оскільки файл зображення не знайдено."
+
 msgid "Library font"
 msgstr "Шрифт бібліотеки"
 
@@ -1100,6 +1244,15 @@ msgstr "Вид бібліотеки"
 
 msgid "Light"
 msgstr "Світлий"
+
+msgid "Light mode"
+msgstr "Світловий режим"
+
+msgid "Light sepia"
+msgstr "Світла сепія"
+
+msgid "Light tan"
+msgstr "Легкий загар"
 
 msgid "List"
 msgstr "Список"
@@ -1134,8 +1287,17 @@ msgstr "Блокування"
 msgid "Lockdown mode"
 msgstr "Режим блокування"
 
+msgid "Loose icons"
+msgstr "Розсипні ікони"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Відсутні значки в /koreader/icons"
+
 msgid "Magnify UI"
 msgstr "Збільшити інтерфейс"
+
+msgid "Main menu"
+msgstr "Головне меню"
 
 msgid "Manga"
 msgstr "Манґа"
@@ -1143,11 +1305,17 @@ msgstr "Манґа"
 msgid "Manga folder not found: "
 msgstr "Теку манґи не знайдено: "
 
+msgid "Manually download and sideload %1 from the same ZenPM release."
+msgstr "Вручну завантажте та завантажте %1 з того самого випуску ZenPM."
+
 msgid "Match whole words"
 msgstr "Цілі слова"
 
-msgid "Maximum 5 widgets allowed"
-msgstr "Максимум 5 віджетів"
+msgid "Max books shown"
+msgstr "Максимальна кількість показаних книг"
+
+msgid "Max books shown: "
+msgstr "Максимальна кількість показаних книг: "
 
 msgid "Maximum 7 tabs allowed"
 msgstr "Максимум 7 вкладок"
@@ -1155,20 +1323,44 @@ msgstr "Максимум 7 вкладок"
 msgid "Maximum 9 buttons allowed"
 msgstr "Максимум 9 кнопок"
 
+msgid "Maximum font size:"
+msgstr "Максимальний розмір шрифту:"
+
+msgid "Maximum quote font size"
+msgstr "Максимальний розмір шрифту цитати"
+
 msgid "Menu"
 msgstr "Меню"
 
+msgid "Metric"
+msgstr "Метрика"
+
+msgid "min"
+msgstr "хв"
+
 msgid "Minute"
 msgstr "Хвилина"
+
+msgid "Minutes"
+msgstr "хвилин"
+
+msgid "minutes"
+msgstr "хвилин"
+
+msgid "Missing: %1"
+msgstr "Відсутній: %1"
+
+msgid "Monthly"
+msgstr "Щомісяця"
+
+msgid "Months"
+msgstr "Місяці"
 
 msgid "Mosaic"
 msgstr "Мозаїка"
 
 msgid "Mosaic - large cover thumbnails"
 msgstr "Мозаїка — великі мініатюри обкладинок"
-
-msgid "Mosaic and detailed list settings"
-msgstr "Налаштування мозаїки та детального списку"
 
 msgid "Mosaic with cover images"
 msgstr "Мозаїка з обкладинками"
@@ -1203,6 +1395,9 @@ msgstr "Розмір підписів панелі навігації"
 msgid "Navbar Tabs"
 msgstr "Вкладки панелі навігації"
 
+msgid "Navigation"
+msgstr "Навігація"
+
 msgid "Network unavailable."
 msgstr "Мережа недоступна."
 
@@ -1212,11 +1407,17 @@ msgstr "Новинки"
 msgid "New collection"
 msgstr "Нова колекція"
 
+msgid "New custom theme"
+msgstr "Нова спеціальна тема"
+
 msgid "New folder"
 msgstr "Нова тека"
 
 msgid "New includes unread books and books modified since they were last opened."
-msgstr "\"Новинки\" включають непрочитані книги та книги, змінені після останнього відкриття."
+msgstr "\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"Новинки\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\" включають непрочитані книги та книги, змінені після останнього відкриття."
+
+msgid "New quote"
+msgstr "Нова цитата"
 
 msgid "News"
 msgstr "Новини"
@@ -1281,6 +1482,21 @@ msgstr "Фонове зображення не вибрано."
 msgid "No books found"
 msgstr "Книг не знайдено"
 
+msgid "No books found in the selected folder"
+msgstr "У вибраній папці не знайдено книг"
+
+msgid "No books to switch to"
+msgstr "Немає книг для переходу"
+
+msgid "No books with author metadata found"
+msgstr "Книг із метаданими автора не знайдено"
+
+msgid "No books with series metadata found"
+msgstr "Не знайдено книг із метаданими серії"
+
+msgid "No books with tags metadata found"
+msgstr "Не знайдено книг із метаданими тегів"
+
 msgid "No changelog entries found.\n\nNo releases are available for this channel."
 msgstr "Записів списку змін не знайдено.\n\nДля цього каналу немає доступних релізів."
 
@@ -1290,20 +1506,38 @@ msgstr "Список змін не надано."
 msgid "No description."
 msgstr "Без опису."
 
+msgid "No KOReader submenus found"
+msgstr "Підменю KOReader не знайдено"
+
 msgid "No launchable plugin menus found"
 msgstr "Меню плагінів, які можна запустити, не знайдено"
 
 msgid "No network connection. Please connect to Wi-Fi and try again."
 msgstr "Немає підключення до мережі. Будь ласка, підключіться до Wi-Fi та спробуйте ще раз."
 
+msgid "No quote available."
+msgstr "Немає доступної цитати."
+
 msgid "No reader engine for this file or invalid file."
 msgstr "Немає рушія читання для цього файлу або файл пошкоджено."
+
+msgid "No reading data"
+msgstr "Немає даних для читання"
 
 msgid "No table of contents available."
 msgstr "Зміст недоступний."
 
+msgid "No tags found"
+msgstr "Теги не знайдено"
+
+msgid "No TBR books found"
+msgstr "Книг TBR не знайдено"
+
 msgid "No update asset found."
 msgstr "Файл оновлення не знайдено."
+
+msgid "No ZenPM package is available for this device."
+msgstr "Пакет ZenPM недоступний для цього пристрою."
 
 msgid "None"
 msgstr "Немає"
@@ -1313,6 +1547,9 @@ msgstr "Немає (лише назва теки)"
 
 msgid "Normal"
 msgstr "Звичайний"
+
+msgid "Not enough Home space: %1/%2 units used; this widget needs %3."
+msgstr "Недостатньо домашнього простору: використано одиниці %1/%2; цей віджет потребує %3."
 
 msgid "Nothing"
 msgstr "Нічого"
@@ -1332,8 +1569,17 @@ msgstr "Гаразд"
 msgid "On"
 msgstr "Увімк."
 
+msgid "On hold"
+msgstr "На утриманні"
+
+msgid "On Home refresh"
+msgstr "Увімкнено Home refresh"
+
 msgid "Only in Zen mode"
 msgstr "Лише в режимі Zen"
+
+msgid "Only show while reading"
+msgstr "Показувати лише під час читання"
 
 msgid "Opaque background"
 msgstr "Непрозорий фон"
@@ -1341,8 +1587,14 @@ msgstr "Непрозорий фон"
 msgid "OPDS"
 msgstr "OPDS"
 
+msgid "Open"
+msgstr "ВІДЧИНЕНО"
+
 msgid "Open folder"
 msgstr "Відкрити теку"
+
+msgid "Open menu to Launcher"
+msgstr "Відкрити меню панелі запуску"
 
 msgid "Open next file"
 msgstr "Відкрити наступний файл"
@@ -1356,14 +1608,26 @@ msgstr "Відкрити Rakuyomi"
 msgid "Open RSS Reader"
 msgstr "Відкрити RSS Reader"
 
+msgid "Open this file?"
+msgstr "Відкрити цей файл?"
+
+msgid "Open with…"
+msgstr "Відкрити за допомогою…"
+
 msgid "Opening"
 msgstr "Відкриття"
 
 msgid "Order"
 msgstr "Порядок"
 
+msgid "Outline"
+msgstr "Контур"
+
 msgid "Outlined boxes"
 msgstr "Контурні рамки"
+
+msgid "p."
+msgstr "стор."
 
 msgid "Page %1 of %2"
 msgstr "Сторінка %1 з %2"
@@ -1386,14 +1650,20 @@ msgstr "Стор. x / y"
 msgid "pages"
 msgstr "сторінки"
 
-msgid "Pages + Chapter Time + %"
-msgstr "Сторінки + час розділу + %"
+msgid "Pages"
+msgstr "сторінки"
 
-msgid "Pages and %"
-msgstr "Сторінки та %"
+msgid "Pages read"
+msgstr "Прочитані сторінки"
 
-msgid "pages today"
-msgstr "сторінок сьогодні"
+msgid "Pages this week"
+msgstr "Сторінки цього тижня"
+
+msgid "Pages today"
+msgstr "Сторінки сьогодні"
+
+msgid "Pages/day"
+msgstr "Сторінок/день"
 
 msgid "Partial pages refresh"
 msgstr "Часткове оновлення сторінок"
@@ -1401,11 +1671,20 @@ msgstr "Часткове оновлення сторінок"
 msgid "Paste"
 msgstr "Вставити"
 
+msgid "Paste selected files"
+msgstr "Вставити вибрані файли"
+
 msgid "Percent"
 msgstr "Відсоток"
 
+msgid "Personal records"
+msgstr "Особисті записи"
+
 msgid "Personal Records"
 msgstr "Особисті рекорди"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Розмістіть папки пакетів або ZIP-файли в /koreader/icons/zen. ZIP-файли встановлюються автоматично."
 
 msgid "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
 msgstr "Будь ласка, видаліть плагін Project: Title з теки плагінів та перезапустіть KOReader."
@@ -1415,6 +1694,9 @@ msgstr "Плагін"
 
 msgid "Plugin management"
 msgstr "Керування плагінами"
+
+msgid "Plugin Menu"
+msgstr "Меню плагіна"
 
 msgid "Plugin: %1"
 msgstr "Плагін: %1"
@@ -1452,8 +1734,8 @@ msgstr "Смуга прогресу"
 msgid "Progress labels"
 msgstr "Підписи прогресу"
 
-msgid "Project: Title is not compatible with Zen UI."
-msgstr "Project: Title несумісний з Zen UI."
+msgid "Project: Title is not compatible with ZenOS."
+msgstr "Project: Title несумісний з ZenOS."
 
 msgid "Puzzle"
 msgstr "Головоломка"
@@ -1476,8 +1758,17 @@ msgstr "Завершити"
 msgid "Quit KOReader"
 msgstr "Завершити KOReader"
 
-msgid "Quotes widget"
-msgstr "Віджет цитат"
+msgid "Quote font size"
+msgstr "Розмір шрифту цитати"
+
+msgid "Quote sources"
+msgstr "Цитуйте джерела"
+
+msgid "Quotes"
+msgstr "Цитати"
+
+msgid "quotes.lua is empty"
+msgstr "quotes.lua порожній"
 
 msgid "Rakuyomi"
 msgstr "Rakuyomi"
@@ -1488,41 +1779,59 @@ msgstr "Плагін Rakuyomi не встановлено."
 msgid "RAM usage"
 msgstr "Використання RAM"
 
+msgid "Range"
+msgstr "Діапазон"
+
 msgid "Read now"
 msgstr "Читати зараз"
 
 msgid "Read status"
 msgstr "Статус читання"
 
-msgid "read today"
-msgstr "прочитано сьогодні"
+msgid "Read time"
+msgstr "Час читання"
+
+msgid "Read today"
+msgstr "Прочитайте сьогодні"
 
 msgid "Reader"
 msgstr "Читалка"
 
-msgid "Reader Progress"
-msgstr "Прогрес читання"
+msgid "Reader themes"
+msgstr "Теми для читання"
 
 msgid "Reading"
 msgstr "Читаю"
 
-msgid "reading"
-msgstr "читаю"
+msgid "Reading Calendar"
+msgstr "Календар читання"
+
+msgid "Reading calendar"
+msgstr "Календар читання"
 
 msgid "Reading goals"
 msgstr "Цілі читання"
 
-msgid "Reading stats widget"
-msgstr "Віджет статистики читання"
+msgid "Reading goals font size"
+msgstr "Розмір шрифту цілей читання"
 
-msgid "Rebooting"
-msgstr "Перезавантаження"
+msgid "Reading stats"
+msgstr "Статистика читання"
+
+msgid "Reading trend"
+msgstr "Тренд читання"
+
+msgid "Reading Trend"
+msgstr "Тренд читання"
+
+msgid "Recent"
+msgstr "Останні"
+
+msgid "Recent filters"
+msgstr "Останні фільтри"
 
 msgid "Recently read"
 msgstr "Нещодавно прочитане"
-
-msgid "Recently read featured widget"
-msgstr "Головний віджет нещодавно прочитаного"
 
 msgid "Recently read strip widget"
 msgstr "Рядковий віджет нещодавно прочитаного"
@@ -1569,6 +1878,9 @@ msgstr "Перейменувати"
 msgid "Report a Bug"
 msgstr "Повідомити про помилку"
 
+msgid "Require double tap to open books"
+msgstr "Щоб відкрити книги, потрібно двічі торкнутися"
+
 msgid "Require hold to toggle buttons"
 msgstr "Для перемикання кнопок потрібно утримувати"
 
@@ -1593,8 +1905,14 @@ msgstr "Перезапуск"
 msgid "Restart Book"
 msgstr "Перезапустити книгу"
 
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Перезапустіть KOReader, щоб застосувати оновлений активний пакет"
+
 msgid "Restart now"
 msgstr "Перезапустити зараз"
+
+msgid "Restarting"
+msgstr "Перезапуск"
 
 msgid "Restore library location on exit"
 msgstr "Відновлювати розташування в бібліотеці при виході"
@@ -1604,9 +1922,6 @@ msgstr "Продовжити зі сторінки"
 
 msgid "Return to chapter list on exit"
 msgstr "Повертатися до списку розділів при виході"
-
-msgid "Reverse"
-msgstr "Обернути"
 
 msgid "Review"
 msgstr "Огляд"
@@ -1674,6 +1989,9 @@ msgstr "Пошук у бібліотеці"
 msgid "Search results"
 msgstr "Результати пошуку"
 
+msgid "Search settings"
+msgstr "Налаштування пошуку"
+
 msgid "Select"
 msgstr "Вибрати"
 
@@ -1689,14 +2007,17 @@ msgstr "Роздільник"
 msgid "Separator: "
 msgstr "Роздільник: "
 
-msgid "Series"
-msgstr "Серії"
-
 msgid "series"
 msgstr "серії"
 
+msgid "Series"
+msgstr "Серії"
+
 msgid "Series number"
 msgstr "Номер серії"
+
+msgid "Session pages"
+msgstr "Сторінки сесії"
 
 msgid "Set"
 msgstr "Встановити"
@@ -1761,6 +2082,9 @@ msgstr "Показати нижню межу"
 msgid "Show brightness slider"
 msgstr "Показати повзунок яскравості"
 
+msgid "Show controls"
+msgstr "Показати елементи керування"
+
 msgid "Show description"
 msgstr "Показати опис"
 
@@ -1769,6 +2093,9 @@ msgstr "Показати значок улюбленого"
 
 msgid "Show folder name"
 msgstr "Показати назву теки"
+
+msgid "Show goal"
+msgstr "Показати гол"
 
 msgid "Show hidden files"
 msgstr "Показати приховані файли"
@@ -1782,8 +2109,8 @@ msgstr "Показати кількість елементів"
 msgid "Show item underline"
 msgstr "Показати підкреслення елемента"
 
-msgid "Show KOReader progress bar"
-msgstr "Показати смугу прогресу KOReader"
+msgid "Show KOAssistant"
+msgstr "Показати KOAssistant"
 
 msgid "Show labels"
 msgstr "Показати підписи"
@@ -1800,8 +2127,11 @@ msgstr "Показувати інші опції швидкого пошуку K
 msgid "Show page count"
 msgstr "Показати кількість сторінок"
 
-msgid "Show progress % on mosaic covers"
-msgstr "Показати % прогресу на мозаїчних обкладинках"
+msgid "Show progress bar"
+msgstr "Показати панель прогресу"
+
+msgid "Show reading progress"
+msgstr "Показати прогрес читання"
 
 msgid "Show separator"
 msgstr "Показати роздільник"
@@ -1811,6 +2141,9 @@ msgstr "Показати номер серії на обкладинках"
 
 msgid "Show spine lines"
 msgstr "Показати лінії корінців"
+
+msgid "Show title"
+msgstr "Показати назву"
 
 msgid "Show title below cover (mosaic)"
 msgstr "Показати назву під обкладинкою (мозаїка)"
@@ -1824,17 +2157,20 @@ msgstr "Показати верхній рядок статусу"
 msgid "Show warmth slider"
 msgstr "Показати повзунок теплого відтінку"
 
-msgid "Show widget title"
-msgstr "Показати заголовок віджета"
-
 msgid "Show Wikipedia"
 msgstr "Показати Вікіпедію"
+
+msgid "Show X-Ray"
+msgstr "Показати рентген"
 
 msgid "Show Zen icon - black background"
 msgstr "Показати іконку Zen — чорний фон"
 
 msgid "Show Zen icon - white background"
 msgstr "Показати іконку Zen — білий фон"
+
+msgid "Single tag"
+msgstr "Один тег"
 
 msgid "Skip"
 msgstr "Пропустити"
@@ -1884,14 +2220,17 @@ msgstr "Порядок сортування"
 msgid "Sort series"
 msgstr "Сортувати серії"
 
+msgid "Specific tag"
+msgstr "Конкретний тег"
+
 msgid "Stable"
 msgstr "Стабільна"
 
 msgid "Stack"
 msgstr "Стопка"
 
-msgid "Stack effect (overlapping covers)"
-msgstr "Ефект стопки (перекриття обкладинок)"
+msgid "Start reading a book to fill this space."
+msgstr "Почніть читати книгу, щоб заповнити це місце."
 
 msgid "Stat separators"
 msgstr "Роздільники статистики"
@@ -1902,8 +2241,17 @@ msgstr "Слот статистики "
 msgid "Statistics"
 msgstr "Статистика"
 
+msgid "Statistics calendar is unavailable"
+msgstr "Календар статистики недоступний"
+
 msgid "Stats"
 msgstr "Статистика"
+
+msgid "Stats default font size"
+msgstr "Стандартний розмір шрифту статистики"
+
+msgid "Stats font size"
+msgstr "Розмір шрифту статистики"
 
 msgid "Stats: Calendar"
 msgstr "Статистика: Календар"
@@ -1953,8 +2301,23 @@ msgstr "Синхронізація"
 msgid "Sync all catalogs"
 msgstr "Синхронізувати всі каталоги"
 
+msgid "Tab"
+msgstr "вкладка"
+
+msgid "Table of contents"
+msgstr "Зміст"
+
 msgid "Tabs"
 msgstr "Вкладки"
+
+msgid "Tag"
+msgstr "Тег"
+
+msgid "Tag strip widget"
+msgstr "Віджет стрічки тегів"
+
+msgid "Tag: %1"
+msgstr "Тег: %1"
 
 msgid "tags"
 msgstr "теги"
@@ -1962,8 +2325,14 @@ msgstr "теги"
 msgid "Tags"
 msgstr "Теги"
 
+msgid "Tailscale"
+msgstr "Хвостова луска"
+
 msgid "Tap and hold any book or folder in your library to reveal details."
 msgstr "Натисніть та утримуйте будь-яку книгу або теку в бібліотеці, щоб побачити деталі."
+
+msgid "Text color"
+msgstr "Колір тексту"
 
 msgid "Text styles"
 msgstr "Стилі тексту"
@@ -1977,17 +2346,38 @@ msgstr "Типове меню читалки KOReader знаходиться в�
 msgid "The place for all your books %1"
 msgstr "Місце для всіх ваших книг %1"
 
+msgid "Theme font"
+msgstr "Шрифт теми"
+
+msgid "Theme name"
+msgstr "Назва теми"
+
 msgid "This change requires a restart to take effect."
 msgstr "Ця зміна потребує перезапуску, щоб набути чинності."
 
+msgid "This does not disable ZenOS—it only shows or hides KOReader’s menus."
+msgstr "Це не вимикає ZenOS — воно лише показує або приховує меню KOReader."
+
+msgid "This is Zen Settings. ZenOS settings/updates and common KOReader settings live here."
+msgstr "Це налаштування Zen. Налаштування/оновлення ZenOS і загальні налаштування KOReader доступні тут."
+
 msgid "This Month"
 msgstr "Цього місяця"
+
+msgid "This month"
+msgstr "Цей місяць"
 
 msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
 msgstr "Ця опція вимкнена, коли домашня тека є коренем сховища пристрою. Спочатку встановіть вужчі теки з книгами як домашні."
 
 msgid "This Week"
 msgstr "Цього тижня"
+
+msgid "This week"
+msgstr "Цього тижня"
+
+msgid "This year"
+msgstr "Цього року"
 
 msgid "This Year"
 msgstr "Цього року"
@@ -1998,8 +2388,26 @@ msgstr "Час"
 msgid "Time Format"
 msgstr "Формат часу"
 
+msgid "Time this week"
+msgstr "Час цього тижня"
+
 msgid "Time to book end"
 msgstr "Час до кінця книги"
+
+msgid "Time today"
+msgstr "Час сьогодні"
+
+msgid "Time/book"
+msgstr "Час/книга"
+
+msgid "Time/day"
+msgstr "Час/день"
+
+msgid "Time/page"
+msgstr "Час/сторінка"
+
+msgid "Timeout"
+msgstr "Час очікування"
 
 msgid "Timer: %1 s"
 msgstr "Таймер: %1 с"
@@ -2013,11 +2421,8 @@ msgstr "Назва (природна)"
 msgid "To Be Read"
 msgstr "До читання"
 
-msgid "To Be Read featured widget"
-msgstr "Головний віджет \"До читання\""
-
 msgid "To Be Read strip widget"
-msgstr "Рядковий віджет \"До читання\""
+msgstr "Рядковий віджет \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\"До читання\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\""
 
 msgid "Today"
 msgstr "Сьогодні"
@@ -2025,26 +2430,26 @@ msgstr "Сьогодні"
 msgid "Too many requests. Please try again later."
 msgstr "Забагато запитів. Будь ласка, спробуйте пізніше."
 
+msgid "Tools"
+msgstr "Інструменти"
+
 msgid "Top bar font"
 msgstr "Шрифт верхньої панелі"
 
 msgid "Top status bar"
 msgstr "Верхній рядок статусу"
 
-msgid "total books"
-msgstr "всього книг"
+msgid "Total"
+msgstr "Всього"
+
+msgid "Total books"
+msgstr "Всього книг"
 
 msgid "Total pages"
 msgstr "Всього сторінок"
 
-msgid "total pages read"
-msgstr "всього прочитано сторінок"
-
-msgid "total read time"
-msgstr "загальний час читання"
-
-msgid "total time"
-msgstr "загальний час"
+msgid "Total time"
+msgstr "Загальний час"
 
 msgid "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
 msgstr "Увімкніть режим Zen, щоб спростити KOReader до найнеобхіднішого.\n\nПриберіть візуальний шум для зосередженого читання без відволікань. Вийти можна в будь-який час у Налаштуваннях."
@@ -2052,8 +2457,14 @@ msgstr "Увімкніть режим Zen, щоб спростити KOReader д
 msgid "Two rows"
 msgstr "Два рядки"
 
+msgid "Typesetting"
+msgstr "Набір"
+
 msgid "Unavailable"
 msgstr "Недоступно"
+
+msgid "Unavailable pack: %1"
+msgstr "Недоступний пакет: %1"
 
 msgid "Underline"
 msgstr "Підкреслення"
@@ -2064,11 +2475,11 @@ msgstr "Підкреслення над іконкою"
 msgid "Uniform covers"
 msgstr "Рівномірні обкладинки"
 
-msgid "Unknown"
-msgstr "Невідомо"
-
 msgid "unknown"
 msgstr "невідомо"
+
+msgid "Unknown"
+msgstr "Невідомо"
 
 msgid "Unknown Author"
 msgstr "Невідомий автор"
@@ -2139,11 +2550,17 @@ msgstr "Оновлення не вдалося: перевірка підгот�
 msgid "Update failed: timed out."
 msgstr "Оновлення не вдалося: час очікування вичерпано."
 
+msgid "Update KOReader"
+msgstr "Оновіть KOReader"
+
 msgid "Update now"
 msgstr "Оновити зараз"
 
 msgid "Update Status"
 msgstr "Статус оновлення"
+
+msgid "Update ZenOS"
+msgstr "Оновіть ZenOS"
 
 msgid "Updated to %1"
 msgstr "Оновлено до %1"
@@ -2190,23 +2607,11 @@ msgstr "Віртуальна тека"
 msgid "Warmth"
 msgstr "Теплий відтінок"
 
-msgid "Warmth schedule"
-msgstr "Розклад теплого відтінку"
+msgid "Weekly"
+msgstr "Щотижня"
 
-msgid "Weekly pages goal"
-msgstr "Тижнева ціль сторінок"
-
-msgid "Weekly pages goal: "
-msgstr "Тижнева ціль сторінок: "
-
-msgid "Weekly time goal (min)"
-msgstr "Тижнева ціль часу (хв)"
-
-msgid "Weekly time goal (min): "
-msgstr "Тижнева ціль часу (хв): "
-
-msgid "Welcome to Zen UI"
-msgstr "Ласкаво просимо до Zen UI"
+msgid "Welcome to ZenOS"
+msgstr "Ласкаво просимо до ZenOS"
 
 msgid "What should your device show when it goes to sleep?"
 msgstr "Що має показувати ваш пристрій під час сну?"
@@ -2217,11 +2622,14 @@ msgstr "Що змінилося"
 msgid "What's New"
 msgstr "Що нового"
 
-msgid "When enabled, icons placed in KOReader's user icons folder override the bundled Zen UI icons. Falls back to Zen UI icons, then KOReader built-ins."
-msgstr "Коли ввімкнено, іконки в теці користувацьких іконок KOReader замінюють вбудовані іконки Zen UI. Якщо немає, використовуються іконки Zen UI, а потім вбудовані в KOReader."
+msgid "When enabled, loose icons or a selected ZenOS icon pack override supported icons. Missing icons fall back to ZenOS, then KOReader."
+msgstr "Якщо ввімкнено, незакріплені значки або вибраний пакет значків ZenOS замінюють підтримувані значки. Відсутні піктограми повертаються до ZenOS, а потім до KOReader."
 
 msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
 msgstr "Коли ввімкнено, пошук знаходить лише цілі слова. Коли вимкнено, використовується пошук за підрядком (напр., 'риба' знаходить 'рибалка')."
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr "Якщо ввімкнено, двічі швидко торкніться однієї книги, щоб відкрити її. Управління клавіатурою не змінено."
 
 msgid "Which time format do you prefer?"
 msgstr "Якому формату часу ви віддаєте перевагу?"
@@ -2232,8 +2640,17 @@ msgstr "Білий"
 msgid "Wi-Fi"
 msgstr "Wi-Fi"
 
+msgid "Widget settings"
+msgstr "Налаштування віджета"
+
 msgid "Widgets"
 msgstr "Віджети"
+
+msgid "Wrap description text"
+msgstr "Перенести текст опису"
+
+msgid "Yearly"
+msgstr "щорічно"
 
 msgid "You're All Set"
 msgstr "Усе готово"
@@ -2250,14 +2667,26 @@ msgstr "Zen"
 msgid "Zen highlight menu"
 msgstr "Меню виділення Zen"
 
-msgid "Zen Mode"
-msgstr "Режим Zen"
-
 msgid "Zen mode"
 msgstr "Режим Zen"
 
+msgid "Zen Mode"
+msgstr "Режим Zen"
+
+msgid "Zen Mode is enabled. KOReader menus are hidden."
+msgstr "Режим дзен увімкнено. Меню KOReader приховано."
+
+msgid "Zen Mode: Disabled"
+msgstr "Режим дзен: вимкнено"
+
+msgid "Zen Mode: Enabled"
+msgstr "Режим дзен: увімкнено"
+
 msgid "Zen OPDS"
 msgstr "Zen OPDS"
+
+msgid "Zen page browser"
+msgstr "Переглядач сторінок Zen"
 
 msgid "Zen Presets"
 msgstr "Шаблони Zen"
@@ -2265,62 +2694,74 @@ msgstr "Шаблони Zen"
 msgid "Zen quick lookup"
 msgstr "Швидкий пошук Zen"
 
-msgid "Zen UI"
-msgstr "Zen UI"
+msgid "ZenFM"
+msgstr "ZenFM"
 
-msgid "Zen UI - Authors"
-msgstr "Zen UI — Автори"
+msgid "ZenOS"
+msgstr "ZenOS"
 
-msgid "Zen UI - Home"
-msgstr "Zen UI — Головна"
+msgid "ZenOS defaults"
+msgstr "Типові налаштування ZenOS"
 
-msgid "Zen UI - Library"
-msgstr "Zen UI — Бібліотека"
+msgid "ZenOS is up to date."
+msgstr "ZenOS має останню версію."
 
-msgid "Zen UI - Open folder"
-msgstr "Zen UI — Відкрити теку"
+msgid "ZenOS: "
+msgstr "ZenOS: "
 
-msgid "Zen UI - Series"
-msgstr "Zen UI — Серії"
+msgid "ZenOS: Authors"
+msgstr "ZenOS — Автори"
 
-msgid "Zen UI - Sync progress (pull + push)"
-msgstr "Zen UI — Синхронізація прогресу (отримати + надіслати)"
+msgid "ZenOS: folder not found: "
+msgstr "ZenOS: теку не знайдено: "
 
-msgid "Zen UI - Table of contents"
-msgstr "Zen UI — Зміст"
+msgid "ZenOS: Home"
+msgstr "ZenOS — Головна"
 
-msgid "Zen UI - Tags"
-msgstr "Zen UI — Теги"
+msgid "ZenOS: Library"
+msgstr "ZenOS — Бібліотека"
 
-msgid "Zen UI - Toggle bottom reader status bar"
-msgstr "Zen UI — Перемкнути нижній рядок статусу читалки"
+msgid "ZenOS: no folder set for this action."
+msgstr "ZenOS: для цієї дії не встановлено теку."
 
-msgid "Zen UI - Toggle Incognito Mode"
-msgstr "Zen UI — Перемкнути режим інкогніто"
+msgid "ZenOS: Open folder"
+msgstr "ZenOS — Відкрити теку"
 
-msgid "Zen UI - Toggle Lockdown Mode"
-msgstr "Zen UI — Перемкнути режим блокування"
+msgid "ZenOS: Series"
+msgstr "ZenOS — Серії"
 
-msgid "Zen UI - Toggle reader status bars"
-msgstr "Zen UI — Перемкнути рядки статусу читалки"
+msgid "ZenOS: Sync progress (pull + push)"
+msgstr "ZenOS — Синхронізація прогресу (отримати + надіслати)"
 
-msgid "Zen UI - Toggle top reader status bar"
-msgstr "Zen UI — Перемкнути верхній рядок статусу читалки"
+msgid "ZenOS: Table of contents"
+msgstr "ZenOS — Зміст"
 
-msgid "Zen UI - Toggle Zen Mode"
-msgstr "Zen UI — Перемкнути режим Zen"
+msgid "ZenOS: Tags"
+msgstr "ZenOS — Теги"
 
-msgid "Zen UI defaults"
-msgstr "Типові налаштування Zen UI"
+msgid "ZenOS: Toggle bottom reader status bar"
+msgstr "ZenOS — Перемкнути нижній рядок статусу читалки"
 
-msgid "Zen UI is up to date."
-msgstr "Zen UI має останню версію."
+msgid "ZenOS: Toggle Incognito Mode"
+msgstr "ZenOS — Перемкнути режим інкогніто"
 
-msgid "Zen UI: "
-msgstr "Zen UI: "
+msgid "ZenOS: Toggle Lockdown Mode"
+msgstr "ZenOS — Перемкнути режим блокування"
 
-msgid "Zen UI: folder not found: "
-msgstr "Zen UI: теку не знайдено: "
+msgid "ZenOS: Toggle reader status bars"
+msgstr "ZenOS — Перемкнути рядки статусу читалки"
 
-msgid "Zen UI: no folder set for this action."
-msgstr "Zen UI: для цієї дії не встановлено теку."
+msgid "ZenOS: Toggle reader themes"
+msgstr "ZenOS: перемикання тем для читання"
+
+msgid "ZenOS: Toggle top reader status bar"
+msgstr "ZenOS — Перемкнути верхній рядок статусу читалки"
+
+msgid "ZenOS: Toggle Zen Mode"
+msgstr "ZenOS — Перемкнути режим Zen"
+
+msgid "ZenPM"
+msgstr "ZenPM"
+
+msgid "ZenPM has been installed. Restart KOReader to use it."
+msgstr "ZenPM встановлено. Перезапустіть KOReader, щоб використовувати його."

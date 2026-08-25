@@ -54,7 +54,7 @@ function M.init(logger, plugin)
         return true
     end
 
-    -- Route KOReader's File browser gesture through the same transition as Zen UI.
+    -- Route KOReader's File browser gesture through the same transition as ZenOS.
     local library_navigation_fn = load_patch("library_navigation")
     if library_navigation_fn then
         run_feature(logger, plugin, "library_navigation", library_navigation_fn)
@@ -95,7 +95,7 @@ function M.init(logger, plugin)
         run_feature(logger, plugin, "reader_footer", reader_footer_fn)
     end
 
-    -- Always apply: format time_to_chapter in Kindle style ("X mins left in chapter")
+    -- Always apply the selected chapter-time display format.
     local reader_footer_time_format_fn = load_patch("reader_footer_time_format")
     if reader_footer_time_format_fn then
         run_feature(logger, plugin, "reader_footer_time_format", reader_footer_time_format_fn)

@@ -1,5 +1,6 @@
 describe("file browser guard patches", function()
     local original_plugin
+    local original_memory_policy
 
     local function apply_patch(name)
         ZenSpec.unload(name)
@@ -8,11 +9,13 @@ describe("file browser guard patches", function()
 
     before_each(function()
         original_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
+        original_memory_policy = package.loaded["common/memory_policy"]
         _G.G_reader_settings = ZenSpec.memorySettings()
     end)
 
     after_each(function()
         _G.__ZEN_UI_PLUGIN = original_plugin
+        package.loaded["common/memory_policy"] = original_memory_policy
     end)
 
     it("shows hidden and unsupported files only outside the library home", function()
@@ -166,7 +169,8 @@ describe("file browser guard patches", function()
         ZenSpec.replace("ui/widget/container/movablecontainer", MovableContainer)
 
         apply_patch("modules/filebrowser/patches/disable_modal_drag")
-        local instance = {}
+        local frame = { bordersize = 1 }
+        local instance = { frame }
         assert.are.equal("initialized", MovableContainer.init(instance, "initialized"))
         assert.is_true(instance.unmovable)
         assert.are.equal(1, init_calls)
@@ -184,11 +188,18 @@ describe("file browser guard patches", function()
         local CoverMenu = {
             updateItems = function() cover_updates = cover_updates + 1 end,
         }
-        ZenSpec.replace("ffi/blitbuffer", { COLOR_WHITE = "white" })
+        local ListMenuItem = { update = function() end }
+        local function list_builder()
+            return ListMenuItem
+        end
+        ZenSpec.replace("ffi/blitbuffer", {
+            COLOR_BLACK = "black",
+            COLOR_WHITE = "white",
+        })
         ZenSpec.replace("ui/widget/menu", Menu)
         ZenSpec.replace("covermenu", CoverMenu)
         ZenSpec.replace("mosaicmenu", { _updateItemsBuildUI = function() end })
-        ZenSpec.replace("listmenu", { _updateItemsBuildUI = function() end })
+        ZenSpec.replace("listmenu", { _updateItemsBuildUI = list_builder })
         ZenSpec.replace("common/shared_state", {
             register = function(_, values) shared = values end,
         })
@@ -202,6 +213,7 @@ describe("file browser guard patches", function()
 
         apply_patch("modules/filebrowser/patches/browser_hide_underline")
         assert.is_true(shared.hide_underline_active)
+        assert.is_function(shared.hideMenuUnderlines)
         assert.is_function(registered)
         registered({})
 
@@ -216,6 +228,16 @@ describe("file browser guard patches", function()
         local cover = { _underline_container = { color = "black" } }
         CoverMenu.updateItems({ layout = { { cover } } })
         assert.are.equal("white", cover._underline_container.color)
+
+        local restored = { _underline_container = { color = "black" } }
+        shared.hideMenuUnderlines({ layout = { { restored } } })
+        assert.are.equal("white", restored._underline_container.color)
+
+        local list_item = { _underline_container = { color = "black" } }
+        ListMenuItem.update(list_item)
+        assert.are.equal("white", list_item._underline_container.color)
+        ListMenuItem.onFocus(list_item)
+        assert.are.equal("black", list_item._underline_container.color)
         assert.are.same({ 2, 1 }, { menu_updates, cover_updates })
     end)
 
@@ -242,9 +264,16 @@ describe("file browser guard patches", function()
         assert.are.equal("selected", FileChooser.onMenuSelect({}, {}))
     end)
 
-    it("marks new and abandoned books as reading before opening", function()
-        local statuses = { new = "new", abandoned = "abandoned", complete = "complete" }
-        local saved, cached, opened = {}, {}, {}
+    it("marks new, on-hold, and explicit TBR books as reading", function()
+        local statuses = {
+            new = "new",
+            tbr = "complete",
+            abandoned = "abandoned",
+            complete = "complete",
+        }
+        local saved, cached, opened, invalidated = {}, {}, {}, {}
+        local tbr_books = { tbr = true }
+        local reader_releases = 0
         local filemanagerutil = {
             openFile = function(_, file)
                 opened[#opened + 1] = file
@@ -267,17 +296,36 @@ describe("file browser guard patches", function()
                 cached[#cached + 1] = { file, key, value }
             end,
         })
-        ZenSpec.replace("common/book_status", { acknowledgeNewVersion = function() return false end })
+        ZenSpec.replace("common/book_status", {
+            acknowledgeNewVersion = function() return false end,
+            invalidate = function(file) invalidated[#invalidated + 1] = file end,
+        })
+        ZenSpec.replace("common/tbr_index", {
+            isExplicit = function(file) return tbr_books[file] == true end,
+            setExplicit = function(file, enabled)
+                tbr_books[file] = enabled == true
+                return true
+            end,
+            refreshPath = function() end,
+        })
+        ZenSpec.replace("common/memory_policy", {
+            releaseForReader = function() reader_releases = reader_releases + 1 end,
+        })
 
         apply_patch("modules/filebrowser/patches/status_on_open")
         assert.are.equal("opened", filemanagerutil.openFile({}, "new"))
+        assert.are.equal("opened", filemanagerutil.openFile({}, "tbr"))
         assert.are.equal("opened", filemanagerutil.openFile({}, "abandoned"))
         assert.are.equal("opened", filemanagerutil.openFile({}, "complete"))
-        assert.same({ "reading", "reading" }, saved)
+        assert.same({ "reading", "reading", "reading" }, saved)
         assert.same({
             { "new", "status", "reading" },
+            { "tbr", "status", "reading" },
             { "abandoned", "status", "reading" },
         }, cached)
-        assert.same({ "new", "abandoned", "complete" }, opened)
+        assert.same({ "new", "tbr", "abandoned", "complete" }, opened)
+        assert.same({ "new", "tbr", "abandoned" }, invalidated)
+        assert.is_false(tbr_books.tbr)
+        assert.are.equal(4, reader_releases)
     end)
 end)

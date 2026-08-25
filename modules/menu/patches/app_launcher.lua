@@ -19,9 +19,15 @@
     local Dispatcher = require("dispatcher")
     local ActionFilter = require("modules/menu/app_launcher/action_filter")
     local Model = require("modules/menu/app_launcher/model")
+    local NativeMenu = require("modules/menu/app_launcher/native_menu")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
+    local BookDetailsPage = require("modules/menu/app_launcher/book_details_page")
+    local BookSwitcherPage = require("modules/menu/app_launcher/book_switcher_page")
+    local PagePlan = require("modules/menu/app_launcher/page_plan")
+    local ButtonLabelWidth = require("common/ui/button_label_width")
+    local ButtonModel = require("common/nav_button_model")
     local ZenButton = require("common/ui/zen_button")
-    local SolidCircle = require("common/ui/zen_solid_circle")
+    local SettingsTransition = require("common/settings_transition")
     local utils = require("common/utils")
     local library_font = require("modules/filebrowser/patches/library_font")
 
@@ -129,6 +135,8 @@
     local function make_cell(opts)
         local icon_path, icon_name = icon_spec(opts.icon)
         local icon_size = opts.icon_size
+        local rendered_icon_size = math.floor(
+            icon_size * utils.iconOpticalScale(opts.icon) + 0.5)
         local circle_size = opts.circle_size
         local circle_border = opts.circle_border
         local active = opts.active == true
@@ -138,8 +146,8 @@
         local icon = IconWidget:new{
             file = icon_path or nil,
             icon = icon_path and nil or icon_name,
-            width = icon_size,
-            height = icon_size,
+            width = rendered_icon_size,
+            height = rendered_icon_size,
             alpha = not active,
         }
         if active then
@@ -151,7 +159,7 @@
             end
         end
         local border = active and 0 or circle_border
-        local icon_circle = SolidCircle:new{
+        local icon_circle = FrameContainer:new{
             width = circle_size,
             height = circle_size,
             padding = 0,
@@ -171,11 +179,12 @@
             icon_circle,
         }
         if show_label then
+            local label_max_width = ButtonLabelWidth.maxWidth(opts.cell_w, opts.label_side_padding)
             local label = TextWidget:new{
                 text = opts.label,
                 face = label_face,
                 fgcolor = fg,
-                max_width = opts.cell_w - opts.pad * 2,
+                max_width = label_max_width,
             }
             table.insert(content_items, 1, VerticalSpan:new{ width = opts.pad })
             content_items[#content_items + 1] = VerticalSpan:new{ width = Screen:scaleBySize(4) }
@@ -222,67 +231,19 @@
         UIManager:show(InfoMessage:new{ text = _("Launcher entry is unavailable") })
     end
 
-    local function find_app_launcher_settings_item(root_items)
-        for _i, item in ipairs(root_items or {}) do
-            if item._zen_settings_root == "launcher" then
-                return item
-            end
-        end
-    end
-
-    local function find_launcher_buttons_item(items)
-        for _i, item in ipairs(items or {}) do
-            if item._zen_launcher_buttons then
-                return item
-            end
-        end
-    end
-
     local function open_app_launcher_settings(touch_menu, open_buttons)
-        if not (touch_menu and type(touch_menu.updateItems) == "function") then
-            return
+        if touch_menu and type(touch_menu.closeMenu) == "function" then
+            touch_menu:closeMenu()
         end
-        local zen_tab_idx, zen_tab
-        for i, tab in ipairs(touch_menu.tab_item_table or {}) do
-            if tab.id == "zen_ui" then
-                zen_tab_idx = i
-                zen_tab = tab
-                break
+        UIManager:nextTick(function()
+            local path = {
+                { key = "_zen_settings_root", value = "launcher" },
+            }
+            if open_buttons then
+                path[#path + 1] = { key = "_zen_launcher_buttons", value = true }
             end
-        end
-        if type(zen_tab) ~= "table" then
-            return
-        end
-        touch_menu._zen_panel_refs = nil
-        touch_menu._zen_panel_locked = false
-        if touch_menu.bar and type(touch_menu.bar.switchToTab) == "function" and zen_tab_idx then
-            touch_menu.bar:switchToTab(zen_tab_idx)
-        elseif type(touch_menu.switchMenuTab) == "function" and zen_tab_idx then
-            touch_menu:switchMenuTab(zen_tab_idx)
-        else
-            touch_menu.item_table = zen_tab
-        end
-        local root_items = type(touch_menu.item_table) == "table"
-            and touch_menu.item_table.id == "zen_ui"
-            and touch_menu.item_table
-            or zen_tab
-        local settings_item = find_app_launcher_settings_item(root_items)
-        if not settings_item or type(settings_item.sub_item_table) ~= "table" then
-            return
-        end
-        touch_menu.item_table_stack = touch_menu.item_table_stack or {}
-        table.insert(touch_menu.item_table_stack, root_items)
-        touch_menu.parent_id = nil
-        touch_menu.item_table = settings_item.sub_item_table
-        touch_menu:updateItems(1)
-        if open_buttons then
-            local buttons_item = find_launcher_buttons_item(settings_item.sub_item_table)
-            if buttons_item and type(buttons_item.callback) == "function" then
-                UIManager:nextTick(function()
-                    buttons_item.callback(touch_menu)
-                end)
-            end
-        end
+            require("modules/settings/zen_settings_page").show(zen_plugin, { path = path })
+        end)
     end
 
     local function is_library_launcher(touch_menu)
@@ -318,10 +279,19 @@
         end
         if entry.type == "action" then
             touch_menu:closeMenu()
+            SettingsTransition.close()
             UIManager:nextTick(function()
                 if type(entry.action) == "table" and next(entry.action) then
                     Dispatcher:execute(entry.action)
                 end
+            end)
+            return
+        end
+        if entry.type == "folder_shortcut" or entry.type == "tag" then
+            touch_menu:closeMenu()
+            SettingsTransition.close()
+            UIManager:nextTick(function()
+                ButtonModel.execute(entry, zen_plugin)
             end)
             return
         end
@@ -339,17 +309,76 @@
                 return
             end
             touch_menu:closeMenu()
+            SettingsTransition.close()
+            UIManager:nextTick(function()
+                pcall(launch)
+            end)
+            return
+        end
+        if entry.type == "koreader_menu" and type(entry.koreader_menu) == "table" then
+            local launch = NativeMenu.resolve(entry.koreader_menu.id, "active")
+            if not launch then
+                show_unavailable()
+                return
+            end
+            touch_menu:closeMenu()
+            SettingsTransition.close()
             UIManager:nextTick(function()
                 pcall(launch)
             end)
         end
     end
 
+    local function open_book_from_switcher(touch_menu, path, release_cover)
+        if type(release_cover) == "function" then release_cover() end
+        touch_menu:closeMenu()
+        SettingsTransition.close()
+        UIManager:nextTick(function()
+            local ReaderUI = require("apps/reader/readerui")
+            local FileManager = require("apps/filemanager/filemanager")
+            local filemanagerutil = require("apps/filemanager/filemanagerutil")
+            local ui = ReaderUI.instance or FileManager.instance
+            if ui and type(filemanagerutil.openFile) == "function" then
+                filemanagerutil.openFile(ui, path)
+            else
+                ReaderUI:showReader(path)
+            end
+        end)
+    end
+
+    local function current_reader(touch_menu)
+        if is_library_launcher(touch_menu) then return nil end
+        local ok_reader, ReaderUI = pcall(require, "apps/reader/readerui")
+        return ok_reader and ReaderUI.instance or nil
+    end
+
+    local function current_reader_path(touch_menu)
+        local reader = current_reader(touch_menu)
+        return reader and reader.document and reader.document.file or nil
+    end
+
+    local function open_current_book_details(touch_menu, reader)
+        if not reader then return end
+        touch_menu:closeMenu()
+        SettingsTransition.close()
+        UIManager:nextTick(function()
+            require("modules/reader/book_details").show(
+                reader, { config = zen_plugin.config })
+        end)
+    end
+
     local function entry_available(entry, touch_menu, cfg)
         if entry_hidden_in_context(entry, touch_menu, cfg) then return false end
+        if entry.type == "action" then
+            return ActionFilter.has_registered_action(Dispatcher, entry.action)
+        end
         if entry.type == "quick_setting" then
             local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
             return controls and controls.has and controls.has(entry.quick_setting_id)
+        end
+        if entry.type == "koreader_menu" then
+            local menu = entry.koreader_menu
+            return type(menu) == "table" and NativeMenu.exists(menu.id, "active")
         end
         if entry.type ~= "plugin" then return true end
         local plugin = entry.plugin
@@ -368,7 +397,6 @@
     end
 
     local function entry_disabled(entry)
-        if entry.enabled == false then return true end
         if entry.type ~= "quick_setting" then return false end
         local controls = rawget(_G, "__ZEN_UI_QUICK_SETTINGS")
         return controls and controls.isDisabled and controls.isDisabled(entry.quick_setting_id)
@@ -383,7 +411,6 @@
         local inner_w = panel_width - pad * 2
         local min_cell_w = Screen:scaleBySize(96)
         local cols = math.max(2, math.floor(inner_w / min_cell_w))
-        local cell_w = math.floor(inner_w / cols)
         local cell_h = Screen:scaleBySize(92)
         local row_gap = Screen:scaleBySize(8)
         local circle_size = Screen:scaleBySize(64)
@@ -391,6 +418,7 @@
         local circle_border = Screen:scaleBySize(2)
         local label_size = Font.sizemap and Font.sizemap["xx_smallinfofont"] or 18
         local label_face = library_font.getFace(label_size)
+        local label_side_padding = Screen:scaleBySize(ButtonLabelWidth.SIDE_PADDING)
         local rows = {}
         local row_counts = {}
         local row_widths = {}
@@ -406,7 +434,7 @@
                 _app_back = true,
             }
         end
-        for _i, entry in ipairs(entries or {}) do
+        for _i, entry in ipairs(Model.enabled_entries(entries)) do
             if not entry_hidden_in_context(entry, touch_menu, cfg) then
                 visible[#visible + 1] = entry
             end
@@ -439,7 +467,7 @@
         for _i, row in ipairs(all_rows) do
             if #row > max_row_len then max_row_len = #row end
         end
-        local uniform_cell_w = math.floor(inner_w / math.max(1, max_row_len))
+        local uniform_cell_w = ButtonLabelWidth.equalCellWidth(inner_w, max_row_len)
 
         -- Pagination: slice the grid so it never overflows the space a normal
         -- menu would use (bar + items area + footer). The footer up arrow then
@@ -452,9 +480,13 @@
         local bar_h = (touch_menu.bar and touch_menu.bar:getSize().h) or 0
         local footer_h = (touch_menu.footer and touch_menu.footer:getSize().h) or 0
         local footer_margin_h = (touch_menu.footer_top_margin and touch_menu.footer_top_margin:getSize().h) or 0
-        local items_height = menu_height - bar_h - footer_h - footer_margin_h - pad * 2
+        local panel_height = math.max(1, menu_height - bar_h - footer_h - footer_margin_h)
+        local items_height = math.max(1, panel_height - pad * 2)
         local rows_per_page = math.max(1, math.floor(items_height / cell_total_h) - 1)
-        local page_num = math.max(1, math.ceil(#all_rows / rows_per_page))
+        local button_page_num = math.ceil(#all_rows / rows_per_page)
+        local page_plan = folder and PagePlan.build(math.max(1, button_page_num), {}, true)
+            or PagePlan.build(button_page_num, cfg, is_library_launcher(touch_menu))
+        local page_num = #page_plan
         local page = touch_menu._app_launcher_page or 1
         if page > page_num then page = page_num end
         if page < 1 then page = 1 end
@@ -462,13 +494,63 @@
         refs.page = page
         refs.page_num = page_num
 
+        local function set_page_refs()
+            refs.goto_page = function(nb)
+                if page_num <= 1 then return false end
+                if nb > page_num then nb = 1 elseif nb < 1 then nb = page_num end
+                if nb == page then return false end
+                touch_menu._app_launcher_page = nb
+                touch_menu:updateItems(1)
+                return true
+            end
+            touch_menu._zen_panel_refs = refs
+        end
+
+        local page_spec = page_plan[page] or { kind = "buttons", index = 1 }
+        local is_switcher_page = page_spec.kind == "book_switcher"
+        local is_book_details_page = page_spec.kind == "book_details"
+        local button_page = page_spec.index or 1
+
         local page_rows = {}
-        if #all_rows > 0 then
-            local start_idx = (page - 1) * rows_per_page + 1
+        if page_spec.kind == "buttons" and #all_rows > 0 then
+            local start_idx = (button_page - 1) * rows_per_page + 1
             local end_idx = math.min(start_idx + rows_per_page - 1, #all_rows)
             for i = start_idx, end_idx do
                 page_rows[#page_rows + 1] = all_rows[i]
             end
+        end
+
+        if is_switcher_page then
+            local panel, switcher_refs = BookSwitcherPage.build{
+                width = panel_width,
+                height = panel_height,
+                config = zen_plugin.config,
+                exclude_path = current_reader_path(touch_menu),
+                open_book = function(path, _cover, release_cover)
+                    open_book_from_switcher(touch_menu, path, release_cover)
+                end,
+            }
+            refs.buttons = switcher_refs.buttons
+            refs.layout_rows = switcher_refs.layout_rows
+            set_page_refs()
+            return panel
+        end
+
+        if is_book_details_page then
+            local reader = current_reader(touch_menu)
+            local panel, details_refs = BookDetailsPage.build{
+                width = panel_width,
+                height = panel_height,
+                config = zen_plugin.config,
+                ui = reader,
+                open_details = function()
+                    open_current_book_details(touch_menu, reader)
+                end,
+            }
+            refs.buttons = details_refs.buttons
+            refs.layout_rows = details_refs.layout_rows
+            set_page_refs()
+            return panel
         end
 
         if #visible == 0 then
@@ -492,7 +574,7 @@
                     add_button.callback()
                 end,
             }
-            touch_menu._zen_panel_refs = refs
+            set_page_refs()
             return VerticalGroup:new{
                 align = "center",
                 VerticalSpan:new{ width = Screen:scaleBySize(16) },
@@ -524,13 +606,14 @@
                 local dim = not entry._app_back
                     and (not entry_available(entry, touch_menu, cfg) or entry_disabled(entry))
                 local cell = make_cell{
-                    cell_w = row_widths[#rows] or cell_w,
+                    cell_w = row_widths[#rows] or uniform_cell_w,
                     cell_h = cell_h,
                     pad = pad,
                     icon_size = icon_size,
                     circle_size = circle_size,
                     circle_border = circle_border,
                     label_face = label_face,
+                    label_side_padding = label_side_padding,
                     label = Model.display_label(entry),
                     show_label = show_labels,
                     icon = entry.icon or (entry.type == "folder" and DEFAULT_FOLDER_ICON or DEFAULT_ENTRY_ICON),
@@ -542,17 +625,25 @@
                 }
                 rows[#rows][#rows[#rows] + 1] = cell
                 layout_rows[#layout_rows][#layout_rows[#layout_rows] + 1] = cell
+                local quick_setting_id = entry.quick_setting_id
+                local controls = entry.type == "quick_setting"
+                    and quick_setting_id == "zenfm"
+                    and rawget(_G, "__ZEN_UI_QUICK_SETTINGS") or nil
                 refs.buttons[#refs.buttons + 1] = {
                     widget = cell,
                     callback = cell.callback and function()
                         cell.callback()
                     end or nil,
+                    hold_callback = not dim and controls and type(controls.hold) == "function"
+                        and function()
+                            return controls.hold(quick_setting_id, touch_menu)
+                        end or nil,
                 }
             end
         end
 
         for _i, row in ipairs(rows) do
-            local used = (row_counts[_i] or 0) * (row_widths[_i] or cell_w)
+            local used = (row_counts[_i] or 0) * (row_widths[_i] or uniform_cell_w)
             local lead = math.max(pad, math.floor((panel_width - used) / 2))
             local trail = panel_width - used - lead
             table.insert(row, 1, HorizontalSpan:new{ width = lead })
@@ -563,15 +654,7 @@
             end
         end
         panel[#panel + 1] = VerticalSpan:new{ width = pad }
-        refs.goto_page = function(nb)
-            if page_num <= 1 then return false end
-            if nb > page_num then nb = 1 elseif nb < 1 then nb = page_num end
-            if nb == page then return false end
-            touch_menu._app_launcher_page = nb
-            touch_menu:updateItems(1)
-            return true
-        end
-        touch_menu._zen_panel_refs = refs
+        set_page_refs()
         return panel
     end
 
@@ -646,6 +729,7 @@
         TouchMenu.__zen_app_launcher_open_first_patched = true
         local orig_init = TouchMenu.init
         TouchMenu.init = function(self, ...)
+            self._app_launcher_page = 1
             if is_enabled() and Model.ensure().open_first == true then
                 local index = find_tab(self.tab_item_table, "app_launcher")
                 if index then self.last_index = index end
@@ -686,6 +770,7 @@
         local orig_onCloseWidget = TouchMenu.onCloseWidget
         TouchMenu.onCloseWidget = function(self, ...)
             reset_folder(self, false)
+            self._app_launcher_page = 1
             if orig_onCloseWidget then
                 return orig_onCloseWidget(self, ...)
             end
@@ -695,6 +780,7 @@
         TouchMenu.onClose = function(self, ...)
             if self.item_table and self.item_table.id == "app_launcher" then
                 reset_folder(self, false)
+                self._app_launcher_page = 1
             end
             if orig_onClose then
                 return orig_onClose(self, ...)

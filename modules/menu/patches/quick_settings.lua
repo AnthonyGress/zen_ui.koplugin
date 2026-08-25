@@ -10,10 +10,9 @@ local function apply_quick_settings()
     local Device = require("device")
     local Event = require("ui/event")
     local Font = require("ui/font")
-    local SolidCircle = require("common/ui/zen_solid_circle")
+    local FrameContainer = require("ui/widget/container/framecontainer")
     local Geom = require("ui/geometry")
     local HorizontalGroup = require("ui/widget/horizontalgroup")
-    local HorizontalSpan = require("ui/widget/horizontalspan")
     local IconWidget = require("ui/widget/iconwidget")
     local NetworkMgr = require("ui/network/manager")
     local ConfirmBox = require("ui/widget/confirmbox")
@@ -24,7 +23,10 @@ local function apply_quick_settings()
     local VerticalSpan = require("ui/widget/verticalspan")
     local utils = require("common/utils")
     local shutdown = require("common/shutdown")
+    local restart = require("common/restart")
     local SharedState = require("common/shared_state")
+    local SettingsTransition = require("common/settings_transition")
+    local ButtonLabelWidth = require("common/ui/button_label_width")
     local Bluetooth = require("common/bluetooth")
     local build_brightness_slider = require("modules/menu/patches/brightness_slider")
     local build_warmth_slider     = require("modules/menu/patches/warmth_slider")
@@ -32,6 +34,8 @@ local function apply_quick_settings()
     local Screen = Device.screen
     local Dispatcher = require("dispatcher")
     local DispatchAction = require("common/dispatch_action")
+    local ButtonModel = require("common/nav_button_model")
+    local NativeMenu = require("modules/menu/app_launcher/native_menu")
     local PluginScan = require("modules/menu/app_launcher/plugin_scan")
 
     local zen_plugin = rawget(_G, "__ZEN_UI_PLUGIN")
@@ -111,6 +115,8 @@ local function apply_quick_settings()
             streak = false,
             opds = false,
             filebrowser = false,
+            tailscale = false,
+            zenfm = false,
             puzzle = false,
             crossword = false,
             connections = false,
@@ -123,6 +129,7 @@ local function apply_quick_settings()
             localsend = false,
             screenshot = false,
         },
+        show_labels = true,
         show_frontlight = true,
         show_warmth = true,
         rotate_action = "cycle",
@@ -364,6 +371,38 @@ local function apply_quick_settings()
         return getLoadedPlugin(candidate)
     end
 
+    local tailscale_plugin = {
+        slots = { "tailscale" },
+        key = "tailscale",
+        toggle = "onToggleTailscale",
+    }
+
+    local function getTailscalePlugin()
+        local plugin = getCandidatePlugin(tailscale_plugin)
+        if plugin and isCallable(plugin[tailscale_plugin.toggle]) then
+            return plugin
+        end
+    end
+
+    local zenfm_plugin = {
+        slots = { "zenfm" },
+        key = "zenfm",
+    }
+
+    local function getZenFMPlugin()
+        local plugin = getCandidatePlugin(zenfm_plugin)
+        if plugin and plugin.daemon and isCallable(plugin.daemon.status) then
+            return plugin
+        end
+    end
+
+    local function isZenFMRunning()
+        local plugin = getZenFMPlugin()
+        if not plugin then return false end
+        local ok_running, running = pcall(plugin.daemon.status, plugin.daemon)
+        return ok_running and running == true
+    end
+
     local function getFilebrowserPlugin(prefer_running)
         local prefer_plus = hasLoadedPluginSlot(filebrowserplus_slots)
         local fallback
@@ -433,9 +472,34 @@ local function apply_quick_settings()
         })
     end
 
+    local function refreshQuickSettings(touch_menu)
+        if touch_menu and touch_menu.item_table and touch_menu.item_table.panel then
+            touch_menu:updateItems(1)
+        end
+    end
+
+    local function refreshWifiQuickSettings(touch_menu)
+        refreshQuickSettings(touch_menu)
+        UIManager:scheduleIn(1, function()
+            refreshQuickSettings(touch_menu)
+        end)
+    end
+
+    local function isWifiConnected()
+        return NetworkMgr:isWifiOn()
+            and (type(NetworkMgr.isConnected) ~= "function" or NetworkMgr:isConnected())
+    end
+
+    local function isWifiConnecting()
+        return not isWifiConnected()
+            and (NetworkMgr.pending_connection or NetworkMgr.pending_connectivity_check)
+    end
+
     -- ============================================================
     -- Button definitions (data-driven)
     -- ============================================================
+
+    local open_quick_setting_settings
 
     local button_defs = {
         bluetooth = {
@@ -458,26 +522,25 @@ local function apply_quick_settings()
             icon = "quick_wifi",
             label = _("Wi-Fi"),
             label_func = function()
-                if NetworkMgr:isWifiOn() then
+                if isWifiConnected() then
                     local net = NetworkMgr.getCurrentNetwork and NetworkMgr:getCurrentNetwork()
-                    if net and net.ssid then
+                    if net and type(net.ssid) == "string" and net.ssid ~= "" then
                         return net.ssid
                     end
                 end
                 return _("Wi-Fi")
             end,
-            active_func = function() return NetworkMgr:isWifiOn() end,
+            active_func = isWifiConnected,
+            dim_func = isWifiConnecting,
             callback = function(touch_menu)
-                if NetworkMgr:isWifiOn() then
-                    NetworkMgr:toggleWifiOff()
-                else
-                    NetworkMgr:toggleWifiOn()
-                end
-                UIManager:scheduleIn(1, function()
-                    if touch_menu.item_table and touch_menu.item_table.panel then
-                        touch_menu:updateItems(1)
-                    end
-                end)
+                if isWifiConnecting() then return end
+                -- Explicit toggles need KOReader's scan/DHCP flow; async restore is resume-only.
+                local wifi_menu = NetworkMgr:getWifiMenuTable()
+                wifi_menu.callback({
+                    updateItems = function()
+                        refreshWifiQuickSettings(touch_menu)
+                    end,
+                })
             end,
             hold_callback = function(touch_menu)
                 -- Long-hold: (re)connect and show the AP picker.
@@ -486,11 +549,7 @@ local function apply_quick_settings()
                 -- If already off, go straight to the long-press connect flow.
                 local function do_connect()
                     NetworkMgr:toggleWifiOn(function()
-                        UIManager:scheduleIn(0.5, function()
-                            if touch_menu.item_table and touch_menu.item_table.panel then
-                                touch_menu:updateItems(1)
-                            end
-                        end)
+                        refreshWifiQuickSettings(touch_menu)
                     end, true, true)
                 end
                 if NetworkMgr:isWifiOn() then
@@ -594,7 +653,7 @@ local function apply_quick_settings()
                     text = _("Are you sure you want to restart KOReader?"),
                     ok_text = _("Restart"),
                     ok_callback = function()
-                        UIManager:broadcastEvent(Event:new("Restart"))
+                        restart.request()
                     end,
                 })
             end,
@@ -743,6 +802,45 @@ local function apply_quick_settings()
                 end)
             end,
         },
+        tailscale = {
+            icon = utils.resolveLocalIcon(_icons_dir, "network"),
+            label = _("Tailscale"),
+            visible_func = function() return getTailscalePlugin() ~= nil end,
+            active_func = function()
+                local plugin = getTailscalePlugin()
+                if not (plugin and isCallable(plugin.isRunning)) then return false end
+                local ok, running = pcall(plugin.isRunning, plugin)
+                return ok and running == true
+            end,
+            callback = function(touch_menu)
+                local plugin = getTailscalePlugin()
+                if not plugin then
+                    showUnavailable()
+                    return
+                end
+                plugin:onToggleTailscale(function()
+                    refreshQuickSettings(touch_menu)
+                end)
+            end,
+        },
+        zenfm = {
+            icon = utils.resolveLocalIcon(_icons_dir, "zenfm"),
+            label = _("ZenFM"),
+            visible_func = function() return getCandidatePlugin(zenfm_plugin) ~= nil end,
+            active_func = isZenFMRunning,
+            callback = function(touch_menu)
+                local plugin = getCandidatePlugin(zenfm_plugin)
+                if not (plugin and isCallable(plugin.onToggleZenFM)) then
+                    showUnavailable()
+                    return
+                end
+                plugin:onToggleZenFM()
+                refreshQuickSettings(touch_menu)
+            end,
+            hold_callback = function(touch_menu)
+                return open_quick_setting_settings("zenfm", touch_menu)
+            end,
+        },
         zen = {
             icon = "quick_zen",
             label = _("Zen"),
@@ -755,8 +853,9 @@ local function apply_quick_settings()
                 local features = zen_plugin.config and zen_plugin.config.features
                 return type(features) == "table" and features.lockdown_mode == true
             end,
-            callback = function()
+            callback = function(touch_menu)
                 if zen_plugin.onToggleZenMode then
+                    touch_menu:closeMenu()
                     zen_plugin:onToggleZenMode()
                 end
             end,
@@ -886,6 +985,7 @@ local function apply_quick_settings()
             end,
             callback = function(touch_menu)
                 local plugin, candidate = getFilebrowserPlugin(true)
+                SettingsTransition.close()
                 if toggleFilebrowserPlugin(plugin, candidate) then
                     UIManager:scheduleIn(1.5, function()
                         if touch_menu.item_table and touch_menu.item_table.panel then
@@ -935,7 +1035,30 @@ local function apply_quick_settings()
     local function install_custom_button_defs()
         if type(config.custom_buttons) ~= "table" then return end
         for _i, cb in ipairs(config.custom_buttons) do
-            if cb.type == "plugin" and type(cb.plugin) == "table" then
+            if cb.type == "koreader_menu" and type(cb.koreader_menu) == "table" then
+                local target = cb.koreader_menu
+                button_defs[cb.id] = {
+                    icon = cb.icon or "lightning",
+                    label = (cb.label and cb.label ~= "") and cb.label
+                        or target.title
+                        or _("KOReader menu"),
+                    disabled_func = function()
+                        return not NativeMenu.exists(target.id, "active")
+                    end,
+                    callback = function(tm)
+                        local launch = NativeMenu.resolve(target.id, "active")
+                        if not launch then
+                            showUnavailable()
+                            return
+                        end
+                        tm:closeMenu()
+                        SettingsTransition.close()
+                        UIManager:nextTick(function()
+                            pcall(launch)
+                        end)
+                    end,
+                }
+            elseif cb.type == "plugin" and type(cb.plugin) == "table" then
                 local plugin = cb.plugin
                 button_defs[cb.id] = {
                     icon = cb.icon or "lightning",
@@ -952,8 +1075,22 @@ local function apply_quick_settings()
                             return
                         end
                         tm:closeMenu()
+                        SettingsTransition.close()
                         UIManager:nextTick(function()
                             pcall(launch)
+                        end)
+                    end,
+                }
+            elseif cb.type == "folder" or cb.type == "tag" then
+                button_defs[cb.id] = {
+                    icon = cb.icon or "lightning",
+                    label = (cb.label and cb.label ~= "") and cb.label
+                        or ButtonModel.label(nil, cb),
+                    callback = function(tm)
+                        tm:closeMenu()
+                        SettingsTransition.close()
+                        UIManager:nextTick(function()
+                            ButtonModel.execute(cb, zen_plugin)
                         end)
                     end,
                 }
@@ -969,9 +1106,19 @@ local function apply_quick_settings()
                     end,
                     callback = function(tm)
                         tm:closeMenu()
-                        if type(cb_action) == "table" and next(cb_action) then
-                            Dispatcher:execute(cb_action)
-                        end
+                        SettingsTransition.close()
+                        -- In the reader the touch menu sits above the bottom
+                        -- ConfigDialog. UIManager:sendEvent (which Dispatcher:execute
+                        -- uses for "none"-category actions) only reaches the topmost
+                        -- window, so with the ConfigDialog still open the dispatched
+                        -- event would be swallowed and never reach ReaderUI. Close it
+                        -- before dispatching.
+                        UIManager:broadcastEvent(Event:new("CloseConfigMenu"))
+                        UIManager:nextTick(function()
+                            if type(cb_action) == "table" and next(cb_action) then
+                                Dispatcher:execute(cb_action)
+                            end
+                        end)
                     end,
                 }
             end
@@ -981,10 +1128,8 @@ local function apply_quick_settings()
     local function quick_setting_items()
         install_custom_button_defs()
         local items = {}
-        for _i, id in ipairs(config.button_order or {}) do
-            local def = button_defs[id]
-            if config.show_buttons[id] == true
-                    and def and (not def.visible_func or def.visible_func()) then
+        for id, def in pairs(button_defs) do
+            if not def.visible_func or def.visible_func() then
                 local label = def.label
                 items[#items + 1] = { id = id, text = label, label = label, icon = def.icon }
             end
@@ -992,6 +1137,25 @@ local function apply_quick_settings()
         table.sort(items, function(a, b)
             return ffiUtil.strcoll(a.label or "", b.label or "")
         end)
+        return items
+    end
+
+    local function normalize_zenfm_settings(items)
+        for _i, item in ipairs(type(items) == "table" and items or {}) do
+            if type(item.checked_func) == "function"
+                    and type(item.checkmark_callback) == "function"
+                    and type(item.callback) == "function"
+                    and item.sub_item_table == nil
+                    and item.sub_item_table_func == nil then
+                local open_callback = item.callback
+                item.callback = item.checkmark_callback
+                item.checkmark_callback = nil
+                item.sub_item_table_func = function(touch_menu)
+                    open_callback(touch_menu)
+                    return {}
+                end
+            end
+        end
         return items
     end
 
@@ -1028,12 +1192,47 @@ local function apply_quick_settings()
                 callback = showScreenshotTimerDialog,
             }}
         end
+        if id == "incognito" then
+            return require("modules/global/patches/incognito_mode").timeoutMenuItems(zen_plugin)
+        end
+        if id == "zenfm" then
+            local plugin = getCandidatePlugin(zenfm_plugin)
+            if not (plugin and isCallable(plugin.settings_menu)) then return {} end
+            local ok, items = pcall(plugin.settings_menu, plugin)
+            if not ok or type(items) ~= "table" then return {} end
+            return normalize_zenfm_settings(items)
+        end
         return {}
+    end
+
+    open_quick_setting_settings = function(id, touch_menu)
+        local items = quick_setting_config_items(id)
+        if #items == 0 then
+            showUnavailable()
+            return false
+        end
+        if touch_menu and type(touch_menu.closeMenu) == "function" then
+            touch_menu:closeMenu()
+        end
+        UIManager:nextTick(function()
+            require("modules/menu/app_launcher/menu_host").show{
+                title = button_defs[id] and button_defs[id].label or _("Control settings"),
+                item_table = items,
+                back_visible = false,
+            }
+        end)
+        return true
     end
 
     rawset(_G, "__ZEN_UI_QUICK_SETTINGS", {
         getItems = quick_setting_items,
         getSettingsItems = quick_setting_config_items,
+        hold = function(id, touch_menu)
+            install_custom_button_defs()
+            local def = button_defs[id]
+            if not (def and type(def.hold_callback) == "function") then return false end
+            return def.hold_callback(touch_menu) ~= false
+        end,
         has = function(id)
             install_custom_button_defs()
             local def = button_defs[id]
@@ -1049,6 +1248,11 @@ local function apply_quick_settings()
             install_custom_button_defs()
             local def = button_defs[id]
             return def and def.disabled_func and def.disabled_func() or false
+        end,
+        isDimmed = function(id)
+            install_custom_button_defs()
+            local def = button_defs[id]
+            return def and def.dim_func and def.dim_func() or false
         end,
         activate = function(id, touch_menu)
             install_custom_button_defs()
@@ -1107,19 +1311,24 @@ local function apply_quick_settings()
 
         local num_buttons = #visible_buttons
         local action_btn_size = Screen:scaleBySize(64)
+        local action_cell_width = ButtonLabelWidth.equalCellWidth(inner_width, num_buttons)
         local icon_size = math.floor(action_btn_size * 0.5)
         local label_size = Font.sizemap and Font.sizemap["xx_smallinfofont"] or 18
         local label_font = library_font.getFace(label_size)
+        local label_side_padding = Screen:scaleBySize(ButtonLabelWidth.SIDE_PADDING)
 
         local normal_border = Screen:scaleBySize(2)
 
-        local function makeActionButton(icon_name, label_text, active, dim)
-            local icon_path = _icons_dir and utils.resolveIcon(_icons_dir, icon_name)
+        local function makeActionButton(icon_name, label_text, active, disabled, dimmed)
+            local icon_path = type(icon_name) == "string" and icon_name:sub(1, 1) == "/"
+                and icon_name or (_icons_dir and utils.resolveIcon(_icons_dir, icon_name))
+            local rendered_icon_size = math.floor(
+                icon_size * utils.iconOpticalScale(icon_name) + 0.5)
             local icon = IconWidget:new{
                 file   = icon_path or nil,
                 icon   = icon_path and nil or icon_name,
-                width  = icon_size,
-                height = icon_size,
+                width  = rendered_icon_size,
+                height = rendered_icon_size,
                 -- alpha=false → BlitBuffer8 (opaque grayscale); invertRect flips
                 -- pixel values so the icon renders white-on-black for active state.
                 alpha  = not active,
@@ -1137,9 +1346,10 @@ local function apply_quick_settings()
             end
             local border = active and 0 or normal_border
             local bg = active and Blitbuffer.COLOR_BLACK
-                or dim  and Blitbuffer.COLOR_LIGHT_GRAY
-                or       Blitbuffer.COLOR_WHITE
-            local circle = SolidCircle:new{
+                or disabled and Blitbuffer.COLOR_LIGHT_GRAY
+                or dimmed and Blitbuffer.COLOR_GRAY
+                or Blitbuffer.COLOR_WHITE
+            local circle = FrameContainer:new{
                 width      = action_btn_size,
                 height     = action_btn_size,
                 radius     = math.floor(action_btn_size / 2),
@@ -1168,17 +1378,19 @@ local function apply_quick_settings()
                 end
                 return true
             end
-            local label = TextWidget:new{
-                text = label_text,
-                face = label_font,
-                max_width = action_btn_size + Screen:scaleBySize(4),
-            }
             local group = VerticalGroup:new{
                 align = "center",
                 circle,
-                VerticalSpan:new{ width = Screen:scaleBySize(2) },
-                label,
             }
+            if config.show_labels ~= false then
+                local label_max_width = ButtonLabelWidth.maxWidth(action_cell_width, label_side_padding)
+                group[#group + 1] = VerticalSpan:new{ width = Screen:scaleBySize(2) }
+                group[#group + 1] = TextWidget:new{
+                    text = label_text,
+                    face = label_font,
+                    max_width = label_max_width,
+                }
+            end
             return group, circle
         end
 
@@ -1186,9 +1398,7 @@ local function apply_quick_settings()
         refs.button_layout_row = {}
 
         if num_buttons > 0 then
-            local btn_gap = math.floor((inner_width - num_buttons * action_btn_size) / math.max(num_buttons - 1, 1))
-
-            for i, entry in ipairs(visible_buttons) do
+            for _i, entry in ipairs(visible_buttons) do
                 local def = entry.def
                 local label_text = def.label
                 if def.label_func then
@@ -1196,10 +1406,14 @@ local function apply_quick_settings()
                 end
                 local active   = def.active_func   and def.active_func()   or false
                 local disabled = def.disabled_func and def.disabled_func() or false
+                local dimmed   = def.dim_func      and def.dim_func()      or false
                 -- Disabled takes priority: don't show active styling on a greyed-out button.
-                local btn_widget, btn_circle = makeActionButton(def.icon, label_text, active and not disabled, disabled)
+                local btn_widget, btn_circle = makeActionButton(
+                    def.icon, label_text, active and not disabled, disabled, dimmed
+                )
 
                 table.insert(refs.buttons, {
+                    id = entry.id,
                     widget = btn_circle,
                     callback = not disabled and function()
                         def.callback(touch_menu)
@@ -1210,10 +1424,10 @@ local function apply_quick_settings()
                 })
                 table.insert(refs.button_layout_row, btn_circle)
 
-                table.insert(top_row, btn_widget)
-                if i < num_buttons then
-                    table.insert(top_row, HorizontalSpan:new{ width = btn_gap })
-                end
+                table.insert(top_row, CenterContainer:new{
+                    dimen = Geom:new{ w = action_cell_width, h = btn_widget:getSize().h },
+                    btn_widget,
+                })
             end
         end
 

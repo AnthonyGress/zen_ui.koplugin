@@ -1,6 +1,7 @@
-<?xml version="1.0" encoding="utf-8"?><!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
-<svg fill="#000000" width="800px" height="800px" viewBox="0 0 36 36" version="1.1"  preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800px" height="800px" viewBox="0 0 36 36" fill="none" stroke="#000000" stroke-width="1.5" stroke-linejoin="round">
     <title>library-line</title>
-    <path d="M33.48,29.63,26.74,11.82a2,2,0,0,0-2.58-1.16L21,11.85V8.92A1.92,1.92,0,0,0,19.08,7H14V4.92A1.92,1.92,0,0,0,12.08,3H5A2,2,0,0,0,3,5V32a1,1,0,0,0,1,1H20a1,1,0,0,0,1-1V19.27l5,13.21a1,1,0,0,0,1.29.58l5.61-2.14a1,1,0,0,0,.58-1.29ZM12,8.83V31H5V5h7ZM19,31H14V9h5Zm8.51-.25L21.13,13.92l3.74-1.42,6.39,16.83Z" class="clr-i-outline clr-i-outline-path-1"></path>
-    <rect x="0" y="0" width="36" height="36" fill-opacity="0"/>
+    <path d="M20.25 13.2l4.25-1.6c.76-.29 1.61.1 1.9.86l6.37 16.8c.29.76-.1 1.61-.86 1.9l-4.25 1.61c-.76.29-1.61-.1-1.9-.86l-5.51-14.54"/>
+    <rect x="13.25" y="7.75" width="7" height="24.5" rx="1.25"/>
+    <rect x="3.75" y="3.75" width="9.5" height="28.5" rx="1.25"/>
 </svg>

@@ -29,9 +29,12 @@ describe("filebrowser display mode by path patch", function()
             onPathChanged = function(self, path) self.last_path = path end,
         }
         FileChooser = {
-            changeToPath = function(self, path)
+            changeToPath = function(self, path, focused_path)
                 table.insert(rendered_modes,
                     coverbrowser.mode == nil and "classic" or coverbrowser.mode)
+                if focused_path and self.focused_index then
+                    self.page = math.ceil(self.focused_index / self.perpage)
+                end
                 self.path = path
                 return "changed"
             end,
@@ -129,6 +132,31 @@ describe("filebrowser display mode by path patch", function()
         assert.are.equal("list_image_filename", coverbrowser.mode)
         assert.are.equal("mosaic_image", persisted_mode)
         assert.are.equal("list_image_filename", api.current())
+    end)
+
+    it("recalculates target layout before locating a folder on its parent page", function()
+        local api = assert(_G.__ZEN_FOLDER_DISPLAY_MODE)
+        local chooser = {
+            name = "filemanager",
+            page = 4,
+            perpage = 9,
+            focused_index = 32,
+            _recalculateDimen = function(self)
+                self.perpage = coverbrowser.mode == "mosaic_image" and 9 or 5
+            end,
+        }
+        FileManager.instance.file_chooser = chooser
+        api.set("/library/test1", "list_image_meta")
+        coverbrowser.mode = persisted_mode
+
+        FileChooser.changeToPath(chooser, "/library/test1")
+        assert.are.equal(5, chooser.perpage)
+
+        chooser.page = 1
+        FileChooser.changeToPath(chooser, "/library", "/library/test1")
+
+        assert.are.equal(9, chooser.perpage)
+        assert.are.equal(4, chooser.page)
     end)
 
     it("resolves parent traversal before deciding whether a path is in home", function()

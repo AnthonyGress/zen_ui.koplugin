@@ -1,6 +1,5 @@
 -- zen_ui: status_on_open patch
--- Updates a new or abandoned book's status to "reading" immediately upon opening it
--- from the file manager.
+-- Marks new, on-hold, and explicit TBR books as reading when opened.
 
 local function apply_status_on_open()
     local ok_util, filemanagerutil = pcall(require, "apps/filemanager/filemanagerutil")
@@ -20,14 +19,29 @@ local function apply_status_on_open()
         local doc_settings = DocSettings:open(file)
         local summary = doc_settings:readSetting("summary") or {}
         local acknowledged = book_status.acknowledgeNewVersion(doc_settings)
+        local was_tbr = false
+        pcall(function()
+            local TBRIndex = require("common/tbr_index")
+            was_tbr = TBRIndex.isExplicit(file)
+            if was_tbr then TBRIndex.setExplicit(file, false) end
+        end)
 
-        if not summary.status or summary.status == "new" or summary.status == "abandoned" then
+        if was_tbr or not summary.status or summary.status == "new"
+                or summary.status == "abandoned" then
             summary.status = "reading"
             filemanagerutil.saveSummary(doc_settings, summary)
             BookList.setBookInfoCacheProperty(file, "status", "reading")
+            book_status.invalidate(file)
         elseif acknowledged and type(doc_settings.flush) == "function" then
             doc_settings:flush()
         end
+
+        pcall(function()
+            require("common/tbr_index").refreshPath(file, doc_settings)
+        end)
+        pcall(function()
+            require("common/memory_policy").releaseForReader()
+        end)
 
         return _orig_openFile(ui, file, caller_pre_callback, no_dialog)
     end

@@ -2,17 +2,17 @@
 title: Library
 category: Library
 summary: All your books in one place
-settingsPath: Zen UI > Library
+settingsPath: Zen Settings > Library
 order: 30
 ---
 
-<!-- Documentation current through Zen UI v2.5.0. -->
+<!-- Documentation current through ZenOS v3.0.0. -->
 
-![Library cover view](/images/zen_ui/library_covers_full.png)
+![Library cover view](/images/zen_os/library_covers_full.webp)
 
-![Library list view](/images/zen_ui/library_list_full.png)
+![Library list view](/images/zen_os/library_list_full.webp)
 
-![Context menu](/images/zen_ui/context_menu.png)
+![Context menu](/images/zen_os/context_menu.webp)
 
 ## Overview
 
@@ -24,6 +24,7 @@ Library settings control the KOReader library. Customize the top status bar, lay
 - Set the library font face and font size.
 - Choose display mode, mosaic density, list density, item underlines, and list borders.
 - Configure folder covers, folder labels, hidden up-folder rows, and automatic series grouping.
+- Optionally flatten subfolders into one library view without changing files on disk.
 - Configure cover badges, progress indicators, uniform cover ratios, rounded corners, title and author text, and finished-book dimming.
 - Configure the scroll bar as a bar, dots, or page number.
 - Set a custom Library background image.
@@ -33,24 +34,25 @@ Library settings control the KOReader library. Customize the top status bar, lay
 
 | Setting | Description |
 | --- | --- |
-| Status bar > Enable custom status bar | Shows Zen UI's library status bar. |
+| Status bar > Enable custom status bar | Shows ZenOS's library status bar. |
 | Status bar > Custom text | Sets custom status text. Empty text falls back to the device model. |
 | Status bar > Show bottom border | Draws a separator below the status bar. |
 | Status bar > Bold text | Uses bold text in the status bar. |
 | Status bar > Colored status icons | Uses colored status icons when supported. |
-| Status bar > Left items | Selects and arranges Wi-Fi, disk space, RAM usage, brightness, battery, time, or custom text for the left slot. |
+| Status bar > Left items | Selects and arranges Bluetooth, Incognito, Wi-Fi, disk space, RAM usage, brightness, battery, time, or custom text for the left slot. |
 | Status bar > Center items | Selects and arranges status items for the center slot. |
 | Status bar > Right items | Selects and arranges status items for the right slot. |
 | Status bar > Separator | Selects dot, bar, dash, bullet, space, small space, none, or a custom separator. |
-| Font > Font | Sets the global Zen UI font family, or restores the default font. Applies everywhere except the reader. |
+| Font > Font | Sets the global ZenOS font family, or restores the default font. Applies everywhere except the reader. |
 | Font > Font size | Sets the global base text size from 10 to 40. |
-| Font > Bold | Renders Zen UI text in bold. |
 | Layout > Display mode | Selects classic, mosaic with covers, mosaic with text, detailed list with covers and metadata, detailed list with metadata, or detailed list with covers and filenames. |
 | Layout > Items per page | Sets portrait mosaic columns and rows, landscape mosaic columns and rows, and list items per page. |
+| Layout > Show all files from subfolders | Shows books from nested folders in one flat view. It is unavailable at the device root to avoid scanning the entire filesystem. |
 | Layout > Show item underline | Shows or hides the underline between browser items. |
 | Layout > Hide list borders | Hides borders in list display modes. |
 | Folders > Hide up folder | Hides the parent-folder row. |
-| Folders > Group book series into folders | Automatically groups books that share series metadata into generated series folders, sorted by series position. The folders are virtual — they reorganize the view without moving files on disk. |
+| Folders > Series > Group book series into folders | Automatically groups books that share series metadata into generated series folders, sorted by series position. The folders are virtual — they reorganize the view without moving files on disk. |
+| Folders > Series > Hide grouped series | Hides multi-book series groups from the folder view. Available only when automatic series grouping is enabled; books remain accessible from the Series tab. |
 | Folders > Covers | Selects gallery, first cover image, stack, or folder-name-only folder covers. Override per folder with a custom cover image (see below). |
 | Folders > Show spine lines | Shows book-spine lines on stacked folder covers. |
 | Folders > Show item count | Shows item counts on folder covers. |
@@ -75,13 +77,13 @@ Library settings control the KOReader library. Customize the top status bar, lay
 | Background > Enable | Shows the selected background image behind Library surfaces. |
 | Background > Image | Opens a file chooser for a JPG or JPEG background image. Hold this row to clear the selected image. |
 | Home folder > Set home folder | Opens a folder chooser for the primary library root. |
-| Home folder > Lock home folder | Prevents navigation outside of the home folder. |
+| Home folder > Lock home folder | Selects Off, Only in Zen Mode, or Always for navigation outside the home folder. |
 | Home folder > Additional home folders | Adds or removes extra library roots. |
 | Library > Allow delete | Enables or disables delete actions in the library context menu. |
 
 ## Fonts
 
-The library **Font** settings set the global Zen UI font. You can change the font family, base size, and bold style, and it applies across the whole interface — library, navbar, home, menus, status bars — everything except the reader.
+The library **Font** settings set the global ZenOS font. You can change the font family and base size, and it applies across the whole interface — library, navbar, home, menus, status bars — everything except the reader.
 
 The reader has its own separate font controls, so you can give the reading view a different font, size, and bold setting from the rest of the UI.
 
@@ -91,27 +93,26 @@ Override the featured image shown on a folder's cover by placing an image file i
 
 ## Library Background
 
-Use **Background > Enable** and **Background > Image** to add a custom JPG/JPEG background to the Library. Changing or clearing the background refreshes the Library, Home, and Navbar surfaces so the new image is applied without hunting through separate settings.
+Use **Zen Settings > Library > Background > Enable** and **Zen Settings > Library > Background > Image** to add a custom JPG/JPEG background to the Library. Changing or clearing the background refreshes the Library, Home, and Navbar surfaces so the new image is applied without hunting through separate settings.
 
 ## Context menu
 
 Tap and hold any book, folder, or the current folder in the Library/Navbar. This opens the context menu. It collects details, file management, read status, sorting, filtering, and display actions for the selected item. Available actions depend on what you held — a book, a folder, or empty space in the current folder.
 
-![Context menu](/images/zen_ui/context_menu.png)
+![Context menu](/images/zen_os/context_menu.webp)
 
 ## Display mode & sorting
 Tap + Hold on the Navbar (or any empty space) to open the context menu for the folder you are viewing (including your libraries Home folder). From here you can change the folder's display mode, sorting, and status filter on the fly. Each folder remembers its own display and sorting preferences independently, so you can browse one folder as a mosaic sorted by title and another as a detailed list sorted by recently read, and each keeps its settings across sessions.
 
 ## Filesystem
-If you want to navigate your filesystem (inside or out of Zen mode) you should disable the locking of the home folder. Settings > Library > Home folder > Lock home folder. This will allow you to freely navigate the filesystem on your device.
+To navigate the complete filesystem, set **Zen Settings > Library > Home folder > Lock home folder** to **Off**.
 
 ### Book actions
 
 | Action | Description |
 | --- | --- |
-| Details | Shows the book's cover, title, author, series, page count, and description in a fullscreen view. |
-| Book information | Opens KOReader's full metadata screen for the book. |
-| Read status | Sets the book to Unread, Reading, To Be Read, or Finished. Setting Unread also clears reading progress (percent, last page, and position). |
+| Details | Shows the book's cover, metadata, description, progress, and actions in a fullscreen view. Choose **Edit** to open KOReader's Book information screen; there you can hold **Filename** to rename the file or choose **Open with…** beside Format to select a document provider. |
+| Read status | Sets the book to Unread, Reading, To Be Read, On hold, or Finished. Setting Unread also clears reading progress (percent, last page, and position). |
 | Add to collection | Adds the book to a chosen collection, including Favorites. |
 | Remove from collection | Removes the book from the collection when viewed inside one. |
 | Edit > Select | Enters multi-select mode for batch actions on multiple items. |
@@ -141,5 +142,5 @@ Hold on empty space to bring up the Context Menu for the folder you are viewing.
 | Action | Description |
 | --- | --- |
 | Display | Sets the display mode for the current folder: Mosaic, List (detailed), or List (basic). This per-folder override is independent of the global display mode. |
-| Filter by status | Filters the current view by read status: All, Unread, Reading, To Be Read, or Finished. Multiple statuses can be combined; selecting all or none clears the filter. The filter persists across sessions. |
+| Filter by status | Filters the current view by read status: All, Unread, Reading, To Be Read, On hold, or Finished. Multiple statuses can be combined; selecting all or none clears the filter. The filter persists across sessions. |
 | Sort folder by | Sets a per-folder sort override for the current folder. |

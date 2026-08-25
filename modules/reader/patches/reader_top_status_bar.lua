@@ -2,7 +2,7 @@ local function apply_reader_top_status_bar()
     --[[
         Paints a configurable three-zone header at the top of the reader screen (reflowable docs).
         Left / center / right slots each hold an ordered list of item keys.
-        Items: time, battery, wifi, frontlight, ram, disk, custom_text,
+        Items: time, battery, wifi, frontlight, ram, disk, incognito, custom_text,
                book_title, author, chapter, progress_percent, page_progress
         Wraps ReaderView.paintTo. Config via config.reader_top_status_bar.
     --]]
@@ -26,6 +26,7 @@ local function apply_reader_top_status_bar()
     local datetime = require("datetime")
     local UIManager = require("ui/uimanager")
     local zen_utils = require("common/utils")
+    local inline_icons = require("common/inline_icon_map")
     local _ = require("gettext")
     local ReaderThemes = require("common/reader_themes")
     local Screen = Device.screen
@@ -170,8 +171,16 @@ local function apply_reader_top_status_bar()
     local function getCustomTextItem()
         local cfg = zen_plugin and zen_plugin.config and zen_plugin.config.reader_top_status_bar
         local text = type(cfg) == "table" and cfg.custom_text
-        if not text or text == "" then text = Device.model or "Zen UI" end
+        if not text or text == "" then text = Device.model or "ZenOS" end
         return text ~= "" and text or nil, nil
+    end
+
+    local function getIncognitoItem()
+        local features = zen_plugin and zen_plugin.config and zen_plugin.config.features
+        if type(features) == "table" and features.incognito_mode == true then
+            return inline_icons.incognito, nil
+        end
+        return nil
     end
 
     -- doc_ctx is the ReaderView; its .ui.doc_props has title/authors, .ui.toc has chapter.
@@ -276,6 +285,7 @@ local function apply_reader_top_status_bar()
 
     local item_fetchers = {
         wifi        = getWifiItem,
+        incognito   = getIncognitoItem,
         disk        = getDiskItem,
         ram         = getRamItem,
         frontlight  = getFrontlightItem,

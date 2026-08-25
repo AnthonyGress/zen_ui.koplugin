@@ -35,6 +35,9 @@ describe("reader navbar dispatch", function()
 
         assert.is_true(Dispatch.onShowZenUITags(plugin))
         assert.are.equal("tags", calls[3].opts.target_tab)
+
+        assert.is_true(Dispatch.onShowZenUIStats(plugin))
+        assert.are.equal("stats", calls[4].opts.target_tab)
     end)
 
     it("routes the reader Home action without replacing it with a tab target", function()
@@ -45,5 +48,32 @@ describe("reader navbar dispatch", function()
         assert.are.equal(plugin, calls[1].plugin)
         assert.is_true(calls[1].opts.open_home)
         assert.is_nil(calls[1].opts.target_tab)
+    end)
+
+    it("routes a specific tag from the reader", function()
+        local plugin = { marker = "zen" }
+
+        assert.is_true(Dispatch.onShowZenUITag(plugin, "Science"))
+
+        assert.are.equal(reader, calls[1].reader)
+        assert.are.equal(plugin, calls[1].plugin)
+        assert.are.equal("Science", calls[1].opts.target_tag)
+    end)
+
+    it("registers Stats as a general dispatcher action", function()
+        local actions = {}
+        ZenSpec.replace("dispatcher", {
+            registerAction = function(_self, name, spec) actions[name] = spec end,
+            _addItem = function() end,
+        })
+        ZenSpec.replace("util", {})
+        ZenSpec.replace("ui/uimanager", {})
+
+        Dispatch.onDispatcherRegisterActions()
+
+        local action = actions.zen_ui_show_stats
+        assert.are.equal("ShowZenUIStats", action.event)
+        assert.are.equal("ZenOS: Stats", action.title)
+        assert.is_true(action.general)
     end)
 end)

@@ -7,6 +7,7 @@ import shutil
 import json
 import os
 import socket
+import sqlite3
 import subprocess
 import time
 from dataclasses import dataclass
@@ -143,26 +144,43 @@ def launch(
     socket_path: Path,
     library_dir: Path | None = None,
     zen_config_source: str | None = None,
+    env_overrides: dict[str, str] | None = None,
+    language: str | None = None,
+    initialize_settings: bool = True,
 ) -> subprocess.Popen[str]:
-    settings_dir = ko_home / "settings" / "Zen UI"
-    settings_dir.mkdir(parents=True, exist_ok=True)
+    if socket_path.is_socket():
+        socket_path.unlink()
+    elif socket_path.exists():
+        raise FileExistsError(f"KOReader test socket path is occupied: {socket_path}")
+    settings_parent = ko_home / "settings"
+    settings_parent.mkdir(parents=True, exist_ok=True)
     install_startup_alert_patch(ko_home)
-    home_dir = str(library_dir) if library_dir else ""
-    (ko_home / "settings.reader.lua").write_text(
-        'return { ["home_dir"] = ' + repr(home_dir) + ' }\n',
-        encoding="utf-8",
-    )
-    (settings_dir / "config.lua").write_text(
-        zen_config_source
-        or 'return { updater = { update_auto_check = false } }\n',
-        encoding="utf-8",
-    )
+    bookinfo_cache = settings_parent / "bookinfo_cache.sqlite3"
+    if not bookinfo_cache.exists():
+        with sqlite3.connect(bookinfo_cache) as connection:
+            connection.execute("PRAGMA user_version=20201210")
+    if initialize_settings:
+        settings_dir = settings_parent / "ZenOS"
+        settings_dir.mkdir(parents=True, exist_ok=True)
+        home_dir = str(library_dir.resolve()) if library_dir else ""
+        language_setting = ', ["language"] = ' + repr(language) if language else ""
+        (ko_home / "settings.reader.lua").write_text(
+            'return { ["home_dir"] = ' + repr(home_dir) + language_setting + ' }\n',
+            encoding="utf-8",
+        )
+        (settings_dir / "config.lua").write_text(
+            zen_config_source
+            or 'return { updater = { update_auto_check = false } }\n',
+            encoding="utf-8",
+        )
     env = os.environ.copy()
     env.update({
         "KO_HOME": str(ko_home),
         "ZEN_UI_TEST_SOCKET": str(socket_path),
         "ZEN_UI_TESTING": "1",
     })
+    if env_overrides:
+        env.update(env_overrides)
     return subprocess.Popen([str(koreader_dir / "reader.lua")], cwd=koreader_dir, env=env, text=True)
 
 

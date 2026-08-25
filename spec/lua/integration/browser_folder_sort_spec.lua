@@ -1,23 +1,31 @@
 describe("browser folder sort patch", function()
+    local SortFixtures = require("sort_fixtures")
     local FileChooser
     local config
+    local fixture
 
     before_each(function()
         config = { folder_sort = {} }
+        fixture = SortFixtures.new()
         FileChooser = {
-            collates = { title = { id = "title" } },
-            getCollate = function(self) return self.collates.title, "title" end,
-            getSortingFunction = function(_, _, reverse)
-                return function(a, b)
-                    if reverse then return a.text > b.text end
-                    return a.text < b.text
-                end
+            collates = SortFixtures.collates(fixture.metadata),
+            getCollate = function(self)
+                local collate_id = self.global_collate or "strcoll"
+                return self.collates[collate_id], collate_id
             end,
-            genItemTableFromPath = function()
-                return {
-                    { text = "A/", path = "/library/folder/A", attr = { mode = "directory", access = 1, modification = 1 } },
-                    { text = "B/", path = "/library/folder/B", attr = { mode = "directory", access = 1, modification = 1 } },
-                }
+            getSortingFunction = function(_, collate, reverse)
+                local less = collate.init_sort_func()
+                if reverse then return function(a, b) return less(b, a) end end
+                return less
+            end,
+            genItemTableFromPath = function(self)
+                local items = SortFixtures.copy_entries(fixture.entries)
+                local collate = self:getCollate()
+                if collate.item_func then
+                    for _i, item in ipairs(items) do collate.item_func(item, {}) end
+                end
+                table.sort(items, self:getSortingFunction(collate, self.global_reverse == true))
+                return items
             end,
         }
         ZenSpec.replace("ui/widget/filechooser", FileChooser)
@@ -44,7 +52,8 @@ describe("browser folder sort patch", function()
         api.set("/library/folder/", "title", true)
         assert.are.same({ collate = "title", reverse = true }, api.get("/library/folder"))
         local items = FileChooser:genItemTableFromPath("/library/folder")
-        assert.are.equal("B/", items[1].text)
+        assert.are.same(SortFixtures.reversed(fixture.expected.title),
+            SortFixtures.paths_from_entries(items))
         api.clear("/library/folder")
         assert.is_nil(api.get("/library/folder"))
     end)
@@ -53,6 +62,52 @@ describe("browser folder sort patch", function()
         local api = assert(_G.__ZEN_FOLDER_SORT)
         api.set("/library", "title", true)
         local items = FileChooser:genItemTableFromPath("/library")
-        assert.are.equal("A/", items[1].text)
+        assert.are.same(fixture.expected.strcoll, SortFixtures.paths_from_entries(items))
+    end)
+
+    it("uses a deterministic path tie-break inside an overridden folder", function()
+        FileChooser._zen_sort_override = { collate = "title", reverse = false }
+        local sorting = FileChooser:getSortingFunction(FileChooser.collates.title, false)
+        local alpha = {
+            text = "Same", path = "/library/folder/Alpha.epub",
+            doc_props = { display_title = "Same" },
+        }
+        local zulu = {
+            text = "Same", path = "/library/folder/Zulu.epub",
+            doc_props = { display_title = "Same" },
+        }
+
+        assert.is_true(sorting(alpha, zulu))
+        assert.is_false(sorting(zulu, alpha))
+    end)
+
+    it("applies every library sort method in forward and reverse order", function()
+        local methods = { "strcoll", "title", "title_natural", "authors", "series", "access" }
+        for _i, method in ipairs(methods) do
+            for _j, reverse in ipairs({ false, true }) do
+                FileChooser.global_collate = method
+                FileChooser.global_reverse = reverse
+                local items = FileChooser:genItemTableFromPath("/library")
+                local expected = reverse and SortFixtures.reversed(fixture.expected[method])
+                    or fixture.expected[method]
+                assert.are.same(expected, SortFixtures.paths_from_entries(items),
+                    method .. " reverse=" .. tostring(reverse))
+            end
+        end
+    end)
+
+    it("applies every folder sort method in forward and reverse order", function()
+        local api = assert(_G.__ZEN_FOLDER_SORT)
+        local methods = { "strcoll", "title", "title_natural", "authors", "series", "access" }
+        for _i, method in ipairs(methods) do
+            for _j, reverse in ipairs({ false, true }) do
+                api.set("/library/folder", method, reverse)
+                local items = FileChooser:genItemTableFromPath("/library/folder")
+                local expected = reverse and SortFixtures.reversed(fixture.expected[method])
+                    or fixture.expected[method]
+                assert.are.same(expected, SortFixtures.paths_from_entries(items),
+                    method .. " reverse=" .. tostring(reverse))
+            end
+        end
     end)
 end)

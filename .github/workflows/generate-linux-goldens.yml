@@ -8,12 +8,15 @@ jobs:
     runs-on: ubuntu-latest
     env:
       ZEN_UI_KOREADER_CACHE: ${{ github.workspace }}/spec/.cache/koreader
+      KOREADER_CACHE_VERSION: 3
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: spec/python/requirements.txt
 
       - name: Install KOReader emulator dependencies
         run: |
@@ -29,13 +32,8 @@ jobs:
         id: stable-koreader-cache
         uses: actions/cache/restore@v4
         with:
-          path: spec/.cache/koreader
-          key: koreader-stable-${{ runner.os }}-${{ hashFiles('spec/koreader-lock.json') }}
-
-      - uses: actions/cache@v4
-        with:
-          path: spec/.venv
-          key: zen-ui-python-${{ runner.os }}-${{ hashFiles('spec/python/requirements.txt') }}
+          path: spec/.cache/koreader/stable/runtime
+          key: koreader-runtime-stable-${{ runner.os }}-${{ runner.arch }}-v${{ env.KOREADER_CACHE_VERSION }}-${{ hashFiles('spec/koreader-lock.json', 'spec/provision-koreader.sh') }}
 
       - name: Provision pinned stable KOReader
         run: |
@@ -43,9 +41,10 @@ jobs:
           echo "KOREADER_DIR=$KOREADER_DIR" >> "$GITHUB_ENV"
 
       - name: Save stable KOReader build
+        if: ${{ steps.stable-koreader-cache.outputs.cache-hit != 'true' }}
         uses: actions/cache/save@v4
         with:
-          path: spec/.cache/koreader
+          path: spec/.cache/koreader/stable/runtime
           key: ${{ steps.stable-koreader-cache.outputs.cache-primary-key }}
 
       - name: Generate candidate goldens

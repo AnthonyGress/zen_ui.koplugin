@@ -1,5 +1,17 @@
 local M = {}
 
+local OPTICAL_ICON_SCALES = {
+    zenfm = 1.25,
+    zenpm = 1.25,
+}
+
+function M.iconOpticalScale(name)
+    if type(name) ~= "string" then return 1 end
+    local filename = name:match("([^/]+)$") or name
+    local stem = filename:gsub("%.[^.]+$", "")
+    return OPTICAL_ICON_SCALES[stem] or 1
+end
+
 local function utf8_char_count(text)
     local count = 0
     for _pos in tostring(text):gmatch("()[%z\1-\127\194-\244][\128-\191]*") do
@@ -82,7 +94,7 @@ end
 local function _is_array(t)
     local n = 0
     for _k in pairs(t) do n = n + 1 end
-    return n == #t
+    return n > 0 and n == #t
 end
 
 function M.deepmerge(dst, src)
@@ -91,8 +103,8 @@ function M.deepmerge(dst, src)
     end
 
     -- Never merge into an existing array: arrays are treated as opaque values.
-    -- Only fill in missing keys from src when dst is a plain map.
-    if _is_array(dst) then
+    -- An empty table inherits src's shape because Lua cannot identify it alone.
+    if _is_array(dst) or (next(dst) == nil and _is_array(src)) then
         return dst
     end
 
@@ -140,19 +152,20 @@ function M.getUserIconsDir()
     return DataStorage:getDataDir() .. "/icons/"
 end
 
---- Copy the selected custom default-tab icon into KOReader's user icons dir.
+--- Copy the selected default-tab icon into KOReader's user icons dir.
 --- Existing user icons are left untouched so a user's override always wins.
 function M.copyDefaultCustomTabIcon(plugin_icons_dir, navbar)
-    if type(navbar) ~= "table" or type(navbar.default_tab) ~= "string"
-        or type(navbar.custom_tabs) ~= "table" then
+    if type(navbar) ~= "table" or type(navbar.default_tab) ~= "string" then
         return false
     end
 
-    local icon_name
-    for _i, tab in ipairs(navbar.custom_tabs) do
-        if type(tab) == "table" and tab.id == navbar.default_tab then
-            icon_name = tab.icon
-            break
+    local icon_name = navbar.default_tab == "folder" and navbar.folder_icon or nil
+    if type(navbar.custom_tabs) == "table" then
+        for _i, tab in ipairs(navbar.custom_tabs) do
+            if type(tab) == "table" and tab.id == navbar.default_tab then
+                icon_name = tab.icon
+                break
+            end
         end
     end
     if type(icon_name) ~= "string" or not icon_name:match("^[%w._-]+$") then
@@ -197,13 +210,16 @@ function M.isCustomIconsEnabled()
     return _custom_icons_enabled
 end
 
---- Resolve an icon honouring the custom-icons toggle: user dir first when enabled,
---- falls back to the plugin's bundled icons dir.
+--- Resolve an icon from the active pack or loose icons, then bundled icons.
 --- @param plugin_icons_dir string  absolute path ending with "/"
 --- @param name             string  icon name without extension
 --- @return                 string|nil
 function M.resolveIcon(plugin_icons_dir, name)
     if not plugin_icons_dir or not name then return nil end
+    local ok_packs, icon_packs = pcall(require, "common/icon_packs")
+    if ok_packs and icon_packs then
+        return icon_packs.resolve(name, plugin_icons_dir)
+    end
     if M.isCustomIconsEnabled() then
         local user_dir = M.getUserIconsDir()
         if user_dir then
@@ -294,9 +310,11 @@ end
 
 --- Override built-in KOReader icons by name at runtime (does not modify disk).
 --- @param overrides table  map of icon_name → absolute replacement path
-function M.overrideIcons(overrides)
+--- @param prefer_user_icon boolean|nil  allow a loose user icon to take precedence
+function M.overrideIcons(overrides, prefer_user_icon)
     local lfs = require("libs/libkoreader-lfs")
-    local user_icons_dir = M.isCustomIconsEnabled() and M.getUserIconsDir() or nil
+    local user_icons_dir = prefer_user_icon ~= false and M.isCustomIconsEnabled()
+        and M.getUserIconsDir() or nil
     local valid = {}
     for name, path in pairs(overrides) do
         local user_p = user_icons_dir and M.resolveLocalIcon(user_icons_dir, name) or nil
@@ -317,60 +335,76 @@ function M.overrideIcons(overrides)
     end
 end
 
--- Module-level cache so pgettext is resolved only once (lazy, safe for early require).
-local _C_cache
-local function _C(ctx, msgid)
-    if not _C_cache then
-        local _cg = rawget(_G, "C_")
-        if type(_cg) == "function" then
-            _C_cache = _cg
-        else
-            local ok_gt, gt = pcall(require, "gettext")
-            if ok_gt and gt and type(gt.pgettext) == "function" then
-                _C_cache = function(c, m) return gt.pgettext(c, m) end
-            else
-                _C_cache = function(_, m) return m end
-            end
-        end
-    end
-    return _C_cache(ctx, msgid)
-end
+local __ = require("gettext")
 
 --- Localised page-count label (abbreviated or full word form).
 --- @param pages number
 --- @param long  boolean|nil  true for full form ("pages"), false for short ("p.")
 --- @return string
 function M.formatPageCount(pages, long)
-    local ctx = long and "page_count_long" or "page_count"
-    local msgid = long and "pages" or "p."
-    return tostring(pages) .. "\u{00A0}" .. _C(ctx, msgid)
+    local label = long and __("pages") or __("p.")
+    return tostring(pages) .. "\u{00A0}" .. label
 end
 
-function M.getStablePageCount(filepath, fallback)
+--- Resolve the stable page count, optionally reusing metadata already read by
+--- the caller. context fields: doc_settings, sidecar_checked, book_info, and
+--- book_info_checked.
+function M.getStablePageCount(filepath, fallback, context)
     if type(filepath) ~= "string" or filepath == "" then
         return fallback
     end
 
-    local ok_ds, DocSettings = pcall(require, "docsettings")
-    if ok_ds and DocSettings and DocSettings:hasSidecarFile(filepath) then
-        local ok_doc, doc = pcall(DocSettings.open, DocSettings, filepath)
-        if ok_doc and doc and doc:readSetting("pagemap_use_page_labels") == true then
-            local pages = tonumber(doc:readSetting("pagemap_doc_pages"))
-                or tonumber(doc:readSetting("pagemap_last_page_label"))
-            if pages and pages > 0 then return pages end
+    context = type(context) == "table" and context or {}
+    local trace = type(context.trace) == "table" and context.trace or nil
+    local function trace_read(key)
+        if trace then trace[key] = (tonumber(trace[key]) or 0) + 1 end
+    end
+    local doc = context.doc_settings
+    if not doc and context.sidecar_checked ~= true then
+        local ok_ds, DocSettings = pcall(require, "docsettings")
+        if ok_ds and DocSettings and DocSettings:hasSidecarFile(filepath) then
+            trace_read("sidecar_opens")
+            local ok_doc, opened_doc = pcall(DocSettings.open, DocSettings, filepath)
+            if ok_doc then doc = opened_doc end
         end
     end
+    local function read_doc_number(key)
+        if not (doc and type(doc.readSetting) == "function") then return nil end
+        local value = tonumber(doc:readSetting(key))
+        return value and value > 0 and value or nil
+    end
 
-    local ok_bl, BookList = pcall(require, "ui/widget/booklist")
-    if ok_bl and BookList then
-        local ok_book, book = pcall(BookList.getBookInfo, filepath)
-        if not ok_book then book = nil end
-        local pages = book and tonumber(book.pages)
+    if doc and doc:readSetting("pagemap_use_page_labels") == true then
+        local pages = read_doc_number("pagemap_doc_pages")
+            or read_doc_number("pagemap_last_page_label")
         if pages and pages > 0 then return pages end
     end
 
+    local pages = read_doc_number("doc_pages")
+    if not pages and doc and type(doc.readSetting) == "function" then
+        local stats = doc:readSetting("stats")
+        pages = type(stats) == "table" and tonumber(stats.pages) or nil
+    end
+    if pages and pages > 0 then return pages end
+
+    local book = context.book_info
+    pages = type(book) == "table" and tonumber(book.pages) or nil
+    if pages and pages > 0 then return pages end
+
     fallback = tonumber(fallback)
-    return fallback and fallback > 0 and fallback or nil
+    if fallback and fallback > 0 then return fallback end
+
+    if type(book) ~= "table" and context.book_info_checked ~= true then
+        local ok_bl, BookList = pcall(require, "ui/widget/booklist")
+        if ok_bl and BookList then
+            trace_read("booklist_reads")
+            local ok_book, loaded_book = pcall(BookList.getBookInfo, filepath)
+            if ok_book then book = loaded_book end
+        end
+    end
+    pages = book and tonumber(book.pages)
+    if pages and pages > 0 then return pages end
+    return nil
 end
 
 --- Scale multiplier for mosaic cover badge sizes (compact=1.0, normal=1.10, large=1.20).
@@ -435,11 +469,13 @@ function M.getBadgeTextColor(config)
     return Blitbuffer.COLOR_BLACK
 end
 
+--- Return a canonical UI label without changing compatibility icon IDs.
+function M.getIconDisplayName(name)
+    return name == "zen_ui" and "ZenOS" or name
+end
+
 --- Build the combined {name, file} icon list for the icon picker.
---- Sources (in order, names deduplicated across groups, each sorted by name):
----   1. Zen UI plugin icons  (plugin_root/icons)
----   2. KOReader user icons  (DataStorage/icons)
----   3. KOReader built-in icons  (resources/icons/mdlight)
+--- Sources are ordered by the active pack resolution precedence.
 --- @param plugin_root string   absolute path to the plugin root (no trailing slash)
 --- @param excluded    table|nil  set of icon name strings to skip in the plugin group
 --- @return table  list of {name=string, file=string}
@@ -448,7 +484,7 @@ function M.getIconPickerList(plugin_root, excluded)
     if not ok or not lfs then return {} end
     local seen = {}
     local all  = {}
-    local function addDir(dir, filter)
+    local function addDir(dir, filter, allow)
         if not dir then return end
         dir = dir:match("^(.*[^/])/*$") or dir  -- strip trailing slash
         if lfs.attributes(dir, "mode") ~= "directory" then return end
@@ -456,7 +492,8 @@ function M.getIconPickerList(plugin_root, excluded)
         for f in lfs.dir(dir) do
             if f:match("%.svg$") and not f:match("%.bak%.svg$") then
                 local name = f:sub(1, -5)
-                if not seen[name] and (not filter or not filter[name]) then
+                if not seen[name] and (not filter or not filter[name])
+                        and (not allow or allow(name)) then
                     entries[#entries + 1] = { name = name, file = dir .. "/" .. f }
                 end
             end
@@ -467,18 +504,29 @@ function M.getIconPickerList(plugin_root, excluded)
             all[#all + 1] = item
         end
     end
-    addDir(plugin_root and plugin_root .. "/icons", excluded)
-    addDir(M.getUserIconsDir(), nil)
-    addDir(lfs.currentdir() .. "/resources/icons/mdlight", nil)
+    local icon_packs = require("common/icon_packs")
+    local dirs = icon_packs.getPickerDirectories(plugin_root)
+    local active_pack_dir = icon_packs.getActivePackDirectory()
+    for _i, dir in ipairs(dirs) do
+        addDir(
+            dir,
+            dir == (plugin_root and plugin_root .. "/icons") and excluded or nil,
+            dir == active_pack_dir and icon_packs.isPackPickerIconAllowed or nil)
+    end
     return all
 end
 
---- Suggest an icon whose filename matches a label. Falls back when none do.
-function M.suggestIcon(plugin_root, label, fallback, strip_zen_prefix)
+function M.stripZenPrefix(text)
+    if type(text) ~= "string" then return text end
+    text = text:gsub("^ZenOS%s*[:%-]%s*", "")
+    return text:gsub("^Zen UI%s*[:%-]%s*", "")
+end
+
+--- Suggest an icon from the picker directories. A preferred icon is accepted by
+--- filename only when that name exists in those directories.
+function M.suggestIcon(plugin_root, label, fallback, strip_zen_prefix, preferred)
     local text = type(label) == "string" and label or ""
-    if strip_zen_prefix then
-        text = text:gsub("^Zen UI%s*%-%s*", "")
-    end
+    if strip_zen_prefix then text = M.stripZenPrefix(text) end
     local needle = text:lower():gsub("[^%w]", "")
     if #needle < 3 then return fallback or "lightning" end
     local best, best_score
@@ -486,7 +534,20 @@ function M.suggestIcon(plugin_root, label, fallback, strip_zen_prefix)
     for token in text:lower():gmatch("[%w]+") do
         if #token >= 3 then tokens[#tokens + 1] = token end
     end
-    for _i, item in ipairs(M.getIconPickerList(plugin_root)) do
+    local preferred_name
+    if type(preferred) == "string" then
+        local filename = preferred:match("([^/\\]+)$") or preferred
+        preferred_name = filename:match("^(.*)%.[Ss][Vv][Gg]$")
+            or filename:match("^(.*)%.[Pp][Nn][Gg]$")
+            or filename:match("^[%w._-]+$") and filename
+    end
+    local picker_items = M.getIconPickerList(plugin_root)
+    if preferred_name then
+        for _i, item in ipairs(picker_items) do
+            if item.name == preferred_name then return item.name end
+        end
+    end
+    for _i, item in ipairs(picker_items) do
         local name = item.name:lower():gsub("[^%w]", "")
         local score
         if name == needle then

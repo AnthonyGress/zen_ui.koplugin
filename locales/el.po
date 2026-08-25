@@ -1,0 +1,2768 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: zenos 3.0.0\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: el\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid " days"
+msgstr " ημέρες"
+
+msgid "%1 (%2)"
+msgstr "%1 (%2)"
+
+msgid "%1 mins left in chapter"
+msgstr "%1 λεπτά έως το τέλος του κεφαλαίου"
+
+msgid "%1, %2 %3"
+msgstr "%1, %3 %2"
+
+msgid "%d%% Read"
+msgstr "%d%% αναγνωσμένο"
+
+msgid "%s books goal"
+msgstr "Στόχος: %s βιβλία"
+
+msgid "%s goal"
+msgstr "Στόχος: %s"
+
+msgid "%s goal (%s)"
+msgstr "Στόχος: %s (%s)"
+
+msgid "%s left"
+msgstr "Απομένουν %s"
+
+msgid "%s pages goal"
+msgstr "Στόχος: %s σελίδες"
+
+msgid "%s time goal (min)"
+msgstr "Στόχος χρόνου: %s (λεπτά)"
+
+msgid "(auto)"
+msgstr "(αυτόματο)"
+
+msgid "(Kindle)"
+msgstr "(Kindle)"
+
+msgid "(none)"
+msgstr "(κανένα)"
+
+msgid "(standard)"
+msgstr "(τυπικό)"
+
+msgid "1 author"
+msgstr "1 συγγραφέας"
+
+msgid "1 book"
+msgstr "1 βιβλίο"
+
+msgid "1 min left in chapter"
+msgstr "1 λεπτό έως το τέλος του κεφαλαίου"
+
+msgid "1 series"
+msgstr "1 σειρά"
+
+msgid "1 tag"
+msgstr "1 ετικέτα"
+
+msgid "12-hour  (3:30 PM)"
+msgstr "12ωρη  (3:30 PM)"
+
+msgid "12-hour time"
+msgstr "12ωρη μορφή"
+
+msgid "180°"
+msgstr "180°"
+
+msgid "24-hour  (15:30)"
+msgstr "24ωρη  (15:30)"
+
+msgid "270°"
+msgstr "270°"
+
+msgid "90°"
+msgstr "90°"
+
+msgid "< 1 min left in chapter"
+msgstr "< 1 λεπτό έως το τέλος του κεφαλαίου"
+
+msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
+msgstr "Μια καθαρή, ελάχιστη εμπειρία για τον ηλεκτρονικό σας αναγνώστη.\n\nΣύρετε ή πατήστε Επόμενο για να συνεχίσετε."
+
+msgid "A launcher button has been added for ZenPM."
+msgstr "Προστέθηκε κουμπί για το ZenPM στον εκκινητή."
+
+msgid "A short summary of what went wrong"
+msgstr "Σύντομη περιγραφή του προβλήματος"
+
+msgid "About"
+msgstr "Σχετικά"
+
+msgid "Action"
+msgstr "Ενέργεια"
+
+msgid "Action: %1"
+msgstr "Ενέργεια: %1"
+
+msgid "Action: (none)"
+msgstr "Ενέργεια: (καμία)"
+
+msgid "Active tab"
+msgstr "Ενεργή καρτέλα"
+
+msgid "Active tab color"
+msgstr "Χρώμα ενεργής καρτέλας"
+
+msgid "Active tab color: "
+msgstr "Χρώμα ενεργής καρτέλας: "
+
+msgid "Active tab RGB"
+msgstr "RGB ενεργής καρτέλας"
+
+msgid "Add"
+msgstr "Προσθήκη"
+
+msgid "Add action"
+msgstr "Προσθήκη ενέργειας"
+
+msgid "Add at least one quote to settings/ZenOS/quotes.lua to enable this source."
+msgstr "Προσθέστε τουλάχιστον ένα απόφθεγμα στο settings/ZenOS/quotes.lua για να ενεργοποιηθεί αυτή η πηγή."
+
+msgid "Add book"
+msgstr "Προσθήκη βιβλίου"
+
+msgid "Add buttons"
+msgstr "Προσθήκη κουμπιών"
+
+msgid "Add catalog"
+msgstr "Προσθήκη καταλόγου"
+
+msgid "Add control"
+msgstr "Προσθήκη στοιχείου ελέγχου"
+
+msgid "Add custom buttons for other plugins or actions."
+msgstr "Προσθέστε προσαρμοσμένα κουμπιά για άλλα πρόσθετα ή ενέργειες."
+
+msgid "Add folder…"
+msgstr "Προσθήκη φακέλου…"
+
+msgid "Add KOReader menu"
+msgstr "Προσθήκη μενού KOReader"
+
+msgid "Add plugin"
+msgstr "Προσθήκη πρόσθετου"
+
+msgid "Add to collection"
+msgstr "Προσθήκη σε συλλογή"
+
+msgid "added"
+msgstr "προστέθηκε"
+
+msgid "Additional home folders"
+msgstr "Επιπλέον αρχικοί φάκελοι"
+
+msgid "Advanced"
+msgstr "Για προχωρημένους"
+
+msgid "Alexandre Dumas"
+msgstr "Αλέξανδρος Δουμάς"
+
+msgid "All"
+msgstr "Όλα"
+
+msgid "All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall ZenOS updates directly from your device."
+msgstr "Όλες οι ρυθμίσεις βρίσκονται σε μία ενιαία καρτέλα. Το εικονίδιο με την κουκκίδα δείχνει ότι υπάρχει διαθέσιμη ενημέρωση.\n\nΕγκαταστήστε ενημερώσεις του ZenOS απευθείας από τη συσκευή σας."
+
+msgid "All tags"
+msgstr "Όλες οι ετικέτες"
+
+msgid "All time"
+msgstr "Συνολικά"
+
+msgid "All Time"
+msgstr "Συνολικά"
+
+msgid "Allow delete"
+msgstr "Να επιτρέπεται η διαγραφή"
+
+msgid "Amber"
+msgstr "Κεχριμπαρένιο"
+
+msgid "An item with that name already exists."
+msgstr "Υπάρχει ήδη στοιχείο με αυτό το όνομα."
+
+msgid "Annotations"
+msgstr "Επισημειώσεις"
+
+msgid "App"
+msgstr "Εφαρμογή"
+
+msgid "Apply"
+msgstr "Εφαρμογή"
+
+msgid "Are you sure you want to exit KOReader?"
+msgstr "Είστε βέβαιοι ότι θέλετε να βγείτε από το KOReader;"
+
+msgid "Are you sure you want to install the ZenPM plugin?"
+msgstr "Είστε βέβαιοι ότι θέλετε να εγκαταστήσετε το πρόσθετο ZenPM;"
+
+msgid "Are you sure you want to quit KOReader?"
+msgstr "Είστε βέβαιοι ότι θέλετε να τερματίσετε το KOReader;"
+
+msgid "Are you sure you want to restart KOReader?"
+msgstr "Είστε βέβαιοι ότι θέλετε να επανεκκινήσετε το KOReader;"
+
+msgid "Arrange"
+msgstr "Αναδιάταξη"
+
+msgid "Arrange center items"
+msgstr "Διάταξη κεντρικών στοιχείων"
+
+msgid "Arrange left items"
+msgstr "Διάταξη αριστερών στοιχείων"
+
+msgid "Arrange right items"
+msgstr "Διάταξη δεξιών στοιχείων"
+
+msgid "Ascending"
+msgstr "Αύξουσα"
+
+msgid "At least one tab must be visible"
+msgstr "Τουλάχιστον μία καρτέλα πρέπει να είναι ορατή"
+
+msgid "Author"
+msgstr "Συγγραφέας"
+
+msgid "Authors"
+msgstr "Συγγραφείς"
+
+msgid "authors"
+msgstr "συγγραφείς"
+
+msgid "Automatic"
+msgstr "Αυτόματο"
+
+msgid "Automatic font size"
+msgstr "Αυτόματο μέγεθος γραμματοσειράς"
+
+msgid "Automatic suspend"
+msgstr "Αυτόματη αναστολή λειτουργίας"
+
+msgid "Back"
+msgstr "Επιστροφή"
+
+msgid "Background"
+msgstr "Φόντο"
+
+msgid "Background color"
+msgstr "Χρώμα φόντου"
+
+msgid "Background image could not be loaded. It may be corrupt or unsupported."
+msgstr "Δεν ήταν δυνατή η φόρτωση της εικόνας φόντου. Μπορεί να είναι κατεστραμμένη ή μη υποστηριζόμενη."
+
+msgid "Background image file not found."
+msgstr "Το αρχείο εικόνας φόντου δεν βρέθηκε."
+
+msgid "Background image must be a JPG or JPEG file."
+msgstr "Η εικόνα φόντου πρέπει να είναι αρχείο JPG ή JPEG."
+
+msgid "Badge color RGB"
+msgstr "RGB χρώματος σήματος"
+
+msgid "Badge color: "
+msgstr "Χρώμα σήματος: "
+
+msgid "Badge size"
+msgstr "Μέγεθος σήματος"
+
+msgid "Badges"
+msgstr "Σήματα"
+
+msgid "Bar"
+msgstr "Γραμμή"
+
+msgid "Battery"
+msgstr "Μπαταρία"
+
+msgid "Battery Stats"
+msgstr "Στατιστικά μπαταρίας"
+
+msgid "Beginning / End"
+msgstr "Αρχή / Τέλος"
+
+msgid "Best day"
+msgstr "Καλύτερη ημέρα"
+
+msgid "Best month"
+msgstr "Καλύτερος μήνας"
+
+msgid "Best week"
+msgstr "Καλύτερη εβδομάδα"
+
+msgid "Beta"
+msgstr "Beta"
+
+msgid "Black"
+msgstr "Μαύρο"
+
+msgid "Blue"
+msgstr "Μπλε"
+
+msgid "Bluetooth"
+msgstr "Bluetooth"
+
+msgid "Bold"
+msgstr "Έντονη"
+
+msgid "bold"
+msgstr "με έντονους χαρακτήρες"
+
+msgid "Bold text"
+msgstr "Έντονο κείμενο"
+
+msgid "Book"
+msgstr "Βιβλίο"
+
+msgid "Book added to download list"
+msgstr "Το βιβλίο προστέθηκε στη λίστα λήψης"
+
+msgid "Book details"
+msgstr "Λεπτομέρειες βιβλίου"
+
+msgid "Book information"
+msgstr "Πληροφορίες βιβλίου"
+
+msgid "Book Status"
+msgstr "Κατάσταση βιβλίου"
+
+msgid "Book strip"
+msgstr "Λωρίδα βιβλίων"
+
+msgid "Book switcher"
+msgstr "Εναλλαγή βιβλίων"
+
+msgid "Book title"
+msgstr "Τίτλος βιβλίου"
+
+msgid "Book Title"
+msgstr "Τίτλος βιβλίου"
+
+msgid "Book: "
+msgstr "Βιβλίο: "
+
+msgid "books"
+msgstr "βιβλία"
+
+msgid "Books"
+msgstr "Βιβλία"
+
+msgid "Books read"
+msgstr "Βιβλία που διαβάστηκαν"
+
+msgid "Books tab label"
+msgstr "Ονομασία καρτέλας «Βιβλία»"
+
+msgid "Bottom"
+msgstr "Κάτω"
+
+msgid "Bottom status bar"
+msgstr "Κάτω γραμμή κατάστασης"
+
+msgid "Brief description of the bug"
+msgstr "Σύντομη περιγραφή του σφάλματος"
+
+msgid "Brightness"
+msgstr "Φωτεινότητα"
+
+msgid "Bug description (optional)"
+msgstr "Περιγραφή σφάλματος (προαιρετικά)"
+
+msgid "Bug report submitted!"
+msgstr "Η αναφορά σφάλματος υποβλήθηκε!"
+
+msgid "Bug report title"
+msgstr "Τίτλος αναφοράς σφάλματος"
+
+msgid "Buttons"
+msgstr "Κουμπιά"
+
+msgid "By %1"
+msgstr "Από %1"
+
+msgid "Calendar"
+msgstr "Ημερολόγιο"
+
+msgid "Calibre"
+msgstr "Calibre"
+
+msgid "Calibre plugin is not installed."
+msgstr "Το πρόσθετο Calibre δεν είναι εγκατεστημένο."
+
+msgid "Calibre Search"
+msgstr "Αναζήτηση Calibre"
+
+msgid "Cancel"
+msgstr "Άκυρο"
+
+msgid "Cannot open last document"
+msgstr "Αδυναμία ανοίγματος τελευταίου αρχείου"
+
+msgid "Casual Chess"
+msgstr "Casual Chess"
+
+msgid "Center"
+msgstr "Κέντρο"
+
+msgid "Center books"
+msgstr "Κεντράρισμα βιβλίων"
+
+msgid "Center items"
+msgstr "Κεντρικά στοιχεία"
+
+msgid "Change folder"
+msgstr "Αλλαγή φακέλου"
+
+msgid "Changelog"
+msgstr "Αρχείο αλλαγών"
+
+msgid "Chapter"
+msgstr "Κεφάλαιο"
+
+msgid "Check for updates automatically"
+msgstr "Αυτόματος έλεγχος για ενημερώσεις"
+
+msgid "Checking for updates"
+msgstr "Έλεγχος για ενημερώσεις"
+
+msgid "Chess"
+msgstr "Σκάκι"
+
+msgid "Choose a different folder"
+msgstr "Επιλογή άλλου φακέλου"
+
+msgid "Choose control"
+msgstr "Επιλέξτε στοιχείο ελέγχου"
+
+msgid "Choose item"
+msgstr "Επιλέξτε στοιχείο"
+
+msgid "Choose KOReader menu"
+msgstr "Επιλέξτε μενού KOReader"
+
+msgid "Choose plugin menu"
+msgstr "Επιλέξτε μενού πρόσθετου"
+
+msgid "Choose tab"
+msgstr "Επιλέξτε καρτέλα"
+
+msgid "Choose tag"
+msgstr "Επιλέξτε ετικέτα"
+
+msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
+msgstr "Επιλέξτε ποιες καρτέλες εμφανίζονται στη γραμμή πλοήγησης.\nΜπορείτε να τις αναδιατάξετε ή να τις προσαρμόσετε οποτεδήποτε από τις Ρυθμίσεις."
+
+msgid "Classic"
+msgstr "Κλασική"
+
+msgid "Classic (filename only)"
+msgstr "Κλασικός (μόνο όνομα αρχείου)"
+
+msgid "Clear"
+msgstr "Εκκαθάριση"
+
+msgid "Clear all gestures"
+msgstr "Εκκαθάριση όλων των χειρονομιών"
+
+msgid "Clear book"
+msgstr "Εκκαθάριση βιβλίου"
+
+msgid "Close"
+msgstr "Κλείσιμο"
+
+msgid "Cloud"
+msgstr "Cloud"
+
+msgid "Cloud storage"
+msgstr "Αποθήκευση στο cloud"
+
+msgid "Collections"
+msgstr "Συλλογές"
+
+msgid "Colored"
+msgstr "Έγχρωμο"
+
+msgid "Colored status icons"
+msgstr "Έγχρωμα εικονίδια κατάστασης"
+
+msgid "Columns"
+msgstr "Στήλες"
+
+msgid "Compact"
+msgstr "Συνεπτυγμένα στοιχεία"
+
+msgid "Connect folders"
+msgstr "Σύνδεση φακέλων"
+
+msgid "Connections"
+msgstr "Συνδέσεις"
+
+msgid "Content: "
+msgstr "Περιεχόμενο: "
+
+msgid "Context Menu"
+msgstr "Μενού περιβάλλοντος"
+
+msgid "Continue"
+msgstr "Συνέχεια"
+
+msgid "Control"
+msgstr "Στοιχείο ελέγχου"
+
+msgid "Control settings"
+msgstr "Ρυθμίσεις στοιχείων ελέγχου"
+
+msgid "Control: %1"
+msgstr "Στοιχείο ελέγχου: %1"
+
+msgid "Controls"
+msgstr "Έλεγχοι"
+
+msgid "Copy"
+msgstr "Αντιγραφή"
+
+msgid "Could not determine update status."
+msgstr "Δεν ήταν δυνατός ο προσδιορισμός της κατάστασης ενημέρωσης."
+
+msgid "Could not find a ZenPM release."
+msgstr "Δεν βρέθηκε έκδοση του ZenPM."
+
+msgid "Could not get release from update server."
+msgstr "Δεν ήταν δυνατή η λήψη της έκδοσης από τον διακομιστή ενημερώσεων."
+
+msgid "Could not install %1: %2"
+msgstr "Δεν ήταν δυνατή η εγκατάσταση του %1: %2"
+
+msgid "Could not install ZenPM."
+msgstr "Δεν ήταν δυνατή η εγκατάσταση του ZenPM."
+
+msgid "Could not reach update server."
+msgstr "Δεν ήταν δυνατή η σύνδεση με τον διακομιστή ενημερώσεων."
+
+msgid "Could not reach update server. Check your internet connection."
+msgstr "Δεν ήταν δυνατή η σύνδεση με τον διακομιστή ενημερώσεων. Ελέγξτε τη σύνδεσή σας στο διαδίκτυο."
+
+msgid "Could not reach update server. Check your internet connection.\n\nUnable to load changelog."
+msgstr "Δεν ήταν δυνατή η σύνδεση με τον διακομιστή ενημερώσεων. Ελέγξτε τη σύνδεσή σας στο διαδίκτυο.\n\nΔεν είναι δυνατή η φόρτωση του αρχείου αλλαγών."
+
+msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
+msgstr "Δεν ήταν δυνατή η σάρωση δικτύων Wi-Fi. Δοκιμάστε ξανά αφού ξυπνήσετε τη συσκευή."
+
+msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
+msgstr "Το πρόσθετο CoverBrowser δεν είναι ενεργοποιημένο· ορισμένες λειτουργίες δεν θα λειτουργούν σωστά."
+
+msgid "Covers"
+msgstr "Εξώφυλλα"
+
+msgid "crash.log will be embedded in a public GitHub issue. It may contain file paths and book titles."
+msgstr "Το crash.log θα ενσωματωθεί σε δημόσιο issue στο GitHub. Μπορεί να περιέχει διαδρομές αρχείων και τίτλους βιβλίων."
+
+msgid "Create this folder and use as home"
+msgstr "Δημιουργία αυτού του φακέλου και ορισμός ως αρχικού"
+
+msgid "Crossword"
+msgstr "Σταυρόλεξο"
+
+msgid "Current / total pages"
+msgstr "Τρέχουσα / συνολικές σελίδες"
+
+msgid "Current book"
+msgstr "Τρέχον βιβλίο"
+
+msgid "Current Book"
+msgstr "Τρέχον βιβλίο"
+
+msgid "Current home folder:"
+msgstr "Τρέχων αρχικός φάκελος:"
+
+msgid "Current only"
+msgstr "Μόνο το τρέχον"
+
+msgid "Current/total pages"
+msgstr "Τρέχουσα / συνολικές σελίδες"
+
+msgid "Custom"
+msgstr "Προσαρμοσμένο"
+
+msgid "Custom books"
+msgstr "Προσαρμοσμένα βιβλία"
+
+msgid "Custom button label"
+msgstr "Ονομασία προσαρμοσμένου κουμπιού"
+
+msgid "Custom icon pack: %1"
+msgstr "Προσαρμοσμένο πακέτο εικονιδίων: %1"
+
+msgid "Custom icons"
+msgstr "Προσαρμοσμένα εικονίδια"
+
+msgid "Custom quotes"
+msgstr "Προσαρμοσμένα αποφθέγματα"
+
+msgid "Custom RGB"
+msgstr "Προσαρμοσμένο RGB"
+
+msgid "Custom separator"
+msgstr "Προσαρμοσμένο διαχωριστικό"
+
+msgid "Custom strip widget"
+msgstr "Προσαρμοσμένο γραφικό στοιχείο λωρίδας"
+
+msgid "Custom tab label"
+msgstr "Ονομασία προσαρμοσμένης καρτέλας"
+
+msgid "Custom text"
+msgstr "Προσαρμοσμένο κείμενο"
+
+msgid "Custom text: "
+msgstr "Προσαρμοσμένο κείμενο: "
+
+msgid "Custom theme"
+msgstr "Προσαρμοσμένο θέμα"
+
+msgid "Custom themes"
+msgstr "Προσαρμοσμένα θέματα"
+
+msgid "Custom: "
+msgstr "Προσαρμοσμένο: "
+
+msgid "Customize widget"
+msgstr "Προσαρμογή γραφικού στοιχείου"
+
+msgid "Cut"
+msgstr "Αποκοπή"
+
+msgid "Cycle"
+msgstr "Εναλλαγή"
+
+msgid "Daily"
+msgstr "Ημερήσια"
+
+msgid "Dark graphite"
+msgstr "Σκούρο γραφίτη"
+
+msgid "Dark mode"
+msgstr "Σκοτεινή λειτουργία"
+
+msgid "Dark warm gray"
+msgstr "Σκούρο θερμό γκρι"
+
+msgid "Date"
+msgstr "Ημερομηνία"
+
+msgid "Date/time"
+msgstr "Ημερομηνία/ώρα"
+
+msgid "Day brightness"
+msgstr "Ημερήσια φωτεινότητα"
+
+msgid "Day brightness time"
+msgstr "Ώρα ημερήσιας φωτεινότητας"
+
+msgid "Day brightness time: "
+msgstr "Ώρα ημερήσιας φωτεινότητας: "
+
+msgid "Day brightness: "
+msgstr "Ημερήσια φωτεινότητα: "
+
+msgid "Day streak"
+msgstr "Σερί ημερών"
+
+msgid "Day warmth"
+msgstr "Ημερήσιο θερμό φως"
+
+msgid "Day warmth time"
+msgstr "Ώρα ημερήσιου θερμού φωτός"
+
+msgid "Day warmth time: "
+msgstr "Ώρα ημερήσιου θερμού φωτός: "
+
+msgid "Day warmth: "
+msgstr "Ημερήσιο θερμό φως: "
+
+msgid "Debug logging"
+msgstr "Καταγραφή εντοπισμού σφαλμάτων"
+
+msgid "Debug logging must be enabled to submit bug reports."
+msgstr "Η καταγραφή εντοπισμού σφαλμάτων πρέπει να είναι ενεργοποιημένη για την υποβολή αναφορών σφαλμάτων."
+
+msgid "default"
+msgstr "προκαθορισμένo"
+
+msgid "Default"
+msgstr "Προεπιλογή"
+
+msgid "Default (black)"
+msgstr "Προεπιλογή (μαύρο)"
+
+msgid "Default font size:"
+msgstr "Προεπιλεγμένο μέγεθος γραμματοσειράς:"
+
+msgid "Default quotes"
+msgstr "Προεπιλεγμένα αποφθέγματα"
+
+msgid "Default tab: "
+msgstr "Προεπιλεγμένη καρτέλα: "
+
+msgid "Default: Home"
+msgstr "Προεπιλογή: Αρχική"
+
+msgid "Delete"
+msgstr "Διαγραφή"
+
+msgid "Delete collection"
+msgstr "Διαγραφή συλλογής"
+
+msgid "Delete OPDS catalog?"
+msgstr "Να διαγραφεί ο κατάλογος OPDS;"
+
+msgid "Delete preset?"
+msgstr "Διαγραφή προρύθμισης;"
+
+msgid "Delete theme"
+msgstr "Διαγραφή θέματος"
+
+msgid "Delete this button?"
+msgstr "Διαγραφή αυτού του κουμπιού;"
+
+msgid "Delete this control?"
+msgstr "Διαγραφή αυτού του στοιχείου ελέγχου;"
+
+msgid "Delete this custom theme?"
+msgstr "Διαγραφή αυτού του προσαρμοσμένου θέματος;"
+
+msgid "Delete this folder and its buttons?"
+msgstr "Διαγραφή αυτού του φακέλου και των κουμπιών του;"
+
+msgid "Delete this row break?"
+msgstr "Διαγραφή αυτής της αλλαγής γραμμής;"
+
+msgid "Delete this tab?"
+msgstr "Διαγραφή αυτής της καρτέλας;"
+
+msgid "Descending"
+msgstr "Φθίνουσα"
+
+msgid "Description"
+msgstr "Περιγραφή"
+
+msgid "Detailed list with cover images and filenames"
+msgstr "Κατάλογος με εικόνες εξωφύλλων και ονόματα αρχείων"
+
+msgid "Detailed list with cover images and metadata"
+msgstr "Κατάλογος με εικόνες εξωφύλλων και μεταδεδομένα"
+
+msgid "Detailed list with metadata, no images"
+msgstr "Κατάλογος με μεταδεδομένα, χωρίς εικόνες"
+
+msgid "Details"
+msgstr "Λεπτομέρειες"
+
+msgid "Device"
+msgstr "Συσκευή"
+
+msgid "Device: "
+msgstr "Συσκευή: "
+
+msgid "Dictionary lookup"
+msgstr "Αναζήτηση στο λεξικό"
+
+msgid "Dim finished books"
+msgstr "Θάμπωμα τελειωμένων βιβλίων"
+
+msgid "Disable bottom menu swipe"
+msgstr "Απενεργοποίηση σάρωσης κάτω μενού"
+
+msgid "Disable context menu"
+msgstr "Απενεργοποίηση μενού περιβάλλοντος"
+
+msgid "Disable multi-word selection"
+msgstr "Απενεργοποίηση επιλογής πολλών λέξεων"
+
+msgid "Disable settings panel"
+msgstr "Απενεργοποίηση πίνακα ρυθμίσεων"
+
+msgid "Disable word search on hold"
+msgstr "Απενεργοποίηση αναζήτησης λέξης με παρατεταμένο πάτημα"
+
+msgid "Disable zen mode to access default KOReader menus."
+msgstr "Απενεργοποιήστε τη λειτουργία Zen για πρόσβαση στα προεπιλεγμένα μενού του KOReader."
+
+msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
+msgstr "Απενεργοποιήστε τη λειτουργία Zen με αυτό το εικονίδιο για να αλλάξετε ρυθμίσεις του KOReader που δεν είναι διαθέσιμες στις Ρυθμίσεις Zen."
+
+msgid "Disk space"
+msgstr "Χώρος στον δίσκο"
+
+msgid "Display"
+msgstr "Οθόνη"
+
+msgid "Display mode"
+msgstr "Τρόπος προβολής"
+
+msgid "Divider"
+msgstr "Διαχωριστική γραμμή"
+
+msgid "Dividing lines"
+msgstr "Διαχωριστικές γραμμές"
+
+msgid "Done"
+msgstr "Ολοκληρώθηκε"
+
+msgid "Dots"
+msgstr "Κουκκίδες"
+
+msgid "Download"
+msgstr "Λήψη"
+
+msgid "Download and install the Zen Package Manager for this device."
+msgstr "Λήψη και εγκατάσταση του Zen Package Manager για αυτή τη συσκευή."
+
+msgid "Download failed: "
+msgstr "Η λήψη απέτυχε: "
+
+msgid "Downloaded"
+msgstr "Λήφθηκε"
+
+msgid "Downloading"
+msgstr "Λήψη σε εξέλιξη"
+
+msgid "Downloading ZenPM"
+msgstr "Λήψη του ZenPM"
+
+msgid "Dynamic filler 2"
+msgstr "Ευέλικτο διάστημα 2"
+
+msgid "Edit"
+msgstr "Επεξεργασία"
+
+msgid "Edit mode"
+msgstr "Λειτουργία επεξεργασίας"
+
+msgid "Enable"
+msgstr "Ενεργοποίηση"
+
+msgid "Enable bottom status bar"
+msgstr "Ενεργοποίηση κάτω γραμμής κατάστασης"
+
+msgid "Enable bottom swipe"
+msgstr "Ενεργοποίηση σάρωσης από κάτω"
+
+msgid "Enable brightness schedule"
+msgstr "Ενεργοποίηση προγράμματος φωτεινότητας"
+
+msgid "Enable custom icons"
+msgstr "Ενεργοποίηση προσαρμοσμένων εικονιδίων"
+
+msgid "Enable custom status bar"
+msgstr "Ενεργοποίηση προσαρμοσμένης γραμμής κατάστασης"
+
+msgid "Enable KOReader verbose debug logging. Logs are written to koreader.log. Takes effect immediately."
+msgstr "Ενεργοποίηση αναλυτικής καταγραφής εντοπισμού σφαλμάτων του KOReader. Τα αρχεία καταγραφής γράφονται στο koreader.log. Ισχύει άμεσα."
+
+msgid "Enable night mode schedule"
+msgstr "Ενεργοποίηση προγράμματος νυχτερινής λειτουργίας"
+
+msgid "Enable reader themes"
+msgstr "Ενεργοποίηση θεμάτων ανάγνωσης"
+
+msgid "Enable top status bar"
+msgstr "Ενεργοποίηση πάνω γραμμής κατάστασης"
+
+msgid "Enable warmth schedule"
+msgstr "Ενεργοποίηση προγράμματος θερμού φωτός"
+
+msgid "Enable Zen OPDS"
+msgstr "Ενεργοποίηση Zen OPDS"
+
+msgid "Enable ZenOS enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
+msgstr "Ενεργοποίηση των βελτιώσεων του ZenOS στον περιηγητή OPDS: εξώφυλλα, προβολή λίστας, μενού παρατεταμένου πατήματος και βελτιώσεις πλοήγησης."
+
+msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
+msgstr "Ενεργοποίηση καταγραφής εντοπισμού σφαλμάτων· απαιτείται επανεκκίνηση. Αναπαραγάγετε το πρόβλημα και έπειτα υποβάλετε την αναφορά."
+
+msgid "Enter your GitHub username to be tagged in the issue"
+msgstr "Εισαγάγετε το όνομα χρήστη GitHub σας για να αναφερθείτε στο issue"
+
+msgid "Exit"
+msgstr "Έξοδος"
+
+msgid "Extra large"
+msgstr "Πολύ μεγάλο"
+
+msgid "Extract and cache book metadata and cover images for books in the current directory. Requires CoverBrowser plugin."
+msgstr "Εξαγωγή και προσωρινή αποθήκευση μεταδεδομένων και εξωφύλλων για τα βιβλία του τρέχοντος φακέλου. Απαιτεί το πρόσθετο CoverBrowser."
+
+msgid "Extract metadata"
+msgstr "Εξαγωγή μεταδεδομένων"
+
+msgid "Extras"
+msgstr "Πρόσθετα στοιχεία"
+
+msgid "Failed to submit report: "
+msgstr "Η υποβολή της αναφοράς απέτυχε: "
+
+msgid "Favorites"
+msgstr "Αγαπημένα"
+
+msgid "Featured book"
+msgstr "Κύριο βιβλίο"
+
+msgid "Featured widgets"
+msgstr "Κύρια γραφικά στοιχεία"
+
+msgid "File browser settings"
+msgstr "Ρυθμίσεις περιηγητή αρχείων"
+
+msgid "File search"
+msgstr "Αναζήτηση αρχείου"
+
+msgid "Filebrowser"
+msgstr "Filebrowser"
+
+msgid "Filebrowser plugin is not installed."
+msgstr "Το πρόσθετο Filebrowser δεν είναι εγκατεστημένο."
+
+msgid "Filename:"
+msgstr "Όνομα αρχείου:"
+
+msgid "Filter"
+msgstr "Φίλτρο"
+
+msgid "Filter by status"
+msgstr "Φιλτράρισμα κατά κατάσταση"
+
+msgid "Finished"
+msgstr "Τελειωμένα"
+
+msgid "Firmware: "
+msgstr "Υλικολογισμικό: "
+
+msgid "First cover image"
+msgstr "Πρώτη εικόνα εξωφύλλου"
+
+msgid "Fixed layout documents (pdf, djvu, pics…)"
+msgstr "Έγγραφα σταθερής διάταξης (pdf, djvu, φωτογραφίες…)"
+
+msgid "Flip LH/RH icon"
+msgstr "Αντιστροφή εικονιδίου αριστερού/δεξιού χεριού"
+
+msgid "Folder"
+msgstr "Φάκελος"
+
+msgid "Folder buttons"
+msgstr "Κουμπιά φακέλων"
+
+msgid "Folder name"
+msgstr "Όνομα φακέλου"
+
+msgid "Folder name position"
+msgstr "Θέση ονόματος φακέλου"
+
+msgid "Folder presets"
+msgstr "Προρυθμίσεις φακέλου"
+
+msgid "Folders"
+msgstr "Φάκελοι"
+
+msgid "font"
+msgstr "γραμματοσειρά"
+
+msgid "Font"
+msgstr "Γραμματοσειρά"
+
+msgid "font size"
+msgstr "μέγεθος γραμματοσειράς"
+
+msgid "Font size"
+msgstr "Μέγεθος γραμματοσειράς"
+
+msgid "Font size:"
+msgstr "Μέγεθος γραμματοσειράς:"
+
+msgid "Font, margins, contrast, line spacing etc - tested together for the best reading experience"
+msgstr "Γραμματοσειρά, περιθώρια, αντίθεση, διάστιχο κ.λπ. - δοκιμάστηκαν μαζί για την καλύτερη εμπειρία ανάγνωσης"
+
+msgid "Font:"
+msgstr "Γραμματοσειρά:"
+
+msgid "Force sync"
+msgstr "Αναγκαστικός συγχρονισμός"
+
+msgid "Force sync all catalogs"
+msgstr "Αναγκαστικός συγχρονισμός όλων των καταλόγων"
+
+msgid "Format:"
+msgstr "Σχήμα και διάταξις βιβλίου:"
+
+msgid "Format: R,G,B (0-255)"
+msgstr "Μορφή: R,G,B (0-255)"
+
+msgid "Frontlight"
+msgstr "Εμπρόσθιος φωτισμός"
+
+msgid "Gallery"
+msgstr "Συλλογή εικόνων"
+
+msgid "Get Started"
+msgstr "Ας ξεκινήσουμε"
+
+msgid "GitHub username (optional)"
+msgstr "Όνομα χρήστη GitHub (προαιρετικά)"
+
+msgid "Go"
+msgstr "Μετάβαση"
+
+msgid "Go to page"
+msgstr "Μετάβαση στη σελίδα"
+
+msgid "Graph metric"
+msgstr "Μετρική γραφήματος"
+
+msgid "Graph range"
+msgstr "Εύρος γραφήματος"
+
+msgid "Gray"
+msgstr "Γκρι"
+
+msgid "Green"
+msgstr "Πράσινο"
+
+msgid "Group book series into folders"
+msgstr "Ομαδοποίηση σειρών βιβλίων σε φακέλους"
+
+msgid "Gyro"
+msgstr "Γυρο"
+
+msgid "Gyroscope"
+msgstr "Γυροσκόπιο"
+
+msgid "Hide finished books"
+msgstr "Απόκρυψη τελειωμένων βιβλίων"
+
+msgid "Hide in CBZ/PDF files"
+msgstr "Απόκρυψη σε αρχεία CBZ/PDF"
+
+msgid "Hide list borders"
+msgstr "Απόκρυψη περιγραμμάτων καταλόγου"
+
+msgid "Hide on-hold books"
+msgstr "Απόκρυψη βιβλίων σε αναμονή"
+
+msgid "Hide reader actions in library"
+msgstr "Απόκρυψη ενεργειών ανάγνωσης στη βιβλιοθήκη"
+
+msgid "Hide unread books"
+msgstr "Απόκρυψη μη αναγνωσμένων βιβλίων"
+
+msgid "Hide up folder"
+msgstr "Απόκρυψη γονικού φακέλου"
+
+msgid "Highlight / Lookup"
+msgstr "Επισήμανση / Αναζήτηση"
+
+msgid "History"
+msgstr "Ιστορικό"
+
+msgid "Hold to skip"
+msgstr "Παρατεταμένο πάτημα για παράλειψη"
+
+msgid "Home"
+msgstr "Αρχικός Φάκελος"
+
+msgid "Home Folder"
+msgstr "Αρχικός φάκελος"
+
+msgid "Home folder"
+msgstr "Αρχικός φάκελος"
+
+msgid "Home page preset"
+msgstr "Προρύθμιση αρχικής σελίδας"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "Τα διαστήματα της αρχικής ενημερώθηκαν. Η αποθηκευμένη σειρά και οι επιλογές των γραφικών στοιχείων διατηρήθηκαν και προσαρμόστηκαν στο νέο πλέγμα."
+
+msgid "Home tab label"
+msgstr "Ονομασία καρτέλας «Αρχική»"
+
+msgid "Hour"
+msgstr "Ώρα"
+
+msgid "Icon size:"
+msgstr "Μέγεθος εικονιδίου:"
+
+msgid "Icon: %1"
+msgstr "Εικονίδιο: %1"
+
+msgid "Icons"
+msgstr "Εικονίδια"
+
+msgid "Image support is unavailable on this device."
+msgstr "Η υποστήριξη εικόνων δεν είναι διαθέσιμη σε αυτή τη συσκευή."
+
+msgid "Image: "
+msgstr "Εικόνα: "
+
+msgid "Image: none"
+msgstr "Εικόνα: καμία"
+
+msgid "Include new books in TBR"
+msgstr "Συμπερίληψη νέων βιβλίων στη λίστα «Προς ανάγνωση»"
+
+msgid "Incognito"
+msgstr "Ανώνυμη λειτουργία"
+
+msgid "Incognito mode disabled"
+msgstr "Η ανώνυμη λειτουργία απενεργοποιήθηκε"
+
+msgid "Incognito mode enabled"
+msgstr "Η ανώνυμη λειτουργία ενεργοποιήθηκε"
+
+msgid "Incognito mode timed out"
+msgstr "Έληξε το χρονικό όριο της ανώνυμης λειτουργίας"
+
+msgid "Incompatible plugins and patches have been disabled:"
+msgstr "Απενεργοποιήθηκαν μη συμβατά πρόσθετα και patches:"
+
+msgid "Incompatible plugins have been disabled:"
+msgstr "Απενεργοποιήθηκαν μη συμβατά πρόσθετα:"
+
+msgid "Install"
+msgstr "Εγκατάσταση"
+
+msgid "Install ZenPM"
+msgstr "Εγκατάσταση ZenPM"
+
+msgid "Installed version is newer than the latest release."
+msgstr "Η εγκατεστημένη έκδοση είναι νεότερη από την τελευταία διαθέσιμη."
+
+msgid "Installing"
+msgstr "Εγκατάσταση σε εξέλιξη"
+
+msgid "Installing ZenPM"
+msgstr "Εγκατάσταση του ZenPM"
+
+msgid "Interactive"
+msgstr "Διαδραστικό"
+
+msgid "IP address: %1"
+msgstr "Διεύθυνση IP: %1"
+
+msgid "items per page"
+msgstr "στοιχεία ανά σελίδα"
+
+msgid "Items per page"
+msgstr "Στοιχεία ανά σελίδα"
+
+msgid "Keep existing settings"
+msgstr "Διατήρηση υπαρχουσών ρυθμίσεων"
+
+msgid "KOReader menu"
+msgstr "Μενού KOReader"
+
+msgid "KOReader menu: %1"
+msgstr "Μενού KOReader: %1"
+
+msgid "KOReader: "
+msgstr "KOReader: "
+
+msgid "Label"
+msgstr "Ονομασία"
+
+msgid "Label size:"
+msgstr "Μέγεθος ονομασίας:"
+
+msgid "Label: "
+msgstr "Ονομασία: "
+
+msgid "Label: %1"
+msgstr "Ονομασία: %1"
+
+msgid "Labels"
+msgstr "Ονομασίες"
+
+msgid "Landscape mosaic mode"
+msgstr "Οριζόντια προβολή μωσαϊκού"
+
+msgid "Landscape mosaic: "
+msgstr "Οριζόντιο μωσαϊκό: "
+
+msgid "Large"
+msgstr "Μεγάλο"
+
+msgid "Later"
+msgstr "Αργότερα"
+
+msgid "latest"
+msgstr "τελευταία"
+
+msgid "Launcher"
+msgstr "Εκκινητής"
+
+msgid "Launcher entry is unavailable"
+msgstr "Το στοιχείο «Εκκινητής» δεν είναι διαθέσιμο"
+
+msgid "Launcher label"
+msgstr "Ονομασία εκκινητή"
+
+msgid "Layout"
+msgstr "Διάταξη"
+
+msgid "Leave empty to use action title"
+msgstr "Αφήστε το κενό για χρήση του τίτλου της ενέργειας"
+
+msgid "Left"
+msgstr "Αριστερά"
+
+msgid "Left items"
+msgstr "Αριστερά στοιχεία"
+
+msgid "Library"
+msgstr "Βιβλιοθήκη"
+
+msgid "Library background was disabled because the image file was not found."
+msgstr "Το φόντο της βιβλιοθήκης απενεργοποιήθηκε επειδή δεν βρέθηκε το αρχείο εικόνας."
+
+msgid "Library font"
+msgstr "Γραμματοσειρά βιβλιοθήκης"
+
+msgid "Library font size"
+msgstr "Μέγεθος γραμματοσειράς βιβλιοθήκης"
+
+msgid "Library View"
+msgstr "Προβολή βιβλιοθήκης"
+
+msgid "Light"
+msgstr "Λεπτή"
+
+msgid "Light mode"
+msgstr "Φωτεινή λειτουργία"
+
+msgid "Light sepia"
+msgstr "Ανοιχτή σέπια"
+
+msgid "Light tan"
+msgstr "Ανοιχτό μπεζ"
+
+msgid "List"
+msgstr "Κατάλογος"
+
+msgid "List (basic)"
+msgstr "Κατάλογος (απλός)"
+
+msgid "List (detailed)"
+msgstr "Κατάλογος (αναλυτικός)"
+
+msgid "List - detailed titles and metadata"
+msgstr "Κατάλογος - αναλυτικοί τίτλοι και μεταδεδομένα"
+
+msgid "List: "
+msgstr "Κατάλογος: "
+
+msgid "Load more"
+msgstr "Φόρτωση περισσότερων"
+
+msgid "Loading changelog"
+msgstr "Φόρτωση αρχείου αλλαγών"
+
+msgid "LocalSend"
+msgstr "LocalSend"
+
+msgid "Lock home folder"
+msgstr "Κλείδωμα Αρχικού Φακέλου"
+
+msgid "Lockdown"
+msgstr "Κλείδωμα"
+
+msgid "Lockdown mode"
+msgstr "Λειτουργία κλειδώματος"
+
+msgid "Loose icons"
+msgstr "Μεμονωμένα εικονίδια"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Μεμονωμένα εικονίδια στο /koreader/icons"
+
+msgid "Magnify UI"
+msgstr "Μεγέθυνση διεπαφής"
+
+msgid "Main menu"
+msgstr "Κύριο μενού"
+
+msgid "Manga"
+msgstr "Manga"
+
+msgid "Manga folder not found: "
+msgstr "Ο φάκελος manga δεν βρέθηκε: "
+
+msgid "Manually download and sideload %1 from the same ZenPM release."
+msgstr "Κατεβάστε και εγκαταστήστε χειροκίνητα το %1 από την ίδια έκδοση του ZenPM."
+
+msgid "Match whole words"
+msgstr "Αντιστοίχιση ολόκληρων λέξεων"
+
+msgid "Max books shown"
+msgstr "Εμφανίζονται τα μέγιστα βιβλία"
+
+msgid "Max books shown: "
+msgstr "Μέγιστος αριθμός βιβλίων που εμφανίζονται:"
+
+msgid "Maximum 7 tabs allowed"
+msgstr "Επιτρέπονται έως 7 καρτέλες"
+
+msgid "Maximum 9 buttons allowed"
+msgstr "Επιτρέπονται έως 9 κουμπιά"
+
+msgid "Maximum font size:"
+msgstr "Μέγιστο μέγεθος γραμματοσειράς:"
+
+msgid "Maximum quote font size"
+msgstr "Μέγιστο μέγεθος γραμματοσειράς αποφθέγματος"
+
+msgid "Menu"
+msgstr "Γρήγορο μενού"
+
+msgid "Metric"
+msgstr "Μετρική"
+
+msgid "min"
+msgstr "λεπ."
+
+msgid "Minute"
+msgstr "Λεπτό"
+
+msgid "Minutes"
+msgstr "Λεπτά"
+
+msgid "minutes"
+msgstr "λεπτά"
+
+msgid "Missing: %1"
+msgstr "Λείπει: %1"
+
+msgid "Monthly"
+msgstr "Μηνιαία"
+
+msgid "Months"
+msgstr "Μήνες"
+
+msgid "Mosaic"
+msgstr "Μωσαϊκό"
+
+msgid "Mosaic - large cover thumbnails"
+msgstr "Μωσαϊκό - μεγάλες μικρογραφίες εξωφύλλων"
+
+msgid "Mosaic with cover images"
+msgstr "Μωσαϊκό με εξώφυλλα"
+
+msgid "Mosaic with text"
+msgstr "Μωσαϊκό με κείμενο"
+
+msgid "Move"
+msgstr "Μετακίνηση"
+
+msgid "Move failed."
+msgstr "Η μετακίνηση απέτυχε."
+
+msgid "Move out of folder"
+msgstr "Μετακίνηση εκτός φακέλου"
+
+msgid "Move to folder"
+msgstr "Μετακίνηση σε φάκελο"
+
+msgid "Move to…"
+msgstr "Μετακίνηση σε…"
+
+msgid "Navbar"
+msgstr "Γραμμή πλοήγησης"
+
+msgid "Navbar icon size"
+msgstr "Μέγεθος εικονιδίων γραμμής πλοήγησης"
+
+msgid "Navbar label size"
+msgstr "Μέγεθος ονομασιών γραμμής πλοήγησης"
+
+msgid "Navbar Tabs"
+msgstr "Καρτέλες γραμμής πλοήγησης"
+
+msgid "Navigation"
+msgstr "Περιήγηση"
+
+msgid "Network unavailable."
+msgstr "Το δίκτυο δεν είναι διαθέσιμο."
+
+msgid "New"
+msgstr "Νέα"
+
+msgid "New collection"
+msgstr "Νέα συλλογή"
+
+msgid "New custom theme"
+msgstr "Νέο προσαρμοσμένο θέμα"
+
+msgid "New folder"
+msgstr "Νέος φάκελος"
+
+msgid "New includes unread books and books modified since they were last opened."
+msgstr "Τα «Νέα» περιλαμβάνουν αδιάβαστα βιβλία και βιβλία που τροποποιήθηκαν από το τελευταίο άνοιγμά τους."
+
+msgid "New quote"
+msgstr "Νέο απόφθεγμα"
+
+msgid "News"
+msgstr "Ειδήσεις"
+
+msgid "News folder not found: "
+msgstr "Ο φάκελος ειδήσεων δεν βρέθηκε: "
+
+msgid "Next"
+msgstr "Επόμενο"
+
+msgid "Next page"
+msgstr "Επόμενη σελίδα"
+
+msgid "Night"
+msgstr "Νύχτα"
+
+msgid "Night brightness"
+msgstr "Νυχτερινή φωτεινότητα"
+
+msgid "Night brightness time"
+msgstr "Ώρα νυχτερινής φωτεινότητας"
+
+msgid "Night brightness time: "
+msgstr "Ώρα νυχτερινής φωτεινότητας: "
+
+msgid "Night brightness: "
+msgstr "Νυχτερινή φωτεινότητα: "
+
+msgid "Night mode"
+msgstr "Νυχτερινή λειτουργία"
+
+msgid "Night mode off time"
+msgstr "Ώρα απενεργοποίησης νυχτερινής λειτουργίας"
+
+msgid "Night mode off: "
+msgstr "Νυχτερινή λειτουργία ανενεργή: "
+
+msgid "Night mode on time"
+msgstr "Ώρα ενεργοποίησης νυχτερινής λειτουργίας"
+
+msgid "Night mode on: "
+msgstr "Νυχτερινή λειτουργία ενεργή: "
+
+msgid "Night mode schedule"
+msgstr "Πρόγραμμα νυχτερινής λειτουργίας"
+
+msgid "Night warmth"
+msgstr "Νυχτερινό θερμό φως"
+
+msgid "Night warmth time"
+msgstr "Ώρα νυχτερινού θερμού φωτός"
+
+msgid "Night warmth time: "
+msgstr "Ώρα νυχτερινού θερμού φωτός: "
+
+msgid "Night warmth: "
+msgstr "Νυχτερινό θερμό φως: "
+
+msgid "No background image selected."
+msgstr "Δεν έχει επιλεγεί εικόνα φόντου."
+
+msgid "No books found"
+msgstr "Δεν βρέθηκαν βιβλία"
+
+msgid "No books found in the selected folder"
+msgstr "Δεν βρέθηκαν βιβλία στον επιλεγμένο φάκελο"
+
+msgid "No books to switch to"
+msgstr "Δεν υπάρχουν βιβλία για εναλλαγή"
+
+msgid "No books with author metadata found"
+msgstr "Δεν βρέθηκαν βιβλία με μεταδεδομένα συγγραφέα"
+
+msgid "No books with series metadata found"
+msgstr "Δεν βρέθηκαν βιβλία με μεταδεδομένα σειράς"
+
+msgid "No books with tags metadata found"
+msgstr "Δεν βρέθηκαν βιβλία με μεταδεδομένα ετικετών"
+
+msgid "No changelog entries found.\n\nNo releases are available for this channel."
+msgstr "Δεν βρέθηκαν καταχωρίσεις στο αρχείο αλλαγών.\n\nΔεν υπάρχουν διαθέσιμες εκδόσεις για αυτό το κανάλι."
+
+msgid "No changelog provided."
+msgstr "Δεν δόθηκε αρχείο αλλαγών."
+
+msgid "No description."
+msgstr "Χωρίς περιγραφή."
+
+msgid "No KOReader submenus found"
+msgstr "Δεν βρέθηκαν υπομενού του KOReader"
+
+msgid "No launchable plugin menus found"
+msgstr "Δεν βρέθηκαν μενού πρόσθετων που μπορούν να εκκινηθούν"
+
+msgid "No network connection. Please connect to Wi-Fi and try again."
+msgstr "Δεν υπάρχει σύνδεση δικτύου. Συνδεθείτε στο Wi-Fi και δοκιμάστε ξανά."
+
+msgid "No quote available."
+msgstr "Δεν υπάρχει διαθέσιμο απόφθεγμα."
+
+msgid "No reader engine for this file or invalid file."
+msgstr "Δεν υπάρχει μηχανή ανάγνωσης για αυτό το αρχείο ή μη έγκυρο αρχείο."
+
+msgid "No reading data"
+msgstr "Δεν υπάρχουν δεδομένα ανάγνωσης"
+
+msgid "No table of contents available."
+msgstr "Δεν υπάρχει διαθέσιμος πίνακας περιεχομένων."
+
+msgid "No tags found"
+msgstr "Δεν βρέθηκαν ετικέτες"
+
+msgid "No TBR books found"
+msgstr "Δεν βρέθηκαν βιβλία στη λίστα «Προς ανάγνωση»"
+
+msgid "No update asset found."
+msgstr "Δεν βρέθηκε αρχείο ενημέρωσης."
+
+msgid "No ZenPM package is available for this device."
+msgstr "Δεν υπάρχει διαθέσιμο πακέτο ZenPM για αυτή τη συσκευή."
+
+msgid "None"
+msgstr "Κανένα"
+
+msgid "None (folder name only)"
+msgstr "Κανένα (μόνο όνομα φακέλου)"
+
+msgid "Normal"
+msgstr "Κανονικό"
+
+msgid "Not enough Home space: %1/%2 units used; this widget needs %3."
+msgstr "Δεν υπάρχει αρκετός χώρος στην αρχική: χρησιμοποιούνται %1/%2 μονάδες· αυτό το γραφικό στοιχείο χρειάζεται %3."
+
+msgid "Nothing"
+msgstr "Τίποτα"
+
+msgid "Notion"
+msgstr "Notion"
+
+msgid "NotionSync"
+msgstr "NotionSync"
+
+msgid "Off"
+msgstr "Ανενεργό"
+
+msgid "OK"
+msgstr "Εντάξει"
+
+msgid "On"
+msgstr "Ενεργό"
+
+msgid "On hold"
+msgstr "Σε αναμονή"
+
+msgid "On Home refresh"
+msgstr "Κατά την ανανέωση της αρχικής"
+
+msgid "Only in Zen mode"
+msgstr "Μόνο στη λειτουργία Zen"
+
+msgid "Only show while reading"
+msgstr "Εμφάνιση μόνο κατά την ανάγνωση"
+
+msgid "Opaque background"
+msgstr "Αδιαφανές φόντο"
+
+msgid "OPDS"
+msgstr "OPDS"
+
+msgid "Open"
+msgstr "Άνοιγμα"
+
+msgid "Open folder"
+msgstr "Άνοιγμα φακέλου"
+
+msgid "Open menu to Launcher"
+msgstr "Άνοιγμα μενού στην καρτέλα «Εκκινητής»"
+
+msgid "Open next file"
+msgstr "Άνοιγμα επόμενου αρχείου"
+
+msgid "Open QuickRSS"
+msgstr "Άνοιγμα QuickRSS"
+
+msgid "Open Rakuyomi"
+msgstr "Άνοιγμα Rakuyomi"
+
+msgid "Open RSS Reader"
+msgstr "Άνοιγμα RSS Reader"
+
+msgid "Open this file?"
+msgstr "Να ανοιχθεί αυτό το αρχείο;"
+
+msgid "Open with…"
+msgstr "Ανοιχτό με…"
+
+msgid "Opening"
+msgstr "Ανοίγει"
+
+msgid "Order"
+msgstr "Φορά"
+
+msgid "Outline"
+msgstr "Περίγραμμα"
+
+msgid "Outlined boxes"
+msgstr "Πλαίσια με περίγραμμα"
+
+msgid "p."
+msgstr "σ."
+
+msgid "Page %1 of %2"
+msgstr "Σελίδα %1 από %2"
+
+msgid "Page Browser"
+msgstr "Περιηγητής σελίδων"
+
+msgid "Page number"
+msgstr "Αριθμός σελίδας"
+
+msgid "Page number format"
+msgstr "Μορφή αριθμού σελίδας"
+
+msgid "Page stream"
+msgstr "Ροή σελίδας"
+
+msgid "Page x / y"
+msgstr "Σελίδα x / y"
+
+msgid "pages"
+msgstr "σελίδες"
+
+msgid "Pages"
+msgstr "Σελίδες"
+
+msgid "Pages read"
+msgstr "Αναγνωσμένες σελίδες"
+
+msgid "Pages this week"
+msgstr "Σελίδες αυτή την εβδομάδα"
+
+msgid "Pages today"
+msgstr "Σελίδες σήμερα"
+
+msgid "Pages/day"
+msgstr "Σελίδες/ημέρα"
+
+msgid "Partial pages refresh"
+msgstr "Μερική ανανέωση σελίδων"
+
+msgid "Paste"
+msgstr "Επικόλληση"
+
+msgid "Paste selected files"
+msgstr "Επικόλληση επιλεγμένων αρχείων"
+
+msgid "Percent"
+msgstr "Ποσοστό"
+
+msgid "Personal records"
+msgstr "Προσωπικά ρεκόρ"
+
+msgid "Personal Records"
+msgstr "Προσωπικά ρεκόρ"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Τοποθετήστε φακέλους πακέτων ή αρχεία ZIP στο /koreader/icons/zen. Τα αρχεία ZIP εγκαθίστανται αυτόματα."
+
+msgid "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
+msgstr "Διαγράψτε το πρόσθετο Project: Title από τον φάκελο πρόσθετων και επανεκκινήστε το KOReader."
+
+msgid "Plugin"
+msgstr "Πρόσθετο"
+
+msgid "Plugin management"
+msgstr "Διαχείριση προσθέτων"
+
+msgid "Plugin Menu"
+msgstr "Μενού προσθηκών"
+
+msgid "Plugin: %1"
+msgstr "Πρόσθετο: %1"
+
+msgid "Portrait list mode"
+msgstr "Κατακόρυφη προβολή καταλόγου"
+
+msgid "Portrait mosaic mode"
+msgstr "Κατακόρυφη προβολή μωσαϊκού"
+
+msgid "Portrait mosaic: "
+msgstr "Κάθετο μωσαϊκό: "
+
+msgid "Preset name"
+msgstr "Όνομα προρύθμισης"
+
+msgid "Presets"
+msgstr "Προρυθμίσεις"
+
+msgid "Prev"
+msgstr "Προηγ."
+
+msgid "Previous page"
+msgstr "Προηγούμενη σελίδα"
+
+msgid "Progress"
+msgstr "Πρόοδος"
+
+msgid "Progress %"
+msgstr "Πρόοδος %"
+
+msgid "Progress bar"
+msgstr "Γραμμή προόδου"
+
+msgid "Progress labels"
+msgstr "Ενδείξεις προόδου"
+
+msgid "Project: Title is not compatible with ZenOS."
+msgstr "Το Project: Title δεν είναι συμβατό με το ZenOS."
+
+msgid "Puzzle"
+msgstr "Παζλ"
+
+msgid "Quick Settings"
+msgstr "Γρήγορες ρυθμίσεις"
+
+msgid "Quick settings button is unavailable"
+msgstr "Το κουμπί γρήγορων ρυθμίσεων δεν είναι διαθέσιμο"
+
+msgid "QuickRSS"
+msgstr "QuickRSS"
+
+msgid "QuickRSS plugin is not installed."
+msgstr "Το πρόσθετο QuickRSS δεν είναι εγκατεστημένο."
+
+msgid "Quit"
+msgstr "Ακύρωση"
+
+msgid "Quit KOReader"
+msgstr "Τερματισμός του KOReader"
+
+msgid "Quote font size"
+msgstr "Μέγεθος γραμματοσειράς αποφθέγματος"
+
+msgid "Quote sources"
+msgstr "Πηγές αποφθεγμάτων"
+
+msgid "Quotes"
+msgstr "Αποφθέγματα"
+
+msgid "quotes.lua is empty"
+msgstr "Το quotes.lua είναι κενό"
+
+msgid "Rakuyomi"
+msgstr "Rakuyomi"
+
+msgid "Rakuyomi plugin is not installed."
+msgstr "Το πρόσθετο Rakuyomi δεν είναι εγκατεστημένο."
+
+msgid "RAM usage"
+msgstr "Χρήση RAM"
+
+msgid "Range"
+msgstr "Εύρος"
+
+msgid "Read now"
+msgstr "Ανάγνωση τώρα"
+
+msgid "Read status"
+msgstr "Κατάσταση ανάγνωσης"
+
+msgid "Read time"
+msgstr "Χρόνος ανάγνωσης"
+
+msgid "Read today"
+msgstr "Διαβάστηκαν σήμερα"
+
+msgid "Reader"
+msgstr "Αναγνώστης"
+
+msgid "Reader themes"
+msgstr "Θέματα ανάγνωσης"
+
+msgid "Reading"
+msgstr "Υπό ανάγνωση"
+
+msgid "Reading Calendar"
+msgstr "Ημερολόγιο ανάγνωσης"
+
+msgid "Reading calendar"
+msgstr "Ημερολόγιο ανάγνωσης"
+
+msgid "Reading goals"
+msgstr "Στόχοι ανάγνωσης"
+
+msgid "Reading goals font size"
+msgstr "Μέγεθος γραμματοσειράς στόχων ανάγνωσης"
+
+msgid "Reading stats"
+msgstr "Στατιστικά ανάγνωσης"
+
+msgid "Reading trend"
+msgstr "Τάση ανάγνωσης"
+
+msgid "Reading Trend"
+msgstr "Τάση ανάγνωσης"
+
+msgid "Recent"
+msgstr "Πρόσφατα"
+
+msgid "Recent filters"
+msgstr "Φίλτρα πρόσφατων"
+
+msgid "Recently read"
+msgstr "Πρόσφατα αναγνωσμένα"
+
+msgid "Recently read strip widget"
+msgstr "Γραφικό στοιχείο λωρίδας πρόσφατα αναγνωσμένων"
+
+msgid "Red"
+msgstr "Κόκκινο"
+
+msgid "Reflowable documents (epub, fb2, txt…)"
+msgstr "Έγγραφα μεταβλητής διάταξης (epub, fb2, txt ...)"
+
+msgid "Refresh"
+msgstr "Ανανέωση"
+
+msgid "regular"
+msgstr "κανονικό"
+
+msgid "Release metadata is invalid or incomplete."
+msgstr "Τα μεταδεδομένα της έκδοσης είναι άκυρα ή ελλιπή."
+
+msgid "Remove"
+msgstr "Αφαίρεση"
+
+msgid "Remove default"
+msgstr "Αφαίρεση της ένδειξης «προεπιλογή»"
+
+msgid "Remove from collection"
+msgstr "Αφαίρεση από τη συλλογή"
+
+msgid "Remove from history"
+msgstr "Διαγραφή από το Ιστορικό"
+
+msgid "Remove this book from history?"
+msgstr "Αφαίρεση αυτού του βιβλίου από το ιστορικό;"
+
+msgid "Remove this folder from additional home folders?"
+msgstr "Αφαίρεση αυτού του φακέλου από τους επιπλέον αρχικούς φακέλους;"
+
+msgid "Remove: "
+msgstr "Αφαίρεση: "
+
+msgid "Rename"
+msgstr "Μετονομασία"
+
+msgid "Report a Bug"
+msgstr "Αναφορά σφάλματος"
+
+msgid "Require double tap to open books"
+msgstr "Άνοιγμα βιβλίων με διπλό πάτημα"
+
+msgid "Require hold to toggle buttons"
+msgstr "Παρατεταμένο πάτημα για εναλλαγή κουμπιών"
+
+msgid "Reset"
+msgstr "Επαναφορά"
+
+msgid "Reset Controls to defaults?"
+msgstr "Επαναφορά των στοιχείων ελέγχου στις προεπιλογές;"
+
+msgid "Reset font"
+msgstr "Επαναφορά γραμματοσειράς"
+
+msgid "Reset font family and size to default?"
+msgstr "Επαναφορά οικογένειας και μεγέθους γραμματοσειράς στις προεπιλογές;"
+
+msgid "Reset to defaults"
+msgstr "Επαναφορά στις προεπιλογές"
+
+msgid "Restart"
+msgstr "Επανεκκίνηση"
+
+msgid "Restart Book"
+msgstr "Επανεκκίνηση βιβλίου"
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Επανεκκινήστε το KOReader για να εφαρμοστεί το ενημερωμένο ενεργό πακέτο"
+
+msgid "Restart now"
+msgstr "Επανεκκίνηση τώρα"
+
+msgid "Restarting"
+msgstr "Επανεκκίνηση σε εξέλιξη"
+
+msgid "Restore library location on exit"
+msgstr "Επαναφορά θέσης βιβλιοθήκης κατά την έξοδο"
+
+msgid "Resume from page"
+msgstr "Συνέχεια από τη σελίδα"
+
+msgid "Return to chapter list on exit"
+msgstr "Επιστροφή στη λίστα κεφαλαίων κατά την έξοδο"
+
+msgid "Review"
+msgstr "Κριτική"
+
+msgid "Right"
+msgstr "Δεξιά"
+
+msgid "Right items"
+msgstr "Δεξιά στοιχεία"
+
+msgid "Rotate"
+msgstr "Περιστροφή"
+
+msgid "Rotate: %1"
+msgstr "Περιστροφή: %1"
+
+msgid "Rounded cover corners"
+msgstr "Στρογγυλεμένες γωνίες εξωφύλλων"
+
+msgid "Row break"
+msgstr "Αλλαγή γραμμής"
+
+msgid "Rows"
+msgstr "Γραμμές"
+
+msgid "RSS Reader plugin is not installed."
+msgstr "Το πρόσθετο RSS Reader δεν είναι εγκατεστημένο."
+
+msgid "Save"
+msgstr "Αποθήκευση"
+
+msgid "Save current home page as preset"
+msgstr "Αποθήκευση τρέχουσας αρχικής σελίδας ως προρύθμιση"
+
+msgid "Save current settings as preset"
+msgstr "Αποθήκευση τρεχουσών ρυθμίσεων ως προρύθμιση"
+
+msgid "Schedules"
+msgstr "Προγράμματα"
+
+msgid "Screenshot"
+msgstr "Στιγμιότυπο οθόνης"
+
+msgid "Screenshot saved to:"
+msgstr "Το στιγμιότυπο οθόνης αποθηκεύτηκε στον:"
+
+msgid "Screenshot timer"
+msgstr "Χρονόμετρο στιγμιότυπου οθόνης"
+
+msgid "Screenshot: %1 s"
+msgstr "Στιγμιότυπο οθόνης: %1 δευτ."
+
+msgid "Scroll bar"
+msgstr "Γραμμή κύλισης"
+
+msgid "Search"
+msgstr "Αναζήτηση"
+
+msgid "Search Book"
+msgstr "Αναζήτηση στο βιβλίο"
+
+msgid "Search Library"
+msgstr "Αναζήτηση στη βιβλιοθήκη"
+
+msgid "Search results"
+msgstr "Αποτελέσματα αναζήτησης"
+
+msgid "Search settings"
+msgstr "Ρυθμίσεις αναζήτησης"
+
+msgid "Select"
+msgstr "Επιλογή"
+
+msgid "Select icon"
+msgstr "Επιλογή εικονιδίου"
+
+msgid "Send with LocalSend"
+msgstr "Αποστολή με LocalSend"
+
+msgid "Separator"
+msgstr "Διαχωριστικό"
+
+msgid "Separator: "
+msgstr "Διαχωριστικό: "
+
+msgid "series"
+msgstr "σειρές"
+
+msgid "Series"
+msgstr "Σειρές"
+
+msgid "Series number"
+msgstr "Αριθμός σειράς"
+
+msgid "Session pages"
+msgstr "Σελίδες συνεδρίας"
+
+msgid "Set"
+msgstr "Ορισμός"
+
+msgid "Set all gestures to pass-through? Top-right corner in reader will be kept as Toggle bookmark."
+msgstr "Να οριστούν όλες οι χειρονομίες ως διαμπερείς; Η πάνω δεξιά γωνία στην ανάγνωση θα διατηρηθεί ως εναλλαγή σελιδοδείκτη."
+
+msgid "Set as default"
+msgstr "Ορισμός ως προεπιλογής"
+
+msgid "Set as wallpaper"
+msgstr "Ορισμός ως ταπετσαρίας"
+
+msgid "Set file types to sync"
+msgstr "Ορισμός τύπων αρχείων για συγχρονισμό"
+
+msgid "Set home folder"
+msgstr "Ορισμός Αρχικού Φακέλου"
+
+msgid "Set max number of files to sync"
+msgstr "Ορισμός μέγιστου αριθμού αρχείων για συγχρονισμό"
+
+msgid "Set sync folder"
+msgstr "Ορισμός φακέλου συγχρονισμού"
+
+msgid "Settings"
+msgstr "Ρυθμίσεις"
+
+msgid "Settings & Updates"
+msgstr "Ρυθμίσεις και ενημερώσεις"
+
+msgid "Setup Guide"
+msgstr "Οδηγός εγκατάστασης"
+
+msgid "Show a button for the Assistant plugin, if installed."
+msgstr "Εμφάνιση κουμπιού για το πρόσθετο Assistant, εφόσον είναι εγκατεστημένο."
+
+msgid "Show AI assistant"
+msgstr "Εμφάνιση βοηθού AI"
+
+msgid "Show all files from subfolders"
+msgstr "Εμφάνιση όλων των αρχείων από τους υποφακέλους"
+
+msgid "Show author"
+msgstr "Εμφάνιση συγγραφέα"
+
+msgid "Show author below cover (mosaic)"
+msgstr "Εμφάνιση συγγραφέα κάτω από το εξώφυλλο (μωσαϊκό)"
+
+msgid "Show badges"
+msgstr "Εμφάνιση σημάτων"
+
+msgid "Show Book cover"
+msgstr "Εμφάνιση εξωφύλλου βιβλίου"
+
+msgid "Show book titles"
+msgstr "Εμφάνιση τίτλων βιβλίων"
+
+msgid "Show bottom border"
+msgstr "Εμφάνιση κάτω περιγράμματος"
+
+msgid "Show brightness slider"
+msgstr "Εμφάνιση ρυθμιστικού φωτεινότητας"
+
+msgid "Show controls"
+msgstr "Εμφάνιση στοιχείων ελέγχου"
+
+msgid "Show description"
+msgstr "Εμφάνιση περιγραφής"
+
+msgid "Show favorite badge"
+msgstr "Εμφάνιση σήματος αγαπημένου"
+
+msgid "Show folder name"
+msgstr "Εμφάνιση ονόματος φακέλου"
+
+msgid "Show goal"
+msgstr "Εμφάνιση στόχου"
+
+msgid "Show hidden files"
+msgstr "Εμφάνιση κρυφών αρχείων"
+
+msgid "Show icons"
+msgstr "Εμφάνιση εικονιδίων"
+
+msgid "Show item count"
+msgstr "Εμφάνιση πλήθους στοιχείων"
+
+msgid "Show item underline"
+msgstr "Εμφάνιση υπογράμμισης στοιχείου"
+
+msgid "Show KOAssistant"
+msgstr "Εμφάνιση KOAsistant"
+
+msgid "Show labels"
+msgstr "Εμφάνιση ονομασιών"
+
+msgid "Show new banner"
+msgstr "Εμφάνιση σήμανσης «Νέο»"
+
+msgid "Show other items"
+msgstr "Εμφάνιση άλλων στοιχείων"
+
+msgid "Show other KOReader quick lookup options alongside Zen buttons."
+msgstr "Εμφάνιση των υπόλοιπων επιλογών γρήγορης αναζήτησης του KOReader δίπλα στα κουμπιά Zen."
+
+msgid "Show page count"
+msgstr "Εμφάνιση πλήθους σελίδων"
+
+msgid "Show progress bar"
+msgstr "Εμφάνιση της γραμμής προόδου"
+
+msgid "Show reading progress"
+msgstr "Εμφάνιση προόδου ανάγνωσης"
+
+msgid "Show separator"
+msgstr "Εμφάνιση διαχωριστικού"
+
+msgid "Show series number on covers"
+msgstr "Εμφάνιση αριθμού σειράς στα εξώφυλλα"
+
+msgid "Show spine lines"
+msgstr "Εμφάνιση γραμμών ράχης"
+
+msgid "Show title"
+msgstr "Εμφάνιση τίτλου"
+
+msgid "Show title below cover (mosaic)"
+msgstr "Εμφάνιση τίτλου κάτω από το εξώφυλλο (μωσαϊκό)"
+
+msgid "Show top border"
+msgstr "Εμφάνιση πάνω περιγράμματος"
+
+msgid "Show top status bar"
+msgstr "Εμφάνιση πάνω γραμμής κατάστασης"
+
+msgid "Show warmth slider"
+msgstr "Εμφάνιση ρυθμιστικού θερμού φωτός"
+
+msgid "Show Wikipedia"
+msgstr "Εμφάνιση Βικιπαίδειας"
+
+msgid "Show X-Ray"
+msgstr "Εμφάνιση ακτίνων Χ"
+
+msgid "Show Zen icon - black background"
+msgstr "Εμφάνιση εικονιδίου Zen - μαύρο φόντο"
+
+msgid "Show Zen icon - white background"
+msgstr "Εμφάνιση εικονιδίου Zen - λευκό φόντο"
+
+msgid "Single tag"
+msgstr "Μία ετικέτα"
+
+msgid "Skip"
+msgstr "Παράλειψη"
+
+msgid "Skip 10 pages"
+msgstr "Παράλειψη 10 σελίδων"
+
+msgid "Skip 20 pages"
+msgstr "Παράλειψη 20 σελίδων"
+
+msgid "Sleep"
+msgstr "Αναστολή λειτουργίας"
+
+msgid "Sleep Screen"
+msgstr "Οθόνη αναστολής λειτουργίας"
+
+msgid "Slide Puzzle"
+msgstr "Παζλ ολίσθησης"
+
+msgid "Sort"
+msgstr "Ταξινόμηση"
+
+msgid "Sort authors"
+msgstr "Ταξινόμηση συγγραφέων"
+
+msgid "Sort books by"
+msgstr "Ταξινόμηση βιβλίων κατά"
+
+msgid "Sort by"
+msgstr "Ταξινόμηση κατά"
+
+msgid "Sort folder"
+msgstr "Ταξινόμηση φακέλου"
+
+msgid "Sort folder by"
+msgstr "Ταξινόμηση φακέλου κατά"
+
+msgid "Sort library"
+msgstr "Ταξινόμηση βιβλιοθήκης"
+
+msgid "Sort library by"
+msgstr "Ταξινόμηση βιβλιοθήκης κατά"
+
+msgid "Sort order"
+msgstr "Σειρά ταξινόμησης"
+
+msgid "Sort series"
+msgstr "Ταξινόμηση σειρών"
+
+msgid "Specific tag"
+msgstr "Συγκεκριμένη ετικέτα"
+
+msgid "Stable"
+msgstr "Σταθερό"
+
+msgid "Stack"
+msgstr "Στοίβα"
+
+msgid "Start reading a book to fill this space."
+msgstr "Ξεκινήστε να διαβάζετε ένα βιβλίο για να γεμίσει αυτός ο χώρος."
+
+msgid "Stat separators"
+msgstr "Διαχωριστικά στατιστικών"
+
+msgid "Stat slot "
+msgstr "Θέση στατιστικού "
+
+msgid "Statistics"
+msgstr "Στατιστικά"
+
+msgid "Statistics calendar is unavailable"
+msgstr "Το ημερολόγιο στατιστικών δεν είναι διαθέσιμο"
+
+msgid "Stats"
+msgstr "Στατιστικά"
+
+msgid "Stats default font size"
+msgstr "Προεπιλεγμένο μέγεθος γραμματοσειράς στατιστικών"
+
+msgid "Stats font size"
+msgstr "Μέγεθος γραμματοσειράς στατιστικών"
+
+msgid "Stats: Calendar"
+msgstr "Στατιστικά: Ημερολόγιο"
+
+msgid "Stats: Progress"
+msgstr "Στατιστικά: Πρόοδος"
+
+msgid "Status bar"
+msgstr "Γραμμή κατάστασης"
+
+msgid "Status bar items"
+msgstr "Στοιχεία γραμμής κατάστασης"
+
+msgid "Steps to reproduce, expected vs. actual behavior"
+msgstr "Βήματα αναπαραγωγής, αναμενόμενη και πραγματική συμπεριφορά"
+
+msgid "Streak"
+msgstr "Σερί"
+
+msgid "Stream from page"
+msgstr "Ροή από τη σελίδα"
+
+msgid "Strip widgets"
+msgstr "Γραφικά στοιχεία λωρίδας"
+
+msgid "Styling"
+msgstr "Μορφοποίηση"
+
+msgid "Subfolder flat view was disabled because the home folder is the device storage root."
+msgstr "Η ενιαία προβολή υποφακέλων απενεργοποιήθηκε επειδή ο αρχικός φάκελος είναι η ρίζα του αποθηκευτικού χώρου της συσκευής."
+
+msgid "Submit"
+msgstr "Υποβολή"
+
+msgid "Submitting report…"
+msgstr "Υποβολή αναφοράς…"
+
+msgid "Swipe down from the top to reach quick settings like brightness, Wi-Fi, night mode, zen mode and more."
+msgstr "Σύρετε από πάνω προς τα κάτω για να ανοίξετε τις γρήγορες ρυθμίσεις: φωτεινότητα, Wi-Fi, νυχτερινή λειτουργία, λειτουργία Zen και άλλα."
+
+msgid "Swipe up from the bottom while reading to open the Page Browser.\n\nSkim through pages or skip chapters, browse the table of contents, manage bookmarks, adjust fonts and more."
+msgstr "Σύρετε από κάτω προς τα πάνω κατά την ανάγνωση για να ανοίξετε τον Περιηγητή σελίδων.\n\nΞεφυλλίστε σελίδες ή παραλείψτε κεφάλαια, περιηγηθείτε στον πίνακα περιεχομένων, διαχειριστείτε σελιδοδείκτες, ρυθμίστε γραμματοσειρές και άλλα."
+
+msgid "Sync"
+msgstr "Συγχρονισμός"
+
+msgid "Sync all catalogs"
+msgstr "Συγχρονισμός όλων των καταλόγων"
+
+msgid "Tab"
+msgstr "Καρτέλα"
+
+msgid "Table of contents"
+msgstr "Πίνακας περιεχομένων"
+
+msgid "Tabs"
+msgstr "Καρτέλες"
+
+msgid "Tag"
+msgstr "Ετικέτα"
+
+msgid "Tag strip widget"
+msgstr "Γραφικό στοιχείο λωρίδας ετικετών"
+
+msgid "Tag: %1"
+msgstr "Ετικέτα: %1"
+
+msgid "tags"
+msgstr "ετικέτες"
+
+msgid "Tags"
+msgstr "Ετικέτες"
+
+msgid "Tailscale"
+msgstr "Tailscale"
+
+msgid "Tap and hold any book or folder in your library to reveal details."
+msgstr "Πατήστε παρατεταμένα οποιοδήποτε βιβλίο ή φάκελο στη βιβλιοθήκη σας για να δείτε λεπτομέρειες."
+
+msgid "Text color"
+msgstr "Χρώμα κειμένου"
+
+msgid "Text styles"
+msgstr "Στυλ κειμένου"
+
+msgid "The best interface is the one you forget is there.\nNow go get lost in a good book."
+msgstr "Η καλύτερη διεπαφή είναι αυτή που ξεχνάς ότι υπάρχει.\nΤώρα χαθείτε σε ένα καλό βιβλίο."
+
+msgid "The default KOReader reader menu is inside the Aa icon."
+msgstr "Το προεπιλεγμένο μενού ανάγνωσης του KOReader βρίσκεται μέσα στο εικονίδιο Aa."
+
+msgid "The place for all your books %1"
+msgstr "Ο χώρος για όλα σας τα βιβλία %1"
+
+msgid "Theme font"
+msgstr "Γραμματοσειρά θέματος"
+
+msgid "Theme name"
+msgstr "Όνομα θέματος"
+
+msgid "This change requires a restart to take effect."
+msgstr "Αυτή η αλλαγή απαιτεί επανεκκίνηση για να εφαρμοστεί."
+
+msgid "This does not disable ZenOS—it only shows or hides KOReader’s menus."
+msgstr "Αυτό δεν απενεργοποιεί το ZenOS — απλώς εμφανίζει ή αποκρύπτει τα μενού του KOReader."
+
+msgid "This is Zen Settings. ZenOS settings/updates and common KOReader settings live here."
+msgstr "Αυτό είναι το Zen Settings. Ρυθμίσεις/ενημερώσεις ZenOS και κοινές ρυθμίσεις KOREader ζωντανά εδώ."
+
+msgid "This Month"
+msgstr "Αυτόν τον μήνα"
+
+msgid "This month"
+msgstr "Αυτόν τον μήνα"
+
+msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
+msgstr "Αυτή η επιλογή είναι απενεργοποιημένη όταν ένας αρχικός φάκελος είναι η ρίζα του αποθηκευτικού χώρου. Ορίστε πρώτα πιο συγκεκριμένους φακέλους βιβλίων."
+
+msgid "This Week"
+msgstr "Αυτή την εβδομάδα"
+
+msgid "This week"
+msgstr "Αυτή την εβδομάδα"
+
+msgid "This year"
+msgstr "Φέτος"
+
+msgid "This Year"
+msgstr "Φέτος"
+
+msgid "Time"
+msgstr "Χρόνος"
+
+msgid "Time Format"
+msgstr "Μορφή ώρας"
+
+msgid "Time this week"
+msgstr "Χρόνος αυτή την εβδομάδα"
+
+msgid "Time to book end"
+msgstr "Χρόνος έως το τέλος του βιβλίου"
+
+msgid "Time today"
+msgstr "Χρόνος σήμερα"
+
+msgid "Time/book"
+msgstr "Χρόνος/βιβλίο"
+
+msgid "Time/day"
+msgstr "Χρόνος/ημέρα"
+
+msgid "Time/page"
+msgstr "Χρόνος/σελίδα"
+
+msgid "Timeout"
+msgstr "Χρονικό όριο"
+
+msgid "Timer: %1 s"
+msgstr "Χρονόμετρο: %1 δευτ."
+
+msgid "Title"
+msgstr "Τίτλος"
+
+msgid "Title natural"
+msgstr "Τίτλος (φυσική σειρά)"
+
+msgid "To Be Read"
+msgstr "Προς ανάγνωση"
+
+msgid "To Be Read strip widget"
+msgstr "Γραφικό στοιχείο λωρίδας «Προς ανάγνωση»"
+
+msgid "Today"
+msgstr "Σήμερα"
+
+msgid "Too many requests. Please try again later."
+msgstr "Πάρα πολλά αιτήματα. Δοκιμάστε ξανά αργότερα."
+
+msgid "Tools"
+msgstr "Εργαλεία"
+
+msgid "Top bar font"
+msgstr "Γραμματοσειρά πάνω γραμμής"
+
+msgid "Top status bar"
+msgstr "Πάνω γραμμή κατάστασης"
+
+msgid "Total"
+msgstr "Σύνολο"
+
+msgid "Total books"
+msgstr "Σύνολο βιβλίων"
+
+msgid "Total pages"
+msgstr "Σύνολο σελίδων"
+
+msgid "Total time"
+msgstr "Συνολικός χρόνος"
+
+msgid "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
+msgstr "Ενεργοποιήστε τη λειτουργία Zen για να περιοριστεί το KOReader στα απολύτως απαραίτητα.\n\nΑφαιρέστε την οπτική φασαρία για μια συγκεντρωμένη ανάγνωση χωρίς περισπασμούς. Μπορείτε να βγείτε οποτεδήποτε από τις Ρυθμίσεις."
+
+msgid "Two rows"
+msgstr "Δύο γραμμές"
+
+msgid "Typesetting"
+msgstr "Στοιχειοθεσία"
+
+msgid "Unavailable"
+msgstr "Μη διαθέσιμος"
+
+msgid "Unavailable pack: %1"
+msgstr "Μη διαθέσιμο πακέτο: %1"
+
+msgid "Underline"
+msgstr "Υπογράμμιση"
+
+msgid "Underline above icon"
+msgstr "Υπογράμμιση πάνω από το εικονίδιο"
+
+msgid "Uniform covers"
+msgstr "Ενιαίο μέγεθος εξωφύλλων"
+
+msgid "unknown"
+msgstr "άγνωστο"
+
+msgid "Unknown"
+msgstr "Άγνωστo"
+
+msgid "Unknown Author"
+msgstr "Άγνωστος Συγγραφέας"
+
+msgid "unknown error"
+msgstr "άγνωστο σφάλμα"
+
+msgid "Unnamed preset"
+msgstr "Προρύθμιση χωρίς όνομα"
+
+msgid "Unread"
+msgstr "Μη αναγνωσμένο"
+
+msgid "Update available"
+msgstr "Διαθέσιμη ενημέρωση"
+
+msgid "Update available: "
+msgstr "Διαθέσιμη ενημέρωση: "
+
+msgid "Update cancelled."
+msgstr "Η ενημέρωση ακυρώθηκε."
+
+msgid "Update channel"
+msgstr "Κανάλι ενημέρωσης"
+
+msgid "Update failed and rollback failed."
+msgstr "Η ενημέρωση απέτυχε και η επαναφορά απέτυχε."
+
+msgid "Update failed: active plugin folder not found."
+msgstr "Η ενημέρωση απέτυχε: δεν βρέθηκε ο φάκελος του ενεργού πρόσθετου."
+
+msgid "Update failed: corrupted update package."
+msgstr "Η ενημέρωση απέτυχε: κατεστραμμένο πακέτο ενημέρωσης."
+
+msgid "Update failed: could not activate new version."
+msgstr "Η ενημέρωση απέτυχε: δεν ήταν δυνατή η ενεργοποίηση της νέας έκδοσης."
+
+msgid "Update failed: could not create backup."
+msgstr "Η ενημέρωση απέτυχε: δεν ήταν δυνατή η δημιουργία αντιγράφου ασφαλείας."
+
+msgid "Update failed: could not prepare staging area."
+msgstr "Η ενημέρωση απέτυχε: δεν ήταν δυνατή η προετοιμασία της περιοχής προετοιμασίας."
+
+msgid "Update failed: could not restore previous plugin backup."
+msgstr "Η ενημέρωση απέτυχε: δεν ήταν δυνατή η επαναφορά του προηγούμενου αντιγράφου του πρόσθετου."
+
+msgid "Update failed: could not unpack update package."
+msgstr "Η ενημέρωση απέτυχε: δεν ήταν δυνατή η αποσυμπίεση του πακέτου ενημέρωσης."
+
+msgid "Update failed: invalid package layout."
+msgstr "Η ενημέρωση απέτυχε: μη έγκυρη δομή πακέτου."
+
+msgid "Update failed: missing checksum."
+msgstr "Η ενημέρωση απέτυχε: λείπει το άθροισμα ελέγχου."
+
+msgid "Update failed: network connection lost."
+msgstr "Η ενημέρωση απέτυχε: χάθηκε η σύνδεση δικτύου."
+
+msgid "Update failed: new version is invalid."
+msgstr "Η ενημέρωση απέτυχε: η νέα έκδοση δεν είναι έγκυρη."
+
+msgid "Update failed: plugin directory is not writable."
+msgstr "Η ενημέρωση απέτυχε: ο φάκελος πρόσθετων δεν είναι εγγράψιμος."
+
+msgid "Update failed: staged plugin validation failed."
+msgstr "Η ενημέρωση απέτυχε: απέτυχε ο έλεγχος του προετοιμασμένου πρόσθετου."
+
+msgid "Update failed: timed out."
+msgstr "Η ενημέρωση απέτυχε: έληξε το χρονικό όριο."
+
+msgid "Update KOReader"
+msgstr "Ενημέρωση του KOReader"
+
+msgid "Update now"
+msgstr "Ενημέρωση τώρα"
+
+msgid "Update Status"
+msgstr "Ενημέρωση Κατάστασης"
+
+msgid "Update ZenOS"
+msgstr "Ενημέρωση του ZenOS"
+
+msgid "Updated to %1"
+msgstr "Ενημερώθηκε σε %1"
+
+msgid "Updates"
+msgstr "Ενημερώσεις"
+
+msgid "USB"
+msgstr "USB"
+
+msgid "Use a narrower books folder instead of the device storage root."
+msgstr "Χρησιμοποιήστε έναν πιο συγκεκριμένο φάκελο βιβλίων αντί για τη ρίζα του αποθηκευτικού χώρου."
+
+msgid "Use border as progress bar"
+msgstr "Χρήση του περιγράμματος ως γραμμής προόδου"
+
+msgid "Use current folder"
+msgstr "Χρήση τρέχοντος φακέλου"
+
+msgid "Use default font"
+msgstr "Χρήση προεπιλεγμένης γραμματοσειράς"
+
+msgid "Use default style"
+msgstr "Χρήση προεπιλεγμένου στυλ"
+
+msgid "Use home folder"
+msgstr "Χρήση αρχικού φακέλου"
+
+msgid "Use last folder"
+msgstr "Χρήση τελευταίου φακέλου"
+
+msgid "username"
+msgstr "όνομα χρήστη"
+
+msgid "Verbose time to chapter end"
+msgstr "Αναλυτικός χρόνος έως το τέλος του κεφαλαίου"
+
+msgid "View"
+msgstr "Προβολή"
+
+msgid "Virtual folder"
+msgstr "Εικονικός φάκελος"
+
+msgid "Warmth"
+msgstr "Θερμό φως"
+
+msgid "Weekly"
+msgstr "Εβδομαδιαία"
+
+msgid "Welcome to ZenOS"
+msgstr "Καλώς ήρθατε στο ZenOS"
+
+msgid "What should your device show when it goes to sleep?"
+msgstr "Τι θα εμφανίζει η συσκευή σας όταν τίθεται σε αναστολή;"
+
+msgid "What's changed"
+msgstr "Τι άλλαξε"
+
+msgid "What's New"
+msgstr "Τι νέο υπάρχει"
+
+msgid "When enabled, loose icons or a selected ZenOS icon pack override supported icons. Missing icons fall back to ZenOS, then KOReader."
+msgstr "Αν ενεργοποιηθεί, τα μεμονωμένα εικονίδια ή ένα επιλεγμένο πακέτο εικονιδίων ZenOS αντικαθιστούν τα υποστηριζόμενα εικονίδια. Για όσα λείπουν χρησιμοποιούνται τα εικονίδια του ZenOS και έπειτα του KOReader."
+
+msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
+msgstr "Αν ενεργοποιηθεί, η αναζήτηση βρίσκει μόνο ολόκληρες λέξεις. Αν απενεργοποιηθεί, γίνεται αναζήτηση τμήματος λέξης (π.χ. το «ψαρ» βρίσκει το «ψάρεμα»)."
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr "Αν ενεργοποιηθεί, πατήστε δύο φορές γρήγορα το ίδιο βιβλίο για να ανοίξει. Τα πλήκτρα δεν αλλάζουν."
+
+msgid "Which time format do you prefer?"
+msgstr "Ποια μορφή ώρας προτιμάτε;"
+
+msgid "White"
+msgstr "Άσπρο"
+
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
+
+msgid "Widget settings"
+msgstr "Ρυθμίσεις γραφικού στοιχείου"
+
+msgid "Widgets"
+msgstr "Γραφικά στοιχεία"
+
+msgid "Wrap description text"
+msgstr "Αναδίπλωση κειμένου περιγραφής"
+
+msgid "Yearly"
+msgstr "Ετήσια"
+
+msgid "You're All Set"
+msgstr "Είστε έτοιμοι"
+
+msgid "Z-Lib"
+msgstr "Z-Lib"
+
+msgid "Z-Library"
+msgstr "Z-Library"
+
+msgid "Zen"
+msgstr "Zen"
+
+msgid "Zen highlight menu"
+msgstr "Μενού επισήμανσης Zen"
+
+msgid "Zen mode"
+msgstr "Λειτουργία Zen"
+
+msgid "Zen Mode"
+msgstr "Λειτουργία Zen"
+
+msgid "Zen Mode is enabled. KOReader menus are hidden."
+msgstr "Η λειτουργία Zen είναι ενεργή. Τα μενού του KOReader είναι κρυμμένα."
+
+msgid "Zen Mode: Disabled"
+msgstr "Λειτουργία Zen: ανενεργή"
+
+msgid "Zen Mode: Enabled"
+msgstr "Λειτουργία Zen: ενεργή"
+
+msgid "Zen OPDS"
+msgstr "Zen OPDS"
+
+msgid "Zen page browser"
+msgstr "Περιηγητής σελίδων Zen"
+
+msgid "Zen Presets"
+msgstr "Προρυθμίσεις Zen"
+
+msgid "Zen quick lookup"
+msgstr "Γρήγορη αναζήτηση Zen"
+
+msgid "ZenFM"
+msgstr "ZenFM"
+
+msgid "ZenOS"
+msgstr "ZenOS"
+
+msgid "ZenOS defaults"
+msgstr "Προεπιλογές του ZenOS"
+
+msgid "ZenOS is up to date."
+msgstr "Το ZenOS είναι ενημερωμένο."
+
+msgid "ZenOS: "
+msgstr "ZenOS: "
+
+msgid "ZenOS: Authors"
+msgstr "ZenOS: Συγγραφείς"
+
+msgid "ZenOS: folder not found: "
+msgstr "ZenOS: ο φάκελος δεν βρέθηκε: "
+
+msgid "ZenOS: Home"
+msgstr "ZenOS: Αρχική"
+
+msgid "ZenOS: Library"
+msgstr "ZenOS: Βιβλιοθήκη"
+
+msgid "ZenOS: no folder set for this action."
+msgstr "ZenOS: δεν έχει οριστεί φάκελος για αυτή την ενέργεια."
+
+msgid "ZenOS: Open folder"
+msgstr "ZenOS: Άνοιγμα φακέλου"
+
+msgid "ZenOS: Series"
+msgstr "ZenOS: Σειρές"
+
+msgid "ZenOS: Sync progress (pull + push)"
+msgstr "ZenOS: Συγχρονισμός προόδου (λήψη + αποστολή)"
+
+msgid "ZenOS: Table of contents"
+msgstr "ZenOS: Πίνακας περιεχομένων"
+
+msgid "ZenOS: Tags"
+msgstr "ZenOS: Ετικέτες"
+
+msgid "ZenOS: Toggle bottom reader status bar"
+msgstr "ZenOS: Εναλλαγή κάτω γραμμής κατάστασης ανάγνωσης"
+
+msgid "ZenOS: Toggle Incognito Mode"
+msgstr "ZenOS: Εναλλαγή ανώνυμης λειτουργίας"
+
+msgid "ZenOS: Toggle Lockdown Mode"
+msgstr "ZenOS: Εναλλαγή λειτουργίας κλειδώματος"
+
+msgid "ZenOS: Toggle reader status bars"
+msgstr "ZenOS: Εναλλαγή γραμμών κατάστασης ανάγνωσης"
+
+msgid "ZenOS: Toggle reader themes"
+msgstr "ZenOS: Εναλλαγή θεμάτων ανάγνωσης"
+
+msgid "ZenOS: Toggle top reader status bar"
+msgstr "ZenOS: Εναλλαγή πάνω γραμμής κατάστασης ανάγνωσης"
+
+msgid "ZenOS: Toggle Zen Mode"
+msgstr "ZenOS: Εναλλαγή λειτουργίας Zen"
+
+msgid "ZenPM"
+msgstr "ZenPM"
+
+msgid "ZenPM has been installed. Restart KOReader to use it."
+msgstr "Το ZenPM εγκαταστάθηκε. Επανεκκινήστε το KOReader για να το χρησιμοποιήσετε."

@@ -35,6 +35,7 @@ describe("solid circle", function()
             child,
         }
 
+        assert.is_nil(circle.color)
         circle:paintTo(bb, 10, 20)
 
         assert.are.equal(10, calls.fill.x)

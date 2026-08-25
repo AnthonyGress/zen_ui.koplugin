@@ -1,5 +1,5 @@
 -- settings/sections/library/status_bar.lua
--- Status bar settings item for Zen UI.
+-- Status bar settings item for ZenOS.
 -- Returns a single menu-item table: { text = _("Status bar"), sub_item_table = {...} }
 -- Receives ctx: { config, save_and_apply }
 
@@ -10,6 +10,7 @@ local constants = require("common/constants")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
 local Bluetooth = require("common/bluetooth")
+local DateFormat = require("common/date_format")
 
 local M = {}
 
@@ -29,12 +30,14 @@ function M.build(ctx)
 
     local status_bar_all_items = {
         { key = "bluetooth",   text = _("Bluetooth"), available = Bluetooth.isAvailable },
+        { key = "incognito",   text = _("Incognito")   },
         { key = "wifi",        text = _("Wi-Fi")       },
         { key = "disk",        text = _("Disk space")  },
         { key = "ram",         text = _("RAM usage")   },
         { key = "frontlight",  text = _("Brightness")  },
         { key = "battery",     text = _("Battery")     },
         { key = "time",        text = _("Time")        },
+        { key = "date",        text = _("Date")        },
         { key = "custom_text", text = _("Custom text") },
     }
 
@@ -48,8 +51,7 @@ function M.build(ctx)
         status_bar_all_items = available_items
     end
 
-    -- Append items registered by external plugins via
-    -- _G.__ZEN_UI_REGISTER_STATUS_ITEM so they are placeable from this UI.
+    -- Append items registered via __ZENOS_REGISTER_STATUS_ITEM (or its legacy alias).
     local ext_registry = rawget(_G, "__ZEN_UI_STATUS_ITEMS")
     if type(ext_registry) == "table" then
         for key, entry in pairs(ext_registry) do
@@ -66,10 +68,36 @@ function M.build(ctx)
     -- position matching this order when the user enables them, rather than
     -- always appending to the end.
     local CANONICAL_ORDERS = {
-        left   = { "time", "custom_text" },
+        left   = { "time", "date", "custom_text" },
         center = {},
-        right  = { "custom_text", "disk", "ram", "frontlight", "bluetooth", "wifi", "battery" },
+        right  = { "date", "custom_text", "disk", "ram", "frontlight", "incognito", "bluetooth", "wifi", "battery" },
     }
+
+    local function current_date_format()
+        return config.status_bar.date_format or "short"
+    end
+
+    local function make_date_format_items()
+        local items = {}
+        for _i, def in ipairs({
+            { key = "short" },
+            { key = "long" },
+        }) do
+            local format = def.key
+            local item = {
+                text_func = function() return DateFormat.format(format) end,
+                radio = true,
+                checked_func = function() return current_date_format() == format end,
+                callback = function(touchmenu_instance)
+                    config.status_bar.date_format = format
+                    save_and_apply_status_bar()
+                    if touchmenu_instance then touchmenu_instance:updateItems() end
+                end,
+            }
+            table.insert(items, item)
+        end
+        return items
+    end
 
     local function make_status_bar_slot_items(slot_name, arrange_title)
         local order_key = slot_name .. "_order"
@@ -116,61 +144,67 @@ function M.build(ctx)
 
         for _i, def in ipairs(status_bar_all_items) do
             local key = def.key
-            table.insert(t, {
+            local function is_available()
+                -- Disable if already active in another slot.
+                for _j, other_key in ipairs(other_keys) do
+                    for _k, k in ipairs(config.status_bar[other_key] or {}) do
+                        if k == key then return false end
+                    end
+                end
+                return true
+            end
+            local function is_checked()
+                for _j, k in ipairs(config.status_bar[order_key] or {}) do
+                    if k == key then return true end
+                end
+                return false
+            end
+            local function toggle(touchmenu_instance)
+                local this_order = config.status_bar[order_key] or {}
+                local found = false
+                local new_this = {}
+                for _j, k in ipairs(this_order) do
+                    if k == key then found = true else table.insert(new_this, k) end
+                end
+                if found then
+                    config.status_bar[order_key] = new_this
+                else
+                    for _j, other_key in ipairs(other_keys) do
+                        local new_other = {}
+                        for _k, k in ipairs(config.status_bar[other_key] or {}) do
+                            if k ~= key then table.insert(new_other, k) end
+                        end
+                        config.status_bar[other_key] = new_other
+                    end
+                    local new_key_canon = canon_pos[key] or math.huge
+                    local insert_at = #this_order + 1
+                    for i, k in ipairs(this_order) do
+                        if (canon_pos[k] or math.huge) > new_key_canon then
+                            insert_at = i
+                            break
+                        end
+                    end
+                    table.insert(this_order, insert_at, key)
+                    config.status_bar[order_key] = this_order
+                end
+                if touchmenu_instance then touchmenu_instance:updateItems() end
+                save_and_apply_status_bar()
+            end
+
+            local item = {
                 text = def.text,
                 keep_menu_open = true,
-                enabled_func = function()
-                    -- Disable if already active in another slot.
-                    for _j, other_key in ipairs(other_keys) do
-                        for _k, k in ipairs(config.status_bar[other_key] or {}) do
-                            if k == key then return false end
-                        end
-                    end
-                    return true
-                end,
-                checked_func = function()
-                    for _j, k in ipairs(config.status_bar[order_key] or {}) do
-                        if k == key then return true end
-                    end
-                    return false
-                end,
-                callback = function(touchmenu_instance)
-                    local this_order = config.status_bar[order_key] or {}
-                    local found = false
-                    local new_this = {}
-                    for _j, k in ipairs(this_order) do
-                        if k == key then found = true else table.insert(new_this, k) end
-                    end
-                    if found then
-                        config.status_bar[order_key] = new_this
-                    else
-                        for _j, other_key in ipairs(other_keys) do
-                            local new_other = {}
-                            for _k, k in ipairs(config.status_bar[other_key] or {}) do
-                                if k ~= key then table.insert(new_other, k) end
-                            end
-                            config.status_bar[other_key] = new_other
-                        end
-                        -- Insert at the canonical position rather than appending.
-                        local new_key_canon = canon_pos[key] or math.huge
-                        local insert_at = #this_order + 1
-                        for i, k in ipairs(this_order) do
-                            if (canon_pos[k] or math.huge) > new_key_canon then
-                                insert_at = i
-                                break
-                            end
-                        end
-                        table.insert(this_order, insert_at, key)
-                        config.status_bar[order_key] = this_order
-                    end
-                    -- Repaint the menu's checkmarks before the deferred reinit fires,
-                    -- preventing ghost artifacts from the old checked state.
-                    if touchmenu_instance then
-                        touchmenu_instance:updateItems()
-                    end
-                    save_and_apply_status_bar()
-                end,
-            })
+                enabled_func = is_available,
+            }
+            if key == "date" then
+                item.checked_func = is_checked
+                item.checkmark_callback = toggle
+                item.sub_item_table = make_date_format_items()
+            else
+                item.checked_func = is_checked
+                item.callback = toggle
+            end
+            table.insert(t, item)
         end
         return t
     end

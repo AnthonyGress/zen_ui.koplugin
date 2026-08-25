@@ -105,6 +105,97 @@ describe("reader themes settings", function()
         assert.are.equal(1, applied)
     end)
 
+    it("shows default-on lookup toggles only for loaded companion plugins", function()
+        ZenSpec.replace("apps/filemanager/filemanager", { instance = nil })
+        ZenSpec.replace("apps/reader/readerui", {
+            instance = { xray = {} },
+        })
+        ZenSpec.replace("pluginloader", { loaded_plugins = { koassistant = {} } })
+
+        local saved = 0
+        local items = ReaderSettings.build({
+            config = {
+                features = {
+                    reader_themes = false,
+                    reader_top_status_bar = false,
+                    dict_quick_lookup = true,
+                    highlight_lookup = true,
+                    reader_bottom_menu = false,
+                    page_browser = false,
+                    restore_library_view = false,
+                },
+                highlight_lookup = {},
+                reader_themes = { dark_mode = "dark_warm_gray", light_mode = "default" },
+            },
+            plugin = { saveConfig = function() saved = saved + 1 end },
+            save_and_apply = function() end,
+        })
+
+        local lookup
+        for _i, item in ipairs(items) do
+            if item.text == "Highlight / Lookup" then lookup = item end
+        end
+        local by_text = {}
+        for _i, item in ipairs(lookup.sub_item_table) do
+            by_text[item.text] = item
+        end
+
+        assert.is_true(by_text["Show X-Ray"].show_func())
+        assert.is_true(by_text["Show KOAssistant"].show_func())
+        assert.is_false(by_text["Show AI assistant"].show_func())
+        assert.is_true(by_text["Show X-Ray"].checked_func())
+
+        by_text["Show X-Ray"].callback()
+        assert.is_false(by_text["Show X-Ray"].checked_func())
+        assert.are.equal(1, saved)
+    end)
+
+    it("offers chapter time formats as radio choices", function()
+        local saved = 0
+        local config = {
+            features = {
+                reader_themes = false,
+                reader_top_status_bar = false,
+                dict_quick_lookup = false,
+                highlight_lookup = false,
+                reader_bottom_menu = false,
+                page_browser = false,
+                restore_library_view = false,
+            },
+            reader_footer = { chapter_time_format = "full" },
+            reader_themes = { dark_mode = "dark_warm_gray", light_mode = "default" },
+        }
+        local items = ReaderSettings.build({
+            config = config,
+            plugin = { saveConfig = function() saved = saved + 1 end },
+            save_and_apply = function() end,
+        })
+
+        local chapter_time
+        for _i, item in ipairs(items) do
+            if item.text == "Time until chapter end" then chapter_time = item end
+        end
+        assert.are.equal(4, #chapter_time.sub_item_table)
+        assert.are.same({ "5 min left in chapter", "5 min left", "5m", "hh:mm" }, {
+            chapter_time.sub_item_table[1].text,
+            chapter_time.sub_item_table[2].text,
+            chapter_time.sub_item_table[3].text,
+            chapter_time.sub_item_table[4].text,
+        })
+        assert.is_true(chapter_time.sub_item_table[1].radio)
+        assert.is_true(chapter_time.sub_item_table[1].checked_func())
+
+        chapter_time.sub_item_table[2].callback()
+        assert.are.equal("compact", config.reader_footer.chapter_time_format)
+        assert.is_true(chapter_time.sub_item_table[2].checked_func())
+        assert.are.equal(1, saved)
+
+        chapter_time.sub_item_table[4].callback()
+        assert.are.equal("koreader", config.reader_footer.chapter_time_format)
+        assert.is_true(chapter_time.sub_item_table[4].checked_func())
+        assert.are.equal(2, saved)
+    end)
+
     it("creates a custom theme without using a built-in theme as its base", function()
         local saved, applied = 0, 0
         local config = {
