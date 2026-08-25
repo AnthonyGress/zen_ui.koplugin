@@ -4,9 +4,12 @@ describe("home quotes", function()
     local state
     local book_mode
     local sidecar_stat
+    local flushes
 
     before_each(function()
         state = ZenSpec.memorySettings()
+        flushes = 0
+        state.flush = function() flushes = flushes + 1 end
         book_mode = "directory"
         sidecar_stat = nil
         ZenSpec.replace("libs/libkoreader-lfs", {
@@ -128,6 +131,20 @@ describe("home quotes", function()
         assert.are.equal(stepped.text, HomeQuotes.selectQuote(config, "refresh").text)
     end)
 
+    it("does not rewrite an unchanged daily quote state", function()
+        dofile_stub.returns({ "First", "Second" })
+        local config = { sources = { custom = true } }
+
+        local first, first_perf = HomeQuotes.selectQuote(config, "daily")
+        local initial_flushes = flushes
+        local second, second_perf = HomeQuotes.selectQuote(config, "daily")
+
+        assert.are.equal(first.text, second.text)
+        assert.are.equal(1, first_perf.state_writes)
+        assert.are.equal(0, second_perf.state_writes)
+        assert.are.equal(initial_flushes, flushes)
+    end)
+
     it("collects annotation quotes from book sidecars", function()
         local open_calls = 0
         book_mode = "file"
@@ -143,7 +160,9 @@ describe("home quotes", function()
                 if file:match("plain") then return nil end
                 return file .. ".sdr/metadata.epub.lua"
             end,
-            openSettingsFile = function()
+            openSettingsFile = function(file)
+                assert.are.equal(
+                    "/books/annotated.epub.sdr/metadata.epub.lua", file)
                 open_calls = open_calls + 1
                 return { data = {
                     doc_props = { title = "Annotated", authors = "Writer" },
@@ -156,7 +175,7 @@ describe("home quotes", function()
             end,
         })
 
-        local quotes = HomeQuotes.getQuotes({ sources = { annotations = true } })
+        local quotes, perf = HomeQuotes.getQuotes({ sources = { annotations = true } })
 
         assert.are.equal(1, #quotes)
         assert.are.equal("A marked line", quotes[1].text)
@@ -164,6 +183,8 @@ describe("home quotes", function()
         assert.are.equal("/books/annotated.epub", quotes[1].filepath)
         assert.are.equal(12, quotes[1].page)
         assert.is_true(quotes[1].is_annotation)
+        assert.are.equal(2, perf.annotation_books)
+        assert.are.equal(1, perf.sidecar_cache_misses)
     end)
 
     it("reuses parsed sidecar annotations on a later scan", function()
@@ -177,7 +198,9 @@ describe("home quotes", function()
             findSidecarFile = function(_, file)
                 return file .. ".sdr/metadata.epub.lua"
             end,
-            openSettingsFile = function()
+            openSettingsFile = function(file)
+                assert.are.equal(
+                    "/books/annotated.epub.sdr/metadata.epub.lua", file)
                 open_calls = open_calls + 1
                 return { data = {
                     doc_props = { title = "Annotated", authors = "Writer" },
@@ -192,9 +215,10 @@ describe("home quotes", function()
         local parsed = open_calls
 
         HomeQuotes.invalidateAnnotations()
-        local quotes = HomeQuotes.getQuotes({ sources = { annotations = true } })
+        local quotes, perf = HomeQuotes.getQuotes({ sources = { annotations = true } })
 
         assert.are.equal(1, #quotes)
         assert.are.equal(parsed, open_calls)
+        assert.are.equal(1, perf.sidecar_cache_hits)
     end)
 end)

@@ -63,6 +63,22 @@ local function configured_quote_font_size(quotes)
     return math.max(4, math.min(32, tonumber(quote_font_size) or 12))
 end
 
+local function largest_fitting(minimum, maximum, fits)
+    if fits(maximum) then return maximum end
+    local best = minimum
+    local low, high = minimum, maximum - 1
+    while low <= high do
+        local middle = math.floor((low + high) / 2)
+        if fits(middle) then
+            best = middle
+            low = middle + 1
+        else
+            high = middle - 1
+        end
+    end
+    return best
+end
+
 local function preferred_height(ctx)
     ctx = type(ctx) == "table" and ctx or {}
     if ctx.is_last_row ~= true or (tonumber(ctx.row_count) or 0) < 3 then return nil end
@@ -112,9 +128,19 @@ return {
         local width = ctx.width
         local height = ctx.height
         local quote, quotes, quote_text, attribution = quote_content(ctx)
+        local layout_started_at = os.clock()
+        local layout_probes = 0
         local automatic_font_size = quotes.automatic_font_size == true
         local Screen = Device.screen
         local quote_font_size = configured_quote_font_size(quotes)
+
+        local function measure_height(values)
+            layout_probes = layout_probes + 1
+            local probe = TextBoxWidget:new(values)
+            local measured_h = probe:getSize().h or 0
+            WidgetResources.free(probe)
+            return measured_h
+        end
 
         local padding = Screen:scaleBySize(8)
         local vertical_padding = automatic_font_size and 0 or Screen:scaleBySize(4)
@@ -127,6 +153,7 @@ return {
             tostring(quotes.max_font_size),
         }, "\30")
         local cached_layout = get_cached_layout(layout_key)
+        local layout_cache_hit = cached_layout ~= nil
         if cached_layout then
             quote_font_size = cached_layout.quote_font_size
             quote_line_height = cached_layout.quote_line_height
@@ -134,9 +161,10 @@ return {
             local max_font_size = math.max(
                 4, math.min(32, tonumber(quotes.max_font_size) or 14)
             )
-            quote_font_size = 4
-            quote_line_height = AUTOMATIC_MIN_LINE_HEIGHT
-            for candidate = max_font_size, 4, -1 do
+            local font_measurements = {}
+            local function font_fits(candidate)
+                local measured = font_measurements[candidate]
+                if measured then return measured.fits end
                 local candidate_face = Font:getFace(
                     "smallinfofont", Screen:scaleBySize(candidate)
                 )
@@ -146,46 +174,45 @@ return {
                         "smallinfofont",
                         Screen:scaleBySize(math.max(6, math.floor(candidate * 9 / 10)))
                     )
-                    local author_probe = TextBoxWidget:new{
+                    author_h = measure_height{
                         text = "\226\128\148 " .. attribution,
                         width = content_w,
                         face = candidate_author_face,
                         alignment = "center",
                     }
-                    author_h = author_probe:getSize().h or 0
-                    WidgetResources.free(author_probe)
                 end
-                local quote_probe = TextBoxWidget:new{
+                local quote_h = measure_height{
                     text = quote_text,
                     width = content_w,
                     face = candidate_face,
                     alignment = "center",
                     line_height = AUTOMATIC_MIN_LINE_HEIGHT,
                 }
-                local measured_h = quote_probe:getSize().h or 0
-                WidgetResources.free(quote_probe)
-                if measured_h + author_h <= inner_h then
-                    quote_font_size = candidate
-                    -- Keep the roomiest spacing available at the chosen font size.
-                    for line_height_step = 11, AUTOMATIC_MIN_LINE_HEIGHT * 20, -1 do
-                        local candidate_line_height = line_height_step / 20
-                        local spacing_probe = TextBoxWidget:new{
-                            text = quote_text,
-                            width = content_w,
-                            face = candidate_face,
-                            alignment = "center",
-                            line_height = candidate_line_height,
-                        }
-                        local spacing_h = spacing_probe:getSize().h or 0
-                        WidgetResources.free(spacing_probe)
-                        if spacing_h + author_h <= inner_h then
-                            quote_line_height = candidate_line_height
-                            break
-                        end
-                    end
-                    break
-                end
+                measured = {
+                    author_h = author_h,
+                    face = candidate_face,
+                    fits = quote_h + author_h <= inner_h,
+                    quote_h = quote_h,
+                }
+                font_measurements[candidate] = measured
+                return measured.fits
             end
+
+            quote_font_size = largest_fitting(4, max_font_size, font_fits)
+            local chosen = font_measurements[quote_font_size]
+            local min_line_height_step = AUTOMATIC_MIN_LINE_HEIGHT * 20
+            local function line_height_fits(step)
+                if step == min_line_height_step then return chosen.fits end
+                return measure_height{
+                    text = quote_text,
+                    width = content_w,
+                    face = chosen.face,
+                    alignment = "center",
+                    line_height = step / 20,
+                } + chosen.author_h <= inner_h
+            end
+            quote_line_height = largest_fitting(
+                min_line_height_step, 11, line_height_fits) / 20
         end
 
         local quote_face = Font:getFace("smallinfofont", Screen:scaleBySize(quote_font_size))
@@ -205,48 +232,38 @@ return {
             natural_quote_h = cached_layout.natural_quote_h
             author_h = cached_layout.author_h
         else
-            local quote_probe = TextBoxWidget:new{
+            two_quote_lines_h = measure_height{
                 text = "A\nA",
                 width = content_w,
                 face = quote_face,
                 line_height = quote_line_height,
             }
-            two_quote_lines_h = quote_probe:getSize().h or 0
-            WidgetResources.free(quote_probe)
-            local quote_three_line_probe = TextBoxWidget:new{
+            three_quote_lines_h = measure_height{
                 text = "A\nA\nA",
                 width = content_w,
                 face = quote_face,
                 line_height = quote_line_height,
             }
-            three_quote_lines_h = quote_three_line_probe:getSize().h or 0
-            WidgetResources.free(quote_three_line_probe)
-            local quote_line_probe = TextBoxWidget:new{
+            quote_line_h = measure_height{
                 text = "A",
                 width = content_w,
                 face = quote_face,
                 line_height = quote_line_height,
             }
-            quote_line_h = quote_line_probe:getSize().h or 0
-            WidgetResources.free(quote_line_probe)
-            local quote_height_probe = TextBoxWidget:new{
+            natural_quote_h = measure_height{
                 text = quote_text,
                 width = content_w,
                 face = quote_face,
                 line_height = quote_line_height,
             }
-            natural_quote_h = quote_height_probe:getSize().h or 0
-            WidgetResources.free(quote_height_probe)
             author_h = 0
             if attribution ~= "" then
-                local author_probe = TextBoxWidget:new{
+                author_h = measure_height{
                     text = "\226\128\148 " .. attribution,
                     width = content_w,
                     face = author_face,
                     alignment = "center",
                 }
-                author_h = author_probe:getSize().h or 0
-                WidgetResources.free(author_probe)
             end
             cache_layout(layout_key, {
                 quote_font_size = quote_font_size,
@@ -414,6 +431,13 @@ return {
             return false
         end
         tap[1] = body
+        if ctx.data and type(ctx.data.recordQuoteLayout) == "function" then
+            ctx.data:recordQuoteLayout(
+                (os.clock() - layout_started_at) * 1000,
+                layout_cache_hit,
+                layout_probes
+            )
+        end
         return tap
     end,
 }

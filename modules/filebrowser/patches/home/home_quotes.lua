@@ -117,7 +117,8 @@ end
 -- openSettingsFile() instead of DocSettings:open(), which stats up to ten
 -- candidate paths before parsing.  Returns an array of quote tables, or nil
 -- when the book has no usable sidecar.
-local function book_annotations(path)
+local function book_annotations(path, perf)
+    perf.annotation_books = perf.annotation_books + 1
     if type(path) ~= "string" or lfs.attributes(path, "mode") ~= "file" then
         return nil
     end
@@ -129,9 +130,13 @@ local function book_annotations(path)
     if not mtime or not size or size <= 0 then return nil end
     local key = sidecar_file .. "\31" .. tostring(mtime) .. "\31" .. tostring(size)
     local cached = book_annotation_cache[key]
-    if cached then return cached end
+    if cached then
+        perf.sidecar_cache_hits = perf.sidecar_cache_hits + 1
+        return cached
+    end
+    perf.sidecar_cache_misses = perf.sidecar_cache_misses + 1
 
-    local ok, doc_settings = pcall(DocSettings.openSettingsFile, DocSettings, sidecar_file)
+    local ok, doc_settings = pcall(DocSettings.openSettingsFile, sidecar_file)
     if not ok or not doc_settings or type(doc_settings.data) ~= "table" then
         return nil
     end
@@ -174,8 +179,8 @@ local function book_annotations(path)
     return items
 end
 
-local function append_annotations(quotes, path, seen_quotes)
-    local items = book_annotations(path)
+local function append_annotations(quotes, path, seen_quotes, perf)
+    local items = book_annotations(path, perf)
     if not items then return end
     for _i, item in ipairs(items) do
         local key = item.filepath .. "\0" .. item.text
@@ -186,14 +191,20 @@ local function append_annotations(quotes, path, seen_quotes)
     end
 end
 
-local function annotation_quotes()
-    if annotation_cache then return annotation_cache end
+local function annotation_quotes(perf)
+    local started_at = os.clock()
+    if annotation_cache then
+        perf.annotation_cache_hits = perf.annotation_cache_hits + 1
+        perf.annotation_ms = (os.clock() - started_at) * 1000
+        return annotation_cache
+    end
+    perf.annotation_cache_misses = perf.annotation_cache_misses + 1
     local quotes, seen_books, seen_quotes = {}, {}, {}
 
     local function add_book(path)
         if type(path) ~= "string" or seen_books[path] then return end
         seen_books[path] = true
-        append_annotations(quotes, path, seen_quotes)
+        append_annotations(quotes, path, seen_quotes, perf)
     end
 
     local ReadHistory = require("readhistory")
@@ -202,10 +213,11 @@ local function annotation_quotes()
     end
 
     local DataStorage = require("datastorage")
-    local ok_sq, SQ3 = pcall(require, "lua-ljsqlite3/init")
     local db_path = DataStorage:getDataDir() .. "/bookinfo_cache.db"
-    if ok_sq and lfs.attributes(db_path, "mode") == "file" then
-        local ok_db, db = pcall(SQ3.open, db_path)
+    if lfs.attributes(db_path, "mode") == "file" then
+        local ok_sq, SQ3 = pcall(require, "lua-ljsqlite3/init")
+        local ok_db, db
+        if ok_sq then ok_db, db = pcall(SQ3.open, db_path) end
         if ok_db and db then
             local ok_stmt, stmt = pcall(function()
                 return db:prepare(
@@ -233,6 +245,7 @@ local function annotation_quotes()
         return a.text < b.text
     end)
     annotation_cache = quotes
+    perf.annotation_ms = (os.clock() - started_at) * 1000
     return quotes
 end
 
@@ -252,6 +265,14 @@ end
 
 function M.getQuotes(config)
     local use_defaults, use_custom, use_annotations = selected_sources(config)
+    local perf = {
+        annotation_ms = 0,
+        annotation_books = 0,
+        annotation_cache_hits = 0,
+        annotation_cache_misses = 0,
+        sidecar_cache_hits = 0,
+        sidecar_cache_misses = 0,
+    }
     local quotes = {}
     local function append(items)
         for _i, quote in ipairs(items) do quotes[#quotes + 1] = quote end
@@ -259,16 +280,16 @@ function M.getQuotes(config)
 
     if use_defaults then append(DEFAULT_QUOTES) end
 
-    local path = quotes_path()
-    ensure_template(path)
     if use_custom then
+        local path = quotes_path()
+        ensure_template(path)
         local ok, raw = pcall(dofile, path)
         if ok then append(normalize(raw)) end
     end
 
-    if use_annotations then append(annotation_quotes()) end
+    if use_annotations then append(annotation_quotes(perf)) end
     if #quotes == 0 then append(DEFAULT_QUOTES) end
-    return quotes
+    return quotes, perf
 end
 
 function M.hasCustomQuotes()
@@ -350,23 +371,33 @@ local function advance(order, position)
 end
 
 function M.selectQuote(config, rotation)
-    local quotes = M.getQuotes(config)
+    local quotes, perf = M.getQuotes(config)
     local order, position, created, signature = load_deck(quotes)
-    if not order then return nil end
+    if not order then return nil, perf end
     local store = state_store()
     local today = os.date("%Y-%j")
+    local stored_day = store:readSetting("quote_day")
+    local changed = created or stored_day ~= today
 
     if hold_current_once then
         hold_current_once = false
     elseif rotation == "refresh" then
-        if not created then order, position = advance(order, position) end
-    elseif store:readSetting("quote_day") ~= today then
+        if not created then
+            order, position = advance(order, position)
+            changed = true
+        end
+    elseif stored_day ~= today then
         if not created then order, position = advance(order, position) end
     end
 
-    store:saveSetting("quote_day", today)
-    save_deck(store, order, position, signature)
-    return quotes[order[position]]
+    if changed then
+        store:saveSetting("quote_day", today)
+        save_deck(store, order, position, signature)
+        perf.state_writes = 1
+    else
+        perf.state_writes = 0
+    end
+    return quotes[order[position]], perf
 end
 
 function M.stepQuote(config, delta)

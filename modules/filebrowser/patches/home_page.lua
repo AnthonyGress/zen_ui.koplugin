@@ -856,6 +856,18 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
     local book_cache_hits = 0
     local book_cache_misses = 0
     local book_lookup_ms = 0
+    local quote_select_ms = 0
+    local quote_annotation_ms = 0
+    local quote_annotation_books = 0
+    local quote_annotation_cache_hits = 0
+    local quote_annotation_cache_misses = 0
+    local quote_sidecar_cache_hits = 0
+    local quote_sidecar_cache_misses = 0
+    local quote_state_writes = 0
+    local quote_layout_ms = 0
+    local quote_layout_cache_hits = 0
+    local quote_layout_cache_misses = 0
+    local quote_layout_probes = 0
     local tbr_index
     local tbr_index_checked = false
     local current_quote
@@ -2022,8 +2034,35 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
         if current_quote then return current_quote end
         local quote_cfg = dcfg.quotes or {}
         local rotation = quote_cfg.rotation == "refresh" and "refresh" or "daily"
-        current_quote = HomeQuotes.selectQuote(quote_cfg, rotation)
+        local started_at = os.clock()
+        local perf
+        current_quote, perf = HomeQuotes.selectQuote(quote_cfg, rotation)
+        quote_select_ms = quote_select_ms + (os.clock() - started_at) * 1000
+        if type(perf) == "table" then
+            quote_annotation_ms = quote_annotation_ms + (tonumber(perf.annotation_ms) or 0)
+            quote_annotation_books = quote_annotation_books
+                + (tonumber(perf.annotation_books) or 0)
+            quote_annotation_cache_hits = quote_annotation_cache_hits
+                + (tonumber(perf.annotation_cache_hits) or 0)
+            quote_annotation_cache_misses = quote_annotation_cache_misses
+                + (tonumber(perf.annotation_cache_misses) or 0)
+            quote_sidecar_cache_hits = quote_sidecar_cache_hits
+                + (tonumber(perf.sidecar_cache_hits) or 0)
+            quote_sidecar_cache_misses = quote_sidecar_cache_misses
+                + (tonumber(perf.sidecar_cache_misses) or 0)
+            quote_state_writes = quote_state_writes + (tonumber(perf.state_writes) or 0)
+        end
         return current_quote
+    end
+
+    function provider:recordQuoteLayout(elapsed_ms, cache_hit, probes)
+        quote_layout_ms = quote_layout_ms + (tonumber(elapsed_ms) or 0)
+        quote_layout_probes = quote_layout_probes + (tonumber(probes) or 0)
+        if cache_hit then
+            quote_layout_cache_hits = quote_layout_cache_hits + 1
+        else
+            quote_layout_cache_misses = quote_layout_cache_misses + 1
+        end
     end
 
     function provider:clearQuote()
@@ -2135,6 +2174,18 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
         book_cache_hits = 0
         book_cache_misses = 0
         book_lookup_ms = 0
+        quote_select_ms = 0
+        quote_annotation_ms = 0
+        quote_annotation_books = 0
+        quote_annotation_cache_hits = 0
+        quote_annotation_cache_misses = 0
+        quote_sidecar_cache_hits = 0
+        quote_sidecar_cache_misses = 0
+        quote_state_writes = 0
+        quote_layout_ms = 0
+        quote_layout_cache_hits = 0
+        quote_layout_cache_misses = 0
+        quote_layout_probes = 0
     end
 
     function provider:getPerformanceStats()
@@ -2142,6 +2193,18 @@ local function build_data_provider(cfg, dcfg, strip_page_state)
             book_cache_hits = book_cache_hits,
             book_cache_misses = book_cache_misses,
             book_lookup_ms = math.floor(book_lookup_ms + 0.5),
+            quote_select_ms = math.floor(quote_select_ms * 10 + 0.5) / 10,
+            quote_annotation_ms = math.floor(quote_annotation_ms * 10 + 0.5) / 10,
+            quote_annotation_books = quote_annotation_books,
+            quote_annotation_cache_hits = quote_annotation_cache_hits,
+            quote_annotation_cache_misses = quote_annotation_cache_misses,
+            quote_sidecar_cache_hits = quote_sidecar_cache_hits,
+            quote_sidecar_cache_misses = quote_sidecar_cache_misses,
+            quote_state_writes = quote_state_writes,
+            quote_layout_ms = math.floor(quote_layout_ms * 10 + 0.5) / 10,
+            quote_layout_cache_hits = quote_layout_cache_hits,
+            quote_layout_cache_misses = quote_layout_cache_misses,
+            quote_layout_probes = quote_layout_probes,
             dataset_generation = dataset.generation,
         }
     end
@@ -3168,14 +3231,34 @@ function M.showHomeView(injectNavbar)
             component_times[#component_times + 1] = tostring(comp.id) .. ":"
                 .. tostring(menu._zen_home_component_ms[comp.id] or 0)
         end
+        local book_cache = string.format("%d/%d",
+            perf.book_cache_hits or 0, perf.book_cache_misses or 0)
+        local quote_ms = string.format("select:%.1f,annotation:%.1f,layout:%.1f",
+            perf.quote_select_ms or 0,
+            perf.quote_annotation_ms or 0,
+            perf.quote_layout_ms or 0)
+        local quote_cache = string.format(
+            "annotation:%d/%d,sidecar:%d/%d,layout:%d/%d",
+            perf.quote_annotation_cache_hits or 0,
+            perf.quote_annotation_cache_misses or 0,
+            perf.quote_sidecar_cache_hits or 0,
+            perf.quote_sidecar_cache_misses or 0,
+            perf.quote_layout_cache_hits or 0,
+            perf.quote_layout_cache_misses or 0)
+        local quote_work = string.format("books:%d,writes:%d,probes:%d",
+            perf.quote_annotation_books or 0,
+            perf.quote_state_writes or 0,
+            perf.quote_layout_probes or 0)
+        local home_ms = string.format("stats:%.1f,build:%.1f,mount:%.1f",
+            stats_ms, build_ms, mount_ms)
         logger.perf("Home content rebuild completed", (os.clock() - started_at) * 1000,
             "rows=", #rows,
-            "book_cache_hits=", perf.book_cache_hits or 0,
-            "book_cache_misses=", perf.book_cache_misses or 0,
+            "book_cache_hm=", book_cache,
             "book_lookup_ms=", perf.book_lookup_ms or 0,
-            "stats_ms=", math.floor(stats_ms * 10 + 0.5) / 10,
-            "build_ms=", math.floor(build_ms * 10 + 0.5) / 10,
-            "mount_ms=", math.floor(mount_ms * 10 + 0.5) / 10,
+            "quote_ms=", quote_ms,
+            "quote_cache_hm=", quote_cache,
+            "quote_work=", quote_work,
+            "home_ms=", home_ms,
             "component_ms=", table.concat(component_times, ","),
             "dataset_generation=", perf.dataset_generation or 0)
     end
