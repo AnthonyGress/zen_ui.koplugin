@@ -96,11 +96,45 @@ local function book_info(data, path)
     return title, authors
 end
 
-local function append_annotations(quotes, path, seen_quotes)
-    if type(path) ~= "string" or lfs.attributes(path, "mode") ~= "file" then return end
+-- Per-book annotation cache so a full-library rescan after an annotation
+-- edit re-parses only the sidecars that actually changed.  The key is the
+-- sidecar path plus its modification time and size, so an entry is reused
+-- while the file on disk is byte-identical.  Bounded FIFO.
+local book_annotation_cache = {}
+local book_annotation_order = {}
+local BOOK_ANNOTATION_CACHE_MAX = 4096
+
+local function cache_book_annotations(key, items)
+    book_annotation_cache[key] = items
+    book_annotation_order[#book_annotation_order + 1] = key
+    if #book_annotation_order > BOOK_ANNOTATION_CACHE_MAX then
+        local oldest = table.remove(book_annotation_order, 1)
+        book_annotation_cache[oldest] = nil
+    end
+end
+
+-- Extracts one book's annotation quotes from its sidecar.  Uses the light
+-- openSettingsFile() instead of DocSettings:open(), which stats up to ten
+-- candidate paths before parsing.  Returns an array of quote tables, or nil
+-- when the book has no usable sidecar.
+local function book_annotations(path)
+    if type(path) ~= "string" or lfs.attributes(path, "mode") ~= "file" then
+        return nil
+    end
     local DocSettings = require("docsettings")
-    local ok, doc_settings = pcall(DocSettings.open, DocSettings, path)
-    if not ok or not doc_settings or type(doc_settings.data) ~= "table" then return end
+    local sidecar_file = DocSettings:findSidecarFile(path)
+    if not sidecar_file then return nil end
+    local attrs = lfs.attributes(sidecar_file)
+    local mtime, size = attrs and attrs.modification, attrs and attrs.size
+    if not mtime or not size or size <= 0 then return nil end
+    local key = sidecar_file .. "\31" .. tostring(mtime) .. "\31" .. tostring(size)
+    local cached = book_annotation_cache[key]
+    if cached then return cached end
+
+    local ok, doc_settings = pcall(DocSettings.openSettingsFile, DocSettings, sidecar_file)
+    if not ok or not doc_settings or type(doc_settings.data) ~= "table" then
+        return nil
+    end
 
     local data = doc_settings.data
     local title, authors = book_info(data, path)
@@ -109,14 +143,12 @@ local function append_annotations(quotes, path, seen_quotes)
         attribution = attribution .. (attribution ~= "" and ",  " or "") .. authors
     end
 
+    local items = {}
     local function add(item, fallback_page)
         if type(item) ~= "table" or not item.drawer then return end
         local text = trim(item.text)
         if text == "" then return end
-        local key = path .. "\0" .. text
-        if seen_quotes[key] then return end
-        seen_quotes[key] = true
-        quotes[#quotes + 1] = {
+        items[#items + 1] = {
             text = text,
             author = authors,
             title = title,
@@ -135,6 +167,21 @@ local function append_annotations(quotes, path, seen_quotes)
             if type(page_items) == "table" then
                 for _i, item in ipairs(page_items) do add(item, page) end
             end
+        end
+    end
+
+    cache_book_annotations(key, items)
+    return items
+end
+
+local function append_annotations(quotes, path, seen_quotes)
+    local items = book_annotations(path)
+    if not items then return end
+    for _i, item in ipairs(items) do
+        local key = item.filepath .. "\0" .. item.text
+        if not seen_quotes[key] then
+            seen_quotes[key] = true
+            quotes[#quotes + 1] = item
         end
     end
 end
