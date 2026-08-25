@@ -56,6 +56,7 @@ describe("home strip widget", function()
         ZenSpec.replace("common/ui/background", { tile_bg = function(color) return color end })
         ZenSpec.replace("ffi/blitbuffer", {
             COLOR_BLACK = "black", COLOR_WHITE = "white", COLOR_LIGHT_GRAY = "lightgray",
+            COLOR_GRAY_6 = "gray6",
         })
         ZenSpec.replace("common/ui/corner_banner", { paint = function() end })
         ZenSpec.replace("ui/geometry", {
@@ -121,6 +122,9 @@ describe("home strip widget", function()
                 }
                 if options and options.decorate then options.decorate(cover) end
                 return cover, 80, max_h, book.is_cover_pending == true
+            end,
+            set_dimmed_border = function(frame, dimmed)
+                frame._zen_cover_border_color = dimmed and "gray6" or nil
             end,
             make_empty_placeholder_cover = function(_max_w, max_h)
                 empty_sources[#empty_sources + 1] = true
@@ -313,6 +317,7 @@ describe("home strip widget", function()
                         dimmed = { x, y, w, h, factor }
                     end,
                 }, 10, 20)
+                assert.are.equal("gray6", widget._zen_cover_border_color)
                 break
             end
         end

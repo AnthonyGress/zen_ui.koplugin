@@ -69,8 +69,7 @@ local function paint_corner_masks(bb, tx, ty, tw, th, r, snap, snap_r)
     end
 end
 
-local function paint_corner_border_arcs(bb, tx, ty, tw, th, r, bsz)
-    local color = Blitbuffer.COLOR_BLACK
+local function paint_corner_border_arcs(bb, tx, ty, tw, th, r, bsz, color)
     local r_outer = r
     local r_inner = r - bsz
     for j = 0, r - 1 do
@@ -88,8 +87,7 @@ local function paint_corner_border_arcs(bb, tx, ty, tw, th, r, bsz)
     end
 end
 
-local function paint_rect_border(bb, tx, ty, tw, th, bsz)
-    local color = Blitbuffer.COLOR_BLACK
+local function paint_rect_border(bb, tx, ty, tw, th, bsz, color)
     for i = 0, bsz - 1 do
         bb:paintRect(tx + i, ty, 1, th, color)
         bb:paintRect(tx + tw - 1 - i, ty, 1, th, color)
@@ -98,8 +96,7 @@ local function paint_rect_border(bb, tx, ty, tw, th, bsz)
     end
 end
 
-local function paint_rounded_border_edges(bb, tx, ty, tw, th, r, bsz)
-    local color = Blitbuffer.COLOR_BLACK
+local function paint_rounded_border_edges(bb, tx, ty, tw, th, r, bsz, color)
     local x1 = tx + r
     local x2 = tx + tw - r
     local y1 = ty + r
@@ -150,20 +147,21 @@ local function apply_cover_border(frame)
         end
         local tx, ty, tw, th = d.x, d.y, d.w, d.h
         local bsz = math.max(1, self.bordersize or 0)
+        local border_color = self._zen_cover_border_color or Blitbuffer.COLOR_BLACK
         if not rounded then
-            paint_rect_border(bb, tx, ty, tw, th, bsz)
+            paint_rect_border(bb, tx, ty, tw, th, bsz, border_color)
             return
         end
         local max_r = math.floor((math.min(tw, th) - 1) / 2)
         local r = math.min(base_radius, max_r)
         if r < 2 or not snap then
-            paint_rect_border(bb, tx, ty, tw, th, bsz)
+            paint_rect_border(bb, tx, ty, tw, th, bsz, border_color)
             if snap then snap:free() end
             return
         end
         paint_corner_masks(bb, tx, ty, tw, th, r, snap, snap_r)
-        paint_rounded_border_edges(bb, tx, ty, tw, th, r, bsz)
-        paint_corner_border_arcs(bb, tx, ty, tw, th, r, bsz)
+        paint_rounded_border_edges(bb, tx, ty, tw, th, r, bsz, border_color)
+        paint_corner_border_arcs(bb, tx, ty, tw, th, r, bsz, border_color)
         snap:free()
     end
 end
@@ -175,6 +173,12 @@ function M.decorate_cover_frame(frame)
         apply_cover_border(frame)
     end
     return frame
+end
+
+function M.set_dimmed_border(frame, dimmed)
+    if frame then
+        frame._zen_cover_border_color = dimmed and Blitbuffer.COLOR_GRAY_6 or nil
+    end
 end
 
 local function release_shared_on_free(widget, cache_key, cover_bb)

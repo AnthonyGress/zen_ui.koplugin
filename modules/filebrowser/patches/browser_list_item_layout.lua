@@ -766,13 +766,23 @@ local function apply_browser_list_item_layout()
         if orig_paintTo then
             function ListMenuItem:paintTo(bb, x, y)
                 local plug = _plugin_ref or rawget(_G, "__ZEN_UI_PLUGIN")
+                local entry = self.entry
+                local config = plug and type(plug.config) == "table" and plug.config or {}
+                local effective_status = (entry and entry._zen_effective_status)
+                    or self._zen_effective_status
+                    or book_status.getEffectiveStatus(
+                        self.status or (entry and entry.status),
+                        self.percent_finished or (entry and entry.percent_finished))
+                local badges = config.browser_cover_badges
+                local dim_finished = type(badges) == "table"
+                    and badges.dim_finished_books == true
+                    and effective_status == "complete"
+                CoverWidget.set_dimmed_border(self._cover_frame, dim_finished)
                 local saved_do_hint = self.do_hint_opened
                 self.do_hint_opened = false
                 orig_paintTo(self, bb, x, y)
                 self.do_hint_opened = saved_do_hint
 
-                local entry = self.entry
-                local config = plug and type(plug.config) == "table" and plug.config or {}
                 local folder = config.browser_folder_cover or {}
                 if self.do_cover_image and folder.show_spine_lines == true
                         and entry and not entry.is_go_up
@@ -783,15 +793,7 @@ local function apply_browser_list_item_layout()
                         rounded = features.browser_cover_rounded_corners == true,
                     })
                 end
-                local effective_status = (entry and entry._zen_effective_status)
-                    or self._zen_effective_status
-                    or book_status.getEffectiveStatus(
-                        self.status or (entry and entry.status),
-                        self.percent_finished or (entry and entry.percent_finished))
-                local badges = plug and type(plug.config) == "table"
-                    and plug.config.browser_cover_badges
-                if type(badges) == "table" and badges.dim_finished_books == true
-                        and effective_status == "complete" and self.width and self.height then
+                if dim_finished and self.width and self.height then
                     bb:lightenRect(x, y, self.width, self.height, 0.3)
                 end
             end

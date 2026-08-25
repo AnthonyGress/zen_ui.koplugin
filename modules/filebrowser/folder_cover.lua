@@ -1,6 +1,7 @@
 -- Shared folder/group cover provider for Zen's mosaic and list renderers.
 local CoverUtils = require("common/cover_utils")
 local CoverWidget = require("modules/filebrowser/patches/home/widgets/cover_common")
+local BookStatus = require("common/book_status")
 local lfs = require("libs/libkoreader-lfs")
 local now = require("common/zen_logger").now
 
@@ -383,6 +384,32 @@ function M.entries(menu, entry, load_members, limit)
         return descriptor.entries, true, descriptor.count
     end
     return nil, false
+end
+
+local function member_status(entry)
+    if entry._zen_effective_status then return entry._zen_effective_status end
+    if entry.status ~= nil or entry.percent_finished ~= nil then
+        return BookStatus.getEffectiveStatus(entry.status, entry.percent_finished)
+    end
+    local path = entry.path or entry.file
+    if not path then return end
+    local ok, status = pcall(BookStatus.getEffectiveStatusFromFile, path)
+    if ok then return status end
+end
+
+function M.allBooksFinished(menu, entry, entries, count)
+    count = tonumber(count) or 0
+    if count < 1 then return false end
+    if type(entries) ~= "table" or #entries < count then
+        local loaded = { M.entries(menu, entry, true, count) }
+        entries = loaded[1]
+        count = tonumber(loaded[3]) or (type(entries) == "table" and #entries or 0)
+    end
+    if count < 1 or type(entries) ~= "table" or #entries < count then return false end
+    for _i, member in ipairs(entries) do
+        if member_status(member) ~= "complete" then return false end
+    end
+    return true
 end
 
 function M.previewEntries(menu, entry, limit, options)

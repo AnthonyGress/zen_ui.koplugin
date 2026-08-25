@@ -379,6 +379,32 @@ describe("shared folder cover provider", function()
         assert.are.equal(1, calls.collect[#calls.collect].limit)
     end)
 
+    it("only marks a non-empty folder finished when every book is finished", function()
+        local statuses = {
+            ["/library/folder/a.epub"] = "complete",
+            ["/library/folder/b.epub"] = "complete",
+        }
+        ZenSpec.replace("common/book_status", {
+            getEffectiveStatus = function(status) return status end,
+            getEffectiveStatusFromFile = function(path) return statuses[path] end,
+        })
+        install_lfs(function()
+            return { { name = "a.epub" }, { name = "b.epub" } }
+        end)
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local entry = {
+            path = "/library/folder",
+            attr = { mode = "directory" },
+        }
+        local preview = { { path = "/library/folder/a.epub" } }
+
+        assert.is_true(FolderCover.allBooksFinished({}, entry, preview, 2))
+
+        statuses["/library/folder/b.epub"] = "reading"
+        assert.is_false(FolderCover.allBooksFinished({}, entry, preview, 2))
+        assert.is_false(FolderCover.allBooksFinished({}, entry, {}, 0))
+    end)
+
     it("retains one candidate in single mode when the parent supplied the count", function()
         local yielded = 0
         cover_mode = "normal"

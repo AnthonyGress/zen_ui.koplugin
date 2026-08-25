@@ -33,6 +33,7 @@ describe("home cover rendering", function()
         }
         ZenSpec.replace("ffi/blitbuffer", {
             COLOR_BLACK = "black",
+            COLOR_GRAY_6 = "gray6",
             COLOR_LIGHT_GRAY = "lightgray",
             new = function(width, height)
                 allocations[#allocations + 1] = { width, height }
@@ -115,6 +116,25 @@ describe("home cover rendering", function()
         _G.__ZEN_UI_PLUGIN.config.features.browser_cover_rounded_corners = true
         frame:paintTo(target, 10, 20)
         assert.are.same({ { 32, 8 } }, allocations)
+    end)
+
+    it("uses a gray border for a dimmed cover", function()
+        local Cover = require("modules/filebrowser/patches/home/widgets/cover_common")
+        local frame = Cover.make_cover_widget(
+            { path = "/library/finished.epub" }, 100, 150, { uniform = false })
+        local colors = {}
+        local target = {
+            paintRect = function(_self, _x, _y, _w, _h, color)
+                colors[color] = true
+            end,
+        }
+
+        _G.__ZEN_UI_PLUGIN.config.features.browser_cover_rounded_corners = false
+        Cover.set_dimmed_border(frame, true)
+        frame:paintTo(target, 10, 20)
+
+        assert.is_true(colors.gray6)
+        assert.is_nil(colors.black)
     end)
 
     it("keeps the corner radius fixed for smaller list covers", function()
