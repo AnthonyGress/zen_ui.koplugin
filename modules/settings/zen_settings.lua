@@ -84,7 +84,6 @@ function M.build(plugin)
     })
 
     utils.reorder_nested_items_by_text(filebrowser_items, _("Status bar"), {
-        _("Enable custom status bar"),
         _("12-hour time"),
         _("Show bottom border"),
         _("Bold text"),

@@ -369,9 +369,7 @@ local function apply_opening_banner()
 
     -- Border that follows rounded bottom corners
     -- Must be called AFTER _mask_bottom_corners so the border is never overwritten.
-    local function _draw_border(bb, x, y, w, h, r, color, top_border)
-        -- Top edge (always straight)
-        bb:paintRect(x, y, w, math.min(h, math.max(1, top_border or 1)), color)
+    local function _draw_border(bb, x, y, w, h, r, color, top_color, top_border)
         if r > 0 then
             -- Left / right: straight down to where the arc begins
             bb:paintRect(x,         y, 1, h - r, color)
@@ -399,6 +397,9 @@ local function apply_opening_banner()
             bb:paintRect(x,         y,         1, h, color)
             bb:paintRect(x + w - 1, y,         1, h, color)
         end
+        -- The straight top edge owns the corner pixels.
+        bb:paintRect(x, y, w, math.min(h, math.max(1, top_border or 1)),
+            top_color)
     end
 
     -- Tiny inline widget: black rect + centred "Opening" text
@@ -435,6 +436,7 @@ local function apply_opening_banner()
         local use_dark = self.dark_banner ~= night_mode
         local bg = use_dark and Blitbuffer.COLOR_BLACK or Blitbuffer.COLOR_WHITE
         local fg = use_dark and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK
+        local black = night_mode and Blitbuffer.COLOR_WHITE or Blitbuffer.COLOR_BLACK
         local w, h = self.dimen.w, self.dimen.h
         local r    = self.round_bottom_corners
             and math.max(0, Screen:scaleBySize(8) - (self.cover_border or 0)) or 0
@@ -455,8 +457,8 @@ local function apply_opening_banner()
         if r > 0 then
             _mask_bottom_corners(bb, x, y, w, h, r, background)
         end
-        -- 3. Border contrasts with bg (fg color), consistent with night mode.
-        _draw_border(bb, x, y, w, h, r, fg, self.cover_border)
+        -- 3. Only the top edge contrasts on dark banners.
+        _draw_border(bb, x, y, w, h, r, black, fg, self.cover_border)
 
         local tw = TextWidget:new{
             text      = self.label or _("Opening"),

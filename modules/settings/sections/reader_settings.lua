@@ -293,8 +293,15 @@ function M.build(ctx)
 
     table.insert(items, {
         text = _("Top status bar"),
+        checked_func = function()
+            return config.features["reader_top_status_bar"] == true
+        end,
+        checkmark_callback = function()
+            config.features["reader_top_status_bar"] =
+                config.features["reader_top_status_bar"] ~= true
+            save_and_apply("reader_top_status_bar")
+        end,
         sub_item_table = {
-            make_enable_feature_item("reader_top_status_bar", _("Enable top status bar")),
             {
                 text = _("Left items"),
                 sub_item_table = make_header_slot_items("left", _("Arrange left items")),
@@ -817,8 +824,14 @@ function M.build(ctx)
 
     table.insert(items, {
         text = _("Reader themes"),
+        checked_func = function()
+            return config.features["reader_themes"] == true
+        end,
+        checkmark_callback = function()
+            config.features["reader_themes"] = config.features["reader_themes"] ~= true
+            save_and_apply("reader_themes")
+        end,
         sub_item_table = {
-            make_enable_feature_item("reader_themes", _("Enable reader themes")),
             make_theme_mode_item("dark_mode", _("Dark mode")),
             make_theme_mode_item("light_mode", _("Light mode")),
             make_custom_themes_item(),
@@ -1006,7 +1019,8 @@ function M.build(ctx)
         text = _("Font"),
         enabled_func = function()
             local ReaderUI = require("apps/reader/readerui")
-            return ReaderUI.instance ~= nil
+            local ui = ReaderUI.instance
+            return ui ~= nil and ui.view ~= nil and ui.view.footer ~= nil
         end,
         sub_item_table_func = function()
             local ReaderUI = require("apps/reader/readerui")
@@ -1127,7 +1141,7 @@ function M.build(ctx)
             save_and_apply("reader_bottom_menu")
         end,
     }, icons.bottom_swipe))
-    -- page browser requires bottom swipe; disabling bottom swipe unchecks this too
+    -- Enabling the page browser forces the bottom swipe on.
     local function make_page_browser_font_size_item(key, section)
         return {
             text_func = function()
@@ -1157,21 +1171,14 @@ function M.build(ctx)
 
     table.insert(items, IconItem.decorate({
         text = _("Zen page browser"),
+        checked_func = function()
+            return config.features["page_browser"] == true
+        end,
+        checkmark_callback = function()
+            config.features["page_browser"] = config.features["page_browser"] ~= true
+            save_and_apply("page_browser")
+        end,
         sub_item_table = {
-            {
-                text = _("Enable"),
-                checked_func = function()
-                    return config.features["page_browser"] == true
-                end,
-                enabled_func = function()
-                    return config.features["reader_bottom_menu"] == true
-                        or config.features["page_browser"] == true
-                end,
-                callback = function()
-                    config.features["page_browser"] = config.features["page_browser"] ~= true
-                    save_and_apply("page_browser")
-                end,
-            },
             make_page_browser_font_size_item(
                 "toc_font_size", _("Table of contents")
             ),
@@ -1197,6 +1204,13 @@ function M.build(ctx)
 
     table.insert(items, {
         text = _("Bottom status bar"),
+        checked_func = function()
+            return dispatch_action.isBottomStatusBarVisible(plugin)
+        end,
+        checkmark_callback = function()
+            dispatch_action.setBottomStatusBar(plugin,
+                not dispatch_action.isBottomStatusBarVisible(plugin))
+        end,
         enabled_func = function()
             local ReaderUI = require("apps/reader/readerui")
             return ReaderUI.instance ~= nil
@@ -1298,17 +1312,6 @@ function M.build(ctx)
             local mock = {}
             ui.view.footer:addToMainMenu(mock)
             local result = {}
-            table.insert(result, {
-                text = _("Enable bottom status bar"),
-                checked_func = function()
-                    return dispatch_action.isBottomStatusBarVisible()
-                end,
-                callback = function(touchmenu_instance)
-                    dispatch_action.setBottomStatusBar(plugin,
-                        not dispatch_action.isBottomStatusBarVisible())
-                    if touchmenu_instance then touchmenu_instance:updateItems() end
-                end,
-            })
             table.insert(result, build_footer_presets_item())
             table.insert(result, font_submenu)
             table.insert(result, {

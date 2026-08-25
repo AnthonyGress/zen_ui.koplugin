@@ -229,7 +229,7 @@ describe("opening banner", function()
         assert.are.equal(1, opens)
     end)
 
-    it("matches a cover banner's top edge to the cover border weight", function()
+    it("keeps only a dark cover banner's top border white", function()
         local _, _, shown = install_stubs()
         apply_patch()
 
@@ -247,7 +247,13 @@ describe("opening banner", function()
             end,
         }, shown[1].dimen.x, shown[1].dimen.y)
 
-        assert.are.same({ x = 33, y = 347, w = 216, h = 2, color = "white" }, painted[2])
+        assert.are.same({
+            { x = 33, y = 347, w = 216, h = 28, color = "black" },
+            { x = 33, y = 374, w = 216, h = 1, color = "black" },
+            { x = 33, y = 347, w = 1, h = 28, color = "black" },
+            { x = 248, y = 347, w = 1, h = 28, color = "black" },
+            { x = 33, y = 347, w = 216, h = 2, color = "white" },
+        }, painted)
     end)
 
     it("does not recreate a banner after its cover is released", function()

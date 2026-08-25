@@ -1219,35 +1219,32 @@ function M.build(ctx)
 
     table.insert(items, {
         text = _("Background"),
-        sub_item_table = {
-            {
-                text = _("Enable"),
-                checked_func = function()
-                    return ensure_lib_bg().enabled == true
-                end,
-                callback = function(touchmenu_instance)
-                    local bg = ensure_lib_bg()
-                    if bg.enabled ~= true then
-                        -- Enabling: only allow if the image actually works.
-                        local bg_mod = require("common/ui/background")
-                        local ok_img, reason = bg_mod.validateImage(bg.path)
-                        if not ok_img then
-                            bg.enabled = false
-                            local InfoMessage = require("ui/widget/infomessage")
-                            UIManager:show(InfoMessage:new{
-                                text = lib_bg_error_text(reason),
-                            })
-                            if touchmenu_instance then touchmenu_instance:updateItems() end
-                            return
-                        end
-                        bg.enabled = true
-                    else
-                        bg.enabled = false
-                    end
-                    save_lib_bg()
+        checked_func = function()
+            return ensure_lib_bg().enabled == true
+        end,
+        checkmark_callback = function(touchmenu_instance)
+            local bg = ensure_lib_bg()
+            if bg.enabled ~= true then
+                -- Enabling: only allow if the image actually works.
+                local bg_mod = require("common/ui/background")
+                local ok_img, reason = bg_mod.validateImage(bg.path)
+                if not ok_img then
+                    bg.enabled = false
+                    local InfoMessage = require("ui/widget/infomessage")
+                    UIManager:show(InfoMessage:new{
+                        text = lib_bg_error_text(reason),
+                    })
                     if touchmenu_instance then touchmenu_instance:updateItems() end
-                end,
-            },
+                    return
+                end
+                bg.enabled = true
+            else
+                bg.enabled = false
+            end
+            save_lib_bg()
+            if touchmenu_instance then touchmenu_instance:updateItems() end
+        end,
+        sub_item_table = {
             {
                 text_func = function()
                     local path = lib_bg_path()

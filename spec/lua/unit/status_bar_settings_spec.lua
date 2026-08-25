@@ -89,6 +89,23 @@ describe("status bar settings", function()
         assert.are.same({ "status_bar", "status_bar" }, saves)
     end)
 
+    it("toggles the status bar from its expandable parent row", function()
+        local page = require("modules/settings/sections/library_settings/status_bar_settings").build({
+            config = config,
+            save_and_apply = function(feature) saves[#saves + 1] = feature end,
+        })
+
+        assert.is_true(page.checked_func())
+        assert.is_function(page.checkmark_callback)
+        assert.is_nil(find_item(page.sub_item_table, "Enable custom status bar"))
+
+        page.checkmark_callback()
+
+        assert.is_false(config.features.status_bar)
+        assert.is_false(page.checked_func())
+        assert.are.same({ "status_bar" }, saves)
+    end)
+
     it("adds a persisted hide-when-off option to the Wi-Fi submenu", function()
         local page = require("modules/settings/sections/library_settings/status_bar_settings").build({
             config = config,

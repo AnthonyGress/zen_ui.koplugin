@@ -5,7 +5,6 @@
 
 local _ = require("gettext")
 local UIManager = require("ui/uimanager")
-local utils = require("modules/settings/zen_settings_utils")
 local constants = require("common/constants")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
@@ -19,10 +18,6 @@ function M.build(ctx)
     local save_and_apply = ctx.save_and_apply
 
     local function save_and_apply_status_bar() save_and_apply("status_bar") end
-
-    local function make_enable_feature_item(feature, text)
-        return utils.make_enable_feature_item(feature, text, config, save_and_apply)
-    end
 
     -- -------------------------------------------------------------------------
     -- Slot items (deduplicates left / center / right)
@@ -235,8 +230,14 @@ function M.build(ctx)
 
     return IconItem.decorate({
         text = _("Status bar"),
+        checked_func = function()
+            return config.features["status_bar"] == true
+        end,
+        checkmark_callback = function()
+            config.features["status_bar"] = config.features["status_bar"] ~= true
+            save_and_apply("status_bar")
+        end,
         sub_item_table = {
-            make_enable_feature_item("status_bar", _("Enable custom status bar")),
             {
                 text_func = function()
                     local name = config.status_bar.custom_text

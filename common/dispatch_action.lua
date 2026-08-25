@@ -229,9 +229,15 @@ local function get_footer()
     return reader and reader.view and reader.view.footer or nil
 end
 
-local function is_bottom_status_bar_visible()
+local function is_bottom_status_bar_visible(plugin)
     local footer = get_footer()
-    return footer and footer.view and footer.view.footer_visible == true
+    local live_visible = footer and footer.view and footer.view.footer_visible
+    if type(live_visible) == "boolean" then return live_visible end
+    local active_plugin = plugin or _plugin
+    local plugin_config = active_plugin and active_plugin.config
+    if type(plugin_config) ~= "table" then return false end
+    local reader_footer = plugin_config.reader_footer
+    return type(reader_footer) ~= "table" or reader_footer.status_bar_enabled ~= false
 end
 
 local function fallback_footer_mode(footer)
@@ -296,9 +302,13 @@ zen_action_active = {
     zen_ui_toggle_reader_themes = function(plugin)
         return feature_enabled("reader_themes", plugin or _plugin)
     end,
-    zen_ui_toggle_reader_bottom_status_bar = is_bottom_status_bar_visible,
+    zen_ui_toggle_reader_bottom_status_bar = function(plugin)
+        return is_bottom_status_bar_visible(plugin or _plugin)
+    end,
     zen_ui_toggle_reader_status_bars = function(plugin)
-        return is_top_status_bar_enabled(plugin or _plugin) or is_bottom_status_bar_visible()
+        local active_plugin = plugin or _plugin
+        return is_top_status_bar_enabled(active_plugin)
+            or is_bottom_status_bar_visible(active_plugin)
     end,
 }
 
@@ -633,11 +643,12 @@ M.isBottomStatusBarVisible = is_bottom_status_bar_visible
 M.setBottomStatusBar = set_bottom_status_bar
 
 function M.onToggleReaderBottomStatusBar(plugin)
-    return set_bottom_status_bar(plugin, not is_bottom_status_bar_visible())
+    return set_bottom_status_bar(plugin, not is_bottom_status_bar_visible(plugin))
 end
 
 function M.onToggleReaderStatusBars(plugin)
-    local enable = not (is_top_status_bar_enabled(plugin) or is_bottom_status_bar_visible())
+    local enable = not (is_top_status_bar_enabled(plugin)
+        or is_bottom_status_bar_visible(plugin))
     local top_ok = set_top_status_bar(plugin, enable)
     local bottom_ok = set_bottom_status_bar(plugin, enable)
     return top_ok or bottom_ok

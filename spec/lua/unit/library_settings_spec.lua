@@ -477,8 +477,10 @@ describe("library settings", function()
                 break
             end
         end
-        local opacity = assert(background).sub_item_table[3]
+        local opacity = assert(background).sub_item_table[2]
 
+        assert.is_true(background.checked_func())
+        assert.is_function(background.checkmark_callback)
         assert.are.equal("Opacity: 100%", opacity.text_func())
         assert.is_true(opacity.enabled_func())
         opacity.callback({ updateItems = function() menu_updates = menu_updates + 1 end })
@@ -498,5 +500,75 @@ describe("library settings", function()
         assert.are.equal(1, scheduled)
         assert.are.equal(1, menu_updates)
         assert.are.equal("Opacity: 38%", opacity.text_func())
+
+        background.checkmark_callback()
+        assert.is_false(config.library_background.enabled)
+        assert.is_false(background.checked_func())
+        assert.are.equal(2, saves)
+        assert.are.equal(2, cache_clears)
+        assert.are.equal(2, reinitializations)
+        assert.are.equal(1, scheduled)
+    end)
+
+    it("validates the image when enabling the library background parent switch", function()
+        local shown
+        local saves = 0
+        local cache_clears = 0
+        local reinitializations = 0
+        local scheduled = 0
+        package.loaded["ui/uimanager"].show = function(_, dialog) shown = dialog end
+        package.loaded["ui/uimanager"].scheduleIn = function()
+            scheduled = scheduled + 1
+        end
+        package.loaded["modules/settings/zen_settings_apply"].reinit_filemanager_on_menu_close =
+            function() reinitializations = reinitializations + 1 end
+        ZenSpec.replace("ui/widget/infomessage", {
+            new = function(_, spec) return spec end,
+        })
+        local background_module = {
+            validateImage = function() return false, "missing" end,
+            clearCache = function() cache_clears = cache_clears + 1 end,
+        }
+        ZenSpec.replace("common/ui/background", background_module)
+
+        local config = {
+            browser_hide_up_folder = {},
+            features = {},
+            library_background = {
+                enabled = false,
+                path = "/library/missing.jpg",
+            },
+        }
+        local items = require("modules/settings/sections/library_settings").build({
+            config = config,
+            plugin = { saveConfig = function() saves = saves + 1 end },
+            save_and_apply = function() end,
+        })
+        local background
+        for _i, item in ipairs(items) do
+            if item.text == "Background" then
+                background = item
+                break
+            end
+        end
+
+        assert.is_false(background.checked_func())
+        assert.are.equal(2, #background.sub_item_table)
+        background.checkmark_callback()
+
+        assert.is_false(config.library_background.enabled)
+        assert.are.equal("Background image file not found.", shown.text)
+        assert.are.equal(0, saves)
+        assert.are.equal(0, cache_clears)
+
+        background_module.validateImage = function() return true end
+        background.checkmark_callback()
+
+        assert.is_true(config.library_background.enabled)
+        assert.is_true(background.checked_func())
+        assert.are.equal(1, saves)
+        assert.are.equal(1, cache_clears)
+        assert.are.equal(1, reinitializations)
+        assert.are.equal(1, scheduled)
     end)
 end)
