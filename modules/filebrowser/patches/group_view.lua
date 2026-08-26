@@ -105,10 +105,24 @@ local function get_group_display_mode(tab_id, fallback)
     if type(stored) == "string" and stored ~= "" then
         return stored
     end
+    -- Preserve the pre-split Series setting for existing installations until
+    -- the user explicitly chooses a mode for the contents of a series.
+    if tab_id == "series_detail" then
+        local inherited = display_mode and display_mode.series
+        if type(inherited) == "string" and inherited ~= "" then
+            return inherited
+        end
+    end
     local g_settings = rawget(_G, "G_reader_settings")
     local legacy = g_settings and g_settings:readSetting("zen_" .. tab_id .. "_display_mode")
     if type(legacy) == "string" and legacy ~= "" then
         return legacy
+    end
+    if tab_id == "series_detail" then
+        local inherited = g_settings and g_settings:readSetting("zen_series_display_mode")
+        if type(inherited) == "string" and inherited ~= "" then
+            return inherited
+        end
     end
     return fallback
 end
@@ -121,6 +135,14 @@ local function set_group_display_mode(tab_id, mode)
     if type(cfg.group_view.display_mode) ~= "table" then cfg.group_view.display_mode = {} end
     cfg.group_view.display_mode[tab_id] = mode
     save_zen_config(cfg)
+end
+
+-- The standalone Series tab has two independently configurable pages: its
+-- group list and the books inside a selected series.  Keep the existing
+-- series key for the former and use a distinct key for the latter.
+local function series_display_tab_id(tab_id, detail)
+    if tab_id == "series" and detail then return "series_detail" end
+    return tab_id
 end
 
 local function get_detail_collate(tab_id, group_name, fallback)
@@ -522,18 +544,19 @@ local function showDisplayModeDialog(menu, tab_id)
         -- Also rebuild the root group menu when changing from within a detail view,
         -- otherwise going back shows stale rendering with the old display mode.
         if tab_id then
+            local root_tab_id = tab_id == "series_detail" and "series" or tab_id
             local root_menu
-            if tab_id == "authors" then
+            if root_tab_id == "authors" then
                 root_menu = _authors_menu
-            elseif tab_id == "languages" then
+            elseif root_tab_id == "languages" then
                 root_menu = _languages_menu
-            elseif tab_id == "tags" then
+            elseif root_tab_id == "tags" then
                 root_menu = _tags_menu
             else
                 root_menu = _series_menu
             end
             if root_menu and root_menu ~= menu then
-                _rebuild_menu(root_menu, true, tab_id)
+                _rebuild_menu(root_menu, true, root_tab_id)
             end
         end
     end
@@ -1090,7 +1113,8 @@ local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
     StandalonePage.prepare_shell(detail_menu)
 
     -- Install same display mode as the library (mosaic/list/classic)
-    local mode_type = setup_display_mode(detail_menu, false, tab_id)
+    local display_tab_id = series_display_tab_id(tab_id, true)
+    local mode_type = setup_display_mode(detail_menu, false, display_tab_id)
     if mode_type == "classic" or not mode_type then
         local Menu_class = require("ui/widget/menu")
         detail_menu.updateItems = Menu_class.updateItems
@@ -1175,7 +1199,7 @@ local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
                         showDetailSortDialog(group_name, tab_id, self, files)
                     end,
                     _zen_display_cb        = function()
-                        showDisplayModeDialog(self, tab_id)
+                        showDisplayModeDialog(self, display_tab_id)
                     end,
                     _zen_filter_refresh_cb = function()
                         -- Rebuild item_table with new filter: close and reopen.
@@ -1223,6 +1247,7 @@ function M.showGroupContextMenu(group_name, files, tab_id, menu, options)
         return false
     end
     local hide_actions = type(options) == "table" and options.hide_actions == true
+    local display_tab_id = series_display_tab_id(tab_id, true)
     fm.file_chooser:showFileDialog({
         _zen_group_files = files,
         _zen_group_name = group_name,
@@ -1230,7 +1255,7 @@ function M.showGroupContextMenu(group_name, files, tab_id, menu, options)
             showDetailSortDialog(group_name, tab_id, nil, files)
         end or nil,
         _zen_display_cb = not hide_actions and function()
-            showDisplayModeDialog(menu, tab_id)
+            showDisplayModeDialog(menu, display_tab_id)
         end or nil,
     })
     return true

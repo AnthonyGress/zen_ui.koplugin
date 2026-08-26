@@ -428,6 +428,25 @@ describe("file browser group views", function()
         assert.are.same({ group_name = "Saga", tab_id = "series", page = 1 }, api.getActiveDetail())
     end)
 
+    it("uses independent display modes for the Series root and detail pages", function()
+        install_group_view({
+            series = {
+                { series = "Saga", items = { { file = "/book.epub" } } },
+            },
+        })
+        config.group_view.display_mode.series = "mosaic_image"
+        config.group_view.display_mode.series_detail = "list_image_filename"
+
+        api.showSeriesView()
+        local root = assert(find_menu("series"))
+        assert.are.equal("mosaic", root.display_mode_type)
+
+        root.onMenuSelect(root, root.item_table[1])
+        local detail = assert(find_menu("series_detail"))
+        assert.are.equal("list", detail.display_mode_type)
+        assert.is_true(detail._do_filename_only)
+    end)
+
     it("sorts detail books by batched library metadata", function()
         install_group_view({
             series = {
