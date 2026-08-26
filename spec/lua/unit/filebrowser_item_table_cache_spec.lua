@@ -302,6 +302,18 @@ describe("file browser item-table cache", function()
         assert.are.equal(2, generated["/library/series"])
     end)
 
+    it("refreshes cached folders when series visibility changes", function()
+        local chooser = setmetatable({ name = "filemanager" }, { __index = FileChooser })
+
+        chooser:genItemTableFromPath("/library")
+        _G.__ZEN_UI_PLUGIN.config.features.hide_grouped_series = true
+        chooser:genItemTableFromPath("/library")
+        _G.__ZEN_UI_PLUGIN.config.features.automatic_series_grouping = false
+        chooser:genItemTableFromPath("/library")
+
+        assert.are.equal(3, generated["/library"])
+    end)
+
     it("keys listings by stock parent-folder and hold-directory settings", function()
         local chooser = setmetatable({ name = "filemanager" }, { __index = FileChooser })
 

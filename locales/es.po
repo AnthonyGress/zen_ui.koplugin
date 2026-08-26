@@ -1065,6 +1065,9 @@ msgstr "Giroscopio"
 msgid "Hide finished books"
 msgstr "Ocultar libros terminados"
 
+msgid "Hide grouped series"
+msgstr "Ocultar series agrupadas"
+
 msgid "Hide in CBZ/PDF files"
 msgstr "Ocultar en archivos CBZ/PDF"
 

@@ -1065,6 +1065,9 @@ msgstr "陀螺仪"
 msgid "Hide finished books"
 msgstr "隐藏已读完书籍"
 
+msgid "Hide grouped series"
+msgstr "隐藏已分组的系列"
+
 msgid "Hide in CBZ/PDF files"
 msgstr "在 CBZ/PDF 文件中隐藏"
 

@@ -315,6 +315,11 @@ local function apply_browser_item_table_cache()
         return type(features) ~= "table" or features.automatic_series_grouping ~= false
     end
 
+    local function hide_grouped_series_enabled()
+        local features = plugin and plugin.config and plugin.config.features
+        return type(features) == "table" and features.hide_grouped_series == true
+    end
+
     local function dim_finished_enabled()
         local config = plugin and plugin.config and plugin.config.browser_cover_badges
         return type(config) == "table" and config.dim_finished_books == true
@@ -528,7 +533,8 @@ local function apply_browser_item_table_cache()
             tostring(G_reader_settings:isTrue("collate_mixed")),
             tostring(G_reader_settings:isTrue("reverse_collate")),
             tostring(show_hidden), stable_table_key(status_filter(self)), folder_sort_key(path),
-            tostring(automatic_series_enabled()), tostring(dim_finished_enabled()),
+            tostring(automatic_series_enabled()), tostring(hide_grouped_series_enabled()),
+            tostring(dim_finished_enabled()),
             up_folder_visibility_key(), tostring(show_flat_view),
             tostring(show_unsupported),
             tostring(G_reader_settings:readSetting("show_file_in_bold")),
