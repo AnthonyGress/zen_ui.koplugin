@@ -315,6 +315,12 @@ local defaults = {
             tags = "list_image_meta",
             to_be_read = "list_image_meta",
         },
+        detail_display_mode = {
+            authors = {},
+            series = {},
+            languages = {},
+            tags = {},
+        },
         group_reverse = {
             authors = false,
             series = false,

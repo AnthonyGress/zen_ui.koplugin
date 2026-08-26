@@ -294,6 +294,7 @@ return {
         "Add custom highlight names (Reader > Highlight / Lookup)",
         "Add folder cover image picker (Hold folder > Edit > Set folder cover)",
         "Add option to hide the Wi-Fi status icon when Wi-Fi is off (Library > Status bar)",
+        "Add parent + child per folder view in Authors/Series/Tags/Languages tabs",
         "Allow renaming the To Be Read collection",
         "Fix restore library location regression",
         "Fix finished books reporting 0",

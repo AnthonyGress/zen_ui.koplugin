@@ -97,24 +97,40 @@ local function save_zen_config(cfg)
     end
 end
 
-local function get_group_display_mode(tab_id, fallback)
+local function get_display_mode(tab_id, group_name, fallback)
     local cfg = load_zen_config()
     local group_view = cfg and cfg.group_view
+    local detail_display_mode = group_view and group_view.detail_display_mode
+    local tab_detail = detail_display_mode and detail_display_mode[tab_id]
+    local stored = group_name and tab_detail and tab_detail[group_name]
+    if type(stored) == "string" and stored ~= "" then
+        return stored
+    end
     local display_mode = group_view and group_view.display_mode
-    local stored = display_mode and display_mode[tab_id]
+    stored = display_mode and display_mode[tab_id]
     if type(stored) == "string" and stored ~= "" then
         return stored
     end
     return fallback
 end
 
-local function set_group_display_mode(tab_id, mode)
+local function set_display_mode(tab_id, group_name, mode)
     if type(mode) ~= "string" or mode == "" then return end
     local cfg = load_zen_config()
     if type(cfg) ~= "table" then return end
     if type(cfg.group_view) ~= "table" then cfg.group_view = {} end
-    if type(cfg.group_view.display_mode) ~= "table" then cfg.group_view.display_mode = {} end
-    cfg.group_view.display_mode[tab_id] = mode
+    if group_name then
+        if type(cfg.group_view.detail_display_mode) ~= "table" then
+            cfg.group_view.detail_display_mode = {}
+        end
+        if type(cfg.group_view.detail_display_mode[tab_id]) ~= "table" then
+            cfg.group_view.detail_display_mode[tab_id] = {}
+        end
+        cfg.group_view.detail_display_mode[tab_id][group_name] = mode
+    else
+        if type(cfg.group_view.display_mode) ~= "table" then cfg.group_view.display_mode = {} end
+        cfg.group_view.display_mode[tab_id] = mode
+    end
     save_zen_config(cfg)
 end
 
@@ -256,7 +272,7 @@ end
 -- setup_display_mode: mirror fi CoverMenu/MosaicMenu/ListMenu onto menu
 -- Returns "mosaic", "list", or "classic"
 -------------------------------------------------------------------------------
-local function setup_display_mode(menu, is_group_view, tab_id)
+local function setup_display_mode(menu, is_group_view, tab_id, group_name)
     local ok_bim, BookInfoManager = pcall(require, "bookinfomanager")
     if not ok_bim then
         menu.display_mode_type = "classic"
@@ -264,7 +280,7 @@ local function setup_display_mode(menu, is_group_view, tab_id)
     end
     local display_mode
     if tab_id then
-        display_mode = get_group_display_mode(tab_id, "list_image_meta")
+        display_mode = get_display_mode(tab_id, group_name, "list_image_meta")
     else
         display_mode = BookInfoManager:getSetting("filemanager_display_mode")
     end
@@ -286,7 +302,7 @@ local function setup_display_mode(menu, is_group_view, tab_id)
     local display_mode_type = display_mode:gsub("_.*", "")  -- "mosaic" or "list"
 
     menu.updateItems   = CoverMenu.updateItems
-    menu.onCloseWidget = CoverMenu.onCloseWidget
+    menu.onCloseWidget = rawget(menu, "onCloseWidget") or CoverMenu.onCloseWidget
 
     menu.nb_cols_portrait  = BookInfoManager:getSetting("nb_cols_portrait")  or 3
     menu.nb_rows_portrait  = BookInfoManager:getSetting("nb_rows_portrait")  or 3
@@ -442,7 +458,7 @@ local showGroupView
 -- showDisplayModeDialog: show display mode selection dialog
 -- menu: optional Menu instance to refresh after mode change
 -------------------------------------------------------------------------------
-local function showDisplayModeDialog(menu, tab_id)
+local function showDisplayModeDialog(menu, tab_id, group_name)
     local _ = require("gettext")
     local ButtonDialog = require("ui/widget/buttondialog")
     local UIManager = require("ui/uimanager")
@@ -452,7 +468,7 @@ local function showDisplayModeDialog(menu, tab_id)
     local ok_bim, bim = pcall(require, "bookinfomanager")
     local cur_mode
     if tab_id then
-        cur_mode = get_group_display_mode(tab_id, "list_image_meta")
+        cur_mode = get_display_mode(tab_id, group_name, "list_image_meta")
     elseif ok_bim and bim then
         local ok3, m = pcall(function()
             return bim:getSetting("filemanager_display_mode")
@@ -462,7 +478,7 @@ local function showDisplayModeDialog(menu, tab_id)
 
     local function apply_mode(mode)
         if tab_id then
-            set_group_display_mode(tab_id, mode)
+            set_display_mode(tab_id, group_name, mode)
         else
             -- Use FM:onSetDisplayMode to update CoverBrowser state and save to BIM.
             local via_fm = false
@@ -475,8 +491,8 @@ local function showDisplayModeDialog(menu, tab_id)
         end
 
         -- Rebuild in-place: swap methods for the new mode, then redraw once.
-        local function _rebuild_menu(m, is_group, t_id)
-            local new_mode_type = setup_display_mode(m, is_group, t_id)
+        local function _rebuild_menu(m, is_group, t_id, detail_group)
+            local new_mode_type = setup_display_mode(m, is_group, t_id, detail_group)
             if new_mode_type ~= "mosaic" and new_mode_type ~= "list" then
                 -- Classic mode: restore base Menu methods
                 local Menu_class = require("ui/widget/menu")
@@ -487,22 +503,12 @@ local function showDisplayModeDialog(menu, tab_id)
             end
             m:updateItems()
         end
-        if menu then
-            _rebuild_menu(menu, menu._zen_group_view or false, tab_id)
+        if menu and (not group_name or menu._zen_group_name == group_name) then
+            _rebuild_menu(menu, menu._zen_group_view or false, tab_id, group_name)
         end
-        -- Also rebuild the root group menu when changing from within a detail view,
-        -- otherwise going back shows stale rendering with the old display mode.
-        if tab_id then
-            local root_menu
-            if tab_id == "authors" then
-                root_menu = _authors_menu
-            elseif tab_id == "languages" then
-                root_menu = _languages_menu
-            elseif tab_id == "tags" then
-                root_menu = _tags_menu
-            else
-                root_menu = _series_menu
-            end
+        -- Rebuild an open root menu when the change came from elsewhere.
+        if tab_id and not group_name then
+            local root_menu = get_root_menu(tab_id)
             if root_menu and root_menu ~= menu then
                 _rebuild_menu(root_menu, true, tab_id)
             end
@@ -1060,8 +1066,8 @@ local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
     }
     StandalonePage.prepare_shell(detail_menu)
 
-    -- Install same display mode as the library (mosaic/list/classic)
-    local mode_type = setup_display_mode(detail_menu, false, tab_id)
+    -- Install this group's display mode (mosaic/list/classic)
+    local mode_type = setup_display_mode(detail_menu, false, tab_id, group_name)
     if mode_type == "classic" or not mode_type then
         local Menu_class = require("ui/widget/menu")
         detail_menu.updateItems = Menu_class.updateItems
@@ -1146,7 +1152,7 @@ local function showDetailView(group_item, injectNavbar, tab_id, navbar_tab_id)
                         showDetailSortDialog(group_name, tab_id, self, files)
                     end,
                     _zen_display_cb        = function()
-                        showDisplayModeDialog(self, tab_id)
+                        showDisplayModeDialog(self, tab_id, group_name)
                     end,
                     _zen_filter_refresh_cb = function()
                         -- Rebuild item_table with new filter: close and reopen.
@@ -1201,7 +1207,7 @@ function M.showGroupContextMenu(group_name, files, tab_id, menu, options)
             showDetailSortDialog(group_name, tab_id, nil, files)
         end or nil,
         _zen_display_cb = not hide_actions and function()
-            showDisplayModeDialog(menu, tab_id)
+            showDisplayModeDialog(menu, tab_id, group_name)
         end or nil,
     })
     return true
