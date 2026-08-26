@@ -33,4 +33,28 @@ describe("app launcher plugin scan", function()
         assert.are.equal("marked", zenpm[1].key)
         assert.are.equal("package-id", zenpm[1].zenpm_package_id)
     end)
+
+    it("matches absolute pending paths to KOReader-relative plugin paths", function()
+        ZenSpec.replace("pluginloader", {
+            loaded_plugins = {
+                marked = {
+                    path = "plugins/marked.koplugin/",
+                    open = function() end,
+                },
+            },
+            loadPlugins = function()
+                return { { name = "marked" } }
+            end,
+        })
+        ZenSpec.unload("modules/menu/app_launcher/plugin_scan")
+
+        local zenpm = require("modules/menu/app_launcher/plugin_scan").scanZenPM({
+            {
+                id = "package-id",
+                install_path = "/runtime/plugins/marked.koplugin",
+            },
+        })
+        assert.are.equal(1, #zenpm)
+        assert.are.equal("package-id", zenpm[1].zenpm_package_id)
+    end)
 end)

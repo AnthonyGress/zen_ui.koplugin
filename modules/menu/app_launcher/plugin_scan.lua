@@ -95,6 +95,11 @@ local function normalized_path(path)
     return path:gsub("/+$", "")
 end
 
+local function plugin_root_name(path)
+    path = normalized_path(path)
+    return path and path:match("([^/]+%.koplugin)$") or nil
+end
+
 local function find_method(mod, key)
     for _i, method in ipairs(LAUNCH_METHODS) do
         if is_callable(mod[method]) then return method end
@@ -112,14 +117,16 @@ local function find_method(mod, key)
     end
 end
 
-local function add_candidate(out, seen, key, mod, pending_by_path)
+local function add_candidate(out, seen, key, mod, pending_index)
     if type(key) ~= "string" or key == "" or EXCLUDED_PLUGINS[key] or seen[key]
             or type(mod) ~= "table" then
         return
     end
     local pending
-    if pending_by_path then
-        pending = pending_by_path[normalized_path(mod.path)]
+    if pending_index then
+        local path = normalized_path(mod.path)
+        pending = pending_index.paths[path]
+            or pending_index.names[plugin_root_name(path)]
         if not pending then return end
     end
     local method = find_method(mod, key)
@@ -138,13 +145,13 @@ local function add_candidate(out, seen, key, mod, pending_by_path)
     }
 end
 
-local function scan(pending_by_path)
+local function scan(pending_index)
     local ok, results = pcall(function()
         local out, seen = {}, {}
         local loader = plugin_loader()
         if loader and type(loader.loaded_plugins) == "table" then
             for key, mod in pairs(loader.loaded_plugins) do
-                add_candidate(out, seen, key, mod, pending_by_path)
+                add_candidate(out, seen, key, mod, pending_index)
             end
         end
 
@@ -153,14 +160,14 @@ local function scan(pending_by_path)
             for key in pairs(names) do
                 local ok_plugin, plugin = pcall(loader.getPluginInstance, loader, key)
                 if ok_plugin then
-                    add_candidate(out, seen, key, plugin, pending_by_path)
+                    add_candidate(out, seen, key, plugin, pending_index)
                 end
             end
         end
 
         for _i, ui in ipairs(live_uis()) do
             for key in pairs(names) do
-                add_candidate(out, seen, key, ui[key], pending_by_path)
+                add_candidate(out, seen, key, ui[key], pending_index)
             end
         end
         table.sort(out, function(a, b) return a.title < b.title end)
@@ -174,14 +181,22 @@ function M.scan()
 end
 
 function M.scanZenPM(pending)
-    local by_path = {}
+    local index = { paths = {}, names = {} }
     for _i, entry in ipairs(type(pending) == "table" and pending or {}) do
         local path = normalized_path(type(entry) == "table" and entry.install_path)
         if path and type(entry.id) == "string" and entry.id ~= "" then
-            by_path[path] = entry
+            index.paths[path] = entry
+            local name = plugin_root_name(path)
+            if name then
+                if index.names[name] == nil then
+                    index.names[name] = entry
+                else
+                    index.names[name] = false
+                end
+            end
         end
     end
-    return scan(by_path)
+    return scan(index)
 end
 
 local function live_plugin(key)
