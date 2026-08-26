@@ -1,8 +1,11 @@
 describe("cover utility policy", function()
     local CoverUtils
+    local config
 
     before_each(function()
-        _G.G_reader_settings = ZenSpec.memorySettings({ uniform_cover_ratio = "2:3" })
+        _G.G_reader_settings = ZenSpec.memorySettings()
+        config = { uniform_cover_ratio = "2:3" }
+        ZenSpec.replace("config/manager", { get = function() return config end })
         ZenSpec.replace("ffi/blitbuffer", {})
         ZenSpec.replace("modules/filebrowser/patches/library_font", {})
         ZenSpec.replace("ui/widget/textboxwidget", {})
@@ -19,7 +22,7 @@ describe("cover utility policy", function()
 
     it("calculates portrait cover dimensions from the configured ratio", function()
         assert.are.same({ 200, 300 }, { CoverUtils.calcDims(300, 300) })
-        _G.G_reader_settings:saveSetting("uniform_cover_ratio", "3:4")
+        config.uniform_cover_ratio = "3:4"
         assert.are.same({ 225, 300 }, { CoverUtils.calcDims(300, 300) })
         assert.are.same({ 300, 400 }, { CoverUtils.calcDims(300, 500) })
     end)

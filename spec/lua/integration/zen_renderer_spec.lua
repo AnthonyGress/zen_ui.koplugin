@@ -212,6 +212,7 @@ describe("Zen renderer", function()
         })
         ZenSpec.replace("common/cover_utils", {
             BORDER_SIZE = 2,
+            getRatio = function() return 2 / 3 end,
             calcDims = function(width, height) return calc_dimensions(width, height) end,
         })
         ZenSpec.replace("modules/filebrowser/patches/home/widgets/cover_common", {

@@ -121,7 +121,10 @@ describe("opening banner", function()
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("listmenu", { _updateItemsBuildUI = build_list_items })
         ZenSpec.replace("mosaicmenu", { _updateItemsBuildUI = build_mosaic_items })
-        ZenSpec.replace("common/cover_utils", { BORDER_SIZE = 1 })
+        ZenSpec.replace("common/cover_utils", {
+            BORDER_SIZE = 1,
+            getRatio = function() return 2 / 3 end,
+        })
         ZenSpec.replace("apps/filemanager/filemanager", { instance = {} })
         ZenSpec.replace("ui/widget/confirmbox", ConfirmBox)
 

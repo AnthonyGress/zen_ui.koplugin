@@ -105,11 +105,6 @@ local function get_group_display_mode(tab_id, fallback)
     if type(stored) == "string" and stored ~= "" then
         return stored
     end
-    local g_settings = rawget(_G, "G_reader_settings")
-    local legacy = g_settings and g_settings:readSetting("zen_" .. tab_id .. "_display_mode")
-    if type(legacy) == "string" and legacy ~= "" then
-        return legacy
-    end
     return fallback
 end
 
@@ -131,12 +126,6 @@ local function get_detail_collate(tab_id, group_name, fallback)
     local stored = tab_collate and tab_collate[group_name]
     if type(stored) == "string" and stored ~= "" then
         return stored
-    end
-    local g_settings = rawget(_G, "G_reader_settings")
-    local legacy_key = "zen_" .. tab_id .. "_detail_collate_" .. group_name
-    local legacy = g_settings and g_settings:readSetting(legacy_key)
-    if type(legacy) == "string" and legacy ~= "" then
-        return legacy
     end
     return fallback
 end
@@ -162,12 +151,6 @@ local function get_group_reverse(tab_id)
     if stored ~= nil then
         return stored == true
     end
-    local g_settings = rawget(_G, "G_reader_settings")
-    local legacy_key = tab_id == "authors" and "zen_authors_reverse"
-        or (tab_id == "series" and "zen_series_reverse" or nil)
-    if legacy_key and g_settings then
-        return g_settings:isTrue(legacy_key)
-    end
     return false
 end
 
@@ -191,11 +174,6 @@ local function get_tags_global_collate()
     if type(stored) == "string" and stored ~= "" then
         return stored
     end
-    local g_settings = rawget(_G, "G_reader_settings")
-    local legacy = g_settings and g_settings:readSetting("zen_tags_global_collate")
-    if type(legacy) == "string" and legacy ~= "" then
-        return legacy
-    end
     return "title"
 end
 
@@ -218,8 +196,7 @@ local function is_tags_global_reverse()
     if tags_global and tags_global.reverse ~= nil then
         return tags_global.reverse == true
     end
-    local g_settings = rawget(_G, "G_reader_settings")
-    return g_settings and g_settings:isTrue("zen_tags_global_reverse") or false
+    return false
 end
 
 local function set_tags_global_reverse(reverse)
@@ -241,12 +218,6 @@ local function get_detail_reverse(tab_id, group_name, fallback)
     local stored = tab_reverse and tab_reverse[group_name]
     if stored ~= nil then
         return stored == true
-    end
-    local g_settings = rawget(_G, "G_reader_settings")
-    local legacy_key = "zen_" .. tab_id .. "_detail_reverse_" .. group_name
-    local legacy = g_settings and g_settings:readSetting(legacy_key)
-    if legacy ~= nil then
-        return legacy == true
     end
     return fallback == true
 end

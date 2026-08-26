@@ -54,6 +54,7 @@ describe("home cover rendering", function()
         ZenSpec.replace("ui/font", { getFace = function() return {} end })
         ZenSpec.replace("common/cover_utils", {
             BORDER_SIZE = 1,
+            getRatio = function() return 2 / 3 end,
             fitDims = function(max_w, max_h, source_w, source_h)
                 local scale = math.min(max_w / source_w, max_h / source_h)
                 return math.floor(source_w * scale + 0.5),

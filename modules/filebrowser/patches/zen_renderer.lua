@@ -128,9 +128,7 @@ local function apply_zen_renderer()
         if features.browser_cover_mosaic_uniform ~= true then
             return math.max(1, max_w), math.max(1, max_h), border, false
         end
-        local ratio = G_reader_settings:readSetting("uniform_cover_ratio") or "2:3"
-        local numerator, denominator = ratio:match("(%d+):(%d+)")
-        local aspect = (tonumber(numerator) or 2) / (tonumber(denominator) or 3)
+        local aspect = CoverUtils.getRatio()
         local target_w, target_h
         if max_w / max_h > aspect then
             target_h = max_h

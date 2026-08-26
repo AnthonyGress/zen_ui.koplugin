@@ -20,10 +20,7 @@ function M.get_empty_message(source)
 end
 
 local function get_uniform_ratio()
-    local g = rawget(_G, "G_reader_settings")
-    local ratio_str = g and g:readSetting("uniform_cover_ratio") or "2:3"
-    local n, d = tostring(ratio_str):match("(%d+):(%d+)")
-    return (tonumber(n) or 2) / (tonumber(d) or 3)
+    return CoverUtils.getRatio()
 end
 
 function M.uniform_height_for_width(width)

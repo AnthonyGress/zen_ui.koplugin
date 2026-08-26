@@ -477,6 +477,38 @@ describe("config manager folder-path migration", function()
         assert.is_nil(G_reader_settings:readSetting("zen_page_browser_layout"))
     end)
 
+    it("moves Zen-owned globals into the dedicated config", function()
+        _G.G_reader_settings = ZenSpec.memorySettings({
+            uniform_cover_ratio = "3:4",
+            opds_default_url = "https://catalog.example",
+            zen_series_display_mode = "mosaic_text",
+            zen_series_reverse = true,
+            zen_tags_global_collate = "access",
+            zen_tags_global_reverse = true,
+            zen_series_detail_collate_Saga = "title",
+            zen_series_detail_reverse_Saga = true,
+        })
+
+        local config = Manager.load()
+
+        assert.are.equal("3:4", config.uniform_cover_ratio)
+        assert.are.equal("https://catalog.example", config.opds.default_url)
+        assert.are.equal("mosaic_text", config.group_view.display_mode.series)
+        assert.is_true(config.group_view.group_reverse.series)
+        assert.are.equal("access", config.group_view.tags_global.collate)
+        assert.is_true(config.group_view.tags_global.reverse)
+        assert.are.equal("title", config.group_view.detail_collate.series.Saga)
+        assert.is_true(config.group_view.detail_reverse.series.Saga)
+        for _i, key in ipairs({
+            "uniform_cover_ratio", "opds_default_url",
+            "zen_series_display_mode", "zen_series_reverse",
+            "zen_tags_global_collate", "zen_tags_global_reverse",
+            "zen_series_detail_collate_Saga", "zen_series_detail_reverse_Saga",
+        }) do
+            assert.is_nil(G_reader_settings:readSetting(key), key)
+        end
+    end)
+
     it("preserves the carousel page-browser layout", function()
         stores.reader.settings.page_browser_layout = "carousel"
 

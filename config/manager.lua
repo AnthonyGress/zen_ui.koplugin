@@ -437,6 +437,37 @@ local function migrate_legacy_group_view_keys(cfg)
     return cfg, (changed or removed_legacy)
 end
 
+local function migrate_legacy_owned_keys(cfg)
+    local g = rawget(_G, "G_reader_settings")
+    if not g or type(cfg) ~= "table" then return cfg, false end
+
+    local changed = false
+    local removed_legacy = false
+    local ratio = g:readSetting("uniform_cover_ratio")
+    if ratio ~= nil then
+        if cfg.uniform_cover_ratio == nil and type(ratio) == "string" and ratio ~= "" then
+            cfg.uniform_cover_ratio = ratio
+            changed = true
+        end
+        g:delSetting("uniform_cover_ratio")
+        removed_legacy = true
+    end
+
+    local default_url = g:readSetting("opds_default_url")
+    if default_url ~= nil then
+        if type(cfg.opds) ~= "table" then cfg.opds = {} end
+        if cfg.opds.default_url == nil and type(default_url) == "string" and default_url ~= "" then
+            cfg.opds.default_url = default_url
+            changed = true
+        end
+        g:delSetting("opds_default_url")
+        removed_legacy = true
+    end
+
+    if removed_legacy then pcall(g.flush, g) end
+    return cfg, (changed or removed_legacy)
+end
+
 local function migrate_legacy_substring_search(cfg)
     local g = rawget(_G, "G_reader_settings")
     if not g or type(cfg) ~= "table" then return cfg, false end
@@ -1159,11 +1190,13 @@ function M.load()
     end
 
     local migrated_rakuyomi = migrate_legacy_rakuyomi_keys(stored)
+    local migrated_group, migrated_owned
+    stored, migrated_group = migrate_legacy_group_view_keys(stored)
+    stored, migrated_owned = migrate_legacy_owned_keys(stored)
     local cfg = merged_with_defaults(stored)
     local migrated_renamed
     cfg, migrated_renamed = normalize_renamed_keys(cfg)
-    local migrated_group, migrated_substring, migrated_updater, migrated_folder_paths, migrated_fbc, migrated_bim
-    cfg, migrated_group   = migrate_legacy_group_view_keys(cfg)
+    local migrated_substring, migrated_updater, migrated_folder_paths, migrated_fbc, migrated_bim
     cfg, migrated_substring = migrate_legacy_substring_search(cfg)
     cfg, migrated_updater = migrate_legacy_updater_keys(cfg)
     cfg, migrated_folder_paths = migrate_folder_path_settings(cfg)
@@ -1184,7 +1217,7 @@ function M.load()
             or migrated_settings_files or migrated_reader_presets
             or migrated_changed_defaults or migrated_home_lock
             or migrated_folder_paths or migrated_rakuyomi or migrated_page_browser
-            or migrated_brand_paths or initialized_brand_marker
+            or migrated_brand_paths or migrated_owned or initialized_brand_marker
             or recovered_fresh_config then
         M.save(cfg)
     end

@@ -142,7 +142,10 @@ describe("OPDS header", function()
             hasKeys = function() return true end,
         })
         ZenSpec.replace("opdsparser", { parse = function() return {} end })
-        ZenSpec.replace("common/cover_utils", { BORDER_SIZE = 1 })
+        ZenSpec.replace("common/cover_utils", {
+            BORDER_SIZE = 1,
+            getRatio = function() return 2 / 3 end,
+        })
         ZenSpec.replace("common/utils", {
             resolveLocalIcon = function(dir, name) return dir .. name .. ".svg" end,
         })

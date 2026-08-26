@@ -90,8 +90,10 @@ end
 -- ============================================================
 
 function CoverUtils.getRatio()
-    local G = rawget(_G, "G_reader_settings")
-    local ratio_str = G and G:readSetting("uniform_cover_ratio") or "2:3"
+    local plugin = rawget(_G, "__ZEN_UI_PLUGIN")
+    local cfg = type(plugin) == "table" and plugin.config
+        or require("config/manager").get()
+    local ratio_str = type(cfg) == "table" and cfg.uniform_cover_ratio or "2:3"
     local num, den = ratio_str:match("(%d+):(%d+)")
     return (tonumber(num) or 2) / (tonumber(den) or 3)
 end

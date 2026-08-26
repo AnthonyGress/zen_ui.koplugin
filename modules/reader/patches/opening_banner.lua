@@ -184,12 +184,11 @@ local function apply_opening_banner()
         if type(MosaicMenuItem.onTapSelect) ~= "function" then return end
 
         -- Match browser_cover_mosaic_uniform constants (kept in sync).
-        local _UNIFORM_BORDER = require("common/cover_utils").BORDER_SIZE
+        local CoverUtils = require("common/cover_utils")
+        local _UNIFORM_BORDER = CoverUtils.BORDER_SIZE
         local _UNIFORM_UNDERLINE_RESERVE = 6
         local function _uniform_aspect()
-            local s = _G.G_reader_settings and G_reader_settings:readSetting("uniform_cover_ratio") or "2:3"
-            local n, d = tostring(s):match("(%d+):(%d+)")
-            return (tonumber(n) or 2) / (tonumber(d) or 3)
+            return CoverUtils.getRatio()
         end
         -- Compute the rect of the actual painted cover for a tapped MosaicMenuItem.
         -- Primary source: _zen_cover_dimen, a snapshot of the cover widget's .dimen

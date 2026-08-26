@@ -887,6 +887,8 @@ return {
             zen_tags_detail_collate_fiction = "title",
             zen_series_detail_reverse_fiction = true,
             zen_page_browser_layout = "grid",
+            uniform_cover_ratio = "3:4",
+            opds_default_url = "https://catalog.example",
             substring_search = true,
             folder_gallery_mode = "mosaic_image",
             unrelated = true,
@@ -932,6 +934,8 @@ return {
             "zen_tags_detail_collate_fiction",
             "zen_series_detail_reverse_fiction",
             "zen_page_browser_layout",
+            "uniform_cover_ratio",
+            "opds_default_url",
         }) do
             assert.is_nil(g_settings:readSetting(key), key)
         end

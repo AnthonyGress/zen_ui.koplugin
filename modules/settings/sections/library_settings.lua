@@ -686,10 +686,11 @@ function M.build(ctx)
                         text = "2:3 " .. _("(standard)"),
                         radio = true,
                         checked_func = function()
-                            return G_reader_settings:readSetting("uniform_cover_ratio") ~= "3:4"
+                            return config.uniform_cover_ratio ~= "3:4"
                         end,
                         callback = function()
-                            G_reader_settings:saveSetting("uniform_cover_ratio", "2:3")
+                            config.uniform_cover_ratio = "2:3"
+                            plugin:saveConfig()
                             local ui = require("apps/filemanager/filemanager").instance
                             if ui and ui.file_chooser then ui.file_chooser:updateItems() end
                         end,
@@ -698,10 +699,11 @@ function M.build(ctx)
                         text = "3:4 " .. _("(Kindle)"),
                         radio = true,
                         checked_func = function()
-                            return G_reader_settings:readSetting("uniform_cover_ratio") == "3:4"
+                            return config.uniform_cover_ratio == "3:4"
                         end,
                         callback = function()
-                            G_reader_settings:saveSetting("uniform_cover_ratio", "3:4")
+                            config.uniform_cover_ratio = "3:4"
+                            plugin:saveConfig()
                             local ui = require("apps/filemanager/filemanager").instance
                             if ui and ui.file_chooser then ui.file_chooser:updateItems() end
                         end,

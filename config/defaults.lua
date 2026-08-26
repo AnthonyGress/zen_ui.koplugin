@@ -224,8 +224,10 @@ local defaults = {
     browser_series_badge = {
         show_series_badge = false,
     },
+    uniform_cover_ratio = "2:3",
     opds = {
         display_mode = "mosaic", -- "mosaic" | "list" | "classic"
+        default_url = "",
     },
     mosaic_title_strip = {
         show_title  = false,
