@@ -2,6 +2,8 @@ describe("config manager folder-path migration", function()
     local Manager
     local settings_file
     local stores
+    local written_settings
+    local write_error
 
     local function reload_manager(language)
         _G.G_reader_settings = ZenSpec.memorySettings(language and { language = language } or {})
@@ -12,6 +14,8 @@ describe("config manager folder-path migration", function()
 
     before_each(function()
         settings_file = { data = {}, flush = function() end }
+        written_settings = nil
+        write_error = nil
         stores = {
             home = { settings = {}, presets = {} },
             reader = { settings = {}, presets = {} },
@@ -19,6 +23,14 @@ describe("config manager folder-path migration", function()
         ZenSpec.replace("luasettings", { open = function() return settings_file end })
         ZenSpec.replace("util", {
             tableDeepCopy = function(value) return value end,
+            writeToFile = function(data, path)
+                if write_error then return nil, write_error end
+                written_settings = "-- " .. path .. "\nreturn " .. data .. "\n"
+                return true
+            end,
+            readFromFile = function()
+                return written_settings
+            end,
         })
         ZenSpec.replace("config/preset_store", {
             rootDir = function() return "/tmp/zen-ui-spec" end,
@@ -53,10 +65,34 @@ describe("config manager folder-path migration", function()
         assert.is_true(config.features.zen_mode)
         assert.is_true(config.features.status_bar)
         assert.are.equal("90", config.quick_settings.rotate_action)
+        assert.are.equal("", config.quick_settings.gyro_label)
+        assert.are.equal("quick_rotate", config.quick_settings.gyro_icon)
         assert.are.equal("number", config.reader_footer.chapter_time_format)
         assert.are.equal(18, config.page_browser.toc_font_size)
         assert.are.equal(18, config.page_browser.bookmarks_font_size)
+        assert.are.same({}, config.folder_cover_paths)
         assert.is_false(config._meta.quickstart_shown_for_version)
+    end)
+
+    it("reports a verified settings write failure", function()
+        settings_file.file = "/tmp/zen-ui-spec/config.lua"
+        settings_file.backup = function() return false end
+        write_error = "disk full"
+
+        local saved, err = Manager.save({ folder_cover_paths = {} }, true)
+
+        assert.is_nil(saved)
+        assert.are.equal("disk full", err)
+        assert.is_nil(Manager.get())
+    end)
+
+    it("accepts a verified settings write only after reading it back", function()
+        settings_file.file = "/tmp/zen-ui-spec/config.lua"
+        settings_file.backup = function() return false end
+        local config = { folder_cover_paths = {} }
+
+        assert.is_true(Manager.save(config, true))
+        assert.are.equal(config, Manager.get())
     end)
 
     it("migrates verbose chapter time settings to display formats", function()
@@ -129,7 +165,34 @@ describe("config manager folder-path migration", function()
         assert.is_false(config._meta.quickstart_completed)
     end)
 
-    it("moves sort and display overrides for a renamed folder subtree", function()
+    it("keeps only JPG folder-cover references while preserving clear tombstones", function()
+        settings_file.data = {
+            folder_cover_paths = {
+                ["/library/mixed"] = {
+                    [1] = "/images/first.jpg",
+                    [2] = "/images/second.JPG",
+                    [3] = "/images/legacy.jpeg",
+                    [4] = "/images/legacy.png",
+                },
+                ["/library/unsupported"] = {
+                    [1] = "/images/legacy.webp",
+                    [2] = "/images/legacy.gif",
+                },
+                ["/library/cleared"] = {},
+            },
+        }
+
+        local config = Manager.load()
+
+        assert.are.same({
+            [1] = "/images/first.jpg",
+            [2] = "/images/second.JPG",
+        }, config.folder_cover_paths["/library/mixed"])
+        assert.is_nil(config.folder_cover_paths["/library/unsupported"])
+        assert.are.same({}, config.folder_cover_paths["/library/cleared"])
+    end)
+
+    it("moves path settings and rewrites cover references for a renamed subtree", function()
         Manager.save({
             folder_sort = {
                 ["/library/old"] = { collate = "title", reverse = true },
@@ -139,6 +202,21 @@ describe("config manager folder-path migration", function()
                 ["/library/old"] = "mosaic",
                 ["/unrelated"] = "list",
             },
+            folder_cover_paths = {
+                ["/library/old"] = {
+                    [1] = "/library/old/art/first.jpg",
+                    [3] = "/shared/third.jpg",
+                },
+                ["/library/old/nested"] = {
+                    [2] = "/library/old/nested/second.jpg",
+                },
+                ["/library/other"] = {
+                    [1] = "/library/old/shared.jpg",
+                },
+                ["/unrelated"] = {
+                    [1] = "/elsewhere/poster.jpg",
+                },
+            },
         })
         assert.is_true(Manager.moveFolderPathSettings("/library/old/", "/library/new"))
         local config = Manager.get()
@@ -147,11 +225,42 @@ describe("config manager folder-path migration", function()
         assert.are.same({ collate = "access", reverse = false }, config.folder_sort["/library/new/nested"])
         assert.are.equal("mosaic", config.folder_display_mode["/library/new"])
         assert.are.equal("list", config.folder_display_mode["/unrelated"])
+        assert.is_nil(config.folder_cover_paths["/library/old"])
+        assert.is_nil(config.folder_cover_paths["/library/old/nested"])
+        assert.are.same({
+            [1] = "/library/new/art/first.jpg",
+            [3] = "/shared/third.jpg",
+        }, config.folder_cover_paths["/library/new"])
+        assert.are.same({
+            [2] = "/library/new/nested/second.jpg",
+        }, config.folder_cover_paths["/library/new/nested"])
+        assert.are.equal("/library/new/shared.jpg",
+            config.folder_cover_paths["/library/other"][1])
+        assert.are.equal("/elsewhere/poster.jpg",
+            config.folder_cover_paths["/unrelated"][1])
     end)
 
     it("does not rewrite identical normalized paths", function()
         Manager.save({ folder_sort = { ["/library/same"] = { collate = "title" } } })
         assert.is_false(Manager.moveFolderPathSettings("/library/same/", "/library/same"))
+    end)
+
+    it("rewrites a cover reference when its image file moves", function()
+        Manager.save({
+            folder_cover_paths = {
+                ["/library/series"] = {
+                    [1] = "/images/old.jpg",
+                    [2] = "/images/other.jpg",
+                },
+            },
+        })
+
+        assert.is_true(Manager.movePathSettings(
+            "/images/old.jpg", "/artwork/new.jpg"))
+        assert.are.same({
+            [1] = "/artwork/new.jpg",
+            [2] = "/images/other.jpg",
+        }, Manager.get().folder_cover_paths["/library/series"])
     end)
 
     it("migrates missing and legacy quote font sizes to 12", function()

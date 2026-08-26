@@ -240,6 +240,9 @@ msgstr "Autoren"
 msgid "authors"
 msgstr "Autoren"
 
+msgid "Autorotate"
+msgstr "Automatisch drehen"
+
 msgid "Automatic"
 msgstr "Automatisch"
 
@@ -1040,12 +1043,6 @@ msgstr "Grün"
 
 msgid "Group book series into folders"
 msgstr "Buchserien in Ordner gruppieren"
-
-msgid "Gyro"
-msgstr "Gyro"
-
-msgid "Gyroscope"
-msgstr "Gyroskop"
 
 msgid "Hide finished books"
 msgstr "Fertig gelesene Bücher ausblenden"

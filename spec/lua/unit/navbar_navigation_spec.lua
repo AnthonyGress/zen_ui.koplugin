@@ -375,6 +375,24 @@ describe("file browser navbar navigation", function()
         assert.is_nil(chooser.onMultiSwipe)
     end)
 
+    it("keeps the named folder cover picker fullscreen without a navbar", function()
+        local Menu = require("ui/widget/menu")
+        local picker = {
+            name = "folder_cover_picker",
+            height = 600,
+            covers_fullscreen = true,
+            is_borderless = true,
+            title_bar_fm_style = true,
+            _zen_no_forced_repaint = true,
+        }
+
+        Menu.init(picker)
+
+        assert.are.equal(600, picker.height)
+        assert.is_nil(picker._zen_prevent_swipe_close)
+        assert.is_nil(picker.onMultiSwipe)
+    end)
+
     it("opens a hidden default tab and keeps its top-menu icon", function()
         _G.__ZEN_UI_PLUGIN.config.navbar.show_tabs.home = false
 

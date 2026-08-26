@@ -252,6 +252,9 @@ msgstr "作者"
 msgid "authors"
 msgstr "位作者"
 
+msgid "Autorotate"
+msgstr "自動旋轉"
+
 msgid "Automatic"
 msgstr "自動"
 
@@ -569,6 +572,9 @@ msgstr "無法連線至更新伺服器。請檢查網路連線。\n\n無法載�
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
 msgstr "無法掃描 Wi-Fi 網路。請喚醒裝置後重試。"
+
+msgid "Cover"
+msgstr "封面"
 
 msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
 msgstr "CoverBrowser 外掛程式未啟用，部分功能無法正常運作。"
@@ -921,6 +927,12 @@ msgstr "擷取中繼資料"
 msgid "Extras"
 msgstr "附加功能"
 
+msgid "Failed to clear folder cover."
+msgstr "無法清除資料夾封面。"
+
+msgid "Failed to set folder cover."
+msgstr "無法設定資料夾封面。"
+
 msgid "Failed to submit report: "
 msgstr "送出報告失敗："
 
@@ -1055,12 +1067,6 @@ msgstr "綠色"
 
 msgid "Group book series into folders"
 msgstr "將書籍系列分組到資料夾中"
-
-msgid "Gyro"
-msgstr "陀螺儀"
-
-msgid "Gyroscope"
-msgstr "陀螺儀"
 
 msgid "Hide finished books"
 msgstr "隱藏已讀完書籍"
@@ -2075,6 +2081,9 @@ msgstr "設為桌面背景"
 
 msgid "Set file types to sync"
 msgstr "設定要同步的檔案類型"
+
+msgid "Set folder cover"
+msgstr "設定資料夾封面"
 
 msgid "Set home folder"
 msgstr "設定主資料夾"

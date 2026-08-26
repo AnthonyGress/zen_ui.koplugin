@@ -240,6 +240,9 @@ msgstr "作者"
 msgid "authors"
 msgstr "位作者"
 
+msgid "Autorotate"
+msgstr "自動旋轉"
+
 msgid "Automatic"
 msgstr "自動"
 
@@ -1040,12 +1043,6 @@ msgstr "綠色"
 
 msgid "Group book series into folders"
 msgstr "將書籍系列分組到資料夾中"
-
-msgid "Gyro"
-msgstr "陀螺儀"
-
-msgid "Gyroscope"
-msgstr "陀螺儀"
 
 msgid "Hide finished books"
 msgstr "隱藏已讀完書籍"

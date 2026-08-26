@@ -252,6 +252,9 @@ msgstr "Autori"
 msgid "authors"
 msgstr "autori"
 
+msgid "Autorotate"
+msgstr "Rotazione automatica"
+
 msgid "Automatic"
 msgstr "Automatico"
 
@@ -569,6 +572,9 @@ msgstr "Impossibile raggiungere il server di aggiornamento. Controlla la tua con
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
 msgstr "Impossibile cercare reti Wi-Fi. Riprova dopo aver riattivato il dispositivo."
+
+msgid "Cover"
+msgstr "Copertina"
 
 msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
 msgstr "Il plugin CoverBrowser non è attivato, alcune funzionalità non funzioneranno correttamente."
@@ -921,6 +927,12 @@ msgstr "Estrai metadati"
 msgid "Extras"
 msgstr "Aggiunte"
 
+msgid "Failed to clear folder cover."
+msgstr "Impossibile cancellare la copertina della cartella."
+
+msgid "Failed to set folder cover."
+msgstr "Impossibile impostare la copertina della cartella."
+
 msgid "Failed to submit report: "
 msgstr "Invio della segnalazione non riuscito: "
 
@@ -1055,12 +1067,6 @@ msgstr "Verde"
 
 msgid "Group book series into folders"
 msgstr "Raggruppa le serie di libri in cartelle"
-
-msgid "Gyro"
-msgstr "Giroscopio"
-
-msgid "Gyroscope"
-msgstr "Giroscopio"
 
 msgid "Hide finished books"
 msgstr "Nascondi i libri completati"
@@ -2075,6 +2081,9 @@ msgstr "Imposta come sfondo"
 
 msgid "Set file types to sync"
 msgstr "Imposta i tipi di file da sincronizzare"
+
+msgid "Set folder cover"
+msgstr "Imposta copertina cartella"
 
 msgid "Set home folder"
 msgstr "Imposta cartella home"

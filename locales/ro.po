@@ -252,6 +252,9 @@ msgstr "Autori"
 msgid "authors"
 msgstr "autori"
 
+msgid "Autorotate"
+msgstr "Rotire automată"
+
 msgid "Automatic"
 msgstr "Automat"
 
@@ -569,6 +572,9 @@ msgstr "Nu s-a putut contacta serverul de actualizări. Verifică conexiunea la 
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
 msgstr "Nu s-au putut scana rețelele Wi-Fi. Încercați din nou după trezirea dispozitivului."
+
+msgid "Cover"
+msgstr "Copertă"
 
 msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
 msgstr "Pluginul CoverBrowser nu este activat, unele funcții nu vor funcționa corect."
@@ -921,6 +927,12 @@ msgstr "Extrage metadate"
 msgid "Extras"
 msgstr "Suplimentare"
 
+msgid "Failed to clear folder cover."
+msgstr "Nu s-a putut șterge coperta dosarului."
+
+msgid "Failed to set folder cover."
+msgstr "Nu s-a putut seta coperta dosarului."
+
 msgid "Failed to submit report: "
 msgstr "Trimiterea raportului a eșuat: "
 
@@ -1055,12 +1067,6 @@ msgstr "Verde"
 
 msgid "Group book series into folders"
 msgstr "Grupează seriile de cărți în dosare"
-
-msgid "Gyro"
-msgstr "Giroscop"
-
-msgid "Gyroscope"
-msgstr "Giroscop"
 
 msgid "Hide finished books"
 msgstr "Ascunde cărțile terminate"
@@ -2075,6 +2081,9 @@ msgstr "Setează ca fundal"
 
 msgid "Set file types to sync"
 msgstr "Setează tipurile de fișiere de sincronizat"
+
+msgid "Set folder cover"
+msgstr "Setează coperta dosarului"
 
 msgid "Set home folder"
 msgstr "Setează dosarul principal"

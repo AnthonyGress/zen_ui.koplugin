@@ -65,7 +65,7 @@ describe("quick settings plugin controls", function()
         ZenSpec.replace("device", {
             screen = {},
             hasFrontlight = function() return false end,
-            hasGSensor = function() return false end,
+            hasGSensor = function() return true end,
         })
         ZenSpec.replace("ui/event", { new = function(_self, name) return { name = name } end })
         ZenSpec.replace("ui/font", no_op)
@@ -94,6 +94,10 @@ describe("quick settings plugin controls", function()
             resolveLocalIcon = function(icons_dir, name)
                 return icons_dir .. name .. ".svg"
             end,
+            resolveIcon = function(icons_dir, name)
+                return icons_dir .. name .. ".svg"
+            end,
+            getIconPickerList = function() return {} end,
         })
         ZenSpec.replace("common/shutdown", no_op)
         ZenSpec.replace("common/restart", no_op)
@@ -207,6 +211,33 @@ describe("quick settings plugin controls", function()
         assert.is_equal(1, tailscale.toggle_calls)
         assert.is_true(_G.__ZEN_UI_QUICK_SETTINGS.isActive("tailscale"))
         assert.is_equal(1, updates)
+    end)
+
+    it("labels autorotate and resolves bundled control icons", function()
+        local controls = {}
+        for _i, item in ipairs(_G.__ZEN_UI_QUICK_SETTINGS.getItems()) do
+            controls[item.id] = item
+        end
+
+        assert.are.equal("Autorotate", controls.gyro.label)
+        assert.are.equal("/tmp/zen-ui/icons/quick_rotate.svg", controls.gyro.icon)
+        assert.are.equal("/tmp/zen-ui/icons/quick_zen.svg", controls.zen.icon)
+    end)
+
+    it("uses the configured autorotate label and icon", function()
+        local config = _G.__ZEN_UI_PLUGIN.config.quick_settings
+        config.gyro_label = "Turn with device"
+        config.gyro_icon = "atom"
+        ZenSpec.unload("modules/menu/patches/quick_settings")
+        require("modules/menu/patches/quick_settings")()
+
+        local autorotate
+        for _i, item in ipairs(_G.__ZEN_UI_QUICK_SETTINGS.getItems()) do
+            if item.id == "gyro" then autorotate = item end
+        end
+
+        assert.are.equal("Turn with device", autorotate.label)
+        assert.are.equal("/tmp/zen-ui/icons/atom.svg", autorotate.icon)
     end)
 
     it("lists and toggles ZenFM without closing the menu", function()

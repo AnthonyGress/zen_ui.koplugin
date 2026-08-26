@@ -252,6 +252,9 @@ msgstr "作者"
 msgid "authors"
 msgstr "位作者"
 
+msgid "Autorotate"
+msgstr "自动旋转"
+
 msgid "Automatic"
 msgstr "自动"
 
@@ -569,6 +572,9 @@ msgstr "无法连接更新服务器。请检查网络连接。\n\n无法加载�
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
 msgstr "无法扫描 Wi-Fi 网络。请唤醒设备后重试。"
+
+msgid "Cover"
+msgstr "封面"
 
 msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
 msgstr "CoverBrowser 插件未启用，部分功能无法正常工作。"
@@ -921,6 +927,12 @@ msgstr "提取元数据"
 msgid "Extras"
 msgstr "附加功能"
 
+msgid "Failed to clear folder cover."
+msgstr "无法清除文件夹封面。"
+
+msgid "Failed to set folder cover."
+msgstr "无法设置文件夹封面。"
+
 msgid "Failed to submit report: "
 msgstr "提交报告失败："
 
@@ -1055,12 +1067,6 @@ msgstr "绿色"
 
 msgid "Group book series into folders"
 msgstr "将图书系列分组到文件夹中"
-
-msgid "Gyro"
-msgstr "陀螺仪"
-
-msgid "Gyroscope"
-msgstr "陀螺仪"
 
 msgid "Hide finished books"
 msgstr "隐藏已读完书籍"
@@ -2075,6 +2081,9 @@ msgstr "设为壁纸"
 
 msgid "Set file types to sync"
 msgstr "设置同步的文件类型"
+
+msgid "Set folder cover"
+msgstr "设置文件夹封面"
 
 msgid "Set home folder"
 msgstr "设置主目录"

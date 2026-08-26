@@ -907,9 +907,11 @@ local function home_state()
                 local row_dimen = target.widget and target.widget.dimen
                 local row_top = row_dimen and tonumber(row_dimen.y)
                 local row_h = row_dimen and tonumber(row_dimen.h)
-                if quote_content_bounds and row_top and row_h
-                        and (quote_content_bounds.bottom < row_top
-                            or quote_content_bounds.top > row_top + row_h) then
+                local row_unpainted = #widget_ids > 1 and row_top == 0
+                if quote_content_bounds and (not row_top or not row_h
+                        or row_unpainted
+                        or quote_content_bounds.bottom < row_top
+                        or quote_content_bounds.top > row_top + row_h) then
                     quote_content_bounds = nil
                 end
             end

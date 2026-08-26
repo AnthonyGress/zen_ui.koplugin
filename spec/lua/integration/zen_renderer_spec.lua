@@ -690,6 +690,17 @@ describe("Zen renderer", function()
         assert.are.equal(8, label_strip.radius)
         assert.are.equal(0xFF, label_strip.alpha)
         assert.are.same({ value = 0xFF }, label_strip.strip.background_mask.rects[1].color)
+        local strip_paints = {}
+        label_strip:paintTo({
+            colorblitFromRGB32 = function(_self, mask, _x, _y, _offset_x, _offset_y,
+                    _width, _height, color)
+                strip_paints[#strip_paints + 1] = { mask = mask, color = color }
+            end,
+        }, 0, 0)
+        assert.are.same({
+            { mask = label_strip.strip.background_mask, color = 1 },
+            { mask = label_strip.strip.border_mask, color = 0 },
+        }, strip_paints)
         assert.are.equal(folder_name_labels[1], label_widget[2][1])
         assert.are.equal("center", folder_name_labels[1].alignment)
         assert.is_true(folder_name_labels[1].height_adjust)

@@ -563,6 +563,26 @@ local function migrate_folder_path_settings(cfg)
         cfg.folder_display_mode = {}
         changed = true
     end
+    if type(cfg.folder_cover_paths) ~= "table" then
+        cfg.folder_cover_paths = {}
+        changed = true
+    end
+    for folder, slots in pairs(cfg.folder_cover_paths) do
+        if type(slots) == "table" then
+            local was_empty = next(slots) == nil
+            for slot, cover_path in pairs(slots) do
+                local extension = type(cover_path) == "string"
+                    and cover_path:lower():match("%.([^./]+)$") or nil
+                if extension ~= "jpg" then
+                    slots[slot] = nil
+                    changed = true
+                end
+            end
+            if not was_empty and next(slots) == nil then
+                cfg.folder_cover_paths[folder] = nil
+            end
+        end
+    end
 
     local g = rawget(_G, "G_reader_settings")
     if not g then return cfg, changed end
@@ -1180,14 +1200,38 @@ function M.load()
     return cfg
 end
 
-function M.save(config)
+function M.save(config, verify)
     local f = open_zen_file()
     f.data = config
-    f:flush()
+
+    local ok, saved, err = pcall(function()
+        if verify and type(f.file) == "string" and type(f.backup) == "function" then
+            local dump = require("dump")
+            local file_util = require("util")
+            local serialized = dump(config, nil, true)
+            local directory_updated = f:backup()
+            local write_ok, write_err = file_util.writeToFile(
+                serialized, f.file, true, true, directory_updated)
+            if not write_ok then return nil, write_err end
+            local stored, read_err = file_util.readFromFile(f.file)
+            local expected = "-- " .. f.file .. "\nreturn " .. serialized .. "\n"
+            if stored ~= expected then
+                return nil, read_err or "settings verification failed"
+            end
+            return true
+        end
+
+        local result = f:flush()
+        if result == false then return nil, "settings flush failed" end
+        return true
+    end)
+    if not ok then return nil, saved end
+    if not saved then return nil, err end
     _current_config = config
+    return true
 end
 
-function M.moveFolderPathSettings(from_path, to_path)
+function M.movePathSettings(from_path, to_path)
     if type(from_path) ~= "string" or type(to_path) ~= "string" then return false end
 
     local paths = require("common/paths")
@@ -1204,7 +1248,9 @@ function M.moveFolderPathSettings(from_path, to_path)
     if type(cfg) ~= "table" then cfg = M.load() end
     local changed = false
 
-    for _i, map_name in ipairs({ "folder_sort", "folder_display_mode" }) do
+    for _i, map_name in ipairs({
+        "folder_sort", "folder_display_mode", "folder_cover_paths",
+    }) do
         local settings = cfg[map_name]
         if type(settings) == "table" then
             local moves = {}
@@ -1231,9 +1277,29 @@ function M.moveFolderPathSettings(from_path, to_path)
         end
     end
 
-    if changed then M.save(cfg) end
-    return changed
+    local cover_paths = cfg.folder_cover_paths
+    if type(cover_paths) == "table" then
+        for _folder, slots in pairs(cover_paths) do
+            if type(slots) == "table" then
+                for slot, image_path in pairs(slots) do
+                    if type(image_path) == "string" then
+                        local normalized_path = normalize(image_path)
+                        if normalized_path == source
+                                or normalized_path:sub(1, #source + 1) == source .. "/" then
+                            slots[slot] = destination .. normalized_path:sub(#source + 1)
+                            changed = true
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    if changed then return M.save(cfg, true) == true end
+    return false
 end
+
+M.moveFolderPathSettings = M.movePathSettings
 
 -- Kept for deletePluginSettings: identifies the legacy G_reader_settings key
 -- so it can be cleaned up alongside the dedicated file.

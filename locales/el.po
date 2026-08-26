@@ -241,6 +241,9 @@ msgstr "Συγγραφείς"
 msgid "authors"
 msgstr "συγγραφείς"
 
+msgid "Autorotate"
+msgstr "Αυτόματη περιστροφή"
+
 msgid "Automatic"
 msgstr "Αυτόματο"
 
@@ -1041,12 +1044,6 @@ msgstr "Πράσινο"
 
 msgid "Group book series into folders"
 msgstr "Ομαδοποίηση σειρών βιβλίων σε φακέλους"
-
-msgid "Gyro"
-msgstr "Γυρο"
-
-msgid "Gyroscope"
-msgstr "Γυροσκόπιο"
 
 msgid "Hide finished books"
 msgstr "Απόκρυψη τελειωμένων βιβλίων"

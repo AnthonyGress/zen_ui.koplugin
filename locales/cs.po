@@ -240,6 +240,9 @@ msgstr "Autoři"
 msgid "authors"
 msgstr "autoři"
 
+msgid "Autorotate"
+msgstr "Automatické otáčení"
+
 msgid "Automatic"
 msgstr "Automaticky"
 
@@ -1040,12 +1043,6 @@ msgstr "Zelená"
 
 msgid "Group book series into folders"
 msgstr "Seskupit série knih do složek"
-
-msgid "Gyro"
-msgstr "Gyro"
-
-msgid "Gyroscope"
-msgstr "Gyroskop"
 
 msgid "Hide finished books"
 msgstr "Skrýt dočtené knihy"

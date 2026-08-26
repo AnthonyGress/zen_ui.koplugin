@@ -240,6 +240,9 @@ msgstr "著者"
 msgid "authors"
 msgstr "著者"
 
+msgid "Autorotate"
+msgstr "自動回転"
+
 msgid "Automatic"
 msgstr "自動"
 
@@ -1040,12 +1043,6 @@ msgstr "グリーン"
 
 msgid "Group book series into folders"
 msgstr "本のシリーズをフォルダにまとめる"
-
-msgid "Gyro"
-msgstr "ジャイロ"
-
-msgid "Gyroscope"
-msgstr "ジャイロスコープ"
 
 msgid "Hide finished books"
 msgstr "読了した本を非表示"

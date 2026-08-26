@@ -89,7 +89,9 @@ The reader has its own separate font controls, so you can give the reading view 
 
 ## Custom folder covers
 
-Override the featured image shown on a folder's cover by placing an image file inside that folder. Supported names are `cover.png`, `cover.jpg`, or `cover.jpeg`. To rotate through multiple images, add `cover1`, `cover2`, `cover3`, and `cover4` (with any supported extension). When present, these override the automatic cover generated from the folder's contents.
+Long-press a folder and open **Edit > Set folder cover** to see a full-screen vertical mosaic of cover slots and their current previews. Each row places the preview on the left, **Cover N** vertically centered, and a Zen **Clear** button at the far right. Tap a cover or press OK/Enter on its focused row to choose an image; press and hold it or tap **Clear** to remove the reference. Single-cover mode offers one slot; gallery and stack modes show all four slots together on one page without pagination. Previews scale to fit the page while using the same aspect ratio, crop mode, and rounded-corner styling as the Library file picker. A gallery or stack with only one chosen or automatic cover is displayed as one full-size cover, and chosen covers are not filled out with automatic book covers.
+
+ZenOS stores only a reference to each chosen image: it does not copy the image into the folder or modify the source file, so the source must remain available at the selected location. Folder covers accept only the case-insensitive `.jpg` extension. You can also manage them manually as `cover.jpg`, `cover1.jpg`, `cover2.jpg`, `cover3.jpg`, or `cover4.jpg`; these managed JPG files stay hidden in the Library file list and override covers generated from the folder's contents. Files ending in `.jpeg`, `.png`, `.webp`, `.gif`, or any other extension are not treated as folder covers and remain visible.
 
 ## Library Background
 

@@ -240,6 +240,9 @@ msgstr "Автори"
 msgid "authors"
 msgstr "автори"
 
+msgid "Autorotate"
+msgstr "Автоповорот"
+
 msgid "Automatic"
 msgstr "Автоматично"
 
@@ -1040,12 +1043,6 @@ msgstr "Зелений"
 
 msgid "Group book series into folders"
 msgstr "Групувати серії книг у теки"
-
-msgid "Gyro"
-msgstr "Гіроскоп"
-
-msgid "Gyroscope"
-msgstr "Гіроскоп"
 
 msgid "Hide finished books"
 msgstr "Приховати прочитані книги"

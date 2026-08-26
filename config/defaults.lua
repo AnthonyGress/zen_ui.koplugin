@@ -164,6 +164,8 @@ local defaults = {
         show_frontlight = true,
         show_warmth = true,
         flip_lh_rh_icon = false,
+        gyro_label = "",
+        gyro_icon = "quick_rotate",
         rotate_action = "90",
         screenshot_timer_seconds = 3,
     },
@@ -191,6 +193,7 @@ local defaults = {
     },
     folder_sort = {},
     folder_display_mode = {},
+    folder_cover_paths = {},
     library_background = {
         enabled = false,
         path = "",  -- "" = none; absolute image path otherwise

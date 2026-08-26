@@ -18,7 +18,7 @@ local function apply_browser_item_table_cache()
     local FOLDER_AGGREGATE_CACHE_MAX = 128
     local PERSISTED_CACHE_MAX = 4
     local PERSISTED_ITEM_MAX = 4096
-    local PERSISTED_SCHEMA = 3
+    local PERSISTED_SCHEMA = 4
     local PERSISTED_TREE_DEPTH = 2
     local PERSISTED_TREE_DIR_MAX = 256
     local PERSISTED_TREE_ENTRY_MAX = 4096

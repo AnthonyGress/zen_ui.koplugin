@@ -253,6 +253,9 @@ msgstr "Авторы"
 msgid "authors"
 msgstr "авторы"
 
+msgid "Autorotate"
+msgstr "Автоповорот"
+
 msgid "Automatic"
 msgstr "Автоматически"
 
@@ -570,6 +573,9 @@ msgstr "Не удалось подключиться к серверу обно�
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
 msgstr "Не удалось просканировать сети Wi-Fi. Попробуйте ещё раз после пробуждения устройства."
+
+msgid "Cover"
+msgstr "Обложка"
 
 msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
 msgstr "Плагин CoverBrowser не включён, некоторые функции не будут работать правильно."
@@ -922,6 +928,12 @@ msgstr "Извлечь метаданные"
 msgid "Extras"
 msgstr "Дополнения"
 
+msgid "Failed to clear folder cover."
+msgstr "Не удалось удалить обложку папки."
+
+msgid "Failed to set folder cover."
+msgstr "Не удалось установить обложку папки."
+
 msgid "Failed to submit report: "
 msgstr "Не удалось отправить отчёт: "
 
@@ -1056,12 +1068,6 @@ msgstr "Зелёный"
 
 msgid "Group book series into folders"
 msgstr "Группировать книжные серии в папки"
-
-msgid "Gyro"
-msgstr "Гиро"
-
-msgid "Gyroscope"
-msgstr "Гироскоп"
 
 msgid "Hide finished books"
 msgstr "Скрыть прочитанные книги"
@@ -2076,6 +2082,9 @@ msgstr "Установить как обои"
 
 msgid "Set file types to sync"
 msgstr "Задать типы файлов для синхронизации"
+
+msgid "Set folder cover"
+msgstr "Установить обложку папки"
 
 msgid "Set home folder"
 msgstr "Установить домашнюю папку"
