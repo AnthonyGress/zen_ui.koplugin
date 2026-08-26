@@ -90,6 +90,11 @@ local function entry_text(entry)
     return text_without_glyph(entry.text)
 end
 
+local function normalized_path(path)
+    if type(path) ~= "string" then return nil end
+    return path:gsub("/+$", "")
+end
+
 local function find_method(mod, key)
     for _i, method in ipairs(LAUNCH_METHODS) do
         if is_callable(mod[method]) then return method end
@@ -107,10 +112,15 @@ local function find_method(mod, key)
     end
 end
 
-local function add_candidate(out, seen, key, mod)
+local function add_candidate(out, seen, key, mod, pending_by_path)
     if type(key) ~= "string" or key == "" or EXCLUDED_PLUGINS[key] or seen[key]
             or type(mod) ~= "table" then
         return
+    end
+    local pending
+    if pending_by_path then
+        pending = pending_by_path[normalized_path(mod.path)]
+        if not pending then return end
     end
     local method = find_method(mod, key)
     if not method then return end
@@ -120,16 +130,21 @@ local function add_candidate(out, seen, key, mod)
     if not title or title == "" then
         title = key:sub(1, 1):upper() .. key:sub(2)
     end
-    out[#out + 1] = { key = key, method = method, title = title }
+    out[#out + 1] = {
+        key = key,
+        method = method,
+        title = title,
+        zenpm_package_id = pending and pending.id or nil,
+    }
 end
 
-function M.scan()
+local function scan(pending_by_path)
     local ok, results = pcall(function()
         local out, seen = {}, {}
         local loader = plugin_loader()
         if loader and type(loader.loaded_plugins) == "table" then
             for key, mod in pairs(loader.loaded_plugins) do
-                add_candidate(out, seen, key, mod)
+                add_candidate(out, seen, key, mod, pending_by_path)
             end
         end
 
@@ -138,20 +153,35 @@ function M.scan()
             for key in pairs(names) do
                 local ok_plugin, plugin = pcall(loader.getPluginInstance, loader, key)
                 if ok_plugin then
-                    add_candidate(out, seen, key, plugin)
+                    add_candidate(out, seen, key, plugin, pending_by_path)
                 end
             end
         end
 
         for _i, ui in ipairs(live_uis()) do
             for key in pairs(names) do
-                add_candidate(out, seen, key, ui[key])
+                add_candidate(out, seen, key, ui[key], pending_by_path)
             end
         end
         table.sort(out, function(a, b) return a.title < b.title end)
         return out
     end)
     return ok and results or {}
+end
+
+function M.scan()
+    return scan(nil)
+end
+
+function M.scanZenPM(pending)
+    local by_path = {}
+    for _i, entry in ipairs(type(pending) == "table" and pending or {}) do
+        local path = normalized_path(type(entry) == "table" and entry.install_path)
+        if path and type(entry.id) == "string" and entry.id ~= "" then
+            by_path[path] = entry
+        end
+    end
+    return scan(by_path)
 end
 
 local function live_plugin(key)

@@ -3,6 +3,19 @@ local Store = require("modules/menu/app_launcher/store")
 
 local M = {}
 
+local ZENPM_AUTO_ADD_EXCLUDED = {
+    zenfm = true,
+    zenpm = true,
+    zenos = true,
+    zen_ui = true,
+}
+
+local function suggest_icon(label)
+    local ok_root, root = pcall(require, "common/plugin_root")
+    return require("common/utils").suggestIcon(
+        ok_root and root or nil, label, "lightning")
+end
+
 local function valid_plugin(plugin)
     return type(plugin) == "table"
         and type(plugin.key) == "string"
@@ -164,6 +177,51 @@ function M.ensure_zenfm_launcher_entry()
     cfg.zenfm_launcher_added = true
     Store.save(cfg)
     return true
+end
+
+function M.ensure_zenpm_plugin_entries()
+    local Pending = require("modules/menu/app_launcher/zenpm_pending")
+    local pending, db_path = Pending.read()
+    if #pending == 0 then return false end
+
+    local cfg = M.ensure()
+    local consumed = {}
+    local changed = false
+    local added = false
+    for _i, entry in ipairs(pending) do
+        local path = type(entry) == "table" and entry.install_path or ""
+        local key = path:gsub("/+$", ""):match("([^/]+)%.koplugin$")
+        if ZENPM_AUTO_ADD_EXCLUDED[key] and type(entry.id) == "string" then
+            consumed[entry.id] = true
+        end
+    end
+
+    local plugins = require("modules/menu/app_launcher/plugin_scan").scanZenPM(pending)
+    for _i, plugin in ipairs(plugins) do
+        local key = type(plugin) == "table" and plugin.key or nil
+        local package_id = type(plugin) == "table" and plugin.zenpm_package_id or nil
+        if type(key) == "string" and type(package_id) == "string" then
+            if not has_plugin_entry(cfg.entries, key) then
+                if not ZENPM_AUTO_ADD_EXCLUDED[key] then
+                    cfg.entries[#cfg.entries + 1] = {
+                        id = M.next_id(cfg),
+                        type = "plugin",
+                        label = plugin.title,
+                        icon = suggest_icon(plugin.title),
+                        plugin = { key = key, method = plugin.method },
+                    }
+                    changed = true
+                    added = true
+                end
+            end
+            consumed[package_id] = true
+        end
+    end
+    if changed then
+        Store.save(cfg)
+    end
+    Pending.clear(consumed, db_path)
+    return added
 end
 
 -- Monotonic counter that only ever increments, so removing entries can never

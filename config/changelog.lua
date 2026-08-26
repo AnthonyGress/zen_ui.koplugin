@@ -286,6 +286,7 @@ return {
         "Performance improvements"
     },
     ["3.2.0"] = {
+        "Automatically add new ZenPM plugins to Launcher",
         "Add three-page carousel layout to the page browser",
         "Add opacity slider to Library background (Library > Background)",
         "Add new icon for bookmark (dogear) in Reader",
