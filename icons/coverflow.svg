@@ -12,23 +12,23 @@
 
 <g transform="translate(1.000000, 2.000000)" fill="#000000">
 
-<rect x="4" y="0" width="8" height="12" rx="2" class="si-glyph-fill">
+<rect x="4" y="0" width="8" height="12" rx="1" class="si-glyph-fill">
 
 </rect>
 
-<rect x="13" y="2" width="0.916" height="8" rx="2" class="si-glyph-fill">
+<rect x="13" y="2" width="0.916" height="8" rx="0.2" class="si-glyph-fill">
 
 </rect>
 
-<rect x="15" y="0" width="1" height="12" rx="2" class="si-glyph-fill">
+<rect x="15" y="0" width="1" height="12" rx="0.2" class="si-glyph-fill">
 
 </rect>
 
-<rect x="2" y="2" width="1" height="8" rx="2" class="si-glyph-fill">
+<rect x="2" y="2" width="1" height="8" rx="0.2" class="si-glyph-fill">
 
 </rect>
 
-<rect x="0" y="0" width="0.979" height="11.918" rx="2" class="si-glyph-fill">
+<rect x="0" y="0" width="0.979" height="11.918" rx="0.2" class="si-glyph-fill">
 
 </rect>
 

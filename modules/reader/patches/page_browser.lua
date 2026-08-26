@@ -245,7 +245,7 @@ local function apply_page_browser()
             paint_page(42, center_x, grid_top, cell_w, grid_h)
             paint_page(43, center_x + cell_w + gap, grid_top, cell_w, grid_h)
         else
-            local cols, rows = 3, 2
+            local cols, rows = 3, 3
             local gap = Screen:scaleBySize(8)
             local margin_x = Screen:scaleBySize(14)
             local cell_w = math.floor((slot_w - 2 * margin_x - (cols - 1) * gap) / cols)
@@ -747,6 +747,21 @@ local function apply_page_browser()
             return true
         end
 
+        local function get_badge_bottom(pbw, item, item_h, is_focus_page)
+            if pbw._zen_layout_mode ~= "carousel" or not is_focus_page then
+                return item_h
+            end
+
+            local thumb_frame = item[1] and item[1][1]
+            local image = thumb_frame and thumb_frame.is_page_thumbnail and thumb_frame[1]
+            local image_size = image and type(image.getSize) == "function" and image:getSize()
+            local thumb_h = image_size and image_size.h
+                or (pbw._zen_tile_size and pbw._zen_tile_size.h)
+            if not thumb_h then return item_h end
+
+            return math.floor((item_h - thumb_h) / 2) + thumb_h
+        end
+
         PageBrowserWidget._zenConfigureCarouselGrid = configure_carousel_grid
 
         -- ----------------------------------------------------------------
@@ -763,7 +778,7 @@ local function apply_page_browser()
                 self._zen_nb_rows_override = 1
             else
                 self._zen_nb_cols_override = 3
-                self._zen_nb_rows_override = 2
+                self._zen_nb_rows_override = 3
             end
             _orig_init(self)
             local stock_focus_layout = self.build_focus_layout
@@ -780,9 +795,9 @@ local function apply_page_browser()
                                       w = Screen:getWidth(), h = Screen:getHeight() },
                 }
             }
-            -- Grid mode is fixed at 3 columns × 2 rows on every device.
+            -- Grid mode is fixed at 3 columns × 3 rows on every device.
             self._zen_orig_nb_cols = 3
-            self._zen_orig_nb_rows = 2
+            self._zen_orig_nb_rows = 3
             -- Block slider input until the opening swipe gesture completes so
             -- the northward swipe that opens us doesn't immediately move the
             -- slider (which appears right where the finger lifted).
@@ -1055,7 +1070,7 @@ local function apply_page_browser()
                     self._zen_nb_rows_override = 1
                 else
                     self._zen_nb_cols_override = 3
-                    self._zen_nb_rows_override = 2
+                    self._zen_nb_rows_override = 3
                 end
             end
             -- Free any panel we built in a previous updateLayout call.
@@ -1362,7 +1377,9 @@ local function apply_page_browser()
                         local pdy = math.floor((sz.h - th) / 2)
                         local inner_x = gx + ox + pdx
                         local inner_bottom = gy + oy + pdy + th
-                        local badge_y = gy + oy + sz.h - badge_max_h - gap_bot_s
+                        local badge_bottom = get_badge_bottom(
+                            pbw, item, sz.h, page_num == fp)
+                        local badge_y = gy + oy + badge_bottom - badge_max_h - gap_bot_s
                         local erase_h = math.max(0, inner_bottom - badge_y)
                         if erase_h > 0 then
                             bb:paintRect(inner_x, badge_y, tw, erase_h,
@@ -1380,7 +1397,7 @@ local function apply_page_browser()
                             local bh  = lsz.h + 2 * pv_s
                             local bw  = math.max(lsz.w + 2 * ph_s, bh)
                             local bx  = gx + ox + math.floor((sz.w - bw) / 2)
-                            local by  = gy + oy + sz.h - bh - gap_bot_s
+                            local by  = gy + oy + badge_bottom - bh - gap_bot_s
 
                             local r_p = bh / 2
                             for row = 0, bh - 1 do
@@ -1607,7 +1624,7 @@ local function apply_page_browser()
             local _switch_grid = function()
                 pbw._zen_layout_mode = "grid"
                 pbw._zen_nb_cols_override = 3
-                pbw._zen_nb_rows_override = 2
+                pbw._zen_nb_rows_override = 3
                 set_page_browser_layout("grid")
                 logger.dbg("switch to grid")
                 pbw:updateLayout()
@@ -2048,7 +2065,9 @@ local function apply_page_browser()
                         local bh  = lsz.h + 2 * pv
                         local bw  = math.max(lsz.w + 2 * ph, bh)  -- never narrower than a circle
                         local bx  = gx + ox + math.floor((sz.w - bw) / 2)
-                        local by  = gy + oy + sz.h - bh - gap_bot
+                        local badge_bottom = get_badge_bottom(
+                            self, item, sz.h, page_num == fp)
+                        local by  = gy + oy + badge_bottom - bh - gap_bot
 
                         paintPill(bx, by, bw, bh, bg_color)
                         label:paintTo(bb,

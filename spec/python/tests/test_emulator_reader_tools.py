@@ -118,7 +118,7 @@ def test_reader_page_browser_modes_and_aa_menu_render() -> None:
                 "page_browser_state",
                 lambda result: result.get("page_browser", {}).get("layout") == "grid",
             )["page_browser"]
-            assert grid["thumbnail_count"] > 0
+            assert grid["thumbnail_count"] == 9
             assert grid["focused"] == "header:1"
 
             assert driver.command("page_browser_key", key="Down")["handled"] is True

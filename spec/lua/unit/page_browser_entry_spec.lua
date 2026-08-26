@@ -366,6 +366,7 @@ describe("page browser entry", function()
         local ReaderMenu = { initGesListener = function() end }
         local ReaderConfig = { onSwipeShowConfigMenu = function() end }
         local stock_taps = 0
+        local painted_labels = {}
         local PageBrowserWidget = {
             init = function() error("init stop") end,
             update = function(self)
@@ -386,6 +387,25 @@ describe("page browser entry", function()
             new = function(_, spec) return spec end,
         }
         install_widget_dependencies(PageBrowserWidget)
+        ZenSpec.replace("ui/widget/container/inputcontainer", { paintTo = function() end })
+        ZenSpec.replace("ui/font", { getFace = function() return {} end })
+        ZenSpec.replace("ui/size", { border = { thin = 1 } })
+        ZenSpec.replace("ffi/blitbuffer", {
+            COLOR_BLACK = 0,
+            COLOR_WHITE = 255,
+            gray = function(value) return value end,
+        })
+        ZenSpec.replace("ui/widget/textwidget", {
+            new = function(_, spec)
+                return {
+                    getSize = function() return { w = 20, h = 10 } end,
+                    paintTo = function(_, _bb, x, y)
+                        painted_labels[spec.text] = { x = x, y = y }
+                    end,
+                    free = function() end,
+                }
+            end,
+        })
 
         local Geom = {}
         function Geom:new(spec)
@@ -417,11 +437,13 @@ describe("page browser entry", function()
         expect(initialized._zen_nb_rows_override == 1)
 
         local function page_frame()
-            return {
+            local frame = {
                 { dimen = Geom:new{ w = 100, h = 100 } },
                 dimen = Geom:new{ x = 1, y = 1, w = 100, h = 100 },
                 overlap_offset = { 0, 0 },
             }
+            function frame:getSize() return self[1].dimen end
+            return frame
         end
         local function nav_frame()
             return {
@@ -458,7 +480,17 @@ describe("page browser entry", function()
         expect(grid[1].dimen == nil and grid[1][1].dimen.w == 400)
         expect(grid[4].dimen == nil and grid[4].initial_overlap_offset[1] == -312)
 
+        grid[2][1][1] = {
+            is_page_thumbnail = true,
+            { getSize = function() return { w = 280, h = 420 } end },
+        }
         setmetatable(browser, { __index = PageBrowserWidget })
+        PageBrowserWidget.paintTo(browser, {
+            paintRect = function() end,
+        }, 0, 0)
+        expect(painted_labels["5"].x == 290 and painted_labels["5"].y == 446)
+        expect(painted_labels["4"].y == 481 and painted_labels["6"].y == 481)
+
         PageBrowserWidget.update(browser)
         expect(browser.stock_updates == 1)
         expect(#browser.preloaded == 2)
@@ -891,7 +923,7 @@ describe("page browser entry", function()
         expect(positions["/icons/tab_vocab.svg"] == 162)
         expect(positions["/icons/bookmark.svg"] == 216)
         expect(positions["/icons/toc.svg"] == 270)
-        expect(browser._zen_orig_nb_cols == 3 and browser._zen_orig_nb_rows == 2)
+        expect(browser._zen_orig_nb_cols == 3 and browser._zen_orig_nb_rows == 3)
         local close_button = browser.title_bar.right_button
         expect(close_button.file == "/icons/close_light.svg")
         expect(close_button.width == 32 and close_button.height == 32)

@@ -607,10 +607,6 @@ function ZenSettingsPage:_buildSearchIndex()
                 end
                 local breadcrumb = item._zen_search_breadcrumb or table.concat(crumbs, " › ")
                 local help_text = item.help_text
-                if type(item.help_text_func) == "function" then
-                    local help_ok, value = pcall(item.help_text_func, self)
-                    if help_ok then help_text = value end
-                end
                 index[#index + 1] = {
                     item = item,
                     label = label,
@@ -637,10 +633,6 @@ function ZenSettingsPage:_buildSearchIndex()
                     for i = 2, #levels do crumbs[#crumbs + 1] = levels[i].title end
                     local breadcrumb = table.concat(crumbs, " › ")
                     local help_text = item.help_text
-                    if type(item.help_text_func) == "function" then
-                        local ok, value = pcall(item.help_text_func, self)
-                        if ok then help_text = value end
-                    end
                     local sub_items = self:_resolveSubItems(item)
                     index[#index + 1] = {
                         item = item,
