@@ -84,7 +84,7 @@ local defaults = {
         zen_opds             = true,
     },
     search = {
-        substring = false,
+        substring = true,
     },
     developer = {
         double_tap_to_open_books = false,
