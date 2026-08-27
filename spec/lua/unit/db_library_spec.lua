@@ -8,6 +8,7 @@ describe("library statistics", function()
             ["/books/complete.epub"] = { status = "complete", modified = today },
             ["/books/old.epub"] = { status = "complete", modified = old_day },
             ["/books/reading.epub"] = { status = "reading" },
+            ["/books/chapter.cbz"] = { status = "complete", modified = today },
         }
         open_calls = 0
 
@@ -23,11 +24,15 @@ describe("library statistics", function()
                 return { modification = 1000, size = 128 }
             end,
         })
+        ZenSpec.replace("modules/filebrowser/patches/rakuyomi", {
+            isChapterFile = function(path) return path == "/books/chapter.cbz" end,
+        })
         ZenSpec.replace("readhistory", {
             hist = {
                 { file = "/books/complete.epub" },
                 { file = "/books/old.epub" },
                 { file = "/books/reading.epub" },
+                { file = "/books/chapter.cbz" },
             },
             reload = function() end,
         })
@@ -44,7 +49,12 @@ describe("library statistics", function()
         ZenSpec.unload("common/db_library")
     end)
 
-    it("counts completed books by their completion date", function()
+    after_each(function()
+        ZenSpec.unload("common/db_library")
+        ZenSpec.unload("modules/filebrowser/patches/rakuyomi")
+    end)
+
+    it("counts completed books by date but excludes Rakuyomi chapters", function()
         local counts = require("common/db_library").getBookCounts()
 
         assert.are.equal(2, counts.finished)

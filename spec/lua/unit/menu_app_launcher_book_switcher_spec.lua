@@ -108,6 +108,17 @@ describe("app launcher book switcher page", function()
         assert.is_false(cfg.book_switcher_reader_only)
         assert.is_false(cfg.show_book_details)
         assert.are.same({ "book_details", "book_switcher", "buttons" }, cfg.page_order)
+        assert.are.same({
+            "read_time", "time_remaining", "pages_today", "time_today", "pages", "progress",
+        }, cfg.book_details_order)
+        assert.are.same({
+            read_time = true,
+            time_remaining = true,
+            pages_today = false,
+            time_today = false,
+            pages = true,
+            progress = true,
+        }, cfg.book_details_enabled)
 
         cfg.show_book_switcher = true
         cfg.book_switcher_first = true
@@ -115,6 +126,13 @@ describe("app launcher book switcher page", function()
         cfg.show_book_details = true
         cfg.book_details_first = true
         cfg.page_order = { "buttons", "unknown", "buttons" }
+        cfg.book_details_order = { "pages", "unknown", "pages", "read_time" }
+        cfg.book_details_enabled = {
+            read_time = false,
+            time_remaining = "invalid",
+            pages = false,
+            unknown = false,
+        }
         Store.save(cfg)
         assert.is_true(settings_file.flushed)
         assert.is_true(settings_file.data.show_book_switcher)
@@ -124,6 +142,18 @@ describe("app launcher book switcher page", function()
         assert.is_nil(settings_file.data.book_details_first)
         assert.are.same({ "buttons", "book_details", "book_switcher" },
             settings_file.data.page_order)
+        assert.are.same({
+            "pages", "read_time", "time_remaining", "pages_today", "time_today", "progress",
+        }, settings_file.data.book_details_order)
+        assert.are.same({
+            read_time = false,
+            time_remaining = true,
+            pages_today = false,
+            time_today = false,
+            pages = false,
+            progress = true,
+        }, settings_file.data.book_details_enabled)
+        assert.is_nil(settings_file.data.book_details_enabled.unknown)
     end)
 
     it("migrates the removed first-page preference into page order", function()

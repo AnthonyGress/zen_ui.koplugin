@@ -1188,6 +1188,9 @@ msgstr "Interactief"
 msgid "IP address: %1"
 msgstr "IP-adres: %1"
 
+msgid "Items"
+msgstr "Items"
+
 msgid "items per page"
 msgstr "items per pagina"
 
@@ -2444,6 +2447,9 @@ msgstr "Tijdnotatie"
 
 msgid "Time this week"
 msgstr "Tijd deze week"
+
+msgid "Time remaining"
+msgstr "Resterende tijd"
 
 msgid "Time to book end"
 msgstr "Tijd tot einde van boek"

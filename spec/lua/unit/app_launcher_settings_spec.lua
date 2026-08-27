@@ -35,6 +35,18 @@ describe("app launcher settings", function()
         launcher_cfg = {
             entries = { entry },
             page_order = { "book_details", "book_switcher", "buttons" },
+            book_details_order = {
+                "read_time", "time_remaining", "pages_today",
+                "time_today", "pages", "progress",
+            },
+            book_details_enabled = {
+                read_time = true,
+                time_remaining = true,
+                pages_today = false,
+                time_today = false,
+                pages = true,
+                progress = true,
+            },
         }
 
         ZenSpec.replace("gettext", function(text) return text end)
@@ -146,10 +158,34 @@ describe("app launcher settings", function()
         end
 
         assert.is_table(details)
-        assert.are.equal(1, #details.sub_item_table)
+        assert.are.equal(2, #details.sub_item_table)
         assert.are.equal("Enable", details.sub_item_table[1].text)
         details.sub_item_table[1].callback()
         assert.is_true(launcher_cfg.show_book_details)
+        assert.are.equal("Items \u{25B8}", details.sub_item_table[2].text)
+        details.sub_item_table[2].callback()
+        assert.are.equal("Book details", shown_options.title)
+        assert.are.same({
+            "Read time", "Time remaining", "Pages today",
+            "Time today", "Pages", "Progress bar",
+        }, {
+            shown_options.item_table[1].text,
+            shown_options.item_table[2].text,
+            shown_options.item_table[3].text,
+            shown_options.item_table[4].text,
+            shown_options.item_table[5].text,
+            shown_options.item_table[6].text,
+        })
+        assert.is_true(shown_options.item_table[1].checked_func())
+        shown_options.item_table[1].callback()
+        assert.is_false(launcher_cfg.book_details_enabled.read_time)
+        shown_options.item_table[1], shown_options.item_table[6]
+            = shown_options.item_table[6], shown_options.item_table[1]
+        shown_options.callback()
+        assert.are.same({
+            "progress", "time_remaining", "pages_today",
+            "time_today", "pages", "read_time",
+        }, launcher_cfg.book_details_order)
 
         local switcher
         local order_item
@@ -180,7 +216,7 @@ describe("app launcher settings", function()
         shown_options.callback()
         assert.are.same({ "buttons", "book_switcher", "book_details" },
             launcher_cfg.page_order)
-        assert.are.equal(2, saves)
+        assert.are.equal(4, saves)
     end)
 
     it("stores an approved icon name instead of a control's plugin path", function()

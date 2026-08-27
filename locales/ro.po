@@ -1188,6 +1188,9 @@ msgstr "Interactiv"
 msgid "IP address: %1"
 msgstr "Adresă IP: %1"
 
+msgid "Items"
+msgstr "Elemente"
+
 msgid "items per page"
 msgstr "elemente pe pagină"
 
@@ -2444,6 +2447,9 @@ msgstr "Format oră"
 
 msgid "Time this week"
 msgstr "Este timpul săptămâna aceasta"
+
+msgid "Time remaining"
+msgstr "Timp rămas"
 
 msgid "Time to book end"
 msgstr "Timp până la finalul cărții"

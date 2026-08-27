@@ -46,6 +46,7 @@ Launcher adds a configurable tab to the ZenOS menu. It can create shortcut butto
 | Buttons | Opens the launcher button arranger. |
 | Book switcher | Shows recent books as a launcher page, optionally only while reading. |
 | Book details | Shows information for the current book as a reader-only launcher page. |
+| Book details > Items | Toggles and orders read time, time remaining, pages today, time today, pages, and the progress bar. Today totals include all books read since local midnight. |
 | Order | Arranges the Book details, Book switcher, and Buttons pages. |
 | Open menu to Launcher | Opens the top menu on the Launcher tab. |
 | Show labels | Shows launcher button labels. Enabled by default; disabling it hides the labels. |

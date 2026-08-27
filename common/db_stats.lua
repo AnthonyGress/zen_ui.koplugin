@@ -237,6 +237,83 @@ function StatsDB.queryBookAveragePageTime(path, md5)
     return duration / pages, total_pages
 end
 
+function StatsDB.queryBookDetails(stats_plugin, fields)
+    fields = type(fields) == "table" and fields or {}
+    local needs_stats = fields.read_time == true or fields.time_remaining == true
+        or fields.pages_today == true or fields.time_today == true
+    if not needs_stats then return {} end
+    if type(stats_plugin) ~= "table" or type(stats_plugin.insertDB) ~= "function"
+            or not (stats_plugin.settings and stats_plugin.settings.is_enabled) then
+        return nil
+    end
+    local book_id = tonumber(stats_plugin.id_curr_book)
+    if not book_id or book_id < 1 or book_id >= math.huge
+            or book_id ~= math.floor(book_id) then
+        return nil
+    end
+    local ok_flush, flush_err = pcall(stats_plugin.insertDB, stats_plugin)
+    if not ok_flush then
+        logger.warn("book stats flush failed:", flush_err)
+        return nil
+    end
+
+    local ctes, columns, keys = {}, {}, {}
+    if fields.read_time == true then
+        ctes[#ctes + 1] = string.format([[
+            book_stats AS (
+                SELECT sum(duration) AS read_time
+                FROM page_stat
+                WHERE id_book = %d
+            )
+        ]], book_id)
+        columns[#columns + 1] = "COALESCE((SELECT read_time FROM book_stats), 0)"
+        keys[#keys + 1] = "read_time"
+    end
+    if fields.pages_today == true or fields.time_today == true then
+        local value_sql = fields.time_today == true
+            and "sum(duration) AS duration" or "1 AS duration"
+        ctes[#ctes + 1] = string.format([[
+            today_stats AS (
+                SELECT %s
+                FROM page_stat
+                WHERE start_time >= %d
+                GROUP BY id_book, page
+            )
+        ]], value_sql, period_starts().start_today)
+        if fields.pages_today == true then
+            columns[#columns + 1] = "(SELECT count(*) FROM today_stats)"
+            keys[#keys + 1] = "pages_today"
+        end
+        if fields.time_today == true then
+            columns[#columns + 1] = "COALESCE((SELECT sum(duration) FROM today_stats), 0)"
+            keys[#keys + 1] = "time_today"
+        end
+    end
+    if #columns == 0 then return {} end
+
+    local conn, err = DBConn.open(DBConn.getStatsDbPath())
+    if not conn then
+        logger.warn("cannot open DB:", err)
+        return nil
+    end
+    local values
+    local ok_query, query_err = pcall(function()
+        values = { conn:rowexec("WITH " .. table.concat(ctes, ",\n")
+            .. "\nSELECT " .. table.concat(columns, ",\n") .. ";") }
+    end)
+    conn:close()
+    if not ok_query then
+        logger.warn("book details query failed:", query_err)
+        return nil
+    end
+
+    local result = {}
+    for i, key in ipairs(keys) do
+        result[key] = tonumber(values[i]) or 0
+    end
+    return result
+end
+
 function StatsDB.queryHomeStats(fields)
     local stats = {
         today_pages = 0,

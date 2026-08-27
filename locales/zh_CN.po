@@ -1188,6 +1188,9 @@ msgstr "交互式"
 msgid "IP address: %1"
 msgstr "IP 地址：%1"
 
+msgid "Items"
+msgstr "项目"
+
 msgid "items per page"
 msgstr "每页项目数"
 
@@ -2444,6 +2447,9 @@ msgstr "时间格式"
 
 msgid "Time this week"
 msgstr "本周时间"
+
+msgid "Time remaining"
+msgstr "剩余时间"
 
 msgid "Time to book end"
 msgstr "到读完本书的时间"

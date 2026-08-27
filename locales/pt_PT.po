@@ -1188,6 +1188,9 @@ msgstr "Interativo"
 msgid "IP address: %1"
 msgstr "Endereço IP: %1"
 
+msgid "Items"
+msgstr "Itens"
+
 msgid "items per page"
 msgstr "itens por página"
 
@@ -2444,6 +2447,9 @@ msgstr "Formato de hora"
 
 msgid "Time this week"
 msgstr "Tempo esta semana"
+
+msgid "Time remaining"
+msgstr "Tempo restante"
 
 msgid "Time to book end"
 msgstr "Tempo até ao fim do livro"

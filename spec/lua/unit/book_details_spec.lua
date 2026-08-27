@@ -1,10 +1,16 @@
 describe("reader book details", function()
     local shown
     local widget_spec
+    local book_stats_result
+    local book_stats_error
+    local queried_fields
 
     before_each(function()
         shown = nil
         widget_spec = nil
+        book_stats_result = {}
+        book_stats_error = nil
+        queried_fields = {}
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("device", {
             screen = {
@@ -50,6 +56,13 @@ describe("reader book details", function()
             new = function(_, spec)
                 widget_spec = spec
                 return spec
+            end,
+        })
+        ZenSpec.replace("common/db_stats", {
+            queryBookDetails = function(_stats, fields)
+                queried_fields[#queried_fields + 1] = fields
+                if book_stats_error then error(book_stats_error) end
+                return book_stats_result
             end,
         })
         ZenSpec.unload("modules/reader/book_details")
@@ -198,31 +211,94 @@ describe("reader book details", function()
         assert.are.equal("Page xii of 300", summary.page_text)
     end)
 
-    it("reports live time left and total time spent for the launcher", function()
+    it("reports live reading times and today's stats for the launcher", function()
         local ui = reader_ui()
-        local status_calls = 0
-        ui.statistics = {
-            avg_time = 90,
-            getStatsBookStatus = function(stats)
-                status_calls = status_calls + 1
-                stats.avg_time = 75
-                return { time = 7260 }
-            end,
+        ui.statistics = { avg_time = 75 }
+        book_stats_result = {
+            read_time = 7260,
+            time_today = 1800,
+            pages_today = 12,
         }
         local BookDetails = require("modules/reader/book_details")
-        local time_left, read_time = BookDetails.getReadingTimes(ui)
+        local time_left, read_time, today_duration, today_pages =
+            BookDetails.getReadingTimes(ui, {
+                read_time = true,
+                time_remaining = true,
+                time_today = true,
+                pages_today = true,
+            })
 
-        assert.are.equal(1, status_calls)
         assert.are.equal(4350, time_left)
         assert.are.equal(7260, read_time)
+        assert.are.equal(1800, today_duration)
+        assert.are.equal(12, today_pages)
+        assert.are.same({
+            read_time = true,
+            time_remaining = true,
+            time_today = true,
+            pages_today = true,
+        }, queried_fields[1])
+
+        local skipped_time_left, skipped_read_time, skipped_duration, skipped_pages =
+            BookDetails.getReadingTimes(ui)
+        assert.are.equal(4350, skipped_time_left)
+        assert.are.equal(7260, skipped_read_time)
+        assert.is_nil(skipped_duration)
+        assert.is_nil(skipped_pages)
+        assert.are.same({ read_time = true, time_remaining = true }, queried_fields[2])
     end)
 
     it("omits reading times when statistics are unavailable", function()
         local BookDetails = require("modules/reader/book_details")
-        local time_left, read_time = BookDetails.getReadingTimes(reader_ui())
+        local time_left, read_time, today_duration, today_pages =
+            BookDetails.getReadingTimes(reader_ui())
 
         assert.is_nil(time_left)
         assert.is_nil(read_time)
+        assert.is_nil(today_duration)
+        assert.is_nil(today_pages)
+    end)
+
+    it("omits reading times when the statistics query fails", function()
+        local ui = reader_ui()
+        ui.statistics = { avg_time = 75 }
+        book_stats_error = "statistics unavailable"
+        local BookDetails = require("modules/reader/book_details")
+        local time_left, read_time, today_duration, today_pages =
+            BookDetails.getReadingTimes(ui, {
+                read_time = true,
+                time_remaining = true,
+                time_today = true,
+                pages_today = true,
+            })
+
+        assert.is_nil(time_left)
+        assert.is_nil(read_time)
+        assert.is_nil(today_duration)
+        assert.is_nil(today_pages)
+    end)
+
+    it("rejects invalid reading statistics", function()
+        local ui = reader_ui()
+        ui.statistics = { avg_time = math.huge }
+        book_stats_result = {
+            read_time = -1,
+            time_today = math.huge,
+            pages_today = -1,
+        }
+        local BookDetails = require("modules/reader/book_details")
+        local time_left, read_time, today_duration, today_pages =
+            BookDetails.getReadingTimes(ui, {
+                read_time = true,
+                time_remaining = true,
+                time_today = true,
+                pages_today = true,
+            })
+
+        assert.is_nil(time_left)
+        assert.is_nil(read_time)
+        assert.is_nil(today_duration)
+        assert.is_nil(today_pages)
     end)
 
     it("does nothing when no reader book is open", function()

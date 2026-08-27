@@ -70,6 +70,45 @@ function M.build(ctx)
         }
     end
 
+    local function show_book_details_arrange()
+        local labels = {
+            read_time = _("Read time"),
+            time_remaining = _("Time remaining"),
+            pages_today = _("Pages today"),
+            time_today = _("Time today"),
+            pages = _("Pages"),
+            progress = _("Progress bar"),
+        }
+        local sort_items = {}
+        for _i, id in ipairs(cfg.book_details_order) do
+            local item_id = id
+            sort_items[#sort_items + 1] = {
+                text = labels[item_id],
+                orig_item = item_id,
+                checked_func = function()
+                    return cfg.book_details_enabled[item_id] ~= false
+                end,
+                callback = function()
+                    cfg.book_details_enabled[item_id]
+                        = cfg.book_details_enabled[item_id] == false
+                    save_app_launcher()
+                end,
+            }
+        end
+        require("common/ui/zen_arrange_list").show{
+            title = _("Book details"),
+            item_table = sort_items,
+            callback = function()
+                local order = {}
+                for _i, item in ipairs(sort_items) do
+                    order[#order + 1] = item.orig_item
+                end
+                cfg.book_details_order = order
+                save_app_launcher()
+            end,
+        }
+    end
+
     local function is_draft_entry(entry)
         return type(entry) == "table" and type(entry._zen_draft_commit) == "function"
     end
@@ -954,6 +993,11 @@ function M.build(ctx)
                         cfg.show_book_details = cfg.show_book_details ~= true
                         save_app_launcher()
                     end,
+                },
+                {
+                    text = _("Items") .. " \u{25B8}",
+                    keep_menu_open = true,
+                    callback = show_book_details_arrange,
                 },
             },
         },

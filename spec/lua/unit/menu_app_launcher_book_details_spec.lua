@@ -128,6 +128,7 @@ describe("app launcher book details page", function()
         local opened = 0
         local full_text_message
         local reader_ui = {}
+        local requested_fields = {}
         local InputContainer = widget_class("input", created)
         for _i, name in ipairs({
             "ui/widget/container/centercontainer",
@@ -170,9 +171,10 @@ describe("app launcher book details page", function()
         })
         replace("modules/reader/book_details", {
             getSummary = function() end,
-            getReadingTimes = function(ui)
+            getReadingTimes = function(ui, fields)
                 assert.are.equal(reader_ui, ui)
-                return 4800, 7380
+                requested_fields[#requested_fields + 1] = fields
+                return 4800, 7380, 3660, 27
             end,
         })
         replace("modules/filebrowser/patches/library_font", {
@@ -200,6 +202,20 @@ describe("app launcher book details page", function()
             width = 600,
             height = 400,
             config = config,
+            launcher_config = {
+                book_details_order = {
+                    "pages_today", "read_time", "progress",
+                    "time_today", "pages", "time_remaining",
+                },
+                book_details_enabled = {
+                    pages_today = true,
+                    read_time = true,
+                    progress = true,
+                    time_today = false,
+                    pages = true,
+                    time_remaining = true,
+                },
+            },
             ui = reader_ui,
             book = {
                 path = "/books/current.epub",
@@ -254,14 +270,19 @@ describe("app launcher book details page", function()
             .. "Science Fiction, Epic Fantasy, Mythology"
         assert.is_true(texts[genres])
         assert.is_true(texts["Page 128 of 300"])
-        assert.is_true(texts["Read: 2h 3m / Remaining: 1h 20m"])
+        assert.is_true(texts["Pages today: 27"])
+        assert.is_true(texts["Read: 2h 3m"])
+        assert.is_true(texts["Remaining: 1h 20m"])
+        assert.is_nil(texts["Read today: 1h 1m"])
         assert.are.equal(22, text_sizes["Current title"])
         assert.are.equal(19, text_sizes["Current author, Second author"])
         assert.are.equal(19, text_sizes["Current series #2"])
         assert.are.equal(19, text_sizes[genres])
         assert.are.equal(19, text_sizes["Page 128 of 300"])
-        assert.are.equal(19, text_sizes["Read: 2h 3m / Remaining: 1h 20m"])
-        assert.are.equal(6, #metadata_widgets)
+        assert.are.equal(19, text_sizes["Pages today: 27"])
+        assert.are.equal(19, text_sizes["Read: 2h 3m"])
+        assert.are.equal(19, text_sizes["Remaining: 1h 20m"])
+        assert.are.equal(8, #metadata_widgets)
         for _i, widget in ipairs(metadata_widgets) do
             assert.are.equal(progress_spec.width, widget.max_width)
             assert.is_true(widget.truncate_with_ellipsis)
@@ -274,12 +295,14 @@ describe("app launcher book details page", function()
         local middle_span = guarded_details[1][#guarded_details[1] - 1]
         local top_details = guarded_details[1][1]
         assert.are.equal("ui/widget/verticalgroup", bottom_details.kind)
-        assert.are.equal("Read: 2h 3m / Remaining: 1h 20m", top_details[10].text)
-        for index = 3, 9, 2 do
+        assert.are.equal("Pages today: 27", bottom_details[2].text)
+        assert.are.equal("Read: 2h 3m", bottom_details[4].text)
+        assert.are.equal("progress", bottom_details[6].kind)
+        assert.are.equal("Page 128 of 300", bottom_details[8].text)
+        assert.are.equal("Remaining: 1h 20m", bottom_details[10].text)
+        for index = 3, 7, 2 do
             assert.are.equal(6, top_details[index].width)
         end
-        assert.are.equal("Page 128 of 300", bottom_details[2].text)
-        assert.are.equal("progress", bottom_details[4].kind)
         assert.is_true(middle_span.width > 0)
         assert.are.equal(guarded_details.dimen.h + switcher_layout.strip_h,
             refs.buttons[1].widget.height)
@@ -289,6 +312,46 @@ describe("app launcher book details page", function()
         assert.are.equal(genres, full_text_message.text)
         assert.are.equal(full_text_widget.dimen, full_text_message.anchor)
         assert.are.equal(19, progress_spec.face.size)
+
+        local created_before_default = #created
+        Page.build{
+            width = 600,
+            height = 400,
+            config = config,
+            ui = reader_ui,
+            book = {
+                path = "/books/current.epub",
+                title = "Current title",
+                progress = 0.425,
+                pages = 300,
+                page_text = "Page 128 of 300",
+                cover_bb = {},
+            },
+        }
+        local default_texts = {}
+        for index = created_before_default + 1, #created do
+            local widget = created[index]
+            if widget.text then default_texts[widget.text] = true end
+        end
+        assert.is_true(default_texts["Read: 2h 3m"])
+        assert.is_true(default_texts["Remaining: 1h 20m"])
+        assert.is_nil(default_texts["Pages today: 27"])
+        assert.is_nil(default_texts["Read today: 1h 1m"])
+        assert.are.same({
+            {
+                read_time = true,
+                time_remaining = true,
+                pages_today = true,
+                time_today = false,
+            },
+            {
+                read_time = true,
+                time_remaining = true,
+                pages_today = false,
+                time_today = false,
+            },
+        }, requested_fields)
+
         refs.buttons[1].callback()
         assert.are.equal(1, opened)
     end)
