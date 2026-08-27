@@ -111,7 +111,9 @@ describe("file browser group views", function()
             prepare_shell = function() end,
             hide_page_arrow = function() end,
             suppress_page_info_tap = function() end,
-            apply_status_row = function() end,
+            apply_status_row = function(menu, options)
+                menu._test_back_callback = options.back_callback
+            end,
         })
         ZenSpec.replace("common/db_bookinfo", {
             getGroupedByAuthor = function() return groups.authors or {} end,
@@ -152,7 +154,10 @@ describe("file browser group views", function()
         })
         ZenSpec.replace("ui/uimanager", {
             show = function(_, widget) table.insert(shown, widget) end,
-            close = function(_, widget) table.insert(closed, widget) end,
+            close = function(_, widget)
+                table.insert(closed, widget)
+                if widget.onCloseWidget then widget:onCloseWidget() end
+            end,
             nextTick = function(_, callback) callback() end,
             isShown = function() return true end,
         })
@@ -264,6 +269,41 @@ describe("file browser group views", function()
         assert.are.same({ "/focus.epub" }, file_dialog_args._zen_group_files)
         assert.is_function(file_dialog_args._zen_sort_cb)
         assert.is_function(file_dialog_args._zen_display_cb)
+    end)
+
+    it("persists display modes and opens another group after backing out", function()
+        install_group_view({
+            authors = {
+                { author = "Ada", files = { "/ada.epub" } },
+                { author = "Grace", files = { "/grace.epub" } },
+            },
+        })
+        config.group_view.display_mode.authors = "list_image_filename"
+        package.loaded.device.isTouchDevice = function() return true end
+
+        api.showAuthorsView()
+        local root = assert(find_menu("authors"))
+        root.onMenuSelect(root, root.item_table[1])
+        local ada = assert(find_menu("authors_detail"))
+        assert.is_true(ada._do_filename_only)
+
+        ada:onZenDetailBlankHold()
+        file_dialog_args._zen_display_cb()
+        dialogs[#dialogs].buttons[2][1].callback()
+
+        assert.are.equal(
+            "list_image_meta",
+            config.group_view.detail_display_mode.authors.Ada)
+        assert.are.equal("list_image_filename", config.group_view.display_mode.authors)
+        assert.is_true(root._do_filename_only)
+        assert.are.equal(1, saved)
+        assert.is_false(ada._do_filename_only)
+        ada._test_back_callback()
+
+        root.onMenuSelect(root, root.item_table[2])
+        local grace = assert(menus[#menus])
+        assert.are.equal("Grace", grace._zen_group_name)
+        assert.is_true(grace._do_filename_only)
     end)
 
     it("omits context actions for Home strip group folders", function()

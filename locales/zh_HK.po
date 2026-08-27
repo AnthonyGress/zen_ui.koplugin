@@ -240,6 +240,9 @@ msgstr "作者"
 msgid "authors"
 msgstr "位作者"
 
+msgid "Autorotate"
+msgstr "自動旋轉"
+
 msgid "Automatic"
 msgstr "自動"
 
@@ -1041,12 +1044,6 @@ msgstr "綠色"
 msgid "Group book series into folders"
 msgstr "將書籍系列分組到資料夾中"
 
-msgid "Gyro"
-msgstr "陀螺儀"
-
-msgid "Gyroscope"
-msgstr "陀螺儀"
-
 msgid "Hide finished books"
 msgstr "隱藏已讀完書籍"
 
@@ -1067,6 +1064,9 @@ msgstr "隱藏未讀書籍"
 
 msgid "Hide up folder"
 msgstr "隱藏上層資料夾"
+
+msgid "Hide when off"
+msgstr "關閉時隱藏"
 
 msgid "Highlight / Lookup"
 msgstr "醒目標示 / 查詢"
@@ -1586,6 +1586,9 @@ msgstr "不透明背景"
 
 msgid "OPDS"
 msgstr "OPDS"
+
+msgid "Opacity"
+msgstr "不透明度"
 
 msgid "Open"
 msgstr "打開"

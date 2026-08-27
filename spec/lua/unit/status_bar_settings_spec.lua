@@ -88,4 +88,41 @@ describe("status bar settings", function()
         assert.is_true(date.sub_item_table[2].checked_func())
         assert.are.same({ "status_bar", "status_bar" }, saves)
     end)
+
+    it("toggles the status bar from its expandable parent row", function()
+        local page = require("modules/settings/sections/library_settings/status_bar_settings").build({
+            config = config,
+            save_and_apply = function(feature) saves[#saves + 1] = feature end,
+        })
+
+        assert.is_true(page.checked_func())
+        assert.is_function(page.checkmark_callback)
+        assert.is_nil(find_item(page.sub_item_table, "Enable custom status bar"))
+
+        page.checkmark_callback()
+
+        assert.is_false(config.features.status_bar)
+        assert.is_false(page.checked_func())
+        assert.are.same({ "status_bar" }, saves)
+    end)
+
+    it("adds a persisted hide-when-off option to the Wi-Fi submenu", function()
+        local page = require("modules/settings/sections/library_settings/status_bar_settings").build({
+            config = config,
+            save_and_apply = function(feature) saves[#saves + 1] = feature end,
+        })
+
+        local right = find_item(page.sub_item_table, "Right items")
+        local wifi = find_item(right.sub_item_table, "Wi-Fi")
+        local hide_when_off = find_item(wifi.sub_item_table, "Hide when off")
+
+        assert.is_function(wifi.checkmark_callback)
+        assert.is_true(wifi.checked_func())
+        assert.is_false(hide_when_off.checked_func())
+
+        hide_when_off.callback()
+        assert.is_true(config.status_bar.wifi_hide_when_off)
+        assert.is_true(hide_when_off.checked_func())
+        assert.are.same({ "status_bar" }, saves)
+    end)
 end)

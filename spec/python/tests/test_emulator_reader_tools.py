@@ -99,13 +99,26 @@ def test_reader_page_browser_modes_and_aa_menu_render() -> None:
             assert driver.command(
                 "activate_reader_control", name="page_browser"
             )["activated"] is True
+            default_carousel = _wait_command(
+                driver,
+                "page_browser_state",
+                lambda result: result.get("page_browser", {}).get("layout") == "carousel",
+            )["page_browser"]
+            assert default_carousel["thumbnail_count"] == 3
+            assert {"single", "carousel", "grid", "aa"}.issubset(
+                default_carousel["controls"]
+            )
+            assert default_carousel["focused"] == "header:1"
+
+            assert driver.command(
+                "activate_reader_control", name="page_browser_grid"
+            )["activated"] is True
             grid = _wait_command(
                 driver,
                 "page_browser_state",
                 lambda result: result.get("page_browser", {}).get("layout") == "grid",
             )["page_browser"]
-            assert grid["thumbnail_count"] > 0
-            assert {"single", "grid", "aa"}.issubset(grid["controls"])
+            assert grid["thumbnail_count"] == 9
             assert grid["focused"] == "header:1"
 
             assert driver.command("page_browser_key", key="Down")["handled"] is True
@@ -216,6 +229,35 @@ def test_reader_page_browser_modes_and_aa_menu_render() -> None:
             driver.screenshot(grid_frame)
 
             assert driver.command(
+                "activate_reader_control", name="page_browser_carousel"
+            )["activated"] is True
+            carousel = _wait_command(
+                driver,
+                "page_browser_state",
+                lambda result: result.get("page_browser", {}).get("layout") == "carousel",
+            )["page_browser"]
+            assert carousel["thumbnail_count"] == 3
+            carousel_frame = root / "page-browser-carousel.png"
+            driver.screenshot(carousel_frame)
+            assert _frames_differ(grid_frame, carousel_frame)
+
+            assert driver.command("page_browser_key", key="Back")["handled"] is True
+            _wait_command(
+                driver,
+                "reader_overlay_state",
+                lambda result: result.get("overlays", {}).get("page_browser") is False,
+            )
+            assert driver.command(
+                "activate_reader_control", name="page_browser"
+            )["activated"] is True
+            reopened_carousel = _wait_command(
+                driver,
+                "page_browser_state",
+                lambda result: result.get("page_browser", {}).get("layout") == "carousel",
+            )["page_browser"]
+            assert reopened_carousel["thumbnail_count"] == 3
+
+            assert driver.command(
                 "activate_reader_control", name="page_browser_single"
             )["activated"] is True
             single = _wait_command(
@@ -227,6 +269,7 @@ def test_reader_page_browser_modes_and_aa_menu_render() -> None:
             single_frame = root / "page-browser-single.png"
             driver.screenshot(single_frame)
             assert _frames_differ(grid_frame, single_frame)
+            assert _frames_differ(carousel_frame, single_frame)
 
             assert driver.command(
                 "activate_reader_control", name="page_browser_grid"

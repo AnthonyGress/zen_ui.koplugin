@@ -249,6 +249,9 @@ msgstr "Автори"
 msgid "authors"
 msgstr "автори"
 
+msgid "Autorotate"
+msgstr "Автоматично завъртане"
+
 msgid "Automatic"
 msgstr "Автоматично"
 
@@ -1050,12 +1053,6 @@ msgstr "Зелено"
 msgid "Group book series into folders"
 msgstr "Групиране на книжни поредици в папки"
 
-msgid "Gyro"
-msgstr "Гироскоп"
-
-msgid "Gyroscope"
-msgstr "Гироскоп"
-
 msgid "Hide finished books"
 msgstr "Скриване на завършените книги"
 
@@ -1076,6 +1073,9 @@ msgstr "Скриване на непрочетените книги"
 
 msgid "Hide up folder"
 msgstr "Скриване на горната папка"
+
+msgid "Hide when off"
+msgstr "Скриване при изключване"
 
 msgid "Highlight / Lookup"
 msgstr "Подчертаване / Справка"
@@ -1595,6 +1595,9 @@ msgstr "Непрозрачен фон"
 
 msgid "OPDS"
 msgstr "OPDS"
+
+msgid "Opacity"
+msgstr "Непрозрачност"
 
 msgid "Open"
 msgstr "Отворете"

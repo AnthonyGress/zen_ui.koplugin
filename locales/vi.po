@@ -240,6 +240,9 @@ msgstr "Tác giả"
 msgid "authors"
 msgstr "tác giả"
 
+msgid "Autorotate"
+msgstr "Tự động xoay"
+
 msgid "Automatic"
 msgstr "Tự động"
 
@@ -1041,12 +1044,6 @@ msgstr "Xanh"
 msgid "Group book series into folders"
 msgstr "Nhóm bộ sách vào thư mục"
 
-msgid "Gyro"
-msgstr "Con quay hồi chuyển"
-
-msgid "Gyroscope"
-msgstr "Con quay hồi chuyển"
-
 msgid "Hide finished books"
 msgstr "Ẩn sách đã đọc xong"
 
@@ -1067,6 +1064,9 @@ msgstr "Ẩn sách chưa đọc"
 
 msgid "Hide up folder"
 msgstr "Ẩn thư mục lên"
+
+msgid "Hide when off"
+msgstr "Ẩn khi tắt"
 
 msgid "Highlight / Lookup"
 msgstr "Đánh dấu / Tìm kiếm"
@@ -1586,6 +1586,9 @@ msgstr "Nền đục"
 
 msgid "OPDS"
 msgstr "OPDS"
+
+msgid "Opacity"
+msgstr "Độ mờ"
 
 msgid "Open"
 msgstr "Mở"

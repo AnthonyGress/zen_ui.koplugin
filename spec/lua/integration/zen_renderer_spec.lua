@@ -212,6 +212,7 @@ describe("Zen renderer", function()
         })
         ZenSpec.replace("common/cover_utils", {
             BORDER_SIZE = 2,
+            getRatio = function() return 2 / 3 end,
             calcDims = function(width, height) return calc_dimensions(width, height) end,
         })
         ZenSpec.replace("modules/filebrowser/patches/home/widgets/cover_common", {
@@ -224,6 +225,9 @@ describe("Zen renderer", function()
                     options = options,
                 }
                 return { dimen = { w = 66, h = 99 } }
+            end,
+            set_dimmed_border = function(frame, dimmed)
+                frame._zen_cover_border_color = dimmed and 6 or nil
             end,
         })
         ZenSpec.unload("modules/filebrowser/folder_cover")
@@ -264,6 +268,9 @@ describe("Zen renderer", function()
             end,
             overlayName = shared_folder_overlay,
             paintDecorations = function() end,
+            allBooksFinished = function(_menu, entry)
+                return entry.all_finished == true
+            end,
         })
         ZenSpec.replace("common/ui/background", {
             library_path = function() return "" end,
@@ -336,6 +343,48 @@ describe("Zen renderer", function()
             end
         end
         assert.is_true(found_stock_item)
+    end)
+
+    it("dims only folders whose books are all finished", function()
+        _G.__ZEN_UI_PLUGIN.config.browser_cover_badges = { dim_finished_books = true }
+        require("modules/filebrowser/patches/zen_renderer")()
+        local menu = {
+            name = "filemanager",
+            item_table = {
+                {
+                    title = "Finished/", path = "/finished", all_finished = true,
+                    attr = { mode = "directory" },
+                },
+                {
+                    title = "Mixed/", path = "/mixed",
+                    attr = { mode = "directory" },
+                },
+            },
+            item_group = {}, layout = {}, items_to_update = {}, page = 1,
+            perpage = 2, nb_cols = 2, item_margin = 1, item_width = 100,
+            item_height = 150, item_dimen = { copy = function() return {} end },
+            inner_dimen = { w = 220 }, _do_cover_images = true,
+        }
+
+        MosaicMenu._updateItemsBuildUI(menu)
+        local finished = menu.layout[1][1]
+        local mixed = menu.layout[1][2]
+        finished._zen_cover_frame.dimen.x = 0
+        finished._zen_cover_frame.dimen.y = 0
+        mixed._zen_cover_frame.dimen.x = 0
+        mixed._zen_cover_frame.dimen.y = 0
+        local dimmed = 0
+        local bb = {
+            paintRect = function() end,
+            lightenRect = function() dimmed = dimmed + 1 end,
+        }
+        finished:paintTo(bb, 0, 0)
+        mixed:paintTo(bb, 0, 0)
+
+        assert.are.equal("complete", finished._zen_effective_status)
+        assert.are.equal(6, finished._zen_cover_frame._zen_cover_border_color)
+        assert.is_nil(mixed._zen_cover_frame._zen_cover_border_color)
+        assert.are.equal(1, dimmed)
     end)
 
     it("uses an exact shared real cover without requesting the decoded blob", function()
@@ -642,6 +691,17 @@ describe("Zen renderer", function()
         assert.are.equal(8, label_strip.radius)
         assert.are.equal(0xFF, label_strip.alpha)
         assert.are.same({ value = 0xFF }, label_strip.strip.background_mask.rects[1].color)
+        local strip_paints = {}
+        label_strip:paintTo({
+            colorblitFromRGB32 = function(_self, mask, _x, _y, _offset_x, _offset_y,
+                    _width, _height, color)
+                strip_paints[#strip_paints + 1] = { mask = mask, color = color }
+            end,
+        }, 0, 0)
+        assert.are.same({
+            { mask = label_strip.strip.background_mask, color = 1 },
+            { mask = label_strip.strip.border_mask, color = 0 },
+        }, strip_paints)
         assert.are.equal(folder_name_labels[1], label_widget[2][1])
         assert.are.equal("center", folder_name_labels[1].alignment)
         assert.is_true(folder_name_labels[1].height_adjust)
@@ -1000,10 +1060,12 @@ describe("Zen renderer", function()
 
         item:paintTo(bb, 0, 0)
         assert.are.equal(1, dimmed)
+        assert.are.equal(6, item._zen_cover_frame._zen_cover_border_color)
 
         _G.__ZEN_UI_PLUGIN.config.browser_cover_badges = { show_new_banner = true }
         item._zen_effective_status = "new"
         item:paintTo(bb, 0, 0)
+        assert.is_nil(item._zen_cover_frame._zen_cover_border_color)
         assert.are.same({ "New" }, banner_labels)
         assert.are.same({ { span = 100, thick = 35 } }, banner_sizes)
     end)

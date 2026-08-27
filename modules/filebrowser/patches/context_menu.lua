@@ -15,6 +15,8 @@ local function apply_context_menu()
     local C_           = _.pgettext
     local book_status  = require("common/book_status")
     local ConfigManager = require("config/manager")
+    local FolderCoverFiles = require("common/folder_cover_files")
+    local FolderCoverPicker = require("common/ui/folder_cover_picker")
     local paths        = require("common/paths")
     local SharedState  = require("common/shared_state")
     local icons        = require("common/inline_icon_map")
@@ -131,22 +133,21 @@ local function apply_context_menu()
         return align_button_dialog_icons(ButtonDialog:new(options))
     end
 
-    -- Keep Zen's path-keyed folder settings aligned with successful moves.
+    -- Keep path-keyed settings and cover references aligned with successful moves.
     local orig_FileManager_moveFile = FileManager.moveFile
     FileManager.moveFile = function(self, from, to, ...)
         local ffiUtil = require("ffi/util")
         local lfs = require("libs/libkoreader-lfs")
-        local source_is_folder = lfs.attributes(from, "mode") == "directory"
-        local source = source_is_folder and (ffiUtil.realpath(from) or from)
+        local source = ffiUtil.realpath(from) or from
         local destination = to
-        if source_is_folder and lfs.attributes(to, "mode") == "directory" then
+        if lfs.attributes(to, "mode") == "directory" then
             destination = ffiUtil.joinPath(to, ffiUtil.basename(source))
         end
 
         local moved = orig_FileManager_moveFile(self, from, to, ...)
-        if moved and source_is_folder then
+        if moved then
             destination = ffiUtil.realpath(destination) or destination
-            pcall(ConfigManager.moveFolderPathSettings, source, destination)
+            pcall(ConfigManager.movePathSettings, source, destination)
         end
         if moved then
             UIManager:nextTick(function()
@@ -272,6 +273,7 @@ local function apply_context_menu()
     function MoveChooser:onMenuHold() return true end
 
     function MoveChooser:init()
+        self.height = Device.screen:getHeight()
         local CoverMenu = require("covermenu")
         local MosaicMenu = require("mosaicmenu")
         self.display_mode_type = "mosaic"
@@ -304,6 +306,9 @@ local function apply_context_menu()
         FileChooser._zen_status_filter_patched = true
 
         function FileChooser:show_file(filename, fullpath)
+            if self.name == "filemanager" and FolderCoverFiles.isManaged(filename) then
+                return false
+            end
             if self.name ~= "filemanager" then
                 return orig_show_file(self, filename, fullpath)
             end
@@ -858,6 +863,20 @@ local function apply_context_menu()
                 elseif type(self_fc.updateItems) == "function" then
                     self_fc:updateItems()
                 end
+            end
+
+            local function refresh_after_folder_cover_change(folder_path)
+                UIManager:nextTick(function()
+                    refresh_after_sort_change(folder_path)
+                    local plug = zen_plugin or rawget(_G, "__ZEN_UI_PLUGIN")
+                    local home = plug and SharedState.get(plug, "home")
+                    if home and type(home.invalidateLibraryCache) == "function" then
+                        home.invalidateLibraryCache()
+                    end
+                    if home and type(home.rebuildActive) == "function" then
+                        home.rebuildActive()
+                    end
+                end)
             end
 
             local dialog_title, dialog_cover_widget
@@ -1449,6 +1468,99 @@ local function apply_context_menu()
                     end
                 end
 
+                local function showFolderCoverDialog()
+                    UIManager:close(edit_dialog)
+                    local mode = Cover.getMode()
+                    local slot_count = FolderCoverFiles.slotCount(mode)
+                    if slot_count < 1 then return end
+
+                    local existing = FolderCoverFiles.find(file, mode) or {}
+                    local DocumentRegistry = require("document/documentregistry")
+                    local active_config = zen_plugin and zen_plugin.config
+                        or ConfigManager.get() or {}
+                    local features = type(active_config.features) == "table"
+                        and active_config.features or {}
+                    local mosaic_specs
+                    if self_fc.display_mode_type == "mosaic" then
+                        mosaic_specs = self_fc._zen_file_cover_specs
+                        if type(mosaic_specs) ~= "table" then
+                            mosaic_specs = self_fc.cover_specs
+                        end
+                        if type(mosaic_specs) ~= "table" then mosaic_specs = nil end
+                    end
+                    local mosaic_uniform = features.browser_cover_mosaic_uniform == true
+                    if mosaic_specs and type(mosaic_specs.uniform) == "boolean" then
+                        mosaic_uniform = mosaic_specs.uniform
+                    end
+                    local mosaic_portrait
+                    if mosaic_specs then
+                        mosaic_portrait = Device.screen:getWidth()
+                            <= Device.screen:getHeight()
+                    end
+                    FolderCoverPicker.show{
+                        title = _("Set folder cover"),
+                        path = file,
+                        slot_count = slot_count,
+                        covers = existing,
+                        cover_ratio = Cover.getRatio(),
+                        border = Cover.BORDER_SIZE,
+                        uniform = mosaic_uniform,
+                        mosaic_cover_width = mosaic_specs
+                            and mosaic_specs.max_cover_w or nil,
+                        mosaic_cover_height = mosaic_specs
+                            and mosaic_specs.max_cover_h or nil,
+                        mosaic_portrait = mosaic_portrait,
+                        mosaic_cols_portrait = self_fc.nb_cols_portrait,
+                        mosaic_rows_portrait = self_fc.nb_rows_portrait,
+                        mosaic_cols_landscape = self_fc.nb_cols_landscape,
+                        mosaic_rows_landscape = self_fc.nb_rows_landscape,
+                        on_select = function(slot, update_preview)
+                            UIManager:show(PathChooser:new{
+                                select_directory = false,
+                                select_file = true,
+                                show_files = true,
+                                path = file,
+                                file_filter = function(filename)
+                                    return FolderCoverFiles.isSupportedImage(filename)
+                                        and DocumentRegistry:isImageFile(filename)
+                                end,
+                                onConfirm = function(source)
+                                    local selected_path, err = FolderCoverFiles.set(
+                                        file, mode, slot, source)
+                                    if not selected_path then
+                                        logger.warn("Failed to set folder cover",
+                                            "folder=", file, "slot=", slot,
+                                            "error=", tostring(err or "unknown"))
+                                        local InfoMessage = require("ui/widget/infomessage")
+                                        UIManager:show(InfoMessage:new{
+                                            text = _("Failed to set folder cover."),
+                                        })
+                                        return
+                                    end
+                                    update_preview(selected_path)
+                                    refresh_after_folder_cover_change(file)
+                                end,
+                            }, "full")
+                        end,
+                        on_clear = function(slot, update_preview)
+                            local cleared, err = FolderCoverFiles.clear(
+                                file, mode, slot)
+                            if not cleared then
+                                logger.warn("Failed to clear folder cover",
+                                    "folder=", file, "slot=", slot,
+                                    "error=", tostring(err or "unknown"))
+                                local InfoMessage = require("ui/widget/infomessage")
+                                UIManager:show(InfoMessage:new{
+                                    text = _("Failed to clear folder cover."),
+                                })
+                                return
+                            end
+                            update_preview(nil)
+                            refresh_after_folder_cover_change(file)
+                        end,
+                    }
+                end
+
                 if is_home_dir then
                     edit_dialog = new_context_menu_dialog{
                         buttons = apply_button_group_font({
@@ -1524,6 +1636,18 @@ local function apply_context_menu()
                             end,
                         },
                     })
+                else
+                    local mode = Cover.getMode()
+                    if FolderCoverFiles.slotCount(mode) > 0 then
+                        table.insert(edit_buttons, {
+                            {
+                                text = icons.settings_covers .. "  " .. _("Set folder cover")
+                                    .. "  " .. submenu_arrow,
+                                align = "left",
+                                callback = showFolderCoverDialog,
+                            },
+                        })
+                    end
                 end
 
                 local allow_delete = zen_plugin

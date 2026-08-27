@@ -35,7 +35,7 @@ describe("library statistics", function()
             findSidecarFile = function(_, file)
                 return file .. ".sdr/metadata.epub.lua"
             end,
-            openSettingsFile = function(_, sidecar_file)
+            openSettingsFile = function(sidecar_file)
                 open_calls = open_calls + 1
                 local file = sidecar_file:match("^([^%s]+)%.sdr/")
                 return { data = { summary = summaries[file] } }

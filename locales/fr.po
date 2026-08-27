@@ -252,6 +252,9 @@ msgstr "Auteurs"
 msgid "authors"
 msgstr "auteurs"
 
+msgid "Autorotate"
+msgstr "Rotation automatique"
+
 msgid "Automatic"
 msgstr "Automatique"
 
@@ -569,6 +572,9 @@ msgstr "Impossible d'atteindre le serveur de mises à jour. Vérifiez votre conn
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
 msgstr "Impossible de scanner les réseaux Wi-Fi. Réessayez après avoir réveillé l'appareil."
+
+msgid "Cover"
+msgstr "Couverture"
 
 msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
 msgstr "Le plugin CoverBrowser n'est pas activé, certaines fonctionnalités ne fonctionneront pas correctement."
@@ -921,6 +927,12 @@ msgstr "Extraire les métadonnées"
 msgid "Extras"
 msgstr "Suppléments"
 
+msgid "Failed to clear folder cover."
+msgstr "Impossible d'effacer la couverture du dossier."
+
+msgid "Failed to set folder cover."
+msgstr "Impossible de définir la couverture du dossier."
+
 msgid "Failed to submit report: "
 msgstr "Échec de l'envoi du rapport : "
 
@@ -1056,14 +1068,11 @@ msgstr "Vert"
 msgid "Group book series into folders"
 msgstr "Regrouper les séries de livres dans des dossiers"
 
-msgid "Gyro"
-msgstr "Gyro"
-
-msgid "Gyroscope"
-msgstr "Gyroscope"
-
 msgid "Hide finished books"
 msgstr "Masquer les livres terminés"
+
+msgid "Hide grouped series"
+msgstr "Masquer les séries regroupées"
 
 msgid "Hide in CBZ/PDF files"
 msgstr "Masquer dans les fichiers CBZ/PDF"
@@ -1083,8 +1092,14 @@ msgstr "Masquer les livres non lus"
 msgid "Hide up folder"
 msgstr "Masquer le dossier parent"
 
+msgid "Hide when off"
+msgstr "Masquer lorsque désactivé"
+
 msgid "Highlight / Lookup"
 msgstr "Surligner / Rechercher"
+
+msgid "Highlight names"
+msgstr "Noms des surlignages"
 
 msgid "History"
 msgstr "Historique"
@@ -1611,6 +1626,9 @@ msgstr "Fond opaque"
 msgid "OPDS"
 msgstr "OPDS"
 
+msgid "Opacity"
+msgstr "Opacité"
+
 msgid "Open"
 msgstr "Ouvrir"
 
@@ -2063,6 +2081,9 @@ msgstr "Définir comme fond d'écran"
 
 msgid "Set file types to sync"
 msgstr "Définir les types de fichiers à synchroniser"
+
+msgid "Set folder cover"
+msgstr "Définir la couverture du dossier"
 
 msgid "Set home folder"
 msgstr "Définir le dossier personnel"

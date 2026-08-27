@@ -252,6 +252,9 @@ msgstr "Authors"
 msgid "authors"
 msgstr "authors"
 
+msgid "Autorotate"
+msgstr "Autorotate"
+
 msgid "Automatic"
 msgstr "Automatic"
 
@@ -569,6 +572,9 @@ msgstr "Could not reach update server. Check your internet connection.\n\nUnable
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
 msgstr "Could not scan Wi-Fi networks. Please try again after waking the device."
+
+msgid "Cover"
+msgstr "Cover"
 
 msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
 msgstr "CoverBrowser plugin is not enabled, some features will not work correctly."
@@ -921,6 +927,12 @@ msgstr "Extract metadata"
 msgid "Extras"
 msgstr "Extras"
 
+msgid "Failed to clear folder cover."
+msgstr "Failed to clear folder cover."
+
+msgid "Failed to set folder cover."
+msgstr "Failed to set folder cover."
+
 msgid "Failed to submit report: "
 msgstr "Failed to submit report: "
 
@@ -1056,14 +1068,11 @@ msgstr "Green"
 msgid "Group book series into folders"
 msgstr "Group book series into folders"
 
-msgid "Gyro"
-msgstr "Gyro"
-
-msgid "Gyroscope"
-msgstr "Gyroscope"
-
 msgid "Hide finished books"
 msgstr "Hide finished books"
+
+msgid "Hide grouped series"
+msgstr "Hide grouped series"
 
 msgid "Hide in CBZ/PDF files"
 msgstr "Hide in CBZ/PDF files"
@@ -1083,8 +1092,14 @@ msgstr "Hide unread books"
 msgid "Hide up folder"
 msgstr "Hide up folder"
 
+msgid "Hide when off"
+msgstr "Hide when off"
+
 msgid "Highlight / Lookup"
 msgstr "Highlight / Lookup"
+
+msgid "Highlight names"
+msgstr "Highlight names"
 
 msgid "History"
 msgstr "History"
@@ -1611,6 +1626,9 @@ msgstr "Opaque background"
 msgid "OPDS"
 msgstr "OPDS"
 
+msgid "Opacity"
+msgstr "Opacity"
+
 msgid "Open"
 msgstr "Open"
 
@@ -2063,6 +2081,9 @@ msgstr "Set as wallpaper"
 
 msgid "Set file types to sync"
 msgstr "Set file types to sync"
+
+msgid "Set folder cover"
+msgstr "Set folder cover"
 
 msgid "Set home folder"
 msgstr "Set home folder"

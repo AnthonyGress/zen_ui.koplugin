@@ -269,6 +269,9 @@ msgstr "Autores"
 msgid "authors"
 msgstr "autores"
 
+msgid "Autorotate"
+msgstr "Rotación automática"
+
 msgid "Automatic"
 msgstr "Automático"
 
@@ -605,11 +608,11 @@ msgstr ""
 "No se han podido buscar las redes wi-fi. Inténtalo de nuevo después de "
 "reactivar el dispositivo."
 
-msgid ""
-"CoverBrowser plugin is not enabled, some features will not work correctly."
-msgstr ""
-"El complemento CoverBrowser no está activado, algunas funciones no "
-"funcionarán correctamente."
+msgid "Cover"
+msgstr "Portada"
+
+msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
+msgstr "El complemento CoverBrowser no está activado, algunas funciones no funcionarán correctamente."
 
 msgid "Covers"
 msgstr "Portadas"
@@ -985,6 +988,12 @@ msgstr "Extracción de metadatos"
 msgid "Extras"
 msgstr "Funciones adicionales"
 
+msgid "Failed to clear folder cover."
+msgstr "No se pudo borrar la portada de la carpeta."
+
+msgid "Failed to set folder cover."
+msgstr "No se pudo establecer la portada de la carpeta."
+
 msgid "Failed to submit report: "
 msgstr "No se ha podido enviar el informe: "
 
@@ -1124,14 +1133,11 @@ msgstr "Verde"
 msgid "Group book series into folders"
 msgstr "Agrupar series de libros en carpetas"
 
-msgid "Gyro"
-msgstr "Giroscopio"
-
-msgid "Gyroscope"
-msgstr "Giroscopio"
-
 msgid "Hide finished books"
 msgstr "Ocultar libros terminados"
+
+msgid "Hide grouped series"
+msgstr "Ocultar series agrupadas"
 
 msgid "Hide in CBZ/PDF files"
 msgstr "Ocultar en archivos CBZ/PDF"
@@ -1151,8 +1157,14 @@ msgstr "Ocultar libros no leídos"
 msgid "Hide up folder"
 msgstr "Ocultar carpeta superior"
 
+msgid "Hide when off"
+msgstr "Ocultar cuando esté apagado"
+
 msgid "Highlight / Lookup"
 msgstr "Subrayar / Buscar"
+
+msgid "Highlight names"
+msgstr "Nombres de los resaltados"
 
 msgid "History"
 msgstr "Historial"
@@ -1696,6 +1708,9 @@ msgstr "Fondo opaco"
 msgid "OPDS"
 msgstr "OPDS"
 
+msgid "Opacity"
+msgstr "Opacidad"
+
 msgid "Open"
 msgstr "Abierto"
 
@@ -2160,6 +2175,9 @@ msgstr "Establecer como fondo de pantalla"
 
 msgid "Set file types to sync"
 msgstr "Establecer tipos de archivo para sincronizar"
+
+msgid "Set folder cover"
+msgstr "Establecer portada de carpeta"
 
 msgid "Set home folder"
 msgstr "Establecer carpeta de inicio"

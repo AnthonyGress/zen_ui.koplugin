@@ -499,6 +499,7 @@ local function collect_visible_item_widgets(widget, states, seen, depth)
     local path = type(entry) == "table" and (entry.path or entry.file)
     if type(path) == "string" and type(dimen) == "table"
             and dimen.x ~= nil and dimen.y ~= nil and dimen.w and dimen.h then
+        local underline = widget._underline_container
         states[#states + 1] = {
             path = path,
             x = dimen.x,
@@ -506,6 +507,8 @@ local function collect_visible_item_widgets(widget, states, seen, depth)
             width = dimen.w,
             height = dimen.h,
             double_tap_patched = widget._zen_book_double_tap_patched == true,
+            underline_visible = underline ~= nil
+                and underline.color == require("ffi/blitbuffer").COLOR_BLACK,
         }
     end
     for _i, child in ipairs(widget) do
@@ -904,9 +907,11 @@ local function home_state()
                 local row_dimen = target.widget and target.widget.dimen
                 local row_top = row_dimen and tonumber(row_dimen.y)
                 local row_h = row_dimen and tonumber(row_dimen.h)
-                if quote_content_bounds and row_top and row_h
-                        and (quote_content_bounds.bottom < row_top
-                            or quote_content_bounds.top > row_top + row_h) then
+                local row_unpainted = #widget_ids > 1 and row_top == 0
+                if quote_content_bounds and (not row_top or not row_h
+                        or row_unpainted
+                        or quote_content_bounds.bottom < row_top
+                        or quote_content_bounds.top > row_top + row_h) then
                     quote_content_bounds = nil
                 end
             end

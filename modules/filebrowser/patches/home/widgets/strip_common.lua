@@ -263,6 +263,7 @@ local function apply_strip_cover_decorations(frame, book, config, show_badges)
             and config.browser_cover_badges or {}
         local dim_finished = cover_badges.dim_finished_books == true
             and book.status == "complete"
+        cover_common.set_dimmed_border(self, dim_finished)
 
         local cov_w = d.w - 2 * border
         local cov_h = d.h - 2 * border

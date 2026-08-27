@@ -1,6 +1,8 @@
 -- Shared folder/group cover provider for Zen's mosaic and list renderers.
 local CoverUtils = require("common/cover_utils")
+local FolderCoverFiles = require("common/folder_cover_files")
 local CoverWidget = require("modules/filebrowser/patches/home/widgets/cover_common")
+local BookStatus = require("common/book_status")
 local lfs = require("libs/libkoreader-lfs")
 local now = require("common/zen_logger").now
 
@@ -313,6 +315,14 @@ local function is_directory(entry)
         or (type(entry.attr) == "table" and entry.attr.mode == "directory"))
 end
 
+local function is_virtual(entry, menu)
+    return type(entry) == "table" and (entry.is_series_group
+        or type(entry.series_items) == "table"
+        or type(entry._zen_files) == "table"
+        or (menu and menu._zen_coll_list and entry.name
+            and type(menu._zen_get_collection_files) == "function"))
+end
+
 function M.isSupported(entry, menu)
     if M.isBook(entry) then return true end
     if type(entry) ~= "table" then return false end
@@ -385,17 +395,39 @@ function M.entries(menu, entry, load_members, limit)
     return nil, false
 end
 
+local function member_status(entry)
+    if entry._zen_effective_status then return entry._zen_effective_status end
+    if entry.status ~= nil or entry.percent_finished ~= nil then
+        return BookStatus.getEffectiveStatus(entry.status, entry.percent_finished)
+    end
+    local path = entry.path or entry.file
+    if not path then return end
+    local ok, status = pcall(BookStatus.getEffectiveStatusFromFile, path)
+    if ok then return status end
+end
+
+function M.allBooksFinished(menu, entry, entries, count)
+    count = tonumber(count) or 0
+    if count < 1 then return false end
+    if type(entries) ~= "table" or #entries < count then
+        local loaded = { M.entries(menu, entry, true, count) }
+        entries = loaded[1]
+        count = tonumber(loaded[3]) or (type(entries) == "table" and #entries or 0)
+    end
+    if count < 1 or type(entries) ~= "table" or #entries < count then return false end
+    for _i, member in ipairs(entries) do
+        if member_status(member) ~= "complete" then return false end
+    end
+    return true
+end
+
 function M.previewEntries(menu, entry, limit, options)
     if type(entry) ~= "table" then return {}, false, 0 end
     if type(limit) ~= "number" then
         limit = select(2, CoverUtils.getMode())
     end
     limit = math.max(0, limit)
-    local is_virtual = type(entry.series_items) == "table"
-        or type(entry._zen_files) == "table"
-        or (menu and menu._zen_coll_list and entry.name
-            and type(menu._zen_get_collection_files) == "function")
-    if is_virtual then
+    if is_virtual(entry, menu) then
         local entries, physical, count = M.entries(menu, entry, true, limit)
         return entries or {}, physical, count or 0, false, 0, true
     end
@@ -494,8 +526,20 @@ function M.build(menu, entry, menu_text, max_w, max_h, options)
     local gallery_cache_key
     local frame
     local cover_count = 0
+    local has_explicit = false
 
-    if load_covers and mode == "gallery"
+    if load_covers and physical and entry and entry.path
+            and not (entry.is_go_up or entry._zen_empty_placeholder) then
+        local explicit_started_at = now()
+        local explicit_covers, explicit_found = CoverUtils.loadExplicitCovers(entry.path, mode)
+        has_explicit = explicit_found == true
+            or (type(explicit_covers) == "table" and #explicit_covers > 0)
+        append_covers(covers, explicit_covers, max_covers)
+        perf.explicit_ms = elapsed_ms(explicit_started_at)
+    end
+
+    if load_covers and not has_explicit and mode == "gallery"
+            and type(entries) == "table" and #entries > 1
             and not (entry and (entry.is_go_up or entry._zen_empty_placeholder)) then
         gallery_cache_key = CoverUtils.galleryCacheKey(
             gallery_identity(menu, entry, title), entries,
@@ -514,12 +558,7 @@ function M.build(menu, entry, menu_text, max_w, max_h, options)
 
     if not frame and load_covers
             and not (entry and (entry.is_go_up or entry._zen_empty_placeholder)) then
-        if physical and entry.path then
-            local explicit_started_at = now()
-            append_covers(covers, CoverUtils.loadExplicitCovers(entry.path, mode), max_covers)
-            perf.explicit_ms = elapsed_ms(explicit_started_at)
-        end
-        if #covers < max_covers then
+        if not has_explicit and #covers < max_covers then
             local collect_started_at = now()
             local collected, pending = CoverUtils.collect(
                 physical and entry.path or nil,
@@ -538,13 +577,19 @@ function M.build(menu, entry, menu_text, max_w, max_h, options)
     end
 
     local draw_started_at = now()
-    if not frame and mode == "gallery" and #covers > 0 then
-        if not gallery_cache_key then
+    if not frame and #covers == 1 then
+        local preview_w = uniform and portrait_w or max_w
+        local preview_h = uniform and portrait_h or max_h
+        frame = CoverUtils.drawSingle(covers[1], preview_w, preview_h, border, uniform)
+        cover_count = 1
+    elseif not frame and mode == "gallery" and #covers > 0 then
+        if not has_explicit and not gallery_cache_key then
             gallery_cache_key = CoverUtils.galleryCacheKey(
                 gallery_identity(menu, entry, title), entries,
                 portrait_w, portrait_h, uniform)
         end
-        local cache_key = not needs_hydration and gallery_cache_key or nil
+        local cache_key = not has_explicit and not needs_hydration
+            and gallery_cache_key or nil
         local cache_hit, composite_built
         frame, cache_hit, composite_built = CoverUtils.drawGallery(
             covers, portrait_w, portrait_h, border, nil, uniform, cache_key)
@@ -922,9 +967,13 @@ function M.isGalleryCached(menu, entry, menu_text, max_w, max_h, options)
     options = options or {}
     local mode, max_covers = CoverUtils.getMode()
     if mode ~= "gallery" then return false end
+    if entry and entry.path and is_directory(entry) and not is_virtual(entry, menu)
+            and FolderCoverFiles.has(entry.path, mode) then
+        return false
+    end
     local entries = options.entries
     if entries == nil then entries = M.previewEntries(menu, entry, max_covers) end
-    if type(entries) ~= "table" or #entries == 0 then return false end
+    if type(entries) ~= "table" or #entries < 2 then return false end
     local portrait_w, portrait_h = CoverUtils.calcDims(max_w, max_h)
     local cache_key = CoverUtils.galleryCacheKey(
         gallery_identity(menu, entry, M.title(entry, menu_text, menu)), entries,
@@ -937,6 +986,10 @@ function M.warmGallery(menu, entry, menu_text, max_w, max_h, options)
     options = options or {}
     local mode, max_covers = CoverUtils.getMode()
     if mode ~= "gallery" then return false, false end
+    if entry and entry.path and is_directory(entry) and not is_virtual(entry, menu)
+            and FolderCoverFiles.has(entry.path, mode) then
+        return false, false
+    end
     local entries, physical, count, descriptor_cache_hit, enumeration_ms, descriptor_exact
     if options.entries ~= nil then
         entries = options.entries
@@ -949,6 +1002,7 @@ function M.warmGallery(menu, entry, menu_text, max_w, max_h, options)
         entries, physical, count, descriptor_cache_hit, enumeration_ms, descriptor_exact =
             M.previewEntries(menu, entry, max_covers, options)
     end
+    if type(entries) ~= "table" or #entries < 2 then return false, false end
     local portrait_w, portrait_h = CoverUtils.calcDims(max_w, max_h)
     local cache_key = CoverUtils.galleryCacheKey(
         gallery_identity(menu, entry, M.title(entry, menu_text, menu)), entries,

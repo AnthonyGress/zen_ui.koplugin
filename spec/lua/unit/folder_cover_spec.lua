@@ -65,7 +65,7 @@ describe("shared folder cover provider", function()
             end,
             loadExplicitCovers = function(path)
                 calls.explicit = path
-                return {}
+                return calls.explicit_covers or {}, calls.has_explicit == true
             end,
             collect = function(path, chooser, limit, need_copy, entries, specs,
                     cover_offset, cached_only)
@@ -75,6 +75,9 @@ describe("shared folder cover provider", function()
                     cover_offset = cover_offset, cached_only = cached_only,
                 }
                 if calls.collect_cold and cached_only then return {}, true end
+                if calls.collect_covers then
+                    return calls.collect_covers, calls.collect_pending == true
+                end
                 return entries and #entries > 0 and { { data = "cover" } } or {},
                     calls.collect_pending == true
             end,
@@ -89,7 +92,10 @@ describe("shared folder cover provider", function()
                 },
                     false, cache_key ~= nil
             end,
-            drawStack = function() return { kind = "stack", bordersize = 2 } end,
+            drawStack = function(covers)
+                calls.stack_covers = covers
+                return { kind = "stack", bordersize = 2 }
+            end,
             drawSingle = function(_cover, width, height, _border, uniform)
                 calls.single = { width = width, height = height, uniform = uniform }
                 return { kind = "single", bordersize = 2 }
@@ -325,8 +331,78 @@ describe("shared folder cover provider", function()
         assert.are.equal("/library/folder/b.epub", calls.collect[1].entries[2].path)
         assert.are.equal(specs, calls.collect[1].specs)
         assert.are.equal(2, result.count)
+        assert.are.equal("single", result.frame.kind)
+        assert.is_true(calls.single.uniform)
+    end)
+
+    it("renders one automatic cover as a single cover in gallery and stack modes", function()
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local entry = { _zen_files = { "/library/only.epub" } }
+
+        for _i, mode in ipairs({ "gallery", "stack" }) do
+            cover_mode = mode
+            local result = FolderCover.build({}, entry, "Folder", 80, 120)
+
+            assert.are.equal("single", result.frame.kind)
+            assert.are.equal(1, result.cover_count)
+            assert.are.same({ width = 80, height = 120, uniform = true }, calls.single)
+        end
+    end)
+
+    it("keeps explicit covers authoritative instead of filling their empty slots", function()
+        install_lfs(function(path)
+            if path == "/library/folder" then
+                return { { name = "a.epub" }, { name = "b.epub" } }
+            end
+            return {}
+        end)
+        calls.explicit_covers = { { data = "custom" } }
+        calls.has_explicit = true
+        local FolderCover = require("modules/filebrowser/folder_cover")
+
+        local result = FolderCover.build({ name = "filemanager" }, {
+            path = "/library/folder",
+            attr = { mode = "directory" },
+        }, "Folder", 80, 120)
+
+        assert.are.equal(0, #calls.collect)
+        assert.are.equal("single", result.frame.kind)
+        assert.are.equal(1, result.cover_count)
+    end)
+
+    it("does not reuse book-based gallery composites for explicit covers", function()
+        install_lfs(function() return {} end)
+        calls.explicit_covers = { { data = "custom-1" }, { data = "custom-2" } }
+        calls.has_explicit = true
+        calls.gallery_cache_key = "book-gallery"
+        local FolderCover = require("modules/filebrowser/folder_cover")
+
+        local result = FolderCover.build({ name = "filemanager" }, {
+            path = "/library/folder",
+            attr = { mode = "directory" },
+        }, "Folder", 80, 120)
+
         assert.are.equal("gallery", result.frame.kind)
-        assert.is_true(calls.uniform)
+        assert.is_nil(calls.draw_gallery_cache_key)
+        assert.are.equal(0, #calls.collect)
+    end)
+
+    it("still uses the selected multi-cover renderer for multiple covers", function()
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        calls.collect_covers = { { data = "one" }, { data = "two" } }
+
+        cover_mode = "gallery"
+        local gallery = FolderCover.build({}, {
+            _zen_files = { "/library/a.epub", "/library/b.epub" },
+        }, "Folder", 80, 120)
+        assert.are.equal("gallery", gallery.frame.kind)
+
+        cover_mode = "stack"
+        local stack = FolderCover.build({}, {
+            _zen_files = { "/library/a.epub", "/library/b.epub" },
+        }, "Folder", 80, 120)
+        assert.are.equal("stack", stack.frame.kind)
+        assert.are.equal(2, #calls.stack_covers)
     end)
 
     it("counts scanned children instead of interpreting a date as the count", function()
@@ -377,6 +453,32 @@ describe("shared folder cover provider", function()
         assert.are.equal(6, single.count)
         assert.are.equal(1, #single.entries)
         assert.are.equal(1, calls.collect[#calls.collect].limit)
+    end)
+
+    it("only marks a non-empty folder finished when every book is finished", function()
+        local statuses = {
+            ["/library/folder/a.epub"] = "complete",
+            ["/library/folder/b.epub"] = "complete",
+        }
+        ZenSpec.replace("common/book_status", {
+            getEffectiveStatus = function(status) return status end,
+            getEffectiveStatusFromFile = function(path) return statuses[path] end,
+        })
+        install_lfs(function()
+            return { { name = "a.epub" }, { name = "b.epub" } }
+        end)
+        local FolderCover = require("modules/filebrowser/folder_cover")
+        local entry = {
+            path = "/library/folder",
+            attr = { mode = "directory" },
+        }
+        local preview = { { path = "/library/folder/a.epub" } }
+
+        assert.is_true(FolderCover.allBooksFinished({}, entry, preview, 2))
+
+        statuses["/library/folder/b.epub"] = "reading"
+        assert.is_false(FolderCover.allBooksFinished({}, entry, preview, 2))
+        assert.is_false(FolderCover.allBooksFinished({}, entry, {}, 0))
     end)
 
     it("retains one candidate in single mode when the parent supplied the count", function()
@@ -617,7 +719,7 @@ describe("shared folder cover provider", function()
             _zen_files = { "/library/landscape.epub" },
         }, "Author", 80, 120, { uniform = false })
 
-        assert.is_false(calls.uniform)
+        assert.is_false(calls.single.uniform)
     end)
 
     it("reports cached-only folder previews that still need hydration", function()
@@ -678,7 +780,7 @@ describe("shared folder cover provider", function()
             assert.are.equal("placeholder", cold.frame.kind)
             assert.is_false(hydrated.needs_hydration)
             assert.are.equal(1, hydrated.cover_count)
-            assert.are.equal("gallery", hydrated.frame.kind)
+            assert.are.equal("single", hydrated.frame.kind)
             assert.is_true(calls.collect[first_call].cached_only)
             assert.is_false(calls.collect[first_call + 1].cached_only)
             assert.are.equal(case.path, calls.collect[first_call].path)
@@ -707,22 +809,26 @@ describe("shared folder cover provider", function()
         calls.gallery_cached = true
 
         assert.is_true(FolderCover.isGalleryCached({}, {
-            _zen_files = { "/library/a.epub" },
+            _zen_files = { "/library/a.epub", "/library/b.epub" },
         }, "Author", 80, 120, {
-            entries = { { path = "/library/a.epub" } },
+            entries = {
+                { path = "/library/a.epub" },
+                { path = "/library/b.epub" },
+            },
         }))
         assert.are.same({ key = "gallery:key", width = 80, height = 120 },
             calls.gallery_cached_request)
         assert.are.equal(0, #calls.collect)
     end)
 
-    it("warms and releases one complete gallery bitmap", function()
+    it("warms and releases a complete multi-cover gallery bitmap", function()
         local FolderCover = require("modules/filebrowser/folder_cover")
         calls.gallery_cache_key = "gallery:key"
         calls.cached_gallery = nil
+        calls.collect_covers = { { data = "one" }, { data = "two" } }
 
         local warmed, cached = FolderCover.warmGallery({}, {
-            _zen_files = { "/library/a.epub" },
+            _zen_files = { "/library/a.epub", "/library/b.epub" },
         }, "Author", 80, 120)
 
         assert.is_true(warmed)
@@ -917,7 +1023,7 @@ describe("shared folder cover provider", function()
         assert.are.same({ first, second }, result.entries)
         assert.is_nil(calls.collect[1].path)
         assert.are.equal("series\30/library/Saga", calls.gallery_key_args[1])
-        assert.are.equal("gallery", result.frame.kind)
+        assert.are.equal("single", result.frame.kind)
     end)
 
     it("counts all virtual members while retaining only preview candidates", function()

@@ -4,6 +4,26 @@ describe("reader interaction patches", function()
         require(name)()
     end
 
+    local function install_bookmark_button_stub()
+        ZenSpec.replace("common/utils", {
+            resolveLocalIcon = function(_dir, name) return "/icons/" .. name .. ".svg" end,
+        })
+        ZenSpec.replace("apps/reader/modules/readerdogear", {
+            setupDogear = function() end,
+        })
+        ZenSpec.replace("apps/reader/readerui", {})
+        ZenSpec.replace("common/ui/zen_icon_button", {
+            new = function(_self, spec)
+                spec.image = { dimen = { x = 12, y = 14, w = 24, h = 24 } }
+                spec.paintTo = function() end
+                spec.free = function() end
+                spec.init = function() end
+                return spec
+            end,
+        })
+        ZenSpec.replace("ui/uimanager", { setDirty = function() end })
+    end
+
     before_each(function()
         _G.__ZEN_UI_PLUGIN = nil
         ZenSpec.replace("modules/filebrowser/patches/library_font", {
@@ -287,9 +307,11 @@ describe("reader interaction patches", function()
         assert.are.equal(1, stock_calls)
     end)
 
-    it("updates bookmark page styling and swaps title-bar actions", function()
+    it("updates bookmark styling and adds right-side header actions", function()
         local stock_calls, update_calls = 0, 0
         local font_calls = {}
+        local close_order = {}
+        install_bookmark_button_stub()
         ZenSpec.replace("ui/font", {
             getFace = function(_, name, size, index)
                 table.insert(font_calls, { name = name, size = size, index = index })
@@ -315,16 +337,20 @@ describe("reader interaction patches", function()
             onShowBookmark = function() stock_calls = stock_calls + 1 end,
         }
         ZenSpec.replace("apps/reader/modules/readerbookmark", ReaderBookmark)
+        _G.__ZEN_UI_PLUGIN = {
+            config = { page_browser = { bookmarks_font_size = 19 } },
+        }
         apply_patch("modules/reader/patches/bookmarks")
 
         local left_tap = function() return "left" end
         local left_hold = function() return "hold" end
-        local right_tap = function() return "right" end
+        local right_tap = function() close_order[#close_order + 1] = "bookmarks" end
         local left, right = {
             callback = left_tap,
             hold_callback = left_hold,
             setIcon = function(self, icon) self.icon = icon end,
         }, {
+            width = 32,
             callback = right_tap,
             setIcon = function(self, icon) self.icon = icon end,
         }
@@ -340,7 +366,16 @@ describe("reader interaction patches", function()
                 Font:getFace("MenuBody", self.font_size)
                 Font:getFace("MenuInfo", self.items_mandatory_font_size)
             end,
-            title_bar = { left_button = left, right_button = right },
+            onCloseAllMenus = function()
+                close_order[#close_order + 1] = "bookmarks"
+            end,
+            title_bar = {
+                left, right,
+                width = 600,
+                button_padding = 5,
+                left_button = left,
+                right_button = right,
+            },
         }
         local bookmark = {
             bookmark_menu = { menu },
@@ -352,25 +387,115 @@ describe("reader interaction patches", function()
         ReaderBookmark.onShowBookmark(bookmark)
 
         assert.are.equal(1, stock_calls)
-        assert.are.equal(23, menu.items_font_size)
-        assert.are.equal(23, menu.font_size)
-        assert.are.equal(23, menu.items_mandatory_font_size)
+        assert.are.equal(19, menu.items_font_size)
+        assert.are.equal(19, menu.font_size)
+        assert.are.equal(19, menu.items_mandatory_font_size)
         assert.is_nil(menu.item_table[1].mandatory_dim)
         assert.is_nil(menu.item_table[2].mandatory_dim)
         assert.are.equal(1, update_calls)
-        assert.same({ name = "LibraryFont", size = 23, index = nil }, font_calls[1])
-        assert.same({ name = "LibraryFont", size = 23, index = nil }, font_calls[2])
-        assert.are.equal("chevron.left", left.icon)
-        assert.are.equal(right_tap, left.callback)
-        assert.is_nil(left.hold_callback)
-        assert.are.equal("appbar.menu", right.icon)
-        assert.are.equal(left_tap, right.callback)
-        assert.are.equal(left_hold, right.hold_callback)
+        assert.same({ name = "LibraryFont", size = 19, index = nil }, font_calls[1])
+        assert.same({ name = "LibraryFont", size = 19, index = nil }, font_calls[2])
+        local back_button = menu.title_bar.left_button
+        assert.are.equal("/icons/chevron.left.svg", back_button.file)
+        assert.are.equal(right_tap, back_button.callback)
+        assert.is_nil(back_button.hold_callback)
+        local menu_button = menu.title_bar.menu_button
+        local close_button = menu.title_bar.right_button
+        assert.are.equal("/icons/appbar.menu.svg", menu_button.file)
+        assert.are.equal(left_tap, menu_button.callback)
+        assert.are.equal(left_hold, menu_button.hold_callback)
+        assert.are.same({ 516, 0 }, menu_button.overlap_offset)
+        assert.are.equal("/icons/close_light.svg", close_button.file)
+        assert.are.equal("right", close_button.overlap_align)
+
+        menu:setTitleBarLeftIcon("check")
+        assert.are.equal("/icons/check.svg", menu_button.file)
+
+        menu._zen_page_browser_parent = {
+            onClose = function() close_order[#close_order + 1] = "page_browser" end,
+        }
+        close_button.callback()
+        assert.same({ "bookmarks", "page_browser" }, close_order)
+        assert.is_nil(menu._zen_page_browser_parent)
 
         menu.item_table[1].mandatory_dim = true
         menu:updateItems()
         assert.is_nil(menu.item_table[1].mandatory_dim)
         assert.are.equal(2, update_calls)
+    end)
+
+    it("uses the bundled bookmark icon for the reader bookmark indicator", function()
+        install_bookmark_button_stub()
+        local free_calls = 0
+        local function stock_icon()
+            return {
+                file = "/stock/dogear.alpha.svg",
+                icon = "dogear.alpha",
+                rotation_angle = 90,
+                free = function() free_calls = free_calls + 1 end,
+            }
+        end
+        local ReaderDogear = {
+            setupDogear = function(self, size)
+                self.dogear_size = size or 32
+                self.icon = stock_icon()
+            end,
+        }
+        local current_dogear = { dogear_size = 24, icon = stock_icon() }
+        ZenSpec.replace("apps/reader/modules/readerdogear", ReaderDogear)
+        ZenSpec.replace("apps/reader/readerui", {
+            instance = { view = { dogear = current_dogear } },
+        })
+        ZenSpec.replace("apps/reader/modules/readerbookmark", {
+            onShowBookmark = function() end,
+        })
+
+        apply_patch("modules/reader/patches/bookmarks")
+
+        assert.are.equal("/icons/bookmark.svg", current_dogear.icon.file)
+        assert.is_nil(current_dogear.icon.icon)
+        assert.are.equal(0, current_dogear.icon.rotation_angle)
+
+        local new_dogear = {}
+        ReaderDogear.setupDogear(new_dogear, 28)
+        assert.are.equal(28, new_dogear.dogear_size)
+        assert.are.equal("/icons/bookmark.svg", new_dogear.icon.file)
+        assert.is_nil(new_dogear.icon.icon)
+        assert.are.equal(0, new_dogear.icon.rotation_angle)
+        assert.are.equal(2, free_calls)
+    end)
+
+    it("preserves a bookmark indicator supplied by another plugin", function()
+        install_bookmark_button_stub()
+        local free_calls = 0
+        local function custom_icon()
+            return {
+                file = "/booknook/ribbon.svg",
+                rotation_angle = 0,
+                free = function() free_calls = free_calls + 1 end,
+            }
+        end
+        local ReaderDogear = {
+            setupDogear = function(self)
+                self.icon = custom_icon()
+            end,
+        }
+        local current_dogear = { icon = custom_icon() }
+        ZenSpec.replace("apps/reader/modules/readerdogear", ReaderDogear)
+        ZenSpec.replace("apps/reader/readerui", {
+            instance = { view = { dogear = current_dogear } },
+        })
+        ZenSpec.replace("apps/reader/modules/readerbookmark", {
+            onShowBookmark = function() end,
+        })
+
+        apply_patch("modules/reader/patches/bookmarks")
+
+        assert.are.equal("/booknook/ribbon.svg", current_dogear.icon.file)
+        local new_dogear = {}
+        ReaderDogear.setupDogear(new_dogear)
+        assert.are.equal("/booknook/ribbon.svg", new_dogear.icon.file)
+        assert.are.equal(0, free_calls)
     end)
 
     it("closes a page browser parent before jumping to a bookmark", function()
@@ -401,6 +526,7 @@ describe("reader interaction patches", function()
     it("focuses bookmark header actions and routes hardware arrows to the list", function()
         local focus_moves, press_calls = 0, 0
         local focus_rect
+        install_bookmark_button_stub()
         local left, right = {
             callback = function() end,
             setIcon = function(self, icon) self.icon = icon end,
@@ -420,6 +546,8 @@ describe("reader interaction patches", function()
             end,
         }
         local title_bar = {
+            width = 600,
+            button_padding = 5,
             left_button = left,
             right_button = right,
             generateHorizontalLayout = function(self)
@@ -468,12 +596,15 @@ describe("reader interaction patches", function()
         apply_patch("modules/reader/patches/bookmarks")
 
         ReaderBookmark.onShowBookmark({})
-        assert.are.equal(2, #menu.layout[1])
-        assert.are.equal(left, menu.layout[1][1])
+        local back_button = title_bar.left_button
+        assert.are.equal(3, #menu.layout[1])
+        assert.are.equal(back_button, menu.layout[1][1])
+        assert.are.equal(title_bar.menu_button, menu.layout[1][2])
+        assert.are.equal(title_bar.right_button, menu.layout[1][3])
         assert.are.same({ x = 1, y = 1 }, menu.selected)
-        assert.is_true(left._zen_keyboard_focused)
+        assert.is_true(back_button._zen_keyboard_focused)
         assert.are.equal("Close", menu.key_events.Close.event)
-        left:paintTo({
+        back_button:paintTo({
             invertRect = function(_bb, x, y, w, h)
                 focus_rect = { x = x, y = y, w = w, h = h }
             end,

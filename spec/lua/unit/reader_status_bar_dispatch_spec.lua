@@ -55,4 +55,26 @@ describe("reader status bar dispatcher actions", function()
         assert.is_true(footer.view.footer_visible)
         assert.are.equal(1, plugin.saves)
     end)
+
+    it("falls back to persisted state outside the reader", function()
+        local ReaderUI = require("apps/reader/readerui")
+        ReaderUI.instance = nil
+        plugin.config.reader_footer.status_bar_enabled = true
+
+        assert.is_true(Dispatch.isBottomStatusBarVisible(plugin))
+        plugin.config.reader_footer.status_bar_enabled = false
+        assert.is_false(Dispatch.isBottomStatusBarVisible(plugin))
+        plugin.config.reader_footer = nil
+        assert.is_true(Dispatch.isBottomStatusBarVisible(plugin))
+
+        plugin.config.reader_footer = { status_bar_enabled = false }
+        ReaderUI.instance = { view = { footer = footer } }
+        footer.view.footer_visible = true
+        assert.is_true(Dispatch.isBottomStatusBarVisible(plugin))
+        plugin.config.reader_footer.status_bar_enabled = true
+        footer.view.footer_visible = false
+        assert.is_false(Dispatch.isBottomStatusBarVisible(plugin))
+        footer.view.footer_visible = nil
+        assert.is_true(Dispatch.isBottomStatusBarVisible(plugin))
+    end)
 end)

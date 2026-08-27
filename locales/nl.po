@@ -252,6 +252,9 @@ msgstr "Auteurs"
 msgid "authors"
 msgstr "auteurs"
 
+msgid "Autorotate"
+msgstr "Automatisch draaien"
+
 msgid "Automatic"
 msgstr "Automatisch"
 
@@ -569,6 +572,9 @@ msgstr "Kan de updateserver niet bereiken. Controleer je internetverbinding.\n\n
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
 msgstr "Kon Wi-Fi-netwerken niet scannen. Probeer het opnieuw nadat je het apparaat hebt gewekt."
+
+msgid "Cover"
+msgstr "Omslag"
 
 msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
 msgstr "De CoverBrowser-plugin is niet ingeschakeld, sommige functies werken niet correct."
@@ -921,6 +927,12 @@ msgstr "Metagegevens extraheren"
 msgid "Extras"
 msgstr "Aanvullingen"
 
+msgid "Failed to clear folder cover."
+msgstr "Kan de mapomslag niet wissen."
+
+msgid "Failed to set folder cover."
+msgstr "Kan de mapomslag niet instellen."
+
 msgid "Failed to submit report: "
 msgstr "Indienen van rapport mislukt: "
 
@@ -1056,14 +1068,11 @@ msgstr "Groen"
 msgid "Group book series into folders"
 msgstr "Boekenseries in mappen groeperen"
 
-msgid "Gyro"
-msgstr "Gyro"
-
-msgid "Gyroscope"
-msgstr "Gyroscoop"
-
 msgid "Hide finished books"
 msgstr "Uitgelezen boeken verbergen"
+
+msgid "Hide grouped series"
+msgstr "Gegroepeerde boekenseries verbergen"
 
 msgid "Hide in CBZ/PDF files"
 msgstr "Verbergen in CBZ/PDF-bestanden"
@@ -1083,8 +1092,14 @@ msgstr "Ongelezen boeken verbergen"
 msgid "Hide up folder"
 msgstr "Bovenliggende map verbergen"
 
+msgid "Hide when off"
+msgstr "Verbergen wanneer uitgeschakeld"
+
 msgid "Highlight / Lookup"
 msgstr "Markeren / Opzoeken"
+
+msgid "Highlight names"
+msgstr "Namen van markeringen"
 
 msgid "History"
 msgstr "Geschiedenis"
@@ -1611,6 +1626,9 @@ msgstr "Ondoorzichtige achtergrond"
 msgid "OPDS"
 msgstr "OPDS"
 
+msgid "Opacity"
+msgstr "Dekking"
+
 msgid "Open"
 msgstr "Open"
 
@@ -2063,6 +2081,9 @@ msgstr "Instellen als achtergrond"
 
 msgid "Set file types to sync"
 msgstr "Bestandstypen instellen voor synchronisatie"
+
+msgid "Set folder cover"
+msgstr "Mapomslag instellen"
 
 msgid "Set home folder"
 msgstr "Startmap instellen"

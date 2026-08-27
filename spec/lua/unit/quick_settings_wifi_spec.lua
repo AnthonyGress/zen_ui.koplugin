@@ -114,6 +114,8 @@ describe("quick settings Wi-Fi", function()
         ZenSpec.replace("common/plugin_root", "/tmp/zen-ui")
         ZenSpec.replace("common/utils", {
             deepcopy = deepcopy,
+            resolveIcon = function() end,
+            getIconPickerList = function() return {} end,
             resolveLocalIcon = function() end,
         })
         ZenSpec.replace("ui/event", { new = function(_, name) return { name = name } end })

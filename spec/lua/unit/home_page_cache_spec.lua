@@ -325,6 +325,43 @@ describe("home data and book caches", function()
         assert.are.same({ "next", "previous" }, fallback)
     end)
 
+    it("reports quote selection and layout work separately", function()
+        ZenSpec.replace("modules/filebrowser/patches/home/home_quotes", {
+            selectQuote = function()
+                return { text = "Measured quote" }, {
+                    annotation_ms = 12.3,
+                    annotation_books = 23,
+                    annotation_cache_hits = 0,
+                    annotation_cache_misses = 1,
+                    sidecar_cache_hits = 4,
+                    sidecar_cache_misses = 2,
+                    state_writes = 1,
+                }
+            end,
+        })
+        ZenSpec.unload("modules/filebrowser/patches/home_page")
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local provider = get_build_data_provider(Home)({}, { quotes = {} })
+        provider:resetPerformanceStats()
+
+        assert.are.equal("Measured quote", provider:getCurrentQuote().text)
+        provider:recordQuoteLayout(45.6, false, 9)
+        local perf = provider:getPerformanceStats()
+
+        assert.is_number(perf.quote_select_ms)
+        assert.are.equal(12.3, perf.quote_annotation_ms)
+        assert.are.equal(23, perf.quote_annotation_books)
+        assert.are.equal(0, perf.quote_annotation_cache_hits)
+        assert.are.equal(1, perf.quote_annotation_cache_misses)
+        assert.are.equal(4, perf.quote_sidecar_cache_hits)
+        assert.are.equal(2, perf.quote_sidecar_cache_misses)
+        assert.are.equal(1, perf.quote_state_writes)
+        assert.are.equal(45.6, perf.quote_layout_ms)
+        assert.are.equal(0, perf.quote_layout_cache_hits)
+        assert.are.equal(1, perf.quote_layout_cache_misses)
+        assert.are.equal(9, perf.quote_layout_probes)
+    end)
+
     it("reuses history/status data across providers and opens one sidecar per book miss", function()
         local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
         local build_data_provider = get_build_data_provider(Home)

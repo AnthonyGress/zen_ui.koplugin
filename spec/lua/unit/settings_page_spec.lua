@@ -539,6 +539,23 @@ describe("Zen settings page", function()
         assert.are.equal(1, settings.itemnumber)
     end)
 
+    it("does not run dynamic help actions while indexing settings", function()
+        local help_calls = 0
+        local custom_text = {
+            text = "Custom text",
+            help_text_func = function() help_calls = help_calls + 1 end,
+        }
+        local settings = make_page({
+            { text = "Bottom status bar", sub_item_table = { custom_text } },
+        })
+
+        settings:_onSearchChanged("custom")
+
+        assert.are.equal(0, help_calls)
+        assert.are.equal(1, #settings.item_table)
+        assert.are.equal("Custom text", settings.item_table[1].text)
+    end)
+
     it("closes settings immediately when KOReader exits during a search", function()
         local settings = make_page({ { text = "Screen timeout" } })
 

@@ -166,23 +166,69 @@ describe("library navigation", function()
             config = { features = { restore_library_view = true } },
         })
 
-        assert.is_true(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+        assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
         assert.is_nil(_G.__ZEN_UI_KEEP_BOOK_LOCATION)
     end)
 
-    it("closes Reader and rebuilds the configured default view", function()
-        local ui = reader()
+    it("preserves a physical folder return when restore is enabled", function()
+        local ui = reader("/library/Fiction/Book.epub")
 
         Navigation.showFromReader(ui, {
             config = { features = { restore_library_view = true } },
         })
 
         assert.is_true(ui.closed)
-        assert.are.equal("/library/Book.epub", ui.shown)
-        assert.is_true(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+        assert.are.equal("/library/Fiction/Book.epub", ui.shown)
+        assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
     end)
 
-    it("arms the configured default before Reader teardown", function()
+    it("hides the passive focused underline after restoring a physical folder", function()
+        local item = {
+            _underline_container = { color = "black" },
+            onUnfocus = function(self)
+                self._underline_container.color = "white"
+            end,
+        }
+        local chooser = {
+            layout = { { item } },
+            selected = { x = 1, y = 1 },
+            prev_itemnumber = 4,
+        }
+        ZenSpec.replace("apps/filemanager/filemanager", {
+            instance = { file_chooser = chooser },
+        })
+
+        Navigation.showFromReader(reader("/library/Fiction/Book.epub"), {
+            config = { features = {
+                restore_library_view = true,
+                browser_hide_underline = true,
+            } },
+        })
+
+        assert.are.equal("white", item._underline_container.color)
+        assert.are.equal(4, chooser.prev_itemnumber)
+    end)
+
+    it("preserves captured group state when restore is enabled", function()
+        local ui = reader("/library/Fiction/Book.epub")
+        local state = {
+            tab = "series",
+            page = 3,
+            detail_group = "Saga",
+            detail_page = 2,
+        }
+        _G.__ZEN_UI_LIBRARY_STATE = state
+
+        Navigation.showFromReader(ui, {
+            config = { features = { restore_library_view = true } },
+        })
+
+        assert.is_true(ui.closed)
+        assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+        assert.are.equal(state, _G.__ZEN_UI_LIBRARY_STATE)
+    end)
+
+    it("arms the configured default before Reader teardown when restore is disabled", function()
         local ui = reader()
         local original_close = ui.onClose
         function ui:onClose()
@@ -191,7 +237,7 @@ describe("library navigation", function()
         end
 
         Navigation.showFromReader(ui, {
-            config = { features = { restore_library_view = true } },
+            config = { features = { restore_library_view = false } },
         })
 
         assert.is_true(ui.closed)
@@ -220,6 +266,23 @@ describe("library navigation", function()
         Navigation.showFromReader(ui, {
             config = { features = { restore_library_view = true } },
         }, { force_default = true })
+
+        assert.are.equal(1, default_opens)
+        assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+        assert.is_nil(_G.__ZEN_UI_LIBRARY_STATE)
+    end)
+
+    it("opens the default after a surviving teardown when restore is disabled", function()
+        local ui = reader()
+        local default_opens = 0
+        _G.__ZEN_UI_LIBRARY_STATE = { tab = "authors", page = 3 }
+        _G.__ZEN_UI_NAVBAR_OPEN_DEFAULT_TAB = function()
+            default_opens = default_opens + 1
+        end
+
+        Navigation.showFromReader(ui, {
+            config = { features = { restore_library_view = false } },
+        })
 
         assert.are.equal(1, default_opens)
         assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)

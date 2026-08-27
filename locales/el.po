@@ -241,6 +241,9 @@ msgstr "Συγγραφείς"
 msgid "authors"
 msgstr "συγγραφείς"
 
+msgid "Autorotate"
+msgstr "Αυτόματη περιστροφή"
+
 msgid "Automatic"
 msgstr "Αυτόματο"
 
@@ -1042,12 +1045,6 @@ msgstr "Πράσινο"
 msgid "Group book series into folders"
 msgstr "Ομαδοποίηση σειρών βιβλίων σε φακέλους"
 
-msgid "Gyro"
-msgstr "Γυρο"
-
-msgid "Gyroscope"
-msgstr "Γυροσκόπιο"
-
 msgid "Hide finished books"
 msgstr "Απόκρυψη τελειωμένων βιβλίων"
 
@@ -1068,6 +1065,9 @@ msgstr "Απόκρυψη μη αναγνωσμένων βιβλίων"
 
 msgid "Hide up folder"
 msgstr "Απόκρυψη γονικού φακέλου"
+
+msgid "Hide when off"
+msgstr "Απόκρυψη όταν είναι απενεργοποιημένο"
 
 msgid "Highlight / Lookup"
 msgstr "Επισήμανση / Αναζήτηση"
@@ -1587,6 +1587,9 @@ msgstr "Αδιαφανές φόντο"
 
 msgid "OPDS"
 msgstr "OPDS"
+
+msgid "Opacity"
+msgstr "Αδιαφάνεια"
 
 msgid "Open"
 msgstr "Άνοιγμα"

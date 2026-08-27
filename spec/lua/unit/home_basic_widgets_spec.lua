@@ -549,6 +549,7 @@ describe("home basic widgets", function()
 
     it("uses the full quote widget height before reducing automatic font size", function()
         local textbox_creations = 0
+        local layout_perf
         ZenSpec.replace("ui/widget/textboxwidget", {
             new = function(_self, values)
                 textbox_creations = textbox_creations + 1
@@ -594,6 +595,13 @@ describe("home basic widgets", function()
                         author = "Author",
                     }
                 end,
+                recordQuoteLayout = function(_, elapsed_ms, cache_hit, probes)
+                    layout_perf = {
+                        elapsed_ms = elapsed_ms,
+                        cache_hit = cache_hit,
+                        probes = probes,
+                    }
+                end,
             },
         }
         component.build(ctx)
@@ -610,10 +618,15 @@ describe("home basic widgets", function()
             end
         end
         assert.is_true(found)
+        assert.is_number(layout_perf.elapsed_ms)
+        assert.is_false(layout_perf.cache_hit)
+        assert.is_true(layout_perf.probes < 20)
 
         local first_build_creations = textbox_creations
         component.build(ctx)
         assert.are.equal(2, textbox_creations - first_build_creations)
+        assert.is_true(layout_perf.cache_hit)
+        assert.are.equal(0, layout_perf.probes)
     end)
 
     it("controls quote authors and titles independently", function()

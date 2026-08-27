@@ -6,6 +6,10 @@ describe("Controls destination settings", function()
     local dispatcher_action
     local dispatcher_text
     local dispatcher_update
+    local icon_picker_callback
+    local icon_picker_current
+    local input_text
+    local shown_widget
     local suggested_label
 
     before_each(function()
@@ -15,6 +19,10 @@ describe("Controls destination settings", function()
         dispatcher_action = nil
         dispatcher_text = "Nothing"
         dispatcher_update = nil
+        icon_picker_callback = nil
+        icon_picker_current = nil
+        input_text = ""
+        shown_widget = nil
         suggested_label = nil
         config = {
             quick_settings = {
@@ -22,6 +30,8 @@ describe("Controls destination settings", function()
                 show_buttons = {},
                 custom_buttons = {},
                 next_custom_id = 0,
+                gyro_label = "",
+                gyro_icon = "quick_rotate",
             },
         }
         ZenSpec.replace("gettext", function(text) return text end)
@@ -30,11 +40,21 @@ describe("Controls destination settings", function()
         })
         ZenSpec.replace("device", {
             hasFrontlight = function() return false end,
-            hasGSensor = function() return false end,
+            hasGSensor = function() return true end,
         })
-        ZenSpec.replace("ui/uimanager", { show = function() end })
+        ZenSpec.replace("ui/uimanager", {
+            show = function(_self, widget) shown_widget = widget end,
+            close = function() end,
+        })
+        ZenSpec.replace("ui/widget/inputdialog", {
+            new = function(_self, options)
+                options.getInputText = function() return input_text end
+                return options
+            end,
+        })
         ZenSpec.replace("config/defaults", { quick_settings = {
             button_order = {}, show_buttons = {},
+            gyro_label = "", gyro_icon = "quick_rotate",
         } })
         ZenSpec.replace("common/inline_icon_map", setmetatable({}, {
             __index = function(_self, key) return key end,
@@ -70,7 +90,10 @@ describe("Controls destination settings", function()
         ZenSpec.replace("common/ui/zen_arrange_list", {
             show = function(opts) arrange_options = opts end,
         })
-        ZenSpec.replace("common/ui/zen_icon_picker", function() end)
+        ZenSpec.replace("common/ui/zen_icon_picker", function(_icons, current, callback)
+            icon_picker_current = current
+            icon_picker_callback = callback
+        end)
         ZenSpec.replace("dispatcher", {
             addSubMenu = function(_self, _caller, _items, location, settings)
                 if dispatcher_action then location[settings] = dispatcher_action end
@@ -137,5 +160,43 @@ describe("Controls destination settings", function()
 
         assert.are.equal("Home", config.quick_settings.custom_buttons[1].label)
         assert.are.equal("Home", suggested_label)
+    end)
+
+    it("edits and resets the autorotate label and icon", function()
+        config.quick_settings.button_order = { "gyro" }
+        config.quick_settings.show_buttons.gyro = true
+        local saves = 0
+        local section = require("modules/settings/sections/menu_settings").build({
+            config = config,
+            plugin = {},
+            save_and_apply = function() saves = saves + 1 end,
+        })
+        section.sub_item_table[1].callback()
+
+        local autorotate
+        for _i, item in ipairs(arrange_options.item_table) do
+            if item.orig_item == "gyro" then autorotate = item end
+        end
+        local items = autorotate.sub_item_table_func()
+        local touch_menu = { updateItems = function() end }
+
+        assert.are.equal("Icon: quick_rotate", items[1].text_func())
+        items[1].callback(touch_menu)
+        assert.are.equal("quick_rotate", icon_picker_current)
+        icon_picker_callback("atom")
+        assert.are.equal("atom", config.quick_settings.gyro_icon)
+
+        input_text = "Turn with device"
+        items[2].callback(touch_menu)
+        shown_widget.buttons[1][2].callback()
+        assert.are.equal("Turn with device", config.quick_settings.gyro_label)
+        assert.are.equal("Turn with device", autorotate.text_func())
+
+        input_text = ""
+        items[2].callback(touch_menu)
+        shown_widget.buttons[1][2].callback()
+        assert.are.equal("", config.quick_settings.gyro_label)
+        assert.are.equal("Autorotate", autorotate.text_func())
+        assert.are.equal(3, saves)
     end)
 end)

@@ -43,7 +43,7 @@ describe("automatic series grouping patch", function()
         })
         _G.__ZEN_UI_PLUGIN = {
             config = {
-                features = { automatic_series_grouping = true },
+                features = { automatic_series_grouping = true, hide_grouped_series = false },
                 browser_cover_badges = { dim_finished_books = false },
             },
         }
@@ -282,6 +282,45 @@ describe("automatic series grouping patch", function()
         FileChooser.switchItemTable(fc, nil, { first, second })
 
         assert.are.same({ first, second }, fc.item_table)
+    end)
+
+    it("hides multi-book grouped series while retaining loose and single-series books", function()
+        local first = item("/library/One.epub", "One")
+        local second = item("/library/Two.epub", "Two")
+        local single = item("/library/Single.epub", "Single")
+        local loose = item("/library/Loose.epub", "Loose")
+        local folder = { text = "Folder", path = "/library/Folder", is_directory = true,
+            attr = { mode = "directory" } }
+        local up = { text = "..", is_go_up = true, is_directory = true,
+            attr = { mode = "directory" } }
+        metadata[first.path] = { series = "Saga", series_index = 1 }
+        metadata[second.path] = { series = "Saga", series_index = 2 }
+        metadata[single.path] = { series = "Solo", series_index = 1 }
+        _G.__ZEN_UI_PLUGIN.config.features.hide_grouped_series = true
+        local fc = chooser()
+
+        FileChooser.switchItemTable(fc, nil, { up, first, second, single, loose, folder })
+
+        assert.are.equal(4, #fc.item_table)
+        local visible = {}
+        for _i, entry in ipairs(fc.item_table) do visible[entry] = true end
+        assert.is_true(visible[loose])
+        assert.is_true(visible[folder])
+        assert.is_true(visible[single])
+        assert.is_true(visible[up])
+    end)
+
+    it("hides the only series in a folder", function()
+        local first = item("/library/One.epub", "One")
+        local second = item("/library/Two.epub", "Two")
+        metadata[first.path] = { series = "Only", series_index = 1 }
+        metadata[second.path] = { series = "Only", series_index = 2 }
+        _G.__ZEN_UI_PLUGIN.config.features.hide_grouped_series = true
+        local fc = chooser()
+
+        FileChooser.switchItemTable(fc, nil, { first, second })
+
+        assert.are.same({}, fc.item_table)
     end)
 
     it("does not add virtual folders to path picker dialogs", function()

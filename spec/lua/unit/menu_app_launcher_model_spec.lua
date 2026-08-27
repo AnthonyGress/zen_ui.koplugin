@@ -17,6 +17,10 @@ describe("app launcher model", function()
 
     after_each(function()
         ZenSpec.unload("pluginloader")
+        ZenSpec.unload("modules/menu/app_launcher/plugin_scan")
+        ZenSpec.unload("modules/menu/app_launcher/zenpm_pending")
+        ZenSpec.unload("common/plugin_root")
+        ZenSpec.unload("common/utils")
     end)
 
     it("sanitizes invalid root and folder entries before saving", function()
@@ -248,6 +252,152 @@ describe("app launcher model", function()
         assert.is_false(Model.ensure_zenfm_launcher_entry())
         assert.are.same({}, saved_configs.loaded.entries)
         assert.is_nil(saved_configs.loaded.zenfm_launcher_added)
+        assert.is_nil(saved_configs.saved)
+    end)
+
+    it("adds newly installed ZenPM plugin menus once", function()
+        local suggested
+        local cleared
+        local pending = {
+            { id = "package-wallabag", install_path = "/plugins/wallabag.koplugin" },
+            { id = "package-zenfm", install_path = "/plugins/zenfm.koplugin" },
+            { id = "package-zenos", install_path = "/plugins/zenos.koplugin" },
+        }
+        ZenSpec.replace("common/plugin_root", "/plugin")
+        ZenSpec.replace("common/utils", {
+            suggestIcon = function(root, label, fallback, strip_zen_prefix, preferred)
+                suggested = {
+                    root, label, fallback, strip_zen_prefix, preferred,
+                }
+                return "suggested_wallabag"
+            end,
+        })
+        ZenSpec.replace("modules/menu/app_launcher/zenpm_pending", {
+            read = function()
+                return pending, "/zenpm.sqlite3"
+            end,
+            clear = function(ids, path)
+                cleared = { ids, path }
+                pending = {}
+                return true
+            end,
+        })
+        ZenSpec.replace("modules/menu/app_launcher/plugin_scan", {
+            scanZenPM = function(received)
+                assert.are.equal(pending, received)
+                return {
+                    {
+                        key = "wallabag", method = "open", title = "Wallabag",
+                        zenpm_package_id = "package-wallabag",
+                    },
+                    {
+                        key = "zenfm", method = "open", title = "ZenFM",
+                        zenpm_package_id = "package-zenfm",
+                    },
+                }
+            end,
+        })
+        local Model = require("modules/menu/app_launcher/model")
+        saved_configs.loaded = { entries = {}, next_id = 4 }
+
+        assert.is_true(Model.ensure_zenpm_plugin_entries())
+        assert.are.same({ {
+            id = "al_5",
+            type = "plugin",
+            label = "Wallabag",
+            icon = "suggested_wallabag",
+            plugin = { key = "wallabag", method = "open" },
+        } }, saved_configs.loaded.entries)
+        assert.are.same({ "/plugin", "Wallabag", "lightning" }, suggested)
+        assert.are.same({
+            ["package-wallabag"] = true,
+            ["package-zenfm"] = true,
+            ["package-zenos"] = true,
+        }, cleared[1])
+        assert.are.equal("/zenpm.sqlite3", cleared[2])
+
+        saved_configs.saved = nil
+        assert.is_false(Model.ensure_zenpm_plugin_entries())
+        assert.is_nil(saved_configs.saved)
+    end)
+
+    it("does not rewrite or re-add manually managed plugin menu entries", function()
+        local pending = {
+            { id = "package-wallabag", install_path = "/plugins/wallabag.koplugin" },
+        }
+        local cleared
+        ZenSpec.replace("common/utils", {
+            suggestIcon = function()
+                error("manual entries must not trigger icon suggestions")
+            end,
+        })
+        ZenSpec.replace("modules/menu/app_launcher/zenpm_pending", {
+            read = function()
+                return pending, "/zenpm.sqlite3"
+            end,
+            clear = function(ids)
+                cleared = ids
+                pending = {}
+                return true
+            end,
+        })
+        ZenSpec.replace("modules/menu/app_launcher/plugin_scan", {
+            scanZenPM = function()
+                return { {
+                    key = "wallabag", method = "open", title = "Wallabag",
+                    zenpm_package_id = "package-wallabag",
+                } }
+            end,
+        })
+        local Model = require("modules/menu/app_launcher/model")
+        local existing = {
+            id = "wallabag", type = "plugin", label = "My Wallabag",
+            icon = "my_wallabag",
+            plugin = { key = "wallabag", method = "show" },
+        }
+        saved_configs.loaded = {
+            entries = {
+                { id = "folder", type = "folder", label = "Tools", children = { existing } },
+            },
+            next_id = 4,
+        }
+
+        assert.is_false(Model.ensure_zenpm_plugin_entries())
+        assert.are.equal(existing, saved_configs.loaded.entries[1].children[1])
+        assert.are.equal(1, #saved_configs.loaded.entries[1].children)
+        assert.are.same({ ["package-wallabag"] = true }, cleared)
+        assert.is_nil(saved_configs.saved)
+
+        existing.label = "Edited Wallabag"
+        existing.icon = "edited_wallabag"
+        existing.plugin.method = "launch"
+        saved_configs.saved = nil
+        assert.is_false(Model.ensure_zenpm_plugin_entries())
+        assert.are.same({
+            id = "wallabag", type = "plugin", label = "Edited Wallabag",
+            icon = "edited_wallabag",
+            plugin = { key = "wallabag", method = "launch" },
+        }, existing)
+        assert.is_nil(saved_configs.saved)
+
+        saved_configs.loaded.entries[1].children = {}
+        assert.is_false(Model.ensure_zenpm_plugin_entries())
+        assert.are.equal(0, #saved_configs.loaded.entries[1].children)
+        assert.is_nil(saved_configs.saved)
+    end)
+
+    it("does nothing for installed packages without the new pending flag", function()
+        ZenSpec.replace("modules/menu/app_launcher/zenpm_pending", {
+            read = function() return {}, "/zenpm.sqlite3" end,
+            clear = function() error("nothing should be consumed") end,
+        })
+        ZenSpec.replace("modules/menu/app_launcher/plugin_scan", {
+            scanZenPM = function() error("plugins should not be scanned") end,
+        })
+        local Model = require("modules/menu/app_launcher/model")
+        saved_configs.loaded = { entries = {}, next_id = 4 }
+
+        assert.is_false(Model.ensure_zenpm_plugin_entries())
         assert.is_nil(saved_configs.saved)
     end)
 end)

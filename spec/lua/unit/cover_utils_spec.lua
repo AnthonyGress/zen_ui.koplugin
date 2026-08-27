@@ -1,8 +1,11 @@
 describe("cover utility policy", function()
     local CoverUtils
+    local config
 
     before_each(function()
-        _G.G_reader_settings = ZenSpec.memorySettings({ uniform_cover_ratio = "2:3" })
+        _G.G_reader_settings = ZenSpec.memorySettings()
+        config = { uniform_cover_ratio = "2:3" }
+        ZenSpec.replace("config/manager", { get = function() return config end })
         ZenSpec.replace("ffi/blitbuffer", {})
         ZenSpec.replace("modules/filebrowser/patches/library_font", {})
         ZenSpec.replace("ui/widget/textboxwidget", {})
@@ -12,13 +15,14 @@ describe("cover utility policy", function()
         ZenSpec.replace("common/cover_decode_cache", {
             getFreshMetadata = function() end,
         })
+        ZenSpec.unload("common/folder_cover_files")
         ZenSpec.unload("common/cover_utils")
         CoverUtils = require("common/cover_utils")
     end)
 
     it("calculates portrait cover dimensions from the configured ratio", function()
         assert.are.same({ 200, 300 }, { CoverUtils.calcDims(300, 300) })
-        _G.G_reader_settings:saveSetting("uniform_cover_ratio", "3:4")
+        config.uniform_cover_ratio = "3:4"
         assert.are.same({ 225, 300 }, { CoverUtils.calcDims(300, 300) })
         assert.are.same({ 300, 400 }, { CoverUtils.calcDims(300, 500) })
     end)
@@ -112,6 +116,61 @@ describe("cover utility policy", function()
         assert.are.same({ "normal", 1, false }, { CoverUtils.getMode() })
     end)
 
+    it("uses full-size preview bounds when a gallery has one cover", function()
+        assert.are.same({ 100, 150 }, {
+            CoverUtils.getFolderPreviewBounds("gallery", 100, 150, 1, 1),
+        })
+        assert.are.same({ 49, 74 }, {
+            CoverUtils.getFolderPreviewBounds("gallery", 100, 150, 2, 1),
+        })
+    end)
+
+    it("preserves alpha for decoded explicit cover previews", function()
+        local decoded = {
+            getWidth = function() return 430 end,
+            getHeight = function() return 424 end,
+        }
+        local render_request
+        local image_options
+        local function container()
+            return { new = function(_self, values) return values end }
+        end
+        ZenSpec.replace("common/folder_cover_files", {
+            find = function(folder, mode)
+                assert.are.same({ "/library/folder", "gallery" }, { folder, mode })
+                return { [3] = "/images/cover3.png" }
+            end,
+        })
+        ZenSpec.replace("ui/renderimage", {
+            renderImageFile = function(_self, path, want_frames)
+                render_request = { path = path, want_frames = want_frames }
+                return decoded
+            end,
+        })
+        ZenSpec.replace("ui/widget/container/centercontainer", container())
+        ZenSpec.replace("ui/widget/container/framecontainer", container())
+        ZenSpec.replace("ui/widget/imagewidget", {
+            new = function(_self, values)
+                image_options = values
+                return values
+            end,
+        })
+        ZenSpec.unload("common/cover_utils")
+        CoverUtils = require("common/cover_utils")
+
+        local covers, explicit = CoverUtils.loadExplicitCovers(
+            "/library/folder", "gallery")
+        CoverUtils.drawSingle(covers[1], 100, 150, 2, true)
+
+        assert.is_true(explicit)
+        assert.are.same({ path = "/images/cover3.png", want_frames = false }, render_request)
+        assert.are.equal(decoded, covers[1].data)
+        assert.are.same({ 430, 424 }, { covers[1].w, covers[1].h })
+        assert.is_true(covers[1].alpha)
+        assert.are.equal(decoded, image_options.image)
+        assert.is_true(image_options.alpha)
+    end)
+
     it("keeps tiny synthetic covers to one bulk fill", function()
         local paints = {}
         local pixels = 0
@@ -201,7 +260,7 @@ describe("cover utility policy", function()
 
         assert.are.equal(1, #covers)
         assert.are.equal("generated-cover", covers[1].data)
-        assert.are.same({ width = 49, height = 74, metadata = metadata }, generated_request)
+        assert.are.same({ width = 100, height = 150, metadata = metadata }, generated_request)
     end)
 
     it("uses a final-render hit before loading a decoded folder cover", function()
@@ -235,7 +294,7 @@ describe("cover utility policy", function()
             { path = "/cached.epub", is_file = true },
         }, { max_cover_w = 100, max_cover_h = 150, uniform = true })
 
-        assert.are.same({ path = "/cached.epub", width = 49, height = 73 }, cache_request)
+        assert.are.same({ path = "/cached.epub", width = 100, height = 150 }, cache_request)
         assert.are.equal("cached-preview", covers[1].data)
         assert.is_nil(covers[1].cache_key)
     end)
@@ -431,7 +490,7 @@ describe("cover utility policy", function()
         }, { max_cover_w = 100, max_cover_h = 150, uniform = true })
 
         assert.is_true(requested_cover)
-        assert.are.same({ max_cover_w = 49, max_cover_h = 74 }, validated_specs)
+        assert.are.same({ max_cover_w = 100, max_cover_h = 150 }, validated_specs)
         assert.are.equal(real_cover, covers[1].data)
         assert.are.equal("/stale.epub", covers[1].cache_key)
     end)
@@ -696,8 +755,7 @@ describe("cover utility policy", function()
         assert.are.equal(1, svg_renders)
     end)
 
-    it("does not pre-scale folder covers before the selected renderer", function()
-        _G.__ZEN_UI_PLUGIN = { config = { browser_folder_cover = { cover_mode = "stack" } } }
+    it("renders one folder cover as a full single cover in multi-cover modes", function()
         local source = {}
         local received
         local scale_calls = 0
@@ -705,21 +763,49 @@ describe("cover utility policy", function()
             scale_calls = scale_calls + 1
             return {}
         end
-        CoverUtils.drawStack = function(covers)
-            received = covers
-            return "stack-widget"
+        CoverUtils.drawSingle = function(cover)
+            received = cover
+            return "single-widget"
+        end
+
+        for _i, mode in ipairs({ "gallery", "stack" }) do
+            _G.__ZEN_UI_PLUGIN = {
+                config = { browser_folder_cover = { cover_mode = mode } },
+            }
+            local widget = CoverUtils.makeCover("/folder", nil, {
+                is_folder = true,
+                max_w = 200,
+                max_h = 300,
+                covers_data = { { data = source, w = 100, h = 150 } },
+            })
+
+            assert.are.equal("single-widget", widget)
+            assert.are.equal(source, received.data)
+            assert.are.equal(0, scale_calls)
+        end
+    end)
+
+    it("does not fill unused custom cover slots from books", function()
+        _G.__ZEN_UI_PLUGIN = { config = { browser_folder_cover = { cover_mode = "gallery" } } }
+        local custom = { data = {}, w = 100, h = 150 }
+        CoverUtils.loadExplicitCovers = function()
+            return { custom }, true
+        end
+        CoverUtils.collect = function()
+            error("automatic covers were collected")
+        end
+        CoverUtils.drawSingle = function(cover)
+            assert.are.equal(custom, cover)
+            return "custom-cover"
         end
 
         local widget = CoverUtils.makeCover("/folder", nil, {
             is_folder = true,
             max_w = 200,
             max_h = 300,
-            covers_data = { { data = source, w = 100, h = 150 } },
         })
 
-        assert.are.equal("stack-widget", widget)
-        assert.are.equal(source, received[1].data)
-        assert.are.equal(0, scale_calls)
+        assert.are.equal("custom-cover", widget)
     end)
 
     it("sizes one-book stack previews with the uniform-cover policy", function()

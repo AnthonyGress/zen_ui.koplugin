@@ -32,5 +32,20 @@ Set the Home folder to the location where your books are, preferably a dedicated
 
 Enable the setting **Zen Settings > Library > Layout > Show all files from subfolders**.
 
+## Which plugins and patches are incompatible with ZenOS?
+
+Most patches not made specifically for ZenOS should not be used. Remove or disable them to avoid any conflicts.
+
+Disable each item before using ZenOS unless its action is **Remove**; those plugins must be deleted from KOReader's plugins folder.
+
+| Plugin | Action |
+| --- | --- |
+| Project: Title | Remove |
+| Simple UI | Disable |
+| Visual Overhaul Suite (VOS) | Disable |
+| QuickMenu | Remove |
+| Appearance | Disable |
+| Reader Menu Redesign | Disable |
+
 ## How do I navigate the entire filesystem?
 Set **Zen Settings > Library > Home folder > Lock home folder** to **Off**.

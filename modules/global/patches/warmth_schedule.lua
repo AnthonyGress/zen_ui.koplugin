@@ -93,21 +93,22 @@ local function apply_warmth_schedule()
         end
     end
 
-    local function set_warmth(value)
+    local function set_warmth(value, force)
         local Powerd = Device.powerd
         if Powerd and type(Powerd.setWarmth) == "function"
            and type(Powerd.fromNativeWarmth) == "function" then
             local lo = Powerd.fl_warmth_min or 0
             local hi = Powerd.fl_warmth_max or 24
-            pcall(Powerd.setWarmth, Powerd, Powerd:fromNativeWarmth(math.max(lo, math.min(hi, value))))
+            pcall(Powerd.setWarmth, Powerd,
+                Powerd:fromNativeWarmth(math.max(lo, math.min(hi, value))), force)
             UIManager:setDirty("all", "ui")
         end
     end
 
-    local function apply_mode_value()
+    local function apply_mode_value(force)
         if not uses_mode_values() then return end
         local cfg = get_config()
-        set_warmth(Screen.night_mode and cfg.night_value or cfg.day_value)
+        set_warmth(Screen.night_mode and cfg.night_value or cfg.day_value, force)
     end
 
     -- -------------------------------------------------------------------------
@@ -135,21 +136,21 @@ local function apply_warmth_schedule()
     -- Public reschedule
     -- -------------------------------------------------------------------------
 
-    local function reschedule()
+    local function reschedule(force)
         UIManager:unschedule(day_fn)
         UIManager:unschedule(night_fn)
         if not is_enabled() then
-            apply_mode_value()
+            apply_mode_value(force)
             return
         end
-        set_warmth(current_warmth_value())
+        set_warmth(current_warmth_value(), force)
         local cfg = get_config()
         UIManager:scheduleIn(seconds_until(cfg.day_h,   cfg.day_m),   day_fn)
         UIManager:scheduleIn(seconds_until(cfg.night_h, cfg.night_m), night_fn)
     end
 
     state.reschedule       = reschedule
-    state.force_reschedule = reschedule  -- warmth always applies (no guard)
+    state.force_reschedule = function() reschedule(true) end
     state.apply_mode_value = apply_mode_value
     state._on_suspend = function()
         UIManager:unschedule(day_fn)

@@ -55,6 +55,94 @@ function M.build(ctx)
         }
     end
 
+    local highlight_colors = {
+        { key = "red", text = _("Red") },
+        { key = "orange", text = _("Orange") },
+        { key = "yellow", text = _("Yellow") },
+        { key = "green", text = _("Green") },
+        { key = "olive", text = _("Olive") },
+        { key = "cyan", text = _("Cyan") },
+        { key = "blue", text = _("Blue") },
+        { key = "purple", text = _("Purple") },
+        { key = "gray", text = _("Gray") },
+    }
+
+    local function highlight_color_names()
+        if type(config.highlight_lookup) ~= "table" then config.highlight_lookup = {} end
+        if type(config.highlight_lookup.color_names) ~= "table" then
+            config.highlight_lookup.color_names = {}
+        end
+        return config.highlight_lookup.color_names
+    end
+
+    local function save_highlight_color_names()
+        plugin:saveConfig()
+        require("modules/reader/patches/highlight_names")(plugin)
+    end
+
+    local function make_highlight_name_items()
+        local items = {
+            {
+                text = _("Reset"),
+                enabled_func = function() return next(highlight_color_names()) ~= nil end,
+                callback = function(touchmenu_instance)
+                    config.highlight_lookup.color_names = {}
+                    save_highlight_color_names()
+                    if touchmenu_instance then touchmenu_instance:updateItems() end
+                end,
+                separator = true,
+            },
+        }
+        for _i, color in ipairs(highlight_colors) do
+            local color_name = color.key
+            local default_name = color.text
+            table.insert(items, {
+                text_func = function()
+                    local name = highlight_color_names()[color_name]
+                    return name and (default_name .. ": " .. name) or default_name
+                end,
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    local InputDialog = require("ui/widget/inputdialog")
+                    local dlg
+                    dlg = InputDialog:new{
+                        title = default_name,
+                        input = highlight_color_names()[color_name] or "",
+                        input_hint = default_name,
+                        buttons = {{
+                            {
+                                text = _("Cancel"),
+                                id = "close",
+                                callback = function() UIManager:close(dlg) end,
+                            },
+                            {
+                                text = _("Set"),
+                                is_enter_default = true,
+                                callback = function()
+                                    local name = dlg:getInputText()
+                                    name = type(name) == "string"
+                                        and name:match("^%s*(.-)%s*$") or ""
+                                    if name == "" or name == default_name then name = nil end
+                                    if highlight_color_names()[color_name] == name then
+                                        UIManager:close(dlg)
+                                        return
+                                    end
+                                    highlight_color_names()[color_name] = name
+                                    UIManager:close(dlg)
+                                    save_highlight_color_names()
+                                    if touchmenu_instance then touchmenu_instance:updateItems() end
+                                end,
+                            },
+                        }},
+                    }
+                    UIManager:show(dlg)
+                    dlg:onShowKeyboard()
+                end,
+            })
+        end
+        return items
+    end
+
     local items = {}
 
     -- -------------------------------------------------------------------------
@@ -205,8 +293,15 @@ function M.build(ctx)
 
     table.insert(items, {
         text = _("Top status bar"),
+        checked_func = function()
+            return config.features["reader_top_status_bar"] == true
+        end,
+        checkmark_callback = function()
+            config.features["reader_top_status_bar"] =
+                config.features["reader_top_status_bar"] ~= true
+            save_and_apply("reader_top_status_bar")
+        end,
         sub_item_table = {
-            make_enable_feature_item("reader_top_status_bar", _("Enable top status bar")),
             {
                 text = _("Left items"),
                 sub_item_table = make_header_slot_items("left", _("Arrange left items")),
@@ -729,8 +824,14 @@ function M.build(ctx)
 
     table.insert(items, {
         text = _("Reader themes"),
+        checked_func = function()
+            return config.features["reader_themes"] == true
+        end,
+        checkmark_callback = function()
+            config.features["reader_themes"] = config.features["reader_themes"] ~= true
+            save_and_apply("reader_themes")
+        end,
         sub_item_table = {
-            make_enable_feature_item("reader_themes", _("Enable reader themes")),
             make_theme_mode_item("dark_mode", _("Dark mode")),
             make_theme_mode_item("light_mode", _("Light mode")),
             make_custom_themes_item(),
@@ -918,7 +1019,8 @@ function M.build(ctx)
         text = _("Font"),
         enabled_func = function()
             local ReaderUI = require("apps/reader/readerui")
-            return ReaderUI.instance ~= nil
+            local ui = ReaderUI.instance
+            return ui ~= nil and ui.view ~= nil and ui.view.footer ~= nil
         end,
         sub_item_table_func = function()
             local ReaderUI = require("apps/reader/readerui")
@@ -944,7 +1046,11 @@ function M.build(ctx)
         sub_item_table = {
             make_enable_feature_item("dict_quick_lookup", _("Zen quick lookup")),
             make_enable_feature_item("highlight_lookup", _("Zen highlight menu")),
-               {
+            {
+                text = _("Highlight names"),
+                sub_item_table_func = make_highlight_name_items,
+            },
+            {
                 text = _("Show Wikipedia"),
                 checked_func = function()
                     return type(config.highlight_lookup) == "table"
@@ -1035,20 +1141,51 @@ function M.build(ctx)
             save_and_apply("reader_bottom_menu")
         end,
     }, icons.bottom_swipe))
-    -- page browser requires bottom swipe; disabling bottom swipe unchecks this too
+    -- Enabling the page browser forces the bottom swipe on.
+    local function make_page_browser_font_size_item(key, section)
+        return {
+            text_func = function()
+                local cfg = type(config.page_browser) == "table" and config.page_browser or {}
+                return string.format("%s — %s %s", section, _("Font size:"), tonumber(cfg[key]) or 18)
+            end,
+            keep_menu_open = true,
+            callback = function(touchmenu_instance)
+                local SpinWidget = require("ui/widget/spinwidget")
+                local cfg = type(config.page_browser) == "table" and config.page_browser or {}
+                UIManager:show(SpinWidget:new{
+                    title_text = string.format("%s — %s", section, _("Font size")),
+                    value = tonumber(cfg[key]) or 18,
+                    value_min = 10,
+                    value_max = 40,
+                    default_value = 18,
+                    callback = function(spin)
+                        if type(config.page_browser) ~= "table" then config.page_browser = {} end
+                        config.page_browser[key] = spin.value
+                        plugin:saveConfig()
+                        if touchmenu_instance then touchmenu_instance:updateItems() end
+                    end,
+                })
+            end,
+        }
+    end
+
     table.insert(items, IconItem.decorate({
         text = _("Zen page browser"),
         checked_func = function()
             return config.features["page_browser"] == true
         end,
-        enabled_func = function()
-            return config.features["reader_bottom_menu"] == true
-                or config.features["page_browser"] == true
-        end,
-        callback = function()
+        checkmark_callback = function()
             config.features["page_browser"] = config.features["page_browser"] ~= true
             save_and_apply("page_browser")
         end,
+        sub_item_table = {
+            make_page_browser_font_size_item(
+                "toc_font_size", _("Table of contents")
+            ),
+            make_page_browser_font_size_item(
+                "bookmarks_font_size", _("Bookmarks")
+            ),
+        },
     }, icons.page_browser))
     table.insert(items, IconItem.decorate({
         text = _("Restore library location on exit"),
@@ -1067,6 +1204,13 @@ function M.build(ctx)
 
     table.insert(items, {
         text = _("Bottom status bar"),
+        checked_func = function()
+            return dispatch_action.isBottomStatusBarVisible(plugin)
+        end,
+        checkmark_callback = function()
+            dispatch_action.setBottomStatusBar(plugin,
+                not dispatch_action.isBottomStatusBarVisible(plugin))
+        end,
         enabled_func = function()
             local ReaderUI = require("apps/reader/readerui")
             return ReaderUI.instance ~= nil
@@ -1168,17 +1312,6 @@ function M.build(ctx)
             local mock = {}
             ui.view.footer:addToMainMenu(mock)
             local result = {}
-            table.insert(result, {
-                text = _("Enable bottom status bar"),
-                checked_func = function()
-                    return dispatch_action.isBottomStatusBarVisible()
-                end,
-                callback = function(touchmenu_instance)
-                    dispatch_action.setBottomStatusBar(plugin,
-                        not dispatch_action.isBottomStatusBarVisible())
-                    if touchmenu_instance then touchmenu_instance:updateItems() end
-                end,
-            })
             table.insert(result, build_footer_presets_item())
             table.insert(result, font_submenu)
             table.insert(result, {

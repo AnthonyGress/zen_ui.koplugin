@@ -26,6 +26,7 @@ end
 local function page_browser()
     return find_widget(function(widget)
         return type(widget._zen_switch_single) == "function"
+            and type(widget._zen_switch_carousel) == "function"
             and type(widget._zen_switch_grid) == "function"
     end)
 end
@@ -109,12 +110,12 @@ function M.page_browser_state()
     local selected = browser.selected
     local row = selected and browser.layout and browser.layout[selected.y]
     local focused = row and row[selected.x]
-    local controls = { "single", "grid" }
+    local controls = { "single", "carousel", "grid" }
     if find_control(browser.title_bar or browser, "appbar.textsize", {}, 0) then
         controls[#controls + 1] = "aa"
     end
     return {
-        layout = browser.nb_cols == 1 and browser.nb_rows == 1 and "single" or "grid",
+        layout = browser._zen_layout_mode,
         thumbnail_count = browser.nb_grid_items or 0,
         focus_page = browser.focus_page or browser.cur_page,
         focused = focused and focused._zen_focus_id,
@@ -326,6 +327,10 @@ function M.activate(name)
     elseif name == "page_browser_single" then
         if not browser then return false, "page browser unavailable" end
         browser._zen_switch_single()
+        return true
+    elseif name == "page_browser_carousel" then
+        if not browser then return false, "page browser unavailable" end
+        browser._zen_switch_carousel()
         return true
     elseif name == "page_browser_grid" then
         if not browser then return false, "page browser unavailable" end

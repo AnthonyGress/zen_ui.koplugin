@@ -249,6 +249,16 @@ function ZenUI:init()
             logger.info("Added " .. integration.name .. " to the launcher")
         end
     end
+    require("ui/uimanager"):nextTick(function()
+        local ok, added_or_error = pcall(function()
+            return require("modules/menu/app_launcher/model").ensure_zenpm_plugin_entries()
+        end)
+        if not ok then
+            logger.warn("ZenPM plugin launcher integration failed:", added_or_error)
+        elseif added_or_error then
+            logger.info("Added newly installed ZenPM plugins to the launcher")
+        end
+    end)
     self:onDispatcherRegisterActions()
     -- Initialize updater state; release metadata stays live-only.
     zen_updater.init_banner()
@@ -789,9 +799,7 @@ function ZenUI:init()
                     if ui and ui.document then ui.tearing_down = was_tearing_down end
                     if not ui then return end
                     if ui.document then
-                        library_navigation.showFromReader(ui, _zen_plugin_ref, {
-                            force_default = true,
-                        })
+                        library_navigation.showFromReader(ui, _zen_plugin_ref)
                     else
                         local is_default_active = rawget(_G, "__ZEN_UI_NAVBAR_IS_DEFAULT_TAB_ACTIVE")
                         if type(is_default_active) == "function" and is_default_active() then

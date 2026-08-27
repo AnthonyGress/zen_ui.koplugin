@@ -181,13 +181,31 @@ local function apply_opds()
     local _corner_radius = Screen:scaleBySize(8)
     local _plugin = rawget(_G, "__ZEN_UI_PLUGIN")
 
-    local function get_opds_display_mode()
+    local function get_opds_config()
         local plug = _plugin or rawget(_G, "__ZEN_UI_PLUGIN")
-        local mode = plug and type(plug.config) == "table"
-            and type(plug.config.opds) == "table"
-            and plug.config.opds.display_mode
+        return plug and type(plug.config) == "table"
+            and type(plug.config.opds) == "table" and plug.config.opds or nil
+    end
+
+    local function get_opds_display_mode()
+        local cfg = get_opds_config()
+        local mode = cfg and cfg.display_mode
         if mode == "list" or mode == "classic" then return mode end
         return "mosaic"
+    end
+
+    local function get_opds_default_url()
+        local cfg = get_opds_config()
+        local url = cfg and cfg.default_url
+        return type(url) == "string" and url ~= "" and url or nil
+    end
+
+    local function set_opds_default_url(url)
+        local plug = _plugin or rawget(_G, "__ZEN_UI_PLUGIN")
+        if not (plug and type(plug.config) == "table") then return end
+        if type(plug.config.opds) ~= "table" then plug.config.opds = {} end
+        plug.config.opds.default_url = type(url) == "string" and url or ""
+        if type(plug.saveConfig) == "function" then plug:saveConfig() end
     end
 
     -- Mosaic title strip: read at apply time; mirrors mosaic_title_strip.lua logic.
@@ -554,8 +572,7 @@ local function apply_opds()
     -- Cover-aware updateItems; supports mosaic grid and list layouts matched to library mode.
     -- The root catalog list (paths empty) always uses a fixed list with placeholder covers.
     function OPDSBrowser:updateItems(select_number, no_recalculate_dimen)
-        local _ratio_str = G_reader_settings and G_reader_settings:readSetting("uniform_cover_ratio") or "2:3"
-        local _cover_ratio = _ratio_str == "3:4" and 3/4 or 2/3
+        local _cover_ratio = CoverUtils.getRatio()
         local display_mode = get_opds_display_mode()
         if display_mode == "classic" then
             if self._zen_halt then self._zen_halt(); self._zen_halt = nil end
@@ -1037,7 +1054,7 @@ local function apply_opds()
         fix_buttons(self)
         -- Auto-navigate to default catalog (skip when returning to root via onReturn).
         if self._zen_default_navigated then return end
-        local default_url = G_reader_settings:readSetting("opds_default_url")
+        local default_url = get_opds_default_url()
         if default_url then
             self._zen_default_navigated = true
             -- Pre-load credentials so fetchFeed can auth on the first request.
@@ -1211,16 +1228,16 @@ local function apply_opds()
     end
 
     -- Hold on a root-list catalog entry: vertical single-column menu.
-    -- Keep opds_default_url in sync when a server's URL is changed via Edit.
+    -- Keep the default URL in sync when a server's URL is changed via Edit.
     local orig_editCatalogFromInput = OPDSBrowser.editCatalogFromInput
     function OPDSBrowser:editCatalogFromInput(fields, item, no_refresh)
         local old_url = item and item.url
         orig_editCatalogFromInput(self, fields, item, no_refresh)
         if old_url then
-            local saved_default = G_reader_settings:readSetting("opds_default_url")
+            local saved_default = get_opds_default_url()
             if saved_default == old_url then
                 local new_url = fields[2]:match("^%a+://") and fields[2] or "http://" .. fields[2]
-                G_reader_settings:saveSetting("opds_default_url", new_url)
+                set_opds_default_url(new_url)
             end
         end
     end
@@ -1232,7 +1249,7 @@ local function apply_opds()
         local LeftContainer  = require("ui/widget/container/leftcontainer")
         local NetworkMgr     = require("ui/network/manager")
         local _              = require("gettext")
-        local default_url    = G_reader_settings:readSetting("opds_default_url")
+        local default_url    = get_opds_default_url()
         local is_default     = default_url == item.url
 
         -- Build the same cover+title header as showDownloads.
@@ -1314,9 +1331,9 @@ local function apply_opds()
                     callback = function()
                         UIManager:close(dialog)
                         if is_default then
-                            G_reader_settings:delSetting("opds_default_url")
+                            set_opds_default_url()
                         else
-                            G_reader_settings:saveSetting("opds_default_url", item.url)
+                            set_opds_default_url(item.url)
                         end
                     end }},
                 {},

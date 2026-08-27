@@ -355,6 +355,44 @@ describe("file browser navbar navigation", function()
         assert.are.equal("Home", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
     end)
 
+    it("keeps the move chooser fullscreen without a navbar", function()
+        local Menu = require("ui/widget/menu")
+        local chooser = {
+            height = 600,
+            covers_fullscreen = true,
+            is_borderless = true,
+            title_bar_fm_style = true,
+            select_directory = true,
+            select_file = false,
+            _zen_renderer = true,
+            _zen_no_forced_repaint = true,
+        }
+
+        Menu.init(chooser)
+
+        assert.are.equal(600, chooser.height)
+        assert.is_nil(chooser._zen_prevent_swipe_close)
+        assert.is_nil(chooser.onMultiSwipe)
+    end)
+
+    it("keeps the named folder cover picker fullscreen without a navbar", function()
+        local Menu = require("ui/widget/menu")
+        local picker = {
+            name = "folder_cover_picker",
+            height = 600,
+            covers_fullscreen = true,
+            is_borderless = true,
+            title_bar_fm_style = true,
+            _zen_no_forced_repaint = true,
+        }
+
+        Menu.init(picker)
+
+        assert.are.equal(600, picker.height)
+        assert.is_nil(picker._zen_prevent_swipe_close)
+        assert.is_nil(picker.onMultiSwipe)
+    end)
+
     it("opens a hidden default tab and keeps its top-menu icon", function()
         _G.__ZEN_UI_PLUGIN.config.navbar.show_tabs.home = false
 
@@ -419,6 +457,21 @@ describe("file browser navbar navigation", function()
         assert.are.same({ "base:/library:nil", "covers" }, calls)
         assert.are.equal("Library", _G.__ZEN_UI_ACTIVE_TAB_LABEL)
         assert.is_nil(fm.file_chooser._zen_needs_cover_refresh)
+        assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
+    end)
+
+    it("keeps the physical folder and focused book when restoring Reader", function()
+        _G.__ZEN_UI_PLUGIN.config.features.restore_library_view = true
+        local fm = make_instance()
+        FileManager._test_next_instance = fm
+        calls = {}
+
+        FileManager.showFiles(FileManager,
+            "/library/Fiction", "/library/Fiction/Book.epub")
+
+        assert.are.same({
+            "base:/library/Fiction:/library/Fiction/Book.epub",
+        }, calls)
         assert.is_nil(_G.__ZEN_UI_FORCE_DEFAULT_LIBRARY_TAB)
     end)
 
@@ -2013,13 +2066,22 @@ describe("file browser navbar navigation", function()
         local fm = make_instance()
         _G.__ZEN_UI_PLUGIN.config.features.restore_library_view = true
         assert.is_true(_G.__ZEN_UI_NAVBAR_OPEN_TAB("series"))
+        shared.group_view.getActivePage = function(tab_id)
+            assert.are.equal("series", tab_id)
+            return 4
+        end
+        shared.group_view.getActiveDetail = function()
+            return { group_name = "Saga", page = 3 }
+        end
         calls = {}
 
         FileManager.onShowingReader(fm)
 
         assert.are.same({ "close_groups", "close_home" }, calls)
         assert.are.equal("series", _G.__ZEN_UI_LIBRARY_STATE.tab)
-        assert.are.equal(1, _G.__ZEN_UI_LIBRARY_STATE.page)
+        assert.are.equal(4, _G.__ZEN_UI_LIBRARY_STATE.page)
+        assert.are.equal("Saga", _G.__ZEN_UI_LIBRARY_STATE.detail_group)
+        assert.are.equal(3, _G.__ZEN_UI_LIBRARY_STATE.detail_page)
     end)
 
     it("defers FileManager listing before opening Home after Reader closes", function()
