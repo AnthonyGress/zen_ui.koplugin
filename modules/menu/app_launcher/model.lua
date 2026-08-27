@@ -184,7 +184,14 @@ end
 
 function M.ensure_zenfm_launcher_entry()
     local cfg = M.ensure()
-    if cfg.zenfm_launcher_added == true or not plugin_is_enabled("zenfm") then
+    if not plugin_is_enabled("zenfm") then
+        if cfg.zenfm_launcher_added == true then
+            cfg.zenfm_launcher_added = nil
+            Store.save(cfg)
+        end
+        return false
+    end
+    if cfg.zenfm_launcher_added == true then
         return false
     end
     if not has_plugin_entry(cfg.entries, "zenfm", "zenfm") then

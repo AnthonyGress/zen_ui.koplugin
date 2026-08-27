@@ -213,8 +213,24 @@ function M.build(opts)
             return book.page_text
         end
     end
+    local function paired_detail_text(id, next_id)
+        if ((id == "read_time" and next_id == "time_remaining")
+                or (id == "time_remaining" and next_id == "read_time"))
+                and book.read_time_secs ~= nil and book.time_left_secs ~= nil then
+            return detail_text("read_time") .. " / " .. detail_text("time_remaining")
+        elseif ((id == "time_today" and next_id == "pages_today")
+                or (id == "pages_today" and next_id == "time_today"))
+                and book.time_today_secs ~= nil and book.pages_today ~= nil then
+            return string.format("%s: %s / %s %s", _("Today"),
+                format_duration(_, book.time_today_secs),
+                tostring(book.pages_today), _("pages"))
+        end
+    end
+    local skip_next = false
     for _i, id in ipairs(detail_order) do
-        if is_detail_enabled(id) then
+        if skip_next then
+            skip_next = false
+        elseif is_detail_enabled(id) then
             if id == "progress" then
                 local progress = BookProgress.build{
                     ratio = book.progress,
@@ -231,7 +247,11 @@ function M.build(opts)
                     bottom_details[#bottom_details + 1] = progress
                 end
             else
-                add_bottom_text(detail_text(id))
+                local next_id = detail_order[_i + 1]
+                local paired_text = is_detail_enabled(next_id)
+                    and paired_detail_text(id, next_id)
+                add_bottom_text(paired_text or detail_text(id))
+                skip_next = paired_text ~= nil
             end
         end
     end

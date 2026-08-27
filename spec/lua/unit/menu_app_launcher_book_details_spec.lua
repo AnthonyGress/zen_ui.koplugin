@@ -204,14 +204,14 @@ describe("app launcher book details page", function()
             config = config,
             launcher_config = {
                 book_details_order = {
-                    "pages_today", "read_time", "progress",
-                    "time_today", "pages", "time_remaining",
+                    "pages_today", "time_today", "read_time",
+                    "progress", "pages", "time_remaining",
                 },
                 book_details_enabled = {
                     pages_today = true,
                     read_time = true,
                     progress = true,
-                    time_today = false,
+                    time_today = true,
                     pages = true,
                     time_remaining = true,
                 },
@@ -270,16 +270,17 @@ describe("app launcher book details page", function()
             .. "Science Fiction, Epic Fantasy, Mythology"
         assert.is_true(texts[genres])
         assert.is_true(texts["Page 128 of 300"])
-        assert.is_true(texts["Pages today: 27"])
+        assert.is_true(texts["Today: 1h 1m / 27 pages"])
+        assert.is_nil(texts["Read today: 1h 1m"])
+        assert.is_nil(texts["Pages today: 27"])
         assert.is_true(texts["Read: 2h 3m"])
         assert.is_true(texts["Remaining: 1h 20m"])
-        assert.is_nil(texts["Read today: 1h 1m"])
         assert.are.equal(22, text_sizes["Current title"])
         assert.are.equal(19, text_sizes["Current author, Second author"])
         assert.are.equal(19, text_sizes["Current series #2"])
         assert.are.equal(19, text_sizes[genres])
         assert.are.equal(19, text_sizes["Page 128 of 300"])
-        assert.are.equal(19, text_sizes["Pages today: 27"])
+        assert.are.equal(19, text_sizes["Today: 1h 1m / 27 pages"])
         assert.are.equal(19, text_sizes["Read: 2h 3m"])
         assert.are.equal(19, text_sizes["Remaining: 1h 20m"])
         assert.are.equal(8, #metadata_widgets)
@@ -295,7 +296,7 @@ describe("app launcher book details page", function()
         local middle_span = guarded_details[1][#guarded_details[1] - 1]
         local top_details = guarded_details[1][1]
         assert.are.equal("ui/widget/verticalgroup", bottom_details.kind)
-        assert.are.equal("Pages today: 27", bottom_details[2].text)
+        assert.are.equal("Today: 1h 1m / 27 pages", bottom_details[2].text)
         assert.are.equal("Read: 2h 3m", bottom_details[4].text)
         assert.are.equal("progress", bottom_details[6].kind)
         assert.are.equal("Page 128 of 300", bottom_details[8].text)
@@ -333,8 +334,9 @@ describe("app launcher book details page", function()
             local widget = created[index]
             if widget.text then default_texts[widget.text] = true end
         end
-        assert.is_true(default_texts["Read: 2h 3m"])
-        assert.is_true(default_texts["Remaining: 1h 20m"])
+        assert.is_true(default_texts["Read: 2h 3m / Remaining: 1h 20m"])
+        assert.is_nil(default_texts["Read: 2h 3m"])
+        assert.is_nil(default_texts["Remaining: 1h 20m"])
         assert.is_nil(default_texts["Pages today: 27"])
         assert.is_nil(default_texts["Read today: 1h 1m"])
         assert.are.same({
@@ -342,7 +344,7 @@ describe("app launcher book details page", function()
                 read_time = true,
                 time_remaining = true,
                 pages_today = true,
-                time_today = false,
+                time_today = true,
             },
             {
                 read_time = true,

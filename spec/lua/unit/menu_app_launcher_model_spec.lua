@@ -256,6 +256,32 @@ describe("app launcher model", function()
         assert.is_nil(saved_configs.saved)
     end)
 
+    it("auto-adds ZenFM again after it is uninstalled and reinstalled", function()
+        local zenfm_enabled = false
+        ZenSpec.replace("pluginloader", {
+            loadPlugins = function()
+                return zenfm_enabled and { { name = "zenfm" } } or {}
+            end,
+        })
+        local Model = require("modules/menu/app_launcher/model")
+        saved_configs.loaded = {
+            entries = {},
+            next_id = 8,
+            zenfm_launcher_added = true,
+        }
+
+        assert.is_false(Model.ensure_zenfm_launcher_entry())
+        assert.is_nil(saved_configs.loaded.zenfm_launcher_added)
+        assert.are.equal(saved_configs.loaded, saved_configs.saved)
+
+        zenfm_enabled = true
+        saved_configs.saved = nil
+        assert.is_true(Model.ensure_zenfm_launcher_entry())
+        assert.are.equal("zenfm", saved_configs.loaded.entries[1].quick_setting_id)
+        assert.is_true(saved_configs.loaded.zenfm_launcher_added)
+        assert.are.equal(saved_configs.loaded, saved_configs.saved)
+    end)
+
     it("adds newly installed ZenPM plugin menus once", function()
         local suggested
         local cleared
