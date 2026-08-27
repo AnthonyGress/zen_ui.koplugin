@@ -1198,6 +1198,23 @@ function M.build(ctx)
         }
     end
 
+    local function build_tbr_tab_items()
+        return { IconItem.decorate({
+            text = _("Order"),
+            _zen_settings_submenu = true,
+            keep_menu_open = true,
+            callback = function(touchmenu_instance)
+                require("common/tbr_index").showOrder({
+                    plugin = ctx.plugin,
+                    settings_resume = touchmenu_instance
+                        and touchmenu_instance._zen_settings_resume,
+                    on_change = settings_apply
+                        and settings_apply.refresh_tbr_on_menu_close,
+                })
+            end,
+        }, icons.sort) }
+    end
+
     build_builtin_tab_items = function(id)
         local items = {}
         if id == "home" then
@@ -1210,6 +1227,8 @@ function M.build(ctx)
             items = build_manga_tab_items()
         elseif id == "news" then
             items = build_news_tab_items()
+        elseif id == "to_be_read" then
+            items = build_tbr_tab_items()
         end
         items[#items + 1] = IconItem.decorate({
             text = _("Delete"),

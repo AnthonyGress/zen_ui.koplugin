@@ -955,6 +955,63 @@ describe("home data and book caches", function()
         assert.is_nil(menu._zen_navbar_refresh_pending)
     end)
 
+    it("rebuilds an invalidated TBR strip after its settings overlay closes", function()
+        local dirtied = {}
+        local UIManager = {
+            _window_stack = {},
+            nextTick = function(_self, callback) callback() end,
+            scheduleIn = function() end,
+            setDirty = function(_self, widget, refresh)
+                dirtied[#dirtied + 1] = { widget = widget, refresh = refresh }
+            end,
+            close = function(self, widget)
+                for index = #self._window_stack, 1, -1 do
+                    if self._window_stack[index].widget == widget then
+                        table.remove(self._window_stack, index)
+                        break
+                    end
+                end
+            end,
+        }
+        ZenSpec.replace("ui/uimanager", UIManager)
+        ZenSpec.unload("modules/filebrowser/patches/home_page")
+
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local rebuilds = 0
+        local resumes = 0
+        local home = {
+            _home_rebuild = function(self)
+                rebuilds = rebuilds + 1
+                self._zen_home_needs_rebuild = nil
+                self._zen_home_reload_config = nil
+            end,
+            _zen_home_resume = function(self)
+                resumes = resumes + 1
+                self._zen_home_needs_repaint = nil
+                self:_home_rebuild()
+                UIManager:setDirty(self, "ui")
+                return true, "rebuilt"
+            end,
+        }
+        local settings = {}
+        set_home_menu(Home, home)
+        UIManager._window_stack = {
+            { widget = home },
+            { widget = settings },
+        }
+
+        Home.invalidateTBRCache()
+        assert.are.equal(0, rebuilds)
+        assert.is_true(home._zen_home_needs_rebuild)
+        assert.is_true(home._zen_home_reload_config)
+        assert.is_true(home._zen_home_needs_repaint)
+
+        UIManager:close(settings)
+        assert.are.equal(1, resumes)
+        assert.are.equal(1, rebuilds)
+        assert.are.same({ { widget = home, refresh = "ui" } }, dirtied)
+    end)
+
     it("repaints Home after the last generic startup overlay closes", function()
         local closed = {}
         local dirtied = {}

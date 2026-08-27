@@ -3681,6 +3681,7 @@ function M.rebuildActive()
         if _home_menu._zen_home_suspended == true
                 or not home_is_on_top(_home_menu) then
             mark_home_rebuild_needed(true, true)
+            request_home_repaint(_home_menu, "ui")
             return true
         end
         local cfg = load_zen_config()

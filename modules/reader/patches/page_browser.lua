@@ -756,8 +756,7 @@ local function apply_page_browser()
             local image = thumb_frame and thumb_frame.is_page_thumbnail and thumb_frame[1]
             local image_size = image and type(image.getSize) == "function" and image:getSize()
             local thumb_h = image_size and image_size.h
-                or (pbw._zen_tile_size and pbw._zen_tile_size.h)
-            if not thumb_h then return item_h end
+            if not thumb_h then return nil end
 
             return math.floor((item_h - thumb_h) / 2) + thumb_h
         end
@@ -1378,7 +1377,7 @@ local function apply_page_browser()
                         local inner_x = gx + ox + pdx
                         local inner_bottom = gy + oy + pdy + th
                         local badge_bottom = get_badge_bottom(
-                            pbw, item, sz.h, page_num == fp)
+                            pbw, item, sz.h, page_num == fp) or pdy + th
                         local badge_y = gy + oy + badge_bottom - badge_max_h - gap_bot_s
                         local erase_h = math.max(0, inner_bottom - badge_y)
                         if erase_h > 0 then
@@ -2055,25 +2054,27 @@ local function apply_page_browser()
                                            bs, Blitbuffer.COLOR_BLACK, 0)
                         end
 
-                        local label = TextWidget:new{
-                            text    = get_page_display_text(self, visible_page_raw(self, page_num)),
-                            face    = badge_face,
-                            fgcolor = fg_color,
-                            padding = 0,
-                        }
-                        local lsz = label:getSize()
-                        local bh  = lsz.h + 2 * pv
-                        local bw  = math.max(lsz.w + 2 * ph, bh)  -- never narrower than a circle
-                        local bx  = gx + ox + math.floor((sz.w - bw) / 2)
                         local badge_bottom = get_badge_bottom(
                             self, item, sz.h, page_num == fp)
-                        local by  = gy + oy + badge_bottom - bh - gap_bot
+                        if badge_bottom then
+                            local label = TextWidget:new{
+                                text    = get_page_display_text(self, visible_page_raw(self, page_num)),
+                                face    = badge_face,
+                                fgcolor = fg_color,
+                                padding = 0,
+                            }
+                            local lsz = label:getSize()
+                            local bh  = lsz.h + 2 * pv
+                            local bw  = math.max(lsz.w + 2 * ph, bh)  -- never narrower than a circle
+                            local bx  = gx + ox + math.floor((sz.w - bw) / 2)
+                            local by  = gy + oy + badge_bottom - bh - gap_bot
 
-                        paintPill(bx, by, bw, bh, bg_color)
-                        label:paintTo(bb,
-                            bx + math.floor((bw - lsz.w) / 2),
-                            by + math.floor((bh - lsz.h) / 2))
-                        label:free()
+                            paintPill(bx, by, bw, bh, bg_color)
+                            label:paintTo(bb,
+                                bx + math.floor((bw - lsz.w) / 2),
+                                by + math.floor((bh - lsz.h) / 2))
+                            label:free()
+                        end
                     end
                 end
             end

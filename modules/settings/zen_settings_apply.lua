@@ -139,6 +139,13 @@ local function rebuild_active_home()
     end
 end
 
+local function apply_tbr_refresh()
+    local plugin = active_plugin or rawget(_G, "__ZEN_UI_PLUGIN")
+    require("common/tbr_index").refreshViews(plugin)
+    UIManager:setDirty(nil, "full")
+    UIManager:forceRePaint()
+end
+
 local function apply_filemanager_refresh()
     local ok, FileManager = pcall(require, "apps/filemanager/filemanager")
     local fm = ok and FileManager and FileManager.instance
@@ -211,6 +218,8 @@ local function run_apply_mode_now(mode)
         apply_filemanager_refresh()
     elseif mode == "navbar_refresh" then
         apply_navbar_refresh()
+    elseif mode == "tbr_refresh" then
+        apply_tbr_refresh()
     elseif mode == "menu_refresh" then
         apply_menu_refresh()
     elseif mode == "zen_mode" then
@@ -266,6 +275,7 @@ local function install_touchmenu_close_flush()
     function TouchMenu:onCloseWidget(...)
         if orig_onCloseWidget then orig_onCloseWidget(self, ...) end
         if next(deferred_applies) == nil then return end
+        if rawget(_G, "__ZEN_UI_SETTINGS_PAGE") then return end
         UIManager:scheduleIn(0, flush_deferred_now)
     end
 end
@@ -322,6 +332,11 @@ end
 -- Queue navbar reinjection until the active settings menu closes.
 function M.refresh_navbar_on_menu_close()
     queue_deferred_apply("navbar_refresh")
+end
+
+-- Refresh shared TBR surfaces only after the settings overlay closes.
+function M.refresh_tbr_on_menu_close()
+    queue_deferred_apply("tbr_refresh")
 end
 
 -- ZenSettingsPage calls this after it has been closed. TouchMenu has its own

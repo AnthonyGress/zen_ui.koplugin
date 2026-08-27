@@ -13,6 +13,8 @@ describe("file browser group views", function()
     local file_dialog_args
     local sort_dialog_args
     local legacy_tbr_calls
+    local tbr_collection_changes
+    local tbr_get_options
     local select_menu_calls
     local saved_modules
     local replaced_modules = {
@@ -61,6 +63,8 @@ describe("file browser group views", function()
         metadata, statuses, opened = {}, {}, {}
         saved, file_dialog_args, sort_dialog_args = 0, nil, nil
         legacy_tbr_calls = 0
+        tbr_collection_changes = 0
+        tbr_get_options = nil
         select_menu_calls = 0
 
         local plugin = {
@@ -127,7 +131,13 @@ describe("file browser group views", function()
             end,
         })
         ZenSpec.replace("common/tbr_index", {
-            getAll = function() return groups.tbr or {} end,
+            getAll = function(options)
+                tbr_get_options = options
+                return groups.tbr or {}
+            end,
+            collectionChanged = function() tbr_collection_changes = tbr_collection_changes + 1 end,
+            collectionName = function() return "To Be Read" end,
+            isExplicit = function() return false end,
             isAuditComplete = function() return true end,
         })
         ZenSpec.replace("bookinfomanager", {
@@ -154,6 +164,7 @@ describe("file browser group views", function()
         })
         ZenSpec.replace("ui/uimanager", {
             show = function(_, widget) table.insert(shown, widget) end,
+            isWidgetShown = function(_, widget) return widget._test_shown ~= false end,
             close = function(_, widget)
                 table.insert(closed, widget)
                 if widget.onCloseWidget then widget:onCloseWidget() end
@@ -391,6 +402,33 @@ describe("file browser group views", function()
         assert.is_true(item._zen_empty_placeholder)
         assert.is_true(find_menu("to_be_read")._zen_group_view)
         assert.are.equal(0, legacy_tbr_calls)
+    end)
+
+    it("rebuilds a stale TBR page so navbar taps can reopen it", function()
+        install_group_view({ tbr = {} })
+
+        local first = api.showTBRView()
+        first._test_shown = false
+        local reopened = api.showTBRView()
+
+        assert.are_not.equal(first, reopened)
+        assert.are.equal(2, #shown)
+    end)
+
+    it("refreshes an open TBR page with the current shared order", function()
+        install_group_view({ tbr = { "/a.epub" } })
+        config.group_view.detail_collate = {
+            to_be_read = { to_be_read = "title" },
+        }
+        api.showTBRView()
+
+        config.group_view.detail_collate.to_be_read.to_be_read = "manual"
+        assert.is_true(api.refreshTBRView())
+
+        assert.are.equal("manual", tbr_get_options.collate)
+        assert.is_false(tbr_get_options.reverse)
+        assert.are.equal(1, tbr_collection_changes)
+        assert.are.equal(2, find_menu("to_be_read").update_count)
     end)
 
     it("names the group metadata when a detail page has no books", function()

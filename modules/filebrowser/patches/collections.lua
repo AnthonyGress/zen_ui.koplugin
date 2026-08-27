@@ -677,6 +677,15 @@ local function apply_collections()
                 end
                 return false
             end,
+            refreshTBRCollection = function()
+                local FileManager = require("apps/filemanager/filemanager")
+                local fm_coll = FileManager.instance and FileManager.instance.collections
+                local menu = fm_coll and fm_coll.booklist_menu
+                if not (menu and is_tbr_collection(menu.path)) then return false end
+                fm_coll:setCollate()
+                fm_coll:updateItemTable()
+                return true
+            end,
         },
     })
 

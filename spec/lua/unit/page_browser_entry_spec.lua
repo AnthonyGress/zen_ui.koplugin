@@ -480,11 +480,17 @@ describe("page browser entry", function()
         expect(grid[1].dimen == nil and grid[1][1].dimen.w == 400)
         expect(grid[4].dimen == nil and grid[4].initial_overlap_offset[1] == -312)
 
+        browser._zen_tile_size = { w = 300, h = 450 }
+        setmetatable(browser, { __index = PageBrowserWidget })
+        PageBrowserWidget.paintTo(browser, {
+            paintRect = function() end,
+        }, 0, 0)
+        expect(painted_labels["5"] == nil)
+
         grid[2][1][1] = {
             is_page_thumbnail = true,
             { getSize = function() return { w = 280, h = 420 } end },
         }
-        setmetatable(browser, { __index = PageBrowserWidget })
         PageBrowserWidget.paintTo(browser, {
             paintRect = function() end,
         }, 0, 0)

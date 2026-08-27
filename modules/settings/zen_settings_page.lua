@@ -868,15 +868,24 @@ end
 
 function M.closeActive()
     local stack = UIManager._window_stack
-    if active_page and type(stack) == "table" then
+    local deepest_arrange_resume = pending_arrange_resume
+    if type(stack) == "table" then
         for index = #stack, 1, -1 do
             local widget = stack[index] and stack[index].widget
-            if widget == active_page then break end
+            if active_page and widget == active_page then break end
             if widget and type(widget._zen_arrange_close_all) == "function" then
                 widget:_zen_arrange_close_all()
-                break
+                if pending_arrange_resume and (not deepest_arrange_resume
+                        or #pending_arrange_resume.path > #deepest_arrange_resume.path) then
+                    deepest_arrange_resume = pending_arrange_resume
+                end
             end
         end
+    end
+    pending_arrange_resume = deepest_arrange_resume
+    if not active_page and resume_state and deepest_arrange_resume then
+        resume_state.closed_at = os.time()
+        resume_state.arrange = deepest_arrange_resume
     end
     if active_page then active_page:closeMenu() end
     return true
@@ -943,7 +952,7 @@ function M.rememberStandaloneArrangeRoute(path, opener_text, arrange_path)
             path = copy_array(arrange_path),
         },
     }
-    return true
+    return true, resume_state.arrange
 end
 
 M.Page = ZenSettingsPage

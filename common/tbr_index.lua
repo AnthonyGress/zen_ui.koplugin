@@ -10,6 +10,7 @@ local lfs = require("libs/libkoreader-lfs")
 local paths = require("common/paths")
 local sqlite3 = require("lua-ljsqlite3/init")
 local title_sort = require("common/title_sort")
+local util = require("util")
 local zen_logger = require("common/zen_logger")
 
 local logger = zen_logger.new("tbr_index")
@@ -18,6 +19,8 @@ local M = {}
 
 local DEFAULT_COLLECTION_NAME = "To Be Read"
 local COLLECTION_MARKER = "zenos_tbr"
+local CUSTOM_ORDER_SETTING = "zenos_tbr_order"
+local MANUAL_COLLATE = "manual"
 local DB_PATH = DataStorage:getSettingsDir() .. "/docprops_cache.sqlite"
 local STATUS_TABLE = "zen_doc_status_cache"
 
@@ -330,7 +333,6 @@ local function ensure_collection()
 end
 
 local function explicit_paths()
-    if type(ReadCollection._read) == "function" then pcall(ReadCollection._read, ReadCollection) end
     ensure_collection()
     local files = {}
     local coll = ReadCollection.coll and ReadCollection.coll[collection_name()] or {}
@@ -348,6 +350,61 @@ local function explicit_paths()
     end
     collection_signature = signature
     return files
+end
+
+local function custom_order()
+    local settings = ReadCollection.coll_settings
+        and ReadCollection.coll_settings[collection_name()]
+    local order = settings and settings[CUSTOM_ORDER_SETTING]
+    return type(order) == "table" and order or {}
+end
+
+local function remaining_collection_entries(coll, seen)
+    local entries = {}
+    for path, entry in pairs(coll or {}) do
+        if seen[path] == nil then entries[#entries + 1] = entry end
+    end
+    table.sort(entries, function(a, b)
+        local a_order = tonumber(a.order) or math.huge
+        local b_order = tonumber(b.order) or math.huge
+        if a_order == b_order then return (a.file or "") < (b.file or "") end
+        return a_order < b_order
+    end)
+    return entries
+end
+
+local function apply_collection_order(coll_name, paths_order)
+    local coll = ReadCollection.coll[coll_name]
+    local explicit = {}
+    local seen = {}
+    for _i, path in ipairs(paths_order) do
+        local entry = coll[path]
+        if entry and not seen[path] then
+            explicit[#explicit + 1] = entry
+            seen[path] = true
+        end
+    end
+    for _i, entry in ipairs(remaining_collection_entries(coll, seen)) do
+        explicit[#explicit + 1] = entry
+    end
+    ReadCollection:updateCollectionOrder(coll_name, explicit)
+end
+
+function M.refreshViews(plugin)
+    if type(plugin) ~= "table" then return end
+    local SharedState = require("common/shared_state")
+    local home = SharedState.get(plugin, "home")
+    if home and type(home.invalidateTBRCache) == "function" then
+        home.invalidateTBRCache()
+    end
+    local group_view = SharedState.get(plugin, "group_view")
+    if group_view and type(group_view.refreshTBRView) == "function" then
+        group_view.refreshTBRView()
+    end
+    local collections = SharedState.get(plugin, "collections")
+    if collections and type(collections.refreshTBRCollection) == "function" then
+        collections.refreshTBRCollection()
+    end
 end
 
 local function sidecar_signature(path, attr)
@@ -486,14 +543,35 @@ local function filename_title(path)
     return (path:match("([^/]+)$") or path):gsub("%.[^%.]+$", "")
 end
 
+local function metadata_title(path, info)
+    local title = info and info.title
+    return type(title) == "string" and title ~= "" and title or filename_title(path)
+end
+
 local function sort_paths(files, collate, reverse)
     collate = collate or "title"
     local metadata = {}
     if collate == "title" or collate == "title_natural"
-            or collate == "series" or collate == "series_index" then
+            or collate == "series" or collate == "series_index"
+            or collate == MANUAL_COLLATE then
         local ok_meta, db_bookinfo = pcall(require, "common/db_bookinfo")
         if ok_meta and type(db_bookinfo.getLightMetadata) == "function" then
             metadata = db_bookinfo.getLightMetadata()
+        end
+    end
+    local manual_rank = {}
+    if collate == MANUAL_COLLATE then
+        local saved = custom_order()
+        for index, path in ipairs(saved) do
+            if type(path) == "string" and manual_rank[path] == nil then
+                manual_rank[path] = index
+            end
+        end
+        local rank = #saved
+        local coll = ReadCollection.coll and ReadCollection.coll[collection_name()]
+        for _i, entry in ipairs(remaining_collection_entries(coll, manual_rank)) do
+            rank = rank + 1
+            manual_rank[entry.file] = rank
         end
     end
     local items = {}
@@ -507,9 +585,13 @@ local function sort_paths(files, collate, reverse)
         elseif collate == "series" then
             value = info.series or ""
         else
-            value = info.title or filename_title(path)
+            value = metadata_title(path, info)
         end
-        items[#items + 1] = { path = path, value = value }
+        items[#items + 1] = {
+            path = path,
+            value = value,
+            rank = manual_rank[path],
+        }
     end
 
     local natural_sort
@@ -519,6 +601,15 @@ local function sort_paths(files, collate, reverse)
         natural_sort = natural and natural.init_sort_func and natural.init_sort_func()
     end
     table.sort(items, function(a, b)
+        if collate == MANUAL_COLLATE then
+            local a_rank = a.rank or math.huge
+            local b_rank = b.rank or math.huge
+            if a_rank ~= b_rank then return a_rank < b_rank end
+            local a_title = title_sort.key(tostring(a.value)):lower()
+            local b_title = title_sort.key(tostring(b.value)):lower()
+            if a_title == b_title then return a.path < b.path end
+            return a_title < b_title
+        end
         if a.value == b.value then return a.path < b.path end
         if collate == "access" then
             if reverse then return a.value < b.value end
@@ -542,7 +633,11 @@ local function sort_paths(files, collate, reverse)
     end)
 
     local sorted = {}
-    for _i, item in ipairs(items) do sorted[#sorted + 1] = item.path end
+    if collate == MANUAL_COLLATE and reverse then
+        for index = #items, 1, -1 do sorted[#sorted + 1] = items[index].path end
+    else
+        for _i, item in ipairs(items) do sorted[#sorted + 1] = item.path end
+    end
     return sorted
 end
 
@@ -608,16 +703,140 @@ function M.setExplicit(path, enabled)
     local present = ReadCollection:isFileInCollection(path, coll_name) == true
     if enabled == true and not present then
         ReadCollection:addItem(path, coll_name)
-        ReadCollection:write({ [coll_name] = true })
     elseif enabled ~= true and present then
         ReadCollection:removeItem(path, coll_name)
-        ReadCollection:write({ [coll_name] = true })
     else
         return false
     end
+    local settings = ReadCollection.coll_settings[coll_name]
+    local order = settings and settings[CUSTOM_ORDER_SETTING]
+    if type(order) == "table" then
+        settings.collate = nil
+        settings.collate_reverse = nil
+        apply_collection_order(coll_name, order)
+    end
+    ReadCollection:write({ [coll_name] = true })
     collection_signature = nil
     clear_results(true)
     return true
+end
+
+function M.setOrder(paths_order)
+    if type(paths_order) ~= "table" or not ensure_collection() then return false end
+    local coll_name = collection_name()
+    local coll = ReadCollection.coll[coll_name]
+    local settings = ReadCollection.coll_settings[coll_name]
+    if type(coll) ~= "table" or type(settings) ~= "table" then return false end
+
+    local saved = {}
+    local seen = {}
+    for _i, path in ipairs(paths_order) do
+        if type(path) == "string" and path ~= "" and not seen[path] then
+            saved[#saved + 1] = path
+            seen[path] = true
+        end
+    end
+    settings[CUSTOM_ORDER_SETTING] = saved
+    settings.collate = nil
+    settings.collate_reverse = nil
+
+    apply_collection_order(coll_name, saved)
+    ReadCollection:write({ [coll_name] = true })
+
+    local config = ConfigManager.get()
+    if type(config) == "table" then
+        util.tableSetValue(config, MANUAL_COLLATE,
+            "group_view", "detail_collate", "to_be_read", "to_be_read")
+        util.tableSetValue(config, false,
+            "group_view", "detail_reverse", "to_be_read", "to_be_read")
+        ConfigManager.save(config)
+    end
+
+    collection_signature = nil
+    clear_results(true)
+    return true
+end
+
+function M.moveOrderPath(from_path, to_path, recursive)
+    if type(from_path) ~= "string" or from_path == ""
+            or type(to_path) ~= "string" or to_path == ""
+            or not ensure_collection() then
+        return false
+    end
+    local coll_name = collection_name()
+    local settings = ReadCollection.coll_settings[coll_name]
+    local order = settings and settings[CUSTOM_ORDER_SETTING]
+    if type(order) ~= "table" then return false end
+    local from_prefix = from_path:gsub("/+$", "") .. "/"
+    local to_prefix = to_path:gsub("/+$", "") .. "/"
+    local changed = false
+    for index, path in ipairs(order) do
+        if path == from_path then
+            order[index] = to_path
+            changed = true
+        elseif recursive == true and type(path) == "string"
+                and path:sub(1, #from_prefix) == from_prefix then
+            order[index] = to_prefix .. path:sub(#from_prefix + 1)
+            changed = true
+        end
+    end
+    if not changed then return false end
+    ReadCollection:write({ [coll_name] = true })
+    collection_signature = nil
+    clear_results(true)
+    return true
+end
+
+function M.showOrder(options)
+    options = type(options) == "table" and options or {}
+    local files = M.getAll({
+        include_new = BookStatus.includeNewInTBREnabled(),
+        collate = MANUAL_COLLATE,
+    })
+    local metadata = {}
+    local ok_meta, db_bookinfo = pcall(require, "common/db_bookinfo")
+    if ok_meta and type(db_bookinfo.getLightMetadata) == "function" then
+        metadata = db_bookinfo.getLightMetadata()
+    end
+    local items = {}
+    for _i, path in ipairs(files) do
+        local info = metadata[path] or {}
+        items[#items + 1] = {
+            text = metadata_title(path, info),
+            orig_item = path,
+        }
+    end
+
+    local _ = require("gettext")
+    local settings_resume = options.settings_resume
+    if type(settings_resume) == "table" then
+        local path = {}
+        for _i, key in ipairs(settings_resume.path or {}) do path[#path + 1] = key end
+        path[#path + 1] = _("Order")
+        settings_resume = {
+            opener = settings_resume.opener,
+            path = path,
+            deferred_parent = settings_resume.deferred_parent,
+        }
+    end
+    require("common/ui/zen_arrange_list").show{
+        title = _("Order"),
+        item_table = items,
+        plugin = options.plugin,
+        settings_resume = settings_resume,
+        hide_footer_cancel = true,
+        callback = function()
+            local ordered = {}
+            for _i, item in ipairs(items) do ordered[#ordered + 1] = item.orig_item end
+            if M.setOrder(ordered) then
+                if type(options.on_change) == "function" then
+                    options.on_change()
+                else
+                    M.refreshViews(options.plugin)
+                end
+            end
+        end,
+    }
 end
 
 function M.collectionChanged(name)
@@ -669,6 +888,13 @@ function M.getAll(options)
     local copy = {}
     for index = 1, #all do copy[index] = all[index] end
     return copy
+end
+
+function M.getInventoryPaths()
+    local books = ensure_inventory()
+    local result = {}
+    for _i, book in ipairs(books) do result[#result + 1] = book.path end
+    return result
 end
 
 function M.getRevision()

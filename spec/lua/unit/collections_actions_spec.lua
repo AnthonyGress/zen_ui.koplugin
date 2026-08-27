@@ -7,6 +7,7 @@ describe("ZenOS collection actions", function()
     local shown_dialog
     local collection_writes
     local tbr_collection_name
+    local shared_collections
     local renamed
     local removed
     local saved_modules
@@ -34,6 +35,7 @@ describe("ZenOS collection actions", function()
         shown_dialog = nil
         collection_writes = 0
         tbr_collection_name = "To Be Read"
+        shared_collections = nil
         collection_fixture = SortFixtures.new()
         renamed = {}
         removed = {}
@@ -72,7 +74,9 @@ describe("ZenOS collection actions", function()
         ZenSpec.replace("common/ui/background", { applyToMenu = function() end })
         ZenSpec.replace("common/shared_state", {
             get = function() end,
-            register = function() end,
+            register = function(_plugin, entries)
+                shared_collections = entries.collections
+            end,
         })
         ZenSpec.replace("common/tbr_index", {
             collectionName = function() return tbr_collection_name end,
@@ -157,6 +161,17 @@ describe("ZenOS collection actions", function()
         assert.are.equal(1, #file_dialog_args._zen_extra_buttons)
         assert.is_truthy(file_dialog_args._zen_extra_buttons[1][1].text:find(
             "Connect folders", 1, true))
+
+        collection_manager.booklist_menu = { path = "To Be Read" }
+        collection_manager.setCollate = function(self)
+            self.set_collate_calls = (self.set_collate_calls or 0) + 1
+        end
+        collection_manager.updateItemTable = function(self)
+            self.update_item_calls = (self.update_item_calls or 0) + 1
+        end
+        assert.is_true(shared_collections.refreshTBRCollection())
+        assert.are.equal(1, collection_manager.set_collate_calls)
+        assert.are.equal(1, collection_manager.update_item_calls)
     end)
 
     it("retains rename and delete actions for ordinary collections", function()

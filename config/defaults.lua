@@ -228,6 +228,7 @@ local defaults = {
     opds = {
         display_mode = "mosaic", -- "mosaic" | "list" | "classic"
         default_url = "",
+        downloaded = {},
     },
     mosaic_title_strip = {
         show_title  = false,

@@ -1,5 +1,5 @@
 describe("OPDS header", function()
-    local Browser, closed, menu_opened, returned, searched
+    local Browser, closed, existing_files, inventory_paths, menu_opened, returned, saved, searched
     local originals = {}
     local replaced = {
         "opdsbrowser", "ui/bidi", "ffi/blitbuffer",
@@ -11,7 +11,8 @@ describe("OPDS header", function()
         "ui/widget/container/topcontainer", "ui/uimanager", "ui/widget/verticalgroup",
         "ui/widget/verticalspan", "common/ui/zen_icon_button",
         "common/ui/zen_modal_close", "common/zen_logger", "device", "opdsparser",
-        "common/cover_utils", "common/utils", "common/plugin_root",
+        "common/cover_utils", "common/utils", "common/plugin_root", "common/tbr_index",
+        "libs/libkoreader-lfs",
     }
 
     local function widget_class()
@@ -64,16 +65,26 @@ describe("OPDS header", function()
 
     before_each(function()
         for _i, name in ipairs(replaced) do originals[name] = package.loaded[name] end
-        closed, menu_opened, returned, searched = 0, 0, 0, 0
+        closed, menu_opened, returned, saved, searched = 0, 0, 0, 0, 0
+        existing_files = {}
+        inventory_paths = {}
 
         Browser = {
             getPageNumber = function() return 1 end,
             mergeTitleBarIntoLayout = function() end,
             updatePageInfo = function() end,
             parseFeed = function() end,
-            genItemTableFromCatalog = function() return {} end,
+            genItemTableFromCatalog = function(self) return self.catalog_items or {} end,
             editCatalogFromInput = function() end,
         }
+        Browser.getFileName = function(self, item)
+            local identity = (item.author and item.author .. " - " or "") .. item.title
+            return self.root_catalog_raw_names and nil or identity, identity
+        end
+        Browser.getFiletype = function(item) return item.filetype end
+        Browser.getLocalDownloadPath = function(_, filename, filetype)
+            return "/downloads/" .. filename .. "." .. filetype
+        end
         Browser.init = function(self)
             self.paths = self.paths or {}
             self.title_bar = new_title_bar()
@@ -150,9 +161,18 @@ describe("OPDS header", function()
             resolveLocalIcon = function(dir, name) return dir .. name .. ".svg" end,
         })
         ZenSpec.replace("common/plugin_root", "/zen-ui")
+        ZenSpec.replace("common/tbr_index", {
+            getInventoryPaths = function() return inventory_paths end,
+        })
+        ZenSpec.replace("libs/libkoreader-lfs", {
+            attributes = function(path) return existing_files[path] end,
+        })
         ZenSpec.unload("modules/global/patches/opds")
         _G.G_reader_settings = ZenSpec.memorySettings()
-        _G.__ZEN_UI_PLUGIN = { config = { opds = {} } }
+        _G.__ZEN_UI_PLUGIN = {
+            config = { opds = {} },
+            saveConfig = function() saved = saved + 1 end,
+        }
         require("modules/global/patches/opds")()
     end)
 
@@ -218,5 +238,49 @@ describe("OPDS header", function()
         browser.title_bar:init()
         assert.are.equal("chevron.left", browser.title_bar.left_button.icon)
         assert.are.equal("close", browser.title_bar.right_button.icon)
+    end)
+
+    it("remembers existing downloads by their generated filename", function()
+        existing_files["/downloads/Author - Book.epub"] = {
+            mode = "file", size = 123,
+        }
+        local browser = setmetatable({
+            catalog_items = {{
+                title = "Book",
+                author = "Author",
+                acquisitions = {{ href = "https://example.test/book", filetype = "epub" }},
+            }},
+        }, { __index = Browser })
+
+        local items = browser:genItemTableFromCatalog({}, "https://example.test/feed")
+        assert.is_true(items[1]._zen_opds_downloaded)
+        assert.is_true(_G.__ZEN_UI_PLUGIN.config.opds.downloaded["Author - Book"])
+        assert.are.equal(1, saved)
+
+        existing_files["/downloads/Author - Book.epub"] = nil
+        browser.catalog_items = {{
+            title = "Book",
+            author = "Author",
+            acquisitions = {{ href = "https://example.test/book", filetype = "epub" }},
+        }}
+        items = browser:genItemTableFromCatalog({}, "https://example.test/feed")
+        assert.is_true(items[1]._zen_opds_downloaded)
+        assert.are.equal(1, saved)
+    end)
+
+    it("finds an existing download anywhere in the Zen home directories", function()
+        inventory_paths = { "/extra-library/series/Author - Book.epub" }
+        local browser = setmetatable({
+            catalog_items = {{
+                title = "Book",
+                author = "Author",
+                acquisitions = {{ href = "https://example.test/book", filetype = "epub" }},
+            }},
+        }, { __index = Browser })
+
+        local items = browser:genItemTableFromCatalog({}, "https://example.test/feed")
+        assert.is_true(items[1]._zen_opds_downloaded)
+        assert.is_true(_G.__ZEN_UI_PLUGIN.config.opds.downloaded["Author - Book"])
+        assert.are.equal(1, saved)
     end)
 end)

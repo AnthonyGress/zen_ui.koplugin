@@ -5,6 +5,8 @@ describe("Home widget content settings", function()
     local remembered_routes
     local responsive_strip_per_row
     local shown
+    local tbr_order_calls
+    local tbr_order_options
     local choose_folder
     local choose_tag
 
@@ -34,6 +36,8 @@ describe("Home widget content settings", function()
         remembered_routes = {}
         responsive_strip_per_row = 5
         shown = {}
+        tbr_order_calls = 0
+        tbr_order_options = nil
         choose_folder = nil
         choose_tag = nil
         home_page = {
@@ -174,6 +178,7 @@ describe("Home widget content settings", function()
                 return {
                     { id = "recent", label = "Recent", source = true },
                     { id = "favorites", label = "Favorites", source = true },
+                    { id = "to_be_read", label = "To Be Read", source = true },
                 }
             end,
             find = function(controls, id)
@@ -204,6 +209,12 @@ describe("Home widget content settings", function()
         ZenSpec.replace("common/dispatcher_menu", {})
         ZenSpec.replace("modules/menu/app_launcher/native_menu", {})
         ZenSpec.replace("modules/menu/app_launcher/plugin_scan", {})
+        ZenSpec.replace("common/tbr_index", {
+            showOrder = function(options)
+                tbr_order_calls = tbr_order_calls + 1
+                tbr_order_options = options
+            end,
+        })
         ZenSpec.replace("common/ui/zen_arrange_list", {
             show = function(opts)
                 arrange_options = opts
@@ -217,7 +228,10 @@ describe("Home widget content settings", function()
                     opener = opener,
                     arrange_path = arrange_path,
                 }
-                return true
+                return true, {
+                    opener = { text = opener, occurrence = 1 },
+                    path = arrange_path,
+                }
             end,
         })
         ZenSpec.replace("apps/filemanager/filemanager", {})
@@ -225,7 +239,7 @@ describe("Home widget content settings", function()
 
         require("modules/settings/sections/library_settings/home_settings").build({
             config = {},
-            settings_apply = {},
+            settings_apply = { refresh_tbr_on_menu_close = function() end },
         })
     end)
 
@@ -375,6 +389,32 @@ describe("Home widget content settings", function()
         assert.is_false(has_item_prefix(items, "Content: "))
         assert.is_not_nil(find_item(items, "Controls"))
         assert.is_not_nil(find_item(items, "Recent filters"))
+    end)
+
+    it("exposes the shared TBR order from Strip content and controls", function()
+        local strip = home_page.modules.strip
+        strip.default_source = { kind = "to_be_read" }
+        strip.controls.order = { "recent", "to_be_read" }
+        strip.controls.show_buttons.to_be_read = true
+
+        local settings = require("modules/settings/sections/library_settings/home_settings")
+        assert.is_true(settings.openWidgetSettings("strip"))
+        local order = find_item(arrange_options.item_table, "Order")
+        assert.is_table(order)
+        order.callback()
+        assert.is_function(tbr_order_options.on_change)
+
+        strip.controls.enabled = true
+        assert.is_true(settings.openWidgetSettings("strip"))
+        local controls = find_item(arrange_options.item_table, "Controls")
+        find_item(controls.sub_item_table_func(), "Tabs").callback({})
+        local tbr = find_item(arrange_options.item_table, "To Be Read")
+        local tab_order = find_item(tbr.sub_item_table, "Order")
+        assert.is_table(tab_order)
+        tab_order.callback()
+        assert.is_function(tbr_order_options.on_change)
+
+        assert.are.equal(2, tbr_order_calls)
     end)
 
     it("exposes strip control font face, size, and weight settings", function()
@@ -638,14 +678,35 @@ describe("Home widget content settings", function()
     end)
 
     it("remembers Strip Controls and Tabs when opened from standalone settings", function()
+        local strip = home_page.modules.strip
+        table.insert(strip.controls.order, "to_be_read")
+        strip.controls.show_buttons.to_be_read = true
         local settings = require("modules/settings/sections/library_settings/home_settings")
         assert.is_true(settings.openWidgetSettings("strip"))
+        local root_resume = arrange_options.settings_resume
+        assert.are.same({ "strip" }, root_resume.path)
 
         local controls = find_item(arrange_options.item_table, "Controls")
-        find_item(controls.sub_item_table_func(), "Tabs").callback({})
+        find_item(controls.sub_item_table_func(), "Tabs").callback({
+            _zen_settings_resume = {
+                opener = root_resume.opener,
+                path = { "strip", "Controls" },
+            },
+        })
 
         local remembered = remembered_routes[#remembered_routes]
+        assert.are.same({ "strip", "Controls", "Tabs" },
+            arrange_options.settings_resume.path)
+
+        local tbr = find_item(arrange_options.item_table, "To Be Read")
+        find_item(tbr.sub_item_table, "Order").callback({
+            _zen_settings_resume = {
+                opener = root_resume.opener,
+                path = { "strip", "Controls", "Tabs", "to_be_read" },
+            },
+        })
+        assert.are.same({ "strip", "Controls", "Tabs", "to_be_read" },
+            tbr_order_options.settings_resume.path)
         assert.are.equal("Widgets", remembered.opener)
-        assert.are.same({ "strip", "Controls", "Tabs" }, remembered.arrange_path)
     end)
 end)

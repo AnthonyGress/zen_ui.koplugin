@@ -1500,10 +1500,13 @@ end
 -- M.showTBRView: flat view of the To Be Read collection plus optional new books
 -------------------------------------------------------------------------------
 function M.showTBRView(injectNavbar)
-    if _tbr_menu then return _tbr_menu, false end
-    refresh_shared_state()
     local _          = require("gettext")
     local UIManager  = require("ui/uimanager")
+    if _tbr_menu then
+        if UIManager:isWidgetShown(_tbr_menu) then return _tbr_menu, false end
+        _tbr_menu = nil
+    end
+    refresh_shared_state()
 
     local tab_id     = "to_be_read"
     local SORT_GROUP = "to_be_read"
@@ -1529,6 +1532,8 @@ function M.showTBRView(injectNavbar)
     local buildItems
 
     local function refreshCollectionView()
+        cur_collate = get_detail_collate(tab_id, SORT_GROUP, "title")
+        cur_reverse = get_detail_reverse(tab_id, SORT_GROUP, false)
         tbr_index.collectionChanged(tbr_index.collectionName())
         files = loadFiles()
         if menu then
@@ -1622,6 +1627,7 @@ function M.showTBRView(injectNavbar)
 
     -- Tag TBR as a library menu for Zen's renderer and preload pipeline.
     menu._zen_tab_id = tab_id
+    menu._zen_tbr_refresh = refreshCollectionView
 
     local mode_type = setup_display_mode(menu, true, tab_id)
     if mode_type == "classic" or not mode_type then
@@ -1705,6 +1711,17 @@ function M.showTBRView(injectNavbar)
         end
     end)
     return menu, true
+end
+
+function M.refreshTBRView()
+    local UIManager = require("ui/uimanager")
+    if not (_tbr_menu and UIManager:isWidgetShown(_tbr_menu)
+            and type(_tbr_menu._zen_tbr_refresh) == "function") then
+        _tbr_menu = nil
+        return false
+    end
+    _tbr_menu._zen_tbr_refresh()
+    return true
 end
 
 -- Open a detail view synchronously by group name (used by navbar.showFiles post-hook).

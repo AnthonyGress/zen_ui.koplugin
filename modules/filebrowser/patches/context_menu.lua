@@ -139,6 +139,7 @@ local function apply_context_menu()
         local ffiUtil = require("ffi/util")
         local lfs = require("libs/libkoreader-lfs")
         local source = ffiUtil.realpath(from) or from
+        local source_is_directory = lfs.attributes(source, "mode") == "directory"
         local destination = to
         if lfs.attributes(to, "mode") == "directory" then
             destination = ffiUtil.joinPath(to, ffiUtil.basename(source))
@@ -148,6 +149,10 @@ local function apply_context_menu()
         if moved then
             destination = ffiUtil.realpath(destination) or destination
             pcall(ConfigManager.movePathSettings, source, destination)
+            pcall(function()
+                require("common/tbr_index").moveOrderPath(
+                    source, destination, source_is_directory)
+            end)
         end
         if moved then
             UIManager:nextTick(function()
