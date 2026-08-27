@@ -31,7 +31,7 @@ Launcher adds a configurable tab to the ZenOS menu. It can create shortcut butto
 - Add action buttons backed by dispatcher actions.
 - Add buttons that run a chosen Controls control.
 - Add plugin buttons from launchable plugin menus found on the device.
-- Automatically add launchable plugin menus for new plugins installed by ZenPM. Existing plugins and later manual Launcher edits are left unchanged.
+- Automatically add launchable plugin menus for new plugins installed by ZenPM and remove those buttons when ZenPM uninstalls their plugins. Existing and manually added buttons are left unchanged.
 - Add context-aware KOReader submenu buttons, such as Network, Tools, or Style tweaks.
 - Add folders and arrange buttons inside each folder.
 - Insert a row break to start later buttons on a new row.

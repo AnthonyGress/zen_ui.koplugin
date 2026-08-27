@@ -21,6 +21,7 @@ describe("app launcher model", function()
         ZenSpec.unload("modules/menu/app_launcher/zenpm_pending")
         ZenSpec.unload("common/plugin_root")
         ZenSpec.unload("common/utils")
+        ZenSpec.unload("libs/libkoreader-lfs")
     end)
 
     it("sanitizes invalid root and folder entries before saving", function()
@@ -306,7 +307,12 @@ describe("app launcher model", function()
             type = "plugin",
             label = "Wallabag",
             icon = "suggested_wallabag",
-            plugin = { key = "wallabag", method = "open" },
+            plugin = {
+                key = "wallabag",
+                method = "open",
+                zenpm_install_path = "/plugins/wallabag.koplugin",
+                zenpm_package_id = "package-wallabag",
+            },
         } }, saved_configs.loaded.entries)
         assert.are.same({ "/plugin", "Wallabag", "lightning" }, suggested)
         assert.are.same({
@@ -319,6 +325,67 @@ describe("app launcher model", function()
         saved_configs.saved = nil
         assert.is_false(Model.ensure_zenpm_plugin_entries())
         assert.is_nil(saved_configs.saved)
+    end)
+
+    it("removes only ZenPM-added launcher entries after uninstall", function()
+        ZenSpec.replace("libs/libkoreader-lfs", {
+            attributes = function(path, attribute)
+                assert.are.equal("mode", attribute)
+                if path == "/plugins/still-there.koplugin" then
+                    return "directory"
+                end
+            end,
+        })
+        ZenSpec.replace("modules/menu/app_launcher/zenpm_pending", {
+            read = function()
+                return {}, "/zenpm.sqlite3", { ["package-kept"] = true }
+            end,
+        })
+        local Model = require("modules/menu/app_launcher/model")
+        local manual = {
+            id = "manual", type = "plugin", label = "Manual Wallabag",
+            plugin = { key = "wallabag", method = "open" },
+        }
+        local kept = {
+            id = "kept", type = "plugin", label = "Kept",
+            plugin = {
+                key = "kept", method = "open",
+                zenpm_install_path = "/plugins/kept.koplugin",
+                zenpm_package_id = "package-kept",
+            },
+        }
+        local still_there = {
+            id = "still-there", type = "plugin", label = "Still there",
+            plugin = {
+                key = "still-there", method = "open",
+                zenpm_install_path = "/plugins/still-there.koplugin",
+                zenpm_package_id = "package-missing-from-db",
+            },
+        }
+        saved_configs.loaded = {
+            entries = {
+                {
+                    id = "folder", type = "folder", label = "Tools",
+                    children = { {
+                        id = "removed", type = "plugin", label = "Wallabag",
+                        plugin = {
+                            key = "wallabag", method = "open",
+                            zenpm_install_path = "/plugins/wallabag.koplugin",
+                            zenpm_package_id = "package-wallabag",
+                        },
+                    }, manual },
+                },
+                kept,
+                still_there,
+            },
+            next_id = 4,
+        }
+
+        assert.is_false(Model.ensure_zenpm_plugin_entries())
+        assert.are.same({ manual }, saved_configs.loaded.entries[1].children)
+        assert.are.equal(kept, saved_configs.loaded.entries[2])
+        assert.are.equal(still_there, saved_configs.loaded.entries[3])
+        assert.are.equal(saved_configs.loaded, saved_configs.saved)
     end)
 
     it("does not rewrite or re-add manually managed plugin menu entries", function()
@@ -395,9 +462,17 @@ describe("app launcher model", function()
             scanZenPM = function() error("plugins should not be scanned") end,
         })
         local Model = require("modules/menu/app_launcher/model")
-        saved_configs.loaded = { entries = {}, next_id = 4 }
+        local existing = {
+            id = "wallabag", type = "plugin", label = "Wallabag",
+            plugin = {
+                key = "wallabag", method = "open",
+                zenpm_package_id = "package-wallabag",
+            },
+        }
+        saved_configs.loaded = { entries = { existing }, next_id = 4 }
 
         assert.is_false(Model.ensure_zenpm_plugin_entries())
+        assert.are.same({ existing }, saved_configs.loaded.entries)
         assert.is_nil(saved_configs.saved)
     end)
 end)

@@ -46,26 +46,28 @@ function M.read(path)
     if not conn then return {}, path end
 
     local stmt
-    local ok, pending = pcall(function()
+    local ok, pending, installed = pcall(function()
         pcall(conn.exec, conn, "PRAGMA busy_timeout = 1000")
         stmt = assert(conn:prepare([[
-            SELECT id, install_path
+            SELECT id, install_path, launcher_add_pending
             FROM installed_packages
-            WHERE launcher_add_pending = 1 AND install_path <> ''
         ]]))
         local rows = {}
+        local installed_ids = {}
         while true do
             local row = stmt:step()
             if not row then break end
-            if type(row[1]) == "string" and row[1] ~= ""
-                    and type(row[2]) == "string" and row[2] ~= "" then
-                rows[#rows + 1] = { id = row[1], install_path = row[2] }
+            if type(row[1]) == "string" and row[1] ~= "" then
+                installed_ids[row[1]] = true
+                if row[3] == 1 and type(row[2]) == "string" and row[2] ~= "" then
+                    rows[#rows + 1] = { id = row[1], install_path = row[2] }
+                end
             end
         end
-        return rows
+        return rows, installed_ids
     end)
     close_sqlite(conn, stmt)
-    return ok and pending or {}, path
+    return ok and pending or {}, path, ok and installed or nil
 end
 
 function M.clear(ids, path)

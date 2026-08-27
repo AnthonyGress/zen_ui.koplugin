@@ -11,8 +11,9 @@ describe("ZenPM launcher pending database", function()
 
     it("reads and clears only explicitly pending plugin installs", function()
         local rows = {
-            { "new-plugin", "/plugins/new.koplugin" },
-            { "", "/plugins/invalid.koplugin" },
+            { "new-plugin", "/plugins/new.koplugin", 1 },
+            { "installed-plugin", "/plugins/installed.koplugin", 0 },
+            { "", "/plugins/invalid.koplugin", 1 },
         }
         local row_index = 0
         local cleared = {}
@@ -52,12 +53,16 @@ describe("ZenPM launcher pending database", function()
         })
 
         local Pending = require("modules/menu/app_launcher/zenpm_pending")
-        local pending, path = Pending.read("/zenpm.sqlite3")
+        local pending, path, installed = Pending.read("/zenpm.sqlite3")
         assert.are.equal("/zenpm.sqlite3", path)
         assert.are.same({ {
             id = "new-plugin",
             install_path = "/plugins/new.koplugin",
         } }, pending)
+        assert.are.same({
+            ["installed-plugin"] = true,
+            ["new-plugin"] = true,
+        }, installed)
 
         assert.is_true(Pending.clear({
             ["new-plugin"] = true,
@@ -79,8 +84,10 @@ describe("ZenPM launcher pending database", function()
             end,
         })
 
-        local rows = require("modules/menu/app_launcher/zenpm_pending").read(
-            "/zenpm.sqlite3")
+        local rows, path, installed = require(
+            "modules/menu/app_launcher/zenpm_pending").read("/zenpm.sqlite3")
         assert.are.same({}, rows)
+        assert.are.equal("/zenpm.sqlite3", path)
+        assert.is_nil(installed)
     end)
 end)
