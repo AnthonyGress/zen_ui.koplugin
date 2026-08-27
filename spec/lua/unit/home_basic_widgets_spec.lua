@@ -452,7 +452,7 @@ describe("home basic widgets", function()
         end
         assert.are.equal(48, quote_widget.paint_y)
         assert.are.equal(60, author_widget.paint_y)
-        assert.are.same({ 0, 120, 0, 0 }, {
+        assert.are.same({ 48, 72, -48, 48 }, {
             content_bounds.top,
             content_bounds.bottom,
             content_bounds.min_shift,
@@ -460,11 +460,11 @@ describe("home basic widgets", function()
         })
         content_bounds.set_shift(-7)
         widget[1][1]:paintTo(nil, 0, 0)
-        assert.are.equal(48, quote_widget.paint_y)
-        assert.are.equal(60, author_widget.paint_y)
+        assert.are.equal(41, quote_widget.paint_y)
+        assert.are.equal(53, author_widget.paint_y)
     end)
 
-    it("reports fixed quote bounds regardless of content length", function()
+    it("reports visible quote bounds and their available movement", function()
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/quotes")
         local component = require("modules/filebrowser/patches/home/widgets/quotes")
         local function bounds_for(text)
@@ -488,8 +488,8 @@ describe("home basic widgets", function()
             }
         end
 
-        assert.are.same({ 0, 120, 0, 0 }, bounds_for("Short."))
-        assert.are.same({ 0, 120, 0, 0 }, bounds_for("First\nSecond\nThird"))
+        assert.are.same({ 48, 72, -48, 48 }, bounds_for("Short."))
+        assert.are.same({ 36, 84, -36, 36 }, bounds_for("First\nSecond\nThird"))
     end)
 
     it("gives the bottom quote row a content-independent fixed height", function()
@@ -724,7 +724,7 @@ describe("home basic widgets", function()
             if child.text == '"First\nSecond\nThird\nFourth"' and child.height then
                 assert.are.equal(36, child.height)
                 assert.are.equal(42, child.paint_y)
-                assert.are.same({ 0, 120 }, {
+                assert.are.same({ 42, 78 }, {
                     content_bounds.top,
                     content_bounds.bottom,
                 })
