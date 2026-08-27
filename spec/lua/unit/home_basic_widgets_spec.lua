@@ -460,8 +460,8 @@ describe("home basic widgets", function()
         })
         content_bounds.set_shift(-7)
         widget[1][1]:paintTo(nil, 0, 0)
-        assert.are.equal(content_bounds.bottom - 7,
-            author_widget.paint_y + author_widget.dimen.h)
+        assert.are.equal(48, quote_widget.paint_y)
+        assert.are.equal(60, author_widget.paint_y)
     end)
 
     it("reports fixed quote bounds regardless of content length", function()
