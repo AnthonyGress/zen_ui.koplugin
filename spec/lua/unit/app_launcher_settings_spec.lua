@@ -158,12 +158,12 @@ describe("app launcher settings", function()
         end
 
         assert.is_table(details)
-        assert.are.equal(2, #details.sub_item_table)
-        assert.are.equal("Enable", details.sub_item_table[1].text)
-        details.sub_item_table[1].callback()
+        assert.is_false(details.checked_func())
+        details.checkmark_callback()
         assert.is_true(launcher_cfg.show_book_details)
-        assert.are.equal("Items \u{25B8}", details.sub_item_table[2].text)
-        details.sub_item_table[2].callback()
+        assert.are.equal(1, #details.sub_item_table)
+        assert.are.equal("Items \u{25B8}", details.sub_item_table[1].text)
+        details.sub_item_table[1].callback()
         assert.are.equal("Book details", shown_options.title)
         assert.are.same({
             "Read time", "Time remaining", "Pages today",
@@ -199,8 +199,11 @@ describe("app launcher settings", function()
             end
             if item.text == "Open menu to Launcher" then open_menu_index = _i end
         end
-        assert.are.equal(2, #switcher.sub_item_table)
-        assert.are.equal("Only show while reading", switcher.sub_item_table[2].text)
+        assert.is_false(switcher.checked_func())
+        switcher.checkmark_callback()
+        assert.is_true(launcher_cfg.show_book_switcher)
+        assert.are.equal(1, #switcher.sub_item_table)
+        assert.are.equal("Only show while reading", switcher.sub_item_table[1].text)
         assert.are.equal(order_index + 1, open_menu_index)
         assert.are.equal("sort", order_item.test_icon)
 
@@ -216,7 +219,7 @@ describe("app launcher settings", function()
         shown_options.callback()
         assert.are.same({ "buttons", "book_switcher", "book_details" },
             launcher_cfg.page_order)
-        assert.are.equal(4, saves)
+        assert.are.equal(5, saves)
     end)
 
     it("stores an approved icon name instead of a control's plugin path", function()

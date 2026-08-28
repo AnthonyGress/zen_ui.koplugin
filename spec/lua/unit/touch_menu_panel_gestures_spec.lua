@@ -147,4 +147,44 @@ describe("TouchMenu panel gestures", function()
         assert.is_true(menu:onPanCloseAllMenus(nil, { mousewheel_direction = true }))
         assert.are.equal(1, menu.stock_pans)
     end)
+
+    it("keeps launcher page controls enabled at both ends", function()
+        local enabled = {}
+        local menu = new_menu()
+        local page = 1
+        menu.item_group = {
+            clear = function() end,
+            getSize = function() return { h = 400 } end,
+        }
+        menu.footer_top_margin = {}
+        menu.footer = {}
+        menu.page_info_text = { setText = function() end }
+        menu.page_info_left_chev = {
+            showHide = function() end,
+            enableDisable = function(_self, value) enabled.left = value end,
+        }
+        menu.page_info_right_chev = {
+            showHide = function() end,
+            enableDisable = function(_self, value) enabled.right = value end,
+        }
+        menu.width, menu.bordersize, menu.padding, menu.cur_tab = 600, 0, 0, 1
+        menu.dimen = {
+            h = 400,
+            copy = function(self) return { h = self.h } end,
+        }
+        menu.moveFocusTo = function() end
+        menu.item_table = {
+            id = "app_launcher",
+            panel = function(self)
+                self._zen_panel_refs = { page = page, page_num = 3 }
+                return {}
+            end,
+        }
+
+        menu:updateItems()
+        assert.are.same({ left = true, right = true }, enabled)
+        page = 3
+        menu:updateItems()
+        assert.are.same({ left = true, right = true }, enabled)
+    end)
 end)

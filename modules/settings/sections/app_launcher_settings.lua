@@ -955,17 +955,14 @@ function M.build(ctx)
         },
         {
             text = _("Book switcher"),
+            checked_func = function()
+                return cfg.show_book_switcher == true
+            end,
+            checkmark_callback = function()
+                cfg.show_book_switcher = cfg.show_book_switcher ~= true
+                save_app_launcher()
+            end,
             sub_item_table = {
-                {
-                    text = _("Enable"),
-                    checked_func = function()
-                        return cfg.show_book_switcher == true
-                    end,
-                    callback = function()
-                        cfg.show_book_switcher = cfg.show_book_switcher ~= true
-                        save_app_launcher()
-                    end,
-                },
                 {
                     text = _("Only show while reading"),
                     enabled_func = function()
@@ -983,17 +980,14 @@ function M.build(ctx)
         },
         {
             text = _("Book details"),
+            checked_func = function()
+                return cfg.show_book_details == true
+            end,
+            checkmark_callback = function()
+                cfg.show_book_details = cfg.show_book_details ~= true
+                save_app_launcher()
+            end,
             sub_item_table = {
-                {
-                    text = _("Enable"),
-                    checked_func = function()
-                        return cfg.show_book_details == true
-                    end,
-                    callback = function()
-                        cfg.show_book_details = cfg.show_book_details ~= true
-                        save_app_launcher()
-                    end,
-                },
                 {
                     text = _("Items") .. " \u{25B8}",
                     keep_menu_open = true,

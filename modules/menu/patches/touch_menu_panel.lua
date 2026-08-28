@@ -201,8 +201,9 @@ function M.install(plugin)
         end
         self.page_info_left_chev:showHide(page_num > 1)
         self.page_info_right_chev:showHide(page_num > 1)
-        self.page_info_left_chev:enableDisable(page > 1)
-        self.page_info_right_chev:enableDisable(page < page_num)
+        local cycle_pages = self.item_table.id == "app_launcher"
+        self.page_info_left_chev:enableDisable(page_num > 1 and (cycle_pages or page > 1))
+        self.page_info_right_chev:enableDisable(page_num > 1 and (cycle_pages or page < page_num))
 
         local schedulePanelRefresh = get_shared("schedulePanelRefresh")
         if type(schedulePanelRefresh) == "function" then
