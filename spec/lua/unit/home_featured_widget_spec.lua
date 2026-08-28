@@ -167,6 +167,16 @@ describe("home featured widget", function()
         end
     end
 
+    local function progress_bar_height(left_text, right_text)
+        for _i, widget in ipairs(created) do
+            if widget.kind == "ui/widget/horizontalgroup"
+                    and widget[1] and widget[1].text == left_text
+                    and widget[5] and widget[5].text == right_text then
+                return widget[3] and widget[3].dimen and widget[3].dimen.h
+            end
+        end
+    end
+
     it("renders the recent book cover, title, author, and description", function()
         local opened
         local actions
@@ -345,11 +355,12 @@ describe("home featured widget", function()
         assert.is_table(top_row)
         assert.is_true(description_split.used)
         assert.is_nil(description_split.probe_line_height)
-        assert.are.same({ 294, 317 }, description_split.probe_heights)
+        assert.are.same({ 299, 317 }, description_split.probe_heights)
         assert.are.equal(342, text_widget("Upper text fascinating science.").width)
         assert.are.equal(584, text_widget("Lower continuation fills the remaining width.").width)
-        assert.are.equal(207, text_widget("Lower continuation fills the remaining width.").height)
+        assert.are.equal(212, text_widget("Lower continuation fills the remaining width.").height)
         assert.are.equal(490, progress_bar_width("25%", "120 pages"))
+        assert.are.equal(7, progress_bar_height("25%", "120 pages"))
     end)
 
     it("keeps the description and progress beside the cover by default", function()

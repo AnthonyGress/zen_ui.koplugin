@@ -336,15 +336,15 @@ describe("home basic widgets", function()
             data = { stats = {} },
         }
 
-        assert.are.equal(45, component.preferredHeight(ctx))
+        assert.are.equal(38, component.preferredHeight(ctx))
         ctx.height = 80
         component.build(ctx)
-        assert.are.equal(13, rendered_label_size())
+        assert.are.equal(10, rendered_label_size())
 
         created = {}
         ctx.height = 30
         component.build(ctx)
-        assert.are.equal(12, rendered_label_size())
+        assert.are.equal(10, rendered_label_size())
 
         created = {}
         ctx.module_cfg.automatic_font_size = false
@@ -537,7 +537,7 @@ describe("home basic widgets", function()
         assert.are.equal(16, preset.modules.stats_triplet.font_size)
         assert.is_nil(preset.modules.stats_triplet.font_size_override)
         assert.is_true(preset.modules.stats_triplet.automatic_font_size)
-        assert.are.equal(22, preset.modules.stats_triplet.max_font_size)
+        assert.are.equal(18, preset.modules.stats_triplet.max_font_size)
         assert.is_true(preset.quotes.automatic_font_size)
         assert.are.equal(14, preset.quotes.max_font_size)
         assert.are.equal(12, preset.quotes.font_size)

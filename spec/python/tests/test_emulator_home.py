@@ -276,6 +276,13 @@ def test_wrapped_featured_absorbs_space_above_compact_stats() -> None:
             "A long description that should claim all space not needed by stats. " * 30,
         )
         _seed_history(ko_home, fixture["epub"])
+        sidecar = fixture["epub"].with_suffix(".sdr")
+        sidecar.mkdir()
+        sidecar.joinpath("metadata.epub.lua").write_text(
+            'return { percent_finished = 0.4, summary = { status = "reading" }, '
+            'stats = { pages = 120 } }\n',
+            encoding="utf-8",
+        )
         socket_path = root / "driver.sock"
         process = launch(
             runtime,
@@ -293,7 +300,7 @@ def test_wrapped_featured_absorbs_space_above_compact_stats() -> None:
             assert driver.command("activate_navbar_tab", id="home")["ok"] is True
             home = _wait_for_home(
                 driver,
-                required_texts={"Alpha Home"},
+                required_texts={"Alpha Home", "40%"},
                 minimum_widget_count=2,
             )
             assert home["widget_ids"] == ["featured", "stats_triplet"]

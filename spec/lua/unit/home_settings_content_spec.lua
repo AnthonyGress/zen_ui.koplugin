@@ -508,7 +508,7 @@ describe("Home widget content settings", function()
 
         local items = arrange_options.item_table
         local automatic = find_item(items, "Automatic font size")
-        local maximum = find_item(items, "Maximum font size: 22")
+        local maximum = find_item(items, "Maximum font size: 18")
         local size = find_item(items, "Font size: Automatic")
         assert.is_true(automatic.checked_func())
         assert.is_not_nil(maximum)
@@ -517,7 +517,7 @@ describe("Home widget content settings", function()
         assert.is_false(size.enabled_func())
 
         maximum.callback({ updateItems = function() end })
-        assert.are.equal(22, shown[#shown].value)
+        assert.are.equal(18, shown[#shown].value)
         assert.are.equal(64, shown[#shown].value_max)
         shown[#shown].callback({ value = 30 })
         assert.are.equal(30, home_page.modules.stats_triplet.max_font_size)
