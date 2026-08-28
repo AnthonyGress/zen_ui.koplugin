@@ -32,6 +32,14 @@ local function apply_bookmarks()
             icon.rotation_angle = 0
         end
 
+        local function shift_bookmark_inward(dogear)
+            local container = dogear and dogear[1]
+            if dogear and dogear.icon and dogear.icon.file == bookmark_icon
+                    and container and container.dimen then
+                container.dimen.w = Device.screen:getWidth() - Device.screen:scaleBySize(8)
+            end
+        end
+
         if not ReaderDogear._zen_bookmark_icon_patched
                 and type(ReaderDogear.setupDogear) == "function" then
             ReaderDogear._zen_bookmark_icon_patched = true
@@ -39,13 +47,24 @@ local function apply_bookmarks()
             ReaderDogear.setupDogear = function(self, ...)
                 local result = orig_setup_dogear(self, ...)
                 use_bookmark_icon(self)
+                shift_bookmark_inward(self)
                 return result
+            end
+            if type(ReaderDogear.resetLayout) == "function" then
+                local orig_reset_layout = ReaderDogear.resetLayout
+                ReaderDogear.resetLayout = function(self, ...)
+                    local result = orig_reset_layout(self, ...)
+                    shift_bookmark_inward(self)
+                    return result
+                end
             end
         end
 
         local ReaderUI = require("apps/reader/readerui")
         local reader = ReaderUI.instance
-        use_bookmark_icon(reader and reader.view and reader.view.dogear)
+        local dogear = reader and reader.view and reader.view.dogear
+        use_bookmark_icon(dogear)
+        shift_bookmark_inward(dogear)
     end
 
     local function get_bookmarks_font_size(ui, fallback_size)

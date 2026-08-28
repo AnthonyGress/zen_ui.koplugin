@@ -439,9 +439,21 @@ describe("reader interaction patches", function()
             setupDogear = function(self, size)
                 self.dogear_size = size or 32
                 self.icon = stock_icon()
+                self[1] = { dimen = { w = 600 } }
             end,
+            resetLayout = function(self) self[1].dimen.w = 600 end,
         }
-        local current_dogear = { dogear_size = 24, icon = stock_icon() }
+        local current_dogear = {
+            dogear_size = 24,
+            icon = stock_icon(),
+            [1] = { dimen = { w = 600 } },
+        }
+        ZenSpec.replace("device", {
+            screen = {
+                getWidth = function() return 600 end,
+                scaleBySize = function(_self, value) return value end,
+            },
+        })
         ZenSpec.replace("apps/reader/modules/readerdogear", ReaderDogear)
         ZenSpec.replace("apps/reader/readerui", {
             instance = { view = { dogear = current_dogear } },
@@ -455,6 +467,7 @@ describe("reader interaction patches", function()
         assert.are.equal("/icons/bookmark.svg", current_dogear.icon.file)
         assert.is_nil(current_dogear.icon.icon)
         assert.are.equal(0, current_dogear.icon.rotation_angle)
+        assert.are.equal(596, current_dogear[1].dimen.w)
 
         local new_dogear = {}
         ReaderDogear.setupDogear(new_dogear, 28)
@@ -462,6 +475,9 @@ describe("reader interaction patches", function()
         assert.are.equal("/icons/bookmark.svg", new_dogear.icon.file)
         assert.is_nil(new_dogear.icon.icon)
         assert.are.equal(0, new_dogear.icon.rotation_angle)
+        assert.are.equal(596, new_dogear[1].dimen.w)
+        ReaderDogear.resetLayout(new_dogear)
+        assert.are.equal(596, new_dogear[1].dimen.w)
         assert.are.equal(2, free_calls)
     end)
 
