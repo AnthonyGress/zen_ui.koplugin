@@ -306,5 +306,9 @@ return {
         "Ignore cbz and Rakuyomi chapters from books finished stat",
         "Add Hungarian translation",
         "Bug fixes"
-    }
+    },
+     ["3.2.1"] = {
+        "Fix: deduplicate multiple similar languages i.e en and en-us",
+        "Fix: Variable Book strip control width"
+     }
 }
