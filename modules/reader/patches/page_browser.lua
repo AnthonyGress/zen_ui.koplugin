@@ -132,27 +132,35 @@ local function apply_page_browser()
         local btn_sz  = Screen:scaleBySize(32)
         local btn_pad = Screen:scaleBySize(11)
         local slot_btn_w = btn_sz + btn_pad * 2
+        local header_gap = Screen:scaleBySize(4)
         local title_y = math.floor((title_h - btn_sz) / 2)
         canvas:paintRect(0, title_h - 1, slot_w, 1, Blitbuffer.COLOR_LIGHT_GRAY)
         local stock_icons_dir = _stock_icons_dir
-        local header_icons = {
+        local left_icons = {
             { "appbar.search", stock_icons_dir },
             { "info", _icons_dir },
-            { "appbar.textsize", stock_icons_dir },
-            { "bookmark", stock_icons_dir },
         }
-        local vocab_icon_path = package.loaded["db"]
-            and _icons_dir and utils.resolveLocalIcon(_icons_dir, "tab_vocab")
-        if vocab_icon_path then
-            table.insert(header_icons, 4, { nil, nil, vocab_icon_path })
-        end
-        for i, icon in ipairs(header_icons) do
+        for i, icon in ipairs(left_icons) do
             local icon_path = icon[3]
                 or (icon[2] and utils.resolveLocalIcon(icon[2], icon[1]))
-            paint_icon(nil, icon_path, slot_btn_w * (i - 1) + btn_pad, title_y, btn_sz)
+            paint_icon(nil, icon_path, (slot_btn_w + header_gap) * (i - 1) + btn_pad, title_y, btn_sz)
         end
-        local toc_icon_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "toc")
-        paint_icon(nil, toc_icon_path, slot_btn_w * #header_icons + btn_pad, title_y, btn_sz)
+        local center_icons = {
+            { "appbar.textsize", stock_icons_dir },
+            { "bookmark", stock_icons_dir },
+            { "toc", _icons_dir },
+        }
+        local center_group_w = slot_btn_w * #center_icons + header_gap * (#center_icons - 1)
+        local header_center_x = math.floor((slot_w - center_group_w) / 2)
+        for i, icon in ipairs(center_icons) do
+            local icon_path = utils.resolveLocalIcon(icon[2], icon[1])
+            paint_icon(nil, icon_path,
+                header_center_x + (slot_btn_w + header_gap) * (i - 1) + btn_pad, title_y, btn_sz)
+        end
+        if package.loaded["db"] then
+            local more_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "more_vertical")
+            paint_icon(nil, more_path, slot_w - 2 * slot_btn_w + btn_pad, title_y, btn_sz)
+        end
         local close_icon_path = _icons_dir and utils.resolveLocalIcon(_icons_dir, "close_light")
         paint_icon(nil, close_icon_path, slot_w - slot_btn_w + btn_pad, title_y, btn_sz)
 
@@ -425,6 +433,7 @@ local function apply_page_browser()
         local GestureRange    = require("ui/gesturerange")
         local ZenSlider       = require("common/ui/zen_slider")
         local ZenIconButton   = require("common/ui/zen_icon_button")
+        local inline_icons    = require("common/inline_icon_map")
         local logger          = require("common/zen_logger").new("page_browser")
         local _               = require("gettext")
 
@@ -874,6 +883,7 @@ local function apply_page_browser()
             end
 
             local slot_w = btn_sz + btn_pad * 2
+            local header_gap = Screen:scaleBySize(4)
 
             local old_right_button = self.title_bar.right_button
             local header_buttons = {}
@@ -980,25 +990,73 @@ local function apply_page_browser()
                 end)
             end
 
-            -- Page-browser title-bar actions, from left to right.
-            local action_icons = {
+            local function add_header_action(action, x_pos)
+                local icon_path = action[4] or (action[3] and resolve_stock_icon(action[1]))
+                    or (_icons_dir and utils.resolveLocalIcon(_icons_dir, action[1]))
+                local button = make_header_btn(icon_path, x_pos, action[2])
+                table.insert(self.title_bar, button)
+                table.insert(header_buttons, button)
+                return button
+            end
+
+            local left_actions = {
                 { "appbar.search", open_search, true },
                 { "info", open_book_info },
+            }
+            for i, action in ipairs(left_actions) do
+                add_header_action(action, (slot_w + header_gap) * (i - 1))
+            end
+
+            local center_actions = {
                 { "appbar.textsize", open_reader_menu, true },
                 { "bookmark", open_bookmarks, true },
                 { "toc", open_toc },
             }
+            local title_w = self.title_bar.width or Screen:getWidth()
+            local center_group_w = slot_w * #center_actions + header_gap * (#center_actions - 1)
+            local center_x = math.floor((title_w - center_group_w) / 2)
+            for i, action in ipairs(center_actions) do
+                add_header_action(action, center_x + (slot_w + header_gap) * (i - 1))
+            end
+
             local vocab_icon_path = package.loaded["db"]
                 and _icons_dir and utils.resolveLocalIcon(_icons_dir, "tab_vocab")
             if vocab_icon_path then
-                table.insert(action_icons, 4, { nil, open_vocab, nil, vocab_icon_path })
-            end
-            for i, action in ipairs(action_icons) do
-                local icon_path = action[4] or (action[3] and resolve_stock_icon(action[1]))
-                    or (_icons_dir and utils.resolveLocalIcon(_icons_dir, action[1]))
-                local button = make_header_btn(icon_path, slot_w * (i - 1), action[2])
-                table.insert(self.title_bar, button)
-                table.insert(header_buttons, button)
+                local overflow_button
+                local function show_overflow_menu()
+                    local ButtonDialog = require("ui/widget/buttondialog")
+                    local dialog
+                    dialog = ButtonDialog:new{
+                        buttons = {
+                            {{
+                                text = inline_icons.vocabulary .. "  " .. _("Vocabulary builder"),
+                                align = "left",
+                                avoid_text_truncation = false,
+                                callback = function()
+                                    UIManager:close(dialog)
+                                    open_vocab()
+                                end,
+                            }},
+                        },
+                        shrink_unneeded_width = true,
+                        anchor = function()
+                            local button_dimen = overflow_button.image and overflow_button.image.dimen
+                            local dialog_dimen = dialog.movable and dialog.movable.dimen
+                            if not (button_dimen and dialog_dimen) then return button_dimen end
+                            local inset = Screen:scaleBySize(10)
+                            return {
+                                x = BD.mirroredUILayout()
+                                    and inset + dialog_dimen.w
+                                    or Screen:getWidth() - dialog_dimen.w - inset,
+                                y = button_dimen.y,
+                                h = button_dimen.h,
+                            }
+                        end,
+                    }
+                    UIManager:show(dialog)
+                end
+                overflow_button = add_header_action(
+                    { "more_vertical", show_overflow_menu }, title_w - 2 * slot_w)
             end
             if self.title_bar.right_button then
                 table.insert(header_buttons, self.title_bar.right_button)

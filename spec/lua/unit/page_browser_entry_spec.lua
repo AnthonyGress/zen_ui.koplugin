@@ -767,6 +767,7 @@ describe("page browser entry", function()
                 self.title_bar = {
                     left,
                     right,
+                    width = 600,
                     left_button = left,
                     right_button = right,
                     button_padding = 11,
@@ -797,9 +798,10 @@ describe("page browser entry", function()
         ZenSpec.replace("common/utils", {
             resolveLocalIcon = function(_, name) return "/icons/" .. name .. ".svg" end,
         })
-        local shown_widgets = {}
+        local shown_widgets, closed_widgets = {}, {}
         ZenSpec.replace("ui/uimanager", {
             show = function(_, widget) shown_widgets[#shown_widgets + 1] = widget end,
+            close = function(_, widget) closed_widgets[#closed_widgets + 1] = widget end,
             scheduleIn = function() end,
             setDirty = function() end,
             unschedule = function() end,
@@ -810,6 +812,13 @@ describe("page browser entry", function()
             new = function(_, spec)
                 spec.onShowConfigPanel = function(self, index) self.shown_panel = index end
                 config_dialog = spec
+                return spec
+            end,
+        })
+        local overflow_spec
+        ZenSpec.replace("ui/widget/buttondialog", {
+            new = function(_, spec)
+                overflow_spec = spec
                 return spec
             end,
         })
@@ -910,25 +919,27 @@ describe("page browser entry", function()
         expect(initialized == false, "test seam should stop before layout")
         expect(tostring(init_err):find("layout stop", 1, true) ~= nil, tostring(init_err))
 
-        local by_file, positions = {}, {}
+        local by_file, buttons_by_file, positions = {}, {}, {}
         for _i, button in ipairs(browser.title_bar) do
             if button.file then
                 by_file[button.file] = button.callback
+                buttons_by_file[button.file] = button
                 positions[button.file] = button.overlap_offset and button.overlap_offset[1]
             end
         end
         expect(type(by_file["/icons/appbar.search.svg"]) == "function")
         expect(type(by_file["/icons/appbar.textsize.svg"]) == "function")
-        expect(type(by_file["/icons/tab_vocab.svg"]) == "function")
+        expect(type(by_file["/icons/more_vertical.svg"]) == "function")
+        expect(type(buttons_by_file["/icons/more_vertical.svg"]) == "table")
         expect(type(by_file["/icons/bookmark.svg"]) == "function")
         expect(type(by_file["/icons/toc.svg"]) == "function")
         expect(type(by_file["/icons/info.svg"]) == "function")
         expect(positions["/icons/appbar.search.svg"] == 0)
-        expect(positions["/icons/info.svg"] == 54)
-        expect(positions["/icons/appbar.textsize.svg"] == 108)
-        expect(positions["/icons/tab_vocab.svg"] == 162)
-        expect(positions["/icons/bookmark.svg"] == 216)
-        expect(positions["/icons/toc.svg"] == 270)
+        expect(positions["/icons/info.svg"] == 58)
+        expect(positions["/icons/appbar.textsize.svg"] == 215)
+        expect(positions["/icons/bookmark.svg"] == 273)
+        expect(positions["/icons/toc.svg"] == 331)
+        expect(positions["/icons/more_vertical.svg"] == 492)
         expect(browser._zen_orig_nb_cols == 3 and browser._zen_orig_nb_rows == 3)
         local close_button = browser.title_bar.right_button
         expect(close_button.file == "/icons/close_light.svg")
@@ -953,7 +964,18 @@ describe("page browser entry", function()
         expect(closes == 1 and bookmarks == 2)
         expect(ui.bookmark.bookmark_menu[1]._zen_page_browser_parent == browser)
 
-        by_file["/icons/tab_vocab.svg"]()
+        local overflow_anchor = { x = 492, y = 10, w = 32, h = 32 }
+        buttons_by_file["/icons/more_vertical.svg"].image = { dimen = overflow_anchor }
+        by_file["/icons/more_vertical.svg"]()
+        expect(overflow_spec ~= nil and shown_widgets[#shown_widgets] == overflow_spec)
+        overflow_spec.movable = { dimen = { w = 200 } }
+        local popup_anchor = overflow_spec.anchor()
+        expect(popup_anchor.x == 390 and popup_anchor.y == 10 and popup_anchor.h == 32)
+        local vocab_action = overflow_spec.buttons[1][1]
+        expect(vocab_action.align == "left" and vocab_action.avoid_text_truncation == false)
+        expect(vocab_action.text:find("Vocabulary builder", 1, true) > 1)
+        vocab_action.callback()
+        expect(closed_widgets[#closed_widgets] == overflow_spec)
         expect(closes == 2 and action_events[#action_events].name == "ShowVocabBuilder")
 
         by_file["/icons/toc.svg"]()
