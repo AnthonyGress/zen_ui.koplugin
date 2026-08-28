@@ -630,6 +630,29 @@ describe("Zen settings page", function()
         assert.are.equal(1, settings.itemnumber)
     end)
 
+    it("hides gated settings from menus and search", function()
+        local visible_plugin = { text = "Visible plugin", show_func = function() return true end }
+        local hidden_plugin = { text = "Hidden plugin", show_func = function() return false end }
+        local reader = {
+            text = "Reader",
+            sub_item_table = { visible_plugin, hidden_plugin },
+        }
+        local settings = make_page({
+            { text = "Hidden root", show_func = function() return false end },
+            reader,
+        })
+
+        assert.are.equal(1, #settings.item_table)
+        assert.are.equal(reader, settings.item_table[1])
+        settings:onMenuSelect(reader)
+        assert.are.equal(1, #settings.item_table)
+        assert.are.equal(visible_plugin, settings.item_table[1])
+
+        settings:_onSearchChanged("plugin")
+        assert.are.equal(1, #settings.item_table)
+        assert.are.equal("Visible plugin", settings.item_table[1].text)
+    end)
+
     it("does not run dynamic help actions while indexing settings", function()
         local help_calls = 0
         local custom_text = {
