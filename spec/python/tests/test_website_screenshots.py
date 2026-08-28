@@ -1,3 +1,4 @@
+import hashlib
 import io
 import json
 import sqlite3
@@ -105,12 +106,12 @@ def _color_cover_epub(
         archive.writestr("OPS/cover.png", cover.getvalue())
 
 
-def test_catalog_is_the_canonical_22_image_inventory() -> None:
+def test_catalog_is_the_canonical_23_image_inventory() -> None:
     catalog = load_catalog()
-    assert len(catalog) == 22
+    assert len(catalog) == 23
     assert {scenario.id for scenario in catalog} == EXPECTED_IDS
     assert [scenario.id for scenario in catalog if scenario.id.startswith("page_browser")] == [
-        "page_browser_grid"
+        "page_browser_grid", "page_browser_carousel"
     ]
     assert "update_available" not in {scenario.id for scenario in catalog}
     assert "opds" not in {scenario.id for scenario in catalog}
@@ -414,7 +415,9 @@ def test_reader_showcase_sidecar_has_no_seeded_bookmark(tmp_path: Path) -> None:
 
     reader_sidecar = reader_path.with_suffix(".sdr") / "metadata.epub.lua"
     library_sidecar = library_path.with_suffix(".sdr") / "metadata.epub.lua"
-    assert '["bookmarks"]' not in reader_sidecar.read_text(encoding="utf-8")
+    reader_metadata = reader_sidecar.read_text(encoding="utf-8")
+    assert '["bookmarks"]' not in reader_metadata
+    assert hashlib.md5(str(reader_path).encode()).hexdigest() in reader_metadata
     assert '["bookmarks"]' in library_sidecar.read_text(encoding="utf-8")
 
 
@@ -485,11 +488,12 @@ def test_manual_export_copies_pngs_only_into_an_empty_folder(tmp_path: Path) -> 
         export_screenshots(source, destination, ["first.png"])
 
 
-def test_docs_and_gallery_audit_allows_only_the_grid_page_browser(tmp_path: Path) -> None:
+def test_docs_and_gallery_audit_allows_current_page_browser_views(tmp_path: Path) -> None:
     docs = tmp_path / "docs"
     docs.mkdir()
     docs.joinpath("reader.md").write_text(
         "![Grid](/images/zen_os/page_browser_grid.png)\n"
+        "![Carousel](/images/zen_os/page_browser_carousel.png)\n"
         "![Install](/images/zen_os/plugins_folder.png)\n"
         "![OPDS](/images/zen_os/opds.png)\n",
         encoding="utf-8",

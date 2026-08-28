@@ -22,6 +22,7 @@
   {"id": "reader_launcher_book_details", "group": "reader", "session": "reader", "action": "reader_control", "control": "launcher_book_details", "docs": ["docs/launcher.md"]},
   {"id": "reader_book_details", "group": "reader", "session": "reader", "action": "reader_control", "control": "launcher_book_details_fullscreen", "docs": ["docs/launcher.md", "docs/reader.md"]},
   {"id": "page_browser_grid", "group": "reader", "session": "reader", "action": "reader_control", "control": "page_browser_grid", "docs": ["docs/reader.md", "docs/faq.md"]},
+  {"id": "page_browser_carousel", "group": "reader", "session": "reader", "action": "reader_control", "control": "page_browser_carousel", "docs": ["docs/reader.md"]},
   {"id": "reader_dict", "group": "reader", "session": "reader", "action": "reader_control", "control": "highlight_dictionary", "footer_preset": "pages_bar_percent", "docs": ["docs/reader.md"]},
   {"id": "reader_highlight", "group": "reader", "session": "reader", "action": "reader_control", "control": "show_highlight_menu", "docs": ["docs/reader.md"]}
 ]
