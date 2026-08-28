@@ -41,7 +41,7 @@ install `zenos.koplugin` beside an existing `zen_ui.koplugin` directory.
 
 For a fresh installation:
 
-1. Go to the [Releases](https://github.com/AnthonyGress/zen_ui.koplugin/releases) page and download `zenos.koplugin.zip` from the latest release.
+1. Go to the [Releases](https://github.com/xZenLabs/zen-os/releases) page and download `zenos.koplugin.zip` from the latest release.
 2. Unzip the archive. You should have a **folder** named `zenos.koplugin`.
 3. Copy the `zenos.koplugin` **folder** into the KOReader plugins directory for your device (see table below).
    - Make sure you are copying the unzipped **folder** and **not the .zip** file itself.

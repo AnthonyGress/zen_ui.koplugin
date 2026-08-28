@@ -10,21 +10,21 @@ order: 90
 
 Contributions that keep it clean, minimal, and performant are most welcome.
 
-> **Open all [pull requests](https://github.com/AnthonyGress/zen_ui.koplugin/pulls) against the `dev` branch.** PRs are tested and reviewed on `dev` before being merged. PRs opened against `main` will be asked to retarget.
+> **Open all [pull requests](https://github.com/xZenLabs/zen-os/pulls) against the `dev` branch.** PRs are tested and reviewed on `dev` before being merged. PRs opened against `main` will be asked to retarget.
 
 ## Ways to contribute
 
 | Type | How |
 | --- | --- |
-| Bug report | Open an [Issue](https://github.com/AnthonyGress/zen_ui.koplugin/issues) describing what went wrong |
-| Feature request | Open an [Issue](https://github.com/AnthonyGress/zen_ui.koplugin/issues) with your idea |
+| Bug report | Open an [Issue](https://github.com/xZenLabs/zen-os/issues) describing what went wrong |
+| Feature request | Open an [Issue](https://github.com/xZenLabs/zen-os/issues) with your idea |
 | Translation | Add or improve a `.po` file in `locales/` — see [Translations](/zen-os/docs/translations) |
 | Code | Fork, branch, change, and open a Pull Request to `dev` |
 | Documentation | Improve the README or add inline comments |
 
 ## Reporting a bug
 
-Open an [Issue](https://github.com/AnthonyGress/zen_ui.koplugin/issues) and include:
+Open an [Issue](https://github.com/xZenLabs/zen-os/issues) and include:
 
 - A clear description of what happened and what you expected.
 - Your KOReader version (**Zen Settings > About > Device > KOReader**).
@@ -35,7 +35,7 @@ If the bug causes a crash, attach the KOReader log (`crash.log` in the KOReader 
 
 ## Suggesting a feature
 
-Open an [Issue](https://github.com/AnthonyGress/zen_ui.koplugin/issues) describing the feature and why it would be useful. Keep ZenOS's philosophy in mind — features should reduce clutter or add something genuinely useful. Screenshots or mockups are welcome.
+Open an [Issue](https://github.com/xZenLabs/zen-os/issues) describing the feature and why it would be useful. Keep ZenOS's philosophy in mind — features should reduce clutter or add something genuinely useful. Screenshots or mockups are welcome.
 
 ## Contributing code
 
@@ -77,7 +77,7 @@ luacheck -q _meta.lua main.lua common config modules
 
 ### Making a change
 
-1. [Fork](https://github.com/AnthonyGress/zen_ui.koplugin/fork) the repository.
+1. [Fork](https://github.com/xZenLabs/zen-os/fork) the repository.
 2. Create a branch for your change: `git checkout -b fix/my-bug-description`.
 3. Make your changes.
 4. Wrap any new user-visible strings in `_()` so they can be translated:
