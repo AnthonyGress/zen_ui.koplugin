@@ -2236,7 +2236,7 @@ local function compute_row_heights(rows, body_h, row_gap, capacity, width, modul
             if ok and tonumber(preferred) then max_heights[i] = preferred end
         end
     end
-    if row_count >= 3 and rows[row_count].id == "quotes" and max_heights[row_count] then
+    if row_count >= 3 then
         local has_flexible_middle = false
         for i = 2, row_count - 1 do
             if not max_heights[i] then has_flexible_middle = true; break end
@@ -2250,10 +2250,9 @@ local function compute_row_heights(rows, body_h, row_gap, capacity, width, modul
     for i = 1, row_count do
         if not max_heights[i] then has_flexible_row = true; break end
     end
-    if row_count ~= 2 or not has_flexible_row then
+    if not has_flexible_row then
         for i, comp in ipairs(rows) do
             if comp.id == "stats_triplet" then
-                -- Only a two-row flexible layout can give all stats slack to its other row.
                 max_heights[i] = nil
                 break
             end
@@ -3005,8 +3004,9 @@ local function build_home_content(menu, zen_config, dcfg, rows, data_provider)
                     content_bounds.max_shift = 0
                 elseif content_bounds.lock_shift ~= true then
                     -- Borrow surrounding blank space when internal slack is too small.
-                    content_bounds.min_shift = (content_bounds.min_shift or 0) - row_gap * 3
-                    content_bounds.max_shift = (content_bounds.max_shift or 0) + row_gap * 3
+                    local slack = i == #rows and row_gap * 3 or row_gap
+                    content_bounds.min_shift = (content_bounds.min_shift or 0) - slack
+                    content_bounds.max_shift = (content_bounds.max_shift or 0) + slack
                 else
                     content_bounds.min_shift = tonumber(content_bounds.min_shift) or 0
                     content_bounds.max_shift = content_bounds.min_shift
