@@ -309,6 +309,9 @@ return {
     },
      ["3.2.1"] = {
         "Fix: deduplicate multiple similar languages i.e en and en-us",
-        "Fix: Variable Book strip control width"
+        "Fix: Variable Book strip control width",
+     },
+     ["3.3.0"] = {
+        "Fix: allow cancelling ZenPM download and time out after one minute"
      }
 }

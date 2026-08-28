@@ -10,6 +10,7 @@ local M = {}
 
 local RELEASE_URL = "https://api.github.com/repos/xZenLabs/zen-pm/releases/latest"
 local RELEASE_REPO_PATH = "/xzenlabs/zen-pm"
+local DOWNLOAD_TIMEOUT = 60
 local DOWNLOAD_HOSTS = {
     ["github.com"] = true,
     ["objects.githubusercontent.com"] = true,
@@ -264,8 +265,7 @@ local function valid_plugin_tree(path)
     return path_exists(path .. "/_meta.lua") and path_exists(path .. "/main.lua")
 end
 
-local function install_asset(asset, plugins_dir)
-    local zip_path = plugins_dir .. "/.zenpm_download.zip"
+local function install_asset(asset, plugins_dir, zip_path)
     local stage_dir = plugins_dir .. "/.zenpm_install_stage"
     local staged = stage_dir .. "/zenpm.koplugin"
     local active = plugins_dir .. "/zenpm.koplugin"
@@ -274,13 +274,6 @@ local function install_asset(asset, plugins_dir)
     logger.info("install start asset=", asset.name, " plugins_dir=", plugins_dir)
     remove_tree(stage_dir)
     remove_tree(backup)
-    os.remove(zip_path)
-    local ok, err = download(asset, zip_path)
-    if not ok then
-        logger.warn("download failed: ", tostring(err))
-        return false, err
-    end
-    logger.info("download verified asset=", asset.name)
     if not valid_zip(zip_path) then
         logger.warn("package validation failed asset=", asset.name)
         os.remove(zip_path)
@@ -338,25 +331,64 @@ local function show_install_prompt(plugin)
             UIManager:forceRePaint()
             UIManager:nextTick(function()
                 Trapper:wrap(function()
+                    local co = coroutine.running()
+                    local timed_out = false
+                    screen._on_button_action = function()
+                        coroutine.resume(co, false)
+                    end
+                    screen:update{ button = _("Cancel") }
+                    UIManager:forceRePaint()
+                    local timeout_cb = function()
+                        timed_out = true
+                        coroutine.resume(co, false)
+                    end
+                    UIManager:scheduleIn(DOWNLOAD_TIMEOUT, timeout_cb)
+
                     logger.info("fetching latest ZenPM release")
-                    local release, release_err = get_release()
-                    if not release then
-                        screen:update{ subtitle = release_err or _("Could not find a ZenPM release."), button = _("OK"), dismissable = true }
+                    local asset_prefix = M.asset_prefix(plugin_template)
+                    local root = PLUGIN_ROOT or (plugin and plugin.path) or ""
+                    local plugins_dir = root:match("^(.*)/[^/]+$") or root
+                    local zip_path = plugins_dir .. "/.zenpm_download.zip"
+                    os.remove(zip_path)
+                    local completed, ok, err, asset = Trapper:dismissableRunInSubprocess(function()
+                        local release, err = get_release()
+                        if not release then return false, err end
+                        local selected = release_asset(release, asset_prefix)
+                        if not selected then return false end
+                        local downloaded, download_err = download(selected, zip_path)
+                        return downloaded, download_err, selected
+                    end, screen)
+                    UIManager:unschedule(timeout_cb)
+                    screen._on_button_action = nil
+                    if not completed then
+                        os.remove(zip_path)
+                        if timed_out then
+                            screen:update{ subtitle = _("Timeout"), button = _("OK"), dismissable = true }
+                        else
+                            screen:onClose()
+                        end
                         return
                     end
-                    local asset_prefix = M.asset_prefix(plugin_template)
-                    local asset = release_asset(release, asset_prefix)
                     if not asset then
-                        logger.warn("no matching release asset prefix=", asset_prefix)
-                        screen:update{ subtitle = _("No ZenPM package is available for this device."), button = _("OK"), dismissable = true }
+                        if err then
+                            screen:update{ subtitle = err, button = _("OK"), dismissable = true }
+                        else
+                            logger.warn("no matching release asset prefix=", asset_prefix)
+                            screen:update{ subtitle = _("No ZenPM package is available for this device."), button = _("OK"), dismissable = true }
+                        end
                         return
                     end
                     logger.info("selected release asset=", asset.name)
-                    screen:update{ subtitle = _("Installing ZenPM") .. "..." }
+                    if not ok then
+                        os.remove(zip_path)
+                        logger.warn("download failed: ", tostring(err))
+                        screen:update{ subtitle = err or _("Could not install ZenPM."), button = _("OK"), dismissable = true }
+                        return
+                    end
+                    logger.info("download verified asset=", asset.name)
+                    screen:update{ subtitle = _("Installing ZenPM") .. "...", button = false }
                     UIManager:forceRePaint()
-                    local root = PLUGIN_ROOT or (plugin and plugin.path) or ""
-                    local plugins_dir = root:match("^(.*)/[^/]+$") or root
-                    local ok, err = install_asset(asset, plugins_dir)
+                    ok, err = install_asset(asset, plugins_dir, zip_path)
                     if not ok then
                         logger.warn("install failed: ", tostring(err))
                         screen:update{ subtitle = err or _("Could not install ZenPM."), button = _("OK"), dismissable = true }
