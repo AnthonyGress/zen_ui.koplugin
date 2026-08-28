@@ -2536,6 +2536,9 @@ function M.build(ctx)
                 end,
                 callback = function()
                     dcfg.show_status_bar = dcfg.show_status_bar == false
+                    if dcfg.show_status_bar then
+                        dcfg.modules.featured.show_status_bar = false
+                    end
                     save_home("reinit")
                 end,
             },

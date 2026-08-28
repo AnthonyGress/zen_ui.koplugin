@@ -280,6 +280,26 @@ describe("Home widget content settings", function()
         assert.is_true(item.checked_func())
     end)
 
+    it("keeps the Home and featured top status bars mutually exclusive", function()
+        local settings = require("modules/settings/sections/library_settings/home_settings")
+        local section = settings.build({ config = {}, settings_apply = {} })
+        local home_status = find_item(section.sub_item_table, "Show top status bar")
+
+        assert.is_true(settings.openWidgetSettings("featured"))
+        local featured_status = find_item(
+            find_item(arrange_options.item_table, "Top status bar").sub_item_table,
+            "Show top status bar"
+        )
+
+        featured_status.callback()
+        assert.is_false(home_status.checked_func())
+        assert.is_true(featured_status.checked_func())
+
+        home_status.callback()
+        assert.is_true(home_status.checked_func())
+        assert.is_false(featured_status.checked_func())
+    end)
+
     it("shows an enabled-by-default progress toggle before its label settings", function()
         local settings = require("modules/settings/sections/library_settings/home_settings")
         assert.is_true(settings.openWidgetSettings("featured"))
