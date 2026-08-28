@@ -1411,6 +1411,9 @@ msgstr "Мозаика с текстом"
 msgid "Move"
 msgstr "Переместить"
 
+msgid "Move Settings to footer"
+msgstr "Переместить настройки в нижнюю панель"
+
 msgid "Move failed."
 msgstr "Ошибка перемещения."
 

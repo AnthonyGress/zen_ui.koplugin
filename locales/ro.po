@@ -1410,6 +1410,9 @@ msgstr "Mozaic cu text"
 msgid "Move"
 msgstr "Mută"
 
+msgid "Move Settings to footer"
+msgstr "Mută Setări în subsol"
+
 msgid "Move failed."
 msgstr "Mutare eșuată."
 

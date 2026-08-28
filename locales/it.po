@@ -1410,6 +1410,9 @@ msgstr "Mosaico con testo"
 msgid "Move"
 msgstr "Sposta"
 
+msgid "Move Settings to footer"
+msgstr "Sposta Impostazioni nel piè di pagina"
+
 msgid "Move failed."
 msgstr "Spostamento fallito."
 

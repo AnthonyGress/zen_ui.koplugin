@@ -1410,6 +1410,9 @@ msgstr "Mosaic with text"
 msgid "Move"
 msgstr "Move"
 
+msgid "Move Settings to footer"
+msgstr "Move Settings to footer"
+
 msgid "Move failed."
 msgstr "Move failed."
 

@@ -1058,6 +1058,7 @@ function M.build(ctx)
         config.quick_settings.show_frontlight = def.show_frontlight
         config.quick_settings.show_warmth = def.show_warmth
         config.quick_settings.flip_lh_rh_icon = def.flip_lh_rh_icon
+        config.quick_settings.settings_button_in_footer = def.settings_button_in_footer
         config.quick_settings.gyro_label = def.gyro_label
         config.quick_settings.gyro_icon = def.gyro_icon
         quick_button_label_by_id.gyro = getAutorotateLabel()
@@ -1148,6 +1149,17 @@ function M.build(ctx)
                     save_and_apply_quick_settings()
                 end,
             }, icons.flip_lh_rh),
+            IconItem.decorate({
+                text = _("Move Settings to footer"),
+                checked_func = function()
+                    return config.quick_settings.settings_button_in_footer == true
+                end,
+                callback = function()
+                    config.quick_settings.settings_button_in_footer =
+                        config.quick_settings.settings_button_in_footer ~= true
+                    save_and_apply_quick_settings()
+                end,
+            }, icons.settings),
             IconItem.decorate({
                 text = _("Reset to defaults"),
                 separator = true,

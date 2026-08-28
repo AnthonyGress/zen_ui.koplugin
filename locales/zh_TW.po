@@ -1410,6 +1410,9 @@ msgstr "文字拼貼"
 msgid "Move"
 msgstr "移動"
 
+msgid "Move Settings to footer"
+msgstr "將設定移到底部"
+
 msgid "Move failed."
 msgstr "移動失敗。"
 

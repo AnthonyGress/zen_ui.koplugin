@@ -569,6 +569,18 @@ function ZenUI:init()
             and type(_ft) == "table" and _ft.lockdown_mode == true
     end
 
+    local function zen_settings_in_controls_footer()
+        local _cfg = _zen_plugin_ref and _zen_plugin_ref.config
+        local _ft = _cfg and _cfg.features
+        local _qs = _cfg and _cfg.quick_settings
+        return type(_ft) == "table" and _ft.quick_settings == true
+            and type(_qs) == "table" and _qs.settings_button_in_footer == true
+    end
+
+    local function zen_settings_tab_hidden()
+        return zen_panel_hidden() or zen_settings_in_controls_footer()
+    end
+
     local function flip_lh_rh_icons()
         local _cfg = _zen_plugin_ref and _zen_plugin_ref.config
         local _qs = _cfg and _cfg.quick_settings
@@ -671,7 +683,7 @@ function ZenUI:init()
 
     local function refresh_zen_menu_tabs(m_self)
         if type(m_self.tab_item_table) ~= "table" or not m_self._zen_home_tab_item then return end
-        local panel_hidden = zen_panel_hidden()
+        local panel_hidden = zen_settings_tab_hidden()
         m_self._zen_home_tab_item.icon = library_home_icon()
         if not panel_hidden then
             if not m_self._zen_tab_item then
@@ -781,7 +793,7 @@ function ZenUI:init()
                 end
             end
             _zen_menu_instances[m_self] = true
-            local _panel_hidden = zen_panel_hidden()
+            local _panel_hidden = zen_settings_tab_hidden()
             if not _panel_hidden then
                 m_self._zen_tab_item = make_zen_settings_tab(m_self)
             end

@@ -164,6 +164,7 @@ local defaults = {
         show_frontlight = true,
         show_warmth = true,
         flip_lh_rh_icon = false,
+        settings_button_in_footer = false,
         gyro_label = "",
         gyro_icon = "quick_rotate",
         rotate_action = "90",

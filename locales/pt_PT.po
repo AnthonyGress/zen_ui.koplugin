@@ -1410,6 +1410,9 @@ msgstr "Mosaico com texto"
 msgid "Move"
 msgstr "Mover"
 
+msgid "Move Settings to footer"
+msgstr "Mover Definições para o rodapé"
+
 msgid "Move failed."
 msgstr "Falha ao mover."
 

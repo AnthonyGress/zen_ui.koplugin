@@ -1410,6 +1410,9 @@ msgstr "Mozaïek met tekst"
 msgid "Move"
 msgstr "Verplaatsen"
 
+msgid "Move Settings to footer"
+msgstr "Instellingen naar de voettekst verplaatsen"
+
 msgid "Move failed."
 msgstr "Verplaatsen mislukt."
 
