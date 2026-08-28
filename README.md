@@ -207,6 +207,7 @@ ZenOS is currently translated into:
 | `de` | German |
 | `bg` | Bulgarian |
 | `cs` | Czech |
+| `hu` | Hungarian |
 | `pt_BR` | Brazilian Portuguese |
 | `pt_PT` | European Portuguese |
 | `ro` | Romanian |

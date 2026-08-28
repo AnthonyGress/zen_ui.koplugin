@@ -304,6 +304,7 @@ return {
         "Fix brightness schedule not applying after first wake on some devices",
         "Adjust opening banner border color",
         "Ignore cbz and Rakuyomi chapters from books finished stat",
+        "Add Hungarian translation",
         "Bug fixes"
     }
 }
