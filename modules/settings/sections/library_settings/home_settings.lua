@@ -2602,7 +2602,7 @@ function M.build(ctx)
     IconItem.decorate(home_items[1], icons.widgets)
     IconItem.decorate(home_items[2], icons.edit)
     IconItem.decorate(home_items[3], icons.save)
-    IconItem.decorate(home_items[4], icons.title)
+    IconItem.decorate(home_items[4], icons.settings_status)
     IconItem.decorate(home_items[5], icons.settings_status)
 
     return {
