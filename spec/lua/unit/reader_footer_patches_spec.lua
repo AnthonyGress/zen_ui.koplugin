@@ -1,10 +1,13 @@
 describe("reader footer patches", function()
+    local saved_modules
+
     local function apply_patch(name)
         ZenSpec.unload(name)
         require(name)()
     end
 
     before_each(function()
+        saved_modules = nil
         _G.__ZEN_UI_PLUGIN = nil
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("ffi/util", {
@@ -19,6 +22,12 @@ describe("reader footer patches", function()
 
     after_each(function()
         _G.__ZEN_UI_PLUGIN = nil
+        if saved_modules then
+            ZenSpec.unload("modules/reader/patches/reader_footer")
+            for name, module in pairs(saved_modules) do
+                package.loaded[name] = module or nil
+            end
+        end
     end)
 
     it("formats chapter time for sub-minute, singular, and plural durations", function()
@@ -290,5 +299,132 @@ describe("reader footer patches", function()
         ReaderFooter.applyFooterMode(footer, 1)
         assert.is_true(footer.view.footer_visible)
         assert.are.equal(0, refreshes)
+    end)
+
+    it("keeps the progress anchor out of cycling and uses the Zen arrange list", function()
+        local dependency_names = {
+            "apps/reader/modules/readerfooter",
+            "apps/reader/readerui",
+            "common/ui/zen_arrange_list",
+            "device",
+            "ffi/blitbuffer",
+            "ui/bidi",
+            "ui/geometry",
+            "ui/uimanager",
+            "ui/widget/container/leftcontainer",
+            "ui/widget/textwidget",
+        }
+        saved_modules = {}
+        for _i, name in ipairs(dependency_names) do
+            saved_modules[name] = package.loaded[name] or false
+        end
+
+        local stock_arrange_called = false
+        local ReaderFooter = {
+            textGeneratorMap = {
+                battery = function() return "battery" end,
+                page_progress = function() return "page" end,
+                dynamic_filler = function() return "" end,
+            },
+            textOptionTitles = function(_self, option) return option end,
+            set_mode_index = function(self)
+                self.mode_index = {
+                    [0] = "off",
+                    "page_progress",
+                    "progress_bar",
+                    "dynamic_filler_2",
+                }
+                self.mode_nb = 4
+            end,
+            addToMainMenu = function(_self, menu_items)
+                menu_items.status_bar = {
+                    sub_item_table = {
+                        {
+                            text = "Status bar items",
+                            sub_item_table = {{ text = "External content" }},
+                        },
+                        {
+                            text = "Configure items",
+                            sub_item_table = {{
+                                text = "Arrange items in status bar",
+                                callback = function() stock_arrange_called = true end,
+                            }},
+                        },
+                    },
+                }
+            end,
+            updateFooterContainer = function() end,
+            _updateFooterText = function() end,
+            genAllFooterText = function() return "" end,
+            updateFooterTextGenerator = function(self) self.updated = true end,
+            onUpdateFooter = function(self) self.repainted = true end,
+        }
+        local footer = setmetatable({
+            settings = {
+                disable_progress_bar = true,
+                dynamic_filler_2 = false,
+                page_progress = true,
+                progress_bar = true,
+            },
+            mode_index = {
+                [0] = "off",
+                "page_progress",
+                "progress_bar",
+                "dynamic_filler_2",
+            },
+            mode_nb = 4,
+            mode_list = {
+                off = 0,
+                page_progress = 1,
+                progress_bar = 2,
+                dynamic_filler_2 = 3,
+            },
+        }, { __index = ReaderFooter })
+        local arrange_options
+        local dirty = false
+        ZenSpec.replace("apps/reader/modules/readerfooter", ReaderFooter)
+        ZenSpec.replace("apps/reader/readerui", {
+            instance = { view = { footer = footer } },
+        })
+        ZenSpec.replace("common/ui/zen_arrange_list", {
+            show = function(options) arrange_options = options end,
+        })
+        ZenSpec.replace("device", {
+            screen = { scaleBySize = function(_self, value) return value end },
+        })
+        ZenSpec.replace("ffi/blitbuffer", { COLOR_GRAY_5 = 5 })
+        ZenSpec.replace("ui/bidi", { wrap = function(text) return text end })
+        ZenSpec.replace("ui/geometry", {})
+        ZenSpec.replace("ui/widget/container/leftcontainer", {})
+        ZenSpec.replace("ui/widget/textwidget", {})
+        ZenSpec.replace("ui/uimanager", {
+            scheduleIn = function() end,
+            setDirty = function() dirty = true end,
+        })
+
+        apply_patch("modules/reader/patches/reader_footer")
+        assert.is_nil(footer.settings.progress_bar)
+        footer.settings.progress_bar = true
+        footer:set_mode_index()
+        assert.is_nil(footer.settings.progress_bar)
+
+        local menu_items = {}
+        footer:addToMainMenu(menu_items)
+        local arrange_item = menu_items.status_bar.sub_item_table[2].sub_item_table[1]
+        assert.is_false(arrange_item.enabled_func())
+        arrange_item.callback()
+
+        assert.is_false(stock_arrange_called)
+        assert.are.equal("Arrange items", arrange_options.title)
+        assert.is_true(arrange_options.item_table[2].dim)
+
+        footer.settings.disable_progress_bar = false
+        assert.is_true(arrange_item.enabled_func())
+        arrange_item.callback()
+        assert.is_false(arrange_options.item_table[2].dim)
+        arrange_options.callback()
+        assert.is_true(footer.updated)
+        assert.is_true(footer.repainted)
+        assert.is_true(dirty)
     end)
 end)
