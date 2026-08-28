@@ -6,6 +6,8 @@ describe("ZenOS collection actions", function()
     local file_dialog_args
     local shown_dialog
     local collection_writes
+    local tbr_collection_name
+    local shared_collections
     local renamed
     local removed
     local saved_modules
@@ -32,6 +34,8 @@ describe("ZenOS collection actions", function()
         file_dialog_args = nil
         shown_dialog = nil
         collection_writes = 0
+        tbr_collection_name = "To Be Read"
+        shared_collections = nil
         collection_fixture = SortFixtures.new()
         renamed = {}
         removed = {}
@@ -70,10 +74,12 @@ describe("ZenOS collection actions", function()
         ZenSpec.replace("common/ui/background", { applyToMenu = function() end })
         ZenSpec.replace("common/shared_state", {
             get = function() end,
-            register = function() end,
+            register = function(_plugin, entries)
+                shared_collections = entries.collections
+            end,
         })
         ZenSpec.replace("common/tbr_index", {
-            collectionName = function() return "To Be Read" end,
+            collectionName = function() return tbr_collection_name end,
         })
         local reading_entries = {}
         for _i, entry in ipairs(collection_fixture.entries) do
@@ -147,12 +153,25 @@ describe("ZenOS collection actions", function()
         end
     end)
 
-    it("omits rename and delete actions for To Be Read", function()
+    it("allows rename but omits delete for To Be Read", function()
         assert.is_true(collection_manager.coll_list:onMenuHold({ name = "To Be Read" }))
-        assert.are.same({}, file_dialog_args._zen_prepend_buttons)
+        assert.are.equal(1, #file_dialog_args._zen_prepend_buttons)
+        assert.is_truthy(file_dialog_args._zen_prepend_buttons[1][1].text:find(
+            "Rename", 1, true))
         assert.are.equal(1, #file_dialog_args._zen_extra_buttons)
         assert.is_truthy(file_dialog_args._zen_extra_buttons[1][1].text:find(
             "Connect folders", 1, true))
+
+        collection_manager.booklist_menu = { path = "To Be Read" }
+        collection_manager.setCollate = function(self)
+            self.set_collate_calls = (self.set_collate_calls or 0) + 1
+        end
+        collection_manager.updateItemTable = function(self)
+            self.update_item_calls = (self.update_item_calls or 0) + 1
+        end
+        assert.is_true(shared_collections.refreshTBRCollection())
+        assert.are.equal(1, collection_manager.set_collate_calls)
+        assert.are.equal(1, collection_manager.update_item_calls)
     end)
 
     it("retains rename and delete actions for ordinary collections", function()
@@ -163,6 +182,18 @@ describe("ZenOS collection actions", function()
             "Rename", 1, true))
         assert.is_truthy(file_dialog_args._zen_extra_buttons[2][1].text:find(
             "Delete collection", 1, true))
+    end)
+
+    it("keeps a renamed To Be Read collection protected from deletion", function()
+        tbr_collection_name = "Later"
+        assert.is_true(collection_manager.coll_list:onMenuHold({ name = "Later" }))
+        assert.are.equal(1, #file_dialog_args._zen_prepend_buttons)
+        assert.are.equal(1, #file_dialog_args._zen_extra_buttons)
+
+        collection_manager:renameCollection({ name = "Later" })
+        collection_manager:removeCollection({ name = "Later" })
+        assert.are.same({ "Later" }, renamed)
+        assert.are.same({}, removed)
     end)
 
     it("offers and saves filename sorting for collections", function()
@@ -203,13 +234,13 @@ describe("ZenOS collection actions", function()
         end
     end)
 
-    it("rejects direct rename and delete calls for To Be Read", function()
+    it("allows direct rename but rejects delete calls for To Be Read", function()
         collection_manager:renameCollection({ name = "To Be Read" })
         collection_manager:removeCollection({ name = "To Be Read" })
         collection_manager:renameCollection({ name = "Reading" })
         collection_manager:removeCollection({ name = "Reading" })
 
-        assert.are.same({ "Reading" }, renamed)
+        assert.are.same({ "To Be Read", "Reading" }, renamed)
         assert.are.same({ "Reading" }, removed)
     end)
 end)

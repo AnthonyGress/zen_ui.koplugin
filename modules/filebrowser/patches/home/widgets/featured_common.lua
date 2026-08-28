@@ -323,7 +323,8 @@ function M.build(ctx, source_key)
             build_progress_text(book, pct, module_cfg.progress_meta)
     end
     local has_progress_text = left_progress_text ~= "" or right_progress_text ~= ""
-    local progress_h = math.max(1, math.floor(height * 0.022))
+    local cover_h = math.max(1, cover_actual_h or col_h)
+    local progress_h = math.max(1, math.floor(cover_h * 0.022))
     local stats_text_h = 0
     if has_progress_text then
         local stats_probe = TextWidget:new{ text = "A", face = stats_face }
@@ -333,7 +334,6 @@ function M.build(ctx, source_key)
     local bar_h = math.max(progress_h, stats_text_h)
     local has_progress = show_progress and bar_h > 0
         and book.status ~= "new" and not is_tbr
-    local cover_h = math.max(1, cover_actual_h or col_h)
     local bottom_h = has_progress and bar_h or 0
 
     local function build_progress_row(progress_w)

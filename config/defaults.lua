@@ -66,6 +66,7 @@ local defaults = {
         browser_cover_rounded_corners = true,
         browser_cover_mosaic_uniform = true,
         automatic_series_grouping = true,
+        hide_grouped_series = false,
         partial_page_repaint = false,
         reader_top_status_bar = true,
         reader_themes = false,
@@ -83,7 +84,7 @@ local defaults = {
         zen_opds             = true,
     },
     search = {
-        substring = false,
+        substring = true,
     },
     developer = {
         double_tap_to_open_books = false,
@@ -163,6 +164,8 @@ local defaults = {
         show_frontlight = true,
         show_warmth = true,
         flip_lh_rh_icon = false,
+        gyro_label = "",
+        gyro_icon = "quick_rotate",
         rotate_action = "90",
         screenshot_timer_seconds = 3,
     },
@@ -178,6 +181,7 @@ local defaults = {
         show_bottom_border = false,
         colored = false,
         bold_text = false,
+        wifi_hide_when_off = false,
         hide_browser_bar = true,
     },
     browser_hide_up_folder = {
@@ -189,9 +193,11 @@ local defaults = {
     },
     folder_sort = {},
     folder_display_mode = {},
+    folder_cover_paths = {},
     library_background = {
         enabled = false,
         path = "",  -- "" = none; absolute image path otherwise
+        opacity = 100,
     },
     additional_home_dirs = {},
     browser_list_item_layout = {
@@ -218,8 +224,11 @@ local defaults = {
     browser_series_badge = {
         show_series_badge = false,
     },
+    uniform_cover_ratio = "2:3",
     opds = {
         display_mode = "mosaic", -- "mosaic" | "list" | "classic"
+        default_url = "",
+        downloaded = {},
     },
     mosaic_title_strip = {
         show_title  = false,
@@ -260,8 +269,13 @@ local defaults = {
         chapter_time_format = "number",
         hide_in_cbz = true,
     },
+    page_browser = {
+        toc_font_size = 18,
+        bookmarks_font_size = 18,
+    },
     highlight_lookup = {
         allow_unknown_items = false,
+        color_names         = {},
         show_wikipedia      = false,
         show_xray           = true,
         show_koassistant    = true,
@@ -301,6 +315,12 @@ local defaults = {
             languages = "list_image_meta",
             tags = "list_image_meta",
             to_be_read = "list_image_meta",
+        },
+        detail_display_mode = {
+            authors = {},
+            series = {},
+            languages = {},
+            tags = {},
         },
         group_reverse = {
             authors = false,

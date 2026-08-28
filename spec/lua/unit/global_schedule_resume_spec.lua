@@ -73,17 +73,19 @@ describe("global schedule resume hook", function()
         _G.G_reader_settings = original_reader_settings
     end)
 
-    it("reapplies schedules after Resume even when another widget handled it", function()
+    it("retries frontlight schedules after Resume even when another widget handled it", function()
         assert.is_true(global.init(nil, { config = { features = {} } }))
 
         assert.is_true(ui_manager:broadcastEvent({ handler = "onResume" }))
-        assert.are.equal(1, #scheduled)
+        assert.are.equal(2, #scheduled)
         assert.are.equal(0.1, scheduled[1].delay)
+        assert.are.equal(1.5, scheduled[2].delay)
         assert.is_nil(_G.night_reschedules)
         scheduled[1].callback()
+        scheduled[2].callback()
         assert.are.equal(1, _G.night_reschedules)
-        assert.are.equal(1, _G.brightness_reschedules)
-        assert.are.equal(1, _G.warmth_reschedules)
+        assert.are.equal(2, _G.brightness_reschedules)
+        assert.are.equal(2, _G.warmth_reschedules)
     end)
 
     it("does not reapply schedules for unrelated broadcasts", function()

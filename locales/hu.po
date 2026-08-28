@@ -1,0 +1,2770 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: zenos 3.0.0\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: hu\n"
+
+msgid " days"
+msgstr " nap"
+
+msgid "%1 (%2)"
+msgstr "%1 (%2)"
+
+msgid "%1 mins left in chapter"
+msgstr "%1 perc van hátra a fejezetből"
+
+msgid "%1, %2 %3"
+msgstr "%1, %2 %3"
+
+msgid "%d%% Read"
+msgstr "%d%% elolvasva"
+
+msgid "%s books goal"
+msgstr "%s könyv cél"
+
+msgid "%s goal"
+msgstr "%s cél"
+
+msgid "%s goal (%s)"
+msgstr "%s cél (%s)"
+
+msgid "%s left"
+msgstr "%s van hátra"
+
+msgid "%s pages goal"
+msgstr "%s oldal cél"
+
+msgid "%s time goal (min)"
+msgstr "%s idő cél (perc)"
+
+msgid "(auto)"
+msgstr "(automatikus)"
+
+msgid "(Kindle)"
+msgstr "(Kindle)"
+
+msgid "(none)"
+msgstr "(nincs)"
+
+msgid "(standard)"
+msgstr "(alapértelmezett)"
+
+msgid "1 author"
+msgstr "1 szerző"
+
+msgid "1 book"
+msgstr "1 könyv"
+
+msgid "1 min left in chapter"
+msgstr "1 perc van hátra a fejezetből"
+
+msgid "1 series"
+msgstr "1 sorozat"
+
+msgid "1 tag"
+msgstr "1 címke"
+
+msgid "12-hour  (3:30 PM)"
+msgstr "12 órás  (3:30 du.)"
+
+msgid "12-hour time"
+msgstr "12 órás formátum"
+
+msgid "180°"
+msgstr "180°"
+
+msgid "24-hour  (15:30)"
+msgstr "24 órás  (15:30)"
+
+msgid "270°"
+msgstr "270°"
+
+msgid "90°"
+msgstr "90°"
+
+msgid "< 1 min left in chapter"
+msgstr "< 1 perc van hátra a fejezetből"
+
+msgid "A clean, minimal experience for your e-reader.\n\nSwipe or tap Next to continue."
+msgstr "Letisztult, minimalista élmény az e-book olvasódhoz.\n\nHúzz vagy koppints a Következőre a folytatáshoz."
+
+msgid "A launcher button has been added for ZenPM."
+msgstr "Egy indítógomb került hozzáadásra a ZenPM-hez."
+
+msgid "A short summary of what went wrong"
+msgstr "Rövid összefoglaló arról, mi történt"
+
+msgid "About"
+msgstr "Névjegy"
+
+msgid "Action"
+msgstr "Művelet"
+
+msgid "Action: %1"
+msgstr "Művelet: %1"
+
+msgid "Action: (none)"
+msgstr "Művelet: (nincs)"
+
+msgid "Active tab"
+msgstr "Aktív fül"
+
+msgid "Active tab color"
+msgstr "Aktív fül színe"
+
+msgid "Active tab color: "
+msgstr "Aktív fül színe: "
+
+msgid "Active tab RGB"
+msgstr "Aktív fül RGB"
+
+msgid "Add"
+msgstr "Hozzáadás"
+
+msgid "Add action"
+msgstr "Művelet hozzáadása"
+
+msgid "Add at least one quote to settings/ZenOS/quotes.lua to enable this source."
+msgstr "Adj hozzá legalább egy idézetet a settings/ZenOS/quotes.lua fájlhoz, hogy engedélyezd ezt a forrást."
+
+msgid "Add book"
+msgstr "Könyv hozzáadása"
+
+msgid "Add buttons"
+msgstr "Gombok hozzáadása"
+
+msgid "Add catalog"
+msgstr "Katalógus hozzáadása"
+
+msgid "Add control"
+msgstr "Vezérlő hozzáadása"
+
+msgid "Add custom buttons for other plugins or actions."
+msgstr "Egyéni gombok hozzáadása más bővítményekhez vagy műveletekhez."
+
+msgid "Add folder…"
+msgstr "Mappa hozzáadása…"
+
+msgid "Add KOReader menu"
+msgstr "KOReader menü hozzáadása"
+
+msgid "Add plugin"
+msgstr "Bővítmény hozzáadása"
+
+msgid "Add to collection"
+msgstr "Hozzáadás gyűjteményhez"
+
+msgid "added"
+msgstr "hozzáadva"
+
+msgid "Additional home folders"
+msgstr "További kezdőmappák"
+
+msgid "Advanced"
+msgstr "Speciális"
+
+msgid "Alexandre Dumas"
+msgstr "Alexandre Dumas"
+
+msgid "All"
+msgstr "Összes"
+
+msgid "All settings are in one unified tab. This icon with the dot indicates an update is available.\n\nInstall ZenOS updates directly from your device."
+msgstr "Minden beállítás egyetlen fülön található. A ponttal jelölt ikon frissítés elérhetőségét jelzi.\n\nTelepítsd a ZenOS frissítéseit közvetlenül az eszközödről."
+
+msgid "All tags"
+msgstr "Összes címke"
+
+msgid "All time"
+msgstr "Összesen"
+
+msgid "All Time"
+msgstr "Összesen"
+
+msgid "Allow delete"
+msgstr "Törlés engedélyezése"
+
+msgid "Amber"
+msgstr "Borostyán"
+
+msgid "An item with that name already exists."
+msgstr "Már létezik elem ezzel a névvel."
+
+msgid "Annotations"
+msgstr "Jegyzetek"
+
+msgid "App"
+msgstr "Alkalmazás"
+
+msgid "Apply"
+msgstr "Alkalmaz"
+
+msgid "Are you sure you want to exit KOReader?"
+msgstr "Biztosan kilépsz a KOReaderből?"
+
+msgid "Are you sure you want to install the ZenPM plugin?"
+msgstr "Biztosan telepíted a ZenPM bővítményt?"
+
+msgid "Are you sure you want to quit KOReader?"
+msgstr "Biztosan bezárod a KOReadert?"
+
+msgid "Are you sure you want to restart KOReader?"
+msgstr "Biztosan újraindítod a KOReadert?"
+
+msgid "Arrange"
+msgstr "Elrendezés"
+
+msgid "Arrange center items"
+msgstr "Középső elemek elrendezése"
+
+msgid "Arrange left items"
+msgstr "Bal oldali elemek elrendezése"
+
+msgid "Arrange right items"
+msgstr "Jobb oldali elemek elrendezése"
+
+msgid "Ascending"
+msgstr "Növekvő"
+
+msgid "At least one tab must be visible"
+msgstr "Legalább egy fülnek láthatónak kell lennie"
+
+msgid "Author"
+msgstr "Szerző"
+
+msgid "Authors"
+msgstr "Szerzők"
+
+msgid "authors"
+msgstr "szerzők"
+
+msgid "Automatic"
+msgstr "Automatikus"
+
+msgid "Automatic font size"
+msgstr "Automatikus betűméret"
+
+msgid "Automatic suspend"
+msgstr "Automatikus alvó mód"
+
+msgid "Back"
+msgstr "Vissza"
+
+msgid "Background"
+msgstr "Háttér"
+
+msgid "Background color"
+msgstr "Háttérszín"
+
+msgid "Background image could not be loaded. It may be corrupt or unsupported."
+msgstr "A háttérkép nem tölthető be. Lehet, hogy sérült vagy nem támogatott."
+
+msgid "Background image file not found."
+msgstr "A háttérkép fájl nem található."
+
+msgid "Background image must be a JPG or JPEG file."
+msgstr "A háttérképnek JPG vagy JPEG fájlnak kell lennie."
+
+msgid "Badge color RGB"
+msgstr "Jelvény szín RGB"
+
+msgid "Badge color: "
+msgstr "Jelvény színe: "
+
+msgid "Badge size"
+msgstr "Jelvény mérete"
+
+msgid "Badges"
+msgstr "Jelvények"
+
+msgid "Bar"
+msgstr "Sáv"
+
+msgid "Battery"
+msgstr "Akkumulátor"
+
+msgid "Battery Stats"
+msgstr "Akkumulátor statisztika"
+
+msgid "Beginning / End"
+msgstr "Eleje / Vége"
+
+msgid "Best day"
+msgstr "Legjobb nap"
+
+msgid "Best month"
+msgstr "Legjobb hónap"
+
+msgid "Best week"
+msgstr "Legjobb hét"
+
+msgid "Beta"
+msgstr "Béta"
+
+msgid "Black"
+msgstr "Fekete"
+
+msgid "Blue"
+msgstr "Kék"
+
+msgid "Bluetooth"
+msgstr "Bluetooth"
+
+msgid "Bold"
+msgstr "Félkövér"
+
+msgid "bold"
+msgstr "félkövér"
+
+msgid "Bold text"
+msgstr "Félkövér szöveg"
+
+msgid "Book"
+msgstr "Könyv"
+
+msgid "Book added to download list"
+msgstr "Könyv hozzáadva a letöltési listához"
+
+msgid "Book details"
+msgstr "Könyv adatai"
+
+msgid "Book information"
+msgstr "Könyv adatai"
+
+msgid "Book Status"
+msgstr "Könyv állapota"
+
+msgid "Book strip"
+msgstr "Könyv csík"
+
+msgid "Book switcher"
+msgstr "Könyvváltó"
+
+msgid "Book title"
+msgstr "Könyv címe"
+
+msgid "Book Title"
+msgstr "Könyv címe"
+
+msgid "Book: "
+msgstr "Könyv: "
+
+msgid "books"
+msgstr "könyvek"
+
+msgid "Books"
+msgstr "Könyvek"
+
+msgid "Books read"
+msgstr "Elolvasott könyvek"
+
+msgid "Books tab label"
+msgstr "Könyvek fül címkéje"
+
+msgid "Bottom"
+msgstr "Alul"
+
+msgid "Bottom status bar"
+msgstr "Alsó állapotsor"
+
+msgid "Brief description of the bug"
+msgstr "Rövid leírás a hibáról"
+
+msgid "Brightness"
+msgstr "Fényerő"
+
+msgid "Bug description (optional)"
+msgstr "Hiba leírása (opcionális)"
+
+msgid "Bug report submitted!"
+msgstr "Hibajelentés elküldve!"
+
+msgid "Bug report title"
+msgstr "Hibajelentés címe"
+
+msgid "Buttons"
+msgstr "Gombok"
+
+msgid "By %1"
+msgstr "Szerző: %1"
+
+msgid "Calendar"
+msgstr "Naptár"
+
+msgid "Calibre"
+msgstr "Calibre"
+
+msgid "Calibre plugin is not installed."
+msgstr "A Calibre bővítmény nincs telepítve."
+
+msgid "Calibre Search"
+msgstr "Calibre keresés"
+
+msgid "Cancel"
+msgstr "Mégse"
+
+msgid "Cannot open last document"
+msgstr "Az utolsó dokumentum nem nyitható meg"
+
+msgid "Casual Chess"
+msgstr "Casual Chess"
+
+msgid "Center"
+msgstr "Középre"
+
+msgid "Center books"
+msgstr "Középső könyvek"
+
+msgid "Center items"
+msgstr "Középső elemek"
+
+msgid "Change folder"
+msgstr "Mappa módosítása"
+
+msgid "Changelog"
+msgstr "Változásnapló"
+
+msgid "Chapter"
+msgstr "Fejezet"
+
+msgid "Check for updates automatically"
+msgstr "Automatikus frissítés keresés"
+
+msgid "Checking for updates"
+msgstr "Frissítések keresése"
+
+msgid "Chess"
+msgstr "Sakk"
+
+msgid "Choose a different folder"
+msgstr "Válassz másik mappát"
+
+msgid "Choose control"
+msgstr "Válassz vezérlőt"
+
+msgid "Choose item"
+msgstr "Válassz elemet"
+
+msgid "Choose KOReader menu"
+msgstr "Válassz KOReader menüt"
+
+msgid "Choose plugin menu"
+msgstr "Válassz bővítmény menüt"
+
+msgid "Choose tab"
+msgstr "Válassz fület"
+
+msgid "Choose tag"
+msgstr "Válassz címkét"
+
+msgid "Choose which tabs appear in your navigation bar.\nYou can rearrange or adjust these anytime in Settings."
+msgstr "Válaszd ki, mely fülek jelenjenek meg a navigációs sávban.\nEzeket bármikor átrendezheted vagy módosíthatod a Beállításokban."
+
+msgid "Classic"
+msgstr "Klasszikus"
+
+msgid "Classic (filename only)"
+msgstr "Klasszikus (csak fájlnév)"
+
+msgid "Clear"
+msgstr "Törlés"
+
+msgid "Clear all gestures"
+msgstr "Összes gesztus törlése"
+
+msgid "Clear book"
+msgstr "Könyv törlése"
+
+msgid "Close"
+msgstr "Bezárás"
+
+msgid "Cloud"
+msgstr "Felhő"
+
+msgid "Cloud storage"
+msgstr "Felhőtárhely"
+
+msgid "Collections"
+msgstr "Gyűjtemények"
+
+msgid "Colored"
+msgstr "Színes"
+
+msgid "Colored status icons"
+msgstr "Színes állapotikonok"
+
+msgid "Columns"
+msgstr "Oszlopok"
+
+msgid "Compact"
+msgstr "Kompakt"
+
+msgid "Connect folders"
+msgstr "Mappák csatlakoztatása"
+
+msgid "Connections"
+msgstr "Kapcsolatok"
+
+msgid "Content: "
+msgstr "Tartalom: "
+
+msgid "Context Menu"
+msgstr "Helyi menü"
+
+msgid "Continue"
+msgstr "Folytatás"
+
+msgid "Control"
+msgstr "Vezérlő"
+
+msgid "Control settings"
+msgstr "Vezérlő beállítások"
+
+msgid "Control: %1"
+msgstr "Vezérlő: %1"
+
+msgid "Controls"
+msgstr "Vezérlők"
+
+msgid "Copy"
+msgstr "Másolás"
+
+msgid "Could not determine update status."
+msgstr "A frissítés állapota nem határozható meg."
+
+msgid "Could not find a ZenPM release."
+msgstr "Nem található ZenPM kiadás."
+
+msgid "Could not get release from update server."
+msgstr "Nem sikerült lekérni a kiadást a frissítési szerverről."
+
+msgid "Could not install %1: %2"
+msgstr "%1 telepítése sikertelen: %2"
+
+msgid "Could not install ZenPM."
+msgstr "Nem sikerült telepíteni a ZenPM-et."
+
+msgid "Could not reach update server."
+msgstr "A frissítési szerver nem elérhető."
+
+msgid "Could not reach update server. Check your internet connection."
+msgstr "A frissítési szerver nem elérhető. Ellenőrizd az internetkapcsolatot."
+
+msgid "Could not reach update server. Check your internet connection.\n\nUnable to load changelog."
+msgstr "A frissítési szerver nem elérhető. Ellenőrizd az internetkapcsolatot.\n\nA változásnapló nem tölthető be."
+
+msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
+msgstr "Nem sikerült a Wi-Fi hálózatok keresése. Próbáld újra az eszköz felébresztése után."
+
+msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
+msgstr "A CoverBrowser bővítmény nincs engedélyezve, néhány funkció nem fog megfelelően működni."
+
+msgid "Covers"
+msgstr "Borítók"
+
+msgid "crash.log will be embedded in a public GitHub issue. It may contain file paths and book titles."
+msgstr "A crash.log fájl bekerül egy nyilvános GitHub hibajegybe. Fájlelérési utakat és könyvcímeket is tartalmazhat."
+
+msgid "Create this folder and use as home"
+msgstr "Mappa létrehozása és beállítása kezdőlapként"
+
+msgid "Crossword"
+msgstr "Keresztrejtvény"
+
+msgid "Current / total pages"
+msgstr "Jelenlegi / összes oldal"
+
+msgid "Current book"
+msgstr "Jelenlegi könyv"
+
+msgid "Current Book"
+msgstr "Jelenlegi könyv"
+
+msgid "Current home folder:"
+msgstr "Jelenlegi kezdőmappa:"
+
+msgid "Current only"
+msgstr "Csak a jelenlegi"
+
+msgid "Current/total pages"
+msgstr "Jelenlegi/összes oldal"
+
+msgid "Custom"
+msgstr "Egyéni"
+
+msgid "Custom books"
+msgstr "Egyéni könyvek"
+
+msgid "Custom button label"
+msgstr "Egyéni gombcímke"
+
+msgid "Custom icon pack: %1"
+msgstr "Egyéni ikoncsomag: %1"
+
+msgid "Custom icons"
+msgstr "Egyéni ikonok"
+
+msgid "Custom quotes"
+msgstr "Egyéni idézetek"
+
+msgid "Custom RGB"
+msgstr "Egyéni RGB"
+
+msgid "Custom separator"
+msgstr "Egyéni elválasztó"
+
+msgid "Custom strip widget"
+msgstr "Egyéni csík widget"
+
+msgid "Custom tab label"
+msgstr "Egyéni fülcímke"
+
+msgid "Custom text"
+msgstr "Egyéni szöveg"
+
+msgid "Custom text: "
+msgstr "Egyéni szöveg: "
+
+msgid "Custom theme"
+msgstr "Egyéni téma"
+
+msgid "Custom themes"
+msgstr "Egyéni témák"
+
+msgid "Custom: "
+msgstr "Egyéni: "
+
+msgid "Customize widget"
+msgstr "Widget testreszabása"
+
+msgid "Cut"
+msgstr "Kivágás"
+
+msgid "Cycle"
+msgstr "Ciklikus váltás"
+
+msgid "Daily"
+msgstr "Napi"
+
+msgid "Dark graphite"
+msgstr "Sötét grafit"
+
+msgid "Dark mode"
+msgstr "Sötét mód"
+
+msgid "Dark warm gray"
+msgstr "Sötét meleg szürke"
+
+msgid "Date"
+msgstr "Dátum"
+
+msgid "Date/time"
+msgstr "Dátum/idő"
+
+msgid "Day brightness"
+msgstr "Nappali fényerő"
+
+msgid "Day brightness time"
+msgstr "Nappali fényerő időpontja"
+
+msgid "Day brightness time: "
+msgstr "Nappali fényerő időpontja: "
+
+msgid "Day brightness: "
+msgstr "Nappali fényerő: "
+
+msgid "Day streak"
+msgstr "Napi sorozat"
+
+msgid "Day warmth"
+msgstr "Nappali melegség"
+
+msgid "Day warmth time"
+msgstr "Nappali melegség időpontja"
+
+msgid "Day warmth time: "
+msgstr "Nappali melegség időpontja: "
+
+msgid "Day warmth: "
+msgstr "Nappali melegség: "
+
+msgid "Debug logging"
+msgstr "Hibakeresési naplózás"
+
+msgid "Debug logging must be enabled to submit bug reports."
+msgstr "A hibakeresési naplózást engedélyezni kell a hibajelentések küldéséhez."
+
+msgid "default"
+msgstr "alapértelmezett"
+
+msgid "Default"
+msgstr "Alapértelmezett"
+
+msgid "Default (black)"
+msgstr "Alapértelmezett (fekete)"
+
+msgid "Default font size:"
+msgstr "Alapértelmezett betűméret:"
+
+msgid "Default quotes"
+msgstr "Alapértelmezett idézetek"
+
+msgid "Default tab: "
+msgstr "Alapértelmezett fül: "
+
+msgid "Default: Home"
+msgstr "Alapértelmezett: Kezdőlap"
+
+msgid "Delete"
+msgstr "Törlés"
+
+msgid "Delete collection"
+msgstr "Gyűjtemény törlése"
+
+msgid "Delete OPDS catalog?"
+msgstr "Törlöd az OPDS katalógust?"
+
+msgid "Delete preset?"
+msgstr "Törlöd az előre beállított sablont?"
+
+msgid "Delete theme"
+msgstr "Téma törlése"
+
+msgid "Delete this button?"
+msgstr "Törlöd ezt a gombot?"
+
+msgid "Delete this control?"
+msgstr "Törlöd ezt a vezérlőt?"
+
+msgid "Delete this custom theme?"
+msgstr "Törlöd ezt az egyéni témát?"
+
+msgid "Delete this folder and its buttons?"
+msgstr "Törlöd ezt a mappát és a gombjait?"
+
+msgid "Delete this row break?"
+msgstr "Törlöd ezt a sortörést?"
+
+msgid "Delete this tab?"
+msgstr "Törlöd ezt a fület?"
+
+msgid "Descending"
+msgstr "Csökkenő"
+
+msgid "Description"
+msgstr "Leírás"
+
+msgid "Detailed list with cover images and filenames"
+msgstr "Részletes lista borítóképekkel és fájlnevekkel"
+
+msgid "Detailed list with cover images and metadata"
+msgstr "Részletes lista borítóképekkel és metaadatokkal"
+
+msgid "Detailed list with metadata, no images"
+msgstr "Részletes lista metaadatokkal, képek nélkül"
+
+msgid "Details"
+msgstr "Részletek"
+
+msgid "Device"
+msgstr "Eszköz"
+
+msgid "Device: "
+msgstr "Eszköz: "
+
+msgid "Dictionary lookup"
+msgstr "Szótári keresés"
+
+msgid "Dim finished books"
+msgstr "Befejezett könyvek elhalványítása"
+
+msgid "Disable bottom menu swipe"
+msgstr "Alsó menü csúsztatás letiltása"
+
+msgid "Disable context menu"
+msgstr "Helyi menü letiltása"
+
+msgid "Disable multi-word selection"
+msgstr "Több szavas kijelölés letiltása"
+
+msgid "Disable settings panel"
+msgstr "Beállítások panel letiltása"
+
+msgid "Disable word search on hold"
+msgstr "Szókeresés letiltása lenyomva tartáskor"
+
+msgid "Disable zen mode to access default KOReader menus."
+msgstr "Kapcsold ki a zen módot az alapértelmezett KOReader menük eléréséhez."
+
+msgid "Disable Zen Mode with this icon to adjust KOReader settings that aren’t available in Zen Settings."
+msgstr "Kapcsold ki a Zen módot ezzel az ikonnal, hogy hozzáférj azokhoz a KOReader beállításokhoz, amelyek nem érhetők el a Zen beállításokban."
+
+msgid "Disk space"
+msgstr "Tárhely"
+
+msgid "Display"
+msgstr "Megjelenítés"
+
+msgid "Display mode"
+msgstr "Megjelenítési mód"
+
+msgid "Divider"
+msgstr "Elválasztó"
+
+msgid "Dividing lines"
+msgstr "Elválasztó vonalak"
+
+msgid "Done"
+msgstr "Kész"
+
+msgid "Dots"
+msgstr "Pontok"
+
+msgid "Download"
+msgstr "Letöltés"
+
+msgid "Download and install the Zen Package Manager for this device."
+msgstr "Töltsd le és telepítsd a Zen csomagkezelőt ehhez az eszközhöz."
+
+msgid "Download failed: "
+msgstr "Letöltés sikertelen: "
+
+msgid "Downloaded"
+msgstr "Letöltve"
+
+msgid "Downloading"
+msgstr "Letöltés"
+
+msgid "Downloading ZenPM"
+msgstr "ZenPM letöltése"
+
+msgid "Dynamic filler 2"
+msgstr "Dinamikus kitöltő 2"
+
+msgid "Edit"
+msgstr "Szerkesztés"
+
+msgid "Edit mode"
+msgstr "Szerkesztési mód"
+
+msgid "Enable"
+msgstr "Engedélyezés"
+
+msgid "Enable bottom status bar"
+msgstr "Alsó állapotsor engedélyezése"
+
+msgid "Enable bottom swipe"
+msgstr "Alsó csúsztatás engedélyezése"
+
+msgid "Enable brightness schedule"
+msgstr "Fényerő ütemezés engedélyezése"
+
+msgid "Enable custom icons"
+msgstr "Egyéni ikonok engedélyezése"
+
+msgid "Enable custom status bar"
+msgstr "Egyéni állapotsor engedélyezése"
+
+msgid "Enable KOReader verbose debug logging. Logs are written to koreader.log. Takes effect immediately."
+msgstr "KOReader részletes hibakeresési naplózás engedélyezése. A naplók a koreader.log fájlba kerülnek. Azonnal érvénybe lép."
+
+msgid "Enable night mode schedule"
+msgstr "Éjszakai mód ütemezés engedélyezése"
+
+msgid "Enable reader themes"
+msgstr "Olvasó témák engedélyezése"
+
+msgid "Enable top status bar"
+msgstr "Felső állapotsor engedélyezése"
+
+msgid "Enable warmth schedule"
+msgstr "Melegség ütemezés engedélyezése"
+
+msgid "Enable Zen OPDS"
+msgstr "Zen OPDS engedélyezése"
+
+msgid "Enable ZenOS enhancements to the OPDS browser: cover art, list view, hold menu, and navigation improvements."
+msgstr "ZenOS fejlesztések engedélyezése az OPDS böngészőhöz: borítóképek, listanézet, lenyomva tartható menü és navigációs fejlesztések."
+
+msgid "Enabling debug logging, restart required. Please reproduce the issue, then submit the report."
+msgstr "A hibakeresési naplózás engedélyezéséhez újraindítás szükséges. Idézd elő újra a problémát, majd küldd el a jelentést."
+
+msgid "Enter your GitHub username to be tagged in the issue"
+msgstr "Add meg a GitHub felhasználóneved, hogy megjelölhessünk a hibajegyben"
+
+msgid "Exit"
+msgstr "Kilépés"
+
+msgid "Extra large"
+msgstr "Extra nagy"
+
+msgid "Extract and cache book metadata and cover images for books in the current directory. Requires CoverBrowser plugin."
+msgstr "Könyv metaadatok és borítóképek kinyerése és gyorsítótárazása a jelenlegi mappa könyveihez. A CoverBrowser bővítmény szükséges hozzá."
+
+msgid "Extract metadata"
+msgstr "Metaadatok kinyerése"
+
+msgid "Extras"
+msgstr "Extrák"
+
+msgid "Failed to submit report: "
+msgstr "A jelentés elküldése sikertelen: "
+
+msgid "Favorites"
+msgstr "Kedvencek"
+
+msgid "Featured book"
+msgstr "Kiemelt könyv"
+
+msgid "Featured widgets"
+msgstr "Kiemelt widgetek"
+
+msgid "File browser settings"
+msgstr "Fájlböngésző beállításai"
+
+msgid "File search"
+msgstr "Fájlkeresés"
+
+msgid "Filebrowser"
+msgstr "Fájlböngésző"
+
+msgid "Filebrowser plugin is not installed."
+msgstr "A Filebrowser bővítmény nincs telepítve."
+
+msgid "Filename:"
+msgstr "Fájlnév:"
+
+msgid "Filter"
+msgstr "Szűrés"
+
+msgid "Filter by status"
+msgstr "Szűrés állapot szerint"
+
+msgid "Finished"
+msgstr "Befejezve"
+
+msgid "Firmware: "
+msgstr "Firmware: "
+
+msgid "First cover image"
+msgstr "Első borítókép"
+
+msgid "Fixed layout documents (pdf, djvu, pics…)"
+msgstr "Fix elrendezésű dokumentumok (pdf, djvu, képek…)"
+
+msgid "Flip LH/RH icon"
+msgstr "Bal/jobb kéz ikon váltása"
+
+msgid "Folder"
+msgstr "Mappa"
+
+msgid "Folder buttons"
+msgstr "Mappa gombok"
+
+msgid "Folder name"
+msgstr "Mappa neve"
+
+msgid "Folder name position"
+msgstr "Mappa neve pozíciója"
+
+msgid "Folder presets"
+msgstr "Mappa sablonok"
+
+msgid "Folders"
+msgstr "Mappák"
+
+msgid "font"
+msgstr "betűtípus"
+
+msgid "Font"
+msgstr "Betűtípus"
+
+msgid "font size"
+msgstr "betűméret"
+
+msgid "Font size"
+msgstr "Betűméret"
+
+msgid "Font size:"
+msgstr "Betűméret:"
+
+msgid "Font, margins, contrast, line spacing etc - tested together for the best reading experience"
+msgstr "Betűtípus, margók, kontraszt, sorköz stb. - együtt letesztelve a legjobb olvasási élményért"
+
+msgid "Font:"
+msgstr "Betűtípus:"
+
+msgid "Force sync"
+msgstr "Szinkronizálás kényszerítése"
+
+msgid "Force sync all catalogs"
+msgstr "Összes katalógus szinkronizálásának kényszerítése"
+
+msgid "Format:"
+msgstr "Formátum:"
+
+msgid "Format: R,G,B (0-255)"
+msgstr "Formátum: R,G,B (0-255)"
+
+msgid "Frontlight"
+msgstr "Előlapi világítás"
+
+msgid "Gallery"
+msgstr "Galéria"
+
+msgid "Get Started"
+msgstr "Kezdés"
+
+msgid "GitHub username (optional)"
+msgstr "GitHub felhasználónév (opcionális)"
+
+msgid "Go"
+msgstr "Ugrás"
+
+msgid "Go to page"
+msgstr "Ugrás oldalra"
+
+msgid "Graph metric"
+msgstr "Grafikon mutató"
+
+msgid "Graph range"
+msgstr "Grafikon tartomány"
+
+msgid "Gray"
+msgstr "Szürke"
+
+msgid "Green"
+msgstr "Zöld"
+
+msgid "Group book series into folders"
+msgstr "Könyvsorozatok csoportosítása mappákba"
+
+msgid "Gyro"
+msgstr "Giroszkóp"
+
+msgid "Gyroscope"
+msgstr "Giroszkóp"
+
+msgid "Hide finished books"
+msgstr "Befejezett könyvek elrejtése"
+
+msgid "Hide in CBZ/PDF files"
+msgstr "Elrejtés CBZ/PDF fájlokban"
+
+msgid "Hide list borders"
+msgstr "Listakeretek elrejtése"
+
+msgid "Hide on-hold books"
+msgstr "Felfüggesztett könyvek elrejtése"
+
+msgid "Hide reader actions in library"
+msgstr "Olvasó műveletek elrejtése a könyvtárban"
+
+msgid "Hide unread books"
+msgstr "Olvasatlan könyvek elrejtése"
+
+msgid "Hide up folder"
+msgstr "Szülőmappa elrejtése"
+
+msgid "Highlight / Lookup"
+msgstr "Kiemelés / Keresés"
+
+msgid "History"
+msgstr "Előzmények"
+
+msgid "Hold to skip"
+msgstr "Tartsd lenyomva a kihagyáshoz"
+
+msgid "Home"
+msgstr "Kezdőlap"
+
+msgid "Home Folder"
+msgstr "Kezdőmappa"
+
+msgid "Home folder"
+msgstr "Kezdőmappa"
+
+msgid "Home page preset"
+msgstr "Kezdőlap sablon"
+
+msgid "Home spacing was updated. Your saved widget order and selections were kept and refitted to the new grid."
+msgstr "A kezdőlap elrendezése frissült. A mentett widget sorrended és kiválasztásaid megmaradtak, és igazodtak az új rácshoz."
+
+msgid "Home tab label"
+msgstr "Kezdőlap fül címkéje"
+
+msgid "Hour"
+msgstr "Óra"
+
+msgid "Icon size:"
+msgstr "Ikonméret:"
+
+msgid "Icon: %1"
+msgstr "Ikon: %1"
+
+msgid "Icons"
+msgstr "Ikonok"
+
+msgid "Image support is unavailable on this device."
+msgstr "A képtámogatás nem érhető el ezen az eszközön."
+
+msgid "Image: "
+msgstr "Kép: "
+
+msgid "Image: none"
+msgstr "Kép: nincs"
+
+msgid "Include new books in TBR"
+msgstr "Új könyvek belefoglalása a TBR-be"
+
+msgid "Incognito"
+msgstr "Inkognitó"
+
+msgid "Incognito mode disabled"
+msgstr "Inkognitó mód kikapcsolva"
+
+msgid "Incognito mode enabled"
+msgstr "Inkognitó mód bekapcsolva"
+
+msgid "Incognito mode timed out"
+msgstr "Az inkognitó mód időtúllépés miatt kikapcsolt"
+
+msgid "Incompatible plugins and patches have been disabled:"
+msgstr "A nem kompatibilis bővítmények és patch-ek kikapcsolásra kerültek:"
+
+msgid "Incompatible plugins have been disabled:"
+msgstr "A nem kompatibilis bővítmények kikapcsolásra kerültek:"
+
+msgid "Install"
+msgstr "Telepítés"
+
+msgid "Install ZenPM"
+msgstr "ZenPM telepítése"
+
+msgid "Installed version is newer than the latest release."
+msgstr "A telepített verzió újabb, mint a legutóbbi kiadás."
+
+msgid "Installing"
+msgstr "Telepítés"
+
+msgid "Installing ZenPM"
+msgstr "ZenPM telepítése"
+
+msgid "Interactive"
+msgstr "Interaktív"
+
+msgid "IP address: %1"
+msgstr "IP-cím: %1"
+
+msgid "items per page"
+msgstr "elemek oldalanként"
+
+msgid "Items per page"
+msgstr "Elemek oldalanként"
+
+msgid "Keep existing settings"
+msgstr "Meglévő beállítások megtartása"
+
+msgid "KOReader menu"
+msgstr "KOReader menü"
+
+msgid "KOReader menu: %1"
+msgstr "KOReader menü: %1"
+
+msgid "KOReader: "
+msgstr "KOReader: "
+
+msgid "Label"
+msgstr "Címke"
+
+msgid "Label size:"
+msgstr "Címke mérete:"
+
+msgid "Label: "
+msgstr "Címke: "
+
+msgid "Label: %1"
+msgstr "Címke: %1"
+
+msgid "Labels"
+msgstr "Címkék"
+
+msgid "Landscape mosaic mode"
+msgstr "Fekvő mozaik mód"
+
+msgid "Landscape mosaic: "
+msgstr "Fekvő mozaik: "
+
+msgid "Large"
+msgstr "Nagy"
+
+msgid "Later"
+msgstr "Később"
+
+msgid "latest"
+msgstr "legújabb"
+
+msgid "Launcher"
+msgstr "Indító"
+
+msgid "Launcher entry is unavailable"
+msgstr "Az indító bejegyzés nem érhető el"
+
+msgid "Launcher label"
+msgstr "Indító címkéje"
+
+msgid "Layout"
+msgstr "Elrendezés"
+
+msgid "Leave empty to use action title"
+msgstr "Hagyd üresen a művelet címének használatához"
+
+msgid "Left"
+msgstr "Balra"
+
+msgid "Left items"
+msgstr "Bal oldali elemek"
+
+msgid "Library"
+msgstr "Könyvtár"
+
+msgid "Library background was disabled because the image file was not found."
+msgstr "A könyvtár háttere kikapcsolásra került, mert a képfájl nem található."
+
+msgid "Library font"
+msgstr "Könyvtár betűtípusa"
+
+msgid "Library font size"
+msgstr "Könyvtár betűmérete"
+
+msgid "Library View"
+msgstr "Könyvtár nézet"
+
+msgid "Light"
+msgstr "Világos"
+
+msgid "Light mode"
+msgstr "Világos mód"
+
+msgid "Light sepia"
+msgstr "Világos szépia"
+
+msgid "Light tan"
+msgstr "Világos barna"
+
+msgid "List"
+msgstr "Lista"
+
+msgid "List (basic)"
+msgstr "Lista (egyszerű)"
+
+msgid "List (detailed)"
+msgstr "Lista (részletes)"
+
+msgid "List - detailed titles and metadata"
+msgstr "Lista - részletes címek és metaadatok"
+
+msgid "List: "
+msgstr "Lista: "
+
+msgid "Load more"
+msgstr "Továbbiak betöltése"
+
+msgid "Loading changelog"
+msgstr "Változásnapló betöltése"
+
+msgid "LocalSend"
+msgstr "LocalSend"
+
+msgid "Lock home folder"
+msgstr "Kezdőmappa zárolása"
+
+msgid "Lockdown"
+msgstr "Zárolás"
+
+msgid "Lockdown mode"
+msgstr "Zárolási mód"
+
+msgid "Loose icons"
+msgstr "Szabad ikonok"
+
+msgid "Loose icons in /koreader/icons"
+msgstr "Szabad ikonok a /koreader/icons mappában"
+
+msgid "Magnify UI"
+msgstr "Felület nagyítása"
+
+msgid "Main menu"
+msgstr "Főmenü"
+
+msgid "Manga"
+msgstr "Manga"
+
+msgid "Manga folder not found: "
+msgstr "A manga mappa nem található: "
+
+msgid "Manually download and sideload %1 from the same ZenPM release."
+msgstr "Töltsd le és telepítsd manuálisan a(z) %1 fájlt ugyanabból a ZenPM kiadásból."
+
+msgid "Match whole words"
+msgstr "Teljes szavak egyezése"
+
+msgid "Max books shown"
+msgstr "Megjelenített könyvek maximális száma"
+
+msgid "Max books shown: "
+msgstr "Megjelenített könyvek maximális száma: "
+
+msgid "Maximum 7 tabs allowed"
+msgstr "Legfeljebb 7 fül engedélyezett"
+
+msgid "Maximum 9 buttons allowed"
+msgstr "Legfeljebb 9 gomb engedélyezett"
+
+msgid "Maximum font size:"
+msgstr "Maximális betűméret:"
+
+msgid "Maximum quote font size"
+msgstr "Idézet maximális betűmérete"
+
+msgid "Menu"
+msgstr "Menü"
+
+msgid "Metric"
+msgstr "Mutató"
+
+msgid "min"
+msgstr "perc"
+
+msgid "Minute"
+msgstr "Perc"
+
+msgid "Minutes"
+msgstr "Percek"
+
+msgid "minutes"
+msgstr "perc"
+
+msgid "Missing: %1"
+msgstr "Hiányzik: %1"
+
+msgid "Monthly"
+msgstr "Havi"
+
+msgid "Months"
+msgstr "Hónapok"
+
+msgid "Mosaic"
+msgstr "Mozaik"
+
+msgid "Mosaic - large cover thumbnails"
+msgstr "Mozaik - nagy borítómintaképek"
+
+msgid "Mosaic with cover images"
+msgstr "Mozaik borítóképekkel"
+
+msgid "Mosaic with text"
+msgstr "Mozaik szöveggel"
+
+msgid "Move"
+msgstr "Áthelyezés"
+
+msgid "Move failed."
+msgstr "Az áthelyezés sikertelen."
+
+msgid "Move out of folder"
+msgstr "Kihelyezés a mappából"
+
+msgid "Move to folder"
+msgstr "Áthelyezés mappába"
+
+msgid "Move to…"
+msgstr "Áthelyezés…"
+
+msgid "Navbar"
+msgstr "Navigációs sáv"
+
+msgid "Navbar icon size"
+msgstr "Navigációs sáv ikonmérete"
+
+msgid "Navbar label size"
+msgstr "Navigációs sáv címkemérete"
+
+msgid "Navbar Tabs"
+msgstr "Navigációs sáv fülei"
+
+msgid "Navigation"
+msgstr "Navigáció"
+
+msgid "Network unavailable."
+msgstr "A hálózat nem érhető el."
+
+msgid "New"
+msgstr "Új"
+
+msgid "New collection"
+msgstr "Új gyűjtemény"
+
+msgid "New custom theme"
+msgstr "Új egyéni téma"
+
+msgid "New folder"
+msgstr "Új mappa"
+
+msgid "New includes unread books and books modified since they were last opened."
+msgstr "Az „Új” magában foglalja az olvasatlan könyveket és az utolsó megnyitás óta módosított könyveket."
+
+msgid "New quote"
+msgstr "Új idézet"
+
+msgid "News"
+msgstr "Hírek"
+
+msgid "News folder not found: "
+msgstr "A hírek mappa nem található: "
+
+msgid "Next"
+msgstr "Következő"
+
+msgid "Next page"
+msgstr "Következő oldal"
+
+msgid "Night"
+msgstr "Éjszaka"
+
+msgid "Night brightness"
+msgstr "Éjszakai fényerő"
+
+msgid "Night brightness time"
+msgstr "Éjszakai fényerő időpontja"
+
+msgid "Night brightness time: "
+msgstr "Éjszakai fényerő időpontja: "
+
+msgid "Night brightness: "
+msgstr "Éjszakai fényerő: "
+
+msgid "Night mode"
+msgstr "Éjszakai mód"
+
+msgid "Night mode off time"
+msgstr "Éjszakai mód kikapcsolási időpontja"
+
+msgid "Night mode off: "
+msgstr "Éjszakai mód kikapcsolva: "
+
+msgid "Night mode on time"
+msgstr "Éjszakai mód bekapcsolási időpontja"
+
+msgid "Night mode on: "
+msgstr "Éjszakai mód bekapcsolva: "
+
+msgid "Night mode schedule"
+msgstr "Éjszakai mód ütemezés"
+
+msgid "Night warmth"
+msgstr "Éjszakai melegség"
+
+msgid "Night warmth time"
+msgstr "Éjszakai melegség időpontja"
+
+msgid "Night warmth time: "
+msgstr "Éjszakai melegség időpontja: "
+
+msgid "Night warmth: "
+msgstr "Éjszakai melegség: "
+
+msgid "No background image selected."
+msgstr "Nincs kiválasztva háttérkép."
+
+msgid "No books found"
+msgstr "Nem található könyv"
+
+msgid "No books found in the selected folder"
+msgstr "Nem található könyv a kiválasztott mappában"
+
+msgid "No books to switch to"
+msgstr "Nincs könyv, amire válthatnál"
+
+msgid "No books with author metadata found"
+msgstr "Nem található könyv szerző metaadattal"
+
+msgid "No books with series metadata found"
+msgstr "Nem található könyv sorozat metaadattal"
+
+msgid "No books with tags metadata found"
+msgstr "Nem található könyv címke metaadattal"
+
+msgid "No changelog entries found.\n\nNo releases are available for this channel."
+msgstr "Nem található bejegyzés a változásnaplóban.\n\nEbben a csatornában nincs elérhető kiadás."
+
+msgid "No changelog provided."
+msgstr "Nincs megadva változásnapló."
+
+msgid "No description."
+msgstr "Nincs leírás."
+
+msgid "No KOReader submenus found"
+msgstr "Nem található KOReader almenü"
+
+msgid "No launchable plugin menus found"
+msgstr "Nem található indítható bővítménymenü"
+
+msgid "No network connection. Please connect to Wi-Fi and try again."
+msgstr "Nincs hálózati kapcsolat. Csatlakozz Wi-Fihez, és próbáld újra."
+
+msgid "No quote available."
+msgstr "Nincs elérhető idézet."
+
+msgid "No reader engine for this file or invalid file."
+msgstr "Nincs olvasómotor ehhez a fájlhoz, vagy a fájl érvénytelen."
+
+msgid "No reading data"
+msgstr "Nincs olvasási adat"
+
+msgid "No table of contents available."
+msgstr "Nem érhető el tartalomjegyzék."
+
+msgid "No tags found"
+msgstr "Nem található címke"
+
+msgid "No TBR books found"
+msgstr "Nem található olvasandó könyv"
+
+msgid "No update asset found."
+msgstr "Nem található frissítési fájl."
+
+msgid "No ZenPM package is available for this device."
+msgstr "Nincs elérhető ZenPM csomag ehhez az eszközhöz."
+
+msgid "None"
+msgstr "Nincs"
+
+msgid "None (folder name only)"
+msgstr "Nincs (csak mappanév)"
+
+msgid "Normal"
+msgstr "Normál"
+
+msgid "Not enough Home space: %1/%2 units used; this widget needs %3."
+msgstr "Nincs elég hely a kezdőlapon: %1/%2 egység foglalt; ehhez a widgethez %3 szükséges."
+
+msgid "Nothing"
+msgstr "Semmi"
+
+msgid "Notion"
+msgstr "Notion"
+
+msgid "NotionSync"
+msgstr "NotionSync"
+
+msgid "Off"
+msgstr "Ki"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "On"
+msgstr "Be"
+
+msgid "On hold"
+msgstr "Felfüggesztve"
+
+msgid "On Home refresh"
+msgstr "Kezdőlap frissítésekor"
+
+msgid "Only in Zen mode"
+msgstr "Csak zen módban"
+
+msgid "Only show while reading"
+msgstr "Csak olvasás közben jelenjen meg"
+
+msgid "Opaque background"
+msgstr "Átlátszatlan háttér"
+
+msgid "OPDS"
+msgstr "OPDS"
+
+msgid "Open"
+msgstr "Megnyitás"
+
+msgid "Open folder"
+msgstr "Mappa megnyitása"
+
+msgid "Open menu to Launcher"
+msgstr "Menü megnyitása az Indítóhoz"
+
+msgid "Open next file"
+msgstr "Következő fájl megnyitása"
+
+msgid "Open QuickRSS"
+msgstr "QuickRSS megnyitása"
+
+msgid "Open Rakuyomi"
+msgstr "Rakuyomi megnyitása"
+
+msgid "Open RSS Reader"
+msgstr "RSS Reader megnyitása"
+
+msgid "Open this file?"
+msgstr "Megnyitod ezt a fájlt?"
+
+msgid "Open with…"
+msgstr "Megnyitás ezzel…"
+
+msgid "Opening"
+msgstr "Megnyitás"
+
+msgid "Order"
+msgstr "Sorrend"
+
+msgid "Outline"
+msgstr "Körvonal"
+
+msgid "Outlined boxes"
+msgstr "Körvonalas dobozok"
+
+msgid "p."
+msgstr "o."
+
+msgid "Page %1 of %2"
+msgstr "%1 / %2 oldal"
+
+msgid "Page Browser"
+msgstr "Oldalböngésző"
+
+msgid "Page number"
+msgstr "Oldalszám"
+
+msgid "Page number format"
+msgstr "Oldalszám formátuma"
+
+msgid "Page stream"
+msgstr "Oldal folyam"
+
+msgid "Page x / y"
+msgstr "x / y oldal"
+
+msgid "pages"
+msgstr "oldal"
+
+msgid "Pages"
+msgstr "Oldalak"
+
+msgid "Pages read"
+msgstr "Elolvasott oldalak"
+
+msgid "Pages this week"
+msgstr "Oldalak ezen a héten"
+
+msgid "Pages today"
+msgstr "Oldalak ma"
+
+msgid "Pages/day"
+msgstr "Oldal/nap"
+
+msgid "Partial pages refresh"
+msgstr "Részleges oldalfrissítés"
+
+msgid "Paste"
+msgstr "Beillesztés"
+
+msgid "Paste selected files"
+msgstr "Kijelölt fájlok beillesztése"
+
+msgid "Percent"
+msgstr "Százalék"
+
+msgid "Personal records"
+msgstr "Személyes rekordok"
+
+msgid "Personal Records"
+msgstr "Személyes rekordok"
+
+msgid "Place pack folders or ZIP files in /koreader/icons/zen. ZIP files are installed automatically."
+msgstr "Helyezd a csomagmappákat vagy ZIP fájlokat a /koreader/icons/zen mappába. A ZIP fájlok automatikusan telepítésre kerülnek."
+
+msgid "Please delete the Project: Title plugin from your plugins folder and restart KOReader."
+msgstr "Töröld a Project: Title bővítményt a bővítmények mappából, majd indítsd újra a KOReadert."
+
+msgid "Plugin"
+msgstr "Bővítmény"
+
+msgid "Plugin management"
+msgstr "Bővítménykezelés"
+
+msgid "Plugin Menu"
+msgstr "Bővítmény menü"
+
+msgid "Plugin: %1"
+msgstr "Bővítmény: %1"
+
+msgid "Portrait list mode"
+msgstr "Álló lista mód"
+
+msgid "Portrait mosaic mode"
+msgstr "Álló mozaik mód"
+
+msgid "Portrait mosaic: "
+msgstr "Álló mozaik: "
+
+msgid "Preset name"
+msgstr "Sablon neve"
+
+msgid "Presets"
+msgstr "Sablonok"
+
+msgid "Prev"
+msgstr "Előző"
+
+msgid "Previous page"
+msgstr "Előző oldal"
+
+msgid "Progress"
+msgstr "Folyamat"
+
+msgid "Progress %"
+msgstr "Folyamat %"
+
+msgid "Progress bar"
+msgstr "Folyamatsáv"
+
+msgid "Progress labels"
+msgstr "Folyamat címkék"
+
+msgid "Project: Title is not compatible with ZenOS."
+msgstr "A Project: Title nem kompatibilis a ZenOS-szal."
+
+msgid "Puzzle"
+msgstr "Kirakó"
+
+msgid "Quick Settings"
+msgstr "Gyorsbeállítások"
+
+msgid "Quick settings button is unavailable"
+msgstr "A gyorsbeállítás gomb nem érhető el"
+
+msgid "QuickRSS"
+msgstr "QuickRSS"
+
+msgid "QuickRSS plugin is not installed."
+msgstr "A QuickRSS bővítmény nincs telepítve."
+
+msgid "Quit"
+msgstr "Kilépés"
+
+msgid "Quit KOReader"
+msgstr "Kilépés a KOReaderből"
+
+msgid "Quote font size"
+msgstr "Idézet betűmérete"
+
+msgid "Quote sources"
+msgstr "Idézetforrások"
+
+msgid "Quotes"
+msgstr "Idézetek"
+
+msgid "quotes.lua is empty"
+msgstr "A quotes.lua fájl üres"
+
+msgid "Rakuyomi"
+msgstr "Rakuyomi"
+
+msgid "Rakuyomi plugin is not installed."
+msgstr "A Rakuyomi bővítmény nincs telepítve."
+
+msgid "RAM usage"
+msgstr "RAM használat"
+
+msgid "Range"
+msgstr "Tartomány"
+
+msgid "Read now"
+msgstr "Olvasás most"
+
+msgid "Read status"
+msgstr "Olvasási állapot"
+
+msgid "Read time"
+msgstr "Olvasási idő"
+
+msgid "Read today"
+msgstr "Ma olvasott"
+
+msgid "Reader"
+msgstr "Olvasó"
+
+msgid "Reader themes"
+msgstr "Olvasó témák"
+
+msgid "Reading"
+msgstr "Olvasás"
+
+msgid "Reading Calendar"
+msgstr "Olvasási naptár"
+
+msgid "Reading calendar"
+msgstr "Olvasási naptár"
+
+msgid "Reading goals"
+msgstr "Olvasási célok"
+
+msgid "Reading goals font size"
+msgstr "Olvasási célok betűmérete"
+
+msgid "Reading stats"
+msgstr "Olvasási statisztika"
+
+msgid "Reading trend"
+msgstr "Olvasási trend"
+
+msgid "Reading Trend"
+msgstr "Olvasási trend"
+
+msgid "Recent"
+msgstr "Legutóbbi"
+
+msgid "Recent filters"
+msgstr "Legutóbbi szűrők"
+
+msgid "Recently read"
+msgstr "Nemrég olvasott"
+
+msgid "Recently read strip widget"
+msgstr "Nemrég olvasott csík widget"
+
+msgid "Red"
+msgstr "Piros"
+
+msgid "Reflowable documents (epub, fb2, txt…)"
+msgstr "Újratördelhető dokumentumok (epub, fb2, txt…)"
+
+msgid "Refresh"
+msgstr "Frissítés"
+
+msgid "regular"
+msgstr "normál"
+
+msgid "Release metadata is invalid or incomplete."
+msgstr "A kiadás metaadatai érvénytelenek vagy hiányosak."
+
+msgid "Remove"
+msgstr "Eltávolítás"
+
+msgid "Remove default"
+msgstr "Alapértelmezett eltávolítása"
+
+msgid "Remove from collection"
+msgstr "Eltávolítás a gyűjteményből"
+
+msgid "Remove from history"
+msgstr "Eltávolítás az előzményekből"
+
+msgid "Remove this book from history?"
+msgstr "Eltávolítod ezt a könyvet az előzményekből?"
+
+msgid "Remove this folder from additional home folders?"
+msgstr "Eltávolítod ezt a mappát a további kezdőmappák közül?"
+
+msgid "Remove: "
+msgstr "Eltávolítás: "
+
+msgid "Rename"
+msgstr "Átnevezés"
+
+msgid "Report a Bug"
+msgstr "Hiba jelentése"
+
+msgid "Require double tap to open books"
+msgstr "Dupla koppintás szükséges a könyvek megnyitásához"
+
+msgid "Require hold to toggle buttons"
+msgstr "Lenyomva tartás szükséges a gombok váltásához"
+
+msgid "Reset"
+msgstr "Visszaállítás"
+
+msgid "Reset Controls to defaults?"
+msgstr "Visszaállítod a vezérlőket alapértelmezettre?"
+
+msgid "Reset font"
+msgstr "Betűtípus visszaállítása"
+
+msgid "Reset font family and size to default?"
+msgstr "Visszaállítod a betűcsaládot és méretet alapértelmezettre?"
+
+msgid "Reset to defaults"
+msgstr "Visszaállítás alapértelmezettre"
+
+msgid "Restart"
+msgstr "Újraindítás"
+
+msgid "Restart Book"
+msgstr "Könyv újraindítása"
+
+msgid "Restart KOReader to apply the updated active pack"
+msgstr "Indítsd újra a KOReadert a frissített aktív csomag alkalmazásához"
+
+msgid "Restart now"
+msgstr "Újraindítás most"
+
+msgid "Restarting"
+msgstr "Újraindítás"
+
+msgid "Restore library location on exit"
+msgstr "Könyvtár helyének visszaállítása kilépéskor"
+
+msgid "Resume from page"
+msgstr "Folytatás oldaltól"
+
+msgid "Return to chapter list on exit"
+msgstr "Visszatérés a fejezetlistához kilépéskor"
+
+msgid "Review"
+msgstr "Áttekintés"
+
+msgid "Right"
+msgstr "Jobbra"
+
+msgid "Right items"
+msgstr "Jobb oldali elemek"
+
+msgid "Rotate"
+msgstr "Forgatás"
+
+msgid "Rotate: %1"
+msgstr "Forgatás: %1"
+
+msgid "Rounded cover corners"
+msgstr "Lekerekített borítósarkok"
+
+msgid "Row break"
+msgstr "Sortörés"
+
+msgid "Rows"
+msgstr "Sorok"
+
+msgid "RSS Reader plugin is not installed."
+msgstr "Az RSS Reader bővítmény nincs telepítve."
+
+msgid "Save"
+msgstr "Mentés"
+
+msgid "Save current home page as preset"
+msgstr "Jelenlegi kezdőlap mentése sablonként"
+
+msgid "Save current settings as preset"
+msgstr "Jelenlegi beállítások mentése sablonként"
+
+msgid "Schedules"
+msgstr "Ütemezések"
+
+msgid "Screenshot"
+msgstr "Képernyőkép"
+
+msgid "Screenshot saved to:"
+msgstr "Képernyőkép mentve ide:"
+
+msgid "Screenshot timer"
+msgstr "Képernyőkép időzítő"
+
+msgid "Screenshot: %1 s"
+msgstr "Képernyőkép: %1 mp"
+
+msgid "Scroll bar"
+msgstr "Görgetősáv"
+
+msgid "Search"
+msgstr "Keresés"
+
+msgid "Search Book"
+msgstr "Könyv keresése"
+
+msgid "Search Library"
+msgstr "Könyvtár keresése"
+
+msgid "Search results"
+msgstr "Keresési eredmények"
+
+msgid "Search settings"
+msgstr "Beállítások keresése"
+
+msgid "Select"
+msgstr "Kiválasztás"
+
+msgid "Select icon"
+msgstr "Ikon kiválasztása"
+
+msgid "Send with LocalSend"
+msgstr "Küldés LocalSenddel"
+
+msgid "Separator"
+msgstr "Elválasztó"
+
+msgid "Separator: "
+msgstr "Elválasztó: "
+
+msgid "series"
+msgstr "sorozat"
+
+msgid "Series"
+msgstr "Sorozat"
+
+msgid "Series number"
+msgstr "Sorozatszám"
+
+msgid "Session pages"
+msgstr "Munkamenet oldalai"
+
+msgid "Set"
+msgstr "Beállítás"
+
+msgid "Set all gestures to pass-through? Top-right corner in reader will be kept as Toggle bookmark."
+msgstr "Beállítod az összes gesztust áteresztésre? A jobb felső sarok az olvasóban megmarad a Könyvjelző váltása funkciónak."
+
+msgid "Set as default"
+msgstr "Beállítás alapértelmezettként"
+
+msgid "Set as wallpaper"
+msgstr "Beállítás háttérképként"
+
+msgid "Set file types to sync"
+msgstr "Szinkronizálandó fájltípusok beállítása"
+
+msgid "Set home folder"
+msgstr "Kezdőmappa beállítása"
+
+msgid "Set max number of files to sync"
+msgstr "Szinkronizálandó fájlok maximális számának beállítása"
+
+msgid "Set sync folder"
+msgstr "Szinkronizálási mappa beállítása"
+
+msgid "Settings"
+msgstr "Beállítások"
+
+msgid "Settings & Updates"
+msgstr "Beállítások és frissítések"
+
+msgid "Setup Guide"
+msgstr "Beállítási útmutató"
+
+msgid "Show a button for the Assistant plugin, if installed."
+msgstr "Gomb megjelenítése az Assistant bővítményhez, ha telepítve van."
+
+msgid "Show AI assistant"
+msgstr "AI asszisztens megjelenítése"
+
+msgid "Show all files from subfolders"
+msgstr "Összes fájl megjelenítése az almappákból"
+
+msgid "Show author"
+msgstr "Szerző megjelenítése"
+
+msgid "Show author below cover (mosaic)"
+msgstr "Szerző megjelenítése a borító alatt (mozaik)"
+
+msgid "Show badges"
+msgstr "Jelvények megjelenítése"
+
+msgid "Show Book cover"
+msgstr "Könyv borítójának megjelenítése"
+
+msgid "Show book titles"
+msgstr "Könyvcímek megjelenítése"
+
+msgid "Show bottom border"
+msgstr "Alsó keret megjelenítése"
+
+msgid "Show brightness slider"
+msgstr "Fényerő csúszka megjelenítése"
+
+msgid "Show controls"
+msgstr "Vezérlők megjelenítése"
+
+msgid "Show description"
+msgstr "Leírás megjelenítése"
+
+msgid "Show favorite badge"
+msgstr "Kedvenc jelvény megjelenítése"
+
+msgid "Show folder name"
+msgstr "Mappanév megjelenítése"
+
+msgid "Show goal"
+msgstr "Cél megjelenítése"
+
+msgid "Show hidden files"
+msgstr "Rejtett fájlok megjelenítése"
+
+msgid "Show icons"
+msgstr "Ikonok megjelenítése"
+
+msgid "Show item count"
+msgstr "Elemek számának megjelenítése"
+
+msgid "Show item underline"
+msgstr "Elem aláhúzásának megjelenítése"
+
+msgid "Show KOAssistant"
+msgstr "KOAssistant megjelenítése"
+
+msgid "Show labels"
+msgstr "Címkék megjelenítése"
+
+msgid "Show new banner"
+msgstr "Új banner megjelenítése"
+
+msgid "Show other items"
+msgstr "Egyéb elemek megjelenítése"
+
+msgid "Show other KOReader quick lookup options alongside Zen buttons."
+msgstr "Egyéb KOReader gyorskeresési lehetőségek megjelenítése a Zen gombok mellett."
+
+msgid "Show page count"
+msgstr "Oldalak számának megjelenítése"
+
+msgid "Show progress bar"
+msgstr "Folyamatsáv megjelenítése"
+
+msgid "Show reading progress"
+msgstr "Olvasási folyamat megjelenítése"
+
+msgid "Show separator"
+msgstr "Elválasztó megjelenítése"
+
+msgid "Show series number on covers"
+msgstr "Sorozatszám megjelenítése a borítókon"
+
+msgid "Show spine lines"
+msgstr "Gerincvonalak megjelenítése"
+
+msgid "Show title"
+msgstr "Cím megjelenítése"
+
+msgid "Show title below cover (mosaic)"
+msgstr "Cím megjelenítése a borító alatt (mozaik)"
+
+msgid "Show top border"
+msgstr "Felső keret megjelenítése"
+
+msgid "Show top status bar"
+msgstr "Felső állapotsor megjelenítése"
+
+msgid "Show warmth slider"
+msgstr "Melegség csúszka megjelenítése"
+
+msgid "Show Wikipedia"
+msgstr "Wikipédia megjelenítése"
+
+msgid "Show X-Ray"
+msgstr "X-Ray megjelenítése"
+
+msgid "Show Zen icon - black background"
+msgstr "Zen ikon megjelenítése - fekete háttér"
+
+msgid "Show Zen icon - white background"
+msgstr "Zen ikon megjelenítése - fehér háttér"
+
+msgid "Single tag"
+msgstr "Egy címke"
+
+msgid "Skip"
+msgstr "Kihagyás"
+
+msgid "Skip 10 pages"
+msgstr "10 oldal kihagyása"
+
+msgid "Skip 20 pages"
+msgstr "20 oldal kihagyása"
+
+msgid "Sleep"
+msgstr "Alvás"
+
+msgid "Sleep Screen"
+msgstr "Alvó képernyő"
+
+msgid "Slide Puzzle"
+msgstr "Csúszkás kirakó"
+
+msgid "Sort"
+msgstr "Rendezés"
+
+msgid "Sort authors"
+msgstr "Szerzők rendezése"
+
+msgid "Sort books by"
+msgstr "Könyvek rendezése"
+
+msgid "Sort by"
+msgstr "Rendezés"
+
+msgid "Sort folder"
+msgstr "Mappa rendezése"
+
+msgid "Sort folder by"
+msgstr "Mappa rendezése"
+
+msgid "Sort library"
+msgstr "Könyvtár rendezése"
+
+msgid "Sort library by"
+msgstr "Könyvtár rendezése"
+
+msgid "Sort order"
+msgstr "Rendezési sorrend"
+
+msgid "Sort series"
+msgstr "Sorozat rendezése"
+
+msgid "Specific tag"
+msgstr "Adott címke"
+
+msgid "Stable"
+msgstr "Stabil"
+
+msgid "Stack"
+msgstr "Halmozás"
+
+msgid "Start reading a book to fill this space."
+msgstr "Kezdj el olvasni egy könyvet, hogy megtöltsd ezt a helyet."
+
+msgid "Stat separators"
+msgstr "Statisztika elválasztók"
+
+msgid "Stat slot "
+msgstr "Statisztika hely "
+
+msgid "Statistics"
+msgstr "Statisztika"
+
+msgid "Statistics calendar is unavailable"
+msgstr "A statisztika naptár nem érhető el"
+
+msgid "Stats"
+msgstr "Statisztika"
+
+msgid "Stats default font size"
+msgstr "Statisztika alapértelmezett betűmérete"
+
+msgid "Stats font size"
+msgstr "Statisztika betűmérete"
+
+msgid "Stats: Calendar"
+msgstr "Statisztika: Naptár"
+
+msgid "Stats: Progress"
+msgstr "Statisztika: Folyamat"
+
+msgid "Status bar"
+msgstr "Állapotsor"
+
+msgid "Status bar items"
+msgstr "Állapotsor elemei"
+
+msgid "Steps to reproduce, expected vs. actual behavior"
+msgstr "A hiba előidézésének lépései, elvárt és tényleges viselkedés"
+
+msgid "Streak"
+msgstr "Sorozat"
+
+msgid "Stream from page"
+msgstr "Folyam oldaltól"
+
+msgid "Strip widgets"
+msgstr "Csík widgetek"
+
+msgid "Styling"
+msgstr "Stílus"
+
+msgid "Subfolder flat view was disabled because the home folder is the device storage root."
+msgstr "Az almappák lapos nézete letiltva, mert a kezdőmappa az eszköz tárhelyének gyökere."
+
+msgid "Submit"
+msgstr "Küldés"
+
+msgid "Submitting report…"
+msgstr "Jelentés küldése…"
+
+msgid "Swipe down from the top to reach quick settings like brightness, Wi-Fi, night mode, zen mode and more."
+msgstr "Húzz lefelé a képernyő tetejéről a gyorsbeállítások eléréséhez, mint a fényerő, Wi-Fi, éjszakai mód, zen mód és még sok más."
+
+msgid "Swipe up from the bottom while reading to open the Page Browser.\n\nSkim through pages or skip chapters, browse the table of contents, manage bookmarks, adjust fonts and more."
+msgstr "Húzz felfelé alulról olvasás közben az Oldalböngésző megnyitásához.\n\nPörgesd át az oldalakat vagy ugorj fejezeteket, böngészd a tartalomjegyzéket, kezeld a könyvjelzőket, állítsd be a betűtípusokat és még sok mást."
+
+msgid "Sync"
+msgstr "Szinkronizálás"
+
+msgid "Sync all catalogs"
+msgstr "Összes katalógus szinkronizálása"
+
+msgid "Tab"
+msgstr "Fül"
+
+msgid "Table of contents"
+msgstr "Tartalomjegyzék"
+
+msgid "Tabs"
+msgstr "Fülek"
+
+msgid "Tag"
+msgstr "Címke"
+
+msgid "Tag strip widget"
+msgstr "Címke csík widget"
+
+msgid "Tag: %1"
+msgstr "Címke: %1"
+
+msgid "tags"
+msgstr "címkék"
+
+msgid "Tags"
+msgstr "Címkék"
+
+msgid "Tailscale"
+msgstr "Tailscale"
+
+msgid "Tap and hold any book or folder in your library to reveal details."
+msgstr "Koppints és tartsd lenyomva bármelyik könyvet vagy mappát a könyvtáradban a részletek megjelenítéséhez."
+
+msgid "Text color"
+msgstr "Szövegszín"
+
+msgid "Text styles"
+msgstr "Szövegstílusok"
+
+msgid "The best interface is the one you forget is there.\nNow go get lost in a good book."
+msgstr "A legjobb felhasználói felület az, amiről megfeledkezel.\nMost pedig merülj el egy jó könyvben."
+
+msgid "The default KOReader reader menu is inside the Aa icon."
+msgstr "Az alapértelmezett KOReader olvasó menü az Aa ikonban található."
+
+msgid "The place for all your books %1"
+msgstr "Az összes könyved helye %1"
+
+msgid "Theme font"
+msgstr "Téma betűtípusa"
+
+msgid "Theme name"
+msgstr "Téma neve"
+
+msgid "This change requires a restart to take effect."
+msgstr "Ez a módosítás újraindítást igényel az érvénybe lépéshez."
+
+msgid "This does not disable ZenOS—it only shows or hides KOReader’s menus."
+msgstr "Ez nem kapcsolja ki a ZenOS-t — csak megjeleníti vagy elrejti a KOReader menüit."
+
+msgid "This is Zen Settings. ZenOS settings/updates and common KOReader settings live here."
+msgstr "Ez a Zen beállítások. Itt találhatók a ZenOS beállításai/frissítései és a gyakori KOReader beállítások."
+
+msgid "This Month"
+msgstr "Ez a hónap"
+
+msgid "This month"
+msgstr "Ez a hónap"
+
+msgid "This option is disabled when a home folder is the device storage root. Set home folders to narrower books folders first."
+msgstr "Ez a beállítás le van tiltva, ha a kezdőmappa az eszköz tárhelyének gyökere. Állíts be előbb szűkebb könyvmappákat kezdőmappaként."
+
+msgid "This Week"
+msgstr "Ez a hét"
+
+msgid "This week"
+msgstr "Ez a hét"
+
+msgid "This year"
+msgstr "Ez az év"
+
+msgid "This Year"
+msgstr "Ez az év"
+
+msgid "Time"
+msgstr "Idő"
+
+msgid "Time Format"
+msgstr "Időformátum"
+
+msgid "Time this week"
+msgstr "Idő ezen a héten"
+
+msgid "Time to book end"
+msgstr "Idő a könyv végéig"
+
+msgid "Time today"
+msgstr "Idő ma"
+
+msgid "Time/book"
+msgstr "Idő/könyv"
+
+msgid "Time/day"
+msgstr "Idő/nap"
+
+msgid "Time/page"
+msgstr "Idő/oldal"
+
+msgid "Timeout"
+msgstr "Időtúllépés"
+
+msgid "Timer: %1 s"
+msgstr "Időzítő: %1 mp"
+
+msgid "Title"
+msgstr "Cím"
+
+msgid "Title natural"
+msgstr "Cím (természetes)"
+
+msgid "To Be Read"
+msgstr "Olvasandó"
+
+msgid "To Be Read strip widget"
+msgstr "Olvasandó csík widget"
+
+msgid "Today"
+msgstr "Ma"
+
+msgid "Too many requests. Please try again later."
+msgstr "Túl sok kérés. Próbáld újra később."
+
+msgid "Tools"
+msgstr "Eszközök"
+
+msgid "Top bar font"
+msgstr "Felső sáv betűtípusa"
+
+msgid "Top status bar"
+msgstr "Felső állapotsor"
+
+msgid "Total"
+msgstr "Összesen"
+
+msgid "Total books"
+msgstr "Összes könyv"
+
+msgid "Total pages"
+msgstr "Összes oldal"
+
+msgid "Total time"
+msgstr "Összes idő"
+
+msgid "Turn on Zen mode to strip KOReader down to its bare essentials.\n\nRemove visual clutter for a focused, distraction-free reading experience. Exit at anytime from Settings."
+msgstr "Kapcsold be a Zen módot, hogy a KOReadert a lényegre egyszerűsítsd.\n\nSzüntesd meg a vizuális zsúfoltságot egy koncentrált, zavartalan olvasási élményért. Bármikor kiléphetsz a Beállításokból."
+
+msgid "Two rows"
+msgstr "Két sor"
+
+msgid "Typesetting"
+msgstr "Tördelés"
+
+msgid "Unavailable"
+msgstr "Nem érhető el"
+
+msgid "Unavailable pack: %1"
+msgstr "Nem elérhető csomag: %1"
+
+msgid "Underline"
+msgstr "Aláhúzás"
+
+msgid "Underline above icon"
+msgstr "Aláhúzás az ikon felett"
+
+msgid "Uniform covers"
+msgstr "Egységes borítók"
+
+msgid "unknown"
+msgstr "ismeretlen"
+
+msgid "Unknown"
+msgstr "Ismeretlen"
+
+msgid "Unknown Author"
+msgstr "Ismeretlen szerző"
+
+msgid "unknown error"
+msgstr "ismeretlen hiba"
+
+msgid "Unnamed preset"
+msgstr "Névtelen sablon"
+
+msgid "Unread"
+msgstr "Olvasatlan"
+
+msgid "Update available"
+msgstr "Frissítés elérhető"
+
+msgid "Update available: "
+msgstr "Frissítés elérhető: "
+
+msgid "Update cancelled."
+msgstr "Frissítés megszakítva."
+
+msgid "Update channel"
+msgstr "Frissítési csatorna"
+
+msgid "Update failed and rollback failed."
+msgstr "A frissítés sikertelen volt, és a visszaállítás is sikertelen volt."
+
+msgid "Update failed: active plugin folder not found."
+msgstr "Frissítés sikertelen: az aktív bővítménymappa nem található."
+
+msgid "Update failed: corrupted update package."
+msgstr "Frissítés sikertelen: sérült frissítési csomag."
+
+msgid "Update failed: could not activate new version."
+msgstr "Frissítés sikertelen: az új verzió nem aktiválható."
+
+msgid "Update failed: could not create backup."
+msgstr "Frissítés sikertelen: nem sikerült biztonsági mentést készíteni."
+
+msgid "Update failed: could not prepare staging area."
+msgstr "Frissítés sikertelen: nem sikerült előkészíteni az átmeneti területet."
+
+msgid "Update failed: could not restore previous plugin backup."
+msgstr "Frissítés sikertelen: nem sikerült visszaállítani az előző bővítménymentést."
+
+msgid "Update failed: could not unpack update package."
+msgstr "Frissítés sikertelen: nem sikerült kicsomagolni a frissítési csomagot."
+
+msgid "Update failed: invalid package layout."
+msgstr "Frissítés sikertelen: érvénytelen csomagszerkezet."
+
+msgid "Update failed: missing checksum."
+msgstr "Frissítés sikertelen: hiányzó ellenőrzőösszeg."
+
+msgid "Update failed: network connection lost."
+msgstr "Frissítés sikertelen: megszakadt a hálózati kapcsolat."
+
+msgid "Update failed: new version is invalid."
+msgstr "Frissítés sikertelen: az új verzió érvénytelen."
+
+msgid "Update failed: plugin directory is not writable."
+msgstr "Frissítés sikertelen: a bővítménymappa nem írható."
+
+msgid "Update failed: staged plugin validation failed."
+msgstr "Frissítés sikertelen: az előkészített bővítmény ellenőrzése sikertelen."
+
+msgid "Update failed: timed out."
+msgstr "Frissítés sikertelen: időtúllépés."
+
+msgid "Update KOReader"
+msgstr "KOReader frissítése"
+
+msgid "Update now"
+msgstr "Frissítés most"
+
+msgid "Update Status"
+msgstr "Frissítés állapota"
+
+msgid "Update ZenOS"
+msgstr "ZenOS frissítése"
+
+msgid "Updated to %1"
+msgstr "Frissítve erre: %1"
+
+msgid "Updates"
+msgstr "Frissítések"
+
+msgid "USB"
+msgstr "USB"
+
+msgid "Use a narrower books folder instead of the device storage root."
+msgstr "Használj szűkebb könyvmappát az eszköz tárhelyének gyökere helyett."
+
+msgid "Use border as progress bar"
+msgstr "Keret használata folyamatsávként"
+
+msgid "Use current folder"
+msgstr "Jelenlegi mappa használata"
+
+msgid "Use default font"
+msgstr "Alapértelmezett betűtípus használata"
+
+msgid "Use default style"
+msgstr "Alapértelmezett stílus használata"
+
+msgid "Use home folder"
+msgstr "Kezdőmappa használata"
+
+msgid "Use last folder"
+msgstr "Utolsó mappa használata"
+
+msgid "username"
+msgstr "felhasználónév"
+
+msgid "Verbose time to chapter end"
+msgstr "Részletes idő a fejezet végéig"
+
+msgid "View"
+msgstr "Nézet"
+
+msgid "Virtual folder"
+msgstr "Virtuális mappa"
+
+msgid "Warmth"
+msgstr "Melegség"
+
+msgid "Weekly"
+msgstr "Heti"
+
+msgid "Welcome to ZenOS"
+msgstr "Üdvözlünk a ZenOS-ban"
+
+msgid "What should your device show when it goes to sleep?"
+msgstr "Mit jelenítsen meg az eszközöd, amikor alvó módba lép?"
+
+msgid "What's changed"
+msgstr "Mi változott"
+
+msgid "What's New"
+msgstr "Újdonságok"
+
+msgid "When enabled, loose icons or a selected ZenOS icon pack override supported icons. Missing icons fall back to ZenOS, then KOReader."
+msgstr "Ha engedélyezve van, a szabad ikonok vagy a kiválasztott ZenOS ikoncsomag felülírják a támogatott ikonokat. Hiányzó ikonok esetén a ZenOS, majd a KOReader ikonjai kerülnek felhasználásra."
+
+msgid "When enabled, search matches whole words only. When disabled, substring matching is used (e.g., 'fish' matches 'fishing')."
+msgstr "Ha engedélyezve van, a keresés csak teljes szavakra illeszkedik. Ha ki van kapcsolva, részleges egyezés is elfogadott (pl. a „fish” illeszkedik a „fishing” szóra)."
+
+msgid "When enabled, tap the same book twice in rapid succession to open it. Keyboard controls are unchanged."
+msgstr "Ha engedélyezve van, koppints kétszer gyorsan egymás után ugyanarra a könyvre a megnyitásához. A billentyűzetes vezérlés nem változik."
+
+msgid "Which time format do you prefer?"
+msgstr "Melyik időformátumot részesíted előnyben?"
+
+msgid "White"
+msgstr "Fehér"
+
+msgid "Wi-Fi"
+msgstr "Wi-Fi"
+
+msgid "Widget settings"
+msgstr "Widget beállításai"
+
+msgid "Widgets"
+msgstr "Widgetek"
+
+msgid "Wrap description text"
+msgstr "Leírás szövegének tördelése"
+
+msgid "Yearly"
+msgstr "Éves"
+
+msgid "You're All Set"
+msgstr "Minden készen áll"
+
+msgid "Z-Lib"
+msgstr "Z-Lib"
+
+msgid "Z-Library"
+msgstr "Z-Library"
+
+msgid "Zen"
+msgstr "Zen"
+
+msgid "Zen highlight menu"
+msgstr "Zen kiemelés menü"
+
+msgid "Zen mode"
+msgstr "Zen mód"
+
+msgid "Zen Mode"
+msgstr "Zen mód"
+
+msgid "Zen Mode is enabled. KOReader menus are hidden."
+msgstr "A Zen mód be van kapcsolva. A KOReader menük el vannak rejtve."
+
+msgid "Zen Mode: Disabled"
+msgstr "Zen mód: Kikapcsolva"
+
+msgid "Zen Mode: Enabled"
+msgstr "Zen mód: Bekapcsolva"
+
+msgid "Zen OPDS"
+msgstr "Zen OPDS"
+
+msgid "Zen page browser"
+msgstr "Zen oldalböngésző"
+
+msgid "Zen Presets"
+msgstr "Zen sablonok"
+
+msgid "Zen quick lookup"
+msgstr "Zen gyorskeresés"
+
+msgid "ZenFM"
+msgstr "ZenFM"
+
+msgid "ZenOS"
+msgstr "ZenOS"
+
+msgid "ZenOS defaults"
+msgstr "ZenOS alapértelmezések"
+
+msgid "ZenOS is up to date."
+msgstr "A ZenOS naprakész."
+
+msgid "ZenOS: "
+msgstr "ZenOS: "
+
+msgid "ZenOS: Authors"
+msgstr "ZenOS: Szerzők"
+
+msgid "ZenOS: folder not found: "
+msgstr "ZenOS: a mappa nem található: "
+
+msgid "ZenOS: Home"
+msgstr "ZenOS: Kezdőlap"
+
+msgid "ZenOS: Library"
+msgstr "ZenOS: Könyvtár"
+
+msgid "ZenOS: no folder set for this action."
+msgstr "ZenOS: nincs beállítva mappa ehhez a művelethez."
+
+msgid "ZenOS: Open folder"
+msgstr "ZenOS: Mappa megnyitása"
+
+msgid "ZenOS: Series"
+msgstr "ZenOS: Sorozat"
+
+msgid "ZenOS: Stats"
+msgstr "ZenOS: Statisztika"
+
+msgid "ZenOS: Sync progress (pull + push)"
+msgstr "ZenOS: Szinkronizálás folyamata (letöltés + feltöltés)"
+
+msgid "ZenOS: Table of contents"
+msgstr "ZenOS: Tartalomjegyzék"
+
+msgid "ZenOS: Tags"
+msgstr "ZenOS: Címkék"
+
+msgid "ZenOS: Toggle bottom reader status bar"
+msgstr "ZenOS: Alsó olvasó állapotsor váltása"
+
+msgid "ZenOS: Toggle Incognito Mode"
+msgstr "ZenOS: Inkognitó mód váltása"
+
+msgid "ZenOS: Toggle Lockdown Mode"
+msgstr "ZenOS: Zárolási mód váltása"
+
+msgid "ZenOS: Toggle reader status bars"
+msgstr "ZenOS: Olvasó állapotsorok váltása"
+
+msgid "ZenOS: Toggle reader themes"
+msgstr "ZenOS: Olvasó témák váltása"
+
+msgid "ZenOS: Toggle top reader status bar"
+msgstr "ZenOS: Felső olvasó állapotsor váltása"
+
+msgid "ZenOS: Toggle Zen Mode"
+msgstr "ZenOS: Zen mód váltása"
+
+msgid "ZenPM"
+msgstr "ZenPM"
+
+msgid "ZenPM has been installed. Restart KOReader to use it."
+msgstr "A ZenPM telepítve lett. Indítsd újra a KOReadert a használatához."

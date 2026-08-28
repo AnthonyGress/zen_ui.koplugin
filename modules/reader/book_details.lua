@@ -22,6 +22,11 @@ local function positive_number(value)
     return value and value > 0 and value or nil
 end
 
+local function nonnegative_number(value)
+    value = tonumber(value)
+    return value and value >= 0 and value < math.huge and value or nil
+end
+
 local function is_present(text)
     if text == nil then return false end
     text = tostring(text):match("^%s*(.-)%s*$")
@@ -131,28 +136,37 @@ function M.getProgress(ui)
     return ratio, pages, page_current, page_total
 end
 
-function M.getReadingTimes(ui)
+function M.getReadingTimes(ui, requested)
+    requested = type(requested) == "table" and requested
+        or { read_time = true, time_remaining = true }
     local stats = ui and ui.statistics
-    if type(stats) ~= "table" or type(stats.getStatsBookStatus) ~= "function" then
-        return nil, nil
+    if type(stats) ~= "table" then
+        return nil, nil, nil, nil
     end
-
-    local ok, status = pcall(stats.getStatsBookStatus, stats)
-    if not ok or type(status) ~= "table" then return nil, nil end
-
-    local read_time = tonumber(status.time)
-    if not (read_time and read_time >= 0 and read_time < math.huge) then
-        read_time = nil
+    local ok_db, StatsDB = pcall(require, "common/db_stats")
+    if not ok_db or type(StatsDB.queryBookDetails) ~= "function" then
+        return nil, nil, nil, nil
     end
+    local ok, result = pcall(StatsDB.queryBookDetails, stats, requested)
+    if not ok or type(result) ~= "table" then return nil, nil, nil, nil end
+
+    local read_time = requested.read_time == true
+        and nonnegative_number(result.read_time) or nil
 
     local time_left
     local avg_time = tonumber(stats.avg_time)
     local current_page, total_pages = current_page_info(ui)
-    if avg_time and avg_time > 0 and avg_time < math.huge
+    if requested.time_remaining == true
+            and avg_time and avg_time > 0 and avg_time < math.huge
             and current_page and total_pages and current_page <= total_pages then
         time_left = math.floor((total_pages - current_page) * avg_time + 0.5)
     end
-    return time_left, read_time
+
+    local today_duration = requested.time_today == true
+        and nonnegative_number(result.time_today) or nil
+    local today_pages = requested.pages_today == true
+        and nonnegative_number(result.pages_today) or nil
+    return time_left, read_time, today_duration, today_pages
 end
 
 function M.getSummary(ui)

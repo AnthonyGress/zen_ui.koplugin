@@ -57,12 +57,22 @@ function M.build(ctx)
 
     local filebrowser_slots = { "filebrowser", "FilebrowserPlus", "filebrowserplus" }
 
+    local function getAutorotateLabel()
+        local label = config.quick_settings.gyro_label
+        return type(label) == "string" and label ~= "" and label or _("Autorotate")
+    end
+
+    local function getAutorotateIcon()
+        local icon = config.quick_settings.gyro_icon
+        return type(icon) == "string" and icon ~= "" and icon or "quick_rotate"
+    end
+
     local quick_button_items = {
         { key = "wifi",    text = _("Wi-Fi")       },
         { key = "bluetooth", text = _("Bluetooth"), detect = Bluetooth.isAvailable },
         { key = "night",   text = _("Night mode")  },
         { key = "frontlight", text = _("Frontlight"), detect = function() return Device:hasFrontlight() end },
-        { key = "gyro", text = _("Gyroscope"), detect = function() return Device:hasGSensor() end },
+        { key = "gyro", text = getAutorotateLabel(), detect = function() return Device:hasGSensor() end },
         { key = "zen",     text = _("Zen mode")    },
         { key = "lockdown",text = _("Lockdown")    },
         { key = "incognito", text = _("Incognito")  },
@@ -581,7 +591,13 @@ function M.build(ctx)
                             end
                         end,
                     }
-                    if id == "rotate" then
+                    if id == "gyro" then
+                        item.text_func = getAutorotateLabel
+                        item.sub_title = getAutorotateLabel()
+                        item.sub_item_table_func = function()
+                            return build_control_sub_items(id)
+                        end
+                    elseif id == "rotate" then
                         item.text_func = function()
                             return T(_("Rotate: %1"), getRotateActionLabel()) .. " \u{25B8}"
                         end
@@ -941,7 +957,54 @@ function M.build(ctx)
 
     build_control_sub_items = function(id)
         local items = {}
-        if id == "rotate" then
+        if id == "gyro" then
+            items[#items + 1] = IconItem.decorate({
+                text_func = function()
+                    return T(_("Icon: %1"),
+                        icon_utils.getIconDisplayName(getAutorotateIcon()))
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    showIconPickerDialog({ icon = getAutorotateIcon() }, function(name)
+                        config.quick_settings.gyro_icon = name
+                        save_and_apply_quick_settings()
+                        if touch_menu and touch_menu.updateItems then touch_menu:updateItems(1) end
+                    end)
+                end,
+            }, icons.icon)
+            items[#items + 1] = IconItem.decorate({
+                text_func = function()
+                    return T(_("Label: %1"), getAutorotateLabel())
+                end,
+                keep_menu_open = true,
+                callback = function(touch_menu)
+                    local InputDialog = require("ui/widget/inputdialog")
+                    local dialog
+                    dialog = InputDialog:new{
+                        title = _("Autorotate"),
+                        input = config.quick_settings.gyro_label or "",
+                        buttons = {{
+                            { text = _("Cancel"), callback = function() UIManager:close(dialog) end },
+                            {
+                                text = _("Set"),
+                                is_enter_default = true,
+                                callback = function()
+                                    local label = dialog:getInputText()
+                                    config.quick_settings.gyro_label = label or ""
+                                    quick_button_label_by_id.gyro = getAutorotateLabel()
+                                    UIManager:close(dialog)
+                                    save_and_apply_quick_settings()
+                                    if touch_menu and touch_menu.updateItems then
+                                        touch_menu:updateItems(1)
+                                    end
+                                end,
+                            },
+                        }},
+                    }
+                    UIManager:show(dialog)
+                end,
+            }, icons.label)
+        elseif id == "rotate" then
             items = buildRotateButtonSubItems()
         elseif id == "screenshot" then
             items = buildScreenshotButtonSubItems()
@@ -995,6 +1058,9 @@ function M.build(ctx)
         config.quick_settings.show_frontlight = def.show_frontlight
         config.quick_settings.show_warmth = def.show_warmth
         config.quick_settings.flip_lh_rh_icon = def.flip_lh_rh_icon
+        config.quick_settings.gyro_label = def.gyro_label
+        config.quick_settings.gyro_icon = def.gyro_icon
+        quick_button_label_by_id.gyro = getAutorotateLabel()
         config.quick_settings.screenshot_timer_seconds = def.screenshot_timer_seconds
         save_and_apply_quick_settings()
     end

@@ -1,6 +1,7 @@
 describe("file manager status bar visibility", function()
     local FileManager
     local UIManager
+    local NetworkMgr
     local original_modules
     local original_plugin
     local created_text_widgets
@@ -56,7 +57,13 @@ describe("file manager status bar visibility", function()
         })
         replace("ui/widget/horizontalspan", {})
         replace("ui/widget/container/leftcontainer", {})
-        replace("ui/network/manager", {})
+        NetworkMgr = {
+            wifi_on = true,
+            connected = true,
+            isWifiOn = function(self) return self.wifi_on end,
+            isConnected = function(self) return self.connected end,
+        }
+        replace("ui/network/manager", NetworkMgr)
         replace("ui/widget/overlapgroup", {})
         replace("ui/widget/container/rightcontainer", {})
         local TextWidget = {}
@@ -68,6 +75,9 @@ describe("file manager status bar visibility", function()
             return setmetatable({}, { __index = self })
         end
         replace("ui/widget/textwidget", TextWidget)
+        replace("ui/widget/imagewidget", {
+            new = function(_, values) return values end,
+        })
         replace("ui/uimanager", UIManager)
         replace("ffi/blitbuffer", {
             ColorRGB32 = function() return 0 end,
@@ -137,6 +147,35 @@ describe("file manager status bar visibility", function()
         assert.are.equal(1, #group)
         assert.are.equal("August 8th", group[1].text)
         assert.are.equal("August 8th", created_text_widgets[1].text)
+    end)
+
+    it("only hides Wi-Fi when it is fully off", function()
+        local status_api
+        local SharedState = require("common/shared_state")
+        SharedState.register = function(_plugin, api) status_api = api end
+        _G.__ZEN_UI_PLUGIN.config.status_bar.wifi_hide_when_off = true
+        require("modules/filebrowser/patches/status_bar")()
+
+        local build_group = get_upvalue(status_api.buildStatusRow, "_buildGroup")
+
+        NetworkMgr.wifi_on = false
+        assert.is_nil(build_group({ "wifi" }, { size = 14 }, false))
+
+        _G.__ZEN_UI_PLUGIN.config.status_bar.wifi_hide_when_off = false
+        local off = build_group({ "wifi" }, { size = 14 }, false)
+        assert.are.equal("\u{ECA9}", off[1].text)
+
+        _G.__ZEN_UI_PLUGIN.config.status_bar.wifi_hide_when_off = true
+        NetworkMgr.wifi_on = true
+        NetworkMgr.connected = false
+        local connecting = build_group({ "wifi" }, { size = 14 }, false)
+        assert.are.equal("\u{ECA8}", connecting[1].text)
+        assert.is_not_nil(connecting[1].fgcolor)
+
+        NetworkMgr.connected = true
+        local connected = build_group({ "wifi" }, { size = 14 }, false)
+        assert.are.equal("\u{ECA8}", connected[1].text)
+        assert.is_nil(connected[1].fgcolor)
     end)
 
     it("does not repaint behind a Home page that hides its status bar", function()

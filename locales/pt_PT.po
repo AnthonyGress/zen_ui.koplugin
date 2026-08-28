@@ -252,6 +252,9 @@ msgstr "Autores"
 msgid "authors"
 msgstr "autores"
 
+msgid "Autorotate"
+msgstr "Rotação automática"
+
 msgid "Automatic"
 msgstr "Automático"
 
@@ -569,6 +572,9 @@ msgstr "Não foi possível contactar o servidor de atualizações. Verifique a l
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
 msgstr "Não foi possível procurar redes Wi-Fi. Tente novamente depois de reativar o dispositivo."
+
+msgid "Cover"
+msgstr "Capa"
 
 msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
 msgstr "O plugin CoverBrowser não está ativado; algumas funcionalidades podem não funcionar corretamente."
@@ -921,6 +927,12 @@ msgstr "Extrair metadados"
 msgid "Extras"
 msgstr "Adicionais"
 
+msgid "Failed to clear folder cover."
+msgstr "Não foi possível remover a capa da pasta."
+
+msgid "Failed to set folder cover."
+msgstr "Não foi possível definir a capa da pasta."
+
 msgid "Failed to submit report: "
 msgstr "Falha ao enviar o relatório: "
 
@@ -1056,14 +1068,11 @@ msgstr "Verde"
 msgid "Group book series into folders"
 msgstr "Agrupar séries de livros em pastas"
 
-msgid "Gyro"
-msgstr "Giroscópio"
-
-msgid "Gyroscope"
-msgstr "Giroscópio"
-
 msgid "Hide finished books"
 msgstr "Ocultar livros terminados"
+
+msgid "Hide grouped series"
+msgstr "Ocultar séries agrupadas"
 
 msgid "Hide in CBZ/PDF files"
 msgstr "Ocultar em ficheiros CBZ/PDF"
@@ -1083,8 +1092,14 @@ msgstr "Ocultar livros não lidos"
 msgid "Hide up folder"
 msgstr "Ocultar pasta superior"
 
+msgid "Hide when off"
+msgstr "Ocultar quando desligado"
+
 msgid "Highlight / Lookup"
 msgstr "Realçar / Consultar"
+
+msgid "Highlight names"
+msgstr "Nomes dos realces"
 
 msgid "History"
 msgstr "Histórico"
@@ -1172,6 +1187,9 @@ msgstr "Interativo"
 
 msgid "IP address: %1"
 msgstr "Endereço IP: %1"
+
+msgid "Items"
+msgstr "Itens"
 
 msgid "items per page"
 msgstr "itens por página"
@@ -1610,6 +1628,9 @@ msgstr "Fundo opaco"
 
 msgid "OPDS"
 msgstr "OPDS"
+
+msgid "Opacity"
+msgstr "Opacidade"
 
 msgid "Open"
 msgstr "Aberto"
@@ -2064,6 +2085,9 @@ msgstr "Definir como fundo de ecrã"
 msgid "Set file types to sync"
 msgstr "Definir tipos de ficheiro para sincronizar"
 
+msgid "Set folder cover"
+msgstr "Definir capa da pasta"
+
 msgid "Set home folder"
 msgstr "Definir pasta inicial"
 
@@ -2423,6 +2447,9 @@ msgstr "Formato de hora"
 
 msgid "Time this week"
 msgstr "Tempo esta semana"
+
+msgid "Time remaining"
+msgstr "Tempo restante"
 
 msgid "Time to book end"
 msgstr "Tempo até ao fim do livro"

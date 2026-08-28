@@ -8,7 +8,7 @@
 --   DocSettings  →  reads the .sdr/ sidecar and exposes summary.status
 --
 -- This module iterates ReadHistory, checks each book's DocSettings sidecar,
--- and counts entries whose summary.status == "complete".
+-- and counts non-Rakuyomi entries whose summary.status == "complete".
 --
 -- Cost notes: DocSettings:open() stats up to ten candidate paths and parses
 -- the WHOLE sidecar (bookmarks, highlights, ...) just to expose summary.  For
@@ -21,6 +21,7 @@
 local logger = require("common/zen_logger").new("db_library")
 local paths = require("common/paths")
 local lfs = require("libs/libkoreader-lfs")
+local Rakuyomi = require("modules/filebrowser/patches/rakuyomi")
 
 local LibraryDB = {}
 
@@ -53,7 +54,7 @@ function LibraryDB.invalidateCache()
 end
 
 -- Returns { finished = N, reading = N, total = N, finished_this_month = N, finished_this_year = N }
---   finished  books whose sidecar summary.status is "complete"
+--   finished  non-Rakuyomi books whose sidecar summary.status is "complete"
 --   reading   books whose sidecar summary.status is "reading"
 --   total     all books in ReadHistory that have a sidecar file
 -- All three counts come from the same ReadHistory walk so reading + finished
@@ -111,7 +112,7 @@ function LibraryDB.getBookCounts()
                         ]
                         if not summary then
                             -- Light open: parses only the given sidecar file.
-                            local doc_settings = DocSettings:openSettingsFile(sidecar_file)
+                            local doc_settings = DocSettings.openSettingsFile(sidecar_file)
                             summary = doc_settings and doc_settings.data.summary or nil
                             cache_summary(
                                 sidecar_file .. "\31" .. tostring(mtime) .. "\31" .. tostring(size),
@@ -120,7 +121,9 @@ function LibraryDB.getBookCounts()
                         end
                         if summary then
                             local status = summary.status
-                            if status == "complete" then
+                            if status == "complete"
+                                    and (file:lower():sub(-4) ~= ".cbz"
+                                        or not Rakuyomi.isChapterFile(file)) then
                                 counts.finished = counts.finished + 1
                                 local modified = summary.modified
                                 if type(modified) == "string" then

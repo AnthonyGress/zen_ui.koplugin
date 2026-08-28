@@ -128,9 +128,7 @@ local function apply_zen_renderer()
         if features.browser_cover_mosaic_uniform ~= true then
             return math.max(1, max_w), math.max(1, max_h), border, false
         end
-        local ratio = G_reader_settings:readSetting("uniform_cover_ratio") or "2:3"
-        local numerator, denominator = ratio:match("(%d+):(%d+)")
-        local aspect = (tonumber(numerator) or 2) / (tonumber(denominator) or 3)
+        local aspect = CoverUtils.getRatio()
         local target_w, target_h
         if max_w / max_h > aspect then
             target_h = max_h
@@ -257,6 +255,13 @@ local function apply_zen_renderer()
             or "folder"
         item._zen_effective_status = item.entry._zen_effective_status
             or book_status.getEffectiveStatus(item.entry.status, item.entry.percent_finished)
+        local badges = plugin_config().browser_cover_badges or {}
+        if badges.dim_finished_books == true
+                and item._zen_effective_status ~= "complete"
+                and FolderCover.allBooksFinished(
+                    item.menu, item.entry, result.entries, result.count) then
+            item._zen_effective_status = "complete"
+        end
         item._zen_folder_count = result.count > 0 and result.count or nil
         item._zen_folder_title = result.title
         item._zen_cover_frame = result.frame
@@ -832,6 +837,11 @@ local function apply_zen_renderer()
 
     function ZenMosaicItem:paintTo(bb, x, y)
         local menu = self.menu
+        local config = plugin_config()
+        local badges = config.browser_cover_badges or {}
+        CoverWidget.set_dimmed_border(self._zen_cover_frame,
+            badges.dim_finished_books == true
+                and self._zen_effective_status == "complete")
         local is_library = menu and (menu.name == "filemanager" or menu.name == "history"
             or menu._zen_tab_id or menu._zen_coll_list or menu._zen_group_view
             or menu._zen_renderer == true)
@@ -843,7 +853,6 @@ local function apply_zen_renderer()
             end
         end
         InputContainer.paintTo(self, bb, x, y)
-        local config = plugin_config()
         dim_finished_cover(self, bb, config)
         if not self._zen_is_book then
             FolderCover.paintDecorations(self, bb, config, x, y)

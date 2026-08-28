@@ -92,6 +92,7 @@ return {
     settings_library  = "\u{F125F}",
     settings_home     = "\u{F02DE}",
     settings_reader   = "\u{F14F7}",
+    vocabulary        = "\u{F1349}",
     settings_about    = "\u{F064E}",
     widgets           = "\u{F072C}",
     settings_global   = "\u{F484}",

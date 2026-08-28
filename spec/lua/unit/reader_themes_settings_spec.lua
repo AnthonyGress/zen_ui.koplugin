@@ -3,11 +3,13 @@ describe("reader themes settings", function()
     local shown_dialog
     local dialog_input
     local reader_store
+    local highlight_names_plugin
 
     before_each(function()
         shown_dialog = nil
         dialog_input = nil
         reader_store = { settings = { footer = { existing = true } } }
+        highlight_names_plugin = nil
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("ui/uimanager", {
             show = function(_, dialog) shown_dialog = dialog end,
@@ -54,8 +56,69 @@ describe("reader themes settings", function()
         ZenSpec.replace("ui/widget/confirmbox", {
             new = function(_, spec) return spec end,
         })
+        ZenSpec.replace("ui/widget/spinwidget", {
+            new = function(_, spec) return spec end,
+        })
+        ZenSpec.replace("modules/reader/patches/highlight_names", function(plugin)
+            highlight_names_plugin = plugin
+        end)
         ZenSpec.unload("modules/settings/sections/reader_settings")
         ReaderSettings = require("modules/settings/sections/reader_settings")
+    end)
+
+    it("edits and resets highlight names from Highlight / Lookup", function()
+        local saved, updates = 0, 0
+        local config = {
+            features = {
+                reader_themes = false,
+                reader_top_status_bar = false,
+                dict_quick_lookup = true,
+                highlight_lookup = true,
+                reader_bottom_menu = false,
+                page_browser = false,
+                restore_library_view = false,
+            },
+            highlight_lookup = { color_names = {} },
+            reader_themes = { dark_mode = "dark_warm_gray", light_mode = "default" },
+        }
+        local plugin = {
+            saveConfig = function() saved = saved + 1 end,
+        }
+        local items = ReaderSettings.build({
+            config = config,
+            plugin = plugin,
+            save_and_apply = function() end,
+        })
+        local lookup
+        for _i, item in ipairs(items) do
+            if item.text == "Highlight / Lookup" then lookup = item end
+        end
+        local names = lookup.sub_item_table[3].sub_item_table_func()
+        local reset, red = names[1], names[2]
+        local touchmenu = { updateItems = function() updates = updates + 1 end }
+
+        assert.are.equal("Highlight names", lookup.sub_item_table[3].text)
+        assert.is_false(reset.enabled_func())
+        assert.are.equal("Red", red.text_func())
+
+        dialog_input = "  Important  "
+        red.callback(touchmenu)
+        assert.are.equal("Red", shown_dialog.title)
+        assert.are.equal("", shown_dialog.input)
+        shown_dialog.buttons[1][2].callback()
+
+        assert.are.equal("Important", config.highlight_lookup.color_names.red)
+        assert.are.equal("Red: Important", red.text_func())
+        assert.is_true(reset.enabled_func())
+        assert.are.equal(plugin, highlight_names_plugin)
+        assert.are.equal(1, saved)
+        assert.are.equal(1, updates)
+
+        reset.callback(touchmenu)
+        assert.are.same({}, config.highlight_lookup.color_names)
+        assert.are.equal("Red", red.text_func())
+        assert.are.equal(2, saved)
+        assert.are.equal(2, updates)
     end)
 
     it("creates a named custom copy only after a built-in theme changes", function()
@@ -82,7 +145,7 @@ describe("reader themes settings", function()
         for _i, item in ipairs(items) do
             if item.text == "Reader themes" then themes = item end
         end
-        local custom_items = themes.sub_item_table[4].sub_item_table_func()
+        local custom_items = themes.sub_item_table[3].sub_item_table_func()
         local dark_warm_gray = custom_items[2]
 
         dialog_input = "#1f1f1f"
@@ -196,6 +259,146 @@ describe("reader themes settings", function()
         assert.are.equal(2, saved)
     end)
 
+    it("toggles expandable reader features from their parent rows", function()
+        local bottom_visible = true
+        local bottom_toggles = 0
+        local dispatch = package.loaded["common/dispatch_action"]
+        local plugin
+        dispatch.isBottomStatusBarVisible = function(actual_plugin)
+            assert.are.equal(plugin, actual_plugin)
+            local ReaderUI = require("apps/reader/readerui")
+            if ReaderUI.instance then return bottom_visible end
+            return actual_plugin.config.reader_footer.status_bar_enabled ~= false
+        end
+
+        dispatch.setBottomStatusBar = function(actual_plugin, enabled)
+            assert.are.equal(plugin, actual_plugin)
+            bottom_visible = enabled
+            bottom_toggles = bottom_toggles + 1
+        end
+
+        local footer = {
+            settings = {},
+            view = { footer_visible = true },
+            addToMainMenu = function(_self, menu)
+                menu.status_bar = { sub_item_table = {} }
+            end,
+        }
+        ZenSpec.replace("apps/reader/readerui", {
+            instance = { view = { footer = footer } },
+        })
+
+        local applied = {}
+        local config = {
+            features = {
+                reader_themes = false,
+                reader_top_status_bar = false,
+                dict_quick_lookup = false,
+                highlight_lookup = false,
+                reader_bottom_menu = false,
+                page_browser = false,
+                restore_library_view = false,
+            },
+            reader_footer = {},
+            reader_themes = { dark_mode = "dark_warm_gray", light_mode = "default" },
+        }
+        plugin = { config = config, saveConfig = function() end }
+        local items = ReaderSettings.build({
+            config = config,
+            plugin = plugin,
+            save_and_apply = function(feature) applied[#applied + 1] = feature end,
+        })
+        local by_text = {}
+        for _i, item in ipairs(items) do by_text[item.text] = item end
+
+        local top = by_text["Top status bar"]
+        local themes = by_text["Reader themes"]
+        local page_browser = by_text["Zen page browser"]
+        local bottom = by_text["Bottom status bar"]
+
+        assert.is_false(top.checked_func())
+        assert.are.equal("Left items", top.sub_item_table[1].text)
+        assert.is_false(themes.checked_func())
+        assert.are.equal(3, #themes.sub_item_table)
+        assert.is_false(page_browser.checked_func())
+        assert.are.equal(2, #page_browser.sub_item_table)
+        assert.is_nil(page_browser.enabled_func)
+        assert.is_true(bottom.checked_func())
+        assert.is_true(bottom.enabled_func())
+
+        top.checkmark_callback()
+        themes.checkmark_callback()
+        page_browser.checkmark_callback()
+        bottom.checkmark_callback()
+
+        assert.is_true(config.features.reader_top_status_bar)
+        assert.is_true(config.features.reader_themes)
+        assert.is_true(config.features.page_browser)
+        assert.is_false(bottom.checked_func())
+        assert.are.equal(1, bottom_toggles)
+        assert.are.same({
+            "reader_top_status_bar",
+            "reader_themes",
+            "page_browser",
+        }, applied)
+
+        local bottom_items = bottom.sub_item_table_func()
+        for _i, item in ipairs(bottom_items) do
+            assert.are_not.equal("Enable bottom status bar", item.text)
+        end
+
+        package.loaded["apps/reader/readerui"].instance = nil
+        config.reader_footer.status_bar_enabled = true
+        assert.is_true(bottom.checked_func())
+        assert.is_false(bottom.enabled_func())
+        config.reader_footer.status_bar_enabled = false
+        assert.is_false(bottom.checked_func())
+    end)
+
+    it("nests page-browser controls and persists separate overlay font sizes", function()
+        local saved, updates = 0, 0
+        local config = {
+            features = {
+                reader_themes = false,
+                reader_top_status_bar = false,
+                dict_quick_lookup = false,
+                highlight_lookup = false,
+                reader_bottom_menu = true,
+                page_browser = true,
+                restore_library_view = false,
+            },
+            page_browser = { toc_font_size = 20, bookmarks_font_size = 22 },
+            reader_themes = { dark_mode = "dark_warm_gray", light_mode = "default" },
+        }
+        local items = ReaderSettings.build({
+            config = config,
+            plugin = { saveConfig = function() saved = saved + 1 end },
+            save_and_apply = function() end,
+        })
+
+        local page_browser
+        for _i, item in ipairs(items) do
+            if item.text == "Zen page browser" then page_browser = item end
+        end
+        assert.are.equal(2, #page_browser.sub_item_table)
+        assert.is_true(page_browser.checked_func())
+        assert.are.equal("Table of contents — Font size: 20", page_browser.sub_item_table[1].text_func())
+        assert.are.equal("Bookmarks — Font size: 22", page_browser.sub_item_table[2].text_func())
+
+        local touchmenu = { updateItems = function() updates = updates + 1 end }
+        page_browser.sub_item_table[1].callback(touchmenu)
+        assert.are.equal("Table of contents — Font size", shown_dialog.title_text)
+        shown_dialog.callback({ value = 26 })
+        page_browser.sub_item_table[2].callback(touchmenu)
+        assert.are.equal("Bookmarks — Font size", shown_dialog.title_text)
+        shown_dialog.callback({ value = 24 })
+
+        assert.are.equal(26, config.page_browser.toc_font_size)
+        assert.are.equal(24, config.page_browser.bookmarks_font_size)
+        assert.are.equal(2, saved)
+        assert.are.equal(2, updates)
+    end)
+
     it("creates a custom theme without using a built-in theme as its base", function()
         local saved, applied = 0, 0
         local config = {
@@ -220,7 +423,7 @@ describe("reader themes settings", function()
         for _i, item in ipairs(items) do
             if item.text == "Reader themes" then themes = item end
         end
-        local custom_items = themes.sub_item_table[4].sub_item_table_func()
+        local custom_items = themes.sub_item_table[3].sub_item_table_func()
         local new_theme = custom_items[1]
 
         assert.are.equal("New custom theme", new_theme.text)
@@ -294,15 +497,15 @@ describe("reader themes settings", function()
         end
 
         assert.is_table(themes)
-        local enable = themes.sub_item_table[1]
-        enable.callback()
+        themes.checkmark_callback()
         assert.is_true(config.features.reader_themes)
+        assert.is_true(themes.checked_func())
         assert.are.equal("reader_themes", applied[1])
 
-        local dark_themes = themes.sub_item_table[2].sub_item_table_func()
+        local dark_themes = themes.sub_item_table[1].sub_item_table_func()
         dark_themes[4].callback()
         assert.are.equal("light_sepia", config.reader_themes.dark_mode)
-        local light_themes = themes.sub_item_table[3].sub_item_table_func()
+        local light_themes = themes.sub_item_table[2].sub_item_table_func()
         light_themes[1].callback()
         assert.are.equal("default", config.reader_themes.light_mode)
 
@@ -314,7 +517,7 @@ describe("reader themes settings", function()
                 font_face = "default",
             },
         }
-        dark_themes = themes.sub_item_table[2].sub_item_table_func()
+        dark_themes = themes.sub_item_table[1].sub_item_table_func()
         dark_themes[#dark_themes].callback()
         assert.are.equal("custom_1", config.reader_themes.dark_mode)
         assert.are.equal(3, saved)

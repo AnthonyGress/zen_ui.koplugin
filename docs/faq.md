@@ -14,7 +14,7 @@ See the [Installation](/zen-os/docs/installation) guide for full installation in
 
 ## ZenOS is not starting and doesn't show in the Plugins list
 
-Make sure you downloaded the [release](https://github.com/AnthonyGress/zen_ui.koplugin/releases) and did not leave a second folder inside `zenos.koplugin`. The installed `zenos.koplugin` folder must contain `main.lua` and the other ZenOS code files directly, not another nested `zenos.koplugin` folder.
+Make sure you downloaded the [release](https://github.com/xZenLabs/zen-os/releases) and did not leave a second folder inside `zenos.koplugin`. The installed `zenos.koplugin` folder must contain `main.lua` and the other ZenOS code files directly, not another nested `zenos.koplugin` folder.
 
 ![zenos.koplugin folder inside the KOReader plugins directory](/images/zen_os/plugins_folder.webp)
 
@@ -31,6 +31,21 @@ Set the Home folder to the location where your books are, preferably a dedicated
 ## Calibre loads all my books into folders of the authors, how can I fix that?
 
 Enable the setting **Zen Settings > Library > Layout > Show all files from subfolders**.
+
+## Which plugins and patches are incompatible with ZenOS?
+
+Most patches not made specifically for ZenOS should not be used. Remove or disable them to avoid any conflicts.
+
+Disable each item before using ZenOS unless its action is **Remove**; those plugins must be deleted from KOReader's plugins folder.
+
+| Plugin | Action |
+| --- | --- |
+| Project: Title | Remove |
+| Simple UI | Disable |
+| Visual Overhaul Suite (VOS) | Disable |
+| QuickMenu | Remove |
+| Appearance | Disable |
+| Reader Menu Redesign | Disable |
 
 ## How do I navigate the entire filesystem?
 Set **Zen Settings > Library > Home folder > Lock home folder** to **Off**.

@@ -1,5 +1,7 @@
 local M = {}
 local BookOpenTap = require("common/book_open_tap")
+local BookStatus = require("common/book_status")
+local paths = require("common/paths")
 
 M.BOOK_COUNT = 4
 
@@ -175,6 +177,8 @@ function M.loadBooks(limit, exclude_path)
     for _i, entry in ipairs(ReadHistory.hist or {}) do
         local path = entry and entry.file
         local is_file = type(path) == "string" and path ~= ""
+            and paths.isInHomeDir(path)
+            and not BookStatus.isImageFile(path)
             and (not ok_lfs or lfs.attributes(path, "mode") == "file")
         if is_file and path ~= exclude_path and not seen[path] then
             seen[path] = true

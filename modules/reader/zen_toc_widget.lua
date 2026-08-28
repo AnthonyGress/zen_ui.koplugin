@@ -106,6 +106,7 @@ local ZenTocWidget = InputContainer:extend{
     on_goto    = nil,   -- callback(page_num) when entry tapped
     close_all_callback = nil,
     focus_page = 1,     -- current page; used to highlight active chapter
+    font_size  = nil,
 }
 
 function ZenTocWidget:init()
@@ -150,8 +151,9 @@ function ZenTocWidget:init()
     end
     self._entries = entries
 
-    local reader_font_size = ReaderFont.getInfo(self.ui, 18).size
-    self._text_face = LibraryFont.getFace(reader_font_size)
+    local text_font_size = tonumber(self.font_size)
+        or ReaderFont.getInfo(self.ui, 18).size
+    self._text_face = LibraryFont.getFace(text_font_size)
 
     -- -----------------------------------------------------------------------
     -- Layout constants (all screen-scaled)

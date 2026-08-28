@@ -18,6 +18,7 @@ describe("library settings", function()
         "ui/widget/confirmbox",
         "ui/widget/fontchooser",
         "ui/widget/infomessage",
+        "common/ui/background",
     }
 
     before_each(function()
@@ -51,10 +52,11 @@ describe("library settings", function()
         end
     end)
 
-    it("invalidates the library cache when series grouping changes", function()
+    it("nests series settings and refreshes the library when they change", function()
         local invalidations = 0
         local clears = 0
         local refreshes = 0
+        local saves = 0
         local home = {
             invalidateLibraryCache = function()
                 invalidations = invalidations + 1
@@ -73,11 +75,11 @@ describe("library settings", function()
 
         local config = {
             browser_hide_up_folder = {},
-            features = { automatic_series_grouping = true },
+            features = { automatic_series_grouping = true, hide_grouped_series = false },
         }
         local items = require("modules/settings/sections/library_settings").build({
             config = config,
-            plugin = { saveConfig = function() end },
+            plugin = { saveConfig = function() saves = saves + 1 end },
             save_and_apply = function() end,
         })
         local folders
@@ -89,12 +91,36 @@ describe("library settings", function()
         end
 
         assert.is_not_nil(folders)
-        folders.sub_item_table[2].callback()
+        local series
+        for _i, item in ipairs(folders.sub_item_table) do
+            if item.text == "Series" then
+                series = item
+                break
+            end
+        end
+
+        assert.is_not_nil(series)
+        local series_items = series.sub_item_table_func()
+        assert.are.same({ "Group book series into folders", "Hide grouped series" }, {
+            series_items[1].text, series_items[2].text,
+        })
+
+        local touchmenu = { item_table = series_items }
+        series_items[1].callback(touchmenu)
 
         assert.is_false(config.features.automatic_series_grouping)
-        assert.are.equal(1, invalidations)
-        assert.are.equal(1, clears)
-        assert.are.equal(1, refreshes)
+        assert.are.equal(1, #touchmenu.item_table)
+
+        touchmenu.item_table[1].callback(touchmenu)
+        assert.is_true(config.features.automatic_series_grouping)
+        assert.are.equal("Hide grouped series", touchmenu.item_table[2].text)
+
+        touchmenu.item_table[2].callback()
+        assert.is_true(config.features.hide_grouped_series)
+        assert.are.equal(3, saves)
+        assert.are.equal(3, invalidations)
+        assert.are.equal(3, clears)
+        assert.are.equal(3, refreshes)
     end)
 
     it("rebuilds the library when mosaic title strips change", function()
@@ -428,5 +454,146 @@ describe("library settings", function()
         assert.is_false(message.show_icon)
         assert.are.equal(font_path, config.library_font.font_face)
         assert.are.equal(0, saves)
+    end)
+
+    it("edits library background opacity and refreshes the cached surfaces", function()
+        local picker
+        local saves = 0
+        local cache_clears = 0
+        local reinitializations = 0
+        local scheduled = 0
+        local menu_updates = 0
+        package.loaded["modules/settings/zen_settings_utils"].show_value_picker =
+            function(title, value, callback, min, max)
+                picker = {
+                    title = title,
+                    value = value,
+                    callback = callback,
+                    min = min,
+                    max = max,
+                }
+            end
+        package.loaded["modules/settings/zen_settings_apply"].reinit_filemanager_on_menu_close =
+            function() reinitializations = reinitializations + 1 end
+        package.loaded["ui/uimanager"].scheduleIn = function()
+            scheduled = scheduled + 1
+        end
+        ZenSpec.replace("common/ui/background", {
+            clearCache = function() cache_clears = cache_clears + 1 end,
+        })
+
+        local config = {
+            browser_hide_up_folder = {},
+            features = {},
+            library_background = {
+                enabled = true,
+                path = "/library/background.jpg",
+            },
+        }
+        local items = require("modules/settings/sections/library_settings").build({
+            config = config,
+            plugin = { saveConfig = function() saves = saves + 1 end },
+            save_and_apply = function() end,
+        })
+        local background
+        for _i, item in ipairs(items) do
+            if item.text == "Background" then
+                background = item
+                break
+            end
+        end
+        local opacity = assert(background).sub_item_table[2]
+
+        assert.is_true(background.checked_func())
+        assert.is_function(background.checkmark_callback)
+        assert.are.equal("Opacity: 100%", opacity.text_func())
+        assert.is_true(opacity.enabled_func())
+        opacity.callback({ updateItems = function() menu_updates = menu_updates + 1 end })
+        assert.are.same({
+            title = "Background - Opacity",
+            value = 100,
+            min = 0,
+            max = 100,
+            callback = picker.callback,
+        }, picker)
+
+        picker.callback(37.6)
+        assert.are.equal(38, config.library_background.opacity)
+        assert.are.equal(1, saves)
+        assert.are.equal(1, cache_clears)
+        assert.are.equal(1, reinitializations)
+        assert.are.equal(1, scheduled)
+        assert.are.equal(1, menu_updates)
+        assert.are.equal("Opacity: 38%", opacity.text_func())
+
+        background.checkmark_callback()
+        assert.is_false(config.library_background.enabled)
+        assert.is_false(background.checked_func())
+        assert.are.equal(2, saves)
+        assert.are.equal(2, cache_clears)
+        assert.are.equal(2, reinitializations)
+        assert.are.equal(1, scheduled)
+    end)
+
+    it("validates the image when enabling the library background parent switch", function()
+        local shown
+        local saves = 0
+        local cache_clears = 0
+        local reinitializations = 0
+        local scheduled = 0
+        package.loaded["ui/uimanager"].show = function(_, dialog) shown = dialog end
+        package.loaded["ui/uimanager"].scheduleIn = function()
+            scheduled = scheduled + 1
+        end
+        package.loaded["modules/settings/zen_settings_apply"].reinit_filemanager_on_menu_close =
+            function() reinitializations = reinitializations + 1 end
+        ZenSpec.replace("ui/widget/infomessage", {
+            new = function(_, spec) return spec end,
+        })
+        local background_module = {
+            validateImage = function() return false, "missing" end,
+            clearCache = function() cache_clears = cache_clears + 1 end,
+        }
+        ZenSpec.replace("common/ui/background", background_module)
+
+        local config = {
+            browser_hide_up_folder = {},
+            features = {},
+            library_background = {
+                enabled = false,
+                path = "/library/missing.jpg",
+            },
+        }
+        local items = require("modules/settings/sections/library_settings").build({
+            config = config,
+            plugin = { saveConfig = function() saves = saves + 1 end },
+            save_and_apply = function() end,
+        })
+        local background
+        for _i, item in ipairs(items) do
+            if item.text == "Background" then
+                background = item
+                break
+            end
+        end
+
+        assert.is_false(background.checked_func())
+        assert.are.equal(2, #background.sub_item_table)
+        background.checkmark_callback()
+
+        assert.is_false(config.library_background.enabled)
+        assert.are.equal("Background image file not found.", shown.text)
+        assert.are.equal(0, saves)
+        assert.are.equal(0, cache_clears)
+
+        background_module.validateImage = function() return true end
+        background.checkmark_callback()
+
+        assert.is_true(config.library_background.enabled)
+        assert.is_true(background.checked_func())
+        assert.are.equal(1, saves)
+        assert.are.equal(1, cache_clears)
+        assert.are.equal(1, reinitializations)
+        assert.are.equal(1, scheduled)
     end)
 end)

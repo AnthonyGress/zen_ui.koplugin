@@ -1,5 +1,17 @@
 local M = {}
 
+local DEFAULT_DETAIL_ORDER = {
+    "read_time", "time_remaining", "pages_today", "time_today", "pages", "progress",
+}
+local DEFAULT_DETAIL_ENABLED = {
+    read_time = true,
+    time_remaining = true,
+    pages_today = false,
+    time_today = false,
+    pages = true,
+    progress = true,
+}
+
 local function launcher_config(config)
     return type(config) == "table" and config or {}
 end
@@ -80,11 +92,32 @@ function M.build(opts)
     local layout = BookSwitcherPage.layout{
         width = width, height = height, config = opts.config,
     }
+    local detail_config = type(opts.launcher_config) == "table"
+        and opts.launcher_config or {}
+    local detail_order = type(detail_config.book_details_order) == "table"
+        and detail_config.book_details_order or DEFAULT_DETAIL_ORDER
+    local detail_enabled = type(detail_config.book_details_enabled) == "table"
+        and detail_config.book_details_enabled or DEFAULT_DETAIL_ENABLED
+    local function is_detail_enabled(id)
+        if type(detail_enabled[id]) == "boolean" then return detail_enabled[id] end
+        return DEFAULT_DETAIL_ENABLED[id] == true
+    end
     local padding = layout.padding
     local inner_w = layout.inner_w
     local book = opts.book or BookDetails.getSummary(opts.ui)
-    if book and opts.ui and type(BookDetails.getReadingTimes) == "function" then
-        book.time_left_secs, book.read_time_secs = BookDetails.getReadingTimes(opts.ui)
+    local reading_fields = {
+        read_time = is_detail_enabled("read_time"),
+        time_remaining = is_detail_enabled("time_remaining"),
+        pages_today = is_detail_enabled("pages_today"),
+        time_today = is_detail_enabled("time_today"),
+    }
+    local needs_reading_times = reading_fields.read_time or reading_fields.time_remaining
+        or reading_fields.pages_today or reading_fields.time_today
+    if book and opts.ui and needs_reading_times
+            and type(BookDetails.getReadingTimes) == "function" then
+        book.time_left_secs, book.read_time_secs,
+            book.time_today_secs, book.pages_today = BookDetails.getReadingTimes(
+                opts.ui, reading_fields)
     end
     local refs = { buttons = {}, layout_rows = {} }
 
@@ -160,38 +193,67 @@ function M.build(opts)
     end
     add_metadata(book.series)
     add_metadata(book.genres)
-    local timing = {}
-    if book.read_time_secs ~= nil then
-        timing[#timing + 1] = string.format(_("Read: %s"),
-            format_duration(_, book.read_time_secs))
-    end
-    if book.time_left_secs ~= nil then
-        timing[#timing + 1] = string.format(_("Remaining: %s"),
-            format_duration(_, book.time_left_secs))
-    end
-    if #timing > 0 then
-        add_metadata(table.concat(timing, " / "))
-    end
     local bottom_details = VerticalGroup:new{ align = "left" }
-    if book.page_text and book.page_text ~= "" then
-        bottom_details[#bottom_details + 1] = VerticalSpan:new{
-            width = Screen:scaleBySize(3),
-        }
-        bottom_details[#bottom_details + 1] = one_line(book.page_text, metadata_face)
+    local function add_bottom_text(text)
+        if not (text and text ~= "") then return end
+        bottom_details[#bottom_details + 1] = VerticalSpan:new{ width = metadata_gap }
+        bottom_details[#bottom_details + 1] = one_line(text, metadata_face)
     end
-    local progress = BookProgress.build{
-        ratio = book.progress,
-        pages = book.pages,
-        right_text = "",
-        width = text_w,
-        bar_height = math.max(2, Screen:scaleBySize(7)),
-        face = metadata_face,
-    }
-    if progress then
-        bottom_details[#bottom_details + 1] = VerticalSpan:new{
-            width = Screen:scaleBySize(18),
-        }
-        bottom_details[#bottom_details + 1] = progress
+    local function detail_text(id)
+        if id == "read_time" and book.read_time_secs ~= nil then
+            return string.format(_("Read: %s"), format_duration(_, book.read_time_secs))
+        elseif id == "time_remaining" and book.time_left_secs ~= nil then
+            return string.format(_("Remaining: %s"), format_duration(_, book.time_left_secs))
+        elseif id == "pages_today" and book.pages_today ~= nil then
+            return string.format("%s: %s", _("Pages today"), tostring(book.pages_today))
+        elseif id == "time_today" and book.time_today_secs ~= nil then
+            return string.format("%s: %s", _("Read today"),
+                format_duration(_, book.time_today_secs))
+        elseif id == "pages" then
+            return book.page_text
+        end
+    end
+    local function paired_detail_text(id, next_id)
+        if ((id == "read_time" and next_id == "time_remaining")
+                or (id == "time_remaining" and next_id == "read_time"))
+                and book.read_time_secs ~= nil and book.time_left_secs ~= nil then
+            return detail_text("read_time") .. " / " .. detail_text("time_remaining")
+        elseif ((id == "time_today" and next_id == "pages_today")
+                or (id == "pages_today" and next_id == "time_today"))
+                and book.time_today_secs ~= nil and book.pages_today ~= nil then
+            return string.format("%s: %s / %s %s", _("Today"),
+                format_duration(_, book.time_today_secs),
+                tostring(book.pages_today), _("pages"))
+        end
+    end
+    local skip_next = false
+    for _i, id in ipairs(detail_order) do
+        if skip_next then
+            skip_next = false
+        elseif is_detail_enabled(id) then
+            if id == "progress" then
+                local progress = BookProgress.build{
+                    ratio = book.progress,
+                    pages = book.pages,
+                    right_text = "",
+                    width = text_w,
+                    bar_height = math.max(2, Screen:scaleBySize(7)),
+                    face = metadata_face,
+                }
+                if progress then
+                    bottom_details[#bottom_details + 1] = VerticalSpan:new{
+                        width = Screen:scaleBySize(18),
+                    }
+                    bottom_details[#bottom_details + 1] = progress
+                end
+            else
+                local next_id = detail_order[_i + 1]
+                local paired_text = is_detail_enabled(next_id)
+                    and paired_detail_text(id, next_id)
+                add_bottom_text(paired_text or detail_text(id))
+                skip_next = paired_text ~= nil
+            end
+        end
     end
 
     local details_h = details:getSize().h

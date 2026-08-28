@@ -4,11 +4,63 @@ local PagePlan = require("modules/menu/app_launcher/page_plan")
 
 local M = {}
 
+local BOOK_DETAILS_ORDER = {
+    "read_time",
+    "time_remaining",
+    "pages_today",
+    "time_today",
+    "pages",
+    "progress",
+}
+local BOOK_DETAILS_DEFAULT_ENABLED = {
+    read_time = true,
+    time_remaining = true,
+    pages_today = false,
+    time_today = false,
+    pages = true,
+    progress = true,
+}
+
+local BOOK_DETAILS_VALID = {}
+for _i, id in ipairs(BOOK_DETAILS_ORDER) do
+    BOOK_DETAILS_VALID[id] = true
+end
+
 local _settings_file
 local _current_config
 
+local function normalize_book_details(cfg)
+    cfg = type(cfg) == "table" and cfg or {}
+    local order = {}
+    local seen = {}
+    for _i, id in ipairs(type(cfg.book_details_order) == "table"
+            and cfg.book_details_order or {}) do
+        if BOOK_DETAILS_VALID[id] and not seen[id] then
+            order[#order + 1] = id
+            seen[id] = true
+        end
+    end
+    for _i, id in ipairs(BOOK_DETAILS_ORDER) do
+        if not seen[id] then order[#order + 1] = id end
+    end
+    cfg.book_details_order = order
+
+    local saved = type(cfg.book_details_enabled) == "table"
+        and cfg.book_details_enabled or {}
+    local enabled = {}
+    for _i, id in ipairs(BOOK_DETAILS_ORDER) do
+        if type(saved[id]) == "boolean" then
+            enabled[id] = saved[id]
+        else
+            enabled[id] = BOOK_DETAILS_DEFAULT_ENABLED[id]
+        end
+    end
+    cfg.book_details_enabled = enabled
+    return cfg
+end
+
 local function default_config()
-    return {
+    return normalize_book_details({
         entries = {},
         next_id = 0,
         show_labels = true,
@@ -18,7 +70,7 @@ local function default_config()
         show_book_switcher = false,
         book_switcher_reader_only = false,
         show_book_details = false,
-    }
+    })
 end
 
 local function settings_path()
@@ -61,7 +113,7 @@ local function normalize(cfg)
         cfg.book_switcher_reader_only = false
     end
     if type(cfg.show_book_details) ~= "boolean" then cfg.show_book_details = false end
-    return cfg
+    return normalize_book_details(cfg)
 end
 
 function M.path()

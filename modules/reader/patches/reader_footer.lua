@@ -138,10 +138,9 @@ local function apply_reader_footer()
                 self.mode_nb = self.mode_nb + 1
             end
         end
-        -- progress_bar is a positional anchor, not a toggleable item.
-        -- Force it enabled so the SortWidget never dims it.
+        -- progress_bar is a positional anchor, never a text mode.
         if self.settings then
-            self.settings.progress_bar = true
+            self.settings.progress_bar = nil
         end
     end
 
@@ -152,13 +151,17 @@ local function apply_reader_footer()
         orig_addToMainMenu(self, menu_items)
         if not menu_items.status_bar then return end
 
-        -- Locate the "Status bar items" sub-table.
-        local footer_items
+        local footer_items, arrange_item
         for _i, item in ipairs(menu_items.status_bar.sub_item_table or {}) do
             if item.text == _("Status bar items")
                     and type(item.sub_item_table) == "table" then
                 footer_items = item.sub_item_table
-                break
+            end
+            for _j, child in ipairs(item.sub_item_table or {}) do
+                if child.text == _("Arrange items in status bar") then
+                    arrange_item = child
+                    break
+                end
             end
         end
         if not footer_items then return end
@@ -223,6 +226,46 @@ local function apply_reader_footer()
         table.insert(footer_items, #footer_items, df2_entry)
         -- progress_bar is a positional anchor in the arrange dialog, not
         -- a user toggle, so it has no entry in the Status bar items list.
+
+        if arrange_item then
+            arrange_item.enabled_func = function()
+                local enabled_count = self.settings.disable_progress_bar and 0 or 1
+                for _i, mode in ipairs(self.mode_index) do
+                    if mode ~= "progress_bar" and self.settings[mode] then
+                        enabled_count = enabled_count + 1
+                        if enabled_count > 1 then return true end
+                    end
+                end
+                return false
+            end
+            arrange_item.callback = function()
+                local item_table = {}
+                for i, item in ipairs(self.mode_index) do
+                    local enabled = self.settings[item]
+                    if item == "progress_bar" then
+                        enabled = not self.settings.disable_progress_bar
+                    end
+                    item_table[i] = {
+                        text = self:textOptionTitles(item),
+                        label = item,
+                        dim = not enabled,
+                    }
+                end
+                require("common/ui/zen_arrange_list").show{
+                    title = _("Arrange items"),
+                    item_table = item_table,
+                    callback = function()
+                        for i, item in ipairs(item_table) do
+                            self.mode_index[i] = item.label
+                        end
+                        self.settings.order = self.mode_index
+                        self:updateFooterTextGenerator()
+                        self:onUpdateFooter(true)
+                        UIManager:setDirty(nil, "ui")
+                    end,
+                }
+            end
+        end
     end
 
     -- Returns true when the alongside LCR layout should be used.
@@ -506,6 +549,7 @@ local function apply_reader_footer()
 
     local function refresh_live_footer_modes(footer)
         if not (footer and footer.settings and footer.mode_index) then return end
+        footer.settings.progress_bar = nil
         if footer.mode_list and footer.mode_list.dynamic_filler_2
                 and footer.mode_list.progress_bar then
             return

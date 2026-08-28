@@ -13,6 +13,8 @@ describe("file browser group views", function()
     local file_dialog_args
     local sort_dialog_args
     local legacy_tbr_calls
+    local tbr_collection_changes
+    local tbr_get_options
     local select_menu_calls
     local saved_modules
     local replaced_modules = {
@@ -61,6 +63,8 @@ describe("file browser group views", function()
         metadata, statuses, opened = {}, {}, {}
         saved, file_dialog_args, sort_dialog_args = 0, nil, nil
         legacy_tbr_calls = 0
+        tbr_collection_changes = 0
+        tbr_get_options = nil
         select_menu_calls = 0
 
         local plugin = {
@@ -111,7 +115,9 @@ describe("file browser group views", function()
             prepare_shell = function() end,
             hide_page_arrow = function() end,
             suppress_page_info_tap = function() end,
-            apply_status_row = function() end,
+            apply_status_row = function(menu, options)
+                menu._test_back_callback = options.back_callback
+            end,
         })
         ZenSpec.replace("common/db_bookinfo", {
             getGroupedByAuthor = function() return groups.authors or {} end,
@@ -125,7 +131,13 @@ describe("file browser group views", function()
             end,
         })
         ZenSpec.replace("common/tbr_index", {
-            getAll = function() return groups.tbr or {} end,
+            getAll = function(options)
+                tbr_get_options = options
+                return groups.tbr or {}
+            end,
+            collectionChanged = function() tbr_collection_changes = tbr_collection_changes + 1 end,
+            collectionName = function() return "To Be Read" end,
+            isExplicit = function() return false end,
             isAuditComplete = function() return true end,
         })
         ZenSpec.replace("bookinfomanager", {
@@ -152,7 +164,11 @@ describe("file browser group views", function()
         })
         ZenSpec.replace("ui/uimanager", {
             show = function(_, widget) table.insert(shown, widget) end,
-            close = function(_, widget) table.insert(closed, widget) end,
+            isWidgetShown = function(_, widget) return widget._test_shown ~= false end,
+            close = function(_, widget)
+                table.insert(closed, widget)
+                if widget.onCloseWidget then widget:onCloseWidget() end
+            end,
             nextTick = function(_, callback) callback() end,
             isShown = function() return true end,
         })
@@ -266,6 +282,41 @@ describe("file browser group views", function()
         assert.is_function(file_dialog_args._zen_display_cb)
     end)
 
+    it("persists display modes and opens another group after backing out", function()
+        install_group_view({
+            authors = {
+                { author = "Ada", files = { "/ada.epub" } },
+                { author = "Grace", files = { "/grace.epub" } },
+            },
+        })
+        config.group_view.display_mode.authors = "list_image_filename"
+        package.loaded.device.isTouchDevice = function() return true end
+
+        api.showAuthorsView()
+        local root = assert(find_menu("authors"))
+        root.onMenuSelect(root, root.item_table[1])
+        local ada = assert(find_menu("authors_detail"))
+        assert.is_true(ada._do_filename_only)
+
+        ada:onZenDetailBlankHold()
+        file_dialog_args._zen_display_cb()
+        dialogs[#dialogs].buttons[2][1].callback()
+
+        assert.are.equal(
+            "list_image_meta",
+            config.group_view.detail_display_mode.authors.Ada)
+        assert.are.equal("list_image_filename", config.group_view.display_mode.authors)
+        assert.is_true(root._do_filename_only)
+        assert.are.equal(1, saved)
+        assert.is_false(ada._do_filename_only)
+        ada._test_back_callback()
+
+        root.onMenuSelect(root, root.item_table[2])
+        local grace = assert(menus[#menus])
+        assert.are.equal("Grace", grace._zen_group_name)
+        assert.is_true(grace._do_filename_only)
+    end)
+
     it("omits context actions for Home strip group folders", function()
         install_group_view({})
 
@@ -351,6 +402,33 @@ describe("file browser group views", function()
         assert.is_true(item._zen_empty_placeholder)
         assert.is_true(find_menu("to_be_read")._zen_group_view)
         assert.are.equal(0, legacy_tbr_calls)
+    end)
+
+    it("rebuilds a stale TBR page so navbar taps can reopen it", function()
+        install_group_view({ tbr = {} })
+
+        local first = api.showTBRView()
+        first._test_shown = false
+        local reopened = api.showTBRView()
+
+        assert.are_not.equal(first, reopened)
+        assert.are.equal(2, #shown)
+    end)
+
+    it("refreshes an open TBR page with the current shared order", function()
+        install_group_view({ tbr = { "/a.epub" } })
+        config.group_view.detail_collate = {
+            to_be_read = { to_be_read = "title" },
+        }
+        api.showTBRView()
+
+        config.group_view.detail_collate.to_be_read.to_be_read = "manual"
+        assert.is_true(api.refreshTBRView())
+
+        assert.are.equal("manual", tbr_get_options.collate)
+        assert.is_false(tbr_get_options.reverse)
+        assert.are.equal(1, tbr_collection_changes)
+        assert.are.equal(2, find_menu("to_be_read").update_count)
     end)
 
     it("names the group metadata when a detail page has no books", function()

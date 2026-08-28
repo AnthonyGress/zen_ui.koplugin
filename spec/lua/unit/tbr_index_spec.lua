@@ -10,6 +10,9 @@ describe("TBR path inventory", function()
     local ReadCollection
     local scheduled
     local collection_writes
+    local updated_collection_order
+    local arrange_options
+    local view_refreshes
 
     local function add_book(path, status, sidecar_mtime)
         local directory, name = path:match("^(.*)/([^/]+)$")
@@ -54,6 +57,9 @@ describe("TBR path inventory", function()
         open_fail = nil
         scheduled = {}
         collection_writes = 0
+        updated_collection_order = nil
+        arrange_options = nil
+        view_refreshes = { home = 0, group = 0, collection = 0 }
         config = {
             _meta = { tbr_collection_migrated = true },
             additional_home_dirs = {},
@@ -66,9 +72,24 @@ describe("TBR path inventory", function()
             self.coll[name] = {}
             self.coll_settings[name] = { order = 2 }
         end
+        function ReadCollection:renameCollection(name, new_name)
+            self.coll[new_name] = self.coll[name]
+            self.coll_settings[new_name] = self.coll_settings[name]
+            self.coll[name] = nil
+            self.coll_settings[name] = nil
+        end
         function ReadCollection:write() collection_writes = collection_writes + 1 end
         function ReadCollection:addItem(path, name, attr)
-            self.coll[name][path] = { file = path, attr = attr, text = path:match("([^/]+)$") }
+            local order = 1
+            for _path, item in pairs(self.coll[name]) do
+                order = math.max(order, (tonumber(item.order) or 0) + 1)
+            end
+            self.coll[name][path] = {
+                file = path,
+                attr = attr,
+                text = path:match("([^/]+)$"),
+                order = order,
+            }
         end
         function ReadCollection:removeItem(path, name)
             self.coll[name][path] = nil
@@ -76,6 +97,22 @@ describe("TBR path inventory", function()
         end
         function ReadCollection:isFileInCollection(path, name)
             return self.coll[name] and self.coll[name][path] ~= nil
+        end
+        function ReadCollection:getOrderedCollection(name)
+            local ordered = {}
+            for _path, item in pairs(self.coll[name]) do ordered[#ordered + 1] = item end
+            table.sort(ordered, function(first, second)
+                return first.order < second.order
+            end)
+            return ordered
+        end
+        function ReadCollection:updateCollectionOrder(name, ordered)
+            updated_collection_order = {}
+            for index, item in ipairs(ordered) do
+                local path = type(item) == "table" and item.file or item
+                updated_collection_order[#updated_collection_order + 1] = path
+                if self.coll[name][path] then self.coll[name][path].order = index end
+            end
         end
 
         ZenSpec.replace("datastorage", { getSettingsDir = function() return test_dir end })
@@ -133,6 +170,10 @@ describe("TBR path inventory", function()
                 if status then return status end
                 return percent == nil and "new" or "reading"
             end,
+            includeNewInTBREnabled = function()
+                return config.group_view
+                    and config.group_view.include_new_in_tbr == true
+            end,
         })
         ZenSpec.replace("common/db_bookinfo", {
             getLightMetadata = function()
@@ -147,6 +188,34 @@ describe("TBR path inventory", function()
         ZenSpec.replace("ui/uimanager", {
             nextTick = function(_self, fn) scheduled[#scheduled + 1] = fn end,
             unschedule = function() end,
+        })
+        ZenSpec.replace("common/ui/zen_arrange_list", {
+            show = function(options) arrange_options = options end,
+        })
+        ZenSpec.replace("common/shared_state", {
+            get = function(_plugin, key)
+                if key == "home" then
+                    return {
+                        invalidateTBRCache = function()
+                            view_refreshes.home = view_refreshes.home + 1
+                        end,
+                    }
+                end
+                if key == "group_view" then
+                    return {
+                        refreshTBRView = function()
+                            view_refreshes.group = view_refreshes.group + 1
+                        end,
+                    }
+                end
+                if key == "collections" then
+                    return {
+                        refreshTBRCollection = function()
+                            view_refreshes.collection = view_refreshes.collection + 1
+                        end,
+                    }
+                end
+            end,
         })
         local tick = 0
         ZenSpec.replace("common/zen_logger", {
@@ -187,6 +256,17 @@ describe("TBR path inventory", function()
         assert.are.equal(0, opens)
     end)
 
+    it("exports every book path from all configured home directories", function()
+        config.additional_home_dirs = { "/extra" }
+        attrs["/extra"] = { mode = "directory", modification = 1 }
+        entries["/extra"] = { ".", ".." }
+        add_book("/books/current.epub")
+        add_book("/extra/already-read.epub", "complete", 1)
+
+        assert.same({ "/books/current.epub", "/extra/already-read.epub" },
+            require("common/tbr_index").getInventoryPaths())
+    end)
+
     it("uses the ordinary collection for explicit TBR membership", function()
         add_book("/books/a.epub", "reading", 1)
         add_book("/books/b.epub", "reading", 1)
@@ -200,6 +280,142 @@ describe("TBR path inventory", function()
         assert.is_true(Index.setExplicit("/books/b.epub", false))
         assert.same({}, Index.getAll({ include_new = false }))
         assert.are.equal(3, collection_writes)
+    end)
+
+    it("shares one manual order across explicit and virtual TBR books", function()
+        config.group_view = { include_new_in_tbr = true }
+        add_book("/books/a.epub", "reading", 1)
+        add_book("/books/b.epub", "reading", 1)
+        add_book("/books/c.epub")
+        add_book("/books/d.epub")
+        local Index = require("common/tbr_index")
+
+        assert.is_true(Index.setExplicit("/books/a.epub", true))
+        assert.is_true(Index.setExplicit("/books/b.epub", true))
+        local coll_name = Index.collectionName()
+        local settings = ReadCollection.coll_settings[coll_name]
+        settings.collate = "title"
+        settings.collate_reverse = true
+        local writes_before = collection_writes
+        local plugin = {}
+        local settings_resume = { path = { "To Be Read" } }
+        local changed = 0
+
+        Index.showOrder({
+            plugin = plugin,
+            settings_resume = settings_resume,
+            on_change = function() changed = changed + 1 end,
+        })
+        assert.are.equal("Order", arrange_options.title)
+        assert.are.equal(plugin, arrange_options.plugin)
+        assert.same({ "To Be Read", "Order" }, arrange_options.settings_resume.path)
+        assert.same({ "To Be Read" }, settings_resume.path)
+        assert.same({ "Zulu", "Bravo", "Alpha", "d" }, {
+            arrange_options.item_table[1].text,
+            arrange_options.item_table[2].text,
+            arrange_options.item_table[3].text,
+            arrange_options.item_table[4].text,
+        })
+        arrange_options.item_table[1], arrange_options.item_table[3] =
+            arrange_options.item_table[3], arrange_options.item_table[1]
+        arrange_options.callback()
+
+        assert.same({
+            "/books/c.epub", "/books/b.epub", "/books/a.epub", "/books/d.epub",
+        }, settings.zenos_tbr_order)
+        assert.is_true(settings.zenos_tbr)
+        assert.is_nil(settings.collate)
+        assert.is_nil(settings.collate_reverse)
+        assert.same({ "/books/b.epub", "/books/a.epub" }, updated_collection_order)
+        assert.are.equal(1, ReadCollection.coll[coll_name]["/books/b.epub"].order)
+        assert.are.equal(2, ReadCollection.coll[coll_name]["/books/a.epub"].order)
+        assert.are.equal(writes_before + 1, collection_writes)
+        assert.are.equal("manual",
+            config.group_view.detail_collate.to_be_read.to_be_read)
+        assert.is_false(config.group_view.detail_reverse.to_be_read.to_be_read)
+        assert.are.equal(1, changed)
+        assert.same({ home = 0, group = 0, collection = 0 }, view_refreshes)
+
+        Index.refreshViews(plugin)
+        assert.same({ home = 1, group = 1, collection = 1 }, view_refreshes)
+
+        assert.is_true(Index.setExplicit("/books/c.epub", true))
+        assert.same({
+            "/books/c.epub", "/books/b.epub", "/books/a.epub",
+        }, updated_collection_order)
+
+        add_book("/books/e.epub")
+        attrs["/books"].modification = 2
+        assert.same({
+            "/books/c.epub", "/books/b.epub", "/books/a.epub",
+            "/books/d.epub", "/books/e.epub",
+        }, Index.getAll({ include_new = true, collate = "manual" }))
+
+        assert.is_true(Index.moveOrderPath(
+            "/books/a.epub", "/books/shelf/a.epub"))
+        assert.is_true(Index.moveOrderPath("/books", "/library", true))
+        assert.same({
+            "/library/c.epub", "/library/b.epub",
+            "/library/shelf/a.epub", "/library/d.epub",
+        }, settings.zenos_tbr_order)
+    end)
+
+    it("adopts an existing To Be Read collection without replacing it", function()
+        add_book("/books/a.epub", "reading", 1)
+        ReadCollection:addCollection("To Be Read")
+        ReadCollection:addItem("/books/a.epub", "To Be Read")
+        local existing = ReadCollection.coll["To Be Read"]
+        local Index = require("common/tbr_index")
+
+        assert.are.equal("To Be Read", Index.collectionName())
+        assert.is_true(rawequal(existing, ReadCollection.coll["To Be Read"]))
+        assert.is_true(ReadCollection.coll_settings["To Be Read"].zenos_tbr)
+        assert.same({ "/books/a.epub" }, Index.getAll({ include_new = false }))
+        assert.are.equal(1, collection_writes)
+    end)
+
+    it("keeps explicit TBR membership linked after the collection is renamed", function()
+        add_book("/books/a.epub", "reading", 1)
+        add_book("/books/b.epub", "reading", 1)
+        local Index = require("common/tbr_index")
+
+        assert.is_true(Index.setExplicit("/books/a.epub", true))
+        local old_name = Index.collectionName()
+        assert.is_true(ReadCollection.coll_settings[old_name].zenos_tbr)
+        ReadCollection:renameCollection(old_name, "Later")
+        assert.are.equal("Later", Index.collectionName())
+        assert.is_true(ReadCollection.coll_settings.Later.zenos_tbr)
+
+        Index.close()
+        ZenSpec.unload("common/tbr_index")
+        Index = require("common/tbr_index")
+
+        assert.are.equal("Later", Index.collectionName())
+        assert.same({ "/books/a.epub" }, Index.getAll({ include_new = false }))
+        assert.is_true(Index.isExplicit("/books/a.epub"))
+        assert.is_nil(ReadCollection.coll[old_name])
+        assert.is_true(Index.setExplicit("/books/b.epub", true))
+        assert.is_truthy(ReadCollection.coll.Later["/books/b.epub"])
+        assert.is_nil(ReadCollection.coll[old_name])
+    end)
+
+    it("does not reload disk state over a pending TBR collection rename", function()
+        add_book("/books/a.epub", "reading", 1)
+        local Index = require("common/tbr_index")
+
+        assert.is_true(Index.setExplicit("/books/a.epub", true))
+        local old_name = Index.collectionName()
+        ReadCollection:renameCollection(old_name, "Later")
+        local reloads = 0
+        ReadCollection._read = function(self)
+            reloads = reloads + 1
+            self:renameCollection("Later", old_name)
+        end
+
+        assert.same({ "/books/a.epub" }, Index.getAll({ include_new = false }))
+        assert.are.equal(0, reloads)
+        assert.are.equal("Later", Index.collectionName())
+        assert.is_nil(ReadCollection.coll[old_name])
     end)
 
     it("reopens only a changed sidecar across warm queries and reloads", function()

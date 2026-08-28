@@ -121,7 +121,10 @@ describe("opening banner", function()
         ZenSpec.replace("gettext", function(text) return text end)
         ZenSpec.replace("listmenu", { _updateItemsBuildUI = build_list_items })
         ZenSpec.replace("mosaicmenu", { _updateItemsBuildUI = build_mosaic_items })
-        ZenSpec.replace("common/cover_utils", { BORDER_SIZE = 1 })
+        ZenSpec.replace("common/cover_utils", {
+            BORDER_SIZE = 1,
+            getRatio = function() return 2 / 3 end,
+        })
         ZenSpec.replace("apps/filemanager/filemanager", { instance = {} })
         ZenSpec.replace("ui/widget/confirmbox", ConfirmBox)
 
@@ -229,7 +232,7 @@ describe("opening banner", function()
         assert.are.equal(1, opens)
     end)
 
-    it("matches a cover banner's top edge to the cover border weight", function()
+    it("keeps only a dark cover banner's top border white", function()
         local _, _, shown = install_stubs()
         apply_patch()
 
@@ -247,7 +250,13 @@ describe("opening banner", function()
             end,
         }, shown[1].dimen.x, shown[1].dimen.y)
 
-        assert.are.same({ x = 33, y = 347, w = 216, h = 2, color = "white" }, painted[2])
+        assert.are.same({
+            { x = 33, y = 347, w = 216, h = 28, color = "black" },
+            { x = 33, y = 374, w = 216, h = 1, color = "black" },
+            { x = 33, y = 347, w = 1, h = 28, color = "black" },
+            { x = 248, y = 347, w = 1, h = 28, color = "black" },
+            { x = 33, y = 347, w = 216, h = 2, color = "white" },
+        }, painted)
     end)
 
     it("does not recreate a banner after its cover is released", function()

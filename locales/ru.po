@@ -253,6 +253,9 @@ msgstr "Авторы"
 msgid "authors"
 msgstr "авторы"
 
+msgid "Autorotate"
+msgstr "Автоповорот"
+
 msgid "Automatic"
 msgstr "Автоматически"
 
@@ -570,6 +573,9 @@ msgstr "Не удалось подключиться к серверу обно�
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
 msgstr "Не удалось просканировать сети Wi-Fi. Попробуйте ещё раз после пробуждения устройства."
+
+msgid "Cover"
+msgstr "Обложка"
 
 msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
 msgstr "Плагин CoverBrowser не включён, некоторые функции не будут работать правильно."
@@ -922,6 +928,12 @@ msgstr "Извлечь метаданные"
 msgid "Extras"
 msgstr "Дополнения"
 
+msgid "Failed to clear folder cover."
+msgstr "Не удалось удалить обложку папки."
+
+msgid "Failed to set folder cover."
+msgstr "Не удалось установить обложку папки."
+
 msgid "Failed to submit report: "
 msgstr "Не удалось отправить отчёт: "
 
@@ -1057,14 +1069,11 @@ msgstr "Зелёный"
 msgid "Group book series into folders"
 msgstr "Группировать книжные серии в папки"
 
-msgid "Gyro"
-msgstr "Гиро"
-
-msgid "Gyroscope"
-msgstr "Гироскоп"
-
 msgid "Hide finished books"
 msgstr "Скрыть прочитанные книги"
+
+msgid "Hide grouped series"
+msgstr "Скрыть сгруппированные серии"
 
 msgid "Hide in CBZ/PDF files"
 msgstr "Скрыть в файлах CBZ/PDF"
@@ -1084,8 +1093,14 @@ msgstr "Скрыть непрочитанные книги"
 msgid "Hide up folder"
 msgstr "Скрыть папку вверх"
 
+msgid "Hide when off"
+msgstr "Скрывать, когда выключен"
+
 msgid "Highlight / Lookup"
 msgstr "Выделение / Поиск"
+
+msgid "Highlight names"
+msgstr "Названия выделений"
 
 msgid "History"
 msgstr "История"
@@ -1173,6 +1188,9 @@ msgstr "Интерактивный"
 
 msgid "IP address: %1"
 msgstr "IP-адрес: %1"
+
+msgid "Items"
+msgstr "Элементы"
 
 msgid "items per page"
 msgstr "элементов на странице"
@@ -1611,6 +1629,9 @@ msgstr "Непрозрачный фон"
 
 msgid "OPDS"
 msgstr "OPDS"
+
+msgid "Opacity"
+msgstr "Непрозрачность"
 
 msgid "Open"
 msgstr "Открыть"
@@ -2065,6 +2086,9 @@ msgstr "Установить как обои"
 msgid "Set file types to sync"
 msgstr "Задать типы файлов для синхронизации"
 
+msgid "Set folder cover"
+msgstr "Установить обложку папки"
+
 msgid "Set home folder"
 msgstr "Установить домашнюю папку"
 
@@ -2424,6 +2448,9 @@ msgstr "Формат времени"
 
 msgid "Time this week"
 msgstr "Время за неделю"
+
+msgid "Time remaining"
+msgstr "Оставшееся время"
 
 msgid "Time to book end"
 msgstr "Время до конца книги"

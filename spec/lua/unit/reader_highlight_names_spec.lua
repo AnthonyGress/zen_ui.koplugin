@@ -1,0 +1,64 @@
+describe("reader highlight names", function()
+    before_each(function()
+        _G.__ZEN_UI_PLUGIN = nil
+        ZenSpec.unload("modules/reader/patches/highlight_names")
+    end)
+
+    after_each(function()
+        _G.__ZEN_UI_PLUGIN = nil
+        ZenSpec.unload("modules/reader/patches/highlight_names")
+    end)
+
+    it("applies configured names without replacing native color customizations", function()
+        local ReaderHighlight = {
+            highlight_colors = {
+                { "Red", "red" },
+                { "Blue", "blue" },
+            },
+            getHighlightColorString = function(_self, color_name, force_orig)
+                if color_name == "red" and not force_orig then return "Native red" end
+                return color_name == "red" and "Red" or "Blue"
+            end,
+            getHighlightColorList = function()
+                return {
+                    { "Native red", "red", "#ff0000" },
+                    { "Native blue", "blue", "#0000ff" },
+                }
+            end,
+        }
+        ZenSpec.replace("apps/reader/modules/readerhighlight", ReaderHighlight)
+        local apply = require("modules/reader/patches/highlight_names")
+        local plugin = {
+            config = { highlight_lookup = { color_names = { red = "Important" } } },
+        }
+
+        apply(plugin)
+
+        assert.are.equal("Important", ReaderHighlight.highlight_colors[1][1])
+        assert.are.equal("Blue", ReaderHighlight.highlight_colors[2][1])
+        assert.are.equal("Important", ReaderHighlight:getHighlightColorString("red"))
+        assert.are.equal("Red", ReaderHighlight:getHighlightColorString("red", true))
+        local colors = ReaderHighlight:getHighlightColorList()
+        assert.are.equal("Important", colors[1][1])
+        assert.are.equal("Native blue", colors[2][1])
+
+        plugin.config.highlight_lookup.color_names.red = nil
+        apply(plugin)
+        assert.are.equal("Red", ReaderHighlight.highlight_colors[1][1])
+        assert.are.equal("Native red", ReaderHighlight:getHighlightColorString("red"))
+    end)
+
+    it("supports older palettes that do not expose color helper methods", function()
+        local ReaderHighlight = {
+            highlight_colors = { { "Yellow", "yellow" } },
+        }
+        ZenSpec.replace("apps/reader/modules/readerhighlight", ReaderHighlight)
+        _G.__ZEN_UI_PLUGIN = {
+            config = { highlight_lookup = { color_names = { yellow = "Funny" } } },
+        }
+
+        require("modules/reader/patches/highlight_names")()
+
+        assert.are.equal("Funny", ReaderHighlight.highlight_colors[1][1])
+    end)
+end)

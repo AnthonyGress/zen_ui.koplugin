@@ -6,7 +6,12 @@ describe("page browser entry", function()
     end
 
     local function logger_stub()
-        return { dbg = function() end, warn = function() end, err = function() end }
+        return {
+            dbg = function() end,
+            warn = function() end,
+            err = function() end,
+            perf = function() end,
+        }
     end
 
     local function install_widget_dependencies(PageBrowserWidget)
@@ -138,6 +143,7 @@ describe("page browser entry", function()
             _zen_skip_prev = function() activated[#activated + 1] = "skip-left" end,
             _zen_skip_next = function() activated[#activated + 1] = "skip-right" end,
             _zen_switch_single = function() activated[#activated + 1] = "single" end,
+            _zen_switch_carousel = function() activated[#activated + 1] = "carousel" end,
             onScrollPageDown = function() page_down = page_down + 1 end,
             onScrollPageUp = function() page_up = page_up + 1 end,
             dimen = { x = 0, y = 0, h = 800 },
@@ -169,6 +175,13 @@ describe("page browser entry", function()
         expect(PageBrowserWidget.onTap(browser, nil, { pos = { x = 20, y = 20 } }) == true)
         expect(activated[1] == "single-zone")
         expect(activated[2] == "single")
+
+        activated = {}
+        browser._zen_btn_view_zone = nil
+        browser._zen_btn_carousel_zone = zone("carousel-zone")
+        expect(PageBrowserWidget.onTap(browser, nil, { pos = { x = 25, y = 20 } }) == true)
+        expect(activated[1] == "carousel-zone")
+        expect(activated[2] == "carousel")
 
         expect(PageBrowserWidget.onSwipe(browser, nil, { direction = "west" }) == true)
         expect(PageBrowserWidget.onSwipe(browser, nil, { direction = "east" }) == true)
@@ -296,7 +309,7 @@ describe("page browser entry", function()
         for idx = 1, 6 do grid[idx] = { page_idx = idx } end
         for idx = 1, 6 do grid[6 + idx] = focus_widget() end
         local footer = {
-            focus_widget(), focus_widget(), focus_widget(), focus_widget(),
+            focus_widget(), focus_widget(), focus_widget(), focus_widget(), focus_widget(),
         }
         local browser = {
             _zen_focus_enabled = true,
@@ -306,18 +319,20 @@ describe("page browser entry", function()
             _zen_header_buttons = headers,
             _zen_btn_skip_left = footer[1],
             _zen_btn_view_frame = footer[2],
-            _zen_btn_grid_frame = footer[3],
-            _zen_btn_skip_right = footer[4],
+            _zen_btn_carousel_frame = footer[3],
+            _zen_btn_grid_frame = footer[4],
+            _zen_btn_skip_right = footer[5],
         }
         setmetatable(browser, { __index = PageBrowserWidget })
         PageBrowserWidget._zenRebuildFocusLayout(browser)
         expect(#browser.layout == 4)
         expect(#browser.layout[1] == 7 and #browser.layout[2] == 3)
-        expect(#browser.layout[3] == 3 and #browser.layout[4] == 4)
+        expect(#browser.layout[3] == 3 and #browser.layout[4] == 5)
         expect(browser.layout[1][7]._zen_focus_id == "header:7")
         expect(browser.layout[3][3]._zen_focus_id == "page:6")
         expect(browser.layout[4][1]._zen_focus_id == "footer:previous")
-        expect(browser.layout[4][4]._zen_focus_id == "footer:next")
+        expect(browser.layout[4][3]._zen_focus_id == "footer:carousel")
+        expect(browser.layout[4][5]._zen_focus_id == "footer:next")
         expect(browser.layout[browser.selected.y][browser.selected.x]._zen_focus_id == "header:1")
 
         PageBrowserWidget.onKeyPress(browser, {
@@ -330,6 +345,212 @@ describe("page browser entry", function()
         expect(browser.layout[browser.selected.y][browser.selected.x]._zen_focus_id == "header:7")
         for _i = 1, 3 do PageBrowserWidget.onFocusMove(browser, { 0, 1 }) end
         expect(browser.layout[browser.selected.y][browser.selected.x]._zen_focus_id == "footer:next")
+
+        local carousel_grid = {
+            { page_idx = 4 }, { page_idx = 5 }, { page_idx = 6 },
+            focus_widget(), focus_widget(), focus_widget(),
+        }
+        browser._zen_layout_mode = "carousel"
+        browser.focus_page_shift = 1
+        browser.nb_grid_items = 3
+        browser.grid = carousel_grid
+        PageBrowserWidget._zenRebuildFocusLayout(browser, "page:1")
+        expect(browser.layout[browser.selected.y][browser.selected.x]._zen_focus_id == "page:2")
+        PageBrowserWidget._zenRebuildFocusLayout(browser, "page:3")
+        expect(browser.layout[browser.selected.y][browser.selected.x]._zen_focus_id == "page:2")
+        PageBrowserWidget._zenRebuildFocusLayout(browser, "footer:next")
+        expect(browser.layout[browser.selected.y][browser.selected.x]._zen_focus_id == "footer:next")
+    end)
+
+    it("centers clipped carousel pages and recenters side taps", function()
+        local ReaderMenu = { initGesListener = function() end }
+        local ReaderConfig = { onSwipeShowConfigMenu = function() end }
+        local stock_taps = 0
+        local painted_labels = {}
+        local PageBrowserWidget = {
+            init = function() error("init stop") end,
+            update = function(self)
+                self.stock_updates = (self.stock_updates or 0) + 1
+            end,
+            preloadThumbnail = function(self, page)
+                self.preloaded = self.preloaded or {}
+                self.preloaded[#self.preloaded + 1] = page
+            end,
+            showTile = function(self, grid_idx, page)
+                self.stock_tile_focus = self.stock_tile_focus or {}
+                self.stock_tile_focus[grid_idx] = page == self.cur_page
+            end,
+            onTap = function()
+                stock_taps = stock_taps + 1
+                return "stock"
+            end,
+            new = function(_, spec) return spec end,
+        }
+        install_widget_dependencies(PageBrowserWidget)
+        ZenSpec.replace("ui/widget/container/inputcontainer", { paintTo = function() end })
+        ZenSpec.replace("ui/font", { getFace = function() return {} end })
+        ZenSpec.replace("ui/size", { border = { thin = 1 } })
+        ZenSpec.replace("ffi/blitbuffer", {
+            COLOR_BLACK = 0,
+            COLOR_WHITE = 255,
+            gray = function(value) return value end,
+        })
+        ZenSpec.replace("ui/widget/textwidget", {
+            new = function(_, spec)
+                return {
+                    getSize = function() return { w = 20, h = 10 } end,
+                    paintTo = function(_, _bb, x, y)
+                        painted_labels[spec.text] = { x = x, y = y }
+                    end,
+                    free = function() end,
+                }
+            end,
+        })
+
+        local Geom = {}
+        function Geom:new(spec)
+            spec = spec or {}
+            function spec:copy()
+                local copy = {}
+                for key, value in pairs(self) do
+                    if type(value) ~= "function" then copy[key] = value end
+                end
+                return Geom:new(copy)
+            end
+            return spec
+        end
+        ZenSpec.replace("ui/geometry", Geom)
+        ZenSpec.replace("apps/reader/modules/readermenu", ReaderMenu)
+        ZenSpec.replace("apps/reader/modules/readerconfig", ReaderConfig)
+        _G.__ZEN_UI_PLUGIN = { config = { features = { page_browser = true } } }
+        require("modules/reader/patches/page_browser")()
+        ReaderConfig.onSwipeShowConfigMenu(
+            { ui = { handleEvent = function() end } }, { direction = "north" })
+
+        local initialized = {
+            dimen = { x = 0, y = 0, w = 600, h = 800 },
+        }
+        local ok, init_err = pcall(PageBrowserWidget.init, initialized)
+        expect(ok == false and tostring(init_err):find("init stop", 1, true) ~= nil)
+        expect(initialized._zen_layout_mode == "carousel")
+        expect(initialized._zen_nb_cols_override == 3)
+        expect(initialized._zen_nb_rows_override == 1)
+
+        local function page_frame()
+            local frame = {
+                { dimen = Geom:new{ w = 100, h = 100 } },
+                dimen = Geom:new{ x = 1, y = 1, w = 100, h = 100 },
+                overlap_offset = { 0, 0 },
+            }
+            function frame:getSize() return self[1].dimen end
+            return frame
+        end
+        local function nav_frame()
+            return {
+                { dimen = Geom:new{ w = 100, h = 100 } },
+                dimen = Geom:new{ x = 1, y = 1, w = 100, h = 100 },
+                overlap_offset = { 0, 0 },
+                initial_overlap_offset = { 0, 0 },
+                is_nav_item = true,
+            }
+        end
+        local grid = {
+            page_frame(), page_frame(), page_frame(),
+            nav_frame(), nav_frame(), nav_frame(),
+        }
+        local browser = {
+            _zen_layout_mode = "carousel",
+            dimen = { x = 0, y = 0, w = 600, h = 800 },
+            grid_width = 600,
+            grid_height = 500,
+            nb_grid_items = 3,
+            grid = grid,
+            focus_page = 5,
+            cur_page = 5,
+            nb_pages = 10,
+        }
+        expect(PageBrowserWidget._zenConfigureCarouselGrid(browser) == true)
+        expect(browser.grid_item_width == 400 and browser.grid_item_height == 490)
+        expect(browser.focus_page_shift == 1)
+        expect(grid[1].overlap_offset[1] == -312)
+        expect(grid[2].overlap_offset[1] == 100)
+        expect(grid[3].overlap_offset[1] == 512)
+        expect(grid[1].overlap_offset[1] + browser.grid_item_width == 88)
+        expect(600 - grid[3].overlap_offset[1] == 88)
+        expect(grid[1].dimen == nil and grid[1][1].dimen.w == 400)
+        expect(grid[4].dimen == nil and grid[4].initial_overlap_offset[1] == -312)
+
+        browser._zen_tile_size = { w = 300, h = 450 }
+        setmetatable(browser, { __index = PageBrowserWidget })
+        PageBrowserWidget.paintTo(browser, {
+            paintRect = function() end,
+        }, 0, 0)
+        expect(painted_labels["5"] == nil)
+
+        grid[2][1][1] = {
+            is_page_thumbnail = true,
+            { getSize = function() return { w = 280, h = 420 } end },
+        }
+        PageBrowserWidget.paintTo(browser, {
+            paintRect = function() end,
+        }, 0, 0)
+        expect(painted_labels["5"].x == 290 and painted_labels["5"].y == 446)
+        expect(painted_labels["4"].y == 481 and painted_labels["6"].y == 481)
+
+        PageBrowserWidget.update(browser)
+        expect(browser.stock_updates == 1)
+        expect(#browser.preloaded == 2)
+        expect(browser.preloaded[1] == 3 and browser.preloaded[2] == 7)
+
+        browser.cur_page = 4
+        PageBrowserWidget.showTile(browser, 1, 4, nil, false)
+        PageBrowserWidget.showTile(browser, 2, 5, nil, false)
+        PageBrowserWidget.showTile(browser, 3, 6, nil, false)
+        expect(browser.stock_tile_focus[1] == false)
+        expect(browser.stock_tile_focus[2] == true)
+        expect(browser.stock_tile_focus[3] == false)
+        expect(browser.cur_page == 4)
+        browser.cur_page = 5
+
+        grid[1].page_idx, grid[2].page_idx, grid[3].page_idx = 4, 5, 6
+        for idx = 1, 3 do
+            grid[idx].dimen = { id = idx }
+        end
+        local updates, calls = 0, {}
+        browser.updateFocusPage = function(self, value, relative)
+            calls[#calls + 1] = { value, relative }
+            self.focus_page = relative and self.focus_page + value or value
+            return true
+        end
+        browser.update = function() updates = updates + 1 end
+        local function tap_item(index)
+            return {
+                x = 10,
+                y = 100,
+                intersectWith = function(_, dimen) return dimen == grid[index].dimen end,
+            }
+        end
+
+        expect(PageBrowserWidget.onTap(browser, nil, { pos = tap_item(1) }) == true)
+        expect(browser.focus_page == 4 and calls[#calls][2] == false)
+        expect(updates == 1 and stock_taps == 0)
+
+        browser.focus_page = 5
+        expect(PageBrowserWidget.onTap(browser, nil, { pos = tap_item(3) }) == true)
+        expect(browser.focus_page == 6 and updates == 2 and stock_taps == 0)
+
+        browser.focus_page = 5
+        grid[1].page_idx = nil
+        expect(PageBrowserWidget.onTap(browser, nil, { pos = tap_item(1) }) == true)
+        expect(browser.focus_page == 5 and updates == 2 and stock_taps == 0)
+
+        expect(PageBrowserWidget.onTap(browser, nil, { pos = tap_item(2) }) == "stock")
+        expect(stock_taps == 1)
+
+        PageBrowserWidget.onScrollPageDown(browser)
+        expect(browser.focus_page == 6 and calls[#calls][1] == 1 and calls[#calls][2] == true)
+        PageBrowserWidget.onScrollPageUp(browser)
+        expect(browser.focus_page == 5 and calls[#calls][1] == -1 and calls[#calls][2] == true)
     end)
 
     it("honors lockdown by suppressing page-browser and native config gestures", function()
@@ -395,6 +616,7 @@ describe("page browser entry", function()
         ZenSpec.replace("common/utils", {
             resolveLocalIcon = function(_, name) return "/icons/" .. name .. ".svg" end,
         })
+        reader_store.settings.page_browser_layout = "grid"
         _G.__ZEN_UI_PLUGIN = { config = { features = { page_browser = true } } }
         require("modules/reader/patches/page_browser")()
 
@@ -545,6 +767,7 @@ describe("page browser entry", function()
                 self.title_bar = {
                     left,
                     right,
+                    width = 600,
                     left_button = left,
                     right_button = right,
                     button_padding = 11,
@@ -575,9 +798,10 @@ describe("page browser entry", function()
         ZenSpec.replace("common/utils", {
             resolveLocalIcon = function(_, name) return "/icons/" .. name .. ".svg" end,
         })
-        local shown_widgets = {}
+        local shown_widgets, closed_widgets = {}, {}
         ZenSpec.replace("ui/uimanager", {
             show = function(_, widget) shown_widgets[#shown_widgets + 1] = widget end,
+            close = function(_, widget) closed_widgets[#closed_widgets + 1] = widget end,
             scheduleIn = function() end,
             setDirty = function() end,
             unschedule = function() end,
@@ -588,6 +812,13 @@ describe("page browser entry", function()
             new = function(_, spec)
                 spec.onShowConfigPanel = function(self, index) self.shown_panel = index end
                 config_dialog = spec
+                return spec
+            end,
+        })
+        local overflow_spec
+        ZenSpec.replace("ui/widget/buttondialog", {
+            new = function(_, spec)
+                overflow_spec = spec
                 return spec
             end,
         })
@@ -630,7 +861,10 @@ describe("page browser entry", function()
             end,
         })
         _G.__ZEN_UI_PLUGIN = {
-            config = { features = { page_browser = true, browser_cover_rounded_corners = true } },
+            config = {
+                features = { page_browser = true, browser_cover_rounded_corners = true },
+                page_browser = { toc_font_size = 26 },
+            },
             saveConfig = function() end,
         }
         package.loaded["db"] = {}
@@ -685,26 +919,28 @@ describe("page browser entry", function()
         expect(initialized == false, "test seam should stop before layout")
         expect(tostring(init_err):find("layout stop", 1, true) ~= nil, tostring(init_err))
 
-        local by_file, positions = {}, {}
+        local by_file, buttons_by_file, positions = {}, {}, {}
         for _i, button in ipairs(browser.title_bar) do
             if button.file then
                 by_file[button.file] = button.callback
+                buttons_by_file[button.file] = button
                 positions[button.file] = button.overlap_offset and button.overlap_offset[1]
             end
         end
         expect(type(by_file["/icons/appbar.search.svg"]) == "function")
         expect(type(by_file["/icons/appbar.textsize.svg"]) == "function")
-        expect(type(by_file["/icons/tab_vocab.svg"]) == "function")
+        expect(type(by_file["/icons/more_vertical.svg"]) == "function")
+        expect(type(buttons_by_file["/icons/more_vertical.svg"]) == "table")
         expect(type(by_file["/icons/bookmark.svg"]) == "function")
         expect(type(by_file["/icons/toc.svg"]) == "function")
         expect(type(by_file["/icons/info.svg"]) == "function")
         expect(positions["/icons/appbar.search.svg"] == 0)
-        expect(positions["/icons/info.svg"] == 54)
-        expect(positions["/icons/appbar.textsize.svg"] == 108)
-        expect(positions["/icons/tab_vocab.svg"] == 162)
-        expect(positions["/icons/bookmark.svg"] == 216)
-        expect(positions["/icons/toc.svg"] == 270)
-        expect(browser._zen_orig_nb_cols == 3 and browser._zen_orig_nb_rows == 2)
+        expect(positions["/icons/info.svg"] == 58)
+        expect(positions["/icons/appbar.textsize.svg"] == 215)
+        expect(positions["/icons/bookmark.svg"] == 273)
+        expect(positions["/icons/toc.svg"] == 331)
+        expect(positions["/icons/more_vertical.svg"] == 492)
+        expect(browser._zen_orig_nb_cols == 3 and browser._zen_orig_nb_rows == 3)
         local close_button = browser.title_bar.right_button
         expect(close_button.file == "/icons/close_light.svg")
         expect(close_button.width == 32 and close_button.height == 32)
@@ -728,11 +964,23 @@ describe("page browser entry", function()
         expect(closes == 1 and bookmarks == 2)
         expect(ui.bookmark.bookmark_menu[1]._zen_page_browser_parent == browser)
 
-        by_file["/icons/tab_vocab.svg"]()
+        local overflow_anchor = { x = 492, y = 10, w = 32, h = 32 }
+        buttons_by_file["/icons/more_vertical.svg"].image = { dimen = overflow_anchor }
+        by_file["/icons/more_vertical.svg"]()
+        expect(overflow_spec ~= nil and shown_widgets[#shown_widgets] == overflow_spec)
+        overflow_spec.movable = { dimen = { w = 200 } }
+        local popup_anchor = overflow_spec.anchor()
+        expect(popup_anchor.x == 390 and popup_anchor.y == 10 and popup_anchor.h == 32)
+        local vocab_action = overflow_spec.buttons[1][1]
+        expect(vocab_action.align == "left" and vocab_action.avoid_text_truncation == false)
+        expect(vocab_action.text:find("Vocabulary builder", 1, true) > 1)
+        vocab_action.callback()
+        expect(closed_widgets[#closed_widgets] == overflow_spec)
         expect(closes == 2 and action_events[#action_events].name == "ShowVocabBuilder")
 
         by_file["/icons/toc.svg"]()
         expect(closes == 2 and toc_spec.focus_page == 12
+            and toc_spec.font_size == 26
             and type(toc_spec.close_all_callback) == "function")
         toc_spec.on_goto(27)
         expect(closes == 3 and stack_adds == 1)

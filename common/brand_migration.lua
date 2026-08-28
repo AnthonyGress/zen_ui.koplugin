@@ -34,6 +34,8 @@ local GLOBAL_SETTINGS_KEYS = {
     "zen_authors_reverse",
     "zen_series_reverse",
     "zen_page_browser_layout",
+    "uniform_cover_ratio",
+    "opds_default_url",
 }
 local GLOBAL_SETTINGS_PATTERNS = {
     "^zen_tags_global_.+",

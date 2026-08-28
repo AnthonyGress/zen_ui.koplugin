@@ -28,12 +28,6 @@ local function apply_collections()
         return coll_name == require("common/tbr_index").collectionName()
     end
 
-    local orig_renameCollection = FileManagerCollection.renameCollection
-    function FileManagerCollection:renameCollection(item, ...)
-        if is_enabled() and is_tbr_collection(item) then return end
-        return orig_renameCollection(self, item, ...)
-    end
-
     local orig_removeCollection = FileManagerCollection.removeCollection
     function FileManagerCollection:removeCollection(item, ...)
         if is_enabled() and is_tbr_collection(item) then return end
@@ -355,7 +349,7 @@ local function apply_collections()
 
         local coll_name    = item.name
         local is_favorites = coll_name == ReadCollection.default_collection_name
-        local is_protected = is_favorites or is_tbr_collection(coll_name)
+        local is_tbr       = is_tbr_collection(coll_name)
         local display_name = is_favorites and _("Favorites") or coll_name
         local files        = get_collection_files_in_cover_order(coll_name)
         local book_count   = #files
@@ -363,7 +357,7 @@ local function apply_collections()
         local button_dialog
         local prepend_buttons = {}
         local extra_buttons = {}
-        if not is_protected then
+        if not is_favorites then
             table.insert(prepend_buttons, {{
                 text     = icons.rename .. "  " .. _("Rename"),
                 align    = "left",
@@ -387,7 +381,7 @@ local function apply_collections()
                 fm_coll:showCollFolderList(item)
             end,
         }})
-        if not is_protected then
+        if not is_favorites and not is_tbr then
             table.insert(extra_buttons, {{
                 text     = icons.delete .. "  " .. _("Delete collection"),
                 align    = "left",
@@ -682,6 +676,15 @@ local function apply_collections()
                         require("gettext")("Favorites"), true) == true
                 end
                 return false
+            end,
+            refreshTBRCollection = function()
+                local FileManager = require("apps/filemanager/filemanager")
+                local fm_coll = FileManager.instance and FileManager.instance.collections
+                local menu = fm_coll and fm_coll.booklist_menu
+                if not (menu and is_tbr_collection(menu.path)) then return false end
+                fm_coll:setCollate()
+                fm_coll:updateItemTable()
+                return true
             end,
         },
     })

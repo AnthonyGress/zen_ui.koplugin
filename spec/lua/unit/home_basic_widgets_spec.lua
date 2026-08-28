@@ -336,15 +336,15 @@ describe("home basic widgets", function()
             data = { stats = {} },
         }
 
-        assert.are.equal(45, component.preferredHeight(ctx))
+        assert.are.equal(38, component.preferredHeight(ctx))
         ctx.height = 80
         component.build(ctx)
-        assert.are.equal(13, rendered_label_size())
+        assert.are.equal(10, rendered_label_size())
 
         created = {}
         ctx.height = 30
         component.build(ctx)
-        assert.are.equal(12, rendered_label_size())
+        assert.are.equal(10, rendered_label_size())
 
         created = {}
         ctx.module_cfg.automatic_font_size = false
@@ -452,7 +452,7 @@ describe("home basic widgets", function()
         end
         assert.are.equal(48, quote_widget.paint_y)
         assert.are.equal(60, author_widget.paint_y)
-        assert.are.same({ 0, 120, 0, 0 }, {
+        assert.are.same({ 48, 72, -48, 48 }, {
             content_bounds.top,
             content_bounds.bottom,
             content_bounds.min_shift,
@@ -460,11 +460,11 @@ describe("home basic widgets", function()
         })
         content_bounds.set_shift(-7)
         widget[1][1]:paintTo(nil, 0, 0)
-        assert.are.equal(content_bounds.bottom - 7,
-            author_widget.paint_y + author_widget.dimen.h)
+        assert.are.equal(41, quote_widget.paint_y)
+        assert.are.equal(53, author_widget.paint_y)
     end)
 
-    it("reports fixed quote bounds regardless of content length", function()
+    it("reports visible quote bounds and their available movement", function()
         ZenSpec.unload("modules/filebrowser/patches/home/widgets/quotes")
         local component = require("modules/filebrowser/patches/home/widgets/quotes")
         local function bounds_for(text)
@@ -488,8 +488,8 @@ describe("home basic widgets", function()
             }
         end
 
-        assert.are.same({ 0, 120, 0, 0 }, bounds_for("Short."))
-        assert.are.same({ 0, 120, 0, 0 }, bounds_for("First\nSecond\nThird"))
+        assert.are.same({ 48, 72, -48, 48 }, bounds_for("Short."))
+        assert.are.same({ 36, 84, -36, 36 }, bounds_for("First\nSecond\nThird"))
     end)
 
     it("gives the bottom quote row a content-independent fixed height", function()
@@ -537,7 +537,7 @@ describe("home basic widgets", function()
         assert.are.equal(16, preset.modules.stats_triplet.font_size)
         assert.is_nil(preset.modules.stats_triplet.font_size_override)
         assert.is_true(preset.modules.stats_triplet.automatic_font_size)
-        assert.are.equal(22, preset.modules.stats_triplet.max_font_size)
+        assert.are.equal(18, preset.modules.stats_triplet.max_font_size)
         assert.is_true(preset.quotes.automatic_font_size)
         assert.are.equal(14, preset.quotes.max_font_size)
         assert.are.equal(12, preset.quotes.font_size)
@@ -549,6 +549,7 @@ describe("home basic widgets", function()
 
     it("uses the full quote widget height before reducing automatic font size", function()
         local textbox_creations = 0
+        local layout_perf
         ZenSpec.replace("ui/widget/textboxwidget", {
             new = function(_self, values)
                 textbox_creations = textbox_creations + 1
@@ -594,6 +595,13 @@ describe("home basic widgets", function()
                         author = "Author",
                     }
                 end,
+                recordQuoteLayout = function(_, elapsed_ms, cache_hit, probes)
+                    layout_perf = {
+                        elapsed_ms = elapsed_ms,
+                        cache_hit = cache_hit,
+                        probes = probes,
+                    }
+                end,
             },
         }
         component.build(ctx)
@@ -610,10 +618,15 @@ describe("home basic widgets", function()
             end
         end
         assert.is_true(found)
+        assert.is_number(layout_perf.elapsed_ms)
+        assert.is_false(layout_perf.cache_hit)
+        assert.is_true(layout_perf.probes < 20)
 
         local first_build_creations = textbox_creations
         component.build(ctx)
         assert.are.equal(2, textbox_creations - first_build_creations)
+        assert.is_true(layout_perf.cache_hit)
+        assert.are.equal(0, layout_perf.probes)
     end)
 
     it("controls quote authors and titles independently", function()
@@ -711,7 +724,7 @@ describe("home basic widgets", function()
             if child.text == '"First\nSecond\nThird\nFourth"' and child.height then
                 assert.are.equal(36, child.height)
                 assert.are.equal(42, child.paint_y)
-                assert.are.same({ 0, 120 }, {
+                assert.are.same({ 42, 78 }, {
                     content_bounds.top,
                     content_bounds.bottom,
                 })

@@ -290,18 +290,48 @@ describe("Zen settings page", function()
         assert.are.equal(2, translation_refreshes)
     end)
 
-    it("closes the active arrange stack before the settings page", function()
-        local page = PageModule.show({ config = {} })
+    it("closes every arrange overlay without losing the deepest resume route", function()
+        local restored_path
+        require("modules/settings/zen_settings").build = function()
+            return {
+                sub_item_table = {{
+                    text = "Widgets",
+                    keep_menu_open = true,
+                    callback = function()
+                        restored_path = PageModule.claimArrangeRoute().path
+                    end,
+                }},
+            }
+        end
+        local plugin = { config = {} }
+        local page = PageModule.show(plugin)
         local closed = {}
-        local arrange = {
+        local opener = { text = "Widgets", occurrence = 1 }
+        local deepest_path = { "strip", "Controls", "Tabs", "To Be Read" }
+        PageModule.noteArrangeRoute({ opener = opener, path = deepest_path })
+        local lower_arrange = {
             _zen_arrange_close_all = function()
-                closed[#closed + 1] = "arrange"
+                closed[#closed + 1] = "lower"
+                PageModule.noteArrangeRoute({
+                    opener = opener,
+                    path = { "strip", "Controls" },
+                })
+            end,
+        }
+        local upper_arrange = {
+            _zen_arrange_close_all = function()
+                closed[#closed + 1] = "upper"
+                PageModule.noteArrangeRoute({
+                    opener = opener,
+                    path = { "strip", "Controls", "Tabs" },
+                })
             end,
         }
         local UIManager = require("ui/uimanager")
         UIManager._window_stack = {
             { widget = page },
-            { widget = arrange },
+            { widget = lower_arrange },
+            { widget = upper_arrange },
         }
         local orig_close = page.closeMenu
         page.closeMenu = function(self)
@@ -310,9 +340,70 @@ describe("Zen settings page", function()
         end
 
         assert.is_true(PageModule.closeActive())
-        assert.are.same({ "arrange", "settings" }, closed)
+        assert.are.same({ "upper", "lower", "settings" }, closed)
         assert.is_true(page._closed)
         UIManager._window_stack = nil
+
+        PageModule.show(plugin)
+        assert.are.same(deepest_path, restored_path)
+    end)
+
+    it("closes and restores a standalone nested arrange stack", function()
+        local restored_path
+        require("modules/settings/zen_settings").build = function()
+            return {
+                sub_item_table = {{
+                    text = "Home",
+                    sub_item_table = {{
+                        text = "Widgets",
+                        keep_menu_open = true,
+                        callback = function()
+                            restored_path = PageModule.claimArrangeRoute().path
+                        end,
+                    }},
+                }},
+            }
+        end
+        local ok, standalone_resume = PageModule.rememberStandaloneArrangeRoute({
+            { text = "Home", occurrence = 1 },
+        }, "Widgets", { "strip" })
+        assert.is_true(ok)
+        assert.are.same({ "strip" }, standalone_resume.path)
+
+        local opener = standalone_resume.opener
+        local deepest_path = {
+            "strip", "Controls", "Tabs", "to_be_read", "Order",
+        }
+        PageModule.noteArrangeRoute({ opener = opener, path = deepest_path })
+        local closed = {}
+        local UIManager = require("ui/uimanager")
+        UIManager._window_stack = {
+            { widget = {
+                _zen_arrange_close_all = function()
+                    closed[#closed + 1] = "strip"
+                    PageModule.noteArrangeRoute({
+                        opener = opener,
+                        path = { "strip" },
+                    })
+                end,
+            }},
+            { widget = {
+                _zen_arrange_close_all = function()
+                    closed[#closed + 1] = "tabs"
+                    PageModule.noteArrangeRoute({
+                        opener = opener,
+                        path = { "strip", "Controls", "Tabs" },
+                    })
+                end,
+            }},
+        }
+
+        assert.is_true(PageModule.closeActive())
+        assert.are.same({ "tabs", "strip" }, closed)
+        UIManager._window_stack = nil
+
+        PageModule.show({ config = {} })
+        assert.are.same(deepest_path, restored_path)
     end)
 
     it("allows the underlying screen to repaint when a deferred page closes", function()
@@ -537,6 +628,46 @@ describe("Zen settings page", function()
         assert.are.equal("Controls", settings.title_bar.title)
         assert.is_true(settings.title_bar.search_collapsed)
         assert.are.equal(1, settings.itemnumber)
+    end)
+
+    it("hides gated settings from menus and search", function()
+        local visible_plugin = { text = "Visible plugin", show_func = function() return true end }
+        local hidden_plugin = { text = "Hidden plugin", show_func = function() return false end }
+        local reader = {
+            text = "Reader",
+            sub_item_table = { visible_plugin, hidden_plugin },
+        }
+        local settings = make_page({
+            { text = "Hidden root", show_func = function() return false end },
+            reader,
+        })
+
+        assert.are.equal(1, #settings.item_table)
+        assert.are.equal(reader, settings.item_table[1])
+        settings:onMenuSelect(reader)
+        assert.are.equal(1, #settings.item_table)
+        assert.are.equal(visible_plugin, settings.item_table[1])
+
+        settings:_onSearchChanged("plugin")
+        assert.are.equal(1, #settings.item_table)
+        assert.are.equal("Visible plugin", settings.item_table[1].text)
+    end)
+
+    it("does not run dynamic help actions while indexing settings", function()
+        local help_calls = 0
+        local custom_text = {
+            text = "Custom text",
+            help_text_func = function() help_calls = help_calls + 1 end,
+        }
+        local settings = make_page({
+            { text = "Bottom status bar", sub_item_table = { custom_text } },
+        })
+
+        settings:_onSearchChanged("custom")
+
+        assert.are.equal(0, help_calls)
+        assert.are.equal(1, #settings.item_table)
+        assert.are.equal("Custom text", settings.item_table[1].text)
     end)
 
     it("closes settings immediately when KOReader exits during a search", function()

@@ -49,10 +49,11 @@ local function apply_quick_settings()
     end
 
     -- Resolve plugin icons/ dir from this file's path at apply-time.
+    local _plugin_root
     local _icons_dir
     do
-        local root = require("common/plugin_root")
-        if root then _icons_dir = root .. "/icons/" end
+        _plugin_root = require("common/plugin_root")
+        if _plugin_root then _icons_dir = _plugin_root .. "/icons/" end
     end
 
     local function is_enabled()
@@ -132,6 +133,8 @@ local function apply_quick_settings()
         show_labels = true,
         show_frontlight = true,
         show_warmth = true,
+        gyro_label = "",
+        gyro_icon = "quick_rotate",
         rotate_action = "cycle",
         screenshot_timer_seconds = 3,
         custom_buttons = {},  -- array of { id, label, icon, action }
@@ -501,6 +504,15 @@ local function apply_quick_settings()
 
     local open_quick_setting_settings
 
+    local function resolveConfiguredIcon(name, fallback)
+        local path = utils.resolveIcon(_icons_dir, name)
+        if path then return path end
+        for _i, item in ipairs(utils.getIconPickerList(_plugin_root)) do
+            if item.name == name then return item.file end
+        end
+        return utils.resolveLocalIcon(_icons_dir, fallback)
+    end
+
     local button_defs = {
         bluetooth = {
             icon = "quick_bluetooth",
@@ -609,8 +621,11 @@ local function apply_quick_settings()
             end,
         },
         gyro = {
-            icon = "gyro",
-            label = _("Gyro"),
+            icon = resolveConfiguredIcon(
+                type(config.gyro_icon) == "string" and config.gyro_icon ~= ""
+                    and config.gyro_icon or "quick_rotate", "quick_rotate"),
+            label = type(config.gyro_label) == "string" and config.gyro_label ~= ""
+                and config.gyro_label or _("Autorotate"),
             visible_func = function() return Device:hasGSensor() end,
             active_func = function()
                 return G_reader_settings:nilOrFalse("input_ignore_gsensor")
@@ -842,7 +857,7 @@ local function apply_quick_settings()
             end,
         },
         zen = {
-            icon = "quick_zen",
+            icon = utils.resolveLocalIcon(_icons_dir, "quick_zen"),
             label = _("Zen"),
             active_func = function()
                 local features = zen_plugin.config and zen_plugin.config.features

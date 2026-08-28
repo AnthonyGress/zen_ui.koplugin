@@ -14,6 +14,7 @@ local PATCH_MODULES = {
     margin_hold_guard = "modules/reader/patches/margin_hold_guard",
     bookmarks = "modules/reader/patches/bookmarks",
     page_browser = "modules/reader/patches/page_browser",
+    highlight_names = "modules/reader/patches/highlight_names",
     highlight_menu = "modules/reader/patches/highlight_menu",
     dict_quick_lookup = "modules/reader/patches/dict_quick_lookup",
     status_on_open = "modules/reader/patches/status_on_open",
@@ -117,6 +118,12 @@ function M.init(logger, plugin)
     local bookmarks_fn = load_patch("bookmarks")
     if bookmarks_fn then
         run_feature(logger, plugin, "bookmarks", bookmarks_fn)
+    end
+
+    -- Always apply: user-defined highlight color names.
+    local highlight_names_fn = load_patch("highlight_names")
+    if highlight_names_fn then
+        run_feature(logger, plugin, "highlight_names", highlight_names_fn)
     end
 
     -- Always apply: icon-only DictQuickLookup buttons (self-disables when feature is off).

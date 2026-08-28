@@ -110,6 +110,27 @@ local function enabled(item)
     return true
 end
 
+local function visible(item)
+    return type(item.show_func) ~= "function" or item.show_func()
+end
+
+local function visible_items(items)
+    local filtered
+    for index, item in ipairs(items or {}) do
+        if visible(item) then
+            if filtered then filtered[#filtered + 1] = item end
+        elseif not filtered then
+            filtered = {}
+            for previous = 1, index - 1 do filtered[#filtered + 1] = items[previous] end
+        end
+    end
+    if not filtered then return items end
+    for key, value in pairs(items) do
+        if type(key) ~= "number" then filtered[key] = value end
+    end
+    return filtered
+end
+
 local function item_dimen(page, item)
     for _i, row in ipairs(page.item_group or {}) do
         if row.entry == item then
@@ -148,10 +169,11 @@ local ZenSettingsPage = Menu:extend{}
 function ZenSettingsPage:_resolveSubItems(item)
     if type(item.sub_item_table_func) == "function" then
         local ok, items = pcall(item.sub_item_table_func, self)
-        if ok and type(items) == "table" then return items end
+        if ok and type(items) == "table" then return visible_items(items) end
         return nil
     end
-    return type(item.sub_item_table) == "table" and item.sub_item_table or nil
+    return type(item.sub_item_table) == "table"
+        and visible_items(item.sub_item_table) or nil
 end
 
 function ZenSettingsPage:_currentTitle()
@@ -233,7 +255,9 @@ end
 function ZenSettingsPage:init()
     self.name = "zen_settings"
     self.title = self.title or _("Settings")
-    self.item_table = self.item_table or {}
+    local initial_items = self.item_table or {}
+    self.item_table = visible_items(initial_items)
+    if self._root_items == initial_items then self._root_items = self.item_table end
     self.item_table._zen_title = self.title
     self.width = Device.screen:getWidth()
     self.height = Device.screen:getHeight()
@@ -599,7 +623,8 @@ function ZenSettingsPage:_buildSearchIndex()
         if not ok or type(items) ~= "table" then return end
         for _i, item in ipairs(items) do
             local label = item_text(item)
-            if label ~= "" and type(item._zen_search_open) == "function" then
+            if visible(item) and label ~= ""
+                    and type(item._zen_search_open) == "function" then
                 local crumbs = {}
                 for i = 2, #levels do crumbs[#crumbs + 1] = levels[i].title end
                 if not item._zen_search_breadcrumb and owner_title and owner_title ~= "" then
@@ -607,10 +632,6 @@ function ZenSettingsPage:_buildSearchIndex()
                 end
                 local breadcrumb = item._zen_search_breadcrumb or table.concat(crumbs, " › ")
                 local help_text = item.help_text
-                if type(item.help_text_func) == "function" then
-                    local help_ok, value = pcall(item.help_text_func, self)
-                    if help_ok then help_text = value end
-                end
                 index[#index + 1] = {
                     item = item,
                     label = label,
@@ -637,10 +658,6 @@ function ZenSettingsPage:_buildSearchIndex()
                     for i = 2, #levels do crumbs[#crumbs + 1] = levels[i].title end
                     local breadcrumb = table.concat(crumbs, " › ")
                     local help_text = item.help_text
-                    if type(item.help_text_func) == "function" then
-                        local ok, value = pcall(item.help_text_func, self)
-                        if ok then help_text = value end
-                    end
                     local sub_items = self:_resolveSubItems(item)
                     index[#index + 1] = {
                         item = item,
@@ -876,15 +893,24 @@ end
 
 function M.closeActive()
     local stack = UIManager._window_stack
-    if active_page and type(stack) == "table" then
+    local deepest_arrange_resume = pending_arrange_resume
+    if type(stack) == "table" then
         for index = #stack, 1, -1 do
             local widget = stack[index] and stack[index].widget
-            if widget == active_page then break end
+            if active_page and widget == active_page then break end
             if widget and type(widget._zen_arrange_close_all) == "function" then
                 widget:_zen_arrange_close_all()
-                break
+                if pending_arrange_resume and (not deepest_arrange_resume
+                        or #pending_arrange_resume.path > #deepest_arrange_resume.path) then
+                    deepest_arrange_resume = pending_arrange_resume
+                end
             end
         end
+    end
+    pending_arrange_resume = deepest_arrange_resume
+    if not active_page and resume_state and deepest_arrange_resume then
+        resume_state.closed_at = os.time()
+        resume_state.arrange = deepest_arrange_resume
     end
     if active_page then active_page:closeMenu() end
     return true
@@ -951,7 +977,7 @@ function M.rememberStandaloneArrangeRoute(path, opener_text, arrange_path)
             path = copy_array(arrange_path),
         },
     }
-    return true
+    return true, resume_state.arrange
 end
 
 M.Page = ZenSettingsPage

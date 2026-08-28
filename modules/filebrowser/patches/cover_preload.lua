@@ -15,6 +15,7 @@ local function apply_cover_preload()
     local render_cache = require("common/cover_render_cache")
     local memory_policy = require("common/memory_policy")
     local CoverUtils = require("common/cover_utils")
+    local FolderCoverFiles = require("common/folder_cover_files")
     local FolderCover = require("modules/filebrowser/folder_cover")
     local zen_logger = require("common/zen_logger")
     local logger = zen_logger.new("cover_preload")
@@ -1304,10 +1305,16 @@ local function apply_cover_preload()
             deferred_stack_jobs)
         if folder_max_covers <= 0 or not FolderCover.isSupported(item, menu) then return end
         if max_jobs and #jobs + #gallery_jobs >= max_jobs then return end
+        local virtual = item._zen_files or item.series_items or item.is_series_group
+            or (menu and menu._zen_coll_list and item.name)
+        if not virtual and type(item.path) == "string"
+                and FolderCoverFiles.has(item.path, folder_mode) then
+            return
+        end
         local entries, physical, count, descriptor_cache_hit, enumeration_ms,
             descriptor_exact =
             FolderCover.previewEntries(menu, item, folder_max_covers)
-        if folder_mode == "gallery" and #entries > 0 then
+        if folder_mode == "gallery" and #entries > 1 then
             gallery_jobs[#gallery_jobs + 1] = {
                 kind = "gallery",
                 menu = menu,
@@ -1330,6 +1337,8 @@ local function apply_cover_preload()
             }
             return
         end
+        local full_size_preview = folder_mode == "normal" or folder_mode == "stack"
+            or #entries == 1
         for entry_index = 1, #entries do
             if max_jobs and #jobs + #gallery_jobs >= max_jobs then break end
             local grouped_item = entries[entry_index]
@@ -1347,9 +1356,8 @@ local function apply_cover_preload()
                 height = job_height,
                 render_width = folder_render_w,
                 render_height = folder_render_h,
-                final_render = folder_mode == "normal" or folder_mode == "stack",
-                preserve_aspect = (folder_mode == "normal" or folder_mode == "stack")
-                    and preserve_aspect,
+                final_render = full_size_preview,
+                preserve_aspect = full_size_preview and preserve_aspect,
             }
             if folder_mode == "stack" and entry_index > 1
                     and type(deferred_stack_jobs) == "table" then

@@ -21,7 +21,7 @@ local DEFAULT_GOALS_FONT_SIZE = 11
 local DEFAULT_DATETIME_MAX_FONT_SIZE = 36
 local MAX_DATETIME_FONT_SIZE = 160
 local DEFAULT_STATS_FONT_SIZE = 16
-local DEFAULT_STATS_MAX_FONT_SIZE = 22
+local DEFAULT_STATS_MAX_FONT_SIZE = 18
 local MAX_STATS_FONT_SIZE = 64
 local DEFAULT_DATETIME_FONT_SIZES = { time = 36, date = 12 }
 local DEFAULT_STRIP_CONTROL_TEXT_STYLE = {
@@ -1137,6 +1137,23 @@ function M.build(ctx)
         return mcfg.default_source
     end
 
+    local function tbr_order_item()
+        return IconItem.decorate({
+            text = _("Order"),
+            _zen_settings_submenu = true,
+            keep_menu_open = true,
+            callback = function(touchmenu_instance)
+                require("common/tbr_index").showOrder({
+                    plugin = ctx.plugin,
+                    settings_resume = touchmenu_instance
+                        and touchmenu_instance._zen_settings_resume,
+                    on_change = ctx.settings_apply
+                        and ctx.settings_apply.refresh_tbr_on_menu_close,
+                })
+            end,
+        }, icons.sort)
+    end
+
     local function edit_strip_label(controls, entry, touchmenu_instance)
         local InputDialog = require("ui/widget/inputdialog")
         local dialog
@@ -1408,9 +1425,9 @@ function M.build(ctx)
                 deferred_parent = settings_resume.deferred_parent,
             }
         else
-            settings_page.rememberStandaloneArrangeRoute({
+            settings_resume = select(2, settings_page.rememberStandaloneArrangeRoute({
                 { text = _("Home"), occurrence = 1 },
-            }, _("Widgets"), { "strip", _("Controls"), _("Tabs") })
+            }, _("Widgets"), { "strip", _("Controls"), _("Tabs") }))
         end
         local sort_items
         local function build_sort_items()
@@ -1420,7 +1437,7 @@ function M.build(ctx)
                 if entry then
                     local button_id = id
                     local button_entry = entry
-                    sort_items[#sort_items + 1] = {
+                    local sort_item = {
                         text_func = function()
                             return ButtonModel.label(controls, button_entry)
                         end,
@@ -1473,6 +1490,10 @@ function M.build(ctx)
                             },
                         },
                     }
+                    if button_id == "to_be_read" then
+                        table.insert(sort_item.sub_item_table, 2, tbr_order_item())
+                    end
+                    sort_items[#sort_items + 1] = sort_item
                 end
             end
             return sort_items
@@ -1746,7 +1767,9 @@ function M.build(ctx)
             })
         end
         local source = strip_default_source(mcfg)
-        if source.kind == "recent" then
+        if mcfg.controls.enabled ~= true and source.kind == "to_be_read" then
+            table.insert(items, 2, tbr_order_item())
+        elseif source.kind == "recent" then
             table.insert(items, 2, {
                 text = _("Recent filters"),
                 sub_item_table = {
@@ -2457,7 +2480,7 @@ function M.build(ctx)
 
     open_widget_settings = function(id, owning_plugin)
         local settings_page = require("modules/settings/zen_settings_page")
-        local standalone_route = settings_page.rememberStandaloneArrangeRoute({
+        local standalone_route, settings_resume = settings_page.rememberStandaloneArrangeRoute({
             { text = _("Home"), occurrence = 1 },
         }, _("Widgets"), { id })
         local items = build_widget_settings_items(id)
@@ -2471,6 +2494,7 @@ function M.build(ctx)
             plugin = owning_plugin or ctx.plugin,
             allow_arrange = false,
             hide_footer_cancel = true,
+            settings_resume = settings_resume,
             back_callback = standalone_route and function()
                 settings_page.rememberStandaloneArrangeRoute({
                     { text = _("Home"), occurrence = 1 },
@@ -2512,6 +2536,9 @@ function M.build(ctx)
                 end,
                 callback = function()
                     dcfg.show_status_bar = dcfg.show_status_bar == false
+                    if dcfg.show_status_bar then
+                        dcfg.modules.featured.show_status_bar = false
+                    end
                     save_home("reinit")
                 end,
             },
@@ -2578,7 +2605,7 @@ function M.build(ctx)
     IconItem.decorate(home_items[1], icons.widgets)
     IconItem.decorate(home_items[2], icons.edit)
     IconItem.decorate(home_items[3], icons.save)
-    IconItem.decorate(home_items[4], icons.title)
+    IconItem.decorate(home_items[4], icons.settings_status)
     IconItem.decorate(home_items[5], icons.settings_status)
 
     return {

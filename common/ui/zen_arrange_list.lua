@@ -38,6 +38,7 @@ local show_submenu
 local repopulate
 local plus_icon_path
 local cancel_item_drag_hold
+local pending_callback_resume_path
 local DRAG_UNFOCUS_DELAY = 0.1
 local ITEM_DRAG_HOLD_DELAY = 0.25
 
@@ -921,14 +922,22 @@ end
 
 local function open_resume_item(sort_widget, item, resume_path)
     if open_submenu_for_item(sort_widget, item, resume_path, true) then return true end
-    if #resume_path > 0 or item._zen_settings_submenu ~= true then return false end
+    if item._zen_settings_submenu ~= true then return false end
     local callback = item.callback
     if type(callback) ~= "function" and type(item.callback_func) == "function" then
         callback = item.callback_func()
     end
     if type(callback) ~= "function" then return false end
+    local previous_resume_path = pending_callback_resume_path
+    if #resume_path > 0 then
+        pending_callback_resume_path = {}
+        for _i, key in ipairs(resume_path) do
+            pending_callback_resume_path[#pending_callback_resume_path + 1] = key
+        end
+    end
     sort_widget.invisible = false
     callback(sort_widget._zen_menu_proxy)
+    pending_callback_resume_path = previous_resume_path
     return true
 end
 
@@ -1673,6 +1682,8 @@ end
 
 function M.show(opts)
     opts = opts or {}
+    local callback_resume_path = pending_callback_resume_path
+    pending_callback_resume_path = nil
     local arrange_enabled = opts.allow_arrange ~= false
     local menu_mode = opts.menu_mode == true
     local item_table = opts.item_table or {}
@@ -1690,7 +1701,13 @@ function M.show(opts)
     end
     local resume_item
     local resume_path
-    if settings_resume and #settings_resume.path > 0 then
+    if type(callback_resume_path) == "table" and #callback_resume_path > 0 then
+        resume_path = {}
+        for _i, key in ipairs(callback_resume_path) do
+            resume_path[#resume_path + 1] = key
+        end
+        resume_item = find_resume_item(item_table, resume_path[1])
+    elseif settings_resume and #settings_resume.path > 0 then
         resume_path = {}
         for _i, key in ipairs(settings_resume.path) do
             resume_path[#resume_path + 1] = key

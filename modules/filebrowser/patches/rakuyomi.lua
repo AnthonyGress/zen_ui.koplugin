@@ -228,13 +228,27 @@ local function has_origin_metadata(path)
     return has_origin
 end
 
+-- Rakuyomi's storage_path is user-configurable and may be pointed at the
+-- KOReader library folder itself. In that case every book in the library sits
+-- "inside storage", so path containment proves nothing -- fall back to the
+-- authoritative zip-comment origin check instead.
+local function storage_shadows_library()
+    local ok, paths = pcall(require, "common/paths")
+    local home = ok and type(paths) == "table" and type(paths.getHomeDir) == "function"
+        and paths.getHomeDir() or nil
+    home = normalize_path(home)
+    if not home then return false end
+    return home == get_storage_path()
+end
+
 function M.isChapterFile(path)
     if type(path) ~= "string" then
         return false
     end
 
     local storage = get_storage_path()
-    local in_storage = path_is_inside(path, storage) == true
+    local in_storage = not storage_shadows_library()
+        and path_is_inside(path, storage) == true
     local has_origin = in_storage or has_origin_metadata(path)
     return has_origin
 end

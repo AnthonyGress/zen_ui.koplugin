@@ -240,6 +240,9 @@ msgstr "著者"
 msgid "authors"
 msgstr "著者"
 
+msgid "Autorotate"
+msgstr "自動回転"
+
 msgid "Automatic"
 msgstr "自動"
 
@@ -1041,12 +1044,6 @@ msgstr "グリーン"
 msgid "Group book series into folders"
 msgstr "本のシリーズをフォルダにまとめる"
 
-msgid "Gyro"
-msgstr "ジャイロ"
-
-msgid "Gyroscope"
-msgstr "ジャイロスコープ"
-
 msgid "Hide finished books"
 msgstr "読了した本を非表示"
 
@@ -1067,6 +1064,9 @@ msgstr "未読の本を非表示"
 
 msgid "Hide up folder"
 msgstr "上フォルダを非表示"
+
+msgid "Hide when off"
+msgstr "オフのとき非表示"
 
 msgid "Highlight / Lookup"
 msgstr "ハイライト / 検索"
@@ -1586,6 +1586,9 @@ msgstr "不透明な背景"
 
 msgid "OPDS"
 msgstr "OPDS"
+
+msgid "Opacity"
+msgstr "不透明度"
 
 msgid "Open"
 msgstr "開ける"

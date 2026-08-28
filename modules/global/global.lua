@@ -135,9 +135,13 @@ function M.init(logger, plugin)
         "__ZEN_UI_BRIGHTNESS_SCHEDULE",
         "__ZEN_UI_WARMTH_SCHEDULE",
     }
+    local FRONTLIGHT_SCHEDULE_STATES = {
+        "__ZEN_UI_BRIGHTNESS_SCHEDULE",
+        "__ZEN_UI_WARMTH_SCHEDULE",
+    }
 
-    local function reschedule_schedules()
-        for _i, name in ipairs(SCHEDULE_STATES) do
+    local function reschedule_states(states)
+        for _i, name in ipairs(states) do
             local state = rawget(_G, name)
             if type(state) == "table" then
                 local fn = state.force_reschedule or state.reschedule
@@ -146,9 +150,20 @@ function M.init(logger, plugin)
         end
     end
 
+    local function reschedule_schedules()
+        reschedule_states(SCHEDULE_STATES)
+    end
+
+    local function reapply_frontlight_schedules()
+        reschedule_states(FRONTLIGHT_SCHEDULE_STATES)
+    end
+
     local function schedule_resume_reapply()
         UIManager:unschedule(reschedule_schedules)
+        UIManager:unschedule(reapply_frontlight_schedules)
         UIManager:scheduleIn(0.1, reschedule_schedules)
+        -- Some frontlights ignore writes immediately after resume.
+        UIManager:scheduleIn(1.5, reapply_frontlight_schedules)
     end
 
     if type(UIManager.broadcastEvent) == "function" then

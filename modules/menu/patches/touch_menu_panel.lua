@@ -80,6 +80,56 @@ function M.install(plugin)
     local _ = require("gettext")
     local Screen = Device.screen
 
+    local function ensure_panel_gestures(touch_menu)
+        local gestures = touch_menu.ges_events
+        if gestures
+                and gestures.Pan and gestures.Pan.event == "PanCloseAllMenus"
+                and gestures.Pan[1] and gestures.Pan[1].range == touch_menu.dimen
+                and gestures.PanCloseAllMenus == nil
+                and gestures.HoldCloseAllMenus and gestures.HoldCloseAllMenus[1]
+                and gestures.PanReleaseCloseAllMenus and gestures.PanReleaseCloseAllMenus[1]
+                and gestures.MultiSwipe and gestures.MultiSwipe[1] then
+            return
+        end
+
+        local sw = (touch_menu.screen_size and touch_menu.screen_size.w) or Screen:getWidth()
+        local sh = (touch_menu.screen_size and touch_menu.screen_size.h) or Screen:getHeight()
+        touch_menu.ges_events = touch_menu.ges_events or {}
+        touch_menu.ges_events.HoldCloseAllMenus = {
+            GestureRange:new{
+                ges = "hold",
+                range = Geom:new{ x = 0, y = 0, w = sw, h = sh },
+            }
+        }
+        -- Reuse KOReader's Pan slot so its handler cannot race ours.
+        touch_menu.ges_events.PanCloseAllMenus = nil
+        local pan_gestures = touch_menu.ges_events.Pan
+        if type(pan_gestures) ~= "table"
+                or not pan_gestures[1]
+                or pan_gestures[1].range ~= touch_menu.dimen then
+            pan_gestures = {
+                GestureRange:new{
+                    ges = "pan",
+                    range = touch_menu.dimen,
+                }
+            }
+            touch_menu.ges_events.Pan = pan_gestures
+        end
+        pan_gestures.event = "PanCloseAllMenus"
+        touch_menu.ges_events.PanReleaseCloseAllMenus = {
+            GestureRange:new{
+                ges = "pan_release",
+                range = Geom:new{ x = 0, y = 0, w = sw, h = sh },
+            }
+        }
+        touch_menu.ges_events.MultiSwipe = {
+            GestureRange:new{
+                ges = "multiswipe",
+                range = Geom:new{ x = 0, y = 0, w = sw, h = sh },
+            }
+        }
+    end
+
     local orig_init = TouchMenu.init
     function TouchMenu:init()
         orig_init(self)
@@ -93,37 +143,13 @@ function M.install(plugin)
                 end
             end
         end
-
-        local sw = (self.screen_size and self.screen_size.w) or Screen:getWidth()
-        local sh = (self.screen_size and self.screen_size.h) or Screen:getHeight()
-        self.ges_events.HoldCloseAllMenus = {
-            GestureRange:new{
-                ges = "hold",
-                range = Geom:new{ x = 0, y = 0, w = sw, h = sh },
-            }
-        }
-        self.ges_events.PanCloseAllMenus = {
-            GestureRange:new{
-                ges = "pan",
-                range = Geom:new{ x = 0, y = 0, w = sw, h = sh },
-            }
-        }
-        self.ges_events.PanReleaseCloseAllMenus = {
-            GestureRange:new{
-                ges = "pan_release",
-                range = Geom:new{ x = 0, y = 0, w = sw, h = sh },
-            }
-        }
-        self.ges_events.MultiSwipe = {
-            GestureRange:new{
-                ges = "multiswipe",
-                range = Geom:new{ x = 0, y = 0, w = sw, h = sh },
-            }
-        }
+        ensure_panel_gestures(self)
     end
 
     local orig_updateItems = TouchMenu.updateItems
     function TouchMenu:updateItems(target_page, target_item_id)
+        -- FileManager may create its TouchMenu before Zen UI patches the class.
+        ensure_panel_gestures(self)
         if not self.item_table or not self.item_table.panel then
             local cancelPanelRefresh = get_shared("cancelPanelRefresh")
             if type(cancelPanelRefresh) == "function" then
@@ -175,8 +201,9 @@ function M.install(plugin)
         end
         self.page_info_left_chev:showHide(page_num > 1)
         self.page_info_right_chev:showHide(page_num > 1)
-        self.page_info_left_chev:enableDisable(page > 1)
-        self.page_info_right_chev:enableDisable(page < page_num)
+        local cycle_pages = self.item_table.id == "app_launcher"
+        self.page_info_left_chev:enableDisable(page_num > 1 and (cycle_pages or page > 1))
+        self.page_info_right_chev:enableDisable(page_num > 1 and (cycle_pages or page < page_num))
 
         local schedulePanelRefresh = get_shared("schedulePanelRefresh")
         if type(schedulePanelRefresh) == "function" then

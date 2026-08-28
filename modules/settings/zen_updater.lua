@@ -11,8 +11,8 @@ local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
 local MarkdownText = require("common/ui/markdown_text")
 
-local GITHUB_OWNER = "AnthonyGress"
-local GITHUB_REPO = "zen_ui.koplugin"
+local GITHUB_OWNER = "xZenLabs"
+local GITHUB_REPO = "zen-os"
 local GITHUB_RELEASES_URL = string.format(
     "https://api.github.com/repos/%s/%s/releases",
     GITHUB_OWNER,

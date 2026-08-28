@@ -319,6 +319,58 @@ function M.build(ctx)
     -- Folders
     -- -------------------------------------------------------------------------
 
+    local function save_and_refresh_series_grouping()
+        plugin:saveConfig()
+        local home = SharedState.get(plugin, "home")
+        if home and type(home.invalidateLibraryCache) == "function" then
+            home.invalidateLibraryCache()
+        end
+        local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
+        local fc = ok_fm and FileManager and FileManager.instance
+            and FileManager.instance.file_chooser
+        if fc and fc._zen_clear_item_table_cache then
+            fc:_zen_clear_item_table_cache()
+        end
+        if fc and fc.path and fc.changeToPath then
+            fc:changeToPath(fc.path)
+        else
+            save_and_apply("automatic_series_grouping")
+        end
+    end
+
+    local function build_series_items()
+        local sub_items = {
+            {
+                text = _("Group book series into folders"),
+                checked_func = function()
+                    return config.features.automatic_series_grouping ~= false
+                end,
+                callback = function(touchmenu_instance)
+                    config.features.automatic_series_grouping =
+                        config.features.automatic_series_grouping == false
+                    save_and_refresh_series_grouping()
+                    if touchmenu_instance then
+                        touchmenu_instance.item_table = build_series_items()
+                    end
+                end,
+            },
+        }
+        if config.features.automatic_series_grouping ~= false then
+            sub_items[#sub_items + 1] = {
+                text = _("Hide grouped series"),
+                checked_func = function()
+                    return config.features.hide_grouped_series == true
+                end,
+                callback = function()
+                    config.features.hide_grouped_series =
+                        config.features.hide_grouped_series ~= true
+                    save_and_refresh_series_grouping()
+                end,
+            }
+        end
+        return sub_items
+    end
+
     table.insert(items, {
         text = _("Folders"),
         sub_item_table = {
@@ -332,30 +384,8 @@ function M.build(ctx)
                 end,
             },
             {
-                text = _("Group book series into folders"),
-                checked_func = function()
-                    return config.features.automatic_series_grouping ~= false
-                end,
-                callback = function()
-                    config.features.automatic_series_grouping =
-                        config.features.automatic_series_grouping == false
-                    plugin:saveConfig()
-                    local home = SharedState.get(plugin, "home")
-                    if home and type(home.invalidateLibraryCache) == "function" then
-                        home.invalidateLibraryCache()
-                    end
-                    local ok_fm, FileManager = pcall(require, "apps/filemanager/filemanager")
-                    local fc = ok_fm and FileManager and FileManager.instance
-                        and FileManager.instance.file_chooser
-                    if fc and fc._zen_clear_item_table_cache then
-                        fc:_zen_clear_item_table_cache()
-                    end
-                    if fc and fc.path and fc.changeToPath then
-                        fc:changeToPath(fc.path)
-                    else
-                        save_and_apply("automatic_series_grouping")
-                    end
-                end,
+                text = _("Series"),
+                sub_item_table_func = build_series_items,
             },
             -- Cover mode subsection
             {
@@ -656,10 +686,11 @@ function M.build(ctx)
                         text = "2:3 " .. _("(standard)"),
                         radio = true,
                         checked_func = function()
-                            return G_reader_settings:readSetting("uniform_cover_ratio") ~= "3:4"
+                            return config.uniform_cover_ratio ~= "3:4"
                         end,
                         callback = function()
-                            G_reader_settings:saveSetting("uniform_cover_ratio", "2:3")
+                            config.uniform_cover_ratio = "2:3"
+                            plugin:saveConfig()
                             local ui = require("apps/filemanager/filemanager").instance
                             if ui and ui.file_chooser then ui.file_chooser:updateItems() end
                         end,
@@ -668,10 +699,11 @@ function M.build(ctx)
                         text = "3:4 " .. _("(Kindle)"),
                         radio = true,
                         checked_func = function()
-                            return G_reader_settings:readSetting("uniform_cover_ratio") == "3:4"
+                            return config.uniform_cover_ratio == "3:4"
                         end,
                         callback = function()
-                            G_reader_settings:saveSetting("uniform_cover_ratio", "3:4")
+                            config.uniform_cover_ratio = "3:4"
+                            plugin:saveConfig()
                             local ui = require("apps/filemanager/filemanager").instance
                             if ui and ui.file_chooser then ui.file_chooser:updateItems() end
                         end,
@@ -1171,6 +1203,13 @@ function M.build(ctx)
         if type(config.library_background.path) ~= "string" then
             config.library_background.path = ""
         end
+        local opacity = tonumber(config.library_background.opacity)
+        if not opacity then
+            config.library_background.opacity = 100
+        else
+            config.library_background.opacity = math.max(0,
+                math.min(100, math.floor(opacity + 0.5)))
+        end
         return config.library_background
     end
     local function lib_bg_path()
@@ -1212,35 +1251,32 @@ function M.build(ctx)
 
     table.insert(items, {
         text = _("Background"),
-        sub_item_table = {
-            {
-                text = _("Enable"),
-                checked_func = function()
-                    return ensure_lib_bg().enabled == true
-                end,
-                callback = function(touchmenu_instance)
-                    local bg = ensure_lib_bg()
-                    if bg.enabled ~= true then
-                        -- Enabling: only allow if the image actually works.
-                        local bg_mod = require("common/ui/background")
-                        local ok_img, reason = bg_mod.validateImage(bg.path)
-                        if not ok_img then
-                            bg.enabled = false
-                            local InfoMessage = require("ui/widget/infomessage")
-                            UIManager:show(InfoMessage:new{
-                                text = lib_bg_error_text(reason),
-                            })
-                            if touchmenu_instance then touchmenu_instance:updateItems() end
-                            return
-                        end
-                        bg.enabled = true
-                    else
-                        bg.enabled = false
-                    end
-                    save_lib_bg()
+        checked_func = function()
+            return ensure_lib_bg().enabled == true
+        end,
+        checkmark_callback = function(touchmenu_instance)
+            local bg = ensure_lib_bg()
+            if bg.enabled ~= true then
+                -- Enabling: only allow if the image actually works.
+                local bg_mod = require("common/ui/background")
+                local ok_img, reason = bg_mod.validateImage(bg.path)
+                if not ok_img then
+                    bg.enabled = false
+                    local InfoMessage = require("ui/widget/infomessage")
+                    UIManager:show(InfoMessage:new{
+                        text = lib_bg_error_text(reason),
+                    })
                     if touchmenu_instance then touchmenu_instance:updateItems() end
-                end,
-            },
+                    return
+                end
+                bg.enabled = true
+            else
+                bg.enabled = false
+            end
+            save_lib_bg()
+            if touchmenu_instance then touchmenu_instance:updateItems() end
+        end,
+        sub_item_table = {
             {
                 text_func = function()
                     local path = lib_bg_path()
@@ -1277,6 +1313,27 @@ function M.build(ctx)
                         set_lib_bg("")
                         if touchmenu_instance then touchmenu_instance:updateItems() end
                     end
+                end,
+            },
+            {
+                text_func = function()
+                    return string.format("%s: %d%%", _("Opacity"),
+                        ensure_lib_bg().opacity)
+                end,
+                enabled_func = function()
+                    return ensure_lib_bg().enabled == true
+                end,
+                keep_menu_open = true,
+                callback = function(touchmenu_instance)
+                    local bg = ensure_lib_bg()
+                    zen_settings_utils.show_value_picker(
+                        _("Background") .. " - " .. _("Opacity"), bg.opacity,
+                        function(value)
+                            bg.opacity = math.max(0,
+                                math.min(100, math.floor(value + 0.5)))
+                            save_lib_bg()
+                            if touchmenu_instance then touchmenu_instance:updateItems() end
+                        end, 0, 100)
                 end,
             },
         },

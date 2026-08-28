@@ -92,7 +92,7 @@ local function apply_brightness_schedule()
         end
     end
 
-    local function set_brightness(value)
+    local function set_brightness(value, force)
         local Powerd = Device.powerd
         if Powerd then
             local lo = 0
@@ -102,7 +102,11 @@ local function apply_brightness_schedule()
                 pcall(Powerd.turnOffFrontlight, Powerd)
             elseif type(Powerd.setIntensity) == "function" then
                 value = math.max(Powerd.fl_min or 0, value)
-                pcall(Powerd.setIntensity, Powerd, value)
+                local ok, changed = pcall(Powerd.setIntensity, Powerd, value)
+                if force and ok and changed == false
+                        and type(Powerd.setIntensityHW) == "function" then
+                    pcall(Powerd.setIntensityHW, Powerd, value)
+                end
                 if type(Powerd.isFrontlightOff) == "function"
                         and Powerd:isFrontlightOff()
                         and type(Powerd.turnOnFrontlight) == "function" then
@@ -116,10 +120,10 @@ local function apply_brightness_schedule()
         end
     end
 
-    local function apply_mode_value()
+    local function apply_mode_value(force)
         if not uses_mode_values() then return end
         local cfg = get_config()
-        set_brightness(Screen.night_mode and cfg.night_value or cfg.day_value)
+        set_brightness(Screen.night_mode and cfg.night_value or cfg.day_value, force)
     end
 
     -- -------------------------------------------------------------------------
@@ -147,21 +151,21 @@ local function apply_brightness_schedule()
     -- Public reschedule
     -- -------------------------------------------------------------------------
 
-    local function reschedule()
+    local function reschedule(force)
         UIManager:unschedule(day_fn)
         UIManager:unschedule(night_fn)
         if not is_enabled() then
-            apply_mode_value()
+            apply_mode_value(force)
             return
         end
-        set_brightness(current_brightness_value())
+        set_brightness(current_brightness_value(), force)
         local cfg = get_config()
         UIManager:scheduleIn(seconds_until(cfg.day_h,   cfg.day_m),   day_fn)
         UIManager:scheduleIn(seconds_until(cfg.night_h, cfg.night_m), night_fn)
     end
 
     state.reschedule       = reschedule
-    state.force_reschedule = reschedule  -- brightness always applies (no guard)
+    state.force_reschedule = function() reschedule(true) end
     state.apply_mode_value = apply_mode_value
     state._on_suspend = function()
         UIManager:unschedule(day_fn)

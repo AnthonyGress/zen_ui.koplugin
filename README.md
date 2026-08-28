@@ -8,7 +8,7 @@
   <p>A clean, minimal reading experience.</p>
   <p>
     <a href="https://zen-labs.org/zen-os">Website</a> ·
-    <a href="https://github.com/AnthonyGress/zen_ui.koplugin/releases">Releases</a> ·
+    <a href="https://github.com/xZenLabs/zen-os/releases">Releases</a> ·
     <a href="docs/installation.md">Installation guide</a> ·
     <a href="https://discord.zen-labs.org">Discord</a>
   </p>
@@ -165,7 +165,7 @@ ZenOS upgrade; changes made later in ZenOS are intentionally not copied back.
 
 For a fresh installation:
 
-1. Go to the [Releases](https://github.com/AnthonyGress/zen_ui.koplugin/releases) page and download `zenos.koplugin.zip` from the latest release.
+1. Go to the [Releases](https://github.com/xZenLabs/zen-os/releases) page and download `zenos.koplugin.zip` from the latest release.
 2. Unzip the archive. You should have a **folder** named `zenos.koplugin`.
 3. Copy the `zenos.koplugin` **folder** into the KOReader plugins directory for your device (see the table below).
    - Copy the unzipped **folder**, not the `.zip` file itself.
@@ -207,6 +207,7 @@ ZenOS is currently translated into:
 | `de` | German |
 | `bg` | Bulgarian |
 | `cs` | Czech |
+| `hu` | Hungarian |
 | `pt_BR` | Brazilian Portuguese |
 | `pt_PT` | European Portuguese |
 | `ro` | Romanian |

@@ -325,6 +325,43 @@ describe("home data and book caches", function()
         assert.are.same({ "next", "previous" }, fallback)
     end)
 
+    it("reports quote selection and layout work separately", function()
+        ZenSpec.replace("modules/filebrowser/patches/home/home_quotes", {
+            selectQuote = function()
+                return { text = "Measured quote" }, {
+                    annotation_ms = 12.3,
+                    annotation_books = 23,
+                    annotation_cache_hits = 0,
+                    annotation_cache_misses = 1,
+                    sidecar_cache_hits = 4,
+                    sidecar_cache_misses = 2,
+                    state_writes = 1,
+                }
+            end,
+        })
+        ZenSpec.unload("modules/filebrowser/patches/home_page")
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local provider = get_build_data_provider(Home)({}, { quotes = {} })
+        provider:resetPerformanceStats()
+
+        assert.are.equal("Measured quote", provider:getCurrentQuote().text)
+        provider:recordQuoteLayout(45.6, false, 9)
+        local perf = provider:getPerformanceStats()
+
+        assert.is_number(perf.quote_select_ms)
+        assert.are.equal(12.3, perf.quote_annotation_ms)
+        assert.are.equal(23, perf.quote_annotation_books)
+        assert.are.equal(0, perf.quote_annotation_cache_hits)
+        assert.are.equal(1, perf.quote_annotation_cache_misses)
+        assert.are.equal(4, perf.quote_sidecar_cache_hits)
+        assert.are.equal(2, perf.quote_sidecar_cache_misses)
+        assert.are.equal(1, perf.quote_state_writes)
+        assert.are.equal(45.6, perf.quote_layout_ms)
+        assert.are.equal(0, perf.quote_layout_cache_hits)
+        assert.are.equal(1, perf.quote_layout_cache_misses)
+        assert.are.equal(9, perf.quote_layout_probes)
+    end)
+
     it("reuses history/status data across providers and opens one sidecar per book miss", function()
         local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
         local build_data_provider = get_build_data_provider(Home)
@@ -916,6 +953,63 @@ describe("home data and book caches", function()
         assert.are.same({ true, "reused" }, { Home.resumeActive() })
         assert.are.same({ "navbar", "resume" }, order)
         assert.is_nil(menu._zen_navbar_refresh_pending)
+    end)
+
+    it("rebuilds an invalidated TBR strip after its settings overlay closes", function()
+        local dirtied = {}
+        local UIManager = {
+            _window_stack = {},
+            nextTick = function(_self, callback) callback() end,
+            scheduleIn = function() end,
+            setDirty = function(_self, widget, refresh)
+                dirtied[#dirtied + 1] = { widget = widget, refresh = refresh }
+            end,
+            close = function(self, widget)
+                for index = #self._window_stack, 1, -1 do
+                    if self._window_stack[index].widget == widget then
+                        table.remove(self._window_stack, index)
+                        break
+                    end
+                end
+            end,
+        }
+        ZenSpec.replace("ui/uimanager", UIManager)
+        ZenSpec.unload("modules/filebrowser/patches/home_page")
+
+        local Home = get_home_module(require("modules/filebrowser/patches/home_page"))
+        local rebuilds = 0
+        local resumes = 0
+        local home = {
+            _home_rebuild = function(self)
+                rebuilds = rebuilds + 1
+                self._zen_home_needs_rebuild = nil
+                self._zen_home_reload_config = nil
+            end,
+            _zen_home_resume = function(self)
+                resumes = resumes + 1
+                self._zen_home_needs_repaint = nil
+                self:_home_rebuild()
+                UIManager:setDirty(self, "ui")
+                return true, "rebuilt"
+            end,
+        }
+        local settings = {}
+        set_home_menu(Home, home)
+        UIManager._window_stack = {
+            { widget = home },
+            { widget = settings },
+        }
+
+        Home.invalidateTBRCache()
+        assert.are.equal(0, rebuilds)
+        assert.is_true(home._zen_home_needs_rebuild)
+        assert.is_true(home._zen_home_reload_config)
+        assert.is_true(home._zen_home_needs_repaint)
+
+        UIManager:close(settings)
+        assert.are.equal(1, resumes)
+        assert.are.equal(1, rebuilds)
+        assert.are.same({ { widget = home, refresh = "ui" } }, dirtied)
     end)
 
     it("repaints Home after the last generic startup overlay closes", function()

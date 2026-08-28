@@ -252,6 +252,9 @@ msgstr "Autori"
 msgid "authors"
 msgstr "autori"
 
+msgid "Autorotate"
+msgstr "Rotire automată"
+
 msgid "Automatic"
 msgstr "Automat"
 
@@ -569,6 +572,9 @@ msgstr "Nu s-a putut contacta serverul de actualizări. Verifică conexiunea la 
 
 msgid "Could not scan Wi-Fi networks. Please try again after waking the device."
 msgstr "Nu s-au putut scana rețelele Wi-Fi. Încercați din nou după trezirea dispozitivului."
+
+msgid "Cover"
+msgstr "Copertă"
 
 msgid "CoverBrowser plugin is not enabled, some features will not work correctly."
 msgstr "Pluginul CoverBrowser nu este activat, unele funcții nu vor funcționa corect."
@@ -921,6 +927,12 @@ msgstr "Extrage metadate"
 msgid "Extras"
 msgstr "Suplimentare"
 
+msgid "Failed to clear folder cover."
+msgstr "Nu s-a putut șterge coperta dosarului."
+
+msgid "Failed to set folder cover."
+msgstr "Nu s-a putut seta coperta dosarului."
+
 msgid "Failed to submit report: "
 msgstr "Trimiterea raportului a eșuat: "
 
@@ -1056,14 +1068,11 @@ msgstr "Verde"
 msgid "Group book series into folders"
 msgstr "Grupează seriile de cărți în dosare"
 
-msgid "Gyro"
-msgstr "Giroscop"
-
-msgid "Gyroscope"
-msgstr "Giroscop"
-
 msgid "Hide finished books"
 msgstr "Ascunde cărțile terminate"
+
+msgid "Hide grouped series"
+msgstr "Ascunde seriile grupate"
 
 msgid "Hide in CBZ/PDF files"
 msgstr "Ascunde în fișiere CBZ/PDF"
@@ -1083,8 +1092,14 @@ msgstr "Ascunde cărțile necitite"
 msgid "Hide up folder"
 msgstr "Ascunde dosarul părinte"
 
+msgid "Hide when off"
+msgstr "Ascunde când este dezactivat"
+
 msgid "Highlight / Lookup"
 msgstr "Evidențiere / Căutare"
+
+msgid "Highlight names"
+msgstr "Numele evidențierilor"
 
 msgid "History"
 msgstr "Istoric"
@@ -1172,6 +1187,9 @@ msgstr "Interactiv"
 
 msgid "IP address: %1"
 msgstr "Adresă IP: %1"
+
+msgid "Items"
+msgstr "Elemente"
 
 msgid "items per page"
 msgstr "elemente pe pagină"
@@ -1610,6 +1628,9 @@ msgstr "Fundal opac"
 
 msgid "OPDS"
 msgstr "OPDS"
+
+msgid "Opacity"
+msgstr "Opacitate"
 
 msgid "Open"
 msgstr "Deschide"
@@ -2064,6 +2085,9 @@ msgstr "Setează ca fundal"
 msgid "Set file types to sync"
 msgstr "Setează tipurile de fișiere de sincronizat"
 
+msgid "Set folder cover"
+msgstr "Setează coperta dosarului"
+
 msgid "Set home folder"
 msgstr "Setează dosarul principal"
 
@@ -2423,6 +2447,9 @@ msgstr "Format oră"
 
 msgid "Time this week"
 msgstr "Este timpul săptămâna aceasta"
+
+msgid "Time remaining"
+msgstr "Timp rămas"
 
 msgid "Time to book end"
 msgstr "Timp până la finalul cărții"

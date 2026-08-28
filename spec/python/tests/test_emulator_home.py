@@ -276,6 +276,13 @@ def test_wrapped_featured_absorbs_space_above_compact_stats() -> None:
             "A long description that should claim all space not needed by stats. " * 30,
         )
         _seed_history(ko_home, fixture["epub"])
+        sidecar = fixture["epub"].with_suffix(".sdr")
+        sidecar.mkdir()
+        sidecar.joinpath("metadata.epub.lua").write_text(
+            'return { percent_finished = 0.4, summary = { status = "reading" }, '
+            'stats = { pages = 120 } }\n',
+            encoding="utf-8",
+        )
         socket_path = root / "driver.sock"
         process = launch(
             runtime,
@@ -293,7 +300,7 @@ def test_wrapped_featured_absorbs_space_above_compact_stats() -> None:
             assert driver.command("activate_navbar_tab", id="home")["ok"] is True
             home = _wait_for_home(
                 driver,
-                required_texts={"Alpha Home"},
+                required_texts={"Alpha Home", "40%"},
                 minimum_widget_count=2,
             )
             assert home["widget_ids"] == ["featured", "stats_triplet"]
@@ -310,8 +317,12 @@ def test_wrapped_featured_absorbs_space_above_compact_stats() -> None:
         ("stats_triplet", "quotes", False),
         ("stats_triplet", "reading_goals", True),
         ("strip", "quotes", False),
+        ("featured", "stats_triplet", False),
     ],
-    ids=["quote", "wrapped-reading-goal", "capped-strip-and-quote"],
+    ids=[
+        "quote", "wrapped-reading-goal", "capped-strip-and-quote",
+        "datetime-featured-stats",
+    ],
 )
 def test_three_widget_home_evenly_spaces_rows_to_the_bottom(
     middle_widget: str, last_widget: str, wrap_description: bool
@@ -326,11 +337,19 @@ def test_three_widget_home_evenly_spaces_rows_to_the_bottom(
         _seed_home_settings(ko_home)
         settings_path = ko_home / "settings" / "ZenOS" / "home.lua"
         settings_source = settings_path.read_text(encoding="utf-8")
+        first_widget = "datetime" if middle_widget == "featured" else "featured"
         settings_source = settings_source.replace(
             'order = { "featured", "strip", "quotes", "reading_goals", "stats_triplet" },',
-            f'order = {{ "featured", "{middle_widget}", "{last_widget}" }},',
+            f'order = {{ "{first_widget}", "{middle_widget}", "{last_widget}" }},',
         )
-        if middle_widget == "strip":
+        if first_widget == "datetime":
+            settings_source = settings_source.replace(
+                "featured = true, strip = true, quotes = true,\n"
+                "        reading_goals = true, stats_triplet = true,",
+                "datetime = true, featured = true, strip = false, quotes = false,\n"
+                "        reading_goals = false, stats_triplet = true,",
+            )
+        elif middle_widget == "strip":
             settings_source = settings_source.replace(
                 "featured = true, strip = true, quotes = true,\n"
                 "        reading_goals = true, stats_triplet = true,",
@@ -366,6 +385,14 @@ def test_three_widget_home_evenly_spaces_rows_to_the_bottom(
             )
         _seed_bookinfo(ko_home, fixture["epub"], description)
         _seed_history(ko_home, fixture["epub"])
+        if first_widget == "datetime":
+            sidecar = fixture["epub"].with_suffix(".sdr")
+            sidecar.mkdir()
+            sidecar.joinpath("metadata.epub.lua").write_text(
+                'return { percent_finished = 0.4, summary = { status = "reading" }, '
+                'stats = { pages = 120 } }\n',
+                encoding="utf-8",
+            )
         socket_path = root / "driver.sock"
         process = launch(runtime, ko_home, socket_path, library.resolve())
         try:
@@ -374,12 +401,13 @@ def test_three_widget_home_evenly_spaces_rows_to_the_bottom(
             assert driver.command("activate_navbar_tab", id="home")["ok"] is True
             home = _wait_for_home(
                 driver,
-                required_texts={"Alpha Home"},
+                required_texts={"Alpha Home", "40%"}
+                if first_widget == "datetime" else {"Alpha Home"},
                 minimum_widget_count=3,
                 required_state_keys={"quote_content_bounds"}
                 if last_widget == "quotes" else None,
             )
-            assert home["widget_ids"] == ["featured", middle_widget, last_widget]
+            assert home["widget_ids"] == [first_widget, middle_widget, last_widget]
             visual_gaps = home["visual_gaps"]
             assert len(visual_gaps) == 2
             assert max(visual_gaps) - min(visual_gaps) <= 1, home
@@ -391,6 +419,10 @@ def test_three_widget_home_evenly_spaces_rows_to_the_bottom(
                 quote_bottom = int(home["quote_content_bounds"]["bottom"])
                 bottom_inset = int(home["body_height"]) - quote_bottom
                 assert abs(bottom_inset - int(home["top_visual_inset"])) <= 2, home
+            if first_widget == "datetime":
+                heights = home["widget_heights"]
+                assert int(heights["featured"]) \
+                    > int(heights["stats_triplet"]) * 6, home
         finally:
             process.send_signal(signal.SIGTERM)
             process.wait(timeout=15)

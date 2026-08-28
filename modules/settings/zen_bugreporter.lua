@@ -12,7 +12,7 @@ local restart = require("common/restart")
 local zen_utils = require("common/utils")
 local updater = require("modules/settings/zen_updater")
 
-local PROXY_URL       = "https://zen-reporter-dev.misty-mud-afb2.workers.dev/"
+local PROXY_URL       = "https://zen-reporter.misty-mud-afb2.workers.dev/"
 local UPLOAD_URL = PROXY_URL .. "upload"
 local MAX_CRASH_LOG = 60000
 local MAX_TITLE     = 500
@@ -125,7 +125,7 @@ local function submit_issue(title, body)
 
     if code == 201 then
         local url = resp and resp:match('"url"%s*:%s*"([^"]+)"')
-        return url or "https://github.com/AnthonyGress/zen_ui.koplugin/issues"
+        return url or "https://github.com/xZenLabs/zen-os/issues"
     elseif code == 429 then
         return nil, _("Too many requests. Please try again later.")
     else

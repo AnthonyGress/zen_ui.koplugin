@@ -20,6 +20,7 @@ common/db_stats.lua|unit
 common/dispatch_action.lua|unit
 common/dispatcher_menu.lua|unit
 common/font_language.lua|unit
+common/folder_cover_files.lua|unit
 common/history_index.lua|unit
 common/i18n.lua|unit
 common/icon_packs.lua|unit
@@ -53,6 +54,7 @@ common/ui/background.lua|unit
 common/ui/book_progress.lua|unit
 common/ui/button_label_width.lua|unit
 common/ui/corner_banner.lua|unit
+common/ui/folder_cover_picker.lua|unit
 common/ui/icon_menu_item.lua|unit
 common/ui/markdown_text.lua|unit
 common/ui/truncated_text_message.lua|unit
@@ -157,6 +159,7 @@ modules/menu/app_launcher/plugin_scan.lua|integration
 modules/menu/app_launcher/page_plan.lua|unit
 modules/menu/app_launcher/book_switcher_page.lua|unit
 modules/menu/app_launcher/store.lua|integration
+modules/menu/app_launcher/zenpm_pending.lua|integration
 modules/menu/menu.lua|integration
 modules/menu/patches/app_launcher.lua|integration
 modules/menu/patches/brightness_slider.lua|integration
@@ -170,6 +173,7 @@ modules/menu/patches/zen_mode.lua|integration
 modules/reader/patches/book_status.lua|integration
 modules/reader/patches/bookmarks.lua|integration
 modules/reader/patches/dict_quick_lookup.lua|integration
+modules/reader/patches/highlight_names.lua|integration
 modules/reader/patches/highlight_menu.lua|integration
 modules/reader/patches/library_navigation.lua|integration
 modules/reader/patches/margin_hold_guard.lua|integration

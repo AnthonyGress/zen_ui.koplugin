@@ -24,6 +24,8 @@ describe("filebrowser cover preloading", function()
     local folder_cover_mode
     local folder_preview_entries
     local folder_preview_limits
+    local folder_explicit_covers
+    local folder_cover_file_checks
     local gallery_warms
     local gallery_cached
     local preload_order
@@ -95,6 +97,8 @@ describe("filebrowser cover preloading", function()
         folder_cover_mode = "normal"
         folder_preview_entries = {}
         folder_preview_limits = {}
+        folder_explicit_covers = {}
+        folder_cover_file_checks = {}
         gallery_warms = {}
         gallery_cached = {}
         preload_order = {}
@@ -306,6 +310,15 @@ describe("filebrowser cover preloading", function()
                 return { features = { browser_cover_mosaic_uniform = true } }
             end,
         })
+        ZenSpec.replace("common/folder_cover_files", {
+            has = function(path, mode)
+                folder_cover_file_checks[#folder_cover_file_checks + 1] = {
+                    path = path,
+                    mode = mode,
+                }
+                return folder_explicit_covers[path] == true
+            end,
+        })
         ZenSpec.replace("common/cover_utils", {
             getMode = function()
                 if folder_cover_mode == "normal" then return "normal", 1, false end
@@ -327,7 +340,7 @@ describe("filebrowser cover preloading", function()
                     return max_w, math.floor(max_w / aspect)
                 end
                 local portrait_w, portrait_h = calc(width, height)
-                if mode == "gallery" then
+                if mode == "gallery" and cover_count > 1 then
                     local left_w = math.floor((portrait_w - 1) / 2)
                     local top_h = math.floor((portrait_h - 1) / 2)
                     local cell_w = (slot == 2 or slot == 4)
@@ -412,7 +425,8 @@ describe("filebrowser cover preloading", function()
                 folder_preview_limits[#folder_preview_limits + 1] = limit
                 local values = folder_preview_entries[entry.path]
                     or entry._zen_files or entry.series_items
-                if not values and menu and menu._zen_coll_list and entry.name
+                local is_collection = menu and menu._zen_coll_list and entry.name
+                if not values and is_collection
                         and type(menu._zen_get_collection_files) == "function" then
                     values = menu._zen_get_collection_files(entry.name)
                 end
@@ -422,7 +436,10 @@ describe("filebrowser cover preloading", function()
                     entries[index] = type(value) == "table" and value
                         or { is_file = true, path = value }
                 end
-                return entries
+                local physical = not (entry._zen_files or entry.series_items or is_collection)
+                    and (entry.is_directory == true or entry.mode == "directory"
+                        or (entry.attr and entry.attr.mode == "directory"))
+                return entries, physical, #(values or {}), false, 0, true
             end,
             isGalleryCached = function(_menu, entry)
                 return gallery_cached[entry.path] == true
@@ -964,6 +981,69 @@ describe("filebrowser cover preloading", function()
         assert.are.same({
             { path = "/folder/first.epub", width = 100, height = 150 },
         }, render_calls)
+    end)
+
+    it("preloads a one-cover gallery as one full-size child", function()
+        local CoverMenu = require("covermenu")
+        folder_cover_mode = "gallery"
+        folder_preview_entries["/folder"] = { "/folder/only.epub" }
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = {
+                { is_file = true, path = "/current.epub" },
+                { path = "/folder", attr = { mode = "directory" } },
+            },
+            page = 1, page_num = 2, perpage = 1,
+            display_mode_type = "mosaic",
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        while #scheduled > 0 do table.remove(scheduled, 1)() end
+
+        assert.are.same({ "/folder/only.epub" }, warmed)
+        assert.are.same({ 4 }, folder_preview_limits)
+        assert.are.equal(0, #gallery_warms)
+        assert.are.same({
+            { path = "/folder/only.epub", width = 100, height = 150 },
+        }, render_calls)
+        local measurement = measurement_named("Cover preload completed")
+        assert.are.equal(1, metric_value(measurement, "final_render_warmed="))
+        assert.are.equal(0, metric_value(measurement, "gallery_warmed="))
+    end)
+
+    it("skips automatic preload jobs for a physical folder with explicit covers", function()
+        local CoverMenu = require("covermenu")
+        folder_cover_mode = "gallery"
+        folder_explicit_covers["/folder"] = true
+        folder_preview_entries["/folder"] = {
+            "/folder/first.epub", "/folder/second.epub",
+            "/folder/third.epub", "/folder/fourth.epub",
+        }
+        require("modules/filebrowser/patches/cover_preload")()
+        local menu = {
+            item_table = {
+                { is_file = true, path = "/current-1.epub" },
+                { is_file = true, path = "/current-2.epub" },
+                { path = "/folder", attr = { mode = "directory" } },
+                { is_file = true, path = "/next.epub" },
+            },
+            page = 1, page_num = 2, perpage = 2,
+            display_mode_type = "mosaic",
+            cover_specs = { max_cover_w = 100, max_cover_h = 150 },
+        }
+
+        CoverMenu.updateItems(menu)
+        while #scheduled > 0 do table.remove(scheduled, 1)() end
+
+        assert.are.same({ "/next.epub" }, warmed)
+        assert.are.equal(0, #gallery_warms)
+        assert.are.same({
+            { path = "/next.epub", width = 100, height = 150 },
+        }, render_calls)
+        assert.are.same({ { path = "/folder", mode = "gallery" } },
+            folder_cover_file_checks)
+        assert.are.same({}, folder_preview_limits)
     end)
 
     it("rechecks a cached folder candidate after visible hydration can evict it", function()

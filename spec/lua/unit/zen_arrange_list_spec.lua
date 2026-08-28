@@ -229,12 +229,12 @@ describe("Zen arrange list settings resume", function()
         assert.are.equal(picker._zen_menu_proxy, callback_host)
     end)
 
-    it("restores a callback-backed settings leaf", function()
+    it("restores descendants of a callback-backed settings leaf", function()
         local callback_parent
         require("modules/settings/zen_settings_page").claimArrangeRoute = function()
             return {
                 opener = { text = "Arrange" },
-                path = { "First", "Tabs" },
+                path = { "First", "Tabs", "TBR", "Order" },
             }
         end
 
@@ -250,7 +250,30 @@ describe("Zen arrange list settings resume", function()
                             keep_menu_open = true,
                             callback = function(parent)
                                 callback_parent = parent
-                                ui_manager:show({ title = "Tabs" })
+                                ArrangeList.show{
+                                    settings_resume = {
+                                        opener = parent._zen_settings_resume.opener,
+                                        path = { "First", "Tabs" },
+                                    },
+                                    item_table = {
+                                        {
+                                            text = "TBR",
+                                            sub_item_table = {
+                                                {
+                                                    text = "Order",
+                                                    _zen_settings_submenu = true,
+                                                    callback = function(order_parent)
+                                                        ui_manager:show({
+                                                            title = "Order",
+                                                            settings_resume =
+                                                                order_parent._zen_settings_resume,
+                                                        })
+                                                    end,
+                                                },
+                                            },
+                                        },
+                                    },
+                                }
                             end,
                         },
                     },
@@ -258,10 +281,12 @@ describe("Zen arrange list settings resume", function()
             },
         }
 
-        assert.are.equal(3, #shown_widgets)
-        assert.are.equal("Tabs", shown_widgets[3].title)
+        assert.are.equal(5, #shown_widgets)
+        assert.are.equal("Order", shown_widgets[5].title)
         assert.is_false(shown_widgets[2].invisible)
         assert.are.same({ "First" }, callback_parent._zen_settings_resume.path)
+        assert.are.same({ "First", "Tabs", "TBR" },
+            shown_widgets[5].settings_resume.path)
     end)
 
     it("does not reveal deferred parents while closing the whole arrange stack", function()

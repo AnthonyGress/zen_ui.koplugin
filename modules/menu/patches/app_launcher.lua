@@ -542,6 +542,7 @@
                 width = panel_width,
                 height = panel_height,
                 config = zen_plugin.config,
+                launcher_config = cfg,
                 ui = reader,
                 open_details = function()
                     open_current_book_details(touch_menu, reader)

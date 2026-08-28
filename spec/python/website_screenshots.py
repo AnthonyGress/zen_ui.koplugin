@@ -55,7 +55,7 @@ EXPECTED_IDS = frozenset((
     "controls_buttons_settings", "navbar_buttons_settings",
     "reader", "reader_launcher_book_switcher",
     "reader_launcher_book_details", "reader_book_details", "page_browser_grid",
-    "reader_dict", "reader_highlight",
+    "page_browser_carousel", "reader_dict", "reader_highlight",
 ))
 SHOWCASE_BOOK_COUNT = 12
 SHOWCASE_PLACEHOLDER_COUNT = SHOWCASE_BOOK_COUNT
@@ -255,8 +255,8 @@ def validate_catalog(scenarios: Sequence[Scenario]) -> None:
         ):
             raise ValueError(f"invalid crop declaration for {scenario.id}")
     page_browser_ids = [value for value in ids if value.startswith("page_browser")]
-    if page_browser_ids != ["page_browser_grid"]:
-        raise ValueError("page_browser_grid must be the sole Page Browser scenario")
+    if page_browser_ids != ["page_browser_grid", "page_browser_carousel"]:
+        raise ValueError("Page Browser scenarios must be grid then carousel")
     if "update_available" in ids:
         raise ValueError("update_available is intentionally outside the capture catalog")
 
@@ -974,6 +974,7 @@ def _seed_sidecars(books: Sequence[StagedBook]) -> None:
         metadata = {
             "doc_pages": 384 + index * 17,
             "percent_finished": progress[index],
+            "partial_md5_checksum": hashlib.md5(str(book.path).encode()).hexdigest(),
             "summary": {"status": statuses[index]},
         }
         if book.role != "reader":
@@ -1105,6 +1106,14 @@ def seed_showcase(ko_home: Path, books: Sequence[StagedBook], runtime: Path) -> 
         "show_book_switcher": True,
         "book_switcher_reader_only": False,
         "show_book_details": True,
+        "book_details_enabled": {
+            "read_time": True,
+            "time_remaining": True,
+            "pages_today": True,
+            "time_today": True,
+            "pages": True,
+            "progress": True,
+        },
         "zenpm_launcher_added": True,
     })
     fixed_ts = int(time.mktime(FIXED_LOCAL_TIME.timetuple()))
@@ -1164,7 +1173,8 @@ def audit_inventory(
             continue
         if filename not in catalog_files:
             errors.append(f"untracked emulator image {filename}: {', '.join(references)}")
-        if filename.startswith("page_browser") and filename != "page_browser_grid.png":
+        if filename.startswith("page_browser") and filename not in (
+                "page_browser_grid.png", "page_browser_carousel.png"):
             errors.append(f"retired Page Browser image remains in docs: {filename}")
         if filename == "update_available.png":
             errors.append("update_available.png remains in docs")
@@ -1173,7 +1183,8 @@ def audit_inventory(
                 or filename in MANUAL_SCREENSHOT_ASSETS
                 or filename.endswith(".svg")):
             continue
-        if filename.startswith("page_browser") and filename != "page_browser_grid.png":
+        if filename.startswith("page_browser") and filename not in (
+                "page_browser_grid.png", "page_browser_carousel.png"):
             warnings.append(
                 f"website carousel still contains retired {filename}; remove it when the website source is next updated"
             )
@@ -1665,7 +1676,7 @@ class CaptureWorkflow:
                     == expected_preset,
                     expected_preset,
                 )
-            if control == "page_browser_grid":
+            if control in ("page_browser_grid", "page_browser_carousel"):
                 _require_ok(driver.command("activate_reader_control", name="page_browser"), control)
                 _wait_for(
                     lambda: driver.command("page_browser_state"),

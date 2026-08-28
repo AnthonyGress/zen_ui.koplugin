@@ -5,7 +5,6 @@
 
 local _ = require("gettext")
 local UIManager = require("ui/uimanager")
-local utils = require("modules/settings/zen_settings_utils")
 local constants = require("common/constants")
 local icons = require("common/inline_icon_map")
 local IconItem = require("common/ui/icon_menu_item")
@@ -19,10 +18,6 @@ function M.build(ctx)
     local save_and_apply = ctx.save_and_apply
 
     local function save_and_apply_status_bar() save_and_apply("status_bar") end
-
-    local function make_enable_feature_item(feature, text)
-        return utils.make_enable_feature_item(feature, text, config, save_and_apply)
-    end
 
     -- -------------------------------------------------------------------------
     -- Slot items (deduplicates left / center / right)
@@ -97,6 +92,22 @@ function M.build(ctx)
             table.insert(items, item)
         end
         return items
+    end
+
+    local function make_wifi_items()
+        return {
+            {
+                text = _("Hide when off"),
+                checked_func = function()
+                    return config.status_bar.wifi_hide_when_off == true
+                end,
+                callback = function()
+                    config.status_bar.wifi_hide_when_off =
+                        config.status_bar.wifi_hide_when_off ~= true
+                    save_and_apply_status_bar()
+                end,
+            },
+        }
     end
 
     local function make_status_bar_slot_items(slot_name, arrange_title)
@@ -200,6 +211,10 @@ function M.build(ctx)
                 item.checked_func = is_checked
                 item.checkmark_callback = toggle
                 item.sub_item_table = make_date_format_items()
+            elseif key == "wifi" then
+                item.checked_func = is_checked
+                item.checkmark_callback = toggle
+                item.sub_item_table = make_wifi_items()
             else
                 item.checked_func = is_checked
                 item.callback = toggle
@@ -215,8 +230,14 @@ function M.build(ctx)
 
     return IconItem.decorate({
         text = _("Status bar"),
+        checked_func = function()
+            return config.features["status_bar"] == true
+        end,
+        checkmark_callback = function()
+            config.features["status_bar"] = config.features["status_bar"] ~= true
+            save_and_apply("status_bar")
+        end,
         sub_item_table = {
-            make_enable_feature_item("status_bar", _("Enable custom status bar")),
             {
                 text_func = function()
                     local name = config.status_bar.custom_text

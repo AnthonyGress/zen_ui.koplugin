@@ -15,7 +15,7 @@ If you discover a security vulnerability in ZenOS, **please do not open a public
 
 **To report a vulnerability:**
 
-1. Go to the [Security Advisories](https://github.com/AnthonyGress/zen_ui.koplugin/security/advisories) page on GitHub.
+1. Go to the [Security Advisories](https://github.com/xZenLabs/zen-os/security/advisories) page on GitHub.
 2. Click **"Report a vulnerability"** and fill in the details.
 
 Please include:

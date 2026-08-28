@@ -10,6 +10,8 @@ describe("navbar settings", function()
     local picker_options
     local icon_picker_options
     local input_text
+    local plugin
+    local tbr_order_options
     local dispatcher_update
     local dispatcher_action
     local dispatcher_text
@@ -32,6 +34,7 @@ describe("navbar settings", function()
         picker_options = nil
         icon_picker_options = nil
         input_text = nil
+        tbr_order_options = nil
         dispatcher_update = nil
         dispatcher_action = nil
         dispatcher_text = "Nothing"
@@ -48,6 +51,7 @@ describe("navbar settings", function()
                 self.update_count = (self.update_count or 0) + 1
             end,
         }
+        plugin = { saveConfig = function() saved = saved + 1 end }
         config = {
             navbar = {
                 default_tab = "home",
@@ -139,6 +143,9 @@ describe("navbar settings", function()
             chooseFolder = function(callback) choose_folder = callback end,
             chooseTag = function(callback) choose_tag = callback end,
         })
+        ZenSpec.replace("common/tbr_index", {
+            showOrder = function(options) tbr_order_options = options end,
+        })
         ZenSpec.replace("dispatcher", {
             addSubMenu = function(_self, _caller, _items, location, settings)
                 if dispatcher_action then location[settings] = dispatcher_action end
@@ -165,9 +172,12 @@ describe("navbar settings", function()
     local function build_navbar()
         return require("modules/settings/sections/library_settings/navbar_settings").build({
             config = config,
-            plugin = { saveConfig = function() saved = saved + 1 end },
+            plugin = plugin,
             save_and_apply = function() end,
-            settings_apply = { refresh_navbar_on_menu_close = function() end },
+            settings_apply = {
+                refresh_navbar_on_menu_close = function() end,
+                refresh_tbr_on_menu_close = function() end,
+            },
         })
     end
 
@@ -197,6 +207,24 @@ describe("navbar settings", function()
         assert.are.equal("home", config.navbar.default_tab)
         assert.are.equal(1, touch_menu.back_count)
         assert.are.equal(1, saved)
+    end)
+
+    it("opens the shared TBR order before delete", function()
+        config.navbar.show_tabs.to_be_read = true
+        config.navbar.tab_order[#config.navbar.tab_order + 1] = "to_be_read"
+        touch_menu._zen_settings_resume = { path = { "Tabs", "To Be Read" } }
+        local navbar = build_navbar()
+        navbar.sub_item_table[1].callback()
+
+        local items = find_arrange_item("to_be_read").sub_item_table_func()
+        assert.are.equal("Order", items[1].text)
+        assert.are.equal("Delete", items[2].text)
+
+        items[1].callback(touch_menu)
+        assert.is_table(tbr_order_options)
+        assert.are.equal(plugin, tbr_order_options.plugin)
+        assert.are.equal(touch_menu._zen_settings_resume, tbr_order_options.settings_resume)
+        assert.is_function(tbr_order_options.on_change)
     end)
 
     it("creates a library-scoped KOReader menu tab", function()
