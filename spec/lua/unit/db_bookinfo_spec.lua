@@ -33,6 +33,11 @@ describe("book info grouping cache", function()
             normPath = function(path) return path end,
             isInHomeDir = function() return true end,
         })
+        ZenSpec.replace("ui/data/isolanguage", {
+            getBCPLanguageTag = function(_self, code)
+                return code == "eng" and "en" or code
+            end,
+        })
         ZenSpec.replace("bookinfomanager", {
             db_location = "/settings/bookinfo.sqlite3",
             db_conn = {
@@ -66,9 +71,9 @@ describe("book info grouping cache", function()
                     end
                     if sql:find("filename, language", 1, true) then
                         return {
-                            { "/books/", "/books/" },
-                            { "a.epub", "b.epub" },
-                            { " en ", "fr" },
+                            { "/books/", "/books/", "/books/" },
+                            { "a.epub", "b.epub", "c.epub" },
+                            { " en ", "eng", "fr" },
                         }
                     end
                     return {
@@ -147,12 +152,12 @@ describe("book info grouping cache", function()
         assert.are.equal(1, exec_calls)
     end)
 
-    it("groups books by trimmed language metadata", function()
+    it("combines equivalent language codes", function()
         local groups = DbBookInfo.getGroupedByLanguage()
 
         assert.are.same({
-            { language = "en", files = { "/books/a.epub" } },
-            { language = "fr", files = { "/books/b.epub" } },
+            { language = "en", files = { "/books/a.epub", "/books/b.epub" } },
+            { language = "fr", files = { "/books/c.epub" } },
         }, groups)
         assert.are.equal(1, exec_calls)
     end)

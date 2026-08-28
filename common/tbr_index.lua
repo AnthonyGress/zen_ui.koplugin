@@ -829,10 +829,9 @@ function M.showOrder(options)
             local ordered = {}
             for _i, item in ipairs(items) do ordered[#ordered + 1] = item.orig_item end
             if M.setOrder(ordered) then
+                M.refreshViews(options.plugin)
                 if type(options.on_change) == "function" then
                     options.on_change()
-                else
-                    M.refreshViews(options.plugin)
                 end
             end
         end,

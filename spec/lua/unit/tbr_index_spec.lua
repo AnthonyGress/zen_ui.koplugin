@@ -282,7 +282,7 @@ describe("TBR path inventory", function()
         assert.are.equal(3, collection_writes)
     end)
 
-    it("shares one manual order across explicit and virtual TBR books", function()
+    it("saves a shared manual order and refreshes its views", function()
         config.group_view = { include_new_in_tbr = true }
         add_book("/books/a.epub", "reading", 1)
         add_book("/books/b.epub", "reading", 1)
@@ -334,9 +334,6 @@ describe("TBR path inventory", function()
             config.group_view.detail_collate.to_be_read.to_be_read)
         assert.is_false(config.group_view.detail_reverse.to_be_read.to_be_read)
         assert.are.equal(1, changed)
-        assert.same({ home = 0, group = 0, collection = 0 }, view_refreshes)
-
-        Index.refreshViews(plugin)
         assert.same({ home = 1, group = 1, collection = 1 }, view_refreshes)
 
         assert.is_true(Index.setExplicit("/books/c.epub", true))

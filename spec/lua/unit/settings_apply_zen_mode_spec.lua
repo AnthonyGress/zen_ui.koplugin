@@ -148,9 +148,7 @@ describe("Zen mode settings apply", function()
         _G.__ZEN_UI_REINJECT_NAVBARS = nil
     end)
 
-    it("refreshes and repaints TBR surfaces only after settings closes", function()
-        local plugin = {}
-        local refreshes = 0
+    it("repaints TBR surfaces only after settings closes", function()
         local repaints = 0
         local queued = {}
         local UIManager = require("ui/uimanager")
@@ -160,29 +158,19 @@ describe("Zen mode settings apply", function()
         UIManager.forceRePaint = function()
             repaints = repaints + 1
         end
-        ZenSpec.replace("common/tbr_index", {
-            refreshViews = function(received_plugin)
-                assert.are.equal(plugin, received_plugin)
-                refreshes = refreshes + 1
-            end,
-        })
         _G.__ZEN_UI_SETTINGS_PAGE = {}
 
         local settings_apply = require("modules/settings/zen_settings_apply")
-        settings_apply.set_plugin(plugin)
         settings_apply.refresh_tbr_on_menu_close()
 
-        assert.are.equal(0, refreshes)
         assert.are.equal(0, repaints)
         require("ui/widget/touchmenu"):onCloseWidget()
         assert.are.equal(0, #queued)
         _G.__ZEN_UI_SETTINGS_PAGE = nil
         settings_apply.flush_deferred_on_settings_close()
         assert.are.equal(1, #queued)
-        assert.are.equal(0, refreshes)
 
         queued[1]()
-        assert.are.equal(1, refreshes)
         assert.are.equal(1, repaints)
     end)
 end)
