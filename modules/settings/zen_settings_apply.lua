@@ -140,8 +140,6 @@ local function rebuild_active_home()
 end
 
 local function apply_tbr_refresh()
-    local plugin = active_plugin or rawget(_G, "__ZEN_UI_PLUGIN")
-    require("common/tbr_index").refreshViews(plugin)
     UIManager:setDirty(nil, "full")
     UIManager:forceRePaint()
 end
@@ -334,7 +332,7 @@ function M.refresh_navbar_on_menu_close()
     queue_deferred_apply("navbar_refresh")
 end
 
--- Refresh shared TBR surfaces only after the settings overlay closes.
+-- Repaint shared TBR surfaces only after the settings overlay closes.
 function M.refresh_tbr_on_menu_close()
     queue_deferred_apply("tbr_refresh")
 end

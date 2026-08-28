@@ -135,15 +135,12 @@ function M.build(opts)
     local divider_size = math.max(1, Device.screen:scaleBySize(1))
     local divider_width = math.max(0, #entries - 1) * divider_size
     local compact_count = 0
-    local search_count = 0
     for _i, entry in ipairs(entries) do
         if COMPACT_IDS[entry.id] then
             compact_count = compact_count + 1
-        elseif entry.id == "search" then
-            search_count = search_count + 1
         end
     end
-    local label_count = #entries - compact_count - search_count
+    local flexible_count = #entries - compact_count
     local compact_width = math.min(
         inner_height + Device.screen:scaleBySize(24), inner_width)
     local flexible_width = math.max(0,
@@ -155,48 +152,13 @@ function M.build(opts)
         end
     end
     local text_style = control_text_style(controls)
-    local label_weight = search_count > 0 and 2 or 1
-    local fit_width = label_count > 0 and math.floor(
-        flexible_width * label_weight
-            / (label_count * label_weight + search_count)) or 1
+    local fit_width = flexible_count > 0
+        and math.floor(flexible_width / flexible_count) or 1
     local face = fit_face(labels, math.max(1, fit_width), text_style,
         Device.screen:scaleBySize(text_style.font_size))
-    local label_text_widths = {}
-    local label_text_width = 0
-    local shortest_label_width = math.huge
-    for _i, label in ipairs(labels) do
-        local probe = TextWidget:new{ text = label, face = face, bold = text_style.bold }
-        local measured_width = probe:getSize().w
-        WidgetResources.free(probe)
-        label_text_widths[#label_text_widths + 1] = measured_width
-        label_text_width = label_text_width + measured_width
-        shortest_label_width = math.min(shortest_label_width, measured_width)
-    end
-    local button_widths = {}
-    local search_width = 0
-    if label_count > 0 and search_count > 0 then
-        -- Equal label padding; Search grows up to the shortest label cell.
-        local shared_padding = math.floor(
-            (flexible_width - label_text_width - shortest_label_width)
-                / (label_count + 1)) + 1
-        local max_padding = math.floor(
-            (flexible_width - label_text_width - 1) / label_count)
-        shared_padding = math.max(0, math.min(shared_padding, max_padding))
-        local used_width = 0
-        for i, measured_width in ipairs(label_text_widths) do
-            button_widths[i] = measured_width + shared_padding
-            used_width = used_width + button_widths[i]
-        end
-        search_width = math.max(1, flexible_width - used_width)
-    elseif label_count > 0 then
-        local button_width = math.floor(flexible_width / label_count)
-        local remainder = flexible_width - button_width * label_count
-        for i = 1, label_count do
-            button_widths[i] = button_width + (i <= remainder and 1 or 0)
-        end
-    elseif search_count > 0 then
-        search_width = math.floor(flexible_width / search_count)
-    end
+    local flexible_cell_width = flexible_count > 0
+        and math.floor(flexible_width / flexible_count) or 0
+    local flexible_remainder = flexible_width - flexible_cell_width * flexible_count
     local row = HorizontalGroup:new{ align = "center" }
     local targets = {}
     local radius = opts.rounded == true and Device.screen:scaleBySize(4) or 0
@@ -204,13 +166,14 @@ function M.build(opts)
     local vertical_hit_padding = Device.screen:scaleBySize(3)
     local edge_hit_padding = Device.screen:scaleBySize(4)
     local label_index = 0
+    local flexible_index = 0
 
     for index, entry in ipairs(entries) do
         local icon_entry = is_icon_entry(entry)
         if not icon_entry then label_index = label_index + 1 end
-        local cell_width = COMPACT_IDS[entry.id] and compact_width
-            or entry.id == "search" and search_width
-            or button_widths[label_index] or 0
+        if not COMPACT_IDS[entry.id] then flexible_index = flexible_index + 1 end
+        local cell_width = COMPACT_IDS[entry.id] and compact_width or flexible_cell_width
+            + (flexible_index <= flexible_remainder and 1 or 0)
         local active = entry.id == opts.active_id
         local content
         if icon_entry then

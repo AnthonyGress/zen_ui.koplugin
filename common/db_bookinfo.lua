@@ -6,6 +6,7 @@ local zen_logger = require("common/zen_logger")
 local logger = zen_logger.new("db_bookinfo")
 local now = zen_logger.now
 local lfs = require("libs/libkoreader-lfs")
+local iso_ok, IsoLanguage = pcall(require, "ui/data/isolanguage")
 local paths = require("common/paths")
 local MemoryPolicy = require("common/memory_policy")
 local bimOk, BookInfoManager = pcall(require, "bookinfomanager")
@@ -205,6 +206,14 @@ function M.getGroupedByLanguage()
                 local language = result[3] and result[3][index]
                 language = language and language:match("^%s*(.-)%s*$")
                 if language and language ~= "" then
+                    local code = language:gsub("-", "_"):match("^([^_]+)")
+                    if code and (#code == 2 or #code == 3)
+                            and code:match("^%a+$") then
+                        language = code:lower()
+                        if iso_ok and type(IsoLanguage.getBCPLanguageTag) == "function" then
+                            language = IsoLanguage:getBCPLanguageTag(language)
+                        end
+                    end
                     if not language_map[language] then language_map[language] = {} end
                     table.insert(language_map[language], raw_filepath)
                 end

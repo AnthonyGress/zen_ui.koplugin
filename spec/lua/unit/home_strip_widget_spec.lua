@@ -818,18 +818,18 @@ describe("home strip widget", function()
         assert.is_true(has_text("Start reading a book to fill this space."))
     end)
 
-    it("balances a dynamic Search between compact page controls", function()
+    it("sizes dynamic tabs evenly between compact page controls", function()
         rawset(_G, "__ZEN_UI_PLUGIN", {
             config = { features = { browser_cover_rounded_corners = true } },
         })
         local controls = {
             enabled = true,
-            order = { "page_left", "to_be_read", "search", "tags", "page_right" },
+            order = { "page_left", "recent", "search", "to_be_read", "page_right" },
             show_buttons = {
-                page_left = true, to_be_read = true, search = true,
-                tags = true, page_right = true,
+                page_left = true, recent = true, search = true,
+                to_be_read = true, page_right = true,
             },
-            labels = { tags = "Tags" },
+            labels = {},
             custom_buttons = {},
         }
         local Strip = require("modules/filebrowser/patches/home/widgets/strip")
@@ -870,7 +870,7 @@ describe("home strip widget", function()
         assert.are.equal(584, outer_frames[1].width)
         assert.are.equal(4, outer_frames[1].radius)
         assert.are.equal(2, #tab_frames)
-        assert.are.same({ 183, 147 }, {
+        assert.are.same({ 159, 158 }, {
             tab_frames[1].width,
             tab_frames[2].width,
         })
@@ -881,10 +881,9 @@ describe("home strip widget", function()
         assert.are.equal("\u{F0141}", icon_map.arrow_left)
         assert.are.equal("\u{F0142}", icon_map.arrow_right)
         assert.are.equal(50, icon_cells[icon_map.arrow_left].dimen.w)
-        assert.are.equal(146, icon_cells[icon_map.search].dimen.w)
+        assert.are.equal(159, icon_cells[icon_map.search].dimen.w)
         assert.are.equal(50, icon_cells[icon_map.arrow_right].dimen.w)
-        assert.are.equal(tab_frames[1].width - #"To Be Read" * 6,
-            tab_frames[2].width - #"Tags" * 6)
+        assert.is_true(math.abs(tab_frames[1].width - tab_frames[2].width) <= 1)
         for _i, icon in ipairs({
             icon_map.arrow_left, icon_map.search, icon_map.arrow_right,
         }) do
@@ -896,8 +895,8 @@ describe("home strip widget", function()
             assert.are.equal(1, divider.dimen.w)
             assert.are.equal("black", divider.background)
         end
+        assert.is_true(has_text("Recent"))
         assert.is_true(has_text("To Be Read"))
-        assert.is_true(has_text("Tags"))
         assert.is_true(has_text(icon_map.arrow_left))
         assert.is_true(has_text(icon_map.search))
         assert.is_true(has_text(icon_map.arrow_right))
@@ -922,10 +921,8 @@ describe("home strip widget", function()
                 wide_label_widths[#wide_label_widths + 1] = widget.width
             end
         end
-        assert.are.equal(213, wide_search_width)
-        assert.are.same({ 250, 214 }, wide_label_widths)
-        assert.is_true(wide_search_width > icon_cells[icon_map.search].dimen.w)
-        assert.is_true(wide_search_width < wide_label_widths[2])
+        assert.are.equal(226, wide_search_width)
+        assert.are.same({ 226, 225 }, wide_label_widths)
     end)
 
     it("squares strip controls when rounded library covers are disabled", function()
