@@ -604,7 +604,7 @@ local function migrate_folder_path_settings(cfg)
             for slot, cover_path in pairs(slots) do
                 local extension = type(cover_path) == "string"
                     and cover_path:lower():match("%.([^./]+)$") or nil
-                if extension ~= "jpg" then
+                if extension ~= "jpg" and extension ~= "jpeg" then
                     slots[slot] = nil
                     changed = true
                 end

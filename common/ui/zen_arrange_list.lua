@@ -85,11 +85,11 @@ local function item_is_enabled(item)
 end
 
 local function toggle_sort_item(sort_widget, item)
-    if not (sort_widget and item and item.checked_func and item.callback) then
+    if not (sort_widget and item and item.checked_func) then
         return false
     end
     if not item_is_enabled(item) then return false end
-    item:callback()
+    if not ArrangeState.toggleItem(item) then return false end
     if sort_widget.marked and sort_widget.marked > 0 then
         sort_widget.marked = 0
     end
@@ -1621,9 +1621,7 @@ install_submenu_tap_handlers = function(sort_widget)
                     return true
                 end
                 if item.checked_func and ges and is_toggle_tap(row, ges.pos) then
-                    if item.callback then
-                        item:callback()
-                    end
+                    ArrangeState.toggleItem(item)
                     if not row.show_parent._zen_menu_mode then
                         repopulate(row.show_parent)
                     end
@@ -1658,9 +1656,7 @@ install_root_tap_handlers = function(sort_widget)
                     ges and is_toggle_tap(row, ges.pos)
                 )
                 if action == "toggle" then
-                    if item.callback then
-                        item:callback()
-                    end
+                    ArrangeState.toggleItem(item)
                     if not row.show_parent._zen_menu_mode then
                         repopulate(row.show_parent)
                     end

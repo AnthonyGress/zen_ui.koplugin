@@ -53,6 +53,19 @@ describe("arrange state", function()
         assert.are.equal("consume", ArrangeState.rootTapAction({}, false))
     end)
 
+    it("uses a submenu checkmark callback for toggle activation", function()
+        local active = false
+        local submenu_opened = false
+        local item = {
+            checkmark_callback = function() active = not active end,
+            callback = function() submenu_opened = true end,
+        }
+
+        assert.is_true(ArrangeState.toggleItem(item))
+        assert.is_true(active)
+        assert.is_false(submenu_opened)
+    end)
+
     it("recognizes unmodified Enter keys for handle repeat suppression", function()
         local press = {
             match = function(_self, sequence) return sequence[1] == "Press" end,

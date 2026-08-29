@@ -166,7 +166,7 @@ describe("config manager folder-path migration", function()
         assert.is_false(config._meta.quickstart_completed)
     end)
 
-    it("keeps only JPG folder-cover references while preserving clear tombstones", function()
+    it("keeps JPG and JPEG folder-cover references while preserving clear tombstones", function()
         settings_file.data = {
             folder_cover_paths = {
                 ["/library/mixed"] = {
@@ -188,6 +188,7 @@ describe("config manager folder-path migration", function()
         assert.are.same({
             [1] = "/images/first.jpg",
             [2] = "/images/second.JPG",
+            [3] = "/images/legacy.jpeg",
         }, config.folder_cover_paths["/library/mixed"])
         assert.is_nil(config.folder_cover_paths["/library/unsupported"])
         assert.are.same({}, config.folder_cover_paths["/library/cleared"])
